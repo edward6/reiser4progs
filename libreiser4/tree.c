@@ -2635,6 +2635,83 @@ static errno_t callback_prep_write(reiser4_place_t *place,
 			 prep_write, place, hint);
 }
 
+/* This grows tree until requested level reached. Also*/
+static inline errno_t tree_growup_level(reiser4_tree_t *tree,
+					uint8_t level)
+{
+	if (level <= reiser4_tree_get_height(tree))
+		return 0;
+	
+	if (reiser4_tree_fresh(tree))
+		return -EINVAL;
+		
+	while (level > reiser4_tree_get_height(tree)) {
+		errno_t res;
+		
+		if ((res = reiser4_tree_growup(tree)))
+			return res;
+	}
+		
+	return 0;
+}
+
+/* This function prepares the tree for insert. That is it allocated root and
+   first leaf if needed, splits the tree, etc. */
+static inline errno_t tree_prepare_insert(reiser4_tree_t *tree,
+					  reiser4_place_t *place,
+					  uint8_t level)
+{
+	errno_t res;
+	uint32_t height;
+	reiser4_node_t *root;
+
+	if (!reiser4_tree_fresh(tree)) {
+		if (level < reiser4_node_get_level(place->node)) {
+			/* Allocating node of requested level and assign place
+			   for insert to it. This is the case, when we insert a
+			   tail among extents. That is previous lookup stoped on
+			   twig level and now we have to allocate a node of
+			   requested level, insert tail to it and then attach
+			   new node to tree. */
+			if (!(place->node = reiser4_tree_alloc_node(tree, level)))
+				return -ENOSPC;
+
+			POS_INIT(&place->pos, 0, MAX_UINT32);
+		} else if (level > reiser4_node_get_level(place->node)) {
+			/* Prepare the tree for insertion at the @level. Here is
+			   case when extent is going to inserted. As lookup goes
+			   to the leaf level, we split tree from leaf level up
+			   to requested @level, which is level new extent should
+			   be inserted. */
+			if ((res = reiser4_tree_split(tree, place, level)))
+				return res;
+		}
+	} else {
+		aal_assert("umka-3055", place->node == NULL);
+		
+		/* Preparing tree for insert first item (allocating root,
+		   etc). */
+		height = reiser4_tree_get_height(tree);
+
+		if (!(root = reiser4_tree_alloc_node(tree, height)))
+			return -ENOSPC;
+
+		if ((res = reiser4_tree_assign_root(tree, root)))
+			return res;
+
+		if (level == reiser4_node_get_level(root)) {
+			place->node = root;
+		} else {
+			if (!(place->node = reiser4_tree_alloc_node(tree, level)))
+				return -ENOMEM;
+		}
+	
+		POS_INIT(&place->pos, 0, MAX_UINT32);
+	}
+	
+	return 0;
+}
+
 /* Main function for tree modifications. It is used for inserting data to tree
    (stat data items, directries) or writting (tails, extents). */
 int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
@@ -2644,11 +2721,10 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 {
 	bool_t mode;
 	errno_t res;
-	reiser4_place_t old;
-
 	int32_t space;
 	int32_t write;
 	uint32_t needed;
+	reiser4_place_t old;
 
 	aal_assert("umka-2673", tree != NULL);
 	aal_assert("umka-2674", hint != NULL);
@@ -2673,94 +2749,28 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	/* Checking if we have the tree with height less than requested
 	   level. If so, we should grow the tree up to requested level. */
 	if (level > reiser4_tree_get_height(tree)) {
-		lookup_hint_t lhint;
-		
 		if (reiser4_tree_fresh(tree))
 			return -EINVAL;
 		
 		reiser4_node_lock(place->node);
-		
-		while (level > reiser4_tree_get_height(tree)) {
-			if (reiser4_tree_growup(tree)) {
-				reiser4_node_unlock(place->node);
-				return -EINVAL;
-			}
-		}
-		
-		reiser4_node_unlock(place->node);
-		
-		/* Getting new place item/unit will be inserted at after tree is
-		   growed up. It is needed because we want to insert item into
-		   the node of the given @level but after tree_growup() and thus
-		   rebalancing we need to get correct position where to insert
-		   item. */
-		lhint.level = level;
-		lhint.key = &hint->offset;
-		lhint.correct_func = NULL;
-	
-		if ((res = reiser4_tree_lookup(tree, &lhint, FIND_CONV,
-					       place) < 0))
-		{
-			aal_error("Lookup failed after tree growed up to "
-				  "requested level %d.", level);
+
+		if ((res = tree_growup_level(tree, level))) {
+			reiser4_node_unlock(place->node);
 			return res;
 		}
+		reiser4_node_unlock(place->node);
+
+		/* Assigning insert point into new root as it was requested to
+		   be insert point. */
+		reiser4_place_assign(place, tree->root, 0, MAX_UINT32);
 	}
 
 	old = *place;
-	
-	/* Handling the case when tree is empty (just after tree is initialized
-	   by tree_init() function). */
-	if (!reiser4_tree_fresh(tree)) {
-		if (level < reiser4_node_get_level(place->node)) {
-			/* Allocating node of requested level and assign place
-			   for insert to it. This is the case, when we insert a
-			   tail among extents. That is previous lookup stoped on
-			   twig level and now we have to allocate a node of
-			   requested level, insert tail to it and then attach
-			   new node to tree. */
-			if (!(place->node = reiser4_tree_alloc_node(tree, level)))
-				return -ENOSPC;
 
-			POS_INIT(&place->pos, 0, MAX_UINT32);
-		} else if (level > reiser4_node_get_level(place->node)) {
-			/* Prepare the tree for insertion at the @level. Here is
-			   case when extent is going to inserted. As lookup goes
-			   to the leaf level, we split tree from leaf level up
-			   to requested @level, which is level new extent should
-			   be inserted. */
-			if ((res = reiser4_tree_split(tree, place, level)))
-				return res;
-		}
-	} else {
-		uint32_t height;
-		reiser4_node_t *root;
-
-		aal_assert("umka-3055", place->node == NULL);
-
-		/* Allocating root node and assign it to tree. This is the case
-		   we first time insert into tree and have not a root node. */
-		height = reiser4_tree_get_height(tree);
-
-		if (!(root = reiser4_tree_alloc_node(tree, height)))
-			return -ENOSPC;
-
-		if ((res = reiser4_tree_assign_root(tree, root)))
-			return res;
-
-		/* Check if insert point level is the same as new allocated
-		   root, then we assign insert point to root. New node of
-		   requested level will be allocated otherwise and insert point
-		   will be assigned to it. */
-		if (level == height) {
-			reiser4_place_assign(place, root, 0, MAX_UINT32);
-		} else {
-			if (!(place->node = reiser4_tree_alloc_node(tree, level)))
-				return -ENOMEM;
-			
-			POS_INIT(&place->pos, 0, MAX_UINT32);
-		}
-	}
+	/* Preparing thigs for insert. This may be splitting the tree,
+	   allocating root, etc. */
+	if ((res = tree_prepare_insert(tree, place, level)))
+		return res;
 	
 	/* Estimating item/unit to inserted/written to tree. */
 	if ((res = estimate_func(place, hint)))
@@ -2770,9 +2780,8 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	needed = hint->len + hint->overhead;
 	mode = (place->pos.unit == MAX_UINT32);
 
-	if (old.node) {
+	if (old.node != NULL)
 		reiser4_tree_lock_node(tree, old.node);
-	}
 
 	/* Preparing space in tree. */
 	if ((space = reiser4_tree_expand(tree, place, needed,
@@ -2789,9 +2798,8 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 
 	/* Unlocking @old.node after making space. If it got empty, it will be
 	   removed here. */
-	if (old.node) {
+	if (old.node != NULL)
 		reiser4_tree_unlock_node(tree, old.node);
-	}
 
 	/* Checking if we still have less space than needed. This is ENOSPC case
 	   if we tried to insert data. */
@@ -2811,9 +2819,8 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	   but insert point was moved to new empty node and thus, we need to
 	   insert new item. As item may has an overhead like directory one has,
 	   we should take it to acount. */
-	if (mode != (place->pos.unit == MAX_UINT32)) {
+	if (mode != (place->pos.unit == MAX_UINT32))
 		hint->overhead = reiser4_item_overhead(hint->plug);
-	}
 
 	/* Inserting/writing data to node. */
 	if ((write = reiser4_node_modify(place->node, &place->pos,

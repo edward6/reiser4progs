@@ -516,7 +516,7 @@ if test x$enable_stand_alone = xyes; then
 		LARGE_KEYS_CFLAGS="-DENABLE_LARGE_KEYS"
    	fi
 
-	if test x$enable_large_keys != xyes -a x$enable_short_keys != xyes ; then
+	if test x$enable_large_keys != xyes -a x$enable_short_keys != xyes; then
 		echo
 		echo Both LARGE and SHORT keys cannot be disabled at the same time.
 		exit 1;
