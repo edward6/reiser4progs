@@ -410,8 +410,10 @@ AC_OUTPUT([
     Makefile
     include/Makefile
     include/aux/Makefile
+    include/misc/Makefile
     include/reiser4/Makefile
     include/repair/Makefile
+    libmisc/Makefile
     libaux/Makefile
     libreiser4/Makefile
     librepair/Makefile
@@ -451,9 +453,6 @@ AC_OUTPUT([
     plugin/sdext/sdext_symlink/Makefile
     demos/Makefile
     progs/Makefile
-    progs/include/Makefile
-    progs/include/misc/Makefile
-    progs/libmisc/Makefile
     progs/mkfs/Makefile
     progs/fsck/Makefile
     progs/debugfs/Makefile

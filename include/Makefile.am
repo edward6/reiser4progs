@@ -1,1 +1,1 @@
-SUBDIRS = aux reiser4 repair
+SUBDIRS = aux misc reiser4 repair

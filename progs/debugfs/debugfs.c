@@ -361,12 +361,7 @@ int main(int argc, char *argv[]) {
 			goto error_free_tree;
 	}
     
-	if (print_flags & PF_NODES) {
-		if (debugfs_print_file(fs, print_filename, print_flags))
-			goto error_free_tree;
-	}
-
-	if (print_flags & PF_ITEMS) {
+	if (print_flags & PF_NODES || print_flags & PF_ITEMS) {
 		if (debugfs_print_file(fs, print_filename, print_flags))
 			goto error_free_tree;
 	}

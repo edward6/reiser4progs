@@ -1,1 +1,1 @@
-SUBDIRS = libmisc mkfs debugfs measurefs fsck include
+SUBDIRS = mkfs debugfs measurefs fsck
