@@ -321,34 +321,37 @@ reiser4_fs_t *reiser4_fs_create(
 errno_t reiser4_fs_sync(
 	reiser4_fs_t *fs)		/* fs instance to be synchronized */
 {
+	errno_t res;
 	aal_assert("umka-231", fs != NULL);
    
 	/* Synchronizing the tree */
-	if (fs->tree && reiser4_tree_sync(fs->tree))
-		return -1;
+	if (fs->tree && (res = reiser4_tree_sync(fs->tree)))
+		return res;
     
 	/* Synchronizing the journal */
 	if (fs->journal && fs->journal->dirty) {
-		if (reiser4_journal_sync(fs->journal))
-			return -1;
+		if ((res = reiser4_journal_sync(fs->journal)))
+			return res;
 	}
     
 	/* Synchronizing block allocator */
-	if (fs->alloc->dirty && reiser4_alloc_sync(fs->alloc))
-		return -1;
+	if (fs->alloc->dirty) {
+		if ((res = reiser4_alloc_sync(fs->alloc)))
+			return res;
+	}
     
 	/* Synchronizing the object allocator */
-	if (reiser4_oid_sync(fs->oid))
-		return -1;
+	if ((res = reiser4_oid_sync(fs->oid)))
+		return res;
     
 	if (fs->format->dirty) {
-		if (reiser4_format_sync(fs->format))
-			return -1;
+		if ((res = reiser4_format_sync(fs->format)))
+			return res;
 	}
 
 	if (fs->master->dirty) {
-		if (reiser4_master_sync(fs->master))
-			return -1;
+		if ((res = reiser4_master_sync(fs->master)))
+			return res;
 	}
 
 	return 0;
@@ -367,7 +370,8 @@ errno_t reiser4_fs_hyper_key(reiser4_fs_t *fs, reiser4_key_t *key) {
 	hyper_locality = reiser4_oid_hyper_locality(fs->oid);
 		
 	return reiser4_key_build_generic(key, KEY_STATDATA_TYPE, 
-					 hyper_locality, root_locality, 0);
+					 hyper_locality,
+					 root_locality, 0);
 }
 
 #endif

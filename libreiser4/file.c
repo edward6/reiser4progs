@@ -37,6 +37,7 @@ uint64_t reiser4_file_size(reiser4_file_t *file) {
 
 /* Looks up for the file stat data place in tree */
 errno_t reiser4_file_stat(reiser4_file_t *file) {
+	errno_t res;
 	
 	/* Setting up the file key to statdata one */
 	reiser4_key_set_offset(&file->key, 0);
@@ -51,8 +52,8 @@ errno_t reiser4_file_stat(reiser4_file_t *file) {
 	}
 
 	/* Initializing item at @file->place */
-	if (reiser4_place_realize(&file->place))
-		return -1;
+	if ((res = reiser4_place_realize(&file->place)))
+		return res;
 
 	return reiser4_item_get_key(&file->place, &file->key);
 }
@@ -61,17 +62,19 @@ errno_t reiser4_file_stat(reiser4_file_t *file) {
 static errno_t callback_find_statdata(char *track, char *entry,
 				      void *data)
 {
+	errno_t res;
 	place_t *place;
+	
 	reiser4_file_t *file;
 	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
 
 	file = (reiser4_file_t *)data;
 
-	if (reiser4_file_stat(file)) {
+	if ((res = reiser4_file_stat(file))) {
 		aal_exception_error("Can't find stat data of %s.",
 				    track);
-		return -1;
+		return res;
 	}
 
 	/* Getting file plugin */
@@ -113,6 +116,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 
 /* Callback function for finding passed @entry inside the current directory */
 static errno_t callback_find_entry(char *track, char *entry, void *data) {
+	errno_t res;
 	place_t *place;
 	reiser4_file_t *file;
 	
@@ -122,10 +126,10 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	
 	file = (reiser4_file_t *)data;
 
-	if (reiser4_file_stat(file)) {
+	if ((res = reiser4_file_stat(file))) {
 		aal_exception_error("Can't find stat data of %s.",
 				    track);
-		return -1;
+		return res;
 	}
 	
 	/* Getting file plugin */
@@ -175,6 +179,8 @@ static errno_t reiser4_file_search(
 	reiser4_file_t *file,	    /* file lookup will be performed in */
 	const char *name)           /* name to be parsed */
 {
+	errno_t res;
+	
 	aal_assert("umka-682", file != NULL);
 	aal_assert("umka-681", name != NULL);
 
@@ -182,9 +188,9 @@ static errno_t reiser4_file_search(
 	  Parsing path and finding actual stat data key. I've said actual,
 	  because there may be a symlink.
 	*/
-	if (aux_parse_path(name, callback_find_statdata,
-			   callback_find_entry, (void *)file))
-		return -1;
+	if ((res = aux_parse_path(name, callback_find_statdata,
+				  callback_find_entry, (void *)file)))
+		return res;
 
 	/*
 	  As the last part of path may be a symlink, we need position onto
@@ -407,13 +413,14 @@ static errno_t callback_process_place(
 	place_t *place,            /* next file block */
 	void *data)                /* user-specified data */
 {
+	errno_t res;
 	aal_stream_t *stream = (aal_stream_t *)data;
 	reiser4_place_t *p = (reiser4_place_t *)place;
 	
-	if (reiser4_item_print(p, stream)) {
+	if ((res = reiser4_item_print(p, stream))) {
 		aal_exception_error("Can't print item %lu in node %llu.",
 				    p->pos.item, p->node->blk);
-		return -1;
+		return res;
 	}
 		
 	aal_stream_write(stream, "\n", 1);
@@ -425,6 +432,7 @@ errno_t reiser4_file_link(reiser4_file_t *file,
 			  reiser4_file_t *child,
 			  const char *name)
 {
+	errno_t res;
 	reiser4_entry_hint_t entry_hint;
 	
 	aal_assert("umka-1944", file != NULL);
@@ -442,12 +450,12 @@ errno_t reiser4_file_link(reiser4_file_t *file,
 		return -1;
 	}
 
-	if (plugin_call(file->entity->plugin->file_ops, link,
-			file->entity))
+	if ((res = plugin_call(file->entity->plugin->file_ops,
+			       link, file->entity)))
 	{
 		aal_exception_error("Can't link %s to %s.",
 				    name, file->name);
-		return -1;
+		return res;
 	}
 
 	return 0;
@@ -457,8 +465,9 @@ errno_t reiser4_file_link(reiser4_file_t *file,
 errno_t reiser4_file_unlink(reiser4_file_t *file,
 			    const char *name)
 {
-	reiser4_file_t *child;
+	errno_t res = 0;
 	reiser4_place_t place;
+	reiser4_file_t *child;
 	reiser4_entry_hint_t entry;
 	
 	aal_assert("umka-1910", file != NULL);
@@ -472,12 +481,12 @@ errno_t reiser4_file_unlink(reiser4_file_t *file,
 	}
 
 	if (file->entity->plugin->file_ops.remove) {
-		if (plugin_call(file->entity->plugin->file_ops,
-				remove, file->entity, &entry.offset))
+		if ((res = plugin_call(file->entity->plugin->file_ops,
+				       remove, file->entity, &entry.offset)))
 		{
 			aal_exception_error("Can't remove entry %s in %s.",
 					    name, file->name);
-			return -1;
+			return res;
 		}
 	}
 	
@@ -496,20 +505,15 @@ errno_t reiser4_file_unlink(reiser4_file_t *file,
 		return -1;
 	}
 	
-	if (plugin_call(child->entity->plugin->file_ops, unlink,
-			child->entity))
+	if ((res = plugin_call(child->entity->plugin->file_ops,
+			       unlink, child->entity)))
 	{
 		aal_exception_error("Can't unlink %s/%s.",
 				    file->name, name);
-		goto error_free_child;
 	}
 
 	reiser4_file_close(child);
-	return 0;
-	
- error_free_child:
-	reiser4_file_close(child);
-	return -1;
+	return res;
 }
 
 /* Prints file items into passed stream */

@@ -125,24 +125,9 @@ int main(int argc, char *argv[]) {
 		aal_stream_fini(&stream);
 	}
 
-/*	place.pos.item = 0;
-
-	{
-		int i = 0;
-		while (place.node && reiser4_node_items(place.node) > 0) {
-			reiser4_tree_remove(fs->tree, &place, 1);
-			i++;
-		}
-	}*/
-	
-//	reiser4_tree_detach(fs->tree, place.node);
-	
 	reiser4_file_close(dir);
-//        reiser4_fs_sync(fs);
-
 	reiser4_file_close(fs->root);
 	reiser4_tree_close(fs->tree);
-	
 	reiser4_fs_close(fs);
     
 	libreiser4_fini();

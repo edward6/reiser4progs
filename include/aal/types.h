@@ -293,14 +293,6 @@ typedef aal_exception_option_t (*aal_exception_handler_t) (aal_exception_t *ex);
 
 typedef struct aal_gauge aal_gauge_t;
 
-enum aal_gauge_type {
-	GAUGE_PERCENTAGE,
-	GAUGE_INDICATOR,
-	GAUGE_SILENT
-};
-
-typedef enum aal_gauge_type aal_gauge_type_t;
-
 enum aal_gauge_state {
 	GAUGE_STARTED,
 	GAUGE_RUNNING,
@@ -313,7 +305,6 @@ typedef enum aal_gauge_state aal_gauge_state_t;
 typedef void (*aal_gauge_handler_t)(aal_gauge_t *);
 
 struct aal_gauge {
-	aal_gauge_type_t type;
 	aal_gauge_state_t state;
 	aal_gauge_handler_t handler;
 

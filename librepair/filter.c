@@ -335,9 +335,8 @@ static errno_t repair_filter_update(traverse_hint_t *hint) {
     aal_assert("vpf-421", hint != NULL);
     aal_assert("vpf-422", hint->data != NULL);
     
-    fd = repair_filter(rd);
-    
     rd = hint->data;
+    fd = repair_filter(rd);
     
     if (aal_test_bit(&fd->flags, REPAIR_BAD_PTR)) {
 	reiser4_format_set_root(rd->fs->format, INVAL_BLK);

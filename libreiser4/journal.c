@@ -1,5 +1,5 @@
 /*
-  journal.c -- reiser4 filesystem journal common code.
+  journal.c -- reiser4 filesystem common journal code.
   
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -226,4 +226,3 @@ void reiser4_journal_close(
 }
 
 #endif
-

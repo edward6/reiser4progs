@@ -101,18 +101,20 @@ bool_t reiser4_node_actual(reiser4_node_t *node) {
 
 #endif
 
-struct guess_node {
+struct guess_hint {
 	blk_t blk;
 	
 	aal_device_t *device;
 	object_entity_t *entity;
 };
 
+typedef struct guess_hint guess_hint_t;
+
 /* Helper callback for comparing plugins durring searching needed one */
 static errno_t callback_guess_node(reiser4_plugin_t *plugin,
 				   void *data)
 {
-	struct guess_node *guess = (struct guess_node *)data;
+	guess_hint_t *guess = (guess_hint_t *)data;
 
 	/* We are interested only in node plugins here */
 	if (plugin->h.type == NODE_PLUGIN_TYPE) {
@@ -136,15 +138,15 @@ static errno_t callback_guess_node(reiser4_plugin_t *plugin,
 
 /* This function is trying to detect node plugin */
 static object_entity_t *reiser4_node_guess(
-	aal_device_t *device,    /* device node lies on */
-	blk_t blk)               /* node block */
+	aal_device_t *device,              /* device node lies on */
+	blk_t blk)                         /* node block */
 {
-	struct guess_node guess;
+	guess_hint_t guess;
 	object_entity_t *entity;
     
 	guess.blk = blk;
-	guess.device = device;
 	guess.entity = NULL;
+	guess.device = device;
 	
 	/* Finding node plugin by its id from node header */
 	if (!libreiser4_factory_cfind(callback_guess_node, &guess))
@@ -155,8 +157,8 @@ static object_entity_t *reiser4_node_guess(
 
 /* Opens node on specified device and block number */
 reiser4_node_t *reiser4_node_open(
-	aal_device_t *device,	/* device node will be opened on */
-	blk_t blk)		/* block number node will be opened on */
+	aal_device_t *device,	         /* device node will be opened on */
+	blk_t blk)		         /* block number node will be opened on */
 {
 	reiser4_node_t *node;
 
@@ -189,6 +191,8 @@ reiser4_node_t *reiser4_node_open(
   also detaches nodes from the tree if they were attached.
 */
 errno_t reiser4_node_close(reiser4_node_t *node) {
+	errno_t res;
+	
 	aal_assert("umka-824", node != NULL);
 	aal_assert("umka-903", node->entity != NULL);
 
@@ -197,12 +201,12 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 		reiser4_node_sync(node);
 #endif
 	
-	plugin_call(node->entity->plugin->node_ops,
-		    close, node->entity);
+	res = plugin_call(node->entity->plugin->node_ops,
+			  close, node->entity);
 	    
 	aal_free(node);
 
-	return 0;
+	return res;
 }
 
 /* Getting the left delimiting key */
@@ -210,19 +214,17 @@ errno_t reiser4_node_lkey(
 	reiser4_node_t *node,	         /* node for working with */
 	reiser4_key_t *key)	         /* key will be stored here */
 {
+	errno_t res;
 	reiser4_place_t place;
 	rpos_t pos = {0, ~0ul};
 
 	aal_assert("umka-753", node != NULL);
 	aal_assert("umka-754", key != NULL);
 
-	if (reiser4_place_open(&place, node, &pos))
-		return -1;
+	if ((res = reiser4_place_open(&place, node, &pos)))
+		return res;
 
-	if (reiser4_item_get_key(&place, key))
-		return -1;
-	
-	return 0;
+	return reiser4_item_get_key(&place, key);
 }
 
 /* Returns position of passed node in parent node */
@@ -313,6 +315,7 @@ static inline int callback_comp_node(
 errno_t reiser4_node_connect(reiser4_node_t *node,
 			     reiser4_node_t *child)
 {
+	errno_t res;
 	aal_list_t *current;
 
 	aal_assert("umka-1758", node != NULL);
@@ -325,10 +328,11 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 	child->parent = node;
 	
 	/* Updating node pos in parent node */
-	if (reiser4_node_pos(child, &child->pos)) {
-		aal_exception_error("Can't find child %llu in parent "
-				    "node %llu.", child->blk, node->blk);
-		return -1;
+	if ((res = reiser4_node_pos(child, &child->pos))) {
+		aal_exception_error("Can't find child %llu in "
+				    "parent node %llu.",
+				    child->blk, node->blk);
+		return res;
 	}
 
 	if (!current->prev)
@@ -339,8 +343,8 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 
 /* Removes passed @child from children list of @node */
 errno_t reiser4_node_disconnect(
-	reiser4_node_t *node,	/* node child will be detached from */
-	reiser4_node_t *child)	/* pointer to child to be deleted */
+	reiser4_node_t *node,	        /* node child will be detached from */
+	reiser4_node_t *child)	        /* pointer to child to be deleted */
 {
 	aal_list_t *next;
 	
@@ -581,8 +585,8 @@ errno_t reiser4_node_shift(
 				     (hint->control & SF_LEFT) ?
 				     items - i - 1 : i, ~0ul);
 
-		if (reiser4_place_realize(&place))
-			return -1;
+		if ((res = reiser4_place_realize(&place)))
+			return res;
 
 		if (!reiser4_item_branch(&place))
 			continue;
@@ -610,8 +614,8 @@ errno_t reiser4_node_shift(
 			*/
 			reiser4_node_disconnect(node, child);
 
-			if (reiser4_node_connect(neig, child))
-				return -1;
+			if ((res = reiser4_node_connect(neig, child)))
+				return res;
 		}
 
 	}
@@ -624,22 +628,22 @@ errno_t reiser4_node_shift(
 		POS_INIT(&pos, reiser4_node_items(neig) -
 			 hint->items - 1, ~0ul);
 
-		if (reiser4_node_uchildren(neig, &pos))
-			return -1;
+		if ((res = reiser4_node_uchildren(neig, &pos)))
+			return res;
 		
 		/* Updating @node starting from the first item */
 		POS_INIT(&pos, 0, ~0ul);
 		
-		if (reiser4_node_uchildren(node, &pos))
-			return -1;
+		if ((res = reiser4_node_uchildren(node, &pos)))
+			return res;
 	} else {
 		rpos_t pos;
 
 		/* Updating neighbour starting from the first item */
 		POS_INIT(&pos, 0, ~0ul);
 
-		if (reiser4_node_uchildren(neig, &pos))
-			return -1;
+		if ((res = reiser4_node_uchildren(neig, &pos)))
+			return res;
 	}
 
 	return 0;
@@ -649,20 +653,20 @@ errno_t reiser4_node_shift(
 errno_t reiser4_node_sync(
 	reiser4_node_t *node)	/* node to be synchronized */
 {
+	errno_t res;
 	aal_assert("umka-124", node != NULL);
     
 	/* Synchronizing passed @node */
 	if (reiser4_node_isdirty(node)) {
 
-		if (plugin_call(node->entity->plugin->node_ops,
-				sync, node->entity))
+		if ((res = plugin_call(node->entity->plugin->node_ops,
+				       sync, node->entity)))
 		{
-			aal_device_t *device = node->device;
-			aal_exception_error("Can't synchronize node "
-					    "%llu to device. %s.",
-					    node->blk, device->error);
+			aal_exception_error("Can't synchronize node %llu "
+					    "to device. %s.", node->blk,
+					    node->device->error);
 
-			return -1;
+			return res;
 		}
 
 		reiser4_node_mkclean(node);
@@ -679,20 +683,20 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 			  rpos_t *pos,
 			  reiser4_key_t *key)
 {
+	errno_t res;
 	reiser4_place_t place;
     
 	aal_assert("umka-999", node != NULL);
 	aal_assert("umka-1000", pos != NULL);
 	aal_assert("umka-1001", key != NULL);
 
-	if (reiser4_place_open(&place, node, pos))
-		return -1;
+	if ((res = reiser4_place_open(&place, node, pos)))
+		return res;
 
-	if (reiser4_item_set_key(&place, key))
-		return -1;
+	if ((res = reiser4_item_set_key(&place, key)))
+		return res;
     
 	reiser4_node_mkdirty(node);
-	
 	return 0;
 }
 
@@ -703,6 +707,7 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 errno_t reiser4_node_uchildren(reiser4_node_t *node,
 			       rpos_t *start)
 {
+	errno_t res;
 	uint32_t items;
 	reiser4_place_t place;
 
@@ -726,8 +731,8 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 	/* Searchilg for first nodeptr item */
 	for (; place.pos.item < items; place.pos.item++) {
 		
-		if (reiser4_place_realize(&place))
-			return -1;
+		if ((res = reiser4_place_realize(&place)))
+			return res;
 
 		if (reiser4_item_branch(&place))
 			break;
@@ -741,8 +746,8 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 	/* Searching for the first loaded child found nodeptr item points to */
 	for (; place.pos.item < items; place.pos.item++) {
 
-		if (reiser4_place_realize(&place))
-			return -1;
+		if ((res = reiser4_place_realize(&place)))
+			return res;
 		
 		plugin_call(place.item.plugin->item_ops, read,
 			    &place.item, &ptr, place.pos.unit, 1);
@@ -761,8 +766,8 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 
 		aal_assert("umka-1886", child->parent == node);
 
-		if (reiser4_node_pos(child, &child->pos))
-			return -1;
+		if ((res = reiser4_node_pos(child, &child->pos)))
+			return res;
 	}
 	
 	return 0;
@@ -810,8 +815,8 @@ errno_t reiser4_node_insert(
 
 	reiser4_node_mkdirty(node);
 	
-	if (reiser4_node_uchildren(node, pos))
-		return -1;
+	if ((res = reiser4_node_uchildren(node, pos)))
+		return res;
 	
 	return 0;
 }
@@ -854,8 +859,8 @@ errno_t reiser4_node_cut(
 	reiser4_node_mkdirty(node);
 	
 	/* Updating children */
-	if (reiser4_node_uchildren(node, start))
-		return -1;
+	if ((res = reiser4_node_uchildren(node, start)))
+		return res;
 	
 	return 0;
 }
@@ -869,6 +874,8 @@ errno_t reiser4_node_remove(
 	rpos_t *pos,                        /* pos item will be removed at */
 	uint32_t count)                     /* the number of item/units */
 {
+	errno_t res;
+	
 	aal_assert("umka-993", node != NULL);
 	aal_assert("umka-994", pos != NULL);
 
@@ -876,12 +883,12 @@ errno_t reiser4_node_remove(
 	  Removing item or unit. We assume that we are going to remove unit if
 	  unit component is set up.
 	*/
-	if (plugin_call(node->entity->plugin->node_ops,
-			remove, node->entity, pos, count))
+	if ((res = plugin_call(node->entity->plugin->node_ops,
+			       remove, node->entity, pos, count)))
 	{
 		aal_exception_error("Can't remove %lu items/units from "
 				    "node %llu.", count, node->blk);
-		return -1;
+		return res;
 	}
 
 	if (reiser4_node_items(node) > 0) {
@@ -889,44 +896,37 @@ errno_t reiser4_node_remove(
 		reiser4_node_mkdirty(node);
 	
 		/* Updating children */
-		if (reiser4_node_uchildren(node, pos))
-			return -1;
+		if ((res = reiser4_node_uchildren(node, pos)))
+			return res;
 	}
 	
 	return 0;
 }
 
-/* This function traverse passed node */
-errno_t reiser4_node_traverse(
-	reiser4_node_t *node,		     /* node which should be traversed */
-	traverse_hint_t *hint,		     /* hint for traverse and for callback methods */
-	traverse_open_func_t open_func,	     /* callback for node opening */
-	traverse_edge_func_t before_func,    /* callback to be called at the beginning */
-	traverse_setup_func_t setup_func,    /* callback to be called before a child  */
-	traverse_setup_func_t update_func,   /* callback to be called after a child */
-	traverse_edge_func_t after_func)     /* callback to be called at the end */
-{
-	return -1;
-}
-
 void reiser4_node_set_mstamp(reiser4_node_t *node, uint32_t stamp) {
+	reiser4_plugin_t *plugin;
+	
 	aal_assert("vpf-646", node != NULL);
+	aal_assert("umka-1969", node->entity != NULL);
 
-	if (node->entity->plugin->node_ops.set_mstamp) {
-		node->entity->plugin->node_ops.set_mstamp(node->entity,
-							  stamp);
-
+	plugin = node->entity->plugin;
+	
+	if (plugin->node_ops.set_mstamp) {
+		plugin->node_ops.set_mstamp(node->entity, stamp);
 		reiser4_node_mkdirty(node);
 	}
 }
 
 void reiser4_node_set_fstamp(reiser4_node_t *node, uint64_t stamp) {
+	reiser4_plugin_t *plugin;
+	
 	aal_assert("vpf-648", node != NULL);
+	aal_assert("umka-1970", node->entity != NULL);
 
-	if (node->entity->plugin->node_ops.get_fstamp) {
-		node->entity->plugin->node_ops.set_fstamp(node->entity,
-							  stamp);
-
+	plugin = node->entity->plugin;
+	
+	if (plugin->node_ops.get_fstamp) {
+		plugin->node_ops.set_fstamp(node->entity, stamp);
 		reiser4_node_mkdirty(node);
 	}
 }
@@ -945,20 +945,29 @@ void reiser4_node_set_level(reiser4_node_t *node,
 #endif
 
 uint32_t reiser4_node_get_mstamp(reiser4_node_t *node) {
-	aal_assert("vpf-562", node != NULL);
+	reiser4_plugin_t *plugin;
 	
-	if (node->entity->plugin->node_ops.get_mstamp)
-		return node->entity->plugin->node_ops.get_mstamp(
-			node->entity);
+	aal_assert("vpf-562", node != NULL);
+	aal_assert("umka-1971", node->entity != NULL);
+
+	plugin = node->entity->plugin;
+	
+	if (plugin->node_ops.get_mstamp)
+		return plugin->node_ops.get_mstamp(node->entity);
 	
 	return 0;
 }
 
 uint64_t reiser4_node_get_fstamp(reiser4_node_t *node) {
-	aal_assert("vpf-647", node != NULL);
+	reiser4_plugin_t *plugin;
 
-	if (node->entity->plugin->node_ops.get_fstamp)
-		node->entity->plugin->node_ops.get_fstamp(node->entity);
+	aal_assert("vpf-647", node != NULL);
+	aal_assert("umka-1972", node->entity != NULL);
+
+	plugin = node->entity->plugin;
+	
+	if (plugin->node_ops.get_fstamp)
+		plugin->node_ops.get_fstamp(node->entity);
 
 	return 0;
 }
@@ -969,4 +978,17 @@ uint8_t reiser4_node_get_level(reiser4_node_t *node) {
     
 	return plugin_call(node->entity->plugin->node_ops, 
 			   get_level, node->entity);
+}
+
+/* Deprecated */
+errno_t reiser4_node_traverse(
+	reiser4_node_t *node,		     /* node which should be traversed */
+	traverse_hint_t *hint,		     /* hint for traverse and for callback methods */
+	traverse_open_func_t open_func,	     /* callback for node opening */
+	traverse_edge_func_t before_func,    /* callback to be called at the beginning */
+	traverse_setup_func_t setup_func,    /* callback to be called before a child  */
+	traverse_setup_func_t update_func,   /* callback to be called after a child */
+	traverse_edge_func_t after_func)     /* callback to be called at the end */
+{
+	return -1;
 }

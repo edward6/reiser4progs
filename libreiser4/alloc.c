@@ -117,16 +117,19 @@ reiser4_alloc_t *reiser4_alloc_create(
 	return NULL;
 }
 
-errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc, aux_bitmap_t *bitmap) {
+errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc,
+			     aux_bitmap_t *bitmap)
+{
+	errno_t res;
+	
 	aal_assert("vpf-582", alloc != NULL);
 	aal_assert("umka-1848", bitmap != NULL);
 
-	if (plugin_call(alloc->entity->plugin->alloc_ops, 
-			assign, alloc->entity, bitmap))
-		return -1;
+	if ((res = plugin_call(alloc->entity->plugin->alloc_ops, 
+			       assign, alloc->entity, bitmap)))
+		return res;
 
 	alloc->dirty = TRUE;
-	
 	return 0;
 }
 
@@ -134,18 +137,20 @@ errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc, aux_bitmap_t *bitmap) {
 errno_t reiser4_alloc_sync(
 	reiser4_alloc_t *alloc)	/* allocator to be synced */
 {
+	errno_t res;
 	aal_assert("umka-139", alloc != NULL);
 
-	if (plugin_call(alloc->entity->plugin->alloc_ops, sync,
-			alloc->entity))
-		return -1;
+	if ((res = plugin_call(alloc->entity->plugin->alloc_ops,
+			       sync, alloc->entity)))
+		return res;
 
 	alloc->dirty = FALSE;
-
 	return 0;
 }
 
-errno_t reiser4_alloc_print(reiser4_alloc_t *alloc, aal_stream_t *stream) {
+errno_t reiser4_alloc_print(reiser4_alloc_t *alloc,
+			    aal_stream_t *stream)
+{
 	aal_assert("umka-1566", alloc != NULL);
 	aal_assert("umka-1567", stream != NULL);
 
@@ -299,7 +304,6 @@ errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc,
 	if (!alloc->forbid) {
 		count_t used = reiser4_alloc_used(alloc);
 		count_t unused = reiser4_alloc_unused(alloc);
-		
 		alloc->forbid = aux_bitmap_create(unused + used);
 	}
 	

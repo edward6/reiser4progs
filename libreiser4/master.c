@@ -254,6 +254,7 @@ reiser4_master_t *reiser4_master_reopen(reiser4_master_t *master) {
 errno_t reiser4_master_sync(
 	reiser4_master_t *master)	    /* master to be saved */
 {
+	errno_t res;
 	blk_t offset;
 	aal_block_t *block;
 	aal_assert("umka-145", master != NULL);
@@ -271,7 +272,7 @@ errno_t reiser4_master_sync(
 		   sizeof(*SUPER(master)));
 	
 	/* Writing master super block to its device */
-	if (aal_block_sync(block)) {
+	if ((res = aal_block_sync(block))) {
 		aal_exception_error("Can't synchronize master "
 				    "super block at %llu. %s.",
 				    aal_block_number(block), 
@@ -280,12 +281,10 @@ errno_t reiser4_master_sync(
 	}
 
 	master->dirty = FALSE;
-	
-	return 0;
-	
+
  error_free_block:
 	aal_block_close(block);
-	return -1;
+	return res;
 }
 
 #endif

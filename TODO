@@ -12,9 +12,6 @@ reiser4progs/COPYING.
 * solve the problem with that item plugins cannot rely on item.len 
   due to its changing by the node plugin before calling item plugin.
 
-* cutout all unused code from the the alone build (block alloc, oid 
-  alloc, etc).
-
 * insert an extent among internal items may require perform shift and
   on other hands, insert of an item (nor extent or nodeptr) may 
   require to perform so called drilling on the twig level.
@@ -39,9 +36,6 @@ reiser4progs/COPYING.
   Currently if we open a symlink we just "follow" it and then work
   with object it points to.
 
-* return value from the all low level plugin functions should be raised 
-  up to the libreiser4 level.
-
 * writing symlink may require expanding the node. Or we should do 
   not allow write symlinks? Write method may just remove old stat
   data and insert new one.
@@ -53,6 +47,4 @@ reiser4progs/COPYING.
   with regions and rename the rest in more simple maner (without region)?
 
 * FIBMAP ioctl implementation in reiser4.
-
-* conform reiser4 and reiser4progs to be worked with LILO and GRUB.
 

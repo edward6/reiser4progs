@@ -116,14 +116,14 @@ reiser4_format_t *reiser4_format_create(
 errno_t reiser4_format_sync(
 	reiser4_format_t *format)	/* disk-format to be saved */
 {
+	errno_t res;
 	aal_assert("umka-107", format != NULL);
     
-	if(plugin_call(format->entity->plugin->format_ops,
-		       sync, format->entity))
-		return -1;
+	if ((res = plugin_call(format->entity->plugin->format_ops,
+			       sync, format->entity)))
+		return res;
 
 	format->dirty = FALSE;
-	
 	return 0;
 }
 

@@ -129,10 +129,12 @@ errno_t reiser4_place_open(
 	reiser4_node_t *node,	 /* the first component of place */
 	rpos_t *pos)	         /* place pos component */
 {
+	errno_t res;
+	
         aal_assert("umka-1435", place != NULL);
 
-	if (reiser4_place_init(place, node, pos))
-		return -1;
+	if ((res = reiser4_place_init(place, node, pos)))
+		return res;
 
 	return reiser4_place_realize(place);
 }
