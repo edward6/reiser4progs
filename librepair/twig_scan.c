@@ -37,7 +37,10 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 		return RE_FIXABLE;
 	}
 	
-	aux_bitmap_mark_region(ts->bm_unfm, start, count);
+	if (ts->bm_used)
+		aux_bitmap_mark_region(ts->bm_used, start, count);
+	
+	aux_bitmap_mark_region(ts->bm_met, start, count);
 	
 	return 0;
 }

@@ -21,11 +21,6 @@ typedef struct repair_control {
 	aux_bitmap_t *bm_met;		/* frmt | used | leaf | twig. 	     */
 	aux_bitmap_t *bm_scan;
 	
-	union {
-		aux_bitmap_t *bm_unfm;	/* Unfmatted pointed from tree.      */
-		aux_bitmap_t *bm_forbid;
-	}u;
-
 	aux_bitmap_t *bm_alloc;
 
 	bool_t check_node;
@@ -160,21 +155,9 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 		return -EINVAL;
 	}
 	
-	/* Bitmaps for leaves and other formatted blocks are needed in 
-	   the BUILD mode only. Unfm and twig -- for BUILD and FIX. */
-	if (control->repair->mode == RM_CHECK) 
-		return 0;
-	
 	control->repair->fs->alloc->hook.alloc = callback_alloc;
 	control->repair->fs->alloc->hook.release = callback_release;
 	control->repair->fs->alloc->hook.data = control;
-	
-	/* Allocate a bitmap of blocks to be scanned on this pass. */ 
-	if (!(control->u.bm_unfm = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of extent "
-				    "blocks.");
-		return -EINVAL;
-	}
 	
 	/* Allocate a bitmap of twig blocks in the tree. */
 	if (!(control->bm_twig = filter->bm_twig = aux_bitmap_create(fs_len))) {
@@ -284,8 +267,8 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		return res;
 	
 	/* Mark all broken regions of allocator as to be scanned. */
-	if ((res = repair_alloc_layout_bad(repair->fs->alloc, 
-					   callback_layout_bad, 
+	if ((res = repair_alloc_layout_bad(repair->fs->alloc,
+					   callback_layout_bad,
 					   control)))
 		return res;
 
@@ -303,10 +286,6 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		aal_assert("vpf-1329", (control->bm_leaf->map[i] & 
 					~control->bm_met->map[i]) == 0);
 		
-		
-		aal_assert("vpf-1329", (control->u.bm_unfm->map[i] & 
-					control->bm_met->map[i]) == 0);
-		
 		/* Zeroing leaf & twig bitmaps of ndoes taht are in the tree. */
 		control->bm_twig->map[i] = 0;
 		control->bm_leaf->map[i] = 0;
@@ -317,11 +296,11 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		   has not been synced on disk. Scan through all its blocks. */
 		if (~control->bm_alloc->map[i] & control->bm_met->map[i]) {
 			repair_alloc_region(repair->fs->alloc, i * 8,
-					    callback_region_mark, control);
+					    callback_region_mark, 
+					    control);
 		} else {
 			control->bm_scan->map[i] |= control->bm_alloc->map[i]
-				& ~control->bm_met->map[i] 
-				& ~control->u.bm_unfm->map[i];
+				& ~control->bm_met->map[i];
 		}
 	}
 	
@@ -333,7 +312,9 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	return 0;
 }
 
-static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts) {
+static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts, 
+				 bool_t mark_used)
+{
 	aal_assert("vpf-854", ts != NULL);
 	aal_assert("vpf-856", control != NULL);
 	aal_assert("vpf-858", control->repair != NULL);
@@ -342,16 +323,16 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts) {
 	aal_memset(ts, 0, sizeof(*ts));
 	
 	/* Not for the BUILD mode move used bitmap to the met one. */
-	if (control->repair->mode != RM_BUILD) {
+	if (control->repair->mode != RM_BUILD)
 		control->bm_met = control->bm_used;
-		control->bm_used = NULL;
-	}
 	
 	ts->repair= control->repair;
-	ts->bm_used = control->bm_used;
+	
+	/* If twigs which are not in the tree are scanned -- do not mark 
+	   them as used, just as met. */
+	ts->bm_used = mark_used ? control->bm_used : NULL;
 	ts->bm_twig = control->bm_twig;
 	ts->bm_met = control->bm_met;
-	ts->bm_unfm = control->u.bm_unfm;
 	
 	ts->progress_handler = control->repair->progress_handler;
 	
@@ -366,29 +347,15 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts) {
 }
 
 static errno_t repair_ts_fini(repair_control_t *control) {
-	uint64_t i;
-	
 	aal_assert("vpf-1334", control != NULL);
 
-	/* Not for the BUILD mode move met bitmap back to the used one. */
-	control->bm_used = control->bm_met;
+	/* Not for the BUILD mode met points to the bm_used. */
 	control->bm_met = NULL;
 
-	for (i = 0; i < control->bm_used->size; i++) {
-		aal_assert("vpf-576", (control->bm_used->map[i] & 
-				       control->u.bm_unfm->map[i]) == 0);
-
-		/* prepare the forbidden bitmap. */
-		control->u.bm_forbid->map[i] |= control->bm_used->map[i];
-	}
-	
 	/* All blocks that are met are forbidden for allocation. */
 	reiser4_alloc_assign_forb(control->repair->fs->alloc, 
-				  control->u.bm_forbid);
+				  control->bm_used);
 	
-	aux_bitmap_close(control->u.bm_unfm);
-	control->u.bm_unfm = NULL;
-
 	return 0;
 }
 
@@ -420,12 +387,6 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 		return res;
 
 	for (i = 0; i < control->bm_met->size; i++) {
-		aal_assert("vpf-576", (control->bm_met->map[i] & 
-				       control->u.bm_unfm->map[i]) == 0);
-
-		/* met include unformatted blocks. */
-		control->bm_met->map[i] |= control->u.bm_unfm->map[i];
-		
 		/* Leave there twigs and leaves that are not in the tree. */
 		control->bm_twig->map[i] &= ~(control->bm_used->map[i]);
 		control->bm_leaf->map[i] &= ~(control->bm_used->map[i]);
@@ -434,18 +395,16 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 		control->bm_alloc->map[i] &= control->bm_met->map[i];
 	}
 	
-		
 	/* Assign the changed bm_alloc bitmap to the block allocator. */
 	reiser4_alloc_assign(control->repair->fs->alloc, control->bm_alloc);
 	
 	/* All blocks that are met are forbidden for allocation. */
 	reiser4_alloc_assign_forb(control->repair->fs->alloc, control->bm_met);
 	
-	aux_bitmap_close(control->u.bm_unfm);
 	aux_bitmap_close(control->bm_alloc);
 	aux_bitmap_close(control->bm_met);
 	
-	control->u.bm_unfm = control->bm_alloc = control->bm_met = NULL;
+	control->bm_alloc = control->bm_met = NULL;
 	
 	aux_bitmap_calc_marked(control->bm_twig);
 	aux_bitmap_calc_marked(control->bm_leaf);
@@ -475,13 +434,11 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 		control->bm_leaf = NULL;
 	}
 
-	if (control->bm_twig) {
-		aal_assert("vpf-1335", control->repair->mode != RM_BUILD ||
-			   !aux_bitmap_marked(control->bm_twig));
+	aal_assert("vpf-1335", control->repair->mode != RM_BUILD ||
+		   !aux_bitmap_marked(control->bm_twig));
 
-		aux_bitmap_close(control->bm_twig);
-		control->bm_twig = NULL;
-	}
+	aux_bitmap_close(control->bm_twig);
+	control->bm_twig = NULL;
 	
 	return 0;
 }
@@ -620,11 +577,9 @@ static void repair_control_release(repair_control_t *control) {
 		aux_bitmap_close(control->bm_twig);
 	if (control->bm_met)
 		aux_bitmap_close(control->bm_met);
-	if (control->u.bm_unfm)
-		aux_bitmap_close(control->u.bm_unfm);
 
 	control->bm_used = control->bm_leaf = control->bm_twig = 
-		control->bm_met = control->u.bm_unfm = NULL;
+		control->bm_met = NULL;
 }
 
 errno_t repair_check(repair_data_t *repair) {
@@ -665,7 +620,7 @@ errno_t repair_check(repair_data_t *repair) {
 	if (repair->mode == RM_BUILD) {
 		/* Scan twigs which are in the tree to avoid scanning 
 		   the unformatted blocks which are pointed by extents. */
-		if ((res = repair_ts_prepare(&control, &ts)))
+		if ((res = repair_ts_prepare(&control, &ts, 1)))
 			goto error;
 
 		if ((res = repair_twig_scan(&ts)))
@@ -680,7 +635,7 @@ errno_t repair_check(repair_data_t *repair) {
 		
 		/* Scanning twigs which are not in the tree and fix if they 
 		   point to some used block or some met formatted block. */
-		if ((res = repair_ts_prepare(&control, &ts)))
+		if ((res = repair_ts_prepare(&control, &ts, 0)))
 			goto error;
 
 		if ((res = repair_twig_scan(&ts)))
@@ -692,12 +647,12 @@ errno_t repair_check(repair_data_t *repair) {
 		
 		if ((res = repair_add_missing(&am)))
 			goto error;
-	} else if (repair->mode != RM_CHECK) {
+	} else {
 		/* Scanning all twig nodes and preparing the bitmap of 
 		   unformatted blocks. This is needed for FIX mode to 
 		   prepare the bitmap of allocable blocks which is needed 
 		   at semantic pass. */
-		if ((res = repair_ts_prepare(&control, &ts)))
+		if ((res = repair_ts_prepare(&control, &ts, 0)))
 			goto error;
 
 		if ((res = repair_twig_scan(&ts)))

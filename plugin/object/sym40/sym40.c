@@ -205,7 +205,6 @@ extern object_entity_t *sym40_recognize(object_info_t *info);
 
 extern errno_t sym40_check_struct(object_entity_t *object,
 				  place_func_t place_func,
-				  region_func_t region_func,
 				  void *data, uint8_t mode);
 #endif
 

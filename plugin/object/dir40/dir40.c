@@ -981,7 +981,6 @@ extern errno_t dir40_check_attach(object_entity_t *object,
 
 extern errno_t dir40_check_struct(object_entity_t *object, 
 				  place_func_t place_func,
-				  region_func_t region_func,
 				  void *data, uint8_t mode);
 #endif
 

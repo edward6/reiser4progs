@@ -160,7 +160,6 @@ static errno_t dir40_belongs(dir40_t *dir, reiser4_plug_t *bplug) {
 
 errno_t dir40_check_struct(object_entity_t *object, 
 			   place_func_t place_func,
-			   region_func_t region_func,
 			   void *data, uint8_t mode)
 {
 	dir40_t *dir = (dir40_t *)object;

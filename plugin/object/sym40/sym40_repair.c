@@ -85,7 +85,6 @@ static void sym40_check_size(obj40_t *obj, uint64_t *sd_size, uint64_t counted_s
 
 errno_t sym40_check_struct(object_entity_t *object,
 			   place_func_t place_func,
-			   region_func_t region_func,
 			   void *data, uint8_t mode)
 {
 	sym40_t *sym = (sym40_t *)object;

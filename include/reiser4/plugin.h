@@ -672,7 +672,7 @@ struct reiser4_object_ops {
 	
 	/* Checks and recover the structure of the object. */
 	errno_t (*check_struct) (object_entity_t *, place_func_t, 
-				 region_func_t, void *, uint8_t);
+				 void *, uint8_t);
 	
 	/* Checks attach of the @object to the @parent. */
 	errno_t (*check_attach) (object_entity_t *, object_entity_t *,

@@ -80,23 +80,6 @@ object_entity_t *reg40_recognize(object_info_t *info) {
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-typedef struct layout_hint {
-	object_entity_t *entity;
-	region_func_t region_func;
-	void *data;
-} layout_hint_t;
-
-static errno_t callback_layout(void *p, uint64_t start, uint64_t count, 
-			       void *data)
-{
-	layout_hint_t *hint = (layout_hint_t *)data;
-
-	if (!start)
-		return 0;
-
-	return hint->region_func(hint->entity, start, count, hint->data);
-}
-
 static void reg40_check_mode(obj40_t *obj, uint16_t *mode) {
         if (!S_ISREG(*mode)) {
                 *mode &= ~S_IFMT;
@@ -207,7 +190,6 @@ static errno_t reg40_check_ikey(reg40_t *reg) {
 
 errno_t reg40_check_struct(object_entity_t *object, 
 			   place_func_t place_func,
-			   region_func_t region_func,
 			   void *data, uint8_t mode)
 {
 	reiser4_plug_t *eplug, *tplug, *bplug, *extent;
@@ -472,21 +454,6 @@ errno_t reg40_check_struct(object_entity_t *object,
 		
 		bytes += plug_call(reg->body.plug->o.item_ops, 
 				   bytes, &reg->body);
-		
-		/* Register object layout. */
-		if (region_func && reg->body.plug->o.item_ops->check_layout) {
-			layout_hint_t hint;
-			
-			hint.data = data;
-			hint.entity = object;
-			hint.region_func = region_func;
-			
-			if ((res |= plug_call(reg->body.plug->o.item_ops, 
-					      check_layout, &reg->body, 
-					      callback_layout, &hint, 
-					      mode)) < 0)
-				return res;
-		}
 		
 		/* Get the maxreal key of the found item and find next. */
 		if ((res |= plug_call(reg->body.plug->o.item_ops, 

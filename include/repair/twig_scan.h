@@ -27,8 +27,6 @@ typedef struct repair_ts {
 	aux_bitmap_t *bm_met;		/* Met blocks, cannot be pointed by 
 					   extents.			     */
 	
-	/* Results. */
-	aux_bitmap_t *bm_unfm;		/* Unformatted blocks pointed from.  */   
 	repair_progress_handler_t *progress_handler;    
 	repair_progress_t *progress;
 	repair_ts_stat_t stat;

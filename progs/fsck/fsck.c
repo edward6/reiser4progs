@@ -263,7 +263,7 @@ static void fsck_time(char *string) {
 	time_t t;
 
 	time(&t);
-	fprintf(stderr, "\n***** %s %s", string, ctime (&t));
+	fprintf(stderr, "***** %s %s", string, ctime (&t));
 }
 
 /* Open the fs and init the tree. */

@@ -35,7 +35,8 @@ static errno_t callback_register_item(void *object, place_t *place, void *data)
          
         return 0;
 }
- 
+
+#if 0
 /* Callback for repair_object_check_struct. Register blocks of object layout. 
    All these blocks are marked used here, not on twig_scan pass, because it's
    easy to write regular file plugin objects of which will share some blocks.
@@ -67,6 +68,7 @@ static errno_t callback_register_region(void *o, uint64_t start,
 	
 	return 0;
 }
+#endif
 
 static errno_t repair_semantic_check_struct(repair_semantic_t *sem, 
 					    reiser4_object_t *object) 
@@ -82,7 +84,6 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 		res = repair_object_check_struct(object, 
 						 sem->repair->mode == RM_BUILD ?
 						 callback_register_item : NULL,
-						 callback_register_region,
 						 sem->repair->mode, sem);
 		if (res < 0)
 			return res;
