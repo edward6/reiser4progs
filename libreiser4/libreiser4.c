@@ -263,8 +263,10 @@ static errno_t tree_unlock(
 	p = (reiser4_place_t *)place;	
 	reiser4_node_unlock(p->node);
 
+#ifdef ENABLE_ALONE
 	if (!reiser4_node_locked(p->node))
 		reiser4_tree_unload(p->node->tree, p->node);
+#endif
 
 	return 0;
 }
@@ -295,16 +297,6 @@ static errno_t tree_rootkey(void *tree, key_entity_t *key) {
 }
 
 reiser4_core_t core = {
-	.factory_ops = {
-		/* Installing callback for making search for a plugin by its
-		 * type and id */
-		.ifind = factory_ifind,
-	
-		/* Installing callback for making search for a plugin by its
-		 * type and name */
-		.nfind = factory_nfind
-	},
-    
 	.tree_ops = {
 	
 		/* This one for lookuping the tree */
@@ -334,6 +326,19 @@ reiser4_core_t core = {
 		.unlock     = tree_unlock,
 		
 		.rootkey    = tree_rootkey
+	},
+	.factory_ops = {
+		/*
+		  Installing callback for making search for a plugin by its type
+		  and id.
+		*/
+		.ifind = factory_ifind,
+	
+		/*
+		  Installing callback for making search for a plugin by its type
+		  and name.
+		*/
+		.nfind = factory_nfind
 	}
 };
 

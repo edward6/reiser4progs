@@ -25,7 +25,7 @@ libreiser4_plugin_la_LIBADD  	= libheader.la \
 			          item/tail40/libtail40-static.la \
 			          item/extent40/libextent40-static.la \
 			          item/stat40/libstat40-static.la \
-			          object/object40/libobject40-static.la \
+			          object/obj40/libobj40-static.la \
 			          object/dir40/libdir40-static.la \
 			          object/reg40/libreg40-static.la \
 			          object/sym40/libsym40-static.la \
@@ -55,7 +55,7 @@ libreiser4_plugin_alone_la_LIBADD = libheader-alone.la \
 			          item/tail40/libtail40-alone.la \
 			          item/extent40/libextent40-alone.la \
 			          item/stat40/libstat40-alone.la \
-			          object/object40/libobject40-alone.la \
+			          object/obj40/libobj40-alone.la \
 			          object/dir40/libdir40-alone.la \
 			          object/reg40/libreg40-alone.la \
 			          object/sym40/libsym40-alone.la \

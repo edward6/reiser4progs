@@ -1253,67 +1253,73 @@ struct node_header {
 
 typedef struct node_header node_header_t;
 
+struct tree_ops {
+		
+#ifndef ENABLE_ALONE
+	/* Returns blocksize in passed tree */
+	uint32_t (*blockspace) (void *);
+	
+	/* Returns maximal available space in a node */
+	uint32_t (*nodespace) (void *);
+#endif
+		
+	/* Gets root key */
+	errno_t (*rootkey) (void *, key_entity_t *);
+	
+	/*
+	  Makes lookup in the tree in order to know where say stat data
+	  item of a file really lies. It is used in all object plugins.
+	*/
+	lookup_t (*lookup) (void *, key_entity_t *, uint8_t,
+			    place_t *);
+
+	/* Initializes all item fields in passed place */
+	errno_t (*realize) (void *, place_t *);
+
+#ifndef ENABLE_ALONE
+	/* 
+	   Inserts item/unit in the tree by calling reiser4_tree_insert
+	   function, used by all object plugins (dir, file, etc)
+	*/
+	errno_t (*insert) (void *, place_t *, reiser4_item_hint_t *);
+    
+	/*
+	  Removes item/unit from the tree. It is used in all object
+	  plugins for modification purposes.
+	*/
+	errno_t (*remove) (void *, place_t *, uint32_t);
+
+#endif
+	/* Lock control functions */
+	errno_t (*lock) (void *, place_t *);
+	errno_t (*unlock) (void *, place_t *);
+		
+	/* Returns next and prev items respectively */
+	errno_t (*next) (void *, place_t *, place_t *);
+	errno_t (*prev) (void *, place_t *, place_t *);
+};
+
+typedef struct tree_ops tree_ops_t;
+
+struct factory_ops {
+	
+	/* Finds plugin by its attributes (type and id) */
+	reiser4_plugin_t *(*ifind) (rpid_t, rpid_t);
+	
+	/* Finds plugin by its type and name */
+	reiser4_plugin_t *(*nfind) (rpid_t, const char *);
+};
+
+typedef struct factory_ops factory_ops_t;
+
 /* 
   This structure is passed to all plugins in initialization time and used for
   access libreiser4 factories.
 */
 struct reiser4_core {
+	tree_ops_t tree_ops;
+	factory_ops_t factory_ops;
     
-	struct {
-	
-		/* Finds plugin by its attributes (type and id) */
-		reiser4_plugin_t *(*ifind) (rpid_t, rpid_t);
-	
-		/* Finds plugin by its type and name */
-		reiser4_plugin_t *(*nfind) (rpid_t, const char *);
-	
-	} factory_ops;
-    
-	struct {
-		
-#ifndef ENABLE_ALONE
-		/* Returns blocksize in passed tree */
-		uint32_t (*blockspace) (void *);
-	
-		/* Returns maximal available space in a node */
-		uint32_t (*nodespace) (void *);
-#endif
-		
-		/* Gets root key */
-		errno_t (*rootkey) (void *, key_entity_t *);
-	
-		/*
-		  Makes lookup in the tree in order to know where say stat data
-		  item of a file really lies. It is used in all object plugins.
-		*/
-		lookup_t (*lookup) (void *, key_entity_t *, uint8_t,
-				    place_t *);
-
-		/* Initializes all item fields in passed place */
-		errno_t (*realize) (void *, place_t *);
-
-#ifndef ENABLE_ALONE
-		/* 
-		   Inserts item/unit in the tree by calling reiser4_tree_insert
-		   function, used by all object plugins (dir, file, etc)
-		*/
-		errno_t (*insert) (void *, place_t *, reiser4_item_hint_t *);
-    
-		/*
-		  Removes item/unit from the tree. It is used in all object
-		  plugins for modification purposes.
-		*/
-		errno_t (*remove) (void *, place_t *, uint32_t);
-
-#endif
-		/* Lock control functions */
-		errno_t (*lock) (void *, place_t *);
-		errno_t (*unlock) (void *, place_t *);
-		
-		/* Returns next and prev items respectively */
-		errno_t (*next) (void *, place_t *, place_t *);
-		errno_t (*prev) (void *, place_t *, place_t *);
-	} tree_ops;
 };
 
 #define plugin_equal(plugin1, plugin2)                         \
