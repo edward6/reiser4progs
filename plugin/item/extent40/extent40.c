@@ -391,14 +391,121 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 
 #ifndef ENABLE_COMPACT
 
+static errno_t extent40_deallocate(item_entity_t *item,
+				   aal_list_t *list)
+{
+	aal_list_t *walk;
+	object_entity_t *alloc;
+
+	alloc = item->env.alloc;
+	list = aal_list_first(list);
+	
+	for (walk = aal_list_last(list); walk; ) {
+		aal_list_t *temp = aal_list_prev(walk);
+		reiser4_ptr_hint_t *ptr = (reiser4_ptr_hint_t *)walk->data;
+		
+		plugin_call(alloc->plugin->alloc_ops, release_region, alloc,
+			    ptr->ptr, ptr->width);
+		
+		walk = temp;
+	}
+	
+	aal_list_free(list);
+	return 0;
+}
+
+static aal_list_t *extent40_allocate(item_entity_t *item,
+				     uint32_t blocks)
+{
+	object_entity_t *alloc;
+	aal_list_t *list = NULL;
+
+	alloc = item->env.alloc;
+	
+	/*
+	  Calling block allocator in order to allocate blocks needed for storing
+	  @count bytes of data in extent item. This should be done inside the
+	  loop, because it is not a guaranty that block allocator will give us
+	  requested block count in once.
+	*/
+	while (blocks > 0) {
+		reiser4_ptr_hint_t *ptr;
+
+		if (!(ptr = aal_calloc(sizeof(*ptr), 0)))
+			return NULL;
+		
+		ptr->width = plugin_call(alloc->plugin->alloc_ops,
+					 allocate_region, alloc,
+					 &ptr->ptr, blocks);
+
+		if (ptr->width == 0) {
+			aal_exception_error("There is no free space enough to "
+					    "allocate %lu blocks.", blocks);
+
+			if (list)
+				extent40_deallocate(item, list);
+			
+			aal_free(ptr);
+			
+			return NULL;
+		}
+
+		blocks -= ptr->width;
+		
+		/* Adding found extent into list */
+		list = aal_list_append(list, ptr);
+	}
+
+	return aal_list_first(list);
+}
+
+/*
+  Estimates how many bytes may take extent item/unit(s) for storing @count bytes
+  of data at @pos. This function allocates also blocks for all data to be stored
+  in oder to determine unit count to be added.
+*/
 static errno_t extent40_estimate(item_entity_t *item, void *buff,
 				 uint32_t pos, uint32_t count)
 {
+	uint64_t size;
+	uint32_t blocksize;
+
+	uint32_t blocks = 0;
+	aal_list_t *list = NULL;
 	reiser4_item_hint_t *hint;
 
 	aal_assert("umka-1836", buff != NULL, return -1);
 	
 	hint = (reiser4_item_hint_t *)buff;
+	aal_assert("umka-1838", hint->env.alloc != NULL, return -1);
+	
+	size = extent40_size(item);
+	blocksize = item->con.device->blocksize;
+
+	/* Getting block number needed for allocating if any */
+	if (pos >= size && pos - size >= blocksize) {
+		uint32_t hole = (pos - size);
+		
+		blocks = (hole + (blocksize - 1)) / blocksize;
+		blocks += (count + (blocksize - 1)) / blocksize;
+	} else {
+		uint32_t rest = (size - pos);
+
+		if (count > rest) {
+			rest = count - rest;
+			blocks = (rest + (blocksize - 1)) / blocksize;
+		}
+	}
+
+	/*
+	  Allocating all extent units. Probably it may be done on "write", but
+	  here we need it because we need know how many units will be write.
+	*/
+	if (!(list = extent40_allocate(item, blocks)))
+		return -1;
+
+	hint->data = (void *)list;
+	hint->len = sizeof(extent40_t) * aal_list_length(list);
 	
 	return 0;
 }
@@ -416,10 +523,14 @@ static int32_t extent40_write(item_entity_t *item, void *buff,
 
 	extent40_t *extent;
 	aal_device_t *device;
+	reiser4_item_hint_t *hint;
 	
 	aal_assert("umka-1832", item != NULL, return -1);
 	aal_assert("umka-1833", buff != NULL, return -1);
 
+	hint = (reiser4_item_hint_t *)buff;
+	aal_assert("umka-1838", hint->env.alloc != NULL, return -1);
+	
 	device = item->con.device;
 	extent = extent40_body(item);
 	blocksize = device->blocksize;
@@ -438,6 +549,8 @@ static int32_t extent40_write(item_entity_t *item, void *buff,
 		et40_set_width(extent + unit, width);
 	} else {
 	}
+
+	extent40_deallocate(item, hint->data);
 	
         /* Updating the key */
 	if (pos == 0) {

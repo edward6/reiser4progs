@@ -634,16 +634,6 @@ static errno_t node40_insert(object_entity_t *entity, rpos_t *pos,
 		aal_memcpy(&ih->key, hint->key.body,
 			   sizeof(ih->key));
 	
-		/*
-		  If item hint contains some data, we just copy it and going
-		  out. This mode probably will be used by fsck.
-		*/
-		if (hint->data) {
-			aal_memcpy(node40_ib_at(node, pos->item), 
-				   hint->data, hint->len);
-			return 0;
-		}
-
 		/* Calling item plugin to perform initializing the item. */
 		if (plugin_call(hint->plugin->item_ops, init, &item))
 			return -1;

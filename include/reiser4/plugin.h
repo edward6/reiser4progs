@@ -194,7 +194,7 @@ enum key_type {
 	KEY_ATTRNAME_TYPE       = 0x2,
 	KEY_ATTRBODY_TYPE       = 0x3,
 	KEY_FILEBODY_TYPE       = 0x4,
-	KEY_LAST_TYPE	        = 0x5
+	KEY_LAST_TYPE
 };
 
 typedef enum key_type key_type_t;

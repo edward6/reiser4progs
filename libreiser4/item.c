@@ -69,10 +69,25 @@ errno_t reiser4_item_estimate(
 	/* Here hint has been already set for the 3rd case */
 	if (hint->data != NULL)
 		return 0;
-    
-	/* Estimate for the 2nd and for the 4th cases */
-	return plugin_call(hint->plugin->item_ops, estimate, NULL,
-			   hint, coord->pos.unit, hint->count);
+
+	/* Check if we're egoing insert unit or an item instead */
+	if (coord->pos.unit == ~0ul) {
+		return plugin_call(hint->plugin->item_ops, estimate, NULL,
+				   hint, coord->pos.unit, hint->count);
+	} else {
+		/*
+		  Unit component is set up, so, we assume this is an attempt
+		  insert new unit and item_entity should be passed to item's
+		  estimate method carefully.
+		*/
+		
+		if (reiser4_coord_realize(coord))
+			return -1;
+		
+		return plugin_call(hint->plugin->item_ops, estimate,
+				   &coord->item, hint, coord->pos.unit,
+				   hint->count);
+	}
 }
 
 /* Prints passed @coord into passed @buff */

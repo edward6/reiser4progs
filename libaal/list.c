@@ -275,4 +275,3 @@ void aal_list_free(aal_list_t *list) {
 		last = temp;
 	}
 }
-

@@ -1047,8 +1047,10 @@ errno_t reiser4_node_insert(
 	rpos_t *pos,                        /* pos item will be inserted at */
 	reiser4_item_hint_t *hint)	    /* item hint to be inserted */
 {
-	errno_t ret;
+	errno_t res;
 	rpos_t ppos;
+	
+	uint32_t maxspace;
     
 	aal_assert("umka-990", node != NULL, return -1);
 	aal_assert("umka-991", pos != NULL, return -1);
@@ -1063,23 +1065,20 @@ errno_t reiser4_node_insert(
 	}
 
 #ifdef ENABLE_DEBUG
-	if (!hint->data) {
-		aal_assert("umka-1837", hint->len != 0, return -1);
-	} else {
-		aal_assert("umka-761", hint->len > 0 && 
-			   hint->len < reiser4_node_maxspace(node), return -1);
-	}
+	
+	maxspace = reiser4_node_maxspace(node);
+	
+	aal_assert("umka-761", hint->len > 0 && 
+		   hint->len < maxspace, return -1);
+
 #endif
 	
 	/* Checking if item length is gretter then free space in node */
 	if (hint->len + (pos->unit == ~0ul ? reiser4_node_overhead(node) : 0) >
 	    reiser4_node_space(node))
 	{
-		char *target = (pos->unit == ~0ul ? "item" : "unit");
-		
-		aal_exception_error("There is no space to insert the %s of (%u) "
-				    "size in the node (%llu).", target, 
-				    hint->len, node->blk);
+		aal_exception_error("There is no space to insert new item/unit of (%u) "
+				    "size in the node (%llu).", hint->len, node->blk);
 		return -1;
 	}
 
@@ -1087,9 +1086,9 @@ errno_t reiser4_node_insert(
 	   Inserting new item or pasting unit into one existent item pointed by
 	   pos->item.
 	*/
-	if ((ret = plugin_call(node->entity->plugin->node_ops,
+	if ((res = plugin_call(node->entity->plugin->node_ops,
 			       insert, node->entity, pos, hint)))
-		return ret;
+		return res;
 	
 	/* Updating ldkey in parent node */
 	if (pos->item == 0 && (pos->unit == 0 || pos->unit == ~0ul)) {
