@@ -326,7 +326,7 @@ static reiser4_object_ops_t sym40_ops = {
 	.rem_entry      = NULL,
 	.add_entry      = NULL,
 	.check_struct   = NULL,
-	.check_backlink = NULL,
+	.check_attach 	= NULL,
 	.attach         = NULL,
 	.detach         = NULL,
 #endif

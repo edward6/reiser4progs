@@ -36,7 +36,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 		repair_item_clear_flag(place, OF_CHECKED);
 	}
 	
-	if (!repair_item_test_flag(place, OF_HAS_NAME)) {
+	if (!repair_item_test_flag(place, OF_ATTACHED)) {
 		/* Try to open an object. */
 		if (reiser4_object_begin(place) == FALSE)
 			return 0;
@@ -62,7 +62,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 		cleanup->stat.linked++;
 	} else {	
 		/* Reachable, clear the flag. */
-		repair_item_clear_flag(place, OF_HAS_NAME);
+		repair_item_clear_flag(place, OF_ATTACHED);
 	}
 	
 	return res;

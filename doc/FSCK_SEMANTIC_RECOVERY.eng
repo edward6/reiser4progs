@@ -53,7 +53,7 @@ ambiguity. Not reachable objects link to lost+found.
     - Othewise, try to recover the object by the identified object plugin with
     taken from StatData/inherited/guessed properties, mark all items as CHECKED.
     - After object recovery, if was given by its object key, mark start item as
-    HAS_NAME, nlink++.
+    ATTACHED, nlink++.
 (b) Run Semantic Recursive Traverse Pass from the object recovered at (a). This 
     goes through '.' and '..' and other names recovering pointed objects and 
     links to each other. If some object was checked already, skip the check and
@@ -63,20 +63,20 @@ ambiguity. Not reachable objects link to lost+found.
 Result.
 Everything that was linked to some objects or was recovered with all their subtrees.
 There are left some objects which are not reachable from the root:
-(a) recovered not marked as HAS_NAME objects that parent pointers point to nowhere 
+(a) recovered not marked as ATTACHED objects that parent pointers point to nowhere 
     or to (c);
-(b) recovered not marked as HAS_NAME objects that do not keep parent pointers with 
+(b) recovered not marked as ATTACHED objects that do not keep parent pointers with 
     their whole subtrees recovered but not been reached from some parent object;
 (c) ambiguous objects that keep parent pointer.
  
 2. Lost & found pass.  
-(a) Take an unCHECHED item, choose the most appropriate object plugin, recover 
+(a) Take an not ATTACHED item, choose the most appropriate object plugin, recover 
     the object. Run Semantic Recursive Traverse Pass (Semantic pass, (b)).
-    In contrast to Semantic pass, if some child is CHECKED but not HAS_NAME,
+    In contrast to Semantic pass, if some child is CHECKED but not ATTACHED,
     figure out if it is not linked to lost&found -- unlink it from there if so
     and link to the parent.
 (b) Open an object given by some CHECKED item, if its start item is marked as 
-    HAS_NAME, link it to lost&found. Do not mark the start item as HAS_NAME.
+    ATTACHED, link it to lost&found. Do not mark the start item as ATTACHED.
 
 Objects without SD are skipped on the first pass - it is not clear which plugins they
 are of, wait if they can be reached from some parent.

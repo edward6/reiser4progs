@@ -152,33 +152,27 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 }
 
 errno_t repair_object_traverse(reiser4_object_t *object,
-			       object_open_func_t open_func,
-			       object_close_func_t close_func,
+			       object_open_func_t func,
 			       void *data)
 {
 	entry_hint_t entry;
 	errno_t res = 0;
 	
 	aal_assert("vpf-1090", object != NULL);
-	aal_assert("vpf-1092", object->info.tree != NULL);
-	aal_assert("vpf-1103", open_func != NULL);
-	aal_assert("vpf-1166", close_func != NULL);
+	aal_assert("vpf-1103", func != NULL);
 	
 	while (!reiser4_object_readdir(object, &entry)) {
 		reiser4_object_t *child = NULL;
 		
-		/* Some entry was read. Try to detect the object of 
-		   the paticular plugin pointed by this entry. */
-		if ((child = open_func(object, &entry, data)) == INVAL_PTR)
+		if ((child = func(object, &entry, data)) == INVAL_PTR)
 			return -EINVAL;
 		
 		if (child == NULL)
 			continue;
+
+		res = repair_object_traverse(child, func, data);
 		
-		res = repair_object_traverse(child, open_func, 
-					     close_func, data);
-		
-		close_func(child, data);
+		reiser4_object_close(child);
 		
 		if (res)
 			return res;
@@ -187,26 +181,22 @@ errno_t repair_object_traverse(reiser4_object_t *object,
 	return 0;
 }
 
-/* @parent is the object where the @object name of the type @type was found.
-   Check the backlink -- '..' for directories if @type == NAME, that name 
-   exists if @type == DOTDOT, etc. On REBUILD pass, insert the name if missed
-   and fix '..' to point correctly. If the object allow only one NAME and was 
-   reached already -- FATAL corruption is returned. */
-errno_t repair_object_check_backlink(reiser4_object_t *object, 
-				     reiser4_object_t *parent, 
-				     entry_type_t type,
-				     uint8_t mode)
+/* Checks the attach between @parent and @object */
+errno_t repair_object_check_attach(reiser4_object_t *parent, 
+				   reiser4_object_t *object, 
+				   uint8_t mode)
 {
+	reiser4_plugin_t *plugin;
+	
 	aal_assert("vpf-1044", object != NULL);
 	aal_assert("vpf-1098", object->entity != NULL);
 	aal_assert("vpf-1099", parent != NULL);
-	aal_assert("vpf-1100", parent->entity != NULL);
 	
-	if (!object->entity->plugin->o.object_ops->check_backlink)
+	plugin = object->entity->plugin;
+	
+	if (!object->entity->plugin->o.object_ops->check_attach)
 		return 0;
 	
-	return object->entity->plugin->o.object_ops->check_backlink(object->entity,
-								    parent->entity,
-								    type, mode);
+	return plugin_call(object->entity->plugin->o.object_ops, check_attach,
+			   object->entity, parent->entity, mode);
 }
-
