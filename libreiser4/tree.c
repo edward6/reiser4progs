@@ -18,8 +18,8 @@
 /* Requests block allocator for new block and creates empty node in it */
 reiser4_joint_t *reiser4_tree_allocate(
     reiser4_tree_t *tree,	    /* tree for operating on */
-    uint8_t level		    /* level of new node */
-	) {
+    uint8_t level)	 	        /* level of new node */
+{
     blk_t blk;
     rpid_t pid;
     
@@ -115,8 +115,8 @@ reiser4_key_t *reiser4_tree_key(reiser4_tree_t *tree) {
 */
 static errno_t reiser4_tree_build_key(
     reiser4_tree_t *tree,	/* tree to be used */
-    rpid_t pid			/* key plugin in use */
-	) {
+    rpid_t pid)			    /* key plugin in use */
+{
     reiser4_oid_t *oid;
     roid_t objectid, locality;
     reiser4_plugin_t *plugin;
@@ -195,9 +195,9 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 
 /* Creates new balanced tree on specified filesystem */
 reiser4_tree_t *reiser4_tree_create(
-    reiser4_fs_t *fs,		    /* filesystem new tree will be created on */
-    reiser4_profile_t *profile	    /* profile to be used */
-	) {
+    reiser4_fs_t *fs,		        /* filesystem new tree will be created on */
+    reiser4_profile_t *profile)	    /* profile to be used */
+{
     blk_t blk;
     uint8_t level;
     aal_device_t *device;
@@ -312,9 +312,9 @@ uint8_t reiser4_tree_height(reiser4_tree_t *tree) {
 int reiser4_tree_lookup(
     reiser4_tree_t *tree,	/* tree to be grepped */
     reiser4_key_t *key,		/* key to be find */
-    uint8_t level,		/* stop level for search */
-    reiser4_coord_t *coord	/* coord of found item */
-	) {
+    uint8_t level,		    /* stop level for search */
+    reiser4_coord_t *coord)	/* coord of found item */
+{
     blk_t target;
     int lookup, deep;
     
@@ -418,8 +418,8 @@ int reiser4_tree_lookup(
 /* This function inserts internal item to the tree */
 static errno_t reiser4_tree_attach(
     reiser4_tree_t *tree,	    /* tree we will attach node to */
-    reiser4_joint_t *joint	    /* child to attached */
-	) {
+    reiser4_joint_t *joint)	    /* child to attached */
+{
     rpid_t id;
     int lookup;
     reiser4_coord_t coord;
@@ -467,8 +467,8 @@ static errno_t reiser4_tree_attach(
 
 /* This function grows and sets up tree after the growing */
 static errno_t reiser4_tree_grow(
-    reiser4_tree_t *tree	/* tree to be growed up */
-	) {
+    reiser4_tree_t *tree)	/* tree to be growed up */
+{
     uint8_t tree_height;
     reiser4_joint_t *old_root = tree->root;
     
@@ -504,9 +504,9 @@ static errno_t reiser4_tree_shift(
     direction_t direction,	/* direction of the shifting */
     reiser4_coord_t *coord,	/* insert point coord */
     reiser4_joint_t *joint,	/* destination node */
-    uint32_t needed,
-    int move_ip			/* should we move insert point too */
-	) {
+    uint32_t needed,        /* space need to be freed */
+    int move_ip)			/* should we move insert point too */
+{
     uint32_t overhead;
     reiser4_item_t item;
     
@@ -522,13 +522,13 @@ static errno_t reiser4_tree_shift(
 
     old = *coord;
 
-    {
+/*    {
 		shift_flags_t flags = 0;
 		flags |= (direction == D_LEFT ? SF_LEFT : SF_RIGHT);
 		if (move_ip) flags |= SF_MOVIP;
 		plugin_call(, coord->joint->node->entity->plugin->node_ops, shift,
 					old.joint->node->entity, joint->node->entity, &old.pos, flags);
-    }
+    }*/
 
     while (1) {
     
@@ -622,8 +622,8 @@ errno_t reiser4_tree_mkspace(
     reiser4_tree_t *tree,	    /* tree pointer function operates on */
     reiser4_coord_t *old,	    /* old coord of insertion point */
     reiser4_coord_t *new,	    /* new coord will be stored here */
-    uint32_t needed		    /* amount of space that should be freed */
-	) {
+    uint32_t needed)		    /* amount of space that should be freed */
+{
     int alloc;
     uint32_t max_space;
     int32_t not_enough;
@@ -730,10 +730,10 @@ errno_t reiser4_tree_mkspace(
 /* Inserts new item described by item hint into the tree */
 errno_t reiser4_tree_insert(
     reiser4_tree_t *tree,	    /* tree new item will be inserted in */
-    reiser4_item_hint_t *hint,	    /* item hint to be inserted */
-    uint8_t level,		    /* target level insertion will be performed on */
-    reiser4_coord_t *coord	    /* coord item or unit inserted at */
-	) {
+    reiser4_item_hint_t *hint,	/* item hint to be inserted */
+    uint8_t level,		        /* target level insertion will be performed on */
+    reiser4_coord_t *coord)	    /* coord item or unit inserted at */
+{
     int lookup;
     uint32_t needed;
     
@@ -840,8 +840,8 @@ errno_t reiser4_tree_insert(
 errno_t reiser4_tree_remove(
     reiser4_tree_t *tree,	/* tree item will be removed from */
     reiser4_key_t *key,		/* key item will be found by */
-    uint8_t level		/* the level removing will be performed on */
-	) {
+    uint8_t level)		/* the level removing will be performed on */
+{
     int lookup;
     reiser4_coord_t coord;
     
@@ -878,8 +878,8 @@ errno_t reiser4_tree_remove(
 errno_t reiser4_tree_move(
     reiser4_tree_t *tree,	    /* tree we are operating on */
     reiser4_coord_t *dst,	    /* dst coord */
-    reiser4_coord_t *src	    /* src coord */
-	) {
+    reiser4_coord_t *src)	    /* src coord */
+{
     aal_assert("umka-1020", tree != NULL, return -1);
     aal_assert("umka-1020", dst != NULL, return -1);
     aal_assert("umka-1020", src != NULL, return -1);

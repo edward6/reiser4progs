@@ -84,11 +84,11 @@ static errno_t dir40_realize(dir40_t *dir) {
     /* Positioning to the dir stat data */
     if (core->tree_ops.lookup(dir->tree, &dir->key, LEAF_LEVEL, 
 							  &dir->place) != 1) 
-		{
-			aal_exception_error("Can't find stat data of directory 0x%llx.", 
-								dir40_objectid(dir));
-			return -1;
-		}
+	{
+		aal_exception_error("Can't find stat data of directory 0x%llx.", 
+							dir40_objectid(dir));
+		return -1;
+	}
     
     if (core->item_ops.open(&dir->statdata, dir->place.entity, &dir->place.pos)) {
 		aal_exception_error("Can't open the stadata of directory 0x%llx.",
