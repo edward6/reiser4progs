@@ -40,11 +40,11 @@ typedef enum fsck_options {
 } fsck_options_t;
 
 typedef struct fsck_parse {
-    reiser4_param_t *param;
     uint8_t sb_mode, fs_mode;
 
     FILE *logfile;
     FILE *backup;
+    char *bitmap_file;
     aal_device_t *host_device;
     uint16_t options;
 } fsck_parse_t;

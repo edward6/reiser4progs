@@ -33,8 +33,7 @@ typedef enum behav_flags behav_flags_t;
 
 enum space_flags {
 	SF_WHOLE	= 1 << 0,
-	SF_FREE		= 1 << 1,
-	SF_BITMAP	= 1 << 2
+	SF_FREE		= 1 << 1
 };
 
 typedef enum space_flags space_flags_t;

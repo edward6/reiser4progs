@@ -9,8 +9,6 @@
 
 #include <fsck.h>
 
-static FILE *backup = NULL;
-
 static errno_t fsck_write_backup(aal_device_t *device, void *buff, 
 				 blk_t block, count_t count);
 
@@ -35,6 +33,7 @@ static void fsck_print_usage(char *name) {
 		"                         seems clean\n"
 		"  -v, --verbose          makes fsck to be verbose\n"
 		"  -b | --backup file     backup blocks to the file before changes\n"
+		"  -B | --bitmap file     handle blocks marked in the bitmap only\n"
 		"  -r                     ignored\n");
 }
 
@@ -114,8 +113,6 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 		break;
 	}
 	
-	fprintf(stderr, "Will use (%s) params.\n", data->param->name);
-
 	if (aal_yesno("Continue?") == EXCEPTION_OPT_NO) 
 		return USER_ERROR;
      
@@ -140,8 +137,9 @@ static errno_t fsck_init(fsck_parse_t *data,
 			 int argc, char *argv[]) 
 {
 	static int mode = RM_CHECK, sb_mode = 0, fs_mode = 0;
+	FILE *stream = NULL;
 	int option_index;
-	FILE *stream;
+	errno_t ret = 0;
 	int c;
 
 	static struct option options[] = {
@@ -165,10 +163,10 @@ static errno_t fsck_init(fsck_parse_t *data,
 		/* Fsck hidden options. */
 		{"passes-dump", required_argument, 0, 'U'},
 		{"backup", required_argument, 0, 'b'},
+		{"bitmap", required_argument, 0, 'B'},
 		{0, 0, 0, 0}
 	};
 
-	data->param = &default_param;
 	misc_exception_set_stream(EXCEPTION_TYPE_FATAL, stderr);
 	data->logfile = stderr;
 
@@ -177,7 +175,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 		return USER_ERROR;
 	}
 
-	while ((c = getopt_long(argc, argv, "l:VhnqapfvU:b:r?d", 
+	while ((c = getopt_long(argc, argv, "l:VhnqapfvU:b:r?dB:", 
 				options, &option_index)) >= 0) 
 	{
 		switch (c) {
@@ -188,7 +186,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 			if ((stream = fopen(optarg, "w")) == NULL) {
 				aal_fatal("Cannot not open the "
 					  "logfile (%s).", optarg);
-				return OPER_ERROR;
+				goto oper_error;
 			} 
 			
 			data->logfile = stream;		
@@ -199,10 +197,10 @@ static errno_t fsck_init(fsck_parse_t *data,
 		case 'U':
 			break;
 		case 'b':
-			if ((backup = fopen(optarg, "w+")) == NULL) {
+			if ((data->backup = fopen(optarg, "w+")) == NULL) {
 				aal_fatal("Cannot not open the "
 					  "backup file (%s).", optarg);
-				return OPER_ERROR;
+				goto oper_error;
 			}
 
 			ops->write = fsck_write_backup;
@@ -221,10 +219,10 @@ static errno_t fsck_init(fsck_parse_t *data,
 		case 'h': 
 		case '?':
 			fsck_print_usage(argv[0]);
-			return USER_ERROR;	    
+			goto user_error;
 		case 'V': 
 			misc_print_banner(argv[0]);
-			return USER_ERROR;
+			goto user_error;
 		case 'q':
 			aal_gauge_set_handler(GAUGE_PERCENTAGE, NULL);
 			aal_gauge_set_handler(GAUGE_INDICATOR, NULL);
@@ -234,6 +232,9 @@ static errno_t fsck_init(fsck_parse_t *data,
 			break;
 		case 'd':
 			aal_set_bit(&data->options, FSCK_OPT_DEBUG);
+			break;
+		case 'B':
+			data->bitmap_file = optarg;
 			break;
 		}
 	}
@@ -277,10 +278,24 @@ static errno_t fsck_init(fsck_parse_t *data,
 	aal_gauge_set_handler(GAUGE_TREE, gauge_tree);
     
 	return fsck_ask_confirmation(data, argv[optind]);
+	
+ user_error:
+	ret = USER_ERROR;
+	goto error;
+ oper_error:
+	ret = OPER_ERROR;
+ error:
+	if (data->logfile && data->logfile != stderr)
+		fclose(data->logfile);
+
+	if (data->backup)
+		fclose(data->backup);
+	
+	return ret;
 }
 
 static void fsck_fini(fsck_parse_t *data) {
-	if (data->logfile != NULL)
+	if (data->logfile != NULL && data->logfile != stderr)
 		fclose(data->logfile);
 
 	if (data->backup)
@@ -404,6 +419,7 @@ int main(int argc, char *argv[]) {
 	repair.mode = parse_data.sb_mode;
 	repair.debug_flag = aal_test_bit(&parse_data.options, FSCK_OPT_DEBUG);
 	repair.progress_handler = gauge_handler;    
+	repair.bitmap_file = parse_data.bitmap_file;
 	
 	if (parse_data.sb_mode != RM_CHECK || parse_data.fs_mode != RM_CHECK) {
 		aal_device_t *device = parse_data.host_device;
@@ -482,7 +498,7 @@ int main(int argc, char *argv[]) {
 		ex = FIXABLE_ERROR;
 	} else if (!df_fixable)
 		fprintf(stderr, "No corruption found.\n\n");
-	
+
 	fsck_fini(&parse_data);
 	
 	return ex;

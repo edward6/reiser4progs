@@ -76,6 +76,11 @@ extern aux_bitmap_t *aux_bitmap_clone(aux_bitmap_t *bitmap);
 extern void aux_bitmap_resize(aux_bitmap_t *bitmap, uint64_t len);
 extern void aux_bitmap_close(aux_bitmap_t *bitmap);
 extern char *aux_bitmap_map(aux_bitmap_t *bitmap);
+
+extern aux_bitmap_t *aux_bitmap_unpack(aal_stream_t *stream);
+extern errno_t aux_bitmap_pack(aux_bitmap_t *bitmap, 
+			       aal_stream_t *stream);
+
 #endif
 
 #endif

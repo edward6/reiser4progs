@@ -59,6 +59,7 @@ typedef struct repair_data {
 	uint8_t mode;
 	uint8_t debug_flag;
 
+	char *bitmap_file;
 	repair_progress_handler_t *progress_handler;
 } repair_data_t;
 

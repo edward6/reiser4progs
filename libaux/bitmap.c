@@ -341,8 +341,8 @@ char *aux_bitmap_map(
 
 /* Packs the bitmap. */
 errno_t aux_bitmap_pack(aux_bitmap_t *bitmap, aal_stream_t *stream) {
-	int zero;
 	uint64_t i, count;
+	int set;
 	
 	aal_assert("vpf-1431", bitmap != NULL);
 	aal_assert("vpf-1432", stream != NULL);
@@ -350,39 +350,32 @@ errno_t aux_bitmap_pack(aux_bitmap_t *bitmap, aal_stream_t *stream) {
 	aal_stream_write(stream, AUX_BITMAP_MAGIC, sizeof(AUX_BITMAP_MAGIC));
 	aal_stream_write(stream, &bitmap->total, sizeof(bitmap->total));
 
-	count = 0;
-	zero = 0;
+	i = count = 0;
+	set = 1;
 
-	for (i = 0; i < bitmap->total; i++) {
-		if (aux_bitmap_test(bitmap, i)) {
-			if (zero) {
-				/* Previous bit was not set. Write the @count 
-				   and start counting zeroes. */
-				aal_stream_write(stream, &count, sizeof(count));
+	while (TRUE) {
+		if (set)
+			i = aux_bitmap_find_cleared(bitmap, count);
+		else
+			i = aux_bitmap_find_marked(bitmap, count);
+		
+		if (i == INVAL_BLK)
+			break;
+		
+		i -= count;
+		
+		/* Write the @count. */ 
+		aal_stream_write(stream, &i, sizeof(i));
+		
+		count += i;
+		set = !set;
 
-				count = 1;
-				zero = 0;
-			} else {
-				/* One set bit more. */
-				count++;
-			}
-		} else {
-			if (zero) {
-				/* One zero bit more. */
-				count++;
-			} else {
-				/* Previous bit was set. Write the @count 
-				   and start counting ones. */
-				aal_stream_write(stream, &count, sizeof(count));
-
-				count = 1;
-				zero = 1;
-			}
-		}
 	}
 	
+	i = bitmap->total - count;
+	
 	/* Write the last @count and @extents. */
-	aal_stream_write(stream, &count, sizeof(count));
+	aal_stream_write(stream, &i, sizeof(i));
 	
 	return 0;
 }
@@ -393,7 +386,6 @@ aux_bitmap_t *aux_bitmap_unpack(aal_stream_t *stream) {
 	uint64_t total, count, bit;
 	int set;
 	
-	aal_assert("vpf-1433", bitmap != NULL);
 	aal_assert("vpf-1434", stream != NULL);
 	
 	/* Read and check the magic. */
@@ -415,18 +407,28 @@ aux_bitmap_t *aux_bitmap_unpack(aal_stream_t *stream) {
 	
 	bit = 0;
 	set = 1;
-	while (!aal_stream_eof(stream)) {
-		if (aal_stream_read(stream, &count, sizeof(count)))
-			goto error_eostream;
+	while (TRUE) {
+		uint32_t read;
+		
+		read = aal_stream_read(stream, &count, sizeof(count));
+		
+		if (read != sizeof(count))
+			break;
 
 		if (bit + count > total) {
 			aal_error("Stream with the bitmap looks corrupted.");
 			goto error_free_bitmap;
 		}
 		
-		aux_bitmap_mark_region(bitmap, bit, count);
+		if (set)
+			aux_bitmap_mark_region(bitmap, bit, count);
+
 		set = !set;
+		bit += count;
 	}
+	
+	if (bit != total)
+		goto error_eostream;
 	
 	return bitmap;
 

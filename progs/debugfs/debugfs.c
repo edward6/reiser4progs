@@ -81,10 +81,12 @@ int main(int argc, char *argv[]) {
 	char *cat_filename = NULL;
 	char *print_filename = NULL;
     
-	reiser4_fs_t *fs;
 	aal_device_t *device;
+	reiser4_fs_t *fs = NULL;
 	blk_t blocknr = 0;
 
+	FILE *file = NULL;
+	char *bm_file = NULL;
 	aux_bitmap_t *bitmap = NULL;
 	
 	static struct option long_options[] = {
@@ -205,7 +207,7 @@ int main(int argc, char *argv[]) {
 			space_flags |= SF_WHOLE;
 			break;
 		case 'B':
-			space_flags |= SF_BITMAP;
+			bm_file = optarg;
 			break;
 		}
 	}
@@ -269,66 +271,109 @@ int main(int argc, char *argv[]) {
 	if (behav_flags & BF_UNPACK_META) {
 		aal_stream_t stream;
 		
-		aal_stream_init(&stream, stdin, &file_stream);
-		
 		/* Prepare the bitmap if needed. */
-		if (space_flags & SF_BITMAP) {
+		if (bm_file) {
+			if ((file = fopen(bm_file, "w+")) == NULL) {
+				aal_fatal("Can't open the bitmap "
+					  "file (%s).", bm_file);
+				goto error_free_device;
+			}
+
 			if (!(bitmap = aux_bitmap_create(0))) {
 				aal_error("Can't allocate a bitmap.");
-				goto error_free_fs;
+				goto error_close_file;
 			}
 		}
 		
+		aal_stream_init(&stream, stdin, &file_stream);
+		
 		if (!(fs = repair_fs_unpack(device, bitmap, &stream))) {
 			aal_error("Can't unpack filesystem.");
-			goto error_free_device;
+			goto error_free_bitmap;
 		}
 
 		aal_stream_fini(&stream);
 
 		if (reiser4_fs_sync(fs)) {
 			aal_error("Can't save unpacked filesystem.");
-			goto error_free_fs;
+			goto error_free_bitmap;
 		}
 
 		/* Save the bitmap. */
-		
+		if (bitmap) {
+			aal_stream_init(&stream, file, &file_stream);
+
+			if (aux_bitmap_pack(bitmap, &stream)) {
+				aal_error("Can't pack the bitmap of "
+					  "unpacked blocks.");
+				goto error_free_bitmap;
+			}
+
+			aal_stream_fini(&stream);
+			aux_bitmap_close(bitmap);
+			fclose(file);
+			bitmap = NULL;
+			file = NULL;
+		}
+
+		goto done;
 	} else {
 		/* Open file system on the device */
 		if (!(fs = reiser4_fs_open(device, FALSE))) {
-			aal_error("Can't open reiser4 on %s", 
-				  host_dev);
+			aal_error("Can't open reiser4 on %s", host_dev);
 			goto error_free_device;
 		}
 	}
 	
 	if (behav_flags & BF_PACK_META /* || print disk blocks */) {
 		uint64_t len = reiser4_format_get_len(fs->format);
+		aal_stream_t stream;
 		
-		if (!(bitmap = aux_bitmap_create(len))) {
-			aal_error("Can't allocate a bitmap.");
-			goto error_free_fs;
-		}
-
-		/* For occupied and free blocks extract allocator to bitmap. */
-		if (space_flags == 0 || space_flags & SF_FREE) {
-			if (reiser4_alloc_extract(fs->alloc, bitmap)) {
-				aal_error("Can't extract the space allocator "
-					  "data into bitmap.");
-				goto error_free_bitmap;
+		if (bm_file) {
+			/* Read the bitmap from the file. */
+			if ((file = fopen(bm_file, "r")) == NULL) {
+				aal_fatal("Can't open the bitmap "
+					  "file (%s).", bm_file);
+				goto error_free_fs;
 			}
-		}
+		
+			aal_stream_init(&stream, file, &file_stream);
 
-		/* For whole partition and free blocks invert the bitmap. */
-		if (space_flags & SF_WHOLE || space_flags & SF_FREE) {
-			aux_bitmap_invert(bitmap);
+			if (!(bitmap = aux_bitmap_unpack(&stream))) {
+				aal_error("Can't unpack the bitmap of "
+					  "packed blocks.");
+				goto error_close_file;
+			}
+
+			aal_stream_fini(&stream);
+			fclose(file);
+			file = NULL;
+		} else {
+			if (!(bitmap = aux_bitmap_create(len))) {
+				aal_error("Can't allocate a bitmap.");
+				goto error_free_fs;
+			}
+
+			/* Used || free blocks - extract allocator to bitmap. */
+			if (space_flags == 0 || space_flags & SF_FREE) {
+				if (reiser4_alloc_extract(fs->alloc, bitmap)) {
+					aal_error("Can't extract the space "
+						  "allocator data to bitmap.");
+					goto error_free_bitmap;
+				}
+			}
+
+			/* Whole partition || free blocks - invert bitmap. */
+			if (space_flags & SF_WHOLE || space_flags & SF_FREE) {
+				aux_bitmap_invert(bitmap);
+			}
 		}
 	}
 
 	/* Opening the journal */
 	if (!(fs->journal = reiser4_journal_open(fs, device))) {
 		aal_error("Can't open journal on %s", host_dev);
-		goto error_free_fs;
+		goto error_free_bitmap;
 	}
 		
 	/* In the case no print flags was specified, debugfs will print super
@@ -393,11 +438,14 @@ int main(int argc, char *argv[]) {
 		
 		misc_exception_set_stream(EXCEPTION_TYPE_ERROR, error);
 		aal_stream_fini(&stream);
+		aux_bitmap_close(bitmap);
+		bitmap = NULL;
 	}
 	
 	/* Closing the journal */
 	reiser4_journal_close(fs->journal);
 	
+ done:
 	/* Closing filesystem itself */
 	reiser4_fs_close(fs);
 
@@ -412,10 +460,17 @@ int main(int argc, char *argv[]) {
  error_free_journal:
 	reiser4_journal_close(fs->journal);
  error_free_bitmap:
-	if (bitmap)
+	if (bitmap) {
 		aux_bitmap_close(bitmap);
+	}
+ error_close_file:
+	if(file) {
+		fclose(file);
+	}
  error_free_fs:
-	reiser4_fs_close(fs);
+	if (fs) {
+		reiser4_fs_close(fs);
+	}
  error_free_device:
 	aal_device_close(device);
  error_free_libreiser4:

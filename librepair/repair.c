@@ -228,8 +228,10 @@ static errno_t callback_layout_bad(void *object, blk_t blk,
    scanned. */
 static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	repair_data_t *repair;
+	aal_stream_t stream;
 	uint64_t fs_len, i;
 	errno_t res;
+	FILE *file;
 
 	aal_assert("vpf-826", ds != NULL);
 	aal_assert("vpf-825", control != NULL);
@@ -249,10 +251,42 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	
 	fs_len = reiser4_format_get_len(repair->fs->format);
 	
-	if (!(control->bm_alloc = aux_bitmap_create(fs_len))) {
-		aal_error("Failed to allocate a bitmap of allocated "
-			  "blocks.");
-		return -EINVAL;
+	
+	if (control->repair->bitmap_file) {
+		file = fopen(control->repair->bitmap_file, "r");
+		
+		if (file == NULL) {
+			aal_fatal("Cannot not open the bitmap file (%s).",
+				  control->repair->bitmap_file);
+			return -EINVAL;
+		}
+
+		aal_stream_init(&stream, file, &file_stream);
+
+		if (!(ds->bm_scan = aux_bitmap_unpack(&stream))) {
+			aal_error("Can't unpack the bitmap of "
+				  "packed blocks.");
+			fclose(file);
+			aal_stream_fini(&stream);
+			return -EINVAL;
+		}
+		
+		aal_stream_fini(&stream);
+		fclose(file);
+
+		control->bm_scan = ds->bm_scan;
+
+		if (ds->bm_scan->total != fs_len) {
+			aal_error("The bitmap in the file '%s' belongs to "
+				  "another fs.", control->repair->bitmap_file);
+			return -EINVAL;
+		}
+		
+		/* Do not scan those blocks which are in the tree already. */
+		for (i = 0; i < control->bm_met->size; i++)
+			ds->bm_scan->map[i] &= ~control->bm_met->map[i];
+		
+		goto fini;
 	}
 	
 	/* Allocate a bitmap of blocks to be scanned on this pass. */ 
@@ -262,12 +296,18 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		return -EINVAL;
 	}
 
+	if (!(control->bm_alloc = aux_bitmap_create(fs_len))) {
+		aal_error("Failed to allocate a bitmap of allocated "
+			  "blocks.");
+		return -EINVAL;
+	}
+
 	if ((res = reiser4_alloc_extract(repair->fs->alloc, control->bm_alloc)))
 		return res;
 	
 	/* Mark all broken regions of allocator as to be scanned. */
 	if ((res = repair_alloc_layout_bad(repair->fs->alloc,
-					   callback_layout_bad,
+					   callback_region_mark,
 					   control)))
 		return res;
 
@@ -285,28 +325,28 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		aal_assert("vpf-1329", (control->bm_leaf->map[i] & 
 					~control->bm_met->map[i]) == 0);
 		
-		/* Zeroing leaf & twig bitmaps of ndoes that are in the tree. */
-		control->bm_twig->map[i] = 0;
-		control->bm_leaf->map[i] = 0;
-			
 		/* Build a bitmap of blocks which are not in the tree yet.
 		   Block was met as formatted, but unused in on-disk block
 		   allocator. Looks like the bitmap block of the allocator 
 		   has not been synced on disk. Scan through all its blocks. */
 		if (~control->bm_alloc->map[i] & control->bm_met->map[i]) {
 			reiser4_alloc_region(repair->fs->alloc, i * 8,
-					     callback_region_mark, 
-					     control);
+					     callback_region_mark, control);
 		} else {
-			control->bm_scan->map[i] |= control->bm_alloc->map[i]
-				& ~control->bm_met->map[i];
+			control->bm_scan->map[i] |= 
+				(control->bm_alloc->map[i] & 
+				 ~control->bm_met->map[i]);
 		}
 	}
 	
 	aux_bitmap_close(control->bm_alloc);
+	
+ fini:
 	aux_bitmap_calc_marked(control->bm_scan);
-	aux_bitmap_calc_marked(control->bm_leaf);
-	aux_bitmap_calc_marked(control->bm_twig);
+	
+	/* Zeroing leaf & twig bitmaps of ndoes that are in the tree. */
+	aux_bitmap_clear_region(control->bm_leaf, 0, control->bm_leaf->total);
+	aux_bitmap_clear_region(control->bm_twig, 0, control->bm_twig->total);
 	
 	return 0;
 }
