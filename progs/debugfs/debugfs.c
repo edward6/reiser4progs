@@ -544,6 +544,7 @@ struct tstat_hint {
 
 	count_t nodes;
 	count_t leaves;
+	count_t twigs;
 	count_t internals;
 	count_t formatted;
 };
@@ -648,6 +649,7 @@ static errno_t stat_process_node(
 	}
 	
 	stat_hint->leaves += (level == LEAF_LEVEL);
+	stat_hint->twigs += (level == TWIG_LEVEL);
 	stat_hint->internals += (level > LEAF_LEVEL);
 
 	stat_hint->nodes++;
@@ -694,6 +696,7 @@ static errno_t debugfs_tree_stat(reiser4_fs_t *fs) {
 	printf("Total nodes:\t\t%llu\n", stat_hint.nodes);
 	printf("Formatted nodes:\t%llu\n", stat_hint.formatted);
 	printf("Leaf nodes:\t\t%llu\n", stat_hint.leaves);
+	printf("Twig nodes:\t\t%llu\n", stat_hint.twigs);
 	printf("Internal nodes:\t\t%llu\n", stat_hint.internals);
 	
 	return 0;
