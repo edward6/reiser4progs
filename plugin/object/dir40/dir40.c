@@ -23,7 +23,7 @@ static uint64_t dir40_size(object_entity_t *entity) {
 	
 	/* Updating stat data place */
 	if (obj40_update(&dir->obj))
-		return -EINVAL;
+		return 0;
 
 	return obj40_get_size(&dir->obj);
 }
@@ -790,6 +790,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	entry->len = hint.len;
 	size = dir40_size(entity) + 1;
 	bytes = obj40_get_bytes(&dir->obj) + hint.bytes;
+	
 	return obj40_touch(&dir->obj, size, bytes, time(NULL));
 }
 
@@ -836,6 +837,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	entry->len = hint.len;
 	size = dir40_size(entity) - 1;
 	bytes = obj40_get_bytes(&dir->obj) - hint.bytes;
+	
 	return obj40_touch(&dir->obj, size, bytes, time(NULL));
 }
 

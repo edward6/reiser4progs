@@ -341,7 +341,7 @@ static errno_t reg40_check_body(object_entity_t *entity,
 		aal_exception_error("Can't get body plugin "
 				    "for new file size %llu.",
 				    new_size);
-		return -EINVAL;
+		return -EIO;
 	}
 
 	/* Getting old file body plugin. This is needed for comparing with
@@ -386,7 +386,7 @@ int64_t reg40_put(object_entity_t *entity, void *buff, uint64_t n) {
 	offset = reg40_offset(entity) + n;
 	
 	if (!(hint.plug = reg40_policy_plug(reg, offset)))
-		return -EINVAL;
+		return -EIO;
 
 	/* Write data to tree. */
 	if ((written = obj40_write(&reg->obj, &hint)) < 0)
@@ -445,10 +445,10 @@ static int64_t reg40_write(object_entity_t *entity,
 	size = reg40_size(entity);
 	offset = reg40_offset(entity);
 
-	if (reg40_check_body(entity, size + n)) {
+	if ((res = reg40_check_body(entity, size + n))) {
 		aal_exception_error("Can't perform tail "
 				    "conversion.");
-		return -EINVAL;
+		return res;
 	}
 		
 	/* Inserting holes if it is needed */
@@ -477,6 +477,7 @@ static int64_t reg40_write(object_entity_t *entity,
 static errno_t reg40_truncate(object_entity_t *entity,
 			      uint64_t n)
 {
+	errno_t res;
 	reg40_t *reg;
 	int64_t bytes;
 	uint64_t size;
@@ -489,10 +490,10 @@ static errno_t reg40_truncate(object_entity_t *entity,
 
 	if (n > size) {
 		/* Converting body. */
-		if (reg40_check_body(entity, n)) {
+		if ((res = reg40_check_body(entity, n))) {
 			aal_exception_error("Can't perform tail "
 					    "conversion.");
-			return -EINVAL;
+			return res;
 		}
 		
 		/* Inserting holes */
@@ -516,14 +517,14 @@ static errno_t reg40_truncate(object_entity_t *entity,
 		/* Updating stat data fields */
 		bytes = obj40_get_bytes(&reg->obj) - bytes;
 
-		if (obj40_touch(&reg->obj, n, bytes, time(NULL)))
-			return -EIO;
+		if ((res = obj40_touch(&reg->obj, n, bytes, time(NULL))))
+			return res;
 
 		/* Converting body. */
-		if (reg40_check_body(entity, n)) {
+		if ((res = reg40_check_body(entity, n))) {
 			aal_exception_error("Can't perform tail "
 					    "conversion.");
-			return -EINVAL;
+			return res;
 		}
 
 		return 0;

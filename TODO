@@ -9,10 +9,8 @@ reiser4progs/COPYING.
 
 * fix tree_copy(). It should be able to copy extents too.
 
-* fix tail convetion. May be reproduced when we create two files.
-
-* fix all returned error value. Real errors should be returned, but
-  not lazzy ones, like -EINVAL for any kind of error.
+* do we need size() method in object plugins, after stat() method was
+  add which retrun whole stat data if needed?
 
 * cleanups in object.c about name field using.
 

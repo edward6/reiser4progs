@@ -127,7 +127,7 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	if (!(hint.plug = obj->core->factory_ops.ifind(ITEM_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find stat data item plugin by "
 				    "its id 0x%x.", pid);
-		return -EINVAL;
+		return -EIO;
 	}
 
 	hint.count = 1;

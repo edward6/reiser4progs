@@ -54,8 +54,8 @@ static int64_t sym40_read(object_entity_t *entity,
 
 	sym = (sym40_t *)entity;
 
-	if (obj40_update(&sym->obj))
-		return -EINVAL;
+	if ((res = obj40_update(&sym->obj)))
+		return res;
 	
 	if ((res = obj40_read_ext(STAT_PLACE(&sym->obj),
 				  SDEXT_SYMLINK_ID, buff)))
