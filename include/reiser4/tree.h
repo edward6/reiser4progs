@@ -34,7 +34,7 @@ extern errno_t reiser4_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *coord,
 extern errno_t reiser4_tree_remove(reiser4_tree_t *tree, reiser4_coord_t *coord);
 
 extern errno_t reiser4_tree_shift(reiser4_tree_t *tree, reiser4_coord_t *coord,
-				  reiser4_node_t *neig, shift_flags_t flags);
+				  reiser4_node_t *neig, uint32_t flags);
 
 extern errno_t reiser4_tree_mkspace(reiser4_tree_t *tree, reiser4_coord_t *coord,
 				    uint32_t needed);

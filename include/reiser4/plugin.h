@@ -204,18 +204,12 @@ struct reiser4_pos {
 
 typedef struct reiser4_pos reiser4_pos_t;
 
-enum shift_flags {
-	SF_LEFT	 = 1 << 0,
-	SF_RIGHT = 1 << 1,
-	SF_MOVIP = 1 << 2
-};
-
-typedef enum shift_flags shift_flags_t;
-
-/* Type for describing inside the library the objects created by plugins
- * themselves and which also have plugin. For example, node, format, alloc,
- * etc. The pointer of this type will be passed to list plugins for working with
- * them. */
+/*
+  Type for describing inside the library the objects created by plugins
+  themselves and which also have plugin. For example, node, format, alloc,
+  etc. The pointer of this type will be passed to list plugins for working with
+  them.
+*/
 struct object_entity {
 	reiser4_plugin_t *plugin;
 };
@@ -229,8 +223,10 @@ struct item_context {
 
 typedef struct item_context item_context_t;
 
-/* Type for describing an item. The pointer of this type will be passed to the
- * all item plugins. */
+/*
+  Type for describing an item. The pointer of this type will be passed to the
+  all item plugins.
+*/
 struct item_entity {
 	reiser4_plugin_t *plugin;
 
@@ -243,15 +239,24 @@ struct item_entity {
 typedef struct item_entity item_entity_t;
 typedef struct reiser4_place reiser4_place_t;
 
+enum shift_flags {
+	SF_LEFT	 = 1 << 0,
+	SF_RIGHT = 1 << 1,
+	SF_MOVIP = 1 << 2,
+	SF_MERGE = 1 << 3
+};
+
+typedef enum shift_flags shift_flags_t;
+
 struct shift_hint {
 	uint32_t items;
 	uint32_t units;
 
 	uint32_t bytes;
-	uint32_t part;
+	uint32_t rest;
 
+	uint32_t flags;
 	reiser4_pos_t pos;
-	shift_flags_t flags;
 };
 
 typedef struct shift_hint shift_hint_t;

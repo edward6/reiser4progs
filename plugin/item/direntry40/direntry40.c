@@ -188,7 +188,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	aal_assert("umka-1591", src_item != NULL, return 0);
 	aal_assert("umka-1592", hint != NULL, return 0);
 
-	space = hint->part;
+	space = hint->rest;
 	
 	src_units = direntry40_units(src_item);
 
@@ -282,7 +282,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	}
 
 	if (hint->units > 0)
-		hint->part -= space;
+		hint->rest -= space;
 	
 	return 0;
 }
@@ -318,13 +318,13 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	aal_assert("umka-1604", src_units >= hint->units, return -1);
 
 	headers = hint->units * sizeof(entry40_t);
-	hint->part -= (dst_units == 0 ? sizeof(direntry40_t) : 0);
+	hint->rest -= (dst_units == 0 ? sizeof(direntry40_t) : 0);
 		
 	if (hint->flags & SF_LEFT) {
 		
 		if (dst_units > 0) {
 
-			len = dst_item->len - hint->part;
+			len = dst_item->len - hint->rest;
 			
 			/* Moving entry headers of dst direntry */
 			src = (void *)dst_direntry + sizeof(direntry40_t) +
@@ -357,13 +357,13 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			en40_get_offset((entry40_t *)src);
 
 		/* Calculating body length */
-		len = dst_item->len - hint->part - sizeof(direntry40_t) -
+		len = dst_item->len - hint->rest - sizeof(direntry40_t) -
 			(dst_units * sizeof(entry40_t));
 			
 		dst = (void *)dst_direntry + sizeof(direntry40_t) +
 			(dst_units * sizeof(entry40_t)) + headers + len;
 		
-		size = hint->part - headers;
+		size = hint->rest - headers;
 		aal_memcpy(dst, src, size);
 
 		/* Updating offset of dst direntry */
@@ -388,12 +388,12 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 
 			/* Moving bodies of the src direntry */
 			src = (void *)src_direntry + sizeof(direntry40_t) +
-				(src_units * sizeof(entry40_t)) + (hint->part - headers);
+				(src_units * sizeof(entry40_t)) + (hint->rest - headers);
 
-			dst = src - hint->part;
+			dst = src - hint->rest;
 
 			size = src_item->len - sizeof(direntry40_t) -
-				size - hint->part;
+				size - hint->rest;
 
 			aal_memmove(dst, src, size);
 			
@@ -401,13 +401,13 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			entry = direntry40_entry(src_direntry, 0);
 			
 			for (i = 0; i < src_units - hint->units; i++, entry++)
-				en40_dec_offset(entry, hint->part);
+				en40_dec_offset(entry, hint->rest);
 		}
 	} else {
 
 		if (dst_units > 0) {
 
-			len = dst_item->len - hint->part;
+			len = dst_item->len - hint->rest;
 			
 			/* Moving entry headers of dst direntry */
 			src = (void *)dst_direntry + sizeof(direntry40_t);
@@ -421,12 +421,12 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			entry = (entry40_t *)dst;
 
 			for (i = 0; i < dst_units; i++, entry++)
-				en40_inc_offset(entry, hint->part);
+				en40_inc_offset(entry, hint->rest);
 			
 			/* Moving entry bodies of dst direntry */
 			src = dst + (dst_units * sizeof(entry40_t));
 
-			dst = src + (hint->part - headers);
+			dst = src + (hint->rest - headers);
 				
 			size -= (dst_units * sizeof(entry40_t));
 			
@@ -447,7 +447,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		dst = (void *)dst_direntry + sizeof(direntry40_t) +
 			((hint->units + dst_units) * sizeof(entry40_t));
 			
-		size = hint->part - headers;
+		size = hint->rest - headers;
 		aal_memcpy(dst, src, size);
 
 		/* Updating offset of dst direntry */

@@ -640,7 +640,7 @@ errno_t reiser4_tree_shift(
 	reiser4_tree_t *tree,	/* tree we will operate on */
 	reiser4_coord_t *coord,	/* insert point coord */
 	reiser4_node_t *neig,	/* node items will be shifted to */
-	shift_flags_t flags)	/* some flags (direction, move ip or not, etc) */
+	uint32_t flags)	        /* some flags (direction, move ip or not, etc) */
 {
 	shift_hint_t hint;
 
