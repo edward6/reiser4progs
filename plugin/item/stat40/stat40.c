@@ -271,7 +271,7 @@ static int32_t stat40_write(item_entity_t *item, void *buff,
 	return count;
 }
 
-extern errno_t stat40_check(item_entity_t *);
+extern errno_t stat40_check(item_entity_t *, uint8_t);
 
 #endif
 

@@ -9,19 +9,37 @@
 #define REPAIR_PLUGIN_H
 
 enum repair_flag {
-    REPAIR_CHECK    = 0,
-    REPAIR_FIX	    = 1,
-    REPAIR_ROLLBACK = 2
+    REPAIR_CHECK    = 1,
+    REPAIR_FIX	    = 2,
+    REPAIR_REBUILD  = 3,
+    REPAIR_ROLLBACK = 4
 };
 
 typedef enum repair_flag repair_flag_t;
 
-struct repair_plugin_info {
-    uint64_t fatal;
-    uint64_t fixable;
-    uint64_t fixed;
+enum repair_error_codes {
+    /* No error were detected. */
+    REPAIR_OK	    = 0,
+    /* All errors were fixed. */
+    REPAIR_FIXED    = 1,
+    /* Fixable errors were detected. */
+    REPAIR_FIXABLE  = 2,
+    /* Fatal errors were detected. */
+    REPAIR_FATAL    = 3,
 };
 
-typedef struct repair_plugin_info repair_plugin_info_t;
+typedef enum repair_error_codes repair_error_codes_t;
+
+#define repair_error_exists(result)	(result > REPAIR_FIXED || result < 0)
+#define repair_error(result, kind)	(result = result < kind ? kind : result)
+
+struct repair_plugin_info {
+    uint32_t fatal;
+    uint32_t fixable;
+    uint32_t fixed;
+    uint8_t  mode;
+};
+
+//typedef struct repair_plugin_info repair_plugin_info_t;
 
 #endif

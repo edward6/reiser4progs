@@ -68,7 +68,7 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin, void *data) {
 		return -1;
 	}
 
-	/* Check plugin coord */
+	/* Check plugin place */
 	if (examined->h.group == plugin->h.group &&
 	    examined->h.id == plugin->h.id &&
 	    examined->h.type == plugin->h.type)

@@ -21,7 +21,7 @@
 #include <repair/master.h>
 #include <repair/journal.h>
 #include <repair/node.h>
-#include <repair/coord.h>
+#include <repair/place.h>
 #include <repair/item.h>
 #include <repair/filter.h>
 #include <repair/disk_scan.h>

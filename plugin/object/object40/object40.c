@@ -415,7 +415,7 @@ lookup_t object40_lookup(object40_t *object, key_entity_t *key,
 
 /*
   Inserts passed item hint into the tree. After function is finished, place
-  contains the coord of the inserted item.
+  contains the place of the inserted item.
 */
 errno_t object40_insert(object40_t *object, reiser4_item_hint_t *hint,
 			uint8_t stop, place_t *place)

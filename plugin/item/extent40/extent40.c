@@ -733,6 +733,8 @@ static errno_t extent40_shift(item_entity_t *src_item,
 	return 0;
 }
 
+extern errno_t extent40_check(item_entity_t *item, uint8_t mode);
+
 #endif
 
 static reiser4_plugin_t extent40_plugin = {
@@ -773,7 +775,7 @@ static reiser4_plugin_t extent40_plugin = {
 #endif
 		.insert	       = NULL,
 		.belongs       = NULL,
-		.check	       = NULL,
+		.check	       = extent40_check,
 		.valid	       = NULL,
 		.branch        = NULL,
 		.set_key       = NULL,
