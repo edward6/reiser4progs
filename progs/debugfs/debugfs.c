@@ -29,8 +29,10 @@ static void debugfs_print_usage(char *name) {
 		"                                  any questions.\n"
 		"  -f, --force                     makes debugfs to use whole disk, not\n"
 		"                                  block device or mounted partition.\n"
+		"  -c, --cache N                   number of nodes in tree cache,\n"
+		"                                  it affects many aspects of behavior\n"
 		"Browsing options:\n"
-		"  -c, --cat FILE                  browses passed file like standard\n"
+		"  -k, --cat FILE                  browses passed file like standard\n"
 		"                                  cat and ls programs.\n"
 		"Print options:\n"
 		"  -s, --print-super               prints the both super blocks.\n"
@@ -70,6 +72,8 @@ static void debugfs_init(void) {
 
 int main(int argc, char *argv[]) {
 	int c;
+
+	uint32_t cache;
 	struct stat st;
 	char *host_dev;
 
@@ -94,7 +98,7 @@ int main(int argc, char *argv[]) {
 		{"help", no_argument, NULL, 'h'},
 		{"force", no_argument, NULL, 'f'},
 		{"quiet", no_argument, NULL, 'q'},
-		{"cat", required_argument, NULL, 'c'},
+		{"cat", required_argument, NULL, 'k'},
 		{"print-tree", no_argument, NULL, 't'},
 		{"print-journal", no_argument, NULL, 'j'},
 		{"print-super", no_argument, NULL, 's'},
@@ -112,6 +116,7 @@ int main(int argc, char *argv[]) {
 		{"free-blocks", no_argument, NULL, 'F'},
 		{"bitmap", required_argument, NULL, 'B'},
 		{"whole-partition", no_argument, NULL, 'W'},
+		{"cache", required_argument, NULL, 'c'},
 		{0, 0, 0, 0}
 	};
 
@@ -124,7 +129,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:plsaPUOFWB:",
+	while ((c = getopt_long(argc, argv, "hVqftb:djk:n:i:o:plsaPUOFWB:c:",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -168,9 +173,18 @@ int main(int argc, char *argv[]) {
 			print_flags |= PF_ITEMS;
 			print_filename = optarg;
 			break;
-		case 'c':
+		case 'k':
 			behav_flags |= BF_CAT;
 			cat_filename = optarg;
+			break;
+		case 'c':
+			if ((cache = misc_str2long(optarg, 10)) == INVAL_DIG) {
+				aal_error("Invalid cache value specified (%s).",
+					  optarg);
+				return USER_ERROR;
+			}
+
+			misc_mpressure_setup(cache);
 			break;
 		case 'f':
 			behav_flags |= BF_FORCE;

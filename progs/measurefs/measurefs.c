@@ -45,6 +45,8 @@ static void measurefs_print_usage(char *name) {
 		"                                  any questions.\n"
 		"  -f, --force                     makes debugfs to use whole disk, not\n"
 		"                                  block device or mounted partition.\n"
+		"  -c, --cache N                   number of nodes in tree cache,\n"
+		"                                  it affects many aspects of behavior\n"
 		"Measurement options:\n"
 		"  -S, --tree-stat                 measures some tree characteristics\n"
 		"                                  (node packing, etc).\n"
@@ -692,6 +694,7 @@ int main(int argc, char *argv[]) {
 	int c;
 	char *host_dev;
 
+	uint32_t cache;
 	uint32_t flags = 0;
 	char override[4096];
 
@@ -712,6 +715,7 @@ int main(int argc, char *argv[]) {
 		{"print-params", no_argument, NULL, 'p'},
 		{"print-plugins", no_argument, NULL, 'l'},
 		{"override", required_argument, NULL, 'o'},
+		{"cache", required_argument, NULL, 'c'},
 		{0, 0, 0, 0}
 	};
 
@@ -724,7 +728,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqfKTDESF:o:pl",
+	while ((c = getopt_long(argc, argv, "hVqfKTDESF:o:plc:",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -767,6 +771,15 @@ int main(int argc, char *argv[]) {
 				    aal_strlen(optarg));
 			
 			aal_strncat(override, ",", 1);
+			break;
+		case 'c':
+			if ((cache = misc_str2long(optarg, 10)) == INVAL_DIG) {
+				aal_error("Invalid cache value specified (%s).",
+					  optarg);
+				return USER_ERROR;
+			}
+
+			misc_mpressure_setup(cache);
 			break;
 		case '?':
 			measurefs_print_usage(argv[0]);

@@ -379,7 +379,7 @@ errno_t reiser4_fs_copy(
 	aal_assert("umka-2484", src_fs != NULL);
 	aal_assert("umka-2485", dst_fs != NULL);
 	
-	return reiser4_tree_clone(src_fs->tree, dst_fs->tree);
+	return reiser4_tree_copy(src_fs->tree, dst_fs->tree);
 }
 
 /* Synchronizes all filesystem objects. */

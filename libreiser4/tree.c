@@ -2969,12 +2969,13 @@ errno_t reiser4_tree_trav(reiser4_tree_t *tree,
 }
 
 /* Makes copy of @src_tree to @dst_tree */
-errno_t reiser4_tree_clone(reiser4_tree_t *src_tree,
-			   reiser4_tree_t *dst_tree)
+errno_t reiser4_tree_copy(reiser4_tree_t *src_tree,
+			  reiser4_tree_t *dst_tree)
 {
 	aal_assert("umka-2304", src_tree != NULL);
 	aal_assert("umka-2305", dst_tree != NULL);
-	
+
+	aal_error("Sorry, not implemented yet!");
 	return -EINVAL;
 }
 
@@ -2983,6 +2984,8 @@ errno_t reiser4_tree_resize(reiser4_tree_t *tree,
 			    count_t blocks)
 {
 	aal_assert("umka-2323", tree != NULL);
+
+	aal_error("Sorry, not implemented yet!");
 	return -EINVAL;
 }
 #endif

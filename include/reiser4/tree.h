@@ -138,8 +138,8 @@ extern int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 				   estimate_func_t estimate_func,
 				   modify_func_t modify_func);
 
-extern errno_t reiser4_tree_clone(reiser4_tree_t *src_tree,
-				  reiser4_tree_t *dst_tree);
+extern errno_t reiser4_tree_copy(reiser4_tree_t *src_tree,
+				 reiser4_tree_t *dst_tree);
 
 extern errno_t reiser4_tree_resize(reiser4_tree_t *tree,
 				   count_t blocks);

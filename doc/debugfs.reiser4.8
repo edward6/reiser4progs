@@ -37,6 +37,10 @@ forces using the filesystem without any questions.
 .TP
 .B -f, --force
 makes debugfs to use whole disk, not block device or mounted partition.
+.TP
+.B -c, --cache N
+sets tree cache node number to passed value. This affects very much
+behavior of libreiser4. It affects speed, tree allocation, etc.
 .SH BROWSING OPTIONS
 .TP
 .B -c, --cat
