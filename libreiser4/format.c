@@ -363,7 +363,7 @@ void reiser4_format_set_policy(
 		    set_policy, format->entity, policy);
 }
 
-/* Returns jouranl plugin id in use */
+/* Returns journal plugin id in use */
 rid_t reiser4_format_journal_pid(
 	reiser4_format_t *format)	/* disk-format journal pid will be obtained from */
 {
