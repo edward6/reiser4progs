@@ -143,6 +143,58 @@ static int tail40_lookup(item_entity_t *item, reiser4_key_t *key,
 	return 0;
 }
 
+#ifndef ENABLE_COMPACT
+
+static int tail40_mergeable(item_entity_t *item1, item_entity_t *item2) {
+	reiser4_plugin_t *plugin;
+	uint64_t offset1, offset2;
+	roid_t objectid1, objectid2;
+	roid_t locality1, locality2;
+	
+	aal_assert("umka-1584", item1 != NULL, return -1);
+	aal_assert("umka-1585", item2 != NULL, return -1);
+
+	/* FIXME-UMKA: Here should not be hardcoded key plugin id */
+	if (!(plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
+					       KEY_REISER40_ID)))
+	{
+		aal_exception_error("Can't find key plugin by its id 0x%x",
+				    KEY_REISER40_ID);
+		return -1;
+	}
+	
+	locality1 = plugin_call(return -1, plugin->key_ops,
+				get_locality, &item1->key);
+
+	locality2 = plugin_call(return -1, plugin->key_ops,
+				get_locality, &item2->key);
+
+	if (locality1 != locality2)
+		return 0;
+	
+	objectid1 = plugin_call(return -1, plugin->key_ops,
+				get_objectid, &item1->key);
+	
+	objectid2 = plugin_call(return -1, plugin->key_ops,
+				get_objectid, &item2->key);
+
+	if (objectid1 != objectid1)
+		return 0;
+
+	offset1 = plugin_call(return -1, plugin->key_ops,
+			      get_offset, &item1->key);
+	
+	offset2 = plugin_call(return -1, plugin->key_ops,
+			      get_offset, &item2->key);
+
+	if (offset1 + item1->len != offset2)
+		return 0;
+	
+	return 1;
+}
+
+#endif
+
 static reiser4_plugin_t tail40_plugin = {
 	.item_ops = {
 		.h = {
@@ -160,10 +212,12 @@ static reiser4_plugin_t tail40_plugin = {
 		.init	       = tail40_init,
 		.insert	       = tail40_insert,
 		.print	       = tail40_print,
+		.mergeable     = tail40_mergeable,
 #else
 		.init	       = NULL,
 		.insert	       = NULL,
 		.print	       = NULL,
+		.mergeable     = NULL,
 #endif
 		.open          = NULL,
 		.remove	       = NULL,
@@ -173,7 +227,6 @@ static reiser4_plugin_t tail40_plugin = {
 		.valid	       = NULL,
 		.shift         = NULL,
 		.update        = NULL,
-		.mergeable     = NULL,
 		
 		.lookup	       = tail40_lookup,
 		.fetch         = tail40_fetch,
