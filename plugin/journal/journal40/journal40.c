@@ -540,7 +540,7 @@ static void journal40_close(object_entity_t *entity) {
 	aal_free(journal);
 }
 
-extern errno_t journal40_check(object_entity_t *, layout_func_t);
+extern errno_t journal40_check(object_entity_t *, layout_func_t, void *);
 
 static reiser4_plugin_t journal40_plugin = {
 	.journal_ops = {
