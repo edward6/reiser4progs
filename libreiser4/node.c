@@ -798,11 +798,17 @@ errno_t reiser4_node_shift(
     
 	aal_assert("umka-1258", reiser4_node_items(node) > 0, return -1);
 
+	hint->bytes = 0;
+	hint->items = 0;
+
+	/* Turning off SF_MOVIP flag */
+	hint->result = hint->control & ~SF_MOVIP;
+	
 	/*
 	  Saving node position in parent. It will be used bellow for updating
 	  left delemiting key.
 	*/
-	if (hint->flags & SF_LEFT) {
+	if (hint->control & SF_LEFT) {
 		if (node->parent) {
 			if (reiser4_node_pos(node, &ppos)) {
 				aal_exception_error("Can't find node %llu in "
@@ -829,14 +835,14 @@ errno_t reiser4_node_shift(
 	*/
 	plugin = node->entity->plugin;
 	
-	retval = plugin_call(plugin->node_ops, shift,
-			     node->entity, neig->entity, hint);
+	retval = plugin_call(plugin->node_ops, shift, node->entity,
+			     neig->entity, hint);
 
 	if (retval < 0)
 		return retval;
 
 	/* Updating left delimiting keys in the tree */
-	if (hint->flags & SF_LEFT) {
+	if (hint->control & SF_LEFT) {
 		
 		if (reiser4_node_items(node) != 0 &&
 		    (hint->items > 0 || hint->units > 0))
@@ -879,7 +885,7 @@ errno_t reiser4_node_shift(
 		reiser4_node_t *child;
 		reiser4_ptr_hint_t ptr;
 
-		if (hint->flags & SF_LEFT)
+		if (hint->control & SF_LEFT)
 			rpos_init(&ppos, items - i - 1, ~0ul);
 		else 
 			rpos_init(&ppos, i, ~0ul);

@@ -720,7 +720,7 @@ errno_t reiser4_tree_shift(
     
 	aal_memset(&hint, 0, sizeof(hint));
 	
-	hint.flags = flags;
+	hint.control = flags;
 	hint.pos = coord->pos;
 	
 	if (reiser4_node_shift(coord->node, node, &hint) < 0)
@@ -728,7 +728,7 @@ errno_t reiser4_tree_shift(
 
 	coord->pos = hint.pos;
 
-	if (hint.flags & SF_MOVIP)
+	if (hint.result & SF_MOVIP)
 		coord->node = node;
 
 	return 0;
@@ -816,8 +816,8 @@ errno_t reiser4_tree_expand(
 			return -1;	
 
 		/*
-		  Releasing old node, because it has become empty as result of data
-		  shifting.
+		  Releasing old node, because it has become empty as result of
+		  data shifting.
 		*/
 		if (reiser4_node_items(save.node) == 0) {
 
