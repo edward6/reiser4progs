@@ -257,23 +257,6 @@ errno_t reiser4_node_release(reiser4_node_t *node) {
 #endif
 }
 
-/* Increaases lock counter to prevent releasing node from the tree. */
-errno_t reiser4_node_lock(reiser4_node_t *node) {
-	aal_assert("umka-1515", node != NULL, return -1);
-
-	node->counter++;
-	return 0;
-}
-
-/* Decreasing lock counter */
-errno_t reiser4_node_unlock(reiser4_node_t *node) {
-	aal_assert("umka-1515", node != NULL, return -1);
-	aal_assert("umka-1517", node->counter > 0, return -1);
-
-	node->counter--;
-	return 0;
-}
-
 /* Getting the left delimiting key */
 errno_t reiser4_node_lkey(
 	reiser4_node_t *node,	/* node the ldkey will be obtained from */
@@ -534,8 +517,8 @@ static reiser4_node_t *reiser4_node_fnn(
 	reiser4_node_t *node,
 	int direction)
 {	
-	reiser4_node_t *old = node;
 	uint32_t level;
+	reiser4_node_t *old = node;
 	
 	level = reiser4_node_level(node);
 	
@@ -725,9 +708,6 @@ int reiser4_node_lookup(
 	  within the item or after the item.
 	*/
 		
-	/* FIXME-UMKA: Here should not be hardcoded key40 plugin id */
-	/* maxkey.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, KEY_REISER40_ID); */
-
 	if (reiser4_item_max_poss_key(&coord, &maxkey))
 		return -1;
 
@@ -1208,7 +1188,7 @@ errno_t reiser4_node_traverse(
 	aal_assert("vpf-418", hint != NULL, return -1);
 	aal_assert("vpf-390", node != NULL, return -1);
 
-	node->counter++;
+	reiser4_node_lock(node);
 
 	if ((before_func && (result = before_func(node, hint->data))))
 		goto error;
@@ -1269,7 +1249,7 @@ errno_t reiser4_node_traverse(
 					goto error_free_child;
 
 				if (hint->cleanup && !child->children &&
-				    !child->counter && child->data)
+				    !reiser4_node_locked(child) && child->data)
 				{
 					reiser4_node_close(child);
 				}
@@ -1288,13 +1268,13 @@ errno_t reiser4_node_traverse(
 	if (after_func && (result = after_func(node, hint->data)))
 		goto error;
 
-	node->counter--;
+	reiser4_node_unlock(node);
 	return result;
 
  error_free_child:
 	
 	if (hint->cleanup && !child->children &&
-	    !child->counter && child->data)
+	    !reiser4_node_locked(child) && child->data)
 	{
 		reiser4_node_close(child);
 	}
@@ -1309,7 +1289,7 @@ errno_t reiser4_node_traverse(
 		result = after_func(node, hint->data);
     
  error:
-	node->counter--;
+	reiser4_node_unlock(node);
 	return result;
 }
 
