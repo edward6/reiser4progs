@@ -745,7 +745,7 @@ bool_t reiser4_tree_fresh(reiser4_tree_t *tree) {
 }
 
 /* 
-  Makes search in the tree by specified key. Fills passed place by coords of
+  Makes search in the tree by specified key. Fills passed place by places of
   found item.
 */
 lookup_t reiser4_tree_lookup(

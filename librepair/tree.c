@@ -53,34 +53,34 @@ bool_t repair_tree_data_level(uint8_t level) {
 static errno_t repair_tree_max_real_key(reiser4_node_t *node, 
     reiser4_key_t *key) 
 {
-    reiser4_place_t coord;
+    reiser4_place_t place;
     reiser4_node_t *child;
     errno_t res;
 
     aal_assert("vpf-712", node != NULL);
     aal_assert("vpf-713", key != NULL);
 
-    coord.node = node;
-    coord.pos.item = reiser4_node_items(node) - 1;
-    coord.pos.unit = ~0ul;
+    place.node = node;
+    place.pos.item = reiser4_node_items(node) - 1;
+    place.pos.unit = ~0ul;
 
-    if (reiser4_place_realize(&coord)) {
+    if (reiser4_place_realize(&place)) {
 	aal_exception_error("Node (%llu): Failed to open the item (%u).",
-	    node->blk, coord.pos.item);
+	    node->blk, place.pos.item);
 	return -1;
     }
  
-    if (reiser4_item_nodeptr(&coord)) {
-	item_entity_t *item = &coord.item;
+    if (reiser4_item_nodeptr(&place)) {
+	item_entity_t *item = &place.item;
 	reiser4_ptr_hint_t ptr;
 
-	coord.pos.unit = reiser4_item_units(&coord);
+	place.pos.unit = reiser4_item_units(&place);
 	
 	if (plugin_call(item->plugin->item_ops, read, item, 
-	    &ptr, coord.pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
+	    &ptr, place.pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
 	    return -1;
 
-	if (!(child = reiser4_node_open(coord.node->device, ptr.ptr))) 
+	if (!(child = reiser4_node_open(place.node->device, ptr.ptr))) 
 	    return -1;
 	
 	res = repair_tree_max_real_key(child, key);
@@ -88,19 +88,19 @@ static errno_t repair_tree_max_real_key(reiser4_node_t *node,
 	if (reiser4_node_close(child))
 	    return -1;
     } else 
-	res = reiser4_item_utmost_key(&coord, key);
+	res = reiser4_item_utmost_key(&place, key);
 
     return res;
 }
 
-/* Corrects coord for insertion over the base reiser4_tree_lookup method. */
+/* Corrects place for insertion over the base reiser4_tree_lookup method. */
 lookup_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key, 
-    reiser4_place_t *coord) 
+    reiser4_place_t *place) 
 {
     uint32_t items;
     lookup_t lookup;
      
-    if ((lookup = reiser4_tree_lookup(tree, key, LEAF_LEVEL, coord)) == LP_FAILED) {
+    if ((lookup = reiser4_tree_lookup(tree, key, LEAF_LEVEL, place)) == LP_FAILED) {
 	aal_stream_t stream;
 	
 	aal_stream_init(&stream);
@@ -110,26 +110,26 @@ lookup_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 
 	return lookup;
     } else if (lookup == LP_PRESENT) {
-	if (reiser4_place_realize(coord))
+	if (reiser4_place_realize(place))
 	    return LP_FAILED;
 	
 	return lookup;
     }
 
-    items = reiser4_node_items(coord->node);
+    items = reiser4_node_items(place->node);
 
-    /* Position was not found - coord could point to a non existent position, 
+    /* Position was not found - place could point to a non existent position, 
      * move to the right item then. */
-    if (coord->pos.item < items) {
-	if (reiser4_place_realize(coord))
+    if (place->pos.item < items) {
+	if (reiser4_place_realize(place))
 	    return LP_FAILED;
 
-	if (coord->pos.unit == reiser4_item_units(coord)) {
-	    coord->pos.item++; 
-	    coord->pos.unit = ~0ul;
+	if (place->pos.unit == reiser4_item_units(place)) {
+	    place->pos.item++; 
+	    place->pos.unit = ~0ul;
 
-	    if (coord->pos.item < items) {
-		if (reiser4_place_realize(coord))
+	    if (place->pos.item < items) {
+		if (reiser4_place_realize(place))
 		    return LP_FAILED;
 	    }
 	} 
@@ -141,7 +141,7 @@ lookup_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 /* This function creates nodeptr item on the nase of 'node' and insert it to 
  * the tree. */
 errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
-    reiser4_place_t coord;
+    reiser4_place_t place;
     reiser4_item_hint_t hint;
     reiser4_ptr_hint_t ptr;
     reiser4_key_t rkey, key;
@@ -166,17 +166,17 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 
     reiser4_node_lkey(node, &hint.key);
 
-    if ((lookup = repair_tree_lookup(tree, &hint.key, &coord)) != LP_ABSENT)
+    if ((lookup = repair_tree_lookup(tree, &hint.key, &place)) != LP_ABSENT)
 	return lookup;
 	
     /* Key does not exist in the tree. Check the found position. Try to split 
      * the node to insert the whole node. */
 
-    if (coord.pos.item == reiser4_node_items(coord.node)) {
-	if (repair_node_rd_key(coord.node, &key))	    
+    if (place.pos.item == reiser4_node_items(place.node)) {
+	if (repair_node_rd_key(place.node, &key))	    
 	    return -1;
     } else {
-	if (reiser4_item_get_key(&coord, &key)) 
+	if (reiser4_item_get_key(&place, &key)) 
 	    return -1;
     }
     
@@ -199,17 +199,17 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	return -1;
     }
 
-    /* Split the found coord if needed to insert the whole node. */
-    if (reiser4_tree_split(tree, &coord, level))
+    /* Split the found place if needed to insert the whole node. */
+    if (reiser4_tree_split(tree, &place, level))
 	return -1;
     
-    if ((res = reiser4_tree_insert(tree, &coord, level, &hint))) {
+    if ((res = reiser4_tree_insert(tree, &place, level, &hint))) {
 	aal_exception_error("Can't insert nodeptr item to the tree.");
 	return res;
     }
 
     /* Setting needed links between nodes in the tree cashe. */
-    if (reiser4_tree_connect(tree, coord.node, node)) {
+    if (reiser4_tree_connect(tree, place.node, node)) {
 	aal_exception_error("Can't attach the node %llu in tree cache.", 
 	    node->blk);
 	return -1;
@@ -220,7 +220,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 
 /* Insert the item with overwriting of existent in the tree items if needed. */
 errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *insert) {
-    reiser4_place_t coord;
+    reiser4_place_t place;
     reiser4_key_t src_key, dst_key;
     lookup_t res;
     uint32_t count;
@@ -239,16 +239,16 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *insert) {
 	    return -1;
 	}
 	
-	res = repair_tree_lookup(tree, &insert->item.key, &coord);
+	res = repair_tree_lookup(tree, &insert->item.key, &place);
 
 	if (res == LP_ABSENT) {
 	    /* Start key does not exist in the tree. Prepare the insertion. */
 
-	    if (coord.pos.item == reiser4_node_items(coord.node)) {
-		if (repair_node_rd_key(coord.node, &dst_key))
+	    if (place.pos.item == reiser4_node_items(place.node)) {
+		if (repair_node_rd_key(place.node, &dst_key))
 		    return -1;
 	    } else {
-		if (reiser4_item_get_key(&coord, &dst_key)) 
+		if (reiser4_item_get_key(&place, &dst_key)) 
 		    return -1;
 	    }
 
@@ -265,16 +265,16 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *insert) {
 	    /* There are some item plugins which have gaps in keys between their 
 	     * units - like direntry40 - check that. Use the special method - 
 	     * item_ops.gap_key - which get the max real key stored continously 
-	     * from the key specified in the coord. */
+	     * from the key specified in the place. */
 
-	    if (coord.item.plugin->h.id != insert->item.plugin->h.id) {
+	    if (place.item.plugin->h.id != insert->item.plugin->h.id) {
 		/* FIXME: relocation code should be here. */
 		aal_exception_error("Tree failed to overwrite items of "
 		    "different plugins. Relocation is not supported yet.");
 		return -1;
 	    }
 
-	    if (reiser4_item_gap_key(&coord, &dst_key)) 
+	    if (reiser4_item_gap_key(&place, &dst_key)) 
 		return -1;
 
 	    if (reiser4_item_utmost_key(insert, &src_key)) 
@@ -298,12 +298,12 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *insert) {
 	/* FIXME: Here tree_write_prepare should be called. It should split the 
 	 * target node to keep correct flush_ids. */
 	
-	if (reiser4_tree_write(tree, &coord, insert, count)) {
+	if (reiser4_tree_write(tree, &place, insert, count)) {
 	    aal_exception_error("Node (%llu), item (%u), unit (%u), count "
 		"(%u): Tree failed on writing the set of units to the tree "
 		"position: node (%llu), item (%u), unit (%u).",
 		insert->node->blk, insert->pos.item, insert->pos.unit, count,
-		coord.node->blk, coord.pos.item, coord.pos.unit);
+		place.node->blk, place.pos.item, place.pos.unit);
 	    return -1;
 	}
 
@@ -314,37 +314,37 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *insert) {
 }
 
 /* 
- * Check the coord for key range insertion possibility. 
+ * Check the place for key range insertion possibility. 
  * Split found node if it helps. 
  * 
  * FIXME: This method implies that it is run after lookup and the wanted key 
  * was not found. So start_key is not checked here.
  */
 /*
-static errno_t repair_tree_fits(reiser4_place_t *coord,
+static errno_t repair_tree_fits(reiser4_place_t *place,
     reiser4_key_t *start_key, reiser4_key_t *end_key)
 {
     reiser4_key_t key;
     uint32_t items, units;    
 
-    aal_assert("vpf-596", coord != NULL);
-    aal_assert("vpf-660", coord->node != NULL);
+    aal_assert("vpf-596", place != NULL);
+    aal_assert("vpf-660", place->node != NULL);
     
-    if (coord->pos.item == items) {
-	if (repair_node_rd_key(coord->node, &key))
+    if (place->pos.item == items) {
+	if (repair_node_rd_key(place->node, &key))
 	    return -1;
     } else {
-	if (reiser4_place_realize(coord)) {
+	if (reiser4_place_realize(place)) {
 	    aal_exception_error("Node (%llu): failed to open the item on "
-		"the parent node.", coord->node->blk);
+		"the parent node.", place->node->blk);
 	    return -1;
 	}
 
-	aal_assert("vpf-671", coord->pos.unit < reiser4_item_units(coord));
+	aal_assert("vpf-671", place->pos.unit < reiser4_item_units(place));
 	
-	if (reiser4_item_get_key(coord, &key)) {
+	if (reiser4_item_get_key(place, &key)) {
 	    aal_exception_error("Node (%llu): failed to get the item key "
-		"by its coord.", coord->node->blk);	    
+		"by its place.", place->node->blk);	    
 	    return -1;
 	}
     }
@@ -358,24 +358,24 @@ static errno_t repair_tree_fits(reiser4_place_t *coord,
 
 /*
  
-static errno_t repair_tree_shift(reiser4_tree_t *tree, reiser4_place_t *coord) {
+static errno_t repair_tree_shift(reiser4_tree_t *tree, reiser4_place_t *place) {
     reiser4_node_t *node;
     uint32_t level;
     
-    aal_assert("vpf-665", coord != NULL);
-    aal_assert("vpf-666", coord->node != NULL);
-    aal_assert("vpf-667", coord->node->tree != NULL);
+    aal_assert("vpf-665", place != NULL);
+    aal_assert("vpf-666", place->node != NULL);
+    aal_assert("vpf-667", place->node->tree != NULL);
 
-    if ((coord->pos.item == 0 && coord->pos.unit == 0) || 
-	(coord->pos.item == reiser4_node_items(coord->node)))
+    if ((place->pos.item == 0 && place->pos.unit == 0) || 
+	(place->pos.item == reiser4_node_items(place->node)))
 	return 0;
 
     // Insertable but split should be performed. 
-    // FIXME: coord could be realised already. Optimise it later. 
-    if (reiser4_place_realize(coord))
+    // FIXME: place could be realised already. Optimise it later. 
+    if (reiser4_place_realize(place))
 	return -1;
 		
-    level = reiser4_node_level(coord->node);
+    level = reiser4_node_level(place->node);
     
     if ((node = reiser4_tree_allocate(tree, level)) == NULL) {
 	aal_exception_error("Tree failed to allocate a new node.");
@@ -384,9 +384,9 @@ static errno_t repair_tree_shift(reiser4_tree_t *tree, reiser4_place_t *coord) {
 
     // set flush_id 
     reiser4_node_set_flush_stamp(node, 
-	reiser4_node_get_flush_stamp(coord->node));
+	reiser4_node_get_flush_stamp(place->node));
     
-    if (reiser4_tree_shift(tree, coord, node, SF_RIGHT)) {
+    if (reiser4_tree_shift(tree, place, node, SF_RIGHT)) {
 	aal_exception_error("Tree failed to shift into a newly "
 	    "allocated node.");
 	goto error_node_free;
@@ -409,7 +409,7 @@ error_node_free:
 
    // Check the level of the node we are inserting the internal item pointed 
    // to twig in.     
-    level = reiser4_node_get_level(coord.node);
+    level = reiser4_node_get_level(place.node);
  
     // FIXME: Do not forget to put this into the reiser4_tree_insert 
     if (stop.top != LEAF_LEVEL || level != TWIG_LEVEL) {
@@ -419,33 +419,33 @@ error_node_free:
 
 	aal_assert("vpf-663", level == stop.top);
 
-	if ((coord.pos.item != 0 || coord.pos.unit != 0) && 
-	    (coord.pos.item != reiser4_node_items(coord.node))) 
+	if ((place.pos.item != 0 || place.pos.unit != 0) && 
+	    (place.pos.item != reiser4_node_items(place.node))) 
 	{	    
 	    // Insertable but split should be performed. 
-	    if (repair_tree_shift(tree, &coord))
+	    if (repair_tree_shift(tree, &place))
 		return -1;
 
 	    // Parent got changed after splitting, lookup the wanted key again 
-	    // to have coord updated. 
+	    // to have place updated. 
 	    stop.top = stop.bottom = level + 1;
     
-	    if (reiser4_tree_lookup(tree, &hint.key, &stop, &coord)) {
+	    if (reiser4_tree_lookup(tree, &hint.key, &stop, &place)) {
 		aal_exception_error("Lookup failed to find the proper place "
 		    "for item insertion.");
 		return -1;
 	    }
 
 	    aal_assert("vpf-664", 
-		reiser4_node_get_level(coord.node) == stop.top);
+		reiser4_node_get_level(place.node) == stop.top);
 	} else {
-	    // Correct coord to point to parent. 
-	    if (reiser4_node_pos(coord.node, &coord.pos)) 
+	    // Correct place to point to parent. 
+	    if (reiser4_node_pos(place.node, &place.pos)) 
 		return -1;
 
-	    coord.node = coord.node->parent;
+	    place.node = place.node->parent;
 
-	    aal_assert("vpf-662", coord.node != NULL);
+	    aal_assert("vpf-662", place.node != NULL);
 	}
     } else {
 	// Nothing to do - there is no one leaf yet, we found the position in 
