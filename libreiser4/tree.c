@@ -2400,20 +2400,22 @@ static int32_t tree_calc_space(reiser4_tree_t *tree, reiser4_place_t *place,
 
 /* Makes space in tree to insert @needed bytes of data. Returns space in insert
    point, or negative value for errors. */
-int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
-			    uint32_t needed, uint32_t flags)
+int32_t reiser4_tree_expand(reiser4_tree_t *tree, 
+			    reiser4_place_t *place,
+			    reiser4_place_t *parent,
+			    uint32_t needed, 
+			    uint32_t flags)
 {
 	int alloc;
 	errno_t res;
 	uint8_t level;
 	int32_t enough;
 	uint32_t overhead;
-	reiser4_node_t *parent;
 
 	aal_assert("umka-929", tree != NULL);
 	aal_assert("umka-766", place != NULL);
-
 	aal_assert("umka-3064", place->node != NULL);
+	aal_assert("vpf-1543", needed <= reiser4_node_maxspace(place->node));
 
 	if (reiser4_tree_fresh(tree))
 		return -EINVAL;
@@ -2445,7 +2447,11 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 	{
 		if ((res = tree_shift_todir(tree, place, flags, DIR_LEFT)))
 			return res;
-
+		
+		/* Update the parent place. */
+		reiser4_place_dup(parent, &place->node->p);
+		parent->pos.item++;
+		
 		if ((enough = tree_calc_space(tree, place, needed)) > 0)
 			return enough;
 	}
@@ -2457,6 +2463,10 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 	{
 		if ((res = tree_shift_todir(tree, place, flags, DIR_RIGHT)))
 			return res;
+		
+		/* Update the parent place. */
+		reiser4_place_dup(parent, &place->node->p);
+		parent->pos.item++;
 
 		if ((enough = tree_calc_space(tree, place, needed)) > 0)
 			return enough;
@@ -2481,12 +2491,10 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		reiser4_place_t save;
 		reiser4_node_t *node;
 		uint32_t shift_flags;
-		reiser4_node_t *left;
 		reiser4_place_t aplace;
 
 		/* Saving place as it will be usefull for us later */
 		reiser4_place_dup(&save, place);
-		parent = place->node->p.node;
 
 		/* Allocating new node of @level */
 		level = reiser4_node_get_level(place->node);
@@ -2510,12 +2518,12 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		   insert point. */
 		if ((res = reiser4_tree_shift(tree, place, node, shift_flags)))
 			return res;
-
+		
+		/* Preparing new @node parent place. */
+		reiser4_place_dup(&aplace, &save.node->p);
+		
 		if (reiser4_node_items(save.node) == 0) {
-			left = reiser4_tree_neig_node(tree, save.node,
-						      DIR_LEFT);
-			
-			reiser4_node_lock(place->node);
+			reiser4_node_lock(save.node);
 			
 			if ((res = reiser4_tree_detach_node(tree, save.node,
 							    SF_DEFAULT)))
@@ -2524,29 +2532,21 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 				return res;
 			}
 
-			reiser4_node_unlock(place->node);
+			reiser4_node_unlock(save.node);
 		} else {
-			left = save.node;
+			aplace.pos.item++;
 		}
 		
 		if (reiser4_node_items(node) > 0) {
-			reiser4_node_lock(place->node);
+			reiser4_node_lock(save.node);
 			
 			/* Growing tree in the case we splitted the root
 			   node. */
 			if (reiser4_tree_root_node(tree, save.node)) {
 				if ((res = reiser4_tree_growup(tree))) {
-					reiser4_node_unlock(place->node);
+					reiser4_node_unlock(save.node);
 					return res;
 				}
-			}
-
-			reiser4_node_lock(save.node);
-
-			if ((res = tree_next_child_pos(tree, parent,
-						       left, &aplace)))
-			{
-				return res;
 			}
 
 			/* Attach new node to tree if it is not empty. */
@@ -2555,12 +2555,14 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 							    SF_DEFAULT)))
 			{
 				reiser4_node_unlock(save.node);
-				reiser4_node_unlock(place->node);
 				return res;
 			}
 
 			reiser4_node_unlock(save.node);
-			reiser4_node_unlock(place->node);
+
+			/* Update the parent place after attach. It should be 
+			   the same as the parent of the just inserted node. */
+			reiser4_place_dup(parent, &node->p);
 		}
 		
 		/* Checking if it is enough of space in @place. */
@@ -2838,6 +2840,7 @@ static inline errno_t tree_growup_level(reiser4_tree_t *tree,
    first leaf if needed, splits the tree, etc. */
 static inline errno_t tree_prepare_insert(reiser4_tree_t *tree,
 					  reiser4_place_t *place,
+					  reiser4_place_t *parent,
 					  uint8_t level)
 {
 	errno_t res;
@@ -2846,6 +2849,8 @@ static inline errno_t tree_prepare_insert(reiser4_tree_t *tree,
 
 	if (!reiser4_tree_fresh(tree)) {
 		if (level < reiser4_node_get_level(place->node)) {
+			reiser4_place_dup(parent, place);
+			
 			/* Allocating node of requested level and assign place
 			   for insert to it. This is the case, when we insert a
 			   tail among extents. That is previous lookup stoped on
@@ -2856,14 +2861,20 @@ static inline errno_t tree_prepare_insert(reiser4_tree_t *tree,
 				return -ENOSPC;
 
 			POS_INIT(&place->pos, 0, MAX_UINT32);
-		} else if (level > reiser4_node_get_level(place->node)) {
-			/* Prepare the tree for insertion at the @level. Here is
-			   case when extent is going to inserted. As lookup goes
-			   to the leaf level, we split tree from leaf level up
-			   to requested @level, which is level new extent should
-			   be inserted. */
-			if ((res = reiser4_tree_split(tree, place, level)))
-				return res;
+		} else {
+			if (level > reiser4_node_get_level(place->node)) {
+				/* Prepare the tree for insertion at the @level. 
+				   Here is case when extent is going to inserted.
+				   As lookup goes to the leaf level, we split 
+				   tree from leaf level up to requested @level,
+				   which is level new extent should be inserted. */
+				if ((res = reiser4_tree_split(tree, place, level)))
+					return res;
+			}
+			
+			reiser4_place_dup(parent, &place->node->p);
+			parent->pos.item++;
+
 		}
 	} else {
 		aal_assert("umka-3055", place->node == NULL);
@@ -2886,6 +2897,7 @@ static inline errno_t tree_prepare_insert(reiser4_tree_t *tree,
 		}
 	
 		POS_INIT(&place->pos, 0, MAX_UINT32);
+		reiser4_place_assign(parent, tree->root, 0, MAX_UINT32);
 	}
 	
 	return 0;
@@ -2942,11 +2954,9 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 		reiser4_place_assign(place, tree->root, 0, MAX_UINT32);
 	}
 
-	reiser4_place_dup(&aplace, place);
-
 	/* Preparing things for insert. This may be splitting the tree,
 	   allocating root, etc. */
-	if ((res = tree_prepare_insert(tree, place, level)))
+	if ((res = tree_prepare_insert(tree, place, &aplace, level)))
 		return res;
 
 	/* Estimating item/unit to inserted/written to tree. */
@@ -2958,7 +2968,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	mode = (place->pos.unit == MAX_UINT32);
 
 	/* Preparing space in tree. */
-	if ((space = reiser4_tree_expand(tree, place, needed,
+	if ((space = reiser4_tree_expand(tree, place, &aplace, needed,
 					 hint->shift_flags)) < 0)
 	{
 		aal_error("Can't prepare space in tree.");
@@ -3027,23 +3037,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 			
 			reiser4_node_unlock(place->node);
 		}
-
-		if (aplace.node == NULL) {
-			reiser4_place_assign(&aplace, tree->root, 0,
-					     MAX_UINT32);
-		} else {
-			if (level >= reiser4_node_get_level(aplace.node)) {
-				reiser4_node_t *parent = aplace.node->p.node;
-			
-				if ((res = tree_next_child_pos(tree, parent,
-							       aplace.node,
-							       &aplace)))
-				{
-					return res;
-				}
-			}
-		}
-			
+		
 		/* Attaching new node to the tree. */
 		if ((res = reiser4_tree_attach_node(tree, place->node, &aplace,
 						    hint->shift_flags)))
