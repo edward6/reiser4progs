@@ -208,6 +208,16 @@ struct reiser4_file {
 
 typedef struct reiser4_file reiser4_file_t;
 
+enum reiser4_belong {
+	RB_SKIPPED  = 1 << 0,
+	RB_FORMAT   = 1 << 1,
+	RB_JOURNAL  = 1 << 2,
+	RB_ALLOC    = 1 << 3,
+	RB_UNKNOWN  = 1 << 5
+};
+
+typedef enum reiser4_belong reiser4_belong_t;
+
 /* Reiser4 disk-format in-memory structure */
 struct reiser4_format {
 

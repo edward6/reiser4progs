@@ -201,7 +201,7 @@ errno_t reiser4_alloc_valid(
 #endif
 
 /* 
-   Checks whether specified block used or not. Returns TRUE for used and FALSE
+   Checks whether specified block used or not. Returns TRUE if used and FALSE
    otherwise.
 */
 int reiser4_alloc_test(

@@ -197,8 +197,9 @@ reiser4_node_t *reiser4_node_open(
 	   Initializing node's entity by means of calling "open" method of node
 	   plugin.
 	*/
-	if (!(node->entity = plugin_call(goto error_free_node, 
-					 plugin->node_ops, open, node->block)))
+	if (!(node->entity = plugin_call(goto error_free_node,
+					 plugin->node_ops,
+					 open, node->block)))
 	{
 		aal_exception_error("Can't initialize node entity.");
 		goto error_free_block;

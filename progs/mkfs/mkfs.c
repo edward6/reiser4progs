@@ -143,8 +143,8 @@ int main(int argc, char *argv[]) {
 	memset(label, 0, sizeof(label));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long_only(argc, argv, "hVe:qfKb:i:l:sP", long_options, 
-				     (int *)0)) != EOF) 
+	while ((c = getopt_long(argc, argv, "hVe:qfKb:i:l:sP", long_options, 
+				(int *)0)) != EOF) 
 	{
 		switch (c) {
 		case 'h':

@@ -412,3 +412,29 @@ errno_t reiser4_format_alloc_layout(reiser4_format_t *format,
 	return plugin_call(return -1, format->entity->plugin->format_ops,
 			   alloc_layout, format->entity, action_func, data);
 }
+
+static errno_t callback_check_block(object_entity_t *entity,
+					   uint64_t blk, void *data)
+{
+	return -(blk == *(uint64_t *)data);
+}
+
+reiser4_belong_t reiser4_format_belongs(reiser4_format_t *format,
+					blk_t blk)
+{
+	aal_assert("umka-1534", format != NULL, return -1);
+
+	if (reiser4_format_skipped_layout(format, callback_check_block, &blk) != 0)
+		return RB_SKIPPED;
+	
+	if (reiser4_format_format_layout(format, callback_check_block, &blk) != 0)
+		return RB_FORMAT;
+
+	if (reiser4_format_journal_layout(format, callback_check_block, &blk) != 0)
+		return RB_JOURNAL;
+
+	if (reiser4_format_alloc_layout(format, callback_check_block, &blk) != 0)
+		return RB_ALLOC;
+
+	return RB_UNKNOWN;
+}

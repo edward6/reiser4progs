@@ -32,7 +32,8 @@ enum print_flags {
 	PF_ALLOC    = 1 << 2,
 	PF_OID	    = 1 << 3,
 	PF_TREE	    = 1 << 4,
-	PF_ITEMS    = 1 << 5
+	PF_ITEMS    = 1 << 5,
+	PF_BLOCK    = 1 << 6
 };
 
 typedef enum print_flags print_flags_t;
@@ -77,6 +78,7 @@ static void debugfs_print_usage(char *name) {
 		"  -s, --print-super         prints the both super blocks.\n"
 		"  -b, --print-block-alloc   prints block allocator data.\n"
 		"  -o, --print-oid-alloc     prints oid allocator data.\n"
+		"  -n, --print-block N       prints block by its number.\n"
 		"Measurement options:\n"
 		"  -N, --node-packing        measures avarage node packing.\n"
 		"  -T, --tree-frag           measures tree fragmentation.\n"
@@ -626,6 +628,58 @@ static errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	return res;
 }
 
+static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk,
+				   print_flags_t flags)
+{
+	errno_t res = 0;
+	reiser4_joint_t *joint;
+	struct print_tree_hint hint;
+
+	if (!reiser4_alloc_test(fs->alloc, blk)) {
+		aal_exception_info("Block %llu is not belong to "
+				   "filesystem.", blk);
+		return 0;
+	}
+		
+	switch (reiser4_format_belongs(fs->format, blk)) {
+	case RB_SKIPPED:
+		aal_exception_info("Block %llu belongs to skipped area.", blk);
+		return 0;
+	case RB_FORMAT:
+		aal_exception_info("Sorry, printing format area blocks is not "
+				   "implemented yet!");
+		return 0;
+	case RB_JOURNAL:
+		aal_exception_info("Sorry, printing journal area blocks is not "
+				   "implemented yet!");
+		return 0;
+	case RB_ALLOC:
+		aal_exception_info("Sorry, printing block allocator blocks is not "
+				   "implemented yet!");
+		return 0;
+	default:
+		break;
+	}
+	
+	aal_exception_disable();
+	
+	if (!(joint = reiser4_tree_load(fs->tree, blk))) {
+		aal_exception_enable();
+		aal_exception_info("Node %llu is not a formated node.", blk);
+		return 0;
+	}
+
+	aal_exception_enable();
+	
+	hint.tree = fs->tree;
+	hint.flags = flags;
+
+	res = debugfs_print_joint(joint, &hint);
+	reiser4_joint_close(joint);
+	
+	return res;
+}
+
 int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
@@ -642,6 +696,8 @@ int main(int argc, char *argv[]) {
 	aal_device_t *device;
 	reiser4_profile_t *profile;
 
+	blk_t blocknr = 0;
+	
 	static struct option long_options[] = {
 		{"version", no_argument, NULL, 'V'},
 		{"help", no_argument, NULL, 'h'},
@@ -655,6 +711,7 @@ int main(int argc, char *argv[]) {
 		{"print-super", no_argument, NULL, 's'},
 		{"print-block-alloc", no_argument, NULL, 'b'},
 		{"print-oid-alloc", no_argument, NULL, 'o'},
+		{"print-block", required_argument, NULL, 'n'},
 		{"node-packing", no_argument, NULL, 'N'},
 		{"tree-frag", no_argument, NULL, 'T'},
 		{"file-frag", required_argument, NULL, 'F'},
@@ -673,8 +730,8 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbiojTDpNF:c:l:",
-				     long_options, (int *)0)) != EOF) 
+	while ((c = getopt_long(argc, argv, "hVe:qfKstbiojTDpNF:c:l:n:",
+				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
 		case 'h':
@@ -704,6 +761,18 @@ int main(int argc, char *argv[]) {
 		case 't':
 			print_flags |= PF_TREE;
 			break;
+		case 'n': {
+			int error;
+			
+			print_flags |= PF_BLOCK;
+			
+			if (!(blocknr = aux_strtol(optarg, &error)) && error) {
+				aal_exception_error("Invalid block number (%s).", optarg);
+				return USER_ERROR;
+			}
+			
+			break;
+		}
 		case 'N':
 			behav_flags |= BF_NPACK;
 			break;
@@ -825,7 +894,9 @@ int main(int argc, char *argv[]) {
 	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)
 		print_flags = PF_SUPER;
 		
-	if (!(print_flags & PF_TREE) && (print_flags & PF_ITEMS)) {
+	if (!(print_flags & PF_TREE) && !(print_flags & PF_BLOCK) &&
+	    (print_flags & PF_ITEMS))
+	{
 		aal_exception_warn("Option --print-items is only active if "
 				   "--print-tree is specified.");
 	}
@@ -835,28 +906,32 @@ int main(int argc, char *argv[]) {
 				   "--data-frag is specified.");
 	}
 
-	if (behav_flags & BF_QUIET ||
-	    aal_exception_yesno("This operation may take long time. "
-				"Continue?") == EXCEPTION_YES)
+	if (behav_flags & BF_TFRAG || behav_flags & BF_DFRAG ||
+	    behav_flags & BF_FFRAG || behav_flags & BF_NPACK)
 	{
-		if ((behav_flags & BF_TFRAG)) {
-			if (debugfs_tree_frag(fs))
-				goto error_free_fs;
-		}
+		if (behav_flags & BF_QUIET ||
+		    aal_exception_yesno("This operation may take long time. "
+					"Continue?") == EXCEPTION_YES)
+		{
+			if (behav_flags & BF_TFRAG) {
+				if (debugfs_tree_frag(fs))
+					goto error_free_fs;
+			}
 
-		if ((behav_flags & BF_DFRAG)) {
-			if (debugfs_data_frag(fs, behav_flags))
-				goto error_free_fs;
-		}
+			if (behav_flags & BF_DFRAG) {
+				if (debugfs_data_frag(fs, behav_flags))
+					goto error_free_fs;
+			}
 
-		if ((behav_flags & BF_FFRAG)) {
-			if (debugfs_file_frag(fs, frag_filename))
-				goto error_free_fs;
-		}
+			if (behav_flags & BF_FFRAG) {
+				if (debugfs_file_frag(fs, frag_filename))
+					goto error_free_fs;
+			}
 	
-		if ((behav_flags & BF_NPACK)) {
-			if (debugfs_node_packing(fs))
-				goto error_free_fs;
+			if (behav_flags & BF_NPACK) {
+				if (debugfs_node_packing(fs))
+					goto error_free_fs;
+			}
 		}
 	}
 	
@@ -895,6 +970,11 @@ int main(int argc, char *argv[]) {
     
 	if (print_flags & PF_TREE) {
 		if (debugfs_print_tree(fs, print_flags))
+			goto error_free_fs;
+	}
+
+	if (print_flags & PF_BLOCK) {
+		if (debugfs_print_block(fs, blocknr, print_flags))
 			goto error_free_fs;
 	}
     

@@ -26,3 +26,5 @@ reiser4progs/COPYING.
 * pos.c where reiser4_pos_t relatited code should lie
 
 * move memory pressure mechanism to libaal
+
+* print_block method for format, journal and block allocator plugins.

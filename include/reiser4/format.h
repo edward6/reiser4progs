@@ -21,15 +21,6 @@ extern reiser4_format_t *reiser4_format_open(aal_device_t *device, rpid_t pid);
 extern reiser4_format_t *reiser4_format_reopen(reiser4_format_t *format,
 					       aal_device_t *device);
 
-extern errno_t reiser4_format_valid(reiser4_format_t *format);
-extern void reiser4_format_close(reiser4_format_t *format);
-extern int reiser4_format_confirm(reiser4_format_t *format);
-extern blk_t reiser4_format_get_root(reiser4_format_t *format);
-extern count_t reiser4_format_get_len(reiser4_format_t *format);
-extern count_t reiser4_format_get_free(reiser4_format_t *format);
-extern uint16_t reiser4_format_get_height(reiser4_format_t *format);
-extern uint32_t reiser4_format_get_stamp(reiser4_format_t *format);
-
 #ifndef ENABLE_COMPACT
 
 extern errno_t reiser4_format_sync(reiser4_format_t *format);
@@ -57,6 +48,15 @@ extern errno_t reiser4_format_mark(reiser4_format_t *format,
 
 #endif
 
+extern errno_t reiser4_format_valid(reiser4_format_t *format);
+extern void reiser4_format_close(reiser4_format_t *format);
+extern int reiser4_format_confirm(reiser4_format_t *format);
+extern blk_t reiser4_format_get_root(reiser4_format_t *format);
+extern count_t reiser4_format_get_len(reiser4_format_t *format);
+extern count_t reiser4_format_get_free(reiser4_format_t *format);
+extern uint16_t reiser4_format_get_height(reiser4_format_t *format);
+extern uint32_t reiser4_format_get_stamp(reiser4_format_t *format);
+
 extern const char *reiser4_format_name(reiser4_format_t *format);
 extern rpid_t reiser4_format_journal_pid(reiser4_format_t *format);
 extern rpid_t reiser4_format_alloc_pid(reiser4_format_t *format);
@@ -80,6 +80,9 @@ extern errno_t reiser4_format_journal_layout(reiser4_format_t *format,
 extern errno_t reiser4_format_alloc_layout(reiser4_format_t *format, 
 					   format_action_func_t action_func,
 					   void *data);
+
+extern reiser4_belong_t reiser4_format_belongs(reiser4_format_t *format,
+					       blk_t blk);
 
 #endif
 

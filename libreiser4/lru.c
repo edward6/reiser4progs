@@ -82,7 +82,7 @@ errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 	if (!(curr = aal_list_last(lru->list)))
 		return 0;
 	
-	while (curr && lru->adjust > 0) {
+	while (curr && lru->adjust-- > 0) {
 		joint = (reiser4_joint_t *)curr->data;
 		curr = curr->prev;
 		
@@ -147,14 +147,12 @@ errno_t reiser4_lru_attach(reiser4_lru_t *lru, reiser4_joint_t *joint) {
 	aal_assert("umka-1526", joint != NULL, return -1);
 	
 	if (check_lru) {
-		int adjust;
+		int do_adjust = lru->list != NULL;
 		
-#ifndef ENABLE_COMPACT		
-		adjust = reiser4_lru_nomem(lru) && lru->list != NULL;
-#else
-		adjust = lru->list != NULL;
+#ifndef ENABLE_COMPACT
+		do_adjust = do_adjust && reiser4_lru_nomem(lru);
 #endif
-		if (adjust) {
+		if (do_adjust && lru->adjust) {
 			if (reiser4_lru_adjust(lru)) {
 				aal_exception_error("Can't adjust tree lru.");
 				return -1;
@@ -204,8 +202,8 @@ errno_t reiser4_lru_detach(reiser4_lru_t *lru, reiser4_joint_t *joint) {
 	else
 		lru->list = aal_list_remove(lru->list, joint);
 
-	aal_assert("umka-1523", lru->adjust > 0, return -1);
-	lru->adjust--;
+	if (lru->adjust > 0)
+		lru->adjust--;
 
 	return 0;
 }
