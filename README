@@ -57,16 +57,25 @@ Configure script is accepting the following keys:
 
 Reiser4 support in GNU GRUB.
 
-reiser4progs package has ability to be built with so called "stand
-alone" libreiser4 library, which may be used for providing reiser4
-read only support in enviromnents without libc, etc., like GNU GRUB
-does work in.
+reiser4progs package has ability to build so called "stand alone"
+libreiser4 library, which purpose is to provide reiser4 read only
+support for enviromnents without libc, (that is without memory
+manager, string functions, etc.), like GNU GRUB does work in.
 
 In order to build such a library, apply --enable-stand-alone key to
 ./configure script in configuring time and type "make". This library
-is pretty small and does not contain balancing, journal code, and
-block allocator code, etc. As GNU GRUB has strong limitation for its
-binary images (used for embeding just after mbr and used for reading
-main GRUB core), we strongly recomend you do not build in unused hash
-plugins and check code into stand alone library. This may lead to
-unability use reiser4 filesystem for booting.
+is pretty small and does not contain balancing code, journal code,
+block allocator, etc. As GNU GRUB has strong limitation for its binary
+images (used for embeding just after mbr and used for reading main
+GRUB core), we strongly recomend you do not build in unused hash
+plugins and extera checks code into "stand alone" library. This may
+lead to unability to use reiser4 filesystem for booting.
+
+Most convenient configure comand is the following:
+
+./configure --disable-debug --enable-stand-alone
+--disable-collisions-handling --disable-plugins-check
+--disable-fnv1-hash --disable-rupasov-hash --disable-tea-hash
+
+This assumes, that r5 hash is used in filesystem, so it is not
+disabled here.
