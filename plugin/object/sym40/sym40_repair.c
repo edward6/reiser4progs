@@ -61,7 +61,7 @@ errno_t sym40_check_struct(object_entity_t *object,
 	if (place_func && place_func(place, data))
 		return -EINVAL;
 	
-	if (!(path = aal_calloc(place->node->block->size, 0)))
+	if (!(path = aal_calloc(place_blksize(place), 0)))
 		return -ENOMEM;
 		
 	if ((res = obj40_read_ext(place, SDEXT_SYMLINK_ID, path)))

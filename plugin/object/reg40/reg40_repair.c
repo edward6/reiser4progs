@@ -55,8 +55,7 @@ static int reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 	if (reg->body_plug && reg->body_plug->id.group == EXTENT_ITEM) {
 		/* The last extent block can be not used up. */
 		if (*sd_size < counted_size &&
-		    *sd_size + STAT_PLACE(obj)->node->block->size > 
-		    counted_size)
+		    *sd_size + place_blksize(STAT_PLACE(obj)) > counted_size)
 		{
 			return 0;
 		}
@@ -129,7 +128,7 @@ static errno_t reg40_check_ikey(reg40_t *reg) {
 	offset = plug_call(reg->body.key.plug->o.key_ops, get_offset, 
 			   &reg->body.key);
 	
-	return offset % reg->body.node->block->size ? RE_FATAL : 0;
+	return offset % place_blksize(&reg->body) ? RE_FATAL : 0;
 }
 
 static errno_t reg40_next(object_entity_t *object, uint8_t mode) {

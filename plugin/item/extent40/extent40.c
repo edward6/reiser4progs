@@ -41,7 +41,7 @@ uint64_t extent40_offset(reiser4_place_t *place, uint32_t pos) {
 	for (i = 0; i < pos; i++, extent++)
 		blocks += et40_get_width(extent);
     
-	return blocks * extent40_blksize(place);
+	return blocks * place_blksize(place);
 }
 
 /* Builds the key of the unit at @pos and stores it inside passed @key
@@ -78,7 +78,7 @@ static uint64_t extent40_bytes(reiser4_place_t *place) {
 			blocks += et40_get_width(extent);
 	}
     
-	return (blocks * extent40_blksize(place));
+	return (blocks * place_blksize(place));
 
 }
 
@@ -91,8 +91,7 @@ uint32_t extent40_unit(reiser4_place_t *place, uint64_t offset) {
         extent = extent40_body(place);
                                                                                          
         for (i = 0; i < extent40_units(place); i++, extent++) {
-                width += et40_get_width(extent) *
-			extent40_blksize(place);
+                width += et40_get_width(extent) * place_blksize(place);
 
                 if (offset < width)
                         return i;
@@ -205,7 +204,7 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 	if (place->pos.unit == MAX_UINT32)
 		place->pos.unit = 0;
 
-	blksize = extent40_blksize(place);
+	blksize = place_blksize(place);
 	extent = extent40_body(place) + place->pos.unit;
 	offset = plug_call(hint->offset.plug->o.key_ops, 
 			   get_offset, &hint->offset);
@@ -388,8 +387,7 @@ lookup_t extent40_lookup(reiser4_place_t *place,
 			   get_offset, &place->key);
 	
 	for (i = 0; i < units; i++, extent++) {
-		offset += (et40_get_width(extent) *
-			extent40_blksize(place));
+		offset += (et40_get_width(extent) * place_blksize(place));
 
 		if (offset > wanted) {
 			place->pos.unit = i;
@@ -429,7 +427,7 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 		place->pos.unit = 0;
 
 	extent40_fetch_key(place, &key);
-	blksize = extent40_blksize(place);
+	blksize = place_blksize(place);
 
 	/* Initializing read offset */
 	read_offset = plug_call(hint->offset.plug->o.key_ops,
@@ -559,7 +557,7 @@ static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 	
 	extent40_fetch_key(place, &key);
 	
-	blksize = extent40_blksize(place);
+	blksize = place_blksize(place);
 	secsize = extent40_secsize(place);
 
 	read_offset = plug_call(hint->offset.plug->o.key_ops,
@@ -802,7 +800,7 @@ static int64_t extent40_alloc_block(reiser4_place_t *place,
 	errno_t res;
 
 	device = extent40_device(place);
-	blksize = extent40_blksize(place);
+	blksize = place_blksize(place);
 
 	/* Get offset aligned to the blksize. */
 	offset = (ins_offset - (ins_offset & (blksize - 1)));
@@ -851,7 +849,7 @@ static aal_block_t *extent40_load_block(reiser4_place_t *place,
 	uint32_t blksize;
 	
 	device = extent40_device(place);
-	blksize = extent40_blksize(place);
+	blksize = place_blksize(place);
 
 	/* Obtain the block from the block hash table. */
 	if ((block = aal_hash_table_lookup(blocks, key)))
@@ -956,7 +954,7 @@ static errno_t extent40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 		/* Writing inside item. */
 
 		extent40_fetch_key(place, &key);
-		blksize = extent40_blksize(place);
+		blksize = place_blksize(place);
 
 		/* Getting maximal real key, it limits the amount of 
 		   data being written at once. */
@@ -1065,7 +1063,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 	unit_pos = place->pos.unit;
 	units = extent40_units(place);
 	device = extent40_device(place);
-	blksize = extent40_blksize(place);
+	blksize = place_blksize(place);
 
 	/* Get the offset range being handled: ins_off, max_off. */
 	ins_off = plug_call(hint->offset.plug->o.key_ops,

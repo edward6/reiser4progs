@@ -51,9 +51,6 @@ extern uint32_t extent40_expand(reiser4_place_t *place,
 extern uint32_t extent40_shrink(reiser4_place_t *place,
 				uint32_t pos, uint32_t count);
 
-#define extent40_blksize(place) \
-        ((place)->node->block->size)
-
 #define extent40_device(place)  \
         ((place)->node->block->device)
 

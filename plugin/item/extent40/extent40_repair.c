@@ -137,7 +137,7 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	
 	/* Offset must be divisible by block size. */
 	if (plug_call(place->key.plug->o.key_ops, get_offset, &place->key) %
-	    extent40_blksize(place)) 
+	    place_blksize(place)) 
 	{
 		fsck_mess("Node (%llu), item (%u), [%s]: extent40 "
 			  "item with not valid key offset found.",
@@ -211,7 +211,7 @@ static inline uint32_t extent40_head(reiser4_place_t *place,
 	
 	aal_assert("vpf-1381", offset >= doffset);
 	
-	return (offset - doffset) / extent40_blksize(place);
+	return (offset - doffset) / place_blksize(place);
 }
 
 errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
@@ -272,7 +272,7 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 		
 		if (send < sunits) {
 			hint->tail = (extent40_offset(src, send + 1) - offset)
-				/ extent40_blksize(src);
+				/ place_blksize(src);
 		} else {
 			send = sunits - 1;
 			hint->tail = 0;
@@ -371,7 +371,7 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 
 	/* Set the maxkey offset correctly. */
 	offset += extent40_offset(src, src->pos.unit + hint->count);
-	offset -= hint->tail * extent40_blksize(src);
+	offset -= hint->tail * place_blksize(src);
 	plug_call(hint->offset.plug->o.key_ops, set_offset, 
 		  &hint->maxkey, offset);
 

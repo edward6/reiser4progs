@@ -182,7 +182,7 @@ static errno_t sym40_follow(object_entity_t *entity,
 
 	/* Maximal symlink size is MAX_ITEM_LEN. Take the block size to 
 	   simplify it. */
-	size = STAT_PLACE(&sym->obj)->node->block->size;
+	size = place_blksize(STAT_PLACE(&sym->obj));
 	if (!(path = aal_calloc(size, 0)))
 		return -ENOMEM;
 	

@@ -331,6 +331,7 @@ typedef struct reiser4_node reiser4_node_t;
 typedef struct reiser4_place reiser4_place_t;
 
 #define place_blknr(place) ((place)->node->block->nr)
+#define place_blksize(place) ((place)->node->block->size)
 
 /* Tree coord struct. */
 struct reiser4_place {

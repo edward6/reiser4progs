@@ -501,7 +501,7 @@ static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
 		if (reg->body_plug->id.group == EXTENT_ITEM) {
 			uint32_t blksize;
 			
-			blksize = STAT_PLACE(&reg->obj)->node->block->size;
+			blksize = place_blksize(STAT_PLACE(&reg->obj));
 			size = (n + blksize - 1) / blksize * blksize;
 		} else */
 			size = n;
