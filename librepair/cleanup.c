@@ -36,7 +36,6 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 
 	for (i = 0; i < OF_LAST; i++)
 		repair_item_clear_flag(place, i);
-	
 	return 0;
 }
 
