@@ -271,8 +271,8 @@ AC_ARG_ENABLE(tea_hash,
 )
 
 AC_ARG_ENABLE(deg_hash,
-    [  --disable-deg-hash       disable degenerate hash plugin in stand alone library ], ,
-        enable_deg_hash=yes
+    [  --enable-deg-hash        enable degenerate hash plugin in stand alone library ], ,
+        enable_deg_hash=no
 )
 
 # Checks for programs.
