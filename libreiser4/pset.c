@@ -120,7 +120,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 #endif
 	},
 	
-#ifndef ENABLE_STAND_ALONE
 	/* Note, plugins below are not stored on-disk. */
 
 	/* The 4 plugins below needs to be splited -- for now they are used for
@@ -128,28 +127,37 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	   If the former ones are non-essential, the other 4 are essential. */
 	[OPSET_CREATE] = {
 		.type = OBJECT_PLUG_TYPE,
+#ifndef ENABLE_STAND_ALONE
 		.group = REG_OBJECT,
 		.prof = PROF_REG,
 		.ess = 1,
+#endif
 	},
 	[OPSET_MKDIR] = {
 		.type = OBJECT_PLUG_TYPE,
+#ifndef ENABLE_STAND_ALONE
 		.group = DIR_OBJECT,
 		.prof = PROF_DIR,
 		.ess = 1,
+#endif
 	},
 	[OPSET_SYMLINK] = {
 		.type = OBJECT_PLUG_TYPE,
+#ifndef ENABLE_STAND_ALONE
 		.group = SYM_OBJECT,
 		.prof = PROF_SYM,
 		.ess = 1,
+#endif
 	},
 	[OPSET_MKNODE] = {
 		.type = OBJECT_PLUG_TYPE,
+#ifndef ENABLE_STAND_ALONE
 		.group = SPL_OBJECT,
 		.prof = PROF_SPL,
 		.ess = 1,
+#endif
 	},
+#ifndef ENABLE_STAND_ALONE
 	[OPSET_TAIL] = {
 		.type = ITEM_PLUG_TYPE,
 		.group = TAIL_ITEM,
