@@ -5,8 +5,6 @@ reiser4progs/COPYING.
 
 * implement reiser4_tree_write function needed for fsck.
 
-* implement files removing and debug direntry40_remove stuff.
-
 * insert an extent among internals may require perform shift and
   on other hands, insert of an item (nor extent or nodeptr) may 
   require to perform so called drilling on the twig level.
@@ -40,8 +38,6 @@ reiser4progs/COPYING.
 
 * repacking is needed after tree is created by reiser4progs. Or we
   should produce the tree in the right order.
-
-* node plugin insert probably should be renamed into write.
 
 * should we move out all bitmap's and alloc's functions which do not work 
   with regions and rename the rest in more simple maner (without region)?

@@ -5,13 +5,10 @@ SUBDIRS         = libaal libaux plugin libreiser4 librepair progs demos include 
 endif
 
 EXTRA_DIST	= AUTHORS COPYING TODO NEWS BUGS README CREDITS THANKS \
-		  reiser4progs.spec.in libreiser4.m4 ltconfig
+		  libreiser4.m4 ltconfig
 
 aclocaldir 	= $(datadir)/aclocal
 aclocal_DATA	= libreiser4.m4
-
-dist-hook: reiser4progs.spec
-	cp reiser4progs.spec $(distdir)
 
 define all-sources
 	( find ./ -name '*.[ch]' -print | grep -v SCCS )

@@ -324,7 +324,6 @@ AC_OUTPUT([
     progs/debugfs/Makefile
     debug/Makefile
     doc/Makefile
-    reiser4progs.spec
 ])
 
 echo
