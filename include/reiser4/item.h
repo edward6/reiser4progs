@@ -61,5 +61,8 @@ extern int reiser4_item_filebody(reiser4_item_t *item);
 /* Direntry item methods */
 extern int reiser4_item_direntry(reiser4_item_t *item);
 
+extern int reiser4_item_tail(reiser4_item_t *item);
+extern int reiser4_item_extent(reiser4_item_t *item);
+
 #endif
 

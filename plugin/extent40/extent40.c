@@ -4,15 +4,15 @@
     Author Yury Umanets.
 */
 
-#include <reiser4/plugin.h>
+#include "extent40.h"
 
 static reiser4_core_t *core = NULL;
 
-static reiser4_body_t *extent40_body(reiser4_item_t *item) {
+static extent40_t *extent40_body(reiser4_item_t *item) {
 
     if (item == NULL) return NULL;
     
-    return plugin_call(return NULL, item->node->plugin->node_ops, 
+    return (extent40_t *)plugin_call(return NULL, item->node->plugin->node_ops, 
 	item_body, item->node, item->pos);
 }
 
@@ -40,6 +40,22 @@ static uint16_t extent40_remove(reiser4_item_t *item, uint32_t pos) {
 
 #endif
 
+static errno_t extent40_print(reiser4_item_t *item, char *buff, 
+    uint32_t n, uint16_t options) 
+{
+    extent40_t *extent;
+    
+    aal_assert("umka-1205", item != NULL, return -1);
+    aal_assert("umka-1206", buff != NULL, return -1);
+
+    extent = extent40_body(item);
+
+    aal_snprintf(buff, n, "%llu(%llu)", et40_get_start(extent),
+	et40_get_width(extent));
+    
+    return 0;
+}
+
 static reiser4_plugin_t extent40_plugin = {
     .item_ops = {
 	.h = {
@@ -66,7 +82,7 @@ static reiser4_plugin_t extent40_plugin = {
         .lookup	    = NULL,
         .count	    = NULL,
         .valid	    = NULL,
-        .print	    = NULL,
+        .print	    = extent40_print,
 
 	.specific   = {}
     }

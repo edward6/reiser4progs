@@ -57,7 +57,7 @@ static errno_t debugfs_print_node(reiser4_node_t *node) {
 	get_level, node->entity);
 
     printf("%s NODE (%llu) contains level=%u, nr_items=%u, free_space=%u\n", 
-	level > REISER4_LEAF_LEVEL ? "INTL" : "LEAF", aal_block_number(node->block),
+	level > REISER4_LEAF_LEVEL ? "INTERNAL" : "LEAF", aal_block_number(node->block),
 	level, reiser4_node_count(node), reiser4_node_space(node));
     
     if (level > REISER4_LEAF_LEVEL) {
@@ -74,24 +74,36 @@ static errno_t debugfs_print_node(reiser4_node_t *node) {
 		return -1;
 	    }
 
-	    printf("ITEM %u: len=%u ", i, reiser4_item_len(&item));
-	    printf("[dc_number=%llu], ", reiser4_item_get_iptr(&item));
-
+	    if (reiser4_item_internal(&item))
+		printf("(%u) PTR: len=%u, ", i, reiser4_item_len(&item));
+	    else
+		printf("(%u) EXT: len=%u, ", i, reiser4_item_len(&item));
+	    
 	    if (reiser4_node_get_key(node, &pos, &key)) {
 		aal_exception_error("Can't get key of item %u in node %llu.",
 		    i, aal_block_number(node->block));
 		return -1;
 	    }
 	    
-	    printf("KEY %u: 0x%llx 0x%x 0x%llx 0x%llx, ", i, 
+	    printf("KEY: 0x%llx 0x%x 0x%llx 0x%llx, ",
 		reiser4_key_get_locality(&key), reiser4_key_get_type(&key),
 		reiser4_key_get_objectid(&key), reiser4_key_get_offset(&key));
 
-	    printf("PLUGIN %u: 0x%x (%s); ", i, item.plugin->h.id, 
-		item.plugin->h.label);
+	    printf("PLUGIN: 0x%x (%s)\n", item.plugin->h.id, item.plugin->h.label);
+	   
+	    if (reiser4_item_internal(&item)) {
+		printf("[ %llu ]\n", reiser4_item_get_iptr(&item));
+	    } else {
+		char buff[255];
+		
+		aal_memset(buff, 0, sizeof(buff));
+		
+		plugin_call(return -1, item.plugin->item_ops, print,
+		    &item, buff, sizeof(buff), 0);
+
+		printf("[ %s ]\n", buff);
+	    }
 	}
-	
-	printf("\n");
 	
 	for (i = 0; i < reiser4_node_count(node); i++) {
 	    blk_t blk;
@@ -105,6 +117,9 @@ static errno_t debugfs_print_node(reiser4_node_t *node) {
 		    i, aal_block_number(node->block));
 		return -1;
 	    }
+
+	    if (!reiser4_item_internal(&item))
+		continue;
 
 	    blk = reiser4_item_get_iptr(&item);
 	    if (!(block = aal_block_open(node->block->device, blk))) {
@@ -142,17 +157,25 @@ static errno_t debugfs_print_node(reiser4_node_t *node) {
 		return -1;
 	    }
 	    
-	    printf("ITEM %u: len=%u, ", i, reiser4_item_len(&item));
+	    printf("(%u) ", i);
+		    
+	    if (reiser4_item_statdata(&item)) {
+		printf("SD");
+	    } else if (reiser4_item_direntry(&item)) {
+		printf("DR");
+	    } else if (reiser4_item_tail(&item)) {
+		printf("TL");
+	    }
 	    
-	    printf("KEY %u: 0x%llx 0x%x 0x%llx 0x%llx, ", i, 
+	    printf(": len=%u, ", reiser4_item_len(&item));
+
+	    printf("KEY: 0x%llx 0x%x 0x%llx 0x%llx, ", 
 		reiser4_key_get_locality(&key), reiser4_key_get_type(&key),
 		reiser4_key_get_objectid(&key), reiser4_key_get_offset(&key));
 	    
-	    printf("PLUGIN %u: 0x%x (%s); ", i, item.plugin->h.id, 
-		item.plugin->h.label);
-	}
+	    printf("PLUGIN: 0x%x (%s)\n", item.plugin->h.id, item.plugin->h.label);
 
-	printf("\n");
+	}
     }
     
     return 0;
