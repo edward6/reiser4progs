@@ -56,8 +56,8 @@ static errno_t dir40_telldir(object_entity_t *entity,
 
 /* This fucntion checks if passed @place point to item related to @entity, that
    is belong to directory. */
-static int dir40_belong(object_entity_t *entity,
-			place_t *place)
+static int32_t dir40_belong(object_entity_t *entity,
+			    place_t *place)
 {
 	dir40_t *dir = (dir40_t *)entity;
 
@@ -148,7 +148,7 @@ errno_t dir40_fetch(object_entity_t *entity, entry_hint_t *entry) {
 
 /* Switches current dir body item onto next one. Returns 1 on success, 0 on the
    case of directory is over and values < 0 on error. */
-static int dir40_next(object_entity_t *entity) {
+static int32_t dir40_next(object_entity_t *entity) {
 	errno_t res;
 	dir40_t *dir;
 	place_t place;
@@ -180,7 +180,7 @@ static int dir40_next(object_entity_t *entity) {
 }
 
 /* Updates current body place by place found by @dir->offset and @dir->adjust */
-static errno_t dir40_update(object_entity_t *entity) {
+static int32_t dir40_update(object_entity_t *entity) {
 	dir40_t *dir;
 	lookup_t res;
 	
@@ -196,12 +196,23 @@ static errno_t dir40_update(object_entity_t *entity) {
 		uint32_t units;
 		uint32_t adjust;
 #endif
+		/* Correcting unit pos for next body item */
 		if (dir->body.pos.unit == MAX_UINT32)
 			dir->body.pos.unit = 0;
 
 		if (res == ABSENT) {
+
+			/* Directory is over */
 			if (!dir40_belong(entity, &dir->body))
-				return -EINVAL;
+				return 0;
+
+			/* Checking if directory is over */
+			units = plug_call(dir->body.plug->o.item_ops,
+					  units, &dir->body);
+			
+			if (dir->body.pos.unit >= units)
+				return 0;
+
 		}
 
 #ifdef ENABLE_COLLISIONS
@@ -213,27 +224,30 @@ static errno_t dir40_update(object_entity_t *entity) {
 			units = plug_call(dir->body.plug->o.item_ops,
 					  units, &dir->body);
 			
-			if (dir->body.pos.unit >= units)
-				return -EINVAL;
-			
 			if (off > units - 1 - dir->body.pos.unit)
 				off = units - dir->body.pos.unit;
 
 			dir->body.pos.unit += off - 1;
 
 			if ((adjust -= off) > 0) {
-				if (dir40_next(entity) != 1)
+				switch (dir40_next(entity)) {
+				case 1:
+					break;
+				case 0:
+					return 0;
+				default:
 					return -EINVAL;
+				}
 			}
 		}
 #endif
-		return 0;
+		return 1;
 	}
 	}
 }
 
 /* Reads one entry from passed @entity */
-static errno_t dir40_readdir(object_entity_t *entity, 
+static int32_t dir40_readdir(object_entity_t *entity, 
 			     entry_hint_t *entry)
 {
 	errno_t res;
@@ -246,15 +260,9 @@ static errno_t dir40_readdir(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Getting place of current unit */
-	if ((res = dir40_update(entity)))
+	if ((res = dir40_update(entity)) != 1)
 		return res;
 
-	units = plug_call(dir->body.plug->o.item_ops,
-			  units, &dir->body);
-
-	if (dir->body.pos.unit >= units)
-		return -EINVAL;
-		
 	/* Reading next entry */
 	if ((res = dir40_fetch(entity, entry)))
 		return res;
@@ -279,6 +287,9 @@ static errno_t dir40_readdir(object_entity_t *entity,
 		entry->type = ET_SPCL;
 	}
 #endif
+
+	units = plug_call(dir->body.plug->o.item_ops,
+			  units, &dir->body);
 
 	/* Getting next entry in odrer to set up @dir->offset correctly */
 	if (++dir->body.pos.unit >= units) {
@@ -309,10 +320,10 @@ static errno_t dir40_readdir(object_entity_t *entity,
 		dir40_seekdir(entity, &temp.offset);
 	}
 	
-	return 0;
+	return 1;
 }
 
-static int dir40_compent(char *entry1, char *entry2) {
+static int32_t dir40_compent(char *entry1, char *entry2) {
 	uint32_t len1 = aal_strlen(entry1);
 	
 	if (len1 > aal_strlen(entry2))
@@ -368,7 +379,7 @@ lookup_t dir40_lookup(object_entity_t *entity,
 	entry->offset.adjust = 0;
 		
 	while (1) {
-		int comp;
+		int32_t comp;
 		uint32_t units;
 		entry_hint_t temp;
 		

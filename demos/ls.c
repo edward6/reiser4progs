@@ -144,12 +144,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_dir;
 	}
     
-	while (1) {
-		aal_memset(buff, 0, sizeof(buff));
-
-		if (reiser4_object_readdir(dir, &entry) != 0)
-			break;
-
+	while (reiser4_object_readdir(dir, &entry) > 0) {
 		aal_snprintf(buff, sizeof(buff), "[%s] %s\n",
 			     reiser4_print_key(&entry.object, PO_DEF),
 			     entry.name);

@@ -10,6 +10,8 @@
 /* If file is a regular one we show its contant here */
 static errno_t debugfs_object_cat(reiser4_object_t *object) {
 	errno_t res;
+	int32_t read;
+	char buff[4096];
 	
 	if ((res = reiser4_object_reset(object))) {
 		aal_exception_error("Can't reset object %s.",
@@ -19,9 +21,6 @@ static errno_t debugfs_object_cat(reiser4_object_t *object) {
 
 	/* The loop until object_read returns zero bytes read */
 	while (1) {
-		int32_t read;
-		unsigned char buff[4096];
-		
 		aal_memset(buff, 0, sizeof(buff));
 		
 		read = reiser4_object_read(object, buff,
@@ -48,12 +47,9 @@ static errno_t debugfs_object_ls(reiser4_object_t *object) {
 	}
 
 	/* The loop until all entry read */
-	while (1) {
+	while (reiser4_object_readdir(object, &entry) > 0) {
 		aal_memset(buff, 0, sizeof(buff));
-
-		if (reiser4_object_readdir(object, &entry) != 0)
-			break;
-
+		
 		aal_snprintf(buff, sizeof(buff), "[%s] %s\n",
 			     reiser4_print_key(&entry.object, PO_DEF),
 			     entry.name);

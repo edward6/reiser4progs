@@ -538,6 +538,11 @@ struct reiser4_key_ops {
 	/* Returns maximal key for this key-format */
 	key_entity_t *(*maximal) (void);
 
+#if 0
+	/* Returns key size for particular key-format */
+	uint32_t (*bodysize) (void);
+#endif
+
 	/* Compares two keys by comparing its all components */
 	int (*compraw) (body_t *, body_t *);
 
@@ -688,7 +693,7 @@ struct reiser4_object_ops {
 	int32_t (*read) (object_entity_t *, void *, uint32_t);
 
 	/* Directory read method */
-	errno_t (*readdir) (object_entity_t *,
+	int32_t (*readdir) (object_entity_t *,
 			    entry_hint_t *);
 
 	/* Return current position in dirctory */

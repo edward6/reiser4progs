@@ -486,7 +486,7 @@ static int32_t reg40_cut(object_entity_t *entity,
 
 		/* Making lookup for last item. */
 		if ((obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
-				  &place) != PRESENT)
+				  &place) != PRESENT))
 		{
 			return -EINVAL;
 		}
