@@ -1042,9 +1042,9 @@ struct item_balance_ops {
 			    lookup_bias_t);
 	
 #ifndef ENABLE_MINIMAL
-	/* Fuses two neighbour items in the same node. Returns space released
+	/* Merges two neighbour items in the same node. Returns space released
 	   Needed for fsck. */
-	int32_t (*fuse) (reiser4_place_t *, reiser4_place_t *);
+	int32_t (*merge) (reiser4_place_t *, reiser4_place_t *);
 	
 	/* Checks if items mergeable, that is if unit of one item can belong to
 	   another one. Returns 1 if so, 0 otherwise. */
