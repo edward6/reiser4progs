@@ -297,6 +297,10 @@ typedef struct item_header4 item_header4_t;
         ({uint16_t flags = ih_get_flags(ih, pol);          \
         aal_test_bit(&flags, flag);})
 
+extern void node40_mkdirty(node_entity_t *entity);
+extern void node40_mkclean(node_entity_t *entity);
+extern int node40_isdirty(node_entity_t *entity);
+
 extern uint16_t node40_free_space_end(node40_t *node);
 extern void *node40_ih_at(node40_t *node, uint32_t pos);
 extern void *node40_ib_at(node40_t *node, uint32_t pos);

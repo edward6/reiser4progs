@@ -170,7 +170,7 @@ static errno_t node40_item_check_array(node40_t *node, uint8_t mode) {
 				ih_set_offset(node40_ih_at(node, 0), 
 					      last_relable, pol);
 
-				node->state |= (1 << ENTITY_DIRTY);
+				node40_mkdirty((node_entity_t *)node);
 			} else
 				res |= RE_FATAL;
 
@@ -216,10 +216,10 @@ static errno_t node40_item_check_array(node40_t *node, uint8_t mode) {
 		
 		if (mode == RM_BUILD) {
 			nh_set_free_space(node, nh_get_free_space(node) + 
-					    offset - last_relable);
-			nh_set_free_space_start(node, last_relable);
+					  offset - last_relable);
 			
-			node->state |= (1 << ENTITY_DIRTY);
+			nh_set_free_space_start(node, last_relable);
+			node40_mkdirty((node_entity_t *)node);
 		} else {
 			res |= RE_FATAL;
 		}
@@ -239,7 +239,7 @@ static errno_t node40_item_check_array(node40_t *node, uint8_t mode) {
 			res |= RE_FIXABLE;
 		} else {
 			nh_set_free_space(node, last_relable);
-			node->state |= (1 << ENTITY_DIRTY);
+			node40_mkdirty((node_entity_t *)node);
 		}
 	}
 	
@@ -288,7 +288,7 @@ static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
 		
 		if (mode == RM_BUILD) {
 			nh_set_num_items(node, nr);
-			node->state |= (1 << ENTITY_DIRTY);
+			node40_mkdirty((node_entity_t *)node);
 		} else
 			return RE_FATAL;
 	}
@@ -302,7 +302,7 @@ static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
 		
 		if (mode != RM_CHECK) {
 			nh_set_free_space_start(node, offset);
-			node->state |= (1 << ENTITY_DIRTY);
+			node40_mkdirty((node_entity_t *)node);
 		} else
 			return RE_FIXABLE;
 	}
@@ -318,7 +318,7 @@ static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
 		
 		if (mode != RM_CHECK) {
 			nh_set_free_space(node, offset);
-			node->state |= (1 << ENTITY_DIRTY);
+			node40_mkdirty((node_entity_t *)node);
 		} else
 			return RE_FIXABLE;
 	}
@@ -360,7 +360,7 @@ static errno_t node40_count_check(node40_t *node, uint8_t mode) {
 		return RE_FATAL;
 	
 	nh_set_num_items(node, num);
-	node->state |= (1 << ENTITY_DIRTY);
+	node40_mkdirty((node_entity_t *)node);
 	
 	return 0;
 }
@@ -426,7 +426,7 @@ void node40_set_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
 		return;
 	
 	ih_set_flag(ih, flag, pol);
-	node->state |= (1 << ENTITY_DIRTY);
+	node40_mkdirty(entity);
 }
 
 void node40_clear_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
@@ -452,7 +452,7 @@ void node40_clear_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
 		ih_clear_flag(ih, flag, pol);
 	}
 	
-	node->state |= (1 << ENTITY_DIRTY);
+	node40_mkdirty(entity);
 }
 
 bool_t node40_test_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
@@ -511,8 +511,7 @@ node_entity_t *node40_unpack(aal_block_t *block,
 	aal_stream_read(stream, node->block->data,
 			node->block->size);
 
-	node->state |= (1 << ENTITY_DIRTY);
+	node40_mkdirty((node_entity_t *)node);
 	return (node_entity_t *)node;
 }
-
 #endif
