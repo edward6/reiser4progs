@@ -467,6 +467,11 @@ lookup_t reiser4_node_lookup(
 	if (res != LP_ABSENT)
 		return res;
 
+	if (pos->item == 0)
+		return LP_ABSENT;
+	
+	pos->item--;
+
 	/* Initializing item place points to */
 	if (reiser4_place_open(&place, node, pos))
 		return LP_FAILED;
@@ -496,16 +501,21 @@ lookup_t reiser4_node_lookup(
 		res = item->plugin->item_ops.lookup(item, key,
 						    &pos->unit);
 
-		if (res != LP_ABSENT)
-			return res;
+		if (res == LP_ABSENT) {
+		    if (pos->unit == ~0ul || 
+			pos->unit == reiser4_item_units(&place))
+		    {
+			pos->unit = ~0ul;
+			pos->item++;
+		    } 
+		}
+
+		return res;
 	}
 	
-	/* 
-	   If maxposs_key method is not implemented(for SD, nodepointers with
-	   many pointers), step right.
-	*/
-	if (!item->plugin->item_ops.maxposs_key)
-		pos->item++;
+	/* maxoss_key method must be implemented or we should not get here. */
+	aal_assert("vpf-895", item->plugin->item_ops.maxposs_key == NULL);
+	pos->item++;
 
 	return LP_ABSENT;
 }
