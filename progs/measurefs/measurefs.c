@@ -653,9 +653,11 @@ errno_t measurefs_data_frag(reiser4_fs_t *fs, uint32_t flags) {
 			aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
 					 NULL, NULL, 0, "Data fragmentation "
 					 "... ");
-		if (!frag_hint.gauge)
+
+		if (!frag_hint.gauge) {
 			aal_fatal("Out of memory!");
 			return -ENOMEM;
+		}
 	}
 
 	frag_hint.flags = flags;
