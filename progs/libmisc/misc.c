@@ -164,7 +164,8 @@ static int progs_mpressure_detect(void) {
 	       &dlong, &dlong, &dlong, &dlong, &dlong, &vmsize, &rss, &dlong,
 	       &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong,
 	       &dlong, &dlong, &dlong, &dlong, &dint, &dint, &dlong, &dlong);
-	
+
+	/* FIXME-UMKA: Here should not be hardcoded dependence to 12 bits */
 	diff = labs((vmsize - (rss << 12)) - swapped);
 	swapped = labs(vmsize - (rss << 12));
 	

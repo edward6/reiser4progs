@@ -567,11 +567,6 @@ static errno_t callback_data_frag(
 	
 	pos.unit = ~0ul;
 
-	if (bogus++ % 16 == 0)
-		aal_gauge_update(frag_hint->gauge, 0);
-
-	bogus %= 16;
-	
 	for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
 		reiser4_file_t *file;
 		reiser4_coord_t coord;
@@ -592,6 +587,11 @@ static errno_t callback_data_frag(
 		frag_hint->fl_bad = 0;
 		frag_hint->fl_total = 0;
 
+		if (bogus++ % 16 == 0)
+			aal_gauge_update(frag_hint->gauge, 0);
+
+		bogus %= 16;
+	
 		if (reiser4_file_layout(file, callback_file_frag, data)) {
 			aal_exception_error("Can't enumerate blocks occupied by %s",
 					    file->name);
