@@ -270,7 +270,7 @@ reiser4_fs_t *reiser4_fs_create(
 	blocksize = device->blocksize;
 	
 	/* Makes check for validness of specified block size value */
-	if (!aal_pow_of_two(blocksize)) {
+	if (!aal_pow2(blocksize)) {
 		aal_exception_error("Invalid block size %u. It must be "
 				    "power of two.", blocksize);
 		return NULL;

@@ -10,7 +10,7 @@
 
 /* Checks the blocksize. */
 static int callback_bs_check (int64_t val, void * data) {
-    if (!aal_pow_of_two(val))
+    if (!aal_pow2(val))
 	return 0;
     
     if (val < 512)
@@ -65,7 +65,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 	/* Master SB was opened. Check it for validness. */
 
 	/* Check the blocksize. */
-	if (!aal_pow_of_two(reiser4_master_blocksize(fs->master))) {
+	if (!aal_pow2(reiser4_master_blocksize(fs->master))) {
 	    aal_exception_fatal("Invalid blocksize found in the master super "
 		"block (%u).", reiser4_master_blocksize(fs->master));
 

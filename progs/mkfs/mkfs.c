@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
 				return USER_ERROR;
 			}
 			
-			if (!aal_pow_of_two(blocksize)) {
+			if (!aal_pow2(blocksize)) {
 				aal_exception_error("Invalid block size %u. "
 						    "It must power of two.",
 						    (uint16_t)blocksize);

@@ -35,7 +35,7 @@ errno_t reiser4_master_valid(reiser4_master_t *master) {
 
 	blocksize = get_ms_blocksize(SUPER(master));
 
-	if (!aal_pow_of_two(blocksize))
+	if (!aal_pow2(blocksize))
 		return -EINVAL;
 
 	return 0;
