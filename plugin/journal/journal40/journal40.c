@@ -462,7 +462,7 @@ errno_t journal40_traverse(
 
 	while (tx_list != NULL) {
 		
-		/* The oldest valid unreplayed transction */
+		/* The oldest valid unreplayed transaction */
 		tx_block = (aal_block_t *)tx_list->data;
 		
 		if ((res = journal40_traverse_trans(journal, tx_block,
