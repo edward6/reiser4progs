@@ -694,7 +694,7 @@ static int32_t direntry40_shrink(item_entity_t *item,
 
 	headers = count * sizeof(entry40_t);
 	
-	/* Getting how many bytes should be moved before insert point */
+	/* Getting how many bytes should be moved before passed @pos */
 	before = (units - (pos + count)) * sizeof(entry40_t);
 
 	entry = direntry40_entry(direntry, 0);
@@ -702,11 +702,11 @@ static int32_t direntry40_shrink(item_entity_t *item,
 	for (i = 0; i < pos; i++, entry++)
 		before += direntry40_entry_len(direntry, entry);
 
-	/* Getting how many bytes shopuld be moved after insert point. */
+	/* Getting how many bytes shopuld be moved after passed @pos. */
 	entry = direntry40_entry(direntry, pos + count);
 	offset = en40_get_offset(entry);
 	
-	for (i = pos + count; i < units - 1; i++, entry++)
+	for (i = pos + count; i < units; i++, entry++)
 		after += direntry40_entry_len(direntry, entry);
 
 	if (after > 0) {
@@ -734,17 +734,16 @@ static int32_t direntry40_shrink(item_entity_t *item,
 	*/
 	if (after > 0) {
 		void *src, *dst;
-		uint32_t size = 0;
 
 		/* Moving the rest of data */
 		src = (void *)direntry + offset;
-		dst = src - (remove + headers);
+		dst = src - (headers + remove);
 		aal_memmove(dst, src, after);
 
-		/* Setting up the offsets */
-		for (i = pos; i < pos + count; i++) {
+		/* Setting up entry offsets */
+		for (i = pos; i < units - (pos + count); i++) {
 			entry = direntry40_entry(direntry, i);
-			en40_dec_offset(entry, (headers + size));
+			en40_dec_offset(entry, (headers + remove));
 		}
 	}
 	
