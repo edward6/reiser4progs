@@ -1149,9 +1149,12 @@ struct reiser4_alloc_ops {
 	/* Creates block allocator */
 	object_entity_t *(*create) (aal_device_t *, uint64_t);
 
-	/* Assign the bitmap to the block allocator. */
+	/* Assign the bitmap to the block allocator */
 	errno_t (*assign) (object_entity_t *, void *);
 
+	/* Extract block allocator data into passed bitmap */
+	errno_t (*extract) (object_entity_t *, void *);
+	
 	/* Opens block allocator */
 	object_entity_t *(*open) (aal_device_t *, uint64_t);
 

@@ -359,7 +359,7 @@ aux_bitmap_t *aux_bitmap_clone(
 	return clone;
 }
 
-/* Frees all assosiated with bitmap memory */
+/* Frees all memory assigned to bitmap */
 void aux_bitmap_close(
 	aux_bitmap_t *bitmap)	    /* bitmap to be closed */
 {

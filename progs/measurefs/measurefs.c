@@ -919,6 +919,7 @@ int main(int argc, char *argv[]) {
 	if (!(flags & F_TFRAG || flags & F_DFRAG ||
 	      flags & F_FFRAG || flags & F_TSTAT))
 	{
+		flags |= F_TSTAT;
 	}
 
 	/* Handling measurements options */
@@ -950,12 +951,8 @@ int main(int argc, char *argv[]) {
 					goto error_free_tree;
 			}
 		}
-	} else {
-		aal_exception_error("No one of available options "
-				    "is choosen.");
-		goto error_free_tree;
 	}
-	
+
 	/* Freeing tree */
 	reiser4_tree_close(fs->tree);
     

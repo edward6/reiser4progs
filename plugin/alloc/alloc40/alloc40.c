@@ -252,6 +252,23 @@ static errno_t alloc40_assign(object_entity_t *entity, void *data) {
 	return 0;
 }
 
+static errno_t alloc40_extract(object_entity_t *entity, void *data) {
+	alloc40_t *alloc = (alloc40_t *)entity;
+	aux_bitmap_t *bitmap = (aux_bitmap_t *)data;
+
+	aal_assert("umka-2156", alloc != NULL);
+	aal_assert("umka-2157", bitmap != NULL);
+	
+	aal_assert("umka-2158", alloc->bitmap->total == bitmap->total);
+	aal_assert("umka-2159", alloc->bitmap->size == bitmap->size);
+
+	aal_memcpy(bitmap->map, alloc->bitmap->map,
+		   bitmap->size);
+	
+	bitmap->marked = alloc->bitmap->marked;
+	return 0;
+}
+
 /* Callback for saving one bitmap block onto device */
 static errno_t callback_sync_bitmap(object_entity_t *entity, 
 				    uint64_t blk, void *data)
@@ -598,29 +615,30 @@ static reiser4_plugin_t alloc40_plugin = {
 			.label = "alloc40",
 			.desc = "Space allocator for reiser4, ver. " VERSION,
 		},
-		.open		       = alloc40_open,
-		.close		       = alloc40_close,
+		.open		     = alloc40_open,
+		.close		     = alloc40_close,
 
-		.create		       = alloc40_create,
-		.assign		       = alloc40_assign,
-		.sync		       = alloc40_sync,
-		.isdirty               = alloc40_isdirty,
-		.mkdirty               = alloc40_mkdirty,
-		.mkclean               = alloc40_mkclean,
-		.print                 = alloc40_print,
-		.check                 = alloc40_check,
+		.create              = alloc40_create,
+		.assign              = alloc40_assign,
+		.extract             = alloc40_extract,
+		.sync		     = alloc40_sync,
+		.isdirty             = alloc40_isdirty,
+		.mkdirty             = alloc40_mkdirty,
+		.mkclean             = alloc40_mkclean,
+		.print               = alloc40_print,
+		.check               = alloc40_check,
 		
-		.used                  = alloc40_used,
-		.unused                = alloc40_unused,
-		.valid                 = alloc40_valid,
-		.layout                = alloc40_layout,
-		.used_region           = alloc40_used_region,
-		.unused_region         = alloc40_unused_region,
+		.used                = alloc40_used,
+		.unused              = alloc40_unused,
+		.valid               = alloc40_valid,
+		.layout              = alloc40_layout,
+		.used_region         = alloc40_used_region,
+		.unused_region       = alloc40_unused_region,
 
-		.related_region        = alloc40_related_region,
-		.occupy_region	       = alloc40_occupy_region,
-		.allocate_region       = alloc40_allocate_region,
-		.release_region	       = alloc40_release_region
+		.related_region      = alloc40_related_region,
+		.occupy_region	     = alloc40_occupy_region,
+		.allocate_region     = alloc40_allocate_region,
+		.release_region	     = alloc40_release_region
 	}
 };
 
