@@ -382,16 +382,12 @@ typedef errno_t (*metadata_func_t) (object_entity_t *, place_func_t, void *);
   (4) Create/Paste item methods if data description has not beed specified
       on 3.
 */
-
 struct ptr_hint {    
 	uint64_t start;
 	uint64_t width;
 };
 
 typedef struct ptr_hint ptr_hint_t;
-
-#define VALID_BLK(blk) \
-        (blk != INVAL_BLK && blk != 0)
 
 struct sdext_unix_hint {
 	uint32_t uid;

@@ -120,9 +120,9 @@ errno_t reiser4_tree_connect(
 
 	node->tree = tree;
 
-#ifndef ENABLE_STAND_ALONE
 	reiser4_node_lock(parent);
-
+	
+#ifndef ENABLE_STAND_ALONE
 	if (tree->traps.connect) {
 		reiser4_place_t place;
 			
@@ -301,9 +301,6 @@ reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 	plugin_call(place->item.plugin->o.item_ops,
 		    read, &place->item, &ptr, 0, 1);
 
-	if (!VALID_BLK(ptr.start))
-		return NULL;
-	
 	return reiser4_tree_load(tree, place->node,
 				 ptr.start);
 }
