@@ -9,6 +9,7 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
+extern errno_t tail40_check_struct(place_t *place, uint8_t );
 extern errno_t tail40_merge(place_t *place, trans_hint_t *hint);
 extern errno_t tail40_prep_merge(place_t *place, trans_hint_t *hint);
 

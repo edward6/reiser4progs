@@ -9,6 +9,19 @@
 #include <reiser4/plugin.h>
 #include <plugin/item/body40/body40.h>
 
+errno_t tail40_check_struct(place_t *place, uint8_t mode) {
+	aal_assert("vpf-1508", place != NULL);
+	
+	if (!place->len) {
+		aal_error("Node (%llu), item (%u): tail40 "
+			  "item of zero length found.",
+			  place->block->nr, place->pos.item);
+		return RE_FATAL;
+	} 
+	
+	return 0;
+}
+
 errno_t tail40_prep_merge(place_t *place, trans_hint_t *hint) {
 	uint64_t doffset, start;
 	place_t *src;

@@ -511,7 +511,7 @@ static item_object_ops_t object_ops = {
 
 static item_repair_ops_t repair_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.check_struct	  = NULL,
+	.check_struct	  = tail40_check_struct,
 	.check_layout	  = NULL,
 
 	.prep_merge	  = tail40_prep_merge,
