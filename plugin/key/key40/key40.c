@@ -428,8 +428,6 @@ static reiser4_plugin_t key40_plugin = {
 		
 #ifndef ENABLE_ALONE
 		.print		= key40_print,
-#else
-		.print		= NULL,
 #endif
 		.set_type	= key40_set_type,
 		.get_type	= key40_get_type,

@@ -64,8 +64,6 @@ static uint32_t format40_get_stamp(object_entity_t *entity) {
 	return get_sb_mkfs_id(super);
 }
 
-#ifndef ENABLE_ALONE
-
 static uint64_t format40_begin(object_entity_t *entity) {
 	format40_t *format = (format40_t *)entity;
 	
@@ -74,6 +72,8 @@ static uint64_t format40_begin(object_entity_t *entity) {
 	
 	return FORMAT40_OFFSET / format->device->blocksize;
 }
+
+#ifndef ENABLE_ALONE
 
 static errno_t format40_skipped(object_entity_t *entity,
 				block_func_t func,
@@ -159,8 +159,8 @@ static aal_block_t *format40_super_open(aal_device_t *device) {
 	offset = (FORMAT40_OFFSET / aal_device_get_bs(device));
 	
 	if (!(block = aal_block_open(device, offset))) {
-		aal_exception_error("Can't read block %llu. %s.", offset, 
-				    aal_device_error(device));
+		aal_exception_error("Can't read block %llu.",
+				    offset);
 		return NULL;
 	}
 
@@ -341,7 +341,7 @@ static void format40_oid(object_entity_t *entity,
 	*oid_len = &super->sb_file_count - &super->sb_oid;
 }
 
-static const char *formats[] = {"4.0"};
+static const char *formats[] = {"format40"};
 
 static const char *format40_name(object_entity_t *entity) {
 	return formats[0];
@@ -474,20 +474,10 @@ static reiser4_plugin_t format40_plugin = {
 		.print		= format40_print,
 		.layout	        = format40_layout,
 		.skipped        = format40_skipped,
-		.start		= format40_begin,
 		.confirm	= format40_confirm,
-#else
-		.check		= NULL,
-		.sync		= NULL,
-		.create		= NULL,
-		.print		= NULL,
-		.layout	        = NULL,
-		.skipped        = NULL,
-		.start		= NULL,
-		.confirm	= NULL,
 #endif
+		.start		= format40_begin,
 		.oid	        = format40_oid,
-	
 		.close		= format40_close,
 		.name		= format40_name,
 
@@ -505,14 +495,6 @@ static reiser4_plugin_t format40_plugin = {
 		.set_stamp	= format40_set_stamp,
 		.journal_pid	= format40_journal_pid,
 		.alloc_pid	= format40_alloc_pid,
-#else
-		.set_root	= NULL,
-		.set_len	= NULL,
-		.set_free	= NULL,
-		.set_height	= NULL,
-		.set_stamp	= NULL,
-		.journal_pid	= NULL,
-		.alloc_pid	= NULL,
 #endif
 		.oid_pid	= format40_oid_pid
 	}

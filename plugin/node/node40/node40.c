@@ -112,8 +112,8 @@ static object_entity_t *node40_open(aal_device_t *device, blk_t blk) {
 		return NULL;
     
 	if (!(node->block = aal_block_open(device, blk))) {
-		aal_exception_error("Can't read block %llu. %s.",
-				    blk, device->error);
+		aal_exception_error("Can't read block %llu.",
+				    blk);
 		goto error_free_node;
 	}
 	
@@ -1646,27 +1646,6 @@ static reiser4_plugin_t node40_plugin = {
 		.set_level       = node40_set_level,
 		.set_mstamp	 = node40_set_mstamp,
 		.set_fstamp      = node40_set_fstamp,
-#else
-		.create		 = NULL,
-		.sync            = NULL,
-		.insert		 = NULL,
-		.remove		 = NULL,
-		.cut             = NULL,
-		.check		 = NULL,
-		.print		 = NULL,
-		.shift		 = NULL,
-		.shrink		 = NULL,
-		.expand		 = NULL,
-		.copy            = NULL,
-	
-		.overhead	 = NULL,
-		.maxspace	 = NULL,
-		.space		 = NULL,
-	
-		.set_key	 = NULL,
-		.set_level       = NULL,
-		.set_mstamp      = NULL,
-		.set_fstamp      = NULL,
 #endif
 		.item_len	 = node40_item_len,
 		.item_body	 = node40_item_body,

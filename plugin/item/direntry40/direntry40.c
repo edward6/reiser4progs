@@ -254,8 +254,6 @@ static int direntry40_data(void) {
 	return 1;
 }
 
-#ifndef ENABLE_ALONE
-
 /*
   Returns TRUE is two items are mergeable. That is if they have the same plugin
   id and belong to the same directory. This function is used in balancing from
@@ -281,6 +279,8 @@ static int direntry40_mergeable(item_entity_t *item1,
 
 	return (locality1 == locality2);
 }
+
+#ifndef ENABLE_ALONE
 
 /*
   Estimates how much bytes will be needed to prepare in node in odrer to make
@@ -1217,40 +1217,28 @@ static reiser4_plugin_t direntry40_plugin = {
 		.estimate	= direntry40_estimate,
 		.check		= direntry40_check,
 		.print		= direntry40_print,
-		.mergeable      = direntry40_mergeable,
-
 		.shift          = direntry40_shift,
 		.predict        = direntry40_predict,
-#else
-		.init		= NULL,
-		.estimate	= NULL,
-		.write		= NULL,
-		.remove		= NULL,
-		.check		= NULL,
-		.print		= NULL,
-		.mergeable      = NULL,
-		.shift          = NULL,
-		.predict        = NULL,
-#endif
+		
+		.set_key	= NULL,
+		.insert         = NULL,
 		.layout		= NULL,
+		.layout_check	= NULL,
+#endif
 		.belongs        = NULL,
 		.valid		= NULL,
-		.insert         = NULL,
 		.branch         = NULL,
-		.data		= direntry40_data,
-
 		.gap_key	= NULL,
-		.set_key	= NULL,
-		
-		.get_key	= direntry40_get_key,
+
+		.data		= direntry40_data,
 		.lookup		= direntry40_lookup,
 		.units		= direntry40_units,
 		.read           = direntry40_read,
+		.mergeable      = direntry40_mergeable,
 		
+		.get_key	= direntry40_get_key,
 		.maxposs_key	= direntry40_maxposs_key,
-		.utmost_key     = direntry40_utmost_key,
-
-		.layout_check	= NULL
+		.utmost_key     = direntry40_utmost_key
 	}
 };
 

@@ -19,7 +19,10 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 			      reiser4_profile_t *profile)
 {
 	rpid_t pid;
+
+#ifndef ENABLE_ALONE
 	count_t blocks;
+#endif
 	reiser4_fs_t *fs;
 	uint32_t blocksize;
 
@@ -57,11 +60,11 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	if (reiser4_format_valid(fs->format))
 		goto error_free_format;
     
+#ifndef ENABLE_ALONE
+	
 	if ((blocks = reiser4_format_get_len(fs->format)) == INVAL_BLK)
 		goto error_free_format;
 
-#ifndef ENABLE_ALONE
-	
 	/* Initializes block allocator. See alloc.c for details */
 	if (!(fs->alloc = reiser4_alloc_open(fs, blocks)))
 		goto error_free_format;

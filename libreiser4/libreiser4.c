@@ -317,7 +317,6 @@ reiser4_core_t core = {
 		.unlock     = tree_unlock,
 
 #ifndef ENABLE_ALONE
-		
 		/* Callback function for inserting items into the tree */
 		.insert	    = tree_insert,
 
@@ -325,11 +324,6 @@ reiser4_core_t core = {
 		.remove	    = tree_remove,
 		.nodespace  = tree_nodespace,
 		.blockspace = tree_blockspace,
-#else
-		.insert	    = NULL,
-		.remove	    = NULL,
-		.nodespace  = NULL,
-		.blockspace = NULL,
 #endif
 		.rootkey    = tree_rootkey
 	}

@@ -3,6 +3,13 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* implement sdext_entity_t.
+
+* fix bug in callback_open_ext() function with getting full 64bit 
+  mask.
+
+* eliminate stat40_belongs method.
+
 * implement reiser4_tree_write function needed for fsck.
 
 * solve the problem with that item plugins cannot rely on item.len 

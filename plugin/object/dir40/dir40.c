@@ -19,6 +19,17 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t dir40_plugin;
 
+static uint64_t dir40_size(object_entity_t *entity) {
+	dir40_t *dir;
+
+	dir = (dir40_t *)entity;
+	
+	/* Getting stat data item place */
+	object40_stat(&dir->obj);
+	
+	return object40_get_size(&dir->obj);
+}
+
 /* Resets internal direntry position at zero */
 static errno_t dir40_reset(object_entity_t *entity) {
 	dir40_t *dir;
@@ -128,11 +139,8 @@ static int32_t dir40_read(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
-	/* Getting stat data item place */
-	object40_stat(&dir->obj);
-
 	/* Getting size from teh statdata */
-	if ((size = object40_get_size(&dir->obj)) == 0)
+	if ((size = dir40_size(entity)) == 0)
 		return 0;
 
 	if (n > size - dir->offset)
@@ -879,15 +887,6 @@ static reiser4_plugin_t dir40_plugin = {
 		.unlink     = dir40_unlink,
 		.truncate   = dir40_truncate,
 		.remove     = dir40_remove,
-#else
-		.create	    = NULL,
-		.write	    = NULL,
-		.layout     = NULL,
-		.metadata   = NULL,
-		.link       = NULL,
-		.unlink     = NULL,
-		.truncate   = NULL,
-		.remove     = NULL,
 #endif
 		.follow     = NULL,
 		.valid	    = NULL,
@@ -896,8 +895,9 @@ static reiser4_plugin_t dir40_plugin = {
 		.open	    = dir40_open,
 		.close	    = dir40_close,
 		.reset	    = dir40_reset,
-		.offset	    = dir40_offset,
 		.lookup	    = dir40_lookup,
+		.offset	    = dir40_offset,
+		.size	    = dir40_size,
 		.read	    = dir40_read
 	}
 };

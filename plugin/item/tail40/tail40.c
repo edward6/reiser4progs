@@ -226,8 +226,6 @@ static lookup_t tail40_lookup(item_entity_t *item,
 	return LP_ABSENT;
 }
 
-#ifndef ENABLE_ALONE
-
 static int tail40_mergeable(item_entity_t *item1,
 			    item_entity_t *item2)
 {
@@ -241,26 +239,37 @@ static int tail40_mergeable(item_entity_t *item1,
 
 	plugin = item1->key.plugin;
 		
-	locality1 = plugin_call(plugin->key_ops, get_locality, &item1->key);
-	locality2 = plugin_call(plugin->key_ops, get_locality, &item2->key);
+	locality1 = plugin_call(plugin->key_ops, get_locality,
+				&item1->key);
+	
+	locality2 = plugin_call(plugin->key_ops, get_locality,
+				&item2->key);
 
 	if (locality1 != locality2)
 		return 0;
 	
-	objectid1 = plugin_call(plugin->key_ops, get_objectid, &item1->key);
-	objectid2 = plugin_call(plugin->key_ops, get_objectid, &item2->key);
+	objectid1 = plugin_call(plugin->key_ops, get_objectid,
+				&item1->key);
+	
+	objectid2 = plugin_call(plugin->key_ops, get_objectid,
+				&item2->key);
 
 	if (objectid1 != objectid1)
 		return 0;
 
-	offset1 = plugin_call(plugin->key_ops, get_offset, &item1->key);
-	offset2 = plugin_call(plugin->key_ops, get_offset, &item2->key);
+	offset1 = plugin_call(plugin->key_ops, get_offset,
+			      &item1->key);
+	
+	offset2 = plugin_call(plugin->key_ops, get_offset,
+			      &item2->key);
 
 	if (offset1 + item1->len != offset2)
 		return 0;
 	
 	return 1;
 }
+
+#ifndef ENABLE_ALONE
 
 /* Estimates how many bytes may be shifted into neighbour item */
 static errno_t tail40_predict(item_entity_t *src_item,
@@ -381,39 +390,30 @@ static reiser4_plugin_t tail40_plugin = {
 		.write	        = tail40_write,
 		.remove	        = tail40_remove,
 		.print	        = tail40_print,
-		.mergeable      = tail40_mergeable,
 		.predict        = tail40_predict,
 		.shift	        = tail40_shift,		
-#else
-		.init	        = NULL,
-		.write	        = NULL,
-		.remove	        = NULL,
-		.print	        = NULL,
-		.mergeable      = NULL,
-		.predict        = NULL,
-		.shift	        = NULL,
-#endif
 		.insert	        = NULL,
-		.layout	        = NULL,
-		.belongs        = NULL,
 		.check	        = NULL,
-		.valid	        = NULL,
 		.estimate       = NULL,
-		.branch         = NULL,
 		.set_key        = NULL,
+		.layout	        = NULL,
+		.layout_check   = NULL,
+#endif
+		.belongs        = NULL,
+		.valid	        = NULL,
+		.branch         = NULL,
 
 		.units	        = tail40_units,
 		.lookup	        = tail40_lookup,
 		.read	        = tail40_read,
 		.data		= tail40_data,
+		.mergeable      = tail40_mergeable,
 		
 		.maxposs_key    = tail40_maxposs_key,
 		.utmost_key     = tail40_utmost_key,
 		
 		.gap_key        = tail40_utmost_key,
-		.get_key        = tail40_get_key,
-
-		.layout_check   = NULL
+		.get_key        = tail40_get_key
 	}
 };
 

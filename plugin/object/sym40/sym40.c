@@ -465,21 +465,15 @@ static reiser4_plugin_t sym40_plugin = {
 		.metadata   = sym40_metadata,
 		.link       = sym40_link,
 		.unlink     = sym40_unlink,
-#else
-		.create	    = NULL,
-		.write	    = NULL,
-		.layout     = NULL,
-		.metadata   = NULL,
-		.link       = NULL,
-		.unlink     = NULL,
-#endif
 		.truncate   = NULL,
+		.remove     = NULL,
+#endif
 		.valid	    = NULL,
 		.lookup	    = NULL,
 		.reset	    = NULL,
 		.offset	    = NULL,
 		.seek	    = NULL,
-		.remove     = NULL,
+		.size       = NULL,
 		
 		.follow     = sym40_follow,
 		.open	    = sym40_open,

@@ -216,8 +216,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 			return master;
 		}
 #endif
-		aal_exception_error("Can't find reiser4 filesystem on %s.",
-				    device->name);
+		aal_exception_error("Can't find reiser4 on passed device.");
 		goto error_free_block;
 	}
     

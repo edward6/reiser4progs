@@ -156,37 +156,31 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.write          = nodeptr40_write,
 		.estimate	= nodeptr40_estimate,
 		.print		= nodeptr40_print,
-		.layout_check	= nodeptr40_layout_check,
 		.check		= nodeptr40_check,
-#else
-		.init		= NULL,
-		.write          = NULL,
-		.estimate	= NULL,
-		.print		= NULL,
-		.layout_check   = NULL,
-		.check = NULL,
-#endif
-		.units		= nodeptr40_units,
-		.read           = nodeptr40_read,
 		.layout         = nodeptr40_layout,
-		.branch         = nodeptr40_branch,
-		
-		.data		= NULL,
+		.layout_check	= nodeptr40_layout_check,
+
 		.insert		= NULL,
-		.belongs        = NULL,
-		.lookup		= NULL,
-		.valid		= NULL,
 		.remove		= NULL,
-		.mergeable      = NULL,
 
 		.shift          = NULL,
 		.predict        = NULL,
 
-		.get_key	= NULL,
 		.set_key	= NULL,
+#endif
+		.units		= nodeptr40_units,
+		.read           = nodeptr40_read,
+		.branch         = nodeptr40_branch,
 		
+		.data		= NULL,
+		.belongs        = NULL,
+		.lookup		= NULL,
+		.valid		= NULL,
+		.mergeable      = NULL,
+
 		.maxposs_key	= NULL,
 		.utmost_key     = NULL,
+		.get_key	= NULL,
 		.gap_key	= NULL
 	}
 };

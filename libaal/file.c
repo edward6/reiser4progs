@@ -42,7 +42,7 @@ static void file_error(
 */
 errno_t file_open(
 	aal_device_t *device,
-	void *personality,	    /* name of file to be used as file device */
+	void *person,               /* name of file to be used as file device */
 	uint32_t blocksize,	    /* used blocksize */
 	int flags)		    /* flags file will be opened with */
 {
@@ -52,15 +52,18 @@ errno_t file_open(
 	if (!device)
 		return -1;
 	
-	if (!personality || aal_strlen((char *)personality) == 0) 
+	if (!person || aal_strlen((char *)person) == 0) 
 		return -1;
     
-	/* Initializing device entity (file descripror in the case of file device) */
+	/*
+	  Initializing device entity (file descripror in the case of file
+	  device).
+	*/
 	if (!(device->entity = aal_calloc(sizeof(int), 0)))
 		return -1;
 
 	/* Opening specified file with specified flags */
-	filename = (char *)personality;
+	filename = (char *)person;
 	
 #if defined(O_LARGEFILE)
 	if ((fd = open(filename, flags | O_LARGEFILE)) == -1)

@@ -258,8 +258,8 @@ int aal_##name##toa(type d, uint32_t n, char *a, int base, int flags) { \
 	    return 1;						        \
     }								        \
 								        \
-    for (s = range; s > 0; s = s >> aal_log2(base)) {		        \
-	    type v = d >> aal_log2(s);                                  \
+    for (s = range; s > 0; s /= base) {                                 \
+	    type v = d / s;                                             \
 								        \
 	    if ((uint32_t)(p - a) >= n)				        \
 	            break;			                        \
@@ -268,8 +268,8 @@ int aal_##name##toa(type d, uint32_t n, char *a, int base, int flags) { \
 		    continue;                                           \
 								        \
 	    if (v >= (type)base) {				        \
-                    type ds = d >> aal_log2(s);                         \
-                    type vb = v >> aal_log2(base);                      \
+                    type ds = d / s;                                    \
+                    type vb = v / base;                                 \
 		    v = ds - (vb * base);		                \
             }                                                           \
 	    switch (base) {					        \
@@ -294,8 +294,6 @@ int aal_##name##toa(type d, uint32_t n, char *a, int base, int flags) { \
 */
 DEFINE_DCONV(u, unsigned int)
 DEFINE_DCONV(lu, unsigned long int)
-DEFINE_DCONV(llu, unsigned long long)
 
 DEFINE_DCONV(s, int)
 DEFINE_DCONV(ls, long int)
-DEFINE_DCONV(lls, long long)

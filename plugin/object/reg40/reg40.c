@@ -19,6 +19,17 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t reg40_plugin;
 
+static uint64_t reg40_size(object_entity_t *entity) {
+	reg40_t *reg;
+
+	reg = (reg40_t *)entity;
+	
+	/* Getting stat data item place */
+	object40_stat(&reg->obj);
+	
+	return object40_get_size(&reg->obj);
+}
+
 /*
   Resets file position. That is it searches first body item and sets file's
   offset to zero.
@@ -31,8 +42,8 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	aal_assert("umka-1161", entity != NULL);
 
 	reg = (reg40_t *)entity;
-	
-	if ((size = object40_get_size(&reg->obj)) == 0)
+
+	if ((size = reg40_size(entity)) == 0)
 		return 0;
 
 	/* Building body key to be found */
@@ -119,7 +130,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	aal_assert("umka-1183", buff != NULL);
 	aal_assert("umka-1182", entity != NULL);
 
-	size = object40_get_size(&reg->obj);
+	size = reg40_size(entity);
 
 	/* The file has not data at all */
 	if (size == 0 || !reg->body.node)
@@ -410,7 +421,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 
 	reg = (reg40_t *)entity;
 	
-	if ((size = object40_get_size(&reg->obj)) == 0)
+	if ((size = reg40_size(entity)) == 0)
 		return 0;
 
 	hint.func = func;
@@ -462,7 +473,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	if ((res = func(entity, &reg->obj.statdata, data)))
 		return res;
 
-	if ((size = object40_get_size(&reg->obj)) == 0)
+	if ((size = reg40_size(entity)) == 0)
 		return 0;
 	
 	while (reg->offset < size) {
@@ -527,25 +538,18 @@ static reiser4_plugin_t reg40_plugin = {
 		.metadata   = reg40_metadata,
 		.link       = reg40_link,
 		.unlink     = reg40_unlink,
-#else
-		.create	    = NULL,
-		.write	    = NULL,
-		.truncate   = NULL,
-		.layout     = NULL,
-		.metadata   = NULL,
-		.link       = NULL,
-		.unlink     = NULL,
+		.remove     = NULL,
 #endif
 		.valid	    = NULL,
 		.lookup	    = NULL,
 		.follow     = NULL,
-		.remove     = NULL,
 		
 		.open	    = reg40_open,
 		.close	    = reg40_close,
 		.reset	    = reg40_reset,
 		.offset	    = reg40_offset,
 		.seek	    = reg40_seek,
+		.size       = reg40_size,
 		.read	    = reg40_read
 	}
 };

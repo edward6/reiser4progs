@@ -49,8 +49,8 @@ reiser4_format_t *reiser4_format_open(
 					   fs->device)))
 	{
 		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
-				    "Can't open disk-format %s on %s.",
-				    plugin->h.label, fs->device->name);
+				    "Can't open disk-format %s.",
+				    plugin->h.label);
 		goto error_free_format;
 	}
 
@@ -120,6 +120,16 @@ errno_t reiser4_format_sync(
 			   sync, format->entity);
 }
 
+/* Confirms disk-format (simple check) */
+int reiser4_format_confirm(
+	reiser4_format_t *format)	/* format to be checked */
+{
+	aal_assert("umka-832", format != NULL);
+
+	return plugin_call(format->entity->plugin->format_ops, 
+			   confirm, format->fs->device);
+}
+
 errno_t reiser4_format_print(reiser4_format_t *format, aal_stream_t *stream) {
 	aal_assert("umka-1560", format != NULL);
 	aal_assert("umka-1561", stream != NULL);
@@ -167,16 +177,6 @@ void reiser4_format_close(
     
  error_free_format:    
 	aal_free(format);
-}
-
-/* Confirms disk-format (simple check) */
-int reiser4_format_confirm(
-	reiser4_format_t *format)	/* format to be checked */
-{
-	aal_assert("umka-832", format != NULL);
-
-	return plugin_call(format->entity->plugin->format_ops, 
-			   confirm, format->fs->device);
 }
 
 /* Returns string described used disk-format */
@@ -303,8 +303,6 @@ void reiser4_format_set_stamp(
 		    set_stamp, format->entity, stamp);
 }
 
-#endif
-
 /* Returns jouranl plugin id in use */
 rpid_t reiser4_format_journal_pid(
 	reiser4_format_t *format)	/* disk-format journal pid will be obtained from */
@@ -323,16 +321,6 @@ rpid_t reiser4_format_alloc_pid(
 	
 	return plugin_call(format->entity->plugin->format_ops, 
 			   alloc_pid, format->entity);
-}
-
-/* Returns oid allocator plugin id in use */
-rpid_t reiser4_format_oid_pid(
-	reiser4_format_t *format)	/* disk-format oid allocator pid will be obtained from */
-{
-	aal_assert("umka-491", format != NULL);
-	
-	return plugin_call(format->entity->plugin->format_ops, 
-			   oid_pid, format->entity);
 }
 
 errno_t reiser4_format_skipped(reiser4_format_t *format, 
@@ -355,4 +343,16 @@ errno_t reiser4_format_layout(reiser4_format_t *format,
 
 	return plugin_call(format->entity->plugin->format_ops,
 			   layout, format->entity, func, data);
+}
+
+#endif
+
+/* Returns oid allocator plugin id in use */
+rpid_t reiser4_format_oid_pid(
+	reiser4_format_t *format)	/* disk-format oid allocator pid will be obtained from */
+{
+	aal_assert("umka-491", format != NULL);
+	
+	return plugin_call(format->entity->plugin->format_ops, 
+			   oid_pid, format->entity);
 }

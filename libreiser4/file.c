@@ -28,6 +28,13 @@ static reiser4_plugin_t *reiser4_file_plugin(reiser4_file_t *file) {
 	return item->plugin->item_ops.belongs(item);
 }
 
+uint64_t reiser4_file_size(reiser4_file_t *file) {
+	aal_assert("umka-1961", file != NULL);
+
+	return plugin_call(file->entity->plugin->file_ops,
+			   size, file->entity);
+}
+
 /* Looks up for the file stat data place in tree */
 errno_t reiser4_file_stat(reiser4_file_t *file) {
 	
@@ -129,6 +136,8 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 		return -1;
 	}
 
+	aal_memset(&entry_hint, 0, sizeof(entry_hint));
+	
 	/* Looking up for @enrty in current directory */
 	if (plugin_call(plugin->file_ops, lookup, entity,
 			entry, &entry_hint) != LP_PRESENT)
@@ -187,7 +196,7 @@ reiser4_file_t *reiser4_file_open(
 	aal_assert("umka-789", name != NULL);
 
 	if (!fs->tree) {
-		aal_exception_error("Can't created file without "
+		aal_exception_error("Can't open file without "
 				    "initialized tree.");
 		return NULL;
 	}
@@ -324,7 +333,7 @@ reiser4_file_t *reiser4_file_create(
 	aal_assert("umka-1917", hint->plugin != NULL);
 
 	if (!fs->tree) {
-		aal_exception_error("Can't created file without "
+		aal_exception_error("Can't create file without "
 				    "initialized tree.");
 		return NULL;
 	}
@@ -499,6 +508,44 @@ errno_t reiser4_file_print(reiser4_file_t *file,
 	return reiser4_file_metadata(file, place_func, stream);
 }
 
+errno_t reiser4_file_layout(
+	reiser4_file_t *file,       /* file we working with */
+	block_func_t func,          /* layout callback */
+	void *data)                 /* user-spaecified data */
+{
+	reiser4_plugin_t *plugin;
+	
+	aal_assert("umka-1469", file != NULL);
+	aal_assert("umka-1470", func != NULL);
+
+	plugin = file->entity->plugin;
+	
+	if (!plugin->file_ops.layout)
+		return 0;
+	
+	return plugin->file_ops.layout(file->entity,
+				       func, data);
+}
+
+errno_t reiser4_file_metadata(
+	reiser4_file_t *file,       /* file we working with */
+	place_func_t func,          /* metadata layout callback */
+	void *data)                 /* user-spaecified data */
+{
+	reiser4_plugin_t *plugin;
+	
+	aal_assert("umka-1714", file != NULL);
+	aal_assert("umka-1715", func != NULL);
+
+	plugin = file->entity->plugin;
+	
+	if (!plugin->file_ops.metadata)
+		return 0;
+	
+	return plugin->file_ops.metadata(file->entity,
+					 func, data);
+}
+
 #endif
 
 lookup_t reiser4_file_lookup(reiser4_file_t *file,
@@ -575,34 +622,3 @@ errno_t reiser4_file_seek(
 	return plugin_call(file->entity->plugin->file_ops, 
 			   seek, file->entity, offset);
 }
-
-errno_t reiser4_file_layout(
-	reiser4_file_t *file,       /* file we working with */
-	block_func_t func,          /* layout callback */
-	void *data)                 /* user-spaecified data */
-{
-	aal_assert("umka-1469", file != NULL);
-	aal_assert("umka-1470", func != NULL);
-
-	if (!file->entity->plugin->file_ops.layout)
-		return 0;
-	
-	return file->entity->plugin->file_ops.layout(file->entity,
-						     func, data);
-}
-
-errno_t reiser4_file_metadata(
-	reiser4_file_t *file,       /* file we working with */
-	place_func_t func,          /* metadata layout callback */
-	void *data)                 /* user-spaecified data */
-{
-	aal_assert("umka-1714", file != NULL);
-	aal_assert("umka-1715", func != NULL);
-
-	if (!file->entity->plugin->file_ops.metadata)
-		return 0;
-	
-	return file->entity->plugin->file_ops.metadata(file->entity,
-						       func, data);
-}
-

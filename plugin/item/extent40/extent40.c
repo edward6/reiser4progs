@@ -360,8 +360,8 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		for (blk = start; blk < start + width && read < count; ) {
 
 			if (!(block = aal_block_open(device, blk))) {
-				aal_exception_error("Can't read block %llu. %s.",
-						    blk, device->error);
+				aal_exception_error("Can't read block %llu.",
+						    blk);
 				return -1;
 			}
 
@@ -384,6 +384,39 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	}
 	
 	return read;
+}
+
+/* Checks if two extent items are mergeable */
+static int extent40_mergeable(item_entity_t *item1, item_entity_t *item2) {
+	reiser4_plugin_t *plugin;
+	uint64_t offset1, offset2;
+	roid_t objectid1, objectid2;
+	roid_t locality1, locality2;
+	
+	aal_assert("umka-1581", item1 != NULL);
+	aal_assert("umka-1582", item2 != NULL);
+
+	plugin = item1->key.plugin;
+	
+	locality1 = plugin_call(plugin->key_ops, get_locality, &item1->key);
+	locality2 = plugin_call(plugin->key_ops, get_locality, &item2->key);
+
+	if (locality1 != locality2)
+		return 0;
+	
+	objectid1 = plugin_call(plugin->key_ops, get_objectid, &item1->key);
+	objectid2 = plugin_call(plugin->key_ops, get_objectid, &item2->key);
+
+	if (objectid1 != objectid1)
+		return 0;
+
+	offset1 = plugin_call(plugin->key_ops, get_offset, &item1->key);
+	offset2 = plugin_call(plugin->key_ops, get_offset, &item2->key);
+
+	if (offset1 + extent40_size(item1) != offset2)
+		return 0;
+	
+	return 1;
 }
 
 #ifndef ENABLE_ALONE
@@ -595,39 +628,6 @@ static errno_t extent40_layout(item_entity_t *item,
 	return 0;
 }
 
-/* Checks if two extent items are mergeable */
-static int extent40_mergeable(item_entity_t *item1, item_entity_t *item2) {
-	reiser4_plugin_t *plugin;
-	uint64_t offset1, offset2;
-	roid_t objectid1, objectid2;
-	roid_t locality1, locality2;
-	
-	aal_assert("umka-1581", item1 != NULL);
-	aal_assert("umka-1582", item2 != NULL);
-
-	plugin = item1->key.plugin;
-	
-	locality1 = plugin_call(plugin->key_ops, get_locality, &item1->key);
-	locality2 = plugin_call(plugin->key_ops, get_locality, &item2->key);
-
-	if (locality1 != locality2)
-		return 0;
-	
-	objectid1 = plugin_call(plugin->key_ops, get_objectid, &item1->key);
-	objectid2 = plugin_call(plugin->key_ops, get_objectid, &item2->key);
-
-	if (objectid1 != objectid1)
-		return 0;
-
-	offset1 = plugin_call(plugin->key_ops, get_offset, &item1->key);
-	offset2 = plugin_call(plugin->key_ops, get_offset, &item2->key);
-
-	if (offset1 + extent40_size(item1) != offset2)
-		return 0;
-	
-	return 1;
-}
-
 /* Estimates how many bytes may be shifted into neighbour item */
 static errno_t extent40_predict(item_entity_t *src_item,
 				item_entity_t *dst_item,
@@ -754,37 +754,26 @@ static reiser4_plugin_t extent40_plugin = {
 		.estimate      = extent40_estimate,
 		.remove	       = extent40_remove,
 		.print	       = extent40_print,
-		.mergeable     = extent40_mergeable,
 		.predict       = extent40_predict,
 		.shift         = extent40_shift,
 		.layout        = extent40_layout,
-		.gap_key       = extent40_utmost_key,
-		.layout_check  = extent40_layout_check,
-#else
-		.init	       = NULL,
-		.write         = NULL,
-		.estimate      = NULL,
-		.remove	       = NULL,
-		.print	       = NULL,
-		.mergeable     = NULL, 
-		.predict       = NULL,
-		.shift         = NULL,
-		.layout        = NULL,
-		.gap_key       = NULL,
-		.layout_check  = NULL,
-#endif
-		.insert	       = NULL,
-		.belongs       = NULL,
 		.check	       = extent40_check,
+		.layout_check  = extent40_layout_check,
+
+		.insert	       = NULL,
+		.set_key       = NULL,
+#endif
+		.belongs       = NULL,
 		.valid	       = NULL,
 		.branch        = NULL,
-		.set_key       = NULL,
-		.data	       = extent40_data,
 
+		.data	       = extent40_data,
 		.lookup	       = extent40_lookup,
 		.units	       = extent40_units,
 		.read          = extent40_read,
+		.mergeable     = extent40_mergeable,
 
+		.gap_key       = extent40_utmost_key,
 		.maxposs_key   = extent40_maxposs_key,
 		.utmost_key    = extent40_utmost_key,
 		.get_key       = extent40_get_key

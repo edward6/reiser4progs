@@ -131,6 +131,8 @@ typedef int (*comp_func_t) (const void *, const void *, void *);
 */
 typedef int (*foreach_func_t) (const void *, const void *);
 
+#ifndef ENABLE_ALONE
+
 struct lru_ops {
 	int (*free) (void *);
 	int (*sync) (void *);
@@ -151,6 +153,8 @@ struct aal_lru {
 };
 
 typedef struct aal_lru aal_lru_t;
+
+#endif
 
 /* 
    This types is used for keeping the block number and block count value. They
@@ -183,14 +187,19 @@ struct aal_device_ops;
   operations.
 */
 struct aal_device {
+	
+#ifndef ENABLE_ALONE
 	int flags;
-
+	
 	void *data;
 	void *entity;
-	void *personality;
+	void *person;
+	
+	char name[256];
+	char error[256];
+#endif
 
 	uint32_t blocksize;
-	char name[256], error[256];
 	struct aal_device_ops *ops;
 };
 
@@ -280,6 +289,8 @@ typedef struct aal_exception aal_exception_t;
 
 typedef aal_exception_option_t (*aal_exception_handler_t) (aal_exception_t *ex);
 
+#ifndef ENABLE_ALONE
+
 typedef struct aal_gauge aal_gauge_t;
 
 enum aal_gauge_type {
@@ -319,6 +330,8 @@ struct aal_stream {
 };
 
 typedef struct aal_stream aal_stream_t;
+
+#endif
 
 typedef void (*assert_handler_t) (char *, int, char *, char *, int, char *);
 
