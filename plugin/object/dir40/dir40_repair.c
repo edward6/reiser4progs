@@ -76,7 +76,7 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 			   uint8_t mode)
 {
 	dir40_t *odir = (dir40_t *)object;
-	dir40_t *pdir = (dir40_t *)parent;
+	key_entity_t *par_key;
 	entry_hint_t entry;
 	lookup_t lookup;
 	uint32_t links;
@@ -89,11 +89,18 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 
 	lookup = dir40_lookup(object, entry.name, &entry);
 
+	if (!(par_key = plug_call(parent->plug->o.object_ops, origin,
+				  parent)))
+	{
+		/* FIXME-UMKA->VITALY: Is it correct here? */
+		return -EINVAL;
+	}
+	
 	switch(lookup) {
 	case PRESENT:
 		/* If the key matches the parent -- ok. */
 		if (!plug_call(entry.object.plug->o.key_ops, compfull, 
-			       &entry.object, STAT_KEY(&pdir->obj)))
+			       &entry.object, par_key))
 			break;
 
 		return RE_FATAL;
@@ -101,7 +108,7 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 		
 		/* Adding ".." to the @object pointing to the @parent. */
 		plug_call(STAT_KEY(&odir->obj)->plug->o.key_ops, assign,
-			  &entry.object, STAT_KEY(&pdir->obj));
+			  &entry.object, par_key);
 		
 		if ((res = plug_call(object->plug->o.object_ops,
 				     add_entry, object, &entry)))

@@ -634,6 +634,8 @@ struct reiser4_object_ops {
 	   recovered as a such. */
 	object_entity_t *(*realize) (object_info_t *);
 
+	/* Returns first item key */
+	key_entity_t *(*origin) (object_entity_t *);
 #endif
 	
 	/* Change current position to passed value */

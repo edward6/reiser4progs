@@ -245,8 +245,6 @@ static errno_t stat40_insert(place_t *place,
 	return 0;
 }
 
-extern errno_t stat40_check_struct(place_t *, uint8_t);
-
 extern errno_t stat40_copy(place_t *dst,
 			   uint32_t dst_pos, 
 			   place_t *src,
@@ -258,6 +256,8 @@ extern errno_t stat40_estimate_copy(place_t *dst,
 				    place_t *src,
 				    uint32_t src_pos, 
 				    copy_hint_t *hint);
+
+extern errno_t stat40_check_struct(place_t *, uint8_t);
 #endif
 
 /* This function returns unit count. This value must be 1 if item has not

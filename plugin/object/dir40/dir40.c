@@ -705,24 +705,36 @@ static errno_t dir40_clobber(object_entity_t *entity) {
 	return obj40_remove(&dir->obj, &dir->obj.statdata, 1);
 }
 
+static key_entity_t *dir40_origin(object_entity_t *entity) {
+	return STAT_KEY(&((dir40_t *)entity)->obj);
+}
+
 static errno_t dir40_attach(object_entity_t *entity,
 			    object_entity_t *parent)
 {
 	errno_t res;
-	dir40_t *dir, *par;
+	dir40_t *dir;
+	key_entity_t *obj;
 	entry_hint_t entry;
 	
 	aal_assert("umka-2289", entity != NULL);
+	aal_assert("umka-2359", parent != NULL);
 
 	dir = (dir40_t *)entity;
-	par = parent ? (dir40_t *)parent : dir;
-
 	aal_strncpy(entry.name, "..", 2);
 
 	if (dir40_lookup(entity, entry.name, NULL) == ABSENT) {
+
+		/* Getting first item key from the parent object */
+		if (!(obj = plug_call(parent->plug->o.object_ops,
+				      origin, parent)))
+		{
+			return -EINVAL;
+		}
+		
 		/* Adding ".." to child */
 		plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
-			  assign, &entry.object, STAT_KEY(&par->obj));
+			  assign, &entry.object, obj);
 
 		if ((res = plug_call(entity->plug->o.object_ops,
 				     add_entry, entity, &entry)))
@@ -732,13 +744,8 @@ static errno_t dir40_attach(object_entity_t *entity,
 	} else
 		return -EINVAL;
 
-	if (parent) {
-		/* Increasing parent's @nlink by one */
-		return plug_call(parent->plug->o.object_ops,
-				 link, parent);
-	}
-
-	return 0;
+	/* Increasing parent's @nlink by one */
+	return plug_call(parent->plug->o.object_ops, link, parent);
 }
 
 static errno_t dir40_detach(object_entity_t *entity,
@@ -1177,11 +1184,12 @@ static reiser4_object_ops_t dir40_ops = {
 	.attach		= dir40_attach,
 	.detach		= dir40_detach,
 	.clobber	= dir40_clobber,
+	.origin         = dir40_origin,
+	.realize	= dir40_realize,
 	
 	.seek		= NULL,
 	.write		= NULL,
 	
-	.realize	= dir40_realize,
 	.check_struct	= NULL,
 	.check_attach	= dir40_check_attach,
 #endif

@@ -72,7 +72,7 @@ void obj40_relock(obj40_t *obj, place_t *curr,
 		obj40_lock(obj, next);
 }
 
-/* Reads light weight stat data extention into passed @lw_hint */
+/* Reads stat data extention */
 errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
 	create_hint_t hint;
 	statdata_hint_t stat;
@@ -86,8 +86,11 @@ errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
 		stat.ext[id] = data;
 	
 	/* Calling statdata open method if any */
-	if (plug_call(place->plug->o.item_ops, read, place, &hint, 0, 1) != 1)
+	if (plug_call(place->plug->o.item_ops, read,
+		      place, &hint, 0, 1) != 1)
+	{
 		return -EINVAL;
+	}
 	
 	return 0;
 }
@@ -96,32 +99,38 @@ errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
 uint64_t obj40_get_size(obj40_t *obj) {
 	sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_ext(&obj->statdata, SDEXT_LW_ID, &lw_hint))
+	if (obj40_read_ext(&obj->statdata,
+			   SDEXT_LW_ID, &lw_hint))
+	{
 		return 0;
+	}
 	
 	return lw_hint.size;
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Writes light weight stat data extention from passed @lw_hint into @obj stat
-  data item. */
+/* Writes stat data extention. */
 errno_t obj40_write_ext(place_t *place, rid_t id, void *data) {
 	create_hint_t hint;
 	statdata_hint_t stat;
 
 	aal_memset(&stat, 0, sizeof(stat));
-	
+
 	hint.type_specific = &stat;
 
-	if (plug_call(place->plug->o.item_ops, read, place, &hint, 0, 1) != 1)
+	if (plug_call(place->plug->o.item_ops, read,
+		      place, &hint, 0, 1) != 1)
+	{
 		return -EINVAL;
+	}
 
 	stat.ext[id] = data;
 
-	return plug_call(place->plug->o.item_ops, insert, place, &hint, 0);
+	return plug_call(place->plug->o.item_ops, insert,
+			 place, &hint, 0);
 }
 
-uint64_t obj40_extmask(place_t *sd) {
+uint64_t obj40_extmask(place_t *place) {
 	create_hint_t hint;
 	statdata_hint_t stat;
 
@@ -131,8 +140,11 @@ uint64_t obj40_extmask(place_t *sd) {
 	hint.type_specific = &stat;
 	
 	/* Calling statdata open method if any */
-	if (plug_call(sd->plug->o.item_ops, read, sd, &hint, 0, 1) != 1)
+	if (plug_call(place->plug->o.item_ops, read,
+		      place, &hint, 0, 1) != 1)
+	{
 		return MAX_UINT64;
+	}
 	
 	return stat.extmask;
 }
@@ -141,8 +153,11 @@ uint64_t obj40_extmask(place_t *sd) {
 uint16_t obj40_get_mode(obj40_t *obj) {
 	sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_ext(&obj->statdata, SDEXT_LW_ID, &lw_hint))
+	if (obj40_read_ext(&obj->statdata,
+			   SDEXT_LW_ID, &lw_hint))
+	{
 		return 0;
+	}
 	
 	return lw_hint.mode;
 }
@@ -152,12 +167,16 @@ errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
 	errno_t res;
 	sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_ext(&obj->statdata, SDEXT_LW_ID, &lw_hint)))
+	if ((res = obj40_read_ext(&obj->statdata,
+				  SDEXT_LW_ID, &lw_hint)))
+	{
 		return res;
+	}
 
 	lw_hint.mode = mode;
 	
-	return obj40_write_ext(&obj->statdata, SDEXT_LW_ID, &lw_hint);
+	return obj40_write_ext(&obj->statdata,
+			       SDEXT_LW_ID, &lw_hint);
 }
 
 /* Updates size field in the stat data */
@@ -165,20 +184,27 @@ errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 	errno_t res;
 	sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_ext(&obj->statdata, SDEXT_LW_ID, &lw_hint)))
+	if ((res = obj40_read_ext(&obj->statdata,
+				  SDEXT_LW_ID, &lw_hint)))
+	{
 		return res;
+	}
 
 	lw_hint.size = size;
 	
-	return obj40_write_ext(&obj->statdata, SDEXT_LW_ID, &lw_hint);
+	return obj40_write_ext(&obj->statdata,
+			       SDEXT_LW_ID, &lw_hint);
 }
 
 /* Gets nlink field from the stat data */
 uint32_t obj40_get_nlink(obj40_t *obj) {
 	sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_ext(&obj->statdata, SDEXT_LW_ID, &lw_hint))
+	if (obj40_read_ext(&obj->statdata,
+			   SDEXT_LW_ID, &lw_hint))
+	{
 		return 0;
+	}
 	
 	return lw_hint.nlink;
 }
@@ -188,20 +214,27 @@ errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 	errno_t res;
 	sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_ext(&obj->statdata, SDEXT_LW_ID, &lw_hint)))
+	if ((res = obj40_read_ext(&obj->statdata,
+				  SDEXT_LW_ID, &lw_hint)))
+	{
 		return res;
+	}
 
 	lw_hint.nlink = nlink;
 	
-	return obj40_write_ext(&obj->statdata, SDEXT_LW_ID, &lw_hint);
+	return obj40_write_ext(&obj->statdata,
+			       SDEXT_LW_ID, &lw_hint);
 }
 
 /* Gets atime field from the stat data */
 uint32_t obj40_get_atime(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_ext(&obj->statdata, SDEXT_UNIX_ID, &unix_hint))
+	if (obj40_read_ext(&obj->statdata,
+			   SDEXT_UNIX_ID, &unix_hint))
+	{
 		return 0;
+	}
 	
 	return unix_hint.atime;
 }
@@ -211,20 +244,27 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_ext(&obj->statdata, SDEXT_UNIX_ID, &unix_hint)))
+	if ((res = obj40_read_ext(&obj->statdata,
+				  SDEXT_UNIX_ID, &unix_hint)))
+	{
 		return res;
+	}
 
 	unix_hint.atime = atime;
 	
-	return obj40_write_ext(&obj->statdata, SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(&obj->statdata,
+			       SDEXT_UNIX_ID, &unix_hint);
 }
 
 /* Gets mtime field from the stat data */
 uint32_t obj40_get_mtime(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_ext(&obj->statdata, SDEXT_UNIX_ID, &unix_hint))
+	if (obj40_read_ext(&obj->statdata,
+			   SDEXT_UNIX_ID, &unix_hint))
+	{
 		return 0;
+	}
 	
 	return unix_hint.mtime;
 }
@@ -234,20 +274,27 @@ errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_ext(&obj->statdata, SDEXT_UNIX_ID, &unix_hint)))
+	if ((res = obj40_read_ext(&obj->statdata,
+				  SDEXT_UNIX_ID, &unix_hint)))
+	{
 		return res;
+	}
 
 	unix_hint.mtime = mtime;
 	
-	return obj40_write_ext(&obj->statdata, SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(&obj->statdata,
+			       SDEXT_UNIX_ID, &unix_hint);
 }
 
 /* Gets bytes field from the stat data */
 uint64_t obj40_get_bytes(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_ext(&obj->statdata, SDEXT_UNIX_ID, &unix_hint))
+	if (obj40_read_ext(&obj->statdata,
+			   SDEXT_UNIX_ID, &unix_hint))
+	{
 		return 0;
+	}
 	
 	return unix_hint.bytes;
 }
@@ -257,12 +304,16 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_ext(&obj->statdata, SDEXT_UNIX_ID, &unix_hint)))
+	if ((res = obj40_read_ext(&obj->statdata,
+				  SDEXT_UNIX_ID, &unix_hint)))
+	{
 		return res;
+	}
 
 	unix_hint.bytes = bytes;
 	
-	return obj40_write_ext(&obj->statdata, SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(&obj->statdata,
+			       SDEXT_UNIX_ID, &unix_hint);
 }
 #endif
 
@@ -301,10 +352,10 @@ errno_t obj40_link(obj40_t *obj, uint32_t value) {
 rid_t obj40_pid(place_t *place) {
 	sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_ext(place, SDEXT_UNIX_ID, &lw_hint))
+	if (obj40_read_ext(place, SDEXT_LW_ID, &lw_hint))
 		return INVAL_PID;
 
-	/* FIXME-UMKA: Here also should be discovering the stat data extentions
+	/* FIXME-UMKA: Here also should beq discovering the stat data extentions
 	   in order to try find not standard file plugin first. Then if it is
 	   not found, detect it by mode field in sdext_lw extention. */
 	
