@@ -75,12 +75,18 @@ static errno_t tree_insert(
 	place_t *place,	            /* insertion point will be saved here */
 	reiser4_item_hint_t *item)  /* item hint to be inserted into tree */
 {
+	uint8_t level = LEAF_LEVEL;
+	
 	aal_assert("umka-846", tree != NULL);
 	aal_assert("umka-847", item != NULL);
 	aal_assert("umka-1643", place != NULL);
-    
+
+	if (place->node)
+		level = reiser4_node_get_level(place->node);
+	
 	return reiser4_tree_insert((reiser4_tree_t *)tree,
-				   (reiser4_place_t *)place, item);
+				   (reiser4_place_t *)place,
+				   level, item);
 }
 
 /* Handler for item removing requests from the all plugins */

@@ -162,7 +162,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     if (reiser4_tree_split(tree, &coord, level))
 	return -1;
     
-    if ((res = reiser4_tree_insert(tree, &coord, &hint))) {
+    if ((res = reiser4_tree_insert(tree, &coord, level, &hint))) {
 	aal_exception_error("Can't insert nodeptr item to the tree.");
 	return res;
     }

@@ -603,20 +603,6 @@ static void reiser4_tree_collapse(reiser4_tree_t *tree,
 		node->children = NULL;
 	}
 
-/*#ifndef ENABLE_ALONE
-
-	aal_assert("umka-1931", reiser4_node_items(node) > 0);
-	
-	if (reiser4_node_isdirty(node)) {
-		if (reiser4_node_sync(node)) {
-			aal_exception_error("Can't write node %llu.",
-					    node->blk);
-			return;
-		}
-	}
-	
-#endif*/
-	
 	/* Throwing out @node from the cache and releasing it */
 	reiser4_tree_unload(tree, node);
 }
@@ -893,8 +879,11 @@ errno_t reiser4_tree_attach(
 
 	pid = reiser4_profile_value(tree->fs->profile, "nodeptr");
 
-	if (!(hint.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) {
-		aal_exception_error("Can't find item plugin by its id 0x%x.", pid);
+	if (!(hint.plugin = libreiser4_factory_ifind(
+		      ITEM_PLUGIN_TYPE, pid)))
+	{
+		aal_exception_error("Can't find item plugin by "
+				    "its id 0x%x.", pid);
 		return -1;
 	}
 
@@ -938,13 +927,12 @@ errno_t reiser4_tree_attach(
 			return -1;
 
 		/*
-		  Checking if we have the tree with height smaller than node we
-		  are going to attach in it. If so, we should grow the tree by
+		  Checking if we have the tree height smaller than node level we
+		  are going to attach. If so, we should grow the tree up to
 		  requested level.
 		*/
 		while (level > reiser4_tree_height(tree))
 			reiser4_tree_growup(tree);
-		
 	}
 	
 	/* Looking up for the insert point place */
@@ -957,7 +945,7 @@ errno_t reiser4_tree_attach(
 	}
 
 	/* Inserting node pointer into tree */
-	if ((res = reiser4_tree_insert(tree, &place, &hint))) {
+	if ((res = reiser4_tree_insert(tree, &place, level, &hint))) {
 		aal_exception_error("Can't insert nodeptr item to the tree.");
 		return res;
 	}
@@ -1432,33 +1420,11 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	return -1;
 }
 
-/* Returns level in the tree, passed item @hint can lie on */
-static void reiser4_tree_level(reiser4_tree_t *tree,
-			       reiser4_item_hint_t *hint,
-			       uint8_t *top, uint8_t *bottom)
-{
-	aal_assert("umka-1871", tree != NULL);
-	aal_assert("umka-1872", hint != NULL);
-
-	switch (hint->plugin->h.group) {
-	case EXTENT_ITEM:
-		*top = TWIG_LEVEL;
-		*bottom = TWIG_LEVEL;
-		break;
-	case NODEPTR_ITEM:
-		*top = TMAX_LEVEL;
-		*bottom = TWIG_LEVEL;
-		break;
-	default:
-		*top = LEAF_LEVEL;
-		*bottom = LEAF_LEVEL;
-	}
-}
-
 /* Inserts new item described by item hint into the tree */
 errno_t reiser4_tree_insert(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
 	reiser4_place_t *place,	    /* place item or unit inserted at */
+	uint8_t level,              /* level item/unit will be inserted on */
 	reiser4_item_hint_t *hint)  /* item hint to be inserted */
 {
 	int mode;
@@ -1492,15 +1458,12 @@ errno_t reiser4_tree_insert(
 	  If so, we are taking care about it here.
 	*/
 	if (reiser4_tree_fresh(tree)) {
-		uint8_t top, bottom;
+		if (level == LEAF_LEVEL) {
+			
+			if (reiser4_tree_alloc_root(tree))
+				return -1;
 
-		if (reiser4_tree_alloc_root(tree))
-			return -1;
-
-		reiser4_tree_level(tree, hint, &top, &bottom);
-
-		if (top == LEAF_LEVEL && bottom == LEAF_LEVEL) {
-			if (!(place->node = reiser4_tree_alloc(tree, LEAF_LEVEL)))
+			if (!(place->node = reiser4_tree_alloc(tree, level)))
 				return -1;
 		
 			POS_INIT(&place->pos, 0, ~0ul);
@@ -1515,16 +1478,44 @@ errno_t reiser4_tree_insert(
 				return -1;
 			}
 		} else {
-			reiser4_place_assign(place, tree->root, 0, ~0ul);
-			
-			if (reiser4_node_insert(place->node, &place->pos, hint))
+			if (!(place->node = reiser4_tree_alloc(tree, level)))
 				return -1;
+
+			POS_INIT(&place->pos, 0, ~0ul);
+			
+			if (reiser4_node_insert(place->node, &place->pos, hint)) {
+				reiser4_tree_release(tree, place->node);
+				return -1;
+			}
+
+			if (reiser4_tree_attach(tree, place->node)) {
+				reiser4_tree_release(tree, place->node);
+				return -1;
+			}
 		}
 
 		return 0;
 	} else {
 		if (reiser4_tree_load_root(tree))
 			return -1;
+
+		/*
+		  Checking if we have the tree with height smaller than
+		  requested level. If so, we should grow the tree up to
+		  requested level.
+		*/
+		while (level > reiser4_tree_height(tree))
+			reiser4_tree_growup(tree);
+
+		/* Getting new place item/unit will be inserted at */
+		if (reiser4_tree_lookup(tree, &hint->key, level,
+					place) == LP_FAILED)
+		{
+			aal_exception_error("Lookup failed after tree "
+					    "growed up to requested level %d.",
+					    level);
+			return -1;
+		}
 	}
 
 	/* Needed space is estimated space plugs item overhead */
