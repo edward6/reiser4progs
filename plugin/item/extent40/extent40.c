@@ -710,7 +710,7 @@ static errno_t extent40_prep_write(place_t *place,
 	uint32_t unit_pos;
 
 	extent40_t *extent;
-	int32_t count, size;
+	uint32_t count, size;
 
 	uint64_t uni_offset;
 	uint64_t ins_offset;
@@ -730,7 +730,6 @@ static errno_t extent40_prep_write(place_t *place,
 		/* Insert point is -1, thus, this is new item insert. So we
 		   reserve space for one extent unit. */
 		hint->len = sizeof(extent40_t);
-		
 		return 0;
 	}
 
@@ -744,32 +743,45 @@ static errno_t extent40_prep_write(place_t *place,
 	   data inside extent or behind it. */
 	extent40_maxreal_key(place, &hint->maxkey);
 
+	if ((max_offset = plug_call(hint->maxkey.plug->o.key_ops,
+				    get_offset, &hint->maxkey)) > 0)
+	{
+		max_offset++;
+	}
+
+	plug_call(hint->maxkey.plug->o.key_ops,
+		  set_offset, &hint->maxkey, max_offset);
+
+	/* Getting unit offset amd insert offset. They both are used during
+	   estimation. */
 	uni_offset = plug_call(key.plug->o.key_ops,
 			       get_offset, &key);
 	
 	ins_offset = plug_call(hint->offset.plug->o.key_ops,
 			       get_offset, &hint->offset);
 
-	max_offset = plug_call(hint->maxkey.plug->o.key_ops,
-			       get_offset, &hint->maxkey);
-
-	if (max_offset > 0)
-		max_offset++;
-	
 	/* This loop checks if we insert some data inside extent, we should take
 	   into account posible holes. */
 	for (count = hint->count; count > 0 && unit_pos < units;
 	     count -= size, unit_pos++)
 	{
-		extent = extent40_body(place) + unit_pos;
+		uint64_t unit_size;
 		
+		extent = extent40_body(place) + unit_pos;
+		unit_size = et40_get_width(extent) * blksize;
+		
+		size = unit_size - (ins_offset - uni_offset);
+
+		if (size > count)
+			size = count;
+
 		if (et40_get_start(extent) == EXTENT_HOLE_UNIT)	{
 			aal_error("Sorry, not implemented yet!");
 			return -EINVAL;
 		}
-		
-		size = (et40_get_width(extent) * blksize) -
-			ins_offset - uni_offset;
+
+		ins_offset += size;
+		uni_offset += unit_size;
 	}
 
 	/* This is handling of the case when the rest of data should be written
@@ -782,22 +794,15 @@ static errno_t extent40_prep_write(place_t *place,
 		if (et40_get_start(extent) == EXTENT_UNALLOC_UNIT) {
 			/* Unit is not allocated yet, so we need only check for
 			   holes. */
-			if (!hint->specific &&
-			    et40_get_start(extent) != EXTENT_HOLE_UNIT)
-			{
+			if (!hint->specific && count >= blksize)
 				hint->len = sizeof(extent40_t);
-			}
 		} else {
-			/* Unit is allocated, so we cannot mix it with new data
-			   and thus, reserve one more extent unit for it in the
-			   case we write actual data, not a hole. */
-			if (hint->specific) {
-				hint->len = sizeof(extent40_t);
-			} else {
-				/* Checking for hole. */
-				if (et40_get_start(extent) != EXTENT_HOLE_UNIT) {
+			/* Unit is allocated one or hole. */
+			if (et40_get_start(extent) == EXTENT_HOLE_UNIT) {
+				if (hint->specific || count < blksize)
 					hint->len = sizeof(extent40_t);
-				}
+			} else {
+				hint->len = sizeof(extent40_t);
 			}
 		}
 	}
@@ -831,6 +836,7 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 	if (place->pos.unit == MAX_UINT32)
 		place->pos.unit = 0;
 
+	hint->bytes = 0;
 	buff = hint->specific;
 	unit_pos = place->pos.unit;
 	
@@ -839,25 +845,23 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 	
 	/* Calculating insert unit offset and insert offset. */
 	extent40_fetch_key(place, &key);
-
 	blksize = extent40_blksize(place);
 
+	/* Getting unit offset and insert offset. They both are used during
+	   writing the data. */
 	uni_offset = plug_call(key.plug->o.key_ops,
 			       get_offset, &key);
 	
 	ins_offset = plug_call(hint->offset.plug->o.key_ops,
 			       get_offset, &hint->offset);
 
+	/* Getting max real item offset. It is used to determine if we have to
+	   write inside extent or behind it. */
 	max_offset = plug_call(hint->maxkey.plug->o.key_ops,
 			       get_offset, &hint->maxkey);
 
-	if (max_offset > 0)
-		max_offset++;
-
 	/* Main loop until all data is written. */
-	for (hint->bytes = 0, count = hint->count; count > 0;
-	     count -= size)
-	{
+	for (count = hint->count; count > 0; count -= size) {
 		uint32_t off;
 		uint32_t room;
 
@@ -871,25 +875,25 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 		block_offset = ins_offset - (ins_offset & (blksize - 1));
 
 		/* Preparing key for getting data by it. */
-		plug_call(key.plug->o.key_ops, set_offset, &key, block_offset);
+		plug_call(key.plug->o.key_ops, set_offset, &key,
+			  block_offset);
 
 		/* Checking if we write data inside item. */
 		if (block_offset < max_offset) {
 			blk_t blk;
 
-			/* Getting data block by offset key. */
-			if (!(block = extent40_core->tree_ops.get_data(hint->tree,
-								       &key)))
-			{
-				/* This is the case, when data cache does not
-				   contain needed block, we have to load it
-				   before modifying. */
-				extent = extent40_body(place) + unit_pos;
+			extent = extent40_body(place) + unit_pos;
 
-				if (et40_get_start(extent) == EXTENT_HOLE_UNIT) {
-					aal_error("Sorry, not implemented yet!");
-					return -EINVAL;
-				} else {
+			/* This is the case, when data cache does not contain
+			   needed block, we have to load it before modifying. */
+			if (et40_get_start(extent) == EXTENT_HOLE_UNIT) {
+				aal_error("Sorry, not implemented yet!");
+				return -EINVAL;
+			} else {
+				/* Getting data block by offset key. */
+				if (!(block = extent40_core->tree_ops.get_data(hint->tree,
+									       &key)))
+				{
 					blk = et40_get_start(extent) +
 						(block_offset - uni_offset) / blksize;
 
@@ -904,80 +908,118 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 					/* Updating it in data cache. */
 					extent40_core->tree_ops.put_data(hint->tree,
 									 &key, block);
-
-					if (blk == et40_get_start(extent) +
-					    et40_get_width(extent) - 1)
-					{
-						unit_pos++;
-					}
+				} else {
+					blk = block->nr;
 				}
+
+				/* Updating @unit_pos to next unit, as this one
+				   is already over. */
+				if (blk == et40_get_start(extent) + et40_get_width(extent) - 1)
+					unit_pos++;
 			}
 		} else {
-			/* We write beyond of item and thus need to allocate new
-			   blocks. */
-			if (!(block = aal_block_alloc(device, blksize, 0)))
-				return -ENOMEM;
+			int allocate = 0;
 
-			/* Attaching new block to data cache. */
-			extent40_core->tree_ops.put_data(hint->tree,
-							 &key, block);
-
+			/* Getting extent unit to be set fully (start and width)
+			   or only width. */
+			if (unit_pos >= units)
+				unit_pos--;
+				
 			extent = extent40_body(place) + unit_pos;
 
-			if (unit_pos >= units)
-				extent--;
-				
-			/* Checking if we write data or holes. */
-			if (hint->specific && max_offset) {
-				if (hint->len) {
-					/* Previous unit is allocated one, thus
-					   we cannot just enlarge it and need to
-					   set up new unit. */
+			/* Check if we have to write first unit in item or
+			   not. */
+			if (max_offset > 0 && (units != 1 || hint->len == 0)) {
+				extent40_t *last;
+
+				/* We write inside existent item and have to
+				   check its last unit, in order to know if we
+				   can enlarge it. */
+				last = extent40_body(place) + units - 1;
+
+				if (hint->len)
+					last--;
+			
+				if (et40_get_start(last) == EXTENT_UNALLOC_UNIT) {
+					if (!hint->specific && size >= blksize) {
+						aal_assert("umka-3065", hint->len);
+					
+						et40_set_start(extent,
+							       EXTENT_HOLE_UNIT);
+					
+						et40_set_width(extent, 1);
+					} else {
+						allocate = 1;
+						et40_inc_width(extent, 1);
+					}
+				} else {
+					if (et40_get_start(last) == EXTENT_HOLE_UNIT) {
+						if (hint->specific || size < blksize) {
+							aal_assert("umka-3066", hint->len);
+							
+							allocate = 1;
+							
+							et40_set_start(extent,
+								       EXTENT_UNALLOC_UNIT);
+					
+							et40_set_width(extent, 1);
+						} else {
+							et40_inc_width(extent, 1);
+						}
+					} else {
+						aal_assert("umka-3067", hint->len);
+
+						if (!hint->specific && count >= blksize) {
+							et40_set_start(extent,
+								       EXTENT_HOLE_UNIT);
+						} else {
+							allocate = 1;
+							
+							et40_set_start(extent,
+								       EXTENT_UNALLOC_UNIT);
+						}
+					
+						et40_set_width(extent, 1);
+					}
+				}
+			} else {
+				if (hint->specific || size < blksize) {
+					allocate = 1;
+					
 					et40_set_start(extent,
 						       EXTENT_UNALLOC_UNIT);
 					
-					et40_set_width(extent, 1);
 				} else {
-					/* Enlarging previous unit, as it is
-					   unallocated one. */
-					et40_inc_width(extent, 1);
-				}
-				
-				/* Updating counters. */
-				hint->bytes += blksize;
-			} else {
-				/* This is the case when we write holes. */
-				if (!hint->specific && count >= blksize &&
-				    (ins_offset % blksize) == 0)
-				{
-					uint64_t width;
-					
-					/* Hole is bigger than @blksize and
-					   we're on offset multiple of blksize,
-					   so we can insert hole unit. */
-					size = count - (count &
-							(blksize - 1));
-
 					et40_set_start(extent,
 						       EXTENT_HOLE_UNIT);
-
-					width = (size / blksize);
-					et40_set_width(extent, width);
-				} else {
-					/* Setting up new unallocated unit. */
-					et40_set_start(extent,
-						       EXTENT_UNALLOC_UNIT);
-						
-					et40_set_width(extent, 1);
-					hint->bytes += blksize;
 				}
+
+				et40_set_width(extent, 1);
 			}
 			
+			/* Allocating new blokc if needed and attaching it to
+			   data cache. */
+			if (allocate) {
+				if (!(block = aal_block_alloc(device, blksize, 0)))
+					return -ENOMEM;
+
+				extent40_core->tree_ops.put_data(hint->tree,
+								 &key, block);
+
+				/* Updating @hint->bytes field by blksize, as
+				   new block is allocated. */
+				hint->bytes += blksize;
+			} else {
+				block = NULL;
+			}
+
 			max_offset += blksize;
 		}
 
-		/* Writting data to @block */
+		/* Writting data to @block. */
 		if (hint->specific) {
+			aal_assert("umka-3068", block != NULL);
+			
 			off = (ins_offset % blksize);
 			aal_memcpy(block->data + off, buff, size);
 
@@ -986,6 +1028,8 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 		} else {
 			/* Writting hole. */
 			if (size < blksize) {
+				aal_assert("umka-3069", block != NULL);
+				
 				off = (ins_offset % blksize);
 				aal_memset(block->data + off, 0, size);
 				block->dirty = 1;
@@ -1113,7 +1157,9 @@ static errno_t extent40_prep_shift(place_t *src_place,
 		}
 	}
 
+	hint->units_bytes -= hint->units_bytes % sizeof(extent40_t);
 	hint->units_number = hint->units_bytes / sizeof(extent40_t);
+	
 	return 0;
 }
 

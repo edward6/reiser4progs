@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
                         int j, count;
 //			char part[256];
 
-			aal_snprintf(name, 256, "file name%d", i/*random()*/);
+			aal_snprintf(name, 256, "file name%d", random());
 
 //			fscanf(file, "%s %s\n", name, part);
 //			strcat(name, " ");

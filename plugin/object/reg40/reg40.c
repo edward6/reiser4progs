@@ -504,12 +504,13 @@ static int64_t reg40_write(object_entity_t *entity,
 	if ((res = reg40_put(entity, buff, n)) < 0)
 		return res;
 
+	bytes += res;
+
 	/* Updating stat data fields. */
 	if ((res = obj40_update(&reg->obj)))
 		return res;
-	
-	bytes += obj40_get_bytes(&reg->obj) + res;
 
+	bytes += obj40_get_bytes(&reg->obj);
 	return obj40_touch(&reg->obj, size + n, bytes);
 }
 
