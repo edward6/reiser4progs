@@ -58,3 +58,5 @@ reiser4progs/COPYING.
 
 * should "read" method of the item plugin require reiser4_item_hint_t
   instead of pointer to the unit hint array?
+
+* should reiser4_node_neighbour and friends be moved into tree.c?
