@@ -1032,7 +1032,7 @@ static errno_t node40_shift(object_entity_t *entity,
 		
 		/* Copying item headers from src node to dst */
 		src = node40_ih_at(src_node, hint->items - 1);
-		dst = node40_ih_at(dst_node, dst_items + hint->items - 1);
+		dst = node40_ih_at(dst_node, (dst_items + hint->items - 1));
 			
 		aal_memcpy(dst, src, headers_size);
 
@@ -1064,7 +1064,9 @@ static errno_t node40_shift(object_entity_t *entity,
 				    sizeof(item40_header_t));
 
 			/* Moving src item bodies to right place */
-			src = src_node->block->data + hint->bytes;
+			src = src_node->block->data + sizeof(node40_header_t) +
+				hint->bytes;
+			
 			dst = src_node->block->data + sizeof(node40_header_t);
 
 			aal_memmove(dst, src, nh40_get_free_space_start(src_node) -
