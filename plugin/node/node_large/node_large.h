@@ -61,9 +61,6 @@ typedef struct item_header item_header_t;
 #define ih_set_pid(ih, val)	        \
         aal_set_le16(ih, pid, (val))
 
-#define loaded(entity)                  \
-        (((node_t *)entity)->block != NULL)
-
 extern item_header_t *node_large_ih_at(node_t *node,
 				       uint32_t pos);
 
