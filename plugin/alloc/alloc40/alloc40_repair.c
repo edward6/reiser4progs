@@ -12,6 +12,7 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "alloc40.h"
+#include <repair/repair_plugin.h>
 
 extern errno_t callback_check_bitmap(object_entity_t *entity, uint64_t blk, 
     void *data);
@@ -52,11 +53,12 @@ static errno_t callback_check_layout(object_entity_t *entity, uint64_t blk,
 {
     alloc40_t *alloc = (alloc40_t *)entity;
     uint32_t size, offset;
+    uint8_t *mode = (uint8_t *)data;
     errno_t res;
 
     res = callback_check_bitmap(entity, blk, data);
     
-    if (res == -EINVAL) {
+    if (res == -EINVAL && *mode == REPAIR_REBUILD) {
 	/* Data are corrupted. */
 	size = aal_device_get_bs(alloc->device) - CRC_SIZE;
 	offset = (blk / size / 8) * size;	
@@ -75,7 +77,7 @@ errno_t alloc40_check(object_entity_t *entity, uint8_t mode) {
     /* Calling layout function for traversing all the bitmap blocks with
        checking callback function.
     */
-    return alloc40_layout(entity, callback_check_layout, NULL);
+    return alloc40_layout(entity, callback_check_layout, &mode);
 
 }
 
