@@ -49,7 +49,7 @@ static void debugfs_print_usage(char *name) {
 	"Print options:\n"
 	"  -t | --print-tree              prints the whole tree (default).\n"
 	"  -j | --print-journal           prints journal.\n"
-	"  -s | --print-super-block       prints the both super blocks.\n"
+	"  -s | --print-super             prints the both super blocks.\n"
 	"  -b | --print-block-alloc       prints block allocator data.\n"
 	"  -o | --print-oid-alloc         prints oid allocator data.\n"
 	"Plugins options:\n"
@@ -211,10 +211,15 @@ static errno_t debugfs_print_format(reiser4_fs_t *fs) {
     char buff[4096];
 
     aal_memset(buff, 0, sizeof(buff));
+   
+    if (!fs->format->entity->plugin->format_ops.print) {
+	aal_exception_info("Format print method is not implemented.");
+	return 0;
+    }
     
     printf("Format super block:\n");
-    if (plugin_call(return -1, fs->format->entity->plugin->format_ops,
-	print, fs->format->entity, buff, sizeof(buff), 0))
+    if (fs->format->entity->plugin->format_ops.print(fs->format->entity, 
+	buff, sizeof(buff), 0))
     {
 	aal_exception_error("Can't print format specific super block.");
 	return -1;
@@ -236,13 +241,19 @@ static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
     char buff[255];
     
     if (!fs->oid->entity->plugin->oid_ops.print) {
-	aal_exception_info("Oid allocator print is not implemented or its info "
-	    "is printed by super block print.");
+	aal_exception_info("Oid allocator print method is not implemented.");
 	return 0;
     }
     
-    fs->oid->entity->plugin->oid_ops.print(fs->oid->entity,
-	buff, sizeof(buff), 0);
+    aal_memset(buff, 0, sizeof(buff));
+    
+    printf("Oid allocator:\n");
+    if (fs->oid->entity->plugin->oid_ops.print(fs->oid->entity,
+	buff, sizeof(buff), 0))
+    {
+	aal_exception_error("Can't print oid allocator.");
+	return -1;
+    }
 
     printf(buff);
     printf("\n");
@@ -274,7 +285,7 @@ int main(int argc, char *argv[]) {
 	{"force", no_argument, NULL, 'f'},
 	{"print-tree", no_argument, NULL, 't'},
 	{"print-journal", no_argument, NULL, 'j'},
-	{"print-super-block", no_argument, NULL, 's'},
+	{"print-super", no_argument, NULL, 's'},
 	{"print-block-alloc", no_argument, NULL, 'b'},
 	{"print-oid-alloc", no_argument, NULL, 'o'},
 	{"known-profiles", no_argument, NULL, 'K'},

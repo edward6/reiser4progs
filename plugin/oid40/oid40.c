@@ -114,6 +114,17 @@ static roid_t oid40_used(reiser4_entity_t *entity) {
     return ((oid40_t *)entity)->used;
 }
 
+static errno_t oid40_print(reiser4_entity_t *entity,
+    char *buff, uint32_t n, uint16_t options)
+{
+    aal_assert("umka-1303", entity != NULL, return -1);
+    aal_assert("umka-1304", buff != NULL, return -1);
+
+    aal_snprintf(buff, n, "next oid:\t0x%llx\nused oids:\t0x%llx\n",
+	((oid40_t *)entity)->next, ((oid40_t *)entity)->used);
+    return 0;
+}
+
 static roid_t oid40_root_parent_locality(void) {
     return OID40_ROOT_PARENT_LOCALITY;
 }
@@ -152,7 +163,7 @@ static reiser4_plugin_t oid40_plugin = {
 	.release	= NULL,
 	.sync		= NULL,
 #endif
-	.print		= NULL,
+	.print		= oid40_print,
 	.used		= oid40_used,
 	.free		= oid40_free,
 	
