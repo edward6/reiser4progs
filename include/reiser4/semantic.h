@@ -11,6 +11,7 @@
 extern reiser4_object_t *reiser4_semantic_open(reiser4_tree_t *tree,
 					       char *path, 
 					       reiser4_key_t *from,
-					       bool_t follow);
+					       bool_t follow,
+					       bool_t present);
 
 #endif

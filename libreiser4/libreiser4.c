@@ -144,7 +144,7 @@ static errno_t object_resolve(tree_entity_t *tree, char *path,
 	t = (reiser4_tree_t *)tree;
 
 	/* Resolving symlink path. */
-	if (!(object = reiser4_semantic_open(t, path, from, 1)))
+	if (!(object = reiser4_semantic_open(t, path, from, 1, 1)))
 		return -EINVAL;
 
 	/* Save object stat data key to passed @key. */

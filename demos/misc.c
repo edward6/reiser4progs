@@ -18,10 +18,10 @@ reiser4_object_t *busy_misc_open_parent(reiser4_tree_t *tree,
 
 	if (sep == *path) {
 		/* Create file in the root. */
-		object = reiser4_semantic_open(tree, "/", NULL, 1);
+		object = reiser4_semantic_open(tree, "/", NULL, 1, 1);
 	} else {
 		sep[0] = 0;
-		object = reiser4_semantic_open(tree, *path, NULL, 1);
+		object = reiser4_semantic_open(tree, *path, NULL, 1, 1);
 		sep[0] = '/';
 	}
 	

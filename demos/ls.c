@@ -23,7 +23,9 @@ errno_t ls_cmd(busy_ctx_t *ctx) {
 	}
 	
 	if (!(object = reiser4_semantic_open(ctx->in.fs->tree, 
-					     ctx->in.path, NULL, 1))) {
+					     ctx->in.path, 
+					     NULL, 1, 1))) 
+	{
 		aal_error("Can't open file %s.", ctx->in.path);
 		return -EIO;
 	}

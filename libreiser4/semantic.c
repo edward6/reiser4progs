@@ -8,6 +8,7 @@
 
 struct resolve {
 	bool_t follow;
+	bool_t present;
 	reiser4_object_t *parent;
 	reiser4_object_t *object;
 	reiser4_tree_t *tree;
@@ -93,7 +94,10 @@ static errno_t cb_find_entry(char *path, char *name, void *data) {
 		return res;
 	
 	if (res != PRESENT) {
-		aal_error("Can't find %s in %s.", name, path);
+		if (resol->present) {
+			/* The object by @path must present. */
+			aal_error("Can't find %s in %s.", name, path);
+		}
 		return -EINVAL;
 	}
 
@@ -117,13 +121,15 @@ reiser4_object_t *reiser4_semantic_open(
 	reiser4_tree_t *tree,		/* tree object will be opened on */
 	char *path,                     /* name of object to be opened */
 	reiser4_key_t *from,		/* key to start  resolving from */
-	bool_t follow)                  /* follow symlinks */
+	bool_t follow,                  /* follow symlinks */
+	bool_t present)			/* if object must present or not */
 {
 	resolve_t resol;
     
 	aal_assert("umka-678", tree != NULL);
 	aal_assert("umka-789", path != NULL);
 
+	resol.present = present;
 	resol.follow = follow;
 	resol.tree = tree;
 	resol.parent = resol.object = NULL;

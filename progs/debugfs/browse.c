@@ -89,7 +89,7 @@ errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	errno_t res = -EINVAL;
 	reiser4_object_t *object;
 	
-	if (!(object = reiser4_semantic_open(fs->tree, filename, NULL, 1))) {
+	if (!(object = reiser4_semantic_open(fs->tree, filename, NULL, 1, 1))) {
 		aal_error("Can't open %s.", filename);
 		return -EINVAL;
 	}

@@ -21,7 +21,8 @@ errno_t cp_cmd(busy_ctx_t *ctx) {
 	/* Open source file. */
 	if (ctx->in.fs) {
 		if (!(src_obj = reiser4_semantic_open(ctx->in.fs->tree, 
-						      ctx->in.path, NULL, 1))) 
+						      ctx->in.path, 
+						      NULL, 1, 1))) 
 		{
 			aal_error("Can't open file %s.", ctx->in.path);
 			return -EIO;
@@ -40,7 +41,8 @@ errno_t cp_cmd(busy_ctx_t *ctx) {
 	/* Open destination file. */
 	if (ctx->out.fs) {
 		if (!(dst_obj = reiser4_semantic_open(ctx->out.fs->tree, 
-						      ctx->out.path, NULL, 1))) 
+						      ctx->out.path, 
+						      NULL, 1, 0))) 
 		{
 			char *name = ctx->out.path;
 			reiser4_object_t *parent;

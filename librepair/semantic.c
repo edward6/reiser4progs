@@ -374,22 +374,22 @@ static reiser4_object_t *cb_object_traverse(reiser4_object_t *parent,
 			
 			if (res) goto error_close_object;
 		} else {
-			/* If @object is checked and not attached, detach from
-			   the parent, if parent is "lost+found" -- unlink. */
+			/* If @object is checked and not attached:
+			   (1) if parent matches "lost+found", unlink;
+			   (2) if not, do not unlink it as it seems the only 
+			   possible case here is to check the object and to 
+			   uptraverse it and reach it from some other parent. */
 			char buff[REISER4_MAX_BLKSIZE];
-			int lost;
 
-			lost = !reiser4_key_compfull(&object->ent->parent,
-						     &sem->lost->ent->object);
-			
-			repair_semantic_lost_name(object, buff, 
-						  REISER4_MAX_BLKSIZE);
-			
-			res = lost ?
-				reiser4_object_unlink(sem->lost, buff):
-				reiser4_object_detach(object, NULL);
-			
-			if (res) goto error_close_object;
+			if (!reiser4_key_compfull(&object->ent->parent,
+						  &sem->lost->ent->object))
+			{
+				repair_semantic_lost_name(object, buff, 
+							  REISER4_MAX_BLKSIZE);
+				
+				res = reiser4_object_unlink(sem->lost, buff);
+				if (res) goto error_close_object;
+			}
 		}
 
 		break;
@@ -582,7 +582,8 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 
 static errno_t repair_semantic_object_check(repair_semantic_t *sem, 
 					    reiser4_object_t *parent,
-					    reiser4_object_t *object) 
+					    reiser4_object_t *object,
+					    int not_attach) 
 {
 	errno_t res;
 	
@@ -625,6 +626,8 @@ static errno_t repair_semantic_object_check(repair_semantic_t *sem,
 		break;
 	}
 	
+	if (not_attach) return 0;
+	
 	return repair_semantic_check_attach(sem, parent, object);
 }
 
@@ -654,7 +657,8 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 			sem->root->ent->opset.plug[OPSET_MKDIR];
 	}
 	
-	if ((res = repair_semantic_object_check(sem, sem->root, sem->root))) {
+	if ((res = repair_semantic_object_check(sem, sem->root, sem->root, 0)))
+	{
 		reiser4_object_close(sem->root);
 		sem->root = NULL;
 		return res;
@@ -704,7 +708,7 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 		return RE_FATAL;
 	}
 
-	if ((res = repair_semantic_object_check(sem, sem->root, sem->lost)))
+	if ((res = repair_semantic_object_check(sem, sem->root, sem->lost, 1)))
 		goto error_close_lost;
 
 	if (lookup == ABSENT) {
