@@ -85,8 +85,7 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 			
 		blksize = reiser4_master_blksize(tree->fs->master);
 		
-		if (!(child = reiser4_node_open(tree->fs->device, blksize,
-						ptr.start, tree->key.plug)))
+		if (!(child = reiser4_node_open(tree->fs, ptr.start)))
 			return -EINVAL;
 		
 		res = repair_tree_maxreal_key(tree, child, key);
@@ -353,7 +352,6 @@ static errno_t repair_tree_merge(reiser4_tree_t *tree, reiser4_place_t *dst,
 	aal_assert("vpf-948", tree != NULL); 
 	aal_assert("vpf-949", dst != NULL);
 	aal_assert("vpf-950", src != NULL);
-	aal_assert("vpf-1297", key != NULL);
 	
 	if (reiser4_tree_fresh(tree)) {
 		aal_exception_error("Tree merge failed. Tree is empty.");
