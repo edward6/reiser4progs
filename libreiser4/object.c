@@ -493,7 +493,6 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 
 	/* Removing entry */
 	if (object->entity->plugin->o.object_ops->rem_entry) {
-		
 		if ((res = plugin_call(object->entity->plugin->o.object_ops,
 				       rem_entry, object->entity, &entry)))
 		{
@@ -523,7 +522,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 
 	res = plugin_call(child->entity->plugin->o.object_ops,
 			  unlink, child->entity);
-	
+
 	reiser4_object_close(child);
 	
 	return res;
