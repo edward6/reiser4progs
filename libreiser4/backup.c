@@ -47,8 +47,8 @@ void reiser4_backup_close(reiser4_backup_t *backup) {
 }
 
 /* Assign the block to @blk block number and write it. */
-static errno_t callback_write(void *object, blk_t blk, 
-			      uint64_t count, void *data) 
+static errno_t callback_write_block(void *object, blk_t blk, 
+				    uint64_t count, void *data) 
 {
 	aal_block_t *block = (aal_block_t *)data;
 
@@ -82,7 +82,8 @@ void reiser4_backup_sync(reiser4_backup_t *backup) {
 	aal_stream_read(backup->stream, block->data, block->size);
 	
 	/* Write the block to all backup copies. */
-	reiser4_backup_layout(backup->fs, callback_write, backup->stream);
+	reiser4_backup_layout(backup->fs, callback_write_block,
+			      backup->stream);
 	
 	aal_block_free(block);
 }
@@ -90,18 +91,17 @@ void reiser4_backup_sync(reiser4_backup_t *backup) {
 static errno_t callback_region_last(void *object, blk_t blk, 
 				    uint64_t count, void *data) 
 {
-	blk_t *block = (blk_t *)data;
-
-	*block = count == 1 ? 0 : blk + count - 1;
+	*((blk_t *)data) = count == 1 ? 0 :
+		blk + count - 1;
 
 	return 0;
 }
 
-/* Backup is saved in 16 blocks spreaded across the fs aligned by 
-   the next bitmap block.
+/* Backup is saved in 16 blocks spreaded across the fs aligned by the next
+   bitmap block.
    
-   Note: Backup should not be touched another time -- do not open 
-   them another time, even for the layout operation. */
+   Note: Backup should not be touched another time -- do not open them another
+   time, even for the layout operation. */
 errno_t reiser4_backup_layout(reiser4_fs_t *fs, 
 			      region_func_t region_func,
 			      void *data)
@@ -115,15 +115,17 @@ errno_t reiser4_backup_layout(reiser4_fs_t *fs,
 	aal_assert("vpf-1400", region_func != NULL);
 
 	len = reiser4_format_get_len(fs->format);
-	
+
+	/* FIXME-UMKA->VITALY: Is this ok to use here hardcoded numbers like 17
+	   is? May it be replaced by some macro? */
 	for (blk = len / 17 - 1; blk < len; blk += len / 17) {
 		reiser4_alloc_region(fs->alloc, blk, 
 				     callback_region_last, &copy);
 
-		/* If copy == 0 -- it is not possible to have the last copy 
-		   on this fs as the last block is the allocator one. If the
-		   blk number for the copy is the same as the previous one,
-		   skip another copy as fs is pretty small. */
+		/* If copy == 0 -- it is not possible to have the last copy on
+		   this fs as the last block is the allocator one. If the blk
+		   number for the copy is the same as the previous one, skip
+		   another copy as fs is pretty small. */
 		if (!copy || copy == prev)
 			continue;
 
@@ -135,5 +137,4 @@ errno_t reiser4_backup_layout(reiser4_fs_t *fs,
 
 	return 0;
 }
-
 #endif
