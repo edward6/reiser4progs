@@ -409,7 +409,7 @@ int main(int argc, char *argv[]) {
 	uint64_t df_fixable = 0;
 	errno_t ex = NO_ERROR;
 	int stage = 0;
-	errno_t res;
+	errno_t res = 0;
 
 	memset(&parse_data, 0, sizeof(parse_data));
 	memset(&repair, 0, sizeof(repair));

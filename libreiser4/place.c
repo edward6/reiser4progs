@@ -137,12 +137,10 @@ void reiser4_place_inc(reiser4_place_t *place, int whole) {
 	if (place->pos.unit == MAX_UINT32)
 		place->pos.unit = unit;
 
-	if (!whole) {
-		if (reiser4_place_fetch(place))
-			return;
+	if (reiser4_place_fetch(place))
+		return;
 
-		units = reiser4_item_units(place);
-	}
+	units = reiser4_item_units(place);
 	
 	if (place->pos.unit >= units - 1) {
 		place->pos.item++;

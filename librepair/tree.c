@@ -3,6 +3,10 @@
    
    tree.c -- repair/tree.c -- tree auxiliary code. */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <repair/librepair.h>
 
 /* This function returns TRUE if passed item @group corresponds to passed 
@@ -412,9 +416,10 @@ static lookup_t callback_lookup(reiser4_place_t *place,
 		return PRESENT;
 	}
 
-	if (lookup < 0) 
+	if (lookup < 0) {
 		aal_bug("vpf-1521", "Unexpected lookup value is given (%d).", 
 			lookup);
+	}
 
 	/* Absent. If non-existent unit or item, there is nothing mergable 
 	   from the right side--lookup would go down there in that case.  */
@@ -499,8 +504,11 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 	aal_assert("vpf-655", src != NULL);
 	aal_assert("vpf-657", src->node != NULL);
 	
-	if (reiser4_tree_fresh(tree))
+#ifdef ENABLE_DEBUG
+	if (reiser4_tree_fresh(tree)) {
 		aal_bug("vpf-1518", "Failed to insert into the fresh tree.");
+	}
+#endif
 		
 	if (reiser4_item_branch(src->plug))
 		return -EINVAL;

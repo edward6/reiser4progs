@@ -2297,7 +2297,7 @@ static errno_t tree_shift_todir(reiser4_tree_t *tree, reiser4_place_t *place,
 				uint32_t flags, int direction)
 {
 	errno_t res;
-	uint32_t shift_flags;
+	uint32_t shift_flags = 0;
 	reiser4_node_t *neighbour;
 	reiser4_node_t *old_node;
 
