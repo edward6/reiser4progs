@@ -106,10 +106,9 @@ static errno_t callback_node_cleanup(place_t *place, void *data) {
 
 		if (reiser4_item_mergeable(&cleanup->neigh, place)) {
 			/* Fuse neighbour items. */
-			if ((res = plug_call(place->plug->o.node_ops, 
-					     fuse, place->node->entity, 
-					     &cleanup->neigh.pos,
-					     &place->pos)))
+			if ((res = reiser4_node_fuse(place->node,
+						     &cleanup->neigh.pos,
+						     &place->pos)))
 				return res;
 			
 			place->pos.item--;

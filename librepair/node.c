@@ -30,11 +30,11 @@ node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, bool_t check) {
 
 /* Checks all the items of the node. */
 static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
-	place_t place, prev;
-	reiser4_key_t key;
+	reiser4_key_t key, prev;
 	trans_hint_t hint;
 	errno_t res, ret;
 	uint32_t count;
+	place_t place;
 	pos_t *pos;
 	
 	aal_assert("vpf-229", node != NULL);
@@ -118,8 +118,8 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 		
 		res |= ret;
 		
-		if (prev.node) {
-			if (reiser4_key_compfull(&prev.key, &key) >= 0) {
+		if (prev.plug) {
+			if (reiser4_key_compfull(&prev, &key) >= 0) {
 				aal_error("Node (%llu), items (%u) "
 					  "and (%u): Wrong order of "
 					  "keys.", node_blocknr(node), 
@@ -132,43 +132,7 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 		if ((ret = reiser4_item_maxreal_key(&place, &key)))
 			return ret;
 		
-		if (prev.node) {
-			/* Check if @prev and @place are mergable. */
-			if (reiser4_item_mergeable(&prev, &place)) {
-				aal_error("Node (%llu): 2 mergeable items (%u "
-					  "and %u) are found in the node.%s",
-					  node_blocknr(node), prev.pos.item,
-					  place.pos.item, mode == RM_BUILD ?
-					  " Fixed." : "");
-
-				if (mode == RM_BUILD) {
-					aal_assert("vpf-1506", place.pos.item
-						   == prev.pos.item + 1);
-
-					ret = reiser4_node_fuse(node, &prev.pos,
-								&place.pos);
-					
-					if (ret) return res;
-
-					pos->item--;
-					count = reiser4_node_items(node);
-					
-					if (reiser4_place_fetch(&place)) {
-						aal_error("Node (%llu), item "
-							  "(%u): Failed to "
-							  "fetch the item "
-							  "after fusing.",
-							  node_blocknr(node),
-							  place.pos.item);
-						return -EINVAL;
-					}
-				} else {
-					res |= RE_FATAL;
-				}
-			}
-		}
-
-		prev = place;
+		prev = key;
 		
 		continue;
 		
