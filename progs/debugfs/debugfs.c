@@ -217,7 +217,6 @@ static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
 	
 	hint.cleanup = 1;
 	hint.data = fs->tree;
-	hint.objects = 1 << NODEPTR_ITEM;
 	
 	reiser4_node_traverse(fs->tree->root, &hint, print_open_node, 
 			      print_process_node, NULL, NULL, NULL);
@@ -442,7 +441,6 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	
 	hint.cleanup = 1;
 	hint.data = (void *)&frag_hint;
-	hint.objects = 1 << NODEPTR_ITEM;
 
 	aal_gauge_start(gauge);
 	
@@ -589,7 +587,6 @@ static errno_t debugfs_tree_stat(reiser4_fs_t *fs) {
 	
 	hint.cleanup = 1;
 	hint.data = (void *)&stat_hint;
-	hint.objects = 1 << NODEPTR_ITEM;
 
 	aal_gauge_start(gauge);
 	
@@ -800,7 +797,6 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs, uint32_t flags) {
 	
 	hint.cleanup = 1;
 	hint.data = (void *)&frag_hint;
-	hint.objects = 1 << NODEPTR_ITEM;
 
 	aal_gauge_start(gauge);
 	
