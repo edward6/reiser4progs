@@ -1004,16 +1004,19 @@ struct reiser4_alloc_ops {
 	errno_t (*sync) (object_entity_t *);
 
 	/* Marks passed block as used */
-	void (*mark) (object_entity_t *, uint64_t);
+	void (*mark) (object_entity_t *, uint64_t, uint64_t);
 
-	/* Checks if passed block used */
-	int (*test) (object_entity_t *, uint64_t);
-    
+	/* Checks if passed range of blocks used */
+	int (*used_range) (object_entity_t *, uint64_t, uint64_t);
+    	
+	/* Checks if passed range of blocks unused */
+	int (*unused_range) (object_entity_t *, uint64_t, uint64_t);
+
 	/* Allocates one block */
 	uint64_t (*allocate) (object_entity_t *);
 
-	/* Deallocates passed block */
-	void (*release) (object_entity_t *, uint64_t);
+	/* Deallocates passed blocks */
+	void (*release) (object_entity_t *, uint64_t, uint64_t);
 
 	/* Returns number of used blocks */
 	uint64_t (*used) (object_entity_t *);

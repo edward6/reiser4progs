@@ -202,7 +202,7 @@ static errno_t callback_action_mark(
 	void *data)			/* pointer to block allocator */
 {
 	reiser4_alloc_t *alloc = (reiser4_alloc_t *)data;
-	return reiser4_alloc_mark(alloc, blk);
+	return reiser4_alloc_mark(alloc, blk, 1);
 }
 
 /* Marks format area as used */

@@ -24,7 +24,10 @@ static errno_t callback_extent_used(reiser4_coord_t *coord, void *data) {
 	    fetch, &coord->item, &ptr, coord->pos.unit, 1) != 1)
 	    return -1;
 
+	/* All these blocks should not be used in the allocator and should be 
+	 * forbidden for allocation. Check it somehow first. */
 	aux_bitmap_mark_range(am->bm_used, ptr.ptr, ptr.width);
+	aux_bitmap_mark_range(am->bm_used, ptr.ptr, ptr.width);	
     }
     
     return 0;
@@ -168,7 +171,7 @@ errno_t repair_am_pass(repair_data_t *rd) {
 		}
 	    }
 	
-	    aux_bitmap_clear(am->bm_twig, node->blk);
+	    aux_bitmap_clear(bitmap, node->blk);
 	    reiser4_node_release(node);
 	}
 	

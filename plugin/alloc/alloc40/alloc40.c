@@ -309,24 +309,26 @@ static void alloc40_close(object_entity_t *entity) {
 #ifndef ENABLE_COMPACT
 
 /* Marks specified block as used in its own bitmap */
-static void alloc40_mark(object_entity_t *entity, uint64_t blk) {
-    
+static void alloc40_mark(object_entity_t *entity, uint64_t blk, uint64_t count) 
+{
 	alloc40_t *alloc = (alloc40_t *)entity;
     
 	aal_assert("umka-370", alloc != NULL, return);
 	aal_assert("umka-371", alloc->bitmap != NULL, return);
     
-	aux_bitmap_mark(alloc->bitmap, blk);
+	aux_bitmap_mark_range(alloc->bitmap, blk, count);
 }
 
 /* Marks "blk" as free */
-static void alloc40_release(object_entity_t *entity, uint64_t blk) {
+static void alloc40_release(object_entity_t *entity, uint64_t blk, 
+	uint64_t count) 
+{
 	alloc40_t *alloc = (alloc40_t *)entity;
     
 	aal_assert("umka-372", alloc != NULL, return);
 	aal_assert("umka-373", alloc->bitmap != NULL, return);
     
-	aux_bitmap_clear(alloc->bitmap, blk);
+	aux_bitmap_clear_range(alloc->bitmap, blk, count);
 }
 
 /* Finds first free block in bitmap and returns it to caller */
@@ -380,16 +382,29 @@ static uint64_t alloc40_used(object_entity_t *entity) {
 	return aux_bitmap_marked(alloc->bitmap);
 }
 
-/* Checks whether specified block is used or not */
-static int alloc40_test(object_entity_t *entity, uint64_t blk) {
+/* Checks whether specified blocks are used or not */
+static int alloc40_used_range(object_entity_t *entity, uint64_t blk, 
+	uint64_t count) 
+{
 	alloc40_t *alloc = (alloc40_t *)entity;
     
 	aal_assert("umka-663", alloc != NULL, return -1);
 	aal_assert("umka-664", alloc->bitmap != NULL, return -1);
 
-	return aux_bitmap_test(alloc->bitmap, blk);
+	return aux_bitmap_test_range_marked(alloc->bitmap, blk, count);
 }
 
+/* Checks whether specified blocks are unused or not */
+static int alloc40_unused_range(object_entity_t *entity, uint64_t blk, 
+	uint64_t count) 
+{
+	alloc40_t *alloc = (alloc40_t *)entity;
+    
+	aal_assert("vpf-700", alloc != NULL, return -1);
+	aal_assert("vpf-701", alloc->bitmap != NULL, return -1);
+
+	return aux_bitmap_test_range_cleared(alloc->bitmap, blk, count);
+}
 static errno_t callback_check_bitmap(object_entity_t *entity, 
 				     uint64_t blk, void *data)
 {
@@ -488,7 +503,8 @@ static reiser4_plugin_t alloc40_plugin = {
 		.print		= NULL,
 		.region	        = NULL,
 #endif
-		.test		= alloc40_test,
+		.used_range	= alloc40_used_range,
+		.unused_range	= alloc40_unused_range,
 		.free		= alloc40_free,
 		.used		= alloc40_used,
 		.valid		= alloc40_valid,

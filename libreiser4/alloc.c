@@ -178,28 +178,30 @@ count_t reiser4_alloc_used(
 
 #ifndef ENABLE_COMPACT
 
-/* Marks specified block as used */
+/* Marks specified blocks as used */
 errno_t reiser4_alloc_mark(
 	reiser4_alloc_t *alloc,	/* allocator for working with */
-	blk_t blk)			/* block to be marked */
+	blk_t blk, 		/* start block to be marked */
+	uint64_t count)		/* count to be marked */
 {
 	aal_assert("umka-501", alloc != NULL, return -1);
 
 	plugin_call(return -1, alloc->entity->plugin->alloc_ops, 
-		    mark, alloc->entity, blk);
+		    mark, alloc->entity, blk, count);
 
 	return 0;
 }
 
-/* Deallocs specified block */
+/* Deallocs specified blocks */
 errno_t reiser4_alloc_release(
 	reiser4_alloc_t *alloc,	/* allocator for wiorking with */
-	blk_t blk)		/* block to be deallocated */
+	blk_t blk, 		/* start block to be deallocated */
+	uint64_t count)		/* count of blocks to be deallocated */
 {
 	aal_assert("umka-503", alloc != NULL, return -1);
 
 	plugin_call(return -1, alloc->entity->plugin->alloc_ops, 
-		    release, alloc->entity, blk);
+		    release, alloc->entity, blk, count);
 
 	return 0;
 }
@@ -225,18 +227,28 @@ errno_t reiser4_alloc_valid(
 
 #endif
 
-/* 
-   Checks whether specified block used or not. Returns TRUE if used and FALSE
-   otherwise.
-*/
-int reiser4_alloc_test(
+/* Returns TRUE if specified blocks used. */
+int reiser4_alloc_used_range(
 	reiser4_alloc_t *alloc,	/* allocator for working with */
-	blk_t blk)		/* block to be tested (used or not ) */
+	blk_t blk, 		/* start block to be tested (used or not) */
+	uint64_t count)		/* count of blocks to be tested */
 {
 	aal_assert("umka-662", alloc != NULL, return 0);
 
 	return plugin_call(return 0, alloc->entity->plugin->alloc_ops, 
-			   test, alloc->entity, blk);
+			   used_range, alloc->entity, blk, count);
+}
+
+/* Returns TRUE if specified blocks unused. */
+int reiser4_alloc_unused_range(
+	reiser4_alloc_t *alloc,	/* allocator for working with */
+	blk_t blk, 		/* start block to be tested (used or not) */
+	uint64_t count)		/* count of blocks to be tested */
+{
+	aal_assert("umka-662", alloc != NULL, return 0);
+
+	return plugin_call(return 0, alloc->entity->plugin->alloc_ops, 
+			   unused_range, alloc->entity, blk, count);
 }
 
 errno_t reiser4_alloc_region(
@@ -264,23 +276,25 @@ errno_t reiser4_alloc_layout(
 			   layout, alloc->entity, func, data);
 }
 
-errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc, blk_t blk) {
+errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc, blk_t blk, uint64_t count) 
+{
 	aal_assert("vpf-584", alloc != NULL, return -1);
 
 	if (!alloc->forbid) 
 	    alloc->forbid = aux_bitmap_create(reiser4_alloc_free(alloc) + 
 					      reiser4_alloc_used(alloc));
 	
-	aux_bitmap_mark(alloc->forbid, blk);
+	aux_bitmap_mark_range(alloc->forbid, blk, count);
 	
 	return 0;	
 }
 
-errno_t reiser4_alloc_permit(reiser4_alloc_t *alloc, blk_t blk) {
+errno_t reiser4_alloc_permit(reiser4_alloc_t *alloc, blk_t blk, uint64_t count) 
+{
 	aal_assert("vpf-585", alloc != NULL, return -1);
 	
 	if (alloc->forbid)	
-	    aux_bitmap_clear(alloc->forbid, blk);
+	    aux_bitmap_clear_range(alloc->forbid, blk, count);
 	
 	return 0;
 }

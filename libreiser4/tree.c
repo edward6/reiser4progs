@@ -109,7 +109,7 @@ void reiser4_tree_release(reiser4_tree_t *tree, reiser4_node_t *node) {
 	free = reiser4_alloc_free(tree->fs->alloc);
 	
     	/* Sets up the free blocks in block allocator */
-	reiser4_alloc_release(tree->fs->alloc, node->blk);
+	reiser4_alloc_release(tree->fs->alloc, node->blk, 1);
 	reiser4_format_set_free(tree->fs->format, free);
     
 	reiser4_node_close(node);

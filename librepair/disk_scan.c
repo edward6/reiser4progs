@@ -92,7 +92,7 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
 	    return -1);
 	
 	if (aux_bitmap_test(ds->bm_used, i) && 
-	    !reiser4_alloc_test(rd->fs->alloc, i)) 
+	    reiser4_alloc_unused_range(rd->fs->alloc, i, 1)) 
 	{
 	    /* Block was met as formatted, but unused in on-disk block 
 	     * allocator. Looks like the bitmap block of the allocator
@@ -101,7 +101,7 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
 		&region);
 	}
 
-	if (reiser4_alloc_test(rd->fs->alloc, i) && 
+	if (reiser4_alloc_used_range(rd->fs->alloc, i, 1) && 
 	    !aux_bitmap_test(ds->bm_used, i))
 	    aux_bitmap_mark(ds->bm_scan, i);
     }
