@@ -107,13 +107,10 @@ errno_t obj40_write_lw(item_entity_t *item,
 
 	stat.ext[SDEXT_LW_ID] = lw_hint;
 
-	if (!item->plugin->item_ops.write)
+	if (!item->plugin->item_ops.insert)
 		return -EINVAL;
 
-	if (item->plugin->item_ops.write(item, &hint, 0, 1) != 1)
-		return -EINVAL;
-	
-	return 0;
+	return item->plugin->item_ops.insert(item, &hint, 0);
 }
 
 /* Reads unix stat data extention into passed @unix_hint */
@@ -157,13 +154,10 @@ errno_t obj40_write_unix(item_entity_t *item,
 
 	stat.ext[SDEXT_UNIX_ID] = unix_hint;
 
-	if (!item->plugin->item_ops.write)
+	if (!item->plugin->item_ops.insert)
 		return -EINVAL;
 
-	if (item->plugin->item_ops.write(item, &hint, 0, 1) != 1)
-		return -EINVAL;
-	
-	return 0;
+	return item->plugin->item_ops.insert(item, &hint, 0);
 }
 
 /* Gets mode field from the stat data */
@@ -328,13 +322,10 @@ errno_t obj40_set_sym(obj40_t *obj, char *data) {
 
 	item = &obj->statdata.item;
 
-	if (!item->plugin->item_ops.write)
+	if (!item->plugin->item_ops.insert)
 		return -EINVAL;
 
-	if (item->plugin->item_ops.write(item, &hint, 0, 1) != 1)
-		return -EINVAL;
-
-	return 0;
+	return item->plugin->item_ops.insert(item, &hint, 0);
 }
 #endif
 

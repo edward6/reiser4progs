@@ -670,6 +670,8 @@ static reiser4_plugin_t extent40_plugin = {
 		.gap_key       = extent40_utmost_key,
 		.utmost_key    = extent40_utmost_key,
 		.layout_check  = extent40_layout_check,
+		
+		.insert        = NULL,
 		.set_key       = NULL,
 #endif
 		.branch        = NULL,

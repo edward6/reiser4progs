@@ -73,24 +73,22 @@ static errno_t nodeptr40_copy(item_entity_t *dst_item,
 }
 
 /* Writes of the specified nodeptr into passed @item*/
-static int32_t nodeptr40_write(item_entity_t *item, void *buff,
-			       uint32_t pos, uint32_t count)
+static errno_t nodeptr40_insert(item_entity_t *item,
+				create_hint_t *hint,
+				uint32_t pos)
 {
 	nodeptr40_t *nodeptr;
-
-	create_hint_t *hint;
 	ptr_hint_t *ptr_hint;
 		
 	aal_assert("umka-1423", item != NULL);
-	aal_assert("umka-1424", buff != NULL);
+	aal_assert("umka-1424", hint != NULL);
 
 	nodeptr = nodeptr40_body(item);
 	
-	hint = (create_hint_t *)buff;
 	ptr_hint = (ptr_hint_t *)hint->type_specific;
-	
 	np40_set_ptr(nodeptr, ptr_hint->start);
-	return 1;
+	
+	return 0;
 }
 
 
@@ -169,13 +167,14 @@ static reiser4_plugin_t nodeptr40_plugin = {
 #ifndef ENABLE_STAND_ALONE	    
 		.init		= nodeptr40_init,
 		.copy           = nodeptr40_copy,
-		.write          = nodeptr40_write,
+		.insert         = nodeptr40_insert,
 		.estimate	= nodeptr40_estimate,
 		.print		= nodeptr40_print,
 		.check		= nodeptr40_check,
 		.layout         = nodeptr40_layout,
 		.layout_check	= nodeptr40_layout_check,
 
+		.write          = NULL,
 		.remove		= NULL,
 		.feel           = NULL,
 

@@ -705,8 +705,8 @@ static errno_t node40_rep(node40_t *dst_node, pos_t *dst_pos,
 static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 			     create_hint_t *hint)
 {
+	errno_t res;
 	node40_t *node;
-	int32_t written;
 	item_entity_t item;
 	item40_header_t *ih;
     
@@ -749,15 +749,15 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 			goto out_make_dirty;
 		}
 
-		written = plugin_call(hint->plugin->item_ops, write,
-				      &item, hint, 0, hint->count);
+		res = plugin_call(hint->plugin->item_ops, insert,
+				  &item, hint, 0);
 	} else {
-		written = plugin_call(hint->plugin->item_ops, write,
-				      &item, hint, pos->unit, hint->count);
+		res = plugin_call(hint->plugin->item_ops, insert,
+				  &item, hint, pos->unit);
 	}
 	
-	if (written != hint->count)
-		return -EINVAL;
+	if (res != 0)
+		return res;
 
 	/*
 	  Updating item's key if we insert new item or if we insert unit

@@ -450,7 +450,9 @@ static reiser4_plugin_t tail40_plugin = {
 		.feel           = tail40_feel,
 		.utmost_key     = tail40_utmost_key,
 		.gap_key        = tail40_utmost_key,
+		
 		.check	        = NULL,
+		.insert         = NULL,
 		.estimate       = NULL,
 		.set_key        = NULL,
 		.layout	        = NULL,

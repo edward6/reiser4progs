@@ -490,7 +490,7 @@ struct create_hint {
 	/* This is opaque pointer to item type specific information */
 	void *type_specific;
 
-	/* Unit count to inserted into the tree */
+	/* Count of units to be inserted into the tree */
 	uint16_t count;
     
 	/* The key of item/unit to be inserted */
@@ -711,10 +711,17 @@ struct reiser4_item_ops {
 	errno_t (*copy) (item_entity_t *, uint32_t, item_entity_t *,
 			 uint32_t, uint32_t);
 	
-	/* Updates passed amount of units in the item */
+	/* Write method for filebody items */
 	int32_t (*write) (item_entity_t *, void *, uint32_t,
 			  uint32_t);
 
+	/*
+	  Inserts some amount of units described by passed hint into passed
+	  item.
+	*/
+	errno_t (*insert) (item_entity_t *, create_hint_t *,
+			   uint32_t);
+	
 	/* Removes specified unit from the item. Returns released space */
 	int32_t (*remove) (item_entity_t *, uint32_t,
 			   uint32_t);

@@ -749,24 +749,22 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	return 0;
 }
 
-/* Inserts new entries inside direntry item */
-static int32_t direntry40_write(item_entity_t *item, void *buff,
-				uint32_t pos, uint32_t count)
+/* Inserts new entries to direntry item */
+static errno_t direntry40_insert(item_entity_t *item,
+				 create_hint_t *hint,
+				 uint32_t pos)
 {
 	entry40_t *entry;
 	uint32_t i, offset;
-	direntry40_t *direntry;
 
-	create_hint_t *hint;
+	direntry40_t *direntry;
 	entry_hint_t *entry_hint;
     
 	aal_assert("umka-791", item != NULL);
-	aal_assert("umka-792", buff != NULL);
+	aal_assert("umka-792", hint != NULL);
 	aal_assert("umka-897", pos != ~0ul);
 
 	direntry = direntry40_body(item);
-
-	hint = (create_hint_t *)buff;
 	entry_hint = (entry_hint_t *)hint->type_specific;
 
 	/*
@@ -774,10 +772,11 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	  function direntry40_expand returns the offset of where new unit will
 	  be inserted at.
 	*/
+
+	offset = direntry40_expand(item, pos, hint->count,
+				   hint->len);
 	
-	if ((offset = direntry40_expand(item, pos, count,
-					hint->len)) <= 0)
-	{
+	if (offset <= 0) {
 		aal_exception_error("Can't expand direntry by "
 				    "%u bytes.", hint->len);
 		return -EINVAL;
@@ -785,7 +784,7 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	
 	/* Creating new entries */
 	for (i = 0, entry = &direntry->entry[pos];
-	     i < count; i++, entry++, entry_hint++)
+	     i < hint->count; i++, entry++, entry_hint++)
 	{
 		hash_t *entid;
 		objid_t *objid;
@@ -834,7 +833,7 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 		}
 	}
 	
-	de40_inc_units(direntry, count);
+	de40_inc_units(direntry, hint->count);
 	
 	/*
 	  Updating item key by unit key if the first unit was changed. It is
@@ -843,7 +842,7 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	if (pos == 0)
 		direntry40_get_key(item, 0, &item->key);
     
-	return count;
+	return 0;
 }
 
 /* Removes @count entries at @pos from passed @item */
@@ -1130,7 +1129,7 @@ static reiser4_plugin_t direntry40_plugin = {
 #ifndef ENABLE_STAND_ALONE	    
 		.init		= direntry40_init,
 		.copy		= direntry40_copy,
-		.write		= direntry40_write,
+		.insert		= direntry40_insert,
 		.remove		= direntry40_remove,
 		.estimate	= direntry40_estimate,
 		.check		= direntry40_check,
@@ -1140,6 +1139,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.feel           = direntry40_feel,
 		.utmost_key     = direntry40_utmost_key,
 		
+		.write		= NULL,
 		.set_key	= NULL,
 		.gap_key	= NULL,
 		.layout		= NULL,

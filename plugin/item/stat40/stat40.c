@@ -201,21 +201,18 @@ static errno_t stat40_estimate(item_entity_t *item, void *buff,
 }
 
 /* This method writes the stat data extentions */
-static int32_t stat40_write(item_entity_t *item, void *buff,
-			    uint32_t pos, uint32_t count)
+static errno_t stat40_insert(item_entity_t *item,
+			     create_hint_t *hint,
+			     uint32_t pos)
 {
 	uint8_t i;
 	body_t *extbody;
-
-	create_hint_t *hint;
 	statdata_hint_t *stat_hint;
     
 	aal_assert("vpf-076", item != NULL); 
-	aal_assert("vpf-075", buff != NULL);
+	aal_assert("vpf-075", hint != NULL);
 
 	extbody = (body_t *)item->body;
-
-	hint = (create_hint_t *)buff;
 	stat_hint = (statdata_hint_t *)hint->type_specific;
     
 	if (!stat_hint->extmask)
@@ -267,7 +264,7 @@ static int32_t stat40_write(item_entity_t *item, void *buff,
 		extbody += plugin_call(plugin->sdext_ops, length, extbody);
 	}
     
-	return count;
+	return 0;
 }
 
 extern errno_t stat40_check(item_entity_t *, uint8_t);
@@ -429,10 +426,12 @@ static reiser4_plugin_t stat40_plugin = {
 		
 #ifndef ENABLE_STAND_ALONE
 		.estimate	= stat40_estimate,
-		.write		= stat40_write,
+		.insert		= stat40_insert,
 		.init		= stat40_init,
 		.check		= stat40_check,
 		.print		= stat40_print,
+		
+		.write          = NULL,
 		.copy           = NULL,
 		.layout         = NULL,
 		.remove		= NULL,
