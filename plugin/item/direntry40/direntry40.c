@@ -215,11 +215,6 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	
 	while (!(hint->flags & SF_MOVIP) && cur < direntry40_units(src_item)) {
 
-		len = direntry40_unit_len(direntry, cur);
-
-		if (space < len + sizeof(entry40_t))
-			break;
-
 		/*
 		  Check if we should update unit pos. we will update it if we
 		  are at insert point and unit pos is not ~0ul.
@@ -238,18 +233,37 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 
 			if (flags & SF_LEFT) {
 				if (hint->pos.unit == 0) {
-					hint->flags |= SF_MOVIP;
-					hint->pos.unit = dst_units;
+					if (flags & SF_MOVIP) {
+						hint->flags |= SF_MOVIP;
+						hint->pos.unit = dst_units;
+					} else
+						break;
 				} else
 					hint->pos.unit--;
 			} else {
 				if (hint->pos.unit >= src_units - 1) {
-					hint->flags |= SF_MOVIP;
-					hint->pos.unit = 0;
-					break;
+
+					if (hint->pos.unit == src_units - 1) {
+						if (flags & SF_MOVIP) {
+							hint->flags |= SF_MOVIP;
+							hint->pos.unit = 0;
+						} else
+							break;
+					} else {
+						if (flags & SF_MOVIP) {
+							hint->flags |= SF_MOVIP;
+							hint->pos.unit = 0;
+						}
+						break;
+					}
 				}
 			}
 		}
+
+		len = direntry40_unit_len(direntry, cur);
+
+		if (space < len + sizeof(entry40_t))
+			break;
 
 		src_units--;
 		dst_units++;
