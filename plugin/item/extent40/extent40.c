@@ -232,7 +232,7 @@ static int64_t extent40_truncate(place_t *place, trans_hint_t *hint) {
 	}
 
 	/* Updating key if it makes sence */
-	if (pos == 0 && place->len > hint->len) {
+	if (pos == 0 && place->len > (uint32_t)hint->len) {
 		offset = plug_call(place->key.plug->o.key_ops,
 				   get_offset, &place->key);
 		

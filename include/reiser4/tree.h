@@ -165,5 +165,14 @@ extern reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 extern reiser4_node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 					      reiser4_node_t *parent,
 					      blk_t blk);
+
+extern int64_t reiser4_tree_modify(reiser4_tree_t *tree, 
+				   reiser4_place_t *place,
+				   trans_hint_t *hint, 
+				   uint8_t level, 
+				   estimate_func_t estimate,
+				   modify_func_t modify);
+
+
 #endif
 

@@ -2393,7 +2393,7 @@ static errno_t callback_estimate_write(reiser4_place_t *place,
 
 /* Function for tree modifications. It is used for inserting data to tree (stat
    data items, directries) or writting (tails, extents). */
-static int64_t reiser4_tree_modify(
+int64_t reiser4_tree_modify(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
 	reiser4_place_t *place,	    /* place item or unit inserted at */
 	trans_hint_t *hint,         /* item hint to be inserted */
