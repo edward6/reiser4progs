@@ -24,6 +24,11 @@ reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, char *name) {
 	if (pid != INVAL_PID) {
 		if ((plug = obj->core->factory_ops.ifind(type, pid)) != NULL)
 			return plug;
+
+		/* FIXME-VITALY: This is probably wrong -- if there is a hash
+		   plugin in SD saved, that means that it is not standard and
+		   it is probably should be detected. For now the default one 
+		   is used. */
 	}
 	
 	/* Id either is not kept in SD or has not been found, 

@@ -367,6 +367,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 		maxreal = plug_call(key.plug->o.key_ops, get_offset, &key);
 			
 		while (!plug_equal(reg->body.plug, bplug)) {
+			conv_hint_t hint;
+			
 			aal_exception_error("The object [%s] (%s), node (%llu),"
 					    "item (%u): the found item [%s] of "
 					    "the plugin (%s) does not match "
@@ -386,6 +388,9 @@ errno_t reg40_check_struct(object_entity_t *object,
 				break;
 			}
 			
+			hint.bytes = 0;
+			hint.place = &reg->body;
+	
 			if (plug_equal(bplug, tplug)) {
 				/* Extent found, tail should be. Convert evth 
 				   between 0 and the current offset to extents,
@@ -393,33 +398,23 @@ errno_t reg40_check_struct(object_entity_t *object,
 				   policy then. */
 				reg->policy = extent;
 				
-				if ((res |= reg40_convert(object, eplug, 
-							  maxreal, 0)) < 0)
-					return res;
+				hint.plug = eplug;
+				hint.size = reg40_offset(object);
 				
 				/* Start from the beginning. */
 				size = bytes = 0;
 				reg40_reset(object);
 			} else {
-				/* Tail found, extent should be. Convert the item 
-				   to extent. */
-				conv_hint_t hint;
+				/* Tail found, extent should be. Convert 
+				   the item to extent. */
 
-				hint.bytes = 0;
-				hint.plug = bplug;
-				hint.place = &reg->body;
-
+				hint.plug = bplug;		
 				hint.size = plug_call(reg->body.plug->o.item_ops,
 						      size, &reg->body);
-				
-				/* Tail found, extent should be. Convert. */
-				if ((res |= rcore->tree_ops.conv(info->tree,
-								 &hint)) < 0)
-				{
-					return res;
-				}
-
 			}
+
+			if ((res |= rcore->tree_ops.conv(info->tree, &hint)) < 0)
+				return res;
 			
 			continue;
 		}
