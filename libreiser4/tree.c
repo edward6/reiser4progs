@@ -728,10 +728,10 @@ bool_t reiser4_tree_fresh(reiser4_tree_t *tree) {
   If so, level is redundant here.
 */
 lookup_t reiser4_tree_lookup(
-	reiser4_tree_t *tree,	/* tree to be grepped */
-	reiser4_key_t *key,	/* key to be find */
-	uint8_t level,	        /* stop level for search */
-	reiser4_place_t *place)	/* place the found item to be stored */
+	reiser4_tree_t *tree,	  /* tree to be grepped */
+	reiser4_key_t *key,	  /* key to be find */
+	uint8_t level,	          /* stop level for search */
+	reiser4_place_t *place)	  /* place the found item to be stored */
 {
 	lookup_t res;
 	bool_t moved;

@@ -194,9 +194,9 @@ static int tail40_mergeable(item_entity_t *item1,
 }
 
 /* Estimates how many bytes may be shifted into neighbour item */
-static errno_t tail40_predict(item_entity_t *src_item,
-			      item_entity_t *dst_item,
-			      shift_hint_t *hint)
+static errno_t tail40_estimate_shift(item_entity_t *src_item,
+				     item_entity_t *dst_item,
+				     shift_hint_t *hint)
 {
 	uint32_t space;
 	
@@ -257,7 +257,8 @@ static errno_t tail40_shift(item_entity_t *src_item,
 	aal_assert("umka-1666", dst_item != NULL);
 	aal_assert("umka-1667", hint != NULL);
 
-	len = dst_item->len > hint->rest ? dst_item->len - hint->rest :
+	len = (dst_item->len > hint->rest) ?
+		dst_item->len - hint->rest :
 		dst_item->len;
 
 	if (hint->control & SF_LEFT) {
@@ -294,49 +295,53 @@ static errno_t tail40_shift(item_entity_t *src_item,
 	return 0;
 }
 
-extern errno_t tail40_copy(item_entity_t *dst, uint32_t dst_pos, 
-			   item_entity_t *src, uint32_t src_pos, 
+extern errno_t tail40_copy(item_entity_t *dst,
+			   uint32_t dst_pos, 
+			   item_entity_t *src,
+			   uint32_t src_pos, 
 			   copy_hint_t *hint);
 
-extern errno_t tail40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
-				item_entity_t *src, uint32_t src_pos,
-				copy_hint_t *hint);
+extern errno_t tail40_estimate_copy(item_entity_t *dst,
+				    uint32_t dst_pos,
+				    item_entity_t *src,
+				    uint32_t src_pos,
+				    copy_hint_t *hint);
 #endif
 
 static reiser4_item_ops_t tail40_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.init	        = tail40_init,
-	.copy	        = tail40_copy,
-	.write	        = tail40_write,
-	.remove	        = tail40_remove,
-	.print	        = tail40_print,
-	.predict        = tail40_predict,
-	.shift	        = tail40_shift,		
+	.init	          = tail40_init,
+	.copy	          = tail40_copy,
+	.write	          = tail40_write,
+	.remove	          = tail40_remove,
+	.print	          = tail40_print,
+	.shift	          = tail40_shift,
+	.maxreal_key      = tail40_maxreal_key,
+	.estimate_copy    = tail40_estimate_copy,
+	.estimate_shift   = tail40_estimate_shift,
 
-	.feel_copy      = tail40_feel_copy,
-	.maxreal_key    = tail40_maxreal_key,
-
-	.check	        = NULL,
-	.insert         = NULL,
-	.estimate       = NULL,
-	.set_key        = NULL,
-	.layout	        = NULL,
-	.layout_check   = NULL,
-	.branch         = NULL,
+	.estimate_insert  = NULL,
+	.overhead         = NULL,
+	.check	          = NULL,
+	.insert           = NULL,
+	.branch           = NULL,
+	.layout	          = NULL,
+	.set_key          = NULL,
+	.layout_check     = NULL,
 #endif
-	.units	        = tail40_units,
-	.lookup	        = tail40_lookup,
-	.read	        = tail40_read,
-	.data		= tail40_data,
+	.units	          = tail40_units,
+	.lookup	          = tail40_lookup,
+	.read	          = tail40_read,
+	.data		  = tail40_data,
 
 #ifndef ENABLE_STAND_ALONE
-	.mergeable      = tail40_mergeable,
+	.mergeable        = tail40_mergeable,
 #else
-	.mergeable      = NULL,
+	.mergeable        = NULL,
 #endif
 		
-	.maxposs_key    = tail40_maxposs_key,
-	.get_key        = tail40_get_key
+	.get_key          = tail40_get_key,
+	.maxposs_key      = tail40_maxposs_key
 };
 
 static reiser4_plugin_t tail40_plugin = {

@@ -347,7 +347,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 	    if ((res = reiser4_item_maxreal_key(&dst, &hint.end)))
 		return res;
 	    
-	    if ((res = repair_item_feel_copy(&dst, src, &hint)))
+	    if ((res = repair_item_estimate_copy(&dst, src, &hint)))
 		return res;
 	}
 	

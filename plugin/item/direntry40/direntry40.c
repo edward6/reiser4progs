@@ -208,17 +208,23 @@ static int direntry40_mergeable(item_entity_t *item1,
 }
 
 #ifndef ENABLE_STAND_ALONE
+static uint16_t direntry40_overhead(item_entity_t *item) {
+	return sizeof(direntry40_t);
+}
 
 /*
   Estimates how much bytes will be needed to prepare in node in odrer to make
   room for inserting new entries.
 */
-static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
-				   uint32_t count, create_hint_t *hint) 
+static errno_t direntry40_estimate_insert(item_entity_t *item,
+					  uint32_t pos,
+					  uint32_t count,
+					  create_hint_t *hint) 
 {
 	uint32_t i;
 	entry_hint_t *entry_hint;
 	    
+	aal_assert("umka-2229", count > 0);
 	aal_assert("vpf-095", hint != NULL);
     
 	entry_hint = (entry_hint_t *)hint->type_specific;
@@ -249,7 +255,7 @@ static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
 	  number of entries in item.
 	*/
 	if (pos == ~0ul)
-		hint->len += sizeof(direntry40_t);
+		hint->len += direntry40_overhead(item);
     
 	return 0;
 }
@@ -258,9 +264,9 @@ static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
   Predicts how many entries and bytes can be shifted from the @src_item to
   @dst_item. The behavior of the function depends on the passed @hint.
 */
-static errno_t direntry40_predict(item_entity_t *src_item,
-				  item_entity_t *dst_item,
-				  shift_hint_t *hint)
+static errno_t direntry40_estimate_shift(item_entity_t *src_item,
+					 item_entity_t *dst_item,
+					 shift_hint_t *hint)
 {
 	uint32_t curr;
 	uint32_t flags;
@@ -500,7 +506,7 @@ errno_t direntry40_rep(item_entity_t *dst_item, uint32_t dst_pos,
 
 /* Shrinks direntry item in order to delete some entries */
 static int32_t direntry40_cut(item_entity_t *item,
-				 uint32_t pos, uint32_t count)
+			      uint32_t pos, uint32_t count)
 {
 	uint32_t first;
 	uint32_t second;
@@ -917,13 +923,17 @@ static errno_t direntry40_maxreal_key(item_entity_t *item,
 extern errno_t direntry40_check(item_entity_t *item,
 				uint8_t mode);
 
-extern errno_t direntry40_copy(item_entity_t *dst, uint32_t dst_pos, 
-			       item_entity_t *src, uint32_t src_pos, 
+extern errno_t direntry40_copy(item_entity_t *dst,
+			       uint32_t dst_pos, 
+			       item_entity_t *src,
+			       uint32_t src_pos, 
 			       copy_hint_t *hint);
 
-extern errno_t direntry40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
-				    item_entity_t *src, uint32_t src_pos,
-				    copy_hint_t *hint);
+extern errno_t direntry40_estimate_copy(item_entity_t *dst,
+					uint32_t dst_pos,
+					item_entity_t *src,
+					uint32_t src_pos,
+					copy_hint_t *hint);
 #endif
 
 /*
@@ -1022,33 +1032,35 @@ lookup_t direntry40_lookup(item_entity_t *item,
 
 static reiser4_item_ops_t direntry40_ops = {
 #ifndef ENABLE_STAND_ALONE	    
-	.init		= direntry40_init,
-	.copy		= direntry40_copy,
-	.insert		= direntry40_insert,
-	.remove		= direntry40_remove,
-	.estimate	= direntry40_estimate,
-	.check		= direntry40_check,
-	.print		= direntry40_print,
-	.shift          = direntry40_shift,
-	.predict        = direntry40_predict,
-	.feel_copy	= direntry40_feel_copy,
-	.maxreal_key    = direntry40_maxreal_key,
+	.init		   = direntry40_init,
+	.copy		   = direntry40_copy,
+	.insert		   = direntry40_insert,
+	.remove		   = direntry40_remove,
+	.overhead          = direntry40_overhead,
+	.check		   = direntry40_check,
+	.print		   = direntry40_print,
+	.shift             = direntry40_shift,
+	.maxreal_key       = direntry40_maxreal_key,
+	
+	.estimate_copy	   = direntry40_estimate_copy,
+	.estimate_shift    = direntry40_estimate_shift,
+	.estimate_insert   = direntry40_estimate_insert,
 		
-	.write		= NULL,
-	.set_key	= NULL,
-	.layout		= NULL,
-	.layout_check	= NULL,
+	.write		   = NULL,
+	.set_key	   = NULL,
+	
+	.layout		   = NULL,
+	.layout_check	   = NULL,
 #endif
-	.branch         = NULL,
+	.branch            = NULL,
 
-	.data		= direntry40_data,
-	.lookup		= direntry40_lookup,
-	.units		= direntry40_units,
-	.read           = direntry40_read,
-	.mergeable      = direntry40_mergeable,
-		
-	.get_key	= direntry40_get_key,
-	.maxposs_key	= direntry40_maxposs_key
+	.data		   = direntry40_data,
+	.lookup		   = direntry40_lookup,
+	.units		   = direntry40_units,
+	.read              = direntry40_read,
+	.get_key	   = direntry40_get_key,
+	.mergeable         = direntry40_mergeable,
+	.maxposs_key	   = direntry40_maxposs_key
 };
 
 static reiser4_plugin_t direntry40_plugin = {

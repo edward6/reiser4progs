@@ -335,21 +335,13 @@ static int extent40_mergeable(item_entity_t *item1,
 	return common40_mergeable(item1, item2);
 }
 
-/*
-  Estimates how many bytes is needed to inert extent into the tree. As we will
-  use some kind of flush, extents will be allocated in ot and here we just say
-  that extent hint need sizeof(extent40_t) bytes.
-*/
-static errno_t extent40_estimate(item_entity_t *item, uint32_t pos,
-				 uint32_t count, create_hint_t *hint)
+static errno_t extent40_estimate_insert(item_entity_t *item,
+					uint32_t pos,
+					uint32_t count,
+					create_hint_t *hint)
 {
 	aal_assert("umka-1836", hint != NULL);
 
-	/*
-	  FIXME-UMKA: Here also should be handled case when we need add data to
-	  existent allocated extent and we will not need spare at all in some
-	  cases.
-	*/
 	hint->len = sizeof(extent40_t);
 	return 0;
 }
@@ -414,9 +406,9 @@ static errno_t extent40_layout(item_entity_t *item,
 }
 
 /* Estimates how many bytes may be shifted into neighbour item */
-static errno_t extent40_predict(item_entity_t *src_item,
-				item_entity_t *dst_item,
-				shift_hint_t *hint)
+static errno_t extent40_estimate_shift(item_entity_t *src_item,
+				       item_entity_t *dst_item,
+				       shift_hint_t *hint)
 {
 	uint32_t space;
 	
@@ -524,55 +516,62 @@ static errno_t extent40_shift(item_entity_t *src_item,
 	return 0;
 }
 
+extern errno_t extent40_check(item_entity_t *item,
+			      uint8_t mode);
+
 extern errno_t extent40_layout_check(item_entity_t *item,
 				     region_func_t func, 
 				     void *data, uint8_t mode);
 
-extern errno_t extent40_check(item_entity_t *item, uint8_t mode);
-
-extern errno_t extent40_copy(item_entity_t *dst, uint32_t dst_pos, 
-			     item_entity_t *src, uint32_t src_pos, 
+extern errno_t extent40_copy(item_entity_t *dst,
+			     uint32_t dst_pos, 
+			     item_entity_t *src,
+			     uint32_t src_pos, 
 			     copy_hint_t *hint);
 
-extern errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
-				  item_entity_t *src, uint32_t src_pos,
-				  copy_hint_t *hint);
+extern errno_t extent40_estimate_copy(item_entity_t *dst,
+				      uint32_t dst_pos,
+				      item_entity_t *src,
+				      uint32_t src_pos,
+				      copy_hint_t *hint);
 #endif
 
 static reiser4_item_ops_t extent40_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.init	       = extent40_init,
-	.write         = extent40_write,
-	.copy          = extent40_copy,
-	.estimate      = extent40_estimate,
-	.remove	       = extent40_remove,
-	.print	       = extent40_print,
-	.predict       = extent40_predict,
-	.shift         = extent40_shift,
-	.layout        = extent40_layout,
-	.check	       = extent40_check,
-	.feel_copy     = extent40_feel_copy,
-	.maxreal_key   = extent40_maxreal_key,
-	.layout_check  = extent40_layout_check,
-	
-	.insert        = NULL,
-	.set_key       = NULL,
-#endif
-	.branch        = NULL,
+	.init	          = extent40_init,
+	.write            = extent40_write,
+	.copy             = extent40_copy,
+	.remove	          = extent40_remove,
+	.print	          = extent40_print,
+	.shift            = extent40_shift,
+	.layout           = extent40_layout,
+	.check	          = extent40_check,
+	.maxreal_key      = extent40_maxreal_key,
+	.layout_check     = extent40_layout_check,
 
-	.data	       = extent40_data,
-	.lookup	       = extent40_lookup,
-	.units	       = extent40_units,
-	.read          = extent40_read,
+	.estimate_copy    = extent40_estimate_copy,
+	.estimate_shift   = extent40_estimate_shift,
+	.estimate_insert  = extent40_estimate_insert,
+	
+	.overhead         = NULL,
+	.insert           = NULL,
+	.set_key          = NULL,
+#endif
+	.branch           = NULL,
+
+	.data	          = extent40_data,
+	.read             = extent40_read,
+	.units	          = extent40_units,
+	.lookup	          = extent40_lookup,
 
 #ifndef ENABLE_STAND_ALONE
-	.mergeable     = extent40_mergeable,
+	.mergeable        = extent40_mergeable,
 #else
-	.mergeable     = NULL,
+	.mergeable        = NULL,
 #endif
 
-	.get_key       = extent40_get_key,
-	.maxposs_key   = extent40_maxposs_key
+	.get_key          = extent40_get_key,
+	.maxposs_key      = extent40_maxposs_key
 };
 
 static reiser4_plugin_t extent40_plugin = {

@@ -1085,10 +1085,10 @@ static bool_t node40_mergeable(item_entity_t *item1,
 }
 
 static bool_t node40_splitable(item_entity_t *item) {
-	if (!item->plugin->o.item_ops->predict)
-		return FALSE;
-
 	if (!item->plugin->o.item_ops->shift)
+		return FALSE;
+	
+	if (!item->plugin->o.item_ops->estimate_shift)
 		return FALSE;
 	
 	/* We can't shift units from items with one unit */
@@ -1102,13 +1102,99 @@ static bool_t node40_splitable(item_entity_t *item) {
 	return TRUE;
 }
 
-/* Fises two neighbour items is they are mergeable */
+/* Fuses two items is they are mergeable */
 static errno_t node40_fuse(object_entity_t *src_entity,
-			   uint32_t src_pos,
+			   pos_t *src_pos,
 			   object_entity_t *dst_entity,
-			   uint32_t dst_pos)
+			   pos_t *dst_pos)
 {
-	return 0;
+	pos_t pos;
+	void *body;
+	errno_t res;
+	uint32_t len;
+
+	shift_hint_t hint;
+	item_entity_t src_item;
+	item_entity_t dst_item;
+
+	aal_assert("umka-2227", src_pos != NULL);
+	aal_assert("umka-2228", src_pos != NULL);
+	aal_assert("umka-2225", src_entity != NULL);
+	aal_assert("umka-2226", dst_entity != NULL);
+	
+	/* Initializing items */
+	if (node40_item(src_entity, src_pos, &src_item))
+		return -EINVAL;
+	
+	if (node40_item(dst_entity, dst_pos, &dst_item))
+		return -EINVAL;
+
+	/* Making copy of the src_item */
+	if (!(body = aal_calloc(sizeof(src_item.len), 0)))
+		return -ENOMEM;
+
+	aal_memcpy(body, src_item.body,
+		   src_item.len);
+	
+	src_item.body = body;
+	
+	/* Removing src item from the node */
+	if ((res = node40_shrink(src_entity, src_pos,
+				 src_item.len, 1)))
+	{
+		goto error_free_body;
+	}
+
+	/* Expanding node in order to prepare room */
+	len = src_item.len;
+
+	if (src_item.plugin->o.item_ops->overhead) {
+		len -= plugin_call(src_item.plugin->o.item_ops,
+				   overhead, &src_item);
+	}
+	
+	if (src_pos->item < dst_pos->item) {
+		POS_INIT(&pos, dst_pos->item - 1, 0);
+		
+		if ((res = node40_expand(dst_entity, &pos, len, 1))) {
+			aal_exception_error("Can't expand item for "
+					    "shifting units into it.");
+			goto error_free_body;
+		}
+
+		hint.control = SF_RIGHT;
+	} else {
+		POS_INIT(&pos, dst_pos->item, 0);
+		
+		if ((res = node40_expand(dst_entity, &pos, len, 1))) {
+			aal_exception_error("Can't expand item for "
+					    "shifting units into it.");
+			goto error_free_body;
+		}
+
+		hint.control = SF_LEFT;
+	}
+
+	/* Reinitializing @dst_item after expand */
+	if ((res = node40_item(dst_entity, &pos, &dst_item)))
+		goto error_free_body;
+	
+	/* Shifting units from @src_item to @dst_item */
+	hint.rest = len;
+	
+	if ((res = plugin_call(src_item.plugin->o.item_ops,
+			       estimate_shift, &src_item,
+			       &dst_item, &hint)))
+	{
+		goto error_free_body;
+	}
+	
+	res = plugin_call(src_item.plugin->o.item_ops, shift,
+			  &src_item, &dst_item, &hint);
+
+ error_free_body:
+	aal_free(src_item.body);
+	return res;
 }
 
 /*
@@ -1221,8 +1307,9 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		
 		hint->rest -= overhead;
 
-		if (plugin_call(src_item.plugin->o.item_ops, predict,
-				&src_item, NULL, hint))
+		if (plugin_call(src_item.plugin->o.item_ops,
+				estimate_shift, &src_item,
+				NULL, hint))
 		{
 			return -EINVAL;
 		}
@@ -1239,8 +1326,9 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		
 		hint->items++;
 	} else {
-		if (plugin_call(src_item.plugin->o.item_ops, predict,
-				&src_item, &dst_item, hint))
+		if (plugin_call(src_item.plugin->o.item_ops,
+				estimate_shift, &src_item,
+				&dst_item, hint))
 		{
 			return -EINVAL;
 		}
@@ -1297,14 +1385,14 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		}
 
 		/*
-		  Reinitializing dst item after it was expanded by node40_expand
-		  function.
+		  Reinitializing dst item after it was expanded by
+		  node40_expand() function.
 		*/
 		if (node40_item(dst_entity, &pos, &dst_item))
 			return -EINVAL;
 	}
 	
-	/* Calling item method shift */
+	/* Shift units from @src_item to @dst_item */
 	if (plugin_call(src_item.plugin->o.item_ops, shift,
 			&src_item, &dst_item, hint))
 	{
@@ -1339,8 +1427,8 @@ static errno_t node40_merge(object_entity_t *src_entity,
 	if (remove) {
 		/*
 		  Like node40_expand() does, node40_shrink() will remove pointed
-		  item if unit component is ~0ul and shrink pointed by pos item
-		  if unit is not ~0ul.
+		  item if unit component is ~0ul and shrink the item pointed by
+		  pos if unit component is not ~0ul.
 		*/
 		pos.unit = ~0ul;
 		len = src_item.len;
@@ -1520,10 +1608,7 @@ static errno_t node40_predict(object_entity_t *src_entity,
 	return 0;
 }
 
-/*
-  Estimating how many whole items may be shifted from the src node to dst
-  one. Then shifting estimated items. This function is used from node40_shift.
-*/
+/* Moves some amount of whole items from @src_entity to @dst_entity */
 static errno_t node40_move(object_entity_t *src_entity,
 			   object_entity_t *dst_entity, 
 			   shift_hint_t *hint)

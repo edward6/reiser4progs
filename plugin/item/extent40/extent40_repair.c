@@ -147,7 +147,7 @@ errno_t extent40_copy(item_entity_t *dst, uint32_t dst_pos,
 }
 
 /* FIXME-VITALY: Do not forget to handle the case with unit's @start == 0. */
-errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos, 
+errno_t extent40_estimate_copy(item_entity_t *dst, uint32_t dst_pos, 
     item_entity_t *src, uint32_t src_pos, copy_hint_t *hint)
 {
     uint64_t dst_max, src_min, src_max, src_end;

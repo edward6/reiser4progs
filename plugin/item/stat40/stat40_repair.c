@@ -85,7 +85,7 @@ errno_t stat40_copy(item_entity_t *dst, uint32_t dst_pos,
     return 0;
 }
 
-errno_t stat40_feel_copy(item_entity_t *dst, uint32_t dst_pos, 
+errno_t stat40_estimate_copy(item_entity_t *dst, uint32_t dst_pos, 
     item_entity_t *src, uint32_t src_pos, copy_hint_t *hint)
 {
     key_entity_t *key;

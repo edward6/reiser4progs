@@ -570,7 +570,7 @@ error:
     return res;    
 }
 
-errno_t direntry40_feel_copy(item_entity_t *dst, uint32_t dst_pos, 
+errno_t direntry40_estimate_copy(item_entity_t *dst, uint32_t dst_pos, 
     item_entity_t *src, uint32_t src_pos, copy_hint_t *hint)
 {
     uint32_t units, next_pos, pos;

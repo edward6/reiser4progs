@@ -37,9 +37,8 @@ uint32_t reiser4_item_units(reiser4_place_t *place) {
 #ifndef ENABLE_STAND_ALONE
 
 /*
-  We can estimate size for insertion and for pasting of hint->data (to be
-  memcpy) or of item_info->info (data to be created on the base of).
-    
+  Estimating insert operation. Below is the possible cases.
+
   1. Insertion of data: 
   a) pos->unit == ~0ul 
   b) hint->data != NULL
@@ -68,33 +67,26 @@ errno_t reiser4_item_estimate(
 	
 	aal_assert("vpf-106", place != NULL);
 	aal_assert("umka-541", hint != NULL);
-
-	/* We must have hint->plugin initialized for the 2nd case */
-	aal_assert("vpf-118", place->pos.unit != ~0ul || 
-		   hint->plugin != NULL);
    
-	/* Here hint has been already set for the 3rd case */
 	if (hint->flags == HF_RAWDATA)
 		return 0;
 
-	/* Check if we're egoing insert unit or an item instead */
-	if (place->pos.unit == ~0ul) {
-		return plugin_call(hint->plugin->o.item_ops, estimate, NULL,
-				   place->pos.unit, hint->count, hint);
-	} else {
+	aal_assert("umka-2230", hint->plugin != NULL);
+
+	/* Check if we're going insert unit or an item instead */
+	if (place->pos.unit != ~0ul) {
 		/*
-		  Unit component is set up, so, we assume this is an attempt
-		  insert new unit and item_entity should be passed to item's
-		  estimate method carefully.
+		  Unit component is set, so, we assume this is an attempt insert
+		  new unit and item_entity should be passed to item's estimate
+		  method carefully. Method place_realise() will take care about
+		  @place->item.
 		*/
-		
 		if ((res = reiser4_place_realize(place)))
 			return res;
-		
-		return plugin_call(hint->plugin->o.item_ops, estimate,
-				   &place->item, place->pos.unit,
-				   hint->count, hint);
 	}
+
+	return plugin_call(hint->plugin->o.item_ops, estimate_insert,
+			   &place->item, place->pos.unit, hint->count, hint);
 }
 
 /* Prints passed @place into passed @buff */

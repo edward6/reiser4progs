@@ -149,8 +149,10 @@ static errno_t stat40_init(item_entity_t *item) {
   Estimates how many bytes will be needed for creating statdata item described
   by passed @hint at passed @pos.
 */
-static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
-			       uint32_t count, create_hint_t *hint) 
+static errno_t stat40_estimate_insert(item_entity_t *item,
+				      uint32_t pos,
+				      uint32_t count,
+				      create_hint_t *hint) 
 {
 	uint16_t i;
 	statdata_hint_t *stat_hint;
@@ -270,15 +272,20 @@ static errno_t stat40_insert(item_entity_t *item,
 	return 0;
 }
 
-extern errno_t stat40_check(item_entity_t *, uint8_t);
+extern errno_t stat40_check(item_entity_t *,
+			    uint8_t);
 
-extern errno_t stat40_copy(item_entity_t *dst, uint32_t dst_pos, 
-			   item_entity_t *src, uint32_t src_pos, 
+extern errno_t stat40_copy(item_entity_t *dst,
+			   uint32_t dst_pos, 
+			   item_entity_t *src,
+			   uint32_t src_pos, 
 			   copy_hint_t *hint);
 
-extern errno_t stat40_feel_copy(item_entity_t *dst, uint32_t dst_pos, 
-				item_entity_t *src, uint32_t src_pos, 
-				copy_hint_t *hint);
+extern errno_t stat40_estimate_copy(item_entity_t *dst,
+				    uint32_t dst_pos, 
+				    item_entity_t *src,
+				    uint32_t src_pos, 
+				    copy_hint_t *hint);
 #endif
 
 /*
@@ -446,33 +453,33 @@ static errno_t stat40_print(item_entity_t *item,
 #endif
 
 static reiser4_item_ops_t stat40_ops = {
+	.data		  = stat40_data,
+	.read             = stat40_read,
+	.units		  = stat40_units,
 #ifndef ENABLE_STAND_ALONE
-	.estimate	= stat40_estimate,
-	.feel_copy      = stat40_feel_copy,
-	.copy           = stat40_copy,
-	.insert		= stat40_insert,
-	.init		= stat40_init,
-	.check		= stat40_check,
-	.print		= stat40_print,
-	.write          = NULL,
-	.layout         = NULL,
-	.remove		= NULL,
-	.shift          = NULL,
-	.predict        = NULL,
-	.set_key	= NULL,
-	.layout_check	= NULL,
-	.maxreal_key    = NULL,
-#endif
-	.data		= stat40_data,
-	.read           = stat40_read,
-	.units		= stat40_units,
-        
-	.lookup		= NULL,
-	.branch         = NULL,
-	.mergeable      = NULL,
+	.copy             = stat40_copy,
+	.insert		  = stat40_insert,
+	.init             = stat40_init,
+	.check            = stat40_check,
+	.print		  = stat40_print,
+	.estimate_copy    = stat40_estimate_copy,
+	.estimate_insert  = stat40_estimate_insert,
 
-	.maxposs_key	= NULL,
-	.get_key	= NULL
+	.estimate_shift   = NULL,
+	.overhead         = NULL,
+	.write            = NULL,
+	.layout           = NULL,
+	.remove		  = NULL,
+	.shift            = NULL,
+	.set_key	  = NULL,
+	.layout_check	  = NULL,
+	.maxreal_key      = NULL,
+#endif
+	.lookup		  = NULL,
+	.branch           = NULL,
+	.get_key	  = NULL,
+	.mergeable        = NULL,
+	.maxposs_key	  = NULL
 };
 
 static reiser4_plugin_t stat40_plugin = {

@@ -40,7 +40,7 @@ errno_t tail40_copy(item_entity_t *dst, uint32_t dst_pos,
     return tail40_rep(dst, dst_pos, src, src_pos, hint->src_count);
 }
 
-errno_t tail40_feel_copy(item_entity_t *dst, uint32_t dst_pos, 
+errno_t tail40_estimate_copy(item_entity_t *dst, uint32_t dst_pos, 
     item_entity_t *src, uint32_t src_pos, copy_hint_t *hint)
 {
     uint64_t src_offset, dst_max, src_max, src_end;

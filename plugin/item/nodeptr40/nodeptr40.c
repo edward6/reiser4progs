@@ -100,8 +100,10 @@ static errno_t nodeptr40_init(item_entity_t *item) {
 }
 
 /* Estimates how many bytes is needed for creating new nodeptr */
-static errno_t nodeptr40_estimate(item_entity_t *item, uint32_t pos,
-				  uint32_t count, create_hint_t *hint) 
+static errno_t nodeptr40_estimate_insert(item_entity_t *item,
+					 uint32_t pos,
+					 uint32_t count,
+					 create_hint_t *hint) 
 {
 	aal_assert("vpf-068", hint != NULL);
 
@@ -147,36 +149,37 @@ extern errno_t nodeptr40_check(item_entity_t *item, uint8_t mode);
 #endif
 
 static reiser4_item_ops_t nodeptr40_ops = {
+	.units		  = nodeptr40_units,
+	.read             = nodeptr40_read,
+	.branch           = nodeptr40_branch,
+	
 #ifndef ENABLE_STAND_ALONE	    
-	.init		= nodeptr40_init,
-	.feel_copy	= NULL,
-	.copy           = NULL,
-	.insert         = nodeptr40_insert,
-	.estimate	= nodeptr40_estimate,
-	.print		= nodeptr40_print,
-	.check		= nodeptr40_check,
-	.layout         = nodeptr40_layout,
-	.layout_check	= nodeptr40_layout_check,
+	.init		  = nodeptr40_init,
+	.insert           = nodeptr40_insert,
+	.print		  = nodeptr40_print,
+	.check		  = nodeptr40_check,
+	.layout           = nodeptr40_layout,
+	.layout_check	  = nodeptr40_layout_check,
+	.estimate_insert  = nodeptr40_estimate_insert,
 
-	.write          = NULL,
-	.remove		= NULL,
+	.estimate_copy	  = NULL,
+	.estimate_shift   = NULL,
 
-	.shift          = NULL,
-	.predict        = NULL,
+	.overhead         = NULL,
+	.copy             = NULL,
+	.write            = NULL,
+	.remove		  = NULL,
+	.shift            = NULL,
 
-	.set_key	= NULL,
-	.maxreal_key    = NULL,
+	.set_key	  = NULL,
+	.maxreal_key      = NULL,
 #endif
-	.units		= nodeptr40_units,
-	.read           = nodeptr40_read,
-	.branch         = nodeptr40_branch,
-		
-	.data		= NULL,
-	.lookup		= NULL,
-	.mergeable      = NULL,
+	.data		  = NULL,
+	.lookup		  = NULL,
+	.mergeable        = NULL,
 
-	.maxposs_key	= NULL,
-	.get_key	= NULL
+	.maxposs_key	  = NULL,
+	.get_key	  = NULL
 };
 
 static reiser4_plugin_t nodeptr40_plugin = {

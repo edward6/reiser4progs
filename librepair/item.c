@@ -135,7 +135,7 @@ errno_t repair_item_layout_check(reiser4_place_t *place,
     return repair_item_check_fini(place, res, length, mode);
 }
 
-errno_t repair_item_feel_copy(reiser4_place_t *dst, reiser4_place_t *src, 
+errno_t repair_item_estimate_copy(reiser4_place_t *dst, reiser4_place_t *src, 
     copy_hint_t *hint)
 {
     aal_assert("vpf-952", dst  != NULL);
@@ -144,7 +144,7 @@ errno_t repair_item_feel_copy(reiser4_place_t *dst, reiser4_place_t *src,
     aal_assert("vpf-955", dst->item.plugin != NULL);
     aal_assert("vpf-956", src->item.plugin != NULL);
 	
-    return plugin_call(src->item.plugin->o.item_ops, feel_copy, 
+    return plugin_call(src->item.plugin->o.item_ops, estimate_copy, 
 	&dst->item, dst->pos.unit, &src->item, src->pos.unit, hint);
 }
 

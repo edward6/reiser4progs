@@ -325,17 +325,25 @@ struct shift_hint {
 typedef struct shift_hint shift_hint_t;
 
 struct copy_hint {	
-	uint32_t dst_count, src_count;
+	uint32_t dst_count;
+	uint32_t src_count;
 	int32_t  len_delta;
 	
 	key_entity_t start, end;
 	
-	/* Used by extent40 feel and copy only. */
+	/*
+	  Fields bellow are only related to extent estimate_copy() and copy()
+	  operations.
+	*/
 	
-	/* Offset in blocks blocks in the start and end units of dst and src. */
-	uint64_t dst_head, src_head, dst_tail, src_tail;
-	
-	/* Should be dst head and tail splitted into 2 units while copying. */
+	/* Offset in blocks in the start and end units of dst and src */
+	uint64_t dst_tail, src_tail;
+	uint64_t dst_head, src_head;
+
+	/*
+	  Should be dst head and tail splitted into 2 units while performing
+	  copy() operation.
+	*/
 	bool_t head, tail;
 };
 
@@ -724,26 +732,37 @@ struct reiser4_item_ops {
 	/* Prepares item body for working with it */
 	errno_t (*init) (item_entity_t *);
 
-	/* Estimate copy operation */
-	errno_t (*feel_copy) (item_entity_t *, uint32_t, 
-			      item_entity_t *, uint32_t, 
-			      copy_hint_t *);
+	/* Returns overhead */
+	uint16_t (*overhead) (item_entity_t *);
 	
-	errno_t (*copy) (item_entity_t *, uint32_t, item_entity_t *,
-			 uint32_t, copy_hint_t *);
+	/* Estimate copy operation */
+	errno_t (*estimate_copy) (item_entity_t *, uint32_t, 
+				  item_entity_t *, uint32_t, 
+				  copy_hint_t *);
 
-	/*
-	  Estimates item in order to find out how many bytes is needed for
-	  inserting one more unit.
-	*/
-	errno_t (*estimate) (item_entity_t *, uint32_t, uint32_t,
-			     create_hint_t *);
+	/* Estimates insert operation */
+	errno_t (*estimate_insert) (item_entity_t *, uint32_t,
+				    uint32_t, create_hint_t *);
+
+	/* Predicts the shift parameters (units, bytes, etc) */
+	errno_t (*estimate_shift) (item_entity_t *, item_entity_t *,
+				   shift_hint_t *);
+	
 	/*
 	  Inserts some amount of units described by passed hint into passed
 	  item.
 	*/
 	errno_t (*insert) (item_entity_t *, create_hint_t *, uint32_t);
 	
+	/* Performs shift of units from passed @src item to @dst item */
+	errno_t (*shift) (item_entity_t *, item_entity_t *,
+			  shift_hint_t *);
+
+	/* Copies some amount of units from @src_item to @dst_item */
+	errno_t (*copy) (item_entity_t *, uint32_t,
+			 item_entity_t *, uint32_t,
+			 copy_hint_t *);
+
 	/* Removes specified unit from the item. Returns released space */
 	int32_t (*remove) (item_entity_t *, uint32_t, uint32_t);
 	
@@ -753,14 +772,6 @@ struct reiser4_item_ops {
 
 	/* Checks the item structure. */
 	errno_t (*check) (item_entity_t *, uint8_t);
-	
-	/* Performs shift of units from passed @src item to @dst item */
-	errno_t (*shift) (item_entity_t *, item_entity_t *,
-			  shift_hint_t *);
-
-	/* Predicts the shift parameters (units, bytes, etc) */
-	errno_t (*predict) (item_entity_t *, item_entity_t *,
-			    shift_hint_t *);
 	
 	/* Prints item into specified buffer */
 	errno_t (*print) (item_entity_t *, aal_stream_t *, uint16_t);
