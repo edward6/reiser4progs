@@ -950,6 +950,9 @@ struct item_object_ops {
 	
 	/* Gets the amount of bytes data item keeps takes on the disk. */
 	uint64_t (*bytes) (reiser4_place_t *);
+
+	/* Gets the overhead for the item creation. */
+	uint16_t (*overhead) ();
 #endif
 };
 
