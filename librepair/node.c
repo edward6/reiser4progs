@@ -1,6 +1,8 @@
 /*
     librepair/node.c - methods are needed for node recovery.
-    Copyright (C) 1996-2002 Hans Reiser.
+
+    Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+    reiser4progs/COPYING.
 */
 
 #include <repair/librepair.h>
@@ -220,7 +222,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
     if (node->parent != NULL) {
 	/* Take the right delimiting key from the parent. */
 	
-	if (reiser4_node_pos(coord.node, NULL))
+	if (reiser4_node_pos(node, NULL))
 	    return -1;
 	
 	/* Open coord in the parent at the correct position. */
@@ -232,7 +234,8 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 	 * otherwise. */
 	
 	if ((reiser4_node_items(node->parent) == coord.pos.item + 1) && 
-	    (reiser4_item_units(&coord) == coord.pos.unit + 1)) 
+	    (reiser4_item_units(&coord) == coord.pos.unit + 1 || 
+	     coord.pos.unit == ~0ul)) 
 	{
 	    if (repair_node_rd_key(node->parent, rd_key))
 		return -1;

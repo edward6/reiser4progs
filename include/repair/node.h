@@ -1,6 +1,8 @@
 /*
     repair/node.h -- reiserfs node recovery structures and macros.
-    Copyright (C) 1996-2002 Hans Reiser.
+
+    Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+    reiser4progs/COPYING.
 */
 
 #ifndef REPAIR_NODE_H

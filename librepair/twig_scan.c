@@ -1,6 +1,8 @@
 /*
     librepair/twig_scan.c - methods are needed for the second fsck pass. 
-    Copyright (C) 1996-2002 Hans Reiser.
+
+    Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+    reiser4progs/COPYING.
 
     The twig_scan pass - fsck zeros extent pointers which point to an already 
     used block. Builds a map of used blocks.
@@ -77,7 +79,7 @@ static errno_t callback_item_layout(reiser4_coord_t *coord, void *data) {
     return 0;
 }
 
-static errno_t repair_ts_setup(repair_data_t *rd) {
+static errno_t repair_twig_scan_setup(repair_data_t *rd) {
     repair_ts_t *ts;
     uint32_t i;
     
@@ -119,7 +121,7 @@ static errno_t repair_ts_setup(repair_data_t *rd) {
     return 0;
 }
 
-static errno_t repair_ts_update(repair_data_t *rd) {
+static errno_t repair_twig_scan_update(repair_data_t *rd) {
     repair_ts_t *ts;
     uint32_t i;
  
@@ -154,7 +156,7 @@ static errno_t repair_ts_update(repair_data_t *rd) {
     return 0;
 }
 
-errno_t repair_ts_pass(repair_data_t *rd) {
+errno_t repair_twig_scan_pass(repair_data_t *rd) {
     reiser4_node_t *node;
     object_entity_t *entity;
     repair_ts_t *ts;
@@ -166,7 +168,7 @@ errno_t repair_ts_pass(repair_data_t *rd) {
     
     ts = repair_ts(rd);
     
-    if (repair_ts_setup(rd))
+    if (repair_twig_scan_setup(rd))
 	return -1;
 
     /* There were found overlapped extents. Look through twigs, build list of
@@ -200,7 +202,7 @@ errno_t repair_ts_pass(repair_data_t *rd) {
 	blk++;
     }
 
-    if (repair_ts_update(rd))
+    if (repair_twig_scan_update(rd))
 	return -1;
     
     return 0;
@@ -209,11 +211,22 @@ error_node_free:
     reiser4_node_release(node);
 
 error_ts_update:
-    repair_ts_update(rd);
+    repair_twig_scan_update(rd);
 
     return res;
 }
 
+errno_t repair_twig_scan_release(repair_data_t *rd) {
+    aal_assert("vpf-741", rd != NULL, return -1);
+
+    aux_bitmap_close(repair_ts(rd)->bm_used);
+    aux_bitmap_close(repair_ts(rd)->bm_twig);
+    aux_bitmap_close(repair_ts(rd)->bm_leaf);
+    aux_bitmap_close(repair_ts(rd)->bm_met);
+    aux_bitmap_close(repair_ts(rd)->bm_unfm_tree);
+    aux_bitmap_close(repair_ts(rd)->bm_unfm_out);
+    return 0;
+}
 
 #if 0
 

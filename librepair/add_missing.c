@@ -1,19 +1,22 @@
 /*
     repair/add_missing.c -- the common methods for insertion leaves and extent 
     item from twigs unconnected from the tree.
-    Copyright (C) 1996 - 2002 Hans Reiser
+
+    Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+    reiser4progs/COPYING.
 */
 
 #include <repair/librepair.h>
 
-static errno_t callback_item_mark_region(item_entity_t *item, blk_t start, 
-    blk_t end, void *data)
+static errno_t callback_item_mark_region(item_entity_t *item, uint64_t start, 
+    uint64_t count, void *data)
 {
     aux_bitmap_t *bitmap = data;
     
     aal_assert("vpf-735", bitmap != NULL, return -1);
     
-    aux_bitmap_mark_region(bitmap, start, start + end);
+    if (start != 0)
+	aux_bitmap_mark_region(bitmap, start, start + count);
 
     return 0;
 }
@@ -33,7 +36,7 @@ static errno_t callback_extent_used(reiser4_coord_t *coord, void *data) {
     return 0;
 }
 
-static errno_t repair_am_setup(repair_data_t *rd) {
+static errno_t repair_add_missing_setup(repair_data_t *rd) {
     aal_assert("vpf-594", rd != NULL, return -1);
     aal_assert("vpf-618", rd->fs != NULL, return -1);
     aal_assert("vpf-619", rd->fs->format != NULL, return -1);
@@ -55,7 +58,7 @@ static errno_t repair_am_setup(repair_data_t *rd) {
     return 0;
 }
 
-errno_t repair_am_pass(repair_data_t *rd) {
+errno_t repair_add_missing_pass(repair_data_t *rd) {
     reiser4_coord_t coord;
     rpos_t *pos = &coord.pos;
     reiser4_tree_t *tree;
@@ -71,7 +74,7 @@ errno_t repair_am_pass(repair_data_t *rd) {
 
     am = repair_am(rd);
 
-    if (repair_am_setup(rd))
+    if (repair_add_missing_setup(rd))
 	return -1;
     
     tree = rd->fs->tree;    
@@ -189,5 +192,17 @@ error_node_free:
     reiser4_node_release(node);
 
     return res;
+}
+
+errno_t repair_add_missing_release(repair_data_t *rd) {
+    aal_assert("vpf-739", rd != NULL, return -1);
+
+    aux_bitmap_close(repair_am(rd)->bm_used);
+    aux_bitmap_close(repair_am(rd)->bm_twig);
+    aux_bitmap_close(repair_am(rd)->bm_leaf);
+
+    reiser4_tree_close(repair_am(rd)->tree);
+    
+    return 0;
 }
 

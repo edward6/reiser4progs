@@ -212,7 +212,7 @@ static errno_t node40_corrupt(object_entity_t *entity, uint16_t options) {
     return 0;
 }
 
-errno_t node40_check(object_entity_t *entity) {
+errno_t node40_check(object_entity_t *entity, uint16_t options) {
     node40_t *node = (node40_t *)entity;
     
     aal_assert("vpf-194", node != NULL, return -1);

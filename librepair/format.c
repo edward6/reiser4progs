@@ -1,6 +1,8 @@
 /*
     libprogs/format.c - methods are needed for handle the fs format.
-    Copyright (C) 1996-2002 Hans Reiser.
+
+    Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+    reiser4progs/COPYING.
 */
 
 #include <repair/librepair.h>

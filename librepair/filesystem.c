@@ -1,7 +1,9 @@
 /*
     librepair/filesystem.c - methods are needed mostly by fsck for work 
     with broken filesystems.
-    Copyright (C) 1996-2002 Hans Reiser.
+
+    Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+    reiser4progs/COPYING.
 */
 
 #include <repair/librepair.h>
@@ -13,18 +15,26 @@ errno_t repair_fs_check(reiser4_fs_t *fs, repair_data_t *rd) {
     aal_assert("vpf-180", fs != NULL, return -1);
     aal_assert("vpf-493", rd != NULL, return -1);
 
-    if ((res = repair_filter_pass(rd)))
+    if ((res = repair_filter_pass(rd))) {
+	repair_filter_release(rd);
 	return res;
+    }
 
-    if ((res = repair_ds_pass(rd)))
+    if ((res = repair_disk_scan_pass(rd))) {
+	repair_disk_scan_release(rd);
 	return res;
+    }
 
-    if ((res = repair_ts_pass(rd)))
+    if ((res = repair_twig_scan_pass(rd))) {
+	repair_twig_scan_release(rd);
 	return res;
+    }
 
-    if ((res = repair_am_pass(rd)))
+    if ((res = repair_add_missing_pass(rd))) {
+	repair_add_missing_release(rd);
 	return res;
-
+    }
+    
     return 0;
 }
 

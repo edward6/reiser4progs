@@ -1,6 +1,8 @@
 /*
     repair/item.h -- common structures and methods for item recovery.
-    Copyright 1996-2002 (C) Hans Reiser.
+
+    Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+    reiser4progs/COPYING.
 */
 
 #ifndef REPAIR_ITEM_H

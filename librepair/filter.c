@@ -1,32 +1,38 @@
 /* 
     librepair/filter.c - methods are needed for the fsck pass1. 
-    Copyright (C) 1996-2002 Hans Reiser.
+    
+    Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+    reiser4progs/COPYING.
+    
     The first fsck pass - filter - fsck filters corrupted parts of 
     a reiser4 tree out, repairs all recoverable corruptions, builds
     a map of all used blocks, but extents (format + formatted nodes). 
-    Extents may still be not correct.
+    Extents may still be not correct.    
 */
 
 #include <repair/librepair.h>
 
+/* Temporary flags set during recovery. */
+#define REPAIR_BAD_PTR			0x1
+
 /* Open callback for traverse. It opens a node at passed blk, creates a node 
- * on it. It does nothing if REPAIR_BAD_POINTER is set and set this flag if 
+ * on it. It does nothing if REPAIR_BAD_PTR is set and set this flag if 
  * node cannot be opeened. Returns error if any. */
 static errno_t repair_filter_node_open(reiser4_node_t **node, blk_t blk, 
     void *data)
 {
-    repair_data_t *repair_data = (repair_data_t *)data;
+    repair_data_t *rd = (repair_data_t *)data;
 
-    aal_assert("vpf-379", repair_data != NULL, return -1);
+    aal_assert("vpf-379", rd != NULL, return -1);
     aal_assert("vpf-432", node != NULL, return -1);
-    aal_assert("vpf-433", repair_data->fs != NULL, return -1);
-    aal_assert("vpf-591", repair_data->fs->format != NULL, return -1);
+    aal_assert("vpf-433", rd->fs != NULL, return -1);
+    aal_assert("vpf-591", rd->fs->format != NULL, return -1);
 
-    if (repair_test_flag(repair_data, REPAIR_BAD_PTR))
+    if (aal_test_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR))
 	return 0;
 
-    if ((*node = repair_node_open(repair_data->fs, blk)) == NULL)
-	repair_set_flag(repair_data, REPAIR_BAD_PTR);    
+    if ((*node = repair_node_open(rd->fs, blk)) == NULL)
+	aal_set_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);    
 
     return 0;
 }
@@ -64,8 +70,10 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
     if (!res && (res = repair_node_dkeys_check(node, data)) < 0)
 	return res;
 
-    if (res > 0)
-	repair_set_flag(rd, REPAIR_BAD_PTR);
+    if (res > 0) {
+	aal_set_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
+	/* FIXME-VITALY: if a node was changed, all changes should be forgot. */
+    }
 
     return res;
 }
@@ -107,7 +115,7 @@ static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data)
     aal_assert("vpf-257", rd != NULL, return -1);
     aal_assert("vpf-434", coord != NULL, return -1);
     
-    if (repair_test_flag(rd, REPAIR_BAD_PTR)) {
+    if (aal_test_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR)) {
 	reiser4_ptr_hint_t ptr;
 	
 	/* Clear pointed block in the formatted bitmap. */
@@ -125,7 +133,7 @@ static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data)
 	    return -1;
 	}
 	coord->pos = prev;
-	repair_clear_flag(rd, REPAIR_BAD_PTR);
+	aal_clear_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
     } else {
 	/* Mark all twigs in the bm_twig bitmap. */
 	if (reiser4_node_level(coord->node) == TWIG_LEVEL) 
@@ -142,13 +150,13 @@ static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data)
  * children - if no child left, set REPAIR_BAD_PTR flag to force deletion of 
  * the pointer to this block in update_traverse callback. */
 static errno_t repair_filter_after_traverse(reiser4_node_t *node, void *data) {
-    repair_data_t *repair_data = (repair_data_t *)data;
+    repair_data_t *rd = (repair_data_t *)data;
      
     aal_assert("vpf-393", node != NULL, return -1);
-    aal_assert("vpf-256", repair_data != NULL, return -1);    
+    aal_assert("vpf-256", rd != NULL, return -1);    
 
     if (reiser4_node_items(node) == 0)
-	repair_set_flag(repair_data, REPAIR_BAD_PTR);
+	aal_set_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
     /* FIXME-VITALY: else - sync the node */
 
     return 0;
@@ -192,7 +200,7 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
 	return -1;
     }
  
-    rd->flags = 0;
+    repair_filter(rd)->flags = 0;
 
     root = reiser4_format_get_root(rd->fs->format);
 
@@ -200,11 +208,11 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
     if (root < reiser4_format_start(rd->fs->format) || 
 	root > reiser4_format_get_len(rd->fs->format))
 	/* Wrong pointer. */
-	repair_set_flag(rd, REPAIR_BAD_PTR);
+	aal_set_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
     else if (aux_bitmap_test(repair_filter(rd)->bm_used, 
 	reiser4_format_get_root(rd->fs->format))) 
 	/* This block is from format area. */
-	repair_set_flag(rd, REPAIR_BAD_PTR);
+	aal_set_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
     else	
 	/* We meet the block for the first time. */
 	aux_bitmap_mark(repair_filter(rd)->bm_used, 
@@ -225,9 +233,9 @@ static errno_t repair_filter_update(traverse_hint_t *hint) {
     
     rd = hint->data;
     
-    if (repair_test_flag(rd, REPAIR_BAD_PTR)) {
+    if (aal_test_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR)) {
 	reiser4_format_set_root(rd->fs->format, INVAL_BLK);
-	repair_clear_flag(rd, REPAIR_BAD_PTR);
+	aal_clear_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
     } else {
 	/* Mark the root block as a formatted block in the bitmap. */
 	aux_bitmap_mark(repair_filter(rd)->bm_used, 
@@ -262,7 +270,7 @@ errno_t repair_filter_pass(repair_data_t *rd) {
 	if (res < 0)
 	    goto error_filter_update;
     } else 
-	repair_set_flag(rd, REPAIR_BAD_PTR);
+	aal_set_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
 
     if ((res = repair_filter_update(&hint)))
 	return res;
@@ -273,4 +281,12 @@ error_filter_update:
     repair_filter_update(&hint);
     
     return res;
+}
+
+errno_t repair_filter_release(repair_data_t *rd) {
+    aal_assert("vpf-738", rd != NULL, return -1);
+    
+    aux_bitmap_close(repair_filter(rd)->bm_used);
+    aux_bitmap_close(repair_filter(rd)->bm_twig);
+    return 0;
 }

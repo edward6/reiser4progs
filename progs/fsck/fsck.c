@@ -9,14 +9,23 @@
 
 #include <fsck.h>
 
+/* fsck options. */
+enum {
+    REPAIR_OPT_AUTO	    = 0x1,
+    REPAIR_OPT_FORCE	    = 0x2,
+    REPAIR_OPT_QUIET	    = 0x3,
+    REPAIR_OPT_VERBOSE	    = 0x4,
+    REPAIR_OPT_READ_ONLY    = 0x5
+} fsck_options;
+
 typedef struct fsck_parse {
     reiser4_profile_t *profile;
     uint16_t mode;
-    uint16_t options;
 
     FILE *logfile;
     aal_device_t *host_device;
     aal_device_t *journal_device;    
+    uint16_t options;
 } fsck_parse_t;
 
 static void fsck_print_usage(char *name) {
@@ -80,11 +89,11 @@ static void fsck_print_usage(char *name) {
 \nWill check consistency of the filesystem on (%s).\n"
 
 static int fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {    
-    if (repair_mode(data) == REPAIR_CHECK) {
+    if (data->mode == REPAIR_CHECK) {
 	fprintf(stderr, CHECK_WARNING, host_name);
-    } else if (repair_mode(data) == REPAIR_REBUILD) {
+    } else if (data->mode == REPAIR_FIX) {
 	fprintf(stderr, REBUILD_WARNING, host_name);	
-    } else if (repair_mode(data) == REPAIR_ROLLBACK) {
+    } else if (data->mode == REPAIR_ROLLBACK) {
 	fprintf(stderr, "Will rollback all data saved in (%s) into (%s).\n", 
 	    "", host_name);
     }
@@ -100,7 +109,7 @@ static int fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 
 static void fsck_init_streams(fsck_parse_t *data) {
     progs_exception_set_stream(EXCEPTION_INFORMATION, 
-	repair_verbose(data) ? stderr : NULL);    
+	aal_test_bit(&data->options, REPAIR_OPT_VERBOSE) ? stderr : NULL);    
     progs_exception_set_stream(EXCEPTION_ERROR, data->logfile);
     progs_exception_set_stream(EXCEPTION_WARNING, data->logfile);
     progs_exception_set_stream(EXCEPTION_FATAL, stderr);
@@ -117,7 +126,7 @@ static int fsck_init(fsck_parse_t *data, int argc, char *argv[])
     static struct option long_options[] = {
 	/* Fsck modes */
 	{"check", no_argument, &mode, REPAIR_CHECK},
-        {"rebuild", no_argument, &mode, REPAIR_REBUILD},
+        {"rebuild", no_argument, &mode, REPAIR_FIX},
 	/* Fsck hidden modes. */
 	{"rollback-fsck-changes", no_argument, &mode, REPAIR_ROLLBACK},
 	/* Fsck options */
@@ -170,14 +179,14 @@ static int fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	    case 'R':
 		break;
 	    case 'f':
-		repair_set_option(REPAIR_OPT_FORCE, data);
+		aal_set_bit(&data->options, REPAIR_OPT_FORCE);
 		break;
 	    case 'a':
 	    case 'p':
-		repair_set_option(REPAIR_OPT_AUTO, data);
+		aal_set_bit(&data->options, REPAIR_OPT_AUTO);
 		break;
 	    case 'v':
-		repair_set_option(REPAIR_OPT_VERBOSE, data);
+		aal_set_bit(&data->options, REPAIR_OPT_VERBOSE);
 		break;
 /*
 	    case 'd':
@@ -208,7 +217,7 @@ static int fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		progs_print_banner(argv[0]);
 		return USER_ERROR;
 	    case 'q': 
-		repair_set_option(REPAIR_OPT_QUIET, data);
+		aal_set_bit(&data->options, REPAIR_OPT_QUIET);
 		break;
 	    case 'r':
 		break;
@@ -231,7 +240,7 @@ static int fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	return USER_ERROR;
     }
     
-    repair_mode(data) = mode;
+    data->mode = mode;
    
     /* Check if device is mounted and we are able to fsck it. */ 
     if (progs_dev_mounted(argv[optind], NULL)) {
@@ -240,7 +249,7 @@ static int fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		"permissions, cannot fsck it.", argv[optind]);
 	    return USER_ERROR;
 	} else {
-	    repair_set_option(REPAIR_OPT_READ_ONLY, data);
+	    aal_set_bit(&data->options, REPAIR_OPT_READ_ONLY);
 	}
     }
     
@@ -258,7 +267,7 @@ static int fsck_init(fsck_parse_t *data, int argc, char *argv[])
     return fsck_ask_confirmation(data, argv[optind]);
 }
 
-int fsck_check_fs(reiser4_fs_t *fs, repair_data_t *data) {
+static int fsck_check(reiser4_fs_t *fs, repair_data_t *data) {
     int retval;
     time_t t;
     
@@ -277,25 +286,25 @@ int fsck_check_fs(reiser4_fs_t *fs, repair_data_t *data) {
     return NO_ERROR;
 }
 
-int fsck_rebuild_fs(reiser4_fs_t *fs) {
+static int fsck_rebuild_fs(reiser4_fs_t *fs) {
     return NO_ERROR;
 }
 
-int fsck_rollback() {
+static int fsck_rollback() {
     return NO_ERROR;
 }
 
-static errno_t fsck_data_prepare(repair_data_t *repair_data, 
+static errno_t fsck_data_prepare(repair_data_t *rd, 
     fsck_parse_t *parse_data, reiser4_fs_t *fs) 
 {
-    aal_assert("vpf-481", repair_data != NULL, return -1);
+    aal_assert("vpf-481", rd != NULL, return -1);
     aal_assert("vpf-505", parse_data != NULL, return -1);
     aal_assert("vpf-513", fs != NULL, return -1);
  
-    repair_data->fs = fs;
-    repair_data->mode = parse_data->mode;
-    repair_data->options = parse_data->options;
-    repair_data->profile = parse_data->profile;
+    rd->fs = fs;
+    aal_set_bit(&rd->options, parse_data->mode);
+
+    rd->profile = parse_data->profile;
 
     return 0;
 }
@@ -333,17 +342,9 @@ int main(int argc, char *argv[]) {
 	aal_exception_fatal("Failed to replay the journal.");
 	goto free_device;
     }
-	
-    switch (repair_mode(&data)) {
-	case REPAIR_CHECK:
-	    exit_code = fsck_check_fs(fs, &repair_data);
-	    break;
-	default:
-	    aal_exception_fatal("Only check mode is supported yet.");
-	    exit_code = USER_ERROR;
-	    goto free_fs;
-    }
-
+    
+    exit_code = fsck_check(fs, &repair_data);
+    
     fprintf(stderr, "Synchronizing...");
    
     if (repair_fs_sync(fs)) {

@@ -1,6 +1,8 @@
 /*
     repair/repair.h -- the common structures and methods for recovery.
-    Copyright (C) 1996 - 2002 Hans Reiser
+
+    Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+    reiser4progs/COPYING.
 */
 
 #ifndef REPAIR_H
@@ -12,37 +14,36 @@
 
 #include <aux/bitmap.h>
 #include <reiser4/reiser4.h>
+#include <repair/repair_plugins.h>
 
-/* Repair modes. */
-#define REPAIR_CHECK	0x1
-#define REPAIR_REBUILD	0x2
-#define REPAIR_ROLLBACK	0x3
+struct repair_check_info {
+    /* amounts of different kinds of corruptions. */
+    uint64_t fatal;
+    uint64_t fixable;
+    /* amounts of different kinds of nodes. */
+    uint64_t leaves;
+    uint64_t twigs;
+    uint64_t branches;
+    uint64_t unformatted;
+    uint64_t zero_unformatted;
+    uint64_t broken;
+};
 
-#define repair_mode(repair_data)	((repair_data)->mode)
+typedef struct repair_check_info repair_check_info_t;
 
-/* Repair options. */
-#define REPAIR_OPT_AUTO		0x2
-#define REPAIR_OPT_FORCE	0x3
-#define REPAIR_OPT_QUIET	0x4
-#define REPAIR_OPT_VERBOSE	0x5
-#define REPAIR_OPT_READ_ONLY	0x6
+union repair_info {
+    struct repair_check_info check;    
+};
 
-#define repair_set_option(bit, repair_data)	(aal_set_bit(&(repair_data)->options, bit))
-#define repair_test_option(bit, repair_data)	(aal_test_bit(&(repair_data)->options, bit))
-#define repair_clear_option(bit, repair_data)	(aal_clear_bit(&(repair_data)->options, bit))
-
-#define repair_auto(repair_data)	(repair_test_option(REPAIR_OPT_AUTO, repair_data))
-#define repair_force(repair_data)	(repair_test_option(REPAIR_OPT_FORCE, repair_data))
-#define repair_quiet(repair_data)	(repair_test_option(REPAIR_OPT_QUIET, repair_data))
-#define repair_verbose(repair_data)	(repair_test_option(REPAIR_OPT_VERBOSE, repair_data))
-#define repair_read_only(repair_data)	(repair_test_option(REPAIR_OPT_READ_ONLY, repair_data))
-
+typedef union repair_info repair_info_t;
+    
 /* Filter data. */
 typedef struct repair_filter {
     aux_bitmap_t *bm_used;	/* Formatted area + formatted nodes. */
     aux_bitmap_t *bm_twig;	/* Twig nodes */
     
     uint8_t level;
+    uint16_t flags;
 } repair_filter_t;
 
 /* Disk scan data. */
@@ -79,9 +80,8 @@ typedef struct repair_am {
 typedef struct repair_data {
     reiser4_fs_t *fs;
     reiser4_profile_t *profile;
+    repair_info_t info;
     uint16_t options;
-    uint16_t mode;
-    uint16_t flags;
     union {
 	repair_filter_t filter;
 	repair_ds_t ds;
@@ -95,12 +95,10 @@ typedef struct repair_data {
 #define repair_ds(data)	    (&(data)->pass.ds)
 #define repair_am(data)	    (&(data)->pass.am)
 
-/* Temporary flags set during recovery. */
-#define REPAIR_BAD_PTR			0x1
-
+/*
 #define repair_set_flag(data, flag)	(aal_set_bit(&(data)->flags, flag))
 #define repair_test_flag(data, flag)	(aal_test_bit(&(data)->flags, flag))
 #define repair_clear_flag(data, flag)	(aal_clear_bit(&(data)->flags, flag))
-
+*/
 #endif
 
