@@ -1744,7 +1744,7 @@ errno_t reiser4_tree_remove(
 	  pack the tree about it.
 	*/
 	if (reiser4_node_items(place->node) > 0) {
-		if (tree->flags & TF_PACK && tree->traps.pack) {
+		if ((tree->flags & TF_PACK) && tree->traps.pack) {
 			errno_t res;
 			
 			if ((res = tree->traps.pack(tree, place, tree->traps.data)))
