@@ -175,7 +175,7 @@ errno_t repair_disk_scan_pass(repair_data_t *rd) {
 
 	level = reiser4_node_get_level(node);
 
-	if (!reiser4_tree_data_level(level)) {
+	if (!repair_tree_data_level(level)) {
 	    /* Node cannot contain data (metadata only), skip it, but save as 
 	     * formatted to check extent pointers. */
 	    aux_bitmap_mark(ds->bm_frmt, blk);

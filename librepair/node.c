@@ -138,7 +138,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 
 	/* Check that the item is legal for this node. If not, it will be 
 	 * deleted in update traverse callback method. */
-	if (!reiser4_tree_legal_level(coord.item.plugin->h.group, 
+	if (!repair_tree_legal_level(coord.item.plugin->h.group, 
 	    reiser4_node_get_level(node)))
 	    return 1;
 

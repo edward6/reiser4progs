@@ -74,39 +74,6 @@ static lru_ops_t lru_ops = {
 	.set_prev = callback_set_prev
 };
 
-/* Loads denoted by passed nodeptr @place child node */
-reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
-				   reiser4_place_t *place)
-{
-	reiser4_ptr_hint_t ptr;
-	reiser4_node_t *node = NULL;
-	
-	aal_assert("umka-1889", tree != NULL);
-	aal_assert("umka-1890", place != NULL);
-	aal_assert("umka-1891", place->node != NULL);
-
-	reiser4_node_lock(place->node);
-	
-	if (reiser4_place_realize(place))
-		goto error_unlock_place;
-
-	/* Checking if item is a branch of tree */
-	if (!reiser4_item_branch(place))
-		goto error_unlock_place;
-			
-	plugin_call(place->item.plugin->item_ops, read,
-		    &place->item, &ptr, 0, 1);
-
-	if (ptr.ptr == INVAL_BLK)
-		goto error_unlock_place;
-	
-	node = reiser4_tree_load(tree, place->node, ptr.ptr);
-
- error_unlock_place:
-	reiser4_node_unlock(place->node);
-	return node;
-}
-
 /*
   Registers passed node in tree and connects left and right neighbour
   nodes. This function do not do any modifications.
@@ -260,6 +227,39 @@ errno_t reiser4_tree_unload(reiser4_tree_t *tree,
 	}
 
 	return reiser4_node_close(node);
+}
+
+/* Loads denoted by passed nodeptr @place child node */
+reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
+				   reiser4_place_t *place)
+{
+	reiser4_ptr_hint_t ptr;
+	reiser4_node_t *node = NULL;
+	
+	aal_assert("umka-1889", tree != NULL);
+	aal_assert("umka-1890", place != NULL);
+	aal_assert("umka-1891", place->node != NULL);
+
+	reiser4_node_lock(place->node);
+	
+	if (reiser4_place_realize(place))
+		goto error_unlock_place;
+
+	/* Checking if item is a branch of tree */
+	if (!reiser4_item_branch(place))
+		goto error_unlock_place;
+			
+	plugin_call(place->item.plugin->item_ops, read,
+		    &place->item, &ptr, 0, 1);
+
+	if (ptr.ptr == INVAL_BLK)
+		goto error_unlock_place;
+	
+	node = reiser4_tree_load(tree, place->node, ptr.ptr);
+
+ error_unlock_place:
+	reiser4_node_unlock(place->node);
+	return node;
 }
 
 /* Finds both left and right neighbours and connects them into the tree */
@@ -1977,8 +1977,9 @@ errno_t reiser4_tree_dig(
 	reiser4_node_lock(node);
 
 	if ((before_func && (res = before_func(node, hint->data))))
-		goto error;
+		goto error_unlock_node;
 
+	/* The loop though the items of current node */
 	for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
 		pos->unit = ~0ul; 
 
@@ -1988,7 +1989,8 @@ errno_t reiser4_tree_dig(
 		*/
 		if (reiser4_place_open(&place, node, pos)) {
 			aal_exception_error("Can't open item by place. Node "
-					    "%llu, item %u.", node->blk, pos->item);
+					    "%llu, item %u.", node->blk,
+					    pos->item);
 			goto error_after_func;
 		}
 
@@ -2011,33 +2013,54 @@ errno_t reiser4_tree_dig(
 			if (setup_func && (res = setup_func(&place, hint->data)))
 				goto error_after_func;
 
+			/*
+			  Trying to get child node pointed by @ptr from the
+			  parent cache. If it is successful we will traverse
+			  it. If we are unable to find it in parent cache, it
+			  means that it is not loaded yet and w load it and
+			  connect to the tree explicitly.
+			*/
 			if (!(child = reiser4_node_cbp(node, ptr.ptr))) {
 						
 				if (!open_func)
 					goto update;
 
+				/* Opening the node by its @ptr */
 				if ((res = open_func(&child, ptr.ptr, hint->data)))
 					goto error_update_func;
 
 				if (!child)
 					goto update;
 
-				child->data = (void *)1;
-					
+				/* Connect opened node to the tree */
 				if (reiser4_tree_connect(tree, node, child))
 					goto error_free_child;
-			}
 
-			if ((res = reiser4_tree_dig(tree, child, hint, open_func,
-						    before_func, setup_func,
-						    update_func, after_func)) < 0)
-				goto error_free_child;
+				/* Traversing the node */
+				if ((res = reiser4_tree_dig(tree, child,
+							    hint, open_func,
+							    before_func,
+							    setup_func,
+							    update_func,
+							    after_func)) < 0)
+					goto error_free_child;
 
-			if (!reiser4_node_locked(child) &&
-			    hint->cleanup && child->data)
-			{
-				/* Unload loaded recently node */
-				reiser4_tree_unload(tree, child);
+				/*
+				  Here we're trying to unload loaded earlier
+				  @child if it is not used and corresponding
+				  control flag is specified.
+				*/
+				if (!reiser4_node_locked(child) && hint->cleanup)
+					reiser4_tree_unload(tree, child);
+			} else {
+				if ((res = reiser4_tree_dig(tree, child,
+							    hint, open_func,
+							    before_func,
+							    setup_func,
+							    update_func,
+							    after_func)) < 0)
+					goto error_after_func;
+
 			}
 			
 		update:
@@ -2054,31 +2077,25 @@ errno_t reiser4_tree_dig(
 		}
 	}
 	
-	if (after_func && (res = after_func(node, hint->data)))
-		goto error;
+	if (after_func)
+		res = after_func(node, hint->data);
 
 	reiser4_node_unlock(node);
 	return res;
 
  error_free_child:
-	
-	if (!reiser4_node_locked(child) &&
-	    hint->cleanup && child->data)
-	{
-		/* Unload loaded recently node */
+	if (!reiser4_node_locked(child) && hint->cleanup)
 		reiser4_tree_unload(tree, child);
-	}
 
  error_update_func:
-	
 	if (update_func)
 		res = update_func(&place, hint->data);
     
  error_after_func:
 	if (after_func)
 		res = after_func(node, hint->data);
-    
- error:
+
+ error_unlock_node:
 	reiser4_node_unlock(node);
 	return res;
 }
@@ -2100,47 +2117,4 @@ errno_t reiser4_tree_traverse(
 	return reiser4_tree_dig(tree, tree->root, hint, open_func,
 				before_func, setup_func, update_func,
 				after_func);
-}
-
-/*
-  This function returns TRUE if passed item @group corresponds to passed @level
-  Hardcoded method, valid for the current tree imprementation only.
-*/
-bool_t reiser4_tree_legal_level(reiser4_item_group_t group,
-				uint8_t level)
-{
-	if (group == NODEPTR_ITEM) {
-		if (level == LEAF_LEVEL)
-			return FALSE;
-	} else if (group == EXTENT_ITEM) {
-		if (level != TWIG_LEVEL)
-			return FALSE;
-	} else
-		return level == LEAF_LEVEL;
-
-	return TRUE;
-}
-
-static errno_t callback_data_level(
-	reiser4_plugin_t *plugin,
-	void *data)
-{
-	uint8_t *level = (uint8_t *)data;
-
-	aal_assert("vpf-746", data != NULL);
-
-	if (!reiser4_tree_legal_level(plugin->h.group, *level))
-		return 0;
-
-	return reiser4_item_data(plugin);
-	    
-}
-
-bool_t reiser4_tree_data_level(uint8_t level) {
-
-	if (level == 0)
-		return FALSE;
-	
-	return (libreiser4_factory_cfind(callback_data_level,
-					 &level) != NULL);
 }
