@@ -1,6 +1,6 @@
 /*
-    oid.h -- oid allocator functions.
-    Copyright (C) 1996-2002 Hans Reiser.
+  oid.h -- oid allocator functions.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef OID_H

@@ -1,9 +1,9 @@
 /*
-    endian.h -- endianess translation macros. This is a number of macro
-    because macro is better for performance than to use functions which are
-    determining the translation kind in the run time.
+  endian.h -- endianess translation macros. This is a number of macro because
+  macro is better for performance than to use functions which are determining
+  the translation kind in the run time.
     
-    Copyright (C) 1996-2002 Hans Reiser
+  Copyright (C) 1996-2002 Hans Reiser
 */
 
 #ifndef ENDIAN_H
@@ -43,8 +43,8 @@
 #define aal_swap64(x)			((uint64_t) __aal_swap64((uint64_t)x))
 
 /*
-    Endianess is determined by configure script in the configuring time, that is 
-    before compiling the package.
+  Endianess is determined by configure script in the configuring time, that is 
+  before compiling the package.
 */
 #ifdef WORDS_BIGENDIAN
 

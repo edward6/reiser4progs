@@ -14,27 +14,27 @@
 */
 
 int aux_binsearch(
-    void *array,		            /* opaque pointer to array item will be searched in */
-    uint32_t count,		            /* array length */
-    void *needle,		            /* array item to be found */
-    reiser4_elem_func_t elem_func,  /* callback function for getting next item from the array */
-    reiser4_comp_func_t comp_func,  /* callback function for comparing items from the array */
-    void *data,			            /* user-specified data */
-    uint64_t *pos)		            /* pointer result will be saved in */
+	void *array,		        /* opaque pointer to array item will be searched in */
+	uint32_t count,		        /* array length */
+	void *needle,		        /* array item to be found */
+	reiser4_elem_func_t elem_func,  /* callback function for getting next item from the array */
+	reiser4_comp_func_t comp_func,  /* callback function for comparing items from the array */
+	void *data,			/* user-specified data */
+	uint64_t *pos)		        /* pointer result will be saved in */
 {
-    void *elem;
-    int res = 0;
-    int left, right, i;
+	void *elem;
+	int res = 0;
+	int left, right, i;
 
-    if (count == 0) {
-    	*pos = 0;
-        return 0;
-    }
+	if (count == 0) {
+		*pos = 0;
+		return 0;
+	}
 
-    left = 0;
-    right = count - 1;
+	left = 0;
+	right = count - 1;
 
-    for (i = (right + left) / 2; left <= right; i = (right + left) / 2) {
+	for (i = (right + left) / 2; left <= right; i = (right + left) / 2) {
 	
 		if (!(elem = elem_func(array, i, data)))
 			return -1;
@@ -53,55 +53,55 @@ int aux_binsearch(
 			*pos = i;
 			return 1;
 		}	
-    }
+	}
 
-    *pos = left - (left > 0 ? 1 : 0);
-    return 0;
+	*pos = left - (left > 0 ? 1 : 0);
+	return 0;
 }
 
 #ifndef ENABLE_COMPACT
 
 long int aux_strtol(
-    const char *str,	    /* string to be converted */
-    int *error)		        /* error will be stored here */
+	const char *str,	    /* string to be converted */
+	int *error)		    /* error will be stored here */
 {
-    char *err;
-    long result = 0;
+	char *err;
+	long result = 0;
 
-    if (error)
+	if (error)
 		*error = 0;
 	
-    if (!str) {
+	if (!str) {
 		if (error) *error = 1; 
 		return 0;
-    }	
+	}	
 	
-    result = strtol(str, &err, 10);
+	result = strtol(str, &err, 10);
 	
-    if (errno == ERANGE || *err) {
+	if (errno == ERANGE || *err) {
 		if (error) *error = 1;
 		return 0;
-    }	
+	}	
 	
-    return result;
+	return result;
 }
 
 char *aux_strncat(
-    char *dest,		    /* a buffer where result will be stored */
-    uint32_t n,		    /* size of the buffer */
-    const char *src,	/* format string */
-    ...)		        /* list of params */
+	char *dest,	        /* a buffer where result will be stored */
+	uint32_t n,	        /* size of the buffer */
+	const char *src,	/* format string */
+	...)		        /* list of params */
 {
-    va_list arg_list;
+	va_list arg_list;
     
-    va_start(arg_list, src);
+	va_start(arg_list, src);
 
-    aal_vsnprintf(dest + aal_strlen(dest), 
-				  n - aal_strlen(dest), src, arg_list);
+	aal_vsnprintf(dest + aal_strlen(dest), 
+		      n - aal_strlen(dest), src, arg_list);
     
-    va_end(arg_list);
+	va_end(arg_list);
     
-    return dest;
+	return dest;
 }
 
 #endif

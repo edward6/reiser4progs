@@ -1,6 +1,6 @@
 /*
-    device.h -- device independent interface and block-working functions.
-    Copyright (C) 1996-2002 Hans Reiser.
+  device.h -- device independent interface and block-working functions.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef DEVICE_H
@@ -9,21 +9,21 @@
 #include <aal/aal.h>
 
 /* 
-    This types is used for keeping the block number and block count value. 
-    They are needed to be increase source code maintainability.
+   This types is used for keeping the block number and block count value. They
+   are needed to be increase source code maintainability.
 
-    For instance, there is some function:
+   For instance, there is some function:
 
-    blk_t some_func(void);
+   blk_t some_func(void);
     
-    It is clear to any reader, that this function is working with block number, 
-    it returns block number.
+   It is clear to any reader, that this function is working with block number, 
+   it returns block number.
 
-    Yet another variant of this function:
+   Yet another variant of this function:
 
-    uint64_t some_func(void);
+   uint64_t some_func(void);
     
-    This function may return anything. This is may be bytes, blocks, etc.
+   This function may return anything. This is may be bytes, blocks, etc.
 */
 #define FAKE_BLK (~0ull)
 
@@ -33,64 +33,64 @@ typedef uint64_t count_t;
 struct aal_device_ops;
 
 /*
-    Abstract device structure. It consists of flags device opened with, user 
-    specified data, some opaque entity (for standard file it is file descriptor), 
-    name of device (for instance, /dev/hda2), block size of device and device
-    operations.
+  Abstract device structure. It consists of flags device opened with, user
+  specified data, some opaque entity (for standard file it is file descriptor),
+  name of device (for instance, /dev/hda2), block size of device and device
+  operations.
 */
 struct aal_device {
-    int flags;
-    void *data;
-    void *entity;
-    uint16_t blocksize;
-    char name[256], error[256];
-    struct aal_device_ops *ops;
+	int flags;
+	void *data;
+	void *entity;
+	uint16_t blocksize;
+	char name[256], error[256];
+	struct aal_device_ops *ops;
 };
 
 typedef struct aal_device aal_device_t;
 
 /* 
-    Operations which may be performed on the device. Some of them may not
-    be implemented.
+   Operations which may be performed on the device. Some of them may not
+   be implemented.
 */
 struct aal_device_ops {
-    errno_t (*read)(aal_device_t *, 
-	void *, blk_t, count_t);
+	errno_t (*read)(aal_device_t *, 
+			void *, blk_t, count_t);
     
-    errno_t (*write)(aal_device_t *, 
-	void *, blk_t, count_t);
+	errno_t (*write)(aal_device_t *, 
+			 void *, blk_t, count_t);
     
-    errno_t (*sync)(aal_device_t *);
-    int (*flags)(aal_device_t *);
+	errno_t (*sync)(aal_device_t *);
+	int (*flags)(aal_device_t *);
     
-    errno_t (*equals)(aal_device_t *, 
-	aal_device_t *);
+	errno_t (*equals)(aal_device_t *, 
+			  aal_device_t *);
     
-    uint32_t (*stat)(aal_device_t *);
-    count_t (*len)(aal_device_t *);
+	uint32_t (*stat)(aal_device_t *);
+	count_t (*len)(aal_device_t *);
 };
 
 extern aal_device_t *aal_device_open(struct aal_device_ops *ops, 
-    uint16_t blocksize, int flags, void *data);
+				     uint16_t blocksize, int flags, void *data);
 
 extern void aal_device_close(aal_device_t *device);
 
 extern errno_t aal_device_set_bs(aal_device_t *device, 
-    uint16_t blocksize);
+				 uint16_t blocksize);
 
 extern uint32_t aal_device_get_bs(aal_device_t *device);
 
 extern errno_t aal_device_read(aal_device_t *device, 
-    void *buff, blk_t block, count_t count);
+			       void *buff, blk_t block, count_t count);
 
 extern errno_t aal_device_write(aal_device_t *device, 
-    void *buff, blk_t block, count_t count);
+				void *buff, blk_t block, count_t count);
 
 extern errno_t aal_device_sync(aal_device_t *device);
 extern int aal_device_flags(aal_device_t *device);
 
 extern int aal_device_equals(aal_device_t *device1, 
-    aal_device_t *device2);
+			     aal_device_t *device2);
 
 extern uint32_t aal_device_stat(aal_device_t *device);
 extern count_t aal_device_len(aal_device_t *device);

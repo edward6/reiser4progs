@@ -1,6 +1,6 @@
 /*
-    alloc.h -- reiser4 block allocator functions.
-    Copyright (C) 1996-2002 Hans Reiser.
+  alloc.h -- reiser4 block allocator functions.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef ALLOC_H
@@ -14,20 +14,20 @@
 #include <reiser4/filesystem.h>
 
 extern reiser4_alloc_t *reiser4_alloc_open(reiser4_format_t *format, 
-    count_t len);
+					   count_t len);
 
 #ifndef ENABLE_COMPACT
 
 extern reiser4_alloc_t *reiser4_alloc_create(reiser4_format_t *format, 
-    count_t len);
+					     count_t len);
 
 extern errno_t reiser4_alloc_sync(reiser4_alloc_t *alloc);
 
 extern errno_t reiser4_alloc_mark(reiser4_alloc_t *alloc, 
-    blk_t blk);
+				  blk_t blk);
 
 extern errno_t reiser4_alloc_release(reiser4_alloc_t *alloc, 
-    blk_t blk);
+				     blk_t blk);
 
 extern blk_t reiser4_alloc_allocate(reiser4_alloc_t *alloc);
 

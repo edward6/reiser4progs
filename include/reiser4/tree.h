@@ -1,6 +1,6 @@
 /*
-    tree.h -- reiser4 balanced tree functions.
-    Copyright (C) 1996-2002 Hans Reiser.
+  tree.h -- reiser4 balanced tree functions.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef TREE_H
@@ -19,41 +19,40 @@ extern void reiser4_tree_close(reiser4_tree_t *tree);
 #ifndef ENABLE_COMPACT
 
 extern reiser4_tree_t *reiser4_tree_create(reiser4_fs_t *fs, 
-    reiser4_profile_t *profile);
+					   reiser4_profile_t *profile);
 
 extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_flush(reiser4_tree_t *tree);
 
-extern errno_t reiser4_tree_insert(reiser4_tree_t *tree, 
-    reiser4_item_hint_t *hint, uint8_t level, reiser4_coord_t *coord);
+extern errno_t reiser4_tree_insert(reiser4_tree_t *tree, reiser4_item_hint_t *hint,
+				   uint8_t level, reiser4_coord_t *coord);
 
-extern errno_t reiser4_tree_remove(reiser4_tree_t *tree, 
-    reiser4_key_t *key, uint8_t level);
+extern errno_t reiser4_tree_remove(reiser4_tree_t *tree, reiser4_key_t *key,
+				   uint8_t level);
 
-extern errno_t reiser4_tree_move(reiser4_tree_t *tree,
-    reiser4_coord_t *dst, reiser4_coord_t *src);
+extern errno_t reiser4_tree_move(reiser4_tree_t *tree, reiser4_coord_t *dst,
+				 reiser4_coord_t *src);
 
-extern errno_t reiser4_tree_mkspace(reiser4_tree_t *tree, 
-    reiser4_coord_t *old, reiser4_coord_t *new, 
-    uint32_t needed);
+extern errno_t reiser4_tree_mkspace(reiser4_tree_t *tree, reiser4_coord_t *old,
+				    reiser4_coord_t *new, uint32_t needed);
 
 #endif
 
-extern int reiser4_tree_lookup(reiser4_tree_t *tree, 
-    reiser4_key_t *key, uint8_t level, reiser4_coord_t *coord);
+extern int reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
+			       uint8_t level, reiser4_coord_t *coord);
 
 extern blk_t reiser4_tree_root(reiser4_tree_t *tree);
 extern reiser4_key_t *reiser4_tree_key(reiser4_tree_t *tree);
 extern uint8_t reiser4_tree_height(reiser4_tree_t *tree);
 
 extern reiser4_joint_t *reiser4_tree_allocate(reiser4_tree_t *tree, 
-    uint8_t level);
+					      uint8_t level);
 
 extern void reiser4_tree_release(reiser4_tree_t *tree, 
-    reiser4_joint_t *joint);
+				 reiser4_joint_t *joint);
 
 extern reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree, 
-    blk_t blk);
+					  blk_t blk);
 
 #endif
 

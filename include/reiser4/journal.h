@@ -1,6 +1,6 @@
 /*
-    journal.h -- reiser4 filesystem journal functions.
-    Copyright (C) 1996-2002 Hans Reiser.
+  journal.h -- reiser4 filesystem journal functions.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef JOURNAL_H
@@ -15,12 +15,12 @@
 #include <reiser4/plugin.h>
 
 extern reiser4_journal_t *reiser4_journal_open(reiser4_format_t *format,
-    aal_device_t *device);
+					       aal_device_t *device);
 
 #ifndef ENABLE_COMPACT
 
 extern reiser4_journal_t *reiser4_journal_create(reiser4_format_t *format,
-    aal_device_t *device, void *params);
+						 aal_device_t *device, void *params);
 
 extern errno_t reiser4_journal_sync(reiser4_journal_t *journal);
 extern int reiser4_journal_replay(reiser4_journal_t *journal);

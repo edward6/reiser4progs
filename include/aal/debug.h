@@ -1,6 +1,6 @@
 /*
-    debug.h -- assert through exception implementation.
-    Copyright (C) 1996-2002 Hans Reiser.
+  debug.h -- assert through exception implementation.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef DEBUG_H
@@ -13,8 +13,8 @@
 #ifdef ENABLE_DEBUG
 
 /*
-    Something like standard assert, but working through exception 
-    factory.
+  Something like standard assert, but working through exception 
+  factory.
 */
 #ifdef __GNUC__
 
@@ -53,7 +53,7 @@
 #endif
 
 extern int __assert(char *hint, int cond, char *text, char *file, 
-    int line, char *function);
+		    int line, char *function);
 
 #endif
 

@@ -115,7 +115,7 @@ static aal_exception_option_t aal_exception_actual_throw(
    pass the control to aal_exception_actual_throw function for further handling.
 */
 aal_exception_option_t aal_exception_throw(
-	aal_exception_type_t type,	/ exception type */
+	aal_exception_type_t type,	/* exception type */
 	aal_exception_option_t opts,	/* exception options */
 	const char *message,		/* format string for exception message */ 
 	...)				/* a number of parameters for format string */

@@ -1,6 +1,6 @@
 /*
-    file.h -- standard file device that works via device interface.
-    Copyright (C) 1996-2002 Hans Reiser.
+  file.h -- standard file device that works via device interface.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef FILE_H

@@ -1,10 +1,10 @@
 /*
-    string.h -- memory-working and string-working functions. They are needed in
-    order to be independent from specific application. As libreiser4 is used 
-    string functions, we should provide them for it, because in alone mode they
-    doesn't exist due to libc is not in use.
+  string.h -- memory-working and string-working functions. They are needed in
+  order to be independent from specific application. As libreiser4 is used
+  string functions, we should provide them for it, because in alone mode they
+  doesn't exist due to libc is not in use.
     
-    Copyright (C) 1996-2002 Hans Reiser.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef STRING_H

@@ -1,6 +1,6 @@
 /*
-    master.h -- master super block functions.
-    Copyright 1996-2002 (C) Hans Reiser.
+  master.h -- master super block functions.
+  Copyright 1996-2002 (C) Hans Reiser.
 */
 
 #ifndef MASTER_H
@@ -15,8 +15,10 @@
 #ifndef ENABLE_COMPACT
 
 extern reiser4_master_t *reiser4_master_create(aal_device_t *device, 
-    rpid_t format_pid, unsigned int blocksize, const char *uuid, 
-    const char *label);
+					       rpid_t format_pid,
+					       unsigned int blocksize,
+					       const char *uuid, 
+					       const char *label);
 
 extern errno_t reiser4_master_sync(reiser4_master_t *master);
 

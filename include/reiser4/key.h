@@ -29,7 +29,7 @@ extern errno_t reiser4_key_build_direntry(reiser4_key_t *key,
 					  roid_t locality, roid_t objectid,
 					  const char *name);
 
-extern errno_t reiser4_key_build_entryid(reiser4_key_t *key, 
+extern errno_t reiser4_key_build_entryid(reiser4_key_t *key,
 					 reiser4_plugin_t *plugin,
 					 const char *name);
 

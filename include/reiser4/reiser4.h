@@ -1,6 +1,6 @@
 /*
-    reiser4.h -- the central libreiser4 header.
-    Copyright (C) 1996-2002 Hans Reiser
+  reiser4.h -- the central libreiser4 header.
+  Copyright (C) 1996-2002 Hans Reiser
 */
 
 #ifndef REISER4_H

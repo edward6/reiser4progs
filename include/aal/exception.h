@@ -1,6 +1,6 @@
 /*
-    exception.h -- exception types, structures and functions.
-    Copyright (C) 1996-2002 Hans Reiser.
+  exception.h -- exception types, structures and functions.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef EXCEPTION_H
@@ -10,28 +10,28 @@
 
 /* This is the type of exception */
 enum aal_exception_type {
-    EXCEPTION_INFORMATION   = 1,
-    EXCEPTION_WARNING	    = 2,
-    EXCEPTION_ERROR	    = 3,
-    EXCEPTION_FATAL	    = 4,
-    EXCEPTION_BUG	    = 5
+	EXCEPTION_INFORMATION   = 1,
+	EXCEPTION_WARNING       = 2,
+	EXCEPTION_ERROR	        = 3,
+	EXCEPTION_FATAL	        = 4,
+	EXCEPTION_BUG	        = 5
 };
 
 typedef enum aal_exception_type aal_exception_type_t;
 
 /* 
-    This declaration is the exception options. The components may be composed 
-    together.
+   This declaration is the exception options. The components may be composed 
+   together.
 */
 enum aal_exception_option {
-    EXCEPTION_UNHANDLED	    = 1 << 0,
-    EXCEPTION_YES	    = 1 << 1,
-    EXCEPTION_NO	    = 1 << 2,
-    EXCEPTION_OK	    = 1 << 3,
-    EXCEPTION_RETRY	    = 1 << 4,
-    EXCEPTION_IGNORE	    = 1 << 5,
-    EXCEPTION_CANCEL	    = 1 << 6,
-    EXCEPTION_LAST	    = 1 << 7
+	EXCEPTION_UNHANDLED     = 1 << 0,
+	EXCEPTION_YES	        = 1 << 1,
+	EXCEPTION_NO	        = 1 << 2,
+	EXCEPTION_OK	        = 1 << 3,
+	EXCEPTION_RETRY	        = 1 << 4,
+	EXCEPTION_IGNORE        = 1 << 5,
+	EXCEPTION_CANCEL        = 1 << 6,
+	EXCEPTION_LAST	        = 1 << 7
 };
 
 typedef enum aal_exception_option aal_exception_option_t;
@@ -41,15 +41,16 @@ typedef enum aal_exception_option aal_exception_option_t;
 #define EXCEPTION_RETRYIGNORE	(EXCEPTION_RETRY | EXCEPTION_IGNORE)
 
 /* 
-    This is exception structure. It contains: exception message, exception type,
-    exception options. Usualy, the life cycle of exception is very short. Exception 
-    instance  created by aal_exception_throw function and passed t exception handler. 
-    After exception processed, it is destroyed by exception factory.
+   This is exception structure. It contains: exception message, exception type,
+   exception options. Usualy, the life cycle of exception is very
+   short. Exception instance created by aal_exception_throw function and passed
+   t exception handler. After exception processed, it is destroyed by exception
+   factory.
 */
 struct aal_exception {
-    char *message;
-    aal_exception_type_t type;
-    aal_exception_option_t options;
+	char *message;
+	aal_exception_type_t type;
+	aal_exception_option_t options;
 };
 
 typedef struct aal_exception aal_exception_t;
@@ -66,7 +67,8 @@ extern aal_exception_option_t aal_exception_option(aal_exception_t *ex);
 extern void aal_exception_set_handler(aal_exception_handler_t handler);
 
 extern aal_exception_option_t aal_exception_throw(aal_exception_type_t type, 
-    aal_exception_option_t opt, const char *message, ...);
+						  aal_exception_option_t opt,
+						  const char *message, ...);
 
 extern void aal_exception_disable(void);
 extern void aal_exception_enable(void);
