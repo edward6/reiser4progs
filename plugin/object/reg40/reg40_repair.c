@@ -164,7 +164,6 @@ typedef struct reg40_repair {
 	reiser4_plug_t *eplug;
 	reiser4_plug_t *tplug;
 	reiser4_plug_t *bplug;
-	reiser4_plug_t *smart;
 	uint64_t bytes, maxreal;
 } reg40_repair_t;
 
@@ -281,67 +280,15 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 	aal_assert("vpf-1349", hint != NULL);
 	aal_assert("vpf-1350", repair != NULL);
 	aal_assert("vpf-1353", reg->body.plug != NULL);
-	aal_assert("vpf-1354", !plug_equal(reg->body.plug, repair->bplug));
+	
+	if (plug_equal(reg->body.plug, repair->bplug))
+		return 0;
 
 	info = &reg->obj.info;
 
 	if (mode != RM_BUILD)
-		goto error;
-		
-	if (plug_equal(repair->bplug, repair->tplug)) {
-		/* Extent found, tail should be. Change the policy to the smart 
-		   one, update the body plug and if conversion is still needed,
-		   convert evth to the body plug. If convertion is not needed 
-		   than it is needed fot all previous items -- from 0 through 
-		   the current extent's offset. */
+		return 2;
 
-		if (reg->policy != repair->smart) {
-			reg->policy = repair->smart;
-
-			if (!(repair->bplug = reg40_body_plug(reg)))
-				return -EINVAL;
-		}
-		
-		if (!plug_equal(repair->bplug, repair->tplug)) {
-			/* Extent found, extent should be. Convert evth from 
-			   the 0 through this item offset to extents. */
-
-			/* Count of bytes - this item offset. */
-			hint->count = plug_call(reg->body.key.plug->o.key_ops, 
-						get_offset, &reg->body.key);
-
-			/* If count == 0, nothing to convert. */
-			if (!hint->count)
-				return 0;
-
-			aal_error("The object [%s] (%s), node (%llu), "
-				  "item (%u): the found item [%s] of "
-				  "the plugin (%s) does not match the "
-				  "wanted plugin (%s). Convert items "
-				  "from 0 offset through hint->count "
-				  "to (%s) items.",
-				  print_inode(reg40_core, &info->object),
-				  reg->obj.plug->label, reg->body.node->block->nr, 
-				  reg->body.pos.item,
-				  print_key(reg40_core, &reg->body.key),
-				  reg->body.plug->label, repair->tplug->label,
-				  repair->eplug->label);
-
-			/* Set the start key for convertion. */
-			plug_call(reg->body.key.plug->o.key_ops, assign,
-				  &hint->offset, &reg->position);
-			plug_call(reg->body.key.plug->o.key_ops, set_offset,
-				  &hint->offset, 0);
-
-			hint->bytes = 0;
-
-			/* Evth is to be converted. */
-			repair->bytes = 0;
-
-			return 2;
-		} 
-	}
-	
 	/* The current item should be converted to the body plug. 
 	   Gather all items of the same wrong plug and convert them 
 	   all together at once later. */
@@ -358,17 +305,6 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 	hint->count = repair->maxreal + 1 - 
 		plug_call(reg->body.key.plug->o.key_ops,
 			  get_offset, &hint->offset);
-
- error:
-	aal_error("The object [%s] (%s), node (%llu), item (%u): the "
-		  "found item [%s] of the plugin (%s) does not match "
-		  "the detected tail policy (%s).%s", 
-		  print_inode(reg40_core, &info->object),
-		  reg->obj.plug->label, reg->body.node->block->nr, 
-		  reg->body.pos.item,
-		  print_key(reg40_core, &reg->body.key),
-		  reg->body.plug->label, reg->policy->label,
-		  mode == RM_BUILD ? " Converted." : "");
 
 	/* Convertion is postponed; do not bother with it for not RM_BUILD. */
 	return mode == RM_BUILD ? 1 : 2;
@@ -477,14 +413,6 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	
 	aal_memset(&repair, 0, sizeof(repair));
 	
-	/* Get the reg file smart tail policy. */
-	if (!(repair.smart = reg40_core->factory_ops.ifind(POLICY_PLUG_TYPE, 
-							   TAIL_SMART_ID)))
-	{
-		aal_error("Failed to find the 'smart' tail policy plugin.");
-		return -EINVAL;
-	}
-	
 	/* Get the extent item plugin. FIXME-VITALY: param_ops.valus+ifind
 	   for now untill we can point tail item in plug_extension */
 	if (!(repair.eplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "extent"))){
@@ -563,6 +491,19 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 		   If result == 0 -- conversion is not postponed anymore;
 		   If hint.offset.plug != NULL, conversion was postponed. */
 		if ((result == 0 && hint.offset.plug) || result == 2) {
+			uint64_t offset;
+			
+			offset = plug_call(hint.offset.plug->o.key_ops,
+					   get_offset, &hint.offset);
+			
+			aal_error("The object [%s] (%s): items at offsets "
+				  "[%llu..%llu] does not not match the "
+				  "detected tail policy (%s).%s",
+				  print_inode(reg40_core, &info->object),
+				  reg->obj.plug->label, offset, 
+				  offset + hint.count -1, reg->policy->label,
+				  mode == RM_BUILD ? " Converted." : "");
+
 			if (mode == RM_BUILD) {
 				result = reg40_core->flow_ops.convert(info->tree,
 								      &hint);

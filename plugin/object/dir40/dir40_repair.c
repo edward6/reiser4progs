@@ -498,6 +498,21 @@ errno_t dir40_form(object_entity_t *object) {
 		}
 	}
 	
+	/* Init fibre plugin in use if is not known yet. */
+	if (!dir->fibre) {
+		dir->fibre = obj40_plug_recognize(&dir->obj, 
+						 FIBRE_PLUG_TYPE, 
+						 "fibre");
+
+		if (dir->fibre == NULL) {
+			aal_error("Directory [%s]: failed to init "
+				  "fibration plugin. Plugin (%s).", 
+				  print_inode(dir40_core, &dir->obj.info.object),
+				  dir40_plug.label);
+			return -EINVAL;
+		}
+	}
+	
 	switch ((dir40_lookup(object, "..", &entry))) {
 	case ABSENT:
 		aal_memset(&object->info.parent, 0, 
