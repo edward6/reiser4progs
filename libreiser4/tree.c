@@ -143,7 +143,6 @@ errno_t reiser4_tree_connect(
 	errno_t res;
 	
 	aal_assert("umka-1857", tree != NULL);
-	aal_assert("umka-561", parent != NULL);
 	aal_assert("umka-564", node != NULL);
 
 	if (node->blk == reiser4_tree_root(tree)) {
