@@ -261,12 +261,6 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	place = &sym->obj.statdata;
 	item = &sym->obj.statdata.item;
 		
-	/* Setting up the file key */
-	plugin_call(key->plugin->o.key_ops, set_type, key,
-		    KEY_STATDATA_TYPE);
-	
-	plugin_call(key->plugin->o.key_ops, set_offset, key, 0);
-
 	/* Performing lookup for statdata of current directory */
 	if (obj40_lookup(&sym->obj, key, LEAF_LEVEL,
 			 &sym->obj.statdata) != LP_PRESENT)
