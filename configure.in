@@ -370,7 +370,7 @@ fi
 AC_SUBST(LIBREISER4_LIBS)
 
 OLD_LIBS="$LIBS"
-AC_CHECK_LIBAAL(aal, 0.4.9, ,exit)
+AC_CHECK_LIBAAL(aal, 0.4.10, ,exit)
 AAL_LIBS="$LIBS"
 LIBS="$OLD_LIBS"
 
@@ -379,7 +379,7 @@ AC_SUBST(AAL_LIBS)
 if test x$enable_stand_alone = xyes; then
 
     OLD_LIBS="$LIBS"
-    AC_CHECK_LIBAAL(aal-alone, 0.4.9, ,exit)
+    AC_CHECK_LIBAAL(aal-alone, 0.4.10, ,exit)
     AAL_ALONE_LIBS="$LIBS"
     LIBS="$OLD_LIBS"
 
