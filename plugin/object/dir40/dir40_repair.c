@@ -69,12 +69,12 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	aal_error("Directory [%s]: The entry \".\" is not found.%s "
 		  "Plugin (%s).", print_inode(dir40_core, &info->object), 
 		  mode != RM_CHECK ? " Insert a new one." : "", 
-		  dir->obj.info.opset[OPSET_OBJ]->label);
+		  dir->obj.info.opset.plug[OPSET_OBJ]->label);
 	
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
 	
-	/* Absent. Add a new ".". Take it from the param for now.
+	/* Absent. Add a new ".". Take it from the stat_hint for now.
 
 	   FIXME-VITALY: It can be stored in SD also, but it is not clear 
 	   under which type -- ITEM_PLUG? Fix it when reiser4 syscall will 
@@ -102,8 +102,8 @@ errno_t dir40_check_struct(object_entity_t *object,
 			   void *data, uint8_t mode)
 {
 	dir40_t *dir = (dir40_t *)object;
-	obj40_stat_methods_t methods;
-	obj40_stat_params_t params;
+	obj40_stat_hint_t hint;
+	obj40_stat_ops_t ops;
 	object_info_t *info;
 	entry_hint_t entry;
 	
@@ -115,8 +115,8 @@ errno_t dir40_check_struct(object_entity_t *object,
 	
 	info = &dir->obj.info;
 
-	aal_memset(&methods, 0, sizeof(methods));
-	aal_memset(&params, 0, sizeof(params));
+	aal_memset(&ops, 0, sizeof(ops));
+	aal_memset(&hint, 0, sizeof(hint));
 	
 	if ((res = obj40_prepare_stat(&dir->obj, S_IFDIR, mode)))
 		return res;
@@ -127,19 +127,20 @@ errno_t dir40_check_struct(object_entity_t *object,
 	
 	/* Take care about the ".". */
 	/* FIXME: Probably it should be different -- find an item by the key 
-	   and if it is of DIRENTRY group, take its plugin as body plug, fix 
+	   and if it is of DIR group, take its plugin as body plug, fix 
 	   it in SD then. */
-	if ((res |= dir40_dot(dir, object->opset[OPSET_DENTRY], mode)) < 0)
+	if ((res |= dir40_dot(dir, object->opset.plug[OPSET_DIRITEM], 
+			      mode)) < 0)
 		return res;
 	
 	/* FIXME-VITALY: this probably should be changed. Now hash plug that is
-	   used is taken from SD or the default one from the params. Probably it
+	   used is taken from SD or the default one from @hint. Probably it
 	   would be better to do evth in vise versa order -- choose the hash
 	   found among the entries most of the times and correct hash plugin in
 	   SD. */
 	while (1) {
 		pos_t *pos = &dir->body.pos;
-		trans_hint_t hint;
+		trans_hint_t trans;
 		reiser4_key_t key;
 		lookup_t lookup;
 		uint32_t units;
@@ -160,8 +161,8 @@ errno_t dir40_check_struct(object_entity_t *object,
 		/* Item can be of another plugin, but of the same group. 
 		   FIXME-VITALY: item of the same group but of another 
 		   plugin, it should be converted. */
-		/*if (dir->body.plug->id.group != DIRENTRY_ITEM) */
-		if (dir->body.plug != object->opset[OPSET_DENTRY]) {
+		/*if (dir->body.plug->id.group != DIR_ITEM) */
+		if (dir->body.plug != object->opset.plug[OPSET_DIRITEM]) {
 			aal_error("Directory [%s], plugin [%s], node [%llu], "
 				  "item [%u]: item of the illegal plugin [%s] "
 				  "with the key of this object found.%s",
@@ -173,12 +174,12 @@ errno_t dir40_check_struct(object_entity_t *object,
 			if (mode != RM_BUILD)
 				return RE_FATAL;
 			
-			hint.count = 1;
-			hint.shift_flags = SF_DEFAULT & ~SF_ALLOW_PACK;
+			trans.count = 1;
+			trans.shift_flags = SF_DEFAULT & ~SF_ALLOW_PACK;
 			pos->unit = MAX_UINT32;
 
 			/* Item has wrong key, remove it. */
-			res |= obj40_remove(&dir->obj, &dir->body, &hint);
+			res |= obj40_remove(&dir->obj, &dir->body, &trans);
 			if (res < 0) return res;
 			
 			continue;
@@ -204,11 +205,11 @@ errno_t dir40_check_struct(object_entity_t *object,
 					return -EINVAL;
 
 				/* Count size and bytes. */
-				params.size += plug_call(dir->body.plug->o.item_ops->object,
-						  size, &dir->body);
+				hint.size += plug_call(dir->body.plug->o.item_ops->object,
+						       size, &dir->body);
 
-				params.bytes += plug_call(dir->body.plug->o.item_ops->object,
-						   bytes, &dir->body);
+				hint.bytes += plug_call(dir->body.plug->o.item_ops->object,
+							bytes, &dir->body);
 
 			}
 			
@@ -218,8 +219,8 @@ errno_t dir40_check_struct(object_entity_t *object,
 			/* Prepare the correct key for the entry. */
 			plug_call(entry.offset.plug->o.key_ops, 
 				  build_hashed, &key,
-				  object->opset[OPSET_HASH], 
-				  object->opset[OPSET_FIBRE], 
+				  object->opset.plug[OPSET_HASH], 
+				  object->opset.plug[OPSET_FIBRE], 
 				  obj40_locality(&dir->obj),
 				  obj40_objectid(&dir->obj), entry.name);
 			
@@ -249,17 +250,17 @@ errno_t dir40_check_struct(object_entity_t *object,
 				goto next;
 			}
 
-			hint.count = 1;
-			hint.shift_flags = SF_DEFAULT & ~SF_ALLOW_PACK;
+			trans.count = 1;
+			trans.shift_flags = SF_DEFAULT & ~SF_ALLOW_PACK;
 
 			if ((res |= obj40_remove(&dir->obj, &dir->body, 
-						 &hint)) < 0)
+						 &trans)) < 0)
 				return res;
 			
 			/* Update accounting info after remove. */
 			if (last) {
-				params.size--;
-				params.bytes -= hint.bytes;
+				hint.size--;
+				hint.bytes -= trans.bytes;
 			}
 			
 			/* Lookup it again. */
@@ -289,17 +290,17 @@ errno_t dir40_check_struct(object_entity_t *object,
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	if (!(res & RE_FATAL)) {
-		params.mode = S_IFDIR;
-		params.nlink = 1;
-		params.must_exts = DIR40_EXTS_MUST;
-		params.unkn_exts = DIR40_EXTS_UNKN;
-		
-		methods.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
+		hint.mode = S_IFDIR;
+		hint.nlink = 1;
+		hint.must_exts = DIR40_EXTS_MUST;
+		hint.unkn_exts = DIR40_EXTS_UNKN;
+		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 
-		res |= obj40_update_stat(&dir->obj, &methods, 
-					 &params, mode);
+		res |= obj40_update_stat(&dir->obj, &ops, &hint, mode);
 	}
 	
+	dir40_reset((object_entity_t *)dir);
+
 	return res;
 }
 
@@ -366,7 +367,7 @@ errno_t dir40_check_attach(object_entity_t *object,
 
 		aal_strncpy(entry.name, "..", sizeof(entry.name));
 		
-		if ((res = plug_call(object->opset[OPSET_OBJ]->o.object_ops,
+		if ((res = plug_call(object->opset.plug[OPSET_OBJ]->o.object_ops,
 				     add_entry, object, &entry)))
 		{
 			return res;
@@ -381,7 +382,8 @@ errno_t dir40_check_attach(object_entity_t *object,
 	if (mode != RM_BUILD)
 		return 0;
 	
-	return plug_call(parent->opset[OPSET_OBJ]->o.object_ops, link, parent);
+	return plug_call(parent->opset.plug[OPSET_OBJ]->o.object_ops, 
+			 link, parent);
 }
 
 

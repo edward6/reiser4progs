@@ -89,7 +89,7 @@ static reiser4_object_t *reiser4_root_create(reiser4_fs_t *fs) {
 	/* Preparing object hint. INVAL_PTR means that this kind of plugin 
 	   is not ready yet but needs to be stored, */
 	hint.mode = 0;
-	reiser4_opset_root(hint.info.opset);
+	reiser4_opset_root(&hint.info.opset);
 
 	/* Preparing entry hint. */
 	entry.name[0] = '\0';
@@ -472,7 +472,7 @@ int main(int argc, char *argv[]) {
 			goto error_free_journal;
 		}
 	
-		if (reiser4_opset_init(fs->tree)) {
+		if (reiser4_opset_init(fs->tree, 0)) {
 			aal_error("Can't initialize the fs-global "
 				  "object plugin set.");
 			goto error_free_journal;

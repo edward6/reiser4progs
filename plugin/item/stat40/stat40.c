@@ -84,7 +84,7 @@ static errno_t callback_open_ext(stat_entity_t *stat,
 				 uint64_t extmask, 
 				 void *data)
 {
-	statdata_hint_t *stat_hint;
+	stat_hint_t *stath;
 	trans_hint_t *hint;
 
 	/* Method open is not defined, this probably means, we only interested
@@ -94,17 +94,17 @@ static errno_t callback_open_ext(stat_entity_t *stat,
 		return 0;
 	
 	hint = (trans_hint_t *)data;
-	stat_hint = hint->specific;
+	stath = hint->specific;
 
 	/* Reading mask into hint */
-	stat_hint->extmask |= ((uint64_t)1 << stat->ext_plug->id.id);
+	stath->extmask |= ((uint64_t)1 << stat->ext_plug->id.id);
 
-	/* We load @ext if its hint present in @stat_hint */
-	if (stat_hint->ext[stat->ext_plug->id.id]) {
-		void *sdext_hint = stat_hint->ext[stat->ext_plug->id.id];
+	/* We load @ext if its hint present in @stath */
+	if (stath->ext[stat->ext_plug->id.id]) {
+		void *sdext = stath->ext[stat->ext_plug->id.id];
 
 		return plug_call(stat->ext_plug->o.sdext_ops, 
-				 open, stat, sdext_hint);
+				 open, stat, sdext);
 	}
 	
 	return 0;
@@ -133,39 +133,39 @@ static inline reiser4_plug_t *stat40_modeplug(tree_entity_t *tree,
 
 /* Decodes the object plug from the mode if needed. */
 static void stat40_decode_opset(tree_entity_t *tree,
-				sdext_plugid_hint_t *plugs, 
-				sdext_lw_hint_t *lw) 
+				sdhint_plug_t *plugh, 
+				sdhint_lw_t *lwh) 
 {
 	aal_assert("vpf-1630", tree != NULL);
-	aal_assert("vpf-1631", plugs != NULL);
-	aal_assert("vpf-1632", lw != NULL);
+	aal_assert("vpf-1631", plugh != NULL);
+	aal_assert("vpf-1632", lwh != NULL);
 	
 	/* Object plugin does not need to be set. */
-	if (plugs->pset[OPSET_OBJ])
+	if (plugh->plug[OPSET_OBJ])
 		return;
 
-	if (plugs->pset[OPSET_OBJ])
-		return;
+	/* FIXME: Should here anything to be done with OPSET_DIR */
 	
-	plugs->pset[OPSET_OBJ] = stat40_modeplug(tree, lw->mode);
+	plugh->plug[OPSET_OBJ] = stat40_modeplug(tree, lwh->mode);
+	aal_set_bit(&plugh->mask, OPSET_OBJ);
 }
 
 /* Fetches whole statdata item with extensions into passed @buff */
 static int64_t stat40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
 	bool_t lw_local = 0;
-	sdext_lw_hint_t lw;
+	sdhint_lw_t lwh;
 	void **exts;
 	
 	aal_assert("umka-1415", hint != NULL);
 	aal_assert("umka-1414", place != NULL);
 	aal_assert("vpf-1633", place->node != NULL);
 
-	exts = ((statdata_hint_t *)hint->specific)->ext;
+	exts = ((stat_hint_t *)hint->specific)->ext;
 	
-	/* If plugid_hint is fetched, lw is needed also to adjust OPSET_OBJ. */
+	/* If plug_hint is fetched, lw is needed also to adjust OPSET_OBJ. */
 	if (exts[SDEXT_PLUG_ID]) {
 		if (!exts[SDEXT_LW_ID]) {
-			exts[SDEXT_LW_ID] = &lw;
+			exts[SDEXT_LW_ID] = &lwh;
 			lw_local = 1;
 		}
 	}
@@ -176,8 +176,8 @@ static int64_t stat40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
 	/* Adjust OPSET_OBJ. */
 	if (exts[SDEXT_PLUG_ID]) {
 		stat40_decode_opset(place->node->tree,
-				    (sdext_plugid_hint_t *)exts[SDEXT_PLUG_ID],
-				    (sdext_lw_hint_t *)exts[SDEXT_LW_ID]);
+				    (sdhint_plug_t *)exts[SDEXT_PLUG_ID],
+				    (sdhint_lw_t *)exts[SDEXT_LW_ID]);
 	}
 	
 	if (lw_local) {
@@ -198,7 +198,7 @@ static uint32_t stat40_units(reiser4_place_t *place) {
 #ifndef ENABLE_STAND_ALONE
 
 static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
-	sdext_plugid_hint_t *plugs;
+	sdhint_plug_t *plugh;
 	tree_entity_t *tree;
 	uint16_t mode;
 	void **exts;
@@ -208,24 +208,25 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 	aal_assert("vpf-1635", place != NULL);
 	aal_assert("vpf-1636", place->node != NULL);
 	
-	if (!hint->specific || !((statdata_hint_t *)hint->specific)->ext)
+	if (!hint->specific || !((stat_hint_t *)hint->specific)->ext)
 		return 0;
 	
-	exts = ((statdata_hint_t *)hint->specific)->ext;
-	plugs = ((sdext_plugid_hint_t *)exts[SDEXT_PLUG_ID]);
+	exts = ((stat_hint_t *)hint->specific)->ext;
+	plugh = ((sdhint_plug_t *)exts[SDEXT_PLUG_ID]);
 	
-	if (!plugs || !plugs->pset[OPSET_OBJ])
+	if (!plugh || !plugh->plug[OPSET_OBJ])
 		return 0;
 	
 	/* If LW hint is not present, fetch it from disk. */
 	if (!exts[SDEXT_LW_ID]) {
-		statdata_hint_t stat;
 		trans_hint_t trans;
-		sdext_lw_hint_t lw;
+		stat_hint_t stat;
+		sdhint_lw_t lwh;
 		
 		aal_memset(&stat, 0, sizeof(stat));
 		
 		trans.specific = &stat;
+		stat.ext[SDEXT_LW_ID] = &lwh;
 		
 		if ((res = stat40_fetch_units(place, &trans)) != 1)
 			return res;
@@ -234,15 +235,17 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 		if (stat.extmask & (1 << SDEXT_LW_ID))
 			return 0;
 			
-		mode = lw.mode;
+		mode = lwh.mode;
 	} else {
-		mode = ((sdext_lw_hint_t *)exts[SDEXT_LW_ID])->mode;
+		mode = ((sdhint_lw_t *)exts[SDEXT_LW_ID])->mode;
 	}
 
 	tree = place->node->tree;
 	
-	if (plugs->pset[OPSET_OBJ] == stat40_modeplug(tree, mode))
-		plugs->pset[OPSET_OBJ] = NULL;
+	if (plugh->plug[OPSET_OBJ] == stat40_modeplug(tree, mode)) {
+		plugh->plug[OPSET_OBJ] = NULL;
+		aal_clear_bit(&plugh->mask, OPSET_OBJ);
+	}
 
 	return 0;
 }
@@ -250,7 +253,7 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 /* Estimates how many bytes will be needed for creating statdata item described
    by passed @hint at passed @pos. */
 static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
-	statdata_hint_t *stat_hint;
+	stat_hint_t *stath;
 	errno_t res;
 	uint16_t i;
     
@@ -264,19 +267,19 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 	if (place->pos.unit == MAX_UINT32)
 		hint->len = sizeof(stat40_t);
 	
-	stat_hint = (statdata_hint_t *)hint->specific;
+	stath = (stat_hint_t *)hint->specific;
 
-	aal_assert("umka-2360", stat_hint->extmask != 0);
+	aal_assert("umka-2360", stath->extmask != 0);
     
 	/* Estimating the all stat data extensions */
 	for (i = 0; i < STAT40_EXTNR; i++) {
 		reiser4_plug_t *plug;
 
 		/* Check if extension is present in mask */
-		if (!(((uint64_t)1 << i) & stat_hint->extmask))
+		if (!(((uint64_t)1 << i) & stath->extmask))
 			continue;
 
-		aal_assert("vpf-773", stat_hint->ext[i] != NULL);
+		aal_assert("vpf-773", stath->ext[i] != NULL);
 		
 		/* If we are on the extension which is multiple of 16 (each mask
 		   has 16 bits) then we add to hint's len the size of next
@@ -296,7 +299,7 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 		/* Calculating length of the corresponding extension and add it
 		   to the estimated value. */
 		hint->len += plug_call(plug->o.sdext_ops, length, 
-				       NULL, stat_hint->ext[i]);
+				       NULL, stath->ext[i]);
 	}
 	
 	return 0;
@@ -304,12 +307,12 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 
 /* Function for modifying stat40. */
 static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int insert) {
-	statdata_hint_t *stat_hint;
-	uint16_t extmask = 0;
+	stat_hint_t *stath;
 	stat_entity_t stat;
+	uint16_t extmask = 0;
 	uint16_t i;
 	
-	stat_hint = (statdata_hint_t *)hint->specific;
+	stath = (stat_hint_t *)hint->specific;
 	
 	aal_memset(&stat, 0, sizeof(stat));
 	stat.place = place;
@@ -317,7 +320,7 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 	if (place->pos.unit == MAX_UINT32 && insert)
 		((stat40_t *)stat_body(&stat))->extmask = 0;
 	
-	if (!stat_hint->extmask)
+	if (!stath->extmask)
 		return 0;
     
 	for (i = 0; i < STAT40_EXTNR; i++) {
@@ -345,7 +348,7 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 			if (insert) {
 				/* Calculating new extmask in order to 
 				   update old one. */
-				extmask |= (((stat_hint->extmask >> i) &
+				extmask |= (((stath->extmask >> i) &
 					     0x000000000000ffff));
 
 				/* Update mask.*/
@@ -369,14 +372,14 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 		}
 
 		/* Initializing extension data at passed area */
-		if (stat_hint->ext[i]) {
+		if (stath->ext[i]) {
 			if (insert) {
 				uint32_t extsize;
 
 				/* Moving the rest of stat data to the right 
 				   to keep stat data extension packed. */
 				extsize = plug_call(plug->o.sdext_ops, length,
-						    NULL, stat_hint->ext[i]);
+						    NULL, stath->ext[i]);
 
 				aal_memmove(stat_body(&stat) + extsize, 
 					    stat_body(&stat), place->len -
@@ -385,7 +388,7 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 			}
 			
 			plug_call(plug->o.sdext_ops, init, 
-				  &stat, stat_hint->ext[i]);
+				  &stat, stath->ext[i]);
 		}
 
 		/* Getting pointer to the next extension. It is evaluating as
@@ -417,13 +420,13 @@ static int64_t stat40_update_units(reiser4_place_t *place, trans_hint_t *hint) {
 /* Removes stat data extensions marked in passed hint stat data extensions
    mask. Needed for fsck. */
 static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
-	statdata_hint_t *stat_hint;
 	reiser4_plug_t *plug;
 	uint16_t old_extmask = 0;
 	uint16_t new_extmask;
 	uint16_t extsize;
 	uint16_t chunks = 0;
 	stat_entity_t stat;
+	stat_hint_t *stath;
 	uint16_t i;
 
 	aal_assert("umka-2590", place != NULL);
@@ -432,7 +435,7 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 	hint->overhead = 0;
 	hint->len = 0;
 	
-	stat_hint = (statdata_hint_t *)hint->specific;
+	stath = (stat_hint_t *)hint->specific;
 	
 	aal_memset(&stat, 0, sizeof(stat));
 	stat.place = place;
@@ -455,7 +458,7 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 			
 			/* Calculating new extmask in order to update old
 			   one. */
-			new_extmask = old_extmask & ~(((stat_hint->extmask >> i) &
+			new_extmask = old_extmask & ~(((stath->extmask >> i) &
 						       0x000000000000ffff));
 
 			/* Update mask.*/
@@ -480,7 +483,7 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 
 		extsize = plug_call(plug->o.sdext_ops, length, &stat, NULL);
 		
-		if ((((uint64_t)1 << i) & stat_hint->extmask)) {
+		if ((((uint64_t)1 << i) & stath->extmask)) {
 			/* Moving the rest of stat data to left in odrer to 
 			   keep stat data extension packed. */
 			aal_memmove(stat_body(&stat), 
@@ -574,7 +577,7 @@ static reiser4_item_ops_t stat40_ops = {
 
 static reiser4_plug_t stat40_plug = {
 	.cl    = class_init,
-	.id    = {ITEM_STATDATA40_ID, STATDATA_ITEM, ITEM_PLUG_TYPE},
+	.id    = {ITEM_STAT40_ID, STAT_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "stat40",
 	.desc  = "Stat data item for reiser4, ver. " VERSION,

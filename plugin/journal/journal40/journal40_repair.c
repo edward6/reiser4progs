@@ -647,12 +647,14 @@ void journal40_print(generic_entity_t *entity,
 	aal_stream_format(stream, "description:\t%s\n\n",
 			  entity->plug->desc);
 	
-	aal_stream_format(stream, "Journal header:\n");
+	aal_stream_format(stream, "Journal header block (%llu):\n", 
+			  journal->header->nr);
 
 	aal_stream_format(stream, "last commited:\t%llu\n\n",
 			  get_jh_last_commited(header));
 		
-	aal_stream_format(stream, "Journal footer:\n");
+	aal_stream_format(stream, "Journal footer block (%llu):\n",
+			  journal->footer->nr);
 
 	aal_stream_format(stream, "last flushed:\t%llu\n",
 			  get_jf_last_flushed(footer));

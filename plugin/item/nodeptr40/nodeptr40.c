@@ -183,7 +183,7 @@ static reiser4_item_ops_t nodeptr40_ops = {
 
 static reiser4_plug_t nodeptr40_plug = {
 	.cl    = class_init,
-	.id    = {ITEM_NODEPTR40_ID, NODEPTR_ITEM, ITEM_PLUG_TYPE},
+	.id    = {ITEM_NODEPTR40_ID, PTR_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "nodeptr40",
 	.desc  = "Node pointer item for reiser4, ver. " VERSION,

@@ -42,11 +42,10 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	   consequent handling. */
 	if ((res = reiser4_tree_lookup(tree, &hint, FIND_EXACT, place)) < 0) {
 		return res;
-	} else {
+	} else if (res != PRESENT) {
 		/* Key is not found. */
-		if (res != PRESENT)
-			return -EINVAL;
-	}
+		return -EINVAL;
+	} 
 
 	/* Trying to recognize the object at @place. */
 	if (!(resol->ent = reiser4_object_recognize(&resol->info)) || 
@@ -115,7 +114,7 @@ static errno_t callback_find_entry(char *track, char *name,
 	resol = (resolve_t *)data;
 
 	/* Looking up for @entry in current directory */
-	if ((res = plug_call(resol->ent->opset[OPSET_OBJ]->o.object_ops,
+	if ((res = plug_call(resol->ent->opset.plug[OPSET_OBJ]->o.object_ops,
 			     lookup, resol->ent, name, &entry)) < 0)
 	{
 		return res;
@@ -123,7 +122,7 @@ static errno_t callback_find_entry(char *track, char *name,
 		if (res != PRESENT) {
 			aal_error("Can't find %s.", track);
 			
-			plug_call(resol->ent->opset[OPSET_OBJ]->o.object_ops,
+			plug_call(resol->ent->opset.plug[OPSET_OBJ]->o.object_ops,
 				  close, resol->ent);
 			return -EINVAL;
 		}
@@ -138,7 +137,7 @@ static errno_t callback_find_entry(char *track, char *name,
 			   &entry.object);
 
 	/* Close current object. */
-	plug_call(resol->ent->opset[OPSET_OBJ]->o.object_ops,
+	plug_call(resol->ent->opset.plug[OPSET_OBJ]->o.object_ops,
 		  close, resol->ent);
 	
 	return 0;

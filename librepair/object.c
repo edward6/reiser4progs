@@ -16,7 +16,7 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	aal_assert("vpf-1044", object != NULL);
 	
-	if ((res = plug_call(object->ent->opset[OPSET_OBJ]->o.object_ops,
+	if ((res = plug_call(object->ent->opset.plug[OPSET_OBJ]->o.object_ops,
 			     check_struct, object->ent, place_func, 
 			     data, mode)) < 0)
 		return res;
@@ -38,7 +38,7 @@ static object_entity_t *callback_object_open(object_info_t *info) {
 	if (reiser4_object_init(info))
 		return INVAL_PTR;
 
-	return plug_call(info->opset[OPSET_OBJ]->o.object_ops, 
+	return plug_call(info->opset.plug[OPSET_OBJ]->o.object_ops,
 			 recognize, info);
 }
 
@@ -57,7 +57,7 @@ reiser4_object_t *repair_object_fetch(reiser4_tree_t *tree,
 reiser4_object_t *repair_object_fake(reiser4_tree_t *tree, 
 				     reiser4_object_t *parent,
 				     reiser4_key_t *key,
-				     reiser4_plug_t **opset) 
+				     reiser4_plug_t *plug) 
 {
 	reiser4_object_t *object;
 	object_info_t info;
@@ -65,8 +65,7 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 
 	aal_assert("vpf-1247", tree != NULL);
 	aal_assert("vpf-1248", key != NULL);
-	aal_assert("vpf-1249", opset != NULL);
-	aal_assert("vpf-1640", opset[OPSET_OBJ] != NULL);
+	aal_assert("vpf-1640", plug != NULL);
 
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return INVAL_PTR;
@@ -82,8 +81,7 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	}
 	
 	/* Create the fake object. */
-	if (!(object->ent = plug_call(opset[OPSET_OBJ]->o.object_ops, 
-				      fake, &info)))
+	if (!(object->ent = plug_call(plug->o.object_ops, fake, &info)))
 		goto error_close_object;
 	
 	name = reiser4_print_key(&object->ent->object, PO_INODE);
@@ -133,7 +131,7 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 	aal_assert("vpf-1099", parent != NULL);
 	aal_assert("vpf-1100", parent->ent != NULL);
 	
-	plug = object->ent->opset[OPSET_OBJ];
+	plug = object->ent->opset.plug[OPSET_OBJ];
 	
 	if (!plug->o.object_ops->check_attach)
 		return 0;
@@ -197,7 +195,7 @@ errno_t repair_object_refresh(reiser4_object_t *object) {
 	
 	aal_assert("vpf-1271", object != NULL);
 
-	plug = object->ent->opset[OPSET_OBJ];
+	plug = object->ent->opset.plug[OPSET_OBJ];
 	
 	if (!plug->o.object_ops->lookup)
 		return 0;

@@ -138,10 +138,10 @@ static object_entity_t *reg40_open(object_info_t *info) {
 
 	/* Checking if passed info contains correct stat data coord. What if
 	   file has not stat data? */
-	if (info->start.plug->id.group != STATDATA_ITEM)
+	if (info->start.plug->id.group != STAT_ITEM)
 		return NULL;
 
-	if (info->opset[OPSET_OBJ] != &reg40_plug)
+	if (info->opset.plug[OPSET_OBJ] != &reg40_plug)
 		return NULL;
 	
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
@@ -158,9 +158,7 @@ static object_entity_t *reg40_open(object_info_t *info) {
 }
 
 /* Loads stat data to passed @hint */
-static errno_t reg40_stat(object_entity_t *entity,
-			  statdata_hint_t *hint)
-{
+static errno_t reg40_stat(object_entity_t *entity, stat_hint_t *hint) {
 	reg40_t *reg;
 	
 	aal_assert("umka-2561", entity != NULL);
@@ -237,7 +235,7 @@ reiser4_plug_t *reg40_policy_plug(reg40_t *reg, uint64_t new_size) {
 	
 	aal_assert("umka-2394", reg != NULL);
 
-	policy = reg->obj.info.opset[OPSET_POLICY];
+	policy = reg->obj.info.opset.plug[OPSET_POLICY];
 	
 	aal_assert("umka-2393", policy != NULL);
 
@@ -245,11 +243,11 @@ reiser4_plug_t *reg40_policy_plug(reg40_t *reg, uint64_t new_size) {
 	if (plug_call(policy->o.policy_ops, tails, new_size)) {
 		/* Trying to get non-standard tail plugin from stat data. And if
 		   it is not found, default one from params will be taken. */
-		return reg->obj.info.opset[OPSET_TAIL];
+		return reg->obj.info.opset.plug[OPSET_TAIL];
 	}
 	
 	/* The same for extent plugin */
-	return reg->obj.info.opset[OPSET_EXTENT];
+	return reg->obj.info.opset.plug[OPSET_EXTENT];
 }
 
 /* Makes tail2extent and extent2tail conversion. */
@@ -676,9 +674,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 }
 
 /* Updates stat data from passed @hint */
-static errno_t reg40_update(object_entity_t *entity,
-			    statdata_hint_t *hint)
-{
+static errno_t reg40_update(object_entity_t *entity, stat_hint_t *hint) {
 	reg40_t *reg;
 	
 	aal_assert("umka-2559", entity != NULL);

@@ -19,7 +19,7 @@ enum reiser4_profile_index {
 	
 	PROF_STAT	= 0x6,
 	PROF_NODEPTR	= 0x7,
-	PROF_DENTRY	= 0x8,
+	PROF_DIRITEM	= 0x8,
 	PROF_TAIL	= 0x9,
 	PROF_EXTENT	= 0xa,
 	PROF_ACL	= 0xb,

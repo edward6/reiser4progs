@@ -61,7 +61,7 @@ extern inline errno_t obj40_init(obj40_t *obj, object_info_t *info,
 
 extern errno_t obj40_read_ext(reiser4_place_t *place, rid_t id, void *data);
 
-extern errno_t obj40_load_stat(obj40_t *obj, statdata_hint_t *hint);
+extern errno_t obj40_load_stat(obj40_t *obj, stat_hint_t *hint);
 
 #ifndef ENABLE_STAND_ALONE
 extern errno_t obj40_write_ext(reiser4_place_t *place, rid_t id, void *data);

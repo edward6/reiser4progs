@@ -144,7 +144,7 @@ struct reiser4_object {
 
 typedef struct reiser4_object reiser4_object_t;
 
-#define objplug(object) (object->ent->opset[OPSET_OBJ])
+#define objplug(object) (object->ent->opset.plug[OPSET_OBJ])
 
 /* Calback types used in object code. */
 typedef object_entity_t *(*object_init_t) (object_info_t *);

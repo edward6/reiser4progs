@@ -66,6 +66,7 @@ static int reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 	return 1;
 }
 
+#if 0
 /* Lookup for the end byte and find out the body plug for such a size. */
 static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 	reiser4_place_t place;
@@ -109,6 +110,7 @@ static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 	return reg40_policy_plug(reg, plug_call(key.plug->o.key_ops,
 						get_offset, &key));
 }
+#endif
 
 static errno_t reg40_check_ikey(reg40_t *reg) {	
 	uint64_t offset;
@@ -130,7 +132,7 @@ static errno_t reg40_check_ikey(reg40_t *reg) {
 
 typedef struct reg40_repair {
 	reiser4_plug_t *bplug;
-	uint64_t bytes, maxreal;
+	uint64_t maxreal;
 } reg40_repair_t;
 
 static errno_t reg40_next(object_entity_t *object, 
@@ -194,24 +196,24 @@ static errno_t reg40_next(object_entity_t *object,
 
 	res = 0;
 
-	if (!plug_equal(reg->body.plug, info->opset[OPSET_EXTENT]) && 
-	    !plug_equal(reg->body.plug, info->opset[OPSET_TAIL]))
+	if (!plug_equal(reg->body.plug, info->opset.plug[OPSET_EXTENT]) && 
+	    !plug_equal(reg->body.plug, info->opset.plug[OPSET_TAIL]))
 	{
 		aal_error("The object [%s] (%s), node (%llu),"
 			  "item (%u): the item [%s] of the "
 			  "invalid plugin (%s) found.%s",
 			  print_inode(reg40_core, &info->object),
-			  object->opset[OPSET_OBJ]->label, 
+			  object->opset.plug[OPSET_OBJ]->label, 
 			  place_blknr(&reg->body), reg->body.pos.item,
 			  print_key(reg40_core, &reg->body.key),
-			  object->opset[OPSET_OBJ]->label, 
+			  object->opset.plug[OPSET_OBJ]->label, 
 			  mode == RM_BUILD ? " Removed." : "");
 	} else if (reg40_check_ikey(reg)) {
 		aal_error("The object [%s] (%s), node (%llu),"
 			  "item (%u): the item [%s] has the "
 			  "wrong offset.%s",
 			  print_inode(reg40_core, &info->object),
-			  object->opset[OPSET_OBJ]->label, 
+			  object->opset.plug[OPSET_OBJ]->label, 
 			  place_blknr(&reg->body), reg->body.pos.item,
 			  print_key(reg40_core, &reg->body.key),
 			  mode == RM_BUILD ? " Removed." : "");
@@ -252,9 +254,31 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 
 	info = &reg->obj.info;
 
+	/* Convertion is needed, calcualate accurately for BM_BUILD mode only. */
 	if (mode != RM_BUILD)
 		return 2;
 
+	if (plug_equal(reg->body.plug, info->opset.plug[OPSET_EXTENT])) {
+		/* Extent found, all previous items were tails, convert all 
+		   previous ones to extents. */
+		
+		/* Convert from 0 to this item offset bytes. */
+		if (!(hint->count = plug_call(reg->body.key.plug->o.key_ops, 
+					      get_offset, &reg->body.key)))
+			return 0;
+		
+		/* Set the start key for convertion. */
+		plug_call(reg->body.key.plug->o.key_ops, assign,
+			  &hint->offset, &reg->position);
+		plug_call(reg->body.key.plug->o.key_ops, set_offset,
+			  &hint->offset, 0);
+
+		hint->bytes = 0;
+		
+		/* Convert now. */
+		return 2;
+	}
+	
 	/* The current item should be converted to the body plug. 
 	   Gather all items of the same wrong plug and convert them 
 	   all together at once later. */
@@ -273,7 +297,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 			  get_offset, &hint->offset);
 
 	/* Convertion is postponed; do not bother with it for not RM_BUILD. */
-	return mode == RM_BUILD ? 1 : 2;
+	return 1;
 }
 
 /* Obtains the maxreal key of the given place.
@@ -295,7 +319,7 @@ static uint64_t reg40_place_maxreal(reiser4_place_t *place) {
 }
 
 static errno_t reg40_hole_cure(object_entity_t *object, 
-			       obj40_stat_params_t *params,
+			       obj40_stat_hint_t *hint,
 			       place_func_t func,
 			       uint8_t mode) 
 {
@@ -313,7 +337,7 @@ static errno_t reg40_hole_cure(object_entity_t *object,
 
 	aal_error("The object [%s] has a break at [%llu-%llu] offsets. "
 		  "Plugin %s.%s", print_inode(reg40_core, &object->object),
-		  offset - len, offset, object->opset[OPSET_OBJ]->label,
+		  offset - len, offset, object->opset.plug[OPSET_OBJ]->label,
 		  mode == RM_BUILD ? " Writing a hole there." : "");
 
 	if (mode != RM_BUILD)
@@ -324,12 +348,12 @@ static errno_t reg40_hole_cure(object_entity_t *object,
 			  "at [%llu-%llu] offsets. Plugin %s.",
 			  print_inode(reg40_core, &object->object),
 			  offset - len, offset, 
-			  object->opset[OPSET_OBJ]->label);
+			  object->opset.plug[OPSET_OBJ]->label);
 
 		return res;
 	}
 
-	params->bytes += res;
+	hint->bytes += res;
 	
 	return 0;
 }
@@ -338,11 +362,11 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 			   void *data, uint8_t mode)
 {
 	reg40_t *reg = (reg40_t *)object;
-	obj40_stat_methods_t methods;
-	obj40_stat_params_t params;
+	obj40_stat_hint_t hint;
 	reg40_repair_t repair;
+	obj40_stat_ops_t ops;
 	object_info_t *info;
-	conv_hint_t hint;
+	conv_hint_t conv;
 	errno_t res = 0;
 	uint64_t size;
 
@@ -352,8 +376,8 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	
 	info = &reg->obj.info;
 	
-	aal_memset(&methods, 0, sizeof(methods));
-	aal_memset(&params, 0, sizeof(params));
+	aal_memset(&ops, 0, sizeof(ops));
+	aal_memset(&hint, 0, sizeof(hint));
 	
 	if ((res = obj40_prepare_stat(&reg->obj, S_IFREG, mode)))
 		return res;
@@ -363,14 +387,9 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 		return -EINVAL;
 	
 	aal_memset(&repair, 0, sizeof(repair));
-	
-	/* Get the maxreal file byte and find out what body plug to use. */
-	if (!(repair.bplug = reg40_body_plug(reg)))
-		return -EINVAL;
-		
-	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&conv, 0, sizeof(conv));
 
-	hint.place_func = func;
+	conv.place_func = func;
 	
 	/* Reg40 object (its SD item) has been openned or created. */
 	while (1) {
@@ -386,7 +405,10 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 		
 		if (reg->body.plug) {
 			repair.maxreal = reg40_place_maxreal(&reg->body);
-
+			
+			if (!repair.bplug)
+				repair.bplug = reg->body.plug;
+			
 			if (repair.maxreal == MAX_UINT64) {
 				uint64_t offset;
 				
@@ -413,44 +435,43 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 				goto next;
 			} else {
 				/* Prepare the convertion if needed. */
-				if (!plug_equal(reg->body.plug, repair.bplug))
-					result = reg40_conv_prepare(reg, &hint, 
-								    &repair, mode);
+				result = reg40_conv_prepare(reg, &conv, 
+							    &repair, mode);
 			}
 		}
 	
 		/* If result == 2 -- convertion is needed;
 		   If result == 1 -- conversion is postponed;
 		   If result == 0 -- conversion is not postponed anymore;
-		   If hint.offset.plug != NULL, conversion was postponed. */
-		if ((result == 0 && hint.offset.plug) || result == 2) {
+		   If conv.offset.plug != NULL, conversion was postponed. */
+		if ((result == 0 && conv.offset.plug) || result == 2) {
 			uint64_t offset;
 			
-			offset = plug_call(hint.offset.plug->o.key_ops,
-					   get_offset, &hint.offset);
+			offset = plug_call(conv.offset.plug->o.key_ops,
+					   get_offset, &conv.offset);
 			
 			aal_error("The object [%s] (%s): items at offsets "
 				  "[%llu..%llu] does not not match the "
 				  "detected tail policy (%s).%s",
 				  print_inode(reg40_core, &info->object),
-				  object->opset[OPSET_OBJ]->label, offset,
-				  offset + hint.count -1, 
-				  object->opset[OPSET_POLICY]->label,
+				  object->opset.plug[OPSET_OBJ]->label, 
+				  offset, offset + conv.count -1, 
+				  object->opset.plug[OPSET_POLICY]->label,
 				  mode == RM_BUILD ? " Converted." : "");
 
 			if (mode == RM_BUILD) {
 				result = reg40_core->flow_ops.convert(info->tree,
-								      &hint);
+								      &conv);
 
 				if (result) return result;
 
 				/* Evth was converted, update bytes. */
-				params.bytes += hint.bytes;
+				hint.bytes += conv.bytes;
 			} else {
 				res |= RE_FATAL;
 			}
 			
-			aal_memset(&hint.offset, 0, sizeof(hint.offset));
+			aal_memset(&conv.offset, 0, sizeof(conv.offset));
 			goto next;
 		}
 		
@@ -466,14 +487,14 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 		
 		/* If conversion is postponed, do not count bytes and do not 
 		   cure for holes. */
-		if (hint.offset.plug) 
+		if (conv.offset.plug)
 			goto next;
 		
-		params.bytes += plug_call(reg->body.plug->o.item_ops->object,
-					  bytes, &reg->body);
+		hint.bytes += plug_call(reg->body.plug->o.item_ops->object,
+					bytes, &reg->body);
 
 		/* If we found not we looking for, insert the hole. */
-		if ((res |= reg40_hole_cure(object, &params, func, mode)) < 0)
+		if ((res |= reg40_hole_cure(object, &hint, func, mode)) < 0)
 			return res;
 		
 next:
@@ -491,16 +512,16 @@ next:
 		size = plug_call(reg->position.plug->o.key_ops, 
 				 get_offset, &reg->position);
 		
-		params.mode = S_IFREG;
-		params.must_exts = REG40_EXTS_MUST;
-		params.unkn_exts = REG40_EXTS_UNKN;
-		
-		methods.check_size = reg40_check_size;
-		methods.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
+		hint.mode = S_IFREG;
+		hint.must_exts = REG40_EXTS_MUST;
+		hint.unkn_exts = REG40_EXTS_UNKN;
+		ops.check_size = reg40_check_size;
+		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 
-		res |= obj40_update_stat(&reg->obj, &methods, 
-					 &params, mode);
+		res |= obj40_update_stat(&reg->obj, &ops, &hint, mode);
 	}
+
+	reg40_reset((object_entity_t *)reg);
 
 	return res;
 }

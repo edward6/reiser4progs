@@ -54,10 +54,10 @@ extern lookup_t reiser4_object_lookup(reiser4_object_t *object,
 				      entry_hint_t *entry);
 
 extern errno_t reiser4_object_stat(reiser4_object_t *object,
-				   statdata_hint_t *hint);
+				   stat_hint_t *hint);
 
 extern errno_t reiser4_object_update(reiser4_object_t *object,
-				     statdata_hint_t *hint);
+				     stat_hint_t *hint);
 
 extern errno_t reiser4_object_link(reiser4_object_t *object,
 				   reiser4_object_t *child,

@@ -17,10 +17,10 @@ object_entity_t *sym40_open(object_info_t *info) {
 	aal_assert("umka-1163", info != NULL);
 	aal_assert("umka-1164", info->tree != NULL);
  	
-	if (info->start.plug->id.group != STATDATA_ITEM)
+	if (info->start.plug->id.group != STAT_ITEM)
 		return NULL;
    
-	if (info->opset[OPSET_OBJ] != &sym40_plug)
+	if (info->opset.plug[OPSET_OBJ] != &sym40_plug)
 		return NULL;
 	
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
@@ -63,9 +63,7 @@ static int64_t sym40_read(object_entity_t *entity,
 }
 
 /* Loads symlink stat data to passed @hint */
-static errno_t sym40_stat(object_entity_t *entity,
-			  statdata_hint_t *hint)
-{
+static errno_t sym40_stat(object_entity_t *entity, stat_hint_t *hint) {
 	sym40_t *sym;
 	
 	aal_assert("umka-2557", entity != NULL);
@@ -154,9 +152,7 @@ static errno_t sym40_metadata(object_entity_t *entity,
 }
 
 /* Updates symlink stat data from passed @hint */
-static errno_t sym40_update(object_entity_t *entity,
-			    statdata_hint_t *hint)
-{
+static errno_t sym40_update(object_entity_t *entity, stat_hint_t *hint) {
 	sym40_t *sym;
 	
 	aal_assert("umka-2559", entity != NULL);

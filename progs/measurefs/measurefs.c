@@ -362,19 +362,19 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 		stat_hint->items++;
 
 		switch (place.plug->id.group) {
-		case STATDATA_ITEM:
+		case STAT_ITEM:
 			stat_hint->statdatas++;
 			break;
 		case EXTENT_ITEM:
 			stat_hint->extents++;
 			break;
-		case NODEPTR_ITEM:
+		case PTR_ITEM:
 			stat_hint->nodeptrs++;
 			break;
 		case TAIL_ITEM:
 			stat_hint->tails++;
 			break;
-		case DIRENTRY_ITEM:
+		case DIR_ITEM:
 			stat_hint->direntries++;
 			break;
 		}

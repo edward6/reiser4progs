@@ -39,9 +39,9 @@ errno_t sym40_check_struct(object_entity_t *object,
 			   void *data, uint8_t mode)
 {
 	sym40_t *sym = (sym40_t *)object;
-	obj40_stat_methods_t methods;
-	obj40_stat_params_t params;
 	reiser4_place_t *place;
+	obj40_stat_hint_t hint;
+	obj40_stat_ops_t ops;
 	errno_t res;
 	char *path;
 	
@@ -51,8 +51,8 @@ errno_t sym40_check_struct(object_entity_t *object,
 
 	place = STAT_PLACE(&sym->obj);
 	
-	aal_memset(&methods, 0, sizeof(methods));
-	aal_memset(&params, 0, sizeof(params));
+	aal_memset(&ops, 0, sizeof(ops));
+	aal_memset(&hint, 0, sizeof(hint));
 	
 	if ((res = obj40_prepare_stat(&sym->obj, S_IFLNK, mode)))
 		return res;
@@ -68,14 +68,12 @@ errno_t sym40_check_struct(object_entity_t *object,
 		goto error;
 	
 	/* Fix the SD, if no fatal corruptions were found. */
-	params.mode = S_IFLNK;
-	params.size = aal_strlen(path);
-	params.must_exts = SYM40_EXTS_MUST;
+	hint.mode = S_IFLNK;
+	hint.size = aal_strlen(path);
+	hint.must_exts = SYM40_EXTS_MUST;
+	ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 	
-	methods.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
-	
-	if ((res = obj40_update_stat(&sym->obj, &methods, 
-				     &params, mode)))
+	if ((res = obj40_update_stat(&sym->obj, &ops, &hint, mode)))
 		goto error;
 
 	aal_free(path);

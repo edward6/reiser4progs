@@ -46,14 +46,14 @@ reiser4_profile_t defprof = {
 		[PROF_STAT] = {
 			.name  = "statdata",
 			.type  = ITEM_PLUG_TYPE,
-			.id = ITEM_STATDATA40_ID,
+			.id = ITEM_STAT40_ID,
 		},
 		[PROF_NODEPTR] = {
 			.name  = "nodeptr",
 			.type  = ITEM_PLUG_TYPE,
 			.id = ITEM_NODEPTR40_ID,
 		},
-		[PROF_DENTRY] = {
+		[PROF_DIRITEM] = {
 			.name  = "direntry",
 			.type  = ITEM_PLUG_TYPE,
 			.id = ITEM_CDE40_ID,

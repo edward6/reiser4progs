@@ -24,7 +24,7 @@ bool_t reiser4_item_statdata(reiser4_place_t *place) {
 	aal_assert("umka-1831", place != NULL);
 	aal_assert("umka-2382", place->plug != NULL);
 
-	return place->plug->id.group == STATDATA_ITEM;
+	return place->plug->id.group == STAT_ITEM;
 }
 
 /* Returns item type from its plugin */

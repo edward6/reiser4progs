@@ -99,7 +99,7 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 		return res;
 	
 	/* Increment the link. */
-	if ((res = plug_call(object->ent->opset[OPSET_OBJ]->o.object_ops,
+	if ((res = plug_call(object->ent->opset.plug[OPSET_OBJ]->o.object_ops,
 			     link, object->ent)))
 		return res;
 
@@ -142,7 +142,7 @@ static errno_t repair_semantic_unlink(repair_semantic_t *sem,
 	aal_assert("vpf-1337", object != NULL);
 
 	if (!parent) {
-		reiser4_plug_t *plug = object->ent->opset[OPSET_OBJ];
+		reiser4_plug_t *plug = object->ent->opset.plug[OPSET_OBJ];
 		
 		/* If there is no parent, just detach the object. */
 		if (!plug->o.object_ops->detach) 
@@ -531,9 +531,9 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 						  reiser4_object_t *parent,
 						  reiser4_key_t *key)
 {
-	reiser4_plug_t *opset[OPSET_LAST];
 	reiser4_object_t *object;
 	reiser4_tree_t *tree;
+	reiser4_plug_t *plug;
 	
 	aal_assert("vpf-1250", sem != NULL);
 	aal_assert("vpf-1251", key != NULL);
@@ -545,13 +545,13 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 	
 	if (object) {
 		/* Check that the object was recognized by the dir plugin. */
-		if (object->ent->opset[OPSET_OBJ]->id.group == DIR_OBJECT)
+		if (object->ent->opset.plug[OPSET_OBJ]->id.group == DIR_OBJECT)
 			return object;
 
 		aal_error("The directory [%s] is recognized by the "
 			  "%s plugin which is not a directory one.", 
 			  reiser4_print_key(key, PO_INODE), 
-			  object->ent->opset[OPSET_OBJ]->label);
+			  object->ent->opset.plug[OPSET_OBJ]->label);
 		
 		reiser4_object_close(object);
 	} else {
@@ -562,21 +562,12 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 	
 	if (sem->repair->mode != RM_BUILD)
 		return NULL;
-	
-	if (!parent) {
-		/* Init all plugins for the root. */
-		reiser4_opset_root(opset);
-	} else {
-		/* Init only the object plugin not for the root. */
-		opset[OPSET_OBJ] = reiser4_profile_plug(PROF_DIR);
-	}
 
-	aal_error("Trying to recover the directory [%s] "
-		  "with the default plugin--%s.", 
-		  reiser4_print_key(key, PO_INODE),
-		  opset[OPSET_OBJ]->label);
+	plug = reiser4_profile_plug(PROF_DIR);
+	aal_error("Trying to recover the directory [%s] with the default "
+		  "plugin--%s.", reiser4_print_key(key, PO_INODE), plug->label);
 
-	return repair_object_fake(tree, parent, key, opset);
+	return repair_object_fake(tree, parent, key, plug);
 }
 
 static errno_t repair_semantic_object_check(repair_semantic_t *sem, 
@@ -641,6 +632,8 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 		sem->root = NULL;
 		return -EINVAL;
 	}
+	
+	reiser4_opset_root(&sem->root->ent->opset);
 	
 	if ((res = repair_semantic_object_check(sem, sem->root, sem->root))) {
 		reiser4_object_close(sem->root);
@@ -827,7 +820,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	if ((res = repair_semantic_root_prepare(sem)))
 		goto error_update;
 	
-	if (reiser4_opset_init(tree))
+	if ((res = reiser4_opset_init(tree, 0)))
 		goto error_close_root;
 	
 	/* Open "lost+found" directory in BUILD mode. */

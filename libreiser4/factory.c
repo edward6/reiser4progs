@@ -216,7 +216,7 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(sdext_lw);
 	__load_plug(sdext_lt);
 	__load_plug(sdext_unix);
-	__load_plug(sdext_plugid);
+	__load_plug(sdext_plug);
 
 	__load_plug(cde40);
 	__load_plug(stat40);

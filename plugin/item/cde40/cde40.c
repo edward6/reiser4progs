@@ -946,7 +946,7 @@ lookup_t cde40_collision(reiser4_place_t *place, coll_hint_t *hint) {
 	
 	aal_assert("vpf-1548", place != NULL);
 	aal_assert("vpf-1549", hint != NULL);
-	aal_assert("vpf-1549", hint->type == DIRENTRY_ITEM);
+	aal_assert("vpf-1549", hint->type == DIR_ITEM);
 
 	if (place->pos.unit == MAX_UINT32)
 		place->pos.unit = 0;
@@ -1142,7 +1142,7 @@ static reiser4_item_ops_t cde40_ops = {
 
 static reiser4_plug_t cde40_plug = {
 	.cl    = class_init,
-	.id    = {ITEM_CDE40_ID, DIRENTRY_ITEM, ITEM_PLUG_TYPE},
+	.id    = {ITEM_CDE40_ID, DIR_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "cde40",
 	.desc  = "Compound direntry for reiser4, ver. " VERSION,

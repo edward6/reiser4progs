@@ -10,7 +10,7 @@
 const char *reiser4_igname[] = {
 	"SD",
 	"NPTR",
-	"DENTRY",
+	"DIRITEM",
 	"TAIL",
 	"EXTENT",
 	"PERM",
@@ -107,6 +107,10 @@ static reiser4_plug_t *pset_find(rid_t member, rid_t id) {
 	return reiser4_opset_plug(member, id);
 }
 
+static void pset_diff(tree_entity_t *tree, reiser4_opset_t *opset) {
+	reiser4_opset_diff((reiser4_tree_t *)tree, opset);
+}
+
 static int item_mergeable(reiser4_place_t *place1,
 			  reiser4_place_t *place2)
 {
@@ -142,7 +146,7 @@ static errno_t object_resolve(tree_entity_t *tree, char *path,
 	reiser4_key_assign(key, &o->object);
 
 	/* Close found object. */
-	plug_call(o->opset[OPSET_OBJ]->o.object_ops, close, o);
+	plug_call(o->opset.plug[OPSET_OBJ]->o.object_ops, close, o);
 
 	return 0;
 }
@@ -197,6 +201,7 @@ reiser4_core_t core = {
 #ifndef ENABLE_STAND_ALONE
 	.pset_ops = {
 		.find		= pset_find,
+		.diff		= pset_diff,
 	},
 #endif
 #ifdef ENABLE_SYMLINKS

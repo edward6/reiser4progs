@@ -8,32 +8,44 @@
 #include <reiser4/libreiser4.h>
 
 errno_t reiser4_object_init(object_info_t *info) {
-	sdext_plugid_hint_t plugs;
-	statdata_hint_t stat;
+	sdhint_plug_t plugh;
 	trans_hint_t trans;
+	stat_hint_t stat;
 	errno_t res;
 	
 	aal_assert("umka-2380", info != NULL);
 
 	aal_memset(&stat, 0, sizeof(stat));
-	aal_memset(&plugs, 0, sizeof(plugs));
+	aal_memset(&plugh, 0, sizeof(plugh));
 	
 	/* Preparing hint and mask */
 	trans.specific = &stat;
 	trans.place_func = NULL;
 	trans.region_func = NULL;
 	trans.shift_flags = SF_DEFAULT;
-	stat.ext[SDEXT_PLUG_ID] = &plugs;
+	stat.ext[SDEXT_PLUG_ID] = &plugh;
+	
+	if (reiser4_place_valid(&info->start)) {
+		if ((res = reiser4_place_fetch(&info->start)))
+			return res;
+
+		/* Init is allowed on a SD item only. */
+		if (info->start.plug->id.group != STAT_ITEM)
+			return -EINVAL;
+	} else {
+		/* Init is allowed on a SD item only. */
+		return -EINVAL;
+	}
 	
 	/* Getting object plugin by first item coord. */
 	if ((res = plug_call(info->start.plug->o.item_ops->object,
 			     fetch_units, &info->start, &trans)) != 1)
 		return res;
 	
-	aal_memcpy(&info->opset, &plugs.pset, sizeof(plugs.pset));
+	aal_memcpy(&info->opset.plug, &plugh, sizeof(plugh));
 	
 	/* Object plugin must be detected. */
-	return info->opset[OPSET_OBJ] ? 0 : -EINVAL;
+	return info->opset.plug[OPSET_OBJ] ? 0 : -EINVAL;
 }
 
 /* Helper funtion, which initializes @object->ent by @object->info. */
@@ -43,7 +55,7 @@ object_entity_t *reiser4_object_recognize(object_info_t *info) {
 
 	/* Requesting object plugin to open the object on passed @tree and
 	   @place. If it fails, we will continue lookup. */
-	return plug_call(info->opset[OPSET_OBJ]->o.object_ops, open, info);
+	return plug_call(info->opset.plug[OPSET_OBJ]->o.object_ops, open, info);
 }
 
 /* Closes object entity. */
@@ -59,8 +71,8 @@ static void reiser4_object_fini(reiser4_object_t *object) {
    function as helper, because using object_stat() is rather complicated due to
    somplex initializing stat data extensions to be loaded by it. */
 uint64_t reiser4_object_size(reiser4_object_t *object) {
-	statdata_hint_t hint;
-	sdext_lw_hint_t lw_hint;
+	stat_hint_t hint;
+	sdhint_lw_t lwh;
 	
 	aal_assert("umka-1961", object != NULL);
 
@@ -70,14 +82,14 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 	/* FIXME-UMKA: Why object (on API abstraction level) knows, that size
 	   lies in LW extension? What if someone will move it to another one? */
 	hint.extmask = 1 << SDEXT_LW_ID;
-	hint.ext[SDEXT_LW_ID] = &lw_hint;
+	hint.ext[SDEXT_LW_ID] = &lwh;
 
 	/* Calling objects stat() method. */
 	if (plug_call(objplug(object)->o.object_ops, 
 		      stat, object->ent, &hint))
 		return 0;
 
-	return lw_hint.size;
+	return lwh.size;
 }
 
 /* Updates object stat data coord by means of using tree_lookup(). */
@@ -267,9 +279,7 @@ int64_t reiser4_object_write(
 }
 
 /* Loads object stat data to @hint. */
-errno_t reiser4_object_stat(reiser4_object_t *object,
-			    statdata_hint_t *hint)
-{
+errno_t reiser4_object_stat(reiser4_object_t *object, stat_hint_t *hint) {
 	aal_assert("umka-2570", object != NULL);
 	aal_assert("umka-2571", object->ent != NULL);
 
@@ -278,9 +288,7 @@ errno_t reiser4_object_stat(reiser4_object_t *object,
 }
 
 /* Saves stat data described by @hint to @object stat data item in tree. */
-errno_t reiser4_object_update(reiser4_object_t *object,
-			      statdata_hint_t *hint)
-{
+errno_t reiser4_object_update(reiser4_object_t *object, stat_hint_t *hint) {
 	aal_assert("umka-2572", object != NULL);
 	aal_assert("umka-2573", object->ent != NULL);
 
@@ -337,7 +345,7 @@ reiser4_object_t *reiser4_object_create(
 	aal_assert("umka-790", tree != NULL);
 	aal_assert("umka-1128", hint != NULL);
 
-	plug = hint->info.opset[OPSET_OBJ];
+	plug = hint->info.opset.plug[OPSET_OBJ];
 	
 	aal_assert("umka-1917", plug != NULL);
 
@@ -744,11 +752,11 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	
 	/* Preparing object hint */
 	hint.mode = 0;
-	hint.info.opset[OPSET_OBJ] = tent->opset[OPSET_MKDIR];
-	hint.info.opset[OPSET_STAT] = tent->opset[OPSET_STAT];
-	hint.info.opset[OPSET_HASH] = tent->opset[OPSET_HASH];
-	hint.info.opset[OPSET_FIBRE] = tent->opset[OPSET_FIBRE];
-	hint.info.opset[OPSET_DENTRY] = tent->opset[OPSET_DENTRY];
+	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_MKDIR];
+	hint.info.opset.plug[OPSET_STAT] = tent->opset[OPSET_STAT];
+	hint.info.opset.plug[OPSET_HASH] = tent->opset[OPSET_HASH];
+	hint.info.opset.plug[OPSET_FIBRE] = tent->opset[OPSET_FIBRE];
+	hint.info.opset.plug[OPSET_DIRITEM] = tent->opset[OPSET_DIRITEM];
 	
 	if (parent) {
 		reiser4_key_assign(&hint.info.parent, 
@@ -781,16 +789,16 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 	tent = &fs->tree->ent;
 	
 	/* Preparing object hint */
-	hint.info.opset[OPSET_OBJ] = tent->opset[OPSET_CREATE];
+	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_CREATE];
 
 	/* Preparing label fields. */
 	hint.mode = 0;
-	hint.info.opset[OPSET_STAT] = tent->opset[OPSET_STAT];
+	hint.info.opset.plug[OPSET_STAT] = tent->opset[OPSET_STAT];
 
 	/* Preparing body fields. */
-	hint.info.opset[OPSET_TAIL] = tent->opset[OPSET_TAIL];
-	hint.info.opset[OPSET_EXTENT] = tent->opset[OPSET_EXTENT];
-	hint.info.opset[OPSET_POLICY] = tent->opset[OPSET_POLICY];
+	hint.info.opset.plug[OPSET_TAIL] = tent->opset[OPSET_TAIL];
+	hint.info.opset.plug[OPSET_EXTENT] = tent->opset[OPSET_EXTENT];
+	hint.info.opset.plug[OPSET_POLICY] = tent->opset[OPSET_POLICY];
 	
 	if (parent) {
 		reiser4_key_assign(&hint.info.parent, 
@@ -822,11 +830,11 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	tent = &fs->tree->ent;
 	
 	/* Preparing object hint */
-	hint.info.opset[OPSET_OBJ] = tent->opset[OPSET_SYMLINK];
+	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_SYMLINK];
 
 	/* Preparing label fields. */
 	hint.mode = 0;
-	hint.info.opset[OPSET_STAT] = tent->opset[OPSET_STAT];
+	hint.info.opset.plug[OPSET_STAT] = tent->opset[OPSET_STAT];
 
 	/* Preparing body fields. */
 	hint.name = (char *)target;
@@ -862,11 +870,11 @@ reiser4_object_t *reiser4_spl_create(reiser4_fs_t *fs,
 	tent = &fs->tree->ent;
 	
 	/* Preparing object hint. */
-	hint.info.opset[OPSET_OBJ] = tent->opset[OPSET_MKNODE];
+	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_MKNODE];
 
 	/* Preparing label fields. */
 	hint.mode = mode;
-	hint.info.opset[OPSET_STAT] = tent->opset[OPSET_STAT];
+	hint.info.opset.plug[OPSET_STAT] = tent->opset[OPSET_STAT];
 
 	/* Preparing body fields. */
 	hint.rdev = rdev;

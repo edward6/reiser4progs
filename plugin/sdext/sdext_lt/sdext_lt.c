@@ -14,35 +14,35 @@ static uint16_t sdext_lt_length(stat_entity_t *stat, void *h) {
 /* Loads all extension fields to passed @hint. */
 static errno_t sdext_lt_open(stat_entity_t *stat, void *hint) {
 	sdext_lt_t *ext;
-	sdext_lt_hint_t *sdext_lt;
+	sdhint_lt_t *lth;
     
 	aal_assert("umka-1477", stat != NULL);
 	aal_assert("umka-1478", hint != NULL);
 
 	ext = (sdext_lt_t *)stat_body(stat);
-	sdext_lt = (sdext_lt_hint_t *)hint;
+	lth = (sdhint_lt_t *)hint;
     
-	sdext_lt->atime = sdext_lt_get_atime(ext);
-	sdext_lt->mtime = sdext_lt_get_mtime(ext);
-	sdext_lt->ctime = sdext_lt_get_ctime(ext);
+	lth->atime = sdext_lt_get_atime(ext);
+	lth->mtime = sdext_lt_get_mtime(ext);
+	lth->ctime = sdext_lt_get_ctime(ext);
     
 	return 0;
 }
 
 /* Saves all fields to passed extension @body. */
 static errno_t sdext_lt_init(stat_entity_t *stat, void *hint) {
-	sdext_lt_hint_t *sdext_lt;
+	sdhint_lt_t *lth;
 	sdext_lt_t *ext;
     
 	aal_assert("umka-1475", stat != NULL);
 	aal_assert("umka-1476", hint != NULL);
 	
-	sdext_lt = (sdext_lt_hint_t *)hint;
+	lth = (sdhint_lt_t *)hint;
 	ext = (sdext_lt_t *)stat_body(stat);
 	
-	sdext_lt_set_atime(ext, sdext_lt->atime);	
-	sdext_lt_set_mtime(ext, sdext_lt->mtime);
-	sdext_lt_set_ctime(ext, sdext_lt->ctime);
+	sdext_lt_set_atime(ext, lth->atime);
+	sdext_lt_set_mtime(ext, lth->mtime);
+	sdext_lt_set_ctime(ext, lth->ctime);
 
 	return 0;
 }

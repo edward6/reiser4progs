@@ -14,29 +14,29 @@ static uint16_t sdext_flags_length(stat_entity_t *stat, void *hint) {
 /* Loads all extension fields to passed @hint. */
 static errno_t sdext_flags_open(stat_entity_t *stat, void *hint) {
 	sdext_flags_t *ext;
-	sdext_flags_hint_t *sdext_flags;
+	sdhint_flags_t *flagsh;
     
 	aal_assert("umka-3077", stat != NULL);
 	aal_assert("umka-3078", hint != NULL);
 
 	ext = (sdext_flags_t *)stat_body(stat);
-	sdext_flags = (sdext_flags_hint_t *)hint;
-	sdext_flags->flags = sdext_flags_get_flags(ext);
+	flagsh = (sdhint_flags_t *)hint;
+	flagsh->flags = sdext_flags_get_flags(ext);
     
 	return 0;
 }
 
 /* Saves all fields to passed extension @body. */
 static errno_t sdext_flags_init(stat_entity_t *stat, void *hint) {
-	sdext_flags_hint_t *sdext_flags;
+	sdhint_flags_t *flagsh;
     
 	aal_assert("umka-3079", stat != NULL);
 	aal_assert("umka-3080", hint != NULL);
 	
-	sdext_flags = (sdext_flags_hint_t *)hint;
+	flagsh = (sdhint_flags_t *)hint;
     
 	sdext_flags_set_flags((sdext_flags_t *)stat_body(stat),
-			      sdext_flags->flags);
+			      flagsh->flags);
 
 	return 0;
 }

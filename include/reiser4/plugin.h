@@ -113,7 +113,7 @@ typedef enum reiser4_object_group reiser4_object_group_t;
 
 /* Known item plugin ids. */
 enum reiser4_item_plug_id {
-	ITEM_STATDATA40_ID	= 0x0,
+	ITEM_STAT40_ID		= 0x0,
 	ITEM_SDE40_ID	        = 0x1,
 	ITEM_CDE40_ID	        = 0x2,
 	ITEM_NODEPTR40_ID	= 0x3,
@@ -127,9 +127,9 @@ enum reiser4_item_plug_id {
 
 /* Known item groups. */
 enum reiser4_item_group {
-	STATDATA_ITEM		= 0x0,
-	NODEPTR_ITEM		= 0x1,
-	DIRENTRY_ITEM		= 0x2,
+	STAT_ITEM		= 0x0,
+	PTR_ITEM		= 0x1,
+	DIR_ITEM		= 0x2,
 	TAIL_ITEM		= 0x3,
 	EXTENT_ITEM		= 0x4,
 	PERMISSION_ITEM		= 0x5, /* not used yet */
@@ -277,7 +277,7 @@ enum reiser4_opset_id {
 	OPSET_HASH		= 0x4,
 	OPSET_FIBRE		= 0x5,
 	OPSET_STAT		= 0x6,
-	OPSET_DENTRY		= 0x7,
+	OPSET_DIRITEM		= 0x7,
 	OPSET_CRYPTO		= 0x8,
 	OPSET_DIGEST		= 0x9,
 	OPSET_COMPRES		= 0xa,
@@ -395,32 +395,6 @@ struct reiser4_node {
 #endif
 };
 
-/* Object info struct contains the main information about a reiser4
-   object. These are: its key, parent key and coord of first item. */
-struct object_info {
-	reiser4_plug_t *opset[OPSET_LAST];
-	uint64_t opmask;
-	
-	tree_entity_t *tree;
-	reiser4_place_t start;
-	reiser4_key_t object;
-	reiser4_key_t parent;
-};
-
-typedef struct object_info object_info_t;
-
-/* Object plugin entity. */
-/*
-struct object_entity {
-	object_info_t info;
-	reiser4_plug_t *plug;
-};
-
-typedef struct object_entity object_entity_t;
-*/
-
-typedef object_info_t object_entity_t;
-
 /* Stat data extension entity. */
 struct stat_entity {
 	reiser4_place_t *place;
@@ -509,7 +483,7 @@ struct ptr_hint {
 
 typedef struct ptr_hint ptr_hint_t;
 
-struct sdext_unix_hint {
+struct sdhint_unix {
 	uint32_t uid;
 	uint32_t gid;
 	uint32_t atime;
@@ -519,40 +493,42 @@ struct sdext_unix_hint {
 	uint64_t bytes;
 };
 
-typedef struct sdext_unix_hint sdext_unix_hint_t;
+typedef struct sdhint_unix sdhint_unix_t;
 
-struct sdext_lw_hint {
+struct sdhint_lw {
 	uint16_t mode;
 	uint32_t nlink;
 	uint64_t size;
 };
 
-typedef struct sdext_lw_hint sdext_lw_hint_t;
+typedef struct sdhint_lw sdhint_lw_t;
 
-struct sdext_lt_hint {
+struct sdhint_lt {
 	uint32_t atime;
 	uint32_t mtime;
 	uint32_t ctime;
 };
 
-typedef struct sdext_lt_hint sdext_lt_hint_t;
+typedef struct sdhint_lt sdhint_lt_t;
 
-struct sdext_flags_hint {
+struct sdhint_flags {
 	uint32_t flags;
 };
 
-typedef struct sdext_flags_hint sdext_flags_hint_t;
+typedef struct sdhint_flags sdhint_flags_t;
 
-struct sdext_plugid_hint {
-	reiser4_plug_t *pset[OPSET_LAST];
+struct sdhint_plug {
+	reiser4_plug_t *plug[OPSET_LAST];
+	uint64_t mask;
 };
 
-typedef struct sdext_plugid_hint sdext_plugid_hint_t;
+typedef struct sdhint_plug sdhint_plug_t;
+
+typedef sdhint_plug_t reiser4_opset_t;
 
 /* These fields should be changed to what proper description of needed
    extensions. */
-struct statdata_hint {
-	
+struct stat_hint {
 	/* Extensions mask */
 	uint64_t extmask;
     
@@ -560,7 +536,7 @@ struct statdata_hint {
 	void *ext[SDEXT_LAST_ID];
 };
 
-typedef struct statdata_hint statdata_hint_t;
+typedef struct stat_hint stat_hint_t;
 
 enum entry_type {
 	ET_NAME	= 0,
@@ -568,6 +544,33 @@ enum entry_type {
 };
 
 typedef enum entry_type entry_type_t;
+
+/* Object info struct contains the main information about a reiser4
+   object. These are: its key, parent key and coord of first item. */
+struct object_info {
+	reiser4_opset_t opset;
+	
+	tree_entity_t *tree;
+	reiser4_place_t start;
+	reiser4_key_t object;
+	reiser4_key_t parent;
+};
+
+typedef struct object_info object_info_t;
+
+/* Object plugin entity. */
+/*
+struct object_entity {
+	object_info_t info;
+	reiser4_plug_t *plug;
+};
+
+typedef struct object_entity object_entity_t;
+*/
+
+typedef object_info_t object_entity_t;
+
+
 
 /* Object hint. It is used to bring all about object information to object
    plugin to create appropriate object by it. */
@@ -890,7 +893,7 @@ typedef struct reiser4_key_ops reiser4_key_ops_t;
 
 struct reiser4_object_ops {
 	/* Loads object stat data to passed hint. */
-	errno_t (*stat) (object_entity_t *, statdata_hint_t *);
+	errno_t (*stat) (object_entity_t *, stat_hint_t *);
 
 #ifndef ENABLE_STAND_ALONE
 	/* These methods change @nlink value of passed @entity. */
@@ -903,7 +906,7 @@ struct reiser4_object_ops {
 	errno_t (*detach) (object_entity_t *, object_entity_t *);
 
 	/* Updates object stat data from passed hint. */
-	errno_t (*update) (object_entity_t *, statdata_hint_t *);
+	errno_t (*update) (object_entity_t *, stat_hint_t *);
 	
 	/* Creates new file with passed parent and object keys. */
 	object_entity_t *(*create) (object_hint_t *);
@@ -1721,6 +1724,7 @@ typedef struct object_ops object_ops_t;
 struct pset_ops {
 	/* Obtains the plugin from the profile by its profile index. */
 	reiser4_plug_t *(*find) (rid_t, rid_t);
+	void (*diff) (tree_entity_t *, reiser4_opset_t *);
 };
 
 typedef struct pset_ops pset_ops_t;

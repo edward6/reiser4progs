@@ -43,7 +43,7 @@
 #define UNIT_LEN_MIN(kind, pol)		\
         (en_size(pol) + ENTRY_LEN_MIN(kind, pol))
 
-#define DENTRY_LEN_MIN			\
+#define DIRITEM_LEN_MIN			\
         (UNIT_LEN_MIN(S_NAME) + sizeof(cde40_t))
 
 #define en_len_min(count, pol)		\

@@ -10,17 +10,17 @@
 /* Loads extension to passed @hint */
 static errno_t sdext_lw_open(stat_entity_t *stat, void *hint) {
 	sdext_lw_t *ext;
-	sdext_lw_hint_t *sdext_lw;
+	sdhint_lw_t *lwh;
     
 	aal_assert("umka-1188", stat != NULL);
 	aal_assert("umka-1189", hint != NULL);
 
 	ext = (sdext_lw_t *)stat_body(stat);
-	sdext_lw = (sdext_lw_hint_t *)hint;
+	lwh = (sdhint_lw_t *)hint;
     
-	sdext_lw->mode = sdext_lw_get_mode(ext);
-	sdext_lw->nlink = sdext_lw_get_nlink(ext);
-	sdext_lw->size = sdext_lw_get_size(ext);
+	lwh->mode = sdext_lw_get_mode(ext);
+	lwh->nlink = sdext_lw_get_nlink(ext);
+	lwh->size = sdext_lw_get_size(ext);
     
 	return 0;
 }
@@ -32,18 +32,18 @@ static uint16_t sdext_lw_length(stat_entity_t *stat, void *hint) {
 #ifndef ENABLE_STAND_ALONE
 /* Saves all extension fields from passed @hint to @body. */
 static errno_t sdext_lw_init(stat_entity_t *stat, void *hint) {
-	sdext_lw_hint_t *sdext_lw;
+	sdhint_lw_t *lwh;
 	sdext_lw_t *ext;
 	
 	aal_assert("umka-1186", stat != NULL);
 	aal_assert("umka-1187", hint != NULL);
 	
-	sdext_lw = (sdext_lw_hint_t *)hint;
+	lwh = (sdhint_lw_t *)hint;
 	ext = (sdext_lw_t *)stat_body(stat);
 	
-	sdext_lw_set_mode(ext, sdext_lw->mode);
-	sdext_lw_set_nlink(ext,sdext_lw->nlink);
-	sdext_lw_set_size(ext, sdext_lw->size);
+	sdext_lw_set_mode(ext, lwh->mode);
+	sdext_lw_set_nlink(ext, lwh->nlink);
+	sdext_lw_set_size(ext, lwh->size);
 
 	return 0;
 }

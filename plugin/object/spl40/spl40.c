@@ -16,10 +16,10 @@ object_entity_t *spl40_open(object_info_t *info) {
 	aal_assert("umka-2529", info != NULL);
 	aal_assert("umka-2530", info->tree != NULL);
  	
-	if (info->start.plug->id.group != STATDATA_ITEM)
+	if (info->start.plug->id.group != STAT_ITEM)
 		return NULL;
   
-	if (info->opset[OPSET_OBJ] != &spl40_plug)
+	if (info->opset.plug[OPSET_OBJ] != &spl40_plug)
 		return NULL;
 	
 	if (!(spl = aal_calloc(sizeof(*spl), 0)))
@@ -36,9 +36,7 @@ object_entity_t *spl40_open(object_info_t *info) {
 }
 
 /* Loads special file stat data to passed @hint */
-static errno_t spl40_stat(object_entity_t *entity,
-			  statdata_hint_t *hint)
-{
+static errno_t spl40_stat(object_entity_t *entity, stat_hint_t *hint) {
 	spl40_t *spl;
 	
 	aal_assert("umka-2551", entity != NULL);
@@ -123,9 +121,7 @@ static errno_t spl40_metadata(object_entity_t *entity,
 }
 
 /* Updates special file stat data from passed @hint */
-static errno_t spl40_update(object_entity_t *entity,
-			    statdata_hint_t *hint)
-{
+static errno_t spl40_update(object_entity_t *entity, stat_hint_t *hint) {
 	spl40_t *spl;
 	
 	aal_assert("umka-2555", entity != NULL);

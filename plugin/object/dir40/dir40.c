@@ -82,8 +82,8 @@ errno_t dir40_reset(object_entity_t *entity) {
 	/* Building key itself. */
 	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, 
 		  build_hashed, &dir->position, 
-		  entity->opset[OPSET_HASH],
-		  entity->opset[OPSET_FIBRE], 
+		  entity->opset.plug[OPSET_HASH],
+		  entity->opset.plug[OPSET_FIBRE], 
 		  obj40_locality(&dir->obj), 
 		  obj40_objectid(&dir->obj), ".");
 
@@ -195,9 +195,8 @@ lookup_t dir40_update_body(object_entity_t *entity, int check_group) {
 #endif
 	
 	/* Making lookup by current dir key. */
-	if ((res = obj40_find_item(&dir->obj, &dir->position, 
-				   FIND_EXACT, NULL, NULL,
-				   &dir->body)) < 0)
+	if ((res = obj40_find_item(&dir->obj, &dir->position, FIND_EXACT, 
+				   NULL, NULL, &dir->body)) < 0)
 		return res;
 
 	if (res == ABSENT) {
@@ -208,9 +207,9 @@ lookup_t dir40_update_body(object_entity_t *entity, int check_group) {
 			return ABSENT;
 		
 		/* If key matches, but this is not directory item. */
-		if (check_group && dir->body.plug->id.group != DIRENTRY_ITEM)
+		if (check_group && dir->body.plug->id.group != DIR_ITEM)
 			return ABSENT;
-		
+
 #ifndef ENABLE_STAND_ALONE
 		/* No adjusting for the ABSENT result. */
 		adjust = 0;
@@ -359,14 +358,14 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 	   directory oid, locality and name by menas of using hash plugin. */
 	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, 
 		  build_hashed, &dir->body.key, 
-		  entity->opset[OPSET_HASH],
-		  entity->opset[OPSET_FIBRE], 
+		  entity->opset.plug[OPSET_HASH],
+		  entity->opset.plug[OPSET_FIBRE], 
 		  obj40_locality(&dir->obj),
 		  obj40_objectid(&dir->obj), name);
 
 #ifndef ENABLE_STAND_ALONE
 	hint.specific = name;
-	hint.type = DIRENTRY_ITEM;
+	hint.type = DIR_ITEM;
 	func = dir40_core->tree_ops.collision;
 #endif
 	
@@ -410,10 +409,10 @@ static object_entity_t *dir40_open(object_info_t *info) {
 	aal_assert("umka-836", info != NULL);
 	aal_assert("umka-837", info->tree != NULL);
 	
-	if (info->start.plug->id.group != STATDATA_ITEM)
+	if (info->start.plug->id.group != STAT_ITEM)
 		return NULL;
 	
-	if (info->opset[OPSET_OBJ] != &dir40_plug)
+	if (info->opset.plug[OPSET_OBJ] != &dir40_plug)
 		return NULL;
 	
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
@@ -429,9 +428,7 @@ static object_entity_t *dir40_open(object_info_t *info) {
 }
 
 /* Loads stat data to passed @hint. */
-static errno_t dir40_stat(object_entity_t *entity,
-			  statdata_hint_t *hint)
-{
+static errno_t dir40_stat(object_entity_t *entity, stat_hint_t *hint) {
 	dir40_t *dir;
 	
 	aal_assert("umka-2563", entity != NULL);
@@ -481,13 +478,13 @@ static object_entity_t *dir40_create(object_hint_t *hint) {
 	   data item hint, because we will need size of direntry item during
 	   stat data initialization. */
    	body_hint.count = 1;
-	body_hint.plug = hint->info.opset[OPSET_DENTRY];
+	body_hint.plug = hint->info.opset.plug[OPSET_DIRITEM];
 	key = &hint->info.object;
 	
 	plug_call(key->plug->o.key_ops, 
 		  build_hashed, &body_hint.offset, 
-		  dir->obj.info.opset[OPSET_HASH], 
-		  dir->obj.info.opset[OPSET_FIBRE],
+		  dir->obj.info.opset.plug[OPSET_HASH], 
+		  dir->obj.info.opset.plug[OPSET_FIBRE],
 		  obj40_locality(&dir->obj), 
 		  obj40_objectid(&dir->obj), ".");
 
@@ -636,14 +633,14 @@ static errno_t dir40_attach(object_entity_t *entity,
 	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
 		  assign, &entry.object, &parent->object);
 
-	if ((res = plug_call(entity->opset[OPSET_OBJ]->o.object_ops,
+	if ((res = plug_call(entity->opset.plug[OPSET_OBJ]->o.object_ops,
 			     add_entry, entity, &entry)))
 	{
 		return res;
 	}
 
 	/* Increasing parent's @nlink by one */
-	return plug_call(parent->opset[OPSET_OBJ]->o.object_ops, 
+	return plug_call(parent->opset.plug[OPSET_OBJ]->o.object_ops, 
 			 link, parent);
 }
 
@@ -659,7 +656,7 @@ static errno_t dir40_detach(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
-	plug = entity->opset[OPSET_OBJ];
+	plug = entity->opset.plug[OPSET_OBJ];
 	
 	/* Removing ".." from child if it is found */
 	switch (plug_call(plug->o.object_ops, lookup, entity, "..", &entry)) {
@@ -722,8 +719,8 @@ static errno_t dir40_build_entry(object_entity_t *entity,
 	
 	return plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, 
 			 build_hashed, &entry->offset, 
-			 entity->opset[OPSET_HASH],
-			 entity->opset[OPSET_FIBRE], 
+			 entity->opset.plug[OPSET_HASH],
+			 entity->opset.plug[OPSET_FIBRE], 
 			 locality, objectid, entry->name);
 }
 
@@ -971,7 +968,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 
 /* Updates stat data from passed @hint */
 static errno_t dir40_update(object_entity_t *entity,
-			    statdata_hint_t *hint)
+			    stat_hint_t *hint)
 {
 	dir40_t *dir;
 	

@@ -69,20 +69,20 @@ static errno_t debugfs_spl_cat(reiser4_object_t *object) {
 	errno_t res;
 	char buff[256];
 
-	sdext_lw_hint_t lw_hint;
-	statdata_hint_t stat_hint;
-	sdext_unix_hint_t unix_hint;
+	sdhint_lw_t lwh;
+	stat_hint_t stath;
+	sdhint_unix_t unixh;
 
-	aal_memset(&stat_hint, 0, sizeof(stat_hint));
+	aal_memset(&stath, 0, sizeof(stath));
 
 	/* Preparing stat data hint. */
-	stat_hint.extmask = (1 << SDEXT_UNIX_ID |
-			     1 << SDEXT_LW_ID);
+	stath.extmask = (1 << SDEXT_UNIX_ID |
+			 1 << SDEXT_LW_ID);
 	
-	stat_hint.ext[SDEXT_LW_ID] = &lw_hint;
-	stat_hint.ext[SDEXT_UNIX_ID] = &unix_hint;
+	stath.ext[SDEXT_LW_ID] = &lwh;
+	stath.ext[SDEXT_UNIX_ID] = &unixh;
 
-	if ((res = reiser4_object_stat(object, &stat_hint))) {
+	if ((res = reiser4_object_stat(object, &stath))) {
 		aal_error("Can't stat object %s.",
 			  object->name);
 		return res;
@@ -92,8 +92,7 @@ static errno_t debugfs_spl_cat(reiser4_object_t *object) {
 	aal_memset(buff, 0, sizeof(buff));
 		
 	aal_snprintf(buff, sizeof(buff), "rdev:\t0x%llx\n"
-		     "mode:\t0x%u\n", unix_hint.rdev,
-		     lw_hint.mode);
+		     "mode:\t0x%u\n", unixh.rdev, lwh.mode);
 
 	debugfs_print_buff(buff, aal_strlen(buff));
 
@@ -110,7 +109,7 @@ errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 		return -EINVAL;
 	}
 
-	switch (object->ent->opset[OPSET_OBJ]->id.group) {
+	switch (object->ent->opset.plug[OPSET_OBJ]->id.group) {
 	case REG_OBJECT:
 		res = debugfs_reg_cat(object);
 		break;

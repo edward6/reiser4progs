@@ -7,55 +7,142 @@
 
 #include <reiser4/libreiser4.h>
 
-/* Opset type -> Plugin type. INVAL_PID means that the slot is valid,
-   but the library does not have any plugin written for it yet. See
-   reiser4_opset_plug. */
-rid_t opset_type[OPSET_LAST] = {
-	[OPSET_OBJ] = OBJECT_PLUG_TYPE,
-	[OPSET_DIR] = INVAL_PID,
-	[OPSET_PERM] = INVAL_PID,
-	[OPSET_POLICY] = POLICY_PLUG_TYPE,
-	[OPSET_HASH] = HASH_PLUG_TYPE,
-	[OPSET_FIBRE] = FIBRE_PLUG_TYPE,
-	[OPSET_STAT] = ITEM_PLUG_TYPE,
-	[OPSET_DENTRY] = ITEM_PLUG_TYPE,
-	[OPSET_CRYPTO] = INVAL_PID,
-	[OPSET_DIGEST] = INVAL_PID,
-	[OPSET_COMPRES] = INVAL_PID,
+struct opset_member {
+	/* Opset type -> Plugin type. INVAL_PID means that the slot is valid,
+	   but the library does not have any plugin written for it yet. See
+	   reiser4_opset_plug. */
+	rid_t type;
+
+	/* To be sure that a plugin found by type,id pair is valid, add the
+	   group here. */
+	rid_t group;
 	
-	[OPSET_CREATE] = OBJECT_PLUG_TYPE,
-	[OPSET_MKDIR] = OBJECT_PLUG_TYPE,
-	[OPSET_SYMLINK] = OBJECT_PLUG_TYPE,
-	[OPSET_MKNODE] = OBJECT_PLUG_TYPE,
-	
-	[OPSET_TAIL] = ITEM_PLUG_TYPE,
-	[OPSET_EXTENT] = ITEM_PLUG_TYPE,
-	[OPSET_ACL] = INVAL_PID
+	/* Opset type -> profile type. INVAL_PID means that there is no such 
+	   a profile slot or it is invalid (there is no such plugins written 
+	   in the libreiser4).*/
+	rid_t prof;
+
+	/* If a plugin is essential or not. */
+	bool_t ess;
 };
 
-/* Opset type -> profile type. INVAL_PID means that there is no such a profile 
-   slot or it is invalid (there is no such plugins written in the libreiser4).*/
-rid_t opset_prof[OPSET_LAST] = {
-	[OPSET_OBJ] = INVAL_PID,
-	[OPSET_DIR] = INVAL_PID,
-	[OPSET_PERM] = INVAL_PID,
-	[OPSET_POLICY] = PROF_POLICY,
-	[OPSET_HASH] = PROF_HASH,
-	[OPSET_FIBRE] = PROF_FIBRE,
-	[OPSET_STAT] = PROF_STAT,
-	[OPSET_DENTRY] = PROF_DENTRY,
-	[OPSET_CRYPTO] = INVAL_PID,
-	[OPSET_DIGEST] = INVAL_PID,
-	[OPSET_COMPRES] = INVAL_PID,
+typedef struct opset_member opset_member_t;
 
-	[OPSET_CREATE] = PROF_REG,
-	[OPSET_MKDIR] = PROF_DIR,
-	[OPSET_SYMLINK] = PROF_SYM,
-	[OPSET_MKNODE] = PROF_SPL,
+opset_member_t opset_prof[OPSET_LAST] = {
+	[OPSET_OBJ] = {
+		.type = INVAL_PID,
+		.group = INVAL_PID,
+		.prof = INVAL_PID,
+		.ess = 0,
+	},
+	[OPSET_DIR] = {
+		.type = INVAL_PID,
+		.group = INVAL_PID,
+		.prof = INVAL_PID,
+		.ess = 0,
+	},
+	[OPSET_PERM] = {
+		.type = INVAL_PID,
+		.group = INVAL_PID,
+		.prof = INVAL_PID,
+		.ess = 1,
+	},
+	[OPSET_POLICY] = {
+		.type = POLICY_PLUG_TYPE,
+		.group = 0,
+		.prof = PROF_POLICY,
+		.ess = 0,
+	},
+	[OPSET_HASH] = {
+		.type = HASH_PLUG_TYPE,
+		.group = 0,
+		.prof = PROF_HASH,
+		.ess = 1,
+	},
+	[OPSET_FIBRE] = {
+		.type = FIBRE_PLUG_TYPE,
+		.group = 0,
+		.prof = PROF_FIBRE,
+		.ess = 1,
+	},
+	[OPSET_STAT] = {
+		.type = ITEM_PLUG_TYPE,
+		.group = STAT_ITEM,
+		.prof = PROF_STAT,
+		.ess = 0,
+	},
+	[OPSET_DIRITEM] = {
+		.type = ITEM_PLUG_TYPE,
+		.group = DIR_ITEM,
+		.prof = PROF_DIRITEM,
+		.ess = 1,
+	},
+	[OPSET_CRYPTO] = {
+		.type = INVAL_PID,
+		.group = INVAL_PID,
+		.prof = INVAL_PID,
+		.ess = 1,
+	},
+	[OPSET_DIGEST] = {
+		.type = INVAL_PID,
+		.group = INVAL_PID,
+		.prof = INVAL_PID,
+		.ess = 1,
+	},
+	[OPSET_COMPRES] = {
+		.type = INVAL_PID,
+		.group = INVAL_PID,
+		.prof = INVAL_PID,
+		.ess = 1,
+	},
 	
-	[OPSET_TAIL] = PROF_TAIL,
-	[OPSET_EXTENT] = PROF_EXTENT,
-	[OPSET_ACL] = INVAL_PID
+	/* Note, plugins below are not stored on-disk. */
+
+	/* The 4 plugins below needs to be splited -- for now they are used for
+	   new created objects and for already created Reg/Dir/Sym/Spc files. 
+	   If the former ones are non-essential, the other 4 are essential. */
+	[OPSET_CREATE] = {
+		.type = OBJECT_PLUG_TYPE,
+		.group = REG_OBJECT,
+		.prof = PROF_REG,
+		.ess = 1,
+	},
+	[OPSET_MKDIR] = {
+		.type = OBJECT_PLUG_TYPE,
+		.group = DIR_OBJECT,
+		.prof = PROF_DIR,
+		.ess = 1,
+	},
+	[OPSET_SYMLINK] = {
+		.type = OBJECT_PLUG_TYPE,
+		.group = SYM_OBJECT,
+		.prof = PROF_SYM,
+		.ess = 1,
+	},
+	[OPSET_MKNODE] = {
+		.type = OBJECT_PLUG_TYPE,
+		.group = SPL_OBJECT,
+		.prof = PROF_SPL,
+		.ess = 1,
+	},
+	[OPSET_TAIL] = {
+		.type = ITEM_PLUG_TYPE,
+		.group = TAIL_ITEM,
+		.prof = PROF_TAIL,
+		.ess = 1,
+	},
+	[OPSET_EXTENT] = {
+		.type = ITEM_PLUG_TYPE,
+		.group = EXTENT_ITEM,
+		.prof = PROF_EXTENT,
+		.ess = 1,
+	},
+	[OPSET_ACL] = {
+		.type = INVAL_PID,
+		.group = INVAL_PID,
+		.prof = INVAL_PID,
+		.ess = 0,
+	}
 };
 
 /* Returns NULL if @member is valid but there is no written plugins in the 
@@ -66,35 +153,43 @@ reiser4_plug_t *reiser4_opset_plug(rid_t member, rid_t id) {
 	reiser4_plug_t *plug;
 	aal_assert("vpf-1613", member < OPSET_LAST);
 
-	if (opset_type[member] == INVAL_PID && id == 0)
+	if (opset_prof[member].type == INVAL_PID && id == 0)
 		return NULL;
 	
-	plug = reiser4_factory_ifind(opset_type[member], id);
-	return plug == NULL ? INVAL_PTR : plug;
+	if (!(plug = reiser4_factory_ifind(opset_prof[member].type, id)))
+		return INVAL_PTR;
+	
+	if (plug->id.group != opset_prof[member].group)
+		return INVAL_PTR;
+	
+	return plug;
 }
 
-void reiser4_opset_root(reiser4_plug_t **opset) {
+void reiser4_opset_root(reiser4_opset_t *opset) {
 	uint8_t i;
 	
 	aal_assert("vpf-1639", opset != NULL);
 
-	aal_memset(opset, 0, sizeof(reiser4_plug_t *) * OPSET_LAST);
-	
-	/* All plugins must present in the root. Get them from the profile
-	   or set INVAL_PRT pointer. */
+	/* All plugins must present in the root. Get them from the profile. */
 	for (i = 0; i < OPSET_LAST; i++) {
-		opset[i] = opset_prof[i] == INVAL_PID ?
-			INVAL_PTR : reiser4_profile_plug(opset_prof[i]);
+		if (opset->plug[i])
+			continue;
+		
+		aal_set_bit(&opset->mask, i);
+		opset->plug[i] = opset_prof[i].prof == INVAL_PID ? 
+			NULL : reiser4_profile_plug(opset_prof[i].prof);
 	}
 	
 	/* Set the object plugin to the MKDIR fs-default plugin. */
-	opset[OPSET_OBJ] = opset[OPSET_MKDIR];
+	if (!opset->plug[OPSET_OBJ])
+		opset->plug[OPSET_OBJ] = opset->plug[OPSET_MKDIR];
 
 	/* Directory plugin does not exist in progs at all. */
-	opset[OPSET_DIR] = NULL;
+	opset->plug[OPSET_DIR] = NULL;
+	aal_clear_bit(&opset->mask, OPSET_DIR);
 }
 
-errno_t reiser4_opset_init(reiser4_tree_t *tree) {
+errno_t reiser4_opset_init(reiser4_tree_t *tree, int check) {
 	reiser4_object_t *object;
 	uint8_t i;
 	
@@ -106,35 +201,73 @@ errno_t reiser4_opset_init(reiser4_tree_t *tree) {
 		return -EINVAL;
 	}
 	
-	aal_memcpy(tree->ent.opset, object->ent->opset, 
+	aal_memcpy(tree->ent.opset, object->ent->opset.plug, 
 		   sizeof(reiser4_plug_t *) * OPSET_LAST);
 	
 	reiser4_object_close(object);
 	
-	/* Check that all 'on-disk' plugins are obtained, set others 
-	   from the profile.  */
+	/* Check that all 'on-disk' plugins are obtained. */
 	for (i = 0; i < OPSET_STORE_LAST; i++) {
-		if (i != 1 && !tree->ent.opset[i]) {
+		/* If rot is should not be checked (debugreiserfs), 
+		   skip this loop. */
+		if (!check)
+			break;
+
+		if (!tree->ent.opset[i] && opset_prof[i].prof != INVAL_PID) {
 			aal_error("The slot %u in the fs-global object "
 				  "plugin set is not initialized.", i);
 			return -EINVAL;
 		}
 	}
 
-	for (i = OPSET_STORE_LAST; i < OPSET_LAST; i++) {
-		if (!tree->ent.opset[i]) {
-			tree->ent.opset[i] = (opset_prof[i] == INVAL_PID) ?
-				NULL : reiser4_profile_plug(opset_prof[i]);
-		}
+	/* Set others from the profile. */
+	for (; i < OPSET_LAST; i++) {
+		if (!tree->ent.opset[i] && opset_prof[i].prof != INVAL_PID)
+			tree->ent.opset[i] = reiser4_profile_plug(opset_prof[i].prof);
 	}
 	
 	return 0;
 }
 
+void reiser4_opset_diff(reiser4_tree_t *tree, reiser4_opset_t *opset) {
+	uint8_t i;
+	
+	aal_assert("vpf-1644", tree != NULL);
+	aal_assert("vpf-1646", opset != NULL);
+
+	if (!tree->ent.opset[OPSET_HASH]) {
+		/* The special case -- the root directory. 
+		   All opset members must be stored. */
+		return;
+	}
+	
+	for (i= 0; i < OPSET_LAST; i++) {
+		if (opset_prof[i].ess) {
+			/* Only not fs-default essential plugins are stored. */
+			if (tree->ent.opset[i] != opset->plug[i]) {
+				aal_set_bit(&opset->mask, i);
+				continue;
+			}
+
+			/* Remove from SD existent essential plugins that match 
+			   the fs-defaul ones. */
+			if (aal_test_bit(&opset->mask, i)) {
+				aal_clear_bit(&opset->mask, i);
+				opset->plug[i] = INVAL_PTR;
+				continue;
+			}
+		}
+
+		/* All present Non-Essential plugins are left on disk. */
+		aal_clear_bit(&opset->mask, i);
+		opset->plug[i] = NULL;
+	}
+}
+
 errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 	reiser4_plug_t *plug;
 	uint16_t flags;
-	char *name;
+	rid_t pid;
 	
 	aal_assert("vpf-1608", tree != NULL);
 	aal_assert("vpf-1609", tree->fs != NULL);
@@ -144,18 +277,11 @@ errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 	flags = plug_call(tree->fs->format->ent->plug->o.format_ops,
 			  get_flags, tree->fs->format->ent);
 
-	/* Hardcoded plugin names for 2 cases. */
-	name = ((1 << REISER4_LARGE_KEYS) & flags)? "key_large" : "key_short";
-
+	/* Hardcoded plugin ids for 2 cases. */
+	pid = ((1 << REISER4_LARGE_KEYS) & flags)? KEY_LARGE_ID : KEY_SHORT_ID;
 	
-	if (!(plug = reiser4_factory_nfind(name))) {
-		aal_error("Can't find a plugin by the name \"%s\".", name);
-		return -EINVAL;
-	}
-
-	if (plug->id.type != KEY_PLUG_TYPE) {
-		aal_error("Wrong plugin of the type %u found by "
-			  "the name \"%s\".", plug->id.type, name);
+	if (!(plug = reiser4_factory_ifind(KEY_PLUG_TYPE, pid))) {
+		aal_error("Can't find a key plugin by its id %d.", pid);
 		return -EINVAL;
 	}
 
@@ -174,5 +300,6 @@ errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 	
 	return 0;
 }
+
 
 #endif
