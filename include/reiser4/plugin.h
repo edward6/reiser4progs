@@ -795,12 +795,12 @@ struct reiser4_item_ops {
 	/* Get the max key which could be stored in the item of this type */
 	errno_t (*maxposs_key) (place_t *, key_entity_t *);
 
+	/* Get the plugin id of the specified type if stored in SD. */
+	rid_t (*object_plug) (place_t *);
+	
 #ifndef ENABLE_STAND_ALONE
 	/* Get the max real key which is stored in the item */
 	errno_t (*maxreal_key) (place_t *, key_entity_t *);
-	
-	/* Get the plugin id of the specified type if stored in SD. */
-	rid_t (*get_plugid) (place_t *, uint16_t);
 #endif
 };
 
@@ -1339,9 +1339,6 @@ struct tree_ops {
 	errno_t (*set_data) (void *, key_entity_t *,
 			     aal_block_t *);
 	
-	/* Obtains the profile value for @entry. */
-	uint64_t (*profile) (void *, char *);
-
 	/* Update the key in the place and the node itsef. */
 	errno_t (*ukey) (void *, place_t *, key_entity_t *);
 #endif
@@ -1377,6 +1374,13 @@ struct object_ops {
 typedef struct object_ops object_ops_t;
 #endif
 
+struct profile_ops {
+	/* Obtains the profile value by plugin name. */
+	uint64_t (*value) (char *);
+};
+
+typedef struct profile_ops profile_ops_t;
+
 #ifndef ENABLE_STAND_ALONE
 struct key_ops {
 	char *(*print) (key_entity_t *, uint16_t);
@@ -1389,8 +1393,9 @@ typedef struct key_ops key_ops_t;
    access libreiser4 factories. */
 struct reiser4_core {
 	tree_ops_t tree_ops;
-	
+	profile_ops_t profile_ops;
 	factory_ops_t factory_ops;
+	
 #ifdef ENABLE_SYMLINKS
 	object_ops_t object_ops;
 #endif

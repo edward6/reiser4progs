@@ -41,8 +41,8 @@ bool_t repair_tree_data_level(uint8_t level) {
 	if (level == 0)
 		return FALSE;
 	
-	return (libreiser4_factory_cfind(callback_data_level,
-					 &level, FALSE) != NULL);
+	return (reiser4_factory_cfind(callback_data_level,
+				      &level) != NULL);
 }
 
 /* Get the max real key existed in the tree. Go down through all right-most 
@@ -158,9 +158,9 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	ptr.start = node_blocknr(node);
 	ptr.width = 1;
 	
-	pid = reiser4_profile_value(tree->fs->profile, "nodeptr");
+	pid = reiser4_profile_value("nodeptr");
 	
-	if (!(hint.plug = libreiser4_factory_ifind(ITEM_PLUG_TYPE, pid))) {
+	if (!(hint.plug = reiser4_factory_ifind(ITEM_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find item plugin by its id 0x%x.", 
 				    pid);
 		return -EINVAL;

@@ -11,28 +11,51 @@
 #include <aux/aux.h>
 #include <reiser4/reiser4.h>
 
-/* Helper callback for probing passed @plug */
-static bool_t callback_object_guess(reiser4_plug_t *plug, void *data) {
-	reiser4_object_t *object;
+static errno_t reiser4_object_init(reiser4_object_t *object,
+				   reiser4_object_t *parent)
+{
+	rid_t pid;
+	reiser4_plug_t *plug;
+	reiser4_place_t *place;
 
-	/* We are interested only in object plugins here */
-	if (plug->id.type != OBJECT_PLUG_TYPE)
-		return FALSE;
+	aal_assert("umka-2380", object != NULL);
 	
-	object = (reiser4_object_t *)data;
+	place = object_start(object);
+	
+	if (!place->plug->o.item_ops->object_plug) {
+		/* FIXME-UMKA: Here we should try to understand what object
+		   plugin is by means of asking @parent. */
+		pid = INVAL_PID;
+	} else {
+		if ((pid = plug_call(place->plug->o.item_ops, object_plug,
+				     (place_t *)place)) == INVAL_PID)
+		{
+			aal_exception_error("Can't guess object plugin.");
+			return -EINVAL;
+		}
+	}
+
+	if (!(plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, pid))) {
+		aal_exception_error("Can't find object plugin by its "
+				    "id 0x%x.", pid);
+		return -EINVAL;
+	}
 	
 	/* Requesting object plugin to open the object on passed @tree and
 	   @place. If it fails, we will continue lookup. */
-	object->entity = plug_call(plug->o.object_ops, open,
-				   object->info);
-	
-	if (object->entity != NULL) {	
-		plug_call(plug->o.object_ops, close,
-			  object->entity);
-		return TRUE;
+	if (!(object->entity = plug_call(plug->o.object_ops,
+					 open, object->info)))
+	{
+		return -EINVAL;
 	}
-	
-	return FALSE;
+
+	return 0;
+}
+
+static void reiser4_object_fini(reiser4_object_t *object) {
+	plug_call(object->entity->plug->o.object_ops,
+		  close, object->entity);
+	object->entity = NULL;
 }
 
 uint64_t reiser4_object_size(reiser4_object_t *object) {
@@ -40,26 +63,6 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 
 	return plug_call(object->entity->plug->o.object_ops,
 			 size, object->entity);
-}
-
-/* This function is trying to open object's entity on @object->place */
-errno_t reiser4_object_guess(reiser4_object_t *object, plug_func_t open_func) {
-	reiser4_plug_t *plug;
-	
-	if (!(plug = libreiser4_factory_cfind(open_func, object, TRUE)))
-		return -EINVAL;
-	
-	object->entity = plug_call(plug->o.object_ops, open,
-				   object->info);
-	
-	return object->entity != NULL ? 0 : -EINVAL;
-}
-
-static void reiser4_object_fini(reiser4_object_t *object) {
-	plug_call(object->entity->plug->o.object_ops,
-		  close, object->entity);
-	
-	object->entity = NULL;
 }
 
 /* Looks up for the object stat data place in tree */
@@ -94,8 +97,8 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		return res;
 	}
 
-	/* Getting object plugin */
-	if ((res = reiser4_object_guess(object, callback_object_guess))) {
+	/* FIXME_UMKA: Here also should be parent passed. */
+	if ((res = reiser4_object_init(object, NULL))) {
 		aal_exception_error("Can't init object %s.", track);
 		return res;
 	}
@@ -108,28 +111,29 @@ static errno_t callback_find_statdata(char *track, char *entry,
 
 		/* Calling object's follow() in order to get stat data key of
 		   the real stat data item. */
-		if ((res = plug->o.object_ops->follow(object->entity,
-						      &object->info->parent,
-						      &object->info->object)))
-		{
+		res = plug_call(plug->o.object_ops, follow, object->entity,
+				&object->info->parent, &object->info->object);
+
+	        /* Finalizing entity on old place */
+		reiser4_object_fini(object);
+
+		/* Symlink cannot be followed */
+		if (res != 0) {
 			aal_exception_error("Can't follow %s.", track);
-			reiser4_object_fini(object);
 			return res;
 		}
-
-		/* Finalizing entity on old place */
-		reiser4_object_fini(object);
 		
 		/* Getting stat data place by key returned by follow() */
 		if ((res = reiser4_object_stat(object)))
 			return res;
 
 		/* Initializing entity on new place */
-		if (reiser4_object_guess(object, callback_object_guess))
-			return -EINVAL;
+		if ((res = reiser4_object_init(object, NULL)))
+			return res;
 	}
 
-	reiser4_key_assign(&object->info->parent, &object->info->object);
+	reiser4_key_assign(&object->info->parent,
+			   &object->info->object);
 #endif
 
 	return 0;
@@ -175,14 +179,16 @@ errno_t reiser4_object_resolve(reiser4_object_t *object,
 
 	/* Initializing parent key to root key */
 #ifdef ENABLE_SYMLINKS
-	reiser4_key_assign(&info.parent, &object->tree->key);
+	reiser4_key_assign(&object->info->parent,
+			   &object->tree->key);
 #endif
 
 	/* Initializing info tree reference */
 	object->info->tree = object->tree;
 	
 	/* Resolving path, starting from the root */
-	reiser4_key_assign(&info.object, &object->tree->key);
+	reiser4_key_assign(&object->info->object,
+			   &object->tree->key);
 
 	/* Parsing path and looking for object's stat data. We assume, that name
 	   is absolute one. So, user, who calls this method should convert name
@@ -195,6 +201,7 @@ errno_t reiser4_object_resolve(reiser4_object_t *object,
 
 	/* Assigning info reference to entity info instance */
 	object->info = &object->entity->info;
+	
 	return 0;
 }
 
@@ -246,13 +253,14 @@ reiser4_object_t *reiser4_object_realize(
 		return NULL;
 
 	/* Initializing info */
-	info.tree = tree;
-	aal_memcpy(&info.start, place, sizeof(*place));
+	object->info = &info;
+	object->info->tree = tree;
 
-	reiser4_key_assign(&info.parent, &tree->key);
-	reiser4_key_assign(&info.object, &tree->key);
-	
-	if (reiser4_object_guess(object, callback_object_guess))
+	reiser4_key_assign(&object->info->parent, &tree->key);
+	reiser4_key_assign(&object->info->object, &tree->key);
+	aal_memcpy(&object->info->start, place, sizeof(*place));
+
+	if (reiser4_object_init(object, parent))
 		goto error_free_object;
 
 	object->info = &object->entity->info;
@@ -657,9 +665,7 @@ void reiser4_object_close(
 	aal_assert("umka-680", object != NULL);
 	aal_assert("umka-1149", object->entity != NULL);
 
-	plug_call(object->entity->plug->o.object_ops,
-		  close, object->entity);
-
+	reiser4_object_fini(object);
 	aal_free(object);
 }
 
@@ -756,10 +762,10 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	
 	aal_assert("vpf-1053", fs != NULL);
 	
-	pid = reiser4_profile_value(fs->profile, "directory");
+	pid = reiser4_profile_value("directory");
 	
 	/* Preparing object hint */
-	hint.plug = libreiser4_factory_ifind(OBJECT_PLUG_TYPE, pid);
+	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, pid);
 
 	if (!hint.plug) {
 		aal_exception_error("Can't find dir plugin by its id "
@@ -767,9 +773,9 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 		return NULL;
 	}
     
-	hint.statdata = reiser4_profile_value(fs->profile, "statdata");
-	hint.body.dir.hash = reiser4_profile_value(fs->profile, "hash");
-	hint.body.dir.direntry = reiser4_profile_value(fs->profile, "cde");
+	hint.statdata = reiser4_profile_value("statdata");
+	hint.body.dir.hash = reiser4_profile_value("hash");
+	hint.body.dir.direntry = reiser4_profile_value("cde");
 
 	/* Creating object by passed parameters */
 	if (!(object = reiser4_object_create(fs->tree, parent, &hint)))
@@ -794,10 +800,10 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 	
 	aal_assert("vpf-1054", fs != NULL);
 	
-	regular = reiser4_profile_value(fs->profile, "regular");
+	regular = reiser4_profile_value("regular");
 	
 	/* Preparing object hint */
-	hint.plug = libreiser4_factory_ifind(OBJECT_PLUG_TYPE, regular);
+	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, regular);
 
 	if (!hint.plug) {
 		aal_exception_error("Can't find dir plugin by its id "
@@ -805,10 +811,10 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 		return NULL;
 	}
 	
-	hint.statdata = reiser4_profile_value(fs->profile, "statdata");
-	hint.body.reg.tail = reiser4_profile_value(fs->profile, "tail");
-	hint.body.reg.extent = reiser4_profile_value(fs->profile, "extent");
-	hint.body.reg.policy = reiser4_profile_value(fs->profile, "policy");
+	hint.statdata = reiser4_profile_value("statdata");
+	hint.body.reg.tail = reiser4_profile_value("tail");
+	hint.body.reg.extent = reiser4_profile_value("extent");
+	hint.body.reg.policy = reiser4_profile_value("policy");
 	
 	/* Creating object by passed parameters */
 	if (!(object = reiser4_object_create(fs->tree, parent, &hint)))
@@ -835,10 +841,10 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	aal_assert("vpf-1186", fs != NULL);
 	aal_assert("vpf-1057", target != NULL);
 	
-	symlink = reiser4_profile_value(fs->profile, "symlink");
+	symlink = reiser4_profile_value("symlink");
 	
 	/* Preparing object hint */
-	hint.plug = libreiser4_factory_ifind(OBJECT_PLUG_TYPE, symlink);
+	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, symlink);
 
 	if (!hint.plug) {
 		aal_exception_error("Can't find dir plugin by its id "
@@ -847,7 +853,7 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	}
 	
 	hint.body.sym = (char *)target;
-	hint.statdata = reiser4_profile_value(fs->profile, "statdata");
+	hint.statdata = reiser4_profile_value("statdata");
 	
 	/* Creating object by passed parameters */	
 	if (!(object = reiser4_object_create(fs->tree, parent, &hint)))
