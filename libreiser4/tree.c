@@ -1,9 +1,7 @@
-/*
-  tree.c -- reiser4 tree related code.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   tree.c -- reiser4 tree related code. */
 
 #include <reiser4/reiser4.h>
 
@@ -92,10 +90,8 @@ static errno_t reiser4_tree_alloc_root(reiser4_tree_t *tree) {
 }
 #endif
 
-/*
-  Registers passed node in tree and connects left and right neighbour
-  nodes. This function does not do any modifications.
-*/
+/* Registers passed node in tree and connects left and right neighbour
+   nodes. This function does not do any modifications. */
 errno_t reiser4_tree_connect(
 	reiser4_tree_t *tree,    /* tree instance */
 	reiser4_node_t *parent,	 /* node child will be connected to */
@@ -130,10 +126,8 @@ errno_t reiser4_tree_connect(
 					      &node->parent.pos)))
 			return res;
 			
-		/*
-		  Placing the callback calling into lock/unlock braces for
-		  preventing its freeing by handler.
-		*/
+		/* Placing the callback calling into lock/unlock braces for
+		   preventing its freeing by handler. */
 		reiser4_node_lock(node);
 		
 		res = tree->traps.connect(tree, &place, node,
@@ -146,10 +140,8 @@ errno_t reiser4_tree_connect(
 	return res;
 }
 
-/*
-  Remove specified child from the node children list. Updates all neighbour
-  pointers and parent pointer.
-*/
+/* Remove specified child from the node children list. Updates all neighbour
+   pointers and parent pointer.*/
 errno_t reiser4_tree_disconnect(
 	reiser4_tree_t *tree,    /* tree instance */
 	reiser4_node_t *parent,	 /* node child will be detached from */
@@ -168,10 +160,8 @@ errno_t reiser4_tree_disconnect(
 				return res;
 		}
 
-		/*
-		  Placing callback calling into lock/unlock braces for
-		  preventing it freeing by handler.
-		*/
+		/* Placing callback calling into lock/unlock braces for
+		   preventing it freeing by handler. */
 		reiser4_node_lock(node);
 		
 		res = tree->traps.disconnect(tree, &node->parent, node,
@@ -185,10 +175,8 @@ errno_t reiser4_tree_disconnect(
 	}
 #endif
 	
-	/*
-	  The case when we're going to disconnect root node for some
-	  reasons. And we will let do so? Yes, why not?
-	*/
+	/* The case when we're going to disconnect root node for some
+	   reasons. And we will let do so? Yes, why not? */
 	if (node->blk == reiser4_tree_root(tree))
 		return 0;
 	
@@ -219,7 +207,7 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 	aal_assert("umka-1289", tree != NULL);
 
 	/* Checking if node in the local cache of @parent */
-	if (!parent || !(node = reiser4_node_cbp(parent, blk))) {
+	if (!parent || !(node = reiser4_node_child(parent, blk))) {
 		uint32_t blocksize;
 
 		if (tree->mpc_func && tree->mpc_func()) {
@@ -233,10 +221,8 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 		
 		blocksize = reiser4_master_blksize(tree->fs->master);
 		
-		/*
-		  Node is not loaded yet. Loading it and connecting to @parent
-		  node cache.
-		*/
+		/* Node is not loaded yet. Loading it and connecting to @parent
+		   node cache. */
 		if (!(node = reiser4_node_open(tree->fs->device,
 					       blocksize, blk)))
 		{
@@ -313,17 +299,13 @@ static reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
 	level = 0;
 	reiser4_place_assign(&place, node, 0, ~0ul);
                                                                                       
-        /*
-          Going up to the level where corresponding neighbour node may be
-          obtained by its nodeptr item.
-        */
+        /* Going up to the level where corresponding neighbour node may be
+	   obtained by its nodeptr item. */
         while (place.node->parent.node && found == 0) {
 		place = place.node->parent;
 
-		/*
-		  Checking position. Level is found if position is not first
-		  (right neighbour) and is not last one (left neighbour).
-		*/
+		/* Checking position. Level is found if position is not first
+		   (right neighbour) and is not last one (left neighbour). */
 		if (where == D_LEFT) {
 			found = reiser4_place_gtfirst(&place);
 		} else {
@@ -460,14 +442,13 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 	alloc = tree->fs->alloc;
 	reiser4_node_mkclean(node);
 
-	/*
-	  Check if we're releasing fake blk. If not, free it in block allocator
-	  too. Otherwise, it will be counted in free_block_count field in format.
-	*/
+	/* Check if we're releasing fake blk. If not, free it in block allocator
+	   too. Otherwise, it will be counted in free_block_count field in
+	   format. */
 	if (!is_fake_blk(node->blk))
 		reiser4_alloc_release(alloc, node->blk, 1);
 
-	/* Chnaging format field free_block_count */
+	/* Changing format field free_block_count */
 	free = reiser4_alloc_free(alloc);
 	reiser4_format_set_free(tree->fs->format, free + 1);
 	
@@ -633,11 +614,9 @@ static errno_t reiser4_tree_prepare(reiser4_tree_t *tree,
 				/* Checking if @child is fake one */
 				child = (reiser4_node_t *)walk->data;
 
-				/*
-				  Check if node dirty and not fake one, we will
-				  move it to new location in order to keep tree
-				  in more well ordered state.
-				*/
+				/* Check if node dirty and not fake one, we will
+				   move it to new location in order to keep tree
+				   in more well ordered state. */
 				if (!is_fake_blk(child->blk) &&
 				    reiser4_node_isdirty(child))
 				{
@@ -650,10 +629,9 @@ static errno_t reiser4_tree_prepare(reiser4_tree_t *tree,
 				if (!is_fake_blk(child->blk))
 					continue;
 
-				/*
-				  If @child is fake one it needs to be qallocated
-				  here and its nodeptr should be updated.
-				*/
+				/* If @child is fake one it needs to be
+				   qallocated here and its nodeptr should be
+				   updated. */
 				if (!reiser4_alloc_allocate(tree->fs->alloc,
 							    &number, 1))
 				{
@@ -670,10 +648,8 @@ static errno_t reiser4_tree_prepare(reiser4_tree_t *tree,
 		}
 	}
 
-	/*
-	  Walking through the list of children and calling tree_flush() function
-	  for each node.
-	*/
+	/* Walking through the list of children and calling tree_flush()
+	   function for each node. */
 	if (node->children) {
 		aal_list_foreach_forward(node->children, walk) {
 			child = (reiser4_node_t *)walk->data;
@@ -696,10 +672,8 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	if (!tree->root)
 		return 0;
 	
-	/*
-	  Preparing tree to be flushed. In this time internal items are
-	  allocated.
-	*/
+	/* Preparing tree to be flushed. In this time internal items are
+	   allocated. */
 	if ((res = reiser4_tree_prepare(tree, tree->root)))
 		return res;
 
@@ -790,10 +764,8 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
 		return res;
 #endif
 
-	/*
-	  Walking the tree with callback, which is checking if particular node
-	  is not used and if so, it saves it onto device.
-	*/
+	/* Walking the tree with callback, which is checking if particular node
+	   is not used and if so, it saves it onto device. */
 	return reiser4_tree_walk(tree, tree->root,
 				 callback_check_node);
 }
@@ -806,10 +778,8 @@ uint8_t reiser4_tree_height(reiser4_tree_t *tree) {
 	return reiser4_format_get_height(tree->fs->format);
 }
 
-/* 
-  Makes search in the tree by specified key. Fills passed place by places of
-  found item.
-*/
+/* Makes search in the tree by specified key. Fills passed place by places of
+   found item. */
 lookup_t reiser4_tree_lookup(
 	reiser4_tree_t *tree,	  /* tree to be grepped */
 	reiser4_key_t *key,	  /* key to be find */
@@ -826,49 +796,37 @@ lookup_t reiser4_tree_lookup(
 	aal_assert("umka-1760", tree != NULL);
 	aal_assert("umka-2057", place != NULL);
 
-	/*
-	  We store @key in @wan. All consewuence code will use @wan. This is
-	  neede, because @key might point to @place->item.key in @place and will
-	  be corrupted durring lookup.
-	*/
+	/* We store @key in @wan. All consewuence code will use @wan. This is
+	   neede, because @key might point to @place->item.key in @place and
+	   will be corrupted durring lookup. */
 	reiser4_key_assign(&wan, key);
 
 	/* Initializing place by root node */
 	reiser4_place_assign(place, tree->root, 0, ~0ul);
 
-	/*
-	  Making sure that root exists. If not, getting out with @place
-	  initialized by NULL root.
-	*/
+	/* Making sure that root exists. If not, getting out with @place
+	   initialized by NULL root. */
 	if (reiser4_tree_load_root(tree))
 		return ABSENT;
 
-	/*
-	  Reinitialziing @place by root node, as root exists and loaded. This is
-	  needed for code bellow.
-	*/
+	/* Reinitialziing @place by root node, as root exists and loaded. This
+	   is needed for code bellow. */
 	reiser4_place_assign(place, tree->root, 0, ~0ul);
 
-	/* 
-	  Checking the case when wanted key is smaller than root one. This is
-	  the case, when somebody is trying go up of the root by ".." entry in
-	  root directory. If so, we initialize the key to be looked up by root
-	  key.
-	*/
+	/* Checking the case when wanted key is smaller than root one. This is
+	   the case, when somebody is trying go up of the root by ".." entry in
+	   root directory. If so, we initialize the key to be looked up by root
+	   key. */
 	if (reiser4_key_compare(&wan, &tree->key) < 0)
 		reiser4_key_assign(&wan, &tree->key);
 		    
 	while (1) {
-		/* 
-		  Looking up for key inside node. Result of lookuping will be
-		  stored in &place->pos.
-		*/
+		/* Looking up for key inside node. Result of lookuping will be
+		   stored in &place->pos. */
 		res = reiser4_node_lookup(place->node, &wan, &place->pos);
 
-		/*
-		  Check if we should finish lookup because we reach stop level
-		  or some error occured durring last node lookup.
-		*/
+		/* Check if we should finish lookup because we reach stop level
+		   or some error occured durring last node lookup. */
 		if (reiser4_node_get_level(place->node) <= level ||
 		    res == FAILED)
 		{
@@ -895,10 +853,8 @@ lookup_t reiser4_tree_lookup(
 			moved = TRUE;
 		}
 		
-		/*
-		  Initializing @place->item. This should be done before using
-		  any item methods.
-		*/
+		/* Initializing @place->item. This should be done before using
+		   any item methods. */
 		if (reiser4_place_realize(place))
 			return FAILED;
 		
@@ -907,10 +863,8 @@ lookup_t reiser4_tree_lookup(
 		if (moved && place->pos.unit == ~0ul)
 			place->pos.unit = units - 1;
 		    
-		/*
-		  Checking is item at @place is nodeptr one. If not, we correct
-		  position back.
-		*/
+		/* Checking is item at @place is nodeptr one. If not, we correct
+		   position back. */
 		if (!reiser4_item_branch(place)) {
 			if (moved) {
 				if (place->pos.unit == units - 1) {
@@ -932,10 +886,8 @@ lookup_t reiser4_tree_lookup(
 }
 
 #ifndef ENABLE_STAND_ALONE
-/*
-  Returns TRUE if passed @tree has minimal possible height and thus cannot be
-  dried out.
-*/
+/* Returns TRUE if passed @tree has minimal possible height and thus cannot be
+   dried out. */
 static bool_t reiser4_tree_minimal(reiser4_tree_t *tree) {
 
 	if (reiser4_tree_height(tree) <= 2)
@@ -944,10 +896,8 @@ static bool_t reiser4_tree_minimal(reiser4_tree_t *tree) {
 	return FALSE;
 }
 
-/*
-  Updates key at passed @place by passed @key by means of using
-  reiser4_node_ukey functions in recursive maner.
-*/
+/* Updates key at passed @place by passed @key by means of using
+   reiser4_node_ukey functions in recursive maner. */
 errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
 			  reiser4_place_t *place,
 			  reiser4_key_t *key)
@@ -972,10 +922,9 @@ errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
 	return reiser4_node_ukey(place->node, &place->pos, key);
 }
 
-/*
-  This function inserts new nodeptr item to the tree and in such way it attaches
-  passed @node to it. It also connects passed @node into tree cache.
-*/
+/* This function inserts new nodeptr item to the tree and in such way it
+   attaches passed @node to it. It also connects passed @node into tree
+   cache. */
 errno_t reiser4_tree_attach(
 	reiser4_tree_t *tree,	    /* tree we will attach node to */
 	reiser4_node_t *node)       /* child to attached */
@@ -1032,10 +981,8 @@ errno_t reiser4_tree_attach(
 		return res;
 	}
 
-	/*
-	  Attaching node to insert point node. We should attach formatted nodes
-	  only.
-	*/
+	/* Attaching node to insert point node. We should attach formatted nodes
+	   only. */
 	if ((res = reiser4_tree_connect(tree, place.node, node))) {
 		aal_exception_error("Can't attach the node %llu to "
 				    "the tree.", node->blk);
@@ -1069,10 +1016,8 @@ errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 	return reiser4_tree_remove(tree, &place, 1);
 }
 
-/*
-  This function forces tree to grow by one level and sets it up after the
-  growing.
-*/
+/* This function forces tree to grow by one level and sets it up after the
+   growing. */
 errno_t reiser4_tree_growup(
 	reiser4_tree_t *tree)	/* tree to be growed up */
 {
@@ -1165,10 +1110,8 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	return 0;
 }
 
-/*
-  Tries to shift items and units from @place to passed @neig node. After it is
-  finished place will contain new insert point.
-*/
+/* Tries to shift items and units from @place to passed @neig node. After it is
+   finished place will contain new insert point. */
 errno_t reiser4_tree_shift(
 	reiser4_tree_t *tree,	/* tree we will operate on */
 	reiser4_place_t *place,	/* insert point place */
@@ -1338,10 +1281,8 @@ errno_t reiser4_tree_expand(
 		if ((res = reiser4_tree_shift(tree, place, node, flags)))
 			return res;
 
-		/*
-		  Releasing old node, because it has become empty as result of
-		  data shifting.
-		*/
+		/* Releasing old node, because it has become empty as result of
+		   data shifting. */
 		if (reiser4_node_items(save.node) == 0) {
 
 			if ((res = reiser4_tree_detach(tree, save.node)))
@@ -1351,13 +1292,12 @@ errno_t reiser4_tree_expand(
 			reiser4_tree_release(tree, save.node);
 		}
 
-		/* Attaching new allocated node into the tree, if it is not empty */
+		/* Attaching new allocated node into the tree, if it is not
+		   empty */
 		if (reiser4_node_items(node) > 0) {
 
-			/*
-			  Growing the tree in the case we splitted the root
-			  node. Root node has not parent.
-			*/
+			/* Growing the tree in the case we splitted the root
+			   node. Root node has not parent. */
 			if (!old.node->parent.node)
 				reiser4_tree_growup(tree);
 			
@@ -1387,11 +1327,9 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 	aal_assert("umka-1784", tree != NULL);
 	aal_assert("umka-1783", place != NULL);
 	
-	/*
-	  Packing node in order to keep the tree in well packed state
-	  anyway. Here we will shift data from the target node to its left
-	  neighbour node.
-	*/
+	/* Packing node in order to keep the tree in well packed state
+	   anyway. Here we will shift data from the target node to its left
+	   neighbour node. */
 	if ((left = reiser4_tree_neigh(tree, place->node, D_LEFT))) {
 	    
 		if ((res = reiser4_tree_shift(tree, place, left, SF_LEFT))) {
@@ -1402,10 +1340,8 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 	}
 		
 	if (reiser4_node_items(place->node) > 0) {
-		/*
-		  Shifting the data from the right neigbour node into the target
-		  node.
-		*/
+		/* Shifting the data from the right neigbour node into the
+		   target node. */
 		if ((right = reiser4_tree_neigh(tree, place->node, D_RIGHT))) {
 				
 			reiser4_place_t bogus;
@@ -1496,17 +1432,8 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 				goto error_free_node;
 			}
 		
-		} else {
+		} else
 			node = place->node;
-
-			/*
-			  FIXME-UMKA->VITALY: Probably this is not necessary
-			  here, as it is guarantied, that @node->parent is
-			  always uptodate.
-			*/
-			if ((res = reiser4_node_pbc(node, NULL)))
-				return res;
-		}
 		
 		reiser4_place_init(place, node->parent.node,
 				   &node->parent.pos);
@@ -1542,14 +1469,13 @@ errno_t reiser4_tree_insert(
 	aal_assert("umka-1644", place != NULL);
 	aal_assert("umka-1645", hint->plugin != NULL);
 
-	/*
-	  Checking if tree is fresh one, thus, it does not have the root
-	  node. If so, we allocate new node of the requested level, insert
-	  item/unit into it and then attach it into the empty tree by means of
-	  using reiser4_tree_attach function. This function will take care about
-	  another things which should be done for keeping reiser4 tree in tact
-	  and namely alloate new root and insert one nodeptr item into it.
-	*/
+	/* Checking if tree is fresh one, thus, it does not have the root
+	   node. If so, we allocate new node of the requested level, insert
+	   item/unit into it and then attach it into the empty tree by means of
+	   using reiser4_tree_attach function. This function will take care
+	   about another things which should be done for keeping reiser4 tree in
+	   tact and namely alloate new root and insert one nodeptr item into
+	   it. */
 	if (reiser4_tree_fresh(tree)) {
 
 		if (level == LEAF_LEVEL) {
@@ -1581,21 +1507,16 @@ errno_t reiser4_tree_insert(
 	if ((res = reiser4_tree_load_root(tree)))
 		return res;
 
-	/*
-	  Checking if we have the tree with height smaller than
-	  requested level. If so, we should grow the tree up to
-	  requested level.
-	*/
+	/* Checking if we have the tree with height smaller than requested
+	   level. If so, we should grow the tree up to requested level. */
 	if (level > reiser4_tree_height(tree)) {
 		while (level > reiser4_tree_height(tree))
 			reiser4_tree_growup(tree);
 
-		/*
-		  Getting new place item/unit will be inserted at after
-		  tree is growed up. It is needed because we want insert
-		  item onto level equal to the requested one passed by
-		  @level variable.
-		*/
+		/* Getting new place item/unit will be inserted at after tree is
+		   growed up. It is needed because we want insert item onto
+		   level equal to the requested one passed by @level
+		   variable. */
 		if (reiser4_tree_lookup(tree, &hint->key, level,
 					place) == FAILED)
 		{
@@ -1610,10 +1531,8 @@ errno_t reiser4_tree_insert(
 	old = *place;
 
 	if (level < reiser4_node_get_level(place->node)) {
-		/*
-		  Allocating node of requested level and assign place
-		  for insert to it.
-		*/
+		/* Allocating node of requested level and assign place for
+		   insert to it. */
 		if (!(place->node = reiser4_tree_alloc(tree, level)))
 			return -ENOSPC;
 
@@ -1637,10 +1556,8 @@ errno_t reiser4_tree_insert(
 
 	maxspace = reiser4_node_maxspace(place->node);
 	
-	/* 
-	  Checking if item hint to be inserted to tree has length more than max
-	  possible space in a node.
-	*/
+	/* Checking if item hint to be inserted to tree has length more than max
+	   possible space in a node. */
 	if (hint->len > maxspace) {
 		aal_exception_error("Item size %u is too big. Maximal possible "
 				    "item can be %u bytes long.", hint->len,
@@ -1648,10 +1565,8 @@ errno_t reiser4_tree_insert(
 		return -EINVAL;
 	}
 
-	/*
-	  Saving mode of insert (insert new item, paste units to the existent
-	  one) before making space for new inset/unit.
-	*/
+	/* Saving mode of insert (insert new item, paste units to the existent
+	   one) before making space for new inset/unit. */
 	mode = (place->pos.unit == ~0ul);
 	
 	needed = hint->len + (place->pos.unit == ~0ul ? 
@@ -1662,11 +1577,10 @@ errno_t reiser4_tree_insert(
 		return res;
 	}
 	
-	/*
-	  As position after making space is generaly changing, we check is mode
-	  of insert was changed or not. If so, we should perform estimate one
-	  more time. That is because, estimated value depends on insert mode.
-	*/
+	/* As position after making space is generaly changing, we check is mode
+	   of insert was changed or not. If so, we should perform estimate one
+	   more time. That is because, estimated value depends on insert
+	   mode. */
 	if (mode != (place->pos.unit == ~0ul)) {
 		if ((res = reiser4_item_estimate(place, hint)))
 			return res;
@@ -1679,10 +1593,8 @@ errno_t reiser4_tree_insert(
 		return res;
 	}
 
-	/*
-	  Parent keys will be updated if we inserted item/unit into leftmost pos
-	  and if target node has the parent.
-	*/
+	/* Parent keys will be updated if we inserted item/unit into leftmost
+	   pos and if target node has the parent. */
 	if (reiser4_place_leftmost(place) &&
 	    place->node->parent.node)
 	{
@@ -1695,11 +1607,9 @@ errno_t reiser4_tree_insert(
 			return res;
 	}
 	
-	/* 
-	  If make space function allocates new node, we should attach it to the
-	  tree. Also, here we should handle the special case, when tree root
-	  should be changed.
-	*/
+	/* If make space function allocates new node, we should attach it to the
+	   tree. Also, here we should handle the special case, when tree root
+	   should be changed. */
 	if (place->node != tree->root && !place->node->parent.node) {
 		
 		aal_assert("vpf-889", old.node != NULL);
@@ -1731,10 +1641,8 @@ errno_t reiser4_tree_insert(
 	return 0;
 }
 
-/*
-  Cuts some amount of items or units from the tree. Updates internal keys and
-  children list.
-*/
+/* Cuts some amount of items or units from the tree. Updates internal keys and
+   children list. */
 errno_t reiser4_tree_cut(
 	reiser4_tree_t *tree,       /* tree for working with */
 	reiser4_place_t *start,     /* place of the start */
@@ -1917,11 +1825,9 @@ void reiser4_tree_pack_set(reiser4_tree_t *tree,
 }
 
 
-/*
-  Switches on/off flag, which displays whenever tree should pack itself after remove
-  operations or not. It is needed because all operations like this should be
-  under control.
-*/
+/* Switches on/off flag, which displays whenever tree should pack itself after
+   remove operations or not. It is needed because all operations like this
+   should be under control. */
 void reiser4_tree_pack_on(reiser4_tree_t *tree) {
 	aal_assert("umka-1881", tree != NULL);
 	tree->flags |= TF_PACK;
@@ -1932,14 +1838,12 @@ void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 	tree->flags &= ~TF_PACK;
 }
 
-/*
-  Removes item/unit at passed @place. This functions also perform so called
-  "local packing". This is shift as many as possible items and units from the
-  node pointed by @place into its left neighbour node and the same shift from
-  the right neighbour into target node. This behavior may be controlled by
-  tree's control flags (tree->flags) or by functions tree_pack_on() and
-  tree_pack_off().
-*/
+/* Removes item/unit at passed @place. This functions also perform so called
+   "local packing". This is shift as many as possible items and units from the
+   node pointed by @place into its left neighbour node and the same shift from
+   the right neighbour into target node. This behavior may be controlled by
+   tree's control flags (tree->flags) or by functions tree_pack_on() and
+   tree_pack_off(). */
 errno_t reiser4_tree_remove(
 	reiser4_tree_t *tree,	  /* tree item will be removed from */
 	reiser4_place_t *place,   /* place the item will be removed at */
@@ -1966,11 +1870,9 @@ errno_t reiser4_tree_remove(
 	    place->node->parent.node)
 	{
 
-		/*
-		  If node became empty it will be detached from the tree, so
-		  updating is not needed and impossible, because it has no
-		  items.
-		*/
+		/* If node became empty it will be detached from the tree, so
+		   updating is not needed and impossible, because it has no
+		   items. */
 		if (reiser4_node_items(place->node) > 0) {
 			reiser4_place_t p;
 			reiser4_key_t lkey;
@@ -1993,10 +1895,8 @@ errno_t reiser4_tree_remove(
 			return res;
 	}
 
-	/*
-	  Checking if the node became empty. If so, we release it, otherwise we
-	  pack the tree about it.
-	*/
+	/* Checking if the node became empty. If so, we release it, otherwise we
+	   pack the tree about it. */
 	if (reiser4_node_items(place->node) > 0) {
 		if ((tree->flags & TF_PACK) && tree->traps.pack) {
 			if ((res = tree->traps.pack(tree, place, tree->traps.data)))
@@ -2007,10 +1907,8 @@ errno_t reiser4_tree_remove(
 		reiser4_node_mkclean(place->node);
 		reiser4_tree_detach(tree, place->node);
 
-		/*
-		  Freeing node and updating place node component in order to let
-		  user know that node do not exist any longer.
-		*/
+		/* Freeing node and updating place node component in order to
+		   let user know that node do not exist any longer. */
 		reiser4_tree_release(tree, place->node);
 		place->node = NULL;
 	}
@@ -2044,12 +1942,10 @@ static errno_t _tree_down_open(reiser4_tree_t *tree,
 
 	blocksize = reiser4_master_blksize(tree->fs->master);
 	
-	/*
-	   Trying to get child node pointed by @ptr from the parent cache. It
+	/* Trying to get child node pointed by @ptr from the parent cache. It
 	   fails, if the child is not loaded yet and we have to load and connect
-	   it to the tree explicitly.
-	 */	
-	if ((*node = reiser4_node_cbp(place->node, ptr.start)))
+	   it to the tree explicitly. */	
+	if ((*node = reiser4_node_child(place->node, ptr.start)))
 		return 0;
 
 	if (!(*node = reiser4_node_open(tree->fs->device, blocksize, 
@@ -2093,10 +1989,8 @@ errno_t reiser4_tree_down(
 	for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
 		pos->unit = ~0ul; 
 
-		/*
-		  If there is a suspicion of a corruption, it must be checked in
-		  before_func. All items must be opened here.
-		*/
+		/* If there is a suspicion of a corruption, it must be checked
+		   in before_func. All items must be opened here. */
 		if (reiser4_place_open(&place, node, pos)) {
 			aal_exception_error("Can't open item by place. Node "
 					    "%llu, item %u.", node->blk,

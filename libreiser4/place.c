@@ -1,12 +1,9 @@
-/*
-  place.c -- reiser4 tree place functions. Place contains full information about
-  tree item/unit position in the tree. The instance of structure reiser4_place_t
-  contains pointer to node item/unit lies in,, item position and unit position
-  in specified item.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   place.c -- reiser4 tree place functions. Place contains full information
+   about position in the tree. The instance of structure reiser4_place_t
+   contains pointer to node item/unit lies in. */
 
 #include <reiser4/reiser4.h>
 
@@ -37,10 +34,8 @@ errno_t reiser4_place_last(reiser4_place_t *place) {
 	return 0;
 }
 
-/*
-  Returns TRUE if passed @place points to unit that lies after the first unit of
-  the first item in node.
-*/
+/* Returns TRUE if passed @place points to unit that lies after the first unit
+   of the first item in node. */
 bool_t reiser4_place_gtfirst(reiser4_place_t *place) {
 
 	if (place->pos.unit == ~0ul)
@@ -49,10 +44,8 @@ bool_t reiser4_place_gtfirst(reiser4_place_t *place) {
 	return place->pos.item > 0 || place->pos.unit > 0;
 }
 
-/*
-  Returns TRUE if passed @place points to units that lies before the last units
-  of the last item in node.
-*/
+/* Returns TRUE if passed @place points to units that lies before the last units
+   of the last item in node. */
 bool_t reiser4_place_ltlast(reiser4_place_t *place) {
 	uint32_t items = reiser4_node_items(place->node);
 			

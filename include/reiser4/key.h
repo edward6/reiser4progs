@@ -1,9 +1,7 @@
-/*
-  key.h -- reiser4 key defines and functions.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   key.h -- reiser4 key defines and functions. */
 
 #ifndef REISER4_KEY_H
 #define REISER4_KEY_H

@@ -1,9 +1,7 @@
-/*
-  filesystem.h -- reiser4 filesystem functions declaration.    
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   filesystem.h -- reiser4 filesystem functions declaration. */
 
 #ifndef REISER4_FILESYSTEM_H
 #define REISER4_FILESYSTEM_H

@@ -1,9 +1,7 @@
-/*
-  types.h -- reiser4 filesystem structures and macros.    
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
 
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+   types.h -- reiser4 filesystem structures and macros. */
 
 #ifndef REISER4_TYPES_H
 #define REISER4_TYPES_H
@@ -14,26 +12,14 @@
 
 typedef struct key_entity reiser4_key_t;
 
-/*
-  Master super block structure. It is the same for all reiser4 filesystems, so,
-  we can declare it here. It contains common for all format fields like block
-  size etc.
-*/
+/* Master super block structure. It is the same for all reiser4 filesystems,
+   so, we can declare it here. It contains common for all format fields like
+   block size etc. */
 struct reiser4_master_sb {
-
-	/* Reiser4 magic (R4Sb) */
 	char ms_magic[4];
-
-	/* Current disk format plugin identifier */
 	d16_t ms_format;
-
-	/* Filesystem block size */
 	d16_t ms_blocksize;
-
-	/* Universaly unique identifier */
 	char ms_uuid[16];
-
-	/* File system label */
 	char ms_label[16];
 };
 
@@ -46,13 +32,11 @@ typedef struct reiser4_master_sb reiser4_master_sb_t;
 #define set_ms_blocksize(ms, val)       aal_set_le16(ms, ms_blocksize, val)
 
 struct reiser4_master {
-	/*
-	  The flag which shows that master super block is realy exist on disk
-	  and that filesystem was opened by readin it rather than brobbing all
-	  known format plugins. We need to distinguish these two cases because
-	  we should not save master super block in reiser4_master_sync if it is
-	  not realy exist on disk without special actions like converting.
-	*/
+	/* The flag, which shows that master super block is realy exist on disk
+	   and that filesystem was opened by reading it rather than probbing all
+	   known format plugins. We need to distinguish these two cases, because
+	   we should not save master super block in reiser4_master_sync() if it
+	   is not realy exist on disk without special actions like converting. */
 	bool_t native;
 
 	/* Flag for marking master as dirty */
@@ -76,10 +60,8 @@ struct reiser4_pid {
 
 typedef struct reiser4_pid reiser4_pid_t;
 
-/* 
-  Profile structure. It describes what plugins will be used for every part of
-  the filesystem.
-*/
+/* Profile structure. It describes what plugins will be used for every part of
+   the filesystem. */
 struct reiser4_profile {
 	char name[10];
 	char desc[100];
@@ -104,35 +86,25 @@ struct reiser4_node {
 	/* Place in parent node */
 	reiser4_place_t parent;
 
-	/*
-	  List of children nodes. It is used for constructing part of on-disk
-	  tree in the memory.
-	*/
+	/* List of children nodes. It is used for constructing part of on-disk
+	   tree in the memory. */
 	aal_list_t *children;
 	
-	/*
-	  Reference to the tree. Sometimes node needs access tree and tree
-	  functions.
-	*/
+	/* Reference to the tree. Sometimes node needs access tree and tree
+	   functions. */
 	reiser4_tree_t *tree;
 	
-	/*
-	  Reference to left neighbour. It is used for establishing silbing links
-	  among nodes in memory tree cache.
-	*/
+	/* Reference to left neighbour. It is used for establishing silbing
+	   links among nodes in memory tree cache. */
 	reiser4_node_t *left;
 
-	/*
-	  Refernce to right neighbour. It is used for establishing silbing links
-	  among nodes in memory tree cache.
-	*/
+	/* Refernce to right neighbour. It is used for establishing silbing
+	   links among nodes in memory tree cache. */
 	reiser4_node_t *right;
 	
-	/*
-	  Node entity. Node plugin initializes this value and return it back in
-	  node initializing time. This node entity is used for performing all
-	  on-node actions.
-	*/
+	/* Node entity. Node plugin initializes this value and return it back in
+	   node initializing time. This node entity is used for performing all
+	   on-node actions. */
 	object_entity_t *entity;
 
 	/* Node size */
@@ -148,10 +120,8 @@ struct reiser4_node {
 	signed counter;
 	
 #ifndef ENABLE_STAND_ALONE
-	/*
-	  Applications using this library sometimes need to embed information
-	  into the objects of our library for their own use.
-	*/
+	/* Applications using this library sometimes need to embed information
+	   into the objects of our library for their own use. */
 	void *data;
 #endif
 };
@@ -172,10 +142,8 @@ struct reiser4_object {
 	/* Full file name or printed key */
 	char name[OBJECT_NAME_SIZE];
 
-	/*
-	  Applications using this library sometimes need to embed information
-	  into the objects of our library for their own use.
-	*/
+	/* Applications using this library sometimes need to embed information
+	   into the objects of our library for their own use. */
 	void *data;
 #endif
 };
@@ -195,17 +163,13 @@ enum reiser4_owner {
 typedef enum reiser4_owner reiser4_owner_t;
 #endif
 
-/*
-  Reiser4 wrappers for all filesystem objects (journal, block allocator,
-  etc.). They are used for make its plugins access simple.
-*/
+/* Reiser4 wrappers for all filesystem objects (journal, block allocator,
+   etc.). They are used for make its plugins access simple. */
 struct reiser4_format {
 	reiser4_fs_t *fs;
 	
-	/* 
-	   Disk-format entity. It is initialized by disk-format plugin durring
-	   initialization.
-	*/
+	/* Disk-format entity. It is initialized by disk-format plugin durring
+	   initialization. */
 	object_entity_t *entity;
 };
 
@@ -217,11 +181,9 @@ typedef struct reiser4_format reiser4_format_t;
 struct reiser4_journal {
 	reiser4_fs_t *fs;
     
-	/* 
-	   Device journal will be opened on. In the case journal lie on the same
+	/* Device journal will be opened on. In the case journal lie on the same
 	   device as filesystem does, this field will point to the same device
-	   instance as in fs struct.
-	*/
+	   instance as in fs struct. */
 	aal_device_t *device;
 
 	/* Journal entity. Initializied by plugin */
@@ -288,11 +250,9 @@ struct reiser4_tree {
 	/* Reference to filesystem instance tree opened on */
 	reiser4_fs_t *fs;
 
-	/* 
-	   Reference to root node. It is created by tree initialization routines
+	/* Reference to root node. It is created by tree initialization routines
 	   and always exists. All other nodes are loaded on demand and flushed
-	   at memory presure event.
-	*/
+	   at memory presure event. */
 	reiser4_node_t *root;
 
 	/* Tree root key */
@@ -318,20 +278,16 @@ struct reiser4_tree {
 		remove_func_t pre_remove;
 		remove_func_t post_remove;
 
-		/*
-		  These traps will be called for connect/disconnect nodes in
-		  tree. They may be used for keeping track nodes in tree.
-		*/
+		/* These traps will be called for connect/disconnect nodes in
+		   tree. They may be used for keeping track nodes in tree. */
 		connect_func_t connect;
 		connect_func_t disconnect;
 
-		/*
-		  This trap is called by any remove from the tree. It may be
-		  used for implementing an alternative tree packing in remove
-		  point. By default it uses so called "local packing", that is,
-		  shift target node into left neighbour and shift right node
-		  into target one.
-		*/
+		/* This trap is called by any remove from the tree. It may be
+		   used for implementing an alternative tree packing in remove
+		   point. By default it uses so called "local packing", that is,
+		   shift target node into left neighbour and shift right node
+		   into target one. */
 		pack_func_t pack;
 #endif
 
@@ -395,28 +351,18 @@ struct reiser4_fs {
 	/* Pointer to the semantic tree wrapper object */
 	reiser4_object_t *root;
 
-	/*
-	  Default profile. All plugin ids which cannot be obtained anywhere (for
-	  instance, in parent node or directory) will be taken from this profile.
-	*/
+	/* Default profile. All plugin ids which cannot be obtained anywhere
+	   (for instance, in parent node or directory) will be taken from this
+	   profile.*/
 	reiser4_profile_t *profile;
 
-	/*
-	  Applications using this library sometimes need to embed information
-	  into the objects of our library for their own use.
-	*/
+	/* Applications using this library sometimes need to embed information
+	   into the objects of our library for their own use. */
 	void *data;
 #endif
 };
 
 typedef errno_t (*walk_func_t) (reiser4_tree_t *,
 				reiser4_node_t *);
-
-#define get_fake_blk (fake_blk--)
-#define max_fake_blk (INVAL_BLK - 1)
-#define min_fake_blk (max_fake_blk - 0x100000)
-
-#define is_fake_blk(blk) \
-        (blk >= min_fake_blk && blk <= max_fake_blk)
 
 #endif

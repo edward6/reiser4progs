@@ -1,9 +1,7 @@
-/*
-  tree.h -- reiser4 balanced tree functions.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   tree.h -- reiser4 balanced tree functions. */
 
 #ifndef REISER4_TREE_H
 #define REISER4_TREE_H
@@ -108,6 +106,13 @@ extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
 				     traverse_update_func_t update_func,
 				     traverse_edge_func_t after_func,
 				     void *data);
+
+#define get_fake_blk (fake_blk--)
+#define max_fake_blk (INVAL_BLK - 1)
+#define min_fake_blk (max_fake_blk - 0x100000)
+
+#define is_fake_blk(blk) \
+        (blk >= min_fake_blk && blk <= max_fake_blk)
 
 #endif
 

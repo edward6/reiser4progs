@@ -1,9 +1,7 @@
-/*
-  oid.h -- oid allocator functions.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   oid.h -- oid allocator functions. */
 
 #ifndef REISER4_OID_H
 #define REISER4_OID_H
@@ -40,7 +38,7 @@ extern oid_t reiser4_oid_root_locality(reiser4_oid_t *oid);
 extern oid_t reiser4_oid_root_objectid(reiser4_oid_t *oid);
 extern oid_t reiser4_oid_hyper_locality(reiser4_oid_t *oid);
 
-#endif /* ENABLE_STAND_ALONE */
+#endif
 
-#endif /* REISER4_OID_H */
+#endif
 

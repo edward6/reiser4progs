@@ -1,9 +1,7 @@
-/*
-  key.c -- reiser4 common key code.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/  
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   key.c -- reiser4 common key code. */  
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -34,10 +32,8 @@ errno_t reiser4_key_guess(reiser4_key_t *key) {
 	return 0;
 }
 
-/* 
-   Compares two keys in plugin independent manner by means of using one of passed
-   keys plugin.
-*/
+/* Compares two keys in plugin independent manner by means of using one of
+   passed keys plugin. */
 int reiser4_key_compare(
 	reiser4_key_t *key1,	    /* the first key for comparing */
 	reiser4_key_t *key2)	    /* the second one */

@@ -1,9 +1,7 @@
-/*
-  item.c -- common reiser4 item functions.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   item.c -- common reiser4 item functions. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -11,10 +9,8 @@
 
 #include <reiser4/reiser4.h>
 
-/*
-  Returns count of units in item. If count method is not implemented,
-  it returns 1.
-*/
+/* Returns count of units in item. If count method is not implemented, it
+   returns 1. */
 uint32_t reiser4_item_units(reiser4_place_t *place) {
 	uint32_t units;
 	item_entity_t *item;
@@ -35,29 +31,28 @@ uint32_t reiser4_item_units(reiser4_place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/*
-  Estimating insert operation. Below is the possible cases.
+/* Estimating insert operation. Below is the possible cases.
+   
+   1. Insertion of data: 
+   a) pos->unit == ~0ul 
+   b) hint->data != NULL
+   c) get hint->plugin on the base of pos.
+   
+   2. Insertion of info: 
+   a) pos->unit == ~0ul 
+   b) hint->hint != NULL
+   c) hint->plugin != NULL
+    
+   3. Pasting of data: 
+   a) pos->unit != ~0ul 
+   b) hint->data != NULL
+   c) get hint->plugin on the base of pos.
+    
+   4. Pasting of info: 
+   a) pos->unit_pos != ~0ul 
+   b) hint->hint != NULL
+   c) get hint->plugin on the base of pos */
 
-  1. Insertion of data: 
-  a) pos->unit == ~0ul 
-  b) hint->data != NULL
-  c) get hint->plugin on the base of pos.
-    
-  2. Insertion of info: 
-  a) pos->unit == ~0ul 
-  b) hint->hint != NULL
-  c) hint->plugin != NULL
-    
-  3. Pasting of data: 
-  a) pos->unit != ~0ul 
-  b) hint->data != NULL
-  c) get hint->plugin on the base of pos.
-    
-  4. Pasting of info: 
-  a) pos->unit_pos != ~0ul 
-  b) hint->hint != NULL
-  c) get hint->plugin on the base of pos.
-*/
 errno_t reiser4_item_estimate(
 	reiser4_place_t *place,	   /* item we will work with */
 	create_hint_t *hint)       /* item hint to be estimated */
@@ -72,10 +67,8 @@ errno_t reiser4_item_estimate(
 
 	aal_assert("umka-2230", hint->plugin != NULL);
 
-	/*
-	  Method estimate_insert() may be not implemented as it is not needed in
-	  some cases like tail item case.
-	*/
+	/* Method estimate_insert() may be not implemented as it is not needed
+	   in some cases like tail item case. */
 	if (!hint->plugin->o.item_ops->estimate_insert)
 		return 0;
 
@@ -212,10 +205,8 @@ errno_t reiser4_item_set_key(reiser4_place_t *place,
 }
 #endif
 
-/*
-  Returns maximal possible key may exist in item at @place. If item's "get_key"
-  method is not implemented, it returns item key.
-*/
+/* Returns maximal possible key may exist in item at @place. If item's "get_key"
+   method is not implemented, it returns item key. */
 errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 				 reiser4_key_t *key)
 {

@@ -1,10 +1,8 @@
-/*
-  libreiser4.c -- version control functions, library initialization code and
-  plugin-accessible library functions implemetation.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   libreiser4.c -- version control functions, library initialization code and
+   plugin-accessible library functions implemetation. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -12,12 +10,6 @@
 
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
-
-/* 
-  Initializing the libreiser4 core instance. It will be passed into all plugins
-  in otder to let them ability access libreiser4 methods such as insert or
-  remove an item from the tree.
-*/
 
 /* Handler for plugin finding requests from all plugins */
 static reiser4_plugin_t *factory_ifind(
@@ -241,6 +233,9 @@ static errno_t object_resolve(void *tree, place_t *place, char *filename,
 }
 #endif
 
+/* Initializing the libreiser4 core instance. It will be passed into all plugins
+   in otder to let them ability access libreiser4 methods such as insert or
+   remove an item from the tree. */
 reiser4_core_t core = {
 	.tree_ops = {
 	
@@ -279,17 +274,13 @@ reiser4_core_t core = {
 		.unlock     = tree_unlock,
 	},
 	.factory_ops = {
-		/*
-		  Installing callback for making search for a plugin by its type
-		  and id.
-		*/
+		/* Installing callback for making search for a plugin by its
+		   type and id. */
 		.ifind = factory_ifind,
 
 #ifndef ENABLE_STAND_ALONE
-		/*
-		  Installing callback for making search for a plugin by its type
-		  and name.
-		*/
+		/* Installing callback for making search for a plugin by its
+		   type and name. */
 		.nfind = factory_nfind
 #endif
 	},
@@ -315,10 +306,8 @@ const char *libreiser4_version(void) {
 	return VERSION;
 }
 
-/* 
-  Initializes libreiser4 (plugin factory, etc). This function should be called
-  before any actions performed on libreiser4.
-*/
+/* Initializes libreiser4 (plugin factory, etc). This function should be called
+   before any actions performed on libreiser4. */
 errno_t libreiser4_init(void) {
 	if (libreiser4_factory_init()) {
 		aal_exception_fatal("Can't initialize plugin factory.");

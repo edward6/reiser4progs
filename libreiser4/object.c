@@ -1,10 +1,8 @@
-/*
-  object.c -- common code for all reiser4 objects (regular files, directories,
-  symlinks, etc).
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   object.c -- common code for all reiser4 objects (regular files, directories,
+   symlinks, etc). */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -25,10 +23,8 @@ static bool_t callback_object_guess(reiser4_plugin_t *plugin,
 	
 	object = (reiser4_object_t *)data;
 	
-	/*
-	  Requesting object plugin to open the object on passed @tree
-	  and @place. If it fails, we will continue lookup.
-	*/
+	/* Requesting object plugin to open the object on passed @tree and
+	   @place. If it fails, we will continue lookup. */
 	object->entity = plugin_call(plugin->o.object_ops, open,
 				     &object->info);
 	
@@ -123,10 +119,8 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	/* Symlinks handling. Method follow() should be implemented */
 	if (object->follow && plugin->o.object_ops->follow) {
 
-		/*
-		  Calling object's follow() in order to get stat data key of the
-		  real stat data item.
-		*/
+		/* Calling object's follow() in order to get stat data key of
+		   the real stat data item. */
 		if ((res = plugin->o.object_ops->follow(object->entity,
 							&object->info.parent,
 							&object->info.object)))
@@ -190,11 +184,9 @@ errno_t reiser4_object_resolve(reiser4_object_t *object,
 	
 	object->follow = follow;
 	
-	/* 
-	  Parsing path and looking for object's stat data. We assume, that name
-	  is absolute one. So, user, who calls this method should convert name
-	  previously into absolute one by means of using getcwd function.
-	*/
+	/* Parsing path and looking for object's stat data. We assume, that name
+	   is absolute one. So, user, who calls this method should convert name
+	   previously into absolute one by means of using getcwd function. */
 	return aux_parse_path(filename, callback_find_statdata,
 			      callback_find_entry, object);
 }
@@ -367,11 +359,9 @@ static void reiser4_object_base(reiser4_fs_t *fs,
 		objectid = reiser4_oid_root_objectid(fs->oid);
 	}
 	
-	/* 
-	   New object is identified by its locality and objectid. Set them to
+	/* New object is identified by its locality and objectid. Set them to
 	   the @object->info.object key and plugin create method will build the
-	   whole key there.
-	*/
+	   whole key there. */
 	object->info.object.plugin = object->info.parent.plugin;
 	
 	reiser4_key_clean(&object->info.object);
@@ -655,10 +645,8 @@ errno_t reiser4_object_reset(
 			   reset, object->entity);
 }
 
-/*
-  Reads @n bytes of data at the current offset of @object to passed
-  @buff. Returns numbers bytes read.
-*/
+/* Reads @n bytes of data at the current offset of @object to passed
+   @buff. Returns numbers bytes read. */
 int32_t reiser4_object_read(
 	reiser4_object_t *object,   /* object entry will be read from */
 	void *buff,		    /* buffer result will be stored in */
@@ -865,11 +853,9 @@ bool_t reiser4_object_begin(reiser4_place_t *place) {
 	if (reiser4_place_realize(place))
 		return FALSE;
 
-	/*
-	  FIXME-VITALY: This is ok until we create objects without statdatas.
-	  But how to distinguish, that this is the first item of some plugin,
-	  and not the second item of the default one?
-	*/
+	/* FIXME-VITALY: This is ok until we create objects without statdatas.
+	   But how to distinguish, that this is the first item of some plugin,
+	   and not the second item of the default one? */
 	return reiser4_item_statdata(place);
 }
 #endif

@@ -1,9 +1,7 @@
-/*
-  alloc.c -- reiser4 block allocator common code.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   alloc.c -- reiser4 block allocator common code. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -34,11 +32,9 @@ void reiser4_alloc_mkclean(reiser4_alloc_t *alloc) {
 		    mkclean, alloc->entity);
 }
 
-/*
-  Initializes block allocator structures and requests block allocator plugin for
-  opening. Returns initialized instance of block allocator, which may be used in
-  all further operations.
-*/
+/* Initializes block allocator structures and make request to block allocator
+   plugin for opening. Returns initialized instance, which may be used in all
+   further operations. */
 reiser4_alloc_t *reiser4_alloc_open(
 	reiser4_fs_t *fs,	/* fs allocator is going to be opened on */
 	count_t count)		/* filesystem size in blocks */
@@ -88,14 +84,12 @@ reiser4_alloc_t *reiser4_alloc_open(
 	return NULL;
 }
 
-/* 
-   Creates new block allocator. Initializes all structures, calles block
+/* Creates new block allocator. Initializes all structures, calles block
    allocator plugin in order to initialize allocator instance and returns
-   instance to caller.
-*/
+   instance to caller. */
 reiser4_alloc_t *reiser4_alloc_create(
-	reiser4_fs_t *fs,           /* fs block allocator is going to be created on */
-	count_t count)		    /* filesystem size in blocks */
+	reiser4_fs_t *fs,    /* fs block allocator is going to be created on */
+	count_t count)	     /* filesystem size in blocks */
 {
 	rid_t pid;
 	uint32_t blocksize;
@@ -216,7 +210,8 @@ count_t reiser4_alloc_free(
 
 /* Returns the number of used blocks in allocator */
 count_t reiser4_alloc_used(
-	reiser4_alloc_t *alloc)	/* allocator used blocks will be obtained from */
+	reiser4_alloc_t *alloc)	/* allocator used blocks will be obtained
+				   from */
 {
 	aal_assert("umka-499", alloc != NULL);
 

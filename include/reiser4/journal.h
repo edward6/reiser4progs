@@ -1,9 +1,7 @@
-/*
-  journal.h -- reiser4 filesystem journal functions.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   journal.h -- reiser4 filesystem journal functions. */
 
 #ifndef REISER4_JOURNAL_H
 #define REISER4_JOURNAL_H

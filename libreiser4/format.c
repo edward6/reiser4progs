@@ -1,11 +1,9 @@
-/*
-  format.c -- disk format common code. This code is wrapper for disk-format
-  plugin. It is used by filesystem code (filesystem.c) for working with
-  different disk-format plugins in independent maner.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   format.c -- disk format common code. This code is wrapper for disk-format
+   plugin. It is used by filesystem code (filesystem.c) for working with
+   different disk-format plugins in independent maner. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -37,10 +35,8 @@ void reiser4_format_mkclean(reiser4_format_t *format) {
 }
 #endif
 
-/* 
-  Opens disk-format on specified device. Actually it just calls specified by
-  "pid" disk-format plugin and that plugin makes all dirty work.
-*/
+/* Opens disk-format on specified device. Actually it just calls specified by
+   "pid" disk-format plugin and that plugin makes all dirty work. */
 reiser4_format_t *reiser4_format_open(
 	reiser4_fs_t *fs)	/* fs the format will be opened on */
 {
@@ -115,11 +111,9 @@ reiser4_format_t *reiser4_format_create(
 	
 	blocksize = reiser4_master_blksize(fs->master);
 	
-	/* 
-	   Initializing entity of disk-format by means of calling "create" method 
-	   from found plugin. Plugin "create" method will be creating all disk
-	   structures, namely, format-specific super block.
-	*/
+	/* Initializing entity of disk-format by means of calling "create"
+	   method from found plugin. Plugin "create" method will be creating all
+	   disk structures, namely, format-specific super block. */
 	if (!(format->entity = plugin_call(plugin->o.format_ops, create,
 					   fs->device, len, blocksize, tail))) 
 	{
@@ -156,6 +150,7 @@ int reiser4_format_confirm(
 			   confirm, format->fs->device);
 }
 
+/* Prints @format to passed @stream */
 errno_t reiser4_format_print(reiser4_format_t *format,
 			     aal_stream_t *stream)
 {
@@ -365,7 +360,8 @@ void reiser4_format_set_policy(
 
 /* Returns journal plugin id in use */
 rid_t reiser4_format_journal_pid(
-	reiser4_format_t *format)	/* disk-format journal pid will be obtained from */
+	reiser4_format_t *format)	/* format journal pid will be taken
+					   from */
 {
 	aal_assert("umka-115", format != NULL);
 	
@@ -375,7 +371,8 @@ rid_t reiser4_format_journal_pid(
 
 /* Returns block allocator plugin id in use */
 rid_t reiser4_format_alloc_pid(
-	reiser4_format_t *format)	/* disk-format allocator pid will be obtained from */
+	reiser4_format_t *format)	/* format allocator pid will be taken
+					   from */
 {
 	aal_assert("umka-117", format != NULL);
 	
@@ -407,7 +404,8 @@ errno_t reiser4_format_layout(reiser4_format_t *format,
 
 /* Returns oid allocator plugin id in use */
 rid_t reiser4_format_oid_pid(
-	reiser4_format_t *format)	/* disk-format oid allocator pid will be obtained from */
+	reiser4_format_t *format)	/* format oid allocator pid will be
+					   taken from */
 {
 	aal_assert("umka-491", format != NULL);
 	

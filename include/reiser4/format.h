@@ -1,9 +1,7 @@
-/*
-  format.h -- format's functions.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   format.h -- public format functions. */
 
 #ifndef REISER4_FORMAT_H
 #define REISER4_FORMAT_H

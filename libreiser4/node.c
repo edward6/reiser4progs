@@ -1,10 +1,8 @@
-/*
-  node.c -- personalization of the reiser4 on disk node. The libreiser4 internal
-  in-memory tree consists of reiser4_node_t instances.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   node.c -- the reiser4 disk node personalization. The libreiser4 internal
+   in-memory tree consists of reiser4_node_t instances. */
 
 #include <reiser4/reiser4.h>
 
@@ -127,10 +125,8 @@ errno_t reiser4_node_print(
 }
 #endif
 
-/*
-  Helper callback for checking if passed @plugin convenient one for passed @blk
-  to open it or not.
-*/
+/* Helper callback for checking if passed @plugin convenient one for passed @blk
+   to open it or not. */
 static bool_t callback_guess_node(reiser4_plugin_t *plugin,
 				  void *data)
 {
@@ -142,10 +138,8 @@ static bool_t callback_guess_node(reiser4_plugin_t *plugin,
 	
 	node = (reiser4_node_t *)data;
 	
-	/*
-	  Requesting block supposed to be a correct node to be opened
-	  and confirmed about its format.
-	*/
+	/* Requesting block supposed to be a correct node to be opened and
+	   confirmed about its format. */
 	if (!(node->entity = plugin_call(plugin->o.node_ops, init,
 					 node->device, node->size,
 					 node->blk)))
@@ -154,10 +148,8 @@ static bool_t callback_guess_node(reiser4_plugin_t *plugin,
 	if (plugin_call(plugin->o.node_ops, load, node->entity))
 		goto error_free_entity;
 		
-	/*
-	  Okay, we have found needed node plugin, now we should confirm that
-	  @node is realy formatted node and it uses @plugin.
-	*/
+	/* Okay, we have found needed node plugin, now we should confirm that
+	   @node is realy formatted node and it uses @plugin. */
 	if (plugin_call(plugin->o.node_ops, confirm, node->entity))
 		return TRUE;
 
@@ -208,10 +200,8 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
         return NULL;
 }
 
-/*
-  Closes specified node and its children. Before the closing, this function also
-  detaches nodes from the tree if they were attached.
-*/
+/* Closes specified node and its children. Before the closing, this function
+   also detaches nodes from the tree if they were attached. */
 errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_assert("umka-824", node != NULL);
 	aal_assert("umka-903", node->entity != NULL);
@@ -245,10 +235,8 @@ errno_t reiser4_node_lkey(
 }
 
 #ifndef ENABLE_STAND_ALONE
-/*
-  Checking if passed @place has nodeptr that points onto passed @node. This is
-  needed for node_pbc() function.
-*/
+/* Acknowledles, that passed @place has nodeptr that points onto passed
+   @node. This is needed for node_realize() function. */
 static int reiser4_node_ack(reiser4_node_t *node,
 			    reiser4_place_t *place)
 {
@@ -270,13 +258,11 @@ static int reiser4_node_ack(reiser4_node_t *node,
 }
 #endif
 
-/*
-  Makes search of nodeptr position in parent node by passed child node. This is
-  used for updating parent position in nodes.
-*/
-errno_t reiser4_node_pbc(
-	reiser4_node_t *node,	        /* node position will be obtained for */
-	pos_t *pos)		        /* pointer result will be stored in */
+/* Makes search of nodeptr position in parent node by passed child node. This is
+   used for updating parent position in nodes. */
+errno_t reiser4_node_realize(
+	reiser4_node_t *node)	        /* node, position will be obtained
+					   for */
 {
         lookup_t res;
 	uint32_t i, j;
@@ -292,7 +278,7 @@ errno_t reiser4_node_pbc(
 	
 #ifndef ENABLE_STAND_ALONE
 	if (reiser4_node_ack(node, parent))
-		goto out_update_pos;
+		goto parent_realize;
 #endif
 	
 	/* Getting position by key */
@@ -304,7 +290,7 @@ errno_t reiser4_node_pbc(
 #ifndef ENABLE_STAND_ALONE
 		if (reiser4_node_ack(node, parent))
 #endif
-			goto out_update_pos;
+			goto parent_realize;
 	}
 
 #ifndef ENABLE_STAND_ALONE
@@ -324,27 +310,25 @@ errno_t reiser4_node_pbc(
 				    read, &parent->item, &ptr, j, 1);
 
 			if (ptr.start == node->blk)
-				goto out_update_pos;
+				goto parent_realize;
 		}
 	}
 
 	return -EINVAL;
 #endif
 	
- out_update_pos:
-		
+ parent_realize:
 	if (reiser4_place_realize(parent))
 		return -EINVAL;
 
 	if (reiser4_item_units(parent) == 1)
 		parent->pos.unit = ~0ul;
-		
-	if (pos)
-		*pos = parent->pos;
 
 	return 0;
 }
 
+/* Helper function for walking though children list in order to find convenient
+ * one (block number is the same as pased @blk) */
 static int callback_comp_blk(
 	const void *node,		/* node find will operate on */
 	const void *blk,		/* key to be find */
@@ -359,8 +343,8 @@ static int callback_comp_blk(
 	return 0;
 }
 
-/* Finds child by block number */
-reiser4_node_t *reiser4_node_cbp(
+/* Finds child node by block number */
+reiser4_node_t *reiser4_node_child(
 	reiser4_node_t *node,	        /* node to be greped */
 	blk_t blk)                      /* left delimiting key */
 {
@@ -369,10 +353,8 @@ reiser4_node_t *reiser4_node_cbp(
 	if (!node->children)
 		return NULL;
     
-	/*
-	  Using aal_list_find_custom function with local helper functions for
-	  comparing block numbers.
-	*/
+	/* Using aal_list_find_custom function with local helper function for
+	   comparing block numbers. */
 	if ((list = aal_list_find_custom(node->children, (void *)&blk,
 					  callback_comp_blk, NULL)))
 	{
@@ -382,10 +364,8 @@ reiser4_node_t *reiser4_node_cbp(
 	return NULL;
 }
 
-/*
-  Helper callback function for comparing two nodes during registering of new
-  child.
-*/
+/* Helper callback function for comparing two nodes during registering of new
+   child. */
 static int callback_comp_node(
 	const void *node1,              /* the first node instance for comparing */
 	const void *node2,              /* the second node */
@@ -416,7 +396,7 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 	child->parent.node = node;
 	
 	/* Updating node pos in parent node */
-	if ((res = reiser4_node_pbc(child, &child->parent.pos))) {
+	if ((res = reiser4_node_realize(child))) {
 		aal_exception_error("Can't find child %llu in parent "
 				    "node %llu.", child->blk, node->blk);
 		return res;
@@ -458,10 +438,8 @@ bool_t reiser4_node_confirm(reiser4_node_t *node) {
 }
 #endif
 
-/* 
-  This function makes search inside of specified node for passed key. Position will
-  be stored in passed @pos.
-*/
+/* This function makes search inside of specified node for passed key. Position
+   will be stored in passed @pos. */
 lookup_t reiser4_node_lookup(
 	reiser4_node_t *node,	/* node to be grepped */
 	reiser4_key_t *key,	/* key to be find */
@@ -490,10 +468,8 @@ lookup_t reiser4_node_lookup(
 		if (pos->item == 0)
 			return ABSENT;
 		
-		/*
-		  Correcting position, as node plugin lookup returns position
-		  next to convenient item.
-		*/
+		/* Correcting position, as node plugin lookup returns position
+		   next to convenient item. */
 		pos->item--;
 	}
 		
@@ -503,10 +479,8 @@ lookup_t reiser4_node_lookup(
 	item = &place.item;
 
 	if (res == ABSENT) {
-		/*
-		  We are on the position where key is less then wanted. Key
-		  could lie within the item or after the item.
-		*/
+		/* We are on the position where key is less then wanted. Key
+		   could lie within the item or after the item. */
 		if (item->plugin->o.item_ops->maxposs_key) {
 			reiser4_item_maxposs_key(&place, &maxkey);
 
@@ -522,18 +496,14 @@ lookup_t reiser4_node_lookup(
 					   lookup, item, key, &pos->unit);
 		}
 	
-		/*
-		  Lookup isn't implemented whereas maxposs_key() isn't
-		  implemented too. Is it correct?
-		*/
+		/* Lookup isn't implemented whereas maxposs_key() isn't
+		   implemented too. Is it correct? */
 		pos->item++;
 		return ABSENT;
 	} else {
-		/*
-		  If item is found by its key, that means, that we can set unit
-		  component to 0. This is neede to avoid creating mergeable item
-		  (for instance tails) in the same node.
-		*/
+		/* If item is found by its key, that means, that we can set unit
+		   component to 0. This is neede to avoid creating mergeable
+		   item (for instance tails) in the same node. */
 		pos->unit = 0;
 		return PRESENT;
 	}
@@ -604,10 +574,9 @@ errno_t reiser4_node_shrink(reiser4_node_t *node, pos_t *pos,
 	return res;
 }
 
-/*
-  Makes shift of some amount of items and units into passed neighbour. Shift
-  direction and other flags are passed by @hint. Returns operation error code.
-*/
+/* Makes shift of some amount of items and units into passed neighbour. Shift
+   direction and other flags are passed by @hint. Returns operation error
+   code. */
 errno_t reiser4_node_shift(
 	reiser4_node_t *node,
 	reiser4_node_t *neig,
@@ -621,10 +590,8 @@ errno_t reiser4_node_shift(
 	aal_assert("umka-1226", neig != NULL);
 	aal_assert("umka-1227", hint != NULL);
 
-	/*
-	  Trying shift something from @node into @neig. As result insert point
-	  may be shifted too.
-	*/
+	/* Trying shift something from @node into @neig. As result insert point
+	   may be shifted too. */
 	plugin = node->entity->plugin;
 	
 	if ((res = plugin_call(plugin->o.node_ops, shift,
@@ -633,10 +600,8 @@ errno_t reiser4_node_shift(
 		return res;
 	}
 
-	/*
-	  We do not need update children if @node does not have children at all
-	  or shift did not shift any items and units.
-	*/
+	/* We do not need update children if @node does not have children at all
+	   or shift did not shift any items and units. */
 	if (hint->items == 0 && hint->units == 0)
 		return 0;
 
@@ -667,20 +632,16 @@ errno_t reiser4_node_shift(
 			ptr_hint_t ptr;
 			reiser4_node_t *child;
 
-			/*
-			  Getting nodeptr and looking for the cached child by
-			  using it.
-			*/
+			/* Getting nodeptr and looking for the cached child by
+			   using it. */
 			plugin_call(place.item.plugin->o.item_ops, read,
 				    &place.item, &ptr, place.pos.unit, 1);
 			
-			if (!(child = reiser4_node_cbp(node, ptr.start)))
+			if (!(child = reiser4_node_child(node, ptr.start)))
 			        continue;
 
-			/*
-			  Disconnecting @child from the old parent and connect
-			  it to the new one.
-			*/
+			/* Disconnecting @child from the old parent and connect
+			   it to the new one. */
 			reiser4_node_disconnect(node, child);
 
 			if ((res = reiser4_node_connect(neig, child)))
@@ -771,10 +732,8 @@ errno_t reiser4_node_update(reiser4_node_t *node) {
 	return reiser4_item_insert(place, &hint);
 }
 
-/*
-  Updates node keys in recursive maner (needed for updating ldkeys on the all
-  levels of tre tree).
-*/
+/* Updates node keys in recursive maner (needed for updating ldkeys on the all
+   levels of tre tree). */
 errno_t reiser4_node_ukey(reiser4_node_t *node,
 			  pos_t *pos,
 			  reiser4_key_t *key)
@@ -795,10 +754,8 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 	return 0;
 }
 
-/*
-  Updates children in-parent position. It is used during internal nodes
-  modifying.
-*/
+/* Updates children in-parent position. It is used during internal nodes
+   modifying. */
 errno_t reiser4_node_uchildren(reiser4_node_t *node,
 			       pos_t *start)
 {
@@ -865,17 +822,15 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 
 		aal_assert("umka-1886", child->parent.node == node);
 
-		if ((res = reiser4_node_pbc(child, &child->parent.pos)))
+		if ((res = reiser4_node_realize(child)))
 			return res;
 	}
 	
 	return 0;
 }
 
-/* 
-  Inserts item or unit into node. Keeps track of changes of the left delimiting
-  keys in all parent nodes.
-*/
+/* Inserts item or unit into node. Keeps track of changes of the left delimiting
+   keys in all parent nodes. */
 errno_t reiser4_node_insert(
 	reiser4_node_t *node,	         /* node item will be inserted in */
 	pos_t *pos,                      /* pos item will be inserted at */
@@ -904,10 +859,8 @@ errno_t reiser4_node_insert(
 		return -EINVAL;
 	}
 
-	/* 
-	  Inserting new item or pasting unit into one existent item pointed by
-	  pos->item.
-	*/
+	/* Inserting new item or pasting unit into one existent item pointed by
+	   pos->item. */
 	if ((res = plugin_call(node->entity->plugin->o.node_ops,
 			       insert, node->entity, pos, hint)))
 		return res;
@@ -952,24 +905,20 @@ errno_t reiser4_node_cut(
 	return 0;
 }
 
-/* 
-  Deletes item or unit from cached node. Keeps track of changes of the left
-  delimiting key.
-*/
+/* Deletes item or unit from cached node. Keeps track of changes of the left
+   delimiting key. */
 errno_t reiser4_node_remove(
-	reiser4_node_t *node,	            /* node item will be removed from */
-	pos_t *pos,                        /* pos item will be removed at */
-	uint32_t count)                     /* the number of item/units */
+	reiser4_node_t *node,	          /* node item will be removed from */
+	pos_t *pos,                       /* pos item will be removed at */
+	uint32_t count)                   /* the number of item/units */
 {
 	errno_t res;
 	
 	aal_assert("umka-993", node != NULL);
 	aal_assert("umka-994", pos != NULL);
 
-	/*
-	  Removing item or unit. We assume that we are going to remove unit if
-	  unit component is set up.
-	*/
+	/* Removing item or unit. We assume that we are going to remove unit if
+	   unit component is set up. */
 	if ((res = plugin_call(node->entity->plugin->o.node_ops,
 			       remove, node->entity, pos, count)))
 	{

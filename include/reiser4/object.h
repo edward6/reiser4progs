@@ -1,9 +1,8 @@
-/*
-  object.h -- reiser4 common object functions (regular file, directory, etc).
-    
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   object.h -- reiser4 common object functions (regular file, directory,
+   etc). */
 
 #ifndef REISER4_OBJECT_H
 #define REISER4_OBJECT_H

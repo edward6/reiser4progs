@@ -541,12 +541,10 @@ static errno_t reg40_cut(object_entity_t *entity) {
 			    KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
 			    obj40_objectid(&reg->obj), size - 1);
 		
-		switch (obj40_lookup(&reg->obj, &key, LEAF_LEVEL, &place)) {
-		case FAILED:
-		case ABSENT:
+		if (obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
+				 &place) != PRESENT)
+		{
 			return -EINVAL;
-		default:
-			break;
 		}
 
 		if (core->tree_ops.realize(reg->obj.tree, &place))

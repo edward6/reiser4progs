@@ -1,9 +1,7 @@
-/*
-  journal.c -- reiser4 filesystem common journal code.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   journal.c -- reiser4 filesystem common journal code. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -34,10 +32,8 @@ void reiser4_journal_mkclean(reiser4_journal_t *journal) {
 		    mkclean, journal->entity);
 }
 
-/* 
-   This function opens journal on specified device and returns instance of
-   opened journal.
-*/
+/* This function opens journal on specified device and returns instance of
+   opened journal. */
 reiser4_journal_t *reiser4_journal_open(
 	reiser4_fs_t *fs,	        /* fs journal will be opened on */
 	aal_device_t *device)	        /* device journal will be opened on */
@@ -80,10 +76,8 @@ reiser4_journal_t *reiser4_journal_open(
 
 	blocksize = reiser4_master_blksize(fs->master);
 	
-	/* 
-	   Initializing journal entity by means of calling "open" method from
-	   found journal plugin.
-	*/
+	/* Initializing journal entity by means of calling "open" method from
+	   found journal plugin. */
 	if (!(journal->entity = plugin_call(plugin->o.journal_ops, open,
 					    fs->format->entity, device,
 					    start, len, blocksize))) 
@@ -194,10 +188,9 @@ reiser4_journal_t *reiser4_journal_create(
 	return NULL;
 }
 
-/*
-  Replays specified @journal. Returns error code. As super block may fit into
-  one of replayed transactions, it should be reopened after replay is finished.
-*/
+/* Replays specified @journal and returns error code as a result. As super block
+   may fit into one of replayed transactions, it should be reopened after replay
+   is finished. */
 errno_t reiser4_journal_replay(
 	reiser4_journal_t *journal)	/* journal to be replayed */
 {
@@ -208,7 +201,7 @@ errno_t reiser4_journal_replay(
 			   replay, journal->entity);
 }
 
-/* Saves journal structures on journal's device */
+/* Saves journal structures on journal device */
 errno_t reiser4_journal_sync(
 	reiser4_journal_t *journal)	/* journal to be saved */
 {

@@ -1,9 +1,7 @@
-/*
-  filesystem.c -- common reiser4 filesystem code.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   filesystem.c -- common reiser4 filesystem code. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -140,10 +138,8 @@ reiser4_owner_t reiser4_fs_belongs(
 	if (reiser4_oid_layout(fs->oid, callback_check_block, &blk) != 0)
 		return O_OID;
 
-	/*
-	  Checks if passed @blk belongs to journal metadata if journal
-	  opened.
-	*/
+	/* Checks if passed @blk belongs to journal metadata if journal
+	   opened. */
 	if (fs->journal) {
 		if (reiser4_journal_layout(fs->journal,
 					   callback_check_block, &blk) != 0)
@@ -328,10 +324,8 @@ errno_t reiser4_fs_resize(
 	return -EINVAL;
 }
 
-/* 
-  Synchronizes all filesystem objects to corresponding devices (all filesystem
-  objects except journal - to host device and journal - to journal device).
-*/
+/* Synchronizes all filesystem objects to corresponding devices (all filesystem
+   objects except journal - to host device and journal - to journal device). */
 errno_t reiser4_fs_sync(
 	reiser4_fs_t *fs)		/* fs instance to be synchronized */
 {
@@ -361,27 +355,26 @@ errno_t reiser4_fs_sync(
 
 /* Returns the key of the fake root parent */
 errno_t reiser4_fs_root_key(reiser4_fs_t *fs, reiser4_key_t *key) {
-	oid_t root_locality;
-	oid_t root_objectid;
+	oid_t locality;
+	oid_t objectid;
 	
 	aal_assert("umka-1949", fs != NULL);
 	aal_assert("umka-1950", key != NULL);
 	aal_assert("umka-1951", key->plugin != NULL);
 
 #ifndef ENABLE_STAND_ALONE
-	root_locality = reiser4_oid_root_locality(fs->oid);
-	root_objectid = reiser4_oid_root_objectid(fs->oid);
+	locality = reiser4_oid_root_locality(fs->oid);
+	objectid = reiser4_oid_root_objectid(fs->oid);
 #else
-	root_locality = REISER4_ROOT_LOCALITY;
-	root_objectid = REISER4_ROOT_OBJECTID;
+	locality = REISER4_ROOT_LOCALITY;
+	objectid = REISER4_ROOT_OBJECTID;
 #endif
-	/*
-	  FIXME-VITALY: Only object plugin can create this key.  The best way is
-	  to have some method like make_pointer in object plugins which will do
-	  it. But it is useless difficulty for now.
-	*/
+	/* FIXME-VITALY: Only object plugin can create this key.  The best way
+	   is to have some method like make_pointer in object plugins which will
+	   do it. But it is useless difficulty for now. */
+	
 	return reiser4_key_build_generic(key, KEY_STATDATA_TYPE,
-					 root_locality, root_objectid, 0);
+					 locality, objectid, 0);
 }
 
 #endif

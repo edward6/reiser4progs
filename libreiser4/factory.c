@@ -1,9 +1,7 @@
-/*
-  factory.c -- reiser4 plugin factory implementation.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   factory.c -- reiser4 plugin factory implementation. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -45,10 +43,8 @@ typedef struct plugin_builtin plugin_builtin_t;
 static plugin_builtin_t __builtins[MAX_BUILTINS];
 #endif
 
-/*
-  The struct which contains libreiser4 functions, they may be used by all plugin
-  (tree_insert(), tree_remove(), etc).
-*/
+/* The struct which contains libreiser4 functions, they may be used by all
+   plugin (tree_insert(), tree_remove(), etc). */
 extern reiser4_core_t core;
 
 /* Helper structure used in searching of plugins */
@@ -107,10 +103,8 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 
-/*
-  Helper function for searching for the needed symbol inside loaded dynamic
-  library.
-*/
+/* Helper function for searching for the needed symbol inside loaded dynamic
+   library. */
 static void *find_symbol(void *handle, char *name, char *plugin) {
 	void *addr;
 	
@@ -170,20 +164,17 @@ void libreiser4_plugin_close(plugin_class_t *class) {
 	
 	aal_assert("umka-158", class != NULL);
 
-	/*
-	  Here we copy handle of the previously loaded library into address
-	  space of the main process due to prevent us from the segfault after
-	  plugin will be unloaded and we will unable to access memory area it
-	  has just occupied.
-	*/
+	/* Here we copy handle of the previously loaded library into varuable in
+	   persistent address space of the process (not mapped due to loading
+	   library) in order to prevent us from the segfault after plugin
+	   library will be unloaded and we will unable to access memory area it
+	   has just occupied. */
 	data = class->data;
 	dlclose(data);
 }
 
-/*
-  Loads plugin by is name (for instance, nodeptr40.so) and registers inside the
-  plugin factory.
-*/
+/* Loads plugin by is name (for instance, nodeptr40.so) and registers inside the
+   plugin factory. */
 errno_t libreiser4_factory_load(char *name) {
 	errno_t res;
 
@@ -196,10 +187,8 @@ errno_t libreiser4_factory_load(char *name) {
 	if ((res = libreiser4_plugin_open(name, &class)))
 		return res;
 
-	/*
-	  Init plugin (in this point all plugin's global variables are
-	  initializing too).
-	*/
+	/* Init plugin (in this point all plugin's global variables are
+	   initializing too). */
 	if (!(plugin = class.init(&core)))
 		return -EINVAL;
 
@@ -259,10 +248,8 @@ void libreiser4_plugin_close(plugin_class_t *class) {
 #endif
 }
 
-/*
-  Loads and initializes plugin by its entry. Also this function makes register
-  the plugin in plugins list.
-*/
+/* Loads and initializes plugin by its entry. Also this function makes register
+   the plugin in plugins list. */
 errno_t libreiser4_factory_load(plugin_init_t init,
 				plugin_fini_t fini)
 {
@@ -519,10 +506,8 @@ reiser4_plugin_t *libreiser4_factory_nfind(
 #endif
 
 #if !defined(ENABLE_STAND_ALONE) || defined(ENABLE_PLUGINS_CHECK)
-/* 
-   Calls specified function for every plugin from plugin list. This functions is
-   used for getting any plugins information.
-*/
+/* Calls specified function for every plugin from plugin list. This functions is
+   used for getting any plugins information. */
 errno_t libreiser4_factory_foreach(
 	plugin_func_t plugin_func,               /* per plugin function */
 	void *data)                              /* user-specified data */

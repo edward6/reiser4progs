@@ -1,9 +1,7 @@
-/*
-  item.h -- common item functions.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   item.h -- common item functions. */
 
 #ifndef REISER4_ITEM_H
 #define REISER4_ITEM_H

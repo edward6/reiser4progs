@@ -1,9 +1,7 @@
-/*
-  place.h -- reiser4 tree place functions.
-    
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   place.h -- reiser4 tree place functions. */
 
 #ifndef REISER4_PLACE_H
 #define REISER4_PLACE_H

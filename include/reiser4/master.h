@@ -1,9 +1,7 @@
-/*
-  master.h -- master super block functions.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   master.h -- master super block functions. */
 
 #ifndef REISER4_MASTER_H
 #define REISER4_MASTER_H

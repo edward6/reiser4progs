@@ -1,9 +1,7 @@
-/*
-  plugin.h -- reiser4 plugin known types and macros.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   plugin.h -- reiser4 plugin known types and macros. */
 
 #ifndef REISER4_PLUGIN_H
 #define REISER4_PLUGIN_H
@@ -26,10 +24,8 @@
 #define REISER4_ROOT_LOCALITY   (0x29)
 #define REISER4_ROOT_OBJECTID   (0x2a)
 
-/* 
-  Defining the types for disk structures. All types like f32_t are fake ones
-  needed to avoid gcc-2.95.x bug with typedef of aligned types.
-*/
+/* Defining the types for disk structures. All types like f32_t are fake ones
+   needed to avoid gcc-2.95.x bug with typedef of aligned types. */
 typedef uint8_t  f8_t;  typedef f8_t  d8_t  __attribute__((aligned(1)));
 typedef uint16_t f16_t; typedef f16_t d16_t __attribute__((aligned(2)));
 typedef uint32_t f32_t; typedef f32_t d32_t __attribute__((aligned(4)));
@@ -204,11 +200,9 @@ enum key_type {
 
 typedef enum key_type key_type_t;
 
-/*
-  Type for describing reiser4 objects (like node, block allocator, etc) inside
-  the library, created by plugins themselves and which also have the our plugin
-  referrence.
-*/
+/* Type for describing reiser4 objects (like node, block allocator, etc) inside
+   the library, created by plugins themselves and which also have the our plugin
+   referrence. */
 struct object_entity {
 	reiser4_plugin_t *plugin;
 };
@@ -223,10 +217,8 @@ struct item_context {
 
 typedef struct item_context item_context_t;
 
-/*
-  Type for describing an item. The pointer of this type will be passed to the
-  all item plugins.
-*/
+/* Type for describing an item. The pointer of this type will be passed to the
+   all item plugins. */
 struct item_entity {
 	reiser4_plugin_t *plugin;
 
@@ -268,20 +260,16 @@ enum shift_flags {
 	/* Perform shift from the passed node to the right neighbour node */
 	SF_RIGHT = 1 << 1,
 
-	/*
-	  Allows to move insert point to the corresponding neighbour node while
-	  performing shift.
-	*/
+	/* Allows to move insert point to the corresponding neighbour node while
+	   performing shift. */
 	SF_MOVIP = 1 << 2,
 
 	/* Allows update insert point while performing shift */
 	SF_UPTIP = 1 << 3,
 
-	/*
-	  Allows do not create new items while performing the shift of
-	  units. Units from the source item may be moved into an item if the
-	  items are mergeable.
-	*/
+	/* Allows do not create new items while performing the shift of
+	   units. Units from the source item may be moved into an item if the
+	   items are mergeable. */
 	SF_MERGE = 1 << 4,
 
 	/* Should be new node allocated durring make space or not */
@@ -293,34 +281,28 @@ typedef enum shift_flags shift_flags_t;
 #define SF_DEFAULT (SF_LEFT | SF_RIGHT | SF_ALLOC)
 
 struct shift_hint {
-	/*
-	  Flag which shows that we need create an item before we will move units
-	  into it. That is because node does not contain any items at all or
-	  border items are not mergeable.
-	*/
+	/* Flag which shows that we need create an item before we will move
+	   units into it. That is because node does not contain any items at all
+	   or border items are not mergeable. */
 	int create;
 
 	/* Item count and unit count which will be moved out */
 	uint32_t items;
 	uint32_t units;
 
-	/*
-	  Bytes to be moved for items and units. Actually we might use just item
-	  field for providing needed functionality, but I guess, we will need to
-	  collect some statistics like how much items and units were moved
-	  durring making space for inserting particular item or unit.
-	*/
+	/* Bytes to be moved for items and units. Actually we might use just
+	   item field for providing needed functionality, but I guess, we will
+	   need to collect some statistics like how much items and units were
+	   moved durring making space for inserting particular item or unit. */
 	uint32_t bytes;
 	uint32_t rest;
 
-	/*
-	  Shift control flags (left shift, move insert point, merge, etc) and
-	  shift result flags. The result flags are needed for determining for
-	  example was insert point moved to the corresponding neighbour or
-	  not. Of course we might use control flags for that, but it would led
-	  us to write a lot of useless stuff for saving control flags before
-	  modifying it.
-	*/
+	/* Shift control flags (left shift, move insert point, merge, etc) and
+	   shift result flags. The result flags are needed for determining for
+	   example was insert point moved to the corresponding neighbour or
+	   not. Of course we might use control flags for that, but it would led
+	   us to write a lot of useless stuff for saving control flags before
+	   modifying it. */
 	uint32_t control;
 	uint32_t result;
 
@@ -337,19 +319,15 @@ struct copy_hint {
 	
 	key_entity_t start, end;
 	
-	/*
-	  Fields bellow are only related to extent estimate_copy() and copy()
-	  operations.
-	*/
+	/* Fields bellow are only related to extent estimate_copy() and copy()
+	   operations. */
 	
 	/* Offset in blocks in the start and end units of dst and src */
 	uint64_t dst_tail, src_tail;
 	uint64_t dst_head, src_head;
 
-	/*
-	  Should be dst head and tail splitted into 2 units while performing
-	  copy() operation.
-	*/
+	/* Should be dst head and tail splitted into 2 units while performing
+	   copy() operation. */
 	bool_t head, tail;
 };
 
@@ -362,32 +340,30 @@ typedef errno_t (*place_func_t) (object_entity_t *, place_t *, void *);
 typedef errno_t (*layout_func_t) (void *, block_func_t, void *);
 typedef errno_t (*metadata_func_t) (object_entity_t *, place_func_t, void *);
 
-/* 
-  To create a new item or to insert into the item we need to perform the
-  following operations:
+/* To create a new item or to insert into the item we need to perform the
+   following operations:
     
-  (1) Create the description of the data being inserted.
-  (2) Ask item plugin how much space is needed for the data, described in 1.
-    
-  (3) Free needed space for data being inserted.
-  (4) Ask item plugin to create an item (to paste into the item) on the base
-      of description from 1.
+   (1) Create the description of the data being inserted.
+   (2) Ask item plugin how much space is needed for the data, described in 1.
+   
+   (3) Free needed space for data being inserted.
+   (4) Ask item plugin to create an item (to paste into the item) on the base
+   of description from 1.
 
-  For such purposes we have:
+   For such purposes we have:
     
-  (1) Fixed description structures for all item types (statdata, direntry, 
-      nodeptr, etc).
+   (1) Fixed description structures for all item types (statdata, direntry, 
+   nodeptr, etc).
     
-  (2) Estimate common item method which gets place of where to insert into
-      (NULL or unit == -1 for insertion, otherwise it is pasting) and data
-      description from 1.
+   (2) Estimate common item method which gets place of where to insert into
+   (NULL or unit == -1 for insertion, otherwise it is pasting) and data
+   description from 1.
+   
+   (3) Insert node methods prepare needed space and call create/paste item
+   methods if data description is specified.
     
-  (3) Insert node methods prepare needed space and call create/paste item
-      methods if data description is specified.
-    
-  (4) Create/Paste item methods if data description has not beed specified
-      on 3.
-*/
+   (4) Create/Paste item methods if data description has not beed specified
+   on 3. */
 struct ptr_hint {    
 	uint64_t start;
 	uint64_t width;
@@ -423,7 +399,8 @@ struct sdext_lt_hint {
 
 typedef struct sdext_lt_hint sdext_lt_hint_t;
 
-/* These fields should be changed to what proper description of needed extentions */
+/* These fields should be changed to what proper description of needed
+   extentions. */
 struct statdata_hint {
 	
 	/* Extentions mask */
@@ -491,10 +468,8 @@ struct object_info {
 
 typedef struct object_info object_info_t;
 
-/*
-  Flags for using in item hint for denoting is type_specific point for type
-  specific hint or onto raw data.
-*/
+/* Flags for using in item hint for denoting is type_specific point for type
+   specific hint or onto raw data. */
 enum hint_flags {
 	HF_FORMATD    = 1 << 0,
 	HF_RAWDATA    = 1 << 1
@@ -502,17 +477,13 @@ enum hint_flags {
 
 typedef enum hint_flags hint_flags_t;
 
-/* 
-  This structure contains fields which describe an item or unit to be inserted
-  into the tree.
-*/ 
+/* This structure contains fields which describe an item or unit to be inserted
+   into the tree. */ 
 struct create_hint {
 	hint_flags_t flags;
 	
-	/*
-	  This is pointer to already formated item body. It is useful for item
-	  copying, replacing, etc. This will be used by fsck probably.
-	*/
+	/* This is pointer to already formated item body. It is useful for item
+	   copying, replacing, etc. This will be used by fsck probably. */
 	void *data;
 
 	/* Length of the data field */
@@ -534,10 +505,8 @@ struct create_hint {
 typedef struct create_hint create_hint_t;
 
 struct reiser4_key_ops {
-	/* 
-	  Cleans key up. Actually it just memsets it by zeros, but more smart
-	  behavior may be implemented.
-	*/
+	/* Cleans key up. Actually it just memsets it by zeros, but more smart
+	   behavior may be implemented. */
 	void (*clean) (key_entity_t *);
 
 	/* Confirms key format */
@@ -630,17 +599,13 @@ struct reiser4_object_ops {
 	/* Truncates file at current offset onto passed units */
 	errno_t (*truncate) (object_entity_t *, uint64_t);
 
-	/*
-	  Function for going through all metadata blocks specfied file
-	  occupied. It is needed for accessing file's metadata.
-	*/
+	/* Function for going through all metadata blocks specfied file
+	   occupied. It is needed for accessing file's metadata. */
 	errno_t (*metadata) (object_entity_t *, place_func_t, void *);
 	
-	/*
-	  Function for going through the all data blocks specfied file
-	  occupies. It is needed for the purposes like data fragmentation
-	  measuring, etc.
-	*/
+	/* Function for going through the all data blocks specfied file
+	   occupies. It is needed for the purposes like data fragmentation
+	   measuring, etc. */
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 	
 	/* Checks and recover the structure of the object. */
@@ -650,10 +615,8 @@ struct reiser4_object_ops {
 	/* Checks and recover the up link of the object. */
 	errno_t (*check_link) (object_entity_t *, object_entity_t *, uint8_t);
 	
-	/* 
-	  Realizes if the object can be of this plugin and can be recovered 
-	  as a such. 
-	*/
+	/* Realizes if the object can be of this plugin and can be recovered as
+	   a such. */
 	errno_t (*realize) (object_info_t *);
 
 #endif
@@ -721,20 +684,16 @@ struct reiser4_item_ops {
 	errno_t (*estimate_shift) (item_entity_t *, item_entity_t *,
 				   shift_hint_t *);
 	
-	/*
-	  Inserts some amount of units described by passed hint into passed
-	  item.
-	*/
+	/* Inserts some amount of units described by passed hint into passed
+	   item. */
 	errno_t (*insert) (item_entity_t *, create_hint_t *, uint32_t);
 	
 	/* Performs shift of units from passed @src item to @dst item */
 	errno_t (*shift) (item_entity_t *, item_entity_t *,
 			  shift_hint_t *);
 
-	/*
-	  Copies some amount of units from @src_item to @dst_item with partial
-	  overwritting.
-	*/
+	/* Copies some amount of units from @src_item to @dst_item with partial
+	   overwritting. */
 	errno_t (*copy) (item_entity_t *, uint32_t,
 			 item_entity_t *, uint32_t,
 			 copy_hint_t *);
@@ -783,18 +742,14 @@ struct reiser4_item_ops {
 	/* Makes lookup for passed key */
 	lookup_t (*lookup) (item_entity_t *, key_entity_t *, uint32_t *);
 
-	/*
-	  Returns TRUE is specified item is a nodeptr one. That is, it points to
-	  formatted node in the tree. If this method if not implemented, then
-	  item is assumed as not nodeptr one. All tree running operations like
-	  going from the root to leaves will use this function.
-	*/
+	/* Returns TRUE is specified item is a nodeptr one. That is, it points
+	   to formatted node in the tree. If this method if not implemented,
+	   then item is assumed as not nodeptr one. All tree running operations
+	   like going from the root to leaves will use this function. */
 	int (*branch) (void);
 	
-	/* 
-	  Returns TRUE if instances of the plugin can contain data, not just
-	  tree index data.
-	*/
+	/* Returns TRUE if instances of the plugin can contain data, not just
+	   tree index data. */
 	int (*data) (void);
 	
 	/* Get the key of a particular unit of the item. */
@@ -836,11 +791,9 @@ struct reiser4_sdext_ops {
 
 typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
 
-/*
-  Node plugin operates on passed block. It doesn't any initialization, so it
-  hasn't close method and all its methods accepts first argument aal_block_t,
-  not initialized previously hypothetic instance of node.
-*/
+/* Node plugin operates on passed block. It doesn't any initialization, so it
+   hasn't close method and all its methods accepts first argument aal_block_t,
+   not initialized previously hypothetic instance of node. */
 struct reiser4_node_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Saves node onto device */
@@ -884,10 +837,8 @@ struct reiser4_node_ops {
 	errno_t (*shrink) (object_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
-	/*
-	  Makes copy from @src_entity to @dst_entity with partial
-	  overwriting.
-	*/
+	/* Makes copy from @src_entity to @dst_entity with partial
+	   overwriting. */
 	errno_t (*copy) (object_entity_t *, pos_t *, 
 			 object_entity_t *, pos_t *, 
 			 copy_hint_t *);
@@ -909,10 +860,8 @@ struct reiser4_node_ops {
 	void (*set_mstamp) (object_entity_t *, uint32_t);
 	void (*set_fstamp) (object_entity_t *, uint64_t);
 
-	/*
-	  Creates node data block and initializes node header by means of
-	  setting up level, plugin id,etc.
-	*/
+	/* Creates node data block and initializes node header by means of
+	   setting up level, plugin id, etc. */
 	errno_t (*form) (object_entity_t *, uint8_t);
 
 	/* Changes node location */
@@ -938,10 +887,8 @@ struct reiser4_node_ops {
 	/* Unloads node data */
 	errno_t (*unload) (object_entity_t *);
 	
-	/* 
-	   Destroys the node entity. If node data is not unloaded, it also
-	   unloads data.
-	*/
+	/* Destroys the node entity. If node data is not unloaded, it also
+	   unloads data. */
 	errno_t (*close) (object_entity_t *);
 
 	/* Confirms that given block contains valid node */
@@ -975,10 +922,8 @@ typedef struct reiser4_hash_ops reiser4_hash_ops_t;
 /* Disk-format plugin */
 struct reiser4_format_ops {
 #ifndef ENABLE_STAND_ALONE
-	/* 
-	   Called during filesystem creating. It forms format-specific super
-	   block, initializes plugins and calls their create method.
-	*/
+	/* Called during filesystem creating. It forms format-specific super
+	   block, initializes plugins and calls their create method. */
 	object_entity_t *(*create) (aal_device_t *, uint64_t,
 				    uint32_t, uint16_t);
 	
@@ -988,10 +933,8 @@ struct reiser4_format_ops {
 	void (*mkdirty) (object_entity_t *);
 	void (*mkclean) (object_entity_t *);
 	
-	/* 
-	   Update only fields which can be changed after journal replay in 
-	   memory to avoid second checking.
-	*/
+	/* Update only fields which can be changed after journal replay in
+	   memory to avoid second checking. */
 	errno_t (*update) (object_entity_t *);
 	    
 	/* Checks thoroughly the format structure and fixes what needed. */
@@ -1000,10 +943,8 @@ struct reiser4_format_ops {
 	/* Prints all useful information about the format */
 	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
     
-	/*
-	  Probes whether filesystem on given device has this format. Returns
-	  "true" if so and "false" otherwise.
-	*/
+	/* Probes whether filesystem on given device has this format. Returns
+	   "true" if so and "false" otherwise. */
 	int (*confirm) (aal_device_t *device);
 
 	void (*set_root) (object_entity_t *, uint64_t);
@@ -1019,33 +960,25 @@ struct reiser4_format_ops {
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 	errno_t (*skipped) (object_entity_t *, block_func_t, void *);
 
-	/*
-	  Checks format-specific super block for validness. Also checks whether
-	  filesystem objects lie in valid places. For example, format-specific
-	  super block for format40 must lie in 17-th block for 4096 byte long
-	  blocks.
-	*/
+	/* Checks format-specific super block for validness. Also checks whether
+	   filesystem objects lie in valid places. For example, format-specific
+	   super block for format40 must lie in 17-th block for 4096 byte long
+	   blocks. */
 	errno_t (*valid) (object_entity_t *);
 
 	/* Returns the device disk-format lies on */
 	aal_device_t *(*device) (object_entity_t *);
 
-	/*
-	  Returns format string for this format. For example "reiserfs 4.0" ot
-	  something like this.
-	*/
+	/* Returns format string for this format. For example "reiserfs 4.0" ot
+	   something like this. */
 	const char *(*name) (object_entity_t *);
 #endif
-	/* 
-	   Called during filesystem opening (mounting). It reads format-specific
-	   super block and initializes plugins suitable for this format.
-	*/
+	/* Called during filesystem opening (mounting). It reads format-specific
+	   super block and initializes plugins suitable for this format. */
 	object_entity_t *(*open) (aal_device_t *, uint32_t);
     
-	/*
-	  Closes opened or created previously filesystem. Frees all assosiated
-	  memory.
-	*/
+	/* Closes opened or created previously filesystem. Frees all assosiated
+	   memory. */
 	void (*close) (object_entity_t *);
     
 	uint64_t (*get_root) (object_entity_t *);
@@ -1327,10 +1260,8 @@ struct tree_ops {
 	uint32_t (*maxspace) (void *);
 #endif
 	
-	/*
-	  Makes lookup in the tree in order to know where say stat data item of
-	  a file really lies. It is used in all object plugins.
-	*/
+	/* Makes lookup in the tree in order to know where say stat data item of
+	   a file really lies. It is used in all object plugins. */
 	lookup_t (*lookup) (void *, key_entity_t *, uint8_t,
 			    place_t *);
 
@@ -1341,16 +1272,12 @@ struct tree_ops {
 	int (*valid) (void *, place_t *);
 	
 #ifndef ENABLE_STAND_ALONE
-	/* 
-	  Inserts item/unit in the tree by calling reiser4_tree_insert function,
-	  used by all object plugins (dir, file, etc)
-	*/
+	/* Inserts item/unit in the tree by calling reiser4_tree_insert function,
+	   used by all object plugins (dir, file, etc) */
 	errno_t (*insert) (void *, place_t *, uint8_t, create_hint_t *);
     
-	/*
-	  Removes item/unit from the tree. It is used in all object plugins for
-	  modification purposes.
-	*/
+	/* Removes item/unit from the tree. It is used in all object plugins for
+	   modification purposes. */
 	errno_t (*remove) (void *, place_t *, uint32_t);
 
 #endif
@@ -1387,10 +1314,8 @@ struct object_ops {
 typedef struct object_ops object_ops_t;
 #endif
 
-/* 
-  This structure is passed to all plugins in initialization time and used for
-  access libreiser4 factories.
-*/
+/* This structure is passed to all plugins in initialization time and used for
+   access libreiser4 factories. */
 struct reiser4_core {
 	tree_ops_t tree_ops;
 	
@@ -1418,12 +1343,10 @@ typedef void (*register_builtin_t) (plugin_init_t,
 #endif
 
 
-/*
-  Macro for registering a plugin in plugin factory. It accepts two pointers to
-  functions. The first one is pointer to plugin init function and second - to
-  plugin finalization function. The idea the same as in the linux kernel module
-  support.
-*/
+/* Macro for registering a plugin in plugin factory. It accepts two pointers to
+   functions. The first one is pointer to plugin init function and second - to
+   plugin finalization function. The idea the same as in the linux kernel module
+   support. */
 #if defined(ENABLE_MONOLITHIC)
 
 #define plugin_register(n, i, f)			       \

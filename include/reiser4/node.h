@@ -1,9 +1,7 @@
-/*
-  node.h -- reiser4 formated node functions.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/ 
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   node.h -- reiser4 formated node functions. */ 
 
 #ifndef REISER4_NODE_H
 #define REISER4_NODE_H
@@ -87,11 +85,10 @@ extern uint64_t reiser4_node_get_fstamp(reiser4_node_t *node);
 extern errno_t reiser4_node_lkey(reiser4_node_t *node,
 				 reiser4_key_t *key);
 
-extern errno_t reiser4_node_pbc(reiser4_node_t *node,
-				pos_t *pos);
+extern errno_t reiser4_node_realize(reiser4_node_t *node);
 
-extern reiser4_node_t *reiser4_node_cbp(reiser4_node_t *node,
-					blk_t blk);
+extern reiser4_node_t *reiser4_node_child(reiser4_node_t *node,
+					  blk_t blk);
 
 extern errno_t reiser4_node_connect(reiser4_node_t *node,
 				    reiser4_node_t *child);

@@ -1,9 +1,7 @@
-/*
-  reiser4.h -- the central libreiser4 header.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   reiser4.h -- the central libreiser4 header. */
 
 #ifndef REISER4_H
 #define REISER4_H
