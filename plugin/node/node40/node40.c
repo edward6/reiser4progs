@@ -250,6 +250,17 @@ static item_entity_t *node40_item_init(object_entity_t *entity,
 	item->len = node40_item_len(entity, pos);
 	item->body = node40_ib_at(node, pos->item);
 
+	if (!(item->key.plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
+							 KEY_REISER40_ID)))
+	{
+		aal_exception_error("Can't find key plugin by its id 0x%x",
+				    KEY_REISER40_ID);
+		return NULL;
+	}
+
+	if (node40_get_key(entity, pos, &item->key))
+		return NULL;
+
 	return item;
 }
 
@@ -270,15 +281,15 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 	aal_assert("umka-817", node != NULL, return -1);
 	aal_assert("vpf-006", pos != NULL, return -1);
 
+	is_insert = (pos->unit == ~0ul);
 	is_space = (nh40_get_free_space(node) >= len +
-		    (pos->unit == ~0ul ? sizeof(item40_header_t) : 0));
+		    (is_insert ? sizeof(item40_header_t) : 0));
     
 	is_range = (pos->item <= nh40_get_num_items(node));
     
 	aal_assert("vpf-026", is_space, return -1);
 	aal_assert("vpf-027", is_range, return -1);
 
-	is_insert = (pos->unit == ~0ul);
 	item_pos = pos->item + !is_insert;
     
 	ih = node40_ih_at(node, item_pos);
@@ -320,7 +331,7 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 }
 
 static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
-			     uint16_t len) 
+			     uint32_t len) 
 {
 	int is_cut;
 	int is_move;
@@ -365,6 +376,7 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 	}
 	
 	nh40_dec_free_space_start(node, len);
+	nh40_inc_free_space(node, (len + !is_cut ? sizeof(item40_header_t) : 0));
     
 	return 0;
 }
@@ -448,7 +460,6 @@ errno_t node40_remove(object_entity_t *entity,
 		return -1;
 	
 	nh40_dec_num_items(node, 1);
-	nh40_inc_free_space(node, (len + sizeof(item40_header_t)));
 	
 	return 0;
 }
@@ -492,7 +503,6 @@ static errno_t node40_cut(object_entity_t *entity,
 		return -1;
 	
 	ih40_set_len(ih, node40_item_len((object_entity_t *)node, pos) - len);
-	nh40_inc_free_space(node, len);
 
 	return 0;
 }
@@ -927,7 +937,6 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *target,
 	nh40_dec_num_items(src_node, hint->items);
 	nh40_dec_free_space_start(src_node, hint->bytes);
 
-
 	return 0;
 	/*
 	  If after moving the items we will have some amount of free space in
@@ -1041,6 +1050,10 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *target,
 		return -1;
 
 	aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
+
+	/* Updating source node fields */
+	nh40_inc_free_space(src_node, hint->part);
+	nh40_dec_free_space_start(src_node, hint->part);
 	
 	return 0;
 }

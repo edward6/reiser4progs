@@ -155,21 +155,19 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	if (!(dst_direntry = direntry40_body(dst_item)))
 		return -1;
 
-	while (units > 0) {
+	while (units-- > 0) {
 		if (hint->flags & SF_LEFT) {
 			aal_exception_error("Sorry, left shifting "
 					    "is not implemented yet!");
 			return -1;
 		} else {
-			uint32_t i, offset;
+			uint32_t i;
 
 			if (de40_get_count(dst_direntry) > 0) {
 				/* Moving entry headers of dst direntry */
 				src = (void *)dst_direntry + sizeof(direntry40_t);
 				dst = src + (hint->units * sizeof(entry40_t));
 				size = dst_item->len - sizeof(direntry40_t);
-
-				offset = en40_get_offset(((entry40_t *)src));
 
 				/* Updating offsets of dst direntry */
 				entry = (entry40_t *)src;
@@ -199,7 +197,10 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 
 			/* Copyings entry bodies */
 			src = (void *)src_direntry + en40_get_offset(((entry40_t *)src));
-			dst = (void *)dst_direntry + offset;
+
+			dst = (void *)dst_direntry + (dst_units * sizeof(entry40_t)) +
+				(hint->units * sizeof(entry40_t));
+			
 			size = hint->part - (hint->units * sizeof(entry40_t));
 
 			aal_memcpy(dst, src, size);
@@ -221,8 +222,6 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 					(hint->units * sizeof(entry40_t)));
 			}
 		}
-		
-		units++;
 	}
 
 	de40_set_count(dst_direntry, (de40_get_count(dst_direntry) + hint->units));
@@ -270,7 +269,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 
 	hint->part = 0;
 	
-	while (item == src_item && src_units > 1) {
+	while (item == src_item && src_units > 2) {
 		len = direntry40_unitlen(direntry, cur);
 
 		if (space < len + sizeof(entry40_t))
@@ -325,9 +324,12 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 				 reiser4_item_hint_t *hint)
 {
+	uint32_t units;
 	uint32_t i, offset;
-	uint32_t len_before = 0;
+	uint32_t headers_size;
+
 	uint32_t len_after = 0;
+	uint32_t len_before = 0;
     
 	direntry40_t *direntry;
 	reiser4_direntry_hint_t *direntry_hint;
@@ -343,52 +345,53 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
     
 	if (pos > de40_get_count(direntry))
 		return -1;
-    
+
+	units = de40_get_count(direntry);
+	headers_size = direntry_hint->count * sizeof(entry40_t);
+		
 	/* Getting offset area of new entry body will be created at */
-	if (de40_get_count(direntry) > 0) {
+	if (units > 0) {
 		if (pos < de40_get_count(direntry)) {
-			offset = en40_get_offset(&direntry->entry[pos]) + 
-				(direntry_hint->count * sizeof(entry40_t));
+			offset = en40_get_offset(&direntry->entry[pos]) +
+				headers_size;
 		} else {
-			offset = en40_get_offset(&direntry->entry[de40_get_count(direntry) - 1]);
-			offset += sizeof(entry40_t) + 
-				direntry40_unitlen(direntry, de40_get_count(direntry) - 1);
+			offset = en40_get_offset(&direntry->entry[units - 1]);
+
+			offset += sizeof(entry40_t) +
+				direntry40_unitlen(direntry, units - 1);
 		}
-	} else {
-		offset = sizeof(direntry40_t) + 
-			direntry_hint->count * sizeof(entry40_t);
-	}
+	} else
+		offset = sizeof(direntry40_t) + headers_size;
 
 	if (direntry40_estimate(item, pos, hint))
 		return -1;
     
 	/* Calculating length of areas to be moved */
-	len_before = (de40_get_count(direntry) - pos)*sizeof(entry40_t);
+	len_before = (units - pos) * sizeof(entry40_t);
 	
 	for (i = 0; i < pos; i++)
 		len_before += direntry40_unitlen(direntry, i);
 	
-	for (i = pos; i < de40_get_count(direntry); i++)
+	for (i = pos; i < units; i++)
 		len_after += direntry40_unitlen(direntry, i);
 	
 	/* Updating offsets */
 	for (i = 0; i < pos; i++) {
 		en40_set_offset(&direntry->entry[i], 
 				en40_get_offset(&direntry->entry[i]) + 
-				direntry_hint->count * sizeof(entry40_t));
+				headers_size);
 	}
     
-	for (i = pos; i < de40_get_count(direntry); i++) {
-		en40_set_offset(&direntry->entry[i], 
+	for (i = pos; i < units; i++) {
+		en40_set_offset(&direntry->entry[i],
 				en40_get_offset(&direntry->entry[i]) + hint->len);
 	}
     
 	/* Moving unit bodies */
-	if (pos < de40_get_count(direntry)) {
-		uint32_t headers = (direntry_hint->count * sizeof(entry40_t));
-		
-		aal_memmove(((char *)direntry) + offset + hint->len - headers, 
-			    ((char *)direntry) + offset - headers, len_after + headers);
+	if (pos < units) {
+		aal_memmove((void *)direntry + offset + hint->len -
+			    headers_size, (void *)direntry + offset -
+			    headers_size, len_after);
 	}
     
 	/* Moving unit headers headers */
@@ -419,8 +422,7 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	}
     
 	/* Updating direntry count field */
-	de40_set_count(direntry, de40_get_count(direntry) + 
-		       direntry_hint->count);
+	de40_set_count(direntry, units + direntry_hint->count);
     
 	return 0;
 }
