@@ -17,7 +17,6 @@
 extern uint32_t extent40_units(item_entity_t *item);
 extern errno_t extent40_maxreal_key(item_entity_t *item, key_entity_t *key);
 extern uint32_t extent40_blocksize(item_entity_t *item);
-extern errno_t extent40_maxposs_key(item_entity_t *item, key_entity_t *key);
 extern uint64_t extent40_offset(item_entity_t *item, uint64_t pos);
 extern uint32_t extent40_unit(item_entity_t *item, uint64_t offset);
 extern lookup_t extent40_lookup(item_entity_t *item, key_entity_t *key, 
@@ -72,10 +71,78 @@ errno_t extent40_check(item_entity_t *item, uint8_t mode) {
 errno_t extent40_copy(item_entity_t *dst, uint32_t dst_pos, 
     item_entity_t *src, uint32_t src_pos, copy_hint_t *hint)
 {
+    extent40_t *dst_body, *src_body;
+    uint32_t dst_units, src_units;
+    uint32_t dst_end, src_end;
+    uint64_t dst_head, dst_tail;
+    int32_t  move;
+    
+    return 0;
+
     aal_assert("vpf-993", hint != NULL);
     aal_assert("vpf-994", dst  != NULL);
     aal_assert("vpf-995", src  != NULL);
-
+    
+    dst_body = extent40_body(dst);
+    src_body = extent40_body(src);
+    
+    
+    /* Amount of units to be added. */
+    move = hint->len_delta / sizeof(extent40_t);
+    
+    dst_units = extent40_units(dst);
+    src_units = extent40_units(src);
+   
+    aal_assert("vpf-1017", dst_pos + hint->dst_count <= dst_units);
+    aal_assert("vpf-1017", src_pos + hint->src_count <= src_units);
+    
+    dst_body += dst_pos;
+    src_body += src_pos;
+    
+    aal_assert("vpf-1018", et40_get_width(dst_body) > hint->dst_head);
+    aal_assert("vpf-1019", et40_get_width(src_body) > hint->src_head);
+    aal_assert("vpf-1020", et40_get_width(dst_body + hint->dst_count - 1) > 
+	hint->dst_tail);
+    aal_assert("vpf-1021", et40_get_width(src_body + hint->src_count - 1) > 
+	hint->src_tail);
+    
+    /* Result width in the first dst unit. */
+    dst_head = hint->dst_head + 
+	(hint->head ? 0 : et40_get_width(src_body) - hint->src_head);
+    
+    et40_set_width(dst_body, dst_head);
+    
+    /* If the first dst unit is merged with the first src one. */
+    if (!hint->head) {
+	dst_body++;
+	src_body++;
+	dst_pos++;
+	src_pos++;
+	hint->src_count--;
+	hint->dst_count--;
+    }
+    
+    /* Result width in the last dst unit. */
+    dst_tail = et40_get_width(dst_body + hint->dst_count - 1) - hint->dst_tail;
+    
+    if (!hint->tail)
+	dst_tail += hint->src_tail;
+	
+    aal_memcpy(dst_body + move, dst_body, 
+	(dst_units - dst_pos) * sizeof(extent40_t));
+    
+    et40_set_width(dst_body + hint->dst_count - 1 + move, dst_tail);
+    
+    if (!hint->tail) {
+	hint->src_count--;
+	hint->dst_count--;
+    }
+    
+    if (!hint->src_count)
+	return 0;
+    
+    aal_memcpy(dst_body, src_body, hint->src_count * sizeof(extent40_t));
+    
     return 0;
 }
 
@@ -107,7 +174,7 @@ errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
 
     src_min = plugin_call(src->key.plugin->o.key_ops, get_offset, &src->key);
     
-    if ((res = extent40_maxposs_key(src, &key)))
+    if ((res = extent40_maxreal_key(src, &key)))
 	return res;
 
     src_max = plugin_call(key.plugin->o.key_ops, get_offset, &key) + 1;
@@ -115,20 +182,21 @@ errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
     /* Copy through src_end only. */
     if (src_max > src_end)
 	src_max = src_end;
-	
+    
+    hint->src_head = (src_start - extent40_offset(src, src_pos) - src_min) / b_size;
+    hint->src_tail = (src_max - extent40_offset(src, 
+	extent40_unit(src, src_max - 1)) - src_min) / b_size;
+
+    if ((res = extent40_maxreal_key(dst, &key)))
+	return res;
+    
+    dst_max = plugin_call(key.plugin->o.key_ops, get_offset, &key) + 1;
+     
     aal_assert("vpf-996", src_start % b_size == 0);
     aal_assert("vpf-998", src_max % b_size == 0);
     aal_assert("vpf-999", dst_max % b_size == 0);
     aal_assert("vpf-1009", src_start < src_max);
-    
-    hint->src_head = (src_start - extent40_offset(src, src_pos) - src_min) / b_size;
-    hint->src_tail = (src_max - extent40_offset(src, src_pos) - src_min) / b_size;
-
-    if ((res = extent40_maxposs_key(dst, &key)))
-	return res;
-    
-    dst_max = plugin_call(key.plugin->o.key_ops, get_offset, &key) + 1;
-    
+   
     if (dst_pos >= extent40_units(dst)) {
 	aal_assert("vpf-1007", src_start == dst_max);
 	
@@ -187,21 +255,15 @@ errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
     if (hint->dst_tail == et40_get_width(dst_body + pos))
 	hint->tail = 0;
     else if(et40_get_start(src_body + src_pos + hint->src_count - 1) + 
-	    hint->src_head == 
-	    et40_get_start(dst_body + pos) + hint->dst_head)
+	    hint->src_tail == 
+	    et40_get_start(dst_body + pos) + hint->dst_tail)
 	hint->tail = 0;
     else
 	hint->tail = 1;
     
-    hint->len_delta = hint->src_count - hint->dst_count;
-    
-    if (hint->head)
-	hint->len_delta++;
-    
-    if (hint->tail)
-	hint->len_delta++;
+    hint->len_delta = (hint->src_count - hint->dst_count + 
+	hint->head + hint->tail) * sizeof(extent40_t);
 
-    hint->len_delta *= sizeof(extent40_t);
     return 0;
 }
 

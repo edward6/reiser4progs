@@ -14,6 +14,8 @@
 #include <reiser4/plugin.h>
 #include <repair/repair_plugin.h>
 
+#define tail40_body(item) (item->body)
+
 extern errno_t tail40_get_key(item_entity_t *item, uint32_t pos, 
     key_entity_t *key);
 
@@ -32,7 +34,8 @@ errno_t tail40_copy(item_entity_t *dst, uint32_t dst_pos,
     aal_assert("vpf-988", src  != NULL);
     aal_assert("vpf-989", hint != NULL);
     
-    /* FIXME-VITALY: expand the tail. */
+    aal_memcpy(tail40_body(dst) + dst_pos + hint->len_delta, 
+	       tail40_body(dst) + dst_pos, tail40_units(dst) - dst_pos);
     
     return tail40_rep(dst, dst_pos, src, src_pos, hint->src_count);
 }

@@ -7,51 +7,6 @@
 
 #include <repair/librepair.h>
 
-/* Get the max real key existed in the tree. Go down through all right-most 
- * child to get it. */
-errno_t repair_node_max_real_key(reiser4_node_t *node, reiser4_key_t *key) {
-    reiser4_place_t place;
-    reiser4_node_t *child;
-    errno_t res;
-
-    aal_assert("vpf-712", node != NULL);
-    aal_assert("vpf-713", key != NULL);
-
-    place.node = node;
-    place.pos.item = reiser4_node_items(node) - 1;
-    place.pos.unit = ~0ul;
-
-    if (reiser4_place_realize(&place)) {
-	aal_exception_error("Node (%llu): Failed to open the item (%u).",
-	    node->blk, place.pos.item);
-	return -EINVAL;
-    }
- 
-    if (reiser4_item_branch(&place)) {
-	item_entity_t *item = &place.item;
-	ptr_hint_t ptr;
-
-	place.pos.unit = reiser4_item_units(&place) - 1;
-	
-	if (plugin_call(item->plugin->o.item_ops, read, item, 
-	    &ptr, place.pos.unit, 1) != 1 || ptr.start == INVAL_BLK)
-	    return -EINVAL;
-
-	/* FIXME-UMKA->VITALY: Here block size should be tacken from master
-	 * super block */
-	if (!(child = reiser4_node_open(place.node->device, REISER4_BLKSIZE, ptr.start))) 
-	    return -EINVAL;
-	
-	res = repair_node_max_real_key(child, key);
-	
-	if (reiser4_node_close(child))
-	    return -EINVAL;
-    } else 
-	res = reiser4_item_maxreal_key(&place, key);
-
-    return res;
-}
-
 /* Opens the node if it has correct mkid stamp. */
 reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
     uint32_t blocksize;

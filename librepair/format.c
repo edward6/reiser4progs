@@ -83,7 +83,7 @@ static errno_t repair_format_check(reiser4_fs_t *fs, uint8_t mode) {
 
 	    if (pid != plugin->h.id) {
 		set_ms_format(SUPER(fs->master), plugin->h.id);
-		fs->master->dirty = TRUE;
+		reiser4_master_mkdirty(fs->master);
 	    }
 	    
 	    if (!(fs->format = reiser4_format_open(fs))) {
