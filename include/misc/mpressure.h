@@ -9,6 +9,6 @@
 
 #include <reiser4/types.h>
 
-extern int misc_mpressure_detect(uint32_t);
+extern int misc_mpressure_detect(reiser4_tree_t *tree);
 
 #endif

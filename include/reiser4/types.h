@@ -254,7 +254,7 @@ typedef errno_t (*modify_func_t) (node_t *node, pos_t *pos,
 				  trans_hint_t *hint);
 #endif
 
-typedef int (*mpc_func_t) (uint32_t);
+typedef int (*mpc_func_t) (reiser4_tree_t *);
 
 /* Tree structure. */
 struct reiser4_tree {

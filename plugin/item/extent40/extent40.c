@@ -1018,7 +1018,6 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 					/* Updating @hint->bytes field by blksize, as
 					   new block is allocated. */
 					hint->bytes += blksize;
-					max_offset += blksize;
 				}
 				
 				/* Update @key offset. */
@@ -1029,6 +1028,8 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 					  &key, offset);
 			}
 		}
+
+		max_offset += width * blksize;
 	}
 
 	/* Updating @key by unit key as it is changed. */
@@ -1122,8 +1123,7 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 				uni_offset += width * blksize;
 			}
 		} else {
-			aal_bug("umka-3072", "block_offset: %llu, max_offset: %llu",
-				block_offset, max_offset);
+			aal_bug("umka-3072", block_offset >= max_offset);
 		}
 
 		ins_offset += size;

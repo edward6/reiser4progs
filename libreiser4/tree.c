@@ -337,8 +337,6 @@ errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
 errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 				  node_t *parent, node_t *node)
 {
-	uint32_t unformatted = 0;
-	
 	aal_assert("umka-1857", tree != NULL);
 	aal_assert("umka-2261", node != NULL);
 
@@ -362,14 +360,10 @@ errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 	if (reiser4_tree_hash_node(tree, node))
 		return -EINVAL;
 
-#ifndef ENABLE_STAND_ALONE
-	unformatted = tree->data->real;
-#endif
-	
 	/* Check for memory pressure event. If memory pressure is uppon us, we
 	   call memory cleaning function. For now we call tree_adjust() in order
 	   to release not locked nodes. */
-	if (tree->mpc_func && tree->mpc_func(tree->nodes->real + unformatted)) {
+	if (tree->mpc_func && tree->mpc_func(tree)) {
 		/* Adjusting the tree as memory pressure is here. */
 		reiser4_node_lock(node);
 		
@@ -2583,7 +2577,6 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 	/* Handling the case when tree is empty (just after tree is initialized
 	   by tree_init() function). */
 	if (!reiser4_tree_fresh(tree)) {
-		
 		if (level < reiser4_node_get_level(place->node)) {
 			/* Allocating node of requested level and assign place
 			   for insert to it. This is the case, when we insert a
@@ -2659,29 +2652,21 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 		return space;
 	}
 
+	/* Unlocking @old.node after making space. If it got empty, it will be
+	   removed here. */
 	if (old.node) {
 		reiser4_tree_unlock_node(tree, old.node);
 	}
 
 	/* Checking if we still have less space than needed. This is ENOSPC case
-	   if we tried to insert data. And normal case for writting data,
-	   because we can write at least one byte. */
+	   if we tried to insert data. */
 	if ((uint32_t)space < needed) {
-
-		/* Check if we insert file body items. If so, we can insert only
-		   part of passed stream. Error will be returned otherwise. */
-		if (hint->plug->id.group != TAIL_ITEM &&
-		    hint->plug->id.group != EXTENT_ITEM)
-		{
+		if (hint->plug->id.group != TAIL_ITEM)
 			return -ENOSPC;
-		}
-		
-		/* Check is we have space at all. */
+
 		if (!(hint->len = hint->count = space)) {
-			aal_error("Can't prepare space in tree. "
-				  "Node %llu, item %u, unit %u.",
-				  node_blocknr(place->node),
-				  place->pos.item, place->pos.unit);
+			aal_error("Can't prepare %u bytes of space "
+				  "in tree.", needed);
 			return -ENOSPC;
 		}
 	}
@@ -2731,7 +2716,6 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 	   tree. Also, here we should handle the special case, when tree root
 	   should be changed. */
 	if (place->node != tree->root && !place->node->p.node) {
-		
 		if (old.node && reiser4_tree_root_node(tree, old.node)) {
 			reiser4_node_lock(place->node);
 

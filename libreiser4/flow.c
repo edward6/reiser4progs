@@ -109,8 +109,8 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 	/* Loop until desired number of bytes is written. */
 	for (total = bytes = 0, size = hint->count; size > 0;) {
 		int32_t write;
-		uint32_t level;
 		place_t place;
+		uint32_t level;
 
 		hint->count = size;
 
