@@ -12,8 +12,10 @@
 #include <reiser4/reiser4.h>
 
 /* 
-   Opens filesysetm on specified host device and journal device. Replays the
+   Opens filesystem on specified host device and journal device. Replays the
    journal if "replay" flag is specified.
+
+   FIXME-GREEN->UMKA: Huh? what "replay" flag?
 */
 reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 			      reiser4_profile_t *profile)
@@ -279,7 +281,7 @@ reiser4_fs_t *reiser4_fs_create(
 		goto error_free_fs;
 	}
 
-	/* Getting tail polity from the passed profile */
+	/* Getting tail policy from the passed profile */
 	if ((policy = reiser4_profile_value(profile, "policy")) == INVAL_PID)
 		goto error_free_master;
 	
