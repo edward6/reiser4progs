@@ -13,13 +13,9 @@
 #  include <uuid/uuid.h>
 #endif
 
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <string.h>
 #include <fcntl.h>
 #include <getopt.h>
 #include <errno.h>
-#include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -105,11 +101,16 @@ errno_t debugfs_print_stream(aal_stream_t *stream) {
 	return debugfs_print_buff(stream->data, stream->size - 1);
 }
 
+/* Handler for connecting node into tree */
 static errno_t debugfs_connect_handler(reiser4_tree_t *tree,
 				       reiser4_place_t *place,
 				       reiser4_node_t *node,
 				       void *data)
 {
+	/*
+	  If tree's LRU is initializied and memory pressure is detected, calling
+	  adjust lru code, which will remove unused nodes from the tree.
+	*/
 	if (tree->lru) {
 		if (progs_mpressure_detect())
 			return aal_lru_adjust(tree->lru);
@@ -118,6 +119,7 @@ static errno_t debugfs_connect_handler(reiser4_tree_t *tree,
 	return 0;
 }
 
+/* Hnalder for disconnecting node from the tree */
 static errno_t debugfs_disconnect_handler(reiser4_tree_t *tree,
 					  reiser4_place_t *place,
 					  reiser4_node_t *node,
@@ -337,6 +339,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
 
+	/* Initializing tree and tree's traps */
 	if (!(fs->tree = reiser4_tree_init(fs)))
 		goto error_free_fs;
     
@@ -344,9 +347,9 @@ int main(int argc, char *argv[]) {
 	fs->tree->traps.disconnect = debugfs_disconnect_handler;
 	
 	/*
-	  Check if few print options specified. If so, and --quiet flay was not
-	  applyed we make warning, because that is probably user error and a lot
-	  of information will confuse him.
+	  Check if few print options are specified. If so, and --quiet flag was
+	  not applyed we throw warning, because that is probably user error and
+	  a lot of information will confuse him.
 	*/
 	if (!aal_pow_of_two(print_flags) && !(behav_flags & BF_QUIET) &&
 	    !(print_flags & PF_SITEMS))
@@ -356,6 +359,10 @@ int main(int argc, char *argv[]) {
 			goto error_free_tree;
 	}
 
+	/*
+	q  In the case no print flags was specified, debugfs will print super
+	  blocks by defaut.
+	*/
 	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)
 		print_flags = PF_SUPER;
 
@@ -374,7 +381,7 @@ int main(int argc, char *argv[]) {
 				   "--print-file is specified.");
 	}
 
-	/* Handling print options */
+	/* Handling measurements options */
 	if (behav_flags & BF_TFRAG || behav_flags & BF_DFRAG ||
 	    behav_flags & BF_FFRAG || behav_flags & BF_TSTAT)
 	{
@@ -404,7 +411,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
-	/* Handling other options */
+	/* Handling print options */
 	if ((behav_flags & BF_LS)) {
 		if (debugfs_browse(fs, ls_filename))
 			goto error_free_fs;

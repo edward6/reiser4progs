@@ -234,9 +234,11 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	
-	/* Building list of devices filesystem will be created on */
+	/* Building list of devices the filesystem will be created on */
 	for (; optind < argc; optind++) {
 		if (stat(argv[optind], &st) == -1) {
+
+			/* Checking device name for validness */
 			fs_len = (progs_size2long(argv[optind]));
 			
 			if (fs_len != INVAL_DIG) {
@@ -246,6 +248,7 @@ int main(int argc, char *argv[]) {
 							    argv[optind]);
 					goto error_free_libreiser4;
 				}
+				
 				fs_len /= blocksize;
 			} else {
 				aal_exception_error("%s is not a valid size nor an "
@@ -255,7 +258,11 @@ int main(int argc, char *argv[]) {
 		} else
 			devices = aal_list_append(devices, argv[optind]);
 	}
-    
+
+	/*
+	  All devices cannot have the same uuid and label, so here we clean it
+	  out.
+	*/
 	if (aal_list_length(devices) > 1) {
 		aal_memset(uuid, 0, sizeof(uuid));
 		aal_memset(label, 0, sizeof(label));
