@@ -19,6 +19,15 @@ extern reiser4_object_t *reiser4_object_open(reiser4_tree_t *tree,
 					     char *filename,
 					     bool_t follow);
 
+typedef errno_t (*object_init_t) (reiser4_object_t *object, 
+				  reiser4_object_t *parent);
+
+extern reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree, 
+					      reiser4_object_t *parent,	
+					      reiser4_key_t *object,
+					      reiser4_place_t *place,
+					      object_init_t init_func);
+
 extern errno_t reiser4_object_resolve(reiser4_object_t *object,
 				      char *filename, bool_t follow);
 
@@ -97,9 +106,6 @@ extern reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 					    reiser4_object_t *parent,
 					    const char *name,
 					    const char *target);
-
-extern errno_t reiser4_object_guess(reiser4_object_t *object, 
-				    plug_func_t open_func);
 
 typedef reiser4_object_t *(*object_open_func_t) (reiser4_object_t *parent, 
 						 entry_hint_t *entry, 

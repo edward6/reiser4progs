@@ -329,11 +329,9 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	if (entry->type != ET_NAME)
 		return NULL;
 
-	/* Try to realize unambiguously the object by the key. */
-	object = repair_object_launch(parent->info->tree, 
-				      parent, &entry->object);
-	
-	if (object == INVAL_PTR)
+	/* Try to realize the object by the key. */
+	if ((object = repair_object_launch(parent->info->tree, parent, 
+					   &entry->object)) == INVAL_PTR)
 		return INVAL_PTR;
 	
 	if (object == NULL) {

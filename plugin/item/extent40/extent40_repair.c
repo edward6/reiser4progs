@@ -54,18 +54,17 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 		
 		if (mode == RM_CHECK) {
 			result = RE_FIXABLE;
-		} else {
-			/* Zero the problem region. */
-			aal_exception_error("Node (%llu), item "
-					    "(%u): pointed region "
-					    "[%llu..%llu] is zeroed.", 
-					    place->block->nr, 
-					    place->pos.item, start, 
-					    start + width - 1);
-
-			et40_set_start(extent, 0);
-			result = RE_FIXED;
+			continue;
 		}
+		
+		/* Zero the problem region. */
+		aal_exception_error("Node (%llu), item (%u): pointed region "
+				    "[%llu..%llu] is zeroed.", place->block->nr,
+				    place->pos.item, start, start + width - 1);
+		
+		et40_set_start(extent, 0);
+		result = RE_FIXED;
+
 	}
 	
 	return result;

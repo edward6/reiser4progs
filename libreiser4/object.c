@@ -236,11 +236,13 @@ reiser4_object_t *reiser4_object_open(
 	return NULL;
 }
 
-/* This function opens object by its @place. */
-reiser4_object_t *reiser4_object_realize(
-	reiser4_tree_t *tree,           /* tree object will be opened on */
-	reiser4_object_t *parent,       /* parent of object to be opened */
-	reiser4_place_t *place)		/* statdata key of object to be opened */
+reiser4_object_t *reiser4_object_guess(
+	reiser4_tree_t *tree,		/* tree object will be opened on */
+	reiser4_object_t *parent,	/* parent of object to be opened */
+	reiser4_key_t *okey,		/* key of the object to be openned */
+	reiser4_place_t *place,		/* start place of the object */
+	object_init_t init_func)
+
 {
 	object_info_t info;
 	reiser4_plug_t *plug;
@@ -248,9 +250,11 @@ reiser4_object_t *reiser4_object_realize(
 	
 	aal_assert("umka-1508", tree != NULL);
 	aal_assert("umka-1509", place != NULL);
+	aal_assert("vpf-1222",  okey != NULL);
+	aal_assert("vpf-1221",  init_func != NULL);
 
 	if (!(object = aal_calloc(sizeof(*object), 0)))
-		return NULL;
+		return INVAL_PTR;
 
 	/* Initializing info */
 	aal_memset(&info, 0, sizeof(info));
@@ -262,10 +266,10 @@ reiser4_object_t *reiser4_object_realize(
 				   &parent->info->object);
 	}
 	
-	reiser4_key_assign(&object->info->object, &place->key);
+	reiser4_key_assign(&object->info->object, okey);
 	aal_memcpy(&object->info->start, place, sizeof(*place));
 
-	if (reiser4_object_init(object, parent))
+	if (init_func(object, parent))
 		goto error_free_object;
 
 	object->info = &object->entity->info;
@@ -282,6 +286,22 @@ reiser4_object_t *reiser4_object_realize(
  error_free_object:
 	aal_free(object);
 	return NULL;
+}
+
+/* This function opens object by its @place. */
+reiser4_object_t *reiser4_object_realize(
+	reiser4_tree_t *tree, 
+	reiser4_object_t *parent,
+	reiser4_place_t *place)
+{
+	reiser4_object_t *object;
+	
+	aal_assert("vpf-1223", place != NULL);
+	
+	object = reiser4_object_guess(tree, parent, &place->key, place,
+				      reiser4_object_init);
+
+	return object == INVAL_PTR ? NULL : object;
 }
 
 #ifndef ENABLE_STAND_ALONE

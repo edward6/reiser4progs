@@ -169,7 +169,6 @@ static errno_t callback_layout(void *p, uint64_t start, uint64_t count,
 			       void *data)
 {
 	layout_hint_t *hint = (layout_hint_t *)data;
-	place_t *place = (place_t *)p;
 
 	if (!start)
 		return 0;
@@ -196,7 +195,21 @@ static void reg40_check_size(uint64_t *sd_size, uint64_t counted_size) {
 static void reg40_zero_nlink(uint32_t *nlink) {
         *nlink = 0;
 }
-                                                                                           
+
+static errno_t reg40_create_hole(reg40_t *reg, uint64_t offset) {
+	object_info_t *info = &reg->obj.info;
+	errno_t res;
+
+	if ((res = reg40_holes((object_entity_t *)reg))) {
+		aal_exception_error("The object [%s] failed to create the hole "
+				    "at [%llu-%llu] offsets. Plugin %s.",
+				    core->key_ops.print(&info->object, PO_DEF),
+				    reg->offset, offset, reg->obj.plug->label);
+	}
+
+	return res;
+}
+
 errno_t reg40_check_struct(object_entity_t *object, 
 			   place_func_t place_func,
 			   region_func_t region_func,
@@ -309,32 +322,20 @@ errno_t reg40_check_struct(object_entity_t *object,
 				/* Save offset to avoid another registering. */
 				next = offset;
 				
-				/* This should work correctly with extents and 
-				   put there flags for newly inserted items. */
-				if ((res = reg40_holes(object))) {
-					aal_exception_error("The object [%s] "
-							    "failed to create "
-							    "the hole at [%llu"
-							    "%llu] offsets. "
-							    "Plugin %s.",
-							    core->key_ops.print(&info->object, PO_DEF),
-							    reg->offset, offset,
-							    reg->obj.plug->label);
+				if ((res = reg40_create_hole(reg, offset)))
 					return res;
-				}
-
-				/* Scan through all just created holes. */
+				
+				/* Scan and register created items. */
 				continue;
-			} else {
-				aal_exception_error("The object [%s] "
-						    "has nothing at "
-						    "[%llu-%llu] "
-						    "offsets. Plugin %s.",
-						    core->key_ops.print(&info->object, PO_DEF),
-						    reg->offset, offset,
-						    reg->obj.plug->label);
-				result |= RE_FATAL;
 			}
+			
+			aal_exception_error("The object [%s] has a break at "
+					    "[%llu-%llu] offsets. Plugin %s.",
+					    core->key_ops.print(&info->object,
+								PO_INO),
+					    reg->offset, offset,
+					    reg->obj.plug->label);
+			result |= RE_FATAL;
 		} else
 			next = 0;
 		
@@ -358,6 +359,11 @@ errno_t reg40_check_struct(object_entity_t *object,
 						 callback_layout, &hint, 
 						 mode)) < 0)
 				return result;
+
+			if (result & RE_FIXED) {
+				/* FIXME-VITALY: mark node ditry. */
+				result &= ~RE_FIXED;
+			}
 		}
 		
 		/* Get the maxreal key of the found item and find next. */

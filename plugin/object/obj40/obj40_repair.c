@@ -181,7 +181,10 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	if ((res = obj40_write_ext(stat, SDEXT_LW_ID, &unix_hint)) < 0)
 		return res;
 	
-	res |= obj40_write_ext(stat, SDEXT_LW_ID, &lw_new);
+	if ((res |= obj40_write_ext(stat, SDEXT_LW_ID, &lw_new)) >= 0) {
+		/* FIXME-VITALY: Mark the node dirty. */
+	}
+		
 	
 	return res;
 }
