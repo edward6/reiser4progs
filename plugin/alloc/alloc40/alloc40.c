@@ -174,6 +174,21 @@ static object_entity_t *alloc40_create(object_entity_t *format,
 	return NULL;
 }
 
+static errno_t alloc40_assign(object_entity_t *entity, void *bm) {
+	alloc40_t *alloc = (alloc40_t *)entity;
+	aux_bitmap_t *bitmap = bm;
+
+	aal_assert("vpf-580", alloc != NULL, return -1);
+	aal_assert("vpf-579", bitmap != NULL, return -1);
+	aal_assert("vpf-581", alloc->bitmap->total == bitmap->total && 
+		alloc->bitmap->size == bitmap->size, return -1);
+
+	aal_memcpy(alloc->bitmap->map, bitmap->map, bitmap->size);
+	alloc->bitmap->marked = bitmap->marked;
+
+	return 0;
+}
+
 static errno_t callback_sync_bitmap(object_entity_t *format, 
 				     uint64_t blk, void *data)
 {
@@ -496,6 +511,7 @@ static reiser4_plugin_t alloc40_plugin = {
 
 #ifndef ENABLE_COMPACT
 		.create		= alloc40_create,
+		.assign		= alloc40_assign,
 		.sync		= alloc40_sync,
 		.mark		= alloc40_mark,
 		.allocate	= alloc40_allocate,
@@ -504,6 +520,7 @@ static reiser4_plugin_t alloc40_plugin = {
 		.region_layout	= alloc40_region_layout,
 #else
 		.create		= NULL,
+		.assign		= NULL,
 		.sync		= NULL,
 		.mark		= NULL,
 		.allocate	= NULL,
