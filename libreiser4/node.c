@@ -106,7 +106,7 @@ errno_t reiser4_node_print(
 	aal_assert("umka-1538", stream != NULL);
 	
 	return plugin_call(node->entity->plugin->node_ops,
-			   print, node->entity, stream, 0);
+			   print, node->entity, stream, -1, -1, 0);
 }
 
 #endif
@@ -484,20 +484,35 @@ lookup_t reiser4_node_lookup(
 	  We are on the position where key is less then wanted. Key could lies
 	  within the item or after the item.
 	*/
-		
-	if (reiser4_item_maxposs_key(&place, &maxkey))
-		return LP_FAILED;
+	
+	if (item->plugin->item_ops.maxposs_key) {
+		/* maxposs_key is impemented */
+		if (reiser4_item_maxposs_key(&place, &maxkey))
+			return LP_FAILED;
 
-	if (reiser4_key_compare(key, &maxkey) > 0) {
-		pos->item++;
-		return LP_ABSENT;
+		if (reiser4_key_compare(key, &maxkey) > 0) {
+			pos->item++;
+			return LP_ABSENT;
+		}
 	}
 	
 	/* Calling lookup method of found item (most probably direntry item) */
-	if (!item->plugin->item_ops.lookup)
-		return LP_ABSENT;
+	if (item->plugin->item_ops.lookup) {
+		res = item->plugin->item_ops.lookup(item, key, &pos->unit);
 
-	return item->plugin->item_ops.lookup(item, key, &pos->unit);
+		if (res != LP_ABSENT)
+			return res;
+	}
+	
+	/* Lookup method is not implemented or returned LP_ABSENT. */
+	/* 
+	   If maxposs_key method is not implemented(for SD, nodepointers with 
+	   many pointers), step right. 
+	*/
+	if (!item->plugin->item_ops.maxposs_key)
+	    pos->item++;
+
+	return LP_ABSENT;
 }
 
 /* Returns real item count in specified node */
