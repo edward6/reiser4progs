@@ -73,5 +73,37 @@ errno_t stat40_check(item_entity_t *item, uint8_t mode) {
     return REPAIR_OK;
 }
 
+errno_t stat40_copy(item_entity_t *dst, uint32_t dst_pos, 
+    item_entity_t *src, uint32_t src_pos, copy_hint_t *hint) 
+{
+    aal_assert("vpf-979", dst  != NULL);
+    aal_assert("vpf-980", src  != NULL);
+    aal_assert("vpf-981", hint != NULL);
+	
+    aal_memcpy(dst->body, src->body, hint->len_delta);
+    
+    return 0;
+}
+
+errno_t stat40_feel_copy(item_entity_t *dst, uint32_t dst_pos, 
+    item_entity_t *src, uint32_t src_pos, copy_hint_t *hint)
+{
+    key_entity_t *key;
+    
+    aal_assert("vpf-969", dst  != NULL);
+    aal_assert("vpf-970", src  != NULL);
+    aal_assert("vpf-971", hint != NULL);
+    
+    hint->src_count = 1;
+    hint->dst_count = 0;
+    hint->len_delta = src->len - dst->len;
+    
+    key = plugin_call(hint->end.plugin->key_ops, maximal,);
+    
+    plugin_call(hint->end.plugin->key_ops, assign, &hint->end, key);
+    
+    return 0;
+}
+
 #endif
 

@@ -174,4 +174,6 @@ extern uint16_t node40_free_space_end(node40_t *node);
 extern void *node40_ib_at(node40_t *node, uint32_t pos);
 extern item40_header_t *node40_ih_at(node40_t *node, uint32_t pos);
 
+#define node40_loaded(entity)	  (((node40_t *)entity)->block != NULL)
+
 #endif
