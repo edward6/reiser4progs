@@ -54,44 +54,6 @@ static bool_t callback_object_realize(reiser4_plug_t *plug, void *data) {
 	return FALSE;
 }
 
-/* Open the object by some place - not nessesary the first one. */
-reiser4_object_t *repair_object_realize(reiser4_tree_t *tree, 
-					reiser4_place_t *place,
-					bool_t only) 
-{
-	reiser4_object_t *object;
-	
-	aal_assert("vpf-1131", tree != NULL);
-	aal_assert("vpf-1130", place != NULL);
-	aal_assert("vpf-1189", place->plug != NULL);
-	
-	/* If StatData found -- it handles some object, try to realize it. */
-	if (reiser4_item_statdata(place))
-		return reiser4_object_realize(tree, place);
-	
-	if (!(object = aal_calloc(sizeof(*object), 0)))
-		return NULL;
-    	
-	object->info.tree = tree;
-	
-	aal_memcpy(reiser4_object_start(object), place, sizeof(*place));
-	
-	libreiser4_factory_cfind(callback_object_realize, object, only);
-	
-	if (!object->entity)
-		goto error_close_object;
-	
-	reiser4_key_assign(&object->info.object, &object->info.start.key);
-	aal_strncpy(object->name, reiser4_print_key(&object->info.object),
-		    sizeof(object->name));
-	
-	return object;
-	
- error_close_object:
-	aal_free(object);
-	return NULL;
-}
-
 /* Open the object on the base of given start @key */
 reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 				       reiser4_key_t *key, 
@@ -105,48 +67,39 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 	aal_assert("vpf-1132", tree != NULL);
 	aal_assert("vpf-1134", key != NULL);
 	
-	lookup = reiser4_tree_lookup(tree, key, LEAF_LEVEL, &place);
+	if ((lookup = reiser4_tree_lookup(tree, key, LEAF_LEVEL, 
+					  &place)) == FAILED)
+		return INVAL_PTR;
 	
-	switch(lookup) {
-	case PRESENT:
-		/* If the pointed item is found, try to realize it. 
-		   object must be opanable. 
+	if (lookup == PRESENT)
+		/* If the pointed item is found, try to realize it.
 		   @parent probably should be passed here. */
-		object = reiser4_object_realize(tree, &place);
-		
-		if (!object)
-			return NULL;
-		
-		break;
-	case ABSENT:
-		if (!(object = aal_calloc(sizeof(*object), 0)))
-			return INVAL_PTR;
-		
-		object->info.tree = tree;
-		object->info.object = *key;
-		
-		/*
-		if (parent)
-			object->info.parent = parent->info.object;
-		*/
-		
-		plug = libreiser4_factory_cfind(callback_object_realize, 
-						object, only);
-		
-		if (!plug)
-			goto error_close_object;
-		
-		object->entity = plug_call(plug->o.object_ops, realize, 
-					   &object->info);
-		
-		aal_strncpy(object->name, reiser4_print_key(&object->info.object),
-			    sizeof(object->name));
-		
-		break;
-	case FAILED:
-		return NULL;
-	}
+		return reiser4_object_realize(tree, &place);
 	
+	/* ABSENT. Try to realize the object. */
+	if (!(object = aal_calloc(sizeof(*object), 0)))
+		return INVAL_PTR;
+
+	object->info.tree = tree;
+	object->info.object = *key;
+	object->info.start = *(place_t *)&place;
+
+	/* if (parent)
+	   	object->info.parent = parent->info.object; */
+
+	if ((plug = libreiser4_factory_cfind(callback_object_realize,
+					object, only)) == NULL)
+		goto error_close_object;
+
+	object->entity = plug_call(plug->o.object_ops, realize, 
+				   &object->info);
+	
+	aal_assert("vpf-1196", object->entity != NULL && 
+			       object->entity != INVAL_PTR);
+	
+	aal_strncpy(object->name, reiser4_print_key(&object->info.object),
+		    sizeof(object->name));
+
 	return object;
 
  error_close_object:

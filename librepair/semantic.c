@@ -392,10 +392,7 @@ static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
 	if (repair_item_test_flag(place, OF_CHECKED))
 		return 0;
 	
-	/* Try to realize unambiguously the object by the place. Objects which 
-	   cannot be recognized unambiguously will be recovered later -- on the 
-	   CLEANUP pass. */
-	
+	/* Try to open the object by its SD. */
 	object = reiser4_object_realize(sem->repair->fs->tree, place);
 	
 	if (object == NULL)

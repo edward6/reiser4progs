@@ -45,7 +45,6 @@ errno_t obj40_realize(obj40_t *obj, realize_func_t sd_func,
 		      realize_key_func_t key_func, uint64_t types)
 {
 	object_info_t *info;
-	key_type_t type;
 	errno_t res;
 
 	aal_assert("vpf-1121", info != NULL);
@@ -54,12 +53,34 @@ errno_t obj40_realize(obj40_t *obj, realize_func_t sd_func,
 	
 	info = &obj->info;
 	
-	if (info->start.plug != NULL && 
-	    info->start.plug->id.group != STATDATA_ITEM)
-	{
-		/* If place is not SD, build SD key and try to find it. 
-		   If SD cannot be found, do not recover obj40 at all. */
+	if (info->object.plug) {
+		/* Realizing on the key: SD is not found. Check if the key 
+		   pointer is correct. */
+		
+		uint64_t locality, objectid, ordering;
+		key_entity_t key;
+		
+		locality = plug_call(info->object.plug->o.key_ops,
+				     get_locality, &info->object);
+		
+		objectid = plug_call(info->object.plug->o.key_ops,
+				     get_objectid, &info->object);
+		
+		ordering = plug_call(info->object.plug->o.key_ops,
+				     get_ordering, &info->object);
+
+		plug_call(info->object.plug->o.key_ops, build_gener, &key,
+			  KEY_STATDATA_TYPE, locality, ordering, objectid, 0);
+		
+		if (plug_call(info->object.plug->o.key_ops, compfull, &key, 
+			      &info->object))
+			return RE_FATAL;
+	} else if (info->start.plug->id.group != STATDATA_ITEM) {
+		/* Realizing on the place: if not SD, build SD key and try to 
+		   find it. Do not recover obj40 without SD at all. */
+		
 		lookup_t lookup;
+		key_type_t type;
 		
 		type = plug_call(info->start.key.plug->o.key_ops, get_type, 
 				 &info->start.key);
@@ -78,10 +99,9 @@ errno_t obj40_realize(obj40_t *obj, realize_func_t sd_func,
 			return -EINVAL;
 	}
 	
-	/* Place must be the key of SD. If the item pointed by this key 
-	   was not found -- there is no SD in the tree -- do not recover 
-	   this object. But probably key of SD is wrong -- offset != 0 
-	   -- figure it out here and fix at check_struct time. */
+	/* Check if place is on a SD item probably with Some broken key 
+	   (offset != 0). If will be fixed at check_struct time. If not,
+	   do not recover objects without SD. */
 	if (!info->start.plug) {
 		if (!core->tree_ops.valid(info->tree, &info->start))
 			return RE_FATAL;

@@ -261,6 +261,9 @@ reiser4_object_t *reiser4_object_realize(
 	aal_memcpy(reiser4_object_start(object),
 		   place, sizeof(*place));
 	
+	if (reiser4_object_guess(object))
+		goto error_free_object;
+	
 	reiser4_key_assign(&object->info.object,
 			   &object->info.start.key);
 	
@@ -268,9 +271,6 @@ reiser4_object_t *reiser4_object_realize(
 	aal_strncpy(object->name, reiser4_print_key(&object->info.object),
 		    sizeof(object->name));
 #endif
-	
-	if (reiser4_object_guess(object))
-		goto error_free_object;
 	
 	return object;
 	
