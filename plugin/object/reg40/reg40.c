@@ -50,19 +50,6 @@ static void reg40_close(object_entity_t *entity) {
 	aal_free(entity);
 }
 
-#ifndef ENABLE_STAND_ALONE
-/* Returns plugin (tail or extent) for next write operation basing on passed
-   @size -- new file size. This function will use tail policy plugin for find
-   out what next item should be writen. */
-static reiser4_plug_t *reg40_bplug(object_entity_t *entity, uint64_t size) {
-	/* FIXME-UMKA: Here will be tail policy plugin calling in odrer to
-	   determine what body plugin should be used when file size has reached
-	   passed @size. */
-	return core->factory_ops.ifind(ITEM_PLUG_TYPE,
-				       ITEM_EXTENT40_ID);
-}
-#endif
-
 /* Updates body place in correspond to file offset */
 errno_t reg40_update(object_entity_t *entity) {
 	reg40_t *reg = (reg40_t *)entity;
@@ -168,6 +155,15 @@ static object_entity_t *reg40_open(object_info_t *info) {
 	{
 		goto error_free_reg;
 	}
+
+#ifndef ENABLE_STAND_ALONE
+	if (!(reg->policy = obj40_plug(&reg->obj, POLICY_PLUG_TYPE,
+				       "policy")))
+	{
+		aal_exception_error("Can't get file policy plugin.");
+		goto error_free_reg;
+	}
+#endif
 	
 	/* Reseting file (setting offset to 0) */
 	reg40_reset((object_entity_t *)reg);
@@ -196,6 +192,27 @@ static object_entity_t *reg40_create(object_info_t *info,
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plug, core, info);
 
+	/* Initializing tail policy plugin */
+	if (hint->body.reg.policy == INVAL_PID) {
+		/* Getting default tail policy from profile if passed hint
+		   contains no valid tail policy plugin id. */
+		hint->body.reg.policy = core->profile_ops.value("policy");
+
+		if (hint->body.reg.policy == INVAL_PID) {
+			aal_exception_error("Invalid default tail policy "
+					    "plugin id has been detected.");
+			goto error_free_reg;
+		}
+	}
+	
+	if (!(reg->policy = core->factory_ops.ifind(POLICY_PLUG_TYPE,
+						    hint->body.reg.policy)))
+	{
+		aal_exception_error("Can't find tail policy plugin by "
+				    "its id 0x%x.", hint->body.reg.policy);
+		goto error_free_reg;
+	}
+	
 	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
 	
 	if (obj40_create_stat(&reg->obj, hint->statdata,
@@ -256,6 +273,85 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 
 static uint32_t reg40_chunk(reg40_t *reg) {
 	return core->tree_ops.maxspace(reg->obj.info.tree);
+}
+
+/* Returns plugin (tail or extent) for next write operation basing on passed
+   @size -- new file size. This function will use tail policy plugin for find
+   out what next item should be writen. */
+static reiser4_plug_t *reg40_bplug(object_entity_t *entity,
+				   uint64_t new_size)
+{
+	reg40_t *reg = (reg40_t *)entity;
+	
+	aal_assert("umka-2394", entity != NULL);
+	aal_assert("umka-2393", reg->policy != NULL);
+
+	/* FIXME-UMKA: Here is not enough to have only plugin type to get it
+	   from stat data as for tails and extents plugin type is the same and
+	   namely ITEM_PLUG_TYPE. */
+	
+	/* Calling tail policy plugin to detect body plugin */
+	if (plug_call(reg->policy->o.policy_ops, tails, new_size)) {
+		/* Trying to get non-standard tail plugin from stat data. And if
+		   it is not found, default one from profile will be taken. */
+		return obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "tail");
+	} else {
+		/* The same for extent plugin */
+		return obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "extent");
+	}
+}
+
+/* Makes extent2tail conversion */
+static errno_t reg40_extent2tail(object_entity_t *entity) {
+	reg40_t *reg = (reg40_t *)entity;
+
+	if (reg->body.plug->id.group == TAIL_ITEM)
+		return -EINVAL;
+	
+	return 0;
+}
+
+/* Makes tail2extent conversion */
+static errno_t reg40_tail2extent(object_entity_t *entity) {
+	reg40_t *reg = (reg40_t *)entity;
+	
+	if (reg->body.plug->id.group == EXTENT_ITEM)
+		return -EINVAL;
+	
+	return 0;
+}
+
+/* Makes tail2extent and extent2tail conversion */
+static errno_t reg40_convert(object_entity_t *entity,
+			     uint64_t new_size)
+{
+	reg40_t *reg;
+	reiser4_plug_t *bplug;
+	
+	aal_assert("umka-2395", entity != NULL);
+
+	reg = (reg40_t *)entity;
+	
+	/* There is nothing to convert */
+	if (reg40_size(entity) == 0 || new_size == 0)
+		return 0;
+	
+	if (!(bplug = reg40_bplug(entity, new_size))) {
+		aal_exception_error("Can't get enw body plugin.");
+		return -EINVAL;
+	}
+
+	/* Comparing new plugin and old one. If they are the same, conversion if
+	   not needed. */
+	if (plug_equal(bplug, reg->body.plug))
+		return 0;
+
+	/* New plugin is tail one. Converting to extents */
+	if (bplug->id.group == TAIL_ITEM)
+		return reg40_extent2tail(entity);
+
+	/* New plugin is extent one. Converting to tails */
+	return reg40_tail2extent(entity);
 }
 
 /* Writes passed data to the file. Returns amount of data written to the
@@ -438,6 +534,12 @@ static int32_t reg40_write(object_entity_t *entity,
 	size = reg40_size(entity);
 	offset = reg40_offset(entity);
 
+	if (reg40_convert(entity, size + n)) {
+		aal_exception_error("Can't perform tail "
+				    "conversion.");
+		return -EINVAL;
+	}
+		
 	/* Inserting holes if it is needed */
 	if (offset > size) {
 		if ((bytes = reg40_put(entity, NULL,
@@ -445,6 +547,8 @@ static int32_t reg40_write(object_entity_t *entity,
 		{
 			return bytes;
 		}
+	} else {
+		bytes = 0;
 	}
 
 	/* Putting data to tree */
@@ -475,6 +579,13 @@ static errno_t reg40_truncate(object_entity_t *entity,
 	if (size == n)
 		return 0;
 
+	/* Converting body */
+	if (reg40_convert(entity, n)) {
+		aal_exception_error("Can't perform tail "
+				    "conversion.");
+		return -EINVAL;
+	}
+		
 	if (n > size) {
 		/* Inserting holes */
 		if ((bytes = reg40_put(entity, NULL,
@@ -544,8 +655,11 @@ static errno_t callback_item_data(void *object, uint64_t start,
 	layout_hint_t *hint = (layout_hint_t *)data;
 
 	for (blk = start; blk < start + count; blk++) {
-		if ((res = hint->block_func(hint->entity, blk, hint->data)))
+		if ((res = hint->block_func(hint->entity, blk,
+					    hint->data)))
+		{
 			return res;
+		}
 	}
 
 	return 0;

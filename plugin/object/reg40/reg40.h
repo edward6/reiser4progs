@@ -25,8 +25,10 @@ struct reg40 {
 	/* Current position in the directory */
 	key_entity_t offset;
 
+#ifndef ENABLE_STAND_ALONE
 	/* Tail policy plugin */
 	reiser4_plug_t *policy;
+#endif
 };
 
 typedef struct reg40 reg40_t;

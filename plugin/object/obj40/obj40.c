@@ -413,7 +413,7 @@ rid_t obj40_pid(obj40_t *obj, rid_t type, char *name) {
 	rid_t pid = plug_call(obj->info.start.plug->o.item_ops, 
 			      plug, &obj->info.start, type);
 	
-	/* If not specified yet, try to get defailt id. */
+	/* If not specified yet, try to get default id. */
 	if (pid == INVAL_PID)
 		pid = obj->core->profile_ops.value(name);
 	

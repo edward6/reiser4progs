@@ -1407,7 +1407,8 @@ struct reiser4_core {
 #define print_ino(core, key) (core->key_ops.print(key, PO_INO))
 
 #define plug_equal(plug1, plug2)                                 \
-        (plug1->id.group == plug2->id.group &&                   \
+        (plug1->id.type == plug2->id.type &&                     \
+         plug1->id.group == plug2->id.group &&                   \
 	 plug1->id.id == plug2->id.id)
 
 

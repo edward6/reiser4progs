@@ -814,7 +814,7 @@ static errno_t cde_large_print(place_t *place,
 	
 	/* Loop though the all entries */
 	for (i = 0; i < de_get_units(cde); i++) {
-		uint64_t offset, haobjectid;
+		uint64_t haobjectid, haordering;
 		entry_t *entry = &cde->entry[i];
 		objid_t *objid = cde_large_objid(place, i);
 
@@ -835,12 +835,12 @@ static errno_t cde_large_print(place_t *place,
 		namewidth = aal_strlen(name) < 16 ? 16 -
 			aal_strlen(name) + 1 : 1;
 
-		offset = ha_get_offset(&entry->hash);
+		haordering = ha_get_ordering(&entry->hash);
 		haobjectid = ha_get_objectid(&entry->hash);
 		
 		aal_stream_format(stream, "%*d %s%*s %*u %.16llx:%.16llx "
 				  "%.7llx:%.7llx\n", 3, i, name, namewidth,
-				  " ", 6, entry->offset, haobjectid, offset,
+				  " ", 6, entry->offset, haordering, haobjectid,
 				  locality, objectid);
 	}
 
