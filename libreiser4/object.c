@@ -24,12 +24,11 @@ static bool_t callback_object_guess(reiser4_plug_t *plug, void *data) {
 	/* Requesting object plugin to open the object on passed @tree and
 	   @place. If it fails, we will continue lookup. */
 	object->entity = plug_call(plug->o.object_ops, open,
-				   &object->info);
+				   object->info);
 	
 	if (object->entity != NULL) {	
 		plug_call(plug->o.object_ops, close,
 			  object->entity);
-		
 		return TRUE;
 	}
 	
@@ -51,7 +50,7 @@ errno_t reiser4_object_guess(reiser4_object_t *object, plug_func_t open_func) {
 		return -EINVAL;
 	
 	object->entity = plug_call(plug->o.object_ops, open,
-				   &object->info);
+				   object->info);
 	
 	return object->entity != NULL ? 0 : -EINVAL;
 }
@@ -65,17 +64,14 @@ static void reiser4_object_fini(reiser4_object_t *object) {
 
 /* Looks up for the object stat data place in tree */
 errno_t reiser4_object_stat(reiser4_object_t *object) {
-	object_info_t *info = &object->info;
-	
-	switch (reiser4_tree_lookup(info->tree, &info->object,
-				    LEAF_LEVEL, reiser4_object_start(object)))
+	object_info_t *info = object->info;
+
+	switch (reiser4_tree_lookup(object->tree, &info->object,
+				    LEAF_LEVEL, object_start(object)))
 	{
 	case PRESENT:
-		/* Initializing item at @object->place */
-		if (reiser4_place_fetch(reiser4_object_start(object)))
-			return -EINVAL;
-
-		reiser4_key_assign(&info->object, &info->start.key);
+		reiser4_key_assign(&info->object,
+				   &info->start.key);
 		return 0;
 	default:
 		return -EINVAL;
@@ -87,11 +83,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 				      void *data)
 {
 	errno_t res;
-
-#ifdef ENABLE_SYMLINKS
 	reiser4_plug_t *plug;
-#endif
-
 	reiser4_object_t *object;
 
 	object = (reiser4_object_t *)data;
@@ -104,8 +96,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 
 	/* Getting object plugin */
 	if ((res = reiser4_object_guess(object, callback_object_guess))) {
-		aal_exception_error("Can't init object %s.",
-				    track);
+		aal_exception_error("Can't init object %s.", track);
 		return res;
 	}
 	
@@ -118,8 +109,8 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		/* Calling object's follow() in order to get stat data key of
 		   the real stat data item. */
 		if ((res = plug->o.object_ops->follow(object->entity,
-						      &object->info.parent,
-						      &object->info.object)))
+						      &object->info->parent,
+						      &object->info->object)))
 		{
 			aal_exception_error("Can't follow %s.", track);
 			reiser4_object_fini(object);
@@ -131,17 +122,14 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		
 		/* Getting stat data place by key returned by follow() */
 		if ((res = reiser4_object_stat(object)))
-			return -EINVAL;
+			return res;
 
 		/* Initializing entity on new place */
-		res = reiser4_object_guess(object, callback_object_guess);
-		
-		if (res)
+		if (reiser4_object_guess(object, callback_object_guess))
 			return -EINVAL;
 	}
 
-	reiser4_key_assign(&object->info.parent,
-			   &object->info.object);
+	reiser4_key_assign(&object->info->parent, &object->info->object);
 #endif
 
 	return 0;
@@ -152,21 +140,19 @@ static errno_t callback_find_entry(char *track, char *name,
 				   void *data)
 {
 	errno_t res;
-	lookup_t lookup;
-	
 	entry_hint_t entry;
 	reiser4_object_t *object;
 
 	object = (reiser4_object_t *)data;
 
 	/* Looking up for @entry in current directory */
-	lookup = plug_call(object->entity->plug->o.object_ops,
-			   lookup, object->entity, name, &entry);
-	
-	if (lookup == PRESENT) {
-		res = reiser4_key_assign(&object->info.object,
+	switch (plug_call(object->entity->plug->o.object_ops,
+			  lookup, object->entity, name, &entry))
+	{
+	case PRESENT:
+		res = reiser4_key_assign(&object->info->object,
 					 &entry.object);
-	} else {
+	default:
 		aal_exception_error("Can't find %s.", track);
 		res = -EINVAL;
 	}
@@ -178,16 +164,38 @@ static errno_t callback_find_entry(char *track, char *name,
 errno_t reiser4_object_resolve(reiser4_object_t *object,
 			       char *filename, bool_t follow)
 {
+	object_info_t info;
+	
 	aal_assert("umka-2246", object != NULL);
 	aal_assert("umka-2247", filename != NULL);
+	aal_assert("umka-2378", object->entity == NULL);
 	
+	object->info = &info;
 	object->follow = follow;
+
+	/* Initializing parent key to root key */
+#ifdef ENABLE_SYMLINKS
+	reiser4_key_assign(&info.parent, &object->tree->key);
+#endif
+
+	/* Initializing info tree reference */
+	object->info->tree = object->tree;
 	
+	/* Resolving path, starting from the root */
+	reiser4_key_assign(&info.object, &object->tree->key);
+
 	/* Parsing path and looking for object's stat data. We assume, that name
 	   is absolute one. So, user, who calls this method should convert name
 	   previously into absolute one by means of using getcwd function. */
-	return aux_parse_path(filename, callback_find_statdata,
-			      callback_find_entry, object);
+	if (aux_parse_path(filename, callback_find_statdata,
+			   callback_find_entry, object))
+	{
+		return -EINVAL;
+	}
+
+	/* Assigning info reference to entity info instance */
+	object->info = &object->entity->info;
+	return 0;
 }
 
 /* This function opens object by its name */
@@ -196,36 +204,21 @@ reiser4_object_t *reiser4_object_open(
 	char *filename,                 /* name of object to be opened */
 	bool_t follow)                  /* follow symlinks */
 {
-	reiser4_plug_t *plug;
 	reiser4_object_t *object;
     
 	aal_assert("umka-678", tree != NULL);
 	aal_assert("umka-789", filename != NULL);
 
-	if (!tree) {
-		aal_exception_error("Can't open object without "
-				    "the tree being initialized.");
-		return NULL;
-	}
-    
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return NULL;
     
-	object->info.tree = tree;
-	object->follow = follow;
+	object->tree = tree;
 
 #ifndef ENABLE_STAND_ALONE
 	aal_strncpy(object->name, filename,
 		    sizeof(object->name));
 #endif
 
-#ifdef ENABLE_SYMLINKS
-	reiser4_key_assign(&object->info.parent, &tree->key);
-#endif
-
-	/* Resolving path, starting from the root */
-	reiser4_key_assign(&object->info.object, &tree->key);
-	
 	if (reiser4_object_resolve(object, filename, follow))
 		goto error_free_object;
 
@@ -236,17 +229,13 @@ reiser4_object_t *reiser4_object_open(
 	return NULL;
 }
 
-/* This function opens object by its @place.
-   FIXME-VITALY->UNKA: This method should not try all object plugins,
-   just extract id from SD if it is kept there (take the standard object 
-   plugin on the base of the mode otherwise) and try open this only plugin.
-   
-   FIXME-VITALY->UMKA: How to open the object without SD? At least the parent
-   object is needed here. */
+/* This function opens object by its @place. */
 reiser4_object_t *reiser4_object_realize(
 	reiser4_tree_t *tree,           /* tree object will be opened on */
+	reiser4_object_t *parent,       /* parent of object to be opened */
 	reiser4_place_t *place)		/* statdata key of object to be opened */
 {
+	object_info_t info;
 	reiser4_plug_t *plug;
 	reiser4_object_t *object;
 	
@@ -255,22 +244,24 @@ reiser4_object_t *reiser4_object_realize(
 
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return NULL;
-    
-	object->info.tree = tree;
-	
-	aal_memcpy(reiser4_object_start(object),
-		   place, sizeof(*place));
+
+	/* Initializing info */
+	info.tree = tree;
+	aal_memcpy(&info.start, place, sizeof(*place));
+
+	reiser4_key_assign(&info.parent, &tree->key);
+	reiser4_key_assign(&info.object, &tree->key);
 	
 	if (reiser4_object_guess(object, callback_object_guess))
 		goto error_free_object;
-	
-	reiser4_key_assign(&object->info.object,
-			   &object->info.start.key);
+
+	object->info = &object->entity->info;
 	
 #ifndef ENABLE_STAND_ALONE
-	aal_strncpy(object->name, 
-		    reiser4_print_key(&object->info.object, P_SHORT),
-		    sizeof(object->name));
+	{
+		char *name = reiser4_print_key(&object->info->object);
+		aal_strncpy(object->name, name, sizeof(object->name));
+	}
 #endif
 	
 	return object;
@@ -286,32 +277,23 @@ reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 					reiser4_object_t *parent,
 					reiser4_key_t *key) 
 {
-	reiser4_object_t *object;
 	reiser4_place_t place;
-	lookup_t lookup;
-	
+
 	aal_assert("vpf-1136", tree != NULL);
 	aal_assert("vpf-1185", key != NULL);
 	
-	if (reiser4_tree_lookup(tree, key, LEAF_LEVEL, &place) != PRESENT)
-		return NULL;
-
-	/* The start of the object seems to be found. */
-	if (reiser4_place_fetch(&place))
-		return NULL;
+	switch (reiser4_tree_lookup(tree, key, LEAF_LEVEL, &place)) {
+	case PRESENT:
+		/* The key must point to the start of the object. */
+		if (reiser4_key_compare(&place.key, key))
+			return NULL;
 	
-	/* The key must point to the start of the object. */
-	if (reiser4_key_compare(&place.key, key))
+		/* If the pointed item was found, object must be
+		   openable. @parent probably should be passed here. */
+		return reiser4_object_realize(tree, parent, &place);
+	default:
 		return NULL;
-	
-	/* If the pointed item was found, object must be opanable. 
-	   @parent probably should be passed here. */
-	object = reiser4_object_realize(tree, &place);
-	
-	if (!object)
-		return NULL;
-	
-	return object;
+	}
 }
 
 errno_t reiser4_object_truncate(
@@ -371,77 +353,75 @@ int32_t reiser4_object_write(
 			 write, object->entity, buff, n);
 }
 
-/* Helps to create methods */
-static void reiser4_object_base(reiser4_fs_t *fs,
+/* Prepases @info to be used for creating new object */
+static void reiser4_object_base(reiser4_tree_t *tree,
 				reiser4_object_t *parent,
-				reiser4_object_t *object) 
+				object_info_t *info) 
 {
-	oid_t objectid, locality;
+	oid_t objectid;
+	oid_t locality;
 	
 	/* Initializing fields and preparing the keys */
-	object->info.tree = fs->tree;
-	
+	info->tree = tree;
+
 	if (parent) {
-		reiser4_key_assign(&object->info.parent,
-				   &parent->info.object);
+		reiser4_key_assign(&info->parent, &parent->info->object);
 		
-		objectid = reiser4_oid_allocate(fs->oid);
-		locality = reiser4_key_get_objectid(&object->info.parent);
+		objectid = reiser4_oid_allocate(tree->fs->oid);
+		locality = reiser4_key_get_objectid(&info->parent);
 	} else {
-		/* If parent is NULL -- special case for "/" directory */
-		object->info.parent.plug = fs->tree->key.plug;
-		
-		reiser4_fs_root_key(fs, &object->info.parent);
-		
-		locality = reiser4_oid_root_locality(fs->oid);
-		objectid = reiser4_oid_root_objectid(fs->oid);
+		/* Parent if not defined, root key is used */
+		reiser4_key_assign(&info->parent, &tree->key);
+		locality = reiser4_key_get_locality(&tree->key);
+		objectid = reiser4_key_get_objectid(&tree->key);
 	}
 	
 	/* New object is identified by its locality and objectid. Set them to
 	   the @object->info.object key and plugin create method will build the
 	   whole key there. */
-	object->info.object.plug = object->info.parent.plug;
-	
-	reiser4_key_clean(&object->info.object);
-	reiser4_key_set_locality(&object->info.object, locality);
-	reiser4_key_set_objectid(&object->info.object, objectid);
+	info->object.plug = tree->key.plug;
+
+	/* FIXME-UMKA: Here should be used correct ordering component. It may be
+	 * taken from entry in parent object. */
+	reiser4_key_build_gener(&info->object, KEY_STATDATA_TYPE,
+				locality, 0, objectid, 0);
 }
 
 /* Creates new object on specified filesystem */
 reiser4_object_t *reiser4_object_create(
-	reiser4_fs_t *fs,		     /* fs object will be created on */
+	reiser4_tree_t *tree,                /* tree object to be created on */
 	reiser4_object_t *parent,            /* parent object */
 	object_hint_t *hint)                 /* object hint */
 {
+	char *name;
+	object_info_t info;
 	reiser4_object_t *object;
 	
-	aal_assert("umka-790", fs != NULL);
+	aal_assert("umka-790", tree != NULL);
 	aal_assert("umka-1128", hint != NULL);
 	aal_assert("umka-1917", hint->plug != NULL);
 
-	if (!fs->tree) {
-		aal_exception_error("Can't create object without "
-				    "the tree being initialized.");
-		return NULL;
-	}
-	
 	/* Allocating the memory for object instance */
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return NULL;
 
-	reiser4_object_base(fs, parent, object);
-	
+	/* Preparing info */
+	reiser4_object_base(tree, parent, &info);
+
+	/* Calling object plugin to create its body in the tree */
 	if (!(object->entity = plug_call(hint->plug->o.object_ops,
-					 create, &object->info, hint)))
+					 create, &info, hint)))
 	{
-		aal_exception_error("Can't create object with oid 0x%llx.", 
-				    reiser4_key_get_objectid(&object->info.object));
+		aal_exception_error("Can't create object.");
 		goto error_free_object;
 	}
+
+	/* Assigning into to entity's info */
+	object->info = &object->entity->info;
 	
 	/* @hint->object key is built by plugin create method. */
-	aal_strncpy(object->name, reiser4_print_key(&object->info.object, P_SHORT),
-		    sizeof(object->name));
+	name = reiser4_print_key(&object->info->object);
+	aal_strncpy(object->name, name, sizeof(object->name));
 	
 	return object;
 	
@@ -481,7 +461,7 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 		aal_memset(&entry, 0, sizeof(entry));	
 
 		aal_strncpy(entry.name, name, sizeof(entry.name));
-		reiser4_key_assign(&entry.object, &child->info.object);
+		reiser4_key_assign(&entry.object, &child->info->object);
 
 		if ((res = reiser4_object_add_entry(object, &entry))) {
 			aal_exception_error("Can't add entry %s to %s.",
@@ -497,7 +477,8 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 	}
 	
 	if (child->entity->plug->o.object_ops->attach) {
-		object_entity_t *parent = object ? object->entity : NULL;
+		object_entity_t *parent = object ?
+			object->entity : NULL;
 
 		return plug_call(child->entity->plug->o.object_ops,
 				 attach, child->entity, parent);
@@ -533,7 +514,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	}
 
 	/* Looking up for the victim statdata place */
-	if (reiser4_tree_lookup(object->info.tree, &entry.object,
+	if (reiser4_tree_lookup(object->info->tree, &entry.object,
 				LEAF_LEVEL, &place) != PRESENT)
 	{
 		aal_exception_error("Can't find an item pointed by %s. "
@@ -543,8 +524,8 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 		return -EINVAL;
 	}
 
-	/* Opening victim statdata by found place */
-	if (!(child = reiser4_object_realize(object->info.tree, &place))) {
+	/* Opening victim object by found place */
+	if (!(child = reiser4_object_realize(object->tree, NULL, &place))) {
 		aal_exception_error("Can't open %s/%s.", object->name, name);
 		return -EINVAL;
 	}
@@ -569,11 +550,12 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 
 /* Helper function for printing passed @place into @stream */
 static errno_t callback_print_place(
-	object_entity_t *entity,   /* object to be inspected */
+	void *entity,              /* object to be printed */
 	place_t *place,            /* next object block */
 	void *data)                /* user-specified data */
 {
 	errno_t res;
+	
 	aal_stream_t *stream = (aal_stream_t *)data;
 	reiser4_place_t *p = (reiser4_place_t *)place;
 	
@@ -654,7 +636,7 @@ lookup_t reiser4_object_lookup(reiser4_object_t *object,
 
 /* Sets directory current position to passed pos */
 errno_t reiser4_object_seek(
-	reiser4_object_t *object,    /* object where position should be changed */
+	reiser4_object_t *object,    /* object position to be changed in */
 	uint32_t offset)	     /* offset for seeking */
 {
 	aal_assert("umka-1129", object != NULL);
@@ -789,7 +771,7 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	hint.body.dir.direntry = reiser4_profile_value(fs->profile, "cde");
 
 	/* Creating object by passed parameters */
-	if (!(object = reiser4_object_create(fs, parent, &hint)))
+	if (!(object = reiser4_object_create(fs->tree, parent, &hint)))
 		return NULL;
 
 	if (parent) {
@@ -828,7 +810,7 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 	hint.body.reg.policy = reiser4_profile_value(fs->profile, "policy");
 	
 	/* Creating object by passed parameters */
-	if (!(object = reiser4_object_create(fs, parent, &hint)))
+	if (!(object = reiser4_object_create(fs->tree, parent, &hint)))
 		return NULL;
 
 	if (parent) {
@@ -867,7 +849,7 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	hint.statdata = reiser4_profile_value(fs->profile, "statdata");
 	
 	/* Creating object by passed parameters */	
-	if (!(object = reiser4_object_create(fs, parent, &hint)))
+	if (!(object = reiser4_object_create(fs->tree, parent, &hint)))
 		return NULL;
 
 	if (parent) {
@@ -879,25 +861,25 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 }
 
 errno_t reiser4_object_traverse(reiser4_object_t *object,
-				object_open_func_t func,
+				object_open_func_t open_func,
 				void *data)
 {
 	entry_hint_t entry;
 	errno_t res = 0;
 	
 	aal_assert("vpf-1090", object != NULL);
-	aal_assert("vpf-1103", func != NULL);
+	aal_assert("vpf-1103", open_func != NULL);
 	
 	while (!reiser4_object_readdir(object, &entry)) {
 		reiser4_object_t *child = NULL;
 		
-		if ((child = func(object, &entry, data)) == INVAL_PTR)
+		if ((child = open_func(object, &entry, data)) == INVAL_PTR)
 			return -EINVAL;
 		
 		if (child == NULL)
 			continue;
 
-		res = reiser4_object_traverse(child, func, data);
+		res = reiser4_object_traverse(child, open_func, data);
 		
 		reiser4_object_close(child);
 		
