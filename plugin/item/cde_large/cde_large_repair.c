@@ -73,7 +73,6 @@ extern uint32_t cde_large_size_units(place_t *place, uint32_t pos,
 				     uint32_t count);
 
 extern uint32_t cde_large_units(place_t *place);
-
 extern errno_t cde_large_maxposs_key(place_t *place, key_entity_t *key);
 
 extern errno_t cde_large_rep(place_t *dst_place, uint32_t dst_pos,
@@ -588,9 +587,9 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 
 errno_t cde_large_check_struct(place_t *place, uint8_t mode) {
 	struct entry_flags flags;
-	cde_large_t *de;
 	errno_t res = RE_OK;
-	int i, j;
+	cde_large_t *de;
+	int i;
 	
 	aal_assert("vpf-267", place != NULL);
 	
@@ -600,8 +599,6 @@ errno_t cde_large_check_struct(place_t *place, uint8_t mode) {
 				    place->block->nr, place->pos.item, place->len);
 		return RE_FATAL;
 	}
-	
-	de = cde_large_body(place);
 	
 	/* Try to recover even if item was shorten and not all entries exist. */
 	flags.count = (place->len - sizeof(cde_large_t)) / (sizeof(entry_t));
@@ -616,6 +613,24 @@ errno_t cde_large_check_struct(place_t *place, uint8_t mode) {
 	
 	/* Filter units with relable offsets from others. */
 	res |= cde_large_filter(place, &flags, mode);
+
+	de = cde_large_body(place);
+	
+	/* Check order of entries -- FIXME-VITALY: just simple check for now, 
+	   the whole item is thrown away if smth wrong, to be improved later. */
+	for (i = 1; i < flags.count; i++) {
+		if (aal_memcmp(&de->entry[i - 1].hash, 
+			       &de->entry[i].hash, 
+			       sizeof(hash_t)) == 1)
+		{
+			aal_exception_error("Node (%llu), item (%u): wrong "
+					    "order of units {%d, %d}. The whole"
+					    "item has to be removed -- will be "
+					    "improved soon.", place->block->nr, 
+					    place->pos.item, i - 1, i);
+			return res & RE_FATAL;
+		}
+	}
 	
  error:
 	aal_free(flags.elem);
@@ -688,210 +703,6 @@ errno_t cde_large_copy(place_t *dst, uint32_t dst_pos,
 	
 	return cde_large_rep(dst, dst_pos, src, src_pos, hint->src_count);
 }
-
-#if 0
-{
-	if ((res = cde_large_count_check(place)))
-		return res;
-    
-	for (i = 1; i <= de_get_units(de); i++) {
-		uint16_t interval = start_pos ? i - start_pos + 1 : 1;
-
-		offset = (i == de_get_units(de) ? place->len : 
-			  en_get_offset(&de->entry[i]));
-
-		/* Check the offset. */
-		if ((offset - ENTRY_MIN_LEN * interval < 
-		     en_get_offset(&de->entry[i - 1])) || 
-		    (offset + ENTRY_MIN_LEN * (de_get_units(de) - i) > 
-		     (int)place->len))
-			{
-				if (info->mode == FSCK_CHECK) {
-					aal_exception_error("Node %llu, item %u: "
-							    "wrong offset (%llu).",
-							    place->block->nr, 
-							    place->pos.item, offset);
-
-				}
-	    
-				/* Wrong offset occured. */
-				aal_exception_error("Node %llu, item %u: wrong offset "
-						    "(%llu).", place->block->nr, 
-						    place->pos.item, offset);
-				if (!start_pos)
-					start_pos = i;
-			} else if (start_pos) {
-				/* First correct offset after the problem interval. */
-				cde_large_region_delete(de, start_pos, i);
-				en_set_count(de, de_get_units(de) - interval);
-				start_pos = 0;
-				i -= interval;
-			}
-	}
-	
-	return 0;
-}
-
-static errno_t cde_large_count_check(place_t *place, 
-				     repair_plugin_info_t *info) 
-{
-	cde_large_t *de;
-	uint16_t count_error, count;
-
-	aal_assert("vpf-268", place != NULL);
-	aal_assert("vpf-495", place->body != NULL);
-    
-	de = cde_large_body(place);
-    
-	count_error = (de->entry[0].offset - sizeof(cde_large_t)) % 
-		sizeof(entry_t);
-    
-	count = count_error ? MAX_UINT16 : (de->entry[0].offset - sizeof(cde_large_t)) / 
-		sizeof(entry_t);
-    
-	if (en_min_length(de_get_units(de)) > place->len) {
-		if (en_min_length(count) > place->len) {
-			info->fatal++;
-			aal_exception_error("Node %llu, item %u: unit array is "
-					    "not recognized.", place->block->nr, 
-					    place->pos.item);
-			return 1;
-		}
-
-		if (info->mode == FSCK_CHECK) {
-			aal_exception_error("Node %llu, item %u: unit count (%u) "
-					    "is wrong. Should be (%u).", 
-					    place->block->nr, place->pos.item,
-					    de_get_units(de), count);
-			info->fixable++;
-			return 1;
-		}
-		
-		aal_exception_error("Node %llu, item %u: unit count (%u) is "
-				    "wrong. Fixed to (%u).", place->block->nr, 
-				    place->pos.item, de_get_units(de), count);
-		
-		en_set_count(de, count);
-	} else {
-		if ((en_min_length(count) > place->len) || 
-		    (count != de_get_units(de))) 
-		{
-			if (info->mode == FSCK_CHECK) {
-				info->fixable++;
-				aal_exception_error("Node %llu, item %u: wrong offset "
-						    "(%llu). Should be (%llu).", 
-						    place->block->nr, place->pos.item,
-						    de->entry[0].offset, 
-						    de_get_units(de) * 
-						    sizeof(entry_t) + 
-						    sizeof(cde_large_t));
-				return 1;
-			}
-			
-			aal_exception_error("Node %llu, item %u: wrong offset "
-					    "(%llu). Fixed to (%llu).", 
-					    place->block->nr, place->pos.item,
-					    de->entry[0].offset, 
-					    de_get_units(de) * sizeof(entry_t) + 
-					    sizeof(cde_large_t));
-			
-			de->entry[0].offset = de_get_units(de) * sizeof(entry_t) + 
-				sizeof(cde_large_t);
-		}
-	}
-	
-	return 0;
-}
-
-static errno_t cde_large_bad_range_check(place_t *place, 
-					 uint32_t start_pos, 
-					 uint32_t end_pos, 
-					 repair_plugin_info_t *info) 
-{
-	cde_large_t *de = cde_large_body(place);
-	uint32_t offset, l_limit, r_limit, i;
-	
-	aal_assert("vpf-756", end > start_pos + 1);
-	aal_assert("vpf-760", place->len >= en_len_min(end_pos + 1));
-	
-	r_limit = OFFSET(de, end);
-	
-	if (r_limit == OFFSET(de, start_pos) + ENTRY_LEN_MIN(S_NAME) * count) {
-		/* Fix. */
-		for (i = 1; i < end - start_pos - 1; i++) {
-			offset = OFFSET(de, start_pos) + ENTRY_LEN_MIN(S_NAME) * i;
-	    
-			aal_exception_error("Node (%llu), item (%u), unit (%u): "
-					    "unit offset (%u) is wrong, should be "
-					    "(%u). %s", place->block->nr,
-					    place->pos.item,
-					    i, OFFSET(de, start_pos + i), offset, 
-					    info->mode == RM_BUILD ? 
-					    "Fixed." : "");
-			
-			if (info->mode == RM_BUILD) {
-				en_set_offset(&de->entry[i], offset);
-				info->fixed++;
-			} else
-				info->fatal++;
-		}
-		
-		return 0;
-	}
-	
-	if (ENTRY_LEN_MIN(L_NAME) * (end - start_pos) + 
-	    OFFSET(de, start_pos) <= OFFSET(de, end)) 
-	{
-		bool_t recoverable = 0;
-		
-	start_again:
-		l_limit = OFFSET(de, start_pos) + sizeof(objid_t);
-		
-		/* Check if it is possible first and if so - fix offsets. */
-		for (i = 1; i < end - start; i++) {
-			offset = cde_large_name_end(place->body, l_limit, r_limit);
-			
-			if (offset == r_limit)
-				break;
-			
-			if (offset - l_limit <= NAME_LEN_MIN(L_NAME) - 1)
-				break;
-			
-			if (recoverable) {
-				aal_exception_error("Node %llu, item %u, unit (%u): "
-						    "unit offset (%u) is wrong, "
-						    "should be (%u). %s", 
-						    place->block->nr, 
-						    place->pos.item, i, 
-						    OFFSET(de, start + i), 
-						    offset, 
-						    info->mode == RM_BUILD ? 
-						    "Fixed." : "");
-				
-				if (info->mode == RM_BUILD) {
-					en_set_offset(&de->entry[i], offset);
-					info->fixed++;
-				} else
-					info->fatal++;
-				}
-				
-				l_limit = offset + 1 + sizeof(objid_t);
-			}
-			
-			if (offset != r_limit - 1)
-				return 1;
-			
-			if (recoverable)
-				return 0;
-			
-			recoverable = 1;
-			goto start_again;
-		}
-	
-	return 1;
-}
-
-#endif
 
 #endif
 

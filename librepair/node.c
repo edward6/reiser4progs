@@ -23,9 +23,7 @@ reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
 	
 	if (!(node = reiser4_node_open(fs->device, blocksize, blk, 
 				       fs->tree->key.plug, pid)))
-	{
 		return NULL;
-	}
 	
 	if (reiser4_format_get_stamp(fs->format) != 
 	    reiser4_node_get_mstamp(node))
@@ -59,27 +57,27 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		/* Open the item, checking its plugin id. */
 		if (reiser4_place_fetch(&place)) {
 			aal_exception_error("Node (%llu): Failed to open the "
-					    "item (%u). %s", node_blocknr(node), 
+					    "item (%u). %s", node_blocknr(node),
 					    pos->item, mode == RM_BUILD ? 
 					    "Removed." : "");
 			
-			if (mode == RM_BUILD) {
-				if ((ret = reiser4_node_remove(node, pos, 1))) {
-					aal_exception_bug("Node (%llu): Failed to "
-							  "delete the item (%d).", 
-							  node_blocknr(node), pos->item);
-					return ret;
-				}
-				
-				pos->item--;
-				count = reiser4_node_items(node);
-				res |= RE_FIXED;
-			} else {
+			if (mode != RM_BUILD) {
 				res |= RE_FATAL;
+				continue;
 			}
-			
-			continue;
-		}
+
+			if ((ret = reiser4_node_remove(node, pos, 1))) {
+				aal_exception_bug("Node (%llu): Failed to "
+						  "delete the item (%d).", 
+						  node_blocknr(node), 
+						  pos->item);
+				return ret;
+			}
+
+			pos->item--;
+			count = reiser4_node_items(node);
+			res |= RE_FIXED;
+		} 
 		
 		/* Check that the item is legal for this node. If not, it 
 		   will be deleted in update traverse callback method. */
