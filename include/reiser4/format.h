@@ -50,6 +50,12 @@ extern void reiser4_format_set_policy(reiser4_format_t *format,
 extern errno_t reiser4_format_mark(reiser4_format_t *format, 
 				   reiser4_alloc_t *alloc);
 
+extern count_t reiser4_format_len(aal_device_t *device, uint32_t blksize);
+
+extern errno_t reiser4_format_check_len(aal_device_t *device, 
+					uint32_t blksize, 
+					count_t blocks);
+
 extern errno_t reiser4_format_valid(reiser4_format_t *format);
 extern rid_t reiser4_format_oid_pid(reiser4_format_t *format);
 extern rid_t reiser4_format_alloc_pid(reiser4_format_t *format);

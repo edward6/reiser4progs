@@ -304,8 +304,7 @@ reiser4_backup_t *repair_backup_open(reiser4_fs_t *fs, uint8_t mode) {
 		
 		aal_block_fill(&backup->hint.block, 0);
 		
-		blocks = aal_device_len(fs->device) /
-			(blksize / fs->device->blksize);
+		blocks = reiser4_format_len(fs->device, blksize);
 		
 		for (id = 0; id < ALLOC_LAST_ID; id++) {
 			plug = reiser4_factory_ifind(ALLOC_PLUG_TYPE, id);

@@ -413,7 +413,7 @@ fi
 # Check for large file
 AC_SYS_LARGEFILE
 
-if test -z "${ac_cv_sys_file_offset_bits}"; then
+if test x${ac_cv_sys_file_offset_bits} = xno; then
 	AC_MSG_WARN(Can't detect right _FILE_OFFSET_BITS. Will be forced to 64bit.)
 	ac_cv_sys_file_offset_bits=64
 fi

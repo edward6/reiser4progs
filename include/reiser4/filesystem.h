@@ -18,6 +18,8 @@ extern reiser4_fs_t *reiser4_fs_open(aal_device_t *device);
 
 #ifndef ENABLE_MINIMAL
 
+#define FS_LEN_ADJAST (64 * 1024)
+
 extern errno_t reiser4_fs_sync(reiser4_fs_t *fs);
 
 extern errno_t reiser4_fs_clobber(aal_device_t *device);
@@ -31,10 +33,6 @@ extern errno_t reiser4_fs_layout(reiser4_fs_t *fs,
 				 void *data);
 
 extern reiser4_owner_t reiser4_fs_belongs(reiser4_fs_t *fs, blk_t blk);
-
-extern errno_t reiser4_fs_check_len(aal_device_t *device, 
-				    uint32_t blksize, 
-				    count_t blocks);
 
 extern reiser4_fs_t *reiser4_fs_create(aal_device_t *device,
 				       fs_hint_t *hint);

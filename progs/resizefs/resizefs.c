@@ -215,7 +215,7 @@ int main(int argc, char *argv[]) {
 	if (optind == argc - 1) {
 		fs_len = misc_size2long(argv[optind]);
 	} else {
-		fs_len = aal_device_len(device) * device->blksize / 1024;
+		fs_len = reiser4_format_len(device, 1024);
 	}
 	
 	if (fs_len == INVAL_DIG) {

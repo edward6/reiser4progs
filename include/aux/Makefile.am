@@ -1,1 +1,2 @@
-noinst_HEADERS = aux.h bitmap.h gauge.h
+auxincludedir          = $(includedir)/aux
+auxinclude_HEADERS      = aux.h bitmap.h gauge.h

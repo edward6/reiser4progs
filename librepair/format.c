@@ -25,7 +25,7 @@ static int cb_check_count(int64_t val, void *data) {
 		return 0;
 	
 	blksize = reiser4_master_get_blksize(fs->master);
-	return reiser4_fs_check_len(fs->device, blksize, val) ? 0 : 1;
+	return reiser4_format_check_len(fs->device, blksize, val) ? 0 : 1;
 }
 
 /* Try to open format if not yet and check it. */
@@ -95,16 +95,15 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 	hint.key = plug->id.id;
 	
 	hint.blksize = reiser4_master_get_blksize(fs->master);
-	hint.blocks = aal_device_len(fs->device) / 
-		(hint.blksize / fs->device->blksize);
+	hint.blocks = reiser4_format_len(fs->device, hint.blksize);
 
 	/* Check the block count if the backup is not opened. */
 	if (!fs->backup) {
 		if (fs->format) {
 			blocks = reiser4_format_get_len(fs->format);
 
-			if (reiser4_fs_check_len(fs->device, 
-						 hint.blksize, blocks))
+			if (reiser4_format_check_len(fs->device, 
+						     hint.blksize, blocks))
 			{
 				/* FS length is not valid. */
 				if (mode != RM_BUILD)
@@ -282,7 +281,7 @@ errno_t repair_format_check_backup(aal_device_t *device, backup_hint_t *hint) {
 	if ((res = plug_call(plug->o.format_ops, check_backup, hint)))
 		return res;
 
-	return (reiser4_fs_check_len(device, get_ms_blksize(master), 
-				     hint->blocks)) ? RE_FATAL : 0;
+	return (reiser4_format_check_len(device, get_ms_blksize(master), 
+					 hint->blocks)) ? RE_FATAL : 0;
 }
 

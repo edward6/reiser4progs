@@ -156,6 +156,37 @@ errno_t reiser4_format_sync(
 			 sync, format->ent);
 }
 
+count_t reiser4_format_len(aal_device_t *device, uint32_t blksize) {
+	return (aal_device_len(device) / FS_LEN_ADJAST * FS_LEN_ADJAST) / 
+		(blksize / device->blksize);
+}
+
+errno_t reiser4_format_check_len(aal_device_t *device, 
+				 uint32_t blksize, 
+				 count_t blocks) 
+{
+	count_t dev_len;
+
+	aal_assert("vpf-1564", device != NULL);
+	
+	dev_len = reiser4_format_len(device, blksize);
+	
+	if (blocks > dev_len) {
+		aal_error("Device %s is too small (%llu) for filesystem %llu "
+			  "blocks long.", device->name, dev_len, blocks);
+		return -EINVAL;
+	}
+
+	if (blocks < REISER4_FS_MIN_SIZE(blksize)) {
+		aal_error("Requested filesystem size (%llu) is too small. "
+			  "Reiser4 required minimal size %u blocks long.",
+			  blocks, REISER4_FS_MIN_SIZE(blksize));
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 /* Checks passed disk-format for validness */
 errno_t reiser4_format_valid(
 	reiser4_format_t *format)	/* format to be checked */

@@ -242,32 +242,6 @@ static errno_t cb_mark_block(blk_t start, count_t width, void *data) {
 				    start, width);
 }
 
-errno_t reiser4_fs_check_len(aal_device_t *device, 
-			     uint32_t blksize, 
-			     count_t blocks) 
-{
-	count_t dev_len;
-
-	aal_assert("vpf-1564", device != NULL);
-	
-	dev_len = aal_device_len(device) / (blksize / device->blksize);
-	
-	if (blocks > dev_len) {
-		aal_error("Device %s is too small (%llu) for filesystem %llu "
-			  "blocks long.", device->name, dev_len, blocks);
-		return -EINVAL;
-	}
-
-	if (blocks < REISER4_FS_MIN_SIZE(blksize)) {
-		aal_error("Requested filesystem size (%llu) is too small. "
-			  "Reiser4 required minimal size %u blocks long.",
-			  blocks, REISER4_FS_MIN_SIZE(blksize));
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
 /* Create filesystem on specified host device and with passed params */
 reiser4_fs_t *reiser4_fs_create(
 	aal_device_t *device,           /* device filesystem will be lie on */
@@ -300,7 +274,7 @@ reiser4_fs_t *reiser4_fs_create(
 	if (!(fs->master = reiser4_master_create(device, hint)))
 		goto error_free_fs;
 	
-	if (reiser4_fs_check_len(device, hint->blksize, hint->blocks))
+	if (reiser4_format_check_len(device, hint->blksize, hint->blocks))
 		goto error_free_master;
 
 	/* Setting up master super block. */

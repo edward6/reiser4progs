@@ -20,10 +20,8 @@ errno_t repair_fs_open(repair_data_t *repair,
 	aal_assert("vpf-159",  hdevice != NULL);
 	aal_assert("vpf-1556", jdevice != NULL);
 
-	len = aal_device_len(hdevice);
-	if (reiser4_fs_check_len(hdevice, 512, len)) {
-		fsck_mess("The given device '%s' is of %llu what is too "
-			  "small for the filesystem.", hdevice->name, len);
+	len = reiser4_format_len(hdevice, 512);
+	if (reiser4_format_check_len(hdevice, 512, len)) {
 		repair_error_count(repair, RE_FATAL);
 		return 0;
 	}

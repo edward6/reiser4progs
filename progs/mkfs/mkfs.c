@@ -424,8 +424,7 @@ int main(int argc, char *argv[]) {
 		}
     
 		/* Converting device length into fs blocksize blocks */
-		dev_len = aal_device_len(device) /
-			(hint.blksize / device->blksize);
+		dev_len = reiser4_format_len(device, hint.blksize);
     
 		if (!hint.blocks)
 			hint.blocks = dev_len;
