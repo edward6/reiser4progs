@@ -984,6 +984,7 @@ static reiser4_plug_t cde_short_plug = {
 };
 
 static reiser4_plug_t *cde_short_start(reiser4_core_t *c) {
+	core = c;
 	return &cde_short_plug;
 }
 
