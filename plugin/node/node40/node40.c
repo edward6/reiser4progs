@@ -269,8 +269,8 @@ static uint16_t node40_item_len(object_entity_t *entity,
   component of pos is set up the function will initialize item's key from the
   unit one.
 */
-static errno_t node40_get_item(object_entity_t *entity, pos_t *pos,
-			       item_entity_t *item)
+static errno_t node40_get_item(object_entity_t *entity,
+			       pos_t *pos, item_entity_t *item)
 {
 	rid_t pid;
 	node40_t *node;
@@ -298,9 +298,9 @@ static errno_t node40_get_item(object_entity_t *entity, pos_t *pos,
 	}
 
 	/* Initializing item's pos, body pointer and length */
-	item->pos = *pos;
 	item->len = node40_item_len(entity, pos);
 	item->body = node40_ib_at(node, pos->item);
+	aal_memcpy(&item->pos, pos, sizeof(pos_t));
 
 	return 0;
 }
@@ -388,7 +388,6 @@ static uint16_t node40_maxspace(object_entity_t *entity) {
 static uint32_t node40_size(node40_t *node, pos_t *pos,
 			    uint32_t count)
 {
-	int is_range;
 	uint32_t len;
 	uint32_t items;
 	
@@ -396,8 +395,8 @@ static uint32_t node40_size(node40_t *node, pos_t *pos,
 
 	items = nh40_get_num_items(node);
 
-	is_range = (pos->item + count <= items);
-	aal_assert("umka-1811", is_range);
+	aal_assert("umka-1811", pos->item +
+		   count <= items);
 	
 	cur = node40_ih_at(node, pos->item);
 
@@ -406,9 +405,7 @@ static uint32_t node40_size(node40_t *node, pos_t *pos,
 	else
 		len = nh40_get_free_space_start(node);
 
-	len -= ih40_get_offset(cur);
-
-	return len;
+	return len - ih40_get_offset(cur);
 }
 
 /*
@@ -1007,7 +1004,8 @@ static errno_t node40_shrink(object_entity_t *entity,
 			     len, count);
 }
 
-extern errno_t node40_check(object_entity_t *entity, uint8_t mode);
+extern errno_t node40_check(object_entity_t *entity,
+			    uint8_t mode);
 
 /* Returns node make stamp */
 static void node40_set_mstamp(object_entity_t *entity,

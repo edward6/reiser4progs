@@ -212,16 +212,6 @@ void reiser4_format_close(
 	aal_free(format);
 }
 
-/* Returns string described used disk-format */
-const char *reiser4_format_name(
-	reiser4_format_t *format)	/* disk-format to be inspected */
-{
-	aal_assert("umka-111", format != NULL);
-	
-	return plugin_call(format->entity->plugin->format_ops,
-			   name, format->entity);
-}
-
 /* Returns root block from passed disk-format */
 blk_t reiser4_format_get_root(
 	reiser4_format_t *format)	/* format to be used */
@@ -233,6 +223,16 @@ blk_t reiser4_format_get_root(
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Returns string described used disk-format */
+const char *reiser4_format_name(
+	reiser4_format_t *format)	/* disk-format to be inspected */
+{
+	aal_assert("umka-111", format != NULL);
+	
+	return plugin_call(format->entity->plugin->format_ops,
+			   name, format->entity);
+}
+
 blk_t reiser4_format_start(reiser4_format_t *format) {
 	aal_assert("umka-1693", format != NULL);
 	

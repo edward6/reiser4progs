@@ -1034,22 +1034,21 @@ struct reiser4_format_ops {
 	  blocks.
 	*/
 	errno_t (*valid) (object_entity_t *);
-#endif
-    
+
+	/* Returns the device disk-format lies on */
+	aal_device_t *(*device) (object_entity_t *);
+
 	/*
 	  Returns format string for this format. For example "reiserfs 4.0" ot
 	  something like this.
 	*/
 	const char *(*name) (object_entity_t *);
-
+#endif
 	/* 
 	   Called during filesystem opening (mounting). It reads format-specific
 	   super block and initializes plugins suitable for this format.
 	*/
 	object_entity_t *(*open) (aal_device_t *);
-    
-	/* Returns the device disk-format lies on */
-	aal_device_t *(*device) (object_entity_t *);
     
 	/*
 	  Closes opened or created previously filesystem. Frees all assosiated

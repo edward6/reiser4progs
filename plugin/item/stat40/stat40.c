@@ -20,10 +20,12 @@ errno_t stat40_traverse(item_entity_t *item,
 			stat40_ext_func_t ext_func,
 			void *data)
 {
-	uint8_t i;
-	stat40_t *stat;
-	uint16_t extmask;
+	uint16_t i;
+	uint16_t chunks;
 	uint16_t length;
+	uint16_t extmask;
+
+	stat40_t *stat;
 	sdext_entity_t sdext;
 
 	aal_assert("umka-1197", item != NULL);
@@ -31,7 +33,9 @@ errno_t stat40_traverse(item_entity_t *item,
     
 	stat = stat40_body(item);
 
+	chunks = 0;
 	extmask = 0;
+	
 	sdext.offset = 0;
 	sdext.body = item->body;
 
@@ -45,24 +49,25 @@ errno_t stat40_traverse(item_entity_t *item,
 		if (i == 0 || ((i + 1) % 16 == 0)) {
 
 			if (i > 0) {
-				if (!((1 << i) & extmask))
+				if (!((1 << (i - chunks)) & extmask))
 					break;
 			}
 			
 			extmask = *((uint16_t *)sdext.body);
 
 			/* Clear the last bit in last mask */
-			if (((uint64_t)1 << i) & 0x2f) {
+			if ((1 << (i - chunks)) & 0x2f) {
 				if (!(extmask & 0x8000))
 					extmask &= ~0x8000;
 			}
-			
-			sdext.offset += sizeof(d16_t);
+
+			chunks++;
 			sdext.body += sizeof(d16_t);
+			sdext.offset += sizeof(d16_t);
 		}
 
 		/* If extention is not present, we going to the next one */
-		if (!(((uint64_t)1 << i) & extmask))
+		if (!((1 << (i - (chunks - 1))) & extmask))
 			continue;
 
 		/* Getting extention plugin from the plugin factory */
@@ -81,9 +86,10 @@ errno_t stat40_traverse(item_entity_t *item,
 
 		length = plugin_call(sdext.plugin->sdext_ops, length, 
 				     sdext.body);
+
 		/* Calculating the pointer to the next extention body */
-		sdext.offset += length;
 		sdext.body += length;
+		sdext.offset += length;
 	}
     
 	return 0;
@@ -101,7 +107,7 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 	stat_hint = hint->type_specific;
 
 	/* Reading mask into hint */
-	stat_hint->extmask |= 1 << sdext->plugin->h.id;
+	stat_hint->extmask |= ((uint64_t)1 << sdext->plugin->h.id);
 
 	/* We load @ext if its hint present in item hint */
 	if (stat_hint->ext[sdext->plugin->h.id]) {
@@ -150,7 +156,7 @@ static errno_t stat40_init(item_entity_t *item) {
 static errno_t stat40_estimate(item_entity_t *item, uint32_t pos,
 			       uint32_t count, create_hint_t *hint) 
 {
-	uint8_t i;
+	uint16_t i;
 	statdata_hint_t *stat_hint;
     
 	aal_assert("vpf-074", hint != NULL);
@@ -206,7 +212,7 @@ static errno_t stat40_insert(item_entity_t *item,
 			     create_hint_t *hint,
 			     uint32_t pos)
 {
-	uint8_t i;
+	uint16_t i;
 	body_t *extbody;
 	statdata_hint_t *stat_hint;
     
@@ -397,7 +403,8 @@ static errno_t callback_print_ext(sdext_entity_t *sdext,
 	aal_stream_format(stream, "offset:\t\t%u\n",
 			  sdext->offset);
 	
-	length = plugin_call(sdext->plugin->sdext_ops, length, sdext->body);
+	length = plugin_call(sdext->plugin->sdext_ops,
+			     length, sdext->body);
 	
 	aal_stream_format(stream, "len:\t\t%u\n", length);
 	

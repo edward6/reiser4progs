@@ -118,7 +118,6 @@ static char *direntry40_get_name(item_entity_t *item,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /*
   Calculates entry length. This function is widely used in shift code and
   modification code.
@@ -148,7 +147,6 @@ static uint32_t direntry40_get_len(item_entity_t *item,
 	
 	return len;
 }
-
 #endif
 
 /* Returns the number of usets passed direntry item contains */

@@ -26,6 +26,11 @@ static uint64_t format40_get_root(object_entity_t *entity) {
 	return get_sb_root_block(SUPER(entity));
 }
 
+static uint16_t format40_get_height(object_entity_t *entity) {
+	aal_assert("umka-1123", entity != NULL);
+	return get_sb_tree_height(SUPER(entity));
+}
+
 #ifndef ENABLE_STAND_ALONE
 static uint64_t format40_get_len(object_entity_t *entity) {
 	aal_assert("umka-401", entity != NULL);
@@ -55,14 +60,6 @@ static uint64_t format40_begin(object_entity_t *entity) {
 	
 	return FORMAT40_OFFSET / format->device->blocksize;
 }
-#endif
-
-static uint16_t format40_get_height(object_entity_t *entity) {
-	aal_assert("umka-1123", entity != NULL);
-	return get_sb_tree_height(SUPER(entity));
-}
-
-#ifndef ENABLE_STAND_ALONE
 
 static int format40_isdirty(object_entity_t *entity) {
 	aal_assert("umka-2078", entity != NULL);
@@ -151,15 +148,14 @@ static errno_t format40_super_check(format40_super_t *super,
 	return 0;
 }
 
+static aal_device_t *format40_device(object_entity_t *entity) {
+	return ((format40_t *)entity)->device;
+}
 #endif
 
 static int format40_magic(format40_super_t *super) {
 	return aal_strncmp(super->sb_magic, FORMAT40_MAGIC, 
 			   aal_strlen(FORMAT40_MAGIC)) == 0;
-}
-
-static aal_device_t *format40_device(object_entity_t *entity) {
-	return ((format40_t *)entity)->device;
 }
 
 static errno_t format40_super_open(format40_t *format) {
@@ -357,17 +353,16 @@ static void format40_oid(object_entity_t *entity,
 		&(SUPER(entity)->sb_oid);
 }
 
-static const char *formats[] = {"format40"};
-
-static const char *format40_name(object_entity_t *entity) {
-	return formats[0];
-}
-
 static rid_t format40_oid_pid(object_entity_t *entity) {
 	return OID_REISER40_ID;
 }
 
 #ifndef ENABLE_STAND_ALONE
+static const char *formats[] = {"format40"};
+
+static const char *format40_name(object_entity_t *entity) {
+	return formats[0];
+}
 
 static rid_t format40_journal_pid(object_entity_t *entity) {
 	return JOURNAL_REISER40_ID;
@@ -512,10 +507,8 @@ static reiser4_plugin_t format40_plugin = {
 			.desc = ""
 #endif
 		},
-		.open		= format40_open,
-		.device		= format40_device,
-		
 #ifndef ENABLE_STAND_ALONE
+		.device		= format40_device,
 		.valid		= format40_valid,
 		.check		= format40_check,
 		.sync		= format40_sync,
@@ -529,10 +522,11 @@ static reiser4_plugin_t format40_plugin = {
 		.confirm	= format40_confirm,
 		.update		= format40_update,
 		.start		= format40_begin,
+		.name		= format40_name,
 #endif
+		.open		= format40_open,
 		.oid	        = format40_oid,
 		.close		= format40_close,
-		.name		= format40_name,
 
 		.get_root	= format40_get_root,
 		.get_height	= format40_get_height,
