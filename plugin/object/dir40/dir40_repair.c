@@ -180,7 +180,7 @@ static lookup_t dir40_search(dir40_t *dir) {
 		
 		if (dir->body.pos.unit >= units) {
 			/* Getting next directory item */
-			if ((res = dir40_next(dir, 0)) < 0)
+			if ((res = dir40_next(dir)) < 0)
 				return res;
 			
 			/* No more items in the tree. */

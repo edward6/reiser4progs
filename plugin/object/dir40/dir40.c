@@ -135,7 +135,7 @@ errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry) {
 
 /* Switches current dir body item onto next one. Returns PRESENT on success,
    ABSENT in the case of directory is over and values < 0 on error. */
-lookup_t dir40_next(dir40_t *dir, bool_t check) {
+lookup_t dir40_next(dir40_t *dir) {
 	lookup_t res;
 	reiser4_place_t place;
 
@@ -143,7 +143,7 @@ lookup_t dir40_next(dir40_t *dir, bool_t check) {
 
 	/* Getting next directory item coord. */
 	if ((res = dir40_core->tree_ops.next(dir->obj.info.tree,
-					&dir->body, &place)))
+					     &dir->body, &place)))
 	{
 		return res;
 	}
@@ -221,7 +221,7 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 		dir->body.pos.unit += off - 1;
 
 		if ((adjust -= off) > 0) {
-			if ((res = dir40_next(dir, 1)) < 0)
+			if ((res = dir40_next(dir)) < 0)
 				return res;
 
 			if (res == ABSENT)
@@ -286,7 +286,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	/* Getting next entry in odrer to set up @dir->position correctly. */
 	if (++dir->body.pos.unit >= units) {
 		/* Switching to the next directory item */
-		if ((res = dir40_next(dir, 1)) < 0)
+		if ((res = dir40_next(dir)) < 0)
 			return res;
 	} else {
 		/* There is no needs to switch */
@@ -387,7 +387,7 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 
 		if (dir->body.pos.unit >= units) {
 			/* Getting next item. */
-			if ((res = dir40_next(dir, 1)) < 0)
+			if ((res = dir40_next(dir)) < 0)
 				return res;
 
 			/* Directory is over? */
@@ -1002,7 +1002,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 		}
 
 		/* Getting next directory item. */
-		if ((res = dir40_next(dir, 1)) < 0)
+		if ((res = dir40_next(dir)) < 0)
 			return res;
 
 		/* Directory is over? */
@@ -1045,7 +1045,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 			return res;
 
 		/* Getting next item. */
-		if ((res = dir40_next(dir, 1)) < 0)
+		if ((res = dir40_next(dir)) < 0)
 			return res;
 		
 		if (res == ABSENT)
