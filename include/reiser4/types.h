@@ -371,12 +371,6 @@ typedef errno_t (*traverse_edge_func_t) (reiser4_node_t *, void *);
 /* Callback function type for preparing per-item traverse data. */
 typedef errno_t (*traverse_setup_func_t) (reiser4_place_t *, void *);
 
-/* Function type for node open functions */
-typedef reiser4_node_t *(open_func_t) (aal_device_t *, blk_t, void *);
-
-/* Function type for node close functions */
-typedef void (close_func_t) (reiser4_node_t *, void *);
-
 /* Filesystem compound structure */
 struct reiser4_fs {
     
