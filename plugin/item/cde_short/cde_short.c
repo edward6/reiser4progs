@@ -52,6 +52,32 @@ errno_t cde_short_get_key(place_t *place, uint32_t pos,
 	return 0;
 }
 
+/* Set the key for the entry->offset. It is needed for fixing entry 
+   keys if repair code detects it is wrong. */
+errno_t cde_short_set_key(place_t *place, uint32_t pos,
+			  key_entity_t *key)
+{
+	oid_t objectid, offset;
+	entry_t *entry;
+
+	aal_assert("vpf-1228", key != NULL);
+	aal_assert("vpf-1229", place != NULL);
+	aal_assert("vpf-1230", place->body != NULL);
+	
+	entry = &cde_short_body(place)->entry[pos];
+	
+	objectid = plug_call(place->key.plug->o.key_ops,
+			     get_fobjectid, &place->key);
+	
+	offset = plug_call(place->key.plug->o.key_ops,
+			   get_offset, &place->key);
+
+	ha_set_objectid(&entry->hash, objectid);
+	ha_set_offset(&entry->hash, offset);
+	
+	return 0;
+}
+
 /* Extracts entry name from the passed @entry to passed @buff */
 static char *cde_short_get_name(place_t *place, uint32_t pos,
 				char *buff, uint32_t len)
@@ -956,7 +982,7 @@ static reiser4_item_ops_t cde_short_ops = {
 	.estimate_shift    = cde_short_estimate_shift,
 	.estimate_insert   = cde_short_estimate_insert,
 		
-	.set_key	   = NULL,
+	.set_key	   = cde_short_set_key,
 	.layout		   = NULL,
 	.check_layout	   = NULL,
 #endif

@@ -55,6 +55,36 @@ errno_t cde_large_get_key(place_t *place, uint32_t pos,
 	return 0;
 }
 
+/* Set the key for the entry->offset. It is needed for fixing entry 
+   keys if repair code detects it is wrong. */
+errno_t cde_large_set_key(place_t *place, uint32_t pos,
+			  key_entity_t *key)
+{
+	oid_t ordering, objectid, offset;
+	entry_t *entry;
+
+	aal_assert("vpf-1228", key != NULL);
+	aal_assert("vpf-1229", place != NULL);
+	aal_assert("vpf-1230", place->body != NULL);
+	
+	entry = &cde_large_body(place)->entry[pos];
+	
+	objectid = plug_call(place->key.plug->o.key_ops,
+			     get_fobjectid, &place->key);
+	
+	ordering = plug_call(place->key.plug->o.key_ops,
+			     get_ordering, &place->key);
+
+	offset = plug_call(place->key.plug->o.key_ops,
+			   get_offset, &place->key);
+
+	ha_set_ordering(&entry->hash, ordering);
+	ha_set_objectid(&entry->hash, objectid);
+	ha_set_offset(&entry->hash, offset);
+	
+	return 0;
+}
+
 /* Extracts entry name from the passed @entry to passed @buff */
 static char *cde_large_get_name(place_t *place, uint32_t pos,
 				char *buff, uint32_t len)
@@ -651,11 +681,10 @@ static errno_t cde_large_insert(place_t *place,
 	cde = cde_large_body(place);
 	entry_hint = (entry_hint_t *)hint->type_specific;
 
-	/* Expanding cde in order to prepare the room for new entries. The
-	   function cde_large_expand returns the offset of where new unit will
-	   be inserted at. */
-	offset = cde_large_expand(place, pos, hint->count,
-				  hint->len);
+	/* Expanding cde in order to prepare the room for new entries. 
+	   The function cde_large_expand returns the offset of where 
+	   new unit will be inserted at. */
+	offset = cde_large_expand(place, pos, hint->count, hint->len);
 	
 	/* Creating new entries */
 	for (i = 0, entry = &cde->entry[pos];
@@ -671,8 +700,7 @@ static errno_t cde_large_insert(place_t *place,
 
 		entid = (hash_t *)&entry->hash;
 
-		objid = (objid_t *)((void *)cde +
-				    offset);
+		objid = (objid_t *)((void *)cde + offset);
 		
 		/* Setting up the offset of new entry */
 		en_set_offset(entry, offset);
@@ -681,28 +709,21 @@ static errno_t cde_large_insert(place_t *place,
 		hash = &entry_hint->offset;
 		
 		/* Creating proper entry ordering */
-		ord = plug_call(hash->plug->o.key_ops,
-				get_ordering, hash);
-		
+		ord = plug_call(hash->plug->o.key_ops, get_ordering, hash);
 		ha_set_ordering(entid, ord);
 		
 		/* Creating proper entry hash */
-		oid = plug_call(hash->plug->o.key_ops,
-				get_fobjectid, hash);
-		
+		oid = plug_call(hash->plug->o.key_ops, get_fobjectid, hash);
 		ha_set_objectid(entid, oid);
 
 		/* Setting up offset component */
-		off = plug_call(hash->plug->o.key_ops,
-				get_offset, hash);
-
+		off = plug_call(hash->plug->o.key_ops, get_offset, hash);
 		ha_set_offset(entid, off);
 
 		/* Setting up all objid components */
 		object = &entry_hint->object;
 		
-		aal_memcpy(objid, object->body,
-			   sizeof(*objid));
+		aal_memcpy(objid, object->body, sizeof(*objid));
 
 		offset += sizeof(objid_t);
 
@@ -978,7 +999,7 @@ static reiser4_item_ops_t cde_large_ops = {
 	.estimate_shift    = cde_large_estimate_shift,
 	.estimate_insert   = cde_large_estimate_insert,
 		
-	.set_key	   = NULL,
+	.set_key	   = cde_large_set_key,
 	.layout		   = NULL,
 	.check_layout	   = NULL,
 #endif

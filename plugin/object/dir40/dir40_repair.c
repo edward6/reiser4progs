@@ -18,6 +18,8 @@ extern errno_t dir40_reset(object_entity_t *entity);
 extern lookup_t dir40_lookup(object_entity_t *entity, char *name, 
 			     entry_hint_t *entry);
 extern errno_t dir40_readdir(object_entity_t *entity, entry_hint_t *entry);
+extern errno_t dir40_rem_entry(object_entity_t *entity, entry_hint_t *entry);
+extern uint32_t dir40_estimate(object_entity_t *entity, entry_hint_t *entry);
 
 #define known_extentions ((uint64_t)1 << SDEXT_UNIX_ID | 	\
 			  	    1 << SDEXT_LW_ID |		\
@@ -120,7 +122,6 @@ errno_t dir40_check_struct(object_entity_t *object,
 	reiser4_plug_t *bplug;
 	object_info_t *info;
 	errno_t res = RE_OK;
-	key_entity_t key;
 	lookup_t lookup;
 	
 	aal_assert("vpf-1224", dir != NULL);
@@ -157,11 +158,6 @@ errno_t dir40_check_struct(object_entity_t *object,
                 return -EINVAL;
         }
 	
-	/* Build the start key of the body. */
-	plug_call(info->object.plug->o.key_ops, build_entry,
-		  &key, dir->hash, obj40_locality(&dir->obj),
-		  obj40_objectid(&dir->obj), ".");
-
 	size = 0; bytes = 0; 
 	
 	/* FIXME-VITALY: this probably should be changed. Now hash plug
@@ -171,6 +167,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 	   times and correct hash plugin in SD. */
 	while (TRUE) {
 		entry_hint_t entry;
+		key_entity_t key;
 		
 		if (dir40_readdir(object, &entry))
 			break;
@@ -185,17 +182,53 @@ errno_t dir40_check_struct(object_entity_t *object,
 		if (place_func && place_func(object, &dir->body, data))
 			return -EINVAL;
 		
+		/* Check that entry is valid. */
+		plug_call(entry.offset.plug->o.key_ops, build_entry, 
+			  &key, dir->hash, obj40_locality(&dir->obj),
+			  obj40_objectid(&dir->obj), entry.name);
 		
+		if (plug_call(key.plug->o.key_ops, compfull, 
+			      &key, &entry.offset))
+		{
+			/* Offset key does not match. Remove the entry. */
+			aal_exception_error("Directory [%s], plugin %s, node "
+					    "[%llu], item [%u], unit [%u]: "
+					    "entry has wrong offset [%s]. "
+					    "Should be [%s]. %s",
+					    print_ino(core, &info->object),
+					    dir40_plug.label, 
+					    dir->body.block->nr,
+					    dir->body.pos.item, 
+					    dir->body.pos.unit,
+					    print_key(core, &entry.offset),
+					    print_key(core, &key), 
+					    mode == RM_BUILD ? 
+					    "Removed." : "");
+
+			if ((mode == RM_BUILD) && 
+			    (res = dir40_rem_entry(object, &entry))) {
+				aal_exception_error("Directory [%s], plugin %s,"
+						    " node [%llu], item [%u], "
+						    "unit [%u]: failed to "
+						    "remove the entry.",
+						    print_ino(core, &info->object),
+						    dir40_plug.label,
+						    dir->body.block->nr,
+						    dir->body.pos.item, 
+						    dir->body.pos.unit);
+				return res;
+			} else {
+				res |= RE_FATAL;
+			}
+		}
 		
 		/* Count size and bytes. */
-		size += plug_call(dir->body.plug->o.item_ops, 
-					  size, &dir->body);
-		
-		bytes += plug_call(dir->body.plug->o.item_ops, 
-				   bytes, &dir->body);
+		size++;
+		bytes += dir40_estimate(object, &entry); 
 	}
 	
 	/* Take care about "." */
+//	dir40_insert_dot();
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	if (!(res & RE_FATAL))

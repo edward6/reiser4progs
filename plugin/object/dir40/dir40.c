@@ -700,9 +700,7 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 }
 
 /* Estimates directory operations (add_entry, rem_entry) */
-static uint32_t dir40_estimate(object_entity_t *entity, 
-			       entry_hint_t *entry)
-{
+uint32_t dir40_estimate(object_entity_t *entity, entry_hint_t *entry) {
 	dir40_t *dir;
 	create_hint_t hint;
 
@@ -800,9 +798,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 }
 
 /* Removing entry from the directory */
-static errno_t dir40_rem_entry(object_entity_t *entity,
-			       entry_hint_t *entry)
-{
+errno_t dir40_rem_entry(object_entity_t *entity, entry_hint_t *entry) {
 	errno_t res;
 	dir40_t *dir;
 	place_t place;
