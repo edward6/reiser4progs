@@ -304,6 +304,7 @@ extern errno_t tail40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
 #endif
 
 static reiser4_item_ops_t tail40_ops = {
+#ifndef ENABLE_STAND_ALONE
 	.init	        = tail40_init,
 	.copy	        = tail40_copy,
 	.write	        = tail40_write,
@@ -311,10 +312,10 @@ static reiser4_item_ops_t tail40_ops = {
 	.print	        = tail40_print,
 	.predict        = tail40_predict,
 	.shift	        = tail40_shift,		
+
 	.feel_copy      = tail40_feel_copy,
-		
 	.maxreal_key    = tail40_maxreal_key,
-		
+
 	.check	        = NULL,
 	.insert         = NULL,
 	.estimate       = NULL,
@@ -322,7 +323,7 @@ static reiser4_item_ops_t tail40_ops = {
 	.layout	        = NULL,
 	.layout_check   = NULL,
 	.branch         = NULL,
-
+#endif
 	.units	        = tail40_units,
 	.lookup	        = tail40_lookup,
 	.read	        = tail40_read,

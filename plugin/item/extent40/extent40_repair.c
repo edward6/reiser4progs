@@ -83,7 +83,8 @@ errno_t extent40_copy(item_entity_t *dst, uint32_t dst_pos,
 errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos, 
     item_entity_t *src, uint32_t src_pos, copy_hint_t *hint)
 {
-    uint64_t src_start, dst_start, dst_min, dst_max, src_min, src_max, src_end;
+    uint64_t dst_max, src_min, src_max, src_end;
+    uint64_t src_start, dst_start, dst_min;
     extent40_t *dst_body, *src_body;
     key_entity_t key;
     lookup_t lookup;
@@ -101,9 +102,9 @@ errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
     src_body = extent40_body(src);
     
     /* Getting src_start, dst_start, src_max, dst_max, dst_min and src_min. */
-    
     src_end = plugin_call(hint->end.plugin->o.key_ops, get_offset, &hint->end) + 1;
     src_start = plugin_call(hint->start.plugin->o.key_ops, get_offset, &hint->start);
+
     src_min = plugin_call(src->key.plugin->o.key_ops, get_offset, &src->key);
     
     if ((res = extent40_maxposs_key(src, &key)))
@@ -142,8 +143,8 @@ errno_t extent40_feel_copy(item_entity_t *dst, uint32_t dst_pos,
 	return 0;
     }
     
+    dst_min = plugin_call(dst->key.plugin->o.key_ops, get_offset, &dst->key);
     dst_start = extent40_offset(dst, dst_pos) + dst_min;    
-    dst_min = plugin_call(dst->key.plugin->o.key_ops, get_offset, &dst->key);    
     
     aal_assert("vpf-997", dst_start % b_size == 0);
     aal_assert("vpf-1010", dst_start < dst_max);

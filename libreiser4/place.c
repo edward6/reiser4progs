@@ -66,7 +66,6 @@ bool_t reiser4_place_ltlast(reiser4_place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Returns TRUE if passed @place points to left delimiting item */
 bool_t reiser4_place_leftmost(reiser4_place_t *place) {
 	aal_assert("umka-1862", place != NULL);
@@ -119,10 +118,7 @@ errno_t reiser4_place_realize(reiser4_place_t *place) {
 		return res;
 	}
 	
-	if ((res = reiser4_key_guess(&place->item.key)))
-		return res;
-
-	return 0;
+	return reiser4_key_guess(&place->item.key);
 }
 
 /* This function initializes passed @place by specified params */
