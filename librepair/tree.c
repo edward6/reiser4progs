@@ -194,7 +194,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
     if (reiser4_item_branch(src))
 	return -EINVAL;
 		
-    if ((ret = reiser4_item_utmost_key(src, &max_real_key)))
+    if ((ret = reiser4_item_maxreal_key(src, &max_real_key)))
 	return ret;
     
     while (1) {
