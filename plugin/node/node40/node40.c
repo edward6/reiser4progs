@@ -353,6 +353,38 @@ static errno_t node40_item(item_entity_t *item,
 #ifndef ENABLE_ALONE
 
 /*
+  Calculates size of a region denoted by @pos and @count. This is used by
+  node40_rep, node40_remove, etc.
+*/
+static uint32_t node40_size(node40_t *node, rpos_t *pos,
+			    uint32_t count)
+{
+	int is_range;
+	uint32_t len;
+	uint32_t items;
+	
+	item40_header_t *cur;
+	item40_header_t *end;
+
+	items = nh40_get_num_items(node);
+
+	is_range = (pos->item + count <= items);
+	aal_assert("umka-1811", is_range);
+	
+	end = node40_ih_at(node, items - 1);
+	cur = node40_ih_at(node, pos->item);
+
+	if (pos->item + count < items)
+		len = ih40_get_offset(cur - count);
+	else
+		len = nh40_get_free_space_start(node);
+
+	len -= ih40_get_offset(cur);
+
+	return len;
+}
+
+/*
   Makes expand passed @node by @len in odrer to make room for insert new
   items/units. This function is used by insert and shift methods.
 */
@@ -497,9 +529,9 @@ static errno_t node40_cutout(node40_t *node, rpos_t *pos,
 			dst = node40_ib_at(node, pos->item);
 			src = node40_ib_at(node, pos->item + count);
 
-			size = nh40_get_free_space_start(node) - len -
-				sizeof(node40_header_t);
-
+			size = node40_size(node, pos, items -
+					   pos->item) - len;
+ 
 			aal_memmove(dst, src, size);
 
 			/* Moving item headers */
@@ -553,38 +585,6 @@ static errno_t node40_cutout(node40_t *node, rpos_t *pos,
 
 	nh40_dec_free_space_start(node, len);
 	return 0;
-}
-
-/*
-  Calculates size of a region denoted by @pos and @count. This is used by
-  node40_rep, node40_remove, etc.
-*/
-static uint32_t node40_size(node40_t *node, rpos_t *pos,
-			    uint32_t count)
-{
-	int is_range;
-	uint32_t len;
-	uint32_t items;
-	
-	item40_header_t *cur;
-	item40_header_t *end;
-
-	items = nh40_get_num_items(node);
-
-	is_range = (pos->item + count <= items);
-	aal_assert("umka-1811", is_range);
-	
-	end = node40_ih_at(node, items - 1);
-	cur = node40_ih_at(node, pos->item);
-
-	if (pos->item + count < items)
-		len = ih40_get_offset(cur - count);
-	else
-		len = nh40_get_free_space_start(node);
-
-	len -= ih40_get_offset(cur);
-
-	return len;
 }
 
 /* Makes copy of @count items from @src_node to @dst_node */

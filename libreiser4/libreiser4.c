@@ -46,9 +46,9 @@ void libreiser4_set_abort(reiser4_abort_t func) {
 }
 
 /* 
-   Initializing the libreiser4 core instance. It will be passed into all plugins
-   in otder to let them ability access libreiser4 methods such as insert or
-   remove an item from the tree.
+  Initializing the libreiser4 core instance. It will be passed into all plugins
+  in otder to let them ability access libreiser4 methods such as insert or
+  remove an item from the tree.
 */
 
 /* Handler for plugin finding requests from all plugins */

@@ -233,8 +233,8 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 	if (!parent || !(node = reiser4_node_cbp(parent, blk))) {
 		
 		if (!(node = reiser4_node_open(device, blk))) {
-			aal_exception_error("Can't read block %llu. %s.",
-					    blk, device->error);
+			aal_exception_error("Can't open node %llu.",
+					    blk);
 			return NULL;
 		}
 		

@@ -688,7 +688,7 @@ errno_t reiser4_node_shift(
 
 		if (reiser4_node_uchildren(neig, &pos))
 			return -1;
-
+		
 		/* Updating @node starting from the first item */
 		POS_INIT(&pos, 0, ~0ul);
 		
