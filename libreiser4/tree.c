@@ -580,25 +580,22 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 static errno_t reiser4_tree_alloc_nodeptr(reiser4_tree_t *tree,
 					  reiser4_place_t *place)
 {
-	place_t nptr;
-	ptr_hint_t ptr;
 	uint32_t units;
+	ptr_hint_t ptr;
 	trans_hint_t hint;
 	reiser4_node_t *child;
 	
-	aal_memcpy(&nptr, place, sizeof(nptr));
-	
 	units = plug_call(place->plug->o.item_ops,
-			  units, &nptr);
+			  units, (place_t *)place);
 
-	for (nptr.pos.unit = 0; nptr.pos.unit < units;
-	     nptr.pos.unit++)
+	for (place->pos.unit = 0; place->pos.unit < units;
+	     place->pos.unit++)
 	{
 		hint.count = 1;
 		hint.specific = &ptr;
 		
-		if (plug_call(nptr.plug->o.item_ops,
-			      fetch, &nptr, &hint) != 1)
+		if (plug_call(place->plug->o.item_ops, fetch,
+			      (place_t *)place, &hint) != 1)
 		{
 			return -EIO;
 		}
@@ -629,8 +626,8 @@ static errno_t reiser4_tree_alloc_nodeptr(reiser4_tree_t *tree,
 		ptr.width = 1;
 		hint.specific = &ptr;
 
-		if (plug_call(place->plug->o.item_ops,
-			      update, &nptr, &hint) != 1)
+		if (plug_call(place->plug->o.item_ops, update,
+			      (place_t *)place, &hint) != 1)
 		{
 			return -EIO;
 		}
@@ -647,28 +644,28 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 					 reiser4_place_t *place)
 {
 	errno_t res;
-	place_t eptr;
 	ptr_hint_t ptr;
 	uint32_t units;
+	uint32_t blksize;
 	trans_hint_t hint;
 
-	aal_memcpy(&eptr, place, sizeof(eptr));
+	units = plug_call(place->plug->o.item_ops,
+			  units, (place_t *)place);
 
-	units = plug_call(eptr.plug->o.item_ops,
-			  units, &eptr);
-
-	for (eptr.pos.unit = 0; eptr.pos.unit < units;
-	     eptr.pos.unit++)
+	blksize = reiser4_master_blksize(tree->fs->master);
+	
+	for (place->pos.unit = 0; place->pos.unit < units;
+	     place->pos.unit++)
 	{
 		uint64_t width;
 		uint64_t blocks;
 		uint64_t offset;
-		
+
 		hint.count = 1;
 		hint.specific = &ptr;
 		
-		if (plug_call(eptr.plug->o.item_ops,
-			      fetch, &eptr, &hint) != 1)
+		if (plug_call(place->plug->o.item_ops, fetch,
+			      (place_t *)place, &hint) != 1)
 		{
 			return -EIO;
 		}
@@ -695,79 +692,79 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 				return -ENOSPC;
 			}
 
-			plug_call(eptr.plug->o.item_ops, get_key,
-				  &eptr, &key);
+			plug_call(place->plug->o.item_ops, get_key,
+				  (place_t *)place, &key);
 			
 			if (first) {
 				/* Updating extent item data */
-				if (plug_call(eptr.plug->o.item_ops,
-					      update, &eptr, &hint) != 1)
+				if (plug_call(place->plug->o.item_ops, update,
+					      (place_t *)place, &hint) != 1)
 				{
 					return -EIO;
 				}
 			} else {
 				errno_t res;
 				uint32_t level;
-				
-				units++;
-				eptr.pos.unit++;
+				reiser4_place_t iplace;
+
+				iplace = *place;
+				iplace.pos.unit++;
 
 				/* Insert new extent units */
-				place = (reiser4_place_t *)&eptr;
-				level = reiser4_node_get_level(place->node);
+				level = reiser4_node_get_level(iplace.node);
 				
-				if ((res = reiser4_tree_insert(tree, place,
+				if ((res = reiser4_tree_insert(tree, &iplace,
 							       &hint, level)))
 				{
 					return res;
 				}
 
-				/* Updating place after possible balancing */
-				reiser4_tree_lookup(tree, &eptr.key, level,
-						    READ, (reiser4_place_t *)&eptr);
+                                /* Updating @place by insert point, as it might
+				   be moved due to balancing. */
+				*place = iplace;
+				place->pos.unit--;
 
+				/* Updating key by allocated blocks in order to
+				   keep it in correspondence to right data
+				   block. */
 				offset = plug_call(key.plug->o.key_ops,
 						   get_offset, &key);
 
-				offset += (blocks * tree->fs->device->blksize);
-				
-				plug_call(key.plug->o.key_ops, set_offset, &key,
-					  offset);
+				plug_call(key.plug->o.key_ops, set_offset,
+					  &key, offset + (blocks * blksize));
+
+				units++;
 			}
 
+			/* Moving data blocks to right places, saving them and
+			   releasing from the cache. */
 			for (blk = ptr.start, i = 0;
 			     i < ptr.width; i++, blk++)
 			{
-				/* Allocating data blocks */
+				/* Getting data block by @key */
 				block = aal_hash_table_lookup(tree->data, &key);
-				
-				if (block == NULL) {
-					char *keyptr = reiser4_print_key(&key,
-									 PO_DEF);
-					
-					aal_exception_error("Can't find data "
-							    "block for key "
-							    "%s.", keyptr);
-					return -EIO;
-				}
 
+				aal_assert("umka-2452", block != NULL);
+
+				/* Moving block tro @blk */
 				aal_block_move(block, tree->fs->device, blk);
-				
+
+				/* Saving block to device. */
 				if ((res = aal_block_write(block))) {
 					aal_exception_error("Can't write block "
 							    "%llu.", block->nr);
 					return res;
 				}
 
+				/* Releasing cache entry */
 				aal_hash_table_remove(tree->data, &key);
-				
+
+				/* Updating the key to find next data block */
 				offset = plug_call(key.plug->o.key_ops,
 						   get_offset, &key);
 
-				offset += reiser4_master_blksize(tree->fs->master);
-				
 				plug_call(key.plug->o.key_ops, set_offset,
-					  &key, offset);
+					  &key, offset + blksize);
 			}
 			
 			first = 0;
