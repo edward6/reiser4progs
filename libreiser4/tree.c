@@ -1910,7 +1910,7 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, place_t *place,
 		if (update->p.node) {
 			place_t p;
 
-			/* Getting leftmost key from @update.  */
+			/* Getting leftmost key from @update. */
 			reiser4_node_leftmost_key(update, &lkey);
 
 			/* Recursive updating of all internal keys that supposed
@@ -1932,35 +1932,6 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, place_t *place,
 	
 		if ((res = reiser4_tree_update_node(tree, neig)))
 			return res;
-	}
-	
-	return 0;
-}
-
-/* Takes care about @left and @right nodes after shifting data to right node if
-   it was new allocated one. */
-static errno_t reiser4_tree_care(reiser4_tree_t *tree,
-				 node_t *left, node_t *right)
-{
-	errno_t res;
-	
-	if (reiser4_tree_root_node(tree, left)) {
-		/* Growing the tree in the case we splitted the root node. Root
-		   node has not parent. */
-		if ((res = reiser4_tree_growup(tree)))
-			return res;
-	} else {
-		/* Releasing old node, because it got empty as result of data
-		   shifting. */
-		if (reiser4_node_items(left) == 0)
-			reiser4_tree_discard_node(tree, left);
-	}
-
-	/* Attaching new allocated node into the tree, if it is not
-	   empty. */
-	if (reiser4_node_items(right) > 0) {
-		/* Attaching new node to the tree. */
-		return reiser4_tree_attach_node(tree, right);
 	}
 	
 	return 0;
@@ -2096,8 +2067,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 			return -ENOSPC;
 
 		/* Setting up shift flags */
-		alloc_flags = (SF_ALLOW_RIGHT | SF_UPDATE_POINT |
-			       SF_ALLOW_MERGE);
+		alloc_flags = (SF_ALLOW_RIGHT | SF_UPDATE_POINT);
 
 		if (SF_ALLOW_MERGE & flags)
 			alloc_flags |= SF_ALLOW_MERGE;
@@ -2105,7 +2075,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 		/* We will allow to move insert point to neighbour node if we
 		   are at first iteration in this loop or if place points behind
 		   the last unit of last item in current node. */
-		if (alloc == 0 || !reiser4_place_ltlast(place))
+		if (alloc > 0 || reiser4_place_rightmost(place))
 			alloc_flags |= SF_MOVE_POINT;
 
 		/* Shift data from @place to @node. Updating @place by new
@@ -2113,20 +2083,28 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 		if ((res = reiser4_tree_shift(tree, place, node, alloc_flags)))
 			return res;
 
-		/* Taking care about new allocated @node and possible gets free
-		   @save.node (attaching, detaching from the tree, etc.). */
-		if ((res = reiser4_tree_care(tree, save.node, node))) {
-			reiser4_tree_release_node(tree, node);
-			return res;
+		if (reiser4_tree_root_node(tree, save.node)) {
+			/* Growing the tree in the case we splitted the root
+			   node. Root node has not parent. */
+			if ((res = reiser4_tree_growup(tree)))
+				return res;
 		}
-
-		/* Checking if it is enough of space in @place */
+		
+		/* Attaching new allocated node into the tree, if it is not
+		   empty. */
+		if (reiser4_node_items(node) > 0) {
+			/* Attaching new node to the tree. */
+			if ((res = reiser4_tree_attach_node(tree, node)))
+				return res;
+		}
+		
+		/* Checking if it is enough of space in @place. */
 		enough = (reiser4_node_space(place->node) - needed);
 
-		/* If it is not enopugh the space and insert point was actually
+		/* If it is not enough of space and insert point was actually
 		   moved to neighbour node, we set @place to @save and give it
-		   yet another try to make space.*/
-		if (enough < 0 && place->node != save.node) {
+		   yet another try to make space. */
+		if (enough < 0 && save.node != place->node) {
 			*place = save;
 			enough = (reiser4_node_space(place->node) - needed);
 		}

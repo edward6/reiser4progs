@@ -51,7 +51,7 @@ bool_t reiser4_place_gtfirst(place_t *place) {
 	return place->pos.item > 0 || place->pos.unit > 0;
 }
 
-/* Returns TRUE if passed @place points to units that lies before the last units
+/* Returns TRUE if passed @place points to unit that lies before the last units
    of the last item in node. */
 bool_t reiser4_place_ltlast(place_t *place) {
 	uint32_t items = reiser4_node_items(place->node);
