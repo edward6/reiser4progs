@@ -30,9 +30,11 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 		lhint.correct_func = NULL;
 	
 		/* Looking for the place to read. */
-		res = reiser4_tree_lookup(tree, &lhint, FIND_EXACT, &place);
-		
-		if (res < 0) return res;
+		if ((res = reiser4_tree_lookup(tree, &lhint,
+					       FIND_EXACT, &place)) < 0)
+		{
+			return res;
+		}
 
 		/* Data does not found. This may mean, that we have hole in tree
 		   between keys. */
