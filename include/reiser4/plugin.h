@@ -14,7 +14,8 @@
 
 #include <aal/aal.h>
 
-#define LEAF_LEVEL	        (1)
+#define TMAX_LEVEL              5
+#define LEAF_LEVEL	        1
 #define TWIG_LEVEL	        (LEAF_LEVEL + 1)
 
 #define MASTER_MAGIC	        ("R4Sb")

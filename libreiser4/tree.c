@@ -1309,6 +1309,29 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	return -1;
 }
 
+/* Returns level in the tree, passed item @hint can lie on */
+static void reiser4_tree_level(reiser4_tree_t *tree,
+			       reiser4_item_hint_t *hint,
+			       uint8_t *top, uint8_t *bottom)
+{
+	aal_assert("umka-1871", tree != NULL);
+	aal_assert("umka-1872", hint != NULL);
+
+	switch (hint->plugin->h.group) {
+	case EXTENT_ITEM:
+		*top = TWIG_LEVEL;
+		*bottom = TWIG_LEVEL;
+		break;
+	case NODEPTR_ITEM:
+		*top = TMAX_LEVEL;
+		*bottom = TWIG_LEVEL;
+		break;
+	default:
+		*top = LEAF_LEVEL;
+		*bottom = LEAF_LEVEL;
+	}
+}
+
 /* Inserts new item described by item hint into the tree */
 errno_t reiser4_tree_insert(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
@@ -1347,27 +1370,34 @@ errno_t reiser4_tree_insert(
 	  If so, we are taking care about it here.
 	*/
 	if (reiser4_format_get_root(tree->fs->format) == INVAL_BLK) {
+		uint8_t top, bottom;
 
 		if (reiser4_tree_alroot(tree))
 			return -1;
 
-		/*
-		  FIXME-UMKA: This does not satisfy the case when we should
-		  insert a nodeptr item into the tree when it is empty.
-		*/
-		if (!(coord->node = reiser4_tree_alloc(tree, LEAF_LEVEL)))
-			return -1;
-		
-		POS_INIT(&coord->pos, 0, ~0ul);
-		
-		if (reiser4_node_insert(coord->node, &coord->pos, hint)) {
-			reiser4_tree_release(tree, coord->node);
-			return -1;
-		}
+		reiser4_tree_level(tree, hint, &top, &bottom);
 
-		if (reiser4_tree_attach(tree, coord->node)) {
-			reiser4_tree_release(tree, coord->node);
-			return -1;
+		if (top == LEAF_LEVEL && bottom == LEAF_LEVEL) {
+			if (!(coord->node = reiser4_tree_alloc(tree, LEAF_LEVEL)))
+				return -1;
+		
+			POS_INIT(&coord->pos, 0, ~0ul);
+		
+			if (reiser4_node_insert(coord->node, &coord->pos, hint)) {
+				reiser4_tree_release(tree, coord->node);
+				return -1;
+			}
+
+			if (reiser4_tree_attach(tree, coord->node)) {
+				reiser4_tree_release(tree, coord->node);
+				return -1;
+			}
+		} else {
+			coord->node = tree->root;
+			POS_INIT(&coord->pos, 0, ~0ul);
+			
+			if (reiser4_node_insert(coord->node, &coord->pos, hint))
+				return -1;
 		}
 
 		return 0;
