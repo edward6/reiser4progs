@@ -6,7 +6,7 @@
 #ifdef ENABLE_FNV1_HASH
 #include <reiser4/plugin.h>
 
-static uint64_t fnv1_hash_build(char *name, uint32_t len) {
+static uint64_t fnv1_hash_build(unsigned char *name, uint32_t len) {
 	uint32_t i;
 	uint64_t a = 0xcbf29ce484222325ull;
 	const uint64_t fnv_64_prime = 0x100000001b3ull;

@@ -30,7 +30,7 @@ do {								               \
         h1 += b1;							       \
 } while(0)
 
-uint64_t tea_hash_build(char *name, uint32_t len) {
+uint64_t tea_hash_build(unsigned char *name, uint32_t len) {
 	uint64_t k[] = { 0x9464a485, 0x542e1a94, 0x3e846bff, 0xb75bcfc3}; 
 
 	uint64_t i;

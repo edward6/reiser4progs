@@ -6,7 +6,7 @@
 #ifdef ENABLE_RUPASOV_HASH
 #include <reiser4/plugin.h>
 
-uint64_t rupasov_hash_build(char *name, uint32_t len) {
+uint64_t rupasov_hash_build(unsigned char *name, uint32_t len) {
 	uint32_t i;
 	uint64_t a, c;
 	uint32_t j, pow;

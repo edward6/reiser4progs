@@ -6,7 +6,7 @@
 #ifdef ENABLE_R5_HASH
 #include <reiser4/plugin.h>
 
-uint64_t r5_hash_build(char *name, uint32_t len) {
+uint64_t r5_hash_build(unsigned char *name, uint32_t len) {
 	uint32_t i;
 	uint64_t a = 0;
 	

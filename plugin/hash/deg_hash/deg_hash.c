@@ -7,7 +7,7 @@
 #ifdef ENABLE_DEG_HASH
 #include <reiser4/plugin.h>
 
-uint64_t deg_hash_build(char *name, uint32_t len) {
+uint64_t deg_hash_build(unsigned char *name, uint32_t len) {
 	return 0xc0c0c0c010101010ull;
 }
 

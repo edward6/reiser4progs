@@ -1293,7 +1293,7 @@ typedef struct reiser4_node_ops reiser4_node_ops_t;
 
 /* Hash plugin operations. */
 struct reiser4_hash_ops {
-	uint64_t (*build) (char *, uint32_t);
+	uint64_t (*build) (unsigned char *, uint32_t);
 };
 
 typedef struct reiser4_hash_ops reiser4_hash_ops_t;
