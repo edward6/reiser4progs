@@ -267,9 +267,9 @@ errno_t reiser4_item_set_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 
 	aal_memcpy(&item->key, key, sizeof(*key));
 	
-	if (coord->pos.unit != ~0ul && item->plugin->item_ops.set_key) {
-		return item->plugin->item_ops.set_key(item, coord->pos.unit,
-						      key);
+	if (coord->pos.unit != ~0ul) {
+		return plugin_call(return -1, item->plugin->item_ops, set_key,
+				   item, coord->pos.unit, key);
 	} else {
 		return plugin_call(return -1, entity->plugin->node_ops, 
 				   set_key, entity, &coord->pos, key);
