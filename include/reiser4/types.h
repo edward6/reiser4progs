@@ -261,16 +261,11 @@ struct reiser4_oid {
 
 typedef struct reiser4_oid reiser4_oid_t;
 
-typedef errno_t (*attach_func_t) (reiser4_tree_t *,
-				  reiser4_place_t *,
-				  reiser4_node_t *, void *);
-
-typedef errno_t (*detach_func_t) (reiser4_tree_t *,
-				  reiser4_place_t *,
-				  reiser4_node_t *, void *);
+typedef errno_t (*connect_func_t) (reiser4_tree_t *,
+				   reiser4_place_t *,
+				   reiser4_node_t *, void *);
 
 #ifndef ENABLE_STAND_ALONE
-
 typedef bool_t (*enough_func_t) (reiser4_tree_t *,
 				 reiser4_place_t *,
 				 uint32_t);
@@ -338,8 +333,8 @@ struct reiser4_tree {
 		  These traps will be called for connect/disconnect nodes in
 		  tree. They may be used for keeping track nodes in tree.
 		*/
-		attach_func_t connect;
-		detach_func_t disconnect;
+		connect_func_t connect;
+		connect_func_t disconnect;
 
 		/*
 		  This trap is called by any remove from the tree. It may be
@@ -359,7 +354,6 @@ struct reiser4_tree {
 #ifndef ENABLE_STAND_ALONE
 
 struct traverse_hint {
-
 	/*
 	  Flag which shows should traverse remove nodes from the tree cache
 	  after they are passed or not.
@@ -410,7 +404,6 @@ struct reiser4_fs {
 	reiser4_tree_t *tree;
 
 #ifndef ENABLE_STAND_ALONE
-	
 	/* Pointer to the semantic tree wrapper object */
 	reiser4_object_t *root;
 
