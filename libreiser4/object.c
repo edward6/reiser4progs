@@ -237,7 +237,6 @@ reiser4_object_t *reiser4_object_open(
 	return NULL;
 }
 
-#ifndef ENABLE_STAND_ALONE
 /* This function opens object by its @place.
    
    FIXME-VITALY->UMKA: How to open the object without SD? At least the parent
@@ -263,7 +262,9 @@ reiser4_object_t *reiser4_object_realize(
 	reiser4_key_assign(&object->info.object,
 			   &object->info.start.item.key);
 	
+#ifndef ENABLE_STAND_ALONE
 	reiser4_key_string(&object->info.object, object->name);
+#endif
 	
 	if (reiser4_object_guess(object))
 		goto error_free_object;

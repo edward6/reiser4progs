@@ -22,14 +22,12 @@ extern int32_t reiser4_object_read(reiser4_object_t *object,
 extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      entry_hint_t *entry);
 
-#ifndef ENABLE_STAND_ALONE
 extern reiser4_object_t *reiser4_object_realize(reiser4_tree_t *tree,
 						reiser4_place_t *place);
 
 extern reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 					       reiser4_object_t *parent,
 					       reiser4_key_t *key);
-#endif
 
 extern void reiser4_object_close(reiser4_object_t *object);
 extern errno_t reiser4_object_stat(reiser4_object_t *object);
