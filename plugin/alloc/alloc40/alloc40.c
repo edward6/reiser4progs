@@ -178,7 +178,7 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
 	aal_assert("umka-1053", entity != NULL);
 
 	/* Opening block bitmap lies in */
-	if (!(block = aal_block_open(alloc->device, blk))) {
+	if (!(block = aal_block_read(alloc->device, blk))) {
 		aal_exception_error("Can't read bitmap block %llu. %s.", 
 				    blk, alloc->device->error);
 		return -EIO;
@@ -203,7 +203,7 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
 	aal_memcpy(alloc->crc + (offset * CRC_SIZE),		   
 		   block->data, CRC_SIZE);
 	
-	aal_block_close(block);
+	aal_block_free(block);
 	return 0;
 }
 
@@ -407,7 +407,7 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 	aal_memcpy(block->data, &adler, sizeof(adler));
 
 	/* Saving block onto device it was allocated on */
-	if (aal_block_sync(block)) {
+	if (aal_block_write(block)) {
 		aal_exception_error("Can't write bitmap block %llu. "
 				    "%s.", blk, alloc->device->error);
 		res = -EIO;
@@ -415,7 +415,7 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 	}
 
  error_free_block:
-	aal_block_close(block);
+	aal_block_free(block);
 	return res;
 }
 

@@ -232,16 +232,21 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		blk_t blk;
 		uint64_t start;
 		uint32_t chunk;
-		uint32_t offset;
-
+		
 		/*
-		  FIXME-UMKA: Here offset is 32bit value and apparently this
-		  code will not be working well with files larger than 4Gb.  We
-		  can't merely use here uint64_t due to stand alone mode, which
-		  is building without gcc built-in functions like __udivdi3 and
-		  __umoddi3 dedicated to working with 64bit digits.
+		  FIXME-UMKA: Here offset is 32 bit value for stand alone mode
+		  and apparently code will not be working well with files larger
+		  than 4Gb. We can't merely use here uint64_t due to build mode
+		  that is without gcc built-in functions like __udivdi3 and
+		  __umoddi3 dedicated for working with 64 bit digits.
 		*/
 		
+#ifndef ENABLE_STAND_ALONE
+		uint64_t offset;
+#else
+		uint32_t offset;
+#endif
+
 		extent40_get_key(item, i, &key);
 
 		/* Calculating in-unit local offset */
@@ -257,7 +262,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		for (blk = start; blk < start + et40_get_width(extent + i) &&
 			     count > 0; )
 		{
-			if (!(block = aal_block_open(item->context.device, blk))) {
+			if (!(block = aal_block_read(item->context.device, blk))) {
 				aal_exception_error("Can't read block "
 						    "%llu.", blk);
 				return -EIO;
@@ -272,7 +277,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 
 			aal_memcpy(buff, block->data + offset, chunk);
 					
-			aal_block_close(block);
+			aal_block_free(block);
 					
 			if ((offset + chunk) % blocksize == 0)
 				blk++;

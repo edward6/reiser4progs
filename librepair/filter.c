@@ -253,8 +253,9 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 		fd->stat.bad_dk_twigs += ptr.width;
 	    } else
 		aux_bitmap_mark_region(fd->bm_met, ptr.start, ptr.width);
-	} else
-	    aal_assert("vpf-827: Not expected case.", FALSE);
+	} else {
+		aal_assert("vpf-827: Not expected case.", FALSE);
+	}
 	
 	if (fd->repair->mode == REPAIR_REBUILD) {
 	    pos_t prev;

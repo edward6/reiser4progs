@@ -132,7 +132,6 @@ void reiser4_fs_close(
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 static errno_t callback_check_block(
 	object_entity_t *entity,
 	uint64_t blk, void *data)
@@ -218,7 +217,7 @@ errno_t reiser4_fs_clobber(aal_device_t *device) {
 	if (!(block = aal_block_create(device, blk, 0)))
 		return -EINVAL;
 
-	if (aal_block_sync(block)) {
+	if (aal_block_write(block)) {
 		aal_exception_error("Can't write block %llu.",
 				    aal_block_number(block));
 		return -EINVAL;

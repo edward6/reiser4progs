@@ -81,14 +81,14 @@ static errno_t callback_fetch_journal(object_entity_t *entity,
 	device = journal->device;
 		
 	if (!journal->header) {
-		if (!(journal->header = aal_block_open(device, blk))) {
+		if (!(journal->header = aal_block_read(device, blk))) {
 			aal_exception_error("Can't read journal header "
 					    "from block %llu. %s.", blk,
 					    device->error);
 			return -EIO;
 		}
 	} else {
-		if (!(journal->footer = aal_block_open(device, blk))) {
+		if (!(journal->footer = aal_block_read(device, blk))) {
 			aal_exception_error("Can't read journal footer "
 					    "from block %llu. %s.", blk,
 					    device->error);
@@ -216,14 +216,14 @@ static errno_t callback_sync_journal(object_entity_t *entity,
 	device = journal->device;
 
 	if (blk == aal_block_number(journal->header)) {
-		if (aal_block_sync(journal->header)) {
+		if (aal_block_write(journal->header)) {
 			aal_exception_error("Can't write journal "
 					    "header to block %llu. "
 					    "%s.", blk, device->error);
 			return -EIO;
 		}
 	} else {
-		if (aal_block_sync(journal->footer)) {
+		if (aal_block_write(journal->footer)) {
 			aal_exception_error("Can't write journal "
 					    "footer to block %llu. "
 					    "%s.", blk, device->error);
@@ -239,7 +239,10 @@ static errno_t journal40_sync(object_entity_t *entity) {
 
 	aal_assert("umka-410", entity != NULL);
 
-	if ((res = journal40_layout(entity, callback_sync_journal, entity)))
+	res = journal40_layout(entity, callback_sync_journal,
+			       entity);
+	
+	if (res)
 		return res;
 
 	((journal40_t *)entity)->dirty = 0;
@@ -274,7 +277,7 @@ static errno_t journal40_update(journal40_t *journal) {
 
 	device = journal->device;
 
-	if (!(tx_block = aal_block_open(device, last_commited_tx))) {
+	if (!(tx_block = aal_block_read(device, last_commited_tx))) {
 		aal_exception_error("Can't read block %llu while updating "
 				    "the journal. %s.", last_commited_tx,
 				    device->error);
@@ -337,7 +340,7 @@ errno_t journal40_traverse_trans(
 						data)))
 			goto error;
 	    
-		if (!(log_block = aal_block_open(device, log_blk))) {
+		if (!(log_block = aal_block_read(device, log_blk))) {
 			aal_exception_error("Can't read block %llu while "
 					    "traversing the journal. %s.", 
 					    log_blk, device->error);
@@ -376,7 +379,7 @@ errno_t journal40_traverse_trans(
 			}
 	
 			if (han_func) {
-				wan_block = aal_block_open(device, get_le_wandered(entry));
+				wan_block = aal_block_read(device, get_le_wandered(entry));
 		
 				if (!wan_block) {
 					aal_exception_error("Can't read block %llu while "
@@ -391,21 +394,21 @@ errno_t journal40_traverse_trans(
 						    get_le_original(entry), data)))
 					goto error_free_wandered;
 
-				aal_block_close(wan_block);
+				aal_block_free(wan_block);
 			}
 
 			entry++;
 		}
 
-		aal_block_close(log_block);
+		aal_block_free(log_block);
 	}
 
 	return 0;
 	
  error_free_wandered:
-	aal_block_close(wan_block);
+	aal_block_free(wan_block);
  error_free_log_block:
-	aal_block_close(log_block);
+	aal_block_free(log_block);
  error:
 	return res;	
 }
@@ -461,7 +464,7 @@ errno_t journal40_traverse(
 						txh_blk, data)))
 			goto error_free_tx_list;
 	    
-		if (!(tx_block = aal_block_open(device, txh_blk))) {
+		if (!(tx_block = aal_block_read(device, txh_blk))) {
 			aal_exception_error("Can't read block %llu while "
 					    "traversing the journal. %s.",
 					    txh_blk, device->error);
@@ -493,7 +496,7 @@ errno_t journal40_traverse(
 			goto error_free_tx_list;
 	
 		tx_list = aal_list_remove(tx_list, tx_block);
-		aal_block_close(tx_block);
+		aal_block_free(tx_block);
 	}
     
 	return 0;
@@ -505,7 +508,7 @@ errno_t journal40_traverse(
 		tx_block = (aal_block_t *)aal_list_first(tx_list)->data;
 	
 		tx_list = aal_list_remove(tx_list, tx_block);
-		aal_block_close(tx_block);
+		aal_block_free(tx_block);
 	}
     
 	return res;
@@ -515,14 +518,14 @@ static errno_t callback_replay_handler(object_entity_t *entity,
 				       aal_block_t *block,
 				       d64_t original, void *data) 
 {
-	aal_block_relocate(block, original);
+	aal_block_move(block, original);
 	    
-	if (aal_block_sync(block)) {
+	if (aal_block_write(block)) {
 		
 		aal_exception_error("Can't write block %llu.", 
 				    aal_block_number(block));
 		
-		aal_block_close(block);
+		aal_block_free(block);
 		return -EIO;
 	}
 
@@ -570,7 +573,7 @@ static errno_t callback_print_txh(object_entity_t *entity,
 	stream = (aal_stream_t *)data;
 	journal = (journal40_t *)entity;
 
-	if (!(block = aal_block_open(journal->device, blk)))
+	if (!(block = aal_block_read(journal->device, blk)))
 		return -EIO;
 	
 	txh = (journal40_tx_header_t *)block->data;
@@ -603,7 +606,7 @@ static errno_t callback_print_txh(object_entity_t *entity,
 	aal_stream_format(stream, "next oid:\t0x%llx\n\n",
 			  get_th_next_oid(txh));
 	
-	aal_block_close(block);
+	aal_block_free(block);
 
 	return 0;
 }
@@ -718,8 +721,8 @@ static void journal40_close(object_entity_t *entity) {
     
 	aal_assert("umka-411", entity != NULL);
 
-	aal_block_close(journal->header);
-	aal_block_close(journal->footer);
+	aal_block_free(journal->header);
+	aal_block_free(journal->footer);
 	aal_free(journal);
 }
 

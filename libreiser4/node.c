@@ -443,7 +443,6 @@ lookup_t reiser4_node_lookup(
 	pos_t *pos)	        /* found pos will be stored here */
 {
 	lookup_t res;
-
 	item_entity_t *item;
 	reiser4_key_t maxkey;
 	reiser4_place_t place;
@@ -456,7 +455,7 @@ lookup_t reiser4_node_lookup(
 
 	if (reiser4_node_items(node) == 0)
 		return LP_ABSENT;
-   
+	
 	/* Calling node plugin */
 	res = plugin_call(node->entity->plugin->node_ops,
 			  lookup, node->entity, key, pos);
@@ -465,11 +464,8 @@ lookup_t reiser4_node_lookup(
 		return res;
 
 	/* Initializing item place points to */
-	if (reiser4_place_open(&place, node, pos)) {
-		aal_exception_error("Can't open item by place. Node "
-				    "%llu, item %u.", node->blk, pos->item);
+	if (reiser4_place_open(&place, node, pos))
 		return LP_FAILED;
-	}
 
 	item = &place.item;
 
@@ -479,7 +475,8 @@ lookup_t reiser4_node_lookup(
 	*/
 	
 	if (item->plugin->item_ops.maxposs_key) {
-		/* maxposs_key is impemented */
+
+		/* Maxposs_key is impemented */
 		if (reiser4_item_maxposs_key(&place, &maxkey))
 			return LP_FAILED;
 
@@ -491,19 +488,20 @@ lookup_t reiser4_node_lookup(
 	
 	/* Calling lookup method of found item (most probably direntry item) */
 	if (item->plugin->item_ops.lookup) {
-		res = item->plugin->item_ops.lookup(item, key, &pos->unit);
+		
+		res = item->plugin->item_ops.lookup(item, key,
+						    &pos->unit);
 
 		if (res != LP_ABSENT)
 			return res;
 	}
 	
-	/* Lookup method is not implemented or returned LP_ABSENT. */
 	/* 
-	   If maxposs_key method is not implemented(for SD, nodepointers with 
-	   many pointers), step right. 
+	   If maxposs_key method is not implemented(for SD, nodepointers with
+	   many pointers), step right.
 	*/
 	if (!item->plugin->item_ops.maxposs_key)
-	    pos->item++;
+		pos->item++;
 
 	return LP_ABSENT;
 }

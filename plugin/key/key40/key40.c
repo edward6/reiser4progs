@@ -343,7 +343,6 @@ static errno_t key40_build_short(key_entity_t *key,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Simple validness check */
 static errno_t key40_valid(key_entity_t *key) {
 	uint8_t band;

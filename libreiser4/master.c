@@ -150,7 +150,7 @@ int reiser4_master_confirm(aal_device_t *device) {
 	aal_device_set_bs(device, REISER4_BLKSIZE);
     
 	/* Reading the block where master super block lies */
-	if (!(block = aal_block_open(device, offset))) {
+	if (!(block = aal_block_read(device, offset))) {
 		aal_exception_fatal("Can't read master super block "
 				    "at %llu.", offset);
 		return 0;
@@ -167,15 +167,15 @@ int reiser4_master_confirm(aal_device_t *device) {
 			goto error_free_block;
 		}
 	
-		aal_block_close(block);
+		aal_block_free(block);
 		return 1;
 	}
     
-	aal_block_close(block);
+	aal_block_free(block);
 	return 0;
     
  error_free_block:
-	aal_block_close(block);
+	aal_block_free(block);
 	return 0;
 }
 
@@ -201,7 +201,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	aal_device_set_bs(device, REISER4_BLKSIZE);
     
 	/* Reading the block where master super block lies */
-	if (!(block = aal_block_open(device, offset))) {
+	if (!(block = aal_block_read(device, offset))) {
 		aal_exception_fatal("Can't read master super block "
 				    "at %llu.", offset);
 		goto error_free_master;
@@ -211,7 +211,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	aal_memcpy(SUPER(master), block->data,
 		   sizeof(*SUPER(master)));
 
-	aal_block_close(block);
+	aal_block_free(block);
     
 	/*
 	  Checking if master super block can be counted as the reiser4 super
@@ -270,7 +270,7 @@ errno_t reiser4_master_reopen(reiser4_master_t *master) {
 	offset = (blk_t)(MASTER_OFFSET / REISER4_BLKSIZE);
 	
 	/* Reading the block where master super block lies */
-	if (!(block = aal_block_open(master->device, offset))) {
+	if (!(block = aal_block_read(master->device, offset))) {
 		aal_exception_fatal("Can't read master super block "
 				    "at %llu.", offset);
 		return -EIO;
@@ -280,7 +280,7 @@ errno_t reiser4_master_reopen(reiser4_master_t *master) {
 	aal_memcpy(SUPER(master), block->data,
 		   sizeof(*SUPER(master)));
 
-	aal_block_close(block);
+	aal_block_free(block);
 	
 	return 0;
 }
@@ -310,7 +310,7 @@ errno_t reiser4_master_sync(
 		   sizeof(*SUPER(master)));
 	
 	/* Writing master super block to its device */
-	if ((res = aal_block_sync(block))) {
+	if ((res = aal_block_write(block))) {
 		aal_exception_error("Can't synchronize master "
 				    "super block at %llu. %s.",
 				    aal_block_number(block), 
@@ -321,7 +321,7 @@ errno_t reiser4_master_sync(
 	master->dirty = FALSE;
 
  error_free_block:
-	aal_block_close(block);
+	aal_block_free(block);
 	return res;
 }
 

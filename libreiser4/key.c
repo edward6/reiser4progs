@@ -48,7 +48,8 @@ int reiser4_key_compare(
 	aal_assert("umka-906", key1->plugin != NULL);
 	aal_assert("umka-906", key2->plugin != NULL);
 
-	return plugin_call(key1->plugin->key_ops, compare, key1, key2);
+	return plugin_call(key1->plugin->key_ops, 
+		compare, key1, key2);
 }
 
 /* Makes copy src key to dst one */

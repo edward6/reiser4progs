@@ -100,7 +100,7 @@ errno_t format40_update(object_entity_t *entity) {
     
     blk = (FORMAT40_OFFSET / format->device->blocksize);
     
-    if (!(block = aal_block_open(format->device, blk))) {
+    if (!(block = aal_block_read(format->device, blk))) {
 	aal_exception_error("Failed to read the block (%llu).", blk);
 	return -EIO;
     }
@@ -114,7 +114,7 @@ errno_t format40_update(object_entity_t *entity) {
     format->super.sb_tree_height = super->sb_tree_height;
     format->super.sb_flushes = super->sb_flushes;
     
-    aal_block_close(block);
+    aal_block_free(block);
     return 0;
 }
 

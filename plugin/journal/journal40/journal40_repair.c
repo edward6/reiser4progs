@@ -254,7 +254,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	aal_block_t *log_block;
 	journal40_lr_header_t *lr_header;
 
-	if (!(log_block = aal_block_open(txh_block->device, blk))) {
+	if (!(log_block = aal_block_read(txh_block->device, blk))) {
 	    aal_exception_error("Can't read block %llu while traversing "
 		"the journal. %s.", blk, txh_block->device->error);
 	    return -EIO;
@@ -266,11 +266,11 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	    aal_exception_error("Transaction Header (%llu), Log record (%llu): "
 		" Log Record Magic was not found.", 
 		check_data->cur_txh, blk);
-	    aal_block_close(log_block);
+	    aal_block_free(log_block);
 	    return -ESTRUCT;
 	}
 
-	aal_block_close(log_block);
+	aal_block_free(log_block);
     }
 
     if (aux_bitmap_test(check_data->journal_layout, blk)) {
@@ -445,7 +445,7 @@ errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout,
 		return -EINVAL;
 	    }
 	    
-	    if (!(tx_block = aal_block_open(device, data.cur_txh))) {
+	    if (!(tx_block = aal_block_read(device, data.cur_txh))) {
 		aal_exception_error("Can't read the block %llu while checking "
 		    "the journal. %s.", data.cur_txh, device->error);
 		return -EIO;

@@ -153,7 +153,7 @@ static errno_t node40_load(object_entity_t *entity) {
 	if (node->block)
 		return 0;
 
-	if (!(node->block = aal_block_open(node->device,
+	if (!(node->block = aal_block_read(node->device,
 					   node->blk)))
 		return -EIO;
 
@@ -170,7 +170,7 @@ static errno_t node40_unload(object_entity_t *entity) {
 	aal_assert("umka-2011", entity != NULL);
 	aal_assert("umka-2012", node40_loaded(entity));
 
-	aal_block_close(node->block);
+	aal_block_free(node->block);
 	node->block = NULL;
 
 #ifndef ENABLE_STAND_ALONE
@@ -1114,7 +1114,7 @@ static errno_t node40_sync(object_entity_t *entity) {
 	aal_assert("umka-1552", entity != NULL);
 	aal_assert("umka-2043", node40_loaded(entity));
 	
-	if ((res = aal_block_sync(((node40_t *)entity)->block)))
+	if ((res = aal_block_write(((node40_t *)entity)->block)))
 		return res;
 
 	((node40_t *)entity)->dirty = 0;
@@ -1243,11 +1243,9 @@ static lookup_t node40_lookup(object_entity_t *entity,
 		break;
 	default:
 		res = LP_FAILED;
-		break;
 	}
 	
 	pos->item = item;
-
 	return res;
 }
 

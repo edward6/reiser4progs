@@ -169,7 +169,7 @@ static errno_t format40_super_open(format40_t *format) {
     
 	offset = (FORMAT40_OFFSET / format->device->blocksize);
 	
-	if (!(block = aal_block_open(format->device, offset))) {
+	if (!(block = aal_block_read(format->device, offset))) {
 		aal_exception_error("Can't read block %llu.",
 				    offset);
 		return -EIO;
@@ -184,7 +184,7 @@ static errno_t format40_super_open(format40_t *format) {
 		   sizeof(format->super));
 
  error_free_block:
-	aal_block_close(block);
+	aal_block_free(block);
 	return res;
 }
 
@@ -233,13 +233,13 @@ static errno_t callback_clobber_block(object_entity_t *entity,
 		return -ENOMEM;
 	}
     
-	if (aal_block_sync(block)) {
+	if (aal_block_write(block)) {
 		aal_exception_error("Can't write block %llu to device. "
 				    "%s.", blk, format->device->error);
 		res = -EIO;
 	}
     
-	aal_block_close(block);
+	aal_block_free(block);
 	return res;
 }
 
@@ -307,7 +307,7 @@ static errno_t format40_sync(object_entity_t *entity) {
 	aal_memcpy(block->data, &format->super,
 		   sizeof(format->super));
 	
-	if (aal_block_sync(block)) {
+	if (aal_block_write(block)) {
 		aal_exception_error("Can't write format40 super "
 				    "block to %llu. %s.", offset,
 				    format->device->error);
@@ -315,7 +315,7 @@ static errno_t format40_sync(object_entity_t *entity) {
 	}
     
 	format->dirty = 0;
-	aal_block_close(block);
+	aal_block_free(block);
 	
 	return res;
 }

@@ -752,7 +752,6 @@ lookup_t reiser4_tree_lookup(
 	reiser4_place_t *place)	/* place the found item to be stored */
 {
 	lookup_t res;
-	uint8_t curr_level;
 	pos_t pos = {0, ~0ul};
 
 	aal_assert("umka-742", key != NULL);
@@ -780,19 +779,17 @@ lookup_t reiser4_tree_lookup(
 		reiser4_key_assign(key, &tree->key);
 		    
 	while (1) {
-		reiser4_node_t *node = place->node;
-	
 		/* 
 		  Looking up for key inside node. Result of lookuping will be
 		  stored in &place->pos.
 		*/
-		res = reiser4_node_lookup(node, key, &place->pos);
+		res = reiser4_node_lookup(place->node, key, &place->pos);
 
-		curr_level = reiser4_node_get_level(node);
-		
 		/* Check if we should finish lookup because we reach stop level */
-		if (curr_level <= level || res == LP_FAILED) {
-
+		if (reiser4_node_get_level(place->node) <= level ||
+		    res == LP_FAILED)
+		{
+			/* Realizing place if key is found */
 			if (res == LP_PRESENT)
 				reiser4_place_realize(place);
 			
@@ -804,12 +801,8 @@ lookup_t reiser4_tree_lookup(
 			place->pos.item--;
 
 		/* Initializing item at @place */
-		if (reiser4_place_realize(place)) {
-			aal_exception_error("Can't open item by its place. Node "
-					    "%llu, item %u.", place->node->blk,
-					    place->pos.item);
+		if (reiser4_place_realize(place))
 			return LP_FAILED;
-		}
 
 		/* Checking is item at @place is nodeptr one */
 		if (!reiser4_item_branch(place)) {
@@ -818,17 +811,14 @@ lookup_t reiser4_tree_lookup(
 		}
 
 		/* Loading node by nodeptr item @place points to */
-		if (!(place->node = reiser4_tree_child(tree, place))) {
-			aal_exception_error("Can't load node by its nodeptr.");
+		if (!(place->node = reiser4_tree_child(tree, place)))
 			return LP_FAILED;
-		}
 	}
     
 	return LP_ABSENT;
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /*
   Returns TRUE if passed @tree has minimal possible height nd thus cannot be
   dried out.
