@@ -59,8 +59,9 @@ errno_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
     int lookup;
      
     if ((lookup = reiser4_tree_lookup(tree, key, LEAF_LEVEL, coord)) < 0) {
-	aal_stream_t stream = EMPTY_STREAM;
+	aal_stream_t stream;
 	
+	aal_stream_init(&stream);
 	reiser4_key_print(key, &stream);
 	aal_exception_error("Lookup of key %s failed.", stream.data);			
 	aal_stream_fini(&stream);

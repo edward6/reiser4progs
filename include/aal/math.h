@@ -8,6 +8,8 @@
 #ifndef AAL_MATH_H
 #define AAL_MATH_H
 
+#include <aal/types.h>
+
 extern int aal_log2(unsigned long n);
 extern int aal_pow_of_two(unsigned long n);
 

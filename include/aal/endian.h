@@ -14,11 +14,7 @@
 #  include <config.h>
 #endif
 
-#if defined(__sparc__) || defined(__sparcv9)
-#  include <sys/int_types.h>
-#else
-#  include <stdint.h>
-#endif
+#include <aal/types.h>
 
 #define __aal_get_octave(x, n)		( ((x) >> (8 * (n))) & 0xff )
 

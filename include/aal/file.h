@@ -1,5 +1,5 @@
 /*
-  file.h -- standard file device that works via device interface.
+  file.h -- standard file device.
     
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -14,8 +14,7 @@
 
 #ifndef ENABLE_COMPACT
 
-#include <aal/device.h>
-
+#include <aal/types.h>
 extern struct aal_device_ops file_ops;
 
 #endif

@@ -12,6 +12,8 @@
 #ifndef AAL_MALLOC_H
 #define AAL_MALLOC_H
 
+#include <aal/types.h>
+
 typedef void *(*aal_malloc_handler_t) (unsigned int);
 typedef void *(*aal_realloc_handler_t) (void *, unsigned int);
 typedef void (*aal_free_handler_t) (void *);

@@ -542,7 +542,9 @@ errno_t reiser4_tree_attach(
 	if ((res = reiser4_tree_lookup(tree, &hint.key, stop, &coord))) {
 
 		if (res == FAILED) {
-			aal_stream_t stream = EMPTY_STREAM;
+			aal_stream_t stream;
+
+			aal_stream_init(&stream);
 			reiser4_key_print(&hint.key, &stream);
 
 			aal_exception_error("Lookup of key %s failed.",

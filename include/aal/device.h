@@ -1,5 +1,5 @@
 /*
-  device.h -- device independent interface and block-working functions.
+  device.h -- device functions declaration.
     
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -8,74 +8,7 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
-#include <aal/aal.h>
-
-/* 
-   This types is used for keeping the block number and block count value. They
-   are needed to be increase source code maintainability.
-
-   For instance, there is some function:
-
-   blk_t some_func(void);
-    
-   It is clear to any reader, that this function is working with block number, 
-   it returns block number.
-
-   Yet another variant of this function:
-
-   uint64_t some_func(void);
-    
-   This function may return anything. This is may be bytes, blocks, etc.
-*/
-#define INVAL_BLK (~0ull)
-
-typedef uint64_t blk_t;
-typedef uint64_t count_t;
-
-struct aal_device_ops;
-
-/*
-  Abstract device structure. It consists of flags device opened with, user
-  specified data, some opaque entity (for standard file it is file descriptor),
-  name of device (for instance, /dev/hda2), block size of device and device
-  operations.
-*/
-struct aal_device {
-	int flags;
-
-	void *data;
-	void *entity;
-	void *personality;
-
-	uint32_t blocksize;
-	char name[256], error[256];
-	struct aal_device_ops *ops;
-};
-
-typedef struct aal_device aal_device_t;
-
-/* 
-   Operations which may be performed on the device. Some of them may not
-   be implemented.
-*/
-struct aal_device_ops {
-	errno_t (*open) (aal_device_t *, void *,
-			 uint32_t, int);
-	
-	errno_t (*read) (aal_device_t *, 
-			 void *, blk_t, count_t);
-    
-	errno_t (*write) (aal_device_t *, 
-			 void *, blk_t, count_t);
-    
-	errno_t (*sync) (aal_device_t *);
-    
-	errno_t (*equals) (aal_device_t *, 
-			   aal_device_t *);
-    
-	count_t (*len) (aal_device_t *);
-	void (*close) (aal_device_t *);
-};
+#include <aal/types.h>
 
 extern aal_device_t *aal_device_open(struct aal_device_ops *ops, 
 				     void *personality,

@@ -15,7 +15,7 @@
 #  include <config.h>
 #endif
 
-#include <aal/aal.h>
+#include <aal/types.h>
 
 #ifdef ENABLE_COMPACT
 

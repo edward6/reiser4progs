@@ -11,7 +11,6 @@
 #endif
 
 #include <aal/aal.h>
-#include <stdarg.h>
 
 static aal_exception_handler_t exception_handler = NULL;
 

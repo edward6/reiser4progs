@@ -1,5 +1,5 @@
 /*
-  gauge.h -- progress-bar structures and functions.
+  gauge.h -- progress-bar functions.
     
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -8,39 +8,7 @@
 #ifndef AAL_GAUGE_H
 #define AAL_GAUGE_H
 
-#include <aal/aal.h>
-
-typedef struct aal_gauge aal_gauge_t;
-
-enum aal_gauge_type {
-	GAUGE_PERCENTAGE,
-	GAUGE_INDICATOR,
-	GAUGE_SILENT
-};
-
-typedef enum aal_gauge_type aal_gauge_type_t;
-
-enum aal_gauge_state {
-	GAUGE_STARTED,
-	GAUGE_RUNNING,
-	GAUGE_PAUSED,
-	GAUGE_DONE,
-};
-
-typedef enum aal_gauge_state aal_gauge_state_t;
-
-typedef void (*aal_gauge_handler_t)(aal_gauge_t *);
-
-struct aal_gauge {
-	aal_gauge_type_t type;
-	aal_gauge_state_t state;
-	aal_gauge_handler_t handler;
-
-	void *data;
-    
-	char name[256];
-	uint32_t value;
-};
+#include <aal/types.h>
 
 extern aal_gauge_t *aal_gauge_create(aal_gauge_type_t type,
 				     const char *name,

@@ -1,5 +1,5 @@
 /*
-  block.h -- block functions.
+  block.h -- block working functions declaration.
     
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -8,23 +8,7 @@
 #ifndef AAL_BLOCK_H
 #define AAL_BLOCK_H
 
-#include <aal/aal.h>
-
-/*
-  Disk block structure. It is a replica of struct buffer_head from the linux
-  kernel. It consists of flags (dirty, clean, etc), data (pointer to data of
-  block), block size, offset (offset in bytes where block is placed on device),
-  and pointer to device, block opened on.
-*/
-struct aal_block {
-	int flags;
-	void *data;
-
-	blk_t blk;
-	aal_device_t *device;
-};
-
-typedef struct aal_block aal_block_t;
+#include <aal/types.h>
 
 extern aal_block_t *aal_block_create(aal_device_t *device, 
 				     blk_t blk, char c);

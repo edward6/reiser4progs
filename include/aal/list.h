@@ -9,21 +9,7 @@
 #ifndef AAL_LIST_H
 #define AAL_LIST_H
 
-#include <aal/aal.h>
-
-typedef struct aal_list aal_list_t;
-
-/* 
-   This is the struct that describes one list element. It contains: pointer to
-   data assosiated with this item of list, pointer to next element of list and
-   pointer to prev element of list.
-*/
-struct aal_list {
-	void *data;
-    
-	aal_list_t *next;
-	aal_list_t *prev;
-};
+#include <aal/types.h>
 
 extern aal_list_t *aal_list_alloc(void *data);
 extern aal_list_t *aal_list_last(aal_list_t *list);

@@ -8,15 +8,7 @@
 #ifndef AAL_STREAM_H
 #define AAL_STREAM_H
 
-struct aal_stream {
-	int size;
-	int offset;
-	void *data;
-};
-
-typedef struct aal_stream aal_stream_t;
-
-#define EMPTY_STREAM {0, 0, NULL}
+#include <aal/types.h>
 
 extern aal_stream_t *aal_stream_create(void);
 extern void aal_stream_fini(aal_stream_t *stream);
