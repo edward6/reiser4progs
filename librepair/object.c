@@ -163,3 +163,45 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 	return res;
 }
 
+errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag) {
+	errno_t res;
+	
+	/* Get the start place. */
+	if ((res = reiser4_object_stat(object))) {
+		aal_exception_error("Update of the object [%s] failed.",
+				    object->name);
+		return res;
+	}
+	
+	repair_item_set_flag(object_start(object), flag);
+	
+	return 0;
+}
+
+int repair_object_test(reiser4_object_t *object, uint16_t flag) {
+	errno_t res;
+	
+	/* Get the start place. */
+	if ((res = reiser4_object_stat(object))) {
+		aal_exception_error("Update of the object [%s] failed.",
+				    object->name);
+		return res;
+	}
+	
+	return repair_item_test_flag(object_start(object), flag);
+}
+
+errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag) {
+	errno_t res;
+	
+	/* Get the start place. */
+	if ((res = reiser4_object_stat(object))) {
+		aal_exception_error("Update of the object [%s] failed.",
+				    object->name);
+		return res;
+	}
+	
+	repair_item_clear_flag(object_start(object), flag);
+	
+	return 0;
+}

@@ -24,10 +24,8 @@ typedef struct repair_ancestor {
 typedef struct repair_semantic {
 	repair_data_t *repair;
 	
+	reiser4_object_t *root;
 	reiser4_object_t *lost;
-	
-	/* Path of semantic recovery. */
-	//aal_list_t *path;
 	
 	repair_progress_handler_t *progress_handler;
 	repair_progress_t *progress;
