@@ -297,7 +297,7 @@ static errno_t reg40_convert(object_entity_t *entity,
 		return res;
 
 	/* Updating stat data fields. */
-	return obj40_touch(&reg->obj, fsize, hint.bytes);
+	return obj40_touch(&reg->obj, MAX_UINT64, hint.bytes);
 }
 
 /* Make sure, that file body is of particular plugin type, that depends on tail

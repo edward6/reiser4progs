@@ -292,11 +292,14 @@ errno_t obj40_touch(obj40_t *obj, uint64_t size, uint64_t bytes) {
 	/* Updating size if new file offset is further than size. This means,
 	   that file realy got some data additionaly, not only got rewtitten
 	   something. */
-	if (size != obj40_get_size(obj)) {
+	if (size != MAX_UINT64 && size != obj40_get_size(obj)) {
 		if ((res = obj40_set_size(obj, size)))
 			return res;
 	}
 
+	if (bytes == MAX_UINT64)
+		return 0;
+	
 	/* Updating bytes */
 	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unixh)))
 		return res;
