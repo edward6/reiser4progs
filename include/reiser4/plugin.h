@@ -180,7 +180,7 @@ enum reiser4_sdext_plug_id {
 	SDEXT_LT_ID             = 0x2,
 	SDEXT_SYMLINK_ID	= 0x3,
 	SDEXT_PLUG_ID		= 0x4,
-	SDEXT_GEN_FLAGS_ID      = 0x5,
+	SDEXT_FLAGS_ID          = 0x5,
 	SDEXT_CAPS_ID           = 0x6,
 	SDEXT_LARGE_TIMES_ID    = 0x7,
 	SDEXT_LAST_ID
@@ -488,6 +488,13 @@ struct sdext_lt_hint {
 };
 
 typedef struct sdext_lt_hint sdext_lt_hint_t;
+
+struct sdext_flags_hint {
+	uint32_t flags;
+};
+
+typedef struct sdext_flags_hint sdext_flags_hint_t;
+
 /* These fields should be changed to what proper description of needed
    extensions. */
 struct statdata_hint {
@@ -1460,8 +1467,8 @@ typedef struct reiser4_core reiser4_core_t;
 /* Plugin init() and fini() function types. They are used for calling these
    functions during plugin initialization. */
 typedef errno_t (*plug_fini_t) (reiser4_core_t *);
-typedef reiser4_plug_t *(*plug_init_t) (reiser4_core_t *);
 typedef errno_t (*plug_func_t) (reiser4_plug_t *, void *);
+typedef reiser4_plug_t *(*plug_init_t) (reiser4_core_t *);
 
 /* Plugin class descriptor. Used for loading plugins. */
 struct plug_class {
@@ -1529,7 +1536,7 @@ struct reiser4_plug {
 	} o;
 };
 
-/* Macros for dirtying nodes place lie at */
+/* Macros for dirtying nodes place lie at. */
 #define place_mkdirty(place) \
         ((place)->block->dirty = 1)
 
