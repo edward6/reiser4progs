@@ -93,12 +93,12 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 }
 
 static void fsck_init_streams(fsck_parse_t *data) {
-    progs_exception_set_stream(EXCEPTION_INFORMATION, 
+    misc_exception_set_stream(EXCEPTION_INFORMATION, 
 	aal_test_bit(&data->options, FSCK_OPT_VERBOSE) ? stderr : NULL);    
-    progs_exception_set_stream(EXCEPTION_ERROR, data->logfile);
-    progs_exception_set_stream(EXCEPTION_WARNING, data->logfile);
-    progs_exception_set_stream(EXCEPTION_FATAL, stderr);
-    progs_exception_set_stream(EXCEPTION_BUG, stderr);
+    misc_exception_set_stream(EXCEPTION_ERROR, data->logfile);
+    misc_exception_set_stream(EXCEPTION_WARNING, data->logfile);
+    misc_exception_set_stream(EXCEPTION_FATAL, stderr);
+    misc_exception_set_stream(EXCEPTION_BUG, stderr);
 }
 
 static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[]) 
@@ -136,8 +136,8 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	{0, 0, 0, 0}
     };
 
-    data->profile = progs_profile_default();
-    progs_exception_set_stream(EXCEPTION_FATAL, stderr);
+    data->profile = misc_profile_default();
+    misc_exception_set_stream(EXCEPTION_FATAL, stderr);
     data->logfile = stderr;
 
     aal_memset(override,0, sizeof(override));
@@ -147,7 +147,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	return USER_ERROR;
     }
 
-    progs_print_banner(argv[0]);
+    misc_print_banner(argv[0]);
     
     while ((c = getopt_long(argc, argv, "l:Vhnqapfve:Kko:U:R:r?d", long_options, 
 	(int *)0)) != EOF) 
@@ -182,10 +182,10 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		profile_label = optarg;
 		break;
 	    case 'k':
-		progs_misc_factory_list();
+		misc_factory_list();
 		return NO_ERROR;
 	    case 'K':
-		progs_profile_list();
+		misc_profile_list();
 		return NO_ERROR;
 */
 	case 'o':
@@ -197,7 +197,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	    fsck_print_usage(argv[0]);
 	    return USER_ERROR;	    
 	case 'V': 
-	    progs_print_banner(argv[0]);
+	    misc_print_banner(argv[0]);
 	    return USER_ERROR;
 	case 'q':
 	    aal_gauge_set_handler(GAUGE_PERCENTAGE, NULL);
@@ -214,7 +214,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 
     fsck_init_streams(data);
     
-    if (profile_label && !(data->profile = progs_profile_find(profile_label))) {
+    if (profile_label && !(data->profile = misc_profile_find(profile_label))) {
 	aal_exception_fatal("Cannot find the specified profile (%s).", 
 	    profile_label);
 	return USER_ERROR;
@@ -222,7 +222,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
     
     if (optind == argc && profile_label) {
 	/* print profile */
-	progs_profile_print(data->profile);
+	misc_profile_print(data->profile);
 	return NO_ERROR;
     } else if (optind != argc - 1) {
 	fsck_print_usage(argv[0]);
@@ -232,8 +232,8 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
     data->mode = mode;
    
     /* Check if device is mounted and we are able to fsck it. */ 
-    if (progs_dev_mounted(argv[optind], NULL)) {
-	if (!progs_dev_mounted(argv[optind], "ro")) {
+    if (misc_dev_mounted(argv[optind], NULL)) {
+	if (!misc_dev_mounted(argv[optind], "ro")) {
 	    aal_exception_fatal("The partition (%s) is mounted w/ write "
 		"permissions, cannot fsck it.", argv[optind]);
 	    return USER_ERROR;
@@ -314,7 +314,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Reiser4 fs was detected on the %s.\n%s", 
 	aal_device_name(parse_data.host_device), (char *)stream.data);
 
-    if (!(repair.fs->tree = reiser4_tree_init(repair.fs, progs_mpressure_detect))) {
+    if (!(repair.fs->tree = reiser4_tree_init(repair.fs, misc_mpressure_detect))) {
 	aal_exception_fatal("Cannot open the filesystem on (%s).", 
 	    aal_device_name(parse_data.host_device));
 	exit_code = OPER_ERROR;

@@ -5,18 +5,17 @@
   reiser4progs/COPYING.
 */
 
-#ifndef PROGS_PROFILE_H
-#define PROGS_PROFILE_H
+#ifndef MISC_PROFILE_H
+#define MISC_PROFILE_H
 
 #include <reiser4/types.h>
 
-extern void progs_profile_list(void);
-extern void progs_profile_print(reiser4_profile_t *profile);
+extern void misc_profile_list(void);
+extern void misc_profile_print(reiser4_profile_t *profile);
 
-extern reiser4_profile_t *progs_profile_default(void);
-extern reiser4_profile_t *progs_profile_find(const char *name);
+extern reiser4_profile_t *misc_profile_default(void);
+extern reiser4_profile_t *misc_profile_find(const char *name);
 
-extern errno_t progs_profile_override(reiser4_profile_t *profile,
-				      char *override);
-
+extern errno_t misc_profile_override(reiser4_profile_t *profile,
+				     char *override);
 #endif

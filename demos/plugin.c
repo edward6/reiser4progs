@@ -28,7 +28,7 @@ static void plugin_print_usage(void) {
 static void plugin_init(void) {
 	int i;
 	for (i = 0; i < 5; i++)
-		progs_exception_set_stream(i, stderr);
+		misc_exception_set_stream(i, stderr);
 }
 
 int main(int argc, char *argv[]) {
@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
     
-	if (!(fs = reiser4_fs_open(device, progs_profile_find("smart40")))) {
+	if (!(fs = reiser4_fs_open(device, misc_profile_find("smart40")))) {
 		aal_exception_error("Can't open filesystem on %s.", 
 				    aal_device_name(device));
 		goto error_free_device;

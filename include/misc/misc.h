@@ -5,8 +5,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef REISER4_MISC_H
-#define REISER4_MISC_H
+#ifndef MISC_H
+#define MISC_H
 
 #include <aal/aal.h>
 #include <misc/misc.h>
@@ -58,13 +58,13 @@
 
 #define INVAL_DIG (0x7fffffff)
 
-extern long long progs_size2long(const char *str);
-extern long long progs_str2long(const char *str, int base);
+extern void misc_plugin_list(void);
 
-extern void progs_upper_case(char *dst, const char *src);
-extern errno_t progs_dev_mounted(const char *name, const char *ops);
+extern long long misc_size2long(const char *str);
+extern void misc_upper_case(char *dst, const char *src);
+extern long long misc_str2long(const char *str, int base);
 
-extern void progs_plugin_list(void);
+extern errno_t misc_dev_mounted(const char *name, const char *ops);
 
 #endif
 

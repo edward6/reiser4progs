@@ -27,7 +27,7 @@ static void cat_print_usage(void) {
 static void cat_init(void) {
 	int i;
 	for (i = 0; i < 5; i++)
-		progs_exception_set_stream(i, stderr);
+		misc_exception_set_stream(i, stderr);
 }
 
 int main(int argc, char *argv[]) {
@@ -56,13 +56,13 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
     
-	if (!(fs = reiser4_fs_open(device, progs_profile_find("smart40")))) {
+	if (!(fs = reiser4_fs_open(device, misc_profile_find("smart40")))) {
 		aal_exception_error("Can't open filesystem on %s.", 
 				    aal_device_name(device));
 		goto error_free_device;
 	}
 
-	if (!(fs->tree = reiser4_tree_init(fs, progs_mpressure_detect)))
+	if (!(fs->tree = reiser4_tree_init(fs, misc_mpressure_detect)))
 		goto error_free_fs;
     
 	if (!(reg = reiser4_object_open(fs, argv[2], TRUE)))

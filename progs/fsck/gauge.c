@@ -46,7 +46,7 @@ void gauge_tree(aal_gauge_t *gauge) {
 	    hint->displayed_time = t;
 	}
 
-	progs_wipe_line(stderr);
+	misc_wipe_line(stderr);
 	if (aal_strlen(gauge->name) != 0)
 	    fprintf(stderr, "%s ", gauge->name);
 	
@@ -63,7 +63,7 @@ void gauge_tree(aal_gauge_t *gauge) {
     case GAUGE_DONE:
 	current_gauge = NULL;
     case GAUGE_PAUSED:
-	progs_wipe_line(stderr);
+	misc_wipe_line(stderr);
 	break;
     }
     
@@ -105,7 +105,7 @@ void gauge_rate(aal_gauge_t *gauge) {
 	    hint->displayed_time = t;
 	}
 	
-	progs_wipe_line(stderr);
+	misc_wipe_line(stderr);
 	if (aal_strlen(gauge->name))
 	    fprintf(stderr, "%s ", gauge->name);
 
@@ -116,7 +116,7 @@ void gauge_rate(aal_gauge_t *gauge) {
     case GAUGE_DONE:
 	current_gauge = NULL;
     case GAUGE_PAUSED:
-	progs_wipe_line(stderr);
+	misc_wipe_line(stderr);
 	break;
     }
     

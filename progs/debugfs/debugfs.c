@@ -61,7 +61,7 @@ static void debugfs_init(void) {
 
 	/* Setting up exception streams */
 	for (ex = 0; ex < aal_log2(EXCEPTION_LAST); ex++)
-		progs_exception_set_stream(ex, stderr);
+		misc_exception_set_stream(ex, stderr);
 }
 
 /*
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
 			debugfs_print_usage(argv[0]);
 			return NO_ERROR;
 		case 'V':
-			progs_print_banner(argv[0]);
+			misc_print_banner(argv[0]);
 			return NO_ERROR;
 		case 'e':
 			profile_label = optarg;
@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
 			print_flags |= PF_BLOCK;
 
 			/* Parsing block number */
-			if ((blocknr = progs_str2long(optarg, 10)) == INVAL_DIG) {
+			if ((blocknr = misc_str2long(optarg, 10)) == INVAL_DIG) {
 				aal_exception_error("Invalid block number (%s).", optarg);
 				return USER_ERROR;
 			}
@@ -221,15 +221,15 @@ int main(int argc, char *argv[]) {
 	}
     
 	if (!(behav_flags & BF_QUIET))
-		progs_print_banner(argv[0]);
+		misc_print_banner(argv[0]);
 
 	if (behav_flags & BF_PROFS) {
-		progs_profile_list();
+		misc_profile_list();
 		return NO_ERROR;
 	}
 	
 	/* Initializing passed profile */
-	if (!(profile = progs_profile_find(profile_label))) {
+	if (!(profile = misc_profile_find(profile_label))) {
 		aal_exception_error("Can't find profile by its label %s.", 
 				    profile_label);
 		goto error;
@@ -241,7 +241,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (behav_flags & BF_PLUGS) {
-		progs_plugin_list();
+		misc_plugin_list();
 		libreiser4_fini();
 		return 0;
 	}
@@ -254,7 +254,7 @@ int main(int argc, char *argv[]) {
 		aal_exception_info("Overriding profile %s by \"%s\".",
 				   profile->name, override);
 		
-		if (progs_profile_override(profile, override))
+		if (misc_profile_override(profile, override))
 			goto error_free_libreiser4;
 	}
 	
@@ -290,7 +290,7 @@ int main(int argc, char *argv[]) {
 	}
    
 	/* Checking if passed partition is mounted */
-	if (progs_dev_mounted(host_dev, NULL) && !(behav_flags & BF_FORCE)) {
+	if (misc_dev_mounted(host_dev, NULL) && !(behav_flags & BF_FORCE)) {
 		aal_exception_error("Device %s is mounted at the moment. "
 				    "Use -f to force over.", host_dev);
 		goto error_free_libreiser4;

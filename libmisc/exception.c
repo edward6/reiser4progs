@@ -17,7 +17,7 @@
 #include <misc/misc.h>
 
 /* This function returns number of specified turned on options */
-static int progs_exception_option_count(
+static int misc_exception_option_count(
 	aal_exception_option_t options,	    /* options to be inspected */
 	int start)			    /* options will be inspected started from */
 {
@@ -33,7 +33,7 @@ static int progs_exception_option_count(
    This function makes search for option by its name in passed available option
    set.
 */
-static aal_exception_option_t progs_exception_oneof(
+static aal_exception_option_t misc_exception_oneof(
 	char *name,			    /* option name to be checked */
 	aal_exception_option_t options)     /* aavilable options */
 {
@@ -50,8 +50,8 @@ static aal_exception_option_t progs_exception_oneof(
 			aal_memset(str1, 0, sizeof(str1));
 			aal_memset(str2, 0, sizeof(str2));
 	    
-			progs_upper_case(str1, opt);
-			progs_upper_case(str2, name);
+			misc_upper_case(str1, opt);
+			misc_upper_case(str2, name);
 	    
 			if (aal_strncmp(str1, str2, aal_strlen(str2)) == 0 || 
 			    (aal_strlen(str2) == 1 && str1[0] == name[0]))
@@ -63,7 +63,7 @@ static aal_exception_option_t progs_exception_oneof(
 }
 
 /* Constructs exception message */
-static void progs_exception_print_wrap(aal_exception_t *exception,
+static void misc_exception_print_wrap(aal_exception_t *exception,
 				       void *stream)
 {
 	char buff[4096];
@@ -78,14 +78,14 @@ static void progs_exception_print_wrap(aal_exception_t *exception,
 	aal_strncat(buff, exception->message, 
 		    aal_strlen(exception->message));
 
-	progs_print_wrap(stream, buff);
+	misc_print_wrap(stream, buff);
 }
 
 /* 
    This function prints exception options awailable to be choosen, takes user
    enter and converts it into aal_exception_option_t type.
 */
-static aal_exception_option_t progs_exception_prompt(
+static aal_exception_option_t misc_exception_prompt(
 	aal_exception_option_t options,  /* exception options can be selected */
 	void *stream)
 {
@@ -93,7 +93,7 @@ static aal_exception_option_t progs_exception_prompt(
 	char *option;
 	char prompt[256];
 
-	if (progs_exception_option_count(options, 0) == 0)
+	if (misc_exception_option_count(options, 0) == 0)
 		return EXCEPTION_UNHANDLED;
     
 	aal_memset(prompt, 0, sizeof(prompt));
@@ -103,7 +103,7 @@ static aal_exception_option_t progs_exception_prompt(
 	    
 		if ((1 << i) & options) {
 			char *opt = aal_exception_option_name(1 << i);
-			int count = progs_exception_option_count(options, i + 1);
+			int count = misc_exception_option_count(options, i + 1);
 	    
 			aal_strncat(prompt, opt, aal_strlen(opt));
 	    
@@ -114,16 +114,16 @@ static aal_exception_option_t progs_exception_prompt(
 		}
 	}
     
-	if (!(option = progs_readline(prompt, stream)) || aal_strlen(option) == 0)
+	if (!(option = misc_readline(prompt, stream)) || aal_strlen(option) == 0)
 		return EXCEPTION_UNHANDLED;
     
-	return progs_exception_oneof(option, options);
+	return misc_exception_oneof(option, options);
 }
 
 /* Streams assigned with exception type are stored here */
 static void *streams[10];
 
-/* Current progs gauge. Used for correct pausing when exception */
+/* Current misc gauge. Used for correct pausing when exception */
 extern aal_gauge_t *current_gauge;
 
 /* 
@@ -131,7 +131,7 @@ extern aal_gauge_t *current_gauge;
    handling in "question-answer" maner and used for all communications with
    user.
 */
-aal_exception_option_t progs_exception_handler(
+aal_exception_option_t misc_exception_handler(
 	aal_exception_t *exception)		/* exception to be processed */
 {
 	int i, tty;
@@ -139,7 +139,7 @@ aal_exception_option_t progs_exception_handler(
 	aal_list_t *variant = NULL;
 	aal_exception_option_t opt = EXCEPTION_UNHANDLED;
     
-	if (progs_exception_option_count(exception->options, 0) == 1) {
+	if (misc_exception_option_count(exception->options, 0) == 1) {
 		if (!(stream = streams[exception->type]))
 			stream = stderr;
 	}
@@ -151,12 +151,12 @@ aal_exception_option_t progs_exception_handler(
 		aal_gauge_pause(current_gauge);
 	else {
 		if (isatty(tty))
-			progs_wipe_line(stream);
+			misc_wipe_line(stream);
 	}
 
-	progs_exception_print_wrap(exception, stream);
+	misc_exception_print_wrap(exception, stream);
     
-	if (progs_exception_option_count(exception->options, 0) == 1)
+	if (misc_exception_option_count(exception->options, 0) == 1)
 		return exception->options;
 
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
@@ -168,23 +168,23 @@ aal_exception_option_t progs_exception_handler(
 	}
 	
 	variant = aal_list_first(variant);
-	progs_set_variant(variant);
+	misc_set_variant(variant);
 #endif
 
 	do {
-		opt = progs_exception_prompt(exception->options, stream);
+		opt = misc_exception_prompt(exception->options, stream);
 	} while (opt == EXCEPTION_UNHANDLED);
 	
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
 	aal_list_free(variant);
-	progs_set_variant(NULL);
+	misc_set_variant(NULL);
 #endif
 
 	return opt;
 }
 
 /* This function sets up exception streams */
-void progs_exception_set_stream(
+void misc_exception_set_stream(
 	aal_exception_type_t type,	/* type to be assigned with stream */
 	void *stream)	                /* stream to be assigned */
 {
@@ -192,7 +192,7 @@ void progs_exception_set_stream(
 }
 
 /* This function gets exception streams */
-void *progs_exception_get_stream(
+void *misc_exception_get_stream(
 	aal_exception_type_t type)	/* type exception stream will be obtained for */
 {
 	return streams[type];

@@ -28,7 +28,7 @@
   Converts passed @str into long long value. In the case of error, INVAL_DIG
   will be returned.
 */
-long long progs_str2long(const char *str, int base) {
+long long misc_str2long(const char *str, int base) {
 	char *error;
 	long long result = 0;
 
@@ -48,7 +48,7 @@ long long progs_str2long(const char *str, int base) {
   Converts human readable size string like "256M" into Kb. In the case of error,
   INVAL_DIG will be returned.
 */
-long long progs_size2long(const char *str) {
+long long misc_size2long(const char *str) {
 	int valid;
 	char label;
 	
@@ -69,7 +69,7 @@ long long progs_size2long(const char *str) {
 	if (valid)
 		number[aal_strlen(number) - 1] = '\0';
 	
-	if ((result = progs_str2long(number, 10)) == INVAL_DIG)
+	if ((result = misc_str2long(number, 10)) == INVAL_DIG)
 		return INVAL_DIG;
 	
 	if (toupper(label) == toupper('M'))
@@ -99,7 +99,7 @@ long long progs_size2long(const char *str) {
    because file /proc/mounts may contain as devices like /dev/hda1 as
    ide/host0/bus0/targ...
 */
-errno_t progs_dev_mounted(
+errno_t misc_dev_mounted(
 	const char *name,	/* device name to be checked */
 	const char *mode)	/* mount options for check */
 {
@@ -152,7 +152,7 @@ errno_t progs_dev_mounted(
 	return 0;
 }
 
-void progs_upper_case(char *dst, const char *src) {
+void misc_upper_case(char *dst, const char *src) {
 	int i = 0;
 	const char *s;
 
@@ -167,7 +167,7 @@ static errno_t callback_print_plugin(reiser4_plugin_t *plugin, void *data) {
 	return 0;
 }
 
-void progs_plugin_list(void) {
+void misc_plugin_list(void) {
 	libreiser4_factory_foreach(callback_print_plugin, NULL);
 	printf("\n");
 }

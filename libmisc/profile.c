@@ -330,12 +330,12 @@ static reiser4_profile_t profiles[] = {
 };
 
 /* 0 profile is the default one. */
-reiser4_profile_t *progs_profile_default(void) {
+reiser4_profile_t *misc_profile_default(void) {
 	return &profiles[0];
 }
 
 /* Finds profile by its name */
-reiser4_profile_t *progs_profile_find(const char *name) {
+reiser4_profile_t *misc_profile_find(const char *name) {
 	unsigned i;
     
 	aal_assert("vpf-104", name != NULL);
@@ -351,7 +351,7 @@ reiser4_profile_t *progs_profile_find(const char *name) {
 	return NULL;
 }
 
-errno_t progs_profile_override(reiser4_profile_t *profile,
+errno_t misc_profile_override(reiser4_profile_t *profile,
 			       char *override)
 {
 	while (1) {
@@ -395,7 +395,7 @@ errno_t progs_profile_override(reiser4_profile_t *profile,
 }
 
 /* Shows all knows profiles */
-void progs_profile_list(void) {
+void misc_profile_list(void) {
 	unsigned i;
     
 	for (i = 0; i < (sizeof(profiles) / sizeof(reiser4_profile_t)); i++)
@@ -404,8 +404,7 @@ void progs_profile_list(void) {
 	printf("\n");
 }
 
-/* FIXME-UMKA: Here also should be handling stat data extentions */
-void progs_profile_print(reiser4_profile_t *profile) {
+void misc_profile_print(reiser4_profile_t *profile) {
 	unsigned i;
 	reiser4_plugin_t *plugin;
 

@@ -37,10 +37,10 @@ static aal_list_t *variant = NULL;
 #include <misc/misc.h>
 
 extern aal_exception_option_t
-progs_exception_handler(aal_exception_t *exception);
+misc_exception_handler(aal_exception_t *exception);
 
 /* This function gets user enter */
-char *progs_readline(
+char *misc_readline(
 	char *prompt,       /* prompt to be printed */
 	void *stream)	    /* stream to be used */
 {
@@ -79,7 +79,7 @@ char *progs_readline(
 }
 
 /* Gets screen width */
-uint16_t progs_screen_width(void) {
+uint16_t misc_screen_width(void) {
 	struct winsize winsize;
     
 	if (ioctl(2, TIOCGWINSZ, &winsize))
@@ -88,9 +88,9 @@ uint16_t progs_screen_width(void) {
 	return winsize.ws_col == 0 ? 80 : winsize.ws_col;
 }
 
-void progs_wipe_line(void *stream) {
+void misc_wipe_line(void *stream) {
 	char *buff;
-	int i, width = progs_screen_width();
+	int i, width = misc_screen_width();
     
 	if (!(buff = aal_calloc(width + 1, 0)))
 		return;
@@ -106,7 +106,7 @@ void progs_wipe_line(void *stream) {
 }
 
 /* Constructs exception message */
-void progs_print_wrap(void *stream, char *text) {
+void misc_print_wrap(void *stream, char *text) {
 	uint16_t width;
 	char *word, *line;
 
@@ -118,7 +118,7 @@ void progs_print_wrap(void *stream, char *text) {
     
 	line = NULL;
 
-	if (!(width = progs_screen_width()))
+	if (!(width = misc_screen_width()))
 		width = 80;
 
 	while ((word = aal_strsep(&text, " "))) {
@@ -164,7 +164,7 @@ void progs_print_wrap(void *stream, char *text) {
 }
 
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
-static char *progs_generator(char *text, int state) {
+static char *misc_generator(char *text, int state) {
 	char *opt;
 	char s[80], s1[80];
 	static aal_list_t *cur = NULL;
@@ -179,8 +179,8 @@ static char *progs_generator(char *text, int state) {
 		opt = (char *)cur->data;
 		cur = cur->next;
 
-		progs_upper_case(s, opt); 
-		progs_upper_case(s1, text);
+		misc_upper_case(s, opt); 
+		misc_upper_case(s1, text);
 
 		if (!aal_strncmp(s, s1, aal_strlen(s1)))
 			return aal_strndup(opt, aal_strlen(opt));
@@ -189,23 +189,25 @@ static char *progs_generator(char *text, int state) {
 	return NULL;
 }
 
-static char **progs_complete(char *text, int start, int end) {
-	return rl_completion_matches(text,
-				     (rl_compentry_func_t *)progs_generator);
+static char **misc_complete(char *text, int start, int end) {
+	rl_compentry_func_t *gen =
+		(rl_compentry_func_t *)misc_generator;
+	
+	return rl_completion_matches(text, gen);
 }
 
-void progs_set_variant(aal_list_t *list) {
+void misc_set_variant(aal_list_t *list) {
 	variant = list;
 }
 
-aal_list_t *progs_get_variant(void) {
+aal_list_t *misc_get_variant(void) {
 	return variant;
 }
 
 #endif
 
 /* Common alpha handler. Params are the same as in numeric handler */
-static char *progs_alpha_handler(
+static char *misc_alpha_handler(
 	const char *prompt, char *defvalue, 
 	aal_check_alpha_func_t check_func, 
 	void *data)
@@ -219,7 +221,7 @@ static char *progs_alpha_handler(
 	aal_snprintf(buff, sizeof(buff), "%s [%s]: ", prompt, defvalue);
     
 	while (1) {
-		if (aal_strlen((line = progs_readline(buff, stderr))) == 0) 
+		if (aal_strlen((line = misc_readline(buff, stderr))) == 0) 
 			return defvalue;
 
 		if (!check_func || check_func(line, data))
@@ -229,8 +231,8 @@ static char *progs_alpha_handler(
 	return line; 
 }
 
-/* Common for all progs ui get numeric handler */
-static int64_t progs_numeric_handler(
+/* Common for all misc ui get numeric handler */
+static int64_t misc_numeric_handler(
 	const char *prompt, int64_t defvalue, /* user prompt and default
 					       * value */
 	aal_check_numeric_func_t check_func,  /* user's enter checking
@@ -250,10 +252,10 @@ static int64_t progs_numeric_handler(
 	while (1) {
 		char *line;
 	
-		if (aal_strlen((line = progs_readline(buff, stderr))) == 0) 
+		if (aal_strlen((line = misc_readline(buff, stderr))) == 0) 
 			return defvalue;
 
-		if ((value = progs_size2long(line)) == INVAL_DIG) {
+		if ((value = misc_size2long(line)) == INVAL_DIG) {
 			aal_exception_error("Invalid numeric has been detected (%s). "
 					    "Number is expected (1, 1K, 1M, 1G)", line);
 			continue;
@@ -266,7 +268,7 @@ static int64_t progs_numeric_handler(
 	return value; 
 }
 
-void progs_print_banner(char *name) {
+void misc_print_banner(char *name) {
 	char *banner;
    
 	fprintf(stderr, "%s %s\n", name, VERSION);
@@ -275,7 +277,7 @@ void progs_print_banner(char *name) {
 		return;
     
 	aal_snprintf(banner, 255, BANNER);
-	progs_print_wrap(stderr, banner);
+	misc_print_wrap(stderr, banner);
 	printf("\n");
 	aal_free(banner);
 }
@@ -287,15 +289,15 @@ static void _init(void) {
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
 	rl_initialize();
 	rl_attempted_completion_function = 
-		(CPPFunction *)progs_complete;
+		(CPPFunction *)misc_complete;
 #endif
     
-	aal_exception_set_handler(progs_exception_handler);
-	aal_ui_set_numeric_handler(progs_numeric_handler);
-	aal_ui_set_alpha_handler(progs_alpha_handler);
+	aal_exception_set_handler(misc_exception_handler);
+	aal_ui_set_numeric_handler(misc_numeric_handler);
+	aal_ui_set_alpha_handler(misc_alpha_handler);
 
 	/* Setting up the gauges */
-	aal_gauge_set_handler(GAUGE_PERCENTAGE, progs_gauge_percentage_handler);
-	aal_gauge_set_handler(GAUGE_INDICATOR, progs_gauge_indicator_handler);
-	aal_gauge_set_handler(GAUGE_SILENT, progs_gauge_silent_handler);
+	aal_gauge_set_handler(GAUGE_SILENT, misc_gauge_silent_handler);
+	aal_gauge_set_handler(GAUGE_INDICATOR, misc_gauge_indicator_handler);
+	aal_gauge_set_handler(GAUGE_PERCENTAGE, misc_gauge_percentage_handler);
 }

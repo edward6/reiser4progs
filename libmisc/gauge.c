@@ -15,7 +15,7 @@
 
 aal_gauge_t *current_gauge = NULL;
 
-static inline void progs_gauge_blit(void) {
+static inline void misc_gauge_blit(void) {
 	static short bitc = 0;
 	static const char bits[] = "|/-\\";
 
@@ -27,7 +27,7 @@ static inline void progs_gauge_blit(void) {
 }
 
 /* This functions "draws" gauge header */
-static inline void progs_gauge_header(
+static inline void misc_gauge_header(
 	const char *name,       /* gauge name */
 	int silent)             /* gauge type */
 {
@@ -40,7 +40,7 @@ static inline void progs_gauge_header(
 }
 
 /* This function "draws" gauge footer */
-static inline void progs_gauge_footer(
+static inline void misc_gauge_footer(
 	const char *name,       /* footer name */
 	int silent)             /* gauge type */
 {
@@ -48,7 +48,7 @@ static inline void progs_gauge_footer(
 		fputs(name, stderr);
 }
 
-void progs_gauge_percentage_handler(aal_gauge_t *gauge) {
+void misc_gauge_percentage_handler(aal_gauge_t *gauge) {
 	unsigned int i;
 	char display[10] = {0};
 	
@@ -56,14 +56,14 @@ void progs_gauge_percentage_handler(aal_gauge_t *gauge) {
 		return;
 	
 	if (gauge->state == GAUGE_PAUSED) {
-		progs_wipe_line(stderr);
+		misc_wipe_line(stderr);
 		fflush(stderr);
 		return;
 	}
 	
 	if (gauge->state == GAUGE_STARTED) {
 		current_gauge = gauge;
-		progs_gauge_header(gauge->name, 0);
+		misc_gauge_header(gauge->name, 0);
 	}
 
 	sprintf(display, "%d%%", gauge->value);
@@ -74,55 +74,55 @@ void progs_gauge_percentage_handler(aal_gauge_t *gauge) {
 
 	if (gauge->state == GAUGE_DONE) {
 		current_gauge = NULL;
-		progs_gauge_footer("done\n", 0);
+		misc_gauge_footer("done\n", 0);
 	}
     
 	fflush(stderr);
 }
 
-void progs_gauge_indicator_handler(aal_gauge_t *gauge) {
+void misc_gauge_indicator_handler(aal_gauge_t *gauge) {
 	if (!isatty(2))
 		return;
 	
 	if (gauge->state == GAUGE_PAUSED) {
-		progs_wipe_line(stderr);
+		misc_wipe_line(stderr);
 		fflush(stderr);
 		return;
 	}
 	
 	if (gauge->state == GAUGE_STARTED) {
 		current_gauge = gauge;
-		progs_gauge_header(gauge->name, 0);
+		misc_gauge_header(gauge->name, 0);
 	}
 
-	progs_gauge_blit();
+	misc_gauge_blit();
 	
 	if (gauge->state == GAUGE_DONE) {
 		current_gauge = NULL;
-		progs_gauge_footer("done\n", 0);
+		misc_gauge_footer("done\n", 0);
 	}
     
 	fflush(stderr);
 }
 
-void progs_gauge_silent_handler(aal_gauge_t *gauge) {
+void misc_gauge_silent_handler(aal_gauge_t *gauge) {
 	if (!isatty(2))
 		return;
 	
 	if (gauge->state == GAUGE_PAUSED) {
-		progs_wipe_line(stderr);
+		misc_wipe_line(stderr);
 		fflush(stderr);
 		return;
 	}
 	
 	if (gauge->state == GAUGE_STARTED) {
 		current_gauge = gauge;
-		progs_gauge_header(gauge->name, 1);
+		misc_gauge_header(gauge->name, 1);
 	}
 
 	if (gauge->state == GAUGE_DONE) {
 		current_gauge = NULL;
-		progs_gauge_footer("done\n", 1);
+		misc_gauge_footer("done\n", 1);
 	}
     
 	fflush(stderr);

@@ -20,7 +20,7 @@
 
 static uint32_t swapped = 0;
 
-bool_t progs_mpressure_detect(void) {
+bool_t misc_mpressure_detect(void) {
 #if defined(HAVE_STATFS) && defined (HAVE_SYS_VFS_H)
 	long rss;
 	long vms;
