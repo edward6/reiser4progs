@@ -205,7 +205,8 @@ enum key_type {
 typedef enum key_type key_type_t;
 
 enum print_options {
-	P_SHORT			= 0x0
+	PO_SHORT                = 0x0,
+	PO_LARGE                = 0x1
 };
 
 typedef enum print_options print_options_t;
@@ -1329,7 +1330,8 @@ struct tree_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Inserts item/unit in the tree by calling reiser4_tree_insert function,
 	   used by all object plugins (dir, file, etc) */
-	errno_t (*insert) (void *, place_t *, uint8_t, create_hint_t *);
+	errno_t (*insert) (void *, place_t *, uint8_t,
+			   create_hint_t *);
     
 	/* Removes item/unit from the tree. It is used in all object plugins for
 	   modification purposes. */
@@ -1337,6 +1339,7 @@ struct tree_ops {
 
 	/* Functions for getting/setting extent data */
 	aal_block_t *(*get_data) (void *, key_entity_t *);
+	
 	errno_t (*set_data) (void *, key_entity_t *,
 			     aal_block_t *);
 	
@@ -1344,7 +1347,7 @@ struct tree_ops {
 	uint64_t (*profile) (void *, char *);
 
 	/* Update the key in the place and the node itsef. */
-	errno_t (*ukey) (void *tree, place_t *place, key_entity_t *key);
+	errno_t (*ukey) (void *, place_t *, key_entity_t *);
 #endif
 	/* Returns next and prev items respectively */
 	errno_t (*next) (void *, place_t *, place_t *);
@@ -1361,7 +1364,7 @@ struct factory_ops {
 	/* Finds plugin by its attributes plus key policy */
 	reiser4_plug_t *(*pfind) (rid_t, rid_t, key_policy_t);
 	
-#ifndef ENABLE_STAND_ALONE	
+#ifndef ENABLE_STAND_ALONE
 	/* Finds plugin by its type and name */
 	reiser4_plug_t *(*nfind) (char *);
 #endif
@@ -1378,11 +1381,13 @@ struct object_ops {
 typedef struct object_ops object_ops_t;
 #endif
 
+#ifndef ENABLE_STAND_ALONE
 struct key_ops {
 	char *(*print) (key_entity_t *, uint16_t);
 };
 
 typedef struct key_ops key_ops_t;
+#endif
 
 /* This structure is passed to all plugins in initialization time and used for
    access libreiser4 factories. */
@@ -1393,7 +1398,10 @@ struct reiser4_core {
 #ifdef ENABLE_SYMLINKS
 	object_ops_t object_ops;
 #endif
+
+#ifndef ENABLE_STAND_ALONE
 	key_ops_t key_ops;
+#endif
 };
 
 #define plug_equal(plug1, plug2)                                 \

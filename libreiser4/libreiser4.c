@@ -223,7 +223,6 @@ static errno_t tree_ukey(void *tree, place_t *place, key_entity_t *key) {
 static char *key_print(key_entity_t *key, uint16_t options) {
 	return reiser4_print_key((reiser4_key_t *)key, options);
 }
-
 #endif
 
 #ifdef ENABLE_SYMLINKS
@@ -322,9 +321,12 @@ reiser4_core_t core = {
 		.resolve = object_resolve
 	},
 #endif
+
+#ifndef ENABLE_STAND_ALONE
 	.key_ops = {
 		.print = key_print
 	}
+#endif
 };
 
 /* Returns libreiser4 max supported interface version */

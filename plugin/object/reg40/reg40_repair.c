@@ -160,7 +160,7 @@ static errno_t reg40_check_stat(reg40_t *reg, uint64_t size,
 				    "regular file [%s] has the wrong mode "
 				    "(%u), %s (%u). Plugin (%s).", 
 				    stat->con.blk, stat->pos.item, 
-				    core->key_ops.print(&stat->key, P_SHORT),
+				    core->key_ops.print(&stat->key, PO_SHORT),
 				    lw_hint.mode, mode == RM_CHECK ? "Should be" :
 				    "Fixed to", lw_new.mode, stat->plug->label);
 		
@@ -177,7 +177,7 @@ static errno_t reg40_check_stat(reg40_t *reg, uint64_t size,
 				    "regular file [%s] has the wrong size "
 				    "(%llu), %s (%llu). Plugin (%s).",
 				    stat->con.blk, stat->pos.item, 
-				    core->key_ops.print(&stat->key, P_SHORT),
+				    core->key_ops.print(&stat->key, PO_SHORT),
 				    lw_hint.size, mode == RM_CHECK ? "Should be" :
 				    "Fixed to", lw_new.size, stat->plug->label);
 		
@@ -194,7 +194,7 @@ static errno_t reg40_check_stat(reg40_t *reg, uint64_t size,
 				    "regular file [%s] has the wrong bytes "
 				    "(%llu), %s (%llu). Plugin (%s).", 
 				    stat->con.blk, stat->pos.item, 
-				    core->key_ops.print(&stat->key, P_SHORT),
+				    core->key_ops.print(&stat->key, PO_SHORT),
 				    unix_hint.bytes, mode == RM_CHECK ? "Should be" :
 				    "Fixed to", bytes, stat->plug->label);
 		

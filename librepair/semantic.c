@@ -10,7 +10,7 @@ static void repair_semantic_lost_name(reiser4_object_t *object, char *name) {
 	uint8_t len;
 
 	len = aal_strlen(LOST_PREFIX);
-	key = reiser4_print_key(&object->info.object, P_SHORT);
+	key = reiser4_print_key(&object->info->object, PO_SHORT);
 	
 	aal_memcpy(name, LOST_PREFIX, len);
 	aal_memcpy(name + len, key, aal_strlen(key));
@@ -27,7 +27,8 @@ static errno_t callback_check_struct(void *object, place_t *place,
 		aal_exception_error("Node (%llu), item (%u): item registering "
 				    "failed--it belongs to another object "
 				    "already. Plugin (%s).", place->con.blk,
-				    place->pos.unit, object->plug->label);
+				    place->pos.unit,
+				    ((object_entity_t *)object)->plug->label);
 		return 1;
 	}
 	
@@ -36,6 +37,27 @@ static errno_t callback_check_struct(void *object, place_t *place,
 	return 0;
 }
 
+/* Callback for repair_object_check_struct. Mark the passed item as CHECKED. */
+static errno_t callback_register_item(void *object,
+                                      place_t *place, void *data)
+{
+        aal_assert("vpf-1114", object != NULL);
+        aal_assert("vpf-1115", place != NULL);
+         
+        if (repair_item_test_flag((reiser4_place_t *)place, OF_CHECKED)) {
+                aal_exception_error("Node (%llu), item (%u): item registering "
+                                    "failed--it belongs to another object "
+                                    "already. Plugin (%s).", place->con.blk,
+                                    place->pos.unit,
+				    ((object_entity_t *)object)->plug->label);
+                return 1;
+        }
+         
+        repair_item_set_flag((reiser4_place_t *)place, OF_CHECKED);
+         
+        return 0;
+}
+ 
 /* Callback for repair_object_check_struct. Register blocks of object layout. 
    All these blocks are marked used here, not on twig_scan pass, because it's
    easy to write regular file plugin objects of which will share some blocks.
@@ -379,8 +401,8 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		aal_exception_error("Semantic traverse failed to remove the "
 				    "entry \"%s\" [%s] pointing to [%s].", 
 				    entry->name, 
-				    reiser4_print_key(&entry->offset, P_SHORT),
-				    reiser4_print_key(&entry->object, P_SHORT));
+				    reiser4_print_key(&entry->offset, PO_SHORT),
+				    reiser4_print_key(&entry->object, PO_SHORT));
 	}
 
  error_close_object:

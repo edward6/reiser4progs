@@ -29,7 +29,7 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	reiser4_key_assign(&object->info->object, &object->info->start.key);
 
 	aal_strncpy(object->name, 
-		    reiser4_print_key(&object->info.object, P_SHORT),  
+		    reiser4_print_key(&object->info->object, PO_SHORT),  
 		    sizeof(object->name));
 	
 	return res;

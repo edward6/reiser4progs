@@ -259,7 +259,9 @@ reiser4_object_t *reiser4_object_realize(
 	
 #ifndef ENABLE_STAND_ALONE
 	{
-		char *name = reiser4_print_key(&object->info->object);
+		char *name = reiser4_print_key(&object->info->object,
+					       PO_LARGE);
+		
 		aal_strncpy(object->name, name, sizeof(object->name));
 	}
 #endif
@@ -420,7 +422,9 @@ reiser4_object_t *reiser4_object_create(
 	object->info = &object->entity->info;
 	
 	/* @hint->object key is built by plugin create method. */
-	name = reiser4_print_key(&object->info->object);
+	name = reiser4_print_key(&object->info->object,
+				 PO_LARGE);
+	
 	aal_strncpy(object->name, name, sizeof(object->name));
 	
 	return object;
