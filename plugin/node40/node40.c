@@ -449,6 +449,51 @@ static errno_t node40_cut(reiser4_entity_t *entity,
     return 0;
 }
 
+struct node40_estimate {
+    node40_t *src;
+    node40_t *dst;
+    
+    reiser4_pos_t *pos;
+    shift_flags_t flags;
+	
+    uint32_t bytes;
+    uint32_t items;
+};
+
+typedef struct node40_estimate node40_estimate_t;
+
+static errno_t node40_shift_estimate(node40_estimate_t *estimate) {
+   return -1;
+}
+
+static int node40_shift(reiser4_entity_t *entity, reiser4_entity_t *target, 
+    reiser4_pos_t *pos, shift_flags_t flags)
+{
+    node40_estimate_t estimate;
+
+    aal_assert("umka-1305", entity != NULL, return -1);
+    aal_assert("umka-1306", target != NULL, return -1);
+    aal_assert("umka-1307", pos != NULL, return -1);
+
+    aal_memset(&estimate, 0, sizeof(estimate));
+    
+    estimate.src = (node40_t *)entity;
+    estimate.dst = (node40_t *)target;
+    estimate.flags = flags;
+    estimate.pos = pos;
+
+    if (node40_shift_estimate(&estimate)) {
+	aal_exception_error("Can't estimate shift for source node %llu, "
+	    "destination node %llu.", aal_block_number(estimate.src->block),
+	    aal_block_number(estimate.dst->block));
+	return -1;
+    }
+
+    /* Moving items */
+    
+    return -1;
+}
+
 extern errno_t node40_check(reiser4_entity_t *entity, 
     uint16_t options);
 
@@ -607,6 +652,7 @@ static reiser4_plugin_t node40_plugin = {
 	.get_key	= node40_get_key,
 	.get_level	= node40_get_level,
 	.get_stamp	= node40_get_stamp,
+	
 #ifndef ENABLE_COMPACT
 	.create		= node40_create,
 	.insert		= node40_insert,
@@ -614,6 +660,7 @@ static reiser4_plugin_t node40_plugin = {
 	.paste		= node40_paste,
 	.cut		= node40_cut,
 	.check		= node40_check,
+	.shift		= node40_shift,
 
 	.set_key	= node40_set_key,
 	.set_level	= node40_set_level,
@@ -627,6 +674,7 @@ static reiser4_plugin_t node40_plugin = {
 	.paste		= NULL,
 	.cut		= NULL,
 	.check		= NULL,
+	.shift		= NULL,
 	
 	.set_key	= NULL,
 	.set_level	= NULL,
