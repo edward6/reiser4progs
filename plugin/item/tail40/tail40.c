@@ -358,13 +358,15 @@ static uint32_t tail40_shrink(reiser4_place_t *place, uint32_t pos,
 {
 	if (pos < place->len) {
 		uint32_t size;
-		void *src, *dst;
 
-		dst = place->body + pos;
-		src = place->body + pos + count;
-		size = place->len - (pos + count);
+		if ((size = place->len - (pos + count))) {
+			void *src, *dst;
+			
+			dst = place->body + pos;
+			src = place->body + pos + count;
+			aal_memmove(dst, src, size);
+		}
 		
-		aal_memmove(dst, src, size);
 		place_mkdirty(place);
 	}
 

@@ -160,9 +160,9 @@ static int callback_comp_func(void *key1, void *key2,
 }
 
 #ifndef ENABLE_STAND_ALONE
-#  define PLUGINS_TABLE_SIZE 100
+#  define PLUGINS_TABLE_SIZE 128
 #else
-#  define PLUGINS_TABLE_SIZE 25
+#  define PLUGINS_TABLE_SIZE 32
 #endif
 	
 /* Initializes all built-in plugins. Other kinds of plugins are not supported

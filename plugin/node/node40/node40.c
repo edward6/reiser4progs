@@ -1210,6 +1210,23 @@ static errno_t node40_unite(reiser4_node_t *src_entity,
 	if (node40_fetch(dst_entity, &pos, &dst_place))
 		return -EINVAL;
 
+	if (hint->create) {
+		uint64_t offset;
+		
+		/* Setting dst item key offset into max key offset of src in
+		   order to let item shift method correctly calculate offset
+		   of this new item later. */
+		plug_call(src_place.plug->o.item_ops->balance,
+			  maxreal_key, &src_place, &dst_place.key);
+
+		offset = plug_call(dst_place.key.plug->o.key_ops,
+				   get_offset, &dst_place.key);
+			
+		plug_call(dst_place.key.plug->o.key_ops,
+			  set_offset, &dst_place.key, offset + 1);
+
+	}
+	
 	/* Shift units from @src_place to @dst_place. */
 	if (plug_call(src_place.plug->o.item_ops->balance,
 		      shift_units, &src_place, &dst_place, hint))

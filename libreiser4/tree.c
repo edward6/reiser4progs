@@ -276,20 +276,11 @@ static errno_t tree_next_child_pos(reiser4_tree_t *tree,
 	aal_assert("umka-3121", place != NULL);
 
 	if (left != NULL) {
-		errno_t res;
-		
-		if ((res = tree_find_child_pos(tree, parent,
-					       left, &left->p)))
-		{
-			aal_error("Can't find position in parent for "
-				  "node %llu.", node_blocknr(left));
-			return res;
-		}
-
-		*place = left->p;
+		reiser4_place_dup(place, &left->p);
 		place->pos.item++;
 	} else {
-		reiser4_place_assign(place, parent, 0, MAX_UINT32);
+		reiser4_place_assign(place, parent,
+				     0, MAX_UINT32);
 	}
 
 	return 0;
@@ -761,7 +752,7 @@ static errno_t reiser4_tree_adjust_place(reiser4_tree_t *tree,
 		} else {
 			/* There is no right neighbour. Get the right neighbour
 			   of the above level if there is one. */
-			aal_memcpy(next, place, sizeof(*place));
+			reiser4_place_dup(next, place);
 
 			if (!reiser4_tree_neig_place(tree, next, DIR_RIGHT)) {
 				/* Not found. */
@@ -2417,6 +2408,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 	uint8_t level;
 	int32_t enough;
 	uint32_t overhead;
+	reiser4_node_t *parent;
 
 	aal_assert("umka-929", tree != NULL);
 	aal_assert("umka-766", place != NULL);
@@ -2490,12 +2482,11 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		reiser4_node_t *node;
 		uint32_t shift_flags;
 		reiser4_node_t *left;
-		reiser4_node_t *parent;
 		reiser4_place_t aplace;
 
 		/* Saving place as it will be usefull for us later */
 		reiser4_place_dup(&save, place);
-		parent = save.node->p.node;
+		parent = place->node->p.node;
 
 		/* Allocating new node of @level */
 		level = reiser4_node_get_level(place->node);

@@ -175,6 +175,7 @@ void reiser4_place_dec(reiser4_place_t *place, int whole) {
 	if (whole && place->pos.unit == 0)
 		place->pos.unit = MAX_UINT32;
 }
+#endif
 
 /* Copies @src to @dst and returns pointer to @dst. */
 reiser4_place_t *reiser4_place_dup(reiser4_place_t *dst,
@@ -186,8 +187,6 @@ reiser4_place_t *reiser4_place_dup(reiser4_place_t *dst,
 	aal_memcpy(dst, src, sizeof(*dst));
 	return dst;
 }
-#endif
-
 /* Initializes all item-related fields */
 errno_t reiser4_place_fetch(reiser4_place_t *place) {
 	aal_assert("umka-1459", place != NULL);
