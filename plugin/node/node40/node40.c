@@ -593,7 +593,7 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 		aal_stream_format(stream, ": len=%u, KEY: ", item.len);
 		
 		if (plugin_call(return -1, item.key.plugin->key_ops, print,
-				&item.key, stream, options))
+				&item.key.body, stream, options))
 			return -1;
 	
 		aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n", item.plugin->h.sign.id,
@@ -723,6 +723,7 @@ static errno_t node40_estimate(node40_estimate_t *estimate) {
 static int node40_shift(object_entity_t *entity, object_entity_t *target, 
 			reiser4_pos_t *pos, shift_flags_t flags)
 {
+	void *dst, *src;
 	item40_header_t *end;
 	item40_header_t *cur;
 	item40_header_t *ins;
@@ -756,11 +757,9 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 	cur = (estimate.flags & SF_LEFT ? start : end);
 
 	if (estimate.flags & SF_LEFT) {
-		uint32_t i;
-		void *dst, *src;
 		item40_header_t *bih;
 		item40_header_t *nih;
-		uint32_t items_size;
+		uint32_t i, headers_size;
 		
 		bih = start - (estimate.items - 1);
 		
@@ -768,10 +767,10 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 		dst = node40_ih_at((object_entity_t *)estimate.dst,
 				   nh40_get_num_items(estimate.dst) - 1);
 
-		items_size = sizeof(item40_header_t) * estimate.items;
-		dst -= items_size;
+		headers_size = sizeof(item40_header_t) * estimate.items;
+		dst -= headers_size;
 			
-		aal_memcpy(dst, bih, items_size);
+		aal_memcpy(dst, bih, headers_size);
 
 		/* Copying data */
 		src = ih40_get_offset(bih) + estimate.src->block->data;
@@ -788,16 +787,62 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 		}
 
 		nh40_set_free_space(estimate.dst, nh40_get_free_space(estimate.dst) -
-				    estimate.bytes - items_size);
+				    estimate.bytes - headers_size);
 
 		nh40_set_num_items(estimate.dst, nh40_get_num_items(estimate.dst) - 1);
 
 		/* Updating source node fields */
 		nh40_set_free_space(estimate.src, nh40_get_free_space(estimate.src) +
-				    estimate.bytes + items_size);
+				    estimate.bytes + headers_size);
 
 		nh40_set_num_items(estimate.src, nh40_get_num_items(estimate.src) - 1);
 	} else {
+		uint32_t i;
+		uint32_t src_items;
+		uint32_t dst_items;
+		item40_header_t *bih;
+		item40_header_t *nih;
+		uint32_t headers_size;
+
+		dst_items = nh40_get_num_items(estimate.dst);
+		src_items = nh40_get_num_items(estimate.src);
+		
+		/* Preparing space for moving item headers in destination
+		 * node */
+		headers_size = sizeof(item40_header_t) * estimate.items;
+		
+		src = node40_ih_at((object_entity_t *)estimate.dst, dst_items - 1);
+		dst = src - headers_size;
+		
+		aal_memmove(dst, src, headers_size);
+
+		/* Preparing space for moving item bodies in destination
+		 * node */
+		bih = ((item40_header_t *)dst) + dst_items - 1;
+		
+		src = estimate.dst->block->data + ih40_get_offset(bih);
+		dst = src + estimate.bytes;
+
+		aal_memmove(dst, src, estimate.bytes);
+
+		nih = bih;
+		
+		/* Updating item headers */
+		for (i = 0; i < dst_items; i++, nih++) {
+			uint32_t offset = ih40_get_offset(nih);
+			ih40_set_offset(nih, offset + estimate.bytes);
+		}
+
+		/* Copying item headers */
+		src = node40_ih_at((object_entity_t *)estimate.src,
+				   src_items - 1);
+		
+		dst = node40_ih_at((object_entity_t *)estimate.dst,
+				   estimate.items - 1);
+			
+		aal_memcpy(dst, src, headers_size);
+
+		/* Copying item bodies*/
 	}
 	
 	

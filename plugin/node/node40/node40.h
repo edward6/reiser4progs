@@ -74,8 +74,7 @@ typedef struct node40_header node40_header_t;
 #define nh40_set_free_space(node, val)	        aal_set_le16(nh40(node->block), free_space, val)
 
 #define nh40_get_free_space_start(node)	        aal_get_le16(nh40(node->block), free_space_start)
-#define nh40_set_free_space_start(node, val)	\
-	aal_set_le16(nh40(node->block),	free_space_start, val)
+#define nh40_set_free_space_start(node, val)	aal_set_le16(nh40(node->block),	free_space_start, val)
 
 #define nh40_get_level(node)			(nh40(node->block)->level)
 #define nh40_set_level(node, val)		(nh40(node->block)->level = val)
@@ -83,9 +82,7 @@ typedef struct node40_header node40_header_t;
 #define nh40_get_magic(node)			aal_get_le32(nh40(node->block), magic)
 #define nh40_set_magic(node, val)		aal_set_le32(nh40(node->block), magic, val)
 
-#define nh40_set_mkfs_id(node, val)		\
-	aal_set_le32(nh40(node->block),	flush.mkfs_id, val)
-
+#define nh40_set_mkfs_id(node, val)		aal_set_le32(nh40(node->block),	flush.mkfs_id, val)
 #define nh40_get_mkfs_id(node)		        aal_get_le32(nh40(node->block), flush.mkfs_id)
 
 union key40 {
