@@ -1011,9 +1011,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 /* Flushes some part of tree cache (recursively) to device starting from passed
    @node. This function is used for allocating part of tree and flusing it to
    device on memory pressure event or on tree_sync() call. */
-errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
-				 node_t *node)
-{
+errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree, node_t *node) {
 #ifndef ENABLE_STAND_ALONE
 	errno_t res;
 	count_t free_blocks;
@@ -2182,16 +2180,18 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			/* Updating @place by parent coord from @place. */
 			reiser4_place_init(place, node->p.node, &node->p.pos);
 		} else {
+			int inc;
+			
 			node = place->node;
-
+			inc = reiser4_place_rightmost(place);
+			
 			/* There is nothing to move out. We are on node border
 			   (rightmost or leftmost). Here we should just go up by
 			   one level and increment position if @place was at
 			   rightmost position in node. */
-			reiser4_place_init(place, node->p.node,
-					   &node->p.pos);
+			reiser4_place_init(place, node->p.node, &node->p.pos);
 
-			if (reiser4_place_rightmost(place)) {
+			if (inc) {
 				bool_t whole;
 				
 				whole = (place->pos.unit == MAX_UINT32);
