@@ -10,7 +10,6 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "obj40.h"
-#include "obj40_repair.h"
 #include <repair/plugin.h>
 
 /* Checks that @obj->info.start is SD of the wanted file.  */
@@ -221,20 +220,46 @@ errno_t obj40_ukey(obj40_t *obj, place_t *place,
 	return res;
 }
 
-/* Verbose wrapper for obj40_create_stat depending on the repair mode. Used 
-   when SD is not found while recovery. This is the special case and usually 
-   is not used as object plugin cannot be realized w/out SD. Used for for "/"
-   and "lost+found" recovery. */
-errno_t obj40_recreate_stat(obj40_t *obj, uint32_t nlink, 
-			    uint16_t fmode, uint8_t mode) 
+errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func, 
+			  uint32_t nlink, uint16_t fmode, 
+			  uint8_t mode)
 {
 	key_entity_t *key;
+	lookup_t lookup;
+	place_t *start;
 	uint64_t pid;
 	errno_t res;
+
+	aal_assert("vpf-1225", obj != NULL);
 	
+	start = STAT_PLACE(obj);
 	key = &obj->info.object;
+
+	/* Update the place of SD. */
+	lookup = core->tree_ops.lookup(obj->info.tree, key, LEAF_LEVEL, start);
+
+	if (lookup == FAILED)
+		return -EINVAL;
+
+	if (lookup == PRESENT) {
+		if ((res = stat_func(start))) {
+			aal_exception_error("Node (%llu), item (%u): StatData "
+					    "is not of the current object. "
+					    "Plugin (%s)", start->block->nr,
+					    start->pos.item, start->plug->label);
+		}
+
+		return res;
+	}
+
+	/* Absent. If SD is not correct. Create a new one. */
+	if ((res = obj40_stat(obj, stat_func)) <= 0)
+		return res;
 	
-	aal_exception_error("Regfile [%s] does not have a StatData item.%s"
+	/* Check showed that this is not right SD, create a new one. This is 
+	   the special case and usually is not used as object plugin cannot 
+	   be realized w/out SD. Used for for "/" and "lost+found" recovery. */
+	aal_exception_error("The file [%s] does not have a StatData item. %s"
 			    "Plugin %s.", core->key_ops.print(key, PO_INO),
 			    mode == RM_BUILD ? " Creating a new one." : "",
 			    obj->plug->label);
@@ -248,12 +273,12 @@ errno_t obj40_recreate_stat(obj40_t *obj, uint32_t nlink,
 		return -EINVAL;
 	
 	if ((res = obj40_create_stat(obj, pid,  0, 0, nlink, fmode))) {
-		aal_exception_error("Regfile [%s] failed to create a "
+		aal_exception_error("The file [%s] failed to create a "
 				    "StatData item. Plugin %s.", 
 				    core->key_ops.print(key, PO_INO),
 				    obj->plug->label);
 	}
-	
+
 	return res;
 }
 

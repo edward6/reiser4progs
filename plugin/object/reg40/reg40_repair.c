@@ -10,40 +10,35 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "reg40.h"
-#include <plugin/object/obj40/obj40_repair.h>
 #include "repair/plugin.h"
 
 extern reiser4_plug_t reg40_plug;
 extern errno_t reg40_reset(object_entity_t *entity);
 extern errno_t reg40_holes(object_entity_t *entity);
 
-#define reg40_zero_extentions(sd, mask)					\
-({									\
-	if ((mask = obj40_extmask(sd)) == MAX_UINT64)			\
-		return -EINVAL;						\
-									\
-	mask &= ~((uint64_t)(1 << SDEXT_UNIX_ID) | (1 << SDEXT_LW_ID) | \
-		  (1 << SDEXT_PLUG_ID));				\
-})
+#define known_extentions ((uint64_t)1 << SDEXT_UNIX_ID | 	\
+			  	    1 << SDEXT_LW_ID |		\
+				    1 << SDEXT_PLUG_ID)
 
-static errno_t reg40_extentions(place_t *sd) {
+static errno_t reg40_extentions(place_t *stat) {
 	uint64_t extmask;
 	
-	reg40_zero_extentions(sd, extmask);
-	
+	extmask = obj40_extmask(stat);
+	extmask &= ~known_extentions;
+
 	return extmask ? RE_FATAL : RE_OK;
 }
 
 /* Check SD extentions and that mode in LW extention is REGFILE. */
-static errno_t callback_stat(place_t *sd) {
+static errno_t callback_stat(place_t *stat) {
 	sdext_lw_hint_t lw_hint;
 	errno_t res;
 	
-	if ((res = reg40_extentions(sd)))
+	if ((res = reg40_extentions(stat)))
 		return res;
 	
 	/* Check the mode in the LW extention. */
-	if ((res = obj40_read_ext(sd, SDEXT_LW_ID, &lw_hint)) < 0)
+	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)) < 0)
 		return res;
 	
 	return S_ISREG(lw_hint.mode) ? 0 : RE_FATAL;
@@ -161,38 +156,10 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	info = &reg->obj.info;
 	
-	/* Update the place of SD. */
-	lookup = core->tree_ops.lookup(info->tree, &info->object,
-				       LEAF_LEVEL, &info->start);
-	
-	if (lookup == FAILED)
-		return -EINVAL;
-	
-	if (lookup == ABSENT) {
-		/* If SD is not correct. Create a new one. */
-		if ((res = obj40_stat(&reg->obj, reg40_extentions)) < 0)
-			return res;
-		
-		if (res && (res = obj40_recreate_stat(&reg->obj, 0, 
-						      S_IFREG, mode)))
-			return res;
-	} else {
-		/* If SD is not correct. Fix it if needed. */
-		uint64_t extmask;
-		
-		reg40_zero_extentions(&info->start, extmask);
-		
-		if (extmask) {
-			aal_exception_error("Node (%llu), item (%u): statdata "
-					    "has unknown set of extentions "
-					    "(0x%llx). Plugin (%s)", 
-					    info->start.block->nr, 
-					    info->start.pos.item, extmask,
-					    info->start.plug->label);
-			return RE_FATAL;
-		}
-	}
-	
+	if ((res = obj40_stat_launch(&reg->obj, reg40_extentions, 
+				     1, S_IFREG, mode)))
+		return res;
+
 	/* Try to register SD as an item of this file. */
 	if (place_func && place_func(object, &info->start, data))
 		return -EINVAL;
