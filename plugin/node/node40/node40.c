@@ -22,12 +22,12 @@ static char *levels[6] = {
 
 /* Names of item groups. Used by node40_print too */
 static char *groups[6] = {
-	"STATDATA ITEM",
-	"NODEPTR ITEM",
-	"DIRENTRY ITEM",
-	"TAIL ITEM",
-	"EXTENT ITEM",
-	"PERMISSION ITEM"
+	"STATDATA",
+	"NODEPTR",
+	"DIRENTRY",
+	"TAIL",
+	"EXTENT",
+	"PERMISSION"
 };
 
 /* Returns item header by pos */

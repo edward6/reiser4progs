@@ -46,9 +46,6 @@ browses passed file like standard ls program.
 browses passed file like standard cat program.
 .SH PRINT OPTIONS
 .TP
-.B -i, --print-items
-forces debugfs.reiser4 to print item content when --print-tree specified.
-.TP
 .B -t, --print-tree
 prints the internal tree.
 .TP
@@ -57,6 +54,9 @@ prints block by passed block number.
 .TP
 .B -i, --print-file FILE
 prints all metadata blocks specified file occupies.
+.TP
+.B -w, --show-items
+forces --print-file show only items which are belong to specified file.
 .TP
 .B -s, --print-super
 prints the both super blocks: master super block and format specific one.

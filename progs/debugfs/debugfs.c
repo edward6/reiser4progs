@@ -881,6 +881,15 @@ struct fprint_hint {
 
 typedef struct fprint_hint fprint_hint_t;
 
+static char *groups[6] = {
+	"STATDATA",
+	"NODEPTR",
+	"DIRENTRY",
+	"TAIL",
+	"EXTENT",
+	"PERMISSION"
+};
+
 static errno_t fprint_process_blk(
 	object_entity_t *entity,   /* file to be inspected */
 	reiser4_place_t *place,    /* next file block */
@@ -901,8 +910,28 @@ static errno_t fprint_process_blk(
 			return -1;
 		}
 	} else {
-		aal_stream_t stream = EMPTY_STREAM;
+		aal_stream_t stream;
+		item_entity_t *item;
+		
+		aal_stream_init(&stream);
 
+		item = &coord->entity;
+
+		aal_stream_format(&stream, "NODE %llu, ITEM (%lu) ",
+				  coord->node->blk, coord->pos.item);
+		
+		aal_stream_format(&stream, groups[item->plugin->h.group]);
+		aal_stream_format(&stream, ": len=%u, KEY: ", item->len);
+
+		reiser4_item_get_key(coord, NULL);
+		
+		if (plugin_call(return -1, item->key.plugin->key_ops, print,
+				&item->key.body, &stream, 0))
+			return -1;
+	
+		aal_stream_format(&stream, " PLUGIN: 0x%x (%s)\n",
+				  item->plugin->h.id, item->plugin->h.label);
+		
 		if (reiser4_item_print(coord, &stream)) {
 			aal_exception_error("Can't print item %lu in node %llu.",
 					    coord->pos.item, coord->node->blk);
