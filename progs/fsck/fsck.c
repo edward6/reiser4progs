@@ -117,7 +117,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 	int option_index;
 	errno_t ret = 0;
 	uint32_t cache;
-	int c;
+	int mounted, c;
 
 	static struct option options[] = {
 		/* FSCK modes. */
@@ -279,8 +279,8 @@ static errno_t fsck_init(fsck_parse_t *data,
 	}
 	
 	/* Check if device is mounted and we are able to fsck it. */ 
-	if (misc_dev_mounted(argv[optind], NULL)) {
-		if (!misc_dev_mounted(argv[optind], "ro")) {
+	if ((mounted = misc_dev_mounted(argv[optind])) > 0) {
+		if (mounted == MF_RW) {
 			aal_fatal("The partition (%s) is mounted "
 				  "w/ write permissions, cannot "
 				  "fsck it.", argv[optind]);

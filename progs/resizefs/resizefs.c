@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
 	}
    
 	/* Checking if passed partition is mounted */
-	if (misc_dev_mounted(host_dev, NULL) && !(flags & BF_FORCE)) {
+	if (misc_dev_mounted(host_dev) > 0 && !(flags & BF_FORCE)) {
 		aal_error("Device %s is mounted at the moment. "
 			  "Use -f to force over.", host_dev);
 		goto error_free_libreiser4;

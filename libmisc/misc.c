@@ -8,10 +8,12 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <utime.h>
 
 #include <sys/stat.h>
 #include <sys/vfs.h>
 #include <sys/mount.h>
+#include <sys/types.h>
 
 #include <misc/misc.h>
 #include <reiser4/libreiser4.h>
@@ -80,92 +82,190 @@ long long misc_size2long(const char *str) {
 	
 	return INVAL_DIG;
 }
+/* Lookup the @file in the @mntfile. @file is mntent.mnt_fsname if @fsname 
+   is set; mntent.mnt_dir otherwise. Return the mnt entry from the @mntfile.
+   
+   Warning: if the root fs is mounted RO, the content of /etc/mtab may be 
+   not correct. */
+static struct mntent *misc_mntent_lookup(char *mntfile, char *file, int path) {
+	struct mntent *mnt;
+	int name_match = 0;
+	struct stat st;
+	dev_t rdev = 0;
+	dev_t dev = 0;
+	ino_t ino = 0;
+	char *name;
+	FILE *fp;
+	
+	aal_assert("vpf-1674", mntfile != NULL);
+	aal_assert("vpf-1675", file != NULL);
 
-/* Checking if specified partition is mounted. It is possible devfs is used, and
-   all devices are links like hda1->ide/host0/bus0/target0/lun0/part1. Therefore
-   we use stat function, rather than lstat: stat(2) follows links and return
-   stat information for link target. In this case it will return stat info for
-   /dev/ide/host0/bus0/target0/lun0/part1 file. Then we compare its st_rdev
-   field with st_rdev filed of every device from /proc/mounts. If match occurs
-   then we have device existing in /proc/mounts file, which is therefore mounted
-   at the moment.
-
-   Also this function checks whether passed device mounted with specified
-   options.  Options string may look like "ro,noatime".
-    
-   We are using stating of every mount entry instead of just name comparing,
-   because file /proc/mounts may contain as devices like /dev/hda1 as
-   ide/host0/bus0/targ... */
-int misc_dev_mounted(
-	const char *name,	/* device name to be checked */
-	const char *mode)	/* mount options for check */
-{
-	FILE *mnt;
-	errno_t res;
-	struct mntent *ent;
-	struct stat giv_st;
-	struct stat mnt_st;
-	struct statfs fs_st;
-
-	/* Stating given device */
-	if ((res = stat(name, &giv_st)) == -1)
-		return res;
-
-	/* Check only block devices. 
-	   FIXME: files mounted through loop should be checked also. */
-	if (!S_ISBLK(giv_st.st_mode))
-		return 0;
-		
-	/* Procfs magic is 0x9fa0 */
-	if (statfs("/proc", &fs_st) == -1 || fs_st.f_type != 0x9fa0) {
-
-                /* Proc is not mounted, check if it is the root partition. */
-		if ((res = stat("/", &mnt_st)) == -1) 
-			return res;
- 
-		if (mnt_st.st_dev == giv_st.st_rdev) 	    
-			return 1;	
-        
-		return 0;
-	}
-    
-	/* Check /proc/mounts file. */
-	if (!(mnt = setmntent("/proc/mounts", "r")))
-		return 0;
-
-	/* Loop until all entries are looked. */
-	while ((ent = getmntent(mnt))) {
-		/* Getting stat information and check if this is device we are
-		   interested in to check. */
-		if (stat(ent->mnt_fsname, &mnt_st) == 0) {
-
-			/* Here we check also if current entry is not directory,
-			   because we will have hit if it is a directory like
-			   /proc or /sys and device we are checking is loop and
-			   they both lie on the same device (say /dev/hda1). */
-			if (!S_ISDIR(mnt_st.st_mode) &&
-			    mnt_st.st_rdev == giv_st.st_rdev)
-			{
-				char *token;
-
-				/* Okay, we have found needed device, now we
-				   check mount options. */
-				while (mode &&
-				       (token = aal_strsep((char **)&mode, ",")))
-				{
-					if (!hasmntopt(ent, token))
-						goto error_free_mnt;
-				}
-		
-				endmntent(mnt);
-				return 1;
-			}
+	if (stat(file, &st) == 0) {
+		/* Devices is stated. */
+		if (S_ISBLK(st.st_mode)) {
+			rdev = st.st_rdev;
+		} else {
+			dev = st.st_dev;
+			ino = st.st_ino;
 		}
 	}
 
- error_free_mnt:
-	endmntent(mnt);
+	if ((fp = setmntent(mntfile, "r")) == NULL)
+		return INVAL_PTR;
+
+	while ((mnt = getmntent(fp)) != NULL) {
+		/* Check if names match. */
+		name = path ? mnt->mnt_dir : mnt->mnt_fsname;
+		
+		if (aal_strcmp(file, name) == 0)
+			name_match = 1;
+
+		if (stat(name, &st))
+			continue;
+		
+		/* If names do not match, check if stats match. */
+		if (!name_match) {
+			if (rdev && S_ISBLK(st.st_mode)) {
+				if (rdev != st.st_rdev)
+					continue;
+			} else if (dev && !S_ISBLK(st.st_mode)) {
+				if (dev != st.st_dev ||
+				    ino != st.st_ino)
+					continue;
+			} else {
+				continue;
+			}
+		}
+
+		/* If not path and not block device do not check anything more. */
+		if (!path && !rdev) 
+			break;
+
+		if (path) {
+			/* Either names or stats match. Make sure the st_dev of 
+			   the path is same as @mnt_fsname device rdev. */
+			if (stat(mnt->mnt_fsname, &st) == 0 && 
+			    dev == st.st_rdev)
+				break;
+		} else {
+			/* Either names or stats match. Make sure the st_dev of 
+			   the mount entry is same as the given device rdev. */
+			if (stat(mnt->mnt_dir, &st) == 0 && 
+			    rdev == st.st_dev)
+				break;
+		}
+	}
+
+	endmntent (fp);
+        return mnt;
+}
+
+static int misc_root_mounted(char *device) {
+	struct stat rootst, devst;
+	
+	aal_assert("vpf-1676", device != NULL);
+
+	if (stat("/", &rootst) != 0) 
+		return -1;
+
+	if (stat(device, &devst) != 0)
+		return -1;
+
+	if (!S_ISBLK(devst.st_mode) || 
+	    devst.st_rdev != rootst.st_dev)
+		return 0;
+
+	return 1;
+}
+
+static int misc_file_ro(char *file) {
+	if (utime(file, 0) == -1) {
+		if (errno == EROFS)
+			return 1;
+	}
+
 	return 0;
+}
+
+struct mntent *misc_mntent(char *device) {
+	int proc = 0, path = 0, root = 0;
+	
+	struct mntent *mnt;
+	struct statfs stfs;
+
+	aal_assert("vpf-1677", device != NULL);
+	
+	/* Check if the root. */
+	if (misc_root_mounted(device) == 1)
+		root = 1;
+	
+#ifdef __linux__
+	/* Check if /proc is procfs. */
+	if (statfs("/proc", &stfs) == 0 && stfs.f_type == 0x9fa0) {
+		proc = 1;
+		
+		if (root) {
+			/* Lookup the "/" entry in /proc/mounts. Special 
+			   case as root entry can present as:
+				rootfs / rootfs rw 0 0
+			   Look up the mount point in this case. */
+			mnt = misc_mntent_lookup("/proc/mounts", "/", 1);
+		} else {
+			/* Lookup the @device /proc/mounts */
+			mnt = misc_mntent_lookup("/proc/mounts", device, 0);
+		}
+		
+		if (mnt == INVAL_PTR) 
+			proc = 0;
+		else if (mnt)
+			return mnt;
+	}
+#endif /* __linux__ */
+
+#if defined(MOUNTED) || defined(_PATH_MOUNTED)
+
+#ifndef MOUNTED
+    #define MOUNTED _PATH_MOUNTED
+#endif
+	/* Check in MOUNTED (/etc/mtab) if RW. */
+	if (!misc_file_ro(MOUNTED)) {
+		path = 1;
+
+		if (root) {
+			mnt = misc_mntent_lookup(MOUNTED, "/", 1);
+		} else {
+			mnt = misc_mntent_lookup(MOUNTED, device, 0);
+		}
+
+		if (mnt == INVAL_PTR) 
+			path = 0;
+		else if (mnt)
+			return mnt;
+	}
+#endif /* defined(MOUNTED) || defined(_PATH_MOUNTED) */
+	
+	/* If has not been checked in neither /proc/mounts nor /etc/mtab (or 
+	   errors have occured), return INVAL_PTR, NULL otherwise. */
+	return (!proc && !path) ? INVAL_PTR : NULL;
+}
+
+int misc_dev_mounted(const char *device) {
+	struct mntent *mnt;
+	
+	/* Check for the "/" first to avoid any possible problem with 
+	   reflecting the root fs info in mtab files. */
+	if (misc_root_mounted(device) == 1) {
+		return misc_file_ro("/") ? MF_RO : MF_RW;
+	}
+	
+	/* Lookup the mount entry. */
+	if ((mnt = misc_mntent(device)) == NULL) {
+		return MF_NOT_MOUNTED;
+	} else if (mnt == INVAL_PTR) {
+		return 0;
+	}
+
+	return hasmntopt(mnt, MNTOPT_RO) ? MF_RO : MF_RW;
 }
 
 void misc_upper_case(char *dst, const char *src) {

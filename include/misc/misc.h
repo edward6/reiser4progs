@@ -54,12 +54,18 @@
 
 #define INVAL_DIG (0x7fffffff)
 
+typedef enum mount_flags {
+	MF_NOT_MOUNTED  = 0x0,
+	MF_RO		= 0x1,
+	MF_RW		= 0x2
+} mount_flags_t;
+
 extern void misc_plugins_print(void);
 extern long long misc_size2long(const char *str);
 extern void misc_uuid_unparse(char *uuid, char *string);
 extern void misc_upper_case(char *dst, const char *src);
 extern long long misc_str2long(const char *str, int base);
-extern int misc_dev_mounted(const char *name, const char *ops);
+extern int misc_dev_mounted(const char *name);
 
 #endif
 

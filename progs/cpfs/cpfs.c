@@ -209,7 +209,7 @@ int main(int argc, char *argv[]) {
 	}
    
 	/* Checking if passed partition is mounted */
-	if (misc_dev_mounted(src_dev, "rw") && !(flags & BF_FORCE)) {
+	if (misc_dev_mounted(src_dev) == MF_RW && !(flags & BF_FORCE)) {
 		aal_error("Device %s is mounted for read/write "
 			  "at the moment. Use -f to force over.",
 			  src_dev);
@@ -240,7 +240,7 @@ int main(int argc, char *argv[]) {
 	}
    
 	/* Checking if passed partition is mounted */
-	if (misc_dev_mounted(dst_dev, NULL) && !(flags & BF_FORCE)) {
+	if (misc_dev_mounted(dst_dev) > 0 && !(flags & BF_FORCE)) {
 		aal_error("Device %s is mounted at the moment. "
 			  "Use -f to force over.", dst_dev);
 		goto error_free_libreiser4;
