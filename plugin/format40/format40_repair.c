@@ -114,7 +114,7 @@ errno_t format40_print(reiser4_entity_t *entity, char *buff,
     reiser4_aux_strcat(buff, n, "Free blocks: %llu\n", get_sb_free_blocks(super));
     reiser4_aux_strcat(buff, n, "Root block: %llu\n", get_sb_root_block(super));
     reiser4_aux_strcat(buff, n, "Tail policy: %u\n", get_sb_tail_policy(super));
-    reiser4_aux_strcat(buff, n, "Next oid: %llx\n", get_sb_oid(super));
+    reiser4_aux_strcat(buff, n, "Next oid: 0x%llx\n", get_sb_oid(super));
     reiser4_aux_strcat(buff, n, "File count: %llu\n", get_sb_file_count(super));
     reiser4_aux_strcat(buff, n, "Tree height: %u\n", get_sb_tree_height(super));
     

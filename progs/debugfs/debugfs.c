@@ -43,6 +43,7 @@ static void debugfs_print_usage(char *name) {
 	"                                 any questions.\n"
 	"  -f | --force                   makes debugfs to use whole disk, not\n"
 	"                                 block device or mounted partition.\n"
+	"Print options:\n"
 	"  -t | --print-tree              prints the whole tree (default).\n"
 	"  -j | --print-journal           prints journal.\n"
 	"  -s | --print-super-block       prints the both super blocks.\n"
@@ -79,7 +80,7 @@ static errno_t debugfs_print_joint(
     uint8_t level = plugin_call(return -1, node->entity->plugin->node_ops,
 	get_level, node->entity);
 
-    printf("%s NODE (%llu) contains level=%u, nr_items=%u, free_space=%u\n", 
+    printf("%s NODE (%llu) contains level=%u, items=%u, space=%u\n", 
 	level > LEAF_LEVEL ? "TWIG" : "LEAF", aal_block_number(node->block),
 	level, reiser4_node_count(node), reiser4_node_space(node));
     
