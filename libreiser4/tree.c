@@ -1059,10 +1059,12 @@ errno_t reiser4_tree_shift(
 	return 0;
 }
 
+/* Makes space in tree to insert @needed byes of data (item/unit) */
 errno_t reiser4_tree_expand(
 	reiser4_tree_t *tree,	    /* tree pointer function operates on */
 	reiser4_coord_t *coord,	    /* coord of insertion point */
-	uint32_t needed)	    /* amount of space that should be freed */
+	uint32_t needed,	    /* amount of space that should be freed */
+	uint32_t flags)
 {
 	int alloc;
 	int32_t not_enough;
@@ -1096,7 +1098,7 @@ errno_t reiser4_tree_expand(
 	old = *coord;
 	
 	/* Shifting data into left neighbour if it exists */
-	if ((left = reiser4_tree_left(tree, coord->node))) {
+	if ((SF_LEFT & flags) && (left = reiser4_tree_left(tree, coord->node))) {
 	    
 		if (reiser4_tree_shift(tree, coord, left, SF_LEFT | SF_UPTIP))
 			return -1;
@@ -1106,7 +1108,7 @@ errno_t reiser4_tree_expand(
 	}
 
 	/* Shifting data into right neighbour if it exists */
-	if ((right = reiser4_tree_right(tree, coord->node))) {
+	if ((SF_RIGHT & flags) && (right = reiser4_tree_right(tree, coord->node))) {
 	    
 		if (reiser4_tree_shift(tree, coord, right, SF_RIGHT | SF_UPTIP))
 			return -1;
@@ -1114,7 +1116,10 @@ errno_t reiser4_tree_expand(
 		if ((not_enough = needed - reiser4_node_space(coord->node)) <= 0)
 			return 0;
 	}
-    
+
+	if (!(SF_ALLOC & flags))
+		return -(not_enough > 0);
+	
 	/*
 	  Here we still have not enough free space for inserting item/unit into
 	  the tree. Allocating new node and trying to shift data into it.
@@ -1426,7 +1431,9 @@ errno_t reiser4_tree_insert(
 	*/
 	mode = (coord->pos.unit == ~0ul);
 	
-	if (reiser4_tree_expand(tree, coord, needed)) {
+	if (reiser4_tree_expand(tree, coord, needed,
+				SF_LEFT | SF_RIGHT | SF_ALLOC))
+	{
 		aal_exception_error("Can't prepare space for insert "
 				    "one more item/unit.");
 		return -1;

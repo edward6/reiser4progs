@@ -3,15 +3,20 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* implement reiser4_tree_write function.
+
+* insert an extent among internals may require perform shift and
+  on other hands, insert of an item (nor extent or nodeptr) may 
+  require to perform so called drilling on the twig level.
+
 * debug tree remove stuff.
 
 * --print-journal option handling code in debugfs.
 
-* --print_block-alloc should also be able to print bitmap, not just
+* --print-block-alloc should also be able to print bitmap, not just
   the info about it like used blocks, free blocks, etc.
 
-* something like "print_block" method for format, journal and block
-  allocator plugins.
+* finish --print-block handling code in debugfs.
 
 * special file plugin and its support in debugfs.
 
@@ -25,10 +30,6 @@ reiser4progs/COPYING.
 * there should be an ability to work with symlinks from the API.
   Currently if we open a symlink we just "follow" it and then work
   with object it points to.
-
-* insert an extent among internals may require perform shift and
-  on other hands, insert of an item (nor extent or nodeptr) may 
-  require to perform so called drilling on the twig level.
 
 * return value from the all low level plugin functions should be raised 
   up to the libreiser4 level.

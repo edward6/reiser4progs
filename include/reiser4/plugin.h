@@ -282,6 +282,9 @@ enum shift_flags {
 	  items are mergeable.
 	*/
 	SF_MERGE = 1 << 4,
+
+	/* Should be new node allocated durring make space or not */
+	SF_ALLOC = 1 << 5
 };
 
 typedef enum shift_flags shift_flags_t;

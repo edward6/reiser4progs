@@ -75,7 +75,8 @@ extern errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_expand(reiser4_tree_t *tree,
 				   reiser4_coord_t *coord,
-				   uint32_t needed);
+				   uint32_t needed,
+				   uint32_t flags);
 
 extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
 				     traverse_hint_t *hint,

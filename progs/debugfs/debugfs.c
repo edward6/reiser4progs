@@ -27,32 +27,7 @@
 #include <misc/misc.h>
 #include <reiser4/reiser4.h>
 
-enum print_flags {
-	PF_SUPER    = 1 << 0,
-	PF_JOURNAL  = 1 << 1,
-	PF_ALLOC    = 1 << 2,
-	PF_OID	    = 1 << 3,
-	PF_TREE	    = 1 << 4,
-	PF_BLOCK    = 1 << 5,
-	PF_FILE     = 1 << 6,
-	PF_SITEMS   = 1 << 7
-};
-
-typedef enum print_flags print_flags_t;
-
-enum behav_flags {
-	BF_FORCE    = 1 << 0,
-	BF_QUIET    = 1 << 1,
-	BF_TFRAG    = 1 << 2,
-	BF_FFRAG    = 1 << 3,
-	BF_TSTAT    = 1 << 4,
-	BF_DFRAG    = 1 << 5,
-	BF_SEACH    = 1 << 6,
-	BF_LS       = 1 << 7,
-	BF_CAT      = 1 << 8
-};
-
-typedef enum behav_flags behav_flags_t;
+#include "debugfs.h"
 
 /* Prints debugfs options */
 static void debugfs_print_usage(char *name) {
