@@ -104,9 +104,9 @@ extern errno_t reiser4_node_connect(reiser4_node_t *node,
 extern errno_t reiser4_node_disconnect(reiser4_node_t *node,
 				       reiser4_node_t *child);
 
-extern int reiser4_node_lookup(reiser4_node_t *node,
-			       reiser4_key_t *key,
-			       rpos_t *pos);
+extern lookup_t reiser4_node_lookup(reiser4_node_t *node,
+				    reiser4_key_t *key,
+				    rpos_t *pos);
 
 extern errno_t reiser4_node_lock(reiser4_node_t *node);
 extern errno_t reiser4_node_unlock(reiser4_node_t *node);

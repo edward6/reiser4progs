@@ -182,9 +182,9 @@ static errno_t tail40_utmost_key(item_entity_t *item,
 	return 0;
 }
 
-static int tail40_lookup(item_entity_t *item,
-			 key_entity_t *key, 
-			 uint32_t *pos)
+static lookup_t tail40_lookup(item_entity_t *item,
+			      key_entity_t *key, 
+			      uint32_t *pos)
 {
 	uint32_t wanted;
 	uint32_t current;
@@ -202,24 +202,24 @@ static int tail40_lookup(item_entity_t *item,
 
 	if (plugin_call(key->plugin->key_ops, compare, key, &maxkey) > 0) {
 		*pos = item->len;
-		return 0;
+		return LP_ABSENT;
 	}
 
 	curkey.plugin = key->plugin;
 	
 	if (plugin_call(curkey.plugin->key_ops, assign, &curkey, &item->key))
-		return -1;
+		return LP_FAILED;
 
 	current = plugin_call(key->plugin->key_ops, get_offset, &curkey);
     	wanted = plugin_call(key->plugin->key_ops, get_offset, key);
     
 	if (wanted >= current && wanted < current + item->len) {
 		*pos = wanted - current;
-		return 1;
+		return LP_PRESENT;
 	}
 
 	*pos = item->len;
-	return 0;
+	return LP_ABSENT;
 }
 
 #ifndef ENABLE_ALONE

@@ -1108,11 +1108,11 @@ static inline int callback_comp_entry(void *array, uint32_t pos,
 }
 
 /* Performs lookup inside direntry. Found pos is stored in @pos */
-static int direntry40_lookup(item_entity_t *item,
-			     key_entity_t *key,
-			     uint32_t *pos)
+static lookup_t direntry40_lookup(item_entity_t *item,
+				  key_entity_t *key,
+				  uint32_t *pos)
 {
-	int result;
+	lookup_t res;
 	uint64_t unit;
 	uint32_t units;
     
@@ -1126,7 +1126,7 @@ static int direntry40_lookup(item_entity_t *item,
 	aal_assert("umka-629", pos != NULL);
     
 	if (!(direntry = direntry40_body(item)))
-		return -1;
+		return LP_FAILED;
 
 	/* Getting maximal possible key */
 	maxkey.plugin = key->plugin;
@@ -1134,7 +1134,7 @@ static int direntry40_lookup(item_entity_t *item,
 	plugin_call(maxkey.plugin->key_ops, assign, &maxkey, &item->key);
 	
 	if (direntry40_maxposs_key(item, &maxkey))
-		return -1;
+		return LP_FAILED;
 
 	/*
 	  If looked key is greater that maximal possible one then we going out
@@ -1144,7 +1144,7 @@ static int direntry40_lookup(item_entity_t *item,
 	
 	if (plugin_call(key->plugin->key_ops, compare, key, &maxkey) > 0) {
 		*pos = units;
-		return 0;
+		return LP_ABSENT;
 	}
 
 	/* Comparing looked key with minimal one */
@@ -1154,30 +1154,31 @@ static int direntry40_lookup(item_entity_t *item,
 
 	if (plugin_call(key->plugin->key_ops, compare, &minkey, key) > 0) {
 		*pos = 0;
-		return 0;
+		return LP_ABSENT;
 	}
 
 	/*
 	  Performing binary search inside the direntry in order to find position
 	  iof the looked key.
 	*/
-	result = aux_bin_search((void *)direntry, units, key, 
-				callback_comp_entry, (void *)item,
-				&unit);
+	res = aux_bin_search((void *)direntry, units, key, 
+			     callback_comp_entry, (void *)item,
+			     &unit);
 
 	/*
 	  Position correcting for the case key was not found. It is needed for
 	  the case when we are going to insert new entry and searching the
 	  position of insertion.
 	*/
-	if (result != -1) {
-		*pos = (uint32_t)unit;
+	if (res == LP_FAILED)
+		return res;
+	
+	*pos = (uint32_t)unit;
 
-		if (result == 0)
-			(*pos)++;
-	}
+	if (res == LP_ABSENT)
+		(*pos)++;
     
-	return result;
+	return res;
 }
 
 /* Preparing direntry plugin structure */

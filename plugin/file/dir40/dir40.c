@@ -37,7 +37,7 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	object40_unlock(&dir->file, &dir->body);
 	
 	/* Lookup for the first direntry item */
-	if (object40_lookup(&dir->file, &key, LEAF_LEVEL, &dir->body) != PRESENT)	{
+	if (object40_lookup(&dir->file, &key, LEAF_LEVEL, &dir->body) != LP_PRESENT) {
 		aal_exception_error("Can't find direntry of object 0x%llx.", 
 				    object40_objectid(&dir->file));
 		
@@ -85,8 +85,8 @@ static int dir40_mergeable(item_entity_t *item1,
 			   item1, item2);
 }
 
-/* Makes position onto next direntry item */
-static int dir40_next(dir40_t *dir) {
+/* Switches current dir body item onto next one */
+static lookup_t dir40_next(dir40_t *dir) {
 	place_t right;
 	reiser4_plugin_t *this_plugin;
 	reiser4_plugin_t *right_plugin;
@@ -100,10 +100,10 @@ static int dir40_next(dir40_t *dir) {
 	  current one or not.
 	*/
 	if (core->tree_ops.right(dir->file.tree, &dir->body, &right))
-		return 0;
+		return LP_ABSENT;
 
 	if (!dir40_mergeable(&right.item, &dir->body.item))
-		return ABSENT;
+		return LP_ABSENT;
 	
 	object40_unlock(&dir->file, &dir->body);
 	object40_lock(&dir->file, &right);
@@ -111,7 +111,7 @@ static int dir40_next(dir40_t *dir) {
 	dir->body = right;
 	dir->body.pos.unit = 0;
 	
-	return PRESENT;
+	return LP_PRESENT;
 }
 
 /* Reads n entries to passed buffer buff */
@@ -171,7 +171,7 @@ static int32_t dir40_read(object_entity_t *entity,
 		/* Getting next direntry item to be current */
 		if (dir->body.pos.unit >= units) {
 			
-			if (dir40_next(dir) != PRESENT)
+			if (dir40_next(dir) != LP_PRESENT)
 				break;
 
 			item = &dir->body.item;
@@ -188,9 +188,10 @@ static int32_t dir40_read(object_entity_t *entity,
    Makes lookup in directory by name. Returns the key of the stat data item,
    entry points to.
 */
-static int dir40_lookup(object_entity_t *entity, 
-			char *name, key_entity_t *key) 
+static lookup_t dir40_lookup(object_entity_t *entity, 
+			     char *name, key_entity_t *key) 
 {
+	lookup_t res;
 	key_entity_t wanted;
 	dir40_t *dir = (dir40_t *)entity;
     
@@ -220,25 +221,25 @@ static int dir40_lookup(object_entity_t *entity,
 		  on.
 		*/
 		if (plugin_call(item->plugin->item_ops, lookup, item, &wanted,
-				&dir->body.pos.unit) == PRESENT) 
+				&dir->body.pos.unit) == LP_PRESENT) 
 		{
 			reiser4_entry_hint_t entry;
 
 			if (plugin_call(item->plugin->item_ops, read, item,
 					&entry, dir->body.pos.unit, 1) != 1)
-				return -1;
+				return LP_FAILED;
 
 			plugin_call(key->plugin->key_ops, assign, key,
 				    &entry.object);
 	    
-			return 1;
+			return LP_PRESENT;
 		}
 
-		if (dir40_next(dir) != PRESENT)
-			return 0;
+		if ((res = dir40_next(dir)) != LP_PRESENT)
+			return res;
 	}
     
-	return 0;
+	return LP_ABSENT;
 }
 
 /*
@@ -611,7 +612,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 				return res;
 		}
 		
-		if (dir40_next(dir) != PRESENT)
+		if (dir40_next(dir) != LP_PRESENT)
 			break;
 	}
     
@@ -640,7 +641,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 		if ((res = func(entity, &dir->body, data)))
 			return res;
 		
-		if (dir40_next(dir) != PRESENT)
+		if (dir40_next(dir) != LP_PRESENT)
 			break;
 			
 	}

@@ -43,6 +43,14 @@ struct rpos {
 
 typedef struct rpos rpos_t;
 
+enum lookup {
+	LP_PRESENT              = 1,
+	LP_ABSENT               = 0,
+	LP_FAILED               = 0
+};
+
+typedef enum lookup lookup_t;
+
 #define POS_INIT(p, i, u) \
         (p)->item = i, (p)->unit = u
 
@@ -176,10 +184,6 @@ enum reiser4_key_plugin_id {
 };
 
 typedef union reiser4_plugin reiser4_plugin_t;
-
-#define PRESENT                 0x1
-#define ABSENT                  0x0
-#define FAILED                  -1
 
 #define INVAL_PID               0xffff
 
@@ -620,7 +624,7 @@ struct reiser4_file_ops {
 	errno_t (*seek) (object_entity_t *, uint64_t);
 
 	/* Makes lookup inside dir */
-	int (*lookup) (object_entity_t *, char *, key_entity_t *);
+	lookup_t (*lookup) (object_entity_t *, char *, key_entity_t *);
 
 	/* Finds actual file stat data (symlink) */
 	errno_t (*follow) (object_entity_t *, key_entity_t *);
@@ -691,7 +695,7 @@ struct reiser4_item_ops {
 	uint32_t (*units) (item_entity_t *);
 
 	/* Makes lookup for passed key */
-	int (*lookup) (item_entity_t *, key_entity_t *, uint32_t *);
+	lookup_t (*lookup) (item_entity_t *, key_entity_t *, uint32_t *);
 
 	/* Performs shift of units from passed @src item to @dst item */
 	errno_t (*shift) (item_entity_t *, item_entity_t *,
@@ -820,12 +824,9 @@ struct reiser4_node_ops {
 	/* Returns free space in the node */
 	uint16_t (*space) (object_entity_t *);
 
-	/* 
-	   Makes lookup inside node by specified key. Returns TRUE in the case
-	   exact match was found and FALSE otherwise.
-	*/
-	int (*lookup) (object_entity_t *, key_entity_t *, 
-		       rpos_t *);
+	/* Makes lookup inside node by specified key */
+	lookup_t (*lookup) (object_entity_t *, key_entity_t *, 
+			    rpos_t *);
     
 	/* Inserts item at specified pos */
 	errno_t (*insert) (object_entity_t *, rpos_t *,
@@ -1212,8 +1213,8 @@ struct reiser4_core {
 		  Makes lookup in the tree in order to know where say stat data
 		  item of a file really lies. It is used in all object plugins.
 		*/
-		int (*lookup) (void *, key_entity_t *, uint8_t,
-			       place_t *);
+		lookup_t (*lookup) (void *, key_entity_t *, uint8_t,
+				    place_t *);
 
 		/* Initializes all item fields in passed place */
 		errno_t (*realize) (void *, place_t *);

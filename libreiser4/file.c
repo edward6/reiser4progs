@@ -36,10 +36,10 @@ errno_t reiser4_file_stat(reiser4_file_t *file) {
 	reiser4_key_set_type(&file->key, KEY_STATDATA_TYPE);
 
 	/* Performing lookup for statdata of current directory */
-	if (reiser4_tree_lookup(file->fs->tree, &file->key, 
-				LEAF_LEVEL, &file->place) != PRESENT) 
+	if (reiser4_tree_lookup(file->fs->tree, &file->key,
+				LEAF_LEVEL, &file->place) != LP_PRESENT) 
 	{
-		/* Stat adta is not found. getting us out */
+		/* Stat data is not found. getting us out */
 		return -1;
 	}
 
@@ -130,7 +130,7 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 
 	/* Looking up for @enrty in current directory */
 	if (plugin_call(plugin->file_ops, lookup, entity,
-			entry, &file->key) != PRESENT)
+			entry, &file->key) != LP_PRESENT)
 	{
 		aal_exception_error("Can't find %s.", track);
 		goto error_free_entity;
@@ -145,9 +145,9 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 }
 
 /* 
-   Performs lookup of file statdata by its name. Result is stored in passed
-   object fileds. Returns error code or 0 if there are no errors. This function
-   also supports symlinks and it rather might be called "stat".
+  Performs lookup of file statdata by its name. Result is stored in passed
+  object fileds. Returns error code or 0 if there are no errors. This function
+  also supports symlinks and it rather might be called "stat".
 */
 static errno_t reiser4_file_lookup(
 	reiser4_file_t *file,	    /* file lookup will be performed in */

@@ -259,7 +259,7 @@ errno_t object40_stat(object40_t *file) {
 
 	/* Requesting libreiser4 lookup in order to find stat data position */
 	if (file->core->tree_ops.lookup(file->tree, &file->key, LEAF_LEVEL,
-					&file->statdata) != PRESENT) 
+					&file->statdata) != LP_PRESENT) 
 	{
 		aal_exception_error("Can't find stat data of file 0x%llx.", 
 				    object40_objectid(file));
@@ -277,8 +277,8 @@ errno_t object40_stat(object40_t *file) {
 }
 
 /* Performs lookup and returns result to caller */
-errno_t object40_lookup(object40_t *file, key_entity_t *key,
-			uint8_t stop, place_t *place)
+lookup_t object40_lookup(object40_t *file, key_entity_t *key,
+			 uint8_t stop, place_t *place)
 {
 	return file->core->tree_ops.lookup(file->tree, key,
 					   stop, place);
@@ -299,10 +299,10 @@ errno_t object40_insert(object40_t *file, reiser4_item_hint_t *hint,
 	  exception and return the error code.
 	*/
 	switch (object40_lookup(file, &hint->key, stop, place)) {
-	case PRESENT:
+	case LP_PRESENT:
 		aal_exception_error("Key already exists in the tree.");
 		return -1;
-	case FAILED:
+	case LP_FAILED:
 		aal_exception_error("Lookup is failed while trying to insert "
 				    "new item into file 0x%llx.", objectid);
 		return -1;

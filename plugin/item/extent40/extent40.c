@@ -232,9 +232,9 @@ static errno_t extent40_utmost_key(item_entity_t *item,
   Performs lookup for specified @key inside the passed @item. Result of lookup
   will be stored in @pos.
 */
-static int extent40_lookup(item_entity_t *item,
-			   key_entity_t *key,
-			   uint32_t *pos)
+static lookup_t extent40_lookup(item_entity_t *item,
+				key_entity_t *key,
+				uint32_t *pos)
 {
 	uint32_t i, units;
 	uint32_t blocksize;
@@ -248,17 +248,17 @@ static int extent40_lookup(item_entity_t *item,
 	aal_assert("umka-1502", pos != NULL);
 	
 	if (!(extent = extent40_body(item)))
-		return -1;
+		return LP_FAILED;
 	
 	if (extent40_maxposs_key(item, &maxkey))
-		return -1;
+		return LP_FAILED;
 
 	if (!(units = extent40_units(item)))
-		return -1;
+		return LP_FAILED;
 
 	if (plugin_call(key->plugin->key_ops, compare, key, &maxkey) > 0) {
 		*pos = extent40_size(item);
-		return 0;
+		return LP_ABSENT;
 	}
 
 	lookuped = plugin_call(key->plugin->key_ops, get_offset, key);
@@ -271,12 +271,12 @@ static int extent40_lookup(item_entity_t *item,
 		
 		if (offset > lookuped) {
 			*pos = offset - (offset - lookuped);
-			return 1;
+			return LP_PRESENT;
 		}
 	}
 
 	*pos = extent40_size(item);
-	return 0;
+	return LP_ABSENT;
 }
 
 /* Gets the number of unit specified offset lies in */

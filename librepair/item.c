@@ -25,7 +25,7 @@ uint32_t repair_item_split(
  
     /* Split. Lookup method must be implemented in this case. */
     if (plugin_call(coord->item.plugin->item_ops, lookup, 
-	&coord->item, rd_key, &unit) == -1) 
+	&coord->item, rd_key, &unit) == LP_FAILED) 
     {
 	aal_exception_error("Lookup in the item %d in the node %llu failed.", 
 	    coord->pos.item, coord->node->blk);

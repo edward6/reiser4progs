@@ -617,9 +617,9 @@ static errno_t reiser4_tree_asroot(reiser4_tree_t *tree,
 
 /* 
    Makes search in the tree by specified key. Fills passed place by coords of 
-   found item. 
+   found item.
 */
-int reiser4_tree_lookup(
+lookup_t reiser4_tree_lookup(
 	reiser4_tree_t *tree,	/* tree to be grepped */
 	reiser4_key_t *key,	/* key to be find */
 	uint8_t level,	        /* stop level for search */
@@ -628,7 +628,6 @@ int reiser4_tree_lookup(
 	int result, deep;
 	reiser4_place_t fake;
 	rpos_t pos = {0, ~0ul};
-	reiser4_node_t *parent = NULL;
 
 	aal_assert("umka-1760", tree != NULL);
 	aal_assert("umka-742", key != NULL);
@@ -637,13 +636,13 @@ int reiser4_tree_lookup(
 	reiser4_place_init(place, tree->root, &pos);
 	
 	if (reiser4_format_get_root(tree->fs->format) == INVAL_BLK)
-		return ABSENT;
+		return LP_ABSENT;
 	
 	deep = reiser4_tree_height(tree);
 
 	/* Making sure that root is exist */
 	if (reiser4_tree_ldroot(tree))
-		return FAILED;
+		return LP_FAILED;
     
 	reiser4_place_init(place, tree->root, &pos);
 	
@@ -659,7 +658,7 @@ int reiser4_tree_lookup(
 		reiser4_node_t *node = place->node;
 	
 		if (reiser4_node_items(node) == 0)
-			return ABSENT;
+			return LP_ABSENT;
 
 		/* 
 		  Looking up for key inside node. Result of lookuping will be
@@ -684,7 +683,7 @@ int reiser4_tree_lookup(
 			aal_exception_error("Can't open item by its place. Node "
 					    "%llu, item %u.", place->node->blk,
 					    place->pos.item);
-			return FAILED;
+			return LP_FAILED;
 		}
 
 		if (!reiser4_item_branch(place))
@@ -692,13 +691,13 @@ int reiser4_tree_lookup(
 		
 		if (!(place->node = reiser4_tree_child(tree, place))) {
 			aal_exception_error("Can't load node by its nodeptr.");
-			return FAILED;
+			return LP_FAILED;
 		}
 		
 		deep--;
 	}
     
-	return 0;
+	return LP_ABSENT;
 }
 
 #ifndef ENABLE_ALONE

@@ -259,7 +259,9 @@ static errno_t callback_find_statdata(char *track,
 	plugin_call(key->plugin->key_ops, set_offset, key, 0);
 
 	/* Performing lookup for statdata of current directory */
-	if (object40_lookup(file, key, LEAF_LEVEL, &file->statdata) != PRESENT) {
+	if (object40_lookup(file, key, LEAF_LEVEL,
+			    &file->statdata) != LP_PRESENT)
+	{
 		aal_exception_error("Can't find stat data of %s.",
 				    track);
 		return -1;
@@ -337,7 +339,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 
 	/* Looking up for @enrty in current directory */
 	if (plugin_call(plugin->file_ops, lookup, entity,
-			entry, &sym->file.key) != PRESENT)
+			entry, &sym->file.key) != LP_PRESENT)
 	{
 		aal_exception_error("Can't find %s.", track);
 		goto error_free_entity;

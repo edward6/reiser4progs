@@ -1015,12 +1015,12 @@ static inline int callback_comp_key(void *node, uint32_t pos,
   Makes search inside the specified node @entity for @key and stores the result
   into @pos. This function returns 1 if key is found and 0 otherwise.
 */
-static int node40_lookup(object_entity_t *entity, 
-			 key_entity_t *key,
-			 rpos_t *pos)
+static lookup_t node40_lookup(object_entity_t *entity, 
+			      key_entity_t *key,
+			      rpos_t *pos)
 {
-	int result; 
 	int64_t item;
+	lookup_t res; 
 	uint32_t items;
 	node40_t *node;
 
@@ -1033,12 +1033,12 @@ static int node40_lookup(object_entity_t *entity,
 	node = (node40_t *)entity;
 	items = nh40_get_num_items(node);
 
-	result = aux_bin_search(node, items, key, callback_comp_key, 
-				key->plugin, &item);
+	res = aux_bin_search(node, items, key, callback_comp_key, 
+			     key->plugin, &item);
 	
 	pos->item = item;
 
-	return result;
+	return res;
 }
 
 #ifndef ENABLE_ALONE

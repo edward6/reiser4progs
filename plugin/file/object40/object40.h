@@ -63,8 +63,8 @@ extern errno_t object40_init(object40_t *file, reiser4_plugin_t *plugin,
 
 extern errno_t object40_fini(object40_t *file);
 
-extern errno_t object40_lookup(object40_t *file, key_entity_t *key,
-			       uint8_t stop, place_t *place);
+extern lookup_t object40_lookup(object40_t *file, key_entity_t *key,
+				uint8_t stop, place_t *place);
 
 extern errno_t object40_insert(object40_t *file, reiser4_item_hint_t *hint,
 			       uint8_t stop, place_t *place);

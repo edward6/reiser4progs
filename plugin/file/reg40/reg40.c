@@ -48,7 +48,9 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	  Perform lookup with instruction to stop on the leaf level. In the case
 	  first item is extent, we will stop on twig level.
 	*/
-	if (object40_lookup(&reg->file, &key, LEAF_LEVEL, &reg->body) != PRESENT)	{
+	if (object40_lookup(&reg->file, &key, LEAF_LEVEL,
+			    &reg->body) != LP_PRESENT)
+	{
 		/*
 		  Cleaning body node. It is needed because functions below check
 		  this in order to determine is file has a body or not.
@@ -68,8 +70,8 @@ static errno_t reg40_reset(object_entity_t *entity) {
 }
 
 /* Updates body coord in correspond to file offset */
-static errno_t reg40_next(reg40_t *reg) {
-	errno_t res;
+static lookup_t reg40_next(reg40_t *reg) {
+	lookup_t res;
 	place_t place;
 	key_entity_t key;
 
@@ -86,9 +88,9 @@ static errno_t reg40_next(reg40_t *reg) {
 	place = reg->body;
 	
 	/* Getting the next body item from the tree */
-	res = object40_lookup(&reg->file, &key, LEAF_LEVEL, &reg->body);
-
-	if (res != PRESENT) {
+	if ((res = object40_lookup(&reg->file, &key, LEAF_LEVEL,
+				   &reg->body)) != LP_PRESENT)
+	{
 		/*
 		  Restoring previous body place. It is needed because we provide
 		  the behavior which makes user sure that if next position is
@@ -157,7 +159,9 @@ static int32_t reg40_read(object_entity_t *entity,
 		reg->offset += chunk;
 
 		/* Getting new body item by current file offset */
-		reg40_next(reg);
+		if (reg40_next(reg) != LP_PRESENT)
+			break;
+			
 	}
 
 	return read;
@@ -299,9 +303,9 @@ static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
 }
 
 /* 
-   Returns plugin (tail or extent) for next write operation basing on passed
-   size to be writen. This function will be using tail policy plugin for find
-   out what next item should be writen.
+  Returns plugin (tail or extent) for next write operation basing on passed size
+  to be writen. This function will be using tail policy plugin for find out what
+  next item should be writen.
 */
 static reiser4_plugin_t *reg40_policy(reg40_t *reg, uint32_t size) {
 	return core->factory_ops.ifind(ITEM_PLUGIN_TYPE, ITEM_TAIL40_ID);

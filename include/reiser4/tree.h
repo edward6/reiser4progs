@@ -99,7 +99,7 @@ extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
 
 #endif
 
-extern int reiser4_tree_lookup(reiser4_tree_t *tree,
+extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree,
 			       reiser4_key_t *key,
 			       uint8_t stop,
 			       reiser4_place_t *place);

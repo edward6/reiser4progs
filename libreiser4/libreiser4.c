@@ -99,13 +99,13 @@ static errno_t tree_remove(
 #endif
 
 /* Handler for lookup reqiests from the all plugin can arrive */
-static int tree_lookup(
+static lookup_t tree_lookup(
 	void *tree,	            /* opaque pointer to the tree */
 	reiser4_key_t *key,	    /* key to be found */
 	uint8_t stop,	            /* stop level */
 	place_t *place)             /* result will be stored in */
 {
-	int lookup;
+	lookup_t res;
 	reiser4_place_t *p;
 	
 	aal_assert("umka-851", key != NULL);
@@ -114,11 +114,11 @@ static int tree_lookup(
 
 	p = (reiser4_place_t *)place;
 	
-	if ((lookup = reiser4_tree_lookup((reiser4_tree_t *)tree,
-					  key, stop, p)) == FAILED)
-		return lookup;
+	if ((res = reiser4_tree_lookup((reiser4_tree_t *)tree,
+				       key, stop, p)) == LP_FAILED)
+		return res;
 	
-	if (lookup == PRESENT) {
+	if (res == LP_PRESENT) {
 		
 		item_entity_t *item = &p->item;
 		object_entity_t *entity = p->node->entity;
@@ -127,16 +127,16 @@ static int tree_lookup(
 				entity, &p->pos, &item->key))
 		{
 			aal_exception_error("Can't get item key.");
-			return -1;
+			return LP_FAILED;
 		}
 
 		if (reiser4_key_guess(&item->key)) {
 			aal_exception_error("Can't guess item key plugin.");
-			return -1;
+			return LP_FAILED;
 		}
 	}
 
-	return lookup;
+	return res;
 }
 
 /* Initializes item at passed @place */

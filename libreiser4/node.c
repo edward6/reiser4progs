@@ -429,12 +429,12 @@ bool_t reiser4_node_confirm(reiser4_node_t *node) {
   This function makes search inside specified node for passed key. Position will
   eb stored in passed @pos.
 */
-int reiser4_node_lookup(
+lookup_t reiser4_node_lookup(
 	reiser4_node_t *node,	/* node to be grepped */
 	reiser4_key_t *key,	/* key to be find */
 	rpos_t *pos)	        /* found pos will be stored here */
 {
-	int result;
+	lookup_t res;
 
 	item_entity_t *item;
 	reiser4_key_t maxkey;
@@ -448,25 +448,20 @@ int reiser4_node_lookup(
 	pos->unit = ~0ul;
 
 	if (reiser4_node_items(node) == 0)
-		return 0;
+		return LP_ABSENT;
    
 	/* Calling node plugin */
-	if ((result = plugin_call(node->entity->plugin->node_ops,
-				  lookup, node->entity, key, pos)) == -1) 
-	{
-		aal_exception_error("Lookup in the node %llu failed.",
-				    node->blk);
-		return -1;
-	}
+	res = plugin_call(node->entity->plugin->node_ops,
+			  lookup, node->entity, key, pos);
 
-	if (result == 1)
-		return 1;
+	if (res != LP_PRESENT)
+		return res;
 
 	/* Initializing item place points to */
 	if (reiser4_place_open(&place, node, pos)) {
 		aal_exception_error("Can't open item by place. Node "
 				    "%llu, item %u.", node->blk, pos->item);
-		return -1;
+		return LP_FAILED;
 	}
 
 	item = &place.item;
@@ -477,24 +472,18 @@ int reiser4_node_lookup(
 	*/
 		
 	if (reiser4_item_maxposs_key(&place, &maxkey))
-		return -1;
+		return LP_FAILED;
 
 	if (reiser4_key_compare(key, &maxkey) > 0) {
 		pos->item++;
-		return 0;
+		return LP_ABSENT;
 	}
 	
 	/* Calling lookup method of found item (most probably direntry item) */
 	if (!item->plugin->item_ops.lookup)
-		return 0;
+		return LP_ABSENT;
 
-	if ((result = item->plugin->item_ops.lookup(item, key, &pos->unit)) == -1) {
-		aal_exception_error("Lookup in the item %d in the node %llu failed.", 
-				    pos->item, node->blk);
-		return -1;
-	}
-
-	return result;
+	return item->plugin->item_ops.lookup(item, key, &pos->unit);
 }
 
 /* Returns real item count in specified node */
@@ -689,7 +678,7 @@ static errno_t reiser4_node_uchildren(reiser4_node_t *node,
 
 	POS_INIT(&pos, start->item, 0);
 
-	/* Getting nodeptr item */
+	/* Searchilg for first nodeptr item */
 	for (; pos.item < reiser4_node_items(node); pos.item++) {
 		if (reiser4_place_open(&item, node, start))
 			return -1;
@@ -701,7 +690,9 @@ static errno_t reiser4_node_uchildren(reiser4_node_t *node,
 	if (!reiser4_item_branch(&item))
 		return 0;
 
+	/* Searching for the first loaded child found nodeptr item points to */
 	for (; pos.item < reiser4_node_items(node); pos.item++) {
+
 		plugin_call(item.item.plugin->item_ops, read,
 			    &item.item, &ptr, pos.unit, 1);
 	
@@ -712,7 +703,8 @@ static errno_t reiser4_node_uchildren(reiser4_node_t *node,
 
 	if (!list)
 		return 0;
-	
+
+	/* Updating childrens in-parent position */
 	aal_list_foreach_forward(list, walk) {
 		reiser4_node_t *child = (reiser4_node_t *)walk->data;
 
@@ -798,6 +790,7 @@ errno_t reiser4_node_cut(
 	aal_assert("umka-1786", start != NULL);
 	aal_assert("umka-1787", end != NULL);
 
+	/* Calling plugin's cut method */
 	if (plugin_call(node->entity->plugin->node_ops,
 			cut, node->entity, start, end))
 	{

@@ -3,6 +3,8 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* implement files removing.
+
 * should we consider, that node's children list may contains empty 
   nodes? Or in node_remove we should detach empty node from the list?
 
@@ -50,9 +52,6 @@ reiser4progs/COPYING.
 
 * repacking is needed after tree is created by reiser4progs. Or we
   should produce the tree in the right order.
-
-* remove and insert in node plugin probably should take an additional
-  param, and namely the count of items/unit to be inserted/removed.
 
 * node plugin insert probably should be renamed into write.
 
