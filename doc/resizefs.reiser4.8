@@ -1,0 +1,73 @@
+.\"						Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH resizefs.reiser4 8 "20 Jul, 2003" reiser4progs "reiser4progs manual"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+resizefs.reiser4 \- the program for resize reiser4 filesystem.
+.SH SYNOPSIS
+.B resizefs.reiser4
+[ options ] FILE size[K|M|G]
+.SH DESCRIPTION
+.B resizefs.reiser4
+is reiser4 filesystem resize program.
+.SH COMMON OPTIONS
+.TP
+.B -V, --version
+prints program version.
+.TP
+.B -?, -h, --help
+prints program help.
+.TP
+.B -q, --quiet
+forces creating filesystem without any questions.
+.TP
+.B -f, --force
+makes resizefs to use whole disk, not block device or mounted partition.
+.TP
+.B -c, --cache N
+sets tree cache node number to passed value. This affects very much
+behavior of libreiser4. It affects speed, tree allocation, etc.
+.SH PLUGIN OPTIONS
+.TP
+.B -p, --print-params
+prints default parameters. This is the set of plugins used for each
+filesystem object (format, node, file, directories, hashes, etc.). If
+--override is specified, then prints modified parameters.
+.TP
+.B -l, --print-plugins
+prints all plugins libreiser4 know about.
+.TP
+.B -o, --override TYPE=PLUGIN, ...
+overrides the default plugin of the type "TYPE" by the plugin "PLUGIN"
+.sp 1
+Examples:
+.sp 1
+resizefs.reiser4 -qf -o nodeptr=nodeptr41,hash=rupasov_hash /dev/hda2 /dev/hda3
+.RS
+.SH REPORTING BUGS
+Report bugs to <umka@namesys.com>, <reiserfs-list@namesys.com>
+.SH SUPPORT
+You can get support at http://www.namesys.com/support.html
+.SH SEE ALSO
+.BR libreiser4(8),
+.BR measurefs.reiser4(8),
+.BR debugfs.reiser4(8),
+.BR fsck.reiser4(8)
+.BR mkfs.reiser4(8)
+.BR copyfs.reiser4(8)
+.SH AUTHOR
+This manual page was written by Yury Umanets <umka@namesys.com>
+
