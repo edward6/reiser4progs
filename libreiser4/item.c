@@ -169,6 +169,28 @@ int reiser4_item_nodeptr(reiser4_coord_t *coord) {
 		item->plugin->h.sign.group == NODEPTR_ITEM;
 }
 
+rpid_t reiser4_item_type(reiser4_coord_t *coord) {
+	if (reiser4_item_statdata(coord))
+		return STATDATA_ITEM;
+
+	if (reiser4_item_nodeptr(coord))
+		return NODEPTR_ITEM;
+	
+	if (reiser4_item_direntry(coord))
+		return DIRENTRY_ITEM;
+
+	if (reiser4_item_tail(coord))
+		return TAIL_ITEM;
+	
+	if (reiser4_item_extent(coord))
+		return EXTENT_ITEM;
+
+	if (reiser4_item_permissn(coord))
+		return PERMISSN_ITEM;
+
+	return UNKNOWN_ITEM;
+}
+
 uint32_t reiser4_item_len(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	

@@ -103,7 +103,8 @@ enum reiser4_item_group {
 	DIRENTRY_ITEM		= 0x2,
 	TAIL_ITEM		= 0x3,
 	EXTENT_ITEM		= 0x4,
-	PERMISSN_ITEM		= 0x5
+	PERMISSN_ITEM		= 0x5,
+	UNKNOWN_ITEM
 };
 
 typedef enum reiser4_item_group reiser4_item_group_t;

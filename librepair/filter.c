@@ -168,49 +168,65 @@ errno_t repair_filter_after_traverse(reiser4_joint_t *joint, void *data) {
 }
 
 /* Setup data and initialize data->pass.filter. */
-errno_t repair_filter_setup(reiser4_fs_t *fs, repair_check_t *data) {
+errno_t repair_filter_setup(reiser4_fs_t *fs, traverse_hint_t *hint) {
+    repair_check_t *check_data;    
     
-    data->format = fs->format;
-    data->options = repair_data(fs)->options;
+    aal_assert("vpf-420", hint != NULL, return -1);
+    aal_assert("vpf-423", hint->data != NULL, return -1);
+    
+    check_data = hint->data;
+    
+    check_data->format = fs->format;
+    check_data->options = repair_data(fs)->options;
 
-    if (!(repair_filter_data(data)->formatted = aux_bitmap_create(
-	reiser4_format_get_len(data->format)))) 
+    if (!(repair_filter_data(check_data)->formatted = aux_bitmap_create(
+	reiser4_format_get_len(check_data->format)))) 
     {
 	aal_exception_error("Failed to allocate a bitmap for once pointed blocks.");
 	return -1;
     }
     
-    aal_memset(repair_filter_data(data)->formatted->map, 0xff, 
-	repair_filter_data(data)->formatted->size);
+    aal_memset(repair_filter_data(check_data)->formatted->map, 0xff, 
+	repair_filter_data(check_data)->formatted->size);
     
-    if (!(repair_filter_data(data)->format_layout = aux_bitmap_create(
-	reiser4_format_get_len(data->format)))) 
+    if (!(repair_filter_data(check_data)->format_layout = aux_bitmap_create(
+	reiser4_format_get_len(check_data->format)))) 
     {
 	aal_exception_error("Failed to allocate a bitmap for format layout blocks.");
 	return -1;
     }
     
-    aal_memset(repair_filter_data(data)->format_layout->map, 0xff, 
-	repair_filter_data(data)->format_layout->size);
+    aal_memset(repair_filter_data(check_data)->format_layout->map, 0xff, 
+	repair_filter_data(check_data)->format_layout->size);
     
     if (reiser4_format_layout(fs->format, callback_mark_format_block, 
-	repair_filter_data(data)->format_layout)) 
+	repair_filter_data(check_data)->format_layout)) 
     {
 	aal_exception_error("Failed to mark all format blocks in the bitmap as unused.");
 	return -1;
     }
     
+    hint->objects = 1 << NODEPTR_ITEM;
+    
     return 0;
 }
 
-errno_t repair_filter_update(reiser4_fs_t *fs, repair_check_t *data) {    
-    if (repair_test_flag(data, REPAIR_NOT_FIXED)) {
-	reiser4_format_set_root(data->format, FAKE_BLK);
-	repair_clear_flag(data, REPAIR_NOT_FIXED);
+errno_t repair_filter_update(reiser4_fs_t *fs, traverse_hint_t *hint) {
+    repair_check_t *check_data;
+
+    aal_assert("vpf-421", hint != NULL, return -1);
+    aal_assert("vpf-422", hint->data != NULL, return -1);
+    aal_assert("vpf-422", hint->data != NULL, return -1);
+    
+    check_data = hint->data;
+    
+    if (repair_test_flag(check_data, REPAIR_NOT_FIXED)) {
+	reiser4_format_set_root(check_data->format, FAKE_BLK);
+	repair_clear_flag(check_data, REPAIR_NOT_FIXED);
     } else {
 	/* Mark the root block as a formatted block in the bitmap. */
-	aux_bitmap_clear(repair_filter_data(data)->formatted, 
-	    reiser4_format_get_root(data->format));
+	aux_bitmap_clear(repair_filter_data(check_data)->formatted, 
+	    reiser4_format_get_root(check_data->format));
     }
 
     return 0;

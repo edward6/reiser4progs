@@ -609,16 +609,19 @@ errno_t reiser4_joint_move(
 					return -1;
 			}
 		}
-	
 	}
     
 	return 0;
 }
 
+int reiser4_joint_traverse_continue(rpid_t objects, rpid_t type) {
+	return (objects & (1 << type));
+}
+
 /* This function traverse passed node. */
 errno_t reiser4_joint_traverse(
 	reiser4_joint_t *joint,		     /* block which should be traversed */
-	void *data,			     /* user-spacified data */
+	traverse_hint_t *hint,		     /* hint for traverse and for callback methods */
 	reiser4_open_func_t open_func,	     /* callback for node opening */
 	reiser4_edge_func_t before_func,     /* callback to be called at the beginning */
 	reiser4_setup_func_t setup_func,     /* callback to be called before a child  */
@@ -634,8 +637,9 @@ errno_t reiser4_joint_traverse(
 	aal_assert("vpf-390", joint!= NULL, return -1);
 	aal_assert("vpf-391", joint->node != NULL, return -1);
 	aal_assert("vpf-392", joint->node->block != NULL, return -1);
+	aal_assert("vpf-418", hint != NULL, return -1);
 
-	if ((before_func && (result = before_func(joint, data))))
+	if ((before_func && (result = before_func(joint, hint->data))))
 		goto error;
 
 	for (pos.item = 0; pos.item < reiser4_node_count(joint->node); pos.item++) {
@@ -651,9 +655,7 @@ errno_t reiser4_joint_traverse(
 			goto error_after_func;
 		}
 		
-		/* This is a traverse method for formatted nodes only. Write another one for 
-		 * unformatted if you need. */
-		if (!reiser4_item_nodeptr(&coord))
+		if (!reiser4_joint_traverse_continue(hint->objects, reiser4_item_type(&coord)))
 			continue;
 	    
 		for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
@@ -667,17 +669,17 @@ errno_t reiser4_joint_traverse(
 			
 				child = NULL;
 					
-				if (setup_func && (result = setup_func(&coord, data)))
+				if (setup_func && (result = setup_func(&coord, hint->data)))
 					goto error_after_func;
 
-				if ((result = open_func(&child, ptr.ptr, data)))
+				if ((result = open_func(&child, ptr.ptr, hint->data)))
 					goto error_update_func;
 
 				if (child) {
 					reiser4_joint_attach(joint, child);
  
 					if ((result = reiser4_joint_traverse(child,
-									     data, 
+									     hint, 
 									     open_func,
 									     before_func, 
 									     setup_func,
@@ -689,7 +691,7 @@ errno_t reiser4_joint_traverse(
 					reiser4_joint_close(child);
 				}
 
-				if (update_func && (result = update_func(&coord, data)))
+				if (update_func && (result = update_func(&coord, hint->data)))
 					goto error_after_func;
 			}
 				
@@ -699,7 +701,7 @@ errno_t reiser4_joint_traverse(
 		}
 	}
 	
-	if (after_func && (result = after_func(joint, data)))
+	if (after_func && (result = after_func(joint, hint->data)))
 		goto error;
 
 	return result;
@@ -709,11 +711,11 @@ errno_t reiser4_joint_traverse(
 	reiser4_joint_close(child);
 
 	if (update_func)
-		result = update_func(&coord, data);
+		result = update_func(&coord, hint->data);
     
  error_after_func:
 	if (after_func)
-		result = after_func(joint, data);
+		result = after_func(joint, hint->data);
     
  error:
 	return result;

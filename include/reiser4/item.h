@@ -40,6 +40,7 @@ extern int reiser4_item_direntry(reiser4_coord_t *coord);
 extern int reiser4_item_tail(reiser4_coord_t *coord);
 extern int reiser4_item_extent(reiser4_coord_t *coord);
 extern int reiser4_item_nodeptr(reiser4_coord_t *coord);
+extern rpid_t reiser4_item_type(reiser4_coord_t *coord);
 
 extern uint32_t reiser4_item_len(reiser4_coord_t *coord);
 extern uint32_t reiser4_item_count(reiser4_coord_t *coord);
