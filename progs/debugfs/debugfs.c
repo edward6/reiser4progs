@@ -127,8 +127,8 @@ static errno_t debugfs_print_joint(
 }
 
 static errno_t debugfs_print_tree(reiser4_fs_t *fs, debugfs_print_flags_t flags) {
-	struct print_tree_hint print_hint = {fs->tree, flags};
 	traverse_hint_t hint;
+	struct print_tree_hint print_hint = {fs->tree, flags};
 	
 	hint.objects = 1 << NODEPTR_ITEM;
 	hint.data = &print_hint;
@@ -300,17 +300,23 @@ static errno_t debugfs_calc_joint(
 
 static errno_t debugfs_tree_fragmentation(reiser4_fs_t *fs) {
 	aal_gauge_t *gauge;
-	struct tree_frag_hint hint;
+	traverse_hint_t hint;
+	struct tree_frag_hint frag_hint;
 
-	aal_memset(&hint, 0, sizeof(hint));
-	
 	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "Tree fragmentation",
 				       progs_gauge_handler, NULL)))
 		return -1;
 	
-	hint.gauge = gauge;
-	hint.tree = fs->tree;
-	hint.curr = aal_block_number(fs->tree->root->node->block);
+	aal_memset(&frag_hint, 0, sizeof(frag_hint));
+	
+	frag_hint.gauge = gauge;
+	frag_hint.tree = fs->tree;
+	frag_hint.curr = aal_block_number(fs->tree->root->node->block);
+
+	aal_memset(&hint, 0, sizeof(hint));
+	
+	hint.data = (void *)&frag_hint;
+	hint.objects = 1 << NODEPTR_ITEM;
 
 	aal_gauge_start(gauge);
 	
@@ -319,7 +325,8 @@ static errno_t debugfs_tree_fragmentation(reiser4_fs_t *fs) {
 
 	aal_gauge_free(gauge);
 
-	printf("%.2f\n", hint.total > 0 ? (double)hint.bad / hint.total : 0);
+	printf("%.2f\n", frag_hint.total > 0 ? (double)frag_hint.bad /
+	       frag_hint.total : 0);
 	
 	return 0;
 };
