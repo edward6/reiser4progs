@@ -6,8 +6,6 @@
 */
 
 #include "stat40.h"
-#include <sys/stat.h>
-
 #include <aux/aux.h>
 
 static reiser4_core_t *core = NULL;
@@ -416,57 +414,6 @@ static errno_t stat40_print(item_entity_t *item,
 
 #endif
 
-/*
-  Returns plugin of the file stat data item belongs to. In doing so, this
-  function should discover all extetions first in order to find is some
-  non-standard file plugin is in use. And then if it was not found, it should
-  try determine file plugin by means of st_mode field inside ligh weight
-  extention.
-*/
-static reiser4_plugin_t *stat40_belongs(item_entity_t *item) {
-	uint32_t pid;
-	uint64_t extmask;
-	
-	reiser4_item_hint_t hint;
-	reiser4_statdata_hint_t stat;
-	reiser4_sdext_lw_hint_t lw_hint;
-	
-	/*
-	  Traverse all statdata extentions and try to find out a non-standard
-	  file plugin. If it is not found, we detect file plugin by mode field.
-	*/
-	extmask = st40_get_extmask(stat40_body(item));
-
-	/* FIXME-UMKA: Here should be checking for the extention first */
-	if (!(((uint64_t)1 << SDEXT_LW_ID) & extmask))
-		return NULL;
-
-	aal_memset(&hint, 0, sizeof(hint));
-	aal_memset(&stat, 0, sizeof(stat));
-	
-	hint.type_specific = &stat;
-	stat.ext[SDEXT_LW_ID] = &lw_hint;
-	
-	if (stat40_read(item, &hint, 0, 1) != 1) {
-		aal_exception_error("Can't open statdata extention (0x%x)",
-				    SDEXT_LW_ID);
-		return NULL;
-	}
-
-	/* Inspecting st_mode field */
-	pid = OBJECT_SPECIAL40_ID;
-	
-	if (S_ISLNK(lw_hint.mode))
-		pid = OBJECT_SYMLINK40_ID;
-	else if (S_ISREG(lw_hint.mode))
-		pid = OBJECT_FILE40_ID;
-	else if (S_ISDIR(lw_hint.mode))
-		pid = OBJECT_DIRTORY40_ID;
-
-	/* Finding plugin by found id */
-	return core->factory_ops.ifind(OBJECT_PLUGIN_TYPE, pid);
-}
-
 /* Stat data plugin preparing */
 static reiser4_plugin_t stat40_plugin = {
 	.item_ops = {
@@ -501,7 +448,6 @@ static reiser4_plugin_t stat40_plugin = {
 		.read           = stat40_read,
 		.units		= stat40_units,
 		.valid		= stat40_valid,
-		.belongs        = stat40_belongs,
         
 		.maxposs_key	= NULL,
 		.utmost_key     = NULL,

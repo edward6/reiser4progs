@@ -269,20 +269,20 @@ static errno_t tree_unlock(
 
 #ifndef ENABLE_ALONE
 
-static uint32_t tree_blockspace(void *tree) {
+static uint32_t tree_blocksize(void *tree) {
 	aal_assert("umka-1220", tree != NULL);
 	return ((reiser4_tree_t *)tree)->fs->device->blocksize;
 }
 
-static uint32_t tree_nodespace(void *tree) {
+static uint32_t tree_maxspace(void *tree) {
 	reiser4_node_t *root;
     
 	aal_assert("umka-1220", tree != NULL);
-
-	root = ((reiser4_tree_t *)tree)->root;
-
-	return reiser4_node_maxspace(root) -
-		reiser4_node_overhead(root);
+	
+	if (!(root = ((reiser4_tree_t *)tree)->root))
+		return 0;
+	
+	return reiser4_node_maxspace(root);
 }
 
 #endif
@@ -314,8 +314,8 @@ reiser4_core_t core = {
 		/* Callback function for removing items from the tree */
 		.remove	    = tree_remove,
 		
-		.nodespace  = tree_nodespace,
-		.blockspace = tree_blockspace,
+		.maxspace  = tree_maxspace,
+		.blocksize = tree_blocksize,
 #endif
 		/* Makes look and unlock of node specified by place */
 		.lock       = tree_lock,

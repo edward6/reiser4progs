@@ -159,6 +159,9 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 
 	key = &place->item.key;
 
+	if (obj40_pid(&place->item) != reg40_plugin.h.id)
+		goto error_free_reg;
+
 	/* Initializing file handle */
 	if (obj40_init(&reg->obj, &reg40_plugin, key, core, tree))
 		goto error_free_reg;
@@ -344,6 +347,9 @@ static reiser4_plugin_t *reg40_policy(reg40_t *reg,
 static int32_t reg40_write(object_entity_t *entity, 
 			   void *buff, uint32_t n) 
 {
+	while (n > 0) {
+	}
+	
 	return 0;
 }
 
@@ -358,11 +364,11 @@ typedef struct layout_hint layout_hint_t;
 static errno_t callback_item_data(void *object, uint64_t start,
 				  uint64_t count, void *data)
 {
-	item_entity_t *item = (item_entity_t *)object;
 	blk_t blk;
 	errno_t res;
 	
 	layout_hint_t *hint = (layout_hint_t *)data;
+	item_entity_t *item = (item_entity_t *)object;
 
 	for (blk = start; blk < start + count; blk++) {
 		if ((res = hint->func(hint->entity, blk, hint->data)))

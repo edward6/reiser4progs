@@ -68,20 +68,14 @@ errno_t reiser4_node_print(
 
 #endif
 
-struct guess_hint {
-	blk_t blk;
-	
-	aal_device_t *device;
-	object_entity_t *entity;
-};
-
-typedef struct guess_hint guess_hint_t;
-
-/* Helper callback for comparing plugins durring searching needed one */
+/*
+  Helper callback for checking if passed @plugin convenient one for passed @blk
+  to open it or not.
+*/
 static errno_t callback_guess_node(reiser4_plugin_t *plugin,
 				   void *data)
 {
-	guess_hint_t *guess = (guess_hint_t *)data;
+	reiser4_node_t *node = (reiser4_node_t *)data;
 
 	/* We are interested only in node plugins here */
 	if (plugin->h.type == NODE_PLUGIN_TYPE) {
@@ -90,36 +84,29 @@ static errno_t callback_guess_node(reiser4_plugin_t *plugin,
 		  Requesting block supposed to be a correct node to be opened
 		  and confirmed about its format.
 		*/
-		if (!(guess->entity = plugin_call(plugin->node_ops, open,
-						  guess->device, guess->blk)))
+		if (!(node->entity = plugin_call(plugin->node_ops, open,
+						 node->device, node->blk)))
 			return -EINVAL;
 
-		if (plugin_call(plugin->node_ops, confirm, guess->entity))
+		/* Okay, we have found needed node plugin */
+		if (plugin_call(plugin->node_ops, confirm, node->entity))
 			return 1;
 
+		plugin_call(plugin->node_ops, close, node->entity);
+		node->entity = NULL;
 	}
-
-	guess->entity = NULL;
+	
 	return 0;
 }
 
 /* This function is trying to detect node plugin */
-static object_entity_t *reiser4_node_guess(
-	aal_device_t *device,              /* device node lies on */
-	blk_t blk)                         /* node block */
-{
-	guess_hint_t guess;
-	object_entity_t *entity;
-    
-	guess.blk = blk;
-	guess.entity = NULL;
-	guess.device = device;
-	
-	/* Finding node plugin by its id from node header */
-	if (!libreiser4_factory_cfind(callback_guess_node, &guess))
-		return NULL;
+static errno_t reiser4_node_guess(reiser4_node_t *node) {
 
-	return guess.entity;
+	/* Finding node plugin by its id */
+	if (!libreiser4_factory_cfind(callback_guess_node, node))
+		return -EINVAL;
+
+	return 0;
 }
 
 /* Opens node on specified device and block number */
@@ -134,17 +121,19 @@ reiser4_node_t *reiser4_node_open(
 	if (!(node = aal_calloc(sizeof(*node), 0)))
 		return NULL;
 
-	if (!(node->entity = reiser4_node_guess(device, blk)))
-		goto error_free_node;
-    
 	node->blk = blk;
 	node->device = device;
 
+	if (reiser4_node_guess(node))
+		goto error_free_node;
+    
 #ifndef ENABLE_ALONE
 	reiser4_node_mkclean(node);
 #endif
 
-	reiser4_place_assign(&node->parent, NULL, 0, ~0ul);
+	reiser4_place_assign(&node->parent,
+			     NULL, 0, ~0ul);
+	
 	return node;
     
  error_free_node:

@@ -174,7 +174,6 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.branch         = nodeptr40_branch,
 		
 		.data		= NULL,
-		.belongs        = NULL,
 		.lookup		= NULL,
 		.valid		= NULL,
 		.mergeable      = NULL,

@@ -13,18 +13,43 @@
 #include <aux/aux.h>
 #include <reiser4/reiser4.h>
 
-static reiser4_plugin_t *reiser4_object_plugin(reiser4_object_t *object) {
-	item_entity_t *item;
+/* Helper callback for probing paased @plugin */
+static errno_t callback_guess_object(reiser4_plugin_t *plugin,
+				     void *data)
+{
+	void *tree, *place;
+	reiser4_object_t *object;
 
-	item = &object->place.item;
+	/* We are interested only in object plugins here */
+	if (plugin->h.type == OBJECT_PLUGIN_TYPE) {
+
+		object = (reiser4_object_t *)data;
 		
-	if (!item->plugin->item_ops.belongs) {
-		aal_exception_error("Method \"belongs\" is not "
-				    "implemented. Can't find object plugin.");
-		return NULL;
+		place = (void *)&object->place;
+		tree = (void *)object->fs->tree;
+		
+		/*
+		  Requesting object plugin to open the object on passed @tree
+		  and @place. If it fails, we will continue lookup.
+		*/
+		if ((object->entity = plugin_call(plugin->object_ops,
+						  open, tree, place)))
+			return 1;
+
+		object->entity = NULL;
 	}
 
-	return item->plugin->item_ops.belongs(item);
+	return 0;
+}
+
+/* This function is trying to detect node plugin */
+static errno_t reiser4_object_guess(reiser4_object_t *object) {
+	
+	/* Finding object plugin by its id */
+	if (!libreiser4_factory_cfind(callback_guess_object, object))
+		return -EINVAL;
+
+	return object->entity != NULL ? 0 : -EINVAL;
 }
 
 uint64_t reiser4_object_size(reiser4_object_t *object) {
@@ -62,9 +87,6 @@ static errno_t callback_find_statdata(char *track, char *entry,
 				      void *data)
 {
 	errno_t res;
-	place_t *place;
-	
-	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
 	reiser4_object_t *object;
 
@@ -77,34 +99,26 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	}
 
 	/* Getting object plugin */
-	if (!(plugin = reiser4_object_plugin(object))) {
-		aal_exception_error("Can't find object plugin for %s.",
-				    track);
-		return -EINVAL;
+	if ((res = reiser4_object_guess(object))) {
+		aal_exception_error("Can't guess object plugin for "
+				    "%s.", track);
+		return res;
 	}
 
+	plugin = object->entity->plugin;
+	
 	/* Symlinks handling. Method "follow" should be implemented */
 	if (plugin->object_ops.follow) {
 
-		/* Opening object */
-		place = (place_t *)&object->place;
-		
-		if (!(entity = plugin_call(plugin->object_ops, open, 
-					   object->fs->tree, place)))
-		{
-			aal_exception_error("Can't open parent of %s.",
-					    track);
-			return -EINVAL;
-		}
-
-		if ((res = plugin->object_ops.follow(entity,
+		if ((res = plugin->object_ops.follow(object->entity,
 						     &object->key)))
 		{
 			aal_exception_error("Can't follow %s.", track);
 			goto error_free_entity;
 		}
 		
-		plugin_call(plugin->object_ops, close, entity);
+		plugin_call(plugin->object_ops, close, object->entity);
+		object->entity = NULL;
 	}
 	
 	reiser4_key_assign(&object->dir, &object->key);
@@ -112,17 +126,15 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	return 0;
 
  error_free_entity:
-	plugin_call(plugin->object_ops, close, entity);
+	plugin_call(plugin->object_ops, close, object->entity);
+	object->entity = NULL;
 	return res;
 }
 
 /* Callback function for finding passed @entry inside the current directory */
 static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	errno_t res;
-	place_t *place;
 	reiser4_object_t *object;
-	
-	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
 	reiser4_entry_hint_t entry_hint;
 	
@@ -135,40 +147,33 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	}
 	
 	/* Getting object plugin */
-	if (!(plugin = reiser4_object_plugin(object))) {
-		aal_exception_error("Can't find object plugin for %s.",
-				    track);
-		return -EINVAL;
-	}
-
-	/* Opening currect directory */
-	place = (place_t *)&object->place;
-		
-	if (!(entity = plugin_call(plugin->object_ops, open, 
-				   object->fs->tree, place)))
-	{
-		aal_exception_error("Can't open parent of directory "
+	if ((res = reiser4_object_guess(object))) {
+		aal_exception_error("Can't find object plugin for "
 				    "%s.", track);
-		return -EINVAL;
+		return res;
 	}
 
+	plugin = object->entity->plugin;
+	
 	aal_memset(&entry_hint, 0, sizeof(entry_hint));
 	
-	/* Looking up for @enrty in current directory */
-	if (plugin_call(plugin->object_ops, lookup, entity,
+	/* Looking up for @entry in current directory */
+	if (plugin_call(plugin->object_ops, lookup, object->entity,
 			entry, &entry_hint) != LP_PRESENT)
 	{
 		aal_exception_error("Can't find %s.", track);
 		goto error_free_entity;
 	}
 
-	plugin_call(plugin->object_ops, close, entity);
 	reiser4_key_assign(&object->key, &entry_hint.object);
+	plugin_call(plugin->object_ops, close, object->entity);
+	object->entity = NULL;
 	
 	return 0;
 	
  error_free_entity:
-	plugin_call(plugin->object_ops, close, entity);
+	plugin_call(plugin->object_ops, close, object->entity);
+	object->entity = NULL;
 	return -EINVAL;
 }
 
@@ -191,7 +196,7 @@ static errno_t reiser4_object_search(
 	  because there may be a symlink.
 	*/
 	if ((res = aux_parse_path(name, callback_find_statdata,
-				  callback_find_entry, (void *)object)))
+				  callback_find_entry, object)))
 		return res;
 
 	/*
@@ -206,7 +211,6 @@ reiser4_object_t *reiser4_object_open(
 	reiser4_fs_t *fs,		/* fs object will be opened on */
 	const char *name)               /* name of object to be opened */
 {
-	place_t *place;
 	reiser4_object_t *object;
 	reiser4_plugin_t *plugin;
     
@@ -239,18 +243,9 @@ reiser4_object_t *reiser4_object_open(
 	if (reiser4_object_search(object, name))
 		goto error_free_object;
     
-	if (!(plugin = reiser4_object_plugin(object))) {
+	if (reiser4_object_guess(object)) {
 		aal_exception_error("Can't find object plugin "
 				    "for %s.", name);
-		goto error_free_object;
-	}
-    
-	place = (place_t *)&object->place;
-	
-	if (!(object->entity = plugin_call(plugin->object_ops,
-					   open, fs->tree, place)))
-	{
-		aal_exception_error("Can't open %s.", name);
 		goto error_free_object;
 	}
     
@@ -268,7 +263,6 @@ reiser4_object_t *reiser4_object_begin(
 	reiser4_fs_t *fs,               /* fs object will be opened on */
 	reiser4_place_t *place)		/* statdata key of object to be opened */
 {
-	place_t *p;
 	reiser4_object_t *object;
 	reiser4_plugin_t *plugin;
 	
@@ -282,31 +276,18 @@ reiser4_object_t *reiser4_object_begin(
 	
 	aal_memcpy(&object->place, place, sizeof(*place));
 	
-	if (reiser4_item_get_key(&object->place, &object->key)) {
-		aal_exception_error("Node (%llu), item (%u), unit(%u): Can't "
-				    "get item key.", place->node->blk, 
-				    place->pos.item, place->pos.unit);
+	if (reiser4_item_get_key(&object->place, &object->key))
 		goto error_free_object;
-	}
 
 	reiser4_key_string(&object->key, object->name);
 
 	/* Guessing object plugin */
-	if (!(plugin = reiser4_object_plugin(object))) {
+	if (reiser4_object_guess(object)) {
 		aal_exception_error("Can't find object plugin for %s.",
 				    object->name);
 		goto error_free_object;
 	}
 
-	p = (place_t *)&object->place;
-		
-	if (!(object->entity = plugin_call(plugin->object_ops, open,
-					   fs->tree, p)))
-	{
-		aal_exception_error("Can't open %s.", object->name);
-		goto error_free_object;
-	}
-	
 	return object;
 	
  error_free_object:

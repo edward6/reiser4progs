@@ -759,7 +759,6 @@ static reiser4_plugin_t extent40_plugin = {
 		.insert	       = NULL,
 		.set_key       = NULL,
 #endif
-		.belongs       = NULL,
 		.valid	       = NULL,
 		.branch        = NULL,
 

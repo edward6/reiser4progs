@@ -53,8 +53,9 @@ errno_t obj40_unlock(obj40_t *obj, place_t *place) {
 }
 
 /* Reads light weight stat data extention into passed @lw_hint */
-static errno_t obj40_read_lw(obj40_t *obj, reiser4_sdext_lw_hint_t *lw_hint) {
-	item_entity_t *item;
+static errno_t obj40_read_lw(item_entity_t *item,
+			     reiser4_sdext_lw_hint_t *lw_hint)
+{
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
 
@@ -64,8 +65,6 @@ static errno_t obj40_read_lw(obj40_t *obj, reiser4_sdext_lw_hint_t *lw_hint) {
 	/* Preparing hint and mask */
 	hint.type_specific = &stat;
 	stat.ext[SDEXT_LW_ID] = lw_hint;
-
-	item = &obj->statdata.item;
 
 	/* Calling statdata open method if it exists */
 	if (!item->plugin->item_ops.read)
@@ -83,8 +82,9 @@ static errno_t obj40_read_lw(obj40_t *obj, reiser4_sdext_lw_hint_t *lw_hint) {
   Writes light weight stat data extention from passed @lw_hint into @obj stat
   data item.
 */
-static errno_t obj40_write_lw(obj40_t *obj, reiser4_sdext_lw_hint_t *lw_hint) {
-	item_entity_t *item;
+static errno_t obj40_write_lw(item_entity_t *item,
+			      reiser4_sdext_lw_hint_t *lw_hint)
+{
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
 
@@ -93,8 +93,8 @@ static errno_t obj40_write_lw(obj40_t *obj, reiser4_sdext_lw_hint_t *lw_hint) {
 	
 	hint.type_specific = &stat;
 
-	item = &obj->statdata.item;
-	item->plugin->item_ops.read(item, &hint, 0, 1);
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1)
+		return -EINVAL;
 
 	stat.ext[SDEXT_LW_ID] = lw_hint;
 
@@ -110,8 +110,9 @@ static errno_t obj40_write_lw(obj40_t *obj, reiser4_sdext_lw_hint_t *lw_hint) {
 #endif
 
 /* Reads unix stat data extention into passed @unix_hint */
-static errno_t obj40_read_unix(obj40_t *obj, reiser4_sdext_unix_hint_t *unix_hint) {
-	item_entity_t *item;
+static errno_t obj40_read_unix(item_entity_t *item,
+			       reiser4_sdext_unix_hint_t *unix_hint)
+{
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
 
@@ -121,8 +122,6 @@ static errno_t obj40_read_unix(obj40_t *obj, reiser4_sdext_unix_hint_t *unix_hin
 	/* Preparing hint and mask */
 	hint.type_specific = &stat;
 	stat.ext[SDEXT_UNIX_ID] = unix_hint;
-
-	item = &obj->statdata.item;
 
 	/* Calling statdata open method if it exists */
 	if (!item->plugin->item_ops.read)
@@ -137,8 +136,9 @@ static errno_t obj40_read_unix(obj40_t *obj, reiser4_sdext_unix_hint_t *unix_hin
 #ifndef ENABLE_ALONE
 
 /* Writes unix stat data extention into @obj stat data item */
-static errno_t obj40_write_unix(obj40_t *obj, reiser4_sdext_unix_hint_t *unix_hint) {
-	item_entity_t *item;
+static errno_t obj40_write_unix(item_entity_t *item,
+				reiser4_sdext_unix_hint_t *unix_hint)
+{
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
 
@@ -147,8 +147,8 @@ static errno_t obj40_write_unix(obj40_t *obj, reiser4_sdext_unix_hint_t *unix_hi
 	
 	hint.type_specific = &stat;
 
-	item = &obj->statdata.item;
-	item->plugin->item_ops.read(item, &hint, 0, 1);
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1)
+		return -EINVAL;
 
 	stat.ext[SDEXT_UNIX_ID] = unix_hint;
 
@@ -167,7 +167,7 @@ static errno_t obj40_write_unix(obj40_t *obj, reiser4_sdext_unix_hint_t *unix_hi
 uint16_t obj40_get_mode(obj40_t *obj) {
 	reiser4_sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_lw(obj, &lw_hint))
+	if (obj40_read_lw(&obj->statdata.item, &lw_hint))
 		return 0;
 	
 	return lw_hint.mode;
@@ -180,11 +180,11 @@ errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
 	errno_t res;
 	reiser4_sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_lw(obj, &lw_hint)))
+	if ((res = obj40_read_lw(&obj->statdata.item, &lw_hint)))
 		return res;
 
 	lw_hint.mode = mode;
-	return obj40_write_lw(obj, &lw_hint);
+	return obj40_write_lw(&obj->statdata.item, &lw_hint);
 }
 
 #endif
@@ -193,7 +193,7 @@ errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
 uint64_t obj40_get_size(obj40_t *obj) {
 	reiser4_sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_lw(obj, &lw_hint))
+	if (obj40_read_lw(&obj->statdata.item, &lw_hint))
 		return 0;
 	
 	return lw_hint.size;
@@ -206,11 +206,11 @@ errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 	errno_t res;
 	reiser4_sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_lw(obj, &lw_hint)))
+	if ((res = obj40_read_lw(&obj->statdata.item, &lw_hint)))
 		return res;
 
 	lw_hint.size = size;
-	return obj40_write_lw(obj, &lw_hint);
+	return obj40_write_lw(&obj->statdata.item, &lw_hint);
 }
 
 #endif
@@ -219,7 +219,7 @@ errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 uint32_t obj40_get_nlink(obj40_t *obj) {
 	reiser4_sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_lw(obj, &lw_hint))
+	if (obj40_read_lw(&obj->statdata.item, &lw_hint))
 		return 0;
 	
 	return lw_hint.nlink;
@@ -232,11 +232,11 @@ errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 	errno_t res;
 	reiser4_sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_lw(obj, &lw_hint)))
+	if ((res = obj40_read_lw(&obj->statdata.item, &lw_hint)))
 		return res;
 
 	lw_hint.nlink = nlink;
-	return obj40_write_lw(obj, &lw_hint);
+	return obj40_write_lw(&obj->statdata.item, &lw_hint);
 }
 
 #endif
@@ -245,7 +245,7 @@ errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 uint32_t obj40_get_atime(obj40_t *obj) {
 	reiser4_sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_unix(obj, &unix_hint))
+	if (obj40_read_unix(&obj->statdata.item, &unix_hint))
 		return 0;
 	
 	return unix_hint.atime;
@@ -258,11 +258,11 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 	errno_t res;
 	reiser4_sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_unix(obj, &unix_hint)))
+	if ((res = obj40_read_unix(&obj->statdata.item, &unix_hint)))
 		return res;
 
 	unix_hint.atime = atime;
-	return obj40_write_unix(obj, &unix_hint);
+	return obj40_write_unix(&obj->statdata.item, &unix_hint);
 }
 
 #endif
@@ -271,7 +271,7 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 uint32_t obj40_get_mtime(obj40_t *obj) {
 	reiser4_sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_unix(obj, &unix_hint))
+	if (obj40_read_unix(&obj->statdata.item, &unix_hint))
 		return 0;
 	
 	return unix_hint.mtime;
@@ -284,11 +284,11 @@ errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 	errno_t res;
 	reiser4_sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_unix(obj, &unix_hint)))
+	if ((res = obj40_read_unix(&obj->statdata.item, &unix_hint)))
 		return res;
 
 	unix_hint.mtime = mtime;
-	return obj40_write_unix(obj, &unix_hint);
+	return obj40_write_unix(&obj->statdata.item, &unix_hint);
 }
 
 #endif
@@ -343,6 +343,35 @@ errno_t obj40_set_sym(obj40_t *obj, char *data) {
 
 #endif
 
+rid_t obj40_pid(item_entity_t *item) {
+	reiser4_sdext_lw_hint_t lw_hint;
+
+	if (obj40_read_lw(item, &lw_hint))
+		return 0;
+
+	/*
+	  FIXME-UMKA: Here also should be discovering the stat data extentions
+	  on order to find out not standard file plugin in it.
+	*/
+	
+	if (S_ISLNK(lw_hint.mode))
+		return OBJECT_SYMLINK40_ID;
+	else if (S_ISREG(lw_hint.mode))
+		return OBJECT_FILE40_ID;
+	else if (S_ISDIR(lw_hint.mode))
+		return OBJECT_DIRTORY40_ID;
+	else if (S_ISCHR(lw_hint.mode))
+		return OBJECT_SPECIAL40_ID;
+	else if (S_ISBLK(lw_hint.mode))
+		return OBJECT_SPECIAL40_ID;
+	else if (S_ISFIFO(lw_hint.mode))
+		return OBJECT_SPECIAL40_ID;
+	else if (S_ISSOCK(lw_hint.mode))
+		return OBJECT_SPECIAL40_ID;
+
+	return INVAL_PID;
+}
+
 /*
   Initializes object handle by plugin, key, core operations and opaque pointer
   to tree file is going to be opened/created in.
@@ -361,8 +390,10 @@ errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,
 
 	obj->key.plugin = key->plugin;
 	
-	return plugin_call(key->plugin->key_ops, assign,
-			   &obj->key, key);
+	if (plugin_call(key->plugin->key_ops, assign, &obj->key, key))
+		return -EINVAL;
+
+	return 0;
 }
 
 /* Performs lookup for the object's stat data */

@@ -524,8 +524,8 @@ struct reiser4_item_hint {
 
 typedef struct reiser4_item_hint reiser4_item_hint_t;
 
-#define PLUGIN_MAX_LABEL	16
-#define PLUGIN_MAX_NAME		16
+#define PLUGIN_MAX_LABEL	32
+#define PLUGIN_MAX_NAME		32
 #define PLUGIN_MAX_DESC		100
 
 typedef void (*reiser4_abort_t) (char *);
@@ -776,9 +776,6 @@ struct reiser4_item_ops {
 	/* Set the key of a particular unit of the item. */
 	errno_t (*set_key) (item_entity_t *, uint32_t, key_entity_t *);
 #endif
-	
-        /* Returns plugin file object item belongs to */
-	reiser4_plugin_t *(*belongs) (item_entity_t *);
 	
 	/* Checks if items mergeable. Returns 1 if so, 0 otherwise */
 	int (*mergeable) (item_entity_t *, item_entity_t *);
@@ -1277,10 +1274,10 @@ struct tree_ops {
 		
 #ifndef ENABLE_ALONE
 	/* Returns blocksize in passed tree */
-	uint32_t (*blockspace) (void *);
+	uint32_t (*blocksize) (void *);
 	
 	/* Returns maximal available space in a node */
-	uint32_t (*nodespace) (void *);
+	uint32_t (*maxspace) (void *);
 #endif
 		
 	/* Gets root key */

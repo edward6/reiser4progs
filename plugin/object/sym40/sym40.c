@@ -62,6 +62,9 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 
 	key = &place->item.key;
 
+	if (obj40_pid(&place->item) != sym40_plugin.h.id)
+		goto error_free_sym;
+	
 	/* Initalizing file handle */
 	if (obj40_init(&sym->obj, &sym40_plugin, key, core, tree))
 		goto error_free_sym;
@@ -108,8 +111,8 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 		return NULL;
 
 	/* Inizializes file handle */
-	obj40_init(&sym->obj, &sym40_plugin, &hint->object, 
-		   core, tree);
+	if (obj40_init(&sym->obj, &sym40_plugin, &hint->object, core, tree))
+		goto error_free_sym;
 	
 	/* Initializing parent key from the parent field of passed @hint */
 	plugin_call(hint->object.plugin->key_ops, assign,
@@ -271,6 +274,12 @@ static errno_t sym40_layout(object_entity_t *entity,
 
 #endif
 
+/* Returns plugin by its id */
+static reiser4_plugin_t *sym40_plug(sym40_t *sym, item_entity_t *item) {
+	return sym->obj.core->factory_ops.ifind(OBJECT_PLUGIN_TYPE,
+						obj40_pid(item));
+}
+
 /* Callback function for searching statdata item while parsing symlink */
 static errno_t callback_find_statdata(char *track,
 				      char *entry,
@@ -310,9 +319,9 @@ static errno_t callback_find_statdata(char *track,
 		return -EINVAL;
 	
 	/* Getting file plugin */
-	if (!(plugin = item->plugin->item_ops.belongs(item))) {
-		aal_exception_error("Can't find file plugin for %s.",
-				    track);
+	if (!(plugin = sym40_plug(sym, item))) {
+		aal_exception_error("Can't find file plugin for "
+				    "%s.", track);
 		return -EINVAL;
 	}
 
@@ -362,9 +371,9 @@ static errno_t callback_find_entry(char *track, char *entry,
 	item = &sym->obj.statdata.item;
 
 	/* Getting file plugin */
-	if (!(plugin = item->plugin->item_ops.belongs(item))) {
-		aal_exception_error("Can't find file plugin for %s.",
-				    track);
+	if (!(plugin = sym40_plug(sym, item))) {
+		aal_exception_error("Can't find file plugin for "
+				    "%s.", track);
 		return -EINVAL;
 	}
 

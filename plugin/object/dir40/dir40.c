@@ -323,6 +323,9 @@ static object_entity_t *dir40_open(void *tree, place_t *place) {
 
 	key = &place->item.key;
 
+	if (obj40_pid(&place->item) != dir40_plugin.h.id)
+		goto error_free_dir;
+
 	/* Initializing obj handle for the directory */
 	if (obj40_init(&dir->obj, &dir40_plugin, key, core, tree))
 		goto error_free_dir;
