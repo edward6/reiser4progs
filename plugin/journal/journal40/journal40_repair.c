@@ -70,7 +70,7 @@ typedef struct journal40_check {
 					   trans at traverse return time if return 1. */
 	blk_t wanted_blk;		/* Nested traverses look for this block and 
 					   put the TxH block of the found trans here. */
-	journal40_bel_t found_type;	/* Put the type of the found block here. */
+	journal40_block_t found_type;	/* Put the type of the found block here. */
 	int flags;
 	
 	blk_t fs_start;
@@ -97,8 +97,8 @@ static char *blk_types[] = {
 	"Original"
 };
 
-static char *__blk_type_name(journal40_bel_t blk_type) {
-	if (blk_type == BEL_INV || blk_type >= BEL_LST)
+static char *__blk_type_name(journal40_block_t blk_type) {
+	if (blk_type == JB_INV || blk_type >= JB_LST)
 		return blk_types[0];
 	
 	return blk_types[blk_type];
@@ -145,7 +145,7 @@ static errno_t callback_find_txh_blk(object_entity_t *entity, blk_t blk,
 	/* If wanted blk == TxH block number. */
 	if (check_data->wanted_blk == blk) {
 		/* wanted_blk equals blk already. */
-		check_data->found_type = BEL_TXH;
+		check_data->found_type = JB_TXH;
 		return -ESTRUCT;
 	}
 	
@@ -153,7 +153,7 @@ static errno_t callback_find_txh_blk(object_entity_t *entity, blk_t blk,
 	if ((check_data->cur_txh == blk) && 
 	    (check_data->flags & (1 << TF_SAME_TXH_BREAK))) 
 	{
-		check_data->found_type = BEL_INV;
+		check_data->found_type = JB_INV;
 		return -ESTRUCT;
 	}
 	
@@ -166,7 +166,7 @@ static errno_t callback_find_txh_blk(object_entity_t *entity, blk_t blk,
 static errno_t callback_find_sec_blk(object_entity_t *entity, 
 				     aal_block_t *txh_block, 
 				     blk_t blk, 
-				     journal40_bel_t blk_type, 
+				     journal40_block_t blk_type, 
 				     void *data) 
 {
 	journal40_check_t *check_data = (journal40_check_t *)data;
@@ -219,7 +219,7 @@ static errno_t callback_journal_txh_check(object_entity_t *entity, blk_t blk,
 static errno_t callback_journal_sec_check(object_entity_t *entity, 
 					  aal_block_t *txh_block, 
 					  blk_t blk, 
-					  journal40_bel_t blk_type, 
+					  journal40_block_t blk_type, 
 					  void *data) 
 {
 	journal40_t *journal = (journal40_t *)entity;
@@ -240,7 +240,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	
 	/* Check that blk is not out of bound and (not for original block) that 
 	   it is not from format area. */
-	check_data->flags = blk_type == BEL_ORG ? 0 : 1 << TF_DATA_AREA_ONLY;
+	check_data->flags = blk_type == JB_ORG ? 0 : 1 << TF_DATA_AREA_ONLY;
 	
 	if (journal40_blk_format_check(journal, blk, check_data)) {
 		aal_exception_error("%s lies in the illegal block (%llu) for the "
@@ -250,7 +250,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	}
 	
 	/* Read the block and check the magic for LGR. */
-	if (blk_type == BEL_LGR) {
+	if (blk_type == JB_LGR) {
 		aal_block_t *log_block;
 		journal40_lr_header_t *lr_header;
 		
@@ -287,7 +287,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 		}
 		
 		/* Block was met before. */
-		if (blk_type == BEL_LGR) {
+		if (blk_type == JB_LGR) {
 			/* Check LRG circle for this trans. If it is valid - cut 
 			   the journal to the trans where blk was met for the 
 			   first time. If it is not valid - cut the journal to 
@@ -340,7 +340,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 			}
 			
 			return -ESTRUCT;
-		} else if (blk_type == BEL_WAN) {
+		} else if (blk_type == JB_WAN) {
 			/* Run the whole traverse to find the transaction we met blk 
 			   for the first time and get its type. */
 			check_data->wanted_blk = blk;
@@ -368,12 +368,12 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 			
 			/* The oldest problem transaction for TxH or LGR is the 
 			   current one, and for WAN, ORG is that found trans. */
-			if (check_data->found_type == BEL_WAN || 
-			    check_data->found_type == BEL_ORG)
+			if (check_data->found_type == JB_WAN || 
+			    check_data->found_type == JB_ORG)
 				check_data->cur_txh = check_data->wanted_blk;
 			
 			return -ESTRUCT;
-		} else if (blk_type == BEL_ORG) {
+		} else if (blk_type == JB_ORG) {
 			/* It could be met before as TxH block of a next trans or 
 			   as any other block of previous trans. It is legal to 
 			   meet it in a previous trans. Run traverse with one txh 
@@ -397,7 +397,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 			
 			/* If TxH was found, the current transaction is the oldest 
 			   problem trans. */
-			if (check_data->found_type != BEL_INV) {
+			if (check_data->found_type != JB_INV) {
 				aal_exception_error("Transaction Header (%llu): "
 						    "original location (%llu) was "
 						    "met before as a Transaction "

@@ -131,8 +131,12 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 		if (reiser4_place_rightmost(&place)) {
 			if ((res = repair_node_rd_key(place.node, &key)))
 				return res;
-		} else if ((res = reiser4_place_realize(&place)))
-			return res;
+		} else {			
+			if ((res = reiser4_place_realize(&place)))
+				return res;
+
+			reiser4_key_assign(&key, &place.item.key);
+		}
 		
 		/* Get the maximum key existing in the node being inserted. */
 		if ((res = repair_tree_maxreal_key(tree, node, &rkey)))

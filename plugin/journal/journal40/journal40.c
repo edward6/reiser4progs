@@ -352,7 +352,7 @@ errno_t journal40_traverse_trans(
 		*/
 	    
 		if (sec_func && (res = sec_func((object_entity_t *)journal, 
-						tx_block, log_blk, BEL_LGR,
+						tx_block, log_blk, JB_LGR,
 						data)))
 			goto error;
 	    
@@ -388,11 +388,11 @@ errno_t journal40_traverse_trans(
 
 			if (sec_func) {
 				if ((res = sec_func((object_entity_t *)journal, tx_block, 
-						    get_le_wandered(entry), BEL_WAN, data)))
+						    get_le_wandered(entry), JB_WAN, data)))
 					goto error_free_log_block;
 		    
 				if ((res = sec_func((object_entity_t *)journal, tx_block,
-						    get_le_original(entry), BEL_ORG, data)))
+						    get_le_original(entry), JB_ORG, data)))
 					goto error_free_log_block;
 			}
 	
@@ -652,13 +652,13 @@ static errno_t callback_print_par(object_entity_t *entity,
 
 static errno_t callback_print_lgr(object_entity_t *entity,
 				  aal_block_t *block, blk_t blk,
-				  journal40_bel_t bel, void *data)
+				  journal40_block_t bel, void *data)
 {
 	aal_stream_t *stream;
 	char magic[LGR_MAGIC_SIZE];
 	journal40_lr_header_t *lgr;
 	
-	if (bel != BEL_LGR)
+	if (bel != JB_LGR)
 		return 0;
 
 	stream = (aal_stream_t *)data;

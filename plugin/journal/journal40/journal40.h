@@ -148,16 +148,16 @@ struct journal40_lr_entry {
 
 typedef struct journal40_lr_entry journal40_lr_entry_t;
 
-enum journal40_bel {
-	BEL_INV = 0x0,
-	BEL_TXH = 0x1,
-	BEL_LGR = 0x2,
-	BEL_WAN = 0x3,
-	BEL_ORG = 0x4,
-	BEL_LST
+enum journal40_block {
+	JB_INV = 0x0,
+	JB_TXH = 0x1,
+	JB_LGR = 0x2,
+	JB_WAN = 0x3,
+	JB_ORG = 0x4,
+	JB_LST
 };
 
-typedef enum journal40_bel journal40_bel_t;
+typedef enum journal40_block journal40_block_t;
 
 #define get_le_original(le)			aal_get_le64(le, le_original)
 #define set_le_original(le, val)		aal_set_le64(le, le_original, val)
@@ -170,7 +170,7 @@ typedef errno_t (*journal40_txh_func_t)    \
 
 typedef errno_t (*journal40_sec_func_t)    \
         (object_entity_t *, aal_block_t *, \
-	 blk_t, journal40_bel_t, void *);
+	 blk_t, journal40_block_t, void *);
 
 typedef errno_t (*journal40_han_func_t)    \
         (object_entity_t *, aal_block_t *, \
