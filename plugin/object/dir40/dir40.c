@@ -525,7 +525,6 @@ static errno_t dir40_link(object_entity_t *entity) {
 
 static errno_t dir40_unlink(object_entity_t *entity) {
 	dir40_t *dir;
-	uint64_t size;
 	
 	aal_assert("umka-1907", entity != NULL);
 
@@ -548,11 +547,7 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 	if (dir40_reset(entity))
 		return -1;
 		
-	size = object40_get_size(&dir->obj);
-
-	aal_assert("umka-1909", size > 0);
-
-	if (dir40_truncate(entity, size))
+	if (dir40_truncate(entity, 0))
 		return -1;
 
 	if (object40_stat(&dir->obj))

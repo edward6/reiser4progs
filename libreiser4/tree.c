@@ -819,7 +819,7 @@ errno_t reiser4_tree_attach(
 		  requested level.
 		*/
 		while (level > reiser4_tree_height(tree))
-			reiser4_tree_grow(tree);
+			reiser4_tree_growup(tree);
 		
 	}
 	
@@ -876,7 +876,7 @@ errno_t reiser4_tree_detach(reiser4_tree_t *tree,
   This function forces tree to grow by one level and sets it up after the
   growing.
 */
-errno_t reiser4_tree_grow(
+errno_t reiser4_tree_growup(
 	reiser4_tree_t *tree)	/* tree to be growed up */
 {
 	uint8_t height;
@@ -1159,7 +1159,7 @@ errno_t reiser4_tree_expand(
 			  node. Root node has not parent.
 			*/
 			if (!old.node->parent)
-				reiser4_tree_grow(tree);
+				reiser4_tree_growup(tree);
 			
 			/* Attaching new node to the tree */
 			if (reiser4_tree_attach(tree, node)) {
@@ -1467,7 +1467,7 @@ errno_t reiser4_tree_insert(
 
 		/* Growing the tree */
 		if (!old.node->parent)
-			reiser4_tree_grow(tree);
+			reiser4_tree_growup(tree);
 	
 		/* Attaching new node to the tree */
 		if (reiser4_tree_attach(tree, place->node)) {
@@ -1615,17 +1615,26 @@ errno_t reiser4_tree_cut(
 		}
 
 		/* Packing the tree at @start */
-		if (start->node && (tree->flags & TF_PACK)) {
-			if (reiser4_tree_shrink(tree, start))
-				return -1;
+		if (start->node) {
+			if ((tree->flags & TF_PACK) && tree->traps.pack) {
+				errno_t res;
+			
+				if ((res = tree->traps.pack(tree, start,
+							    tree->traps.data)))
+					return res;
+			}
 		}
 
 		/* Packing the tree at @end */
-		if (end->node && (tree->flags & TF_PACK)) {
-			if (reiser4_tree_shrink(tree, start))
-				return -1;
+		if (end->node) {
+			if ((tree->flags & TF_PACK) && tree->traps.pack) {
+				errno_t res;
+			
+				if ((res = tree->traps.pack(tree, end,
+							    tree->traps.data)))
+					return res;
+			}
 		}
-		
 	} else {
 		if (reiser4_node_cut(start->node, &start->pos, &end->pos))
 			return -1;
@@ -1645,8 +1654,15 @@ errno_t reiser4_tree_cut(
 		}
 		
 		if (reiser4_node_items(start->node) > 0) {
-			if (reiser4_tree_shrink(tree, start))
-				return -1;
+			if (start->node) {
+				if ((tree->flags & TF_PACK) && tree->traps.pack) {
+					errno_t res;
+			
+					if ((res = tree->traps.pack(tree, start,
+								    tree->traps.data)))
+						return res;
+				}
+			}
 		} else {
 			reiser4_node_mkclean(start->node);
 			reiser4_tree_detach(tree, start->node);

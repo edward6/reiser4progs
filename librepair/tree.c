@@ -116,7 +116,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     level = reiser4_node_get_level(node);
 
     while (level >= reiser4_tree_height(tree))
-	reiser4_tree_grow(tree);
+	reiser4_tree_growup(tree);
 
     /* Preparing nodeptr item hint */
     aal_memset(&hint, 0, sizeof(hint));
