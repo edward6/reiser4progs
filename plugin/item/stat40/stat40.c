@@ -15,10 +15,13 @@ static reiser4_core_t *core = NULL;
 #define stat40_body(item) ((stat40_t *)item->body)
 
 /* Type for stat40 layout callback function */
-typedef int (*stat40_ext_func_t) (uint8_t, uint16_t,
+typedef int (*stat40_ext_func_t) (uint8_t, reiser4_plugin_t *, uint16_t,
 				  reiser4_body_t *, void *);
 
-/* The function which implements stat40 layout pass */
+/*
+  The function which implements stat40 layout pass. This function is used for
+  all statdata extention-related actions. For example for opening, of counting.
+*/
 static errno_t stat40_traverse(item_entity_t *item,
 			       stat40_ext_func_t func,
 			       void *data)
@@ -35,9 +38,13 @@ static errno_t stat40_traverse(item_entity_t *item,
 	stat = stat40_body(item);
 	extmask = st40_get_extmask(stat);
 	extbody = (void *)stat + sizeof(stat40_t);
-    
-	for (i = 0; i < sizeof(uint64_t)*8; i++) {
-		int ret;
+
+	/*
+	  Loop though the all possible extentions and calling passed @func for
+	  each of them if corresponing extention exists.
+	*/
+	for (i = 0; i < sizeof(uint64_t) * 8; i++) {
+		errno_t res;
 
 		if ((i + 1) % 16 == 0) {
 			
@@ -56,18 +63,25 @@ static errno_t stat40_traverse(item_entity_t *item,
 			continue;
 		}
 
-		if (!((1 << i) & extmask))
+		/* If extention is not present, we going to the next one */
+		if (!(((uint64_t)1 << i) & extmask))
 			continue;
-		
-		if (!(ret = func(i, extmask, extbody, data)))
-			return ret;
 
+		/* Getting extention plugin from the plugin factory */
 		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 			aal_exception_warn("Can't find stat data extention plugin "
 					   "by its id 0x%x.", i);
 			return 0;
 		}
 
+		/*
+		  Okay, extention is present, calling callback fucntion for it
+		  and if result is not good, returning it to teh caller.
+		*/
+		if (!(res = func(i, plugin, extmask, extbody, data)))
+			return ret;
+
+		/* Calculating the pointer to the next extention body */
 		extbody = (void *)extbody + plugin_call(return 0, plugin->sdext_ops,
 							length, extbody);
 	}
@@ -75,10 +89,11 @@ static errno_t stat40_traverse(item_entity_t *item,
 	return 0;
 }
 
-static errno_t callback_open_ext(uint8_t ext, uint16_t extmask,
-				 reiser4_body_t *extbody, void *data)
+/* Callback for opening one extention */
+static errno_t callback_open_ext(uint8_t ext, reiser4_plugin_t *plugin,
+				 uint16_t extmask, reiser4_body_t *extbody,
+				 void *data)
 {
-	reiser4_plugin_t *plugin;
 	reiser4_statdata_hint_t *hint;
 
 	hint = ((reiser4_item_hint_t *)data)->hint;
@@ -88,14 +103,11 @@ static errno_t callback_open_ext(uint8_t ext, uint16_t extmask,
 		hint->extmask <<= 16;
 		hint->extmask |= extmask;
 	}
-	
-	if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, ext))) {
-		aal_exception_warn("Can't find stat data extention plugin "
-				   "by its id 0x%x.", ext);
-		return -1;
-	}
 
+	/* We load @ext if its hint present in item hint */
 	if (hint->ext[ext]) {
+
+		/* Calling loading the corresponding statdata extention */
 		if (plugin_call(return -1, plugin->sdext_ops, open,
 				extbody, hint->ext[ext]))
 			return -1;
@@ -104,6 +116,10 @@ static errno_t callback_open_ext(uint8_t ext, uint16_t extmask,
 	return 1;
 }
 
+/*
+  Opens statdata item, that is loads all extentions into corresponding extent
+  hits inside passed @hint.
+*/
 static errno_t stat40_open(item_entity_t *item, 
 			   reiser4_item_hint_t *hint)
 {
@@ -115,6 +131,7 @@ static errno_t stat40_open(item_entity_t *item,
 
 #ifndef ENABLE_COMPACT
 
+/* Prepares item area */
 static errno_t stat40_init(item_entity_t *item) {
 	aal_assert("umka-1670", item != NULL, return -1);
 	
@@ -122,6 +139,10 @@ static errno_t stat40_init(item_entity_t *item) {
 	return 0;
 }
 
+/*
+  Estimates how many bytes will be needed for creating statdata item described
+  by passed @hint at passed @pos.
+*/
 static errno_t stat40_estimate(item_entity_t *item, 
 			       reiser4_item_hint_t *hint,
 			       uint32_t pos) 
@@ -140,21 +161,31 @@ static errno_t stat40_estimate(item_entity_t *item,
 	/* Estimating the all stat data extentions */
 	for (i = 0; i < sizeof(uint64_t) * 8; i++) {
 		reiser4_plugin_t *plugin;
-	
+
+		/* Check if extention is present in mask */
 		if (!(((uint64_t)1 << i) & stat_hint->extmask))
 			continue;
-	
+
+		/*
+		  If we are on the extention which is multiple of 16 (each mask
+		  has 16 bits) then we add to hint's len the size of next mask.
+		*/
 		if ((i + 1) % 16 == 0) {
 			hint->len += sizeof(d16_t);
 			continue;
 		}
-	
+
+		/* Getting extention plugin */
 		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 			aal_exception_warn("Can't find stat data extention plugin "
 					   "by its id 0x%x.", i);
 			continue;
 		}
-	
+
+		/*
+		  Calculating length of the corresponding extention and add it
+		  to the estimated value.
+		*/
 		hint->len += plugin_call(return -1, plugin->sdext_ops, 
 					 length, stat_hint->ext[i]);
 	}
@@ -183,6 +214,7 @@ static errno_t stat40_insert(item_entity_t *item,
 	for (i = 0; i < sizeof(uint64_t) * 8; i++) {
 		reiser4_plugin_t *plugin;
 
+		/* Check if extention is present */
 		if (!(((uint64_t)1 << i) & stat_hint->extmask))
 			continue;
 	    
@@ -206,19 +238,21 @@ static errno_t stat40_insert(item_entity_t *item,
 			
 			if (i > 0) continue;
 		}
-	    
+
+		/* Getting extention plugin */
 		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 			aal_exception_warn("Can't find stat data extention plugin "
 					   "by its id 0x%x.", i);
 			continue;
 		}
-	
+
+		/* Initializing extention data at passed area */
 		plugin_call(return -1, plugin->sdext_ops, init, extbody, 
 			    stat_hint->ext[i]);
 	
 		/* 
 		   Getting pointer to the next extention. It is evaluating as
-		   previous pointer plus its size.
+		   the previous pointer plus its size.
 		*/
 		extbody += plugin_call(return -1, plugin->sdext_ops,
 				       length, extbody);
@@ -237,7 +271,12 @@ static errno_t stat40_valid(item_entity_t *item) {
 	return 0;
 }
 
-/* This function returns stat data extention count */
+/*
+  This function returns unit count. This value must be 1 if item has not
+  units. It is because balancing code assumes that if item has more than one
+  unit the it may be shifted out. That is because w ecan't return the number of
+  extentions here. Extentions are the statdata private bussiness.
+*/
 static uint32_t stat40_units(item_entity_t *item) {
 	return 1;
 }
@@ -249,8 +288,8 @@ struct body_hint {
 };
 
 /* Callback function for finding stat data extention body by bit */
-static int callback_body(uint8_t ext, uint16_t extmask,
-			 reiser4_body_t *extbody, void *data)
+static int callback_body_ext(uint8_t ext, uint16_t extmask,
+			     reiser4_body_t *extbody, void *data)
 {
 	struct body_hint *hint = (struct body_hint *)data;
 
@@ -258,12 +297,13 @@ static int callback_body(uint8_t ext, uint16_t extmask,
 	return (ext < hint->ext);
 }
 
+/* Finds extention body by number of bit in 64bits mask */
 static reiser4_body_t *stat40_sdext_body(item_entity_t *item, 
 					 uint8_t bit)
 {
 	struct body_hint hint = {NULL, bit};
 
-	if (stat40_traverse(item, callback_body, &hint) < 0)
+	if (stat40_traverse(item, callback_body_ext, &hint) < 0)
 		return NULL;
 	
 	return hint.body;
@@ -278,8 +318,8 @@ struct present_hint {
 
 /* Callback for getting presence information for certain stat data
  * extention */
-static int callback_present(uint8_t ext, uint16_t extmask,
-			    reiser4_body_t *extbody, void *data)
+static int callback_present_ext(uint8_t ext, uint16_t extmask,
+				reiser4_body_t *extbody, void *data)
 {
 	struct present_hint *hint = (struct present_hint *)data;
 	
@@ -287,12 +327,13 @@ static int callback_present(uint8_t ext, uint16_t extmask,
 	return !hint->present;
 }
 
+/* Determines if passed extention denoted by @bit present in statdata item */
 static int stat40_sdext_present(item_entity_t *item, 
 				uint8_t bit)
 {
 	struct present_hint hint = {0, bit};
 
-	if (!stat40_traverse(item, callback_body, &hint) < 0)
+	if (!stat40_traverse(item, callback_present_ext, &hint) < 0)
 		return 0;
 
 	return hint.present;
@@ -300,6 +341,7 @@ static int stat40_sdext_present(item_entity_t *item,
 
 #ifndef ENABLE_COMPACT
 
+/* Stat data layout implementation */
 static errno_t stat40_layout(item_entity_t *item,
 			     data_func_t func,
 			     void *data)
@@ -316,8 +358,8 @@ static errno_t stat40_layout(item_entity_t *item,
 }
 
 /* Callback for counting the number of stat data extentions in use */
-static int callback_sdexts(uint8_t ext, uint16_t extmask,
-			   reiser4_body_t *extbody, void *data)
+static int callback_count_ext(uint8_t ext, uint16_t extmask,
+			      reiser4_body_t *extbody, void *data)
 {
         (*(uint32_t *)data)++;
         return 1;
@@ -327,14 +369,15 @@ static int callback_sdexts(uint8_t ext, uint16_t extmask,
 static uint32_t stat40_sdexts(item_entity_t *item) {
         uint32_t count = 0;
 
-        if (stat40_traverse(item, callback_sdexts, &count) < 0)
+        if (stat40_traverse(item, callback_count_ext, &count) < 0)
                 return 0;
 
         return count;
 }
 
-static int callback_print(uint8_t ext, uint16_t extmask,
-			  reiser4_body_t *extbody, void *data)
+/* Prints extention into @stream */
+static int callback_print_ext(uint8_t ext, uint16_t extmask,
+			      reiser4_body_t *extbody, void *data)
 {
 	reiser4_plugin_t *plugin;
 	aal_stream_t *stream = (aal_stream_t *)data;
@@ -357,7 +400,9 @@ static int callback_print(uint8_t ext, uint16_t extmask,
 	return 1;
 }
 
-static errno_t stat40_print(item_entity_t *item, aal_stream_t *stream,
+/* Prints stat data item into passed @stream */
+static errno_t stat40_print(item_entity_t *item,
+			    aal_stream_t *stream,
 			    uint16_t options)
 {
 	aal_assert("umka-1407", item != NULL, return -1);
@@ -382,6 +427,13 @@ static errno_t stat40_print(item_entity_t *item, aal_stream_t *stream,
 
 #endif
 
+/*
+  Returns plugin of the file stat data item belongs to. In doing so, this
+  function should discover all extetions first in order to find is some
+  non-standard file plugin is in use. And then if it was not found, it should
+  try determine file plugin by means of st_mode field inside ligh weight
+  extention.
+*/
 static reiser4_plugin_t *stat40_belongs(item_entity_t *item) {
 	uint32_t pid;
 	uint64_t extmask;
@@ -411,6 +463,7 @@ static reiser4_plugin_t *stat40_belongs(item_entity_t *item) {
 		return NULL;
 	}
 
+	/* Inspecting st_mode field */
 	pid = FILE_SPECIAL40_ID;
 	
 	if (S_ISLNK(lw_hint.mode))
@@ -419,10 +472,12 @@ static reiser4_plugin_t *stat40_belongs(item_entity_t *item) {
 		pid = FILE_REGULAR40_ID;
 	else if (S_ISDIR(lw_hint.mode))
 		pid = FILE_DIRTORY40_ID;
-	
+
+	/* Finding plugin by found id */
 	return core->factory_ops.ifind(FILE_PLUGIN_TYPE, pid);
 }
 
+/* Stat data plugin preparing */
 static reiser4_plugin_t stat40_plugin = {
 	.item_ops = {
 		.h = {
