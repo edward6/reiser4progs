@@ -335,9 +335,6 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		uint32_t dst_len = 0;
 
 		/* Calculating dst item body length */
-/*		for (i = 0; i < dst_units; i++)
-			dst_len += direntry40_unit_len(dst_direntry, i);*/
-				
 		dst_len = dst_item->len - hint->rest -
 			sizeof(direntry40_t) - (dst_units * sizeof(entry40_t));
 		
