@@ -202,10 +202,24 @@ static errno_t repair_cleanup_next_key(place_t *place, reiser4_key_t *key) {
 	return 0;
 }
 
+static errno_t callback_free_extent(void *object, uint64_t start, 
+				    uint64_t count, void *data)
+{
+	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
+	reiser4_alloc_t *alloc = cleanup->repair->fs->alloc;
+
+	aal_assert("vpf-1418", reiser4_alloc_occupied(alloc, start, count));
+
+	reiser4_alloc_release(alloc, start, count);
+	
+	return 0;
+}
+
 errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	repair_progress_t progress;
 	reiser4_key_t key, max;
 	reiser4_tree_t *tree;
+	trans_hint_t hint;
 	uint32_t count;
 	errno_t res;
 	
@@ -234,8 +248,11 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	reiser4_key_minimal(&key);
 	reiser4_key_maximal(&max);
 	
+	hint.place_func = NULL;
+	hint.region_func = callback_free_extent;
+	hint.data = cleanup;
+
 	while (TRUE) {
-		trans_hint_t hint;
 		lookup_t lookup;
 		place_t place;
 		
@@ -266,10 +283,10 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 				cleanup->stat.removed++;
 				
 				hint.count = 1;
-				hint.place_func = NULL;
 				
-				if ((res = reiser4_tree_remove(tree, &place, &hint)))
-					return res;
+				res = reiser4_tree_remove(tree, &place, &hint);
+				
+				if (res) return res;
 
 				goto cont;
 			}

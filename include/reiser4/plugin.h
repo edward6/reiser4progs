@@ -627,14 +627,15 @@ struct trans_hint {
 	reiser4_plug_t *plug;
 
 	/* Hook, which lets know, that passed block region is removed. Used for
-	   releasing unformatted blocks during tail converion, etc. */
+	   releasing unformatted blocks during tail converion, or for merging
+	   extents, etc. */
 	region_func_t region_func;
 
 	/* Hook called onto each create item during write flow. */
 	place_func_t place_func;
 
-	/* Related opaque data. May be used for passing something to
-	   remove_hook(). */
+	/* Related opaque data. May be used for passing something to 
+	   region_func and place_func */
 	void *data;
 };
 

@@ -228,23 +228,26 @@ errno_t extent40_prep_merge(place_t *place, trans_hint_t *hint) {
 				    get_offset, &src->key);
 		
 		send = extent40_unit(src, offset - 1);
-		hint->tail = extent40_head(src, send, &place->key);
+		hint->tail = et40_get_width(sextent + send) - 
+			extent40_head(src, send, &place->key);
 	} else if (!et40_get_start(dextent) && et40_get_start(sextent)) {
 		/* Estimate the overwrite. */
 		hint->flags |= ET40_OVERWRITE;
 
 		/* Overwrite through the next dst unit key. */
 		offset += extent40_offset(place, place->pos.unit + 1);
+		
+		/* Get the end position. */
 		offset -= plug_call(hint->offset.plug->o.key_ops,
 				    get_offset, &src->key);
 		send = extent40_unit(src, offset - 1);
 		
-		if (send <= sunits) {
-			hint->tail = (offset - extent40_offset(src, send))
+		if (send < sunits) {
+			hint->tail = (extent40_offset(src, send + 1) - offset)
 				/ extent40_blksize(src);
 		} else {
 			send = sunits - 1;
-			hint->tail = et40_get_width(sextent + send);
+			hint->tail = 0;
 			hint->flags |= ET40_TAIL;
 		}
 		
@@ -256,95 +259,139 @@ errno_t extent40_prep_merge(place_t *place, trans_hint_t *hint) {
 	hint->bytes = 0;
 	
 	hint->count = send + 1 - src->pos.unit;
-	hint->len = hint->count - (hint->flags & ET40_HEAD ? 0 : 1) + 
-		(hint->flags & ET40_TAIL ? 1 : 0);
+	hint->len = hint->count;
+	
+	if (hint->flags & ET40_OVERWRITE) {
+		hint->len += (hint->flags & ET40_TAIL ? 1 : 0)
+			- (hint->flags & ET40_HEAD ? 0 : 1);
+	}
+	
 	hint->len *= sizeof(extent40_t);
 	
 	return 0;
 }
 
 int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
+	uint32_t i, sstart, dstart, count;
 	extent40_t *sextent, *dextent;
-	uint32_t start, count;
-	uint64_t head, offset;
+	uint64_t head, tail, offset;
 	place_t *src;
+	errno_t res;
 	
 	aal_assert("vpf-1383", place != NULL);
 	aal_assert("vpf-1384", hint != NULL);
 	aal_assert("vpf-1385", hint->specific != NULL);
 
 	src = (place_t *)hint->specific;
-	sextent = extent40_body(src) + src->pos.unit;
+	sextent = extent40_body(src);
 	dextent = extent40_body(place);
-	start = place->pos.unit + (hint->flags & ET40_HEAD ? 1 : 0);
+
+	dstart = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
+	sstart = src->pos.unit == MAX_UINT32 ? 0 : src->pos.unit;
+	dstart += (hint->flags & ET40_HEAD ? 1 : 0);
 	
 	/* Set the maxkey of the passed operation. */
 	plug_call(src->key.plug->o.key_ops, assign, &hint->maxkey, 
 		  &hint->offset);
 	
-	/* Get the start key offset. */
-	offset = plug_call(hint->offset.plug->o.key_ops,
-			   get_offset, &hint->offset);
-
 	if (!hint->count) {
 		/* If there is nothing to be done, skip as much as possible. */
-		count = extent40_units(place);
+		if (et40_get_start(dextent + dstart)) {
+			/* Skip all not zero pointers in @dst. */
+			count = extent40_units(place);
 		
-		while (start < count && et40_get_start(dextent + start)) {
-			start++;
+			while (dstart < count && 
+			       et40_get_start(dextent + dstart)) 
+			{
+				dstart++;
+			}
+
+			/* Get the offset for the maxkey. */
+			offset = plug_call(hint->offset.plug->o.key_ops,
+					   get_offset, &place->key);
+		offset += extent40_offset(place, dstart);
+		} else {
+			uint32_t scount;
+			
+			/* Skip all zero pointers in @src. */
+			scount = extent40_units(src);
+			
+			while (sstart < scount && 
+			       !et40_get_start(sextent + sstart)) 
+			{
+				sstart++;
+			}
+			
+			/* Get the offset for the maxkey. */
+			offset = plug_call(hint->offset.plug->o.key_ops,
+					   get_offset, &src->key);
+			offset += extent40_offset(src, sstart);
 		}
 		
-		/* Set the maxkey offset */
-		offset += extent40_offset(place, start);
 		plug_call(hint->offset.plug->o.key_ops, set_offset, 
 			  &hint->maxkey, offset);
 
 		return 0;
 	}
 	
-	count = hint->count + (hint->flags & ET40_TAIL ? 1 : 0);
-	
+	/* Get the start key offset. */
+	offset = plug_call(hint->offset.plug->o.key_ops,
+			   get_offset, &hint->offset);
+
+	count = hint->count + (hint->flags & ET40_TAIL ? 1 : 0)
+		- (hint->flags & ET40_HEAD ? 0 : 1);
+
 	/* Set the maxkey offset correctly. */
-	offset += extent40_offset(src, src->pos.unit + hint->count - 1);
-	offset += hint->tail * extent40_blksize(src);
+	offset += extent40_offset(src, src->pos.unit + hint->count);
+	offset -= hint->tail * extent40_blksize(src);
 	plug_call(hint->offset.plug->o.key_ops, set_offset, 
 		  &hint->maxkey, offset);
 
+	if (hint->flags & ET40_TAIL) {
+		/* Get the amount of blocks to be left in the head. */
+		tail = extent40_head(place, place->pos.unit, &hint->maxkey);
+	}
+	
+	if (hint->flags & ET40_HEAD) {
+		/* Get the amount of blocks to be left in the tail. */
+		head = extent40_head(place, place->pos.unit, &hint->offset);
+	}
+	
 	/* Expanding extent item at @place */
-	extent40_expand(place, start, count);
+	extent40_expand(place, dstart, count);
 
 	/* If some tail should be cut off the current dst unit, set the 
 	   correct width there. */
 	if (hint->flags & ET40_TAIL) {
-		/* Get the amount of blocks to be left. */
-		head = extent40_head(place, place->pos.unit, &hint->maxkey);
-
-		/* Set the correct start/width. */
-		et40_set_start(dextent + start + count - 1, 0);
-		et40_set_width(dextent + start + count - 1, 
+		/* Set the correct width. */
+		et40_set_start(dextent + dstart + count - 1, 0);
+		et40_set_width(dextent + dstart + count - 1, 
 			       et40_get_width(dextent + place->pos.unit) 
-			       - head);
+			       - tail);
 
 		/* Fix the current dst unit after cutting. */
-		et40_set_width(dextent + place->pos.unit, head);
+		et40_set_width(dextent + place->pos.unit, tail);
 	}
 
 	/* If some head should be left in the current dst unit, set the 
 	   correct width there. */
-	if ((hint->flags & ET40_HEAD)) {
+	if (hint->flags & ET40_HEAD) {
 		/* Get the amount of blocks to be left. */
-		head = extent40_head(place, place->pos.unit, &hint->offset);
 
 		/* Fix the current dst unit. */
 		et40_set_width(dextent + place->pos.unit, head);
+
+		/* Move to the next unit. */
+		dextent++;
 	}
 
-	dextent += start;
+	dextent += dstart;
+	sextent += sstart;
 		
 	aal_memcpy(dextent, sextent, 
 		   hint->count * sizeof(extent40_t));
 	
-	if (hint->head != et40_get_width(dextent)) {
+	if (hint->head) {
 		et40_set_start(dextent, et40_get_start(dextent) + 
 			       hint->head);
 		et40_set_width(dextent, et40_get_width(dextent) - 
@@ -352,12 +399,23 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 	}
 	
 	/* Fix the tail unit. */
-	dextent += count - 1;
-	if (hint->tail != et40_get_width(dextent)) {
-		et40_set_start(dextent, et40_get_start(dextent) +
-			       hint->tail);
+	dextent += hint->count - 1;
+	if (hint->tail) {
 		et40_set_width(dextent, et40_get_width(dextent) -
 			       hint->tail);
+	}
+	
+	/* Call region_func for all inserted regions. */
+	if (hint->region_func) {
+		dextent -= (hint->count - 1);
+		
+		for (i = 0; i < hint->count; i++, dextent++) {
+			res = hint->region_func(NULL, et40_get_start(dextent),
+						et40_get_width(dextent), 
+						hint->data);
+			
+			if (res) return res;
+		}
 	}
 	
 	/* Join mergable units within the @place. */
@@ -365,14 +423,14 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 	count = extent40_units(place);
 	hint->len = 0;
 	
-	for (start = 1, dextent++; start < count; start++, dextent++) {
+	for (dstart = 1, dextent++; dstart < count; dstart++, dextent++) {
 		if (et40_get_start(dextent - 1) + et40_get_width(dextent - 1)
 		    == et40_get_start(dextent))
 		{
 			et40_set_width(dextent - 1, et40_get_width(dextent - 1)
 				       + et40_get_width(dextent));
 
-			extent40_shrink(place, start, 1);
+			extent40_shrink(place, dstart, 1);
 			count--;
 			hint->len--;
 		}

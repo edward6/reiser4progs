@@ -681,7 +681,7 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
         
 	/* Updating item header if we want to insert new item. */
         if (pos->unit == MAX_UINT32) {
-		ih_set_flags(ih, 0, pol);
+		ih_set_pid(ih, hint->plug->id.id, pol);
 		aal_memcpy(ih, hint->offset.body, key_size(pol));
         }
         

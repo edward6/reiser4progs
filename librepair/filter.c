@@ -113,6 +113,7 @@ static void repair_filter_bad_dk(repair_filter_t *fd, blk_t blk,
 	fd->flags |= RE_DKEYS;
 	aux_bitmap_clear_region(fd->bm_used, blk, 1);
 	fd->stat.bad_dk_nodes++;
+	fd->repair->fatal++;
 
 	switch(level) {
 	case LEAF_LEVEL:
@@ -304,7 +305,6 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	
 	if (res) {
 		repair_filter_bad_dk(fd, node_blocknr(node), level);
-		fd->repair->fatal++;
 		goto error;
 	}
 	
@@ -472,8 +472,10 @@ static void repair_filter_update(repair_filter_t *fd) {
 			  fd->repair->mode == RM_BUILD ? "Zeroed." :
 			  "The whole subtree is skipped.");
 		
-		if (fd->repair->mode == RM_BUILD)
+		if (fd->repair->mode == RM_BUILD) {
 			reiser4_format_set_root(format, INVAL_BLK);
+			fd->repair->fatal--;
+		}
 	}
 
 	if (!fd->progress_handler)

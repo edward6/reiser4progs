@@ -103,7 +103,7 @@ errno_t reiser4_item_get_key(place_t *place,
 	aal_memcpy(key, &place->key, sizeof(*key));
 	
 	if (!place->plug->o.item_ops->balance->fetch_key ||
-	    !place->pos.unit)
+	    !(place->pos.unit && place->pos.unit != MAX_UINT32))
 	{
 		return 0;
 	}

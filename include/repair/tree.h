@@ -17,7 +17,9 @@ extern errno_t repair_tree_parent_lkey(reiser4_tree_t *tree, node_t *node,
 extern errno_t repair_tree_dknode_check(reiser4_tree_t *tree, 
 					node_t *node, uint8_t mode);
 
-extern errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *place);
+extern errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *place,
+				  region_func_t func, void *data);
+
 extern errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node);
 
 extern bool_t repair_tree_legal_level(reiser4_item_group_t group,

@@ -257,6 +257,15 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	aal_assert("vpf-658", tree != NULL);
 	aal_assert("vpf-659", node != NULL);
 	
+	/* If there is no root in the tree yet, set it to @node. */
+	if (tree->root == NULL) {
+		reiser4_format_set_root(tree->fs->format, 
+					node_blocknr(node));
+		reiser4_tree_connect_node(tree, NULL, node);
+		
+		return 0;
+	}
+	
 	/* Preparing nodeptr item hint */
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&ptr, 0, sizeof(ptr));
@@ -509,7 +518,9 @@ static errno_t callback_merge(node_t *node, pos_t *pos, trans_hint_t *hint) {
 
 /* Insert the item into the tree overwriting an existent in the tree item 
    if needed. Does not insert branches. */
-errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src) {
+errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src, 
+			   region_func_t func, void *data)
+{
 	place_t dst;
 	trans_hint_t hint;
 	uint32_t scount;
@@ -533,7 +544,9 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src) {
 	hint.specific = src;
 	hint.plug = src->plug;
 	hint.place_func = NULL;
-	
+	hint.region_func = func;
+	hint.data = data;
+		
 	reiser4_key_assign(&hint.offset, &src->key);
 	level = reiser4_node_get_level(src->node);
 
@@ -608,9 +621,10 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src) {
 			break;
 		
 		/* Lookup by end_key. */
-		if ((res = src->plug->o.item_ops->balance->lookup(src, &hint.maxkey, 
-								  FIND_EXACT)) < 0)
-			return res;
+		res = src->plug->o.item_ops->balance->lookup(src, &hint.maxkey,
+							     FIND_EXACT);
+
+		if (res < 0) return res;
 		
 		if (src->pos.unit >= scount)
 			break;

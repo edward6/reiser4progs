@@ -708,7 +708,7 @@ static errno_t repair_semantic_lost_open(repair_semantic_t *sem) {
 	   some object gets linked to "lost+found" it is not marked as 
 	   ATTCHED to relink it later to some another object having 
 	   the valid name if such is found. */
-	while (!reiser4_object_readdir(sem->lost, &entry)) {
+	while (reiser4_object_readdir(sem->lost, &entry) > 0) {
 		if (aal_memcmp(entry.name, LOST_PREFIX, len)) 
 			continue;
 		

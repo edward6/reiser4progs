@@ -154,10 +154,10 @@ typedef struct stat_bitmap {
 	uint64_t read, by_node, by_item;
 } stat_bitmap_t;
 
-static errno_t repair_am_nodes_insert(repair_am_t *am, aux_bitmap_t *bitmap,
+static errno_t repair_am_nodes_insert(repair_am_t *am, 
+				      aux_bitmap_t *bitmap,
 				      stat_bitmap_t *stat)
 {
-	reiser4_alloc_t *alloc;
 	node_t *node;
 	errno_t res;
 	blk_t blk;
@@ -165,8 +165,6 @@ static errno_t repair_am_nodes_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 	aal_assert("vpf-1282", am != NULL);
 	aal_assert("vpf-1283", bitmap != NULL);
 	aal_assert("vpf-1284", stat != NULL);
-	
-	alloc = am->repair->fs->alloc;
 	
 	blk = 0;
 	/* Try to insert the whole twig/leaf at once. If it can be 
@@ -215,8 +213,12 @@ static errno_t repair_am_nodes_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 			res = repair_node_traverse(node, callback_layout, am);
 			if (res) goto error_close_node;
 
-			blk++;
-		} /* if res > 0 - uninsertable case - insert by items later. */
+		} else {
+			/* uninsertable case - insert by items later. */
+			reiser4_node_fini(node);
+		}
+		
+		blk++;
 	}
 
 	return 0;
@@ -226,11 +228,12 @@ static errno_t repair_am_nodes_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 	return res;
 }
 
-static errno_t repair_am_items_insert(repair_am_t *am, aux_bitmap_t *bitmap, 
+static errno_t repair_am_items_insert(repair_am_t *am, 
+				      aux_bitmap_t *bitmap, 
 				      stat_bitmap_t *stat)
 {
-	node_t *node;
 	uint32_t count;
+	node_t *node;
 	errno_t res;
 	blk_t blk;
 
@@ -244,14 +247,10 @@ static errno_t repair_am_items_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 	   existent data which is in the tree already if needed. 
 	   FIXME: overwriting should be done on the base of flush_id. */
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
-#ifdef ENABLE_DEBUG
-		reiser4_alloc_t *alloc = am->repair->fs->alloc;
-#endif
-			
 		place_t place;
 		pos_t *pos = &place.pos;
 
-		aal_assert("vpf-897", !reiser4_alloc_occupied(alloc, blk, 1));
+		aal_assert("vpf-897", !aux_bitmap_test(am->bm_used, blk));
 
 		node = reiser4_node_open(am->repair->fs->tree, blk);
 
@@ -264,14 +263,13 @@ static errno_t repair_am_items_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 			return -EINVAL;
 		}
 
-		pos->unit = MAX_UINT32;
 		count = reiser4_node_items(node);
 		place.node = node;
 
 		stat->by_item++;
 
 		for (pos->item = 0; pos->item < count; pos->item++) {
-			aal_assert("vpf-636", pos->unit == MAX_UINT32);
+			pos->unit = MAX_UINT32;
 
 			if ((res = reiser4_place_fetch(&place))) {
 				aal_error("Node (%llu), item (%u): "
@@ -281,16 +279,10 @@ static errno_t repair_am_items_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 				goto error_close_node;
 			}
 
-			if ((res = repair_tree_insert(am->repair->fs->tree, 
-						      &place)) < 0)
-				goto error_close_node;
-
-			if (res == 0) {
-				/* FIXME-VITALY: this is wrong. Fix it when merge 
-				   will be ready. */
-				if ((res = callback_layout(&place, am)))
-					goto error_close_node;
-			}
+			res = repair_tree_insert(am->repair->fs->tree, &place,
+						 callback_item_mark_region, am);
+			
+			if (res) goto error_close_node;
 		}
 
 		aux_bitmap_clear(bitmap, node_blocknr(node));
