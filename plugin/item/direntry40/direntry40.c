@@ -541,162 +541,6 @@ static errno_t direntry40_copy(item_entity_t *dst_item, uint32_t dst_pos,
 	return 0;
 }
 
-/* Makes shift of the entries from the @src_item to the @dst_item */
-static errno_t direntry40_shift(item_entity_t *src_item,
-				item_entity_t *dst_item,
-				shift_hint_t *hint)
-{
-	uint32_t size;
-	uint32_t i, len;
-	uint32_t offset;
-	void *src, *dst;
-	entry40_t *entry;
-	uint32_t headers;
-	
-	direntry40_t *src_direntry;
-	direntry40_t *dst_direntry;
-	uint32_t src_units, dst_units;
-	
-	aal_assert("umka-1586", src_item != NULL);
-	aal_assert("umka-1587", dst_item != NULL);
-	aal_assert("umka-1589", hint != NULL);
-
-	src_direntry = direntry40_body(src_item);
-	dst_direntry = direntry40_body(dst_item);
-
-	src_units = de40_get_units(src_direntry);
-	dst_units = de40_get_units(dst_direntry);
-	
-	aal_assert("umka-1604", src_units >= hint->units);
-
-	headers = hint->units * sizeof(entry40_t);
-	hint->rest -= (hint->create ? sizeof(direntry40_t) : 0);
-		
-	if (hint->control & SF_LEFT) {
-
-		uint32_t dst_len = 0;
-
-		/* Calculating dst item body length */
-		dst_len = dst_item->len - hint->rest -
-			sizeof(direntry40_t) - (dst_units * sizeof(entry40_t));
-		
-		if (dst_units > 0) {
-
-			/* Moving entry bodies of dst direntry */
-			src = (void *)dst_direntry + sizeof(direntry40_t) +
-				(dst_units * sizeof(entry40_t));
-			
-			dst = src + headers;
-
-			aal_memmove(dst, src, dst_len);
-
-			/* Updating offsets of dst direntry */
-			entry = &dst_direntry->entry[0];
-
-			for (i = 0; i < dst_units; i++, entry++)
-				en40_inc_offset(entry, headers);
-		}
-
-		/* Copying units from @src item to @dst one */
-		direntry40_copy(dst_item, dst_units, src_item,
-				0, hint->units);
-
-		if (src_units > hint->units) {
-			
-			/* Moving headers of the src direntry */
-			src = (void *)src_direntry + sizeof(direntry40_t) +
-				headers;
-			
-			dst = (void *)src_direntry + sizeof(direntry40_t);
-			size = (src_units - hint->units) * sizeof(entry40_t);
-
-			aal_memmove(dst, src, size);
-
-			/* Moving bodies of the src direntry */
-			src = (void *)src_direntry + sizeof(direntry40_t) +
-				(src_units * sizeof(entry40_t)) + (hint->rest - headers);
-
-			dst = src - hint->rest;
-
-			size = src_item->len - sizeof(direntry40_t) -
-				size - hint->rest;
-
-			aal_memmove(dst, src, size);
-			
-			/* Updating offsets of src direntry */
-			entry = &src_direntry->entry[0];
-			
-			for (i = 0; i < src_units - hint->units; i++, entry++)
-				en40_dec_offset(entry, hint->rest);
-		}
-	} else {
-
-		if (dst_units > 0) {
-
-			len = dst_item->len - hint->rest;
-			
-			/* Moving entry headers of dst direntry */
-			src = (void *)dst_direntry + sizeof(direntry40_t);
-			
-			dst = src + headers;
-			size = len - sizeof(direntry40_t);
-
-			aal_memmove(dst, src, size);
-
-			/* Updating offsets of dst direntry */
-			entry = (entry40_t *)dst;
-
-			for (i = 0; i < dst_units; i++, entry++)
-				en40_inc_offset(entry, hint->rest);
-			
-			/* Moving entry bodies of dst direntry */
-			src = dst + (dst_units * sizeof(entry40_t));
-
-			dst = src + (hint->rest - headers);
-				
-			size -= (dst_units * sizeof(entry40_t));
-			
-			aal_memmove(dst, src, size);
-		}
-		
-		/* Copying units from @src item to @dst one */
-		direntry40_copy(dst_item, 0, src_item,
-				src_units - hint->units, hint->units);
-		
-		if (src_units > hint->units) {
-			
-			/* Moving bodies of the src direntry */
-			src = (void *)src_direntry + sizeof(direntry40_t) +
-				(src_units * sizeof(entry40_t));
-			
-			dst = src - headers;
-
-			size = src_item->len - sizeof(direntry40_t) -
-				(src_units * sizeof(entry40_t));
-			
-			aal_memmove(dst, src, size);
-
-			/* Updating offsets of src direntry */
-			entry = &src_direntry->entry[0];
-			
-			for (i = 0; i < src_units - hint->units; i++, entry++)
-				en40_dec_offset(entry, headers);
-		}
-	}
-
-//	de40_inc_units(dst_direntry, hint->units);
-	de40_dec_units(src_direntry, hint->units);
-
-	/* Updating items key */
-	if (hint->control & SF_LEFT) {
-		if (de40_get_units(src_direntry) > 0)
-			direntry40_get_key(src_item, 0, &src_item->key);
-	} else
-		direntry40_get_key(dst_item, 0, &dst_item->key);
-	
-	return 0;
-}
-
 /* Shrinks direntry item in order to delete some entries */
 static int32_t direntry40_shrink(item_entity_t *item,
 				 uint32_t pos, uint32_t count)
@@ -769,7 +613,6 @@ static int32_t direntry40_shrink(item_entity_t *item,
 		}
 	}
 	
-	de40_dec_units(direntry, count);
 	return (remove + headers);
 }
 
@@ -848,11 +691,64 @@ static int32_t direntry40_expand(item_entity_t *item, uint32_t pos,
 	/* Moving unit headers if it is needed */
 	if (first) {
 		src = &direntry->entry[pos];
-		dst = src + (count * sizeof(entry40_t));
+		dst = src + headers;
 		aal_memmove(dst, src, first);
 	}
     
 	return offset;
+}
+
+/* Makes shift of the entries from the @src_item to the @dst_item */
+static errno_t direntry40_shift(item_entity_t *src_item,
+				item_entity_t *dst_item,
+				shift_hint_t *hint)
+{
+	uint32_t src_pos, dst_pos;
+	direntry40_t *src_direntry;
+	direntry40_t *dst_direntry;
+	uint32_t src_units, dst_units;
+	
+	aal_assert("umka-1589", hint != NULL);
+	aal_assert("umka-1586", src_item != NULL);
+	aal_assert("umka-1587", dst_item != NULL);
+
+	src_direntry = direntry40_body(src_item);
+	dst_direntry = direntry40_body(dst_item);
+
+	src_units = de40_get_units(src_direntry);
+	dst_units = de40_get_units(dst_direntry);
+
+	if (hint->create)
+		hint->rest -= sizeof(direntry40_t);
+		
+	if (hint->control & SF_LEFT) {
+		src_pos = 0;
+		dst_pos = dst_units;
+	} else {
+		dst_pos = 0;
+		src_pos = src_units - hint->units;
+	}
+
+	/* Preparing root for copying units into it */
+	direntry40_expand(dst_item, dst_pos,
+			  hint->units, hint->rest);
+
+	/* Copying units from @src item to @dst one */
+	direntry40_copy(dst_item, dst_pos, src_item,
+			src_pos, hint->units);
+
+	direntry40_shrink(src_item, src_pos, hint->units);
+	de40_dec_units(src_direntry, hint->units);
+
+	/* Updating item key by first direntry key */
+	if (hint->control & SF_LEFT) {
+		if (de40_get_units(src_direntry) > 0) {
+			direntry40_get_key(src_item, 0,
+					   &src_item->key);
+		}
+	}
+
+	return 0;
 }
 
 /* Inserts new entries inside direntry item */
@@ -880,8 +776,14 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	  function direntry40_expand returns the offset of where new unit will
 	  be inserted at.
 	*/
-	if ((offset = direntry40_expand(item, pos, count, hint->len)) <= 0)
+	
+	if ((offset = direntry40_expand(item, pos, count,
+					hint->len)) <= 0)
+	{
+		aal_exception_error("Can't expand direntry by "
+				    "%u bytes.", hint->len);
 		return -EINVAL;
+	}
 	
 	/* Creating new entries */
 	entry = &direntry->entry[pos];
@@ -938,9 +840,8 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 		}
 	}
 	
-	/* Updating direntry count field */
 	de40_inc_units(direntry, count);
-
+	
 	/*
 	  Updating item key by unit key if the first unit was changed. It is
 	  needed for correct updating left delimiting keys.
@@ -966,6 +867,8 @@ int32_t direntry40_remove(item_entity_t *item,
 	if ((len = direntry40_shrink(item, pos, count)) <= 0)
 		return -EINVAL;
 
+	de40_inc_units(direntry, count);
+	
 	/* Updating item key */
 	if (pos == 0 && de40_get_units(direntry) > 0)
 		direntry40_get_key(item, 0, &item->key);
