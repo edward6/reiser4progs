@@ -11,7 +11,7 @@
 errno_t reiser4_place_first(reiser4_place_t *place) {
 	place->pos.item = 0;
 	
-	if (place->pos.unit != ~0ul)
+	if (place->pos.unit != MAX_UINT32)
 		place->pos.unit = 0;
 	
 	return 0;
@@ -23,7 +23,7 @@ errno_t reiser4_place_last(reiser4_place_t *place) {
 			
 	place->pos.item = items - 1;
 	
-	if (place->pos.unit != ~0ul) {
+	if (place->pos.unit != MAX_UINT32) {
 		
 		if (reiser4_place_realize(place))
 			return -EINVAL;
@@ -38,7 +38,7 @@ errno_t reiser4_place_last(reiser4_place_t *place) {
    of the first item in node. */
 bool_t reiser4_place_gtfirst(reiser4_place_t *place) {
 
-	if (place->pos.unit == ~0ul)
+	if (place->pos.unit == MAX_UINT32)
 		return place->pos.item > 0;
 	
 	return place->pos.item > 0 || place->pos.unit > 0;
@@ -49,7 +49,7 @@ bool_t reiser4_place_gtfirst(reiser4_place_t *place) {
 bool_t reiser4_place_ltlast(reiser4_place_t *place) {
 	uint32_t items = reiser4_node_items(place->node);
 			
-	if (place->pos.unit == ~0ul) {
+	if (place->pos.unit == MAX_UINT32) {
 		return (place->pos.item < items - 1);
 	} else {
 		uint32_t units;
@@ -69,7 +69,7 @@ bool_t reiser4_place_ltlast(reiser4_place_t *place) {
 bool_t reiser4_place_leftmost(reiser4_place_t *place) {
 	aal_assert("umka-1862", place != NULL);
 	
-	return ((place->pos.unit == 0 || place->pos.unit == ~0ul) &&
+	return ((place->pos.unit == 0 || place->pos.unit == MAX_UINT32) &&
 		place->pos.item == 0);
 }
 

@@ -124,7 +124,7 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 
 	dir->unit = dir->body.pos.unit;
 	
-	if (dir->unit == ~0ul)
+	if (dir->unit == MAX_UINT32)
 		dir->unit = 0;
 
 	return 0;
@@ -331,7 +331,7 @@ lookup_t dir40_lookup(object_entity_t *entity,
 
 	dir->unit = dir->body.pos.unit;
 	
-	if (dir->unit == ~0ul)
+	if (dir->unit == MAX_UINT32)
 		dir->unit = 0;
 
 	/* Entry is null, it is probebly the case when we want just know, that
@@ -580,7 +580,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	/* Estimating body item and setting up "bytes" field from the unix
 	   extetion. */
 	if (plugin_call(body_plugin->o.item_ops, estimate_insert,
-			NULL, &body_hint, ~0ul))
+			NULL, &body_hint, MAX_UINT32))
 	{
 		aal_exception_error("Can't estimate directory item.");
 		goto error_free_body;

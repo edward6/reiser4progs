@@ -4,6 +4,7 @@
    node_large_repair.c -- reiser4 node with large keys. */
 
 #ifndef ENABLE_STAND_ALONE
+#ifdef ENABLE_LARGE_KEYS
 
 #include "node_large.h"
 #include <repair/plugin.h>
@@ -55,7 +56,7 @@ static errno_t node_large_region_delete(node_t *node,
 	for (i = start_pos; i < end_pos; i++, ih--)
 		ih_set_offset(ih, ih_get_offset(ih + 1) + 1);
     
-	pos.unit = ~0ul;
+	pos.unit = MAX_UINT32;
 	pos.item = start_pos - 1;
     
 	if(node_large_remove((object_entity_t *)node, &pos, end_pos - pos.item)) {
@@ -513,4 +514,4 @@ bool_t node_large_test_flag(object_entity_t *entity, uint32_t pos, uint16_t flag
 }
 
 #endif
-
+#endif

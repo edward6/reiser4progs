@@ -222,7 +222,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 
 	aal_assert("umka-1421", item != NULL);
 	aal_assert("umka-1422", buff != NULL);
-	aal_assert("umka-1672", pos != ~0ul);
+	aal_assert("umka-1672", pos != MAX_UINT32);
 
 	blksize = extent40_blksize(item);
 	sectorsize = item->context.device->blksize;
@@ -371,7 +371,7 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 	aal_assert("umka-1704", src_item != NULL);
 
 	if (!(src_item->pos.item == hint->pos.item &&
-	      hint->pos.unit != ~0ul))
+	      hint->pos.unit != MAX_UINT32))
 	{
 		goto out_update_hint;
 	}

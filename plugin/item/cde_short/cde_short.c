@@ -200,11 +200,11 @@ static errno_t cde_short_estimate_insert(item_entity_t *item,
 		}
 	}
 
-	/* If the pos we are going to insert new units is ~0ul, we assume it is
-	   the attempt to insert new directory item. In this case we should also
-	   count item overhead, that is cde_short header which contains the
-	   number of entries in item. */
-	if (pos == ~0ul)
+	/* If the pos we are going to insert new units is MAX_UINT32, we assume
+	   it is the attempt to insert new directory item. In this case we
+	   should also count item overhead, that is cde_short header which
+	   contains the number of entries in item. */
+	if (pos == MAX_UINT32)
 		hint->len += cde_short_overhead(item);
     
 	return 0;
@@ -503,14 +503,14 @@ static errno_t cde_short_estimate_shift(item_entity_t *src_item,
 	curr = (hint->control & SF_LEFT ? 0 : src_units - 1);
 	
 	check = (src_item->pos.item == hint->pos.item &&
-		 hint->pos.unit != ~0ul);
+		 hint->pos.unit != MAX_UINT32);
 
 	while (!(hint->result & SF_MOVIP) &&
 	       curr < cde_short_units(src_item))
 	{
 
 		/* Check if we should update unit pos. we will update it if we
-		   are at insert point and unit pos is not ~0ul. */
+		   are at insert point and unit pos is not MAX_UINT32. */
 		if (check && (flags & SF_UPTIP)) {
 			
 			if (!(flags & SF_MOVIP)) {
@@ -533,7 +533,7 @@ static errno_t cde_short_estimate_shift(item_entity_t *src_item,
 
 		/* Updating unit pos. We will do so in the case item component
 		   of insert point is the same as current item has and unit
-		   component is not ~0ul. */
+		   component is not MAX_UINT32. */
 		if (check && (flags & SF_UPTIP)) {
 			if (flags & SF_LEFT) {
 
@@ -653,7 +653,7 @@ static errno_t cde_short_insert(item_entity_t *item,
     
 	aal_assert("umka-791", item != NULL);
 	aal_assert("umka-792", hint != NULL);
-	aal_assert("umka-897", pos != ~0ul);
+	aal_assert("umka-897", pos != MAX_UINT32);
 
 	direntry = cde_short_body(item);
 	entry_hint = (entry_hint_t *)hint->type_specific;

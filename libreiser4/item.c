@@ -31,28 +31,7 @@ uint32_t reiser4_item_units(reiser4_place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Estimating insert operation. Below is the possible cases.
-   
-   1. Insertion of data: 
-   a) pos->unit == ~0ul 
-   b) hint->data != NULL
-   c) get hint->plugin on the base of pos.
-   
-   2. Insertion of info: 
-   a) pos->unit == ~0ul 
-   b) hint->hint != NULL
-   c) hint->plugin != NULL
-    
-   3. Pasting of data: 
-   a) pos->unit != ~0ul 
-   b) hint->data != NULL
-   c) get hint->plugin on the base of pos.
-    
-   4. Pasting of info: 
-   a) pos->unit_pos != ~0ul 
-   b) hint->hint != NULL
-   c) get hint->plugin on the base of pos */
-
+/* Estimating insert operation. */
 errno_t reiser4_item_estimate(
 	reiser4_place_t *place,	   /* item we will work with */
 	create_hint_t *hint)       /* item hint to be estimated */
@@ -72,7 +51,7 @@ errno_t reiser4_item_estimate(
 	if (!hint->plugin->o.item_ops->estimate_insert)
 		return 0;
 
-	if (place->pos.unit != ~0ul) {
+	if (place->pos.unit != MAX_UINT32) {
 		if ((res = reiser4_place_realize(place)))
 			return res;
 	}

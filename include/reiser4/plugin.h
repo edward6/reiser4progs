@@ -181,9 +181,9 @@ enum reiser4_key_plugin_id {
 
 typedef struct reiser4_plugin reiser4_plugin_t;
 
-#define INVAL_PTR	((void *)-1)
-#define INVAL_PID	0xff
-#define KEY_SIZE	4
+#define INVAL_PTR	        ((void *)-1)
+#define INVAL_PID	        0xff
+#define KEY_SIZE                4
 
 struct key_entity {
 	reiser4_plugin_t *plugin;

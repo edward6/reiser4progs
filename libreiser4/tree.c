@@ -306,7 +306,7 @@ static reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
 	aal_assert("umka-2214", node != NULL);
 
 	level = 0;
-	reiser4_place_assign(&place, tree, node, 0, ~0ul);
+	reiser4_place_assign(&place, tree, node, 0, MAX_UINT32);
                                                                                       
         /* Going up to the level where corresponding neighbour node may be
 	   obtained by its nodeptr item. */
@@ -803,7 +803,7 @@ lookup_t reiser4_tree_lookup(
 	reiser4_key_assign(&wan, key);
 
 	/* Initializing place by root node */
-	reiser4_place_assign(place, tree, tree->root, 0, ~0ul);
+	reiser4_place_assign(place, tree, tree->root, 0, MAX_UINT32);
 
 	/* Making sure that root exists. If not, getting out with @place
 	   initialized by NULL root. */
@@ -812,7 +812,7 @@ lookup_t reiser4_tree_lookup(
 
 	/* Reinitialziing @place by root node, as root exists and loaded. This
 	   is needed for code bellow. */
-	reiser4_place_assign(place, tree, tree->root, 0, ~0ul);
+	reiser4_place_assign(place, tree, tree->root, 0, MAX_UINT32);
 
 	/* Checking the case when wanted key is smaller than root one. This is
 	   the case, when somebody is trying go up of the root by ".." entry in
@@ -842,11 +842,11 @@ lookup_t reiser4_tree_lookup(
 		
 		/* Position correcting for internal levels */
 		if (res == ABSENT && place->pos.item != 0) {
-			if (place->pos.unit == ~0ul ||
+			if (place->pos.unit == MAX_UINT32 ||
 			    place->pos.unit == 0)
 			{
 				place->pos.item--;
-				place->pos.unit = ~0ul;
+				place->pos.unit = MAX_UINT32;
 			} else {
 				place->pos.unit--;
 			}
@@ -861,7 +861,7 @@ lookup_t reiser4_tree_lookup(
 		
 		units = reiser4_item_units(place);
 		
-		if (moved && place->pos.unit == ~0ul)
+		if (moved && place->pos.unit == MAX_UINT32)
 			place->pos.unit = units - 1;
 		    
 		/* Checking is item at @place is nodeptr one. If not, we correct
@@ -870,7 +870,7 @@ lookup_t reiser4_tree_lookup(
 			if (moved) {
 				if (place->pos.unit == units - 1) {
 					place->pos.item++;
-					place->pos.unit = ~0ul;
+					place->pos.unit = MAX_UINT32;
 				} else 
 					place->pos.unit++;
 			}
@@ -1494,7 +1494,7 @@ errno_t reiser4_tree_insert(
 		if (!(place->node = reiser4_tree_alloc(tree, level)))
 			return -EINVAL;
 		
-		POS_INIT(&place->pos, 0, ~0ul);
+		POS_INIT(&place->pos, 0, MAX_UINT32);
 		
 		if ((res = reiser4_item_estimate(place, hint)))
 			return res;
@@ -1544,7 +1544,7 @@ errno_t reiser4_tree_insert(
 		if (!(place->node = reiser4_tree_alloc(tree, level)))
 			return -ENOSPC;
 
-		POS_INIT(&place->pos, 0, ~0ul);
+		POS_INIT(&place->pos, 0, MAX_UINT32);
 	} else if (level > reiser4_node_get_level(place->node)) {
 		
 		/* Prepare the tree for insertion at the level @level. */
@@ -1575,9 +1575,9 @@ errno_t reiser4_tree_insert(
 
 	/* Saving mode of insert (insert new item, paste units to the existent
 	   one) before making space for new inset/unit. */
-	mode = (place->pos.unit == ~0ul);
+	mode = (place->pos.unit == MAX_UINT32);
 	
-	needed = hint->len + (place->pos.unit == ~0ul ? 
+	needed = hint->len + (place->pos.unit == MAX_UINT32 ? 
 		reiser4_node_overhead(place->node) : 0);
 	    
 	if ((res = reiser4_tree_expand(tree, place, needed, SF_DEFAULT))) {
@@ -1589,7 +1589,7 @@ errno_t reiser4_tree_insert(
 	   of insert was changed or not. If so, we should perform estimate one
 	   more time. That is because, estimated value depends on insert
 	   mode. */
-	if (mode != (place->pos.unit == ~0ul)) {
+	if (mode != (place->pos.unit == MAX_UINT32)) {
 		if ((res = reiser4_item_estimate(place, hint)))
 			return res;
 	}
@@ -1675,7 +1675,7 @@ errno_t reiser4_tree_cut(
 	}
 
 	if (start->node != end->node) {
-		pos_t pos = {~0ul, ~0ul};
+		pos_t pos = {MAX_UINT32, MAX_UINT32};
 
 		/* Removing start + 1 though end - 1 node from the tree */
 		node = reiser4_tree_neigh(tree, start->node, D_RIGHT);
@@ -1965,7 +1965,7 @@ errno_t reiser4_tree_down(
 	for (pos->item = 0; pos->item < reiser4_node_items(node);
 	     pos->item++)
 	{
-		pos->unit = ~0ul; 
+		pos->unit = MAX_UINT32; 
 
 		/* If there is a suspicion of a corruption, it must be checked
 		   in before_func. All items must be opened here. */

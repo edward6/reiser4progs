@@ -43,7 +43,7 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
 				    "corruption found. Remove item.", 
 				    place->node->number, place->pos.item);
 		
-		place->pos.unit = ~0ul;
+		place->pos.unit = MAX_UINT32;
 		
 		if ((ret = reiser4_node_remove(place->node, &place->pos, 1))) {
 			aal_exception_error("Node (%llu), item (%u): failed to "

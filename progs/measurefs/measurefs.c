@@ -141,7 +141,7 @@ static errno_t tfrag_process_node(
 	if (frag_hint->gauge)
 		aal_gauge_update(frag_hint->gauge, 0);
 		
-	pos.unit = ~0ul;
+	pos.unit = MAX_UINT32;
 
 	/* Loop though the node items */
 	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
@@ -296,7 +296,7 @@ static errno_t stat_process_node(
 	/* If we are on the level higher taht leaf level, we traverse extents on
 	   it. Otherwise we just update stat structure. */
 	if (level > LEAF_LEVEL) {
-		pos_t pos = {~0ul, ~0ul};
+		pos_t pos = {MAX_UINT32, MAX_UINT32};
 		
 		internals_used = aal_device_get_bs(device) -
 			reiser4_node_space(node);
@@ -481,7 +481,7 @@ static errno_t dfrag_process_node(
 	static int bogus = 0;
 	ffrag_hint_t *frag_hint;
 
-	pos.unit = ~0ul;
+	pos.unit = MAX_UINT32;
 	frag_hint = (ffrag_hint_t *)data;
 
 	frag_hint->level--;

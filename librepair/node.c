@@ -50,7 +50,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 	count = reiser4_node_items(node);
 	
 	for (pos->item = 0; pos->item < count; pos->item++) {
-		pos->unit = ~0ul;
+		pos->unit = MAX_UINT32;
 		
 		/* Open the item, checking its plugin id. */
 		if (reiser4_place_realize(&place)) {
@@ -171,7 +171,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 		   otherwise. */		
 		if ((reiser4_node_items(node->p.node) == place.pos.item + 1) &&
 		    (reiser4_item_units(&place) == place.pos.unit + 1 || 
-		     place.pos.unit == ~0ul)) 
+		     place.pos.unit == MAX_UINT32)) 
 		{
 			if ((ret = repair_node_rd_key(node->p.node, rd_key)))
 				return ret;
@@ -214,7 +214,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 	}
 	
 	place.pos.item = 0; 
-	place.pos.unit = ~0ul;
+	place.pos.unit = MAX_UINT32;
 	place.node = node;
 	
 	if ((res = reiser4_place_realize(&place)))
@@ -297,7 +297,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 	aal_memset(&place, 0, sizeof(place));
 	
 	place.node = node;
-	place.pos.unit = ~0ul;
+	place.pos.unit = MAX_UINT32;
 	count = reiser4_node_items(node);
 	
 	for (pos->item = 0; pos->item < count; pos->item++) {
@@ -399,7 +399,7 @@ errno_t repair_node_traverse(reiser4_node_t *node, node_func_t func,
 	
 	aal_assert("vpf-744", node != NULL);
 	
-	pos->unit = ~0ul;
+	pos->unit = MAX_UINT32;
 	
 	for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
 		if ((res = reiser4_place_open(&place, node->tree, node, pos))) {

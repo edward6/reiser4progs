@@ -140,7 +140,7 @@ static errno_t oid40_print(object_entity_t *entity,
 /* Returns number of free oids */
 static oid_t oid40_free(object_entity_t *entity) {
 	aal_assert("umka-961", entity != NULL);
-	return ~0ull - ((oid40_t *)entity)->next;
+	return MAX_UINT64 - ((oid40_t *)entity)->next;
 }
 
 /* Returns number of used oids */

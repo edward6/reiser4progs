@@ -14,7 +14,7 @@ static key_entity_t minimal_key = {
 /* Maximal possible key */
 static key_entity_t maximal_key = {
 	.plugin = NULL,
-	.body   = {~0ull, ~0ull, ~0ull, ~0ull}
+	.body   = {MAX_UINT64, MAX_UINT64, MAX_UINT64, MAX_UINT64}
 };
 
 /* Translates key type from libreiser4 type to key_common one */

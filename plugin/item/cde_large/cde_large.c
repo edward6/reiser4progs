@@ -199,11 +199,11 @@ static errno_t cde_large_estimate_insert(item_entity_t *item,
 		}
 	}
 
-	/* If the pos we are going to insert new units is ~0ul, we assume it is
-	   the attempt to insert new directory item. In this case we should also
-	   count item overhead, that is cde_large header which contains the
-	   number of entries in item. */
-	if (pos == ~0ul)
+	/* If the pos we are going to insert new units is MAX_UINT32, we assume
+	   it is the attempt to insert new directory item. In this case we
+	   should also count item overhead, that is cde_large header which
+	   contains the number of entries in item. */
+	if (pos == MAX_UINT32)
 		hint->len += cde_large_overhead(item);
     
 	return 0;
@@ -304,7 +304,7 @@ errno_t cde_large_rep(item_entity_t *dst_item, uint32_t dst_pos,
 	/* Updating direntry count field */
 	de_inc_units(dst_direntry, count);
 
-	/* Updating item key by unit key if the first unit waqs changed. It is
+	/* Updating item key by unit key if the first unit was changed. It is
 	   needed for correct updating left delimiting keys. */
 	if (dst_pos == 0)
 		cde_large_get_key(dst_item, 0, &dst_item->key);
@@ -502,14 +502,14 @@ static errno_t cde_large_estimate_shift(item_entity_t *src_item,
 	curr = (hint->control & SF_LEFT ? 0 : src_units - 1);
 	
 	check = (src_item->pos.item == hint->pos.item &&
-		 hint->pos.unit != ~0ul);
+		 hint->pos.unit != MAX_UINT32);
 
 	while (!(hint->result & SF_MOVIP) &&
 	       curr < cde_large_units(src_item))
 	{
 
 		/* Check if we should update unit pos. we will update it if we
-		   are at insert point and unit pos is not ~0ul. */
+		   are at insert point and unit pos is not MAX_UINT32. */
 		if (check && (flags & SF_UPTIP)) {
 			
 			if (!(flags & SF_MOVIP)) {
@@ -532,7 +532,7 @@ static errno_t cde_large_estimate_shift(item_entity_t *src_item,
 
 		/* Updating unit pos. We will do so in the case item component
 		   of insert point is the same as current item has and unit
-		   component is not ~0ul. */
+		   component is not MAX_UINT32. */
 		if (check && (flags & SF_UPTIP)) {
 			if (flags & SF_LEFT) {
 
@@ -652,7 +652,7 @@ static errno_t cde_large_insert(item_entity_t *item,
     
 	aal_assert("umka-791", item != NULL);
 	aal_assert("umka-792", hint != NULL);
-	aal_assert("umka-897", pos != ~0ul);
+	aal_assert("umka-897", pos != MAX_UINT32);
 
 	direntry = cde_large_body(item);
 	entry_hint = (entry_hint_t *)hint->type_specific;
@@ -806,7 +806,8 @@ static errno_t cde_large_print(item_entity_t *item,
 		entry_t *entry = &direntry->entry[i];
 		objid_t *objid = cde_large_objid(item, i);
 
-		cde_large_get_name(item, i, name, sizeof(name));
+		cde_large_get_name(item, i, name,
+				   sizeof(name));
 
 		/* Cutting name by 16 symbols */
 		if (aal_strlen(name) > 16) {

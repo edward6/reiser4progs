@@ -84,7 +84,7 @@ static errno_t tail40_estimate_insert(item_entity_t *item,
 {
 	aal_assert("umka-1836", hint != NULL);
 
-	if (pos == ~0ul)
+	if (pos == MAX_UINT32)
 		hint->len = hint->count;
 	else {
 		uint32_t right;
@@ -203,7 +203,7 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 	aal_assert("umka-1664", src_item != NULL);
 
 	if (!(src_item->pos.item == hint->pos.item &&
-	      hint->pos.unit != ~0ul))
+	      hint->pos.unit != MAX_UINT32))
 	{
 		goto out_update_hint;
 	}

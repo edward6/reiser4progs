@@ -223,7 +223,7 @@ errno_t node_large_expand(object_entity_t *entity, pos_t *pos,
 		return 0;
 	
 	/* Checks for input validness */
-	is_insert = (pos->unit == ~0ul);
+	is_insert = (pos->unit == MAX_UINT32);
 
 	items = nh_get_num_items(node);
 	headers = count * sizeof(item_header_t);
@@ -322,7 +322,7 @@ errno_t node_large_shrink(object_entity_t *entity, pos_t *pos,
 	is_range = (pos->item < items);
 	aal_assert("umka-1801", is_range);
 
-	if (pos->unit == ~0ul) {
+	if (pos->unit == MAX_UINT32) {
 		is_range = (is_range && pos->item + count <= items);
 		aal_assert("umka-1802", is_range);
 
@@ -488,7 +488,7 @@ static errno_t node_large_insert(object_entity_t *entity, pos_t *pos,
 	ih = node_large_ih_at(node, pos->item);
 
 	/* Updating item header if we want insert new item */
-	if (pos->unit == ~0ul) {
+	if (pos->unit == MAX_UINT32) {
 		ih_set_pid(ih, hint->plugin->id.id);
 
 		aal_memcpy(&ih->key, hint->key.body,
@@ -502,7 +502,7 @@ static errno_t node_large_insert(object_entity_t *entity, pos_t *pos,
 	}
 
 	/* Updating item header plugin id if we insert new item */
-	if (pos->unit == ~0ul) {
+	if (pos->unit == MAX_UINT32) {
 		if (hint->flags == HF_RAWDATA) {
 			aal_memcpy(item.body, hint->type_specific,
 				   hint->len);
@@ -566,9 +566,9 @@ errno_t node_large_remove(object_entity_t *entity,
 
 	/* Checking if we need remove whole item if it has not units anymore */
 	if (plugin_call(item.plugin->o.item_ops, units, &item) == 1)
-		rpos.unit = ~0ul;
+		rpos.unit = MAX_UINT32;
 	
-	if (rpos.unit == ~0ul) {
+	if (rpos.unit == MAX_UINT32) {
 		if (!(len = node_large_size(node, &rpos, count)))
 			return -EINVAL;
 	} else {
@@ -614,7 +614,7 @@ static errno_t node_large_cut(object_entity_t *entity,
 		count = end->item - start->item;
 		
 		/* Removing units inside start item */
-		if (start->unit != ~0ul) {
+		if (start->unit != MAX_UINT32) {
 			pos = *start;
 			
 			if (node_large_get_item(entity, &pos, &item))
@@ -631,7 +631,7 @@ static errno_t node_large_cut(object_entity_t *entity,
 		}
 
 		/* Removing units inside end item */
-		if (end->unit != ~0ul) {
+		if (end->unit != MAX_UINT32) {
 			pos = *end;
 			
 			if (node_large_get_item(entity, &pos, &item))
@@ -651,14 +651,14 @@ static errno_t node_large_cut(object_entity_t *entity,
                         /* Removing some amount of whole items from the node. If
 			   previous node_large_remove produced empty edge items,
 			   they will be removed too. */
-			POS_INIT(&pos, begin, ~0ul);
+			POS_INIT(&pos, begin, MAX_UINT32);
 			
 			if (node_large_remove(entity, &pos, count))
 				return -EINVAL;
 		}
 	} else {
-		aal_assert("umka-1795", end->unit != ~0ul);
-		aal_assert("umka-1794", start->unit != ~0ul);
+		aal_assert("umka-1795", end->unit != MAX_UINT32);
+		aal_assert("umka-1794", start->unit != MAX_UINT32);
 		
 		pos = *start;
 		count = end->unit - start->unit;
@@ -673,7 +673,7 @@ static errno_t node_large_cut(object_entity_t *entity,
 		if (!(units = plugin_call(item.plugin->o.item_ops,
 					  units, &item)))
 		{
-			pos.unit = ~0ul;
+			pos.unit = MAX_UINT32;
 
 			if (node_large_shrink(entity, &pos, item.len, 1))
 				return -EINVAL;
@@ -736,9 +736,9 @@ static errno_t node_large_print(object_entity_t *entity,
 			  node_common_items(entity), node_common_space(entity),
 			  nh_get_mkfs_id(node), nh_get_flush_id(node));
 	
-	pos.unit = ~0ul;
+	pos.unit = MAX_UINT32;
 	
-	if (start == ~0ul)
+	if (start == MAX_UINT32)
 		start = 0;
 	
 	last = node_common_items(entity);
@@ -973,17 +973,23 @@ static errno_t node_large_merge(object_entity_t *src_entity,
 	/* We can't split the first and last items if they lie in position
 	   insert point points to. */
 	if (hint->control & SF_LEFT) {
- 		if (hint->pos.item == 0 && hint->pos.unit == ~0ul)
+ 		if (hint->pos.item == 0 &&
+		    hint->pos.unit == MAX_UINT32)
+		{
 			return 0;
+		}
 	} else {
-		if (hint->pos.item == src_items && hint->pos.unit == ~0ul)
+		if (hint->pos.item == src_items &&
+		    hint->pos.unit == MAX_UINT32)
+		{
 			return 0;
+		}
 	}
 
 	/* Initializing items to be examined by the estimate_shift() method of
 	   corresponding item plugin. */
 	POS_INIT(&pos, (hint->control & SF_LEFT ? 0 :
-			src_items - 1), ~0ul);
+			src_items - 1), MAX_UINT32);
 	
 	if (node_large_get_item(src_entity, &pos, &src_item))
 		return -EINVAL;
@@ -996,7 +1002,7 @@ static errno_t node_large_merge(object_entity_t *src_entity,
 	/* Checking if items are mergeable */
 	if (dst_items > 0) {
 		POS_INIT(&pos, (hint->control & SF_LEFT ?
-				dst_items - 1 : 0), ~0ul);
+				dst_items - 1 : 0), MAX_UINT32);
 		
 		if (node_large_get_item(dst_entity, &pos, &dst_item))
 			return -EINVAL;
@@ -1066,7 +1072,7 @@ static errno_t node_large_merge(object_entity_t *src_entity,
 		
 		/* Expanding dst node with creating new item */
 		POS_INIT(&pos, (hint->control & SF_LEFT ?
-				dst_items : 0), ~0ul);
+				dst_items : 0), MAX_UINT32);
 		
 		if (node_large_expand(dst_entity, &pos, hint->rest, 1)) {
 			aal_exception_error("Can't expand node for "
@@ -1101,7 +1107,7 @@ static errno_t node_large_merge(object_entity_t *src_entity,
 		/* Items are mergeable, so we do not need to create new item in
 		   the dst node. We just need to expand existent dst item by
 		   hint->rest. So, we will call node_large_expand() with unit
-		   component not equal ~0ul. */
+		   component not equal MAX_UINT32. */
 		POS_INIT(&pos, (hint->control & SF_LEFT ?
 				dst_items - 1 : 0), 0);
 
@@ -1158,9 +1164,9 @@ static errno_t node_large_merge(object_entity_t *src_entity,
 	
 	if (remove) {
 		/* Like node_large_expand() does, node_large_shrink() will remove
-		   pointed item if unit component is ~0ul and shrink the item
-		   pointed by pos if unit component is not ~0ul. */
-		pos.unit = ~0ul;
+		   pointed item if unit component is MAX_UINT32 and shrink the item
+		   pointed by pos if unit component is not MAX_UINT32. */
+		pos.unit = MAX_UINT32;
 		len = src_item.len;
 
 		/* As item will be removed, we should update item pos in hint
@@ -1241,7 +1247,7 @@ static errno_t node_large_predict(object_entity_t *src_entity,
 
 					/* If unit component if zero, we can
 					   shift whole item pointed by pos. */
-					POS_INIT(&pos, 0, ~0ul);
+					POS_INIT(&pos, 0, MAX_UINT32);
 					
 					if (node_large_get_item(src_entity, &pos, &item))
 						return -EINVAL;
@@ -1254,7 +1260,7 @@ static errno_t node_large_predict(object_entity_t *src_entity,
 					/* Breaking if insert point reach the
 					   end of node. */
 					if (flags & SF_MOVIP &&
-					    (hint->pos.unit == ~0ul ||
+					    (hint->pos.unit == MAX_UINT32 ||
 					     hint->pos.unit >= units - 1))
 					{
 						/* If we are permitted to move
@@ -1275,13 +1281,13 @@ static errno_t node_large_predict(object_entity_t *src_entity,
 					if (hint->pos.item == src_items - 1) {
 
 						if (flags & SF_MOVIP &&
-						    (hint->pos.unit == ~0ul ||
+						    (hint->pos.unit == MAX_UINT32 ||
 						     hint->pos.unit == 0))
 						{
 							hint->result |= SF_MOVIP;
 							hint->pos.item = 0;
 						} else {
-							if (hint->pos.unit != ~0ul)
+							if (hint->pos.unit != MAX_UINT32)
 								break;
 						}
 					} else {
@@ -1342,11 +1348,13 @@ static errno_t node_large_transfuse(object_entity_t *src_entity,
 	src_items = node_common_items(src_entity);
 
 	if (hint->control & SF_LEFT) {
-		POS_INIT(&src_pos, 0, ~0ul);
-		POS_INIT(&dst_pos, dst_items, ~0ul);
+		POS_INIT(&src_pos, 0, MAX_UINT32);
+		POS_INIT(&dst_pos, dst_items, MAX_UINT32);
 	} else {
-		POS_INIT(&dst_pos, 0, ~0ul);
-		POS_INIT(&src_pos, src_items - hint->items, ~0ul);
+		POS_INIT(&dst_pos, 0, MAX_UINT32);
+
+		POS_INIT(&src_pos, src_items - hint->items,
+			 MAX_UINT32);
 	}
 	
 	/* Expanding dst node in order to making room for new items and update
@@ -1450,7 +1458,7 @@ static errno_t node_large_shift(object_entity_t *src_entity,
 	    hint->result & SF_MOVIP &&
 	    hint->units == 0 && hint->create)
 	{
-		hint->pos.unit = ~0ul;
+		hint->pos.unit = MAX_UINT32;
 	}
 
  out_update_hint:

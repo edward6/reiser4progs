@@ -58,7 +58,7 @@ static lookup_t reg40_next(reg40_t *reg) {
 		aal_memcpy(&reg->body, &place,
 			   sizeof(reg->body));
 
-		if (reg->body.item.pos.unit == ~0ul)
+		if (reg->body.item.pos.unit == MAX_UINT32)
 			reg->body.item.pos.unit = 0;
 	}
 

@@ -60,7 +60,7 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 	
 	place.node = node;
 	place.pos.item = reiser4_node_items(node) - 1;
-	place.pos.unit = ~0ul;
+	place.pos.unit = MAX_UINT32;
 	
 	if (reiser4_place_realize(&place)) {
 		aal_exception_error("Node (%llu): Failed to open the item "
@@ -218,7 +218,7 @@ errno_t repair_tree_copy_by_place(reiser4_tree_t *tree, reiser4_place_t *dst,
 		else
 			needed = src->item.len;
 		
-		needed += (dst->pos.unit == ~0ul ? 
+		needed += (dst->pos.unit == MAX_UINT32 ? 
 			   reiser4_node_overhead(dst->node) : 0);
 		
 		res = reiser4_tree_expand(tree, dst, needed, SF_DEFAULT);
@@ -332,7 +332,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 				   hole. Items which can be merged will be at
 				   semantic pass. */
 				dst.pos.item++;
-				dst.pos.unit = ~0ul;
+				dst.pos.unit = MAX_UINT32;
 			} else {
 				if ((res = reiser4_place_realize(&dst)))
 					return res;
@@ -351,9 +351,9 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 			aal_memset(&hint, 0, sizeof(hint));
 			reiser4_key_assign(&hint.start, &start_key);
 			
-			if (dst.pos.unit == ~0ul)
+			if (dst.pos.unit == MAX_UINT32)
 				dst.pos.unit = 0;
-			if (src->pos.unit == ~0ul)
+			if (src->pos.unit == MAX_UINT32)
 				src->pos.unit = 0; 
 			
 			if ((res = reiser4_place_realize(&dst)))

@@ -176,7 +176,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 			
 			/* Remove all metadata items from the node before insertion. */
 			place.node = node;
-			pos->unit = ~0ul;
+			pos->unit = MAX_UINT32;
 			count = reiser4_node_items(node);
 			
 			for (pos->item = 0; pos->item < count; pos->item++) {
@@ -283,7 +283,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 				return -EINVAL;
 			}
 			
-			pos->unit = ~0ul;
+			pos->unit = MAX_UINT32;
 			items = reiser4_node_items(node);
 			place.node = node;
 			
@@ -293,7 +293,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 				am->stat.by_item_leaves++;
 	    
 			for (pos->item = 0; pos->item < items; pos->item++) {
-				aal_assert("vpf-636", pos->unit == ~0ul);
+				aal_assert("vpf-636", pos->unit == MAX_UINT32);
 				
 				if ((res = reiser4_place_realize(&place))) {
 					aal_exception_error("Node (%llu), item (%u): "

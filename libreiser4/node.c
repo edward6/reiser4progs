@@ -71,7 +71,7 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 	node->device = device;
 
 	reiser4_place_assign(&node->p, NULL,
-			     NULL, 0, ~0ul);
+			     NULL, 0, MAX_UINT32);
 	
 	return node;
 
@@ -188,7 +188,7 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
         node->device = device;
 	
         reiser4_place_assign(&node->p, NULL,
-			     NULL, 0, ~0ul);
+			     NULL, 0, MAX_UINT32);
 	
         return node;
 	
@@ -225,7 +225,7 @@ errno_t reiser4_node_lkey(
 {
 	errno_t res;
 	reiser4_place_t place;
-	pos_t pos = {0, ~0ul};
+	pos_t pos = {0, MAX_UINT32};
 
 	aal_assert("umka-753", node != NULL);
 	aal_assert("umka-754", key != NULL);
@@ -335,7 +335,7 @@ errno_t reiser4_node_realize(
 		return -EINVAL;
 
 	if (reiser4_item_units(parent) == 1)
-		parent->pos.unit = ~0ul;
+		parent->pos.unit = MAX_UINT32;
 
 	return 0;
 }
@@ -477,7 +477,7 @@ lookup_t reiser4_node_lookup(
 	aal_assert("vpf-048", node != NULL);
 	aal_assert("umka-476", key != NULL);
 
-	POS_INIT(pos, 0, ~0ul);
+	POS_INIT(pos, 0, MAX_UINT32);
 
 	/* Calling node plugin lookup method */
 	if ((res = plugin_call(node->entity->plugin->o.node_ops, lookup,
@@ -640,7 +640,7 @@ errno_t reiser4_node_shift(
 
 		reiser4_place_assign(&place, node->tree, neig,
 				     (hint->control & SF_LEFT) ?
-				     items - i - 1 : i, ~0ul);
+				     items - i - 1 : i, MAX_UINT32);
 
 		if ((res = reiser4_place_realize(&place)))
 			return res;
@@ -679,13 +679,13 @@ errno_t reiser4_node_shift(
 
 		/* Updating neighbour starting from the first moved item */
 		POS_INIT(&pos, reiser4_node_items(neig) -
-			 hint->items - 1, ~0ul);
+			 hint->items - 1, MAX_UINT32);
 
 		if ((res = reiser4_node_uchildren(neig, &pos)))
 			return res;
 		
 		/* Updating @node starting from the first item */
-		POS_INIT(&pos, 0, ~0ul);
+		POS_INIT(&pos, 0, MAX_UINT32);
 		
 		if ((res = reiser4_node_uchildren(node, &pos)))
 			return res;
@@ -693,7 +693,7 @@ errno_t reiser4_node_shift(
 		pos_t pos;
 
 		/* Updating neighbour starting from the first item */
-		POS_INIT(&pos, 0, ~0ul);
+		POS_INIT(&pos, 0, MAX_UINT32);
 
 		if ((res = reiser4_node_uchildren(neig, &pos)))
 			return res;
@@ -876,7 +876,7 @@ errno_t reiser4_node_insert(
 	aal_assert("umka-761", hint->len > 0 &&
 		   hint->len < reiser4_node_maxspace(node));
 
-	needed = hint->len + (pos->unit == ~0ul ?
+	needed = hint->len + (pos->unit == MAX_UINT32 ?
 			      reiser4_node_overhead(node) : 0);
 	
 	/* Checking if item length is greater then free space in the node */

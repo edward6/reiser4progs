@@ -29,6 +29,7 @@
 #endif
 
 #ifndef ENABLE_STAND_ALONE
+#ifdef ENABLE_SHORT_KEYS
 
 #include "cde_short.h"
 #include <aux/bitmap.h>
@@ -290,7 +291,7 @@ static errno_t cde_short_offsets_range_check(item_entity_t *item,
 	
 	aal_assert("vpf-757", flags != NULL);
 	
-	to_compare = ~0ul;
+	to_compare = MAX_UINT32;
 	
 	for (i = 0; i < flags->count; i++) {
 		/* Check if the offset is valid. */
@@ -306,7 +307,7 @@ static errno_t cde_short_offsets_range_check(item_entity_t *item,
 		}
 		
 		/* If there was not any R offset, skip pair comparing. */
-		if (to_compare == ~0ul) {
+		if (to_compare == MAX_UINT32) {
 			if ((i == 0) && (cde_short_count_estimate(item, i) == 
 					 de_get_units(de)))
 			{
@@ -527,9 +528,9 @@ static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
 	
 	/* Units before @i and after @count were handled, do not care about them 
 	   anymore. Handle all not relable units between them. */
-	last = ~0ul;
+	last = MAX_UINT32;
 	for (; i < flags->count; i++) {
-		if (last == ~0ul) {
+		if (last == MAX_UINT32) {
 			/* Looking for the problem interval start. */
 			if (!aal_test_bit(flags->elem + i, R))
 				last = i - 1;
@@ -573,7 +574,7 @@ static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
 					res |= REPAIR_FATAL;
 				}
 				
-				last = ~0ul;
+				last = MAX_UINT32;
 			}
 		}
 	}
@@ -743,7 +744,7 @@ static errno_t cde_short_count_check(item_entity_t *item,
 	count_error = (de->entry[0].offset - sizeof(cde_short_t)) % 
 		sizeof(entry_t);
     
-	count = count_error ? ~0u : (de->entry[0].offset - sizeof(cde_short_t)) / 
+	count = count_error ? MAX_UINT16 : (de->entry[0].offset - sizeof(cde_short_t)) / 
 		sizeof(entry_t);
     
 	if (en_min_length(de_get_units(de)) > item->len) {
@@ -891,3 +892,4 @@ static errno_t cde_short_bad_range_check(item_entity_t *item,
 
 #endif
 
+#endif

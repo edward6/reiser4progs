@@ -114,7 +114,7 @@ static errno_t tree_next(
 	if (reiser4_place_ltlast(curr)) {
 		reiser4_place_assign((reiser4_place_t *)next, t,
 				     curr->node, curr->pos.item + 1,
-				     ~0ul);
+				     MAX_UINT32);
 	} else {
 		reiser4_tree_neigh(t, curr->node, D_RIGHT);
 
@@ -149,7 +149,7 @@ static errno_t tree_prev(
 	if (reiser4_place_gtfirst(curr)) {
 		reiser4_place_assign((reiser4_place_t *)prev, t,
 				     curr->node, curr->pos.item - 1,
-				     ~0ul);
+				     MAX_UINT32);
 	} else {
 		reiser4_tree_neigh(t, curr->node, D_LEFT);
 

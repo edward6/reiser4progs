@@ -16,8 +16,8 @@
 {										\
 	ppos = place->pos;							\
 										\
-	if (reiser4_item_units(place) == 1 || place->pos.unit == ~0ul) {	\
-		ppos.unit = ~0ul - 1;						\
+	if (reiser4_item_units(place) == 1 || place->pos.unit == MAX_UINT32) {	\
+		ppos.unit = MAX_UINT32 - 1;					\
 		ppos.item--;							\
 	} else {								\
 		ppos.unit--;							\
