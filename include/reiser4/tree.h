@@ -26,6 +26,9 @@ extern reiser4_tree_t *reiser4_tree_create(reiser4_fs_t *fs,
 extern errno_t reiser4_tree_sync(reiser4_tree_t *tree);
 extern errno_t reiser4_tree_flush(reiser4_tree_t *tree);
 
+extern errno_t reiser4_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node,
+				   uint8_t level);
+
 extern errno_t reiser4_tree_insert(reiser4_tree_t *tree, reiser4_item_hint_t *hint,
 				   uint8_t level, reiser4_coord_t *coord);
 

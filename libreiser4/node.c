@@ -195,30 +195,18 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 }
 
 errno_t reiser4_node_lock(reiser4_node_t *node) {
-	errno_t res = 0;
-	
 	aal_assert("umka-1515", node != NULL, return -1);
 
-	if (node->parent)
-		res = reiser4_node_lock(node->parent);
-	
 	node->counter++;
-	
-	return res;
+	return 0;
 }
 
 errno_t reiser4_node_unlock(reiser4_node_t *node) {
-	errno_t res = 0;
-	
-	aal_assert("umka-1516", node != NULL, return -1);
+	aal_assert("umka-1515", node != NULL, return -1);
 	aal_assert("umka-1517", node->counter > 0, return -1);
 
-	if (node->parent)
-		res = reiser4_node_unlock(node->parent);
-	
 	node->counter--;
-	
-	return res;
+	return 0;
 }
 
 errno_t reiser4_node_lkey(

@@ -86,12 +86,14 @@ int main(int argc, char *argv[]) {
 			char name[256];
 			reiser4_file_t *file;
 	    
-			for (i = 0; i < 1000; i++) {
+			for (i = 0; i < 5000; i++) {
 				aal_memset(name, 0, sizeof(name));
 				aal_snprintf(name, 256, "testdir%d", i);
 
-				if ((file = reiser4_file_create(fs, &dir_hint, dir, name)))
-					reiser4_file_close(file);
+				if (!(file = reiser4_file_create(fs, &dir_hint, dir, name)))
+					break;
+				
+				reiser4_file_close(file);
 			}
 		}
 	}

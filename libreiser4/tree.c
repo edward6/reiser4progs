@@ -68,7 +68,8 @@ reiser4_node_t *reiser4_tree_allocate(
     
 	/* Allocating the block */
 	if ((blk = reiser4_alloc_allocate(tree->fs->alloc)) == FAKE_BLK) {
-		aal_exception_error("Can't allocate block for a node.");
+		aal_exception_error("Can't allocate block for new node. "
+				    "No space left?");
 		return NULL;
 	}
 
@@ -505,9 +506,10 @@ int reiser4_tree_lookup(
 #ifndef ENABLE_COMPACT
 
 /* This function inserts nodeptr item to the tree */
-static errno_t reiser4_tree_attach(
+errno_t reiser4_tree_attach(
 	reiser4_tree_t *tree,	    /* tree we will attach node to */
-	reiser4_node_t *node)	    /* child to attached */
+	reiser4_node_t *node,       /* child to attached */
+	uint8_t level)
 {
 	rpid_t id;
 	int lookup;
@@ -540,7 +542,7 @@ static errno_t reiser4_tree_attach(
 	reiser4_node_lkey(node, &hint.key);
 	hint.hint = &ptr;
 
-	if (reiser4_tree_insert(tree, &hint, LEAF_LEVEL + 1, &coord)) {
+	if (reiser4_tree_insert(tree, &hint, level, &coord)) {
 		aal_exception_error("Can't insert nodeptr item to the tree.");
 		return -1;
 	}
@@ -571,7 +573,9 @@ static errno_t reiser4_tree_grow(
 		return -1;
 	}
 
-	if (reiser4_tree_attach(tree, old_root)) {
+	tree->root->tree = tree;
+	
+	if (reiser4_tree_attach(tree, old_root, tree_height)) {
 		aal_exception_error("Can't attach old root to the tree.");
 		goto error_free_root;
 	}
@@ -580,8 +584,6 @@ static errno_t reiser4_tree_grow(
 	
 	reiser4_format_set_height(tree->fs->format, tree_height + 1);
     	reiser4_format_set_root(tree->fs->format, blk);
-
-	old_root->flags |= NF_DIRTY;
 	
 	return 0;
 
@@ -700,7 +702,7 @@ errno_t reiser4_tree_mkspace(
 		/* Attaching new allocated node into the tree, if it is not empty */
 		if (reiser4_node_count(node)) {
 		
-			if (reiser4_tree_attach(tree, node)) {
+			if (reiser4_tree_attach(tree, node, level + 1)) {
 				aal_exception_error("Can't attach node to the tree.");
 				reiser4_tree_release(tree, node);
 				return -1;
@@ -808,7 +810,7 @@ errno_t reiser4_tree_insert(
 			return -1;
 		}
 	
-		if (reiser4_tree_attach(tree, node)) {
+		if (reiser4_tree_attach(tree, node, level + 1)) {
 			aal_exception_error("Can't attach node to the tree.");
 			
 			reiser4_tree_release(tree, node);
@@ -819,7 +821,8 @@ errno_t reiser4_tree_insert(
 	}
 
 	if (reiser4_tree_mkspace(tree, coord, &insert, needed)) {
-		aal_exception_error("Can't prepare space for insert one more item.");
+		aal_exception_error("Can't prepare space for insert "
+				    "one more item.");
 		return -1;
 	}
     
@@ -831,15 +834,16 @@ errno_t reiser4_tree_insert(
 	}
 
 	/* 
-	   If make space function allocate new node, we should attach it to the tree. Also,
-	   here we should handle the spacial case, when tree root should be changed.
+	   If make space function allocate new node, we should attach it to the
+	   tree. Also, here we should handle the spacial case, when tree root
+	   should be changed.
 	*/
 	if (insert.node != tree->root && !insert.node->parent) {
 	
 		if (!coord->node->parent)
 			reiser4_tree_grow(tree);
 	
-		if (reiser4_tree_attach(tree, insert.node)) {
+		if (reiser4_tree_attach(tree, insert.node, level + 1)) {
 			aal_exception_error("Can't attach node to the tree.");
 			reiser4_tree_release(tree, insert.node);
 			return -1;
