@@ -69,8 +69,8 @@ extern rid_t reiser4_format_oid_pid(reiser4_format_t *format);
 #endif
 
 extern void reiser4_format_close(reiser4_format_t *format);
-extern rid_t reiser4_format_key_pid(reiser4_format_t *format);
-extern blk_t reiser4_format_get_root(reiser4_format_t *format);
+extern rid_t reiser4_format_key_pid(reiser4_format_t *format);e
+xtern blk_t reiser4_format_get_root(reiser4_format_t *format);
 extern uint16_t reiser4_format_get_height(reiser4_format_t *format);
 #endif
 
