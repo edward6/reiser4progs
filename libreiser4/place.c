@@ -37,8 +37,10 @@ errno_t reiser4_place_last(reiser4_place_t *place) {
 	return 0;
 }
 
-/* FIXME-GREEN->UMKA: This and next comments are totally misleading */
-/* Returns TRUE if passed @place is greater than 0 */
+/*
+  Returns TRUE if passed @place points to unit that lies after the first unit of
+  the first item in node.
+*/
 bool_t reiser4_place_gtfirst(reiser4_place_t *place) {
 
 	if (place->pos.unit == ~0ul)
@@ -47,7 +49,10 @@ bool_t reiser4_place_gtfirst(reiser4_place_t *place) {
 	return place->pos.item > 0 || place->pos.unit > 0;
 }
 
-/* Returns TRUE is passed @place is greter than 0 */
+/*
+  Returns TRUE if passed @place points to units that lies before the last units
+  of the last item in node.
+*/
 bool_t reiser4_place_ltlast(reiser4_place_t *place) {
 	uint32_t items = reiser4_node_items(place->node);
 			
@@ -67,8 +72,7 @@ bool_t reiser4_place_ltlast(reiser4_place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* FIXME-GREEN->UMKA: "left delimiting item"? what's that? */
-/* Returns TRUE if passed @place points to left delimiting item */
+/* Returns TRUE if passed @place points to leftmost item/unit */
 bool_t reiser4_place_leftmost(reiser4_place_t *place) {
 	aal_assert("umka-1862", place != NULL);
 	
