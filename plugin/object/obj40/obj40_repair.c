@@ -41,89 +41,59 @@ errno_t obj40_check_sd(place_t *sd, realize_func_t func) {
 */
 
 /* The plugin tries to realize the object: detects the SD, body items */
-errno_t obj40_realize(object_info_t *info,
-		      realize_sd_func_t sd_func,
-		      realize_body_func_t body_func,
-		      uint64_t item_types)
+errno_t obj40_realize(obj40_t *obj, realize_func_t sd_func, 
+		      realize_key_func_t key_func, uint64_t types)
 {
-	sdext_lw_hint_t lw_hint;
-	key_entity_t key;
+	object_info_t *info;
 	key_type_t type;
-	uint64_t mask;
 	errno_t res;
 
 	aal_assert("vpf-1121", info != NULL);
-	aal_assert("vpf-1121", info->tree != NULL);
-	aal_assert("vpf-1127", info->object.plug || info->start.plug);
+	aal_assert("vpf-1121", obj->info.tree != NULL);
+	aal_assert("vpf-1127", obj->info.object.plug || obj->info.start.plug);
 	
-	aal_memset(&lw_hint, 0, sizeof(lw_hint));
+	info = &obj->info;
 	
-	if (info->object.plug) {
-		/* If the start key is specified it must be the key of
-		   StatData. If the item pointed by this key was found it must
-		   SD, check its mode with mode_func. If item was not found,
-		   tries to detect some body items. */
-		
-		uint64_t locality, objectid, ordering;
+	if (info->start.plug != NULL && 
+	    info->start.plug->id.group != STATDATA_ITEM)
+	{
+		/* If place is not SD, build SD key and try to find it. 
+		   If SD cannot be found, do not recover obj40 at all. */
 		lookup_t lookup;
-		place_t place;
-	
-		locality = plug_call(info->object.plug->o.key_ops,
-				     get_locality, &info->object);
 		
-		objectid = plug_call(info->object.plug->o.key_ops,
-				     get_objectid, &info->object);
-		
-		ordering = plug_call(info->object.plug->o.key_ops,
-				     get_ordering, &info->object);
+		type = plug_call(info->start.key.plug->o.key_ops, get_type, 
+				 &info->start.key);
 
-		plug_call(info->object.plug->o.key_ops, build_gener, &key,
-			  KEY_STATDATA_TYPE, locality, ordering, objectid, 0);
-		
-		/* Object key must be a key of SD. */
-		if (plug_call(info->object.plug->o.key_ops, compfull, &key, 
-			      &info->object))
+		/* Wrong item type. */
+		if ((type & types) == 0) 
 			return RE_FATAL;
-		
-		/* If StatData is realized - check taht it is reg40 SD. */
-		if (info->start.plug)
-			return sd_func(&info->start);
-		
-		/* Start item pointed by @info->object key cannot be found 
-		   -- build the body key and try to find object body. */
-		if ((res = body_func(info, &key)))
-			return res;
-		
-		lookup = core->tree_ops.lookup(info->tree, &key, 
-					       LEAF_LEVEL, &place);
-		
-		if (lookup == PRESENT)
-			return 0;
-		else if (lookup == FAILED)
+
+		if ((res = key_func(obj)))
 			return -EINVAL;
-		
-		/* If place is invalid, then no one reg40 body item is found. */
-		if (!core->tree_ops.valid(info->tree, &place))
+
+		lookup = core->tree_ops.lookup(info->tree, &info->object,
+					       LEAF_LEVEL, &info->start);
+
+		if (lookup == FAILED)
+			return -EINVAL;
+	}
+	
+	/* Place must be the key of SD. If the item pointed by this key 
+	   was not found -- there is no SD in the tree -- do not recover 
+	   this object. But probably key of SD is wrong -- offset != 0 
+	   -- figure it out here and fix at check_struct time. */
+	if (!info->start.plug) {
+		if (!core->tree_ops.valid(info->tree, &info->start))
 			return RE_FATAL;
-		
-		/* Initializing item entity at @next place */
-		if ((res = core->tree_ops.fetch(info->tree, &place)))
-			return res;
-		
-		return plug_call(info->object.plug->o.key_ops, compshort,
-				 &info->object, &key) ? RE_FATAL : 0;
+
+		if ((res = core->tree_ops.fetch(info->tree, &info->start)))
+			return -EINVAL;
+
+		if (info->start.plug->id.group != STATDATA_ITEM)
+			return RE_FATAL;
 	}
 
-	/* Realizing by place */
-	aal_assert("vpf-1122", info->start.plug != NULL);
-
-	if (info->start.plug->id.group == STATDATA_ITEM)
-		return sd_func(&info->start);
-
-	type = plug_call(info->start.key.plug->o.key_ops, get_type, 
-			 &info->start.key);
-
-	return type & item_types ? 0 : RE_FATAL;
+	return sd_func(&info->start);
 }
 
 #endif

@@ -39,19 +39,24 @@ static errno_t callback_sd(place_t *sd) {
 	return S_ISDIR(lw_hint.mode) ? 0 : RE_FATAL;
 }
 
-/* Build the key of the '.'. */
-static errno_t callback_body(object_info_t *info, key_entity_t *key) {
-	uint64_t locality, objectid;
+/* Set the key of "." taken from @info->start into @info->object */
+static errno_t callback_key(obj40_t *obj) {
+	entry_hint_t entry;
 	
-	locality = plug_call(info->object.plug->o.key_ops,
-			     get_locality, &info->object);
-		
-	objectid = plug_call(info->object.plug->o.key_ops,
-			     get_objectid, &info->object);
+	if (obj->info.start.plug->o.item_ops->read == NULL)
+		return -EINVAL;
 	
-	plug_call(info->object.plug->o.key_ops, build_entry, 
-		  key, NULL, locality, objectid, ".");
-
+	/* Read the first entry. */
+	if (plug_call(obj->info.start.plug->o.item_ops, read, 
+		      &obj->info.start, &entry, 0, 1) != 1)
+		return -EINVAL;
+	
+	/* If not "." -- cannot obtain the "." key. */
+	if (aal_strlen(entry.name) != 1 || aal_strncmp(entry.name, ".", 1))
+		return RE_FATAL;
+	
+	aal_memcpy(&obj->info.object, &entry.object, sizeof(entry.object));
+	
 	return 0;
 }
 
@@ -59,17 +64,20 @@ object_entity_t *dir40_realize(object_info_t *info) {
 	dir40_t *dir;
 	errno_t res;
 	
-	if ((res = obj40_realize(info, callback_sd, callback_body,
-				 1 << KEY_FILENAME_TYPE)))
-		return res < 0 ? INVAL_PTR : NULL;
-	
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&dir->obj, &dir40_plug, NULL, core, info->tree);
+	obj40_init(&dir->obj, &dir40_plug, core, info);
+	
+	if ((res = obj40_realize(&dir->obj, callback_sd, callback_key,
+				 1 << KEY_FILENAME_TYPE)))
+		goto error;
 	
 	return (object_entity_t *)dir;
+ error:
+	aal_free(dir);
+	return res < 0 ? INVAL_PTR : NULL;
 }
 
 errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent, 

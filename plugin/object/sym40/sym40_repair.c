@@ -50,7 +50,7 @@ object_entity_t *sym40_realize(object_info_t *info) {
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
 		return INVAL_PTR;
 	
-	obj40_init(&sym->obj, &sym40_plug, NULL, core, info->tree);
+	obj40_init(&sym->obj, &sym40_plug, core, info);
 
 	return (object_entity_t *)sym;
 }
