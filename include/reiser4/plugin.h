@@ -669,7 +669,8 @@ struct reiser4_object_ops {
 	errno_t (*layout) (object_entity_t *, region_func_t, void *);
 
 	/* Converts file body to item denoted by @plug */
-	errno_t (*convert) (object_entity_t *, reiser4_plug_t *plug);
+	errno_t (*convert) (object_entity_t *, reiser4_plug_t *plug, 
+			    uint64_t, int);
 	
 	/* Checks and recover the structure of the object. */
 	errno_t (*check_struct) (object_entity_t *, place_func_t, 

@@ -301,9 +301,12 @@ reiser4_plug_t *reg40_bplug(reg40_t *reg, uint64_t new_size) {
 }
 
 /* Makes tail2extent and extent2tail conversion */
-errno_t reg40_convert(object_entity_t *entity, reiser4_plug_t *plug) {
+errno_t reg40_convert(object_entity_t *entity, 
+		      reiser4_plug_t *plug, 
+		      uint64_t fsize, 
+		      int update) 
+{
 	reg40_t *reg;
-	uint64_t fsize;
 	uint64_t bytes;
 	uint64_t offset;
 	key_entity_t key;
@@ -313,14 +316,11 @@ errno_t reg40_convert(object_entity_t *entity, reiser4_plug_t *plug) {
 	aal_assert("umka-2466", entity != NULL);
 
 	reg = (reg40_t *)entity;
-	fsize = reg40_size(entity);
 
 	/* Initializing key to be used for walking though the all file items. */
-	plug_call(reg->offset.plug->o.key_ops,
-		  assign, &key, &reg->offset);
+	plug_call(reg->offset.plug->o.key_ops, assign, &key, &reg->offset);
 
-	plug_call(reg->offset.plug->o.key_ops,
-		  set_offset, &key, 0);
+	plug_call(reg->offset.plug->o.key_ops, set_offset, &key, 0);
 	
 	for (bytes = 0, offset = 0; offset < fsize;) {
 		place_t place;
@@ -337,8 +337,7 @@ errno_t reg40_convert(object_entity_t *entity, reiser4_plug_t *plug) {
 		}
 		
 		/* Calculating right item size */
-		size = plug_call(place.plug->o.item_ops,
-				 size, &place);
+		size = plug_call(place.plug->o.item_ops, size, &place);
 
 		if (offset + size > fsize)
 			size = fsize - offset;
@@ -350,9 +349,7 @@ errno_t reg40_convert(object_entity_t *entity, reiser4_plug_t *plug) {
 		hint.place = &place;
 
 		/* Converting item. */
-		if (rcore->tree_ops.conv(reg->obj.info.tree,
-					 &hint))
-		{
+		if (rcore->tree_ops.conv(reg->obj.info.tree, &hint)) {
 			aal_exception_error("Can't convert item "
 					    "%s at %llu:%u to %s.",
 					    place.plug->label,
@@ -366,28 +363,29 @@ errno_t reg40_convert(object_entity_t *entity, reiser4_plug_t *plug) {
 		bytes += hint.bytes;
 
 		/* Updating file offset */
-		offset = size + plug_call(key.plug->o.key_ops,
+		offset = size + plug_call(key.plug->o.key_ops, 
 					  get_offset, &key);
 
-		plug_call(key.plug->o.key_ops, set_offset,
-			  &key, offset);
+		plug_call(key.plug->o.key_ops, set_offset, &key, offset);
 	}
 
 	/* Updating bytes field stat data using collected @bytes. */
-	return obj40_touch(&reg->obj, fsize,
-			   bytes, time(NULL));
+	return update ? obj40_touch(&reg->obj, fsize, bytes, time(NULL)) : 0;
 }
 
 errno_t reg40_convert_body(object_entity_t *entity, uint64_t new_size) {
 	reg40_t *reg;
+	uint64_t fsize;
 	reiser4_plug_t *bplug;
 	
 	aal_assert("umka-2395", entity != NULL);
 
 	reg = (reg40_t *)entity;
 	
+	fsize = reg40_size(entity);
+	
 	/* There is nothing to convert */
-	if (reg40_size(entity) == 0 || new_size == 0)
+	if (!fsize || !new_size)
 		return 0;
 	
 	if (!(bplug = reg40_bplug(reg, new_size))) {
@@ -400,7 +398,7 @@ errno_t reg40_convert_body(object_entity_t *entity, uint64_t new_size) {
 	if (plug_equal(bplug, reg->body.plug))
 		return 0;
 
-	return reg40_convert(entity, bplug);
+	return reg40_convert(entity, bplug, fsize, 1);
 }
 
 /* Writes passed data to the file. Returns amount of data written to the

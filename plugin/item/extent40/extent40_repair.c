@@ -227,10 +227,9 @@ errno_t extent40_estimate_merge(place_t *dst, place_t *src,
 	hint->src_head = (src_start - extent40_offset(src, src_pos) - 
 			  src_min) / b_size;
 
-	/* FIXME-VITALY: Is it correct? */
-	hint->src_tail = (src_max - 
-			  extent40_offset(src, extent40_unit(src, src_max - 1)) - 
-			  src_min) / b_size;
+	hint->src_tail = (src_max - src_min  - 
+			  extent40_offset(src, extent40_unit(src, src_max - 1))) 
+			 / b_size;
 	
 	if ((res = extent40_maxreal_key(dst, &key)))
 		return res;

@@ -20,7 +20,11 @@ extern int32_t reg40_put(object_entity_t *entity,
 			 void *buff, uint32_t n);
 
 extern reiser4_plug_t *reg40_bplug(reg40_t *reg, uint64_t new_size);
-extern errno_t reg40_convert(object_entity_t *entity, uint64_t new_size);
+
+extern errno_t reg40_convert(object_entity_t *entity, 
+			     reiser4_plug_t *plug, 
+			     uint64_t new_size, 
+			     int update);
 
 #define reg40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
 
@@ -389,24 +393,22 @@ errno_t reg40_check_struct(object_entity_t *object,
 				   policy then. */
 				reg->policy = extent;
 				
-				if ((res |= reg40_convert(object, maxreal)) < 0)
+				if ((res |= reg40_convert(object, eplug, 
+							  maxreal, 0)) < 0)
 					return res;
 				
 				/* Start from the beginning. */
 				size = bytes = 0;
 				reg40_reset(object);
 			} else {
+				/* Tail found, extent should be. Convert the item 
+				   to extent. */
 				conv_hint_t hint;
 
 				hint.bytes = 0;
 				hint.plug = bplug;
 				hint.place = &reg->body;
 
-				/* FIXME-UMKA->VITALY: Here should be right item
-				   size. Suppose we have extent and it is last
-				   extent in a file. Extents size is always
-				   multiple of block size. But real size depends
-				   on the size field in object stat data */
 				hint.size = plug_call(reg->body.plug->o.item_ops,
 						      size, &reg->body);
 				
