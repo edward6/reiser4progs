@@ -55,7 +55,7 @@ void reiser4_joint_close(
 	aal_list_free(children);
 	joint->children = NULL;
     }
-
+ 
     /* Uninitializing all fields */
     if (joint->left)
 	joint->left->right = NULL;
@@ -602,6 +602,98 @@ errno_t reiser4_joint_move(
     }
     
     return 0;
+}
+
+/* This function traverse passed node. */
+errno_t reiser4_joint_traverse(
+    reiser4_joint_t *joint,		/* block which should be traversed */
+    void *data,				/* user-spacified data */
+    reiser4_open_func_t open_func,	/* callback will be used for opening node */
+    reiser4_handler_func_t handler_func,/* callback will be called on node */
+    reiser4_setup_func_t before_func,	/* callback will be called before all childs */
+    reiser4_setup_func_t setup_func,	/* callback will be called before a child */
+    reiser4_setup_func_t update_func,	/* callback will be called after a child */
+    reiser4_setup_func_t after_func	/* callback will be called after all childs  */
+) {
+    reiser4_pos_t pos;
+    errno_t result = 0;
+    reiser4_item_t item;
+    reiser4_joint_t *child;
+    
+    aal_assert("umka-1024", open_func != NULL, return -1);
+    aal_assert("vpf-390", joint!= NULL, return -1);
+    aal_assert("vpf-391", joint->node != NULL, return -1);
+    aal_assert("vpf-391", joint->node->block != NULL, return -1);
+
+    if ((handler_func && !(result = handler_func(joint, data))) || !handler_func) {
+	    
+	if (before_func && (result = before_func(joint, &item, data)))
+	    goto error;
+
+	pos.item = reiser4_node_count(joint->node);
+	
+	do {
+	    pos.unit = ~0ul; 
+	    
+	    if ((result = reiser4_item_open(&item, joint->node, &pos))) {
+
+		/* All items must be openned - this is checked in the handler_func. */
+		aal_exception_error("Node (%llu), item (%u): item cannot be openned.",
+		    aal_block_number(joint->node->block), pos.item);
+		goto error_after_func;
+	    }
+	    
+	    if (!reiser4_item_internal(&item))
+		continue;
+	    
+	    pos.unit = reiser4_item_count(&item) - 1;
+	    
+	    do {
+		blk_t target;
+		
+		if ((target = reiser4_item_get_nptr(&item)) != FAKE_BLK) {
+		    if (setup_func && (result = setup_func(joint, &item, data)))
+			goto error_after_func;
+	    
+		    if ((result = open_func(&child, target, data))) {
+			goto error_update_func;
+		    }
+
+		    if (child) {
+			reiser4_joint_attach(joint, child);
+ 
+			if ((result = reiser4_joint_traverse(child, &data, 
+			    open_func,  handler_func, before_func, 
+			    setup_func, update_func,  after_func)))
+			    goto error_update_func;
+
+			reiser4_joint_detach(joint, child);
+			reiser4_joint_close(child);
+		    }
+
+		    if (update_func && (result = update_func(joint, &item, data)))
+			goto error_after_func;
+		}
+	    } while (pos.unit--);
+	} while (pos.item--);
+	
+	if (after_func && (result = after_func(joint, &item, data)))
+	    goto error;
+    }
+
+    return result;
+
+error_update_func:
+    reiser4_joint_detach(joint, child);
+    reiser4_joint_close(child);
+
+    if (update_func)
+       result = update_func(joint, &item, data);
+error_after_func:
+    if (after_func)
+	result = after_func(joint, &item, data);
+error:
+    return result;
 }
 
 #endif
