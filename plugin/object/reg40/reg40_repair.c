@@ -65,24 +65,22 @@ static errno_t reg40_check_mode(place_t *sd, uint8_t mode) {
 	return obj40_write_ext(sd, SDEXT_LW_ID, &lw_hint);
 }
 
-/* Build the key of the reg40 object body. */
-static errno_t callback_body(object_info_t *info, key_entity_t *key) {
+/* Build the @obj->info.start on the basis of @obj->info.start place. */
+static errno_t callback_key(obj40_t *obj) {
 	uint64_t type, locality, objectid, ordering;
 	
-	type = plug_call(info->object.plug->o.key_ops,
-			 get_type, &info->object);
-	
-	locality = plug_call(info->object.plug->o.key_ops,
-			     get_locality, &info->object);
+	locality = plug_call(obj->info.object.plug->o.key_ops,
+			     get_locality, &obj->info.start.key);
 		
-	objectid = plug_call(info->object.plug->o.key_ops,
-			     get_objectid, &info->object);
+	objectid = plug_call(obj->info.object.plug->o.key_ops,
+			     get_objectid, &obj->info.start.key);
 	
-	ordering = plug_call(info->object.plug->o.key_ops,
-			     get_ordering, &info->object);
+	ordering = plug_call(obj->info.object.plug->o.key_ops,
+			     get_ordering, &obj->info.start.key);
 	
-	plug_call(info->object.plug->o.key_ops, build_gener, 
-		  key, type, locality, ordering, objectid, 0);
+	plug_call(obj->info.object.plug->o.key_ops, build_gener, 
+		  &obj->info.object, KEY_STATDATA_TYPE, locality, 
+		  ordering, objectid, 0);
 	
 	return 0;
 }
@@ -91,20 +89,24 @@ object_entity_t *reg40_realize(object_info_t *info) {
 	reg40_t *reg;
 	errno_t res;
 	
-	if ((res = obj40_realize(info, callback_sd, callback_body,
-				 1 << KEY_FILEBODY_TYPE)))
-		return res < 0 ? INVAL_PTR : NULL;
-	
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plug, NULL, core, info->tree);
+	obj40_init(&reg->obj, &reg40_plug, core, info);
+	
+	if ((res = obj40_realize(&reg->obj, callback_sd, callback_key,
+				 1 << KEY_FILEBODY_TYPE)))
+		goto error;
 	
 	return (object_entity_t *)reg;
+ error:
+	aal_free(reg);
+	return res < 0 ? INVAL_PTR : NULL;
 }
 
 errno_t reg40_check_sd(place_t *sd, uint8_t mode) {
+
 #if 0
 	errno_t res;
 	
@@ -151,7 +153,7 @@ errno_t reg40_check_sd(place_t *sd, uint8_t mode) {
 	if (res & RE_FATAL) 
 		/* Fix SD. */
 		if ((res = obj40_read_ext(&info->start,
-					  SDEXT_UNIX_ID,
+					  SDEXT_LW_ID,
 					  &lw_hint)))
 			return res;
 
