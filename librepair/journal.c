@@ -11,7 +11,10 @@
    journal, is of the special filesystem areas - skipped, block allocator,
    oid alocator, etc. */
 
-static errno_t callback_fs_check(void *layout, region_func_t func, void *data) {
+static errno_t callback_journal_check(void *layout, 
+				      region_func_t func, 
+				      void *data) 
+{
 	reiser4_fs_t *fs = (reiser4_fs_t *)layout;
 	
 	aal_assert("vpf-737", fs != NULL);
@@ -26,7 +29,7 @@ static errno_t repair_journal_check_struct(reiser4_journal_t *journal) {
 	
 	return plug_call(journal->entity->plug->o.journal_ops, 
 			 check_struct, journal->entity, 
-			 callback_fs_check, journal->fs);
+			 callback_journal_check, journal->fs);
 }
 /* Open the journal and check it. */
 errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,

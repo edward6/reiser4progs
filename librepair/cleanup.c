@@ -211,7 +211,13 @@ static errno_t callback_free_extent(void *object, uint64_t start,
 {
 	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
 	reiser4_alloc_t *alloc = cleanup->repair->fs->alloc;
+	place_t *place = (place_t *)object;
 
+	aal_assert("vpf-1420", place != NULL);
+
+	if (reiser4_item_branch(place->plug))
+		return 0;
+	
 	aal_assert("vpf-1418", reiser4_alloc_occupied(alloc, start, count));
 
 	reiser4_alloc_release(alloc, start, count);

@@ -410,7 +410,7 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 		dextent -= (hint->count - 1);
 		
 		for (i = 0; i < hint->count; i++, dextent++) {
-			res = hint->region_func(NULL, et40_get_start(dextent),
+			res = hint->region_func(place, et40_get_start(dextent),
 						et40_get_width(dextent), 
 						hint->data);
 			

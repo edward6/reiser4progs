@@ -96,9 +96,7 @@ uint32_t extent40_unit(place_t *place, uint64_t offset) {
 }
 
 /* Removes @count byte from passed @place at @pos */
-static errno_t extent40_remove_units(place_t *place,
-				     trans_hint_t *hint)
-{
+static errno_t extent40_remove_units(place_t *place, trans_hint_t *hint) {
 	uint32_t len;
 	uint32_t pos;
 	uint32_t units;

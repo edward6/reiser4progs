@@ -2047,7 +2047,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 		if (SF_ALLOW_MERGE & flags)
 			shift_flags |= SF_ALLOW_MERGE;
 		
-		if (SF_MOVE_POINT & flags)
+		if ((SF_MOVE_POINT & flags) && reiser4_place_rightmost(place))
 			shift_flags |= SF_MOVE_POINT;
 
 		old_node = place->node;
@@ -2116,11 +2116,6 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 		if ((res = reiser4_tree_shift(tree, place, node, shift_flags)))
 			return res;
 
-		if (reiser4_node_items(save.node) == 0) {
-			if ((res = reiser4_tree_detach_node(tree, save.node)))
-				return res;
-		}
-		
 		if (reiser4_node_items(node) > 0) {
 			/* Growing tree in the case we splitted the root
 			   node. */

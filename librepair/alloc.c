@@ -10,8 +10,8 @@ errno_t repair_alloc_layout_bad(reiser4_alloc_t *alloc, region_func_t func,
 {
 	aal_assert("vpf-1322", alloc != NULL);
 	
-	return plug_call(alloc->entity->plug->o.alloc_ops, layout_bad, 
-			 alloc->entity, func, data);
+	return plug_call(alloc->entity->plug->o.alloc_ops, 
+			 layout_bad, alloc->entity, func, data);
 }
 
 void repair_alloc_print(reiser4_alloc_t *alloc, aal_stream_t *stream) {
