@@ -83,8 +83,7 @@ static void repair_filter_node_handle(repair_filter_t *fd, blk_t blk,
 	return;
 }
 
-static void repair_filter_read_node(repair_filter_t *fd, 
-				    blk_t blk, 
+static void repair_filter_read_node(repair_filter_t *fd, blk_t blk,
 				    uint8_t level) 
 {
 	fd->stat.read_nodes++;
@@ -111,7 +110,7 @@ static void repair_filter_bad_dk(repair_filter_t *fd, blk_t blk,
 				 uint8_t level)
 {
 	fd->flags |= RE_DKEYS;
-	aux_bitmap_clear_region(fd->bm_used, blk, 1);
+	repair_filter_node_handle(fd, blk, level, RM_CLEAR);
 	fd->stat.bad_dk_nodes++;
 	fd->repair->fatal++;
 

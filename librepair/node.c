@@ -236,15 +236,14 @@ errno_t repair_node_check_struct(node_t *node, uint8_t mode) {
 	if (repair_error_fatal(res))
 		return res;
 	
-	res |= repair_node_keys_check(node, mode);
+	res |= repair_node_items_check(node, mode);
 	
 	if (repair_error_fatal(res))
 		return res;
 	
-	res |= repair_node_items_check(node, mode);
-	
-	if (repair_error_fatal(res))
-		return res;    
+	/* Keys must be checked after item checking as there are maxreal_key()
+	   call which gets the key from the item. */
+	res |= repair_node_keys_check(node, mode);
 	
 	return res;
 }

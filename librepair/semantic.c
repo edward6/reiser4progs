@@ -453,7 +453,7 @@ static errno_t repair_semantic_uptraverse(repair_semantic_t *sem,
 	return res;
 }
 
-static errno_t callback_node_traverse(place_t *place, void *data) {
+static errno_t callback_tree_scan(place_t *place, void *data) {
 	repair_semantic_t *sem = (repair_semantic_t *)data;
 	reiser4_object_t *object;
 	errno_t res;
@@ -470,38 +470,32 @@ static errno_t callback_node_traverse(place_t *place, void *data) {
 		return 0;
 	
 	/* Try to open the object by its SD. */
-	if ((object = repair_object_recognize(sem->repair->fs->tree, 
-					      NULL, place)) == INVAL_PTR)
-		return -EINVAL;
+	object = repair_object_recognize(sem->repair->fs->tree, NULL, place);
 	
-	if (object == NULL)
+	if (object == INVAL_PTR)
+		return -EINVAL;
+	else if (object == NULL)
 		return 0;
 	
+	/* Some object was openned. Check its structure and traverse from it. */
 	res = repair_semantic_check_struct(sem, object);
 
 	if (repair_error_fatal(res))
 		goto error_close_object;
 
 	/* Try to attach it somewhere -- at least to lost+found. */
-	if ((res = repair_semantic_uptraverse(sem, sem->lost, object))) {
-		reiser4_object_close(object);
-		return res;
-	}
+	if ((res = repair_semantic_uptraverse(sem, sem->lost, object)))
+		goto error_close_object;
 	
 	reiser4_object_close(object);
 	
-	return res;
+	return res < 0 ? res : 1;
 	
  error_close_object:
 	reiser4_object_close(object);	
-	return res < 0 ? res : 0;
-}
 
-static errno_t repair_semantic_node_traverse(reiser4_tree_t *tree, 
-					     node_t *node, 
-					     void *data) 
-{
-	return repair_node_traverse(node, callback_node_traverse, data);
+	/* Return the error or that another lookup is needed. */
+	return res < 0 ? res : 1;
 }
 
 /* Trying to recognize a directory by the given @key. 
@@ -819,12 +813,8 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	/* Connect lost objects to their parents -- if parents can be 
 	   identified -- or to "lost+found". */
 	if (sem->repair->mode == RM_BUILD) {
-		if ((res = reiser4_tree_trav_node(tree, tree->root, NULL, 
-						  repair_semantic_node_traverse,
-						  NULL, NULL, sem)))
-		{
+		if ((res = repair_tree_scan(tree, callback_tree_scan, sem)))
 			goto error_close_lost;
-		}
 	}
 	
  error_close_lost:

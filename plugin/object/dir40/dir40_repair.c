@@ -302,10 +302,9 @@ errno_t dir40_check_struct(object_entity_t *object,
 		   plugin, it should be converted. */
 		/*if (dir->body.plug->id.group != DIRENTRY_ITEM) {*/
 		if (dir->body.plug != bplug) {
-			aal_error("Directory [%s], plugin [%s], node "
-				  "[%llu], item [%u]: item of the "
-				  "illegal plugin [%s] with the key "
-				  "of this object found.%s",
+			aal_error("Directory [%s], plugin [%s], node [%llu], "
+				  "item [%u]: item of the illegal plugin [%s] "
+				  "with the key of this object found.%s",
 				  print_inode(dir40_core, &info->object),
 				  dir40_plug.label, dir->body.block->nr,
 				  dir->body.pos.item, dir->body.plug->label,
@@ -324,10 +323,9 @@ errno_t dir40_check_struct(object_entity_t *object,
 			continue;
 		}
 
-		/* Try to register the item if it has not been yet. Any 
-		   item has a pointer to objectid in the key, if it is 
-		   shared between 2 objects, it should be already solved 
-		   at relocation time. */
+		/* Try to register the item if it has not been yet. Any item has
+		   a pointer to objectid in the key, if it is shared between 2 
+		   objects, it should be already solved at relocation time. */
 		if (place_func && place_func(&dir->body, data))
 			return -EINVAL;
 		
@@ -353,32 +351,27 @@ errno_t dir40_check_struct(object_entity_t *object,
 			/* If the key matches, continue. */
 			if (!plug_call(key.plug->o.key_ops, compfull, 
 				       &key, &entry.offset))
-				goto leave;
+				goto next;
 			
 			/* Broken entry found, remove it. */
-			aal_error("Directory [%s], plugin [%s], node "
-				  "[%llu], item [%u], unit [%u]: "
-				  "entry has wrong offset [%s]."
-				  " Should be [%s]. %s", 
+			aal_error("Directory [%s], plugin [%s], node [%llu], "
+				  "item [%u], unit [%u]: entry has wrong "
+				  "offset [%s]. Should be [%s].%s", 
 				  print_inode(dir40_core, &info->object),
 				  dir40_plug.label, dir->body.block->nr,
 				  dir->body.pos.item, dir->body.pos.unit,
 				  print_key(dir40_core, &entry.offset),
 				  print_key(dir40_core, &key), 
-				  mode == RM_BUILD ? "Removed." : "");
+				  mode == RM_BUILD ? " Removed." : "");
 
 
 			if (mode != RM_BUILD) {
 				res |= RE_FIXABLE;
-				goto leave;
+				goto next;
 			}
 
 			hint.count = 1;
 
-			/* FIXME-VITALY: make sure that the tree does not 
-			   get rebalanced while removing the entry. Also 
-			   I suppose that removing the last unit will remove 
-			   the whole item. */
 			if ((res |= obj40_remove(&dir->obj, &dir->body, 
 						 &hint)) < 0)
 				return res;
@@ -389,7 +382,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 			
 			break;
 			
-		leave:
+		next:
 			/* The key is ok. */
 			if (plug_call(key.plug->o.key_ops, compfull, 
 				      &dir->position, &key))
