@@ -62,18 +62,24 @@ busy_cmd_t tests[] = {
 		.ops_num = 1,
 	},
 	[9] = {
+		.name = "trunc",
+		.options = "PATH size",
+		.handler = trunc_cmd,
+		.ops_num = 2,
+	},
+	[10] = {
 		.name = "reg",
 		.options = "PATH",
 		.handler = reg_test,
 		.ops_num = 1,
 	},
-	[10] = {
+	[11] = {
 		.name = "sym",
 		.options = "PATH",
 		.handler = sym_test,
 		.ops_num = 1,
 	},
-	[11] = {
+	[12] = {
 		.name = "read",
 		.options = "PATH output",
 		.handler = read_test,
@@ -512,7 +518,7 @@ static errno_t busy_ctx_init(busy_ctx_t *ctx, int count, char *params[]) {
 
 	if (ctx->testno == 3 || 
 	    ctx->testno == 4 || 
-	    ctx->testno == 11) 
+	    ctx->testno == 12) 
 	{
 		/* The second parameter is NAME. */
 		if (busy_path_parse(&ctx->out, params[3])) {
@@ -542,7 +548,7 @@ static errno_t busy_ctx_init(busy_ctx_t *ctx, int count, char *params[]) {
 		}
 
 		if ((num = misc_str2long(params[4], 0)) == INVAL_DIG) {
-			aal_error("Invalid major is spesified: '%s'.", 
+			aal_error("Invalid major is specified: '%s'.", 
 				  params[4]);
 			return 0x10;
 		}
@@ -550,7 +556,7 @@ static errno_t busy_ctx_init(busy_ctx_t *ctx, int count, char *params[]) {
 		ctx->rdev = num << 8;
 		
 		if ((num = misc_str2long(params[5], 0)) == INVAL_DIG) {
-			aal_error("Invalid MINOR is spesified: '%s'.", 
+			aal_error("Invalid MINOR is specified: '%s'.", 
 				  params[5]);
 			return 0x10;
 		}
@@ -566,26 +572,35 @@ static errno_t busy_ctx_init(busy_ctx_t *ctx, int count, char *params[]) {
 		ctx->blksize = misc_str2long(params[7], 0);
 		
 		if (ctx->in.offset == INVAL_DIG || ctx->in.offset < 0) {
-			aal_error("Invalid input offset is spesified: '%s'.", 
+			aal_error("Invalid input offset is specified: '%s'.", 
 				  params[4]);
 			return 0x10;
 		}
 
 		if (ctx->out.offset == INVAL_DIG || ctx->out.offset < 0) {
-			aal_error("Invalid output offset is spesified: '%s'.", 
+			aal_error("Invalid output offset is specified: '%s'.", 
 				  params[5]);
 			return 0x10;
 		}
 
 		if (ctx->count == INVAL_DIG) {
-			aal_error("Invalid block count is spesified: '%s'.", 
+			aal_error("Invalid block count is specified: '%s'.", 
 				  params[6]);
 			return 0x10;
 		}
 
 		if (ctx->blksize == INVAL_DIG || ctx->blksize <= 0) {
-			aal_error("Invalid block size is spesified: '%s'.", 
+			aal_error("Invalid block size is specified: '%s'.", 
 				  params[7]);
+			return 0x10;
+		}
+	}
+
+	if (ctx->testno == 9) {
+		ctx->count = misc_str2long(params[3], 0);
+		if (ctx->count == INVAL_DIG || ctx->count < 0) {
+			aal_error("Invalid size is specified: '%s'.", 
+				  params[4]);
 			return 0x10;
 		}
 	}
