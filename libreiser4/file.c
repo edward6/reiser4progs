@@ -149,7 +149,7 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
   object fileds. Returns error code or 0 if there are no errors. This function
   also supports symlinks and it rather might be called "stat".
 */
-static errno_t reiser4_file_lookup(
+static errno_t reiser4_file_search(
 	reiser4_file_t *file,	    /* file lookup will be performed in */
 	const char *name)           /* name to be parsed */
 {
@@ -255,7 +255,7 @@ reiser4_file_t *reiser4_file_open(
 	  assume, that name is absolute one. So, user, who will call this method
 	  should convert name previously into absolute one by getcwd function.
 	*/
-	if (reiser4_file_lookup(file, name))
+	if (reiser4_file_search(file, name))
 		goto error_free_file;
     
 	if (!(plugin = reiser4_file_plugin(file))) {
@@ -450,24 +450,81 @@ static errno_t callback_process_place(
 	return 0;
 }
 
-errno_t reiser4_file_nlink(reiser4_file_t *file) {
+/* Removes entry from the @file if it is a directory */
+errno_t reiser4_file_remove(reiser4_file_t *file,
+			    const char *entry)
+{
+	reiser4_key_t key;
+	reiser4_file_t *child;
+	reiser4_place_t place;
+	
 	aal_assert("umka-1910", file != NULL);
+	aal_assert("umka-1918", entry != NULL);
 
-	/*
-	  FIXME-UMKA: Here should be removing entry from the parent
-	  directory.
-	*/
+	/* Getting child statdata key */
+	if (reiser4_file_lookup(file, entry, &key) != LP_PRESENT) {
+		aal_exception_error("Can't find entry %s in %s.",
+				    entry, file->name);
+		return -1;
+	}
 
-	return plugin_call(file->entity->plugin->file_ops,
-			   unlink, file->entity);
+	/* FIXME-UMKA: Here also should be removing @entry from the @file */
+	
+	if (reiser4_tree_lookup(file->fs->tree, &key, LEAF_LEVEL,
+				&place) != LP_PRESENT)
+	{
+		aal_exception_error("Can't find stat data of %s/%s. "
+				    "It seems that %s points to nowere.",
+				    file->name, entry);
+		return -1;
+	}
+	
+	if (!(child = reiser4_file_begin(file->fs, &place))) {
+		aal_exception_error("Can't open %s/%s.",
+				    file->name, entry);
+		return -1;
+	}
+	
+	if (plugin_call(child->entity->plugin->file_ops, unlink,
+			child->entity))
+	{
+		aal_exception_error("Can't unlink %s/%s.", file->name,
+				    entry);
+		goto error_free_child;
+	}
+
+	reiser4_file_close(child);
+	return 0;
+	
+ error_free_child:
+	reiser4_file_close(child);
+	return -1;
 }
 
 /* Prints file items into passed stream */
-errno_t reiser4_file_print(reiser4_file_t *file, aal_stream_t *stream) {
-	return reiser4_file_metadata(file, callback_process_place, stream);
+errno_t reiser4_file_print(reiser4_file_t *file,
+			   aal_stream_t *stream)
+{
+	place_func_t place_func = callback_process_place;
+	return reiser4_file_metadata(file, place_func, stream);
 }
 
 #endif
+
+lookup_t reiser4_file_lookup(reiser4_file_t *file,
+			     const char *entry,
+			     reiser4_key_t *key)
+{
+	aal_assert("umka-1919", file != NULL);
+	aal_assert("umka-1920", entry != NULL);
+	aal_assert("umka-1921", key != NULL);
+
+	if (!file->entity->plugin->file_ops.lookup)
+		return LP_FAILED;
+	
+	return plugin_call(file->entity->plugin->file_ops, lookup,
+			   file->entity, (char *)entry, (key_entity_t *)key);
+}
 
 /* Closes specified file */
 void reiser4_file_close(

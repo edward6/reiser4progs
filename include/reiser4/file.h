@@ -17,6 +17,10 @@
 extern reiser4_file_t *reiser4_file_open(reiser4_fs_t *fs,
 					 const char *name);
 
+extern lookup_t reiser4_file_lookup(reiser4_file_t *file,
+				    const char *entry,
+				    reiser4_key_t *key);
+
 extern reiser4_file_t *reiser4_file_begin(reiser4_fs_t *fs,
 					  reiser4_place_t *place);
 
@@ -35,7 +39,8 @@ extern reiser4_file_t *reiser4_file_create(reiser4_fs_t *fs,
 					   const char *name,
 					   reiser4_file_hint_t *hint);
 
-extern errno_t reiser4_file_nlink(reiser4_file_t *file);
+extern errno_t reiser4_file_remove(reiser4_file_t *file,
+				   const char *entry);
 
 extern int32_t reiser4_file_write(reiser4_file_t *file,
 				  void *buff,
