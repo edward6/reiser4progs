@@ -66,8 +66,7 @@ if test "$with_readline" = yes; then
 	    AC_MSG_WARN(
 GNU Readline could not be found which is required for the --with-readline
 	    )
-	    with_readline=no
-	    exit,
+	    with_readline=no,
 	    $PROGS_LDADD
     )
     LIBS="$OLD_LIBS"
@@ -134,21 +133,21 @@ AM_PROG_LIBTOOL
 
 if test "$with_uuid" = yes; then
     AC_CHECK_HEADERS(uuid/uuid.h, ,
-	AC_MSG_ERROR(
+	AC_MSG_WARN(
 The headers for libuuid could not be found which
 are required for the --with-uuid option.
 	)
-	exit
+	AC_DEFINE(HAVE_LIBUUID, 0)
     )
 fi
 
 if test "$with_readline" = yes; then
     AC_CHECK_HEADERS(readline/readline.h readline/history.h, ,
-	AC_MSG_ERROR(
+	AC_MSG_WARN(
 The headers for GNU Readline could not be found which
 are required for the --with-readline option.
 	)
-	exit
+	AC_DEFINE(HAVE_LIBREADLINE, 0)
     )
 fi
 
