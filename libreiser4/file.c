@@ -11,11 +11,13 @@
 #include <sys/stat.h>
 
 /* 
-    Tries to guess object plugin type passed first item plugin and item body. Most
-    possible that passed item body is stat data body.
+    Tries to guess object plugin type passed first item plugin and item body. 
+    Most probably, that passed item body is stat data body.
 */
 reiser4_plugin_t *reiser4_file_guess(reiser4_file_t *file) {
     reiser4_item_t item;
+    
+    aal_assert("umka-1296", file->coord.joint != NULL, return NULL);
     
     if (reiser4_item_open(&item, file->coord.joint->node, 
 	&file->coord.pos)) 
@@ -39,8 +41,7 @@ reiser4_plugin_t *reiser4_file_guess(reiser4_file_t *file) {
 */
 static errno_t reiser4_file_realize(
     reiser4_file_t *file,	    /* file lookup will be performed in */
-    const char *name,		    /* name to be parsed */
-    reiser4_key_t *parent	    /* key of parent stat data */
+    const char *name		    /* name to be parsed */
 ) {
     reiser4_entity_t *entity;
     reiser4_plugin_t *plugin;
@@ -50,7 +51,6 @@ static errno_t reiser4_file_realize(
 
     aal_assert("umka-682", file != NULL, return -1);
     aal_assert("umka-681", name != NULL, return -1);
-    aal_assert("umka-685", parent != NULL, return -1);
     
     aal_memset(path, 0, sizeof(path));
     aal_memset(track, 0, sizeof(track));
@@ -62,10 +62,8 @@ static errno_t reiser4_file_realize(
   
     pointer = path[0] == '/' ? &path[1] : &path[0];
 
-    /* Main big loop all work is performed inside wich */
+    /* Main loop the all work is performed inside */
     while (1) {
-	reiser4_item_t item;
-
 	reiser4_key_set_type(&file->key, KEY_STATDATA_TYPE);
 	reiser4_key_set_offset(&file->key, 0);
 	
@@ -76,45 +74,6 @@ static errno_t reiser4_file_realize(
 	    return -1;
 	}
 	
-	if (reiser4_item_open(&item, file->coord.joint->node,
-	    &file->coord.pos)) 
-	{
-	    aal_exception_error("Can't open item by coord. Node %llu, item %u.",
-		aal_block_number(file->coord.joint->node->block),
-		file->coord.pos.item);
-
-	    return -1;
-	}
-	
-	/* 
-	    FIXME-UMKA: Here probably should be opening of file and then calling
-	    the method "follow" for following the link if it is a link.
-	*/
-	if (reiser4_item_statdata(&item)) {
-	    uint16_t mode;
-
-	    /* 
-		Checking for mode. It is used in order to know is current entry link or 
-		not and is the mode valid one.
-	    */
-	    mode = reiser4_item_get_smode(&item);
-
-	    if (!S_ISLNK(mode) && !S_ISDIR(mode) && !S_ISREG(mode)) {
-		aal_exception_error("%s has invalid mode 0x%x.", track, mode);
-		return -1;
-	    }
-		
-	    if (S_ISLNK(mode)) {
-		aal_exception_error("Sorry, opening the files by link is "
-		    "not supported yet!");
-		return -1;
-	    }
-	}
-
-	/* It will be useful when symlinks ready */
-	reiser4_key_set_locality(parent, reiser4_key_get_locality(&file->key));
-	reiser4_key_set_objectid(parent, reiser4_key_get_objectid(&file->key));
-
 	if (!(dirname = aal_strsep(&pointer, "/")))
 	    break;
 		
@@ -128,7 +87,7 @@ static errno_t reiser4_file_realize(
 		"parent of %s.", track);
 	    return -1;
 	}
-
+	
 	if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
 	    file->fs->tree, &file->key)))
 	{
@@ -160,12 +119,11 @@ static errno_t reiser4_file_realize(
 
 /* This function opens file by its name */
 reiser4_file_t *reiser4_file_open(
-    reiser4_fs_t *fs,		/* filesystem object (file/dir/else) will be opened on */
+    reiser4_fs_t *fs,		/* object (file/dir/etc) will be opened on */
     const char *name		/* name of file to be opened */
 ) {
-    reiser4_key_t *root_key;
-    reiser4_key_t parent_key;
     reiser4_file_t *file;
+    reiser4_key_t *root_key;
     reiser4_plugin_t *plugin;
     
     aal_assert("umka-678", fs != NULL, return NULL);
@@ -189,9 +147,7 @@ reiser4_file_t *reiser4_file_open(
 	I assume that name is absolute name. So, user, who will call this method 
 	should convert name previously into absolute one by getcwd function.
     */
-    reiser4_key_init(&parent_key, root_key->plugin, root_key->body);
-    
-    if (reiser4_file_realize(file, name, &parent_key)) {
+    if (reiser4_file_realize(file, name)) {
 	aal_exception_error("Can't find file %s.", name);
 	goto error_free_file;
     }

@@ -16,4 +16,4 @@ Copyright (C) 1996-2002 Hans Reiser
   reiser4_item_get_smode)
 * probably we should do not have sdext specific methods, like get_mode, set_mode 
   in stat40 plugin
-
+* add plugin group field into plugin structure, like item plugins have.

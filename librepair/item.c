@@ -8,7 +8,7 @@
 errno_t repair_item_nptr_check(reiser4_node_t *node, 
     reiser4_item_t *item, repair_check_t *data) 
 {
-    blk_t blk, next_blk;
+    blk_t ptr, next_blk;
     count_t width;
     int res;
 
@@ -22,20 +22,22 @@ errno_t repair_item_nptr_check(reiser4_node_t *node,
 	FIXME-VITALY: This stuff should be tested carefully when functions 
 	return 0 as an error. 
     */
-    blk = reiser4_item_get_nptr(item);
-    width = reiser4_item_get_nwidth(item);
+    ptr = plugin_call(return -1, item->plugin->item_ops.specific.ptr,
+        get_ptr, item);
+	    
+    width = plugin_call(return -1, item->plugin->item_ops.specific.ptr,
+        get_width, item);
 
-    if (!blk || (blk >= reiser4_format_get_len(data->format)) || 
+    if (!ptr || (ptr >= reiser4_format_get_len(data->format)) || 
 	(width >= reiser4_format_get_len(data->format)) || 
-	(blk + width >= reiser4_format_get_len(data->format))) 
+	(ptr + width >= reiser4_format_get_len(data->format))) 
 	return 1;
 	
-    if ((next_blk = aux_bitmap_find(repair_cut_data(data)->format_layout, 
-	blk)) == 0)
-	/* No any formatted blocks exists after blk. */
+    /* Check if no any formatted blocks exists after ptr. */
+    if ((next_blk = aux_bitmap_find(repair_cut_data(data)->format_layout, ptr)) == 0)
         return 0;
     
-    if (next_blk >= blk && next_blk < blk + width) 
+    if (next_blk >= ptr && next_blk < ptr + width) 
 	return 1;
 
     return 0;

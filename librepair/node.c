@@ -75,26 +75,38 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	if (!reiser4_item_extent(&item) && !reiser4_item_internal(&item))
 	    continue;
 	pos.unit = reiser4_item_count(&item) - 1;
+	
 	do {
 	    if ((res = repair_item_nptr_check(node, &item, data)) < 0) 
 		return -1;
 	    else {
+		blk_t ptr = plugin_call(return -1, 
+		    item.plugin->item_ops.specific.ptr,
+		    get_ptr, &item);
+		
+		count_t width = plugin_call(return -1, 
+		    item.plugin->item_ops.specific.ptr,
+		    get_width, &item);
+		    
 		if (reiser4_item_internal(&item)) {
 		    aal_exception_error("Node (%llu), item (%u), unit (%u): "
 			"bad internal pointer (%llu/%llu). Removed.", 
 			aal_block_number(node->block), pos.item, pos.unit, 
-			reiser4_item_get_nptr(&item), 
-			reiser4_item_get_nwidth(&item));
+			ptr, width);
+
 		    if (reiser4_node_remove(node, &pos))
 			return -1;
 		} else if (reiser4_item_extent(&item)) {
 		    aal_exception_error("Node (%llu), item (%u), unit (%u): "
 			"bad extent pointer (%llu). Zeroed.", 
 			aal_block_number(node->block), pos.item, pos.unit, 
-			reiser4_item_get_nptr(&item), 
-			reiser4_item_get_nwidth(&item));
-		    reiser4_item_set_nptr(&item, 0);
-		    reiser4_item_set_nwidth(&item, 0);
+			ptr, width);
+
+		    plugin_call(return -1, item.plugin->item_ops.specific.ptr,
+			set_ptr, &item, 0);
+		    
+		    plugin_call(return -1, item.plugin->item_ops.specific.ptr,
+			set_width, &item, 0);
 		}
 	    }
 	} while (pos.unit--);	
@@ -373,21 +385,20 @@ errno_t repair_node_handle_pointers(reiser4_node_t *node, repair_check_t *data)
 	    continue;
 
 	for (pos.unit = 0; pos.unit < reiser4_item_count(&item); pos.unit++) {
-	    blk_t form_blk, used_blk, blk;
 	    count_t width;
+	    blk_t form_blk, used_blk, ptr;
 
-	    if (!(blk = reiser4_item_get_nptr(&item)))
-		continue;
+	    ptr = plugin_call(return -1, item.plugin->item_ops.specific.ptr,
+	        get_ptr, &item);
 	    
-	    width = reiser4_item_get_nwidth(&item);
+	    width = plugin_call(return -1, item.plugin->item_ops.specific.ptr,
+	        get_width, &item);
 	    
 	    aal_assert("vpf-387", 
-		(blk < reiser4_format_get_len(data->format)) && 
+		(ptr < reiser4_format_get_len(data->format)) && 
 		(width < reiser4_format_get_len(data->format)) && 
-		(blk + width < reiser4_format_get_len(data->format)), 
+		(ptr + width < reiser4_format_get_len(data->format)), 
 		return -1);
-	    
-	    
 	}
     }
     

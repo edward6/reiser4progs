@@ -46,22 +46,6 @@ static errno_t nodeptr40_estimate(reiser4_item_t *item,
     return 0;
 }
 
-extern errno_t nodeptr40_check(reiser4_item_t *item, 
-    uint16_t options);
-
-#endif
-
-static errno_t nodeptr40_print(reiser4_item_t *item, 
-    char *buff, uint32_t n, uint16_t options) 
-{
-    aal_assert("umka-544", item != NULL, return -1);
-    aal_assert("umka-545", buff != NULL, return -1);
-
-    return -1;
-}
-
-#ifndef ENABLE_COMPACT
-
 static errno_t nodeptr40_set_ptr(reiser4_item_t *item, uint64_t ptr) {
     nodeptr40_t *internal;
     
@@ -74,6 +58,9 @@ static errno_t nodeptr40_set_ptr(reiser4_item_t *item, uint64_t ptr) {
     return 0;
 }
 
+extern errno_t nodeptr40_check(reiser4_item_t *item, 
+    uint16_t options);
+
 #endif
 
 static uint64_t nodeptr40_get_ptr(reiser4_item_t *item) {
@@ -85,6 +72,16 @@ static uint64_t nodeptr40_get_ptr(reiser4_item_t *item) {
     internal = nodeptr40_body(item);
     
     return np40_get_ptr(internal);
+}
+
+static errno_t nodeptr40_print(reiser4_item_t *item, 
+    char *buff, uint32_t n, uint16_t options) 
+{
+    aal_assert("umka-544", item != NULL, return -1);
+    aal_assert("umka-545", buff != NULL, return -1);
+    
+    aal_snprintf(buff, n, "%llu", nodeptr40_get_ptr(item));
+    return 0;
 }
 
 static errno_t nodeptr40_max_poss_key(reiser4_item_t *item,

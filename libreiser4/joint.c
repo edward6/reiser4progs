@@ -652,7 +652,11 @@ errno_t reiser4_joint_traverse(
 	    
 	    do {
 		blk_t target;
-		if ((target = reiser4_item_get_nptr(&item)) != FAKE_BLK) {
+		
+		target = plugin_call(continue, item.plugin->item_ops.specific.ptr,
+		    get_ptr, &item);
+		
+		if (target != FAKE_BLK) {
 			
 		    if (setup_func && (result = setup_func(joint, &item, data)))
 			goto error_after_func;

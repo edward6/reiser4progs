@@ -548,8 +548,8 @@ struct reiser4_item_ops {
 
     /* Methods specific to particular type of item */
     union {
+	reiser4_ptr_ops_t ptr;
 	reiser4_statdata_ops_t statdata;
-	reiser4_ptr_ops_t      ptr;
 	reiser4_direntry_ops_t direntry;
 
 	/* Here shall be filebody item (extent, tail) */

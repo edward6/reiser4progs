@@ -86,6 +86,7 @@ static errno_t debugfs_print_joint(
     
     if (level > LEAF_LEVEL) {
 	uint32_t i;
+	char buff[255];
 	
 	for (i = 0; i < reiser4_node_count(node); i++) {
 	    reiser4_key_t key;
@@ -115,18 +116,12 @@ static errno_t debugfs_print_joint(
 
 	    printf("PLUGIN: 0x%x (%s)\n", item.plugin->h.id, item.plugin->h.label);
 	   
-	    if (reiser4_item_internal(&item)) {
-		printf("[ %llu ]\n", reiser4_item_get_nptr(&item));
-	    } else {
-		char buff[255];
-		
-		aal_memset(buff, 0, sizeof(buff));
-		
-		plugin_call(return -1, item.plugin->item_ops, print,
-		    &item, buff, sizeof(buff), 0);
+	    aal_memset(buff, 0, sizeof(buff));
 
-		printf("[ %s ]\n", buff);
-	    }
+	    if (reiser4_item_print(&item, buff, sizeof(buff)))
+		return -1;
+
+	    printf("[ %s ]\n", buff);
 	}
     } else {
 	uint32_t i;

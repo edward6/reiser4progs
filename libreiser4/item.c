@@ -112,6 +112,25 @@ errno_t reiser4_item_estimate(
 
 #endif
 
+errno_t reiser4_item_print(reiser4_item_t *item, char *buff, uint32_t n) {
+    aal_assert("umka-1297", item != NULL, return 0);
+    aal_assert("umka-1298", item->plugin != NULL, return 0);
+
+    return plugin_call(return -1, item->plugin->item_ops, print,
+	item, buff, n, 0);
+}
+
+/* Returns object plugin id */
+uint16_t reiser4_item_detect(reiser4_item_t *item) {
+    aal_assert("umka-1294", item != NULL, return 0);
+    aal_assert("umka-1295", item->plugin != NULL, return 0);
+    
+    if (!item->plugin->item_ops.detect)
+	return FAKE_PLUGIN;
+
+    return item->plugin->item_ops.detect(item);
+}
+
 int reiser4_item_permissn(reiser4_item_t *item) {
     aal_assert("umka-1100", item != NULL, return 0);
     aal_assert("umka-1101", item->plugin != NULL, return 0);
@@ -152,53 +171,6 @@ int reiser4_item_statdata(reiser4_item_t *item) {
 	item->plugin->item_ops.type == STATDATA_ITEM_TYPE;
 }
 
-/* Returns object plugin id */
-uint16_t reiser4_item_detect(reiser4_item_t *item) {
-    aal_assert("umka-1294", item != NULL, return 0);
-    aal_assert("umka-1295", item->plugin != NULL, return 0);
-    
-    if (!item->plugin->item_ops.detect)
-	return FAKE_PLUGIN;
-
-    return item->plugin->item_ops.detect(item);
-}
-
-uint16_t reiser4_item_get_smode(reiser4_item_t *item) {
-    aal_assert("umka-1102", item != NULL, return 0);
-    aal_assert("umka-1103", item->plugin != NULL, return 0);
-
-    /* Checking if specified item is a statdata item */
-    if (!reiser4_item_statdata(item)) {
-	aal_exception_error("An attempt to access mode from "
-	    "non-statdata item.");
-	return 0;
-    }
-    
-    return plugin_call(return 0, 
-	item->plugin->item_ops.specific.statdata, get_mode, item);
-}
-
-#ifndef ENABLE_COMPACT
-
-errno_t reiser4_item_set_smode(reiser4_item_t *item, 
-    uint16_t mode) 
-{
-    aal_assert("umka-1105", item != NULL, return 0);
-    aal_assert("umka-1106", item->plugin != NULL, return 0);
-
-    /* Checking if specified item is a statdata item */
-    if (!reiser4_item_statdata(item)) {
-	aal_exception_error("An attempt to access mode from "
-	    "non-statdata item.");
-	return -1;
-    }
-    
-    return plugin_call(return -1, item->plugin->item_ops.specific.statdata, 
-	set_mode, item, mode);
-}
-
-#endif
-
 int reiser4_item_internal(reiser4_item_t *item) {
     aal_assert("vpf-042", item != NULL, return 0);
     aal_assert("umka-1072", item->plugin != NULL, return 0);
@@ -206,63 +178,6 @@ int reiser4_item_internal(reiser4_item_t *item) {
     return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
 	item->plugin->item_ops.type == INTERNAL_ITEM_TYPE;
 }
-
-/* Returns node pointer from internal node */
-blk_t reiser4_item_get_nptr(reiser4_item_t *item) {
-    aal_assert("vpf-041", item != NULL, return FAKE_BLK);
-    aal_assert("umka-1074", item->plugin != NULL, return FAKE_BLK);
-    
-    aal_assert("vpf-369", reiser4_item_internal(item) || 
-	reiser4_item_extent(item), return FAKE_BLK);
-
-    return plugin_call(return FAKE_BLK, item->plugin->item_ops.specific.ptr, 
-	get_ptr, item);
-}
-
-/* Returns the number of nodes pointed by 1 unit. Called width also. */
-count_t reiser4_item_get_nwidth(reiser4_item_t *item) {
-    aal_assert("vpf-370", item != NULL, return FAKE_BLK);
-    aal_assert("vpf-371", item->plugin != NULL, return FAKE_BLK);
-    
-    aal_assert("vpf-372", reiser4_item_internal(item) || 
-	reiser4_item_extent(item), return FAKE_BLK);
-
-    if (item->plugin->item_ops.specific.ptr.get_width)
-	return item->plugin->item_ops.specific.ptr.get_width(item);
-    
-    return 1;
-}
-
-#ifndef ENABLE_COMPACT
-
-/* Updates node pointer in internal item specified by "pos" */
-errno_t reiser4_item_set_nptr(reiser4_item_t *item,
-    blk_t blk) 
-{
-    aal_assert("umka-607", item != NULL, return -1);
-    aal_assert("umka-1071", item->plugin != NULL, return -1);
-    aal_assert("vpf-377", reiser4_item_internal(item) || 
-	reiser4_item_extent(item), return -1);
-
-    /* Calling node plugin for handling */
-    return plugin_call(return -1, item->plugin->item_ops.specific.ptr, 
-	set_ptr, item, blk);
-}
-
-/* Returns the number of nodes pointed by 1 unit. Called width also. */
-errno_t reiser4_item_set_nwidth(reiser4_item_t *item, count_t width) {
-    aal_assert("vpf-373", item != NULL, return -1);
-    aal_assert("vpf-374", item->plugin != NULL, return -1);
-    aal_assert("vpf-375", reiser4_item_internal(item) || 
-	reiser4_item_extent(item), return -1);
-
-    if (item->plugin->item_ops.specific.ptr.set_width)
-	item->plugin->item_ops.specific.ptr.set_width(item, width);
-    
-    return 0;
-}
-
-#endif
 
 uint32_t reiser4_item_len(reiser4_item_t *item) {
     aal_assert("umka-760", item != NULL, return 0);

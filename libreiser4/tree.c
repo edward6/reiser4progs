@@ -391,9 +391,12 @@ int reiser4_tree_lookup(
 	        "Sorry, drilling is not supported yet!");
 	    return -1;
 	}
-	    
+	
 	/* Getting the node pointer from internal item */
-	if ((target = reiser4_item_get_nptr(&item)) == FAKE_BLK) {
+	target = plugin_call(return -1, item.plugin->item_ops.specific.ptr,
+	    get_ptr, &item);
+		
+	if (target == FAKE_BLK) {
 	    reiser4_node_t *node = coord->joint->node;
 
 	    aal_exception_error("Can't get pointer from internal item %u, "
