@@ -7,78 +7,100 @@
 
 #include <repair/librepair.h>
 
-/* Prepare coord for just a piece of item insertion. Return the number of 
+/* Prepare place for just a piece of item insertion. Return the number of 
  * units to be splited. */
 uint32_t repair_item_split(
-    reiser4_place_t *coord, 
+    reiser4_place_t *place, 
     reiser4_key_t *rd_key)  /* split to this right delimiting key */
 {    
     reiser4_key_t key;
     uint32_t unit = 0;
 
-    if (reiser4_item_utmost_key(coord, &key))
+    if (reiser4_item_utmost_key(place, &key))
 	return -1;
  
     /* rd_key greater then max real key - nothing to split. */
     if (reiser4_key_compare(rd_key, &key) > 0) 
-	return reiser4_item_units(coord);
+	return reiser4_item_units(place);
  
     /* Split. Lookup method must be implemented in this case. */
-    if (plugin_call(coord->item.plugin->item_ops, lookup, 
-	&coord->item, rd_key, &unit) == LP_FAILED) 
+    if (plugin_call(place->item.plugin->item_ops, lookup, 
+	&place->item, rd_key, &unit) == LP_FAILED) 
     {
 	aal_exception_error("Lookup in the item %d in the node %llu failed.", 
-	    coord->pos.item, coord->node->blk);
+	    place->pos.item, place->node->blk);
 	return -1;
     }       
    
     return unit;
 }
 
-/* Calls the item check method to check the item structure. 
+/* Calls the item check method to check the item structure and shrink the node
+ * if item length has been changed.
  *
- * Return values: 
- * 0 - nothing was changed. !0 - smth was changed, new length is returned.
- * errors == 0 - nothing left to be fixed.
- * errors != 0 - smth to be fixed.
+ * Return values are described in repair_error_codes_t.
  */
-errno_t repair_item_check(reiser4_place_t *coord) {
-    uint32_t lenght;
+errno_t repair_item_check(reiser4_place_t *place, uint8_t mode) { 
+    uint32_t length;
+    errno_t res;
     
-    if (!coord->item.plugin->item_ops.check)
+    if (!place->item.plugin->item_ops.check)
 	return 0;
 
-    lenght = coord->item.plugin->item_ops.check(&coord->item);
+    length = place->item.len;
 
-    /* FIXME: not finished. */
-    return 0;
+    res = place->item.plugin->item_ops.check(&place->item, mode);
+    
+    /* Operational error occured or some errors are left in the item. */
+    if (repair_error_exists(res) < 0)
+	return res;
+    
+    /* Check if length has been changed, shrink the node. */
+    if (length != place->item.len) {
+	rpos_t pos;
+
+	aal_assert("vpf-767", res == REPAIR_FIXED);
+	aal_assert("vpf-768", length > place->item.len);
+	
+	pos = place->pos;
+	pos.unit = 0;
+	if (reiser4_node_shrink(place->node, &pos, length - place->item.len, 1)) {
+	    aal_exception_bug("Node (%llu), item (%u), len (%u): Failed "
+		"to shrink the node on (%u) bytes.", place->node->blk, pos.item,
+		length, length - place->item.len);
+	    return -1;
+	}
+	
+    }
+
+    return REPAIR_OK;
 }
 
 #if 0
 
-errno_t repair_item_handle_ptr(reiser4_place_t *coord) {
+errno_t repair_item_handle_ptr(reiser4_place_t *place) {
     reiser4_ptr_hint_t hint;
     rpos_t prev;
 
-    aal_assert("vpf-416", coord != NULL, return -1);
-    aal_assert("vpf-417", coord->node != NULL, return -1);
+    aal_assert("vpf-416", place != NULL, return -1);
+    aal_assert("vpf-417", place->node != NULL, return -1);
     
-    /* Fetch the pointer from the coord. */
-    if (plugin_call(coord->item.plugin->item_ops,
-	read, &coord->item, &hint, coord->pos.unit, 1) != 1)
+    /* Fetch the pointer from the place. */
+    if (plugin_call(place->item.plugin->item_ops,
+	read, &place->item, &hint, place->pos.unit, 1) != 1)
 	return -1;
-    if (hint.width == 1 && reiser4_item_extent(coord)) {
+    if (hint.width == 1 && reiser4_item_extent(place)) {
 	/* For one unit extent pointer we can just zero the start block 
 	 * number. */
 	aal_exception_error("Node (%llu), item (%u), unit (%u): pointer "
 	    "(start %llu, count %llu) is zeroed.", 
-	    coord->node->blk, coord->pos.item, 
-	    coord->pos.unit, hint.ptr, hint.width);
+	    place->node->blk, place->pos.item, 
+	    place->pos.unit, hint.ptr, hint.width);
 
 	hint.ptr = 0;
 
-	if (plugin_call(coord->item.plugin->item_ops,
-	    write, &coord->item, &hint, coord->pos.unit, 1))
+	if (plugin_call(place->item.plugin->item_ops,
+	    write, &place->item, &hint, place->pos.unit, 1))
 	    return -1;	    
     } else {
 	/* For many unit pointers there is no way to figure out what 
@@ -87,42 +109,42 @@ errno_t repair_item_handle_ptr(reiser4_place_t *coord) {
 	 * Delete the item if extent pointer. */	
 
 	/* Correct position to work with the whole item for extent items. */
-	if (reiser4_item_extent(coord))
-	    coord->pos.unit = ~0ul;
+	if (reiser4_item_extent(place))
+	    place->pos.unit = ~0ul;
 
 	aal_exception_error("Node (%llu), item (%u), unit (%u): pointer "
 	    "(start %llu, count %llu) is removed.", 
-	    coord->node->blk, coord->pos.item, coord->pos.unit,
+	    place->node->blk, place->pos.item, place->pos.unit,
 	    hint.ptr, hint.width);
 
-	repair_coord_left_pos_save(coord, &prev);
-	if (reiser4_node_remove(coord->node, &coord->pos, 1))
+	repair_place_left_pos_save(place, &prev);
+	if (reiser4_node_remove(place->node, &place->pos, 1))
 	    return -1;		    
 		    
-	coord->pos = prev;
+	place->pos = prev;
     }
 
     return 0;
 }
 
-/* Blocks pointed by coord should not be used in bitmap. 
+/* Blocks pointed by place should not be used in bitmap. 
  * Returns -1 if fatal error; 1 if not used; 0 - ok. */
-errno_t repair_item_ptr_unused(reiser4_place_t *coord, aux_bitmap_t *bitmap) {
+errno_t repair_item_ptr_unused(reiser4_place_t *place, aux_bitmap_t *bitmap) {
     blk_t next_blk;
     reiser4_ptr_hint_t ptr;
     int res;
 
-    aal_assert("vpf-500", coord != NULL, return -1);
+    aal_assert("vpf-500", place != NULL, return -1);
     aal_assert("vpf-397", bitmap != NULL, return -1);
-    aal_assert("vpf-497", reiser4_item_nodeptr(coord) || 
-	reiser4_item_extent(coord), return -1);
+    aal_assert("vpf-497", reiser4_item_nodeptr(place) || 
+	reiser4_item_extent(place), return -1);
 
-    if ((res = plugin_call(coord->item.plugin->item_ops, read, 
-	&coord->item, &ptr, coord->pos.unit, 1)) != 1)
+    if ((res = plugin_call(place->item.plugin->item_ops, read, 
+	&place->item, &ptr, place->pos.unit, 1)) != 1)
 	return res;
 
     /* Ptr can be 0 if extent item only. Width cannot be 0. */
-    if ((!ptr.ptr && reiser4_item_nodeptr(coord)) || !ptr.width) 
+    if ((!ptr.ptr && reiser4_item_nodeptr(place)) || !ptr.width) 
 	goto error;
 
     if ((ptr.ptr >= bitmap->total) || (ptr.width >= bitmap->total) || 
@@ -141,33 +163,33 @@ errno_t repair_item_ptr_unused(reiser4_place_t *coord, aux_bitmap_t *bitmap) {
 error:
     aal_exception_error("Node (%llu), item (%u), unit (%u): %s pointer "
 	"(start %llu, count %llu) points to some already used blocks.", 
-	coord->node->blk, coord->pos.item, 
-	coord->pos.unit, reiser4_item_nodeptr(coord) ? "node" : "extent", 
+	place->node->blk, place->pos.item, 
+	place->pos.unit, reiser4_item_nodeptr(place) ? "node" : "extent", 
 	ptr.ptr, ptr.width);
 
     return 1;
 }
 
-/* Blocks pointed by coord should not be used in bitmap. 
+/* Blocks pointed by place should not be used in bitmap. 
  * Returns -1 if fatal error; 1 if not used; 0 - ok. */
-errno_t repair_item_ptr_used_in_format(reiser4_place_t *coord, 
+errno_t repair_item_ptr_used_in_format(reiser4_place_t *place, 
     repair_data_t *data) 
 {
     int res;
     blk_t next_blk;
     reiser4_ptr_hint_t ptr;
 
-    aal_assert("vpf-270", coord != NULL, return -1);
+    aal_assert("vpf-270", place != NULL, return -1);
     aal_assert("vpf-271", data != NULL, return -1);
     aal_assert("vpf-272", data->format != NULL, return -1);
-    aal_assert("vpf-496", reiser4_item_nodeptr(coord) || reiser4_item_extent(coord), 
+    aal_assert("vpf-496", reiser4_item_nodeptr(place) || reiser4_item_extent(place), 
 	return -1);
 
-    if (plugin_call(coord->item.plugin->item_ops, read,
-	&coord->item, coord->pos.unit, &ptr, 1))
+    if (plugin_call(place->item.plugin->item_ops, read,
+	&place->item, place->pos.unit, &ptr, 1))
 	return -1;
 	
-    if ((!ptr.ptr && reiser4_item_nodeptr(coord)) || !ptr.width) 
+    if ((!ptr.ptr && reiser4_item_nodeptr(place)) || !ptr.width) 
 	goto error;
     
     if ((ptr.ptr >= reiser4_format_get_len(data->format)) || 
@@ -189,31 +211,31 @@ errno_t repair_item_ptr_used_in_format(reiser4_place_t *coord,
 error:
     aal_exception_error("Node (%llu), item (%u), unit(%u): %s pointer "
 	"(start (%llu), count (%llu)) points some reiser4 system blocks.", 
-	coord->node->blk, coord->pos.item, coord->pos.unit,
-	reiser4_item_nodeptr(coord) ? "node" : "extent",
+	place->node->blk, place->pos.item, place->pos.unit,
+	reiser4_item_nodeptr(place) ? "node" : "extent",
 	ptr.ptr, ptr.width);
 	
     return 1;
 }
 
-/* Blocks pointed by coord should not be used in bitmap. 
+/* Blocks pointed by place should not be used in bitmap. 
  * Returns -1 if fatal error; 1 if not used; 0 - ok. */
-errno_t repair_item_ptr_unused(reiser4_place_t *coord, aux_bitmap_t *bitmap) {
+errno_t repair_item_ptr_unused(reiser4_place_t *place, aux_bitmap_t *bitmap) {
     blk_t next_blk;
     reiser4_ptr_hint_t ptr;
     int res;
 
-    aal_assert("vpf-500", coord != NULL, return -1);
+    aal_assert("vpf-500", place != NULL, return -1);
     aal_assert("vpf-397", bitmap != NULL, return -1);
-    aal_assert("vpf-497", reiser4_item_nodeptr(coord) || 
-	reiser4_item_extent(coord), return -1);
+    aal_assert("vpf-497", reiser4_item_nodeptr(place) || 
+	reiser4_item_extent(place), return -1);
 
-    if ((res = plugin_call(return -1, coord->item.plugin->item_ops, read, 
-	&coord->item, &ptr, coord->pos.unit, 1)) != 1)
+    if ((res = plugin_call(return -1, place->item.plugin->item_ops, read, 
+	&place->item, &ptr, place->pos.unit, 1)) != 1)
 	return res;
 
     /* Ptr can be 0 if extent item only. Width cannot be 0. */
-    if ((!ptr.ptr && reiser4_item_nodeptr(coord)) || !ptr.width) 
+    if ((!ptr.ptr && reiser4_item_nodeptr(place)) || !ptr.width) 
 	goto error;
 
     if ((ptr.ptr >= bitmap->total) || (ptr.width >= bitmap->total) || 
@@ -232,36 +254,36 @@ errno_t repair_item_ptr_unused(reiser4_place_t *coord, aux_bitmap_t *bitmap) {
 error:
     aal_exception_error("Node (%llu), item (%u), unit (%u): %s pointer "
 	"(start %llu, count %llu) points to some already used blocks.", 
-	coord->node->blk, coord->pos.item, 
-	coord->pos.unit, reiser4_item_nodeptr(coord) ? "node" : "extent", 
+	place->node->blk, place->pos.item, 
+	place->pos.unit, reiser4_item_nodeptr(place) ? "node" : "extent", 
 	ptr.ptr, ptr.width);
 
     return 1;
 }
 
-errno_t repair_item_handle_ptr(reiser4_place_t *coord) {
+errno_t repair_item_handle_ptr(reiser4_place_t *place) {
     reiser4_ptr_hint_t hint;
     reiser4_pos_t prev;
 
-    aal_assert("vpf-416", coord != NULL, return -1);
-    aal_assert("vpf-417", coord->node != NULL, return -1);
+    aal_assert("vpf-416", place != NULL, return -1);
+    aal_assert("vpf-417", place->node != NULL, return -1);
     
-    /* Fetch the pointer from the coord. */
-    if (plugin_call(return -1, coord->item.plugin->item_ops,
-	read, &coord->item, &hint, coord->pos.unit, 1) != 1)
+    /* Fetch the pointer from the place. */
+    if (plugin_call(return -1, place->item.plugin->item_ops,
+	read, &place->item, &hint, place->pos.unit, 1) != 1)
 	return -1;
-    if (hint.width == 1 && reiser4_item_extent(coord)) {
+    if (hint.width == 1 && reiser4_item_extent(place)) {
 	/* For one unit extent pointer we can just zero the start block 
 	 * number. */
 	aal_exception_error("Node (%llu), item (%u), unit (%u): pointer "
 	    "(start %llu, count %llu) is zeroed.", 
-	    coord->node->blk, coord->pos.item, 
-	    coord->pos.unit, hint.ptr, hint.width);
+	    place->node->blk, place->pos.item, 
+	    place->pos.unit, hint.ptr, hint.width);
 
 	hint.ptr = 0;
 
-	if (plugin_call(return -1, coord->item.plugin->item_ops,
-	    update, &coord->item, &hint, coord->pos.unit, 1))
+	if (plugin_call(return -1, place->item.plugin->item_ops,
+	    update, &place->item, &hint, place->pos.unit, 1))
 	    return -1;
     } else {
 	/* For many unit pointers there is no way to figure out what 
@@ -270,19 +292,19 @@ errno_t repair_item_handle_ptr(reiser4_place_t *coord) {
 	 * Delete the item if extent pointer. */	
 
 	/* Correct position to work with the whole item for extent items. */
-	if (reiser4_item_extent(coord))
-	    coord->pos.unit = ~0ul;
+	if (reiser4_item_extent(place))
+	    place->pos.unit = ~0ul;
 
 	aal_exception_error("Node (%llu), item (%u), unit (%u): pointer "
 	    "(start %llu, count %llu) is removed.", 
-	    coord->node->blk, coord->pos.item, coord->pos.unit,
+	    place->node->blk, place->pos.item, place->pos.unit,
 	    hint.ptr, hint.width);
 
-	repair_coord_left_pos_save(coord, &prev);
-	if (reiser4_node_remove(coord->node, &coord->pos))
+	repair_place_left_pos_save(place, &prev);
+	if (reiser4_node_remove(place->node, &place->pos))
 	    return -1;		    
 		    
-	coord->pos = prev;
+	place->pos = prev;
     }
 
     return 0;
