@@ -208,8 +208,6 @@ if test x$enable_part_static = xyes; then
 	PROGS_LDFLAGS="-Wl,-lc,-static -static"
 fi
 
-AC_SUBST(PROGS_LDFLAGS)
-
 AC_ARG_ENABLE(Werror,
     	[  --enable-Werror          enable build with gcc -Werror ], ,
 		enable_Werror=no
@@ -331,8 +329,6 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS([printf.h errno.h fcntl.h mntent.h stdint.h stdlib.h \
 string.h sys/ioctl.h sys/mount.h sys/vfs.h unistd.h])
 
-AC_CHECK_HEADERS([asm/unaligned.h])
-
 # Checks for typedefs, structures and compiler characteristics.
 AC_C_BIGENDIAN
 
@@ -417,9 +413,12 @@ fi
 # Check for large file
 AC_SYS_LARGEFILE
 
-if test x${ac_cv_sys_file_offset_bits} != x; then
-	GENERIC_CFLAGS="$GENERIC_CFLAGS -D_FILE_OFFSET_BITS=${ac_cv_sys_file_offset_bits}"
+if test -z "${ac_cv_sys_file_offset_bits}"; then
+	AC_MSG_WARN(Can't detect right _FILE_OFFSET_BITS. Will be forced to 64bit.)
+	ac_cv_sys_file_offset_bits=64
 fi
+
+GENERIC_CFLAGS="$GENERIC_CFLAGS -D_FILE_OFFSET_BITS=${ac_cv_sys_file_offset_bits}"
 
 AC_CHECK_SIZEOF(off_t, 64, [
 	#include <stdio.h>
