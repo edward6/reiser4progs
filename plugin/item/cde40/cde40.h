@@ -144,11 +144,11 @@ typedef struct cde404  cde404_t;
 
 #define ha_get_ordering(ha, pol)		                       \
         ((pol == 3) ? 0 :                                              \
-	 LE64_TO_CPU(*((d64_t *)((hash4_t *)(ha))->offset)))
+	 LE64_TO_CPU(*((d64_t *)((hash4_t *)(ha))->ordering)))
 	 
-#define ha_set_ordering(ha, val, pol)                                 \
-        ({if (pol == 3) do {} while(0); else                               \
-        (*(d64_t *)((hash4_t *)(ha))->offset) = CPU_TO_LE64(val);})
+#define ha_set_ordering(ha, val, pol)                                  \
+        ({if (pol == 3) do {} while(0); else                           \
+        (*(d64_t *)((hash4_t *)(ha))->ordering) = CPU_TO_LE64(val);})
 
 #define ha_size(pol)                                                   \
         ((pol == 3) ? sizeof(hash3_t) : sizeof(hash4_t))
