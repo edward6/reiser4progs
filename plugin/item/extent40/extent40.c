@@ -439,7 +439,7 @@ static errno_t extent40_estimate(item_entity_t *item, void *buff,
 	aal_assert("umka-1836", buff != NULL);
 	
 	hint = (create_hint_t *)buff;
-	hint->len = count * sizeof(extent40_t);
+	hint->len = sizeof(extent40_t);
 	
 	return 0;
 }
@@ -451,24 +451,20 @@ static errno_t extent40_estimate(item_entity_t *item, void *buff,
 static int32_t extent40_write(item_entity_t *item, void *buff,
 			      uint32_t pos, uint32_t count)
 {
-	uint32_t i;
 	extent40_t *extent;
-	create_hint_t *hint;
-	ptr_hint_t *ptr_hint;
+	uint32_t blocksize;
 
 	aal_assert("umka-2112", item != NULL);
 	aal_assert("umka-2113", buff != NULL);
 	
 	extent = extent40_body(item);
-	hint = (create_hint_t *)buff;
+	blocksize = extent40_blocksize(item);
 
-	ptr_hint = (ptr_hint_t *)hint->type_specific;
-	aal_assert("umka-2114", ptr_hint != NULL);
+	/* Creating unallocated extent with one unit */
+	et40_set_start(extent, -1);
+	et40_set_width(extent, (count + blocksize - 1) / blocksize);
 
-	for (i = 0; i < count; i++, extent++, ptr_hint++) {
-		et40_set_start(extent, ptr_hint->start);
-		et40_set_width(extent, ptr_hint->width);
-	}
+	/* Here we should attach data from @buff to created extent */
 	
 	return count;
 }
