@@ -122,7 +122,8 @@ errno_t reiser4_alloc_sync(
 void reiser4_alloc_close(
 	reiser4_alloc_t *alloc)	/* allocator to be closed */
 {
-	aal_assert("umka-141", alloc != NULL, return);
+	if (alloc == NULL)
+		return;
 
 	/* Calling the plugin for close its internal instance properly */
 	plugin_call(return, alloc->entity->plugin->alloc_ops, 

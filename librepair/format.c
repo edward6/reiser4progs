@@ -128,8 +128,7 @@ errno_t repair_format_open(reiser4_fs_t *fs) {
     return 0;
 
 error_free_format:
-    if (fs->format)
-	reiser4_format_close(fs->format);
+    reiser4_format_close(fs->format);
 
     return res;
 }

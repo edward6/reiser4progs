@@ -232,8 +232,9 @@ errno_t reiser4_master_sync(
 
 /* Frees master super block occupied memory */
 void reiser4_master_close(reiser4_master_t *master) {
-	aal_assert("umka-147", master != NULL, return);
-
+	if (master == NULL)
+		return;
+	
 	aal_block_close(master->block);
 	aal_free(master);
 }

@@ -63,7 +63,8 @@ reiser4_oid_t *reiser4_oid_open(
 void reiser4_oid_close(
 	reiser4_oid_t *oid)		/* oid allocator instance to be closed */
 {
-	aal_assert("umka-523", oid != NULL, return);
+	if (oid == NULL)
+		return;
 
 	plugin_call(return, oid->entity->plugin->oid_ops, 
 		    close, oid->entity);

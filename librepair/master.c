@@ -84,18 +84,17 @@ errno_t repair_master_open(reiser4_fs_t *fs) {
     aal_assert("vpf-399", fs != NULL, return -1);
     aal_assert("vpf-400", fs->data != NULL, return -1);
     
-    /* Try to open master and rebuild if needed. */
+    /* Try to open master. */
     fs->master = reiser4_master_open(repair_data(fs)->host_device);
 	
-    /* Check opened master or build a new one. */
+    /* Either check the opened master or build a new one. */
     if ((res = repair_master_check(fs)))
 	goto error_free_master;
 	    
     return 0;
     
 error_free_master:
-    if (fs->master)
-	reiser4_master_close(fs->master);
+    reiser4_master_close(fs->master);
     
     return res;
 }

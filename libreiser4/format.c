@@ -186,7 +186,8 @@ reiser4_format_t *reiser4_format_reopen(
 void reiser4_format_close(
 	reiser4_format_t *format)	/* format to be closed */
 {
-	aal_assert("umka-109", format != NULL, return);
+	if (format == NULL)
+		return;
    
 	plugin_call(goto error_free_format, 
 		    format->entity->plugin->format_ops, close, format->entity);

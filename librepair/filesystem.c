@@ -80,19 +80,53 @@ reiser4_fs_t *repair_fs_open(repair_data_t *data) {
 	goto error_free_fs;
 	
     if (repair_format_open(fs))
-	goto error_free_fs;
+	goto error_close_master;
     
-    if (repair_alloc_open(fs))
-	goto error_free_fs;
+    /* Block and oid allocator plugins are specified by format plugin unambiguously, 
+     * so there is nothing to be checked additionally here. */
+    if ((fs->alloc = reiser4_alloc_open(fs->format, 
+	reiser4_format_get_len(fs->format))) == NULL) 
+    {
+	aal_exception_fatal("Failed to open a block allocator.");
+	goto error_close_format;
+    }
 
-    if (repair_oid_open(fs))
-	goto error_free_fs;
+    if ((fs->oid = reiser4_oid_open(fs->format)) == NULL) {	
+	aal_exception_fatal("Failed to open an object id allocator.");
+	goto error_close_alloc;
+    }
+    
+    /* Open, replay and close the journal. */
+    aal_assert("vpf-444", data->journal_device != NULL, goto error_close_alloc);
+
+    if (repair_journal_open(fs))
+	goto error_close_oid;
+    
+    if (reiser4_journal_replay(fs->journal))
+	goto error_close_journal;
+
+    reiser4_journal_close(fs->journal);
     
     return fs;
- 
+
+error_close_journal:
+    reiser4_journal_close(fs->journal);
+    
+error_close_oid:
+    reiser4_oid_close(fs->oid);
+    
+error_close_alloc:
+    reiser4_alloc_close(fs->alloc);
+    
+error_close_format:
+    reiser4_format_close(fs->format);
+    
+error_close_master:
+    reiser4_master_close(fs->master);
+
 error_free_fs:
     aal_free(fs);
-error:
+
     return NULL;
 }
 

@@ -13,9 +13,8 @@
 #include <repair/repair.h>
 #include <repair/filesystem.h>
 #include <repair/format.h>
-#include <repair/alloc.h>
-#include <repair/oid.h>
 #include <repair/master.h>
+#include <repair/journal.h>
 #include <repair/node.h>
 #include <repair/coord.h>
 #include <repair/item.h>
