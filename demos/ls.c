@@ -20,7 +20,7 @@ static void ls_print_usage(void) {
 
 static void ls_init(void) {
 	int i;
-	for (i = 0; i < 5; i++)
+	for (i = 0; i < EXCEPTION_TYPE_LAST; i++)
 		misc_exception_set_stream(i, stderr);
 }
 

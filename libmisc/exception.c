@@ -140,9 +140,7 @@ aal_exception_option_t misc_exception_handler(
 	aal_exception_option_t opt = EXCEPTION_OPT_UNHANDLED;
     
 	if (misc_exception_option_count(exception->options, 0) == 1) {
-		stream = streams[exception->type];
-	
-		if (!stream)
+		if (!(stream = streams[exception->type]))
 			return exception->options;
 	}
 	

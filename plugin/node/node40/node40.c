@@ -828,20 +828,22 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 
 		count = hint->count;
 
-		POS_INIT(&walk, pos->item, MAX_UINT32);
+		if (hint->region_func) {
+			POS_INIT(&walk, pos->item, MAX_UINT32);
 				
-		/* Calling layout function with @hint->region_func for each
-		   removed item in order to let higher levels know that some
-		   region is released. */
-		for (; walk.item < pos->item + count; walk.item++) {
+			/* Calling layout function with @hint->region_func for
+			   each removed item in order to let higher levels know
+			   that some region is released. */
+			for (; walk.item < pos->item + count; walk.item++) {
 
-			if ((res = node40_fetch(entity, &walk, &place)))
-				return res;
+				if ((res = node40_fetch(entity, &walk, &place)))
+					return res;
 			
-			if (place.plug->o.item_ops->object->layout) {
-				plug_call(place.plug->o.item_ops->object,
-					  layout, &place, hint->region_func,
-					  hint->data);
+				if (place.plug->o.item_ops->object->layout) {
+					plug_call(place.plug->o.item_ops->object,
+						  layout, &place, hint->region_func,
+						  hint->data);
+				}
 			}
 		}
 	} else {
