@@ -16,14 +16,14 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	aal_assert("vpf-1044", object != NULL);
 	
-	if ((res = plugin_call(object->entity->plugin->o.object_ops, 
-			       check_struct, object->entity, &object->info,
-			       place_func, mode, data)))
+	if ((res = plug_call(object->entity->plug->o.object_ops, 
+			     check_struct, object->entity, &object->info,
+			     place_func, mode, data)))
 		return res;
 	
 	/* FIXME-VITALY: this is probably should be set by plugin. Together 
 	   with object->info.parent key. */
-	reiser4_key_assign(&object->info.object, &object->info.start.item.key);
+	reiser4_key_assign(&object->info.object, &object->info.start.key);
 	reiser4_key_string(&object->info.object, object->name);
 	
 	return 0;
@@ -34,18 +34,18 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
    FIXME-VITALY: for now it returns the first matched plugin, it should 
    be changed if plugins are not sorted in some order of adventages of 
    recovery. */
-static bool_t callback_object_realize(reiser4_plugin_t *plugin, void *data) {
+static bool_t callback_object_realize(reiser4_plug_t *plug, void *data) {
 	reiser4_object_t *object;
 	
 	/* We are interested only in object plugins here */
-	if (plugin->id.type != OBJECT_PLUGIN_TYPE)
+	if (plug->id.type != OBJECT_PLUG_TYPE)
 		return FALSE;
 	
 	object = (reiser4_object_t *)data;
 	
 	/* Try to realize the object as an instance of this plugin. */
-	object->entity = plugin_call(plugin->o.object_ops, realize, 
-				     &object->info);
+	object->entity = plug_call(plug->o.object_ops, realize, 
+				   &object->info);
 	return object->entity ? TRUE : FALSE;
 }
 
@@ -69,7 +69,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 			return NULL;
 
 		/* The key must point to the start of the object. */
-		if (reiser4_key_compare(&place.item.key, key))
+		if (reiser4_key_compare(&place.key, key))
 			return NULL;
 		
 		/* If the pointed item was found, object must be opanable. 
@@ -121,7 +121,7 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 	
 	aal_assert("vpf-1131", tree != NULL);
 	aal_assert("vpf-1130", place != NULL);
-	aal_assert("vpf-1189", place->item.plugin != NULL);
+	aal_assert("vpf-1189", place->plug != NULL);
 	
 	if (reiser4_item_statdata(place))
 		return reiser4_object_realize(tree, place);
@@ -135,7 +135,7 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 		   place, sizeof(*place));
 	
 	reiser4_key_assign(&object->info.object,
-			   &object->info.start.item.key);
+			   &object->info.start.key);
 	
 	libreiser4_factory_cfind(callback_object_realize, object, only);
 	
@@ -156,17 +156,18 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 				   reiser4_object_t *object, 
 				   uint8_t mode)
 {
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 	
 	aal_assert("vpf-1188", object != NULL);
 	aal_assert("vpf-1098", object->entity != NULL);
 	aal_assert("vpf-1099", parent != NULL);
+	aal_assert("vpf-1100", parent->entity != NULL);
 	
-	plugin = object->entity->plugin;
+	plug = object->entity->plug;
 	
-	if (!object->entity->plugin->o.object_ops->check_attach)
+	if (!object->entity->plug->o.object_ops->check_attach)
 		return 0;
 	
-	return plugin_call(object->entity->plugin->o.object_ops, check_attach,
-			   object->entity, parent->entity, mode);
+	return plug_call(object->entity->plug->o.object_ops, check_attach,
+			 object->entity, parent->entity, mode);
 }
