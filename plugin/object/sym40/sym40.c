@@ -25,23 +25,27 @@ object_entity_t *sym40_open(object_info_t *info) {
 	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
    
-	if (obj40_pid(&info->start, OBJECT_PLUG_TYPE, "symlink") != 
-	    sym40_plug.id.id)
-	{
-		return NULL;
-	}
-	
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
 		return NULL;
 
 	/* Initalizing file handle */
 	obj40_init(&sym->obj, &sym40_plug, core, info);
-
+	
+	if (obj40_pid(&sym->obj, OBJECT_PLUG_TYPE, "symlink") != 
+	    sym40_plug.id.id)
+	{
+		goto error_free_sym;
+	}
+	
 	/* Initialziing statdata place */
 	aal_memcpy(STAT_PLACE(&sym->obj), &info->start,
 		   sizeof(info->start));
 	
 	return (object_entity_t *)sym;
+	
+ error_free_sym:
+	aal_free(sym);
+	return NULL;
 }
 
 /* Reads @n bytes to passed buffer @buff */

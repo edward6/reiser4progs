@@ -162,18 +162,18 @@ static object_entity_t *reg40_open(object_info_t *info) {
 	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
 
-	if (obj40_pid(&info->start, OBJECT_PLUG_TYPE, "regular") != 
-	    reg40_plug.id.id)
-	{
-		return NULL;
-	}
-
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
 
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plug, core, info);
-
+	
+	if (obj40_pid(&reg->obj, OBJECT_PLUG_TYPE, "regular") != 
+	    reg40_plug.id.id)
+	{
+		goto error_free_reg;
+	}
+	
 	/* Reseting file (setting offset to 0) */
 	reg40_reset((object_entity_t *)reg);
 
@@ -182,6 +182,9 @@ static object_entity_t *reg40_open(object_info_t *info) {
 #endif
 
 	return (object_entity_t *)reg;
+ error_free_reg:
+	aal_free(reg);
+	return NULL;
 }
 
 #ifndef ENABLE_STAND_ALONE

@@ -379,22 +379,20 @@ static object_entity_t *dir40_open(object_info_t *info) {
 	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
 	
-	if (obj40_pid(&info->start, OBJECT_PLUG_TYPE, "directory") != 
-	    dir40_plug.id.id)
-	{
-		return NULL;
-	}
-
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
 
 	/* Initializing obj handle for the directory */
 	obj40_init(&dir->obj, &dir40_plug, core, info);
-
-	/* Guessing hash plugin basing on stat data */
-	if (!(dir->hash = obj40_plug(STAT_PLACE(&dir->obj), 
-				     HASH_PLUG_TYPE, "hash"))) 
+	
+	if (obj40_pid(&dir->obj, OBJECT_PLUG_TYPE, "directory") != 
+	    dir40_plug.id.id)
 	{
+		goto error_free_dir;
+	}
+	
+	/* Guessing hash plugin basing on stat data */
+	if (!(dir->hash = obj40_plug(&dir->obj, HASH_PLUG_TYPE, "hash"))) {
                 aal_exception_error("Can't guess hash plugin for directory "
 				    "%llx.", obj40_objectid(&dir->obj));
                 goto error_free_dir;

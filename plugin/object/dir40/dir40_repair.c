@@ -142,7 +142,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 		return res;
 	
 	/* Init hash plugin in use. */
-	if (!(dir->hash = obj40_plug(&info->start, HASH_PLUG_TYPE, "hash"))) {
+	if (!(dir->hash = obj40_plug(&dir->obj, HASH_PLUG_TYPE, "hash"))) {
                 aal_exception_error("Can't init hash plugin for directory %s. "
 				    "Plugin (%s).", print_ino(core, &info->object),
 				    dir40_plug.label);
@@ -150,7 +150,7 @@ errno_t dir40_check_struct(object_entity_t *object,
         }
 
 	/* Init body plugin in use. */
-	if (!(bplug = obj40_plug(&info->start, ITEM_PLUG_TYPE, "direntry"))) {
+	if (!(bplug = obj40_plug(&dir->obj, ITEM_PLUG_TYPE, "direntry"))) {
                 aal_exception_error("Can't init hash plugin for directory %s. "
 				    "Plugin (%s).", print_ino(core, &info->object),
 				    dir40_plug.label);

@@ -347,22 +347,23 @@ errno_t obj40_link(obj40_t *obj, uint32_t value) {
 #endif
 
 /* Just returns a plugin for it @pid if specified; otherwise call obj40_pid. */
-reiser4_plug_t *obj40_plug(place_t *stat, rid_t type, char *name) {
-	rid_t pid = obj40_pid(stat, type, name);
+reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, char *name) {
+	rid_t pid = obj40_pid(obj, type, name);
 	
 	/* Obtain the plugin by id. */
 	return  pid == INVAL_PID ? NULL :
-		core->factory_ops.ifind(HASH_PLUG_TYPE, pid);
+		obj->core->factory_ops.ifind(HASH_PLUG_TYPE, pid);
 }
 
 /* This function asks SD for the plugin of the type @type, if 
    nothing found, it asks core for default one for the @type. */
-rid_t obj40_pid(place_t *stat, rid_t type, char *name) {
-	rid_t pid = plug_call(stat->plug->o.item_ops, plug, stat, type);
+rid_t obj40_pid(obj40_t *obj, rid_t type, char *name) {
+	rid_t pid = plug_call(obj->info.start.plug->o.item_ops, 
+			      plug, &obj->info.start, type);
 	
 	/* If not specified yet, try to get defailt id. */
 	if (pid == INVAL_PID)
-		pid = core->profile_ops.value(name);
+		pid = obj->core->profile_ops.value(name);
 	
 	return pid;
 }
