@@ -364,7 +364,7 @@ static errno_t reg40_convert(object_entity_t *entity,
 int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 	errno_t res;
 	reg40_t *reg;
-	
+
 	int32_t bytes;
 	uint32_t written;
 	uint32_t maxspace;
@@ -388,7 +388,7 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 
 		/* Preparing insert hint */
 		hint.offset = 0;
-		hint.type_specific = buff;
+		hint.specific = buff;
 		hint.tree = reg->obj.info.tree;
 		hint.plug = reg40_bplug(entity, reg40_offset(entity) + n);
 
@@ -444,17 +444,17 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 		reg40_seek(entity, reg40_offset(entity) +
 			   hint.count);
 
-		/* Updating metadata size that was written */
-		bytes += hint.len;
-		
 		/* @buff may be NULL for inserting holes */
-		if (buff)
+		if (buff) {
 			buff += hint.count;
+		}
+
+		bytes += hint.bytes;
 
 		/* Updating counters and offset */
 		written += hint.count;
 	}
-	
+
 	return bytes;
 }
 

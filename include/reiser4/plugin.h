@@ -491,8 +491,11 @@ struct insert_hint {
 	/* Length of the data to be inserted */
 	uint16_t len;
 
+	/* Value needed for updating bytes field in stat data */
+	uint16_t bytes;
+
 	/* This is opaque pointer to item type specific information */
-	void *type_specific;
+	void *specific;
 
 	/* Tree insert is going to be in */
 	void *tree;

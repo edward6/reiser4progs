@@ -94,7 +94,7 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 		return 0;
 	
 	hint = (insert_hint_t *)data;
-	stat_hint = hint->type_specific;
+	stat_hint = hint->specific;
 
 	/* Reading mask into hint */
 	stat_hint->extmask |= ((uint64_t)1 << sdext->plug->id.id);
@@ -157,7 +157,7 @@ static errno_t stat40_estimate_insert(place_t *place, uint32_t pos,
 	if (pos == MAX_UINT32)
 		hint->len = sizeof(stat40_t);
 	
-	stat_hint = (statdata_hint_t *)hint->type_specific;
+	stat_hint = (statdata_hint_t *)hint->specific;
 
 	aal_assert("umka-2360", stat_hint->extmask != 0);
     
@@ -207,7 +207,7 @@ static errno_t stat40_insert(place_t *place, uint32_t pos,
 	aal_assert("vpf-075", hint != NULL);
 
 	extbody = (body_t *)place->body;
-	stat_hint = (statdata_hint_t *)hint->type_specific;
+	stat_hint = (statdata_hint_t *)hint->specific;
     
 	if (!stat_hint->extmask)
 		return 0;
@@ -414,9 +414,8 @@ static rid_t stat40_plugid(place_t *place, rid_t type) {
 	/* FIXME-UMKA: Here should be stat data extentions inspected first in
 	   order to find non-standard object plugin. And only if it is not
 	   found, we should take a look to mode field of the lw extention. */
-
 	if (type == OBJECT_PLUG_TYPE) {
-		hint.type_specific = &stat;
+		hint.specific = &stat;
 		stat.ext[SDEXT_LW_ID] = &lw_hint;
 
 		if (stat40_read(place, &hint, 0, 1) != 1)

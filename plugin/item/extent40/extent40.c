@@ -363,9 +363,11 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 				get_offset, &key);
 
 	block_offset = (unit_offset + hint->offset) -
-		(unit_offset & (blksize - 1));
+		((unit_offset + hint->offset) & (blksize - 1));
 
-	for (count = hint->count; count > 0; count -= size) {
+	for (hint->bytes = 0, count = hint->count; count > 0;
+	     count -= size)
+	{
 		/* Preparing key for getting data by it */
 		plug_call(key.plug->o.key_ops, set_offset,
 			  &key, block_offset);
@@ -380,6 +382,7 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 
 			core->tree_ops.set_data(hint->tree, &key, block);
 			et40_inc_width(extent, 1);
+			hint->bytes += blksize;
 		}
 
 		/* Writting data to @block */
@@ -391,9 +394,9 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 		if (size > count)
 			size = count;
 
-		if (hint->type_specific) {
+		if (hint->specific) {
 			aal_memcpy(block->data + (hint->offset % blksize),
-				   hint->type_specific, size);
+				   hint->specific, size);
 		}
 
 		block_offset += blksize;

@@ -706,7 +706,7 @@ errno_t reiser4_node_upos(reiser4_node_t *node) {
 	aal_memset(&hint, 0, sizeof(hint));
 
         /* Preparing node pointer hint to be used */
-	hint.type_specific = &nodeptr_hint;
+	hint.specific = &nodeptr_hint;
 	nodeptr_hint.start = node_blocknr(node);
 	nodeptr_hint.width = 1;
 

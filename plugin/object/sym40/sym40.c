@@ -69,7 +69,7 @@ static int32_t sym40_read(object_entity_t *entity,
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat, 0, sizeof(stat));
 
-	hint.type_specific = &stat;
+	hint.specific = &stat;
 	stat.ext[SDEXT_SYMLINK_ID] = buff;
 
 	place = STAT_PLACE(&sym->obj);

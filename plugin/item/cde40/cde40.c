@@ -219,7 +219,7 @@ static errno_t cde40_estimate_insert(place_t *place, uint32_t pos,
 	aal_assert("vpf-095", hint != NULL);
 	aal_assert("umka-2229", hint->count > 0);
 
-	entry = (entry_hint_t *)hint->type_specific;
+	entry = (entry_hint_t *)hint->specific;
 	
 	pol = plug_call(hint->key.plug->o.key_ops,
 			bodysize);
@@ -687,7 +687,7 @@ static errno_t cde40_insert(place_t *place, uint32_t pos,
 	aal_assert("umka-897", pos != MAX_UINT32);
 
 	pol = cde40_key_pol(place);
-	entry_hint = (entry_hint_t *)hint->type_specific;
+	entry_hint = (entry_hint_t *)hint->specific;
 
 	/* Expanding direntry in order to prepare the room for new entries. The
 	   function cde40_expand() returns the offset of where new unit will

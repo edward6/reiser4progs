@@ -535,7 +535,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	plug_call(info->object.plug->o.key_ops, assign,
 		  &entry.offset, &body_hint.key);
 
-	body_hint.type_specific = &entry;
+	body_hint.specific = &entry;
 	
         /* Looking for place to insert directory body */
 	switch (obj40_lookup(&dir->obj, &body_hint.key,
@@ -653,7 +653,7 @@ static errno_t dir40_attach(object_entity_t *entity,
 	aal_assert("umka-2359", parent != NULL);
 
 	dir = (dir40_t *)entity;
-	aal_strncpy(entry.name, "..", 2);
+	aal_strncpy(entry.name, "..", sizeof(entry.name));
 
 	/* Adding ".." to child */
 	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
@@ -767,7 +767,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 
 	hint.count = 1;
 	hint.plug = temp.place.plug;
-	hint.type_specific = (void *)entry;
+	hint.specific = (void *)entry;
 
 	/* Building key of the new entry and hint's one */
 	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_entry,

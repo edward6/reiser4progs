@@ -321,7 +321,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 			return -ESTRUCT;
 	}
 	
-	hint.type_specific = &ptr;
+	hint.specific = &ptr;
 	hint.count = 1;
 	ptr.start = node_blocknr(node);
 	ptr.width = 1;

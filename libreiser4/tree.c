@@ -979,7 +979,7 @@ errno_t reiser4_tree_attach(
 	nodeptr_hint.start = node_blocknr(node);
 
 	hint.count = 1;
-	hint.type_specific = &nodeptr_hint;
+	hint.specific = &nodeptr_hint;
 
 	reiser4_node_lkey(node, &hint.key);
 	pid = reiser4_profile_value("nodeptr");

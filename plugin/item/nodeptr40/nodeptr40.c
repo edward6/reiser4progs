@@ -75,7 +75,7 @@ static errno_t nodeptr40_insert(place_t *place, uint32_t pos,
 
 	nodeptr = nodeptr40_body(place);
 	
-	ptr_hint = (ptr_hint_t *)hint->type_specific;
+	ptr_hint = (ptr_hint_t *)hint->specific;
 	np40_set_ptr(nodeptr, ptr_hint->start);
 
 	place_mkdirty(place);

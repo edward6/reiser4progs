@@ -44,7 +44,7 @@ errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
 	aal_memset(&stat, 0, sizeof(stat));
 
 	/* Preparing hint and mask */
-	hint.type_specific = &stat;
+	hint.specific = &stat;
 	
 	if (data)
 		stat.ext[id] = data;
@@ -120,7 +120,7 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	if ((1 << SDEXT_SYMLINK_ID) & mask)
 		stat.ext[SDEXT_SYMLINK_ID] = path;
 	
-	hint.type_specific = &stat;
+	hint.specific = &stat;
 
 	/* Lookup place new item to be insert at and insert it to tree */
 	if (obj40_lookup(obj, &hint.key, LEAF_LEVEL, 
@@ -180,7 +180,7 @@ errno_t obj40_write_ext(place_t *place, rid_t id,
 
 	aal_memset(&stat, 0, sizeof(stat));
 
-	hint.type_specific = &stat;
+	hint.specific = &stat;
 
 	if (plug_call(place->plug->o.item_ops, read,
 		      place, &hint, 0, 1) != 1)
@@ -201,7 +201,7 @@ uint64_t obj40_extmask(place_t *place) {
 	aal_memset(&stat, 0, sizeof(stat));
 
 	/* Preparing hint and mask */
-	hint.type_specific = &stat;
+	hint.specific = &stat;
 	
 	/* Calling statdata open method if any */
 	if (plug_call(place->plug->o.item_ops, read,

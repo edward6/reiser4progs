@@ -83,10 +83,10 @@ static errno_t tail40_insert(place_t *place, uint32_t pos,
 		count = place->len - pos;
 
 	/* Checking if we insert hole */
-	if (hint->type_specific) {
+	if (hint->specific) {
 		/* Copying new data into place */
 		aal_memcpy(place->body + pos,
-			   hint->type_specific, count);
+			   hint->specific, count);
 	} else {
 		/* Making hole of size @count */
 		aal_memset(place->body + pos, 0, count);
@@ -98,7 +98,9 @@ static errno_t tail40_insert(place_t *place, uint32_t pos,
 			return -EINVAL;
 	}
 
+	hint->bytes = count;
 	place_mkdirty(place);
+	
 	return 0;
 }
 
