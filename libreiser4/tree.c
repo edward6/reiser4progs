@@ -1572,6 +1572,15 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 		   or some error occured during last node lookup. */
 		if (clevel <= hint->level || res < 0) {
 			if (res == PRESENT) {
+#ifndef ENABLE_STAND_ALONE
+				/* Correcting found pos by means of calling
+				   @correct_func from @hint. */
+				if (hint->correct_func) {
+					if (hint->correct_func(place, hint, bias))
+						return -EINVAL;
+				}
+#endif
+				
 				/* Fetching item at @place if key is found */
 				if (reiser4_place_fetch(place))
 					return -EIO;
@@ -1696,6 +1705,7 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
 
 	lhint.level = level;
 	lhint.key = &thint.offset;
+	lhint.correct_func = NULL;
 
 	/* Looking up for the insert point place */
 	if ((res = reiser4_tree_lookup(tree, &lhint, FIND_CONV, &place)) < 0) {
@@ -2498,7 +2508,8 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 		   item. */
 		lhint.level = level;
 		lhint.key = &hint->offset;
-		
+		lhint.correct_func = NULL;
+	
 		if ((res = reiser4_tree_lookup(tree, &lhint, FIND_CONV,
 					       place) < 0))
 		{

@@ -77,6 +77,7 @@ errno_t reiser4_object_refresh(reiser4_object_t *object) {
 	info = object->info;
 	hint.level = LEAF_LEVEL;
 	hint.key = &info->object;
+	hint.correct_func = NULL;
 
 	switch (reiser4_tree_lookup(info->tree, &hint, FIND_EXACT,
 				    object_start(object)))
@@ -241,6 +242,7 @@ reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 
 	hint.key = key;
 	hint.level = LEAF_LEVEL;
+	hint.correct_func = NULL;
 	
 	switch (reiser4_tree_lookup(tree, &hint, FIND_EXACT, &place)) {
 	case PRESENT:
@@ -501,6 +503,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 
 	hint.level = LEAF_LEVEL;
 	hint.key = &entry->object;
+	hint.correct_func = NULL;
 	
 	/* Looking up for the victim's statdata place */
 	if (reiser4_tree_lookup(object->info->tree, &hint,

@@ -123,6 +123,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 
 	hint.key = key;
 	hint.level = LEAF_LEVEL;
+	hint.correct_func = NULL;
 	
 	if (reiser4_tree_lookup(tree, &hint, 
 				FIND_EXACT, &place) < 0)

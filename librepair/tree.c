@@ -320,6 +320,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 
 	lhint.level = LEAF_LEVEL;
 	lhint.key = &hint.offset;
+	lhint.correct_func = NULL;
 	
 	/* Key should not exist in the tree yet. */
 	lookup = reiser4_tree_lookup(tree, &lhint, 
@@ -503,6 +504,7 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 
 	lhint.level = LEAF_LEVEL;
 	lhint.key = &hint->offset;
+	lhint.correct_func = NULL;
 	
 	res = reiser4_tree_lookup(tree, &lhint,
 				  FIND_EXACT, place);

@@ -672,7 +672,7 @@ typedef enum lookup_bias lookup_bias_t;
 
 typedef struct lookup_hint lookup_hint_t;
 
-typedef lookup_t (*lookup_func_t) (reiser4_place_t *,
+typedef errno_t (*correct_func_t) (reiser4_place_t *,
 				   lookup_hint_t *,
 				   lookup_bias_t);
 
@@ -686,7 +686,7 @@ struct lookup_hint {
 
 	/* Function for modifying position during lookup in some way needed by
 	   caller. Key collisions may be handler though this. */
-	lookup_func_t lookup_func;
+	correct_func_t correct_func;
 
 	/* Data needed by @lookup_func. */
 	void *data;

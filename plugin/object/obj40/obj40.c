@@ -626,6 +626,7 @@ lookup_t obj40_lookup(obj40_t *obj, reiser4_key_t *key,
 
 	hint.key = key;
 	hint.level = level;
+	hint.correct_func = NULL;
 	
 	return obj->core->tree_ops.lookup(obj->info.tree,
 					  &hint, bias, place);

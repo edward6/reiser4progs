@@ -548,8 +548,8 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 {
 	node40_header_t *head;
 	reiser4_node_t *entity;
-	uint32_t pol, read;
 	reiser4_place_t place;
+	uint32_t pol, read;
 	uint16_t num;
 	pos_t *pos;
 
