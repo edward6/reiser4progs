@@ -418,6 +418,8 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 
 				/* Getting block from the cache. */
 				if (!(block = aal_hash_table_lookup(hint->blocks, &key))) {
+					reiser4_key_t *ins_key;
+					
 					/* If block is not found in cache, we
 					   read it and put to cache. */
 					aal_device_t *device = extent40_device(place);
@@ -428,6 +430,11 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 						return -EIO;
 					}
 
+					if (!(ins_key = aal_calloc(sizeof(*ins_key), 0)))
+						return -ENOMEM;
+
+					aal_memcpy(ins_key, &key, sizeof(key));
+					
 					aal_hash_table_insert(hint->blocks, &key, block);
 				}
 
@@ -1012,9 +1019,16 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 					size = room;
 
 				if (offset >= max_offset) {
+					reiser4_key_t *ins_key;
+					
 					if (!(block = aal_block_alloc(device, blksize, 0)))
 						return -ENOMEM;
 
+					if (!(ins_key = aal_calloc(sizeof(*ins_key), 0)))
+						return -ENOMEM;
+
+					aal_memcpy(ins_key, &key, sizeof(key));
+					
 					aal_hash_table_insert(hint->blocks, &key, block);
 
 					/* Updating @hint->bytes field by blksize, as
@@ -1073,6 +1087,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 				   should be get before modifying it. */
 				if (!(block = aal_hash_table_lookup(hint->blocks, &key))) {
 					blk_t blk;
+					reiser4_key_t *ins_key;
 				
 					if (et40_get_start(extent) == EXTENT_UNALLOC_UNIT) {
 						aal_error("Unallocated extent unit without "
@@ -1092,6 +1107,11 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 						return -EIO;
 					}
 
+					if (!(ins_key = aal_calloc(sizeof(*ins_key), 0)))
+						return -ENOMEM;
+
+					aal_memcpy(ins_key, &key, sizeof(key));
+					
 					/* Updating block in data cache. */
 					aal_hash_table_insert(hint->blocks, &key, block);
 				}

@@ -289,7 +289,7 @@ struct reiser4_tree {
 
 #ifndef ENABLE_STAND_ALONE
 	/* Extents data stored here. */
-	aal_hash_table_t *data;
+	aal_hash_table_t *blocks;
 #endif
 };
 

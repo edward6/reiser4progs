@@ -61,7 +61,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 			hint->count = size;
 
 #ifndef ENABLE_STAND_ALONE
-			hint->blocks = tree->data;
+			hint->blocks = tree->blocks;
 #endif
 			
 			/* Read data from the tree */
@@ -121,8 +121,8 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 		reiser4_place_t place;
 
 		hint->count = size;
-		hint->data = tree->data;
-		
+		hint->blocks = tree->blocks;
+
 		lhint.level = LEAF_LEVEL;
 		lhint.key = &hint->offset;
 		lhint.correct_func = NULL;

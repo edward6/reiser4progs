@@ -802,25 +802,25 @@ errno_t reiser4_tree_discard_node(reiser4_tree_t *tree,
 
 /* Helper function for freeing passed key instance tree's data hashtable entry
    is going to be removed. */
-static void callback_data_keyrem_func(void *key) {
+static void callback_blocks_keyrem_func(void *key) {
 	reiser4_key_free((reiser4_key_t *)key);
 }
 
 /* Helper function for freeing hash value, that is, data block. */
-static void callback_data_valrem_func(void *val) {
+static void callback_blocks_valrem_func(void *val) {
 	aal_block_free((aal_block_t *)val);
 }
 
 /* Helper function for calculating 64-bit hash by passed key. This is used for
    tree's data hash. */
-static uint64_t callback_data_hash_func(void *key) {
+static uint64_t callback_blocks_hash_func(void *key) {
 	return (reiser4_key_get_objectid((reiser4_key_t *)key) +
 		reiser4_key_get_offset((reiser4_key_t *)key));
 }
 
 /* Helper function for comparing two keys during tree's data hash lookups. */
-static int callback_data_comp_func(void *key1, void *key2,
-				   void *data)
+static int callback_blocks_comp_func(void *key1, void *key2,
+				     void *data)
 {
 	return reiser4_key_compfull((reiser4_key_t *)key1,
 				    (reiser4_key_t *)key2);
@@ -905,10 +905,10 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	/* Initializing hash table for storing loaded unformatted blocks in
 	   it. This uses all callbacks we described above for getting hash
 	   values, lookup, etc. */
-	if (!(tree->data = aal_hash_table_create(512, callback_data_hash_func,
-						 callback_data_comp_func,
-						 callback_data_keyrem_func,
-						 callback_data_valrem_func)))
+	if (!(tree->blocks = aal_hash_table_create(512, callback_blocks_hash_func,
+						   callback_blocks_comp_func,
+						   callback_blocks_keyrem_func,
+						   callback_blocks_valrem_func)))
 	{
 		goto error_free_nodes;
 	}
@@ -924,7 +924,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 
  error_free_data:
 #ifndef ENABLE_STAND_ALONE
-	aal_hash_table_free(tree->data);
+	aal_hash_table_free(tree->blocks);
 error_free_nodes:
 #endif
 	aal_hash_table_free(tree->nodes);
@@ -970,7 +970,7 @@ void reiser4_tree_close(reiser4_tree_t *tree) {
 
 	/* Releasing unformatted nodes hash table. */
 #ifndef ENABLE_STAND_ALONE
-	aal_hash_table_free(tree->data);
+	aal_hash_table_free(tree->blocks);
 #endif
 
 	/* Releasing fomatted nodes hash table. */
@@ -1125,7 +1125,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 			   releasing from the cache. */
 			for (blk = ptr.start, i = 0; i < ptr.width; i++, blk++) {
 				/* Getting data block by @key */
-				block = aal_hash_table_lookup(tree->data, &key);
+				block = aal_hash_table_lookup(tree->blocks, &key);
 				aal_assert("umka-2469", block != NULL);
 
 				/* Moving block tro @blk */
@@ -1139,7 +1139,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 				}
 
 				/* Releasing cache entry. */
-				aal_hash_table_remove(tree->data, &key);
+				aal_hash_table_remove(tree->blocks, &key);
 
 				/* Updating the key to find next data block */
 				offset = plug_call(key.plug->o.key_ops,
@@ -1519,7 +1519,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 
 	/* Flushing unformatted blocks (extents data) attached to @tree->data
 	   hash table. */
-	if ((res = aal_hash_table_foreach(tree->data,
+	if ((res = aal_hash_table_foreach(tree->blocks,
 					  callback_save_block, tree)))
 	{
 		aal_error("Can't save unformatted nodes to device.");

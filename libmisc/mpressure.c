@@ -18,5 +18,5 @@ void misc_mpressure_setup(uint32_t value) {
 
 /* This function detects if mempry pressure is here. */
 int misc_mpressure_detect(reiser4_tree_t *tree) {
-	return tree->nodes->real + tree->data->real > watermark;
+	return tree->nodes->real + tree->blocks->real > watermark;
 }
