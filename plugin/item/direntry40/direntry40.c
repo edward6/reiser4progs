@@ -850,11 +850,11 @@ static errno_t direntry40_print(item_entity_t *item,
 			  de40_get_units(direntry));
 
 	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "
-			  "SDKEY%*s\n", 22, " ", 29, " ", 13, " ");
+			  "SDKEY%*s\n", 13, " ", 29, " ", 13, " ");
 	
 	aal_stream_format(stream, "----------------------------"
 			  "------------------------------------"
-			  "-----------------------\n");
+			  "--------------\n");
 	
 	/* Loop though the all entries */
 	for (i = 0; i < de40_get_units(direntry); i++) {
@@ -863,18 +863,18 @@ static errno_t direntry40_print(item_entity_t *item,
 
 		direntry40_get_name(item, i, name, sizeof(name));
 
-		/* Cutting name by 25 symbols */
-		if (aal_strlen(name) > 25) {
+		/* Cutting name by 16 symbols */
+		if (aal_strlen(name) > 16) {
 			for (j = 0; j < 3; j++)
-				name[23 + j] = '.';
+				name[14 + j] = '.';
 
-			name[23 + j] = '\0';
+			name[14 + j] = '\0';
 		}
 
 		locality = ob40_get_locality(objid);
 		objectid = ob40_get_objectid(objid);
 		
-		namewidth = aal_strlen(name) < 25 ? 25 -
+		namewidth = aal_strlen(name) < 16 ? 16 -
 			aal_strlen(name) + 1 : 1;
 
 		aal_stream_format(stream, "%*d %s%*s %*u %.16llx:%.16llx "

@@ -746,9 +746,10 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 errno_t node40_remove(object_entity_t *entity, 
 		      pos_t *pos, uint32_t count) 
 {
+	pos_t rpos;
+	uint32_t len;
 	node40_t *node;
 	item_entity_t item;
-	uint32_t len, units;
 	
 	aal_assert("umka-987", pos != NULL);
 	aal_assert("umka-986", entity != NULL);
@@ -758,28 +759,29 @@ errno_t node40_remove(object_entity_t *entity,
 
 	if (node40_item(entity, pos, &item))
 		return -EINVAL;
+
+	rpos = *pos;
+
+	/* Checking if we need remove whole item if it has not units anymore */
+	if (plugin_call(item.plugin->o.item_ops, units, &item) == 1)
+		rpos.unit = ~0ul;
 	
-	units = plugin_call(item.plugin->o.item_ops, units, &item);
-	
-	if (units == 1)
-		pos->unit = ~0ul;
-	
-	if (pos->unit == ~0ul) {
-		if (!(len = node40_size(node, pos, count)))
+	if (rpos.unit == ~0ul) {
+		if (!(len = node40_size(node, &rpos, count)))
 			return -EINVAL;
 	} else {
 		/* Removing units from the item pointed by @pos */
 		len = plugin_call(item.plugin->o.item_ops, remove, &item,
-				  pos->unit, count);
+				  rpos.unit, count);
 
                 /* Updating items key if leftmost unit was changed */
-		if (pos->unit == 0) {
-			item40_header_t *ih = node40_ih_at(node, pos->item);
+		if (rpos.unit == 0) {
+			item40_header_t *ih = node40_ih_at(node, rpos.item);
 			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
 		}
 	}
 	
-	return node40_shrink(entity, pos, len, count);
+	return node40_shrink(entity, &rpos, len, count);
 }
 
 /* Removes items/units starting from the @start and ending at the @end */

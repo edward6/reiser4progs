@@ -450,27 +450,25 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 	aal_assert("umka-1944", object != NULL);
 	aal_assert("umka-1945", child != NULL);
 	aal_assert("umka-1946", name != NULL);
-	
-	aal_memset(&entry_hint, 0, sizeof(entry_hint));	
 
-	reiser4_key_assign(&entry_hint.object, &child->info.object);
-	aal_strncpy(entry_hint.name, name, sizeof(entry_hint.name));
+	if (name && object) {
+		aal_memset(&entry_hint, 0, sizeof(entry_hint));	
 
-	if ((res = reiser4_object_add_entry(object, &entry_hint))) {
-		aal_exception_error("Can't add entry %s to %s.",
-				    name, object->name);
-		return res;
+		reiser4_key_assign(&entry_hint.object,
+				   &child->info.object);
+		
+		aal_strncpy(entry_hint.name, name,
+			    sizeof(entry_hint.name));
+
+		if ((res = reiser4_object_add_entry(object, &entry_hint))) {
+			aal_exception_error("Can't add entry %s to %s.",
+					    name, object->name);
+			return res;
+		}
 	}
 
-	if ((res = plugin_call(child->entity->plugin->o.object_ops,
-			       link, child->entity)))
-	{
-		aal_exception_error("Can't link %s to %s.",
-				    name, child->name);
-		return res;
-	}
-
-	return 0;
+	return plugin_call(child->entity->plugin->o.object_ops,
+			   link, child->entity);
 }
 
 /* Removes entry from the @object if it is a directory */

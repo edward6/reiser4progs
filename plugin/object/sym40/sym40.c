@@ -82,7 +82,9 @@ static int32_t sym40_read(object_entity_t *entity,
 }
 
 /* Creates symlink and returns initialized instance to the caller */
-static object_entity_t *sym40_create(object_info_t *info, object_hint_t *hint) {
+static object_entity_t *sym40_create(object_info_t *info,
+				     object_hint_t *hint)
+{
 	sym40_t *sym;
 	oid_t objectid, locality;
     
@@ -102,10 +104,11 @@ static object_entity_t *sym40_create(object_info_t *info, object_hint_t *hint) {
 		return NULL;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(info->object.plugin->o.key_ops, get_locality, 
-			       &info->object);
-	objectid = plugin_call(info->object.plugin->o.key_ops, get_objectid, 
-			       &info->object);
+	locality = plugin_call(info->object.plugin->o.key_ops,
+			       get_locality, &info->object);
+	
+	objectid = plugin_call(info->object.plugin->o.key_ops,
+			       get_objectid, &info->object);
 	
 	/* Key contains valid locality and objectid only, build start key. */
 	plugin_call(info->object.plugin->o.key_ops, build_generic, 
@@ -141,18 +144,20 @@ static object_entity_t *sym40_create(object_info_t *info, object_hint_t *hint) {
 		1 << SDEXT_SYMLINK_ID;
 
 	/* Lightweigh extention hint setup */
-	lw_ext.mode = S_IFLNK | 0755;
-	lw_ext.nlink = 1;
 	lw_ext.size = 0;
+	lw_ext.nlink = 1;
+	lw_ext.mode = S_IFLNK | 0755;
 
 	/* Unix extention hint setup */
-	unix_ext.uid = getuid();
-	unix_ext.gid = getgid();
-	unix_ext.atime = time(NULL);
-	unix_ext.mtime = time(NULL);
-	unix_ext.ctime = time(NULL);
 	unix_ext.rdev = 0;
 	unix_ext.bytes = 0;
+	
+	unix_ext.uid = getuid();
+	unix_ext.gid = getgid();
+	
+	unix_ext.atime = time(NULL);
+	unix_ext.mtime = unix_ext.atime;
+	unix_ext.ctime = unix_ext.atime;
 
 	aal_memset(&stat.ext, 0, sizeof(stat.ext));
     
@@ -180,10 +185,10 @@ static object_entity_t *sym40_create(object_info_t *info, object_hint_t *hint) {
 	}
 
 	/* Saving statdata place and locking the node it lies in */
-	aal_memcpy(&info->start, &sym->obj.statdata, sizeof(info->start));
+	aal_memcpy(&info->start, &sym->obj.statdata,
+		   sizeof(info->start));
 
 	obj40_lock(&sym->obj, &sym->obj.statdata);
-	
 	return (object_entity_t *)sym;
 
  error_free_sym:

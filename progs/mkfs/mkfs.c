@@ -394,6 +394,13 @@ int main(int argc, char *argv[]) {
 					    "directory.");
 			goto error_free_tree;
 		}
+
+		/*
+		  Adding two links to root directory in order to prevent its
+		  removing anyway.
+		*/
+		reiser4_object_link(NULL, fs->root, NULL);
+		reiser4_object_link(NULL, fs->root, NULL);
 	
 		/* Creating lost+found directory */
 		if (flags & BF_LOST) {

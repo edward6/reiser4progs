@@ -1332,7 +1332,7 @@ struct tree_ops {
 	errno_t (*realize) (void *, place_t *);
 
 	/* Checks if passed @place points to some real item inside a node */
-	int (*inside) (void *, place_t *);
+	int (*valid) (void *, place_t *);
 	
 #ifndef ENABLE_STAND_ALONE
 	/* 

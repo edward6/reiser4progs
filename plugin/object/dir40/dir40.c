@@ -59,7 +59,7 @@ static int dir40_mergeable(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 
 	/* Checking if item component in @item->pos is valid one */
-	if (!core->tree_ops.inside(dir->obj.tree, place))
+	if (!core->tree_ops.valid(dir->obj.tree, place))
 		return 0;
 
 	/* Initializing item entity at @next place */
@@ -104,7 +104,7 @@ static errno_t dir40_seekdir(object_entity_t *entity,
                 uint64_t locality;
                                                                                     
 		/* Checking if item component in @item->pos is valid one */
-		if (!core->tree_ops.inside(dir->obj.tree, &next))
+		if (!core->tree_ops.valid(dir->obj.tree, &next))
 			return -EINVAL;
 		
                 /* Initializing item entity at @next place */
@@ -417,7 +417,9 @@ static char *dir40_empty_dir[2] = { ".", ".." };
   Creates dir40 instance and inserts few item in new directory described by
   passed @hint.
 */
-static object_entity_t *dir40_create(object_info_t *info, object_hint_t *hint) {
+static object_entity_t *dir40_create(object_info_t *info,
+				     object_hint_t *hint)
+{
 	uint32_t i;
 	dir40_t *dir;
 
@@ -445,13 +447,14 @@ static object_entity_t *dir40_create(object_info_t *info, object_hint_t *hint) {
 		return NULL;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(info->object.plugin->o.key_ops, get_locality, 
-			       &info->object);
-	objectid = plugin_call(info->object.plugin->o.key_ops, get_objectid, 
-			       &info->object);
+	locality = plugin_call(info->object.plugin->o.key_ops,
+			       get_locality, &info->object);
+	
+	objectid = plugin_call(info->object.plugin->o.key_ops,
+			       get_objectid, &info->object);
 
-	/* Key contains valid locality and objectid only, build start key. */
-	plugin_call(info->object.plugin->o.key_ops, build_generic, 
+	/* Key contains valid locality and objectid only, build start key */
+	plugin_call(info->object.plugin->o.key_ops, build_generic,
 		    &info->object, KEY_STATDATA_TYPE, locality, objectid, 0);
 
 	/* Initializing obj handle */
@@ -519,7 +522,10 @@ static object_entity_t *dir40_create(object_info_t *info, object_hint_t *hint) {
 		char *name;
 		uint64_t loc, oid;
 
-		if (i == 0) {
+		name = dir40_empty_dir[i];
+
+		/* Checking if we create "." first */
+		if (!aal_strncmp(name, ".", aal_strlen(name))) {
 			loc = locality;
 			oid = objectid;
 		} else {
@@ -528,8 +534,6 @@ static object_entity_t *dir40_create(object_info_t *info, object_hint_t *hint) {
 		}
 
 		/* Preparing entry hints */
-		name = dir40_empty_dir[i];
-		
 		aal_strncpy(entry->name, name, aal_strlen(name));
 
 		/*
@@ -566,16 +570,8 @@ static object_entity_t *dir40_create(object_info_t *info, object_hint_t *hint) {
 	  it, because of dot entry which points onto directory itself and entry
 	  in parent directory, which points to this new directory.
 	*/
-	
 
-	if (plugin_call(info->parent.plugin->o.key_ops, compare, &info->parent, 
-	    &info->object))
-	{
-	    lw_ext.nlink = 3;
-	} else {
-	    lw_ext.nlink = 1;
-	}
-
+	lw_ext.nlink = 1;
 	lw_ext.mode = S_IFDIR | 0755;
 	lw_ext.size = body_hint.count;
 
@@ -583,9 +579,10 @@ static object_entity_t *dir40_create(object_info_t *info, object_hint_t *hint) {
 	unix_ext.rdev = 0;
 	unix_ext.uid = getuid();
 	unix_ext.gid = getgid();
+	
 	unix_ext.atime = time(NULL);
-	unix_ext.mtime = time(NULL);
-	unix_ext.ctime = time(NULL);
+	unix_ext.mtime = unix_ext.atime;
+	unix_ext.ctime = unix_ext.atime;
 
 	/*
 	  Estimating body item and setting up "bytes" field from the unix
@@ -626,7 +623,9 @@ static object_entity_t *dir40_create(object_info_t *info, object_hint_t *hint) {
 	}
 	
 	/* Saving stat data place insert function has returned */
-	aal_memcpy(&info->start, &dir->obj.statdata, sizeof(info->start));
+	aal_memcpy(&info->start, &dir->obj.statdata,
+		   sizeof(info->start));
+	
 	obj40_lock(&dir->obj, &dir->obj.statdata);
 
 	/* Looking for place to insert directory body */
@@ -657,7 +656,6 @@ static object_entity_t *dir40_create(object_info_t *info, object_hint_t *hint) {
 	aal_free(body);
  error_free_dir:
 	aal_free(dir);
- error:
 	return NULL;
 }
 
@@ -764,12 +762,16 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	errno_t res;
 	dir40_t *dir;
 	uint64_t size;
+	
+	uint32_t units;
 	uint32_t atime;
 
 	key_entity_t *key;
 	item_entity_t *item;
 
+	entry_hint_t ent;
 	create_hint_t hint;
+	oid_t locality, objectid;
 	sdext_unix_hint_t unix_hint;
 	
 	aal_assert("umka-1922", entity != NULL);
@@ -779,14 +781,35 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	key = STAT_KEY(&dir->obj);
 
 	/* Generating key of the entry to be removed */
-	plugin_call(key->plugin->o.key_ops, build_entry, &entry->offset,
-		    dir->hash, obj40_locality(&dir->obj),
-		    obj40_objectid(&dir->obj), entry->name);
+	locality = obj40_locality(&dir->obj);
+	objectid = obj40_objectid(&dir->obj);
 	
+	plugin_call(key->plugin->o.key_ops, build_entry,
+		    &entry->offset, dir->hash, locality,
+		    objectid, entry->name);
+
+	/* Removing one unit from directory */
 	if ((res = obj40_remove(&dir->obj, &entry->offset, 1)))
 		return res;
 
-	/* Updating size field in stat data */
+	item = &dir->body.item;
+	
+	units = plugin_call(item->plugin->o.item_ops,
+			    units, item);
+
+	/* Getting next direntry item */
+	if (dir->body.pos.unit >= units)
+		dir40_next(entity);
+
+	/* Updating current position by entry offset key */
+	if (plugin_call(item->plugin->o.item_ops, read, item,
+			&ent, dir->body.pos.unit, 1) == 1)
+	{
+		aal_memcpy(&dir->offset, &ent.offset,
+			   sizeof(dir->offset));
+	}
+	
+	/* Updating stat dat place */
 	if ((res = obj40_stat(&dir->obj)))
 		return res;
 	

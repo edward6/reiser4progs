@@ -89,9 +89,8 @@ static errno_t tree_realize(void *tree, place_t *place) {
 }
 
 /* Returns TRUE if passed @place points to some real item in a node */
-static int tree_inside(void *tree, place_t *place) {
+static int tree_valid(void *tree, place_t *place) {
 	reiser4_place_t *p = (reiser4_place_t *)place;
-
 	return p->pos.item < reiser4_node_items(p->node);
 }
 
@@ -251,8 +250,8 @@ reiser4_core_t core = {
 		/* This one for initializing an item at place */
 		.realize    = tree_realize,
 
-		/* Inside callback installing */
-		.inside      = tree_inside,
+		/* Installing "valid" callback */
+		.valid      = tree_valid,
 
 		/* Returns next item from the passed place */
 		.next	    = tree_next,

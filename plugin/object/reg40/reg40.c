@@ -192,14 +192,16 @@ static object_entity_t *reg40_open(object_info_t *info) {
 
 #ifndef ENABLE_STAND_ALONE
 /* Creating the file described by pased @hint */
-static object_entity_t *reg40_create(object_info_t *info, object_hint_t *hint) {
+static object_entity_t *reg40_create(object_info_t *info,
+				     object_hint_t *hint)
+{
 	reg40_t *reg;
-	oid_t objectid, locality;
 	
 	statdata_hint_t stat;
     	create_hint_t stat_hint;
     
 	sdext_lw_hint_t lw_ext;
+	oid_t objectid, locality;
 	sdext_unix_hint_t unix_ext;
 	
 	reiser4_plugin_t *stat_plugin;
@@ -214,17 +216,20 @@ static object_entity_t *reg40_create(object_info_t *info, object_hint_t *hint) {
 	reg->offset = 0;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(info->object.plugin->o.key_ops, get_locality, 
-			       &info->object);
-	objectid = plugin_call(info->object.plugin->o.key_ops, get_objectid, 
-			       &info->object);
+	locality = plugin_call(info->object.plugin->o.key_ops,
+			       get_locality, &info->object);
 	
-	/* Key contains valid locality and objectid only, build start key. */
-	plugin_call(info->object.plugin->o.key_ops, build_generic, 
-		    &info->object, KEY_STATDATA_TYPE, locality, objectid, 0);
+	objectid = plugin_call(info->object.plugin->o.key_ops,
+			       get_objectid, &info->object);
+	
+	/* Key contains valid locality and objectid only, build start key */
+	plugin_call(info->object.plugin->o.key_ops,
+		    build_generic, &info->object,
+		    KEY_STATDATA_TYPE, locality, objectid, 0);
 	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plugin, &info->object, core, info->tree);
+	obj40_init(&reg->obj, &reg40_plugin, &info->object,
+		   core, info->tree);
 	
 	/* Getting statdata plugin */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
@@ -253,13 +258,15 @@ static object_entity_t *reg40_create(object_info_t *info, object_hint_t *hint) {
 	/* This should be modified by write function later */
 	lw_ext.size = 0;
     
-	unix_ext.uid = getuid();
-	unix_ext.gid = getgid();
-	unix_ext.atime = time(NULL);
-	unix_ext.mtime = time(NULL);
-	unix_ext.ctime = time(NULL);
 	unix_ext.rdev = 0;
 	unix_ext.bytes = 0;
+
+	unix_ext.uid = getuid();
+	unix_ext.gid = getgid();
+	
+	unix_ext.atime = time(NULL);
+	unix_ext.mtime = unix_ext.atime;
+	unix_ext.ctime = unix_ext.atime;
 
 	aal_memset(&stat.ext, 0, sizeof(stat.ext));
     
@@ -285,7 +292,9 @@ static object_entity_t *reg40_create(object_info_t *info, object_hint_t *hint) {
 		goto error_free_reg;
 	}
 
-	aal_memcpy(&info->start, &reg->obj.statdata, sizeof(info->start));
+	aal_memcpy(&info->start, &reg->obj.statdata,
+		   sizeof(info->start));
+	
 	obj40_lock(&reg->obj, &reg->obj.statdata);
 	
 	reg->bplug = reg40_bplug(reg, 0);
