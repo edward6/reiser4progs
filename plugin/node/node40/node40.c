@@ -292,8 +292,7 @@ static errno_t node40_item(item_entity_t *item,
   Makes expand passed @node by @len in odrer to insert item/unit into it. This
   function is used by insert and shift methods.
 */
-static errno_t node40_expand(node40_t *node,
-			     reiser4_pos_t *pos,
+static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 			     uint32_t size)
 {
 	int is_space;
@@ -327,18 +326,18 @@ static errno_t node40_expand(node40_t *node,
 	  data moving and offset upadting.
 	*/
 	if (item_pos < nh40_get_num_items(node)) {
-		uint32_t tomove;
+		uint32_t move;
 		void *src, *dst;
 
 		offset = ih40_get_offset(ih);
 
+		/* Moving items bodies */
 		src = node->block->data + offset;
 		dst = src + size;
 
-		tomove = nh40_get_free_space_start(node) - offset;
+		move = nh40_get_free_space_start(node) - offset;
 
-		/* Moving items bodies */
-		aal_memmove(dst, src, tomove);
+		aal_memmove(dst, src, move);
 
 		/* Updating item offsets */
 		for (i = item_pos; i < nh40_get_num_items(node); i++, ih--) 
@@ -349,8 +348,10 @@ static errno_t node40_expand(node40_t *node,
 		  room for new item header and set it up.
 		*/
 		if (is_insert) {
-			aal_memmove(ih, ih + 1, sizeof(item40_header_t) * 
-				    (nh40_get_num_items(node) - item_pos));
+			move = sizeof(item40_header_t) *
+				(nh40_get_num_items(node) - item_pos);
+			
+			aal_memmove(ih, ih + 1, move);
 		}
 
 		ih += (nh40_get_num_items(node) - item_pos);
@@ -390,6 +391,7 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 	int is_range;
     
 	uint32_t len;
+	uint32_t items;
 	uint32_t offset;
 	
 	item40_header_t *ih;
@@ -397,7 +399,9 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 	aal_assert("umka-958", node != NULL, return -1);
 	aal_assert("umka-959", pos != NULL, return -1);
 
-	is_range = (pos->item < nh40_get_num_items(node));
+	items = nh40_get_num_items(node);
+	is_range = (pos->item < items);
+	
 	aal_assert("umka-960", is_range, return -1);
     
 	ih = node40_ih_at(node, pos->item);
@@ -424,7 +428,7 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 		aal_memmove(dst, src, move);
 
 		/* Updating item offsets */
-		end = node40_ih_at(node, nh40_get_num_items(node) - 1);
+		end = node40_ih_at(node, items - 1);
 
 		for (cur = ih - 1; cur >= end; cur--)
 			ih40_dec_offset(cur, size);
@@ -563,6 +567,88 @@ static errno_t node40_delete(node40_t *node, reiser4_pos_t *pos,
 	return 0;
 }
 
+/*
+  General node40 shrink function. It is used durring shifting, removing,
+  etc.
+*/
+static errno_t node40_shrink1(node40_t *node, reiser4_pos_t *pos,
+			      uint32_t len, uint32_t count)
+{
+	int is_range;
+	
+	uint32_t size;
+	void *src, *dst;
+
+	uint32_t offset;
+	uint32_t headers;
+	uint32_t i, items;
+
+	item40_header_t *ih;
+	item40_header_t *cur;
+	item40_header_t *end;
+	
+	aal_assert("umka-958", node != NULL, return -1);
+	aal_assert("umka-959", pos != NULL, return -1);
+	aal_assert("umka-1792", count > 0, return -1);
+
+	items = nh40_get_num_items(node);
+
+	is_range = (pos->item < items);
+	aal_assert("umka-960", is_range, return -1);
+
+	headers = count * sizeof(item40_header_t);
+	
+	if (pos->unit == ~0ul) {
+
+		/* Moving item bodies */
+		dst = node40_ib_at(node, pos->item);
+		src = node40_ib_at(node, pos->item) + len;
+		size = nh40_get_free_space_start(node) - len;
+
+		aal_memmove(dst, src, size);
+
+		/* Moving item headers */
+		src = node40_ih_at(node, items - 1);
+		dst = src + (count * sizeof(item40_header_t));
+		size = (items - pos->item - 1) * sizeof(item40_header_t);
+	
+		aal_memmove(dst, src, size);
+
+		nh40_dec_num_items(node, count);
+	} else {
+		uint32_t ilen, offset;
+		
+		ih = node40_ih_at(node, pos->item);
+		ih40_dec_len(ih, len);
+
+		ilen = node40_item_len((object_entity_t *)node, pos);
+
+		/* Moving item bodies */
+		src = node40_ib_at(node, pos->item) + ilen;
+		dst = node40_ib_at(node, pos->item) + ilen - len;
+
+		offset = ih40_get_offset(node40_ih_at(node, pos->item));
+		size = nh40_get_free_space_start(node) - offset - len;
+		
+		aal_memmove(dst, src, size);
+	}
+
+	end = node40_ih_at(node, items - 1);
+	ih = node40_ih_at(node, pos->item);
+	
+	/* Updating item offsets */
+	for (cur = ih - 1; cur >= end; cur--)
+		ih40_dec_offset(cur, len);
+	
+	nh40_inc_free_space(node, len);
+	nh40_dec_free_space_start(node, len);
+
+	if (pos->unit == ~0ul)
+		nh40_inc_free_space(node, headers);
+	
+	return 0;
+}
+
 /* Inserts item described by hint structure into node */
 static errno_t node40_insert(object_entity_t *entity,
 			     reiser4_pos_t *pos,
@@ -583,41 +669,50 @@ static errno_t node40_insert(object_entity_t *entity,
 
 	ih = node40_ih_at(node, pos->item);
 
-	/* Updating item header plugin id if we insert new item */
-	if (pos->unit == ~0ul)
-		ih40_set_pid(ih, hint->plugin->h.id);
-
-	/*
-	  Updating item's key if we insert new item or if we insert unit into
-	  leftmost postion.
-	*/
-	if (pos->unit == ~0ul || (pos->item == 0 && pos->unit == 0))
-		aal_memcpy(&ih->key, hint->key.body, sizeof(ih->key));
-
-	/*
-	  If item hint contains some data, we just copy it and going out. This
-	  mode probably will be used by fsck.
-	*/
-	if (hint->data) {
-		aal_memcpy(node40_ib_at(node, pos->item), 
-			   hint->data, hint->len);
-		return 0;
-	}
-
 	/* Preparing item for calling item plugin with them */
 	if (node40_item(&item, node, pos->item))
 		return -1;
 
-	/* Calling item plugin to perform initializing the item. */
+	/* Updating item header plugin id if we insert new item */
 	if (pos->unit == ~0ul) {
+
+		/* Updating item header */
+		ih40_set_pid(ih, hint->plugin->h.id);
+		aal_memcpy(&ih->key, hint->key.body, sizeof(ih->key));
+	
+		/*
+		  If item hint contains some data, we just copy it and going
+		  out. This mode probably will be used by fsck.
+		*/
+		if (hint->data) {
+			aal_memcpy(node40_ib_at(node, pos->item), 
+				   hint->data, hint->len);
+			return 0;
+		}
+
+		/* Calling item plugin to perform initializing the item. */
 		if (plugin_call(hint->plugin->item_ops, init, &item))
 			return -1;
 
-		pos->unit = 0;
+		return plugin_call(hint->plugin->item_ops, insert, &item,
+				   hint, 0);
+	} else {
+		if (plugin_call(hint->plugin->item_ops, insert, &item,
+				hint, pos->unit))
+		{
+			/* Was unable to insert new unit */
+			return -1;
+		}
+
+		/*
+		  Updating item's key if we insert new item or if we insert unit
+		  into leftmost postion.
+		*/
+		if (pos->unit == 0)
+			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
 	}
 
-	return plugin_call(hint->plugin->item_ops, insert, &item,
-			   hint, pos->unit);
+	return 0;
 }
 
 /* This function removes item/unit from the node at specified @pos */
@@ -646,13 +741,10 @@ errno_t node40_remove(object_entity_t *entity,
 		len = plugin_call(item.plugin->item_ops, remove, &item,
 				  pos->unit, 1);
 
-		if (node40_shrink(node, pos, len))
-			return -1;
-
-		if (pos->item == 0 && pos->unit == 0)
+		if (pos->unit == 0)
 			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
 
-		return 0;
+		return node40_shrink(node, pos, len);
 	}
 }
 
@@ -1211,7 +1303,7 @@ static errno_t node40_merge(node40_t *src_node,
 	}
 
 	return node40_shrink(src_node, &pos, len);
-
+	
  out:
 	hint->flags &= ~SF_MOVIP;
 	return 0;

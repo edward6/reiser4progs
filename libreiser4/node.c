@@ -509,26 +509,23 @@ reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
 	return node;
 }
 
-/*
-  Finds specified neighbour node. Direction 0 specifies, we should find left
-  neighbour node.
-*/
+/* Finds specified neighbour node */
 static reiser4_node_t *reiser4_node_fnn(
 	reiser4_node_t *node,
-	int direction)
+	aal_direction_t where)
 {	
 	uint32_t level;
 	reiser4_node_t *old = node;
 	
 	level = reiser4_node_level(node);
 	
-	if (!(node = reiser4_node_neighbour(node, direction)))
+	if (!(node = reiser4_node_neighbour(node, where)))
 		return NULL;
 	
 	if (level != reiser4_node_level(node))
 		return NULL;
 	
-	if (direction == 0) {
+	if (where == D_LEFT) {
 		old->left = node;
 		node->right = old;
 	} else {
@@ -540,11 +537,11 @@ static reiser4_node_t *reiser4_node_fnn(
 }
 
 static reiser4_node_t *reiser4_node_lnn(reiser4_node_t *node) {
-	return reiser4_node_fnn(node, 0);
+	return reiser4_node_fnn(node, D_LEFT);
 }
 
 static reiser4_node_t *reiser4_node_rnn(reiser4_node_t *node) {
-	return reiser4_node_fnn(node, 1);
+	return reiser4_node_fnn(node, D_RIGHT);
 }
 
 /* 
@@ -1057,8 +1054,8 @@ errno_t reiser4_node_insert(
 	   Inserting new item or passting unit into one existent item pointed by
 	   pos->item.
 	*/
-	if ((ret = plugin_call(node->entity->plugin->node_ops, 
-			       insert, node->entity, pos, hint)) != 0)
+	if ((ret = plugin_call(node->entity->plugin->node_ops,
+			       insert, node->entity, pos, hint)))
 		return ret;
 	
 	/* Updating ldkey in parent node */

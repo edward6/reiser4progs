@@ -537,7 +537,8 @@ static int32_t dir40_write(object_entity_t *entity,
 	}
 
 	/* Updating size field in stat data */
-	file40_stat(&dir->file);
+	if (file40_stat(&dir->file))
+		return -1;
 	
 	size = file40_get_size(&dir->file);
 
