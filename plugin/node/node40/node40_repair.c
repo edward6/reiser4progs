@@ -335,7 +335,7 @@ static errno_t node40_count_check(node40_t *node, uint8_t mode) {
 	aal_assert("vpf-802", node != NULL);
 	aal_assert("vpf-803", node->block != NULL);
 	
-	blk = node->block->size;
+	blk = node->block->nr;
 	
 	if (node40_item_count_valid(node, nh_get_num_items(node)))
 		return 0;
@@ -469,12 +469,18 @@ bool_t node40_test_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
 		ih_test_flag(ih, flag, pol);
 }
 
-errno_t node40_pack(node_entity_t *entity, aal_stream_t *stream) {
+errno_t node40_pack(node_entity_t *entity, aal_stream_t *stream, int mode) {
+	node40_t *node = (node40_t *)entity;
+	node40_header_t *head;
+	place_t place;
+	uint32_t pol;
+	uint16_t num;
+	pos_t *pos;
 	rid_t pid;
 	
 	aal_assert("umka-2596", entity != NULL);
 	aal_assert("umka-2598", stream != NULL);
-
+	
 	pid = entity->plug->id.id;
 	aal_stream_write(stream, &pid, sizeof(pid));
 	
@@ -482,19 +488,79 @@ errno_t node40_pack(node_entity_t *entity, aal_stream_t *stream) {
 	aal_stream_write(stream, &entity->block->nr,
 			 sizeof(entity->block->nr));
 
-	/* Write node raw data. */
-	aal_stream_write(stream, entity->block->data,
-			 entity->block->size);
+	if (mode != PACK_FULL) {
+		/* Write node raw data. */
+		aal_stream_write(stream, entity->block->data,
+				 entity->block->size);
+
+		return 0;
+	}
+	
+	pol = node40_key_pol(node);
+	
+	/* Pack the node content. */
+	
+	/* Node header w/out magic and padding. */
+	head = nh((node)->block);
+	aal_stream_write(stream, &head->num_items, 
+			 sizeof(head->num_items));
+	aal_stream_write(stream, &head->free_space, 
+			 sizeof(head->free_space));
+	aal_stream_write(stream, &head->free_space_start, 
+			 sizeof(head->free_space_start));
+	aal_stream_write(stream, &head->mkfs_id, 
+			 sizeof(head->mkfs_id));
+	aal_stream_write(stream, &head->flush_id, 
+			 sizeof(head->flush_id));
+	aal_stream_write(stream, &head->flags, 
+			 sizeof(head->flags));
+	aal_stream_write(stream, &head->level, 
+			 sizeof(head->level));
+
+	/* All items. */
+	num = nh_get_num_items(node);
+	pos = &place.pos;
+	pos->unit = MAX_UINT32;
+	
+	/* Pack all item headers. */
+	for (pos->item = 0; pos->item < num; pos->item++) {
+		void *ih = node40_ih_at(node, pos->item);
+		aal_stream_write(stream, ih, ih_size(pol));
+	}
+
+	/* Paack all item bodies. */
+	
+	for (pos->item = 0; pos->item < num; pos->item++) {
+		if (node40_fetch(entity, pos, &place))
+			return -EINVAL;
+		
+		if (place.plug->o.item_ops->repair->pack) {
+			/* Pack body. */
+			if (plug_call(place.plug->o.item_ops->repair,
+				      pack, &place, stream))
+				return -EINVAL;
+		} else {
+			/* Do not pack body. */
+			aal_stream_write(stream, node40_ib_at(node, pos->item),
+					 node40_len(entity, &place.pos));
+		}
+	}
 	
 	return 0;
 }
 
 node_entity_t *node40_unpack(aal_block_t *block,
 			     reiser4_plug_t *kplug,
-			     aal_stream_t *stream)
+			     aal_stream_t *stream,
+			     int mode)
 {
+	node40_header_t *head;
 	node40_t *node;
-	
+	place_t place;
+	uint32_t pol;
+	uint16_t num;
+	pos_t *pos;
+
 	aal_assert("umka-2597", block != NULL);
 	aal_assert("umka-2632", kplug != NULL);
 	aal_assert("umka-2599", stream != NULL);
@@ -506,11 +572,73 @@ node_entity_t *node40_unpack(aal_block_t *block,
 	node->block = block;
 	node->plug = &node40_plug;
 	
-	/* Read node raw data. */
-	aal_stream_read(stream, node->block->data,
-			node->block->size);
-
 	node40_mkdirty((node_entity_t *)node);
+	
+	if (mode != PACK_FULL) {
+		/* Read node raw data. */
+		aal_stream_read(stream, node->block->data,
+				node->block->size);
+		
+		return (node_entity_t *)node;
+	}
+
+	pol = node40_key_pol(node);
+	
+	/* Unpack the node content. */
+	
+	/* Node header w/out magic and padding. */
+	head = nh((node)->block);
+	aal_stream_read(stream, &head->num_items, 
+			sizeof(head->num_items));
+	aal_stream_read(stream, &head->free_space, 
+			sizeof(head->free_space));
+	aal_stream_read(stream, &head->free_space_start, 
+			sizeof(head->free_space_start));
+	aal_stream_read(stream, &head->mkfs_id, 
+			sizeof(head->mkfs_id));
+	aal_stream_read(stream, &head->flush_id, 
+			sizeof(head->flush_id));
+	aal_stream_read(stream, &head->flags, 
+			sizeof(head->flags));
+	aal_stream_read(stream, &head->level, 
+			sizeof(head->level));
+
+	/* Set the magic and the pid. */
+	nh_set_magic(node, NODE40_MAGIC);
+	nh_set_pid(node, node40_plug.id.id);
+	
+	/* All items. */
+	num = nh_get_num_items(node);
+	pos = &place.pos;
+	pos->unit = MAX_UINT32;
+	
+	/* Unpack all item headers. */
+	for (pos->item = 0; pos->item < num; pos->item++) {
+		void *ih = node40_ih_at(node, pos->item);
+		aal_stream_read(stream, ih, ih_size(pol));
+	}
+
+	/* Unpack all item bodies. */
+	for (pos->item = 0; pos->item < num; pos->item++) {
+		if (node40_fetch((node_entity_t *)node, pos, &place))
+			return NULL;
+		
+		if (place.plug->o.item_ops->repair->unpack) {
+			/* Unpack body. */
+			if (plug_call(place.plug->o.item_ops->repair,
+				      unpack, &place, stream))
+				return NULL;
+		} else {
+			void *ib = node40_ib_at(node, pos->item);
+			uint32_t len = node40_len((node_entity_t *)node, 
+						  &place.pos);
+			
+			/* Do not unpack body. */
+			aal_stream_read(stream, ib, len);
+		}
+	}
+
+	
 	return (node_entity_t *)node;
 }
 #endif

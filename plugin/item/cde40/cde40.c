@@ -1065,7 +1065,10 @@ static item_repair_ops_t repair_ops = {
 	.check_layout	  = NULL,
 
 	.prep_merge	  = cde40_prep_merge,
-	.merge		  = cde40_merge
+	.merge		  = cde40_merge,
+
+	.pack		  = NULL,
+	.unpack		  = NULL
 #endif
 };
 

@@ -1164,8 +1164,12 @@ static item_repair_ops_t repair_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.check_layout	  = extent40_check_layout,
 	.check_struct	  = extent40_check_struct,
+	
 	.prep_merge	  = extent40_prep_merge,
-	.merge		  = extent40_merge
+	.merge		  = extent40_merge,
+
+	.pack		  = NULL,
+	.unpack		  = NULL
 #endif
 };
 

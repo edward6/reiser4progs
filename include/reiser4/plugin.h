@@ -958,6 +958,9 @@ struct item_repair_ops {
 	/* Does some specific actions if a block the item points to is wrong. */
 	errno_t (*check_layout) (place_t *, region_func_t,
 				 void *, uint8_t);
+
+	errno_t (*pack) (place_t *, aal_stream_t *);
+	errno_t (*unpack) (place_t *, aal_stream_t *);
 #endif
 };
 
@@ -1038,11 +1041,10 @@ struct reiser4_node_ops {
 	errno_t (*check_struct) (node_entity_t *, uint8_t);
 
 	/* Packing/unpacking metadata. */
-	node_entity_t *(*unpack) (aal_block_t *,
-				  reiser4_plug_t *,
-				  aal_stream_t *);
+	node_entity_t *(*unpack) (aal_block_t *, reiser4_plug_t *,
+				  aal_stream_t *, int);
 	
-	errno_t (*pack) (node_entity_t *, aal_stream_t *);
+	errno_t (*pack) (node_entity_t *, aal_stream_t *, int);
 
 	/* Prints node into given buffer. */
 	errno_t (*print) (node_entity_t *, aal_stream_t *,

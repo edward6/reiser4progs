@@ -496,6 +496,9 @@ static item_repair_ops_t repair_ops = {
 
 	.prep_merge	  = tail40_prep_merge,
 	.merge		  = tail40_merge,
+
+	.pack		  = tail40_pack,
+	.unpack		  = tail40_unpack
 #endif
 };
 

@@ -26,12 +26,6 @@ extern node_t *reiser4_node_create(reiser4_tree_t *tree,
 extern errno_t reiser4_node_print(node_t *node,
 				  aal_stream_t *stream);
 
-extern errno_t reiser4_node_pack(node_t *node,
-				 aal_stream_t *stream);
-
-extern node_t *reiser4_node_unpack(reiser4_tree_t *tree,
-				   aal_stream_t *stream);
-
 extern int64_t reiser4_node_modify(node_t *node, pos_t *pos,
 				   trans_hint_t *hint,
 				   modify_func_t modify_func);

@@ -22,6 +22,7 @@ extern reiser4_fs_t *reiser4_fs_open(aal_device_t *device, bool_t check);
 #define FORMAT_PACK_SIGN "FRMT"
 #define ALLOC_PACK_SIGN  "ALLO"
 #define NODE_PACK_SIGN   "NODE"
+#define BLOCK_PACK_SIGN  "BLCK"
 
 extern errno_t reiser4_fs_sync(reiser4_fs_t *fs);
 
@@ -42,10 +43,6 @@ extern reiser4_fs_t *reiser4_fs_create(aal_device_t *device,
 
 extern errno_t reiser4_fs_backup(reiser4_fs_t *fs, aal_stream_t *stream);
 
-extern errno_t reiser4_fs_pack(reiser4_fs_t *fs, aal_stream_t *stream);
-
-extern reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device, 
-				       aal_stream_t *stream);
 #endif
 
 #endif

@@ -69,58 +69,6 @@ errno_t reiser4_master_backup(reiser4_master_t *master, aal_stream_t *stream) {
 	return 0;
 }
 
-errno_t reiser4_master_pack(reiser4_master_t *master,
-			    aal_stream_t *stream)
-{
-	uint32_t size;
-	
-	aal_assert("umka-2608", master != NULL);
-	aal_assert("umka-2609", stream != NULL);
-
-	/* Write master size. */
-	size = sizeof(master->ent);
-	aal_stream_write(stream, &size, sizeof(size));
-
-	/* Write master data to @stream. */
-	aal_stream_write(stream, &master->ent, size);
-
-	return 0;
-}
-
-reiser4_master_t *reiser4_master_unpack(aal_device_t *device,
-					aal_stream_t *stream)
-{
-	uint32_t size;
-	reiser4_master_t *master;
-    
-	aal_assert("umka-981", device != NULL);
-	aal_assert("umka-2611", stream != NULL);
-
-	/* Read size and check for validness. */
-	aal_stream_read(stream, &size, sizeof(size));
-
-	/* Allocating the memory for master super block struct */
-	if (!(master = aal_calloc(sizeof(*master), 0)))
-		return NULL;
-	
-	if (size != sizeof(master->ent)) {
-		aal_error("Invalid size %u is detected in stream.",
-			  size);
-		goto error_free_master;
-	}
-
-	/* Read master data from @stream. */
-	aal_stream_read(stream, &master->ent, size);
-
-	master->dirty = TRUE;
-	master->device = device;
-	
-	return master;
-	
- error_free_master:
-	aal_free(master);
-	return NULL;
-}
 
 errno_t reiser4_master_print(reiser4_master_t *master,
 			     aal_stream_t *stream,

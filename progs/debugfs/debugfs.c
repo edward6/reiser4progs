@@ -247,7 +247,7 @@ int main(int argc, char *argv[]) {
 		
 		aal_stream_init(&stream, stdin, &file_stream);
 		
-		if (!(fs = reiser4_fs_unpack(device, &stream))) {
+		if (!(fs = repair_fs_unpack(device, &stream))) {
 			aal_error("Can't unpack filesystem.");
 			goto error_free_device;
 		}
@@ -327,14 +327,20 @@ int main(int argc, char *argv[]) {
 
 	if (behav_flags & BF_PACK_META) {
 		aal_stream_t stream;
+		void *error;
 
-		aal_stream_init(&stream, stdout,
-				&file_stream);
+		aal_stream_init(&stream, stdout, &file_stream);
 		
-		if (reiser4_fs_pack(fs, &stream)) {
+		/* FIXME-VITALY: this is needed to not print all found node 
+		   corruptions, but this also avoid prining usaful pack 
+		   errors. */
+		error = misc_exception_get_stream(EXCEPTION_ERROR);
+		//misc_exception_set_stream(EXCEPTION_ERROR, NULL);
+		if (repair_fs_pack(fs, &stream)) {
 			aal_error("Can't pack filesystem.");
 			goto error_free_journal;
 		}
+		misc_exception_set_stream(EXCEPTION_ERROR, error);
 
 		aal_stream_fini(&stream);
 	}

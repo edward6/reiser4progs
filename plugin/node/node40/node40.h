@@ -61,9 +61,8 @@ typedef struct node40_header node40_header_t;
 
 extern inline uint32_t node40_key_pol(node40_t *node);
 extern void node40_move(node_entity_t *entity, blk_t nr);
-
-extern uint32_t node40_size(node40_t *node, pos_t *pos,
-			    uint32_t count);
+extern uint16_t node40_len(node_entity_t *entity, pos_t *pos);
+extern uint32_t node40_size(node40_t *node, pos_t *pos, uint32_t count);
 
 extern errno_t node40_fetch(node_entity_t *entity,
 			    pos_t *pos, place_t *place);

@@ -12,4 +12,7 @@
 extern errno_t tail40_prep_merge(place_t *place, trans_hint_t *hint);
 extern errno_t tail40_merge(place_t *place, trans_hint_t *hint);
 
+extern errno_t tail40_pack(place_t *place, aal_stream_t *stream);
+extern errno_t tail40_unpack(place_t *place, aal_stream_t *stream);
+
 #endif

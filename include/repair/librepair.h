@@ -15,6 +15,7 @@ extern "C" {
 #include <repair/plugin.h>
 #include <repair/filesystem.h>
 #include <repair/status.h>
+#include <repair/backup.h>
 #include <repair/tree.h>
 #include <repair/format.h>
 #include <repair/alloc.h>

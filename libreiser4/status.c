@@ -126,61 +126,6 @@ errno_t reiser4_status_layout(reiser4_status_t *status,
 	return region_func(status, blk, 1, data);
 }
 
-errno_t reiser4_status_pack(reiser4_status_t *status,
-			    aal_stream_t *stream)
-{
-	uint32_t size;
-	
-	aal_assert("umka-2612", status != NULL);
-	aal_assert("umka-2613", stream != NULL);
-
-	/* Write data size. */
-	size = sizeof(status->ent);
-	aal_stream_write(stream, &size, sizeof(size));
-
-	/* Write status data to @stream. */
-	aal_stream_write(stream, &status->ent, size);
-
-	return 0;
-}
-
-reiser4_status_t *reiser4_status_unpack(aal_device_t *device,
-					uint32_t blksize,
-					aal_stream_t *stream)
-{
-	uint32_t size;
-	reiser4_status_t *status;
-    
-	aal_assert("umka-981", device != NULL);
-	aal_assert("umka-2611", stream != NULL);
-
-	/* Read size and check for validness. */
-	aal_stream_read(stream, &size, sizeof(size));
-
-	/* Allocating the memory for status super block struct */
-	if (!(status = aal_calloc(sizeof(*status), 0)))
-		return NULL;
-	
-	if (size != sizeof(status->ent)) {
-		aal_error("Invalid size %u is "
-			  "detected in stream.",
-			  size);
-		goto error_free_status;
-	}
-
-	/* Read status data from @stream. */
-	aal_stream_read(stream, &status->ent, size);
-
-	status->dirty = TRUE;
-	status->device = device;
-	status->blksize = blksize;
-	
-	return status;
-	
- error_free_status:
-	aal_free(status);
-	return NULL;
-}
 
 errno_t reiser4_status_print(reiser4_status_t *status,
 			     aal_stream_t *stream)

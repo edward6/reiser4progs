@@ -579,8 +579,12 @@ static item_repair_ops_t repair_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.check_struct	  = stat40_check_struct,
 	.check_layout	  = NULL,
+	
 	.prep_merge	  = NULL,
-	.merge		  = NULL
+	.merge		  = NULL,
+	
+	.pack		  = NULL,
+	.unpack		  = NULL
 #endif
 };
 

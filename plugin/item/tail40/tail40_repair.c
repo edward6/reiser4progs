@@ -72,4 +72,12 @@ errno_t tail40_merge(place_t *place, trans_hint_t *hint) {
 	return 0;
 }
 
+errno_t tail40_pack(place_t *place, aal_stream_t *stream) {
+	return 0;
+}
+
+errno_t tail40_unpack(place_t *place, aal_stream_t *stream) {
+	return 0;
+}
+
 #endif

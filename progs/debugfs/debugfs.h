@@ -12,6 +12,7 @@
 
 #include <misc/misc.h>
 #include <reiser4/reiser4.h>
+#include <repair/filesystem.h>
 
 #include "types.h"
 #include "browse.h"

@@ -118,64 +118,6 @@ node_t *reiser4_node_create(reiser4_tree_t *tree, blk_t nr,
 	return NULL;
 }
 
-/* Packes @node to @stream. */
-errno_t reiser4_node_pack(node_t *node, aal_stream_t *stream) {
-	aal_assert("umka-2622", node != NULL);
-	aal_assert("umka-2623", stream != NULL);
-
-	return plug_call(node->entity->plug->o.node_ops,
-			 pack, node->entity, stream);
-}
-
-/* Create node from passed @stream. */
-node_t *reiser4_node_unpack(reiser4_tree_t *tree, aal_stream_t *stream) {
-	blk_t blk;
-	rid_t pid;
-	
-	node_t *node;
-	uint32_t size;
-	aal_block_t *block;
-	reiser4_plug_t *plug;
-	aal_device_t *device;
-	
-	aal_assert("umka-2624", tree != NULL);
-	aal_assert("umka-2625", stream != NULL);
-
-	aal_stream_read(stream, &pid, sizeof(pid));
-	aal_stream_read(stream, &blk, sizeof(blk));
-	
-	/* Finding the node plugin by its id */
-	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
-		aal_error("Can't find node plugin by its id "
-			  "0x%x.", pid);
-		return NULL;
-	}
-
-	size = reiser4_tree_get_blksize(tree);
-	device = reiser4_tree_get_device(tree);
-
-	/* Allocate new node of @size at @nr. */
-	if (!(block = aal_block_alloc(device, size, blk)))
-		return NULL;
-
-	/* Allocating memory for instance of node */
-	if (!(node = aal_calloc(sizeof(*node), 0)))
-		goto error_free_block;
-
-	/* Requesting the plugin for initialization node entity. */
-	if (!(node->entity = plug_call(plug->o.node_ops, unpack,
-				       block, tree->key.plug, stream)))
-	{
-		goto error_free_node;
-	}
-
-	return node;
- error_free_node:    
-	aal_free(node);
- error_free_block:
-	aal_block_free(block);
-	return NULL;
-}
 #endif
 
 /* Functions for lock/unlock @node. They are used to prevent releasing node from

@@ -216,9 +216,7 @@ static void node40_set_level(node_entity_t *entity,
 #endif
 
 /* Returns length of item at pos. */
-static uint16_t node40_len(node_entity_t *entity, 
-			   pos_t *pos)
-{
+uint16_t node40_len(node_entity_t *entity, pos_t *pos) {
 	void *ih;
 	uint32_t pol;
 	node40_t *node;
@@ -980,8 +978,6 @@ static errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 	node = (node40_t *)entity;
 	level = node40_get_level(entity);
 	
-	aal_assert("umka-1580", level > 0);
-
 	/* Print node header. */
 	aal_stream_format(stream, "NODE (%llu) LEVEL=%u ITEMS=%u "
 			  "SPACE=%u MKFS ID=0x%x FLUSH=0x%llx\n",

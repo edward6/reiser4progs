@@ -157,8 +157,12 @@ static item_repair_ops_t repair_ops = {
 #ifndef ENABLE_STAND_ALONE	    
 	.check_struct	  = nodeptr40_check_struct,
 	.check_layout	  = nodeptr40_check_layout,
+	
 	.prep_merge	  = NULL,
 	.merge		  = NULL,
+
+	.pack		  = NULL,
+	.unpack		  = NULL
 #endif
 };
 

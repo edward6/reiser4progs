@@ -155,62 +155,6 @@ errno_t reiser4_format_backup(reiser4_format_t *format,
 			 backup, format->entity, stream);
 }
 
-/* Fetches format data to @stream. */
-errno_t reiser4_format_pack(reiser4_format_t *format,
-			    aal_stream_t *stream)
-{
-	aal_assert("umka-2604", format != NULL);
-	aal_assert("umka-2605", stream != NULL);
-
-	return plug_call(format->entity->plug->o.format_ops,
-			 pack, format->entity, stream);
-}
-
-/* Loads format data from @stream to format entity. */
-reiser4_format_t *reiser4_format_unpack(reiser4_fs_t *fs,
-					aal_stream_t *stream)
-{
-	rid_t pid;
-	fs_desc_t desc;
-	reiser4_plug_t *plug;
-	reiser4_format_t *format;
-	
-	aal_assert("umka-2606", fs != NULL);
-	aal_assert("umka-2607", stream != NULL);
-
-	aal_stream_read(stream, &pid, sizeof(pid));
-
-	/* Getting needed plugin from plugin factory */
-	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid)))  {
-		aal_error("Can't find disk-format plugin by "
-			  "its id 0x%x.", pid);
-		return NULL;
-	}
-    
-	/* Allocating memory for format instance. */
-	if (!(format = aal_calloc(sizeof(*format), 0)))
-		return NULL;
-
-	format->fs = fs;
-	format->fs->format = format;
-
-	desc.device = fs->device;
-	desc.blksize = reiser4_master_get_blksize(fs->master);
-	
-	if (!(format->entity = plug_call(plug->o.format_ops,
-					 unpack, &desc, stream)))
-	{
-		aal_error("Can't unpack disk-format.");
-		goto error_free_format;
-	}
-
-	return format;
-
- error_free_format:
-	aal_free(format);
-	return NULL;
-}
-
 /* Saves passed format on its device */
 errno_t reiser4_format_sync(
 	reiser4_format_t *format)	/* disk-format to be saved */
