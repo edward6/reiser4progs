@@ -25,6 +25,15 @@
 #include <aux/aux.h>
 #include <misc/misc.h>
 
+enum mkfs_behav_flags {
+	BF_FORCE   = 1 << 0,
+	BF_QUIET   = 1 << 1,
+	BF_PLUGS   = 1 << 2,
+	BF_LOST    = 1 << 3
+};
+
+typedef enum mkfs_behav_flags mkfs_behav_flags_t;
+
 /* Prints mkfs options */
 static void mkfs_print_usage(char *name) {
 	fprintf(stderr, "Usage: %s [ options ] "
@@ -91,10 +100,10 @@ static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs, reiser4_profile_t *prof
 int main(int argc, char *argv[]) {
 	struct stat st;
     
+	int c, error;
 	char uuid[17], label[17];
+	mkfs_behav_flags_t flags = 0;
 	count_t fs_len = 0, dev_len = 0;
-	int c, error, force = 0, quiet = 0;
-	int known_plugins = 0, lost_found = 0;
 	char *host_dev, *profile_label = "smart40";
 	uint16_t blocksize = DEFAULT_BLOCKSIZE;
     
@@ -148,17 +157,20 @@ int main(int argc, char *argv[]) {
 			profile_label = optarg;
 			break;
 		case 'f':
-			force = 1;
+			flags |= BF_FORCE;
 			break;
 		case 'q':
-			quiet = 1;
+			flags |= BF_QUIET;
+			break;
+		case 'P':
+			flags |= BF_PLUGS;
+			break;
+		case 's':
+			flags |= BF_LOST;
 			break;
 		case 'K':
 			progs_profile_list();
 			return NO_ERROR;
-		case 'P':
-			known_plugins = 1;
-			break;
 		case 'b':
 			/* Parsing blocksize */
 			if (!(blocksize = (uint16_t)aux_strtol(optarg, &error)) && error) {
@@ -190,9 +202,6 @@ int main(int argc, char *argv[]) {
 		case 'l':
 			aal_strncpy(label, optarg, sizeof(label) - 1);
 			break;
-		case 's':
-			lost_found = 1;
-			break;
 		case '?':
 			mkfs_print_usage(argv[0]);
 			return USER_ERROR;
@@ -216,7 +225,7 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
-	if (known_plugins) {
+	if (flags & BF_PLUGS) {
 		progs_plugin_list();
 		libreiser4_done();
 		return 0;
@@ -268,14 +277,15 @@ int main(int argc, char *argv[]) {
 		   force.
 		*/
 		if (!S_ISBLK(st.st_mode)) {
-			if (!force) {
+			if (!(flags & BF_FORCE)) {
 				aal_exception_error("Device %s is not block device. "
 						    "Use -f to force over.", host_dev);
 				goto error_free_libreiser4;
 			}
 		} else {
 			if (((IDE_DISK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 64 == 0) ||
-			     (SCSI_BLK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 16 == 0)) && !force)
+			     (SCSI_BLK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 16 == 0)) &&
+			    !(flags & BF_FORCE))
 			{
 				aal_exception_error("Device %s is an entire harddrive, not "
 						    "just one partition.", host_dev);
@@ -284,7 +294,7 @@ int main(int argc, char *argv[]) {
 		}
    
 		/* Checking if passed partition is mounted */
-		if (progs_dev_mounted(host_dev, NULL) && !force) {
+		if (progs_dev_mounted(host_dev, NULL) && !(flags & BF_FORCE)) {
 			aal_exception_error("Device %s is mounted at the moment. "
 					    "Use -f to force over.", host_dev);
 			goto error_free_libreiser4;
@@ -316,7 +326,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		/* Checking for "quiet" mode */
-		if (!quiet) {
+		if (!(flags & BF_QUIET)) {
 			if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO, 
 						"Reiser4 with %s profile is going to be created "
 						"on %s.", profile_label, host_dev) == EXCEPTION_NO)
@@ -343,7 +353,7 @@ int main(int argc, char *argv[]) {
 		}
 	
 		/* Creating lost+found directory */
-		if (lost_found) {
+		if (flags & BF_LOST) {
 			reiser4_file_t *object;
 	    
 			if (!(object = mkfs_create_dir(fs, profile, 

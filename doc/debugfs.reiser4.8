@@ -39,6 +39,9 @@ forces using the filesystem without any questions
 makes debugfs to use whole disk, not block device or mounted partition.
 .SH PRINT OPTIONS
 .TP
+.B -i, --print-items
+forces debugfs.reiser4 to print item content when --print-tree specified.
+.TP
 .B -t, --print-tree
 prints the internal tree.
 .TP
@@ -53,6 +56,15 @@ prints the block allocator data.
 .TP
 .B -b, --print-oid-alloc
 prints the oid allocator data.
+.SH MEASUREMENT OPTIONS
+.TP
+.B -T, --total-fragmentation
+measures total tree fragmentation. The result is fragmentation factor
+- value from 0 (minimal fragmentation) to 1 (maximal one).
+.TP
+.B -F, --files-fragmentation
+measures average files fragmentation. The result is fragmentation factor
+- value from 0 (minimal fragmentation) to 1 (maximal one).
 .SH PLUGIN OPTIONS
 .TP
 .B -e, --profile PROFILE

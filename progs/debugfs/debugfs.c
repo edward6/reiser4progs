@@ -35,6 +35,15 @@ enum debugfs_print_flags {
 
 typedef enum debugfs_print_flags debugfs_print_flags_t;
 
+enum debugfs_behav_flags {
+	BF_FORCE    = 1 << 0,
+	BF_QUIET    = 1 << 1,
+	BF_TFRAG    = 1 << 2,
+	BF_FFRAG    = 1 << 3
+};
+
+typedef enum debugfs_behav_flags debugfs_behav_flags_t;
+
 /* Prints debugfs options */
 static void debugfs_print_usage(char *name) {
 	fprintf(stderr, "Usage: %s [ options ] FILE\n", name);
@@ -56,8 +65,8 @@ static void debugfs_print_usage(char *name) {
 		"  -b | --print-block-alloc       prints block allocator data.\n"
 		"  -o | --print-oid-alloc         prints oid allocator data.\n"
 		"Measurement options:\n"
-		"  -T | --total-fragmentation     measures total filesystem fragmentation\n"
-		"  -F | --file-fragmentation      measures average file fragmentation\n"
+		"  -T | --total-fragmentation     measures total tree fragmentation\n"
+		"  -F | --files-fragmentation     measures average file fragmentation\n"
 		"Plugins options:\n"
 		"  -e | --profile PROFILE         profile to be used.\n"
 		"  -K | --known-profiles          prints known profiles.\n");
@@ -393,10 +402,10 @@ static errno_t debugfs_total_fragmentation(reiser4_fs_t *fs) {
 };
 
 int main(int argc, char *argv[]) {
+	int c;
 	struct stat st;
-	int total_fragmentation = 0;
-	int c, force = 0, quiet = 0;
-	debugfs_print_flags_t flags = 0;
+	debugfs_print_flags_t print_flags = 0;
+	debugfs_behav_flags_t behav_flags = 0;
     
 	char *host_dev;
 	char *profile_label = "smart40";
@@ -417,7 +426,7 @@ int main(int argc, char *argv[]) {
 		{"print-block-alloc", no_argument, NULL, 'b'},
 		{"print-oid-alloc", no_argument, NULL, 'o'},
 		{"total-fragmentation", no_argument, NULL, 'T'},
-		{"file-fragmentation", no_argument, NULL, 'F'},
+		{"files-fragmentation", no_argument, NULL, 'F'},
 		{"known-profiles", no_argument, NULL, 'K'},
 		{"quiet", no_argument, NULL, 'q'},
 		{0, 0, 0, 0}
@@ -433,8 +442,8 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbojiTF", long_options, 
-				     (int *)0)) != EOF) 
+	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbojiTF",
+				     long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
 		case 'h':
@@ -447,34 +456,36 @@ int main(int argc, char *argv[]) {
 			profile_label = optarg;
 			break;
 		case 'o':
-			flags |= PF_OID;
+			print_flags |= PF_OID;
 			break;
 		case 'b':
-			flags |= PF_ALLOC;
+			print_flags |= PF_ALLOC;
 			break;
 		case 's':
-			flags |= PF_SUPER;
+			print_flags |= PF_SUPER;
 			break;
 		case 'j':
-			flags |= PF_JOURNAL;
+			print_flags |= PF_JOURNAL;
 			break;
 		case 'i':
-			flags |= PF_ITEMS;
+			print_flags |= PF_ITEMS;
 			break;
 		case 't':
-			flags |= PF_TREE;
+			print_flags |= PF_TREE;
 			break;
 		case 'T':
-			total_fragmentation = 1;
+			behav_flags |= BF_TFRAG;
 			break;
 		case 'F':
+			behav_flags |= BF_FFRAG;
+			
 			aal_exception_info("Sorry, not implemented yet!");
 			return NO_ERROR;
 		case 'f':
-			force = 1;
+			behav_flags |= BF_FORCE;
 			break;
 		case 'q':
-			quiet = 1;
+			behav_flags |= BF_QUIET;
 			break;
 		case 'K':
 			progs_profile_list();
@@ -485,8 +496,8 @@ int main(int argc, char *argv[]) {
 		}
 	}
     
-	if (flags == 0)
-		flags |= PF_SUPER;
+	if (print_flags == 0)
+		print_flags |= PF_SUPER;
     
 	if (optind >= argc) {
 		debugfs_print_usage(argv[0]);
@@ -508,8 +519,8 @@ int main(int argc, char *argv[]) {
 	host_dev = argv[optind];
     
 	if (stat(host_dev, &st) == -1) {
-		char *error = strerror(errno);
-		aal_exception_error("Can't stat %s. %s.", host_dev, error);
+		aal_exception_error("Can't stat %s. %s.", host_dev,
+				    strerror(errno));
 		goto error_free_libreiser4;
 	}
 	
@@ -520,14 +531,15 @@ int main(int argc, char *argv[]) {
 	   force.
 	*/
 	if (!S_ISBLK(st.st_mode)) {
-		if (!force) {
+		if (!(behav_flags & BF_FORCE)) {
 			aal_exception_error("Device %s is not block device. "
 					    "Use -f to force over.", host_dev);
 			goto error_free_libreiser4;
 		}
 	} else {
 		if (((IDE_DISK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 64 == 0) ||
-		     (SCSI_BLK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 16 == 0)) && !force)
+		     (SCSI_BLK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 16 == 0)) &&
+		    (!(behav_flags & BF_FORCE)))
 		{
 			aal_exception_error("Device %s is an entire harddrive, not "
 					    "just one partition.", host_dev);
@@ -536,7 +548,7 @@ int main(int argc, char *argv[]) {
 	}
    
 	/* Checking if passed partition is mounted */
-	if (progs_dev_mounted(host_dev, NULL) && !force) {
+	if (progs_dev_mounted(host_dev, NULL) && !(behav_flags & BF_FORCE)) {
 		aal_exception_error("Device %s is mounted at the moment. "
 				    "Use -f to force over.", host_dev);
 		goto error_free_libreiser4;
@@ -544,9 +556,8 @@ int main(int argc, char *argv[]) {
 
 	/* Opening device */
 	if (!(device = aal_file_open(host_dev, DEFAULT_BLOCKSIZE, O_RDONLY))) {
-		char *error = strerror(errno);
-	
-		aal_exception_error("Can't open %s. %s.", host_dev, error);
+		aal_exception_error("Can't open %s. %s.", host_dev,
+				    strerror(errno));
 		goto error_free_libreiser4;
 	}
     
@@ -555,8 +566,8 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
     
-	if (!aal_pow_of_two(flags) && !quiet) {
-		if (!(flags & PF_ITEMS)) {
+	if (!aal_pow_of_two(print_flags) && !(behav_flags & BF_QUIET)) {
+		if (!(print_flags & PF_ITEMS)) {
 			if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO,
 						"Ambiguous print options has been detected. "
 						"Continue?") == EXCEPTION_NO)
@@ -564,18 +575,18 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (!(flags & PF_TREE) && (flags & PF_ITEMS)) {
+	if (!(print_flags & PF_TREE) && (print_flags & PF_ITEMS)) {
 		aal_exception_warn("Option --print-items is only active if "
 				   "--print-tree is specified.");
 	}
 
-	if (total_fragmentation) {
+	if ((behav_flags & BF_TFRAG)) {
 		if (debugfs_total_fragmentation(fs))
 			goto error_free_fs;
-		flags = 0;
+		print_flags = 0;
 	}
 	
-	if (flags & PF_SUPER) {
+	if (print_flags & PF_SUPER) {
 		if (debugfs_print_master(fs))
 			goto error_free_fs;
 	
@@ -583,23 +594,23 @@ int main(int argc, char *argv[]) {
 			goto error_free_fs;
 	}
     
-	if (flags & PF_OID) {
+	if (print_flags & PF_OID) {
 		if (debugfs_print_oid(fs))
 			goto error_free_fs;
 	}
     
-	if (flags & PF_ALLOC) {
+	if (print_flags & PF_ALLOC) {
 		if (debugfs_print_alloc(fs))
 			goto error_free_fs;
 	}
     
-	if (flags & PF_JOURNAL) {
+	if (print_flags & PF_JOURNAL) {
 		if (debugfs_print_journal(fs))
 			goto error_free_fs;
 	}
     
-	if (flags & PF_TREE) {
-		if (debugfs_print_tree(fs, flags))
+	if (print_flags & PF_TREE) {
+		if (debugfs_print_tree(fs, print_flags))
 			goto error_free_fs;
 	}
     
