@@ -31,7 +31,7 @@ static errno_t repair_item_open(reiser4_item_t *item, reiser4_node_t *node,
 	return 1;
     }
 	    
-    if (!(item->body = plugin_call(return -1, node->entity->plugin->node_ops, 
+/*    if (!(item->body = plugin_call(return -1, node->entity->plugin->node_ops, 
 	item_body, node->entity, pos))) 
     {
 	aal_exception_error("Node (%llu): Failed to get the item (%u) body.", 
@@ -40,9 +40,9 @@ static errno_t repair_item_open(reiser4_item_t *item, reiser4_node_t *node,
     }
 
     item->len = plugin_call(return -1, node->entity->plugin->node_ops, 
-	item_len, node->entity, pos);
+	item_len, node->entity, pos);*/
 
-    item->node = node;
+    item->node = node->entity;
     item->pos = pos;
 
     return 0;

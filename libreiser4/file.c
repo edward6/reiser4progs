@@ -135,11 +135,8 @@ static errno_t reiser4_file_realize(
 	}
 
 	/* It will be useful when symlinks ready */
-	reiser4_key_set_locality(parent, 
-	    reiser4_key_get_locality(&file->key));
-	
-	reiser4_key_set_objectid(parent, 
-	    reiser4_key_get_objectid(&file->key));
+	reiser4_key_set_locality(parent, reiser4_key_get_locality(&file->key));
+	reiser4_key_set_objectid(parent, reiser4_key_get_objectid(&file->key));
 
 	if (!(dirname = aal_strsep(&pointer, "/")))
 	    break;

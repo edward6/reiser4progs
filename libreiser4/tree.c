@@ -379,8 +379,10 @@ int reiser4_tree_lookup(
 	    
 	/* Getting the node pointer from internal item */
 	if (!(target = reiser4_item_get_iptr(&item))) {
+	    reiser4_node_t *node = coord->cache->node;
+
 	    aal_exception_error("Can't get pointer from internal item %u, "
-		"node %llu.", item.pos->item, aal_block_number(item.node->block));
+		"node %llu.", item.pos->item, aal_block_number(node->block));
 	    return -1;
 	}
 	
@@ -608,13 +610,8 @@ errno_t reiser4_tree_lshift(
 		return -1;
 	    }
 	    
-	    if (reiser4_node_count(old->cache->node) > 0) {
-		    
-		if (reiser4_item_open(&item, old->cache->node, &mpos))
-		    return -1;
-
+	    if (reiser4_node_count(old->cache->node) > 0)
 		item_len = reiser4_item_len(&item) + item_overhead;
-	    }
 	}
 	
 	if (left != old->cache->left) {
@@ -741,10 +738,6 @@ errno_t reiser4_tree_rshift(
 	    /* Updating item_len for next item to be moved */
 	    if (reiser4_node_count(old->cache->node) > 0) {
 		mpos.item = reiser4_node_count(old->cache->node) - 1;
-
-		if (reiser4_item_open(&item, old->cache->node, &mpos))
-		    return -1;
-		
 		item_len = reiser4_item_len(&item) + item_overhead;
 	    }
 	}

@@ -1,5 +1,5 @@
 /*
-    object.h -- reiser4 object functions.
+    file.h -- reiser4 file functions.
     Copyright (C) 1996-2002 Hans Reiser.
     Author Yury Umanets.
 */

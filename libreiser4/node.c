@@ -361,7 +361,7 @@ int reiser4_node_lookup(
     if (!item.plugin->item_ops.lookup)
 	return 0;
 	    
-    if ((lookup = item.plugin->item_ops.lookup(item.body, key, 
+    if ((lookup = item.plugin->item_ops.lookup(reiser4_item_body(&item), key,
 	&pos->unit)) == -1) 
     {
 	aal_exception_error("Lookup in the item %d in the node %llu failed.", 
@@ -485,9 +485,9 @@ errno_t reiser4_node_traverse(
     }
     
     if ((handler_func && !(result = handler_func(node, data))) || !handler_func) {
+	uint16_t unit;
 	reiser4_item_t item;
 	reiser4_pos_t pos = {0, 0};
-	uint8_t unit;
 
 	if (before_func && (result = before_func(node, data)))
 	    goto error_free_node;
@@ -500,15 +500,15 @@ errno_t reiser4_node_traverse(
 		    aal_block_number(node->block), pos.item);
 		goto error_free_node;
 	    }
+	    
+	    if (!reiser4_item_internal(&item))
+		continue;
 
 	    for (unit = 0; unit < reiser4_item_count(&item); unit++) {
 		blk_t target;
 
 		pos.unit = reiser4_item_count(&item) == 1 ? ~0ul : unit;
 
-		if (!reiser4_item_internal(&item))
-		    continue;
-		
 		if ((target = reiser4_item_get_iptr(&item)) > 0) {
 
 		    if (!(block = aal_block_open(device, target))) {
@@ -530,6 +530,7 @@ errno_t reiser4_node_traverse(
 		}
 	    }
 	}
+	
 	if (after_func && (result = after_func(node, data)))
 	    goto error_free_node;	
     }

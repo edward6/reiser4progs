@@ -895,8 +895,19 @@ union reiser4_plugin {
     reiser4_sdext_ops_t sdext_ops;
 };
 
+struct reiser4_item {
+    
+    /* The pointer to the item plugin */
+    reiser4_plugin_t *plugin;
+    
+    reiser4_entity_t *node;
+    reiser4_pos_t *pos;
+};
+
+typedef struct reiser4_item reiser4_item_t;
+
 /* 
-    Replica of coord for using in plugins. Field "cache" is void * because we 
+    The replica of coord for using in plugins. Field "cache" is void * because we 
     should keep libreiser4 structures unknown for plugins.
 */
 struct reiser4_place {

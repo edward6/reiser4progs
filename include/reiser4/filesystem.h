@@ -113,26 +113,9 @@ struct reiser4_coord {
 
 typedef struct reiser4_coord reiser4_coord_t;
 
-/* Internal struct of libreiser4 for keeping item components */
-struct reiser4_item {
-    
-    /* Item data length */
-    uint32_t len;
-	
-    /* The pointer to the item body */
-    reiser4_body_t *body;
-
-    /* The pointer to the item plugin */
-    reiser4_plugin_t *plugin;
-    
-    reiser4_node_t *node;
-    reiser4_pos_t *pos;
-};
-
-typedef struct reiser4_item reiser4_item_t;
-
 /* Reiser4 in-memory node structure */
 struct reiser4_node {
+
     /* Block node lies in */
     aal_block_t *block;
 
