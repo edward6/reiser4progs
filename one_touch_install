@@ -6,7 +6,14 @@ if [ ! -f ./configure.in ]; then
 fi
 
 if [ ! -x ./configure ]; then
-	./prepare
+	echo "Making configure script..."
+	aclocal && (
+		autoheader && (
+			autoconf && (
+				automake --add-missing
+    			) || exit $?
+		) || exit $?
+	) || exit $?
 fi
 
 cpu_nr=$(cat /proc/cpuinfo | grep ^processor\.*:\.*[[:digit:]] | \
