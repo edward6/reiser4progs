@@ -12,11 +12,10 @@
 
 /* Makes passed @place pointing to the first unit of the first item */
 errno_t reiser4_place_first(reiser4_place_t *place) {
-	if (place->pos.unit == ~0ul) {
-		place->pos.item = 0;
-	} else {
-		POS_INIT(&place->pos, 0, 0);
-	}
+	place->pos.item = 0;
+	
+	if (place->pos.unit != ~0ul)
+		place->pos.unit = 0;
 	
 	return 0;
 }
@@ -25,17 +24,14 @@ errno_t reiser4_place_first(reiser4_place_t *place) {
 errno_t reiser4_place_last(reiser4_place_t *place) {
 	uint32_t items = reiser4_node_items(place->node);
 			
-	if (place->pos.unit == ~0ul) {
-		place->pos.item = items - 1;
-	} else {
-		uint32_t units;
-
+	place->pos.item = items - 1;
+	
+	if (place->pos.unit != ~0ul) {
+		
 		if (reiser4_place_realize(place))
 			return -EINVAL;
 
-		units = reiser4_item_units(place);
-				
-		POS_INIT(&place->pos, items - 1, units - 1);
+		place->pos.unit = reiser4_item_units(place) - 1;
 	}
 
 	return 0;
@@ -43,12 +39,11 @@ errno_t reiser4_place_last(reiser4_place_t *place) {
 
 /* Returns TRUE is passed @place is greter than 0 */
 bool_t reiser4_place_gtfirst(reiser4_place_t *place) {
-	if (place->pos.unit == ~0ul) {
-		return (place->pos.item > 0);
-	} else {
-		return (place->pos.item > 0 ||
-			place->pos.unit > 0);
-	}
+
+	if (place->pos.unit == ~0ul)
+		return place->pos.item > 0;
+	
+	return place->pos.item > 0 || place->pos.unit > 0;
 }
 
 /* Returns TRUE is passed @place is greter than 0 */
@@ -141,8 +136,6 @@ errno_t reiser4_place_assign(
 	pos_t pos = {item, unit};
 	
         aal_assert("umka-1730", place != NULL);
-	
-	aal_memset(place, 0, sizeof(*place));
 	return reiser4_place_init(place, node, &pos);
 }
 
