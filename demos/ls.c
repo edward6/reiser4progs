@@ -138,19 +138,14 @@ int main(int argc, char *argv[]) {
 	}
     
 	while (1) {
-		uint32_t len;
-		
 		aal_memset(buff, 0, sizeof(buff));
 
 		if (reiser4_object_readdir(dir, &entry) != 0)
 			break;
 
-		reiser4_key_string(&entry.object, buff);
-
-		len = aal_strlen(buff);
-		
-		aal_snprintf(buff + len, sizeof(buff) - len,
-			     " %s\n", entry.name);
+		aal_snprintf(buff, sizeof(buff), "%s %s\n",
+			     reiser4_print_key(&entry.object),
+			     entry.name);
 
 		printf(buff);
 	}

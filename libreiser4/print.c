@@ -9,7 +9,6 @@
 static aal_stream_t stream;
 
 errno_t reiser4_print_init(void) {
-	aal_stream_reset(&stream);
 	return aal_stream_init(&stream);
 }
 
@@ -19,6 +18,7 @@ errno_t reiser4_print_fini(void) {
 }
 
 char *reiser4_print_key(reiser4_key_t *key) {
+	aal_stream_reset(&stream);
 	reiser4_key_print(key, &stream);
 	return (char *)stream.data;
 }

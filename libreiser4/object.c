@@ -143,7 +143,8 @@ static errno_t callback_find_statdata(char *track, char *entry,
 			return -EINVAL;
 	}
 
-	reiser4_key_assign(&object->info.parent, &object->info.object);
+	reiser4_key_assign(&object->info.parent,
+			   &object->info.object);
 #endif
 
 	return 0;
@@ -264,7 +265,8 @@ reiser4_object_t *reiser4_object_realize(
 			   &object->info.start.key);
 	
 #ifndef ENABLE_STAND_ALONE
-	reiser4_key_string(&object->info.object, object->name);
+	aal_strncpy(object->name, reiser4_print_key(&object->info.object),
+		    sizeof(object->name));
 #endif
 	
 	if (reiser4_object_guess(object))
@@ -437,7 +439,9 @@ reiser4_object_t *reiser4_object_create(
 	}
 	
 	/* @hint->object key is built by plugin create method. */
-	reiser4_key_string(&object->info.object, object->name);
+	aal_strncpy(object->name, reiser4_print_key(&object->info.object),
+		    sizeof(object->name));
+	
 	return object;
 	
  error_free_object:

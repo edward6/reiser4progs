@@ -25,7 +25,9 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 			      !(res & RE_FATAL));
 	
 	reiser4_key_assign(&object->info.object, &object->info.start.key);
-	reiser4_key_string(&object->info.object, object->name);
+
+	aal_strncpy(object->name, reiser4_print_key(&object->info.object),
+		    sizeof(object->name));
 	
 	return res;
 }
@@ -99,7 +101,8 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 		if (!object->entity)
 			goto error_close_object;
 
-		reiser4_key_string(&object->info.object, object->name);
+		aal_strncpy(object->name, reiser4_print_key(&object->info.object),
+			    sizeof(object->name));
 
 		break;
 	case FAILED:
@@ -141,7 +144,9 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 		goto error_close_object;
 	
 	reiser4_key_assign(&object->info.object, &object->info.start.key);
-	reiser4_key_string(&object->info.object, object->name);
+
+	aal_strncpy(object->name, reiser4_print_key(&object->info.object),
+		    sizeof(object->name));
 	
 	return object;
 	

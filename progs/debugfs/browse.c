@@ -54,10 +54,9 @@ static errno_t debugfs_object_ls(reiser4_object_t *object) {
 		if (reiser4_object_readdir(object, &entry) != 0)
 			break;
 
-		reiser4_key_string(&entry.object, buff);
-
-		aal_snprintf(buff + aal_strlen(buff), sizeof(buff),
-			     " %s\n", entry.name);
+		aal_snprintf(buff, sizeof(buff), "%s %s\n",
+			     reiser4_print_key(&entry.object),
+			     entry.name);
 
 		debugfs_print_buff(buff, aal_strlen(buff));
 	}

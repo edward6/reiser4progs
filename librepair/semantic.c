@@ -6,11 +6,14 @@
 #include <repair/semantic.h>
 
 static void repair_semantic_lost_name(reiser4_object_t *object, char *name) {
-	uint8_t len = aal_strlen(LOST_PREFIX);
+	char *key;
+	uint8_t len;
+
+	len = aal_strlen(LOST_PREFIX);
+	key = reiser4_print_key(&object->info.object);
 	
-	reiser4_key_string(&object->info.object, name);
-	aal_memmove(object->name + len, object->name, OBJECT_NAME_SIZE - len);
-	aal_memcpy(object->name, LOST_PREFIX, len);
+	aal_memcpy(name, LOST_PREFIX, len);
+	aal_memcpy(name + len, key, aal_strlen(key));
 }
 
 /* Callback for repair_object_check_struct. Mark the passed item as CHECKED. */

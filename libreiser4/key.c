@@ -262,26 +262,6 @@ errno_t reiser4_key_print(reiser4_key_t *key,
 			 key, stream, 0); 
 }
 
-errno_t reiser4_key_string(reiser4_key_t *key,
-			   char *buff)
-{
-	aal_stream_t stream;
-
-	aal_stream_init(&stream);
-
-	if (reiser4_key_print(key, &stream))
-		goto error_free_stream;
-	
-	aal_strncpy(buff, stream.data, stream.offset);
-	aal_stream_fini(&stream);
-
-	return 0;
-
- error_free_stream:
-	aal_stream_fini(&stream);
-	return -EINVAL;
-}
-
 errno_t reiser4_key_valid(reiser4_key_t *key) {
 	aal_assert("vpf-259", key != NULL);
 	aal_assert("vpf-260", key->plug != NULL);
