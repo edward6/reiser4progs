@@ -455,21 +455,21 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 	}
 	
 	if (i) {
-		/* Some first offset are not relable. Consider count as the 
-		   correct count and set the first offset just after the last 
-		   unit.*/
+		/* Some first offset are not relable. Consider count as 
+		   the correct count and set the first offset just after 
+		   the last unit.*/
 		e_count = flags->count;
 		
 		if (mode == RM_BUILD) {	    
 			en_set_offset(&de->entry[0], sizeof(cde_large_t) + 
-					sizeof(entry_t) * flags->count);
+				      sizeof(entry_t) * flags->count);
 			res |= RE_FIXED;
 		}
 	}
 	
 	if (e_count != de_get_units(de)) {
-		aal_exception_error("Node %llu, item %u: unit count (%u) is not "
-				    "correct. Should be (%u). %s",
+		aal_exception_error("Node %llu, item %u: unit count (%u) "
+				    "is not correct. Should be (%u). %s",
 				    place->block->nr, place->pos.item,
 				    de_get_units(de), e_count, 
 				    mode == RM_CHECK ? "" : "Fixed.");
@@ -512,8 +512,8 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 		/* Some first units should be removed. */
 		aal_exception_error("Node %llu, item %u: entries [%u..%u] look "
 				    " corrupted. %s", place->block->nr, 
-				    place->pos.item, 0, i - 1, 
-				    mode == RM_BUILD ? "Removed." : "");
+				    place->pos.item, 0, i - 1, mode == RM_BUILD 
+				    ? "Removed." : "");
 		
 		if (mode == RM_BUILD) {
 			if (cde_large_remove(place, 0, i) < 0) {
@@ -535,56 +535,49 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 		}
 	}
 	
-	/* Units before @i and after @count were handled, do not care about them 
-	   anymore. Handle all not relable units between them. */
+	/* Units before @i and after @count were handled, do not care about 
+	   them anymore. Handle all not relable units between them. */
 	last = MAX_UINT32;
 	for (; i < flags->count; i++) {
 		if (last == MAX_UINT32) {
 			/* Looking for the problem interval start. */
 			if (!aal_test_bit(flags->elem + i, R))
 				last = i - 1;
-		} else {
-			/* Looking for the problem interval end. */
-			if (aal_test_bit(flags->elem + i, R)) {
-				aal_exception_error("Node %llu, item %u: entries "
-						    "[%u..%u] look corrupted. %s", 
-						    place->block->nr, 
-						    place->pos.item,
-						    last, i - 1, 
-						    mode == RM_BUILD ? 
-						    "Removed." : "");
-				
-				if (mode == RM_BUILD) {
-					if (cde_large_remove(place, last, 
-							     i - last) < 0) 
-					{
-						aal_exception_error("Node %llu, "
-								    "item %u: "
-								    "remove of "
-								    "the unit "
-								    "(%u), count "
-								    "(%u) failed.", 
-								    place->block->nr, 
-								    place->pos.item, 
-								    last, i - last);
-						return -EINVAL;
-					}
-					
-					aal_memmove(flags->elem + last,
-						    flags->elem + i,
-						    flags->count - i);
-					
-					flags->count -= (i - last);
-					
-					i = last;
-					
-					res |= RE_FIXED;
-				} else {
-					res |= RE_FATAL;
-				}
-				
+
+			continue;
+		}
+		
+		/* Looking for the problem interval end. */
+		if (aal_test_bit(flags->elem + i, R)) {
+			aal_exception_error("Node %llu, item %u: entries "
+					    "[%u..%u] look corrupted. %s", 
+					    place->block->nr, place->pos.item,
+					    last, i - 1, mode == RM_BUILD ? 
+					    "Removed." : "");
+			
+			if (mode != RM_BUILD) {
+				res |= RE_FATAL;
 				last = MAX_UINT32;
+				continue;
 			}
+			
+			if (cde_large_remove(place, last, i - last) < 0) {
+				aal_exception_error("Node %llu, item %u: remove"
+						    " of unit (%u), count (%u) "
+						    "failed.", place->block->nr, 
+						    place->pos.item, last, 
+						    i - last);
+				return -EINVAL;
+			}
+
+			aal_memmove(flags->elem + last, flags->elem + i,
+				    flags->count - i);
+
+			flags->count -= (i - last);
+			i = last;
+			last = MAX_UINT32;
+
+			res |= RE_FIXED;
 		}
 	}
 	

@@ -432,9 +432,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 {
 	dir40_t *dir;
 
-	entry_hint_t *body;
 	entry_hint_t *entry;
-
 	create_hint_t body_hint;
    
 	uint64_t ordering;
@@ -495,11 +493,9 @@ static object_entity_t *dir40_create(object_info_t *info,
 	plug_call(info->object.plug->o.key_ops, build_entry,
 		  &body_hint.key, dir->hash, locality, objectid, ".");
 
-	if (!(body = aal_calloc(body_hint.count * sizeof(*body), 0)))
+	if (!(entry = aal_calloc(body_hint.count * sizeof(*entry), 0)))
 		goto error_free_dir;
 
-	entry = body;
-	
 	/* Preparing hint for the empty directory. It consists only "." for
 	   unlinked directories. */
 	aal_strncpy(entry->name, ".", 1);
@@ -514,7 +510,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 		  &entry->offset, dir->hash, locality, objectid,
 		  entry->name);
 	
-	body_hint.type_specific = body;
+	body_hint.type_specific = entry;
 	
 	/* Estimating body item and setting up "bytes" field from the unix
 	   extention. */
@@ -522,7 +518,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 		      NULL, &body_hint, MAX_UINT32))
 	{
 		aal_exception_error("Can't estimate directory item.");
-		goto error_free_body;
+		goto error_free_entry;
 	}
 	
 	/* New directory will have two links on it, because of dot 
@@ -531,28 +527,28 @@ static object_entity_t *dir40_create(object_info_t *info,
 	if (obj40_create_stat(&dir->obj, hint->statdata, body_hint.count,
 			      body_hint.len, 1, S_IFDIR))
 	{
-		goto error_free_body;
+		goto error_free_entry;
 	}
 	
         /* Looking for place to insert directory body */
 	if (obj40_lookup(&dir->obj, &body_hint.key, LEAF_LEVEL, 
 			 &dir->body) != ABSENT)
 	{
-		goto error_free_body;
+		goto error_free_entry;
 	}
 	
 	/* Inserting the direntry item into the tree */
 	if (obj40_insert(&dir->obj, &body_hint, LEAF_LEVEL, &dir->body))
-		goto error_free_body;
+		goto error_free_entry;
 
 	if (dir40_reset((object_entity_t *)dir))
-		goto error_free_body;
+		goto error_free_entry;
 	
-	aal_free(body);
+	aal_free(entry);
 	return (object_entity_t *)dir;
 
- error_free_body:
-	aal_free(body);
+ error_free_entry:
+	aal_free(entry);
  error_free_dir:
 	aal_free(dir);
 	return NULL;

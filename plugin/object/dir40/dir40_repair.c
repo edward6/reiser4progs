@@ -199,4 +199,3 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 }
 
 #endif
-
