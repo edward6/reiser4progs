@@ -769,7 +769,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 
 extern void reg40_core(reiser4_core_t *c);
 
-extern object_entity_t *reg40_realize(object_info_t *info);
+extern object_entity_t *reg40_recognize(object_info_t *info);
 
 extern errno_t reg40_check_struct(object_entity_t *object,
 				  place_func_t place_func,
@@ -789,14 +789,16 @@ static reiser4_object_ops_t reg40_ops = {
 	.unlink         = reg40_unlink,
 	.links          = reg40_links,
 	.clobber        = reg40_clobber,
-	.realize        = reg40_realize,
-	.check_struct   = reg40_check_struct,
-
-	.check_attach 	= NULL,
+	.recognize	= reg40_recognize,
 	.add_entry      = NULL,
 	.rem_entry      = NULL,
 	.attach         = NULL,
 	.detach         = NULL,
+	
+	.fake		= NULL,
+	.check_struct   = reg40_check_struct,
+	.check_attach 	= NULL,
+
 #endif
 	.lookup	        = NULL,
 	.follow         = NULL,

@@ -87,6 +87,7 @@ static errno_t callback_register_region(void *o, uint64_t start,
 	
 	return 0;
 }
+
 static errno_t repair_semantic_check_struct(repair_semantic_t *sem, 
 					    reiser4_object_t *object) 
 {
@@ -208,7 +209,7 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	if (!object->info->parent.plug)
 		return NULL;
 	
-	/* Must be point exact matched plugin. Ambigious plugins will 
+	/* Must be found exact matched plugin. Ambigious plugins will 
 	   be recovered later on CLEANUP pass. */
 	parent = repair_object_launch(object->info->tree, NULL, 
 				      &object->info->parent);
@@ -329,13 +330,13 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	if (entry->type != ET_NAME)
 		return NULL;
 
-	/* Try to realize the object by the key. */
+	/* Try to recognize the object by the key. */
 	if ((object = repair_object_launch(parent->info->tree, parent, 
 					   &entry->object)) == INVAL_PTR)
 		return INVAL_PTR;
 	
 	if (object == NULL) {
-		if (sem->repair->mode == RM_BUILD)
+		if (sem->repair->mode != RM_CHECK)
 			goto error_rem_entry;
 		
 		sem->repair->fixable++;
@@ -453,7 +454,7 @@ static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
 		return 0;
 	
 	/* Try to open the object by its SD. */
-	object = repair_object_realize(sem->repair->fs->tree, NULL, place);
+	object = repair_object_recognize(sem->repair->fs->tree, NULL, place);
 	
 	if (object == NULL)
 		return 0;
@@ -507,41 +508,38 @@ static errno_t repair_semantic_node_traverse(reiser4_tree_t *tree,
 
 /* Try to open "lost+found" in the given @root and remove all entries 
    started with "lost_name". */
-static reiser4_object_t *repair_semantic_open_lost_found(repair_semantic_t *sem,
-							 reiser4_object_t *root)
+static reiser4_object_t *repair_semantic_lf(repair_semantic_t *sem,
+					    reiser4_object_t *root)
 {
 	uint8_t len = aal_strlen(LOST_PREFIX);
 	reiser4_object_t *object;
 	entry_hint_t entry;
-	lookup_t lookup;
 	errno_t res;
 	
 	aal_assert("vpf-1193", sem != NULL);
 	aal_assert("vpf-1194", root != NULL);
 	
-	lookup = reiser4_object_lookup(root, "lost+found", &entry);
-	
-	if (lookup == FAILED)
-		return INVAL_PTR;
-	
-	if (lookup == ABSENT)
+	switch (reiser4_object_lookup(root, "lost+found", &entry)) {
+	case ABSENT:
 		return NULL;
-
-	/* Must be recovered with the most appropriate plugin. */
-	object = repair_object_launch(sem->repair->fs->tree, 
-				      root, &entry.object);
-
-	if (object == INVAL_PTR)
+	case FAILED:
 		return INVAL_PTR;
+	default:
+		break;
+	}
 	
-	if (object == NULL) {
+	/* Must be recovered with the most appropriate plugin. */
+	if ((object = repair_object_launch(sem->repair->fs->tree, root, 
+					   &entry.object)) == NULL)
+	{
 		/* Remove the entry from "/". */
 		if ((res = reiser4_object_rem_entry(root, &entry)))
 			return INVAL_PTR;
 
 		return NULL;
-	}
-	 
+	} else if (object == INVAL_PTR)
+		return INVAL_PTR;
+	
 	res = repair_semantic_check_struct(sem, object);
 
 	if (repair_error_fatal(res))
@@ -566,9 +564,65 @@ static reiser4_object_t *repair_semantic_open_lost_found(repair_semantic_t *sem,
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
+static reiser4_object_t *repair_semantic_root_open(repair_semantic_t *sem) {
+	reiser4_object_t *root;
+	reiser4_plug_t *plug;
+	reiser4_tree_t *tree;
+	rid_t pid;
+	
+	tree = sem->repair->fs->tree;
+	
+	if ((root = repair_object_launch(tree, NULL, &tree->key)) == INVAL_PTR)
+		return INVAL_PTR;
+	
+	if (root) {
+		/* Check that the recognized plugin for the root is a directory one. */
+		if (root->entity->plug->id.group == DIR_OBJECT)
+			return root;
+
+		aal_exception_error("The root directory is recognized by the "
+				    "%s plugin which is not a directory one.", 
+				    root->entity->plug->label);
+	} else {
+		/* No plugin was recognized. */
+		aal_exception_error("Failed to recognize the root directory "
+				    "plugin.");
+	}
+	
+	if (sem->repair->mode != RM_BUILD) {
+		if (root)
+			reiser4_object_close(root);
+		
+		return NULL;
+	}
+	
+	if ((pid = reiser4_profile_value("directory")) == INVAL_PID) {
+		aal_exception_error("Can't get the valid plugin id "
+				    "for the directory plugin.");
+		goto error_close_root;
+	}
+
+	if (!(plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, pid))) {
+		aal_exception_error("Can't find item plugin by its "
+				    "id 0x%x.", pid);
+		goto error_close_root;
+	}
+
+
+	aal_exception_error("Trying to recover the root directory with the "
+			    "default plugin--%s.", plug->label);
+
+	reiser4_object_close(root);
+	
+	return repair_object_fake(tree, NULL, &tree->key, plug);
+	
+ error_close_root:
+	reiser4_object_close(root);
+	return INVAL_PTR;
+}
+
 errno_t repair_semantic(repair_semantic_t *sem) {
 	repair_progress_t progress;
-	reiser4_plug_t *plug;
 	reiser4_object_t *root;
 	reiser4_fs_t *fs;
 	errno_t res;
@@ -599,60 +653,42 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	if (fs->tree->root == NULL)
 		return -EINVAL;
 	
-	/* Root dir must be recovered with the most appropriate plugin. */
-	root = repair_object_launch(sem->repair->fs->tree, 
-				    NULL, &fs->tree->key);
-
-	if (root == INVAL_PTR)
+	/* Trying to recognize the root dir by the given key. 
+	   If it fails create a fake one  */
+	if ((root = repair_semantic_root_open(sem)) == INVAL_PTR)
 		return -EINVAL;
 	
-	if (root) {
-		/* '/' exists, check it and its subtree. */
-		res = repair_semantic_check_struct(sem, root);
-		
-		if (repair_error_fatal(res))
-			goto error_close_root;
-		
-		/* Open "lost+found" directory. */
-		sem->lost = repair_semantic_open_lost_found(sem, root);
-
-		if (sem->lost == INVAL_PTR) {
-			reiser4_object_close(root);
-			return -EINVAL;
-		}
-		
-		/* Traverse the root dir -- recover all objects which can be 
-		   reached from the root. */
-		res = reiser4_object_traverse(root, callback_object_traverse,
-					      sem);
-
-		if (res)
-			goto error_close_lost;
-	} else {
-		/* Failed to realize the root directory, create a new one. */
-		if (!(root = reiser4_dir_create(fs, NULL, NULL))) {
-			aal_exception_error("Failed to create the root "
-					    "directory.");
-			return -EINVAL;
-		}
+	if (!root) {
+		sem->repair->fatal++;
+		return 0;
 	}
 	
-	/* Create a new "lost+found" directory if not openned. */
-	if (sem->lost == NULL) {
-		if (!(sem->lost = reiser4_dir_create(fs, root, "lost+found"))) {
-			aal_exception_error("Failed to create 'lost+found'"
-					    "directory.");
-			return -EINVAL;
-		}
+	/* '/' exists, check it and its subtree. */
+	res = repair_semantic_check_struct(sem, root);
+
+	if (repair_error_fatal(res))
+		goto error_close_root;
+
+	/* Open "lost+found" directory. */
+	if (sem->repair->mode == RM_BUILD)
+		sem->lost = repair_semantic_lf(sem, root);
+
+	if (sem->lost == INVAL_PTR) {
+		reiser4_object_close(root);
+		return -EINVAL;
 	}
-	
+
+	/* Traverse the root dir -- recover all objects which can be 
+	   reached from the root. */
+	if ((res = reiser4_object_traverse(root, callback_object_traverse, 
+					   sem)))
+		goto error_close_lost;
+
 	/* If lost+found dir is not openned yet, that means that it failed to 
 	   be openned&checked or the root directory has been just created. */
 	if (sem->lost == NULL) {
 		/* Create 'lost+found' directory. */
-		sem->lost = reiser4_dir_create(fs, root, "lost+found");
-
-		if (sem->lost == NULL) {
+		if (!(sem->lost = reiser4_dir_create(fs, root, "lost+found"))) {
 			aal_exception_error("Semantic pass failed: cannot "
 					    "create 'lost+found' directory.");
 			reiser4_object_close(root);

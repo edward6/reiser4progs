@@ -214,8 +214,12 @@ static errno_t sym40_layout(object_entity_t *entity,
 	return region_func(entity, blk, 1, data);
 }
 
-extern object_entity_t *sym40_realize(object_info_t *info);
+extern object_entity_t *sym40_recognize(object_info_t *info);
 extern void sym40_core(reiser4_core_t *c);
+extern errno_t sym40_check_struct(object_entity_t *object,
+				  place_func_t place_func,
+				  region_func_t region_func,
+				  void *data, uint8_t mode);
 
 #endif
 
@@ -266,7 +270,7 @@ static reiser4_object_ops_t sym40_ops = {
 	.unlink         = sym40_unlink,
 	.links          = sym40_links,
 	.clobber        = sym40_clobber,
-	.realize        = sym40_realize,
+	.recognize	= sym40_recognize,
 		
 	.seek	        = NULL,
 	.write	        = NULL,
@@ -276,7 +280,8 @@ static reiser4_object_ops_t sym40_ops = {
 	.attach         = NULL,
 	.detach         = NULL,
 	
-	.check_struct   = NULL,
+	.fake		= NULL,
+	.check_struct   = sym40_check_struct,
 	.check_attach 	= NULL,
 #endif
 	.lookup	        = NULL,
@@ -295,7 +300,7 @@ static reiser4_object_ops_t sym40_ops = {
 
 reiser4_plug_t sym40_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {OBJECT_SYMLINK40_ID, SYMLINK_OBJECT, OBJECT_PLUG_TYPE},
+	.id    = {OBJECT_SYM40_ID, SYM_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "sym40",
 	.desc  = "Symlink plugin for reiser4, ver. " VERSION,

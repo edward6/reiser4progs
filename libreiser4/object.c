@@ -264,6 +264,8 @@ reiser4_object_t *reiser4_object_guess(
 				   &parent->info->object);
 	}
 	
+	/* We may want to open and fix the object even if @place->key 
+	   does not match @okey. */
 	reiser4_key_assign(&object->info->object, okey);
 	aal_memcpy(&object->info->start, place, sizeof(*place));
 

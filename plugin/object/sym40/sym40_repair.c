@@ -44,7 +44,7 @@ static errno_t callback_stat(place_t *stat) {
 	return S_ISLNK(lw_hint.mode) ? 0 : RE_FATAL;
 }
 
-object_entity_t *sym40_realize(object_info_t *info) {
+object_entity_t *sym40_recognize(object_info_t *info) {
 	sym40_t *sym;
 	errno_t res;
 	
@@ -56,7 +56,7 @@ object_entity_t *sym40_realize(object_info_t *info) {
 	/* Initializing file handle */
 	obj40_init(&sym->obj, &sym40_plug, core, info);
 	
-	if ((res = obj40_realize(&sym->obj, callback_stat)))
+	if ((res = obj40_recognize(&sym->obj, callback_stat)))
 		goto error;
 	
 	return (object_entity_t *)sym;
@@ -84,7 +84,7 @@ static void sym40_check_size(uint64_t *sd_size, uint64_t counted_size) {
 errno_t sym40_check_struct(object_entity_t *object,
 			   place_func_t place_func,
 			   region_func_t region_func,
-			   uint8_t mode, void *data)
+			   void *data, uint8_t mode)
 {
 	sym40_t *sym = (sym40_t *)object;
 	uint64_t size, bytes;

@@ -78,7 +78,7 @@ errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	case FILE_OBJECT:
 		res = debugfs_object_cat(object);
 		break;
-	case DIRTORY_OBJECT:
+	case DIR_OBJECT:
 		res = debugfs_object_ls(object);
 		break;
 	default:

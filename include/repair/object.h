@@ -24,12 +24,17 @@ extern reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 					      reiser4_object_t *parent,
 					      reiser4_key_t *key);
 
-extern reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
-					       reiser4_object_t *parent,
-					       reiser4_place_t *place);
+extern reiser4_object_t *repair_object_recognize(reiser4_tree_t *tree,
+						 reiser4_object_t *parent,
+						 reiser4_place_t *place);
 
 extern errno_t repair_object_check_attach(reiser4_object_t *object, 
 					  reiser4_object_t *parent, 
 					  uint8_t mode);
+
+extern reiser4_object_t *repair_object_fake(reiser4_tree_t *tree, 
+					    reiser4_object_t *parent,
+					    reiser4_key_t *key,
+					    reiser4_plug_t *plug);
 
 #endif

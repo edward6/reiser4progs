@@ -24,7 +24,7 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 {
 	uint32_t i, units;
 	extent40_t *extent;
-	errno_t res, result = 0;
+	errno_t result = 0;
 	
 	aal_assert("vpf-724", place != NULL);
 	aal_assert("vpf-725", func != NULL);
@@ -34,6 +34,7 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 			
 	for (i = 0; i < units; i++, extent++) {
 		uint64_t start, width;
+		errno_t res;
 
 		start = et40_get_start(extent);
 		width = et40_get_width(extent);

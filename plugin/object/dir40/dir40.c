@@ -918,11 +918,17 @@ static errno_t dir40_metadata(object_entity_t *entity,
 
 extern void dir40_core(reiser4_core_t *c);
 
-extern object_entity_t *dir40_realize(object_info_t *info);
+extern object_entity_t *dir40_recognize(object_info_t *info);
+extern object_entity_t *dir40_fake(object_info_t *info);
 
 extern errno_t dir40_check_attach(object_entity_t *object, 
 				  object_entity_t *parent, 
 				  uint8_t mode);
+
+extern errno_t dir40_check_struct(object_entity_t *object, 
+				  place_func_t place_func,
+				  region_func_t region_func,
+				  void *data, uint8_t mode);
 
 #endif
 
@@ -940,12 +946,13 @@ static reiser4_object_ops_t dir40_ops = {
 	.attach		= dir40_attach,
 	.detach		= dir40_detach,
 	.clobber	= dir40_clobber,
-	.realize	= dir40_realize,
+	.recognize	= dir40_recognize,
 	
 	.seek		= NULL,
 	.write		= NULL,
 	
-	.check_struct	= NULL,
+	.fake		= dir40_fake,
+	.check_struct	= dir40_check_struct,
 	.check_attach	= dir40_check_attach,
 #endif
 	.follow		= NULL,
@@ -969,7 +976,7 @@ static reiser4_object_ops_t dir40_ops = {
 
 reiser4_plug_t dir40_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {OBJECT_DIRTORY40_ID, DIRTORY_OBJECT, OBJECT_PLUG_TYPE},
+	.id    = {OBJECT_DIR40_ID, DIR_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "dir40",
 	.desc  = "Compound directory for reiser4, ver. " VERSION,

@@ -103,7 +103,7 @@ extern errno_t obj40_set_mtime(obj40_t *obj,
 extern errno_t obj40_set_bytes(obj40_t *obj,
 			       uint64_t bytes);
 
-extern errno_t obj40_realize(obj40_t *obj, stat_func_t stat_func);
+extern errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func);
 
 extern errno_t obj40_remove(obj40_t *obj, place_t *place,
 			    remove_hint_t *hint);
@@ -122,7 +122,9 @@ extern errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 				 uint64_t mask, uint32_t nlink, 
 				 uint16_t objmode, uint8_t mode);
 
-extern reiser4_plug_t *obj40_plug_realize(obj40_t *obj, rid_t type, char *name);
+extern reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, 
+					    rid_t type, 
+					    char *name);
 
 #endif
 #endif

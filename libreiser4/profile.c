@@ -67,17 +67,17 @@ reiser4_profile_t default_profile = {
 		[11] = {
 			.name  = "directory",
 			.type  = OBJECT_PLUG_TYPE,
-			.value = OBJECT_DIRTORY40_ID
+			.value = OBJECT_DIR40_ID
 		},
 		[12] = {
 			.name  = "symlink",
 			.type  = OBJECT_PLUG_TYPE,
-			.value = OBJECT_SYMLINK40_ID
+			.value = OBJECT_SYM40_ID
 		},
 		[13] = {
 			.name  = "special",
 			.type  = OBJECT_PLUG_TYPE,
-			.value = OBJECT_SPECIAL40_ID
+			.value = OBJECT_SPCL40_ID
 		},
 		[14] = {
 			.name  = "format",

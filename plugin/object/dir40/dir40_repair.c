@@ -44,7 +44,7 @@ static errno_t callback_stat(place_t *stat) {
 	return S_ISDIR(lw_hint.mode) ? 0 : RE_FATAL;
 }
 
-object_entity_t *dir40_realize(object_info_t *info) {
+object_entity_t *dir40_recognize(object_info_t *info) {
 	dir40_t *dir;
 	errno_t res;
 	
@@ -56,12 +56,11 @@ object_entity_t *dir40_realize(object_info_t *info) {
 	/* Initializing file handle */
 	obj40_init(&dir->obj, &dir40_plug, core, info);
 	
-	if ((res = obj40_realize(&dir->obj, callback_stat)))
+	if ((res = obj40_recognize(&dir->obj, callback_stat)))
 		goto error;
 	
 	/* Positioning to the first directory unit */
-	if (dir40_reset((object_entity_t *)dir))
-		goto error;
+	dir40_reset((object_entity_t *)dir);
 	
 	return (object_entity_t *)dir;
  error:
@@ -164,7 +163,7 @@ static errno_t dir40_belongs(dir40_t *dir, reiser4_plug_t *bplug) {
 errno_t dir40_check_struct(object_entity_t *object, 
 			   place_func_t place_func,
 			   region_func_t region_func,
-			   uint8_t mode, void *data)
+			   void *data, uint8_t mode)
 {
 	dir40_t *dir = (dir40_t *)object;
 	reiser4_plug_t *bplug;
@@ -196,7 +195,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 		return res;
 	
 	/* Init hash plugin in use. */
-	dir->hash = obj40_plug_realize(&dir->obj, HASH_PLUG_TYPE, "hash");
+	dir->hash = obj40_plug_recognize(&dir->obj, HASH_PLUG_TYPE, "hash");
 	
 	if (dir->hash == NULL) {
                 aal_exception_error("Directory %s: failed to init hash plugin."
@@ -232,13 +231,13 @@ errno_t dir40_check_struct(object_entity_t *object,
 		pos_t *pos = &dir->body.pos;
 		remove_hint_t hint;
 		key_entity_t key;
-		errno_t result;
 		uint32_t units;
+		errno_t ret;
 		
 		/* Check that the body item is of the current dir. */
-		if ((result = dir40_belongs(dir, bplug)) < 0)  {
-			return result;
-		} else if (result) {
+		if ((ret = dir40_belongs(dir, bplug)) < 0)  {
+			return ret;
+		} else if (ret) {
 			/* Not of the current dir. */
 			break;
 		}
@@ -374,6 +373,25 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 	return plug_call(parent->plug->o.object_ops, link, parent);
 }
 
+
+/* Creates the fake dir40 entity by the given @info for the futher recovery. */
+object_entity_t *dir40_fake(object_info_t *info) {
+	dir40_t *dir;
+	errno_t res;
+	
+	aal_assert("vpf-1231", info != NULL);
+	
+	if (!(dir = aal_calloc(sizeof(*dir), 0)))
+		return INVAL_PTR;
+	
+	/* Initializing file handle */
+	obj40_init(&dir->obj, &dir40_plug, core, info);
+	
+	/* Positioning to the first directory unit */
+	dir40_reset((object_entity_t *)dir);
+	
+	return (object_entity_t *)dir;
+}
 
 void dir40_core(reiser4_core_t *c) {
 	core = c;

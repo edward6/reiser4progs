@@ -74,17 +74,17 @@ enum reiser4_plug_type {
 typedef enum reiser4_plug_type reiser4_plug_type_t;
 
 enum reiser4_object_plug_id {
-	OBJECT_FILE40_ID        = 0x0,
-	OBJECT_DIRTORY40_ID     = 0x1,
-	OBJECT_SYMLINK40_ID     = 0x2,
-	OBJECT_SPECIAL40_ID     = 0x3
+	OBJECT_FILE40_ID	= 0x0,
+	OBJECT_DIR40_ID		= 0x1,
+	OBJECT_SYM40_ID		= 0x2,
+	OBJECT_SPCL40_ID	= 0x3
 };
 
 enum reiser4_object_group {
-	FILE_OBJECT             = 0x0,
-	DIRTORY_OBJECT          = 0x1,
-	SYMLINK_OBJECT          = 0x2,
-	SPECIAL_OBJECT          = 0x3
+	FILE_OBJECT		= 0x0,
+	DIR_OBJECT		= 0x1,
+	SYM_OBJECT		= 0x2,
+	SPCL_OBJECT		= 0x3
 };
 
 typedef enum reiser4_object_group reiser4_object_group_t;
@@ -650,7 +650,12 @@ struct reiser4_object_ops {
 	
 	/* Realizes if the object can be of this plugin and can be 
 	   recovered as a such. */
-	object_entity_t *(*realize) (object_info_t *);
+	object_entity_t *(*recognize) (object_info_t *);
+	
+	/* Creates the fake object by the gived @info. Needed to recover 
+	   "/" and "lost+found" direcories if their SD are broken. */
+	object_entity_t *(*fake) (object_info_t *);
+
 #endif
 	
 	/* Change current position to passed value */

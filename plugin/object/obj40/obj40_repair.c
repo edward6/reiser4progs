@@ -10,7 +10,7 @@
 /* Obtains the plugin of the type @type from SD if stored there, otherwise 
    obtains the default one from the profile.  This differs from obj40_plug
    as it checks if the id from the SD is a valid one. */
-reiser4_plug_t *obj40_plug_realize(obj40_t *obj, rid_t type, char *name) {
+reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, char *name) {
 	reiser4_plug_t *plug;
 	rid_t pid;
 	
@@ -58,12 +58,12 @@ errno_t obj40_stat(obj40_t *obj, stat_func_t stat_func) {
 						    &info->start.key))
 		return RE_FATAL;
 	
-	/* Some SD is realized. Check that this is our SD. */
+	/* Some SD is recognized. Check that this is our SD. */
 	return stat_func(&info->start);
 }
 
-/* The plugin tries to realize the object: detects the SD, body items */
-errno_t obj40_realize(obj40_t *obj, stat_func_t stat_func) {
+/* The plugin tries to recognize the object: detects the SD, body items */
+errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func) {
 	uint64_t locality, objectid, ordering;
 	object_info_t *info;
 	key_entity_t key;
@@ -275,7 +275,7 @@ errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func,
 	
 	/* Check showed that this is not right SD, create a new one. This is 
 	   the special case and usually is not used as object plugin cannot 
-	   be realized w/out SD. Used for for "/" and "lost+found" recovery. */
+	   be recognized w/out SD. Used for for "/" and "lost+found" recovery. */
 	aal_exception_error("The file [%s] does not have a StatData item. %s"
 			    "Plugin %s.", print_ino(obj->core, key), 
 			    mode == RM_BUILD ? " Creating a new one." :

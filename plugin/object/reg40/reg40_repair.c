@@ -49,7 +49,7 @@ static errno_t callback_stat(place_t *stat) {
 	return S_ISREG(lw_hint.mode) ? 0 : RE_FATAL;
 }
 
-object_entity_t *reg40_realize(object_info_t *info) {
+object_entity_t *reg40_recognize(object_info_t *info) {
 	reg40_t *reg;
 	errno_t res;
 	
@@ -59,7 +59,7 @@ object_entity_t *reg40_realize(object_info_t *info) {
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plug, core, info);
 	
-	if ((res = obj40_realize(&reg->obj, callback_stat)))
+	if ((res = obj40_recognize(&reg->obj, callback_stat)))
 		goto error;
 	
 	/* Reseting file (setting offset to 0) */
@@ -128,7 +128,7 @@ static errno_t reg40_create_hole(reg40_t *reg, uint64_t len) {
 errno_t reg40_check_struct(object_entity_t *object, 
 			   place_func_t place_func,
 			   region_func_t region_func,
-			   uint8_t mode, void *data)
+			   void *data, uint8_t mode)
 {
 	uint64_t size, bytes, offset, next;
 	reg40_t *reg = (reg40_t *)object;

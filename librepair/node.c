@@ -40,7 +40,7 @@ reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
 static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 	reiser4_place_t place;
 	pos_t *pos = &place.pos;
-	errno_t ret, res = 0;
+	errno_t res = 0;
 	uint32_t count;
 	int32_t len;
 	
@@ -52,6 +52,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 	count = reiser4_node_items(node);
 	
 	for (pos->item = 0; pos->item < count; pos->item++) {
+		errno_t ret;
+		
 		pos->unit = MAX_UINT32;
 		
 		/* Open the item, checking its plugin id. */
@@ -78,7 +80,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		} 
 		
 		/* Check that the item is legal for this node. If not, it 
-		   will be deleted in update traverse callback method. */
+		   is not recoverable corruption for now. FIXME-VITALY: 
+		   how to recover valuable data from here? */
 		if (!repair_tree_legal_level(place.plug->id.group, 
 					     reiser4_node_get_level(node)))
 		{
@@ -88,8 +91,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 					    reiser4_node_get_level(node),
 					    place.plug->label);
 			
-			/* FIXME-VITALY: smth should be done here later. */
-			res |= RE_FATAL;
+			return RE_FATAL;
 		}
 		
 		/* Check the item structure. */

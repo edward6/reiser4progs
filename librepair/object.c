@@ -36,7 +36,7 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 }
 
 /* Helper callback for probing passed @plugin. */
-static bool_t callback_object_realize(reiser4_plug_t *plug, void *data) {
+static bool_t callback_object_recognize(reiser4_plug_t *plug, void *data) {
 	reiser4_object_t *object;
 	
 	/* We are interested only in object plugins here */
@@ -45,8 +45,8 @@ static bool_t callback_object_realize(reiser4_plug_t *plug, void *data) {
 	
 	object = (reiser4_object_t *)data;
 	
-	/* Try to realize the object as an instance of this plugin. */
-	object->entity = plug_call(plug->o.object_ops, realize, 
+	/* Try to recognize the object as an instance of this plugin. */
+	object->entity = plug_call(plug->o.object_ops, recognize, 
 				   object->info);
 	
 	return (object->entity == NULL || object->entity == INVAL_PTR) ?
@@ -58,17 +58,59 @@ static errno_t repair_object_init(reiser4_object_t *object,
 {
 	reiser4_plug_t *plug;
 	
-	plug = reiser4_factory_cfind(callback_object_realize, object);
+	plug = reiser4_factory_cfind(callback_object_recognize, object);
 
 	return plug == NULL ? -EINVAL : 0;
 }
 
-reiser4_object_t *repair_object_realize(reiser4_tree_t *tree, 
-					reiser4_object_t *parent,
-					reiser4_place_t *place) 
+reiser4_object_t *repair_object_recognize(reiser4_tree_t *tree, 
+					  reiser4_object_t *parent,
+					  reiser4_place_t *place) 
 {
 	return reiser4_object_guess(tree, parent, &place->key, place,
 				    repair_object_init);
+}
+
+/* Create the fake object--needed for "/" and "lost+found" recovery when SD 
+   is corrupted and not directory plugin gets realized. */
+reiser4_object_t *repair_object_fake(reiser4_tree_t *tree, 
+				     reiser4_object_t *parent,
+				     reiser4_key_t *key,
+				     reiser4_plug_t *plug) 
+{
+	reiser4_object_t *object;
+	object_info_t info;
+	char *name;
+
+	aal_assert("vpf-1247", tree != NULL);
+	aal_assert("vpf-1248", key != NULL);
+	aal_assert("vpf-1249", plug != NULL);
+
+	if (!(object = aal_calloc(sizeof(*object), 0)))
+		return INVAL_PTR;
+
+	/* Initializing info */
+	aal_memset(&info, 0, sizeof(info));
+	info.tree = tree;
+	reiser4_key_assign(&info.object, key);
+	
+	if (parent)
+		reiser4_key_assign(&info.parent, &parent->info->object);
+	
+	/* Create the fake object. */
+	if (!(object->entity = plug_call(plug->o.object_ops, fake, &info)))
+		goto error_close_object;
+	
+	object->info = &object->entity->info;
+	
+	name = reiser4_print_key(&object->info->object, PO_INO);
+	aal_strncpy(object->name, name, sizeof(object->name));
+
+	return object;
+	
+ error_close_object:
+	aal_free(object);
+	return NULL;
 }
 
 /* Open the object on the base of given start @key */
@@ -89,7 +131,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 					  &place)) == FAILED)
 		return INVAL_PTR;
 	
-	/* Even if place is found, pass it through object realize 
+	/* Even if place is found, pass it through object recognize 
 	   method to check all possible corruptions. */
 	return reiser4_object_guess(tree, parent, key, &place, 
 				    repair_object_init);
@@ -120,3 +162,4 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 	
 	return res;
 }
+
