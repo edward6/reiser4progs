@@ -1138,7 +1138,7 @@ errno_t reiser4_tree_collapse(reiser4_tree_t *tree) {
 
 #ifndef ENABLE_STAND_ALONE
 /* Makes search of the leftmost item/unit with the same key as passed @key is
-   starting from @place. This is needed to work with key collitions. */
+   starting from @place. This is needed to work with key collisions. */
 static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 				     place_t *place, reiser4_key_t *key)
 {
@@ -1262,7 +1262,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 #ifndef ENABLE_STAND_ALONE
 				/* If collision handling is allwoed, we will
 				   find leftmost coord with the same key. This
-				   is needed for correct key collitions
+				   is needed for correct key collisions
 				   handling. */
 				if (reiser4_tree_leftmost(tree, place, &wan)) {
 					aal_exception_error("Can't find leftmost "

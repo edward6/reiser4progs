@@ -43,6 +43,7 @@ typedef uint64_t f64_t; typedef f64_t d64_t __attribute__((aligned(8)));
 typedef uint8_t rid_t;
 typedef uint64_t oid_t;
 
+/* Type for position in node (item and unit component). */
 struct pos {
 	uint32_t item;
 	uint32_t unit;
@@ -53,7 +54,7 @@ typedef struct pos pos_t;
 #define POS_INIT(p, i, u) \
         (p)->item = i, (p)->unit = u
 
-/* Lookup return values */
+/* Lookup return values. */
 enum lookup {
 	PRESENT                 = 1,
 	ABSENT                  = 0,
@@ -89,6 +90,7 @@ enum reiser4_plug_type {
 
 typedef enum reiser4_plug_type reiser4_plug_type_t;
 
+/* Known object plugin ids. */
 enum reiser4_object_plug_id {
 	OBJECT_REG40_ID         = 0x0,
 	OBJECT_DIR40_ID		= 0x1,
@@ -97,6 +99,7 @@ enum reiser4_object_plug_id {
 	OBJECT_LAST_ID
 };
 
+/* Known object groups. */
 enum reiser4_object_group {
 	REG_OBJECT		= 0x0,
 	DIR_OBJECT		= 0x1,
@@ -107,6 +110,7 @@ enum reiser4_object_group {
 
 typedef enum reiser4_object_group reiser4_object_group_t;
 
+/* Known item plugin ids. */
 enum reiser4_item_plug_id {
 	ITEM_STATDATA40_ID	= 0x0,
 	ITEM_SDE40_ID	        = 0x1,
@@ -118,6 +122,7 @@ enum reiser4_item_plug_id {
 	ITEM_LAST_ID
 };
 
+/* Known item groups. */
 enum reiser4_item_group {
 	STATDATA_ITEM		= 0x0,
 	NODEPTR_ITEM		= 0x1,
@@ -130,11 +135,13 @@ enum reiser4_item_group {
 
 typedef enum reiser4_item_group reiser4_item_group_t;
 
+/* Known node plugin ids. */
 enum reiser4_node_plug_id {
 	NODE_REISER40_ID        = 0x0,
 	NODE_LAST_ID
 };
 
+/* Known hash plugin ids. */
 enum reiser4_hash_plug_id {
 	HASH_RUPASOV_ID		= 0x0,
 	HASH_R5_ID		= 0x1,
@@ -146,6 +153,7 @@ enum reiser4_hash_plug_id {
 
 typedef enum reiser4_hash_plug_id reiser4_hash_plug_id_t;
 
+/* Know tail policy plugin ids. */
 enum reiser4_tail_plug_id {
 	TAIL_NEVER_ID		= 0x0,
 	TAIL_SUPPRESS_ID	= 0x1,
@@ -155,11 +163,13 @@ enum reiser4_tail_plug_id {
 	TAIL_LAST_ID
 };
 
+/* Known permission plugin ids. */
 enum reiser4_perm_plug_id {
 	PERM_RWX_ID		= 0x0,
 	PERM_LAST_ID
 };
 
+/* Known stat data extention plugin ids. */
 enum reiser4_sdext_plug_id {
 	SDEXT_LW_ID	        = 0x0,
 	SDEXT_UNIX_ID		= 0x1,
@@ -174,26 +184,33 @@ enum reiser4_sdext_plug_id {
 
 typedef enum reiser4_sdext_plug_id reiser4_sdext_plug_id_t;
 
+/* Known format plugin ids. */
 enum reiser4_format_plug_id {
 	FORMAT_REISER40_ID	= 0x0,
 	FORMAT_LAST_ID
 };
 
+/* Known oid allocator plugin ids. */
 enum reiser4_oid_plug_id {
 	OID_REISER40_ID		= 0x0,
 	OID_LAST_ID
 };
 
+/* Known block allocator plugin ids. */
 enum reiser4_alloc_plug_id {
 	ALLOC_REISER40_ID	= 0x0,
 	ALLOC_LAST_ID
 };
 
+/* Known journal plugin ids. */
 enum reiser4_journal_plug_id {
 	JOURNAL_REISER40_ID	= 0x0,
-	JOURNAL_LAST
+	JOURNAL_LAST_ID
 };
 
+/* Known key plugin ids. All these plugins are virtual in teh sence they not
+   exist in kernel and needed in reiser4progs because we need them working with
+   both keys policy (large and short) without recompiling. */
 enum reiser4_key_plug_id {
 	KEY_SHORT_ID		= 0x0,
 	KEY_LARGE_ID		= 0x1,
@@ -205,6 +222,7 @@ typedef struct reiser4_plug reiser4_plug_t;
 #define INVAL_PTR	        ((void *)-1)
 #define INVAL_PID	        ((rid_t)~0)
 
+/* Type for key which is used both by library and plugins. */
 struct key_entity {
 	reiser4_plug_t *plug;
 	d64_t body[4];
@@ -213,6 +231,7 @@ struct key_entity {
 
 typedef struct key_entity key_entity_t;
 
+/* Known key types. */
 enum key_type {
 	KEY_FILENAME_TYPE       = 0x0,
 	KEY_STATDATA_TYPE       = 0x1,
@@ -224,6 +243,7 @@ enum key_type {
 
 typedef enum key_type key_type_t;
 
+/* Known print options for key. */
 enum print_options {
 	PO_DEFAULT              = 0x0,
 	PO_INODE                = 0x1
@@ -231,8 +251,8 @@ enum print_options {
 
 typedef enum print_options print_options_t;
 
-/* Type for describing reiser4 objects (like format, block allocator, etc) inside
-   the library, created by plugins themselves. */
+/* Type for describing reiser4 objects (like format, block allocator, etc)
+   inside the library, created by plugins themselves. */
 struct generic_entity {
 	reiser4_plug_t *plug;
 };
@@ -320,7 +340,7 @@ struct object_info {
 
 typedef struct object_info object_info_t;
 
-/* Object plugins entity */
+/* Object plugin entity. */
 struct object_entity {
 	reiser4_plug_t *plug;
 	object_info_t info;
@@ -328,6 +348,7 @@ struct object_entity {
 
 typedef struct object_entity object_entity_t;
 
+/* Stat data extention entity. */
 struct sdext_entity {
 	reiser4_plug_t *plug;
 
@@ -340,23 +361,29 @@ typedef struct sdext_entity sdext_entity_t;
 
 /* Shift flags control shift process */
 enum shift_flags {
-	/* Perform shift from the passed node to the left neighbour node. */
+	/* Allows to try to make shift from the passed node to left neighbour
+	   node. */
 	SF_LEFT_SHIFT    = 1 << 0,
 
-	/* Perform shift from the passed node to the right neighbour node. */
+	/* Allows to try to make shift from the passed node to right neighbour
+	   node. */
 	SF_RIGHT_SHIFT   = 1 << 1,
 
-	/* Allows to move insert point to the corresponding neighbour node while
-	   performing shift. */
+	/* Allows to move insert point to one of neighbour nodes during
+	   shift. */
 	SF_MOVE_POINT    = 1 << 2,
 
-	/* Allows to update insert point while performing shift. */
+	/* Allows to update insert point during shift. */
 	SF_UPDATE_POINT  = 1 << 3,
 
-	/* Should be border item merged or only whole items may be shifted . */
+	/* Controls is shift allowed to merge border items or only whole items
+	   may be shifted. Needed for repair code in order to disable merge of
+	   checked item and not checked one. */
 	SF_ALLOW_MERGE   = 1 << 4,
 
-	/* Should be new nodes allocated during make space or not */
+	/* Controls is shift allowed to allocate new nodes during make
+	   space. This is needed sometimes if there is not enough of free space
+	   in existent nodes (one insert point points to and its neighbours)*/
 	SF_ALLOW_ALLOC   = 1 << 5
 };
 
@@ -398,6 +425,8 @@ struct shift_hint {
 
 typedef struct shift_hint shift_hint_t;
 
+/* Merge hint. It is used in merging two items in repair code. Merge is process
+   of fusing two items, which are overlapped by keys. */
 struct merge_hint {	
 	uint32_t dst_count;
 	uint32_t src_count;
@@ -419,7 +448,7 @@ struct merge_hint {
 
 typedef struct merge_hint merge_hint_t;
 
-/* Different hints used for gringing data to/from corresponding objects. */
+/* Different hints used for getting data to/from corresponding objects. */
 struct ptr_hint {    
 	uint64_t start;
 	uint64_t width;
@@ -497,6 +526,8 @@ struct entry_hint {
 
 typedef struct entry_hint entry_hint_t;
 
+/* Object hint. It is used to bring all about object information to object
+   plugin to craete appropriate object by it. */
 struct object_hint {
 
 	/* Stat data related fields. */
@@ -600,7 +631,7 @@ struct trans_hint {
 	region_func_t region_func;
 
 	/* Related opaque data. May be used for passing something to
-	   remove_hook. */
+	   remove_hook(). */
 	void *data;
 };
 
@@ -1607,7 +1638,6 @@ typedef void (*register_builtin_t) (plug_init_t, plug_fini_t);
    plugin finalization function. The idea the same as in the linux kernel module
    support. */
 #if defined(ENABLE_MONOLITHIC)
-
 #define plug_register(n, i, f)			               \
     extern register_builtin_t __register_builtin;              \
                                                                \

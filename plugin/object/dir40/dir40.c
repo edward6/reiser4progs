@@ -205,7 +205,7 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 
 #ifndef ENABLE_STAND_ALONE
 	/* Adjusting current position by key's adjust. This is needed
-	   for working fine when key collitions take place. */
+	   for working fine when key collisions take place. */
 	for (adjust = dir->adjust; adjust;) {
 		uint32_t off = adjust;
 
@@ -314,7 +314,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 
 #ifndef ENABLE_STAND_ALONE
 /* Helper function for comparing two strings. Needed for the case we detected
-   key collition and need to find right position inside the directory by name of
+   key collision and need to find right position inside the directory by name of
    entry. */
 static int32_t dir40_compent(char *entry1, char *entry2) {
 	uint32_t len1 = aal_strlen(entry1);
@@ -407,7 +407,7 @@ static lookup_t dir40_search(object_entity_t *entity,
 		/* Checking if we found needed name. */
 		comp = dir40_compent(temp.name, name);
 
-		/* If current name is less then we need, we increase collitions
+		/* If current name is less then we need, we increase collisions
 		   counter -- @adjust. */
 		if (comp < 0) {
 			dir->body.pos.unit++;
