@@ -6,8 +6,7 @@ reiser4progs/COPYING.
 This is a library for reiser4 filesystem access and manipulation.
 
 Send reiser4progs bug reports, requests for help, feature requests,
-comments, etc. to umka@namesys.com, vitaly@namesys.com,
-reiserfs-list@namesys.com
+comments, etc. to  reiserfs-list@namesys.com.
 
 In order to build the library, type the following sequence:
 

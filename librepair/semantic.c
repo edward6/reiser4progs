@@ -8,38 +8,56 @@
 #include <repair/semantic.h>
 
 static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) {
-    repair_semantic_t *sem;
     reiser4_object_t *object;
+    repair_semantic_t *sem;
+    repair_object_t hint;
+    reiser4_key_t parent;
     errno_t res = 0;
 	
     aal_assert("vpf-1059", place != NULL);
     aal_assert("vpf-1037", data != NULL);
     
-    /* If this item cannot be the start of the object, skip it. */
-    if (reiser4_object_can_begin(place) == FALSE)
+    /* Try to rebuild objects with Statdata only on semantic pass. */
+    if (!reiser4_item_statdata(place))
 	return 0;
     
     /* If this item was checked already, skip it. */
     if (repair_node_test_flag(place->node, place->pos.item, ITEM_CHECKED))
 	return 0;
     
-    sem = (repair_semantic_t *)data;
+    sem = (repair_semantic_t *)data;    
+    repair_object_init(&hint, sem->repair->fs->tree);
     
-    /* Try to open it. */
-    if ((object = reiser4_object_launch(sem->repair->fs, place)) == NULL)
+    /* Try to realize the plugin. */
+    if (repair_object_realize(&hint, place))
 	return 0;
     
     /* This is really an object, check its structure. */
-    if ((res = repair_object_check_struct(object, sem->repair->mode))) {
+    if ((res = repair_object_check_struct(&hint, sem->repair->mode))) {
 	aal_exception_error("Node %llu, item %u: Check of the object openned "
 	    "on the item failed.", place->node->blk, place->pos.item);
-	
-	reiser4_object_close(object);
 	return res;
     }
     
-    reiser4_object_close(object);    
+    /* Open the object and traverse its child pointers. */
+    if ((object = repair_object_open(&hint)) == NULL) {
+	aal_exception_error("Node %llu, item %u: Object openning failed for "
+	    "%k.", place->node->blk, place->pos.item, &hint.place.item.key);
+	return -EINVAL;
+    }
+	
+    if ((res = repair_object_traverse(object)))
+	goto error_close_object;
+    
+    /* The whole reachable subtree must be recovered for now and marked as 
+     * REACHABLE. */
+    
     return 0;
+
+error_close_object:
+    reiser4_object_close(object);
+
+    return res;
 }
 
 static errno_t repair_semantic_node_traverse(reiser4_node_t *node, void *data) {
@@ -48,6 +66,7 @@ static errno_t repair_semantic_node_traverse(reiser4_node_t *node, void *data) {
 
 errno_t repair_semantic(repair_semantic_t *sem) {
     repair_progress_t progress;
+    repair_object_t object;
     traverse_hint_t hint;
     reiser4_fs_t *fs;
     errno_t res;
@@ -76,10 +95,22 @@ errno_t repair_semantic(repair_semantic_t *sem) {
     reiser4_tree_load_root(fs->tree);
     
     if (fs->tree->root == NULL)
-	goto error_semantic_fini;
+	return -EINVAL;
     
-    /* Make sure that '/' and 'lost+found' exist. */
+    repair_object_init(&object, fs->tree);
 
+    /* Make sure that '/' exists. */
+    if (repair_object_launch(&object, &fs->tree->key)) {
+	reiser4_object_t *root;
+	
+	/* Failed to realize the root directory, create a new one. */	
+	if (!(root = reiser4_dir_create(fs, NULL, NULL, fs->profile))) {
+	    aal_exception_error("Failed to create the root directory.");
+	    return -EINVAL;
+	}
+	
+	reiser4_object_close(root);
+    }
     
     hint.data = sem;
     hint.cleanup = 1;
@@ -92,8 +123,5 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	return res;
     
     return 0;
-    
-error_semantic_fini:
-    return -EINVAL;
 }
 

@@ -590,8 +590,7 @@ typedef struct reiser4_key_ops reiser4_key_ops_t;
 struct reiser4_object_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Creates new file with passed parent and object keys */
-	object_entity_t *(*create) (void *, object_entity_t *,
-				    object_hint_t *, place_t *);
+	object_entity_t *(*create) (void *, object_hint_t *, place_t *);
     
 	/*
 	  Links/unlinks file in its parent and updates all needed stat data
@@ -624,7 +623,14 @@ struct reiser4_object_ops {
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 	
 	/* Checks and recover the structure of the object. */
-	errno_t (*check_struct) (object_entity_t *, uint8_t);
+	errno_t (*check_struct) (void *, uint8_t);
+	
+	/* 
+	  Realizes if the object can be of this plugin and can be recovered 
+	  as a such. 
+	*/
+	errno_t (*realize) (void *);
+
 #endif
 	
 	/* Change current position to passed value */
@@ -775,11 +781,9 @@ struct reiser4_item_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Get the max real key which is stored in the item */
 	errno_t (*maxreal_key) (item_entity_t *, key_entity_t *);
-
-	/*
-	  Get the max real key stored continously from the key specified in the
-	  item entity.
-	*/
+	
+	/* Get the plugin id of the specified type if stored in SD. */
+	rid_t (*get_plugid) (item_entity_t *, uint16_t);
 #endif
 };
 

@@ -12,7 +12,7 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include <reiser4/plugin.h>
-#include <repair/repair_plugin.h>
+#include <repair/plugin.h>
 
 #define tail40_body(item) (item->body)
 

@@ -14,7 +14,7 @@
 
 #include <reiser4/reiser4.h>
 #include <repair/repair.h>
-#include <repair/repair_plugin.h>
+#include <repair/plugin.h>
 #include <repair/filesystem.h>
 #include <repair/tree.h>
 #include <repair/format.h>

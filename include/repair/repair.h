@@ -14,7 +14,7 @@
 
 #include <aux/bitmap.h>
 #include <reiser4/reiser4.h>
-#include <repair/repair_plugin.h>
+#include <repair/plugin.h>
 
 typedef enum repair_progress_type {
     PROGRESS_SILENT	= 0x1,

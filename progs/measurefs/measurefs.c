@@ -544,7 +544,7 @@ static errno_t dfrag_process_node(
 		reiser4_object_t *object;
 
 		/* Initialiing the item at @place */
-		if ((res = reiser4_place_open(&place, node, &pos))) {
+		if ((res = reiser4_place_init(&place, node, &pos))) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->blk);
 			return res;

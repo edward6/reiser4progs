@@ -3,8 +3,8 @@ SEMANTIC & LOST+FOUND.
 ** Terms.
 
 Base item - having this item plugin knows how to reach all other items. In the 
-current implementation only compound directory items that do not have '.' and 
-'..' are not base items.
+current implementation only compound directory items not having '.' and '..' 
+are not base items.
 
 Ambiguous object is one for which we cannot identify object plugin unambiguously.
 If it can be an object of plugins of different groups, do not consider it as an 
@@ -13,24 +13,31 @@ from its parent.
 
 ** Requirements.
 
-An object which inherits from the parent must have a pointer to that parent.
+1. An object which inherits some property from the parent must have a pointer 
+to that parent. 
+2. That pointer is keeped in StatData of the object.
+3. Objects without StatDatas inherit their properties from their semantic parents.
 
 ** Idea.
 
 All objects are considered as lost initially. Just check that root dir exists 
-before the start. Then for any not CHECKED item try to recover the object, reach 
-its parent and recover the whole subtree.
+before the start. Then for any not CHECKED item try to recover the object, recover 
+the whole subtree, then try to reach and recover its parent and its parent and so 
+on and to recover the whole subtree of the last reachable parent.
 
 If it is not possible to recover the object OBJ1 given its item, that is not a 
 base item, skip it for now. This (recovering) can be done later by trying to 
 recover OBJ1's child or parent---then we have a pointer to the StatData of OBJ1 
 or some other item which is a base item of the object OBJ1.
 
-Object inherits its properties from the parent so if plugin of the object is 
-ambiguous, then try to reach the parent and its parent until plugin become 
-unambiguous. If this fails, wait for reaching this object from some other object 
-when the plugin will be figured out. If it fails also, link it to LOST+FOUND and 
-recover with the default plugin.
+Object inherits its properties from some another object (which has a StatData).
+If pointer points to nowhere or some object without StatData or with lost StatData
+found, recover by default. 
+
+For objects with lost StatData and for ones without StatData wait on semantic pass
+if they will be reached from some parent, then recovery can be done successfully.
+Later, on lost+found pass, recover such objects with default plugins and link them 
+to lost+found.
 
 ** Algorithm.
 
@@ -90,4 +97,6 @@ There should not be any unCHECKED and unREACHABLE stuff now. Otherwise
 it can be cleaned later on FSCK CLEANUP PASS. Well, I hope that there is 
 no need in this another pass.
 
+Objects without SD are skipped on the first pass - it is not clear which plugins they
+are of, wait if they can be reached from some parent.
 

@@ -12,7 +12,7 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "journal40.h"
-#include <repair/repair_plugin.h>
+#include <repair/plugin.h>
 #include <aux/bitmap.h>
 
 /*

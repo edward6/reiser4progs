@@ -12,7 +12,7 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "node40.h"
-#include <repair/repair_plugin.h>
+#include <repair/plugin.h>
 
 #define MIN_ITEM_LEN	1
 

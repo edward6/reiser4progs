@@ -438,6 +438,14 @@ static errno_t stat40_print(item_entity_t *item,
 	return stat40_traverse(item, callback_print_ext,
 			       (void *)stream);
 }
+
+/* Get the plugin id of the type @type if stored in SD. */
+static rid_t stat40_get_plugid(item_entity_t *item, uint16_t type) {
+    aal_assert("vpf-1074", item != NULL);
+
+    return INVAL_PID;
+}
+
 #endif
 
 static reiser4_item_ops_t stat40_ops = {
@@ -465,6 +473,7 @@ static reiser4_item_ops_t stat40_ops = {
 	.set_key	  = NULL,
 	.check_layout	  = NULL,
 	.maxreal_key      = NULL,
+	.get_plugid	  = stat40_get_plugid,
 #endif
 	.lookup		  = NULL,
 	.branch           = NULL,

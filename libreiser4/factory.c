@@ -492,6 +492,7 @@ reiser4_plugin_t *libreiser4_factory_cfind_only(
     
 	return found;
 }
+
 #ifndef ENABLE_STAND_ALONE
 /* Helper callback for matching plugin by its name */
 static int callback_match_name(reiser4_plugin_t *plugin,

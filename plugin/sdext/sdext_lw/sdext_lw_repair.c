@@ -12,7 +12,7 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "sdext_lw.h"
-#include <repair/repair_plugin.h>
+#include <repair/plugin.h>
 
 errno_t sdext_lw_check(sdext_entity_t *sdext, uint8_t mode) {
     aal_assert("vpf-777", sdext != NULL);

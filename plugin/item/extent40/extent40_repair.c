@@ -12,7 +12,7 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "extent40.h"
-#include <repair/repair_plugin.h>
+#include <repair/plugin.h>
 
 extern uint32_t extent40_units(item_entity_t *item);
 extern errno_t extent40_maxreal_key(item_entity_t *item, key_entity_t *key);

@@ -9,7 +9,7 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include <reiser4/plugin.h>
-#include <repair/repair_plugin.h>
+#include <repair/plugin.h>
 
 errno_t sdext_symlink_check(sdext_entity_t *sdext, uint8_t mode) {
     uint32_t offset;

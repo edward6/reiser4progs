@@ -36,7 +36,7 @@
 
 #include "direntry40.h"
 #include <aux/bitmap.h>
-#include <repair/repair_plugin.h>
+#include <repair/plugin.h>
 
 #define S_NAME		0
 #define L_NAME		1

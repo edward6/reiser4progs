@@ -1028,6 +1028,7 @@ static reiser4_item_ops_t direntry40_ops = {
 	.set_key	   = NULL,
 	.layout		   = NULL,
 	.check_layout	   = NULL,
+	.get_plugid	   = NULL,
 #endif
 	.branch            = NULL,
 

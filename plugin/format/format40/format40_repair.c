@@ -12,7 +12,7 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "format40.h"
-#include <repair/repair_plugin.h>
+#include <repair/plugin.h>
 
 errno_t format40_check(object_entity_t *entity, uint8_t mode) {
     format40_t *format = (format40_t *)entity;

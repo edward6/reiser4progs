@@ -12,7 +12,7 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "alloc40.h"
-#include <repair/repair_plugin.h>
+#include <repair/plugin.h>
 
 struct alloc_hint {
     uint8_t mode;

@@ -612,6 +612,7 @@ static reiser4_item_ops_t extent40_ops = {
 	.insert           = NULL,
 	.overhead         = NULL,
 	.set_key          = NULL,
+	.get_plugid	  = NULL,
 #endif
 	.branch           = NULL,
 
