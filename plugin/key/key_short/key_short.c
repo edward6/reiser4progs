@@ -127,7 +127,7 @@ uint64_t key_short_get_offset(reiser4_key_t *key) {
 }
 
 static int key_short_hashed(reiser4_key_t *key) {
-	return (key_short_get_fobjectid(key) &
+	return (ks_get_fobjectid((key_short_t *)key->body) &
 		HASHED_NAME_MASK) ? 1 : 0;
 }
 
