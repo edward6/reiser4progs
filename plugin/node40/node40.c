@@ -53,10 +53,10 @@ static reiser4_entity_t *node40_create(aal_block_t *block,
 
 #endif
 
-static uint16_t node40_pid(reiser4_entity_t *entity) {
+static rpid_t node40_pid(reiser4_entity_t *entity) {
     node40_t *node = (node40_t *)entity;
     
-    aal_assert("umka-827", node != NULL, return 0);
+    aal_assert("umka-827", node != NULL, return FAKE_PLUGIN);
     return nh40_get_pid(nh40(node->block));
 } 
 
@@ -159,7 +159,7 @@ static uint16_t node40_maxspace(reiser4_entity_t *entity) {
 	sizeof(item40_header_t);
 }
 
-static uint16_t node40_item_pid(reiser4_entity_t *entity, 
+static rpid_t node40_item_pid(reiser4_entity_t *entity, 
     reiser4_pos_t *pos)
 {
     node40_t *node = (node40_t *)entity;
