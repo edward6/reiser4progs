@@ -69,6 +69,14 @@ static errno_t repair_ts_setup(repair_data_t *rd) {
 
     /* Build the map of blocks which cannot be pointed by extent. */
     for (i = 0; i < ts->bm_met->size; i++) {
+	/* Leaf and Twig maps has nothing common. */
+	aal_assert("vpf-696", (ts->bm_leaf->map[i] & ts->bm_twig->map[i]) == 0, 
+	    return -1);
+
+	/* Leaf and Twig maps has nothing common. */
+	aal_assert("vpf-698", (ts->bm_used->map[i] & ts->bm_leaf->map[i]) == 0, 
+	    return -1);
+
 	/* bm_met is bm_frmt | bm_used | bm_leaf | bm_twig */
 	ts->bm_met->map[i] |= (ts->bm_used->map[i] | ts->bm_twig->map[i] | 
 	    ts->bm_leaf->map[i]);
@@ -101,7 +109,13 @@ static errno_t repair_ts_update(repair_data_t *rd) {
 	    (ts->bm_unfm_tree->map[i] | ts->bm_unfm_out->map[i])) == 0, 
 	    return -1);
 
-	ts->bm_met->map[i] |= ts->bm_unfm_tree->map[i] | ts->bm_unfm_out->map[i];
+	aal_assert("vpf-696", (ts->bm_used->map[i] & ts->bm_twig->map[i]) == 0, 
+	    return -1);
+
+	/* Let met will be leaves, twigs and unfm which are not in the tree. */
+	ts->bm_met->map[i] = ts->bm_leaf->map[i] | ts->bm_twig->map[i] | 
+	    ts->bm_unfm_out->map[i];
+
 	ts->bm_used->map[i] |= ts->bm_unfm_tree->map[i];
     }
 
@@ -120,7 +134,7 @@ errno_t repair_ts_pass(repair_data_t *rd) {
     reiser4_node_t *node;
     object_entity_t *entity;
     repair_ts_t *ts;
-    errno_t res;
+    errno_t res = -1;
     blk_t blk = 0;
 
     aal_assert("vpf-533", rd != NULL, return -1);
@@ -137,7 +151,7 @@ errno_t repair_ts_pass(repair_data_t *rd) {
 	if ((node = repair_node_open(rd->fs->format, blk)) == NULL) {
 	    aal_exception_fatal("Twig scan pass failed to open the twig (%llu)",
 		blk);
-	    return -1;
+	    goto error_ts_update;
 	}
 
 	entity = node->entity;
@@ -152,7 +166,7 @@ errno_t repair_ts_pass(repair_data_t *rd) {
 	    goto error_node_free;
 
 	if (!node->counter)
-	    reiser4_node_close(node);
+	    reiser4_node_release(node);
 
 	/* Do not keep twig marked in bm_twigs if it is in the tree already. */
 	if (aux_bitmap_test(ts->bm_used, blk))
@@ -165,9 +179,12 @@ errno_t repair_ts_pass(repair_data_t *rd) {
     return 0;
 
 error_node_free:
-    reiser4_node_close(node);
+    reiser4_node_release(node);
 
-    return -1;
+error_ts_update:
+    repair_ts_update(rd);
+
+    return res;
 }
 
 
@@ -327,7 +344,7 @@ static errno_t handle_ovrl_extents(aal_list_t **ovrl_list) {
 	*ovrl_list = aal_list_remove(*ovrl_list, r_ovrl);
 	
 	r_ovrl->node->counter--;
-	reiser4_node_close(r_ovrl->node);
+	reiser4_node_release(r_ovrl->node);
 	aal_free(r_ovrl);
 
 	/* Descrement conflict counters of all coords around max_conflict, 
@@ -367,7 +384,7 @@ static errno_t repair_ts_ovrl_list_free(aal_list_t **ovrl_list,
 	    region->extents = aal_list_remove(region->extents, oc);
 	    
 	    // FIXME-VITALY: close the node, sync it if needed. 
-	    reiser4_node_close(reiser4_coord_node(oc->coord));
+	    reiser4_node_release(reiser4_coord_node(oc->coord));
 	    
 	    aal_free(oc->coord);
 	    aal_free(oc);

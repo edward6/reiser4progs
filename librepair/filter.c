@@ -232,7 +232,7 @@ static errno_t repair_filter_update(traverse_hint_t *hint) {
 errno_t repair_filter_pass(repair_data_t *rd) {
     traverse_hint_t hint;
     reiser4_node_t *node = NULL;
-    errno_t res;
+    errno_t res = -1;
 
     aal_assert("vpf-536", rd != NULL, return -1);
 
@@ -241,7 +241,7 @@ errno_t repair_filter_pass(repair_data_t *rd) {
 
     if ((res = repair_filter_node_open(&node, 
 	reiser4_format_get_root(rd->fs->format), rd)) < 0)
-	return res;
+	goto error_filter_update;
     
     if (res == 0 && node != NULL) {
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 	
@@ -249,10 +249,10 @@ errno_t repair_filter_pass(repair_data_t *rd) {
 	    repair_filter_node_check,	    repair_filter_setup_traverse,  
 	    repair_filter_update_traverse,  repair_filter_after_traverse);
 
-	reiser4_node_close(node);
+	reiser4_node_release(node);
 
 	if (res < 0)
-	    return res;
+	    goto error_filter_update;
     } else 
 	repair_set_flag(rd, REPAIR_BAD_PTR);
 
@@ -260,4 +260,9 @@ errno_t repair_filter_pass(repair_data_t *rd) {
 	return res;
     
     return 0;
+
+error_filter_update:
+    repair_filter_update(&hint);
+    
+    return res;
 }

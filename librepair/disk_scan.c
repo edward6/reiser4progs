@@ -86,6 +86,11 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
     /* FIXME-VITALY: optimize it later somehow. */
     /* Build a bitmap of blocks which are not in the tree yet. */
     for (i = 0; i < reiser4_format_get_len(format); i++) {
+	aal_assert("vpf-693", 
+	    (aux_bitmap_test(ds->bm_used, i) && !aux_bitmap_test(ds->bm_twig, i)) ||
+	    (!aux_bitmap_test(ds->bm_used, i) && aux_bitmap_test(ds->bm_twig, i)), 
+	    return -1);
+	
 	if (aux_bitmap_test(ds->bm_used, i) && 
 	    !reiser4_alloc_test(rd->fs->alloc, i)) 
 	{
@@ -125,6 +130,9 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 	return -1;
 
     while ((blk = aux_bitmap_find_marked(ds->bm_scan, blk)) != INVAL_BLK) {
+	aal_assert("vpf-694", !aux_bitmap_test(ds->bm_used, blk), return -1);
+	aal_assert("vpf-695", !aux_bitmap_test(ds->bm_used, blk), return -1);
+	
 	if ((node = repair_node_open(rd->fs->format, blk)))
 	    continue;
 
@@ -132,7 +140,7 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 
 	if (level != LEAF_LEVEL && level != TWIG_LEVEL) {
 	    aux_bitmap_mark(ds->bm_frmt, blk);
-	    reiser4_node_close(node);
+	    reiser4_node_release(node);
 	    continue;
 	}
 
@@ -141,10 +149,10 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 	if (res > 0) {
 	    /* Node was not recovered, save it as formatted. */
 	    aux_bitmap_mark(ds->bm_frmt, blk);
-	    reiser4_node_close(node);
+	    reiser4_node_release(node);
 	    continue;
 	} else if (res < 0)
-	    goto error_node_close;
+	    goto error_node_release;
 
 	if (level == TWIG_LEVEL) {
 	    uint32_t count;
@@ -159,14 +167,14 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 		if (reiser4_coord_realize(&coord)) {
 		    aal_exception_error("Node (%llu), item (%u): failed to open"
 			" the item.", node->blk, pos->item);
-		    goto error_node_close;
+		    goto error_node_release;
 		}
 		
 		if (!reiser4_item_extent(&coord)) {
 		    if (reiser4_node_remove(coord.node, pos)) {
 			aal_exception_error("Node (%llu), item (%u): failed to "
 			    "remove the item.", node->blk, pos->item);
-			goto error_node_close;
+			goto error_node_release;
 		    }
 
 		    reiser4_node_mkdirty(coord.node);
@@ -181,13 +189,13 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 	} else
 	    aux_bitmap_mark(ds->bm_leaf, blk);
 	
-	reiser4_node_close(node);
+	reiser4_node_release(node);
     }
     
     return 0;
     
-error_node_close:
-    reiser4_node_close(node);
+error_node_release:
+    reiser4_node_release(node);
     
     return -1;
 }

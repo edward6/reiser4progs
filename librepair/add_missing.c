@@ -116,7 +116,7 @@ errno_t repair_am_pass(repair_data_t *rd) {
 	    } /* if res > 0 - uninsertable case - insert by items later. */
 	
 	    res = -1;
-	    reiser4_node_close(node);
+	    reiser4_node_release(node);
 	}
 
 	blk = 0;
@@ -169,7 +169,7 @@ errno_t repair_am_pass(repair_data_t *rd) {
 	    }
 	
 	    aux_bitmap_clear(am->bm_twig, node->blk);
-	    reiser4_node_close(node);
+	    reiser4_node_release(node);
 	}
 	
 	bitmap = am->bm_leaf;
@@ -178,7 +178,7 @@ errno_t repair_am_pass(repair_data_t *rd) {
     return 0;
 
 error_node_free:
-    reiser4_node_close(node);
+    reiser4_node_release(node);
 
     return res;
 }

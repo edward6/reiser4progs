@@ -36,7 +36,7 @@ errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_key_t *k
 	
 	res = repair_node_child_max_real_key(&coord, key);
 	
-	if (reiser4_node_close(coord.node))
+	if (reiser4_node_release(coord.node))
 	    return -1;
     } else 
 	res = reiser4_item_max_real_key(parent, key);
@@ -44,7 +44,7 @@ errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_key_t *k
     return res;
     
 error_child_close:
-    reiser4_node_close(coord.node);
+    reiser4_node_release(coord.node);
     return -1;
 }
 
@@ -64,7 +64,7 @@ reiser4_node_t *repair_node_open(reiser4_format_t *format, blk_t blk) {
     return node;
     
 error_node_free:
-    reiser4_node_close(node);
+    reiser4_node_release(node);
     return NULL;
 }
 
