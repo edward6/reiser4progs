@@ -27,44 +27,44 @@ void gauge_tree(aal_gauge_t *gauge) {
     hint = gauge->data;
 
     switch (gauge->state) {
-	case GAUGE_STARTED:
-	case GAUGE_RUNNING:
-	    current_gauge = gauge;
-
-	    time(&t);
-	    
-	    if (gauge->state == GAUGE_STARTED) {
-		if (hint->start_time == 0)
-		    hint->start_time = hint->displayed_time = t;
-	    } else {
-		/* Update the gauge not more ofter then once per second or if 
-		 * another percent passed. */
+    case GAUGE_STARTED:
+    case GAUGE_RUNNING:
+	current_gauge = gauge;
+	
+	time(&t);
+	
+	if (gauge->state == GAUGE_STARTED) {
+	    if (hint->start_time == 0)
+		hint->start_time = hint->displayed_time = t;
+	} else {
+	    /* Update the gauge not more ofter then once per second or if 
+	     * another percent passed. */
 		
-		if ((t - hint->displayed_time) < 1)
-		    return;	    
+	    if ((t - hint->displayed_time) < 1)
+		return;	    
 		
-		hint->displayed_time = t;
-	    }
+	    hint->displayed_time = t;
+	}
 
-	    progs_wipe_line(stderr);
-	    if (aal_strlen(gauge->name) != 0)
-		fprintf(stderr, "%s ", gauge->name);
-	    
-	    fprintf(stderr, "Item (unit) of total items: ");
-	    for(elem = hint->u.tree_hint.tree; elem; 
-		elem = aal_list_next(elem)) 
-	    {
-		tree = (repair_progress_tree_t *)elem->data;
-		fprintf(stderr, "%s%u(%u) of %u", 
-		    elem == hint->u.tree_hint.tree ? "" : " / ",
-		    tree->item, tree->unit, tree->i_total);
-	    }
-	    break;
-	case GAUGE_DONE:
-	    current_gauge = NULL;
-	case GAUGE_PAUSED:
-	    progs_wipe_line(stderr);
-	    break;
+	progs_wipe_line(stderr);
+	if (aal_strlen(gauge->name) != 0)
+	    fprintf(stderr, "%s ", gauge->name);
+	
+	fprintf(stderr, "Item (unit) of total items: ");
+	for(elem = hint->u.tree_hint.tree; elem; 
+	    elem = aal_list_next(elem)) 
+	{
+	    tree = (repair_progress_tree_t *)elem->data;
+	    fprintf(stderr, "%s%u(%u) of %u", 
+		elem == hint->u.tree_hint.tree ? "" : " / ",
+		tree->item, tree->unit, tree->i_total);
+	}
+	break;
+    case GAUGE_DONE:
+	current_gauge = NULL;
+    case GAUGE_PAUSED:
+	progs_wipe_line(stderr);
+	break;
     }
     
     fflush(stderr);
@@ -86,39 +86,38 @@ void gauge_rate(aal_gauge_t *gauge) {
     rate = hint->u.rate_hint.rate;
     
     switch (gauge->state) {
-	case GAUGE_STARTED:
-	case GAUGE_RUNNING:
-	    current_gauge = gauge;
+    case GAUGE_STARTED:
+    case GAUGE_RUNNING:
+	current_gauge = gauge;
 	
-	    time(&t);
+	time(&t);
 	    
-	    if (gauge->state == GAUGE_STARTED) {
-		if (hint->start_time == 0)
-		    hint->start_time = hint->displayed_time = t;
-	    } else {
-		/* Update the gauge not more ofter then once per second or if 
-		 * another percent passed. */
-		if (t - hint->displayed_time < 1)
-		    return;	    
+	if (gauge->state == GAUGE_STARTED) {
+	    if (hint->start_time == 0)
+		hint->start_time = hint->displayed_time = t;
+	} else {
+	    /* Update the gauge not more ofter then once per second or if 
+	     * another percent passed. */
+	    if (t - hint->displayed_time < 1)
+		return;	    
 	    
-		hint->u.rate_hint.speed = rate->done / (t - hint->start_time);
-		hint->displayed_time = t;
-	    }
+	    hint->u.rate_hint.speed = rate->done / (t - hint->start_time);
+	    hint->displayed_time = t;
+	}
+	
+	progs_wipe_line(stderr);
+	if (aal_strlen(gauge->name))
+	    fprintf(stderr, "%s ", gauge->name);
 
-	    progs_wipe_line(stderr);
-	    if (aal_strlen(gauge->name))
-		fprintf(stderr, "%s ", gauge->name);
-
-	    fprintf(stderr, "%llu of %llu, speed %llu/sec", rate->done, 
-		rate->total, hint->u.rate_hint.speed);
+	fprintf(stderr, "%llu of %llu, speed %llu/sec", rate->done, 
+	    rate->total, hint->u.rate_hint.speed);
 	    
-	    break;
-
-	case GAUGE_DONE:
-	    current_gauge = NULL;
-	case GAUGE_PAUSED:
-	    progs_wipe_line(stderr);
-	    break;
+	break;
+    case GAUGE_DONE:
+	current_gauge = NULL;
+    case GAUGE_PAUSED:
+	progs_wipe_line(stderr);
+	break;
     }
     
     fflush(stderr);
@@ -158,10 +157,10 @@ static errno_t progress_start(repair_progress_t *progress) {
     hint = gauge->data;
     
     switch (gauge->type) {
-	case GAUGE_PERCENTAGE:
-	    hint->u.rate_hint.rate = &progress->u.rate;
-	    break;
-	case GAUGE_TREE:
+    case GAUGE_PERCENTAGE:
+	hint->u.rate_hint.rate = &progress->u.rate;
+	break;
+    case GAUGE_TREE:
 	{
 	    repair_progress_tree_t *tree;
 	    aal_list_t *list;
@@ -183,8 +182,8 @@ static errno_t progress_start(repair_progress_t *progress) {
 
 	    break;
 	}
-	default:
-	    return -EINVAL;
+    default:
+	return -EINVAL;
     }
     
 
@@ -226,7 +225,10 @@ static void progress_end(repair_progress_t *progress) {
 	    aal_gauge_update(progress->data, hint->percent);
 	    return;
 	}
-    }
+    } else if (gauge->type == GAUGE_PERCENTAGE)
+	aal_assert("vpf-894", progress->u.rate.total == 
+			      progress->u.rate.done);
+
      
     aal_gauge_done(progress->data);
     
@@ -249,13 +251,13 @@ static void progress_update(repair_progress_t *progress) {
     hint = gauge->data;
 
     switch (gauge->type) {
-	case GAUGE_PERCENTAGE:
-	    progress->u.rate.done++;
-	    hint->percent = progress->u.rate.done * 100 / 
-		progress->u.rate.total;
+    case GAUGE_PERCENTAGE:
+	progress->u.rate.done++;
+	hint->percent = progress->u.rate.done * 100 / 
+	    progress->u.rate.total;
 
-	    break;
-	case GAUGE_TREE:
+	break;
+    case GAUGE_TREE:
 	{
 	    repair_progress_tree_t *tree;
 	    aal_list_t *elem;
@@ -266,9 +268,9 @@ static void progress_update(repair_progress_t *progress) {
 	    
 	    tree = (repair_progress_tree_t *)elem->data;
 	    
+	    progress->u.tree.item++;
+	    progress->u.tree.unit++;
 	    *tree = progress->u.tree;
-	    tree->item++;
-	    tree->unit++;
 	    
 	    break;
 	}
@@ -283,19 +285,19 @@ errno_t gauge_handler(repair_progress_t *progress) {
     aal_assert("vpf-868", progress != NULL);
     
     switch(progress->state) {
-	case PROGRESS_START:
-	    if ((res = progress_start(progress)))
-		return res;
-	    break;
-	case PROGRESS_END:
-	    progress_end(progress);
-	    break;
-	case PROGRESS_UPDATE:
-	    progress_update(progress);
-	    break;
-	case PROGRESS_STAT:
-	    fprintf(stderr, "%s\n", progress->text);
-	    break;
+    case PROGRESS_START:
+	if ((res = progress_start(progress)))
+	    return res;
+	break;
+    case PROGRESS_END:
+	progress_end(progress);
+	break;
+    case PROGRESS_UPDATE:
+	progress_update(progress);
+	break;
+    case PROGRESS_STAT:
+	fprintf(stderr, "%s\n", progress->text);
+	break;
     }
 
     return 0;
