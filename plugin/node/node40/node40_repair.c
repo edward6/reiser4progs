@@ -521,18 +521,20 @@ errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream, int mode) {
 
 	/* Pack all item bodies. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
-		if (node40_fetch(entity, pos, &place))
-			return -EINVAL;
-		
-		if (place.plug->o.item_ops->repair->pack) {
-			/* Pack body. */
+		if (!node40_fetch(entity, pos, &place) &&
+		    place.plug->o.item_ops->repair->pack)
+		{
+			/* Pack item body relying on item plugin. */
 			if (plug_call(place.plug->o.item_ops->repair,
 				      pack, &place, stream))
 			{
 				return -EINVAL;
 			}
 		} else {
-			/* Do not pack body. */
+			/* FIXME-UMKA->VITALY: Pack whole body of item. Is this
+			   safe to rely here that item header has correct
+			   offset? Probably it makes sense to take care about
+			   offsets in node first before packing? */
 			aal_stream_write(stream, node40_ib_at(entity, pos->item),
 					 node40_len(entity, &place.pos));
 		}
