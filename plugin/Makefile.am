@@ -1,6 +1,6 @@
 SUBDIRS 			= format40 journal40 alloc40 node40 stat40 direntry40 internal40 \
 				  oid40 key40 dir40 format36 journal36 alloc36 r5_hash tea_hash \
-				  rupasov_hash fnv1_hash sdext_unix reg40 tail40 sdext_lw
+				  rupasov_hash fnv1_hash sdext_unix reg40 tail40 sdext_lw extent40
 
 noinst_LTLIBRARIES	     	= libheader.la libfooter.la libreiser4-plugin.la
 
@@ -16,6 +16,7 @@ libreiser4_plugin_la_LIBADD  	= libheader.la \
 			          internal40/libinternal40-static.la \
 			          direntry40/libdirentry40-static.la \
 			          tail40/libtail40-static.la \
+			          extent40/libextent40-static.la \
 			          stat40/libstat40-static.la \
 			          key40/libkey40-static.la \
 			          dir40/libdir40-static.la \
