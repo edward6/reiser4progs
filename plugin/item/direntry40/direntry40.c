@@ -574,6 +574,113 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	return 0;
 }
 
+static int32_t direntry40_shrink(direntry40_t *direntry, uint32_t pos,
+				 uint32_t count)
+{
+	entry40_t *entry;
+
+	uint32_t headers;
+	uint32_t i, units;
+	uint32_t after = 0;
+	uint32_t offset = 0;
+	uint32_t before = 0;
+	uint32_t remove = 0;
+	
+	units = de40_get_count(direntry);
+	aal_assert("umka-1681", pos < units, return -1);
+
+	if (pos + count > units)
+		count = units - pos;
+
+	if (count == 0)
+		return 0;
+
+	headers = count * sizeof(entry40_t);
+	
+	/* Getting how many bytes should be moved before insert point */
+	before = (units - (pos + count)) * sizeof(entry40_t);
+
+	entry = direntry40_entry(direntry, 0);
+	
+	for (i = 0; i < pos; i++, entry++)
+		before += direntry40_entry_len(direntry, entry);
+
+	/* Getting how many bytes shopuld be moved after insert point. */
+	entry = direntry40_entry(direntry, pos + count);
+	offset = en40_get_offset(entry);
+	
+	for (i = pos + count; i < units - 1; i++, entry++)
+		after += direntry40_entry_len(direntry, entry);
+
+	if (after > 0) {
+		
+		/* Calculating how many bytes will be removed */
+		entry = direntry40_entry(direntry, pos);
+		
+		for (i = pos; i < pos + count; i++, entry++)
+			remove += direntry40_entry_len(direntry, entry);
+	}
+	
+	/* Moving headers and first part of bodies (before insert point) */
+	entry = direntry40_entry(direntry, pos);
+	aal_memmove(entry, entry + count, before);
+
+	/* Setting up the entry offsets */
+	for (i = 0; i < pos; i++) {
+		entry = direntry40_entry(direntry, i);
+		en40_dec_offset(entry, headers);
+	}
+
+	/*
+	  If it is needed, we also move the rest of the data (after insert
+	  point).
+	*/
+	if (after > 0) {
+		void *src, *dst;
+		uint32_t size = 0;
+
+		/* Moving the rest of data */
+		src = (void *)direntry + offset;
+		dst = src - (remove + headers);
+		aal_memmove(dst, src, after);
+
+		/* Setting up the offsets */
+		for (i = pos; i < pos + count; i++) {
+			entry = direntry40_entry(direntry, i);
+			en40_dec_offset(entry, (headers + size));
+		}
+	}
+	
+	de40_dec_count(direntry, count);
+	
+	return (remove + headers);
+}
+
+static int32_t direntry40_remove(item_entity_t *item, uint32_t pos,
+				 uint32_t count)
+{
+	uint32_t len;
+	direntry40_t *direntry;
+    
+	aal_assert("umka-934", item != NULL, return -1);
+
+	if (!(direntry = direntry40_body(item)))
+		return -1;
+
+	if ((len = direntry40_shrink(direntry, pos, count)) <= 0) {
+		aal_exception_error("Can't shrink direntry at pos "
+				    "%u by %u entries.", pos, count);
+		return -1;
+	}
+	
+	if (pos == 0 && de40_get_count(direntry) > 0) {
+		if (direntry40_get_key(item, 0, &item->key))
+			return -1;
+	}
+
+	return len;
+}
+
 /* Prepares direntry40 for insert new entries */
 static int32_t direntry40_expand(direntry40_t *direntry, uint32_t pos,
 				 uint32_t count, uint32_t len)
@@ -686,7 +793,7 @@ static errno_t direntry40_insert(item_entity_t *item, void *buff,
 	
 	if ((offset = direntry40_expand(direntry, pos, count, hint->len)) <= 0) {
 		aal_exception_error("Can't expand direntry item at "
-				    "pos %u.", pos);
+				    "pos %u by %u entries.", pos, count);
 		return -1;
 	}
 	
@@ -750,77 +857,6 @@ static errno_t direntry40_init(item_entity_t *item) {
 	
 	aal_memset(item->body, 0, item->len);
 	return 0;
-}
-
-/*
-  FIXME-UMKA: This function should be able to remove more than one entry from
-  specified item.
-*/
-static int32_t direntry40_remove(item_entity_t *item, uint32_t pos,
-				 uint32_t count)
-{
-	void *src, *dst;
-	uint16_t unit_len;
-	uint32_t head_len;
-	uint32_t foot_len;
-
-	uint32_t units;
-	uint32_t i, offset;
-
-	entry40_t *entry;
-	direntry40_t *direntry;
-    
-	aal_assert("umka-934", item != NULL, return -1);
-
-	if (!(direntry = direntry40_body(item)))
-		return -1;
-
-	units = de40_get_count(direntry);
-	
-	aal_assert("umka-1681", pos < units, return -1);
-	
-	entry = direntry40_entry(direntry, pos);
-	offset = en40_get_offset(entry);
-    
-	head_len = offset - sizeof(entry40_t) -
-		((void *)entry - (void *)direntry);
-
-	unit_len = direntry40_entry_len(direntry, entry);
-
-	entry = direntry40_entry(direntry, pos);
-	aal_memmove(entry, entry + 1, head_len);
-
-	for (i = 0; i < pos; i++)
-		en40_dec_offset(&direntry->entry[i], sizeof(entry40_t));
-    
-	if (pos < units - 1) {
-		uint32_t dec = sizeof(entry40_t) + unit_len;
-		offset = en40_get_offset(&direntry->entry[pos]);
-	
-		foot_len = 0;
-		
-		for (i = pos; i < (uint32_t)(de40_get_count(direntry) - 1); i++) {
-			entry = direntry40_entry(direntry, i);
-			foot_len += direntry40_entry_len(direntry, entry);
-		}
-
-		src = (void *)direntry + offset;
-		dst = ((void *)direntry + offset) - dec;
-		
-		aal_memmove(dst, src, foot_len);
-
-		for (i = pos; i < (uint32_t)(de40_get_count(direntry) - 1); i++)
-			en40_dec_offset(&direntry->entry[i], dec);
-	}
-    
-	de40_dec_count(direntry, 1);
-
-	if (pos == 0) {
-		if (direntry40_get_key(item, 0, &item->key))
-			return -1;
-	}
-	
-	return unit_len + sizeof(entry40_t);
 }
 
 static errno_t direntry40_print(item_entity_t *item,
