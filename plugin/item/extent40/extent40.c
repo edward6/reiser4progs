@@ -447,8 +447,8 @@ static int64_t extent40_read(place_t *place, trans_hint_t *hint) {
 static int64_t extent40_read(place_t *place, trans_hint_t *hint) {
 	void *buff;
 	uint32_t i;
-	uint64_t read;
-	uint64_t count;
+	uint32_t read;
+	uint32_t count;
 	uint32_t blksize;
 	uint32_t secsize;
 
@@ -459,8 +459,8 @@ static int64_t extent40_read(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-1421", place != NULL);
 	aal_assert("umka-1422", buff != NULL);
 
-	count = hint->count;
 	buff = hint->specific;
+	count = (uint32_t)hint->count;
 	
 	extent40_get_key(place, &key);
 	
@@ -542,7 +542,7 @@ static int64_t extent40_read(place_t *place, trans_hint_t *hint) {
 		}
 	}
 	
-	return read;
+	return (uint64_t)read;
 }
 #endif
 
