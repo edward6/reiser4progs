@@ -1904,6 +1904,9 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 		/* Loading node by its nodeptr item at @place. */
 		if (!(place->node = reiser4_tree_child_node(tree, place)))
 			restore_and_exit(-EIO);
+
+		/* Zero the plug pointer. */
+		place->plug = NULL;
 	}
 	
 	restore_and_exit(ABSENT);
@@ -2421,30 +2424,42 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		if (!(node = reiser4_tree_alloc_node(tree, level)))
 			return -ENOSPC;
 		
-		/* Setting up shift flags. */
-		shift_flags = (SF_ALLOW_RIGHT | SF_UPDATE_POINT);
+		if (reiser4_place_leftmost(place)) {
+			/* Do not shift anything for the leftmost position.
+			   Just insert the new node and move the insert point
+			   there. */
+			reiser4_place_dup(&aplace, &place->node->p);
+			place->node = node;
+			place->pos.item = 0;
+			place->pos.unit = MAX_UINT32;
+		} else {
+			/* Setting up shift flags. */
+			shift_flags = (SF_ALLOW_RIGHT | SF_UPDATE_POINT);
 
-		if (SF_ALLOW_MERGE & flags)
-			shift_flags |= SF_ALLOW_MERGE;
-		
-		/* We will allow to move insert point to neighbour node if we at
-		   first iteration in this loop or if place points behind the
-		   last unit of last item in current node. */
-		if (alloc > 0 || reiser4_place_rightmost(place))
-			shift_flags |= SF_MOVE_POINT;
+			if (SF_ALLOW_MERGE & flags)
+				shift_flags |= SF_ALLOW_MERGE;
 
-		/* Shift data from @place to @node. Updating @place by new
-		   insert point. */
-		if ((res = reiser4_tree_shift(tree, place, node, shift_flags)))
-			return res;
-		
-		/* Preparing new @node parent place. */
-		tree_next_child_pos(save.node, &aplace);
+			/* We will allow to move insert point to neighbour node 
+			   if we at first iteration in this loop or if place 
+			   points behind the last unit of last item in current 
+			   node. */
+			if (alloc > 0 || reiser4_place_rightmost(place))
+				shift_flags |= SF_MOVE_POINT;
+
+			/* Shift data from @place to @node. Updating @place by 
+			   new insert point. */
+			if ((res = reiser4_tree_shift(tree, place, node, 
+						      shift_flags)))
+				return res;
+
+			/* Preparing new @node parent place. */
+			tree_next_child_pos(save.node, &aplace);
+		}
 		
 		if (reiser4_node_items(save.node) == 0) {
 			reiser4_node_lock(save.node);
 
-			/* If evth was moved to the new allocated node, it will 
+			/* If evth was moved to the new allocated node, it will
 			   be attached below. Do not pack the tree here, avoid
 			   2 balancings. */
 			shift_flags = SF_DEFAULT & ~SF_ALLOW_PACK;
@@ -2452,7 +2467,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 			if ((res = reiser4_tree_detach_node(tree, save.node,
 							    shift_flags)))
 			{
-				reiser4_node_unlock(place->node);
+				reiser4_node_unlock(save.node);
 				return res;
 			}
 
@@ -2911,6 +2926,10 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 		return write;
 	}
 
+	/* Initializing insert point place. */
+	if ((res = reiser4_place_fetch(place)))
+		return res;
+
 	/* Parent keys will be updated if we inserted item/unit into leftmost
 	   pos and if target node has parent. */
 	if (reiser4_place_leftmost(place) && place->node != tree->root) {
@@ -2971,9 +2990,6 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 		}
 	}
 	
-	/* Initializing insert point place. */
-	if ((res = reiser4_place_fetch(place)))
-		return res;
 
 	/* Calling @hint->place_func if a new item was created. */
 	if (hint->place_func && place->pos.unit == MAX_UINT32) {

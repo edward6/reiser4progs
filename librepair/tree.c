@@ -60,8 +60,8 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 	place.pos.unit = MAX_UINT32;
 	
 	if (reiser4_place_fetch(&place)) {
-		aal_error("Node (%llu): Failed to open the item "
-			  "(%u).", node_blocknr(node), place.pos.item);
+		aal_error("Node (%llu): Failed to open the item (%u).", 
+			  node_blocknr(node), place.pos.item);
 		return -EINVAL;
 	}
 	

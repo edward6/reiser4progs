@@ -538,9 +538,8 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 		reiser4_object_close(object);
 	} else {
 		/* No plugin was recognized. */
-		aal_error("Failed to recognize the plugin for the "
-			  "directory [%s].", 
-			  reiser4_print_key(key, PO_INODE));
+		aal_error("Failed to recognize the plugin for the directory "
+			  "[%s].", reiser4_print_key(key, PO_INODE));
 	}
 	
 	if (sem->repair->mode != RM_BUILD)
@@ -553,14 +552,12 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 	}
 
 	if (!(plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, pid))) {
-		aal_error("Can't find item plugin by its "
-			  "id 0x%x.", pid);
+		aal_error("Can't find item plugin by its id 0x%x.", pid);
 		return INVAL_PTR;
 	}
 
-	aal_error("Trying to recover the directory [%s] "
-		  "with the default plugin--%s.",
-		  reiser4_print_key(key, PO_INODE), plug->label);
+	aal_error("Trying to recover the directory [%s] with the default plugin"
+		  "--%s.", reiser4_print_key(key, PO_INODE), plug->label);
 
 	
 	return repair_object_fake(tree, parent, key, plug);

@@ -95,7 +95,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 
 		/* Remove the item if fatal error. */
 		if (ret & RE_FATAL) {
-			aal_error("Node (%llu), item (%u): broken item occured,"
+			aal_error("Node (%llu), item (%u): broken item found,"
 				  " Remove it.", node_blocknr(node), pos->item);
 
 			goto error_remove_item;
