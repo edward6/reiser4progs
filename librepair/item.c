@@ -5,6 +5,34 @@
 
 #include <repair/librepair.h>
 
+errno_t repair_item_key(reiser4_coord_t *coord, reiser4_key_t *key) {
+    aal_assert("vpf-677", coord != NULL, return -1);
+    aal_assert("vpf-679", coord->node != NULL, return -1);
+    aal_assert("vpf-678", key != NULL, return -1);
+ 
+    if (coord->pos.item == reiser4_node_items(coord->node)) {
+	if (repair_node_rd_key(coord->node, key))
+	    return -1;
+    } else {
+	if (reiser4_coord_realize(coord)) {
+	    aal_exception_error("Node (%llu): failed to open the item on "
+		"the parent node.", coord->node->blk);
+	    return -1;
+	}
+
+	aal_assert("vpf-671", coord->pos.unit < reiser4_item_units(coord), 
+	    return -1);
+	
+	if (reiser4_item_get_key(coord, key)) {
+	    aal_exception_error("Node (%llu): failed to get the item key "
+		"by its coord.", coord->node->blk);	    
+	    return -1;
+	}
+    }
+    
+    return 0;
+}
+
 errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
     reiser4_ptr_hint_t hint;
     reiser4_pos_t prev;
@@ -16,7 +44,6 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
     if (plugin_call(return -1, coord->item.plugin->item_ops,
 	fetch, &coord->item, &hint, coord->pos.unit, 1) != 1)
 	return -1;
-    
     if (hint.width == 1 && reiser4_item_extent(coord)) {
 	/* For one unit extent pointer we can just zero the start block 
 	 * number. */
