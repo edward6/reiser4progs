@@ -26,7 +26,7 @@
 #include <misc/misc.h>
 #include <reiser4/reiser4.h>
 
-enum debugfs_print_flags {
+enum print_flags {
 	PF_SUPER    = 1 << 0,
 	PF_JOURNAL  = 1 << 1,
 	PF_ALLOC    = 1 << 2,
@@ -35,20 +35,21 @@ enum debugfs_print_flags {
 	PF_ITEMS    = 1 << 5
 };
 
-typedef enum debugfs_print_flags debugfs_print_flags_t;
+typedef enum print_flags print_flags_t;
 
-enum debugfs_behav_flags {
+enum behav_flags {
 	BF_FORCE    = 1 << 0,
 	BF_QUIET    = 1 << 1,
 	BF_TFRAG    = 1 << 2,
-	BF_DFRAG    = 1 << 3,
-	BF_FFRAG    = 1 << 4,
-	BF_NPACK    = 1 << 5,
-	BF_LS       = 1 << 6,
-	BF_CAT      = 1 << 7
+	BF_FFRAG    = 1 << 3,
+	BF_NPACK    = 1 << 4,
+	BF_DFRAG    = 1 << 5,
+	BF_SEACH    = 1 << 6,
+	BF_LS       = 1 << 7,
+	BF_CAT      = 1 << 8
 };
 
-typedef enum debugfs_behav_flags debugfs_behav_flags_t;
+typedef enum behav_flags behav_flags_t;
 
 /* Prints debugfs options */
 static void debugfs_print_usage(char *name) {
@@ -79,9 +80,11 @@ static void debugfs_print_usage(char *name) {
 		"Measurement options:\n"
 		"  -N, --node-packing        measures avarage node packing.\n"
 		"  -T, --tree-frag           measures tree fragmentation.\n"
-		"  -D, --data-frag           measures average files fragmentation.\n"
 		"  -F, --file-frag FILE      measures fragmentation of specified\n"
 		"                            file.\n"
+		"  -D, --data-frag           measures average files fragmentation.\n"
+		"  -p, --show-each           show file fragmentation for each file\n"
+		"                            if --data-frag is specified.\n"
 		"Plugins options:\n"
 		"  -e, --profile PROFILE     profile to be used.\n"
 		"  -K, --known-profiles      prints known profiles.\n");
@@ -98,7 +101,7 @@ static void debugfs_init(void) {
 
 struct print_tree_hint {
 	reiser4_tree_t *tree;
-	debugfs_print_flags_t flags;
+	print_flags_t flags;
 };
 
 /* Callback function used in traverse for opening the node */
@@ -136,7 +139,7 @@ static errno_t debugfs_print_joint(
 	return -1;
 }
 
-static errno_t debugfs_print_tree(reiser4_fs_t *fs, debugfs_print_flags_t flags) {
+static errno_t debugfs_print_tree(reiser4_fs_t *fs, print_flags_t flags) {
 	traverse_hint_t hint;
 	struct print_tree_hint print_hint = {fs->tree, flags};
 	
@@ -202,12 +205,6 @@ static errno_t debugfs_print_format(reiser4_fs_t *fs) {
 	return 0;
 }
 
-static errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
-	aal_exception_error("Sorry, block allocator print "
-			    "is not implemented yet!");
-	return 0;
-}
-   
 static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 	char buff[255];
     
@@ -232,6 +229,12 @@ static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 	return 0;
 }
 
+static errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
+	aal_exception_error("Sorry, block allocator print "
+			    "is not implemented yet!");
+	return 0;
+}
+   
 static errno_t debugfs_print_journal(reiser4_fs_t *fs) {
 	aal_exception_error("Sorry, journal print is not implemented yet!");
 	return 0;
@@ -341,82 +344,6 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	return 0;
 };
 
-struct file_frag_hint {
-	reiser4_tree_t *tree;
-	aal_gauge_t *gauge;
-
-	blk_t curr;
-	count_t total, bad;
-};
-
-static errno_t callback_file_frag(object_entity_t *entity, blk_t blk,
-				  void *data)
-{
-	int64_t delta;
-	struct file_frag_hint *hint = (struct file_frag_hint *)data;
-
-	aal_gauge_update(hint->gauge, 0);
-
-	if (hint->curr == 0) {
-		hint->curr = blk;
-		return 0;
-	}
-	
-	delta = hint->curr - blk;
-
-	if (labs(delta) > 1)
-		hint->bad++;
-	
-	hint->total++;
-	hint->curr = blk;
-
-	return 0;
-}
-
-static errno_t debugfs_file_frag(reiser4_fs_t *fs, char *filename) {
-	aal_block_t *block;
-	aal_gauge_t *gauge;
-	reiser4_file_t *file;
-	struct file_frag_hint hint;
-
-	if (!(file = reiser4_file_open(fs, filename)))
-		return -1;
-
-	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "",
-				       progs_gauge_handler, NULL)))
-		goto error_free_file;
-	
-	aal_memset(&hint, 0, sizeof(hint));
-	
-	hint.tree = fs->tree;
-	hint.gauge = gauge;
-
-	block = reiser4_coord_block(&file->coord);
-
-	aal_gauge_rename(gauge, "Fragmentation for %s is", filename);
-	aal_gauge_start(gauge);
-	
-	if (reiser4_file_layout(file, callback_file_frag, (void *)&hint)) {
-		aal_exception_error("Can't enumerate blocks occupied by %s",
-				    filename);
-		goto error_free_gauge;
-	}
-	
-	aal_gauge_free(gauge);
-
-	printf("%.5f\n", hint.total > 0 ? (double)hint.bad / hint.total : 0);
-
-	reiser4_file_close(file);
-	
-	return 0;
-
- error_free_gauge:
-	aal_gauge_free(gauge);
- error_free_file:
-	reiser4_file_close(file);
-	return -1;
-}
-
 struct node_pack_hint {
 	reiser4_tree_t *tree;
 	aal_gauge_t *gauge;
@@ -473,17 +400,84 @@ static errno_t debugfs_node_packing(reiser4_fs_t *fs) {
 	return 0;
 }
 
-/* Callback function for probing all file plugins */
-static errno_t callback_statdata_guess(
-	reiser4_plugin_t *plugin,	    /* plugin to be checked */
-	void *data)			    /* item ot be checked */
+struct file_frag_hint {
+	reiser4_tree_t *tree;
+	aal_gauge_t *gauge;
+	behav_flags_t flags;
+
+	blk_t curr;
+	
+	count_t fs_total, fs_bad;
+	count_t fl_total, fl_bad;
+};
+
+static errno_t callback_file_frag(object_entity_t *entity, blk_t blk,
+				  void *data)
 {
-	if (plugin->h.sign.type == FILE_PLUGIN_TYPE) {
-		return plugin_call(return 0, plugin->file_ops, confirm,
-				   (item_entity_t *)data);
+	int64_t delta;
+	struct file_frag_hint *hint = (struct file_frag_hint *)data;
+
+	aal_gauge_update(hint->gauge, 0);
+
+	if (hint->curr == 0) {
+		hint->curr = blk;
+		return 0;
 	}
-    
+	
+	delta = hint->curr - blk;
+
+	if (labs(delta) > 1) {
+		hint->fs_bad++;
+		hint->fl_bad++;
+	}
+	
+	hint->fs_total++;
+	hint->fl_total++;
+	hint->curr = blk;
+
 	return 0;
+}
+
+static errno_t debugfs_file_frag(reiser4_fs_t *fs, char *filename) {
+	aal_gauge_t *gauge;
+	reiser4_file_t *file;
+	struct file_frag_hint hint;
+
+	if (!(file = reiser4_file_open(fs, filename)))
+		return -1;
+
+	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "",
+				       progs_gauge_handler, NULL)))
+		goto error_free_file;
+	
+	aal_memset(&hint, 0, sizeof(hint));
+	
+	hint.tree = fs->tree;
+	hint.gauge = gauge;
+
+	aal_gauge_rename(gauge, "Fragmentation for %s is", filename);
+	aal_gauge_start(gauge);
+	
+	if (reiser4_file_layout(file, callback_file_frag, (void *)&hint)) {
+		aal_exception_error("Can't enumerate blocks occupied by %s",
+				    filename);
+		goto error_free_gauge;
+	}
+	
+	aal_gauge_free(gauge);
+
+	printf("%.5f\n", hint.fl_total > 0 ?
+	       (double)hint.fl_bad / hint.fl_total : 0);
+
+	reiser4_file_close(file);
+	
+	return 0;
+
+ error_free_gauge:
+	aal_gauge_free(gauge);
+ error_free_file:
+	reiser4_file_close(file);
+	return -1;
 }
 
 static errno_t callback_data_frag(reiser4_joint_t *joint, void *data) {
@@ -518,6 +512,8 @@ static errno_t callback_data_frag(reiser4_joint_t *joint, void *data) {
 			continue;
 
 		hint->curr = 0;
+		hint->fl_bad = 0;
+		hint->fl_total = 0;
 
 		if (reiser4_file_layout(file, callback_file_frag, data)) {
 			aal_exception_error("Can't enumerate blocks occupied by %s",
@@ -526,6 +522,14 @@ static errno_t callback_data_frag(reiser4_joint_t *joint, void *data) {
 			reiser4_file_close(file);
 			continue;
 		}
+
+		if (hint->flags & BF_SEACH) {
+			double factor = hint->fl_total > 0 ?
+				(double)hint->fl_bad / hint->fl_total : 0;
+			
+			aal_exception_info("Fragmentation for %s: %.5f",
+					   file->name, factor);
+		}
 		
 		reiser4_file_close(file);
 	}
@@ -533,7 +537,7 @@ static errno_t callback_data_frag(reiser4_joint_t *joint, void *data) {
 	return 0;
 }
 
-static errno_t debugfs_data_frag(reiser4_fs_t *fs) {
+static errno_t debugfs_data_frag(reiser4_fs_t *fs, behav_flags_t flags) {
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
 	struct file_frag_hint frag_hint;
@@ -546,6 +550,7 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs) {
 
 	frag_hint.tree = fs->tree;
 	frag_hint.gauge = gauge;
+	frag_hint.flags = flags;
 
 	aal_memset(&hint, 0, sizeof(hint));
 	
@@ -559,8 +564,8 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs) {
 
 	aal_gauge_free(gauge);
 
-	printf("%.5f\n", frag_hint.total > 0 ?
-	       (double)frag_hint.bad / frag_hint.total : 0);
+	printf("%.5f\n", frag_hint.fs_total > 0 ?
+	       (double)frag_hint.fs_bad / frag_hint.fs_total : 0);
 	
 	return 0;
 }
@@ -624,8 +629,8 @@ static errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
-	debugfs_print_flags_t print_flags = 0;
-	debugfs_behav_flags_t behav_flags = 0;
+	print_flags_t print_flags = 0;
+	behav_flags_t behav_flags = 0;
     
 	char *host_dev;
 	char *ls_filename = NULL;
@@ -652,8 +657,9 @@ int main(int argc, char *argv[]) {
 		{"print-oid-alloc", no_argument, NULL, 'o'},
 		{"node-packing", no_argument, NULL, 'N'},
 		{"tree-frag", no_argument, NULL, 'T'},
-		{"data-frag", no_argument, NULL, 'D'},
 		{"file-frag", required_argument, NULL, 'F'},
+		{"data-frag", no_argument, NULL, 'D'},
+		{"show-each", no_argument, NULL, 'p'},
 		{"known-profiles", no_argument, NULL, 'K'},
 		{"quiet", no_argument, NULL, 'q'},
 		{0, 0, 0, 0}
@@ -667,7 +673,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbiojTDNF:c:l:",
+	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbiojTDpNF:c:l:",
 				     long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -706,6 +712,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'D':
 			behav_flags |= BF_DFRAG;
+			break;
+		case 'p':
+			behav_flags |= BF_SEACH;
 			break;
 		case 'c':
 			behav_flags |= BF_CAT;
@@ -821,6 +830,11 @@ int main(int argc, char *argv[]) {
 				   "--print-tree is specified.");
 	}
 
+	if (!(behav_flags & BF_DFRAG) && (behav_flags & BF_SEACH)) {
+		aal_exception_warn("Option --show-each is only active if "
+				   "--data-frag is specified.");
+	}
+
 	if (behav_flags & BF_QUIET ||
 	    aal_exception_yesno("This operation may take long time. "
 				"Continue?") == EXCEPTION_YES)
@@ -831,7 +845,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		if ((behav_flags & BF_DFRAG)) {
-			if (debugfs_data_frag(fs))
+			if (debugfs_data_frag(fs, behav_flags))
 				goto error_free_fs;
 		}
 

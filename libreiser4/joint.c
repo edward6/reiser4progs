@@ -307,15 +307,11 @@ void reiser4_joint_detach(
 	reiser4_joint_t *joint,	/* joint child will be detached from */
 	reiser4_joint_t *child)	/* pointer to child to be deleted */
 {
-	aal_list_t *children;
-    
 	aal_assert("umka-562", joint != NULL, return);
 	aal_assert("umka-563", child != NULL, return);
 
 	if (!joint->children)
 		return;
-    
-	children = aal_list_first(joint->children);
     
 	if (child->left) {
 		child->left->right = NULL;
@@ -330,16 +326,16 @@ void reiser4_joint_detach(
 	child->tree = NULL;
 	child->parent = NULL;
     
-	joint->children = aal_list_remove(children, child);
+	joint->children = aal_list_remove(joint->children, child);
 }
 
 #ifndef ENABLE_COMPACT
 
 /*
-  Synchronizes passed joint by using resursive pass though all childrens. This
-  method will be used when memory pressure occurs. There is possible to pass as
-  parameter of this function the root joint pointer. In this case the whole tree
-  will be flushed onto device, tree lies on.
+  Synchronizes passed @joint by means of using resursive pass though all
+  children. There is possible to pass as parameter of this function the root
+  joint pointer. In this case the whole tree will be flushed onto device, tree
+  lies on.
 */
 errno_t reiser4_joint_sync(
 	reiser4_joint_t *joint)	/* joint to be synchronized */
@@ -351,7 +347,7 @@ errno_t reiser4_joint_sync(
 	children = joint->children ? aal_list_first(joint->children) : NULL;
     
 	/*
-	  Walking through the list of childrens and calling reiser4_joint_sync
+	  Walking through the list of children and calling reiser4_joint_sync
 	  function for each element.
 	*/
 	if (children) {
@@ -362,22 +358,27 @@ errno_t reiser4_joint_sync(
 				return -1;
 		}
 	}
-    
-	/* Synchronizing joint itself */
-	if (reiser4_node_sync(joint->node)) {
-		aal_device_t *device = joint->node->block->device;
 
-		aal_exception_error("Can't synchronize node %llu to device. %s.", 
-				    aal_block_number(joint->node->block), device);
+	/* Synchronizing passed @joint */
+	if (joint->flags & JF_DIRTY) {
+		
+		if (reiser4_node_sync(joint->node)) {
+			aal_device_t *device = joint->node->block->device;
 
-		return -1;
+			aal_exception_error("Can't synchronize node %llu to device. %s.", 
+					    aal_block_number(joint->node->block), device);
+
+			return -1;
+		}
+
+		joint->flags &= ~JF_DIRTY;
 	}
     
 	return 0;
 }
 
-errno_t reiser4_joint_update_key(reiser4_joint_t *joint, 
-				 reiser4_pos_t *pos, reiser4_key_t *key)
+errno_t reiser4_joint_update(reiser4_joint_t *joint, reiser4_pos_t *pos,
+			     reiser4_key_t *key)
 {
 	reiser4_coord_t coord;
 	reiser4_pos_t parent_pos;
@@ -401,11 +402,13 @@ errno_t reiser4_joint_update_key(reiser4_joint_t *joint,
 			if (reiser4_joint_pos(joint, &parent_pos))
 				return -1;
 	    
-			if (reiser4_joint_update_key(joint->parent, &parent_pos, key))
+			if (reiser4_joint_update(joint->parent, &parent_pos, key))
 				return -1;
 		}
 	}
     
+	joint->flags |= JF_DIRTY;
+	
 	return 0;
 }
 
@@ -441,11 +444,13 @@ errno_t reiser4_joint_insert(
 		reiser4_joint_t *parent = joint->parent;
 	
 		if (parent) {
-			if (reiser4_joint_update_key(parent, &parent_pos, &hint->key))
+			if (reiser4_joint_update(parent, &parent_pos, &hint->key))
 				return -1;
 		}
 	}
 
+	joint->flags |= JF_DIRTY;
+	
 	return 0;
 }
 
@@ -501,7 +506,7 @@ errno_t reiser4_joint_remove(
 				reiser4_key_t lkey;
 
 				reiser4_node_lkey(joint->node, &lkey);
-				if (reiser4_joint_update_key(parent, &parent_pos, &lkey))
+				if (reiser4_joint_update(parent, &parent_pos, &lkey))
 					return -1;
 			} else {
 				/* 
@@ -514,6 +519,8 @@ errno_t reiser4_joint_remove(
 		}
 	}
 
+	joint->flags |= JF_DIRTY;
+	
 	return 0;
 }
 
@@ -580,7 +587,7 @@ errno_t reiser4_joint_move(
 		reiser4_node_lkey(dst_joint->node, &lkey);
 	
 		if (parent) {
-			if (reiser4_joint_update_key(parent, &dst_parent_pos, &lkey))
+			if (reiser4_joint_update(parent, &dst_parent_pos, &lkey))
 				return -1;
 		}
 	}
@@ -593,12 +600,15 @@ errno_t reiser4_joint_move(
 	    
 			if (parent) {
 				reiser4_node_lkey(src_joint->node, &lkey);
-				if (reiser4_joint_update_key(parent, &src_parent_pos, &lkey))
+				if (reiser4_joint_update(parent, &src_parent_pos, &lkey))
 					return -1;
 			}
 		}
 	}
     
+	src_joint->flags |= JF_DIRTY;
+	dst_joint->flags |= JF_DIRTY;
+	
 	return 0;
 }
 

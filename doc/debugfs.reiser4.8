@@ -79,6 +79,9 @@ measures average files fragmentation. It means, that fragmentation of
 each file in filesystem will be measured separately and results will
 be avaraged. The result is fragmentation factor - value from 0.00000
 (minimal fragmentation) to 1.00000 (maximal one).
+.sp 1
+Note, that for the fresh filesystem (created not very long time ago)
+and even fully filled by data, this value will be pretty small.
 .TP
 .B -F, --file-fragmentation FILE
 measures fragmentation of the specified file. The result is

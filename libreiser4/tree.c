@@ -55,6 +55,8 @@ reiser4_joint_t *reiser4_tree_allocate(
 	reiser4_format_set_free(tree->fs->format, 
 				reiser4_alloc_free(tree->fs->alloc));
     
+	joint->flags |= JF_DIRTY;
+	
 	return joint;
     
  error_free_node:
@@ -97,6 +99,8 @@ reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree,
 	if (!(joint = reiser4_joint_create(node)))
 		goto error_free_node;
 
+	joint->flags &= ~JF_DIRTY;
+	
 	return joint;
     
  error_free_node:
@@ -482,6 +486,7 @@ static errno_t reiser4_tree_attach(
 static errno_t reiser4_tree_grow(
 	reiser4_tree_t *tree)	/* tree to be growed up */
 {
+	blk_t blk;
 	uint8_t tree_height;
 	reiser4_joint_t *old_root = tree->root;
     
@@ -497,13 +502,14 @@ static errno_t reiser4_tree_grow(
 		aal_exception_error("Can't attach old root to the tree.");
 		goto error_free_root;
 	}
-	    
-	/* Updating the tree height and tree root values in disk format */
-	reiser4_format_set_height(tree->fs->format, tree_height + 1);
-    
-	reiser4_format_set_root(tree->fs->format,
-				aal_block_number(tree->root->node->block));
 
+	blk = aal_block_number(tree->root->node->block);
+	
+	reiser4_format_set_height(tree->fs->format, tree_height + 1);
+    	reiser4_format_set_root(tree->fs->format, blk);
+
+	old_root->flags |= JF_DIRTY;
+	
 	return 0;
 
  error_free_root:

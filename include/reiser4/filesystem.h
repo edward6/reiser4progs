@@ -133,29 +133,43 @@ struct reiser4_coord {
 	item_entity_t entity;
 };
 
+enum joint_flags {
+	JF_DIRTY = 1 << 0
+};
+
+typedef enum joint_flags joint_flags_t;
+
 /* The personalization of on-disk node in libreiser4 internal tree */
 struct reiser4_joint {
+	
+	/* Reference to parent node */
+	reiser4_joint_t *parent;
 
+	/* Position in parent node */
+	reiser4_pos_t pos;
+
+	/* List of children */
+	aal_list_t *children;
+	
 	/* Reference to the tree */
 	reiser4_tree_t *tree;
     
 	/* Pointer to the node */
 	reiser4_node_t *node;
 
-	/* Reference to parent node */
-	reiser4_joint_t *parent;
-
-	/* The position */
-	reiser4_pos_t pos;
-
-	/* References to left and right neighbours */
+	/* Reference to left neighbour */
 	reiser4_joint_t *left;
+
+	/* Refernce to right neighbour */
 	reiser4_joint_t *right;
 
-	/* List of children */
-	aal_list_t *children;
+	/* Some flags (dirty, etc) */
+	joint_flags_t flags;
 
-	/* User spacified data */
+	/* Usage counter */
+	int counter;
+	
+	/* User specified data */
 	void *data;
 };
 
