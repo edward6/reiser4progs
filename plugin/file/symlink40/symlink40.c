@@ -199,6 +199,35 @@ static int32_t symlink40_write(object_entity_t *entity,
 	return 0;
 }
 
+static errno_t symlink40_metadata(object_entity_t *entity,
+			      metadata_func_t metadata_func,
+			      void *data)
+{
+	symlink40_t *symlink;
+
+	aal_assert("umka-1718", entity != NULL, return -1);
+	aal_assert("umka-1719", metadata_func != NULL, return -1);
+
+	symlink = (symlink40_t *)entity;
+	return metadata_func(entity, &symlink->file.statdata, data);
+}
+
+static errno_t symlink40_layout(object_entity_t *entity,
+				action_func_t action_func,
+				void *data)
+{
+	blk_t blk;
+	symlink40_t *symlink;
+
+	aal_assert("umka-1720", entity != NULL, return -1);
+	aal_assert("umka-1721", action_func != NULL, return -1);
+
+	symlink = (symlink40_t *)entity;
+	blk = symlink->file.statdata.entity.con.blk;
+		
+	return action_func(entity, blk, data);
+}
+
 #endif
 
 static void symlink40_close(object_entity_t *entity) {
@@ -246,16 +275,19 @@ static reiser4_plugin_t symlink40_plugin = {
 			.label = "symlink40",
 			.desc = "Symlink for reiserfs 4.0, ver. " VERSION,
 		},
+		
 #ifndef ENABLE_COMPACT
 		.create	    = symlink40_create,
 		.write	    = symlink40_write,
+		.layout     = symlink40_layout,
+		.metadata   = symlink40_metadata,
 #else
 		.create	    = NULL,
 		.write	    = NULL,
-#endif
-		.truncate   = NULL,
 		.layout     = NULL,
 		.metadata   = NULL,
+#endif
+		.truncate   = NULL,
 		.valid	    = NULL,
 		.lookup	    = NULL,
 		.reset	    = NULL,
