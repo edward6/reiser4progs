@@ -94,7 +94,7 @@ static errno_t reiser4_tree_alloc_root(reiser4_tree_t *tree) {
 
 /*
   Registers passed node in tree and connects left and right neighbour
-  nodes. This function do not do any modifications.
+  nodes. This function does not do any modifications.
 */
 errno_t reiser4_tree_connect(
 	reiser4_tree_t *tree,    /* tree instance */
@@ -126,6 +126,7 @@ errno_t reiser4_tree_connect(
 	if (tree->traps.connect) {
 		reiser4_place_t place;
 			
+		/* FIXME-GREEN->UMKA: error exit path abd parent is not unlocked */
 		if ((res = reiser4_place_open(&place, parent,
 					      &node->parent.pos)))
 			return res;
@@ -143,6 +144,7 @@ errno_t reiser4_tree_connect(
 	}
 #endif
 
+	/* FIXME-GREEN->UMKA: Probably same stuff here, need to unlock the parent if connect was unsuccesful */
 	return res;
 }
 
@@ -164,6 +166,7 @@ errno_t reiser4_tree_disconnect(
 	if (tree->traps.disconnect) {
 		reiser4_place_t place;
 
+		/* FIXME-GREEN->UMKA: Looks like place is uninitialized yet, so you cannot use it like this. */
 		if (place.node && parent) {
 			reiser4_place_init(&place, parent,
 					   &node->parent.pos);
@@ -468,7 +471,7 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 
 	/*
 	  Check if we're releasing fake blk. If so, free it in block allocator
-	  too. Then it will be counted int free_block_count field in format.
+	  too. Then it will be counted in free_block_count field in format.
 	*/
 	if (!is_fake_blk(node->blk))
 		reiser4_alloc_release(alloc, node->blk, 1);
@@ -913,7 +916,7 @@ lookup_t reiser4_tree_lookup(
 
 #ifndef ENABLE_STAND_ALONE
 /*
-  Returns TRUE if passed @tree has minimal possible height nd thus cannot be
+  Returns TRUE if passed @tree has minimal possible height and thus cannot be
   dried out.
 */
 static bool_t reiser4_tree_minimal(reiser4_tree_t *tree) {
@@ -980,7 +983,7 @@ errno_t reiser4_tree_attach(
 	/* Preparing nodeptr item hint */
 	aal_memset(&hint, 0, sizeof(hint));
 
-	/* Prepare nodeptr hint from opassed @node */
+	/* Prepare nodeptr hint from passed @node */
 	nodeptr_hint.width = 1;
 	nodeptr_hint.start = node->blk;
 
@@ -1733,7 +1736,7 @@ errno_t reiser4_tree_cut(
 
 	if (node != end->node) {
 		aal_exception_error("End place is not reachable from the"
-				    "start one durring cutting the tree.");
+				    "start one during cutting the tree.");
 		return -EINVAL;
 	}
 
@@ -1885,7 +1888,7 @@ errno_t reiser4_tree_cut(
 	return 0;
 }
 
-/* Installs ne wpack handler. If it is NULL, default one will be used */
+/* Installs new pack handler. If it is NULL, default one will be used */
 void reiser4_tree_pack_set(reiser4_tree_t *tree,
 			   pack_func_t func)
 {
@@ -1897,7 +1900,7 @@ void reiser4_tree_pack_set(reiser4_tree_t *tree,
 
 
 /*
-  Switches on/off flag, which displays should tree pack itself after remove
+  Switches on/off flag, which displays whenever tree should pack itself after remove
   operations or not. It is needed because all operations like this should be
   under control.
 */
@@ -1912,7 +1915,7 @@ void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 }
 
 /*
-  Removes item/unit at passd @place. This functions also perform so called
+  Removes item/unit at passed @place. This functions also perform so called
   "local packing". This is shift as many as possible items and units from the
   node pointed by @place into its left neighbour node and the same shift from
   the right neighbour into target node. This behavior may be controlled by
@@ -1946,8 +1949,8 @@ errno_t reiser4_tree_remove(
 	{
 
 		/*
-		  If node became empty it will be detached from the tree, so,
-		  updating is not needed and impossible, becauseit has not
+		  If node became empty it will be detached from the tree, so
+		  updating is not needed and impossible, because it has no
 		  items.
 		*/
 		if (reiser4_node_items(place->node) > 0) {
@@ -1988,7 +1991,7 @@ errno_t reiser4_tree_remove(
 
 		/*
 		  Freeing node and updating place node component in order to let
-		  user know that node do not exist longer.
+		  user know that node do not exist any longer.
 		*/
 		reiser4_tree_release(tree, place->node);
 		place->node = NULL;
@@ -2032,7 +2035,7 @@ errno_t reiser4_tree_down(
 		pos->unit = ~0ul; 
 
 		/*
-		  If there is a suspicion in a corruption, it must be checked in
+		  If there is a suspicion of a corruption, it must be checked in
 		  before_func. All items must be opened here.
 		*/
 		if (reiser4_place_open(&place, node, pos)) {
