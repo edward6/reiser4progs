@@ -148,7 +148,7 @@ struct reiser4_entity {
 
 typedef struct reiser4_entity reiser4_entity_t;
 
-#define INVALID_PLUGIN_ID	(0xffff)
+#define FAKE_PLUGIN (0xffff)
 
 /* Types for layout defining */
 typedef errno_t (*reiser4_action_func_t) (reiser4_entity_t *, 

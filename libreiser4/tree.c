@@ -40,7 +40,7 @@ static reiser4_avatar_t *reiser4_tree_allocate(
 	return NULL;
     }
     
-    if ((pid = reiser4_node_pid(tree->root->node)) == INVALID_PLUGIN_ID) {
+    if ((pid = reiser4_node_pid(tree->root->node)) == FAKE_PLUGIN) {
 	aal_exception_error("Invalid node plugin has been detected.");
 	goto error_free_block;
     }

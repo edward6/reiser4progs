@@ -375,12 +375,26 @@ errno_t reiser4_node_remove(
     aal_assert("umka-767", node != NULL, return -1);
     aal_assert("umka-768", pos != NULL, return -1);
 
-    if (pos->unit == ~0ul)
+    if (pos->unit == ~0ul) {
 	return plugin_call(return -1, node->entity->plugin->node_ops, 
 	    remove, node->entity, pos);
-    else
-	return plugin_call(return -1, node->entity->plugin->node_ops, 
-	    cut, node->entity, pos);
+    } else {
+	reiser4_item_t item;
+	
+	if (reiser4_item_open(&item, node, pos)) {
+	    aal_exception_error("Can't open item %u in node %llu.",
+		pos->item, aal_block_number(node->block));
+	    return -1;
+	}
+	
+	if (reiser4_item_count(&item) > 1) {
+	    return plugin_call(return -1, node->entity->plugin->node_ops, 
+		cut, node->entity, pos);
+	} else {
+	    return plugin_call(return -1, node->entity->plugin->node_ops, 
+		remove, node->entity, pos);
+	}
+    }
 }
 
 /* Inserts item described by item hint into specified node at specified pos */

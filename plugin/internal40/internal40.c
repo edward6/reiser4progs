@@ -62,13 +62,11 @@ static errno_t internal40_print(reiser4_item_t *item,
 
 #ifndef ENABLE_COMPACT
 
-static errno_t internal40_set_ptr(reiser4_item_t *item, blk_t blk)
-{
+static errno_t internal40_set_ptr(reiser4_item_t *item, blk_t blk) {
     internal40_t *internal;
     
     aal_assert("umka-605", item != NULL, return -1);
     aal_assert("vpf-361", item->pos != NULL, return -1);
-//    aal_assert("vpf-360", item->pos->unit == 0, return -1);
     
     internal = internal40_body(item);
     it40_set_ptr(internal, blk);
@@ -83,7 +81,6 @@ static blk_t internal40_get_ptr(reiser4_item_t *item) {
     
     aal_assert("umka-606", item != NULL, return 0);
     aal_assert("vpf-362", item->pos != NULL, return 0);
-//    aal_assert("vpf-363", item->pos->unit == 0, return 0);
     
     internal = internal40_body(item);
     
@@ -123,14 +120,15 @@ static reiser4_plugin_t internal40_plugin = {
         .lookup		= NULL,
         .valid		= NULL,
         .insert		= NULL,
-        .count		= internal40_count,
         .remove		= NULL,
 	.mergeable	= NULL,
 	.shift		= NULL,
 
+        .print		= internal40_print,
+        .count		= internal40_count,
+	
 	.max_poss_key	= internal40_max_poss_key,
 	.max_real_key   = internal40_max_poss_key,
-        .print		= internal40_print,
 	
     	.specific = {
 	    .ptr = {

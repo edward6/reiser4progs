@@ -28,7 +28,7 @@ reiser4_alloc_t *reiser4_alloc_open(
     if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 	return NULL;
     
-    if ((pid = reiser4_format_alloc_pid(format)) == INVALID_PLUGIN_ID) {
+    if ((pid = reiser4_format_alloc_pid(format)) == FAKE_PLUGIN) {
 	aal_exception_error("Invalid block allocator plugin id has been found.");
 	goto error_free_alloc;
     }
@@ -76,7 +76,7 @@ reiser4_alloc_t *reiser4_alloc_create(
     if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 	return NULL;
 
-    if ((pid = reiser4_format_alloc_pid(format)) == INVALID_PLUGIN_ID) {
+    if ((pid = reiser4_format_alloc_pid(format)) == FAKE_PLUGIN) {
 	aal_exception_error("Invalid block allocator plugin id "
 	    "has been found.");
 	goto error_free_alloc;

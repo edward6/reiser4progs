@@ -21,7 +21,7 @@ errno_t reiser4_item_open(reiser4_item_t *item,
     pid = plugin_call(return 0, 
 	node->entity->plugin->node_ops, item_pid, node->entity, pos);
     
-    if (pid == INVALID_PLUGIN_ID) {
+    if (pid == FAKE_PLUGIN) {
         aal_exception_error("Invalid item plugin id detected. Node %llu, item %u.", 
 	    aal_block_number(node->block), pos->item);
 	return -1;

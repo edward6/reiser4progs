@@ -27,7 +27,7 @@ reiser4_journal_t *reiser4_journal_open(
     if (!(journal = aal_calloc(sizeof(*journal), 0)))
 	return NULL;
 
-    if ((pid = reiser4_format_journal_pid(format)) == INVALID_PLUGIN_ID) {
+    if ((pid = reiser4_format_journal_pid(format)) == FAKE_PLUGIN) {
 	aal_exception_error("Invalid journal plugin id has been found.");
 	goto error_free_journal;
     }
@@ -77,7 +77,7 @@ reiser4_journal_t *reiser4_journal_create(
     if (!(journal = aal_calloc(sizeof(*journal), 0)))
 	return NULL;
 
-    if ((pid = reiser4_format_journal_pid(format)) == INVALID_PLUGIN_ID) {
+    if ((pid = reiser4_format_journal_pid(format)) == FAKE_PLUGIN) {
 	aal_exception_error("Invalid journal plugin id has been found.");
 	goto error_free_journal;
     }

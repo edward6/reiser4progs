@@ -9,15 +9,15 @@
 #include <aal/aal.h>
 
 /* 
-    This types is used for keeping the block number and block count 
-    value. They are needed to be increase source code maintainability.
+    This types is used for keeping the block number and block count value. 
+    They are needed to be increase source code maintainability.
 
     For instance, there is some function:
 
     blk_t some_func(void);
     
-    It is clear to any reader, that this function is working with block
-    number, it returns block number.
+    It is clear to any reader, that this function is working with block number, 
+    it returns block number.
 
     Yet another variant of this function:
 
@@ -27,6 +27,8 @@
 */
 typedef uint64_t blk_t;
 typedef uint64_t count_t;
+
+#define FAKE_BLK (~0ull)
 
 struct aal_device_ops;
 

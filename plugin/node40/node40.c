@@ -164,8 +164,8 @@ static uint16_t node40_item_pid(reiser4_entity_t *entity,
 {
     node40_t *node = (node40_t *)entity;
     
-    aal_assert("vpf-039", node != NULL, return INVALID_PLUGIN_ID);
-    aal_assert("umka-941", pos != NULL, return INVALID_PLUGIN_ID);
+    aal_assert("vpf-039", node != NULL, return FAKE_PLUGIN);
+    aal_assert("umka-941", pos != NULL, return FAKE_PLUGIN);
 
     aal_assert("umka-815", pos->item < 
 	nh40_get_num_items(nh40(node->block)), return 0);
@@ -425,7 +425,7 @@ static errno_t node40_cut(reiser4_entity_t *entity,
     nh = nh40(node->block);
     ih = node40_ih_at(node->block, pos->item);
     
-    if ((pid = ih40_get_pid(ih)) == INVALID_PLUGIN_ID)
+    if ((pid = ih40_get_pid(ih)) == FAKE_PLUGIN)
         return -1;
 	
     if (!(plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, pid))) {

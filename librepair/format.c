@@ -89,7 +89,7 @@ errno_t repair_format_check(reiser4_fs_t *fs) {
 	    check.
 	*/
 	if (!(fs->format = reiser4_format_create(repair_data(fs)->host_device, 
-	    0, INVALID_PLUGIN_ID, plugin->h.id))) 
+	    0, FAKE_PLUGIN, plugin->h.id))) 
 	{
 	    aal_exception_fatal("Cannot create a filesystem of the format "
 		"(%s).", plugin->h.label);

@@ -27,7 +27,7 @@ reiser4_oid_t *reiser4_oid_open(
     if (!(oid = aal_calloc(sizeof(*oid), 0)))
 	return NULL;
     
-    if ((pid = reiser4_format_oid_pid(format)) == INVALID_PLUGIN_ID) {
+    if ((pid = reiser4_format_oid_pid(format)) == FAKE_PLUGIN) {
 	aal_exception_error("Invalid oid allocator plugin id has been detected.");
 	goto error_free_oid;
     }
@@ -88,7 +88,7 @@ reiser4_oid_t *reiser4_oid_create(
     if (!(oid = aal_calloc(sizeof(*oid), 0)))
 	return NULL;
    
-    if ((pid = reiser4_format_oid_pid(format)) == INVALID_PLUGIN_ID) {
+    if ((pid = reiser4_format_oid_pid(format)) == FAKE_PLUGIN) {
 	aal_exception_error("Invalid oid allocator plugin id "
 	    "has been detected.");
 	goto error_free_oid;

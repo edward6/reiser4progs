@@ -21,7 +21,7 @@ static errno_t repair_item_open(reiser4_item_t *item, reiser4_node_t *node,
     pid = plugin_call(return 0, node->entity->plugin->node_ops, item_pid, 
 	node->entity, pos);
 
-    if ((pid == INVALID_PLUGIN_ID) || !(item->plugin = 
+    if ((pid == FAKE_PLUGIN) || !(item->plugin = 
 	libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) 
     {
         aal_exception_error("Node (%llu): unknown plugin is specified for "
