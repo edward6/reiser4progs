@@ -171,10 +171,10 @@ int main(int argc, char *argv[]) {
 			behav_flags |= BF_UNPACK_META;
 			break;
 		case 'p':
-			behav_flags |= BF_PLUGS;
+			behav_flags |= BF_SHOW_PLUG;
 			break;
 		case 'P':
-			behav_flags |= BF_PROF;
+			behav_flags |= BF_SHOW_PARM;
 			break;
 		case 'o':
 			aal_strncat(override, optarg, aal_strlen(optarg));
@@ -208,10 +208,10 @@ int main(int argc, char *argv[]) {
 			goto error_free_libreiser4;
 	}
 	
-	if (behav_flags & BF_PROF)
+	if (behav_flags & BF_SHOW_PARM)
 		misc_param_print();
 
-	if (behav_flags & BF_PLUGS)
+	if (behav_flags & BF_SHOW_PLUG)
 		misc_plugins_print();
 
 	if (optind >= argc)

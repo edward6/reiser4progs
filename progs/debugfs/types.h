@@ -23,8 +23,8 @@ enum behav_flags {
 	BF_FORCE       = 1 << 0,
 	BF_QUIET       = 1 << 1,
 	BF_CAT         = 1 << 2,
-	BF_PROF        = 1 << 3,
-	BF_PLUGS       = 1 << 4,
+	BF_SHOW_PARM   = 1 << 3,
+	BF_SHOW_PLUG   = 1 << 4,
 	BF_PACK_META   = 1 << 5,
 	BF_UNPACK_META = 1 << 6
 };

@@ -30,11 +30,11 @@
 #include <misc/misc.h>
 
 enum mkfs_behav_flags {
-	BF_FORCE   = 1 << 0,
-	BF_QUIET   = 1 << 1,
-	BF_PROF    = 1 << 2,
-	BF_PLUGS   = 1 << 3,
-	BF_LOST    = 1 << 4
+	BF_FORCE      = 1 << 0,
+	BF_QUIET      = 1 << 1,
+	BF_LOST       = 1 << 2,
+	BF_SHOW_PARM  = 1 << 3,
+	BF_SHOW_PLUG  = 1 << 4
 };
 
 typedef enum mkfs_behav_flags mkfs_behav_flags_t;
@@ -145,10 +145,10 @@ int main(int argc, char *argv[]) {
 			flags |= BF_QUIET;
 			break;
 		case 'p':
-			flags |= BF_PLUGS;
+			flags |= BF_SHOW_PLUG;
 			break;
 		case 'P':
-			flags |= BF_PROF;
+			flags |= BF_SHOW_PARM;
 			break;
 		case 's':
 			flags |= BF_LOST;
@@ -231,10 +231,10 @@ int main(int argc, char *argv[]) {
 			goto error_free_libreiser4;
 	}
 
-	if (flags & BF_PROF)
+	if (flags & BF_SHOW_PARM)
 		misc_param_print();
 	
-	if (flags & BF_PLUGS)
+	if (flags & BF_SHOW_PLUG)
 		misc_plugins_print();
 
 	if (optind >= argc)
