@@ -72,8 +72,9 @@ int main(int argc, char *argv[]) {
         }
 	
         {
-                int i;
-                char name[256];
+                int i, k;
+                char name[6][256];
+		
 //		FILE *file;
                 reiser4_object_t *object;
 
@@ -83,36 +84,41 @@ int main(int argc, char *argv[]) {
 
 //		while (!feof(file)) {
 		for (i = 0; i < 1000; i++) {
-                        int j, count;
+//                        int j, count;
 //			char part[256];
 
-//			aal_snprintf(name, 256, "file name%d", i/*random()*/);
-			aal_snprintf(name, 256, "very very long file name%d", i);
+			aal_snprintf(name[0], 256, "file name%d", i/*random()*/);
+			aal_snprintf(name[1], 256, "file name%d.c", i/*random()*/);
+			aal_snprintf(name[2], 256, "file name%d.o", i/*random()*/);
+			aal_snprintf(name[3], 256, "very very very long file name%d", i);
+			aal_snprintf(name[4], 256, "very very very long file name%d.c", i);
+			aal_snprintf(name[5], 256, "very very very long file name%d.o", i);
 
 //			fscanf(file, "%s %s\n", name, part);
 //			strcat(name, " ");
 //			strcat(name, part);
 //			printf("%s\n", name);
 
-                        if (!(object = reiser4_reg_create(fs, dir, name)))
-                                continue;
+			for (k = 0; k < 6; k++) {
+				if (!(object = reiser4_reg_create(fs, dir, name[k])))
+					continue;
+#if 0
+				count = 1000;
 
-			count = 1000;
+				for (j = 0; j < count; j++) {
+					/* reiser4_object_seek(object, reiser4_object_offset(object) + 8193);*/
 
-                        for (j = 0; j < count; j++) {
-/*				reiser4_object_seek(object,
-						    reiser4_object_offset(object) + 8193);*/
-				
-                                if (reiser4_object_write(object, name,
-                                                         aal_strlen(name)) < 0)
-                                {
-                                        aal_error("Can't write data "
-                                                  "to file %s.", name);
-					break;
-                                }
-                        }
-
-                        reiser4_object_close(object);
+					if (reiser4_object_write(object, name[k],
+								 aal_strlen(name[k])) < 0)
+					{
+						aal_error("Can't write data "
+							  "to file %s.", name[k]);
+						break;
+					}
+				}
+#endif
+				reiser4_object_close(object);
+			}
                 }
         }
 	

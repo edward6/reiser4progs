@@ -170,12 +170,22 @@ errno_t dir40_check_struct(object_entity_t *object,
 	dir->hash = obj40_plug_recognize(&dir->obj, HASH_PLUG_TYPE, "hash");
 	
 	if (dir->hash == NULL) {
-                aal_error("Directory %s: failed to init hash plugin."
-			  "Plugin (%s).", print_inode(dir40_core, &info->object),
+                aal_error("Directory %s: failed to init hash plugin. Plugin "
+			  "(%s).", print_inode(dir40_core, &info->object),
 			  dir40_plug.label);
                 return -EINVAL;
         }
 	
+	/* Init hash plugin in use. */
+	dir->fibre = obj40_plug_recognize(&dir->obj, FIBRE_PLUG_TYPE, "fibre");
+	
+	if (dir->fibre == NULL) {
+                aal_error("Directory %s: failed to init the fibration plugin. "
+			  "Plugin (%s).",print_inode(dir40_core, &info->object),
+			  dir40_plug.label);
+                return -EINVAL;
+        }
+
 	/* FIXME-VITALY: take it from SD first. But of which type -- there is 
 	   only ITEM_TYPE for now. */
 	if ((pid = dir40_core->param_ops.value("direntry")) == INVAL_PID) {
@@ -211,7 +221,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 		lookup_t lookup;
 		uint32_t units;
 		
-		if ((lookup = dir40_update_body(dir, 0)) < 0) 
+		if ((lookup = dir40_update_body(object, 0)) < 0) 
 			return lookup;
 
 		/* No more items of the dir40. */
@@ -283,8 +293,9 @@ errno_t dir40_check_struct(object_entity_t *object,
 				return res;
 			
 			/* Prepare the correct key for the entry. */
-			plug_call(entry.offset.plug->o.key_ops, build_hashed, 
-				  &key, dir->hash, obj40_locality(&dir->obj),
+			plug_call(entry.offset.plug->o.key_ops, 
+				  build_hashed, &key, dir->hash, 
+				  dir->fibre, obj40_locality(&dir->obj),
 				  obj40_objectid(&dir->obj), entry.name);
 			
 			/* If the key matches, continue. */

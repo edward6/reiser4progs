@@ -68,18 +68,26 @@ typedef int32_t lookup_t;
 /* Known by library plugin types. */
 enum reiser4_plug_type {
 	OBJECT_PLUG_TYPE        = 0x0,
+	/* 0x1 is reserved to be compatable with the kernel that distingushes
+	   file and dir plugin types. */
 	ITEM_PLUG_TYPE          = 0x2,
 	NODE_PLUG_TYPE          = 0x3,
 	HASH_PLUG_TYPE          = 0x4,
-	POLICY_PLUG_TYPE        = 0x5,
-	PERM_PLUG_TYPE          = 0x6,
-	SDEXT_PLUG_TYPE         = 0x7,
-	FORMAT_PLUG_TYPE        = 0x8,
-	OID_PLUG_TYPE           = 0x9,
-	ALLOC_PLUG_TYPE         = 0xa,
+	FIBRE_PLUG_TYPE		= 0x5,
+	POLICY_PLUG_TYPE        = 0x6,
+	PERM_PLUG_TYPE          = 0x7,
+	SDEXT_PLUG_TYPE         = 0x8,
+	FORMAT_PLUG_TYPE        = 0x9,
+	OID_PLUG_TYPE           = 0xa,
 	JNODE_PLUG_TYPE         = 0xb,
-	JOURNAL_PLUG_TYPE       = 0xc,
-	KEY_PLUG_TYPE           = 0xd,
+	CRYPTO_PLUG_TYPE	= 0xc,
+	DIGEST_PLUG_TYPE	= 0xd,
+	COMPRESS_PLUG_TYPE	= 0xe,
+	
+	/* These are not plugins in the kernel. */
+	ALLOC_PLUG_TYPE         = 0xf,
+	JOURNAL_PLUG_TYPE       = 0x10,
+	KEY_PLUG_TYPE           = 0x11,
 	LAST_PLUG_TYPE
 };
 
@@ -214,6 +222,16 @@ enum reiser4_key_plug_id {
 };
 
 typedef struct reiser4_plug reiser4_plug_t;
+
+enum reiser4_fibre_plug_id {
+	FIBRE_LEXIC_ID		= 0x0,
+	FIBRE_DOT_O_ID		= 0x1,
+	FIBRE_EXT_1_ID		= 0x2,
+	FIBRE_EXT_3_ID		= 0x3,
+	FIBRE_LAST_ID
+};
+
+typedef enum reiser4_fibre_plug_id reiser4_fibre_plug_id_t;
 
 #define INVAL_PTR	        ((void *)-1)
 #define INVAL_PID	        ((rid_t)~0)
@@ -504,6 +522,7 @@ struct object_hint {
 		/* Plugin ids for the directory body */
 		struct {
 			rid_t hash;
+			rid_t fibre;
 			rid_t direntry;
 		} dir;
 	
@@ -749,13 +768,12 @@ struct reiser4_key_ops {
 	/* Builds generic key (statdata, file body, etc). That is build key by
 	   all its components. */
 	errno_t (*build_generic) (reiser4_key_t *, key_type_t,
-				  uint64_t, uint64_t, uint64_t,
-				  uint64_t);
+				  uint64_t, uint64_t, uint64_t, uint64_t);
 
 	/* Builds key used for directory entries access. It uses name and hash
 	   plugin to build hash and put it to key offset component. */
 	errno_t (*build_hashed) (reiser4_key_t *, reiser4_plug_t *,
-				 uint64_t, uint64_t, char *);
+				 reiser4_plug_t *, uint64_t, uint64_t, char *);
 	
 	/* Gets/sets key type (minor in reiser4 notation). */	
 	void (*set_type) (reiser4_key_t *, key_type_t);
@@ -798,6 +816,7 @@ struct reiser4_key_ops {
 };
 
 typedef struct reiser4_key_ops reiser4_key_ops_t;
+
 
 struct reiser4_object_ops {
 	/* Loads object stat data to passed hint. */
@@ -1198,6 +1217,12 @@ struct reiser4_hash_ops {
 
 typedef struct reiser4_hash_ops reiser4_hash_ops_t;
 
+struct reiser4_fibre_ops {
+	uint8_t (*build) (char *, uint32_t);
+};
+
+typedef struct reiser4_fibre_ops reiser4_fibre_ops_t;
+
 /* Disk-format plugin */
 struct reiser4_format_ops {
 	uint64_t (*get_flags) (generic_entity_t *);
@@ -1533,6 +1558,7 @@ struct reiser4_plug {
 		reiser4_item_ops_t *item_ops;
 		reiser4_node_ops_t *node_ops;
 		reiser4_hash_ops_t *hash_ops;
+		reiser4_fibre_ops_t *fibre_ops;
 		reiser4_sdext_ops_t *sdext_ops;
 		reiser4_object_ops_t *object_ops;
 		reiser4_format_ops_t *format_ops;

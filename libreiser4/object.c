@@ -826,6 +826,7 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	
 	/* Preparing directory body. */
 	hint.body.dir.hash = reiser4_param_value("hash");
+	hint.body.dir.fibre = reiser4_param_value("fibre");
 	hint.body.dir.direntry = reiser4_param_value("direntry");
 	hint.parent = (parent ? &parent->info->object : NULL);
 

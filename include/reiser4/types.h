@@ -137,7 +137,7 @@ struct reiser4_pid {
 
 typedef struct reiser4_pid reiser4_pid_t;
 
-#define PARAM_NR 19
+#define PARAM_NR 20
 
 /* Profile structure. It describes what plugins will be used for every part of
    the filesystem. */

@@ -96,7 +96,8 @@ errno_t reiser4_key_build_generic(
 /* Builds full directory key. */
 errno_t reiser4_key_build_hashed(
 	reiser4_key_t *key,	    /* key to be built */
-	reiser4_plug_t *plug,       /* hash plugin to be used */
+	reiser4_plug_t *hash,       /* hash plugin to be used */
+	reiser4_plug_t *fibre,      /* fibre plugin to be used */
 	oid_t locality,		    /* loaclity to be used */
 	oid_t objectid,		    /* objectid to be used */
 	char *name)	            /* entry name to be hashed */
@@ -105,8 +106,8 @@ errno_t reiser4_key_build_hashed(
 	aal_assert("umka-670", name != NULL);
 	aal_assert("umka-669", key->plug != NULL);
     
-	return plug_call(key->plug->o.key_ops, build_hashed,
-			 key, plug, locality, objectid, name);
+	return plug_call(key->plug->o.key_ops, build_hashed, key, 
+			 hash, fibre, locality, objectid, name);
 }
 
 /* Sets key type */

@@ -123,8 +123,7 @@ uint64_t key_large_get_offset(reiser4_key_t *key) {
 }
 
 static int key_large_hashed(reiser4_key_t *key) {
-	return (key_large_get_ordering(key) &
-		0x0100000000000000ull) ? 1 : 0;
+	return (key_large_get_ordering(key) & HASHED_NAME_MASK) ? 1 : 0;
 }
 
 /* Extracts name from key */
@@ -154,7 +153,7 @@ static char *key_large_get_name(reiser4_key_t *key,
 		*name = '.';
 		*(name + 1) = '\0';
 	} else {
-		ordering &= ~0x0100000000000000ull;
+		ordering &= ~FIBRE_MASK;
 		ptr = aux_unpack_string(ordering, name);
 		ptr = aux_unpack_string(objectid, ptr);
 		aux_unpack_string(offset, ptr);
@@ -261,6 +260,7 @@ static int key_large_compfull(reiser4_key_t *key1,
 /* Builds hash of the passed @name by means of using a hash plugin */
 static errno_t key_large_build_hash(reiser4_key_t *key,
 				    reiser4_plug_t *hash,
+				    reiser4_plug_t *fibre,
 				    char *name) 
 {
 	uint16_t len;
@@ -275,6 +275,7 @@ static errno_t key_large_build_hash(reiser4_key_t *key,
 		return 0;
 
 	aal_assert("vpf-128", hash != NULL); 
+	aal_assert("vpf-1568", fibre != NULL);
 
 	ordering = aux_pack_string(name, 1);
 
@@ -289,13 +290,17 @@ static errno_t key_large_build_hash(reiser4_key_t *key,
 		else
 			offset = 0ull;
 	} else {
-		ordering |= 0x0100000000000000ull;
+		ordering |= HASHED_NAME_MASK;
 
 		offset = plug_call(hash->o.hash_ops, build,
 				   name + INLINE_CHARS,
 				   len - INLINE_CHARS);
 	}
 
+	ordering |= ((uint64_t)plug_call(fibre->o.fibre_ops, 
+					 build, name + INLINE_CHARS,
+					 len - INLINE_CHARS) << FIBRE_SHIFT);
+	
 	/* Setting up objectid and offset */
 	key_large_set_ordering(key, ordering);
 	key_large_set_objectid(key, objectid);
@@ -308,6 +313,7 @@ static errno_t key_large_build_hash(reiser4_key_t *key,
    creating entry keys. */
 static errno_t key_large_build_hashed(reiser4_key_t *key,
 				      reiser4_plug_t *hash,
+				      reiser4_plug_t *fibre,
 				      uint64_t locality,
 				      uint64_t objectid,
 				      char *name) 
@@ -324,7 +330,7 @@ static errno_t key_large_build_hashed(reiser4_key_t *key,
 	key_large_set_locality(key, objectid);
 	key_large_set_type(key, type);
     
-	return key_large_build_hash(key, hash, name);
+	return key_large_build_hash(key, hash, fibre, name);
 }
 
 /* Builds generic key by all its components */

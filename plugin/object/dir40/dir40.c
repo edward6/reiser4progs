@@ -107,8 +107,9 @@ errno_t dir40_reset(object_entity_t *entity) {
 #endif
 
 	/* Building key itself. */
-	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_hashed,
-		  &dir->position, dir->hash, obj40_locality(&dir->obj),
+	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, 
+		  build_hashed, &dir->position, dir->hash, 
+		  dir->fibre, obj40_locality(&dir->obj), 
 		  obj40_objectid(&dir->obj), ".");
 
 	return 0;
@@ -359,8 +360,9 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 
 	/* Preparing key to be used for lookup. It is generating from the
 	   directory oid, locality and name by menas of using hash plugin. */
-	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, build_hashed,
-		  &dir->body.key, dir->hash, obj40_locality(&dir->obj),
+	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, 
+		  build_hashed, &dir->body.key, dir->hash, 
+		  dir->fibre, obj40_locality(&dir->obj), 
 		  obj40_objectid(&dir->obj), name);
 
 #ifndef ENABLE_STAND_ALONE
@@ -427,6 +429,10 @@ static object_entity_t *dir40_open(object_info_t *info) {
 	/* Getting hash plugin basing on stat data and/or param set. */
 	if (!(dir->hash = obj40_plug(&dir->obj, HASH_PLUG_TYPE, "hash")))
                 goto error_free_dir;
+	
+	/* Getting fibre plugin basing on stat data and/or param set. */
+	if (!(dir->fibre = obj40_plug(&dir->obj, FIBRE_PLUG_TYPE, "fibre")))
+                goto error_free_dir;
 
 	/* Positioning to the first directory unit. */
 	dir40_reset((object_entity_t *)dir);
@@ -473,9 +479,9 @@ static uint64_t dir40_size(object_entity_t *entity) {
 static object_entity_t *dir40_create(object_info_t *info,
 				     object_hint_t *hint)
 {
+	rid_t pid;
 	dir40_t *dir;
 	uint64_t mask;
-	rid_t body_pid;
 	entry_hint_t entry;
 	trans_hint_t body_hint;
 	reiser4_plug_t *body_plug;
@@ -499,14 +505,21 @@ static object_entity_t *dir40_create(object_info_t *info,
 		goto error_free_dir;
 	}
 
-	/* Initializing body plugin. */
-	body_pid = hint->body.dir.direntry;
-	
-	if (!(body_plug = dir40_core->factory_ops.ifind(ITEM_PLUG_TYPE, 
-							body_pid)))
+	/* Getting fibration plugin */
+	if (!(dir->fibre = dir40_core->factory_ops.ifind(FIBRE_PLUG_TYPE, 
+							 hint->body.dir.fibre))) 
 	{
+		aal_error("Can't find fibration plugin by its "
+			  "id 0x%x.", hint->body.dir.fibre);
+		goto error_free_dir;
+	}
+
+	/* Initializing body plugin. */
+	pid = hint->body.dir.direntry;
+	
+	if (!(body_plug = dir40_core->factory_ops.ifind(ITEM_PLUG_TYPE, pid))) {
 		aal_error("Can't find direntry item plugin by "
-			  "its id 0x%x.", body_pid);
+			  "its id 0x%x.", pid);
 		goto error_free_dir;
 	}
     
@@ -518,9 +531,10 @@ static object_entity_t *dir40_create(object_info_t *info,
    	body_hint.count = 1;
 	body_hint.plug = body_plug;
 	
-	plug_call(info->object.plug->o.key_ops, build_hashed, &body_hint.offset,
-		  dir->hash, obj40_locality(&dir->obj), obj40_objectid(&dir->obj),
-		  ".");
+	plug_call(info->object.plug->o.key_ops, 
+		  build_hashed, &body_hint.offset, dir->hash, 
+		  dir->fibre, obj40_locality(&dir->obj), 
+		  obj40_objectid(&dir->obj), ".");
 
 	/* Preparing hint for the empty directory. It consists only "." for
 	   unlinked directories. */
@@ -757,9 +771,9 @@ static errno_t dir40_build_entry(object_entity_t *entity,
 	locality = obj40_locality(&dir->obj);
 	objectid = obj40_objectid(&dir->obj);
 	
-	return plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
-			 build_hashed, &entry->offset, dir->hash,
-			 locality, objectid, entry->name);
+	return plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, 
+			 build_hashed, &entry->offset, dir->hash, 
+			 dir->fibre, locality, objectid, entry->name);
 }
 
 /* Add new entry to directory. */

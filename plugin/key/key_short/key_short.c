@@ -123,7 +123,7 @@ uint64_t key_short_get_offset(reiser4_key_t *key) {
 
 static int key_short_hashed(reiser4_key_t *key) {
 	return (key_short_get_objectid(key) &
-		0x0100000000000000ull) ? 1 : 0;
+		HASHED_NAME_MASK) ? 1 : 0;
 }
 
 /* Extracts name from key */
@@ -146,6 +146,7 @@ static char *key_short_get_name(reiser4_key_t *key,
 		*name = '.';
 		*(name + 1) = '\0';
 	} else {
+		objectid &= ~FIBRE_MASK;
 		ptr = aux_unpack_string(objectid, name);
 		aux_unpack_string(offset, ptr);
 	}
@@ -241,6 +242,7 @@ static int key_short_compfull(reiser4_key_t *key1,
 /* Builds hash of the passed @name by means of using a hash plugin */
 static errno_t key_short_build_hash(reiser4_key_t *key,
 				    reiser4_plug_t *hash,
+				    reiser4_plug_t *fibre,
 				    char *name) 
 {
 	uint16_t len;
@@ -253,6 +255,7 @@ static errno_t key_short_build_hash(reiser4_key_t *key,
 		return 0;
     
 	aal_assert("vpf-128", hash != NULL); 
+	aal_assert("vpf-1567", fibre != NULL);
 	
 	/* Not dot, pack the first part of the name into objectid */
 	objectid = aux_pack_string(name, 1);
@@ -268,13 +271,17 @@ static errno_t key_short_build_hash(reiser4_key_t *key,
 	} else {
 
 		/* Build hash by means of using hash plugin */
-		objectid |= 0x0100000000000000ull;
+		objectid |= HASHED_NAME_MASK;
 		
 		offset = plug_call(hash->o.hash_ops, build,
 				   name + OBJECTID_CHARS,
 				   len - OBJECTID_CHARS);
 	}
-
+	
+	objectid |= ((uint64_t)plug_call(fibre->o.fibre_ops, 
+					 build, name + OBJECTID_CHARS,
+					 len - OBJECTID_CHARS) << FIBRE_SHIFT);
+	
 	/* Objectid must occupie 60 bits. If it takes more, then we have broken
 	   key, or objectid allocator reached this value, that impossible in
 	   near future and apprentry denotes bug in object allocator. */
@@ -291,6 +298,7 @@ static errno_t key_short_build_hash(reiser4_key_t *key,
    creating entry keys. */
 static errno_t key_short_build_hashed(reiser4_key_t *key,
 				      reiser4_plug_t *hash,
+				      reiser4_plug_t *fibre,
 				      uint64_t locality,
 				      uint64_t objectid,
 				      char *name) 
@@ -307,7 +315,7 @@ static errno_t key_short_build_hashed(reiser4_key_t *key,
 	key_short_set_locality(key, objectid);
 	key_short_set_type(key, type);
     
-	return key_short_build_hash(key, hash, name);
+	return key_short_build_hash(key, hash, fibre, name);
 }
 
 /* Builds generic key by all its components */

@@ -9,7 +9,8 @@
 
 /* Obtains the plugin of the type @type from SD if stored there, otherwise
    obtains the default one from the params. This differs from obj40_plug as it
-   checks if the id from the SD is a valid one. */
+   checks if the id from the SD is a valid one. 
+   FIXME: similar to obj40_plug. Eliminate it when plugin extention is ready. */
 reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, char *name) {
 	reiser4_plug_t *plug;
 	rid_t pid;

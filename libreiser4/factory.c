@@ -208,6 +208,11 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(rupasov_hash);
 #endif
 
+	__load_plug(fibre_lexic);
+	__load_plug(fibre_dot_o);
+	__load_plug(fibre_ext_1);
+	__load_plug(fibre_ext_3);
+	
 	__load_plug(sdext_lw);
 	__load_plug(sdext_lt);
 	__load_plug(sdext_unix);

@@ -61,66 +61,72 @@ reiser4_param_t default_param = {
 			.flags = 0
 		},
 		[8] = {
+			.name  = "fibre",
+			.type  = FIBRE_PLUG_TYPE,
+			.value = FIBRE_DOT_O_ID,
+			.flags = 0
+		},
+		[9] = {
 			.name  = "policy",
 			.type  = POLICY_PLUG_TYPE,
 			.value = TAIL_SMART_ID,
 			.flags = 0
 		},
-		[9] = {
+		[10] = {
 			.name  = "perm",
 			.type  = PERM_PLUG_TYPE,
 			.value = PERM_RWX_ID,
 			.flags = 0
 		},
-		[10] = {
+		[11] = {
 			.name  = "regular",
 			.type  = OBJECT_PLUG_TYPE,
 			.value = OBJECT_REG40_ID,
 			.flags = 0
 		},
-		[11] = {
+		[12] = {
 			.name  = "directory",
 			.type  = OBJECT_PLUG_TYPE,
 			.value = OBJECT_DIR40_ID,
 			.flags = 0
 		},
-		[12] = {
+		[13] = {
 			.name  = "symlink",
 			.type  = OBJECT_PLUG_TYPE,
 			.value = OBJECT_SYM40_ID,
 			.flags = 0
 		},
-		[13] = {
+		[14] = {
 			.name  = "special",
 			.type  = OBJECT_PLUG_TYPE,
 			.value = OBJECT_SPL40_ID,
 			.flags = 0
 		},
-		[14] = {
+		[15] = {
 			.name  = "format",
 			.type  = FORMAT_PLUG_TYPE,
 			.value = FORMAT_REISER40_ID,
 			.flags = 0
 		},
-		[15] = {
+		[16] = {
 			.name  = "oid",
 			.type  = OID_PLUG_TYPE,
 			.value = OID_REISER40_ID,
 			.flags = 0
 		},
-		[16] = {
+		[17] = {
 			.name  = "alloc",
 			.type  = ALLOC_PLUG_TYPE,
 			.value = ALLOC_REISER40_ID,
 			.flags = 0
 		},
-		[17] = {
+		[18] = {
 			.name  = "journal",
 			.type  = JOURNAL_PLUG_TYPE,
 			.value = JOURNAL_REISER40_ID,
 			.flags = 0
 		},
-		[18] = {
+		[19] = {
 			.name  = "key",
 			.type  = KEY_PLUG_TYPE,
 			.value = KEY_LARGE_ID,

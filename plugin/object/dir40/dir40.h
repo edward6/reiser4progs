@@ -25,6 +25,9 @@ struct dir40 {
 
 	/* Hash plugin in use */
 	reiser4_plug_t *hash;
+	
+	/* Fibration plugin in use */
+	reiser4_plug_t *fibre;
 };
 
 typedef struct dir40 dir40_t;

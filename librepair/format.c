@@ -123,8 +123,8 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		
 		large = flags & (1 << REISER4_LARGE_KEYS);
 		
-		if (large && (pid != KEY_LARGE_ID) || 
-		    !large && (pid != KEY_SHORT_ID))
+		if ((large && (pid != KEY_LARGE_ID)) || 
+		    (!large && (pid != KEY_SHORT_ID)))
 		{
 			/* Wrong key plugin is specified. Fix it. */
 			

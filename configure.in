@@ -619,6 +619,11 @@ AC_OUTPUT([
     	plugin/hash/deg_hash/Makefile
     	plugin/hash/rupasov_hash/Makefile
     	plugin/hash/fnv1_hash/Makefile
+	plugin/fibre/Makefile
+	plugin/fibre/lexic_fibre/Makefile
+	plugin/fibre/dot_o_fibre/Makefile
+	plugin/fibre/ext_1_fibre/Makefile
+	plugin/fibre/ext_3_fibre/Makefile
     	plugin/sdext/Makefile
     	plugin/sdext/sdext_unix/Makefile
     	plugin/sdext/sdext_lw/Makefile

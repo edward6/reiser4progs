@@ -63,8 +63,12 @@ typedef enum {
 	KEY_SHORT_HASH_MASK        = 0xffffffffffffff00ull,
 } key_short_mask_t;
 
-#define OFFSET_CHARS   (sizeof(uint64_t))
-#define OBJECTID_CHARS (sizeof(uint64_t) - 1)
+#define OFFSET_CHARS		(sizeof(uint64_t))
+#define OBJECTID_CHARS		(sizeof(uint64_t) - 1)
+
+#define HASHED_NAME_MASK	0x0100000000000000ull
+#define FIBRE_MASK		0xff00000000000000ull
+#define FIBRE_SHIFT		57
 
 typedef enum {
 	KEY_SHORT_LOCALITY_SHIFT   = 4,
