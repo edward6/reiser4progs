@@ -338,7 +338,7 @@ int reiser4_node_confirm(reiser4_node_t *node) {
 	aal_assert("umka-123", node != NULL, return 0);
     
 	return plugin_call(return 0, node->entity->plugin->node_ops, 
-			   confirm, node->block);
+			   confirm, node->entity);
 }
 
 /* 
