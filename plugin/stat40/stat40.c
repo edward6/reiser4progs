@@ -247,9 +247,7 @@ static int stat40_sdext_present(reiser4_item_t *item,
     
     extmask = st40_get_extmask(stat);
 
-	return (1 << bit) & extmask;
-    
-    for (i = 0; i < bit; i++) {
+    for (i = 0; i <= bit; i++) {
         reiser4_plugin_t *plugin;
 	
         if ((((uint64_t)1 << i) & extmask))
