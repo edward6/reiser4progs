@@ -504,7 +504,7 @@ errno_t reiser4_node_traverse(
 	    for (pos.unit = 0; pos.unit < reiser4_item_count(&item); pos.unit++) {
 		blk_t target;
 		
-		if ((target = reiser4_item_get_nptr(&item))) {
+		if ((target = reiser4_item_get_nptr(&item)) != FAKE_BLK) {
 		    if (setup_func && (result = setup_func(node, &item, data)))
 			goto error_after_func;
 	

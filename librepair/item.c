@@ -15,7 +15,7 @@ errno_t repair_item_nptr_check(reiser4_item_t *item, repair_check_t *data) {
     aal_assert("vpf-271", data != NULL, return -1);
     aal_assert("vpf-272", data->format != NULL, return -1);
         
-    if ((blk = reiser4_item_get_nptr(item))) {
+    if ((blk = reiser4_item_get_nptr(item)) != FAKE_BLK) {
 	if ((res = reiser4_format_layout(data->format, callback_data_block_check, 
 	    &blk)) && res != -1) 
 	{

@@ -392,7 +392,7 @@ int reiser4_tree_lookup(
 	}
 	    
 	/* Getting the node pointer from internal item */
-	if (!(target = reiser4_item_get_nptr(&item))) {
+	if ((target = reiser4_item_get_nptr(&item)) == FAKE_BLK) {
 	    reiser4_node_t *node = coord->avatar->node;
 
 	    aal_exception_error("Can't get pointer from internal item %u, "

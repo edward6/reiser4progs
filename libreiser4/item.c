@@ -205,7 +205,7 @@ blk_t reiser4_item_get_nptr(reiser4_item_t *item) {
     if (!reiser4_item_internal(item)) {
 	aal_exception_error("An attempt to get the node pointer "
 	    "from non-internal item.");
-	return 0;
+	return FAKE_BLK;
     }
     
     return plugin_call(return 0, item->plugin->item_ops.specific.ptr, 

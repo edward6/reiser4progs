@@ -276,6 +276,7 @@ static reiser4_entity_t *format40_create(aal_device_t *device,
     }
     
     super = (format40_super_t *)format->block->data;
+    
     aal_memcpy(super->sb_magic, FORMAT40_MAGIC, 
 	aal_strlen(FORMAT40_MAGIC));
 
