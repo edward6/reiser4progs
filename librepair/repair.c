@@ -580,7 +580,11 @@ static errno_t debug_am_prepare(repair_control_t *control, repair_am_t *am) {
 	return 0;
 }
 
+/* FIXME: update the max_oid in SB. */
 static errno_t repair_update(repair_control_t *control) {
+	if (control->repair->mode == RM_CHECK)
+		return 0;
+	
 	return repair_status_clear(control->repair->fs->status);
 }
 

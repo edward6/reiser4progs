@@ -248,7 +248,6 @@ reiser4_object_t *reiser4_object_guess(
 	
 	aal_assert("umka-1508", tree != NULL);
 	aal_assert("umka-1509", place != NULL);
-	aal_assert("vpf-1222",  okey != NULL);
 	aal_assert("vpf-1221",  init_func != NULL);
 
 	aal_memset(&info, 0, sizeof(info));
@@ -265,9 +264,12 @@ reiser4_object_t *reiser4_object_guess(
 				   &parent->info->object);
 	}
 	
-	/* We may want to open and fix the object even if @place->key 
-	   does not match @okey. */
-	reiser4_key_assign(&object->info->object, okey);
+	if (okey) {
+		/* We may want to open and fix the object even if 
+		   @place->key does not match @okey. */
+		reiser4_key_assign(&object->info->object, okey);
+	}
+	
 	aal_memcpy(&object->info->start, place, sizeof(*place));
 
 	if (init_func(object, parent))

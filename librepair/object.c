@@ -67,7 +67,7 @@ reiser4_object_t *repair_object_recognize(reiser4_tree_t *tree,
 					  reiser4_object_t *parent,
 					  reiser4_place_t *place) 
 {
-	return reiser4_object_guess(tree, parent, &place->key, place,
+	return reiser4_object_guess(tree, parent, NULL, place,
 				    repair_object_init);
 }
 
@@ -125,9 +125,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 	
 	if (reiser4_tree_lookup(tree, key, LEAF_LEVEL, 
 				FIND_EXACT, &place) < 0)
-	{
 		return INVAL_PTR;
-	}
 	
 	/* Even if place is found, pass it through object recognize 
 	   method to check all possible corruptions. */

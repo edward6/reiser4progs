@@ -80,17 +80,17 @@ errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func) {
 	
 	info = &obj->info;
 	
-	locality = plug_call(info->object.plug->o.key_ops,
-			     get_locality, &info->object);
-
-	objectid = plug_call(info->object.plug->o.key_ops,
-			     get_objectid, &info->object);
-
-	ordering = plug_call(info->object.plug->o.key_ops,
-			     get_ordering, &info->object);
-	
-	
 	if (info->object.plug) {
+		locality = plug_call(info->object.plug->o.key_ops,
+				     get_locality, &info->object);
+
+		objectid = plug_call(info->object.plug->o.key_ops,
+				     get_objectid, &info->object);
+
+		ordering = plug_call(info->object.plug->o.key_ops,
+				     get_ordering, &info->object);
+
+	
 		plug_call(info->object.plug->o.key_ops, build_gener, &key,
 			  KEY_STATDATA_TYPE, locality, ordering, objectid, 0);
 		
@@ -103,9 +103,18 @@ errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func) {
 		/* Realizing on the SD. */
 		aal_assert("vpf-1204",  info->start.plug->id.group == 
 			   		STATDATA_ITEM);
-		
+
+		locality = plug_call(info->object.plug->o.key_ops,
+				     get_locality, &info->start.key);
+
+		objectid = plug_call(info->object.plug->o.key_ops,
+				     get_objectid, &info->start.key);
+
+		ordering = plug_call(info->object.plug->o.key_ops,
+				     get_ordering, &info->start.key);
+
 		/* Build the SD key into @info->object. */
-		plug_call(info->object.plug->o.key_ops, build_gener, 
+		plug_call(info->start.key.plug->o.key_ops, build_gener, 
 			  &info->object, KEY_STATDATA_TYPE, locality, 
 			  ordering, objectid, 0);
 	}
