@@ -8,7 +8,9 @@
 
 #include <repair/librepair.h>
 
-/* FIXME-VITALY: This should be the tree method. */
+/* FIXME-VITALY: Should this be the tree method? */
+/* Checks the filesystem. The most high-level method of recovery, launches 
+ * passes one-by-one. */
 errno_t repair_fs_check(reiser4_fs_t *fs, repair_data_t *rd) {
     errno_t res;
 
@@ -30,6 +32,8 @@ errno_t repair_fs_check(reiser4_fs_t *fs, repair_data_t *rd) {
     return 0;
 }
 
+/* Opens the filesystem - master, format, block and oid allocators - without 
+ * opening a journal. */
 reiser4_fs_t *repair_fs_open(aal_device_t *host_device, 
     reiser4_profile_t *profile) 
 {
@@ -82,6 +86,7 @@ error_fs_free:
     return NULL;
 }
 
+/* Sync the filesystem - master, format, block and oid allocators. */
 errno_t repair_fs_sync(reiser4_fs_t *fs) {
     aal_assert("vpf-173", fs != NULL);
     
@@ -97,6 +102,7 @@ errno_t repair_fs_sync(reiser4_fs_t *fs) {
     if (reiser4_format_sync(fs->format))
 	return -1;
 
+    /* Synchronizing the master */
     if (reiser4_master_confirm(fs->device)) {
 	if (reiser4_master_sync(fs->master))
 	    return -1;

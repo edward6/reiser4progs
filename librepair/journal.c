@@ -7,6 +7,9 @@
 
 #include <repair/librepair.h>
 
+/* Callback for journal check method - check if a block, pointed from the 
+ * journal, is of the special filesystem areas - skipped, block allocator, 
+ * oid alocator, etc. */
 static errno_t callback_fs_check(void *layout, block_func_t func, 
     void *data) 
 {
@@ -17,6 +20,7 @@ static errno_t callback_fs_check(void *layout, block_func_t func,
     return reiser4_fs_layout(fs, func, data);
 }
 
+/* Checks the opened journal. */
 static errno_t repair_journal_check(reiser4_journal_t *journal) {
     aal_assert("vpf-460", journal != NULL);
     aal_assert("vpf-736", journal->fs != NULL);
@@ -31,7 +35,7 @@ static errno_t repair_journal_check(reiser4_journal_t *journal) {
     
     return 0;	    
 }
-
+/* Open the journal and check it. */
 errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device) {
     aal_assert("vpf-445", fs != NULL);
     aal_assert("vpf-446", fs->format != NULL);

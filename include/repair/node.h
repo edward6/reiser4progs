@@ -20,7 +20,7 @@ typedef errno_t (*traverse_item_func_t)(reiser4_place_t *, void *);
 extern reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk);
 extern errno_t repair_node_check(reiser4_node_t *node, aux_bitmap_t *bitmap);
 extern errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *rd);
-extern errno_t repair_node_traverse(reiser4_node_t *node, rpid_t object_hint, 
+extern errno_t repair_node_traverse(reiser4_node_t *node, 
     traverse_item_func_t func, void *data);
 extern errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key);
 

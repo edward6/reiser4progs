@@ -7,6 +7,8 @@
 
 #include <repair/librepair.h>
 
+/* Callback for item_ops.layout_check which mark all correct blocks of the item 
+ * layout as the given bitmap. */
 static errno_t callback_item_region_check(item_entity_t *item, blk_t start, 
     uint64_t count, void *data) 
 {
@@ -27,8 +29,7 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
     return 0;
 }
 
-
-
+/* Sets the @key to the most right real key kept in the node or its children. */
 static errno_t repair_node_child_max_real_key(reiser4_place_t *parent, reiser4_key_t *key)
 {
     reiser4_place_t coord;
@@ -72,6 +73,7 @@ error_child_close:
     return -1;
 }
 
+/* Opens the node if it has correct mkid stamp. */
 reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
     reiser4_node_t *node;
 
@@ -90,6 +92,7 @@ error_node_free:
     return NULL;
 }
 
+/* Checks all the items of the node. */
 static errno_t repair_node_items_check(reiser4_node_t *node, 
     aux_bitmap_t *bm_used) 
 {
@@ -135,9 +138,9 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 
 	/* Check that the item is legal for this node. If not, it will be 
 	 * deleted in update traverse callback method. */
-	if ((res = plugin_call(node->entity->plugin->node_ops, 
-	    item_legal, node->entity, coord.item.plugin)))
-	    return res;
+	if (!reiser4_tree_legal_level(reiser4_node_level(node), 
+	    coord.item.plugin->h.group))
+	    return 1;
 
 	/* Check the item structure. */
 	if (coord.item.plugin->item_ops.check) {
@@ -170,6 +173,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
     return 0;    
 }
 
+/* Sets @key to the left delimiting key of the node kept in the parent. */
 static errno_t repair_node_ld_key_fetch(reiser4_node_t *node, 
     reiser4_key_t *ld_key) 
 {
@@ -192,6 +196,7 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
     return 0;
 }
 
+/* Updates the left delimiting key of the node kept in the parent. */
 static errno_t repair_node_ld_key_update(reiser4_node_t *node, 
     reiser4_key_t *ld_key) 
 {
@@ -211,6 +216,7 @@ static errno_t repair_node_ld_key_update(reiser4_node_t *node,
     return reiser4_item_set_key(&coord, ld_key);
 }
 
+/* Sets to the @key the right delimiting key of the node kept in the parent. */
 errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
     reiser4_place_t coord;
     errno_t res;
@@ -256,9 +262,10 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 }
 
 /* 
-    FIXME-VITALY: Should this stuff be moved to plugin and how will 3.6 format be 
-    supported? 
+    FIXME-VITALY: Should this stuff be moved to plugin (tree plugin?) and how 
+    will 3.6 format be supported?
 */
+/* Checks the delimiting keys of the node kept in the parent. */
 errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
     reiser4_place_t coord;
     reiser4_key_t key, d_key;
@@ -353,6 +360,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
     return 0;
 }
 
+/* Checks the set of keys of the node. */
 static errno_t repair_node_keys_check(reiser4_node_t *node) {
     reiser4_place_t coord;
     reiser4_key_t key, prev_key;
@@ -437,14 +445,18 @@ errno_t repair_node_check(reiser4_node_t *node, aux_bitmap_t *bm_used) {
     return 0;
 }
 
-errno_t repair_node_traverse(reiser4_node_t *node, rpid_t object_hint, 
-    traverse_item_func_t func, void *data) 
+/* Traverse through all items of the gived node. */
+errno_t repair_node_traverse(reiser4_node_t *node, traverse_item_func_t func, 
+    void *data) 
 {
     reiser4_place_t coord;
     rpos_t *pos = &coord.pos;
     uint32_t items;
 
+    aal_assert("vpf-744", node != NULL, return -1);
+    
     pos->unit = ~0ul;
+
     for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
 	if (reiser4_place_open(&coord, node, pos)) {
 	    aal_exception_error("Node (%llu), item (%u): failed to open the "
@@ -452,9 +464,6 @@ errno_t repair_node_traverse(reiser4_node_t *node, rpid_t object_hint,
 	    return -1;
 	}
 
-	if (!(object_hint & (1 << reiser4_item_type(&coord))))
-	    continue;
-	
 	if (func(&coord, data))
 		return -1;
     }

@@ -7,17 +7,9 @@
 
 #include <repair/librepair.h>
 
-errno_t callback_mark_format_block(object_entity_t *format, blk_t blk, 
-    void *data) 
-{
-    aux_bitmap_t *format_layout = (aux_bitmap_t *)data;
-
-    aux_bitmap_mark(format_layout, blk);
-    
-    return 0;
-}
-
-static reiser4_plugin_t *__choose_format(reiser4_profile_t *profile, 
+/* If format was not opened, try to detect it on the partition or take it 
+ * from the user profile, ask for confirmation. */
+static reiser4_plugin_t *repair_format_confirm(reiser4_profile_t *profile, 
     aal_device_t *host_device)
 {
     rpid_t format;
@@ -60,6 +52,7 @@ static reiser4_plugin_t *__choose_format(reiser4_profile_t *profile,
     return plugin;
 }
 
+/* Checks the opened format, or build a new one if it was not openned. */
 static errno_t repair_format_check(reiser4_fs_t *fs, reiser4_profile_t *profile) 
 {
     reiser4_plugin_t *plugin = NULL;
@@ -73,7 +66,7 @@ static errno_t repair_format_check(reiser4_fs_t *fs, reiser4_profile_t *profile)
 	aal_exception_fatal("Cannot open the on-disk format on (%s)", 
 	    aal_device_name(fs->device));
 	
-	if (!(plugin = __choose_format(profile, fs->device)))
+	if (!(plugin = repair_format_confirm(profile, fs->device)))
 	    return -1;
 
 	/* Create the format with fake tail plugin. */
@@ -98,6 +91,7 @@ static errno_t repair_format_check(reiser4_fs_t *fs, reiser4_profile_t *profile)
     return 0;
 }
 
+/* Try to open format and check it. */
 errno_t repair_format_open(reiser4_fs_t *fs, reiser4_profile_t *profile) {
     aal_assert("vpf-398", fs != NULL);
 
@@ -119,6 +113,7 @@ error_format_close:
     return -1;
 }
 
+/* Prints the opened format. */
 void repair_format_print(reiser4_fs_t *fs, FILE *file, uint16_t options) {
     aal_stream_t stream;
 

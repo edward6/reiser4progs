@@ -3,7 +3,9 @@
     
     Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
     reiser4progs/COPYING.
-    
+*/
+
+/*
     The first fsck pass - filter - fsck filters corrupted parts of 
     a reiser4 tree out, repairs all recoverable corruptions, builds
     a map of all used blocks, but extents (format + formatted nodes). 
@@ -162,6 +164,8 @@ static errno_t repair_filter_after_traverse(reiser4_node_t *node, void *data) {
     return 0;
 }
 
+/* If a fatal error occured, release evth, what was allocated by this moment 
+ * - not only on this pass, smth was allocated on some previous one. */
 static void repair_filter_release(repair_data_t *rd) {
     aal_assert("vpf-738", rd != NULL);
 
@@ -169,6 +173,18 @@ static void repair_filter_release(repair_data_t *rd) {
 	aux_bitmap_close(repair_filter(rd)->bm_used);
     if (repair_filter(rd)->bm_twig)
 	aux_bitmap_close(repair_filter(rd)->bm_twig);
+}
+
+/* Callback for the format_ops.layout method to mark all its blocks in the 
+ * bitmap. */
+static errno_t callback_format_mark(object_entity_t *format, blk_t blk, 
+    void *data)
+{
+    aux_bitmap_t *format_layout = (aux_bitmap_t *)data;
+
+    aux_bitmap_mark(format_layout, blk);
+    
+    return 0;
 }
 
 /* Setup data (common and specific) before traverse through the tree. */
@@ -193,7 +209,7 @@ static errno_t repair_filter_setup(traverse_hint_t *hint, repair_data_t *rd) {
     }
 
     /* Mark all format area block in the bm_used bitmap. */
-    if (repair_fs_layout(rd->fs, callback_mark_format_block, 
+    if (repair_fs_layout(rd->fs, callback_format_mark, 
 	repair_filter(rd)->bm_used)) 
     {
 	aal_exception_error("Failed to mark the filesystem area as used in "
@@ -259,6 +275,9 @@ static errno_t repair_filter_update(traverse_hint_t *hint) {
     return 0;
 }
 
+/* The pass itself - goes through the existent tree trying to filter all 
+ * corrupted parts off, and fixing what can be fixed. Account all kind of 
+ * nodes in corresponding bitmaps. */
 errno_t repair_filter_pass(repair_data_t *rd) {
     traverse_hint_t hint;
     reiser4_node_t *node = NULL;

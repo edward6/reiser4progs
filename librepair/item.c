@@ -35,6 +35,25 @@ uint32_t repair_item_split(
     return unit;
 }
 
+/* Calls the item check method to check the item structure. 
+ *
+ * Return values: 
+ * 0 - nothing was changed. !0 - smth was changed, new length is returned.
+ * errors == 0 - nothing left to be fixed.
+ * errors != 0 - smth to be fixed.
+ */
+errno_t repair_item_check(reiser4_coord_t *coord) {
+    uint32_t lenght;
+    
+    if (!coord->item.plugin->item_ops.check)
+	return 0;
+
+    lenght = coord->item.plugin->item_ops.check(&coord->item);
+
+    /* FIXME: not finished. */
+    return 0;
+}
+
 #if 0
 
 errno_t repair_item_handle_ptr(reiser4_place_t *coord) {
