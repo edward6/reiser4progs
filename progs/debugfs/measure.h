@@ -14,13 +14,17 @@
 
 #include <reiser4/reiser4.h>
 
-extern errno_t debugfs_tree_frag(reiser4_fs_t *fs);
-extern errno_t debugfs_tree_stat(reiser4_fs_t *fs);
+extern errno_t debugfs_tree_frag(reiser4_fs_t *fs,
+				 uint32_t flags);
+
+extern errno_t debugfs_tree_stat(reiser4_fs_t *fs,
+				 uint32_t flags);
 
 extern errno_t debugfs_data_frag(reiser4_fs_t *fs,
 				 uint32_t flags);
 
 extern errno_t debugfs_file_frag(reiser4_fs_t *fs,
-				 char *filename);
+				 char *filename,
+				 uint32_t flags);
 
 #endif

@@ -18,6 +18,10 @@
 
 #include <reiser4/reiser4.h>
 
+/* This list contain all known libreiser4 plugins */
+aal_list_t *plugins;
+extern reiser4_core_t core;
+
 /* Helper structure used in searching of plugins */
 struct walk_desc {
 	rid_t id;			    /* needed plugin id */
@@ -26,11 +30,6 @@ struct walk_desc {
 };
 
 typedef struct walk_desc walk_desc_t;
-
-/* This list contain all known libreiser4 plugins */
-aal_list_t *plugins = NULL;
-
-extern reiser4_core_t core;
 
 /* Helper callback function for matching plugin by type and id */
 static int callback_match_id(
@@ -48,7 +47,6 @@ static int callback_match_name(reiser4_plugin_t *plugin, walk_desc_t *desc) {
 }
 
 #ifdef ENABLE_PLUGINS_CHECK
-
 /* Helper callback for checking plugin validness */
 static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 				     void *data)
@@ -471,8 +469,8 @@ reiser4_plugin_t *libreiser4_factory_nfind(
 }
 
 /* 
-   Calls specified function for every plugin from plugin list. This functions
-   is used for getting any plugins information.
+   Calls specified function for every plugin from plugin list. This functions is
+   used for getting any plugins information.
 */
 errno_t libreiser4_factory_foreach(
 	reiser4_plugin_func_t plugin_func,	/* per plugin function */

@@ -122,8 +122,8 @@ int main(int argc, char *argv[]) {
 	aal_device_t *device;
 	reiser4_profile_t *profile;
 
-	aal_gauge_t *gauge;
 	aal_list_t *walk = NULL;
+	aal_gauge_t *gauge = NULL;
 	aal_list_t *devices = NULL;
     
 	struct stat st;
@@ -310,9 +310,11 @@ int main(int argc, char *argv[]) {
 		aal_memset(uuid, 0, sizeof(uuid));
 		aal_memset(label, 0, sizeof(label));
 	}
-    
-	if (!(gauge = aal_gauge_create(GAUGE_SILENT, "", NULL)))
-		goto error_free_libreiser4;
+
+	if (!(flags & BF_QUIET)) {
+		if (!(gauge = aal_gauge_create(GAUGE_SILENT, "", NULL)))
+			goto error_free_libreiser4;
+	}
     
 	/* The loop through all devices */
 	aal_list_foreach_forward(devices, walk) {
@@ -387,10 +389,12 @@ int main(int argc, char *argv[]) {
 				goto error_free_device;
 		}
     
-		aal_gauge_rename(gauge, "Creating reiser4 with %s on %s",
-				 profile->name, host_dev);
+		if (gauge) {
+			aal_gauge_rename(gauge, "Creating reiser4 with %s on %s",
+					 profile->name, host_dev);
 
-		aal_gauge_start(gauge);
+			aal_gauge_start(gauge);
+		}
 
 		/* Creating filesystem */
 		if (!(fs = reiser4_fs_create(device, uuid, label,
@@ -431,10 +435,12 @@ int main(int argc, char *argv[]) {
 			reiser4_object_close(object);
 		}
 	
-		aal_gauge_done(gauge);
+		if (gauge) {
+			aal_gauge_done(gauge);
 	
-		aal_gauge_rename(gauge, "Synchronizing %s", host_dev);
-		aal_gauge_start(gauge);
+			aal_gauge_rename(gauge, "Synchronizing %s", host_dev);
+			aal_gauge_start(gauge);
+		}
 	
 		/* 
 		   Synchronizing device. If device we are using is a file_device
@@ -458,7 +464,8 @@ int main(int argc, char *argv[]) {
 		*/
 		fs_len = 0;
 	
-		aal_gauge_done(gauge);
+		if (gauge)
+			aal_gauge_done(gauge);
 
 		/* Freeing the root directory */
 		reiser4_object_close(fs->root);
@@ -475,7 +482,9 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Freeing the all used objects */
-	aal_gauge_free(gauge);
+	if (gauge)
+		aal_gauge_free(gauge);
+	
 	aal_list_free(devices);
 
 	/* 

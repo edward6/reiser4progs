@@ -83,8 +83,9 @@ static errno_t tfrag_process_node(
 	tfrag_hint_t *frag_hint;
 
 	frag_hint = (tfrag_hint_t *)data;
-	
-	aal_gauge_update(frag_hint->gauge, 0);
+
+	if (frag_hint->gauge)
+		aal_gauge_update(frag_hint->gauge, 0);
 		
 	pos.unit = ~0ul;
 
@@ -147,34 +148,39 @@ static errno_t tfrag_update_node(reiser4_place_t *place, void *data) {
   traverse node, etc). Actual statistics collecting is performed in the passed
   callbacks and subcallbacks (for item traversing).
 */
-errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
+errno_t debugfs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 	errno_t res;
-	aal_gauge_t *gauge;
 	traverse_hint_t hint;
 	tfrag_hint_t frag_hint;
 
-	/*
-	  Initializing gauge, because it is a long process and user should be
-	  informated what the stage of the process is going on in the moment.
-	*/
-	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR,
-				       "Tree fragmentation", NULL)))
-		return -ENOMEM;
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&frag_hint, 0, sizeof(frag_hint));
+	
+	if (!(flags & BF_QUIET)) {
+		/*
+		  Initializing gauge, because it is a long process and user
+		  should be informed what the stage of the process is going at
+		  the moment.
+		*/
+		if (!(frag_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
+							 "Tree fragmentation",
+							 NULL)))
+		{
+			aal_exception_fatal("Out of memory!");
+			return -ENOMEM;
+		}
+	}
 	
 	/* Preparing serve structure, statistics will be stored in  */
-	frag_hint.bad = 0;
-	frag_hint.total = 0;
-	frag_hint.gauge = gauge;
 	frag_hint.tree = fs->tree;
 	frag_hint.curr = reiser4_tree_root(fs->tree);
 	frag_hint.level = reiser4_tree_height(fs->tree);
-
-	aal_memset(&hint, 0, sizeof(hint));
 	
 	hint.cleanup = 1;
 	hint.data = (void *)&frag_hint;
 
-	aal_gauge_start(gauge);
+	if (frag_hint.gauge)
+		aal_gauge_start(frag_hint.gauge);
 
 	/* Calling tree traversal */
 	if ((res = reiser4_tree_traverse(fs->tree, &hint, tfrag_open_node,
@@ -182,7 +188,10 @@ errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 					 tfrag_update_node, NULL)))
 		return res;
 
-	aal_gauge_free(gauge);
+	if (frag_hint.gauge)
+		aal_gauge_free(frag_hint.gauge);
+	else
+		printf("Tree fragmentation: ");
 
 	/* Printing the result */
 	printf("%.6f\n", frag_hint.total > 0 ?
@@ -195,8 +204,8 @@ struct tstat_hint {
 	reiser4_tree_t *tree;
 	aal_gauge_t *gauge;
 
-	double formatted_used;
 	double leaves_used;
+	double formatted_used;
 	double internals_used;
 
 	count_t nodes;
@@ -249,7 +258,7 @@ static errno_t stat_process_node(
 
 	level = reiser4_node_get_level(node);
 
-	if (stat_hint->formatted % 128 == 0)
+	if (stat_hint->gauge && stat_hint->formatted % 128 == 0)
 		aal_gauge_update(stat_hint->gauge, 0);
 
 	device = node->device;
@@ -316,46 +325,53 @@ static errno_t stat_process_node(
 }
 
 /* Entry point function for calculating tree statistics */
-errno_t debugfs_tree_stat(reiser4_fs_t *fs) {
+errno_t debugfs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	errno_t res;
-	aal_gauge_t *gauge;
 	traverse_hint_t hint;
 	tstat_hint_t stat_hint;
 
-	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR,
-				       "Tree statistics", NULL)))
-		return -ENOMEM;
-	
+	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
+	
+	if (!(flags & BF_QUIET)) {
+		if (!(stat_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
+							 "Tree statistics",
+							 NULL)))
+		{
+			aal_exception_fatal("Out of memory!");
+			return -ENOMEM;
+		}
+	}
 
 	stat_hint.tree = fs->tree;
-	stat_hint.gauge = gauge;
-
-	aal_memset(&hint, 0, sizeof(hint));
 	
 	hint.cleanup = 1;
 	hint.data = (void *)&stat_hint;
 
-	aal_gauge_start(gauge);
+	if (stat_hint.gauge)
+		aal_gauge_start(stat_hint.gauge);
 	
-	if ((res = reiser4_tree_traverse(fs->tree, &hint, stat_open_node,
-					 stat_process_node, NULL, NULL, NULL)))
+	if ((res = reiser4_tree_traverse(fs->tree, &hint,
+					 stat_open_node,
+					 stat_process_node,
+					 NULL, NULL, NULL)))
 		return res;
 
-	aal_gauge_free(gauge);
-	
-	progs_wipe_line(stdout);
+	if (stat_hint.gauge) {
+		aal_gauge_free(stat_hint.gauge);
+		progs_wipe_line(stdout);
+	}
 
 	/* Printing results */
-	printf("Formatted packing:\t%.2f\n", stat_hint.formatted_used);
-	printf("Leaves packing:\t\t%.2f\n", stat_hint.leaves_used);
-	printf("Internals packing:\t%.2f\n\n", stat_hint.internals_used);
+	printf("Formatted packing:%*.2f\n", 10, stat_hint.formatted_used);
+	printf("Leaves packing:%*.2f\n", 13, stat_hint.leaves_used);
+	printf("Internals packing:%*.2f\n\n", 10, stat_hint.internals_used);
 
-	printf("Total nodes:\t\t%llu\n", stat_hint.nodes);
-	printf("Formatted nodes:\t%llu\n", stat_hint.formatted);
-	printf("Leaf nodes:\t\t%llu\n", stat_hint.leaves);
-	printf("Twig nodes:\t\t%llu\n", stat_hint.twigs);
-	printf("Internal nodes:\t\t%llu\n", stat_hint.internals);
+	printf("Total nodes:%*llu\n", 16, stat_hint.nodes);
+	printf("Formatted nodes:%*llu\n", 12, stat_hint.formatted);
+	printf("Leaf nodes:%*llu\n", 17, stat_hint.leaves);
+	printf("Twig nodes:%*llu\n", 17, stat_hint.twigs);
+	printf("Internal nodes:%*llu\n", 13, stat_hint.internals);
 	
 	return 0;
 }
@@ -387,8 +403,10 @@ static errno_t ffrag_process_blk(
 	void *data)                /* user-specified data */
 {
 	int64_t delta;
-	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
+	ffrag_hint_t *frag_hint;
 
+	frag_hint = (ffrag_hint_t *)data;
+	
 	/* Check if we are went here first time */
 	if (frag_hint->last > 0) {
 		delta = frag_hint->last - blk;
@@ -405,10 +423,10 @@ static errno_t ffrag_process_blk(
 
 /* Calculates the passed file fragmentation */
 errno_t debugfs_file_frag(reiser4_fs_t *fs,
-			  char *filename)
+			  char *filename,
+			  uint32_t gauge)
 {
 	errno_t res = 0;
-	aal_gauge_t *gauge;
 	ffrag_hint_t frag_hint;
 	reiser4_object_t *object;
 
@@ -416,18 +434,10 @@ errno_t debugfs_file_frag(reiser4_fs_t *fs,
 	if (!(object = reiser4_object_open(fs, filename)))
 		return -EINVAL;
 
-	/* Create a gauge which will show the progress */
-	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "", NULL)))
-		goto error_free_object;
-
 	/* Initializing serve structures */
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
 	
 	frag_hint.tree = fs->tree;
-	frag_hint.gauge = gauge;
-
-	aal_gauge_rename(gauge, "Fragmentation for %s is", filename);
-	aal_gauge_start(gauge);
 
 	/*
 	  Calling file layout function, which calls ffrag_process_blk() fucntion
@@ -438,20 +448,18 @@ errno_t debugfs_file_frag(reiser4_fs_t *fs,
 	{
 		aal_exception_error("Can't enumerate data blocks "
 				    "occupied by %s", filename);
-		goto error_free_gauge;
+		goto error_free_object;
 	}
 	
-	aal_gauge_free(gauge);
 	reiser4_object_close(object);
 
-	/* Showing the results */
-	printf("%.6f\n", frag_hint.total > 0 ?
-	       (double)frag_hint.bad / frag_hint.total : 0);
+	/* Printing results */
+	printf("Fragmentation for %s is %.6f\n", filename,
+	       frag_hint.total > 0 ? (double)frag_hint.bad /
+	       frag_hint.total : 0);
 	
 	return 0;
 
- error_free_gauge:
-	aal_gauge_free(gauge);
  error_free_object:
 	reiser4_object_close(object);
 	return res;
@@ -519,7 +527,7 @@ static errno_t dfrag_process_node(
 		frag_hint->last = 0;
 		frag_hint->total = 0;
 
-		if (bogus++ % 16 == 0)
+		if (frag_hint->gauge && bogus++ % 16 == 0)
 			aal_gauge_update(frag_hint->gauge, 0);
 
 		bogus %= 16;
@@ -552,8 +560,8 @@ static errno_t dfrag_process_node(
 			double curr_factor = frag_hint->files > 0 ?
 				(double)frag_hint->current / frag_hint->files : 0;
 			
-			aal_exception_info("Fragmentation for %s: %.6f [ %.6f ]",
-					   object->name, file_factor, curr_factor);
+			printf("Fragmentation for %s: %.6f [ %.6f ]",
+			       object->name, file_factor, curr_factor);
 		}
 
 	error_close_object:
@@ -583,36 +591,41 @@ errno_t debugfs_data_frag(reiser4_fs_t *fs,
 			  uint32_t flags)
 {
 	errno_t res;
-	aal_gauge_t *gauge;
 	traverse_hint_t hint;
 	ffrag_hint_t frag_hint;
 
-	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR,
-				       "Data fragmentation", NULL)))
-		return -ENOMEM;
-	
-	aal_memset(&frag_hint, 0, sizeof(frag_hint));
-
-	frag_hint.tree = fs->tree;
-	frag_hint.gauge = gauge;
-	frag_hint.flags = flags;
-	frag_hint.level = reiser4_tree_height(fs->tree);
-
 	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&frag_hint, 0, sizeof(frag_hint));
+	
+	if (!(flags & BF_QUIET)) {
+		if (!(frag_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
+							 "Data fragmentation",
+							 NULL)))
+		{
+			aal_exception_fatal("Out of memory!");
+			return -ENOMEM;
+		}
+	}
+
+	frag_hint.flags = flags;
+	frag_hint.tree = fs->tree;
+	frag_hint.level = reiser4_tree_height(fs->tree);
 	
 	hint.cleanup = 1;
 	hint.data = (void *)&frag_hint;
 
-	aal_gauge_start(gauge);
+	if (frag_hint.gauge)
+		aal_gauge_start(frag_hint.gauge);
 	
 	if ((res = reiser4_tree_traverse(fs->tree, &hint, dfrag_open_node,
 					 dfrag_process_node, dfrag_setup_node, 
 					 dfrag_update_node, NULL)))
 		return res;
 
-	aal_gauge_free(gauge);
+	if (frag_hint.gauge)
+		aal_gauge_free(frag_hint.gauge);
 
-	if (frag_hint.flags & BF_SEACH)
+	if (frag_hint.flags & BF_SEACH || !frag_hint.gauge)
 		printf("Data fragmentation is: ");
 	
 	printf("%.6f\n", frag_hint.files > 0 ?

@@ -402,7 +402,7 @@ int main(int argc, char *argv[]) {
 					"Continue?") == EXCEPTION_YES)
 		{
 			if (behav_flags & BF_TFRAG) {
-				if (debugfs_tree_frag(fs))
+				if (debugfs_tree_frag(fs, behav_flags))
 					goto error_free_fs;
 			}
 
@@ -412,12 +412,13 @@ int main(int argc, char *argv[]) {
 			}
 
 			if (behav_flags & BF_FFRAG) {
-				if (debugfs_file_frag(fs, frag_filename))
+				if (debugfs_file_frag(fs, frag_filename,
+						      behav_flags))
 					goto error_free_fs;
 			}
 	
 			if (behav_flags & BF_TSTAT) {
-				if (debugfs_tree_stat(fs))
+				if (debugfs_tree_stat(fs, behav_flags))
 					goto error_free_fs;
 			}
 		}
