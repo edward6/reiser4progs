@@ -940,7 +940,6 @@ static errno_t dir40_layout(object_entity_t *entity,
 		place_t *place = &dir->body;
 		
 		if (dir->body.plug->o.item_ops->object->layout) {
-			
 			/* Calling item's layout method */
 			if ((res = plug_call(place->plug->o.item_ops->object,
 					     layout, place, callback_item_layout,

@@ -429,11 +429,11 @@ static errno_t file_frag_process_blk(void *entity, blk_t start,
 
 		if (labs(delta) > 1)
 			frag_hint->bad++;
-
-		frag_hint->total += width;
 	}
 
+	frag_hint->total += width;
 	frag_hint->last = start + width - 1;
+	
 	return 0;
 }
 

@@ -595,7 +595,6 @@ static errno_t reg40_layout(object_entity_t *entity,
 	errno_t res;
 	reg40_t *reg;
 	uint64_t size;
-	uint64_t offset;
 
 	layout_hint_t hint;
 	key_entity_t maxkey;
@@ -642,12 +641,12 @@ static errno_t reg40_layout(object_entity_t *entity,
 
 		/* Getting current item max real key inside, in order to know
 		   how much to increase file offset. */
-		plug_call(reg->body.plug->o.item_ops->balance, maxreal_key,
-			  &reg->body, &maxkey);
+		plug_call(place->plug->o.item_ops->balance, maxreal_key,
+			  place, &maxkey);
 
 		/* Updating file offset. */
-		offset = plug_call(maxkey.plug->o.key_ops, get_offset, &maxkey);
-		reg40_seek(entity, reg40_offset(entity) + offset + 1);
+		reg40_seek(entity, plug_call(maxkey.plug->o.key_ops,
+					     get_offset, &maxkey) + 1);
 	}
 	
 	return 0;
