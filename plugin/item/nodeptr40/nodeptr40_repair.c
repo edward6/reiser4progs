@@ -12,7 +12,7 @@
 #ifndef ENABLE_ALONE
 
 #include "nodeptr40.h"
-#include "repair/repair_plugins.h"
+#include <repair/repair_plugin.h>
 
 errno_t nodeptr40_layout_check(item_entity_t *item, region_func_t func, 
     void *data, uint8_t mode) 

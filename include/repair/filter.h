@@ -12,6 +12,22 @@
 #  include <config.h>
 #endif
 
-extern errno_t repair_filter_pass(repair_data_t *rd);
+/* Data filter works on. */
+typedef struct repair_filter {
+    reiser4_fs_t *fs;
+    aux_bitmap_t *bm_used;	/* Formatted area + formatted nodes. */
+
+    /* Results of the work. */
+    aux_bitmap_t *bm_leaf;	/* Bitmap of found leaves. */
+    aux_bitmap_t *bm_twig;	/* Bitmap of found twigs. */
+    aux_bitmap_t *bm_met;	/* Bitmap of formatted nodes which cannot neither 
+				   be pointed by extents nor marked nowhere else. */
+    repair_info_t info;
+    uint8_t mode;
+    uint8_t level;
+    uint8_t flags;
+} repair_filter_t;
+
+extern errno_t repair_filter(repair_filter_t *filter);
 
 #endif

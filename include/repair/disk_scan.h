@@ -15,6 +15,20 @@
 
 #include <repair/repair.h>
 
-extern errno_t repair_disk_scan_pass(repair_data_t *rd);
+/* Disk scan data. */
+typedef struct repair_ds {
+    reiser4_fs_t *fs;
+    aux_bitmap_t *bm_scan;	/* Bitmap of blocks to be scanned on the pass. */
+    aux_bitmap_t *bm_met;	/* Bitmap of blocks met already. 
+				   Mark all formatted block here also. */
+    /* Results of the work. */
+    aux_bitmap_t *bm_leaf;	/* Found leaves. */
+    aux_bitmap_t *bm_twig;	/* Fount twigs. */
+
+    repair_info_t info;
+    uint8_t mode;
+} repair_ds_t;
+
+extern errno_t repair_disk_scan(repair_ds_t *ds);
 
 #endif

@@ -12,7 +12,7 @@
 #ifndef ENABLE_ALONE
 
 #include "stat40.h"
-#include "repair/repair_plugins.h"
+#include <repair/repair_plugin.h>
 
 extern errno_t stat40_traverse(item_entity_t *, stat40_ext_func_t, void *);
 

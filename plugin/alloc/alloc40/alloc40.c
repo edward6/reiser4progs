@@ -21,7 +21,7 @@ static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t alloc40_plugin;
 
 extern errno_t alloc40_related_region(object_entity_t *entity, blk_t blk, 
-				      block_func_t func, void *data);
+				      region_func_t func, void *data);
 
 /*
   Calls func for each block allocator block. This function is used in all block

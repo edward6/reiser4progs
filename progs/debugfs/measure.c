@@ -45,11 +45,12 @@ static errno_t tfrag_open_node(
 }
 
 static errno_t tfrag_process_item(
-	item_entity_t *item,        /* item we traverse now */
+	void *object,		    /* item we traverse now */
 	uint64_t start,             /* region start */
 	uint64_t count,             /* region width */
 	void *data)                 /* one of blk item points to */
 {
+	item_entity_t *item = (item_entity_t *)object;
 	int64_t delta;
 	tfrag_hint_t *hint;
 	
@@ -228,7 +229,7 @@ static errno_t stat_open_node(
 
 /* Process one block belong to the item (extent or nodeptr) */
 static errno_t stat_process_item(
-	item_entity_t *item,        /* item we traverse now */
+	void *object,		    /* item we traverse now */
 	uint64_t start,             /* region start */
 	uint64_t count,             /* region count */
 	void *data)                 /* one of blk item points to */

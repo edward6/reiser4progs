@@ -11,12 +11,14 @@
 */
 
 #include <repair/librepair.h>
+#include <repair/twig_scan.h>
 
 /* Check unfm block pointer if it points to an already used block (leaf, format 
  * area) or out of format area. Return 1 if it does, 0 - does not, -1 error. */
-static errno_t callback_item_region_check(item_entity_t *item, blk_t start, 
+static errno_t callback_item_region_check(void *object, blk_t start, 
     uint64_t count, void *data) 
 {
+    item_entity_t *item = (item_entity_t *)object;
     repair_ts_t *ts = (repair_ts_t *)data;
     int res;
 
@@ -59,7 +61,7 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
  * exists for all items which can contain data, not tree index data only. 
  * Shrink the node if item lenght is changed. */
 static errno_t callback_item_layout_check(reiser4_place_t *place, void *data) {
-    repair_data_t *rd = (repair_data_t *)data;
+    repair_ts_t *ts = (repair_ts_t *)data;
     reiser4_node_t *node;
     errno_t res;
  
@@ -70,15 +72,15 @@ static errno_t callback_item_layout_check(reiser4_place_t *place, void *data) {
     node = place->node;
     
     res = repair_item_layout_check(place, callback_item_region_check, 
-	repair_ts(rd), rd->mode);
+	ts, ts->mode);
     
     if (res < 0) 
 	return res;
     
     if (res | REPAIR_FATAL) 
-	rd->info.check.fatal++;
+	ts->info.check.fatal++;
     else if (res | REPAIR_FIXABLE)
-	rd->info.check.fixable++;
+	ts->info.check.fixable++;
     else if (res | REPAIR_FIXED)
 	reiser4_node_mkdirty(place->node);
     else if (res | REPAIR_REMOVED) {
@@ -89,165 +91,43 @@ static errno_t callback_item_layout_check(reiser4_place_t *place, void *data) {
     return 0;
 }
 
-/* If a fatal error occured, release evth, what was allocated by this moment 
- * - not only on this pass, smth was allocated on some previous one. */
-static void repair_twig_scan_release(repair_data_t *rd) {
-    aal_assert("vpf-741", rd != NULL);
-
-    if (repair_ts(rd)->bm_used)
-	aux_bitmap_close(repair_ts(rd)->bm_used);
-    if (repair_ts(rd)->bm_twig)
-	aux_bitmap_close(repair_ts(rd)->bm_twig);
-    if (repair_ts(rd)->bm_leaf)
-	aux_bitmap_close(repair_ts(rd)->bm_leaf);
-    if (repair_ts(rd)->bm_met)
-	aux_bitmap_close(repair_ts(rd)->bm_met);
-    if (repair_ts(rd)->bm_unfm_tree)
-	aux_bitmap_close(repair_ts(rd)->bm_unfm_tree);
-    if (repair_ts(rd)->bm_unfm_out)
-	aux_bitmap_close(repair_ts(rd)->bm_unfm_out);
-}
-
-/* Setup the pass to be performed - prepare bitmaps for the further work. */
-static errno_t repair_twig_scan_setup(repair_data_t *rd) {
-    repair_ts_t *ts;
-    uint32_t i;
-    
-    aal_assert("vpf-565", rd != NULL);
-    
-    ts = repair_ts(rd);
-    
-    aal_assert("vpf-566", ts->bm_used != NULL);
-    aal_assert("vpf-568", ts->bm_twig != NULL);
-    aal_assert("vpf-569", ts->bm_leaf != NULL);
-    aal_assert("vpf-570", ts->bm_met != NULL);
-    aal_assert("vpf-571", ts->bm_unfm_tree != NULL);
-
-    /* Build the map of blocks which cannot be pointed by extent. */
-    for (i = 0; i < ts->bm_met->size; i++) {
-	/* Leaf and Twig maps has nothing common. */
-	aal_assert("vpf-696", (ts->bm_leaf->map[i] & ts->bm_twig->map[i]) == 0);
-
-	/* Leaf and Twig maps has nothing common. */
-	aal_assert("vpf-698", (ts->bm_used->map[i] & ts->bm_leaf->map[i]) == 0);
-
-	/* bm_met is bm_frmt | bm_used | bm_leaf | bm_twig */
-	ts->bm_met->map[i] |= (ts->bm_used->map[i] | ts->bm_twig->map[i] | 
-	    ts->bm_leaf->map[i]);
-    }
- 
-    aux_bitmap_clear_all(ts->bm_unfm_tree);
- 
-    if (!(ts->bm_unfm_out = 
-	aux_bitmap_create(reiser4_format_get_len(rd->fs->format)))) 
-    {
-	aal_exception_error("Failed to allocate a bitmap for extents of "
-	    "unconnected twigs.");
-	goto error;
-    }
-
-    return 0;
-    
-error:
-    repair_twig_scan_release(rd);
-
-    return -1;
-}
-
-/* Update the pass after performing, prepare some bitmaps content for the 
- * further work, deallocate some bitmap. */
-static errno_t repair_twig_scan_update(repair_data_t *rd) {
-    repair_ts_t *ts;
-    repair_am_t *am;
-    uint32_t i;
- 
-    aal_assert("vpf-577", rd != NULL);
-    aal_assert("vpf-593", rd->fs != NULL);
-
-    ts = repair_ts(rd);
-    am = repair_am(rd);
- 
-    for (i = 0; i < ts->bm_met->size; i++) {
-	aal_assert("vpf-576", (ts->bm_met->map[i] & 
-	    (ts->bm_unfm_tree->map[i] | ts->bm_unfm_out->map[i])) == 0);
-
-	aal_assert("vpf-717", (ts->bm_used->map[i] & ts->bm_twig->map[i]) == 0);
-
-	/* Let met will be leaves, twigs and unfm which are not in the tree. */
-	ts->bm_met->map[i] = ts->bm_leaf->map[i] | ts->bm_twig->map[i] | 
-	    ts->bm_unfm_out->map[i];
-
-	ts->bm_used->map[i] |= ts->bm_unfm_tree->map[i];
-    }
-
-    /* Assign the bm_met bitmap to the block allocator. */
-    reiser4_alloc_assign(rd->fs->alloc, ts->bm_used);
-    reiser4_alloc_assign_forb(rd->fs->alloc, ts->bm_met);
-
-    am->bm_leaf = ts->bm_leaf;
-    am->bm_twig = ts->bm_twig;
-
-    aux_bitmap_close(ts->bm_leaf);
-    aux_bitmap_close(ts->bm_met);
-    aux_bitmap_close(ts->bm_unfm_tree);
-    aux_bitmap_close(ts->bm_unfm_out);
-    
-    return 0;
-}
-
 /* The pass itself, goes through all twigs, check block pointers which items may have 
  * and account them in proper bitmaps. */
-errno_t repair_twig_scan_pass(repair_data_t *rd) {
+errno_t repair_twig_scan(repair_ts_t *ts) {
     reiser4_node_t *node;
     object_entity_t *entity;
-    repair_ts_t *ts;
     errno_t res = -1;
     blk_t blk = 0;
 
-    aal_assert("vpf-533", rd != NULL);
-    aal_assert("vpf-534", rd->fs != NULL);
+    aal_assert("vpf-533", ts != NULL);
+    aal_assert("vpf-534", ts->fs != NULL);
     
-    ts = repair_ts(rd);
-    
-    if (repair_twig_scan_setup(rd))
-	return -1;
-
     /* There were found overlapped extents. Look through twigs, build list of
      * extents for each problem region. */ 
     while ((blk = aux_bitmap_find_marked(ts->bm_twig, blk)) != INVAL_BLK) {
-	node = repair_node_open(rd->fs, blk);
+	node = repair_node_open(ts->fs, blk);
 	if (node == NULL) {
 	    aal_exception_fatal("Twig scan pass failed to open the twig (%llu)",
 		blk);
-	    goto error;
+	    return -1;
 	}
 
 	entity = node->entity;
 
 	/* Lookup the node. */	
-	if ((res = repair_node_traverse(node, callback_item_layout_check, rd)))
+	if ((res = repair_node_traverse(node, callback_item_layout_check, ts)))
 	    goto error_node_free;
 
 	if (!reiser4_node_locked(node))
 	    reiser4_node_close(node);
 
-	/* Do not keep twig marked in bm_twigs if it is in the tree already. */
-	if (aux_bitmap_test(ts->bm_used, blk))
-	    aux_bitmap_clear(ts->bm_twig, blk);
-
 	blk++;
     }
 
-    if (repair_twig_scan_update(rd))
-	goto error;
-    
     return 0;
 
 error_node_free:
     reiser4_node_close(node);
-
-error:
-    repair_twig_scan_release(rd);
 
     return -1;
 }

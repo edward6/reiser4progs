@@ -14,7 +14,7 @@
 
 #include <aux/bitmap.h>
 #include <reiser4/reiser4.h>
-#include <repair/repair_plugins.h>
+#include <repair/repair_plugin.h>
 
 typedef struct repair_check_info {
     /* amounts of different kinds of corruptions. */
@@ -43,48 +43,9 @@ typedef union repair_info {
     repair_check_info_t check;    
 } repair_info_t;
 
-/* Filter data. */
-typedef struct repair_filter {
-    aux_bitmap_t *bm_used;	/* Formatted area + formatted nodes. */
-    aux_bitmap_t *bm_twig;	/* Twig nodes */
-    
-    uint8_t level;
-    uint16_t flags;
-} repair_filter_t;
-
-/* Disk scan data. */
-typedef struct repair_ds {
-    aux_bitmap_t *bm_used;
-    aux_bitmap_t *bm_twig;
-    aux_bitmap_t *bm_leaf;	/* Leaf bitmap not in the tree yet. */
-    aux_bitmap_t *bm_frmt;	/* Bitmap of formatted nodes which cannot neither 
-				   be pointed by extents nor marked nowhere else. */
-    aux_bitmap_t *bm_scan;	/* Block bitmap to be scanned here. */
-} repair_ds_t;
-
-/* Twig scan data. */
-typedef struct repair_ts {
-    aux_bitmap_t *bm_used;
-    aux_bitmap_t *bm_twig;
-    aux_bitmap_t *bm_leaf;
-    aux_bitmap_t *bm_met;	/* frmt | used | leaf | twig | (after ts) unfm */
-    aux_bitmap_t *bm_unfm_tree;	/* Unformatted blocks pointed from the tree. */
-    aux_bitmap_t *bm_unfm_out;	/* Unformatted blocks pointed out of the tree. */
-} repair_ts_t;
-
-/* Add missing. */
-typedef struct repair_am {
-    aux_bitmap_t *bm_twig;
-    aux_bitmap_t *bm_leaf;
-    
-    reiser4_tree_t *tree;
-
-    reiser4_key_t max_real_key;
-} repair_am_t;
-
+/*
 typedef struct repair_data {
     reiser4_fs_t *fs;
-    reiser4_profile_t *profile;
     repair_info_t info;
     uint8_t mode;
     union {
@@ -99,11 +60,15 @@ typedef struct repair_data {
 #define repair_ts(data)	    (&(data)->pass.ts)
 #define repair_ds(data)	    (&(data)->pass.ds)
 #define repair_am(data)	    (&(data)->pass.am)
+*/
 
 /*
 #define repair_set_flag(data, flag)	(aal_set_bit(&(data)->flags, flag))
 #define repair_test_flag(data, flag)	(aal_test_bit(&(data)->flags, flag))
 #define repair_clear_flag(data, flag)	(aal_clear_bit(&(data)->flags, flag))
 */
+
+extern errno_t repair_check(reiser4_fs_t *fs, repair_info_t *info, uint8_t mode);
+
 #endif
 

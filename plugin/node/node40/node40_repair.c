@@ -12,19 +12,9 @@
 #ifndef ENABLE_ALONE
 
 #include "node40.h"
-#include "repair/repair_plugins.h"
+#include <repair/repair_plugin.h>
 
-#define INVALID_U16	0xffff
 #define MIN_ITEM_LEN	1
-
-typedef enum {
-    /* Item count in node header is wrong. */
-    BLKH_COUNT	= (1 << 0),
-    /* Free space in node header is wrong. */
-    BLKH_FS	= (1 << 1),
-    /* Free space start in node header is wrong. */
-    BLKH_FSS	= (1 << 2)    
-} node40_error_t;
 
 extern errno_t node40_remove(object_entity_t *entity, rpos_t *pos, uint32_t count);
 
@@ -83,29 +73,30 @@ static uint32_t node40_count_estimate(node40_t *node) {
     
     blk_size = aal_block_size(node->block);
     
-    /* F_S_S is less then node_header + MIN_ITEM_LEN. */
+    /* Free space start is less then node_header + MIN_ITEM_LEN. */
     if (sizeof(node40_header_t) + MIN_ITEM_LEN > 
 	nh40_get_free_space_start(node))
 	return 0;
 
-    /* F_S_S is greater then the first item  */
+    /* Free space start is greater then the first item  */
     if (blk_size - sizeof(item40_header_t) < nh40_get_free_space_start(node))
 	return 0;
 
-    /* F_S + node_h + 1 item_h + 1 MIN_ITEM_LEN should be less them blksize. */
+    /* Free space + node_h + 1 item_h + 1 MIN_ITEM_LEN should be less them blksize. */
     if (nh40_get_free_space(node) > blk_size - sizeof(node40_header_t) - 
 	sizeof(item40_header_t) - MIN_ITEM_LEN)
 	return 0;
 
     num = nh40_get_free_space_start(node) + nh40_get_free_space(node);
 	
-    /* F_S_S + F_S > first item header offset. */
+    /* Free space end > first item header offset. */
     if (num > blk_size - sizeof(item40_header_t))
 	return 0;
     
     num = blk_size - num;
 	
-    /* Between F_S end and end of block should be exact number of ih40_t. */
+    /* The space between free space end and the end of block should be 
+     * divisible by item_header. */
     if (num % sizeof(item40_header_t))
 	return 0;
 	
@@ -252,7 +243,7 @@ static errno_t node40_item_array_find(node40_t *node, uint8_t mode) {
 	nr++;
     }
 
-    /* Only nr - 1 item can be recovered as F_S_S is unknown. */
+    /* Only nr - 1 item can be recovered as free space start is unknown. */
     if (nr <= 1)
 	return REPAIR_FATAL;
     
@@ -346,7 +337,7 @@ errno_t node40_check(object_entity_t *entity, uint8_t mode) {
     /* Check the content of the node40 header. */
     res = node40_count_check(node, mode);
     
-    /* Count is wrong and not recoverable on the base of F_S + F_S_S. */
+    /* Count is wrong and not recoverable on the base of free space end. */
     if (repair_error_exists(res)) {
 	if (mode != REPAIR_REBUILD)
 	    return res;
@@ -366,7 +357,7 @@ static errno_t node40_corrupt(object_entity_t *entity, uint16_t options) {
     
     for(i = 0; i < nh40_get_num_items(node) + 1; i++) {
 	if (aal_test_bit(&options, i)) {
-	    node40_set_offset_at(node, i, INVALID_U16);
+	    node40_set_offset_at(node, i, 0xffff);
 	}
     }
 

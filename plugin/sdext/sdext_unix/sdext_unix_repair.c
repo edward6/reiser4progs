@@ -9,7 +9,7 @@
 #ifndef ENABLE_ALONE
 
 #include "sdext_unix.h"
-#include <repair/repair_plugins.h>
+#include <repair/repair_plugin.h>
 
 errno_t sdext_unix_check(sdext_entity_t *sdext, uint8_t mode) {
     aal_assert("vpf-778", sdext != NULL);

@@ -88,7 +88,7 @@ static void fsck_print_usage(char *name) {
   *************************************************************\n\
 \nWill check consistency of the filesystem on (%s).\n"
 
-static int fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {    
+static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {    
     if (data->mode == REPAIR_CHECK) {
 	fprintf(stderr, CHECK_WARNING, host_name);
     } else if (data->mode == REPAIR_FIX) {
@@ -115,7 +115,7 @@ static void fsck_init_streams(fsck_parse_t *data) {
     progs_exception_set_stream(EXCEPTION_BUG, stderr);
 }
 
-static int fsck_init(fsck_parse_t *data, int argc, char *argv[]) 
+static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[]) 
 {
     int c;
     char override[4096];
@@ -263,106 +263,107 @@ static int fsck_init(fsck_parse_t *data, int argc, char *argv[])
     return fsck_ask_confirmation(data, argv[optind]);
 }
 
-static int fsck_check(reiser4_fs_t *fs, repair_data_t *data) {
-    int retval;
+void fsck_time(char *string) {
     time_t t;
-    
+
     time(&t);
-    fprintf(stderr, "##########\nfsck.reiser4 started at %s##########\n", 
-	ctime (&t));
- 
-    if ((retval = repair_fs_check(fs, data))) {
-	aal_exception_fatal("Filesystem check failed. File system needs to be "
-	    "rebuild.");
+    fprintf(stderr, "#####%s %s#####\n", string, ctime (&t));
+}
+
+static errno_t fsck_check(reiser4_fs_t *fs, uint8_t mode) {
+    repair_info_t info;
+    errno_t res;
+    
+    aal_assert("vpf-180", fs != NULL);
+    
+    aal_memset(&info, 0, sizeof(info));
+    
+    fsck_time("fsck.reiser4 started at");
+    
+    if (repair_check(fs, &info, mode))
 	return OPER_ERROR;
-    }
 
-    fprintf(stderr, "##########\nfsck.reiser4 finished at %s##########\n", 
-	ctime (&t));
+    fsck_time("fsck.reiser4 finished at");
+    
     return NO_ERROR;
 }
 
-static int fsck_rebuild_fs(reiser4_fs_t *fs) {
+static errno_t fsck_rebuild_fs(reiser4_fs_t *fs) {
     return NO_ERROR;
 }
 
-static int fsck_rollback() {
+static errno_t fsck_rollback() {
     return NO_ERROR;
 }
-
-static errno_t fsck_data_prepare(repair_data_t *rd, 
-    fsck_parse_t *parse_data, reiser4_fs_t *fs) 
-{
-    aal_assert("vpf-481", rd != NULL);
-    aal_assert("vpf-505", parse_data != NULL);
-    aal_assert("vpf-513", fs != NULL);
- 
-    rd->fs = fs;
-    rd->mode = parse_data->mode;
-
-    rd->profile = parse_data->profile;
-
-    return 0;
-}
-
+/*
+*/
 int main(int argc, char *argv[]) {
-    int exit_code = NO_ERROR;
-    fsck_parse_t data;
-    repair_data_t repair_data;
+    errno_t exit_code = NO_ERROR;
+    fsck_parse_t parse_data;
     
     reiser4_fs_t *fs;
     uint16_t mask = 0;
     
-    memset(&data, 0, sizeof(data));
-    memset(&repair_data, 0, sizeof(repair_data));
+    memset(&parse_data, 0, sizeof(parse_data));
 
-    if (((exit_code = fsck_init(&data, argc, argv)) != NO_ERROR)) 
-	goto free_device;
+    if (((exit_code = fsck_init(&parse_data, argc, argv)) != NO_ERROR)) 
+	exit(exit_code);
 
     /* Initializing libreiser4 with factory sanity check */
     if (libreiser4_init()) {
 	aal_exception_fatal("Cannot initialize the libreiser4.");
-	exit(OPER_ERROR);
+	exit_code = OPER_ERROR;
+	goto free_device;
     }
  
-    if (!(fs = repair_fs_open(data.host_device, data.profile))) {
+    if (!(fs = repair_fs_open(parse_data.host_device, parse_data.profile))) {
 	aal_exception_fatal("Cannot open the filesystem on (%s).", 
-	    aal_device_name(data.host_device));
-	goto free_device;
+	    aal_device_name(parse_data.host_device));
+	exit_code = OPER_ERROR;
+	goto free_libreiser4;
     }
 
-    fsck_data_prepare(&repair_data, &data, fs);
-
-    if (repair_journal_handle(fs, data.journal_device)) {
-	aal_exception_fatal("Failed to replay the journal.");
-	goto free_device;
+    if (!(fs->tree =  reiser4_tree_init(fs))) {
+	aal_exception_fatal("Cannot open the filesystem on (%s).", 
+	    aal_device_name(parse_data.host_device));
+	exit_code = OPER_ERROR;
+	goto free_fs;
     }
     
-    exit_code = fsck_check(fs, &repair_data);
+    if (repair_journal_handle(fs, parse_data.journal_device)) {
+	aal_exception_fatal("Failed to replay the journal.");
+	exit_code = OPER_ERROR;
+	goto free_tree;
+    }
+    
+    exit_code = fsck_check(fs, parse_data.mode);
     
     fprintf(stderr, "Synchronizing...");
    
     if (repair_fs_sync(fs)) {
 	aal_exception_fatal("Cannot synchronize the filesystem.");
-	return OPER_ERROR;
+	exit_code = OPER_ERROR;
+	goto free_tree;
     }
     
-    if (aal_device_sync(data.host_device)) {
+    if (aal_device_sync(parse_data.host_device)) {
 	aal_exception_fatal("Cannot synchronize the device (%s).", 
-	    aal_device_name(data.host_device));
-	goto free_fs;
+	    aal_device_name(parse_data.host_device));
+	exit_code = OPER_ERROR;
+	goto free_tree;
     }
 
     fprintf(stderr, "done\n");
-
+free_tree:
+    reiser4_tree_close(fs->tree);
 free_fs:
     repair_fs_close(fs);
-free_device:
-    if (data.host_device)
-	aal_device_close(data.host_device);
 free_libreiser4:
     libreiser4_fini();
-
+free_device:
+    if (parse_data.host_device)
+	aal_device_close(parse_data.host_device);
+   
     return exit_code;
 }
 

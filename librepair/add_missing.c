@@ -7,12 +7,14 @@
 */
 
 #include <repair/librepair.h>
+#include <repair/add_missing.h>
 
 /* Callback for item_ops.layout method to mark all the blocks, items points to, 
  * in the allocator. */
-static errno_t callback_item_mark_region(item_entity_t *item, uint64_t start, 
+static errno_t callback_item_mark_region(void *object, uint64_t start, 
     uint64_t count, void *data)
 {
+    item_entity_t *item = (item_entity_t *)object;
     reiser4_alloc_t *alloc = (reiser4_alloc_t *)data;
     
     aal_assert("vpf-735", data != NULL);
@@ -41,68 +43,18 @@ static errno_t callback_layout(reiser4_place_t *place, void *data) {
 	callback_item_mark_region, data);
 }
 
-/* If a fatal error occured, release evth, what was allocated by this moment 
- * - not only on this pass, smth was allocated on some previous one. */
-static void repair_add_missing_release(repair_data_t *rd) {
-    aal_assert("vpf-739", rd != NULL);
-
-    if (repair_am(rd)->bm_twig)
-	aux_bitmap_close(repair_am(rd)->bm_twig);
-    if (repair_am(rd)->bm_leaf)
-	aux_bitmap_close(repair_am(rd)->bm_leaf);
-    if (repair_am(rd)->tree)
-	reiser4_tree_close(repair_am(rd)->tree);
-}
-
-/* Setup the pass to be performed - open or create the tree. */
-static errno_t repair_add_missing_setup(repair_data_t *rd) {
-    aal_assert("vpf-594", rd != NULL);
-    aal_assert("vpf-618", rd->fs != NULL);
-    aal_assert("vpf-619", rd->fs->format != NULL);
-    
-    if (reiser4_format_get_root(rd->fs->format) == INVAL_BLK) {
-	/* Trere is no any tree yet.  */
-	if (!(rd->fs->tree = reiser4_tree_init(rd->fs))) {
-	    aal_exception_fatal("Failed to create the tree of the fs.");
-	    goto error;
-	}
-    } else {
-	/* There is some tree already. */
-	if (!(rd->fs->tree = reiser4_tree_init(rd->fs))) {
-	    aal_exception_fatal("Failed to open the tree of the fs.");
-	    goto error;
-	}
-    }
-    
-    return 0;
-
-error:
-    repair_add_missing_release(rd);
-    
-    return -1;
-}
-
 /* The pass inself, adds all the data which are not in the tree yet and which 
  * were found on the partition during the previous passes. */
-errno_t repair_add_missing_pass(repair_data_t *rd) {
+errno_t repair_add_missing(repair_am_t *am) {
     reiser4_place_t place;
     rpos_t *pos = &place.pos;
-    reiser4_tree_t *tree;
     reiser4_node_t *node;
     aux_bitmap_t *bitmap;
-    repair_am_t *am;
-    uint32_t items, i;
-    errno_t res = -1;
+    uint32_t items, count, i;
+    errno_t res;
     blk_t blk;
     
-    aal_assert("vpf-595", rd != NULL);
-
-    am = repair_am(rd);
-
-    if (repair_add_missing_setup(rd))
-	return -1;
-    
-    tree = rd->fs->tree;    
+    aal_assert("vpf-595", am != NULL);
 
     bitmap = am->bm_twig;
     
@@ -115,31 +67,67 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 	 * them w/out problem - it will be done instead of following item by 
 	 * item insertion. */
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
-	    node = repair_node_open(rd->fs, blk);
+	    node = repair_node_open(am->fs, blk);
 	    if (node == NULL) {
 		aal_exception_fatal("Add Missing pass failed to open the node "
 		    "(%llu)", blk);
-		goto error;
+		return -1;
 	    }
 
-	    res = repair_tree_attach(tree, node);
+	    /* Prepare the node for insertion - Remove all metadata items. */
+	    place.node = node;
+	    pos->unit = ~0ul;
+	    count = reiser4_node_items(node);
+	    for (pos->item = 0; pos->item < count; pos->item++) {
+		if (reiser4_place_realize(&place)) {
+		    aal_exception_error("Node (%llu), item (%u): failed to open"
+			" the item.", node->blk, pos->item);
+		    goto error_node_close;
+		}
+		
+		/* If an item does not contain data (only metadata), remove it. */
+		/* FIXME: Just a reminder - here should be deleted all metadata
+		* info from items, only user data should be left. For now, items
+		* contain data xor metadata, not both. */
+		if (!reiser4_item_data(place.item.plugin)) {
+		    if (reiser4_node_remove(place.node, pos, 1)) {
+			aal_exception_error("Node (%llu), item (%u): failed to "
+			    "remove the item.", node->blk, pos->item);
+			goto error_node_close;
+		    }
+		    
+		    reiser4_node_mkdirty(place.node);
+		    pos->item--;
+		    count = reiser4_node_items(node);
+		}
+	    }
+
+	    if (reiser4_node_items(node) == 0) {
+		reiser4_node_mkclean(place.node);
+		aux_bitmap_clear(bitmap, node->blk);
+		reiser4_alloc_permit(am->fs->alloc, node->blk, 1);
+		goto first_next;
+	    }
+		
+	    res = repair_tree_attach(am->fs->tree, node);
 
 	    if (res < 0) {
 		aal_exception_bug("Add missing pass failed to attach the %s "
 		    "(%llu) to the tree.", blk, i == 0 ? "twig" : "leaf");
-		goto error_node_free;
+		goto error_node_close;
 	    } else if (res == 0) {
 		/* Has been inserted. */
 		aux_bitmap_clear(bitmap, node->blk);
-		reiser4_alloc_permit(rd->fs->alloc, node->blk, 1);
-		reiser4_alloc_occupy_region(rd->fs->alloc, node->blk, 1);
+		reiser4_alloc_permit(am->fs->alloc, node->blk, 1);
+		reiser4_alloc_occupy_region(am->fs->alloc, node->blk, 1);
 
-		if (repair_node_traverse(node, callback_layout, rd->fs->alloc))
-		    goto error_node_free;
+		if (repair_node_traverse(node, callback_layout, am->fs->alloc))
+		    goto error_node_close;
 
 	    } /* if res > 0 - uninsertable case - insert by items later. */
 	
-	    res = -1;
+	first_next:
+
 	    reiser4_node_close(node);
 	    blk++;
 	}
@@ -149,13 +137,13 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 	/* Insert extents from the twigs/all items from leaves which are not in 
 	 * the tree yet item-by-item into the tree, overwrite existent data 
 	 * which is in the tree already if needed. FIXME: overwriting should be 
-	 * done on the base of flush_id. */    
+	 * done on the base of flush_id. */
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
-	    node = repair_node_open(rd->fs, blk);
+	    node = repair_node_open(am->fs, blk);
 	    if (node == NULL) {
 		aal_exception_fatal("Add Missing pass failed to open the node "
 		    "(%llu)", blk);
-		goto error;
+		return -1;
 	    }
 
 	    pos->unit = ~0ul;
@@ -169,18 +157,18 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 		    aal_exception_error("Node (%llu), item (%u): cannot open "
 			"the item place.", blk, pos->item);
 		    
-		    goto error_node_free;
+		    goto error_node_close;
 		}
 	 
-		if (repair_tree_insert(tree, &place))
-		    goto error_node_free;
+		if (repair_tree_insert(am->fs->tree, &place))
+		    goto error_node_close;
 
-		if (callback_layout(&place, rd->fs->alloc))
-		    goto error_node_free;
+		if (callback_layout(&place, am->fs->alloc))
+		    goto error_node_close;
 	    }
 	
 	    aux_bitmap_clear(bitmap, node->blk);
-	    reiser4_alloc_permit(rd->fs->alloc, node->blk, 1);
+	    reiser4_alloc_permit(am->fs->alloc, node->blk, 1);
 	    reiser4_node_close(node);
 
 	    blk++;
@@ -191,11 +179,8 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 
     return 0;
 
-error_node_free:
+error_node_close:
     reiser4_node_close(node);
-
-error:
-    repair_add_missing_release(rd);
     
     return -1;
 }

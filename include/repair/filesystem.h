@@ -19,7 +19,6 @@ extern reiser4_fs_t *repair_fs_open(aal_device_t *host_device,
     reiser4_profile_t *profile);
 extern errno_t repair_fs_sync(reiser4_fs_t *fs);
 extern void repair_fs_close(reiser4_fs_t *fs);
-extern errno_t repair_fs_check(reiser4_fs_t *fs, repair_data_t *repair_data);
 extern errno_t repair_fs_layout(reiser4_fs_t *fs, block_func_t func, void *data);
 
 #endif

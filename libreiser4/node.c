@@ -980,15 +980,3 @@ uint8_t reiser4_node_get_level(reiser4_node_t *node) {
 			   get_level, node->entity);
 }
 
-/* Deprecated */
-errno_t reiser4_node_traverse(
-	reiser4_node_t *node,		     /* node which should be traversed */
-	traverse_hint_t *hint,		     /* hint for traverse and for callback methods */
-	traverse_open_func_t open_func,	     /* callback for node opening */
-	traverse_edge_func_t before_func,    /* callback to be called at the beginning */
-	traverse_setup_func_t setup_func,    /* callback to be called before a child  */
-	traverse_setup_func_t update_func,   /* callback to be called after a child */
-	traverse_edge_func_t after_func)     /* callback to be called at the end */
-{
-	return -1;
-}

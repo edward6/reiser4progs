@@ -331,7 +331,7 @@ struct write_hint {
 
 typedef struct write_hint write_hint_t;
 
-typedef errno_t (*region_func_t) (item_entity_t *, uint64_t, uint64_t, void *);
+typedef errno_t (*region_func_t) (void *, uint64_t, uint64_t, void *);
 typedef errno_t (*block_func_t) (object_entity_t *, uint64_t, void *);
 typedef errno_t (*place_func_t) (object_entity_t *, place_t *, void *);
 
@@ -1167,7 +1167,7 @@ struct reiser4_alloc_ops {
 
 	/* Calls func for all block of the same area as blk is. */
 	errno_t (*related_region) (object_entity_t *, blk_t,
-				   block_func_t, void *);
+				   region_func_t, void *);
 };
 
 typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;

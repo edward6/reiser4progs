@@ -13,7 +13,17 @@
 #  include <config.h>
 #endif
 
-extern errno_t repair_add_missing_pass(repair_data_t *rd);
+/* Add missing. */
+typedef struct repair_am {
+    reiser4_fs_t *fs;
+    aux_bitmap_t *bm_twig;
+    aux_bitmap_t *bm_leaf;
+
+    repair_info_t info;
+    uint8_t mode;
+} repair_am_t;
+
+extern errno_t repair_add_missing(repair_am_t *am);
 
 #endif
 

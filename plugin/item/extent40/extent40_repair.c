@@ -12,7 +12,7 @@
 #ifndef ENABLE_ALONE
 
 #include "extent40.h"
-#include "repair/repair_plugins.h"
+#include <repair/repair_plugin.h>
 
 extern uint32_t extent40_units(item_entity_t *item);
 

@@ -14,7 +14,7 @@
 
 #include <reiser4/reiser4.h>
 #include <repair/repair.h>
-#include <repair/repair_plugins.h>
+#include <repair/repair_plugin.h>
 #include <repair/filesystem.h>
 #include <repair/tree.h>
 #include <repair/format.h>
@@ -23,10 +23,6 @@
 #include <repair/node.h>
 #include <repair/place.h>
 #include <repair/item.h>
-#include <repair/filter.h>
-#include <repair/disk_scan.h>
-#include <repair/twig_scan.h>
-#include <repair/add_missing.h>
 
 /*  -------------------------------------------------
     | Common scheem for communication with users.   |

@@ -1425,6 +1425,7 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	
 	aal_assert("vpf-672", tree != NULL);
 	aal_assert("vpf-673", place != NULL);
+	aal_assert("vpf-813", place->node != NULL);
 	aal_assert("vpf-674", level > 0);
 
 	curr = reiser4_node_get_level(place->node);
@@ -1436,9 +1437,10 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	while (curr <= level) {
 		aal_assert("vpf-676", place->node->parent != NULL);
 		
-		if (place->pos.item != 0 || place->pos.unit != 0 || 
-		    place->pos.item != reiser4_node_items(place->node) || 
-		    place->pos.unit != reiser4_item_units(place))
+		if (!(place->pos.item == 0 && place->pos.unit == 0) || 
+		    !(place->pos.item == reiser4_node_items(place->node)) || 
+		    !(place->pos.item + 1 == reiser4_node_items(place->node) &&
+		      place->pos.unit == reiser4_item_units(place)))
 		{
 			/* We are not on the border, split. */
 			if ((node = reiser4_tree_alloc(tree, curr)) == NULL) {

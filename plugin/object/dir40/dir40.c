@@ -762,9 +762,10 @@ struct layout_hint {
 
 typedef struct layout_hint layout_hint_t;
 
-static errno_t callback_item_data(item_entity_t *item, uint64_t start,
+static errno_t callback_item_data(void *object, uint64_t start,
 				  uint64_t count, void *data)
 {
+	item_entity_t *item = (item_entity_t *)object;
 	blk_t blk;
 	errno_t res;
 	

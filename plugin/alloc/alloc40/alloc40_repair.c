@@ -20,9 +20,9 @@
   (neighbour) blocks which are described by one bitmap block (4096 - CRC_SIZE).
 */
 errno_t alloc40_related_region(object_entity_t *entity, blk_t blk, 
-    block_func_t func, void *data) 
+    region_func_t func, void *data) 
 {
-    uint64_t size, i;
+    uint64_t size;
     alloc40_t *alloc;
     aal_device_t *device;
     
@@ -38,14 +38,7 @@ errno_t alloc40_related_region(object_entity_t *entity, blk_t blk,
  	
     /* Loop though the all blocks one bitmap block describes and calling
      * passed @func for each of them. */   
-    for (i = blk / size; i < blk / size + size; i++) {
-	errno_t res;
-		
-	if ((res = func(entity, i, data)))
-	    return res;
-    }
-
-    return 0;    
+    return func(entity, blk/size, size, data);
 }
 
 #endif

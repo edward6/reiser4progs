@@ -88,14 +88,6 @@ extern uint16_t reiser4_node_space(reiser4_node_t *node);
 extern uint16_t reiser4_node_overhead(reiser4_node_t *node);
 extern uint16_t reiser4_node_maxspace(reiser4_node_t *node);
 
-extern errno_t reiser4_node_traverse(reiser4_node_t *node,
-				     traverse_hint_t *hint,
-				     traverse_open_func_t open_func,
-				     traverse_edge_func_t before_func,
-				     traverse_setup_func_t setup_func,
-				     traverse_setup_func_t update_func,
-				     traverse_edge_func_t after_func);
-
 #endif
 
 extern errno_t reiser4_node_lkey(reiser4_node_t *node,

@@ -71,7 +71,7 @@ extern bool_t reiser4_alloc_unused_region(reiser4_alloc_t *alloc,
 					  count_t count);
 
 extern errno_t reiser4_alloc_related_region(reiser4_alloc_t *alloc,
-					    blk_t blk, block_func_t func,
+					    blk_t blk, region_func_t func,
 					    void *data);
 
 extern errno_t reiser4_alloc_layout(reiser4_alloc_t *alloc,

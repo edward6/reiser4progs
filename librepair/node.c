@@ -308,7 +308,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node) {
 	aal_exception_error("Node (%llu): The first key %k is not equal to "
 	    "the left delimiting key %k.", node->blk, 
 	    &place.item.key, &d_key);
-	return REPAIR_FIXABLE;
+	return 1;
     } else if (res < 0) {
    	/* It is legal to have the left key in the node much then its left 
 	 * delimiting key - due to removing some items from the node, for 
@@ -348,7 +348,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node) {
 	aal_exception_error("Node (%llu): The last key %k in the node is less "
 	    "then the right delimiting key %k.", 
 	    node->blk, &key, &d_key);
-	return REPAIR_FIXABLE;
+	return 1;
     }
 
     return 0;

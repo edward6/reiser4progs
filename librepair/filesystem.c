@@ -8,30 +8,6 @@
 
 #include <repair/librepair.h>
 
-/* FIXME-VITALY: Should this be the tree method? */
-/* Checks the filesystem. The most high-level method of recovery, launches 
- * passes one-by-one. */
-errno_t repair_fs_check(reiser4_fs_t *fs, repair_data_t *rd) {
-    errno_t res;
-
-    aal_assert("vpf-180", fs != NULL);
-    aal_assert("vpf-493", rd != NULL);
-
-    if ((res = repair_filter_pass(rd)))
-	return res;
-
-    if ((res = repair_disk_scan_pass(rd)))
-	return res;
-
-    if ((res = repair_twig_scan_pass(rd)))
-	return res;
-
-    if ((res = repair_add_missing_pass(rd)))
-	return res;
-    
-    return 0;
-}
-
 /* Opens the filesystem - master, format, block and oid allocators - without 
  * opening a journal. */
 reiser4_fs_t *repair_fs_open(aal_device_t *host_device, 

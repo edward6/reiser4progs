@@ -49,6 +49,7 @@ bool_t repair_tree_data_level(uint8_t level) {
 }
 
 /* Corrects place for insertion over the base reiser4_tree_lookup method. */
+/*
 lookup_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key, 
     reiser4_place_t *place) 
 {
@@ -65,16 +66,13 @@ lookup_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 
 	return lookup;
     } else if (lookup == LP_PRESENT) {
-	if (reiser4_place_realize(place))
-	    return LP_FAILED;
-	
 	return lookup;
     }
 
     items = reiser4_node_items(place->node);
 
-    /* Position was not found - place could point to a non existent position, 
-     * move to the right item then. */
+    // Position was not found - place could point to a non existent position, 
+    // move to the right item then. 
     if (place->pos.item < items) {
 	if (reiser4_place_realize(place))
 	    return LP_FAILED;
@@ -92,6 +90,7 @@ lookup_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 
     return LP_ABSENT;
 }
+*/
 
 /* This function creates nodeptr item on the nase of 'node' and insert it to 
  * the tree. */
@@ -108,45 +107,53 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     aal_assert("vpf-658", tree != NULL);
     aal_assert("vpf-659", node != NULL);
 
-    /* Stop at the same level to be able to split the found node and insert 
-     * the passed node between its parts. */
-    level = reiser4_node_get_level(node);
-
-    while (level >= reiser4_tree_height(tree))
-	reiser4_tree_growup(tree);
-
+    
     /* Preparing nodeptr item hint */
     aal_memset(&hint, 0, sizeof(hint));
     aal_memset(&ptr, 0, sizeof(ptr));
 
     reiser4_node_lkey(node, &hint.key);
 
-    if ((lookup = repair_tree_lookup(tree, &hint.key, &place)) != LP_ABSENT)
+    /* Key should not exist in the tree yet. */
+    if ((lookup = reiser4_tree_lookup(tree, &hint.key, LEAF_LEVEL, &place)) 
+	!= LP_ABSENT)
 	return lookup;
 	
-    /* Key does not exist in the tree. Check the found position. Try to split 
-     * the node to insert the whole node. */
-
-    if (place.pos.item == reiser4_node_items(place.node)) {
-	if (repair_node_rd_key(place.node, &key))	    
+    /* If some node was found and it is not of higher level then the node being 
+     * attached, try to split nodes to be able to attach the node as a whole. */
+    level = reiser4_node_get_level(node);
+    
+    if (place.node != NULL && reiser4_node_get_level(place.node) <= level) {
+	/* Get the key of the found position or the nearest right key. */
+	if ((place.pos.item == reiser4_node_items(place.node)) || 
+	    (place.pos.item + 1 == reiser4_node_items(place.node) && 
+	     place.pos.unit == reiser4_item_units(&place))) 
+	{
+	    if (repair_node_rd_key(place.node, &key))
+		return -1;
+	} else if (reiser4_item_get_key(&place, &key))
 	    return -1;
-    } else {
-	if (reiser4_item_get_key(&place, &key)) 
+	
+	/* Get the maximum key existing in the node being inserted. */
+	if (repair_node_max_real_key(node, &rkey))
+	    return -1;
+	
+	/* If the most right key from the node being inserted is greater then 
+	 * the key found by lookup, it is not possible to insert the node as 
+	 * a whole. */
+	if (reiser4_key_compare(&key, &rkey) >= 0)
+	    return 1;
+	
+	if (reiser4_tree_split(tree, &place, level))
 	    return -1;
     }
     
-    if (repair_node_max_real_key(node, &rkey))
-	return -1;
- 
-    if (reiser4_key_compare(&key, &rkey) >= 0)
-	return 1;
- 
     hint.type_specific = &ptr;
     hint.count = 1;
     hint.flags = HF_FORMATD;
     ptr.ptr = node->blk;
     ptr.width = 1;
-
+    
     pid = reiser4_profile_value(tree->fs->profile, "nodeptr");
 
     if (!(hint.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) {
@@ -154,11 +161,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	return -1;
     }
 
-    /* Split the found place if needed to insert the whole node. */
-    if (reiser4_tree_split(tree, &place, level))
-	return -1;
-    
-    if ((res = reiser4_tree_insert(tree, &place, level, &hint))) {
+    if ((res = reiser4_tree_insert(tree, &place, level + 1, &hint))) {
 	aal_exception_error("Can't insert nodeptr item to the tree.");
 	return res;
     }
@@ -169,6 +172,9 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	    node->blk);
 	return -1;
     }
+
+    reiser4_tree_right(tree, node);
+    reiser4_tree_left(tree, node);
 
     return 0;
 }
@@ -194,19 +200,19 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *insert) {
 	    return -1;
 	}
 	
-	res = repair_tree_lookup(tree, &insert->item.key, &place);
+	res = reiser4_tree_lookup(tree, &insert->item.key, LEAF_LEVEL, &place);
 
 	if (res == LP_ABSENT) {
 	    /* Start key does not exist in the tree. Prepare the insertion. */
-
-	    if (place.pos.item == reiser4_node_items(place.node)) {
+	    if ((place.pos.item == reiser4_node_items(place.node)) || 
+		(place.pos.item + 1 == reiser4_node_items(place.node) && 
+		place.pos.unit == reiser4_item_units(&place))) 
+	    {
 		if (repair_node_rd_key(place.node, &dst_key))
 		    return -1;
-	    } else {
-		if (reiser4_item_get_key(&place, &dst_key)) 
-		    return -1;
-	    }
-
+	    } else if (reiser4_item_get_key(&place, &dst_key))
+		return -1;
+	    
 	    /* Count of items to be inserted. */
 	    if ((count = repair_item_split(insert, &dst_key)) == (uint32_t)-1)
 		return -1;

@@ -12,7 +12,7 @@
 #ifndef ENABLE_ALONE
 
 #include "journal40.h"
-#include "aux/bitmap.h"
+#include <aux/bitmap.h>
 
 /*
 
@@ -409,7 +409,7 @@ errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout,
     }    
      
     if (!(data.current_layout = aux_bitmap_create(data.fs_len))) {
-	aal_exception_error("Failed to allocate a control bitmap for current "
+	aal_exception_error("Failed to allocate a control bitmap of the current "
 	    "transaction blocks.");
 	return -1;
     }    
