@@ -12,7 +12,7 @@ static void repair_semantic_lost_name(reiser4_object_t *object,
 	char *key;
 
 	len1 = aal_strlen(LOST_PREFIX);
-	key = reiser4_print_key(&object->ent->object, PO_INODE);
+	key = reiser4_print_inode(&object->ent->object);
 	
 	len2 = aal_strlen(key);
 	
@@ -32,7 +32,7 @@ static errno_t cb_register_item(reiser4_place_t *place, void *data) {
                 fsck_mess("Node (%llu), item (%u), [%s]: item registering "
 			  "failed, it belongs to another object already.",
 			  place_blknr(place), place->pos.item,
-			  reiser4_print_key(&place->key, PO_DEFAULT));
+			  reiser4_print_key(&place->key));
                 return -EINVAL;
         }
          
@@ -137,7 +137,7 @@ static errno_t repair_semantic_add_entry(reiser4_object_t *parent,
 	
 	if ((res = reiser4_object_add_entry(parent, &entry)))
 		aal_error("Can't add entry %s to %s.", name, 
-			  reiser4_print_key(&parent->ent->object, PO_INODE));
+			  reiser4_print_inode(&parent->ent->object));
 	
 	return res;
 }
@@ -322,8 +322,8 @@ static reiser4_object_t *cb_object_traverse(reiser4_object_t *parent,
 	if (object == NULL) {
 		fsck_mess("Directory [%s]: can't find the object "
 			  "[%s] pointed by the entry [%s].%s",
-			  reiser4_print_key(&parent->ent->object, PO_INODE),
-			  reiser4_print_key(&entry->object, PO_INODE),
+			  reiser4_print_inode(&parent->ent->object),
+			  reiser4_print_inode(&entry->object),
 			  entry->name, sem->repair->mode != RM_CHECK ? 
 			  " Entry is removed." : "");
 		
@@ -426,8 +426,8 @@ static reiser4_object_t *cb_object_traverse(reiser4_object_t *parent,
 		aal_error("Semantic traverse failed to remove the "
 			  "entry \"%s\" [%s] pointing to [%s].", 
 			  entry->name, 
-			  reiser4_print_key(&entry->offset, PO_INODE),
-			  reiser4_print_key(&entry->object, PO_INODE));
+			  reiser4_print_inode(&entry->offset),
+			  reiser4_print_inode(&entry->object));
 	}
 	
  error_close_object:
@@ -559,14 +559,14 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 
 		fsck_mess("The directory [%s] is recognized by the "
 			  "%s plugin which is not a directory one.", 
-			  reiser4_print_key(key, PO_INODE), 
+			  reiser4_print_inode(key), 
 			  object->ent->opset.plug[OPSET_OBJ]->label);
 		
 		reiser4_object_close(object);
 	} else {
 		/* No plugin was recognized. */
 		fsck_mess("Failed to recognize the plugin for the directory "
-			  "[%s].", reiser4_print_key(key, PO_INODE));
+			  "[%s].", reiser4_print_inode(key));
 	}
 	
 	if (sem->repair->mode != RM_BUILD)
@@ -574,7 +574,7 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 
 	plug = reiser4_profile_plug(PROF_DIR);
 	fsck_mess("Trying to recover the directory [%s] with the default "
-		  "plugin--%s.", reiser4_print_key(key, PO_INODE), plug->label);
+		  "plugin--%s.", reiser4_print_inode(key), plug->label);
 
 	sem->stat.files++;
 	return repair_object_fake(tree, parent, key, plug);
@@ -613,14 +613,14 @@ static errno_t repair_semantic_object_check(repair_semantic_t *sem,
 			break;
 		
 		fsck_mess("Object [%s]: detaching.", 
-			 reiser4_print_key(&object->ent->object, PO_INODE));
+			 reiser4_print_inode(&object->ent->object));
 		
 		if ((res = reiser4_object_detach(object, NULL)))
 			return res;
 		
 		fsck_mess("Object [%s]: attaching to [%s].", 
-			 reiser4_print_key(&object->ent->object, PO_INODE),
-			 reiser4_print_key(&object->ent->parent, PO_INODE));
+			 reiser4_print_inode(&object->ent->object),
+			 reiser4_print_inode(&object->ent->parent));
 
 		break;
 	}
@@ -687,7 +687,7 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 		
 		fsck_mess("No 'lost+found' entry found. "
 			  "Building a new object with the key %s.",
-			  reiser4_print_key(&lost, PO_INODE));
+			  reiser4_print_inode(&lost));
 	} else {
 		reiser4_key_assign(&lost, &entry.object);
 	}

@@ -185,8 +185,8 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 		fsck_mess("Node (%llu): The last key [%s] in the node "
 			  "is greater then the right delimiting key "
 			  "[%s].", node->block->nr, 
-			  reiser4_print_key(&key_max, PO_DEFAULT),
-			  reiser4_print_key(&dkey, PO_DEFAULT));
+			  reiser4_print_key(&key_max),
+			  reiser4_print_key(&dkey));
 		return RE_FATAL;
 	}
 	
@@ -211,8 +211,8 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 		   node - not legal */
 		fsck_mess("Node (%llu): The first key [%s] is not equal to the "
 			  "left delimiting key [%s].", node->block->nr, 
-			  reiser4_print_key(&place.key, PO_DEFAULT),
-			  reiser4_print_key(&dkey, PO_DEFAULT));
+			  reiser4_print_key(&place.key),
+			  reiser4_print_key(&dkey));
 		return RE_FATAL;
 	}
 	
@@ -226,9 +226,9 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 	fsck_mess("Node (%llu): The left delimiting key [%s] in the "
 		  "parent node (%llu), pos (%u/%u) does not match the "
 		  "first key [%s] in the node.%s", node->block->nr,
-		  reiser4_print_key(&place.key, PO_DEFAULT),
+		  reiser4_print_key(&place.key),
 		  place_blknr(&node->p), place.pos.item, 
-		  place.pos.unit, reiser4_print_key(&dkey, PO_DEFAULT),
+		  place.pos.unit, reiser4_print_key(&dkey),
 		  mode == RM_BUILD ? " Fixed." : "");
 
 	if (mode != RM_BUILD)
@@ -503,9 +503,9 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 					  "%llu, item %u]. Skip insertion.",
 					  place_blknr(&dst), dst.pos.item,
 					  dst.plug->label,
-					  reiser4_print_key(&dst.key, PO_DEFAULT),
+					  reiser4_print_key(&dst.key),
 					  src->plug->label,
-					  reiser4_print_key(&src->key, PO_DEFAULT),
+					  reiser4_print_key(&src->key),
 					  place_blknr(src), src->pos.item);
 
 				   return RE_FATAL;
@@ -542,9 +542,9 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 				  "Copying is not ready yet, skip insertion.",
 				  place_blknr(&dst), dst.pos.item, 
 				  dst.plug->label,
-				  reiser4_print_key(&dst.key, PO_DEFAULT),
+				  reiser4_print_key(&dst.key),
 				  src->plug->label,
-				  reiser4_print_key(&src->key, PO_DEFAULT),
+				  reiser4_print_key(&src->key),
 				  place_blknr(src), src->pos.item);
 
 			return RE_FATAL;
@@ -580,7 +580,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 			  "(%llu), item (%u) by the key [%s] failed.",
 			  place_blknr(src), src->pos.item, 
 			  place_blknr(&dst), dst.pos.item,
-			  reiser4_print_key(&hint.offset, PO_INODE));
+			  reiser4_print_inode(&hint.offset));
 	}
 	
 	return res;

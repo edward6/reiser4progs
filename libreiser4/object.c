@@ -301,8 +301,7 @@ errno_t reiser4_object_entry_prep(reiser4_tree_t *tree,
 		if (!objplug(parent)->o.object_ops->build_entry) {
 			aal_error("Object %s has not build_entry() method "
 				  "implemented. Is it dir object at all?", 
-				  reiser4_print_key(&parent->ent->object, 
-						    PO_INODE));
+				  reiser4_print_inode(&parent->ent->object));
 			return -EINVAL;
 		}
 		
@@ -369,9 +368,9 @@ errno_t reiser4_object_attach(reiser4_object_t *object,
 			     object->ent, parent ? parent->ent : NULL)))
 	{
 		aal_error("Can't attach %s to %s.",
-			  reiser4_print_key(&object->ent->object, PO_INODE),
+			  reiser4_print_inode(&object->ent->object),
 			  parent == NULL ? "itself" :
-			  reiser4_print_key(&parent->ent->object, PO_INODE));
+			  reiser4_print_inode(&parent->ent->object));
 	}
 
 	return res;
@@ -391,9 +390,9 @@ errno_t reiser4_object_detach(reiser4_object_t *object,
 			     object->ent, parent ? parent->ent : NULL))) 
 	{
 		aal_error("Can't detach %s from %s.",
-			  reiser4_print_key(&object->ent->object, PO_INODE),
+			  reiser4_print_inode(&object->ent->object),
 			  parent == NULL ? "itself" :
-			  reiser4_print_key(&parent->ent->object, PO_INODE));
+			  reiser4_print_inode(&parent->ent->object));
 	}
 
 	return res;
@@ -455,8 +454,7 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 
 		if ((res = reiser4_object_add_entry(object, entry))) {
 			aal_error("Can't add entry %s to %s.", entry->name, 
-				  reiser4_print_key(&object->ent->object, 
-						    PO_INODE));
+				  reiser4_print_inode(&object->ent->object));
 			return res;
 		}
 	}
@@ -467,8 +465,7 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 				     link, child->ent)))
 		{
 			aal_error("Can't link the object %s. ",
-				  reiser4_print_key(&child->ent->object, 
-						    PO_INODE));
+				  reiser4_print_inode(&child->ent->object));
 			
 			goto error_rem_entry;
 		}
@@ -485,14 +482,14 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 		if (plug_call(objplug(child)->o.object_ops, unlink, child->ent))
 		{
 			aal_error("Can't unlink the object %s.",
-				  reiser4_print_key(&child->ent->object, PO_INODE));
+				  reiser4_print_inode(&child->ent->object));
 		}
 	}
 	
  error_rem_entry:
 	if (reiser4_object_rem_entry(object, entry)) {
 		aal_error("Can't remove entry %s in %s.", entry->name,
-			  reiser4_print_key(&object->ent->object, PO_INODE));
+			  reiser4_print_inode(&object->ent->object));
 	}
 	
 	return res;
@@ -512,7 +509,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object, char *name) {
 	/* Getting entry poining to the child. */
 	if (reiser4_object_lookup(object, name, &entry) != PRESENT) {
 		aal_error("Can't find entry %s in %s.", name, 
-			  reiser4_print_key(&object->ent->object, PO_INODE));
+			  reiser4_print_inode(&object->ent->object));
 		return -EINVAL;
 	}
 
@@ -529,10 +526,10 @@ errno_t reiser4_object_unlink(reiser4_object_t *object, char *name) {
 	
 	/* Looking up for the victim's statdata place */
 	if (reiser4_tree_lookup(tree, &hint, FIND_EXACT, &place) != PRESENT) {
-		char *key = reiser4_print_key(&entry.object, PO_DEFAULT);
+		char *key = reiser4_print_key(&entry.object);
 		aal_error("Can't find an item pointed by %s. "
 			  "Entry %s/%s points to nowere.", key, 
-			  reiser4_print_key(&object->ent->object, PO_INODE), 
+			  reiser4_print_inode(&object->ent->object), 
 			  name);
 		return -EINVAL;
 	}
@@ -540,7 +537,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object, char *name) {
 	/* Opening victim object by found place */
 	if (!(child = reiser4_object_open(tree, object, &place))) {
 		aal_error("Can't open %s/%s. Object is corrupted?",
-			  reiser4_print_key(&object->ent->object, PO_INODE), 
+			  reiser4_print_inode(&object->ent->object), 
 			  name);
 		return -EINVAL;
 	}
@@ -559,7 +556,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object, char *name) {
 	/* Removing entry from @object. */
 	if ((res = reiser4_object_rem_entry(object, &entry))) {
 		aal_error("Can't remove entry %s in %s.", name, 
-			  reiser4_print_key(&object->ent->object, PO_INODE));
+			  reiser4_print_inode(&object->ent->object));
 		
 		goto error_link_child;
 	}
@@ -571,7 +568,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object, char *name) {
 	if (objplug(child)->o.object_ops->link) {
 		if (plug_call(objplug(child)->o.object_ops, link, child->ent)) {
 			aal_error("Can't link the object %s.",
-				  reiser4_print_key(&child->ent->object, PO_INODE));
+				  reiser4_print_inode(&child->ent->object));
 		}
 	}
  error_attach_child:

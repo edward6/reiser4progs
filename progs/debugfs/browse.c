@@ -15,7 +15,7 @@ static errno_t debugfs_reg_cat(reiser4_object_t *object) {
 	
 	if ((res = reiser4_object_reset(object))) {
 		aal_error("Can't reset object %s.",
-			  reiser4_print_key(&object->ent->object, PO_INODE));
+			  reiser4_print_inode(&object->ent->object));
 		return res;
 	}
 
@@ -40,14 +40,14 @@ static errno_t debugfs_dir_cat(reiser4_object_t *object) {
 	
 	if ((res = reiser4_object_reset(object))) {
 		aal_error("Can't reset object %s.", 
-			  reiser4_print_key(&object->ent->object, PO_INODE));
+			  reiser4_print_inode(&object->ent->object));
 		return res;
 	}
 
 	/* The loop until all entry read */
 	while (reiser4_object_readdir(object, &entry) > 0) {
-		printf("[%s] %s\n", reiser4_print_key(&entry.object, 
-						      PO_DEFAULT), entry.name);
+		printf("[%s] %s\n", reiser4_print_key(&entry.object), 
+		       entry.name);
 	}
 
 	printf("\n");
@@ -74,7 +74,7 @@ static errno_t debugfs_spl_cat(reiser4_object_t *object) {
 
 	if ((res = reiser4_object_stat(object, &stath))) {
 		aal_error("Can't stat object %s.", 
-			  reiser4_print_key(&object->ent->object, PO_INODE));
+			  reiser4_print_inode(&object->ent->object));
 		return res;
 	}
 

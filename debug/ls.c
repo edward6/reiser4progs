@@ -30,13 +30,12 @@ errno_t ls_cmd(busy_ctx_t *ctx) {
 
 	if (object->ent->opset.plug[OPSET_OBJ]->id.group == DIR_OBJECT) {
 		while (reiser4_object_readdir(object, &entry) > 0) {
-			printf("[%s] %s\n", 
-			       reiser4_print_key(&entry.object, PO_DEFAULT), 
+			printf("[%s] %s\n", reiser4_print_key(&entry.object),
 			       entry.name);
 		}
 	} else {
 		printf("[%s] %s\n", 
-		       reiser4_print_key(&object->ent->object, PO_DEFAULT), 
+		       reiser4_print_key(&object->ent->object), 
 		       ctx->in.path);
 	}
 	

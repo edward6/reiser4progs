@@ -64,7 +64,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, place_func_t func,
 			/* Key has some corruptions and cannot be recovered. */
 			fsck_mess("Node (%llu): The key [%s] of the item "
 				  "(%u) is broken.%s", node->block->nr,
-				  reiser4_print_key(&place.key, PO_DEFAULT),
+				  reiser4_print_key(&place.key),
 				  pos->item, mode == RM_BUILD ? " Removed." : 
 				  "");
 			
@@ -73,10 +73,10 @@ static errno_t repair_node_items_check(reiser4_node_t *node, place_func_t func,
 			/* Key has been fixed. */
 			fsck_mess("Node (%llu): The key [%s] of the item (%u) "
 				  "is broken. %s [%s].", node->block->nr,
-				  reiser4_print_key(&place.key, PO_DEFAULT),
+				  reiser4_print_key(&place.key),
 				  pos->item, (ret && mode == RM_CHECK) ? 
 				  "Should be" : "Fixed to", 
-				  reiser4_print_key(&key, PO_DEFAULT));
+				  reiser4_print_key(&key));
 			
 			if (mode == RM_CHECK)
 				res |= RE_FIXABLE;
@@ -94,7 +94,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, place_func_t func,
 		if (ret & RE_FATAL) {
 			fsck_mess("Node (%llu), item (%u), [%s]: broken item "
 				  "found.%s", node->block->nr, pos->item,
-				  reiser4_print_key(&place.key, PO_DEFAULT),
+				  reiser4_print_key(&place.key),
 				  mode == RM_BUILD ? " Remove it." : "");
 
 			goto error_remove_item;

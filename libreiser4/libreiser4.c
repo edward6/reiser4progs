@@ -100,7 +100,12 @@ static errno_t tree_update_key(tree_entity_t *tree,
 }
 
 static char *key_print(reiser4_key_t *key, uint16_t options) {
-	return reiser4_print_key(key, options);
+	if (options == PO_INODE)
+		return reiser4_print_inode(key);
+	else if (options == 0)
+		return reiser4_print_key(key);
+	return NULL;
+		
 }
 
 static errno_t tree_convert(tree_entity_t *tree, conv_hint_t *hint) {

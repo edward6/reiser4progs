@@ -69,7 +69,7 @@ static errno_t cb_check_layout(reiser4_place_t *place, void *data) {
 			fsck_mess("Node (%llu), item (%u), [%s]: broken "
 				  "item layout. Remove the item.",
 				  node->block->nr, place->pos.item,
-				  reiser4_print_key(&place->key, PO_DEFAULT));
+				  reiser4_print_key(&place->key));
 
 			hint.count = 1;
 			hint.place_func = NULL;

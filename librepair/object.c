@@ -138,7 +138,7 @@ errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag) {
 	/* Get the start place. */
 	if ((res = reiser4_object_refresh(object))) {
 		aal_error("Update of the object [%s] failed.",
-			  reiser4_print_key(&object->ent->object, PO_INODE));
+			  reiser4_print_inode(&object->ent->object));
 		return res;
 	}
 	
@@ -155,7 +155,7 @@ int repair_object_test(reiser4_object_t *object, uint16_t flag) {
 	/* Get the start place. */
 	if ((res = reiser4_object_refresh(object))) {
 		aal_error("Update of the object [%s] failed.",
-			  reiser4_print_key(&object->ent->object, PO_INODE));
+			  reiser4_print_inode(&object->ent->object));
 		return res;
 	}
 	
@@ -170,7 +170,7 @@ errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag) {
 	/* Get the start place. */
 	if ((res = reiser4_object_refresh(object))) {
 		aal_error("Update of the object [%s] failed.",
-			  reiser4_print_key(&object->ent->object, PO_INODE));
+			  reiser4_print_inode(&object->ent->object));
 		return res;
 	}
 	

@@ -61,7 +61,7 @@ void reiser4_print_fini(void) {
 
 /* Prints passed @key with @options to some of stream from stream pool and
    retrun pointer to result. */
-char *reiser4_print_key(reiser4_key_t *key, uint16_t options) {
+char *reiser4_print_key(reiser4_key_t *key) {
 	aal_stream_t *stream;
 	
 	aal_assert("umka-2379", key != NULL);
@@ -74,7 +74,27 @@ char *reiser4_print_key(reiser4_key_t *key, uint16_t options) {
 		current = aal_list_first(streams);
 
 	aal_stream_reset(stream);
-	reiser4_key_print(key, stream, options);
+	reiser4_key_print(key, stream, PO_DEFAULT);
+
+	return (char *)stream->entity;
+}
+
+/* Prints passed @key with @options to some of stream from stream pool and
+   retrun pointer to result. */
+char *reiser4_print_inode(reiser4_key_t *key) {
+	aal_stream_t *stream;
+	
+	aal_assert("umka-2379", key != NULL);
+	aal_assert("umka-3086", current != NULL);
+	aal_assert("umka-3087", streams != NULL);
+
+	stream = (aal_stream_t *)current->data;
+
+	if (!(current = current->next))
+		current = aal_list_first(streams);
+
+	aal_stream_reset(stream);
+	reiser4_key_print(key, stream, PO_INODE);
 
 	return (char *)stream->entity;
 }

@@ -13,8 +13,10 @@ extern void reiser4_print_fini(void);
 
 extern errno_t reiser4_print_init(uint32_t pool);
 
-extern char *reiser4_print_key(reiser4_key_t *key,
-			       uint16_t options);
+extern char *reiser4_print_key(reiser4_key_t *key);
+
+extern char *reiser4_print_inode(reiser4_key_t *key);
+
 #endif
 
 #endif

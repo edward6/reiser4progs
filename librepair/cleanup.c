@@ -95,8 +95,8 @@ static errno_t cb_node_cleanup(reiser4_place_t *place, void *data) {
 			aal_mess("Node (%llu), items (%u, %u): fuse items "
 				 "[%s], [%s].", place_blknr(place), 
 				 cleanup->neigh.pos.item, place->pos.item,
-				 reiser4_print_key(&cleanup->neigh.key, PO_DEFAULT),
-				 reiser4_print_key(&place->key, PO_DEFAULT));
+				 reiser4_print_key(&cleanup->neigh.key),
+				 reiser4_print_key(&place->key));
 			*/
 
 			place->pos.item--;
@@ -126,7 +126,7 @@ static errno_t cb_node_cleanup(reiser4_place_t *place, void *data) {
 	/*
 	aal_mess("Node (%llu), item (%u): remove not used '%s' item [%s].",
 		 place_blknr(place), place->pos.item, place->plug->label,
-		 reiser4_print_key(&place->key, PO_DEFAULT));
+		 reiser4_print_key(&place->key));
 	*/
 
 	/* Remove not checked item. */
