@@ -7,8 +7,8 @@
 
 /* Builds the key of the unit at @pos and stores it inside passed @key
    variable. It is needed for updating item key after shifting, etc. */
-errno_t body40_get_key(place_t *place, uint32_t pos,
-		       key_entity_t *key,
+errno_t body40_get_key(reiser4_place_t *place, uint32_t pos,
+		       reiser4_key_t *key,
 		       trans_func_t trans_func)
 {
 	uint64_t offset;
@@ -29,9 +29,9 @@ errno_t body40_get_key(place_t *place, uint32_t pos,
 }
 
 /* Returns maximal possible key for file body item at @place. */
-errno_t body40_maxposs_key(place_t *place, key_entity_t *key) {
+errno_t body40_maxposs_key(reiser4_place_t *place, reiser4_key_t *key) {
 	uint64_t offset;
-	key_entity_t *maxkey;
+	reiser4_key_t *maxkey;
     
 	plug_call(place->key.plug->o.key_ops, assign,
 		  key, &place->key);
@@ -50,8 +50,8 @@ errno_t body40_maxposs_key(place_t *place, key_entity_t *key) {
 
 #ifndef ENABLE_STAND_ALONE
 /* Returns max real key inside passed @place. */
-errno_t body40_maxreal_key(place_t *place,
-			   key_entity_t *key,
+errno_t body40_maxreal_key(reiser4_place_t *place,
+			   reiser4_key_t *key,
 			   trans_func_t trans_func) 
 {
 	uint64_t units;
@@ -76,9 +76,11 @@ errno_t body40_maxreal_key(place_t *place,
 }
 
 /* Checks if two file body items are mergeable. */
-int body40_mergeable(place_t *place1, place_t *place2) {
+int body40_mergeable(reiser4_place_t *place1,
+		     reiser4_place_t *place2)
+{
 	uint64_t offset;
-	key_entity_t maxkey;
+	reiser4_key_t maxkey;
 
 	plug_call(place1->plug->o.item_ops->balance,
 		  maxreal_key, place1, &maxkey);

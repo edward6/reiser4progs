@@ -6,8 +6,8 @@
 #include <repair/librepair.h>
 
 /* Opens the node if it has correct mkid stamp. */
-node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, bool_t check) {
-	node_t *node;
+reiser4_node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, bool_t check) {
+	reiser4_node_t *node;
 	
 	aal_assert("vpf-708", tree != NULL);
 	
@@ -29,17 +29,16 @@ node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, bool_t check) {
 }
 
 /* Checks all the items of the node. */
-static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
+static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 	reiser4_key_t key, prev;
 	trans_hint_t hint;
 	errno_t res, ret;
 	uint32_t count;
-	place_t place;
+	reiser4_place_t place;
 	pos_t *pos;
 	
 	aal_assert("vpf-229", node != NULL);
-	aal_assert("vpf-230", node->entity != NULL);
-	aal_assert("vpf-231", node->entity->plug != NULL);
+	aal_assert("vpf-231", node->plug != NULL);
 	
 	res = 0;
 	pos = &place.pos;
@@ -160,13 +159,12 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 }
 
 /*  Checks the node content. */
-errno_t repair_node_check_struct(node_t *node, uint8_t mode) {
+errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
 	uint8_t level;
 	errno_t res;
 	
 	aal_assert("vpf-494", node != NULL);
-	aal_assert("vpf-193", node->entity != NULL);    
-	aal_assert("vpf-220", node->entity->plug != NULL);
+	aal_assert("vpf-220", node->plug != NULL);
 	
 	level = reiser4_node_get_level(node);
 	
@@ -177,8 +175,8 @@ errno_t repair_node_check_struct(node_t *node, uint8_t mode) {
 		return RE_FATAL;
 	}
 
-	res = plug_call(node->entity->plug->o.node_ops, check_struct, 
-			node->entity, mode);
+	res = plug_call(node->plug->o.node_ops, check_struct, 
+			node, mode);
 	
 	if (repair_error_fatal(res))
 		return res;
@@ -189,10 +187,10 @@ errno_t repair_node_check_struct(node_t *node, uint8_t mode) {
 }
 
 /* Traverse through all items of the gived node. */
-errno_t repair_node_traverse(node_t *node, node_func_t func, 
+errno_t repair_reiser4_node_traverse(reiser4_node_t *node, node_func_t func, 
 			     void *data)
 {
-	place_t place;
+	reiser4_place_t place;
 	pos_t *pos = &place.pos;
 	errno_t res;
 	
@@ -215,14 +213,13 @@ errno_t repair_node_traverse(node_t *node, node_func_t func,
 	return 0;
 }
 
-errno_t repair_node_clear_flags(node_t *node) {
-	uint32_t count;
-	place_t place;
+errno_t repair_node_clear_flags(reiser4_node_t *node) {
 	pos_t *pos;
+	uint32_t count;
+	reiser4_place_t place;
 	
 	aal_assert("vpf-1401", node != NULL);
-	aal_assert("vpf-1402", node->entity != NULL);
-	aal_assert("vpf-1403", node->entity->plug != NULL);
+	aal_assert("vpf-1403", node->plug != NULL);
 
 	place.node = node;
 	count = reiser4_node_items(node);
@@ -241,23 +238,26 @@ errno_t repair_node_clear_flags(node_t *node) {
 }
 
 /* Packes @node to @stream. */
-errno_t repair_node_pack(node_t *node, aal_stream_t *stream, int mode) {
+errno_t repair_node_pack(reiser4_node_t *node,
+			 aal_stream_t *stream,
+			 int mode)
+{
 	aal_assert("umka-2622", node != NULL);
 	aal_assert("umka-2623", stream != NULL);
 
-	return plug_call(node->entity->plug->o.node_ops,
-			 pack, node->entity, stream, mode);
+	return plug_call(node->plug->o.node_ops,
+			 pack, node, stream, mode);
 }
 
 /* Create node from passed @stream. */
-node_t *repair_node_unpack(reiser4_tree_t *tree, 
-			   aal_stream_t *stream, 
-			   int mode) 
+reiser4_node_t *repair_node_unpack(reiser4_tree_t *tree, 
+				   aal_stream_t *stream, 
+				   int mode) 
 {
 	blk_t blk;
 	rid_t pid;
 	
-	node_t *node;
+	reiser4_node_t *node;
 	uint32_t size;
 	aal_block_t *block;
 	reiser4_plug_t *plug;
@@ -286,20 +286,15 @@ node_t *repair_node_unpack(reiser4_tree_t *tree,
 	if (!(block = aal_block_alloc(device, size, blk)))
 		return NULL;
 
-	/* Allocating memory for instance of node */
-	if (!(node = aal_calloc(sizeof(*node), 0)))
-		goto error_free_block;
-
 	/* Requesting the plugin for initialization node entity. */
-	if (!(node->entity = plug_call(plug->o.node_ops, unpack, block, 
-				       tree->key.plug, stream, mode)))
+	if (!(node = plug_call(plug->o.node_ops, unpack, block, 
+			       tree->key.plug, stream, mode)))
 	{
-		goto error_free_node;
+		goto error_free_block;
 	}
 
 	return node;
- error_free_node:    
-	aal_free(node);
+	
  error_free_block:
 	aal_block_free(block);
 	return NULL;
@@ -309,10 +304,10 @@ node_t *repair_node_unpack(reiser4_tree_t *tree,
 }
 
 /* Print passed @node to the specified @stream */
-void repair_node_print(node_t *node, aal_stream_t *stream) {
+void repair_node_print(reiser4_node_t *node, aal_stream_t *stream) {
 	aal_assert("umka-1537", node != NULL);
 	aal_assert("umka-1538", stream != NULL);
 	
-	plug_call(node->entity->plug->o.node_ops, print, 
-		  node->entity, stream, -1, -1, 0);
+	plug_call(node->plug->o.node_ops, print, 
+		  node, stream, -1, -1, 0);
 }

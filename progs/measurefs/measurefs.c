@@ -84,10 +84,10 @@ struct tree_frag_hint {
 typedef struct tree_frag_hint tree_frag_hint_t;
 
 /* Open node callback for calculating the tree fragmentation */
-static node_t *tree_frag_open_node(reiser4_tree_t *tree,
-				   place_t *place, void *data)
+static reiser4_node_t *tree_frag_open_node(reiser4_tree_t *tree,
+				   reiser4_place_t *place, void *data)
 {
-	node_t *node;
+	reiser4_node_t *node;
 	tree_frag_hint_t *frag_hint;
 
 	frag_hint = (tree_frag_hint_t *)data;
@@ -135,7 +135,7 @@ static errno_t tree_frag_process_item(void *entity, uint64_t start,
    are stored in @frag_hint structure. This function is called from the tree
    traversal routine for each internal node. See bellow for details. */
 static errno_t tree_frag_process_node(reiser4_tree_t *tree,
-				      node_t *node, void *data)
+				      reiser4_node_t *node, void *data)
 {
 	pos_t pos;
 	static int bogus = 0;
@@ -146,7 +146,7 @@ static errno_t tree_frag_process_node(reiser4_tree_t *tree,
 
 	/* Loop though the node items. */
 	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
-		place_t place;
+		reiser4_place_t place;
 
 		/* Initializing item at @place */
 		if (reiser4_place_open(&place, node, &pos)) {
@@ -173,7 +173,7 @@ static errno_t tree_frag_process_node(reiser4_tree_t *tree,
 }
 
 static errno_t tree_frag_update_node(reiser4_tree_t *tree,
-				     place_t *place, void *data) 
+				     reiser4_place_t *place, void *data) 
 {
 	((tree_frag_hint_t *)data)->level++;
 	return 0;
@@ -261,11 +261,11 @@ typedef struct tree_stat_hint tree_stat_hint_t;
 static errno_t stat_item_layout(void *entity, uint64_t start,
 				uint64_t width, void *data)
 {
-	place_t *place;
+	reiser4_place_t *place;
 	uint32_t blksize;
 	tree_stat_hint_t *stat_hint;
 
-	place = (place_t *)entity;
+	place = (reiser4_place_t *)entity;
 	stat_hint = (tree_stat_hint_t *)data;
 
 	if (place->plug->id.group == EXTENT_ITEM) {
@@ -289,7 +289,7 @@ static errno_t stat_item_layout(void *entity, uint64_t start,
 /* Processing one formatted node and calculate number of internal pointers,
    extent ones, packing, etc. */
 static errno_t stat_process_node(reiser4_tree_t *tree,
-				 node_t *node, void *data)
+				 reiser4_node_t *node, void *data)
 {
 	uint8_t level;
 	uint32_t blksize;
@@ -348,7 +348,7 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 	     pos.item++)
 	{
 		errno_t res;
-		place_t place;
+		reiser4_place_t place;
 
 		/* Fetching item data. */
 		if ((res = reiser4_place_open(&place, node, &pos))) {
@@ -562,7 +562,8 @@ errno_t measurefs_file_frag(reiser4_fs_t *fs,
 /* Processes leaf node in order to find all stat data items which are start of
    corresponding files and calculate file fragmentation for each of them. */
 static errno_t data_frag_process_node(reiser4_tree_t *tree,
-				      node_t *node, void *data)
+				      reiser4_node_t *node,
+				      void *data)
 {
 	pos_t pos;
 	file_frag_hint_t *frag_hint;
@@ -580,7 +581,7 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 	     pos.item++)
 	{
 		errno_t res;
-		place_t place;
+		reiser4_place_t place;
 		reiser4_object_t *object;
 
 		/* Initialiing the item at @place */
@@ -641,7 +642,8 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 }
 
 static errno_t data_frag_update_node(reiser4_tree_t *tree, 
-				     place_t *place, void *data)
+				     reiser4_place_t *place,
+				     void *data)
 {
 	((file_frag_hint_t *)data)->level++;
 	return 0;

@@ -17,13 +17,13 @@ static void repair_semantic_lost_name(reiser4_object_t *object, char *name) {
 }
 
 /* Callback for repair_object_check_struct. Mark the passed item as CHECKED. */
-static errno_t callback_register_item(place_t *place, void *data) {
+static errno_t callback_register_item(reiser4_place_t *place, void *data) {
         aal_assert("vpf-1115", place != NULL);
          
         if (repair_item_test_flag(place, OF_CHECKED)) {
                 aal_error("Node (%llu), item (%u): item registering "
 			  "failed, it belongs to another object already.",
-			  place->block->nr, place->pos.item);
+			  place->node->block->nr, place->pos.item);
                 return -EINVAL;
         }
          
@@ -182,7 +182,7 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 {
 	bool_t checked;
 	reiser4_object_t *parent, *found;
-	place_t *pstart;
+	reiser4_place_t *pstart;
 	entry_hint_t entry;
 	errno_t res;
 	
@@ -298,7 +298,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	repair_semantic_t *sem = (repair_semantic_t *)data;
 	reiser4_object_t *object;
 	bool_t checked, attached;
-	place_t *start;
+	reiser4_place_t *start;
 	errno_t res = 0;
 	
 	aal_assert("vpf-1172", parent != NULL);
@@ -461,7 +461,7 @@ static errno_t repair_semantic_uptraverse(repair_semantic_t *sem,
 	return res;
 }
 
-static errno_t callback_tree_scan(place_t *place, void *data) {
+static errno_t callback_tree_scan(reiser4_place_t *place, void *data) {
 	repair_semantic_t *sem = (repair_semantic_t *)data;
 	reiser4_object_t *object;
 	errno_t res;

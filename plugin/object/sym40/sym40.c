@@ -194,8 +194,8 @@ static errno_t sym40_update(object_entity_t *entity,
    searchig all entries. It returns stat data key of the object symlink points
    to. */
 static errno_t sym40_follow(object_entity_t *entity,
-			    key_entity_t *from,
-			    key_entity_t *key)
+			    reiser4_key_t *from,
+			    reiser4_key_t *key)
 {
 	errno_t res;
 	sym40_t *sym;

@@ -9,7 +9,7 @@
 #include <reiser4/types.h>
 
 extern reiser4_plug_t *reiser4_semantic_plug(reiser4_tree_t *tree,
-					     place_t *place);
+					     reiser4_place_t *place);
 
 extern object_entity_t *reiser4_semantic_resolve(reiser4_tree_t *tree,
 						 char *path, reiser4_key_t *from,

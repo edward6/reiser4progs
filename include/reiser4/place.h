@@ -8,27 +8,30 @@
 
 #include <reiser4/types.h>
 
-extern bool_t reiser4_place_valid(place_t *place);
-extern errno_t reiser4_place_last(place_t *place);
-extern errno_t reiser4_place_first(place_t *place);
-extern errno_t reiser4_place_fetch(place_t *place);
-extern bool_t reiser4_place_ltlast(place_t *place);
-extern bool_t reiser4_place_gtfirst(place_t *place);
+extern bool_t reiser4_place_valid(reiser4_place_t *place);
+extern errno_t reiser4_place_last(reiser4_place_t *place);
+extern errno_t reiser4_place_first(reiser4_place_t *place);
+extern errno_t reiser4_place_fetch(reiser4_place_t *place);
+extern bool_t reiser4_place_ltlast(reiser4_place_t *place);
+extern bool_t reiser4_place_gtfirst(reiser4_place_t *place);
 
 #ifndef ENABLE_STAND_ALONE
-extern bool_t reiser4_place_right(place_t *place);
-extern bool_t reiser4_place_leftmost(place_t *place);
-extern bool_t reiser4_place_rightmost(place_t *place);
-extern void reiser4_place_inc(place_t *place, int whole);
-extern void reiser4_place_dec(place_t *place, int whole);
+extern bool_t reiser4_place_right(reiser4_place_t *place);
+extern bool_t reiser4_place_leftmost(reiser4_place_t *place);
+extern bool_t reiser4_place_rightmost(reiser4_place_t *place);
+extern void reiser4_place_inc(reiser4_place_t *place, int whole);
+extern void reiser4_place_dec(reiser4_place_t *place, int whole);
 #endif
 
-extern errno_t reiser4_place_assign(place_t *place, node_t *node,
+extern errno_t reiser4_place_init(reiser4_place_t *place,
+				  reiser4_node_t *node,
+				  pos_t *pos);
+
+extern errno_t reiser4_place_open(reiser4_place_t *place,
+				  reiser4_node_t *node,
+				  pos_t *pos);
+
+extern errno_t reiser4_place_assign(reiser4_place_t *place,
+				    reiser4_node_t *node,
 				    uint32_t item, uint32_t unit);
-
-extern errno_t reiser4_place_init(place_t *place, node_t *node,
-				  pos_t *pos);
-
-extern errno_t reiser4_place_open(place_t *place, node_t *node,
-				  pos_t *pos);
 #endif

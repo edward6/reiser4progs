@@ -10,7 +10,7 @@
 #if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_DEBUG)
 #include <reiser4/libreiser4.h>
 
-void reiser4_print_node(node_t *node, uint32_t start, 
+void reiser4_print_node(reiser4_node_t *node, uint32_t start, 
 			uint32_t count, uint16_t options) 
 {
 	aal_stream_t stream;
@@ -19,8 +19,8 @@ void reiser4_print_node(node_t *node, uint32_t start,
 	
 	aal_stream_init(&stream, NULL, &file_stream);
 
-	plug_call(node->entity->plug->o.node_ops, print,
-		  node->entity, &stream, start, count, options);
+	plug_call(node->plug->o.node_ops, print,
+		  node, &stream, start, count, options);
 	
 	aal_stream_fini(&stream);
 }

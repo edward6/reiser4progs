@@ -62,7 +62,7 @@ static errno_t repair_object_init(reiser4_object_t *object,
 
 reiser4_object_t *repair_object_recognize(reiser4_tree_t *tree, 
 					  reiser4_object_t *parent,
-					  place_t *place) 
+					  reiser4_place_t *place) 
 {
 	return reiser4_object_guess(tree, parent, &place->key, 
 				    place, repair_object_init);
@@ -115,7 +115,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 				       reiser4_object_t *parent,
 				       reiser4_key_t *key)
 {
-	place_t place;
+	reiser4_place_t place;
 
 	aal_assert("vpf-1132", tree != NULL);
 	aal_assert("vpf-1134", key != NULL);
@@ -213,7 +213,7 @@ errno_t repair_object_form(reiser4_object_t *object) {
 }
 
 /* Helper function for printing passed @place into @stream. */
-static errno_t callback_print_place(place_t *place, void *data) {
+static errno_t callback_print_place(reiser4_place_t *place, void *data) {
 	aal_stream_t *stream = (aal_stream_t *)data;
 	
 	repair_item_print(place, stream);

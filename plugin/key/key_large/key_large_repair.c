@@ -8,7 +8,7 @@
 #include <repair/plugin.h>
 
 /* Checks than oid is not used in neither locality not objectid. */
-errno_t key_large_check_struct(key_entity_t *key) {
+errno_t key_large_check_struct(reiser4_key_t *key) {
 	key_minor_t minor;
 	uint64_t oid;
 	
@@ -38,7 +38,8 @@ errno_t key_large_check_struct(key_entity_t *key) {
 
 #ifndef ENABLE_STAND_ALONE
 /* Prints key into passed stream */
-void key_large_print(key_entity_t *key, aal_stream_t *stream, uint16_t options)
+void key_large_print(reiser4_key_t *key, aal_stream_t *stream,
+		     uint16_t options)
 {
 	const char *name;
 	

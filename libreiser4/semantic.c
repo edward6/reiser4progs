@@ -19,7 +19,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 				      void *data)
 {
 	errno_t res;
-	place_t *place;
+	reiser4_place_t *place;
 	resolve_t *resol;
 	
 	reiser4_tree_t *tree;
@@ -146,7 +146,7 @@ static errno_t callback_find_entry(char *track, char *name,
 /* Tries to guess object plugin by one of items belog to object (stat data is
    prefered for now). */
 reiser4_plug_t *reiser4_semantic_plug(reiser4_tree_t *tree,
-				      place_t *place)
+				      reiser4_place_t *place)
 {
 	rid_t pid;
 	reiser4_plug_t *plug;

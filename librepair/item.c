@@ -6,7 +6,7 @@
 #include <repair/librepair.h>
 
 /* Checks if length has been changed, shrink the node if so. */
-static errno_t repair_item_check_fini(place_t *place,
+static errno_t repair_item_check_fini(reiser4_place_t *place,
 				      errno_t result, 
 				      uint32_t old_len)
 {
@@ -34,7 +34,7 @@ static errno_t repair_item_check_fini(place_t *place,
 /* Calls the item check method to check the item structure and shrink the 
    node if item length has been changed. Returns values are described in 
    repair_error_t. */
-errno_t repair_item_check_struct(place_t *place, uint8_t mode) {
+errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
 	uint32_t length;
 	errno_t res;
 	
@@ -61,7 +61,7 @@ errno_t repair_item_check_struct(place_t *place, uint8_t mode) {
 /* Calls the item check_layout method to check the layout of an item and 
    shrink the node if item length has been changed. Returns values are 
    described in repair_error_codes_t. */
-errno_t repair_item_check_layout(place_t *place, region_func_t func, 
+errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func, 
 				 void *data, uint8_t mode) 
 {
 	uint32_t length;
@@ -86,32 +86,32 @@ errno_t repair_item_check_layout(place_t *place, region_func_t func,
 	return repair_item_check_fini(place, res, length);
 }
 
-void repair_item_set_flag(place_t *place, uint16_t flag) {
+void repair_item_set_flag(reiser4_place_t *place, uint16_t flag) {
 	aal_assert("vpf-1041", place != NULL);
 	aal_assert("vpf-1111", place->node != NULL);
 	
-	plug_call(place->node->entity->plug->o.node_ops, set_flag, 
-		  place->node->entity, place->pos.item, flag);
+	plug_call(place->node->plug->o.node_ops, set_flag, 
+		  place->node, place->pos.item, flag);
 }
 
-void repair_item_clear_flag(place_t *place, uint16_t flag) {
+void repair_item_clear_flag(reiser4_place_t *place, uint16_t flag) {
 	aal_assert("vpf-1042", place != NULL);
 	aal_assert("vpf-1112", place->node != NULL);
 	
-	plug_call(place->node->entity->plug->o.node_ops, clear_flag, 
-		  place->node->entity, place->pos.item, flag);
+	plug_call(place->node->plug->o.node_ops, clear_flag, 
+		  place->node, place->pos.item, flag);
 }
 
-bool_t repair_item_test_flag(place_t *place, uint16_t flag) {
+bool_t repair_item_test_flag(reiser4_place_t *place, uint16_t flag) {
 	aal_assert("vpf-1043", place != NULL);
 	aal_assert("vpf-1113", place->node != NULL);
 	
-	return plug_call(place->node->entity->plug->o.node_ops, test_flag, 
-			 place->node->entity, place->pos.item, flag);
+	return plug_call(place->node->plug->o.node_ops, test_flag, 
+			 place->node, place->pos.item, flag);
 }
 
 /* Prints passed @place into passed @buff */
-void repair_item_print(place_t *place, aal_stream_t *stream) {
+void repair_item_print(reiser4_place_t *place, aal_stream_t *stream) {
 	aal_assert("umka-1297", place != NULL);
 	aal_assert("umka-1550", stream != NULL);
 	aal_assert("umka-1449", place->plug != NULL);
@@ -119,6 +119,7 @@ void repair_item_print(place_t *place, aal_stream_t *stream) {
 	if (!place->plug->o.item_ops->debug->print)
 		return;
 	
-	plug_call(place->plug->o.item_ops->debug, print, place, stream, 0);
+	plug_call(place->plug->o.item_ops->debug, print,
+		  place, stream, 0);
 }
 

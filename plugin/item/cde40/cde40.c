@@ -8,29 +8,29 @@
 
 reiser4_core_t *cde40_core = NULL;
 
-inline uint32_t cde40_key_pol(place_t *place) {
+inline uint32_t cde40_key_pol(reiser4_place_t *place) {
 	return plug_call(place->key.plug->o.key_ops, bodysize);
 }
 
 /* Returns pointer to entry */
-inline void *cde40_entry(place_t *place, uint32_t pos) {
+inline void *cde40_entry(reiser4_place_t *place, uint32_t pos) {
 	return cde_get_entry(place, pos, cde40_key_pol(place));
 }
 
 /* Returns pointer to the objectid entry component. */
-inline void *cde40_objid(place_t *place, uint32_t pos) {
+inline void *cde40_objid(reiser4_place_t *place, uint32_t pos) {
 	return (place->body + en_get_offset(cde40_entry(place, pos),
 					    cde40_key_pol(place)));
 }
 
 /* Returns pointer to entry offset */
-static inline void *cde40_hash(place_t *place, uint32_t pos) {
+static inline void *cde40_hash(reiser4_place_t *place, uint32_t pos) {
 	return cde40_entry(place, pos);
 }
 
 /* Returns statdata key of the object entry points to */
-static void cde40_get_obj(place_t *place, uint32_t pos,
-			  key_entity_t *key)
+static void cde40_get_obj(reiser4_place_t *place, uint32_t pos,
+			  reiser4_key_t *key)
 {
 	key->plug = place->key.plug;
 	plug_call(key->plug->o.key_ops, clean, key);
@@ -40,8 +40,8 @@ static void cde40_get_obj(place_t *place, uint32_t pos,
 }
 
 /* Stores entry offset (hash) to passed @key */
-errno_t cde40_get_hash(place_t *place, uint32_t pos,
-		       key_entity_t *key)
+errno_t cde40_get_hash(reiser4_place_t *place, uint32_t pos,
+		       reiser4_key_t *key)
 {
 	void *hash;
 	uint32_t pol;
@@ -64,8 +64,8 @@ errno_t cde40_get_hash(place_t *place, uint32_t pos,
 
 /* Set the key for the entry->offset. It is needed for fixing entry keys if
    repair code detects it is wrong. */
-errno_t cde40_set_hash(place_t *place, uint32_t pos,
-		       key_entity_t *key)
+errno_t cde40_set_hash(reiser4_place_t *place, uint32_t pos,
+		       reiser4_key_t *key)
 {
 	void *hash;
 	uint32_t pol;
@@ -93,10 +93,10 @@ errno_t cde40_set_hash(place_t *place, uint32_t pos,
 }
 
 /* Extracts entry name from the passed @entry to passed @buff */
-char *cde40_get_name(place_t *place, uint32_t pos,
+char *cde40_get_name(reiser4_place_t *place, uint32_t pos,
 		     char *buff, uint32_t len)
 {
-        key_entity_t key;
+        reiser4_key_t key;
                                                                                         
         cde40_get_hash(place, pos, &key);
                                                                                         
@@ -116,10 +116,10 @@ char *cde40_get_name(place_t *place, uint32_t pos,
 #ifndef ENABLE_STAND_ALONE
 /* Calculates entry length. This function is widely used in shift code and
    modification code. */
-static uint32_t cde40_get_len(place_t *place, uint32_t pos) {
+static uint32_t cde40_get_len(reiser4_place_t *place, uint32_t pos) {
 	uint32_t len;
 	uint32_t pol;
-	key_entity_t key;
+	reiser4_key_t key;
 
 	/* Counting objid size */
 	pol = cde40_key_pol(place);
@@ -143,7 +143,7 @@ static uint32_t cde40_get_len(place_t *place, uint32_t pos) {
 
 /* Builds full key by entry components. It is needed for updating keys after
    shift, insert, etc. Also library requires unit keys sometims. */
-errno_t cde40_fetch_key(place_t *place, key_entity_t *key) {
+errno_t cde40_fetch_key(reiser4_place_t *place, reiser4_key_t *key) {
 	aal_assert("umka-1606", key != NULL);
 	aal_assert("umka-1607", place != NULL);
 	aal_assert("umka-1605", place->body != NULL);
@@ -153,7 +153,7 @@ errno_t cde40_fetch_key(place_t *place, key_entity_t *key) {
 
 /* Updates entry offset. It is needed for fixing entry keys if repair code
    detects it is wrong. */
-errno_t cde40_update_key(place_t *place, key_entity_t *key) {
+errno_t cde40_update_key(reiser4_place_t *place, reiser4_key_t *key) {
 	aal_assert("vpf-1228", key != NULL);
 	aal_assert("vpf-1229", place != NULL);
 	aal_assert("vpf-1230", place->body != NULL);
@@ -162,13 +162,13 @@ errno_t cde40_update_key(place_t *place, key_entity_t *key) {
 }
 
 /* Returns the number of units. */
-uint32_t cde40_units(place_t *place) {
+uint32_t cde40_units(reiser4_place_t *place) {
 	aal_assert("umka-865", place != NULL);
 	return cde_get_units(place);
 }
 
 /* Fetches some number of cde items to passed @hint. */
-static int64_t cde40_fetch_units(place_t *place, trans_hint_t *hint) {
+static int64_t cde40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
 	uint32_t i, pos;
 	entry_hint_t *entry;
     
@@ -201,7 +201,7 @@ uint16_t cde40_overhead() {
 /* Returns 1 if items are mergeable, 0 -- otherwise. That is if they belong to
    the same directory. This function is used in shift code from the node plugin
    in order to determine are two items may be merged or not. */
-static int cde40_mergeable(place_t *place1, place_t *place2) {
+static int cde40_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
 	aal_assert("umka-1581", place1 != NULL);
 	aal_assert("umka-1582", place2 != NULL);
 
@@ -212,7 +212,7 @@ static int cde40_mergeable(place_t *place1, place_t *place2) {
 
 /* Calculates the size of @count units (entries) in passed @place at passed
    @pos. */
-uint32_t cde40_regsize(place_t *place, uint32_t pos, uint32_t count) {
+uint32_t cde40_regsize(reiser4_place_t *place, uint32_t pos, uint32_t count) {
 	uint32_t pol;
 	uint32_t size;
 	void *entry_end;
@@ -240,8 +240,8 @@ uint32_t cde40_regsize(place_t *place, uint32_t pos, uint32_t count) {
 }
 
 /* Makes copy of @count amount of units from @src_item to @dst_one */
-errno_t cde40_copy(place_t *dst, uint32_t dst_pos,
-		   place_t *src, uint32_t src_pos,
+errno_t cde40_copy(reiser4_place_t *dst, uint32_t dst_pos,
+		   reiser4_place_t *src, uint32_t src_pos,
 		   uint32_t count)
 {
         uint32_t i;
@@ -311,7 +311,7 @@ errno_t cde40_copy(place_t *dst, uint32_t dst_pos,
 }
 
 /* Shrinks cde item in order to delete some entries */
-static uint32_t cde40_shrink(place_t *place, uint32_t pos,
+static uint32_t cde40_shrink(reiser4_place_t *place, uint32_t pos,
 			     uint32_t count, uint32_t len)
 {
 	void *entry;
@@ -386,7 +386,7 @@ static uint32_t cde40_shrink(place_t *place, uint32_t pos,
 }
 
 /* Prepares cde40 for insert new entries */
-uint32_t cde40_expand(place_t *place, uint32_t pos,
+uint32_t cde40_expand(reiser4_place_t *place, uint32_t pos,
 		      uint32_t count, uint32_t len)
 {
 	void *entry;
@@ -469,7 +469,7 @@ uint32_t cde40_expand(place_t *place, uint32_t pos,
 
 /* Predicts how many entries and bytes can be shifted from the @src_place to
    @dst_place. The behavior of the function depends on the passed @hint. */
-static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
+static errno_t cde40_prep_shift(reiser4_place_t *src_place, reiser4_place_t *dst_place,
 				shift_hint_t *hint)
 {
 	int check;
@@ -599,7 +599,7 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 }
 
 /* Makes shift of the entries from the @src_place to the @dst_place. */
-static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
+static errno_t cde40_shift_units(reiser4_place_t *src_place, reiser4_place_t *dst_place,
 				 shift_hint_t *hint)
 {
 	uint32_t src_pos, dst_pos;
@@ -650,7 +650,7 @@ static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
 
 /* Estimates how many bytes will be needed to make room for inserting new
    entries. */
-static errno_t cde40_prep_insert(place_t *place, trans_hint_t *hint) {
+static errno_t cde40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 	uint32_t i, pol;
 	entry_hint_t *entry;
 	    
@@ -691,7 +691,7 @@ static errno_t cde40_prep_insert(place_t *place, trans_hint_t *hint) {
 }
 
 /* Inserts new entries to cde item. */
-static int64_t cde40_insert_units(place_t *place, trans_hint_t *hint) {
+static int64_t cde40_insert_units(reiser4_place_t *place, trans_hint_t *hint) {
 	void *entry;
 	uint32_t pol, i, offset;
 	entry_hint_t *entry_hint;
@@ -724,8 +724,8 @@ static int64_t cde40_insert_units(place_t *place, trans_hint_t *hint) {
 		uint64_t off;
 		uint64_t ord;
 
-		key_entity_t *hash;
-		key_entity_t *object;
+		reiser4_key_t *hash;
+		reiser4_key_t *object;
 
 		objid = place->body + offset;
 		
@@ -789,7 +789,7 @@ static int64_t cde40_insert_units(place_t *place, trans_hint_t *hint) {
 
 /* Remove some number of entries (based on passed @hint) from cde40 item
    starting from @pos. */
-errno_t cde40_delete(place_t *place, uint32_t pos,
+errno_t cde40_delete(reiser4_place_t *place, uint32_t pos,
 		     trans_hint_t *hint)
 {
 	uint32_t pol;
@@ -818,7 +818,7 @@ errno_t cde40_delete(place_t *place, uint32_t pos,
 }
 
 /* Removes @count entries at @pos from passed @place */
-static errno_t cde40_remove_units(place_t *place, trans_hint_t *hint) {
+static errno_t cde40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-934", place != NULL);
 	aal_assert("umka-2400", hint != NULL);
 
@@ -826,7 +826,7 @@ static errno_t cde40_remove_units(place_t *place, trans_hint_t *hint) {
 }
 
 /* Fuses bodies of two cde items that lie in the same node. */
-static int32_t cde40_fuse(place_t *left_place, place_t *right_place) {
+static int32_t cde40_fuse(reiser4_place_t *left_place, reiser4_place_t *right_place) {
 	aal_assert("umka-2687", left_place != NULL);
 	aal_assert("umka-2689", right_place != NULL);
 
@@ -839,8 +839,8 @@ static int32_t cde40_fuse(place_t *left_place, place_t *right_place) {
 }
 
 /* Returns real maximal key in cde item */
-static errno_t cde40_maxreal_key(place_t *place, 
-				 key_entity_t *key) 
+static errno_t cde40_maxreal_key(reiser4_place_t *place, 
+				 reiser4_key_t *key) 
 {
 	uint32_t units;
 	
@@ -851,12 +851,12 @@ static errno_t cde40_maxreal_key(place_t *place,
 	return cde40_get_hash(place, units - 1, key);
 }
 
-static uint64_t cde40_size(place_t *place) {
+static uint64_t cde40_size(reiser4_place_t *place) {
 	aal_assert("umka-2677", place != NULL);
 	return cde40_units(place);
 }
 
-static uint64_t cde40_bytes(place_t *place) {
+static uint64_t cde40_bytes(reiser4_place_t *place) {
 	aal_assert("vpf-1211", place != NULL);
 	return (place->len - sizeof(uint16_t));
 }
@@ -864,10 +864,10 @@ static uint64_t cde40_bytes(place_t *place) {
 
 /* Returns maximal possible key in passed item. It is needed during lookup and
    in other cases. */
-errno_t cde40_maxposs_key(place_t *place, 
-			  key_entity_t *key) 
+errno_t cde40_maxposs_key(reiser4_place_t *place, 
+			  reiser4_key_t *key) 
 {
-	key_entity_t *maxkey;
+	reiser4_key_t *maxkey;
 
 	aal_assert("umka-1649", key != NULL);
 	aal_assert("umka-1648", place != NULL);
@@ -897,8 +897,8 @@ errno_t cde40_maxposs_key(place_t *place,
 }
 
 /* Compare the given key with the entry at the given pos. */
-int cde40_comp_entry(place_t *place, uint32_t pos, key_entity_t *key) {
-	key_entity_t curr;
+int cde40_comp_entry(reiser4_place_t *place, uint32_t pos, reiser4_key_t *key) {
+	reiser4_key_t curr;
 
 	cde40_get_hash(place, pos, &curr);
 
@@ -911,12 +911,12 @@ int cde40_comp_entry(place_t *place, uint32_t pos, key_entity_t *key) {
 static int callback_comp_entry(void *array, uint32_t pos,
 			       void *key, void *data)
 {
-	return cde40_comp_entry((place_t *)data, pos, 
-				(key_entity_t *)key);
+	return cde40_comp_entry((reiser4_place_t *)data, pos, 
+				(reiser4_key_t *)key);
 }
 
 /* Performs lookup inside cde item. Found position is stored in @pos. */
-lookup_t cde40_lookup(place_t *place, key_entity_t *key,
+lookup_t cde40_lookup(reiser4_place_t *place, reiser4_key_t *key,
 		      bias_t bias)
 {
 #ifndef ENABLE_STAND_ALONE

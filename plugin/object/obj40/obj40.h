@@ -33,7 +33,7 @@ struct obj40 {
 typedef struct obj40 obj40_t;
 
 extern errno_t obj40_fetch(obj40_t *obj,
-			   place_t *place);
+			   reiser4_place_t *place);
 
 extern errno_t obj40_fini(obj40_t *obj);
 extern errno_t obj40_update(obj40_t *obj);
@@ -50,28 +50,28 @@ extern rid_t obj40_pid(obj40_t *obj, rid_t type, char *name);
 
 extern int64_t obj40_read(obj40_t *obj, trans_hint_t *hint);
 
-extern lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
+extern lookup_t obj40_lookup(obj40_t *obj, reiser4_key_t *key,
 			     uint8_t level, bias_t bias,
-			     place_t *place);
+			     reiser4_place_t *place);
 
 extern errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
 			  reiser4_core_t *core, object_info_t *info);
 
-extern errno_t obj40_read_ext(place_t *place, rid_t id, void *data);
+extern errno_t obj40_read_ext(reiser4_place_t *place, rid_t id, void *data);
 
 #ifndef ENABLE_STAND_ALONE
 typedef errno_t (*key_func_t) (obj40_t *);
-typedef errno_t (*stat_func_t) (place_t *);
+typedef errno_t (*stat_func_t) (reiser4_place_t *);
 typedef void (*mode_func_t) (obj40_t *, uint16_t *);
 typedef void (*nlink_func_t) (obj40_t *, uint32_t *);
 
 typedef void (*size_func_t) (obj40_t *, uint64_t *, uint64_t);
 
-extern errno_t obj40_write_ext(place_t *place, rid_t id, void *data);
+extern errno_t obj40_write_ext(reiser4_place_t *place, rid_t id, void *data);
 
 extern errno_t obj40_touch(obj40_t *obj, uint64_t size, uint64_t bytes);
 
-extern uint64_t obj40_extmask(place_t *sd);
+extern uint64_t obj40_extmask(reiser4_place_t *sd);
 extern uint16_t obj40_get_mode(obj40_t *obj);
 extern uint32_t obj40_get_nlink(obj40_t *obj);
 extern uint32_t obj40_get_atime(obj40_t *obj);
@@ -103,18 +103,18 @@ extern errno_t obj40_metadata(obj40_t *obj,
 extern errno_t obj40_recognize(obj40_t *obj,
 			       stat_func_t stat_func);
 
-extern errno_t obj40_remove(obj40_t *obj, place_t *place,
+extern errno_t obj40_remove(obj40_t *obj, reiser4_place_t *place,
 			    trans_hint_t *hint);
 
-extern int64_t obj40_insert(obj40_t *obj, place_t *place,
+extern int64_t obj40_insert(obj40_t *obj, reiser4_place_t *place,
 			    trans_hint_t *hint, uint8_t level);
 
 extern int64_t obj40_write(obj40_t *obj, trans_hint_t *hint);
 extern int64_t obj40_convert(obj40_t *obj, conv_hint_t *hint);
 extern int64_t obj40_truncate(obj40_t *obj, trans_hint_t *hint);
 
-extern errno_t obj40_fix_key(obj40_t *obj, place_t *place, 
-			     key_entity_t *key, uint8_t mode);
+extern errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place, 
+			     reiser4_key_t *key, uint8_t mode);
 
 extern errno_t obj40_save_stat(obj40_t *obj,
 			       statdata_hint_t *hint);

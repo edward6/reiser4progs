@@ -32,7 +32,7 @@ static reiser4_plug_t *factory_nfind(char *name) {
 }
 
 /* Handler for item insert requests from the all plugins */
-static int64_t tree_insert(void *tree, place_t *place,
+static int64_t tree_insert(void *tree, reiser4_place_t *place,
 			   trans_hint_t *hint, uint8_t level)
 {
 	return reiser4_tree_insert((reiser4_tree_t *)tree,
@@ -52,7 +52,7 @@ static int64_t tree_truncate(void *tree, trans_hint_t *hint) {
 }
 
 /* Handler for item removing requests from all plugins. */
-static errno_t tree_remove(void *tree, place_t *place,
+static errno_t tree_remove(void *tree, reiser4_place_t *place,
 			   trans_hint_t *hint)
 {
 	return reiser4_tree_remove((reiser4_tree_t *)tree,
@@ -63,7 +63,7 @@ static errno_t tree_remove(void *tree, place_t *place,
 /* Handler for lookup reqiests from the all plugin can arrive */
 static lookup_t tree_lookup(void *tree, reiser4_key_t *key,
 			    uint8_t level, bias_t bias,
-			    place_t *place)
+			    reiser4_place_t *place)
 {
 	return reiser4_tree_lookup((reiser4_tree_t *)tree,
 				   key, level, bias, place);
@@ -75,25 +75,25 @@ static int64_t tree_read(void *tree, trans_hint_t *hint) {
 }
 
 /* Initializes item at passed @place */
-static errno_t tree_fetch(void *tree, place_t *place) {
+static errno_t tree_fetch(void *tree, reiser4_place_t *place) {
 	return reiser4_place_fetch(place);
 }
 
 /* Returns TRUE if passed @place points to some real item in a node */
-static int tree_valid(void *tree, place_t *place) {
+static int tree_valid(void *tree, reiser4_place_t *place) {
 	return reiser4_place_valid(place);
 }
 
 /* Handler for requests for next item */
-static errno_t tree_next(void *tree, place_t *place,
-			 place_t *next)
+static errno_t tree_next(void *tree, reiser4_place_t *place,
+			 reiser4_place_t *next)
 {
 	return reiser4_tree_next_node((reiser4_tree_t *)tree, 
 				      place, next);
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t tree_put_data(void *tree, key_entity_t *key,
+static errno_t tree_put_data(void *tree, reiser4_key_t *key,
 			     aal_block_t *block)
 {
 	reiser4_key_t *k = reiser4_key_clone(key);
@@ -101,24 +101,24 @@ static errno_t tree_put_data(void *tree, key_entity_t *key,
 	return aal_hash_table_insert(t->data, k, block);
 }
 
-static errno_t tree_rem_data(void *tree, key_entity_t *key) {
+static errno_t tree_rem_data(void *tree, reiser4_key_t *key) {
 	reiser4_tree_t *t = (reiser4_tree_t *)tree;
 	return aal_hash_table_remove(t->data, key);
 }
 
-static aal_block_t *tree_get_data(void *tree, key_entity_t *key) {
+static aal_block_t *tree_get_data(void *tree, reiser4_key_t *key) {
 	reiser4_tree_t *t = (reiser4_tree_t *)tree;
 	return aal_hash_table_lookup(t->data, key);
 }
 
-static errno_t tree_update_key(void *tree, place_t *place,
-			       key_entity_t *key)
+static errno_t tree_update_key(void *tree, reiser4_place_t *place,
+			       reiser4_key_t *key)
 {
 	return reiser4_tree_update_key((reiser4_tree_t *)tree,
 				       place, (reiser4_key_t *)key);
 }
 
-static char *key_print(key_entity_t *key, uint16_t options) {
+static char *key_print(reiser4_key_t *key, uint16_t options) {
 	return reiser4_print_key((reiser4_key_t *)key, options);
 }
 
@@ -131,15 +131,17 @@ static uint64_t param_value(char *name) {
 	return reiser4_param_value(name);
 }
 
-static int item_mergeable(place_t *place1, place_t *place2) {
+static int item_mergeable(reiser4_place_t *place1,
+			  reiser4_place_t *place2)
+{
 	return reiser4_item_mergeable(place1, place2);
 }
 #endif
 
 #ifdef ENABLE_SYMLINKS
 static errno_t object_resolve(void *tree, char *path,
-			      key_entity_t *from,
-			      key_entity_t *key)
+			      reiser4_key_t *from,
+			      reiser4_key_t *key)
 {
 	reiser4_tree_t *t;
 	object_entity_t *o;

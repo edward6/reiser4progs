@@ -13,13 +13,13 @@
 reiser4_core_t *tail40_core;
 
 /* Returns tail length. */
-uint32_t tail40_units(place_t *place) {
+uint32_t tail40_units(reiser4_place_t *place) {
 	return place->len;
 }
 
 /* Returns key from tail at @place. */
-errno_t tail40_fetch_key(place_t *place, 
-			 key_entity_t *key) 
+errno_t tail40_fetch_key(reiser4_place_t *place, 
+			 reiser4_key_t *key) 
 {
 	uint32_t pos;
 	
@@ -31,7 +31,7 @@ errno_t tail40_fetch_key(place_t *place,
 }
 
 /* Reads units from tail at @place into passed @hint. */
-static int64_t tail40_read_units(place_t *place,
+static int64_t tail40_read_units(reiser4_place_t *place,
 				 trans_hint_t *hint)
 {
 	uint32_t count;
@@ -63,7 +63,7 @@ static int64_t tail40_read_units(place_t *place,
 /* Estimates how many bytes in tree is needed to write @hint->count bytes of
    data. This function considers, that tail item is not expandable one. That is,
    tail will not be splitted at insert point, but will be rewritten instead. */
-static errno_t tail40_prep_write(place_t *place,
+static errno_t tail40_prep_write(reiser4_place_t *place,
 				 trans_hint_t *hint)
 {
 	aal_assert("umka-1836", hint != NULL);
@@ -109,7 +109,7 @@ static errno_t tail40_prep_write(place_t *place,
 }
 
 /* Rewrites tail from passed @place by data from @hint. */
-static int64_t tail40_write_units(place_t *place,
+static int64_t tail40_write_units(reiser4_place_t *place,
 				  trans_hint_t *hint)
 {
 	uint64_t ins_offset;
@@ -164,7 +164,7 @@ static int64_t tail40_write_units(place_t *place,
 }
 
 /* Return max real key inside tail at @place. */
-errno_t tail40_maxreal_key(place_t *place, key_entity_t *key) {
+errno_t tail40_maxreal_key(reiser4_place_t *place, reiser4_key_t *key) {
 	aal_assert("vpf-442", place != NULL);
 	aal_assert("vpf-443", key != NULL);
 	return body40_maxreal_key(place, key, NULL);
@@ -172,8 +172,8 @@ errno_t tail40_maxreal_key(place_t *place, key_entity_t *key) {
 #endif
 
 /* Return max possible key iside tail at @place. */
-static errno_t tail40_maxposs_key(place_t *place,
-				  key_entity_t *key) 
+static errno_t tail40_maxposs_key(reiser4_place_t *place,
+				  reiser4_key_t *key) 
 {
 	aal_assert("umka-1209", place != NULL);
 	aal_assert("umka-1210", key != NULL);
@@ -181,8 +181,8 @@ static errno_t tail40_maxposs_key(place_t *place,
 }
 
 /* Makes lookup of @key inside tail at @place. */
-static lookup_t tail40_lookup(place_t *place,
-			      key_entity_t *key, 
+static lookup_t tail40_lookup(reiser4_place_t *place,
+			      reiser4_key_t *key, 
 			      bias_t bias)
 {
 	uint32_t units;
@@ -216,15 +216,15 @@ static lookup_t tail40_lookup(place_t *place,
 /* Return 1 if two tail items are mergeable. Otherwise 0 will be returned. This
    method is used in balancing to determine if two border items may be
    merged. */
-static int tail40_mergeable(place_t *place1, place_t *place2) {
+static int tail40_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
 	aal_assert("umka-2201", place1 != NULL);
 	aal_assert("umka-2202", place2 != NULL);
 	return body40_mergeable(place1, place2);
 }
 
 /* Estimates how many bytes may be shifted from @stc_place to @dst_place. */
-static errno_t tail40_prep_shift(place_t *src_place,
-				 place_t *dst_place,
+static errno_t tail40_prep_shift(reiser4_place_t *src_place,
+				 reiser4_place_t *dst_place,
 				 shift_hint_t *hint)
 {
 	int check_point;
@@ -308,8 +308,8 @@ static errno_t tail40_prep_shift(place_t *src_place,
 
 /* Copy @count of units from @src_place at src_pos to @dst_place and
    @dst_pos. This function is used in balancing code. */
-errno_t tail40_copy(place_t *dst_place, uint32_t dst_pos,
-		    place_t *src_place, uint32_t src_pos,
+errno_t tail40_copy(reiser4_place_t *dst_place, uint32_t dst_pos,
+		    reiser4_place_t *src_place, uint32_t src_pos,
 		    uint32_t count)
 {
 	aal_assert("umka-2075", dst_place != NULL);
@@ -327,7 +327,7 @@ errno_t tail40_copy(place_t *dst_place, uint32_t dst_pos,
 
 /* Expand tail at @place and @pos by @count bytes. Used in balancing code
    pathes. */
-uint32_t tail40_expand(place_t *place, uint32_t pos, uint32_t count) {
+uint32_t tail40_expand(reiser4_place_t *place, uint32_t pos, uint32_t count) {
 	if (pos < place->len) {
 		uint32_t size = place->len - count - pos;
 		
@@ -342,7 +342,7 @@ uint32_t tail40_expand(place_t *place, uint32_t pos, uint32_t count) {
 
 /* Shrink tail at @place and @pos by @count bytes. Used in balancing code
    pathes. */
-static uint32_t tail40_shrink(place_t *place, uint32_t pos,
+static uint32_t tail40_shrink(reiser4_place_t *place, uint32_t pos,
 			      uint32_t count, uint32_t len)
 {
 	if (pos < place->len) {
@@ -362,8 +362,8 @@ static uint32_t tail40_shrink(place_t *place, uint32_t pos,
 
 /* Shift some number of units from @src_place to @dst_place. All actions are
    performed with keeping in mind passed @hint. */
-static errno_t tail40_shift_units(place_t *src_place,
-				  place_t *dst_place,
+static errno_t tail40_shift_units(reiser4_place_t *src_place,
+				  reiser4_place_t *dst_place,
 				  shift_hint_t *hint)
 {
 	uint32_t pos;
@@ -427,7 +427,7 @@ static errno_t tail40_shift_units(place_t *src_place,
 /* Removes some number of units from tail at @place based on @hint. This is used
    in trunc_flow() code path. That is in tail convertion code and in object
    truncate() functions. */
-static int64_t tail40_trunc_units(place_t *place,
+static int64_t tail40_trunc_units(reiser4_place_t *place,
 				  trans_hint_t *hint)
 {
 	uint32_t pos;
@@ -469,7 +469,7 @@ static int64_t tail40_trunc_units(place_t *place,
 }
 
 /* Returns item size in bytes */
-static uint64_t tail40_size(place_t *place) {
+static uint64_t tail40_size(reiser4_place_t *place) {
 	aal_assert("vpf-1210", place != NULL);
 	return place->len;
 }

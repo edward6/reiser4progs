@@ -62,7 +62,7 @@ static errno_t callback_free_extent(void *object, uint64_t start,
 {
 	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
 	reiser4_alloc_t *alloc = cleanup->repair->fs->alloc;
-	place_t *place = (place_t *)object;
+	reiser4_place_t *place = (reiser4_place_t *)object;
 
 	aal_assert("vpf-1420", place != NULL);
 
@@ -76,7 +76,7 @@ static errno_t callback_free_extent(void *object, uint64_t start,
 	return 0;
 }
 
-static errno_t callback_node_cleanup(place_t *place, void *data) {
+static errno_t callback_node_cleanup(reiser4_place_t *place, void *data) {
 	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
 	trans_hint_t hint;
 	errno_t res;

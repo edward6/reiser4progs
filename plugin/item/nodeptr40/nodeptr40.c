@@ -10,12 +10,12 @@ reiser4_core_t *nodeptr40_core;
 
 /* Returns the number of units in nodeptr. As nodeptr40 has not units and thus
    cannot be splitted by balancing, it has one unit. */
-static uint32_t nodeptr40_units(place_t *place) {
+static uint32_t nodeptr40_units(reiser4_place_t *place) {
 	return 1;
 }
 
 /* Fetches nodeptr into passed @hint */
-static int64_t nodeptr40_fetch_units(place_t *place,
+static int64_t nodeptr40_fetch_units(reiser4_place_t *place,
 				     trans_hint_t *hint)
 {
 	nodeptr40_t *nodeptr;
@@ -33,14 +33,14 @@ static int64_t nodeptr40_fetch_units(place_t *place,
 	return 1;
 }
 
-static blk_t nodeptr40_down_link(place_t *place) {
+static blk_t nodeptr40_down_link(reiser4_place_t *place) {
 	aal_assert("umka-2665", place != NULL);
 	return np40_get_ptr(nodeptr40_body(place));
 }
 
 #ifndef ENABLE_STAND_ALONE
 /* Update nodeptr block number by passed @blk. */
-static errno_t nodeptr40_update_link(place_t *place,
+static errno_t nodeptr40_update_link(reiser4_place_t *place,
 				     blk_t blk)
 {
 	aal_assert("umka-2667", place != NULL);
@@ -50,7 +50,7 @@ static errno_t nodeptr40_update_link(place_t *place,
 
 /* Layout implementation for nodeptr40. It calls @geion_func for each block
    nodeptr points to. */
-static errno_t nodeptr40_layout(place_t *place,
+static errno_t nodeptr40_layout(reiser4_place_t *place,
 				region_func_t region_func,
 				void *data)
 {
@@ -65,7 +65,7 @@ static errno_t nodeptr40_layout(place_t *place,
 }
 
 /* Estimates how many bytes is needed for creating new nodeptr */
-static errno_t nodeptr40_prep_insert(place_t *place,
+static errno_t nodeptr40_prep_insert(reiser4_place_t *place,
 				     trans_hint_t *hint)
 {
 	aal_assert("vpf-068", hint != NULL);
@@ -78,7 +78,7 @@ static errno_t nodeptr40_prep_insert(place_t *place,
 }
 
 /* Writes of the specified nodeptr into passed @place */
-static int64_t nodeptr40_insert_units(place_t *place,
+static int64_t nodeptr40_insert_units(reiser4_place_t *place,
 				      trans_hint_t *hint)
 {
 	nodeptr40_t *nodeptr;
@@ -98,7 +98,7 @@ static int64_t nodeptr40_insert_units(place_t *place,
 
 /* Removes nodeptr unit. Asit is always one, we only set up passed @hint here by
    sizeof nodeptr40_t struct. */
-static errno_t nodeptr40_remove_units(place_t *place,
+static errno_t nodeptr40_remove_units(reiser4_place_t *place,
 				      trans_hint_t *hint)
 {
 	aal_assert("umka-3029", hint != NULL);

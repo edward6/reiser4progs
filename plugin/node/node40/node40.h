@@ -10,16 +10,6 @@
 #include <aux/aux.h>
 #include <reiser4/plugin.h>
 
-struct node40 {
-	reiser4_plug_t *plug;
-	aal_block_t *block;
-
-	uint32_t state;
-	reiser4_plug_t *kplug;
-};
-
-typedef struct node40 node40_t;
-
 #define NODE40_MAGIC 0x52344653
 
 extern reiser4_plug_t node40_plug;
@@ -60,43 +50,45 @@ struct node40_header {
 typedef struct node40_header node40_header_t;  
 
 extern reiser4_core_t *node40_core;
-extern inline uint32_t node40_key_pol(node40_t *node);
 
-extern void node40_mkdirty(node_entity_t *entity);
-extern void node40_mkclean(node_entity_t *entity);
-extern int node40_isdirty(node_entity_t *entity);
+typedef int64_t (*modify_func_t) (reiser4_place_t *place,
+				  trans_hint_t *hint);
 
-extern uint16_t node40_space(node_entity_t *entity);
-extern uint32_t node40_items(node_entity_t *entity);
+extern inline uint32_t node40_key_pol(reiser4_node_t *node);
 
-extern uint16_t node40_free_space_end(node40_t *node);
-extern void *node40_ih_at(node40_t *node, uint32_t pos);
-extern void *node40_ib_at(node40_t *node, uint32_t pos);
+extern void node40_mkdirty(reiser4_node_t *entity);
+extern void node40_mkclean(reiser4_node_t *entity);
+extern int node40_isdirty(reiser4_node_t *entity);
 
-extern uint8_t node40_get_level(node_entity_t *entity);
-extern void node40_move(node_entity_t *entity, blk_t nr);
-extern uint16_t node40_len(node_entity_t *entity, pos_t *pos);
+extern uint16_t node40_space(reiser4_node_t *entity);
+extern uint32_t node40_items(reiser4_node_t *entity);
 
-extern uint32_t node40_size(node40_t *node, pos_t *pos,
+extern uint16_t node40_free_space_end(reiser4_node_t *entity);
+extern void *node40_ih_at(reiser4_node_t *entity, uint32_t pos);
+extern void *node40_ib_at(reiser4_node_t *entity, uint32_t pos);
+
+extern uint8_t node40_get_level(reiser4_node_t *entity);
+extern uint16_t node40_len(reiser4_node_t *entity, pos_t *pos);
+
+extern uint32_t node40_size(reiser4_node_t *node, pos_t *pos,
 			    uint32_t count);
 
-extern errno_t node40_fetch(node_entity_t *entity,
-			    pos_t *pos, place_t *place);
+extern errno_t node40_fetch(reiser4_node_t *entity,
+			    pos_t *pos, reiser4_place_t *place);
 
-extern errno_t node40_expand(node_entity_t *entity, pos_t *pos,
+extern int64_t node40_modify(reiser4_node_t *entity,
+			     pos_t *pos, trans_hint_t *hint,
+			     modify_func_t modify_func);
+
+extern errno_t node40_expand(reiser4_node_t *entity, pos_t *pos,
 			     uint32_t len, uint32_t count);
 
-extern errno_t node40_shrink(node_entity_t *entity, pos_t *pos, 
+extern errno_t node40_shrink(reiser4_node_t *entity, pos_t *pos, 
 			     uint32_t len, uint32_t count);
 
-extern errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
-			   node_entity_t *src_entity, pos_t *src_pos, 
+extern errno_t node40_copy(reiser4_node_t *dst_entity, pos_t *dst_pos,
+			   reiser4_node_t *src_entity, pos_t *src_pos, 
 			   uint32_t count);
-
-typedef int64_t (*modyfy_func_t) (place_t *place, trans_hint_t *hint);
-
-extern int64_t node40_modify(node_entity_t *entity, pos_t *pos, 
-			     trans_hint_t *hint, modyfy_func_t modify_func);
 
 #define	nh(block)                         \
         ((node40_header_t *)block->data)

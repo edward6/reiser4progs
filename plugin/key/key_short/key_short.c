@@ -9,12 +9,12 @@
 extern reiser4_plug_t key_short_plug;
 
 /* Returns minimal key */
-static key_entity_t *key_short_minimal(void) {
+static reiser4_key_t *key_short_minimal(void) {
 	return key_common_minimal(&key_short_plug);
 }
 
 /* Returns maximal key */
-static key_entity_t *key_short_maximal(void) {
+static reiser4_key_t *key_short_maximal(void) {
 	return key_common_maximal(&key_short_plug);
 }
 
@@ -23,8 +23,8 @@ static uint32_t key_short_bodysize(void) {
 }
 
 /* Assigns src key to dst one  */
-static errno_t key_short_assign(key_entity_t *dst,
-				key_entity_t *src)
+static errno_t key_short_assign(reiser4_key_t *dst,
+				reiser4_key_t *src)
 {
 	aal_assert("umka-1110", dst != NULL);
 	aal_assert("umka-1111", src != NULL);
@@ -39,7 +39,7 @@ static errno_t key_short_assign(key_entity_t *dst,
 }
 
 /* Sets up key type */
-static void key_short_set_type(key_entity_t *key, 
+static void key_short_set_type(reiser4_key_t *key, 
 			       key_type_t type) 
 {
 	aal_assert("umka-634", key != NULL);
@@ -49,7 +49,7 @@ static void key_short_set_type(key_entity_t *key,
 }
 
 /* Returns key type */
-key_type_t key_short_get_type(key_entity_t *key) {
+key_type_t key_short_get_type(reiser4_key_t *key) {
 	key_minor_t minor;
 	
 	aal_assert("umka-635", key != NULL);
@@ -59,30 +59,30 @@ key_type_t key_short_get_type(key_entity_t *key) {
 }
 
 /* Sets up key locality */
-void key_short_set_locality(key_entity_t *key, uint64_t locality) {
+void key_short_set_locality(reiser4_key_t *key, uint64_t locality) {
 	aal_assert("umka-636", key != NULL);
 	ks_set_locality((key_short_t *)key->body, locality);
 }
 
 /* Returns key locality */
-uint64_t key_short_get_locality(key_entity_t *key) {
+uint64_t key_short_get_locality(reiser4_key_t *key) {
 	aal_assert("umka-637", key != NULL);
 	return ks_get_locality((key_short_t *)key->body);
 }
 
 /* Sets up key ordering (is not used in short keys ) */
-void key_short_set_ordering(key_entity_t *key, uint64_t ordering) {
+void key_short_set_ordering(reiser4_key_t *key, uint64_t ordering) {
 	aal_assert("umka-2331", key != NULL);
 }
 
 /* Returns key ordering (is not used in short keys) */
-uint64_t key_short_get_ordering(key_entity_t *key) {
+uint64_t key_short_get_ordering(reiser4_key_t *key) {
 	aal_assert("umka-2332", key != NULL);
 	return 0;
 }
 
 /* Sets up key objectid */
-void key_short_set_objectid(key_entity_t *key, 
+void key_short_set_objectid(reiser4_key_t *key, 
 			    uint64_t objectid) 
 {
 	aal_assert("umka-638", key != NULL);
@@ -90,25 +90,25 @@ void key_short_set_objectid(key_entity_t *key,
 }
 
 /* Returns key objectid */
-uint64_t key_short_get_objectid(key_entity_t *key) {
+uint64_t key_short_get_objectid(reiser4_key_t *key) {
 	aal_assert("umka-639", key != NULL);
 	return ks_get_objectid((key_short_t *)key->body);
 }
 
 /* Sets up full key objectid */
-void key_short_set_fobjectid(key_entity_t *key, uint64_t objectid) {
+void key_short_set_fobjectid(reiser4_key_t *key, uint64_t objectid) {
 	aal_assert("umka-2345", key != NULL);
 	ks_set_fobjectid((key_short_t *)key->body, objectid);
 }
 
 /* Returns full key objectid */
-uint64_t key_short_get_fobjectid(key_entity_t *key) {
+uint64_t key_short_get_fobjectid(reiser4_key_t *key) {
 	aal_assert("umka-2346", key != NULL);
 	return ks_get_fobjectid((key_short_t *)key->body);
 }
 
 /* Sets up key offset */
-void key_short_set_offset(key_entity_t *key, 
+void key_short_set_offset(reiser4_key_t *key, 
 			  uint64_t offset)
 {
 	aal_assert("umka-640", key != NULL);
@@ -116,18 +116,18 @@ void key_short_set_offset(key_entity_t *key,
 }
 
 /* Returns key offset */
-uint64_t key_short_get_offset(key_entity_t *key) {
+uint64_t key_short_get_offset(reiser4_key_t *key) {
 	aal_assert("umka-641", key != NULL);
 	return ks_get_offset((key_short_t *)key->body);
 }
 
-static int key_short_hashed(key_entity_t *key) {
+static int key_short_hashed(reiser4_key_t *key) {
 	return (key_short_get_objectid(key) &
 		0x0100000000000000ull) ? 1 : 0;
 }
 
 /* Extracts name from key */
-static char *key_short_get_name(key_entity_t *key,
+static char *key_short_get_name(reiser4_key_t *key,
 				char *name)
 {
 	char *ptr;
@@ -156,7 +156,7 @@ static char *key_short_get_name(key_entity_t *key,
 
 #ifndef ENABLE_STAND_ALONE
 /* Sets up key offset */
-static void key_short_set_hash(key_entity_t *key, 
+static void key_short_set_hash(reiser4_key_t *key, 
 			       uint64_t hash)
 {
 	aal_assert("vpf-129", key != NULL);
@@ -164,14 +164,14 @@ static void key_short_set_hash(key_entity_t *key,
 }
 
 /* Returns key offset */
-static uint64_t key_short_get_hash(key_entity_t *key) {
+static uint64_t key_short_get_hash(reiser4_key_t *key) {
 	aal_assert("vpf-130", key != NULL);
 	return ks_get_hash((key_short_t *)key->body);
 }
 #endif
 
 /* Cleans key body */
-static void key_short_clean(key_entity_t *key) {
+static void key_short_clean(reiser4_key_t *key) {
 	aal_assert("vpf-139", key != NULL);
 
 	key->adjust = 0;
@@ -180,8 +180,8 @@ static void key_short_clean(key_entity_t *key) {
 
 #ifndef ENABLE_STAND_ALONE
 /* Compares two first components of the pased keys (locality and objectid) */
-static int key_short_compshort(key_entity_t *key1, 
-			       key_entity_t *key2) 
+static int key_short_compshort(reiser4_key_t *key1, 
+			       reiser4_key_t *key2) 
 {
 	uint64_t oid1, oid2;
 	int res;
@@ -229,8 +229,8 @@ static int key_short_compraw(void *key1, void *key2) {
 
 /* Compares two passed keys. Returns -1 if key1 lesser than key2, 0 if keys are
    equal and 1 if key1 is bigger then key2. */
-static int key_short_compfull(key_entity_t *key1, 
-			      key_entity_t *key2) 
+static int key_short_compfull(reiser4_key_t *key1, 
+			      reiser4_key_t *key2) 
 {
 	aal_assert("vpf-135", key1 != NULL);
 	aal_assert("vpf-136", key2 != NULL);
@@ -239,7 +239,7 @@ static int key_short_compfull(key_entity_t *key1,
 }
 
 /* Builds hash of the passed @name by means of using a hash plugin */
-static errno_t key_short_build_hash(key_entity_t *key,
+static errno_t key_short_build_hash(reiser4_key_t *key,
 				    reiser4_plug_t *hash,
 				    char *name) 
 {
@@ -289,7 +289,7 @@ static errno_t key_short_build_hash(key_entity_t *key,
 
 /* Builds key by passed locality, objectid, and name. It is suitable for
    creating entry keys. */
-static errno_t key_short_build_hashed(key_entity_t *key,
+static errno_t key_short_build_hashed(reiser4_key_t *key,
 				      reiser4_plug_t *hash,
 				      uint64_t locality,
 				      uint64_t objectid,
@@ -311,7 +311,7 @@ static errno_t key_short_build_hashed(key_entity_t *key,
 }
 
 /* Builds generic key by all its components */
-static errno_t key_short_build_generic(key_entity_t *key,
+static errno_t key_short_build_generic(reiser4_key_t *key,
 				       key_type_t type,
 				       uint64_t locality,
 				       uint64_t ordering,
@@ -344,11 +344,11 @@ static errno_t key_short_build_generic(key_entity_t *key,
 }
 
 #ifndef ENABLE_STAND_ALONE
-extern void key_short_print(key_entity_t *key,
+extern void key_short_print(reiser4_key_t *key,
 			    aal_stream_t *stream, 
 			    uint16_t options);
 
-extern errno_t key_short_check_struct(key_entity_t *key);
+extern errno_t key_short_check_struct(reiser4_key_t *key);
 #endif
 
 static reiser4_key_ops_t key_short_ops = {

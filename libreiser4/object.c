@@ -11,7 +11,7 @@
 static errno_t reiser4_object_init(reiser4_object_t *object,
 				   reiser4_object_t *parent)
 {
-	place_t *place;
+	reiser4_place_t *place;
 	reiser4_plug_t *plug;
 
 	aal_assert("umka-2380", object != NULL);
@@ -150,7 +150,7 @@ reiser4_object_t *reiser4_object_open(
 reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree,
 				       reiser4_object_t *parent,
 				       reiser4_key_t *okey,
-				       place_t *place,
+				       reiser4_place_t *place,
 				       object_init_t init_func)
 
 {
@@ -211,7 +211,7 @@ reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree,
 /* This function opens object by its @place. */
 reiser4_object_t *reiser4_object_realize(reiser4_tree_t *tree, 
 					 reiser4_object_t *parent,
-					 place_t *place)
+					 reiser4_place_t *place)
 {
 	reiser4_object_t *object;
 	
@@ -229,7 +229,7 @@ reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 					reiser4_object_t *parent,
 					reiser4_key_t *key) 
 {
-	place_t place;
+	reiser4_place_t place;
 
 	aal_assert("vpf-1136", tree != NULL);
 	aal_assert("vpf-1185", key != NULL);
@@ -470,8 +470,8 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 errno_t reiser4_object_unlink(reiser4_object_t *object,
 			      entry_hint_t *entry)
 {
-	place_t place;
 	errno_t res = 0;
+	reiser4_place_t place;
 	reiser4_object_t *child;
 	
 	aal_assert("umka-1910", object != NULL);

@@ -9,7 +9,7 @@
 
 #define MIN_ITEM_LEN	1
 
-static void node40_set_offset_at(node40_t *node, int pos,
+static void node40_set_offset_at(reiser4_node_t *node, int pos,
 				 uint16_t offset)
 {
 	if (pos > nh_get_num_items(node))
@@ -24,7 +24,7 @@ static void node40_set_offset_at(node40_t *node, int pos,
 	}
 }
 
-static errno_t node40_region_delete(node40_t *node,
+static errno_t node40_region_delete(reiser4_node_t *node,
 				    uint16_t start_pos, 
 				    uint16_t end_pos) 
 {
@@ -56,7 +56,7 @@ static errno_t node40_region_delete(node40_t *node,
 	count = end_pos - pos.item;
 	len = node40_size(node, &pos, count);
 
-	if (node40_shrink((node_entity_t *)node, &pos, len, count)) {
+	if (node40_shrink((reiser4_node_t *)node, &pos, len, count)) {
 		aal_bug("vpf-3062", "Node (%llu): Failed to delete "
 			"the item (%d) of a region [%u..%u].",
 			node->block->nr, i - pos.item, start_pos,
@@ -67,7 +67,7 @@ static errno_t node40_region_delete(node40_t *node,
 	return 0;    
 }
 
-static bool_t node40_item_count_valid(node40_t *node,
+static bool_t node40_item_count_valid(reiser4_node_t *node,
 				      uint32_t count)
 {
 	uint32_t pol = node40_key_pol(node);
@@ -78,7 +78,7 @@ static bool_t node40_item_count_valid(node40_t *node,
 		  < count);
 }
 
-static uint32_t node40_count_estimate(node40_t *node) {
+static uint32_t node40_count_estimate(reiser4_node_t *node) {
 	uint32_t num, blk_size, pol;
 	
 	aal_assert("vpf-804", node != NULL);
@@ -127,7 +127,7 @@ static uint32_t node40_count_estimate(node40_t *node) {
 
 /* Count of items is correct. Free space fields and item locations should be 
  * checked/recovered if broken. */
-static errno_t node40_item_check_array(node40_t *node, uint8_t mode) {
+static errno_t node40_item_check_array(reiser4_node_t *node, uint8_t mode) {
 	uint32_t limit, offset, last_relable, count, i, last_pos;
 	bool_t free_valid;
 	errno_t res = 0;
@@ -170,7 +170,7 @@ static errno_t node40_item_check_array(node40_t *node, uint8_t mode) {
 				ih_set_offset(node40_ih_at(node, 0), 
 					      last_relable, pol);
 
-				node40_mkdirty((node_entity_t *)node);
+				node40_mkdirty((reiser4_node_t *)node);
 			} else
 				res |= RE_FATAL;
 
@@ -219,7 +219,7 @@ static errno_t node40_item_check_array(node40_t *node, uint8_t mode) {
 					  offset - last_relable);
 			
 			nh_set_free_space_start(node, last_relable);
-			node40_mkdirty((node_entity_t *)node);
+			node40_mkdirty((reiser4_node_t *)node);
 		} else {
 			res |= RE_FATAL;
 		}
@@ -239,14 +239,14 @@ static errno_t node40_item_check_array(node40_t *node, uint8_t mode) {
 			res |= RE_FIXABLE;
 		} else {
 			nh_set_free_space(node, last_relable);
-			node40_mkdirty((node_entity_t *)node);
+			node40_mkdirty((reiser4_node_t *)node);
 		}
 	}
 	
 	return res;
 }
 
-static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
+static errno_t node40_item_find_array(reiser4_node_t *node, uint8_t mode) {
 	uint32_t offset, i, nr = 0;
 	uint32_t pol;
 	blk_t blk;
@@ -288,7 +288,7 @@ static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
 		
 		if (mode == RM_BUILD) {
 			nh_set_num_items(node, nr);
-			node40_mkdirty((node_entity_t *)node);
+			node40_mkdirty((reiser4_node_t *)node);
 		} else
 			return RE_FATAL;
 	}
@@ -302,7 +302,7 @@ static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
 		
 		if (mode != RM_CHECK) {
 			nh_set_free_space_start(node, offset);
-			node40_mkdirty((node_entity_t *)node);
+			node40_mkdirty((reiser4_node_t *)node);
 		} else
 			return RE_FIXABLE;
 	}
@@ -318,7 +318,7 @@ static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
 		
 		if (mode != RM_CHECK) {
 			nh_set_free_space(node, offset);
-			node40_mkdirty((node_entity_t *)node);
+			node40_mkdirty((reiser4_node_t *)node);
 		} else
 			return RE_FIXABLE;
 	}
@@ -329,7 +329,7 @@ static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
 /* Checks the count of items written in node_header. If it is wrong, it tries
    to estimate it on the base of free_space fields and recover if REBUILD mode.
    Returns FATAL otherwise. */
-static errno_t node40_count_check(node40_t *node, uint8_t mode) {
+static errno_t node40_count_check(reiser4_node_t *node, uint8_t mode) {
 	uint32_t num;
 	blk_t blk;
 	
@@ -353,19 +353,18 @@ static errno_t node40_count_check(node40_t *node, uint8_t mode) {
 		return RE_FATAL;
 	
 	nh_set_num_items(node, num);
-	node40_mkdirty((node_entity_t *)node);
+	node40_mkdirty((reiser4_node_t *)node);
 	
 	return 0;
 }
 
-errno_t node40_check_struct(node_entity_t *entity, uint8_t mode) {
-	node40_t *node = (node40_t *)entity;
+errno_t node40_check_struct(reiser4_node_t *entity, uint8_t mode) {
 	errno_t res;
 	
-	aal_assert("vpf-194", node != NULL);
+	aal_assert("vpf-194", entity != NULL);
 	
 	/* Check the content of the node40 header. */
-	if ((res = node40_count_check(node, mode))) {
+	if ((res = node40_count_check(entity, mode))) {
 		/* Count is wrong and not recoverable on the 
 		   base of free space end. */
 		if (mode != RM_BUILD)
@@ -373,29 +372,26 @@ errno_t node40_check_struct(node_entity_t *entity, uint8_t mode) {
 		
 		/* Recover count on the base of correct item 
 		   array if one exists. */
-		return node40_item_find_array(node, mode);
+		return node40_item_find_array(entity, mode);
 	}
 	
 	/* Count looks ok. Recover item array. */
-	return node40_item_check_array(node, mode);    
+	return node40_item_check_array(entity, mode);    
 }
 
-errno_t node40_corrupt(node_entity_t *entity, uint16_t options) {
-	node40_t *node;
+errno_t node40_corrupt(reiser4_node_t *entity, uint16_t options) {
 	int i;
 	
-	node = (node40_t *)entity;
-	
-	for(i = 0; i < nh_get_num_items(node) + 1; i++) {
+	for(i = 0; i < nh_get_num_items(entity) + 1; i++) {
 		if (aal_test_bit(&options, i)) {
-			node40_set_offset_at(node, i, 0xffff);
+			node40_set_offset_at(entity, i, 0xffff);
 		}
 	}
 	
 	return 0;
 }
 
-int64_t node40_merge(node_entity_t *entity, pos_t *pos, trans_hint_t *hint) {
+int64_t node40_merge(reiser4_node_t *entity, pos_t *pos, trans_hint_t *hint) {
 	aal_assert("vpf-965",  entity != NULL);
 	aal_assert("vpf-966",  pos != NULL);
 	aal_assert("vpf-1368", hint != NULL);
@@ -404,16 +400,14 @@ int64_t node40_merge(node_entity_t *entity, pos_t *pos, trans_hint_t *hint) {
 			     hint->plug->o.item_ops->repair->merge);
 }
 
-void node40_set_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
-	node40_t *node;
+void node40_set_flag(reiser4_node_t *entity, uint32_t pos, uint16_t flag) {
 	uint32_t pol;
 	void *ih;
 	
 	aal_assert("vpf-1038", entity != NULL);
 	
-	node = (node40_t *)entity;
-	pol = node40_key_pol(node);
-	ih = node40_ih_at(node, pos);
+	pol = node40_key_pol(entity);
+	ih = node40_ih_at(entity, pos);
 
 	if (ih_test_flag(ih, flag, pol))
 		return;
@@ -422,16 +416,14 @@ void node40_set_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
 	node40_mkdirty(entity);
 }
 
-void node40_clear_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
-	node40_t *node;
+void node40_clear_flag(reiser4_node_t *entity, uint32_t pos, uint16_t flag) {
 	uint32_t pol;
 	void *ih;
 	
 	aal_assert("vpf-1039", entity != NULL);
 	
-	node = (node40_t *)entity;
-	pol = node40_key_pol(node);
-	ih = node40_ih_at(node, pos);
+	pol = node40_key_pol(entity);
+	ih = node40_ih_at(entity, pos);
 	
 	if (flag == MAX_UINT16) {
 		if (!ih_get_flags(ih, pol)) 
@@ -448,25 +440,22 @@ void node40_clear_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
 	node40_mkdirty(entity);
 }
 
-bool_t node40_test_flag(node_entity_t *entity, uint32_t pos, uint16_t flag) {
-	node40_t *node;
+bool_t node40_test_flag(reiser4_node_t *entity, uint32_t pos, uint16_t flag) {
 	uint32_t pol;
 	void *ih; 
 	
 	aal_assert("vpf-1040", entity != NULL);
 	
-	node = (node40_t *)entity;
-	pol = node40_key_pol(node);
-	ih = node40_ih_at(node, pos);
+	pol = node40_key_pol(entity);
+	ih = node40_ih_at(entity, pos);
 	
 	return flag == MAX_UINT16 ? ih_get_flags (ih, pol) == 0 : 
 		ih_test_flag(ih, flag, pol);
 }
 
-errno_t node40_pack(node_entity_t *entity, aal_stream_t *stream, int mode) {
-	node40_t *node = (node40_t *)entity;
+errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream, int mode) {
 	node40_header_t *head;
-	place_t place;
+	reiser4_place_t place;
 	uint32_t pol;
 	uint16_t num;
 	pos_t *pos;
@@ -490,40 +479,47 @@ errno_t node40_pack(node_entity_t *entity, aal_stream_t *stream, int mode) {
 		return 0;
 	}
 	
-	pol = node40_key_pol(node);
+	pol = node40_key_pol(entity);
 	
 	/* Pack the node content. */
 	
 	/* Node header w/out magic and padding. */
-	head = nh((node)->block);
+	head = nh(entity->block);
+	
 	aal_stream_write(stream, &head->num_items, 
 			 sizeof(head->num_items));
+
 	aal_stream_write(stream, &head->free_space, 
 			 sizeof(head->free_space));
+
 	aal_stream_write(stream, &head->free_space_start, 
 			 sizeof(head->free_space_start));
+
 	aal_stream_write(stream, &head->mkfs_id, 
 			 sizeof(head->mkfs_id));
+
 	aal_stream_write(stream, &head->flush_id, 
 			 sizeof(head->flush_id));
+
 	aal_stream_write(stream, &head->flags, 
 			 sizeof(head->flags));
+
 	aal_stream_write(stream, &head->level, 
 			 sizeof(head->level));
 
 	/* All items. */
-	num = nh_get_num_items(node);
+	num = nh_get_num_items(entity);
+
 	pos = &place.pos;
 	pos->unit = MAX_UINT32;
 	
 	/* Pack all item headers. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
-		void *ih = node40_ih_at(node, pos->item);
+		void *ih = node40_ih_at(entity, pos->item);
 		aal_stream_write(stream, ih, ih_size(pol));
 	}
 
-	/* Paack all item bodies. */
-	
+	/* Pack all item bodies. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
 		if (node40_fetch(entity, pos, &place))
 			return -EINVAL;
@@ -532,10 +528,12 @@ errno_t node40_pack(node_entity_t *entity, aal_stream_t *stream, int mode) {
 			/* Pack body. */
 			if (plug_call(place.plug->o.item_ops->repair,
 				      pack, &place, stream))
+			{
 				return -EINVAL;
+			}
 		} else {
 			/* Do not pack body. */
-			aal_stream_write(stream, node40_ib_at(node, pos->item),
+			aal_stream_write(stream, node40_ib_at(entity, pos->item),
 					 node40_len(entity, &place.pos));
 		}
 	}
@@ -543,15 +541,15 @@ errno_t node40_pack(node_entity_t *entity, aal_stream_t *stream, int mode) {
 	return 0;
 }
 
-node_entity_t *node40_unpack(aal_block_t *block,
+reiser4_node_t *node40_unpack(aal_block_t *block,
 			     reiser4_plug_t *kplug,
 			     aal_stream_t *stream,
 			     int mode)
 {
 	node40_header_t *head;
+	reiser4_node_t *entity;
 	uint32_t pol, read;
-	node40_t *node;
-	place_t place;
+	reiser4_place_t place;
 	uint16_t num;
 	pos_t *pos;
 
@@ -559,154 +557,162 @@ node_entity_t *node40_unpack(aal_block_t *block,
 	aal_assert("umka-2632", kplug != NULL);
 	aal_assert("umka-2599", stream != NULL);
 
-	if (!(node = aal_calloc(sizeof(*node), 0)))
+	if (!(entity = aal_calloc(sizeof(*entity), 0)))
 		return NULL;
 
-	node->kplug = kplug;
-	node->block = block;
-	node->plug = &node40_plug;
+	entity->kplug = kplug;
+	entity->block = block;
+	entity->plug = &node40_plug;
 	
-	node40_mkdirty((node_entity_t *)node);
+	node40_mkdirty(entity);
 	
 	if (mode != PACK_FULL) {
 		/* Read node raw data. */
-		read = aal_stream_read(stream, node->block->data,
-				       node->block->size);
-		if (read != node->block->size)
-			goto error_free_node;
+		read = aal_stream_read(stream, entity->block->data,
+				       entity->block->size);
 		
-		return (node_entity_t *)node;
+		if (read != entity->block->size)
+			goto error_free_entity;
+		
+		return entity;
 	}
 
-	pol = node40_key_pol(node);
+	pol = node40_key_pol(entity);
 	
 	/* Unpack the node content. */
 	
 	/* Node header w/out magic and padding. */
-	head = nh((node)->block);
-	
+	head = nh(entity->block);
+
 	read = aal_stream_read(stream, &head->num_items, 
 			       sizeof(head->num_items));
+	
 	if (read != sizeof(head->num_items))
-		goto error_free_node;
+		goto error_free_entity;
 	
 	read = aal_stream_read(stream, &head->free_space, 
 			       sizeof(head->free_space));
+	
 	if (read != sizeof(head->free_space))
-		goto error_free_node;
+		goto error_free_entity;
 	
 	read = aal_stream_read(stream, &head->free_space_start, 
-			       sizeof(head->free_space_start));	
+			       sizeof(head->free_space_start));
+	
 	if (read != sizeof(head->free_space_start))
-		goto error_free_node;
+		goto error_free_entity;
 	
 	read = aal_stream_read(stream, &head->mkfs_id, 
 			       sizeof(head->mkfs_id));
+	
 	if (read != sizeof(head->mkfs_id))
-		goto error_free_node;
+		goto error_free_entity;
 	
 	read = aal_stream_read(stream, &head->flush_id, 
 			       sizeof(head->flush_id));
+	
 	if (read != sizeof(head->flush_id))
-		goto error_free_node;
+		goto error_free_entity;
 	
 	read = aal_stream_read(stream, &head->flags, 
 			       sizeof(head->flags));
+	
 	if (read != sizeof(head->flags))
-		goto error_free_node;
+		goto error_free_entity;
 	
 	read = aal_stream_read(stream, &head->level, 
 			       sizeof(head->level));
+	
 	if (read != sizeof(head->level))
-		goto error_free_node;
+		goto error_free_entity;
 	
 	/* Set the magic and the pid. */
-	nh_set_magic(node, NODE40_MAGIC);
-	nh_set_pid(node, node40_plug.id.id);
+	nh_set_magic(entity, NODE40_MAGIC);
+	nh_set_pid(entity, node40_plug.id.id);
 	
 	/* All items. */
-	num = nh_get_num_items(node);
+	num = nh_get_num_items(entity);
 	pos = &place.pos;
 	pos->unit = MAX_UINT32;
 	
 	/* Unpack all item headers. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
-		void *ih = node40_ih_at(node, pos->item);
+		void *ih = node40_ih_at(entity, pos->item);
 		read = aal_stream_read(stream, ih, ih_size(pol));
+		
 		if (read != ih_size(pol))
-			goto error_free_node;
+			goto error_free_entity;
 	}
 
 	/* Unpack all item bodies. */
 	for (pos->item = 0; pos->item < num; pos->item++) {
-		if (node40_fetch((node_entity_t *)node, pos, &place))
+		if (node40_fetch(entity, pos, &place))
 			return NULL;
 		
 		if (place.plug->o.item_ops->repair->unpack) {
 			/* Unpack body. */
 			if (plug_call(place.plug->o.item_ops->repair,
 				      unpack, &place, stream))
-				return NULL;
+			{
+				goto error_free_entity;
+			}
 		} else {
-			void *ib = node40_ib_at(node, pos->item);
-			uint32_t len = node40_len((node_entity_t *)node, 
-						  &place.pos);
+			void *ib = node40_ib_at(entity, pos->item);
+			uint32_t len = node40_len(entity, &place.pos);
 			
 			/* Do not unpack body. */
 			if (aal_stream_read(stream, ib, len) != (int32_t)len)
-				goto error_free_node;
+				goto error_free_entity;
 		}
 	}
 	
-	return (node_entity_t *)node;
+	return entity;
 	
- error_free_node:
+ error_free_entity:
 	aal_error("Can't unpack the node (%llu). "
 		  "Stream is over?", block->nr);
 	
-	aal_free(node);
+	aal_free(entity);
 	return NULL;
 }
 
 /* Prepare text node description and push it into specified @stream. */
-void node40_print(node_entity_t *entity, aal_stream_t *stream,
+void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 		  uint32_t start, uint32_t count, uint16_t options) 
 {
 	void *ih;
 	char *key;
 	pos_t pos;
-	uint8_t level;
 	uint32_t pol;
+	uint8_t level;
+
 	uint32_t last, num;
-	
-	place_t place;
-	node40_t *node;
+	reiser4_place_t place;
 
 	aal_assert("vpf-023", entity != NULL);
 	aal_assert("umka-457", stream != NULL);
 
-	node = (node40_t *)entity;
 	level = node40_get_level(entity);
 	
 	/* Print node header. */
 	aal_stream_format(stream, "NODE (%llu) LEVEL=%u ITEMS=%u "
 			  "SPACE=%u MKFS ID=0x%x FLUSH=0x%llx\n",
-			  node->block->nr, level, node40_items(entity),
-			  node40_space(entity), nh_get_mkfs_id(node),
-			  nh_get_flush_id(node));
+			  entity->block->nr, level, node40_items(entity),
+			  node40_space(entity), nh_get_mkfs_id(entity),
+			  nh_get_flush_id(entity));
 	
 	pos.unit = MAX_UINT32;
 	
 	if (start == MAX_UINT32)
 		start = 0;
 	
-	last = node40_count_estimate(node);
+	last = node40_count_estimate(entity);
 	num = node40_items(entity);
 	
 	if (count != MAX_UINT32 && last > start + count)
 		last = start + count;
 	
-	pol = node40_key_pol(node);
+	pol = node40_key_pol(entity);
 	
 	/* Loop through the all items */
 	for (pos.item = start; pos.item < last; pos.item++) {
@@ -719,7 +725,7 @@ void node40_print(node_entity_t *entity, aal_stream_t *stream,
 		if (node40_fetch(entity, &pos, &place))
 			continue;
 		
-		ih = node40_ih_at(node, pos.item);
+		ih = node40_ih_at(entity, pos.item);
 		key = node40_core->key_ops.print(&place.key, PO_DEFAULT);
 		
 		aal_stream_format(stream, "#%u%s %s (%s): [%s] OFF %u, "

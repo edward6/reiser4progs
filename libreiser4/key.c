@@ -230,7 +230,7 @@ uint64_t reiser4_key_get_ordering(reiser4_key_t *key) {
 
 /* Returns the maximal possible key  */
 void reiser4_key_maximal(reiser4_key_t *key) {
-	key_entity_t *entity;
+	reiser4_key_t *entity;
     
 	aal_assert("vpf-185", key != NULL);
 	aal_assert("vpf-186", key->plug != NULL);
@@ -241,7 +241,7 @@ void reiser4_key_maximal(reiser4_key_t *key) {
 
 /* Returns the minimal possible key */
 void reiser4_key_minimal(reiser4_key_t *key) {
-	key_entity_t *entity;
+	reiser4_key_t *entity;
     
 	aal_assert("vpf-187", key != NULL);
 	aal_assert("vpf-188", key->plug != NULL);

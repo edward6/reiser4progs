@@ -9,7 +9,7 @@
 
 #define reg40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
 
-static errno_t reg40_extensions(place_t *stat) {
+static errno_t reg40_extensions(reiser4_place_t *stat) {
 	uint64_t extmask;
 	
 	/* Check that there is no one unknown extension. */
@@ -24,7 +24,7 @@ static errno_t reg40_extensions(place_t *stat) {
 }
 
 /* Check SD extensions and that mode in LW extension is REGFILE. */
-static errno_t callback_stat(place_t *stat) {
+static errno_t callback_stat(reiser4_place_t *stat) {
 	sdext_lw_hint_t lw_hint;
 	errno_t res;
 	
@@ -85,7 +85,7 @@ static void reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 
 	if (plug->id.group == EXTENT_ITEM) {
 		/* The last extent block can be not used up. */
-		if (*sd_size + STAT_PLACE(obj)->block->size > counted_size)
+		if (*sd_size + STAT_PLACE(obj)->node->block->size > counted_size)
 			return;
 	}
 	
@@ -116,9 +116,9 @@ static int64_t reg40_create_hole(reg40_t *reg, uint64_t len) {
 
 /* Lookup for the end byte and find out the body plug for such a size. */
 static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
-	key_entity_t key;
+	reiser4_key_t key;
 	uint64_t offset;
-	place_t place;
+	reiser4_place_t place;
 	errno_t res;
 	
 	aal_assert("vpf-1305", reg != NULL);
@@ -171,7 +171,7 @@ static errno_t reg40_check_ikey(reg40_t *reg) {
 	offset = plug_call(reg->body.key.plug->o.key_ops, get_offset, 
 			   &reg->body.key);
 	
-	return offset % reg->body.block->size ? RE_FATAL : 0;
+	return offset % reg->body.node->block->size ? RE_FATAL : 0;
 }
 
 typedef struct reg40_repair {
@@ -218,7 +218,7 @@ static errno_t reg40_next(object_entity_t *object,
 		if (plug_call(reg->body.plug->o.item_ops->balance,
 			      units, &reg->body) == reg->body.pos.unit)
 		{
-			place_t next;
+			reiser4_place_t next;
 
 			if ((res = reg40_core->tree_ops.next(info->tree, 
 							     &reg->body, 
@@ -249,7 +249,7 @@ static errno_t reg40_next(object_entity_t *object,
 			  "item (%u): the item [%s] of the "
 			  "invalid plugin (%s) found.%s",
 			  print_inode(reg40_core, &info->object),
-			  reg->obj.plug->label, reg->body.block->nr, 
+			  reg->obj.plug->label, reg->body.node->block->nr, 
 			  reg->body.pos.item,
 			  print_key(reg40_core, &reg->body.key),
 			  reg->body.plug->label, mode == RM_BUILD ? 
@@ -259,7 +259,7 @@ static errno_t reg40_next(object_entity_t *object,
 			  "item (%u): the item [%s] has the "
 			  "wrong offset.%s",
 			  print_inode(reg40_core, &info->object),
-			  reg->obj.plug->label, reg->body.block->nr, 
+			  reg->obj.plug->label, reg->body.node->block->nr, 
 			  reg->body.pos.item,
 			  print_key(reg40_core, &reg->body.key),
 			  mode == RM_BUILD ? " Removed." : "");
@@ -333,7 +333,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 				  "from 0 offset through hint->count "
 				  "to (%s) items.",
 				  print_inode(reg40_core, &info->object),
-				  reg->obj.plug->label, reg->body.block->nr, 
+				  reg->obj.plug->label, reg->body.node->block->nr, 
 				  reg->body.pos.item,
 				  print_key(reg40_core, &reg->body.key),
 				  reg->body.plug->label, repair->tplug->label,
@@ -376,7 +376,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 		  "found item [%s] of the plugin (%s) does not match "
 		  "the detected tail policy (%s).%s", 
 		  print_inode(reg40_core, &info->object),
-		  reg->obj.plug->label, reg->body.block->nr, 
+		  reg->obj.plug->label, reg->body.node->block->nr, 
 		  reg->body.pos.item,
 		  print_key(reg40_core, &reg->body.key),
 		  reg->body.plug->label, reg->policy->label,
@@ -389,8 +389,8 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 /* Obtains the maxreal key of the given place.
    Returns: maxreal key if evth is ok.
    0 -- no place; MAX_UINT64 -- some error. */
-static uint64_t reg40_place_maxreal(place_t *place) {
-	key_entity_t key;
+static uint64_t reg40_place_maxreal(reiser4_place_t *place) {
+	reiser4_key_t key;
 	errno_t res;
 	
 	if (!place->plug)

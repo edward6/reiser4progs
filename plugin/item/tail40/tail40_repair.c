@@ -9,28 +9,29 @@
 #include <reiser4/plugin.h>
 #include <plugin/item/body40/body40.h>
 
-errno_t tail40_check_struct(place_t *place, uint8_t mode) {
+errno_t tail40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	aal_assert("vpf-1508", place != NULL);
 	
 	if (!place->len) {
 		aal_error("Node (%llu), item (%u): tail40 "
 			  "item of zero length found.",
-			  place->block->nr, place->pos.item);
+			  place->node->block->nr,
+			  place->pos.item);
 		return RE_FATAL;
 	} 
 	
 	return 0;
 }
 
-errno_t tail40_prep_merge(place_t *place, trans_hint_t *hint) {
+errno_t tail40_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	uint64_t doffset, start;
-	place_t *src;
+	reiser4_place_t *src;
 	
 	aal_assert("vpf-982", place != NULL);
 	aal_assert("vpf-983", hint != NULL);
 	aal_assert("vpf-984", hint->specific != NULL);
 	
-	src = (place_t *)hint->specific;
+	src = (reiser4_place_t *)hint->specific;
 	
 	doffset = plug_call(place->key.plug->o.key_ops, get_offset,
 			    &place->key);
@@ -54,14 +55,14 @@ errno_t tail40_prep_merge(place_t *place, trans_hint_t *hint) {
 	return 0;
 }
 
-errno_t tail40_merge(place_t *place, trans_hint_t *hint) {
+errno_t tail40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	uint64_t offset;
-	place_t *src;
+	reiser4_place_t *src;
 	
 	aal_assert("vpf-987", place != NULL);
 	aal_assert("vpf-988", hint != NULL);
 
-	src = (place_t *)hint->specific;
+	src = (reiser4_place_t *)hint->specific;
 	
 	offset = plug_call(hint->offset.plug->o.key_ops,
 			   get_offset, &hint->offset);
@@ -86,11 +87,11 @@ errno_t tail40_merge(place_t *place, trans_hint_t *hint) {
 	return 0;
 }
 
-errno_t tail40_pack(place_t *place, aal_stream_t *stream) {
+errno_t tail40_pack(reiser4_place_t *place, aal_stream_t *stream) {
 	return 0;
 }
 
-errno_t tail40_unpack(place_t *place, aal_stream_t *stream) {
+errno_t tail40_unpack(reiser4_place_t *place, aal_stream_t *stream) {
 	return 0;
 }
 

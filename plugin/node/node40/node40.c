@@ -9,257 +9,202 @@
 reiser4_core_t *node40_core;
 
 /* Return current node key policy (key size in fact). */
-inline uint32_t node40_key_pol(node40_t *node) {
-	return plug_call(node->kplug->o.key_ops, bodysize);
+inline uint32_t node40_key_pol(reiser4_node_t *entity) {
+	return plug_call(entity->kplug->o.key_ops, bodysize);
 }
 
 /* Return item header void pointer by pos. As node40 is able to work with
    different item types (short keys, large ones), we do not use item struct at
    all. But prefer to use raw pointers along with macros for working with
    them. */
-void *node40_ih_at(node40_t *node, uint32_t pos) {
-	void *ih = node->block->data + node->block->size;
-	uint32_t size = ih_size(node40_key_pol(node));
-	return (ih - (size * (pos + 1)));
+void *node40_ih_at(reiser4_node_t *entity, uint32_t pos) {
+	void *ih = entity->block->data + entity->block->size;
+	return (ih - (ih_size(node40_key_pol(entity)) * (pos + 1)));
 }
 
 /* Retutrn item body by pos */
-void *node40_ib_at(node40_t *node, uint32_t pos) {
-	void *ih = node40_ih_at(node, pos);
+void *node40_ib_at(reiser4_node_t *entity, uint32_t pos) {
+	void *ih = node40_ih_at(entity, pos);
 
-	return node->block->data +
-		ih_get_offset(ih, node40_key_pol(node));
+	return entity->block->data +
+		ih_get_offset(ih, node40_key_pol(entity));
 }
 
 /* Returns node level field. */
-uint8_t node40_get_level(node_entity_t *entity) {
+uint8_t node40_get_level(reiser4_node_t *entity) {
 	aal_assert("umka-1116", entity != NULL);
-	return nh_get_level((node40_t *)entity);
+	return nh_get_level((reiser4_node_t *)entity);
 }
 
-static node_entity_t *node40_prepare(aal_block_t *block, 
-				     reiser4_plug_t *kplug) 
+static reiser4_node_t *node40_prepare(aal_block_t *block, 
+				      reiser4_plug_t *kplug) 
 {
-	node40_t *node;
+	reiser4_node_t *entity;
 	
 	aal_assert("umka-2376", kplug != NULL);
 	aal_assert("umka-2375", block != NULL);
 	
-	if (!(node = aal_calloc(sizeof(*node), 0)))
+	if (!(entity = aal_calloc(sizeof(*entity), 0)))
 		return NULL;
 
-	node->kplug = kplug;
-	node->block = block;
-	node->plug = &node40_plug;
+	entity->kplug = kplug;
+	entity->block = block;
+	entity->plug = &node40_plug;
 
-	/* Making node dirty if block it is supposed to work with is dirty. */
-	if (block->dirty) {
-		node40_mkdirty((node_entity_t *)node);
-	} else {
-		node40_mkclean((node_entity_t *)node);
-	}
-	
-	return (node_entity_t *)node;
+	return entity;
 }
 
 #ifndef ENABLE_STAND_ALONE
 /* Functions for making node dirty, cleann and for check if it is dirty. This is
    used in all node modifying functions, etc. */
-void node40_mkdirty(node_entity_t *entity) {
-	node40_t *node;
-	
+void node40_mkdirty(reiser4_node_t *entity) {
 	aal_assert("umka-3016", entity != NULL);
-
-	node = (node40_t *)entity;
-	node->state |= (1 << ENTITY_DIRTY);
-	node->block->dirty = 1;
+	entity->block->dirty = 1;
 }
 
-void node40_mkclean(node_entity_t *entity) {
-	node40_t *node;
-	
+void node40_mkclean(reiser4_node_t *entity) {
 	aal_assert("umka-3017", entity != NULL);
-	
-	node = (node40_t *)entity;
-	node->state &= ~(1 << ENTITY_DIRTY);
-	node->block->dirty = 0;
+	entity->block->dirty = 0;
 }
 
-int node40_isdirty(node_entity_t *entity) {
-	node40_t *node;
-	
+int node40_isdirty(reiser4_node_t *entity) {
 	aal_assert("umka-3018", entity != NULL);
-
-	node = (node40_t *)entity;
-	
-	return ((node->state & (1 << ENTITY_DIRTY)) ||
-		node->block->dirty);
+	return entity->block->dirty;
 }
 
-static uint32_t node40_get_state(node_entity_t *entity) {
+static uint32_t node40_get_state(reiser4_node_t *entity) {
 	aal_assert("umka-2091", entity != NULL);
-	return ((node40_t *)entity)->state;
+	return entity->state;
 }
 
-static void node40_set_state(node_entity_t *entity,
+static void node40_set_state(reiser4_node_t *entity,
 			     uint32_t state)
 {
 	aal_assert("umka-2092", entity != NULL);
-	((node40_t *)entity)->state = state;
+	entity->state = state;
 }
 
 /* Returns node mkfs stamp. */
-static uint32_t node40_get_mstamp(node_entity_t *entity) {
+static uint32_t node40_get_mstamp(reiser4_node_t *entity) {
 	aal_assert("umka-1127", entity != NULL);
-	return nh_get_mkfs_id((node40_t *)entity);
+	return nh_get_mkfs_id(entity);
 }
 
 /* Returns node flush stamp. */
-static uint64_t node40_get_fstamp(node_entity_t *entity) {
+static uint64_t node40_get_fstamp(reiser4_node_t *entity) {
 	aal_assert("vpf-645", entity != NULL);
-	return nh_get_flush_id((node40_t *)entity);
-}
-
-/* Makes clone of @src_entity node in @dst_node. */
-static errno_t node40_clone(node_entity_t *src_entity,
-			    node_entity_t *dst_entity)
-{
-	aal_assert("umka-2308", src_entity != NULL);
-	aal_assert("umka-2309", dst_entity != NULL);
-
-	aal_memcpy(((node40_t *)dst_entity)->block->data,
-		   ((node40_t *)src_entity)->block->data,
-		   ((node40_t *)src_entity)->block->size);
-
-	return 0;
+	return nh_get_flush_id(entity);
 }
 
 /* Initializes node of the given @level on the @block with key plugin
    @kplug. Returns initialized node instance. */
-static node_entity_t *node40_init(aal_block_t *block, uint8_t level,
-				  reiser4_plug_t *kplug)
+static reiser4_node_t *node40_init(aal_block_t *block, uint8_t level,
+				   reiser4_plug_t *kplug)
 {
-	node40_t *node;
-	uint32_t header;
+	reiser4_node_t *entity;
 
 	aal_assert("umka-2374", block != NULL);
 	aal_assert("vpf-1417",  kplug != NULL);
 	
-	if (!(node = (node40_t *)node40_prepare(block, kplug)))
+	if (!(entity = node40_prepare(block, kplug)))
 		return NULL;
 	
-	nh_set_num_items(node, 0);
-	nh_set_level(node, level);
-	nh_set_magic(node, NODE40_MAGIC);
-	nh_set_pid(node, node40_plug.id.id);
+	nh_set_num_items(entity, 0);
+	nh_set_level(entity, level);
+	nh_set_magic(entity, NODE40_MAGIC);
+	nh_set_pid(entity, node40_plug.id.id);
+	
+	nh_set_free_space_start(entity, sizeof(node40_header_t));
+	nh_set_free_space(entity, block->size - sizeof(node40_header_t));
 
-	header = sizeof(node40_header_t);
-	nh_set_free_space_start(node, header);
-	nh_set_free_space(node, node->block->size - header);
-
-	return (node_entity_t *)node;
+	return entity;
 }
 
 /* Saves node to device */
-static errno_t node40_sync(node_entity_t *entity) {
+static errno_t node40_sync(reiser4_node_t *entity) {
 	errno_t res;
-	node40_t *node;
 	
 	aal_assert("umka-1552", entity != NULL);
 
-	node = (node40_t *)entity;
-	
-	if ((res = aal_block_write(node->block)))
+	if ((res = aal_block_write(entity->block)))
 		return res;
 
 	node40_mkclean(entity);
-	
 	return 0;
-}
-
-/* Moves node to passed @blk. */
-void node40_move(node_entity_t *entity, blk_t nr) {
-	aal_block_t *block;
-	
-	aal_assert("umka-2377", entity != NULL);
-
-	block = ((node40_t *)entity)->block;
-	aal_block_move(block, block->device, nr);
 }
 #endif
 
 /* Closes node by means of closing its block */
-static errno_t node40_fini(node_entity_t *entity) {
+static errno_t node40_fini(reiser4_node_t *entity) {
 	aal_assert("umka-825", entity != NULL);
 
-	aal_block_free(((node40_t *)entity)->block);
+	aal_block_free(entity->block);
 	aal_free(entity);
+	
 	return 0;
 }
 
 /* Returns item number in passed node entity. Used for any loops through the all
    node items. */
-uint32_t node40_items(node_entity_t *entity) {
+uint32_t node40_items(reiser4_node_t *entity) {
 	aal_assert("vpf-018", entity != NULL);
-	return nh_get_num_items((node40_t *)entity);
+	return nh_get_num_items(entity);
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Returns node free space */
-uint16_t node40_space(node_entity_t *entity) {
+/* Returns node free space. */
+uint16_t node40_space(reiser4_node_t *entity) {
 	aal_assert("vpf-020", entity != NULL);
-	return nh_get_free_space((node40_t *)entity);
+	return nh_get_free_space(entity);
 }
 
-/* Sets node make stamp */
-static void node40_set_mstamp(node_entity_t *entity,
+/* Sets node make stamp. */
+static void node40_set_mstamp(reiser4_node_t *entity,
 			      uint32_t stamp)
 {
 	aal_assert("vpf-644", entity != NULL);
 
-	nh_set_mkfs_id((node40_t *)entity, stamp);
+	nh_set_mkfs_id(entity, stamp);
 	node40_mkdirty(entity);
 }
 
 /* Returns node flush stamp */
-static void node40_set_fstamp(node_entity_t *entity,
+static void node40_set_fstamp(reiser4_node_t *entity,
 			      uint64_t stamp)
 {
 	aal_assert("vpf-643", entity != NULL);
 	
-	nh_set_flush_id((node40_t *)entity, stamp);
+	nh_set_flush_id(entity, stamp);
 	node40_mkdirty(entity);
 }
 
 /* Set new node level to @level. */
-static void node40_set_level(node_entity_t *entity,
+static void node40_set_level(reiser4_node_t *entity,
 			     uint8_t level)
 {
 	aal_assert("umka-1864", entity != NULL);
 	
-	nh_set_level((node40_t *)entity, level);
+	nh_set_level(entity, level);
 	node40_mkdirty(entity);
 }
 #endif
 
 /* Returns length of item at pos. */
-uint16_t node40_len(node_entity_t *entity, pos_t *pos) {
+uint16_t node40_len(reiser4_node_t *entity, pos_t *pos) {
 	void *ih;
 	uint32_t pol;
-	node40_t *node;
     
 	aal_assert("umka-942", pos != NULL);
 	aal_assert("vpf-037", entity != NULL);
 
-	node = (node40_t *)entity;
-	pol = node40_key_pol(node);
-	ih = node40_ih_at(node, pos->item);
+	pol = node40_key_pol(entity);
+	ih = node40_ih_at(entity, pos->item);
 
 	/* Item length is calculated as next item offset minus current item
 	   offset. If we're on the last item then we use free space start
 	   instead.*/
 	if (pos->item == (node40_items(entity) - 1)) {
-		return nh_get_free_space_start(node) -
+		return nh_get_free_space_start(entity) -
 			ih_get_offset(ih, pol);
 	} else {
 		return ih_get_offset((ih - ih_size(pol)), pol) -
@@ -270,32 +215,32 @@ uint16_t node40_len(node_entity_t *entity, pos_t *pos) {
 
 /* Open the node on the given @block with the given key plugin @kplug. Returns
    initialized node instance. */
-static node_entity_t *node40_open(aal_block_t *block,
+static reiser4_node_t *node40_open(aal_block_t *block,
 				  reiser4_plug_t *kplug)
 {
-	node40_t *node;
+	reiser4_node_t *entity;
 	
 	aal_assert("vpf-1415", kplug != NULL);
 	aal_assert("vpf-1416", block != NULL);
 	
-	if (!(node = (node40_t *)node40_prepare(block, kplug)))
+	if (!(entity = node40_prepare(block, kplug)))
 		return NULL;
 
 	/* Check the magic. */
-	if (nh_get_magic(node) != NODE40_MAGIC) {
-		aal_free(node);
+	if (nh_get_magic(entity) != NODE40_MAGIC) {
+		aal_free(entity);
 		return NULL;
 	}
 	
-	return (node_entity_t *)node;
+	return entity;
 }
 
 /* Returns key at passed @pos. */
-static errno_t node40_get_key(node_entity_t *entity,
-			      pos_t *pos, key_entity_t *key) 
+static errno_t node40_get_key(reiser4_node_t *entity,
+			      pos_t *pos, reiser4_key_t *key) 
 {
-	void *body;
-	node40_t *node;
+	void *ih;
+	uint32_t size;
     
 	aal_assert("umka-821", key != NULL);
 	aal_assert("umka-939", pos != NULL);
@@ -305,24 +250,21 @@ static errno_t node40_get_key(node_entity_t *entity,
 
 	aal_assert("umka-2333", entity != NULL);
 
-	node = (node40_t *)entity;
-	body = node40_ih_at(node, pos->item);
+	ih = node40_ih_at(entity, pos->item);
 	
-	key->plug = ((node40_t *)entity)->kplug;
-
-	aal_memcpy(key->body, body,
-		   key_size(node40_key_pol(node)));
+	key->plug = entity->kplug;
+	size = key_size(node40_key_pol(entity));
+	aal_memcpy(key->body, ih, size);
 	
 	return 0;
 }
 
 /* Initializes @place at @pos. Fetches all item fields. */
-errno_t node40_fetch(node_entity_t *entity,
-		     pos_t *pos, place_t *place)
+errno_t node40_fetch(reiser4_node_t *entity,
+		     pos_t *pos, reiser4_place_t *place)
 {
 	void *ih;
 	uint32_t pol;
-	node40_t *node;
 	reiser4_plug_t *plug;
 	
 	aal_assert("umka-1813", pos != NULL);
@@ -332,11 +274,10 @@ errno_t node40_fetch(node_entity_t *entity,
 	aal_assert("umka-2351", pos->item <
 		   node40_items(entity));
 
-	node = (node40_t *)entity;
-	pol = node40_key_pol(node);
-	ih = node40_ih_at(node, pos->item);
+	pol = node40_key_pol(entity);
+	ih = node40_ih_at(entity, pos->item);
 	
-	/* Initializing item's plugin */
+	/* Initializing item's plugin. */
 	if (!(plug = node40_core->factory_ops.ifind(ITEM_PLUG_TYPE,
 						    ih_get_pid(ih, pol))))
 	{
@@ -348,10 +289,11 @@ errno_t node40_fetch(node_entity_t *entity,
 	/* Initializing other fields. */
 	place->pos = *pos;
 	place->plug = plug;
-	place->block = node->block;
+	place->node = entity;
+
 	place->flags = ih_get_flags(ih, pol);
 	place->len = node40_len(entity, pos);
-	place->body = node40_ib_at(node, pos->item);
+	place->body = node40_ib_at(entity, pos->item);
 
 	/* Getting item key. */
 	return node40_get_key(entity, pos, &place->key);
@@ -360,45 +302,38 @@ errno_t node40_fetch(node_entity_t *entity,
 #ifndef ENABLE_STAND_ALONE
 /* Retutns item overhead for this node format. Widely used in modification and
    estimation routines. */
-static uint16_t node40_overhead(node_entity_t *entity) {
-	return ih_size(node40_key_pol((node40_t *)entity));
+static uint16_t node40_overhead(reiser4_node_t *entity) {
+	return ih_size(node40_key_pol(entity));
 }
 
 /* Returns maximal size of item possible for passed node instance */
-static uint16_t node40_maxspace(node_entity_t *entity) {
-	node40_t *node;
-	
+static uint16_t node40_maxspace(reiser4_node_t *entity) {
 	aal_assert("vpf-016", entity != NULL);
 	
 	/* Maximal space is node size minus node header and minus item
 	   header. */
-	node = (node40_t *)entity;
-	
-	return (node->block->size - sizeof(node40_header_t) -
-		ih_size(node40_key_pol(node)));
+	return (entity->block->size - sizeof(node40_header_t) -
+		ih_size(node40_key_pol(entity)));
 }
 
 /* Calculates size of a region denoted by @pos and @count. This is used by
    node40_copy(), node40_remove(), etc. */
-uint32_t node40_size(node40_t *node, pos_t *pos, uint32_t count) {
+uint32_t node40_size(reiser4_node_t *entity, pos_t *pos, uint32_t count) {
 	void *ih;
 	uint32_t len;
 	uint32_t pol;
 
 	aal_assert("umka-3032", pos != NULL);
-	aal_assert("umka-3031", node != NULL);
+	aal_assert("umka-3031", entity != NULL);
 
-	aal_assert("umka-3033", pos->item + count <=
-		   node40_items((node_entity_t *)node));
+	pol = node40_key_pol(entity);
+	ih = node40_ih_at(entity, pos->item);
 	
-	pol = node40_key_pol(node);
-	ih = node40_ih_at(node, pos->item);
-	
-	if (pos->item + count < nh_get_num_items(node)) {
+	if (pos->item + count < nh_get_num_items(entity)) {
 		uint32_t offset = (ih_size(pol) * count);
 		len = ih_get_offset((ih - offset), pol);
 	} else {
-		len = nh_get_free_space_start(node);
+		len = nh_get_free_space_start(entity);
 	}
 
 	return len - ih_get_offset(ih, pol);
@@ -406,7 +341,7 @@ uint32_t node40_size(node40_t *node, pos_t *pos, uint32_t count) {
 
 /* Makes expand passed @node by @len in odrer to make room for insert new
    items/units. This function is used by insert and shift methods. */
-errno_t node40_expand(node_entity_t *entity, pos_t *pos,
+errno_t node40_expand(reiser4_node_t *entity, pos_t *pos,
 		      uint32_t len, uint32_t count)
 {
 	void *ih;
@@ -414,7 +349,6 @@ errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 
 	uint32_t pol;
 	uint32_t item;
-	node40_t *node;
 	uint32_t items;
 	uint32_t offset;
 	uint32_t headers;
@@ -422,18 +356,18 @@ errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 	aal_assert("vpf-006", pos != NULL);
 	aal_assert("umka-817", entity != NULL);
 
-	if (len == 0) return 0;
-	node = (node40_t *)entity;
-
-	insert = (pos->unit == MAX_UINT32);
-
-	pol = node40_key_pol(node);
-	items = nh_get_num_items(node);
+	if (len == 0)
+		return 0;
+	
+	pol = node40_key_pol(entity);
 	headers = count * ih_size(pol);
 
-	/* Getting real pos of the item to be updated */
+	items = nh_get_num_items(entity);
+	insert = (pos->unit == MAX_UINT32);
+
+	/* Getting real pos of the item to be updated. */
 	item = pos->item + !insert;
-	ih = node40_ih_at(node, item);
+	ih = node40_ih_at(entity, item);
 
 	/* If item pos is inside the range [0..count - 1], we should perform the
 	   data moving and offset upadting. */
@@ -443,14 +377,13 @@ errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 
 		/* Moving items bodies */
 		offset = ih_get_offset(ih, pol);
-		src = node->block->data + offset;
-		
-		dst = node->block->data + offset + len;
-		size = nh_get_free_space_start(node) - offset;
+		src = entity->block->data + offset;
+		dst = entity->block->data + offset + len;
+		size = nh_get_free_space_start(entity) - offset;
 
 		aal_memmove(dst, src, size);
 
-		/* Updating item offsets */
+		/* Updating item offsets. */
 		for (i = 0; i < items - item; i++) {
 			ih_inc_offset(ih, len, pol);
 			ih -= ih_size(pol);
@@ -459,9 +392,9 @@ errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 		/* If this is the insert new item mode, we should prepare the
 		   room for new item header and set it up. */
 		if (insert) {
-			src = node40_ih_at(node, items - 1);
+			src = node40_ih_at(entity, items - 1);
 
-			dst = node40_ih_at(node, items - 1 +
+			dst = node40_ih_at(entity, items - 1 +
 					   count);
 
 			size = ih_size(pol) * (items - item);
@@ -469,14 +402,14 @@ errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 			aal_memmove(dst, src, size);
 		}
 
-		ih = node40_ih_at(node, item);
+		ih = node40_ih_at(entity, item);
 	} else {
-		offset = nh_get_free_space_start(node);
+		offset = nh_get_free_space_start(entity);
 	}
 
 	/* Updating node's free space and free space start fields. */
-	nh_inc_free_space_start(node, len);
-	nh_dec_free_space(node, len);
+	nh_inc_free_space_start(entity, len);
+	nh_dec_free_space(entity, len);
 
 	if (insert) {
                 /* Setting up the fields of new item. */
@@ -484,8 +417,8 @@ errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 		ih_set_offset(ih, offset, pol);
 
 		/* Setting up node header. */
-		nh_inc_num_items(node, count);
-		nh_dec_free_space(node, headers);
+		nh_inc_num_items(entity, count);
+		nh_dec_free_space(entity, headers);
 	}
 
 	node40_mkdirty(entity);
@@ -494,7 +427,7 @@ errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 
 /* General node40 cutting function. It is used from shift, remove, etc. It
    removes an amount of items specified by @count and shrinks node. */
-errno_t node40_shrink(node_entity_t *entity, pos_t *pos,
+errno_t node40_shrink(reiser4_node_t *entity, pos_t *pos,
 		      uint32_t len, uint32_t count)
 {
 	uint32_t pol;
@@ -502,7 +435,6 @@ errno_t node40_shrink(node_entity_t *entity, pos_t *pos,
 	void *cur, *end;
 	void *src, *dst;
 
-	node40_t *node;
 	uint32_t headers;
 	uint32_t i, items;
 
@@ -510,30 +442,29 @@ errno_t node40_shrink(node_entity_t *entity, pos_t *pos,
 	aal_assert("umka-1799", pos != NULL);
 	aal_assert("umka-1798", entity != NULL);
 
-	node = (node40_t *)entity;
-	pol = node40_key_pol(node);
-	items = nh_get_num_items(node);
+	pol = node40_key_pol(entity);
+	items = nh_get_num_items(entity);
 
 	if (pos->unit == MAX_UINT32) {
 		headers = count * ih_size(pol);
-		end = node40_ih_at(node, items - 1);
+		end = node40_ih_at(entity, items - 1);
 
 		/* Moving item header and bodies if it is needed. */
 		if (pos->item + count < items) {
 
 			/* Moving item bodies */
-			dst = node40_ib_at(node, pos->item);
+			dst = node40_ib_at(entity, pos->item);
 			
-			src = node40_ib_at(node, pos->item +
+			src = node40_ib_at(entity, pos->item +
 					   count);
 
-			size = node40_size(node, pos, items -
+			size = node40_size(entity, pos, items -
 					   pos->item) - len;
  
 			aal_memmove(dst, src, size);
 
 			/* Moving item headers. */
-			src = node40_ih_at(node, items - 1);
+			src = node40_ih_at(entity, items - 1);
 			dst = src + headers;
 			
 			size = (items - (pos->item + count)) *
@@ -542,7 +473,7 @@ errno_t node40_shrink(node_entity_t *entity, pos_t *pos,
 			aal_memmove(dst, src, size);
 
 			/* Updating item offsets. */
-			cur = node40_ih_at(node, pos->item);
+			cur = node40_ih_at(entity, pos->item);
 	
 			for (i = pos->item; i < items - count; i++) {
 				ih_dec_offset(cur, len, pol);
@@ -551,27 +482,30 @@ errno_t node40_shrink(node_entity_t *entity, pos_t *pos,
 		}
 
 		/* Updating node header */
-		nh_dec_num_items(node, count);
-		nh_inc_free_space(node, (len + headers));
+		nh_dec_num_items(entity, count);
+		nh_inc_free_space(entity, (len + headers));
 	} else {
 		void *ih;
-		uint32_t item_len;
+		uint32_t ilen;
 
-		ih = node40_ih_at(node, pos->item);
-		item_len = node40_len(entity, pos);
+		ilen = node40_len(entity, pos);
+		ih = node40_ih_at(entity, pos->item);
 		
 		/* Moving item bodies */
-		src = node40_ib_at(node, pos->item) + item_len;
-		dst = src - len;
+		src = node40_ib_at(entity, pos->item) +
+			ilen;
+		
+		dst = (node40_ib_at(entity, pos->item) +
+		       ilen) - len;
 
-		size = nh_get_free_space_start(node) -
-			ih_get_offset(ih, pol) - item_len;
+		size = nh_get_free_space_start(entity) -
+			ih_get_offset(ih, pol) - ilen;
 		
 		aal_memmove(dst, src, size);
 		
 		/* Updating header offsets */
 		cur = ih - ih_size(pol);
-		end = node40_ih_at(node, items - 1);
+		end = node40_ih_at(entity, items - 1);
 		
 		while (cur >= end) {
 			ih_dec_offset(cur, len, pol);
@@ -579,70 +513,65 @@ errno_t node40_shrink(node_entity_t *entity, pos_t *pos,
 		}
 
 		/* Updating node header and item header */
-		nh_inc_free_space(node, len);
+		nh_inc_free_space(entity, len);
 	}
 
-	nh_dec_free_space_start(node, len);
-
+	nh_dec_free_space_start(entity, len);
 	node40_mkdirty(entity);
+	
 	return 0;
 }
 
 /* Makes copy of @count items from @src_entity to @dst_entity */
-errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
-		    node_entity_t *src_entity, pos_t *src_pos,
+errno_t node40_copy(reiser4_node_t *dst_entity, pos_t *dst_pos,
+		    reiser4_node_t *src_entity, pos_t *src_pos,
 		    uint32_t count)
 {
+	void *body;
 	uint32_t pol;
 	uint32_t size;
+
+	void *ih, *end;
+	void *src, *dst;
+
 	uint32_t items;
 	uint32_t fss, i;
 	uint32_t offset;
 	uint32_t headers;
 
-	void *body;
-	void *ih, *end;
-	void *src, *dst;
-	
-	node40_t *dst_node;
-	node40_t *src_node;
-
-	dst_node = (node40_t *)dst_entity;
-	src_node = (node40_t *)src_entity;
-
-	pol = node40_key_pol(dst_node);
+	pol = node40_key_pol(dst_entity);
 	headers = count * ih_size(pol);
-	items = nh_get_num_items(dst_node);
-	fss = nh_get_free_space_start(dst_node);
+	items = nh_get_num_items(dst_entity);
+	fss = nh_get_free_space_start(dst_entity);
 	
-	if (!(size = node40_size(src_node, src_pos, count)))
+	if (!(size = node40_size(src_entity, src_pos, count)))
 		return -EINVAL;
 	
-	/* Copying item bodies from src node to dst one */
-	src = node40_ib_at(src_node, src_pos->item);
+	/* Copying item bodies from src node to dst one. */
+	src = node40_ib_at(src_entity, src_pos->item);
 
 	if (dst_pos->item < items - count) {
-		body = node40_ib_at(dst_node, dst_pos->item);
+		body = node40_ib_at(dst_entity, dst_pos->item);
 	} else {
-		body = dst_node->block->data + fss - size;
+		body = dst_entity->block->data + fss - size;
 	}
 		
 	aal_memcpy(body, src, size);
 
-	/* Copying item headers from src node to dst one */
-	src = node40_ih_at(src_node, src_pos->item +
+	/* Copying item headers from src node to dst one. */
+	src = node40_ih_at(src_entity, src_pos->item +
 			   count - 1);
 
-	dst = node40_ih_at(dst_node, dst_pos->item +
+	dst = node40_ih_at(dst_entity, dst_pos->item +
 			   count - 1);
 			
 	aal_memcpy(dst, src, headers);
 
-	/* Updating item headers in dst node */
-	end = node40_ih_at(dst_node, items - 1);
+	/* Updating item headers in dst node. */
+	end = node40_ih_at(dst_entity, items - 1);
 	ih = dst + (ih_size(pol) * (count - 1));
 	
-	offset = (body - dst_node->block->data);
+	offset = (body - dst_entity->block->data);
 	
 	for (i = 0; i < count; i++) {
 		uint32_t old;
@@ -665,8 +594,8 @@ errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
 }
 
 /* Mode modifying fucntion. */
-int64_t node40_modify(node_entity_t *entity, pos_t *pos,
-		      trans_hint_t *hint, modyfy_func_t modify_func)
+int64_t node40_modify(reiser4_node_t *entity, pos_t *pos,
+		      trans_hint_t *hint, modify_func_t modify_func)
 {
         void *ih;
 	int64_t res;
@@ -674,10 +603,8 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
         uint32_t len;
 	
         int64_t write;
-        place_t place;
-        node40_t *node;
+        reiser4_place_t place;
 
-        node = (node40_t *)entity;
         len = hint->len + hint->overhead;
 
 	/* Expand node if @len greater than zero. */
@@ -687,8 +614,8 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 		return res;
 	}
         
-	pol = node40_key_pol(node);
-        ih = node40_ih_at(node, pos->item);
+	pol = node40_key_pol(entity);
+        ih = node40_ih_at(entity, pos->item);
         
 	/* Updating item header if we want to insert new item. */
         if (pos->unit == MAX_UINT32) {
@@ -699,14 +626,15 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 	/* Preparing place for calling item plugin with them. */
         if (node40_fetch(entity, pos, &place)) {
 		aal_error("Can't fetch item data. Node %llu, "
-			  "item %u.", node->block->nr, pos->item);
+			  "item %u.", entity->block->nr,
+			  pos->item);
 		return -EINVAL;
         }
 
 	/* Inserting units into @place. */
 	if ((write = modify_func(&place, hint)) < 0) {
 		aal_error("Can't insert unit to node %llu, item %u.",
-			  node->block->nr, place.pos.item);
+			  entity->block->nr, place.pos.item);
 		return write;
 	}
         
@@ -718,10 +646,10 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 	return write;
 }
 
-static errno_t node40_insert(node_entity_t *entity,
+static errno_t node40_insert(reiser4_node_t *entity,
 			     pos_t *pos, trans_hint_t *hint)
 {
-	modyfy_func_t ins_func;
+	modify_func_t ins_func;
 	
 	aal_assert("umka-2448", pos != NULL);
 	aal_assert("umka-1814", hint != NULL);
@@ -731,10 +659,10 @@ static errno_t node40_insert(node_entity_t *entity,
 	return node40_modify(entity, pos, hint, ins_func);
 }
 
-static int64_t node40_write(node_entity_t *entity,
+static int64_t node40_write(reiser4_node_t *entity,
 			    pos_t *pos, trans_hint_t *hint)
 {
-	modyfy_func_t write_func;
+	modify_func_t write_func;
 
 	aal_assert("umka-2449", pos != NULL);
 	aal_assert("umka-2450", hint != NULL);
@@ -745,21 +673,19 @@ static int64_t node40_write(node_entity_t *entity,
 }
 
 /* Truncates node at @pos. Needed for tail conversion. */
-static int64_t node40_trunc(node_entity_t *entity, pos_t *pos,
+static int64_t node40_trunc(reiser4_node_t *entity, pos_t *pos,
 			    trans_hint_t *hint)
 {
 	void *ih;
 	uint32_t pol;
 	uint32_t len;
 	int64_t count;
-	place_t place;
-	node40_t *node;
+	reiser4_place_t place;
 	
 	aal_assert("umka-2462", pos != NULL);
 	aal_assert("umka-2463", entity != NULL);
 
-	node = (node40_t *)entity;
-	pol = node40_key_pol(node);
+	pol = node40_key_pol(entity);
 
 	/* Getting item at @pos */
 	if (node40_fetch(entity, pos, &place))
@@ -794,11 +720,11 @@ static int64_t node40_trunc(node_entity_t *entity, pos_t *pos,
 		}
 
 		if (len < place.len) {
-			ih = node40_ih_at(node, place.pos.item);
+			ih = node40_ih_at(entity, place.pos.item);
 			aal_memcpy(ih, place.key.body, key_size(pol));
 		}
 	} else {
-		ih = node40_ih_at(node, place.pos.item);
+		ih = node40_ih_at(entity, place.pos.item);
 		aal_memcpy(ih, place.key.body, key_size(pol));
 	}
 
@@ -806,20 +732,17 @@ static int64_t node40_trunc(node_entity_t *entity, pos_t *pos,
 }
 
 /* This function removes item/unit from the node at specified @pos */
-errno_t node40_remove(node_entity_t *entity, pos_t *pos,
+errno_t node40_remove(reiser4_node_t *entity, pos_t *pos,
 		      trans_hint_t *hint) 
 {
 	errno_t res;
 	uint32_t len;
-	place_t place;
+	reiser4_place_t place;
 	uint32_t count;
 	uint32_t units;
-	node40_t *node;
 	
 	aal_assert("umka-987", pos != NULL);
 	aal_assert("umka-986", entity != NULL);
-
-	node = (node40_t *)entity;
 
 	/* Check if we remove some number of whole items, or units inside
 	   particular item. */
@@ -828,7 +751,7 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		
 		/* Calculating amount of bytes removed item occupie. Node will
 		   be shrinked by this value. */
-		if (!(len = node40_size(node, pos, hint->count)))
+		if (!(len = node40_size(entity, pos, hint->count)))
 			return -EINVAL;
 
 		count = hint->count;
@@ -888,12 +811,12 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 			len = place.len;
 			pos->unit = MAX_UINT32;
 		} else {
-			uint32_t pol = node40_key_pol(node);
+			uint32_t pol = node40_key_pol(entity);
 				
 			/* Updating items key if leftmost unit was changed and
 			   item will not be removed as it is not yet empty. */
 			if (pos->unit == 0) {
-				void *ih = node40_ih_at(node, pos->item);
+				void *ih = node40_ih_at(entity, pos->item);
 				aal_memcpy(ih, place.key.body, key_size(pol));
 			}
 		}
@@ -907,25 +830,23 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 /* Fuses two mergeable items if they lie in the same node side by side. This is
    needed for fsck if it discovered, that two items are mergeable and lie in the
    same node (due to some corruption or fail) it will fuse them. */
-static errno_t node40_fuse(node_entity_t *entity,  pos_t *left_pos,
+static errno_t node40_fuse(reiser4_node_t *entity,  pos_t *left_pos,
 			   pos_t *right_pos)
 {
 	errno_t res;
 	uint32_t pol;
 	int32_t delta;
-	node40_t *node;
 	uint32_t items;
 	
 	void *left, *right;
-	place_t left_place;
-	place_t right_place;
+	reiser4_place_t left_place;
+	reiser4_place_t right_place;
 	
 	aal_assert("umka-2682", entity != NULL);
 	aal_assert("umka-2683", left_pos != NULL);
 	aal_assert("umka-2684", right_pos != NULL);
 
-	node = (node40_t *)entity;
-	pol = node40_key_pol(node);
+	pol = node40_key_pol(entity);
 	items = node40_items(entity);
 
 	aal_assert("umka-2685", (left_pos->item < items &&
@@ -935,7 +856,8 @@ static errno_t node40_fuse(node_entity_t *entity,  pos_t *left_pos,
 	delta = left_pos->item - right_pos->item;
 	
 	if (aal_abs(delta) > 1) {
-		aal_error("Can't fuse items which lie side by side.");
+		aal_error("Can't fuse items which lie not side "
+			  "by side each other.");
 		return -EINVAL;
 	}
 
@@ -946,8 +868,8 @@ static errno_t node40_fuse(node_entity_t *entity,  pos_t *left_pos,
 	   (2) Fuse items bodies. This stage means, that we should call some
 	   item method, which will take into account item overhead, etc.
 	*/
-	left = node40_ih_at(node, left_pos->item);
-	right = node40_ih_at(node, right_pos->item);
+	left = node40_ih_at(entity, left_pos->item);
+	right = node40_ih_at(entity, right_pos->item);
 
 	/* First stage. Check if right item is last one. If so, we will not move
 	   item headers at all. */
@@ -958,8 +880,8 @@ static errno_t node40_fuse(node_entity_t *entity,  pos_t *left_pos,
 			    ih_size(pol));
 	}
 
-	nh_dec_num_items(node, 1);
-	nh_inc_free_space(node, ih_size(pol));
+	nh_dec_num_items(entity, 1);
+	nh_inc_free_space(entity, ih_size(pol));
 
 	/* Second stage. Fusing item bodies. */
 	if ((res = node40_fetch(entity, left_pos, &left_place))) {
@@ -986,8 +908,8 @@ static errno_t node40_fuse(node_entity_t *entity,  pos_t *left_pos,
 				  fuse, &left_place, &right_place);
 
 		/* Updating node header. */
-		nh_inc_free_space(node, space);
-		nh_dec_free_space_start(node, space);
+		nh_inc_free_space(entity, space);
+		nh_dec_free_space_start(entity, space);
 	}
 
 	/* Now make node dirty. */
@@ -996,11 +918,10 @@ static errno_t node40_fuse(node_entity_t *entity,  pos_t *left_pos,
 }
 
 /* Updates key at @pos by specified @key */
-static errno_t node40_set_key(node_entity_t *entity, 
-			      pos_t *pos, key_entity_t *key) 
+static errno_t node40_set_key(reiser4_node_t *entity, 
+			      pos_t *pos, reiser4_key_t *key) 
 {
 	void *ih;
-	node40_t *node;
 	uint32_t key_size;
 
 	aal_assert("umka-819", key != NULL);
@@ -1011,10 +932,8 @@ static errno_t node40_set_key(node_entity_t *entity,
 
 	aal_assert("umka-809", entity != NULL);
 
-	node = (node40_t *)entity;
-
-	ih = node40_ih_at(node, pos->item);
-	key_size = key_size(node40_key_pol(node));
+	ih = node40_ih_at(entity, pos->item);
+	key_size = key_size(node40_key_pol(entity));
 	aal_memcpy(ih, key->body, key_size);
 		
 	node40_mkdirty(entity);
@@ -1032,7 +951,7 @@ static int callback_comp_key(void *node, uint32_t pos,
 	aal_assert("umka-567", key2 != NULL);
 	aal_assert("umka-656", data != NULL);
 
-	key1 = node40_ih_at((node40_t *)node, pos);
+	key1 = node40_ih_at((reiser4_node_t *)node, pos);
 
 	return plug_call(((reiser4_plug_t *)data)->o.key_ops,
 			 compraw, key1, key2);
@@ -1040,8 +959,8 @@ static int callback_comp_key(void *node, uint32_t pos,
 
 /* Makes search inside the specified node @entity for @key and stores the result
    into @pos. This function returns 1 if key is found and 0 otherwise. */
-static lookup_t node40_lookup(node_entity_t *entity,
-			      key_entity_t *key,
+static lookup_t node40_lookup(reiser4_node_t *entity,
+			      reiser4_key_t *key,
 			      bias_t bias, pos_t *pos)
 {
 	aal_assert("umka-472", key != NULL);
@@ -1063,9 +982,8 @@ static lookup_t node40_lookup(node_entity_t *entity,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Checks if @place is splittable. */
-static int node40_splittable(place_t *place, shift_hint_t *hint) {
+static int node40_splittable(reiser4_place_t *place, shift_hint_t *hint) {
 	/* Check if item's shift_units() and prep_shift() method are
 	   implemented. */
 	if (!place->plug->o.item_ops->balance->shift_units ||
@@ -1083,9 +1001,8 @@ static int node40_splittable(place_t *place, shift_hint_t *hint) {
 }
 
 /* Initializes place by border item data (leftmost or rightmost). */
-static errno_t node40_border(node_entity_t *entity,
-			     int left_border,
-			     place_t *place)
+static errno_t node40_border(reiser4_node_t *entity,
+			     int left_border, reiser4_place_t *place)
 {
 	pos_t pos;
 	uint32_t items;
@@ -1104,24 +1021,20 @@ static errno_t node40_border(node_entity_t *entity,
 
 /* Merges border items of the src and dst nodes. The behavior depends on the
    passed hint pointer. */
-static errno_t node40_unite(node_entity_t *src_entity,
-			    node_entity_t *dst_entity, 
+static errno_t node40_unite(reiser4_node_t *src_entity,
+			    reiser4_node_t *dst_entity, 
 			    shift_hint_t *hint,
 			    int create)
 {
 	pos_t pos;
-
 	errno_t res;
 	uint32_t pol;
 	uint32_t len;
 	uint32_t units;
 
-	place_t src_place;
-	place_t dst_place;
+	reiser4_place_t src_place;
+	reiser4_place_t dst_place;
 	
-	node40_t *src_node;
-	node40_t *dst_node;
-
 	uint32_t dst_items;
 	uint32_t src_items;
 	
@@ -1132,11 +1045,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	aal_assert("umka-1622", src_entity != NULL);
 	aal_assert("umka-1623", dst_entity != NULL);
 	
-	src_node = (node40_t *)src_entity;
-	dst_node = (node40_t *)dst_entity;
-
-	pol = node40_key_pol(dst_node);
-
+	pol = node40_key_pol(dst_entity);
 	src_items = node40_items(src_entity);
 	dst_items = node40_items(dst_entity);
 	
@@ -1178,8 +1087,8 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 		/* Check if items has the same flags. If so, they can be tried
 		   to be merged. */
-		src_ih = node40_ih_at(src_node, src_place.pos.item);
-		dst_ih = node40_ih_at(dst_node, dst_place.pos.item);
+		src_ih = node40_ih_at(src_entity, src_place.pos.item);
+		dst_ih = node40_ih_at(dst_entity, dst_place.pos.item);
 
 		if (ih_get_flags(src_ih, pol) != ih_get_flags(dst_ih, pol))
 			return 0;
@@ -1208,14 +1117,14 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	
 	/* Calling item's prep_shift() method in order to estimate how many
 	   units may be shifted out. This method also updates unit component of
-	   insert point position. After this function is finish
-	   @hint->units_bytes will contain real number of bytes to be shifted
-	   into neighbour item. */
+	   insert point position. After this function is finish @units_bytes
+	   will contain real number of bytes to be shifted into neighbour
+	   item. */
 	if (hint->create) {
 		uint32_t overhead;
 
 		/* Getting node overhead in order to substract it from
-		   @hint->units_bytes, that is from space allowed to be used. */
+		   @units_bytes, that is from space allowed to be used. */
 		overhead = node40_overhead(dst_entity);
 
 		/* There is not of enough free space in @dst_entity even to
@@ -1289,8 +1198,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 	if (hint->create) {
 		/* Setting up new item fields such as plugin id and key. */
-		dst_ih = node40_ih_at(dst_node, pos.item);
-
+		dst_ih = node40_ih_at(dst_entity, pos.item);
 		ih_set_pid(dst_ih, src_place.plug->id.id, pol);
 		aal_memcpy(dst_ih, src_place.key.body, key_size(pol));
 
@@ -1300,7 +1208,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		   by splitting old one should have the same flags. This is also
 		   needed, because items with different flags will not be merged
 		   and this will cause bad tree packing. */
-		src_ih = node40_ih_at(src_node, src_place.pos.item);
+		src_ih = node40_ih_at(src_entity, src_place.pos.item);
 		ih_set_flags(dst_ih, ih_get_flags(src_ih, pol), pol); 
 	}
 
@@ -1320,7 +1228,6 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	/* Set update flag to let high levels code know, that left delemiting
 	   keys should be updated. */
 	hint->update = 1;
-	
 	pos.item = src_place.pos.item;
 
 	/* Getting units number after shift. This is needed to detect correctly,
@@ -1342,11 +1249,11 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		/* We do not need to update key of the src item which is going
 		   to be removed. */
 		if (!remove) {
-			src_ih = node40_ih_at(src_node, src_place.pos.item);
+			src_ih = node40_ih_at(src_entity, src_place.pos.item);
 			aal_memcpy(src_ih, src_place.key.body, key_size(pol));
 		}
 	} else {
-		dst_ih = node40_ih_at(dst_node, dst_place.pos.item);
+		dst_ih = node40_ih_at(dst_entity, dst_place.pos.item);
 		aal_memcpy(dst_ih, dst_place.key.body, key_size(pol));
 	}
 	
@@ -1377,8 +1284,8 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 /* Predicts how many whole item may be shifted from @src_entity to
    @dst_entity. */
-static errno_t node40_predict(node_entity_t *src_entity,
-			      node_entity_t *dst_entity, 
+static errno_t node40_predict(reiser4_node_t *src_entity,
+			      reiser4_node_t *dst_entity, 
 			      shift_hint_t *hint)
 {
 	uint32_t pol;
@@ -1389,25 +1296,20 @@ static errno_t node40_predict(node_entity_t *src_entity,
 	uint32_t src_items;
 	uint32_t dst_items;
 
-	node40_t *src_node;
-	node40_t *dst_node;
-	
-	src_node = (node40_t *)src_entity;
-	dst_node = (node40_t *)dst_entity;
-
 	dst_items = node40_items(dst_entity);
 	
 	if (!(src_items = node40_items(src_entity)))
 		return 0;
 
-	pol = node40_key_pol(src_node);
+	pol = node40_key_pol(src_entity);
 	space = node40_space(dst_entity);
-	end = node40_ih_at(src_node, src_items - 1);
+	
+	end = node40_ih_at(src_entity, src_items - 1);
 
 	if (hint->control & SF_ALLOW_LEFT) {
-		cur = node40_ih_at(src_node, 0);
+		cur = node40_ih_at(src_entity, 0);
 	} else {
-		cur = node40_ih_at(src_node, src_items - 1);
+		cur = node40_ih_at(src_entity, src_items - 1);
 	}
 	
 	/* Estimating will be finished if @src_items value is exhausted or
@@ -1424,7 +1326,7 @@ static errno_t node40_predict(node_entity_t *src_entity,
 		
 		/* Getting length of current item. */
 		if (cur == end) {
-			len = nh_get_free_space_start(src_node) -
+			len = nh_get_free_space_start(src_entity) -
 				ih_get_offset(cur, pol);
 		} else {
 			len = ih_get_offset((cur - ih_size(pol)), pol) -
@@ -1445,7 +1347,7 @@ static errno_t node40_predict(node_entity_t *src_entity,
 			if (flags & SF_ALLOW_LEFT) {
 				if (hint->pos.item == 0) {
 					pos_t pos;
-					place_t place;
+					reiser4_place_t place;
 					uint32_t units;
 
 					/* If unit component if zero, we can
@@ -1482,7 +1384,6 @@ static errno_t node40_predict(node_entity_t *src_entity,
 				/* Checking if insert point reach the end of
 				   node. */
 				if (hint->pos.item >= src_items - 1) {
-				
 					if (hint->pos.item == src_items - 1) {
 						/* Updating insert point to be
 						   lie in neighbour node. */
@@ -1518,7 +1419,9 @@ static errno_t node40_predict(node_entity_t *src_entity,
 		src_items--; dst_items++;
 		
 		space -= (len + node40_overhead(dst_entity));
-		cur += (flags & SF_ALLOW_LEFT ? -ih_size(pol) : ih_size(pol));
+		
+		cur += (flags & SF_ALLOW_LEFT ? -ih_size(pol) :
+			ih_size(pol));
 	}
 
 	/* After number of whole items was estimated, all free space will be
@@ -1528,8 +1431,8 @@ static errno_t node40_predict(node_entity_t *src_entity,
 }
 
 /* Moves some amount of whole items from @src_entity to @dst_entity */
-static errno_t node40_transfuse(node_entity_t *src_entity,
-				node_entity_t *dst_entity, 
+static errno_t node40_transfuse(reiser4_node_t *src_entity,
+				reiser4_node_t *dst_entity, 
 				shift_hint_t *hint)
 {	
 	errno_t res;
@@ -1610,19 +1513,14 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
    and @dst_entity after some number of whole items was moved to @dst_entity. It
    is needed to use the rest of space remaining after whole items shift in
    second pass. */
-static errno_t node40_shift(node_entity_t *src_entity,
-			    node_entity_t *dst_entity,
+static errno_t node40_shift(reiser4_node_t *src_entity,
+			    reiser4_node_t *dst_entity,
 			    shift_hint_t *hint)
 {
 	errno_t res;
-	node40_t *src_node;
-	node40_t *dst_node;
 
 	aal_assert("umka-2050", src_entity != NULL);
 	aal_assert("umka-2051", dst_entity != NULL);
-
-	src_node = (node40_t *)src_entity;
-	dst_node = (node40_t *)dst_entity;
 
 	/* First pass is merge border items. Heer we check is we are allowed to
 	   merge items. */
@@ -1634,8 +1532,8 @@ static errno_t node40_shift(node_entity_t *src_entity,
 		}
 	} else {
 		int left_shift;
-		place_t src_place;
-		place_t dst_place;
+		reiser4_place_t src_place;
+		reiser4_place_t dst_place;
 		
 		/* Merge is not allowed by @hint->control flags. Check if border
 		   items are mergeable. If so, we can't move at least one whole
@@ -1714,8 +1612,6 @@ static reiser4_node_ops_t node40_ops = {
 		
 #ifndef ENABLE_STAND_ALONE
 	.init		= node40_init,
-	.move		= node40_move,
-	.clone          = node40_clone,
 	.sync           = node40_sync,
 	.fuse           = node40_fuse,
 

@@ -12,7 +12,7 @@
 			      1 << SDEXT_LW_ID |	\
 			      1 << SDEXT_SYMLINK_ID)
 
-static errno_t sym40_extensions(place_t *stat) {
+static errno_t sym40_extensions(reiser4_place_t *stat) {
 	uint64_t extmask;
 	
 	extmask = obj40_extmask(stat);
@@ -27,7 +27,7 @@ static errno_t sym40_extensions(place_t *stat) {
 }
 
 /* Check SD extensions and that mode in LW extension is DIRFILE. */
-static errno_t callback_stat(place_t *stat) {
+static errno_t callback_stat(reiser4_place_t *stat) {
 	sdext_lw_hint_t lw_hint;
 	errno_t res;
 	

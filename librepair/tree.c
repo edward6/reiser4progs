@@ -44,10 +44,10 @@ bool_t repair_tree_data_level(uint8_t level) {
 /* Get the max real key existed in the tree. Go down through all right-most 
    child to get it. */
 static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree, 
-				       node_t *node, reiser4_key_t *key)
+				       reiser4_node_t *node, reiser4_key_t *key)
 {
-	place_t place;
-	node_t *child;
+	reiser4_place_t place;
+	reiser4_node_t *child;
 	errno_t res;
 	
 	aal_assert("vpf-712", node != NULL);
@@ -91,7 +91,7 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 }
 
 errno_t repair_tree_parent_lkey(reiser4_tree_t *tree,
-				node_t *node, 
+				reiser4_node_t *node, 
 				reiser4_key_t *key) 
 {
 	errno_t res;
@@ -113,10 +113,10 @@ errno_t repair_tree_parent_lkey(reiser4_tree_t *tree,
 }
 
 /* Sets to the @key the right delimiting key of the node kept in the parent. */
-errno_t repair_tree_parent_rkey(reiser4_tree_t *tree, node_t *node, 
+errno_t repair_tree_parent_rkey(reiser4_tree_t *tree, reiser4_node_t *node, 
 				reiser4_key_t *key) 
 {
-	place_t place;
+	reiser4_place_t place;
 	errno_t ret;
 	
 	aal_assert("vpf-502", node != NULL);
@@ -149,10 +149,10 @@ errno_t repair_tree_parent_rkey(reiser4_tree_t *tree, node_t *node,
 
 /* Gets the key of the next item. */
 errno_t repair_tree_next_key(reiser4_tree_t *tree, 
-			     place_t *place, 
+			     reiser4_place_t *place, 
 			     reiser4_key_t *key) 
 {
-	place_t temp;
+	reiser4_place_t temp;
 	errno_t res;
 	
 	aal_assert("vpf-1427", tree != NULL);
@@ -174,10 +174,10 @@ errno_t repair_tree_next_key(reiser4_tree_t *tree,
 	return 0;
 }
 
-node_t *repair_tree_load_node(reiser4_tree_t *tree, node_t *parent,
+reiser4_node_t *repair_tree_load_node(reiser4_tree_t *tree, reiser4_node_t *parent,
 			      blk_t blk, bool_t check)
 {
-	node_t *node;
+	reiser4_node_t *node;
 	
 	aal_assert("vpf-1500", tree != NULL);
 	aal_assert("vpf-1502", tree->fs != NULL);
@@ -201,19 +201,18 @@ node_t *repair_tree_load_node(reiser4_tree_t *tree, node_t *parent,
 
 /* Checks the delimiting keys of the node kept in the parent. */
 errno_t repair_tree_dknode_check(reiser4_tree_t *tree, 
-				 node_t *node, 
+				 reiser4_node_t *node, 
 				 uint8_t mode) 
 {
 	reiser4_key_t key_max, dkey;
 	pos_t pos = {0, MAX_UINT32};
 	errno_t res = 0;
-	place_t place;
+	reiser4_place_t place;
 	int comp = 0;
 	
 	aal_assert("vpf-1281", tree != NULL);
 	aal_assert("vpf-248", node != NULL);
-	aal_assert("vpf-249", node->entity != NULL);
-	aal_assert("vpf-250", node->entity->plug != NULL);
+	aal_assert("vpf-250", node->plug != NULL);
 	aal_assert("vpf-1280", node->tree != NULL);
 	
 	if ((res = repair_tree_parent_lkey(tree, node, &dkey))) {
@@ -295,9 +294,9 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 
 /* This function creates nodeptr item on the base of @node and insert it 
    to the tree. */
-errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
+errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	reiser4_key_t rkey, key;
-	place_t place;
+	reiser4_place_t place;
 	trans_hint_t hint;
 	lookup_t lookup;
 	ptr_hint_t ptr;
@@ -434,7 +433,7 @@ static bool_t repair_tree_should_conv(reiser4_tree_t *tree,
 
 /* Prepare repair convertion and perform it. */
 static errno_t repair_tree_conv(reiser4_tree_t *tree, 
-				place_t *place,
+				reiser4_place_t *place,
 				reiser4_plug_t *plug) 
 {
 	conv_hint_t hint;
@@ -455,8 +454,8 @@ static errno_t repair_tree_conv(reiser4_tree_t *tree,
 
 /* Copy @src item data over the @dst from the key pointed by @key through the
    @dst maxreal key. After the coping @key is set to the @dst maxreal key. */
-errno_t repair_tree_copy(reiser4_tree_t *tree, place_t *dst,
-				place_t *src, reiser4_key_t *key)
+errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
+				reiser4_place_t *src, reiser4_key_t *key)
 {
 	reiser4_key_t dmax;
 	trans_hint_t hint;
@@ -486,11 +485,11 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, place_t *dst,
 
 /* Lookup for the correct @place place by the @start key in the @tree. */
 static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree, 
-					 place_t *place,
+					 reiser4_place_t *place,
 					 trans_hint_t *hint)
 {
 	reiser4_key_t dkey, end;
-	place_t prev;
+	reiser4_place_t prev;
 	errno_t res;
 	
 	aal_assert("vpf-1364", tree  != NULL);
@@ -547,7 +546,7 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 	if ((res = reiser4_item_get_key(place, &dkey)))
 		return res;
 
-	if ((res = reiser4_item_maxreal_key((place_t *)hint->specific, &end)))
+	if ((res = reiser4_item_maxreal_key((reiser4_place_t *)hint->specific, &end)))
 		return res;
 	
 	/* If @end key is not less than the lookuped, items are overlapped. 
@@ -562,26 +561,28 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 	return 0;
 }
 
-static errno_t callback_prep_merge(place_t *place, trans_hint_t *hint) {
+static errno_t callback_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	return plug_call(place->plug->o.item_ops->repair,
 			 prep_merge, place, hint);
 }
 
-static errno_t callback_merge(node_t *node, pos_t *pos, trans_hint_t *hint) {
-	return plug_call(node->entity->plug->o.node_ops, 
-			 merge, node->entity, pos, hint);
+static errno_t callback_merge(reiser4_node_t *node, pos_t *pos,
+			      trans_hint_t *hint)
+{
+	return plug_call(node->plug->o.node_ops, 
+			 merge, node, pos, hint);
 }
 
 /* Insert the item into the tree overwriting an existent in the tree item 
    if needed. Does not insert branches. */
-errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src, 
+errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src, 
 			   region_func_t func, void *data)
 {
 	trans_hint_t hint;
 	uint32_t scount;
 	uint8_t level;
 	errno_t res;
-	place_t dst;
+	reiser4_place_t dst;
 	
 	aal_assert("vpf-654", tree != NULL);
 	aal_assert("vpf-655", src != NULL);
@@ -732,7 +733,7 @@ errno_t repair_tree_scan(reiser4_tree_t *tree, place_func_t func, void *data) {
 
         /* While not the end of the tree. */
         while (reiser4_key_compfull(&key, &max)) {
-                place_t place;
+                reiser4_place_t place;
                 lookup_t lookup;
 
                 /* FIXME-VITALY: This is not key-collision-safe. */

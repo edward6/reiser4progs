@@ -44,9 +44,9 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 /* Callback for the traverse which calls item_ops.check_layout method if 
    layout exists for all items which can contain data, not tree index data
    only. Shrink the node if item lenght is changed. */
-static errno_t callback_check_layout(place_t *place, void *data) {
+static errno_t callback_check_layout(reiser4_place_t *place, void *data) {
 	repair_ts_t *ts = (repair_ts_t *)data;
-	node_t *node;
+	reiser4_node_t *node;
 	errno_t res;
 	
 	aal_assert("vpf-384", place != NULL);
@@ -162,7 +162,7 @@ static void repair_twig_scan_update(repair_ts_t *ts) {
    may have and account them in proper bitmaps. */
 errno_t repair_twig_scan(repair_ts_t *ts) {
 	repair_progress_t progress;
-	node_t *node;
+	reiser4_node_t *node;
 	errno_t res = -1;
 	blk_t blk = 0;
 	
@@ -188,7 +188,7 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 		}
 		
 		/* Lookup the node. */	
-		res = repair_node_traverse(node, callback_check_layout, ts);
+		res = repair_reiser4_node_traverse(node, callback_check_layout, ts);
 		
 		if (res) goto error_node_free;
 		

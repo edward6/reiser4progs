@@ -629,7 +629,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 	uint64_t size;
 
 	layout_hint_t hint;
-	key_entity_t maxkey;
+	reiser4_key_t maxkey;
 		
 	aal_assert("umka-1471", entity != NULL);
 	aal_assert("umka-1472", region_func != NULL);
@@ -646,7 +646,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 
 	/* Loop though the all file items. */
 	while (reg40_offset(entity) < size) {
-		place_t *place = &reg->body;
+		reiser4_place_t *place = &reg->body;
 		
 		/* Update current body coord. */
 		if ((res = reg40_update_body(entity)) < 0)
@@ -665,7 +665,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 				return res;
 			}
 		} else {
-			blk_t blk = place->block->nr;
+			blk_t blk = place->node->block->nr;
 			
 			if ((res = callback_item_layout(place, blk, 1, &hint)))
 				return res;
@@ -708,7 +708,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		return 0;
 
 	while (reg40_offset(entity) < size) {
-		key_entity_t maxkey;
+		reiser4_key_t maxkey;
 		
 		/* Update body place. */
 		if ((res = reg40_update_body(entity)) < 0)

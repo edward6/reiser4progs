@@ -61,7 +61,7 @@ errno_t debugfs_print_stream(aal_stream_t *stream) {
 
 /* Prints passed @node. */
 static errno_t tprint_process_node(reiser4_tree_t *tree,
-				   node_t *node, void *data)
+				   reiser4_node_t *node, void *data)
 {
 	aal_stream_t stream;
 
@@ -74,7 +74,7 @@ static errno_t tprint_process_node(reiser4_tree_t *tree,
 	return 0;
 }
 
-void debugfs_print_node(node_t *node) {
+void debugfs_print_node(reiser4_node_t *node) {
 	tprint_process_node(NULL, node, NULL);
 }
 
@@ -83,8 +83,8 @@ errno_t debugfs_print_block(
 	reiser4_fs_t *fs,           /* filesystem for work with */
 	blk_t blk)                  /* block number to be printed */
 {
-	node_t *node;
 	count_t blocks;
+	reiser4_node_t *node;
 
 	if (blk >= (blocks = reiser4_format_get_len(fs->format))) {
 		aal_error("Block %llu is out of filesystem "
@@ -240,7 +240,7 @@ typedef struct fprint_hint fprint_hint_t;
 
 /* Prints item at passed @place */
 static errno_t fprint_process_place(
-	place_t *place,            /* next file block */
+	reiser4_place_t *place,    /* next file block */
 	void *data)                /* user-specified data */
 {
 	fprint_hint_t *hint = (fprint_hint_t *)data;

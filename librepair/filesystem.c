@@ -184,7 +184,7 @@ errno_t repair_fs_pack(reiser4_fs_t *fs,
 	/* Loop though the all data blocks, check if they belong to tree and if
 	   so try to open a formated node on it. */
 	for (blk = 0; blk < len; blk++) {
-		node_t *node;
+		reiser4_node_t *node;
 		errno_t res;
 		
 		/* We're not interested in unused blocks yet. */
@@ -200,8 +200,8 @@ errno_t repair_fs_pack(reiser4_fs_t *fs,
 		if (!(node = reiser4_node_open(fs->tree, blk)))
 			continue;
 
-		res = plug_call(node->entity->plug->o.node_ops, check_struct,
-				node->entity, RM_CHECK);
+		res = plug_call(node->plug->o.node_ops, check_struct,
+				node, RM_CHECK);
 		
 		if (res < 0) return res;
 
@@ -367,7 +367,7 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 	}
 		
 	while (1) {
-		node_t *node;
+		reiser4_node_t *node;
 		
 		if (aal_stream_read(stream, &sign, 4) != 4) {
 			if (aal_stream_eof(stream))

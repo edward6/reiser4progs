@@ -3,9 +3,6 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* fix ugliness with node in place_t. It cannot be always initialized, 
-  as some times place_t is initialized inside node40 plugin.
-
 * handle holes overwriting in extent write code.
 
 * implement more sophisticated memory pressure detect code.
@@ -17,21 +14,13 @@ reiser4progs/COPYING.
   limit in order to make hash collisions less and thus, to speedup
   loaded nodes access.
 
-* fix reiser4_print_*. This print stuffshould be moved to libaal.
+* fix reiser4_print_*. This print stuff should be moved to libaal.
 
 * check all place_fetch() occurences and remove redundant ones.
 
 * change R4Sb magic to Reiser4Sb both in progs and in kernel code.
 
 * implement key collisions handling in tree_lookup().
-
-* remove key_entity_t and use reiser4_key_t everywhere it is needed.
-  Declare it in plugin.h and make in such a way public available for
-  plugins. Rename node_t to reiser4_node_t and place_t to
-  reiser4_place_t.
-
-  All these types are basic reiser4 type available to be used on all
-  abstraction levels.
 
 * move plugin directory to libreiser4 directory. Maintain own plugin
   directory in librepair. Move all repair code from libreiser4/plugin/*

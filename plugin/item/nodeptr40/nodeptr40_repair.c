@@ -7,7 +7,7 @@
 #include "nodeptr40.h"
 #include <repair/plugin.h>
 
-errno_t nodeptr40_check_layout(place_t *place, region_func_t region_func, 
+errno_t nodeptr40_check_layout(reiser4_place_t *place, region_func_t region_func, 
 			       void *data, uint8_t mode) 
 {
 	nodeptr40_t *nodeptr;
@@ -24,7 +24,7 @@ errno_t nodeptr40_check_layout(place_t *place, region_func_t region_func,
 	
 	if (res > 0) {
 		aal_error("Node (%llu), item (%u): wrong pointer to "
-			  "the block %llu.%s", place->block->nr,
+			  "the block %llu.%s", place->node->block->nr,
 			  place->pos.item, blk, mode == RM_BUILD ?
 			  " Removed." : "");
 
@@ -41,13 +41,15 @@ errno_t nodeptr40_check_layout(place_t *place, region_func_t region_func,
 	return 0;
 }
 
-errno_t nodeptr40_check_struct(place_t *place, uint8_t mode) {
+errno_t nodeptr40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	aal_assert("vpf-751", place != NULL);
 	return place->len != sizeof(nodeptr40_t) ? RE_FATAL : 0;
 }
 
 /* Prints passed nodeptr into @stream */
-void nodeptr40_print(place_t *place, aal_stream_t *stream, uint16_t options) {
+void nodeptr40_print(reiser4_place_t *place, aal_stream_t *stream,
+		     uint16_t options)
+{
 	nodeptr40_t *nodeptr;
 	
 	aal_assert("umka-544", place != NULL);

@@ -16,7 +16,7 @@
 typedef errno_t (*ext_func_t) (sdext_entity_t *,
 			       uint16_t, void *);
 
-extern errno_t stat40_traverse(place_t *place,
+extern errno_t stat40_traverse(reiser4_place_t *place,
 			       ext_func_t ext_func,
 			       sdext_entity_t *sdext,
 			       void *data);

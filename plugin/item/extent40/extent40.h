@@ -19,25 +19,31 @@ typedef struct extent40 extent40_t;
 
 extern reiser4_core_t *extent40_core;
 
-extern uint32_t extent40_units(place_t *place);
+extern uint32_t extent40_units(reiser4_place_t *place);
 
-extern uint64_t extent40_offset(place_t *place,	uint32_t pos);
+extern uint64_t extent40_offset(reiser4_place_t *place,
+				uint32_t pos);
 
-extern uint32_t extent40_unit(place_t *place, uint64_t offset);
+extern uint32_t extent40_unit(reiser4_place_t *place,
+			      uint64_t offset);
 
-extern errno_t extent40_maxreal_key(place_t *place, key_entity_t *key);
+extern errno_t extent40_maxreal_key(reiser4_place_t *place,
+				    reiser4_key_t *key);
 
-extern uint32_t extent40_expand(place_t *place, uint32_t pos, uint32_t count);
+extern uint32_t extent40_expand(reiser4_place_t *place,
+				uint32_t pos, uint32_t count);
 
-extern uint32_t extent40_shrink(place_t *place, uint32_t pos, uint32_t count);
+extern uint32_t extent40_shrink(reiser4_place_t *place,
+				uint32_t pos, uint32_t count);
 
-extern lookup_t extent40_lookup(place_t *place, key_entity_t *key, bias_t bias);
+extern lookup_t extent40_lookup(reiser4_place_t *place,
+				reiser4_key_t *key, bias_t bias);
 
 #define extent40_blksize(place) \
-        ((place)->block->size)
+        ((place)->node->block->size)
 
 #define extent40_device(place)  \
-        ((place)->block->device)
+        ((place)->node->block->device)
 
 #define extent40_secsize(place) \
         (extent40_device(place)->blksize)

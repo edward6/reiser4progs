@@ -227,13 +227,13 @@ typedef struct reiser4_plug reiser4_plug_t;
 #define INVAL_PID	        ((rid_t)~0)
 
 /* Type for key which is used both by library and plugins. */
-struct key_entity {
+struct reiser4_key {
 	reiser4_plug_t *plug;
 	d64_t body[4];
 	uint32_t adjust;
 };
 
-typedef struct key_entity key_entity_t;
+typedef struct reiser4_key reiser4_key_t;
 
 /* Known key types. */
 enum key_type {
@@ -263,63 +263,63 @@ struct generic_entity {
 
 typedef struct generic_entity generic_entity_t;
 
-/* Node plugins entity. */
-struct node_entity {
-	reiser4_plug_t *plug;
-	aal_block_t *block;
-};
-
-typedef struct node_entity node_entity_t;
-
-typedef struct node node_t;
-typedef struct place place_t;
+typedef struct reiser4_node reiser4_node_t;
+typedef struct reiser4_place reiser4_place_t;
 
 /* Tree coord struct. */
-struct place {
-	node_t *node;
+struct reiser4_place {
+	/* Item/unit pos and node it lies in. These fields should be always
+	   initialized in a @place instance. */
 	pos_t pos;
+	reiser4_node_t *node;
 
+	/* Item header stuff. There are item body pointer, length, flags, key
+	   and plugin used in item at @pos. These fields are initialized in node
+	   method fetch() and stored here to make work with them simpler. */
 	void *body;
 	uint32_t len;
 	uint16_t flags;
-	key_entity_t key;
-	aal_block_t *block;
+	reiser4_key_t key;
 	reiser4_plug_t *plug;
 };
 
 enum node_flags {
-#ifndef ENABLE_STAND_ALONE
 	NF_HEARD_BANSHEE  = 1 << 0,
-#endif
-	NF_ATTACHED       = 1 << 1
 };
 
 typedef enum node_flags node_flags_t;
 
 /* Reiser4 in-memory node structure. */
-struct node {
-	/* Node entity. Node plugin initializes this value and return it back in
-	   node initializing time. This node entity is used for performing all
-	   on-node actions. */
-	node_entity_t *entity;
+struct reiser4_node {
+	/* Node plugin. */
+	reiser4_plug_t *plug;
 
-	/* Place in parent node */
-	place_t p;
+	/* Block node lies in. */
+	aal_block_t *block;
 
 	/* Reference to tree if node is attached to tree. Sometimes node needs
 	   access tree and tree functions. */
 	void *tree;
 	
+	/* Place in parent node. */
+	reiser4_place_t p;
+
 	/* Reference to left neighbour. It is used for establishing silbing
 	   links among nodes in memory tree cache. */
-	node_t *left;
+	reiser4_node_t *left;
 
 	/* Reference to right neighbour. It is used for establishing silbing
 	   links among nodes in memory tree cache. */
-	node_t *right;
+	reiser4_node_t *right;
 	
-	/* Usage counter to prevent releasing used nodes */
+	/* Usage counter to prevent releasing used nodes. */
 	signed int counter;
+
+	/* Key plugin. */
+	reiser4_plug_t *kplug;
+
+	/* Node state flags. */
+	uint32_t state;
 
 #ifndef ENABLE_STAND_ALONE
 	/* Different node flags. */
@@ -335,10 +335,9 @@ struct node {
    object. These are: its key, parent key and coord of first item. */
 struct object_info {
 	void *tree;
-	place_t start;
-	
-	key_entity_t object;
-	key_entity_t parent;
+	reiser4_place_t start;
+	reiser4_key_t object;
+	reiser4_key_t parent;
 };
 
 typedef struct object_info object_info_t;
@@ -427,31 +426,6 @@ struct shift_hint {
 };
 
 typedef struct shift_hint shift_hint_t;
-
-#if 0
-/* Merge hint. It is used in merging two items in repair code. Merge is process
-   of fusing two items, which are overlapped by keys. */
-struct merge_hint {	
-	uint32_t dst_count;
-	uint32_t src_count;
-	int32_t  len_delta;
-	
-	key_entity_t start, end;
-	
-	/* Fields bellow are only related to extent prep_merge() and
-	   merge_units() operations. */
-	
-	/* Offset in blocks in the start and end units of dst and src */
-	uint64_t dst_tail, src_tail;
-	uint64_t dst_head, src_head;
-
-	/* Should be dst head and tail splitted into 2 units while performing
-	   merge_units() operation. */
-	bool_t head, tail;
-};
-
-typedef struct merge_hint merge_hint_t;
-#endif
 
 /* Different hints used for getting data to/from corresponding objects. */
 struct ptr_hint {    
@@ -560,7 +534,7 @@ struct object_hint {
 	reiser4_plug_t *plug;
 
 	/* Parent object key. */
-	key_entity_t *parent;
+	reiser4_key_t *parent;
 };
 
 typedef struct object_hint object_hint_t;
@@ -578,7 +552,7 @@ typedef errno_t (*region_func_t) (void *, uint64_t,
 				  uint64_t, void *);
 
 /* Type for object place enumeration functions. */
-typedef errno_t (*place_func_t) (place_t *, void *);
+typedef errno_t (*place_func_t) (reiser4_place_t *, void *);
 
 /* Function definitions for enumeration item metadata and data. */
 typedef errno_t (*layout_func_t) (void *, region_func_t, void *);
@@ -589,13 +563,13 @@ struct entry_hint {
 	uint16_t len;
 	
 	/* Tree coord entry lies at. Filled by dir plugin's lookup. */
-	place_t place;
+	reiser4_place_t place;
 
 	/* Entry key within the current directory */
-	key_entity_t offset;
+	reiser4_key_t offset;
 
 	/* The stat data key of the object entry points to */
-	key_entity_t object;
+	reiser4_key_t object;
 
 	/* Entry type (name or special), filled by readdir */
 	entry_type_t type;
@@ -640,10 +614,10 @@ struct trans_hint {
 	uint64_t count;
 
 	/* The key of item/unit to be inserted. */
-	key_entity_t offset;
+	reiser4_key_t offset;
 
 	/* Max real key. Needed for extents only. Set by estimate. */
-	key_entity_t maxkey;
+	reiser4_key_t maxkey;
 
 	/* Flags specific for the operation, set at prepare stage. */
 	uint16_t merge_flags;
@@ -684,7 +658,7 @@ struct conv_hint {
 	uint64_t count;
 
 	/* File will be converted starting from this key. */
-	key_entity_t offset;
+	reiser4_key_t offset;
 	
 	/* Plugin item will be converted to. */
 	reiser4_plug_t *plug;
@@ -708,17 +682,17 @@ typedef struct fs_desc fs_desc_t;
 struct reiser4_key_ops {
 	/* Cleans key up. Actually it just memsets it by zeros, but more smart
 	   behavior may be implemented. */
-	void (*clean) (key_entity_t *);
+	void (*clean) (reiser4_key_t *);
 
 	/* Function for dermining is key contains direntry name hashed or
 	   not? */
-	int (*hashed) (key_entity_t *);
+	int (*hashed) (reiser4_key_t *);
 
 	/* Returns minimal key for this key-format */
-	key_entity_t *(*minimal) (void);
+	reiser4_key_t *(*minimal) (void);
     
 	/* Returns maximal key for this key-format */
-	key_entity_t *(*maximal) (void);
+	reiser4_key_t *(*maximal) (void);
 
 	/* Returns key size for particular key-format */
 	uint32_t (*bodysize) (void);
@@ -732,62 +706,62 @@ struct reiser4_key_ops {
 	int (*compraw) (void *, void *);
 
 	/* Compares two keys by comparing its all components. */
-	int (*compfull) (key_entity_t *, key_entity_t *);
+	int (*compfull) (reiser4_key_t *, reiser4_key_t *);
 
 	/* Compares two keys by comparing locality and objectid. */
-	int (*compshort) (key_entity_t *, key_entity_t *);
+	int (*compshort) (reiser4_key_t *, reiser4_key_t *);
 	
 	/* Copyies src key to dst one */
-	errno_t (*assign) (key_entity_t *, key_entity_t *);
+	errno_t (*assign) (reiser4_key_t *, reiser4_key_t *);
 	
 	/* Builds generic key (statdata, file body, etc). That is build key by
 	   all its components. */
-	errno_t (*build_generic) (key_entity_t *, key_type_t,
+	errno_t (*build_generic) (reiser4_key_t *, key_type_t,
 				  uint64_t, uint64_t, uint64_t,
 				  uint64_t);
 
 	/* Builds key used for directory entries access. It uses name and hash
 	   plugin to build hash and put it to key offset component. */
-	errno_t (*build_hashed) (key_entity_t *, reiser4_plug_t *,
+	errno_t (*build_hashed) (reiser4_key_t *, reiser4_plug_t *,
 				 uint64_t, uint64_t, char *);
 	
 	/* Gets/sets key type (minor in reiser4 notation). */	
-	void (*set_type) (key_entity_t *, key_type_t);
-	key_type_t (*get_type) (key_entity_t *);
+	void (*set_type) (reiser4_key_t *, key_type_t);
+	key_type_t (*get_type) (reiser4_key_t *);
 
 	/* Gets/sets key locality. */
-	void (*set_locality) (key_entity_t *, uint64_t);
-	uint64_t (*get_locality) (key_entity_t *);
+	void (*set_locality) (reiser4_key_t *, uint64_t);
+	uint64_t (*get_locality) (reiser4_key_t *);
     
 	/* Gets/sets key locality. */
-	void (*set_ordering) (key_entity_t *, uint64_t);
-	uint64_t (*get_ordering) (key_entity_t *);
+	void (*set_ordering) (reiser4_key_t *, uint64_t);
+	uint64_t (*get_ordering) (reiser4_key_t *);
     
 	/* Gets/sets key objectid. */
-	void (*set_objectid) (key_entity_t *, uint64_t);
-	uint64_t (*get_objectid) (key_entity_t *);
+	void (*set_objectid) (reiser4_key_t *, uint64_t);
+	uint64_t (*get_objectid) (reiser4_key_t *);
 
 	/* Gets/sets key full objectid */
-	void (*set_fobjectid) (key_entity_t *, uint64_t);
-	uint64_t (*get_fobjectid) (key_entity_t *);
+	void (*set_fobjectid) (reiser4_key_t *, uint64_t);
+	uint64_t (*get_fobjectid) (reiser4_key_t *);
 
 	/* Gets/sets key offset */
-	void (*set_offset) (key_entity_t *, uint64_t);
-	uint64_t (*get_offset) (key_entity_t *);
+	void (*set_offset) (reiser4_key_t *, uint64_t);
+	uint64_t (*get_offset) (reiser4_key_t *);
 
 	/* Extracts name from passed key. */
-	char *(*get_name) (key_entity_t *, char *);
+	char *(*get_name) (reiser4_key_t *, char *);
 
 #ifndef ENABLE_STAND_ALONE
 	/* Gets/sets directory key hash */
-	void (*set_hash) (key_entity_t *, uint64_t);
-	uint64_t (*get_hash) (key_entity_t *);
+	void (*set_hash) (reiser4_key_t *, uint64_t);
+	uint64_t (*get_hash) (reiser4_key_t *);
 	
 	/* Prints key into specified buffer */
-	void (*print) (key_entity_t *, aal_stream_t *, uint16_t);
+	void (*print) (reiser4_key_t *, aal_stream_t *, uint16_t);
 
 	/* Check key body for validness. */
-	errno_t (*check_struct) (key_entity_t *);
+	errno_t (*check_struct) (reiser4_key_t *);
 #endif
 };
 
@@ -879,8 +853,8 @@ struct reiser4_object_ops {
 			    entry_hint_t *);
 
 	/* Finds actual file stat data (used in symlinks). */
-	errno_t (*follow) (object_entity_t *, key_entity_t *,
-			   key_entity_t *);
+	errno_t (*follow) (object_entity_t *, reiser4_key_t *,
+			   reiser4_key_t *);
 
 	/* Reads the data from file to passed buffer. */
 	int64_t (*read) (object_entity_t *, void *, uint64_t);
@@ -889,93 +863,93 @@ struct reiser4_object_ops {
 	int32_t (*readdir) (object_entity_t *, entry_hint_t *);
 
 	/* Return current position in directory. */
-	errno_t (*telldir) (object_entity_t *, key_entity_t *);
+	errno_t (*telldir) (object_entity_t *, reiser4_key_t *);
 
 	/* Change current position in directory. */
-	errno_t (*seekdir) (object_entity_t *, key_entity_t *);
+	errno_t (*seekdir) (object_entity_t *, reiser4_key_t *);
 };
 
 typedef struct reiser4_object_ops reiser4_object_ops_t;
 
 struct item_balance_ops {
 	/* Returns unit count in item passed place point to. */
-	uint32_t (*units) (place_t *);
+	uint32_t (*units) (reiser4_place_t *);
 	
 	/* Makes lookup for passed key. */
-	lookup_t (*lookup) (place_t *, key_entity_t *, bias_t);
+	lookup_t (*lookup) (reiser4_place_t *, reiser4_key_t *, bias_t);
 	
 #ifndef ENABLE_STAND_ALONE
 	/* Fuses two neighbour items in the same node. Returns space released
 	   Needed for fsck. */
-	int32_t (*fuse) (place_t *, place_t *);
+	int32_t (*fuse) (reiser4_place_t *, reiser4_place_t *);
 	
 	/* Checks if items mergeable, that is if unit of one item can belong to
 	   another one. Returns 1 if so, 0 otherwise. */
-	int (*mergeable) (place_t *, place_t *);
+	int (*mergeable) (reiser4_place_t *, reiser4_place_t *);
 
 	/* Estimates shift operation. */
-	errno_t (*prep_shift) (place_t *, place_t *, shift_hint_t *);
+	errno_t (*prep_shift) (reiser4_place_t *, reiser4_place_t *, shift_hint_t *);
 	
 	/* Performs shift of units from passed @src item to @dst item. */
-	errno_t (*shift_units) (place_t *, place_t *, shift_hint_t *);
+	errno_t (*shift_units) (reiser4_place_t *, reiser4_place_t *, shift_hint_t *);
 
 	/* Set the key of a particular unit of the item. */
-	errno_t (*update_key) (place_t *, key_entity_t *);
+	errno_t (*update_key) (reiser4_place_t *, reiser4_key_t *);
 	
 	/* Get the max real key which is stored in the item. */
-	errno_t (*maxreal_key) (place_t *, key_entity_t *);
+	errno_t (*maxreal_key) (reiser4_place_t *, reiser4_key_t *);
 #endif
 
 	/* Get the key of a particular unit of the item. */
-	errno_t (*fetch_key) (place_t *, key_entity_t *);
+	errno_t (*fetch_key) (reiser4_place_t *, reiser4_key_t *);
 
 	/* Get the max key which could be stored in the item of this type. */
-	errno_t (*maxposs_key) (place_t *, key_entity_t *);
+	errno_t (*maxposs_key) (reiser4_place_t *, reiser4_key_t *);
 };
 
 typedef struct item_balance_ops item_balance_ops_t;
 
 struct item_object_ops {
 	/* Get plugin id of specified type if stored in stat data item. */
-	rid_t (*object_plug) (place_t *, rid_t);
+	rid_t (*object_plug) (reiser4_place_t *, rid_t);
 		
 	/* Reads passed amount of bytes from the item. */
-	int64_t (*read_units) (place_t *, trans_hint_t *);
+	int64_t (*read_units) (reiser4_place_t *, trans_hint_t *);
 		
 	/* Fetches one or more units at passed @place to passed hint. */
-	int64_t (*fetch_units) (place_t *, trans_hint_t *);
+	int64_t (*fetch_units) (reiser4_place_t *, trans_hint_t *);
 
 #ifndef ENABLE_STAND_ALONE
 	/* Estimates write operation. */
-	errno_t (*prep_write) (place_t *, trans_hint_t *);
+	errno_t (*prep_write) (reiser4_place_t *, trans_hint_t *);
 
 	/* Writes data to item. */
-	int64_t (*write_units) (place_t *, trans_hint_t *);
+	int64_t (*write_units) (reiser4_place_t *, trans_hint_t *);
 
 	/* Estimates insert operation. */
-	errno_t (*prep_insert) (place_t *, trans_hint_t *);
+	errno_t (*prep_insert) (reiser4_place_t *, trans_hint_t *);
 
 	/* Inserts some amount of units described by passed hint into passed
 	   item denoted by place. */
-	int64_t (*insert_units) (place_t *, trans_hint_t *);
+	int64_t (*insert_units) (reiser4_place_t *, trans_hint_t *);
 
 	/* Removes specified unit from the item. */
-	errno_t (*remove_units) (place_t *, trans_hint_t *);
+	errno_t (*remove_units) (reiser4_place_t *, trans_hint_t *);
 
 	/* Updates unit at passed place by data from passed hint. */
-	int64_t (*update_units) (place_t *, trans_hint_t *);
+	int64_t (*update_units) (reiser4_place_t *, trans_hint_t *);
 
 	/* Cuts out some amount of data */
-	int64_t (*trunc_units) (place_t *, trans_hint_t *);
+	int64_t (*trunc_units) (reiser4_place_t *, trans_hint_t *);
 
 	/* Goes through all blocks item points to. */
-	errno_t (*layout) (place_t *, region_func_t, void *);
+	errno_t (*layout) (reiser4_place_t *, region_func_t, void *);
 		
 	/* Gets the size of the data item keeps. */
-	uint64_t (*size) (place_t *);
+	uint64_t (*size) (reiser4_place_t *);
 	
 	/* Gets the amount of bytes data item keeps takes on the disk. */
-	uint64_t (*bytes) (place_t *);
+	uint64_t (*bytes) (reiser4_place_t *);
 #endif
 };
 
@@ -984,21 +958,21 @@ typedef struct item_object_ops item_object_ops_t;
 struct item_repair_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Estimate merge operation. */
-	errno_t (*prep_merge) (place_t *, trans_hint_t *);
+	errno_t (*prep_merge) (reiser4_place_t *, trans_hint_t *);
 
 	/* Copies some amount of units from @src to @dst with partial
 	   overwritting. */
-	errno_t (*merge) (place_t *, trans_hint_t *);
+	errno_t (*merge) (reiser4_place_t *, trans_hint_t *);
 
 	/* Checks the item structure. */
-	errno_t (*check_struct) (place_t *, uint8_t);
+	errno_t (*check_struct) (reiser4_place_t *, uint8_t);
 	
 	/* Does some specific actions if a block the item points to is wrong. */
-	errno_t (*check_layout) (place_t *, region_func_t,
+	errno_t (*check_layout) (reiser4_place_t *, region_func_t,
 				 void *, uint8_t);
 
-	errno_t (*pack) (place_t *, aal_stream_t *);
-	errno_t (*unpack) (place_t *, aal_stream_t *);
+	errno_t (*pack) (reiser4_place_t *, aal_stream_t *);
+	errno_t (*unpack) (reiser4_place_t *, aal_stream_t *);
 #endif
 };
 
@@ -1007,7 +981,7 @@ typedef struct item_repair_ops item_repair_ops_t;
 struct item_debug_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Prints item into specified buffer. */
-	void (*print) (place_t *, aal_stream_t *, uint16_t);
+	void (*print) (reiser4_place_t *, aal_stream_t *, uint16_t);
 #endif
 };
 
@@ -1015,11 +989,11 @@ typedef struct item_debug_ops item_debug_ops_t;
 
 struct item_tree_ops {
 	/* Return block number from passed place. Place is nodeptr item. */
-	blk_t (*down_link) (place_t *);
+	blk_t (*down_link) (reiser4_place_t *);
 
 #ifndef ENABLE_STAND_ALONE
 	/* Update link block number. */
-	errno_t (*update_link) (place_t *, blk_t);
+	errno_t (*update_link) (reiser4_place_t *, blk_t);
 #endif
 };
 
@@ -1062,125 +1036,119 @@ typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
 struct reiser4_node_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Get node state flags and set them back. */
-	uint32_t (*get_state) (node_entity_t *);
-	void (*set_state) (node_entity_t *, uint32_t);
-
-	/* Makes clone of passed node. */
-	errno_t (*clone) (node_entity_t *, node_entity_t *);
+	uint32_t (*get_state) (reiser4_node_t *);
+	void (*set_state) (reiser4_node_t *, uint32_t);
 
 	/* Performs shift of items and units. */
-	errno_t (*shift) (node_entity_t *, node_entity_t *, 
+	errno_t (*shift) (reiser4_node_t *, reiser4_node_t *, 
 			  shift_hint_t *);
 
 	/* Fuses two neighbour items in passed node at passed positions. */
-	errno_t (*fuse) (node_entity_t *, pos_t *, pos_t *);
+	errno_t (*fuse) (reiser4_node_t *, pos_t *, pos_t *);
     
 	/* Checks thoroughly the node structure and fixes what needed. */
-	errno_t (*check_struct) (node_entity_t *, uint8_t);
+	errno_t (*check_struct) (reiser4_node_t *, uint8_t);
 
 	/* Packing/unpacking metadata. */
-	node_entity_t *(*unpack) (aal_block_t *, reiser4_plug_t *,
+	reiser4_node_t *(*unpack) (aal_block_t *, reiser4_plug_t *,
 				  aal_stream_t *, int);
 	
-	errno_t (*pack) (node_entity_t *, aal_stream_t *, int);
+	errno_t (*pack) (reiser4_node_t *, aal_stream_t *, int);
 
 	/* Prints node into given buffer. */
-	void (*print) (node_entity_t *, aal_stream_t *,
+	void (*print) (reiser4_node_t *, aal_stream_t *,
 		       uint32_t, uint32_t, uint16_t);
     
 	/* Returns node overhead. */
-	uint16_t (*overhead) (node_entity_t *);
+	uint16_t (*overhead) (reiser4_node_t *);
 
 	/* Returns node max possible space. */
-	uint16_t (*maxspace) (node_entity_t *);
+	uint16_t (*maxspace) (reiser4_node_t *);
     
 	/* Returns free space in the node. */
-	uint16_t (*space) (node_entity_t *);
+	uint16_t (*space) (reiser4_node_t *);
 
 	/* Inserts item at specified pos. */
-	errno_t (*insert) (node_entity_t *, pos_t *,
+	errno_t (*insert) (reiser4_node_t *, pos_t *,
 			   trans_hint_t *);
     
 	/* Writes data to the node. */
-	int64_t (*write) (node_entity_t *, pos_t *,
+	int64_t (*write) (reiser4_node_t *, pos_t *,
 			  trans_hint_t *);
 
 	/* Truncate item at passed pos. */
-	int64_t (*trunc) (node_entity_t *, pos_t *,
+	int64_t (*trunc) (reiser4_node_t *, pos_t *,
 			  trans_hint_t *);
 
 	/* Removes item/unit at specified pos. */
-	errno_t (*remove) (node_entity_t *, pos_t *,
+	errno_t (*remove) (reiser4_node_t *, pos_t *,
 			   trans_hint_t *);
 
 	/* Shrinks node without calling any item methods. */
-	errno_t (*shrink) (node_entity_t *, pos_t *,
+	errno_t (*shrink) (reiser4_node_t *, pos_t *,
 			   uint32_t, uint32_t);
 
 	/* Merge 2 items -- insert/overwrite @src_entity parts to
 	   @dst_entity. */
-	errno_t (*merge) (node_entity_t *, pos_t *, 
+	errno_t (*merge) (reiser4_node_t *, pos_t *, 
 			  trans_hint_t *);
 
 	/* Copies items from @src_entity to @dst_entity. */
-	errno_t (*copy) (node_entity_t *, pos_t *,
-			 node_entity_t *, pos_t *,
+	errno_t (*copy) (reiser4_node_t *, pos_t *,
+			 reiser4_node_t *, pos_t *,
 			 uint32_t);
 	
 	/* Expands node (makes space) at passed pos. */
-	errno_t (*expand) (node_entity_t *, pos_t *,
+	errno_t (*expand) (reiser4_node_t *, pos_t *,
 			   uint32_t, uint32_t);
 
 	/* Updates key at passed pos by passed key. */
-	errno_t (*set_key) (node_entity_t *, pos_t *,
-			    key_entity_t *);
+	errno_t (*set_key) (reiser4_node_t *, pos_t *,
+			    reiser4_key_t *);
 
-	void (*set_level) (node_entity_t *, uint8_t);
-	void (*set_mstamp) (node_entity_t *, uint32_t);
-	void (*set_fstamp) (node_entity_t *, uint64_t);
-
-	/* Changes node location */
-	void (*move) (node_entity_t *, blk_t);
+	void (*set_level) (reiser4_node_t *, uint8_t);
+	void (*set_mstamp) (reiser4_node_t *, uint32_t);
+	void (*set_fstamp) (reiser4_node_t *, uint64_t);
 
 	/* Get mkfs and flush stamps */
-	uint32_t (*get_mstamp) (node_entity_t *);
-    	uint64_t (*get_fstamp) (node_entity_t *);
+	uint32_t (*get_mstamp) (reiser4_node_t *);
+    	uint64_t (*get_fstamp) (reiser4_node_t *);
 	
 	/* Get/set/test item flags. */
-	void (*set_flag) (node_entity_t *, uint32_t, uint16_t);	
-	void (*clear_flag) (node_entity_t *, uint32_t, uint16_t);	
-	bool_t (*test_flag) (node_entity_t *, uint32_t, uint16_t);
+	void (*set_flag) (reiser4_node_t *, uint32_t, uint16_t);	
+	void (*clear_flag) (reiser4_node_t *, uint32_t, uint16_t);	
+	bool_t (*test_flag) (reiser4_node_t *, uint32_t, uint16_t);
 
 	/* Saves node to device */
-	errno_t (*sync) (node_entity_t *);
+	errno_t (*sync) (reiser4_node_t *);
 
 	/* Initializes node with passed block and key plugin. */
-	node_entity_t *(*init) (aal_block_t *, uint8_t , 
+	reiser4_node_t *(*init) (aal_block_t *, uint8_t , 
 				reiser4_plug_t *);
 #endif
 	/* Open the node on the given block with the given key plugin. */
-	node_entity_t *(*open) (aal_block_t *, reiser4_plug_t *);
+	reiser4_node_t *(*open) (aal_block_t *, reiser4_plug_t *);
 	
 	/* Destroys the node entity. */
-	errno_t (*fini) (node_entity_t *);
+	errno_t (*fini) (reiser4_node_t *);
 
 	/* Fetches item data to passed @place */
-	errno_t (*fetch) (node_entity_t *, pos_t *,
-			  place_t *);
+	errno_t (*fetch) (reiser4_node_t *, pos_t *,
+			  reiser4_place_t *);
 	
 	/* Returns item count */
-	uint32_t (*items) (node_entity_t *);
+	uint32_t (*items) (reiser4_node_t *);
     
 	/* Makes lookup inside node by specified key */
-	lookup_t (*lookup) (node_entity_t *, key_entity_t *, 
+	lookup_t (*lookup) (reiser4_node_t *, reiser4_key_t *, 
 			    bias_t, pos_t *);
     
 	/* Gets/sets key at pos */
-	errno_t (*get_key) (node_entity_t *, pos_t *,
-			    key_entity_t *);
+	errno_t (*get_key) (reiser4_node_t *, pos_t *,
+			    reiser4_key_t *);
 
 	/* Return node level. */
-	uint8_t (*get_level) (node_entity_t *);
+	uint8_t (*get_level) (reiser4_node_t *);
 };
 
 typedef struct reiser4_node_ops reiser4_node_ops_t;
@@ -1538,25 +1506,25 @@ struct reiser4_plug {
 
 /* Macros for dirtying nodes place lie at. */
 #define place_mkdirty(place) \
-        ((place)->block->dirty = 1)
+        ((place)->node->block->dirty = 1)
 
 #define place_mkclean(place) \
-        ((place)->block->dirty = 0)
+        ((place)->node->block->dirty = 0)
 
 #define place_isdirty(place) \
-        ((place)->block->dirty)
+        ((place)->node->block->dirty)
 
 struct tree_ops {
 	/* Checks if passed @place points to some real item inside a node. */
-	int (*valid) (void *, place_t *);
+	int (*valid) (void *, reiser4_place_t *);
 	
 	/* Initializes all item fields in passed place. */
-	errno_t (*fetch) (void *, place_t *);
+	errno_t (*fetch) (void *, reiser4_place_t *);
 
 	/* Makes lookup in the tree in order to know where say stat data item of
 	   a file realy lies. It is used in all object plugins. */
-	lookup_t (*lookup) (void *, key_entity_t *,
-			    uint8_t, bias_t, place_t *);
+	lookup_t (*lookup) (void *, reiser4_key_t *,
+			    uint8_t, bias_t, reiser4_place_t *);
 
 	/* Reads data from the tree. */
 	int64_t (*read) (void *, trans_hint_t *);
@@ -1573,27 +1541,27 @@ struct tree_ops {
 
 	/* Inserts item/unit in the tree by calling tree_insert() function, used
 	   by all object plugins (dir, file, etc). */
-	int64_t (*insert) (void *, place_t *,
+	int64_t (*insert) (void *, reiser4_place_t *,
 			   trans_hint_t *, uint8_t);
 
 	/* Removes item/unit from the tree. It is used in all object plugins for
 	   modification purposes. */
-	errno_t (*remove) (void *, place_t *, trans_hint_t *);
+	errno_t (*remove) (void *, reiser4_place_t *, trans_hint_t *);
 
 	/* Functions for getting/setting extent data. */
-	aal_block_t *(*get_data) (void *, key_entity_t *);
+	aal_block_t *(*get_data) (void *, reiser4_key_t *);
 	
-	errno_t (*put_data) (void *, key_entity_t *,
+	errno_t (*put_data) (void *, reiser4_key_t *,
 			     aal_block_t *);
 
 	/* Removes data from the cache */
-	errno_t (*rem_data) (void *, key_entity_t *);
+	errno_t (*rem_data) (void *, reiser4_key_t *);
 	
 	/* Update the key in the place and the node itsef. */
-	errno_t (*update_key) (void *, place_t *, key_entity_t *);
+	errno_t (*update_key) (void *, reiser4_place_t *, reiser4_key_t *);
 #endif
 	/* Returns the next item. */
-	errno_t (*next) (void *, place_t *, place_t *);
+	errno_t (*next) (void *, reiser4_place_t *, reiser4_place_t *);
 };
 
 typedef struct tree_ops tree_ops_t;
@@ -1612,8 +1580,8 @@ typedef struct factory_ops factory_ops_t;
 
 #ifdef ENABLE_SYMLINKS
 struct object_ops {
-	errno_t (*resolve) (void *, char *, key_entity_t *,
-			    key_entity_t *);
+	errno_t (*resolve) (void *, char *, reiser4_key_t *,
+			    reiser4_key_t *);
 };
 
 typedef struct object_ops object_ops_t;
@@ -1628,14 +1596,14 @@ struct param_ops {
 typedef struct param_ops param_ops_t;
 
 struct key_ops {
-	char *(*print) (key_entity_t *, uint16_t);
+	char *(*print) (reiser4_key_t *, uint16_t);
 };
 
 typedef struct key_ops key_ops_t;
 
 struct item_ops {
 	/* Checks if items mergeable. */
-	int (*mergeable) (place_t *, place_t *);
+	int (*mergeable) (reiser4_place_t *, reiser4_place_t *);
 };
 
 typedef struct item_ops item_ops_t;

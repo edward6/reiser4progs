@@ -9,7 +9,7 @@
 
 #define dir40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
 
-static errno_t dir40_extensions(place_t *stat) {
+static errno_t dir40_extensions(reiser4_place_t *stat) {
 	uint64_t extmask;
 	
 	extmask = obj40_extmask(stat);
@@ -24,7 +24,7 @@ static errno_t dir40_extensions(place_t *stat) {
 }
 
 /* Check SD extensions and that mode in LW extension is DIRFILE. */
-static errno_t callback_stat(place_t *stat) {
+static errno_t callback_stat(reiser4_place_t *stat) {
 	sdext_lw_hint_t lw_hint;
 	errno_t res;
 	
@@ -279,10 +279,10 @@ errno_t dir40_check_struct(object_entity_t *object,
 	   would be better to do evth in vise versa order -- choose the hash
 	   found among the entries most of the times and correct hash plugin in
 	   SD. */
-	while (TRUE) {
+	while (1) {
 		pos_t *pos = &dir->body.pos;
 		trans_hint_t hint;
-		key_entity_t key;
+		reiser4_key_t key;
 		lookup_t lookup;
 		uint32_t units;
 		
@@ -308,7 +308,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 				  "item [%u]: item of the illegal plugin [%s] "
 				  "with the key of this object found.%s",
 				  print_inode(dir40_core, &info->object),
-				  dir40_plug.label, dir->body.block->nr,
+				  dir40_plug.label, dir->body.node->block->nr,
 				  dir->body.pos.item, dir->body.plug->label,
 				  mode == RM_BUILD ? " Removed." : "");
 
@@ -360,7 +360,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 				  "item [%u], unit [%u]: entry has wrong "
 				  "offset [%s]. Should be [%s].%s", 
 				  print_inode(dir40_core, &info->object),
-				  dir40_plug.label, dir->body.block->nr,
+				  dir40_plug.label, dir->body.node->block->nr,
 				  dir->body.pos.item, dir->body.pos.unit,
 				  print_key(dir40_core, &entry.offset),
 				  print_key(dir40_core, &key), 

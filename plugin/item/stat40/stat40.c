@@ -12,7 +12,7 @@ reiser4_core_t *stat40_core;
 /* The function which implements stat40 layout pass. This function is used for
    all statdata extension-related actions. For example for reading, or
    counting. */
-errno_t stat40_traverse(place_t *place, ext_func_t ext_func, 
+errno_t stat40_traverse(reiser4_place_t *place, ext_func_t ext_func, 
 			sdext_entity_t *sdext, void *data) 
 {
 	uint16_t i, len;
@@ -110,7 +110,7 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 }
 
 /* Fetches whole statdata item with extensions into passed @buff */
-static int64_t stat40_fetch_units(place_t *place, trans_hint_t *hint) {
+static int64_t stat40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
 	sdext_entity_t sdext;
 
 	aal_assert("umka-1415", hint != NULL);
@@ -122,8 +122,8 @@ static int64_t stat40_fetch_units(place_t *place, trans_hint_t *hint) {
 	return 1;
 }
 
-static errno_t stat40_maxposs_key(place_t *place, 
-				  key_entity_t *key)
+static errno_t stat40_maxposs_key(reiser4_place_t *place, 
+				  reiser4_key_t *key)
 {
 	aal_assert("umka-2421", key != NULL);
 	aal_assert("umka-2420", place != NULL);
@@ -136,14 +136,14 @@ static errno_t stat40_maxposs_key(place_t *place,
    units. It is because balancing code assumes that if item has more than one
    unit the it may be shifted out. That is because w ecan't return the number of
    extensions here. Extensions are the statdata private bussiness. */
-static uint32_t stat40_units(place_t *place) {
+static uint32_t stat40_units(reiser4_place_t *place) {
 	return 1;
 }
 
 #ifndef ENABLE_STAND_ALONE
 /* Estimates how many bytes will be needed for creating statdata item described
    by passed @hint at passed @pos. */
-static errno_t stat40_prep_insert(place_t *place, trans_hint_t *hint) {
+static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 	uint16_t i;
 	statdata_hint_t *stat_hint;
     
@@ -193,7 +193,7 @@ static errno_t stat40_prep_insert(place_t *place, trans_hint_t *hint) {
 }
 
 /* Function for modifying stat40. */
-static int64_t stat40_modify(place_t *place, trans_hint_t *hint, int insert) {
+static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int insert) {
 	uint16_t i;
 	void *extbody;
 	statdata_hint_t *stat_hint;
@@ -259,7 +259,7 @@ static int64_t stat40_modify(place_t *place, trans_hint_t *hint, int insert) {
 }
 
 /* This method is for insert stat data extensions. */
-static int64_t stat40_insert_units(place_t *place, trans_hint_t *hint) {
+static int64_t stat40_insert_units(reiser4_place_t *place, trans_hint_t *hint) {
 	aal_assert("vpf-076", place != NULL); 
 	aal_assert("vpf-075", hint != NULL);
 
@@ -267,7 +267,7 @@ static int64_t stat40_insert_units(place_t *place, trans_hint_t *hint) {
 }
 
 /* This method is for update stat data extensions. */
-static int64_t stat40_update_units(place_t *place, trans_hint_t *hint) {
+static int64_t stat40_update_units(reiser4_place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-2588", place != NULL); 
 	aal_assert("umka-2589", hint != NULL);
 
@@ -276,7 +276,7 @@ static int64_t stat40_update_units(place_t *place, trans_hint_t *hint) {
 
 /* Removes stat data extensions marked in passed hint stat data extensions
    mask. Needed for fsck. */
-static errno_t stat40_remove_units(place_t *place, trans_hint_t *hint) {
+static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 	uint16_t i;
 	void *extbody;
 	uint16_t chunks = 0;
@@ -373,7 +373,7 @@ static errno_t callback_body_ext(sdext_entity_t *sdext,
 }
 
 /* Finds extension body by number of bit in 64bits mask */
-void *stat40_sdext_body(place_t *place, uint8_t bit) {
+void *stat40_sdext_body(reiser4_place_t *place, uint8_t bit) {
 	struct body_hint hint = {NULL, bit};
 	sdext_entity_t sdext;
 
@@ -403,7 +403,7 @@ static errno_t callback_present_ext(sdext_entity_t *sdext,
 }
 
 /* Determines if passed extension denoted by @bit present in statdata item */
-int stat40_sdext_present(place_t *place, uint8_t bit) {
+int stat40_sdext_present(reiser4_place_t *place, uint8_t bit) {
 	present_hint_t hint = {0, bit};
 	sdext_entity_t sdext;
 
@@ -415,7 +415,7 @@ int stat40_sdext_present(place_t *place, uint8_t bit) {
 #endif
 
 /* Get the plugin id of the type @type if stored in SD. */
-static rid_t stat40_object_plug(place_t *place, rid_t type) {
+static rid_t stat40_object_plug(reiser4_place_t *place, rid_t type) {
 	trans_hint_t hint;
 	statdata_hint_t stat;
 	sdext_lw_hint_t lw_hint;

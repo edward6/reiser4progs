@@ -2,74 +2,34 @@
    reiser4progs/COPYING.
    
    node.c -- the reiser4 disk node personalization. The libreiser4 internal
-   in-memory tree consists of node_t instances. */
+   in-memory tree consists of reiser4_node_t instances. */
 
 #include <reiser4/libreiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
-bool_t reiser4_node_isdirty(node_t *node) {
-	uint32_t state;
-	
+bool_t reiser4_node_isdirty(reiser4_node_t *node) {
 	aal_assert("umka-2663", node != NULL);
-
-	state = plug_call(node->entity->plug->o.node_ops,
-			  get_state, node->entity);
-	
-	if (state & (1 << ENTITY_DIRTY))
-		return 1;
-
-	return node->entity->block->dirty;
+	return node->block->dirty;
 }
 
-void reiser4_node_mkdirty(node_t *node) {
-	uint32_t state;
-	
+void reiser4_node_mkdirty(reiser4_node_t *node) {
 	aal_assert("umka-2662", node != NULL);
-
-	state = plug_call(node->entity->plug->o.node_ops,
-			  get_state, node->entity);
-
-	state |= (1 << ENTITY_DIRTY);
-	
-	plug_call(node->entity->plug->o.node_ops,
-		  set_state, node->entity, state);
-	
-	node->entity->block->dirty = 1;
+	node->block->dirty = 1;
 }
 
-void reiser4_node_mkclean(node_t *node) {
-	uint32_t state;
-	
+void reiser4_node_mkclean(reiser4_node_t *node) {
 	aal_assert("umka-2661", node != NULL);
-
-	state = plug_call(node->entity->plug->o.node_ops,
-			  get_state, node->entity);
-
-	state &= ~(1 << ENTITY_DIRTY);
-	
-	plug_call(node->entity->plug->o.node_ops,
-		  set_state, node->entity, state);
-
-	node->entity->block->dirty = 0;
-}
-
-/* Clones node @src to @dst. */
-errno_t reiser4_node_clone(node_t *src, node_t *dst) {
-	aal_assert("umka-2306", src != NULL);
-	aal_assert("umka-2307", dst != NULL);
-
-	return plug_call(src->entity->plug->o.node_ops,
-			 clone, src->entity, dst->entity);
+	node->block->dirty = 0;
 }
 
 /* Creates new node at block @nr on @tree with @level and with plugin @pid. Uses
    tree instance for accessing block size and key plugin in use. */
-node_t *reiser4_node_create(reiser4_tree_t *tree, blk_t nr,
-			    rid_t pid, uint8_t level)
+reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree, blk_t nr,
+				    rid_t pid, uint8_t level)
 {
-	node_t *node;
 	uint32_t size;
 	aal_block_t *block;
+	reiser4_node_t *node;
 	reiser4_plug_t *plug;
 	aal_device_t *device;
 
@@ -77,7 +37,8 @@ node_t *reiser4_node_create(reiser4_tree_t *tree, blk_t nr,
     
 	/* Finding the node plugin by its id */
 	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
-		aal_error("Can't find node plugin by its id 0x%x.", pid);
+		aal_error("Can't find node plugin by its id 0x%x.",
+			  pid);
 		return NULL;
 	}
 
@@ -90,70 +51,62 @@ node_t *reiser4_node_create(reiser4_tree_t *tree, blk_t nr,
 	if (!(block = aal_block_alloc(device, size, nr)))
 		return NULL;
 
-	/* Allocating memory for instance of node */
-	if (!(node = aal_calloc(sizeof(*node), 0)))
-		goto error_free_block;
-
 	/* Requesting the plugin for initialization node entity. */
-	if (!(node->entity = plug_call(plug->o.node_ops, init,
-				       block, level, tree->key.plug)))
+	if (!(node = plug_call(plug->o.node_ops, init,
+			       block, level, tree->key.plug)))
 	{
-		goto error_free_node;
+		goto error_free_block;
 	}
 
 	reiser4_place_assign(&node->p, NULL, 0, MAX_UINT32);
 
 	return node;
 
- error_free_node:    
-	aal_free(node);
  error_free_block:
 	aal_block_free(block);
 	return NULL;
 }
-
 #endif
 
 /* Functions for lock/unlock @node. They are used to prevent releasing node from
    the tree cache. */
-void reiser4_node_lock(node_t *node) {
+void reiser4_node_lock(reiser4_node_t *node) {
 	aal_assert("umka-2314", node != NULL);
 	aal_assert("umka-2585", node->counter >= 0);
 	node->counter++;
 }
 
-void reiser4_node_unlock(node_t *node) {
+void reiser4_node_unlock(reiser4_node_t *node) {
 	aal_assert("umka-2316", node != NULL);
 	aal_assert("umka-2316", node->counter > 0);
 	node->counter--;
 }
 
-bool_t reiser4_node_locked(node_t *node) {
+bool_t reiser4_node_locked(reiser4_node_t *node) {
 	aal_assert("umka-2586", node != NULL);
 	aal_assert("umka-2587", node->counter >= 0);
-	return node->counter > 0 ? TRUE : FALSE;
+	return node->counter > 0 ? 1 : 0;
 }
 
 #ifndef ENABLE_STAND_ALONE
 /* Assigns @nr block number to @node. */
-void reiser4_node_move(node_t *node, blk_t nr) {
+void reiser4_node_move(reiser4_node_t *node, blk_t nr) {
 	aal_assert("umka-2248", node != NULL);
-	
-	plug_call(node->entity->plug->o.node_ops,
-		  move, node->entity, nr);
-}
 
+	node->block->nr = nr;
+	reiser4_node_mkdirty(node);
+}
 #endif
 
 /* Opens node on specified @tree and block number @nr. */
-node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr) {
+reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr) {
 	uint16_t pid;
-        node_t *node;
-	
 	uint32_t size;
+
 	aal_block_t *block;
 	aal_device_t *device;
 	reiser4_plug_t *plug;
+        reiser4_node_t *node;
  
         aal_assert("umka-160", tree != NULL);
 
@@ -161,42 +114,38 @@ node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr) {
 	size = reiser4_tree_get_blksize(tree);
 	device = reiser4_tree_get_device(tree);
 	
-        if (!(node = aal_calloc(sizeof(*node), 0)))
-                return NULL;
-
 	/* Load block at @nr, that node lie in. */
 	if (!(block = aal_block_load(device, size, nr))) {
 		aal_error("Can't load node %llu. %s.",
 			  nr, device->error);
-		goto error_free_node;
+		return NULL;
 	}
 
 	/* Getting node plugin id. */
 	pid = *((uint16_t *)block->data);
 
-	/* Finding the node plug by its id */
+	/* Finding the node plug by its id. */
 	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid)))
 		goto error_free_block;
 
-	/* Requesting the plugin for initialization of the entity */
-	if (!(node->entity = plug_call(plug->o.node_ops, open,
-				       block, tree->key.plug)))
+	/* Requesting the plugin for initialization of the entity. */
+	if (!(node = plug_call(plug->o.node_ops, open,
+			       block, tree->key.plug)))
 	{
 		goto error_free_block;
 	}
 	
         reiser4_place_assign(&node->p, NULL, 0, MAX_UINT32);
+	
 	return node;
 	
  error_free_block:
 	aal_block_free(block);
- error_free_node:
-        aal_free(node);
         return NULL;
 }
 
 /* Saves node to device if it is dirty and closes node */
-errno_t reiser4_node_fini(node_t *node) {
+errno_t reiser4_node_fini(reiser4_node_t *node) {
 #ifndef ENABLE_STAND_ALONE
 	/* Node should be clean when it is going to be closed. */
 	if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
@@ -209,20 +158,17 @@ errno_t reiser4_node_fini(node_t *node) {
 
 /* Closes specified node and its children. Before the closing, this function
    also detaches nodes from the tree if they were attached. */
-errno_t reiser4_node_close(node_t *node) {
+errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_assert("umka-824", node != NULL);
 	aal_assert("umka-2286", node->counter == 0);
 
-	plug_call(node->entity->plug->o.node_ops,
-		  fini, node->entity);
-	    
-	aal_free(node);
+	plug_call(node->plug->o.node_ops, fini, node);
 	return 0;
 }
 
 /* Getting the left delimiting key. */
 errno_t reiser4_node_leftmost_key(
-	node_t *node,	            /* node for working with */
+	reiser4_node_t *node,	            /* node for working with */
 	reiser4_key_t *key)	    /* key will be stored here */
 {
 	pos_t pos = {0, MAX_UINT32};
@@ -230,18 +176,18 @@ errno_t reiser4_node_leftmost_key(
 	aal_assert("umka-754", key != NULL);
 	aal_assert("umka-753", node != NULL);
 
-	return plug_call(node->entity->plug->o.node_ops,
-			 get_key, node->entity, &pos, key);
+	return plug_call(node->plug->o.node_ops,
+			 get_key, node, &pos, key);
 }
 
 /* This function makes search inside of specified node for passed key. Position
    will be stored in passed @pos. */
-lookup_t reiser4_node_lookup(node_t *node, reiser4_key_t *key,
+lookup_t reiser4_node_lookup(reiser4_node_t *node, reiser4_key_t *key,
 			     bias_t bias, pos_t *pos)
 {
 	lookup_t res;
 	reiser4_key_t maxkey;
-	place_t place;
+	reiser4_place_t place;
     
 	aal_assert("umka-475", pos != NULL);
 	aal_assert("vpf-048", node != NULL);
@@ -250,9 +196,8 @@ lookup_t reiser4_node_lookup(node_t *node, reiser4_key_t *key,
 	POS_INIT(pos, 0, MAX_UINT32);
 
 	/* Calling node plugin lookup method */
-	if ((res = plug_call(node->entity->plug->o.node_ops,
-			     lookup, node->entity, key, bias,
-			     pos)) < 0)
+	if ((res = plug_call(node->plug->o.node_ops, lookup,
+			     node, key, bias, pos)) < 0)
 	{
 		return res;
 	}
@@ -301,55 +246,51 @@ lookup_t reiser4_node_lookup(node_t *node, reiser4_key_t *key,
 }
 
 /* Returns real item count in specified node */
-uint32_t reiser4_node_items(node_t *node) {
+uint32_t reiser4_node_items(reiser4_node_t *node) {
 	aal_assert("umka-453", node != NULL);
     
-	return plug_call(node->entity->plug->o.node_ops, 
-			 items, node->entity);
+	return plug_call(node->plug->o.node_ops, 
+			 items, node);
 }
 
 #ifndef ENABLE_STAND_ALONE
 /* Returns free space of specified node */
-uint16_t reiser4_node_space(node_t *node) {
+uint16_t reiser4_node_space(reiser4_node_t *node) {
 	aal_assert("umka-455", node != NULL);
     
-	return plug_call(node->entity->plug->o.node_ops, 
-			 space, node->entity);
+	return plug_call(node->plug->o.node_ops, 
+			 space, node);
 }
 
 /* Returns overhead of specified node */
-uint16_t reiser4_node_overhead(node_t *node) {
+uint16_t reiser4_node_overhead(reiser4_node_t *node) {
 	aal_assert("vpf-066", node != NULL);
 
-	return plug_call(node->entity->plug->o.node_ops, 
-			 overhead, node->entity);
+	return plug_call(node->plug->o.node_ops, 
+			 overhead, node);
 }
 
 /* Returns max space in specified node. */
-uint16_t reiser4_node_maxspace(node_t *node) {
+uint16_t reiser4_node_maxspace(reiser4_node_t *node) {
 	aal_assert("umka-125", node != NULL);
     
-	return plug_call(node->entity->plug->o.node_ops, 
-			 maxspace, node->entity);
+	return plug_call(node->plug->o.node_ops, 
+			 maxspace, node);
 }
 
 /* Expands passed @node at @pos by @len */
-errno_t reiser4_node_expand(node_t *node, pos_t *pos,
+errno_t reiser4_node_expand(reiser4_node_t *node, pos_t *pos,
 			    uint32_t len, uint32_t count)
 {
-	errno_t res;
-	
 	aal_assert("umka-1815", node != NULL);
 	aal_assert("umka-1816", pos != NULL);
 
-	res = plug_call(node->entity->plug->o.node_ops,
-			expand, node->entity, pos, len, count);
-
-	return res;
+	return plug_call(node->plug->o.node_ops,
+			 expand, node, pos, len, count);
 }
 
 /* Shrinks passed @node at @pos by @len */
-errno_t reiser4_node_shrink(node_t *node, pos_t *pos,
+errno_t reiser4_node_shrink(reiser4_node_t *node, pos_t *pos,
 			    uint32_t len, uint32_t count)
 {
 	errno_t res;
@@ -357,8 +298,8 @@ errno_t reiser4_node_shrink(node_t *node, pos_t *pos,
 	aal_assert("umka-1817", node != NULL);
 	aal_assert("umka-1818", pos != NULL);
 
-	if ((res = plug_call(node->entity->plug->o.node_ops,
-			     shrink, node->entity, pos, len, count)))
+	if ((res = plug_call(node->plug->o.node_ops, shrink,
+			     node, pos, len, count)))
 	{
 		aal_error("Node %llu, pos %u/%u: can't "
 			  "shrink the node on %u bytes.", 
@@ -372,7 +313,7 @@ errno_t reiser4_node_shrink(node_t *node, pos_t *pos,
 /* Makes shift of some amount of items and units into passed neighbour. Shift
    direction and other flags are passed by @hint. Returns operation error
    code. */
-errno_t reiser4_node_shift(node_t *node, node_t *neig,
+errno_t reiser4_node_shift(reiser4_node_t *node, reiser4_node_t *neig,
 			   shift_hint_t *hint)
 {
 	aal_assert("umka-1225", node != NULL);
@@ -381,31 +322,31 @@ errno_t reiser4_node_shift(node_t *node, node_t *neig,
 
 	/* Trying shift something from @node into @neig. As result insert point
 	   may be shifted too. */
-	return plug_call(node->entity->plug->o.node_ops, shift,
-			 node->entity, neig->entity, hint);
+	return plug_call(node->plug->o.node_ops, shift,
+			 node, neig, hint);
 }
 
-errno_t reiser4_node_fuse(node_t *node, pos_t *pos1, pos_t *pos2) {
+errno_t reiser4_node_fuse(reiser4_node_t *node, pos_t *pos1, pos_t *pos2) {
 	aal_assert("vpf-1507", node != NULL);
 
-	return plug_call(node->entity->plug->o.node_ops, 
-			 fuse, node->entity, pos1, pos2);
+	return plug_call(node->plug->o.node_ops, 
+			 fuse, node, pos1, pos2);
 }
 
 /* Saves passed @node onto device it was opened on */
-errno_t reiser4_node_sync(node_t *node) {
+errno_t reiser4_node_sync(reiser4_node_t *node) {
 	aal_assert("umka-2253", node != NULL);
     
 	/* Synchronizing passed @node */
 	if (!reiser4_node_isdirty(node)) 
 		return 0;
 	
-	return plug_call(node->entity->plug->o.node_ops, 
-			 sync, node->entity);
+	return plug_call(node->plug->o.node_ops, 
+			 sync, node);
 }
 
 /* Updates nodeptr item in parent node */
-errno_t reiser4_node_update_ptr(node_t *node) {
+errno_t reiser4_node_update_ptr(reiser4_node_t *node) {
 	blk_t blk;
 	errno_t res;
 
@@ -424,19 +365,19 @@ errno_t reiser4_node_update_ptr(node_t *node) {
 
 /* Updates node keys in recursive maner (needed for updating ldkeys on the all
    levels of tre tree). */
-errno_t reiser4_node_update_key(node_t *node, pos_t *pos,
+errno_t reiser4_node_update_key(reiser4_node_t *node, pos_t *pos,
 				reiser4_key_t *key)
 {
 	aal_assert("umka-999", node != NULL);
 	aal_assert("umka-1000", pos != NULL);
 	aal_assert("umka-1001", key != NULL);
 
-	return plug_call(node->entity->plug->o.node_ops,
-			 set_key, node->entity, pos, key);
+	return plug_call(node->plug->o.node_ops,
+			 set_key, node, pos, key);
 }
 
 /* Node modifying fucntion. */
-int64_t reiser4_node_modify(node_t *node, pos_t *pos,
+int64_t reiser4_node_modify(reiser4_node_t *node, pos_t *pos,
 			    trans_hint_t *hint,
 			    modify_func_t modify_func)
 {
@@ -469,21 +410,21 @@ int64_t reiser4_node_modify(node_t *node, pos_t *pos,
 	return write;
 }
 
-errno_t callback_node_insert(node_t *node, pos_t *pos,
+errno_t callback_node_insert(reiser4_node_t *node, pos_t *pos,
 			     trans_hint_t *hint) 
 {
-	return plug_call(node->entity->plug->o.node_ops,
-			 insert, node->entity, pos, hint);
+	return plug_call(node->plug->o.node_ops,
+			 insert, node, pos, hint);
 }
 
-errno_t callback_node_write(node_t *node, pos_t *pos,
+errno_t callback_node_write(reiser4_node_t *node, pos_t *pos,
 			    trans_hint_t *hint) 
 {
-	return plug_call(node->entity->plug->o.node_ops,
-			 write, node->entity, pos, hint);
+	return plug_call(node->plug->o.node_ops,
+			 write, node, pos, hint);
 }
 
-errno_t reiser4_node_insert(node_t *node, pos_t *pos,
+errno_t reiser4_node_insert(reiser4_node_t *node, pos_t *pos,
 			    trans_hint_t *hint)
 {
 	aal_assert("umka-991", pos != NULL);
@@ -494,7 +435,7 @@ errno_t reiser4_node_insert(node_t *node, pos_t *pos,
 				   callback_node_insert);
 }
 
-int64_t reiser4_node_write(node_t *node, pos_t *pos,
+int64_t reiser4_node_write(reiser4_node_t *node, pos_t *pos,
 			   trans_hint_t *hint)
 {
 	aal_assert("umka-2446", pos != NULL);
@@ -505,20 +446,20 @@ int64_t reiser4_node_write(node_t *node, pos_t *pos,
 				   callback_node_write);
 }
 
-int64_t reiser4_node_trunc(node_t *node, pos_t *pos,
+int64_t reiser4_node_trunc(reiser4_node_t *node, pos_t *pos,
 			   trans_hint_t *hint)
 {
 	aal_assert("umka-2503", node != NULL);
 	aal_assert("umka-2504", pos != NULL);
 	aal_assert("umka-2505", hint != NULL);
 	
-	return plug_call(node->entity->plug->o.node_ops,
-			 trunc, node->entity, pos, hint);
+	return plug_call(node->plug->o.node_ops,
+			 trunc, node, pos, hint);
 }
 
 /* Deletes item or unit from cached node. Keeps track of changes of the left
    delimiting key. */
-errno_t reiser4_node_remove(node_t *node, pos_t *pos,
+errno_t reiser4_node_remove(reiser4_node_t *node, pos_t *pos,
 			    trans_hint_t *hint)
 {
 	errno_t res;
@@ -529,8 +470,8 @@ errno_t reiser4_node_remove(node_t *node, pos_t *pos,
 
 	/* Removing item or unit. We assume that we remove whole item if unit
 	   component is set to MAX_UINT32. Otherwise we remove unit. */
-	if ((res = plug_call(node->entity->plug->o.node_ops,
-			     remove, node->entity, pos, hint)))
+	if ((res = plug_call(node->plug->o.node_ops,
+			     remove, node, pos, hint)))
 	{
 		aal_error("Can't remove %llu items/units "
 			  "from node %llu.", hint->count,
@@ -541,70 +482,48 @@ errno_t reiser4_node_remove(node_t *node, pos_t *pos,
 	return 0;
 }
 
-void reiser4_node_set_mstamp(node_t *node, uint32_t stamp) {
-	reiser4_plug_t *plug;
-	
+void reiser4_node_set_mstamp(reiser4_node_t *node, uint32_t stamp) {
 	aal_assert("vpf-646", node != NULL);
-	aal_assert("umka-1969", node->entity != NULL);
 
-	plug = node->entity->plug;
-	
-	if (plug->o.node_ops->set_mstamp)
-		plug->o.node_ops->set_mstamp(node->entity, stamp);
+	if (node->plug->o.node_ops->set_mstamp)
+		node->plug->o.node_ops->set_mstamp(node, stamp);
 }
 
-void reiser4_node_set_fstamp(node_t *node, uint64_t stamp) {
-	reiser4_plug_t *plug;
-	
+void reiser4_node_set_fstamp(reiser4_node_t *node, uint64_t stamp) {
 	aal_assert("vpf-648", node != NULL);
-	aal_assert("umka-1970", node->entity != NULL);
-
-	plug = node->entity->plug;
 	
-	if (plug->o.node_ops->get_fstamp)
-		plug->o.node_ops->set_fstamp(node->entity, stamp);
+	if (node->plug->o.node_ops->get_fstamp)
+		node->plug->o.node_ops->set_fstamp(node, stamp);
 }
 
-void reiser4_node_set_level(node_t *node, uint8_t level) {
+void reiser4_node_set_level(reiser4_node_t *node, uint8_t level) {
 	aal_assert("umka-1863", node != NULL);
-    
-	plug_call(node->entity->plug->o.node_ops, 
-		  set_level, node->entity, level);
+	plug_call(node->plug->o.node_ops, set_level, node, level);
 }
 
-uint32_t reiser4_node_get_mstamp(node_t *node) {
-	reiser4_plug_t *plug;
-	
+uint32_t reiser4_node_get_mstamp(reiser4_node_t *node) {
 	aal_assert("vpf-562", node != NULL);
-	aal_assert("umka-1971", node->entity != NULL);
-
-	plug = node->entity->plug;
 	
-	if (plug->o.node_ops->get_mstamp)
-		return plug->o.node_ops->get_mstamp(node->entity);
+	if (node->plug->o.node_ops->get_mstamp)
+		return node->plug->o.node_ops->get_mstamp(node);
 	
 	return 0;
 }
 
-uint64_t reiser4_node_get_fstamp(node_t *node) {
-	reiser4_plug_t *plug;
-
+uint64_t reiser4_node_get_fstamp(reiser4_node_t *node) {
 	aal_assert("vpf-647", node != NULL);
-	aal_assert("umka-1972", node->entity != NULL);
 
-	plug = node->entity->plug;
-	
-	if (plug->o.node_ops->get_fstamp)
-		plug->o.node_ops->get_fstamp(node->entity);
+	if (node->plug->o.node_ops->get_fstamp)
+		node->plug->o.node_ops->get_fstamp(node);
 
 	return 0;
 }
 #endif
 
 /* Returns node level */
-uint8_t reiser4_node_get_level(node_t *node) {
+uint8_t reiser4_node_get_level(reiser4_node_t *node) {
 	aal_assert("umka-1642", node != NULL);
     
-	return plug_call(node->entity->plug->o.node_ops, 
-			 get_level, node->entity);
+	return plug_call(node->plug->o.node_ops, 
+			 get_level, node);
 }

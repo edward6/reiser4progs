@@ -22,7 +22,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 	
 	for (total = 0, size = hint->count; size > 0; ) {
 		int32_t read;
-		place_t place;
+		reiser4_place_t place;
 
 		/* Looking for the place to read. */
 		if ((res = reiser4_tree_lookup(tree, &hint->offset,
@@ -109,7 +109,7 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 	/* Loop until desired number of bytes is written. */
 	for (total = bytes = 0, size = hint->count; size > 0;) {
 		int32_t write;
-		place_t place;
+		reiser4_place_t place;
 		uint32_t level;
 
 		hint->count = size;
@@ -167,7 +167,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 	int64_t trunc;
 	uint32_t size;
 	uint64_t total;
-	key_entity_t key;
+	reiser4_key_t key;
 
 	aal_assert("umka-2475", tree != NULL);
 	aal_assert("umka-2476", hint != NULL);
@@ -181,7 +181,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 	for (total = 0, size = hint->count; size > 0;
 	     size -= trunc, total += trunc)
 	{
-		place_t place;
+		reiser4_place_t place;
 		
 		if ((res = reiser4_tree_lookup(tree, &hint->offset,
 					       LEAF_LEVEL, FIND_EXACT,
@@ -229,7 +229,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 			   tree, so updating is not needed and impossible,
 			   because it has no items. */
 			if (reiser4_node_items(place.node) > 0) {
-				place_t p;
+				reiser4_place_t p;
 				reiser4_key_t lkey;
 
 				/* Updating parent keys */

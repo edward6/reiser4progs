@@ -15,7 +15,7 @@ reiser4_core_t *dir40_core = NULL;
 #ifndef ENABLE_STAND_ALONE
 /* Return current position in directory into passed @offset. */
 static errno_t dir40_telldir(object_entity_t *entity,
-			     key_entity_t *position)
+			     reiser4_key_t *position)
 {
 	dir40_t *dir = (dir40_t *)entity;
 	
@@ -36,7 +36,7 @@ static errno_t dir40_telldir(object_entity_t *entity,
 
 /* This fucntion checks if passed @place points to item related to @entity, that
    is belong to this directory. */
-int32_t dir40_belong(dir40_t *dir, place_t *place) {
+int32_t dir40_belong(dir40_t *dir, reiser4_place_t *place) {
 	/* Checking if item component in @place->pos is valid one. This is
 	   needed because tree_lookup() does not fetch item data at place if it
 	   was not found. So, it may point to unexistent item and we should
@@ -67,7 +67,7 @@ static void dir40_close(object_entity_t *entity) {
    key got from telldir() function. But, this is possible to generate directory
    key by himself and pass here. */
 static errno_t dir40_seekdir(object_entity_t *entity,
-			     key_entity_t *position)
+			     reiser4_key_t *position)
 {
 	dir40_t *dir;
 	
@@ -128,7 +128,7 @@ errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry) {
 	}
 
 	/* Copying entry place */
-	aal_memcpy(&entry->place, &dir->body, sizeof(place_t));
+	aal_memcpy(&entry->place, &dir->body, sizeof(reiser4_place_t));
 
 	return 0;
 }
@@ -137,7 +137,7 @@ errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry) {
    ABSENT in the case of directory is over and values < 0 on error. */
 lookup_t dir40_next(dir40_t *dir, bool_t check) {
 	lookup_t res;
-	place_t place;
+	reiser4_place_t place;
 
 	aal_assert("umka-2063", dir != NULL);
 
@@ -367,7 +367,7 @@ static lookup_t dir40_search(object_entity_t *entity,
 	default:
 		if (entry) {
 			aal_memcpy(&entry->place, &dir->body,
-				   sizeof(place_t));
+				   sizeof(reiser4_place_t));
 		}
 		
 		return res;
@@ -640,7 +640,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 {
 	errno_t res;
 	dir40_t *dir;
-	key_entity_t key;
+	reiser4_key_t key;
 
 	aal_assert("umka-1925", entity != NULL);
 
@@ -660,7 +660,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 		  set_offset, &key, MAX_UINT64);
 
 	while (1) {
-		place_t place;
+		reiser4_place_t place;
 		trans_hint_t hint;
 
 		/* Looking for the last directory item */
@@ -980,7 +980,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 
 	/* Loop until all items are enumerated. */
 	while (1) {
-		place_t *place = &dir->body;
+		reiser4_place_t *place = &dir->body;
 		
 		if (dir->body.plug->o.item_ops->object->layout) {
 			/* Calling item's layout method */
@@ -993,7 +993,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 		} else {
 			/* Layout method is not implemented. Counting item
 			   itself. */
-			blk_t blk = place->block->nr;
+			blk_t blk = place->node->block->nr;
 			
 			if ((res = callback_item_layout(place, blk,
 							1, &hint)))

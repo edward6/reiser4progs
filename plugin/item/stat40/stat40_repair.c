@@ -17,7 +17,7 @@ static errno_t callback_check_ext(sdext_entity_t *sdext, uint16_t extmask,
 			 sdext, *(uint8_t *)data);
 }
 
-errno_t stat40_check_struct(place_t *place, uint8_t mode) {
+errno_t stat40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	sdext_entity_t sdext;
 	errno_t res;
 	
@@ -29,7 +29,8 @@ errno_t stat40_check_struct(place_t *place, uint8_t mode) {
 	
 	if (res) {
 		aal_error("Node (%llu), item (%u): does not look like a "
-			  "valid stat data.", place->block->nr, place->pos.item);
+			  "valid stat data.", place->node->block->nr,
+			  place->pos.item);
 		
 		return RE_FATAL;
 	}
@@ -44,7 +45,7 @@ errno_t stat40_check_struct(place_t *place, uint8_t mode) {
 	if (sdext.offset < place->len) {
 		aal_error("Node (%llu), item (%u): item has a wrong "
 			  "length (%u). Should be (%u). %s", 
-			  place->block->nr, place->pos.item, 
+			  place->node->block->nr, place->pos.item, 
 			  place->len, sdext.offset, 
 			  mode == RM_BUILD ? "Fixed." : "");
 		
@@ -70,7 +71,7 @@ static errno_t callback_count_ext(sdext_entity_t *sdext,
 }
 
 /* This function returns stat data extension count. */
-static uint32_t stat40_sdext_count(place_t *place) {
+static uint32_t stat40_sdext_count(reiser4_place_t *place) {
 	sdext_entity_t sdext;
         uint32_t count = 0;
 
@@ -120,7 +121,9 @@ static errno_t callback_print_ext(sdext_entity_t *sdext,
 }
 
 /* Prints statdata item into passed @stream */
-void stat40_print(place_t *place, aal_stream_t *stream, uint16_t options) {
+void stat40_print(reiser4_place_t *place, aal_stream_t *stream,
+		  uint16_t options)
+{
 	sdext_entity_t sdext;
 
 	aal_assert("umka-1407", place != NULL);

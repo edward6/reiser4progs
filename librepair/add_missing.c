@@ -28,7 +28,7 @@ static errno_t callback_item_mark_region(void *object, uint64_t start,
 /* Callback for traverse through all items of the node. Calls for the item, 
    determined by place, layout method, if it is not the branch and has pointers
    to some blocks. */
-static errno_t callback_layout(place_t *place, void *data) {
+static errno_t callback_layout(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-649", place != NULL);
 	aal_assert("vpf-748", !reiser4_item_branch(place->plug));
 
@@ -97,8 +97,8 @@ static void repair_add_missing_update(repair_am_t *am) {
 	aal_stream_fini(&stream);
 }
 
-static errno_t repair_am_node_prepare(repair_am_t *am, node_t *node) {
-	place_t place;
+static errno_t repair_am_node_prepare(repair_am_t *am, reiser4_node_t *node) {
+	reiser4_place_t place;
 	trans_hint_t hint;
 	uint32_t count;
 	errno_t res;
@@ -160,7 +160,7 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 				      aux_bitmap_t *bitmap,
 				      stat_bitmap_t *stat)
 {
-	node_t *node;
+	reiser4_node_t *node;
 	errno_t res;
 	blk_t blk;
 	
@@ -212,7 +212,7 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 
 			stat->by_node++;
 
-			res = repair_node_traverse(node, callback_layout, am);
+			res = repair_reiser4_node_traverse(node, callback_layout, am);
 			if (res) goto error_close_node;
 
 		} else {
@@ -235,7 +235,7 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 				      stat_bitmap_t *stat)
 {
 	uint32_t count;
-	node_t *node;
+	reiser4_node_t *node;
 	errno_t res;
 	blk_t blk;
 
@@ -249,7 +249,7 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 	   existent data which is in the tree already if needed. 
 	   FIXME: overwriting should be done on the base of flush_id. */
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
-		place_t place;
+		reiser4_place_t place;
 		pos_t *pos = &place.pos;
 
 		aal_assert("vpf-897", !aux_bitmap_test(am->bm_used, blk));

@@ -86,7 +86,7 @@ static void repair_disk_scan_update(repair_ds_t *ds) {
    for further insertion. */
 errno_t repair_disk_scan(repair_ds_t *ds) {
 	repair_progress_t progress;
-	node_t *node;
+	reiser4_node_t *node;
 	errno_t res = 0;
 	uint8_t level;
 	blk_t blk = 0;

@@ -18,10 +18,10 @@ struct reg40 {
 	obj40_t obj;
 
 	/* Current body item coord stored here */
-	place_t body;
+	reiser4_place_t body;
 
 	/* Current position in the reg file */
-	key_entity_t position;
+	reiser4_key_t position;
 
 #ifndef ENABLE_STAND_ALONE
 	/* Tail policy plugin */

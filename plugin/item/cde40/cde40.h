@@ -89,40 +89,40 @@ typedef struct cde404  cde404_t;
 
 extern reiser4_core_t *cde40_core;
 
-extern uint32_t cde40_units(place_t *place);
+extern uint32_t cde40_units(reiser4_place_t *place);
 
-extern inline uint32_t cde40_key_pol(place_t *place);
+extern inline uint32_t cde40_key_pol(reiser4_place_t *place);
 
-extern char *cde40_get_name(place_t *place, uint32_t pos,
+extern char *cde40_get_name(reiser4_place_t *place, uint32_t pos,
 			    char *buff, uint32_t len);
 
-extern inline void *cde40_entry(place_t *place, uint32_t pos);
-extern inline void *cde40_objid(place_t *place, uint32_t pos);
+extern inline void *cde40_entry(reiser4_place_t *place, uint32_t pos);
+extern inline void *cde40_objid(reiser4_place_t *place, uint32_t pos);
 
-extern errno_t cde40_maxposs_key(place_t *place,
-				 key_entity_t *key);
+extern errno_t cde40_maxposs_key(reiser4_place_t *place,
+				 reiser4_key_t *key);
 
-extern errno_t cde40_delete(place_t *place, uint32_t pos,
+extern errno_t cde40_delete(reiser4_place_t *place, uint32_t pos,
    	                    trans_hint_t *hint);
 
-extern errno_t cde40_get_hash(place_t *place, uint32_t pos, 
-			      key_entity_t *key);
+extern errno_t cde40_get_hash(reiser4_place_t *place, uint32_t pos, 
+			      reiser4_key_t *key);
 
-extern errno_t cde40_copy(place_t *dst_place, uint32_t dst_pos,
-			  place_t *src_place, uint32_t src_pos,
+extern errno_t cde40_copy(reiser4_place_t *dst_place, uint32_t dst_pos,
+			  reiser4_place_t *src_place, uint32_t src_pos,
 			  uint32_t count);
 
-extern uint32_t cde40_expand(place_t *place, uint32_t pos,
+extern uint32_t cde40_expand(reiser4_place_t *place, uint32_t pos,
 			     uint32_t count, uint32_t len);
 
-extern uint32_t cde40_regsize(place_t *place, uint32_t pos, 
+extern uint32_t cde40_regsize(reiser4_place_t *place, uint32_t pos, 
 			      uint32_t count);
 
-extern lookup_t cde40_lookup(place_t *place, key_entity_t *key,
+extern lookup_t cde40_lookup(reiser4_place_t *place, reiser4_key_t *key,
 			     bias_t bias);
 
-extern int cde40_comp_entry(place_t *place, uint32_t pos, 
-			    key_entity_t *key);
+extern int cde40_comp_entry(reiser4_place_t *place, uint32_t pos, 
+			    reiser4_key_t *key);
 
 extern uint16_t cde40_overhead();
 

@@ -18,7 +18,7 @@ struct dir40 {
 	obj40_t obj;
 
 	/* Current body item coord */
-	place_t body;
+	reiser4_place_t body;
 
 	/* Current position in the directory (key and adjust). Adjust is needed
 	   to work fine when key collitions take place. */
@@ -27,7 +27,7 @@ struct dir40 {
 #endif
 
 	/* Current directory offset. */
-	key_entity_t position;
+	reiser4_key_t position;
 
 	/* Hash plugin in use */
 	reiser4_plug_t *hash;
@@ -40,10 +40,10 @@ extern reiser4_core_t *dir40_core;
 
 extern errno_t dir40_reset(object_entity_t *entity);
 extern lookup_t dir40_next(dir40_t *dir, bool_t check);
-extern int32_t dir40_belong(dir40_t *dir, place_t *place);
 
 extern lookup_t dir40_lookup(object_entity_t *entity,
 			     char *name, entry_hint_t *entry);
 
 extern errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry);
+extern int32_t dir40_belong(dir40_t *dir, reiser4_place_t *place);
 #endif

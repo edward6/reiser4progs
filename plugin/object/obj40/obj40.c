@@ -37,7 +37,7 @@ uint64_t obj40_ordering(obj40_t *obj) {
 }
 
 /* Reads one stat data extension to @data. */
-errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
+errno_t obj40_read_ext(reiser4_place_t *place, rid_t id, void *data) {
 	trans_hint_t trans;
 	statdata_hint_t stat;
 
@@ -228,7 +228,7 @@ errno_t obj40_touch(obj40_t *obj, uint64_t size, uint64_t bytes) {
 }
 
 /* Writes one stat data extension. */
-errno_t obj40_write_ext(place_t *place, rid_t id,
+errno_t obj40_write_ext(reiser4_place_t *place, rid_t id,
 			void *data)
 {
 	trans_hint_t hint;
@@ -259,7 +259,7 @@ errno_t obj40_write_ext(place_t *place, rid_t id,
 }
 
 /* Returns extensions mask from stat data item at @place. */
-uint64_t obj40_extmask(place_t *place) {
+uint64_t obj40_extmask(reiser4_place_t *place) {
 	trans_hint_t hint;
 	statdata_hint_t stat;
 
@@ -477,7 +477,7 @@ errno_t obj40_layout(obj40_t *obj, region_func_t region_func,
 	if ((res = obj40_update(obj)))
 		return res;
 	
-	blk = STAT_PLACE(obj)->block->nr;
+	blk = STAT_PLACE(obj)->node->block->nr;
 	return region_func(obj, blk, 1, data);
 }
 
@@ -531,7 +531,7 @@ errno_t obj40_unlink(obj40_t *obj) {
 #endif
 
 /* Fetches item at passed @place */
-errno_t obj40_fetch(obj40_t *obj, place_t *place) {
+errno_t obj40_fetch(obj40_t *obj, reiser4_place_t *place) {
 	return obj->core->tree_ops.fetch(obj->info.tree, place);
 }
 
@@ -614,9 +614,9 @@ errno_t obj40_update(obj40_t *obj) {
 }
 
 /* Performs lookup and returns result to caller */
-lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
+lookup_t obj40_lookup(obj40_t *obj, reiser4_key_t *key,
 		      uint8_t level, bias_t bias,
-		      place_t *place)
+		      reiser4_place_t *place)
 {
 	aal_assert("umka-1966", obj != NULL);
 	
@@ -646,7 +646,7 @@ int64_t obj40_truncate(obj40_t *obj, trans_hint_t *hint) {
 
 /* Inserts passed item hint into the tree. After function is finished, place
    contains the place of the inserted item. */
-int64_t obj40_insert(obj40_t *obj, place_t *place,
+int64_t obj40_insert(obj40_t *obj, reiser4_place_t *place,
 		     trans_hint_t *hint, uint8_t level)
 {
 	return obj->core->tree_ops.insert(obj->info.tree,
@@ -654,7 +654,10 @@ int64_t obj40_insert(obj40_t *obj, place_t *place,
 }
 
 /* Removes item/unit by @key */
-errno_t obj40_remove(obj40_t *obj, place_t *place, trans_hint_t *hint) {
-	return obj->core->tree_ops.remove(obj->info.tree, place, hint);
+errno_t obj40_remove(obj40_t *obj, reiser4_place_t *place,
+		     trans_hint_t *hint)
+{
+	return obj->core->tree_ops.remove(obj->info.tree,
+					  place, hint);
 }
 #endif

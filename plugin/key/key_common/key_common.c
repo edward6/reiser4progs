@@ -6,14 +6,14 @@
 #include "key_common.h"
 
 /* Minimal possible key */
-static key_entity_t minimal_key = {
+static reiser4_key_t minimal_key = {
 	.plug = NULL,
 	.body = {0ull, 0ull, 0ull, 0ull},
 	.adjust = 0
 };
 
 /* Maximal possible key */
-static key_entity_t maximal_key = {
+static reiser4_key_t maximal_key = {
 	.plug = NULL,
 	.body = {MAX_UINT64, MAX_UINT64, MAX_UINT64, MAX_UINT64},
 	.adjust = 0
@@ -69,13 +69,13 @@ const char *key_common_minor2name(key_minor_t type) {
 }
 
 /* Returns minimal key */
-key_entity_t *key_common_minimal(reiser4_plug_t *plug) {
+reiser4_key_t *key_common_minimal(reiser4_plug_t *plug) {
 	minimal_key.plug = plug;
 	return &minimal_key;
 }
 
 /* Returns maximal key */
-key_entity_t *key_common_maximal(reiser4_plug_t *plug) {
+reiser4_key_t *key_common_maximal(reiser4_plug_t *plug) {
 	maximal_key.plug = plug;
 	return &maximal_key;
 }

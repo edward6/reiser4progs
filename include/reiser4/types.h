@@ -13,9 +13,8 @@
 /* Minimal block number needed for a reiser4 filesystem: 
    Master, Format40, Bitmap, JHeader, JFooter, Status, 
    Backup, Twig, Leaf + skipped ones. */
-#define REISER4_FS_MIN_SIZE(blksize) (9 + REISER4_MASTER_OFFSET / blksize)
-
-typedef struct key_entity reiser4_key_t;
+#define REISER4_FS_MIN_SIZE(blksize) \
+	(9 + REISER4_MASTER_OFFSET / blksize)
 
 /* Master super block structure. It is the same for all reiser4 filesystems,
    so, we can declare it here. It contains common for all format fields like
@@ -247,10 +246,10 @@ struct reiser4_oid {
 typedef struct reiser4_oid reiser4_oid_t;
 
 #ifndef ENABLE_STAND_ALONE
-typedef errno_t (*estimate_func_t) (place_t *place, 
+typedef errno_t (*estimate_func_t) (reiser4_place_t *place, 
 				    trans_hint_t *hint);
 
-typedef errno_t (*modify_func_t) (node_t *node, pos_t *pos,
+typedef errno_t (*modify_func_t) (reiser4_node_t *node, pos_t *pos,
 				  trans_hint_t *hint);
 #endif
 
@@ -266,7 +265,7 @@ struct reiser4_tree {
 	reiser4_fs_t *fs;
 
 	/* Reference to root node. */
-	node_t *root;
+	reiser4_node_t *root;
 
 	/* Tree root key. */
 	reiser4_key_t key;
@@ -297,16 +296,17 @@ struct reiser4_tree {
 
 #ifndef ENABLE_STAND_ALONE
 /* Callback function type for opening node. */
-typedef node_t *(*tree_open_func_t) (reiser4_tree_t *, 
-				     place_t *, void *);
+typedef reiser4_node_t *(*tree_open_func_t) (reiser4_tree_t *, 
+				     reiser4_place_t *, void *);
 
 /* Callback function type for preparing per-node traverse data. */
 typedef errno_t (*tree_edge_func_t) (reiser4_tree_t *, 
-				     node_t *, void *);
+				     reiser4_node_t *, void *);
 
 /* Callback function type for preparing per-item traverse data. */
 typedef errno_t (*tree_update_func_t) (reiser4_tree_t *, 
-				       place_t *, void *);
+				       reiser4_place_t *,
+				       void *);
 #endif
 
 /* Filesystem compound structure */
@@ -360,7 +360,7 @@ struct fs_hint {
 typedef struct fs_hint fs_hint_t;
 
 typedef void (*uuid_unparse_t) (char *uuid, char *string);
-typedef errno_t (*walk_func_t) (reiser4_tree_t *, node_t *);
+typedef errno_t (*walk_func_t) (reiser4_tree_t *, reiser4_node_t *);
 
 /* Number of bit to test it in format flags in order check if large keys policy
    in use. Large keys in use if bit is set. */

@@ -21,7 +21,7 @@ typedef enum merge_flag {
 	ET40_TAIL	= 1 << 4
 } merge_flag_t;
 
-static int extent40_merge_units(place_t *place) {
+static int extent40_merge_units(reiser4_place_t *place) {
 	uint32_t i, count, merged;
 	extent40_t *extent;
 
@@ -49,7 +49,7 @@ static int extent40_merge_units(place_t *place) {
 	return merged;
 }
 
-errno_t extent40_check_layout(place_t *place, region_func_t func, 
+errno_t extent40_check_layout(reiser4_place_t *place, region_func_t func, 
 			      void *data, uint8_t mode) 
 {
 	extent40_t *extent;
@@ -80,7 +80,7 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 		/* Zero the problem region. */
 		aal_error("Node (%llu), item (%u), unit (%u): "
 			  "points %s region [%llu..%llu].%s",
-			  place->block->nr, place->pos.item, i, 
+			  place->node->block->nr, place->pos.item, i, 
 			  res == RE_FATAL? "out of the fs," : 
 			  "to the already used blocks, ", start,
 			  start + width - 1, mode != RM_CHECK ? 
@@ -97,7 +97,7 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 	
 	if (units) {
 		aal_error("Node (%llu), item (%u): %u mergable units were "
-			  "found in the extent40 unit.%s", place->block->nr,
+			  "found in the extent40 unit.%s", place->node->block->nr,
 			  place->pos.item, units, mode == RM_CHECK ? "" : 
 			  " Fixed.");
 		
@@ -110,7 +110,7 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 	return result;
 }
 
-errno_t extent40_check_struct(place_t *place, uint8_t mode) {
+errno_t extent40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	extent40_t *extent;
 	uint32_t i, units;
 	errno_t res = 0;
@@ -121,7 +121,7 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 	if (place->len % sizeof(extent40_t)) {
 		aal_error("Node (%llu), item (%u): extent40 "
 			  "item of not valid length found.",
-			  place->block->nr, place->pos.item);
+			  place->node->block->nr, place->pos.item);
 		return RE_FATAL;
 	}
 	
@@ -131,7 +131,7 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 	{
 		aal_error("Node (%llu), item (%u): extent40 item "
 			  "with not valid key offset found.", 
-			  place->block->nr, place->pos.item);
+			  place->node->block->nr, place->pos.item);
 		return RE_FATAL;
 	}
 	
@@ -141,7 +141,8 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 	if (!units) {
 		aal_error("Node (%llu), item (%u): extent40 "
 			  "item with no units found.",
-			  place->block->nr, place->pos.item);
+			  place->node->block->nr,
+			  place->pos.item);
 		return RE_FATAL;
 	}
 	
@@ -157,7 +158,7 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 
 		aal_error("Node (%llu), item (%u), unit (%u): "
 			  "unallocated unit is found.%s",
-			  place->block->nr, place->pos.item, i, 
+			  place->node->block->nr, place->pos.item, i, 
 			  mode == RM_CHECK ? "" : "Zeroed.");
 		
 		if (mode != RM_CHECK) {
@@ -171,7 +172,7 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 
 	if (units) {
 		aal_error("Node (%llu), item (%u): %u mergable units were "
-			  "found in the extent40 unit.%s", place->block->nr,
+			  "found in the extent40 unit.%s", place->node->block->nr,
 			  place->pos.item, units, mode == RM_CHECK ? "" : 
 			  " Fixed.");
 		
@@ -184,9 +185,9 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 	return res;
 }
 
-static inline uint32_t extent40_head(place_t *place, 
+static inline uint32_t extent40_head(reiser4_place_t *place, 
 				     uint32_t pos, 
-				     key_entity_t *key) 
+				     reiser4_key_t *key) 
 {
 	uint64_t koffset, offset, doffset;
 
@@ -203,17 +204,17 @@ static inline uint32_t extent40_head(place_t *place,
 	return (offset - doffset) / extent40_blksize(place);
 }
 
-errno_t extent40_prep_merge(place_t *place, trans_hint_t *hint) {
+errno_t extent40_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	extent40_t *sextent, *dextent;
 	int32_t send, sunits;
 	uint64_t offset;
-	place_t *src;
+	reiser4_place_t *src;
 	
 	aal_assert("vpf-1372", place != NULL);
 	aal_assert("vpf-1373", hint != NULL);
 	aal_assert("vpf-1382", hint->specific != NULL);
 
-	src = (place_t *)hint->specific;
+	src = (reiser4_place_t *)hint->specific;
 
 	sextent = extent40_body(src) + src->pos.unit;
 	dextent = extent40_body(place) + place->pos.unit;
@@ -288,18 +289,18 @@ errno_t extent40_prep_merge(place_t *place, trans_hint_t *hint) {
 	return 0;
 }
 
-int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
+int64_t extent40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	uint32_t i, sstart, dstart, count;
 	extent40_t *sextent, *dextent;
 	uint64_t head, tail, offset;
-	place_t *src;
+	reiser4_place_t *src;
 	errno_t res;
 	
 	aal_assert("vpf-1383", place != NULL);
 	aal_assert("vpf-1384", hint != NULL);
 	aal_assert("vpf-1385", hint->specific != NULL);
 
-	src = (place_t *)hint->specific;
+	src = (reiser4_place_t *)hint->specific;
 	sextent = extent40_body(src);
 	dextent = extent40_body(place);
 
@@ -445,7 +446,9 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 }
 
 /* Prints extent item into specified @stream */
-void extent40_print(place_t *place, aal_stream_t *stream, uint16_t options) {
+void extent40_print(reiser4_place_t *place, aal_stream_t *stream,
+		    uint16_t options)
+{
 	uint32_t i, count;
 	extent40_t *extent;
     
