@@ -241,17 +241,17 @@ int main(int argc, char *argv[]) {
 			fs_len = (progs_parse_size(argv[optind], &error));
 			if (!error || error == ~0) {
 				if (error != ~0 && fs_len < blocksize) {
-					aal_exception_error("Strange filesystem size has "
-							    "been detected (%s).", argv[optind]);
+					aal_exception_error("%s is not a valid "
+							    "size nor an existent "
+							    "file.", argv[optind]);
 					goto error_free_libreiser4;
 				}
 		
 				if (error != ~0)
 					fs_len /= blocksize;
 			} else {
-				aal_exception_error(
-					"Something strange has been detected while parsing "
-					"parameters (%s).", argv[optind]);
+				aal_exception_error("%s is not a valid size nor an "
+						    "existent file.", argv[optind]);
 				goto error_free_libreiser4;
 			}
 		} else
@@ -275,10 +275,10 @@ int main(int argc, char *argv[]) {
 			goto error_free_libreiser4;
     
 		/* 
-		   Checking is passed device is a block device. If so, we check also
-		   is it whole drive or just a partition. If the device is not a block
-		   device, then we emmit exception and propose user to use -f flag to 
-		   force.
+		   Checking is passed device is a block device. If so, we check
+		   also is it whole drive or just a partition. If the device is
+		   not a block device, then we emmit exception and propose user
+		   to use -f flag to force.
 		*/
 		if (!S_ISBLK(st.st_mode)) {
 			if (!(flags & BF_FORCE)) {
@@ -324,21 +324,23 @@ int main(int argc, char *argv[]) {
 			fs_len = dev_len;
 	
 		if (fs_len > dev_len) {
-			aal_exception_error("Filesystem wouldn't fit into device %llu blocks long,"
-					    " %llu blocks required.", dev_len, fs_len);
+			aal_exception_error("Filesystem wouldn't fit into device "
+					    "%llu blocks long, %llu blocks required.",
+					    dev_len, fs_len);
 			goto error_free_device;
 		}
 
 		/* Checking for "quiet" mode */
 		if (!(flags & BF_QUIET)) {
-			if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO, 
-						"Reiser4 with %s profile is going to be created "
-						"on %s.", profile_label, host_dev) == EXCEPTION_NO)
+			if (aal_exception_yesno("Reiser4 with %s profile "
+						"is going to be created "
+						"on %s.", profile_label,
+						host_dev) == EXCEPTION_NO)
 				goto error_free_device;
 		}
     
-		aal_gauge_rename(gauge, "Creating reiser4 on %s with "
-				 "%s profile", host_dev, profile->label);
+		aal_gauge_rename(gauge, "Creating reiser4 with %s on %s",
+				 profile->label, host_dev);
 
 		aal_gauge_start(gauge);
 
@@ -352,7 +354,8 @@ int main(int argc, char *argv[]) {
 		}
 
 		if (!(fs->root = mkfs_create_dir(fs, profile, NULL, "/"))) {
-			aal_exception_error("Can't create filesystem root directory.");
+			aal_exception_error("Can't create filesystem root "
+					    "directory.");
 			goto error_free_fs;
 		}
 	
@@ -363,7 +366,8 @@ int main(int argc, char *argv[]) {
 			if (!(object = mkfs_create_dir(fs, profile, 
 						       fs->root, "lost+found"))) 
 			{
-				aal_exception_error("Can't create lost+found directory.");
+				aal_exception_error("Can't create lost+found "
+						    "directory.");
 				goto error_free_root;
 			}
 	    
@@ -371,10 +375,10 @@ int main(int argc, char *argv[]) {
 		}
 	
 		/* 
-		   Flushing all filesystem buffers onto the device. In this time are 
-		   flushing master super block, format specific super block, oid allocator
-		   data, block allocator data (alloc40 which in use flushes bitmap) and
-		   tree cache.
+		   Flushing all filesystem buffers onto the device. In this time
+		   are flushing master super block, format specific super block,
+		   oid allocator data, block allocator data (alloc40 which in
+		   use flushes bitmap) and tree cache.
 		*/
 		if (reiser4_fs_sync(fs)) {
 			aal_exception_error("Can't synchronize created filesystem.");
@@ -387,7 +391,7 @@ int main(int argc, char *argv[]) {
 		aal_gauge_start(gauge);
 	
 		/* 
-		   Synchronizing device. If device we are using is a file_device 
+		   Synchronizing device. If device we are using is a file_device
 		   (libaal/file.c), then function fsync will be called.
 		*/
 		if (aal_device_sync(device)) {
@@ -397,14 +401,14 @@ int main(int argc, char *argv[]) {
 		}
 
 		/* 
-		   Zeroing uuid in order to force mkfs to generate it on its own for 
-		   next device form built device list.
+		   Zeroing uuid in order to force mkfs to generate it on its own
+		   for next device form built device list.
 		*/
 		aal_memset(uuid, 0, sizeof(uuid));
 
 		/* 
-		   Zeroing fs_len in order to force mkfs on next turn to calc its size
-		   from actual device length.
+		   Zeroing fs_len in order to force mkfs on next turn to calc
+		   its size from actual device length.
 		*/
 		fs_len = 0;
 	
@@ -423,7 +427,7 @@ int main(int argc, char *argv[]) {
 	aal_list_free(devices);
 
 	/* 
-	   Deinitializing libreiser4. At the moment only plugins are unloading 
+	   Deinitializing libreiser4. At the moment only plugins are unloading
 	   durrign this.
 	*/
 	libreiser4_done();
