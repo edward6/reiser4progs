@@ -397,17 +397,18 @@ static errno_t stat40_print(item_entity_t *item,
 	aal_assert("umka-1407", item != NULL);
 	aal_assert("umka-1408", stream != NULL);
     
-	aal_stream_format(stream, "STATDATA: len=%u, KEY: ",
-			  item->len);
+	aal_stream_format(stream, "STATDATA PLUGIN=%s LEN=%u, KEY=",
+			  item->plugin->h.label, item->len);
 		
 	if (plugin_call(item->key.plugin->key_ops, print,
 			&item->key, stream, options))
+	{
 		return -EINVAL;
+	}
 	
-	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
-			  item->plugin->h.id, item->plugin->h.label);
+	aal_stream_format(stream, " UNITS=1\n");
 
-	aal_stream_format(stream, "count:\t\t%u\n",
+	aal_stream_format(stream, "exts:\t\t%u\n",
 			  stat40_sdexts(item));
 
 	return stat40_traverse(item, callback_print_ext,

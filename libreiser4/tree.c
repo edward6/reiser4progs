@@ -1550,7 +1550,7 @@ errno_t reiser4_tree_insert(
 		if (level < reiser4_node_get_level(place->node)) {
 
 			/*
-			  Allocating ndoe iof requested level and assign place
+			  Allocating node of requested level and assign place
 			  for insert to it.
 			*/
 			if (!(place->node = reiser4_tree_alloc(tree, level)))

@@ -995,18 +995,16 @@ static errno_t direntry40_print(item_entity_t *item,
 
 	direntry = direntry40_body(item);
 	
-	aal_stream_format(stream, "DIRENTRY: len=%u, KEY: ",
-			  item->len);
+	aal_stream_format(stream, "DIRENTRY PLUGIN=%s LEN=%u, KEY=",
+			  item->plugin->h.label, item->len);
 		
 	if (plugin_call(item->key.plugin->key_ops, print,
 			&item->key, stream, options))
+	{
 		return -EINVAL;
+	}
 	
-	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
-			  item->plugin->h.id,
-			  item->plugin->h.label);
-	
-	aal_stream_format(stream, "units %u\n\n",
+	aal_stream_format(stream, " UNITS=%u\n",
 			  de40_get_units(direntry));
 
 	aal_stream_format(stream, "NR%*s NAME%*s OFFSET HASH%*s "

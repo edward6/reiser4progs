@@ -125,15 +125,16 @@ static errno_t extent40_print(item_entity_t *item,
 	extent = extent40_body(item);
 	count = extent40_units(item);
 
-	aal_stream_format(stream, "EXTENT: len=%u, KEY: ",
-			  item->len);
+	aal_stream_format(stream, "EXTENT PLUGIN=%s LEN=%u, KEY=",
+			  item->plugin->h.label, item->len);
 		
 	if (plugin_call(item->key.plugin->key_ops, print,
 			&item->key, stream, options))
+	{
 		return -EINVAL;
+	}
 	
-	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
-			  item->plugin->h.id, item->plugin->h.label);
+	aal_stream_format(stream, " UNITS=%u\n", count);
 	
 	aal_stream_format(stream, "[ ");
 	

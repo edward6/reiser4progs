@@ -130,17 +130,16 @@ static errno_t tail40_print(item_entity_t *item,
 	aal_assert("umka-1489", item != NULL);
 	aal_assert("umka-1490", stream != NULL);
 
-	aal_stream_format(stream, "TAIL: len=%u, KEY: ",
-			  item->len);
+	aal_stream_format(stream, "TAIL PLUGIN=%s LEN=%u, KEY=",
+			  item->plugin->h.label, item->len);
 		
 	if (plugin_call(item->key.plugin->key_ops, print,
 			&item->key, stream, options))
+	{
 		return -EINVAL;
+	}
 	
-	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
-			  item->plugin->h.id, item->plugin->h.label);
-
-	aal_stream_format(stream, "len:\t\t%u\n", item->len);
+	aal_stream_format(stream, " UNITS=%u\n", item->len);
 	
 	return 0;
 }

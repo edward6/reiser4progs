@@ -967,11 +967,6 @@ static errno_t node40_sync(object_entity_t *entity) {
 	return aal_block_sync(((node40_t *)entity)->block);
 }
 
-/* Names of levels nodes lie on. It is used for node40_print function */
-static char *levels[6] = {
-	"LEAF", "LEAF", "TWIG",	"INTERNAL", "INTERNAL",	"INTERNAL"
-};
-
 /* Prepare text node description and push it into specied @stream. */
 static errno_t node40_print(object_entity_t *entity,
 			    aal_stream_t *stream,
@@ -991,10 +986,11 @@ static errno_t node40_print(object_entity_t *entity,
 	
 	aal_assert("umka-1580", level > 0);
 
-	aal_stream_format(stream, "%s NODE (%llu) contains level=%u, "
-			  "items=%u, space=%u\n", levels[level],
+	aal_stream_format(stream, "NODE (%llu) LEVEL=%u ITEMS=%u "
+			  "SPACE=%u MKFS=0x%llx FLUSH=0x%llx\n",
 			  aal_block_number(node->block), level,
-			  node40_items(entity), node40_space(entity));
+			  node40_items(entity), node40_space(entity),
+			  nh40_get_mkfs_id(node), nh40_get_flush_id(node));
 	
 	pos.unit = ~0ul;
 
@@ -1017,8 +1013,9 @@ static errno_t node40_print(object_entity_t *entity,
 					  "implemented.");
 		}
 
-		aal_stream_format(stream, "\n");
 	}
+
+	aal_stream_format(stream, "\n");
 
 	return 0;
 }

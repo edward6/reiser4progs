@@ -119,17 +119,18 @@ static errno_t nodeptr40_print(item_entity_t *item,
     
 	nodeptr = nodeptr40_body(item);
 
-	aal_stream_format(stream, "NODEPTR: len=%u, KEY: ",
-			  item->len);
+	aal_stream_format(stream, "NODEPTR PLUGIN=%s LEN=%u, KEY=",
+			  item->plugin->h.label, item->len);
 		
 	if (plugin_call(item->key.plugin->key_ops, print,
 			&item->key, stream, options))
+	{
 		return -EINVAL;
+	}
 	
-	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
-			  item->plugin->h.id, item->plugin->h.label);
+	aal_stream_format(stream, " UNITS=1\n");
 	
-	aal_stream_format(stream, "[ %llu ]", np40_get_ptr(nodeptr));
+	aal_stream_format(stream, "[ %llu ]\n", np40_get_ptr(nodeptr));
 	
 	return 0;
 }

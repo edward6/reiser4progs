@@ -363,8 +363,7 @@ static errno_t key40_valid(key_entity_t *key) {
 
 /* Key minor names. They are used key40_print function */
 static const char *const minor_names[] = {
-	"file name", "stat data", "attr name",
-	"attr body", "file body", "unknown"
+	"NAME", "SD", "AN", "AB", "FB", "?"
 };
 
 /* Translates passed minor into corresponding name */
