@@ -4,13 +4,13 @@
 */
 
 int aal_pow_of_two(unsigned long n) {
-	return (n & -n) == n;
+    return (n & -n) == n;
 }
 
 int aal_log2(int n) {
-	int x;
-	
-	for (x = 0; 1 << x <= n; x++);
-		return x - 1;
+    int x;
+
+    for (x = 0; 1 << x <= n; x++);
+	return x - 1;
 }
 
