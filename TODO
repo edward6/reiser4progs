@@ -9,13 +9,9 @@ reiser4progs/COPYING.
 
 * fix tree_copy(). It should be able to copy extents too.
 
-* functions for adding/removing stat data extentions.
-
 * fix unaligned access on Itanium2.
 
 * dumpfs utility.
-
-* pack/unpack utility.
 
 * plugin inheritance for objects.
 
@@ -25,5 +21,4 @@ reiser4progs/COPYING.
   like kernel does.
 
 * online/offline resizer/repacker, manual page resizefs.
-* introduce some kind of reiser4_errnum for all libreiser4 operations.
 * implement credits showing durring mkfs.
