@@ -20,9 +20,10 @@ typedef struct repair_control {
 	aux_bitmap_t *bm_leaf;		/* Leaf bitmap not in the tree yet.  */
 	aux_bitmap_t *bm_twig;		/* Twig nodes 			     */
 	aux_bitmap_t *bm_met;		/* frmt | used | leaf | twig. 	     */
+	aux_bitmap_t *bm_scan;
+	
 	union {
-		aux_bitmap_t *bm_unfm;  /* Unfmatted pointed from tree.   */
-		aux_bitmap_t *bm_scan;
+		aux_bitmap_t *bm_unfm;	/* Unfmatted pointed from tree.      */
 		aux_bitmap_t *bm_forbid;
 	}u;
 
@@ -171,8 +172,8 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	
 	/* Allocate a bitmap of blocks to be scanned on this pass. */ 
 	if (!(control->u.bm_unfm = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of blocks "
-				    "unconnected from the tree.");
+		aal_exception_error("Failed to allocate a bitmap of extent "
+				    "blocks.");
 		return -EINVAL;
 	}
 	
@@ -190,17 +191,15 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	control->bm_leaf = filter->bm_leaf = aux_bitmap_create(fs_len);
 	if (!control->bm_leaf) {
 		aal_exception_error("Failed to allocate a bitmap of leaves "
-				    "removed from the tree and to be inserted "
-				    "later back item-by-item.");
+				    "unconnected from the tree.");
 		return -EINVAL;
 	}
-	
 	
 	/* Allocate a bitmap of formatted blocks which cannot be pointed by 
 	   extents, which are not in the used nor twig not leaf bitmaps. */
 	if (!(control->bm_met = filter->bm_met = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of broken "
-				    "formatted blocks.");
+		aal_exception_error("Failed to allocate a bitmap of blocks "
+				    "that are met on the filesystem.");
 		return -EINVAL;
 	}
 	
@@ -221,7 +220,7 @@ static errno_t callback_region_mark(void *object, blk_t blk,
 	
 	for (i = blk; i < blk + count; i++) {
 		if (!aux_bitmap_test(control->bm_met, i))
-			aux_bitmap_mark(control->u.bm_scan, i);
+			aux_bitmap_mark(control->bm_scan, i);
 	}
 	
 	return 0;
@@ -234,7 +233,7 @@ static errno_t callback_layout_bad(void *object, blk_t blk,
 
 	aal_assert("vpf-1324", control != NULL);
 
-	aux_bitmap_mark_region(control->u.bm_scan, blk, count);
+	aux_bitmap_mark_region(control->bm_scan, blk, count);
 
 	return 0;
 }
@@ -258,7 +257,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	ds->bm_leaf = control->bm_leaf;
 	ds->bm_twig = control->bm_twig;
 	ds->bm_met = control->bm_met;
-	ds->bm_scan = control->u.bm_scan;
+	ds->bm_scan = control->bm_scan;
 	ds->check_node = &control->check_node;
 	
 	ds->progress_handler = control->repair->progress_handler;
@@ -273,6 +272,13 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		return -EINVAL;
 	}
 	
+	/* Allocate a bitmap of blocks to be scanned on this pass. */ 
+	if (!(control->bm_scan = aux_bitmap_create(fs_len))) {
+		aal_exception_error("Failed to allocate a bitmap of blocks "
+				    "unconnected from the tree.");
+		return -EINVAL;
+	}
+
 	if ((res = reiser4_alloc_extract(repair->fs->alloc, control->bm_alloc)))
 		return res;
 	
@@ -296,6 +302,14 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		aal_assert("vpf-1329", (control->bm_leaf->map[i] & 
 					~control->bm_met->map[i]) == 0);
 		
+		
+		aal_assert("vpf-1329", (control->u.bm_unfm->map[i] & 
+					control->bm_met->map[i]) == 0);
+		
+		/* Zeroing leaf & twig bitmaps of ndoes taht are in the tree. */
+		control->bm_twig->map[i] = 0;
+		control->bm_leaf->map[i] = 0;
+			
 		/* Build a bitmap of blocks which are not in the tree yet.
 		   Block was met as formatted, but unused in on-disk block
 		   allocator. Looks like the bitmap block of the allocator 
@@ -304,13 +318,16 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 			repair_alloc_region(repair->fs->alloc, i * 8,
 					    callback_region_mark, control);
 		} else {
-			control->u.bm_scan->map[i] |= control->bm_alloc->map[i]
-				& ~control->bm_met->map[i];
+			control->bm_scan->map[i] |= control->bm_alloc->map[i]
+				& ~control->bm_met->map[i] 
+				& ~control->u.bm_unfm->map[i];
 		}
 	}
 	
 	aux_bitmap_close(control->bm_alloc);
-	aux_bitmap_calc_marked(control->u.bm_scan);
+	aux_bitmap_calc_marked(control->bm_scan);
+	aux_bitmap_calc_marked(control->bm_leaf);
+	aux_bitmap_calc_marked(control->bm_twig);
 	
 	return 0;
 }
@@ -337,9 +354,12 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts) {
 	
 	ts->progress_handler = control->repair->progress_handler;
 	
-	/* Clear bm_scan for being reused for extent blocks. */
-	aux_bitmap_clear_region(control->u.bm_scan, 0, 
-				control->u.bm_scan->total);
+	if (control->bm_scan) {
+		/* If this is the twig scan that goes after disk_scan, 
+		   close scan bitmap. */
+		aux_bitmap_close(control->bm_scan);
+		control->bm_scan = NULL;
+	}
 	
 	return 0;
 }
@@ -634,6 +654,7 @@ errno_t repair_check(repair_data_t *repair) {
 		return 0;
 	}
 	
+	/* Scan the storage reiser4 tree. Cut broken parts out. */
 	if ((res = repair_filter_prepare(&control, &filter)))
 		goto error;
 	
@@ -641,24 +662,40 @@ errno_t repair_check(repair_data_t *repair) {
 		goto error;
 	
 	if (repair->mode == RM_BUILD) {
-		if ((res = repair_ds_prepare(&control, &ds)))
-			goto error;
-		
-		if ((res = repair_disk_scan(&ds)))
-			goto error;
-	
+		/* Scan twigs which are in the tree to avoid scanning 
+		   the unformatted blocks which are pointed by extents. */
 		if ((res = repair_ts_prepare(&control, &ts)))
 			goto error;
 
 		if ((res = repair_twig_scan(&ts)))
 			goto error;
+		
+		/* Scanning blocks which are used but not in the tree yet. */
+		if ((res = repair_ds_prepare(&control, &ds)))
+			goto error;
+		
+		if ((res = repair_disk_scan(&ds)))
+			goto error;
+		
+		/* Scanning twigs which are not in the tree and fix if they 
+		   point to some used block or some met formatted block. */
+		if ((res = repair_ts_prepare(&control, &ts)))
+			goto error;
 
+		if ((res = repair_twig_scan(&ts)))
+			goto error;
+		
+		/* Inserting missed blocks into the tree. */
 		if ((res = repair_am_prepare(&control, &am)))
 			goto error;
 		
 		if ((res = repair_add_missing(&am)))
 			goto error;
 	} else if (repair->mode != RM_CHECK) {
+		/* Scanning all twig nodes and preparing the bitmap of 
+		   unformatted blocks. This is needed for FIX mode to 
+		   prepare the bitmap of allocable blocks which is needed 
+		   at semantic pass. */
 		if ((res = repair_ts_prepare(&control, &ts)))
 			goto error;
 
@@ -673,6 +710,7 @@ errno_t repair_check(repair_data_t *repair) {
 		aal_exception_mess("\nFatal corruptions were found. "
 				   "Semantic pass is skipped.");
 	} else {
+		/* Check the semantic reiser4 tree. */
 		if ((res = repair_sem_prepare(&control, &sem)))
 			goto error;
 
@@ -684,6 +722,7 @@ errno_t repair_check(repair_data_t *repair) {
 	}
 		
 	if (repair->mode == RM_BUILD) {
+		/* Throw the garbage away. */
 		if ((res = repair_cleanup_prepare(&control, &cleanup)))
 			goto error;
 		
@@ -691,6 +730,7 @@ errno_t repair_check(repair_data_t *repair) {
 			goto error;
 	}
 	
+	/* Update SB data */
 	if ((res = repair_update(&control))) 
 		goto error;
 	

@@ -241,7 +241,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	}
     
 	if (!(data->host_device = aal_device_open(&file_ops, argv[optind], 
-						  512, O_RDWR))) 
+						  512, O_RDONLY))) 
 	{
 		aal_exception_fatal("Cannot open the partition (%s): %s.",
 				    argv[optind], strerror(errno));
@@ -261,21 +261,6 @@ static void fsck_time(char *string) {
 	fprintf(stderr, "\n***** %s %s", string, ctime (&t));
 }
 
-static errno_t fsck_fini(repair_data_t *repair) {
-	uint64_t state = 0;
-	
-	aal_assert("vpf-1338", repair != NULL);
-	aal_assert("vpf-1339", repair->fs != NULL);
-	aal_assert("vpf-1340", repair->fs->status != NULL);
-	
-	if (repair->fatal)
-		state = FS_DAMAGED;
-	else if (repair->fixable)
-		state = FS_CORRUPTED;
-	
-	return repair_status_state(repair->fs->status, state);
-}
-
 /* Open the fs and init the tree. */
 static errno_t fsck_prepare(repair_data_t *repair, aal_device_t *host) {
 	aal_stream_t stream;
@@ -292,7 +277,7 @@ static errno_t fsck_prepare(repair_data_t *repair, aal_device_t *host) {
 		
 		return res;
 	}
-		
+
 	aal_stream_init(&stream);
 	reiser4_master_print(repair->fs->master, &stream);
 	aal_stream_format(&stream, "\n");
@@ -313,12 +298,34 @@ static errno_t fsck_prepare(repair_data_t *repair, aal_device_t *host) {
 		goto error_free_fs;
 	}
 	
+	if (repair->mode != RM_CHECK) {
+		aal_device_t *device = repair->fs->device;
+		
+		if (aal_device_reopen(device, device->blksize, O_RDWR))
+			return -EIO;
+	}
+	
 	return 0;
 	
  error_free_fs:
 	repair_fs_close(repair->fs);
 	repair->fs = NULL;
 	return -EINVAL;
+}
+
+static errno_t fsck_fini(repair_data_t *repair) {
+	uint64_t state = 0;
+	
+	aal_assert("vpf-1338", repair != NULL);
+	aal_assert("vpf-1339", repair->fs != NULL);
+	aal_assert("vpf-1340", repair->fs->status != NULL);
+	
+	if (repair->fatal)
+		state = FS_DAMAGED;
+	else if (repair->fixable)
+		state = FS_CORRUPTED;
+	
+	return repair_status_state(repair->fs->status, state);
 }
 
 int main(int argc, char *argv[]) {
