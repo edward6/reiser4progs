@@ -4,6 +4,7 @@
    node40.c -- reiser4 node plugin functions. */
 
 #include "node40.h"
+#include "node40_repair.h"
 
 extern reiser4_plug_t node40_plug;
 static reiser4_core_t *core = NULL;
@@ -318,9 +319,7 @@ static uint16_t node40_maxspace(node_entity_t *entity) {
 
 /* Calculates size of a region denoted by @pos and @count. This is used by
    node40_copy(), node40_remove(), etc. */
-static uint32_t node40_size(node40_t *node, pos_t *pos,
-			    uint32_t count)
-{
+uint32_t node40_size(node40_t *node, pos_t *pos, uint32_t count) {
 	void *ih;
 	uint32_t len;
 	uint32_t pol;
@@ -808,11 +807,9 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		}
 	}
 
+	/* Shrinking node by @len. */
 	len = hint->len + hint->ohd;
-
-	/* Shrinking node */
-	return node40_shrink(entity, &place.pos,
-			     len, hint->count);
+	return node40_shrink(entity, &place.pos, len, hint->count);
 }
 
 /* Updates key at @pos by specified @key */
@@ -1540,22 +1537,6 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	hint->items += merge.items;
 	return 0;
 }
-
-extern void node40_set_flag(node_entity_t *entity, 
-			    uint32_t pos, uint16_t flag);
-
-extern void node40_clear_flag(node_entity_t *entity, 
-			      uint32_t pos, uint16_t flag);
-
-extern bool_t node40_test_flag(node_entity_t *entity, 
-			       uint32_t pos, uint16_t flag);
-
-extern errno_t node40_check_struct(node_entity_t *entity,
-				   uint8_t mode);
-
-extern errno_t node40_merge(node_entity_t *dst_entity, pos_t *dst_pos, 
-			    node_entity_t *src_entity, pos_t *src_pos, 
-			    merge_hint_t *hint);
 #endif
 
 static reiser4_node_ops_t node40_ops = {
