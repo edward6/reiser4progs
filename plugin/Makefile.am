@@ -59,6 +59,7 @@ libreiser4_plugin_minimal_la_LIBADD = format/format40/libformat40-minimal.la \
                                     item/body40/libbody40-minimal.la \
                                     item/nodeptr40/libnodeptr40-minimal.la \
                                     item/cde40/libcde40-minimal.la \
+                                    item/tail40/libtail40-minimal.la \
                                     item/plain40/libplain40-minimal.la \
                                     item/ctail40/libctail40-minimal.la \
                                     item/extent40/libextent40-minimal.la \
