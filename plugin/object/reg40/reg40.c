@@ -282,9 +282,7 @@ static uint32_t reg40_chunk(reg40_t *reg) {
 /* Returns plugin (tail or extent) for next write operation basing on passed
    @size -- new file size. This function will use tail policy plugin for find
    out what next item should be writen. */
-static reiser4_plug_t *reg40_bplug(object_entity_t *entity,
-				   uint64_t new_size)
-{
+reiser4_plug_t *reg40_bplug(object_entity_t *entity, uint64_t new_size) {
 	reg40_t *reg = (reg40_t *)entity;
 	
 	aal_assert("umka-2394", entity != NULL);
@@ -326,9 +324,7 @@ static errno_t reg40_tail2extent(object_entity_t *entity) {
 }
 
 /* Makes tail2extent and extent2tail conversion */
-static errno_t reg40_convert(object_entity_t *entity,
-			     uint64_t new_size)
-{
+errno_t reg40_convert(object_entity_t *entity, uint64_t new_size) {
 	reg40_t *reg;
 	reiser4_plug_t *bplug;
 	
