@@ -710,7 +710,9 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 		if (hint->flags == HF_RAWDATA) {
 			aal_memcpy(item.body, hint->type_specific,
 				   hint->len);
-			goto out_make_dirty;
+
+			node->dirty = 1;
+			return 0;
 		}
 
 		/* Calling item plugin to perform initializing the item */
@@ -737,8 +739,6 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 			   sizeof(ih->key));
 	}
 
- out_make_dirty:
-	node->dirty = 1;
 	return 0;
 }
 

@@ -133,6 +133,23 @@ static int32_t reg40_read(object_entity_t *entity,
 	return read;
 }
 
+#ifndef ENABLE_STAND_ALONE
+/*
+  Returns plugin (tail or extent) for next write operation basing on passed size
+  to be writen. This function will be using tail policy plugin for find out what
+  next item should be writen.
+*/
+static reiser4_plugin_t *reg40_bplug(reg40_t *reg,
+				     uint32_t size)
+{
+	if (reg->body.node)
+		return reg->body.item.plugin;
+			
+	return core->factory_ops.ifind(ITEM_PLUGIN_TYPE,
+				       ITEM_TAIL40_ID);
+}
+#endif
+
 /* Opening reg40 by statdata place passed in @place */
 static object_entity_t *reg40_open(void *tree, place_t *place) {
 	reg40_t *reg;
@@ -158,6 +175,7 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 
 	/* Reseting file (setting offset to 0) */
 	reg40_reset((object_entity_t *)reg);
+	reg->bplug = reg40_bplug(reg, 0);
 
 	return (object_entity_t *)reg;
 }
@@ -255,7 +273,8 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 		plugin_call(parent->plugin->o.object_ops, link,
 			    parent);
 	}
-	
+
+	reg->bplug = reg40_bplug(reg, 0);
 	return (object_entity_t *)reg;
 
  error_free_reg:
@@ -318,21 +337,6 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 	return obj40_remove(&reg->obj, STAT_KEY(&reg->obj), 1);
 }
 
-/*
-  Returns plugin (tail or extent) for next write operation basing on passed size
-  to be writen. This function will be using tail policy plugin for find out what
-  next item should be writen.
-*/
-static reiser4_plugin_t *reg40_iplugin(reg40_t *reg,
-				       uint32_t size)
-{
-	if (reg->body.node)
-		return reg->body.item.plugin;
-			
-	return core->factory_ops.ifind(ITEM_PLUGIN_TYPE,
-				       ITEM_TAIL40_ID);
-}
-
 static uint32_t reg40_chunk(reg40_t *reg) {
 	return core->tree_ops.maxspace(reg->obj.tree);
 }
@@ -352,14 +356,10 @@ static int32_t reg40_put(object_entity_t *entity,
 
 	create_hint_t hint;
 	item_entity_t *item;
-	
-	reiser4_plugin_t *plugin;
 	sdext_unix_hint_t unix_hint;
 
 	reg = (reg40_t *)entity;
-
 	maxspace = reg40_chunk(reg);
-	plugin = reg40_iplugin(reg, 0);
 	
 	for (written = 0; written < n; ) {
 		errno_t res;
@@ -374,8 +374,8 @@ static int32_t reg40_put(object_entity_t *entity,
 		
 		hint.count = hint.len;
 		
-		hint.plugin = plugin;
-		hint.flags = HF_WRITE;
+		hint.flags = HF_FORMATD;
+		hint.plugin = reg->bplug;
 		hint.type_specific = buff;
 
 		locality = obj40_locality(&reg->obj);

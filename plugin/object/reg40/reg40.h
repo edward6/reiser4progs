@@ -22,6 +22,9 @@ struct reg40 {
 	/* Current body item coord stored here */
 	place_t body;
 
+	/* Current body plugin (tail40, extent40, etc) */
+	reiser4_plugin_t *bplug;
+
 	/* Current position in the directory */
 #ifndef ENABLE_STAND_ALONE
 	uint64_t offset;
