@@ -1,5 +1,6 @@
 /*
-  oid40.c -- reiser4 default oid allocator plugin.
+  oid40.c -- reiser4 default oid allocator plugin. It operates on passed memory
+  area inside of the loaded superblock.
 
   Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -11,12 +12,15 @@
 
 #include "oid40.h"
 
+static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t oid40_plugin;
 
-static reiser4_core_t *core = NULL;
-
+/*
+  Initializies oid allocator instance and loads its data (namely next oid, used
+  oids, etc).
+*/
 static object_entity_t *oid40_open(const void *start, 
-				    uint32_t len) 
+				   uint32_t len) 
 {
 	oid40_t *oid;
 
@@ -40,8 +44,9 @@ static void oid40_close(object_entity_t *entity) {
 
 #ifndef ENABLE_COMPACT
 
+/* Initializes oid allocator instance and return it to the caller */
 static object_entity_t *oid40_create(const void *start, 
-				      uint32_t len) 
+				     uint32_t len) 
 {
 	oid40_t *oid;
 
@@ -51,17 +56,22 @@ static object_entity_t *oid40_create(const void *start,
 	oid->start = start;
 	oid->len = len;
 
+	/*
+	  Setting up next by OID40_RESERVED. It is needed because all oid less
+	  then OID40_RESERVED will be used for reiser4 insetrnal purposes.
+	*/
 	oid->next = OID40_RESERVED;
 	oid->used = 0;
     
 	oid->plugin = &oid40_plugin;
     
-	oid40_set_next(start, OID40_RESERVED);
-	oid40_set_used(start, 0);
+	oid40_set_next(start, oid->next);
+	oid40_set_used(start, oid->used);
     
 	return (object_entity_t *)oid;
 }
 
+/* Updating next and used values in oid allocator dedicated area */
 static errno_t oid40_sync(object_entity_t *entity) {
 	aal_assert("umka-1016", entity != NULL, return -1);
     
@@ -74,11 +84,13 @@ static errno_t oid40_sync(object_entity_t *entity) {
 	return 0;
 }
 
+/* Returns next oid to be used */
 static roid_t oid40_next(object_entity_t *entity) {
 	aal_assert("umka-1109", entity != NULL, return 0);
 	return ((oid40_t *)entity)->next;
 }
 
+/* Returns free oid and marks it as used */
 static roid_t oid40_allocate(object_entity_t *entity) {
 	aal_assert("umka-513", entity != NULL, return 0);
 
@@ -88,15 +100,18 @@ static roid_t oid40_allocate(object_entity_t *entity) {
 	return ((oid40_t *)entity)->next - 1;
 }
 
+/* Releases passed oid */
 static void oid40_release(object_entity_t *entity, 
-			  roid_t id)
+			  roid_t oid)
 {
 	aal_assert("umka-528", entity != NULL, return);
 	((oid40_t *)entity)->used--;
 }
 
+/* Prints oid allocator data into passed @stream */
 static errno_t oid40_print(object_entity_t *entity,
-			   aal_stream_t *stream, uint16_t options)
+			   aal_stream_t *stream,
+			   uint16_t options)
 {
 	aal_assert("umka-1303", entity != NULL, return -1);
 	aal_assert("umka-1304", stream != NULL, return -1);
@@ -116,37 +131,45 @@ static errno_t oid40_print(object_entity_t *entity,
 
 #endif
 
+/* Checks oid allocator for validness */
 static errno_t oid40_valid(object_entity_t *entity) {
 	aal_assert("umka-966", entity != NULL, return -1);
 
+	/* Next oid should not be lesser than the root parent locality */
 	if (((oid40_t *)entity)->next < OID40_HYPER_LOCALITY)
 		return -1;
-    
+
 	return 0;
 }
 
+/* Returns number of free oids */
 static roid_t oid40_free(object_entity_t *entity) {
 	aal_assert("umka-961", entity != NULL, return 0);
 	return ~0ull - ((oid40_t *)entity)->next;
 }
 
+/* Returns number of used oids */
 static roid_t oid40_used(object_entity_t *entity) {
 	aal_assert("umka-530", entity != NULL, return 0);
 	return ((oid40_t *)entity)->used;
 }
 
+/* Returns the root parent locality */
 static roid_t oid40_hyper_locality(void) {
 	return OID40_HYPER_LOCALITY;
 }
 
+/* Returns root locality */
 static roid_t oid40_root_locality(void) {
 	return OID40_ROOT_LOCALITY;
 }
 
+/* Returns root oid */
 static roid_t oid40_root_objectid(void) {
 	return OID40_ROOT_OBJECTID;
 }
 
+/* Prepare oid40 plugin */
 static reiser4_plugin_t oid40_plugin = {
 	.oid_ops = {
 		.h = {
