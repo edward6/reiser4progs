@@ -450,15 +450,13 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 			if (mode == RM_BUILD) {
 				if ((result = obj40_convert(&reg->obj, &conv)))
 					return result;
-
-				/* Evth was converted, update bytes. */
-				hint.bytes += conv.bytes;
 			} else {
 				res |= RE_FATAL;
 			}
 			
+			reg->body_plug = conv.plug;
 			aal_memset(&conv.offset, 0, sizeof(conv.offset));
-			goto next;
+			continue;
 		}
 		
 		/* No more items, break out here. */
