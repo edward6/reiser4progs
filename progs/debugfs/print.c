@@ -136,8 +136,8 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 	{
 		char uuid[37];
 
-		if (aal_strlen(reiser4_master_uuid(fs->master)))
-			uuid_unparse(reiser4_master_uuid(fs->master), uuid);
+		if (aal_strlen(reiser4_master_get_uuid(fs->master)))
+			uuid_unparse(reiser4_master_get_uuid(fs->master), uuid);
 		else
 			aal_strncpy(uuid, "<none>", sizeof(uuid));
 		

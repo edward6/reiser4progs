@@ -2316,10 +2316,10 @@ static int64_t reiser4_tree_mod(
 	needed = hint->len + hint->ohd;
 	mode = (place->pos.unit == MAX_UINT32);
 
-	/* Making space in target node */
-	space = reiser4_tree_expand(tree, place,
-				    needed, MSF_DEF);
-	
+	/* Preparing space in tree. */
+	space = reiser4_tree_expand(tree, place, needed, MSF_DEF);
+
+	/* Checking for space returned by tree_expand(). */
 	if (space < 0) {
 		aal_exception_error("Error while preparing "
 				    "space in tree.");
@@ -2327,10 +2327,7 @@ static int64_t reiser4_tree_mod(
 	}
 
 	if ((uint32_t)space < needed) {
-		/* FIXME-UMKA: Dirty hack. Here should be something like calling
-		   some item plugin method in order to determine if @space is
-		   enough for it. */
-		if (insert || hint->plug->id.group != TAIL_ITEM)
+		if (insert)
 			return -ENOSPC;
 
 		hint->len = hint->count = space;
