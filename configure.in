@@ -10,9 +10,6 @@ AH_TEMPLATE([LIBREISER4_MAX_INTERFACE_VERSION], [Define to the max interface ver
 AH_TEMPLATE([LIBREISER4_MIN_INTERFACE_VERSION], [Define to the min interface version.])
 AH_TEMPLATE([ENABLE_DEBUG], [Define for enable debug info.])
 AH_TEMPLATE([ENABLE_MONOLITHIC], [Define for enable monolotic build.])
-AH_TEMPLATE([ENABLE_COLLISIONS_HANDLING], [Define for enable key collision workaround code.])
-AH_TEMPLATE([ENABLE_PLUGINS_CHECK], [Define for enable plugins check code.])
-AH_TEMPLATE([ENABLE_SYMLINKS_SUPPORT], [Define for enable symlinks.])
 AH_TEMPLATE([HAVE_LIBUUID], [Define for enable libuuid using.])
 AH_TEMPLATE([HAVE_LIBREADLINE], [Define for enable libreadline using.])
 
@@ -126,37 +123,37 @@ AC_ARG_ENABLE(monolithic,
 )
 
 AC_ARG_ENABLE(collisions_handling,
-    [  --disable-collisions-handling  disable key collision handling [default=on]], ,
+    [  --disable-collisions-handling  disable key collision handling in stand alone library [default=on]], ,
         enable_collisions_handling=yes
 )
 
 AC_ARG_ENABLE(plugins_check,
-    [  --disable-plugins-check        disable plugins check in plugin factory [default=on]], ,
+    [  --disable-plugins-check        disable plugins check in stand alone library [default=on]], ,
         enable_plugins_check=yes
 )
 
 AC_ARG_ENABLE(symlinks_support,
-    [  --disable-symlinks-support     disable symlinks support [default=on]], ,
+    [  --disable-symlinks-support     disable symlinks support in stand alone library [default=on]], ,
         enable_symlinks_support=yes
 )
 
 AC_ARG_ENABLE(r5_hash,
-    [  --disable-r5-hash              disable r5 hash plugin [default=on]], ,
+    [  --disable-r5-hash              disable r5 hash plugin in stand alone library [default=on]], ,
         enable_r5_hash=yes
 )
 
 AC_ARG_ENABLE(fnv1_hash,
-    [  --disable-fnv1-hash            disable fnv1 hash plugin [default=on]], ,
+    [  --disable-fnv1-hash            disable fnv1 hash plugin in stand alone library [default=on]], ,
         enable_fnv1_hash=yes
 )
 
 AC_ARG_ENABLE(rupasov_hash,
-    [  --disable-rupasov-hash         disable rupasov hash plugin [default=on]], ,
+    [  --disable-rupasov-hash         disable rupasov hash plugin in stand alone library [default=on]], ,
         enable_rupasov_hash=yes
 )
 
 AC_ARG_ENABLE(tea_hash,
-    [  --disable-tea-hash             disable tea hash plugin [default=on]], ,
+    [  --disable-tea-hash             disable tea hash plugin in stand alone library [default=on]], ,
         enable_tea_hash=yes
 )
 
@@ -271,8 +268,41 @@ if test x$enable_stand_alone = xyes; then
 
     AC_SUBST(AAL_ALONE_LIBS)
 
+    if test x$enable_collisions_handling = xyes; then
+	COLLISION_HANDLING_CFLAGS="-DENABLE_COLLISIONS_HANDLING"
+    fi
+
+    if test x$enable_plugins_check = xyes; then
+	PLUGINS_CHECK_CFLAGS="-DENABLE_PLUGINS_CHECK"
+    fi
+
+    if test x$enable_symlink_support = xyes; then
+	SYMLINKS_SUPPOT_CFLAGS="-DENABLE_SYMLINKS_SUPPOT"
+    fi
+
+    if test x$enable_r5_hash = xyes; then
+	R5_HASH_CFLAGS="-DENABLE_R5_HASH"
+    fi
+
+    if test x$enable_fnv1_hash = xyes; then
+	FNV1_HASH_CFLAGS="-DENABLE_FNV1_HASH"
+    fi
+
+    if test x$enable_rupasov_hash = xyes; then
+	RUPASOV_HASH_CFLAGS="-DENABLE_RUPASOV_HASH"
+    fi
+
+    if test x$enable_tea_hash = xyes; then
+	TEA_HASH_CFLAGS="-DENABLE_TEA_HASH"
+    fi
+
     ALONE_CFLAGS="$ALONE_CFLAGS -Wl,-N -DENABLE_STAND_ALONE -DENABLE_MONOLITHIC \
+$COLLISION_HANDLING_CFLAGS $PLUGINS_CHECK_CFLAGS $SYMLINKS_SUPPOT_CFLAGS \
+$R5_HASH_CFLAGS $FNV1_HASH_CFLAGS $RUPASOV_HASH_CFLAGS $TEA_HASH_CFLAGS \
 -fno-builtin -malign-jumps=1 -malign-loops=1 -malign-functions=1"
+else
+    GENERIC_CFLAGS="$GENERIC_CFLAGS -DENABLE_COLLISIONS_HANDLING -DENABLE_PLUGINS_CHECK \
+-DENABLE_SYMLINKS_SUPPOT -DENABLE_R5_HASH -DENABLE_FNV1_HASH -DENABLE_RUPASOV_HASH -DENABLE_TEA_HASH"
 fi
 
 if test x$enable_debug = xyes; then
@@ -288,31 +318,13 @@ if test x$enable_Werror = xyes; then
     CFLAGS="$CFLAGS -Werror"
 fi
 
-CFLAGS="$CFLAGS -DPLUGIN_DIR=\\\"$with_plugin_dir\\\""
-
 AM_CONDITIONAL(ENABLE_MONOLITHIC, test x$enable_monolithic = xyes)
 
 if test x$enable_monolithic = xyes; then
     AC_DEFINE(ENABLE_MONOLITHIC)
+else
+    CFLAGS="$CFLAGS -DPLUGIN_DIR=\\\"$with_plugin_dir\\\""
 fi
-
-if test x$enable_collisions_handling = xyes; then
-    AC_DEFINE(ENABLE_COLLISIONS_HANDLING)
-fi
-
-if test x$enable_plugins_check = xyes; then
-    AC_DEFINE(ENABLE_PLUGINS_CHECK)
-fi
-
-if test x$enable_symlinks_support = xyes; then
-    AC_DEFINE(ENABLE_SYMLINKS_SUPPORT)
-fi
-
-AM_CONDITIONAL(ENABLE_R5_HASH, test x$enable_r5_hash = xyes)
-AM_CONDITIONAL(ENABLE_TEA_HASH, test x$enable_tea_hash = xyes)
-AM_CONDITIONAL(ENABLE_FNV1_HASH, test x$enable_fnv1_hash = xyes)
-AM_CONDITIONAL(ENABLE_RUPASOV_HASH, test x$enable_rupasov_hash = xyes)
-AM_CONDITIONAL(ENABLE_SYMLINKS_SUPPORT, test x$enable_symlinks_support = xyes)
 
 PLUGIN_LDFLAGS=""
 if test x$enable_monolithic = xno; then
@@ -321,7 +333,6 @@ fi
 AC_SUBST(PLUGIN_LDFLAGS)
 
 AM_CONDITIONAL(ENABLE_STAND_ALONE, test x$enable_stand_alone = xyes)
-AM_CONDITIONAL(ENABLE_DEBUG, test x$enable_debug = xyes)
 
 if test x$enable_debug = xyes; then
     AC_DEFINE(ENABLE_DEBUG)

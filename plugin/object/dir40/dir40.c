@@ -389,9 +389,6 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	uint32_t i;
 	dir40_t *dir;
 
-	oid_t parent_locality;
-	oid_t objectid, locality;
-
 	entry_hint_t *body;
 	entry_hint_t *entry;
 	statdata_hint_t stat;
@@ -399,6 +396,9 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	create_hint_t body_hint;
 	create_hint_t stat_hint;
    
+	oid_t parent_locality;
+	oid_t objectid, locality;
+
 	sdext_lw_hint_t lw_ext;
 	sdext_unix_hint_t unix_ext;
 	

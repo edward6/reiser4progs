@@ -5,6 +5,8 @@
   reiser4progs/COPYING.
 */
 
+#ifdef ENABLE_R5_HASH
+
 #include <reiser4/plugin.h>
 
 uint64_t r5_hash_build(const unsigned char *name, uint32_t len) {
@@ -43,3 +45,5 @@ static reiser4_plugin_t *r5_hash_start(reiser4_core_t *c) {
 }
 
 plugin_register(r5_hash_start, NULL);
+
+#endif

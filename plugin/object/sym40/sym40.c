@@ -5,9 +5,7 @@
   reiser4progs/COPYING.
 */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#ifdef ENABLE_SYMLINKS_SUPPORT
 
 #ifndef ENABLE_STAND_ALONE
 #  include <time.h>
@@ -502,3 +500,5 @@ static reiser4_plugin_t *sym40_start(reiser4_core_t *c) {
 }
 
 plugin_register(sym40_start, NULL);
+
+#endif

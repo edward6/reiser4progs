@@ -5,6 +5,8 @@
   reiser4progs/COPYING.
 */
 
+#ifdef ENABLE_TEA_HASH
+
 #include <reiser4/plugin.h>
 
 #define FULLROUNDS  10
@@ -163,3 +165,5 @@ static reiser4_plugin_t *tea_hash_start(reiser4_core_t *c) {
 }
 
 plugin_register(tea_hash_start, NULL);
+
+#endif
