@@ -540,17 +540,9 @@ static reiser4_node_t *reiser4_node_fnn(reiser4_node_t *node,
 	return node;
 }
 
-static reiser4_node_t *reiser4_node_lnn(reiser4_node_t *node) {
-	return reiser4_node_fnn(node, D_LEFT);
-}
-
-static reiser4_node_t *reiser4_node_rnn(reiser4_node_t *node) {
-	return reiser4_node_fnn(node, D_RIGHT);
-}
-
 /* 
    This function raises up to the tree the left neighbour node. This is used by
-   mkspace function in tree.c
+   reiser4_tree_expand function.
 */
 reiser4_node_t *reiser4_node_left(
 	reiser4_node_t *node)	/* node for working with */
@@ -563,7 +555,7 @@ reiser4_node_t *reiser4_node_left(
 
 	if (!node->left) {
 		aal_assert("umka-1629", node->tree != NULL, return NULL);
-		node->left = reiser4_node_lnn(node);
+		node->left = reiser4_node_fnn(node, D_LEFT);
 	}
 
 	return node->left;
@@ -578,7 +570,7 @@ reiser4_node_t *reiser4_node_right(reiser4_node_t *node) {
     
 	if (!node->right) {
 		aal_assert("umka-1630", node->tree != NULL, return NULL);
-		node->right = reiser4_node_rnn(node);
+		node->right = reiser4_node_fnn(node, D_RIGHT);
 	}
     
 	return node->right;
@@ -595,11 +587,16 @@ errno_t reiser4_node_attach(
 	aal_assert("umka-561", node != NULL, return -1);
 	aal_assert("umka-564", child != NULL, return -1);
 
+	/* Registering @child in @node children list */
 	if (reiser4_node_register(node, child))
 		return -1;
-	
-	child->left = reiser4_node_lnn(child);
-	child->right = reiser4_node_rnn(child);
+
+	/*
+	  Getting neighbours. This should be done after reiser4_node_register is
+	  done ans parent assigned.
+	*/
+	child->left = reiser4_node_fnn(child, D_LEFT);
+	child->right = reiser4_node_fnn(child, D_RIGHT);
 	
 	return 0;
 }
