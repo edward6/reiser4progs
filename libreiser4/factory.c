@@ -4,7 +4,7 @@
    factory.c -- reiser4 plugin factory.It contains code for loading, unloading
    and finding plugins. */
 
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 /* Hash table contains all known libreiser4 plugins. */
 aal_hash_table_t *plugins;

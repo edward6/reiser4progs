@@ -24,7 +24,7 @@
 #  include <sys/utsname.h>
 #endif
 
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 #include <aux/aux.h>
 #include <misc/misc.h>

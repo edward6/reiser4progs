@@ -19,11 +19,11 @@
 #include <string.h>
 #include <time.h>
 
+#include "gauge.h"
 #include <aux/aux.h>
 
 #include <repair/librepair.h>
-#include <reiser4/reiser4.h>
-#include "gauge.h"
+#include <reiser4/libreiser4.h>
 
 /* Extended error codes for described in misc.h */
 #define FIXABLE_ERROR	1

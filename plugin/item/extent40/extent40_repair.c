@@ -4,6 +4,7 @@
    extent40_repare.c -- repair dafault extent plugin methods. */
 
 #ifndef ENABLE_STAND_ALONE
+
 #include "extent40.h"
 #include <repair/plugin.h>
 
@@ -385,4 +386,33 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 	return 0;
 }
 
+/* Prints extent item into specified @stream */
+errno_t extent40_print(place_t *place,
+		       aal_stream_t *stream,
+		       uint16_t options) 
+{
+	uint32_t i, count;
+	extent40_t *extent;
+    
+	aal_assert("umka-1205", place != NULL);
+	aal_assert("umka-1206", stream != NULL);
+
+	extent = extent40_body(place);
+	count = extent40_units(place);
+
+	aal_stream_format(stream, "EXTENT PLUGIN=%s, LEN=%u, KEY=[%s], "
+			  "UNITS=%u\n[", place->plug->label, place->len,
+			  extent40_core->key_ops.print(&place->key, PO_DEFAULT), count);
+		
+	for (i = 0; i < count; i++) {
+		aal_stream_format(stream, "%llu(%llu)%s",
+				  et40_get_start(extent + i),
+				  et40_get_width(extent + i),
+				  (i < count - 1 ? " " : ""));
+	}
+	
+	aal_stream_format(stream, "]\n");
+    
+	return 0;
+}
 #endif

@@ -8,7 +8,7 @@
 #endif
 
 #if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_DEBUG)
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 void reiser4_print_node(node_t *node, uint32_t start, 
 			uint32_t count, uint16_t options) 
@@ -20,7 +20,7 @@ void reiser4_print_node(node_t *node, uint32_t start,
 	aal_stream_init(&stream, NULL, &file_stream);
 
 	plug_call(node->entity->plug->o.node_ops, print,
-		  node->entity, &stream, start,  count, options);
+		  node->entity, &stream, start, count, options);
 	
 	aal_stream_fini(&stream);
 }
@@ -33,7 +33,10 @@ void reiser4_print_format(reiser4_format_t *format,
 	aal_assert("vpf-175", format != NULL);
 
 	aal_stream_init(&stream, NULL, &file_stream);
-	reiser4_format_print(format, &stream);
+
+	plug_call(format->entity->plug->o.format_ops,
+		  print, format->entity, &stream, options);
+	
 	aal_stream_fini(&stream);
 }
 #endif

@@ -7,6 +7,7 @@
 #define JOURNAL40_H
 
 #ifndef ENABLE_STAND_ALONE
+
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 

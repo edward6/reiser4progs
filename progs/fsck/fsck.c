@@ -316,10 +316,12 @@ static errno_t fsck_check_init(repair_data_t *repair, aal_device_t *host) {
 
 	aal_stream_init(&stream, NULL, &memory_stream);
 	
-	reiser4_master_print(repair->fs->master, &stream, 
-			     callback_uuid_unparse);
+	repair_master_print(repair->fs->master, &stream, 
+			    callback_uuid_unparse);
+	
 	aal_stream_format(&stream, "\n");
-	reiser4_format_print(repair->fs->format, &stream);
+	
+	repair_format_print(repair->fs->format, &stream);
 	aal_stream_format(&stream, "\n");
 	
 	fprintf(stderr, "Reiser4 fs was detected on the %s.\n%s",

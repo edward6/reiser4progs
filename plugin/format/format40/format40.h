@@ -53,6 +53,7 @@ struct format40 {
 
 typedef struct format40 format40_t;
 extern reiser4_plug_t format40_plug;
+extern reiser4_core_t *format40_core;
 
 #define get_sb_mkfs_id(sb)			aal_get_le32(sb, sb_mkfs_id)
 #define set_sb_mkfs_id(sb, val)			aal_set_le32(sb, sb_mkfs_id, val)

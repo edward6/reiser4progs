@@ -641,4 +641,80 @@ node_entity_t *node40_unpack(aal_block_t *block,
 	
 	return (node_entity_t *)node;
 }
+
+/* Prepare text node description and push it into specified @stream. */
+errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
+		     uint32_t start, uint32_t count, uint16_t options) 
+{
+	void *ih;
+	pos_t pos;
+	uint8_t level;
+	uint32_t last, pol;	
+	
+	place_t place;
+	node40_t *node;
+
+	aal_assert("vpf-023", entity != NULL);
+	aal_assert("umka-457", stream != NULL);
+
+	node = (node40_t *)entity;
+	level = node40_get_level(entity);
+	
+	/* Print node header. */
+	aal_stream_format(stream, "NODE (%llu) LEVEL=%u ITEMS=%u "
+			  "SPACE=%u MKFS ID=0x%x FLUSH=0x%llx\n",
+			  node->block->nr, level, node40_items(entity),
+			  node40_space(entity), nh_get_mkfs_id(node),
+			  nh_get_flush_id(node));
+	
+	pos.unit = MAX_UINT32;
+	
+	if (start == MAX_UINT32)
+		start = 0;
+	
+	last = node40_items(entity);
+	
+	if (last > start + count)
+		last = start + count;
+	
+	pol = node40_key_pol(node);
+	
+	/* Loop through the all items */
+	for (pos.item = start; pos.item < last; pos.item++) {
+		if (pos.item) {
+			aal_stream_format(stream, "----------------------------"
+					  "------------------------------------"
+					  "--------------\n");
+		}
+			
+		if (node40_fetch(entity, &pos, &place))
+			return -EINVAL;
+		
+		ih = node40_ih_at(node, pos.item);
+		aal_stream_format(stream, "#%u, OFF %u: ", pos.item, 
+				  ih_get_offset(ih, pol));
+		
+		/* Printing item by means of calling item print method if it is
+		   implemented. If it is not, then print common item information
+		   like key, len, etc. */
+		if (place.plug->o.item_ops->debug->print) {
+			if (plug_call(place.plug->o.item_ops->debug,
+				      print, &place, stream, options))
+			{
+				return -EINVAL;
+			}
+		} else {
+			char *key = node40_core->key_ops.print(&place.key, PO_DEFAULT);
+			
+			aal_stream_format(stream, "PLUGIN: %s LEN=%u, KEY=[%s]\n",
+					  place.plug->label, place.len, key);
+		}
+	}
+	
+	aal_stream_format(stream, "============================"
+			  "===================================="
+			  "==============\n");
+
+	return 0;
+}
 #endif

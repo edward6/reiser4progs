@@ -85,6 +85,32 @@ typedef enum {
 	KEY_LARGE_GEN_SHIFT        = 0,
 } key_large_shift_t;
 
+extern void key_large_set_offset(key_entity_t *key, 
+				 uint64_t offset);
+extern uint64_t key_large_get_offset(key_entity_t *key);
+
+extern void key_large_set_objectid(key_entity_t *key, 
+				   uint64_t objectid);
+
+extern uint64_t key_large_get_objectid(key_entity_t *key);
+
+extern void key_large_set_ordering(key_entity_t *key,
+				   uint64_t ordering);
+
+extern uint64_t key_large_get_ordering(key_entity_t *key);
+
+extern key_type_t key_large_get_type(key_entity_t *key);
+
+extern void key_large_set_locality(key_entity_t *key,
+				   uint64_t locality);
+
+extern uint64_t key_large_get_locality(key_entity_t *key);
+
+extern void key_large_set_fobjectid(key_entity_t *key,
+				    uint64_t objectid);
+
+extern uint64_t key_large_get_fobjectid(key_entity_t *key);
+
 static inline uint64_t kl_get_el(const key_large_t *key,
 				 key_large_field_t off)
 {

@@ -66,6 +66,7 @@ errno_t tail40_merge(place_t *place, trans_hint_t *hint) {
 	/* Set the maxkey of the passed operation. */
 	plug_call(src->key.plug->o.key_ops, assign, 
 		  &hint->maxkey, &hint->offset);
+
 	plug_call(hint->maxkey.plug->o.key_ops, 
 		  set_offset, &hint->maxkey, offset);
 
@@ -80,4 +81,17 @@ errno_t tail40_unpack(place_t *place, aal_stream_t *stream) {
 	return 0;
 }
 
+/* Print tail item at @place to passed @stream. */
+errno_t tail40_print(place_t *place, aal_stream_t *stream,
+		     uint16_t options)
+{
+	aal_assert("umka-1489", place != NULL);
+	aal_assert("umka-1490", stream != NULL);
+
+	aal_stream_format(stream, "TAIL PLUGIN=%s, LEN=%u, KEY=[%s]\n",
+			  place->plug->label, place->len,
+			  tail40_core->key_ops.print(&place->key,
+						     PO_DEFAULT));
+	return 0;
+}
 #endif

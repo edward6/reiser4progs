@@ -4,7 +4,7 @@
    alloc.c -- reiser4 block allocator common code. */
 
 #ifndef ENABLE_STAND_ALONE
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 enum alloc_init {
 	ALLOC_OPEN,
@@ -168,16 +168,6 @@ errno_t reiser4_alloc_sync(
 	
 	return plug_call(alloc->entity->plug->o.alloc_ops,
 			 sync, alloc->entity);
-}
-
-errno_t reiser4_alloc_print(reiser4_alloc_t *alloc,
-			    aal_stream_t *stream)
-{
-	aal_assert("umka-1566", alloc != NULL);
-	aal_assert("umka-1567", stream != NULL);
-
-	return plug_call(alloc->entity->plug->o.alloc_ops,
-			 print, alloc->entity, stream, 0);
 }
 
 /* Close passed allocator instance */

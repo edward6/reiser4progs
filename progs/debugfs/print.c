@@ -68,7 +68,7 @@ static errno_t tprint_process_node(reiser4_tree_t *tree,
 
 	aal_stream_init(&stream, stdout, &file_stream);
 
-	if ((res = reiser4_node_print(node, &stream)))
+	if ((res = repair_node_print(node, &stream)))
 		goto error_free_stream;
 
 	aal_stream_fini(&stream);
@@ -168,8 +168,8 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 
 	aal_stream_init(&stream, stdout, &file_stream);
 		
-	if ((res = reiser4_master_print(fs->master, &stream, 
-					misc_uuid_unparse)))
+	if ((res = repair_master_print(fs->master, &stream, 
+				       misc_uuid_unparse)))
 	{
 		return res;
 	}
@@ -189,7 +189,7 @@ errno_t debugfs_print_status(reiser4_fs_t *fs) {
 
 	aal_stream_init(&stream, stdout, &file_stream);
 		
-	if ((res = reiser4_status_print(fs->status, &stream)))
+	if ((res = repair_status_print(fs->status, &stream)))
 		return res;
 
 	aal_stream_format(&stream, "\n");
@@ -209,7 +209,7 @@ errno_t debugfs_print_format(reiser4_fs_t *fs) {
 	}
     
 	aal_stream_init(&stream, stdout, &file_stream);
-	reiser4_format_print(fs->format, &stream);
+	repair_format_print(fs->format, &stream);
 
 	aal_stream_format(&stream, "\n");
 	aal_stream_fini(&stream);
@@ -228,7 +228,7 @@ errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 	}
 
 	aal_stream_init(&stream, stdout, &file_stream);
-	reiser4_oid_print(fs->oid, &stream);
+	repair_oid_print(fs->oid, &stream);
 
 	aal_stream_format(&stream, "\n");
 	aal_stream_fini(&stream);
@@ -241,7 +241,7 @@ errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
 	aal_stream_t stream;
 
 	aal_stream_init(&stream, stdout, &file_stream);
-	reiser4_alloc_print(fs->alloc, &stream);
+	repair_alloc_print(fs->alloc, &stream);
 
 	aal_stream_format(&stream, "\n");
 	aal_stream_fini(&stream);
@@ -257,7 +257,7 @@ errno_t debugfs_print_journal(reiser4_fs_t *fs) {
 		return -EINVAL;
 
 	aal_stream_init(&stream, stdout, &file_stream);
-	reiser4_journal_print(fs->journal, &stream);
+	repair_journal_print(fs->journal, &stream);
 
 	aal_stream_format(&stream, "\n");
 	aal_stream_fini(&stream);
@@ -308,9 +308,8 @@ errno_t debugfs_print_file(
 		aal_stream_t stream;
 
 		aal_stream_init(&stream, stdout, &file_stream);
-		reiser4_object_print(object, &stream);
+		repair_object_print(object, &stream);
 		aal_stream_fini(&stream);
-		
 	} else {
 		hint.old = 0;
 		hint.data = fs;

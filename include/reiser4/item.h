@@ -12,9 +12,6 @@
 extern rid_t reiser4_item_type(place_t *place);
 extern bool_t reiser4_item_statdata(place_t *place);
 
-extern errno_t reiser4_item_print(place_t *place,
-				  aal_stream_t *stream);
-
 extern errno_t reiser4_item_get_key(place_t *place,
 				    reiser4_key_t *key);
 

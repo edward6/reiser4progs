@@ -17,10 +17,6 @@ extern errno_t reiser4_master_valid(reiser4_master_t *master);
 extern errno_t reiser4_master_reopen(reiser4_master_t *master);
 extern reiser4_plug_t *reiser4_master_guess(aal_device_t *device);
 
-extern errno_t reiser4_master_print(reiser4_master_t *master,
-				    aal_stream_t *stream,
-				    uuid_unparse_t unparse);
-
 extern errno_t reiser4_master_layout(reiser4_master_t *master, 
 				     region_func_t region_func,
 				     void *data);

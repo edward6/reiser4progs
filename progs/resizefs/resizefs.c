@@ -16,7 +16,7 @@
 #include <sys/stat.h>
 
 #include <misc/misc.h>
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 enum behav_flags {
 	BF_FORCE      = 1 << 0,

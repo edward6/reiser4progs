@@ -115,3 +115,73 @@ reiser4_status_t *repair_status_unpack(aal_device_t *device,
 	return NULL;
 }
 
+errno_t repair_status_print(reiser4_status_t *status,
+			    aal_stream_t *stream)
+{
+	uint64_t state, extended;
+	int i;
+	
+	aal_assert("umka-2493", status != NULL);
+	aal_assert("umka-2494", stream != NULL);
+
+	aal_stream_format(stream, "FS status block (%lu):\n", 
+			  REISER4_STATUS_BLOCK);
+
+	state = get_ss_status(STATUS(status));
+	extended = get_ss_extended(STATUS(status));
+
+	if (!state) {
+		aal_stream_format(stream, "FS marked consistent\n");
+		return 0;
+	}
+	
+	if (state & FS_CORRUPTED) {
+		aal_stream_format(stream, "FS marked corruped\n");
+		state &= ~FS_CORRUPTED;
+	}
+
+	if (state & (1 << FS_DAMAGED)) {
+		aal_stream_format(stream, "FS marked damaged\n");
+		state &= ~FS_DAMAGED;
+	}
+
+	if (state & FS_DESTROYED) {
+		aal_stream_format(stream, "FS marked destroyed\n");
+		state &= ~FS_DESTROYED;
+	}
+
+	if (state & FS_IO) {
+		aal_stream_format(stream, "FS marked having io "
+				  "problems\n");
+		state &= ~FS_IO;
+	}
+
+	if (state) {
+		aal_stream_format(stream, "Some unknown status "
+				  "flags found: %0xllx\n", state);
+	}
+
+	if (extended) {
+		aal_stream_format(stream, "Extended status: %0xllx\n",
+				  get_ss_extended(STATUS(status)));
+	}
+	
+	if (*status->ent.ss_message != '\0') {
+		aal_stream_format(stream, "Status message:\t%s\n",
+				  STATUS(status)->ss_message);
+	} 
+	
+	if (!STATUS(status)->ss_stack[0])
+		return 0;
+	
+	aal_stream_format(stream, "Status backtrace:\n");
+	
+	for (i = 0; i < SS_STACK_SIZE; i++) {
+		if (!ss_stack(STATUS(status), i)) {
+			aal_stream_format(stream, "\t%d: 0xllx\n", i, 
+					  STATUS(status)->ss_stack[i]);
+		}
+	}
+	
+	return 0;
+}

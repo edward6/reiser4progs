@@ -6,7 +6,6 @@
 #ifndef OID40_H
 #define OID40_H
 
-#include <aal/aal.h>
 #include <reiser4/plugin.h>
 
 #define OID40_ROOT_LOCALITY             0x29

@@ -7,12 +7,6 @@
 #include "key_large.h"
 #include <repair/plugin.h>
 
-extern key_type_t key_large_get_type(key_entity_t *key);
-extern void key_large_set_locality(key_entity_t *key, key_type_t type);
-extern uint64_t key_large_get_locality(key_entity_t *key);
-extern void key_large_set_fobjectid(key_entity_t *key, uint64_t objectid);
-extern uint64_t key_large_get_fobjectid(key_entity_t *key);
-
 /* Checks than oid is not used in neither locality not objectid. */
 errno_t key_large_check_struct(key_entity_t *key) {
 	key_minor_t minor;
@@ -41,5 +35,35 @@ errno_t key_large_check_struct(key_entity_t *key) {
 	
 	return 0;
 }
+
+#ifndef ENABLE_STAND_ALONE
+/* Prints key into passed stream */
+errno_t key_large_print(key_entity_t *key, aal_stream_t *stream,
+			uint16_t options) 
+{
+	const char *name;
+	
+	aal_assert("vpf-191", key != NULL);
+	aal_assert("umka-1548", stream != NULL);
+
+	if (options == PO_INODE) {
+		aal_stream_format(stream, "%llx:%llx:%llx",
+				  key_large_get_locality(key),
+				  key_large_get_ordering(key),
+				  key_large_get_objectid(key));
+	} else {
+		name = key_common_minor2name(key_large_get_type(key));
+
+		aal_stream_format(stream, "%llx:%x(%s):%llx:%llx:%llx",
+				  key_large_get_locality(key),
+				  key_large_get_type(key), name,
+				  key_large_get_ordering(key),
+				  key_large_get_fobjectid(key),
+				  key_large_get_offset(key));
+	}
+	
+	return 0;
+}
+#endif
 
 #endif

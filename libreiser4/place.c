@@ -5,7 +5,7 @@
    about position in the tree. The instance of structure place_t
    contains pointer to node item/unit lies in. */
 
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 bool_t reiser4_place_valid(place_t *place) {
 	aal_assert("umka-2367", place != NULL);

@@ -11,10 +11,8 @@
 #include <stdio.h>
 #include <fcntl.h>
 
-#include <aal/aal.h>
-#include <reiser4/reiser4.h>
-
 #include <misc/misc.h>
+#include <reiser4/libreiser4.h>
 
 static void ls_print_usage(void) {
 	fprintf(stderr, "Usage: ls FILE DIR\n");

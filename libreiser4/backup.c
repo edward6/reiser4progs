@@ -4,7 +4,7 @@
    backup.c -- filesystem backup methods. */
 
 #ifndef ENABLE_STAND_ALONE
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 /* Creates the backup of the given @fs. */
 reiser4_backup_t *reiser4_backup_create(reiser4_fs_t *fs) {

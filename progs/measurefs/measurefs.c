@@ -16,7 +16,7 @@
 #include <sys/stat.h>
 
 #include <misc/misc.h>
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 /* Known measurefs behavior flags. */
 enum behav_flags {

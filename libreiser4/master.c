@@ -3,8 +3,8 @@
    
    master.c -- master super block functions. */
 
-#include <reiser4/reiser4.h>
 #include <aux/aux.h>
+#include <reiser4/libreiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
 #include <unistd.h>
@@ -66,63 +66,6 @@ errno_t reiser4_master_backup(reiser4_master_t *master, aal_stream_t *stream) {
 
 	aal_stream_write(stream, &master->ent, sizeof(master->ent));
 	
-	return 0;
-}
-
-
-errno_t reiser4_master_print(reiser4_master_t *master,
-			     aal_stream_t *stream,
-			     uuid_unparse_t unparse)
-{
-	rid_t format_pid;
-	uint32_t blksize;
-	reiser4_plug_t *format_plug;
-	
-	aal_assert("umka-1568", master != NULL);
-	aal_assert("umka-1569", stream != NULL);
-
-	blksize = get_ms_blksize(SUPER(master));
-	format_pid = reiser4_master_get_format(master);
-	
-	if (!(format_plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE,
-						  format_pid)))
-	{
-		aal_error("Can't find format plugin "
-			  "by its id 0x%x.", format_pid);
-	}
-	
-	aal_stream_format(stream, "Master super block (%lu):\n",
-			  REISER4_MASTER_OFFSET / blksize);
-	
-	aal_stream_format(stream, "magic:\t\t%s\n",
-			  reiser4_master_get_magic(master));
-	
-	aal_stream_format(stream, "blksize:\t%u\n",
-			  get_ms_blksize(SUPER(master)));
-
-	aal_stream_format(stream, "format:\t\t0x%x (%s)\n",
-			  format_pid, format_plug ?
-			  format_plug->label : "absent");
-
-#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-	if (*master->ent.ms_uuid != '\0') {
-		char uuid[256];
-		
-		unparse(reiser4_master_get_uuid(master), uuid);
-		aal_stream_format(stream, "uuid:\t\t%s\n", uuid);
-	} else {
-		aal_stream_format(stream, "uuid:\t\t<none>\n");
-	}
-#endif
-	
-	if (*master->ent.ms_label != '\0') {
-		aal_stream_format(stream, "label:\t\t%s\n",
-				  reiser4_master_get_label(master));
-	} else {
-		aal_stream_format(stream, "label:\t\t<none>\n");
-	}
-
-
 	return 0;
 }
 

@@ -11,7 +11,7 @@
 #include "format40.h"
 #include "format40_repair.h"
 
-static reiser4_core_t *core;
+reiser4_core_t *format40_core;
 
 /* All these functions are standard object getters and setters. They are
    dedicated to modify object properties and get values from its fields. They
@@ -435,78 +435,6 @@ static void format40_set_policy(generic_entity_t *entity,
 	set_sb_tail_policy(SUPER(entity), tail);
 	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
-
-errno_t format40_print(generic_entity_t *entity,
-		       aal_stream_t *stream,
-		       uint16_t options) 
-{
-	rid_t tail_pid;
-	format40_t *format;
-	format40_super_t *super;
-	reiser4_plug_t *tail_plug;
-    
-	aal_assert("vpf-246", entity != NULL);
-	aal_assert("umka-1290", stream != NULL);
-
-	format = (format40_t *)entity;
-	super = &format->super;
-    
-	tail_pid = get_sb_tail_policy(super);
-
-	if (!(tail_plug = core->factory_ops.ifind(POLICY_PLUG_TYPE,
-						   tail_pid)))
-	{
-		aal_error("Can't find tail policy plugin "
-			  "by its id 0x%x.", tail_pid);
-	}
-		
-	aal_stream_format(stream, "Format super block (%lu):\n",
-			  FORMAT40_BLOCKNR(format->blksize));
-	
-	aal_stream_format(stream, "plugin:\t\t%s\n",
-			  entity->plug->label);
-	
-	aal_stream_format(stream, "description:\t%s\n",
-			  entity->plug->desc);
-
-	aal_stream_format(stream, "magic:\t\t%s\n",
-			  super->sb_magic);
-	
-	aal_stream_format(stream, "flushes:\t%llu\n",
-			  get_sb_flushes(super));
-	
-	aal_stream_format(stream, "mkfs id:\t0x%x\n",
-			  get_sb_mkfs_id(super));
-    
-	aal_stream_format(stream, "blocks:\t\t%llu\n",
-			  get_sb_block_count(super));
-	
-	aal_stream_format(stream, "free blocks:\t%llu\n",
-			  get_sb_free_blocks(super));
-	
-	aal_stream_format(stream, "root block:\t%llu\n",
-			  get_sb_root_block(super));
-
-	aal_stream_format(stream, "tail policy:\t0x%x (%s)\n",
-			  tail_pid, tail_plug ? tail_plug->label:
-			  "absent");
-	
-	aal_stream_format(stream, "next oid:\t0x%llx\n",
-			  get_sb_oid(super));
-	
-	aal_stream_format(stream, "file count:\t%llu\n",
-			  get_sb_file_count(super));
-	
-	aal_stream_format(stream, "tree height:\t%u\n",
-			  get_sb_tree_height(super));
-
-	if (aal_test_bit(&super->sb_flags, 0))
-		aal_stream_format(stream, "key policy:\tLARGE\n");
-	else
-		aal_stream_format(stream, "key policy:\tSHORT\n");
-    
-	return 0;
-}
 #endif
 
 static reiser4_format_ops_t format40_ops = {
@@ -564,7 +492,7 @@ reiser4_plug_t format40_plug = {
 };
 
 static reiser4_plug_t *format40_init(reiser4_core_t *c) {
-	core = c;
+	format40_core = c;
 	return &format40_plug;
 }
 

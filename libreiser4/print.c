@@ -4,7 +4,7 @@
    print.c -- printing different reiser4 objects stuff. */
 
 #ifndef ENABLE_STAND_ALONE
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 static uint32_t curr_size; 
 static uint32_t heap_size;

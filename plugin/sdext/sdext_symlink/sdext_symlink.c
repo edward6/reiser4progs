@@ -46,24 +46,11 @@ static errno_t sdext_symlink_init(void *body,
 	return 0;
 }
 
-static errno_t sdext_symlink_print(void *body,
-				   aal_stream_t *stream,
-				   uint16_t options)
-{
-	aal_assert("umka-1485", body != NULL);
-	aal_assert("umka-1486", stream != NULL);
+extern errno_t sdext_symlink_print(void *body, aal_stream_t *stream,
+				   uint16_t options);
 
-	aal_stream_format(stream, "len:\t\t%u\n",
-			  aal_strlen((char *)body));
-	
-	aal_stream_format(stream, "data:\t\t\"%s\"\n",
-			  (char *)body);
-	
-	return 0;
-}
-
-extern errno_t sdext_symlink_check_struct(sdext_entity_t *sdext, uint8_t mode);
-
+extern errno_t sdext_symlink_check_struct(sdext_entity_t *sdext,
+					  uint8_t mode);
 #endif
 
 static reiser4_sdext_ops_t sdext_symlink_ops = {

@@ -57,9 +57,6 @@ extern lookup_t reiser4_object_lookup(reiser4_object_t *object,
 				      const char *name,
 				      entry_hint_t *entry);
 
-extern errno_t reiser4_object_print(reiser4_object_t *object,
-				    aal_stream_t *stream);
-
 extern errno_t reiser4_object_stat(reiser4_object_t *object,
 				   statdata_hint_t *hint);
 

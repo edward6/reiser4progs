@@ -15,6 +15,9 @@ typedef enum repair_object_flag {
 	OF_LAST	 	= 0x3
 } repair_object_flag_t;
 
+extern errno_t repair_object_print(reiser4_object_t *object,
+				   aal_stream_t *stream);
+
 extern errno_t repair_object_check_struct(reiser4_object_t *object,
 					  place_func_t place_func,
 					  uint8_t mode, void *data);

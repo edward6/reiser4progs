@@ -4,7 +4,7 @@
    param.c -- methods for working with reiser4 params. */
 
 #include <stdio.h>
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 errno_t misc_param_override(char *override) {
 	while (1) {

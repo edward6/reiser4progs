@@ -83,15 +83,15 @@ uint64_t key_large_get_ordering(key_entity_t *key) {
 }
 
 /* Sets up key objectid */
-static void key_large_set_objectid(key_entity_t *key, 
-				   uint64_t objectid) 
+void key_large_set_objectid(key_entity_t *key, 
+			    uint64_t objectid) 
 {
 	aal_assert("umka-638", key != NULL);
 	kl_set_objectid((key_large_t *)key->body, objectid);
 }
 
 /* Returns key objectid */
-static uint64_t key_large_get_objectid(key_entity_t *key) {
+uint64_t key_large_get_objectid(key_entity_t *key) {
 	aal_assert("umka-639", key != NULL);
 	return kl_get_objectid((key_large_t *)key->body);
 }
@@ -109,15 +109,15 @@ uint64_t key_large_get_fobjectid(key_entity_t *key) {
 }
 
 /* Sets up key offset */
-static void key_large_set_offset(key_entity_t *key, 
-				 uint64_t offset)
+void key_large_set_offset(key_entity_t *key, 
+			  uint64_t offset)
 {
 	aal_assert("umka-640", key != NULL);
 	kl_set_offset((key_large_t *)key->body, offset);
 }
 
 /* Returns key offset */
-static uint64_t key_large_get_offset(key_entity_t *key) {
+uint64_t key_large_get_offset(key_entity_t *key) {
 	aal_assert("umka-641", key != NULL);
 	return kl_get_offset((key_large_t *)key->body);
 }
@@ -364,34 +364,9 @@ static errno_t key_large_build_generic(key_entity_t *key,
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Prints key into passed stream */
-errno_t key_large_print(key_entity_t *key,
-			aal_stream_t *stream,
-			uint16_t options) 
-{
-	const char *name;
-	
-	aal_assert("vpf-191", key != NULL);
-	aal_assert("umka-1548", stream != NULL);
-
-	if (options == PO_INODE) {
-		aal_stream_format(stream, "%llx:%llx:%llx",
-				  key_large_get_locality(key),
-				  key_large_get_ordering(key),
-				  key_large_get_objectid(key));
-	} else {
-		name = key_common_minor2name(key_large_get_type(key));
-
-		aal_stream_format(stream, "%llx:%x(%s):%llx:%llx:%llx",
-				  key_large_get_locality(key),
-				  key_large_get_type(key), name,
-				  key_large_get_ordering(key),
-				  key_large_get_fobjectid(key),
-				  key_large_get_offset(key));
-	}
-	
-	return 0;
-}
+extern errno_t key_large_print(key_entity_t *key,
+			       aal_stream_t *stream,
+			       uint16_t options);
 
 extern errno_t key_large_check_struct(key_entity_t *key);
 #endif

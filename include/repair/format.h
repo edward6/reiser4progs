@@ -11,6 +11,9 @@
 
 extern errno_t repair_format_open(reiser4_fs_t *fs, uint8_t mode);
 
+extern errno_t repair_format_print(reiser4_format_t *format,
+				   aal_stream_t *stream);
+
 extern errno_t repair_format_update(reiser4_format_t *format);
 
 extern errno_t repair_format_pack(reiser4_format_t *format, 

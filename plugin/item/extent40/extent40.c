@@ -6,7 +6,7 @@
 #include "extent40.h"
 #include "extent40_repair.h"
 
-static reiser4_core_t *core = NULL;
+reiser4_core_t *extent40_core;
 
 /* Returns number of units in passed extent @place */
 uint32_t extent40_units(place_t *place) {
@@ -190,7 +190,8 @@ static int64_t extent40_trunc_units(place_t *place,
 		
 			/* Removing unit data from the cache */
 			for (i = 0; i < remove; i++) {
-				core->tree_ops.rem_data(hint->tree, &key);
+				extent40_core->tree_ops.rem_data(hint->tree,
+								 &key);
 			
 				offset = plug_call(key.plug->o.key_ops,
 						   get_offset, &key);
@@ -241,36 +242,6 @@ static int64_t extent40_trunc_units(place_t *place,
 	}
 	
 	return count;
-}
-
-/* Prints extent item into specified @stream */
-static errno_t extent40_print(place_t *place,
-			      aal_stream_t *stream,
-			      uint16_t options) 
-{
-	uint32_t i, count;
-	extent40_t *extent;
-    
-	aal_assert("umka-1205", place != NULL);
-	aal_assert("umka-1206", stream != NULL);
-
-	extent = extent40_body(place);
-	count = extent40_units(place);
-
-	aal_stream_format(stream, "EXTENT PLUGIN=%s, LEN=%u, KEY=[%s], "
-			  "UNITS=%u\n[", place->plug->label, place->len,
-			  core->key_ops.print(&place->key, PO_DEFAULT), count);
-		
-	for (i = 0; i < count; i++) {
-		aal_stream_format(stream, "%llu(%llu)%s",
-				  et40_get_start(extent + i),
-				  et40_get_width(extent + i),
-				  (i < count - 1 ? " " : ""));
-	}
-	
-	aal_stream_format(stream, "]\n");
-    
-	return 0;
 }
 
 /* Builds maximal real key in use for specified @place */
@@ -405,8 +376,8 @@ static int64_t extent40_read_units(place_t *place,
 					  &key, block_offset);
 
 				/* Getting block from the cache. */
-				if (!(block = core->tree_ops.get_data(hint->tree,
-								      &key)))
+				if (!(block = extent40_core->tree_ops.get_data(hint->tree,
+									       &key)))
 				{
 					/* If block is not found in cache, we
 					   read it and put to cache. */
@@ -417,7 +388,9 @@ static int64_t extent40_read_units(place_t *place,
 					{
 						return -EIO;
 					}
-					core->tree_ops.put_data(hint->tree, &key, block);
+					
+					extent40_core->tree_ops.put_data(hint->tree,
+									 &key, block);
 				}
 
 				/* Copying data from found (loaded) block to
@@ -833,7 +806,9 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 			blk_t blk;
 
 			/* Getting data block by offset key */
-			if (!(block = core->tree_ops.get_data(hint->tree, &key))) {
+			if (!(block = extent40_core->tree_ops.get_data(hint->tree,
+								       &key)))
+			{
 				/* This is the case, when data cache does not
 				   contain needed block, we have load it before
 				   modifying it. */
@@ -850,7 +825,8 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 				}
 
 				/* Updating it data cache. */
-				core->tree_ops.put_data(hint->tree, &key, block);
+				extent40_core->tree_ops.put_data(hint->tree,
+								 &key, block);
 			}
 		} else {
 			/* We write beyond of item and thus need to allocate new
@@ -862,7 +838,8 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 			}
 
 			/* Attaching new block to data cache. */
-			core->tree_ops.put_data(hint->tree, &key, block);
+			extent40_core->tree_ops.put_data(hint->tree,
+							 &key, block);
 			
 			extent = extent40_body(place) +
 				extent40_units(place) - 1;
@@ -1207,7 +1184,7 @@ static reiser4_plug_t extent40_plug = {
 };
 
 static reiser4_plug_t *extent40_start(reiser4_core_t *c) {
-	core = c;
+	extent40_core = c;
 	return &extent40_plug;
 }
 

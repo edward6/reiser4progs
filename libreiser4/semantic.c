@@ -4,7 +4,7 @@
    semantic.c -- reiser4 semantic tree related code. */
 
 #include <aux/aux.h>
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 struct resolve {
 	bool_t follow;

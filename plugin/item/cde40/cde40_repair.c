@@ -25,6 +25,7 @@
    the item. */
 
 #ifndef ENABLE_STAND_ALONE
+
 #include "cde40.h"
 #include <aux/bitmap.h>
 #include <repair/plugin.h>
@@ -882,4 +883,61 @@ errno_t cde40_merge(place_t *dst, place_t *src, merge_hint_t *hint) {
 }
 #endif
 
+/* Prints cde item into passed @stream */
+errno_t cde40_print(place_t *place, aal_stream_t *stream,
+		    uint16_t options) 
+{
+	uint32_t pol;
+	uint32_t i, j;
+	char name[256];
+	uint64_t locality;
+	uint64_t objectid;
+	uint32_t namewidth;
+	
+	aal_assert("umka-548", place != NULL);
+	aal_assert("umka-549", stream != NULL);
+
+	aal_stream_format(stream, "DIRENTRY PLUGIN=%s, LEN=%u, KEY=[%s], "
+			  "UNITS=%u\n", place->plug->label, place->len, 
+			  cde40_core->key_ops.print(&place->key, PO_DEFAULT), 
+			  cde_get_units(place));
+		
+	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "
+			  "SDKEY%*s\n", 13, " ", 29, " ", 13, " ");
+	
+	pol = cde40_key_pol(place);
+
+	/* Loop though the all entries and print them to @stream. */
+	for (i = 0; i < cde_get_units(place); i++) {
+		uint64_t offset, haobj;
+		void *objid = cde40_objid(place, i);
+		void *entry = cde40_entry(place, i);
+
+		cde40_get_name(place, i, name, sizeof(name));
+
+		/* Cutting name by 16 symbols */
+		if (aal_strlen(name) > 16) {
+			for (j = 0; j < 3; j++)
+				name[13 + j] = '.';
+
+			name[13 + j] = '\0';
+		}
+
+		/* Getting locality, objectid. */
+		locality = ob_get_locality(objid, pol);
+		objectid = ob_get_objectid(objid, pol);
+		namewidth = 16 - aal_strlen(name) + 1;
+
+		offset = ha_get_offset(entry, pol);
+		haobj = ha_get_objectid(entry, pol);
+
+		/* Putting data to @stream. */
+		aal_stream_format(stream, "%*d %s%*s %*u %.16llx:%.16llx "
+				  "%.7llx:%.7llx\n", 3, i, name, namewidth,
+				  " ", 6, en_get_offset(entry, pol), haobj,
+				  offset, locality, objectid);
+	}
+
+	return 0;
+}
 #endif

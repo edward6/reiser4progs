@@ -177,6 +177,17 @@ errno_t repair_format_pack(reiser4_format_t *format, aal_stream_t *stream) {
 			 pack, format->entity, stream);
 }
 
+/* Prints @format to passed @stream */
+errno_t repair_format_print(reiser4_format_t *format,
+			    aal_stream_t *stream)
+{
+	aal_assert("umka-1560", format != NULL);
+	aal_assert("umka-1561", stream != NULL);
+
+	return plug_call(format->entity->plug->o.format_ops,
+			 print, format->entity, stream, 0);
+}
+
 /* Loads format data from @stream to format entity. */
 reiser4_format_t *repair_format_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	rid_t pid;

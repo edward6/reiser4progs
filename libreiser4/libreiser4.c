@@ -4,8 +4,7 @@
    libreiser4.c -- version control functions, library initialization code and
    plugin-accessible library functions. */
 
-#include <aal/aal.h>
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 /* Handler for plugin lookup requests from all plugins */
 static reiser4_plug_t *factory_ifind(

@@ -14,7 +14,7 @@
 
 #include <misc/misc.h>
 #include <misc/gauge.h>
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 #include <repair/librepair.h>
 
 extern aal_gauge_t *current_gauge;

@@ -3,7 +3,7 @@
    
    item.c -- common reiser4 item functions. */
 
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 /* Returns count of units in item. If count method is not implemented, it
    returns 1. */
@@ -20,21 +20,6 @@ uint32_t reiser4_item_units(place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Prints passed @place into passed @buff */
-errno_t reiser4_item_print(place_t *place,
-			   aal_stream_t *stream)
-{
-	aal_assert("umka-1297", place != NULL);
-	aal_assert("umka-1550", stream != NULL);
-	aal_assert("umka-1449", place->plug != NULL);
-
-	if (!place->plug->o.item_ops->debug->print)
-		return -EINVAL;
-	
-	return plug_call(place->plug->o.item_ops->debug,
-			 print, place, stream, 0);
-}
-
 bool_t reiser4_item_statdata(place_t *place) {
 	aal_assert("umka-1831", place != NULL);
 	aal_assert("umka-2382", place->plug != NULL);

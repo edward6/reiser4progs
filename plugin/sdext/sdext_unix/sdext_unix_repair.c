@@ -6,6 +6,8 @@
 
 #ifndef ENABLE_STAND_ALONE
 
+#include <time.h>
+#include <sys/types.h>
 #include "sdext_unix.h"
 #include <repair/plugin.h>
 
@@ -23,5 +25,47 @@ errno_t sdext_unix_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 	return 0;
 }
 
+errno_t sdext_unix_print(void *body, aal_stream_t *stream,
+			 uint16_t options)
+{
+	sdext_unix_t *ext;
+	time_t atm, mtm, ctm;
+	char uid[255], gid[255];
+	
+	aal_assert("umka-1412", body != NULL);
+	aal_assert("umka-1413", stream != NULL);
+
+	ext = (sdext_unix_t *)body;
+
+	aal_memset(uid, 0, sizeof(uid));
+	aal_memset(gid, 0, sizeof(gid));
+
+	aal_stream_format(stream, "uid:\t\t%u\n",
+			  sdext_unix_get_uid(ext));
+	
+	aal_stream_format(stream, "gid:\t\t%u\n",
+			  sdext_unix_get_gid(ext));
+	
+	atm = sdext_unix_get_atime(ext);
+	mtm = sdext_unix_get_mtime(ext);
+	ctm = sdext_unix_get_ctime(ext);
+
+	aal_stream_format(stream, "atime:\t\t%s",
+			  ctime(&atm));
+	
+	aal_stream_format(stream, "mtime:\t\t%s",
+			  ctime(&mtm));
+	
+	aal_stream_format(stream, "ctime:\t\t%s",
+			  ctime(&ctm));
+
+	aal_stream_format(stream, "rdev:\t\t%llu\n",
+			  sdext_unix_get_rdev(ext));
+	
+	aal_stream_format(stream, "bytes:\t\t%llu\n",
+			  sdext_unix_get_bytes(ext));
+
+	return 0;
+}
 #endif
 

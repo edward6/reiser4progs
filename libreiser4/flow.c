@@ -3,7 +3,7 @@
    
    flow.c -- functions for working with flow. */
 
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 /* Reads reads some number of bytes from @tree to @hint. This function is used
    in tail conversion and for reading data from the files. */

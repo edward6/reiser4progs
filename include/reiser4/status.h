@@ -15,9 +15,6 @@ extern void reiser4_status_close(reiser4_status_t *status);
 
 extern errno_t reiser4_status_sync(reiser4_status_t *status);
 
-extern errno_t reiser4_status_print(reiser4_status_t *status,
-				    aal_stream_t *stream);
-
 extern errno_t reiser4_status_layout(reiser4_status_t *status, 
 				     region_func_t region_func,
 				     void *data);

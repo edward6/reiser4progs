@@ -4,7 +4,7 @@
    node.c -- the reiser4 disk node personalization. The libreiser4 internal
    in-memory tree consists of node_t instances. */
 
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
 bool_t reiser4_node_isdirty(node_t *node) {
@@ -156,19 +156,6 @@ errno_t reiser4_node_fresh(node_t *node, uint8_t level) {
 
 	return plug_call(node->entity->plug->o.node_ops,
 			 fresh, node->entity, level);
-}
-
-/* Print passed @node to the specified @stream */
-errno_t reiser4_node_print(
-	node_t *node,           /* node to be printed */
-	aal_stream_t *stream)   /* stream for printing in */
-{
-	aal_assert("umka-1537", node != NULL);
-	aal_assert("umka-1538", stream != NULL);
-	
-	return plug_call(node->entity->plug->o.node_ops,
-			 print, node->entity, stream,
-			 -1, -1, 0);
 }
 #endif
 

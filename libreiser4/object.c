@@ -5,7 +5,7 @@
    symlinks, etc). */
 
 #include <aux/aux.h>
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 /* Helper funtion, which initializes @object->entity by @object->info. */
 static errno_t reiser4_object_init(reiser4_object_t *object,
@@ -537,33 +537,6 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 
 	reiser4_object_close(child);
 	return res;
-}
-
-/* Helper function for printing passed @place into @stream. */
-static errno_t callback_print_place(void *entity, place_t *place,
-				    void *data)
-{
-	errno_t res;
-	
-	aal_stream_t *stream = (aal_stream_t *)data;
-	
-	if ((res = reiser4_item_print(place, stream))) {
-		aal_error("Can't print item %u in "
-			  "node %llu.", place->pos.item,
-			  node_blocknr(place->node));
-		return res;
-	}
-		
-	aal_stream_write(stream, "\n", 1);
-	return 0;
-}
-
-/* Prints object items into passed stream */
-errno_t reiser4_object_print(reiser4_object_t *object,
-			     aal_stream_t *stream)
-{
-	place_func_t place_func = callback_print_place;
-	return reiser4_object_metadata(object, place_func, stream);
 }
 
 /* Enumerates all blocks passed @object occupies */

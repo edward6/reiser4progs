@@ -90,7 +90,14 @@ typedef struct cde404  cde404_t;
 extern reiser4_core_t *cde40_core;
 
 extern uint32_t cde40_units(place_t *place);
+
 extern inline uint32_t cde40_key_pol(place_t *place);
+
+extern char *cde40_get_name(place_t *place, uint32_t pos,
+			    char *buff, uint32_t len);
+
+extern inline void *cde40_entry(place_t *place, uint32_t pos);
+extern inline void *cde40_objid(place_t *place, uint32_t pos);
 
 extern errno_t cde40_maxposs_key(place_t *place,
 				 key_entity_t *key);

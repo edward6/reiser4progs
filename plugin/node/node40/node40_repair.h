@@ -13,6 +13,11 @@ extern errno_t node40_pack(node_entity_t *entity,
 			   aal_stream_t *stream,
 			   int mode);
 
+extern errno_t node40_print(node_entity_t *entity,
+			    aal_stream_t *stream,
+			    uint32_t start, uint32_t count,
+			    uint16_t options);
+
 extern node_entity_t *node40_unpack(aal_block_t *block,
 				    reiser4_plug_t *kplug,
 				    aal_stream_t *stream,

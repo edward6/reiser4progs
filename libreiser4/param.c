@@ -3,7 +3,7 @@
    
    param.c -- reiser4 parameter functions. */
 
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
 /* All default plugin ids. This is used for getting plugin id if it cannot be

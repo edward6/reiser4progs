@@ -10,7 +10,7 @@
 #include <reiser4/plugin.h>
 #include <plugin/item/body40/body40.h>
 
-static reiser4_core_t *core = NULL;
+reiser4_core_t *tail40_core;
 
 /* Returns tail length. */
 uint32_t tail40_units(place_t *place) {
@@ -131,19 +131,6 @@ static int64_t tail40_write_units(place_t *place,
 	place_mkdirty(place);
                                                                                        
 	return count;
-}
-
-/* Print tail item at @place to passed @stream. */
-static errno_t tail40_print(place_t *place, aal_stream_t *stream,
-			    uint16_t options)
-{
-	aal_assert("umka-1489", place != NULL);
-	aal_assert("umka-1490", stream != NULL);
-
-	aal_stream_format(stream, "TAIL PLUGIN=%s, LEN=%u, KEY=[%s]\n",
-			  place->plug->label, place->len,
-			  core->key_ops.print(&place->key, PO_DEFAULT));
-	return 0;
 }
 
 /* Return max real key inside tail at @place. */
@@ -536,7 +523,7 @@ static reiser4_plug_t tail40_plug = {
 };
 
 static reiser4_plug_t *tail40_start(reiser4_core_t *c) {
-	core = c;
+	tail40_core = c;
 	return &tail40_plug;
 }
 

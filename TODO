@@ -23,8 +23,6 @@ reiser4progs/COPYING.
 * improve tree_adjust_node() to be able to stop if memory pressure is
   gone.
 
-* make debugfs use librepair. Move all print stuff to librepair.
-
 * change R4Sb magic to Reiser4Sb both in progs and in kernel code.
 
 * implement key collisions handling in tree_lookup().

@@ -1,6 +1,6 @@
 includedir		    = -I$(top_srcdir)/include
 
-oid40_sources		    = oid40.c oid40.h
+oid40_sources		    = oid40.c oid40_repair.c oid40.h oid40_repair.h
 
 STATIC_LIBS		    = liboid40-static.la
 liboid40_static_la_SOURCES  = $(oid40_sources)

@@ -32,9 +32,6 @@ extern errno_t reiser4_alloc_release(reiser4_alloc_t *alloc,
 extern count_t reiser4_alloc_allocate(reiser4_alloc_t *alloc,
 				      blk_t *start, count_t count);
 
-extern errno_t reiser4_alloc_print(reiser4_alloc_t *alloc,
-				   aal_stream_t *stream);
-
 extern void reiser4_alloc_close(reiser4_alloc_t *alloc);
 extern errno_t reiser4_alloc_valid(reiser4_alloc_t *alloc);
 

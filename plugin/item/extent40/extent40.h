@@ -17,6 +17,8 @@ struct extent40 {
 
 typedef struct extent40 extent40_t;
 
+extern reiser4_core_t *extent40_core;
+
 extern uint32_t extent40_units(place_t *place);
 
 extern uint64_t extent40_offset(place_t *place,	uint32_t pos);

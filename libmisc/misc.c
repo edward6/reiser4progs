@@ -14,7 +14,7 @@
 #include <sys/mount.h>
 
 #include <misc/misc.h>
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 #define KB 1024
 #define MB (KB * KB)

@@ -8,6 +8,9 @@
 
 #include <repair/repair.h>
 
+extern errno_t repair_item_print(place_t *place,
+				 aal_stream_t *stream);
+
 extern errno_t repair_item_check_struct(place_t *place, uint8_t mode);
 extern errno_t repair_item_check_layout(place_t *place, 
 					region_func_t func, 

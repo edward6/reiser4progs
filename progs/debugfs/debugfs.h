@@ -11,10 +11,11 @@
 #endif
 
 #include <misc/misc.h>
-#include <reiser4/reiser4.h>
-#include <repair/filesystem.h>
+#include <repair/librepair.h>
+#include <reiser4/libreiser4.h>
 
 #include "types.h"
 #include "browse.h"
 #include "print.h"
+
 #endif

@@ -360,3 +360,12 @@ node_t *repair_node_unpack(reiser4_tree_t *tree,
 	return NULL;
 }
 
+/* Print passed @node to the specified @stream */
+errno_t repair_node_print(node_t *node, aal_stream_t *stream) {
+	aal_assert("umka-1537", node != NULL);
+	aal_assert("umka-1538", stream != NULL);
+	
+	return plug_call(node->entity->plug->o.node_ops,
+			 print, node->entity, stream,
+			 -1, -1, 0);
+}

@@ -10,7 +10,7 @@
 #  include <config.h> 
 #endif
 
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 extern errno_t debugfs_print_file(reiser4_fs_t *fs,
 				  char *filename,

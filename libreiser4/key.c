@@ -3,7 +3,7 @@
    
    key.c -- reiser4 common key code. */  
 
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 reiser4_key_t *reiser4_key_clone(reiser4_key_t *key) {
 	reiser4_key_t *clone;

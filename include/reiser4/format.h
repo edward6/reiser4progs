@@ -49,9 +49,6 @@ extern void reiser4_format_set_policy(reiser4_format_t *format,
 extern errno_t reiser4_format_mark(reiser4_format_t *format, 
 				   reiser4_alloc_t *alloc);
 
-extern errno_t reiser4_format_print(reiser4_format_t *format,
-				    aal_stream_t *stream);
-
 extern errno_t reiser4_format_valid(reiser4_format_t *format);
 extern rid_t reiser4_format_oid_pid(reiser4_format_t *format);
 extern rid_t reiser4_format_alloc_pid(reiser4_format_t *format);

@@ -5,8 +5,7 @@
    plugin. It is used by filesystem code (filesystem.c) for working with
    different disk-format plugins in independent maner. */
 
-#include <aal/aal.h>
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
 bool_t reiser4_format_isdirty(reiser4_format_t *format) {
@@ -166,17 +165,6 @@ errno_t reiser4_format_sync(
 	
 	return plug_call(format->entity->plug->o.format_ops,
 			 sync, format->entity);
-}
-
-/* Prints @format to passed @stream */
-errno_t reiser4_format_print(reiser4_format_t *format,
-			     aal_stream_t *stream)
-{
-	aal_assert("umka-1560", format != NULL);
-	aal_assert("umka-1561", stream != NULL);
-
-	return plug_call(format->entity->plug->o.format_ops,
-			 print, format->entity, stream, 0);
 }
 
 /* Checks passed disk-format for validness */

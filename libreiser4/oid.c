@@ -4,8 +4,7 @@
    oid.c -- oid allocator common code. */
 
 #ifndef ENABLE_STAND_ALONE
-#include <aal/aal.h>
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 bool_t reiser4_oid_isdirty(reiser4_oid_t *oid) {
 	uint32_t state;
@@ -204,14 +203,6 @@ errno_t reiser4_oid_sync(reiser4_oid_t *oid) {
 
 	return plug_call(oid->entity->plug->o.oid_ops, 
 			 sync, oid->entity);
-}
-
-errno_t reiser4_oid_print(reiser4_oid_t *oid, aal_stream_t *stream) {
-	aal_assert("umka-1562", oid != NULL);
-	aal_assert("umka-1563", stream != NULL);
-
-	return plug_call(oid->entity->plug->o.oid_ops,
-			 print, oid->entity, stream, 0);
 }
 
 /* Returns number of used oids from passed oid allocator */

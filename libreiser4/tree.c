@@ -3,7 +3,7 @@
    
    tree.c -- reiser4 tree code. */
 
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
 /* Updates root block number in format by passed @blk. Takes care about correct

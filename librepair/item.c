@@ -112,3 +112,16 @@ bool_t repair_item_test_flag(place_t *place, uint16_t flag) {
 			 place->node->entity, place->pos.item, flag);
 }
 
+/* Prints passed @place into passed @buff */
+errno_t repair_item_print(place_t *place, aal_stream_t *stream) {
+	aal_assert("umka-1297", place != NULL);
+	aal_assert("umka-1550", stream != NULL);
+	aal_assert("umka-1449", place->plug != NULL);
+
+	if (!place->plug->o.item_ops->debug->print)
+		return -EINVAL;
+	
+	return plug_call(place->plug->o.item_ops->debug,
+			 print, place, stream, 0);
+}
+

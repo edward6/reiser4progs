@@ -13,10 +13,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <aal/aal.h>
-#include <reiser4/reiser4.h>
-
 #include <misc/misc.h>
+#include <reiser4/libreiser4.h>
 
 static void cat_print_usage(void) {
 	fprintf(stderr, "Usage: ls DEV FILE\n");

@@ -13,12 +13,12 @@ inline uint32_t cde40_key_pol(place_t *place) {
 }
 
 /* Returns pointer to entry */
-static inline void *cde40_entry(place_t *place, uint32_t pos) {
+inline void *cde40_entry(place_t *place, uint32_t pos) {
 	return cde_get_entry(place, pos, cde40_key_pol(place));
 }
 
 /* Returns pointer to the objectid entry component. */
-static inline void *cde40_objid(place_t *place, uint32_t pos) {
+inline void *cde40_objid(place_t *place, uint32_t pos) {
 	return (place->body + en_get_offset(cde40_entry(place, pos),
 					    cde40_key_pol(place)));
 }
@@ -93,8 +93,8 @@ errno_t cde40_set_hash(place_t *place, uint32_t pos,
 }
 
 /* Extracts entry name from the passed @entry to passed @buff */
-static char *cde40_get_name(place_t *place, uint32_t pos,
-			    char *buff, uint32_t len)
+char *cde40_get_name(place_t *place, uint32_t pos,
+		     char *buff, uint32_t len)
 {
         key_entity_t key;
                                                                                         
@@ -107,8 +107,7 @@ static char *cde40_get_name(place_t *place, uint32_t pos,
 				     ob_size(cde40_key_pol(place)));
                 aal_strncpy(buff, ptr, len);
         } else {
-		plug_call(key.plug->o.key_ops, get_name,
-			  &key, buff);
+		plug_call(key.plug->o.key_ops, get_name, &key, buff);
         }
                                                                                         
         return buff;
@@ -195,7 +194,6 @@ static int64_t cde40_fetch_units(place_t *place, trans_hint_t *hint) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 uint16_t cde40_overhead() {
 	return sizeof(cde40_t);
 }
@@ -840,64 +838,6 @@ static int32_t cde40_fuse(place_t *left_place, place_t *right_place) {
 		    sizeof(cde40_t), right_place->len - sizeof(cde40_t));
 
 	return sizeof(cde40_t);
-}
-
-/* Prints cde item into passed @stream */
-static errno_t cde40_print(place_t *place, aal_stream_t *stream,
-			   uint16_t options) 
-{
-	uint32_t pol;
-	uint32_t i, j;
-	char name[256];
-	uint64_t locality;
-	uint64_t objectid;
-	uint32_t namewidth;
-	
-	aal_assert("umka-548", place != NULL);
-	aal_assert("umka-549", stream != NULL);
-
-	aal_stream_format(stream, "DIRENTRY PLUGIN=%s, LEN=%u, KEY=[%s], "
-			  "UNITS=%u\n", place->plug->label, place->len, 
-			  cde40_core->key_ops.print(&place->key, PO_DEFAULT), 
-			  cde_get_units(place));
-		
-	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "
-			  "SDKEY%*s\n", 13, " ", 29, " ", 13, " ");
-	
-	pol = cde40_key_pol(place);
-
-	/* Loop though the all entries and print them to @stream. */
-	for (i = 0; i < cde_get_units(place); i++) {
-		uint64_t offset, haobj;
-		void *objid = cde40_objid(place, i);
-		void *entry = cde40_entry(place, i);
-
-		cde40_get_name(place, i, name, sizeof(name));
-
-		/* Cutting name by 16 symbols */
-		if (aal_strlen(name) > 16) {
-			for (j = 0; j < 3; j++)
-				name[13 + j] = '.';
-
-			name[13 + j] = '\0';
-		}
-
-		/* Getting locality, objectid. */
-		locality = ob_get_locality(objid, pol);
-		objectid = ob_get_objectid(objid, pol);
-		namewidth = 16 - aal_strlen(name) + 1;
-
-		offset = ha_get_offset(entry, pol);
-		haobj = ha_get_objectid(entry, pol);
-
-		/* Putting data to @stream. */
-		aal_stream_format(stream, "%*d %s%*s %*u %.16llx:%.16llx "
-				  "%.7llx:%.7llx\n", 3, i, name, namewidth,
-				  " ", 6, en_get_offset(entry, pol), haobj,
-				  offset, locality, objectid);
-	}
-
-	return 0;
 }
 
 /* Returns real maximal key in cde item */

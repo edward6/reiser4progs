@@ -3,7 +3,7 @@
    
    filesystem.c -- common reiser4 filesystem code. */
 
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 /* Opens filesystem on specified device */
 reiser4_fs_t *reiser4_fs_open(aal_device_t *device,

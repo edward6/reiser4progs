@@ -8,6 +8,7 @@
 
 #include <aal/aal.h>
 #include <aux/aux.h>
+
 #include <reiser4/plugin.h>
 #include "plugin/key/key_common/key_common.h"
 
@@ -75,6 +76,28 @@ typedef enum {
 	KEY_SHORT_HASH_SHIFT       = 8,
 	KEY_SHORT_GEN_SHIFT        = 0,
 } key_short_shift_t;
+
+extern void key_short_set_offset(key_entity_t *key, 
+				 uint64_t offset);
+
+extern uint64_t key_short_get_offset(key_entity_t *key);
+
+extern void key_short_set_objectid(key_entity_t *key, 
+				   uint64_t objectid);
+
+extern uint64_t key_short_get_objectid(key_entity_t *key);
+
+extern key_type_t key_short_get_type(key_entity_t *key);
+
+extern void key_short_set_locality(key_entity_t *key,
+				   uint64_t locality);
+
+extern uint64_t key_short_get_locality(key_entity_t *key);
+
+extern void key_short_set_fobjectid(key_entity_t *key,
+				    uint64_t objectid);
+
+extern uint64_t key_short_get_fobjectid(key_entity_t *key);
 
 static inline uint64_t ks_get_el(const key_short_t *key,
 				 key_short_field_t off)

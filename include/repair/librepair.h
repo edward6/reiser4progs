@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 	
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 #include <repair/repair.h>
 #include <repair/plugin.h>
 #include <repair/filesystem.h>
@@ -26,6 +26,7 @@ extern "C" {
 #include <repair/item.h>
 #include <repair/object.h>
 #include <repair/key.h>
+#include <repair/oid.h>
 
 /*  -------------------------------------------------
     | Common scheem for communication with users.   |

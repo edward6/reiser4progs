@@ -26,6 +26,7 @@ struct stat40 {
 };
 
 typedef struct stat40 stat40_t;
+extern reiser4_core_t *stat40_core;
 
 #define STAT40_EXTNR (64)
 

@@ -4,7 +4,7 @@
    journal.c -- reiser4 filesystem common journal code. */
 
 #ifndef ENABLE_STAND_ALONE
-#include <reiser4/reiser4.h>
+#include <reiser4/libreiser4.h>
 
 bool_t reiser4_journal_isdirty(reiser4_journal_t *journal) {
 	uint32_t state;
@@ -239,16 +239,6 @@ errno_t reiser4_journal_valid(
 			 valid, journal->entity);
 }
 
-errno_t reiser4_journal_print(reiser4_journal_t *journal,
-			      aal_stream_t *stream)
-{
-	aal_assert("umka-1564", journal != NULL);
-	aal_assert("umka-1565", stream != NULL);
-
-	return plug_call(journal->entity->plug->o.journal_ops,
-			 print, journal->entity, stream, 0);
-}
-
 /* Closes journal by means of freeing all assosiated memory */
 void reiser4_journal_close(
 	reiser4_journal_t *journal)	/* jouranl to be closed */
@@ -263,5 +253,4 @@ void reiser4_journal_close(
     
 	aal_free(journal);
 }
-
 #endif

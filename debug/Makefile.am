@@ -13,3 +13,5 @@ busy_CFLAGS	= @GENERIC_CFLAGS@
 busy_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
 	          $(top_builddir)/libmisc/libmisc.la \
 		  $(PROGS_LIBS)
+
+EXTRA_DIST      = $(noinst_SCRIPTS)
