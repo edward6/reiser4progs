@@ -27,10 +27,10 @@ Configure script is accepting the following keys:
 --disable-special              disable special files support in stand alone
                                library (default=on)
 
---diable-large-keys            disable large keys in stand alone library
+--disable-large-keys           disable large keys in stand alone library
                                (default=on)
 
---diable-short-keys            disable short keys in stand alone library
+--disable-short-keys           disable short keys in stand alone library
                                (default=on)
 
 --disable-r5-hash              disable r5 hash plugin in stand alone library
