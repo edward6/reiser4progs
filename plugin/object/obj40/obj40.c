@@ -376,9 +376,11 @@ errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,
 	obj->plugin = plugin;
 
 	/* Initializing stat data key */
-	plugin_call(key->plugin->o.key_ops, assign,
-		    STAT_KEY(obj), key);
-
+	if (key) {
+		plugin_call(key->plugin->o.key_ops, assign,
+			    STAT_KEY(obj), key);
+	}
+	
 	return 0;
 }
 

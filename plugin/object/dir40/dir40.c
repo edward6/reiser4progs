@@ -1029,7 +1029,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	return res;
 }
 
-extern errno_t dir40_realize (object_info_t *);
+extern object_entity_t *dir40_realize (object_info_t *);
 
 #endif
 
@@ -1087,7 +1087,7 @@ static reiser4_object_ops_t dir40_ops = {
 #endif
 };
 
-static reiser4_plugin_t dir40_plugin = {
+reiser4_plugin_t dir40_plugin = {
 	.h = {
 		.class = CLASS_INIT,
 		.id = OBJECT_DIRTORY40_ID,

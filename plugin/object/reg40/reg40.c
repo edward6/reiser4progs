@@ -781,12 +781,13 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	return 0;
 }
 
-extern errno_t reg40_realize(object_info_t *info);
+extern object_entity_t *reg40_realize(object_info_t *info);
 
-extern object_entity_t *reg40_check_struct(object_info_t *info,
-					   place_func_t func, 
-					   uint8_t mode,
-					   void *data);
+extern errno_t reg40_check_struct(object_entity_t *object, 
+				  object_info_t *info, 
+				  place_func_t place_func, 
+				  uint8_t mode, 
+				  void *data);
 
 #endif
 
@@ -851,7 +852,7 @@ static reiser4_object_ops_t reg40_ops = {
 	.read	        = reg40_read,
 };
 
-static reiser4_plugin_t reg40_plugin = {
+reiser4_plugin_t reg40_plugin = {
 	.h = {
 		.class = CLASS_INIT,
 		.id = OBJECT_FILE40_ID,
