@@ -54,6 +54,8 @@ extern errno_t reiser4_node_shrink(node_t *node, pos_t *pos,
 extern errno_t reiser4_node_shift(node_t *node, node_t *neig,
 				  shift_hint_t *hint);
 
+extern errno_t reiser4_node_fuse(node_t *node, pos_t *pos1, pos_t *pos2);
+
 extern errno_t reiser4_node_update_key(node_t *node, pos_t *pos,
 				       reiser4_key_t *key);
 

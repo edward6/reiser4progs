@@ -210,21 +210,6 @@ static errno_t callback_region_mark(void *object, blk_t blk,
 	return 0;
 }
 
-#if 0
-/* FIXME-UMKA->VITALY: This is not used. */
-static errno_t callback_layout_bad(void *object, blk_t blk, 
-				   uint64_t count, void *data) 
-{
-	repair_control_t *control = (repair_control_t *)data;
-
-	aal_assert("vpf-1324", control != NULL);
-
-	aux_bitmap_mark_region(control->bm_scan, blk, count);
-
-	return 0;
-}
-#endif
-
 /* Setup the pass to be performed - create 2 new bitmaps for blocks to be 
    scanned, leaves, and formatted blocks which cannot be pointed by nodeptr's 
    and not accounted anywhere else; fill the scan bitmap with what should be 

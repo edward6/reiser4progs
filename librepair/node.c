@@ -30,8 +30,10 @@ node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, bool_t check) {
 
 /* Checks all the items of the node. */
 static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
-	place_t place;
-	errno_t res = 0;
+	place_t place, prev;
+	reiser4_key_t key;
+	trans_hint_t hint;
+	errno_t res, ret;
 	uint32_t count;
 	pos_t *pos;
 	
@@ -39,39 +41,22 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 	aal_assert("vpf-230", node->entity != NULL);
 	aal_assert("vpf-231", node->entity->plug != NULL);
 	
+	res = 0;
 	pos = &place.pos;
 	place.node = node;
 	count = reiser4_node_items(node);
-	
+	aal_memset(&prev, 0, sizeof(prev));
+
 	for (pos->item = 0; pos->item < count; pos->item++) {
-		errno_t ret;
-		
 		pos->unit = MAX_UINT32;
 		
 		/* Open the item, checking its plugin id. */
 		if (reiser4_place_fetch(&place)) {
-			trans_hint_t hint;
+			aal_error("Node (%llu): Failed to open the item (%u)."
+				  "%s", node_blocknr(node), pos->item, mode ==
+				  RM_BUILD ? " Removed." : "");
 			
-			aal_error("Node (%llu): Failed to open the "
-				  "item (%u).%s", node_blocknr(node),
-				  pos->item, mode == RM_BUILD ? 
-				  " Removed." : "");
-			
-			if (mode != RM_BUILD) {
-				res |= RE_FATAL;
-				continue;
-			}
-
-			hint.count = 1;
-			hint.place_func = NULL;
-			hint.region_func = NULL;
-			hint.shift_flags = SF_DEFAULT;
-
-			if ((res |= reiser4_node_remove(node, pos, &hint)) < 0)
-				return res;
-
-			pos->item--;
-			count = reiser4_node_items(node);
+			goto error_remove_item;
 		} 
 		
 		/* Check that the item is legal for this node. If not, it 
@@ -80,13 +65,43 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 		if (!repair_tree_legal_level(place.plug->id.group, 
 					     reiser4_node_get_level(node)))
 		{
-			aal_error("Node (%llu): Node level (%u) does "
-				  "not match to the item type (%s).",
-				  node_blocknr(node), 
+			aal_error("Node (%llu): Node level (%u) does not match "
+				  "to the item type (%s).", node_blocknr(node), 
 				  reiser4_node_get_level(node),
 				  place.plug->label);
 			
 			return RE_FATAL;
+		}
+		
+		reiser4_key_assign(&key, &place.key);
+
+		if ((ret = repair_key_check_struct(&key)) < 0)
+			return ret;
+		
+		if (ret) {
+			/* Key has some corruptions and cannot be recovered. */
+			aal_error("Node (%llu): The key [%s] of the item "
+				  "(%u) is broken.%s", node_blocknr(node),
+				  reiser4_print_key(&place.key, PO_DEFAULT),
+				  pos->item, mode == RM_BUILD ? " Removed." : 
+				  "");
+			
+			goto error_remove_item;
+		} else if (reiser4_key_compfull(&key, &place.key)) {
+			/* Key has been fixed. */
+			aal_error("Node (%llu): The key [%s] of the item (%u) "
+				  "is broken. %s [%s].", node_blocknr(node),
+				  reiser4_print_key(&place.key, PO_DEFAULT),
+				  pos->item, (ret && mode == RM_CHECK) ? 
+				  "Should be" : "Fixed to", 
+				  reiser4_print_key(&key, PO_DEFAULT));
+			
+			if (mode == RM_CHECK)
+				res |= RE_FIXABLE;
+			else {
+				reiser4_node_update_key(node, pos, &key);
+				reiser4_node_mkdirty(node);
+			}
 		}
 		
 		/* Check the item structure. */
@@ -94,112 +109,17 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 			return ret;
 
 		/* Remove the item if fatal error. */
-		if ((ret & RE_FATAL) && (mode == RM_BUILD)) {
-			trans_hint_t hint;
+		if (ret & RE_FATAL) {
+			aal_error("Node (%llu), item (%u): broken item occured,"
+				  " Remove it.", node_blocknr(node), pos->item);
 
-			aal_error("Node (%llu), item (%u): broken "
-				  "item occured, Remove it.",
-				  node_blocknr(node), pos->item);
-
-			hint.count = 1;
-			hint.place_func = NULL;
-			hint.region_func = NULL;
-			hint.shift_flags = SF_DEFAULT;
-
-			if ((ret = reiser4_node_remove(node, pos, &hint)))
-				return ret;
-			
-			pos->item--;
-			count = reiser4_node_items(node);
-			ret &= ~RE_FATAL;
+			goto error_remove_item;
 		}
 		
 		res |= ret;
-	}
-	
-	return res;
-}
-
-/* Checks the set of keys of the node. */
-static errno_t repair_node_keys_check(node_t *node, uint8_t mode) {
-	reiser4_key_t key, prev_key;
-	errno_t res, result = 0;
-	place_t place;
-	pos_t *pos = &place.pos;
-	uint32_t count;
-	
-	aal_assert("vpf-258", node != NULL);
-	
-	aal_memset(&place, 0, sizeof(place));
-	
-	place.node = node;
-	place.pos.unit = MAX_UINT32;
-	count = reiser4_node_items(node);
-	
-	for (pos->item = 0; pos->item < count; pos->item++) {
-		if ((res = reiser4_place_fetch(&place)))
-			return res;
 		
-		if ((res = reiser4_key_assign(&key, &place.key))) {
-			aal_error("Node (%llu): Failed to get the "
-				  "key of the item (%u).",
-				  node_blocknr(node), pos->item);
-			return res;
-		}
-		
-		if ((res = repair_key_check_struct(&key)) < 0)
-			return res;
-		
-		if (res) {
-			/* Key has some corruptions and cannot be recovered. */
-			trans_hint_t hint;
-			
-			aal_error("Node (%llu): The key [%s] of the "
-				  "item (%u) is broken.%s", 
-				  node_blocknr(node),
-				  reiser4_print_key(&place.key, PO_DEFAULT),
-				  pos->item, mode == RM_BUILD ?
-				  " Removed." : "");
-			if (mode != RM_BUILD)
-				return RE_FATAL;
-
-			aal_memset(&hint, 0, sizeof(hint));
-
-			hint.count = 1;
-			hint.place_func = NULL;
-			hint.region_func = NULL;
-			hint.shift_flags = SF_DEFAULT;
-			
-			if ((res = reiser4_node_remove(node, pos, &hint)))
-				return res;
-
-			pos->item--;
-			count = reiser4_node_items(node);
-			
-			continue;
-		} else if (reiser4_key_compfull(&key, &place.key)) {
-			/* Key has been fixed. */
-			aal_error("Node (%llu): The key [%s] of the "
-				  "item (%u) is broken. %s [%s].", 
-				  node_blocknr(node),
-				  reiser4_print_key(&place.key, PO_DEFAULT),
-				  pos->item, (res && mode == RM_CHECK)
-				  ? "Should be" : "Fixed to", 
-				  reiser4_print_key(&key, PO_DEFAULT));
-			
-			if (mode == RM_CHECK)
-				result = RE_FIXABLE;
-			else {
-				reiser4_node_update_key(node, pos, &key);
-				reiser4_node_mkdirty(node);
-			}
-		}
-		
-		if ((res = reiser4_item_maxreal_key(&place, &key)))
-			return res;
-		
-		if (pos->item) {
-			if (reiser4_key_compfull(&prev_key, &key) >= 0) {
+		if (prev.node) {
+			if (reiser4_key_compfull(&prev.key, &key) >= 0) {
 				aal_error("Node (%llu), items (%u) "
 					  "and (%u): Wrong order of "
 					  "keys.", node_blocknr(node), 
@@ -208,15 +128,74 @@ static errno_t repair_node_keys_check(node_t *node, uint8_t mode) {
 				return RE_FATAL;
 			}
 		}
+
+		if ((ret = reiser4_item_maxreal_key(&place, &key)))
+			return ret;
 		
-		prev_key = key;
+		if (prev.node) {
+			/* Check if @prev and @place are mergable. */
+			if (reiser4_item_mergeable(&prev, &place)) {
+				aal_error("Node (%llu): 2 mergeable items (%u "
+					  "and %u) are found in the node.%s",
+					  node_blocknr(node), prev.pos.item,
+					  place.pos.item, mode == RM_BUILD ?
+					  " Fixed." : "");
+
+				if (mode == RM_BUILD) {
+					aal_assert("vpf-1506", place.pos.item
+						   == prev.pos.item + 1);
+
+					ret = reiser4_node_fuse(node, &prev.pos,
+								&place.pos);
+					
+					if (ret) return res;
+
+					pos->item--;
+					count = reiser4_node_items(node);
+					
+					if (reiser4_place_fetch(&place)) {
+						aal_error("Node (%llu), item "
+							  "(%u): Failed to "
+							  "fetch the item "
+							  "after fusing.",
+							  node_blocknr(node),
+							  place.pos.item);
+						return -EINVAL;
+					}
+				} else {
+					res |= RE_FATAL;
+				}
+			}
+		}
+
+		prev = place;
+		
+		continue;
+		
+	error_remove_item:
+		if (mode != RM_BUILD) {
+			res |= RE_FATAL;
+			continue;
+		}
+		
+		aal_memset(&hint, 0, sizeof(hint));
+
+		hint.count = 1;
+		hint.place_func = NULL;
+		hint.region_func = NULL;
+		hint.shift_flags = SF_DEFAULT;
+
+		if ((ret = reiser4_node_remove(node, pos, &hint)))
+			return ret;
+
+		pos->item--;
+		count = reiser4_node_items(node);
 	}
 	
-	return result;
+	return res;
 }
 
-/*  Checks the node content.
-    Returns values according to repair_error_codes_t. */
+/*  Checks the node content. */
 errno_t repair_node_check_struct(node_t *node, uint8_t mode) {
 	uint8_t level;
 	errno_t res;
@@ -241,13 +220,6 @@ errno_t repair_node_check_struct(node_t *node, uint8_t mode) {
 		return res;
 	
 	res |= repair_node_items_check(node, mode);
-	
-	if (repair_error_fatal(res))
-		return res;
-	
-	/* Keys must be checked after item checking as there are maxreal_key()
-	   call which gets the key from the item. */
-	res |= repair_node_keys_check(node, mode);
 	
 	return res;
 }

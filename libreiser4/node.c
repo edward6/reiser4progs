@@ -385,6 +385,13 @@ errno_t reiser4_node_shift(node_t *node, node_t *neig,
 			 node->entity, neig->entity, hint);
 }
 
+errno_t reiser4_node_fuse(node_t *node, pos_t *pos1, pos_t *pos2) {
+	aal_assert("vpf-1507", node != NULL);
+
+	return plug_call(node->entity->plug->o.node_ops, 
+			 fuse, node->entity, pos1, pos2);
+}
+
 /* Saves passed @node onto device it was opened on */
 errno_t reiser4_node_sync(node_t *node) {
 	aal_assert("umka-2253", node != NULL);

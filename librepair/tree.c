@@ -137,8 +137,7 @@ errno_t repair_tree_parent_rkey(reiser4_tree_t *tree, node_t *node,
 			if ((ret = reiser4_place_fetch(&place)))
 				return ret;
 			
-			if ((ret = reiser4_key_assign(key, &place.key)))
-				return ret;
+			reiser4_key_assign(key, &place.key);
 		}
 	} else {
 		key->plug = tree->key.plug;
