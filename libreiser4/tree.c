@@ -450,7 +450,7 @@ node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 		}
 
 		/* Connect loaded node to cache. */
-		if (parent && reiser4_tree_connect_node(tree, parent, node)) {
+		if (reiser4_tree_connect_node(tree, parent, node)) {
 			aal_exception_error("Can't connect node %llu "
 					    "to tree cache.", node_blocknr(node));
 			goto error_free_node;

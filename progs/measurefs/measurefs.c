@@ -231,32 +231,54 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 
 struct tree_stat_hint {
 	aal_gauge_t *gauge;
+	reiser4_tree_t *tree;
 
+	uint64_t nodes;
+	uint64_t twigs;
+	uint64_t leaves;
+	uint64_t branches;
+	uint64_t formatted;
+
+	uint64_t items;
+	uint64_t tails;
+	uint64_t extents;
+	uint64_t nodeptrs;
+	uint64_t statdatas;
+	uint64_t direntries;
+
+	double twigs_used;
 	double leaves_used;
+	double branches_used;
 	double formatted_used;
-	double internals_used;
-
-	count_t nodes;
-	count_t leaves;
-	count_t twigs;
-	count_t internals;
-	count_t formatted;
 };
 
 typedef struct tree_stat_hint tree_stat_hint_t;
 
-/* Process one block belong to the item (extent or nodeptr). */
-static errno_t stat_process_item(void *entity, uint64_t start,
-				 uint64_t width, void *data)
+/* Process one item on level > LEAF_LEVEL. */
+static errno_t stat_item_layout(void *entity, uint64_t start,
+				uint64_t width, void *data)
 {
 	place_t *place;
+	uint32_t blksize;
 	tree_stat_hint_t *stat_hint;
 
 	place = (place_t *)entity;
 	stat_hint = (tree_stat_hint_t *)data;
 
-	if (!reiser4_item_branch(place->plug))
+	if (place->plug->id.group == EXTENT_ITEM) {
+		reiser4_master_t *master;
+			
+		master = stat_hint->tree->fs->master;
+		blksize = reiser4_master_get_blksize(master);
+
+		stat_hint->leaves_used = blksize +
+			(stat_hint->leaves_used * stat_hint->leaves);
+		
+		stat_hint->leaves_used /= (stat_hint->leaves + 1);
+
 		stat_hint->nodes += width;
+		stat_hint->leaves += width;
+	}
 	
 	return 0;
 }
@@ -268,13 +290,17 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 {
 	uint8_t level;
 	uint32_t blksize;
+	uint32_t twigs_used;
 	uint32_t leaves_used;
+	uint32_t branches_used;
 	uint32_t formatted_used;
-	uint32_t internals_used;
+
 	tree_stat_hint_t *stat_hint;
+	pos_t pos = {MAX_UINT32, MAX_UINT32};
 
 	stat_hint = (tree_stat_hint_t *)data;
 	level = reiser4_node_get_level(node);
+
 	blksize = reiser4_master_get_blksize(tree->fs->master);
 
 	if (stat_hint->gauge && stat_hint->formatted % 128 == 0)
@@ -287,43 +313,7 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 
 	stat_hint->formatted_used /= (stat_hint->formatted + 1);
 
-	/* If we are on the level higher than leaf level, we traverse extents on
-	   it. Otherwise we just update @stat_hint. */
-	if (level > LEAF_LEVEL) {
-		pos_t pos = {MAX_UINT32, MAX_UINT32};
-
-		/* Calculating internal nodes packing in percents. */
-		internals_used = blksize - reiser4_node_space(node);
-		
-		stat_hint->internals_used = internals_used +
-			(stat_hint->internals_used * stat_hint->internals);
-
-		stat_hint->internals_used /= (stat_hint->internals + 1);
-
-		/* Loop though all node items and calling item->layout() method
-		   in odrer to calculate all blocks item refferences.*/
-		for (pos.item = 0; pos.item < reiser4_node_items(node);
-		     pos.item++)
-		{
-			errno_t res;
-			place_t place;
-
-			/* Fetching item data. */
-			if ((res = reiser4_place_open(&place, node, &pos))) {
-				aal_exception_error("Can't open item %u in node %llu.",
-						    pos.item, node_blocknr(node));
-				return res;
-			}
-
-			/* Calling layout() method with callback for counting
-			   refferenced blocks. */
-			if (!place.plug->o.item_ops->object->layout)
-				continue;
-
-			plug_call(place.plug->o.item_ops->object, layout,
-				  &place, stat_process_item, data);
-		}
-	} else {
+	if (level == LEAF_LEVEL) {
 		/* Calculating leaves packing. */
 		leaves_used = blksize - reiser4_node_space(node);
 
@@ -331,6 +321,68 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 			(stat_hint->leaves_used * stat_hint->leaves);
 		
 		stat_hint->leaves_used /= (stat_hint->leaves + 1);
+	} else if (level == TWIG_LEVEL) {
+		/* Calculating twig nodes packing. */
+		twigs_used = blksize - reiser4_node_space(node);
+		
+		stat_hint->twigs_used = twigs_used +
+			(stat_hint->twigs_used * stat_hint->twigs);
+
+		stat_hint->twigs_used /= (stat_hint->twigs + 1);
+	} else {
+		/* Calculating branch nodes packing. */
+		branches_used = blksize - reiser4_node_space(node);
+		
+		stat_hint->branches_used = branches_used +
+			(stat_hint->branches_used * stat_hint->branches);
+
+		stat_hint->branches_used /= (stat_hint->branches + 1);
+	}
+
+	/* Loop though all node items and calling item->layout() method
+	   in odrer to calculate all blocks item refferences.*/
+	for (pos.item = 0; pos.item < reiser4_node_items(node);
+	     pos.item++)
+	{
+		errno_t res;
+		place_t place;
+
+		/* Fetching item data. */
+		if ((res = reiser4_place_open(&place, node, &pos))) {
+			aal_exception_error("Can't open item %u in node %llu.",
+					    pos.item, node_blocknr(node));
+			return res;
+		}
+
+		/* Calculating item count. This probably should be done
+		   in more item type independant manner. */
+		stat_hint->items++;
+
+		switch (place.plug->id.group) {
+		case STATDATA_ITEM:
+			stat_hint->statdatas++;
+			break;
+		case EXTENT_ITEM:
+			stat_hint->extents++;
+			break;
+		case NODEPTR_ITEM:
+			stat_hint->nodeptrs++;
+			break;
+		case TAIL_ITEM:
+			stat_hint->tails++;
+			break;
+		case DIRENTRY_ITEM:
+			stat_hint->direntries++;
+			break;
+		}
+
+		/* Calling layout() method with callback for counting
+		   refferenced blocks. */
+		if (!place.plug->o.item_ops->object->layout)
+			continue;
+
+		plug_call(place.plug->o.item_ops->object, layout,
+			  &place, stat_item_layout, data);
 	}
 
 	/* Updating common counters like nodes traversed at all, formatted ones,
@@ -340,7 +392,7 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 	
 	stat_hint->twigs += (level == TWIG_LEVEL);
 	stat_hint->leaves += (level == LEAF_LEVEL);
-	stat_hint->internals += (level > TWIG_LEVEL);
+	stat_hint->branches += (level > TWIG_LEVEL);
 
 	return 0;
 }
@@ -366,6 +418,8 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	/* Traversing tree with callbacks for calculating tree statistics. */
 	if (stat_hint.gauge)
 		aal_gauge_start(stat_hint.gauge);
+
+	stat_hint.tree = fs->tree;
 	
 	if ((res = reiser4_tree_trav(fs->tree, NULL, stat_process_node, 
 				     NULL, NULL, &stat_hint)))
@@ -380,20 +434,31 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 
 	/* Printing results. */
 	printf("Packing statistics:\n");
-	printf("Formatted packing:%*.2f\n", 10, stat_hint.formatted_used);
-	printf("Internals packing:%*.2f\n", 10, stat_hint.internals_used);
-	printf("Leaves packing:%*.2f\n\n", 13, stat_hint.leaves_used);
+	printf("  Formatted nodes:%*.2f\n", 11, stat_hint.formatted_used);
+	
+	printf("  Branch nodes:%*.2f\n", 14, stat_hint.branches_used);
+	printf("  Twig nodes:%*.2f\n", 16, stat_hint.twigs_used);
+	printf("  Leaf nodes:%*.2f\n\n", 16, stat_hint.leaves_used);
 
-	printf("Count statistics:\n");
-	printf("Total nodes:%*llu\n", 16, stat_hint.nodes);
-	printf("Formatted nodes:%*llu\n", 12, stat_hint.formatted);
-	printf("Internal nodes:%*llu\n", 13, stat_hint.internals);
-	printf("Twig nodes:%*llu\n", 17, stat_hint.twigs);
-	printf("Leaf nodes:%*llu\n", 17, stat_hint.leaves);
-	
-	printf("Unformatted nodes:%*llu\n", 10, stat_hint.nodes -
+	printf("Node statistics:\n");
+	printf("  Total nodes:%*llu\n", 15, stat_hint.nodes);
+
+	printf("  Formatted nodes:%*llu\n", 11, stat_hint.formatted);
+
+	printf("  Unformatted nodes:%*llu\n", 9, stat_hint.nodes -
 	       stat_hint.formatted);
+
+	printf("  Branch nodes:%*llu\n", 14, stat_hint.branches);
+	printf("  Twig nodes:%*llu\n", 16, stat_hint.twigs);
+	printf("  Leaf nodes:%*llu\n\n", 16, stat_hint.leaves);
 	
+	printf("Item statistics:\n");
+	printf("  Total items:%*llu\n", 15, stat_hint.items);
+	printf("  Nodeptr items:%*llu\n", 13, stat_hint.nodeptrs);
+	printf("  Statadata items:%*llu\n", 11, stat_hint.statdatas);
+	printf("  Direntry items:%*llu\n", 12, stat_hint.direntries);
+	printf("  Tail items:%*llu\n", 16, stat_hint.tails);
+	printf("  Extent items:%*llu\n", 14, stat_hint.extents);
 	return 0;
 }
 

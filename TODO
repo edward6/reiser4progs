@@ -3,6 +3,8 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* fix removing entries from directories.
+
 * fix reiser4_print_* to make them use different streams in order
   do not eraise previous print result, as it may be used in the same
   function as next one. 
