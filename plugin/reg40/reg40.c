@@ -219,10 +219,12 @@ static uint64_t reg40_read(reiser4_entity_t *entity,
 	chunk = (reg->body.len - reg->place.pos.unit) <= n ? n
 	    : reg->body.len - reg->place.pos.unit;
 
+	chunk = chunk > n ? n : chunk;
+	
 	if (reg->body.plugin->item_ops.type == TAIL_ITEM_TYPE) {
 
 	    /* Getting the data from the tail item */
-	    aal_memcpy(buff, reg->body.body, chunk);
+	    aal_memcpy(buff, reg->body.body + reg->place.pos.unit, chunk);
 	    
 	} else {
 	    /* Getting the data from the extent item */

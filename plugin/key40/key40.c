@@ -31,6 +31,8 @@ static key40_minor_t key40_t2m(reiser4_key_type_t type) {
 	    return KEY40_ATTRNAME_MINOR;
 	case KEY_ATTRBODY_TYPE:
 	    return KEY40_ATTRBODY_MINOR;
+	case KEY_FILEBODY_TYPE:
+	    return KEY40_FILEBODY_MINOR;
 	default:
 	    aal_exception_error("Invalid key type has been detected 0x%x.", type);
 	    return 0xff;
@@ -48,6 +50,8 @@ static reiser4_key_type_t key40_m2t(key40_minor_t minor) {
 	    return KEY_ATTRNAME_TYPE;
 	case KEY40_ATTRBODY_MINOR:
 	    return KEY_ATTRBODY_TYPE;
+	case KEY40_FILEBODY_MINOR:
+	    return KEY_FILEBODY_TYPE;
 	default:
 	    aal_exception_error("Invalid key minor has been "
 		"detected 0x%x.", minor);

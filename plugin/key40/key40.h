@@ -24,7 +24,7 @@ typedef enum {
     KEY40_ATTRBODY_MINOR = 3,
     
     /* File body (tail or extent) */
-    KEY40_BODY_MINOR	 = 4,
+    KEY40_FILEBODY_MINOR = 4,
     KEY40_LAST_MINOR
 } key40_minor_t;
 

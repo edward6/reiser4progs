@@ -79,21 +79,37 @@ int main(int argc, char *argv[]) {
 	dir_hint.body.dir.hash_pid = HASH_R5_ID;
 	
 	{
-	    int i;
-	    char name[256];
-	    reiser4_file_t *dir;
+//	    int i;
+//	    char name[256];
+//	    reiser4_file_t *dir;
+	    reiser4_file_t *reg;
 
-	    for (i = 0; i < 80; i++) {
+	    char *buff = aal_calloc(256, 0);
+
+	    reg = reiser4_file_open(fs, "/file1");
+
+	    while (1) {
+		aal_memset(buff, 0, 256);
+
+		if (!reiser4_file_read(reg, buff, 255))
+		    break;
+
+		printf("%s", buff);
+	    }
+	    
+	    aal_free(buff);
+	    
+/*	    for (i = 0; i < 80; i++) {
 		aal_memset(name, 0, sizeof(name));
 		aal_snprintf(name, 256, "testdir%d", i);
 
 		if ((dir = reiser4_file_create(fs, &dir_hint, object, name)))
 		    reiser4_file_close(dir);
-	    }
+	    }*/
 	}
     }
     
-    if (reiser4_file_reset(object)) {
+/*    if (reiser4_file_reset(object)) {
 	aal_exception_error("Can't rewind dir \"%s\".", argv[2]);
 	goto error_free_object;
     }
@@ -101,7 +117,7 @@ int main(int argc, char *argv[]) {
     while (reiser4_file_read(object, (char *)&entry, 1)) {
 	fprintf(stdout, "[0x%llx:0x%llx] %s\n", (entry.objid.locality >> 4), 
 	    entry.objid.objectid, entry.name);
-    }
+    }*/
     
     reiser4_file_close(object);
 //    reiser4_fs_sync(fs);

@@ -178,6 +178,8 @@ static uint16_t node40_item_pid(reiser4_entity_t *entity,
 static uint16_t node40_item_len(reiser4_entity_t *entity, 
     reiser4_pos_t *pos)
 {
+    item40_header_t *ih;
+    uint32_t free_space_start;
     node40_t *node = (node40_t *)entity;
     
     aal_assert("vpf-037", node != NULL, return 0);
@@ -186,7 +188,13 @@ static uint16_t node40_item_len(reiser4_entity_t *entity,
     aal_assert("umka-815", pos->item < 
 	nh40_get_num_items(nh40(node->block)), return 0);
     
-    return ih40_get_len(node40_ih_at(node->block, pos->item));
+    ih = node40_ih_at(node->block, pos->item);
+
+    free_space_start = nh40_get_free_space_start(nh40(node->block));
+    
+    return (int)pos->item == node40_count(entity) - 1 ? 
+	free_space_start - ih40_get_offset(ih) : 
+	ih40_get_offset(ih - 1) - ih40_get_offset(ih);
 }
 
 #ifndef ENABLE_COMPACT
@@ -283,7 +291,9 @@ static errno_t node40_insert(reiser4_entity_t *entity,
     nh40_set_num_items(nh, nh40_get_num_items(nh) + 1);
     
     if (hint->data) {
-	aal_memcpy(node40_ib_at(node->block, pos->item), hint->data, hint->len);
+	aal_memcpy(node40_ib_at(node->block, pos->item), 
+	    hint->data, hint->len);
+
 	return 0;
     }
     
@@ -314,9 +324,9 @@ static errno_t node40_shrink(node40_t *node,
     int is_move;
     int is_cut;
     
-    uint16_t offset;
     node40_header_t *nh;
     item40_header_t *ih;
+    uint16_t offset, ihlen;
         
     aal_assert("umka-958", node != NULL, return -1);
     aal_assert("umka-959", pos != NULL, return -1);
@@ -328,9 +338,11 @@ static errno_t node40_shrink(node40_t *node,
     
     nh = nh40(node->block);
     ih = node40_ih_at(node->block, pos->item);
+    
     offset = ih40_get_offset(ih);
+    ihlen = node40_item_len((reiser4_entity_t *)node, pos);
 
-    is_move = ((offset + ih40_get_len(ih)) < nh40_get_free_space_start(nh));
+    is_move = ((offset + ihlen) < nh40_get_free_space_start(nh));
     
     if (is_move) {
 	item40_header_t *cur;
@@ -373,13 +385,14 @@ errno_t node40_remove(reiser4_entity_t *entity,
     
     nh = nh40(node->block);
     ih = node40_ih_at(node->block, pos->item);
-    len = ih40_get_len(ih);
+    len = node40_item_len((reiser4_entity_t *)node, pos);
 
     /* Removing either item or unit, depending on pos */
     if (node40_shrink(node, pos, len))
 	return -1;
 	
     nh40_set_num_items(nh, nh40_get_num_items(nh) - 1);
+
     nh40_set_free_space(nh, nh40_get_free_space(nh) + len +
         sizeof(item40_header_t));
 	
@@ -421,7 +434,7 @@ static errno_t node40_cut(reiser4_entity_t *entity,
     if (node40_shrink(node, pos, len))
         return -1;
 	
-    ih40_set_len(ih, ih40_get_len(ih) - len);
+    ih40_set_len(ih, node40_item_len((reiser4_entity_t *)node, pos) - len);
     nh40_set_free_space(nh, nh40_get_free_space(nh) + len);
 
     return 0;

@@ -168,12 +168,12 @@ struct reiser4_key {
 
 typedef struct reiser4_key reiser4_key_t;
 
-#define KEY_FILENAME_TYPE   0
-#define KEY_STATDATA_TYPE   1
-#define KEY_ATTRNAME_TYPE   2
-#define KEY_ATTRBODY_TYPE   3
-#define KEY_FILEBODY_TYPE   4
-#define KEY_LAST_TYPE	    5
+#define KEY_FILENAME_TYPE   0x0
+#define KEY_STATDATA_TYPE   0x1
+#define KEY_ATTRNAME_TYPE   0x2
+#define KEY_ATTRBODY_TYPE   0x3
+#define KEY_FILEBODY_TYPE   0x4
+#define KEY_LAST_TYPE	    0x5
 
 typedef uint32_t reiser4_key_type_t;
 
