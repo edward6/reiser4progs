@@ -149,11 +149,14 @@ static errno_t stat40_valid(reiser4_item_t *item) {
     return 0;
 }
 
-/* This function returns stat data extention count */
-static uint32_t stat40_count(reiser4_item_t *item) {
+typedef int (*stat40_perext_func_t) (uint8_t, uint16_t, reiser4_body_t *, void *);
+
+static int stat40_layout(reiser4_item_t *item,
+						 stat40_perext_func_t perext_func, void *data)
+{
+    uint8_t i;
     stat40_t *stat;
     uint16_t extmask;
-    uint8_t i, count = 0;
 	
     reiser4_body_t *extbody;
 	reiser4_plugin_t *plugin;
@@ -162,12 +165,10 @@ static uint32_t stat40_count(reiser4_item_t *item) {
     
     stat = stat40_body(item);
     extmask = st40_get_extmask(stat);
-	extbody = (reiser4_body_t *)stat;
+	extbody = (reiser4_body_t *)stat + sizeof(stat40_t);
     
     for (i = 0; i < sizeof(uint64_t)*8; i++) {
-	    
-        if (!((1 << i) & extmask))
-			continue;
+		int ret;
 		
 		if (((uint64_t)1 << i) & (((uint64_t)1 << 0xf) |
 								  ((uint64_t)1 << 0x1f) |
@@ -178,61 +179,63 @@ static uint32_t stat40_count(reiser4_item_t *item) {
 				continue;
 			}
 
+		if (!(ret = perext_func(i, extmask, extbody, data)))
+			return ret;
+
 		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 			aal_exception_warn("Can't find stat data extention plugin "
 							   "by its id 0x%x.", i);
 			return 0;
 		}
 
-		count += ((1 << i) & extmask);
 		extbody = (void *)extbody + plugin_call(return 0,
 												plugin->sdext_ops, length,);
     }
     
+    return 1;
+}
+
+static int stat40_callback_count(uint8_t ext, uint16_t extmask,
+					  reiser4_body_t *extbody, void *data)
+{
+	uint32_t *count = (uint32_t *)data;
+	*count += ((1 << ext) & extmask);
+	return 1;
+}
+
+/* This function returns stat data extention count */
+static uint32_t stat40_count(reiser4_item_t *item) {
+	uint32_t count = 0;
+
+	if (stat40_layout(item, stat40_callback_count, &count) < 0)
+		return 0;
+	
     return count;
+}
+
+struct extbody_hint {
+	reiser4_body_t *body;
+	uint8_t ext;
+};
+
+static int stat40_callback_body(uint8_t ext, uint16_t extmask,
+								reiser4_body_t *extbody, void *data)
+{
+	struct extbody_hint *hint = (struct extbody_hint *)data;
+
+	hint->body = extbody;
+	return (ext < hint->ext);
 }
 
 static reiser4_body_t *stat40_sdext_body(reiser4_item_t *item, 
 										 uint8_t bit)
 {
-    uint8_t i;
-    stat40_t *stat;
-    uint16_t extmask;
-    reiser4_body_t *extbody;
-   
-    aal_assert("umka-1191", item != NULL, return NULL);
+	struct extbody_hint hint = {NULL, bit};
 
-    stat = stat40_body(item);
-    extbody = (void *)stat + sizeof(stat40_t);
-    
-    extmask = st40_get_extmask(stat);
-    
-    for (i = 0; i < bit; i++) {
-        reiser4_plugin_t *plugin;
+	if (!stat40_layout(item, stat40_callback_body, &hint) < 0)
+		return NULL;
 	
-        if (!((1 << i) & extmask))
-			continue;
-	    
-		if (((uint64_t)1 << i) & (((uint64_t)1 << 0xf) | 
-								  ((uint64_t)1 << 0x1f) |
-								  ((uint64_t)1 << 0x2f))) 
-		{
-			extbody = (void *)extbody + sizeof(d16_t);
-			extmask = *((uint16_t *)extbody);
-			continue;
-		}
-		
-		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
-			aal_exception_warn("Can't find stat data extention plugin "
-							   "by its id 0x%x.", i);
-			continue;
-		}
-	
-		extbody = (void *)extbody + plugin_call(return NULL, 
-												plugin->sdext_ops, length,);
-    }
-
-    return extbody;
+    return hint.body;
 }
 
 static int stat40_sdext_present(reiser4_item_t *item, 
@@ -317,38 +320,6 @@ static uint16_t stat40_get_mode(reiser4_item_t *item) {
 	}
     
     return hint.mode;
-}
-
-/* Detecting the object plugin by extentions or mode */
-static uint16_t stat40_detect(reiser4_item_t *item) {
-    uint16_t mode;
-    
-    aal_assert("umka-1292", item != NULL, return FAKE_PLUGIN);
-
-    /* 
-	   FIXME-UMKA: Here we should inspect all extentions and try to find out
-	   if non-standard file plugin is in use.
-    */
-
-    /* 
-	   Guessing plugin type and plugin id by mode field from the stat data 
-	   item. Here we return default plugins for every file type.
-    */
-    mode = stat40_get_mode(item);
-    
-    if (S_ISDIR(mode))
-        return FILE_DIRTORY40_ID;
-
-    if (S_ISREG(mode))
-        return FILE_REGULAR40_ID;
-	
-    if (S_ISLNK(mode))
-        return FILE_SYMLINK40_ID;
-
-    if (S_ISFIFO(mode) || S_ISSOCK(mode))
-		return FILE_SPECIAL40_ID;
-	
-    return FAKE_PLUGIN;
 }
 
 static uint32_t stat40_get_size(reiser4_item_t *item) {
@@ -465,6 +436,38 @@ static errno_t stat40_max_poss_key(reiser4_item_t *item,
 
     return plugin_call(return 0, item->node->plugin->node_ops,
 					   get_key, item->node, item->pos, key);
+}
+
+/* Detecting the object plugin by extentions or mode */
+static uint16_t stat40_detect(reiser4_item_t *item) {
+    uint16_t mode;
+    
+    aal_assert("umka-1292", item != NULL, return FAKE_PLUGIN);
+
+    /* 
+	   FIXME-UMKA: Here we should inspect all extentions and try to find out
+	   if non-standard file plugin is in use.
+    */
+
+    /* 
+	   Guessing plugin type and plugin id by mode field from the stat data 
+	   item. Here we return default plugins for every file type.
+    */
+    mode = stat40_get_mode(item);
+    
+    if (S_ISDIR(mode))
+        return FILE_DIRTORY40_ID;
+
+    if (S_ISREG(mode))
+        return FILE_REGULAR40_ID;
+	
+    if (S_ISLNK(mode))
+        return FILE_SYMLINK40_ID;
+
+    if (S_ISFIFO(mode) || S_ISSOCK(mode))
+		return FILE_SPECIAL40_ID;
+	
+    return FAKE_PLUGIN;
 }
 
 static reiser4_plugin_t stat40_plugin = {
