@@ -122,9 +122,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 	
 	if (reiser4_tree_lookup(tree, key, LEAF_LEVEL, 
 				FIND_EXACT, &place) < 0)
-	{
 		return INVAL_PTR;
-	}
 	
 	/* Even if place is found, pass it through object recognize 
 	   method to check all possible corruptions. */

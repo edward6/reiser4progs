@@ -430,9 +430,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	if ((res = obj40_launch_stat(&reg->obj, callback_stat, 
 				     reg40_exts, 1, S_IFREG, mode)))
-	{
 		return res;
-	}
 
 	/* Try to register SD as an item of this file. */
 	if (place_func && place_func(object, &info->start, data))
@@ -505,29 +503,26 @@ errno_t reg40_check_struct(object_entity_t *object,
 			if (repair.maxreal == MAX_UINT64)
 				return -EINVAL;
 
-			if (!plug_equal(reg->body.plug, repair.bplug)) {
-				/* Prepare the convertion if needed. */
-				result = reg40_conv_prepare(reg, &hint, 
-							    &repair, mode);
-
-				if (result && mode != RM_BUILD) {
-					res |= RE_FATAL;
-					goto next;
-				}
-			}
-		}
+			/* Prepare the convertion if needed. */
+			result = plug_equal(reg->body.plug, repair.bplug) ? 1 :
+				reg40_conv_prepare(reg, &hint, &repair, mode);
+		} else
+			result = 1;
 	
-		/* If no more reg40 body items and some of them need to be 
-		   converted, or convertion is to be now, run tree_conv. */
-		if ((!reg->body.plug && hint.offset.plug) || result) {
-			result = reg40_core->tree_ops.convert(info->tree, &hint);
-			
-			if (result) return result;
+		/* If result != 0 -- convertion is needed if smth was prepared. */
+		if (result && hint.offset.plug) {
+			if (mode == RM_BUILD) {
+				result = reg40_core->tree_ops.convert(info->tree,
+								      &hint);
 
-			/* Evth was converted, update bytes. */
-			repair.bytes += hint.bytes;
-			aal_memset(&hint, 0, sizeof(hint));
+				if (result) return result;
+
+				/* Evth was converted, update bytes. */
+				repair.bytes += hint.bytes;
+			} else 
+				res |= RE_FATAL;
 			
+			aal_memset(&hint, 0, sizeof(hint));			
 			goto next;
 		}
 		
@@ -544,10 +539,6 @@ errno_t reg40_check_struct(object_entity_t *object,
 					    &reg->position, mode)))
 			return result;
 
-		/* Fix item key if differs. */
-		offset = plug_call(reg->body.key.plug->o.key_ops,
-				   get_offset, &reg->body.key);
-		
 		/* If we found not we looking for, insert the hole. */
 		if ((res |= reg40_hole_cure(object, &repair, mode)) < 0)
 			return res;
