@@ -7,7 +7,7 @@
 
 static reiser4_profile_t reiser4profiles[] = {
     [0] = {
-	.label = "default40",
+	.label = "smart40",
         .desc = "Profile for reiser4 with smart tail policy",
 	.node		= NODE_REISER40_ID,
 	.dir = {

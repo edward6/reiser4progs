@@ -201,7 +201,7 @@ int main(int argc, char *argv[]) {
     debugfs_print_flags_t flags = 0;
     
     char *host_dev;
-    char *profile_label = "default40";
+    char *profile_label = "smart40";
     
     reiser4_fs_t *fs;
     aal_device_t *device;
