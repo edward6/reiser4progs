@@ -34,8 +34,7 @@ extern "C" {
 #include <reiser4/pset.h>
 #include <reiser4/print.h>
 #include <reiser4/fake.h>
-#include <reiser4/debug.h>
-	
+
 extern void libreiser4_fini(void);
 extern errno_t libreiser4_init(void);
 
