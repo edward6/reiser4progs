@@ -468,6 +468,14 @@ int64_t extent40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 		}
 	}
 	
+	/* Update the item key. */
+	if (plug_call(place->key.plug->o.key_ops, compfull, 
+		      &hint->offset, &place->key) < 0)
+	{
+		plug_call(place->key.plug->o.key_ops, assign,
+			  &place->key, &hint->offset);
+	}
+		
 	/* Join mergable units within the @place. */
 	hint->len = extent40_join_units(place, 1) * sizeof(extent40_t);
 	

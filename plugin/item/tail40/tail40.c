@@ -163,6 +163,7 @@ static int64_t tail40_write_units(reiser4_place_t *place,
 
 	/* Updating item key if pos is zero, that is start of item. */
 	if (pos == 0) {
+		/* FIXME: Is it correct? */
 		body40_get_key(place, 0, &place->key, NULL);
 	}
 
@@ -170,6 +171,7 @@ static int64_t tail40_write_units(reiser4_place_t *place,
 	if (ins_offset + count > max_offset)
 		hint->bytes = ins_offset + count - max_offset;
 	
+	hint->len = 0;
 	place_mkdirty(place);
 	return count;
 }

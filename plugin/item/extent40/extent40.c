@@ -737,7 +737,7 @@ static int64_t extent40_insert_units(reiser4_place_t *place,
 	/* Expanding extent item at @place */
 	extent40_expand(place, place->pos.unit,
 			hint->count);
-
+	hint->len = 0;
 	/* Updating @count units at @place */
 	return extent40_update_units(place, hint);
 }
@@ -1182,6 +1182,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 		ins_offset += size;
 	}
 	
+	hint->len = 0;
 	place_mkdirty(place);
 	return hint->count - count;
 }

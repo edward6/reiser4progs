@@ -3098,8 +3098,8 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, reiser4_place_t *place,
 	   that is has only one item. Tree also should not be minimal of
 	   height. Here root may be NULL due to nested call from
 	   tree_dryout(). */
-	if (tree->root && reiser4_tree_singular(tree) &&
-	    !reiser4_tree_minimal(tree))
+	if (tree->root && reiser4_tree_singular(tree) && 
+	    !reiser4_tree_minimal(tree) && (hint->shift_flags & SF_ALLOW_PACK))
 	{
 		if ((res = reiser4_tree_dryout(tree)))
 			return res;

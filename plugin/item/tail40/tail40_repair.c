@@ -90,6 +90,13 @@ errno_t tail40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	plug_call(hint->maxkey.plug->o.key_ops, 
 		  set_offset, &hint->maxkey, offset);
 
+	/* Update the item key. */
+	if (place->pos.unit == 0 && hint->count) {
+		plug_call(place->key.plug->o.key_ops, assign,
+			  &place->key, &hint->offset);
+	}
+	
+	hint->len = 0;
 	return 0;
 }
 

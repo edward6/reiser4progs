@@ -261,8 +261,11 @@ errno_t cde40_copy(reiser4_place_t *dst, uint32_t dst_pos,
 
         aal_assert("umka-2077", dst_pos <= dst_units);
 
-        /* Getting offset of body in dst place */
-        offset = cde40_regsize(dst, 0, dst_pos);
+        /* Getting offset of body in dst place. Do not just call regsize
+	   because in the case of expanding dst_pos offset points to the
+	   wrong place. */
+        offset = dst_pos ? cde40_regsize(dst, 0, dst_pos - 1) + 
+		cde40_get_len(dst, dst_pos - 1) : 0;
 
         /* Copying entry headers */
         srcp = src->body + sizeof(cde40_t) +
@@ -311,16 +314,42 @@ errno_t cde40_copy(reiser4_place_t *dst, uint32_t dst_pos,
 }
 
 /* Shrinks cde item in order to delete some entries */
-static uint32_t cde40_shrink(reiser4_place_t *place, uint32_t pos,
-			     uint32_t count, uint32_t len)
+static uint32_t cde40_shrink(reiser4_place_t *place, 
+			     uint32_t pos, uint32_t count)
+{
+	uint32_t units, len, pol;
+	void *entry;
+
+	aal_assert("vpf-1561", place != NULL);
+
+	units = cde_get_units(place);
+
+	aal_assert("vpf-1562", pos < units);
+
+	if (pos + count > units)
+		count = units - pos;
+
+	if (count == 0)
+		return 0;
+
+	/* Get the length of the item on the basis of the last unit. */
+	entry = cde40_entry(place, units - 1);
+	len = en_get_offset(entry, pol) + 
+		cde40_get_len(place, units - 1);
+
+	return cde40_cut(place, pos, count, len);
+}
+
+/* Cuts some units from cde item without analyzing the unit content,
+   namely without calling cde40_get_len. @len is the length of the item. */
+uint32_t cde40_cut(reiser4_place_t *place, uint32_t pos, 
+		   uint32_t count, uint32_t len)
 {
 	void *entry;
 	uint32_t pol;
-	uint32_t first;
-	uint32_t second;
-	uint32_t remove;
-	uint32_t headers;
 	uint32_t i, units;
+	uint32_t first, second;
+	uint32_t headers, remove;
 
 	aal_assert("umka-1959", place != NULL);
 
@@ -338,18 +367,21 @@ static uint32_t cde40_shrink(reiser4_place_t *place, uint32_t pos,
 	headers = count * en_size(pol);
 	
 	/* Getting how many bytes should be moved before passed @pos */
-	first = (units - (pos + count)) *
-		en_size(pol);
+	first = (units - (pos + count)) * en_size(pol);
 	
 	first += cde40_regsize(place, 0, pos);
 
 	/* Getting how many bytes should be moved after passed @pos */
-	second = cde40_regsize(place, pos + count,
-			       units - (pos + count));
-
-	/* Calculating how many bytes will be moved out */
-	remove = cde40_regsize(place, pos, count);
-
+	entry = cde40_entry(place, pos + count);
+	second = (pos + count == units) ? 0 : 
+		len - en_get_offset(entry, pol);
+	
+	/* Getting how many bytes should be removed */
+	entry = cde40_entry(place, pos);
+	remove = (pos + count == units) ? 
+		len - en_get_offset(entry, pol) : 
+		cde40_regsize(place, pos, count);
+	
 	/* Moving headers and first part of bodies (before passed @pos) */
 	entry = cde40_entry(place, pos);
 	aal_memmove(entry, entry + (en_size(pol) * count), first);
@@ -382,7 +414,7 @@ static uint32_t cde40_shrink(reiser4_place_t *place, uint32_t pos,
 	cde_dec_units(place, count);
 	place_mkdirty(place);
 	
-	return remove;
+	return remove + headers;
 }
 
 /* Prepares cde40 for insert new entries */
@@ -408,22 +440,18 @@ uint32_t cde40_expand(reiser4_place_t *place, uint32_t pos,
 
 	aal_assert("umka-1722", pos <= units);
 
-	/* Getting the offset of the place new entries will be inserted at. It
-	   will be used later in this function. */
+	/* Getting the offset of the current place. */
 	if (units > 0) {
 		if (pos < units) {
 			entry = cde40_entry(place, pos);
-			
-			offset = en_get_offset(entry, pol) +
-				headers;
+			offset = en_get_offset(entry, pol);
 		} else {
 			entry = cde40_entry(place, units - 1);
-			
-			offset = en_get_offset(entry, pol) + en_size(pol) +
+			offset = en_get_offset(entry, pol) +
 				cde40_get_len(place, units - 1);
 		}
 	} else {
-		offset = sizeof(cde40_t) + headers;
+		offset = sizeof(cde40_t);
 	}
 
 	/* Calculating length bytes to be moved before insert point. */
@@ -451,8 +479,8 @@ uint32_t cde40_expand(reiser4_place_t *place, uint32_t pos,
     
 	/* Moving entry bodies if it is needed. */
 	if (pos < units) {
-		src = (place->body + offset) - headers;
-		dst = (place->body + offset + len) - headers;
+		src = place->body + offset;
+		dst = src + len;
 		aal_memmove(dst, src, second);
 	}
     
@@ -464,7 +492,7 @@ uint32_t cde40_expand(reiser4_place_t *place, uint32_t pos,
 	}
     
 	place_mkdirty(place);
-	return offset;
+	return offset + headers;
 }
 
 /* Predicts how many entries and bytes can be shifted from the @src_place to
@@ -635,8 +663,7 @@ static errno_t cde40_shift_units(reiser4_place_t *src_place,
 	cde40_copy(dst_place, dst_pos, src_place,
 		   src_pos, hint->units_number);
 
-	cde40_shrink(src_place, src_pos,
-		     hint->units_number, 0);
+	cde40_shrink(src_place, src_pos, hint->units_number);
 
 	/* Updating item key by first cde key. */
 	if (cde_get_units(src_place) > 0 &&
@@ -785,6 +812,8 @@ static int64_t cde40_insert_units(reiser4_place_t *place, trans_hint_t *hint) {
 		cde40_get_hash(place, 0, &place->key);
 
 	place_mkdirty(place);
+	hint->len = 0;
+	
 	return hint->count;
 }
 
@@ -794,26 +823,21 @@ errno_t cde40_delete(reiser4_place_t *place, uint32_t pos,
 		     trans_hint_t *hint)
 {
 	uint32_t pol;
-	uint32_t bytes;
 
 	aal_assert("umka-3024", pos < cde40_units(place));
 
 	pol = cde40_key_pol(place);
-	bytes = (hint->count * en_size(pol));
 	
 	/* Shrinking cde item */
-	bytes += cde40_shrink(place, pos, hint->count, 0);
+	hint->bytes = hint->len = cde40_shrink(place, pos, hint->count);
 	
 	/* Updating item key */
 	if (pos == 0 && cde40_units(place) > 0)
 		cde40_get_hash(place, 0, &place->key);
 
-	hint->overhead = 0;
-	hint->bytes = hint->len = bytes;
-
 	/* Setting up cde item overhead in the case we removed all units. */
-	if (cde40_units(place) == 0)
-		hint->overhead = cde40_overhead();
+	hint->overhead = (cde40_units(place) == 0) ? 
+		cde40_overhead() : 0;
 	
 	return 0;
 }

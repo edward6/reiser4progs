@@ -124,6 +124,9 @@ extern lookup_t cde40_lookup(reiser4_place_t *place,
 extern int cde40_comp_hash(reiser4_place_t *place, uint32_t pos, 
 			   reiser4_key_t *key);
 
+extern uint32_t cde40_cut(reiser4_place_t *place, uint32_t pos, 
+			  uint32_t count, uint32_t len);
+
 extern uint16_t cde40_overhead();
 
 #if defined(ENABLE_SHORT_KEYS) && defined(ENABLE_LARGE_KEYS)

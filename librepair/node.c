@@ -95,8 +95,9 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 
 		/* Remove the item if fatal error. */
 		if (ret & RE_FATAL) {
-			aal_error("Node (%llu), item (%u): broken item found,"
-				  " Remove it.", node_blocknr(node), pos->item);
+			aal_error("Node (%llu), item (%u): broken item found."
+				  "%s", node_blocknr(node), pos->item,
+				  mode == RM_BUILD ? " Remove it." : "");
 
 			goto error_remove_item;
 		}
@@ -105,10 +106,10 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		
 		if (prev.plug) {
 			if (reiser4_key_compfull(&prev, &key) >= 0) {
-				aal_error("Node (%llu), items (%u) "
-					  "and (%u): Wrong order of "
-					  "keys.", node_blocknr(node), 
-					  pos->item - 1, pos->item);
+				aal_error("Node (%llu), items (%u) and "
+					  "(%u): Wrong order of keys.",
+					  node_blocknr(node), pos->item - 1,
+					  pos->item);
 				
 				return RE_FATAL;
 			}

@@ -36,34 +36,37 @@ errno_t stat40_traverse(reiser4_place_t *place, ext_func_t ext_func,
 
 			/* Check if next pack exists. */
 			if (i > 0) {
-				if (!((1 << (i - chunks)) & extmask))
+				if (!((1 << (16 - 1)) & extmask) || 
+				    i + 1 == STAT40_EXTNR)
+				{
 					break;
+				}
 			}
 			
 			extmask = *((uint16_t *)sdext->body);
-
-			/* Clear the last bit in last mask */
-			if ((1 << (i - chunks)) & 0x2f) {
-				if (!(extmask & 0x8000))
-					extmask &= ~0x8000;
-			}
+			
+			sdext->plug = NULL;
+			
+			/* Call the callback for every read extmask. */
+			if ((res = ext_func(sdext, extmask << (chunks * 16),
+					    data)))
+				return res;
 
 			chunks++;
 			sdext->body += sizeof(d16_t);
 			sdext->offset += sizeof(d16_t);
+
+			if (i > 0) continue;
 		}
 
 		/* If extension is not present, we going to the next one */
-		if (!((1 << (i - (chunks - 1))) & extmask))
+		if (!((1 << (i - (chunks - 1) * 16)) & extmask))
 			continue;
 
 		/* Getting extension plugin from the plugin factory */
-		if (!(sdext->plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
-			aal_warn("Can't find stat data extension plugin "
-				 "by its id 0x%x.", i);
-			return 0;
-		}
-
+		if (!(sdext->plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i)))
+			continue;
+		
 		len = plug_call(sdext->plug->o.sdext_ops, length, sdext->body);
 
 		/* Call the callback for every found extension. */
@@ -80,8 +83,7 @@ errno_t stat40_traverse(reiser4_place_t *place, ext_func_t ext_func,
 
 /* Callback for opening one extension */
 static errno_t callback_open_ext(sdext_entity_t *sdext,
-				 uint16_t extmask,
-				 void *data)
+				 uint64_t extmask, void *data)
 {
 	trans_hint_t *hint;
 	statdata_hint_t *stat_hint;
@@ -89,7 +91,7 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 	/* Method open is not defined, this probably means, we only interested
 	   in symlink's length method in order to reach other symlinks body. So,
 	   we retrun 0 here. */
-	if (!sdext->plug->o.sdext_ops->open)
+	if (!sdext->plug || !sdext->plug->o.sdext_ops->open)
 		return 0;
 	
 	hint = (trans_hint_t *)data;
@@ -180,7 +182,7 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 		if (!(plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
 			aal_warn("Can't find stat data extension plugin "
 				 "by its id 0x%x.", i);
-			continue;
+			return -EINVAL;
 		}
 
 		/* Calculating length of the corresponding extension and add it
@@ -240,7 +242,7 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 		if (!(plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
 			aal_warn("Can't find stat data extension plugin "
 				 "by its id 0x%x.", i);
-			continue;
+			return -EINVAL;
 		}
 
 		/* Initializing extension data at passed area */
@@ -263,6 +265,7 @@ static int64_t stat40_insert_units(reiser4_place_t *place, trans_hint_t *hint) {
 	aal_assert("vpf-076", place != NULL); 
 	aal_assert("vpf-075", hint != NULL);
 
+	hint->len = 0;
 	return stat40_modify(place, hint, 1);
 }
 
@@ -304,16 +307,13 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 			old_extmask = *((uint16_t *)extbody);
 
 			if (i > 0) {
-				if (!((1 << (i - chunks)) & old_extmask))
+				if (!((1 << (16 - 1)) & old_extmask) || 
+				    i + 1 == STAT40_EXTNR)
+				{
 					break;
+				}
 			}
 			
-			/* Clear the last bit in last mask */
-			if ((1 << (i - chunks)) & 0x2f) {
-				if (!(old_extmask & 0x8000))
-					old_extmask &= ~0x8000;
-			}
-
 			/* Calculating new extmask in order to update old
 			   one. */
 			new_extmask = old_extmask & ~(((stat_hint->extmask >> i) &
@@ -324,6 +324,8 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 				
 			chunks++;
 			extbody += sizeof(d16_t);
+
+			if (i > 0) continue;
 		}
 
 		/* Check if we're interested in this extension. */
@@ -363,11 +365,11 @@ typedef struct body_hint body_hint_t;
 
 /* Callback function for finding stat data extension body by bit */
 static errno_t callback_body_ext(sdext_entity_t *sdext,
-				 uint16_t extmask, 
-				 void *data)
+				 uint64_t extmask, void *data)
 {
 	body_hint_t *hint = (body_hint_t *)data;
-
+	if (!sdext->plug) return 0;
+	
 	hint->body = sdext->body;
 	return -(sdext->plug->id.id >= hint->ext);
 }
@@ -393,10 +395,10 @@ typedef struct present_hint present_hint_t;
 
 /* Callback for getting presence information for certain stat data extension. */
 static errno_t callback_present_ext(sdext_entity_t *sdext,
-				    uint16_t extmask, 
-				    void *data)
+				    uint64_t extmask, void *data)
 {
 	present_hint_t *hint = (present_hint_t *)data;
+	if (!sdext->plug) return 0;
 
 	hint->present = (sdext->plug->id.id == hint->ext);
 	return hint->present;

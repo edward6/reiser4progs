@@ -142,7 +142,7 @@ static errno_t cde40_pair_offsets_check(reiser4_place_t *place,
 	return (end_offset < offset + (count - 1) * ENTRY_LEN_MIN(S_NAME, pol));
 }
 
-static uint32_t cde40_name_end(char *body, uint32_t start, uint32_t end) {
+static uint32_t cde40_name_len(char *body, uint32_t start, uint32_t end) {
 	uint32_t i;
 	
 	aal_assert("vpf-759", start < end);
@@ -152,7 +152,7 @@ static uint32_t cde40_name_end(char *body, uint32_t start, uint32_t end) {
 			break;
 	}
 	
-	return i;
+	return i - start;
 }
 
 /* Returns amount of entries detected. */
@@ -215,9 +215,10 @@ static uint8_t cde40_long_entry_detect(reiser4_place_t *place,
 	l_limit = cde_get_offset(place, start_pos, pol);
 	r_limit = l_limit + length;
 	
-	while (l_limit < r_limit) {
-		offset = cde40_name_end(place->body, l_limit +
-					ob_size(pol), r_limit);
+	while (l_limit + ob_size(pol) < r_limit) {
+		offset = l_limit + ob_size(pol) +
+			cde40_name_len(place->body, l_limit +
+				       ob_size(pol), r_limit);
 		
 		if (offset == r_limit)
 			return 0;
@@ -240,9 +241,10 @@ static uint8_t cde40_long_entry_detect(reiser4_place_t *place,
 				  cde_get_offset(place, start_pos + count, pol),
 				  l_limit, mode == RM_BUILD ? "Fixed." : "");
 			
-			if (mode == RM_BUILD)
+			if (mode == RM_BUILD) {
 				cde_set_offset(place, start_pos + count, 
-					   l_limit, pol);
+					       l_limit, pol);
+			}
 		}
 	}
 	
@@ -386,15 +388,17 @@ static errno_t cde40_offsets_range_check(reiser4_place_t *place,
 static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 			    uint8_t mode)
 {
-	trans_hint_t hint;
 	uint32_t i, last;
 	uint32_t e_count;
-	uint32_t pol;
+	uint32_t offset;
 	errno_t res = 0;
+	uint32_t pol;
 	
 	aal_assert("vpf-757", flags != NULL);
 
 	pol = cde40_key_pol(place);
+	
+	/* Get the last correct unit + 1 into @last. */
 	for (last = flags->count; 
 	     last && (aal_test_bit(flags->elem + last - 1, NR) || 
 		      !aal_test_bit(flags->elem + last - 1, R)); last--) {}
@@ -409,20 +413,26 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 		return RE_FATAL;
 	}
 	
+	/* the last unit size is not checked yet, so save - 1 into @count. */
 	flags->count = --last;
 	
-	/* Last is the last valid offset. If the last unit is valid also, count 
+	offset = cde_get_offset(place, last, pol) + ob_size(pol);
+	
+	/* Last is the last valid offset. If the last unit is valid also, count
 	   is the last + 1. */
-	if (cde_get_offset(place, last, pol) + ob_size(pol) == place->len) {
+	if (offset == place->len) {
 		flags->count++;
-	} else if (cde_get_offset(place, last, pol) + ob_size(pol) < place->len) {
-		uint32_t offset;
-		
-		/* The last offset is correct,but the last entity is not checked yet. */
-		offset = cde40_name_end(place->body, cde_get_offset(place, last, pol) + 
-					ob_size(pol), place->len);
-		if (offset == place->len - 1)
+	} else if (offset < place->len) {
+		/* The last offset is correct, but the entity is not checked 
+		   yet. */
+		offset += aal_strlen(place->body + offset) + 1;
+
+		/* If nothing to be removed, the last unit is relable. */
+		if (offset == place->len) 
 			flags->count++;
+	} else {
+		aal_bug("vpf-1560", "Amount of detected units exceeds the "
+			"item length.");
 	}
 	
 	/* Count is the amount of recovered elements. */
@@ -437,33 +447,17 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 	 * valid offset. */
 	aal_assert("vpf-765", e_count >= flags->count);
 	
-	/* If there is enough space for another entry header, and the @last entry 
-	   is valid also, set @count unit offset to the item length. */
-	if (e_count > flags->count && last != flags->count) {
-		if (mode == RM_BUILD) {
-			cde_set_offset(place, flags->count, place->len, pol);
-			place_mkdirty(place);
-		} else {
-			res |= RE_FATAL;
-		}
-	}
- 	
-	if (flags->count == last && mode == RM_BUILD) {
-		/* Last unit is not valid. */
-		if (mode == RM_BUILD) {
-			place->len = cde_get_offset(place, last, pol);
-			place_mkdirty(place);
-		} else {
-			res |= RE_FATAL;
-		}
-	}
+	if (last != flags->count && e_count > flags->count && mode == RM_BUILD) {
+		/* If there is enough space for another entry header, set 
+		   @count unit offset to the item length to remove item 
+		   headers correctly later. */
+		cde_set_offset(place, flags->count, place->len, pol);
+	} 
 	
 	if (i) {
 		/* Some first offset are not relable. Consider count as 
 		   the correct count and set the first offset just after 
 		   the last unit.*/
-		e_count = flags->count;
-		
 		if (mode == RM_BUILD) {
 			cde_set_offset(place, 0, sizeof(cde40_t) + 
 				   en_size(pol) * flags->count, pol);
@@ -495,10 +489,9 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 			  mode == RM_BUILD ? "Removed." : "");
 		
 		if (mode == RM_BUILD) {
-			hint.count = e_count - flags->count;
-
-			res |= cde40_delete(place, flags->count, &hint);
-			if (res < 0) return res;
+			place->len -= cde40_cut(place, flags->count, 
+						e_count - flags->count, 
+						place->len);
 			
 			place_mkdirty(place);
 		} else {
@@ -514,12 +507,10 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 			  mode == RM_BUILD ? "Removed." : "");
 		
 		if (mode == RM_BUILD) {
-			hint.count = i;
-			
-			if ((res |= cde40_delete(place, 0, &hint)) < 0)
-				return res;
-			
+			place->len -= cde40_cut(place, 0, i, place->len);
+
 			place_mkdirty(place);
+			
 			aal_memmove(flags->elem, flags->elem + i, 
 				    flags->count - i);
 			
@@ -556,19 +547,17 @@ static errno_t cde40_filter(reiser4_place_t *place, struct entry_flags *flags,
 				continue;
 			}
 			
-			hint.count = i - last;
+			place->len -= cde40_cut(place, last, i - last, 
+						place->len);
 
-			if ((res |= cde40_delete(place, last, &hint)) < 0)
-				return res;
-
+			place_mkdirty(place);
+			
 			aal_memmove(flags->elem + last, flags->elem + i,
 				    flags->count - i);
 
 			flags->count -= (i - last);
 			i = last;
 			last = MAX_UINT32;
-
-			place_mkdirty(place);
 		}
 	}
 	
@@ -614,15 +603,17 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 	/* Structure is checked, check the unit keys and its order.
 	   FIXME-VITALY: just simple order check for now, the whole 
 	   item is thrown away if smth wrong, to be improved later. */
-	for (i = 1; i < flags.count; i++) {
+	for (i = 1; i <= flags.count; i++) {
 		reiser4_key_t key;
 		trans_hint_t hint;
+		uint32_t offset;
 		
 		cde40_get_hash(place, i - 1, &key);
 
-		if (cde_get_offset(place, i - 1, pol) + ob_size(pol) == 
-		    cde_get_offset(place, i, pol))
-		{
+		offset = i == flags.count ? place->len : 
+			cde_get_offset(place, i, pol);
+		
+		if (cde_get_offset(place, i - 1, pol) + ob_size(pol) == offset){
 			/* Check that [i-1] key is not hashed. */
 			if (!plug_call(place->key.plug->o.key_ops, 
 				       hashed, &key))
@@ -646,8 +637,9 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 			if ((res |= cde40_delete(place, i - 1, &hint)) < 0)
 				return res;
 
-			i--;
+			place->len -= hint.len;
 			flags.count--;
+			i--;
 			continue;
 		} else {
 			/* Check that [i-1] key is hashed. */
@@ -673,8 +665,9 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 			if ((res |= cde40_delete(place, i - 1, &hint)) < 0)
 				return res;
 
-			i--;
+			place->len -= hint.len;
 			flags.count--;
+			i--;
 			continue;
 		}
 	}
@@ -683,26 +676,38 @@ errno_t cde40_check_struct(reiser4_place_t *place, uint8_t mode) {
 		return res;
 
 	aal_memset(&pkey, 0, sizeof(pkey));
-	aal_memset(&pkey, 0, sizeof(ckey));
+	aal_memset(&ckey, 0, sizeof(ckey));
 	cde40_get_hash(place, 0, &pkey);
 	
 	for (i = 1; i < flags.count; i++) {
 		cde40_get_hash(place, i, &ckey);
 		
-		if (plug_call(pkey.plug->o.key_ops, compfull, &pkey, &ckey) == 1) {
-			aal_error("Node (%llu), item (%u): wrong "
-				  "order of units {%d, %d}. The "
-				  "whole item has to be removed -- "
-				  "will be improved soon.", 
-				  place->node->block->nr, place->pos.item, 
+		if (plug_call(pkey.plug->o.key_ops, compfull, 
+			      &pkey, &ckey) == 1) 
+		{
+			aal_error("Node (%llu), item (%u): wrong order of "
+				  "units {%d, %d}. The whole item to be "
+				  "removed -- will be improved soon.",
+				  place->node->block->nr, place->pos.item,
 				  i - 1, i);
-			return res & RE_FATAL;
+			return res | RE_FATAL;
 		}
 		pkey = ckey;
 	}
 	
 	if (flags.count == 0)
-		res &= RE_FATAL;
+		return res | RE_FATAL;
+	
+	cde40_get_hash(place, 0, &ckey);
+	if (plug_call(ckey.plug->o.key_ops, compfull, &ckey, &place->key)) {
+		aal_error("Node (%llu), item (%u): the item key [%s] does "
+			  "not match the first unit key [%s].%s", 
+			  place->node->block->nr, place->pos.item,
+			  cde40_core->key_ops.print(&place->key, PO_INODE),
+			  cde40_core->key_ops.print(&ckey, PO_INODE),
+			  mode == RM_BUILD ? " Fixed." : "");
+		res |= RE_FATAL;
+	}
 	
 	return res;
 	
@@ -825,11 +830,21 @@ int64_t cde40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 		}
 	}
 	
+	/* Update the item key. */
+	if (place->pos.unit == 0 && hint->count) {
+		plug_call(place->key.plug->o.key_ops, assign,
+			  &place->key, &hint->offset);
+	}
+	
+	hint->len = 0;
+
 	if (spos == sunits)
 		return cde40_maxposs_key(src, &hint->maxkey);
 	
 	return cde40_get_hash(src, spos, &hint->maxkey);
 }
+
+#define PRINT_NAME_LIMIT 38
 
 /* Prints cde item into passed @stream */
 void cde40_print(reiser4_place_t *place, aal_stream_t *stream, uint16_t options) {
@@ -845,7 +860,7 @@ void cde40_print(reiser4_place_t *place, aal_stream_t *stream, uint16_t options)
 
 	aal_stream_format(stream, "UNITS=%u\n", cde_get_units(place));
 	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "
-			  "SDKEY%*s\n", 13, " ", 29, " ", 13, " ");
+			  "SDKEY%*s\n", PRINT_NAME_LIMIT - 5, " ", 29, " ", 13, " ");
 	
 	pol = cde40_key_pol(place);
 
@@ -865,18 +880,18 @@ void cde40_print(reiser4_place_t *place, aal_stream_t *stream, uint16_t options)
 		
 		cde40_get_name(place, i, name, sizeof(name));
 
-		/* Cutting name by 16 symbols */
-		if (aal_strlen(name) > 16) {
+		/* Cutting name by PRINT_NAME_LIMIT symbols */
+		if (aal_strlen(name) > PRINT_NAME_LIMIT) {
 			for (j = 0; j < 3; j++)
-				name[13 + j] = '.';
+				name[PRINT_NAME_LIMIT - 3 + j] = '.';
 
-			name[13 + j] = '\0';
+			name[PRINT_NAME_LIMIT - 3 + j] = '\0';
 		}
 
 		/* Getting locality, objectid. */
 		locality = ob_get_locality(objid, pol);
 		objectid = ob_get_objectid(objid, pol);
-		namewidth = 16 - aal_strlen(name) + 1;
+		namewidth = PRINT_NAME_LIMIT - aal_strlen(name);
 
 		offset = ha_get_offset(entry, pol);
 		haobj = ha_get_objectid(entry, pol);
@@ -884,7 +899,7 @@ void cde40_print(reiser4_place_t *place, aal_stream_t *stream, uint16_t options)
 		/* Putting data to @stream. */
 		aal_stream_format(stream, "%*d %s%*s %*u %.16llx:%.16llx "
 				  "%.7llx:%.7llx\n", 3, i, name, namewidth,
-				  " ", 6, en_get_offset(entry, pol), haobj,
+				  " ", 5, en_get_offset(entry, pol), haobj,
 				  offset, locality, objectid);
 	}
 }

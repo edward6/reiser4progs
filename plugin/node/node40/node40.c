@@ -638,7 +638,20 @@ int64_t node40_modify(reiser4_node_t *entity, pos_t *pos,
            leftmost postion. */
         if (pos->unit == 0)
                 aal_memcpy(ih, place.key.body, key_size(pol));
-        
+        	
+	/* If some space got free, shrink the node. */
+	if (hint->len) {
+		/* Nothing can be left after modifying -- it should be foreseen 
+		   at modify prepare -- set unit == 0 to shrink units. */
+		pos->unit = 0;
+		
+		if (node40_shrink(entity, pos, hint->len, 1)) {
+			aal_error("Node %llu, item %u: shrink failed.",
+				  entity->block->nr, pos->item);
+			return -EINVAL;
+		}
+	}
+
 	return write;
 }
 
@@ -1276,6 +1289,9 @@ static errno_t node40_unite(reiser4_node_t *src_entity,
 		len = src_place.len;
 		pos.unit = MAX_UINT32;
 
+		if (pos.item == hint->pos.item)
+			hint->pos.unit = MAX_UINT32;
+		
 		/* As item will be removed, we should update item pos in hint
 		   properly. */
 		if (!(hint->result & SF_MOVE_POINT) &&

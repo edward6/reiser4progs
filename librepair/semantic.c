@@ -315,8 +315,12 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		return INVAL_PTR;
 	
 	if (object == NULL) {
-		aal_error("Failed to open the object [%s].", 
-			  reiser4_print_key(&entry->object, PO_INODE));
+		aal_error("Failed to find the object [%s] pointed "
+			  "by the entry [%s].%s",
+			  reiser4_print_key(&entry->object, PO_INODE),
+			  reiser4_print_key(&entry->offset, PO_INODE),
+			  sem->repair->mode != RM_CHECK ?
+			  " Entry is removed." : "");
 		
 		if (sem->repair->mode != RM_CHECK)
 			goto error_rem_entry;
