@@ -248,7 +248,7 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 	  on).
 	*/
 	if (!(block = aal_block_create(alloc->device, blk, 0xff))) {
-		aal_exception_error("Can't read bitmap block %llu. %s.", 
+		aal_exception_error("Can't allocate bitmap block %llu. %s.", 
 				    blk, alloc->device->error);
 		return -ENOMEM;
 	}

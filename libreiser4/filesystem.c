@@ -114,7 +114,7 @@ void reiser4_fs_close(
 	aal_assert("umka-230", fs != NULL);
 
 #ifndef ENABLE_STAND_ALONE
-	if (!aal_device_readonly(format->fs->device))
+	if (!aal_device_readonly(fs->device))
 		reiser4_fs_sync(fs);
 #endif
 	
