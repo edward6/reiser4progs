@@ -2075,7 +2075,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 		if (SF_ALLOW_MERGE & flags)
 			shift_flags |= SF_ALLOW_MERGE;
 		
-		if ((SF_MOVE_POINT & flags) && reiser4_place_rightmost(place))
+		if (SF_MOVE_POINT & flags)
 			shift_flags |= SF_MOVE_POINT;
 
 		old_node = place->node;
