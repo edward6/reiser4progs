@@ -843,7 +843,6 @@ static errno_t node40_predict_units(node40_t *src_node,
 				    node40_t *dst_node, 
 				    shift_hint_t *hint)
 {
-	int mergeable;
 	uint32_t dst_items;
 	uint32_t src_items;
 	item_entity_t src_item;
@@ -894,16 +893,16 @@ static errno_t node40_predict_units(node40_t *src_node,
 		return 0;
 	
 	/* Checking if items are mergeable */
-	mergeable = dst_items > 0;
+	hint->create = (dst_items == 0);
 
 	if (dst_items > 0) {
 		node40_item(&dst_item, dst_node,
 			    (hint->flags & SF_LEFT ? dst_items - 1 : 0));
 		
-		mergeable = node40_mergeable(&src_item, &dst_item);
+		hint->create = !node40_mergeable(&src_item, &dst_item);
 	}
 
-	if (!mergeable) {
+	if (hint->create) {
 		uint32_t overhead;
 
 		/*
@@ -932,9 +931,13 @@ static errno_t node40_predict_units(node40_t *src_node,
 	  point position. After this function is finish hint->rest will contain
 	  real number of bytes to be shifted into neighbour item.
 	*/
-	if (src_item.plugin->item_ops.predict(&src_item, mergeable ?
-					      &dst_item : NULL, hint))
-		return -1;
+	if (hint->create) {
+		if (src_item.plugin->item_ops.predict(&src_item, NULL, hint))
+			return -1;
+	} else {
+		if (src_item.plugin->item_ops.predict(&src_item, &dst_item, hint))
+			return -1;
+	}
 
 	/*
 	  Updating item componet of the insert point if it was moved into
@@ -956,7 +959,6 @@ static errno_t node40_shift_units(node40_t *src_node,
 {
 	int remove;
 	uint32_t len;
-	int mergeable;
 	reiser4_pos_t pos;
 	uint32_t src_items;
 	uint32_t dst_items;
@@ -985,49 +987,11 @@ static errno_t node40_shift_units(node40_t *src_node,
 	aal_memset(&dst_item, 0, sizeof(dst_item));
 
 	/* Initializing src item entity */
-	node40_item(&src_item, src_node,
-		    (hint->flags & SF_LEFT) ? 0 : src_items - 1);
-	
-	mergeable = dst_items > 0;
-	
-	/* Initializing dst item entity */
-	if (dst_items > 0) {
-		node40_item(&dst_item, dst_node,
-			    (hint->flags & SF_LEFT) ? dst_items - 1 : 0);
+	node40_item(&src_item, src_node, hint->flags & SF_LEFT ?
+		    0 : src_items - 1);
 
-		mergeable = node40_mergeable(&src_item, &dst_item);
-	}
-	
-	/*
-	  If items mergeable, we should expand dst_node for inserting units,
-	  otherwise for inserting new item.
-	*/
-	if (mergeable) {
-
-		/*
-		  Items are mergeable, so we do not need to create new item in
-		  the dst node. We just need to expand existent dst item by
-		  hint->rest. So, we will call node40_expand with unit component
-		  not equal ~0ul.
-		*/
-		pos.item = (hint->flags & SF_LEFT) ?
-			dst_items - 1 : 0;
+	if (hint->create) {
 		
-		pos.unit = 0;
-
-		if (node40_expand(dst_node, &pos, hint->rest)) {
-			aal_exception_error("Can't expand item for "
-					    "shifting units into it.");
-			return -1;
-		}
-
-		/*
-		  Reinitializing dst item after it was expanded by node40_expand
-		  function.
-		*/
-		node40_item(&dst_item, dst_node, pos.item);
-	} else {
-
 		/* Expanding dst node with creating new item */
 		pos.unit = ~0ul;
 		pos.item = hint->flags & SF_LEFT ? dst_items : 0;
@@ -1048,11 +1012,32 @@ static errno_t node40_shift_units(node40_t *src_node,
 		  function.
 		*/
 		node40_item(&dst_item, dst_node, pos.item);
-	}
+	} else {
+		/*
+		  Items are mergeable, so we do not need to create new item in
+		  the dst node. We just need to expand existent dst item by
+		  hint->rest. So, we will call node40_expand with unit component
+		  not equal ~0ul.
+		*/
+		pos.unit = 0;
+		pos.item = hint->flags & SF_LEFT ? dst_items - 1 : 0;
 
+		if (node40_expand(dst_node, &pos, hint->rest)) {
+			aal_exception_error("Can't expand item for "
+					    "shifting units into it.");
+			return -1;
+		}
+
+		/*
+		  Reinitializing dst item after it was expanded by node40_expand
+		  function.
+		*/
+		node40_item(&dst_item, dst_node, pos.item);
+	}
+	
 	/* Calling item method shift */
-	if (plugin_call(return -1, src_item.plugin->item_ops, shift,
-			&src_item, &dst_item, hint))
+	if (plugin_call(return -1, src_item.plugin->item_ops,
+			shift, &src_item, &dst_item, hint))
 		return -1;
 	
 	/* Updating source node fields */
@@ -1082,10 +1067,11 @@ static errno_t node40_shift_units(node40_t *src_node,
 	}
 	
 	if (remove) {
-
-		/* Like to node40_expand, node40_shrink will remove pointed item
-		 * if unit component is ~0ul and shrink pointed by pos item if
-		 * unit is not ~0ul. */
+		/*
+		  Like to node40_expand, node40_shrink will remove pointed item
+		  if unit component is ~0ul and shrink pointed by pos item if
+		  unit is not ~0ul.
+		*/
 		pos.unit = ~0ul;
 		len = src_item.len;
 
@@ -1415,6 +1401,7 @@ static errno_t node40_shift(object_entity_t *entity,
 	  boundary items are not mergeable.
 	*/
 	merge = *hint;
+	merge.create = 0;
 	merge.flags |= SF_MERGE;
 
 	/*

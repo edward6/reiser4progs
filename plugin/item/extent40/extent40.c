@@ -78,6 +78,8 @@ static errno_t extent40_insert(item_entity_t *item, uint32_t pos,
 	if (!(extent = extent40_body(item)))
 		return -1;
 
+	extent_hint = (reiser4_extent_hint_t *)hint->hint;
+
 	/* Preparing space for new extent units */
 	if ((units = extent40_units(item))) {
 		src = extent + pos;
@@ -88,7 +90,6 @@ static errno_t extent40_insert(item_entity_t *item, uint32_t pos,
 	}
 
 	extent += pos;
-	extent_hint = (reiser4_extent_hint_t *)hint->hint;
 	
 	for (i = 0; i < extent_hint->count; i++, extent++) {
 		et40_set_start(extent, extent_hint->unit[0].ptr);

@@ -182,16 +182,12 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	aal_assert("umka-1591", src_item != NULL, return 0);
 	aal_assert("umka-1592", hint != NULL, return 0);
 
+	src_units = direntry40_units(src_item);
+	dst_units = dst_item ? direntry40_units(dst_item) : 0;
+
 	space = hint->rest;
 	
-	src_units = direntry40_units(src_item);
-
-	dst_units = 0;
-	
-	if (dst_item)
-		dst_units = direntry40_units(dst_item);
-
-	if (!dst_item || !direntry40_mergeable(src_item, dst_item)) {
+	if (hint->create) {
 		
 		if (space < sizeof(direntry40_t))
 			return 0;

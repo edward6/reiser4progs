@@ -239,8 +239,12 @@ static errno_t tail40_predict(item_entity_t *src_item,
 			      item_entity_t *dst_item,
 			      shift_hint_t *hint)
 {
-	aal_assert("umka-1664", src_item != NULL, return -1);
+	uint32_t space;
 	
+	aal_assert("umka-1664", src_item != NULL, return -1);
+
+	space = hint->rest;
+		
 	if (hint->flags & SF_LEFT) {
 		if (hint->rest > hint->pos.unit)
 			hint->rest -= (hint->rest - hint->pos.unit);
@@ -249,7 +253,7 @@ static errno_t tail40_predict(item_entity_t *src_item,
 		
 		if (hint->pos.unit == 0 && hint->flags & SF_MOVIP) {
 			hint->rest++;
-			hint->pos.unit = dst_item->len + hint->rest;
+			hint->pos.unit = space + hint->rest;
 		}
 	} else {
 		uint32_t right;
@@ -317,10 +321,10 @@ static reiser4_plugin_t tail40_plugin = {
 		.shift         = NULL,
 #endif
 		.open          = NULL,
-		.estimate      = NULL,
 		.check	       = NULL,
 		.valid	       = NULL,
 		.update        = NULL,
+		.estimate      = NULL,
 
 		.units	       = tail40_units,
 		.lookup	       = tail40_lookup,

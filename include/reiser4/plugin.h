@@ -249,13 +249,25 @@ enum shift_flags {
 typedef enum shift_flags shift_flags_t;
 
 struct shift_hint {
+	/*
+	  Flag which shows that we need create an item before we will move units
+	  into it. That is because node does not contain any items at all or
+	  border items are not mergeable.
+	*/
+	int create;
+
+	/* Item count and unit count which will be moved out */
 	uint32_t items;
 	uint32_t units;
 
+	/* Bytes to be moved for items and units. */
 	uint32_t bytes;
 	uint32_t rest;
 
+	/* Shift control flags (left shift, move insert point, merge, etc) */
 	uint32_t flags;
+
+	/* Insert point. It will be modified durring shfiting */
 	reiser4_pos_t pos;
 };
 
