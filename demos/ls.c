@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
 		aal_stream_fini(&stream);
 	}
 
-	place.pos.item = 0;
+/*	place.pos.item = 0;
 
 	{
 		int i = 0;
@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
 			reiser4_tree_remove(fs->tree, &place, 1);
 			i++;
 		}
-	}
+	}*/
 	
 //	reiser4_tree_detach(fs->tree, place.node);
 	

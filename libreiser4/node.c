@@ -936,7 +936,7 @@ errno_t reiser4_node_cut(
 	reiser4_node_mkdirty(node);
 	
 	/* Updating children */
-	if (reiser4_node_uchildren(node, end))
+	if (reiser4_node_uchildren(node, start))
 		return -1;
 	
 	return 0;
