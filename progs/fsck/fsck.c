@@ -136,8 +136,6 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		return USER_ERROR;
 	}
 
-	misc_print_banner(argv[0]);
-    
 	while ((c = getopt_long(argc, argv, "l:VhnqapfvU:R:r?d", long_options, 
 				(int *)0)) != EOF) 
 	{
