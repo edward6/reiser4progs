@@ -1168,9 +1168,12 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 	src_items = node40_items(src_entity);
 	dst_items = node40_items(dst_entity);
-	hint->rest = node40_space(dst_entity);
 	
-	if (src_items == 0 || hint->rest == 0)
+	hint->units_bytes = node40_space(dst_entity);
+
+	/* Nothing to move or not enough of space to moveat least one byte to
+	   @dst_entity. */
+	if (src_items == 0 || hint->units_bytes == 0)
 		return 0;
 	
 	left_shift = (hint->control & SF_ALLOW_LEFT);
@@ -1225,7 +1228,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 	/* Calling item's pre_shift() method in order to estimate how many units
 	   may be shifted out. This method also updates unit component of insert
-	   point position. After this function is finish @hint->rest will
+	   point position. After this function is finish @hint->units_bytes will
 	   contain real number of bytes to be shifted into neighbour item. */
 	if (hint->create) {
 		uint32_t overhead;
@@ -1239,16 +1242,16 @@ static errno_t node40_unite(node_entity_t *src_entity,
 			return 0;
 
 		/* Getting node overhead in order to substract it from
-		   @hint->rest, that is from space allowed to be used. */
+		   @hint->units_bytes, that is from space allowed to be used. */
 		overhead = node40_overhead(dst_entity);
 
 		/* There is not of enough free space in @dst_entity even to
 		   create an empty item in it. Getting out. */
-		if (hint->rest < overhead)
+		if (hint->units_bytes < overhead)
 			return 0;
 
 		/* Substract node overhead, that is item header. */
-		hint->rest -= overhead;
+		hint->units_bytes -= overhead;
 			
 		if (plug_call(src_place.plug->o.item_ops->balance,
 			      prep_shift, &src_place, NULL, hint))
@@ -1269,7 +1272,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 		/* Check if shift_units() may shift something at all. If no --
 		   getting out of here. */
-		if (hint->units == 0)
+		if (hint->units_number == 0)
 			return 0;
 
 		/* Prepare pos new item will be created at. */
@@ -1294,29 +1297,24 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 		/* Check if shift_units() may shift something at all. If no --
 		   getting out of here. */
-		if (hint->units == 0)
+		if (hint->units_number == 0)
 			return 0;
 
 		/* Prepare pos, item will be expanded at. Items are mergeable,
 		   so we do not need to create new item in @dst_entity. We just
-		   need to expand existent dst item by @hint->rest, thus unit
-		   component of @pos is set to 0.*/
+		   need to expand existent dst item by @hint->units_bytes, thus
+		   unit component of @pos is set to 0.*/
 		POS_INIT(&pos, (left_shift ? dst_items - 1 : 0), 0);
 	}
 
-	/* Expanding node by @hint->rest at @pos. */
-	if (node40_expand(dst_entity, &pos, hint->rest, 1)) {
+	/* Expanding node by @hint->units_bytes at @pos. */
+	if (node40_expand(dst_entity, &pos, hint->units_bytes, 1)) {
 		aal_exception_error("Can't expand node for "
 				    "shifting units into it.");
 		return -EINVAL;
 	}
 
 	if (hint->create) {
-		/* Increasing number of shifted items. This is needed, because
-		   higher abstraction levels will use it to determine was
-		   something shifted or not. */
-		hint->items++;
-		
 		/* Setting up new item fields such as plugin id and key. */
 		dst_ih = node40_ih_at(dst_node, pos.item);
 
@@ -1359,7 +1357,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	
 	/* We will remove src item if it has became empty and insert point does
 	   not point it, that is next insert will not be dealing with it. */
-	remove_src = (hint->rest == src_place.len || units == 0);
+	remove_src = (hint->units_bytes == src_place.len || units == 0);
 	
 	if (hint->control & SF_UPDATE_POINT) {
 		remove_src = remove_src && (hint->result & SF_MOVE_POINT ||
@@ -1395,9 +1393,9 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		}
 	} else {
 		/* Sources item will not be removed, because it is not yet
-		   empty, it will be just shrinked by @hint->rest. */
+		   empty, it will be just shrinked by @hint->units_bytes. */
 		pos.unit = 0;
-		len = hint->rest;
+		len = hint->units_bytes;
 	}
 
 	/* Shrining node by @len. */
@@ -1542,8 +1540,8 @@ static errno_t node40_predict(node_entity_t *src_entity,
 		}
 
 		/* Updating some counters and shift hint */
-		hint->items++;
-		hint->bytes += len;
+		hint->items_number++;
+		hint->items_bytes += len;
 		src_items--; dst_items++;
 		
 		space -= (len + node40_overhead(dst_entity));
@@ -1552,7 +1550,7 @@ static errno_t node40_predict(node_entity_t *src_entity,
 
 	/* After number of whole items was estimated, all free space will be
 	   used for estimating how many units may be shifted. */
-	hint->rest = space;
+	hint->units_bytes = space;
 	return 0;
 }
 
@@ -1572,6 +1570,9 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
 	aal_assert("umka-1621", src_entity != NULL);
 	aal_assert("umka-1619", dst_entity != NULL);
 
+	dst_items = node40_items(dst_entity);
+	src_items = node40_items(src_entity);
+
 	/* Calculating how many items and how many bytes may be moved from
 	   @src_entity to @dst_entity. Calculating result is stored in @hint and
 	   will be used later. */
@@ -1579,12 +1580,9 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
 		return res;
 
 	/* No items to be shifted */
-	if (hint->items == 0 || hint->bytes == 0)
+	if (hint->items_number == 0 || hint->items_bytes == 0)
 		return 0;
 	
-	dst_items = node40_items(dst_entity);
-	src_items = node40_items(src_entity);
-
 	/* Initializing src and dst positions, we will used them for moving
 	   items. They are initialized in different way for left and right
 	   shift. */
@@ -1592,23 +1590,23 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
 		POS_INIT(&src_pos, 0, MAX_UINT32);
 		POS_INIT(&dst_pos, dst_items, MAX_UINT32);
 	} else {
-		uint32_t pos = src_items - hint->items;
-		
 		POS_INIT(&dst_pos, 0, MAX_UINT32);
-		POS_INIT(&src_pos, pos, MAX_UINT32);
+
+		POS_INIT(&src_pos, src_items -
+			 hint->items_number, MAX_UINT32);
 	}
 	
 	/* Expanding dst node in order to make room for new items and update
 	   node header. */
-	if ((res = node40_expand(dst_entity, &dst_pos,
-				 hint->bytes, hint->items)))
+	if ((res = node40_expand(dst_entity, &dst_pos, hint->items_bytes,
+				 hint->items_number)))
 	{
 		return res;
 	}
 		
 	/* Copying items from src node to dst one */
 	if ((res = node40_copy(dst_entity, &dst_pos, src_entity,
-			       &src_pos, hint->items)))
+			       &src_pos, hint->items_number)))
 	{
 		return res;
 	}
@@ -1619,8 +1617,8 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
 	
 	/* Shrinking source node after items are copied from it into dst
 	   node. */
-	return node40_shrink(src_entity, &src_pos, hint->bytes,
-			     hint->items);
+	return node40_shrink(src_entity, &src_pos, hint->items_bytes,
+			     hint->items_number);
 }
 
 /* Performs shift of items and units from @src_entity to @dst_entity.
@@ -1699,10 +1697,8 @@ static errno_t node40_shift(node_entity_t *src_entity,
 
 	/* Checking if insert point was moved into @dst_entity. If so then shift
 	   gets out. */
-	if (hint->result & SF_MOVE_POINT) {
-		hint->units = 0;
+	if (hint->result & SF_MOVE_POINT)
 		return 0;
-	}
 
 	/* Third pass is started here. Merges border items with ability to
 	   create new item in the @dst_entity. Here our objective is to shift
@@ -1724,7 +1720,7 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	   operation should be converted to item insert (create) one. */
 	if (hint->control & SF_UPDATE_POINT &&
 	    hint->result & SF_MOVE_POINT &&
-	    hint->units == 0 && hint->create)
+	    hint->units_number == 0 && hint->create)
 	{
 		hint->pos.unit = MAX_UINT32;
 	}

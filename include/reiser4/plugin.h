@@ -387,17 +387,13 @@ struct shift_hint {
 	   internal tree should be updated. */
 	int update;
 
-	/* Item count and unit count which will be moved out */
-	uint32_t items;
-	uint32_t units;
+	/* Item count and unit count which will be moved. */
+	uint32_t items_number;
+	uint32_t units_number;
 
-	/* Bytes to be moved for items and units. Actually we might use just
-	   item field for providing needed functionality, but I guess, we will
-	   need to collect some statistics like how much items and units were
-	   moved during making space for inserting particular item or unit. Set
-	   and used by shift code. */
-	uint32_t bytes;
-	uint32_t rest;
+	/* Used for internal shift purposes. */
+	uint32_t items_bytes;
+	uint32_t units_bytes;
 
 	/* Shift control flags (left shift, move insert point, merge, etc) and
 	   shift result flags. The result flags are needed for determining for

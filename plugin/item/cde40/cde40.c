@@ -488,8 +488,8 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 	aal_assert("umka-1592", hint != NULL);
 	aal_assert("umka-1591", src_place != NULL);
 
-	hint->units = 0;
-	space = hint->rest;
+	hint->units_number = 0;
+	space = hint->units_bytes;
 
 	pol = cde40_key_pol(src_place);
 	src_units = cde40_units(src_place);
@@ -587,16 +587,17 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 		   for controlling predicting main cycle. */
 		src_units--;
 		dst_units++;
-		hint->units++;
+		hint->units_number++;
 
 		space -= (len + en_size(pol));
 		curr += (flags & SF_ALLOW_LEFT ? 1 : -1);
 	}
 
-	/* Updating @hint->rest. It is needed for unit shifting. This value is
-	   number of bytes to be moved from @src_place to @dst_place. */
-	if (hint->units > 0)
-		hint->rest -= space;
+	/* Updating @hint->units_bytes. It is needed for unit shifting. This
+	   value is number of bytes to be moved from @src_place to
+	   @dst_place. */
+	if (hint->units_number > 0)
+		hint->units_bytes -= space;
 	
 	return 0;
 }
@@ -614,7 +615,7 @@ static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
 	/* Initializing cde body if we shift data to new created item. This is
 	   needed for correct work of cde plugin. */
 	if (hint->create) {
-		hint->rest -= sizeof(cde40_t);
+		hint->units_bytes -= sizeof(cde40_t);
 		((cde40_t *)dst_place->body)->units = 0;
 	}
 
@@ -626,19 +627,19 @@ static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
 	} else {
 		dst_pos = 0;
 		src_pos = cde_get_units(src_place) -
-			hint->units;
+			hint->units_number;
 	}
 
 	/* Preparing root for copying units into it. */
-	cde40_expand(dst_place, dst_pos,
-		     hint->units, hint->rest);
+	cde40_expand(dst_place, dst_pos, hint->units_number,
+		     hint->units_bytes);
 
 	/* Copying units from @src place to @dst one. */
 	cde40_copy(dst_place, dst_pos, src_place,
-		   src_pos, hint->units);
+		   src_pos, hint->units_number);
 
 	cde40_shrink(src_place, src_pos,
-		     hint->units, 0);
+		     hint->units_number, 0);
 
 	/* Updating item key by first cde key. */
 	if (cde_get_units(src_place) > 0 &&

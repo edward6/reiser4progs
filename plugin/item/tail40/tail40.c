@@ -213,17 +213,17 @@ static errno_t tail40_prep_shift(place_t *src_place,
 	aal_assert("umka-2279", hint != NULL);
 	aal_assert("umka-1664", src_place != NULL);
 
-	hint->units = 0;
+	hint->units_number = 0;
 	
 	/* Check if we have to check if insert point should be staying inside
 	   @src_place. Otherwise, we want to shift everything. */
 	if (!(src_place->pos.item == hint->pos.item &&
 	      hint->pos.unit != MAX_UINT32))
 	{
-		if (hint->rest > src_place->len)
-			hint->rest = src_place->len;
+		if (hint->units_bytes > src_place->len)
+			hint->units_bytes = src_place->len;
 	
-		hint->units = hint->rest;
+		hint->units_number = hint->units_bytes;
 		return 0;
 	}
 
@@ -233,10 +233,10 @@ static errno_t tail40_prep_shift(place_t *src_place,
 		if (hint->control & SF_UPDATE_POINT) {
 			/* Correcting @hint->rest. It should contain number of
 			   bytes we realy can shift. */
-			if (hint->rest > hint->pos.unit)
-				hint->rest = hint->pos.unit;
+			if (hint->units_bytes > hint->pos.unit)
+				hint->units_bytes = hint->pos.unit;
 
-			hint->pos.unit -= hint->rest;
+			hint->pos.unit -= hint->units_bytes;
 
 			/* Moving insert point to @dst_place. */
 			if (hint->pos.unit == 0 &&
@@ -244,7 +244,7 @@ static errno_t tail40_prep_shift(place_t *src_place,
 			{
 				hint->result |= SF_MOVE_POINT;
 
-				hint->pos.unit = hint->rest +
+				hint->pos.unit = hint->units_bytes +
 					(dst_place ? dst_place->len : 0);
 			}
 		}
@@ -259,10 +259,10 @@ static errno_t tail40_prep_shift(place_t *src_place,
 
 				/* Insert point inside item and we can move
 				   something. */
-				if (hint->rest > right)
-					hint->rest = right;
+				if (hint->units_bytes > right)
+					hint->units_bytes = right;
 
-				hint->pos.unit += hint->rest;
+				hint->pos.unit += hint->units_bytes;
 
 				/* Updating insert point to first position in
 				   neighbour item. */
@@ -280,12 +280,13 @@ static errno_t tail40_prep_shift(place_t *src_place,
 					hint->pos.unit = 0;
 				}
 
-				hint->rest = 0;
+				hint->units_bytes = 0;
 			}
 		}
 	}
 
-	hint->units = hint->rest;
+	hint->units_number = hint->units_bytes;
+	
 	return 0;
 }
 
@@ -354,21 +355,21 @@ static errno_t tail40_shift_units(place_t *src_place,
 
 	/* Check if this is left shift. */
 	if (hint->control & SF_ALLOW_LEFT) {
-		pos = dst_place->len - hint->units;
+		pos = dst_place->len - hint->units_number;
 		
-		/* Expanding tail item at @dst_place by @hint->units value. It
-		   is that, prep_shift() has prepared for us. */
-		tail40_expand(dst_place, pos, hint->units);
+		/* Expanding tail item at @dst_place by @hint->units_number
+		   value. It is that, prep_shift() has prepared for us. */
+		tail40_expand(dst_place, pos, hint->units_number);
 
-		/* Copy @hint->rest units from @src_place to @dst_place at
-		   @dst_place->len position. */
-		tail40_copy(dst_place, pos,
-			    src_place, 0, hint->rest);
+		/* Copy @hint->units_bytes units from @src_place to @dst_place
+		   at @dst_place->len position. */
+		tail40_copy(dst_place, pos, src_place, 0,
+			    hint->units_bytes);
 
 		/* Shrink @src_place at 0 position by @hint->rest bytes, that is
 		   by number of bytes we have just moved to @dst_place. */
-		tail40_shrink(src_place, 0, hint->units,
-			      hint->rest);
+		tail40_shrink(src_place, 0, hint->units_number,
+			      hint->units_bytes);
 
 		/* Updating @place->key in order to maintain consistency of left
 		   delimiting keys. */
@@ -377,16 +378,19 @@ static errno_t tail40_shift_units(place_t *src_place,
 
 		plug_call(src_place->key.plug->o.key_ops,
 			  set_offset, &src_place->key,
-			  offset + hint->rest);
+			  offset + hint->units_bytes);
 	} else {
 		/* Right shift. Expanding @dst_place at 0 pos. */
-		tail40_expand(dst_place, 0, hint->units);
+		tail40_expand(dst_place, 0, hint->units_number);
 
 		/* Copying data and removing it from source. */
-		pos = src_place->len - hint->units;
+		pos = src_place->len - hint->units_number;
 		
-		tail40_copy(dst_place, 0, src_place, pos, hint->rest);
-		tail40_shrink(src_place, pos, hint->units, hint->rest);
+		tail40_copy(dst_place, 0, src_place, pos,
+			    hint->units_bytes);
+		
+		tail40_shrink(src_place, pos, hint->units_number,
+			      hint->units_bytes);
 
 		/* Updating place key. */
 		offset = plug_call(dst_place->key.plug->o.key_ops,
@@ -394,7 +398,7 @@ static errno_t tail40_shift_units(place_t *src_place,
 		
 		plug_call(dst_place->key.plug->o.key_ops,
 			  set_offset, &dst_place->key,
-			  offset - hint->rest);
+			  offset - hint->units_bytes);
 	}
 	
 	return 0;
