@@ -9,12 +9,10 @@ reiser4progs/COPYING.
 
 * functions for adding/removing stat data extentions.
 
-* stat data key's odrering should be the same as in entry key, 
+* object key's odrering should be the same as in entry key, 
   that points to, for large key policy.
 
 * dumpfs utility.
-
-* debug reg40_truncate()
 
 * plugin inheritance for objects.
 

@@ -304,30 +304,33 @@ static errno_t extent40_estimate_insert(place_t *place, uint32_t pos,
 {
 	aal_assert("umka-1836", hint != NULL);
 
-	if (pos == MAX_UINT32)
+	if (pos == MAX_UINT32) {
+		/* Creating new item. We need one unit size room  */
 		hint->len = sizeof(extent40_t);
-	
-/*	else {
+	} else {
 		key_entity_t key;
 		key_entity_t maxkey;
 		
 		uint64_t ins_offset;
 		uint64_t max_offset;
 
+		/* Check if we will need to create addition unit. If so we need
+		   space for this new unit. */
 		extent40_get_key(place, pos, &key);
 		extent40_maxreal_key(place, &maxkey);
 
 		ins_offset = plug_call(key.plug->o.key_ops,
 				       get_offset, &key);
 
-		ins_offset += hint->offset;
-
 		max_offset = plug_call(maxkey.plug->o.key_ops,
 				       get_offset, &maxkey);
 
-		if (ins_offset + hint->count > max_offset)
+		if (ins_offset + hint->offset +
+		    hint->count > max_offset)
+		{
 			hint->len = sizeof(extent40_t);
-	} */
+		}
+	}
 
 	return 0;
 }
@@ -351,7 +354,7 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 	extent = extent40_body(place) + pos;
 	
 	/* Forming extent unit */
-	if (hint->len != 0) {
+	if (hint->len) {
 		et40_set_start(extent, 1);
 		et40_set_width(extent, 0);
 	}
