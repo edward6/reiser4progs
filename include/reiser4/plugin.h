@@ -368,7 +368,7 @@ typedef enum mkspace_flags mkspace_flags_t;
 struct shift_hint {
 	/* Flag which shows that we need create an item before we will move
 	   units into it. That is because node does not contain any items at all
-	   or border items are not mergeable. */
+	   or border items are not mergeable. Set and used by shift code. */
 	int create;
 
 	/* Item count and unit count which will be moved out */
@@ -378,7 +378,8 @@ struct shift_hint {
 	/* Bytes to be moved for items and units. Actually we might use just
 	   item field for providing needed functionality, but I guess, we will
 	   need to collect some statistics like how much items and units were
-	   moved durring making space for inserting particular item or unit. */
+	   moved durring making space for inserting particular item or unit. Set
+	   and used by shift code. */
 	uint32_t bytes;
 	uint32_t rest;
 
@@ -391,7 +392,7 @@ struct shift_hint {
 	uint32_t control;
 	uint32_t result;
 
-	/* Insert point. It will be modified durring shfiting */
+	/* Insert point. It will be modified durring shift. */
 	pos_t pos;
 };
 
