@@ -31,9 +31,9 @@ static void cat_init(void) {
 }
 
 int main(int argc, char *argv[]) {
-	char buff[4096];
 	reiser4_fs_t *fs;
 	aal_device_t *device;
+	unsigned char buff[4096];
 
 	reiser4_object_t *reg;
 
@@ -75,12 +75,17 @@ int main(int argc, char *argv[]) {
 	}
 	
 	while (1) {
+		int32_t read;
+		
 		aal_memset(buff, 0, sizeof(buff));
 
-		if (!reiser4_object_read(reg, buff, sizeof(buff) - 1))
+		read = reiser4_object_read(reg, buff, 
+					   sizeof(buff));
+		
+		if (read <= 0)
 			break;
-
-		write(1, buff, sizeof(buff));
+		
+		write(1, buff, read);
 	}
     
 	reiser4_object_close(reg);

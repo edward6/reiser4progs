@@ -5,14 +5,13 @@
   reiser4progs/COPYING.
 */
 
+#include <unistd.h>
 #include <stdio.h>
 #include "debugfs.h"
 
 /* If file is a regular one we show its contant here */
 static errno_t debugfs_object_cat(reiser4_object_t *object) {
 	errno_t res;
-	int32_t read;
-	char buff[4096];
 	
 	if ((res = reiser4_object_reset(object))) {
 		aal_exception_error("Can't reset object %s.",
@@ -22,10 +21,14 @@ static errno_t debugfs_object_cat(reiser4_object_t *object) {
 
 	/* The loop until object_read returns zero bytes read */
 	while (1) {
+		int32_t read;
+		unsigned char buff[4096];
+		
 		aal_memset(buff, 0, sizeof(buff));
-
-		if ((read = reiser4_object_read(object, buff,
-						sizeof(buff))) <= 0)
+		
+		read = reiser4_object_read(object, buff,
+				           sizeof(buff));
+		if (read <= 0)
 			break;
 
 		debugfs_print_buff(buff, read);
