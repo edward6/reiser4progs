@@ -19,7 +19,7 @@ struct dir40 {
 
 	/* Current body item coord */
 	place_t body;
-	
+
 	/* Current position in the directory (key and adjust). Adjust is needed
 	   to work fine when key collitions take place. */
 #ifndef ENABLE_STAND_ALONE

@@ -191,11 +191,11 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 
 	if (res == ABSENT) {
 
-		/* Directory is over */
+		/* Directory is over. */
 		if (!dir40_belong(dir, &dir->body))
 			return ABSENT;
 
-		/* Checking if directory is over */
+		/* Checking if directory is over. */
 		units = plug_call(dir->body.plug->o.item_ops->balance,
 				  units, &dir->body);
 			
@@ -475,8 +475,9 @@ static object_entity_t *dir40_open(object_info_t *info) {
 	if (!(dir->hash = obj40_plug(&dir->obj, HASH_PLUG_TYPE, "hash")))
                 goto error_free_dir;
 
-	/* Positioning to the first directory unit */
+	/* Positioning to the first directory unit. */
 	dir40_reset((object_entity_t *)dir);
+	
 	return (object_entity_t *)dir;
 
  error_free_dir:
@@ -521,6 +522,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 {
 	dir40_t *dir;
 	uint64_t mask;
+	rid_t body_pid;
 	entry_hint_t entry;
 	trans_hint_t body_hint;
 	reiser4_plug_t *body_plug;
@@ -545,11 +547,13 @@ static object_entity_t *dir40_create(object_info_t *info,
 	}
 
 	/* Initializing body plugin. */
+	body_pid = hint->body.dir.direntry;
+	
 	if (!(body_plug = dir40_core->factory_ops.ifind(ITEM_PLUG_TYPE, 
-						   hint->body.dir.direntry)))
+							body_pid)))
 	{
 		aal_exception_error("Can't find direntry item plugin by "
-				    "its id 0x%x.", hint->body.dir.direntry);
+				    "its id 0x%x.", body_pid);
 		goto error_free_dir;
 	}
     
@@ -803,7 +807,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 	aal_memset(&hint, 0, sizeof(hint));
 	
-	/* Getting place new entry will be inserted at */
+	/* Getting place new entry will be inserted at. */
 	switch (dir40_search(entity, entry->name,
 			     FIND_EXACT, &temp))
 	{

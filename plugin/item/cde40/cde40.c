@@ -485,16 +485,11 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 	aal_assert("umka-1592", hint != NULL);
 	aal_assert("umka-1591", src_place != NULL);
 
+	space = hint->rest;
 	pol = cde40_key_pol(src_place);
+
 	src_units = cde40_units(src_place);
 	dst_units = dst_place ? cde40_units(dst_place) : 0;
-
-	/* Substracting cde item overhead in the case of shift to new create cde
-	   item, whcih needs to have own cde40 header. */
-	if (!dst_place || dst_place->pos.unit == MAX_UINT32)
-		hint->rest -= sizeof(cde40_t);
-	
-	space = hint->rest;
 
 	/* If hint's create flag is present, we need to create new cde item, so
 	   we should count its overhead. */
@@ -507,7 +502,8 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 
 	flags = hint->control;
 	
-	curr = (hint->control & SF_ALLOW_LEFT ? 0 : src_units - 1);
+	curr = (hint->control & SF_ALLOW_LEFT ? 0 :
+		src_units - 1);
 
 	check = (src_place->pos.item == hint->pos.item &&
 		 hint->pos.unit != MAX_UINT32);
@@ -607,11 +603,14 @@ static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
 	aal_assert("umka-1586", src_place != NULL);
 	aal_assert("umka-1587", dst_place != NULL);
 
-	/* Substracting cde item overhead in the case of shift to new create cde
-	   item, whcih needs to have own cde40 header. */
-	if (dst_place->pos.unit == MAX_UINT32)
-		hint->rest -= sizeof(cde40_t);
-	
+	/* Initializing cde body if we shift data to new created item. This is
+	   needed for correct work of cde plugin. */
+	if (hint->create) {
+		((cde40_t *)dst_place->body)->units = 0;
+	}
+
+	/* Calculating src and dst positions for expanding dst item, copy data
+	   to it and shrinking src item. */
 	if (hint->control & SF_ALLOW_LEFT) {
 		src_pos = 0;
 		dst_pos = cde_get_units(dst_place);
@@ -621,18 +620,18 @@ static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
 			hint->units;
 	}
 
-	/* Preparing root for copying units into it */
+	/* Preparing root for copying units into it. */
 	cde40_expand(dst_place, dst_pos,
 		     hint->units, hint->rest);
 
-	/* Copying units from @src place to @dst one */
+	/* Copying units from @src place to @dst one. */
 	cde40_copy(dst_place, dst_pos, src_place,
 		   src_pos, hint->units);
 
 	cde40_shrink(src_place, src_pos,
 		     hint->units, 0);
 
-	/* Updating item key by first cde key */
+	/* Updating item key by first cde key. */
 	if (cde_get_units(src_place) > 0 &&
 	    hint->control & SF_ALLOW_LEFT)
 	{
@@ -653,10 +652,10 @@ static errno_t cde40_prep_insert(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-2424", place != NULL);
 	aal_assert("umka-2229", hint->count > 0);
 
+	pol = plug_call(hint->offset.plug->o.key_ops,
+			bodysize);
+	
 	entry = (entry_hint_t *)hint->specific;
-	
-	pol = plug_call(hint->offset.plug->o.key_ops, bodysize);
-	
 	hint->len = (hint->count * en_size(pol));
     
 	for (i = 0; i < hint->count; i++, entry++) {

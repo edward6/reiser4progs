@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
 		char name[256];
 		reiser4_object_t *object;
 	    
-		for (i = 0; i < 100; i++) {
+		for (i = 0; i < 10000; i++) {
 //			int j, count;
 			
 			aal_snprintf(name, 256, "file name%d", i);
