@@ -138,7 +138,9 @@ static lookup_t dir40_next(dir40_t *dir) {
 	if (core->tree_ops.next(dir->obj.tree, &dir->body, &next))
 		return LP_ABSENT;
 
-	if (!dir40_mergeable(&next.item, &dir->body.item))
+	item = &dir->body.item;
+	
+	if (!dir40_mergeable(&next.item, item))
 		return LP_ABSENT;
 	
 	obj40_unlock(&dir->obj, &dir->body);
@@ -146,8 +148,6 @@ static lookup_t dir40_next(dir40_t *dir) {
 
 	dir->body = next;
 	dir->body.pos.unit = 0;
-
-	item = &dir->body.item;
 
 	/* Updating current position by entry offset key */
 	if (plugin_call(item->plugin->item_ops, read, item,
