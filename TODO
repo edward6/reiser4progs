@@ -36,3 +36,4 @@ reiser4progs/COPYING.
 
 * online/offline resizer/repacker.
 * introduce some kind of reiser4_errnum for all libreiser4 operations.
+* implement credits showing durring mkfs.

@@ -264,7 +264,6 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 	item_entity_t *item;
 
 	aal_assert("umka-1118", name != NULL);
-	aal_assert("umka-1924", entry != NULL);
 	aal_assert("umka-1117", entity != NULL);
 
 	dir = (dir40_t *)entity;
@@ -287,8 +286,11 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 	if (dir->body.pos.unit == ~0ul)
 		dir->body.pos.unit = 0;
 		
+	if (!entry)
+		return PRESENT;
+
 	item = &dir->body.item;
-	
+
 	/* If needed entry is found, we fetch it into local buffer and get stat
 	   data key of the object it points to from it. This key will be used
 	   for searching next entry in passed path and so on. */
@@ -675,16 +677,18 @@ static errno_t dir40_attach(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 	par = parent ? (dir40_t *)parent : dir;
 
-	/* Adding ".." to child */
-	plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
-		    assign, &entry.object, STAT_KEY(&par->obj));
-
 	aal_strncpy(entry.name, "..", 2);
-	
-	if ((res = plugin_call(entity->plugin->o.object_ops,
-			       add_entry, entity, &entry)))
-	{
-		return res;
+
+	if (dir40_lookup(entity, entry.name, NULL) == ABSENT) {
+		/* Adding ".." to child */
+		plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
+			    assign, &entry.object, STAT_KEY(&par->obj));
+
+		if ((res = plugin_call(entity->plugin->o.object_ops,
+				       add_entry, entity, &entry)))
+		{
+			return res;
+		}
 	}
 
 	if (parent) {
