@@ -146,6 +146,13 @@ AC_PROG_LN_S
 AC_PROG_RANLIB
 
 AC_SYS_LARGEFILE
+
+if test -z "${ac_cv_sys_file_offset_bits}"; then
+	AC_MSG_WARN(
+Can't detect right _FILE_OFFSET_BITS. Will be forced to 64bit.)
+	ac_cv_sys_file_offset_bits=64
+fi
+
 CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=${ac_cv_sys_file_offset_bits}"
 AC_CHECK_SIZEOF(off_t, 64, [
 	#include <stdio.h>
