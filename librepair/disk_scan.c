@@ -162,7 +162,7 @@ errno_t repair_disk_scan_pass(repair_data_t *rd) {
 	if (node == NULL)
 	    goto next;
 
-	level = reiser4_node_level(node);
+	level = reiser4_node_get_level(node);
 
 	if (level != LEAF_LEVEL && level != TWIG_LEVEL) {
 	    aux_bitmap_mark(ds->bm_frmt, blk);

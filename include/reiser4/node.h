@@ -17,9 +17,20 @@
 extern reiser4_node_t *reiser4_node_open(aal_device_t *device,
 					 blk_t blk);
 
-extern uint8_t reiser4_node_level(reiser4_node_t *node);
+extern uint8_t reiser4_node_get_level(reiser4_node_t *node);
+extern uint32_t reiser4_node_get_mstamp(reiser4_node_t *node);
+extern uint64_t reiser4_node_get_fstamp(reiser4_node_t *node);
 
 #ifndef ENABLE_ALONE
+
+extern void reiser4_node_set_mstamp(reiser4_node_t *node,
+				    uint32_t stamp);
+
+extern void reiser4_node_set_fstamp(reiser4_node_t *node,
+				    uint64_t stamp);
+
+extern void reiser4_node_set_level(reiser4_node_t *node,
+				   uint8_t level);
 
 extern reiser4_node_t *reiser4_node_create(aal_device_t *device,
 					   blk_t blk, rpid_t pid,
@@ -111,16 +122,6 @@ extern uint32_t reiser4_node_items(reiser4_node_t *node);
 extern uint16_t reiser4_node_space(reiser4_node_t *node);
 extern uint16_t reiser4_node_overhead(reiser4_node_t *node);
 extern uint16_t reiser4_node_maxspace(reiser4_node_t *node);
-
-extern uint32_t reiser4_node_get_make_stamp(reiser4_node_t *node);
-
-extern void reiser4_node_set_make_stamp(reiser4_node_t *node,
-					uint32_t stamp);
-
-extern uint64_t reiser4_node_get_flush_stamp(reiser4_node_t *node);
-
-extern void reiser4_node_set_flush_stamp(reiser4_node_t *node,
-					 uint64_t stamp);
 
 #define reiser4_node_mkdirty(node) (node->flags |= NF_DIRTY)
 #define reiser4_node_mkclean(node) (node->flags &= ~NF_DIRTY)

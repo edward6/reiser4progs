@@ -112,7 +112,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 
     /* Stop at the same level to be able to split the found node and insert 
      * the passed node between its parts. */
-    level = reiser4_node_level(node);
+    level = reiser4_node_get_level(node);
 
     while (level >= reiser4_tree_height(tree))
 	reiser4_tree_grow(tree);

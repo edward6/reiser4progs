@@ -80,7 +80,7 @@ reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
     if ((node = reiser4_node_open(fs->device, blk)) == NULL)
 	return NULL;
 
-    if (reiser4_format_get_make_stamp(fs->format) != reiser4_node_get_make_stamp(node))
+    if (reiser4_format_get_stamp(fs->format) != reiser4_node_get_mstamp(node))
 	goto error_node_free;
 
     return node;

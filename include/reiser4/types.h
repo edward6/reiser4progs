@@ -344,6 +344,7 @@ struct reiser4_tree {
 
 	/* Tree related plugin ids */
 	struct {
+		rpid_t node;
 		rpid_t key;
 		rpid_t nodeptr;
 	} profile;

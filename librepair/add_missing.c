@@ -115,7 +115,7 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 		goto error;
 	    }
 
-	    level = reiser4_node_level(node); 
+	    level = reiser4_node_get_level(node); 
 
 	    /* This block must contain twig/leaf. */
 	    aal_assert("vpf-638", level == (i == 0 ? TWIG_LEVEL : LEAF_LEVEL));
@@ -159,7 +159,7 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 		goto error;
 	    }
 
-	    level = reiser4_node_level(node); 
+	    level = reiser4_node_get_level(node); 
 
 	    /* This block must contain twig/leaf. */
 	    aal_assert("vpf-709", level == (i == 0 ? TWIG_LEVEL : LEAF_LEVEL));

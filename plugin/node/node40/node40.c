@@ -15,6 +15,24 @@ static char *levels[6] = {
 	"LEAF", "LEAF", "TWIG",	"INTERNAL", "INTERNAL",	"INTERNAL"
 };
 
+/* Returns node level */
+uint8_t node40_get_level(object_entity_t *entity) {
+	aal_assert("umka-1116", entity != NULL);
+	return nh40_get_level((node40_t *)entity);
+}
+
+/* Returns node make stamp */
+static uint32_t node40_get_mstamp(object_entity_t *entity) {
+	aal_assert("umka-1127", entity != NULL);
+	return nh40_get_mkfs_id((node40_t *)entity);
+}
+
+/* Returns node flush stamp */
+static uint64_t node40_get_fstamp(object_entity_t *entity) {
+	aal_assert("vpf-645", entity != NULL);
+	return nh40_get_flush_id((node40_t *)entity);
+}
+
 /* Returns item header by pos */
 inline item40_header_t *node40_ih_at(node40_t *node, uint32_t pos) {
 	aal_block_t *block = node->block;
@@ -236,6 +254,33 @@ static uint16_t node40_item_len(object_entity_t *entity,
 		return nh40_get_free_space_start(node) - ih40_get_offset(ih);
 
 	return ih40_get_offset(ih - 1) - ih40_get_offset(ih);
+}
+
+/* 
+  This checks the level constrains like no internal and extent items at leaf
+  level or no statdata items at internal level.
+*/
+static errno_t node40_item_legal(object_entity_t *entity,
+				 reiser4_plugin_t *plugin)
+{
+	uint8_t level;
+	node40_t *node = (node40_t *)entity;
+
+	aal_assert("vpf-225", node != NULL);
+	aal_assert("vpf-237", plugin != NULL);
+    
+	level = node40_get_level(entity);
+    
+	if (plugin->h.group == NODEPTR_ITEM) {
+		if (level == LEAF_LEVEL)
+			return 1;
+	} else if (plugin->h.group == EXTENT_ITEM) {
+		if (level != TWIG_LEVEL)
+			return 1;
+	} else if (level != LEAF_LEVEL) 
+		return 1;
+    
+	return 0;
 }
 
 /*
@@ -830,36 +875,30 @@ static uint16_t node40_space(object_entity_t *entity) {
 	return nh40_get_free_space((node40_t *)entity);
 }
 
-/* Returns node level */
-uint8_t node40_level(object_entity_t *entity) {
-	aal_assert("umka-1116", entity != NULL);
-	return nh40_get_level((node40_t *)entity);
-}
+#ifndef ENABLE_ALONE
 
 /* Returns node make stamp */
-static uint32_t node40_get_make_stamp(object_entity_t *entity) {
-	aal_assert("umka-1127", entity != NULL);
-	return nh40_get_mkfs_id((node40_t *)entity);
-}
-
-/* Returns node make stamp */
-static void node40_set_make_stamp(object_entity_t *entity, uint32_t stamp) {
+static void node40_set_mstamp(object_entity_t *entity,
+			      uint32_t stamp)
+{
 	aal_assert("vpf-644", entity != NULL);
 	nh40_set_mkfs_id((node40_t *)entity, stamp);
 }
 
 /* Returns node flush stamp */
-static uint64_t node40_get_flush_stamp(object_entity_t *entity) {
-	aal_assert("vpf-645", entity != NULL);
-	return nh40_get_flush_id((node40_t *)entity);
-}
-/* Returns node flush stamp */
-static void node40_set_flush_stamp(object_entity_t *entity, uint64_t stamp) {
+static void node40_set_fstamp(object_entity_t *entity,
+			      uint64_t stamp)
+{
 	aal_assert("vpf-643", entity != NULL);
 	nh40_set_flush_id((node40_t *)entity, stamp);
 }
 
-#ifndef ENABLE_ALONE
+static void node40_set_level(object_entity_t *entity,
+			     uint8_t level)
+{
+	aal_assert("umka-1864", entity != NULL);
+	nh40_set_level((node40_t *)entity, level);
+}
 
 /* Updates key at @pos by specified @key */
 static errno_t node40_set_key(object_entity_t *entity, 
@@ -911,7 +950,7 @@ static errno_t node40_print(object_entity_t *entity,
 	aal_assert("vpf-023", entity != NULL);
 	aal_assert("umka-457", stream != NULL);
 
-	level = node40_level(entity);
+	level = node40_get_level(entity);
 	aal_assert("umka-1580", level > 0);
 
 	aal_stream_format(stream, "%s NODE (%llu) contains level=%u, "
@@ -944,34 +983,6 @@ static errno_t node40_print(object_entity_t *entity,
 		aal_stream_format(stream, "\n");
 	}
 
-	return 0;
-}
-
-/* 
-  This checks the level constrains like no internal and extent items at leaf
-  level or no statdata items at internal level. Returns 0 is legal, 1 - not,
-  -1 - error.
-*/
-errno_t node40_item_legal(object_entity_t *entity,
-			  reiser4_plugin_t *plugin)
-{
-	uint8_t level;
-	node40_t *node = (node40_t *)entity;
-
-	aal_assert("vpf-225", node != NULL);
-	aal_assert("vpf-237", plugin != NULL);
-    
-	level = node40_level(entity);
-    
-	if (plugin->h.group == NODEPTR_ITEM) {
-		if (level == LEAF_LEVEL)
-			return 1;
-	} else if (plugin->h.group == EXTENT_ITEM) {
-		if (level != TWIG_LEVEL)
-			return 1;
-	} else if (level != LEAF_LEVEL) 
-		return 1;
-    
 	return 0;
 }
 
@@ -1626,10 +1637,10 @@ static reiser4_plugin_t node40_plugin = {
 		.space		 = node40_space,
 	
 		.get_key	 = node40_get_key,
-		.level		 = node40_level,
+		.get_level	 = node40_get_level,
 		
-		.get_make_stamp	 = node40_get_make_stamp,
-		.get_flush_stamp = node40_get_flush_stamp,
+		.get_mstamp	 = node40_get_mstamp,
+		.get_fstamp      = node40_get_fstamp,
 	
 #ifndef ENABLE_ALONE
 		.create		 = node40_create,
@@ -1645,10 +1656,9 @@ static reiser4_plugin_t node40_plugin = {
 		.copy            = node40_copy,
 
 		.set_key	 = node40_set_key,
-		.set_make_stamp	 = node40_set_make_stamp,
-		.set_flush_stamp = node40_set_flush_stamp,
-	
-		.item_legal	 = node40_item_legal,
+		.set_level       = node40_set_level,
+		.set_mstamp	 = node40_set_mstamp,
+		.set_fstamp      = node40_set_fstamp,
 #else
 		.create		 = NULL,
 		.sync            = NULL,
@@ -1663,14 +1673,14 @@ static reiser4_plugin_t node40_plugin = {
 		.copy            = NULL,
 	
 		.set_key	 = NULL,
-		.set_make_stamp  = NULL,
-		.set_flush_stamp = NULL,
-	
-		.item_legal	 = NULL,
+		.set_level       = NULL,
+		.set_mstamp      = NULL,
+		.set_fstamp      = NULL,
 #endif
 		.item_len	 = node40_item_len,
 		.item_body	 = node40_item_body,
-		.item_pid	 = node40_item_pid
+		.item_pid	 = node40_item_pid,
+		.item_legal	 = node40_item_legal,
 	}
 };
 

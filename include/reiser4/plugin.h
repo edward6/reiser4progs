@@ -858,14 +858,15 @@ struct reiser4_node_ops {
 			    key_entity_t *);
 
 	/* Gets/sets node level */
-	uint8_t (*level) (object_entity_t *);
+	uint8_t (*get_level) (object_entity_t *);
+	void (*set_level) (object_entity_t *, uint8_t);
     
 	/* Gets/sets node make and flush stamps */
-	uint32_t (*get_make_stamp) (object_entity_t *);
-	void (*set_make_stamp) (object_entity_t *, uint32_t);
+	uint32_t (*get_mstamp) (object_entity_t *);
+	void (*set_mstamp) (object_entity_t *, uint32_t);
 	
-    	uint64_t (*get_flush_stamp) (object_entity_t *);
-	void (*set_flush_stamp) (object_entity_t *, uint64_t);
+    	uint64_t (*get_fstamp) (object_entity_t *);
+	void (*set_fstamp) (object_entity_t *, uint64_t);
 
 	/* Gets item at passed pos */
 	rbody_t *(*item_body) (object_entity_t *, rpos_t *);

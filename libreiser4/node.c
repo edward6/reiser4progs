@@ -571,16 +571,6 @@ errno_t reiser4_node_valid(
 			   valid, node->entity);
 }
 
-/* Returns node level */
-uint8_t reiser4_node_level(
-	reiser4_node_t *node)
-{
-	aal_assert("umka-1642", node != NULL);
-    
-	return plugin_call(node->entity->plugin->node_ops, 
-			   level, node->entity);
-}
-
 #ifndef ENABLE_ALONE
 
 /* Makes copy @count items from @src_node into @dst_node */
@@ -972,41 +962,57 @@ errno_t reiser4_node_traverse(
 	return result;
 }
 
-#endif
-
-uint32_t reiser4_node_get_make_stamp(reiser4_node_t *node) {
-	aal_assert("vpf-562", node != NULL);
-
-	
-	if (node->entity->plugin->node_ops.get_make_stamp)
-		return node->entity->plugin->node_ops.get_make_stamp(
-				node->entity);
-	
-	return 0;
-}
-
-void reiser4_node_set_make_stamp(reiser4_node_t *node, uint32_t stamp) {
+void reiser4_node_set_mstamp(reiser4_node_t *node, uint32_t stamp) {
 	aal_assert("vpf-646", node != NULL);
 
-	if (node->entity->plugin->node_ops.set_make_stamp)
-		node->entity->plugin->node_ops.set_make_stamp(node->entity, 
-							      stamp);
+	if (node->entity->plugin->node_ops.set_mstamp)
+		node->entity->plugin->node_ops.set_mstamp(node->entity, stamp);
 }
 
-uint64_t reiser4_node_get_flush_stamp(reiser4_node_t *node) {
+void reiser4_node_set_fstamp(reiser4_node_t *node, uint64_t stamp) {
+	aal_assert("vpf-648", node != NULL);
+
+	if (node->entity->plugin->node_ops.get_fstamp) {
+		node->entity->plugin->node_ops.set_fstamp(node->entity,
+							  stamp);
+	}
+}
+
+void reiser4_node_set_level(reiser4_node_t *node,
+			    uint8_t level)
+{
+	aal_assert("umka-1863", node != NULL);
+    
+	plugin_call(node->entity->plugin->node_ops, 
+		    set_level, node->entity, level);
+}
+
+#endif
+
+uint32_t reiser4_node_get_mstamp(reiser4_node_t *node) {
+	aal_assert("vpf-562", node != NULL);
+	
+	if (node->entity->plugin->node_ops.get_mstamp)
+		return node->entity->plugin->node_ops.get_mstamp(
+			node->entity);
+	
+	return 0;
+}
+
+uint64_t reiser4_node_get_fstamp(reiser4_node_t *node) {
 	aal_assert("vpf-647", node != NULL);
 
-	if (node->entity->plugin->node_ops.get_flush_stamp)
-		node->entity->plugin->node_ops.get_flush_stamp(node->entity);
+	if (node->entity->plugin->node_ops.get_fstamp)
+		node->entity->plugin->node_ops.get_fstamp(node->entity);
 
 	return 0;
 }
 
-void reiser4_node_set_flush_stamp(reiser4_node_t *node, uint64_t stamp) {
-	aal_assert("vpf-648", node != NULL);
-
-	if (node->entity->plugin->node_ops.get_flush_stamp) {
-		node->entity->plugin->node_ops.set_flush_stamp(
-			node->entity, stamp);
-	}
+/* Returns node level */
+uint8_t reiser4_node_get_level(reiser4_node_t *node) {
+	aal_assert("umka-1642", node != NULL);
+    
+	return plugin_call(node->entity->plugin->node_ops, 
+			   get_level, node->entity);
 }
+

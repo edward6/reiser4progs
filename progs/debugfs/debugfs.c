@@ -531,7 +531,7 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	frag_hint.gauge = gauge;
 	frag_hint.tree = fs->tree;
 	frag_hint.curr = root->blk;
-	frag_hint.level = reiser4_node_level(root);
+	frag_hint.level = reiser4_node_get_level(root);
 
 	aal_memset(&hint, 0, sizeof(hint));
 	
@@ -610,7 +610,7 @@ static errno_t stat_process_node(
 
 	tstat_hint_t *stat_hint = (tstat_hint_t *)data;
 
-	level = reiser4_node_level(node);
+	level = reiser4_node_get_level(node);
 
 	if (stat_hint->formatted % 128 == 0)
 		aal_gauge_update(stat_hint->gauge, 0);
@@ -942,7 +942,7 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs, uint32_t flags) {
 	frag_hint.tree = fs->tree;
 	frag_hint.gauge = gauge;
 	frag_hint.flags = flags;
-	frag_hint.level = reiser4_node_level(fs->tree->root);
+	frag_hint.level = reiser4_node_get_level(fs->tree->root);
 
 	aal_memset(&hint, 0, sizeof(hint));
 	

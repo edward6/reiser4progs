@@ -245,6 +245,7 @@ static object_entity_t *format40_create(aal_device_t *device,
 	aal_memcpy(super->sb_magic, FORMAT40_MAGIC, 
 		   aal_strlen(FORMAT40_MAGIC));
 
+	set_sb_root_block(super, INVAL_BLK);
 	set_sb_block_count(super, blocks);
 	set_sb_tree_height(super, 2);
 	set_sb_flushes(super, 0);

@@ -202,7 +202,7 @@ errno_t repair_twig_scan_pass(repair_data_t *rd) {
 	entity = node->entity;
 	
 	/* This block must contain twig. */
-	aal_assert("vpf-544", reiser4_node_level(node) == TWIG_LEVEL);
+	aal_assert("vpf-544", reiser4_node_get_level(node) == TWIG_LEVEL);
 
 	/* Lookup the node. */	
 	if ((res = repair_node_traverse(node, 1 << EXTENT_ITEM, 

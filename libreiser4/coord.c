@@ -78,7 +78,6 @@ errno_t reiser4_coord_init(
 	rpos_t *pos)	         /* coord pos component */
 {
 	aal_assert("umka-795", coord != NULL);
-	aal_assert("umka-1728", node != NULL);
     
 	coord->node = node;
 

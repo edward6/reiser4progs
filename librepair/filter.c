@@ -51,7 +51,7 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
 
     fd = repair_filter((repair_data_t *)data);
 
-    level = reiser4_node_level(node); 
+    level = reiser4_node_get_level(node); 
     
     /* Initialize the level for the root node before traverse. */
     if (!fd->level)
@@ -136,7 +136,7 @@ static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data)
 	aal_clear_bit(&repair_filter(rd)->flags, REPAIR_BAD_PTR);
     } else {
 	/* Mark all twigs in the bm_twig bitmap. */
-	if (reiser4_node_level(coord->node) == TWIG_LEVEL) 
+	if (reiser4_node_get_level(coord->node) == TWIG_LEVEL) 
 	    aux_bitmap_mark(repair_filter(rd)->bm_twig, 
 		coord->node->blk);
     }

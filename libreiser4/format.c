@@ -238,7 +238,7 @@ uint16_t reiser4_format_get_height(
 }
 
 /* Returns current mkfs id from teh format-specific super-block */
-uint32_t reiser4_format_get_make_stamp(
+uint32_t reiser4_format_get_stamp(
 	reiser4_format_t *format)	/* format to be inspected */
 {
 	aal_assert("umka-1124", format != NULL);
@@ -294,7 +294,7 @@ void reiser4_format_set_height(
 }
 
 /* Updates mkfsid in super block */
-void reiser4_format_set_make_stamp(
+void reiser4_format_set_stamp(
 	reiser4_format_t *format,	/* format to be used */
 	uint32_t stamp)		        /* new tree height */
 {
