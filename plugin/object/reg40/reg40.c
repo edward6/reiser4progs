@@ -321,6 +321,9 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 static reiser4_plugin_t *reg40_iplugin(reg40_t *reg,
 				       uint32_t size)
 {
+	if (reg->body.node)
+		return reg->body.item.plugin;
+			
 	return core->factory_ops.ifind(ITEM_PLUGIN_TYPE,
 				       ITEM_TAIL40_ID);
 }

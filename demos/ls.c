@@ -120,20 +120,20 @@ int main(int argc, char *argv[]) {
 			char name[256];
 			reiser4_object_t *object;
 	    
-			for (i = 0; i < 5000; i++) {
+			for (i = 0; i < 13000; i++) {
 				aal_snprintf(name, 256, "file%d", i);
 
 				if (!(object = reiser4_object_create(fs, dir, &reg_hint)))
 					goto error_free_dir;
 
 				reiser4_object_link(dir, object, name);
-				reiser4_object_seek(object, 40960);
+				reiser4_object_seek(object, 1);
 				reiser4_object_close(object);
 			}
 		}
 	}
     
-	if (reiser4_object_reset(dir)) {
+/*	if (reiser4_object_reset(dir)) {
 		aal_exception_error("Can't rewind dir %s.", argv[2]);
 		goto error_free_dir;
 	}
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
 			     " %s\n", entry.name);
 
 		printf(buff);
-	}
+	}*/
 
 	reiser4_object_close(dir);
 	reiser4_object_close(fs->root);
