@@ -258,7 +258,7 @@ typedef int (*mpc_func_t) (uint32_t);
 
 /* Tree structure. */
 struct reiser4_tree {
-	/* Flag that shows, that tree adjusting is running now and should be
+	/* Flag that shows, that tree adjusting is running now and should not be
 	   called again until this flag is turned off. */
 	int adjusting;
 	
