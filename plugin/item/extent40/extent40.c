@@ -1433,7 +1433,7 @@ static reiser4_plug_t extent40_plug = {
 	.id    = {ITEM_EXTENT40_ID, EXTENT_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "extent40",
-	.desc  = "Extent item for reiser4, ver. " VERSION,
+	.desc  = "Extent item for reiser4. ",
 #endif
 	.o = {
 		.item_ops = &extent40_ops

@@ -642,7 +642,7 @@ static reiser4_plug_t journal40_plug = {
 	.cl    = class_init,
 	.id    = {JOURNAL_REISER40_ID, 0, JOURNAL_PLUG_TYPE},
 	.label = "journal40",
-	.desc  = "Journal for reiser4, ver. " VERSION,
+	.desc  = "Journal for reiser4. ",
 	.o = {
 		.journal_ops = &journal40_ops
 	}

@@ -27,7 +27,7 @@ static reiser4_plug_t fnv1_hash_plug = {
 	.id    = {HASH_FNV1_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "fnv1_hash",
-	.desc  = "Fnv1 hash for reiser4, ver. " VERSION,
+	.desc  = "Fnv1 hash for reiser4. ",
 #endif
 	.o = {
 		.hash_ops = &fnv1_hash_ops

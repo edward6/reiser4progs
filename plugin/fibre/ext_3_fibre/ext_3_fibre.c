@@ -24,7 +24,7 @@ static reiser4_plug_t fibre_ext_3_plug = {
 	.id    = {FIBRE_EXT_3_ID, 0, FIBRE_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "ext_3_fibre",
-	.desc  = "Lexicographic fibration plugin for reiser4, ver. " VERSION,
+	.desc  = "Lexicographic fibration plugin for reiser4. ",
 #endif
 	.o = {
 		.fibre_ops = &fibre_ext_3_ops

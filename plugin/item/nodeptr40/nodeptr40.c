@@ -187,7 +187,7 @@ static reiser4_plug_t nodeptr40_plug = {
 	.id    = {ITEM_NODEPTR40_ID, PTR_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "nodeptr40",
-	.desc  = "Node pointer item for reiser4, ver. " VERSION,
+	.desc  = "Node pointer item for reiser4. ",
 #endif
 	.o = {
 		.item_ops = &nodeptr40_ops

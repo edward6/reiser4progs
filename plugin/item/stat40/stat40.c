@@ -576,7 +576,7 @@ static reiser4_plug_t stat40_plug = {
 	.id    = {ITEM_STAT40_ID, STAT_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "stat40",
-	.desc  = "Stat data item for reiser4, ver. " VERSION,
+	.desc  = "Stat data item for reiser4. ",
 #endif
 	.o = {
 		.item_ops = &stat40_ops

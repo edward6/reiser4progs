@@ -396,7 +396,7 @@ static reiser4_plug_t key_short_plug = {
 	.id    = {KEY_SHORT_ID, 0, KEY_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "key_short",
-	.desc  = "Short key for reiser4, ver. " VERSION,
+	.desc  = "Short key for reiser4. ",
 #endif
 	.o = {
 		.key_ops = &key_short_ops

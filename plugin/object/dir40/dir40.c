@@ -1034,7 +1034,7 @@ reiser4_plug_t dir40_plug = {
 	.id    = {OBJECT_DIR40_ID, DIR_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "dir40",
-	.desc  = "Compound directory for reiser4, ver. " VERSION,
+	.desc  = "Compound directory for reiser4. ",
 #endif
 	.o = {
 		.object_ops = &dir40_ops

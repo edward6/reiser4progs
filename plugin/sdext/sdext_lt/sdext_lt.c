@@ -75,7 +75,7 @@ static reiser4_plug_t sdext_lt_plug = {
 	.id    = {SDEXT_LT_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "sdext_lt",
-	.desc  = "Large times stat data extension for reiser4, ver. " VERSION,
+	.desc  = "Large times stat data extension for reiser4. ",
 #endif
 	.o = {
 		.sdext_ops = &sdext_lt_ops

@@ -562,7 +562,7 @@ static reiser4_plug_t tail40_plug = {
 	.id    = {ITEM_TAIL40_ID, TAIL_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "tail40",
-	.desc  = "Tail item for reiser4, ver. " VERSION,
+	.desc  = "Tail item for reiser4. ",
 #endif
 	.o = {
 		.item_ops = &tail40_ops

@@ -1694,7 +1694,7 @@ reiser4_plug_t node40_plug = {
 	.id    = {NODE_REISER40_ID, 0, NODE_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "node40",
-	.desc  = "Node plugin for reiser4, ver. " VERSION,
+	.desc  = "Node plugin for reiser4. ",
 #endif
 	.o = {
 		.node_ops = &node40_ops

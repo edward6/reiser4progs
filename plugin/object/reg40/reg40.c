@@ -729,7 +729,7 @@ reiser4_plug_t reg40_plug = {
 	.id    = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "reg40",
-	.desc  = "Regular file for reiser4, ver. " VERSION,
+	.desc  = "Regular file for reiser4. ",
 #endif
 	.o = {
 		.object_ops = &reg40_ops

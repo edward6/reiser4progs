@@ -21,7 +21,7 @@ static reiser4_plug_t smart_plug = {
 	.cl    = class_init,
 	.id    = {TAIL_SMART_ID, 0, POLICY_PLUG_TYPE},
 	.label = "smart",
-	.desc  = "Smart tail policy for reiser4, ver. " VERSION,
+	.desc  = "Smart tail policy for reiser4. ",
 	.o = {
 		.policy_ops = &smart_ops
 	}

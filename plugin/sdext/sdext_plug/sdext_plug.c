@@ -139,7 +139,7 @@ static reiser4_plug_t sdext_plug_plug = {
 	.id    = {SDEXT_PLUG_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "sdext_plug",
-	.desc  = "Plugin id stat data extension for reiser4, ver. " VERSION,
+	.desc  = "Plugin id stat data extension for reiser4. ",
 #endif
 	.o = {
 		.sdext_ops = &sdext_plug_ops
