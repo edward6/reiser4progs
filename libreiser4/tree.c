@@ -1145,7 +1145,7 @@ errno_t reiser4_tree_pack(reiser4_tree_t *tree,
 }
 
 /*
-  Cuts some amounts of items or units from the tree. Updates internal keys and
+  Cuts some amount of items or units from the tree. Updates internal keys and
   children list.
 */
 errno_t reiser4_tree_delete(
@@ -1153,7 +1153,7 @@ errno_t reiser4_tree_delete(
 	reiser4_coord_t *start,   /* coord of the start */
 	reiser4_coord_t *end)     /* coord of the end */
 {
-	reiser4_node_t *neighbour;
+	reiser4_node_t *neig;
 
 	aal_assert("umka-1018", tree != NULL, return -1);
 	aal_assert("umka-1725", start != NULL, return -1);
@@ -1165,40 +1165,43 @@ errno_t reiser4_tree_delete(
 	  node by node durring neighbour scan.
 	*/
 	if (reiser4_node_level(start->node) != reiser4_node_level(end->node)) {
-		aal_exception_error("Invalid node levels.");
+		aal_exception_error("Invalid start and end node levels.");
 		return -1;
 	}
 	
-	neighbour = reiser4_node_right(start->node);
+	neig = reiser4_node_right(start->node);
 	
-	while (neighbour && neighbour != end->node)
-		neighbour = reiser4_node_right(neighbour);
+	while (neig && neig != end->node)
+		neig = reiser4_node_right(neig);
 
-	if (neighbour != end->node) {
-		aal_exception_error("End node is not reachable from the start one.");
+	if (neig != end->node) {
+		aal_exception_error("End node is not reachable from the start corod.");
 		return -1;
 	}
 
 	if (start->node != end->node) {
 		reiser4_pos_t pos = { ~0ul, ~0ul };
-		
+
 		/* Removing start + 1 though end - 1 node from the tree */
-		neighbour = reiser4_node_right(start->node);
+		neig = neig->left;
+		
+		while (neig && neig != start->node) {
+			if (neig->parent) {
 
-		while (neighbour && neighbour != end->node) {
-			if (neighbour->parent) {
-				if (reiser4_node_pos(neighbour, &pos))
-					return -1;
+				/*
+				  As we removing from the right to left, node's
+				  pos will point correct position in parent node.
+				*/
 				
-				if (reiser4_node_remove(neighbour->parent, &pos))
+				if (reiser4_node_remove(neig->parent, &neig->pos))
 					return -1;
 
-				reiser4_node_mkclean(neighbour);
-				reiser4_tree_detach(tree, neighbour);
-				reiser4_tree_release(tree, neighbour);
+				reiser4_node_mkclean(neig);
+				reiser4_tree_detach(tree, neig);
+				reiser4_tree_release(tree, neig);
 			}
 						
-			neighbour = reiser4_node_right(start->node);
+			neig = neig->left;
 		}
 
 		/* Removing items/units from the start node */

@@ -790,9 +790,13 @@ struct reiser4_node_ops {
 	errno_t (*insert) (object_entity_t *, reiser4_pos_t *, 
 			   reiser4_item_hint_t *);
     
-	/* Removes item at specified pos */
+	/* Removes item/unit at specified pos */
 	errno_t (*remove) (object_entity_t *, reiser4_pos_t *);
     
+	/* Removes some amount of items/units */
+	errno_t (*delete) (object_entity_t *, reiser4_pos_t *,
+			   reiser4_pos_t *);
+	
 	/* Pastes units at specified pos */
 	errno_t (*paste) (object_entity_t *, reiser4_pos_t *, 
 			  reiser4_item_hint_t *);

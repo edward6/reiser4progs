@@ -1097,7 +1097,12 @@ errno_t reiser4_node_delete(
 	reiser4_pos_t *start,		    /* start item will be removed at */
 	reiser4_pos_t *end)		    /* end item will be removed at */
 {
-	return -1;
+	aal_assert("umka-1785", node != NULL, return -1);
+	aal_assert("umka-1786", start != NULL, return -1);
+	aal_assert("umka-1787", end != NULL, return -1);
+	
+	return plugin_call(node->entity->plugin->node_ops, delete,
+			   node->entity, start, end);
 }
 
 /* 

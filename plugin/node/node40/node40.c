@@ -543,6 +543,24 @@ static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
 	return 0;
 }
 
+/* Removes items/units starting from the @start and ending at the @end */
+errno_t node40_delete(object_entity_t *entity, reiser4_pos_t *start,
+		      reiser4_pos_t *end)
+{
+	aal_assert("umka-1788", entity != NULL, return -1);
+	aal_assert("umka-1789", start != NULL, return -1);
+	aal_assert("umka-1790", end != NULL, return -1);
+
+	/* Check if there some amount of whole items can be removed */
+	if (start->item != end->item) {
+		
+	} else {
+
+	}
+
+	return 0;
+}
+
 /* This function removes item from the node at specified @pos */
 errno_t node40_remove(object_entity_t *entity, 
 		      reiser4_pos_t *pos) 
@@ -1490,6 +1508,7 @@ static reiser4_plugin_t node40_plugin = {
 		.sync           = node40_sync,
 		.insert		= node40_insert,
 		.remove		= node40_remove,
+		.delete         = node40_delete,
 		.paste		= node40_paste,
 		.cut		= node40_cut,
 		.check		= node40_check,
@@ -1506,6 +1525,7 @@ static reiser4_plugin_t node40_plugin = {
 		.sync           = NULL,
 		.insert		= NULL,
 		.remove		= NULL,
+		.delete         = NULL,
 		.paste		= NULL,
 		.cut		= NULL,
 		.check		= NULL,
