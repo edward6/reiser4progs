@@ -324,12 +324,8 @@ free_tree:
 
 free_fs:
     fprintf(stderr, "Synchronizing fs ...");
-    if (repair_fs_sync(repair.fs)) {
-	aal_exception_fatal("Cannot synchronize the filesystem.");
-	exit_code = OPER_ERROR;
-    }
+    reiser4_fs_close(repair.fs);
     fprintf(stderr, "done\n");
-    repair_fs_close(repair.fs);
     
 free_libreiser4:
     libreiser4_fini();

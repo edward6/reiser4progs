@@ -57,7 +57,7 @@ static errno_t repair_filter_prepare(repair_control_t *control,
     }
 
     /* Mark all format area block in the bm_used bitmap. */
-    if (repair_fs_layout(control->repair->fs, callback_format_mark, 
+    if (reiser4_fs_layout(control->repair->fs, callback_format_mark, 
 	filter->bm_used)) 
     {
 	aal_exception_error("Failed to mark the filesystem area as used in "

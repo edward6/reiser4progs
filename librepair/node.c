@@ -134,35 +134,6 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	    res &= ~REPAIR_REMOVED;
 	    res |= REPAIR_FIXED;
 	}
-	
-#if 0
-	if (place.item.plugin->item_ops.layout_check) {
-	    uint32_t lenght = place.item.len;
-	    
-	    len = plugin_call(place.item.plugin->item_ops, 
-		layout_check, &place.item, callback_item_region_check, bm_used);
-
-	    if (len > 0) {
-		//aal_assert("vpf-790", len < lenght);
-		
-		/* shrink the node */
-		if (len) {
-		    pos->unit = 0;
-		    
-		    if (reiser4_node_shrink(node, pos, len, 1)) {
-			aal_exception_bug("Node (%llu), item (%llu), len (%u): "
-			    "Failed to shrink the node on (%u) bytes.", 
-			    node->blk, pos->item, place.item.len, len);
-			return -1;
-		    }
-		} else {
-		    
-		}
-	    } else
-		return len;
-	}
-#endif
-	
     }
 
     return res;

@@ -170,15 +170,17 @@ errno_t reiser4_fs_layout(
 	block_func_t func, 
 	void *data)
 {
-	if (reiser4_format_skipped(fs->format, func, data))
-		return -EINVAL;
+	errno_t res;
 	
-	if (reiser4_format_layout(fs->format, func, data))
-		return -EINVAL;
+	if ((res = reiser4_format_skipped(fs->format, func, data)))
+		return res;
+	
+	if ((res = reiser4_format_layout(fs->format, func, data)))
+		return res;
 
 	if (fs->journal) {
-		if (reiser4_journal_layout(fs->journal, func, data))
-			return -EINVAL;
+		if ((res = reiser4_journal_layout(fs->journal, func, data)))
+			return res;
 	}
     
 	return reiser4_alloc_layout(fs->alloc, func, data);

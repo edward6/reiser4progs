@@ -29,7 +29,7 @@ static errno_t repair_format_check(reiser4_fs_t *fs, uint8_t mode) {
     aal_assert("vpf-834", fs->master != NULL);
     
     tail = reiser4_profile_value(fs->profile, "tail");
-	
+    
     if (tail >= TAIL_LAST_ID) {
 	/* Tail id from the profile is wrong. */
 	aal_exception_error("Invalid tail policy (%u) is specified in the "
