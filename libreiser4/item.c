@@ -29,13 +29,11 @@ errno_t reiser4_item_estimate(
 	aal_assert("umka-541", hint != NULL);
 	aal_assert("umka-2230", hint->plug != NULL);
 
-	/* Getting item/unit to be inserted body length and overhead (header
-	   length). This is needed for correct space preparing by tree. */
 	hint->len = 0;
 	hint->ohd = 0;
 
-	return plug_call(hint->plug->o.item_ops, estimate_insert,
-			 (place_t *)place, place->pos.unit, hint);
+	return plug_call(hint->plug->o.item_ops,
+			 estimate_insert, (place_t *)place, hint);
 }
 
 /* Prints passed @place into passed @buff */
@@ -121,10 +119,10 @@ errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 }
 
 errno_t reiser4_item_ukey(reiser4_place_t *place, reiser4_key_t *key) {
-	aal_assert("vpf-1205", place != NULL);
 	aal_assert("vpf-1205", key != NULL);
+	aal_assert("vpf-1205", place != NULL);
 	
-	aal_memcpy(&place->key, key, sizeof(*key));
+	reiser4_key_assign(&place->key, key);
 	
 	return reiser4_node_ukey(place->node, &place->pos, &place->key);
 }
@@ -138,8 +136,7 @@ errno_t reiser4_item_key(reiser4_place_t *place, reiser4_key_t *key) {
 	if (!place->pos.unit || !place->plug->o.item_ops->get_key)
 		return 0;
 	
-	return plug_call(place->plug->o.item_ops, get_key, (place_t *)place,
-			 place->pos.unit, key);
+	return plug_call(place->plug->o.item_ops, get_key,
+			 (place_t *)place, key);
 }
-
 #endif

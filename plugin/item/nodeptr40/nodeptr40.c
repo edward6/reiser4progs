@@ -54,7 +54,7 @@ static errno_t nodeptr40_layout(place_t *place,
 }
 
 /* Estimates how many bytes is needed for creating new nodeptr */
-static errno_t nodeptr40_estimate_insert(place_t *place, uint32_t pos,
+static errno_t nodeptr40_estimate_insert(place_t *place,
 					 insert_hint_t *hint)
 {
 	aal_assert("vpf-068", hint != NULL);
@@ -64,7 +64,7 @@ static errno_t nodeptr40_estimate_insert(place_t *place, uint32_t pos,
 }
 
 /* Writes of the specified nodeptr into passed @place */
-static errno_t nodeptr40_insert(place_t *place, uint32_t pos,
+static errno_t nodeptr40_insert(place_t *place,
 				insert_hint_t *hint)
 {
 	nodeptr40_t *nodeptr;
@@ -118,10 +118,10 @@ static reiser4_item_ops_t nodeptr40_ops = {
 	.branch           = nodeptr40_branch,
 	
 #ifndef ENABLE_STAND_ALONE	    
-	.insert           = nodeptr40_insert,
 	.print		  = nodeptr40_print,
-	.check_struct	  = nodeptr40_check_struct,
 	.layout           = nodeptr40_layout,
+	.insert           = nodeptr40_insert,
+	.check_struct	  = nodeptr40_check_struct,
 	.check_layout	  = nodeptr40_check_layout,
 	.estimate_insert  = nodeptr40_estimate_insert,
 
@@ -130,9 +130,6 @@ static reiser4_item_ops_t nodeptr40_ops = {
 
 	.init		  = NULL,
 	.merge            = NULL,
-	.rep		  = NULL,
-	.expand		  = NULL,
-	.shrink           = NULL,
 	.remove		  = NULL,
 	.shift            = NULL,
 	.size		  = NULL,

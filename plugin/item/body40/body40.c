@@ -19,7 +19,11 @@ errno_t body40_get_key(place_t *place, uint32_t pos,
 	offset = plug_call(key->plug->o.key_ops,
 			   get_offset, key);
 
-	offset += (trans_func ? trans_func(place, pos) : pos);
+	if (trans_func) {
+		offset += trans_func(place, pos);
+	} else {
+		offset += pos;
+	}
 
 	plug_call(key->plug->o.key_ops, set_offset,
 		  key, offset);

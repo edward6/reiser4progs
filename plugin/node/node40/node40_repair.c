@@ -27,9 +27,9 @@ extern errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 extern errno_t node40_shrink(node_entity_t *entity, pos_t *pos, 
 			     uint32_t len, uint32_t count);
 
-extern errno_t node40_rep(node_entity_t *dst_entity, pos_t *dst_pos,
-			  node_entity_t *src_entity, pos_t *src_pos, 
-			  uint32_t count);
+extern errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
+			   node_entity_t *src_entity, pos_t *src_pos, 
+			   uint32_t count);
 
 static void node40_set_offset_at(node40_t *node, int pos,
 				 uint16_t offset)
@@ -445,7 +445,7 @@ errno_t node40_merge(node_entity_t *dst, pos_t *dst_pos,
 		if (node40_expand(dst, dst_pos, src_place.len, 1))
 			return -EINVAL;
 
-		return node40_rep(dst, dst_pos, src, src_pos, 1);
+		return node40_copy(dst, dst_pos, src, src_pos, 1);
 	}
 	
 	if (hint->len_delta > 0) {
@@ -461,8 +461,8 @@ errno_t node40_merge(node_entity_t *dst, pos_t *dst_pos,
 	if (node40_fetch(dst, dst_pos, &dst_place))
 		return -EINVAL;
 	
-	if ((res = plug_call(src_place.plug->o.item_ops, merge, &dst_place, 
-			     dst_pos->unit, &src_place, src_pos->unit, hint)))
+	if ((res = plug_call(src_place.plug->o.item_ops, merge,
+			     &dst_place, &src_place, hint)))
 	{
 		aal_exception_error("Can't merge units from node %llu to node %llu.",
 				    src_node->block->nr, dst_node->block->nr);

@@ -279,9 +279,9 @@ int main(int argc, char *argv[]) {
 		if (aal_strncmp(sysinfo.release, "2.5", 3) &&
 		    aal_strncmp(sysinfo.release, "2.6", 3))
 		{
-			aal_exception_warn("%s %s is detected. Reiser4 is not "
-					   "supported for such a platform. Use "
-					   "-f to force over.", sysinfo.sysname,
+			aal_exception_warn("%s %s is detected. Reiser4 does not "
+					   "support such a platform. Use -f to "
+					   "force over.", sysinfo.sysname,
 					   sysinfo.release);
 			goto error_free_libreiser4;
 		}

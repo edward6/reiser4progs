@@ -67,26 +67,26 @@ struct entry_flags {
 
 extern reiser4_core_t *cde_core;
     
-extern errno_t cde40_remove(place_t *place, uint32_t pos, 
+extern errno_t cde40_delete(place_t *place, uint32_t pos,
 			    remove_hint_t *hint);
 
-extern errno_t cde40_get_key(place_t *place, uint32_t pos, 
-			     key_entity_t *key);
+extern errno_t cde40_get_hash(place_t *place, uint32_t pos, 
+			      key_entity_t *key);
 
 extern lookup_res_t cde40_lookup(place_t *place, key_entity_t *key,
 				 uint32_t *pos);
 
-extern uint32_t cde40_size_units(place_t *place, uint32_t pos, 
-				 uint32_t count);
+extern uint32_t cde40_regsize(place_t *place, uint32_t pos, 
+			      uint32_t count);
 
 extern uint32_t cde40_units(place_t *place);
 
 extern errno_t cde40_maxposs_key(place_t *place,
 				 key_entity_t *key);
 
-extern errno_t cde40_rep(place_t *dst_place, uint32_t dst_pos,
-			 place_t *src_place, uint32_t src_pos,
-			 uint32_t count);
+extern errno_t cde40_copy(place_t *dst_place, uint32_t dst_pos,
+			  place_t *src_place, uint32_t src_pos,
+			  uint32_t count);
 
 extern int32_t cde40_expand(place_t *place, uint32_t pos,
 			    uint32_t count, uint32_t len);
@@ -525,8 +525,8 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 		
 		if (mode == RM_BUILD) {
 			hint.count = e_count - flags->count;
-			
-			if ((res |= cde40_remove(place, flags->count, 
+
+			if ((res |= cde40_delete(place, flags->count, 
 						 &hint)) < 0) 
 				return res;
 			
@@ -546,7 +546,7 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 		if (mode == RM_BUILD) {
 			hint.count = i;
 			
-			if ((res |= cde40_remove(place, 0, &hint)) < 0)
+			if ((res |= cde40_delete(place, 0, &hint)) < 0)
 						return res;
 			
 			place_mkdirty(place);
@@ -588,7 +588,7 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 			
 			hint.count = i - last;
 
-			if ((res |= cde40_remove(place, last, &hint)) < 0)
+			if ((res |= cde40_delete(place, last, &hint)) < 0)
 				return res;
 
 			aal_memmove(flags->elem + last, flags->elem + i,
@@ -650,7 +650,7 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 		key_entity_t key;
 		remove_hint_t hint;
 		
-		cde40_get_key(place, i - 1, &key);
+		cde40_get_hash(place, i - 1, &key);
 
 		if (OFFSET(place, i - 1, pol) + ob_size(pol) == 
 		    OFFSET(place, i, pol))
@@ -676,7 +676,7 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 			/* Remove the entry. */
 			hint.count = 1;
 
-			if ((res |= cde40_remove(place, i - 1, &hint)) < 0)
+			if ((res |= cde40_delete(place, i - 1, &hint)) < 0)
 				return res;
 
 			i--;
@@ -705,7 +705,7 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 			/* Remove the entry. */
 			hint.count = 1;
 
-			if ((res |= cde40_remove(place, i - 1, &hint)) < 0)
+			if ((res |= cde40_delete(place, i - 1, &hint)) < 0)
 				return res;
 
 			i--;
@@ -746,11 +746,11 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 	return res;
 }
 
-errno_t cde40_estimate_merge(place_t *dst, uint32_t dst_pos,
-			     place_t *src, uint32_t src_pos, 
+errno_t cde40_estimate_merge(place_t *dst, place_t *src, 
 			     merge_hint_t *hint)
 {
 	uint32_t units, next_pos, pos;
+	uint32_t dst_pos, src_pos;
 	key_entity_t dst_key;
 	lookup_res_t lookup;
 	
@@ -758,13 +758,14 @@ errno_t cde40_estimate_merge(place_t *dst, uint32_t dst_pos,
 	aal_assert("vpf-958", src  != NULL);
 	aal_assert("vpf-959", hint != NULL);
 	
+	dst_pos = dst->pos.unit;
+	src_pos = src->pos.unit;
 	units = cde40_units(src);
 	
-	lookup = cde40_lookup(src, &hint->end, &pos);
-	if (lookup == FAILED)
+	if ((lookup = cde40_lookup(src, &hint->end, &pos)) == FAILED)
 		return -EINVAL;
 	
-	cde40_get_key(dst, dst_pos, &dst_key);
+	cde40_get_hash(dst, dst_pos, &dst_key);
 	cde40_lookup(src, &dst_key, &next_pos);
 	
 	if (pos < next_pos)
@@ -777,10 +778,10 @@ errno_t cde40_estimate_merge(place_t *dst, uint32_t dst_pos,
 	hint->src_count = next_pos - src_pos;
 	hint->dst_count = 0;
 	hint->len_delta = (en_size(cde40_key_pol(dst)) * hint->src_count) +
-		cde40_size_units(src, src_pos, hint->src_count);
+		cde40_regsize(src, src_pos, hint->src_count);
 	
 	while (next_pos < units) {
-		cde40_get_key(src, next_pos, &hint->end);
+		cde40_get_hash(src, next_pos, &hint->end);
 		lookup = cde40_lookup(dst, &hint->end, &pos);
 		
 		if (lookup == FAILED)
@@ -797,8 +798,7 @@ errno_t cde40_estimate_merge(place_t *dst, uint32_t dst_pos,
 	return 0;
 }
 
-errno_t cde40_merge(place_t *dst, uint32_t dst_pos, 
-		    place_t *src, uint32_t src_pos, 
+errno_t cde40_merge(place_t *dst, place_t *src, 
 		    merge_hint_t *hint)
 {
 	aal_assert("vpf-1014", dst != NULL);
@@ -807,7 +807,10 @@ errno_t cde40_merge(place_t *dst, uint32_t dst_pos,
 	aal_assert("vpf-1011", hint->dst_count == 0);
 	
 	/* Preparing root for merging units into it */
-	cde40_expand(dst, dst_pos, hint->src_count, hint->len_delta);
-	return cde40_rep(dst, dst_pos, src, src_pos, hint->src_count);
+	cde40_expand(dst, dst->pos.unit, hint->src_count,
+		     hint->len_delta);
+	
+	return cde40_copy(dst, dst->pos.unit, src, src->pos.unit,
+			  hint->src_count);
 }
 #endif

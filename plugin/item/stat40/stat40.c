@@ -154,7 +154,7 @@ static errno_t stat40_init(place_t *place) {
 
 /* Estimates how many bytes will be needed for creating statdata item described
    by passed @hint at passed @pos. */
-static errno_t stat40_estimate_insert(place_t *place, uint32_t pos,
+static errno_t stat40_estimate_insert(place_t *place,
 				      insert_hint_t *hint)
 {
 	uint16_t i;
@@ -164,7 +164,7 @@ static errno_t stat40_estimate_insert(place_t *place, uint32_t pos,
 
 	hint->len = 0;
 	
-	if (pos == MAX_UINT32)
+	if (place->pos.unit == MAX_UINT32)
 		hint->len = sizeof(stat40_t);
 	
 	stat_hint = (statdata_hint_t *)hint->specific;
@@ -206,7 +206,7 @@ static errno_t stat40_estimate_insert(place_t *place, uint32_t pos,
 }
 
 /* This method writes the stat data extentions */
-static errno_t stat40_insert(place_t *place, uint32_t pos,
+static errno_t stat40_insert(place_t *place,
 			     insert_hint_t *hint)
 {
 	uint16_t i;
@@ -274,12 +274,10 @@ static errno_t stat40_insert(place_t *place, uint32_t pos,
 extern errno_t stat40_check_struct(place_t *place,
 				   uint8_t mode);
 
-extern errno_t stat40_merge(place_t *dst, uint32_t dst_pos, 
-			    place_t *src, uint32_t src_pos, 
+extern errno_t stat40_merge(place_t *dst, place_t *src, 
 			    merge_hint_t *hint);
 
-extern errno_t stat40_estimate_merge(place_t *dst, uint32_t dst_pos, 
-				     place_t *src, uint32_t src_pos, 
+extern errno_t stat40_estimate_merge(place_t *dst, place_t *src, 
 				     merge_hint_t *hint);
 
 /* Helper structrure for keeping track of stat data extention body */
@@ -470,10 +468,7 @@ static reiser4_item_ops_t stat40_ops = {
 
 	.estimate_shift   = NULL,
 	.overhead         = NULL,
-	.expand	          = NULL,
-	.shrink           = NULL,
 	.layout           = NULL,
-	.rep              = NULL,
 	.remove		  = NULL,
 	.shift            = NULL,
 	.set_key	  = NULL,

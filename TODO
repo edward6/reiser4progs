@@ -5,9 +5,7 @@ reiser4progs/COPYING.
 
 * cleanup item read/write/insert interface.
 
-* rid of redundant uint32_t pos in item plugin methods
-
-* fix unaligned access on ia64.
+* fix unaligned access on Itanium2.
 
 * tail conversion in reg40 plugin.
 

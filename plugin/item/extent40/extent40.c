@@ -24,9 +24,7 @@ uint32_t extent40_units(place_t *place) {
 }
 
 /* Calculates extent size */
-uint64_t extent40_offset(place_t *place,
-			 uint32_t pos)
-{
+uint64_t extent40_offset(place_t *place, uint32_t pos) {
 	extent40_t *extent;
 	uint32_t i, blocks = 0;
     
@@ -42,9 +40,7 @@ uint64_t extent40_offset(place_t *place,
 
 #ifndef ENABLE_STAND_ALONE
 /* Gets the number of unit specified offset lies in */
-uint32_t extent40_unit(place_t *place,
-		       uint64_t offset)
-{
+uint32_t extent40_unit(place_t *place, uint64_t offset) {
 	uint32_t i;
         uint32_t width = 0;
         extent40_t *extent;
@@ -68,27 +64,27 @@ uint32_t extent40_unit(place_t *place,
 
 /* Builds the key of the unit at @pos and stores it inside passed @key
    variable. It is needed for updating item key after shifting, etc. */
-static errno_t extent40_get_key(place_t *place, uint32_t pos, 
-				key_entity_t *key)
-{
-	aal_assert("vpf-622", place != NULL);
+static errno_t extent40_get_key(place_t *place, key_entity_t *key) {
 	aal_assert("vpf-623", key != NULL);
+	aal_assert("vpf-622", place != NULL);
 
-	return body40_get_key(place, pos, key,
-			      extent40_offset);
+	return body40_get_key(place, place->pos.unit,
+			      key, extent40_offset);
 }
 
 #ifndef ENABLE_STAND_ALONE
 /* Removes @count byte from passed @place at @pos */
-static errno_t extent40_remove(place_t *place, uint32_t pos,
+static errno_t extent40_remove(place_t *place,
 			       remove_hint_t *hint)
 {
 	uint32_t len;
+	uint32_t pos;
 	void *src, *dst;
+
+	pos = place->pos.unit;
 	
 	aal_assert("vpf-941", place != NULL);
 	aal_assert("umka-2402", hint != NULL);
-	aal_assert("vpf-940", pos < extent40_units(place));
 
 	if (pos + hint->count < extent40_units(place)) {
 		dst = extent40_body(place) + pos;
@@ -104,7 +100,7 @@ static errno_t extent40_remove(place_t *place, uint32_t pos,
 		
 	/* Updating item's key by zero's unit one */
 	if (pos == 0) {
-		if (extent40_get_key(place, 0, &place->key))
+		if (extent40_get_key(place, &place->key))
 			return -EINVAL;
 	}
 
@@ -116,7 +112,8 @@ static errno_t extent40_remove(place_t *place, uint32_t pos,
 }
 
 /* Prints extent item into specified @stream */
-static errno_t extent40_print(place_t *place, aal_stream_t *stream,
+static errno_t extent40_print(place_t *place,
+			      aal_stream_t *stream,
 			      uint16_t options) 
 {
 	uint32_t i, count;
@@ -168,7 +165,7 @@ errno_t extent40_maxposs_key(place_t *place,
 /* Performs lookup for specified @key inside the passed @place. Result of lookup
    will be stored in @pos. */
 lookup_res_t extent40_lookup(place_t *place, key_entity_t *key,
-			     lookup_mod_t mode, uint32_t *pos)
+			     lookup_mod_t mode)
 {
 	uint64_t offset;
 	uint64_t wanted;
@@ -177,7 +174,6 @@ lookup_res_t extent40_lookup(place_t *place, key_entity_t *key,
 
 	aal_assert("umka-1500", place != NULL);
 	aal_assert("umka-1501", key  != NULL);
-	aal_assert("umka-1502", pos != NULL);
 	
 	units = extent40_units(place);
 	extent = extent40_body(place);
@@ -193,12 +189,12 @@ lookup_res_t extent40_lookup(place_t *place, key_entity_t *key,
 			extent40_blksize(place);
 
 		if (offset > wanted) {
-			*pos = i;
+			place->pos.unit = i;
 			return PRESENT;
 		}
 	}
 
-	*pos = units - 1;
+	place->pos.unit = units - 1;
 	return PRESENT;
 }
 
@@ -297,12 +293,13 @@ static int extent40_mergeable(place_t *place1, place_t *place2) {
 	return body40_mergeable(place1, place2);
 }
 
-static errno_t extent40_estimate_insert(place_t *place, uint32_t pos,
+static errno_t extent40_estimate_insert(place_t *place,
 					insert_hint_t *hint)
 {
 	aal_assert("umka-1836", hint != NULL);
+	aal_assert("umka-2425", place != NULL);
 
-	if (pos == MAX_UINT32) {
+	if (place->pos.unit == MAX_UINT32) {
 		hint->maxoff = 0;
 		hint->len = sizeof(extent40_t);
 	} else {
@@ -310,7 +307,7 @@ static errno_t extent40_estimate_insert(place_t *place, uint32_t pos,
 		key_entity_t key;
 		key_entity_t maxkey;
 
-		extent40_get_key(place, pos, &key);
+		extent40_get_key(place, &key);
 		extent40_maxreal_key(place, &maxkey);
 
 		hint->maxoff = plug_call(maxkey.plug->o.key_ops,
@@ -322,6 +319,8 @@ static errno_t extent40_estimate_insert(place_t *place, uint32_t pos,
 		/* Check if insert offset plus data length will not fit to max
 		   real offset. */
 		if (offset + hint->offset + hint->count > hint->maxoff) {
+			uint32_t pos = place->pos.unit;
+			
 			/* Check if we insert inside allocated extent. If so, we
 			   need addition unit. */
 			if (et40_get_start(extent40_body(place) + pos) != 1)
@@ -332,7 +331,7 @@ static errno_t extent40_estimate_insert(place_t *place, uint32_t pos,
 	return 0;
 }
 
-static errno_t extent40_insert(place_t *place, uint32_t pos,
+static errno_t extent40_insert(place_t *place,
 			       insert_hint_t *hint)
 {
 	uint32_t blksize;
@@ -348,15 +347,20 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 	aal_assert("umka-2357", hint != NULL);
 	aal_assert("umka-2356", place != NULL);
 
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = 0;
+
+	extent = extent40_body(place) +
+		place->pos.unit;
+
 	blksize = extent40_blksize(place);
-	extent = extent40_body(place) + pos;
 	
 	if (hint->len) {
 		et40_set_start(extent, 1);
 		et40_set_width(extent, 0);
 	}
 	
-	extent40_get_key(place, pos, &key);
+	extent40_get_key(place, &key);
 
 	uni_offset = plug_call(key.plug->o.key_ops,
 			       get_offset, &key);
@@ -539,16 +543,16 @@ static uint32_t extent40_expand(place_t *place, uint32_t pos,
 {
 	/* Preparing space in @dst_place */
 	if (pos < extent40_units(place)) {
-		uint32_t len;
+		uint32_t size;
 		void *src, *dst;
 
 		src = (extent40_t *)place->body + pos;
 		dst = src + (count * sizeof(extent40_t));
 
-		len = (extent40_units(place) - pos) *
+		size = (extent40_units(place) - pos) *
 			sizeof(extent40_t);
 
-		aal_memmove(dst, src, len);
+		aal_memmove(dst, src, size);
 		place_mkdirty(place);
 	}
 
@@ -560,16 +564,16 @@ static uint32_t extent40_shrink(place_t *place, uint32_t pos,
 {
 	/* Srinking @dst_place */
 	if (pos < extent40_units(place)) {
-		uint32_t len;
+		uint32_t size;
 		void *src, *dst;
 
 		dst = (extent40_t *)place->body + pos;
 		src = dst + (count * sizeof(extent40_t));
 
-		len = (extent40_units(place) - pos) *
+		size = (extent40_units(place) - pos) *
 			sizeof(extent40_t);
 
-		aal_memmove(dst, src, len);
+		aal_memmove(dst, src, size);
 		place_mkdirty(place);
 	}
 
@@ -577,18 +581,20 @@ static uint32_t extent40_shrink(place_t *place, uint32_t pos,
 }
 
 /* Makes copy of units from @src_place to @dst_place */
-static errno_t extent40_rep(place_t *dst_place, uint32_t dst_pos,
-			    place_t *src_place, uint32_t src_pos,
-			    uint32_t count)
+static errno_t extent40_copy(place_t *dst_place, uint32_t dst_pos,
+			     place_t *src_place, uint32_t src_pos,
+			     uint32_t count)
 {
 	/* Copying units from @src_place to @dst_place */
 	if (count > 0) {
+		uint32_t size;
 		void *src, *dst;
 
+		size = count * sizeof(extent40_t);
 		src = (extent40_t *)src_place->body + src_pos;
 		dst = (extent40_t *)dst_place->body + dst_pos;
-		aal_memmove(dst, src, count * sizeof(extent40_t));
 		
+		aal_memmove(dst, src, size);
 		place_mkdirty(dst_place);
 	}
 	
@@ -609,14 +615,15 @@ static errno_t extent40_shift(place_t *src_place, place_t *dst_place,
 				hint->units, 0);
 
 		/* Copying data from the @src_place to @dst_place */
-		extent40_rep(dst_place, extent40_units(dst_place),
-			     src_place, 0, hint->units);
+		extent40_copy(dst_place, extent40_units(dst_place),
+			      src_place, 0, hint->units);
 
 		/* Removing units in @src_place */
 		extent40_shrink(src_place, 0, hint->units, 0);
 
 		/* Updating item's key by the first unit key */
-		extent40_get_key(src_place, hint->units, &src_place->key);
+		body40_get_key(src_place, hint->units,
+			       &src_place->key, extent40_offset);
 	} else {
 		uint32_t pos;
 		uint64_t offset;
@@ -627,14 +634,15 @@ static errno_t extent40_shift(place_t *src_place, place_t *dst_place,
 		/* Copying data from the @src_place to @dst_place */
 		pos = extent40_units(src_place) - hint->units;
 		
-		extent40_rep(dst_place, 0, src_place, pos,
-			     hint->units);
+		extent40_copy(dst_place, 0, src_place, pos,
+			      hint->units);
 
 		/* Removing units in @src_place */
 		extent40_shrink(src_place, pos, hint->units, 0);
 
 		/* Updating item's key by the first unit key */
-		extent40_get_key(dst_place, 0, &dst_place->key);
+		body40_get_key(dst_place, 0, &dst_place->key,
+			       extent40_offset);
 
 		offset = plug_call(dst_place->key.plug->o.key_ops,
 				   get_offset, &dst_place->key);
@@ -654,14 +662,16 @@ static uint64_t extent40_size(place_t *place) {
 
 static uint64_t extent40_bytes(place_t *place) {
 	extent40_t *extent;
-	uint32_t i, blocks = 0;
+	uint32_t i, blocks;
     
 	aal_assert("umka-2204", place != NULL);
 	
 	extent = extent40_body(place);
 	
 	/* Count only valuable units. */
-	for (i = 0; i < extent40_units(place); i++, extent++) {
+	for (blocks = 0, i = 0; i < extent40_units(place);
+	     i++, extent++)
+	{
 		if (et40_get_start(extent))
 			blocks += et40_get_width(extent);
 	}
@@ -673,13 +683,11 @@ static uint64_t extent40_bytes(place_t *place) {
 extern errno_t extent40_check_struct(place_t *place,
 				     uint8_t mode);
 
-extern errno_t extent40_estimate_merge(place_t *dst, uint32_t dst_pos,
-				       place_t *src, uint32_t src_pos,
-				       merge_hint_t *hint);
-
-extern errno_t extent40_merge(place_t *dst, uint32_t dst_pos, 
-			      place_t *src, uint32_t src_pos, 
+extern errno_t extent40_merge(place_t *dst, place_t *src, 
 			      merge_hint_t *hint);
+
+extern errno_t extent40_estimate_merge(place_t *dst, place_t *src,
+				       merge_hint_t *hint);
 
 extern errno_t extent40_check_layout(place_t *place,
 				     region_func_t region_func, 
@@ -689,9 +697,6 @@ extern errno_t extent40_check_layout(place_t *place,
 static reiser4_item_ops_t extent40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.merge		  = extent40_merge,
-	.rep              = extent40_rep,
-	.expand           = extent40_expand,
-	.shrink           = extent40_shrink,
 	.remove	          = extent40_remove,
 	.insert           = extent40_insert,
 	.print	          = extent40_print,

@@ -276,6 +276,7 @@ errno_t node40_fetch(node_entity_t *entity,
 	}
 
 	/* Initializing other fields */
+	place->pos = *pos;
 	place->block = node->block;
 	place->len = node40_len(entity, pos);
 	aal_memcpy(&place->pos, pos, sizeof(pos_t));
@@ -307,7 +308,7 @@ static uint16_t node40_maxspace(node_entity_t *entity) {
 }
 
 /* Calculates size of a region denoted by @pos and @count. This is used by
-   node40_rep(), node40_remove(), etc. */
+   node40_copy(), node40_remove(), etc. */
 static uint32_t node40_size(node40_t *node, pos_t *pos,
 			    uint32_t count)
 {
@@ -513,9 +514,9 @@ errno_t node40_shrink(node_entity_t *entity, pos_t *pos,
 }
 
 /* Makes copy of @count items from @src_entity to @dst_entity */
-errno_t node40_rep(node_entity_t *dst_entity, pos_t *dst_pos,
-		   node_entity_t *src_entity, pos_t *src_pos,
-		   uint32_t count)
+errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
+		    node_entity_t *src_entity, pos_t *src_pos,
+		    uint32_t count)
 {
 	uint32_t pol;
 	uint32_t size;
@@ -638,9 +639,8 @@ static errno_t node40_insert(node_entity_t *entity,
 	}
 
 	/* Inserting units into @item */
-	if ((res = plug_call(hint->plug->o.item_ops, insert, &place,
-			     (pos->unit == MAX_UINT32 ? 0 : pos->unit),
-			     hint)))
+	if ((res = plug_call(hint->plug->o.item_ops, insert,
+			     &place, hint)))
 	{
 		aal_exception_error("Can't insert unit to "
 				    "node %llu.", node->block->nr);
@@ -660,7 +660,6 @@ static errno_t node40_insert(node_entity_t *entity,
 errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 		      remove_hint_t *hint) 
 {
-	pos_t rpos;
 	errno_t res;
 	uint32_t pol;
 	uint32_t len;
@@ -676,35 +675,36 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 	if (node40_fetch(entity, pos, &place))
 		return -EINVAL;
 
-	rpos = *pos;
-
 	/* Checking if we need remove whole item if it has not units anymore */
 	if (plug_call(place.plug->o.item_ops, units, &place) == 1)
-		rpos.unit = MAX_UINT32;
+		place.pos.unit = MAX_UINT32;
 	
-	if (rpos.unit == MAX_UINT32) {
+	if (place.pos.unit == MAX_UINT32) {
 		hint->ohd = 0;
 		
-		if (!(hint->len = node40_size(node, &rpos, hint->count)))
+		if (!(hint->len = node40_size(node, &place.pos,
+					      hint->count)))
+		{
 			return -EINVAL;
+		}
 	} else {
 		/* Removing units from the item pointed by @pos */
-		if ((res = plug_call(place.plug->o.item_ops, remove,
-				     &place, rpos.unit, hint)))
+		if ((res = plug_call(place.plug->o.item_ops,
+				     remove, &place, hint)))
 		{
 			return res;
 		}
 
                 /* Updating items key if leftmost unit was changed */
-		if (rpos.unit == 0) {
-			void *ih = node40_ih_at(node, rpos.item);
+		if (place.pos.unit == 0) {
+			void *ih = node40_ih_at(node, place.pos.item);
 			aal_memcpy(ih, place.key.body, key_size(pol));
 		}
 	}
 
 	/* Releasing node space */
 	len = hint->len + hint->ohd;
-	return node40_shrink(entity, &rpos, len, hint->count);
+	return node40_shrink(entity, &place.pos, len, hint->count);
 }
 
 /* Updates key at @pos by specified @key */
@@ -1320,8 +1320,8 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
 	}
 		
 	/* Copying items from src node to dst one */
-	if (node40_rep(dst_entity, &dst_pos, src_entity,
-			   &src_pos, hint->items))
+	if (node40_copy(dst_entity, &dst_pos, src_entity,
+			&src_pos, hint->items))
 	{
 		return -EINVAL;
 	}
@@ -1462,7 +1462,7 @@ static reiser4_node_ops_t node40_ops = {
 	.shrink		= node40_shrink,
 	.expand		= node40_expand,
 	.merge          = node40_merge,
-	.rep            = node40_rep,
+	.copy           = node40_copy,
 
 	.overhead	= node40_overhead,
 	.maxspace	= node40_maxspace,

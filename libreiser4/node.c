@@ -475,16 +475,17 @@ lookup_res_t reiser4_node_lookup(
 	
 		/* Calling lookup method of found item */
 		if (place.plug->o.item_ops->lookup) {
-			return plug_call(place.plug->o.item_ops, lookup,
-					 (place_t *)&place, key, mode,
-					 &pos->unit);
+			res = plug_call(place.plug->o.item_ops, lookup,
+					(place_t *)&place, key, mode);
+
+			pos->unit = place.pos.unit;
+			
+			return res;
 		}
 
 		if (mode == INST) {
 			pos->item++;
 			return ABSENT;
-		} else {
-			return PRESENT;
 		}
 	}
 
@@ -707,8 +708,7 @@ errno_t reiser4_node_upos(reiser4_node_t *node) {
 		return res;
 
 	return plug_call(node->p.plug->o.item_ops, insert,
-			 (place_t *)&node->p, node->p.pos.unit,
-			 &hint);
+			 (place_t *)&node->p, &hint);
 }
 
 /* Updates node keys in recursive maner (needed for updating ldkeys on the all

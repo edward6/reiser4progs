@@ -622,8 +622,8 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 			break;
 		
 		/* Lookup by end_key. */
-		res = src->plug->o.item_ops->lookup((place_t *)src, &key,
-						    INST, &src->pos.unit);
+		res = src->plug->o.item_ops->lookup((place_t *)src,
+						    &key, INST);
 		
 		if (src->pos.unit >= scount)
 			break;

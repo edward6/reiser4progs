@@ -655,8 +655,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 					hint.specific = &ptr;
 
 					plug_call(place.plug->o.item_ops, insert,
-						  (place_t *)&place, place.pos.unit,
-						  &hint);
+						  (place_t *)&place, &hint);
 					
 					/* Assigning node to new node blk */
 					reiser4_node_move(child, ptr.start);
@@ -823,7 +822,7 @@ static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 			if (walk.plug->o.item_ops->lookup) {
 				switch (plug_call(walk.plug->o.item_ops,
 						  lookup, (place_t *)&walk,
-						  key, READ, &walk.pos.unit))
+						  key, READ))
 				{
 				case PRESENT:
 					aal_memcpy(place, &walk,

@@ -74,8 +74,7 @@ errno_t stat40_check_struct(place_t *place, uint8_t mode) {
 	return 0;
 }
 
-errno_t stat40_merge(place_t *dst, uint32_t dst_pos, 
-		     place_t *src, uint32_t src_pos, 
+errno_t stat40_merge(place_t *dst, place_t *src, 
 		     merge_hint_t *hint) 
 {
 	aal_assert("vpf-979", dst  != NULL);
@@ -83,12 +82,10 @@ errno_t stat40_merge(place_t *dst, uint32_t dst_pos,
 	aal_assert("vpf-981", hint != NULL);
 	
 	aal_memcpy(dst->body, src->body, hint->len_delta);
-	
 	return 0;
 }
 
-errno_t stat40_estimate_merge(place_t *dst, uint32_t dst_pos, 
-			      place_t *src, uint32_t src_pos, 
+errno_t stat40_estimate_merge(place_t *dst, place_t *src, 
 			      merge_hint_t *hint)
 {
 	key_entity_t *key;
@@ -102,7 +99,6 @@ errno_t stat40_estimate_merge(place_t *dst, uint32_t dst_pos,
 	hint->len_delta = src->len - dst->len;
 	
 	key = plug_call(hint->end.plug->o.key_ops, maximal);
-	
 	plug_call(hint->end.plug->o.key_ops, assign, &hint->end, key);
 	
 	return 0;

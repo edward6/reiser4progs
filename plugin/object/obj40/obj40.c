@@ -191,7 +191,7 @@ errno_t obj40_write_ext(place_t *place, rid_t id,
 	stat.ext[id] = data;
 
 	return plug_call(place->plug->o.item_ops,
-			 insert, place, 0, &hint);
+			 insert, place, &hint);
 }
 
 uint64_t obj40_extmask(place_t *place) {

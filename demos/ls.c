@@ -132,7 +132,8 @@ int main(int argc, char *argv[]) {
 					goto error_free_dir;
 				}
 
-				reiser4_object_link(dir, object, name);
+				if (reiser4_object_link(dir, object, name))
+					continue;
 
 				for (j = 0; j < 2049; j++) {
 					reiser4_object_write(object, name,

@@ -17,12 +17,13 @@ uint32_t tail40_units(place_t *place) {
 }
 
 /* Returns the key of the specified unit */
-errno_t tail40_get_key(place_t *place, uint32_t pos, 
+errno_t tail40_get_key(place_t *place, 
 		       key_entity_t *key) 
 {
-	aal_assert("vpf-626", place != NULL);
 	aal_assert("vpf-627", key != NULL);
-	return body40_get_key(place, pos, key, NULL);
+	aal_assert("vpf-626", place != NULL);
+	
+	return body40_get_key(place, place->pos.unit, key, NULL);
 }
 
 static int32_t tail40_read(place_t *place, void *buff,
@@ -31,11 +32,6 @@ static int32_t tail40_read(place_t *place, void *buff,
 	aal_assert("umka-1673", place != NULL);
 	aal_assert("umka-1674", buff != NULL);
 	aal_assert("umka-1675", pos < place->len);
-
-#ifndef ENABLE_STAND_ALONE
-	if (count > place->len - pos)
-		count = place->len - pos;
-#endif
 
 	aal_memcpy(buff, place->body + pos, count);
 	return count;
@@ -46,20 +42,19 @@ static int32_t tail40_read(place_t *place, void *buff,
    function considers also, that tail item is not expandable one. That is, if
    insert pos point inside the item body, it will not be splitted, but rewritten
    instead. */
-static errno_t tail40_estimate_insert(place_t *place, uint32_t pos,
+static errno_t tail40_estimate_insert(place_t *place,
 				      insert_hint_t *hint)
 {
 	aal_assert("umka-1836", hint != NULL);
 
-	if (pos == MAX_UINT32)
+	if (place->pos.unit == MAX_UINT32) {
 		hint->len = hint->count;
-	else {
+	} else {
 		uint32_t right;
 
 		aal_assert("umka-2284", place != NULL);
 		
-		right = place->len - pos;
-
+		right = place->len - place->pos.unit;
 		hint->len = (right >= hint->count ? 0 :
 			     hint->count - right);
 	}
@@ -68,16 +63,17 @@ static errno_t tail40_estimate_insert(place_t *place, uint32_t pos,
 }
 
 /* Rewrites tail from passed @pos by data specifed by hint */
-static errno_t tail40_insert(place_t *place, uint32_t pos,
+static errno_t tail40_insert(place_t *place,
 			     insert_hint_t *hint)
 {
+	uint32_t pos;
 	uint32_t count;
 	
 	aal_assert("umka-1677", hint != NULL);
 	aal_assert("umka-1678", place != NULL);
-	aal_assert("umka-1679", pos < place->len);
 
 	count = hint->count;
+	pos = place->pos.unit;
 	
 	if (count > place->len - pos)
 		count = place->len - pos;
@@ -94,8 +90,7 @@ static errno_t tail40_insert(place_t *place, uint32_t pos,
 
 	/* Updating the key */
 	if (pos == 0) {
-		if (tail40_get_key(place, 0, &place->key))
-			return -EINVAL;
+		body40_get_key(place, 0, &place->key, NULL);
 	}
 
 	hint->bytes = count;
@@ -105,9 +100,10 @@ static errno_t tail40_insert(place_t *place, uint32_t pos,
 }
 
 /* Removes the part of tail body */
-static errno_t tail40_remove(place_t *place, uint32_t pos,
+static errno_t tail40_remove(place_t *place,
 			     remove_hint_t *hint)
 {
+	uint32_t pos;
 	uint32_t count;
 	void *src, *dst;
 	
@@ -116,6 +112,7 @@ static errno_t tail40_remove(place_t *place, uint32_t pos,
 	aal_assert("umka-1663", pos < place->len);
 
 	count = hint->count;
+	pos = place->pos.unit;
 	
 	if (pos + count > place->len)
 		count = place->len - pos;
@@ -130,7 +127,7 @@ static errno_t tail40_remove(place_t *place, uint32_t pos,
 
 	/* Updating the key */
 	if (pos == 0) {
-		tail40_get_key(place, 0, &place->key);
+		body40_get_key(place, 0, &place->key, NULL);
 	}
 
 	place_mkdirty(place);
@@ -144,11 +141,9 @@ static errno_t tail40_print(place_t *place,
 	aal_assert("umka-1489", place != NULL);
 	aal_assert("umka-1490", stream != NULL);
 
-	aal_stream_format(stream, "TAIL PLUGIN=%s LEN=%u, KEY=[%s] "
-			  "UNITS=%u\n", place->plug->label, place->len,
-			  core->key_ops.print(&place->key, PO_DEF), 
-			  place->len);
-		
+	aal_stream_format(stream, "TAIL PLUGIN=%s LEN=%u, KEY=[%s]\n",
+			  place->plug->label, place->len,
+			  core->key_ops.print(&place->key, PO_DEF));
 	return 0;
 }
 
@@ -172,13 +167,13 @@ static errno_t tail40_maxposs_key(place_t *place,
 }
 
 static lookup_res_t tail40_lookup(place_t *place, key_entity_t *key, 
-				  lookup_mod_t mode, uint32_t *pos)
+				  lookup_mod_t mode)
 {
 	uint32_t units;
-	uint64_t offset, wanted;
+	uint64_t offset;
+	uint64_t wanted;
 
 	aal_assert("umka-1229", key != NULL);
-	aal_assert("umka-1230", pos != NULL);
 	aal_assert("umka-1228", place != NULL);
 
 	units = tail40_units(place);
@@ -192,11 +187,11 @@ static lookup_res_t tail40_lookup(place_t *place, key_entity_t *key,
 	if (wanted >= offset &&
 	    wanted < offset + units)
 	{
-		*pos = wanted - offset;
+		place->pos.unit = wanted - offset;
 		return PRESENT;
 	}
 
-	*pos = units;
+	place->pos.unit = units;
 	return (mode == READ ? ABSENT : PRESENT);
 }
 
@@ -284,9 +279,9 @@ static errno_t tail40_estimate_shift(place_t *src_place,
 	return 0;
 }
 
-errno_t tail40_rep(place_t *dst_place, uint32_t dst_pos,
-		   place_t *src_place, uint32_t src_pos,
-		   uint32_t count)
+errno_t tail40_copy(place_t *dst_place, uint32_t dst_pos,
+		    place_t *src_place, uint32_t src_pos,
+		    uint32_t count)
 {
 	aal_assert("umka-2075", dst_place != NULL);
 	aal_assert("umka-2076", src_place != NULL);
@@ -340,15 +335,15 @@ static errno_t tail40_shift(place_t *src_place,
 		tail40_expand(dst_place, dst_place->len,
 			     hint->units, hint->rest);
 		
-		tail40_rep(dst_place, dst_place->len,
-			   src_place, 0, hint->rest);
+		tail40_copy(dst_place, dst_place->len,
+			    src_place, 0, hint->rest);
 		
 		tail40_shrink(src_place, 0, hint->units,
 			      hint->rest);
 
 		/* Updating item's key by the first unit key */
-		tail40_get_key(src_place, hint->rest,
-			       &src_place->key);
+		body40_get_key(src_place, hint->rest,
+			       &src_place->key, NULL);
 	} else {
 		uint32_t pos;
 		uint64_t offset;
@@ -358,11 +353,11 @@ static errno_t tail40_shift(place_t *src_place,
 
 		pos = src_place->len - hint->units;
 		
-		tail40_rep(dst_place, 0, src_place, pos, hint->rest);
+		tail40_copy(dst_place, 0, src_place, pos, hint->rest);
 		tail40_shrink(src_place, pos, hint->units, hint->rest);
 
 		/* Updating item's key by the first unit key */
-		tail40_get_key(dst_place, 0, &dst_place->key);
+		body40_get_key(dst_place, 0, &dst_place->key, NULL);
 
 		offset = plug_call(dst_place->key.plug->o.key_ops,
 				   get_offset, &dst_place->key);
@@ -383,23 +378,24 @@ static uint64_t tail40_size(place_t *place) {
 	return place->len;
 }
 
-extern errno_t tail40_merge(place_t *dst, uint32_t dst_pos, 
-			    place_t *src, uint32_t src_pos, 
+extern errno_t tail40_merge(place_t *dst, place_t *src, 
 			    merge_hint_t *hint);
 
-extern errno_t tail40_estimate_merge(place_t *dst, uint32_t dst_pos,
-				     place_t *src, uint32_t src_pos,
+extern errno_t tail40_estimate_merge(place_t *dst, place_t *src,
 				     merge_hint_t *hint);
 #endif
 
 static reiser4_item_ops_t tail40_ops = {
+	.read	          = tail40_read,
+	.units	          = tail40_units,
+	.lookup	          = tail40_lookup,
+	.get_key          = tail40_get_key,
+	.maxposs_key      = tail40_maxposs_key,
 #ifndef ENABLE_STAND_ALONE
 	.merge	          = tail40_merge,
-	.rep	          = tail40_rep,
-	.expand	          = tail40_expand,
-	.shrink           = tail40_shrink,
 	.insert	          = tail40_insert,
 	.remove	          = tail40_remove,
+	.mergeable        = tail40_mergeable,
 	.print	          = tail40_print,
 	.shift	          = tail40_shift,
 	.size             = tail40_size,
@@ -417,19 +413,10 @@ static reiser4_item_ops_t tail40_ops = {
 	.layout	          = NULL,
 	.set_key          = NULL,
 	.check_layout     = NULL,
-#endif
-	.plugid		  = NULL,
-	.units	          = tail40_units,
-	.lookup	          = tail40_lookup,
-	.read	          = tail40_read,
-
-#ifndef ENABLE_STAND_ALONE
-	.mergeable        = tail40_mergeable,
 #else
 	.mergeable        = NULL,
 #endif
-	.get_key          = tail40_get_key,
-	.maxposs_key      = tail40_maxposs_key
+	.plugid		  = NULL
 };
 
 static reiser4_plug_t tail40_plug = {

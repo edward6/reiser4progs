@@ -4,47 +4,54 @@
    tail40_repair.c -- reiser4 default tail plugin. */
 
 #ifndef ENABLE_STAND_ALONE
-#include <reiser4/plugin.h>
 #include <repair/plugin.h>
+#include <reiser4/plugin.h>
+#include <plugin/item/body40/body40.h>
 
 #define tail40_body(place) (place->body)
 
-extern errno_t tail40_get_key(place_t *place, uint32_t pos, 
-			      key_entity_t *key);
-
-extern errno_t tail40_maxreal_key(place_t *place, key_entity_t *key);
-
-extern errno_t tail40_rep(place_t *dst_place, uint32_t dst_pos,
-			  place_t *src_place, uint32_t src_pos,
-			  uint32_t count);
-
 extern uint32_t tail40_units(place_t *place);
 
-errno_t tail40_merge(place_t *dst, uint32_t dst_pos, 
-		     place_t *src, uint32_t src_pos, 
+extern errno_t tail40_maxreal_key(place_t *place,
+				  key_entity_t *key);
+
+extern errno_t tail40_copy(place_t *dst_place, uint32_t dst_pos,
+			   place_t *src_place, uint32_t src_pos,
+			   uint32_t count);
+
+errno_t tail40_merge(place_t *dst, place_t *src, 
 		     merge_hint_t *hint)
 {
+	uint32_t dst_pos, src_pos;
+	
 	aal_assert("vpf-987", dst  != NULL);
 	aal_assert("vpf-988", src  != NULL);
 	aal_assert("vpf-989", hint != NULL);
+
+	dst_pos = dst->pos.unit;
+	src_pos = src->pos.unit;
 	
 	aal_memcpy(tail40_body(dst) + dst_pos + hint->len_delta, 
 		   tail40_body(dst) + dst_pos, tail40_units(dst) - dst_pos);
 	
-	return tail40_rep(dst, dst_pos, src, src_pos, hint->src_count);
+	return tail40_copy(dst, dst_pos, src, src_pos, hint->src_count);
 }
 
-errno_t tail40_estimate_merge(place_t *dst, uint32_t dst_pos, 
-			      place_t *src, uint32_t src_pos, 
+errno_t tail40_estimate_merge(place_t *dst, place_t *src, 
 			      merge_hint_t *hint)
 {
-	uint64_t src_offset, dst_max, src_max, src_end;
+	uint64_t src_offset, dst_max;
+	uint64_t src_max, src_end;
+	uint32_t dst_pos, src_pos;
 	key_entity_t key;
 	errno_t res;
 	
 	aal_assert("vpf-982", hint != NULL);
 	aal_assert("vpf-983", dst  != NULL);
 	aal_assert("vpf-984", src  != NULL);
+	
+	dst_pos = dst->pos.unit;
+	src_pos = src->pos.unit;
 	
 	/* Getting src_offset, dst_offset, src_max and dst_max offsets. */
 	if ((res = tail40_maxreal_key(dst, &key)))
@@ -70,7 +77,7 @@ errno_t tail40_estimate_merge(place_t *dst, uint32_t dst_pos,
 		
 		aal_assert("vpf-1005", dst_pos < tail40_units(dst));
 		
-		if (tail40_get_key(dst, dst_pos, &key))
+		if (body40_get_key(dst, dst_pos, &key, NULL))
 			return -EINVAL;
 		
 		dst_offset = plug_call(key.plug->o.key_ops, get_offset, &key);
@@ -92,6 +99,4 @@ errno_t tail40_estimate_merge(place_t *dst, uint32_t dst_pos,
 	
 	return 0;
 }
-
 #endif
-

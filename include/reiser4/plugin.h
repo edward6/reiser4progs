@@ -724,13 +724,11 @@ struct reiser4_item_ops {
 	uint16_t (*overhead) (place_t *);
 	
 	/* Estimate the merge operation */
-	errno_t (*estimate_merge) (place_t *, uint32_t, 
-				   place_t *, uint32_t, 
+	errno_t (*estimate_merge) (place_t *, place_t *, 
 				   merge_hint_t *);
 
 	/* Estimates insert operation */
-	errno_t (*estimate_insert) (place_t *, uint32_t,
-				    insert_hint_t *);
+	errno_t (*estimate_insert) (place_t *, insert_hint_t *);
 
 	/* Predicts the shift parameters (units, bytes, etc) */
 	errno_t (*estimate_shift) (place_t *, place_t *,
@@ -738,27 +736,19 @@ struct reiser4_item_ops {
 	
 	/* Inserts some amount of units described by passed hint into passed
 	   item. */
-	errno_t (*insert) (place_t *, uint32_t, insert_hint_t *);
+	errno_t (*insert) (place_t *, insert_hint_t *);
 
 	/* Removes specified unit from the item. */
-	errno_t (*remove) (place_t *, uint32_t, remove_hint_t *);
+	errno_t (*remove) (place_t *, remove_hint_t *);
 	
 	/* Performs shift of units from passed @src item to @dst item */
 	errno_t (*shift) (place_t *, place_t *, shift_hint_t *);
 
 	/* Copies some amount of units from @src_item to @dst_item with partial
 	   overwritting. */
-	errno_t (*merge) (place_t *, uint32_t, 
-			  place_t *, uint32_t,
+	errno_t (*merge) (place_t *, place_t *,
 			  merge_hint_t *);
 
-	/* Copes @count units from @src_item to @dst_item */
-	errno_t (*rep) (place_t *, uint32_t, place_t *, uint32_t,
-			uint32_t);
-	
-	uint32_t (*expand) (place_t *, uint32_t, uint32_t, uint32_t);
-	uint32_t (*shrink) (place_t *, uint32_t, uint32_t, uint32_t);
-	
 	/* Checks the item structure. */
 	errno_t (*check_struct) (place_t *, uint8_t);
 	
@@ -773,7 +763,7 @@ struct reiser4_item_ops {
 				 void *, uint8_t);
 
 	/* Set the key of a particular unit of the item. */
-	errno_t (*set_key) (place_t *, uint32_t, key_entity_t *);
+	errno_t (*set_key) (place_t *, key_entity_t *);
 
 	/* Gets the size of the data item keeps. */
 	uint64_t (*size) (place_t *place);
@@ -794,7 +784,7 @@ struct reiser4_item_ops {
 
 	/* Makes lookup for passed key */
 	lookup_res_t (*lookup) (place_t *, key_entity_t *,
-				lookup_mod_t, uint32_t *);
+				lookup_mod_t);
 
 	/* Returns TRUE is specified item is a nodeptr one. That is, it points
 	   to formatted node in the tree. If this method if not implemented,
@@ -803,7 +793,7 @@ struct reiser4_item_ops {
 	int (*branch) (void);
 	
 	/* Get the key of a particular unit of the item. */
-	errno_t (*get_key) (place_t *, uint32_t, key_entity_t *);
+	errno_t (*get_key) (place_t *, key_entity_t *);
 
 	/* Get the max key which could be stored in the item of this type */
 	errno_t (*maxposs_key) (place_t *, key_entity_t *);
@@ -891,9 +881,9 @@ struct reiser4_node_ops {
 			  merge_hint_t *);
 
 	/* Copies items from @src_entity to @dst_entity */
-	errno_t (*rep) (node_entity_t *, pos_t *,
-			node_entity_t *, pos_t *,
-			uint32_t);
+	errno_t (*copy) (node_entity_t *, pos_t *,
+			 node_entity_t *, pos_t *,
+			 uint32_t);
 	
 	/* Expands node */
 	errno_t (*expand) (node_entity_t *, pos_t *,

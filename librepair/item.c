@@ -100,8 +100,7 @@ errno_t repair_item_estimate_merge(reiser4_place_t *dst,
 	aal_assert("vpf-956", src->plug != NULL);
 	
 	return plug_call(src->plug->o.item_ops, estimate_merge,
-			 (place_t *)dst, dst->pos.unit, (place_t *)src, 
-			 src->pos.unit, hint);
+			 (place_t *)dst, (place_t *)src, hint);
 }
 
 void repair_item_set_flag(reiser4_place_t *place, uint16_t flag) {
