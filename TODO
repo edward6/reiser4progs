@@ -3,6 +3,8 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* special file plugin and special files support in debugfs.
+
 * improve data writing in tree.c. There should be call to item plugin
   in order to determine is it enough space in tree to insert data or
   not.
@@ -14,8 +16,6 @@ reiser4progs/COPYING.
 * dumpfs utility.
 
 * plugin inheritance for objects.
-
-* special file plugin and special files support in debugfs.
 
 * big digits stat data fields format change.
 
