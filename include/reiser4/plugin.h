@@ -303,6 +303,7 @@ struct shift_hint {
 typedef struct shift_hint shift_hint_t;
 
 typedef errno_t (*data_func_t) (item_entity_t *, uint64_t, void *);
+typedef errno_t (*region_func_t) (item_entity_t *, uint64_t, uint64_t, void *);
 typedef errno_t (*block_func_t) (object_entity_t *, uint64_t, void *);
 typedef errno_t (*place_func_t) (object_entity_t *, reiser4_place_t *, void *);
 
@@ -681,9 +682,14 @@ struct reiser4_item_ops {
 	/* Checks if items mergeable. Returns 1 if so, 0 otherwise */
 	int (*mergeable) (item_entity_t *, item_entity_t *);
 
-	/* Enumerates all the blocks item's data lies in */
+	/* Goes through all blocks item points to. */
+	/* FIXME: checnge data_func_t to region_func_t */
 	errno_t (*layout) (item_entity_t *, data_func_t, void *);
-	
+		
+	/* Does some specific actions if a block the item points to is wrong. */
+	/* FIXME: I wish it to be joint with layout, but how? */
+	int32_t (*layout_check) (item_entity_t *, region_func_t, void *);
+
 	/* Get the key of a particular unit of the item. */
 	errno_t (*get_key) (item_entity_t *, uint32_t, key_entity_t *);
 
@@ -791,9 +797,12 @@ struct reiser4_node_ops {
     
 	/* Removes item/unit at specified pos */
 	errno_t (*remove) (object_entity_t *, rpos_t *);
-    
+
 	/* Removes some amount of items/units */
 	errno_t (*cut) (object_entity_t *, rpos_t *, rpos_t *);
+    
+	/* Item at the pos get smaller on size bytes, shrink the node */
+	errno_t (*shrink) (object_entity_t *, reiser4_pos_t *, uint32_t size);
 	
 	/* Gets/sets key at pos */
 	errno_t (*get_key) (object_entity_t *, rpos_t *, key_entity_t *);
