@@ -333,102 +333,6 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	return 0;
 }
 
-#if 0
-/* Merge @dst item with @src one from the key pointed by @key through the 
-   @dst maxreal key. After the coping @key is set to the @dst maxreal key. */
-static errno_t repair_tree_merge(reiser4_tree_t *tree, place_t *dst,
-				 place_t *src, reiser4_key_t *key)
-{
-	place_t old;
-	merge_hint_t hint;
-	uint32_t needed;
-	errno_t res;
-	
-	aal_assert("vpf-948", tree != NULL); 
-	aal_assert("vpf-949", dst != NULL);
-	aal_assert("vpf-950", src != NULL);
-	
-	if (reiser4_tree_fresh(tree)) {
-		aal_exception_error("Tree merge failed. Tree is empty.");
-		return -EINVAL;
-	}
-
-	if (dst->pos.unit == MAX_UINT32)
-		dst->pos.unit = 0;
-	
-	old = *dst;
-	
-	if (key) {
-		/* Prepare the hint for coping. */
-		aal_memset(&hint, 0, sizeof(hint));
-		reiser4_key_assign(&hint.start, key);
-		
-		if ((res = reiser4_item_maxreal_key(dst, &hint.end)))
-			return res;
-
-		if ((res = repair_item_estimate_merge(dst, src, &hint)))
-			return res;
-
-		if (hint.src_count == 0)
-			return 0;
-	}
-	
-	if (!key || hint.len_delta > 0) {
-		if (key)
-			needed = hint.len_delta;
-		else
-			needed = src->len;
-		
-		needed += (dst->pos.unit == MAX_UINT32 ? 
-			   reiser4_node_overhead(dst->node) : 0);
-		
-		res = reiser4_tree_expand(tree, dst, needed, SF_DEFAULT);
-		if (res) {
-			aal_exception_error("Tree expand for merging failed.");
-			return res;
-		}
-	}
-	
-	if ((res = repair_node_merge(dst->node, &dst->pos, src->node, 
-				    &src->pos, key ? &hint : NULL)))
-	{
-		aal_exception_error("Merging of the item [node %llu, item %u] "
-				    "with the item [node %llu, item %u] failed.",
-				    node_blocknr(dst->node), dst->pos.item,
-				    node_blocknr(src->node), src->pos.item); 
-		return res;
-	}
-	
-	if (reiser4_place_leftmost(dst) && dst->node->p.node) {
-		place_t p;
-		
-		reiser4_place_init(&p, dst->node->p.node, 
-				   &dst->node->p.pos);
-		
-		if ((res = reiser4_tree_update_key(tree, &p, &src->key)))
-			return res;
-	}
-	
-	if (dst->node != tree->root && !dst->node->p.node) {
-		if (!old.node->p.node)
-			reiser4_tree_grow_up(tree);
-		
-		if ((res = reiser4_tree_attach_node(tree, dst->node))) {
-			aal_exception_error("Can't attach node %llu to the "
-					    "tree.", node_blocknr(dst->node));
-
-			reiser4_node_mkclean(dst->node);
-			reiser4_tree_release_node(tree, dst->node);	    
-			return res;
-		}
-	}
-	
-	if (key) reiser4_key_assign(key, &hint.end);
-	
-	return 0;
-}
-#endif
-
 /* Check that conversion is needed. */
 static bool_t repair_tree_should_conv(reiser4_tree_t *tree, 
 				      reiser4_plug_t *from,
@@ -580,16 +484,14 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 	return 0;
 }
 
-static errno_t callback_estimate_merge(place_t *place, 
-				       trans_hint_t *hint)
-{
-	return 0;
+static errno_t callback_prep_merge(place_t *place, trans_hint_t *hint) {
+	return plug_call(place->plug->o.item_ops->repair,
+			 prep_merge, place, hint);
 }
 
-static errno_t callback_merge(node_t *node, pos_t *pos,
-			      trans_hint_t *hint) 
-{
-	return 0;
+static errno_t callback_merge(node_t *node, pos_t *pos, trans_hint_t *hint) {
+	return plug_call(node->entity->plug->o.node_ops, 
+			 merge, node->entity, pos, hint);
 }
 
 /* Insert the item into the tree overwriting an existent in the tree item 
@@ -656,12 +558,16 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src) {
 			}
 		}
 
-		if (plug_equal(dst.plug, src->plug)) {
-			/* For equal plugins do merging. */
+		if (plug_equal(dst.plug, src->plug) && 
+		    hint.plug->o.item_ops->repair->merge) 
+		{
 			if ((res = reiser4_tree_modify(tree, &dst, &hint, level,
-						       callback_estimate_merge,
+						       callback_prep_merge,
 						       callback_merge)))
 				goto error;
+		} else if (hint.plug->o.item_ops->repair->merge == NULL) {
+			/* For items without merge method implemented, like SD. */
+			return 0;
 		} else {
 			/* For not equal plugins do coping. */
 			aal_exception_error("Node (%llu), item (%u): the item "

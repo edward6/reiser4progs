@@ -580,9 +580,7 @@ static int extent40_mergeable(place_t *place1, place_t *place2) {
 	return body40_mergeable(place1, place2);
 }
 
-static uint32_t extent40_expand(place_t *place, uint32_t pos,
-				uint32_t count, uint32_t len)
-{
+uint32_t extent40_expand(place_t *place, uint32_t pos, uint32_t count) {
 	/* Preparing space in @dst_place */
 	if (pos < extent40_units(place)) {
 		uint32_t size;
@@ -601,9 +599,7 @@ static uint32_t extent40_expand(place_t *place, uint32_t pos,
 	return 0;
 }
 
-static uint32_t extent40_shrink(place_t *place, uint32_t pos,
-			       uint32_t count, uint32_t len)
-{
+uint32_t extent40_shrink(place_t *place, uint32_t pos, uint32_t count) {
 	/* Srinking @dst_place. */
 	if (pos < extent40_units(place)) {
 		uint32_t size;
@@ -689,8 +685,7 @@ static int64_t extent40_insert_units(place_t *place,
 	aal_assert("umka-2428", place != NULL);
 
 	/* Expanding extent item at @place */
-	extent40_expand(place, place->pos.unit,
-			hint->count, 0);
+	extent40_expand(place, place->pos.unit, hint->count);
 
 	/* Updating @count units at @place */
 	return extent40_update_units(place, hint);
@@ -1079,15 +1074,15 @@ static errno_t extent40_shift_units(place_t *src_place, place_t *dst_place,
 	if (hint->control & SF_LEFT_SHIFT) {
 		
 		/* Preparing space in @dst_place */
-		extent40_expand(dst_place, extent40_units(dst_place),
-				hint->units, 0);
+		extent40_expand(dst_place, extent40_units(dst_place), 
+				hint->units);
 
 		/* Copying data from the @src_place to @dst_place */
 		extent40_copy(dst_place, extent40_units(dst_place),
 			      src_place, 0, hint->units);
 
 		/* Removing units in @src_place */
-		extent40_shrink(src_place, 0, hint->units, 0);
+		extent40_shrink(src_place, 0, hint->units);
 
 		/* Updating item's key by the first unit key */
 		body40_get_key(src_place, hint->units,
@@ -1097,7 +1092,7 @@ static errno_t extent40_shift_units(place_t *src_place, place_t *dst_place,
 		uint64_t offset;
 
 		/* Preparing space in @dst_place */
-		extent40_expand(dst_place, 0, hint->units, 0);
+		extent40_expand(dst_place, 0, hint->units);
 
 		/* Copying data from the @src_place to @dst_place */
 		pos = extent40_units(src_place) - hint->units;
@@ -1106,7 +1101,7 @@ static errno_t extent40_shift_units(place_t *src_place, place_t *dst_place,
 			      hint->units);
 
 		/* Removing units in @src_place */
-		extent40_shrink(src_place, pos, hint->units, 0);
+		extent40_shrink(src_place, pos, hint->units);
 
 		/* Updating item's key by the first unit key */
 		body40_get_key(dst_place, 0, &dst_place->key,

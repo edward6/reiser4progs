@@ -308,12 +308,11 @@ errno_t tail40_copy(place_t *dst_place, uint32_t dst_pos,
 
 /* Expand tail at @place and @pos by @count bytes. Used in balancing code
    pathes. */
-static uint32_t tail40_expand(place_t *place, uint32_t pos,
-			      uint32_t count, uint32_t len)
-{
+uint32_t tail40_expand(place_t *place, uint32_t pos, uint32_t count) {
 	if (pos < place->len) {
 		aal_memmove(place->body + pos + count,
-			    place->body + pos, place->len - pos);
+			    place->body + pos, 
+			    place->len - pos - count);
 
 		place_mkdirty(place);
 	}
@@ -353,8 +352,7 @@ static errno_t tail40_shift_units(place_t *src_place,
 	if (hint->control & SF_LEFT_SHIFT) {
 		/* Expanding tail item at @dst_place by @hint->units value. It
 		   is that, pre_shift() has prepared for us. */
-		tail40_expand(dst_place, dst_place->len,
-			     hint->units, hint->rest);
+		tail40_expand(dst_place, dst_place->len, hint->units);
 
 		/* Copy @hint->rest units from @src_place to @dst_place at
 		   @dst_place->len position. */
@@ -378,7 +376,7 @@ static errno_t tail40_shift_units(place_t *src_place,
 		uint32_t pos;
 
 		/* Right shift. Expanding @dst_place at 0 pos. */
-		tail40_expand(dst_place, 0, hint->units,hint->rest);
+		tail40_expand(dst_place, 0, hint->units);
 
 		/* Copying data and removing it from source. */
 		pos = src_place->len - hint->units;

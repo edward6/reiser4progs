@@ -23,12 +23,13 @@ extern uint64_t extent40_offset(place_t *place,	uint32_t pos);
 
 extern uint32_t extent40_unit(place_t *place, uint64_t offset);
 
-extern lookup_t extent40_lookup(place_t *place,
-				key_entity_t *key, 
-				bias_t bias);
+extern errno_t extent40_maxreal_key(place_t *place, key_entity_t *key);
 
-extern errno_t extent40_maxreal_key(place_t *place,
-				    key_entity_t *key);
+extern uint32_t extent40_expand(place_t *place, uint32_t pos, uint32_t count);
+
+extern uint32_t extent40_shrink(place_t *place, uint32_t pos, uint32_t count);
+
+extern lookup_t extent40_lookup(place_t *place, key_entity_t *key, bias_t bias);
 
 #define extent40_blksize(place) \
         ((place)->block->size)

@@ -788,6 +788,8 @@ int64_t cde40_merge(place_t *place, trans_hint_t *hint) {
 			return res;
 
 		spos = src->pos.unit + hint->count;
+
+		place_mkdirty(place);
 	} else {
 		/* The first @place and @src entries match to each other. 
 		   Get the very first that differ. */
