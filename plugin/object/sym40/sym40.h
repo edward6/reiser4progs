@@ -19,12 +19,6 @@
 #include <reiser4/plugin.h>
 #include <plugin/object/obj40/obj40.h>
 
-#ifdef ENABLE_STAND_ALONE
-#  define _SYMLINK_LEN 256
-#else
-#  define _SYMLINK_LEN _POSIX_PATH_MAX
-#endif
-
 /* Symlink struct. */
 struct sym40 {
 

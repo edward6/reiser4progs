@@ -197,23 +197,34 @@ static errno_t sym40_follow(object_entity_t *entity,
 			    reiser4_key_t *from,
 			    reiser4_key_t *key)
 {
+	sym40_t *sym = (sym40_t *)entity;
 	errno_t res;
-	sym40_t *sym;
-	char path[_SYMLINK_LEN];
+	char *path;
 	
 	aal_assert("umka-1775", key != NULL);
 	aal_assert("umka-2245", from != NULL);
 	aal_assert("umka-1774", entity != NULL);
 
-	sym = (sym40_t *)entity;
-
+	/* Maximal symlink size is MAX_ITEM_LEN. Take the block size to 
+	   simplify it. */
+	if (!(path = aal_calloc(STAT_PLACE(&sym->obj)->node->block->size, 0)))
+		return -ENOMEM;
+	
 	/* Read symlink data to @path */
 	if ((res = sym40_read(entity, path, sizeof(path)) < 0))
-		return res;
+		goto error;
 
 	/* Calling symlink parse function and resolution function. */
-	return sym->obj.core->object_ops.resolve(sym->obj.info.tree,
-						 path, from, key);
+	if ((res = sym->obj.core->object_ops.resolve(sym->obj.info.tree,
+						     path, from, key)))
+		goto error;
+
+	aal_free(path);
+	return 0;
+	
+ error:
+	aal_free(path);
+	return res;
 }
 
 /* Releases passed @entity */

@@ -83,41 +83,48 @@ errno_t sym40_check_struct(object_entity_t *object,
 			   void *data, uint8_t mode)
 {
 	sym40_t *sym = (sym40_t *)object;
-	char path[_SYMLINK_LEN];
+	reiser4_place_t *place;
 	errno_t res;
+	char *path;
 	
 	aal_assert("vpf-1232", sym != NULL);
 	aal_assert("vpf-1233", sym->obj.info.tree != NULL);
 	aal_assert("vpf-1234", sym->obj.info.object.plug != NULL);
 
+	place = STAT_PLACE(&sym->obj);
+	
 	if ((res = obj40_launch_stat(&sym->obj, sym40_extensions, 
 				     sym40_exts, 1, S_IFLNK, mode)))
-	{
 		return res;
-	}
 	
 	/* Try to register SD as an item of this file. */
-	if (place_func && place_func(&sym->obj.info.start, data))
+	if (place_func && place_func(place, data))
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
-	if ((res = obj40_fix_key(&sym->obj, &sym->obj.info.start,
+	if ((res = obj40_fix_key(&sym->obj, place, 
 				 &sym->obj.info.object, mode)))
-	{
 		return res;
-	}
-	
-	if ((res = obj40_read_ext(STAT_PLACE(&sym->obj),
-				  SDEXT_SYMLINK_ID, path)))
-	{
-		return res;
-	}
+
+	if (!(path = aal_calloc(place->node->block->size, 0)))
+		return -ENOMEM;
+		
+	if ((res = obj40_read_ext(place, SDEXT_SYMLINK_ID, path)))
+		goto error;
 	
 	/* Fix the SD, if no fatal corruptions were found. */
-	return obj40_check_stat(&sym->obj, mode == RM_BUILD ? 
-				sym40_zero_nlink : NULL,
-				sym40_check_mode, 
-				sym40_check_size, 
-				aal_strlen(path), 0, mode);
+	if ((res = obj40_check_stat(&sym->obj, mode == RM_BUILD ? 
+				    sym40_zero_nlink : NULL,
+				    sym40_check_mode, 
+				    sym40_check_size, 
+				    aal_strlen(path), 0, mode)))
+		goto error;
+
+	aal_free(path);
+	return 0;
+
+ error:
+	aal_free(path);
+	return res;
 }
 #endif

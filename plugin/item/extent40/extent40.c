@@ -229,8 +229,10 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 		}
 		
 		/* Calling region remove notification function. */
-		hint->region_func(place, et40_get_start(extent),
-				  remove, hint->data);
+		if (et40_get_start(extent)) {
+			hint->region_func(place, et40_get_start(extent),
+					  remove, hint->data);
+		}
 
 		hint->bytes += remove * blksize;
 		
@@ -1177,9 +1179,9 @@ static errno_t extent40_layout(reiser4_place_t *place,
 			       region_func_t region_func,
 			       void *data)
 {
-	errno_t res;
-	uint32_t i, units;
 	extent40_t *extent;
+	uint32_t i, units;
+	errno_t res = 0;
 	
 	aal_assert("umka-1747", place != NULL);
 	aal_assert("umka-1748", region_func != NULL);
@@ -1196,7 +1198,7 @@ static errno_t extent40_layout(reiser4_place_t *place,
 		
 		width = et40_get_width(extent);
 		
-		if ((res = region_func(place, start, width, data)))
+		if (start && (res = region_func(place, start, width, data)))
 			return res;
 	}
 			
