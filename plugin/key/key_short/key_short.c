@@ -6,8 +6,6 @@
 #ifdef ENABLE_SHORT_KEYS
 #include "key_short.h"
 
-extern reiser4_plug_t key_short_plug;
-
 /* Returns minimal key */
 static reiser4_key_t *key_short_minimal(void) {
 	return key_common_minimal(&key_short_plug);

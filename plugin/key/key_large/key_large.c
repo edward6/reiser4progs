@@ -6,8 +6,6 @@
 #ifdef ENABLE_LARGE_KEYS
 #include "key_large.h"
 
-extern reiser4_plug_t key_large_plug;
-
 /* Returns minimal key */
 static reiser4_key_t *key_large_minimal(void) {
 	return key_common_minimal(&key_large_plug);

@@ -42,6 +42,8 @@ union key_short {
 
 typedef union key_short key_short_t;
 
+extern reiser4_plug_t key_short_plug;
+
 typedef enum {
 	/* Major locality occupies higher 60 bits of the first element */
 	KEY_SHORT_LOCALITY_MASK    = 0xfffffffffffffff0ull,

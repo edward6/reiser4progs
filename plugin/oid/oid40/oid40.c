@@ -8,8 +8,6 @@
 #include "oid40.h"
 #include "oid40_repair.h"
 
-extern reiser4_plug_t oid40_plug;
-
 static uint32_t oid40_get_state(generic_entity_t *entity) {
 	aal_assert("umka-2088", entity != NULL);
 	return ((oid40_t *)entity)->state;
