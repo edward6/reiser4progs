@@ -13,7 +13,8 @@ extern void reiser4_fs_close(reiser4_fs_t *fs);
 extern errno_t reiser4_fs_root_key(reiser4_fs_t *fs,
 				   reiser4_key_t *key);
 
-extern reiser4_fs_t *reiser4_fs_open(aal_device_t *device);
+extern reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
+				     bool_t check);
 
 #ifndef ENABLE_STAND_ALONE
 extern errno_t reiser4_fs_resize(reiser4_fs_t *fs,

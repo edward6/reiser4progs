@@ -6,7 +6,9 @@
 #include <reiser4/reiser4.h>
 
 /* Opens filesystem on specified device */
-reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
+reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
+			      bool_t check)
+{
 #ifndef ENABLE_STAND_ALONE
 	count_t blocks;
 	uint32_t blksize;
@@ -26,8 +28,10 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 		goto error_free_fs;
     
 #ifndef ENABLE_STAND_ALONE
-	if (reiser4_master_valid(fs->master))
-		goto error_free_master;
+	if (check) {
+		if (reiser4_master_valid(fs->master))
+			goto error_free_master;
+	}
 
 	blksize = reiser4_master_get_blksize(fs->master);
 
@@ -48,8 +52,10 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 		reiser4_param_override("key", "key_short");
 	}
 	
-	if (reiser4_format_valid(fs->format))
-		goto error_free_format;
+	if (check) {
+		if (reiser4_format_valid(fs->format))
+			goto error_free_format;
+	}
 	
 	if ((blocks = reiser4_format_get_len(fs->format)) == INVAL_BLK)
 		goto error_free_format;
@@ -58,17 +64,21 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 	if (!(fs->alloc = reiser4_alloc_open(fs, blocks)))
 		goto error_free_format;
 
-	if (reiser4_alloc_valid(fs->alloc)) {
-		aal_exception_warn("Block allocator data "
-				   "seems corrupted.");
+	if (check) {
+		if (reiser4_alloc_valid(fs->alloc)) {
+			aal_exception_warn("Block allocator data "
+					   "seems corrupted.");
+		}
 	}
 	
 	/* Initializes oid allocator */
 	if (!(fs->oid = reiser4_oid_open(fs)))
 		goto error_free_alloc;
   
-	if (reiser4_oid_valid(fs->oid))
-		goto error_free_oid;
+	if (check) {
+		if (reiser4_oid_valid(fs->oid))
+			goto error_free_oid;
+	}
 #endif
 	
 	return fs;
@@ -81,7 +91,6 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
  error_free_format:
 	reiser4_format_close(fs->format);
 #endif
-
  error_free_status:
 #ifndef ENABLE_STAND_ALONE
 	reiser4_status_close(fs->status);

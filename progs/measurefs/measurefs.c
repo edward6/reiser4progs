@@ -756,7 +756,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Open file system on the device */
-	if (!(fs = reiser4_fs_open(device))) {
+	if (!(fs = reiser4_fs_open(device, TRUE))) {
 		aal_exception_error("Can't open reiser4 on %s",
 				    host_dev);
 		goto error_free_device;
