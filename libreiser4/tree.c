@@ -825,12 +825,6 @@ errno_t reiser4_tree_insert(
 	return -1;
     }
 
-    /* 
-	Correcting unit position in the case lookup was called for pasting unit 
-	into existent item, not for inserting new item.
-    */
-//    coord->pos.unit += (coord->pos.unit != ~0ul ? 1 : 0);
-    
     /* Estimating item in order to insert it into found node */
     reiser4_item_init(&item, coord->cache->node, &coord->pos);
 	
