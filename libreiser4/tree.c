@@ -773,12 +773,9 @@ lookup_t reiser4_tree_lookup(
 
 	reiser4_place_init(place, tree->root, &pos);
 
-	if (reiser4_tree_fresh(tree))
-		return LP_ABSENT;
-	
 	/* Making sure that root exists */
 	if (reiser4_tree_load_root(tree))
-		return LP_FAILED;
+		return LP_ABSENT;
     
 	reiser4_place_init(place, tree->root, &pos);
 	
@@ -811,13 +808,17 @@ lookup_t reiser4_tree_lookup(
 
 		/* Position correcting for internal levels */
 		if (res == LP_ABSENT) {
-			if ((place->pos.unit == ~0ul || place->pos.unit == 0) && 
+			
+			if ((place->pos.unit == ~0ul ||
+			     place->pos.unit == 0) && 
 			    place->pos.item == 0)
 			{
 				return LP_FAILED;
 			}
 		
-			if (place->pos.unit == ~0ul || place->pos.unit == 0) {
+			if (place->pos.unit == ~0ul ||
+			    place->pos.unit == 0)
+			{
 				place->pos.item--;
 				place->pos.unit = ~0ul;
 			} else {
@@ -839,8 +840,9 @@ lookup_t reiser4_tree_lookup(
 			}
 
 			return res;
-		} else if (res == LP_ABSENT && place->pos.unit == ~0ul) {
-			place->pos.unit = reiser4_item_units(place) - 1;
+		} else {
+			if (res == LP_ABSENT && place->pos.unit == ~0ul)
+				place->pos.unit = reiser4_item_units(place) - 1;
 		}
 
 		/* Loading node by nodeptr item @place points to */
@@ -1010,9 +1012,6 @@ errno_t reiser4_tree_growup(
 	aal_assert("umka-1701", tree != NULL);
 	aal_assert("umka-1736", tree->root != NULL);
 	
-	if ((res = reiser4_tree_fresh(tree)))
-		return res;
-
 	if ((res = reiser4_tree_load_root(tree)))
 		return res;
 	
@@ -1061,9 +1060,6 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	aal_assert("umka-1731", tree != NULL);
 	aal_assert("umka-1737", tree->root != NULL);
 
-	if (reiser4_tree_fresh(tree))
-		return -EINVAL;
-	
 	if (reiser4_tree_minimal(tree))
 		return -EINVAL;
 

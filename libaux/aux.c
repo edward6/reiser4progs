@@ -38,6 +38,7 @@ int aux_bin_search(
 	     i = (right + left) / 2)
 	{
 		res = comp_func(array, i, needle, data);
+		
 		if (res == -1) {
 			left = i + 1;
 			continue;
@@ -62,29 +63,36 @@ int aux_bin_search(
 errno_t aux_parse_path(char *path, aux_pre_entry_t pre_func,
 		       aux_post_entry_t post_func, void *data)
 {
-	char track[256];
-	char local[256];
+#ifndef ENABLE_STAND_ALONE
+	char track[256] = {0};
+#endif
 	
+	char local[256];
 	char *entry = NULL;
 	char *pointer = NULL;
 
-	aal_memset(track, 0, sizeof(track));
-	aal_memset(local, 0, sizeof(local));
-	aal_strncpy(local, path, sizeof(local));
+	aal_strncpy(local, path,
+		    sizeof(local));
 	
 	pointer = &local[0];
 	
 	while (1) {
 		errno_t res;
-		uint32_t len;
+
+#ifndef ENABLE_STAND_ALONE
+		uint16_t len;
 
 		len = aal_strlen(track);
 			
-		if (track[len - 1] != '/')
+		if (len == 0 || track[len - 1] != '/')
 			track[len] = '/';
-		
+
 		if ((res = pre_func(track, entry, data)))
 			return res;
+#else
+		if ((res = pre_func(NULL, entry, data)))
+			return res;
+#endif
     
 		if (!(entry = aal_strsep(&pointer, "/")))
 			return 0;
@@ -92,10 +100,15 @@ errno_t aux_parse_path(char *path, aux_pre_entry_t pre_func,
 		if (!aal_strlen(entry))
 			continue;
 	
+#ifndef ENABLE_STAND_ALONE
 		aal_strncat(track, entry, aal_strlen(entry));
 
 		if ((res = post_func(track, entry, data)))
 			return res;
+#else
+		if ((res = post_func(NULL, entry, data)))
+			return res;
+#endif
 	}
 
 	return 0;
