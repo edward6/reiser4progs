@@ -695,8 +695,11 @@ static errno_t cde_short_insert(item_entity_t *item,
 
 		ha_set_offset(entid, off);
 
+		/* Setting up objid fields */
 		object = &entry_hint->object;
-		aal_memcpy(objid, object->body, sizeof(*objid));
+
+		aal_memcpy(objid, object->body,
+			   sizeof(*objid));
 
 		offset += sizeof(objid_t);
 

@@ -104,6 +104,20 @@ static uint64_t key_short_get_objectid(key_entity_t *key) {
 	return ks_get_objectid((key_short_t *)key->body);
 }
 
+/* Sets up full key objectid */
+static void key_short_set_fobjectid(key_entity_t *key, 
+				    uint64_t objectid) 
+{
+	aal_assert("umka-2345", key != NULL);
+	ks_set_fobjectid((key_short_t *)key->body, objectid);
+}
+
+/* Returns full key objectid */
+static uint64_t key_short_get_fobjectid(key_entity_t *key) {
+	aal_assert("umka-2346", key != NULL);
+	return ks_get_fobjectid((key_short_t *)key->body);
+}
+
 /* Sets up key offset */
 static void key_short_set_offset(key_entity_t *key, 
 				 uint64_t offset)
@@ -406,13 +420,13 @@ static reiser4_key_ops_t key_short_ops = {
 	.set_objectid	   = key_short_set_objectid,
 	.get_objectid	   = key_short_get_objectid,
 
+	.set_fobjectid	   = key_short_set_fobjectid,
+	.get_fobjectid	   = key_short_get_fobjectid,
+
 	.set_ordering	   = key_short_set_ordering,
 	.get_ordering	   = key_short_get_ordering,
 	
-	.get_name          = key_short_get_name,
-
-	.set_fobjectid	   = NULL,
-	.get_fobjectid	   = NULL
+	.get_name          = key_short_get_name
 };
 
 static reiser4_plugin_t key_short_plugin = {

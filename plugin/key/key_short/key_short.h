@@ -23,6 +23,7 @@ typedef enum {
     
 	/* Object id. Sits in 2nd element */
 	KEY_SHORT_OBJECTID_INDEX   = 1,
+	KEY_SHORT_FOBJECTID_INDEX  = 1,
     
 	/* Offset. Sits in 3rd element */
 	KEY_SHORT_OFFSET_INDEX     = 2,
@@ -52,6 +53,7 @@ typedef enum {
     
 	/* Objectid occupies lower 60 bits of the 2nd element */
 	KEY_SHORT_OBJECTID_MASK    = 0x0fffffffffffffffull,
+	KEY_SHORT_FOBJECTID_MASK   = 0xffffffffffffffffull,
     
 	/* Offset is just 3rd L.M.Nt itself */
 	KEY_SHORT_OFFSET_MASK      = 0xffffffffffffffffull,
@@ -60,14 +62,15 @@ typedef enum {
 	KEY_SHORT_HASH_MASK        = 0xffffffffffffff00ull,
 } key_short_mask_t;
 
-#define OBJECTID_CHARS (sizeof(uint64_t) - 1)
 #define OFFSET_CHARS   (sizeof(uint64_t))
+#define OBJECTID_CHARS (sizeof(uint64_t) - 1)
 
 typedef enum {
 	KEY_SHORT_LOCALITY_SHIFT   = 4,
 	KEY_SHORT_TYPE_SHIFT       = 0,
 	KEY_SHORT_BAND_SHIFT       = 60,
 	KEY_SHORT_OBJECTID_SHIFT   = 0,
+	KEY_SHORT_FOBJECTID_SHIFT  = 0,
 	KEY_SHORT_OFFSET_SHIFT     = 0,
 	KEY_SHORT_HASH_SHIFT       = 8,
 	KEY_SHORT_GEN_SHIFT        = 0,
@@ -129,6 +132,7 @@ KEY_SHORT_FIELD_HANDLER(locality, LOCALITY, uint64_t);
 KEY_SHORT_FIELD_HANDLER(minor, TYPE, key_minor_t);
 KEY_SHORT_FIELD_HANDLER(band, BAND, uint64_t);
 KEY_SHORT_FIELD_HANDLER(objectid, OBJECTID, uint64_t);
+KEY_SHORT_FIELD_HANDLER(fobjectid, FOBJECTID, uint64_t);
 KEY_SHORT_FIELD_HANDLER(offset, OFFSET, uint64_t);
 KEY_SHORT_FIELD_HANDLER(hash, HASH, uint64_t);
 #endif

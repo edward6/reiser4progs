@@ -330,6 +330,13 @@ static errno_t extent40_estimate_insert(item_entity_t *item,
 	return 0;
 }
 
+static errno_t extent40_insert(item_entity_t *item,
+			       create_hint_t *hint,
+			       uint32_t pos)
+{
+	return -EINVAL;
+}
+
 /* Calls @func for each block number extent points to. It is needed for
    calculating fragmentation, etc. */
 static errno_t extent40_layout(item_entity_t *item,
@@ -579,6 +586,7 @@ static reiser4_item_ops_t extent40_ops = {
 	.expand           = extent40_expand,
 	.shrink           = extent40_shrink,
 	.remove	          = extent40_remove,
+	.insert           = extent40_insert,
 	.print	          = extent40_print,
 	.shift            = extent40_shift,
 	.layout           = extent40_layout,
@@ -591,7 +599,6 @@ static reiser4_item_ops_t extent40_ops = {
 	.estimate_insert  = extent40_estimate_insert,
 	
 	.init	          = NULL,
-	.insert           = NULL,
 	.overhead         = NULL,
 	.set_key          = NULL,
 	.get_plugid	  = NULL,

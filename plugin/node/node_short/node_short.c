@@ -34,14 +34,6 @@ void *node_short_ib_at(node_t *node,
 	return node->block->data + ih_get_offset(ih);
 }
 
-/* Returns node free space end offset */
-uint16_t node_short_free_space_end(node_t *node) {
-	uint32_t items = nh_get_num_items(node);
-	
-	return aal_block_size(node->block) -
-		(items * sizeof(item_header_t));
-}
-
 static object_entity_t *node_short_init(aal_device_t *device,
 					uint32_t size, blk_t blk)
 {
@@ -61,8 +53,8 @@ static uint16_t node_short_len(object_entity_t *entity,
 {
 	item_header_t *ih;
     
-	aal_assert("vpf-037", entity != NULL);
 	aal_assert("umka-942", pos != NULL);
+	aal_assert("vpf-037", entity != NULL);
 	aal_assert("umka-2024", loaded(entity));
 
 	/* Item length is calculated as next item body offset minus current item
