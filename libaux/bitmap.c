@@ -95,15 +95,15 @@ int aux_bitmap_test(
 void aux_bitmap_mark_region(
 	aux_bitmap_t *bitmap,	    /* bitmap range of bits to be marked in */
 	uint64_t start,		    /* start bit of the range */
-	uint64_t end)		    /* bit count to be marked */
+	uint64_t count)		    /* bit count to be marked */
 {
 	aal_assert("vpf-472", bitmap != NULL, return);
 
 	aux_bitmap_bound_check(bitmap, start, return);
-	aux_bitmap_bound_check(bitmap, end - 1, return);
+	aux_bitmap_bound_check(bitmap, start + count - 1, return);
 	
-	aal_set_bits(bitmap->map, start, end);
-	bitmap->marked += (end - start);
+	aal_set_bits(bitmap->map, start, count);
+	bitmap->marked += count;
 }
 
 /* 
@@ -113,34 +113,33 @@ void aux_bitmap_mark_region(
 void aux_bitmap_clear_region(
 	aux_bitmap_t *bitmap,	    /* bitmap range of blocks will be cleared in */
 	uint64_t start,		    /* start bit of the range */
-	uint64_t end)		    /* bit count to be clean */
+	uint64_t count)		    /* bit count to be clean */
 {
 	aal_assert("vpf-473", bitmap != NULL, return);
 
 	aux_bitmap_bound_check(bitmap, start, return);
-	aux_bitmap_bound_check(bitmap, end - 1, return);
+	aux_bitmap_bound_check(bitmap, start + count - 1, return);
 	
-	aal_clear_bits(bitmap->map, start, end);
-	
-	bitmap->marked -= (end - start);
+	aal_clear_bits(bitmap->map, start, count);
+	bitmap->marked -= count;
 }
 
 /* Tests if all bits of the interval [start,end) are marked in the bitmap. */
 bool_t aux_bitmap_test_region_marked(
 	aux_bitmap_t *bitmap,	    /* bitmap, range of blocks to be tested in */
 	uint64_t start,		    /* start bit of the range */
-	uint64_t end)		    /* bit count to be marked */
+	uint64_t count)		    /* bit count to be marked */
 {
 	blk_t next;
 	
 	aal_assert("vpf-474", bitmap != NULL, return FALSE);
 	
 	aux_bitmap_bound_check(bitmap, start, return FALSE);
-	aux_bitmap_bound_check(bitmap, end - 1, return FALSE);
+	aux_bitmap_bound_check(bitmap, start + count - 1, return FALSE);
 	
 	next = aux_bitmap_find_cleared(bitmap, start);
 
-	if (next >= start && next < end)
+	if (next >= start && next < start + count)
 		return FALSE;
 
 	return TRUE;
@@ -183,22 +182,26 @@ uint64_t aux_bitmap_find_marked(
 	return bit;
 }
 
-/* Tests if all bits of the interval [start,end) are cleared in the bitmap. */
+/*
+  Tests if all bits of the interval [start, count] are cleared in the
+  bitmap.
+*/
 bool_t aux_bitmap_test_region_cleared(
-	aux_bitmap_t *bitmap,	    /* bitmap, range of blocks to be tested in */
+	aux_bitmap_t *bitmap,	    /* bitmap for working with */
 	uint64_t start,		    /* start bit of the range */
-	uint64_t end)		    /* bit count to be clean */
+	uint64_t count)		    /* bit count to be clean */
 {
 	blk_t next;
+	
 	aal_assert("vpf-471", bitmap != NULL, return FALSE);
-	aal_assert("vpf-728", start < end, return FALSE);
+	aal_assert("vpf-728", count > 0, return FALSE);
 	
 	aux_bitmap_bound_check(bitmap, start, return FALSE);
-	aux_bitmap_bound_check(bitmap, end - 1, return FALSE);
+	aux_bitmap_bound_check(bitmap, start + count - 1, return FALSE);
 	
 	next = aux_bitmap_find_marked(bitmap, start);
 
-	if (next >= start && next < end)
+	if (next >= start && next < start + count)
 		return FALSE;
 
 	return TRUE;
@@ -236,7 +239,7 @@ uint64_t aux_bitmap_find_region_marked(
 static uint64_t aux_bitmap_calc(
 	aux_bitmap_t *bitmap,	   /* bitmap will be used for calculating bits */
 	uint64_t start,		   /* start bit, calculating should be performed from */
-	uint64_t end,		   /* end bit, calculating should be stoped on */
+	uint64_t count,		   /* end bit, calculating should be stoped on */
 	int flag)		   /* flag for kind of calculating (marked or cleared) */
 {
 	uint64_t i, bits = 0;
@@ -244,9 +247,9 @@ static uint64_t aux_bitmap_calc(
 	aal_assert("umka-340", bitmap != NULL, return INVAL_BLK);
 	
 	aux_bitmap_bound_check(bitmap, start, return INVAL_BLK);
-	aux_bitmap_bound_check(bitmap, end - 1, return INVAL_BLK);
+	aux_bitmap_bound_check(bitmap, start + count - 1, return INVAL_BLK);
 	
-	for (i = start; i < end; i++)
+	for (i = start; i < start + count; i++)
 		bits += aux_bitmap_test(bitmap, i) ? flag : !flag;
 
 	return bits;
@@ -259,18 +262,18 @@ static uint64_t aux_bitmap_calc(
 uint64_t aux_bitmap_calc_region_marked(
 	aux_bitmap_t *bitmap,	/* bitmap calculation will be performed in */
 	uint64_t start,		/* start bit (block) */
-	uint64_t end)		/* end bit (block) */
+	uint64_t count)		/* end bit (block) */
 {
-	return aux_bitmap_calc(bitmap, start, end, 1);
+	return aux_bitmap_calc(bitmap, start, count, 1);
 }
 
 /* The same as previous one */
 uint64_t aux_bitmap_calc_region_cleared(
 	aux_bitmap_t *bitmap,	/* bitmap calculation will be performed in */
 	uint64_t start,	        /* start bit */
-	uint64_t end)		/* end bit */
+	uint64_t count)		/* end bit */
 {
-	return aux_bitmap_calc(bitmap, start, end, 0);
+	return aux_bitmap_calc(bitmap, start, count, 0);
 }
 
 /* Public wrapper for previous function */
@@ -360,4 +363,3 @@ char *aux_bitmap_map(
 	aal_assert("umka-356", bitmap != NULL, return NULL);
 	return bitmap->map;
 }
-

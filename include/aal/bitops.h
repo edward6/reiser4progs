@@ -29,9 +29,9 @@ extern inline bit_t aal_find_set_bits(void *map, bit_t size,
 				      bit_t *start, bit_t count);
 
 extern inline void aal_clear_bits(void *map, bit_t start,
-				  bit_t end);
+				  bit_t count);
 
 extern inline void aal_set_bits(void *map, bit_t start,
-				bit_t end);
+				bit_t count);
 
 #endif

@@ -148,17 +148,17 @@ inline bit_t aal_find_next_set_bit(void *map,
         return size;
 }
 
-/* Makes cleanup of bits inside range @start - @end */
+/* Makes cleanup of bits inside range @start and @count */
 inline void aal_clear_bits(void *map, 
 			   bit_t start, 
-			   bit_t end)
+			   bit_t count)
 {
 	int end_byte;
 	int start_byte;
 	char *addr = map;
 
         start_byte = start >> 3;
-        end_byte = (end - 1) >> 3;
+        end_byte = (start + count - 1) >> 3;
 
         if (end_byte > start_byte + 1) {
                 aal_memset(addr + start_byte + 1, 0,
@@ -171,29 +171,29 @@ inline void aal_clear_bits(void *map,
 		bits = start - (start_byte * 8);
 		
 		addr[start_byte] &= 0xff >>
-			(0x8 - (bits + (end - start)));
+			(0x8 - (bits + count));
         } else {
 		bit_t bits;
 		
 		bits = start - (start_byte * 8);
 		addr[start_byte] &= (0xff >> bits << bits);
 
-		bits = end - (end_byte * 8);
+		bits = (start + count) - (end_byte * 8);
 		addr[end_byte] &= (0xff >> bits);
         }
 }
 
-/* Sets up the bits inside range @start - @end */
+/* Sets up the bits inside range @start and @count */
 inline void aal_set_bits(void *map, 
 			 bit_t start, 
-			 bit_t end)
+			 bit_t count)
 {
 	int end_byte;
 	int start_byte;
 	char *addr = map;
 
 	start_byte = start >> 3;
-	end_byte = (end - 1) >> 3;
+	end_byte = (start + count - 1) >> 3;
 
 	if (end_byte > start_byte + 1) {
 		aal_memset(addr + start_byte + 1, 0xff,
@@ -206,14 +206,14 @@ inline void aal_set_bits(void *map,
 		bits = start - (start_byte * 8);
 		
 		addr[start_byte] |= 0xff >>
-			(0x8 - (bits + (end - start)));
+			(0x8 - (bits + count));
         } else {
 		bit_t bits;
 		
 		bits = start - (start_byte * 8);
 		addr[start_byte] |= (0xff >> bits << bits);
 
-		bits = end - (end_byte * 8);
+		bits = (start + count) - (end_byte * 8);
 		addr[end_byte] |= (0xff >> bits);
         }
 }

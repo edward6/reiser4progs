@@ -349,7 +349,7 @@ static errno_t alloc40_occupy_region(object_entity_t *entity,
 	aal_assert("umka-370", alloc != NULL, return -1);
 	aal_assert("umka-371", alloc->bitmap != NULL, return -1);
     
-	aux_bitmap_mark_region(alloc->bitmap, start, start + count);
+	aux_bitmap_mark_region(alloc->bitmap, start, count);
 	return 0;
 }
 
@@ -362,7 +362,7 @@ static errno_t alloc40_release_region(object_entity_t *entity,
 	aal_assert("umka-372", alloc != NULL, return -1);
 	aal_assert("umka-373", alloc->bitmap != NULL, return -1);
     
-	aux_bitmap_clear_region(alloc->bitmap, start, start + count);
+	aux_bitmap_clear_region(alloc->bitmap, start, count);
 	return 0;
 }
 
@@ -395,10 +395,8 @@ static uint64_t alloc40_allocate_region(object_entity_t *entity,
 	  will decide is found area enough convenient or not. If so, he will
 	  call marking found area as occupied by himself.
 	*/
-	if (found > 0) {
-		aux_bitmap_mark_region(alloc->bitmap, *start,
-				       *start + found);
-	}
+	if (found > 0)
+		aux_bitmap_mark_region(alloc->bitmap, *start, found);
 
 	return found;
 }
@@ -468,8 +466,8 @@ static int alloc40_used_region(object_entity_t *entity,
 	aal_assert("umka-663", alloc != NULL, return -1);
 	aal_assert("umka-664", alloc->bitmap != NULL, return -1);
 
-	return aux_bitmap_test_region_marked(alloc->bitmap, start,
-					     start + count);
+	return aux_bitmap_test_region_marked(alloc->bitmap,
+					     start, count);
 }
 
 /* Checks whether specified blocks are unused */
@@ -482,8 +480,8 @@ static int alloc40_unused_region(object_entity_t *entity,
 	aal_assert("vpf-700", alloc != NULL, return -1);
 	aal_assert("vpf-701", alloc->bitmap != NULL, return -1);
 
-	return aux_bitmap_test_region_cleared(alloc->bitmap, start,
-					      start + count);
+	return aux_bitmap_test_region_cleared(alloc->bitmap,
+					      start, count);
 }
 
 /*
