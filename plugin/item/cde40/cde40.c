@@ -913,6 +913,10 @@ errno_t cde40_maxposs_key(place_t *place,
 	maxkey = plug_call(key->plug->o.key_ops,
 			   maximal);
     
+    	plug_call(key->plug->o.key_ops, set_ordering,
+		  key, plug_call(key->plug->o.key_ops,
+				 get_ordering, maxkey));
+	
     	plug_call(key->plug->o.key_ops, set_objectid,
 		  key, plug_call(key->plug->o.key_ops,
 				 get_objectid, maxkey));

@@ -15,8 +15,8 @@ inline uint32_t node40_key_pol(node40_t *node) {
 /* Returns item header by pos */
 void *node40_ih_at(node40_t *node, uint32_t pos) {
 	void *ih = node->block->data + node->block->size;
-	uint32_t pol = ih_size(node40_key_pol(node));
-	return (ih - (pol * (pos - 1)));
+	uint32_t size = ih_size(node40_key_pol(node));
+	return (ih - (size * (pos + 1)));
 }
 
 /* Retutrns item body by pos */
