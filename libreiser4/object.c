@@ -98,6 +98,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		return res;
 	}
 
+#ifdef ENABLE_SYMLINKS_SUPPORT
 	/* Getting object plugin */
 	if ((res = reiser4_object_guess(object))) {
 		aal_exception_error("Can't guess object plugin for "
@@ -106,7 +107,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	}
 
 	plugin = object->entity->plugin;
-	
+
 	/* Symlinks handling. Method "follow" should be implemented */
 	if (plugin->object_ops.follow) {
 		if ((res = plugin->object_ops.follow(object->entity,
@@ -115,9 +116,10 @@ static errno_t callback_find_statdata(char *track, char *entry,
 			aal_exception_error("Can't follow %s.", track);
 		}
 	}
-
+	
 	plugin_call(plugin->object_ops, close, object->entity);
 	object->entity = NULL;
+#endif
 	
 	return res;
 }
@@ -162,6 +164,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 
 	plugin_call(plugin->object_ops, close, object->entity);
 	object->entity = NULL;
+	
 	return res;
 }
 

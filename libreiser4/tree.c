@@ -257,9 +257,7 @@ errno_t reiser4_tree_disconnect(
 		return 0;
 	}
 
-#ifndef ENABLE_STAND_ALONE
 	reiser4_node_unlock(parent);
-#endif
 	
 	return reiser4_node_disconnect(parent, node);
 }

@@ -14,6 +14,7 @@ AH_TEMPLATE([ENABLE_MONOLITHIC], [Define for enable monolotic build.])
 AH_TEMPLATE([ENABLE_MEMORY_MANAGER], [Define for enable simple memory manager in libaal.])
 AH_TEMPLATE([ENABLE_COLLISIONS_HANDLING], [Define for enable key collision workaround code.])
 AH_TEMPLATE([ENABLE_PLUGINS_CHECK], [Define for enable plugins check code.])
+AH_TEMPLATE([ENABLE_SYMLINKS_SUPPORT], [Define for enable symlinks.])
 AH_TEMPLATE([HAVE_LIBUUID], [Define for enable libuuid using.])
 AH_TEMPLATE([HAVE_LIBREADLINE], [Define for enable libreadline using.])
 
@@ -134,6 +135,11 @@ AC_ARG_ENABLE(collisions_handling,
 AC_ARG_ENABLE(plugins_check,
     [  --disable-plugins-check        disable plugins check in plugin factory [default=on]], ,
         enable_plugins_check=yes
+)
+
+AC_ARG_ENABLE(symlinks_support,
+    [  --disable-symlinks-support     disable symlinks support [default=on]], ,
+        enable_symlinks_support=yes
 )
 
 AC_ARG_ENABLE(r5_hash,
@@ -301,10 +307,15 @@ if test x$enable_plugins_check = xyes; then
     AC_DEFINE(ENABLE_PLUGINS_CHECK)
 fi
 
+if test x$enable_symlinks_support = xyes; then
+    AC_DEFINE(ENABLE_SYMLINKS_SUPPORT)
+fi
+
 AM_CONDITIONAL(ENABLE_R5_HASH, test x$enable_r5_hash = xyes)
+AM_CONDITIONAL(ENABLE_TEA_HASH, test x$enable_tea_hash = xyes)
 AM_CONDITIONAL(ENABLE_FNV1_HASH, test x$enable_fnv1_hash = xyes)
 AM_CONDITIONAL(ENABLE_RUPASOV_HASH, test x$enable_rupasov_hash = xyes)
-AM_CONDITIONAL(ENABLE_TEA_HASH, test x$enable_tea_hash = xyes)
+AM_CONDITIONAL(ENABLE_SYMLINKS_SUPPORT, test x$enable_symlinks_support = xyes)
 
 PLUGIN_LDFLAGS=""
 if test x$enable_monolithic = xno; then

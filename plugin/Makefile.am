@@ -34,6 +34,14 @@ else
 monolithic_tea_hash_libs        =
 endif
 
+if ENABLE_SYMLINKS_SUPPORT
+monolithic_sym40_libs           = object/sym40/libsym40-static.la
+monolithic_sdext_symlink_libs   = sdext/sdext_symlink/libsdext_symlink-static.la
+else
+monolithic_sym40_libs           = 
+monolithic_sdext_symlink_libs   = 
+endif
+
 libreiser4_plugin_la_LIBADD  	= format/format40/libformat40-static.la \
 			          journal/journal40/libjournal40-static.la \
 			          alloc/alloc40/liballoc40-static.la \
@@ -48,11 +56,11 @@ libreiser4_plugin_la_LIBADD  	= format/format40/libformat40-static.la \
 			          object/obj40/libobj40-static.la \
 			          object/dir40/libdir40-static.la \
 			          object/reg40/libreg40-static.la \
-			          object/sym40/libsym40-static.la \
+				  $(monolithic_sym40_libs) \
 			          sdext/sdext_unix/libsdext_unix-static.la \
 			          sdext/sdext_lw/libsdext_lw-static.la \
 			          sdext/sdext_lt/libsdext_lt-static.la \
-			          sdext/sdext_symlink/libsdext_symlink-static.la \
+			          $(monolithic_sdext_symlink_libs) \
 				  $(monolithic_r5_hash_libs) $(monolithic_fnv1_hash_libs) \
                                   $(monolithic_rupasov_hash_libs) $(monolithic_tea_hash_libs)
 endif
@@ -83,6 +91,14 @@ else
 alone_tea_hash_libs            	=
 endif
 
+if ENABLE_SYMLINKS_SUPPORT
+alone_sym40_libs                = object/sym40/libsym40-alone.la
+alone_sdext_symlink_libs        = sdext/sdext_symlink/libsdext_symlink-alone.la
+else
+alone_sym40_libs                = 
+alone_sdext_symlink_libs        = 
+endif
+
 libreiser4_plugin_alone_la_LIBADD = format/format40/libformat40-alone.la \
 			          oid/oid40/liboid40-alone.la \
 			          node/node40/libnode40-alone.la \
@@ -95,11 +111,11 @@ libreiser4_plugin_alone_la_LIBADD = format/format40/libformat40-alone.la \
 			          object/obj40/libobj40-alone.la \
 			          object/dir40/libdir40-alone.la \
 			          object/reg40/libreg40-alone.la \
-			          object/sym40/libsym40-alone.la \
+			          $(alone_sym40_libs) \
 			          sdext/sdext_unix/libsdext_unix-alone.la \
 			          sdext/sdext_lw/libsdext_lw-alone.la \
 			          sdext/sdext_lt/libsdext_lt-alone.la \
-			          sdext/sdext_symlink/libsdext_symlink-alone.la \
+			          $(alone_sdext_symlink_libs) \
 				  $(alone_r5_hash_libs) $(alone_fnv1_hash_libs) \
                                   $(alone_rupasov_hash_libs) $(alone_tea_hash_libs)
 
