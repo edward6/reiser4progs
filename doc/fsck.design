@@ -1,10 +1,10 @@
 
          Reiser4 File System Recovery Process.
 
-Reiser4 is supposed to work with different kind of elements through plugins.
+Reiser4 is supposed to work with different kinds of elements through plugins.
 Reiser4fsck will be based on plugins also, but in contrast to the kernel
 plugins, fsck plugins will have some extra methods to support not only object
-managing, but their recovering also (of course, fsck does not need some kernel
+managing, but also their recovery (of course, fsck does not need some kernel
 methods in every plugin, and almost all methods will be slightly different).
 All this plugins will compose reiser4lib. We will call them as fsck plugins and
 non-fsck plugins further.
@@ -27,15 +27,15 @@ check method must be defined.
 All these methods (walking the tree and check) will be the same as in
 the non-fsck plugins.
 
-2. Delete all nodes which are not consistent from the tree.
+2. Delete all nodes which are inconsistent from the tree.
 
 These methods will be taken from the non-fsck plugins also.
 
 3. Collect all useful information about nodes which are left in the tree -
-   internal nodes, leaves, unformatted nodes, double pointed, etc.
+   internal nodes, leaves, unformatted nodes, double pointers, etc.
 
 As we do not have a bitmap plugin, all needed methods (create, delete, copy,
-zero, set bit, clear bit, other) could be taked from the kernel part or
+zero, set bit, clear bit, other) could be taken from the kernel part or
 reiserfsck for v3.
 
 4. Correct on-disk bitmaps.
@@ -230,4 +230,5 @@ Go through all leaves in the internal tree order and:
 Methods connect should be implemented for directory/file plugins. This method will
 move a file/directory into directory with specified id. That is how we will move
 all unreachable objects into lost+found.
+
 

@@ -35,7 +35,7 @@ prints program help.
 assumes an answer 'yes' to all questions.
 .TP
 .B -f, --force
-makes cpfs to use whole disk, not block device or mounted partition.
+forces cpfs to use whole disk, not block device or mounted partition.
 .TP
 .B -c, --cache N
 sets tree cache node number to passed value. This affects very much
@@ -48,15 +48,15 @@ parts of a filesystem -- format, nodes, files, directories, hashes, etc. If
 --override is specified, then prints modified plugins.
 .TP
 .B -l, --print-plugins
-prints all plugins libreiser4 know about.
+prints all plugins libreiser4 knows about.
 .TP
 .B -o, --override TYPE=PLUGIN, ...
 overrides the default plugin of the type "TYPE" by the plugin "PLUGIN"
 in the plugin profile.
 .sp 1
-Examples:
+Example:
 .sp 1
-cpfs.reiser4 -qf -o nodeptr=nodeptr41,hash=rupasov_hash /dev/hda2 /dev/hda3
+cpfs.reiser4 -yf -o nodeptr=nodeptr41,hash=rupasov_hash /dev/hda2 /dev/hda3
 .RS
 .SH REPORTING BUGS
 Report bugs to <umka@namesys.com>, <reiserfs-list@namesys.com>

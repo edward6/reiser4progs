@@ -36,7 +36,7 @@ prints program help.
 assumes an answer 'yes' to all questions.
 .TP
 .B -f, --force
-makes debugfs to use whole disk, not block device or mounted partition.
+forces debugfs to use whole disk, not block device or mounted partition.
 .TP
 .B -c, --cache N
 sets tree cache node number to passed value. This affects very much
@@ -51,19 +51,19 @@ browses passed file like standard cat and ls programs.
 prints the internal tree.
 .TP
 .B -b, --print-block N
-prints block by passed block number.
+prints the block associated with the passed block number.
 .TP
 .B -n, --print-nodes FILE
-prints all nodes passed file lies in.
+prints all nodes that the passed file lies in.
 .TP
 .B -i, --print-file
-prints all items passed file consists of.
+prints all items that the passed file consists of.
 .TP
 .B -s, --print-super
 prints the both super blocks: master super block and format specific one.
 .TP
 .B -j, --print-journal
-prints the journal with not commited transaction (if any).
+prints the journal with un-commited transaction (if any).
 .TP
 .B -a, --print-alloc
 prints the block allocator data.
@@ -73,11 +73,10 @@ prints the oid allocator data.
 .SH METADATA OPTIONS
 .TP
 .B -P, --pack-metadata
-fetches filesystem metadata and writes it to standard output.
+fetches filesystem metadata and writes them to the standard output.
 .TP
 .B -U, --unpack-metadata
-uses metadata stream from stdandard input to construct filesystem on
-it.
+uses metadata stream from the stdandard input to construct filesystem on them.
 .SH PLUGIN OPTIONS
 .TP
 .B -p, --print-profile
@@ -86,7 +85,7 @@ parts of a filesystem -- format, nodes, files, directories, hashes, etc. If
 --override is specified, then prints modified plugins.
 .TP
 .B -l, --print-plugins
-prints all plugins libreiser4 know about.
+prints all plugins libreiser4 knows about.
 .TP
 .B -o, --override TYPE=PLUGIN, ...
 overrides the default plugin of the type "TYPE" by the plugin "PLUGIN"

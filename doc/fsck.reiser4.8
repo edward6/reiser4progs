@@ -39,7 +39,7 @@ fixes all severe corruptions in super blocks, rebuilds super blocks from scratch
 fixes all severe fs corruptions, except super block ones; rebuilds reiser4 filesystem from the scratch if needed.
 .TP
 .B -L, --logfile
-makes fsck to report any corruption it finds to the specified logfile rather then on stderr.
+forces fsck to report any corruption it finds to the specified logfile rather then on stderr.
 .TP
 .B -n, --no-log
 prevents fsck from reporting any kind of corruption.
@@ -68,13 +68,13 @@ prints program version
 prints program help
 .TP
 .B -q, --quiet
-supresses gauges.
+suppress messages.
 .TP
 .B -y, --yes
 assumes an answer 'yes' to all questions.
 .TP
 .B -f, --force
-makes fsck to use whole disk, not block device or mounted partition.
+forces fsck to use whole disk, not block device or mounted partition.
 .RS
 .SH REPORTING BUGS
 Report bugs to <vitaly@namesys.com>, <reiserfs-list@namesys.com>

@@ -37,7 +37,7 @@ prints program help.
 assumes an answer 'yes' to all questions.
 .TP
 .B -f, --force
-makes measurefs to use whole disk, not block device or mounted partition.
+forces measurefs to use whole disk, not block device or mounted partition.
 .TP
 .B -c, --cache N
 sets tree cache node number to passed value. This affects very much
@@ -53,9 +53,9 @@ measures total tree fragmentation. The result is fragmentation factor
 probably, this factor may affect sequential read performance.
 .TP
 .B -D, --data-frag
-measures average files fragmentation. It means, that fragmentation of
+measures average files fragmentation. This means, that fragmentation of
 each file in filesystem will be measured separately and results will
-be avaraged. The result is fragmentation factor - value from 0.00000
+be averaged. The result is fragmentation factor - value from 0.00000
 (minimal fragmentation) to 1.00000 (maximal one).
 .sp 1
 Note, that for the fresh filesystem (created not very long time ago)
