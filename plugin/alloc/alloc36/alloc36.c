@@ -87,6 +87,7 @@ static reiser4_plugin_t alloc36_plugin = {
 		.sync		= NULL,
 		.print		= NULL,
 #endif
+		.assign		= NULL,
 		.close		= alloc36_close,
 		.open		= alloc36_open,
 

@@ -44,25 +44,25 @@ static errno_t callback_blk_mark(object_entity_t *entity, blk_t blk, void *data)
 /*  Prepare the bitmap of blocks which are to be scanned. */
 static errno_t repair_ds_setup(repair_data_t *rd) {
     struct ds_alloc_region region;
+    reiser4_format_t *format;
     repair_ds_t *ds;
     blk_t i;
  
     aal_assert("vpf-511", rd != NULL, return -1);
-    aal_assert("vpf-511", rd->alloc != NULL, return -1);
+    aal_assert("vpf-511", rd->fs != NULL, return -1);
     
     ds = repair_ds(rd);
+    format = rd->fs->format;
     
-    /* Allocate a bitmap for blocks to be scanned on this pass. */
-    if (!(ds->bm_scan = aux_bitmap_create(reiser4_format_get_len(rd->format))))
-    {
+    /* Allocate a bitmap for blocks to be scanned on this pass. */ 
+    if (!(ds->bm_scan = aux_bitmap_create(reiser4_format_get_len(format)))) {
 	aal_exception_error("Failed to allocate a bitmap for blocks unconnected"
 	    " from the tree.");
 	return -1;
     }
 
     /* Allocate a bitmap for leaves to be inserted into the tree later. */
-    if (!(ds->bm_leaf = aux_bitmap_create(reiser4_format_get_len(rd->format))))
-    {
+    if (!(ds->bm_leaf = aux_bitmap_create(reiser4_format_get_len(format)))) {
 	aal_exception_error("Failed to allocate a bitmap for leaves unconnected"
 	    " from the tree.");
 	return -1;
@@ -70,8 +70,7 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
 
     /* Allocate a bitmap for formatted blocks which cannot be pointed by extents,
      * which are not in the used nor twig not leaf bitmaps. */
-    if (!(ds->bm_frmt = aux_bitmap_create(reiser4_format_get_len(rd->format))))
-    {
+    if (!(ds->bm_frmt = aux_bitmap_create(reiser4_format_get_len(format)))) {
 	aal_exception_error("Failed to allocate a bitmap for unaccounted "
 	    "formatted blocks.");
 	return -1;
@@ -79,9 +78,9 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
 
     /* FIXME-VITALY: optimize it later somehow. */
     /* Build a bitmap of blocks which are not in the tree yet. */
-    for (i = 0; i < reiser4_format_get_len(rd->format); i++) {
+    for (i = 0; i < reiser4_format_get_len(format); i++) {
 	if (aux_bitmap_test(ds->bm_used, i) && 
-	    !reiser4_alloc_test(rd->alloc, i)) 
+	    !reiser4_alloc_test(rd->fs->alloc, i)) 
 	{
 	    region.bm_used = ds->bm_used;
 	    region.bm_scan = ds->bm_scan;
@@ -89,11 +88,11 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
 	    /* Block was met as formatted, but unused in on-disk block 
 	     * allocator. Looks like the bitmap block of the allocator
 	     * has not been synced on disk. Scan through all its blocks. */
-	    reiser4_alloc_region_layout(rd->alloc, i, callback_blk_mark, 
+	    reiser4_alloc_region_layout(rd->fs->alloc, i, callback_blk_mark, 
 		&region);
 	}
 
-	if (reiser4_alloc_test(rd->alloc, i) && 
+	if (reiser4_alloc_test(rd->fs->alloc, i) && 
 	    !aux_bitmap_test(ds->bm_used, i))
 	    aux_bitmap_mark(ds->bm_scan, i);
     }
@@ -109,7 +108,7 @@ errno_t repair_ds_pass(repair_data_t *rd) {
     uint8_t level;
     
     aal_assert("vpf-514", rd != NULL, return -1);
-    aal_assert("vpf-514", rd->format != NULL, return -1);
+    aal_assert("vpf-514", rd->fs != NULL, return -1);
 
     ds = repair_ds(rd);
     
@@ -120,7 +119,7 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 	return -1;
 
     while ((blk = aux_bitmap_find_marked(ds->bm_scan, blk)) != INVAL_BLK) {
-	if ((node = repair_joint_open(rd->format, blk)))
+	if ((node = repair_node_open(rd->fs->format, blk)))
 	    continue;
 
 	level = plugin_call(return -1, node->entity->plugin->node_ops, 
@@ -132,7 +131,7 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 	    continue;
 	}
 
-	res = repair_joint_check(node, ds->bm_used);
+	res = repair_node_check(node, ds->bm_used);
 	
 	if (res < 0) {
 	    reiser4_node_close(node);

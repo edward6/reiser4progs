@@ -106,6 +106,13 @@ reiser4_alloc_t *reiser4_alloc_create(
 	return NULL;
 }
 
+errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc, aux_bitmap_t *bitmap) {
+	aal_assert("vpf-582", alloc != NULL && bitmap != NULL, return -1);
+
+	return plugin_call(return -1, alloc->entity->plugin->alloc_ops, 
+			   assign, alloc->entity, bitmap);
+}
+
 /* Make request to allocator plugin in order to save its data to device */
 errno_t reiser4_alloc_sync(
 	reiser4_alloc_t *alloc)	/* allocator to be syncked */
@@ -136,6 +143,9 @@ void reiser4_alloc_close(
 	plugin_call(return, alloc->entity->plugin->alloc_ops, 
 		    close, alloc->entity);
     
+	if (alloc->forbid)
+		aux_bitmap_close(alloc->forbid);
+	    
 	aal_free(alloc);
 }
 
@@ -232,4 +242,66 @@ errno_t reiser4_alloc_region_layout(
 
 	return plugin_call(return -1, alloc->entity->plugin->alloc_ops, 
 			   region_layout, alloc->entity, blk, func, data);
+}
+
+errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc, blk_t blk) {
+	aal_assert("vpf-584", alloc != NULL, return -1);
+
+	if (!alloc->forbid) 
+	    aux_bitmap_create(reiser4_alloc_free(alloc) + 
+			      reiser4_alloc_used(alloc));
+	
+	aux_bitmap_mark(alloc->forbid, blk);
+	
+	return 0;	
+}
+
+errno_t reiser4_alloc_permit(reiser4_alloc_t *alloc, blk_t blk) {
+	aal_assert("vpf-585", alloc != NULL, return -1);
+	
+	if (!alloc->forbid) 
+	    aux_bitmap_create(reiser4_alloc_free(alloc) + 
+			      reiser4_alloc_used(alloc));
+	
+	aux_bitmap_clear(alloc->forbid, blk);
+	
+	return 0;
+}
+
+errno_t reiser4_alloc_assign_forb(reiser4_alloc_t *alloc, 
+	aux_bitmap_t *bitmap) 
+{
+	uint32_t i;
+	aal_assert("vpf-583", alloc != NULL && bitmap != NULL, return -1);
+
+	if (!alloc->forbid) 
+	    aux_bitmap_create(reiser4_alloc_free(alloc) + 
+			      reiser4_alloc_used(alloc));
+
+	aal_assert("vpf-589", alloc->forbid->size == bitmap->size &&
+			      alloc->forbid->total == bitmap->total, return -1);
+	
+	for (i = 0; i < alloc->forbid->size; i++)
+		alloc->forbid->map[i] |= bitmap->map[i];
+	
+	return 0;
+}
+
+errno_t reiser4_alloc_assign_perm(reiser4_alloc_t *alloc, 
+	aux_bitmap_t *bitmap) 
+{
+	uint32_t i;
+
+	aal_assert("vpf-587", alloc != NULL && bitmap != NULL, return -1);
+	
+	if (!alloc->forbid) 
+	    return 0;
+
+	aal_assert("vpf-590", alloc->forbid->size == bitmap->size &&
+			      alloc->forbid->total == bitmap->total, return -1);
+	
+	for (i = 0; i < alloc->forbid->size; i++)
+		alloc->forbid->map[i] &= ~bitmap->map[i];
+
+	return 0;
 }
