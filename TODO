@@ -44,3 +44,6 @@ reiser4progs/COPYING.
 * add overwriting ability to balancing code
 
 * update of unit key function
+
+* fix bug with directing debugfs output onto less
+  debugfs.reiser4 -tf ~/tmp/loop | less

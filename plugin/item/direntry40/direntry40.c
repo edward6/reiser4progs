@@ -335,21 +335,22 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	hint->rest -= (hint->create ? sizeof(direntry40_t) : 0);
 		
 	if (hint->flags & SF_LEFT) {
+
+		uint32_t dst_len = 0;
+
+		/* Calculating dst item body length */
+		for (i = 0; i < dst_units; i++)
+			dst_len += direntry40_unit_len(dst_direntry, i);
 		
 		if (dst_units > 0) {
 
-			len = dst_item->len - hint->rest;
-			
 			/* Moving entry headers of dst direntry */
 			src = (void *)dst_direntry + sizeof(direntry40_t) +
 				(dst_units * sizeof(entry40_t));
 			
 			dst = src + headers;
 
-			size = len - sizeof(direntry40_t) -
-				dst_units * sizeof(entry40_t);
-
-			aal_memmove(dst, src, size);
+			aal_memmove(dst, src, dst_len);
 
 			/* Updating offsets of dst direntry */
 			entry = direntry40_entry(dst_direntry, 0);
@@ -370,12 +371,8 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		src = (void *)src_direntry +
 			en40_get_offset((entry40_t *)src);
 
-		/* Calculating body length */
-		len = dst_item->len - hint->rest - sizeof(direntry40_t) -
-			(dst_units * sizeof(entry40_t));
-			
 		dst = (void *)dst_direntry + sizeof(direntry40_t) +
-			(dst_units * sizeof(entry40_t)) + headers + len;
+			(dst_units * sizeof(entry40_t)) + headers + dst_len;
 		
 		size = hint->rest - headers;
 		aal_memcpy(dst, src, size);
