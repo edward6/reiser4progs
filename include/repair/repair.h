@@ -51,8 +51,8 @@ typedef struct repair_ds {
     aux_bitmap_t *bm_used;
     aux_bitmap_t *bm_twig;
     aux_bitmap_t *bm_leaf;	/* Leaf bitmap not in the tree yet. */
-    aux_bitmap_t *bm_frmt;	/* Formatted nodes bitmap cannot be pointed 
-				   by extents, not marked nowhere else. */
+    aux_bitmap_t *bm_frmt;	/* Bitmap of formatted nodes which cannot neither 
+				   be pointed by extents nor marked nowhere else. */
     aux_bitmap_t *bm_scan;	/* Block bitmap to be scanned here. */
 } repair_ds_t;
 
@@ -68,7 +68,6 @@ typedef struct repair_ts {
 
 /* Add missing. */
 typedef struct repair_am {
-    aux_bitmap_t *bm_used;
     aux_bitmap_t *bm_twig;
     aux_bitmap_t *bm_leaf;
     
