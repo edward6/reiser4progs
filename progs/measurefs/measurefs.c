@@ -550,7 +550,7 @@ static errno_t dfrag_process_node(
 			continue;
 
 		/* Opening object by its stat data item denoded by @place */
-		if (!(object = reiser4_object_launch(tree, &place)))
+		if (!(object = reiser4_object_realize(tree, &place)))
 			continue;
 
 		/* Initializing per-file counters */

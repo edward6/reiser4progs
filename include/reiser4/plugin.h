@@ -609,15 +609,15 @@ struct reiser4_object_ops {
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 	
 	/* Checks and recover the structure of the object. */
-	object_entity_t *(*check_struct) (object_info_t *, place_func_t, 
-					  uint8_t, void *);
+	errno_t (*check_struct) (object_entity_t *, object_info_t *, 
+				 place_func_t, uint8_t, void *);
 	
 	/* Checks and recover the up link of the object. */
 	errno_t (*check_link) (object_entity_t *, object_entity_t *, uint8_t);
 	
 	/* Realizes if the object can be of this plugin and can be recovered as
 	   a such. */
-	errno_t (*realize) (object_info_t *);
+	object_entity_t *(*realize) (object_info_t *);
 
 #endif
 	

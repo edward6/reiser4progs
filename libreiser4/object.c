@@ -238,8 +238,11 @@ reiser4_object_t *reiser4_object_open(
 }
 
 #ifdef ENABLE_SYMLINKS_SUPPORT
-/* This function opens object by its @place */
-reiser4_object_t *reiser4_object_launch(
+/* This function opens object by its @place 
+   
+   FIXME-VITALY->UMKA: how to open the object without SD? 
+   At least the parent object is needed here. */
+reiser4_object_t *reiser4_object_realize(
 	reiser4_tree_t *tree,           /* tree object will be opened on */
 	reiser4_place_t *place)		/* statdata key of object to be opened */
 {
@@ -504,7 +507,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	}
 
 	/* Opening victim statdata by found place */
-	if (!(child = reiser4_object_launch(object->info.tree, &place))) {
+	if (!(child = reiser4_object_realize(object->info.tree, &place))) {
 		aal_exception_error("Can't open %s/%s.", object->name, name);
 		return -EINVAL;
 	}

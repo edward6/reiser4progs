@@ -23,6 +23,8 @@ errno_t obj40_realize(object_info_t *info,
 	errno_t res;
 
 	aal_assert("vpf-1121", info != NULL);
+	aal_assert("vpf-1121", info->tree != NULL);
+	aal_assert("vpf-1127", info->object.plugin || info->start.item.plugin);
 	
 	if (info->object.plugin) {
 		/* If the start key is specified it must be the key of StatData. 
@@ -32,16 +34,19 @@ errno_t obj40_realize(object_info_t *info,
 		
 		uint64_t locality, objectid;
 		
-		/* If offset != 0 - it cannot be a reg40 object start key. */
-		if (plugin_call(info->object.plugin->o.key_ops, get_offset, 
+		locality = plugin_call(info->object.plugin->o.key_ops,
+				       get_locality, &info->object);
+		objectid = plugin_call(info->object.plugin->o.key_ops,
+				       get_objectid, &info->object);
+		
+		plugin_call(info->object.plugin->o.key_ops, build_generic, &key,
+			    KEY_STATDATA_TYPE, locality, objectid, 0);
+		
+		/* Object key must be a key of SD. */
+		if (plugin_call(info->object.plugin->o.key_ops, compare, &key, 
 				&info->object))
 			return -EINVAL;
 		
-		/* If type != SD type - it cannot be a reg40 object start key. */
-		if (plugin_call(info->object.plugin->o.key_ops, get_type, 
-				&info->object) != KEY_STATDATA_TYPE)
-			return -EINVAL;
-
 		/* If item was realized - the pointed item was found. */
 		if (info->start.item.plugin) {
 			if (info->start.item.plugin->h.group != STATDATA_ITEM)
@@ -54,11 +59,6 @@ errno_t obj40_realize(object_info_t *info,
 			return mode_func(lw_hint.mode) ? 0 : -EINVAL;
 		}
 		
-		locality = plugin_call(info->object.plugin->o.key_ops,
-				       get_locality, &info->object);
-		objectid = plugin_call(info->object.plugin->o.key_ops,
-				       get_objectid, &info->object);
-		
 		/* Item was not realized - the pointed item was not found. 
 		   try to find other reg40 items. */
 		plugin_call(info->object.plugin->o.key_ops, build_generic, &key,
@@ -67,9 +67,11 @@ errno_t obj40_realize(object_info_t *info,
 		lookup = core->tree_ops.lookup(info->tree, &key, 
 					       LEAF_LEVEL, &place);
 		
-		/* If FILEBODY item was found, then it is reg40 body item. */
 		if (lookup == PRESENT)
+			/* FILEBODY item was found => it is reg40 body item. */
 			return 0;
+		else if (lookup == FAILED)
+			return -EINVAL;
 		
 		/* If place is invalid, then no one reg40 body item was found. */
 		if (!core->tree_ops.valid(info->tree, &place))
@@ -80,7 +82,7 @@ errno_t obj40_realize(object_info_t *info,
 			return res;
 
 		return plugin_call(info->object.plugin->o.key_ops, compare_short, 
-				&info->object, &key) ? -EINVAL : 0;
+				   &info->object, &key) ? -EINVAL : 0;
 	} else {
 		/* Realizing by place, If it is a SD - check its mode with mode_func,
 		   othewise check the type of the specified item. */

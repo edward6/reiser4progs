@@ -39,7 +39,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 		if (reiser4_object_begin(place) == FALSE)
 			return 0;
 		
-		object = reiser4_object_launch(cleanup->repair->fs->tree, place);
+		object = reiser4_object_realize(cleanup->repair->fs->tree, place);
 		
 		if (object == NULL)
 			return 0;
