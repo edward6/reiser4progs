@@ -99,8 +99,8 @@ static object_entity_t *node40_open(aal_device_t *device, blk_t blk) {
 	node->plugin = &node40_plugin;
     
 	if (nh40_get_pid(node) != NODE_REISER40_ID) {
-		aal_exception_error("Plugin id (%u) does not match "
-				    "current plugin id (%u).", 
+		aal_exception_error("Plugin id (%u) does not "
+				    "match current plugin id (%u).", 
 				    nh40_get_pid(node), NODE_REISER40_ID);
 		goto error_free_node;
 	}
@@ -113,9 +113,14 @@ static object_entity_t *node40_open(aal_device_t *device, blk_t blk) {
 }
 
 static errno_t node40_close(object_entity_t *entity) {
+	aal_block_t *block;
+	
 	aal_assert("umka-825", entity != NULL, return -1);
 
-	aal_block_close(((node40_t *)entity)->block);
+	block = ((node40_t *)entity)->block;
+	aal_assert("umka-1578", block != NULL, return -1);
+
+	aal_block_close(block);
 	aal_free(entity);
 	
 	return 0;
@@ -216,7 +221,6 @@ static uint16_t node40_item_len(object_entity_t *entity,
 		   nh40_get_num_items(node), return 0);
     
 	ih = node40_ih_at(node, pos->item);
-
 	free_space_start = nh40_get_free_space_start(node);
     
 	return (int)pos->item == node40_count(entity) - 1 ? 
@@ -274,10 +278,12 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 	ih = node40_ih_at(node, item_pos);
     
 	if (item_pos < nh40_get_num_items(node)) {
+		uint32_t size;
 		offset = ih40_get_offset(ih);
 
-		aal_memmove(node->block->data + offset + hint->len, 
-			    node->block->data + offset, nh40_get_free_space_start(node) - offset);
+		size = nh40_get_free_space_start(node) - offset;
+		aal_memmove(node->block->data + offset + hint->len,
+			    node->block->data + offset, size);
 	
 		for (i = item_pos; i < nh40_get_num_items(node); i++, ih--) 
 			ih40_set_offset(ih, ih40_get_offset(ih) + hint->len);
@@ -290,12 +296,10 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 		ih += (nh40_get_num_items(node) - item_pos);
 	} else
 		offset = nh40_get_free_space_start(node);
-    
-	nh40_set_free_space(node, nh40_get_free_space(node) - 
-			    (hint->len + (is_insert ? sizeof(item40_header_t) : 0)));
-    
-	nh40_set_free_space_start(node, nh40_get_free_space_start(node) + hint->len);
-    
+
+	nh40_inc_free_space_start(node, hint->len);
+	nh40_dec_free_space(node, (hint->len + (is_insert ? sizeof(item40_header_t) : 0)));
+	
 	if (!is_insert) {
 		ih = node40_ih_at(node, pos->item);
 		ih40_set_len(ih, ih40_get_len(ih) + hint->len);
@@ -328,7 +332,7 @@ static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
 	if (node40_expand(node, pos, hint))
 		return -1;
 
-	nh40_set_num_items(node, nh40_get_num_items(node) + 1);
+	nh40_inc_num_items(node, 1);
     
 	if (hint->data) {
 		aal_memcpy(node40_ib_at(node, pos->item), 
@@ -365,9 +369,9 @@ static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
 static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 			     uint16_t len) 
 {
-	int is_range;
-	int is_move;
 	int is_cut;
+	int is_move;
+	int is_range;
     
 	item40_header_t *ih;
 	uint16_t offset, ihlen;
@@ -406,13 +410,13 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 			aal_memmove(end + 1, end, ((void *)ih) - ((void *)end));
 	}
 	
-	nh40_set_free_space_start(node, nh40_get_free_space_start(node) - len);
+	nh40_dec_free_space_start(node, len);
     
 	return 0;
 }
 
 /* 
-   This function removes item from the node at specified pos. Do not try to 
+   This function removes item from the node at specified pos. Do not try to
    understand it. This is impossible. But it works correctly.
 */
 errno_t node40_remove(object_entity_t *entity, 
@@ -432,10 +436,8 @@ errno_t node40_remove(object_entity_t *entity,
 	if (node40_shrink(node, pos, len))
 		return -1;
 	
-	nh40_set_num_items(node, nh40_get_num_items(node) - 1);
-
-	nh40_set_free_space(node, nh40_get_free_space(node) + len +
-			    sizeof(item40_header_t));
+	nh40_dec_num_items(node, 1);
+	nh40_inc_free_space(node, (len + sizeof(item40_header_t)));
 	
 	return 0;
 }
@@ -476,7 +478,7 @@ static errno_t node40_cut(object_entity_t *entity,
 		return -1;
 	
 	ih40_set_len(ih, node40_item_len((object_entity_t *)node, pos) - len);
-	nh40_set_free_space(node, nh40_get_free_space(node) + len);
+	nh40_inc_free_space(node, len);
 
 	return 0;
 }
@@ -734,7 +736,6 @@ static errno_t node40_estimate(node40_estimate_t *estimate) {
 						node = estimate->dst;
 						break;
 					}
-					
 					estimate->pos->item = 0;
 					node = estimate->dst;
 				}
@@ -780,6 +781,7 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 	estimate.dst = (node40_t *)target;
 
 	if (node40_estimate(&estimate)) {
+
 		blk_t src_blk = aal_block_number(estimate.src->block);
 		blk_t dst_blk = aal_block_number(estimate.dst->block);
 
@@ -791,10 +793,11 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 
 	/* Nothing may be shifted */
 	if (estimate.items == 0)
-		return 0;
+		return estimate.move_ip;
 	
 	dst_items = nh40_get_num_items(estimate.dst);
 	src_items = nh40_get_num_items(estimate.src);
+	
 	headers_size = sizeof(item40_header_t) * estimate.items;
 
 	if (estimate.flags & SF_LEFT) {
@@ -832,10 +835,9 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 		
 			aal_memmove(dst, src, headers_size);
 
-
 			/* Preparing space for moving item bodies in destination
 			 * node */
-			ih = ((item40_header_t *)dst) + dst_items - 1;
+			ih = ((item40_header_t *)dst);
 		
 			src = estimate.dst->block->data + ih40_get_offset(ih);
 			dst = src + estimate.bytes;
@@ -864,24 +866,15 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 	}
 	
 	/* Updating destination node fields */
-	nh40_set_free_space(estimate.dst, nh40_get_free_space(estimate.dst) -
-			    estimate.bytes - headers_size);
-
-	nh40_set_num_items(estimate.dst, dst_items + estimate.items);
-
+	nh40_dec_free_space(estimate.dst, estimate.bytes + headers_size);
+	nh40_inc_num_items(estimate.dst, estimate.items);
+	nh40_inc_free_space_start(estimate.dst, estimate.bytes);
+	
 	/* Updating source node fields */
-	nh40_set_free_space(estimate.src, nh40_get_free_space(estimate.src) +
-			    estimate.bytes + headers_size);
+	nh40_inc_free_space(estimate.src, estimate.bytes + headers_size);
+	nh40_dec_num_items(estimate.src, estimate.items);
+	nh40_dec_free_space_start(estimate.src, estimate.bytes);
 
-	nh40_set_num_items(estimate.src, src_items - estimate.items);
-	
-	/* Updating free space start field in the both nodes */
-	nh40_set_free_space_start(estimate.src, nh40_get_free_space_start(estimate.src) -
-				  estimate.bytes);
-
-	nh40_set_free_space_start(estimate.dst, nh40_get_free_space_start(estimate.dst) +
-				  estimate.bytes);
-	
 	/*
 	  If after moving the items we will have some amount of free space in
 	  destination node, we should try to shift units from the last item to

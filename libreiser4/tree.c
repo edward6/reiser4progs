@@ -541,10 +541,10 @@ static errno_t reiser4_tree_shift(
 	reiser4_coord_t src, dst;
 
 	int retval;
+	reiser4_pos_t ldpos;
 	reiser4_key_t ldkey;
 	shift_flags_t flags = 0;
 	reiser4_coord_t ldcoord;
-	reiser4_pos_t ldpos = {0, ~0ul};
     
 	aal_assert("umka-1225", tree != NULL, return -1);
 	aal_assert("umka-1226", coord != NULL, return -1);
@@ -560,6 +560,18 @@ static errno_t reiser4_tree_shift(
 	if (move_ip)
 		flags |= SF_MOVIP;
 
+	if (direction == D_LEFT) {
+		if (old.u.joint->parent) {
+			if (reiser4_joint_pos(old.u.joint, &ldpos))
+				return -1;
+		}
+	} else {
+		if (joint->parent) {
+			if (reiser4_joint_pos(joint, &ldpos))
+				return -1;
+		}
+	}
+
 	retval = plugin_call(return -1, joint->node->entity->plugin->node_ops,
 			      shift, old.u.joint->node->entity, joint->node->entity,
 			      &coord->pos, flags);
@@ -570,15 +582,11 @@ static errno_t reiser4_tree_shift(
 	if (retval)
 		coord->u.joint = joint;
 
-	if (reiser4_node_count(old.u.joint->node) == 0) {
-		old.u.joint->flags &= ~JF_DIRTY;
-		reiser4_tree_release(tree, old.u.joint);
-		old.u.joint = NULL;
-	}
-
 	if (direction == D_LEFT) {
-		if (old.u.joint && old.u.joint->parent) {
-			if (reiser4_coord_open(&ldcoord, old.u.joint, CT_JOINT, &ldpos))
+		reiser4_pos_t pos = {0, ~0ul};
+		
+		if (reiser4_node_count(old.u.joint->node) == 0 && old.u.joint->parent) {
+			if (reiser4_coord_open(&ldcoord, old.u.joint, CT_JOINT, &pos))
 				return -1;
 
 			if (reiser4_item_key(&ldcoord, &ldkey))
@@ -588,14 +596,16 @@ static errno_t reiser4_tree_shift(
 				return -1;
 		}
 	} else {
+		reiser4_pos_t pos = {0, ~0ul};
+		
 		if (joint->parent) {
-			if (reiser4_coord_open(&ldcoord, joint, CT_JOINT, &ldpos))
+			if (reiser4_coord_open(&ldcoord, joint, CT_JOINT, &pos))
 				return -1;
 
 			if (reiser4_item_key(&ldcoord, &ldkey))
 				return -1;
 				
-			if (reiser4_joint_update(joint, &ldpos, &ldkey))
+			if (reiser4_joint_update(joint->parent, &ldpos, &ldkey))
 				return -1;
 		}
 	}
@@ -785,6 +795,13 @@ errno_t reiser4_tree_mkspace(
 	if (new->u.joint != old->u.joint && 
 	    reiser4_node_count(old->u.joint->node) == 0)
 	{
+		old->u.joint->flags &= ~JF_DIRTY;
+
+		if (old->u.joint->parent) {
+			if (reiser4_joint_remove(old->u.joint->parent, &old->u.joint->pos))
+				return -1;
+		}
+		
 		reiser4_tree_release(tree, old->u.joint);
 		old->u.joint = NULL;
 	}

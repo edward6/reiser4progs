@@ -260,6 +260,10 @@ static inline int callback_comp_key(
 	reiser4_joint_t *joint;
 
 	joint = (reiser4_joint_t *)item;
+
+	if (reiser4_node_count(joint->node) == 0)
+		return -1;
+	
 	reiser4_node_lkey(joint->node, &lkey);
     
 	return reiser4_key_compare(&lkey, (reiser4_key_t *)key) == 0;
@@ -278,7 +282,7 @@ reiser4_joint_t *reiser4_joint_find(
     
 	/* Using aal_list find function */
 	if (!(list = aal_list_find_custom(joint->children, (void *)key,
-					   callback_comp_key, NULL)))
+					  callback_comp_key, NULL)))
 		return NULL;
 
 	child = (reiser4_joint_t *)list->data;
@@ -543,8 +547,8 @@ errno_t reiser4_joint_remove(
 		if (reiser4_item_key(&coord, &key))
 			return -1;
 		
-		child = reiser4_joint_find(joint, &key);
-		reiser4_joint_detach(joint, child);
+		if ((child = reiser4_joint_find(joint, &key)))
+			reiser4_joint_detach(joint, child);
 	}
 
 	/* Removing item or unit */

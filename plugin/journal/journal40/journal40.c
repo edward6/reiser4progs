@@ -246,12 +246,12 @@ static errno_t callback_journal_handler(object_entity_t *entity, aal_block_t *bl
 }
 
 static errno_t journal40_update(journal40_t *journal) {
+	aal_device_t *device;
+	aal_block_t *tx_block;
 	journal40_footer_t *footer;	
 	journal40_header_t *header;
 	journal40_tx_header_t *tx_header;
 	uint64_t last_commited_tx, last_flushed_tx;
-	aal_block_t *tx_block;
-	aal_device_t *device;
 
 	aal_assert("vpf-450", journal != NULL, return -1);
 	aal_assert("vpf-451", journal->footer != NULL, return -1);
@@ -304,14 +304,14 @@ errno_t journal40_traverse_trans(
 						   callback */
 	void *data) 
 {
+	errno_t ret;
 	uint64_t log_blk;
 	uint32_t i, capacity;
-	errno_t ret;
-	aal_device_t *device = NULL;
-	journal40_lr_entry_t *entry = NULL;
+	aal_device_t *device;
+	journal40_lr_entry_t *entry;
 	aal_block_t *log_block = NULL;
 	aal_block_t *wan_block = NULL;	
-	journal40_lr_header_t *lr_header = NULL;
+	journal40_lr_header_t *lr_header;
 
 	log_blk = get_th_next_block((journal40_tx_header_t *)tx_block->data);
 	
@@ -415,7 +415,8 @@ errno_t journal40_traverse(
 {
 	int ret;
 	uint64_t txh_blk;
-	uint64_t last_flushed_tx, last_commited_tx;
+	uint64_t last_flushed_tx;
+	uint64_t last_commited_tx;
 
 	journal40_tx_header_t *tx_header = NULL;
 	aal_device_t *device = NULL;

@@ -62,28 +62,68 @@ struct node40_header {
 
 typedef struct node40_header node40_header_t;  
 
-#define	nh40(block)				((node40_header_t *)block->data)
+#define	nh40(block) \
+        ((node40_header_t *)block->data)
 
-#define nh40_get_pid(node)			aal_get_le16(&nh40(node->block)->h, pid)
-#define nh40_set_pid(node, val)		        aal_set_le16(&nh40(node->block)->h, pid, val)
+#define nh40_get_pid(node) \
+        aal_get_le16(&nh40(node->block)->h, pid)
 
-#define nh40_get_num_items(node)	 	aal_get_le16(nh40(node->block), num_items)
-#define nh40_set_num_items(node, val)		aal_set_le16(nh40(node->block), num_items, val)
+#define nh40_set_pid(node, val) \
+        aal_set_le16(&nh40(node->block)->h, pid, val)
 
-#define nh40_get_free_space(node)		aal_get_le16(nh40(node->block), free_space)
-#define nh40_set_free_space(node, val)	        aal_set_le16(nh40(node->block), free_space, val)
+#define nh40_get_level(node) \
+        (nh40(node->block)->level)
 
-#define nh40_get_free_space_start(node)	        aal_get_le16(nh40(node->block), free_space_start)
-#define nh40_set_free_space_start(node, val)	aal_set_le16(nh40(node->block),	free_space_start, val)
+#define nh40_set_level(node, val) \
+        (nh40(node->block)->level = val)
 
-#define nh40_get_level(node)			(nh40(node->block)->level)
-#define nh40_set_level(node, val)		(nh40(node->block)->level = val)
+#define nh40_get_magic(node) \
+        aal_get_le32(nh40(node->block), magic)
 
-#define nh40_get_magic(node)			aal_get_le32(nh40(node->block), magic)
-#define nh40_set_magic(node, val)		aal_set_le32(nh40(node->block), magic, val)
+#define nh40_set_magic(node, val) \
+        aal_set_le32(nh40(node->block), magic, val)
 
-#define nh40_set_mkfs_id(node, val)		aal_set_le32(nh40(node->block),	flush.mkfs_id, val)
-#define nh40_get_mkfs_id(node)		        aal_get_le32(nh40(node->block), flush.mkfs_id)
+#define nh40_set_mkfs_id(node, val) \
+        aal_set_le32(nh40(node->block),	flush.mkfs_id, val)
+
+#define nh40_get_mkfs_id(node) \
+        aal_get_le32(nh40(node->block), flush.mkfs_id)
+
+#define nh40_get_num_items(node) \
+        aal_get_le16(nh40(node->block), num_items)
+
+#define nh40_set_num_items(node, val) \
+        aal_set_le16(nh40(node->block), num_items, val)
+
+#define nh40_get_free_space(node) \
+        aal_get_le16(nh40(node->block), free_space)
+
+#define nh40_set_free_space(node, val) \
+        aal_set_le16(nh40(node->block), free_space, val)
+
+#define nh40_get_free_space_start(node) \
+        aal_get_le16(nh40(node->block), free_space_start)
+
+#define nh40_set_free_space_start(node, val) \
+        aal_set_le16(nh40(node->block),	free_space_start, val)
+
+#define nh40_inc_free_space(node, value) \
+        nh40_set_free_space(node, nh40_get_free_space(node) + value);
+
+#define nh40_dec_free_space(node, value) \
+        nh40_set_free_space(node, nh40_get_free_space(node) - value);
+
+#define nh40_inc_free_space_start(node, value) \
+	nh40_set_free_space_start(node, nh40_get_free_space_start(node) + value);
+
+#define nh40_dec_free_space_start(node, value) \
+	nh40_set_free_space_start(node, nh40_get_free_space_start(node) - value);
+
+#define nh40_inc_num_items(node, value) \
+	nh40_set_num_items(node, nh40_get_num_items(node) + value);
+
+#define nh40_dec_num_items(node, value) \
+	nh40_set_num_items(node, nh40_get_num_items(node) - value);
 
 union key40 {
 	d64_t el[3];
@@ -102,17 +142,17 @@ struct item40_header {
 
 typedef struct item40_header item40_header_t;
 
-#define ih40_get_offset(ih)			aal_get_le16(ih, offset)
-#define ih40_set_offset(ih, val)		aal_set_le16(ih, offset, val)
+#define ih40_get_offset(ih)	 aal_get_le16(ih, offset)
+#define ih40_set_offset(ih, val) aal_set_le16(ih, offset, val)
 
-#define ih40_get_len(ih)			aal_get_le16(ih, len)
-#define ih40_set_len(ih, val)			aal_set_le16(ih, len, val)
+#define ih40_get_len(ih)	 aal_get_le16(ih, len)
+#define ih40_set_len(ih, val)	 aal_set_le16(ih, len, val)
 
-#define ih40_get_pid(ih)			aal_get_le16(ih, pid)
-#define ih40_set_pid(ih, val)			aal_set_le16(ih, pid, val)
+#define ih40_get_pid(ih)	 aal_get_le16(ih, pid)
+#define ih40_set_pid(ih, val)	 aal_set_le16(ih, pid, val)
 
 extern inline void *node40_ib_at(node40_t *node, int pos);
+extern inline uint16_t node40_free_space_end(node40_t *node);
 extern inline item40_header_t *node40_ih_at(node40_t *node, int pos);
-extern uint16_t node40_free_space_end(node40_t *node);
 
 #endif
