@@ -752,8 +752,7 @@ struct reiser4_item_ops {
 	errno_t (*layout) (item_entity_t *, region_func_t, void *);
 
 	/* Does some specific actions if a block the item points to is wrong. */
-	/* FIXME: I wish it to be joint with layout, but how? */
-	int32_t (*layout_check) (item_entity_t *, region_func_t, void *);
+	errno_t (*layout_check) (item_entity_t *, region_func_t, void *, uint8_t);
 
 	/* Set the key of a particular unit of the item. */
 	errno_t (*set_key) (item_entity_t *, uint32_t, key_entity_t *);
@@ -857,7 +856,7 @@ struct reiser4_node_ops {
 			  shift_hint_t *);
     
 	/* Checks thoroughly the node structure and fixes what needed. */
-	errno_t (*check) (object_entity_t *);
+	errno_t (*check) (object_entity_t *, uint8_t);
 
 	/* Prints node into given buffer */
 	errno_t (*print) (object_entity_t *, aal_stream_t *,
