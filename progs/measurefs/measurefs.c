@@ -557,8 +557,6 @@ static errno_t dfrag_open_node(
 	return -(*node == NULL);
 }
 
-#include <unistd.h>
-
 /*
   Processes leaf node in order to find all the stat data items which denote
   corresponding files and calculate file fragmentation for each of them.
@@ -595,7 +593,7 @@ static errno_t dfrag_process_node(
 		/*
 		  If the item is not a stat data item, we getting to the next
 		  circle of the loop, because we are intersted only in the stat
-		  data items.
+		  data items, which can be used for opening files.
 		*/
 		if (!reiser4_item_statdata(&place))
 			continue;
@@ -642,8 +640,8 @@ static errno_t dfrag_process_node(
 			double curr_factor = frag_hint->files > 0 ?
 				(double)frag_hint->current / frag_hint->files : 0;
 			
-			printf("Fragmentation for %s: %.6f [ %.6f ]",
-			       object->name, file_factor, curr_factor);
+			aal_exception_info("Fragmentation for %s: %.6f [ %.6f ]",
+					   object->name, file_factor, curr_factor);
 		}
 
 	error_close_object:
@@ -654,14 +652,18 @@ static errno_t dfrag_process_node(
 }
 
 /* Level keeping track for data fragmentation traversal */
-static errno_t dfrag_setup_node(reiser4_place_t *place, void *data) {
+static errno_t dfrag_setup_node(reiser4_place_t *place,
+				void *data)
+{
 	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
     
 	frag_hint->level--;
 	return 0;
 }
 
-static errno_t dfrag_update_node(reiser4_place_t *place, void *data) {
+static errno_t dfrag_update_node(reiser4_place_t *place,
+				 void *data)
+{
 	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
 
 	frag_hint->level++;
@@ -670,7 +672,7 @@ static errno_t dfrag_update_node(reiser4_place_t *place, void *data) {
 
 /* Entry point function for data fragmentation */
 errno_t measurefs_data_frag(reiser4_fs_t *fs,
-			  uint32_t flags)
+			    uint32_t flags)
 {
 	errno_t res;
 	traverse_hint_t hint;
@@ -778,7 +780,7 @@ int main(int argc, char *argv[]) {
 		case 'D':
 			flags |= F_DFRAG;
 			break;
-		case 'p':
+		case 'E':
 			flags |= F_SFILE;
 			break;
 		case 'F':
@@ -927,34 +929,25 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Handling measurements options */
-	if (flags & F_TFRAG || flags & F_DFRAG ||
-	    flags & F_FFRAG || flags & F_TSTAT)
-	{
-		if (flags & F_QUIET ||
-		    aal_exception_yesno("This operation may take a long time. "
-					"Continue?") == EXCEPTION_YES)
-		{
-			if (flags & F_TFRAG) {
-				if (measurefs_tree_frag(fs, flags))
-					goto error_free_tree;
-			}
+	if (flags & F_TFRAG) {
+		if (measurefs_tree_frag(fs, flags))
+			goto error_free_tree;
+	}
 
-			if (flags & F_DFRAG) {
-				if (measurefs_data_frag(fs, flags))
-					goto error_free_tree;
-			}
+	if (flags & F_DFRAG) {
+		if (measurefs_data_frag(fs, flags))
+			goto error_free_tree;
+	}
 
-			if (flags & F_FFRAG) {
-				if (measurefs_file_frag(fs, frag_filename,
-							flags))
-					goto error_free_tree;
-			}
+	if (flags & F_FFRAG) {
+		if (measurefs_file_frag(fs, frag_filename,
+					flags))
+			goto error_free_tree;
+	}
 	
-			if (flags & F_TSTAT) {
-				if (measurefs_tree_stat(fs, flags))
-					goto error_free_tree;
-			}
-		}
+	if (flags & F_TSTAT) {
+		if (measurefs_tree_stat(fs, flags))
+			goto error_free_tree;
 	}
 
 	/* Freeing tree */

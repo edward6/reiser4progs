@@ -59,8 +59,8 @@ errno_t debugfs_print_block(
 	reiser4_fs_t *fs,           /* filesystem for work with */
 	blk_t blk)                  /* block number to be printed */
 {
+	errno_t res;
 	count_t blocks;
-	errno_t res = 0;
 	aal_device_t *device;
 	reiser4_node_t *node;
 
@@ -115,7 +115,6 @@ errno_t debugfs_print_block(
 		return res;
 	
 	reiser4_node_close(node);
-	
 	return 0;
 }
 

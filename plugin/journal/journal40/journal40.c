@@ -435,9 +435,8 @@ errno_t journal40_traverse_trans(
   each transaction from the oldest to the earliest.
   
   Return codes:
-  0        everything okay;
-  1        for bad journal structure; 
-  -EINVAL  fatal error;
+  0   everything okay
+  < 0 some error (-ESTRUCT, -EIO, etc)
 */
 errno_t journal40_traverse(
 	journal40_t *journal,			/* journal object to be traversed */
@@ -454,11 +453,11 @@ errno_t journal40_traverse(
 
 	aal_block_t *tx_block;
 	aal_list_t *tx_list = NULL;
-	journal40_tx_header_t *tx_header;
 
 	journal40_header_t *jheader;
 	journal40_footer_t *jfooter;
-    
+	journal40_tx_header_t *tx_header;
+
 	aal_assert("vpf-448", journal != NULL);
 	aal_assert("vpf-487", journal->header != NULL);
 	aal_assert("vpf-488", journal->header->data != NULL);
@@ -486,7 +485,7 @@ errno_t journal40_traverse(
 			aal_exception_error("Can't read block %llu while "
 					    "traversing the journal. %s.",
 					    txh_blk, device->error);
-			res = -EINVAL;
+			res = -EIO;
 			goto error_free_tx_list;
 		}
 	
@@ -567,7 +566,8 @@ static void journal40_close(object_entity_t *entity) {
 	aal_free(journal);
 }
 
-extern errno_t journal40_check(object_entity_t *, layout_func_t, void *);
+extern errno_t journal40_check(object_entity_t *,
+			       layout_func_t, void *);
 
 static reiser4_plugin_t journal40_plugin = {
 	.journal_ops = {
