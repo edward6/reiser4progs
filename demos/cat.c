@@ -33,7 +33,7 @@ static void cat_init(void) {
 }
 
 int main(int argc, char *argv[]) {
-	char buff[256];
+	char buff[4097];
 	reiser4_fs_t *fs;
 	aal_device_t *device;
 

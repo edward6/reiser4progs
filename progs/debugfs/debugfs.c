@@ -479,7 +479,7 @@ static errno_t debugfs_data_fragmentation(reiser4_fs_t *fs) {
 }
 
 static errno_t debugfs_file_cat(reiser4_file_t *file) {
-	char buff[4096];
+	char buff[4097];
 	
 	if (reiser4_file_reset(file)) {
 		aal_exception_error("Can't reset file %s.", file->name);
@@ -489,7 +489,7 @@ static errno_t debugfs_file_cat(reiser4_file_t *file) {
 	while (1) {
 		aal_memset(buff, 0, sizeof(buff));
 
-		if (!reiser4_file_read(file, buff, sizeof(buff)))
+		if (!reiser4_file_read(file, buff, sizeof(buff) - 1))
 			break;
 
 		printf(buff);
@@ -514,7 +514,7 @@ static errno_t debugfs_file_ls(reiser4_file_t *file) {
 	return 0;
 }
 
-static errno_t debugfs_ls(reiser4_fs_t *fs, char *filename) {
+static errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	errno_t res = 0;
 	reiser4_file_t *file;
 	
@@ -522,7 +522,7 @@ static errno_t debugfs_ls(reiser4_fs_t *fs, char *filename) {
 		return -1;
 
 	if (file->entity->plugin->h.sign.group == REGULAR_FILE)
-		debugfs_file_cat(file);
+		res = debugfs_file_cat(file);
 	else if (file->entity->plugin->h.sign.group == DIRTORY_FILE) {
 		res = debugfs_file_ls(file);
 	} else {
@@ -532,10 +532,6 @@ static errno_t debugfs_ls(reiser4_fs_t *fs, char *filename) {
 	
 	reiser4_file_close(file);
 	return res;
-}
-
-static errno_t debugfs_cat(reiser4_fs_t *fs, char *filename) {
-	return -1;
 }
 
 int main(int argc, char *argv[]) {
@@ -568,9 +564,9 @@ int main(int argc, char *argv[]) {
 		{"print-block-alloc", no_argument, NULL, 'b'},
 		{"print-oid-alloc", no_argument, NULL, 'o'},
 		{"node-packing", no_argument, NULL, 'N'},
-		{"tree-fragmentation", no_argument, NULL, 'T'},
-		{"data-fragmentation", no_argument, NULL, 'D'},
-		{"file-fragmentation", required_argument, NULL, 'F'},
+		{"tree-frag", no_argument, NULL, 'T'},
+		{"data-frag", no_argument, NULL, 'D'},
+		{"file-frag", required_argument, NULL, 'F'},
 		{"known-profiles", no_argument, NULL, 'K'},
 		{"quiet", no_argument, NULL, 'q'},
 		{0, 0, 0, 0}
@@ -763,13 +759,13 @@ int main(int argc, char *argv[]) {
 	}
 	
 	if ((behav_flags & BF_LS)) {
-		if (debugfs_ls(fs, ls_filename))
+		if (debugfs_browse(fs, ls_filename))
 			goto error_free_fs;
 		print_flags = 0;
 	}
 	
 	if ((behav_flags & BF_CAT)) {
-		if (debugfs_cat(fs, cat_filename))
+		if (debugfs_browse(fs, cat_filename))
 			goto error_free_fs;
 		print_flags = 0;
 	}

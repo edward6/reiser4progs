@@ -116,13 +116,11 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	plugin_call(return -1, key.plugin->key_ops, build_generic, key.body, 
 		    KEY_FILEBODY_TYPE, reg40_locality(reg), reg40_objectid(reg), 0);
     
-	if (core->tree_ops.lookup(reg->tree, &key, &level, &reg->body) != 1) {
-		aal_exception_error("Can't find the body of file 0x%llx.", 
-				    reg40_objectid(reg));
-		return -1;
-	}
+	if (core->tree_ops.lookup(reg->tree, &key, &level, &reg->body) != 1)
+		reg->body.entity.plugin = NULL;
 
 	reg->offset = 0;
+	reg->small = 0;
 	reg->body.pos.unit = 0;
 
 	return 0;
@@ -163,44 +161,7 @@ static int reg40_next(object_entity_t *entity) {
 	return core->tree_ops.lookup(reg->tree, &key, &level, &reg->body);
 }
 
-static int reg40_next1(object_entity_t *entity) {
-	roid_t curr_objectid;
-	roid_t next_objectid;
-
-	rpid_t group;
-	reiser4_place_t right;
-	reg40_t *reg = (reg40_t *)entity;
-
-	/* Getting the right neighbour */
-	if (core->tree_ops.right(reg->tree, &reg->body, &right))
-		return 0;
-
-	group = right.entity.plugin->h.sign.group;
-	
-	/* Check if next item is extent or tail */
-	if (group != TAIL_ITEM && group != EXTENT_ITEM)
-		return 0;
-    
-	/* 
-	   Getting objectid of both keys in order to determine are items
-	   mergeable or not.
-	*/
-	curr_objectid = plugin_call(return -1, reg->key.plugin->key_ops,
-				    get_objectid, reg->key.body);
-	
-	next_objectid = plugin_call(return -1, reg->key.plugin->key_ops,
-				    get_objectid, right.entity.key.body);
-	
-	/* Checking if items mergeable */
-	if (curr_objectid == next_objectid) {
-		reg->body = right;
-		return 1;
-	}
-	
-	return 0;
-}
-
-/* Reads n entries to passed buffer buff */
+/* Reads @n bytes to passed buffer @buff */
 static int32_t reg40_read(object_entity_t *entity, 
 			  void *buff, uint32_t n)
 {
@@ -222,15 +183,17 @@ static int32_t reg40_read(object_entity_t *entity,
 		return 0;
 	
 	for (read = 0; read < n; ) {
-		uint32_t chunk;
 		item_entity_t *item = &reg->body.entity;
 
 		if (item->plugin->h.sign.group == TAIL_ITEM) {
+			uint32_t chunk;
 			
 			/* Check if we need next item */
-			if (reg->body.pos.unit >= item->len && reg40_next(entity) != 1)
-				break;
-
+			if (reg->body.pos.unit >= item->len) {
+				if (reg->offset >= size || reg40_next(entity) != 1)
+					break;
+			}
+		
 			/* Calculating the chunk of data to be read. If it is
 			 * zero, we go away. Else fetching of data from the item
 			 * will be performed */
@@ -241,15 +204,70 @@ static int32_t reg40_read(object_entity_t *entity,
 	
 			plugin_call(return -1, item->plugin->item_ops, fetch,
 				    item, reg->body.pos.unit, buff + read, chunk);
+			
+			read += chunk;
+			reg->offset += chunk;
+			reg->body.pos.unit += chunk;
+			reg->small += chunk;
 		} else {
-			/* FIXME-UMKA: Reading data from extent item will be
-			 * here */
-			break;
+			uint32_t count;
+			uint32_t blocksize;
+			
+			aal_block_t *block;
+			aal_device_t *device;
+			
+			reiser4_pos_t *pos = &reg->body.pos;
+
+			count = plugin_call(return -1, item->plugin->item_ops,
+					    count, item);
+
+			if (pos->unit >= count) {
+				if (reg->offset >= size || reg40_next(entity) != 1)
+					break;
+			}
+			
+			device = item->context.block->device;
+			blocksize = aal_device_get_bs(device);
+			
+			for (; pos->unit < count && read < n; ) {
+				uint64_t blk;
+				reiser4_ptr_hint_t ptr;
+				
+				if (plugin_call(return -1, item->plugin->item_ops,
+						fetch, item, pos->unit, &ptr, 1))
+					return -1;
+
+				blk = ptr.ptr + (reg->small / blocksize);
+				
+				for (; blk < ptr.ptr + ptr.width && read < n; ) {
+					uint32_t chunk, offset;
+
+					if (!(block = aal_block_open(device, blk))) {
+						aal_exception_error("Can't read block %llu. %s.",
+								    blk, device->error);
+					}
+
+					offset = (reg->small % blocksize);
+					chunk = blocksize - offset;
+					chunk = (chunk <= n - read) ? chunk : n - read;
+					
+					aal_memcpy(buff + read, block->data + offset, chunk);
+					aal_block_close(block);
+					
+					read += chunk;
+					reg->small += chunk;
+					reg->offset += chunk;
+
+					if ((offset + chunk) % blocksize == 0)
+						blk++;
+				}
+
+				if (blk >= ptr.ptr + ptr.width) {
+					pos->unit++;
+					reg->small = 0;
+				}
+			}
 		}
-		
-		read += chunk;
-		reg->offset += chunk;
-		reg->body.pos.unit += chunk;
 	}
 
 	return read;
@@ -516,21 +534,30 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 
 			reg->offset += reg->body.entity.len;
 		} else {
-			uint64_t blk;
+			uint32_t count;
+			uint32_t blocksize;
 			reiser4_ptr_hint_t ptr;
 			reiser4_pos_t pos = reg->body.pos;
 
-			if (plugin_call(return -1, reg->body.entity.plugin->item_ops,
-					fetch, &reg->body.entity, pos.unit, &ptr, 1))
-				return -1;
+			count = plugin_call(return -1, reg->body.entity.plugin->item_ops,
+					    count, &reg->body.entity);
 
-			for (blk = ptr.ptr; blk < ptr.ptr + ptr.width; blk++) {
-				if ((res = func(entity, blk, data)))
-					return res;
-			}
+			blocksize = aal_block_size(reg->body.entity.context.block);
 			
-			reg->offset += ptr.width *
-				aal_block_size(reg->body.entity.context.block);
+			for (; pos.unit < count; pos.unit++) {
+				uint64_t blk;
+				
+				if (plugin_call(return -1, reg->body.entity.plugin->item_ops,
+						fetch, &reg->body.entity, pos.unit, &ptr, 1))
+					return -1;
+
+				for (blk = ptr.ptr; blk < ptr.ptr + ptr.width; blk++) {
+					if ((res = func(entity, blk, data)))
+						return res;
+				}
+			
+				reg->offset += ptr.width * blocksize;
+			}
 		}
 		
 		if (reg40_next(entity) != 1 || reg->offset >= size)
