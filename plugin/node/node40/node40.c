@@ -1319,7 +1319,7 @@ static errno_t node40_predict(node_entity_t *src_entity,
 				break;
 		}
 		
-		/* Getting length of current item */
+		/* Getting length of current item. */
 		if (cur == end) {
 			len = nh_get_free_space_start(src_node) -
 				ih_get_offset(cur, pol);
@@ -1333,8 +1333,12 @@ static errno_t node40_predict(node_entity_t *src_entity,
 		if (space < len + node40_overhead(dst_entity))
 			break;
 
+		/* Check if we allowed to update insert point. If so, we will do
+		   so and loop probably will be breaked due to insert point
+		   moved to neihgbour node. Will continue until there is enough
+		   of space otherwise. */
 		if (flags & SF_UPDATE_POINT) {
-			/* Updating insert position */
+			/* Updating insert point. */
 			if (flags & SF_LEFT_SHIFT) {
 				if (hint->pos.item == 0) {
 					pos_t pos;
@@ -1373,11 +1377,12 @@ static errno_t node40_predict(node_entity_t *src_entity,
 				}
 			} else {
 				/* Checking if insert point reach the end of
-				   node. Hint is updated here. */
+				   node. */
 				if (hint->pos.item >= src_items - 1) {
 				
 					if (hint->pos.item == src_items - 1) {
-
+						/* Updating insert point to be
+						   lie in neighbour node. */
 						if (flags & SF_MOVE_POINT &&
 						    (hint->pos.unit == MAX_UINT32 ||
 						     hint->pos.unit == 0))
@@ -1525,7 +1530,7 @@ static errno_t node40_shift(node_entity_t *src_entity,
 		place_t src_place;
 		place_t dst_place;
 		
-		/* merge is not allowed by @hint->control flags. Check if border
+		/* Merge is not allowed by @hint->control flags. Check if border
 		   items are mergeable. If so, we can't move at least one whole
 		   item to @dst_entity, because we have to support all tree
 		   invariants and namely there should not be mergeable items in

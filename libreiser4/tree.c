@@ -2283,7 +2283,7 @@ int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
 }
 
 /* Converts file body at @hint->offset from tail to extent or from extent to
-   tail. main tail convertion function. It uses tree_read_flow(),
+   tail. Main tail convertion function. It uses tree_read_flow(),
    tree_truc_flow() and tree_write_flow(). */
 errno_t reiser4_tree_conv_flow(reiser4_tree_t *tree,
 			       conv_hint_t *hint)
@@ -2311,7 +2311,8 @@ errno_t reiser4_tree_conv_flow(reiser4_tree_t *tree,
 	{
 		/* Each convertion tick may be divided onto tree stages:
 
-		   (1) Read convert chunk (4096 bytes long now) to @trans hint.
+		   (1) Read convert chunk (@hint->chunk bytes long now) to
+		   @trans hint.
 
 		   (2) Truncate data in tree we have just read described by
 		   @trans hint.
@@ -2341,7 +2342,6 @@ errno_t reiser4_tree_conv_flow(reiser4_tree_t *tree,
 		/* Second statge -- removing data from the tree. */
 		trans.data = tree;
 		trans.count = conv;
-		trans.plug = hint->plug;
 
 		if ((conv = reiser4_tree_trunc_flow(tree, &trans)) < 0) {
 			res = conv;
@@ -2349,6 +2349,7 @@ errno_t reiser4_tree_conv_flow(reiser4_tree_t *tree,
 		}
 
 		trans.count = conv;
+		trans.plug = hint->plug;
 		
 		/* Third stage -- writing data back to tree with new item plugin
 		   used.*/
