@@ -14,7 +14,7 @@
 
 /* Master related stuff like magic and offset in bytes. These are used by both
    plugins and library itself. */
-#define REISER4_MASTER_MAGIC	("R4Sb")
+#define REISER4_MASTER_MAGIC	("ReIsEr4")
 #define REISER4_MASTER_OFFSET	(65536)
 
 /* The same for fs stat block. */
@@ -378,12 +378,12 @@ enum shift_flags {
 	/* Allows to update insert point during shift. */
 	SF_UPDATE_POINT  = 1 << 3,
 
-	/* Controls is shift allowed to merge border items or only whole items
+	/* Controls if shift allowed to merge border items or only whole items
 	   may be shifted. Needed for repair code in order to disable merge of
 	   checked item and not checked one. */
 	SF_ALLOW_MERGE   = 1 << 4,
 
-	/* Controls is shift allowed to allocate new nodes during making
+	/* Controls if shift allowed to allocate new nodes during making
 	   space. This is needed sometimes if there is not enough of free space
 	   in existent nodes (one insert point points to and its neighbours)*/
 	SF_ALLOW_ALLOC   = 1 << 5
@@ -616,7 +616,7 @@ struct trans_hint {
 	/* The key of item/unit to be inserted. */
 	reiser4_key_t offset;
 
-	/* Max real key. Needed for extents only. Set by estimate. */
+	/* Max real key. Set by estimate and needed for file body items. */
 	reiser4_key_t maxkey;
 
 	/* Flags specific for the operation, set at prepare stage. */

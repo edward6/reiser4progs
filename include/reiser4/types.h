@@ -21,7 +21,7 @@
    block size etc. */
 struct reiser4_master_sb {
 	/* Master super block magic. */
-	char ms_magic[4];
+	char ms_magic[16];
 
 	/* Disk format in use. */
 	d16_t ms_format;

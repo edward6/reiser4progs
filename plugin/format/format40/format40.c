@@ -122,8 +122,8 @@ static errno_t format40_check(generic_entity_t *entity,
 #endif
 
 static int format40_magic(format40_super_t *super) {
-	return aal_strncmp(super->sb_magic, FORMAT40_MAGIC, 
-			   aal_strlen(super->sb_magic)) == 0;
+	return (!aal_strncmp(super->sb_magic, FORMAT40_MAGIC, 
+			     sizeof(FORMAT40_MAGIC)));
 }
 
 static errno_t format40_super_open(format40_t *format) {
@@ -249,7 +249,7 @@ static generic_entity_t *format40_create(fs_desc_t *desc,
 
 	/* Setting up format40 magic. */
 	aal_memcpy(super->sb_magic, FORMAT40_MAGIC, 
-		   aal_strlen(FORMAT40_MAGIC));
+		   sizeof(FORMAT40_MAGIC));
 
 	/* Number of flushed is zero. */
 	set_sb_flushes(super, 0);
@@ -297,7 +297,8 @@ static errno_t format40_backup(generic_entity_t *entity, aal_stream_t *stream) {
 	aal_assert("vpf-1396", entity != NULL);
 	aal_assert("vpf-1397", stream != NULL);
 	
-	aal_stream_write(stream, SUPER(entity)->sb_magic, MAGIC_SIZE);
+	aal_stream_write(stream, SUPER(entity)->sb_magic,
+			 MAGIC_SIZE);
 	
 	aal_stream_write(stream, &SUPER(entity)->sb_block_count, 
 			 sizeof(SUPER(entity)->sb_block_count));

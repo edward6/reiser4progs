@@ -1709,7 +1709,7 @@ bool_t reiser4_tree_fresh(reiser4_tree_t *tree) {
 }
 
 /* Updates key at passed @place by passed @key by means of using
-   node_update_key() functions in recursive maner. This function is used for
+   node_update_key() function in recursive maner. This function is used for
    update all internal left delimiting keys after balancing on underlying
    levels. */
 errno_t reiser4_tree_update_key(reiser4_tree_t *tree, reiser4_place_t *place,
@@ -2870,7 +2870,8 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, reiser4_place_t *place,
 }
 
 /* Traverses @node with passed callback functions as actions. */
-errno_t reiser4_tree_trav_node(reiser4_tree_t *tree, reiser4_node_t *node,
+errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
+			       reiser4_node_t *node,
 			       tree_open_func_t open_func,
 			       tree_edge_func_t before_func,
 			       tree_update_func_t update_func,

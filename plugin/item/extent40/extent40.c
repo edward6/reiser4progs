@@ -586,13 +586,17 @@ static int64_t extent40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) 
 
 #ifndef ENABLE_STAND_ALONE
 /* Checks if two extent items are mergeable */
-static int extent40_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
+static int extent40_mergeable(reiser4_place_t *place1,
+			      reiser4_place_t *place2)
+{
 	aal_assert("umka-2199", place1 != NULL);
 	aal_assert("umka-2200", place2 != NULL);
 	return body40_mergeable(place1, place2);
 }
 
-uint32_t extent40_expand(reiser4_place_t *place, uint32_t pos, uint32_t count) {
+uint32_t extent40_expand(reiser4_place_t *place,
+			 uint32_t pos, uint32_t count)
+{
 	/* Preparing space in @dst_place */
 	if (pos < extent40_units(place)) {
 		uint32_t size;
@@ -611,7 +615,9 @@ uint32_t extent40_expand(reiser4_place_t *place, uint32_t pos, uint32_t count) {
 	return 0;
 }
 
-uint32_t extent40_shrink(reiser4_place_t *place, uint32_t pos, uint32_t count) {
+uint32_t extent40_shrink(reiser4_place_t *place,
+			 uint32_t pos, uint32_t count)
+{
 	/* Srinking @dst_place. */
 	if (pos < extent40_units(place)) {
 		uint32_t size;

@@ -47,9 +47,9 @@ reiser4_master_t *reiser4_master_create(
 	if (!(master = aal_calloc(sizeof(*master), 0)))
 		return NULL;
     
-	/* Setting up magic */
+	/* Setting up magic. */
 	aal_strncpy(SUPER(master)->ms_magic, REISER4_MASTER_MAGIC,
-		    sizeof(SUPER(master)->ms_magic));
+		    sizeof(REISER4_MASTER_MAGIC));
     
 	/* Setting up block filesystem used */
 	set_ms_blksize(SUPER(master), blksize);
@@ -148,7 +148,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
     
 	/* Reiser4 master super block is not found on the device. */
 	if (aal_strncmp(SUPER(master)->ms_magic, REISER4_MASTER_MAGIC,
-			aal_strlen(REISER4_MASTER_MAGIC)) != 0)
+			sizeof(REISER4_MASTER_MAGIC)) != 0)
 	{
 		aal_fatal("Wrong magic found in the master "
 			  "super block.");

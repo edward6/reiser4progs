@@ -9,7 +9,7 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
-#define FORMAT40_MAGIC "R4Sb-Default"
+#define FORMAT40_MAGIC "ReIsEr40FoRmAt"
 
 #define FORMAT40_BLOCKNR(blksize) \
         ((REISER4_MASTER_OFFSET / blksize) + 1)
