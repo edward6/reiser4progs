@@ -1001,9 +1001,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 
 			/* Adjusting offset of first block to make it pointed to
 			   the border of block. */
-			offset = (ins_offset + (hint->count % blksize)) -
-				((ins_offset + (hint->count % blksize)) &
-				 (blksize - 1));
+			offset = (ins_offset - (ins_offset & (blksize - 1)));
 
 			plug_call(key.plug->o.key_ops, set_offset, &key, offset);
 			
@@ -1018,7 +1016,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 				if ((size = count) > room)
 					size = room;
 
-				if (offset >= max_offset) {
+				if (ins_offset >= max_offset) {
 					reiser4_key_t *ins_key;
 					
 					if (!(block = aal_block_alloc(device, blksize, 0)))

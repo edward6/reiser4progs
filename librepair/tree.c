@@ -293,16 +293,12 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 
 /* This function creates nodeptr item on the base of @node and insert it 
    to the tree. */
-errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
+errno_t repair_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 	reiser4_key_t rkey, key;
 	reiser4_place_t place;
 	lookup_hint_t lhint;
-	trans_hint_t hint;
 	lookup_t lookup;
-	ptr_hint_t ptr;
-	uint32_t level;
 	errno_t res;
-	rid_t pid;
 	
 	aal_assert("vpf-658", tree != NULL);
 	aal_assert("vpf-659", node != NULL);
@@ -311,15 +307,11 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	if (reiser4_tree_fresh(tree))
 		return reiser4_tree_assign_root(tree, node);
 	
-	/* Preparing nodeptr item hint */
-	aal_memset(&hint, 0, sizeof(hint));
-	aal_memset(&ptr, 0, sizeof(ptr));
+	aal_memset(&lhint, 0, sizeof(lhint));
 	
-	reiser4_node_leftmost_key(node, &hint.offset);
-
+	lhint.key = &key;
 	lhint.level = LEAF_LEVEL;
-	lhint.key = &hint.offset;
-	lhint.correct_func = NULL;
+	reiser4_node_leftmost_key(node, lhint.key);
 	
 	/* Key should not exist in the tree yet. */
 	lookup = reiser4_tree_lookup(tree, &lhint, FIND_EXACT, &place);
@@ -362,42 +354,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 			return -ESTRUCT;
 	}
 	
-	hint.specific = &ptr;
-	hint.count = 1;
-	hint.place_func = NULL;
-	hint.region_func = NULL;
-	hint.shift_flags = SF_DEFAULT;
-	
-	ptr.start = node_blocknr(node);
-	ptr.width = 1;
-	
-	pid = reiser4_param_value("nodeptr");
-	
-	if (!(hint.plug = reiser4_factory_ifind(ITEM_PLUG_TYPE, pid))) {
-		aal_error("Can't find item plugin by its id 0x%x.", pid);
-		return -EINVAL;
-	}
-	
-	level = reiser4_node_get_level(node) + 1;
-	if ((res = reiser4_tree_insert(tree, &place, &hint, level)) < 0) {
-		aal_error("Can't insert nodeptr item to the tree.");
-		return res;
-	}
-	
-	/* Setting needed links between nodes in the tree cashe. */
-	if ((res = reiser4_tree_connect_node(tree, place.node, node))) {
-		aal_error("Can't connect node %llu to tree "
-			  "cache.", node_blocknr(node));
-		return res;
-	}
-
-	/* This is needed to update sibling links, as new attached node may be
-	   inserted between two nodes, that has established sibling links
-	   andthey should be changed. */
-	reiser4_tree_neig_node(tree, node, DIR_LEFT);
-	reiser4_tree_neig_node(tree, node, DIR_RIGHT);
-
-	return 0;
+	return reiser4_tree_attach_node(tree, node, &place, SF_DEFAULT);
 }
 
 /* Check that conversion is needed. */
@@ -615,8 +572,6 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 	lhint.correct_func = callback_lookup;
 	lhint.data = src;
 
-	/* FIXME-VITALY: be sure that the tree is of enough level. If not, 
-	   @dst place will be changed in tree_modify during growing up. */
 	while (1) {
 		if ((res = reiser4_tree_lookup(tree, &lhint, 
 					       FIND_EXACT, &dst)) < 0)

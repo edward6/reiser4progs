@@ -596,7 +596,10 @@ static int reiser4_tree_neig_place(reiser4_tree_t *tree,
 		return 0;
 	
 	/* Position correcting. */
-        place->pos.item += (where == DIR_LEFT ? -1 : 1);
+	if (where == DIR_LEFT)
+		reiser4_place_dec(place, 0);
+	else
+		reiser4_place_inc(place, 0);
 	
 	return level;
 }
