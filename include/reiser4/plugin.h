@@ -293,8 +293,16 @@ struct shift_hint {
 	uint32_t bytes;
 	uint32_t rest;
 
-	/* Shift control flags (left shift, move insert point, merge, etc) */
-	uint32_t flags;
+	/*
+	  Shift control flags (left shift, move insert point, merge, etc) and
+	  shift result flags. The result flags are needed for determining for
+	  example was insert point moved to the corresponding neighbour or
+	  not. Of course we might use control flags for that, but it would be
+	  led to write a lot of useless stuff for saving control flags before
+	  shift, etc.
+	*/
+	uint32_t control;
+	uint32_t result;
 
 	/* Insert point. It will be modified durring shfiting */
 	rpos_t pos;

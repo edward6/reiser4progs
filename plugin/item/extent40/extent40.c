@@ -602,14 +602,15 @@ static errno_t extent40_predict(item_entity_t *src_item,
 
 	space = hint->rest;
 		
-	if (hint->flags & SF_LEFT) {
+	if (hint->control & SF_LEFT) {
 
 		if (hint->rest > hint->pos.unit * sizeof(extent40_t))
 			hint->rest = hint->pos.unit * sizeof(extent40_t);
 
 		hint->pos.unit -= hint->rest / sizeof(extent40_t);
 		
-		if (hint->pos.unit == 0 && hint->flags & SF_MOVIP) {
+		if (hint->pos.unit == 0 && hint->control & SF_MOVIP) {
+			hint->result |= SF_MOVIP;
 			hint->pos.unit = (dst_item->len + hint->rest) /
 				sizeof(extent40_t);
 		}
@@ -626,15 +627,18 @@ static errno_t extent40_predict(item_entity_t *src_item,
 
 			hint->pos.unit += hint->rest / sizeof(extent40_t);
 			
-			if (hint->flags & SF_MOVIP &&
+			if (hint->control & SF_MOVIP &&
 			    hint->pos.unit == (src_item->len / sizeof(extent40_t)))
 			{
 				hint->pos.unit = 0;
+				hint->result |= SF_MOVIP;
 			}
 		} else {
 			
-			if (hint->flags & SF_MOVIP)
+			if (hint->control & SF_MOVIP) {
 				hint->pos.unit = 0;
+				hint->result |= SF_MOVIP;
+			}
 
 			hint->rest = 0;
 		}
@@ -657,7 +661,7 @@ static errno_t extent40_shift(item_entity_t *src_item,
 	len = dst_item->len > hint->rest ? dst_item->len - hint->rest :
 		dst_item->len;
 
-	if (hint->flags & SF_LEFT) {
+	if (hint->control & SF_LEFT) {
 		
 		/* Copying data from the src tail item to dst one */
 		aal_memcpy(dst_item->body + len, src_item->body,

@@ -325,10 +325,10 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 				  shift_hint_t *hint)
 {
 	uint32_t cur;
+	uint32_t flags;
 	uint32_t src_units;
 	uint32_t dst_units;
 	uint32_t space, len;
-	shift_flags_t flags;
 
 	entry40_t *entry;
 	direntry40_t *direntry;
@@ -353,15 +353,14 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 		space -= sizeof(direntry40_t);
 	}
 
-	cur = (hint->flags & SF_LEFT ? 0 : src_units - 1);
+	cur = (hint->control & SF_LEFT ? 0 : src_units - 1);
 	
 	if (!(direntry = direntry40_body(src_item)))
 		return -1;
 
-	flags = hint->flags;
-	hint->flags &= ~SF_MOVIP;
+	flags = hint->control;
 	
-	while (!(hint->flags & SF_MOVIP) && cur < direntry40_units(src_item)) {
+	while (!(hint->result & SF_MOVIP) && cur < direntry40_units(src_item)) {
 
 		int check = (src_item->pos.item == hint->pos.item &&
 			     hint->pos.unit != ~0ul);
@@ -409,7 +408,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 				*/
 				if (hint->pos.unit == 0) {
 					if (flags & SF_MOVIP) {
-						hint->flags |= SF_MOVIP;
+						hint->result |= SF_MOVIP;
 						hint->pos.unit = dst_units;
 					} else
 						break;
@@ -426,13 +425,13 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 					*/
 					if (hint->pos.unit == src_units - 1) {
 						if (flags & SF_MOVIP) {
-							hint->flags |= SF_MOVIP;
+							hint->result |= SF_MOVIP;
 							hint->pos.unit = 0;
 						} else
 							break;
 					} else {
 						if (flags & SF_MOVIP) {
-							hint->flags |= SF_MOVIP;
+							hint->result |= SF_MOVIP;
 							hint->pos.unit = 0;
 						}
 						break;
@@ -497,7 +496,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	headers = hint->units * sizeof(entry40_t);
 	hint->rest -= (hint->create ? sizeof(direntry40_t) : 0);
 		
-	if (hint->flags & SF_LEFT) {
+	if (hint->control & SF_LEFT) {
 
 		uint32_t dst_len = 0;
 
@@ -658,7 +657,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	de40_dec_count(src_direntry, hint->units);
 
 	/* Updating items key */
-	if (hint->flags & SF_LEFT) {
+	if (hint->control & SF_LEFT) {
 		if (de40_get_count(src_direntry) > 0) {
 			if (direntry40_get_key(src_item, 0, &src_item->key))
 				return -1;
