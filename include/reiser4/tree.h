@@ -105,6 +105,9 @@ extern errno_t reiser4_tree_update_key(reiser4_tree_t *tree,
 				       place_t *place,
 				       reiser4_key_t *key);
 
+extern errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
+					node_t *node);
+
 extern errno_t reiser4_tree_load_root(reiser4_tree_t *tree);
 
 extern node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,

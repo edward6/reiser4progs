@@ -3,6 +3,10 @@
    
    extent40.c -- reiser4 default extent plugin. */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "extent40.h"
 #include "extent40_repair.h"
 
@@ -12,7 +16,7 @@ reiser4_core_t *extent40_core;
 uint32_t extent40_units(place_t *place) {
 	aal_assert("umka-1446", place != NULL);
 
-#ifndef ENABLE_STAND_ALONE
+#ifdef ENABLE_DEBUG
 	if (place->len % sizeof(extent40_t) != 0) {
 		aal_error("Invalid extent item size (%u) detected. "
 			  "Node %llu, item %u.", place->len,
@@ -122,7 +126,7 @@ static errno_t extent40_remove_units(place_t *place, trans_hint_t *hint) {
 		extent = extent40_body(place) + pos;
 			
 		for (i = pos; i < pos + hint->count; i++, extent++) {
-			if (!et40_get_start(extent))
+			if (et40_get_start(extent) == 0)
 				continue;
 			
 			hint->region_func(place, et40_get_start(extent),
@@ -711,11 +715,12 @@ static errno_t extent40_prep_write(place_t *place,
 	uint32_t unit_pos;
 
 	extent40_t *extent;
-	uint32_t count, size;
 
 	uint64_t uni_offset;
 	uint64_t ins_offset;
 	uint64_t max_offset;
+
+	uint32_t count, size;
 
 	aal_assert("umka-1836", hint != NULL);
 	aal_assert("umka-2425", place != NULL);
@@ -759,7 +764,7 @@ static errno_t extent40_prep_write(place_t *place,
 		ins_offset = plug_call(hint->offset.plug->o.key_ops,
 				       get_offset, &hint->offset);
 
-		/* This loop checks if we insert some data inside extent, we
+		/* This loop checks if we insert some data inside extent and we
 		   should take into account posible holes. */
 		for (count = hint->count; count > 0 && unit_pos < units;
 		     count -= size, unit_pos++)

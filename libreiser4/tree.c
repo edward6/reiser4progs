@@ -303,10 +303,10 @@ errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 #ifndef ENABLE_STAND_ALONE
 /* Assignes passed @node to root. Takes care about root block number and tree
    height in format. */
-static errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
-					node_t *node)
+errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
+				 node_t *node)
 {
-	blk_t root_blk;
+	blk_t blk;
 	uint32_t level;
 	
 	aal_assert("umka-1867", tree != NULL);
@@ -317,15 +317,18 @@ static errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
 	node->tree = tree;
 	node->p.node = NULL;
 
+	if (reiser4_tree_connect_node(tree, NULL, node))
+		return -EINVAL;
+	
 	/* Updating tree height. */
 	level = reiser4_node_get_level(node);
 	reiser4_tree_set_height(tree, level);
 
 	/* Updating root block number. */
-	root_blk = node_blocknr(tree->root);
-	reiser4_tree_set_root(tree, root_blk);
+	blk = node_blocknr(tree->root);
+	reiser4_tree_set_root(tree, blk);
 
-	return reiser4_tree_connect_node(tree, NULL, node);
+	return 0;
 }
 #endif
 
@@ -1001,8 +1004,8 @@ static errno_t reiser4_tree_alloc_nodeptr(reiser4_tree_t *tree,
 		   allocated node blk. Though it is possible to have not
 		   allocated nodeptr item as its node is not yet in hash table
 		   of formatted nodes. That is because it is in process
-		   yet. This is possible if tree_attach() causes yet another
-		   tree_attach() on higher levels. */
+		   yet. This is possible if tree_attach_node() causes yet
+		   another tree_attach_node() on higher levels. */
 		if (!(node = reiser4_tree_lookup_node(tree, blk)))
 			continue;
 		
@@ -1772,7 +1775,8 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node,
 	if ((res = reiser4_tree_lookup(tree, &hint.offset, level,
 				       FIND_CONV, &place)) < 0)
 	{
-		/* Lookup failed. Tree is corrupted? */
+		aal_error("Lookup is failed during attach node "
+			  "%llu to tree.", node_blocknr(node));
 		return res;
 	}
 
