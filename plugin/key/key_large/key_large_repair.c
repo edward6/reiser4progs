@@ -3,7 +3,9 @@
    
    key_large_repair.c -- large key plugin repair methods. */
 
+#ifndef ENABLE_STAND_ALONE
 #ifdef ENABLE_LARGE_KEYS
+
 #include "key_large.h"
 #include <repair/plugin.h>
 
@@ -64,4 +66,5 @@ void key_large_print(reiser4_key_t *key, aal_stream_t *stream,
 }
 #endif
 
+#endif
 #endif

@@ -70,12 +70,12 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 		if (reiser4_oid_valid(fs->oid))
 			goto error_free_oid;
 	}
-
-	if (reiser4_fs_init_params(fs))
-		goto error_free_oid;
 #endif
-	
 	if (!(fs->tree = reiser4_tree_init(fs)))
+		goto error_free_oid;
+
+
+	if (reiser4_opset_init(fs->tree))
 		goto error_free_oid;
 	
 	return fs;
@@ -415,39 +415,6 @@ errno_t reiser4_fs_sync(
 	return reiser4_status_sync(fs->status);
 }
 
-/* Set default fs params into the profile unless they are overridden 
-   (like a user specified they by hands). */
-errno_t reiser4_fs_init_params(reiser4_fs_t *fs) {
-	uint16_t flags, pid;
-	
-	if (!reiser4_profile_get_flag(PROF_FORMAT, PF_OVERRIDDEN)) {
-		pid = reiser4_master_get_format(fs->master);
-		reiser4_profile_set(PROF_FORMAT, pid);
-		reiser4_profile_set_flag(PROF_FORMAT, PF_READ);
-	}
-	
-	if (!reiser4_profile_get_flag(PROF_KEY, PF_OVERRIDDEN)) {
-		flags = plug_call(fs->format->entity->plug->o.format_ops,
-				  get_flags, fs->format->entity);
-
-		/* Set the default fs key plugin in the profile. */
-		if ((1 << REISER4_LARGE_KEYS) & flags)
-			reiser4_profile_override(PROF_KEY, "key_large");
-		else
-			reiser4_profile_override(PROF_KEY, "key_short");
-
-		reiser4_profile_set_flag(PROF_KEY, PF_READ);
-	}
-
-	if (!reiser4_profile_get_flag(PROF_POLICY, PF_OVERRIDDEN)) {
-		pid = reiser4_format_get_policy(fs->format);
-		reiser4_profile_set(PROF_POLICY, pid);
-		reiser4_profile_set_flag(PROF_POLICY, PF_READ);
-	}
-	
-	return 0;
-}
-
 #endif
 
 /* Returns the key of the fake root parent */
@@ -456,18 +423,11 @@ errno_t reiser4_fs_root_key(reiser4_fs_t *fs,
 {
 	oid_t locality;
 	oid_t objectid;
-	rid_t pid;
 	
 	aal_assert("umka-1949", fs != NULL);
 	aal_assert("umka-1950", key != NULL);
 
-	pid = reiser4_format_key_pid(fs->format);
-
-	/* Finding needed key plugin by its identifier. */
-	if (!(key->plug = reiser4_factory_ifind(KEY_PLUG_TYPE, pid))) {
-		aal_error("Can't find key plugin by its id 0x%x.", pid);
-		return -EINVAL;
-	}
+	key->plug = fs->tree->entity.tpset[TPSET_KEY];
 	
 #ifndef ENABLE_STAND_ALONE
 	locality = reiser4_oid_root_locality(fs->oid);

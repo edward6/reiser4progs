@@ -15,7 +15,7 @@ AH_TEMPLATE([LIBREISER4_MIN_INTERFACE_VERSION], [Define to the min interface ver
 
 LIBREISER4_MAJOR_VERSION=0
 LIBREISER4_MINOR_VERSION=5
-LIBREISER4_MICRO_VERSION=3
+LIBREISER4_MICRO_VERSION=5
 
 LIBREISER4_INTERFACE_AGE=0
 LIBREISER4_BINARY_AGE=0
@@ -467,7 +467,7 @@ AC_CHECK_SIZEOF(off_t, 64, [
 ])
 
 OLD_LIBS="$LIBS"
-AC_CHECK_LIBAAL(aal, 0.5.0, ,exit)
+AC_CHECK_LIBAAL(aal, 0.5.1, ,exit)
 AAL_LIBS="$LIBS"
 LIBS="$OLD_LIBS"
 
@@ -475,7 +475,7 @@ AC_SUBST(AAL_LIBS)
 
 if test x$enable_stand_alone = xyes; then
     	OLD_LIBS="$LIBS"
-    	AC_CHECK_LIBAAL(aal-alone, 0.5.0, ,exit)
+    	AC_CHECK_LIBAAL(aal-alone, 0.5.1, ,exit)
     	AAL_ALONE_LIBS="$LIBS"
     	LIBS="$OLD_LIBS"
 
@@ -632,6 +632,7 @@ AC_OUTPUT([
     	plugin/sdext/sdext_lt/Makefile
     	plugin/sdext/sdext_symlink/Makefile
     	plugin/sdext/sdext_flags/Makefile
+	plugin/sdext/sdext_plugid/Makefile
     	demos/Makefile
     	progs/Makefile
     	progs/mkfs/Makefile

@@ -8,13 +8,13 @@
 #include "sdext_flags.h"
 #include <repair/plugin.h>
 
-errno_t sdext_flags_check_struct(sdext_entity_t *sdext, uint8_t mode) {
-	aal_assert("umka-3081", sdext != NULL);
-	aal_assert("umka-3082", sdext->plug != NULL);
+errno_t sdext_flags_check_struct(stat_entity_t *stat, uint8_t mode) {
+	aal_assert("umka-3081", stat != NULL);
+	aal_assert("umka-3082", stat->ext_plug != NULL);
 	
-	if (sdext->offset + sizeof(sdext_flags_t) > sdext->sdlen) {
+	if (stat->offset + sizeof(sdext_flags_t) > stat->place->len) {
 		aal_error("Does not look like a valid (%s) statdata "
-			  "extension.", sdext->plug->label);
+			  "extension.", stat->ext_plug->label);
 		return RE_FATAL;
 	}
 	
@@ -22,15 +22,16 @@ errno_t sdext_flags_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 }
 
 /* Prints extension into passed @stream. */
-void sdext_flags_print(void *body, aal_stream_t *stream,
+void sdext_flags_print(stat_entity_t *stat, 
+		       aal_stream_t *stream,
 		       uint16_t options)
 {
 	sdext_flags_t *ext;
 	
-	aal_assert("umka-3083", body != NULL);
+	aal_assert("umka-3083", stat != NULL);
 	aal_assert("umka-3084", stream != NULL);
 
-	ext = (sdext_flags_t *)body;
+	ext = (sdext_flags_t *)stat_body(stat);
 
 	aal_stream_format(stream, "flags:\t\t%u\n",
 			  sdext_flags_get_flags(ext));

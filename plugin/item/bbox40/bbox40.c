@@ -144,7 +144,6 @@ static item_object_ops_t object_ops = {
 	.layout		  = NULL,
 #endif
 	.fetch_units	  = bbox40_fetch_units,
-	.object_plug	  = NULL,
 	.read_units	  = NULL
 };
 

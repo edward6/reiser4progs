@@ -16,56 +16,40 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	aal_assert("vpf-1044", object != NULL);
 	
-	if ((res = plug_call(object->entity->plug->o.object_ops, check_struct,
-			     object->entity, place_func, data, mode)) < 0)
+	if ((res = plug_call(object->entity->opset[OPSET_OBJ]->o.object_ops,
+			     check_struct, object->entity, place_func, 
+			     data, mode)) < 0)
 		return res;
 	
 	aal_assert("vpf-1195", mode != RM_BUILD ||
 			      !(res & RE_FATAL));
 	
-	reiser4_key_assign(&object->info->object, &object->info->start.key);
+	reiser4_key_assign(&object->entity->object, &object->entity->start.key);
 
 	aal_strncpy(object->name, 
-		    reiser4_print_key(&object->info->object, PO_INODE),
+		    reiser4_print_key(&object->entity->object, PO_INODE),
 		    sizeof(object->name));
 	
 	return res;
 }
 
-/* Helper callback for probing passed @plugin. */
-static errno_t callback_object_recognize(reiser4_plug_t *plug, void *data) {
-	reiser4_object_t *object;
-	
-	/* We are interested only in object plugins here */
-	if (plug->id.type != OBJECT_PLUG_TYPE)
-		return 0;
-	
-	object = (reiser4_object_t *)data;
-	
-	/* Try to recognize the object as an instance of this plugin. */
-	object->entity = plug_call(plug->o.object_ops, recognize, 
-				   object->info);
-	
-	return (object->entity == NULL || object->entity == INVAL_PTR) ?
-		0 : -EINVAL;
+static object_entity_t *callback_object_open(object_info_t *info) {
+	/* Try to init on the StatData. */
+	if (reiser4_object_init(info))
+		return INVAL_PTR;
+
+	return plug_call(info->opset[OPSET_OBJ]->o.object_ops, 
+			 recognize, info);
 }
 
-static errno_t repair_object_init(reiser4_object_t *object,
-				  reiser4_object_t *parent)
+reiser4_object_t *repair_object_fetch(reiser4_tree_t *tree, 
+				      reiser4_object_t *parent,
+				      reiser4_place_t *place) 
 {
-	reiser4_plug_t *plug;
+	aal_assert("vpf-1622", place != NULL);
 	
-	plug = reiser4_factory_cfind(callback_object_recognize, object);
-
-	return plug == NULL ? -EINVAL : 0;
-}
-
-reiser4_object_t *repair_object_recognize(reiser4_tree_t *tree, 
-					  reiser4_object_t *parent,
-					  reiser4_place_t *place) 
-{
-	return reiser4_object_guess(tree, parent, &place->key, 
-				    place, repair_object_init);
+	return reiser4_object_open(tree, parent, &place->key, 
+				   place, callback_object_open);
 }
 
 /* Create the fake object--needed for "/" and "lost+found" recovery when SD 
@@ -88,19 +72,21 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 
 	/* Initializing info */
 	aal_memset(&info, 0, sizeof(info));
-	info.tree = tree;
-	reiser4_key_assign(&info.object, key);
+	aal_memcpy(&info.opset, &tree->entity.opset, 
+		   sizeof(reiser4_plug_t *) * OPSET_LAST);
 	
-	if (parent)
-		reiser4_key_assign(&info.parent, &parent->info->object);
+	if (parent) {
+		reiser4_key_assign(&info.parent, &parent->entity->object);
+	}
+	
+	reiser4_key_assign(&info.object, key);
+	info.tree = (tree_entity_t *)tree;
 	
 	/* Create the fake object. */
 	if (!(object->entity = plug_call(plug->o.object_ops, fake, &info)))
 		goto error_close_object;
 	
-	object->info = &object->entity->info;
-	
-	name = reiser4_print_key(&object->info->object, PO_INODE);
+	name = reiser4_print_key(&object->entity->object, PO_INODE);
 	aal_strncpy(object->name, name, sizeof(object->name));
 
 	return object;
@@ -111,7 +97,7 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 }
 
 /* Open the object on the base of given start @key */
-reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
+reiser4_object_t *repair_object_obtain(reiser4_tree_t *tree,
 				       reiser4_object_t *parent,
 				       reiser4_key_t *key)
 {
@@ -128,10 +114,10 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 	if (reiser4_tree_lookup(tree, &hint, FIND_EXACT, &place) < 0)
 		return INVAL_PTR;
 	
-	/* Even if place is found, pass it through object recognize 
+	/* Even if ABSENT, pass the found place through object recognize 
 	   method to check all possible corruptions. */
-	return reiser4_object_guess(tree, parent, key, &place, 
-				    repair_object_init);
+	return reiser4_object_open(tree, parent, key, &place, 
+				   callback_object_open);
 }
 
 /* Checks the attach between @parent and @object */
@@ -147,14 +133,13 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 	aal_assert("vpf-1099", parent != NULL);
 	aal_assert("vpf-1100", parent->entity != NULL);
 	
-	plug = object->entity->plug;
+	plug = object->entity->opset[OPSET_OBJ];
 	
-	if (!object->entity->plug->o.object_ops->check_attach)
+	if (!plug->o.object_ops->check_attach)
 		return 0;
 	
-	return plug_call(object->entity->plug->o.object_ops, check_attach, 
-			 object->entity, parent->entity, place_func, data, 
-			 mode);
+	return plug_call(plug->o.object_ops, check_attach, object->entity, 
+			 parent->entity, place_func, data, mode);
 }
 
 errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag) {
@@ -206,14 +191,33 @@ errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag) {
 	return 0;
 }
 
-errno_t repair_object_form(reiser4_object_t *object) {
+errno_t repair_object_refresh(reiser4_object_t *object) {
+	reiser4_plug_t *plug;
+	entry_hint_t entry;
+	
 	aal_assert("vpf-1271", object != NULL);
 
-	if (!object->entity->plug->o.object_ops->form)
+	plug = object->entity->opset[OPSET_OBJ];
+	
+	if (!plug->o.object_ops->lookup)
 		return 0;
 
-	return plug_call(object->entity->plug->o.object_ops, 
-			 form, object->entity);
+	switch (plug_call(plug->o.object_ops, lookup, 
+			  object->entity, "..", &entry))
+	{
+	case ABSENT:
+		aal_memset(&object->entity->parent, 0, 
+			   sizeof(object->entity->parent));
+		break;
+	case PRESENT:
+		plug_call(entry.object.plug->o.key_ops, assign,
+			  &object->entity->parent, &entry.object);
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return 0;
 }
 
 /* Helper function for printing passed @place into @stream. */

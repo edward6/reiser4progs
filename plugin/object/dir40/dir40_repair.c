@@ -13,36 +13,6 @@
 /* Set of unknown extentions. */
 #define DIR40_EXTS_UNKN ((uint64_t)1 << SDEXT_SYMLINK_ID)
 
-static errno_t dir40_extensions(reiser4_place_t *stat) {
-	uint64_t extmask;
-	
-	extmask = obj40_extmask(stat);
-	
-	/* Check that there is no one unknown extension. */
-	if (extmask & DIR40_EXTS_UNKN)
-		return RE_FATAL;
-	
-	/* Check that LW and UNIX extensions exist. */
-	return ((extmask & DIR40_EXTS_MUST) == DIR40_EXTS_MUST) ? 0 : RE_FATAL;
-}
-
-/* Check SD extensions and that mode in LW extension is DIRFILE. */
-static errno_t callback_stat(reiser4_place_t *stat) {
-	sdext_lw_hint_t lw_hint;
-	errno_t res;
-	
-	if ((res = dir40_extensions(stat)))
-		return res;
-
-	/* Check the mode in the LW extension. */
-	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)))
-		return res;
-	
-	return S_ISDIR(lw_hint.mode) ? 0 : RE_FATAL;
-
-	/* FIXME: read object plug_id extention from sd. if present also. */
-}
-
 object_entity_t *dir40_recognize(object_info_t *info) {
 	dir40_t *dir;
 	errno_t res;
@@ -53,11 +23,15 @@ object_entity_t *dir40_recognize(object_info_t *info) {
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&dir->obj, &dir40_plug, dir40_core, info);
+	obj40_init(&dir->obj, info, dir40_core);
 	
-	if ((res = obj40_recognize(&dir->obj, callback_stat)))
+	if ((res = obj40_objkey_check(&dir->obj)))
 		goto error;
 
+	if ((res = obj40_check_stat(&dir->obj, DIR40_EXTS_MUST,
+				    DIR40_EXTS_UNKN)))
+		goto error;
+	
 	/* Positioning to the first directory unit */
 	dir40_reset((object_entity_t *)dir);
 	
@@ -95,7 +69,7 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	aal_error("Directory [%s]: The entry \".\" is not found.%s "
 		  "Plugin (%s).", print_inode(dir40_core, &info->object), 
 		  mode != RM_CHECK ? " Insert a new one." : "", 
-		  dir->obj.plug->label);
+		  dir->obj.info.opset[OPSET_OBJ]->label);
 	
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
@@ -130,7 +104,6 @@ errno_t dir40_check_struct(object_entity_t *object,
 	dir40_t *dir = (dir40_t *)object;
 	obj40_stat_methods_t methods;
 	obj40_stat_params_t params;
-	reiser4_plug_t *bplug;
 	object_info_t *info;
 	entry_hint_t entry;
 	
@@ -152,39 +125,11 @@ errno_t dir40_check_struct(object_entity_t *object,
 	if (place_func && place_func(&info->start, data))
 		return -EINVAL;
 	
-	/* Init hash plugin in use. */
-	dir->hash = obj40_plug_recognize(&dir->obj, 
-					 HASH_PLUG_TYPE, 
-					 PROF_HASH);
-	
-	if (dir->hash == NULL) {
-                aal_error("Directory %s: failed to init hash plugin. Plugin "
-			  "(%s).", print_inode(dir40_core, &info->object),
-			  dir40_plug.label);
-                return -EINVAL;
-        }
-	
-	/* Init hash plugin in use. */
-	dir->fibre = obj40_plug_recognize(&dir->obj, 
-					  FIBRE_PLUG_TYPE, 
-					  PROF_FIBRE);
-	
-	if (dir->fibre == NULL) {
-                aal_error("Directory %s: failed to init the fibration plugin. "
-			  "Plugin (%s).",print_inode(dir40_core, &info->object),
-			  dir40_plug.label);
-                return -EINVAL;
-        }
-
-	/* FIXME-VITALY: take it from SD first. But of which type -- there is 
-	   only ITEM_TYPE for now. */
-	bplug = dir40_core->profile_ops.plug(PROF_DIRENTRY);
-
 	/* Take care about the ".". */
 	/* FIXME: Probably it should be different -- find an item by the key 
-	   and if it is of DIRENTRY group, take its plugin as bplug, fix it 
-	   in SD then. */
-	if ((res |= dir40_dot(dir, bplug, mode)) < 0)
+	   and if it is of DIRENTRY group, take its plugin as body plug, fix 
+	   it in SD then. */
+	if ((res |= dir40_dot(dir, object->opset[OPSET_DENTRY], mode)) < 0)
 		return res;
 	
 	/* FIXME-VITALY: this probably should be changed. Now hash plug that is
@@ -216,7 +161,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 		   FIXME-VITALY: item of the same group but of another 
 		   plugin, it should be converted. */
 		/*if (dir->body.plug->id.group != DIRENTRY_ITEM) */
-		if (dir->body.plug != bplug) {
+		if (dir->body.plug != object->opset[OPSET_DENTRY]) {
 			aal_error("Directory [%s], plugin [%s], node [%llu], "
 				  "item [%u]: item of the illegal plugin [%s] "
 				  "with the key of this object found.%s",
@@ -272,8 +217,10 @@ errno_t dir40_check_struct(object_entity_t *object,
 			
 			/* Prepare the correct key for the entry. */
 			plug_call(entry.offset.plug->o.key_ops, 
-				  build_hashed, &key, dir->hash, 
-				  dir->fibre, obj40_locality(&dir->obj),
+				  build_hashed, &key,
+				  object->opset[OPSET_HASH], 
+				  object->opset[OPSET_FIBRE], 
+				  obj40_locality(&dir->obj),
 				  obj40_objectid(&dir->obj), entry.name);
 			
 			/* If the key matches, continue. */
@@ -349,8 +296,8 @@ errno_t dir40_check_struct(object_entity_t *object,
 		
 		methods.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 
-		res |= obj40_check_stat(&dir->obj, &methods, 
-					&params, mode);
+		res |= obj40_update_stat(&dir->obj, &methods, 
+					 &params, mode);
 	}
 	
 	return res;
@@ -377,16 +324,17 @@ errno_t dir40_check_attach(object_entity_t *object,
 	case PRESENT:
 		/* If the key matches the parent -- ok. */
 		if (!plug_call(entry.object.plug->o.key_ops, compfull, 
-			       &entry.object, &parent->info.object))
+			       &entry.object, &parent->object))
 			break;
 		
 		/* Already attached. */
 		aal_error("Directory [%s], plugin [%s]: the object "
 			  "is attached already to [%s] and cannot "
 			  "be attached to [%s].", 
-			  print_inode(dir40_core, &object->info.object),
-			  dir40_plug.label, print_key(dir40_core, &entry.object),
-			  print_inode(dir40_core, &parent->info.object));
+			  print_inode(dir40_core, &object->object),
+			  dir40_plug.label, 
+			  print_key(dir40_core, &entry.object),
+			  print_inode(dir40_core, &parent->object));
 
 		return RE_FATAL;
 	case ABSENT:
@@ -406,19 +354,19 @@ errno_t dir40_check_attach(object_entity_t *object,
 		if (mode == RM_CHECK) {
 			aal_error("Directory [%s], plugin [%s]: the object "
 				  "is not attached. Reached from [%s].",
-				  print_inode(dir40_core, &object->info.object),
+				  print_inode(dir40_core, &object->object),
 				  dir40_plug.label,
-				  print_inode(dir40_core, &parent->info.object));
+				  print_inode(dir40_core, &parent->object));
 			return RE_FIXABLE;
 		}
 		
 		/* Adding ".." to the @object pointing to the @parent. */
-		plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, assign,
-			  &entry.object, &parent->info.object);
+		plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, 
+			  assign, &entry.object, &parent->object);
 
 		aal_strncpy(entry.name, "..", sizeof(entry.name));
 		
-		if ((res = plug_call(object->plug->o.object_ops,
+		if ((res = plug_call(object->opset[OPSET_OBJ]->o.object_ops,
 				     add_entry, object, &entry)))
 		{
 			return res;
@@ -433,7 +381,7 @@ errno_t dir40_check_attach(object_entity_t *object,
 	if (mode != RM_BUILD)
 		return 0;
 	
-	return plug_call(parent->plug->o.object_ops, link, parent);
+	return plug_call(parent->opset[OPSET_OBJ]->o.object_ops, link, parent);
 }
 
 
@@ -447,68 +395,12 @@ object_entity_t *dir40_fake(object_info_t *info) {
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&dir->obj, &dir40_plug, dir40_core, info);
+	obj40_init(&dir->obj, info, dir40_core);
 	
 	/* Positioning to the first directory unit */
 	dir40_reset((object_entity_t *)dir);
 	
 	return (object_entity_t *)dir;
-}
-
-/* Form the correct object from what was recognzed and checked: for now
-   @info.parent, dir->hash, If ".." cannot be found, zero the key. */
-errno_t dir40_form(object_entity_t *object) {
-	dir40_t *dir = (dir40_t *)object;
-	entry_hint_t entry;
-
-	aal_assert("vpf-1269", object != NULL);
-
-	dir40_reset(object);
-
-	/* Init hash plugin in use if is not known yet. */
-	if (!dir->hash) {
-		dir->hash = obj40_plug_recognize(&dir->obj, 
-						 HASH_PLUG_TYPE, 
-						 PROF_HASH);
-
-		if (dir->hash == NULL) {
-			aal_error("Directory [%s]: failed to init "
-				  "hash plugin. Plugin (%s).", 
-				  print_inode(dir40_core, &dir->obj.info.object),
-				  dir40_plug.label);
-			return -EINVAL;
-		}
-	}
-	
-	/* Init fibre plugin in use if is not known yet. */
-	if (!dir->fibre) {
-		dir->fibre = obj40_plug_recognize(&dir->obj, 
-						 FIBRE_PLUG_TYPE, 
-						 PROF_FIBRE);
-
-		if (dir->fibre == NULL) {
-			aal_error("Directory [%s]: failed to init "
-				  "fibration plugin. Plugin (%s).", 
-				  print_inode(dir40_core, &dir->obj.info.object),
-				  dir40_plug.label);
-			return -EINVAL;
-		}
-	}
-	
-	switch ((dir40_lookup(object, "..", &entry))) {
-	case ABSENT:
-		aal_memset(&object->info.parent, 0, 
-			   sizeof(object->info.parent));
-		break;
-	case PRESENT:
-		plug_call(entry.object.plug->o.key_ops, assign,
-			  &object->info.parent, &entry.object);
-		break;
-	default:
-		return -EINVAL;
-	}
-	
-	return 0;
 }
 
 #endif

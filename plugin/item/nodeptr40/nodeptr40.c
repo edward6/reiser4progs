@@ -143,7 +143,6 @@ static item_object_ops_t object_ops = {
 	.bytes		  = NULL,
 	.overhead	  = NULL,
 #endif
-	.object_plug	  = NULL,
 	.read_units	  = NULL,
 	.fetch_units	  = nodeptr40_fetch_units
 };

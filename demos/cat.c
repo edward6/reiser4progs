@@ -60,10 +60,10 @@ int main(int argc, char *argv[]) {
 
 	fs->tree->mpc_func = misc_mpressure_detect;
 	
-	if (!(reg = reiser4_object_open(fs->tree, argv[2], 1)))
+	if (!(reg = reiser4_semantic_open(fs->tree, argv[2], 1)))
 		goto error_free_fs;
 
-	if (reg->entity->plug->id.group != REG_OBJECT) {
+	if (reg->entity->opset[OPSET_OBJ]->id.group != REG_OBJECT) {
 		aal_error("File %s is not a regular file.",
 			  argv[2]);
 		goto error_free_reg;

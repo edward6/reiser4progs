@@ -1103,8 +1103,7 @@ static item_object_ops_t object_ops = {
 	.trunc_units	  = NULL,
 	.layout		  = NULL,
 #endif
-	.read_units	  = NULL,
-	.object_plug	  = NULL
+	.read_units	  = NULL
 };
 
 static item_debug_ops_t debug_ops = {

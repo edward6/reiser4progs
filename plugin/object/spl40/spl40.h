@@ -7,15 +7,11 @@
 #define SPL40_H
 
 #include <aal/libaal.h>
-#include <aux/aux.h>
-#include <sys/stat.h>
-
 #include <reiser4/plugin.h>
 #include <plugin/object/obj40/obj40.h>
 
 /* Special file struct. */
 struct spl40 {
-
 	/* Common file fiedls (statdata, etc). As spl40 has nothing but statdata
 	   only, this structure has only file handler, which contains stuff for
 	   statdata handling. */

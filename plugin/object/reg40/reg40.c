@@ -141,39 +141,20 @@ static object_entity_t *reg40_open(object_info_t *info) {
 	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
 
+	if (info->opset[OPSET_OBJ] != &reg40_plug)
+		return NULL;
+	
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
 
 	/* Initializing file handle. It is needed for working with file stat
 	   data item. */
-	obj40_init(&reg->obj, &reg40_plug, reg40_core, info);
+	obj40_init(&reg->obj, info, reg40_core);
 
-	/* Checking if stat data contains points to object, which can be handled
-	   by current plugin. */
-	if (obj40_pid(&reg->obj, OBJECT_PLUG_TYPE, PROF_REG) != 
-	    reg40_plug.id.id)
-	{
-		goto error_free_reg;
-	}
-
-	/* Initializing tail policy plugin. */
-#ifndef ENABLE_STAND_ALONE
-	if (!(reg->policy = obj40_plug(&reg->obj, 
-				       POLICY_PLUG_TYPE,
-				       PROF_POLICY)))
-	{
-		aal_error("Can't get file policy plugin.");
-		goto error_free_reg;
-	}
-#endif
-	
 	/* Reseting file (setting offset to 0) */
 	reg40_reset((object_entity_t *)reg);
-	return (object_entity_t *)reg;
 	
- error_free_reg:
-	aal_free(reg);
-	return NULL;
+	return (object_entity_t *)reg;
 }
 
 /* Loads stat data to passed @hint */
@@ -192,35 +173,21 @@ static errno_t reg40_stat(object_entity_t *entity,
 #ifndef ENABLE_STAND_ALONE
 /* Create the file described by pased @hint. That is create files stat data
    item. */
-static object_entity_t *reg40_create(object_info_t *info,
-				     object_hint_t *hint)
-{
+static object_entity_t *reg40_create(object_hint_t *hint) {
 	reg40_t *reg;
 	
-	aal_assert("umka-1169", info != NULL);
 	aal_assert("umka-1738", hint != NULL);
-	aal_assert("vpf-1093",  info->tree != NULL);
+	aal_assert("vpf-1093",  hint->info.tree != NULL);
 
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
 	
 	/* Initializing file handle. */
-	obj40_init(&reg->obj, &reg40_plug, reg40_core, info);
-
-	/* Initializing tail policy plugin. */
-	reg->policy = hint->prof.type.reg.policy;
+	obj40_init(&reg->obj, &hint->info, reg40_core);
 
 	/* Create stat data item with size, bytes, nlinks equal to zero. */
-	if (obj40_create_stat(&reg->obj, hint->prof.statdata,
-			      0, 0, 0, 0, S_IFREG, NULL))
-	{
+	if (obj40_create_stat(&reg->obj, 0, 0, 0, 0, S_IFREG, NULL))
 		goto error_free_reg;
-	}
-
-	/* Copy new created stat data coord to @info->start. It is needed on
-	   higher levels of abstraction and for fsck. */
-	aal_memcpy(&info->start, STAT_PLACE(&reg->obj),
-		   sizeof(info->start));
 
 	/* Reset file. */
 	reg40_reset((object_entity_t *)reg);
@@ -266,22 +233,23 @@ static errno_t reg40_unlink(object_entity_t *entity) {
    @size -- new file size. This function will use tail policy plugin to find
    what kind of next body item should be writen. */
 reiser4_plug_t *reg40_policy_plug(reg40_t *reg, uint64_t new_size) {
-	aal_assert("umka-2394", reg != NULL);
-	aal_assert("umka-2393", reg->policy != NULL);
-
-	/* FIXME-UMKA: Here is not enough to have only plugin type to get it
-	   from stat data, as for tails and extents plugin type is the same and
-	   namely ITEM_PLUG_TYPE. */
+	reiser4_plug_t *policy;
 	
+	aal_assert("umka-2394", reg != NULL);
+
+	policy = reg->obj.info.opset[OPSET_POLICY];
+	
+	aal_assert("umka-2393", policy != NULL);
+
 	/* Calling tail policy plugin to detect body plugin. */
-	if (plug_call(reg->policy->o.policy_ops, tails, new_size)) {
+	if (plug_call(policy->o.policy_ops, tails, new_size)) {
 		/* Trying to get non-standard tail plugin from stat data. And if
 		   it is not found, default one from params will be taken. */
-		return obj40_plug(&reg->obj, ITEM_PLUG_TYPE, PROF_TAIL);
-	} else {
-		/* The same for extent plugin */
-		return obj40_plug(&reg->obj, ITEM_PLUG_TYPE, PROF_EXTENT);
+		return reg->obj.info.opset[OPSET_TAIL];
 	}
+	
+	/* The same for extent plugin */
+	return reg->obj.info.opset[OPSET_EXTENT];
 }
 
 /* Makes tail2extent and extent2tail conversion. */
@@ -730,7 +698,6 @@ static reiser4_object_ops_t reg40_ops = {
 	.layout         = reg40_layout,
 	.metadata       = reg40_metadata,
 	.convert        = reg40_convert,
-	.form		= reg40_form,
 	.update         = reg40_update,
 	.link           = reg40_link,
 	.unlink         = reg40_unlink,

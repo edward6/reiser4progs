@@ -68,25 +68,24 @@ typedef int32_t lookup_t;
 /* Known by library plugin types. */
 enum reiser4_plug_type {
 	OBJECT_PLUG_TYPE        = 0x0,
-	DIR_OBJECT_PLUG_TYPE	= 0x1,
-	ITEM_PLUG_TYPE          = 0x2,
-	NODE_PLUG_TYPE          = 0x3,
-	HASH_PLUG_TYPE          = 0x4,
-	FIBRE_PLUG_TYPE		= 0x5,
-	POLICY_PLUG_TYPE        = 0x6,
-	PERM_PLUG_TYPE          = 0x7,
-	SDEXT_PLUG_TYPE         = 0x8,
-	FORMAT_PLUG_TYPE        = 0x9,
-	OID_PLUG_TYPE           = 0xa,
-	JNODE_PLUG_TYPE         = 0xb,
-	CRYPTO_PLUG_TYPE	= 0xc,
-	DIGEST_PLUG_TYPE	= 0xd,
-	COMPRESS_PLUG_TYPE	= 0xe,
+	ITEM_PLUG_TYPE          = 0x1,
+	NODE_PLUG_TYPE          = 0x2,
+	HASH_PLUG_TYPE          = 0x3,
+	FIBRE_PLUG_TYPE		= 0x4,
+	POLICY_PLUG_TYPE        = 0x5,
+	PERM_PLUG_TYPE          = 0x6,
+	SDEXT_PLUG_TYPE         = 0x7,
+	FORMAT_PLUG_TYPE        = 0x8,
+	OID_PLUG_TYPE           = 0x9,
+	JNODE_PLUG_TYPE         = 0xa,
+	CRYPTO_PLUG_TYPE	= 0xb,
+	DIGEST_PLUG_TYPE	= 0xc,
+	COMPRESS_PLUG_TYPE	= 0xd,
 	
 	/* These are not plugins in the kernel. */
-	ALLOC_PLUG_TYPE         = 0xf,
-	JOURNAL_PLUG_TYPE       = 0x10,
-	KEY_PLUG_TYPE           = 0x11,
+	ALLOC_PLUG_TYPE         = 0xe,
+	JOURNAL_PLUG_TYPE       = 0xf,
+	KEY_PLUG_TYPE           = 0x10,
 	LAST_PLUG_TYPE
 };
 
@@ -261,42 +260,42 @@ enum key_type {
 
 typedef enum key_type key_type_t;
 
-/* Profile index. This is the full index of plugin profile. Access ..... 
-   by it to get plugins for every part of a filesystem. */
-enum reiser4_profile_index {
-	PROF_FORMAT	= 0x0,
-	PROF_JOURNAL	= 0x1,
-	PROF_OID	= 0x2,
-	PROF_ALLOC	= 0x3,
-	PROF_KEY	= 0x4,
-	PROF_NODE	= 0x5,
-	
-	PROF_STATDATA	= 0x6,
-	PROF_NODEPTR	= 0x7,
-	PROF_DIRENTRY	= 0x8,
-	PROF_TAIL	= 0x9,
-	PROF_EXTENT	= 0xa,
-	PROF_ACL	= 0xc,
-	PROF_PERM	= 0xb,
-	
-	PROF_REG	= 0xd,
-	PROF_DIR	= 0xe,
-	PROF_SYM	= 0xf,
-	PROF_SPL	= 0x10,
-	
-	PROF_HASH	= 0x11,
-	PROF_FIBRE	= 0x12,
-	PROF_POLICY	= 0x13,
-	PROF_LAST
+/* Tree Plugin SET index. */
+enum reiser4_tpset_id {
+	TPSET_KEY		= 0x0,
+	TPSET_NODE		= 0x1,
+	TPSET_NODEPTR		= 0x2,
+
+	TPSET_LAST
 };
 
-struct reiser4_prof {
-	reiser4_plug_t *plug;
-	uint8_t flags;
+/* Object Plugin SET index. */
+enum reiser4_opset_id {
+	OPSET_OBJ		= 0x0,
+	OPSET_DIR		= 0x1,
+	OPSET_PERM		= 0x2,
+	OPSET_POLICY		= 0x3,
+	OPSET_HASH		= 0x4,
+	OPSET_FIBRE		= 0x5,
+	OPSET_STAT		= 0x6,
+	OPSET_DENTRY		= 0x7,
+	OPSET_CRYPTO		= 0x8,
+	OPSET_DIGEST		= 0x9,
+	OPSET_COMPRES		= 0xa,
+	
+	OPSET_STORE_LAST        = (OPSET_COMPRES + 1),
+		
+	/* These are not stored on disk in the current implementation. */
+	OPSET_CREATE		= 0xb,
+	OPSET_MKDIR		= 0xc,
+	OPSET_SYMLINK		= 0xd,
+	OPSET_MKNODE		= 0xe,
+	
+	OPSET_TAIL		= 0xf,
+	OPSET_EXTENT		= 0x10,
+	OPSET_ACL		= 0x11,
+	OPSET_LAST
 };
-
-typedef struct reiser4_prof reiser4_profile_t;
-
 
 /* Known print options for key. */
 enum print_options {
@@ -313,6 +312,19 @@ struct generic_entity {
 };
 
 typedef struct generic_entity generic_entity_t;
+
+#ifndef ENABLE_STAND_ALONE
+struct tree_entity {
+	/* Plugin SET. Set of plugins needed for the reiser4progs work.
+	   Consists of tree-specific plugins and object-specific plugins. */
+	reiser4_plug_t *tpset[TPSET_LAST];
+	reiser4_plug_t *opset[OPSET_LAST];
+};
+
+typedef struct tree_entity tree_entity_t;
+#else
+typedef void tree_entity_t;
+#endif
 
 typedef struct reiser4_node reiser4_node_t;
 typedef struct reiser4_place reiser4_place_t;
@@ -350,7 +362,7 @@ struct reiser4_node {
 
 	/* Reference to tree if node is attached to tree. Sometimes node needs
 	   access tree and tree functions. */
-	void *tree;
+	tree_entity_t *tree;
 	
 	/* Place in parent node. */
 	reiser4_place_t p;
@@ -385,7 +397,10 @@ struct reiser4_node {
 /* Object info struct contains the main information about a reiser4
    object. These are: its key, parent key and coord of first item. */
 struct object_info {
-	void *tree;
+	reiser4_plug_t *opset[OPSET_LAST];
+	uint64_t opmask;
+	
+	tree_entity_t *tree;
 	reiser4_place_t start;
 	reiser4_key_t object;
 	reiser4_key_t parent;
@@ -394,23 +409,27 @@ struct object_info {
 typedef struct object_info object_info_t;
 
 /* Object plugin entity. */
+/*
 struct object_entity {
-	reiser4_plug_t *plug;
 	object_info_t info;
+	reiser4_plug_t *plug;
 };
 
 typedef struct object_entity object_entity_t;
+*/
+
+typedef object_info_t object_entity_t;
 
 /* Stat data extension entity. */
-struct sdext_entity {
-	reiser4_plug_t *plug;
-
-	void *body;
-	uint32_t sdlen;
+struct stat_entity {
+	reiser4_place_t *place;
+	reiser4_plug_t *ext_plug;
 	uint32_t offset;
 };
 
-typedef struct sdext_entity sdext_entity_t;
+typedef struct stat_entity stat_entity_t;
+
+#define stat_body(stat) ((stat)->place->body + (stat)->offset)
 
 /* Shift flags control shift process */
 enum shift_flags {
@@ -523,6 +542,12 @@ struct sdext_flags_hint {
 
 typedef struct sdext_flags_hint sdext_flags_hint_t;
 
+struct sdext_plugid_hint {
+	reiser4_plug_t *pset[OPSET_LAST];
+};
+
+typedef struct sdext_plugid_hint sdext_plugid_hint_t;
+
 /* These fields should be changed to what proper description of needed
    extensions. */
 struct statdata_hint {
@@ -531,7 +556,7 @@ struct statdata_hint {
 	uint64_t extmask;
     
 	/* Stat data extensions */
-	void *ext[60];
+	void *ext[SDEXT_LAST_ID];
 };
 
 typedef struct statdata_hint statdata_hint_t;
@@ -546,52 +571,20 @@ typedef enum entry_type entry_type_t;
 /* Object hint. It is used to bring all about object information to object
    plugin to create appropriate object by it. */
 struct object_hint {
-
+	/* Object info. */
+	object_info_t info;
+	
 	/* Additional mode to be masked to stat data mode. This is
 	   needed for special files, but mat be used somewhere else. */
 	uint32_t mode;
-
-	/* Hint for a file body */
-	union {
-		/* rdev field for special file. Nevertheless, it is stored
-		   inside special file stat data field, we put it to @body
-		   definition, because it is the special file essence. */
-		struct {
-			uint64_t rdev;
-		} spl;
-
-		/* Symlink data */
-		struct {
-			char *name;
-		} sym;
-	} body;
-    
-	struct {
-		/* The object plugin. */
-		reiser4_plug_t *object;
-
-		/* Stata plugin. */
-		reiser4_plug_t *statdata;
-
-		union {
-			/* Plugins for a directory file. */
-			struct {
-				reiser4_plug_t *hash;
-				reiser4_plug_t *fibre;
-				reiser4_plug_t *direntry;
-			} dir;
-
-			/* Plugins for a regular file. */
-			struct {
-				reiser4_plug_t *tail;
-				reiser4_plug_t *extent;
-				reiser4_plug_t *policy;
-			} reg;
-		} type;
-	} prof;
 	
-	/* Parent object key. */
-	reiser4_key_t *parent;
+	/* rdev field for special file. Nevertheless, it is stored
+	   inside special file stat data field, we put it to @body
+	   definition, because it is the special file essence. */
+	uint64_t rdev;
+	
+	/* SymLink name. */
+	char *name;
 };
 
 typedef struct object_hint object_hint_t;
@@ -768,7 +761,9 @@ typedef enum lookup_bias lookup_bias_t;
 
 typedef struct lookup_hint lookup_hint_t;
 
-typedef lookup_t (*coll_func_t) (void *, reiser4_place_t *, coll_hint_t *);
+typedef lookup_t (*coll_func_t) (tree_entity_t *, 
+				 reiser4_place_t *, 
+				 coll_hint_t *);
 
 /* Hint to be used when looking for data in tree. */
 struct lookup_hint {
@@ -903,7 +898,7 @@ struct reiser4_object_ops {
 	errno_t (*update) (object_entity_t *, statdata_hint_t *);
 	
 	/* Creates new file with passed parent and object keys. */
-	object_entity_t *(*create) (object_info_t *, object_hint_t *);
+	object_entity_t *(*create) (object_hint_t *);
 
 	/* Delete file body and stat data if any. */
 	errno_t (*clobber) (object_entity_t *);
@@ -946,9 +941,6 @@ struct reiser4_object_ops {
 	/* Creates the fake object by the gived @info. Needed to recover "/" and
 	   "lost+found" direcories if their SD are broken. */
 	object_entity_t *(*fake) (object_info_t *);
-
-	/* Forms the correct object from what was openned/checked. */
-	errno_t (*form) (object_entity_t *);
 #endif
 	
 	/* Change current position to passed value. */
@@ -1032,9 +1024,6 @@ struct item_balance_ops {
 typedef struct item_balance_ops item_balance_ops_t;
 
 struct item_object_ops {
-	/* Get plugin id of specified type if stored in stat data item. */
-	reiser4_plug_t *(*object_plug) (reiser4_place_t *, rid_t);
-		
 	/* Reads passed amount of bytes from the item. */
 	int64_t (*read_units) (reiser4_place_t *, trans_hint_t *);
 		
@@ -1138,19 +1127,19 @@ typedef struct reiser4_item_ops reiser4_item_ops_t;
 struct reiser4_sdext_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Initialize stat data extension data at passed pointer. */
-	errno_t (*init) (void *, void *);
+	errno_t (*init) (stat_entity_t *, void *);
 
 	/* Prints stat data extension data into passed buffer. */
-	void (*print) (void *, aal_stream_t *, uint16_t);
+	void (*print) (stat_entity_t *, aal_stream_t *, uint16_t);
 
 	/* Checks sd extension content. */
-	errno_t (*check_struct) (sdext_entity_t *, uint8_t);
+	errno_t (*check_struct) (stat_entity_t *, uint8_t);
 #endif
 	/* Reads stat data extension data. */
-	errno_t (*open) (void *, void *);
+	errno_t (*open) (stat_entity_t *, void *);
 
 	/* Returns length of the extension. */
-	uint16_t (*length) (void *);
+	uint16_t (*length) (stat_entity_t *, void *);
 };
 
 typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
@@ -1654,17 +1643,17 @@ struct reiser4_plug {
 
 struct flow_ops {
 	/* Reads data from the tree. */
-	int64_t (*read) (void *, trans_hint_t *);
+	int64_t (*read) (tree_entity_t *, trans_hint_t *);
 
 #ifndef ENABLE_STAND_ALONE
 	/* Writes data to tree. */
-	int64_t (*write) (void *, trans_hint_t *);
+	int64_t (*write) (tree_entity_t *, trans_hint_t *);
 
 	/* Truncates data from tree. */
-	int64_t (*truncate) (void *, trans_hint_t *);
+	int64_t (*truncate) (tree_entity_t *, trans_hint_t *);
 	
 	/* Convert some particular place to another plugin. */
-	errno_t (*convert) (void *, conv_hint_t *);
+	errno_t (*convert) (tree_entity_t *, conv_hint_t *);
 #endif
 };
 
@@ -1673,31 +1662,33 @@ typedef struct flow_ops flow_ops_t;
 struct tree_ops {
 	/* Makes lookup in the tree in order to know where say stat data item of
 	   a file realy lies. It is used in all object plugins. */
-	lookup_t (*lookup) (void *, lookup_hint_t *, lookup_bias_t,
-			    reiser4_place_t *);
+	lookup_t (*lookup) (tree_entity_t *, lookup_hint_t *, 
+			    lookup_bias_t, reiser4_place_t *);
 
 #ifndef ENABLE_STAND_ALONE
 	/* Collisions handler. It takes start place and looks for actual data in
 	   collided array. */
-	lookup_t (*collision) (void *, reiser4_place_t *, coll_hint_t *);
+	lookup_t (*collision) (tree_entity_t *, reiser4_place_t *, 
+			       coll_hint_t *);
 	
 	/* Inserts item/unit in the tree by calling tree_insert() function, used
 	   by all object plugins (dir, file, etc). */
-	int64_t (*insert) (void *, reiser4_place_t *,
+	int64_t (*insert) (tree_entity_t *, reiser4_place_t *,
 			   trans_hint_t *, uint8_t);
 
 	/* Removes item/unit from the tree. It is used in all object plugins for
 	   modification purposes. */
-	errno_t (*remove) (void *, reiser4_place_t *, trans_hint_t *);
+	errno_t (*remove) (tree_entity_t *, reiser4_place_t *, trans_hint_t *);
 	
 	/* Update the key in the place and the node itsef. */
-	errno_t (*update_key) (void *, reiser4_place_t *, reiser4_key_t *);
+	errno_t (*update_key) (tree_entity_t *, reiser4_place_t *, reiser4_key_t *);
 
 	/* Get the safe link locality. */
-	uint64_t (*slink_locality) (void *);
+	uint64_t (*slink_locality) (tree_entity_t *);
 #endif
 	/* Returns the next item. */
-	errno_t (*next_item) (void *, reiser4_place_t *, reiser4_place_t *);
+	errno_t (*next_item) (tree_entity_t *, reiser4_place_t *, 
+			      reiser4_place_t *);
 };
 
 typedef struct tree_ops tree_ops_t;
@@ -1705,31 +1696,26 @@ typedef struct tree_ops tree_ops_t;
 struct factory_ops {
 	/* Finds plugin by its attributes (type and id). */
 	reiser4_plug_t *(*ifind) (rid_t, rid_t);
-	
-#ifndef ENABLE_STAND_ALONE
-	/* Finds plugin by its type and name. */
-	reiser4_plug_t *(*nfind) (char *);
-#endif
 };
 
 typedef struct factory_ops factory_ops_t;
 
 #ifdef ENABLE_SYMLINKS
 struct object_ops {
-	errno_t (*resolve) (void *, char *, reiser4_key_t *,
-			    reiser4_key_t *);
+	errno_t (*resolve) (tree_entity_t *, char *, 
+			    reiser4_key_t *, reiser4_key_t *);
 };
 
 typedef struct object_ops object_ops_t;
 #endif
 
 #ifndef ENABLE_STAND_ALONE
-struct profile_ops {
-	/* Obtains the profile value by its name. */
-	reiser4_plug_t *(*plug) (rid_t index);
+struct pset_ops {
+	/* Obtains the plugin from the profile by its profile index. */
+	reiser4_plug_t *(*find) (rid_t, rid_t);
 };
 
-typedef struct profile_ops profile_ops_t;
+typedef struct pset_ops pset_ops_t;
 
 struct key_ops {
 	char *(*print) (reiser4_key_t *, uint16_t);
@@ -1753,7 +1739,7 @@ struct reiser4_core {
 	factory_ops_t factory_ops;
 	
 #ifndef ENABLE_STAND_ALONE
-	profile_ops_t profile_ops;
+	pset_ops_t pset_ops;
 #endif
 	
 #ifdef ENABLE_SYMLINKS

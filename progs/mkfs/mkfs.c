@@ -77,6 +77,45 @@ static void mkfs_init(void) {
 		misc_exception_set_stream(ex, stderr);
 }
 
+static reiser4_object_t *reiser4_root_create(reiser4_fs_t *fs) {
+	entry_hint_t entry;
+	object_hint_t hint;
+	
+	aal_assert("vpf-1625", fs != NULL);
+	aal_assert("vpf-1626", fs->tree != NULL);
+	
+	aal_memset(&hint, 0, sizeof(hint));
+
+	/* Preparing object hint. INVAL_PTR means that this kind of plugin 
+	   is not ready yet but needs to be stored, */
+	hint.mode = 0;
+	hint.info.opset[OPSET_OBJ] = reiser4_profile_plug(PROF_DIR);
+	hint.info.opset[OPSET_DIR] = INVAL_PTR;
+	hint.info.opset[OPSET_PERM] = INVAL_PTR;
+	hint.info.opset[OPSET_POLICY] = reiser4_profile_plug(PROF_POLICY);
+	hint.info.opset[OPSET_HASH] =  reiser4_profile_plug(PROF_HASH);
+	hint.info.opset[OPSET_FIBRE] = reiser4_profile_plug(PROF_FIBRE);
+	hint.info.opset[OPSET_STAT] = reiser4_profile_plug(PROF_STAT);
+	hint.info.opset[OPSET_DENTRY] = reiser4_profile_plug(PROF_DENTRY);
+	hint.info.opset[OPSET_CRYPTO] = INVAL_PTR;
+	hint.info.opset[OPSET_DIGEST] = INVAL_PTR;
+	hint.info.opset[OPSET_COMPRES] = INVAL_PTR;
+	hint.info.opset[OPSET_CREATE] = reiser4_profile_plug(PROF_REG);
+	hint.info.opset[OPSET_MKDIR] = reiser4_profile_plug(PROF_DIR);
+	hint.info.opset[OPSET_SYMLINK] = reiser4_profile_plug(PROF_SYM);
+	hint.info.opset[OPSET_MKNODE] = reiser4_profile_plug(PROF_SPL);
+	hint.info.opset[OPSET_TAIL] = reiser4_profile_plug(PROF_TAIL);
+	hint.info.opset[OPSET_EXTENT] = reiser4_profile_plug(PROF_EXTENT);
+	hint.info.opset[OPSET_ACL] = INVAL_PTR;
+
+	/* Preparing entry hint. */
+	entry.name[0] = '\0';
+	reiser4_key_assign(&entry.offset, &fs->tree->key);
+
+	return reiser4_object_create(fs->tree, &entry, &hint);
+}
+
+
 int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
@@ -438,7 +477,7 @@ int main(int argc, char *argv[]) {
 			goto error_free_fs;
 
 		/* Creating root directory */
-		if (!(fs->root = reiser4_dir_create(fs, NULL, NULL))) {
+		if (!(fs->root = reiser4_root_create(fs))) {
 			aal_error("Can't create filesystem "
 				  "root directory.");
 			goto error_free_journal;
@@ -448,8 +487,15 @@ int main(int argc, char *argv[]) {
 		if (reiser4_object_link(fs->root, fs->root, NULL)) {
 			aal_error("Can't link root directory "
 				  "to itself.");
+			goto error_free_journal;
 		}
 	
+		if (reiser4_opset_init(fs->tree)) {
+			aal_error("Can't initialize the fs-global "
+				  "object plugin set.");
+			goto error_free_journal;
+		}
+
 		/* Creating lost+found directory */
 		if (flags & BF_LOST) {
 			reiser4_object_t *object;

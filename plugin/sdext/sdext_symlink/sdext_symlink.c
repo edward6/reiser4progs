@@ -3,19 +3,24 @@
    
    sdext_symlink.c -- symlink stat data extension plugin. */
 
-#ifdef ENABLE_SYMLINKS
 #include <reiser4/plugin.h>
+#ifdef ENABLE_SYMLINKS
 
-static errno_t sdext_symlink_open(void *body, 
-				  void *hint) 
-{
+static uint16_t sdext_symlink_length(stat_entity_t *stat, void *hint) {
+	char *name;
+	
+	name = (hint != NULL) ? hint : stat_body(stat);
+	return aal_strlen(name) + 1;
+}
+
+static errno_t sdext_symlink_open(stat_entity_t *stat, void *hint) {
 	char *data;
 	uint32_t len;
 	
-	aal_assert("umka-1483", body != NULL);
+	aal_assert("umka-1483", stat != NULL);
 	aal_assert("umka-1484", hint != NULL);
 
-	data = (char *)body;
+	data = (char *)stat_body(stat);
 	len = aal_strlen(data);
 	
 	aal_memcpy(hint, data, len);
@@ -24,31 +29,28 @@ static errno_t sdext_symlink_open(void *body,
 	return 0;
 }
 
-static uint16_t sdext_symlink_length(void *body) {
-	aal_assert("umka-1488", body != NULL);
-	return aal_strlen((char *)body) + 1;
-}
-
 #ifndef ENABLE_STAND_ALONE
-static errno_t sdext_symlink_init(void *body, void *hint) {
+static errno_t sdext_symlink_init(stat_entity_t *stat, void *hint) {
 	uint32_t len;
 	
-	aal_assert("umka-1481", body != NULL);
+	aal_assert("umka-1481", stat != NULL);
 	aal_assert("umka-1482", hint != NULL);
 
 	len = aal_strlen((char *)hint);
 
-	aal_memcpy(body, hint, len);
-	*((char *)body + len) = '\0';
+	aal_memcpy(stat_body(stat), hint, len);
+	*((char *)stat_body(stat) + len) = '\0';
 	
 	return 0;
 }
 
-extern void sdext_symlink_print(void *body, 
+extern errno_t sdext_symlink_check_struct(stat_entity_t *stat, 
+					  uint8_t mode);
+
+extern void sdext_symlink_print(stat_entity_t *stat, 
 				aal_stream_t *stream, 
 				uint16_t options);
 
-extern errno_t sdext_symlink_check_struct(sdext_entity_t *sdext, uint8_t mode);
 #endif
 
 static reiser4_sdext_ops_t sdext_symlink_ops = {

@@ -520,16 +520,13 @@ static errno_t file_frag_process_blk(void *entity, blk_t start,
 }
 
 /* Calculates the passed file fragmentation. */
-errno_t measurefs_file_frag(reiser4_fs_t *fs,
-			    char *filename,
-			    uint32_t gauge)
-{
+errno_t measurefs_file_frag(reiser4_fs_t *fs, char *filename, uint32_t gauge) {
 	errno_t res = 0;
 	reiser4_object_t *object;
 	file_frag_hint_t frag_hint;
 
 	/* Opens object by its name */
-	if (!(object = reiser4_object_open(fs->tree, filename, 0)))
+	if (!(object = reiser4_semantic_open(fs->tree, filename, 0)))
 		return -EINVAL;
 
 	/* Initializing serve structures */
@@ -595,7 +592,7 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 			continue;
 
 		/* Opening object by its stat data item denoded by @place */
-		if (!(object = reiser4_object_realize(tree, NULL, &place)))
+		if (!(object = reiser4_object_fetch(tree, NULL, &place)))
 			continue;
 
 		/* Initializing per-file counters */

@@ -601,7 +601,7 @@ static errno_t journal40_replay(generic_entity_t *entity) {
 	if ((res = journal40_update(journal)))
 		return res;
 
-	aal_mess("Reiser4 journal (%s) on %s: %llu transactions replaied "
+	aal_mess("Reiser4 journal (%s) on %s: %llu transactions replayed "
 		 "of the total %llu blocks.", journal40_plug.label, 
 		 journal->device->name, count.tx_count, count.blk_count);
 

@@ -61,12 +61,12 @@ int main(int argc, char *argv[]) {
 //	misc_param_override("hash=deg_hash");
 //	misc_param_override("policy=tails");
 		
-	if (!(fs->root = reiser4_object_open(fs->tree, "/", 1))) {
+	if (!(fs->root = reiser4_semantic_open(fs->tree, "/", 1))) {
 		aal_error("Can't open root dir.");
 		goto error_free_fs;
 	}
 
-	if (!(dir = reiser4_object_open(fs->tree, argv[2], 1))) {
+	if (!(dir = reiser4_semantic_open(fs->tree, argv[2], 1))) {
                 aal_error("Can't open dir %s.", argv[2]);
                 goto error_free_root;
         }
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
 				break;
 			}
 
-			if (!(object = reiser4_object_launch(fs->tree, dir, 
+			if (!(object = reiser4_object_obtain(fs->tree, dir, 
 							     &entry.object))) 
 			{
 				aal_error("Cannot open the object %s.", name[1]);

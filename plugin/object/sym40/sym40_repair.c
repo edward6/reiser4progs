@@ -3,37 +3,12 @@
    
    sym40_repair.c -- reiser4 default symlink file plugin repair code. */
 
-#ifndef ENABLE_STAND_ALONE
-
 #include "sym40_repair.h"
 
+#ifndef ENABLE_STAND_ALONE
+#ifdef ENABLE_SYMLINKS
+
 #define SYM40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID | 1 << SDEXT_SYMLINK_ID)
-
-static errno_t sym40_extensions(reiser4_place_t *stat) {
-	uint64_t extmask;
-	
-	extmask = obj40_extmask(stat);
-	
-	/* Check that LW, UNIX and SYMLINK extensions exist. */
-	return ((extmask & SYM40_EXTS_MUST) == SYM40_EXTS_MUST) ? 0 : RE_FATAL;
-}
-
-/* Check SD extensions and that mode in LW extension is DIRFILE. */
-static errno_t callback_stat(reiser4_place_t *stat) {
-	sdext_lw_hint_t lw_hint;
-	errno_t res;
-	
-	if ((res = sym40_extensions(stat)))
-		return res;
-
-	/* Check the mode in the LW extension. */
-	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)))
-		return res;
-	
-	return S_ISLNK(lw_hint.mode) ? 0 : RE_FATAL;
-
-	/* FIXME: read object plug_id extention from sd. if present also. */
-}
 
 object_entity_t *sym40_recognize(object_info_t *info) {
 	sym40_t *sym;
@@ -45,11 +20,14 @@ object_entity_t *sym40_recognize(object_info_t *info) {
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&sym->obj, &sym40_plug, sym40_core, info);
+	obj40_init(&sym->obj, info, sym40_core);
 	
-	if ((res = obj40_recognize(&sym->obj, callback_stat)))
+	if ((res = obj40_objkey_check(&sym->obj)))
 		goto error;
-	
+
+	if ((res = obj40_check_stat(&sym->obj, SYM40_EXTS_MUST, 0)))
+		goto error;
+
 	return (object_entity_t *)sym;
  error:
 	aal_free(sym);
@@ -96,8 +74,8 @@ errno_t sym40_check_struct(object_entity_t *object,
 	
 	methods.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 	
-	if ((res = obj40_check_stat(&sym->obj, &methods, 
-				    &params, mode)))
+	if ((res = obj40_update_stat(&sym->obj, &methods, 
+				     &params, mode)))
 		goto error;
 
 	aal_free(path);
@@ -107,4 +85,5 @@ errno_t sym40_check_struct(object_entity_t *object,
 	aal_free(path);
 	return res;
 }
+#endif
 #endif

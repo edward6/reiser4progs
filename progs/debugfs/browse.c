@@ -105,12 +105,12 @@ errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	errno_t res = -EINVAL;
 	reiser4_object_t *object;
 	
-	if (!(object = reiser4_object_open(fs->tree, filename, 1))) {
+	if (!(object = reiser4_semantic_open(fs->tree, filename, 1))) {
 		aal_error("Can't open %s.", filename);
 		return -EINVAL;
 	}
 
-	switch (object->entity->plug->id.group) {
+	switch (object->entity->opset[OPSET_OBJ]->id.group) {
 	case REG_OBJECT:
 		res = debugfs_reg_cat(object);
 		break;

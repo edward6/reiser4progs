@@ -18,28 +18,21 @@ object_entity_t *spl40_open(object_info_t *info) {
  	
 	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
-   
+  
+	if (info->opset[OPSET_OBJ] != &spl40_plug)
+		return NULL;
+	
 	if (!(spl = aal_calloc(sizeof(*spl), 0)))
 		return NULL;
 
 	/* Initalizing file handle. */
-	obj40_init(&spl->obj, &spl40_plug, spl40_core, info);
-	
-	if (obj40_pid(&spl->obj, OBJECT_PLUG_TYPE, PROF_SPL) != 
-	    spl40_plug.id.id)
-	{
-		goto error_free_spl;
-	}
+	obj40_init(&spl->obj, info, spl40_core);
 	
 	/* Initializing statdata place. */
 	aal_memcpy(STAT_PLACE(&spl->obj), &info->start,
 		   sizeof(info->start));
 	
 	return (object_entity_t *)spl;
-	
- error_free_spl:
-	aal_free(spl);
-	return NULL;
 }
 
 /* Loads special file stat data to passed @hint */
@@ -57,31 +50,20 @@ static errno_t spl40_stat(object_entity_t *entity,
 
 #ifndef ENABLE_STAND_ALONE
 /* Creates special file and returns initialized instance to the caller. */
-static object_entity_t *spl40_create(object_info_t *info,
-				     object_hint_t *hint)
-{
+static object_entity_t *spl40_create(object_hint_t *hint) {
 	spl40_t *spl;
 	
-	aal_assert("umka-2531", info != NULL);
 	aal_assert("umka-2533", hint != NULL);
-	aal_assert("umka-2532", info->tree != NULL);
+	aal_assert("umka-2532", hint->info.tree != NULL);
 
 	if (!(spl = aal_calloc(sizeof(*spl), 0)))
 		return NULL;
 	
 	/* Inizializes file handle */
-	obj40_init(&spl->obj, &spl40_plug, spl40_core, info);
+	obj40_init(&spl->obj, &hint->info, spl40_core);
 
-	if (obj40_create_stat(&spl->obj, hint->prof.statdata,
-			      0, 0, hint->body.spl.rdev,
-			      0, hint->mode, NULL))
-	{
+	if (obj40_create_stat(&spl->obj, 0, 0, hint->rdev, 0, hint->mode, NULL))
 		goto error_free_spl;
-	}
-
-	/* Saving statdata place. */
-	aal_memcpy(&info->start, STAT_PLACE(&spl->obj),
-		   sizeof(info->start));
 
 	return (object_entity_t *)spl;
 
@@ -173,7 +155,6 @@ static reiser4_object_ops_t spl40_ops = {
 	.recognize	= spl40_recognize,
 
 	.layout         = NULL,
-	.form		= NULL,
 	.seek	        = NULL,
 	.write	        = NULL,
 	.convert        = NULL,

@@ -375,7 +375,7 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 +		}
 +
 +		/* Open obejct by @dirname */
-+		if (!(object = reiser4_object_open(fs->tree, dirname, 1))) {
++		if (!(object = reiser4_semantic_open(fs->tree, dirname, 1))) {
 +			errnum = ERR_FILE_NOT_FOUND;
 +			return 0;
 +		}
@@ -409,7 +409,7 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 +#endif
 +		/* This is the case when resier4_dir() is called for open the
 +		   file @dirname, not for building completion list. */
-+		if (!(object = reiser4_object_open(fs->tree, dirname, 1))) {
++		if (!(object = reiser4_semantic_open(fs->tree, dirname, 1))) {
 +			errnum = ERR_FILE_NOT_FOUND;
 +			return 0;
 +		}

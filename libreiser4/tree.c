@@ -319,7 +319,7 @@ errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 		return -EIO;
 	}
 
-	tree->root->tree = tree;
+	tree->root->tree = (tree_entity_t *)tree;
 	return 0;
 }
 
@@ -380,7 +380,7 @@ errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
 
 	/* Establishing connection between node and tree. */
 	tree->root = node;
-	node->tree = tree;
+	node->tree = (tree_entity_t *)tree;
 	node->p.node = NULL;
 
 	if (reiser4_tree_connect_node(tree, NULL, node))
@@ -407,7 +407,7 @@ errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 	aal_assert("umka-1857", tree != NULL);
 	aal_assert("umka-2261", node != NULL);
 
-	node->tree = tree;
+	node->tree = (tree_entity_t *)tree;
 
 	if (reiser4_tree_root_node(tree, node)) {
 		/* This is the case when we connect root node, that is with no
@@ -841,7 +841,6 @@ errno_t reiser4_tree_place_key(reiser4_tree_t *tree,
 reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 					uint8_t level)
 {
-	reiser4_plug_t *plug;
 	blk_t blk;
 	
 	reiser4_node_t *node;
@@ -855,7 +854,6 @@ reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	/* Allocating fake block number. */
 	blk = reiser4_fake_get();
 	format = tree->fs->format;
-	plug = reiser4_profile_plug(PROF_NODE);
 
 	/* Setting up of the free blocks in format. */
 	if (!(free_blocks = reiser4_format_get_free(format)))
@@ -864,7 +862,9 @@ reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	reiser4_format_set_free(format, free_blocks - 1);
 
 	/* Creating new node. */
-	if (!(node = reiser4_node_create(tree, plug, blk, level))) {
+	if (!(node = reiser4_node_create(tree, tree->entity.tpset[TPSET_NODE], 
+					 blk, level))) 
+	{
 		aal_error("Can't initialize new fake node.");
 		return NULL;
 	}
@@ -955,6 +955,7 @@ static int callback_blocks_comp_func(void *key1, void *key2,
 	return reiser4_key_compfull((reiser4_key_t *)key1,
 				    (reiser4_key_t *)key2);
 }
+
 #endif
 
 /* Helpher function for freeing keys in @tree->nodes hash table during its
@@ -1009,10 +1010,6 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 
 #ifndef ENABLE_STAND_ALONE
 	tree->bottom = TWIG_LEVEL;
-
-	/* Initializing nodeptr plugin to be used for attaching new nodes to
-	   tree.*/
-//	tree->nodeptr = reiser4_profile_plug(PROF_NODEPTR);
 #endif
 	
 	/* Initializing hash table for storing loaded formatted nodes in it. */
@@ -1037,6 +1034,10 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	{
 		goto error_free_nodes;
 	}
+
+	/* Initializing the tpset. */
+	if (reiser4_pset_init(tree))
+		goto error_free_data;
 #endif
 
 	/* Building tree root key. It is used in tree lookup, etc. */
@@ -1868,8 +1869,14 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 
 				/* Handle collisions. */
 				if (hint->collision) {
-					if ((res = hint->collision(tree, place, 
-								   hint->hint)) < 0)
+					tree_entity_t *t;
+					
+					t = (tree_entity_t *)tree;
+					
+					res = hint->collision(t, place, 
+							      hint->hint);
+					
+					if (res < 0)
 						restore_and_exit(res);
 				}
 #endif
@@ -1984,7 +1991,8 @@ bool_t reiser4_tree_attached_node(reiser4_tree_t *tree,
 	if (reiser4_tree_root_node(tree, node))
 		return 1;
 
-	return (node->p.node != NULL && node->tree == tree);
+	return (node->p.node != NULL && 
+		(reiser4_tree_t *)node->tree == tree);
 }
 
 /* This function inserts new nodeptr item to the tree and in such way attaches
@@ -2006,7 +2014,7 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
 	hint.place_func = NULL;
 	hint.region_func = NULL;
 	hint.shift_flags = flags;
-	hint.plug = reiser4_profile_plug(PROF_NODEPTR);
+	hint.plug = tree->entity.tpset[TPSET_NODEPTR];
 
 	ptr.width = 1;
 	ptr.start = node_blocknr(node);
@@ -2040,7 +2048,8 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
    removes nodeptr item from the tree and node instance itself from its parent
    children list. */
 errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
-				 reiser4_node_t *node, uint32_t flags)
+				 reiser4_node_t *node,
+				 uint32_t flags)
 {
 	errno_t res;
 	reiser4_place_t parent;

@@ -7,13 +7,10 @@
 #define DIR40_H
 
 #include <aal/libaal.h>
-#include <sys/stat.h>
-
 #include "plugin/object/obj40/obj40.h"
 
 /* Compaund directory structure */
 struct dir40 {
-	
 	/* Common fields for all files (statdata, etc) */
 	obj40_t obj;
 
@@ -22,12 +19,6 @@ struct dir40 {
 
 	/* Current directory offset. */
 	reiser4_key_t position;
-
-	/* Hash plugin in use */
-	reiser4_plug_t *hash;
-	
-	/* Fibration plugin in use */
-	reiser4_plug_t *fibre;
 };
 
 typedef struct dir40 dir40_t;

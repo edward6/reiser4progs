@@ -6,20 +6,20 @@
 #include "sdext_flags.h"
 
 /* Stat data extension length. */
-static uint16_t sdext_flags_length(void *body) {
+static uint16_t sdext_flags_length(stat_entity_t *stat, void *hint) {
 	return sizeof(sdext_flags_t);
 }
 
 #ifndef ENABLE_STAND_ALONE
 /* Loads all extension fields to passed @hint. */
-static errno_t sdext_flags_open(void *body, void *hint) {
+static errno_t sdext_flags_open(stat_entity_t *stat, void *hint) {
 	sdext_flags_t *ext;
 	sdext_flags_hint_t *sdext_flags;
     
-	aal_assert("umka-3077", body != NULL);
+	aal_assert("umka-3077", stat != NULL);
 	aal_assert("umka-3078", hint != NULL);
 
-	ext = (sdext_flags_t *)body;
+	ext = (sdext_flags_t *)stat_body(stat);
 	sdext_flags = (sdext_flags_hint_t *)hint;
 	sdext_flags->flags = sdext_flags_get_flags(ext);
     
@@ -27,24 +27,25 @@ static errno_t sdext_flags_open(void *body, void *hint) {
 }
 
 /* Saves all fields to passed extension @body. */
-static errno_t sdext_flags_init(void *body, void *hint) {
+static errno_t sdext_flags_init(stat_entity_t *stat, void *hint) {
 	sdext_flags_hint_t *sdext_flags;
     
-	aal_assert("umka-3079", body != NULL);
+	aal_assert("umka-3079", stat != NULL);
 	aal_assert("umka-3080", hint != NULL);
 	
 	sdext_flags = (sdext_flags_hint_t *)hint;
     
-	sdext_flags_set_flags((sdext_flags_t *)body,
+	sdext_flags_set_flags((sdext_flags_t *)stat_body(stat),
 			      sdext_flags->flags);
 
 	return 0;
 }
 
-extern void sdext_flags_print(void *body, aal_stream_t *stream,
+extern void sdext_flags_print(stat_entity_t *stat, 
+			      aal_stream_t *stream,
 			      uint16_t options);
 
-extern errno_t sdext_flags_check_struct(sdext_entity_t *sdext,
+extern errno_t sdext_flags_check_struct(stat_entity_t *stat,
 					uint8_t mode);
 #endif
 

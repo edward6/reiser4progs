@@ -20,13 +20,13 @@ extern errno_t repair_object_check_struct(reiser4_object_t *object,
 					  place_func_t place_func,
 					  uint8_t mode, void *data);
 
-extern reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
+extern reiser4_object_t *repair_object_obtain(reiser4_tree_t *tree,
 					      reiser4_object_t *parent,
 					      reiser4_key_t *key);
 
-extern reiser4_object_t *repair_object_recognize(reiser4_tree_t *tree,
-						 reiser4_object_t *parent,
-						 reiser4_place_t *place);
+extern reiser4_object_t *repair_object_fetch(reiser4_tree_t *tree,
+					     reiser4_object_t *parent,
+					     reiser4_place_t *place);
 
 extern errno_t repair_object_check_attach(reiser4_object_t *object, 
 					  reiser4_object_t *parent, 
@@ -41,7 +41,7 @@ extern reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 extern errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag);
 extern errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag);
 extern int repair_object_test(reiser4_object_t *object, uint16_t flag);
-extern errno_t repair_object_form(reiser4_object_t *object);
+extern errno_t repair_object_refresh(reiser4_object_t *object);
 
 extern void repair_object_print(reiser4_object_t *object,
 				aal_stream_t *stream);

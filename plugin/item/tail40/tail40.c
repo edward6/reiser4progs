@@ -522,7 +522,6 @@ static item_object_ops_t object_ops = {
 	.layout		  = NULL,
 #endif
 	.fetch_units	  = NULL,
-	.object_plug	  = NULL,
 	.read_units	  = tail40_read_units
 };
 

@@ -22,14 +22,11 @@
         (&((o)->info.start))
 
 struct obj40 {
-	/* File plugin reference. Should be first field due to be castable to
-	   object_entity_t */
-	reiser4_plug_t *plug;
-    
 	/* Info about the object, stat data place, object and parent keys and
 	   pointer to the instance of internal libreiser4 tree for modiying
 	   purposes. It is passed by reiser4 library during initialization of
-	   the file instance. */
+	   the file instance. Should be first field to be castable to the 
+	   object_entity_t*/
 	object_info_t info;
 
 	/* Core operations pointer. */
@@ -57,14 +54,10 @@ extern lookup_t obj40_find_item(obj40_t *obj, reiser4_key_t *key,
 				lookup_bias_t bias, coll_func_t func,
 				coll_hint_t *hint, reiser4_place_t *place);
 
-extern reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, rid_t index);
-
-extern rid_t obj40_pid(obj40_t *obj, rid_t type, rid_t index);
-
 extern int64_t obj40_read(obj40_t *obj, trans_hint_t *hint);
 
-extern errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
-			  reiser4_core_t *core, object_info_t *info);
+extern inline errno_t obj40_init(obj40_t *obj, object_info_t *info, 
+				 reiser4_core_t *core);
 
 extern errno_t obj40_read_ext(reiser4_place_t *place, rid_t id, void *data);
 
@@ -114,9 +107,9 @@ extern int64_t obj40_write(obj40_t *obj, trans_hint_t *hint);
 extern int64_t obj40_convert(obj40_t *obj, conv_hint_t *hint);
 extern int64_t obj40_truncate(obj40_t *obj, trans_hint_t *hint);
 
-extern errno_t obj40_create_stat(obj40_t *obj, reiser4_plug_t *statdata,
-				 uint64_t size, uint64_t bytes, uint64_t rdev,
-				 uint32_t nlink, uint16_t mode, char *path);
+extern errno_t obj40_create_stat(obj40_t *obj, uint64_t size, uint64_t bytes, 
+				 uint64_t rdev, uint32_t nlink, uint16_t mode, 
+				 char *path);
 
 #endif
 #endif

@@ -7,36 +7,26 @@
 
 #include "obj40_repair.h"
 
-/* Obtains the plugin of the type @type from SD if stored there, otherwise
-   obtains the default one from the params. This differs from obj40_plug as it
-   checks if the id from the SD is a valid one. 
-   FIXME: similar to obj40_plug. Eliminate it when plugin extention is ready. */
-reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, rid_t index) {
-	reiser4_plug_t *plug;
+static errno_t obj40_extentions_check(reiser4_place_t *stat, 
+				      uint64_t exts_must, 
+				      uint64_t exts_unkn) 
+{
+	uint64_t extmask;
 	
-	aal_assert("vpf-1237", obj != NULL);
-	aal_assert("vpf-1238", STAT_PLACE(obj)->plug != NULL);
+	aal_assert("vpf-1623", stat != NULL);
 	
-	plug = plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
-			 object_plug, STAT_PLACE(obj), type);
+	extmask = obj40_extmask(stat);
 	
-	/* If id found, try to find the plugin. */
-	if (plug != INVAL_PTR && plug != NULL) {
-		return plug;
-
-		/* FIXME-VITALY: This is probably wrong -- if there is a hash
-		   plugin in SD saved, that means that it is not standard and
-		   it is probably should be detected. For now the default one 
-		   is used. Hash detection it to be done sometimes later.  */
-	}
+	/* Check that there is no one unknown extension. */
+	if (extmask & exts_unkn)
+		return RE_FATAL;
 	
-	/* Id either is not kept in SD or has not been found, 
-	   obtain the default one. */
-	return obj->core->profile_ops.plug(index);
+	/* Check that LW and UNIX extensions exist. */
+	return ((extmask & exts_must) == exts_must) ? 0 : RE_FATAL;
 }
 
 /* Checks that @obj->info.start is SD of the wanted file.  */
-errno_t obj40_stat(obj40_t *obj, stat_func_t stat_func) {
+errno_t obj40_check_stat(obj40_t *obj, uint64_t exts_must, uint64_t exts_unkn) {
 	object_info_t *info;
 	errno_t res;
 
@@ -61,11 +51,11 @@ errno_t obj40_stat(obj40_t *obj, stat_func_t stat_func) {
 		return RE_FATAL;
 	
 	/* Some SD is recognized. Check that this is our SD. */
-	return stat_func ? stat_func(&info->start) : 0;
+	return obj40_extentions_check(&info->start, exts_must, exts_unkn);
 }
 
 /* The plugin tries to recognize the object: detects the SD, body items */
-errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func) {
+errno_t obj40_objkey_check(obj40_t *obj) {
 	uint64_t locality, objectid, ordering;
 	object_info_t *info;
 	reiser4_key_t key;
@@ -90,13 +80,8 @@ errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func) {
 		  KEY_STATDATA_TYPE, locality, ordering, objectid, 0);
 
 	/* Compare the correct key with the search one. */
-	if (plug_call(info->object.plug->o.key_ops, compfull, 
-		      &key, &info->object))
-		return RE_FATAL;
-	
-	/* @info->object is the key of SD for now and @info->start is the 
-	   result of tree lookup by @info->object -- skip objects w/out SD. */
-	return obj40_stat(obj, stat_func);
+	return plug_call(info->object.plug->o.key_ops, compfull, 
+			 &key, &info->object) ? RE_FATAL : 0;
 }
 
 #define OBJ40_CHECK(field, type, value, correct)			\
@@ -154,7 +139,8 @@ static inline errno_t obj40_check_lw_ext(obj40_t *obj,
 			  "extention.%s Plugin (%s).", start->node->block->nr, 
 			  start->pos.item, start->plug->label,
 			  print_inode(obj->core, &start->key),
-			  mode != RM_CHECK ? "Added." : "", obj->plug->label);
+			  mode != RM_CHECK ? "Added." : "", 
+			  obj->info.opset[OPSET_OBJ]->label);
 
 		if (mode == RM_CHECK)
 			return RE_FIXABLE;
@@ -280,7 +266,8 @@ static inline errno_t obj40_check_unix_ext(obj40_t *obj,
 			  "%s Plugin (%s).", start->node->block->nr, 
 			  start->pos.item, start->plug->label,
 			  print_inode(obj->core, &start->key),
-			  mode != RM_CHECK ? " Added." : "", obj->plug->label);
+			  mode != RM_CHECK ? " Added." : "", 
+			  obj->info.opset[OPSET_OBJ]->label);
 
 		if (mode == RM_CHECK)
 			return RE_FIXABLE;
@@ -355,10 +342,10 @@ static inline errno_t obj40_check_unix_ext(obj40_t *obj,
 }
 
 /* Check the set of SD extentions and their contents. */
-errno_t obj40_check_stat(obj40_t *obj,
-			 obj40_stat_methods_t *methods, 
-			 obj40_stat_params_t *params,
-			 uint8_t mode)
+errno_t obj40_update_stat(obj40_t *obj,
+			  obj40_stat_methods_t *methods, 
+			  obj40_stat_params_t *params,
+			  uint8_t mode)
 {
 	reiser4_place_t *start;
 	uint64_t extmask;
@@ -441,7 +428,7 @@ errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place,
 		  place->node->block->nr, place->pos.unit, 
 		  place->plug->label, print_key(obj->core, &place->key),
 		  mode == RM_BUILD ? "fixed to" : "should be", 
-		  print_key(obj->core, key), obj->plug->label);
+		  print_key(obj->core, key), obj->info.opset[OPSET_OBJ]->label);
 	
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
@@ -459,7 +446,6 @@ errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place,
 
 errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 	reiser4_place_t *start;
-	reiser4_plug_t *plug;
 	trans_hint_t trans;
 	reiser4_key_t *key;
 	lookup_t lookup;
@@ -504,21 +490,19 @@ errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 	   cannot be recognized w/out SD. Used for for "/" and "lost+found" 
 	   recovery. */
 	
-	aal_error("The file [%s] does not have a StatData item.%s Plugin "
-		  "%s.", print_inode(obj->core, key), mode == RM_BUILD ? 
-		  " Creating a new one." : "",  obj->plug->label);
+	aal_error("The file [%s] does not have a StatData item.%s Plugin %s.",
+		  print_inode(obj->core, key), mode == RM_BUILD ? " Creating "
+		  "a new one." : "",  obj->info.opset[OPSET_OBJ]->label);
 
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 	
-	plug = obj->core->profile_ops.plug(PROF_STATDATA);
-
-	if ((res = obj40_create_stat(obj, plug, 0, 0, 0, 0, objmode, 
+	if ((res = obj40_create_stat(obj, 0, 0, 0, 0, objmode, 
 				     objmode == S_IFLNK ? "FAKE_LINK" : NULL)))
 	{
 		aal_error("The file [%s] failed to create a StatData item. "
 			  "Plugin %s.", print_inode(obj->core, key),
-			  obj->plug->label);
+			  obj->info.opset[OPSET_OBJ]->label);
 	}
 
 	return res;

@@ -12,21 +12,21 @@ reiser4_core_t *stat40_core;
 /* The function which implements stat40 layout pass. This function is used for
    all statdata extension-related actions. For example for reading, or
    counting. */
-errno_t stat40_traverse(reiser4_place_t *place, ext_func_t ext_func, 
-			sdext_entity_t *sdext, void *data) 
+errno_t stat40_traverse(reiser4_place_t *place, 
+			ext_func_t ext_func,
+			void *data)
 {
-	uint16_t i, len;
-	uint16_t chunks = 0;
 	uint16_t extmask = 0;
-
+	uint16_t chunks = 0;
+	stat_entity_t stat;
+	uint16_t i;
+	
 	aal_assert("umka-1197", place != NULL);
 	aal_assert("umka-2059", ext_func != NULL);
-	aal_assert("vpf-1386",  sdext != NULL);
     
-	sdext->offset = 0;
-	sdext->body = place->body;
-	sdext->sdlen = place->len;
-		
+	aal_memset(&stat, 0, sizeof(stat));
+	stat.place = place;
+	
 	/* Loop though the all possible extensions and calling passed @ext_func
 	   for each of them if corresponing extension exists. */
 	for (i = 0; i < STAT40_EXTNR; i++) {
@@ -42,18 +42,17 @@ errno_t stat40_traverse(reiser4_place_t *place, ext_func_t ext_func,
 				}
 			}
 			
-			extmask = *((uint16_t *)sdext->body);
+			extmask = *((uint16_t *)stat_body(&stat));
 			
-			sdext->plug = NULL;
+			stat.ext_plug = NULL;
 			
 			/* Call the callback for every read extmask. */
-			if ((res = ext_func(sdext, extmask << (chunks * 16),
+			if ((res = ext_func(&stat, extmask << (chunks * 16),
 					    data)))
 				return res;
 
 			chunks++;
-			sdext->body += sizeof(d16_t);
-			sdext->offset += sizeof(d16_t);
+			stat.offset += sizeof(d16_t);
 
 			if (i > 0) continue;
 		}
@@ -63,64 +62,128 @@ errno_t stat40_traverse(reiser4_place_t *place, ext_func_t ext_func,
 			continue;
 
 		/* Getting extension plugin from the plugin factory */
-		if (!(sdext->plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i)))
+		stat.ext_plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE,i);
+		
+		if (!stat.ext_plug)
 			continue;
 		
-		len = plug_call(sdext->plug->o.sdext_ops, 
-				length, sdext->body);
-
 		/* Call the callback for every found extension. */
-		if ((res = ext_func(sdext, extmask, data)))
+		if ((res = ext_func(&stat, extmask, data)))
 			return res;
-
+		
 		/* Calculating the pointer to the next extension body */
-		sdext->body += len;
-		sdext->offset += len;
+		stat.offset += plug_call(stat.ext_plug->o.sdext_ops, 
+					 length, &stat, NULL);
 	}
  
 	return 0;
 }
 
 /* Callback for opening one extension */
-static errno_t callback_open_ext(sdext_entity_t *sdext,
-				 uint64_t extmask, void *data)
+static errno_t callback_open_ext(stat_entity_t *stat,
+				 uint64_t extmask, 
+				 void *data)
 {
-	trans_hint_t *hint;
 	statdata_hint_t *stat_hint;
+	trans_hint_t *hint;
 
 	/* Method open is not defined, this probably means, we only interested
 	   in symlink's length method in order to reach other symlinks body. So,
 	   we retrun 0 here. */
-	if (!sdext->plug || !sdext->plug->o.sdext_ops->open)
+	if (!stat->ext_plug || !stat->ext_plug->o.sdext_ops->open)
 		return 0;
 	
 	hint = (trans_hint_t *)data;
 	stat_hint = hint->specific;
 
 	/* Reading mask into hint */
-	stat_hint->extmask |= ((uint64_t)1 << sdext->plug->id.id);
+	stat_hint->extmask |= ((uint64_t)1 << stat->ext_plug->id.id);
 
 	/* We load @ext if its hint present in @stat_hint */
-	if (stat_hint->ext[sdext->plug->id.id]) {
-		void *sdext_hint = stat_hint->ext[sdext->plug->id.id]; 
+	if (stat_hint->ext[stat->ext_plug->id.id]) {
+		void *sdext_hint = stat_hint->ext[stat->ext_plug->id.id];
 
-		return plug_call(sdext->plug->o.sdext_ops, open,
-				 sdext->body, sdext_hint);
+		return plug_call(stat->ext_plug->o.sdext_ops, 
+				 open, stat, sdext_hint);
 	}
 	
 	return 0;
 }
 
+static inline reiser4_plug_t *stat40_modeplug(tree_entity_t *tree, 
+					      uint16_t mode) 
+{
+	if (S_ISLNK(mode))
+		return tree->opset[OPSET_SYMLINK];
+	else if (S_ISREG(mode))
+		return tree->opset[OPSET_CREATE];
+	else if (S_ISDIR(mode))
+		return tree->opset[OPSET_MKDIR];
+	else if (S_ISCHR(mode))
+		return tree->opset[OPSET_MKNODE];
+	else if (S_ISBLK(mode))
+		return tree->opset[OPSET_MKNODE];
+	else if (S_ISFIFO(mode))
+		return tree->opset[OPSET_MKNODE];
+	else if (S_ISSOCK(mode))
+		return tree->opset[OPSET_MKNODE];
+
+	return NULL;
+}
+
+/* Decodes the object plug from the mode if needed. */
+static void stat40_decode_opset(tree_entity_t *tree,
+				sdext_plugid_hint_t *plugs, 
+				sdext_lw_hint_t *lw) 
+{
+	aal_assert("vpf-1630", tree != NULL);
+	aal_assert("vpf-1631", plugs != NULL);
+	aal_assert("vpf-1632", lw != NULL);
+	
+	/* Object plugin does not need to be set. */
+	if (plugs->pset[OPSET_OBJ])
+		return;
+
+	if (plugs->pset[OPSET_OBJ])
+		return;
+	
+	plugs->pset[OPSET_OBJ] = stat40_modeplug(tree, lw->mode);
+}
+
 /* Fetches whole statdata item with extensions into passed @buff */
 static int64_t stat40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
-	sdext_entity_t sdext;
-
+	bool_t lw_local = 0;
+	sdext_lw_hint_t lw;
+	void **exts;
+	
 	aal_assert("umka-1415", hint != NULL);
 	aal_assert("umka-1414", place != NULL);
+	aal_assert("vpf-1633", place->node != NULL);
 
-	if (stat40_traverse(place, callback_open_ext, &sdext, hint))
+	exts = ((statdata_hint_t *)hint->specific)->ext;
+	
+	/* If plugid_hint is fetched, lw is needed also to adjust OPSET_OBJ. */
+	if (exts[SDEXT_PLUG_ID]) {
+		if (!exts[SDEXT_LW_ID]) {
+			exts[SDEXT_LW_ID] = &lw;
+			lw_local = 1;
+		}
+	}
+	
+	if (stat40_traverse(place, callback_open_ext, hint))
 		return -EINVAL;
 
+	/* Adjust OPSET_OBJ. */
+	if (exts[SDEXT_PLUG_ID]) {
+		stat40_decode_opset(place->node->tree,
+				    (sdext_plugid_hint_t *)exts[SDEXT_PLUG_ID],
+				    (sdext_lw_hint_t *)exts[SDEXT_LW_ID]);
+	}
+	
+	if (lw_local) {
+		exts[SDEXT_LW_ID] = NULL;
+	}
+	
 	return 1;
 }
 
@@ -133,15 +196,70 @@ static uint32_t stat40_units(reiser4_place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+
+static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
+	sdext_plugid_hint_t *plugs;
+	tree_entity_t *tree;
+	uint16_t mode;
+	void **exts;
+	errno_t res;
+	
+	aal_assert("vpf-1634", hint != NULL);
+	aal_assert("vpf-1635", place != NULL);
+	aal_assert("vpf-1636", place->node != NULL);
+	
+	if (!hint->specific || !((statdata_hint_t *)hint->specific)->ext)
+		return 0;
+	
+	exts = ((statdata_hint_t *)hint->specific)->ext;
+	plugs = ((sdext_plugid_hint_t *)exts[SDEXT_PLUG_ID]);
+	
+	if (!plugs || !plugs->pset[OPSET_OBJ])
+		return 0;
+	
+	/* If LW hint is not present, fetch it from disk. */
+	if (!exts[SDEXT_LW_ID]) {
+		statdata_hint_t stat;
+		trans_hint_t trans;
+		sdext_lw_hint_t lw;
+		
+		aal_memset(&stat, 0, sizeof(stat));
+		
+		trans.specific = &stat;
+		
+		if ((res = stat40_fetch_units(place, &trans)) != 1)
+			return res;
+		
+		/* If there is no LW extention at all, nothing to excode. */
+		if (stat.extmask & (1 << SDEXT_LW_ID))
+			return 0;
+			
+		mode = lw.mode;
+	} else {
+		mode = ((sdext_lw_hint_t *)exts[SDEXT_LW_ID])->mode;
+	}
+
+	tree = place->node->tree;
+	
+	if (plugs->pset[OPSET_OBJ] == stat40_modeplug(tree, mode))
+		plugs->pset[OPSET_OBJ] = NULL;
+
+	return 0;
+}
+
 /* Estimates how many bytes will be needed for creating statdata item described
    by passed @hint at passed @pos. */
 static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
-	uint16_t i;
 	statdata_hint_t *stat_hint;
+	errno_t res;
+	uint16_t i;
     
 	aal_assert("vpf-074", hint != NULL);
 
 	hint->len = 0;
+	
+	if ((res = stat40_encode_opset(place, hint)))
+		return res;
 	
 	if (place->pos.unit == MAX_UINT32)
 		hint->len = sizeof(stat40_t);
@@ -178,7 +296,7 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 		/* Calculating length of the corresponding extension and add it
 		   to the estimated value. */
 		hint->len += plug_call(plug->o.sdext_ops, length, 
-				       stat_hint->ext[i]);
+				       NULL, stat_hint->ext[i]);
 	}
 	
 	return 0;
@@ -188,14 +306,16 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int insert) {
 	statdata_hint_t *stat_hint;
 	uint16_t extmask = 0;
-	void *extbody;
+	stat_entity_t stat;
 	uint16_t i;
-    
-	extbody = (void *)place->body;
+	
 	stat_hint = (statdata_hint_t *)hint->specific;
+	
+	aal_memset(&stat, 0, sizeof(stat));
+	stat.place = place;
 
 	if (place->pos.unit == MAX_UINT32 && insert)
-		((stat40_t *)extbody)->extmask = 0;
+		((stat40_t *)stat_body(&stat))->extmask = 0;
 	
 	if (!stat_hint->extmask)
 		return 0;
@@ -220,7 +340,7 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 				}
 			}
 			
-			extmask = *((uint16_t *)extbody);
+			extmask = *((uint16_t *)stat_body(&stat));
 
 			if (insert) {
 				/* Calculating new extmask in order to 
@@ -229,10 +349,10 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 					     0x000000000000ffff));
 
 				/* Update mask.*/
-				*((uint16_t *)extbody) = extmask;
+				*((uint16_t *)stat_body(&stat)) = extmask;
 			}
 			
-			extbody += sizeof(d16_t);
+			stat.offset += sizeof(d16_t);
 
 			if (i > 0) continue;
 		}
@@ -256,19 +376,22 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 				/* Moving the rest of stat data to the right 
 				   to keep stat data extension packed. */
 				extsize = plug_call(plug->o.sdext_ops, length,
-						    stat_hint->ext[i]);
+						    NULL, stat_hint->ext[i]);
 
-				aal_memmove(extbody + extsize, extbody, place->len -
-					    ((extbody + extsize) - place->body));
+				aal_memmove(stat_body(&stat) + extsize, 
+					    stat_body(&stat), place->len -
+					    (stat.offset + extsize));
+
 			}
 			
-			plug_call(plug->o.sdext_ops, init, extbody,
-				  stat_hint->ext[i]);
+			plug_call(plug->o.sdext_ops, init, 
+				  &stat, stat_hint->ext[i]);
 		}
 
 		/* Getting pointer to the next extension. It is evaluating as
 		   the previous pointer plus its size. */
-		extbody += plug_call(plug->o.sdext_ops, length, extbody);
+		stat.offset += plug_call(plug->o.sdext_ops, 
+					 length, &stat, NULL);
 	}
     
 	place_mkdirty(place);
@@ -300,7 +423,7 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 	uint16_t new_extmask;
 	uint16_t extsize;
 	uint16_t chunks = 0;
-	void *extbody;
+	stat_entity_t stat;
 	uint16_t i;
 
 	aal_assert("umka-2590", place != NULL);
@@ -309,9 +432,11 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 	hint->overhead = 0;
 	hint->len = 0;
 	
-	extbody = (void *)place->body;
 	stat_hint = (statdata_hint_t *)hint->specific;
-
+	
+	aal_memset(&stat, 0, sizeof(stat));
+	stat.place = place;
+	
 	for (i = 0; i < STAT40_EXTNR; i++) {
 		/* Check if we are on next extension mask. */
 		if (i == 0 || ((i + 1) % 16 == 0)) {
@@ -325,7 +450,7 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 				}
 			}
 			
-			old_extmask = *((uint16_t *)extbody);
+			old_extmask = *((uint16_t *)stat_body(&stat));
 
 			
 			/* Calculating new extmask in order to update old
@@ -334,10 +459,10 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 						       0x000000000000ffff));
 
 			/* Update mask.*/
-			*((uint16_t *)extbody) = new_extmask;
+			*((uint16_t *)stat_body(&stat)) = new_extmask;
 				
 			chunks++;
-			extbody += sizeof(d16_t);
+			stat.offset += sizeof(d16_t);
 
 			if (i > 0) continue;
 		}
@@ -353,18 +478,19 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 			return -EINVAL;
 		}
 
-		extsize = plug_call(plug->o.sdext_ops, length, extbody);
+		extsize = plug_call(plug->o.sdext_ops, length, &stat, NULL);
 		
 		if ((((uint64_t)1 << i) & stat_hint->extmask)) {
 			/* Moving the rest of stat data to left in odrer to 
 			   keep stat data extension packed. */
-			aal_memmove(extbody, extbody + extsize, place->len -
-				    ((extbody + extsize) - place->body));
+			aal_memmove(stat_body(&stat), 
+				    stat_body(&stat) + extsize,
+				    place->len - (stat.offset + extsize));
 
 			hint->len += extsize;
 		} else {
 			/* Setting pointer to the next extension. */
-			extbody += extsize;
+			stat.offset += extsize;
 		}
 	}
 	
@@ -372,123 +498,7 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 	return 0;
 }
 
-/* Helper structrure for keeping track of stat data extension body */
-struct body_hint {
-	void *body;
-	uint8_t ext;
-};
-
-typedef struct body_hint body_hint_t;
-
-/* Callback function for finding stat data extension body by bit */
-static errno_t callback_body_ext(sdext_entity_t *sdext,
-				 uint64_t extmask, void *data)
-{
-	body_hint_t *hint = (body_hint_t *)data;
-	if (!sdext->plug) return 0;
-	
-	hint->body = sdext->body;
-	return -(sdext->plug->id.id >= hint->ext);
-}
-
-/* Finds extension body by number of bit in 64bits mask */
-void *stat40_sdext_body(reiser4_place_t *place, uint8_t bit) {
-	struct body_hint hint = {NULL, bit};
-	sdext_entity_t sdext;
-
-	if (stat40_traverse(place, callback_body_ext, &sdext, &hint) < 0)
-		return NULL;
-	
-	return hint.body;
-}
-
-/* Helper structure for keeping track of presence of a stat data extension. */
-struct present_hint {
-	int present;
-	uint8_t ext;
-};
-
-typedef struct present_hint present_hint_t;
-
-/* Callback for getting presence information for certain stat data extension. */
-static errno_t callback_present_ext(sdext_entity_t *sdext,
-				    uint64_t extmask, void *data)
-{
-	present_hint_t *hint = (present_hint_t *)data;
-	if (!sdext->plug) return 0;
-
-	hint->present = (sdext->plug->id.id == hint->ext);
-	return hint->present;
-}
-
-/* Determines if passed extension denoted by @bit present in statdata item */
-int stat40_sdext_present(reiser4_place_t *place, uint8_t bit) {
-	present_hint_t hint = {0, bit};
-	sdext_entity_t sdext;
-
-	if (!stat40_traverse(place, callback_present_ext, &sdext, &hint) < 0)
-		return 0;
-
-	return hint.present;
-}
 #endif
-
-/* Get the plugin id of the type @type if stored in SD. */
-static reiser4_plug_t *stat40_object_plug(reiser4_place_t *place, rid_t type) {
-	sdext_lw_hint_t lw_hint;
-	statdata_hint_t stat;
-	trans_hint_t hint;
-#ifdef ENABLE_STAND_ALONE
-	rid_t pid;
-#endif
-	
-	aal_assert("vpf-1074", place != NULL);
-
-	aal_memset(&stat, 0, sizeof(stat));
-
-	/* FIXME-UMKA: Here should be stat data extensions inspected first in
-	   order to find non-standard object plugin. And only if it is not
-	   found, we should take a look to mode field of the lw extension. */
-	if (type == OBJECT_PLUG_TYPE) {
-		hint.specific = &stat;
-		stat.ext[SDEXT_LW_ID] = &lw_hint;
-
-		if (stat40_fetch_units(place, &hint) != 1)
-			return INVAL_PTR;
-
-#ifndef ENABLE_STAND_ALONE	
-		if (S_ISLNK(lw_hint.mode))
-			return stat40_core->profile_ops.plug(PROF_SYM);
-		else if (S_ISREG(lw_hint.mode))
-			return stat40_core->profile_ops.plug(PROF_REG);
-		else if (S_ISDIR(lw_hint.mode))
-			return stat40_core->profile_ops.plug(PROF_DIR);
-		else if (S_ISCHR(lw_hint.mode))
-			return stat40_core->profile_ops.plug(PROF_SPL);
-		else if (S_ISBLK(lw_hint.mode))
-			return stat40_core->profile_ops.plug(PROF_SPL);
-		else if (S_ISFIFO(lw_hint.mode))
-			return stat40_core->profile_ops.plug(PROF_SPL);
-		else if (S_ISSOCK(lw_hint.mode))
-			return stat40_core->profile_ops.plug(PROF_SPL);
-#else
-		if (S_ISLNK(lw_hint.mode))
-			pid = OBJECT_SYM40_ID;
-		else if (S_ISREG(lw_hint.mode))
-			pid = OBJECT_REG40_ID;
-		else if (S_ISDIR(lw_hint.mode))
-			pid = OBJECT_DIR40_ID;
-		else
-			pid = INVAL_PID;
-
-		if (pid != INVAL_PID)
-			return stat40_core->factory_ops.ifind(OBJECT_PLUG_TYPE,
-							      pid);
-#endif
-	}
-	
-	return NULL;
-}
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_STAND_ALONE
@@ -525,8 +535,7 @@ static item_object_ops_t object_ops = {
 	.bytes		  = NULL,
 	.overhead	  = NULL,
 #endif
-	.fetch_units	  = stat40_fetch_units,
-	.object_plug	  = stat40_object_plug
+	.fetch_units	  = stat40_fetch_units
 };
 
 static item_repair_ops_t repair_ops = {

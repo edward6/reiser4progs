@@ -371,18 +371,3 @@ rid_t reiser4_format_oid_pid(
 			 oid_pid, format->entity);
 }
 #endif
-
-/* Returns key plugin id */
-rid_t reiser4_format_key_pid(reiser4_format_t *format) {
-	uint64_t flags;
-	
-	aal_assert("umka-2347", format != NULL);
-
-	flags = plug_call(format->entity->plug->o.format_ops,
-			  get_flags, format->entity);
-	
-	if (flags & (1 << REISER4_LARGE_KEYS))
-		return KEY_LARGE_ID;
-
-	return KEY_SHORT_ID;
-}

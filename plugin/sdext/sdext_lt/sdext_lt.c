@@ -6,20 +6,20 @@
 #include "sdext_lt.h"
 
 /* Stat data extension length. */
-static uint16_t sdext_lt_length(void *body) {
+static uint16_t sdext_lt_length(stat_entity_t *stat, void *h) {
 	return sizeof(sdext_lt_t);
 }
 
 #ifndef ENABLE_STAND_ALONE
 /* Loads all extension fields to passed @hint. */
-static errno_t sdext_lt_open(void *body, void *hint) {
+static errno_t sdext_lt_open(stat_entity_t *stat, void *hint) {
 	sdext_lt_t *ext;
 	sdext_lt_hint_t *sdext_lt;
     
-	aal_assert("umka-1477", body != NULL);
+	aal_assert("umka-1477", stat != NULL);
 	aal_assert("umka-1478", hint != NULL);
 
-	ext = (sdext_lt_t *)body;
+	ext = (sdext_lt_t *)stat_body(stat);
 	sdext_lt = (sdext_lt_hint_t *)hint;
     
 	sdext_lt->atime = sdext_lt_get_atime(ext);
@@ -30,29 +30,29 @@ static errno_t sdext_lt_open(void *body, void *hint) {
 }
 
 /* Saves all fields to passed extension @body. */
-static errno_t sdext_lt_init(void *body, void *hint) {
+static errno_t sdext_lt_init(stat_entity_t *stat, void *hint) {
 	sdext_lt_hint_t *sdext_lt;
+	sdext_lt_t *ext;
     
-	aal_assert("umka-1475", body != NULL);
+	aal_assert("umka-1475", stat != NULL);
 	aal_assert("umka-1476", hint != NULL);
 	
 	sdext_lt = (sdext_lt_hint_t *)hint;
-    
-	sdext_lt_set_atime((sdext_lt_t *)body,
-			   sdext_lt->atime);
+	ext = (sdext_lt_t *)stat_body(stat);
 	
-	sdext_lt_set_mtime((sdext_lt_t *)body,
-			   sdext_lt->mtime);
-	
-	sdext_lt_set_ctime((sdext_lt_t *)body,
-			   sdext_lt->ctime);
+	sdext_lt_set_atime(ext, sdext_lt->atime);	
+	sdext_lt_set_mtime(ext, sdext_lt->mtime);
+	sdext_lt_set_ctime(ext, sdext_lt->ctime);
 
 	return 0;
 }
 
-extern errno_t sdext_lt_check_struct(sdext_entity_t *sdext, uint8_t mode);
+extern errno_t sdext_lt_check_struct(stat_entity_t *stat, 
+				     uint8_t mode);
 
-extern void sdext_lt_print(void *body, aal_stream_t *stream, uint16_t options);
+extern void sdext_lt_print(stat_entity_t *stat, 
+			   aal_stream_t *stream, 
+			   uint16_t options);
 
 #endif
 

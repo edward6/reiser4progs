@@ -1385,7 +1385,6 @@ static item_balance_ops_t balance_ops = {
 };
 
 static item_object_ops_t object_ops = {
-	.object_plug	  = NULL,
 #ifndef ENABLE_STAND_ALONE
 	.remove_units	  = extent40_remove_units,
 	.update_units	  = extent40_update_units,

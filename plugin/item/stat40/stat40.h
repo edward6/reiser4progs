@@ -13,12 +13,11 @@
 #define stat40_body(place) ((stat40_t *)place->body)
 
 /* Type for stat40 layout callback function */
-typedef errno_t (*ext_func_t) (sdext_entity_t *,
+typedef errno_t (*ext_func_t) (stat_entity_t *,
 			       uint64_t, void *);
 
 extern errno_t stat40_traverse(reiser4_place_t *place,
 			       ext_func_t ext_func,
-			       sdext_entity_t *sdext,
 			       void *data);
 
 struct stat40 {

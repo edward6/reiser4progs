@@ -9,7 +9,9 @@
 
 #include <reiser4/types.h>
 
+extern errno_t reiser4_object_init(object_info_t *info);
 extern void reiser4_object_close(reiser4_object_t *object);
+extern object_entity_t *reiser4_object_recognize(object_info_t *info);
 extern uint64_t reiser4_object_size(reiser4_object_t *object);
 extern errno_t reiser4_object_refresh(reiser4_object_t *object);
 
@@ -22,24 +24,17 @@ extern int64_t reiser4_object_read(reiser4_object_t *object,
 extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      entry_hint_t *entry);
 
-extern errno_t reiser4_object_resolve(reiser4_object_t *object,
-				      reiser4_tree_t *tree,
-				      char *path, bool_t follow);
+extern reiser4_object_t *reiser4_object_open(reiser4_tree_t *tree, 
+					     reiser4_object_t *parent,	
+					     reiser4_key_t *object,
+					     reiser4_place_t *place,
+					     object_init_t init_func);
 
-extern reiser4_object_t *reiser4_object_open(reiser4_tree_t *tree,
-					     char *path, bool_t follow);
+extern reiser4_object_t *reiser4_object_fetch(reiser4_tree_t *tree,
+					      reiser4_object_t *parent,
+					      reiser4_place_t *place);
 
-extern reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree, 
-					      reiser4_object_t *parent,	
-					      reiser4_key_t *object,
-					      reiser4_place_t *place,
-					      object_init_t init_func);
-
-extern reiser4_object_t *reiser4_object_realize(reiser4_tree_t *tree,
-						reiser4_object_t *parent,
-						reiser4_place_t *place);
-
-extern reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
+extern reiser4_object_t *reiser4_object_obtain(reiser4_tree_t *tree,
 					       reiser4_object_t *parent,
 					       reiser4_key_t *key);
 
@@ -117,7 +112,7 @@ extern errno_t reiser4_object_traverse(reiser4_object_t *object,
 				       void *data);
 #endif
 
-#define object_start(object) (&(object)->info->start)
+#define object_start(object) (&(object)->entity->start)
 extern errno_t reiser4_object_reset(reiser4_object_t *object);
 extern uint32_t reiser4_object_offset(reiser4_object_t *object);
 

@@ -7,13 +7,13 @@
 #include "sdext_lt.h"
 #include <repair/plugin.h>
 
-errno_t sdext_lt_check_struct(sdext_entity_t *sdext, uint8_t mode) {
-	aal_assert("vpf-776", sdext != NULL);
-	aal_assert("vpf-782", sdext->plug != NULL);
+errno_t sdext_lt_check_struct(stat_entity_t *stat, uint8_t mode) {
+	aal_assert("vpf-776", stat != NULL);
+	aal_assert("vpf-782", stat->ext_plug != NULL);
 	
-	if (sdext->offset + sizeof(sdext_lt_t) > sdext->sdlen) {
+	if (stat->offset + sizeof(sdext_lt_t) > stat->place->len) {
 		aal_error("Does not look like a valid (%s) statdata "
-			  "extension.", sdext->plug->label);
+			  "extension.", stat->ext_plug->label);
 		return RE_FATAL;
 	}
 	
@@ -21,13 +21,16 @@ errno_t sdext_lt_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 }
 
 /* Prints extension into passed @stream. */
-void sdext_lt_print(void *body, aal_stream_t *stream, uint16_t options) {
+void sdext_lt_print(stat_entity_t *stat, 
+		    aal_stream_t *stream, 
+		    uint16_t options) 
+{
 	sdext_lt_t *ext;
 	
-	aal_assert("umka-1479", body != NULL);
+	aal_assert("umka-1479", stat != NULL);
 	aal_assert("umka-1480", stream != NULL);
 
-	ext = (sdext_lt_t *)body;
+	ext = (sdext_lt_t *)stat_body(stat);
 
 	aal_stream_format(stream, "atime:\t\t%u\n",
 			  sdext_lt_get_atime(ext));

@@ -8,14 +8,14 @@
 #include <aux/aux.h>
 
 /* Loads extension to passed @hint */
-static errno_t sdext_lw_open(void *body, void *hint) {
+static errno_t sdext_lw_open(stat_entity_t *stat, void *hint) {
 	sdext_lw_t *ext;
 	sdext_lw_hint_t *sdext_lw;
     
-	aal_assert("umka-1188", body != NULL);
+	aal_assert("umka-1188", stat != NULL);
 	aal_assert("umka-1189", hint != NULL);
 
-	ext = (sdext_lw_t *)body;
+	ext = (sdext_lw_t *)stat_body(stat);
 	sdext_lw = (sdext_lw_hint_t *)hint;
     
 	sdext_lw->mode = sdext_lw_get_mode(ext);
@@ -25,43 +25,41 @@ static errno_t sdext_lw_open(void *body, void *hint) {
 	return 0;
 }
 
-static uint16_t sdext_lw_length(void *body) {
+static uint16_t sdext_lw_length(stat_entity_t *stat, void *hint) {
 	return sizeof(sdext_lw_t);
 }
 
 #ifndef ENABLE_STAND_ALONE
 /* Saves all extension fields from passed @hint to @body. */
-static errno_t sdext_lw_init(void *body, 
-			     void *hint) 
-{
+static errno_t sdext_lw_init(stat_entity_t *stat, void *hint) {
 	sdext_lw_hint_t *sdext_lw;
-    
-	aal_assert("umka-1186", body != NULL);
+	sdext_lw_t *ext;
+	
+	aal_assert("umka-1186", stat != NULL);
 	aal_assert("umka-1187", hint != NULL);
 	
 	sdext_lw = (sdext_lw_hint_t *)hint;
-    
-	sdext_lw_set_mode((sdext_lw_t *)body,
-			  sdext_lw->mode);
+	ext = (sdext_lw_t *)stat_body(stat);
 	
-	sdext_lw_set_nlink((sdext_lw_t *)body,
-			   sdext_lw->nlink);
-	
-	sdext_lw_set_size((sdext_lw_t *)body,
-			  sdext_lw->size);
+	sdext_lw_set_mode(ext, sdext_lw->mode);
+	sdext_lw_set_nlink(ext,sdext_lw->nlink);
+	sdext_lw_set_size(ext, sdext_lw->size);
 
 	return 0;
 }
 
-extern errno_t sdext_lw_check_struct(sdext_entity_t *sdext, uint8_t mode);
+extern errno_t sdext_lw_check_struct(stat_entity_t *stat, 
+				     uint8_t mode);
 
-extern void sdext_lw_print(void *body, aal_stream_t *stream, uint16_t options);
+extern void sdext_lw_print(stat_entity_t *stat, 
+			   aal_stream_t *stream, 
+			   uint16_t options);
 
 #endif
 
 static reiser4_sdext_ops_t sdext_lw_ops = {
 	.open	 	= sdext_lw_open,
-		
+	
 #ifndef ENABLE_STAND_ALONE
 	.init	 	= sdext_lw_init,
 	.print   	= sdext_lw_print,

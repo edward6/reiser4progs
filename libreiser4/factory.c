@@ -216,6 +216,7 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(sdext_lw);
 	__load_plug(sdext_lt);
 	__load_plug(sdext_unix);
+	__load_plug(sdext_plugid);
 
 	__load_plug(cde40);
 	__load_plug(stat40);
@@ -375,8 +376,7 @@ reiser4_plug_t *reiser4_factory_cfind(plug_func_t plug_func, void *data) {
 	hint.plug = NULL;
 	hint.plug_func = plug_func;
 
-	aal_hash_table_foreach(plugins, callback_foreach_plug,
-			       &hint);
+	aal_hash_table_foreach(plugins, callback_foreach_plug, &hint);
 	
 	return hint.plug;
 }

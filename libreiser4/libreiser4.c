@@ -34,13 +34,8 @@ static reiser4_plug_t *factory_ifind(
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Handler for plugin finding requests from all plugins */
-static reiser4_plug_t *factory_nfind(char *name) {
-	return reiser4_factory_nfind(name);
-}
-
 /* Handler for item insert requests from the all plugins */
-static int64_t tree_insert(void *tree, reiser4_place_t *place,
+static int64_t tree_insert(tree_entity_t *tree, reiser4_place_t *place,
 			   trans_hint_t *hint, uint8_t level)
 {
 	return reiser4_tree_insert((reiser4_tree_t *)tree,
@@ -48,72 +43,68 @@ static int64_t tree_insert(void *tree, reiser4_place_t *place,
 }
 
 /* Handler for write operation from @core. */
-static int64_t tree_write(void *tree, trans_hint_t *hint) {
-	reiser4_tree_t *t = (reiser4_tree_t *)tree;
-	return reiser4_flow_write(t, hint);
+static int64_t tree_write(tree_entity_t *tree, trans_hint_t *hint) {
+	return reiser4_flow_write((reiser4_tree_t *)tree, hint);
 }
 
 /* Handler for truncate operation from @core. */
-static int64_t tree_truncate(void *tree, trans_hint_t *hint) {
-	reiser4_tree_t *t = (reiser4_tree_t *)tree;
-	return reiser4_flow_truncate(t, hint);
+static int64_t tree_truncate(tree_entity_t *tree, trans_hint_t *hint) {
+	return reiser4_flow_truncate((reiser4_tree_t *)tree, hint);
 }
 
 /* Handler for item removing requests from all plugins. */
-static errno_t tree_remove(void *tree, reiser4_place_t *place,
+static errno_t tree_remove(tree_entity_t *tree, 
+			   reiser4_place_t *place,
 			   trans_hint_t *hint)
 {
-	return reiser4_tree_remove((reiser4_tree_t *)tree,
-				   place, hint);
+	return reiser4_tree_remove((reiser4_tree_t *)tree, place, hint);
 }
 
-static lookup_t tree_collision(void *tree, reiser4_place_t *place, 
+static lookup_t tree_collision(tree_entity_t *tree, 
+			       reiser4_place_t *place, 
 			       coll_hint_t *hint)
 {
-	return reiser4_tree_collision(tree, place, hint);
+	return reiser4_tree_collision((reiser4_tree_t *)tree, place, hint);
 }
 #endif
 
 /* Handler for lookup reqiests from the all plugin can arrive. */
-static lookup_t tree_lookup(void *tree, lookup_hint_t *hint,
+static lookup_t tree_lookup(tree_entity_t *tree, lookup_hint_t *hint,
 			    lookup_bias_t bias, reiser4_place_t *place)
 {
 	return reiser4_tree_lookup((reiser4_tree_t *)tree,
 				   hint, bias, place);
 }
 
-static int64_t tree_read(void *tree, trans_hint_t *hint) {
-	reiser4_tree_t *t = (reiser4_tree_t *)tree;
-	return reiser4_flow_read(t, hint);
+static int64_t tree_read(tree_entity_t *tree, trans_hint_t *hint) {
+	return reiser4_flow_read((reiser4_tree_t *)tree, hint);
 }
 
 /* Handler for requests for next item. */
-static errno_t tree_next_item(void *tree, reiser4_place_t *place,
+static errno_t tree_next_item(tree_entity_t *tree, reiser4_place_t *place,
 			      reiser4_place_t *next)
 {
-	return reiser4_tree_next_place((reiser4_tree_t *)tree, 
-				       place, next);
+	return reiser4_tree_next_place((reiser4_tree_t *)tree, place, next);
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t tree_update_key(void *tree, reiser4_place_t *place,
+static errno_t tree_update_key(tree_entity_t *tree, 
+			       reiser4_place_t *place,
 			       reiser4_key_t *key)
 {
-	return reiser4_tree_update_keys((reiser4_tree_t *)tree,
-					place, key);
+	return reiser4_tree_update_keys((reiser4_tree_t *)tree, place, key);
 }
 
 static char *key_print(reiser4_key_t *key, uint16_t options) {
 	return reiser4_print_key(key, options);
 }
 
-static errno_t tree_convert(void *tree, conv_hint_t *hint) {
-	reiser4_tree_t *t = (reiser4_tree_t *)tree;
-	return reiser4_flow_convert(t, hint);
+static errno_t tree_convert(tree_entity_t *tree, conv_hint_t *hint) {
+	return reiser4_flow_convert((reiser4_tree_t *)tree, hint);
 }
 
-static reiser4_plug_t *profile_plug(rid_t index) {
-	return reiser4_profile_plug(index);
+static reiser4_plug_t *pset_find(rid_t member, rid_t id) {
+	return reiser4_opset_plug(member, id);
 }
 
 static int item_mergeable(reiser4_place_t *place1,
@@ -122,21 +113,21 @@ static int item_mergeable(reiser4_place_t *place1,
 	return reiser4_item_mergeable(place1, place2);
 }
 
-static uint64_t tree_slink_locality(void *tree) {
+static uint64_t tree_slink_locality(tree_entity_t *tree) {
 	reiser4_tree_t *t = (reiser4_tree_t *)tree;
 	
 	aal_assert("vpf-1579", t != NULL);
 	aal_assert("vpf-1580", t->fs != NULL);
 	aal_assert("vpf-1581", t->fs->oid != NULL);
 	
-	return plug_call(t->fs->oid->entity->plug->o.oid_ops, slink_locality);
+	return plug_call(t->fs->oid->entity->plug->o.oid_ops, 
+			 slink_locality);
 }
 #endif
 
 #ifdef ENABLE_SYMLINKS
-static errno_t object_resolve(void *tree, char *path,
-			      reiser4_key_t *from,
-			      reiser4_key_t *key)
+static errno_t object_resolve(tree_entity_t *tree, char *path,
+			      reiser4_key_t *from, reiser4_key_t *key)
 {
 	reiser4_tree_t *t;
 	object_entity_t *o;
@@ -148,10 +139,10 @@ static errno_t object_resolve(void *tree, char *path,
 		return -EINVAL;
 
 	/* Save object stat data key to passed @key. */
-	reiser4_key_assign(key, &o->info.object);
+	reiser4_key_assign(key, &o->object);
 
 	/* Close found object. */
-	plug_call(o->plug->o.object_ops, close, o);
+	plug_call(o->opset[OPSET_OBJ]->o.object_ops, close, o);
 
 	return 0;
 }
@@ -163,69 +154,62 @@ static errno_t object_resolve(void *tree, char *path,
 reiser4_core_t core = {
 	.flow_ops = {
 		/* Reads data from the tree. */
-		.read	    = tree_read,
+		.read		= tree_read,
 		
 #ifndef ENABLE_STAND_ALONE
 		/* Callback for truncating data in tree. */
-		.truncate   = tree_truncate,
+		.truncate	= tree_truncate,
 
 		/*Convertion to another item plugin. */
-		.convert    = tree_convert,
+		.convert	= tree_convert,
 		
 		/* Callback for writting data to tree. */
-		.write	    = tree_write
+		.write		= tree_write
 #endif
 	},
 	.tree_ops = {
 		/* This one for lookuping the tree */
-		.lookup	    = tree_lookup,
+		.lookup		= tree_lookup,
 
 #ifndef ENABLE_STAND_ALONE
 		/* Correct the position if collision exists. */
-		.collision  = tree_collision,
+		.collision	= tree_collision,
 		
 		/* Callback function for inserting items into the tree. */
-		.insert	    = tree_insert,
+		.insert		= tree_insert,
 
 		/* Callback function for removing items from the tree. */
-		.remove	    = tree_remove,
+		.remove		= tree_remove,
 
 		/* Update the key in the place and the node itself. */
-		.update_key = tree_update_key,
+		.update_key	= tree_update_key,
 
 		/* Get the safe link locality. */
-		.slink_locality = tree_slink_locality,
+		.slink_locality	= tree_slink_locality,
 #endif
 		/* Returns next item from the passed place. */
-		.next_item   = tree_next_item
+		.next_item	= tree_next_item
 	},
 	.factory_ops = {
-		/* Installing callback for making search for a plugin by its
-		   type and id. */
-		.ifind = factory_ifind,
-
-#ifndef ENABLE_STAND_ALONE
-		/* Installing callback for making search for a plugin by its
-		   type and name. */
-		.nfind = factory_nfind
-#endif
+		/* search a plugin by its type and id. */
+		.ifind		= factory_ifind
 	},
 #ifndef ENABLE_STAND_ALONE
-	.profile_ops = {
-		.plug = profile_plug
+	.pset_ops = {
+		.find		= pset_find,
 	},
 #endif
 #ifdef ENABLE_SYMLINKS
 	.object_ops = {
-		.resolve = object_resolve
+		.resolve	= object_resolve
 	},
 #endif
 #ifndef ENABLE_STAND_ALONE
 	.key_ops = {
-		.print = key_print
+		.print		= key_print
 	},
 	.item_ops = {
-		.mergeable = item_mergeable
+		.mergeable	= item_mergeable
 	},
 #endif
 };
@@ -257,9 +241,6 @@ errno_t libreiser4_init(void) {
 		goto error_fini_print;
 	}
 
-#ifndef ENABLE_STAND_ALONE
-	reiser4_profile_init();
-#endif
 	return 0;
 	
  error_fini_print:

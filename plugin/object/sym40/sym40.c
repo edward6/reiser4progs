@@ -3,10 +3,10 @@
    
    sym40.c -- reiser4 symlink file plugin. */
 
-#ifdef ENABLE_SYMLINKS
-
 #include "sym40.h"
 #include "sym40_repair.h"
+
+#ifdef ENABLE_SYMLINKS
 
 reiser4_core_t *sym40_core = NULL;
 
@@ -20,27 +20,20 @@ object_entity_t *sym40_open(object_info_t *info) {
 	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
    
+	if (info->opset[OPSET_OBJ] != &sym40_plug)
+		return NULL;
+	
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
 		return NULL;
 
 	/* Initalizing file handle */
-	obj40_init(&sym->obj, &sym40_plug, sym40_core, info);
-	
-	if (obj40_pid(&sym->obj, OBJECT_PLUG_TYPE, PROF_SYM) != 
-	    sym40_plug.id.id)
-	{
-		goto error_free_sym;
-	}
+	obj40_init(&sym->obj, info, sym40_core);
 	
 	/* Initializing statdata place */
 	aal_memcpy(STAT_PLACE(&sym->obj), &info->start,
 		   sizeof(info->start));
 	
 	return (object_entity_t *)sym;
-	
- error_free_sym:
-	aal_free(sym);
-	return NULL;
 }
 
 /* Reads whole symlink data to passed @buff. */
@@ -84,34 +77,24 @@ static errno_t sym40_stat(object_entity_t *entity,
 
 #ifndef ENABLE_STAND_ALONE
 /* Creates symlink and returns initialized instance to the caller */
-static object_entity_t *sym40_create(object_info_t *info,
-				     object_hint_t *hint)
-{
+static object_entity_t *sym40_create(object_hint_t *hint) {
 	sym40_t *sym;
 	uint32_t len;
 	
-	aal_assert("umka-1741", info != NULL);
-	aal_assert("vpf-1094",  info->tree != NULL);
 	aal_assert("umka-1740", hint != NULL);
+	aal_assert("vpf-1094",  hint->info.tree != NULL);
 
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
 		return NULL;
 	
 	/* Inizializes symlink file handle. */
-	obj40_init(&sym->obj, &sym40_plug, sym40_core, info);
+	obj40_init(&sym->obj, &hint->info, sym40_core);
 
-	len = aal_strlen(hint->body.sym.name);
+	len = aal_strlen(hint->name);
 
 	/* Create symlink sta data item. */
-	if (obj40_create_stat(&sym->obj, hint->prof.statdata, len, 
-			      len, 0, 0, S_IFLNK, hint->body.sym.name))
-	{
+	if (obj40_create_stat(&sym->obj, len, len, 0, 0, S_IFLNK, hint->name))
 		goto error_free_sym;
-	}
-
-	/* Saving statdata place. */
-	aal_memcpy(&info->start, STAT_PLACE(&sym->obj),
-		   sizeof(info->start));
 
 	return (object_entity_t *)sym;
 
@@ -243,7 +226,6 @@ static reiser4_object_ops_t sym40_ops = {
 	.check_struct   = sym40_check_struct,
 
 	.layout         = NULL,
-	.form		= NULL,
 	.seek	        = NULL,
 	.write	        = NULL,
 	.convert        = NULL,

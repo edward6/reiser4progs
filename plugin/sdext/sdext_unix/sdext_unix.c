@@ -6,21 +6,19 @@
 
 #include "sdext_unix.h"
 
-static uint16_t sdext_unix_length(void *body) {
+static uint16_t sdext_unix_length(stat_entity_t *stat, void *hint) {
 	return sizeof(sdext_unix_t);
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t sdext_unix_open(void *body, 
-			       void *hint) 
-{
+static errno_t sdext_unix_open(stat_entity_t *stat, void *hint) {
 	sdext_unix_t *ext;
 	sdext_unix_hint_t *sdext_unix;
     
-	aal_assert("umka-886", body != NULL);
+	aal_assert("umka-886", stat != NULL);
 	aal_assert("umka-887", hint != NULL);
 
-	ext = (sdext_unix_t *)body;
+	ext = (sdext_unix_t *)stat_body(stat);
 	sdext_unix = (sdext_unix_hint_t *)hint;
     
 	sdext_unix->uid = sdext_unix_get_uid(ext);
@@ -34,16 +32,14 @@ static errno_t sdext_unix_open(void *body,
 	return 0;
 }
 
-static errno_t sdext_unix_init(void *body, 
-			       void *hint) 
-{
+static errno_t sdext_unix_init(stat_entity_t *stat, void *hint) {
 	sdext_unix_t *ext;
 	sdext_unix_hint_t *sdext_unix;
     
-	aal_assert("umka-884", body != NULL);
+	aal_assert("umka-884", stat != NULL);
 	aal_assert("umka-885", hint != NULL);
 	
-	ext = (sdext_unix_t *)body;
+	ext = (sdext_unix_t *)stat_body(stat);
 	sdext_unix = (sdext_unix_hint_t *)hint;
     
 	sdext_unix_set_uid(ext, sdext_unix->uid);
@@ -60,10 +56,11 @@ static errno_t sdext_unix_init(void *body,
 	return 0;
 }
 
-extern errno_t sdext_unix_check_struct(sdext_entity_t *sdext,
+extern errno_t sdext_unix_check_struct(stat_entity_t *stat, 
 				       uint8_t mode);
 
-extern void sdext_unix_print(void *body, aal_stream_t *stream, 
+extern void sdext_unix_print(stat_entity_t *stat, 
+			     aal_stream_t *stream, 
 			     uint16_t options);
 
 #endif

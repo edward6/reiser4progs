@@ -48,18 +48,14 @@ static errno_t callback_find_statdata(char *track, char *entry,
 			return -EINVAL;
 	}
 
-	/* Getting object plugin from stat data place. */
-	if (!(plug = reiser4_semantic_plug(tree, place)))
-		return -EINVAL;
-
-	/* Initializing object at @place. */
-	if (!(resol->entity = plug_call(plug->o.object_ops, open,
-					&resol->info)))
+	/* Trying to recognize the object at @place. */
+	if (!(resol->entity = reiser4_object_recognize(&resol->info)) || 
+	    (resol->entity == INVAL_PTR))
 	{
 		aal_error("Can't open object %s.", track);
 		return -EINVAL;
 	}
-	
+
 #ifdef ENABLE_SYMLINKS
 	/* Symlinks handling. Method follow() should be implemented if object
 	   wants to be resolved (symlink). */
@@ -119,7 +115,7 @@ static errno_t callback_find_entry(char *track, char *name,
 	resol = (resolve_t *)data;
 
 	/* Looking up for @entry in current directory */
-	if ((res = plug_call(resol->entity->plug->o.object_ops,
+	if ((res = plug_call(resol->entity->opset[OPSET_OBJ]->o.object_ops,
 			     lookup, resol->entity, name, &entry)) < 0)
 	{
 		return res;
@@ -127,7 +123,7 @@ static errno_t callback_find_entry(char *track, char *name,
 		if (res != PRESENT) {
 			aal_error("Can't find %s.", track);
 			
-			plug_call(resol->entity->plug->o.object_ops,
+			plug_call(resol->entity->opset[OPSET_OBJ]->o.object_ops,
 				  close, resol->entity);
 			return -EINVAL;
 		}
@@ -142,34 +138,10 @@ static errno_t callback_find_entry(char *track, char *name,
 			   &entry.object);
 
 	/* Close current object. */
-	plug_call(resol->entity->plug->o.object_ops,
+	plug_call(resol->entity->opset[OPSET_OBJ]->o.object_ops,
 		  close, resol->entity);
 	
 	return 0;
-}
-
-/* Tries to guess object plugin by one of items belog to object (stat data is
-   prefered for now). */
-reiser4_plug_t *reiser4_semantic_plug(reiser4_tree_t *tree,
-				      reiser4_place_t *place)
-{
-	reiser4_plug_t *plug;
-	
-	aal_assert("umka-2576", tree != NULL);
-	aal_assert("umka-2577", place != NULL);
-	
-	if (place->plug->o.item_ops->object->object_plug) {
-		plug = plug_call(place->plug->o.item_ops->object,
-				 object_plug, place, OBJECT_PLUG_TYPE);
-		
-		if (plug != INVAL_PTR && plug != NULL)
-			return plug;
-	} else {
-		/* FIXME-UMKA: Here we should try to understand what object
-		   plugin is by means of asking object parent or root. */
-	}
-	
-	return NULL;
 }
 
 /* Resolves @path and stores key of stat data into @sdkey */
@@ -183,8 +155,8 @@ object_entity_t *reiser4_semantic_resolve(reiser4_tree_t *tree, char *path,
 	aal_assert("umka-2578", from != NULL);
 
 	resol.follow = follow;
-	resol.info.tree = tree;
-	
+	resol.info.tree = (tree_entity_t *)tree;
+
 #ifdef ENABLE_SYMLINKS
 	/* Initializing parent key to root key */
 	reiser4_key_assign(&resol.info.parent, &tree->key);
@@ -203,4 +175,42 @@ object_entity_t *reiser4_semantic_resolve(reiser4_tree_t *tree, char *path,
 	}
 
 	return resol.entity;
+}
+
+/* This function opens object by its name */
+reiser4_object_t *reiser4_semantic_open(
+	reiser4_tree_t *tree,		/* tree object will be opened on */
+	char *path,                     /* name of object to be opened */
+	bool_t follow)                  /* follow symlinks */
+{
+#ifndef ENABLE_STAND_ALONE
+	char *name;
+#endif
+	reiser4_object_t *object;
+    
+	aal_assert("umka-678", tree != NULL);
+	aal_assert("umka-789", path != NULL);
+
+	if (!(object = aal_calloc(sizeof(*object), 0)))
+		return NULL;
+    
+	/* Semantic resolve of @path. */
+	if (!(object->entity = reiser4_semantic_resolve(tree, path,
+							&tree->key,
+							follow)))
+	{
+		goto error_free_object;
+	}
+	
+	/* Initializing object name. It is stat data key as string. */
+#ifndef ENABLE_STAND_ALONE
+	name = reiser4_print_key(&object->entity->object, PO_INODE);
+	aal_strncpy(object->name, name, sizeof(object->name));
+#endif
+
+	return object;
+    
+ error_free_object:
+	aal_free(object);
+	return NULL;
 }

@@ -11,13 +11,13 @@
 #include "sdext_unix.h"
 #include <repair/plugin.h>
 
-errno_t sdext_unix_check_struct(sdext_entity_t *sdext, uint8_t mode) {
-	aal_assert("vpf-778", sdext != NULL);
-	aal_assert("vpf-781", sdext->plug != NULL);
+errno_t sdext_unix_check_struct(stat_entity_t *stat, uint8_t mode) {
+	aal_assert("vpf-778", stat != NULL);
+	aal_assert("vpf-781", stat->ext_plug != NULL);
 	
-	if (sdext->offset + sizeof(sdext_unix_t) > sdext->sdlen) {
+	if (stat->offset + sizeof(sdext_unix_t) > stat->place->len) {
 		aal_error("Does not look like a valid (%s) statdata "
-			  "extension.", sdext->plug->label);
+			  "extension.", stat->ext_plug->label);
 		
 		return RE_FATAL;
 	}
@@ -25,15 +25,15 @@ errno_t sdext_unix_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 	return 0;
 }
 
-void sdext_unix_print(void *body, aal_stream_t *stream, uint16_t options) {
+void sdext_unix_print(stat_entity_t *stat, aal_stream_t *stream, uint16_t options) {
 	sdext_unix_t *ext;
 	time_t atm, mtm, ctm;
 	char uid[255], gid[255];
 	
-	aal_assert("umka-1412", body != NULL);
+	aal_assert("umka-1412", stat != NULL);
 	aal_assert("umka-1413", stream != NULL);
 
-	ext = (sdext_unix_t *)body;
+	ext = (sdext_unix_t *)stat_body(stat);
 
 	aal_memset(uid, 0, sizeof(uid));
 	aal_memset(gid, 0, sizeof(gid));

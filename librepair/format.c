@@ -66,7 +66,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	pid = reiser4_format_get_policy(fs->format);
 
 	if (pid != defplug->id.id) {
-		if (reiser4_profile_get_flag(PROF_POLICY, PF_OVERRIDDEN)) {
+		if (reiser4_profile_overridden(PROF_POLICY)) {
 			/* The policy was overridden. */
 			aal_error("The specified reiser4 tail policy is '%s'. "
 				  "Its id (0x%x) does not match the on-disk id "
@@ -99,7 +99,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		}
 	}
 	
-	if (reiser4_profile_get_flag(PROF_KEY, PF_OVERRIDDEN)) {
+	if (reiser4_profile_overridden(PROF_KEY)) {
 		uint16_t flags;
 		bool_t large;
 		
@@ -112,7 +112,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		if ((large && (defplug->id.id != KEY_LARGE_ID)) || 
 		    (!large && (defplug->id.id != KEY_SHORT_ID)))
 		{
-			/* Key policy does ot match and was overriden. */
+			/* Key policy does ot match and was overridden. */
 			aal_error("The specified key plugin '%s' does not match "
 				  "to the on-disk one '%s'. %s", defplug->label,
 				  large ? "LARGE" : "SHORT", mode == RM_BUILD ? 
@@ -149,7 +149,7 @@ static errno_t repair_format_open_check(reiser4_fs_t *fs, uint8_t mode) {
 		aal_fatal("Cannot open the on-disk format on (%s)",
 			  fs->device->name);
 		
-		over = reiser4_profile_get_flag(PROF_FORMAT, PF_OVERRIDDEN);
+		over = reiser4_profile_overridden(PROF_FORMAT);
 		
 		if (!over) {
 			/* Format was not overridden, try to detect it. */

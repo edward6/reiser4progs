@@ -13,37 +13,6 @@
 /* Set of unknown extentions. */
 #define REG40_EXTS_UNKN ((uint64_t)1 << SDEXT_SYMLINK_ID)
 
-static errno_t reg40_extensions(reiser4_place_t *stat) {
-	uint64_t extmask;
-	
-	/* Check that there is no one unknown extension. */
-	extmask = obj40_extmask(stat);
-	
-	/* Check that there is no one unknown extension. */
-	if (extmask & REG40_EXTS_UNKN)
-		return RE_FATAL;
-
-	/* Check that LW and UNIX extensions exist. */
-	return ((extmask & REG40_EXTS_MUST) == REG40_EXTS_MUST) ? 0 : RE_FATAL;
-}
-
-/* Check SD extensions and that mode in LW extension is REGFILE. */
-static errno_t callback_stat(reiser4_place_t *stat) {
-	sdext_lw_hint_t lw_hint;
-	errno_t res;
-	
-	if ((res = reg40_extensions(stat)))
-		return res;
-	
-	/* Check the mode in the LW extension. */
-	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)) < 0)
-		return res;
-	
-	return S_ISREG(lw_hint.mode) ? 0 : RE_FATAL;
-
-	/* FIXME: read object plug_id extention from sd. if present also. */
-}
-
 object_entity_t *reg40_recognize(object_info_t *info) {
 	reg40_t *reg;
 	errno_t res;
@@ -52,17 +21,21 @@ object_entity_t *reg40_recognize(object_info_t *info) {
 		return INVAL_PTR;
 	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plug, reg40_core, info);
+	obj40_init(&reg->obj, info, reg40_core);
 	
-	if ((res = obj40_recognize(&reg->obj, callback_stat)))
-		goto error_free_reg;
+	if ((res = obj40_objkey_check(&reg->obj)))
+		goto error;
+
+	if ((res = obj40_check_stat(&reg->obj, REG40_EXTS_MUST,
+				    REG40_EXTS_UNKN)))
+		goto error;
 	
 	/* Reseting file (setting offset to 0) */
 	reg40_reset((object_entity_t *)reg);
 
 	return (object_entity_t *)reg;
 	
- error_free_reg:
+ error:
 	aal_free(reg);
 	return res < 0 ? INVAL_PTR : NULL;
 }
@@ -156,8 +129,6 @@ static errno_t reg40_check_ikey(reg40_t *reg) {
 }
 
 typedef struct reg40_repair {
-	reiser4_plug_t *eplug;
-	reiser4_plug_t *tplug;
 	reiser4_plug_t *bplug;
 	uint64_t bytes, maxreal;
 } reg40_repair_t;
@@ -223,25 +194,26 @@ static errno_t reg40_next(object_entity_t *object,
 
 	res = 0;
 
-	if (!plug_equal(reg->body.plug, repair->eplug) && 
-	    !plug_equal(reg->body.plug, repair->tplug))
+	if (!plug_equal(reg->body.plug, info->opset[OPSET_EXTENT]) && 
+	    !plug_equal(reg->body.plug, info->opset[OPSET_TAIL]))
 	{
 		aal_error("The object [%s] (%s), node (%llu),"
 			  "item (%u): the item [%s] of the "
 			  "invalid plugin (%s) found.%s",
 			  print_inode(reg40_core, &info->object),
-			  reg->obj.plug->label, reg->body.node->block->nr, 
+			  object->opset[OPSET_OBJ]->label, 
+			  reg->body.node->block->nr, 
 			  reg->body.pos.item,
 			  print_key(reg40_core, &reg->body.key),
-			  reg->body.plug->label, mode == RM_BUILD ? 
-			  " Removed." : "");
+			  object->opset[OPSET_OBJ]->label, 
+			  mode == RM_BUILD ? " Removed." : "");
 	} else if (reg40_check_ikey(reg)) {
 		aal_error("The object [%s] (%s), node (%llu),"
 			  "item (%u): the item [%s] has the "
 			  "wrong offset.%s",
 			  print_inode(reg40_core, &info->object),
-			  reg->obj.plug->label, reg->body.node->block->nr, 
-			  reg->body.pos.item,
+			  object->opset[OPSET_OBJ]->label, 
+			  reg->body.node->block->nr, reg->body.pos.item,
 			  print_key(reg40_core, &reg->body.key),
 			  mode == RM_BUILD ? " Removed." : "");
 	} else
@@ -330,7 +302,6 @@ static errno_t reg40_hole_cure(object_entity_t *object,
 {
 	reg40_t *reg = (reg40_t *)object;
 	uint64_t offset, len;
-	object_info_t *info;
 	int64_t res;
 	
 	aal_assert("vpf-1355", reg != NULL);
@@ -341,23 +312,20 @@ static errno_t reg40_hole_cure(object_entity_t *object,
 	if ((len = offset - reg40_offset(object)) == 0)
 		return 0;
 
-	info = &object->info;
-	
 	aal_error("The object [%s] has a break at [%llu-%llu] offsets. "
-		  "Plugin %s.%s", print_inode(reg40_core, &info->object),
-		  offset - len, offset, reg->obj.plug->label,
+		  "Plugin %s.%s", print_inode(reg40_core, &object->object),
+		  offset - len, offset, object->opset[OPSET_OBJ]->label,
 		  mode == RM_BUILD ? " Writing a hole there." : "");
 
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 
 	if ((res = reg40_put(object, NULL, len, func)) < 0) {
-		object_info_t *info = &reg->obj.info;
-
 		aal_error("The object [%s] failed to create the hole "
 			  "at [%llu-%llu] offsets. Plugin %s.",
-			  print_inode(reg40_core, &info->object),
-			  offset - len, offset, reg->obj.plug->label);
+			  print_inode(reg40_core, &object->object),
+			  offset - len, offset, 
+			  object->opset[OPSET_OBJ]->label);
 
 		return res;
 	}
@@ -379,9 +347,9 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	errno_t res = 0;
 	uint64_t size;
 
-	aal_assert("vpf-1126", reg != NULL);
-	aal_assert("vpf-1190", reg->obj.info.tree != NULL);
-	aal_assert("vpf-1197", reg->obj.info.object.plug != NULL);
+	aal_assert("vpf-1126", object != NULL);
+	aal_assert("vpf-1190", object->tree != NULL);
+	aal_assert("vpf-1197", object->object.plug != NULL);
 	
 	info = &reg->obj.info;
 	
@@ -395,42 +363,7 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	if (func && func(&info->start, data))
 		return -EINVAL;
 	
-	/* Get the reg file tail policy. */
-	if (!(reg->policy = obj40_plug(&reg->obj, 
-				       POLICY_PLUG_TYPE, 
-				       PROF_POLICY)))
-	{
-		aal_error("The object [%s] failed to "
-			  "detect the tail policy.", 
-			  print_inode(reg40_core, &info->object));
-		return -EINVAL;
-	}
-	
 	aal_memset(&repair, 0, sizeof(repair));
-	
-	/* Get the extent item plugin. FIXME-VITALY: profile_ops.valus+ifind
-	   for now untill we can point tail item in plug_extension */
-	if (!(repair.eplug = obj40_plug(&reg->obj, 
-					ITEM_PLUG_TYPE, 
-					PROF_EXTENT))) 
-	{
-		aal_error("The object [%s] failed to detect the "
-			  "extent plugin to use.", 
-			  print_inode(reg40_core, &info->object));
-		return -EINVAL;
-	}
-
-	/* Get the tail item plugin. FIXME-VITALY: profile_ops.valus+ifind
-	   for now untill we can point extent item in plug_extension */
-	if (!(repair.tplug = obj40_plug(&reg->obj, 
-					ITEM_PLUG_TYPE, 
-					PROF_TAIL))) 
-	{
-		aal_error("The object [%s] failed to detect the "
-			  "tail plugin to use.", 
-			  print_inode(reg40_core, &info->object));
-		return -EINVAL;
-	}
 	
 	/* Get the maxreal file byte and find out what body plug to use. */
 	if (!(repair.bplug = reg40_body_plug(reg)))
@@ -501,8 +434,9 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 				  "[%llu..%llu] does not not match the "
 				  "detected tail policy (%s).%s",
 				  print_inode(reg40_core, &info->object),
-				  reg->obj.plug->label, offset, 
-				  offset + hint.count -1, reg->policy->label,
+				  object->opset[OPSET_OBJ]->label, offset,
+				  offset + hint.count -1, 
+				  object->opset[OPSET_POLICY]->label,
 				  mode == RM_BUILD ? " Converted." : "");
 
 			if (mode == RM_BUILD) {
@@ -565,31 +499,11 @@ next:
 		methods.check_size = reg40_check_size;
 		methods.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 
-		res |= obj40_check_stat(&reg->obj, &methods, 
-					&params, mode);
+		res |= obj40_update_stat(&reg->obj, &methods, 
+					 &params, mode);
 	}
 
 	return res;
 }
 
-errno_t reg40_form(object_entity_t *object) {
-	reg40_t *reg = (reg40_t *)object;
-
-	aal_assert("vpf-1319", object != NULL);
-
-	reg40_reset(object);
-	
-	/* Get the reg file tail policy. */
-	if (!(reg->policy = obj40_plug(&reg->obj, 
-				       POLICY_PLUG_TYPE, 
-				       PROF_POLICY)))
-	{
-		aal_error("The object [%s] failed to detect "
-			  "the tail policy.", 
-			  print_inode(reg40_core, &reg->obj.info.object));
-		return -EINVAL;
-	}
-
-	return 0;
-}
 #endif

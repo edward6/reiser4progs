@@ -7,13 +7,11 @@
 #define REG40_H
 
 #include <aal/libaal.h>
-#include <sys/stat.h>
 #include <reiser4/plugin.h>
 #include <plugin/object/obj40/obj40.h>
 
 /* Regular file structure */
 struct reg40 {
-
 	/* Common fields (statdata, etc) */
 	obj40_t obj;
 
@@ -22,11 +20,6 @@ struct reg40 {
 
 	/* Current position in the reg file */
 	reiser4_key_t position;
-
-#ifndef ENABLE_STAND_ALONE
-	/* Tail policy plugin */
-	reiser4_plug_t *policy;
-#endif
 };
 
 typedef struct reg40 reg40_t;

@@ -13,15 +13,11 @@
 #endif
 
 #include <aal/libaal.h>
-#include <aux/aux.h>
-#include <sys/stat.h>
-
 #include <reiser4/plugin.h>
 #include <plugin/object/obj40/obj40.h>
 
 /* Symlink struct. */
 struct sym40 {
-
 	/* Common file fiedls (statdata, etc). As sym40 has nothing but statdata
 	   only, this structure has only file handler, which contains stuff for
 	   statdata handling. */

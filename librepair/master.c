@@ -93,9 +93,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 	
 	/* If the format is overridden, fix master accordingly to the specified 
 	   value. */ 
-	if (reiser4_profile_get_flag(PROF_FORMAT, PF_OVERRIDDEN) &&
-	    pid != plug->id.id)
-	{
+	if (reiser4_profile_overridden(PROF_FORMAT) && pid != plug->id.id) {
 		/* The @plug is the correct one. */
 		aal_fatal("The specified reiser4 format on '%s' is '%s'. Its "
 			  "id (0x%x) does not match the on-disk id (0x%x).%s", 

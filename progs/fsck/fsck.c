@@ -43,7 +43,7 @@ static void fsck_print_usage(char *name) {
 
 #define WARNING \
 "*******************************************************************\n"\
-"This is an EXPERIMENTAL version of fsck.reiser4. Read REAMDE first.\n"\
+"This is an EXPERIMENTAL version of fsck.reiser4. Read README first.\n"\
 "*******************************************************************\n\n"
 
 static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
@@ -357,7 +357,7 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	errno_t res;
 	int flags;
 	
-	fprintf(stderr, "***** Openning the fs.\n");
+	fprintf(stderr, "***** Opening the fs.\n");
 	
 	/* Reopen device RW for fixing SB. */
 	if (sb_mode != RM_CHECK) {
@@ -428,7 +428,7 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	repair_format_print(repair->fs->format, &stream);
 	aal_stream_format(&stream, "\n");
 	
-	fprintf(stderr, "Reiser4 fs was detected on the %s.\n%s",
+	fprintf(stderr, "Reiser4 fs was detected on %s.\n%s",
 		repair->fs->device->name, (char *)stream.entity);
 	
 	aal_stream_fini(&stream);

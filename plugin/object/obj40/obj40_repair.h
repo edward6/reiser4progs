@@ -33,18 +33,18 @@ struct obj40_stat_params {
 
 typedef struct obj40_stat_params obj40_stat_params_t;
 
-extern reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, 
-					    rid_t type, 
-					    rid_t index);
-
-extern errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func);
+extern errno_t obj40_objkey_check(obj40_t *obj);
 
 extern errno_t obj40_save_stat(obj40_t *obj, statdata_hint_t *hint);
 
 extern errno_t obj40_check_stat(obj40_t *obj, 
-				obj40_stat_methods_t *methods,
-				obj40_stat_params_t *params,
-				uint8_t mode);
+				uint64_t exts_must, 
+				uint64_t exts_unkn);
+
+extern errno_t obj40_update_stat(obj40_t *obj, 
+				 obj40_stat_methods_t *methods,
+				 obj40_stat_params_t *params,
+				 uint8_t mode);
 
 extern errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place, 
 			     reiser4_key_t *key, uint8_t mode);

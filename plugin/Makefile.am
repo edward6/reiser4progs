@@ -33,6 +33,7 @@ libreiser4_plugin_la_LIBADD       = format/format40/libformat40-static.la \
                                     sdext/sdext_lw/libsdext_lw-static.la \
                                     sdext/sdext_lt/libsdext_lt-static.la \
                                     sdext/sdext_symlink/libsdext_symlink-static.la \
+                                    sdext/sdext_plugid/libsdext_plugid-static.la \
                                     policy/tails/libtails-static.la \
                                     policy/extents/libextents-static.la \
                                     policy/smart/libsmart-static.la \
@@ -69,6 +70,7 @@ libreiser4_plugin_alone_la_LIBADD = format/format40/libformat40-alone.la \
                                     sdext/sdext_lw/libsdext_lw-alone.la \
                                     sdext/sdext_lt/libsdext_lt-alone.la \
                                     sdext/sdext_symlink/libsdext_symlink-alone.la \
+                                    sdext/sdext_plugid/libsdext_plugid-alone.la \
                                     policy/tails/libtails-alone.la \
                                     policy/extents/libextents-alone.la \
                                     policy/smart/libsmart-alone.la \

@@ -123,20 +123,12 @@ struct reiser4_status {
 
 typedef struct reiser4_status reiser4_status_t;
 
-enum reiser4_profile_flags {
-	PF_OVERRIDDEN = 0x0,
-	PF_READ       = 0x1
-};
-
 typedef struct reiser4_tree reiser4_tree_t;
 
 #define OBJECT_NAME_SIZE 1024
 
 /* Reiser4 file structure (regular file, directory, symlinks, etc) */
 struct reiser4_object {
-	/* Object info pointer */
-	object_info_t *info;
-	
 	/* Object entity. It is initialized by object plugin */
 	object_entity_t *entity;
 
@@ -152,13 +144,13 @@ struct reiser4_object {
 
 typedef struct reiser4_object reiser4_object_t;
 
+#define objplug(object) (object->entity->opset[OPSET_OBJ])
+
 /* Calback types used in object code. */
-typedef errno_t (*object_init_t) (reiser4_object_t *, 
-				  reiser4_object_t *);
+typedef object_entity_t *(*object_init_t) (object_info_t *);
 
 typedef reiser4_object_t *(*object_open_func_t) (reiser4_object_t *, 
-						 entry_hint_t *, 
-						 void *);
+						 entry_hint_t *, void *);
 
 #ifndef ENABLE_STAND_ALONE
 enum reiser4_owner {
@@ -243,6 +235,8 @@ typedef int (*mpc_func_t) (reiser4_tree_t *);
 
 /* Tree structure. */
 struct reiser4_tree {
+	tree_entity_t entity;
+	
 	/* Flag that shows, that tree adjusting is running now and should not be
 	   called again until this flag is turned off. */
 	int adjusting;
@@ -270,9 +264,6 @@ struct reiser4_tree {
 	   to use any kind of hardcoding. */
 	uint32_t bottom;
 
-	/* Saved nodeptr plugin is stored here. This is needed for speedup
-	   attaching new nodes to tree. */
-//	reiser4_plug_t *nodeptr;
 #endif
 	
 	/* Formatted nodes hash table. */
@@ -284,7 +275,9 @@ struct reiser4_tree {
 #endif
 };
 
+
 #ifndef ENABLE_STAND_ALONE
+
 /* Callback function type for opening node. */
 typedef reiser4_node_t *(*tree_open_func_t) (reiser4_tree_t *, 
 				     reiser4_place_t *, void *);
@@ -335,9 +328,6 @@ struct reiser4_fs {
 	/* Pointer to the semantic tree wrapper object */
 	reiser4_object_t *root;
 
-	/* Profile of the all default fs plugins. */
-	reiser4_profile_t *profile;
-	
 	/* Applications using this library sometimes need to embed information
 	   into the objects of our library for their own use. */
 	void *data;

@@ -182,24 +182,26 @@ errno_t obj40_save_stat(obj40_t *obj, statdata_hint_t *hint) {
 
 /* Create stat data item basing on passed extensions @mask, @size, @bytes,
    @nlinks, @mode and @path for symlinks. Returns error or zero for success. */
-errno_t obj40_create_stat(obj40_t *obj, reiser4_plug_t *statdata, 
-			  uint64_t size, uint64_t bytes, uint64_t rdev, 
-			  uint32_t nlink, uint16_t mode, char *path)
+errno_t obj40_create_stat(obj40_t *obj, uint64_t size, uint64_t bytes, 
+			  uint64_t rdev, uint32_t nlink, uint16_t mode, 
+			  char *path)
 {
-	int64_t res;
-	lookup_t lookup;
-	trans_hint_t hint;
-	statdata_hint_t stat;
-	sdext_lw_hint_t lw_ext;
+	sdext_plugid_hint_t plugs_ext;
 	sdext_unix_hint_t unix_ext;
+	sdext_lw_hint_t lw_ext;
+	statdata_hint_t stat;
+	trans_hint_t hint;
+	lookup_t lookup;
+	bool_t plcount;
+	int64_t res, i;
 	
 	aal_assert("vpf-1592", obj != NULL);
-	aal_assert("vpf-1593", statdata != NULL);
+	aal_assert("vpf-1593", obj->info.opset[OPSET_STAT] != NULL);
 	
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	/* Getting statdata plugin */
-	hint.plug = statdata;
+	hint.plug = obj->info.opset[OPSET_STAT];
 
 	hint.count = 1;
 	hint.place_func = NULL;
@@ -233,11 +235,25 @@ errno_t obj40_create_stat(obj40_t *obj, reiser4_plug_t *statdata,
 	unix_ext.mtime = unix_ext.atime;
 	unix_ext.ctime = unix_ext.atime;
 
+	for (i = 0, plcount = 0; i < OPSET_LAST; i++) {
+		plugs_ext.pset[i] = aal_test_bit(&obj->info.opmask, i) ? 
+			obj->info.opset[i] : NULL;
+
+		/* Smth to be stored. */
+		if (plugs_ext.pset[i])
+			plcount++;
+	}
+	
 	aal_memset(&stat.ext, 0, sizeof(stat.ext));
 
 	/* Initializing extensions array */
 	stat.ext[SDEXT_LW_ID] = &lw_ext;
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
+
+	if (plcount) {
+		stat.extmask |= (1 << SDEXT_PLUG_ID);
+		stat.ext[SDEXT_PLUG_ID] = &plugs_ext;
+	}
 
 	if (path) {
 		stat.extmask |= (1 << SDEXT_SYMLINK_ID);
@@ -593,75 +609,40 @@ errno_t obj40_unlink(obj40_t *obj) {
 }
 #endif
 
-/* Obtains plug of the type @type from the SD if it is kept there, othewise
-   obtains the default one from the params. */
-reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, rid_t index) {
-	reiser4_plug_t *plug;
-#ifdef ENABLE_STAND_ALONE
-	rid_t pid = INVAL_PID;
-#endif
-	
-	aal_assert("vpf-1235", obj != NULL);
-	aal_assert("vpf-1236", STAT_PLACE(obj)->plug != NULL);
-	
-	if ((plug = plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
-			      object_plug, STAT_PLACE(obj), type)) == INVAL_PTR)
-		return INVAL_PTR;
-
-	if (plug != NULL)
-		return plug;
-	
-	/* If nothing found in SD, obtain the default one. */
-#ifndef ENABLE_STAND_ALONE
-	plug = obj->core->profile_ops.plug(index);
-#else
-	if (type == HASH_PLUG_TYPE)
-		pid = HASH_R5_ID;
-
-	if (type == FIBRE_PLUG_TYPE)
-		pid = FIBRE_DOT_O_ID;
-
-	if (pid != INVAL_PID)
-		plug = obj->core->factory_ops.ifind(type, pid);
-	else 
-		aal_bug("vpf-1594", "Nothing but hash and fibre "
-			"plugin requests are expected.");
-#endif
-
-	return plug;
-}
-
-/* Obtains the plugid of the plugin type @type returned by obj40_plug(). */
-rid_t obj40_pid(obj40_t *obj, rid_t type, rid_t index) {
-	reiser4_plug_t *plug;
-	
-	plug = obj40_plug(obj, type, index);
-	
-	if (plug == INVAL_PTR || plug == NULL)
-		return INVAL_PID;
-
-	return plug->id.id;
-}
-
-/*
-  Initializes object handle by plugin, key, core operations and opaque pointer
-  to tree file is going to be opened/created in. */
-errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
-		   reiser4_core_t *core, object_info_t *info)
+/* Initializes object handle by plugin, key, core operations and opaque pointer
+   to tree file is going to be opened/created in. */
+inline errno_t obj40_init(obj40_t *obj, object_info_t *info, 
+			  reiser4_core_t *core)
 {
+#ifndef ENABLE_STAND_ALONE
+	uint8_t i;
+#endif
+	
 	aal_assert("umka-1574", obj != NULL);
-	aal_assert("umka-1756", plug != NULL);
 	aal_assert("umka-1757", info != NULL);
-
-	obj->core = core;
-	obj->plug = plug;
+	aal_assert("umka-1757", info->tree != NULL);
+	
+	aal_memcpy(&obj->info.opset, &info->tree->opset, 
+		   sizeof(reiser4_plug_t *) * OPSET_LAST);
 	
 	aal_memcpy(&obj->info, info, sizeof(*info));
-
+	obj->core = core;
+	
 	if (info->object.plug) {
-		plug_call(info->object.plug->o.key_ops,
-			  assign, STAT_KEY(obj), &info->object);
+		plug_call(info->object.plug->o.key_ops, assign, 
+			  STAT_KEY(obj), &info->object);
 	}
+
+#ifndef ENABLE_STAND_ALONE
+	/* Set missed plugins to opset from the fs global opset and build
+	   the mask of the specific plugins. */
+	for (i = 0; i < OPSET_LAST; i++) {
+		if (info->opset[i] == NULL)
+			obj->info.opset[i] = info->tree->opset[i];
+		else
+			aal_set_bit(&obj->info.opmask, i);
+	}
+#endif
 	
 	return 0;
 }

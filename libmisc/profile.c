@@ -11,7 +11,6 @@ errno_t misc_profile_override(char *override) {
 		char *entry, *c;
 		char name[256];
 		char value[256];
-		rid_t index;
 
 		if (!(entry = aal_strsep(&override, ",")))
 			break;
@@ -38,15 +37,8 @@ errno_t misc_profile_override(char *override) {
 		
 		aal_strncpy(value, c + 1, entry + aal_strlen(entry) - c);
 		
-		if ((index = reiser4_profile_index(name)) == ((rid_t)-1)) {
-			aal_error("Failed to find a profile for \"%s\".", name);
+		if (reiser4_profile_override(name, value))
 			return -EINVAL;
-		}
-		
-		if (reiser4_profile_override(index, value))
-			return -EINVAL;
-
-		reiser4_profile_set_flag(index, PF_OVERRIDDEN);
 	}
 
 	return 0;
