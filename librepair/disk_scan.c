@@ -225,14 +225,14 @@ errno_t repair_disk_scan_pass(repair_data_t *rd) {
 	    aux_bitmap_mark(ds->bm_leaf, blk);
 	
     next:
-	reiser4_node_release(node);
+	reiser4_node_close(node);
 	blk++;	
     }
     
     return 0;
     
 error_node_release:
-    reiser4_node_release(node);
+    reiser4_node_close(node);
 
 error:
     repair_disk_scan_release(rd);

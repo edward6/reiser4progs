@@ -298,7 +298,7 @@ errno_t repair_filter_pass(repair_data_t *rd) {
 	    repair_filter_node_check,	    repair_filter_setup_traverse,  
 	    repair_filter_update_traverse,  repair_filter_after_traverse);
 
-	reiser4_node_release(node);
+	reiser4_node_close(node);
 
 	if (res < 0)
 	    goto error;

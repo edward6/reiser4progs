@@ -44,7 +44,7 @@ static errno_t repair_tree_max_real_key(reiser4_node_t *node,
 	
 	res = repair_tree_max_real_key(child, key);
 	
-	if (reiser4_node_release(child))
+	if (reiser4_node_close(child))
 	    return -1;
     } else 
 	res = reiser4_item_utmost_key(&coord, key);

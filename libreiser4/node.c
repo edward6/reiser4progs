@@ -148,21 +148,34 @@ reiser4_node_t *reiser4_node_open(
 errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_assert("umka-824", node != NULL);
 	aal_assert("umka-903", node->entity != NULL);
-    
+
+	if (reiser4_node_locked(node))
+		return 0;
+	
 	/* Closing children */
 	if (node->children) {
 		aal_list_t *walk;
 
 		for (walk = node->children; walk; ) {
-			aal_list_t *temp = aal_list_next(walk);
+			aal_list_t *next = aal_list_next(walk);
 			reiser4_node_close((reiser4_node_t *)walk->data);
-			walk = temp;
+			walk = next;
 		}
 
 		aal_list_free(node->children);
 		node->children = NULL;
 	}
 
+#ifndef ENABLE_ALONE
+	if (reiser4_node_isdirty(node) && reiser4_node_items(node)) {
+		if (reiser4_node_sync(node)) {
+			aal_exception_error("Can't write node %llu.",
+					    node->blk);
+			return -1;
+		}
+	}
+#endif
+	
 	/* Detaching node from the tree */
 	if (node->parent) {
 		reiser4_node_disconnect(node->parent, node);
@@ -187,57 +200,6 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 	    
 	aal_free(node);
 
-	return 0;
-}
-
-errno_t reiser4_node_release(reiser4_node_t *node) {
-	aal_assert("umka-1761", node != NULL);
-	aal_assert("umka-1762", node->entity != NULL);
-
-	/* Closing children */
-	if (node->children) {
-		aal_list_t *walk;
-
-		for (walk = node->children; walk; ) {
-			aal_list_t *temp = aal_list_next(walk);
-			reiser4_node_release((reiser4_node_t *)walk->data);
-			walk = temp;
-		}
-
-		aal_list_free(node->children);
-		node->children = NULL;
-	}
-
-#ifndef ENABLE_ALONE
-	if (reiser4_node_isdirty(node) && reiser4_node_items(node)) {
-		if (reiser4_node_sync(node)) {
-			aal_exception_error("Can't write node %llu.",
-					    node->blk);
-			return -1;
-		}
-	}
-#endif
-	
-	/* Detaching node from the parent node */
-	if (node->parent) {
-		reiser4_node_disconnect(node->parent, node);
-		node->parent = NULL;
-	}
-	
-	/* Uninitializing all fields */
-	if (node->left)
-		node->left->right = NULL;
-    
-	if (node->right)
-		node->right->left = NULL;
-    
-	node->left = NULL;
-	node->right = NULL;
-
-	/* Calling node pluign close method to finilize node entity */
-	plugin_call(node->entity->plugin->node_ops, close, node->entity);
-   
-	aal_free(node);
 	return 0;
 }
 

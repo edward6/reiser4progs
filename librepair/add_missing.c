@@ -140,7 +140,7 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 	    } /* if res > 0 - uninsertable case - insert by items later. */
 	
 	    res = -1;
-	    reiser4_node_release(node);
+	    reiser4_node_close(node);
 	    blk++;
 	}
 
@@ -185,7 +185,7 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
 	
 	    aux_bitmap_clear(bitmap, node->blk);
 	    reiser4_alloc_permit(rd->fs->alloc, node->blk, 1);
-	    reiser4_node_release(node);
+	    reiser4_node_close(node);
 
 	    blk++;
 	}
@@ -196,7 +196,7 @@ errno_t repair_add_missing_pass(repair_data_t *rd) {
     return 0;
 
 error_node_free:
-    reiser4_node_release(node);
+    reiser4_node_close(node);
 
 error:
     repair_add_missing_release(rd);

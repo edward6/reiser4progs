@@ -241,7 +241,7 @@ errno_t reiser4_tree_unload(reiser4_tree_t *tree,
 		if (reiser4_tree_disconnect(tree, node->parent, node))
 			return -1;
 	}
-	
+
 	return reiser4_node_close(node);
 }
 
@@ -405,7 +405,8 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 	free = reiser4_alloc_unused(tree->fs->alloc);
 	reiser4_alloc_release_region(tree->fs->alloc, node->blk, 1);
 	reiser4_format_set_free(tree->fs->format, free);
-    
+
+	reiser4_node_mkclean(node);
 	return reiser4_tree_unload(tree, node);
 }
 

@@ -224,7 +224,7 @@ errno_t repair_twig_scan_pass(repair_data_t *rd) {
 	    goto error_node_free;
 
 	if (!reiser4_node_locked(node))
-	    reiser4_node_release(node);
+	    reiser4_node_close(node);
 
 	/* Do not keep twig marked in bm_twigs if it is in the tree already. */
 	if (aux_bitmap_test(ts->bm_used, blk))
@@ -239,7 +239,7 @@ errno_t repair_twig_scan_pass(repair_data_t *rd) {
     return 0;
 
 error_node_free:
-    reiser4_node_release(node);
+    reiser4_node_close(node);
 
 error:
     repair_twig_scan_release(rd);

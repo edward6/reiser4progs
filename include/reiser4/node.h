@@ -114,7 +114,6 @@ extern lookup_t reiser4_node_lookup(reiser4_node_t *node,
 extern errno_t reiser4_node_lock(reiser4_node_t *node);
 extern errno_t reiser4_node_unlock(reiser4_node_t *node);
 extern errno_t reiser4_node_close(reiser4_node_t *node);
-extern errno_t reiser4_node_release(reiser4_node_t *node);
 
 extern bool_t reiser4_node_confirm(reiser4_node_t *node);
 extern errno_t reiser4_node_valid(reiser4_node_t *node);
