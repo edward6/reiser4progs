@@ -108,6 +108,7 @@ errno_t reiser4_backup_layout(reiser4_fs_t *fs,
 {
 	errno_t res;
 	count_t len;
+	count_t delta;
 	blk_t prev = 0;
 	blk_t blk, copy;
 	
@@ -115,10 +116,9 @@ errno_t reiser4_backup_layout(reiser4_fs_t *fs,
 	aal_assert("vpf-1400", region_func != NULL);
 
 	len = reiser4_format_get_len(fs->format);
-
-	for (blk = len / (REISER4_BACKUPS_MAX + 1) - 1; blk < len; 
-	     blk += len / (REISER4_BACKUPS_MAX + 1)) 
-	{
+	delta = len / (REISER4_BACKUPS_MAX + 1);
+	
+	for (blk = delta - 1; blk < len; blk += delta) {
 		reiser4_alloc_region(fs->alloc, blk, 
 				     callback_region_last, &copy);
 

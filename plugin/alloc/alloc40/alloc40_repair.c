@@ -286,9 +286,7 @@ void alloc40_print(generic_entity_t *entity,
 						      total - start, 1)))
 			break;
 
-		aal_stream_format(stream, "%llu-%llu ",
-				  start, start + blocks);
-		
+		aal_stream_format(stream, "%llu(%llu) ", start, blocks);
 		start += blocks;
 	}
 	

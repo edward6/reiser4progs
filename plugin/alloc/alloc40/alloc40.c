@@ -95,7 +95,7 @@ errno_t alloc40_layout(generic_entity_t *entity,
 
 	/* Calculating block-per-bitmap value. I mean the number of blocks one
 	   bitmap block describes. It is calulating such maner because we should
-	   count also four bytes for checksum at begibnning og the each bitmap
+	   count also four bytes for checksum at the beginning of each bitmap
 	   block. */
 	bpb = (alloc->blksize - CRC_SIZE) * 8;
 	start = ALLOC40_BLOCKNR(alloc->blksize);
@@ -600,12 +600,13 @@ errno_t alloc40_region(generic_entity_t *entity, blk_t blk,
     
 	aal_assert("vpf-710", alloc->bitmap != NULL);
     
-	size = alloc->blksize - CRC_SIZE;
+	size = (alloc->blksize - CRC_SIZE) * 8;
 	start = (blk / size) * size;
 
 	/* The last region is of a smaller size. */
-	if (start + size > alloc->bitmap->total)
+	if (start + size > alloc->bitmap->total) {
 		size = alloc->bitmap->total - start;
+	}
 	
 	/* Loop though the all blocks one bitmap block describes and calling
 	   passed @region_func for each of them. */   
