@@ -22,7 +22,7 @@ static errno_t stat40_init(reiser4_item_t *item,
 {
     uint8_t i;
     stat40_t *stat;
-    reiser4_body_t *extention;
+    reiser4_body_t *extbody;
     reiser4_statdata_hint_t *stat_hint;
     
     aal_assert("vpf-076", item != NULL, return -1); 
@@ -36,7 +36,7 @@ static errno_t stat40_init(reiser4_item_t *item,
     if (!stat_hint->extmask)
 	return 0;
     
-    extention = ((void *)stat) + sizeof(stat40_t);
+    extbody = ((void *)stat) + sizeof(stat40_t);
 	
     for (i = 0; i < sizeof(uint64_t)*8; i++) {
 	reiser4_plugin_t *plugin;
@@ -44,20 +44,31 @@ static errno_t stat40_init(reiser4_item_t *item,
 	if (!(((uint64_t)1 << i) & stat_hint->extmask))
 	    continue;
 	    
+	/* 
+	    Correcting of the next stat data extention location and for plugin 
+	    id. As you know, each 16 bit in each mask can't be used for id.
+	*/
+	if (((uint64_t)1 << i) & (uint64_t)(((uint64_t)1 << 0xf) | 
+	    ((uint64_t)1 << 0x1f) | ((uint64_t)1 << 0x2f))) 
+	{
+	    extbody = (void *)extbody + sizeof(d16_t);
+	    continue;
+	}
+	    
 	if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 	    aal_exception_warn("Can't find stat data extention plugin "
 	        "by its id 0x%x.", i);
 	    continue;
 	}
 	
-	plugin_call(return -1, plugin->sdext_ops, init, extention, 
+	plugin_call(return -1, plugin->sdext_ops, init, extbody, 
 	    stat_hint->ext.hint[i]);
 	
 	/* 
 	    Getting pointer to the next extention. It is evaluating as previous 
 	    pointer plus its size.
 	*/
-	extention += plugin_call(return -1, plugin->sdext_ops, length,);
+	extbody += plugin_call(return -1, plugin->sdext_ops, length,);
     }
     
     return 0;
@@ -84,7 +95,14 @@ static errno_t stat40_estimate(reiser4_item_t *item, uint32_t pos,
 	
         if (!(((uint64_t)1 << i) & stat_hint->extmask))
 	   continue;
-	    
+	
+	if (((uint64_t)1 << i) & (((uint64_t)1 << 0xf) | 
+	    ((uint64_t)1 << 0x1f) | ((uint64_t)1 << 0x2f))) 
+	{
+	    hint->len += sizeof(d16_t);
+	    continue;
+	}
+	
 	if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 	    aal_exception_warn("Can't find stat data extention plugin "
 	        "by its id 0x%x.", i);
@@ -116,6 +134,7 @@ extern errno_t stat40_check(reiser4_item_t *, uint16_t);
 
 #endif
 
+/* here w eprobably should check all stat data extention masks */
 static errno_t stat40_valid(reiser4_item_t *item) {
     aal_assert("umka-1007", item != NULL, return -1);
     return 0;
@@ -132,8 +151,14 @@ static uint32_t stat40_count(reiser4_item_t *item) {
     stat = stat40_body(item);
     extmask = st40_get_extmask(stat);
     
-    for (i = 0; i < sizeof(uint64_t)*8; i++)
+    for (i = 0; i < sizeof(uint64_t)*8; i++) {
+	    
+	if (((uint64_t)1 << i) & (((uint64_t)1 << 0xf) | 
+		((uint64_t)1 << 0x1f) | ((uint64_t)1 << 0x2f)))
+	    continue;
+	
 	count += (((uint64_t)1 << i) & extmask);
+    }
     
     return count;
 }
@@ -147,7 +172,7 @@ static reiser4_body_t *stat40_extbody(reiser4_item_t *item,
     reiser4_body_t *extbody;
    
     aal_assert("umka-1191", item != NULL, return NULL);
-    
+
     stat = stat40_body(item);
     extbody = ((void *)stat) + sizeof(stat40_t);
     
@@ -159,6 +184,13 @@ static reiser4_body_t *stat40_extbody(reiser4_item_t *item,
         if (!(((uint64_t)1 << i) & extmask))
 	   continue;
 	    
+	if (((uint64_t)1 << i) & (((uint64_t)1 << 0xf) | 
+	    ((uint64_t)1 << 0x1f) | ((uint64_t)1 << 0x2f))) 
+	{
+	    extbody = (void *)extbody + sizeof(d16_t);
+	    i++;
+	}
+		
 	if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 	    aal_exception_warn("Can't find stat data extention plugin "
 	        "by its id 0x%x.", i);
