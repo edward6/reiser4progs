@@ -103,7 +103,7 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 		/* Loading the corresponding statdata extention */
 		if (plugin_call(sdext->plugin->sdext_ops, open, body, 
 				hint->ext[sdext->plugin->h.id]))
-			return -1;
+			return -EINVAL;
 	}
 	
 	return 0;
@@ -113,16 +113,18 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 static int32_t stat40_read(item_entity_t *item, void *buff,
 			   uint32_t pos, uint32_t count)
 {
+	errno_t res;
+	
 	aal_assert("umka-1414", item != NULL);
 	aal_assert("umka-1415", buff != NULL);
 
-	if (stat40_traverse(item, callback_open_ext, buff))
-		return -1;
+	if ((res = stat40_traverse(item, callback_open_ext, buff)))
+		return res;
 
 	return 1;
 }
 
-static int stat40_data() {
+static int stat40_data(void) {
 	return 1;
 }
 
@@ -395,21 +397,21 @@ static errno_t stat40_print(item_entity_t *item,
 	aal_assert("umka-1407", item != NULL);
 	aal_assert("umka-1408", stream != NULL);
     
-	aal_stream_format(stream, "STATDATA: len=%u, KEY: ", item->len);
+	aal_stream_format(stream, "STATDATA: len=%u, KEY: ",
+			  item->len);
 		
-	if (plugin_call(item->key.plugin->key_ops, print, &item->key,
-			stream, options))
-		return -1;
+	if (plugin_call(item->key.plugin->key_ops, print,
+			&item->key, stream, options))
+		return -EINVAL;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
 			  item->plugin->h.id, item->plugin->h.label);
 
-	aal_stream_format(stream, "count:\t\t%u\n", stat40_sdexts(item));
+	aal_stream_format(stream, "count:\t\t%u\n",
+			  stat40_sdexts(item));
 
-	if (stat40_traverse(item, callback_print_ext, (void *)stream) < 0)
-		return -1;
-
-	return 0;
+	return stat40_traverse(item, callback_print_ext,
+			       (void *)stream);
 }
 
 #endif
