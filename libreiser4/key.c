@@ -63,7 +63,8 @@ errno_t reiser4_key_assign(
 
 	dst->plugin = src->plugin;
 	
-	return plugin_call(src->plugin->o.key_ops, assign, dst, src);
+	return plugin_call(src->plugin->o.key_ops,
+			   assign, dst, src);
 }
 
 /* Cleans specified key */

@@ -323,28 +323,6 @@ errno_t obj40_get_sym(obj40_t *obj, char *data) {
 
 	return 0;
 }
-
-#ifndef ENABLE_STAND_ALONE
-/* Updates symlink data */
-errno_t obj40_set_sym(obj40_t *obj, char *data) {
-	item_entity_t *item;
-	create_hint_t hint;
-	statdata_hint_t stat;
-
-	aal_memset(&stat, 0, sizeof(stat));
-	
-	hint.type_specific = &stat;
-	stat.ext[SDEXT_SYMLINK_ID] = data;
-
-	item = &obj->statdata.item;
-
-	if (!item->plugin->o.item_ops->insert)
-		return -EINVAL;
-
-	return item->plugin->o.item_ops->insert(item, &hint, 0);
-}
-#endif
-
 #endif
 
 rid_t obj40_pid(item_entity_t *item) {

@@ -17,10 +17,6 @@ reiser4progs/COPYING.
   Currently if we open a symlink we just "follow" it and then work
   with object it points to.
 
-* writing symlink may require expanding the node. Or we should do 
-  not allow write symlinks at all? Write method may just remove old 
-  stat data and insert new one.
-
 * some kind of flush is needed for libreiser4.
 
 * change balancing algorithm from the recursive to task oriented one

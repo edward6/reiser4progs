@@ -83,10 +83,6 @@ extern uint32_t obj40_get_atime(obj40_t *obj);
 extern uint32_t obj40_get_mtime(obj40_t *obj);
 extern uint64_t obj40_get_bytes(obj40_t *obj);
 
-#ifdef ENABLE_SYMLINKS_SUPPORT
-extern errno_t obj40_set_sym(obj40_t *obj, char *data);
-#endif
-
 extern errno_t obj40_link(obj40_t *obj, uint32_t value);
 
 extern errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
@@ -94,7 +90,6 @@ extern errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
 
 extern errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 			    uint8_t level, place_t *place);
-
 #endif
 
 extern uint64_t obj40_get_size(obj40_t *obj);

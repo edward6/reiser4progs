@@ -82,7 +82,6 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Creates symlink and returns initialized instance to the caller */
 static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 				     object_hint_t *hint, place_t *place)
@@ -205,28 +204,6 @@ static errno_t sym40_unlink(object_entity_t *entity) {
 	return obj40_remove(&sym->obj, STAT_KEY(&sym->obj), 1);
 }
 
-/* Writes "n" bytes from "buff" to passed file. */
-static int32_t sym40_write(object_entity_t *entity, 
-			   void *buff, uint32_t n) 
-{
-	errno_t res;
-	sym40_t *sym;
-
-	aal_assert("umka-1777", buff != NULL);
-	aal_assert("umka-1776", entity != NULL);
-
-	/*
-	  FIXME-UMKA: What about expanding node (and stat data item) first. What
-	  we have do here?
-	*/
-	sym = (sym40_t *)entity;
-
-	if ((res = obj40_stat(&sym->obj)))
-		return res;
-	
-	return obj40_set_sym(&sym->obj, buff);
-}
-
 /* Calls function @func for each symlink item (statdata only) */
 static errno_t sym40_metadata(object_entity_t *entity,
 			      place_func_t func,
@@ -257,7 +234,6 @@ static errno_t sym40_layout(object_entity_t *entity,
 		
 	return block_func(entity, blk, data);
 }
-
 #endif
 
 /* Returns plugin by its id */
@@ -396,9 +372,9 @@ static errno_t sym40_follow(object_entity_t *entity,
 			    key_entity_t *key)
 {
 	errno_t res;
-	char path[256];
-
 	sym40_t *sym;
+	
+	char path[256];
 	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-1774", entity != NULL);
@@ -449,16 +425,16 @@ static void sym40_close(object_entity_t *entity) {
 static reiser4_object_ops_t sym40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.create	      = sym40_create,
-	.write	      = sym40_write,
 	.layout       = sym40_layout,
 	.metadata     = sym40_metadata,
 	.link         = sym40_link,
 	.unlink       = sym40_unlink,
 		
+	.seek	      = NULL,
+	.write	      = NULL,
 	.truncate     = NULL,
 	.rem_entry    = NULL,
 	.add_entry    = NULL,
-	.seek	      = NULL,
 #endif
 	.lookup	      = NULL,
 	.reset	      = NULL,
