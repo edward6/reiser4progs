@@ -61,11 +61,12 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 			 &next) == LP_PRESENT)
 	{
 		obj40_relock(&dir->obj, &dir->body, &next);
+		aal_memcpy(&dir->body, &next, sizeof(dir->body));
+
 #ifndef ENABLE_STAND_ALONE
 		aal_memcpy(&dir->offset, offset, sizeof(*offset));
 #endif
-		aal_memcpy(&dir->body, &next, sizeof(dir->body));
-
+		
 		if (dir->body.pos.unit == ~0ul)
 			dir->body.pos.unit = 0;
 
@@ -106,21 +107,16 @@ static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
 static int dir40_mergeable(item_entity_t *item1,
 			   item_entity_t *item2)
 {
-	reiser4_plugin_t *plugin1;
-	reiser4_plugin_t *plugin2;
-	
-	plugin1 = item1->plugin;
-	plugin2 = item2->plugin;
-
 	/* Checking if items are mergeable */
-	if (!plugin_equal(plugin1, plugin2))
+	if (!plugin_equal(item1->plugin, item2->plugin))
 		return 0;
 
 	/*
-	  Calling item's mergeable methods for determining if they are mergeable
-	  or not.
+	  Calling item's mergeable method in order to determine if they are
+	  mergeable.
 	*/
-	return plugin_call(plugin1->item_ops, mergeable, item1, item2);
+	return plugin_call(item1->plugin->item_ops, mergeable,
+			   item1, item2);
 }
 
 /* Switches current dir body item onto next one */
@@ -136,8 +132,8 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	dir = (dir40_t *)entity;
 	
 	/* Getting next directory item */
-	if (core->tree_ops.next(dir->obj.tree, &dir->body, &next))
-		return LP_ABSENT;
+	core->tree_ops.next(dir->obj.tree,
+			    &dir->body, &next);
 
 	item = &dir->body.item;
 	
@@ -227,9 +223,6 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 	place_t next;
 	lookup_t res;
 	
-	uint64_t objectid;
-	uint64_t locality;
-	
 	item_entity_t *item;
 	key_entity_t wanted;
 
@@ -239,14 +232,13 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 
 	dir = (dir40_t *)entity;
 
-	objectid = obj40_objectid(&dir->obj);
-	locality = obj40_locality(&dir->obj);
 	/*
 	  Preparing key to be used for lookup. It is generating from the
 	  directory oid, locality and name by menas of using hash plugin.
 	*/
 	plugin_call(STAT_KEY(&dir->obj)->plugin->key_ops, build_entry,
-		    &wanted, dir->hash, locality, objectid, name);
+		    &wanted, dir->hash, obj40_locality(&dir->obj),
+		    obj40_objectid(&dir->obj), name);
 
 	/* Performing tree lookup */
 	res = obj40_lookup(&dir->obj, &wanted, LEAF_LEVEL, &next);
@@ -275,7 +267,8 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 	{
 		aal_exception_error("Can't read %lu entry from object "
 				    "0x%llx:0x%llx.", dir->body.pos.unit,
-				    locality, objectid);
+				    obj40_locality(&dir->obj),
+				    obj40_objectid(&dir->obj));
 		return LP_FAILED;
 	}
 
@@ -291,8 +284,8 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 	}
 
 	aal_exception_warn("Hash collision is detected between "
-			   "%s and %s. Sequentional search has "
-			   "been started.", entry->name, name);
+			   "%s and %s. Sequentional search is "
+			   "started.", entry->name, name);
 
 	if (!item->plugin->item_ops.units)
 		return LP_FAILED;
