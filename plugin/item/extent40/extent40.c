@@ -426,11 +426,6 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 		*/
 		if (hint->control & SF_UPTIP) {
 
-			if (hint->pos.unit == ~0ul) {
-				hint->units = 0;
-				return 0;
-			}
-		
 			if (hint->rest > pos * sizeof(extent40_t))
 				hint->rest = pos * sizeof(extent40_t);
 
@@ -449,10 +444,15 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 		}
 	} else {
 		uint32_t right;
-		
-		if (hint->control & SF_UPTIP) {
-			if (pos * sizeof(extent40_t) < src_item->len) {
 
+		/* The same check as abowe, but for right shift */
+		if (hint->control & SF_UPTIP) {
+
+			/*
+			  Check is it is possible to move something into right
+			  neighbour item.
+			*/
+			if (pos * sizeof(extent40_t) < src_item->len) {
 				right = src_item->len -
 					(pos * sizeof(extent40_t));
 		
@@ -467,6 +467,10 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 					hint->result |= SF_MOVIP;
 				}
 			} else {
+				/*
+				  There is noning to move, update insert point,
+				  flags and out.
+				*/
 				if (hint->control & SF_MOVIP) {
 					pos = 0;
 					hint->result |= SF_MOVIP;
@@ -477,6 +481,7 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 		}
 	}
 
+	/* Updating @hint fields */
 	hint->pos.unit = pos;
 
 	hint->units = hint->rest /

@@ -653,8 +653,8 @@ static errno_t direntry40_estimate_shift(item_entity_t *src_item,
 	}
 
 	/*
-	  Updating rest field of hint. It is needed for unit shifting. This
-	  value is number of bytes to be moved from src item to dst item.
+	  Updating @hint->rest. It is needed for unit shifting. This value is
+	  number of bytes to be moved from @src_item to @dst_item.
 	*/
 	if (hint->units > 0)
 		hint->rest -= space;

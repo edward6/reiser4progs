@@ -190,6 +190,8 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 		hint->pos.unit;
 	
 	if (hint->control & SF_LEFT) {
+
+		/* Can we update insert point? */
 		if (hint->control & SF_UPTIP) {
 			
 			if (hint->rest > pos)
