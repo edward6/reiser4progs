@@ -2473,12 +2473,17 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		tree_next_child_pos(tree, save.node, &aplace);
 		
 		if (reiser4_node_items(save.node) == 0) {
+			reiser4_node_t *left;
+			reiser4_node_t *part;
+			
+			part = save.node->p.node;
 			reiser4_node_lock(save.node);
 
-			/* Disable packing on parent level in order to keep
-			   parent position valid. */
-			shift_flags = SF_DEFAULT & ~SF_ALLOW_PACK;
-			
+			/* Getting left neighbour, which will be used lated for
+			   finding place new node may be attached at. */
+			left = reiser4_tree_ltrt_node(tree,
+						      save.node, DIR_LEFT);
+
 			if ((res = reiser4_tree_detach_node(tree, save.node,
 							    shift_flags)))
 			{
@@ -2488,9 +2493,17 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 
 			reiser4_node_unlock(save.node);
 
-			/* Updating attach place, as this empty node is
-			   detached. */
-			aplace.pos.item--;
+			if (left != NULL) {
+				/* It is save to rely on left->p pos here,
+				   because it is updated during detaching
+				   save.node from parent. */
+				tree_next_child_pos(tree, left, &aplace);
+			} else {
+				/* There is not left neighbour. Assigning first
+				   position in parent to @aplace. */
+				reiser4_place_assign(&aplace, part,
+						     0, MAX_UINT32);
+			}
 		}
 		
 		if (reiser4_node_items(node) > 0) {
