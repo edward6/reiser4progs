@@ -190,9 +190,9 @@ static errno_t dir40_next(object_entity_t *entity, int adjust) {
 		} else {
 			entry.offset.adjust = 0;
 		}
-	} else
+	} else {
 		entry.offset.adjust = dir->adjust;
-		
+	}
 #endif
 	/* Seeking to @dir->offset */
 	return dir40_seekdir(entity, &entry.offset);
@@ -208,27 +208,28 @@ static errno_t dir40_update(object_entity_t *entity) {
 			     LEAF_LEVEL, &dir->body)) {
 	case PRESENT: {
 #ifdef ENABLE_COLLISIONS
-		uint32_t i, units;
-		entry_hint_t entry;
+		uint32_t units;
+		uint32_t adjust;
 #endif
 		
 		if (dir->body.pos.unit == MAX_UINT32)
 			dir->body.pos.unit = 0;
 
 #ifdef ENABLE_COLLISIONS
-		units = plug_call(dir->body.plug->o.item_ops,
-				  units, &dir->body);
-
 		/* Adjusting current position by key's adjust. This is needed
 		   for working fine when key collitions take place. */
-		for (i = 0; i < dir->adjust; i++) {
+		for (adjust = dir->adjust; adjust;) {
+			uint32_t off = adjust;
 
-			if (dir->body.pos.unit < units) {
-				if (dir40_fetch(entity, &entry))
-					return -EINVAL;
+			units = plug_call(dir->body.plug->o.item_ops,
+					  units, &dir->body);
+			
+			if (off > units - 1 - dir->body.pos.unit)
+				off = units - dir->body.pos.unit;
 
-				dir->body.pos.unit++;
-			} else {
+			dir->body.pos.unit += off - 1;
+
+			if ((adjust -= off) > 0) {
 				dir40_next(entity, 0);
 			}
 		}

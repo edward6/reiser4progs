@@ -751,27 +751,27 @@ uint8_t reiser4_tree_height(reiser4_tree_t *tree) {
 
 #ifdef ENABLE_COLLISIONS
 /* Makes search of the leftmost item/unit with the same key as passed @place
- * has. This is needed to work with key collitions. */
+   has. This is needed to work with key collitions. */
 static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
-				     reiser4_place_t *place)
+				     reiser4_place_t *place,
+				     reiser4_key_t *key)
 {
-	reiser4_key_t key;
 	reiser4_place_t walk;
 	
+	aal_assert("umka-2396", key != NULL);
 	aal_assert("umka-2388", tree != NULL);
 	aal_assert("umka-2389", place != NULL);
 
 	if (reiser4_place_fetch(place))
 		return -EINVAL;
 
-	reiser4_key_assign(&key, &place->key);
 	aal_memcpy(&walk, place, sizeof(*place));
-
+			
 	/* Main loop until leftmost node reached */
 	while (walk.node) {
-		int32_t i, items;
+		int32_t i;
 
-		/* Loop therugh the items of the current node */
+		/* Loop through the items of the current node */
 		for (i = walk.pos.item - 1; i >= 0; i--) {
 			walk.pos.item = i;
 
@@ -784,25 +784,18 @@ static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 			if (walk.plug->o.item_ops->lookup) {
 				switch (plug_call(walk.plug->o.item_ops,
 						  lookup, (place_t *)&walk,
-						  &place->key, &walk.pos.unit))
+						  key, &walk.pos.unit))
 				{
 				case PRESENT:
-					if (walk.pos.unit > 0) {
-						aal_memcpy(place, &walk,
-							   sizeof(*place));
-						return 0;
-					}
-				
+					aal_memcpy(place, &walk,
+						   sizeof(*place));
 					break;
 				default:
 					return 0;
 				}
 			} else {
-				if (!reiser4_key_compare(&walk.key,
-							&place->key))
-				{
-					aal_memcpy(place, &walk,
-						   sizeof(*place));
+				if (!reiser4_key_compare(&walk.key, key)) {
+					aal_memcpy(place, &walk, sizeof(*place));
 				} else {
 					return 0;
 				}
@@ -812,9 +805,13 @@ static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 		/* Getting left neighbour node */
 		reiser4_tree_neigh(tree, walk.node, D_LEFT);
 
+		/* Initializing @walk by neighbour node and last item. */
 		if ((walk.node = walk.node->left)) {
-			items = reiser4_node_items(walk.node);
-			POS_INIT(&walk.pos, items - 1, MAX_UINT32);
+			int32_t items = reiser4_node_items(walk.node);
+
+			/* Here should be namely @items, not @items - 1, because
+			   we will access @walk.item - 1 on the next cycle */
+			POS_INIT(&walk.pos, items, MAX_UINT32);
 		}
 	}
 
@@ -842,16 +839,14 @@ lookup_t reiser4_tree_lookup(
 	   will be corrupted durring lookup. */
 	reiser4_key_assign(&wan, key);
 
-	/* Initializing place by root node */
-	reiser4_place_assign(place, tree->root, 0, MAX_UINT32);
-
 	/* Making sure that root exists. If not, getting out with @place
 	   initialized by NULL root. */
-	if (reiser4_tree_lroot(tree))
+	if (reiser4_tree_lroot(tree)) {
+		reiser4_place_assign(place, NULL,
+				     0, MAX_UINT32);
 		return ABSENT;
+	}
 
-	/* Reinitialziing @place by root node, as root exists and loaded. This
-	   is needed for code bellow. */
 	reiser4_place_assign(place, tree->root, 0, MAX_UINT32);
 
 	/* Checking the case when wanted key is smaller than root one. This is
@@ -873,16 +868,16 @@ lookup_t reiser4_tree_lookup(
 		if (reiser4_node_get_level(place->node) <= level ||
 		    res == FAILED)
 		{
-			/* Fetching item at @place if key is found */
 			if (res == PRESENT) {
 #ifdef ENABLE_COLLISIONS
-				if (place->pos.unit == 0 ||
-				    place->pos.unit == MAX_UINT32)
-				{
-					if (reiser4_tree_leftmost(tree, place))
-						return FAILED;
-				}
+				/* If collition handling is allwoed, we will
+				   find leftmost coord with the same key. This
+				   is needed for correct key collitions
+				   handling. */
+				if (reiser4_tree_leftmost(tree, place, &wan))
+					return FAILED;
 #endif	
+				/* Fetching item at @place if key is found */
 				reiser4_place_fetch(place);
 			}
 			
@@ -1221,6 +1216,8 @@ errno_t reiser4_tree_shift(
 	return 0;
 }
 
+/* Takes care about @left and @right nodes after shifting data to right node if
+   it was new allocated one. */
 static errno_t reiser4_tree_care(reiser4_tree_t *tree,
 				 reiser4_node_t *left,
 				 reiser4_node_t *right)
@@ -1228,19 +1225,10 @@ static errno_t reiser4_tree_care(reiser4_tree_t *tree,
 	errno_t res;
 	
 	if (reiser4_tree_root(tree) == node_blocknr(left)) {
-		
-		/* Attaching new allocated node into the tree, if it is not
-		   empty */
-		if (reiser4_node_items(right) > 0) {
-			/* Growing the tree in the case we splitted the root
-			   node. Root node has not parent. */
-			if ((res = reiser4_tree_growup(tree)))
-				return res;
-			
-			/* Attaching new node to the tree */
-			if ((res = reiser4_tree_attach(tree, right)))
-				return res;
-		}
+		/* Growing the tree in the case we splitted the root
+		   node. Root node has not parent. */
+		if ((res = reiser4_tree_growup(tree)))
+			return res;
 	} else {
 		/* Releasing old node, because it got empty as result of data
 		   shifting. */
@@ -1253,6 +1241,14 @@ static errno_t reiser4_tree_care(reiser4_tree_t *tree,
 		}
 	}
 
+	/* Attaching new allocated node into the tree, if it is not
+	   empty */
+	if (reiser4_node_items(right) > 0) {
+		/* Attaching new node to the tree */
+		if ((res = reiser4_tree_attach(tree, right)))
+			return res;
+	}
+	
 	return 0;
 }
 
