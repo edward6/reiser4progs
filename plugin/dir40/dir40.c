@@ -34,6 +34,25 @@ static roid_t dir40_locality(dir40_t *dir) {
 					   get_locality, dir->key.body);
 }
 
+/* Gets mode field from the stat data */
+static errno_t dir40_get_mode(reiser4_item_t *item, uint16_t *mode) {
+	reiser4_item_hint_t hint;
+	reiser4_statdata_hint_t stat;
+	reiser4_sdext_lw_hint_t lw_hint;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	
+	hint.hint = &stat;
+	stat.ext[SDEXT_LW_ID] = &lw_hint;
+
+	if (plugin_call(return -1, item->plugin->item_ops,
+					open, item, &hint))
+		return -1;
+
+	*mode = lw_hint.mode;
+	return 0;
+}
+
 static errno_t dir40_reset(reiser4_entity_t *entity) {
     reiser4_key_t key;
     dir40_t *dir = (dir40_t *)entity;
@@ -435,9 +454,8 @@ static reiser4_entity_t *dir40_create(const void *tree,
     
     aal_memset(&stat.ext, 0, sizeof(stat.ext));
     
-    stat.ext.count = 2;
-    stat.ext.hint[0] = &lw_ext;
-    stat.ext.hint[1] = &unix_ext;
+    stat.ext[SDEXT_LW_ID] = &lw_ext;
+    stat.ext[SDEXT_UNIX_ID] = &unix_ext;
 
     stat_hint.hint = &stat;
     
@@ -572,6 +590,30 @@ static errno_t dir40_seek(reiser4_entity_t *entity,
     return -1;
 }
 
+/* Detecting the object plugin by extentions or mode */
+static int dir40_confirm(reiser4_item_t *item) {
+    uint16_t mode;
+    
+    aal_assert("umka-1417", item != NULL, return 0);
+
+    /* 
+	   FIXME-UMKA: Here we should inspect all extentions and try to find out
+	   if non-standard file plugin is in use.
+    */
+
+    /* 
+	   Guessing plugin type and plugin id by mode field from the stat data 
+	   item. Here we return default plugins for every file type.
+    */
+    if (dir40_get_mode(item, &mode)) {
+		aal_exception_error("Can't get mode from stat data while probing %s.",
+							dir40_plugin.h.label);
+		return 0;
+	}
+    
+    return S_ISDIR(mode);
+}
+
 static reiser4_plugin_t dir40_plugin = {
     .file_ops = {
 		.h = {
@@ -592,7 +634,9 @@ static reiser4_plugin_t dir40_plugin = {
         .truncate   = NULL,
 #endif
         .valid	    = NULL,
+		
         .open	    = dir40_open,
+		.confirm    = dir40_confirm,
         .close	    = dir40_close,
         .reset	    = dir40_reset,
         .offset	    = dir40_offset,

@@ -10,6 +10,19 @@
 #include <reiser4/reiser4.h>
 #include <sys/stat.h>
 
+/* Callback function for probing all file plugins */
+static errno_t callback_guess_file(
+    reiser4_plugin_t *plugin,	    /* plugin to be checked */
+    void *data)			            /* item ot be checked */
+{
+    if (plugin->h.type == FILE_PLUGIN_TYPE) {
+		return plugin_call(return 0, plugin->file_ops, 
+						   confirm, (reiser4_item_t *)data);
+    }
+    
+    return 0;
+}
+
 /* 
    Tries to guess object plugin type passed first item plugin and item body. 
    Most probably, that passed item body is stat data body.
@@ -30,8 +43,7 @@ reiser4_plugin_t *reiser4_file_guess(reiser4_file_t *file) {
 		return NULL;
 	}
 
-    return libreiser4_factory_ifind(FILE_PLUGIN_TYPE, 
-									reiser4_item_detect(&item));
+    return libreiser4_factory_cfind(callback_guess_file, (void *)&item);
 }
 
 /* 

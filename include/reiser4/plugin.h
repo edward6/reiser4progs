@@ -277,13 +277,12 @@ typedef struct reiser4_sdext_lw_hint reiser4_sdext_lw_hint_t;
 
 /* These fields should be changed to what proper description of needed extentions */
 struct reiser4_statdata_hint {
+	
+    /* Extentions mask */
     uint64_t extmask;
     
-    /* Stat data extention hints */
-    struct {
-		uint8_t count;
-		void *hint[64];
-    } ext;
+    /* Stat data extentions */
+	void *ext[60];
 };
 
 typedef struct reiser4_statdata_hint reiser4_statdata_hint_t;
@@ -471,6 +470,9 @@ struct reiser4_file_ops {
     
     /* Opens a file with specified key */
     reiser4_entity_t *(*open) (const void *, reiser4_key_t *);
+
+	/* Conforms file plugin in use */
+	int (*confirm) (reiser4_item_t *);
     
     /* Closes previously opened or created directory */
     void (*close) (reiser4_entity_t *);
@@ -508,16 +510,6 @@ struct reiser4_direntry_ops {
 
 typedef struct reiser4_direntry_ops reiser4_direntry_ops_t;
 
-struct reiser4_statdata_ops {
-    uint16_t (*get_mode) (reiser4_item_t *);
-    errno_t (*set_mode) (reiser4_item_t *, uint16_t);
-    
-    uint32_t (*get_size) (reiser4_item_t *);
-    errno_t (*set_size) (reiser4_item_t *, uint32_t);
-};
-
-typedef struct reiser4_statdata_ops reiser4_statdata_ops_t;
-
 struct reiser4_ptr_ops {
     uint64_t (*get_ptr) (reiser4_item_t *);
     errno_t (*set_ptr) (reiser4_item_t *, uint64_t);
@@ -534,6 +526,9 @@ struct reiser4_item_ops {
     /* Forms item structures based on passed hint in passed memory area */
     errno_t (*init) (reiser4_item_t *, reiser4_item_hint_t *);
 
+	/* Reads item data to passed hint */
+	errno_t (*open) (reiser4_item_t *, reiser4_item_hint_t *);
+	
     /* Inserts unit described by passed hint into the item */
     errno_t (*insert) (reiser4_item_t *, uint32_t, 
 					   reiser4_item_hint_t *);
@@ -569,16 +564,12 @@ struct reiser4_item_ops {
     /* Returns unit count */
     uint32_t (*count) (reiser4_item_t *);
 
-    /* Returns plugin id of object item belongs to */
-    uint16_t (*detect) (reiser4_item_t *);
-
     /* Checks the item structure. */
     errno_t (*check) (reiser4_item_t *, uint16_t);
 
     /* Methods specific to particular type of item */
     union {
 		reiser4_ptr_ops_t ptr;
-		reiser4_statdata_ops_t statdata;
 		reiser4_direntry_ops_t direntry;
     } specific;
 };

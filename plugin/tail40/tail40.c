@@ -121,24 +121,26 @@ static reiser4_plugin_t tail40_plugin = {
 			.label = "tail40",
 			.desc = "Tail item for reiserfs 4.0, ver. " VERSION,
 		},
+		
 #ifndef ENABLE_COMPACT
-        .init		= tail40_init,
-        .insert		= tail40_insert,
+        .init		  = tail40_init,
+        .insert		  = tail40_insert,
 #else
-        .init		= NULL,
-        .insert		= NULL,
+        .init		  = NULL,
+        .insert		  = NULL,
 #endif
-        .max_poss_key   = tail40_max_poss_key,
-        .max_real_key	= tail40_max_real_key,
-        .lookup		= tail40_lookup,
-        .remove		= NULL,
-        .estimate	= NULL,
-        .check		= NULL,
-        .count		= NULL,
-        .valid		= NULL,
-        .print		= NULL,
-        .detect		= NULL,
-		.shift      = NULL,
+	    .open         = NULL,
+        .remove		  = NULL,
+        .estimate	  = NULL,
+        .check		  = NULL,
+        .count		  = NULL,
+        .valid		  = NULL,
+        .print		  = NULL,
+		.shift        = NULL,
+		
+        .lookup		  = tail40_lookup,
+        .max_poss_key = tail40_max_poss_key,
+        .max_real_key = tail40_max_real_key,
 
 		.specific	= {}
     }

@@ -119,8 +119,8 @@ static reiser4_plugin_t nodeptr40_plugin = {
         .valid		= NULL,
         .insert		= NULL,
         .remove		= NULL,
-		.detect		= NULL,
 		.shift      = NULL,
+	    .open       = NULL,
 
         .print		= nodeptr40_print,
         .count		= nodeptr40_count,

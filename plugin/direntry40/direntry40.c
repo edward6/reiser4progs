@@ -451,9 +451,9 @@ static reiser4_plugin_t direntry40_plugin = {
         .check		= NULL,
 #endif
         .valid		= NULL,
-		.detect		= NULL,
 		.shift      = NULL,
-	    
+	    .open       = NULL,
+		
         .print		= direntry40_print,
         .lookup		= direntry40_lookup,
         .count		= direntry40_count,

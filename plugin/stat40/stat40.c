@@ -17,6 +17,103 @@ static stat40_t *stat40_body(reiser4_item_t *item) {
 								   item_body, item->node, item->pos);
 }
 
+/* Type for stat40 layout callback function */
+typedef int (*stat40_perext_func_t) (uint8_t, uint16_t, reiser4_body_t *, void *);
+
+/* The function which implements stat40 layout pass */
+static errno_t stat40_layout(reiser4_item_t *item,
+						 stat40_perext_func_t perext_func, void *data)
+{
+    uint8_t i;
+    stat40_t *stat;
+    uint16_t extmask;
+	
+    reiser4_body_t *extbody;
+	reiser4_plugin_t *plugin;
+
+    aal_assert("umka-1197", item != NULL, return -1);
+    
+    stat = stat40_body(item);
+    extmask = st40_get_extmask(stat);
+	extbody = (reiser4_body_t *)stat + sizeof(stat40_t);
+    
+    for (i = 0; i < sizeof(uint64_t)*8; i++) {
+		int ret;
+
+		if ((i + 1) % 16 == 0) {
+			extmask = *((uint16_t *)extbody);
+
+			/* Clear the last bit in last mask */
+			if (((uint64_t)1 << i) & 0x2f) {
+				if (!(extmask & 0x8000))
+					extmask &= ~0x8000;
+			}
+			
+			extbody = (void *)extbody + sizeof(d16_t);
+			continue;
+		}
+
+		if (!(ret = perext_func(i, extmask, extbody, data)))
+			return ret;
+
+		if (!((1 << i) & extmask))
+			continue;
+		
+		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
+			aal_exception_warn("Can't find stat data extention plugin "
+							   "by its id 0x%x.", i);
+			return 0;
+		}
+
+		extbody = (void *)extbody + plugin_call(return 0,
+												plugin->sdext_ops, length,);
+    }
+    
+    return 0;
+}
+
+static int callback_open(uint8_t ext, uint16_t extmask,
+						 reiser4_body_t *extbody, void *data)
+{
+	reiser4_plugin_t *plugin;
+	reiser4_statdata_hint_t *hint;
+
+	if (!((1 << ext) & extmask))
+		return 1;
+
+	hint = ((reiser4_item_hint_t *)data)->hint;
+
+	/* Reading mask into hint */
+	if ((ext + 1) % 16 == 0) {
+		hint->extmask <<= 16;
+		hint->extmask |= extmask;
+	}
+	
+	if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, ext))) {
+		aal_exception_warn("Can't find stat data extention plugin "
+						   "by its id 0x%x.", ext);
+		return -1;
+	}
+
+	if (hint->ext[ext]) {
+		
+		if (plugin_call(return -1, plugin->sdext_ops, open,
+						extbody, hint->ext[ext]))
+			return -1;
+	}
+	
+	return 1;
+}
+
+static errno_t stat40_open(reiser4_item_t *item, 
+						   reiser4_item_hint_t *hint)
+{
+	aal_assert("umka-1414", item != NULL, return -1);
+	aal_assert("umka-1415", hint != NULL, return -1);
+
+	return stat40_layout(item, callback_open, (void *)hint);
+}
+
 #ifndef ENABLE_COMPACT
 
 static errno_t stat40_init(reiser4_item_t *item, 
@@ -49,19 +146,14 @@ static errno_t stat40_init(reiser4_item_t *item,
 		   So, we should add sizeof(mask) to extention body pointer, in the case
 		   we are on bit denoted for indicating if next extention in use or not.
 		*/
-		if (i == 0 || ((uint64_t)1 << i) & (uint64_t)(((uint64_t)1 << 0xf) |
-													  ((uint64_t)1 << 0x1f) |
-													  ((uint64_t)1 << 0x2f)))
-			{
-				uint16_t extmask;
+		if (i == 0 || (i + 1) % 16 == 0) {
+			uint16_t extmask;
 
-				extmask = (stat_hint->extmask >> i) & 0x000000000000ffff;
-				st40_set_extmask((stat40_t *)extbody, extmask);
-				extbody = (void *)extbody + sizeof(d16_t);
-
-				if (i > 0)
-					continue;
-			}
+			extmask = (stat_hint->extmask >> i) & 0x000000000000ffff;
+			st40_set_extmask((stat40_t *)extbody, extmask);
+			extbody = (void *)extbody + sizeof(d16_t);
+			if (i > 0) continue;
+		}
 	    
 		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
 			aal_exception_warn("Can't find stat data extention plugin "
@@ -70,7 +162,7 @@ static errno_t stat40_init(reiser4_item_t *item,
 		}
 	
 		plugin_call(return -1, plugin->sdext_ops, init, extbody, 
-					stat_hint->ext.hint[i]);
+					stat_hint->ext[i]);
 	
 		/* 
 		   Getting pointer to the next extention. It is evaluating as previous 
@@ -104,10 +196,7 @@ static errno_t stat40_estimate(reiser4_item_t *item, uint32_t pos,
         if (!(((uint64_t)1 << i) & stat_hint->extmask))
 			continue;
 	
-		if (((uint64_t)1 << i) & (((uint64_t)1 << 0xf) |
-								  ((uint64_t)1 << 0x1f) |
-								  ((uint64_t)1 << 0x2f))) 
-		{
+		if ((i + 1) % 16 == 0) {
 			hint->len += sizeof(d16_t);
 			continue;
 		}
@@ -149,59 +238,8 @@ static errno_t stat40_valid(reiser4_item_t *item) {
     return 0;
 }
 
-/* Type for stat40 layout callback function */
-typedef int (*stat40_perext_func_t) (uint8_t, uint16_t, reiser4_body_t *, void *);
-
-/* The function which implements stat40 layout pass */
-static int stat40_layout(reiser4_item_t *item,
-						 stat40_perext_func_t perext_func, void *data)
-{
-    uint8_t i;
-    stat40_t *stat;
-    uint16_t extmask;
-	
-    reiser4_body_t *extbody;
-	reiser4_plugin_t *plugin;
-
-    aal_assert("umka-1197", item != NULL, return 0);
-    
-    stat = stat40_body(item);
-    extmask = st40_get_extmask(stat);
-	extbody = (reiser4_body_t *)stat + sizeof(stat40_t);
-    
-    for (i = 0; i < sizeof(uint64_t)*8; i++) {
-		int ret;
-		
-		if (((uint64_t)1 << i) & (((uint64_t)1 << 0xf) |
-								  ((uint64_t)1 << 0x1f) |
-								  ((uint64_t)1 << 0x2f)))
-			{
-				extbody = (void *)extbody + sizeof(d16_t);
-				extmask = *((uint16_t *)extbody);
-				continue;
-			}
-
-		if (!(ret = perext_func(i, extmask, extbody, data)))
-			return ret;
-
-		if (!((1 << i) & extmask))
-			continue;
-		
-		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
-			aal_exception_warn("Can't find stat data extention plugin "
-							   "by its id 0x%x.", i);
-			return 0;
-		}
-
-		extbody = (void *)extbody + plugin_call(return 0,
-												plugin->sdext_ops, length,);
-    }
-    
-    return 1;
-}
-
 /* Callbakc for counting the number of stat data extentions in use */
-static int stat40_callback_count(uint8_t ext, uint16_t extmask,
+static int callback_count(uint8_t ext, uint16_t extmask,
 					  reiser4_body_t *extbody, void *data)
 {
 	uint32_t *count = (uint32_t *)data;
@@ -213,7 +251,7 @@ static int stat40_callback_count(uint8_t ext, uint16_t extmask,
 static uint32_t stat40_count(reiser4_item_t *item) {
 	uint32_t count = 0;
 
-	if (stat40_layout(item, stat40_callback_count, &count) < 0)
+	if (stat40_layout(item, callback_count, &count) < 0)
 		return 0;
 	
     return count;
@@ -226,7 +264,7 @@ struct body_hint {
 };
 
 /* Callback function for finding stat data extention body by bit */
-static int stat40_callback_body(uint8_t ext, uint16_t extmask,
+static int callback_body(uint8_t ext, uint16_t extmask,
 								reiser4_body_t *extbody, void *data)
 {
 	struct body_hint *hint = (struct body_hint *)data;
@@ -240,7 +278,7 @@ static reiser4_body_t *stat40_sdext_body(reiser4_item_t *item,
 {
 	struct body_hint hint = {NULL, bit};
 
-	if (!stat40_layout(item, stat40_callback_body, &hint) < 0)
+	if (stat40_layout(item, callback_body, &hint) < 0)
 		return NULL;
 	
     return hint.body;
@@ -255,7 +293,7 @@ struct present_hint {
 
 /* Callback for getting presence information for certain stat data
  * extention */
-static int stat40_callback_present(uint8_t ext, uint16_t extmask,
+static int callback_present(uint8_t ext, uint16_t extmask,
 								   reiser4_body_t *extbody, void *data)
 {
 	struct present_hint *hint = (struct present_hint *)data;
@@ -269,13 +307,13 @@ static int stat40_sdext_present(reiser4_item_t *item,
 {
 	struct present_hint hint = {0, bit};
 
-	if (!stat40_layout(item, stat40_callback_body, &hint) < 0)
+	if (!stat40_layout(item, callback_body, &hint) < 0)
 		return 0;
 
 	return hint.present;
 }
 
-static errno_t stat40_sdext_open(reiser4_item_t *item, 
+/*static errno_t stat40_sdext_open(reiser4_item_t *item, 
 								 uint8_t bit, stat40_sdext_t *sdext)
 {
     aal_assert("umka-1193", item != NULL, return -1);
@@ -294,115 +332,7 @@ static errno_t stat40_sdext_open(reiser4_item_t *item,
     }
     
     return -((sdext->body = stat40_sdext_body(item, bit)) == NULL);
-}
-
-static uint16_t stat40_get_mode(reiser4_item_t *item) {
-    stat40_sdext_t sdext;
-    reiser4_sdext_lw_hint_t hint;
-    
-    aal_assert("umka-710", item != NULL, return 0);
-    
-    if (stat40_sdext_open(item, SDEXT_LW_ID, &sdext))
-		return 0;
-    
-    if (plugin_call(return 0, sdext.plugin->sdext_ops, open, 
-					sdext.body, &hint)) 
-	{
-		aal_exception_error("Can't open light weight stat data "
-							"extention.");
-		return 0;
-	}
-    
-    return hint.mode;
-}
-
-static uint32_t stat40_get_size(reiser4_item_t *item) {
-    stat40_sdext_t sdext;
-    reiser4_sdext_lw_hint_t hint;
-    
-    aal_assert("umka-1223", item != NULL, return 0);
-    
-    if (stat40_sdext_open(item, SDEXT_LW_ID, &sdext))
-		return 0;
-    
-    if (plugin_call(return 0, sdext.plugin->sdext_ops, open, 
-					sdext.body, &hint)) 
-	{
-		aal_exception_error("Can't open light weight stat data "
-							"extention.");
-		return 0;
-	}
-    
-    return hint.size;
-}
-
-#ifndef ENABLE_COMPACT
-
-static errno_t stat40_set_mode(reiser4_item_t *item, 
-							   uint16_t mode)
-{
-    stat40_sdext_t sdext;
-    reiser4_sdext_lw_hint_t hint;
-    
-    aal_assert("umka-1192", item != NULL, return 0);
-    
-    if (stat40_sdext_open(item, SDEXT_LW_ID, &sdext))
-		return 0;
-    
-    if (plugin_call(return 0, sdext.plugin->sdext_ops, open, 
-					sdext.body, &hint)) 
-	{
-		aal_exception_error("Can't open light weight stat data "
-							"extention.");
-		return -1;
-	}
-    
-    hint.mode = mode;
-    
-    if (plugin_call(return 0, sdext.plugin->sdext_ops, init, 
-					sdext.body, &hint)) 
-	{
-		aal_exception_error("Can't update light weight stat data "
-							"extention.");
-		return -1;
-	}
-    
-    return 0;
-}
-
-static errno_t stat40_set_size(reiser4_item_t *item, 
-							   uint32_t size)
-{
-    stat40_sdext_t sdext;
-    reiser4_sdext_lw_hint_t hint;
-    
-    aal_assert("umka-1224", item != NULL, return 0);
-    
-    if (stat40_sdext_open(item, SDEXT_LW_ID, &sdext))
-		return 0;
-    
-    if (plugin_call(return 0, sdext.plugin->sdext_ops, open, 
-					sdext.body, &hint)) 
-	{
-		aal_exception_error("Can't open light weight stat data "
-							"extention.");
-		return -1;
-	}
-    
-    hint.size = size;
-    
-    if (plugin_call(return 0, sdext.plugin->sdext_ops, init, 
-					sdext.body, &hint)) 
-	{
-		aal_exception_error("Can't update light weight stat data "
-							"extention.");
-		return -1;
-	}
-    
-    return 0;
-}
-
-#endif
+}*/
 
 static errno_t stat40_print(reiser4_item_t *item,
 						   char *buff, uint32_t n,
@@ -432,38 +362,6 @@ static errno_t stat40_max_poss_key(reiser4_item_t *item,
 					   get_key, item->node, item->pos, key);
 }
 
-/* Detecting the object plugin by extentions or mode */
-static uint16_t stat40_detect(reiser4_item_t *item) {
-    uint16_t mode;
-    
-    aal_assert("umka-1292", item != NULL, return FAKE_PLUGIN);
-
-    /* 
-	   FIXME-UMKA: Here we should inspect all extentions and try to find out
-	   if non-standard file plugin is in use.
-    */
-
-    /* 
-	   Guessing plugin type and plugin id by mode field from the stat data 
-	   item. Here we return default plugins for every file type.
-    */
-    mode = stat40_get_mode(item);
-    
-    if (S_ISDIR(mode))
-        return FILE_DIRTORY40_ID;
-
-    if (S_ISREG(mode))
-        return FILE_REGULAR40_ID;
-	
-    if (S_ISLNK(mode))
-        return FILE_SYMLINK40_ID;
-
-    if (S_ISFIFO(mode) || S_ISSOCK(mode))
-		return FILE_SPECIAL40_ID;
-	
-    return FAKE_PLUGIN;
-}
-
 static reiser4_plugin_t stat40_plugin = {
     .item_ops = {
 		.h = {
@@ -474,6 +372,8 @@ static reiser4_plugin_t stat40_plugin = {
 			.label = "stat40",
 			.desc = "Stat data for reiserfs 4.0, ver. " VERSION,
 		},
+		.open       = stat40_open,
+		
 #ifndef ENABLE_COMPACT
         .init		= stat40_init,
         .estimate	= stat40_estimate,
@@ -492,25 +392,12 @@ static reiser4_plugin_t stat40_plugin = {
 	    
         .count		= stat40_count,
         .valid		= stat40_valid,
-		.detect		= stat40_detect,
         .print		= stat40_print,
         
 		.max_poss_key	= stat40_max_poss_key,
         .max_real_key   = stat40_max_poss_key,
 	
-		.specific = {
-			.statdata = {
-				.get_mode = stat40_get_mode,
-				.get_size = stat40_get_size,
-#ifndef ENABLE_COMPACT
-				.set_mode = stat40_set_mode,
-				.set_size = stat40_set_size
-#else
-				.set_mode = NULL,
-				.set_size = NULL
-#endif
-			}
-		}
+		.specific = {}
     }
 };
 

@@ -16,7 +16,7 @@
 /* Forms master super block disk structure */
 reiser4_master_t *reiser4_master_create(
     aal_device_t *device,	    /* device master will be created on */
-    rpid_t format_pid,	    /* disk format plugin id to be used */
+    rpid_t format_pid,	        /* disk format plugin id to be used */
     unsigned int blocksize,	    /* blocksize to be used */
     const char *uuid,		    /* uuid to be used */
     const char *label)		    /* filesystem label to be used */
@@ -76,14 +76,13 @@ errno_t reiser4_master_valid(reiser4_master_t *master) {
 /* Callback function for comparing plugins */
 static errno_t callback_guess_format(
     reiser4_plugin_t *plugin,	    /* plugin to be checked */
-    void *data)			    /* needed plugin type */
+    void *data)			            /* needed plugin type */
 {
     if (plugin->h.type == FORMAT_PLUGIN_TYPE) {
 		aal_device_t *device = (aal_device_t *)data;
 
-		if (plugin_call(return 0, plugin->format_ops, 
-						confirm, device))
-			return 1;
+		return plugin_call(return 0, plugin->format_ops, 
+						   confirm, device);
     }
     
     return 0;
@@ -165,8 +164,8 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
     /* Checking for reiser3 disk-format */
     if (aal_strncmp(master->super->mr_magic, MASTER_MAGIC, 4) != 0) {
 		/* 
-		   Reiser4 doesn't found on passed device. In this point should be 
-		   called function which detectes used format on th device.
+		   Reiser4 doesn't found on passed device. In this point should
+		   call the function which detectes used format on the device.
 		*/
 #ifndef ENABLE_COMPACT
 		{
@@ -179,7 +178,8 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 			if (!(master = reiser4_master_create(device, plugin->h.id, 
 												 DEFAULT_BLOCKSIZE, NULL, NULL)))
 				{
-					aal_exception_error("Can't find reiser4 nor reiser3 filesystem.");
+					aal_exception_error("Can't find format in use after probe the "
+										"all registered format plugins.");
 					goto error_free_block;
 				}
 	    

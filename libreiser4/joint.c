@@ -25,8 +25,8 @@ reiser4_joint_t *reiser4_joint_create(
 /* Makes duplicate of the passed @joint */
 errno_t reiser4_joint_dup(
     reiser4_joint_t *joint,	/* joint to be duplicated */
-    reiser4_joint_t *dup	/* the clone will be saved */
-	) {
+    reiser4_joint_t *dup)	/* the clone will be saved */
+{
     aal_assert("umka-1264", joint != NULL, return -1);
     aal_assert("umka-1265", dup != NULL, return -1);
 
@@ -36,8 +36,8 @@ errno_t reiser4_joint_dup(
 
 /* Freeing passed joint */
 void reiser4_joint_close(
-    reiser4_joint_t *joint	/* joint to be freed */
-	) {
+    reiser4_joint_t *joint)	/* joint to be freed */
+{
     aal_list_t *children;
     
     aal_assert("umka-793", joint != NULL, return);
@@ -77,8 +77,8 @@ void reiser4_joint_close(
 static inline int callback_comp_key(
     const void *item,		/* joint find will operate on */
     const void *key,		/* key to be find */
-    void *data			/* user-specified data */
-	) {
+    void *data)			/* user-specified data */
+{
     reiser4_key_t lkey;
     reiser4_joint_t *joint;
 
@@ -91,8 +91,8 @@ static inline int callback_comp_key(
 /* Finds children by its left delimiting key */
 reiser4_joint_t *reiser4_joint_find(
     reiser4_joint_t *joint,	/* joint to be greped */
-    reiser4_key_t *key		/* left delimiting key */
-	) {
+    reiser4_key_t *key)		/* left delimiting key */
+{
     aal_list_t *found;
     
     if (!joint->children)
@@ -152,8 +152,8 @@ static errno_t reiser4_joint_neighbour_key(
 /* Returns position of passed joint in parent node */
 errno_t reiser4_joint_pos(
     reiser4_joint_t *joint,	/* joint position will be obtained for */
-    reiser4_pos_t *pos		/* pointer result will be stored in */
-	) {
+    reiser4_pos_t *pos)		/* pointer result will be stored in */
+{
     reiser4_key_t lkey;
     reiser4_key_t parent_key;
     
@@ -178,8 +178,8 @@ errno_t reiser4_joint_pos(
    by shifting code in tree.c
 */
 errno_t reiser4_joint_realize(
-    reiser4_joint_t *joint	/* joint for working with */
-	) {
+    reiser4_joint_t *joint)	/* joint for working with */
+{
     uint32_t level;
     reiser4_key_t key;
     
@@ -227,8 +227,8 @@ errno_t reiser4_joint_realize(
 static int callback_comp_joint(
     const void *item1,		/* the first joint inetance for comparing */
     const void *item2,		/* the second one */
-    void *data			/* user-specified data */
-	) {
+    void *data)			    /* user-specified data */
+{
     reiser4_key_t lkey1, lkey2;
 
     reiser4_joint_t *joint1 = (reiser4_joint_t *)item1;
@@ -246,8 +246,8 @@ static int callback_comp_joint(
 */
 errno_t reiser4_joint_attach(
     reiser4_joint_t *joint,	/* joint child will be connected to */
-    reiser4_joint_t *child	/* child joint for registering */
-	) {
+    reiser4_joint_t *child)	/* child joint for registering */
+{
     aal_list_t *children;
     reiser4_key_t key, lkey;
     
@@ -311,8 +311,8 @@ errno_t reiser4_joint_attach(
 */
 void reiser4_joint_detach(
     reiser4_joint_t *joint,	/* joint child will be detached from */
-    reiser4_joint_t *child	/* pointer to child to be deleted */
-	) {
+    reiser4_joint_t *child)	/* pointer to child to be deleted */
+{
     aal_list_t *children;
     
     aal_assert("umka-562", joint != NULL, return);
@@ -349,8 +349,8 @@ void reiser4_joint_detach(
   tree will be flushed onto device, tree lies on.
 */
 errno_t reiser4_joint_sync(
-    reiser4_joint_t *joint	/* joint to be synchronized */
-	) {
+    reiser4_joint_t *joint)	/* joint to be synchronized */
+{
     aal_list_t *children;
     
     aal_assert("umka-124", joint != NULL, return 0);
@@ -433,10 +433,10 @@ errno_t reiser4_joint_update_key(reiser4_joint_t *joint,
    delimiting key.
 */
 errno_t reiser4_joint_insert(
-    reiser4_joint_t *joint,	    /* joint item will be inserted in */
+    reiser4_joint_t *joint,	        /* joint item will be inserted in */
     reiser4_pos_t *pos,	    	    /* pos item will be inserted at */
-    reiser4_item_hint_t *hint	    /* item hint to be inserted */
-	) {
+    reiser4_item_hint_t *hint)	    /* item hint to be inserted */
+{
     reiser4_pos_t parent_pos;
     
     aal_assert("umka-990", joint != NULL, return -1);
@@ -474,8 +474,8 @@ errno_t reiser4_joint_insert(
 */
 errno_t reiser4_joint_remove(
     reiser4_joint_t *joint,	    /* joint item will be inserted in */
-    reiser4_pos_t *pos		    /* pos item will be inserted at */
-	) {
+    reiser4_pos_t *pos)		    /* pos item will be inserted at */
+{
     reiser4_key_t key;
     reiser4_pos_t parent_pos;
 
@@ -539,10 +539,10 @@ errno_t reiser4_joint_remove(
 /* Moves item or unit from src cached node to dst one */
 errno_t reiser4_joint_move(
     reiser4_joint_t *dst_joint,	    /* destination cached node */
-    reiser4_pos_t *dst_pos,	    /* destination pos */
+    reiser4_pos_t *dst_pos,	        /* destination pos */
     reiser4_joint_t *src_joint,	    /* source cached node */
-    reiser4_pos_t *src_pos	    /* source pos */
-	) {
+    reiser4_pos_t *src_pos)	        /* source pos */
+{
     reiser4_key_t lkey;
     reiser4_pos_t dst_parent_pos;
     reiser4_pos_t src_parent_pos;
@@ -624,15 +624,15 @@ errno_t reiser4_joint_move(
 
 /* This function traverse passed node. */
 errno_t reiser4_joint_traverse(
-    reiser4_joint_t *joint,		/* block which should be traversed */
-    void *data,				/* user-spacified data */
-    reiser4_open_func_t open_func,	/* callback will be used for opening node */
+    reiser4_joint_t *joint,		        /* block which should be traversed */
+    void *data,				            /* user-spacified data */
+    reiser4_open_func_t open_func,	    /* callback will be used for opening node */
     reiser4_handler_func_t handler_func,/* callback will be called on node */
     reiser4_setup_func_t before_func,	/* callback will be called before all childs */
     reiser4_setup_func_t setup_func,	/* callback will be called before a child */
     reiser4_setup_func_t update_func,	/* callback will be called after a child */
-    reiser4_setup_func_t after_func	/* callback will be called after all childs  */
-	) {
+    reiser4_setup_func_t after_func)	/* callback will be called after all childs  */
+{
     reiser4_pos_t pos;
     errno_t result = 0;
     reiser4_item_t item;

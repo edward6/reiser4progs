@@ -45,7 +45,6 @@ extern errno_t reiser4_item_max_real_key(reiser4_item_t *item,
 extern uint32_t reiser4_item_len(reiser4_item_t *item);
 extern reiser4_body_t *reiser4_item_body(reiser4_item_t *item);
 extern reiser4_plugin_t *reiser4_item_plugin(reiser4_item_t *item);
-extern uint16_t reiser4_item_detect(reiser4_item_t *item);
 
 extern int reiser4_item_statdata(reiser4_item_t *item);
 extern int reiser4_item_permissn(reiser4_item_t *item);

@@ -130,17 +130,6 @@ errno_t reiser4_item_print(
 					   item, buff, n, 0);
 }
 
-/* Returns object plugin id */
-uint16_t reiser4_item_detect(reiser4_item_t *item) {
-    aal_assert("umka-1294", item != NULL, return 0);
-    aal_assert("umka-1295", item->plugin != NULL, return 0);
-    
-    if (!item->plugin->item_ops.detect)
-		return FAKE_PLUGIN;
-
-    return item->plugin->item_ops.detect(item);
-}
-
 int reiser4_item_permissn(reiser4_item_t *item) {
     aal_assert("umka-1100", item != NULL, return 0);
     aal_assert("umka-1101", item->plugin != NULL, return 0);

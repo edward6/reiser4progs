@@ -162,25 +162,26 @@ static reiser4_plugin_t extent40_plugin = {
 			.desc = "Extent item for reiserfs 4.0, ver. " VERSION,
 		},
 #ifndef ENABLE_COMPACT
-        .init		= extent40_init,
-        .insert		= extent40_insert,
-        .remove		= extent40_remove,
+        .init		  = extent40_init,
+        .insert		  = extent40_insert,
+        .remove		  = extent40_remove,
 #else
-        .init		= NULL,
-        .insert		= NULL,
-        .remove		= NULL,
+        .init		  = NULL,
+        .insert		  = NULL,
+        .remove		  = NULL,
 #endif
-        .estimate	= NULL,
-        .check		= NULL,
-        .lookup		= NULL,
-        .valid		= NULL,
-		.detect		= NULL,
-		.shift      = NULL,
+        .estimate	  = NULL,
+        .check		  = NULL,
+        .lookup		  = NULL,
+        .valid		  = NULL,
+		.shift        = NULL,
+		.open         = NULL,
 
-        .count		= extent40_count,
-        .max_poss_key	= extent40_max_poss_key,
-        .max_real_key   = extent40_max_real_key,
-        .print		= extent40_print,
+        .count		  = extent40_count,
+        .print		  = extent40_print,
+		
+        .max_poss_key = extent40_max_poss_key,
+        .max_real_key = extent40_max_real_key,
 	
 		.specific = {
 			.ptr = {
