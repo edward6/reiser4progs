@@ -5,7 +5,7 @@
 
 #include "cde40.h"
 
-static reiser4_core_t *core = NULL;
+reiser4_core_t *cde_core = NULL;
 
 inline uint32_t cde40_key_pol(place_t *place) {
 	return plug_call(place->key.plug->o.key_ops, bodysize);
@@ -108,7 +108,7 @@ static char *cde40_get_name(place_t *place, uint32_t pos,
                                                                                         
         /* If name is long, we just copy it from the area after
            objectid. Otherwise we extract it from the entry hash. */
-        if (plug_call(key.plug->o.key_ops, tall, &key)) {
+        if (plug_call(key.plug->o.key_ops, hashed, &key)) {
 		void *objid = cde40_objid(place, pos);
                 char *ptr = (char *)(objid + ob_size(cde40_key_pol(place)));
                 aal_strncpy(buff, ptr, len);
@@ -139,7 +139,7 @@ static uint32_t cde40_get_len(place_t *place, uint32_t pos) {
 	   Otherwise, entry name is stored in objectid and offset of the
 	   entry. This trick saves a lot of space in directories, because the
 	   average name is shorter than 15 symbols. */
-	if (plug_call(key.plug->o.key_ops, tall, &key)) {
+	if (plug_call(key.plug->o.key_ops, hashed, &key)) {
 		void *objid = cde40_objid(place, pos);
 		len += aal_strlen((char *)(objid + ob_size(pol))) + 1;
 	}
@@ -232,7 +232,7 @@ static errno_t cde40_estimate_insert(place_t *place, uint32_t pos,
 		/* Calling key plugin for in odrer to find out is passed name is
 		   long one or not. */
 		if (plug_call(hint->key.plug->o.key_ops,
-			      tall, &entry->offset))
+			      hashed, &entry->offset))
 		{
 			/* Okay, name is long, so we need add its length to
 			   estimated length. */
@@ -739,7 +739,7 @@ static errno_t cde40_insert(place_t *place, uint32_t pos,
 
 		/* If key is long one we also count name length */
 		if (plug_call(place->key.plug->o.key_ops,
-			      tall, &entry_hint->offset))
+			      hashed, &entry_hint->offset))
 		{
 			uint32_t len = aal_strlen(entry_hint->name);
 
@@ -823,7 +823,7 @@ static errno_t cde40_print(place_t *place,
 
 	aal_stream_format(stream, "DIRENTRY PLUGIN=%s LEN=%u, KEY=[%s] "
 			  "UNITS=%u\n", place->plug->label, place->len, 
-			  core->key_ops.print(&place->key, PO_DEF), 
+			  cde_core->key_ops.print(&place->key, PO_DEF), 
 			  cde_get_units(place));
 		
 	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "
@@ -900,7 +900,7 @@ extern errno_t cde40_estimate_copy(place_t *dst, uint32_t dst_pos,
 /* Returns maximal possible key in cde item. It is needed for lookuping needed
    entry by entry key. */
 errno_t cde40_maxposs_key(place_t *place, 
-			      key_entity_t *key) 
+			  key_entity_t *key) 
 {
 	key_entity_t *maxkey;
 
@@ -1058,7 +1058,7 @@ static reiser4_plug_t cde40_plug = {
 };
 
 static reiser4_plug_t *cde40_start(reiser4_core_t *c) {
-	core = c;
+	cde_core = c;
 	return &cde40_plug;
 }
 
