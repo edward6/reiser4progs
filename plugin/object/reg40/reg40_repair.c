@@ -386,6 +386,8 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 			break;
 		}
 		
+		maxreal = 0;
+
 		if (reg->body.plug) {
 			maxreal = reg40_place_maxreal(&reg->body);
 			
