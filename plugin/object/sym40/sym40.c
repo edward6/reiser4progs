@@ -10,6 +10,7 @@
 #ifndef ENABLE_STAND_ALONE
 #  include <time.h>
 #  include <unistd.h>
+#  include <limits.h>
 #endif
 
 #include "sym40.h"
@@ -241,7 +242,12 @@ static errno_t sym40_follow(object_entity_t *entity,
 {
 	errno_t res;
 	sym40_t *sym;
-	char path[1024];
+
+#ifndef ENABLE_STAND_ALONE
+	char path[_POSIX_PATH_MAX];
+#else
+	char path[128];
+#endif
 	
 	aal_assert("umka-1775", key != NULL);
 	aal_assert("umka-2245", from != NULL);
