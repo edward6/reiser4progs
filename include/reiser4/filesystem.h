@@ -35,10 +35,7 @@ extern reiser4_owner_t reiser4_fs_belongs(reiser4_fs_t *fs,
 					  blk_t blk);
 
 extern reiser4_fs_t *reiser4_fs_create(aal_device_t *device,
-				       char *uuid, char *label,
-				       reiser4_profile_t *profile,
-				       uint32_t blocksize,
-				       count_t blocks);
+				       fs_hint_t *hint);
 
 extern errno_t reiser4_fs_sync(reiser4_fs_t *fs);
 extern errno_t reiser4_fs_mark(reiser4_fs_t *fs);

@@ -9,9 +9,9 @@
         (extent40_offset(item, extent40_units(item)))
 
 /* Returns blocksize of the device passed extent @item lies on */
-uint32_t extent40_blocksize(item_entity_t *item) {
+uint32_t extent40_blksize(item_entity_t *item) {
 	aal_assert("umka-2058", item != NULL);
-	return item->context.blocksize;
+	return item->context.blksize;
 }
 
 /* Returns number of units in passed extent @item */
@@ -44,7 +44,7 @@ uint64_t extent40_offset(item_entity_t *item,
 	for (i = 0; i < pos; i++, extent++)
 		blocks += et40_get_width(extent);
     
-	return blocks * extent40_blocksize(item);
+	return blocks * extent40_blksize(item);
 }
 
 /* Gets the number of unit specified offset lies in */
@@ -64,7 +64,7 @@ uint32_t extent40_unit(item_entity_t *item,
         {
                                                                                          
                 width += et40_get_width(extent) *
-                        extent40_blocksize(item);
+                        extent40_blksize(item);
                                                                                          
                 if (offset < width)
                         return i;
@@ -217,15 +217,15 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 {
 	key_entity_t key;
 	uint32_t read, i;
-	uint32_t blocksize;
+	uint32_t blksize;
 	uint32_t sectorsize;
 
 	aal_assert("umka-1421", item != NULL);
 	aal_assert("umka-1422", buff != NULL);
 	aal_assert("umka-1672", pos != ~0ul);
 
-	blocksize = extent40_blocksize(item);
-	sectorsize = item->context.device->blocksize;
+	blksize = extent40_blksize(item);
+	sectorsize = item->context.device->blksize;
 
 	for (read = count, i = item->pos.unit;
 	     i < extent40_units(item) && count > 0; i++)
@@ -247,7 +247,8 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 
 		/* Calculating start block for read */
 		start = blk = et40_get_start(extent40_body(item) + i) +
-			((pos - (uint32_t)extent40_offset(item, i)) / blocksize);
+			((pos - (uint32_t)extent40_offset(item, i)) /
+			 blksize);
 
 		/* Loop though the extent blocks */
 		while (blk < start + et40_get_width(extent40_body(item) + i) &&
@@ -257,12 +258,12 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 			uint32_t blklocal;
 			aal_block_t *block;
 
-			blklocal = (pos % blocksize);
+			blklocal = (pos % blksize);
 			
-			if ((blkchunk = blocksize - blklocal) > count)
+			if ((blkchunk = blksize - blklocal) > count)
 				blkchunk = count;
 
-			sec = (blk * (blocksize / sectorsize)) +
+			sec = (blk * (blksize / sectorsize)) +
 				(blklocal / sectorsize);
 
 			/* Loop though one block (4096) */
@@ -300,7 +301,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 				blklocal += secchunk;
 			}
 
-			if (blklocal % blocksize == 0)
+			if (blklocal % blksize == 0)
 				blk++;
 		}
 	}

@@ -211,7 +211,7 @@ typedef struct object_entity object_entity_t;
 
 struct item_context {
 	blk_t blk;
-	uint32_t blocksize;
+	uint32_t blksize;
  	aal_device_t *device; 
 };
 
@@ -1273,7 +1273,7 @@ struct tree_ops {
 		
 #ifndef ENABLE_STAND_ALONE
 	/* Returns blocksize in passed tree */
-	uint32_t (*blocksize) (void *);
+	uint32_t (*blksize) (void *);
 	
 	/* Returns maximal available space in a node */
 	uint32_t (*maxspace) (void *);

@@ -72,7 +72,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 			blocksize = aal_ui_get_numeric(4096, callback_bs_check, NULL, 
 						       "Which block size do you use?");
 			
-			set_ms_blocksize(SUPER(fs->master), blocksize);
+			set_ms_blksize(SUPER(fs->master), blocksize);
 			error |= REPAIR_FIXED;
 		}
 	}

@@ -38,7 +38,7 @@ long long misc_str2long(const char *str, int base) {
 }
 
 
-/* Converts human readable size string like "256M" into Kb. In the case of
+/* Converts human readable size string like "256M" into KB. In the case of
    error, INVAL_DIG will be returned. */
 long long misc_size2long(const char *str) {
 	int valid;
@@ -47,31 +47,33 @@ long long misc_size2long(const char *str) {
 	long long result;
 	char number[255];
 	 
-	if (!str)
-		return INVAL_DIG;
-	
-	aal_memset(number, 0, 255);
-	aal_strncpy(number, str, aal_strlen(str));
-	label = number[aal_strlen(number) - 1];
+	if (str) {
+		aal_memset(number, 0, 255);
+		aal_strncpy(number, str, aal_strlen(str));
+		label = number[aal_strlen(number) - 1];
 
-	valid = toupper(label) == toupper('K') ||
-		toupper(label) == toupper('M') || 
-		toupper(label) == toupper('G');
+		valid = toupper(label) == toupper('K') ||
+			toupper(label) == toupper('M') || 
+			toupper(label) == toupper('G');
 
-	if (valid)
-		number[aal_strlen(number) - 1] = '\0';
-	
-	if ((result = misc_str2long(number, 10)) == INVAL_DIG)
-		return INVAL_DIG;
-	
-	if (toupper(label) == toupper('M'))
-		result *= MB;
-	else if (toupper(label) == toupper('K'))
-		result *= KB;
-	else if (toupper(label) == toupper('G'))
-		result *= GB;
+		if (valid)
+			number[aal_strlen(number) - 1] = '\0';
 
-	return result;
+		if ((result = misc_str2long(number, 10)) == INVAL_DIG)
+			return result;
+
+		if (toupper(label) == toupper('K'))
+			return result;
+
+		if (toupper(label) == toupper('M'))
+			return result * KB;
+
+		if (toupper(label) == toupper('G'))
+			return result * MB;
+
+	}
+	
+	return INVAL_DIG;
 }
 
 /* Checking if specified partition is mounted. It is possible devfs is used, and

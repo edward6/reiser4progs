@@ -181,7 +181,7 @@ static errno_t tree_unlock(
 }
 
 #ifndef ENABLE_STAND_ALONE
-static uint32_t tree_blocksize(void *tree) {
+static uint32_t tree_blksize(void *tree) {
 	reiser4_fs_t *fs;
 	
 	aal_assert("umka-1220", tree != NULL);
@@ -267,7 +267,7 @@ reiser4_core_t core = {
 		.remove	    = tree_remove,
 		
 		.maxspace  = tree_maxspace,
-		.blocksize = tree_blocksize,
+		.blksize   = tree_blksize,
 #endif
 		/* Makes look and unlock of node specified by place */
 		.lock       = tree_lock,

@@ -13,7 +13,7 @@
 
 extern uint32_t extent40_units(item_entity_t *item);
 extern errno_t extent40_maxreal_key(item_entity_t *item, key_entity_t *key);
-extern uint32_t extent40_blocksize(item_entity_t *item);
+extern uint32_t extent40_blksize(item_entity_t *item);
 extern uint64_t extent40_offset(item_entity_t *item, uint64_t pos);
 extern uint32_t extent40_unit(item_entity_t *item, uint64_t offset);
 extern lookup_t extent40_lookup(item_entity_t *item, key_entity_t *key, 
@@ -164,7 +164,7 @@ errno_t extent40_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
 	aal_assert("vpf-991", dst  != NULL);
 	aal_assert("vpf-992", src  != NULL);
 	
-	b_size = extent40_blocksize(src);
+	b_size = extent40_blksize(src);
 	
 	dst_body = extent40_body(dst);
 	src_body = extent40_body(src);

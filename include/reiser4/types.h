@@ -18,7 +18,7 @@ typedef struct key_entity reiser4_key_t;
 struct reiser4_master_sb {
 	char ms_magic[4];
 	d16_t ms_format;
-	d16_t ms_blocksize;
+	d16_t ms_blksize;
 	char ms_uuid[16];
 	char ms_label[16];
 };
@@ -28,8 +28,8 @@ typedef struct reiser4_master_sb reiser4_master_sb_t;
 #define get_ms_format(ms)               aal_get_le16(ms, ms_format)
 #define set_ms_format(ms, val)          aal_set_le16(ms, ms_format, val)
 
-#define get_ms_blocksize(ms)            aal_get_le16(ms, ms_blocksize)
-#define set_ms_blocksize(ms, val)       aal_set_le16(ms, ms_blocksize, val)
+#define get_ms_blksize(ms)              aal_get_le16(ms, ms_blksize)
+#define set_ms_blksize(ms, val)         aal_set_le16(ms, ms_blksize, val)
 
 struct reiser4_master {
 	/* The flag, which shows that master super block is realy exist on disk
@@ -370,6 +370,15 @@ struct reiser4_fs {
 	void *data;
 #endif
 };
+
+struct fs_hint {
+	count_t blocks;
+	uint32_t blksize;
+	char uuid[17], label[17];
+	reiser4_profile_t *profile;
+};
+
+typedef struct fs_hint fs_hint_t;
 
 typedef errno_t (*walk_func_t) (reiser4_tree_t *,
 				reiser4_node_t *);

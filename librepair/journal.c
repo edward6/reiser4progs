@@ -100,19 +100,19 @@ errno_t repair_journal_replay(reiser4_journal_t *journal, aal_device_t *device) 
 	j_flags = journal->device->flags;
 	flags = device->flags;
 	
-	if (aal_device_reopen(journal->device, device->blocksize, O_RDWR))
+	if (aal_device_reopen(journal->device, device->blksize, O_RDWR))
 		return -EIO;
 	
-	if (aal_device_reopen(device, device->blocksize, O_RDWR))
+	if (aal_device_reopen(device, device->blksize, O_RDWR))
 		return -EIO;
 	
 	if (reiser4_journal_replay(journal))
 		return -EINVAL;
 	
-	if (aal_device_reopen(device, device->blocksize, flags))
+	if (aal_device_reopen(device, device->blksize, flags))
 		return -EIO;
 	
-	if (aal_device_reopen(journal->device, device->blocksize, j_flags))
+	if (aal_device_reopen(journal->device, device->blksize, j_flags))
 		return -EIO;
 	
 	return 0;

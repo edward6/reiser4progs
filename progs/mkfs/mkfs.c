@@ -48,6 +48,9 @@ static void mkfs_print_usage(char *name) {
 		"                                  any questions.\n"
 		"  -f, --force                     makes mkfs to use whole disk, not\n"
 		"                                  block device or mounted partition.\n"
+		"Mkfs options:\n"
+		"  -k, --short-keys                forces mkfs to use short keys, that is\n"
+		"                                  with no ordering component used.\n"
 		"  -s, --lost-found                forces mkfs to create lost+found\n"
 		"                                  directory.\n"
 		"  -b, --block-size N              block size, 4096 by default, other\n"
@@ -74,24 +77,20 @@ static void mkfs_init(void) {
 
 int main(int argc, char *argv[]) {
 	int c;
+	struct stat st;
 	
+	fs_hint_t hint;
 	reiser4_fs_t *fs;
+	char override[4096];
 	aal_device_t *device;
-	reiser4_profile_t *profile;
 
 	aal_list_t *walk = NULL;
 	aal_gauge_t *gauge = NULL;
 	aal_list_t *devices = NULL;
     
-	struct stat st;
-	char override[4096];
-	char uuid[17], label[17];
-	
+	count_t dev_len = 0;
 	mkfs_behav_flags_t flags = 0;
-	count_t fs_len = 0, dev_len = 0;
-	uint32_t blocksize = REISER4_BLKSIZE;
-
-	char *host_dev, *profile_label = "smart40";
+	char *host_dev, *profile = "smart40";
     
 	static struct option long_options[] = {
 		{"version", no_argument, NULL, 'V'},
@@ -116,13 +115,16 @@ int main(int argc, char *argv[]) {
 		return USER_ERROR;
 	}
 
-	memset(uuid, 0, sizeof(uuid));
-	memset(label, 0, sizeof(label));
+	hint.blocks = 0;
+	hint.blksize = REISER4_BLKSIZE;
+	
 	memset(override, 0, sizeof(override));
+	memset(hint.uuid, 0, sizeof(hint.uuid));
+	memset(hint.label, 0, sizeof(hint.label));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfKb:i:l:sPo:", long_options, 
-				(int *)0)) != EOF) 
+	while ((c = getopt_long(argc, argv, "hVe:qfKb:i:l:sPo:",
+				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
 		case 'h':
@@ -132,7 +134,7 @@ int main(int argc, char *argv[]) {
 			misc_print_banner(argv[0]);
 			return NO_ERROR;
 		case 'e':
-			profile_label = optarg;
+			profile = optarg;
 			break;
 		case 'f':
 			flags |= BF_FORCE;
@@ -147,7 +149,9 @@ int main(int argc, char *argv[]) {
 			flags |= BF_LOST;
 			break;
 		case 'o':
-			aal_strncat(override, optarg, aal_strlen(optarg));
+			aal_strncat(override, optarg,
+				    aal_strlen(optarg));
+			
 			aal_strncat(override, ",", 1);
 			break;
 		case 'K':
@@ -155,15 +159,15 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'b':
 			/* Parsing blocksize */
-			if ((blocksize = misc_str2long(optarg, 10)) == INVAL_DIG) {
+			if ((hint.blksize = misc_str2long(optarg, 10)) == INVAL_DIG) {
 				aal_exception_error("Invalid blocksize (%s).", optarg);
 				return USER_ERROR;
 			}
 			
-			if (!aal_pow2(blocksize)) {
-				aal_exception_error("Invalid block size %u. "
+			if (!aal_pow2(hint.blksize)) {
+				aal_exception_error("Invalid blocksize (%lu). "
 						    "It must power of two.",
-						    (uint16_t)blocksize);
+						    hint.blksize);
 				return USER_ERROR;	
 			}
 			break;
@@ -171,21 +175,24 @@ int main(int argc, char *argv[]) {
 			/* Parsing passed by user uuid */
 			if (aal_strlen(optarg) != 36) {
 				aal_exception_error("Invalid uuid was "
-						    "specified (%s).", optarg);
+						    "specified (%s).",
+						    optarg);
 				return USER_ERROR;
 			}
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 			{
-				if (uuid_parse(optarg, uuid) < 0) {
+				if (uuid_parse(optarg, hint.uuid) < 0) {
 					aal_exception_error("Invalid uuid was "
-							    "specified (%s).", optarg);
+							    "specified (%s).",
+							    optarg);
 					return USER_ERROR;
 				}
 			}
 #endif		
 			break;
 		case 'l':
-			aal_strncpy(label, optarg, sizeof(label) - 1);
+			aal_strncpy(hint.label, optarg,
+				    sizeof(hint.label) - 1);
 			break;
 		case '?':
 			mkfs_print_usage(argv[0]);
@@ -207,9 +214,9 @@ int main(int argc, char *argv[]) {
 	}
 	
 	/* Initializing passed profile */
-	if (!(profile = misc_profile_find(profile_label))) {
-		aal_exception_error("Can't find profile by its label %s.", 
-				    profile_label);
+	if (!(hint.profile = misc_profile_find(profile))) {
+		aal_exception_error("Can't find profile by its "
+				    "label %s.", profile);
 		goto error;
 	}
 
@@ -230,35 +237,38 @@ int main(int argc, char *argv[]) {
 	   after libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
 		aal_exception_info("Overriding profile %s by \"%s\".",
-				   profile->name, override);
+				   profile, override);
 		
-		if (misc_profile_override(profile, override))
+		if (misc_profile_override(hint.profile, override))
 			goto error_free_libreiser4;
 	}
-	
+
 	/* Building list of devices the filesystem will be created on */
 	for (; optind < argc; optind++) {
 		if (stat(argv[optind], &st) == -1) {
 
-			/* Checking device name for validness */
-			fs_len = misc_size2long(argv[optind]);
+			if (misc_size2long(argv[optind]) != INVAL_DIG &&
+			    hint.blocks != 0)
+			{
+				aal_exception_error("Filesystem length already "
+						    "set to %llu.", hint.blocks);
+				continue;
+			}
 			
-			if (fs_len != INVAL_DIG) {
-				if (fs_len < blocksize) {
-					aal_exception_error("%s is not a valid "
-							    "filesystem size.",
-							    argv[optind]);
-					goto error_free_libreiser4;
-				}
-				
-				fs_len /= blocksize;
+			/* Checking device name for validness */
+			hint.blocks = misc_size2long(argv[optind]);
+			
+			if (hint.blocks != INVAL_DIG) {
+				/* Converting into fs blocksize blocks */
+				hint.blocks /= (hint.blksize / 1024);
 			} else {
 				aal_exception_error("%s is not a valid size nor an "
 						    "existent file.", argv[optind]);
 				goto error_free_libreiser4;
 			}
-		} else
+		} else {
 			devices = aal_list_append(devices, argv[optind]);
+		}
 	}
 
 	if (aal_list_len(devices) == 0) {
@@ -269,8 +279,11 @@ int main(int argc, char *argv[]) {
 	/* All devices cannot have the same uuid and label, so here we clean it
 	   out. */
 	if (aal_list_len(devices) > 1) {
-		aal_memset(uuid, 0, sizeof(uuid));
-		aal_memset(label, 0, sizeof(label));
+		aal_memset(hint.uuid, 0,
+			   sizeof(hint.uuid));
+		
+		aal_memset(hint.label, 0,
+			   sizeof(hint.label));
 	}
 
 	if (!(flags & BF_QUIET)) {
@@ -316,54 +329,51 @@ int main(int argc, char *argv[]) {
 
 		/* Generating uuid if it was not specified and if libuuid is in use */
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-		if (aal_strlen(uuid) == 0)
-			uuid_generate(uuid);
+		if (aal_strlen(hint.uuid) == 0)
+			uuid_generate(hint.uuid);
 #endif
 		/* Opening device */
 		if (!(device = aal_device_open(&file_ops, host_dev, 
-		      REISER4_SECSIZE, O_RDWR))) 
+					       REISER4_SECSIZE, O_RDWR))) 
 		{
 			aal_exception_error("Can't open %s. %s.",
 					    host_dev, strerror(errno));
 			goto error_free_libreiser4;
 		}
     
-		/* Preparing filesystem length */
-		dev_len = aal_device_len(device);
+		/* Converting device length into fs blocksize blocks */
+		dev_len = aal_device_len(device) /
+			(hint.blksize / device->blksize);
     
-		if (!fs_len)
-			fs_len = dev_len;
+		if (!hint.blocks)
+			hint.blocks = dev_len;
 	
-		if (fs_len > dev_len) {
+		if (hint.blocks > dev_len) {
 			aal_exception_error("Filesystem wouldn't fit into device "
 					    "%llu blocks long, %llu blocks required.",
-					    dev_len, fs_len);
+					    dev_len, hint.blocks);
 			goto error_free_device;
 		}
 
 		/* Checking for "quiet" mode */
 		if (!(flags & BF_QUIET)) {
-			if (aal_exception_yesno("Reiser4 with %s profile "
-						"is going to be created "
-						"on %s.", profile_label,
+			if (aal_exception_yesno("Reiser4 with %s profile is going "
+						"to be created on %s.", profile,
 						host_dev) == EXCEPTION_NO)
+			{
 				goto error_free_device;
+			}
 		}
     
 		if (gauge) {
 			aal_gauge_rename(gauge, "Creating reiser4 with %s on %s",
-					 profile->name, host_dev);
+					 profile, host_dev);
 
 			aal_gauge_start(gauge);
 		}
 
-		fs_len = fs_len / (blocksize / device->blocksize);
-
 		/* Creating filesystem */
-		if (!(fs = reiser4_fs_create(device, uuid, label,
-					     profile, blocksize,
-					     fs_len))) 
-		{
+		if (!(fs = reiser4_fs_create(device, &hint))) {
 			aal_exception_error("Can't create filesystem on %s.", 
 					    aal_device_name(device));
 			goto error_free_device;
@@ -378,9 +388,11 @@ int main(int argc, char *argv[]) {
 			goto error_free_journal;
     
 		/* Creating root directory */
-		if (!(fs->root = reiser4_dir_create(fs, NULL, NULL, profile))) {
-			aal_exception_error("Can't create filesystem root "
-					    "directory.");
+		if (!(fs->root = reiser4_dir_create(fs, NULL, NULL,
+						    hint.profile)))
+		{
+			aal_exception_error("Can't create filesystem "
+					    "root directory.");
 			goto error_free_tree;
 		}
 
@@ -394,7 +406,8 @@ int main(int argc, char *argv[]) {
 			reiser4_object_t *object;
 	    
 			if (!(object = reiser4_dir_create(fs, "lost+found",
-							  fs->root, profile)))
+							  fs->root,
+							  hint.profile)))
 			{
 				aal_exception_error("Can't create lost+found "
 						    "directory.");
@@ -413,11 +426,11 @@ int main(int argc, char *argv[]) {
 	
 		/* Zeroing uuid in order to force mkfs to generate it on its own
 		   for next device form built device list. */
-		aal_memset(uuid, 0, sizeof(uuid));
+		aal_memset(hint.uuid, 0, sizeof(hint.uuid));
 
 		/* Zeroing fs_len in order to force mkfs on next turn to calc
 		   its size from actual device length. */
-		fs_len = 0;
+		hint.blocks = 0;
 	
 		if (gauge)
 			aal_gauge_done(gauge);

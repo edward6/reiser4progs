@@ -350,7 +350,7 @@ reiser4_profile_t *misc_profile_find(const char *name) {
 }
 
 errno_t misc_profile_override(reiser4_profile_t *profile,
-			       char *override)
+			      char *override)
 {
 	while (1) {
 		char *index;

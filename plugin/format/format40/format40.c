@@ -124,7 +124,7 @@ static errno_t format40_super_check(format40_t *format,
 	blk_t dev_len;
     
 	dev_len = aal_device_len(format->device) /
-		(format->blocksize / format->device->blocksize);
+		(format->blocksize / format->device->blksize);
 	
 	if (get_sb_block_count(super) > dev_len) {
 		aal_exception_error("Superblock has an invalid block "

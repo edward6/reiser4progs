@@ -315,7 +315,7 @@ static errno_t node40_get_item(object_entity_t *entity,
 	    return -EINVAL;
 	
 	/* Initializes item's context (device, block number, etc) */
-	item->context.blocksize = node->size;
+	item->context.blksize = node->size;
 	item->context.device = node->block->device;
 	item->context.blk = aal_block_number(node->block);
 

@@ -60,23 +60,20 @@ static void cpfs_init(void) {
 int main(int argc, char *argv[]) {
 	int c;
 	
-	count_t fs_len;
-	uint32_t blocksize;
-	
+	fs_hint_t hint;
 	reiser4_fs_t *src_fs;
 	reiser4_fs_t *dst_fs;
 
-	aal_device_t *src_device;
-	aal_device_t *dst_device;
-	reiser4_profile_t *profile;
-    
 	struct stat st;
-	char *uuid, *label;
 	char override[4096];
 	char *src_dev, *dst_dev;
+	char *profile = "smart40";
+
+	aal_device_t *src_device;
+	aal_device_t *dst_device;
+    
 	aal_gauge_t *gauge = NULL;
 	cpfs_behav_flags_t flags = 0;
-	char *profile_label = "smart40";
     
 	static struct option long_options[] = {
 		{"version", no_argument, NULL, 'V'},
@@ -111,7 +108,7 @@ int main(int argc, char *argv[]) {
 			misc_print_banner(argv[0]);
 			return NO_ERROR;
 		case 'e':
-			profile_label = optarg;
+			profile = optarg;
 			break;
 		case 'f':
 			flags |= BF_FORCE;
@@ -123,7 +120,9 @@ int main(int argc, char *argv[]) {
 			flags |= BF_PLUGS;
 			break;
 		case 'o':
-			aal_strncat(override, optarg, aal_strlen(optarg));
+			aal_strncat(override, optarg,
+				    aal_strlen(optarg));
+			
 			aal_strncat(override, ",", 1);
 			break;
 		case 'K':
@@ -149,9 +148,9 @@ int main(int argc, char *argv[]) {
 	}
 	
 	/* Initializing passed profile */
-	if (!(profile = misc_profile_find(profile_label))) {
+	if (!(hint.profile = misc_profile_find(profile))) {
 		aal_exception_error("Can't find profile by its label %s.", 
-				    profile_label);
+				    profile);
 		goto error;
 	}
 
@@ -172,9 +171,9 @@ int main(int argc, char *argv[]) {
 	   after libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
 		aal_exception_info("Overriding profile %s by \"%s\".",
-				   profile->name, override);
+				   profile, override);
 		
-		if (misc_profile_override(profile, override))
+		if (misc_profile_override(hint.profile, override))
 			goto error_free_libreiser4;
 	}
 
@@ -296,7 +295,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Opening source fs */
-	if (!(src_fs = reiser4_fs_open(src_device, profile))) {
+	if (!(src_fs = reiser4_fs_open(src_device, hint.profile))) {
 		aal_exception_error("Cannot open src filesystem on %s.",
 				    src_dev);
 		goto error_free_dst_device;
@@ -308,15 +307,17 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Creating destinatrion fs */
-	uuid = reiser4_master_uuid(src_fs->master);
-	label = reiser4_master_label(src_fs->master);
-	fs_len = reiser4_format_get_len(src_fs->format);
-	blocksize = reiser4_master_blksize(src_fs->master);
+	aal_strncpy(hint.uuid, reiser4_master_uuid(src_fs->master),
+		    sizeof(hint.uuid));
+	
+	aal_strncpy(hint.label, reiser4_master_label(src_fs->master),
+		    sizeof(hint.label));
+	
+	hint.blocks = reiser4_format_get_len(src_fs->format);
+	hint.blksize = reiser4_master_blksize(src_fs->master);
 	
 	/* Creating dst filesystem */
-	if (!(dst_fs = reiser4_fs_create(dst_device, uuid, label, profile,
-					 blocksize, fs_len))) 
-	{
+	if (!(dst_fs = reiser4_fs_create(dst_device, &hint))) {
 		aal_exception_error("Can't create filesystem on %s.", 
 				    dst_dev);
 		goto error_free_src_tree;

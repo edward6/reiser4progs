@@ -212,10 +212,7 @@ errno_t reiser4_fs_mark(reiser4_fs_t *fs) {
 /* Create filesystem on specified host device and with passed params */
 reiser4_fs_t *reiser4_fs_create(
 	aal_device_t *device,           /* device filesystem will be lie on */
-	char *uuid, char *label,        /* uuid and label to be used */
-	reiser4_profile_t *profile,	/* profile to be used for filesystem */
-	uint32_t blocksize,             /* block size to be used */
-	count_t blocks)		        /* filesystem length in blocks */
+	fs_hint_t *hint)                /* filesystem hint */
 {
 	rid_t policy;
 	rid_t format;
@@ -224,33 +221,33 @@ reiser4_fs_t *reiser4_fs_create(
 	count_t dev_len;
 	reiser4_fs_t *fs;
 
-	aal_assert("umka-1854", blocks > 0);
+	aal_assert("vpf-113", hint != NULL);
 	aal_assert("umka-149", device != NULL);
-	aal_assert("vpf-113", profile != NULL);
+	aal_assert("vpf-113", hint->profile != NULL);
 
 	/* Makes check for validness of specified block size value */
-	if (!aal_pow2(blocksize)) {
+	if (!aal_pow2(hint->blksize)) {
 		aal_exception_error("Invalid block size %u. It must "
-				    "be power of two.", blocksize);
+				    "be power of two.", hint->blksize);
 		return NULL;
 	}
 
 	dev_len = aal_device_len(device) /
-		(blocksize / device->blocksize);
+		(hint->blksize / device->blksize);
 	
-	if (blocks > dev_len) {
+	if (hint->blocks > dev_len) {
 		aal_exception_error("Device %s is too small (%llu) "
 				    "for filesystem %u blocks long.",
 				    aal_device_name(device), dev_len,
-				    blocks);
+				    hint->blocks);
 		return NULL;
 	}
     
 	/* Checks whether filesystem size is enough big */
-	if (blocks < REISER4_MIN_SIZE) {
+	if (hint->blocks < REISER4_MIN_SIZE) {
 		aal_exception_error("Requested filesytem size (%llu) "
 				    "too small. Reiser4 required minimal "
-				    "size %u blocks long.", blocks,
+				    "size %u blocks long.", hint->blocks,
 				    REISER4_MIN_SIZE);
 		return NULL;
 	}
@@ -260,30 +257,31 @@ reiser4_fs_t *reiser4_fs_create(
 		return NULL;
 	
 	fs->device = device;
-	fs->profile = profile;
+	fs->profile = hint->profile;
 	
 	/* Creates master super block */
-	format = reiser4_profile_value(profile, "format");
+	format = reiser4_profile_value(hint->profile, "format");
 		
 	if (!(fs->master = reiser4_master_create(device, format,
-						 blocksize,
-						 uuid, label)))
+						 hint->blksize,
+						 hint->uuid,
+						 hint->label)))
 	{
 		goto error_free_fs;
 	}
 
 	/* Getting tail policy from the passed profile */
-	policy = reiser4_profile_value(profile, "policy");
+	policy = reiser4_profile_value(hint->profile, "policy");
 	
 	/* Creates disk format */
-	if (!(fs->format = reiser4_format_create(fs, blocks, policy,
-						 format)))
+	if (!(fs->format = reiser4_format_create(fs, hint->blocks,
+						 policy, format)))
 	{
 		goto error_free_master;
 	}
 
 	/* Creates block allocator */
-	if (!(fs->alloc = reiser4_alloc_create(fs, blocks)))
+	if (!(fs->alloc = reiser4_alloc_create(fs, hint->blocks)))
 		goto error_free_format;
 
 	/* Initializes oid allocator */
