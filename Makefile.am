@@ -17,3 +17,9 @@ TAGS:
 
 tags:
 	$(all-sources) | xargs -- ctags -w -o TAGS
+
+install-exec-hook:
+	./run-ldconfig $(libdir)
+
+uninstall-hook:
+	./run-ldconfig $(libdir)

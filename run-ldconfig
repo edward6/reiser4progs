@@ -1,0 +1,26 @@
+#!/bin/bash
+
+ldc="";
+if [ -x /sbin/ldconfig ]; then 
+	ldc="/sbin/ldconfig"; 
+fi
+if test x$ldc = x; then
+	which ldconfig 2>&1>/dev/null;
+	if test $? -eq 0; then 
+		ldc=`which ldconfig`; 
+	fi
+fi
+if test x$ldc = x; then
+	echo ;
+	echo "ldconfig is not available";
+	echo "do not forget to run ldconfig manually";
+	echo ;
+	exit 1;
+fi
+cp /etc/ld.so.conf /tmp/ld.$$.so.conf;
+echo $1 >> /tmp/ld.$$.so.conf;
+echo ;
+echo Running $ldc;
+$ldc -f /tmp/ld.$$.so.conf;
+echo ;
+rm /tmp/ld.$$.so.conf;

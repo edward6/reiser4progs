@@ -689,6 +689,4 @@ AC_OUTPUT([
 ])
 
 echo
-echo Type \'make\' to compile reiser4progs
-echo Don\'t forget to add \'$prefix/lib\' directory to /etc/ld.so.conf
-
+echo Type \'make\' to compile libaal and \'make install\' to install it.
