@@ -2046,7 +2046,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 		if (SF_ALLOW_MERGE & flags)
 			shift_flags |= SF_ALLOW_MERGE;
 		
-		if ((SF_MOVE_POINT & flags) && reiser4_place_rightmost(place))
+		if (SF_MOVE_POINT & flags)
 			shift_flags |= SF_MOVE_POINT;
 
 		old_node = place->node;
@@ -2083,8 +2083,8 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 	
 	/* Here we still have not enough free space for inserting item/unit into
 	   the tree. Allocating new nodes and trying to shift data into
-	   it. There are possible two tries to allocate new node and shift
-	   insert point to it. */
+	   them. There are possible two tries to allocate new node and shift
+	   insert point to one of them. */
 	for (alloc = 0; enough < 0 && alloc < 2; alloc++) {
 		place_t save;
 		node_t *node;
@@ -2115,6 +2115,11 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 		if ((res = reiser4_tree_shift(tree, place, node, shift_flags)))
 			return res;
 
+		if (reiser4_node_items(save.node) == 0) {
+			if ((res = reiser4_tree_detach_node(tree, save.node)))
+				return res;
+		}
+		
 		if (reiser4_node_items(node) > 0) {
 			/* Growing tree in the case we splitted the root
 			   node. */
@@ -2122,7 +2127,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 				if ((res = reiser4_tree_growup(tree)))
 					return res;
 			}
-
+			
 			/* Attach new node to tree if it is not empty. */
 			if ((res = reiser4_tree_attach_node(tree, node)))
 				return res;
@@ -2147,7 +2152,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 		/* Releasing save.@node if it is empty and insert point is not
 		   inside it. */
 		if (reiser4_node_items(save.node) == 0 && save.node != place->node)
-			reiser4_tree_discard_node(tree, save.node);
+			reiser4_tree_release_node(tree, save.node);
 	}
 
 	/* Return value of free space in insert point node. */
