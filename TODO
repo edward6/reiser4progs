@@ -7,8 +7,6 @@ reiser4progs/COPYING.
 
 * debug reg40_truncate()
 
-* change code style in some place in reiser4progs (comments, etc).
-
 * plugin inheritance for objects.
 
 * rid of @level param in tree_lookup(), as it almost always looks 
