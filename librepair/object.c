@@ -24,19 +24,13 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	aal_assert("vpf-1195", mode != REPAIR_REBUILD ||
 			      !(res & REPAIR_FATAL));
 	
-	/* FIXME-VITALY: this is probably should be set by plugin. Together 
-	   with object->info.parent key. */
 	reiser4_key_assign(&object->info.object, &object->info.start.key);
 	reiser4_key_string(&object->info.object, object->name);
 	
 	return res;
 }
 
-/* Helper callback for probing passed @plugin. 
-   
-   FIXME-VITALY: for now it returns the first matched plugin, it should 
-   be changed if plugins are not sorted in some order of adventages of 
-   recovery. */
+/* Helper callback for probing passed @plugin. */
 static bool_t callback_object_realize(reiser4_plug_t *plug, void *data) {
 	reiser4_object_t *object;
 	
@@ -49,12 +43,19 @@ static bool_t callback_object_realize(reiser4_plug_t *plug, void *data) {
 	/* Try to realize the object as an instance of this plugin. */
 	object->entity = plug_call(plug->o.object_ops, realize, 
 				   &object->info);
-	return object->entity ? TRUE : FALSE;
+
+	if (object->entity != NULL) {
+		plug_call(plug->o.object_ops, close,  object->entity);
+		return TRUE;
+	}
+	
+	return FALSE;
 }
 
 /* Open the object on the base of given start @key */
 reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
-				       reiser4_key_t *key)
+				       reiser4_key_t *key, 
+				       bool_t only)
 {
 	reiser4_object_t *object;
 	reiser4_place_t place;
@@ -67,14 +68,8 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 	
 	switch(lookup) {
 	case PRESENT:
-		/* The start of the object seems to be found. */
-
-		/* FIXME-UMKA->VITALY: This is not needed here, tree_lookup()
-		 * already did it for you :) */
-		if (reiser4_place_fetch(&place))
-			return NULL;
-
-		/* The key must point to the start of the object. */
+		/* The start of the object seems to be found. The key must point 
+		   to the start of the object. */
 		if (reiser4_key_compare(&place.key, key))
 			return NULL;
 		
@@ -88,7 +83,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 		break;
 	case ABSENT:
 		if (!(object = aal_calloc(sizeof(*object), 0)))
-			return NULL;
+			return INVAL_PTR;
 		
 		object->info.tree = tree;
 		object->info.object = *key;
@@ -99,7 +94,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 		*/
 		
 		libreiser4_factory_cfind(callback_object_realize, 
-					 object, FALSE);
+					 object, only);
 		
 		if (!object->entity)
 			goto error_close_object;
@@ -129,6 +124,7 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 	aal_assert("vpf-1130", place != NULL);
 	aal_assert("vpf-1189", place->plug != NULL);
 	
+	/* If StatData found -- it handles some object, try to realize it. */
 	if (reiser4_item_statdata(place))
 		return reiser4_object_realize(tree, place);
 	
@@ -137,11 +133,8 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
     	
 	object->info.tree = tree;
 	
-	aal_memcpy(reiser4_object_start(object),
-		   place, sizeof(*place));
-	
-	reiser4_key_assign(&object->info.object,
-			   &object->info.start.key);
+	aal_memcpy(reiser4_object_start(object), place, sizeof(*place));
+	reiser4_key_assign(&object->info.object, &object->info.start.key);
 	
 	libreiser4_factory_cfind(callback_object_realize, object, only);
 	

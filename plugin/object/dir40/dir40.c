@@ -1166,16 +1166,16 @@ static reiser4_object_ops_t dir40_ops = {
 	.truncate	= dir40_truncate,
 	.add_entry	= dir40_add_entry,
 	.rem_entry	= dir40_rem_entry,
-	.realize	= dir40_realize,
 	.attach		= dir40_attach,
 	.detach		= dir40_detach,
 	.clobber	= dir40_clobber,
 	
 	.seek		= NULL,
 	.write		= NULL,
+	
+	.realize	= dir40_realize,
 	.check_struct	= NULL,
 	.check_attach	= NULL,
-	
 #endif
 	.follow		= NULL,
 	.read		= NULL,

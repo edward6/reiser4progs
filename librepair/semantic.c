@@ -145,7 +145,12 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	if (!object->info.parent.plug)
 		return NULL;
 	
-	parent = repair_object_launch(object->info.tree, &object->info.parent);
+	/* Must be point exact matched plugin. Ambigious plugins will 
+	   be recovered later on CLEANUP pass. */
+	if ((parent = repair_object_launch(object->info.tree, 
+					   &object->info.parent, 
+					   TRUE)) == INVAL_PTR)
+		return INVAL_PTR;
 	
 	if (parent == NULL)
 		goto error_object_detach;
@@ -261,10 +266,12 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	if (entry->type != ET_NAME)
 		return NULL;
 
-	/* Try to realize unambiguously the object by the place. */
-	if ((object = repair_object_launch(parent->info.tree, 
-					   &entry->object)) == NULL)
-	{
+	/* Try to realize unambiguously the object by the key. */
+	if ((object = repair_object_launch(parent->info.tree, &entry->object,
+					   TRUE)) == INVAL_PTR)
+		return INVAL_PTR;
+	
+	if (object == NULL) {
 		if (sem->repair->mode == REPAIR_REBUILD)
 			goto error_rem_entry;
 		
@@ -304,6 +311,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		}
 	}
 	
+	/* If ATTACHED after uptraverse, skip another traversing. */
 	flag = repair_item_test_flag(start, OF_ATTACHED);
 	
 	/* Check the attach with @parent. */
@@ -376,7 +384,9 @@ static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
 	if (repair_item_test_flag(place, OF_CHECKED))
 		return 0;
 	
-	/* Try to realize unambiguously the object by the place. */
+	/* Try to realize unambiguously the object by the place. Objects which 
+	   cannot be recognized unambiguously will be recovered later -- on the 
+	   CLEANUP pass. */
 	if ((object = repair_object_realize(sem->repair->fs->tree, 
 					    place, TRUE)) == NULL)
 		return 0;
@@ -406,7 +416,6 @@ static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
 		   if one will be found. */
 		repair_item_clear_flag(reiser4_object_start(object), 
 				       OF_ATTACHED);
-
 	}
 	
 	/* Traverse the found parent if any or the openned object. */
@@ -452,11 +461,19 @@ static reiser4_object_t *repair_semantic_open_lost_found(repair_semantic_t *sem,
 	if (lookup == ABSENT)
 		return NULL;
 
-	/* Entry was found. */
-	if ((object = repair_object_launch(sem->repair->fs->tree, 
-					   &entry.object)) == NULL)
-		return NULL;
+	/* Must be recovered with the most appropriate plugin. */
+	if ((object = repair_object_launch(sem->repair->fs->tree, &entry.object,
+					   FALSE)) == INVAL_PTR)
+		return INVAL_PTR;
 	
+	if (object == NULL) {
+		/* Remove the entry from "/". */
+		if ((res = reiser4_object_rem_entry(root, &entry)))
+			return res;
+
+		return NULL;
+	}
+	 
 	res = repair_semantic_check_struct(sem, object);
 
 	if (repair_error_fatal(res))
@@ -514,7 +531,10 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	if (fs->tree->root == NULL)
 		return -EINVAL;
 	
-	root = repair_object_launch(sem->repair->fs->tree, &fs->tree->key);
+	/* Root dir must be recovered with the most appropriate plugin. */
+	if ((root = repair_object_launch(sem->repair->fs->tree, &fs->tree->key, 
+				    FALSE)) == INVAL_PTR)
+		return -EINVAL;
 	
 	if (root) {
 		/* '/' exists, check it and its subtree. */

@@ -138,9 +138,6 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
    
    FIXME-VITALY: This must be recursive method. + there is smth similar in 
    libreiser4 already.*/
-
-/* FIXME-UMKA->VITALY: Recursive key updating should be performed from the tree
- * and in this case reiser4_tree_ukey() may be used. */
 static errno_t repair_node_ld_key_update(reiser4_node_t *node, 
 					 reiser4_key_t *ld_key) 
 {
