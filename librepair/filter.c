@@ -367,10 +367,11 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 		if ((res = reiser4_tree_disconnect_node(tree, node)))
 			return -EINVAL;
 		
-		if ((res = reiser4_node_close(node)))
+		/* If there is another pointer to this node, 
+		   changes should be saved. */
+		if ((res = reiser4_node_fini(node)))
 			return res;
 	}
-
 	
 	if (fd->repair->mode == RM_BUILD) {
 		pos_t prev;

@@ -108,8 +108,8 @@ errno_t spl40_check_struct(object_entity_t *object,
 	/* Fix the SD, if no fatal corruptions were found. */
 	return obj40_check_stat(&spl->obj, mode == RM_BUILD ? 
 				spl40_zero_nlink : NULL,
-				spl40_check_mode, 
-				spl40_check_size, 0, 0, mode);
+				spl40_check_mode, spl40_check_size,
+				0, MAX_UINT64, mode);
 }
 
 #endif

@@ -714,8 +714,8 @@ static void repair_semantic_setup(repair_semantic_t *sem) {
 		return;
 
 	sem->progress->type = GAUGE_SEM;
-	sem->progress->text = "***** Semantic Traverse Pass: reiser4 semantic "
-		"tree recovering.";
+	sem->progress->text = "***** Semantic Traverse Pass: reiser4 "
+		"semantic tree checking.";
 	sem->progress->state = PROGRESS_STAT;
 	time(&sem->stat.time);
 	sem->progress_handler(sem->progress);

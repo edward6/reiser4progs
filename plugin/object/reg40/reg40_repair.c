@@ -574,9 +574,11 @@ errno_t reg40_check_struct(object_entity_t *object,
 		if ((res |= reg40_hole_cure(object, &repair, mode)) < 0)
 			return res;
 		
-		/* Count bytes. */
-		repair.bytes += plug_call(reg->body.plug->o.item_ops->object,
-					  bytes, &reg->body);
+		/* Count bytes if no conversion is being prepared. */
+		if (!hint.offset.plug) {
+			repair.bytes += plug_call(reg->body.plug->o.item_ops->object,
+						  bytes, &reg->body);
+		}
 		
 
 	next:

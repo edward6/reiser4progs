@@ -142,8 +142,8 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	/* Update the SD place. */
 	if ((res = obj40_update(obj))) {
 		aal_error("Node (%llu), item (%u): failed to update "
-			  "the StatData of the file [%s]. Plugin "
-			  "(%s).", stat->block->nr, stat->pos.item,
+			  "the StatData of the file [%s]. Plugin (%s).", 
+			  stat->block->nr, stat->pos.item,
 			  print_inode(obj->core, &stat->key), 
 			  stat->plug->label);
 		return res;
@@ -182,14 +182,12 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	
 	/* Check the size in the LW extension. */
 	if (lw_new.size != lw_hint.size) {
-		aal_error("Node (%llu), item (%u): StatData of "
-			  "the file [%s] has the wrong size "
-			  "(%llu), %s (%llu). Plugin (%s).",
+		aal_error("Node (%llu), item (%u): StatData of the file [%s] "
+			  "has the wrong size (%llu), %s (%llu). Plugin (%s).",
 			  stat->block->nr, stat->pos.item, 
 			  print_inode(obj->core, &stat->key),
-			  lw_hint.size, mode == RM_CHECK ? 
-			  "Should be" : "Fixed to", lw_new.size, 
-			  stat->plug->label);
+			  lw_hint.size, mode == RM_CHECK ? "Should be" : 
+			  "Fixed to", lw_new.size, stat->plug->label);
 		
 		res = RE_FIXABLE;
 	}
@@ -204,26 +202,22 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	
 	/* Check the mode in the LW extension. */
 	
-	/* sd_butes are set wrongly in the kernel. Waiting for the VS.	
-	if (unix_hint.bytes != bytes) {
-		aal_error("Node (%llu), item (%u): StatData of "
-		"the file [%s] has the wrong bytes "
-		"(%llu), %s (%llu). Plugin (%s).", 
-		stat->block->nr, stat->pos.item, 
-		print_inode(obj->core, &stat->key),
-		unix_hint.bytes, mode == RM_CHECK ? 
-		"Should be" : "Fixed to", bytes, 
-		stat->plug->label);
+	/* sd_butes are set wrongly in the kernel. Waiting for the VS. */
+	if (bytes != MAX_UINT64 && unix_hint.bytes != bytes) {
+		aal_error("Node (%llu), item (%u): StatData of the file [%s] "
+			  "has the wrong bytes (%llu), %s (%llu). Plugin (%s).",
+			  stat->block->nr, stat->pos.item, 
+			  print_inode(obj->core, &stat->key),
+			  unix_hint.bytes, mode == RM_CHECK ? "Should be" : 
+			  "Fixed to", bytes, stat->plug->label);
 		
-		if (mode == RM_CHECK) {
-			unix_hint.bytes = bytes;
-			res = RE_FIXABLE;
-		}
+		unix_hint.bytes = bytes;
+		unix_hint.rdev = 0;
+		res = RE_FIXABLE;
 	}
-	*/
 	
 	if (res && mode != RM_CHECK) {
-		res = obj40_write_ext(stat, SDEXT_LW_ID, &lw_new);
+		res = obj40_write_ext(stat, SDEXT_UNIX_ID, &unix_hint);
 		if (res) return res;
 	}
 	
