@@ -138,6 +138,9 @@ reiser4_file_t *reiser4_file_begin(
 
 #ifndef ENABLE_COMPACT
 	reiser4_key_print(&file->key, file->name, sizeof(file->name));
+#else
+	aal_snprintf(file->name, sizeof(file->name), "%llx",
+		     reiser4_key_objectid(&file->key));
 #endif
 	
 	if (!(plugin = reiser4_file_guess(&file->coord))) {

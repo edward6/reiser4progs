@@ -260,7 +260,7 @@ static errno_t callback_tree_frag(
 	if (level <= LEAF_LEVEL)
 		return 0;
 	
-	aal_gauge_touch(hint->gauge);
+	aal_gauge_update(hint->gauge, 0);
 		
 	pos.unit = ~0ul;
 	
@@ -355,7 +355,7 @@ static errno_t callback_file_frag(object_entity_t *entity, blk_t blk,
 	int64_t delta;
 	struct file_frag_hint *hint = (struct file_frag_hint *)data;
 
-	aal_gauge_touch(hint->gauge);
+	aal_gauge_update(hint->gauge, 0);
 
 	if (hint->curr == 0) {
 		hint->curr = blk;
@@ -431,7 +431,7 @@ static errno_t callback_node_packing(reiser4_joint_t *joint, void *data) {
 	struct node_pack_hint *hint = (struct node_pack_hint *)data;
 
 	if (hint->total % 128 == 0)
-		aal_gauge_touch(hint->gauge);
+		aal_gauge_update(hint->gauge, 0);
 
 	device = joint->node->block->device;
 	used = aal_device_get_bs(device) - reiser4_node_space(joint->node);
@@ -499,8 +499,6 @@ static errno_t callback_data_frag(reiser4_joint_t *joint, void *data) {
 	if (level > LEAF_LEVEL)
 		return 0;
 	
-	aal_gauge_touch(hint->gauge);
-
 	pos.unit = ~0ul;
 	
 	for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {

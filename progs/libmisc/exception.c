@@ -121,6 +121,9 @@ static aal_exception_option_t progs_exception_prompt(
 /* Streams assigned with exception type are stored here */
 static void *streams[10];
 
+/* Current progs gauge. Used for correct pausing when exception */
+extern aal_gauge_t *current_gauge;
+
 /* 
    Common exception handler for all reiser4progs. It implements exception
    handling in "question-answer" maner and used for all communications with
@@ -139,6 +142,9 @@ aal_exception_option_t progs_exception_handler(
 			return EXCEPTION_UNHANDLED;
 	}
 
+	if (current_gauge)
+		aal_gauge_pause(current_gauge);
+	
 	progs_wipe_line(stream);
 	progs_exception_print_wrap(exception);
     
@@ -152,6 +158,7 @@ aal_exception_option_t progs_exception_handler(
 			variant = aal_list_append(variant, name);
 		}
 	}
+	
 	variant = aal_list_first(variant);
 	progs_set_variant(variant);
 #endif
@@ -164,7 +171,7 @@ aal_exception_option_t progs_exception_handler(
 	aal_list_free(variant);
 	progs_set_variant(NULL);
 #endif
-    
+
 	return opt;
 }
 

@@ -54,6 +54,7 @@ extern void aal_gauge_done(aal_gauge_t *gauge);
 extern void aal_gauge_touch(aal_gauge_t *gauge);
 extern void aal_gauge_free(aal_gauge_t *gauge);
 extern void aal_gauge_pause(aal_gauge_t *gauge);
+extern void aal_gauge_resume(aal_gauge_t *gauge);
 
 #endif
 

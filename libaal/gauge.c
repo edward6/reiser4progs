@@ -93,7 +93,7 @@ static void aal_gauge_change(aal_gauge_t *gauge,
 	aal_gauge_touch(gauge);
 }
 
-static void aal_gauge_resume(aal_gauge_t *gauge) {
+void aal_gauge_resume(aal_gauge_t *gauge) {
 	if (!gauge) return;
     
 	if (gauge->state == GAUGE_PAUSED)
@@ -102,8 +102,6 @@ static void aal_gauge_resume(aal_gauge_t *gauge) {
 
 void aal_gauge_done(aal_gauge_t *gauge) {
 	if (!gauge) return;
-    
-	aal_gauge_resume(gauge);
     
 	if (gauge->state == GAUGE_RUNNING || gauge->state == GAUGE_STARTED)
 		aal_gauge_change(gauge, GAUGE_DONE);
@@ -120,9 +118,11 @@ void aal_gauge_pause(aal_gauge_t *gauge) {
 void aal_gauge_update(aal_gauge_t *gauge, uint32_t value) {
 	aal_assert("umka-895", gauge != NULL, return);
 
-	aal_gauge_resume(gauge);
-    
 	gauge->value = value;
+
+	aal_gauge_resume(gauge);
+	gauge->state = GAUGE_RUNNING;
+	
 	aal_gauge_touch(gauge);
 }
 

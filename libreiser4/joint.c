@@ -709,7 +709,7 @@ errno_t reiser4_joint_traverse(
 
  error_update_func:
 	
-	if (!child->children) {
+	if (child->data && !child->children) {
 		reiser4_joint_detach(joint, child);
 		reiser4_joint_close(child);
 	}

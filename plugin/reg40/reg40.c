@@ -543,6 +543,9 @@ static errno_t reg40_layout(object_entity_t *entity, file_action_func_t func,
 					    count, &reg->body.entity);
 
 			blocksize = aal_block_size(reg->body.entity.context.block);
+
+			if (pos.unit == ~0ul)
+				pos.unit = 0;
 			
 			for (; pos.unit < count; pos.unit++) {
 				uint64_t blk;

@@ -11,6 +11,8 @@
 
 #define GAUGE_BITS_SIZE 4
 
+aal_gauge_t *current_gauge = NULL;
+
 static inline void progs_gauge_blit(void) {
 	static short bitc = 0;
 	static const char bits[] = "|/-\\";
@@ -28,10 +30,8 @@ static inline void progs_gauge_header(
 	aal_gauge_type_t type)	/* gauge type */
 {
 	if (name) {
-		if (type != GAUGE_SILENT)
-			fprintf(stderr, "\r%s: ", name);
-		else
-			fprintf(stderr, "\r%s...", name);
+		fprintf(stderr, "\r%s%s", name,
+			type == GAUGE_SILENT ? "..." : ": ");
 	}
 }
 
@@ -45,6 +45,8 @@ static inline void progs_gauge_footer(
 }
 
 void progs_gauge_handler(aal_gauge_t *gauge) {
+	unsigned int i;
+	char display[10] = {0};
 
 	if (gauge->state == GAUGE_PAUSED) {
 		progs_wipe_line(stderr);
@@ -52,13 +54,12 @@ void progs_gauge_handler(aal_gauge_t *gauge) {
 		return;
 	}
 	
-	if (gauge->state == GAUGE_STARTED)
+	if (gauge->state == GAUGE_STARTED) {
+		current_gauge = gauge;
 		progs_gauge_header(gauge->name, gauge->type);
+	}
 	
 	switch (gauge->type) {
-		unsigned int i;
-		char display[10] = {0};
-		
 	case GAUGE_PERCENTAGE:
 		
 		sprintf(display, "%d%%", gauge->value);
@@ -73,8 +74,10 @@ void progs_gauge_handler(aal_gauge_t *gauge) {
 	case GAUGE_SILENT: break;
 	}
 
-	if (gauge->state == GAUGE_DONE)
+	if (gauge->state == GAUGE_DONE) {
+		current_gauge = NULL;
 		progs_gauge_footer("done\n", gauge->type);
+	}
     
 	fflush(stderr);
 }
