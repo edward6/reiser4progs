@@ -2888,6 +2888,9 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, place_t *place,
 			if ((res = reiser4_tree_discard_node(tree, place->node)))
 				return res;
 		
+			if (tree->root == place->node)
+				tree->root = NULL;
+
 			place->node = NULL;
 		}
 	} else {
