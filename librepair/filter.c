@@ -78,6 +78,7 @@ static errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) 
 
     aal_assert("vpf-255", data != NULL, return -1);
     aal_assert("vpf-531", coord != NULL, return -1);
+    aal_assert("vpf-703", reiser4_item_nodeptr(coord), return -1);
 
     fd = repair_filter((repair_data_t *)data);
     if (plugin_call(coord->item.plugin->item_ops, fetch, 
