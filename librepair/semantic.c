@@ -647,6 +647,7 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 	reiser4_key_t lost;
 	entry_hint_t entry;
 	reiser4_fs_t *fs;
+	errno_t lookup;
 	errno_t res;
 	uint8_t len;
 
@@ -656,11 +657,11 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 	fs = sem->repair->fs;
 
 	/* Look for the entry "lost+found" in the "/". */
-	if ((res = reiser4_object_lookup(sem->root, "lost+found", &entry)) < 0)
-		return res;
+	if ((lookup = reiser4_object_lookup(sem->root, "lost+found", &entry)) < 0)
+		return lookup;
 
 	/* Prepare the lost+found key. */
-	if (res == ABSENT) {
+	if (lookup == ABSENT) {
 		if ((res = repair_fs_lost_key(fs, &lost)))
 			return res;
 		
@@ -685,6 +686,13 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 
 	if ((res = repair_semantic_object_check(sem, sem->root, sem->lost)))
 		goto error_close_lost;
+
+	if (lookup == ABSENT) {
+		/* Add the entry to the @parent. */
+		if ((res = repair_semantic_add_entry(sem->root, sem->lost, 
+						     "lost+found")))
+			return res;
+	}
 
 	len = aal_strlen(LOST_PREFIX);
 	
