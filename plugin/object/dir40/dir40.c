@@ -643,6 +643,8 @@ static errno_t dir40_attach(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
+	aal_memset(&entry, 0, sizeof(entry));
+	
 	aal_strncpy(entry.name, "..", sizeof(entry.name));
 
 	/* Adding ".." pointing to parent to @entity object. */
@@ -775,7 +777,6 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 
 	/* Prepare trans hint. */
 	hint.count = 1;
-	hint.place_func = NULL;
 	hint.region_func = NULL;
 	hint.place_func = entry->place_func;
 	hint.data = entry->data;
