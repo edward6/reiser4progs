@@ -247,13 +247,15 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 			if ((res = reiser4_tree_shrink(tree, &place)))
 				return res;
 		} else {
-			/* Release @place.node, as it gets empty.  */
-			reiser4_tree_detach_node(tree, place.node);
-			reiser4_tree_release_node(tree, place.node);
+			/* Release @place.node, as it got empty.  */
+			reiser4_tree_discard_node(tree, place.node);
+			place.node = NULL;
 		}
 
 		/* Drying tree up in the case root node has only one item */
-		if (reiser4_tree_singular(tree) && !reiser4_tree_minimal(tree))	{
+		if (tree->root && reiser4_tree_singular(tree) &&
+		    !reiser4_tree_minimal(tree))
+		{
 			if ((res = reiser4_tree_dryout(tree)))
 				return res;
 		}

@@ -325,7 +325,7 @@ uint16_t reiser4_node_overhead(node_t *node) {
 			 overhead, node->entity);
 }
 
-/* Returns item max size from in specified node */
+/* Returns max space in specified node. */
 uint16_t reiser4_node_maxspace(node_t *node) {
 	aal_assert("umka-125", node != NULL);
     

@@ -200,7 +200,7 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 
 		res = repair_tree_attach(am->repair->fs->tree, node);
 		if (res < 0 && res != -ESTRUCT) {
-			aal_bug("Add missing pass failed to attach "
+			aal_bug("vpf-3068", "Add missing pass failed to attach "
 				"the node (%llu) to the tree.", blk);
 
 			goto error_close_node;

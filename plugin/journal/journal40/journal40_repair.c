@@ -299,7 +299,7 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 							 check_data);
 				
 				if (ret != -ESTRUCT) {
-					aal_bug("Traverse failed to "
+					aal_bug("vpf-3063", "Traverse failed to "
 						"find a transaction the "
 						"block (%llu) was met for "
 						"the first time.", blk);
@@ -336,7 +336,7 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 						 check_data);
 			
 			if (ret != -ESTRUCT) {
-				aal_bug("Traverse failed to find a "
+				aal_bug("vpf-3066", "Traverse failed to find a "
 					"transaction the block (%llu) was "
 					"met for the first time.", blk);
 				return ret;
@@ -370,7 +370,7 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 						 NULL, NULL, check_data);
 			
 			if (ret != -ESTRUCT) {
-				aal_bug("Traverse failed to find a "
+				aal_bug("vpf-3067", "Traverse failed to find a "
 					"transaction the block (%llu) was "
 					"met for the first time.", blk);
 				return ret;

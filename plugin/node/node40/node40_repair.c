@@ -57,9 +57,10 @@ static errno_t node40_region_delete(node40_t *node,
 	len = node40_size(node, &pos, count);
 
 	if (node40_shrink((node_entity_t *)node, &pos, len, count)) {
-		aal_bug("Node (%llu): Failed to delete the item (%d) "
-			"of a region [%u..%u].", node->block->nr, 
-			i - pos.item, start_pos, end_pos);
+		aal_bug("vpf-3062", "Node (%llu): Failed to delete "
+			"the item (%d) of a region [%u..%u].",
+			node->block->nr, i - pos.item, start_pos,
+			end_pos);
 		return -EIO;
 	}
 	

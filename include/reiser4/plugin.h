@@ -286,6 +286,15 @@ struct place {
 	reiser4_plug_t *plug;
 };
 
+enum node_flags {
+#ifndef ENABLE_STAND_ALONE
+	NF_HEARD_BANSHEE  = 1 << 0,
+#endif
+	NF_ATTACHED       = 1 << 1
+};
+
+typedef enum node_flags node_flags_t;
+
 /* Reiser4 in-memory node structure. */
 struct node {
 	/* Node entity. Node plugin initializes this value and return it back in
@@ -312,6 +321,9 @@ struct node {
 	signed int counter;
 
 #ifndef ENABLE_STAND_ALONE
+	/* Different node flags. */
+	uint32_t flags;
+	
 	/* Applications using this library sometimes need to embed information
 	   into the objects of our library for their own use. */
 	void *data;
@@ -1057,10 +1069,10 @@ struct reiser4_node_ops {
 	void (*print) (node_entity_t *, aal_stream_t *,
 		       uint32_t, uint32_t, uint16_t);
     
-	/* Returns item's overhead. */
+	/* Returns node overhead. */
 	uint16_t (*overhead) (node_entity_t *);
 
-	/* Returns item's max size. */
+	/* Returns node max possible space. */
 	uint16_t (*maxspace) (node_entity_t *);
     
 	/* Returns free space in the node. */
@@ -1096,10 +1108,11 @@ struct reiser4_node_ops {
 			 node_entity_t *, pos_t *,
 			 uint32_t);
 	
-	/* Expands node. */
+	/* Expands node (makes space) at passed pos. */
 	errno_t (*expand) (node_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
+	/* Updates key at passed pos by passed key. */
 	errno_t (*set_key) (node_entity_t *, pos_t *,
 			    key_entity_t *);
 
