@@ -75,8 +75,7 @@ errno_t tail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 		hint->len = hint->count;
 		hint->overhead = place->off;
 
-		plug_call(hint->offset.plug->o.key_ops,
-			  assign, &hint->maxkey, &hint->offset);
+		aal_memcpy(&hint->maxkey, &hint->offset, sizeof(hint->maxkey));
 	} else {
 		uint32_t right;
 		uint64_t max_offset;

@@ -807,7 +807,7 @@ static int64_t extent40_alloc_block(reiser4_place_t *place,
 	count = (ins_offset + count + blksize - 1) / blksize * blksize - offset;
 
 	/* Prepare the key of the new allocated block. */
-	plug_call(place->key.plug->o.key_ops, assign, &key, &place->key);
+	aal_memcpy(&key, &place->key, sizeof(key));
 	plug_call(key.plug->o.key_ops, set_offset, &key, offset);
 
 	bytes = count;
@@ -913,8 +913,7 @@ static errno_t extent40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 
 	/* Set maxkey as the start key of the operation. The amount of bytes 
 	   handled will be added later. */
-	plug_call(hint->offset.plug->o.key_ops,
-		  assign, &hint->maxkey, &hint->offset);
+	aal_memcpy(&hint->maxkey, &hint->offset, sizeof(hint->maxkey));
 
 	if (place->pos.unit == MAX_UINT32 || unit_pos == units) {
 		/* Inserting a new item or appending units. */

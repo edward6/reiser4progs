@@ -94,7 +94,7 @@ static reiser4_object_t *reiser4_root_create(reiser4_fs_t *fs) {
 
 	/* Preparing entry hint. */
 	entry.name[0] = '\0';
-	reiser4_key_assign(&entry.offset, &fs->tree->key);
+	aal_memcpy(&entry.offset, &fs->tree->key, sizeof(entry.offset));
 
 	return reiser4_object_create(&entry, &hint);
 }

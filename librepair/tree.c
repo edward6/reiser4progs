@@ -333,7 +333,7 @@ static errno_t repair_tree_conv(reiser4_tree_t *tree,
 	aal_memset(&hint, 0, sizeof(hint));
 	hint.plug = src->plug;
 	
-	reiser4_key_assign(&hint.offset, &dst->key);
+	aal_memcpy(&hint.offset, &dst->key, sizeof(dst->key));
 	reiser4_key_set_offset(&hint.offset, 
 			       reiser4_key_get_offset(&src->key));
 
@@ -473,7 +473,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 	hint.data = data;
 	hint.shift_flags = SF_DEFAULT;
 	
-	reiser4_key_assign(&hint.offset, &src->key);
+	aal_memcpy(&hint.offset, &src->key, sizeof(src->key));
 	level = reiser4_node_get_level(src->node);
 	
 	while (1) {
@@ -558,7 +558,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 		if (src->pos.unit >= scount)
 			break;
 
-		reiser4_key_assign(&hint.offset, &hint.maxkey);
+		aal_memcpy(&hint.offset, &hint.maxkey, sizeof(hint.offset));
 	}
 	
 	return 0;

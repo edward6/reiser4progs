@@ -82,7 +82,8 @@ static errno_t cb_find_entry(char *path, char *name, void *data) {
 
 	if (name == NULL) {
 		/* Start from the root. */
-		reiser4_key_assign(&resol->key, &resol->tree->key);
+		aal_memcpy(&resol->key, &resol->tree->key, sizeof(resol->key));
+
 		return 0;
 	}
 	
@@ -111,7 +112,7 @@ static errno_t cb_find_entry(char *path, char *name, void *data) {
 	resol->parent = resol->object;
 	
 	/* Save found key. */
-	reiser4_key_assign(&resol->key, &entry.object);
+	aal_memcpy(&resol->key, &entry.object, sizeof(resol->key));
 	
 	return 0;
 }
@@ -135,7 +136,7 @@ static reiser4_object_t *reiser4_semantic_open_object(
 	resol.parent = resol.object = NULL;
 
 	/* Initializing the key. */
-	reiser4_key_assign(&resol.key, from ? from : &tree->key);
+	aal_memcpy(&resol.key, from ? from : &tree->key, sizeof(resol.key));
 	
 	/* Parsing path and looking for object's stat data. We assume, that name
 	   is absolute one. So, user, who calls this method should convert name

@@ -22,8 +22,7 @@ static errno_t dir40_telldir(object_entity_t *entity,
 	aal_assert("umka-1986", position != NULL);
 
 	/* Getting current dir key and adjust. */
-	plug_call(dir->position.plug->o.key_ops,
-		  assign, position, &dir->position);
+	aal_memcpy(position, &dir->position, sizeof(*position));
 
 #ifndef ENABLE_MINIMAL
 	/* Adjust is offset inside collided keys arrays and needed for
@@ -61,8 +60,7 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 #endif
 
 	/* Saving passed key to @dir->position. */
-	plug_call(dir->position.plug->o.key_ops,
-		  assign, &dir->position, position);
+	aal_memcpy(&dir->position, position, sizeof(*position));
 
 	return 0;
 }
@@ -507,11 +505,10 @@ static object_entity_t *dir40_create(object_hint_t *hint) {
 	aal_strncpy(entry.name, ".", 1);
 
 	/* Initializing entry stat data key. */
-	plug_call(key->plug->o.key_ops, assign, &entry.object, key);
+	aal_memcpy(&entry.object, key, sizeof(*key));
 
 	/* Initializing entry hash key. */
-	plug_call(key->plug->o.key_ops, assign,
-		  &entry.offset, &body_hint.offset);
+	aal_memcpy(&entry.offset, &body_hint.offset, sizeof(entry.offset));
 
 	body_hint.specific = &entry;
 	body_hint.shift_flags = SF_DEFAULT;
@@ -579,7 +576,7 @@ static errno_t dir40_truncate(object_entity_t *entity, uint64_t n) {
 
 	/* Creating maximal possible key in order to find last directory item
 	   and remove it from the tree. Thanks to Nikita for this idea. */
-	plug_call(dir->body.key.plug->o.key_ops, assign, &key, &dir->body.key);
+	aal_memcpy(&key, &dir->body.key, sizeof(key));
 	plug_call(dir->body.key.plug->o.key_ops, set_offset, &key, MAX_UINT64);
 
 	while (1) {
@@ -731,8 +728,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	dir40_build_entry(entity, entry);
 
 	/* Copying key to @hint */
-	plug_call(entry->offset.plug->o.key_ops, assign,
-		  &hint.offset, &entry->offset);
+	aal_memcpy(&hint.offset, &entry->offset, sizeof(hint.offset));
 
 	/* Inserting entry described by @hint to tree at @temp.place */
 	if ((res = obj40_insert(&dir->obj, &temp.place,
@@ -823,8 +819,7 @@ static errno_t dir40_attach(object_entity_t *entity,
 	aal_strncpy(entry.name, "..", sizeof(entry.name));
 
 	/* Adding ".." pointing to parent to @entity object. */
-	plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
-		  assign, &entry.object, &parent->object);
+	aal_memcpy(&entry.object, &parent->object, sizeof(entry.object));
 
 	if ((res = dir40_add_entry(entity, &entry)))
 		return res;

@@ -53,7 +53,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, place_func_t func,
 		if (reiser4_place_fetch(&place))
 			return -EINVAL;
 		
-		reiser4_key_assign(&key, &place.key);
+		aal_memcpy(&key, &place.key, sizeof(key));
 
 		if ((ret = repair_key_check_struct(&key)) < 0)
 			return ret;

@@ -90,16 +90,14 @@ errno_t tail40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 		offset += tail40_units(place) - place->pos.unit;
 	
 	/* Set the maxkey of the passed operation. */
-	plug_call(src->key.plug->o.key_ops, assign, 
-		  &hint->maxkey, &hint->offset);
+	aal_memcpy(&hint->maxkey, &hint->offset, sizeof(hint->maxkey));
 
 	plug_call(hint->maxkey.plug->o.key_ops, 
 		  set_offset, &hint->maxkey, offset);
 
 	/* Update the item key. */
 	if (place->pos.unit == 0 && hint->count) {
-		plug_call(place->key.plug->o.key_ops, assign,
-			  &place->key, &hint->offset);
+		aal_memcpy(&place->key, &hint->offset, sizeof(place->key));
 	}
 	
 	return 0;

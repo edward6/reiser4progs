@@ -103,8 +103,7 @@ static int64_t reg40_read(object_entity_t *entity,
 
 	/* Initializing offset data must be read from. This is current file
 	   offset, so we use @reg->position. */
-	plug_call(reg->position.plug->o.key_ops,
-		  assign, &hint.offset, &reg->position);
+	aal_memcpy(&hint.offset, &reg->position, sizeof(hint.offset));
 
 	/* Correcting number of bytes to be read. It cannot be more then file
 	   size value from stat data. That is because, body item itself does not
@@ -280,8 +279,7 @@ static errno_t reg40_convert(object_entity_t *entity,
 	
 	/* Getting file data start key. We convert file starting from the zero
 	   offset until end is reached. */
-	plug_call(reg->position.plug->o.key_ops, assign,
-		  &hint.offset, &reg->position);
+	aal_memcpy(&hint.offset, &reg->position, sizeof(hint.offset));
 	
 	plug_call(reg->position.plug->o.key_ops, set_offset,
 		  &hint.offset, 0);
@@ -361,9 +359,8 @@ int64_t reg40_put(object_entity_t *entity, void *buff,
 	hint.shift_flags = SF_DEFAULT;
 	hint.place_func = place_func;
 	hint.plug = reg->body_plug;
-	
-	plug_call(reg->position.plug->o.key_ops,
-		  assign, &hint.offset, &reg->position);
+
+	aal_memcpy(&hint.offset, &reg->position, sizeof(hint.offset));
 
 	/* Write data to tree. */
 	if ((written = obj40_write(&reg->obj, &hint)) < 0)
@@ -390,8 +387,7 @@ static int64_t reg40_cut(object_entity_t *entity, uint64_t offset) {
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	/* Preparing key of the data to be truncated. */
-	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops,
-		  assign, &hint.offset, &reg->position);
+	aal_memcpy(&hint.offset, &reg->position, sizeof(hint.offset));
 		
 	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops,
 		  set_offset, &hint.offset, offset);

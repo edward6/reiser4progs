@@ -319,8 +319,7 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	dstart += (hint->insert_flags & ET40_HEAD ? 1 : 0);
 	
 	/* Set the maxkey of the passed operation. */
-	plug_call(src->key.plug->o.key_ops, assign, &hint->maxkey, 
-		  &hint->offset);
+	aal_memcpy(&hint->maxkey, &hint->offset, sizeof(hint->maxkey));
 	
 	if (!hint->count) {
 		/* If there is nothing to be done, skip as much as possible. */
@@ -467,8 +466,7 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	if (plug_call(place->key.plug->o.key_ops, compfull, 
 		      &hint->offset, &place->key) < 0)
 	{
-		plug_call(place->key.plug->o.key_ops, assign,
-			  &place->key, &hint->offset);
+		aal_memcpy(&place->key, &hint->offset, sizeof(place->key));
 	}
 		
 	place_mkdirty(place);

@@ -883,10 +883,8 @@ int64_t cde40_insert_raw(reiser4_place_t *place, trans_hint_t *trans) {
 	}
 	
 	/* Update the item key. */
-	if (place->pos.unit == 0 && trans->count) {
-		plug_call(place->key.plug->o.key_ops, assign,
-			  &place->key, &trans->offset);
-	}
+	if (place->pos.unit == 0 && trans->count)
+		aal_memcpy(&place->key, &trans->offset, sizeof(place->key));
 	
 	if (spos == sunits)
 		return cde40_maxposs_key(src, &trans->maxkey);

@@ -24,7 +24,9 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	aal_assert("vpf-1195", mode != RM_BUILD ||
 			      !(res & RE_FATAL));
 	
-	reiser4_key_assign(&object->ent->object, &object_start(object)->key);
+	aal_memcpy(&object->ent->object, 
+		   &object_start(object)->key,
+		   sizeof(object->ent->object));
 
 	return res;
 }
@@ -50,10 +52,13 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	aal_memset(&info, 0, sizeof(info));
 
 	info.tree = (tree_entity_t *)tree;
-	reiser4_key_assign(&info.object, key);
+	aal_memcpy(&info.object, key, sizeof(*key));
 
-	if (parent)
-		reiser4_key_assign(&info.parent, &parent->ent->object);
+	if (parent) {
+		aal_memcpy(&info.parent, 
+			   &parent->ent->object, 
+			   sizeof(info.parent));
+	}
 	
 	/* Create the fake object. */
 	if (!(object->ent = plug_call(plug->o.object_ops, fake, &info)))
@@ -201,8 +206,8 @@ errno_t repair_object_refresh(reiser4_object_t *object) {
 			   sizeof(object->ent->parent));
 		break;
 	case PRESENT:
-		plug_call(entry.object.plug->o.key_ops, assign,
-			  &object->ent->parent, &entry.object);
+		aal_memcpy(&object->ent->parent, 
+			   &entry.object, sizeof(entry.object));
 		break;
 	default:
 		return -EINVAL;

@@ -257,8 +257,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 			return 0;
 		
 		/* Set the start key for convertion. */
-		plug_call(reg->body.key.plug->o.key_ops, assign,
-			  &hint->offset, &reg->position);
+		aal_memcpy(&hint->offset, &reg->position, sizeof(hint->offset));
 		plug_call(reg->body.key.plug->o.key_ops, set_offset,
 			  &hint->offset, 0);
 
@@ -274,8 +273,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 	hint->plug = reg->body_plug;
 	
 	if (hint->offset.plug == NULL) {
-		plug_call(reg->body.key.plug->o.key_ops, assign,
-			  &hint->offset, &reg->position);
+		aal_memcpy(&hint->offset, &reg->position, sizeof(hint->offset));
 
 		hint->bytes = 0;
 	}

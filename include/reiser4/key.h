@@ -66,9 +66,6 @@ extern void reiser4_key_maximal(reiser4_key_t *key);
 extern int reiser4_key_compfull(reiser4_key_t *key1,
 				reiser4_key_t *key2);
 
-extern errno_t reiser4_key_assign(reiser4_key_t *dst,
-				  reiser4_key_t *src);
-
 extern uint64_t reiser4_key_get_offset(reiser4_key_t *key);
 
 #endif

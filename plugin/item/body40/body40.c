@@ -13,8 +13,8 @@ errno_t body40_get_key(reiser4_place_t *place, uint32_t pos,
 {
 	uint64_t offset;
 
-	plug_call(place->key.plug->o.key_ops, assign, key, &place->key);
-		
+	aal_memcpy(key, &place->key, sizeof(*key));
+	
 	offset = plug_call(key->plug->o.key_ops, get_offset, key);
 
 	offset += (trans_func ? trans_func(place, pos) : pos);
@@ -28,8 +28,8 @@ errno_t body40_get_key(reiser4_place_t *place, uint32_t pos,
 errno_t body40_maxposs_key(reiser4_place_t *place, reiser4_key_t *key) {
 	uint64_t offset;
 	reiser4_key_t *maxkey;
-    
-	plug_call(place->key.plug->o.key_ops, assign, key, &place->key);
+   
+	aal_memcpy(key, &place->key, sizeof(*key));
     
 	maxkey = plug_call(key->plug->o.key_ops, maximal);
     
@@ -50,8 +50,8 @@ errno_t body40_maxreal_key(reiser4_place_t *place,
 	uint64_t offset;
 
 	units = plug_call(place->plug->o.item_ops->balance, units, place);
-	
-	plug_call(place->key.plug->o.key_ops, assign, key, &place->key);
+
+	aal_memcpy(key, &place->key, sizeof(*key));
 
 	offset = plug_call(key->plug->o.key_ops, get_offset, key);
 

@@ -40,21 +40,6 @@ int reiser4_key_compfull(
 			 compfull, key1, key2);
 }
 
-/* Makes copy src key to dst one */
-errno_t reiser4_key_assign(
-	reiser4_key_t *dst,	    /* destination key */
-	reiser4_key_t *src)	    /* source key */
-{
-	aal_assert("umka-1112", dst != NULL);
-	aal_assert("umka-1113", src != NULL);
-	aal_assert("umka-1114", src->plug != NULL);
-
-	dst->plug = src->plug;
-	
-	return plug_call(src->plug->o.key_ops,
-			 assign, dst, src);
-}
-
 #ifndef ENABLE_MINIMAL
 /* Builds full non-directory key */
 errno_t reiser4_key_build_generic(

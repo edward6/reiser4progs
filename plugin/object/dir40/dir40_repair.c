@@ -233,8 +233,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 			if (mode != RM_BUILD) {
 				/* If not the BUILD mode, continue with the 
 				   entry key, not the correct one. */
-				plug_call(key.plug->o.key_ops, assign,
-					  &key, &entry.offset);
+				aal_memcpy(&key, &entry.offset, sizeof(key));
 				res |= RE_FATAL;
 				goto next;
 			}
@@ -262,8 +261,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 			{
 				/* Key differs from the offset of the 
 				   last left entry. */
-				plug_call(key.plug->o.key_ops, assign,
-					  &dir->position, &key);
+				aal_memcpy(&dir->position, &key, sizeof(key));
 			} else if (aal_strlen(entry.name) != 1 ||
 				   aal_strncmp(entry.name, ".", 1))
 			{
@@ -298,7 +296,6 @@ errno_t dir40_check_attach(object_entity_t *object,
 			   place_func_t place_func, 
 			   void *data, uint8_t mode)
 {
-	dir40_t *dir = (dir40_t *)object;
 	lookup_t lookup;
 	entry_hint_t entry;
 	errno_t res;
@@ -351,8 +348,8 @@ errno_t dir40_check_attach(object_entity_t *object,
 		}
 		
 		/* Adding ".." to the @object pointing to the @parent. */
-		plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, 
-			  assign, &entry.object, &parent->object);
+		aal_memcpy(&entry.object, &parent->object, 
+			   sizeof(entry.offset));
 
 		aal_strncpy(entry.name, "..", sizeof(entry.name));
 		

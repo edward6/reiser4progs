@@ -166,7 +166,7 @@ static errno_t object_resolve(tree_entity_t *tree, char *path,
 		return -EINVAL;
 
 	/* Save object stat data key to passed @key. */
-	reiser4_key_assign(key, &object->ent->object);
+	aal_memcpy(key, &object->ent->object, sizeof(*key));
 
 	/* Close found object. */
 	reiser4_object_close(object);

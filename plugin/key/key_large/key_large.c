@@ -22,24 +22,6 @@ static uint32_t key_large_bodysize(void) {
 	return KEY_LARGE_LAST_INDEX;
 }
 
-/* Assigns src key to dst one  */
-static errno_t key_large_assign(reiser4_key_t *dst,
-				reiser4_key_t *src)
-{
-	aal_assert("umka-1110", dst != NULL);
-	aal_assert("umka-1111", src != NULL);
-
-	dst->plug = src->plug;
-#ifndef ENABLE_MINIMAL
-	dst->adjust = src->adjust;
-#endif
-
-	aal_memcpy(dst->body, src->body,
-		   sizeof(key_large_t));
-	
-	return 0;
-}
-
 #ifndef ENABLE_MINIMAL
 /* Sets up key type */
 static void key_large_set_type(reiser4_key_t *key, 
@@ -364,7 +346,6 @@ extern errno_t key_large_check_struct(reiser4_key_t *key);
 
 static reiser4_key_ops_t key_large_ops = {
 	.hashed		= key_large_hashed,
-	.assign		= key_large_assign,
 	.minimal	= key_large_minimal,
 	.maximal	= key_large_maximal,
 	.bodysize	= key_large_bodysize,

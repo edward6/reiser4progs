@@ -19,7 +19,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 	aal_assert("umka-2510", hint != NULL);
 	
 	buff = hint->specific;
-	reiser4_key_assign(&key, &hint->offset);
+	aal_memcpy(&key, &hint->offset, sizeof(key));
 
 #ifndef ENABLE_MINIMAL
 	hint->blocks = tree->blocks;
@@ -102,7 +102,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 	}
 
 	hint->specific = buff;
-	reiser4_key_assign(&hint->offset, &key);
+	aal_memcpy(&hint->offset, &key, sizeof(key));
 	
 	return total;
 }
@@ -129,7 +129,7 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 	aal_assert("umka-2507", hint != NULL);
 	
 	buff = hint->specific;
-	reiser4_key_assign(&key, &hint->offset);
+	aal_memcpy(&key, &hint->offset, sizeof(key));
 
 	hint->blocks = tree->blocks;
 
@@ -182,7 +182,7 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 
 	hint->bytes = bytes;
 	hint->specific = buff;
-	reiser4_key_assign(&hint->offset, &key);
+	aal_memcpy(&hint->offset, &key, sizeof(key));
 	
 	return total;
 }
@@ -201,7 +201,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 	aal_assert("umka-2475", tree != NULL);
 	aal_assert("umka-2476", hint != NULL);
 
-	reiser4_key_assign(&key, &hint->offset);
+	aal_memcpy(&key, &hint->offset, sizeof(key));
 
 	/* Setting up region func to release region callback. It is needed for
 	   releasing extent blocks. */
@@ -319,7 +319,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 	
 	hint->bytes = bytes;
 
-	reiser4_key_assign(&hint->offset, &key);
+	aal_memcpy(&hint->offset, &key, sizeof(key));
 	return total;
 }
 
@@ -340,7 +340,7 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 	aal_assert("umka-2481", hint->plug != NULL);
 
 	blksize = reiser4_tree_get_blksize(tree);
-	reiser4_key_assign(&trans.offset, &hint->offset);
+	aal_memcpy(&trans.offset, &hint->offset, sizeof(trans.offset));
 
 	insert = hint->count;
 		

@@ -203,8 +203,7 @@ errno_t obj40_create_stat(obj40_t *obj, uint64_t size, uint64_t bytes,
 	hint.count = 1;
 	hint.shift_flags = SF_DEFAULT;
 	
-	plug_call(obj->info.object.plug->o.key_ops, assign, 
-		  &hint.offset, &obj->info.object);
+	aal_memcpy(&hint.offset, &obj->info.object, sizeof(hint.offset));
     
 	/* Initializing stat data item hint. */
 	stat.extmask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
@@ -590,10 +589,8 @@ errno_t obj40_init(obj40_t *obj, object_info_t *info, reiser4_core_t *core) {
 	aal_memcpy(&obj->info, info, sizeof(*info));
 	obj->core = core;
 	
-	if (!info->start.plug) {
-		plug_call(info->object.plug->o.key_ops, assign, 
-			  STAT_KEY(obj), &info->object);
-	}
+	if (!info->start.plug)
+		aal_memcpy(STAT_KEY(obj), &info->object, sizeof(info->object));
 
 	/* Set missed plugins to opset from the fs global opset and build
 	   the mask of the specific plugins. */

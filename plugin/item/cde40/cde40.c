@@ -980,8 +980,7 @@ errno_t cde40_maxposs_key(reiser4_place_t *place,
 	aal_assert("umka-1649", key != NULL);
 	aal_assert("umka-1648", place != NULL);
 
-	plug_call(place->key.plug->o.key_ops,
-		  assign, key, &place->key);
+	aal_memcpy(key, &place->key, sizeof(*key));
 
 	/* Getting maximal key from current key plugin. */
 	maxkey = plug_call(key->plug->o.key_ops, maximal);

@@ -88,14 +88,16 @@ reiser4_object_t *reiser4_object_form(reiser4_tree_t *tree,
 
 	/* Putting object key to info struct. We may want to open and fix 
 	   the object even if @place->key does not match @okey. */
-	reiser4_key_assign(&info.object, okey);
+	aal_memcpy(&info.object, okey, sizeof(*okey));
 
 	/* Copying item coord. */
 	aal_memcpy(&info.start, place, sizeof(*place));
 
 	/* Parent is not passed. Using object's key as parent's one. */
-	if (parent)
-		reiser4_key_assign(&info.parent, &parent->ent->object);
+	if (parent) {
+		aal_memcpy(&info.parent, &parent->ent->object, 
+			   sizeof(info.parent));
+	}
 
 	/* Calling @init_func. It returns zero for success. */
 	if (!(object->ent = init_func(&info)) || object->ent == INVAL_PTR)
@@ -308,7 +310,7 @@ errno_t reiser4_object_entry_prep(reiser4_tree_t *tree,
 		plug_call(objplug(parent)->o.object_ops, 
 			  build_entry, parent->ent, entry);
 	} else {
-		reiser4_key_assign(&entry->offset, &tree->key);
+		aal_memcpy(&entry->offset, &tree->key, sizeof(tree->key));
 	}
 	
 	return 0;
@@ -336,7 +338,7 @@ static void reiser4_object_maintain(entry_hint_t *entry,
 		locality = reiser4_key_get_objectid(&hint->info.parent);
 	} else {
 		/* Parent is not defined, root key is used. */
-		reiser4_key_assign(&hint->info.parent, &tree->key);
+		aal_memcpy(&hint->info.parent, &tree->key, sizeof(tree->key));
 		locality = reiser4_key_get_locality(&tree->key);
 		objectid = reiser4_key_get_objectid(&tree->key);
 	}
@@ -451,8 +453,9 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 
 	/* Check if we need to add entry in parent @object */
 	if (entry && object) {
-		reiser4_key_assign(&entry->object, 
-				   &child->ent->object);
+		aal_memcpy(&entry->object, 
+			   &child->ent->object, 
+			   sizeof(entry->offset));
 
 		if ((res = reiser4_object_add_entry(object, entry))) {
 			aal_error("Can't add entry %s to %s.", entry->name, 
@@ -824,8 +827,9 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	hint.mode = 0;
 	
 	if (parent) {
-		reiser4_key_assign(&hint.info.parent, 
-				   &parent->ent->object);
+		aal_memcpy(&hint.info.parent, 
+			   &parent->ent->object,
+			   sizeof(hint.info.parent));
 	}
 
 	return reiser4_obj_create(parent, &hint, name);
@@ -854,8 +858,9 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 	hint.mode = 0;
 
 	if (parent) {
-		reiser4_key_assign(&hint.info.parent, 
-				   &parent->ent->object);
+		aal_memcpy(&hint.info.parent, 
+			   &parent->ent->object,
+			   sizeof(hint.info.parent));
 	}
 
 	return reiser4_obj_create(parent, &hint, name);
@@ -884,8 +889,9 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	hint.name = (char *)target;
 	
 	if (parent) {
-		reiser4_key_assign(&hint.info.parent, 
-				   &parent->ent->object);
+		aal_memcpy(&hint.info.parent, 
+			   &parent->ent->object,
+			   sizeof(hint.info.parent));
 	}
 
 	return reiser4_obj_create(parent, &hint, name);
@@ -915,8 +921,9 @@ reiser4_object_t *reiser4_spl_create(reiser4_fs_t *fs,
 	hint.rdev = rdev;
 	
 	if (parent) {
-		reiser4_key_assign(&hint.info.parent, 
-				   &parent->ent->object);
+		aal_memcpy(&hint.info.parent, 
+			   &parent->ent->object,
+			   sizeof(hint.info.parent));
 	}
 	
 	return reiser4_obj_create(parent, &hint, name);

@@ -337,7 +337,7 @@ static errno_t debug_node_check_keys(reiser4_node_t *node) {
 		if (pos.item && reiser4_key_compfull(&prev, &key) > 0)
 			return 1;
 
-		reiser4_key_assign(&prev, &key);
+		aa_memcpy(&prev, &key, sizeof(key));
 	}
 
 	return 0;
@@ -1202,7 +1202,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 				iplace.pos.unit++;
 
 				/* Insert new extent units. */
-				reiser4_key_assign(&hint.offset, &key);
+				aal_memcpy(&hint.offset, &key, sizeof(key));
 				level = reiser4_node_get_level(iplace.node);
 				
 				if ((res = reiser4_tree_insert(tree, &iplace,
@@ -1758,7 +1758,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 	/* We store @key in @wanted. All consequence code will use @wan. This is
 	   needed, because @key might point to @place->key in @place and will be
 	   corrupted during lookup. */
-	reiser4_key_assign(&wanted, hint->key);
+	aal_memcpy(&wanted, hint->key, sizeof(wanted));
 
 	/* Setting hint->key to stored local key in order to keep not corrupted
 	   if it points to @place->key and will be chnaged after @place is
@@ -1898,7 +1898,7 @@ errno_t reiser4_tree_update_keys(reiser4_tree_t *tree,
 	if (!reiser4_key_compfull(&pkey, key))
 		return 0;
 	
-	reiser4_key_assign(&place->key, key);
+	aal_memcpy(&place->key, key, sizeof(*key));
 
 	/* Check if we should update keys on higher levels of tree. */
 	if (reiser4_place_leftmost(place) && place->node->p.node) {

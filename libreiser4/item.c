@@ -100,7 +100,7 @@ errno_t reiser4_item_update_key(reiser4_place_t *place,
 	aal_assert("vpf-1205", key != NULL);
 	aal_assert("vpf-1205", place != NULL);
 	
-	reiser4_key_assign(&place->key, key);
+	aal_memcpy(&place->key, key, sizeof(*key));
 	
 	return reiser4_node_update_key(place->node,
 				       &place->pos,

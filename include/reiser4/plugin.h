@@ -877,9 +877,6 @@ struct reiser4_key_ops {
 	/* Compares two keys by comparing locality and objectid. */
 	int (*compshort) (reiser4_key_t *, reiser4_key_t *);
 	
-	/* Copyies src key to dst one */
-	errno_t (*assign) (reiser4_key_t *, reiser4_key_t *);
-	
 	/* Builds generic key (statdata, file body, etc). That is build key by
 	   all its components. */
 	errno_t (*build_generic) (reiser4_key_t *, key_type_t,

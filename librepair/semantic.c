@@ -134,7 +134,7 @@ static errno_t repair_semantic_add_entry(reiser4_object_t *parent,
 	aal_memset(&entry, 0, sizeof(entry));
 	
 	aal_strncpy(entry.name, name, sizeof(entry.name));
-	reiser4_key_assign(&entry.object, &object->ent->object);
+	aal_memcpy(&entry.object, &object->ent->object, sizeof(entry.object));
 	entry.place_func = cb_register_item;
 	entry.data = NULL;
 	
@@ -698,7 +698,7 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 			  "Building a new object with the key %s.",
 			  reiser4_print_inode(&lost));
 	} else {
-		reiser4_key_assign(&lost, &entry.object);
+		aal_memcpy(&lost, &entry.object, sizeof(lost));
 	}
 	
 	/* Try to open the "lost+found" object by its key. */
