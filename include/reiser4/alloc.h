@@ -46,5 +46,7 @@ extern count_t reiser4_alloc_used(reiser4_alloc_t *alloc);
 
 extern int reiser4_alloc_test(reiser4_alloc_t *alloc, blk_t blk);
 
+extern errno_t reiser4_alloc_region_layout(reiser4_alloc_t *alloc, blk_t blk, 
+	alloc_layout_func_t func, void *data);
 #endif
 

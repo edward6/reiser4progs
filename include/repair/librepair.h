@@ -10,17 +10,18 @@
 #  include <config.h>
 #endif
 
+#include <reiser4/reiser4.h>
 #include <repair/repair.h>
 #include <repair/filesystem.h>
 #include <repair/format.h>
 #include <repair/master.h>
 #include <repair/journal.h>
-#include <repair/node.h>
+#include <repair/joint.h>
 #include <repair/coord.h>
 #include <repair/item.h>
 #include <repair/filter.h>
-#include <repair/scan.h>
-#include <reiser4/reiser4.h>
+#include <repair/disk_scan.h>
+#include <repair/twig_scan.h>
 
 /*  -------------------------------------------------
     | Common scheem for communication with users.   |

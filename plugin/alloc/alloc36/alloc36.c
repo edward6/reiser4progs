@@ -81,27 +81,28 @@ static reiser4_plugin_t alloc36_plugin = {
 		},
 
 #ifndef ENABLE_COMPACT
-		.create	    = alloc36_create,
-		.sync	    = alloc36_sync,
-		.print      = NULL,
+		.create		= alloc36_create,
+		.sync		= alloc36_sync,
+		.print		= NULL,
 #else
-		.create	    = NULL,
-		.sync	    = NULL,
-		.print      = NULL,
+		.create		= NULL,
+		.sync		= NULL,
+		.print		= NULL,
 #endif
-		.close	    = alloc36_close,
-		.open	    = alloc36_open,
+		.close		= alloc36_close,
+		.open		= alloc36_open,
 
-		.mark	    = NULL,
-		.test	    = NULL,
+		.mark		= NULL,
+		.test		= NULL,
 	
-		.allocate   = NULL,
-		.release    = NULL,
+		.allocate	= NULL,
+		.release	= NULL,
 	
-		.free	    = NULL,
-		.used	    = NULL,
+		.free		= NULL,
+		.used		= NULL,
 
-		.valid	    = NULL
+		.valid		= NULL,
+		.region_layout	= NULL
 	}
 };
 

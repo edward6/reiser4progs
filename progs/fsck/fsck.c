@@ -286,32 +286,16 @@ int fsck_rollback() {
 }
 
 static errno_t fsck_data_prepare(repair_data_t *repair_data, 
-    fsck_parse_t *parse_data, reiser4_format_t *format) 
+    fsck_parse_t *parse_data, reiser4_fs_t *fs) 
 {
     aal_assert("vpf-481", repair_data != NULL, return -1);
     aal_assert("vpf-505", parse_data != NULL, return -1);
+    aal_assert("vpf-513", fs != NULL, return -1);
         
-    repair_data->format = format;
+    repair_data->format = fs->format;
+    repair_data->alloc = fs->alloc;
     repair_data->mode = parse_data->mode;
     repair_data->options = parse_data->options;
-
-    /* Allocate a bitmap for blocks belonged to the format area - skipped, 
-     * super block, journal, bitmaps. */
-    if (!(repair_data->bm_format_layout = aux_bitmap_create(
-	reiser4_format_get_len(repair_data->format)))) 
-    {
-	aal_exception_error("Failed to allocate a bitmap for format layout.");
-	return -1;
-    }
-
-    /* Mark all format area block in the bm_format_layout bitmap. */
-    if (reiser4_format_layout(repair_data->format, callback_mark_format_block, 
-	repair_data->bm_format_layout)) 
-    {
-	aal_exception_error("Failed to mark all format blocks in the bitmap as "
-	    "unused.");
-	return -1;
-    }
 
     return 0;
 }
@@ -343,7 +327,7 @@ int main(int argc, char *argv[]) {
 	goto free_device;
     }
 
-    fsck_data_prepare(&repair_data, &data, fs->format);
+    fsck_data_prepare(&repair_data, &data, fs);
 
     if (repair_journal_handle(fs->format, data.journal_device)) {
 	aal_exception_fatal("Failed to replay the journal.");

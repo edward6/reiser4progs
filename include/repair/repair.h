@@ -37,34 +37,52 @@
 #define repair_verbose(repair_data)	(repair_test_option(REPAIR_OPT_VERBOSE, repair_data))
 #define repair_read_only(repair_data)	(repair_test_option(REPAIR_OPT_READ_ONLY, repair_data))
 
-typedef struct repair_filter_data {
-    aux_bitmap_t *bm_formatted;
+/* Filter data. */
+typedef struct repair_filter {
+    aux_bitmap_t *bm_used;	/* Formatted area + formatted nodes. */
+    aux_bitmap_t *bm_twig;	/* Twig nodes */
+    
     uint8_t level;
-} repair_filter_data_t;
+} repair_filter_t;
 
-typedef struct repair_scan_data {
+/* Disk scan data. */
+typedef struct repair_ds {
     aux_bitmap_t *bm_used;
-    reiser4_oid_t *oid_control;
-} repair_scan_data_t;
+    aux_bitmap_t *bm_twig;
+    aux_bitmap_t *bm_leaf;	/* Leaf bitmap not in the tree yet. */
+    aux_bitmap_t *bm_frmt;	/* Formatted nodes bitmap cannot be pointed 
+				   by extents, not marked nowhere else. */
+    aux_bitmap_t *bm_scan;	/* Block bitmap to be scanned here. */
+} repair_ds_t;
 
-typedef struct repair_check {
+/* Twig scan data. */
+typedef struct repair_ts {
+    aux_bitmap_t *bm_used;
+    aux_bitmap_t *bm_twig;
+    aux_bitmap_t *bm_leaf;
+    aux_bitmap_t *bm_met;
+    aux_bitmap_t *bm_unfm;
+} repair_ts_t;
+
+typedef struct repair_data {
     reiser4_format_t *format;
-    aux_bitmap_t *bm_format_layout;
+    reiser4_alloc_t *alloc;
     uint16_t options;
     uint16_t mode;
-    uint16_t flags;  /*  */
+    uint16_t flags;
     union {
-	repair_filter_data_t filter;
-	repair_scan_data_t scan;
+	repair_filter_t filter;
+	repair_ds_t ds;
+	repair_ts_t ts;
     } pass;
 } repair_data_t;
 
-#define repair_filter_data(data)	(&(data)->pass.filter)
-#define repair_scan_data(data)		(&(data)->pass.scan)
+#define repair_filter(data) (&(data)->pass.filter)
+#define repair_ts(data)	    (&(data)->pass.ts)
+#define repair_ds(data)	    (&(data)->pass.ds)
 
 /* Temporary flags set during recovery. */
-#define REPAIR_NOT_FIXED		0x1
-#define REPAIR_BAD_PTR			0x2
+#define REPAIR_BAD_PTR			0x1
 
 #define repair_set_flag(data, flag)	(aal_set_bit(flag, &(data)->flags))
 #define repair_test_flag(data, flag)	(aal_test_bit(flag, &(data)->flags))

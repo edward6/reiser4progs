@@ -1,4 +1,5 @@
-librepair_sources            = filesystem.c master.c format.c journal.c node.c coord.c item.c filter.c scan.c
+librepair_sources            = filesystem.c master.c format.c journal.c joint.c coord.c item.c filter.c \
+			       disk_scan.c twig_scan.c
 
 lib_LTLIBRARIES		     = librepair.la
 

@@ -54,7 +54,7 @@ aal_device_t *reiser4_coord_device(reiser4_coord_t *coord) {
 	}
 }
 
-/* Returns block coord points to */
+/* Returns node coord points to */
 reiser4_node_t *reiser4_coord_node(reiser4_coord_t *coord) {
 	aal_assert("umka-1463", coord != NULL, return NULL);
 	
@@ -68,6 +68,12 @@ reiser4_node_t *reiser4_coord_node(reiser4_coord_t *coord) {
 	}
 }
 
+/* Returns joint coord points to */
+reiser4_joint_t *reiser4_coord_joint(reiser4_coord_t *coord) {
+	aal_assert("vpf-541", coord != NULL, return NULL);
+	
+	return coord->context == CT_JOINT ? coord->u.joint : NULL;
+}
 /* Initializes all item-related fields */
 errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 	rpid_t pid;

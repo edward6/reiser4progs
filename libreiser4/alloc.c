@@ -222,3 +222,14 @@ int reiser4_alloc_test(
 			   test, alloc->entity, blk);
 }
 
+errno_t reiser4_alloc_region_layout(
+	reiser4_alloc_t *alloc, 
+	blk_t blk, 
+	alloc_layout_func_t func, 
+	void *data)
+{
+	aal_assert("vpf-557", alloc != NULL, return 0);
+
+	return plugin_call(return -1, alloc->entity->plugin->alloc_ops, 
+			   region_layout, alloc->entity, blk, func, data);
+}

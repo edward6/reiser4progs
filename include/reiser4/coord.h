@@ -20,6 +20,8 @@ extern reiser4_node_t *reiser4_coord_node(reiser4_coord_t *coord);
 
 extern object_entity_t *reiser4_coord_entity(reiser4_coord_t *coord);
 
+extern reiser4_joint_t *reiser4_coord_joint(reiser4_coord_t *coord);
+
 extern errno_t reiser4_coord_init(reiser4_coord_t *coord, void *data,
 				  coord_context_t context, reiser4_pos_t *pos);
 

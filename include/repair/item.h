@@ -12,11 +12,10 @@
 
 #include <repair/repair.h>
 
-/*extern errno_t repair_item_ptr_used_in_format(reiser4_coord_t *coord,
-    repair_data_t *data);*/
-extern errno_t repair_item_ptr_used_in_bitmap(reiser4_coord_t *coord,
-    aux_bitmap_t *bitmap, repair_data_t *data);
-extern errno_t repair_item_handle_ptr(reiser4_coord_t *coord);
+/*extern errno_t repair_item_ptr_used_in_format(reiser4_coord_t *,
+    repair_data_t *);*/
+extern errno_t repair_item_ptr_unused(reiser4_coord_t *, aux_bitmap_t *);
+extern errno_t repair_item_handle_ptr(reiser4_coord_t *);
 
 #endif
 

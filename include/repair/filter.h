@@ -12,16 +12,6 @@
 
 #include <repair/repair.h>
 
-/* Traverse handlers for filter. */
-extern errno_t repair_filter_joint_open(reiser4_joint_t **, blk_t, void *);
-extern errno_t repair_filter_joint_check(reiser4_joint_t *, void *);
-extern errno_t repair_filter_before_traverse(reiser4_joint_t *, void *);
-extern errno_t repair_filter_setup_traverse(reiser4_coord_t *, void *);
-extern errno_t repair_filter_update_traverse(reiser4_coord_t *, void *);
-extern errno_t repair_filter_after_traverse(reiser4_joint_t *, void *);
-
-/* Init and fini travserse for filter. */
-extern errno_t repair_filter_setup(traverse_hint_t *);
-extern errno_t repair_filter_update(traverse_hint_t *);
+extern errno_t repair_filter_pass(repair_data_t *);
 
 #endif

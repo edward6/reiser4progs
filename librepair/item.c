@@ -27,7 +27,6 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
 	    coord->pos.unit, hint.ptr, hint.width);
 
 	hint.ptr = 0;
-	hint.width = 1;
 
 	if (plugin_call(return -1, coord->entity.plugin->item_ops,
 	    update, &coord->entity, coord->pos.unit, &hint, 1))
@@ -59,31 +58,26 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
 
 /* Blocks pointed by coord should not be used in bitmap. 
  * Returns -1 if fatal error; 1 if not used; 0 - ok. */
-errno_t repair_item_ptr_used_in_bitmap(reiser4_coord_t *coord,
-    aux_bitmap_t *bitmap, repair_data_t *data)
-{
+errno_t repair_item_ptr_unused(reiser4_coord_t *coord, aux_bitmap_t *bitmap) {
     blk_t next_blk;
     reiser4_ptr_hint_t ptr;
     int res;
 
     aal_assert("vpf-500", coord != NULL, return -1);
-    aal_assert("vpf-397", data != NULL, return -1);
-    aal_assert("vpf-497", 
-	reiser4_item_nodeptr(coord) || reiser4_item_extent(coord), 
-	return -1);
+    aal_assert("vpf-397", bitmap != NULL, return -1);
+    aal_assert("vpf-497", reiser4_item_nodeptr(coord) || 
+	reiser4_item_extent(coord), return -1);
 
     if ((res = plugin_call(return -1, coord->entity.plugin->item_ops, fetch, 
 	&coord->entity, coord->pos.unit, &ptr, 1)))
 	return res;
 
-    /* As it was written for scan pass, width cannot be 0 and ptr can be 0
-     * if extent item only. Other cases must be fixed at filter pass. */
+    /* Ptr can be 0 if extent item only. Width cannot be 0. */
     if ((!ptr.ptr && reiser4_item_nodeptr(coord)) || !ptr.width) 
 	goto error;
 
-    if ((ptr.ptr >= reiser4_format_get_len(data->format)) || 
-	(ptr.width >= reiser4_format_get_len(data->format)) || 
-	(ptr.ptr >= reiser4_format_get_len(data->format) - ptr.width)) 
+    if ((ptr.ptr >= bitmap->total) || (ptr.width >= bitmap->total) || 
+	(ptr.ptr >= bitmap->total - ptr.width)) 
 	goto error;
     
     if (!ptr.ptr)
@@ -96,7 +90,7 @@ errno_t repair_item_ptr_used_in_bitmap(reiser4_coord_t *coord,
     return 0;
     
 error:
-    aal_exception_error("Node (%llu), item (%llu), unit (%llu): %s pointer "
+    aal_exception_error("Node (%llu), item (%u), unit (%u): %s pointer "
 	"(start %llu, count %llu) points to some already used blocks.", 
 	reiser4_coord_blk(coord), coord->pos.item, 
 	coord->pos.unit, reiser4_item_nodeptr(coord) ? "node" : "extent", 
@@ -136,7 +130,7 @@ errno_t repair_item_ptr_used_in_format(reiser4_coord_t *coord,
     // Check if no any formatted block exists after ptr. 
     // FIXME-VITALY: should not depend on filter specific data. 
     if ((next_blk = aux_bitmap_find_marked(
-	repair_filter_data(data)->bm_format_layout, ptr.ptr)) == FAKE_BLK)
+	repair_filter_data(data)->bm_format, ptr.ptr)) == FAKE_BLK)
         return 0;
     
     if (next_blk >= ptr.ptr && next_blk < ptr.ptr + ptr.width) 

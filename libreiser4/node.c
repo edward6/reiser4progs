@@ -133,6 +133,13 @@ reiser4_node_t *reiser4_node_open(
 		return NULL;
    
 	if (!(node->entity = reiser4_node_guess(device, blk))) {
+		/* 
+		    FIXME-VITALY->UMKA: It is needed sometimes, like during 
+		    scanning the disk at fsck time, to disable logical 
+		    exceptions - e.g. this block does not contain a node - but 
+		    does not disable fatal exceptions  - bad environement, 
+		    failed to allocated a memory, etc.
+		*/
 		aal_exception_error("Can't guess node plugin for "
 				    "node %llu.", blk);
 		goto error_free_node;
@@ -485,3 +492,9 @@ uint16_t reiser4_node_maxspace(reiser4_node_t *node) {
 			   maxspace, node->entity);
 }
 
+uint32_t reiser4_node_stamp(reiser4_node_t *node) {
+	aal_assert("vpf-562", node != NULL, return 0);
+
+	return plugin_call(return 0, node->entity->plugin->node_ops, 
+			   get_stamp, node->entity);
+}

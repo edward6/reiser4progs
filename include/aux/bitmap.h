@@ -28,6 +28,10 @@ typedef struct aux_bitmap aux_bitmap_t;
 
 extern void aux_bitmap_mark(aux_bitmap_t *bitmap, uint64_t bit);
 extern void aux_bitmap_clear(aux_bitmap_t *bitmap, uint64_t bit);
+
+extern void aux_bitmap_mark_all(aux_bitmap_t *bitmap);
+extern void aux_bitmap_clear_all(aux_bitmap_t *bitmap);
+
 extern int aux_bitmap_test(aux_bitmap_t *bitmap, uint64_t bit);
 
 extern void aux_bitmap_mark_range(aux_bitmap_t *bitmap, 

@@ -58,6 +58,24 @@ void aux_bitmap_clear(
 	bitmap->marked--;
 }
 
+/* Mark all bits, set marked block counter to total. */
+void aux_bitmap_mark_all(aux_bitmap_t *bitmap) {
+	aal_assert("vpf-572", bitmap != NULL, return);
+
+	aal_memset(bitmap->map, 0xff, bitmap->size);
+	
+	bitmap->marked = bitmap->total;
+}
+
+/* Clear all bits, set marked block counter to 0. */
+void aux_bitmap_clear_all(aux_bitmap_t *bitmap) {
+	aal_assert("vpf-573", bitmap != NULL, return);
+
+	aal_memset(bitmap->map, 0, bitmap->size);
+	
+	bitmap->marked = 0;
+}
+
 /* 
    Checks whether passed block is inside of bitmap and test it. Returns TRUE if
    block is marked, FALSE otherwise.
@@ -321,3 +339,4 @@ char *aux_bitmap_map(
 	aal_assert("umka-356", bitmap != NULL, return NULL);
 	return bitmap->map;
 }
+

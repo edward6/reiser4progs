@@ -450,6 +450,36 @@ errno_t alloc40_valid(object_entity_t *entity) {
 	return 0;
 }
 
+/* Call func for all blocks which belong to the same bitmap block as blk. */
+errno_t alloc40_region_layout(object_entity_t *entity, blk_t blk, 
+    alloc_layout_func_t func, void *data) 
+{
+    alloc40_t *alloc = (alloc40_t *)entity;
+    aal_device_t *device;
+    uint64_t size, i;
+    
+    aal_assert("vpf-554", alloc != NULL, return -1);
+    aal_assert("vpf-554", alloc->bitmap != NULL, return -1);
+    aal_assert("vpf-554", alloc->format != NULL, return -1);
+
+    device = plugin_call(return -1, alloc->format->plugin->format_ops, 
+			 device, alloc->format);
+    
+    if (!device) {
+	    aal_exception_error("Can't get device from format instance "
+				"durring bitmap loading.");
+	    return -1;
+    }
+	
+    size = aal_device_get_bs(device) - CRC_SIZE;
+    
+    for (i = blk / size; i < blk / size + size; i++)
+	if (func(entity, i, data))
+	    return -1;
+
+    return 0;    
+}
+
 /* Filling the alloc40 structure by methods */
 static reiser4_plugin_t alloc40_plugin = {
 	.alloc_ops = {
@@ -463,28 +493,30 @@ static reiser4_plugin_t alloc40_plugin = {
 			.label = "alloc40",
 			.desc = "Space allocator for reiserfs 4.0, ver. " VERSION,
 		},
-		.open	    = alloc40_open,
-		.close	    = alloc40_close,
+		.open		= alloc40_open,
+		.close		= alloc40_close,
 
 #ifndef ENABLE_COMPACT
-		.create	    = alloc40_create,
-		.sync	    = alloc40_sync,
-		.mark	    = alloc40_mark,
-		.allocate   = alloc40_allocate,
-		.release    = alloc40_release,
-		.print      = alloc40_print,
+		.create		= alloc40_create,
+		.sync		= alloc40_sync,
+		.mark		= alloc40_mark,
+		.allocate	= alloc40_allocate,
+		.release	= alloc40_release,
+		.print		= alloc40_print,
+		.region_layout	= alloc40_region_layout,
 #else
-		.create	    = NULL,
-		.sync	    = NULL,
-		.mark	    = NULL,
-		.allocate   = NULL,
-		.release    = NULL,
-		.print      = NULL,
+		.create		= NULL,
+		.sync		= NULL,
+		.mark		= NULL,
+		.allocate	= NULL,
+		.release	= NULL,
+		.print		= NULL,
+		.region_layout	= NULL,
 #endif
-		.test	    = alloc40_test,
-		.free	    = alloc40_free,
-		.used	    = alloc40_used,
-		.valid	    = alloc40_valid
+		.test		= alloc40_test,
+		.free		= alloc40_free,
+		.used		= alloc40_used,
+		.valid		= alloc40_valid
 	}
 };
 

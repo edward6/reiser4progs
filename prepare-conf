@@ -1,6 +1,8 @@
 echo aclocal
 aclocal
+echo autoheader
+autoheader
 echo autoconf
 autoconf
-echo automake
-automake
+echo automake --add-missing
+automake --add-missing
