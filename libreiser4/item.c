@@ -125,9 +125,9 @@ errno_t reiser4_item_get_key(reiser4_place_t *place,
 	} else {
 		plug_call(place->node->plug->o.node_ops,
 			  get_key, place->node, &place->pos, key);
+
+		aal_memcpy(&place->key, key, sizeof(*key));
 	}
-	
-	aal_memcpy(&place->key, key, sizeof(*key));
 
 	return 0;
 }
