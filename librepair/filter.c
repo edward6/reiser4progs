@@ -88,7 +88,7 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
 	aal_assert("vpf-799", res == 0);
     
     /* There are no fatal errors, check delimiting keys. */
-    if ((res = repair_node_dkeys_check(node)) < 0 && res != -ESTRUCT)
+    if ((res = repair_node_dkeys_check(node, fd->repair->mode)) < 0 && res != -ESTRUCT)
 	return res;
     
     if (res) {

@@ -226,7 +226,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
     will 3.6 format be supported?
 */
 /* Checks the delimiting keys of the node kept in the parent. */
-errno_t repair_node_dkeys_check(reiser4_node_t *node) {
+errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
     reiser4_place_t place;
     reiser4_key_t key, d_key;
     pos_t *pos = &place.pos;
@@ -280,12 +280,15 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node) {
 	 * example. Fix the delemiting key if we have parent. */
 	if (node->parent.node != NULL) {
 	    aal_exception_error("Node (%llu): The left delimiting key %k in "
-		"the node (%llu), pos (%u/%u) mismatch the first key %k in the "
-		"node. Left delimiting key is fixed.", 
-		node->blk, &place.item.key, node->parent.node->blk, place.pos.item, 
-		place.pos.unit, &d_key);
-	    if ((res = repair_node_ld_key_update(node, &d_key)))
-		return res;
+		"the parent node (%llu), pos (%u/%u) mismatch the first key "
+		"%k in the node. %s", node->blk, &place.item.key, 
+		node->parent.node->blk, place.pos.item, place.pos.unit, &d_key,
+		mode == REPAIR_REBUILD ? "Left delimiting key is fixed." : "");
+	    
+	    if (mode == REPAIR_REBUILD) {
+		if ((res = repair_node_ld_key_update(node, &d_key)))
+		    return res;
+	    }
 	}
     }
     
@@ -310,9 +313,9 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node) {
     }
     
     if (reiser4_key_compare(&key, &d_key) >= 0) {
-	aal_exception_error("Node (%llu): The last key %k in the node is less "
-	    "then the right delimiting key %k.", 
-	    node->blk, &key, &d_key);
+	aal_exception_error("Node (%llu): The last key %k in the node is "
+	    "greater then the right delimiting key %k.", node->blk, &key, 
+	    &d_key);
 	return -ESTRUCT;
     }
 

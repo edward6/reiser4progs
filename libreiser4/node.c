@@ -236,6 +236,9 @@ static int reiser4_node_ack(reiser4_node_t *node,
 	if (place->pos.item < reiser4_node_items(place->node)) {
 		if (reiser4_place_realize(place))
 			return 0;
+
+		if (!reiser4_item_branch(place))
+			return 0;
 	}
 	
 	plugin_call(place->item.plugin->item_ops, read,
@@ -288,7 +291,10 @@ errno_t reiser4_node_pbc(
 
 		if (!reiser4_item_branch(place))
 			continue;
-		
+
+		if ((res = reiser4_item_realize(place)))
+			return res;
+		    
 		for (j = 0; j < reiser4_item_units(place); j++) {
 			place->pos.unit = j;
 			

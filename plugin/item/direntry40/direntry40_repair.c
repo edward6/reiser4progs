@@ -193,8 +193,8 @@ static uint8_t direntry40_long_entry_detect(item_entity_t *item, uint32_t start_
     aal_assert("vpf-771", length < item->len);
     aal_assert("vpf-772", OFFSET(de, start_pos) <= item->len - length);
 
-    r_limit = OFFSET(de, start_pos) + length;
     l_limit = OFFSET(de, start_pos);
+    r_limit = l_limit + length;
 	
     while (l_limit < r_limit) {
 	offset = direntry40_name_end(item->body, 
@@ -203,29 +203,26 @@ static uint8_t direntry40_long_entry_detect(item_entity_t *item, uint32_t start_
 	if (offset == r_limit)
 	    return 0;
 	
+	offset++;
+	
 	if (offset - l_limit < ENTRY_LEN_MIN(L_NAME))
 	    return 0;
 	
+	l_limit = offset;
 	count++;
 	
-	if (offset + 1 == l_limit)
-	    return count;
-	
-	if (mode != REPAIR_SKIP) {
+	if (mode != REPAIR_SKIP && OFFSET(de, start_pos + count) != l_limit) {
 	    aal_exception_error("Node %llu, item %u, unit (%u): unit "
 		"offset (%u) is wrong, should be (%u). %s", item->context.blk, 
-		item->pos.item, start_pos + count, OFFSET(de, start_pos + count), 
+		item->pos.item, start_pos + count, OFFSET(de, start_pos+count),
 		l_limit, mode == REPAIR_REBUILD ? "Fixed." : "");
 	    
-	    if (mode == REPAIR_REBUILD) {
+	    if (mode == REPAIR_REBUILD)
 		en40_set_offset(&de->entry[start_pos + count], l_limit);
-	    }
-	}
-	
-	l_limit = offset + 1;
+	}	
     }
     
-    return 0;
+    return l_limit == r_limit ? count : 0;
 }
 
 static inline uint8_t direntry40_entry_detect(item_entity_t *item, 
@@ -531,7 +528,7 @@ errno_t direntry40_check(item_entity_t *item, uint8_t mode) {
     flags.count = (item->len - sizeof(direntry40_t)) / (sizeof(entry40_t));
     
     /* map consists of bit pairs - [not relable -R, relable - R] */
-    flags.elem = aal_malloc(flags.count);
+    flags.elem = aal_calloc(flags.count, 0);
     
     res |= direntry40_offsets_range_check(item, &flags, mode);
     
