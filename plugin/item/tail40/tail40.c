@@ -433,8 +433,7 @@ static reiser4_plugin_t tail40_plugin = {
 		.get_key	= tail40_get_key,
 		.max_poss_key	= tail40_max_poss_key,
 		.max_real_key	= tail40_max_real_key,
-		.gap_key	= tail40_max_real_key,
-		.layout_check	= NULL
+		.gap_key	= tail40_max_real_key
 	}
 };
 

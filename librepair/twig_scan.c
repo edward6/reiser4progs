@@ -57,13 +57,14 @@ static errno_t callback_item_layout(reiser4_coord_t *coord, void *data) {
     aal_assert("vpf-727", coord->node != NULL, return -1);
 
     node = coord->node;
-    
-    if (coord->item.plugin->item_ops.layout) {
+
+    /* FIXME-UMKA->VITALY */
+/*    if (coord->item.plugin->item_ops.layout) {
 	len = coord->item.plugin->item_ops.layout_check(&coord->item, 
 	    callback_item_region_check, data);
-	if (len > 0) {
+	if (len > 0) {*/
 	    /* shrink the node. */
-	    if ((res = plugin_call(node->entity->plugin->node_ops,
+/*	    if ((res = plugin_call(node->entity->plugin->node_ops,
 		    shrink, node->entity, &coord->pos, len)))
 	    {
 		aal_exception_bug("Node (%llu), pos (%u, %u), len (%u): Failed "
@@ -72,7 +73,7 @@ static errno_t callback_item_layout(reiser4_coord_t *coord, void *data) {
 		return -1;
 	    }
 	}
-    }
+    }*/
 
     return 0;
 }

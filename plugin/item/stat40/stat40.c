@@ -507,7 +507,6 @@ static reiser4_plugin_t stat40_plugin = {
 		.max_poss_key	= NULL,
 		.max_real_key   = NULL,
 		.gap_key	= NULL,
-		.layout_check	= NULL
 	}
 };
 

@@ -145,13 +145,14 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	if (!reiser4_item_extent(&coord) && !reiser4_item_nodeptr(&coord))
 	    continue;
 
-	if (coord.item.plugin->item_ops.layout_check) {
+	/* FIXME-UMKA->VITALY: Here is place I've written about in may email */
+/*	if (coord.item.plugin->item_ops.layout_check) {
 	    len = plugin_call(coord.item.plugin->item_ops, 
-		layout_check, &coord.item, callback_item_region_check, bm_used);
+		layout_check, &coord.item, callback_item_region_check, bm_used);*/
 
-	    if (len > 0) {
+//	    if (len > 0) {
 		/* shrink the node */
-		if ((res = plugin_call(node->entity->plugin->node_ops, 
+/*		if ((res = plugin_call(node->entity->plugin->node_ops, 
 		    shrink, node->entity, pos, len)))
 		{
 		    aal_exception_bug("Node (%llu), item (%llu), len (%u): Failed "
@@ -161,7 +162,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 		}
 	    } else
 		return len;
-	}
+	}*/
     }
  
     return 0;    
