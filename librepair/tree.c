@@ -181,7 +181,6 @@ node_t *repair_tree_load_node(reiser4_tree_t *tree, node_t *parent,
 	node_t *node;
 	
 	aal_assert("vpf-1500", tree != NULL);
-	aal_assert("vpf-1501", parent != NULL);
 	aal_assert("vpf-1502", tree->fs != NULL);
 	
 	if (!(node = reiser4_tree_load_node(tree, parent, blk)))
