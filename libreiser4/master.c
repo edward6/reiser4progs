@@ -60,8 +60,6 @@ reiser4_master_t *reiser4_master_create(
 	return master;
 }
 
-#define MASTER_SIGN "MSTR"
-
 errno_t reiser4_master_pack(reiser4_master_t *master,
 			    aal_stream_t *stream)
 {
@@ -70,10 +68,7 @@ errno_t reiser4_master_pack(reiser4_master_t *master,
 	aal_assert("umka-2608", master != NULL);
 	aal_assert("umka-2609", stream != NULL);
 
-	/* Write magic. */
-	aal_stream_write(stream, MASTER_SIGN, 4);
-
-	/* Write data size. */
+	/* Write master size. */
 	size = sizeof(master->ent);
 	aal_stream_write(stream, &size, sizeof(size));
 
@@ -87,21 +82,10 @@ reiser4_master_t *reiser4_master_unpack(aal_device_t *device,
 					aal_stream_t *stream)
 {
 	uint32_t size;
-	char sign[5] = {0};
 	reiser4_master_t *master;
     
 	aal_assert("umka-981", device != NULL);
 	aal_assert("umka-2611", stream != NULL);
-
-	/* Check magic first. */
-	aal_stream_read(stream, &sign, 4);
-
-	if (aal_strncmp(sign, MASTER_SIGN, 4)) {
-		aal_exception_error("Invalid master magic %s is "
-				    "detected in stream.",
-				    sign);
-		return NULL;
-	}
 
 	/* Read size and check for validness. */
 	aal_stream_read(stream, &size, sizeof(size));
@@ -138,7 +122,7 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	aal_assert("umka-1568", master != NULL);
 	aal_assert("umka-1569", stream != NULL);
 
-	blksize = reiser4_master_get_blksize(master);
+	blksize = get_ms_blksize(SUPER(master));
 	
 	aal_stream_format(stream, "Master super block (%lu):\n",
 			  REISER4_MASTER_OFFSET / blksize);
@@ -147,7 +131,7 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 			  reiser4_master_get_magic(master));
 	
 	aal_stream_format(stream, "blksize:\t%u\n",
-			  reiser4_master_get_blksize(master));
+			  get_ms_blksize(SUPER(master)));
 
 	aal_stream_format(stream, "format plug id:\t%x\n",
 			  reiser4_master_get_format(master));
@@ -184,7 +168,7 @@ errno_t reiser4_master_layout(reiser4_master_t *master,
 	aal_assert("vpf-1317", master != NULL);
 	aal_assert("vpf-1317", region_func != NULL);
 
-	blksize = reiser4_master_get_blksize(master);
+	blksize = get_ms_blksize(SUPER(master));
 	blk = REISER4_MASTER_OFFSET / blksize;
 	return region_func(master, blk, 1, data);
 }
