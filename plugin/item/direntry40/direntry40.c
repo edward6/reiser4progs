@@ -574,7 +574,7 @@ static int32_t direntry40_cut(item_entity_t *item,
 	first = (units - (pos + count)) * sizeof(entry40_t);
 	first += direntry40_size(item, 0, pos);
 
-	/* Getting how many bytes shopuld be moved after passed @pos. */
+	/* Getting how many bytes shopuld be moved after passed @pos */
 	second = direntry40_size(item, pos + count,
 				 units - (pos + count));
 

@@ -171,7 +171,9 @@ static int32_t tail40_remove(item_entity_t *item, uint32_t pos,
 }
 
 /* Removes the part of tail body between specified keys. */
-static int32_t tail40_shrink(item_entity_t *item, feel_hint_t *hint) {
+static int32_t tail40_shrink(item_entity_t *item,
+			     feel_hint_t *hint)
+{
 	aal_assert("vpf-930", item  != NULL);
 	aal_assert("vpf-931", hint != NULL);
 	

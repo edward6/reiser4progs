@@ -131,38 +131,45 @@ static int32_t extent40_remove(item_entity_t *item,
 
 /* Removes body between specified keys. */
 static int32_t extent40_shrink(item_entity_t *item, feel_hint_t *hint) {
-	uint32_t start_pos, end_pos;
 	uint64_t width;
+	uint32_t end_pos;
+	uint32_t start_pos;
+	uint32_t blocksize;
 	extent40_t *extent;
-	int32_t len = 0;
 	
 	aal_assert("vpf-935", item  != NULL);
 	aal_assert("vpf-936", hint != NULL);
+	
+	blocksize = extent40_blocksize(item);
 	
 	/* Transforming from the offset ot unit */
 	start_pos = extent40_unit(item, hint->start);	
 	
 	/* Transforming from the offset ot unit */
-	end_pos = extent40_unit(item, hint->start + hint->count - 1);
+	end_pos = extent40_unit(item, hint->start +
+				hint->count - 1);
 	
 	width = hint->start - extent40_offset(item, start_pos);
+	aal_assert("vpf-939", width % blocksize == 0);
 	
-	aal_assert("vpf-939", width % extent40_blocksize(item) == 0);
-	
-	width /= extent40_blocksize(item);
+	width /= blocksize;
 	
 	if (width) {
-		/* Not the whole first unit should be removed. */
-		et40_set_width(extent40_body(item) + start_pos, width);
+
+                /* Not the whole first unit should be removed */
+		et40_set_width(extent40_body(item) +
+			       start_pos, width);
+		
 		start_pos++;
 	}
 	
 	/* End key is inclusive, so + 1 */
-	width = hint->start + hint->count - extent40_offset(item, end_pos);
+	width = hint->start + hint->count -
+		extent40_offset(item, end_pos);
 	
-	aal_assert("vpf-939", width % extent40_blocksize(item) == 0);
+	aal_assert("vpf-939", width % blocksize == 0);
 	
-	width /= extent40_blocksize(item);
+	width /= blocksize;
 	
 	extent = extent40_body(item) + end_pos;
 	
@@ -173,7 +180,8 @@ static int32_t extent40_shrink(item_entity_t *item, feel_hint_t *hint) {
 		end_pos--;
 	}
 	
-	return extent40_remove(item, start_pos, end_pos - start_pos + 1);
+	return extent40_remove(item, start_pos,
+			       end_pos - start_pos + 1);
 }
 
 /* Prints extent item into specified @stream */

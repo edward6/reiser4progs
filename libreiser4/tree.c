@@ -434,8 +434,7 @@ reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
 
 	reiser4_node_unlock(node);
 	
-	return (where == D_LEFT) ? node->left :
-		node->right;
+	return (where == D_LEFT) ? node->left : node->right;
 }
 
 #ifndef ENABLE_STAND_ALONE
