@@ -52,8 +52,14 @@ errno_t reiser4_profile_override(reiser4_profile_t *profile,
 		return -EINVAL;
 
 	if (!(plugin = libreiser4_factory_nfind((char *)name))) {
-		aal_exception_error("Can't find plugin name \"%s\".",
+		aal_exception_error("Can't find plugin by name \"%s\".",
 				    name);
+		return -EINVAL;
+	}
+
+	if (pid->type != plugin->id.type) {
+		aal_exception_error("Can't override plugins of "
+				    "different types.");
 		return -EINVAL;
 	}
 

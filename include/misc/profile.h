@@ -9,12 +9,7 @@
 
 #include <reiser4/types.h>
 
-extern void misc_profile_list(void);
-extern void misc_profile_print(reiser4_profile_t *profile);
-
+extern void misc_profile_print(void);
 extern reiser4_profile_t *misc_profile_default(void);
-extern reiser4_profile_t *misc_profile_find(const char *name);
-
-extern errno_t misc_profile_override(reiser4_profile_t *profile,
-				     char *override);
+extern errno_t misc_profile_override(char *override);
 #endif

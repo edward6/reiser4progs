@@ -29,8 +29,7 @@ enum mkfs_behav_flags {
 	BF_FORCE   = 1 << 0,
 	BF_QUIET   = 1 << 1,
 	BF_PLUGS   = 1 << 2,
-	BF_PROFS   = 1 << 3,
-	BF_LOST    = 1 << 5,
+	BF_LOST    = 1 << 3,
 	BF_SHORT   = 1 << 4
 };
 
@@ -60,9 +59,7 @@ static void mkfs_print_usage(char *name) {
 		"  -l, --label LABEL               volume label lets to mount\n"
 		"                                  filesystem by its label.\n"
 		"Plugins options:\n"
-		"  -e, --profile PROFILE           profile to be used.\n"
 		"  -P, --known-plugins             prints known plugins.\n"
-		"  -K, --known-profiles            prints known profiles.\n"
 	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
 	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
@@ -89,9 +86,9 @@ int main(int argc, char *argv[]) {
 	aal_gauge_t *gauge = NULL;
 	aal_list_t *devices = NULL;
     
+	char *host_dev;
 	count_t dev_len = 0;
 	mkfs_behav_flags_t flags = 0;
-	char *host_dev, *profile = "smart40";
     
 	static struct option long_options[] = {
 		{"version", no_argument, NULL, 'V'},
@@ -103,8 +100,6 @@ int main(int argc, char *argv[]) {
 		{"uuid", required_argument, NULL, 'i'},
 		{"lost-found", required_argument, NULL, 's'},
 		{"short-keys", required_argument, NULL, 'k'},
-		{"profile", required_argument, NULL, 'e'},
-		{"known-profiles", no_argument, NULL, 'K'},
 		{"known-plugins", no_argument, NULL, 'P'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
@@ -126,7 +121,7 @@ int main(int argc, char *argv[]) {
 	memset(hint.label, 0, sizeof(hint.label));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfKb:i:l:sPo:k",
+	while ((c = getopt_long(argc, argv, "hVqfb:i:l:sPo:k",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -136,9 +131,6 @@ int main(int argc, char *argv[]) {
 		case 'V':
 			misc_print_banner(argv[0]);
 			return NO_ERROR;
-		case 'e':
-			profile = optarg;
-			break;
 		case 'f':
 			flags |= BF_FORCE;
 			break;
@@ -159,9 +151,6 @@ int main(int argc, char *argv[]) {
 				    aal_strlen(optarg));
 			
 			aal_strncat(override, ",", 1);
-			break;
-		case 'K':
-			flags |= BF_PROFS;
 			break;
 		case 'b':
 			/* Parsing blocksize */
@@ -214,18 +203,6 @@ int main(int argc, char *argv[]) {
 	if (!(flags & BF_QUIET))
 		misc_print_banner(argv[0]);
 
-	if (flags & BF_PROFS) {
-		misc_profile_list();
-		return NO_ERROR;
-	}
-	
-	/* Initializing passed profile */
-	if (!(hint.profile = misc_profile_find(profile))) {
-		aal_exception_error("Can't find profile by its "
-				    "label %s.", profile);
-		goto error;
-	}
-
 	/* Initializing libreiser4 (getting plugins, checking them on validness,
 	   etc). */
 	if (libreiser4_init()) {
@@ -233,22 +210,25 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
+	/* Initializing passed profile */
+	hint.profile = misc_profile_default();
+
+	/* Overriding profile by passed by used values. This should be done
+	   after libreiser4 is initialized. */
+	if (aal_strlen(override) > 0) {
+		aal_exception_info("Overriding default profile by \"%s\".",
+				   override);
+		
+		if (misc_profile_override(override))
+			goto error_free_libreiser4;
+	}
+
 	if (flags & BF_PLUGS) {
-		misc_plugin_list();
+		misc_profile_print();
 		libreiser4_fini();
 		return 0;
 	}
 	
-	/* Overriding profile by passed by used values. This should be done
-	   after libreiser4 is initialized. */
-	if (aal_strlen(override) > 0) {
-		aal_exception_info("Overriding profile %s by \"%s\".",
-				   profile, override);
-		
-		if (misc_profile_override(hint.profile, override))
-			goto error_free_libreiser4;
-	}
-
 	/* Building list of devices the filesystem will be created on */
 	for (; optind < argc; optind++) {
 		if (stat(argv[optind], &st) == -1) {
@@ -282,16 +262,6 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
 	
-	/* All devices cannot have the same uuid and label, so here we clean it
-	   out. */
-	if (aal_list_len(devices) > 1) {
-		aal_memset(hint.uuid, 0,
-			   sizeof(hint.uuid));
-		
-		aal_memset(hint.label, 0,
-			   sizeof(hint.label));
-	}
-
 	if (!(flags & BF_QUIET)) {
 		if (!(gauge = aal_gauge_create(GAUGE_SILENT, NULL)))
 			goto error_free_libreiser4;
@@ -302,8 +272,10 @@ int main(int argc, char *argv[]) {
     
 		host_dev = (char *)walk->data;
     
-		if (stat(host_dev, &st) == -1)
+		if (stat(host_dev, &st) == -1) {
+			aal_exception_error("can't stat %s.", host_dev);
 			goto error_free_libreiser4;
+		}
     
 		/* Checking is passed device is a block device. If so, we check
 		   also is it whole drive or just a partition. If the device is
@@ -340,8 +312,7 @@ int main(int argc, char *argv[]) {
 #endif
 		/* Opening device */
 		if (!(device = aal_device_open(&file_ops, host_dev, 
-					       REISER4_SECSIZE,
-					       O_RDWR))) 
+					       REISER4_SECSIZE, O_RDWR))) 
 		{
 			aal_exception_error("Can't open %s. %s.",
 					    host_dev, strerror(errno));
@@ -364,8 +335,7 @@ int main(int argc, char *argv[]) {
 
 		/* Checking for "quiet" mode */
 		if (!(flags & BF_QUIET)) {
-			if (aal_exception_yesno("Reiser4 with %s profile is going "
-						"to be created on %s.", profile,
+			if (aal_exception_yesno("Reiser4 is going to be created on %s.",
 						host_dev) == EXCEPTION_NO)
 			{
 				goto error_free_device;
@@ -373,8 +343,8 @@ int main(int argc, char *argv[]) {
 		}
     
 		if (gauge) {
-			aal_gauge_rename(gauge, "Creating reiser4 with %s on %s",
-					 profile, host_dev);
+			aal_gauge_rename(gauge, "Creating reiser4 on %s",
+					 host_dev);
 
 			aal_gauge_start(gauge);
 		}
@@ -429,6 +399,10 @@ int main(int argc, char *argv[]) {
 		/* Zeroing uuid in order to force mkfs to generate it on its own
 		   for next device form built device list. */
 		aal_memset(hint.uuid, 0, sizeof(hint.uuid));
+
+		/* Zeroing out label, because all filesystems cannot have the
+		 * same label. */
+		aal_memset(hint.label, 0, sizeof(hint.label));
 
 		/* Zeroing fs_len in order to force mkfs on next turn to calc
 		   its size from actual device length. */

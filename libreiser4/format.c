@@ -428,13 +428,10 @@ rid_t reiser4_format_key_pid(reiser4_format_t *format) {
 	return KEY_SHORT_ID;
 }
 
-/* Returns node plugin id */
+/* Returns key plugin id */
 rid_t reiser4_format_node_pid(reiser4_format_t *format) {
-	aal_assert("umka-2348", format != NULL);
-
-	/* FIXME-UMKA: This will be taken from format super block later, wehn it
-	   is ready. */
-
+	aal_assert("umka-2350", format != NULL);
+	
 	if (plugin_call(format->entity->plugin->o.format_ops,
 			tst_flag, format->entity, 0))
 	{
@@ -443,13 +440,3 @@ rid_t reiser4_format_node_pid(reiser4_format_t *format) {
 
 	return NODE_SHORT_ID;
 }
-
-/* Returns nodeptr item plugin id */
-rid_t reiser4_format_nodeptr_pid(reiser4_format_t *format) {
-	aal_assert("umka-2349", format != NULL);
-
-	/* FIXME-UMKA: This will be taken from format super block later, wehn it
-	   is ready. */
-	return ITEM_NODEPTR40_ID;
-}
-

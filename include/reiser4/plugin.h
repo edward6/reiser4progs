@@ -67,7 +67,7 @@ enum reiser4_plugin_type {
 	ITEM_PLUGIN_TYPE        = 0x2,
 	NODE_PLUGIN_TYPE        = 0x3,
 	HASH_PLUGIN_TYPE        = 0x4,
-	TAIL_PLUGIN_TYPE        = 0x5,
+	POLICY_PLUGIN_TYPE      = 0x5,
 	PERM_PLUGIN_TYPE        = 0x6,
 	SDEXT_PLUGIN_TYPE       = 0x7,
 	FORMAT_PLUGIN_TYPE      = 0x8,
@@ -1206,6 +1206,12 @@ struct reiser4_journal_ops {
 };
 
 typedef struct reiser4_journal_ops reiser4_journal_ops_t;
+
+struct reiser4_policy_ops {
+	int (*tails) (uint64_t);
+};
+
+typedef struct reiser4_policy_ops reiser4_policy_ops_t;
 #endif
 
 #define PLUGIN_MAX_LABEL	22
@@ -1279,6 +1285,7 @@ struct reiser4_plugin {
 
 #ifndef ENABLE_STAND_ALONE
 		reiser4_alloc_ops_t *alloc_ops;
+		reiser4_policy_ops_t *policy_ops;
 		reiser4_journal_ops_t *journal_ops;
 #endif
 		reiser4_oid_ops_t *oid_ops;

@@ -22,8 +22,7 @@
 enum cpfs_behav_flags {
 	BF_FORCE   = 1 << 0,
 	BF_QUIET   = 1 << 1,
-	BF_PLUGS   = 1 << 2,
-	BF_PROFS   = 1 << 3
+	BF_PLUGS   = 1 << 2
 };
 
 typedef enum cpfs_behav_flags cpfs_behav_flags_t;
@@ -41,9 +40,7 @@ static void cpfs_print_usage(char *name) {
 		"  -f, --force                     makes cpfs to use whole disk, not\n"
 		"                                  block device or mounted partition.\n"
 		"Plugins options:\n"
-		"  -e, --profile PROFILE           profile to be used.\n"
 		"  -P, --known-plugins             prints known plugins.\n"
-		"  -K, --known-profiles            prints known profiles.\n"
 	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
 	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
@@ -60,14 +57,14 @@ static void cpfs_init(void) {
 int main(int argc, char *argv[]) {
 	int c;
 	
+	struct stat st;
 	fs_hint_t hint;
+
 	reiser4_fs_t *src_fs;
 	reiser4_fs_t *dst_fs;
 
-	struct stat st;
 	char override[4096];
 	char *src_dev, *dst_dev;
-	char *profile = "smart40";
 
 	aal_device_t *src_device;
 	aal_device_t *dst_device;
@@ -80,8 +77,6 @@ int main(int argc, char *argv[]) {
 		{"help", no_argument, NULL, 'h'},
 		{"force", no_argument, NULL, 'f'},
 		{"quiet", no_argument, NULL, 'q'},
-		{"profile", required_argument, NULL, 'e'},
-		{"known-profiles", no_argument, NULL, 'K'},
 		{"known-plugins", no_argument, NULL, 'P'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
@@ -97,7 +92,7 @@ int main(int argc, char *argv[]) {
 	memset(override, 0, sizeof(override));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfPo:K", long_options, 
+	while ((c = getopt_long(argc, argv, "hVqfPo:", long_options, 
 				(int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -107,9 +102,6 @@ int main(int argc, char *argv[]) {
 		case 'V':
 			misc_print_banner(argv[0]);
 			return NO_ERROR;
-		case 'e':
-			profile = optarg;
-			break;
 		case 'f':
 			flags |= BF_FORCE;
 			break;
@@ -125,9 +117,6 @@ int main(int argc, char *argv[]) {
 			
 			aal_strncat(override, ",", 1);
 			break;
-		case 'K':
-			flags |= BF_PROFS;
-			break;
 		case '?':
 			cpfs_print_usage(argv[0]);
 			return NO_ERROR;
@@ -142,18 +131,6 @@ int main(int argc, char *argv[]) {
 	if (!(flags & BF_QUIET))
 		misc_print_banner(argv[0]);
 
-	if (flags & BF_PROFS) {
-		misc_profile_list();
-		return NO_ERROR;
-	}
-	
-	/* Initializing passed profile */
-	if (!(hint.profile = misc_profile_find(profile))) {
-		aal_exception_error("Can't find profile by its label %s.", 
-				    profile);
-		goto error;
-	}
-
 	/* Initializing libreiser4 (getting plugins, checking them on validness,
 	   etc). */
 	if (libreiser4_init()) {
@@ -161,22 +138,25 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
 
+	/* Initializing passed profile */
+	hint.profile = misc_profile_default();
+
+	/* Overriding profile by passed by used values. This should be done
+	   after libreiser4 is initialized. */
+	if (aal_strlen(override) > 0) {
+		aal_exception_info("Overriding default profile by \"%s\".",
+				   override);
+		
+		if (misc_profile_override(override))
+			goto error_free_libreiser4;
+	}
+
 	if (flags & BF_PLUGS) {
-		misc_plugin_list();
+		misc_profile_print();
 		libreiser4_fini();
 		return 0;
 	}
 	
-	/* Overriding profile by passed by used values. This should be done
-	   after libreiser4 is initialized. */
-	if (aal_strlen(override) > 0) {
-		aal_exception_info("Overriding profile %s by \"%s\".",
-				   profile, override);
-		
-		if (misc_profile_override(hint.profile, override))
-			goto error_free_libreiser4;
-	}
-
 	src_dev = argv[optind++];
 	dst_dev = argv[optind++];
 	
@@ -227,8 +207,7 @@ int main(int argc, char *argv[]) {
 
 	/* The same checks for @dst_dev */
 	if (stat(dst_dev, &st) == -1) {
-		aal_exception_error("Device %s does not exist.",
-				    dst_dev);
+		aal_exception_error("Can't stat %s.", dst_dev);
 		goto error_free_libreiser4;
 	}
     
@@ -375,7 +354,6 @@ int main(int argc, char *argv[]) {
 	/* Finalizing libreiser4. At the moment only plugins are unloading
 	   durring this. */
 	libreiser4_fini();
-    
 	return NO_ERROR;
 	
  error_free_dst_tree:

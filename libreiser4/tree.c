@@ -972,7 +972,7 @@ errno_t reiser4_tree_attach(
 		aal_exception_error("Lookup is failed durring attach "
 				    "new node.");
 		return -EINVAL;
-	defaul:
+	default:
 		break;
 	}
 

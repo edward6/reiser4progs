@@ -29,9 +29,7 @@ static void fsck_print_usage(char *name) {
 	"  -v, --verbose                   makes fsck to be verbose.\n"
 	"  -r                              ignored.\n"
 	"Plugin options:\n"
-	"  -K, --known-profiles            prints known profiles.\n"
 	"  -k, --known-plugins             prints known plugins.\n"	
-	"  -e, --profile PROFILE           profile \"PROFILE\" to be used or printed.\n"
 	"  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
 	"                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
@@ -104,10 +102,11 @@ static void fsck_init_streams(fsck_parse_t *data) {
 static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[]) 
 {
     int c;
-    char override[4096];
-    char *str, *profile_label = NULL;
-    static int flag, mode = REPAIR_CHECK;
+    char *str;
     FILE *stream;
+    static int flag;
+    char override[4096];
+    static int mode = REPAIR_CHECK;
 
     static struct option long_options[] = {
 	/* Fsck modes */
@@ -126,8 +125,6 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	{"preen", no_argument, NULL, 'p'},
 	{"force", no_argument, NULL, 'f'},
 	{"verbose", no_argument, NULL, 'v'},
-	{"profile", required_argument, NULL, 'e'},
-	{"known-profiles", no_argument, NULL, 'K'},
 	{"known-plugins", no_argument, NULL, 'k'},
 	{"override", required_argument, NULL, 'o'},
 	/* Fsck hidden options. */
@@ -149,7 +146,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 
     misc_print_banner(argv[0]);
     
-    while ((c = getopt_long(argc, argv, "l:Vhnqapfve:Kko:U:R:r?d", long_options, 
+    while ((c = getopt_long(argc, argv, "l:Vhnqapfvko:U:R:r?d", long_options, 
 	(int *)0)) != EOF) 
     {
 	switch (c) {
@@ -177,17 +174,9 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	case 'v':
 	    aal_set_bit(&data->options, FSCK_OPT_VERBOSE);
 	    break;
-/*
-	    case 'e':
-		profile_label = optarg;
-		break;
-	    case 'k':
-		misc_factory_list();
-		return NO_ERROR;
-	    case 'K':
-		misc_profile_list();
-		return NO_ERROR;
-*/
+/*	case 'k':
+	    print_plugins = 1;
+	    break;*/
 	case 'o':
 	    aal_strncat(override, optarg, aal_strlen(optarg));
 	    aal_strncat(override, ",", 1);
@@ -214,17 +203,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 
     fsck_init_streams(data);
     
-    if (profile_label && !(data->profile = misc_profile_find(profile_label))) {
-	aal_exception_fatal("Cannot find the specified profile (%s).", 
-	    profile_label);
-	return USER_ERROR;
-    }
-    
-    if (optind == argc && profile_label) {
-	/* print profile */
-	misc_profile_print(data->profile);
-	return NO_ERROR;
-    } else if (optind != argc - 1) {
+    if (optind != argc - 1) {
 	fsck_print_usage(argv[0]);
 	return USER_ERROR;
     }

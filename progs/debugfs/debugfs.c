@@ -44,11 +44,10 @@ static void debugfs_print_usage(char *name) {
 		"  -k, --print-alloc               prints block allocator data.\n"
 		"  -b, --print-block N             prints block by its number.\n"
 		"  -n, --print-nodes FILE          prints all nodes file lies in.\n"
-		"  -i, --print-items FILE          prints all items file consists of.\n"
+		"  -i, --print-items FILE          prints all items specified file\n"
+		"                                  consists of.\n"
 		"Plugins options:\n"
-		"  -e, --profile PROFILE           profile to be used.\n"
 		"  -P, --known-plugins             prints known plugins.\n"
-		"  -K, --known-profiles            prints known profiles.\n"
 	        "  -o, --override TYPE=PLUGIN      overrides the default plugin of the type\n"
 	        "                                  \"TYPE\" by the plugin \"PLUGIN\".\n");
 }
@@ -101,7 +100,6 @@ int main(int argc, char *argv[]) {
 	char override[4096];
 	char *cat_filename = NULL;
 	char *print_filename = NULL;
-	char *profile_label = "smart40";
     
 	reiser4_fs_t *fs;
 	aal_device_t *device;
@@ -123,8 +121,6 @@ int main(int argc, char *argv[]) {
 		{"print-block", required_argument, NULL, 'b'},
 		{"print-nodes", required_argument, NULL, 'n'},
 		{"print-items", required_argument, NULL, 'i'},
-		{"profile", required_argument, NULL, 'e'},
-		{"known-profiles", no_argument, NULL, 'K'},
 		{"known-plugins", no_argument, NULL, 'P'},
 		{"override", required_argument, NULL, 'o'},
 		{0, 0, 0, 0}
@@ -138,7 +134,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfKtb:djc:n:i:o:P",
+	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:P",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -148,9 +144,6 @@ int main(int argc, char *argv[]) {
 		case 'V':
 			misc_print_banner(argv[0]);
 			return NO_ERROR;
-		case 'e':
-			profile_label = optarg;
-			break;
 		case 'd':
 			print_flags |= PF_OID;
 			break;
@@ -202,9 +195,6 @@ int main(int argc, char *argv[]) {
 			aal_strncat(override, optarg, aal_strlen(optarg));
 			aal_strncat(override, ",", 1);
 			break;
-		case 'K':
-			behav_flags |= BF_PROFS;
-			break;
 		case '?':
 			debugfs_print_usage(argv[0]);
 			return NO_ERROR;
@@ -219,37 +209,27 @@ int main(int argc, char *argv[]) {
 	if (!(behav_flags & BF_QUIET))
 		misc_print_banner(argv[0]);
 
-	if (behav_flags & BF_PROFS) {
-		misc_profile_list();
-		return NO_ERROR;
-	}
-	
-	/* Initializing passed profile */
-	if (!(profile = misc_profile_find(profile_label))) {
-		aal_exception_error("Can't find profile by its label %s.", 
-				    profile_label);
-		goto error;
-	}
-    
 	if (libreiser4_init()) {
 		aal_exception_error("Can't initialize libreiser4.");
 		goto error;
 	}
 
-	if (behav_flags & BF_PLUGS) {
-		misc_plugin_list();
-		libreiser4_fini();
-		return 0;
-	}
-	
+	profile = misc_profile_default();
+    
 	/* Overriding profile by passed by used values. This should be done after
 	   libreiser4 is initialized. */
 	if (aal_strlen(override) > 0) {
-		aal_exception_info("Overriding profile %s by \"%s\".",
-				   profile->name, override);
+		aal_exception_info("Overriding default profile by \"%s\".",
+				   override);
 		
-		if (misc_profile_override(profile, override))
+		if (misc_profile_override(override))
 			goto error_free_libreiser4;
+	}
+	
+	if (behav_flags & BF_PLUGS) {
+		misc_profile_print();
+		libreiser4_fini();
+		return 0;
 	}
 	
 	host_dev = argv[optind];

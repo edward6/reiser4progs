@@ -484,6 +484,10 @@ AC_OUTPUT([
     plugin/object/dir40/Makefile
     plugin/object/reg40/Makefile
     plugin/object/sym40/Makefile
+    plugin/policy/Makefile
+    plugin/policy/tails/Makefile
+    plugin/policy/extents/Makefile
+    plugin/policy/smart/Makefile
     plugin/hash/Makefile
     plugin/hash/r5_hash/Makefile
     plugin/hash/tea_hash/Makefile

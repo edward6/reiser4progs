@@ -64,7 +64,6 @@ typedef struct reiser4_pid reiser4_pid_t;
    the filesystem. */
 struct reiser4_profile {
 	char name[10];
-	char desc[100];
 	reiser4_pid_t plugin[20];
 };
 
