@@ -11,25 +11,6 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sdext_lt_plugin;
 
-static errno_t sdext_lt_init(rbody_t *body, 
-			     void *hint) 
-{
-	sdext_lt_t *ext;
-	reiser4_sdext_lt_hint_t *sdext_lt;
-    
-	aal_assert("umka-1475", body != NULL);
-	aal_assert("umka-1476", hint != NULL);
-	
-	ext = (sdext_lt_t *)body;
-	sdext_lt = (reiser4_sdext_lt_hint_t *)hint;
-    
-	sdext_lt_set_atime(ext, sdext_lt->atime);
-	sdext_lt_set_mtime(ext, sdext_lt->mtime);
-	sdext_lt_set_ctime(ext, sdext_lt->ctime);
-
-	return 0;
-}
-
 static errno_t sdext_lt_open(rbody_t *body, 
 			     void *hint) 
 {
@@ -54,6 +35,25 @@ static uint16_t sdext_lt_length(rbody_t *body) {
 }
 
 #ifndef ENABLE_ALONE
+
+static errno_t sdext_lt_init(rbody_t *body, 
+			     void *hint) 
+{
+	sdext_lt_t *ext;
+	reiser4_sdext_lt_hint_t *sdext_lt;
+    
+	aal_assert("umka-1475", body != NULL);
+	aal_assert("umka-1476", hint != NULL);
+	
+	ext = (sdext_lt_t *)body;
+	sdext_lt = (reiser4_sdext_lt_hint_t *)hint;
+    
+	sdext_lt_set_atime(ext, sdext_lt->atime);
+	sdext_lt_set_mtime(ext, sdext_lt->mtime);
+	sdext_lt_set_ctime(ext, sdext_lt->ctime);
+
+	return 0;
+}
 
 static errno_t sdext_lt_print(rbody_t *body, aal_stream_t *stream,
 			      uint16_t options)
@@ -86,15 +86,11 @@ static reiser4_plugin_t sdext_lt_plugin = {
 			.label = "sdext_lt",
 			.desc = "Large times data extention for reiserfs 4.0, ver. " VERSION,
 		},
-		.init	 = sdext_lt_init,
 		.open	 = sdext_lt_open,
 		
 #ifndef ENABLE_ALONE
+		.init	 = sdext_lt_init,
 		.print   = sdext_lt_print,
-		.check	 = sdext_lt_check,
-#else
-		.print   = NULL,
-		.check	 = NULL,
 #endif		
 		.length	 = sdext_lt_length
 	}

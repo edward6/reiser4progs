@@ -22,29 +22,6 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sdext_unix_plugin;
 
-static errno_t sdext_unix_init(rbody_t *body, 
-			       void *hint) 
-{
-	sdext_unix_t *ext;
-	reiser4_sdext_unix_hint_t *sdext_unix;
-    
-	aal_assert("umka-884", body != NULL);
-	aal_assert("umka-885", hint != NULL);
-	
-	ext = (sdext_unix_t *)body;
-	sdext_unix = (reiser4_sdext_unix_hint_t *)hint;
-    
-	sdext_unix_set_uid(ext, sdext_unix->uid);
-	sdext_unix_set_gid(ext, sdext_unix->gid);
-	sdext_unix_set_atime(ext, sdext_unix->atime);
-	sdext_unix_set_mtime(ext, sdext_unix->mtime);
-	sdext_unix_set_ctime(ext, sdext_unix->ctime);
-	sdext_unix_set_rdev(ext, sdext_unix->rdev);
-	sdext_unix_set_bytes(ext, sdext_unix->bytes);
-
-	return 0;
-}
-
 static errno_t sdext_unix_open(rbody_t *body, 
 			       void *hint) 
 {
@@ -73,6 +50,29 @@ static uint16_t sdext_unix_length(rbody_t *body) {
 }
 
 #ifndef ENABLE_ALONE
+
+static errno_t sdext_unix_init(rbody_t *body, 
+			       void *hint) 
+{
+	sdext_unix_t *ext;
+	reiser4_sdext_unix_hint_t *sdext_unix;
+    
+	aal_assert("umka-884", body != NULL);
+	aal_assert("umka-885", hint != NULL);
+	
+	ext = (sdext_unix_t *)body;
+	sdext_unix = (reiser4_sdext_unix_hint_t *)hint;
+    
+	sdext_unix_set_uid(ext, sdext_unix->uid);
+	sdext_unix_set_gid(ext, sdext_unix->gid);
+	sdext_unix_set_atime(ext, sdext_unix->atime);
+	sdext_unix_set_mtime(ext, sdext_unix->mtime);
+	sdext_unix_set_ctime(ext, sdext_unix->ctime);
+	sdext_unix_set_rdev(ext, sdext_unix->rdev);
+	sdext_unix_set_bytes(ext, sdext_unix->bytes);
+
+	return 0;
+}
 
 static errno_t sdext_unix_print(rbody_t *body, aal_stream_t *stream,
 				uint16_t options)
@@ -120,15 +120,11 @@ static reiser4_plugin_t sdext_unix_plugin = {
 			.label = "sdext_unix",
 			.desc = "Unix stat data extention for reiserfs 4.0, ver. " VERSION,
 		},
-		.init	 = sdext_unix_init,
 		.open	 = sdext_unix_open,
 		
 #ifndef ENABLE_ALONE
+		.init	 = sdext_unix_init,
 		.print   = sdext_unix_print,
-		.check	 = sdext_unix_check,
-#else
-		.print   = NULL,
-		.check	 = NULL,
 #endif
 		.length	 = sdext_unix_length
 	}

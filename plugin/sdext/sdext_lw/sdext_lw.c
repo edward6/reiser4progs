@@ -132,15 +132,11 @@ static reiser4_plugin_t sdext_lw_plugin = {
 			.label = "sdext_lw",
 			.desc = "Light stat data extention for reiserfs 4.0, ver. " VERSION,
 		},
-		.init	 = sdext_lw_init,
 		.open	 = sdext_lw_open,
 		
 #ifndef ENABLE_ALONE
+		.init	 = sdext_lw_init,
 		.print   = sdext_lw_print,
-		.check	 = sdext_lw_check,
-#else
-		.print   = NULL,
-		.check	 = NULL,
 #endif		
 		.length	 = sdext_lw_length
 	}
