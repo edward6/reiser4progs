@@ -894,11 +894,11 @@ lookup_t reiser4_tree_lookup(
 			/* Fetching item at @place if key is found */
 			if (res == PRESENT) {
 #ifdef ENABLE_COLLISIONS
-				if (place->pos.unit > 0 &&
-				    place->pos.unit < MAX_UINT32 &&
-				    reiser4_tree_leftmost(tree, place))
+				if (place->pos.unit == 0 ||
+				    place->pos.unit == MAX_UINT32)
 				{
-					return FAILED;
+					if (reiser4_tree_leftmost(tree, place))
+						return FAILED;
 				}
 #endif	
 				reiser4_place_fetch(place);
@@ -1237,6 +1237,41 @@ errno_t reiser4_tree_shift(
 	return 0;
 }
 
+static errno_t reiser4_tree_care(reiser4_tree_t *tree,
+				 reiser4_node_t *left,
+				 reiser4_node_t *right)
+{
+	errno_t res;
+	
+	if (reiser4_tree_root(tree) == node_blocknr(left)) {
+		
+		/* Attaching new allocated node into the tree, if it is not
+		   empty */
+		if (reiser4_node_items(right) > 0) {
+			/* Growing the tree in the case we splitted the root
+			   node. Root node has not parent. */
+			if ((res = reiser4_tree_growup(tree)))
+				return res;
+			
+			/* Attaching new node to the tree */
+			if ((res = reiser4_tree_attach(tree, right)))
+				return res;
+		}
+	} else {
+		/* Releasing old node, because it got empty as result of data
+		   shifting. */
+		if (reiser4_node_items(left) == 0) {
+			if ((res = reiser4_tree_detach(tree, left)))
+				return res;
+			
+			reiser4_node_mkclean(left);
+			reiser4_tree_release(tree, left);
+		}
+	}
+
+	return 0;
+}
+
 /* Makes space in tree to insert @needed bytes of data (item/unit) */
 errno_t reiser4_tree_expand(
 	reiser4_tree_t *tree,	    /* tree pointer function operates on */
@@ -1246,20 +1281,17 @@ errno_t reiser4_tree_expand(
 {
 	int alloc;
 	errno_t res;
-	bool_t enough;
+	int32_t enough;
 
-	reiser4_place_t old;
 	reiser4_node_t *left;
 	reiser4_node_t *right;
 
 	aal_assert("umka-766", place != NULL);
 	aal_assert("umka-929", tree != NULL);
 
-	if ((enough = (needed <= reiser4_node_space(place->node))))
+	if ((enough = reiser4_node_space(place->node) - needed) > 0)
 		return 0;
 
-	old = *place;
-	
 	/* Shifting data into left neighbour if it exists */
 	if ((SF_LEFT & flags) &&
 	    (left = reiser4_tree_neigh(tree, place->node, D_LEFT)))
@@ -1271,7 +1303,7 @@ errno_t reiser4_tree_expand(
 			return res;
 		}
 	
-		if ((enough = (needed <= reiser4_node_space(place->node))))
+		if ((enough = reiser4_node_space(place->node) - needed) > 0)
 			return 0;
 	}
 
@@ -1286,7 +1318,7 @@ errno_t reiser4_tree_expand(
 			return res;
 		}
 	
-		if ((enough = (needed <= reiser4_node_space(place->node))))
+		if ((enough = reiser4_node_space(place->node) - needed) > 0)
 			return 0;
 	}
 
@@ -1297,64 +1329,56 @@ errno_t reiser4_tree_expand(
 	  Here we still have not enough free space for inserting item/unit into
 	  the tree. Allocating new node and trying to shift data into it.
 	*/
-	for (alloc = 0; !enough && (alloc < 2); alloc++) {
-		int root;
+	for (alloc = 0; enough < 0 && alloc < 2; alloc++) {
 		uint8_t level;
-		shift_flags_t flags;
+		uint32_t flags;
 		reiser4_place_t save;
 		reiser4_node_t *node;
 
+		/* Saving place as it will be usefull for us later */
+		save = *place;
+
+		/* Allocating new node of @level */
 		level = reiser4_node_get_level(place->node);
 	
-		if (!(node = reiser4_tree_alloc(tree, level))) {
-			aal_exception_error("Can't allocate new node. "
-					    "No space left?");
+		if (!(node = reiser4_tree_alloc(tree, level)))
 			return -ENOSPC;
-		}
-		
+
+		/* Setting up shift flags */
 		flags = SF_RIGHT | SF_UPTIP;
 
-		if (alloc == 0)
+		/* We will allow to move insert point to neighbour node if we
+		   are at first iteration in this loop or if place points behind
+		   the last unit of last item in current node. */
+		if (alloc == 0 || !reiser4_place_ltlast(place))
 			flags |= SF_MOVIP;
 
-		save = *place;
-		
+		/* Shift data from @place to @node. Updating @place by new
+		   insert point. */
 		if ((res = reiser4_tree_shift(tree, place, node, flags)))
 			return res;
 
-		/* Do we operate on root node? */
-		root = (reiser4_tree_root(tree) == node_blocknr(old.node));
-		
-		/* Releasing old node, because it got empty as result of data
-		   shifting. */
-		if (reiser4_node_items(save.node) == 0)	{
-			if ((res = reiser4_tree_detach(tree, save.node)))
-				return res;
-			
-			reiser4_node_mkclean(save.node);
-			reiser4_tree_release(tree, save.node);
+		/* Taking care about new allocated @node and possible gets free
+		   @save.node (attaching, detaching from the tree, etc.). */
+		if ((res = reiser4_tree_care(tree, save.node, node))) {
+			reiser4_node_mkclean(node);
+			reiser4_tree_release(tree, node);
+			return res;
 		}
 
-		/* Attaching new allocated node into the tree, if it is not
-		   empty */
-		if (reiser4_node_items(node) > 0) {
+		/* Checking if it is enough of space in @place */
+		enough = (reiser4_node_space(place->node) - needed);
 
-			/* Growing the tree in the case we splitted the root
-			   node. Root node has not parent. */
-			if (root)
-				reiser4_tree_growup(tree);
-			
-			/* Attaching new node to the tree */
-			if ((res = reiser4_tree_attach(tree, node))) {
-				reiser4_tree_release(tree, node);
-				return res;
-			}
+		/* If it is not enopugh the space and insert point was actually
+		   moved to neighbour node, we set @place to @save and give it
+		   yet another try to make space.*/
+		if (enough < 0 && place->node != save.node) {
+			*place = save;
+			enough = (reiser4_node_space(place->node) - needed);
 		}
-		
-		enough = (needed <= reiser4_node_space(place->node));
 	}
 
-	return enough ? 0 : -ENOSPC;
+	return enough >= 0 ? 0 : -ENOSPC;
 }
 
 /* Packs node in @place by means of using shift into/from neighbours */
@@ -1663,8 +1687,7 @@ errno_t reiser4_tree_insert(
 	
 		/* Attaching new node to the tree */
 		if ((res = reiser4_tree_attach(tree, place->node))) {
-			aal_exception_error("Can't attach node %llu to "
-					    "the tree.", node_blocknr(place->node));
+			reiser4_node_mkclean(place->node);
 			reiser4_tree_release(tree, place->node);
 			return res;
 		}
