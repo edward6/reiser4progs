@@ -1943,10 +1943,10 @@ static errno_t down_node_open(reiser4_tree_t *tree,
 errno_t reiser4_tree_down(
 	reiser4_tree_t *tree,                /* tree for traversing it */
 	reiser4_node_t *node,		     /* node to be traversed */
-	traverse_open_func_t open_func,	     /* callback for node opening */
-	traverse_edge_func_t before_func,    /* begin callback */
-	traverse_update_func_t update_func,  /* per child callback */
-	traverse_edge_func_t after_func,     /* end callback */
+	tree_open_func_t open_func,	     /* callback for node opening */
+	tree_edge_func_t before_func,    /* begin callback */
+	tree_update_func_t update_func,  /* per child callback */
+	tree_edge_func_t after_func,     /* end callback */
 	void *data)			     /* caller specific data */
 {
 	errno_t res = 0;
@@ -2028,10 +2028,10 @@ errno_t reiser4_tree_down(
    measurements, etc. */
 errno_t reiser4_tree_traverse(
 	reiser4_tree_t *tree,		     /* node to be traversed */
-	traverse_open_func_t open_func,	     /* callback for node opening */
-	traverse_edge_func_t before_func,    /* start callback */
-	traverse_update_func_t update_func,  /* after child callback */
-	traverse_edge_func_t after_func,     /* end callback */
+	tree_open_func_t open_func,	     /* callback for node opening */
+	tree_edge_func_t before_func,    /* start callback */
+	tree_update_func_t update_func,  /* after child callback */
+	tree_edge_func_t after_func,     /* end callback */
 	void *data)			     /* caller specific data */
 {
 	errno_t res;

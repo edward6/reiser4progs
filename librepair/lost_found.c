@@ -3,6 +3,7 @@
    repair/lost_found.c -- lost&found pass recovery code. */
 
 #include <repair/lost_found.h>
+#include <repair/semantic.h>
 
 extern errno_t callback_check_struct(object_entity_t *object, place_t *place, 
 				     void *data);
@@ -17,9 +18,13 @@ static void repair_lost_found_make_lost_name(reiser4_object_t *object,
 	aal_memcpy(object->name, LOST_PREFIX, len);
 }
 
-static errno_t repair_lost_found_unlink(reiser4_object_t *object, void *data) {
-	char name[OBJECT_NAME_SIZE];
-	repair_lost_found_t *lf;
+static errno_t callback_object_check_link(reiser4_object_t *object,
+					  reiser4_object_t *parent,
+					  entry_type_t link,
+					  void *data)
+{
+	repair_lost_found_t *lf = (repair_lost_found_t *)data;
+	repair_ancestor_t *ancestor;
 	reiser4_place_t *start;
 	entry_hint_t entry;
 	errno_t res;
@@ -27,53 +32,91 @@ static errno_t repair_lost_found_unlink(reiser4_object_t *object, void *data) {
 	aal_assert("vpf-1148", object != NULL);
 	aal_assert("vpf-1149", data != NULL);
 	
-	lf = (repair_lost_found_t *)data;
+	ancestor = (repair_ancestor_t *)aal_list_first(lf->path)->data;
+	
+	repair_lost_found_make_lost_name(object, object->name);
+	
+	/* If @parent was reached before from the @object now we get here 
+	   by the backlink, which is chacked already, skip another check. */
+	if (reiser4_key_compare(&ancestor->object->info.object, 
+				&object->info.object) ||
+	    !ET_BACKLINK(ancestor->link, link))
+	{
+		res = repair_object_check_backlink(object, parent, link, 
+						   lf->repair->mode);
+		if (repair_error_fatal(res))
+			goto error;
+	}
 	
 	start = reiser4_object_start(object);	
 	
 	/* If REACHABLE, skip it as objects linked to L&F are not marked as such. */
 	if (repair_item_test_flag(start, ITEM_REACHABLE))
-		return 0;
-	
-	repair_lost_found_make_lost_name(object, name);
+		goto error;
 	
 	/* If lookup cannot find the object in L&F, nothing to unlink. */
-	if (reiser4_object_lookup(lf->lost, name, &entry) != PRESENT)
-		return 0;
+	if (reiser4_object_lookup(lf->lost, object->name, &entry) != PRESENT)
+		goto error;
 	
-	/* Removing entry */
-	if ((res = reiser4_object_rem_entry(lf->lost, &entry))) {
-		aal_exception_error("Can't remove entry %s in 'lost+found.", name);
-		return res;
-	}
-	
-	if ((res = reiser4_object_unlink(lf->lost, name))) {
+	/* Unlink from lost+found */
+	res |= reiser4_object_unlink(lf->lost, object->name);
+	if (repair_error_fatal(res)) {
 		aal_exception_error("Node %llu, item %u: unlink from the object "
 				    "%k of the object pointed by %k failed.",
 				    start->node->number, start->pos.item,
 				    &lf->lost->info.object, &entry.object);
 	}
 	
+	
+	reiser4_key_string(&object->info.object, object->name);
+	
+	return res;
+	
+ error:
+	reiser4_key_string(&object->info.object, object->name);
 	return res;
 }
 
-typedef struct object_open {
-	repair_lost_found_t *lf;
-	object_check_func_t func;
-} object_open_t;
-
-static errno_t callback_lost_found_open(reiser4_object_t *parent, 
-					entry_hint_t *entry, 
-					reiser4_object_t **object, 
-					void *data)
+static reiser4_object_t *callback_traverse_open(reiser4_object_t *parent, 
+						entry_hint_t *entry, 
+						void *data)
 {
-	object_open_t *open = (object_open_t *)data;
+	repair_lost_found_t *lf = (repair_lost_found_t *)data;
+	repair_ancestor_t *ancestor;
+	reiser4_object_t *object;
 	
-	aal_assert("vpf-1144", open != NULL);
-	aal_assert("vpf-1150", open->lf != NULL);
+	aal_assert("vpf-1150", lf != NULL);
 	
-	return repair_object_open(parent, entry, object, open->lf->repair,
-				  open->func, open->lf);
+	object = repair_semantic_open_child(parent, entry, lf->repair,
+					    callback_object_check_link, lf);
+	
+	if (object == INVAL_PTR || object == NULL)
+		return object;
+	
+	if (!(ancestor = aal_calloc(sizeof(*ancestor), 0)))
+		goto error_object_close;
+	
+	ancestor->object = parent;
+	ancestor->link = entry->type;
+	
+	lf->path = aal_list_insert(lf->path, ancestor, 0);
+	
+	return object;
+	
+ error_object_close:
+	reiser4_object_close(object);
+	return INVAL_PTR;
+
+}
+
+static void callback_traverse_close(reiser4_object_t *object, void *data) {
+	repair_lost_found_t *lf = (repair_lost_found_t *)data;
+	
+	aal_assert("vpf-1160", object != NULL);
+	aal_assert("vpf-1161", data != NULL);
+	
+	lf->path = aal_list_remove(lf->path, aal_list_first(lf->path));
+	reiser4_object_close(object);
 }
 
 static errno_t repair_lost_found_object_check(reiser4_place_t *place, 
@@ -82,7 +125,6 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	reiser4_object_t *object;
 	repair_lost_found_t *lf;
 	reiser4_place_t *start;
-	object_open_t open;
 	errno_t res = 0;
 	
 	aal_assert("vpf-1059", place != NULL);
@@ -129,11 +171,9 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 		}
 	}
 	
-	open.lf = lf;
-	open.func = repair_lost_found_unlink;
-	
 	/* Traverse the object. */
-	if ((res = repair_object_traverse(object, callback_lost_found_open, &open)))
+	if ((res = repair_object_traverse(object, callback_traverse_open, 
+					  callback_traverse_close, lf)))
 		goto error_close_object;
 
 	repair_lost_found_make_lost_name(object, object->name);
