@@ -344,9 +344,9 @@ static errno_t key_short_build_generic(key_entity_t *key,
 }
 
 #ifndef ENABLE_STAND_ALONE
-extern errno_t key_short_print(key_entity_t *key,
-			       aal_stream_t *stream,
-			       uint16_t options);
+extern void key_short_print(key_entity_t *key,
+			    aal_stream_t *stream, 
+			    uint16_t options);
 
 extern errno_t key_short_check_struct(key_entity_t *key);
 #endif

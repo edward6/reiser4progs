@@ -11,13 +11,13 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
-extern errno_t journal40_print(generic_entity_t *entity,
-			       aal_stream_t *stream, 
-			       uint16_t options);
-
 extern errno_t journal40_check_struct(generic_entity_t *entity,
 				      layout_func_t layout_func,
 				      void *data);
+
+extern void journal40_print(generic_entity_t *entity,
+			    aal_stream_t *stream, 
+			    uint16_t options);
 
 #endif
 #endif

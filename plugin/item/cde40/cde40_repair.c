@@ -884,9 +884,7 @@ errno_t cde40_merge(place_t *dst, place_t *src, merge_hint_t *hint) {
 #endif
 
 /* Prints cde item into passed @stream */
-errno_t cde40_print(place_t *place, aal_stream_t *stream,
-		    uint16_t options) 
-{
+void cde40_print(place_t *place, aal_stream_t *stream, uint16_t options) {
 	uint32_t pol;
 	uint32_t i, j;
 	char name[256];
@@ -933,7 +931,5 @@ errno_t cde40_print(place_t *place, aal_stream_t *stream,
 				  " ", 6, en_get_offset(entry, pol), haobj,
 				  offset, locality, objectid);
 	}
-
-	return 0;
 }
 #endif

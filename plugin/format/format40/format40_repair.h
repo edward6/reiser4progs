@@ -12,10 +12,6 @@
 extern errno_t format40_pack(generic_entity_t *entity,
 			      aal_stream_t *stream);
 
-extern errno_t format40_print(generic_entity_t *entity,
-			      aal_stream_t *stream,
-			      uint16_t options);
-
 extern errno_t format40_update(generic_entity_t *entity);
 
 extern generic_entity_t *format40_unpack(fs_desc_t *desc,
@@ -23,4 +19,9 @@ extern generic_entity_t *format40_unpack(fs_desc_t *desc,
 
 extern errno_t format40_check_struct(generic_entity_t *entity,
 				     uint8_t mode);
+
+extern void format40_print(generic_entity_t *entity,
+			   aal_stream_t *stream,
+			   uint16_t options);
+
 #endif

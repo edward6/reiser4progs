@@ -10,9 +10,6 @@
 
 typedef errno_t (*node_func_t)(place_t *, void *);
 
-extern errno_t repair_node_print(node_t *node,
-				 aal_stream_t *stream);
-
 extern node_t *repair_node_open(reiser4_tree_t *tree,
 				blk_t blk, bool_t check);
 
@@ -32,5 +29,7 @@ extern errno_t repair_node_pack(node_t *node,
 extern node_t *repair_node_unpack(reiser4_tree_t *tree,
 				  aal_stream_t *stream,
 				  int mode);
+
+extern void repair_node_print(node_t *node, aal_stream_t *stream);
 
 #endif

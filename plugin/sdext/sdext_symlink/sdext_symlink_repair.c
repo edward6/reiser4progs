@@ -30,9 +30,7 @@ errno_t sdext_symlink_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 	return 0;
 }
 
-errno_t sdext_symlink_print(void *body, aal_stream_t *stream,
-			    uint16_t options)
-{
+void sdext_symlink_print(void *body, aal_stream_t *stream, uint16_t options) {
 	aal_assert("umka-1485", body != NULL);
 	aal_assert("umka-1486", stream != NULL);
 
@@ -41,8 +39,6 @@ errno_t sdext_symlink_print(void *body, aal_stream_t *stream,
 	
 	aal_stream_format(stream, "data:\t\t\"%s\"\n",
 			  (char *)body);
-	
-	return 0;
 }
 
 #endif

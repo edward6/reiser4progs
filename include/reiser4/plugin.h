@@ -752,8 +752,7 @@ struct reiser4_key_ops {
 	uint64_t (*get_hash) (key_entity_t *);
 	
 	/* Prints key into specified buffer */
-	errno_t (*print) (key_entity_t *, aal_stream_t *,
-			  uint16_t);
+	void (*print) (key_entity_t *, aal_stream_t *, uint16_t);
 
 	/* Check key body for validness. */
 	errno_t (*check_struct) (key_entity_t *);
@@ -976,7 +975,7 @@ typedef struct item_repair_ops item_repair_ops_t;
 struct item_debug_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Prints item into specified buffer. */
-	errno_t (*print) (place_t *, aal_stream_t *, uint16_t);
+	void (*print) (place_t *, aal_stream_t *, uint16_t);
 #endif
 };
 
@@ -1011,7 +1010,7 @@ struct reiser4_sdext_ops {
 	errno_t (*init) (void *, void *);
 
 	/* Prints stat data extension data into passed buffer. */
-	errno_t (*print) (void *, aal_stream_t *, uint16_t);
+	void (*print) (void *, aal_stream_t *, uint16_t);
 
 	/* Checks sd extension content. */
 	errno_t (*check_struct) (sdext_entity_t *, uint8_t);
@@ -1054,8 +1053,8 @@ struct reiser4_node_ops {
 	errno_t (*pack) (node_entity_t *, aal_stream_t *, int);
 
 	/* Prints node into given buffer. */
-	errno_t (*print) (node_entity_t *, aal_stream_t *,
-			  uint32_t, uint32_t, uint16_t);
+	void (*print) (node_entity_t *, aal_stream_t *,
+		       uint32_t, uint32_t, uint16_t);
     
 	/* Returns item's overhead. */
 	uint16_t (*overhead) (node_entity_t *);
@@ -1194,7 +1193,7 @@ struct reiser4_format_ops {
 	errno_t (*check_struct) (generic_entity_t *, uint8_t);
 
 	/* Prints all useful information about the format */
-	errno_t (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
+	void (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
     
 	void (*set_len) (generic_entity_t *, uint64_t);
 	void (*set_root) (generic_entity_t *, uint64_t);
@@ -1292,8 +1291,7 @@ struct reiser4_oid_ops {
 	uint64_t (*free) (generic_entity_t *);
 
 	/* Prints oid allocator data */
-	errno_t (*print) (generic_entity_t *, aal_stream_t *,
-			  uint16_t);
+	void (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
 
 	/* Makes check for validness */
 	errno_t (*valid) (generic_entity_t *);
@@ -1340,8 +1338,7 @@ struct reiser4_alloc_ops {
 	errno_t (*valid) (generic_entity_t *);
 
 	/* Prints block allocator data */
-	errno_t (*print) (generic_entity_t *, aal_stream_t *,
-			  uint16_t);
+	void (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
 
 	/* Calls func for each block in block allocator */
 	errno_t (*layout) (generic_entity_t *,
@@ -1407,8 +1404,7 @@ struct reiser4_journal_ops {
 	errno_t (*replay) (generic_entity_t *);
 
 	/* Prints journal content */
-	errno_t (*print) (generic_entity_t *,
-			  aal_stream_t *, uint16_t);
+	void (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
 	
 	/* Checks thoroughly the journal structure. */
 	errno_t (*check_struct) (generic_entity_t *,

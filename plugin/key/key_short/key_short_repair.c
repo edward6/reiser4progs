@@ -38,9 +38,7 @@ errno_t key_short_check_struct(key_entity_t *key) {
 
 #ifndef ENABLE_STAND_ALONE
 /* Prints key into passed stream */
-errno_t key_short_print(key_entity_t *key,
-			aal_stream_t *stream,
-			uint16_t options) 
+void key_short_print(key_entity_t *key, aal_stream_t *stream, uint16_t options)
 {
 	const char *name;
 	
@@ -60,8 +58,6 @@ errno_t key_short_print(key_entity_t *key,
 				  key_short_get_objectid(key),
 				  key_short_get_offset(key));
 	}
-	
-	return 0;
 }
 #endif
 

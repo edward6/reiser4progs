@@ -223,11 +223,10 @@ static errno_t callback_print_bitmap(void *entity, blk_t start,
 }
 
 /* Handler for "print" method. */
-errno_t alloc40_print(generic_entity_t *entity,
-		      aal_stream_t *stream,
-		      uint16_t options)
+void alloc40_print(generic_entity_t *entity, 
+		   aal_stream_t *stream, 
+		   uint16_t options)
 {
-	errno_t res;
 	uint64_t start;
 	uint64_t total;
 	uint64_t blocks;
@@ -259,12 +258,8 @@ errno_t alloc40_print(generic_entity_t *entity,
 	aal_stream_format(stream, "-------------------------\n");
 
 	/* Calling alloc40_layout() in order to print all block checksums */
-	if ((res = alloc40_layout((generic_entity_t *)alloc,
-				  callback_print_bitmap, stream)))
-	{
-		aal_error("Can't print bitmap.");
-		return res;
-	}
+	alloc40_layout((generic_entity_t *)alloc, 
+		       callback_print_bitmap, stream);
 	
 	start = 0;
 	total = alloc->bitmap->total;
@@ -276,9 +271,7 @@ errno_t alloc40_print(generic_entity_t *entity,
 	while (start < total) {
 		if (!(blocks = aux_bitmap_find_region(alloc->bitmap, &start,
 						      total - start, 1)))
-		{
 			break;
-		}
 
 		aal_stream_format(stream, "%llu-%llu ",
 				  start, start + blocks);
@@ -287,7 +280,6 @@ errno_t alloc40_print(generic_entity_t *entity,
 	}
 	
 	aal_stream_format(stream, "]\n");
-	
-	return 0;
 }
+
 #endif

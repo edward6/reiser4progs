@@ -21,9 +21,7 @@ errno_t sdext_lt_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 }
 
 /* Prints extension into passed @stream. */
-errno_t sdext_lt_print(void *body, aal_stream_t *stream,
-		       uint16_t options)
-{
+void sdext_lt_print(void *body, aal_stream_t *stream, uint16_t options) {
 	sdext_lt_t *ext;
 	
 	aal_assert("umka-1479", body != NULL);
@@ -39,8 +37,6 @@ errno_t sdext_lt_print(void *body, aal_stream_t *stream,
 	
 	aal_stream_format(stream, "ctime:\t\t%u\n",
 			  sdext_lt_get_ctime(ext));
-	
-	return 0;
 }
-#endif
 
+#endif

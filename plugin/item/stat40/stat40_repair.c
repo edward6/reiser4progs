@@ -84,7 +84,7 @@ static uint32_t stat40_sdext_count(place_t *place) {
 }
 
 /* Prints extension into @stream. */
-static errno_t callback_print_ext(sdext_entity_t *sdext,
+static errno_t callback_print_ext(sdext_entity_t *sdext, 
 				  uint16_t extmask, 
 				  void *data)
 {
@@ -115,14 +115,12 @@ static errno_t callback_print_ext(sdext_entity_t *sdext,
 	
 	plug_call(sdext->plug->o.sdext_ops, print,
 		  sdext->body, stream, 0);
-	
+
 	return 0;
 }
 
 /* Prints statdata item into passed @stream */
-errno_t stat40_print(place_t *place, aal_stream_t *stream,
-		     uint16_t options)
-{
+void stat40_print(place_t *place, aal_stream_t *stream, uint16_t options) {
 	sdext_entity_t sdext;
 
 	aal_assert("umka-1407", place != NULL);
@@ -131,7 +129,6 @@ errno_t stat40_print(place_t *place, aal_stream_t *stream,
 	aal_stream_format(stream, "UNITS=1\nexts:\t\t%u\n", 
 			  stat40_sdext_count(place));
 	
-	return stat40_traverse(place, callback_print_ext, &sdext,
-			       (void *)stream);
+	stat40_traverse(place, callback_print_ext, &sdext, (void *)stream);
 }
 #endif

@@ -285,35 +285,22 @@ int main(int argc, char *argv[]) {
 	}
 	
 	if (print_flags & PF_SUPER) {
-		if (debugfs_print_master(fs))
-			goto error_free_journal;
-	
-		if (debugfs_print_format(fs))
-			goto error_free_journal;
-
-		if (debugfs_print_status(fs))
-			goto error_free_journal;
+		debugfs_print_master(fs);
+		debugfs_print_format(fs);
+		debugfs_print_status(fs);
 	}
     
-	if (print_flags & PF_OID) {
-		if (debugfs_print_oid(fs))
-			goto error_free_journal;
-	}
+	if (print_flags & PF_OID)
+		debugfs_print_oid(fs);
     
-	if (print_flags & PF_ALLOC) {
-		if (debugfs_print_alloc(fs))
-			goto error_free_journal;
-	}
+	if (print_flags & PF_ALLOC)
+		debugfs_print_alloc(fs);
     
-	if (print_flags & PF_JOURNAL) {
-		if (debugfs_print_journal(fs))
-			goto error_free_journal;
-	}
+	if (print_flags & PF_JOURNAL)
+		debugfs_print_journal(fs);
     
-	if (print_flags & PF_TREE) {
-		if (debugfs_print_tree(fs))
-			goto error_free_journal;
-	}
+	if (print_flags & PF_TREE)
+		debugfs_print_tree(fs);
 
 	if (print_flags & PF_BLOCK) {
 		if (debugfs_print_block(fs, blocknr))

@@ -9,9 +9,9 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
-extern errno_t nodeptr40_print(place_t *place,
-			       aal_stream_t *stream,
-			       uint16_t options);
+extern void nodeptr40_print(place_t *place,
+			    aal_stream_t *stream,
+			    uint16_t options);
 
 extern errno_t nodeptr40_check_struct(place_t *place,
 				      uint8_t mode);

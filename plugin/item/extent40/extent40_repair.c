@@ -387,10 +387,7 @@ int64_t extent40_merge(place_t *place, trans_hint_t *hint) {
 }
 
 /* Prints extent item into specified @stream */
-errno_t extent40_print(place_t *place,
-		       aal_stream_t *stream,
-		       uint16_t options) 
-{
+void extent40_print(place_t *place, aal_stream_t *stream, uint16_t options) {
 	uint32_t i, count;
 	extent40_t *extent;
     
@@ -410,7 +407,5 @@ errno_t extent40_print(place_t *place,
 	}
 	
 	aal_stream_format(stream, "]\n");
-    
-	return 0;
 }
 #endif

@@ -63,25 +63,19 @@ errno_t debugfs_print_stream(aal_stream_t *stream) {
 static errno_t tprint_process_node(reiser4_tree_t *tree,
 				   node_t *node, void *data)
 {
-	errno_t res;
 	aal_stream_t stream;
 
 	aal_stream_init(&stream, stdout, &file_stream);
 
-	if ((res = repair_node_print(node, &stream)))
-		goto error_free_stream;
+	repair_node_print(node, &stream);
 
 	aal_stream_fini(&stream);
 	
 	return 0;
-	
- error_free_stream:
-	aal_stream_fini(&stream);
-	return res;
 }
 
-errno_t debugfs_print_node(node_t *node) {
-	return tprint_process_node(NULL, node, NULL);
+void debugfs_print_node(node_t *node) {
+	tprint_process_node(NULL, node, NULL);
 }
 
 /* Prints block denoted as blk */
@@ -89,7 +83,6 @@ errno_t debugfs_print_block(
 	reiser4_fs_t *fs,           /* filesystem for work with */
 	blk_t blk)                  /* block number to be printed */
 {
-	errno_t res;
 	node_t *node;
 	count_t blocks;
 
@@ -143,69 +136,57 @@ errno_t debugfs_print_block(
 		return 0;
 	}
 	
-	if ((res = debugfs_print_node(node)))
-		return res;
+	debugfs_print_node(node);
 	
 	reiser4_node_close(node);
 	return 0;
 }
 
 /* Makes traverse though the whole tree and prints all nodes */
-errno_t debugfs_print_tree(reiser4_fs_t *fs) {
+void debugfs_print_tree(reiser4_fs_t *fs) {
 	aal_assert("umka-2486", fs != NULL);
 	
-	return reiser4_tree_trav(fs->tree, NULL,
-				 tprint_process_node,
-				 NULL, NULL, NULL);
+	reiser4_tree_trav(fs->tree, NULL, 
+			  tprint_process_node,
+			  NULL, NULL, NULL);
 }
 
 /* Prints master super block */
-errno_t debugfs_print_master(reiser4_fs_t *fs) {
-	errno_t res;
+void debugfs_print_master(reiser4_fs_t *fs) {
 	aal_stream_t stream;
 	
 	aal_assert("umka-1299", fs != NULL);
 
 	aal_stream_init(&stream, stdout, &file_stream);
 		
-	if ((res = repair_master_print(fs->master, &stream, 
-				       misc_uuid_unparse)))
-	{
-		return res;
-	}
+	repair_master_print(fs->master, &stream, misc_uuid_unparse);
 
 	aal_stream_format(&stream, "\n");
 	aal_stream_fini(&stream);
-	
-	return 0;
 }
 
 /* Prints fs status block. */
-errno_t debugfs_print_status(reiser4_fs_t *fs) {
-	errno_t res;
+void debugfs_print_status(reiser4_fs_t *fs) {
 	aal_stream_t stream;
 	
 	aal_assert("umka-2495", fs != NULL);
 
 	aal_stream_init(&stream, stdout, &file_stream);
 		
-	if ((res = repair_status_print(fs->status, &stream)))
-		return res;
+	repair_status_print(fs->status, &stream);
 
 	aal_stream_format(&stream, "\n");
 	aal_stream_fini(&stream);
-	
-	return 0;
 }
 
 /* Prints format-specific super block */
-errno_t debugfs_print_format(reiser4_fs_t *fs) {
+void debugfs_print_format(reiser4_fs_t *fs) {
 	aal_stream_t stream;
 
 	if (!fs->format->entity->plug->o.format_ops->print) {
 		aal_info("Format print method is not "
 			 "implemented.");
-		return 0;
+		return;
 	}
     
 	aal_stream_init(&stream, stdout, &file_stream);
@@ -213,18 +194,16 @@ errno_t debugfs_print_format(reiser4_fs_t *fs) {
 
 	aal_stream_format(&stream, "\n");
 	aal_stream_fini(&stream);
-	
-    	return 0;
 }
 
 /* Prints oid allocator */
-errno_t debugfs_print_oid(reiser4_fs_t *fs) {
+void debugfs_print_oid(reiser4_fs_t *fs) {
 	aal_stream_t stream;
     
 	if (!fs->oid->entity->plug->o.oid_ops->print) {
 		aal_info("Oid allocator print method is "
 			 "not implemented.");
-		return 0;
+		return;
 	}
 
 	aal_stream_init(&stream, stdout, &file_stream);
@@ -232,12 +211,10 @@ errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 
 	aal_stream_format(&stream, "\n");
 	aal_stream_fini(&stream);
-	
-    	return 0;
 }
 
 /* Prints block allocator */
-errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
+void debugfs_print_alloc(reiser4_fs_t *fs) {
 	aal_stream_t stream;
 
 	aal_stream_init(&stream, stdout, &file_stream);
@@ -245,24 +222,20 @@ errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
 
 	aal_stream_format(&stream, "\n");
 	aal_stream_fini(&stream);
-	
-    	return 0;
 }
 
 /* Prints journal */
-errno_t debugfs_print_journal(reiser4_fs_t *fs) {
+void debugfs_print_journal(reiser4_fs_t *fs) {
 	aal_stream_t stream;
 
 	if (!fs->journal)
-		return -EINVAL;
+		return;
 
 	aal_stream_init(&stream, stdout, &file_stream);
 	repair_journal_print(fs->journal, &stream);
 
 	aal_stream_format(&stream, "\n");
 	aal_stream_fini(&stream);
-	
-    	return 0;
 }
 
 struct fprint_hint {
@@ -284,7 +257,9 @@ static errno_t fprint_process_place(
 		return 0;
 
 	hint->old = node_blocknr(place->node);
-	return debugfs_print_node(place->node);
+	debugfs_print_node(place->node);
+
+	return 0;
 }
 
 /* Prints all items belong to the specified file */

@@ -53,11 +53,10 @@ static errno_t sdext_lw_init(void *body,
 	return 0;
 }
 
-extern errno_t sdext_lw_print(void *body, aal_stream_t *stream,
-			      uint16_t options);
+extern errno_t sdext_lw_check_struct(sdext_entity_t *sdext, uint8_t mode);
 
-extern errno_t sdext_lw_check_struct(sdext_entity_t *sdext,
-				     uint8_t mode);
+extern void sdext_lw_print(void *body, aal_stream_t *stream, uint16_t options);
+
 #endif
 
 static reiser4_sdext_ops_t sdext_lw_ops = {

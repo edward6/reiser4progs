@@ -191,9 +191,9 @@ generic_entity_t *format40_unpack(fs_desc_t *desc,
 	return NULL;
 }
 
-errno_t format40_print(generic_entity_t *entity,
-		       aal_stream_t *stream,
-		       uint16_t options) 
+void format40_print(generic_entity_t *entity,
+		    aal_stream_t *stream,
+		    uint16_t options) 
 {
 	rid_t tail_pid;
 	format40_t *format;
@@ -259,7 +259,6 @@ errno_t format40_print(generic_entity_t *entity,
 		aal_stream_format(stream, "key policy:\tLARGE\n");
 	else
 		aal_stream_format(stream, "key policy:\tSHORT\n");
-    
-	return 0;
 }
+
 #endif

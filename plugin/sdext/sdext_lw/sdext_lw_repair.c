@@ -57,9 +57,7 @@ static void sdext_lw_parse_mode(uint16_t mode, char *str) {
 }
 
 /* Print extension to passed @stream. */
-errno_t sdext_lw_print(void *body, aal_stream_t *stream,
-		       uint16_t options)
-{
+void sdext_lw_print(void *body, aal_stream_t *stream, uint16_t options) {
 	char mode[16];
 	sdext_lw_t *ext;
 	
@@ -79,8 +77,6 @@ errno_t sdext_lw_print(void *body, aal_stream_t *stream,
 	
 	aal_stream_format(stream, "size:\t\t%llu\n",
 			  sdext_lw_get_size(ext));
-	
-	return 0;
 }
-#endif
 
+#endif

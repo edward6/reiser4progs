@@ -115,9 +115,7 @@ reiser4_status_t *repair_status_unpack(aal_device_t *device,
 	return NULL;
 }
 
-errno_t repair_status_print(reiser4_status_t *status,
-			    aal_stream_t *stream)
-{
+void repair_status_print(reiser4_status_t *status, aal_stream_t *stream) {
 	uint64_t state, extended;
 	int i;
 	
@@ -132,7 +130,7 @@ errno_t repair_status_print(reiser4_status_t *status,
 
 	if (!state) {
 		aal_stream_format(stream, "FS marked consistent\n");
-		return 0;
+		return;
 	}
 	
 	if (state & FS_CORRUPTED) {
@@ -172,7 +170,7 @@ errno_t repair_status_print(reiser4_status_t *status,
 	} 
 	
 	if (!STATUS(status)->ss_stack[0])
-		return 0;
+		return;
 	
 	aal_stream_format(stream, "Status backtrace:\n");
 	
@@ -182,6 +180,4 @@ errno_t repair_status_print(reiser4_status_t *status,
 					  STATUS(status)->ss_stack[i]);
 		}
 	}
-	
-	return 0;
 }

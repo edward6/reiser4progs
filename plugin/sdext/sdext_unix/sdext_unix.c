@@ -60,11 +60,12 @@ static errno_t sdext_unix_init(void *body,
 	return 0;
 }
 
-extern errno_t sdext_unix_print(void *body, aal_stream_t *stream,
-				uint16_t options);
-
 extern errno_t sdext_unix_check_struct(sdext_entity_t *sdext,
 				       uint8_t mode);
+
+extern void sdext_unix_print(void *body, aal_stream_t *stream, 
+			     uint16_t options);
+
 #endif
 
 static reiser4_sdext_ops_t sdext_unix_ops = {

@@ -13,6 +13,6 @@ extern errno_t cde40_merge(place_t *place, trans_hint_t *hint);
 extern errno_t cde40_check_struct(place_t *place, uint8_t mode);
 extern errno_t cde40_prep_merge(place_t *place, trans_hint_t *hint);
 
-extern errno_t cde40_print(place_t *place, aal_stream_t *stream,
-			   uint16_t options);
+extern void cde40_print(place_t *place, aal_stream_t *stream, uint16_t options);
+
 #endif

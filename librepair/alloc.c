@@ -14,14 +14,12 @@ errno_t repair_alloc_layout_bad(reiser4_alloc_t *alloc, region_func_t func,
 			 alloc->entity, func, data);
 }
 
-errno_t repair_alloc_print(reiser4_alloc_t *alloc,
-			   aal_stream_t *stream)
-{
+void repair_alloc_print(reiser4_alloc_t *alloc, aal_stream_t *stream) {
 	aal_assert("umka-1566", alloc != NULL);
 	aal_assert("umka-1567", stream != NULL);
 
-	return plug_call(alloc->entity->plug->o.alloc_ops,
-			 print, alloc->entity, stream, 0);
+	plug_call(alloc->entity->plug->o.alloc_ops,
+		  print, alloc->entity, stream, 0);
 }
 
 /* Fetches block allocator data to @stream. */

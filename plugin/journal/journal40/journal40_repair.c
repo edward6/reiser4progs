@@ -606,9 +606,9 @@ static errno_t callback_print_lgr(generic_entity_t *entity,
 }
 
 /* Prints journal structures into passed @stream */
-errno_t journal40_print(generic_entity_t *entity,
-			aal_stream_t *stream, 
-			uint16_t options)
+void journal40_print(generic_entity_t *entity,
+		     aal_stream_t *stream, 
+		     uint16_t options)
 {
 	journal40_t *journal;
 	journal40_footer_t *footer;
@@ -651,11 +651,11 @@ errno_t journal40_print(generic_entity_t *entity,
 			  get_jf_used_oids(footer));
 
 	/* Print all transactions. */
-	return journal40_traverse((journal40_t *)entity,
-				  callback_print_txh,
-				  callback_print_par,
-				  callback_print_lgr,
-				  (void *)stream);
+	journal40_traverse((journal40_t *)entity, 
+			   callback_print_txh,
+			   callback_print_par,
+			   callback_print_lgr,
+			   (void *)stream);
 }
 #endif
 

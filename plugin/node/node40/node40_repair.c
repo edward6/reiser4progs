@@ -643,8 +643,8 @@ node_entity_t *node40_unpack(aal_block_t *block,
 }
 
 /* Prepare text node description and push it into specified @stream. */
-errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
-		     uint32_t start, uint32_t count, uint16_t options) 
+void node40_print(node_entity_t *entity, aal_stream_t *stream,
+		  uint32_t start, uint32_t count, uint16_t options) 
 {
 	void *ih;
 	char *key;
@@ -689,7 +689,7 @@ errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 		}
 			
 		if (node40_fetch(entity, &pos, &place))
-			return -EINVAL;
+			continue;
 		
 		ih = node40_ih_at(node, pos.item);
 		key = node40_core->key_ops.print(&place.key, PO_DEFAULT);
@@ -705,9 +705,8 @@ errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 		   implemented. If it is not, then print common item information
 		   like key, len, etc. */
 		if (place.plug->o.item_ops->debug->print) {
-			if (plug_call(place.plug->o.item_ops->debug,
-				      print, &place, stream, options))
-				return -EINVAL;
+			plug_call(place.plug->o.item_ops->debug,
+				  print, &place, stream, options);
 		} else {
 			aal_stream_format(stream, "\n");
 		}
@@ -716,7 +715,5 @@ errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 	aal_stream_format(stream, "============================"
 			  "===================================="
 			  "==============\n");
-
-	return 0;
 }
 #endif

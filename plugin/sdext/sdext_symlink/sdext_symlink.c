@@ -46,8 +46,9 @@ static errno_t sdext_symlink_init(void *body,
 	return 0;
 }
 
-extern errno_t sdext_symlink_print(void *body, aal_stream_t *stream,
-				   uint16_t options);
+extern void sdext_symlink_print(void *body, 
+				aal_stream_t *stream, 
+				uint16_t options);
 
 extern errno_t sdext_symlink_check_struct(sdext_entity_t *sdext,
 					  uint8_t mode);

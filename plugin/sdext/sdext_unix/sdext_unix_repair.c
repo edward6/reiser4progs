@@ -25,9 +25,7 @@ errno_t sdext_unix_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 	return 0;
 }
 
-errno_t sdext_unix_print(void *body, aal_stream_t *stream,
-			 uint16_t options)
-{
+void sdext_unix_print(void *body, aal_stream_t *stream, uint16_t options) {
 	sdext_unix_t *ext;
 	time_t atm, mtm, ctm;
 	char uid[255], gid[255];
@@ -64,8 +62,6 @@ errno_t sdext_unix_print(void *body, aal_stream_t *stream,
 	
 	aal_stream_format(stream, "bytes:\t\t%llu\n",
 			  sdext_unix_get_bytes(ext));
-
-	return 0;
 }
-#endif
 
+#endif

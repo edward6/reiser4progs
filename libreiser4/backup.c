@@ -116,7 +116,7 @@ errno_t reiser4_backup_layout(reiser4_fs_t *fs,
 
 	len = reiser4_format_get_len(fs->format);
 
-	for (blk = len / REISER4_BACKUPS_MAX; blk < len; 
+	for (blk = len / (REISER4_BACKUPS_MAX + 1) - 1; blk < len; 
 	     blk += len / (REISER4_BACKUPS_MAX + 1)) 
 	{
 		reiser4_alloc_region(fs->alloc, blk, 

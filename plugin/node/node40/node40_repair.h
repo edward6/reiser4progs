@@ -13,11 +13,6 @@ extern errno_t node40_pack(node_entity_t *entity,
 			   aal_stream_t *stream,
 			   int mode);
 
-extern errno_t node40_print(node_entity_t *entity,
-			    aal_stream_t *stream,
-			    uint32_t start, uint32_t count,
-			    uint16_t options);
-
 extern node_entity_t *node40_unpack(aal_block_t *block,
 				    reiser4_plug_t *kplug,
 				    aal_stream_t *stream,
@@ -36,4 +31,8 @@ extern errno_t node40_check_struct(node_entity_t *entity, uint8_t mode);
 
 extern errno_t node40_merge(node_entity_t *entity, pos_t *pos,
 			    trans_hint_t *hint);
+
+extern void node40_print(node_entity_t *entity, aal_stream_t *stream,
+			    uint32_t start, uint32_t count, uint16_t options);
+
 #endif

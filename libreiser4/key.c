@@ -272,14 +272,14 @@ uint64_t reiser4_key_get_hash(reiser4_key_t *key) {
 	return plug_call(key->plug->o.key_ops, get_hash, key);
 }
 
-errno_t reiser4_key_print(reiser4_key_t *key, 
-			  aal_stream_t *stream, 
-			  uint16_t options)
+void reiser4_key_print(reiser4_key_t *key, 
+		       aal_stream_t *stream,
+		       uint16_t options)
 {
 	aal_assert("vpf-189", key != NULL);
 	aal_assert("vpf-190", key->plug != NULL);
 
-	return plug_call(key->plug->o.key_ops, print,
-			 key, stream, options); 
+	plug_call(key->plug->o.key_ops, print, key, stream, options); 
 }
+
 #endif

@@ -70,9 +70,6 @@ static void repair_add_missing_update(repair_am_t *am) {
 	if (!am->progress_handler)
 		return;
 	
-	am->progress->state = PROGRESS_END;
-	am->progress_handler(am->progress);    
-	
 	stat = &am->stat;
 	
 	aal_stream_init(&stream, NULL, &memory_stream);
@@ -387,17 +384,17 @@ errno_t repair_add_missing(repair_am_t *am) {
 			am->stat.by_item_twigs = stat.by_item;
 	}
 	
+	am->progress->state = PROGRESS_END;
+	if (am->progress_handler)
+		am->progress_handler(am->progress);
+
 	repair_add_missing_update(am);
 	reiser4_fs_sync(am->repair->fs);
 	
 	return 0;
 
  error:
-	am->progress->state = PROGRESS_END;
-	if (am->progress_handler)
-		am->progress_handler(am->progress);
 	
-	repair_add_missing_update(am);
 	reiser4_fs_sync(am->repair->fs);
 	return res;
 }

@@ -113,12 +113,10 @@ errno_t repair_journal_replay(reiser4_journal_t *journal, aal_device_t *device) 
 	return 0;
 }
 
-errno_t repair_journal_print(reiser4_journal_t *journal,
-			     aal_stream_t *stream)
-{
+void repair_journal_print(reiser4_journal_t *journal, aal_stream_t *stream) {
 	aal_assert("umka-1564", journal != NULL);
 	aal_assert("umka-1565", stream != NULL);
 
-	return plug_call(journal->entity->plug->o.journal_ops,
-			 print, journal->entity, stream, 0);
+	plug_call(journal->entity->plug->o.journal_ops,
+		  print, journal->entity, stream, 0);
 }

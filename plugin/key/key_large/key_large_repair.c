@@ -38,8 +38,7 @@ errno_t key_large_check_struct(key_entity_t *key) {
 
 #ifndef ENABLE_STAND_ALONE
 /* Prints key into passed stream */
-errno_t key_large_print(key_entity_t *key, aal_stream_t *stream,
-			uint16_t options) 
+void key_large_print(key_entity_t *key, aal_stream_t *stream, uint16_t options)
 {
 	const char *name;
 	
@@ -61,8 +60,6 @@ errno_t key_large_print(key_entity_t *key, aal_stream_t *stream,
 				  key_large_get_fobjectid(key),
 				  key_large_get_offset(key));
 	}
-	
-	return 0;
 }
 #endif
 
