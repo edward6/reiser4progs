@@ -1162,7 +1162,7 @@ errno_t reiser4_tree_remove(
 	} else {
 		if (tree->root != coord->node) {
 			/*
-			  If node has became empty, then we shoudl release it
+			  If node has became empty, then we should release it
 			  and release block it is occupying in block allocator.
 			*/
 			reiser4_node_mkclean(coord->node);

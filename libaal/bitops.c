@@ -147,29 +147,33 @@ inline void aal_clear_bits(void *vaddr,
 			   bit_t start, 
 			   bit_t end)
 {
-        int first_byte;
-        int last_byte;
+	int end_byte;
+	int start_byte;
 	char *addr = vaddr;
 
-        unsigned char first_byte_mask = 0xff;
-        unsigned char last_byte_mask = 0xff;
+        start_byte = start >> 3;
+        end_byte = (end - 1) >> 3;
 
-        first_byte = start >> 3;
-        last_byte = (end - 1) >> 3;
-
-        if (last_byte > first_byte + 1) {
-                aal_memset(addr + first_byte + 1, 0,
-			   last_byte - first_byte - 1);
+        if (end_byte > start_byte + 1) {
+                aal_memset(addr + start_byte + 1, 0,
+			   end_byte - start_byte - 1);
 	}
 
-        first_byte_mask >>= 8 - (start & 0x7);
-        last_byte_mask <<= ((end - 1) & 0x7) + 1;
-
-        if (first_byte == last_byte) {
-                addr[first_byte] &= (first_byte_mask | last_byte_mask);
+        if (start_byte == end_byte) {
+		bit_t bits;
+		
+		bits = start - (start_byte * 8);
+		
+		addr[start_byte] &= 0xff >>
+			(0x8 - (bits + (end - start)));
         } else {
-                addr[first_byte] &= first_byte_mask;
-                addr[last_byte] &= last_byte_mask;
+		bit_t bits;
+		
+		bits = start - (start_byte * 8);
+		addr[start_byte] &= (0xff >> bits << bits);
+
+		bits = end - (end_byte * 8);
+		addr[end_byte] &= (0xff >> bits);
         }
 }
 
@@ -177,69 +181,72 @@ inline void aal_set_bits(void *vaddr,
 			 bit_t start, 
 			 bit_t end)
 {
-        int last_byte;
-        int first_byte;
+	int end_byte;
+	int start_byte;
 	char *addr = vaddr;
 
-        char first_byte_mask = 0xff;
-        char last_byte_mask = 0xff;
+	start_byte = start >> 3;
+	end_byte = (end - 1) >> 3;
 
-        first_byte = start >> 3;
-        last_byte = (end - 1) >> 3;
-
-        if (last_byte > first_byte + 1) {
-                aal_memset(addr + first_byte + 1, 0xff,
-			   last_byte - first_byte - 1);
+	if (end_byte > start_byte + 1) {
+		aal_memset(addr + start_byte + 1, 0xff,
+			   end_byte - start_byte - 1);
 	}
 
-        first_byte_mask <<= start & 0x7;
-        last_byte_mask >>= 7 - ((end - 1) & 0x7);
-
-        if (first_byte == last_byte) {
-                addr[first_byte] |= (first_byte_mask & last_byte_mask);
+        if (start_byte == end_byte) {
+		bit_t bits;
+		
+		bits = start - (start_byte * 8);
+		
+		addr[start_byte] |= 0xff >>
+			(0x8 - (bits + (end - start)));
         } else {
-                addr[first_byte] |= first_byte_mask;
-                addr[last_byte] |= last_byte_mask;
+		bit_t bits;
+		
+		bits = start - (start_byte * 8);
+		addr[start_byte] |= (0xff >> bits << bits);
+
+		bits = end - (end_byte * 8);
+		addr[end_byte] |= (0xff >> bits);
         }
 }
 
-typedef bit_t (*next_bit_func_t) (void *, bit_t, bit_t);
-
-static bit_t aal_find_bits(void *vaddr, bit_t size,
-			   next_bit_func_t func,
-			   bit_t *start, bit_t count)
+inline bit_t aal_find_zero_bits(void *vaddr, bit_t size,
+				bit_t *start, bit_t count)
 {
 	bit_t prev;
 	bit_t next;
 
-	prev = func(vaddr, size, 0);
-	next = func(vaddr, size, prev + 1);
+	prev = aal_find_next_zero_bit(vaddr, size, 0);
+	next = aal_find_next_zero_bit(vaddr, size, prev + 1);
 
 	count--;
 	*start = prev;
 
 	while (next - prev == 1 && count--) {
 		prev = next;
-		next = func(vaddr, size, next + 1);
+		next = aal_find_next_zero_bit(vaddr, size, next + 1);
 	}
 
 	return next - *start;
 }
 
-inline bit_t aal_find_zero_bits(void *vaddr,
-				bit_t size,
-				bit_t *start,
-				bit_t count)
+inline bit_t aal_find_set_bits(void *vaddr, bit_t size,
+			       bit_t *start, bit_t count)
 {
-	return aal_find_bits(vaddr, size, aal_find_next_zero_bit,
-			     start, count);
-}
+	bit_t prev;
+	bit_t next;
 
-inline bit_t aal_find_set_bits(void *vaddr,
-			       bit_t size,
-			       bit_t *start,
-			       bit_t count)
-{
-	return aal_find_bits(vaddr, size, aal_find_next_set_bit,
-			     start, count);
+	prev = aal_find_next_set_bit(vaddr, size, 0);
+	next = aal_find_next_set_bit(vaddr, size, prev + 1);
+
+	count--;
+	*start = prev;
+
+	while (next - prev == 1 && count--) {
+		prev = next;
+		next = aal_find_next_set_bit(vaddr, size, next + 1);
+	}
+
+	return next - *start;
 }

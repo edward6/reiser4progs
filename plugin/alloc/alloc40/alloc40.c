@@ -383,7 +383,7 @@ static errno_t alloc40_occupy_region(object_entity_t *entity,
 	aal_assert("umka-370", alloc != NULL, return -1);
 	aal_assert("umka-371", alloc->bitmap != NULL, return -1);
     
-	aux_bitmap_mark_region(alloc->bitmap, start, count);
+	aux_bitmap_mark_region(alloc->bitmap, start, start + count);
 	return 0;
 }
 

@@ -923,6 +923,23 @@ errno_t reiser4_node_sync(
 	reiser4_node_t *node)	/* node to be synchronized */
 {
 	aal_assert("umka-124", node != NULL, return 0);
+	aal_assert("umka-1781", node->tree != NULL, return 0);
+    
+	/* Synchronizing passed @node */
+	if (reiser4_node_isdirty(node)) {
+
+		if (plugin_call(return -1, node->entity->plugin->node_ops,
+				sync, node->entity))
+		{
+			aal_device_t *device = node->device;
+			aal_exception_error("Can't synchronize node %llu to device. %s.", 
+					    node->blk, device->error);
+
+			return -1;
+		}
+
+		reiser4_node_mkclean(node);
+	}
     
 	/*
 	  Walking through the list of children and calling reiser4_node_sync
@@ -937,22 +954,6 @@ errno_t reiser4_node_sync(
 		}
 	}
 
-	/* Synchronizing passed @node */
-	if (reiser4_node_isdirty(node)) {
-		
-		if (plugin_call(return -1, node->entity->plugin->node_ops,
-				sync, node->entity))
-		{
-			aal_device_t *device = node->device;
-			aal_exception_error("Can't synchronize node %llu to device. %s.", 
-					    node->blk, device->error);
-
-			return -1;
-		}
-
-		reiser4_node_mkclean(node);
-	}
-    
 	return 0;
 }
 
