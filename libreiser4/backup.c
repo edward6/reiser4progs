@@ -90,8 +90,7 @@ void reiser4_backup_sync(reiser4_backup_t *backup) {
 static errno_t cb_region(void *object, blk_t blk,
 			 uint64_t count, void *data)
 {
-	/* FIXME: This is hardcoded knowledge that bitmap block lies in the 
-	   first block of the region. */
+	/* 2nd block in the given region is a backup block. */
 	*((blk_t *)data) = (count == 1) ? 0 :blk + 1;
 
 	return 0;

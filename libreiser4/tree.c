@@ -290,13 +290,6 @@ errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	if (tree->root)
 		return 0;
 
-#ifndef ENABLE_STAND_ALONE
-	/* Check if tree contains some nodes at all. It does not contain them
-	   just after creation. The is root blk in format is set to INVAL_BLK.*/
-	if (reiser4_tree_fresh(tree))
-		return -EINVAL;
-#endif
-
 	/* Getting root node and loading it. */
 	root_blk = reiser4_tree_get_root(tree);
 	

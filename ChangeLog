@@ -6,3 +6,18 @@ reiser4progs/COPYING.
 This file may be modified and/or distributed without restriction. This is
 not an invitation to misrepresent the history of reiser4progs.
 
+2004-09-16
+	sd_bytes fix for files larger then 4G.
+2004-09-14
+	Make ldconfig to run automatically on 'make install'.
+2004-09-13
+	Make r5 hash working correctly with extended ASCII characters.
+2004-08-24
+	Some bugs are fixed:
+	- in tree_scan method;
+	- in reading extent items;
+	- in man pages.
+	Some optimisations for stand-alone are added.
+	Version is 1.0.1.
+2004-08-09
+	1.0.0 version is released.
