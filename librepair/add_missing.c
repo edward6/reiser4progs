@@ -120,9 +120,7 @@ errno_t repair_add_missing(repair_am_t *am) {
     
     /* 2 loops - 1 for twigs, another for leaves. */
     for (i = 0; i < 2; i++) {
-	blk = 0;
 	
-	am->progress->u.rate.done = 0;
 	if (i == 0) {
 	    bitmap = am->bm_twig;
 	    am->progress->text = "Inserting unconnected twigs: ";
@@ -132,7 +130,15 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    am->progress->text = "Inserting unconnected leaves: ";
 	    am->progress->u.rate.total = aux_bitmap_marked(am->bm_leaf);
 	}
+
+	/* Debugging of item coping. */
+	if (am->repair->debug_flag) 
+	    goto debug;
 	
+	blk = 0;
+	
+	am->progress->u.rate.done = 0;
+		
 	am->progress->state = PROGRESS_UPDATE;
  
        	/* Try to insert the whole twig/leaf at once. If found twig/leaf could 
@@ -226,6 +232,8 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    blk++;
 	}
 
+    debug:
+
 	blk = 0;
 	am->progress->u.rate.done = 0;
 	if (i == 0) {
@@ -235,6 +243,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 	    am->progress->text = "Inserting unconnected twigs item-by-item: ";
 	    am->progress->u.rate.total = aux_bitmap_marked(am->bm_leaf);
 	}
+	
 	
 	/* Insert extents from the twigs/all items from leaves which are not in 
 	 * the tree yet item-by-item into the tree, overwrite existent data 

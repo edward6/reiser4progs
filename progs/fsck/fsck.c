@@ -94,7 +94,7 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 
 static void fsck_init_streams(fsck_parse_t *data) {
     progs_exception_set_stream(EXCEPTION_INFORMATION, 
-	aal_test_bit(&data->options, REPAIR_OPT_VERBOSE) ? stderr : NULL);    
+	aal_test_bit(&data->options, FSCK_OPT_VERBOSE) ? stderr : NULL);    
     progs_exception_set_stream(EXCEPTION_ERROR, data->logfile);
     progs_exception_set_stream(EXCEPTION_WARNING, data->logfile);
     progs_exception_set_stream(EXCEPTION_FATAL, stderr);
@@ -149,7 +149,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 
     progs_print_banner(argv[0]);
     
-    while ((c = getopt_long(argc, argv, "l:Vhnqapfve:Kko:U:R:r?", long_options, 
+    while ((c = getopt_long(argc, argv, "l:Vhnqapfve:Kko:U:R:r?d", long_options, 
 	(int *)0)) != EOF) 
     {
 	switch (c) {
@@ -168,17 +168,17 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	case 'R':
 	    break;
 	case 'f':
-	    aal_set_bit(&data->options, REPAIR_OPT_FORCE);
+	    aal_set_bit(&data->options, FSCK_OPT_FORCE);
 	    break;
 	case 'a':
 	case 'p':
-	    aal_set_bit(&data->options, REPAIR_OPT_AUTO);
+	    aal_set_bit(&data->options, FSCK_OPT_AUTO);
 	    break;
 	case 'v':
-	    aal_set_bit(&data->options, REPAIR_OPT_VERBOSE);
+	    aal_set_bit(&data->options, FSCK_OPT_VERBOSE);
 	    break;
 /*
-	    case 'd':
+	    case 'e':
 		profile_label = optarg;
 		break;
 	    case 'k':
@@ -205,6 +205,9 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	    aal_gauge_set_handler(GAUGE_SILENT, NULL);
 	    break;
 	case 'r':
+	    break;
+	case 'd':
+	    aal_set_bit(&data->options, FSCK_OPT_DEBUGGING);
 	    break;
 	}
     }
@@ -235,7 +238,7 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		"permissions, cannot fsck it.", argv[optind]);
 	    return USER_ERROR;
 	} else {
-	    aal_set_bit(&data->options, REPAIR_OPT_READ_ONLY);
+	    aal_set_bit(&data->options, FSCK_OPT_READ_ONLY);
 	}
     }
     
@@ -265,9 +268,8 @@ int main(int argc, char *argv[]) {
     fsck_parse_t parse_data;
     repair_data_t repair;
     aal_stream_t stream;
-    errno_t error;
-    
     uint16_t mask = 0;
+    errno_t error;
     
     memset(&parse_data, 0, sizeof(parse_data));
     memset(&repair, 0, sizeof(repair));
@@ -283,7 +285,8 @@ int main(int argc, char *argv[]) {
 	goto free_device;
     }
     
-    repair.mode = parse_data.mode;    
+    repair.mode = parse_data.mode;        
+    repair.debug_flag = aal_test_bit(&parse_data.options, FSCK_OPT_DEBUGGING);
     repair.progress_handler = gauge_handler;    
 
     fsck_time("fsck.reiser4 started at");

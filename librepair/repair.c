@@ -277,6 +277,41 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
     return 0;
 }
 
+/* Debugging. */
+static errno_t debug_am_prepare(repair_control_t *control, repair_am_t *am) {
+    uint64_t fs_len;
+    uint64_t i;
+    
+    aal_assert("vpf-855", am != NULL);
+    aal_assert("vpf-857", control != NULL);
+    aal_assert("vpf-859", control->repair != NULL);
+    aal_assert("vpf-861", control->repair->fs != NULL);
+ 
+    aal_memset(am, 0, sizeof(*am));
+    
+    am->repair = control->repair;
+    
+    fs_len = reiser4_format_get_len(control->repair->fs->format);
+
+    if (!(am->bm_leaf = aux_bitmap_create(fs_len))) {
+	aal_exception_error("Failed to allocate a bitmap of leaves removed "
+	    " from the tree and to be inserted later back item-by-item.");
+	return -EINVAL;
+    }
+    
+    if (!(am->bm_twig = aux_bitmap_create(fs_len))) {
+	aal_exception_error("Failed to allocate a bitmap of twig blocks.");
+	return -EINVAL;
+    }
+    
+    am->progress_handler = control->repair->progress_handler;
+    
+    aux_bitmap_calc_marked(am->bm_twig);
+    aux_bitmap_calc_marked(am->bm_leaf);
+    
+    return 0;
+}
+
 static void repair_control_release(repair_control_t *control) {
     aal_assert("vpf-738", control != NULL);
 
@@ -312,6 +347,17 @@ errno_t repair_check(repair_data_t *repair) {
     
     control.repair = repair;
 
+    if (repair->debug_flag) {
+	/* Debugging */
+	if ((res = debug_am_prepare(&control, &am)))
+	    goto error;
+
+	if ((res = repair_add_missing(&am)))
+	    goto error;
+	
+	return 0;
+    } 
+    
     if ((res = repair_filter_prepare(&control, &filter)))
 	goto error;
     

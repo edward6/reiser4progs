@@ -412,7 +412,6 @@ errno_t repair_node_copy(reiser4_node_t *dst, pos_t *dst_pos,
 {
     aal_assert("vpf-961", dst != NULL);
     aal_assert("vpf-962", src != NULL);
-    aal_assert("vpf-963", hint != NULL);
     aal_assert("vpf-964", dst->entity->plugin->h.id == 
 			  src->entity->plugin->h.id);
     aal_assert("vpf-967", dst_pos != NULL);

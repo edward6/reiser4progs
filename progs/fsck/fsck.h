@@ -31,10 +31,11 @@
 
 /* fsck options. */
 typedef enum fsck_options {
-    REPAIR_OPT_AUTO	    = 0x1,
-    REPAIR_OPT_FORCE	    = 0x2,
-    REPAIR_OPT_VERBOSE	    = 0x3,
-    REPAIR_OPT_READ_ONLY    = 0x4
+    FSCK_OPT_AUTO	    = 0x1,
+    FSCK_OPT_FORCE	    = 0x2,
+    FSCK_OPT_VERBOSE	    = 0x3,
+    FSCK_OPT_READ_ONLY	    = 0x4,
+    FSCK_OPT_DEBUGGING	    = 0x5
 } fsck_options_t;
 
 typedef struct fsck_parse {

@@ -383,18 +383,14 @@ static errno_t node40_corrupt(object_entity_t *entity, uint16_t options) {
 errno_t node40_copy(object_entity_t *dst, pos_t *dst_pos, 
     object_entity_t *src, pos_t *src_pos, copy_hint_t *hint) 
 {
-    node40_t *dst_node;
-    node40_t *src_node;
-    errno_t res;
-    	
-    item40_header_t *ih;
-    item_entity_t src_item;
-    item_entity_t dst_item;
+    item_entity_t dst_item, src_item;
+    node40_t *dst_node, *src_node;
     reiser4_plugin_t *plugin;
-
-    aal_assert("vpf-965", dst != NULL);
-    aal_assert("vpf-966", src != NULL);
+    item40_header_t *ih;
+    errno_t res;
     
+    aal_assert("vpf-965",  dst != NULL);
+    aal_assert("vpf-966",  src != NULL);
     aal_assert("umka-2029", node40_loaded(dst));
     aal_assert("umka-2030", node40_loaded(src));
 	
@@ -404,21 +400,30 @@ errno_t node40_copy(object_entity_t *dst, pos_t *dst_pos,
     if (hint && hint->src_count == 0)
 	return 0;
     
+    /* Just a part of src item being copied, gets merged with dst item. */
     if (node40_item(src, src_pos, &src_item))
 	return -EINVAL;
     
-    if (node40_item(dst, dst_pos, &dst_item))
-	return -EINVAL;
-    
-    if (hint && hint->len_delta > 0) {
-	/* Expand the node first. */
+    /* Expand the node if needed. */
+    if (!hint) {
+	if (node40_expand(dst, dst_pos, src_item.len, 1))
+	    return -EINVAL;
+    } else if (hint->len_delta > 0) {
 	if (node40_expand(dst, dst_pos, hint->len_delta, 1))
 	    return -EINVAL;
-    }
+    } 
     
     /* If the whole @src item is to be inserted */
     if (!hint)
 	return node40_rep(dst, dst_pos, src, src_pos, 1);
+    
+    /* Just a part of src item being copied, gets merged with dst item. */
+    if (node40_item(src, src_pos, &src_item))
+	return -EINVAL;
+    
+    /* If not the whole item, realize the dst item. */
+    if (node40_item(dst, dst_pos, &dst_item))
+	return -EINVAL;
     
     if ((res = plugin_call(src_item.plugin->o.item_ops, copy, &dst_item, 
 	dst_pos->unit, &src_item, src_pos->unit, hint)))
