@@ -44,7 +44,7 @@ typedef struct file40 file40_t;
 
 extern roid_t file40_objectid(file40_t *file);
 extern roid_t file40_locality(file40_t *file);
-extern errno_t file40_realize(file40_t *file);
+extern errno_t file40_stat(file40_t *file);
 
 extern uint16_t file40_get_mode(file40_t *file);
 extern errno_t file40_set_mode(file40_t *file, uint16_t mode);

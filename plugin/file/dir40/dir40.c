@@ -124,7 +124,7 @@ static int32_t dir40_read(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
-	file40_realize(&dir->file);
+	file40_stat(&dir->file);
 	
 	if ((size = file40_get_size(&dir->file)) == 0)
 		return 0;
@@ -482,7 +482,7 @@ static int32_t dir40_write(object_entity_t *entity,
 	}
 
 	/* Updating size field */
-	file40_realize(&dir->file);
+	file40_stat(&dir->file);
 	
 	size = file40_get_size(&dir->file);
 

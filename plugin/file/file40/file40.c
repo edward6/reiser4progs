@@ -251,9 +251,11 @@ errno_t file40_stat(file40_t *file) {
 		    &file->key, KEY_STATDATA_TYPE, file40_locality(file), 
 		    file40_objectid(file), 0);
 
+	/* Unlocking old node */
 	if (file->statdata.node)
 		file40_unlock(file, &file->statdata);
-	
+
+	/* Requesting libreiser4 lookup in order to find stat data position */
 	if (file->core->tree_ops.lookup(file->tree, &file->key, LEAF_LEVEL,
 					&file->statdata) != PRESENT) 
 	{
@@ -266,6 +268,7 @@ errno_t file40_stat(file40_t *file) {
 		return -1;
 	}
 	
+	/* Locking new node */
 	file40_lock(file, &file->statdata);
 	
 	return 0;
@@ -287,7 +290,12 @@ errno_t file40_insert(file40_t *file, reiser4_item_hint_t *hint,
 		      uint8_t stop, reiser4_place_t *place)
 {
 	roid_t objectid = file40_objectid(file);
-	
+
+	/*
+	  Making lookup in order to find place new item/unit will be inserted
+	  at. If item/unit already exists, or lookup failed, we throw an
+	  exception and return the error code.
+	*/
 	switch (file40_lookup(file, &hint->key, stop, place)) {
 	case PRESENT:
 		aal_exception_error("Key already exists in the tree.");
@@ -298,6 +306,7 @@ errno_t file40_insert(file40_t *file, reiser4_item_hint_t *hint,
 		return -1;
 	}
 
+	/* Inserting newe item */
 	if (file->core->tree_ops.insert(file->tree, place, hint)) {
 		aal_exception_error("Can't insert new item of file "
 				    "0x%llx into the tree.", objectid);

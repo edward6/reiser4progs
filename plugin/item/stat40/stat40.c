@@ -79,7 +79,7 @@ static errno_t stat40_traverse(item_entity_t *item,
 		  and if result is not good, returning it to teh caller.
 		*/
 		if (!(res = func(i, plugin, extmask, extbody, data)))
-			return ret;
+			return res;
 
 		/* Calculating the pointer to the next extention body */
 		extbody = (void *)extbody + plugin_call(return 0, plugin->sdext_ops,
@@ -288,8 +288,9 @@ struct body_hint {
 };
 
 /* Callback function for finding stat data extention body by bit */
-static int callback_body_ext(uint8_t ext, uint16_t extmask,
-			     reiser4_body_t *extbody, void *data)
+static int callback_body_ext(uint8_t ext, reiser4_plugin_t *plugin,
+			     uint16_t extmask, reiser4_body_t *extbody,
+			     void *data)
 {
 	struct body_hint *hint = (struct body_hint *)data;
 
@@ -318,8 +319,9 @@ struct present_hint {
 
 /* Callback for getting presence information for certain stat data
  * extention */
-static int callback_present_ext(uint8_t ext, uint16_t extmask,
-				reiser4_body_t *extbody, void *data)
+static int callback_present_ext(uint8_t ext, reiser4_plugin_t *plugin,
+				uint16_t extmask, reiser4_body_t *extbody,
+				void *data)
 {
 	struct present_hint *hint = (struct present_hint *)data;
 	
@@ -358,8 +360,9 @@ static errno_t stat40_layout(item_entity_t *item,
 }
 
 /* Callback for counting the number of stat data extentions in use */
-static int callback_count_ext(uint8_t ext, uint16_t extmask,
-			      reiser4_body_t *extbody, void *data)
+static int callback_count_ext(uint8_t ext, reiser4_plugin_t *plugin,
+			      uint16_t extmask, reiser4_body_t *extbody,
+			      void *data)
 {
         (*(uint32_t *)data)++;
         return 1;
@@ -376,21 +379,15 @@ static uint32_t stat40_sdexts(item_entity_t *item) {
 }
 
 /* Prints extention into @stream */
-static int callback_print_ext(uint8_t ext, uint16_t extmask,
-			      reiser4_body_t *extbody, void *data)
+static int callback_print_ext(uint8_t ext, reiser4_plugin_t *plugin,
+			      uint16_t extmask, reiser4_body_t *extbody,
+			      void *data)
 {
-	reiser4_plugin_t *plugin;
 	aal_stream_t *stream = (aal_stream_t *)data;
 
 	if (ext == 0 || (ext + 1) % 16 == 0)
 		aal_stream_format(stream, "mask:\t\t0x%x\n", extmask);
 				
-	if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, ext))) {
-		aal_exception_warn("Can't find stat data extention plugin "
-				   "by its id 0x%x.", ext);
-		return 1;
-	}
-
 	aal_stream_format(stream, "label:\t\t%s\n", plugin->h.label);
 	aal_stream_format(stream, "plugin:\t\t%s\n", plugin->h.desc);
 	
@@ -419,7 +416,7 @@ static errno_t stat40_print(item_entity_t *item,
 
 	aal_stream_format(stream, "count:\t\t%u\n", stat40_sdexts(item));
 
-	if (stat40_traverse(item, callback_print, (void *)stream) < 0)
+	if (stat40_traverse(item, callback_print_ext, (void *)stream) < 0)
 		return -1;
 
 	return 0;
