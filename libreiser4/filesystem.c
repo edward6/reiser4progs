@@ -61,8 +61,7 @@ reiser4_fs_t *reiser4_fs_open(
 	if (!(fs->alloc = reiser4_alloc_open(fs->format, len)))
 		goto error_free_format;
     
-	if (reiser4_alloc_valid(fs->alloc))
-		goto error_free_alloc;
+	reiser4_alloc_valid(fs->alloc);
     
 	/* Jouranl device may be not specified. In this case it will not be opened */
 	if (journal_device) {

@@ -6,6 +6,8 @@ alloc36_sources		     = alloc36.c alloc36.h
 if ENABLE_MONOLITHIC
 noinst_LTLIBRARIES	     = liballoc36-static.la
 
+liballoc36_static_la_LIBADD  = 
+
 liballoc36_static_la_LDFLAGS = $(PLUGIN_LDFLAGS)
 liballoc36_static_la_SOURCES = $(alloc36_sources)
 else

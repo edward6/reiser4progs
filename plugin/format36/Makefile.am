@@ -10,6 +10,7 @@ endif
 if ENABLE_MONOLITHIC
 noinst_LTLIBRARIES		= libformat36-static.la
 
+libformat36_static_la_LIBADD	= 
 libformat36_static_la_LDFLAGS	= $(PLUGIN_LDFLAGS)
 libformat36_static_la_SOURCES	= $(format36_sources)
 else

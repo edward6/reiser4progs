@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	while (reiser4_file_read(dir, (char *)&entry, 1)) {
-		fprintf(stdout, "[0x%llx:0x%llx] %s\n", (entry.objid.locality >> 4), 
+		fprintf(stdout, "[%llx:%llx] %s\n", (entry.objid.locality >> 4), 
 			entry.objid.objectid, entry.name);
 	}
     

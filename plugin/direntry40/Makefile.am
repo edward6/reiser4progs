@@ -10,6 +10,8 @@ endif
 if ENABLE_MONOLITHIC
 noinst_LTLIBRARIES		= libdirentry40-static.la
 
+libdirentry40_la_LIBADD		= 
+
 libdirentry40_static_la_LDFLAGS = $(PLUGIN_LDFLAGS)
 libdirentry40_static_la_SOURCES = $(direntry40_sources)
 else

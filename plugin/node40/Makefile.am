@@ -10,6 +10,7 @@ endif
 if ENABLE_MONOLITHIC
 noinst_LTLIBRARIES	    = libnode40-static.la
 
+libnode40_static_la_LIBADD  = 
 libnode40_static_la_LDFLAGS = $(PLUGIN_LDFLAGS)
 libnode40_static_la_SOURCES = $(node40_sources)
 else
