@@ -14,5 +14,5 @@
 int misc_mpressure_detect(uint32_t nodes) {
 	/* Simple and hardcoded rule. Will be replaced by some more
 	   sophisticated later. */
-	return nodes > 2560;
+	return nodes > 10;
 }
