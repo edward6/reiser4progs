@@ -784,11 +784,9 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 	buff = hint->specific;
 	units = extent40_units(place);
 	
-	if (place->pos.unit > units)
-		place->pos.unit = units - 1;
-
-	/* Calculating insert unit offset and insert offset */
+	/* Calculating insert unit offset and insert offset. */
 	extent40_fetch_key(place, &key);
+
 	blksize = extent40_blksize(place);
 
 	uni_offset = plug_call(key.plug->o.key_ops,
@@ -800,12 +798,14 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 	max_offset = plug_call(hint->maxkey.plug->o.key_ops,
 			       get_offset, &hint->maxkey);
 
-	if (max_offset > 0) max_offset++;
+	if (max_offset > 0)
+		max_offset++;
 
-	/* Main loop until all data is written */
+	/* Main loop until all data is written. */
 	for (hint->bytes = 0, count = hint->count; count > 0;
 	     count -= size)
 	{
+		uint32_t off;
 		uint32_t room;
 
 		/* Calculating size to be written this time. */
@@ -817,26 +817,26 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 		/* Block offset we will insert in. */
 		block_offset = ins_offset - (ins_offset & (blksize - 1));
 
-		/* Preparing key for getting data by it */
+		/* Preparing key for getting data by it. */
 		plug_call(key.plug->o.key_ops, set_offset, &key, block_offset);
 
-		/* Checking if we write data inside item */
+		/* Checking if we write data inside item. */
 		if (block_offset < max_offset) {
 			blk_t blk;
 
-			/* Getting data block by offset key */
+			/* Getting data block by offset key. */
 			if (!(block = extent40_core->tree_ops.get_data(hint->tree,
 								       &key)))
 			{
 				/* This is the case, when data cache does not
-				   contain needed block, we have load it before
-				   modifying it. */
+				   contain needed block, we have to load it
+				   before modifying. */
 				extent = extent40_body(place) + place->pos.unit;
 
 				blk = et40_get_start(extent) +
 					(block_offset - uni_offset) / blksize;
 
-				/* Loading data block */
+				/* Loading data block. */
 				if (!(block = aal_block_load(extent40_device(place),
 							     blksize, blk)))
 				{
@@ -860,15 +860,12 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 			extent40_core->tree_ops.put_data(hint->tree,
 							 &key, block);
 			
-			extent = extent40_body(place) +
-				extent40_units(place) - 1;
-
-			/* Checking if we write data or holes */
+			/* Checking if we write data or holes. */
 			if (hint->specific && max_offset) {
-				uint64_t start = et40_get_start(extent);
+				extent = extent40_body(place) + place->pos.unit - 1;
 
 				/* Setting up new units. */
-				if (start != EXTENT_UNALLOC_UNIT) {
+				if (et40_get_start(extent) != EXTENT_UNALLOC_UNIT) {
 					/* Previous unit is allocated one, thus
 					   we cannot just enlarge it and need to
 					   set up new unit. */
@@ -882,16 +879,18 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 					et40_inc_width(extent, 1);
 				}
 
-				/* Updating counters */
+				/* Updating counters. */
 				hint->bytes += blksize;
 				max_offset += blksize;
 			} else {
+				extent = extent40_body(place) +
+					place->pos.unit;
+				
 				if (max_offset > 0)
 					extent++;
 					
 				/* This is the case when we write holes */
-				if (!hint->specific &&
-				    count >= blksize &&
+				if (!hint->specific && count >= blksize &&
 				    (ins_offset % blksize) == 0)
 				{
 					uint64_t width;
@@ -908,7 +907,7 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 					width = (size / blksize);
 					et40_set_width(extent, width);
 				} else {
-					/* Setting up new unallocated unit */
+					/* Setting up new unallocated unit. */
 					et40_set_start(extent,
 						       EXTENT_UNALLOC_UNIT);
 						
@@ -922,7 +921,7 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 
 		/* Writting data to @block */
 		if (hint->specific) {
-			uint32_t off = (ins_offset % blksize);
+			off = (ins_offset % blksize);
 			aal_memcpy(block->data + off, buff, size);
 
 			buff += size;
@@ -930,7 +929,7 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 		} else {
 			/* Writting hole */
 			if (size < blksize) {
-				uint32_t off = (ins_offset % blksize);
+				off = (ins_offset % blksize);
 				aal_memset(block->data + off, 0, size);
 				block->dirty = 1;
 			}

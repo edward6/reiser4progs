@@ -1083,7 +1083,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		{
 			blk_t blk;
 			uint32_t i;
-			int first = 1;
+			uint32_t units;
 			aal_block_t *block;
 			
 			/* Trying to allocate @ptr.width blocks. */
@@ -1093,8 +1093,13 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 				return -ENOSPC;
 			}
 
-			if (first) {
-				/* Updating extent item data */
+			units = plug_call(place->plug->o.item_ops->balance,
+					  units, place);
+
+			/* Check if we should update existent unit or insert new
+			   one. */
+			if (place->pos.unit < units) {
+				/* Updating extent unit at @place->pos.unit. */
 				if (plug_call(place->plug->o.item_ops->object,
 					      update_units, place, &hint) != 1)
 				{
@@ -1164,7 +1169,6 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 					  &key, offset + blksize);
 			}
 			
-			first = 0;
 			blocks += ptr.width;
 		}
 	}
@@ -1759,20 +1763,20 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node) {
 	uint8_t level;
 	
 	place_t place;
+	ptr_hint_t ptr;
 	trans_hint_t hint;
-	ptr_hint_t ptr_hint;
 
 	aal_assert("umka-913", tree != NULL);
 	aal_assert("umka-916", node != NULL);
     
 	/* Preparing nodeptr item hint. */
 	hint.count = 1;
+	hint.specific = &ptr;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
-	hint.specific = &ptr_hint;
 
-	ptr_hint.width = 1;
-	ptr_hint.start = node_blocknr(node);
+	ptr.width = 1;
+	ptr.start = node_blocknr(node);
 	pid = reiser4_param_value("nodeptr");
 
 	level = reiser4_node_get_level(node) + 1;
