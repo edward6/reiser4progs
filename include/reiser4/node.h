@@ -36,11 +36,7 @@ extern errno_t reiser4_node_move(reiser4_node_t *dst_node,
 
 #endif
 
-extern errno_t reiser4_node_rkey(reiser4_node_t *node, 
-    reiser4_key_t *key);
-
-extern errno_t reiser4_node_lkey(reiser4_node_t *node, 
-    reiser4_key_t *key);
+extern errno_t reiser4_node_lkey(reiser4_node_t *node, reiser4_key_t *key);
 
 extern uint32_t reiser4_node_count(reiser4_node_t *node);
 
@@ -68,8 +64,8 @@ extern errno_t reiser4_node_set_key(reiser4_node_t *node,
 
 extern errno_t reiser4_node_traverse(aal_block_t *block, 
     reiser4_open_func_t open_func, reiser4_handler_func_t handler_func, 
-    reiser4_edge_func_t before_func, reiser4_setup_func_t setup_func, 
-    reiser4_setup_func_t update_func, reiser4_edge_func_t after_func, 
+    reiser4_setup_func_t before_func, reiser4_setup_func_t setup_func, 
+    reiser4_setup_func_t update_func, reiser4_setup_func_t after_func, 
     void *data);
 
 #endif
