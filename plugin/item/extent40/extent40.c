@@ -109,36 +109,17 @@ static errno_t extent40_get_key(item_entity_t *item,
 extern errno_t extent40_layout_check(item_entity_t *item, region_func_t func, 
 				     void *data);
 
-static errno_t extent40_estimate(item_entity_t *item,
-				 void *buff, uint32_t pos)
+static errno_t extent40_estimate(item_entity_t *item, void *buff,
+				 uint32_t pos, uint32_t count)
 {
 	/* Sorry, not implemented yet */
 	return -1;
 }
 
-/*static int32_t extent40_write(item_entity_t *item, void *buff,
-			      uint32_t offset, uint32_t count)
-{
-	uint32_t blocks;
-	uint32_t blocksize;
-	object_entity_t *alloc;
-
-	aal_assert("umka-1769", item != NULL, return -1);
-	aal_assert("umka-1770", buff != NULL, return -1);
-	
-	blocksize = extent40_blocksize(item);
-	blocks = (count / blocksize) + 1;
-
-	alloc = item->con.alloc;
-
-	return count;
-}*/
-
 /* Inserts next extent unit(s) at specified @pos */
-static errno_t extent40_insert(item_entity_t *item,
-			       void *buff, uint32_t pos)
+static errno_t extent40_insert(item_entity_t *item, void *buff,
+			       uint32_t pos, uint32_t count)
 {
-	uint32_t count;
 	void *src, *dst;
 	uint32_t i, units;
 
@@ -156,14 +137,15 @@ static errno_t extent40_insert(item_entity_t *item,
 	hint = (reiser4_item_hint_t *)buff;
 	ptr_hint = (reiser4_ptr_hint_t *)hint;
 	
-	count = hint->len / sizeof(extent40_t);
 	units = extent40_units(item) - count;
 	
 	/* Preparing room for the new extent units */
 	if (pos < units - 1) {
 		src = extent + pos;
 		dst = extent + pos + count;
-		aal_memmove(dst, src, (units - pos) * sizeof(extent40_t));
+		
+		aal_memmove(dst, src, (units - pos) *
+			    sizeof(extent40_t));
 	}
 	
 	extent += pos;
