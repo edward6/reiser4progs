@@ -239,7 +239,12 @@ errno_t reiser4_node_lkey(
 	if (reiser4_coord_open(&coord, node, &pos))
 		return -1;
 
-	return reiser4_item_key(&coord, key);
+	if (reiser4_item_key(&coord))
+		return -1;
+
+	aal_memcpy(key, &coord.entity.key, sizeof(key));
+	
+	return 0;
 }
 
 /* Returns left or right neighbor key for passed node */
@@ -290,7 +295,12 @@ errno_t reiser4_node_nkey(
 	if (reiser4_coord_open(&coord, node->parent, &pos))
 		return -1;
 	
-	return reiser4_item_key(&coord, key);
+	if (reiser4_item_key(&coord))
+		return -1;
+
+	aal_memcpy(key, &coord.entity.key, sizeof(key));
+	
+	return 0;
 }
 
 /* Returns position of passed node in parent node */
@@ -1058,7 +1068,6 @@ errno_t reiser4_node_remove(
 	reiser4_node_t *node,	            /* node item will be inserted in */
 	reiser4_pos_t *pos)		    /* pos item will be inserted at */
 {
-	reiser4_key_t key;
 	reiser4_pos_t ppos;
 
 	aal_assert("umka-993", node != NULL, return -1);
@@ -1082,10 +1091,10 @@ errno_t reiser4_node_remove(
 		if (reiser4_coord_open(&coord, node, pos))
 			return -1;
 
-		if (reiser4_item_key(&coord, &key))
+		if (reiser4_item_key(&coord))
 			return -1;
-		
-		if ((child = reiser4_node_cbk(node, &key)))
+
+		if ((child = reiser4_node_cbk(node, &coord.entity.key)))
 			reiser4_node_detach(node, child);
 	}
 
@@ -1153,7 +1162,7 @@ errno_t reiser4_node_traverse(
 	reiser4_coord_t coord;
 	reiser4_node_t *child = NULL;
 	reiser4_pos_t *pos = &coord.pos;
-    
+ 
 	aal_assert("vpf-418", hint != NULL, return -1);
 	aal_assert("vpf-390", node != NULL, return -1);
 
