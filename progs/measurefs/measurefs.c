@@ -28,7 +28,8 @@ enum behav_flags {
 	F_TSTAT    = 1 << 4,
 	F_DFRAG    = 1 << 5,
 	F_SFILE    = 1 << 6,
-	F_PLUGS    = 1 << 8
+	F_PLUGS    = 1 << 7,
+	F_PROFS    = 1 << 8
 };
 
 typedef enum behav_flags behav_flags_t;
@@ -796,12 +797,11 @@ int main(int argc, char *argv[]) {
 			aal_strncat(override, ",", 1);
 			break;
 		case 'K':
-			progs_print_banner(argv[0]);
-			progs_profile_list();
-			return NO_ERROR;
+			flags |= F_PROFS;
+			break;
 		case '?':
 			measurefs_print_usage(argv[0]);
-			return USER_ERROR;
+			return NO_ERROR;
 		}
 	}
     
@@ -810,8 +810,14 @@ int main(int argc, char *argv[]) {
 		return USER_ERROR;
 	}
     
-	progs_print_banner(argv[0]);
-    
+	if (!(flags & F_QUIET))
+		progs_print_banner(argv[0]);
+
+	if (flags & F_PROFS) {
+		progs_profile_list();
+		return NO_ERROR;
+	}
+	
 	/* Initializing passed profile */
 	if (!(profile = progs_profile_find(profile_label))) {
 		aal_exception_error("Can't find profile by its "

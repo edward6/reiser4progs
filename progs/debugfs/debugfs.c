@@ -206,9 +206,8 @@ int main(int argc, char *argv[]) {
 			aal_strncat(override, ",", 1);
 			break;
 		case 'K':
-			progs_print_banner(argv[0]);
-			progs_profile_list();
-			return NO_ERROR;
+			behav_flags |= BF_PROFS;
+			break;
 		case '?':
 			debugfs_print_usage(argv[0]);
 			return NO_ERROR;
@@ -220,8 +219,14 @@ int main(int argc, char *argv[]) {
 		return USER_ERROR;
 	}
     
-	progs_print_banner(argv[0]);
-    
+	if (!(behav_flags & BF_QUIET))
+		progs_print_banner(argv[0]);
+
+	if (behav_flags & BF_PROFS) {
+		progs_profile_list();
+		return NO_ERROR;
+	}
+	
 	/* Initializing passed profile */
 	if (!(profile = progs_profile_find(profile_label))) {
 		aal_exception_error("Can't find profile by its label %s.", 

@@ -31,7 +31,8 @@ enum mkfs_behav_flags {
 	BF_FORCE   = 1 << 0,
 	BF_QUIET   = 1 << 1,
 	BF_PLUGS   = 1 << 2,
-	BF_LOST    = 1 << 3
+	BF_PROFS   = 1 << 3,
+	BF_LOST    = 1 << 4
 };
 
 typedef enum mkfs_behav_flags mkfs_behav_flags_t;
@@ -194,9 +195,8 @@ int main(int argc, char *argv[]) {
 			aal_strncat(override, ",", 1);
 			break;
 		case 'K':
-			progs_print_banner(argv[0]);
-			progs_profile_list();
-			return NO_ERROR;
+			flags |= BF_PROFS;
+			break;
 		case 'b':
 			/* Parsing blocksize */
 			if ((blocksize = progs_str2long(optarg, 10)) == INVAL_DIG) {
@@ -242,8 +242,14 @@ int main(int argc, char *argv[]) {
 		return USER_ERROR;
 	}
     
-	progs_print_banner(argv[0]);
-    
+	if (!(flags & BF_QUIET))
+		progs_print_banner(argv[0]);
+
+	if (flags & BF_PROFS) {
+		progs_profile_list();
+		return NO_ERROR;
+	}
+	
 	/* Initializing passed profile */
 	if (!(profile = progs_profile_find(profile_label))) {
 		aal_exception_error("Can't find profile by its label %s.", 
@@ -516,4 +522,3 @@ int main(int argc, char *argv[]) {
  error:
 	return OPER_ERROR;
 }
-

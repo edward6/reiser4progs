@@ -24,8 +24,9 @@ typedef enum print_flags print_flags_t;
 enum behav_flags {
 	BF_FORCE    = 1 << 0,
 	BF_QUIET    = 1 << 1,
-	BF_CAT      = 1 << 7,
-	BF_PLUGS    = 1 << 8
+	BF_CAT      = 1 << 2,
+	BF_PLUGS    = 1 << 3,
+	BF_PROFS    = 1 << 4
 };
 
 typedef enum behav_flags behav_flags_t;
