@@ -19,6 +19,7 @@ extern errno_t repair_item_ptr_bitmap_used(reiser4_coord_t *coord,
 extern errno_t repair_coord_open(reiser4_coord_t *coord, void *data,
     coord_context_t context, reiser4_pos_t *pos);
 extern void repair_coord_left_pos_save(reiser4_coord_t *coord, reiser4_pos_t *pos);
+extern errno_t repair_item_fix_pointer(reiser4_coord_t *coord);
 
 #endif
 

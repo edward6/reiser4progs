@@ -628,10 +628,10 @@ errno_t reiser4_joint_traverse(
 	void *data,			     /* user-spacified data */
 	reiser4_open_func_t open_func,	     /* callback will be used for opening node */
 	reiser4_handler_func_t handler_func, /* callback will be called on node */
-	reiser4_setup_func_t before_func,    /* callback will be called before all childs */
+	reiser4_edge_func_t before_func,    /* callback will be called before all childs */
 	reiser4_setup_func_t setup_func,     /* callback will be called before a child */
 	reiser4_setup_func_t update_func,    /* callback will be called after a child */
-	reiser4_setup_func_t after_func)     /* callback will be called after all childs */
+	reiser4_edge_func_t after_func)     /* callback will be called after all childs */
 {
 	reiser4_pos_t pos;
 	errno_t result = 0;
@@ -645,16 +645,15 @@ errno_t reiser4_joint_traverse(
 
 	if ((handler_func && !(result = handler_func(joint, data))) || !handler_func) {
 	    
-		if (before_func && (result = before_func(&coord, data)))
+		if (before_func && (result = before_func(joint, data)))
 			goto error;
 
 		for (pos.item = 0; pos.item < reiser4_node_count(joint->node); pos.item++) {
 			pos.unit = ~0ul; 
 	    
-			/* 
-			   All items must be openned - this is checked in the
-			   handler_func.
-			*/
+			/* If there is a suspicion in a corruption, it must be 
+			 * checked in handler_func. All items must be openned
+			 * here. */
 			if (reiser4_coord_open(&coord, joint, CT_JOINT, &pos)) {
 				blk_t blk = aal_block_number(joint->node->block);
 				aal_exception_error("Can't open item by coord. Node %llu, item %u.",
@@ -669,7 +668,7 @@ errno_t reiser4_joint_traverse(
 				reiser4_ptr_hint_t ptr;
 		
 				if (plugin_call(continue, coord.entity.plugin->item_ops,
-						fetch, &coord.entity, 0, &ptr, 1))
+						fetch, &coord.entity, pos.unit, &ptr, 1))
 					goto error_after_func;
 		
 				if (ptr.ptr != FAKE_BLK) {
@@ -702,7 +701,7 @@ errno_t reiser4_joint_traverse(
 			}
 		}
 	
-		if (after_func && (result = after_func(&coord, data)))
+		if (after_func && (result = after_func(joint, data)))
 			goto error;
 	}
 
@@ -717,7 +716,7 @@ errno_t reiser4_joint_traverse(
     
  error_after_func:
 	if (after_func)
-		result = after_func(&coord, data);
+		result = after_func(joint, data);
     
  error:
 	return result;

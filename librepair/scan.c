@@ -12,11 +12,12 @@
     Zero extent pointers which point to an already used block. 
     Returns -1 if block is used already.
 */
-static errno_t repair_node_handle_pointers(reiser4_node_t *node, 
+static errno_t repair_scan_handle_pointers(reiser4_node_t *node, 
     repair_check_t *data) 
 {
     reiser4_coord_t coord;
     reiser4_pos_t pos = {0, 0};
+    int res;
     
     aal_assert("vpf-384", node != NULL, return -1);
     aal_assert("vpf-385", data != NULL, return -1);
@@ -30,40 +31,35 @@ static errno_t repair_node_handle_pointers(reiser4_node_t *node,
 	    return -1;
 	}	    
 
-	if (!reiser4_item_extent(&coord) && !reiser4_item_nodeptr(&coord))
+	if (!reiser4_item_extent(&coord))
 	    continue;
 
 	for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
+	    
+	    { /* Debug. */
 		reiser4_ptr_hint_t ptr;
-	    blk_t form_blk, used_blk;
 
-	    if (plugin_call(return -1, coord.entity.plugin->item_ops, fetch,
-			    &coord.entity, pos.unit, &ptr, 1))
-	        return -1;
-
-	    /* This should be fixed at the first pass. */
-	    aal_assert("vpf-387", 
-		(ptr.ptr < reiser4_format_get_len(data->format)) && 
-		(ptr.width < reiser4_format_get_len(data->format)) && 
-		(ptr.ptr + ptr.width < reiser4_format_get_len(data->format)), 
-		return -1);
-
-	    if (repair_item_ptr_bitmap_used(&coord, 
-		repair_scan_data(data)->used, data))
-	    {
-		aal_exception_error("Node (%llu), item (%llu), unit (%llu):"
-		    " one of the pointed blocks (first %llu, count %llu) is "
-		    "used already. Zeroed.", 
-		    aal_block_number(reiser4_coord_block(&coord)), pos.item, 
-		    pos.unit, ptr.ptr, ptr.width);
-
-		ptr.ptr = 0;
-		ptr.width = 0;
-
-		if (plugin_call(return -1, coord.entity.plugin->item_ops, update,
+		if (plugin_call(return -1, coord.entity.plugin->item_ops, fetch,
 		    &coord.entity, pos.unit, &ptr, 1))
 		    return -1;
+
+		/* This must be fixed at the first pass. */
+		aal_assert("vpf-387", 
+		    (ptr.ptr < reiser4_format_get_len(data->format)) && 
+		    (ptr.width < reiser4_format_get_len(data->format)) && 
+		    (ptr.ptr + ptr.width < reiser4_format_get_len(data->format)), 
+		    return -1);
 	    }
+	    
+	    /* FIXME-VITALY: Improve it later - it could be just width to be
+	     * obviously wrong. Or start block. Give a hint into 
+	     * repair_item_ptr_format_check which returns what is obviously 
+	     * wrong. */
+	    if ((res = repair_item_ptr_bitmap_used(&coord, 
+		repair_scan_data(data)->used, data)) < 0) 
+		return res;
+	    else if ((res > 0) && repair_item_fix_pointer(&coord)) 
+		return -1;
 	}
     }
     
@@ -71,7 +67,7 @@ static errno_t repair_node_handle_pointers(reiser4_node_t *node,
 }
 
 errno_t repair_scan_node_check(reiser4_joint_t *joint, void *data) {
-    return repair_node_handle_pointers(joint->node, (repair_check_t *)data);
+    return repair_scan_handle_pointers(joint->node, (repair_check_t *)data);
 }
 
 

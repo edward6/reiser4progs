@@ -82,6 +82,7 @@ static errno_t nodeptr40_fetch(item_entity_t *item, uint32_t pos,
 
 	nodeptr = nodeptr40_body(item);
 	hint->ptr = np40_get_ptr(nodeptr);
+	hint->width = 1;
 	
 	return 0;
 }

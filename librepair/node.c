@@ -9,7 +9,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
     repair_check_t *data) 
 {
     reiser4_coord_t coord;
-    reiser4_pos_t pos, prev;
+    reiser4_pos_t pos;
     rpid_t pid;
     int res;
 
@@ -58,54 +58,29 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	    continue;
 	
 	for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
-	    if ((res = repair_item_ptr_format_check(&coord, data)) < 0) { 
+	    /* FIXME-VITALY: Improve it later - it could be just width to be
+	     * obviously wrong. Or start block. Give a hint into 
+	     * repair_item_ptr_format_check which returns what is obviously 
+	     * wrong. */
+	    if ((res = repair_item_ptr_format_check(&coord, data)) < 0)  
+		return res;
+	    else if ((res > 0) && repair_item_fix_pointer(&coord)) 
 		return -1;
-	    } else if (res > 0) {
-		reiser4_ptr_hint_t hint;
-
-		if (plugin_call(return -1, coord.entity.plugin->item_ops,
-				fetch, &coord.entity, pos.unit, &hint, 1))
-		    return -1;
-		
-		if (reiser4_item_nodeptr(&coord)) {
-		    aal_exception_error("Node (%llu), item (%u), unit (%u): "
-			"bad internal pointer (%llu/%llu). Removed.", 
-			aal_block_number(node->block), pos.item, pos.unit, 
-			hint.ptr, 0);
-
-		    repair_coord_left_pos_save(&coord, &prev);
-		    if (reiser4_node_remove(node, &pos))
-			return -1;
-		    
-		    coord.pos = prev;
-		} else if (reiser4_item_extent(&coord)) {
-		    aal_exception_error("Node (%llu), item (%u), unit (%u): "
-			"bad extent pointer (%llu). Zeroed.", 
-			aal_block_number(node->block), pos.item, pos.unit, 
-			hint.ptr, hint.width);
-
-			hint.ptr = 0;
-			hint.width = 0;
-			
-			if (plugin_call(return -1, coord.entity.plugin->item_ops,
-				update, &coord.entity, 0, &hint, 1))
-			    return -1;
-		}
-	    }
 	}
     }
-    
+ 
     return 0;    
 }
 
-errno_t repair_joint_ld_key(reiser4_joint_t *joint, reiser4_key_t *ld_key, 
-    repair_check_t *data) 
+static errno_t repair_joint_ld_key(reiser4_joint_t *joint, 
+    reiser4_key_t *ld_key, repair_check_t *data) 
 {
     reiser4_coord_t coord;
     errno_t res;
     
     aal_assert("vpf-393", joint != NULL, return -1);
     aal_assert("vpf-344", ld_key != NULL, return -1);
+    aal_assert("vpf-407", ld_key->plugin != NULL, return -1);
     aal_assert("vpf-345", data != NULL, return -1);
 
     if (joint->parent != NULL) {
@@ -120,8 +95,8 @@ errno_t repair_joint_ld_key(reiser4_joint_t *joint, reiser4_key_t *ld_key,
     return 0;
 }
 
-errno_t repair_joint_rd_key(reiser4_joint_t *joint, reiser4_key_t *rd_key, 
-    repair_check_t *data)
+static errno_t repair_joint_rd_key(reiser4_joint_t *joint, 
+    reiser4_key_t *rd_key, repair_check_t *data)
 {
     reiser4_coord_t coord;
     reiser4_pos_t pos = {0, 0};
@@ -129,18 +104,29 @@ errno_t repair_joint_rd_key(reiser4_joint_t *joint, reiser4_key_t *rd_key,
     
     aal_assert("vpf-394", joint != NULL, return -1);
     aal_assert("vpf-347", rd_key != NULL, return -1);
+    aal_assert("vpf-408", rd_key->plugin != NULL, return -1);
     aal_assert("vpf-348", data != NULL, return -1);
 
     if (joint->parent != NULL) {
+	aal_assert("vpf-413", joint->parent->node != NULL, return -1);
+	
+	/* Open coord in the parent at the correct position. */
         if ((res = reiser4_coord_open(&coord, joint->parent, CT_JOINT, 
 	        &joint->pos)))
 	    return res;
 	
+	/* If this is the last position in the parent, call the method 
+	 * recursevely for the parent. Get the right delimiting key 
+	 * otherwise. */
 	if (reiser4_node_count(joint->node) == coord.pos.item + 1) {
+//	if (reiser4_node_count(joint->parent->node) == coord.pos.item + 1) {
 	    return repair_joint_rd_key(joint->parent, rd_key, data);
 	} else {
 	    pos.item = coord.pos.item + 1;
 	    reiser4_coord_open(&coord, joint->parent, CT_JOINT, &pos);
+//	    if (reiser4_coord_open(&coord, joint->parent, CT_JOINT, &pos))
+//		return -1;
+
 	    return reiser4_item_key(&coord, rd_key);
 	}
     }
@@ -148,14 +134,13 @@ errno_t repair_joint_rd_key(reiser4_joint_t *joint, reiser4_key_t *rd_key,
     reiser4_key_maximal(rd_key);
     
     return 0;
-
 }
 
 /* 
     FIXME-VITALY: Should this stuff be moved to plugin and how will 3.6 format be 
     supported? 
 */
-static errno_t repair_joint_dkeys_check(reiser4_joint_t *joint, 
+errno_t repair_joint_dkeys_check(reiser4_joint_t *joint, 
     repair_check_t *data) 
 {
     reiser4_coord_t coord;
@@ -169,6 +154,17 @@ static errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
     aal_assert("vpf-240", data != NULL, return -1);
     aal_assert("vpf-241", data->format != NULL, return -1);
 
+    /* FIXME-VITALY: Fixed plugin id is used for key. */
+    if (!(d_key.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, 
+	KEY_REISER40_ID))) 
+    {
+	aal_exception_error("Can't find key plugin by its id 0x%x.", 
+	    KEY_REISER40_ID);
+	return -1;
+    }
+
+    key.plugin = d_key.plugin;
+
     if (repair_joint_ld_key(joint, &d_key, data)) {
 	aal_exception_error("Node (%llu): Failed to get the left delimiting key.", 
 	    aal_block_number(joint->node->block));
@@ -177,7 +173,7 @@ static errno_t repair_joint_dkeys_check(reiser4_joint_t *joint,
     
     if (reiser4_coord_open(&coord, joint, CT_JOINT, &pos))
 	return -1;
-	
+
     if (reiser4_item_key(&coord, &key)) {
 	aal_exception_error("Node (%llu): Failed to get the left key.",
 	    aal_block_number(joint->node->block));
@@ -293,33 +289,11 @@ errno_t repair_joint_check(reiser4_joint_t *joint, repair_check_t *data) {
     int res;
     
     aal_assert("vpf-183", data != NULL, return -1);
-    aal_assert("vpf-184", data->format != NULL, return -1);
     aal_assert("vpf-192", joint != NULL, return -1);
     aal_assert("vpf-192", joint->node != NULL, return -1);
     aal_assert("vpf-193", joint->node->entity != NULL, return -1);    
     aal_assert("vpf-220", joint->node->entity->plugin != NULL, return -1);
 
-    /* Skip this check if level is not set. level is not set for the root node.*/
-    if (joint->node->entity->plugin->node_ops.get_level && 
-	repair_filter_data(data)->level && 
-	joint->node->entity->plugin->node_ops.get_level(joint->node->entity) != 
-	repair_filter_data(data)->level) 
-    {
-	aal_exception_error("Level of the node (%u) is not correct, expected (%u)", 
-	    joint->node->entity->plugin->node_ops.get_level(joint->node->entity), 
-	    repair_filter_data(data)->level);
-	return 1;
-    }
-
-    /* Check if we met it already in the control allocator. */
-/*  FIXME-VITALY: This will be moved to scan pass.
-    if (reiser4_alloc_test(data->a_control, aal_block_number(node->block))) 
-    {
-	aal_exception_error("The node in the block (%llu) is used more then "
-	    "once in the tree.", aal_block_number(node->block));
-	return 1;
-    }
-*/
     if ((res = plugin_call(return -1, joint->node->entity->plugin->node_ops, 
 	check, joint->node->entity, data->options)))
 	return res;
@@ -328,9 +302,6 @@ errno_t repair_joint_check(reiser4_joint_t *joint, repair_check_t *data) {
 	return res;
     
     if ((res = repair_node_keys_check(joint->node, data)))
-	return res;
- 
-    if ((res = repair_joint_dkeys_check(joint, data)))
 	return res;
  
     if (reiser4_node_count(joint->node) == 0)

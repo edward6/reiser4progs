@@ -379,7 +379,8 @@ int reiser4_tree_lookup(
 		item = &coord->entity;
 		
 		/* Getting the node pointer from internal item */
-		if (plugin_call(return -1, item->plugin->item_ops, fetch, item, 0, &ptr, 1))
+		if (plugin_call(return -1, item->plugin->item_ops, fetch, item, 
+				pos.unit, &ptr, 1))
 			return -1;
 		
 		if (ptr.ptr == FAKE_BLK) {

@@ -13,10 +13,7 @@
 #include <repair/repair.h>
 
 extern errno_t repair_joint_check(reiser4_joint_t *joint, repair_check_t *data);
-
-extern errno_t repair_joint_ld_key(reiser4_joint_t*joint, reiser4_key_t *ld_key, 
-    repair_check_t *data);
-extern errno_t repair_joint_rd_key(reiser4_joint_t *joint, reiser4_key_t *rd_key, 
+extern errno_t repair_joint_dkeys_check(reiser4_joint_t *joint, 
     repair_check_t *data);
 
 #endif

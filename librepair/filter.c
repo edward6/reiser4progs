@@ -42,21 +42,21 @@ error_free_node:
     return res;
 }
 
-errno_t repair_filter_before_traverse(reiser4_coord_t *coord, void *data) 
-{
+errno_t repair_filter_before_traverse(reiser4_joint_t *joint, void *data) {
     repair_check_t *check_data = data;
     
-    aal_assert("vpf-392", coord != NULL, return -1);
-    aal_assert("vpf-251", coord->u.joint != NULL, return -1);
+    aal_assert("vpf-392", joint != NULL, return -1);
+    aal_assert("vpf-251", joint->node != NULL, return -1);
+    aal_assert("vpf-251", joint->node->entity != NULL, return -1);
     aal_assert("vpf-253", check_data != NULL, return -1);
     aal_assert("vpf-254", check_data->format != NULL, return -1);
 
     /* Initialize the level for the root node before traverse. */
     if (!repair_filter_data(check_data)->level)
 	repair_filter_data(check_data)->level = 
-	    (reiser4_coord_entity(coord)->plugin->node_ops.get_level ? 
-	    reiser4_coord_entity(coord)->plugin->node_ops.get_level(
-		reiser4_coord_entity(coord)) : 
+	    (joint->node->entity->plugin->node_ops.get_level ? 
+	    joint->node->entity->plugin->node_ops.get_level(
+		joint->node->entity) : 
 	    reiser4_format_get_height(check_data->format));
     
     repair_filter_data(check_data)->level--;
@@ -64,17 +64,16 @@ errno_t repair_filter_before_traverse(reiser4_coord_t *coord, void *data)
     return 0;
 }
 
-errno_t repair_filter_after_traverse(reiser4_coord_t *coord, void *data) 
-{
+errno_t repair_filter_after_traverse(reiser4_joint_t *joint, void *data) {
     repair_check_t *check_data = data;
      
-    aal_assert("vpf-393", coord != NULL, return -1);
-    aal_assert("vpf-394", coord->u.joint != NULL, return -1);   
+    aal_assert("vpf-393", joint != NULL, return -1);
+    aal_assert("vpf-394", joint->node != NULL, return -1);   
     aal_assert("vpf-256", check_data != NULL, return -1);
     
     repair_filter_data(check_data)->level++;
 
-    if (reiser4_node_count(reiser4_coord_node(coord)) == 0)
+    if (reiser4_node_count(joint->node) == 0)
 	repair_set_flag(check_data, REPAIR_NOT_FIXED);
     /* FIXME-VITALY: else - sync the node */
 
@@ -134,10 +133,35 @@ errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
     errno_t res;
     
     aal_assert("vpf-252", check_data != NULL, return -1);
-    
-    if ((res = repair_joint_check(joint, check_data)) > 0) 
+    aal_assert("vpf-409", joint != NULL, return -1);
+    aal_assert("vpf-410", joint->node != NULL, return -1);
+    aal_assert("vpf-411", joint->node->entity != NULL, return -1);    
+    aal_assert("vpf-412", joint->node->entity->plugin != NULL, return -1);
+
+    /* Skip this check if level is not set. level is not set for the root node.*/
+    if (joint->node->entity->plugin->node_ops.get_level && 
+	repair_filter_data(check_data)->level && 
+	joint->node->entity->plugin->node_ops.get_level(joint->node->entity) != 
+	repair_filter_data(check_data)->level) 
+    {
+	aal_exception_error("Level of the node (%u) is not correct, expected (%u)", 
+	    joint->node->entity->plugin->node_ops.get_level(joint->node->entity), 
+	    repair_filter_data(check_data)->level);
+	return 1;
+    }
+
+    if ((res = repair_joint_check(joint, check_data)) < 0)
+	return res;
+	
+    if (!res && repair_filter_data(check_data)->level)
+	if ((res = repair_joint_dkeys_check(joint, data)) < 0)
+	    return res;
+
+    if (res > 0) {
 	repair_set_flag(check_data, REPAIR_NOT_FIXED);
-        
+	return 0;
+    }
+	
     return res;
 }
 
