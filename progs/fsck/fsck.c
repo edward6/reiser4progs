@@ -248,6 +248,11 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		return OPER_ERROR;
 	}
 
+	if (aal_test_bit(&data->options, FSCK_OPT_AUTO)) {
+		misc_print_banner(argv[0]);
+		exit(NO_ERROR);
+	}
+
 	aal_gauge_set_handler(GAUGE_PERCENTAGE, gauge_rate);
 	aal_gauge_set_handler(GAUGE_TREE, gauge_tree);
     
