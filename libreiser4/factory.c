@@ -29,17 +29,15 @@ static errno_t callback_check_plug(reiser4_plug_t *plug,
 	if (!aal_strncmp(examined->label, plug->label,
 			 PLUG_MAX_LABEL))
 	{
-		aal_error("Plugin %s has the same label "
-			  "as %s.", examined->cl.loc,
-			  plug->cl.loc);
+		aal_error("Can't load another plugin with "
+			  "the same label %s.", plug->label);
 		return -EINVAL;
 	}
 	
 	/* Check plugin group. It should not be more or equal LAST_ITEM. */
 	if (examined->id.group >= LAST_ITEM) {
-		aal_error("Plugin %s has invalid group id "
-			  "0x%x.", examined->cl.loc,
-			  examined->id.group);
+		aal_error("Plugin %s has invalid group id 0x%x.", 
+			  examined->label, examined->id.group);
 		return -EINVAL;
 	}
 
@@ -49,8 +47,8 @@ static errno_t callback_check_plug(reiser4_plug_t *plug,
 	    examined->id.id == plug->id.id &&
 	    examined->id.type == plug->id.type)
 	{
-		aal_error("Plugin %s has the same id as "
-			  "%s.", examined->cl.loc, plug->cl.loc);
+		aal_error("Plugin %s has the same id as %s.", 
+			  examined->label, plug->label);
 		return -EINVAL;
 	}
 
@@ -60,60 +58,55 @@ static errno_t callback_check_plug(reiser4_plug_t *plug,
 
 /* Initializes plugin and returns it to caller. Calls plugin's init() method,
    etc.*/
-static reiser4_plug_t *reiser4_plug_init(plug_class_t *class) {
+static reiser4_plug_t *reiser4_plug_init(plug_class_t *cl) {
 	reiser4_plug_t *plug;
 	
-	if (!class->init)
+	if (!cl->init)
 		return NULL;
 
-	if (!(plug = class->init(&core))) {
+	if (!(plug = cl->init(&core))) {
 		aal_warn("Plugin's init() method (%p) "
-			 "failed", (void *)class->init);
+			 "failed", (void *)cl->init);
 		return NULL;
 	}
 
-	plug->cl.init = class->init;
-	plug->cl.fini = class->fini;
-
-#ifndef ENABLE_STAND_ALONE
-	aal_snprintf(plug->cl.loc, sizeof(plug->cl.loc),
-		     "builtin (%p)", plug->cl.init);
-#endif
+	plug->cl.init = cl->init;
+	plug->cl.fini = cl->fini;
 
 	return plug;
 }
 
 /* Finalizes a plugin. Mostly calls its fini() function. */
-static errno_t reiser4_plug_fini(plug_class_t *class) {
+static errno_t reiser4_plug_fini(reiser4_plug_t *plug) {
 	errno_t res = 0;
 	
 	/* Calling plugin fini() method if any. */
-	if (class->fini) {
-		if ((res = class->fini(&core))) {
+	if (plug->cl.fini) {
+		if ((res = plug->cl.fini(&core))) {
 			aal_warn("Method fini() of plugin "
 				 "%s has failed. Error %llx.",
-				 class->loc, res);
+				 plug->label, res);
 		}
 	}
 
-	class->init = 0;
-	class->fini = 0;
+	plug->cl.init = 0;
+	plug->cl.fini = 0;
 
 	return res;
 }
 
 /* Loads and initializes plugin by its entry. Also this function makes register
    the plugin in plugins list. */
-reiser4_plug_t *reiser4_factory_load(plug_class_t *class) {
+reiser4_plug_t *reiser4_factory_load(plug_class_t *cl) {
 	reiser4_plug_t *plug;
 
-	if (!(plug = reiser4_plug_init(class)))
+	if (!(plug = reiser4_plug_init(cl)))
 		return NULL;
 	
 #ifndef ENABLE_STAND_ALONE
 	if (reiser4_factory_foreach(callback_check_plug, (void *)plug))	{
 		aal_warn("Plugin %s will not be attached to "
-			 "plugin factory.", plug->cl.loc);
+			 "plugin factory.", plug->label);
 		reiser4_factory_unload(plug);
 		return NULL;
 	}
@@ -127,7 +120,7 @@ reiser4_plug_t *reiser4_factory_load(plug_class_t *class) {
 errno_t reiser4_factory_unload(reiser4_plug_t *plug) {
 	aal_assert("umka-1496", plug != NULL);
 
-	reiser4_plug_fini(&plug->cl);
+	reiser4_plug_fini(plug);
 	aal_hash_table_remove(plugins, &plug->id);
 
 	return 0;
@@ -148,15 +141,15 @@ static int callback_comp_func(void *key1, void *key2,
 
 /* Macro for loading plugin by its name. */
 #define __load_plug(name) {                         \
-	plug_class_t class;		            \
+	plug_class_t cl;		            \
 		                                    \
 	extern plug_init_t __##name##_plug_init;    \
 	extern plug_fini_t __##name##_plug_fini;    \
 						    \
-	class.init = __##name##_plug_init;          \
-	class.fini = __##name##_plug_fini;          \
+	cl.init = __##name##_plug_init;          \
+	cl.fini = __##name##_plug_fini;          \
                                                     \
-	reiser4_factory_load(&class);               \
+	reiser4_factory_load(&cl);               \
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -271,7 +264,7 @@ errno_t reiser4_factory_init(void) {
 static errno_t callback_unload_plug(reiser4_plug_t *plug,
 				    void *data)
 {
-	return reiser4_plug_fini(&plug->cl);
+	return reiser4_plug_fini(plug);
 }
 
 /* Finalizes plugin factory, by means of unloading the all plugins. */

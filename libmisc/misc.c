@@ -179,9 +179,7 @@ void misc_upper_case(char *dst, const char *src) {
 }
 
 static errno_t callback_print_plug(reiser4_plug_t *plug, void *data) {
-	printf("plugin \"%s\"\n", plug->label);
-	printf("  description: %s\n", plug->desc);
-	printf("  location   : %s\n", plug->cl.loc);
+	printf("\"%s\": %s\n", plug->label, plug->desc);
 	return 0;
 }
 

@@ -973,8 +973,7 @@ struct reiser4_object_ops {
 	uint64_t (*offset) (object_entity_t *);
 
 	/* Makes lookup inside file */
-	lookup_t (*lookup) (object_entity_t *, char *,
-			    entry_hint_t *);
+	lookup_t (*lookup) (object_entity_t *, char *, entry_hint_t *);
 
 	/* Finds actual file stat data (used in symlinks). */
 	errno_t (*follow) (object_entity_t *, reiser4_key_t *,
@@ -1568,7 +1567,6 @@ struct reiser4_policy_ops {
 typedef struct reiser4_policy_ops reiser4_policy_ops_t;
 #endif
 
-#define PLUG_MAX_PATH   1024
 #define PLUG_MAX_DESC	64
 #define PLUG_MAX_LABEL	22
 
@@ -1587,11 +1585,6 @@ struct plug_class {
 	
 	/* Plugin finalization routine. */
 	plug_fini_t fini;
-
-#ifndef ENABLE_STAND_ALONE
-	/* Plugin location, that is address of its init() function. */
-	char loc[PLUG_MAX_PATH];
-#endif
 };
 
 typedef struct plug_class plug_class_t;
@@ -1605,11 +1598,7 @@ struct plug_ident {
 
 typedef struct plug_ident plug_ident_t;
 
-#ifndef ENABLE_STAND_ALONE
-#  define class_init {NULL, NULL, ""}
-#else
-#  define class_init {NULL, NULL}
-#endif
+#define class_init {NULL, NULL}
 
 struct reiser4_plug {
 	/* Plugin class. This will be used by plugin factory for initializing
