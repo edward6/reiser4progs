@@ -326,6 +326,7 @@ static reiser4_object_ops_t sym40_ops = {
 	.metadata       = sym40_metadata,
 	.link           = sym40_link,
 	.unlink         = sym40_unlink,
+	.links          = sym40_links,
 	.realize        = sym40_realize,
 	.clobber        = sym40_clobber,
 		
