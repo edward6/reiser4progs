@@ -248,6 +248,14 @@ static errno_t repair_am_items_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 	   existent data which is in the tree already if needed. 
 	   FIXME: overwriting should be done on the base of flush_id. */
 	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
+
+		/* FIXME-UMKA->VITALY: Found that in original code alloc was not
+		   initializied and was not placed inside debug braces. What
+		   allocator should be used here? */
+#ifdef ENABLE_DEBUG
+		reiser4_alloc_t *alloc = NULL;
+#endif
+			
 		reiser4_place_t place;
 		pos_t *pos = &place.pos;
 
