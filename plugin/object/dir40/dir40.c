@@ -1035,6 +1035,8 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	return res;
 }
 
+extern errno_t dir40_realize (object_info_t *);
+
 #endif
 
 /*
@@ -1065,6 +1067,9 @@ static reiser4_object_ops_t dir40_ops = {
 	.seek	      = NULL,
 	.write        = NULL,
 	.check_struct = NULL,
+	.check_link   = NULL,
+	.realize      = dir40_realize,
+	
 #endif
 	.follow       = NULL,
 	.read         = NULL,

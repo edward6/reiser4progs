@@ -253,6 +253,9 @@ static errno_t sym40_layout(object_entity_t *entity,
 		
 	return block_func(entity, blk, data);
 }
+
+extern errno_t sym40_realize(object_info_t *info);
+
 #endif
 
 /*
@@ -311,6 +314,9 @@ static reiser4_object_ops_t sym40_ops = {
 	.rem_entry    = NULL,
 	.add_entry    = NULL,
 	.check_struct = NULL,
+	.check_link   = NULL,
+	.check_link   = NULL,
+	.realize      = sym40_realize,
 #endif
 	.lookup	      = NULL,
 	.reset	      = NULL,

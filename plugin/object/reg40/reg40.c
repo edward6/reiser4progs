@@ -748,6 +748,7 @@ static reiser4_object_ops_t reg40_ops = {
 	.add_entry    = NULL,
 	.rem_entry    = NULL,
 	.check_struct = NULL,
+	.check_link   = NULL,
 	.realize      = reg40_realize,
 #endif
 	.lookup	      = NULL,
