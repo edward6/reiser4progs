@@ -44,11 +44,10 @@ bool_t repair_tree_data_level(uint8_t level) {
 /* Get the max real key existed in the tree. Go down through all right-most 
    child to get it. */
 static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree, 
-				       reiser4_node_t *node, 
-				       reiser4_key_t *key)
+				       node_t *node, reiser4_key_t *key)
 {
-	reiser4_place_t place;
-	reiser4_node_t *child;
+	place_t place;
+	node_t *child;
 	errno_t res;
 	
 	aal_assert("vpf-712", node != NULL);
@@ -89,7 +88,7 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 }
 
 errno_t repair_tree_parent_lkey(reiser4_tree_t *tree,
-				reiser4_node_t *node, 
+				node_t *node, 
 				reiser4_key_t *key) 
 {
 	errno_t res;
@@ -103,7 +102,7 @@ errno_t repair_tree_parent_lkey(reiser4_tree_t *tree,
 		
 		aal_memcpy(key, &node->p.key, sizeof(*key));
 	} else {
-		key->plug = node->tree->key.plug;
+		key->plug = tree->key.plug;
 		reiser4_key_minimal(key);
 	}
 	
@@ -111,10 +110,10 @@ errno_t repair_tree_parent_lkey(reiser4_tree_t *tree,
 }
 
 /* Sets to the @key the right delimiting key of the node kept in the parent. */
-errno_t repair_tree_parent_rkey(reiser4_tree_t *tree, reiser4_node_t *node, 
+errno_t repair_tree_parent_rkey(reiser4_tree_t *tree, node_t *node, 
 				reiser4_key_t *key) 
 {
-	reiser4_place_t place;
+	place_t place;
 	errno_t ret;
 	
 	aal_assert("vpf-502", node != NULL);
@@ -142,7 +141,7 @@ errno_t repair_tree_parent_rkey(reiser4_tree_t *tree, reiser4_node_t *node,
 				return ret;
 		}
 	} else {
-		key->plug = node->tree->key.plug;
+		key->plug = tree->key.plug;
 		reiser4_key_maximal(key);
 	}
 	
@@ -151,10 +150,10 @@ errno_t repair_tree_parent_rkey(reiser4_tree_t *tree, reiser4_node_t *node,
 
 /* Checks the delimiting keys of the node kept in the parent. */
 errno_t repair_tree_dknode_check(reiser4_tree_t *tree, 
-				 reiser4_node_t *node, 
+				 node_t *node, 
 				 uint8_t mode) 
 {
-	reiser4_place_t place;
+	place_t place;
 	reiser4_key_t key_max, dkey;
 	pos_t pos = {0, MAX_UINT32};
 	int res;
@@ -240,9 +239,9 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 
 /* This function creates nodeptr item on the base of @node and insert it 
    to the tree. */
-errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
+errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	reiser4_key_t rkey, key;
-	reiser4_place_t place;
+	place_t place;
 	trans_hint_t hint;
 	lookup_t lookup;
 	ptr_hint_t ptr;
@@ -257,7 +256,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&ptr, 0, sizeof(ptr));
 	
-	reiser4_node_lkey(node, &hint.offset);
+	reiser4_node_leftmost_key(node, &hint.offset);
 	
 	/* Key should not exist in the tree yet. */
 	lookup = reiser4_tree_lookup(tree, &hint.offset,  LEAF_LEVEL, 
@@ -336,10 +335,10 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 
 /* Merge @dst item with @src one from the key pointed by @key through the 
    @dst maxreal key. After the coping @key is set to the @dst maxreal key. */
-static errno_t repair_tree_merge(reiser4_tree_t *tree, reiser4_place_t *dst,
-				 reiser4_place_t *src, reiser4_key_t *key)
+static errno_t repair_tree_merge(reiser4_tree_t *tree, place_t *dst,
+				 place_t *src, reiser4_key_t *key)
 {
-	reiser4_place_t old;
+	place_t old;
 	merge_hint_t hint;
 	uint32_t needed;
 	errno_t res;
@@ -400,7 +399,7 @@ static errno_t repair_tree_merge(reiser4_tree_t *tree, reiser4_place_t *dst,
 	}
 	
 	if (reiser4_place_leftmost(dst) && dst->node->p.node) {
-		reiser4_place_t p;
+		place_t p;
 		
 		reiser4_place_init(&p, dst->node->p.node, 
 				   &dst->node->p.pos);
@@ -459,7 +458,7 @@ static bool_t repair_tree_should_conv(reiser4_tree_t *tree,
 }
 
 static errno_t repair_tree_conv(reiser4_tree_t *tree, 
-				reiser4_place_t *place,
+				place_t *place,
 				reiser4_plug_t *plug) 
 {
 	conv_hint_t hint;
@@ -471,15 +470,15 @@ static errno_t repair_tree_conv(reiser4_tree_t *tree,
 	/* FIXME-UMKA->VITALY: This should be fixed to right item size, which 
 	   depends on size stat data field for the last item in file. */
 	hint.count = plug_call(place->plug->o.item_ops->object,
-			       size, (place_t *)place);
+			       size, place);
 
 	return reiser4_tree_conv_flow(tree, &hint);
 }
 
 /* Copy @src item data over the @dst from the key pointed by @key through the
    @dst maxreal key. After the coping @key is set to the @dst maxreal key. */
-errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
-				reiser4_place_t *src, reiser4_key_t *key)
+errno_t repair_tree_copy(reiser4_tree_t *tree, place_t *dst,
+				place_t *src, reiser4_key_t *key)
 {
 	reiser4_key_t dmax;
 	trans_hint_t hint;
@@ -506,11 +505,11 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
 
 /* Lookup for the correct @dst place by the @start key in the @tree. */
 static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree, 
-					 reiser4_place_t *dst,
+					 place_t *dst,
 					 reiser4_key_t *start,
 					 reiser4_key_t *end)
 {
-	reiser4_place_t prev;
+	place_t prev;
 	reiser4_key_t dkey;
 	errno_t res;
 	
@@ -574,23 +573,23 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 	return 0;
 }
 
-static errno_t callback_estimate_merge(reiser4_place_t *place, 
+static errno_t callback_estimate_merge(place_t *place, 
 				       trans_hint_t *hint)
 {
 	return 0;
 }
 
-static errno_t callback_merge(reiser4_node_t *node, 
-			      pos_t *pos, trans_hint_t *hint) 
+static errno_t callback_merge(node_t *node, pos_t *pos,
+			      trans_hint_t *hint) 
 {
 	return 0;
 }
 
 /* Insert the item into the tree overwriting an existent in the tree item 
    if needed. Does not insert branches. */
-errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
+errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src) {
 	reiser4_key_t maxkey;
-	reiser4_place_t dst;
+	place_t dst;
 	trans_hint_t hint;
 	uint32_t scount;
 	uint8_t level;
@@ -694,8 +693,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 			break;
 		
 		/* Lookup by end_key. */
-		if ((res = src->plug->o.item_ops->balance->lookup((place_t *)src, 
-								  &hint.maxkey, 
+		if ((res = src->plug->o.item_ops->balance->lookup(src, &hint.maxkey, 
 								  FIND_EXACT)) < 0)
 		{
 			return res;

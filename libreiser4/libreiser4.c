@@ -22,19 +22,15 @@ static reiser4_plug_t *factory_nfind(char *name) {
 }
 
 /* Handler for item insert requests from the all plugins */
-static int64_t tree_insert(
-	void *tree,	            /* opaque pointer to the tree */
-	place_t *place,	            /* insertion point will be saved here */
-	trans_hint_t *hint,         /* item hint to be inserted into tree */
-	uint8_t level)              /* target level */
+static int64_t tree_insert(void *tree, place_t *place,
+			   trans_hint_t *hint, uint8_t level)
 {
 	aal_assert("umka-846", tree != NULL);
 	aal_assert("umka-847", hint != NULL);
 	aal_assert("umka-1643", place != NULL);
 
 	return reiser4_tree_insert((reiser4_tree_t *)tree,
-				   (reiser4_place_t *)place,
-				   hint, level);
+				   place, hint, level);
 }
 
 static int64_t tree_write(void *tree, trans_hint_t *hint) {
@@ -57,39 +53,29 @@ static int64_t tree_trunc(void *tree, trans_hint_t *hint) {
 	return reiser4_tree_trunc_flow(t, hint);
 }
 
-/* Handler for item removing requests from the all plugins */
-static errno_t tree_remove(
-	void *tree,	            /* opaque pointer to the tree */
-	place_t *place,	            /* place of the item to be removerd */
-	trans_hint_t *hint)
+/* Handler for item removing requests from all plugins. */
+static errno_t tree_remove(void *tree, place_t *place,
+			   trans_hint_t *hint)
 {
 	aal_assert("umka-848", tree != NULL);
 	aal_assert("umka-849", place != NULL);
     
 	return reiser4_tree_remove((reiser4_tree_t *)tree,
-				   (reiser4_place_t *)place,
-				   hint);
+				   place, hint);
 }
 #endif
 
 /* Handler for lookup reqiests from the all plugin can arrive */
-static lookup_t tree_lookup(
-	void *tree,	            /* opaque pointer to the tree */
-	reiser4_key_t *key,	    /* key to be found */
-	uint8_t level,	            /* stop level */
-	bias_t bias,                /* position correcting mode */
-	place_t *place)             /* result will be stored in */
+static lookup_t tree_lookup(void *tree, reiser4_key_t *key,
+			    uint8_t level, bias_t bias,
+			    place_t *place)
 {
-	reiser4_place_t *p;
-	
 	aal_assert("umka-851", key != NULL);
 	aal_assert("umka-850", tree != NULL);
 	aal_assert("umka-852", place != NULL);
 
-	p = (reiser4_place_t *)place;
-	
 	return reiser4_tree_lookup((reiser4_tree_t *)tree,
-				   key, level, bias, p);
+				   key, level, bias, place);
 }
 
 static int64_t tree_read(void *tree, trans_hint_t *hint) {
@@ -104,23 +90,20 @@ static int64_t tree_read(void *tree, trans_hint_t *hint) {
 
 /* Initializes item at passed @place */
 static errno_t tree_fetch(void *tree, place_t *place) {
-	return reiser4_place_fetch((reiser4_place_t *)place);
+	return reiser4_place_fetch(place);
 }
 
 /* Returns TRUE if passed @place points to some real item in a node */
 static int tree_valid(void *tree, place_t *place) {
-	return reiser4_place_valid((reiser4_place_t *)place);
+	return reiser4_place_valid(place);
 }
 
 /* Handler for requests for next item */
-static errno_t tree_next(
-	void *tree,	            /* opaque pointer to the tree */
-	place_t *place,             /* place of node */
-	place_t *next)	            /* next item will be stored here */
+static errno_t tree_next(void *tree, place_t *place,
+			 place_t *next)
 {
 	return reiser4_tree_next_node((reiser4_tree_t *)tree, 
-				      (reiser4_place_t *)place,
-				      (reiser4_place_t *)next);
+				      place, next);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -150,8 +133,7 @@ static errno_t tree_update_key(void *tree, place_t *place,
 	aal_assert("vpf-1207", key != NULL);
 
 	return reiser4_tree_update_key((reiser4_tree_t *)tree,
-				       (reiser4_place_t *)place,
-				       (reiser4_key_t *)key);
+				       place, (reiser4_key_t *)key);
 }
 
 static char *key_print(key_entity_t *key, uint16_t options) {

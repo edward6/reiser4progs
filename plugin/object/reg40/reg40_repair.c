@@ -213,7 +213,7 @@ static errno_t reg40_next(object_entity_t *object,
 
 			/* If non-existent position in the item, move next. */
 			if (plug_call(reg->body.plug->o.item_ops->balance,
-				      number_units, &reg->body) == reg->body.pos.unit)
+				      units, &reg->body) == reg->body.pos.unit)
 			{
 				place_t next;
 

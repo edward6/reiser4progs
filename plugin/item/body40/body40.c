@@ -58,7 +58,7 @@ errno_t body40_maxreal_key(place_t *place,
 	uint64_t offset;
 
 	units = plug_call(place->plug->o.item_ops->balance,
-			  number_units, place);
+			  units, place);
 	
 	plug_call(place->key.plug->o.key_ops, assign, key,
 		  &place->key);

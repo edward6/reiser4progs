@@ -20,7 +20,7 @@ char *reiser4_print_key(reiser4_key_t *key,
 	return (char *)print_stream.entity;
 }
 
-char *reiser4_print_node(reiser4_node_t *node, uint32_t start, 
+char *reiser4_print_node(node_t *node, uint32_t start, 
 			 uint32_t count, uint16_t options) 
 {
 	aal_assert("umka-2642", node != NULL);

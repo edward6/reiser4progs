@@ -8,24 +8,17 @@
 
 #include <repair/repair.h>
 
-extern errno_t repair_item_check_struct(reiser4_place_t *place,
+extern errno_t repair_item_check_struct(place_t *place,
 					uint8_t mode);
 
-extern errno_t repair_item_check_layout(reiser4_place_t *place, 
+extern errno_t repair_item_check_layout(place_t *place, 
 					region_func_t func, 
 					void *data, uint8_t mode);
 
-extern errno_t repair_item_estimate_merge(reiser4_place_t *dst, 
-					  reiser4_place_t *src, 
+extern errno_t repair_item_estimate_merge(place_t *dst, place_t *src, 
 					  merge_hint_t *hint);
 
-
-extern void repair_item_set_flag(reiser4_place_t *place,
-				 uint16_t flag);
-
-extern void repair_item_clear_flag(reiser4_place_t *place,
-				   uint16_t flag);
-
-extern bool_t repair_item_test_flag(reiser4_place_t *place,
-				    uint16_t flag);
+extern void repair_item_set_flag(place_t *place, uint16_t flag);
+extern void repair_item_clear_flag(place_t *place, uint16_t flag);
+extern bool_t repair_item_test_flag(place_t *place, uint16_t flag);
 #endif

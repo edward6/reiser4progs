@@ -22,7 +22,7 @@ static errno_t callback_register_item(void *object, place_t *place, void *data)
         aal_assert("vpf-1114", object != NULL);
         aal_assert("vpf-1115", place != NULL);
          
-        if (repair_item_test_flag((reiser4_place_t *)place, OF_CHECKED)) {
+        if (repair_item_test_flag(place, OF_CHECKED)) {
                 aal_exception_error("Node (%llu), item (%u): item registering "
                                     "failed--it belongs to another object "
                                     "already. Plugin (%s).",
@@ -31,7 +31,7 @@ static errno_t callback_register_item(void *object, place_t *place, void *data)
                 return 1;
         }
          
-        repair_item_set_flag((reiser4_place_t *)place, OF_CHECKED);
+        repair_item_set_flag(place, OF_CHECKED);
          
         return 0;
 }
@@ -164,7 +164,7 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 {
 	bool_t checked;
 	reiser4_object_t *parent, *found;
-	reiser4_place_t *pstart;
+	place_t *pstart;
 	entry_hint_t entry;
 	errno_t res;
 	
@@ -299,7 +299,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	repair_semantic_t *sem = (repair_semantic_t *)data;
 	reiser4_object_t *object;
 	bool_t checked, attached;
-	reiser4_place_t *start;
+	place_t *start;
 	errno_t res = 0;
 	
 	aal_assert("vpf-1172", parent != NULL);
@@ -442,7 +442,7 @@ static errno_t repair_semantic_uptraverse(repair_semantic_t *sem,
 	return res;
 }
 
-static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
+static errno_t callback_node_traverse(place_t *place, void *data) {
 	repair_semantic_t *sem = (repair_semantic_t *)data;
 	reiser4_object_t *object, *upper;
 	errno_t res;
@@ -494,7 +494,7 @@ static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
 }
 
 static errno_t repair_semantic_node_traverse(reiser4_tree_t *tree, 
-					     reiser4_node_t *node, 
+					     node_t *node, 
 					     void *data) 
 {
 	return repair_node_traverse(node, callback_node_traverse, data);

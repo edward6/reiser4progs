@@ -18,7 +18,7 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 	aal_assert("vpf-725", func != NULL);
 
 	extent = extent40_body(place);
-	units = extent40_number_units(place);
+	units = extent40_units(place);
 			
 	for (i = 0; i < units; i++, extent++) {
 		uint64_t start, width;
@@ -65,7 +65,7 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 		return RE_FATAL;
 	
 	extent = extent40_body(place);
-	units = extent40_number_units(place);
+	units = extent40_units(place);
 	
 	for (i = 0; i < units; i++, extent++) {
 		uint64_t start;
@@ -152,7 +152,7 @@ errno_t extent40_prep_merge(place_t *dst, place_t *src,
 	aal_assert("vpf-999", dst_max % b_size == 0);
 	aal_assert("vpf-1009", src_start < src_max);
 	
-	if (dst_pos >= extent40_number_units(dst)) {
+	if (dst_pos >= extent40_units(dst)) {
 		aal_assert("vpf-1007", src_start == dst_max);
 		
 		hint->dst_count = 0;
@@ -194,7 +194,7 @@ errno_t extent40_prep_merge(place_t *dst, place_t *src,
 			hint->head = 1;
 	} else {
 		aal_assert("vpf-1008: Must be handled already.", 
-			   dst_pos >= extent40_number_units(dst));
+			   dst_pos >= extent40_units(dst));
 	}
 	
 	if (dst_max < src_max)
@@ -251,8 +251,8 @@ errno_t extent40_merge_units(place_t *dst, place_t *src,
 	dst_pos = dst->pos.unit;
 	src_pos = src->pos.unit;
 	
-	dst_units = extent40_number_units(dst);
-	src_units = extent40_number_units(src);
+	dst_units = extent40_units(dst);
+	src_units = extent40_units(src);
 	
 	aal_assert("vpf-1017", dst_pos + hint->dst_count <= dst_units);
 	aal_assert("vpf-1017", src_pos + hint->src_count <= src_units);

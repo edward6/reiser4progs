@@ -62,7 +62,7 @@ static errno_t repair_object_init(reiser4_object_t *object,
 
 reiser4_object_t *repair_object_recognize(reiser4_tree_t *tree, 
 					  reiser4_object_t *parent,
-					  reiser4_place_t *place) 
+					  place_t *place) 
 {
 	return reiser4_object_guess(tree, parent, NULL, place,
 				    repair_object_init);
@@ -115,7 +115,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 				       reiser4_object_t *parent,
 				       reiser4_key_t *key)
 {
-	reiser4_place_t place;
+	place_t place;
 
 	aal_assert("vpf-1132", tree != NULL);
 	aal_assert("vpf-1134", key != NULL);

@@ -134,7 +134,7 @@ static errno_t stat40_maxposs_key(place_t *place,
    units. It is because balancing code assumes that if item has more than one
    unit the it may be shifted out. That is because w ecan't return the number of
    extentions here. Extentions are the statdata private bussiness. */
-static uint32_t stat40_number_units(place_t *place) {
+static uint32_t stat40_units(place_t *place) {
 	return 1;
 }
 
@@ -538,7 +538,7 @@ static item_balance_ops_t balance_ops = {
 	.lookup           = NULL,
 	.fetch_key	  = NULL,
 	
-	.number_units     = stat40_number_units,
+	.units            = stat40_units,
 	.maxposs_key	  = stat40_maxposs_key,
 };
 

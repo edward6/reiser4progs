@@ -6,8 +6,8 @@
 #include <repair/librepair.h>
 
 /* Opens the node if it has correct mkid stamp. */
-reiser4_node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, bool_t check) {
-	reiser4_node_t *node;
+node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, bool_t check) {
+	node_t *node;
 	
 	aal_assert("vpf-708", tree != NULL);
 	
@@ -29,8 +29,8 @@ reiser4_node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, bool_t check) 
 }
 
 /* Checks all the items of the node. */
-static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
-	reiser4_place_t place;
+static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
+	place_t place;
 	pos_t *pos = &place.pos;
 	errno_t res = 0;
 	uint32_t count;
@@ -114,10 +114,10 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 }
 
 /* Checks the set of keys of the node. */
-static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
+static errno_t repair_node_keys_check(node_t *node, uint8_t mode) {
 	reiser4_key_t key, prev_key;
 	errno_t res, result = 0;
-	reiser4_place_t place;
+	place_t place;
 	pos_t *pos = &place.pos;
 	uint32_t count;
 	
@@ -203,7 +203,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 
 /*  Checks the node content.
     Returns values according to repair_error_codes_t. */
-errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
+errno_t repair_node_check_struct(node_t *node, uint8_t mode) {
 	uint8_t level;
 	errno_t res;
 	
@@ -240,10 +240,10 @@ errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
 }
 
 /* Traverse through all items of the gived node. */
-errno_t repair_node_traverse(reiser4_node_t *node, node_func_t func, 
+errno_t repair_node_traverse(node_t *node, node_func_t func, 
 			     void *data)
 {
-	reiser4_place_t place;
+	place_t place;
 	pos_t *pos = &place.pos;
 	errno_t res;
 	
@@ -266,8 +266,8 @@ errno_t repair_node_traverse(reiser4_node_t *node, node_func_t func,
 	return 0;
 }
 
-errno_t repair_node_merge(reiser4_node_t *dst, pos_t *dst_pos, 
-			  reiser4_node_t *src, pos_t *src_pos, 
+errno_t repair_node_merge(node_t *dst, pos_t *dst_pos, 
+			  node_t *src, pos_t *src_pos, 
 			  merge_hint_t *hint) 
 {
 	aal_assert("vpf-961", dst != NULL);

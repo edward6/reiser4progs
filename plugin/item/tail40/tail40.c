@@ -13,7 +13,7 @@
 static reiser4_core_t *core = NULL;
 
 /* Returns tail length. */
-uint32_t tail40_number_units(place_t *place) {
+uint32_t tail40_units(place_t *place) {
 	return place->len;
 }
 
@@ -175,7 +175,7 @@ static lookup_t tail40_lookup(place_t *place,
 	aal_assert("umka-1229", key != NULL);
 	aal_assert("umka-1228", place != NULL);
 
-	units = tail40_number_units(place);
+	units = tail40_units(place);
 	
 	offset = plug_call(key->plug->o.key_ops,
 			   get_offset, &place->key);
@@ -458,9 +458,9 @@ static item_balance_ops_t balance_ops = {
 	.prep_shift       = tail40_prep_shift,
 	.shift_units      = tail40_shift_units,
 #endif
+	.units            = tail40_units,
 	.lookup           = tail40_lookup,
 	.fetch_key        = tail40_fetch_key,
-	.number_units     = tail40_number_units,
 	.maxposs_key      = tail40_maxposs_key
 };
 

@@ -11,8 +11,8 @@
 static errno_t reiser4_object_init(reiser4_object_t *object,
 				   reiser4_object_t *parent)
 {
+	place_t *place;
 	reiser4_plug_t *plug;
-	reiser4_place_t *place;
 
 	aal_assert("umka-2380", object != NULL);
 
@@ -152,12 +152,11 @@ reiser4_object_t *reiser4_object_open(
    entity initializing and librepair another one, but both they use some amount
    of common code, which was moved to this function and used by both in such a
    manner. */
-reiser4_object_t *reiser4_object_guess(
-	reiser4_tree_t *tree,		/* tree object will be opened on */
-	reiser4_object_t *parent,	/* parent of object to be opened */
-	reiser4_key_t *okey,		/* key of the object to be openned */
-	reiser4_place_t *place,		/* start place of the object */
-	object_init_t init_func)
+reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree,
+				       reiser4_object_t *parent,
+				       reiser4_key_t *okey,
+				       place_t *place,
+				       object_init_t init_func)
 
 {
 #ifndef ENABLE_STAND_ALONE
@@ -217,10 +216,9 @@ reiser4_object_t *reiser4_object_guess(
 }
 
 /* This function opens object by its @place. */
-reiser4_object_t *reiser4_object_realize(
-	reiser4_tree_t *tree, 
-	reiser4_object_t *parent,
-	reiser4_place_t *place)
+reiser4_object_t *reiser4_object_realize(reiser4_tree_t *tree, 
+					 reiser4_object_t *parent,
+					 place_t *place)
 {
 	reiser4_object_t *object;
 	
@@ -238,7 +236,7 @@ reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 					reiser4_object_t *parent,
 					reiser4_key_t *key) 
 {
-	reiser4_place_t place;
+	place_t place;
 
 	aal_assert("vpf-1136", tree != NULL);
 	aal_assert("vpf-1185", key != NULL);
@@ -479,8 +477,8 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 errno_t reiser4_object_unlink(reiser4_object_t *object,
 			      entry_hint_t *entry)
 {
+	place_t place;
 	errno_t res = 0;
-	reiser4_place_t place;
 	reiser4_object_t *child;
 	
 	aal_assert("umka-1910", object != NULL);
@@ -541,20 +539,18 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	return res;
 }
 
-/* Helper function for printing passed @place into @stream */
-static errno_t callback_print_place(
-	void *entity,              /* object to be printed */
-	place_t *place,            /* next object block */
-	void *data)                /* user-specified data */
+/* Helper function for printing passed @place into @stream. */
+static errno_t callback_print_place(void *entity, place_t *place,
+				    void *data)
 {
 	errno_t res;
 	
 	aal_stream_t *stream = (aal_stream_t *)data;
-	reiser4_place_t *p = (reiser4_place_t *)place;
 	
-	if ((res = reiser4_item_print(p, stream))) {
-		aal_exception_error("Can't print item %u in node %llu.",
-				    p->pos.item, node_blocknr(p->node));
+	if ((res = reiser4_item_print(place, stream))) {
+		aal_exception_error("Can't print item %u in "
+				    "node %llu.", place->pos.item,
+				    node_blocknr(place->node));
 		return res;
 	}
 		

@@ -426,7 +426,7 @@ errno_t reiser4_fs_pack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	/* Loop though the all data blocks, check if they belong to tree and if
 	   so try to open a formated node on it. */
 	for (blk = 0; blk < len; blk++) {
-		reiser4_node_t *node;
+		node_t *node;
 		
 		/* We're not interested in unused blocks yet. */
 		if (!reiser4_alloc_occupied(fs->alloc, blk, 1))
@@ -542,7 +542,7 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 	}
 
 	while (1) {
-		reiser4_node_t *node;
+		node_t *node;
 		
 		if (aal_stream_read(stream, &sign, 4) != 4) {
 			if (aal_stream_eof(stream)) {

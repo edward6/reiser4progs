@@ -6,7 +6,7 @@
 #include <repair/librepair.h>
 
 /* Checks if length has been changed, shrink the node if so. */
-static errno_t repair_item_check_fini(reiser4_place_t *place,
+static errno_t repair_item_check_fini(place_t *place,
 				      errno_t result, 
 				      uint32_t old_len)
 {
@@ -34,7 +34,7 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
 /* Calls the item check method to check the item structure and shrink the 
    node if item length has been changed. Returns values are described in 
    repair_error_t. */
-errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
+errno_t repair_item_check_struct(place_t *place, uint8_t mode) {
 	uint32_t length;
 	errno_t res;
 	
@@ -47,7 +47,7 @@ errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
 	length = place->len;
 	
 	res = plug_call(place->plug->o.item_ops->repair,
-			check_struct, (place_t *)place, mode);
+			check_struct, place, mode);
 	
 	if (res < 0)
 		return res;
@@ -63,7 +63,7 @@ errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
 /* Calls the item check_layout method to check the layout of an item and 
    shrink the node if item length has been changed. Returns values are 
    described in repair_error_codes_t. */
-errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func, 
+errno_t repair_item_check_layout(place_t *place, region_func_t func, 
 				 void *data, uint8_t mode) 
 {
 	uint32_t length;
@@ -78,7 +78,7 @@ errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func,
 	length = place->len;
 	
 	res = plug_call(place->plug->o.item_ops->repair,
-			check_layout, (place_t *)place, func,
+			check_layout, place, func,
 			data, mode);
 	
 	aal_assert("vpf-795", mode != RM_CHECK || 
@@ -88,8 +88,8 @@ errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func,
 	return repair_item_check_fini(place, res, length);
 }
 
-errno_t repair_item_estimate_merge(reiser4_place_t *dst, 
-				   reiser4_place_t *src,
+errno_t repair_item_estimate_merge(place_t *dst, 
+				   place_t *src,
 				   merge_hint_t *hint)
 {
 	aal_assert("vpf-952", dst  != NULL);
@@ -98,11 +98,11 @@ errno_t repair_item_estimate_merge(reiser4_place_t *dst,
 	aal_assert("vpf-955", dst->plug != NULL);
 	aal_assert("vpf-956", src->plug != NULL);
 	
-	return plug_call(src->plug->o.item_ops->repair, prep_merge,
-			 (place_t *)dst, (place_t *)src, hint);
+	return plug_call(src->plug->o.item_ops->repair,
+			 prep_merge, dst, src, hint);
 }
 
-void repair_item_set_flag(reiser4_place_t *place, uint16_t flag) {
+void repair_item_set_flag(place_t *place, uint16_t flag) {
 	aal_assert("vpf-1041", place != NULL);
 	aal_assert("vpf-1111", place->node != NULL);
 	
@@ -110,7 +110,7 @@ void repair_item_set_flag(reiser4_place_t *place, uint16_t flag) {
 		  place->node->entity, place->pos.item, flag);
 }
 
-void repair_item_clear_flag(reiser4_place_t *place, uint16_t flag) {
+void repair_item_clear_flag(place_t *place, uint16_t flag) {
 	aal_assert("vpf-1042", place != NULL);
 	aal_assert("vpf-1112", place->node != NULL);
 	
@@ -118,7 +118,7 @@ void repair_item_clear_flag(reiser4_place_t *place, uint16_t flag) {
 		  place->node->entity, place->pos.item, flag);
 }
 
-bool_t repair_item_test_flag(reiser4_place_t *place, uint16_t flag) {
+bool_t repair_item_test_flag(place_t *place, uint16_t flag) {
 	aal_assert("vpf-1043", place != NULL);
 	aal_assert("vpf-1113", place->node != NULL);
 	

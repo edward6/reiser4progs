@@ -10,7 +10,7 @@ static reiser4_core_t *core = NULL;
 
 /* Returns the number of units in nodeptr. As nodeptr40 has not units and thus
    cannot be splitted by balancing, it has one unit. */
-static uint32_t nodeptr40_number_units(place_t *place) {
+static uint32_t nodeptr40_units(place_t *place) {
 	return 1;
 }
 
@@ -129,8 +129,7 @@ static item_balance_ops_t balance_ops = {
 	.lookup           = NULL,
 	.fetch_key	  = NULL,
 	.maxposs_key	  = NULL,
-	
-	.number_units     = nodeptr40_number_units
+	.units            = nodeptr40_units
 };
 
 static item_object_ops_t object_ops = {

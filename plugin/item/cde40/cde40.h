@@ -89,7 +89,7 @@ typedef struct cde404  cde404_t;
 
 extern reiser4_core_t *cde40_core;
 
-extern uint32_t cde40_number_units(place_t *place);
+extern uint32_t cde40_units(place_t *place);
 extern inline uint32_t cde40_key_pol(place_t *place);
 
 extern errno_t cde40_maxposs_key(place_t *place,

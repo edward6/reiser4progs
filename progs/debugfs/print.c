@@ -59,11 +59,9 @@ errno_t debugfs_print_stream(aal_stream_t *stream) {
 	return 0;
 }
 
-/* Prints passed @node */
-static errno_t tprint_process_node(
-	reiser4_tree_t *tree,	    /* tree being traversed */
-	reiser4_node_t *node,	    /* node to be printed */
-	void *data)		    /* traverse data */
+/* Prints passed @node. */
+static errno_t tprint_process_node(reiser4_tree_t *tree,
+				   node_t *node, void *data)
 {
 	errno_t res;
 	aal_stream_t stream;
@@ -82,7 +80,7 @@ static errno_t tprint_process_node(
 	return res;
 }
 
-errno_t debugfs_print_node(reiser4_node_t *node) {
+errno_t debugfs_print_node(node_t *node) {
 	return tprint_process_node(NULL, node, NULL);
 }
 
@@ -92,8 +90,8 @@ errno_t debugfs_print_block(
 	blk_t blk)                  /* block number to be printed */
 {
 	errno_t res;
+	node_t *node;
 	count_t blocks;
-	reiser4_node_t *node;
 
 	if (blk >= (blocks = reiser4_format_get_len(fs->format))) {
 		aal_exception_error("Block %llu is out of filesystem "
@@ -277,13 +275,12 @@ static errno_t fprint_process_place(
 	void *data)                /* user-specified data */
 {
 	fprint_hint_t *hint = (fprint_hint_t *)data;
-	reiser4_place_t *p = (reiser4_place_t *)place;
 
-	if (node_blocknr(p->node) == hint->old)
+	if (node_blocknr(place->node) == hint->old)
 		return 0;
 
-	hint->old = node_blocknr(p->node);
-	return debugfs_print_node(p->node);
+	hint->old = node_blocknr(place->node);
+	return debugfs_print_node(place->node);
 }
 
 /* Prints all items belong to the specified file */

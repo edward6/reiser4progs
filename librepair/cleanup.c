@@ -8,7 +8,7 @@
 
 #include <repair/cleanup.h>
 
-static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
+static errno_t repair_cleanup_check(place_t *place, void *data) {
 	repair_cleanup_t *cleanup;
 	errno_t res = 0;
 	uint8_t i;
@@ -38,7 +38,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 }
 
 static errno_t repair_semantic_node_traverse(reiser4_tree_t *tree, 
-					     reiser4_node_t *node, 
+					     node_t *node, 
 					     void *data) 
 {
     return repair_node_traverse(node, repair_cleanup_check, data);

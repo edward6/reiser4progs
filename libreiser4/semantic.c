@@ -19,16 +19,16 @@ static errno_t callback_find_statdata(char *track, char *entry,
 				      void *data)
 {
 	errno_t res;
+	place_t *place;
 	resolve_t *resol;
 	
 	reiser4_tree_t *tree;
 	reiser4_plug_t *plug;
-	reiser4_place_t *place;
 
 	resol = (resolve_t *)data;
+	place = &resol->info.start;
 	
 	tree = (reiser4_tree_t *)resol->info.tree;
-	place = (reiser4_place_t *)&resol->info.start;
 
 	/* Looking for current @resolve->object in order to the coord of stat
 	   data of find object pointed by @resolve->object. It is needed for
@@ -146,7 +146,7 @@ static errno_t callback_find_entry(char *track, char *name,
 /* Tries to guess object plugin by one of items belog to object (stat data is
    preffered for now). */
 reiser4_plug_t *reiser4_semantic_plug(reiser4_tree_t *tree,
-				      reiser4_place_t *place)
+				      place_t *place)
 {
 	rid_t pid;
 	reiser4_plug_t *plug;
@@ -159,8 +159,8 @@ reiser4_plug_t *reiser4_semantic_plug(reiser4_tree_t *tree,
 		   plugin is by means of asking object parent or root. */
 		pid = INVAL_PID;
 	} else {
-		pid = plug_call(place->plug->o.item_ops->object, object_plug, 
-				(place_t *)place, OBJECT_PLUG_TYPE);
+		pid = plug_call(place->plug->o.item_ops->object,
+				object_plug, place, OBJECT_PLUG_TYPE);
 		
 		if (pid == INVAL_PID)
 			return NULL;

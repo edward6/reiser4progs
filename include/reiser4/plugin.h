@@ -235,19 +235,69 @@ struct node_entity {
 
 typedef struct node_entity node_entity_t;
 
-struct place {
-	void *node;
-	aal_block_t *block;
-	reiser4_plug_t *plug;
+/* Node related stuff. */
+enum node_flags {
+	NF_FOREIGN = 1 << 0
+};
 
+typedef enum node_flags node_flags_t;
+
+typedef struct node node_t;
+typedef struct place place_t;
+
+/* Tree coord struct. */
+struct place {
+	node_t *node;
 	pos_t pos;
+
 	void *body;
 	uint32_t len;
 	key_entity_t key;
+	aal_block_t *block;
+	reiser4_plug_t *plug;
 };
 
-typedef struct place place_t;
+/* Reiser4 in-memory node structure. */
+struct node {
+	/* Node entity. Node plugin initializes this value and return it back in
+	   node initializing time. This node entity is used for performing all
+	   on-node actions. */
+	node_entity_t *entity;
 
+	/* Place in parent node */
+	place_t p;
+
+	/* Reference to tree if node is attached to tree. Sometimes node needs
+	   access tree and tree functions. */
+	void *tree;
+	
+	/* Reference to left neighbour. It is used for establishing silbing
+	   links among nodes in memory tree cache. */
+	node_t *left;
+
+	/* Reference to right neighbour. It is used for establishing silbing
+	   links among nodes in memory tree cache. */
+	node_t *right;
+	
+	/* List of children nodes. It is used for constructing part of on-disk
+	   tree in the memory. */
+	aal_list_t *children;
+	
+	/* Usage counter to prevent releasing used nodes */
+	signed int counter;
+
+#ifndef ENABLE_STAND_ALONE
+	/* Some node flags */
+	node_flags_t flags;
+	
+	/* Applications using this library sometimes need to embed information
+	   into the objects of our library for their own use. */
+	void *data;
+#endif
+};
+
+/* Object info struct is main information about reiser4 object. These are: its
+   key, parent key and corod of first item. */
 struct object_info {
 	void *tree;
 	place_t start;
@@ -756,6 +806,9 @@ struct reiser4_object_ops {
 typedef struct reiser4_object_ops reiser4_object_ops_t;
 
 struct item_balance_ops {
+	/* Returns unit count in item passed place point to. */
+	uint32_t (*units) (place_t *);
+	
 	/* Makes lookup for passed key. */
 	lookup_t (*lookup) (place_t *, key_entity_t *, bias_t);
 	
@@ -776,9 +829,6 @@ struct item_balance_ops {
 	/* Get the max real key which is stored in the item. */
 	errno_t (*maxreal_key) (place_t *, key_entity_t *);
 #endif
-	/* Returns unit count in item passed place point to. */
-	uint32_t (*number_units) (place_t *);
-		
 	/* Get the key of a particular unit of the item. */
 	errno_t (*fetch_key) (place_t *, key_entity_t *);
 

@@ -22,8 +22,7 @@ errno_t tail40_merge_units(place_t *dst, place_t *src,
 	src_pos = src->pos.unit;
 	
 	aal_memcpy(tail40_body(dst) + dst_pos + hint->len_delta, 
-		   tail40_body(dst) + dst_pos,
-		   tail40_number_units(dst) - dst_pos);
+		   tail40_body(dst) + dst_pos, tail40_units(dst) - dst_pos);
 	
 	return tail40_copy(dst, dst_pos, src, src_pos, hint->src_count);
 }
@@ -66,7 +65,7 @@ errno_t tail40_prep_merge(place_t *dst, place_t *src,
 	if (src_offset <= dst_max) {
 		uint64_t dst_offset;
 		
-		aal_assert("vpf-1005", dst_pos < tail40_number_units(dst));
+		aal_assert("vpf-1005", dst_pos < tail40_units(dst));
 		
 		if (body40_get_key(dst, dst_pos, &key, NULL))
 			return -EINVAL;

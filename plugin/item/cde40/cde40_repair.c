@@ -730,7 +730,7 @@ errno_t cde40_prep_merge(place_t *dst, place_t *src, merge_hint_t *hint) {
 	
 	dst_pos = dst->pos.unit;
 	src_pos = src->pos.unit;
-	units = cde40_number_units(src);
+	units = cde40_units(src);
 	
 	if ((lookup = cde40_lookup(src, &hint->end, FIND_EXACT)) < 0)
 		return lookup;

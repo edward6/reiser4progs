@@ -155,12 +155,12 @@ static void repair_filter_bad_level(repair_filter_t *fd,
 /* Open callback for traverse. It opens a node at passed blk. It does 
    nothing if RE_PTR is set and set this flag if node cannot 
    be opeened. Returns error if any. */
-static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
-					       reiser4_place_t *place,
+static node_t *repair_filter_node_open(reiser4_tree_t *tree,
+					       place_t *place,
 					       void *data)
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
-	reiser4_node_t *node = NULL;
+	node_t *node = NULL;
 	int error = 0;
 	blk_t blk;
 	
@@ -238,7 +238,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
    delimiting keys. If any check reveals a problem with the data consistency 
    it sets RE_FATAL flag. */
 static errno_t repair_filter_node_check(reiser4_tree_t *tree,
-					reiser4_node_t *node,
+					node_t *node,
 					void *data)
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
@@ -327,7 +327,7 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
    level, if RE_PTR flag is set - deletes the child pointer and mark
    the pointed block as unused in bm_used bitmap. */
 static errno_t repair_filter_update_traverse(reiser4_tree_t *tree, 
-					     reiser4_place_t *place, 
+					     place_t *place, 
 					     void *data) 
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
@@ -394,7 +394,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
    children - if no child left, set RE_PTR flag to force deletion of the 
    pointer to this block in update_traverse callback. */
 static errno_t repair_filter_after_traverse(reiser4_tree_t *tree, 
-					    reiser4_node_t *node, 
+					    node_t *node, 
 					    void *data) 
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
@@ -441,7 +441,7 @@ static void repair_filter_setup(repair_filter_t *fd) {
 static void repair_filter_update(repair_filter_t *fd) {
 	repair_filter_stat_t *stat;
 	reiser4_format_t *format;
-	reiser4_node_t *root;
+	node_t *root;
 	aal_stream_t stream;
 	char *time_str;
 	

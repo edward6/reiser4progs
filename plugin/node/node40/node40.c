@@ -765,7 +765,7 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 	/* Checking if we have to remove whole item as it will has not units
 	   after removing. */
 	units = plug_call(place.plug->o.item_ops->balance,
-			  number_units, &place);
+			  units, &place);
 	
 	if (units == hint->count) {
 		place.pos.unit = MAX_UINT32;
@@ -969,11 +969,11 @@ static int node40_splitable(place_t *place) {
 	}
 	
 	/* We can't shift units from items with one unit */
-	if (!place->plug->o.item_ops->balance->number_units)
+	if (!place->plug->o.item_ops->balance->units)
 		return 0;
 
 	units = plug_call(place->plug->o.item_ops->balance,
-			  number_units, place);
+			  units, place);
 
 	/* Those item can be splitted that contains more than 1 unit or insert
 	   point lies behind the last unit. */
@@ -1226,7 +1226,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	/* Getting units number after shift. This is needed to detect correctly,
 	   that src item is empty after shift and may be removed. */
 	units = plug_call(src_place.plug->o.item_ops->balance,
-			  number_units, &src_place);
+			  units, &src_place);
 	
 	/* We will remove src item if it has became empty and insert point is
 	   not points it, that is next insert will not be dealing with it. */
@@ -1348,11 +1348,11 @@ static errno_t node40_predict(node_entity_t *src_entity,
 					if (node40_fetch(src_entity, &pos, &place))
 						return -EINVAL;
 
-					if (!place.plug->o.item_ops->balance->number_units)
+					if (!place.plug->o.item_ops->balance->units)
 						return -EINVAL;
 				
 					units = plug_call(place.plug->o.item_ops->balance,
-							  number_units, &place);
+							  units, &place);
 
 					/* Breaking if insert point reach the
 					   end of node. */

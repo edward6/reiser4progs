@@ -31,12 +31,12 @@ extern reiser4_object_t *reiser4_object_open(reiser4_tree_t *tree,
 extern reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree, 
 					      reiser4_object_t *parent,	
 					      reiser4_key_t *object,
-					      reiser4_place_t *place,
+					      place_t *place,
 					      object_init_t init_func);
 
 extern reiser4_object_t *reiser4_object_realize(reiser4_tree_t *tree,
 						reiser4_object_t *parent,
-						reiser4_place_t *place);
+						place_t *place);
 
 extern reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 					       reiser4_object_t *parent,
@@ -121,8 +121,6 @@ extern errno_t reiser4_object_traverse(reiser4_object_t *object,
 
 extern errno_t reiser4_object_reset(reiser4_object_t *object);
 extern uint32_t reiser4_object_offset(reiser4_object_t *object);
-
-#define object_start(object) \
-        ((reiser4_place_t *)&(object)->info->start)
+#define object_start(object) ((place_t *)&(object)->info->start)
 
 #endif

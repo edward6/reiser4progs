@@ -81,13 +81,13 @@ struct tfrag_hint {
 typedef struct tfrag_hint tfrag_hint_t;
 
 /* Open node callback for calculating the tree fragmentation */
-static reiser4_node_t *tfrag_open_node(
-	reiser4_tree_t *tree,	    /* tree being traveresed */
-	reiser4_place_t *place,     /* place to read the blk number from */
-	void *data)		    /* traverse hint */
+static node_t *tfrag_open_node(reiser4_tree_t *tree,
+			       place_t *place, void *data)
 {
-	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
-	reiser4_node_t *node;
+	node_t *node;
+	tfrag_hint_t *frag_hint;
+
+	frag_hint = (tfrag_hint_t *)data;
 
 	aal_assert("umka-1556", frag_hint->level > 0);
 	
@@ -99,11 +99,8 @@ static reiser4_node_t *tfrag_open_node(
 	return node == NULL ? INVAL_PTR : node;
 }
 
-static errno_t tfrag_process_item(
-	void *entity,               /* item we traverse now */
-	uint64_t start,             /* region start */
-	uint64_t count,             /* region width */
-	void *data)                 /* one of blk item points to */
+static errno_t tfrag_process_item(void *entity, uint64_t start,
+				  uint64_t count, void *data)
 {
 	int64_t delta;
 	tfrag_hint_t *hint;
@@ -127,10 +124,8 @@ static errno_t tfrag_process_item(
 /* Traverse passed leaf @node and calculate fragmentation for it. The results
    are stored in frag_hint structure. This function is called from the tree
    traversal routine for each internal node. See bellow for details. */
-static errno_t tfrag_process_node(
-	reiser4_tree_t *tree,	   /* tree being traversed */
-	reiser4_node_t *node,	   /* node to be estimated */
-	void *data)	           /* user-specified data */
+static errno_t tfrag_process_node(reiser4_tree_t *tree,
+				  node_t *node, void *data)
 {
 	pos_t pos;
 	tfrag_hint_t *frag_hint;
@@ -144,7 +139,7 @@ static errno_t tfrag_process_node(
 
 	/* Loop though the node items */
 	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
-		reiser4_place_t place, *p;
+		place_t place;
 
 		/* Initializing item at @place */
 		if (reiser4_place_open(&place, node, &pos)) {
@@ -159,23 +154,18 @@ static errno_t tfrag_process_node(
 		if (!place.plug->o.item_ops->object->layout)
 			continue;
 
-		p = &place;
-		
 		plug_call(place.plug->o.item_ops->object, layout,
-			  (place_t *)p, tfrag_process_item, data);
+			  &place, tfrag_process_item, data);
 	}
 	
 	frag_hint->level--;
 	return 0;
 }
 
-static errno_t tfrag_update_node(reiser4_tree_t *tree, 
-				 reiser4_place_t *place, 
-				 void *data) 
+static errno_t tfrag_update_node(reiser4_tree_t *tree,
+				 place_t *place, void *data) 
 {
-	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
-
-	frag_hint->level++;
+	((tfrag_hint_t *)data)->level++;
 	return 0;
 }
 
@@ -248,17 +238,14 @@ struct tstat_hint {
 
 typedef struct tstat_hint tstat_hint_t;
 
-/* Process one block belong to the item (extent or nodeptr) */
-static errno_t stat_process_item(
-	void *entity,		    /* item we traverse now */
-	uint64_t start,             /* region start */
-	uint64_t width,             /* region count */
-	void *data)                 /* one of blk item points to */
+/* Process one block belong to the item (extent or nodeptr). */
+static errno_t stat_process_item(void *entity, uint64_t start,
+				 uint64_t width, void *data)
 {
-	reiser4_place_t *place;
+	place_t *place;
 	tstat_hint_t *stat_hint;
 
-	place = (reiser4_place_t *)entity;
+	place = (place_t *)entity;
 	stat_hint = (tstat_hint_t *)data;
 
 	if (!reiser4_item_branch(place->plug))
@@ -267,21 +254,19 @@ static errno_t stat_process_item(
 	return 0;
 }
 
-/* Processing one formatted node */
-static errno_t stat_process_node(
-	reiser4_tree_t *tree,	    /* tree being traversed */
-	reiser4_node_t *node,	    /* node to be inspected */
-	void *data)		    /* traverse data */
+/* Processing one formatted node. */
+static errno_t stat_process_node(reiser4_tree_t *tree,
+				 node_t *node, void *data)
 {
 	uint8_t level;
 	uint32_t blksize;
 	aal_device_t *device;
 	uint32_t leaves_used;
+	tstat_hint_t *stat_hint;
 	uint32_t formatted_used;
 	uint32_t internals_used;
 
-	tstat_hint_t *stat_hint = (tstat_hint_t *)data;
-
+	stat_hint = (tstat_hint_t *)data;
 	level = reiser4_node_get_level(node);
 	blksize = reiser4_master_get_blksize(tree->fs->master);
 
@@ -312,7 +297,7 @@ static errno_t stat_process_node(
 		     pos.item++)
 		{
 			errno_t res;
-			reiser4_place_t place, *p;
+			place_t place;
 			
 			if ((res = reiser4_place_open(&place, node, &pos))) {
 				aal_exception_error("Can't open item %u in node %llu.",
@@ -323,10 +308,8 @@ static errno_t stat_process_node(
 			if (!place.plug->o.item_ops->object->layout)
 				continue;
 
-			p = &place;
-			
 			plug_call(place.plug->o.item_ops->object, layout,
-				  (place_t *)p, stat_process_item, data);
+				  &place, stat_process_item, data);
 		}
 	} else {
 		leaves_used = blksize - reiser4_node_space(node);
@@ -483,10 +466,8 @@ errno_t measurefs_file_frag(reiser4_fs_t *fs,
 
 /* Processes leaf node in order to find all the stat data items which denote
    corresponding files and calculate file fragmentation for each of them. */
-static errno_t dfrag_process_node(
-	reiser4_tree_t *tree,	    /* tree being traversed */
-	reiser4_node_t *node,       /* node to be inspected */
-	void *data)                 /* traverse hint */
+static errno_t dfrag_process_node(reiser4_tree_t *tree,
+				  node_t *node, void *data)
 {
 	pos_t pos;
 	ffrag_hint_t *frag_hint;
@@ -504,7 +485,7 @@ static errno_t dfrag_process_node(
 	     pos.item++)
 	{
 		errno_t res;
-		reiser4_place_t place;
+		place_t place;
 		reiser4_object_t *object;
 
 		/* Initialiing the item at @place */
@@ -565,12 +546,9 @@ static errno_t dfrag_process_node(
 }
 
 static errno_t dfrag_update_node(reiser4_tree_t *tree, 
-				 reiser4_place_t *place,
-				 void *data)
+				 place_t *place, void *data)
 {
-	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
-
-	frag_hint->level++;
+	((ffrag_hint_t *)data)->level++;
 	return 0;
 }
 

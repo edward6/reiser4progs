@@ -163,7 +163,7 @@ errno_t cde40_update_key(place_t *place, key_entity_t *key) {
 }
 
 /* Returns the number of units. */
-uint32_t cde40_number_units(place_t *place) {
+uint32_t cde40_units(place_t *place) {
 	aal_assert("umka-865", place != NULL);
 	return cde_get_units(place);
 }
@@ -257,7 +257,7 @@ errno_t cde40_copy(place_t *dst, uint32_t dst_pos,
         aal_assert("umka-2070", src != NULL);
 
         pol = cde40_key_pol(dst);
-        dst_units = cde40_number_units(dst);
+        dst_units = cde40_units(dst);
 
         aal_assert("umka-2077", dst_pos <= dst_units);
 
@@ -481,8 +481,8 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 	aal_assert("umka-1591", src_place != NULL);
 
 	pol = cde40_key_pol(src_place);
-	src_units = cde40_number_units(src_place);
-	dst_units = dst_place ? cde40_number_units(dst_place) : 0;
+	src_units = cde40_units(src_place);
+	dst_units = dst_place ? cde40_units(dst_place) : 0;
 
 	/* Substracting cde item overhead in the case of shift to new create cde
 	   item, whcih needs to have own cde40 header. */
@@ -508,7 +508,7 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 		 hint->pos.unit != MAX_UINT32);
 
 	while (!(hint->result & SF_MOVE_POINT) &&
-	       curr < cde40_number_units(src_place))
+	       curr < cde40_units(src_place))
 	{
 
 		/* Check if we should update unit pos. we will update it if we
@@ -794,7 +794,7 @@ errno_t cde40_delete(place_t *place, uint32_t pos,
 	bytes += cde40_shrink(place, pos, hint->count, 0);
 	
 	/* Updating item key */
-	if (pos == 0 && cde40_number_units(place) > 0) {
+	if (pos == 0 && cde40_units(place) > 0) {
 		cde40_get_hash(place, 0, &place->key);
 	}
 
@@ -878,13 +878,13 @@ static errno_t cde40_maxreal_key(place_t *place,
 	aal_assert("umka-1651", key != NULL);
 	aal_assert("umka-1650", place != NULL);
 
-	units = cde40_number_units(place);
+	units = cde40_units(place);
 	return cde40_get_hash(place, units - 1, key);
 }
 
 static uint64_t cde40_size(place_t *place) {
 	aal_assert("umka-2677", place != NULL);
-	return cde40_number_units(place);
+	return cde40_units(place);
 }
 
 static uint64_t cde40_bytes(place_t *place) {
@@ -954,7 +954,7 @@ lookup_t cde40_lookup(place_t *place, key_entity_t *key,
     
 	/* Bin search within the cde item to get the position of 
 	   the wanted key. */
-	switch (aux_bin_search(place->body, cde40_number_units(place),
+	switch (aux_bin_search(place->body, cde40_units(place),
 			       key, callback_comp_entry, place,
 			       &place->pos.unit))
 	{
@@ -996,10 +996,10 @@ static item_balance_ops_t balance_ops = {
         .maxreal_key   = cde40_maxreal_key,
 	.update_key    = cde40_update_key,
 #endif
+	.units         = cde40_units,
 	.lookup        = cde40_lookup,
 	.fetch_key     = cde40_fetch_key,
-	.maxposs_key   = cde40_maxposs_key,
-	.number_units  = cde40_number_units
+	.maxposs_key   = cde40_maxposs_key
 };
 
 static item_object_ops_t object_ops = {

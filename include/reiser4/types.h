@@ -114,66 +114,7 @@ struct reiser4_param {
 };
 
 typedef struct reiser4_param reiser4_param_t;
-
 typedef struct reiser4_tree reiser4_tree_t;
-typedef struct reiser4_node reiser4_node_t;
-typedef struct reiser4_place reiser4_place_t;
-
-struct reiser4_place {
-	reiser4_node_t *node;
-	aal_block_t *block;
-	reiser4_plug_t *plug;
-
-	pos_t pos;
-	void *body;
-	uint32_t len;
-	key_entity_t key;
-};
-
-enum node_flags {
-	NF_FOREIGN = 1 << 0
-};
-
-typedef enum node_flags node_flags_t;
-
-/* Reiser4 in-memory node structure */
-struct reiser4_node {
-	/* Node entity. Node plugin initializes this value and return it back in
-	   node initializing time. This node entity is used for performing all
-	   on-node actions. */
-	node_entity_t *entity;
-
-	/* Place in parent node */
-	reiser4_place_t p;
-
-	/* Reference to the tree. Sometimes node needs access tree and tree
-	   functions. */
-	reiser4_tree_t *tree;
-	
-	/* Reference to left neighbour. It is used for establishing silbing
-	   links among nodes in memory tree cache. */
-	reiser4_node_t *left;
-
-	/* Reference to right neighbour. It is used for establishing silbing
-	   links among nodes in memory tree cache. */
-	reiser4_node_t *right;
-	
-	/* List of children nodes. It is used for constructing part of on-disk
-	   tree in the memory. */
-	aal_list_t *children;
-	
-	/* Usage counter to prevent releasing used nodes */
-	signed int counter;
-
-#ifndef ENABLE_STAND_ALONE
-	/* Some node flags */
-	node_flags_t flags;
-	
-	/* Applications using this library sometimes need to embed information
-	   into the objects of our library for their own use. */
-	void *data;
-#endif
-};
 
 #define OBJECT_NAME_SIZE 1024
 
@@ -278,14 +219,12 @@ typedef struct reiser4_oid reiser4_oid_t;
 
 #ifndef ENABLE_STAND_ALONE
 typedef errno_t (*pack_func_t) (reiser4_tree_t *,
-				reiser4_place_t *,
-				void *);
+				place_t *, void *);
 
-typedef errno_t (*estimate_func_t) (reiser4_place_t *place, 
+typedef errno_t (*estimate_func_t) (place_t *place, 
 				    trans_hint_t *hint);
 
-typedef errno_t (*modify_func_t) (reiser4_node_t *node,
-				  pos_t *pos,
+typedef errno_t (*modify_func_t) (node_t *node, pos_t *pos,
 				  trans_hint_t *hint);
 
 enum tree_flags {
@@ -306,7 +245,7 @@ struct reiser4_tree {
 	/* Reference to root node. It is created by tree initialization routines
 	   and always exists. All other nodes are loaded on demand and flushed
 	   at memory presure event. */
-	reiser4_node_t *root;
+	node_t *root;
 
 	/* Tree root key */
 	reiser4_key_t key;
@@ -344,20 +283,16 @@ struct reiser4_tree {
 
 #ifndef ENABLE_STAND_ALONE
 /* Callback function type for opening node. */
-typedef reiser4_node_t *(*tree_open_func_t) (reiser4_tree_t *, 
-					     reiser4_place_t *, 
-					     void *);
+typedef node_t *(*tree_open_func_t) (reiser4_tree_t *, 
+				     place_t *, void *);
 
 /* Callback function type for preparing per-node traverse data. */
 typedef errno_t (*tree_edge_func_t) (reiser4_tree_t *, 
-				     reiser4_node_t *, 
-				     void *);
+				     node_t *, void *);
 
 /* Callback function type for preparing per-item traverse data. */
 typedef errno_t (*tree_update_func_t) (reiser4_tree_t *, 
-				       reiser4_place_t *, 
-				       void *);
-
+				       place_t *, void *);
 #endif
 
 /* Filesystem compound structure */
@@ -407,11 +342,8 @@ struct fs_hint {
 
 typedef struct fs_hint fs_hint_t;
 
-typedef void (*uuid_unparse_t) (char *uuid,
-				char *string);
-
-typedef errno_t (*walk_func_t) (reiser4_tree_t *,
-				reiser4_node_t *);
+typedef void (*uuid_unparse_t) (char *uuid, char *string);
+typedef errno_t (*walk_func_t) (reiser4_tree_t *, node_t *);
 
 /* Number of but to test it in format flags in order know if large keys in use
    or not. Large keys in use if it is set. */

@@ -197,7 +197,7 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 
 		/* Checking if directory is over */
 		units = plug_call(dir->body.plug->o.item_ops->balance,
-				  number_units, &dir->body);
+				  units, &dir->body);
 			
 		if (dir->body.pos.unit >= units)
 			return ABSENT;
@@ -210,7 +210,7 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 		uint32_t off = adjust;
 
 		units = plug_call(dir->body.plug->o.item_ops->balance,
-				  number_units, &dir->body);
+				  units, &dir->body);
 			
 		if (off > units - 1 - dir->body.pos.unit)
 			off = units - dir->body.pos.unit;
@@ -278,7 +278,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 #endif
 
 	units = plug_call(dir->body.plug->o.item_ops->balance,
-			  number_units, &dir->body);
+			  units, &dir->body);
 
 	/* Getting next entry in odrer to set up @dir->offset correctly */
 	if (++dir->body.pos.unit >= units) {
@@ -381,7 +381,7 @@ static lookup_t dir40_search(object_entity_t *entity,
 
 		/* Check if item is over. */
 		units = plug_call(dir->body.plug->o.item_ops->balance,
-				  number_units, &dir->body);
+				  units, &dir->body);
 
 		if (dir->body.pos.unit >= units) {
 			/* Getting next item. */
