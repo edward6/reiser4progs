@@ -244,13 +244,23 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (behav_flags & BF_UNPACK_META) {
-		if (!(fs = debugfs_unpack_meta(device, "/home/umka/tmp/metadata"))) {
-			aal_exception_error("Can't unpack filesystem "
-					    "from passed stream.");
+		aal_stream_t stream;
+		
+		aal_stream_init(&stream, stdin,
+				&file_stream);
+		
+		if (!(fs = reiser4_fs_unpack(device, &stream))) {
+			aal_exception_error("Can't unpack filesystem.");
 			goto error_free_device;
 		}
+
+		aal_stream_fini(&stream);
 		
-		reiser4_fs_sync(fs);
+		if (reiser4_fs_sync(fs)) {
+			aal_exception_error("Can't save unpacked "
+					    "filesystem.");
+			goto error_free_fs;
+		}
 	} else {
 		/* Open file system on the device */
 		if (!(fs = reiser4_fs_open(device, FALSE))) {
@@ -322,15 +332,25 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (behav_flags & BF_PACK_META) {
-		if (debugfs_pack_meta(fs, "/home/umka/tmp/metadata"))
+		aal_stream_t stream;
+
+		aal_stream_init(&stream, stdout,
+				&file_stream);
+		
+		if (reiser4_fs_pack(fs, &stream)) {
+			aal_exception_error("Can't pack filesystem.");
 			goto error_free_tree;
+		}
+
+		aal_stream_fini(&stream);
 	}
 	
 	/* Releasing the tree */
 	reiser4_tree_fini(fs->tree);
 
 	/* Closing the journal */
-	reiser4_journal_close(fs->journal);
+	if (fs->journal)
+		reiser4_journal_close(fs->journal);
 	
 	/* Closing filesystem itself */
 	reiser4_fs_close(fs);
