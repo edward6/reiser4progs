@@ -782,7 +782,7 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 	uint32_t len;
 	place_t place;
 	node40_t *node;
-	uint32_t count;
+	uint32_t count, units;
 	
 	aal_assert("umka-987", pos != NULL);
 	aal_assert("umka-986", entity != NULL);
@@ -792,10 +792,17 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 	if (node40_fetch(entity, pos, &place))
 		return -EINVAL;
 
+	/* Checking if we have to remove whole item as it will has not units
+	   after removing. */
+	units = plug_call(place.plug->o.item_ops->balance, units, &place);
+	
+	if (units == hint->count)
+		place.pos.unit = MAX_UINT32;
+	
 	if (place.pos.unit == MAX_UINT32) {
 		/* Calculating amount of bytes removed item occupie. Node will
 		   be shrinked by this value. */
-		if (!(len = node40_size(node, &place.pos,  hint->count)))
+		if (!(len = node40_size(node, &place.pos, hint->count)))
 			return -EINVAL;
 
 		count = hint->count;
@@ -819,7 +826,7 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 				return res;
 			}
 		}
-
+		
 		/* Check if item is empty. If so, we remove it too. */
 		if ((len = hint->len + hint->overhead) >= place.len) {
 			/* Forcing node40_shrink() to remove whole item, as we
