@@ -237,8 +237,11 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	send = src->pos.unit - 1;
 	sunits = extent40_units(src);
 	
-	/* Get the head within the first @src unit. */
-	hint->head = hint->tail = 0;
+	/* Get the head within the first @src unit. Head should be calculated 
+	   here because we may try to insert not from the beginning of the @src
+	   in any case. */
+	hint->head = extent40_head(src, src->pos.unit, &hint->offset);
+	hint->tail = 0;
 	hint->insert_flags = 0;
 
 	if (place->pos.unit == MAX_UINT32 ||
@@ -249,9 +252,6 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	} else if (plug_call(place->key.plug->o.key_ops, compfull, 
 			     &hint->offset, &place->key) < 0)
 	{
-		/* The item head to be inserted. */		
-		hint->head = extent40_head(src, src->pos.unit, &hint->offset);
-
 		/* Get the @src end unit and the tail within it. */
 		offset -= plug_call(hint->offset.plug->o.key_ops,
 				    get_offset, &src->key);
@@ -262,8 +262,6 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	} else if (!et40_get_start(dextent + place->pos.unit) && 
 		   et40_get_start(sextent + src->pos.unit)) 
 	{
-		hint->head = extent40_head(src, src->pos.unit, &hint->offset);
-		
 		/* Estimate the overwrite. */
 		hint->insert_flags |= ET40_OVERWRITE;
 
@@ -406,12 +404,13 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	/* If some tail should be cut off the current dst unit, set the 
 	   correct width there. */
 	if (hint->insert_flags & ET40_TAIL) {
+		uint64_t width;
+		
 		/* Set the correct width. Start is 0 because allocated 
 		   units are not overwritten. */
-		et40_set_start(dextent + dstart + count - 1, 0);
-		et40_set_width(dextent + dstart + count - 1, 
-			       et40_get_width(dextent + place->pos.unit) 
-			       - tail);
+		et40_set_start(dextent + dstart + count, 0);
+		width = et40_get_width(dextent + place->pos.unit) - tail;
+		et40_set_width(dextent + dstart + count, width);
 
 		/* Fix the current dst unit after cutting. */
 		et40_set_width(dextent + place->pos.unit, tail);
