@@ -76,28 +76,28 @@ extern void aal_exception_disable(void);
 extern void aal_exception_enable(void);
 
 #define aal_exception_fatal(msg, list...) \
-    aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK, msg, ##list)
+        aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK, msg, ##list)
 	
 #define aal_exception_bug(msg, list...)	\
-    aal_exception_throw(EXCEPTION_BUG, EXCEPTION_OK, msg, ##list)
+        aal_exception_throw(EXCEPTION_BUG, EXCEPTION_OK, msg, ##list)
 	
 #define aal_exception_error(msg, list...) \
-    aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, msg, ##list)
+        aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, msg, ##list)
 	
 #define aal_exception_warn(msg, list...) \
-    aal_exception_throw(EXCEPTION_WARNING, EXCEPTION_OK, msg, ##list)
+        aal_exception_throw(EXCEPTION_WARNING, EXCEPTION_OK, msg, ##list)
 	
 #define aal_exception_info(msg, list...) \
-    aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_OK, msg, ##list)
+        aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_OK, msg, ##list)
 
 #define aal_exception_yesno(msg, list...) \
-    aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO, msg, ##list)
+        aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO, msg, ##list)
 
 #define aal_exception_okcancel(msg, list...) \
-    aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_OKCANCEL, msg, ##list)
+        aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_OKCANCEL, msg, ##list)
 
 #define aal_exception_retryignore(msg, list...) \
-    aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_RETRYIGNORE, msg, ##list)
+        aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_RETRYIGNORE, msg, ##list)
 
 #endif
 

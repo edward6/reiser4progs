@@ -99,8 +99,8 @@ void aal_exception_catch(
    result of handling (for instance, retry, ignore, etc).
 */
 static aal_exception_option_t aal_exception_actual_throw(
-	aal_exception_t *exception	/* exception to be thrown */
-	) {
+	aal_exception_t *exception)	/* exception to be thrown */
+{
 	aal_exception_option_t opt;
 
 	if (!exception_handler || disable_count)

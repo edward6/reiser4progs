@@ -821,40 +821,39 @@ int main(int argc, char *argv[]) {
 				   "--print-tree is specified.");
 	}
 
-	if ((behav_flags & BF_TFRAG)) {
-		if (debugfs_tree_frag(fs))
-			goto error_free_fs;
-		print_flags = 0;
-	}
+	if (behav_flags & BF_QUIET ||
+	    aal_exception_yesno("This operation may take long time. "
+				"Continue?") == EXCEPTION_YES)
+	{
+		if ((behav_flags & BF_TFRAG)) {
+			if (debugfs_tree_frag(fs))
+				goto error_free_fs;
+		}
 
-	if ((behav_flags & BF_DFRAG)) {
-		if (debugfs_data_frag(fs))
-			goto error_free_fs;
-		print_flags = 0;
-	}
+		if ((behav_flags & BF_DFRAG)) {
+			if (debugfs_data_frag(fs))
+				goto error_free_fs;
+		}
 
-	if ((behav_flags & BF_FFRAG)) {
-		if (debugfs_file_frag(fs, frag_filename))
-			goto error_free_fs;
-		print_flags = 0;
-	}
+		if ((behav_flags & BF_FFRAG)) {
+			if (debugfs_file_frag(fs, frag_filename))
+				goto error_free_fs;
+		}
 	
-	if ((behav_flags & BF_NPACK)) {
-		if (debugfs_node_packing(fs))
-			goto error_free_fs;
-		print_flags = 0;
+		if ((behav_flags & BF_NPACK)) {
+			if (debugfs_node_packing(fs))
+				goto error_free_fs;
+		}
 	}
 	
 	if ((behav_flags & BF_LS)) {
 		if (debugfs_browse(fs, ls_filename))
 			goto error_free_fs;
-		print_flags = 0;
 	}
 	
 	if ((behav_flags & BF_CAT)) {
 		if (debugfs_browse(fs, cat_filename))
 			goto error_free_fs;
-		print_flags = 0;
 	}
 	
 	if (print_flags & PF_SUPER) {
