@@ -111,7 +111,7 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 }
 
 /* Resets internal direntry position at zero */
-static errno_t dir40_reset(object_entity_t *entity) {
+errno_t dir40_reset(object_entity_t *entity) {
 	errno_t res;
 	dir40_t *dir;
     
@@ -411,10 +411,6 @@ static object_entity_t *dir40_open(object_info_t *info) {
 				    "%llx.", obj40_objectid(&dir->obj));
                 goto error_free_dir;
         }
-
-	/* Initialziing statdata place */
-	aal_memcpy(STAT_PLACE(&dir->obj), &info->start,
-		   sizeof(info->start));
 
 	/* Positioning to the first directory unit */
 	if (dir40_reset((object_entity_t *)dir))

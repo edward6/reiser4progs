@@ -76,7 +76,7 @@ static lookup_t reg40_next(reg40_t *reg) {
 
 /* Resets file position. That is it searches first body item and sets file's
    offset to zero. */
-static errno_t reg40_reset(object_entity_t *entity) {
+errno_t reg40_reset(object_entity_t *entity) {
 	aal_assert("umka-1963", entity != NULL);
 
 	((reg40_t *)entity)->offset = 0;
@@ -161,10 +161,6 @@ static object_entity_t *reg40_open(object_info_t *info) {
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plug, core, info);
 
-	/* Initialziing statdata place */
-	aal_memcpy(STAT_PLACE(&reg->obj), &info->start,
-		   sizeof(info->start));
-	
 	/* Reseting file (setting offset to 0) */
 	reg40_reset((object_entity_t *)reg);
 
@@ -803,7 +799,6 @@ static errno_t reg40_metadata(object_entity_t *entity,
 extern object_entity_t *reg40_realize(object_info_t *info);
 
 extern errno_t reg40_check_struct(object_entity_t *object,
-				  object_info_t *info,
 				  place_func_t register_func,
 				  void *data, uint8_t mode);
 
