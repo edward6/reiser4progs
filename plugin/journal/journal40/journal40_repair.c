@@ -9,6 +9,8 @@
 #  include <config.h>
 #endif
 
+#ifndef ENABLE_ALONE
+
 #include "journal40.h"
 #include "aux/bitmap.h"
 
@@ -458,3 +460,4 @@ errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout,
     
 }
 
+#endif

@@ -26,9 +26,11 @@ else
 libreiser4_la_LIBADD	     = $(top_builddir)/libaal/libaal.la \
 			       $(top_builddir)/libaux/libaux-static.la \
 			       @LIBREISER4_LIBS@
+
 endif
 
 libreiser4_la_SOURCES	     = $(libreiser4_sources)
+libreiser4_la_CFLAGS         = @GENERIC_CFLAGS@
 
 libreiser4_static_la_LIBADD  = $(top_builddir)/libaal/libaal-static.la \
 			       $(top_builddir)/libaux/libaux-static.la \
@@ -36,15 +38,17 @@ libreiser4_static_la_LIBADD  = $(top_builddir)/libaal/libaal-static.la \
 
 libreiser4_static_la_SOURCES = $(libreiser4_sources)
 
+libreiser4_static_la_CFLAGS  = @GENERIC_CFLAGS@
+
 if ENABLE_ALONE
 
-libreiser4_alone_la_LIBADD   = $(top_builddir)/libaal/libaal-static.la \
+libreiser4_alone_la_LIBADD   = $(top_builddir)/libaal/libaal-alone.la \
 			       $(top_builddir)/libaux/libaux-static.la \
-			       $(top_builddir)/plugin/libreiser4-plugin.la
+			       $(top_builddir)/plugin/libreiser4-plugin-alone.la
 
 libreiser4_alone_la_SOURCES  = $(libreiser4_sources)
 
-libreiser4_alone_la_CFLAGS   = -DENABLE_ALONE -DENABLE_MONOLITHIC -O9 -fno-builtin
+libreiser4_alone_la_CFLAGS   = @ALONE_CFLAGS@
 
 endif
 

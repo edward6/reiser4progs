@@ -6,12 +6,14 @@ r5_hash_sources		     = r5_hash.c
 if ENABLE_MONOLITHIC
 STATIC_LIBS                  = libr5_hash-static.la
 libr5_hash_static_la_SOURCES = $(r5_hash_sources)
-libr5_hash_static_la_LDFLAGS = $(PLUGIN_LDFLAGS)
+libr5_hash_static_la_LDFLAGS = @PLUGIN_LDFLAGS@
+libr5_hash_static_la_CFLAGS  = @GENERIC_CFLAGS@
 else
 STATIC_LIBS                  = 
 lib_LTLIBRARIES		     = libr5_hash.la
 libr5_hash_la_SOURCES	     = $(r5_hash_sources)
-libr5_hash_la_LDFLAGS	     = $(PLUGIN_LDFLAGS)
+libr5_hash_la_LDFLAGS	     = @PLUGIN_LDFLAGS@
+libr5_hash_la_CFLAGS         = @GENERIC_CFLAGS@
 endif
 
 if ENABLE_ALONE
@@ -24,7 +26,7 @@ noinst_LTLIBRARIES	     = $(STATIC_LIBS) $(ALONE_LIBS)
 
 if ENABLE_ALONE
 libr5_hash_alone_la_SOURCES  = $(r5_hash_sources)
-libr5_hash_alone_la_CFLAGS   = -DENABLE_ALONE -DENABLE_MONOLITHIC -O9 -fno-builtin
+libr5_hash_alone_la_CFLAGS   = @ALONE_CFLAGS@
 endif
 
 INCLUDES = $(includedir)

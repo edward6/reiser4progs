@@ -47,6 +47,10 @@ void *aal_memcpy(void *dest, const void *src, uint32_t n) {
 	return dest;
 }
 
+void *aal_memmove(void *dest, const void *src, uint32_t n) {
+	return aal_memcpy(dest, src, n);
+}
+
 int aal_memcmp(const void *s1, const void *s2, uint32_t n) {
 	const char *p_s1 = (const char *)s1, *p_s2 = (const char *)s2;
 	for (; (uint32_t)(p_s1 - (int)s1) < n; p_s1++, p_s2++) {
@@ -164,6 +168,58 @@ char *aal_strsep(char **stringp, const char *delim) {
 	return begin;
 }
 
+#else
+
+#include <string.h>
+
+void *aal_memset(void *dest, int c, uint32_t n) {
+	return memset(dest, c, n);
+}
+
+void *aal_memcpy(void *dest, const void *src, uint32_t n) {
+	return memcpy(dest, src, n);
+}
+
+void *aal_memmove(void *dest, const void *src, uint32_t n) {
+	return memmove(dest, src, n);
+}
+
+int aal_memcmp(const void *s1, const void *s2, uint32_t n) {
+	return memcmp(s1, s2, n);
+}
+
+uint32_t aal_strlen(const char *s) {
+	return strlen(s);
+}
+
+int aal_strncmp(const char *s1, const char *s2, uint32_t n) {
+	return strncmp(s1, s2, n);
+}
+
+char *aal_strncpy(char *dest, const char *src, uint32_t n) {
+	return strncpy(dest, src, n);
+}
+
+char *aal_strncat(char *dest, const char *src, uint32_t n) {
+	return strncat(dest, src, n);
+}
+
+char *aal_strpbrk(const char *s, const char *accept) {
+	return strpbrk(s, accept);
+}
+
+char *aal_strchr(const char *s, int c) {
+	return strchr(s, c);
+}
+
+char *aal_strrchr(const char *s, int c) {
+	return strrchr(s, c);
+}
+
+char *aal_strsep(char **stringp, const char *delim) {
+	return strsep(stringp, delim);
+}
+
 #endif
 
 char *aal_strndup(const char *s, uint32_t n) {
@@ -228,12 +284,14 @@ int aal_##name##toa(type d, uint32_t n, char *a,                        \
     return p - a;						        \
 }
 
-/* Defining the digital to alpha convertiion functions for all
- * supported types (%u, %lu, %llu) */
-DEFINE_DCONV(u, unsigned int);
-DEFINE_DCONV(lu, unsigned long int);
-DEFINE_DCONV(llu, unsigned long long);
+/*
+  Defining the digital to alpha convertiion functions for all supported types
+  (%u, %lu, %llu)
+*/
+DEFINE_DCONV(u, unsigned int)
+DEFINE_DCONV(lu, unsigned long int)
+DEFINE_DCONV(llu, unsigned long long)
 
-DEFINE_DCONV(s, int);
-DEFINE_DCONV(ls, long int);
-DEFINE_DCONV(ll, long long);
+DEFINE_DCONV(s, int)
+DEFINE_DCONV(ls, long int)
+DEFINE_DCONV(lls, long long)

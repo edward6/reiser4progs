@@ -6,15 +6,16 @@ reg40_sources		    = reg40.c reg40.h
 if ENABLE_MONOLITHIC
 STATIC_LIBS                 = libreg40-static.la
 libreg40_static_la_SOURCES  = $(reg40_sources)
-libreg40_static_la_LDFLAGS  = $(PLUGIN_LDFLAGS)
+libreg40_static_la_LDFLAGS  = @PLUGIN_LDFLAGS@
+libreg40_static_la_CFLAGS   = @GENERIC_CFLAGS@
 else
 STATIC_LIBS                 =
 lib_LTLIBRARIES		    = libreg40.la
 libreg40_la_LIBADD	    = $(top_builddir)/libaal/libaal.la \
 			      $(top_builddir)/plugin/object/object40/libobject40-static.la
 libreg40_la_SOURCES	    = $(reg40_sources)
-libreg40_la_LDFLAGS	    = $(PLUGIN_LDFLAGS)
-
+libreg40_la_LDFLAGS	    = @PLUGIN_LDFLAGS@
+libreg40_la_CFLAGS          = @GENERIC_CFLAGS@
 endif
 
 if ENABLE_ALONE
@@ -26,10 +27,8 @@ endif
 noinst_LTLIBRARIES	     = $(STATIC_LIBS) $(ALONE_LIBS)
 
 if ENABLE_ALONE
-
-libreg40_alone_la_SOURCES  = $(reg40_sources)
-libreg40_alone_la_CFLAGS   = -DENABLE_ALONE -DENABLE_MONOLITHIC -O9 -fno-builtin
-
+libreg40_alone_la_SOURCES    = $(reg40_sources)
+libreg40_alone_la_CFLAGS     = @ALONE_CFLAGS@
 endif
 
 INCLUDES = $(includedir)

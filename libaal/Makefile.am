@@ -1,4 +1,4 @@
-includedir 		 = -I$(top_srcdir)/include
+aalincludedir 		 = -I$(top_srcdir)/include
 
 libaal_sources  	 = device.c file.c exception.c list.c malloc.c \
 			   print.c string.c math.c debug.c bitops.c \
@@ -18,14 +18,18 @@ libaal_la_LDFLAGS 	 = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
 
 libaal_la_SOURCES  	 = $(libaal_sources)
 
+libaal_la_CFLAGS         = @GENERIC_CFLAGS@
+
 libaal_static_la_SOURCES = $(libaal_sources)
+
+libaal_static_la_CFLAGS  = @GENERIC_CFLAGS@
 
 if ENABLE_ALONE
 
-libaal_alone_la_SOURCES   = $(libaal_sources)
-libaal_alone_la_CFLAGS    = -DENABLE_ALONE -O9 -fno-builtin
+libaal_alone_la_SOURCES  = $(libaal_sources)
+libaal_alone_la_CFLAGS   = @ALONE_CFLAGS@
 
 endif
 
-INCLUDES = $(includedir)
+INCLUDES = $(aalincludedir)
 

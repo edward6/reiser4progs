@@ -121,16 +121,6 @@ errno_t reiser4_format_sync(
 			   sync, format->entity);
 }
 
-/* Checks passed disk-format for validness */
-errno_t reiser4_format_valid(
-	reiser4_format_t *format)	/* format to be checked */
-{
-	aal_assert("umka-829", format != NULL);
-
-	return plugin_call(format->entity->plugin->format_ops, 
-			   valid, format->entity);
-}
-
 errno_t reiser4_format_print(reiser4_format_t *format, aal_stream_t *stream) {
 	aal_assert("umka-1560", format != NULL);
 	aal_assert("umka-1561", stream != NULL);
@@ -140,6 +130,16 @@ errno_t reiser4_format_print(reiser4_format_t *format, aal_stream_t *stream) {
 }
 
 #endif
+
+/* Checks passed disk-format for validness */
+errno_t reiser4_format_valid(
+	reiser4_format_t *format)	/* format to be checked */
+{
+	aal_assert("umka-829", format != NULL);
+
+	return plugin_call(format->entity->plugin->format_ops, 
+			   valid, format->entity);
+}
 
 /* Reopens disk-format on specified device */
 reiser4_format_t *reiser4_format_reopen(

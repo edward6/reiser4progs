@@ -5,9 +5,13 @@
     reiser4progs/COPYING.
 */
 
-#include "format40.h"
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #ifndef ENABLE_ALONE
+
+#include "format40.h"
 
 static int callback_len_check(int64_t len, void *data) {
     if (len > *(int64_t *)data) {

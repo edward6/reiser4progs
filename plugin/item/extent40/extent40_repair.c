@@ -5,6 +5,12 @@
   reiser4progs/COPYING.
 */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#ifndef ENABLE_ALONE
+
 #include "extent40.h"
 
 extern uint32_t extent40_units(item_entity_t *item);
@@ -42,3 +48,4 @@ int32_t extent40_layout_check(item_entity_t *item, region_func_t func,
     return 0;
 }
 
+#endif

@@ -73,6 +73,17 @@ reiser4_journal_t *reiser4_journal_open(
 	return NULL;
 }
 
+errno_t reiser4_journal_layout(reiser4_journal_t *journal, 
+			       block_func_t func,
+			       void *data)
+{
+	aal_assert("umka-1078", journal != NULL);
+	aal_assert("umka-1079", func != NULL);
+
+	return plugin_call(journal->entity->plugin->journal_ops,
+			   layout, journal->entity, func, data);
+}
+
 #ifndef ENABLE_ALONE
 
 static errno_t callback_action_mark(
@@ -154,17 +165,6 @@ reiser4_journal_t *reiser4_journal_create(
  error_free_journal:
 	aal_free(journal);
 	return NULL;
-}
-
-errno_t reiser4_journal_layout(reiser4_journal_t *journal, 
-			       block_func_t func,
-			       void *data)
-{
-	aal_assert("umka-1078", journal != NULL);
-	aal_assert("umka-1079", func != NULL);
-
-	return plugin_call(journal->entity->plugin->journal_ops,
-			   layout, journal->entity, func, data);
 }
 
 /* Replays specified journal. Returns error code */

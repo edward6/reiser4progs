@@ -221,6 +221,8 @@ count_t reiser4_alloc_allocate_region(
 			   allocate_region, alloc->entity, start, count);
 }
 
+#endif
+
 errno_t reiser4_alloc_valid(
 	reiser4_alloc_t *alloc)	/* allocator to be checked */
 {
@@ -229,8 +231,6 @@ errno_t reiser4_alloc_valid(
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   valid, alloc->entity);
 }
-
-#endif
 
 /* Returns TRUE if specified blocks used. */
 bool_t reiser4_alloc_used_region(

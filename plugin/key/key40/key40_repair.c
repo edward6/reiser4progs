@@ -5,12 +5,12 @@
   reiser4progs/COPYING.
 */
 
-#include "key40.h"
-
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
 #ifndef ENABLE_ALONE
+
+#include "key40.h"
 
 #endif

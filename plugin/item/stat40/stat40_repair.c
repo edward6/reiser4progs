@@ -5,9 +5,13 @@
     reiser4progs/COPYING.
 */
 
-#include "stat40.h"
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
-#ifndef ENABLE_COMPACT
+#ifndef ENABLE_ALONE
+
+#include "stat40.h"
 
 errno_t stat40_check(item_entity_t *item) {
     return 0;

@@ -5,9 +5,13 @@
     reiser4progs/COPYING.
 */
 
-#include "node40.h"
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #ifndef ENABLE_ALONE
+
+#include "node40.h"
 
 #define INVALID_U16	0xffff
 

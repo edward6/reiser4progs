@@ -1,2 +1,2 @@
-miscincludedir		= $(includedir)/aux
-noinst_HEADERS          = aux.h bitmap.h
+auxincludedir		= $(includedir)/aux
+auxinclude_HEADERS      = aux.h bitmap.h

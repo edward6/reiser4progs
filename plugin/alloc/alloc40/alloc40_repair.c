@@ -9,6 +9,8 @@
 #  include <config.h>
 #endif
 
+#ifndef ENABLE_ALONE
+
 #include "alloc40.h"
 
 /*
@@ -46,3 +48,4 @@ errno_t alloc40_related_region(object_entity_t *entity, blk_t blk,
     return 0;    
 }
 
+#endif

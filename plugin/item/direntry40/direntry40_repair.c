@@ -5,9 +5,13 @@
     reiser4progs/COPYING.
 */
 
-#include "direntry40.h"
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #ifndef ENABLE_ALONE
+
+#include "direntry40.h"
 
 #define MIN_LEN			2 /* one symbol and '\0' */
 #define de40_min_length(count)	count * (sizeof(entry40_t) + MIN_LEN) + \

@@ -13,6 +13,12 @@
 
 #define SUPER(master) ((reiser4_master_sb_t *)master->block->data)
 
+/* This function checks master super block for validness */
+errno_t reiser4_master_valid(reiser4_master_t *master) {
+	aal_assert("umka-898", master != NULL);
+	return -(!aal_pow_of_two(get_ms_blocksize(SUPER(master))));
+}
+
 #ifndef ENABLE_ALONE
 
 /* Forms master super block disk structure */
@@ -64,12 +70,6 @@ reiser4_master_t *reiser4_master_create(
  error_free_master:
 	aal_free(master);
 	return NULL;
-}
-
-/* This function checks master super block for validness */
-errno_t reiser4_master_valid(reiser4_master_t *master) {
-	aal_assert("umka-898", master != NULL);
-	return -(!aal_pow_of_two(get_ms_blocksize(SUPER(master))));
 }
 
 /* Callback function for comparing plugins */

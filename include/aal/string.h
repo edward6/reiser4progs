@@ -17,12 +17,9 @@
 
 #include <aal/types.h>
 
-#ifdef ENABLE_ALONE
-
-#define aal_memmove aal_memcpy
-
 extern void *aal_memset(void *dest, int c, uint32_t n);
 extern void *aal_memcpy(void *dest, const void *src, uint32_t n);
+extern void *aal_memmove(void *dest, const void *src, uint32_t n);
 extern int aal_memcmp(const void *s1, const void *s2, uint32_t n);
 
 extern char *aal_strncpy(char *dest, const char *src, uint32_t n);
@@ -34,28 +31,6 @@ extern char *aal_strpbrk(const char *s, const char *accept);
 extern char *aal_strchr(const char *s, int c);
 extern char *aal_strrchr(const char *s, int c);
 extern char *aal_strsep(char **stringp, const char *delim);
-
-#else
-
-#include <string.h>
-
-#define aal_memset  memset
-#define aal_memcpy  memcpy
-#define aal_memmove memmove
-#define aal_memcmp  memcmp
-
-#define aal_strncpy strncpy
-#define aal_strcat  strcat
-#define aal_strncat strncat
-#define aal_strncmp strncmp
-#define aal_strlen  strlen
-
-#define aal_strpbrk strpbrk
-#define aal_strchr  strchr
-#define aal_strrchr strrchr
-#define aal_strsep  strsep
-
-#endif	/* ENABLE_ALONE */
 
 extern char *aal_strndup(const char *s, uint32_t n);
 

@@ -5,6 +5,12 @@
   reiser4progs/COPYING.
 */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#ifndef ENABLE_ALONE
+
 #include "nodeptr40.h"
 
 int32_t nodeptr40_layout_check(item_entity_t *item, region_func_t func, 
@@ -28,3 +34,5 @@ int32_t nodeptr40_layout_check(item_entity_t *item, region_func_t func,
 
     return 0;
 }
+
+#endif

@@ -159,14 +159,6 @@ void reiser4_oid_release(
 		    release, oid->entity, id);
 }
 
-/* Checks specified oid allocator on validness */
-errno_t reiser4_oid_valid(reiser4_oid_t *oid) {
-	aal_assert("umka-962", oid != NULL);
-    
-	return plugin_call(oid->entity->plugin->oid_ops, 
-			   valid, oid->entity);
-}
-
 /* Synchronizes specified oid allocator */
 errno_t reiser4_oid_sync(reiser4_oid_t *oid) {
 	aal_assert("umka-735", oid != NULL);
@@ -184,6 +176,14 @@ errno_t reiser4_oid_print(reiser4_oid_t *oid, aal_stream_t *stream) {
 }
 
 #endif
+
+/* Checks specified oid allocator on validness */
+errno_t reiser4_oid_valid(reiser4_oid_t *oid) {
+	aal_assert("umka-962", oid != NULL);
+    
+	return plugin_call(oid->entity->plugin->oid_ops, 
+			   valid, oid->entity);
+}
 
 /* Returns number of used oids from passed oid allocator */
 uint64_t reiser4_oid_used(reiser4_oid_t *oid) {

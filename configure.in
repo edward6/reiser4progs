@@ -9,7 +9,7 @@ AH_TEMPLATE([VERSION], [Define to the version of the package.])
 AH_TEMPLATE([LIBREISER4_MAX_INTERFACE_VERSION], [])
 AH_TEMPLATE([LIBREISER4_MIN_INTERFACE_VERSION], [])
 AH_TEMPLATE([loff_t], [])
-AH_TEMPLATE([ENABLE_ALONE], [])
+dnl AH_TEMPLATE([ENABLE_ALONE], [])
 AH_TEMPLATE([ENABLE_MONOLITHIC], [])
 AH_TEMPLATE([ENABLE_DEBUG], [])
 AH_TEMPLATE([HAVE_LIBUUID], [])
@@ -137,12 +137,6 @@ fi
 plugindir=$with_plugin_dir
 AC_SUBST(plugindir)
 
-dnl make libc threadsafe (not required for us for awhile, but useful other users of
-dnl libreiser4)
-dnl if test x$enable_alone = xno; then
-dnl     CFLAGS="$CFLAGS -D_REENTRANT"
-dnl fi
-
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
@@ -152,6 +146,16 @@ AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 AC_PROG_AWK
 
+CFLAGS=""
+ALONE_CFLAGS=""
+GENERIC_CFLAGS=""
+
+dnl make libc threadsafe (not required for us for awhile, but useful other users of
+dnl ibreiser4)
+GENERIC_CFLAGS="$GENERIC_CFLAGS -D_REENTRANT"
+
+if test x$enable_alone = xno; then
+
 AC_SYS_LARGEFILE
 
 if test -z "${ac_cv_sys_file_offset_bits}"; then
@@ -160,12 +164,14 @@ Can't detect right _FILE_OFFSET_BITS. Will be forced to 64bit.)
 	ac_cv_sys_file_offset_bits=64
 fi
 
-CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=${ac_cv_sys_file_offset_bits}"
+GENERIC_CFLAGS="$GENERIC_CFLAGS -D_FILE_OFFSET_BITS=${ac_cv_sys_file_offset_bits}"
 AC_CHECK_SIZEOF(off_t, 64, [
 	#include <stdio.h>
 	#include <sys/types.h>
 	#include <unistd.h>
 ])
+
+fi
 
 AM_PROG_LIBTOOL
 
@@ -229,12 +235,14 @@ fi
 AC_SUBST(LIBREISER4_LIBS)
 
 if test x$enable_debug = xyes; then
-    CFLAGS="$CFLAGS -g"
+    GENERIC_CFLAGS="$CFLAGS -O0 -g"
+else
+    GENERIC_CFLAGS="$CFLAGS -O2"
 fi
 
-dnl if test x$enable_alone = xyes; then
-dnl     CFLAGS="$CFLAGS -O9 -fno-builtin"
-dnl fi
+if test x$enable_alone = xyes; then
+    ALONE_CFLAGS="$ALONE_CFLAGS -DENABLE_ALONE -DENABLE_MONOLITHIC -O9 -fno-builtin"
+fi
 
 CFLAGS="$CFLAGS -W -Wall -Wno-unused"
 if test x$enable_Werror = xyes; then
@@ -259,15 +267,18 @@ AC_SUBST(PROGS_LDFLAGS)
 
 AM_CONDITIONAL(ENABLE_ALONE, test x$enable_alone = xyes)
 
-if test x$enable_alone = xyes; then
-    AC_DEFINE(ENABLE_ALONE)
-fi
+dnl if test x$enable_alone = xyes; then
+dnl     AC_DEFINE(ENABLE_ALONE)
+dnl fi
 
 AM_CONDITIONAL(ENABLE_DEBUG, test x$enable_debug = xyes)
 
 if test x$enable_debug = xyes; then
     AC_DEFINE(ENABLE_DEBUG)
 fi
+
+AC_SUBST(ALONE_CFLAGS)
+AC_SUBST(GENERIC_CFLAGS)
 
 AC_OUTPUT([
     Makefile
