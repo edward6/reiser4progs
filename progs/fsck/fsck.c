@@ -540,14 +540,13 @@ int main(int argc, char *argv[]) {
 		
 	stage = 1;
 	
-	if ((res = repair_check(&repair) < 0) || (res = fsck_check_fini(&repair)))
-		goto free_fs;
+	res = repair_check(&repair);
 
+	/* Even if there was some problems on fs check, fini must be done. */
+	res |= fsck_check_fini(&repair);
+	
 	fsck_time("fsck.reiser4 finished at");
     
- free_fs:
-	
-	
 	fprintf(stderr, "Closing fs...");
 	reiser4_fs_close(repair.fs);
 	repair.fs = NULL;
