@@ -62,8 +62,9 @@ static errno_t extent40_print(reiser4_item_t *item, char *buff,
     count = extent40_count(item);
 
     for (i = 0; i < count; i++) {
-		aal_snprintf(buff, n, "%llu(%llu)", et40_get_start(extent + i),
-					 et40_get_width(extent + i));
+		int len = aal_snprintf(buff, n, "%llu( %llu )%s", et40_get_start(extent + i),
+							   et40_get_width(extent + i), (i < count - 1 ? ", " : ""));
+		buff += len;
     }
     
     return 0;

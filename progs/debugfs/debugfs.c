@@ -125,7 +125,7 @@ static errno_t debugfs_print_joint(
 			if (reiser4_item_print(&item, buff, sizeof(buff)))
 				return -1;
 
-			printf("[%s]\n", buff);
+			printf("%s\n", buff);
 		}
     } else {
 		uint32_t i;

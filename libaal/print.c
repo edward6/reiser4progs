@@ -47,8 +47,6 @@ int aal_vsnprintf(
     
     format_modifier_t modifier = mod_empty;
     
-    aal_memset(buff, 0, n);
-	
     while (*fmt) {
 		if (fmt - format + 1 >= (int)n)
 			break;

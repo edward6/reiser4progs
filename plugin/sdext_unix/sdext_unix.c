@@ -1,8 +1,7 @@
 /*
-    sdext_unix.c -- stat data exception plugin, that implements unix stat data 
-    fields.
-    
-    Copyright 1996-2002 (C) Hans Reiser.
+  sdext_unix.c -- stat data exception plugin, that implements unix stat data 
+  fields.
+  Copyright 1996-2002 (C) Hans Reiser.
 */
 
 #include "sdext_unix.h"
@@ -10,7 +9,7 @@
 static reiser4_core_t *core = NULL;
 
 static errno_t sdext_unix_init(reiser4_body_t *body, 
-    void *hint) 
+							   void *hint) 
 {
     sdext_unix_t *ext;
     reiser4_sdext_unix_hint_t *sdext_unix;
@@ -33,7 +32,7 @@ static errno_t sdext_unix_init(reiser4_body_t *body,
 }
 
 static errno_t sdext_unix_open(reiser4_body_t *body, 
-    void *hint) 
+							   void *hint) 
 {
     sdext_unix_t *ext;
     reiser4_sdext_unix_hint_t *sdext_unix;
@@ -55,29 +54,34 @@ static errno_t sdext_unix_open(reiser4_body_t *body,
     return 0;
 }
 
-static int sdext_unix_confirm(reiser4_body_t *body) {
-    aal_assert("umka-1009", body != NULL, return -1);
-    return 0;
-}
-
 static uint16_t sdext_unix_length(void) {
     return sizeof(sdext_unix_t);
 }
 
+static errno_t sdext_unix_print(reiser4_body_t *body,
+							  char *buff, uint32_t n,
+							  uint16_t options)
+{
+	aal_assert("umka-1412", body != NULL, return -1);
+	aal_assert("umka-1413", buff != NULL, return -1);
+
+	return 0;
+}
+
 static reiser4_plugin_t sdext_unix_plugin = {
     .sdext_ops = {
-	.h = {
-	    .handle = NULL,
-	    .id = SDEXT_UNIX_ID,
-	    .group = 0,
-	    .type = SDEXT_PLUGIN_TYPE,
-	    .label = "sdext_unix",
-	    .desc = "Unix stat data extention for reiserfs 4.0, ver. " VERSION,
-	},
-	.init	 = sdext_unix_init,
-	.open	 = sdext_unix_open,
-	.confirm = sdext_unix_confirm,
-	.length	 = sdext_unix_length
+		.h = {
+			.handle = NULL,
+			.id = SDEXT_UNIX_ID,
+			.group = 0,
+			.type = SDEXT_PLUGIN_TYPE,
+			.label = "sdext_unix",
+			.desc = "Unix stat data extention for reiserfs 4.0, ver. " VERSION,
+		},
+		.init	 = sdext_unix_init,
+		.open	 = sdext_unix_open,
+		.print   = sdext_unix_print,
+		.length	 = sdext_unix_length
     }
 };
 

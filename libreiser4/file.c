@@ -154,9 +154,7 @@ reiser4_file_t *reiser4_file_open(
     }
     
     if (!(plugin = reiser4_file_guess(file))) {
-		aal_exception_error("Can't find file plugin in "
-							"order to open %s.", name);
-	
+		aal_exception_error("Can't detect file plugin for %s.", name);
 		goto error_free_file;
     }
     

@@ -1,6 +1,6 @@
 /*
-    stat40.h -- reiser4 default stat data structures.
-    Copyright (C) 1996-2002 Hans Reiser.
+  stat40.h -- reiser4 default stat data structures.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifndef STAT40_H
@@ -30,4 +30,3 @@ typedef struct stat40 stat40_t;
 #define st40_set_extmask(stat, val)	aal_set_le16(stat, extmask, val)
 
 #endif
-

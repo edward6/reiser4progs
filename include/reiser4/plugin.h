@@ -589,10 +589,17 @@ typedef struct reiser4_item_ops reiser4_item_ops_t;
 struct reiser4_sdext_ops {
     reiser4_plugin_header_t h;
 
+	/* Initialize stat data extention data at passed pointer */
     errno_t (*init) (reiser4_body_t *, void *);
+
+	/* Reads stat data extention data */
     errno_t (*open) (reiser4_body_t *, void *);
-    
-    int (*confirm) (reiser4_body_t *);
+
+	/* Prints stat data extention data into passed buffer */
+	errno_t (*print) (reiser4_body_t *, char *,
+					  uint32_t, uint16_t);
+
+	/* Returns length of the extention */
     uint16_t (*length) (void);
 };
 

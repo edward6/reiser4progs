@@ -12,7 +12,8 @@ static nodeptr40_t *nodeptr40_body(reiser4_item_t *item) {
     if (item == NULL) return NULL;
     
     return (nodeptr40_t *)plugin_call(return NULL, 
-									  item->node->plugin->node_ops, item_body, item->node, item->pos);
+									  item->node->plugin->node_ops,
+									  item_body, item->node, item->pos);
 }
 
 static uint32_t nodeptr40_count(reiser4_item_t *item) {
@@ -75,12 +76,13 @@ static uint64_t nodeptr40_get_ptr(reiser4_item_t *item) {
 }
 
 static errno_t nodeptr40_print(reiser4_item_t *item, 
-							   char *buff, uint32_t n, uint16_t options) 
+							   char *buff, uint32_t n,
+							   uint16_t options) 
 {
     aal_assert("umka-544", item != NULL, return -1);
     aal_assert("umka-545", buff != NULL, return -1);
     
-    aal_snprintf(buff, n, "%llu", nodeptr40_get_ptr(item));
+    aal_snprintf(buff, n, "[ %llu ]", nodeptr40_get_ptr(item));
     return 0;
 }
 

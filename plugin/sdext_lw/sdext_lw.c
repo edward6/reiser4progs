@@ -1,8 +1,8 @@
 /*
-    sdext_lw.c -- light weight stat data extention plugin, that implements base
-    stat data fields.
+  sdext_lw.c -- light weight stat data extention plugin, that implements base
+  stat data fields.
     
-    Copyright 1996-2002 (C) Hans Reiser.
+  Copyright 1996-2002 (C) Hans Reiser.
 */
 
 #include "sdext_lw.h"
@@ -10,7 +10,7 @@
 static reiser4_core_t *core = NULL;
 
 static errno_t sdext_lw_init(reiser4_body_t *body, 
-    void *hint) 
+							 void *hint) 
 {
     sdext_lw_t *ext;
     reiser4_sdext_lw_hint_t *sdext_lw;
@@ -29,7 +29,7 @@ static errno_t sdext_lw_init(reiser4_body_t *body,
 }
 
 static errno_t sdext_lw_open(reiser4_body_t *body, 
-    void *hint) 
+							 void *hint) 
 {
     sdext_lw_t *ext;
     reiser4_sdext_lw_hint_t *sdext_lw;
@@ -47,29 +47,34 @@ static errno_t sdext_lw_open(reiser4_body_t *body,
     return 0;
 }
 
-static int sdext_lw_confirm(reiser4_body_t *body) {
-    aal_assert("umka-1190", body != NULL, return -1);
-    return 0;
-}
-
 static uint16_t sdext_lw_length(void) {
     return sizeof(sdext_lw_t);
 }
 
+static errno_t sdext_lw_print(reiser4_body_t *body,
+							  char *buff, uint32_t n,
+							  uint16_t options)
+{
+	aal_assert("umka-1410", body != NULL, return -1);
+	aal_assert("umka-1411", buff != NULL, return -1);
+
+	return 0;
+}
+
 static reiser4_plugin_t sdext_lw_plugin = {
     .sdext_ops = {
-	.h = {
-	    .handle = NULL,
-	    .id = SDEXT_LW_ID,
-	    .group = 0,
-	    .type = SDEXT_PLUGIN_TYPE,
-	    .label = "sdext_lw",
-	    .desc = "Base stat data extention for reiserfs 4.0, ver. " VERSION,
-	},
-	.init	 = sdext_lw_init,
-	.open	 = sdext_lw_open,
-	.confirm = sdext_lw_confirm,
-	.length	 = sdext_lw_length
+		.h = {
+			.handle = NULL,
+			.id = SDEXT_LW_ID,
+			.group = 0,
+			.type = SDEXT_PLUGIN_TYPE,
+			.label = "sdext_lw",
+			.desc = "Base stat data extention for reiserfs 4.0, ver. " VERSION,
+		},
+		.init	 = sdext_lw_init,
+		.open	 = sdext_lw_open,
+		.print   = sdext_lw_print,
+		.length	 = sdext_lw_length
     }
 };
 
