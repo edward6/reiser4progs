@@ -54,7 +54,7 @@ prints the journal with not commited transaction (if any).
 .B -b, --print-block-alloc
 prints the block allocator data.
 .TP
-.B -b, --print-oid-alloc
+.B -o, --print-oid-alloc
 prints the oid allocator data.
 .SH MEASUREMENT OPTIONS
 .TP
@@ -75,6 +75,12 @@ fragmentation factor - value from 0.00 (minimal fragmentation) to 1.00
 (maximal one). Note, that fragmentation of a small file (depends of used
 tail policy), which consists of tail items, is not very reliable
 value. That is because, they is always afoot due to balancing.
+.sp 1
+Examples:
+.sp 1
+debugfs.reiser4 -F /usr/bin /dev/hda2
+.br
+debugfs.reiser4 -F /bin/bash /dev/hda2
 .SH PLUGIN OPTIONS
 .TP
 .B -e, --profile PROFILE

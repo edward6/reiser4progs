@@ -240,21 +240,33 @@ static int print_key(FILE * stream, const struct printf_info *info,
 #endif
 
 /* 
-   Initializes libreiser4 (plugin factory, memory limit, etc). This function
-   should be called before any actions performed on libreiser4.
+   Initializes libreiser4 (plugin factory, etc). This function should be called
+   before any actions performed on libreiser4.
 */
-errno_t libreiser4_init(void) {
+errno_t libreiser4_init(int check) {
 	if (libreiser4_factory_init()) {
 		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK, 
 				    "Can't initialize plugin factory.");
 		return -1;
 	}
-    
+
+	if (check) {
+		if (libreiser4_factory_check()) {
+			aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK, 
+					    "Can't initialize plugin factory.");
+			goto error_free_factory;
+		}
+	}
+	
 #ifndef ENABLE_COMPACT
-	register_printf_function ('k', print_key, arginfo_k);
+	register_printf_function('k', print_key, arginfo_k);
 #endif
     
 	return 0;
+	
+ error_free_factory:
+	libreiser4_factory_done();
+	return -1;
 }
 
 /* Finalizes libreiser4 */

@@ -286,7 +286,8 @@ int main(int argc, char *argv[]) {
     
     memset(&data, 0, sizeof(data));
 
-    if (libreiser4_init()) {
+    /* Initializing libreiser4 with factory sanity check */
+    if (libreiser4_init(1)) {
 	aal_exception_fatal("Cannot initialize the libreiser4.");
 	exit(OPER_ERROR);
     }

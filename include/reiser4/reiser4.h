@@ -43,9 +43,8 @@ extern "C" {
 #include "factory.h"
 #include "joint.h"
 
-extern errno_t libreiser4_init(void);
 extern void libreiser4_done(void);
-
+extern errno_t libreiser4_init(int check);
 extern const char *libreiser4_version(void);
 
 extern int libreiser4_max_interface_version(void);

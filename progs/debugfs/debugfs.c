@@ -443,8 +443,6 @@ int main(int argc, char *argv[]) {
 
 	debugfs_init();
 
-	progs_print_banner(argv[0]);
-    
 	if (argc < 2) {
 		debugfs_print_usage(argv[0]);
 		return USER_ERROR;
@@ -503,6 +501,7 @@ int main(int argc, char *argv[]) {
 			behav_flags |= BF_QUIET;
 			break;
 		case 'K':
+			progs_print_banner(argv[0]);
 			progs_profile_list();
 			return NO_ERROR;
 		case '?':
@@ -516,6 +515,8 @@ int main(int argc, char *argv[]) {
 		return USER_ERROR;
 	}
     
+	progs_print_banner(argv[0]);
+    
 	/* Initializing passed profile */
 	if (!(profile = progs_profile_find(profile_label))) {
 		aal_exception_error("Can't find profile by its label %s.", 
@@ -523,7 +524,8 @@ int main(int argc, char *argv[]) {
 		goto error;
 	}
     
-	if (libreiser4_init()) {
+	/* Initializing libreiser4 with factory sanity check */
+	if (libreiser4_init(1)) {
 		aal_exception_error("Can't initialize libreiser4.");
 		goto error;
 	}

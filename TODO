@@ -9,8 +9,6 @@ reiser4progs/COPYING.
 * should we split reiser4_fs_create and reiser4_fs_open onto separate
   functions?
 
-* reiser4_joint_realize may be improved by rid of search_by_key
-
 * move the all common code of reg40 and dir40 plugins to separate
   file.
 

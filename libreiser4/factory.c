@@ -264,7 +264,47 @@ void libreiser4_factory_done(void) {
 	plugins = NULL;
 }
 
-//errno_t
+static errno_t callback_check_plugin(reiser4_plugin_t *plugin, void *data) {
+	reiser4_plugin_t *examined = (reiser4_plugin_t *)data;
+
+	if (examined == plugin)
+		return 0;
+	
+	if (!aal_strncmp(examined->h.label, plugin->h.label, PLUGIN_MAX_LABEL)) {
+		aal_exception_error("Plugin %s has the same label as %s.",
+				   examined->h.handle.name, plugin->h.handle.name);
+		return -1;
+	}
+
+	if (examined->h.sign.group == plugin->h.sign.group &&
+	    examined->h.sign.id == plugin->h.sign.id &&
+	    examined->h.sign.type == plugin->h.sign.type)
+	{
+		aal_exception_error("Plugin %s has the same sign as %s.",
+				    examined->h.handle.name, plugin->h.handle.name);
+		return -1;
+	}
+
+	return 0;
+}
+
+/* Checks plugins on validness */
+errno_t libreiser4_factory_check(void) {
+	errno_t res;
+	aal_list_t *walk;
+	
+	if (!plugins)
+		return 0;
+
+	aal_list_foreach_forward(walk, plugins) {
+		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
+
+		if ((res = libreiser4_factory_foreach(callback_check_plugin, (void *)plugin)))
+			return res;
+	}
+
+	return 0;
+}
 
 static int callback_match_coord(reiser4_plugin_t *plugin,
 				walk_desc_t *desc)

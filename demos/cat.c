@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
     
 	cat_init();
 
-	if (libreiser4_init()) {
+	if (libreiser4_init(1)) {
 		aal_exception_error("Can't initialize libreiser4.");
 		return 0xff;
 	}
