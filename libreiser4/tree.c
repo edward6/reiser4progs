@@ -838,10 +838,9 @@ lookup_t reiser4_tree_lookup(
 		if (reiser4_node_get_level(place->node) <= level ||
 		    res == FAILED)
 		{
-			if (res == PRESENT) {
-				/* Fetching item at @place if key is found */
+			/* Fetching item at @place if key is found */
+			if (res == PRESENT)
 				reiser4_place_fetch(place);
-			}
 			
 			return res;
 		}
@@ -860,9 +859,8 @@ lookup_t reiser4_tree_lookup(
 		/* Checking is item at @place is nodeptr one. If not, we correct
 		   position back. */
 		if (!reiser4_item_branch(place)) {
-			if (res == ABSENT) {
+			if (res == ABSENT)
 				reiser4_place_inc(place, whole);
-			}
 
 			if (!reiser4_place_valid(place))
 				return res;
