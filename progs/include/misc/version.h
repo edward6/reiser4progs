@@ -3,4 +3,6 @@
     Copyright 1996-2002 (C) Hans Reiser.
 */
 
-#define BANNER(name) "%s, %s\n", name, VERSION
+#define BANNER					    \
+    "Copyright (C) 2001, 2002 by Hans Reiser, "	    \
+    "licencing governed by reiser4progs/COPYING.\n" \

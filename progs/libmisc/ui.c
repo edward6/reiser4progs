@@ -255,6 +255,19 @@ static int64_t progs_ui_numeric_handler(
     return value; 
 }
 
+void progs_misc_print_banner(char *name) {
+    char *banner;
+   
+    printf("%s %s\n", name, VERSION);
+    
+    if (!(banner = aal_calloc(255, 0)))
+	return;
+    
+    aal_snprintf(banner, 255, BANNER);
+    progs_ui_print_wrap(stderr, banner);
+    aal_free(banner);
+}
+
 static void _init(void) __attribute__((constructor));
 
 static void _init(void) {

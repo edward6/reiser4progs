@@ -630,16 +630,18 @@ errno_t reiser4_joint_traverse(
 	if (before_func && (result = before_func(joint, &item, data)))
 	    goto error;
 
-	pos.item = reiser4_node_count(joint->node);
+	pos.item = reiser4_node_count(joint->node) - 1;
 	
 	do {
 	    pos.unit = ~0ul; 
 	    
+	    /* 
+	        All items must be openned - this is checked in the 
+	        handler_func.
+	    */
 	    if ((result = reiser4_item_open(&item, joint->node, &pos))) {
-
-		/* All items must be openned - this is checked in the handler_func. */
-		aal_exception_error("Node (%llu), item (%u): item cannot be openned.",
-		    aal_block_number(joint->node->block), pos.item);
+		aal_exception_error("Node (%llu), item (%u): item cannot be "
+		    "openned.", aal_block_number(joint->node->block), pos.item);
 		goto error_after_func;
 	    }
 	    
@@ -650,14 +652,13 @@ errno_t reiser4_joint_traverse(
 	    
 	    do {
 		blk_t target;
-		
 		if ((target = reiser4_item_get_nptr(&item)) != FAKE_BLK) {
+			
 		    if (setup_func && (result = setup_func(joint, &item, data)))
 			goto error_after_func;
 	    
-		    if ((result = open_func(&child, target, data))) {
+		    if ((result = open_func(&child, target, data)))
 			goto error_update_func;
-		    }
 
 		    if (child) {
 			reiser4_joint_attach(joint, child);
@@ -675,6 +676,7 @@ errno_t reiser4_joint_traverse(
 			goto error_after_func;
 		}
 	    } while (pos.unit--);
+	    
 	} while (pos.item--);
 	
 	if (after_func && (result = after_func(joint, &item, data)))
@@ -689,9 +691,11 @@ error_update_func:
 
     if (update_func)
        result = update_func(joint, &item, data);
+    
 error_after_func:
     if (after_func)
 	result = after_func(joint, &item, data);
+    
 error:
     return result;
 }

@@ -62,7 +62,20 @@ static void debugfs_init(void) {
 	progs_exception_set_stream(i, stderr);
 }
 
-static errno_t debugfs_print_node(reiser4_node_t *node) {
+/* Callback function used in traverse for opening the node */
+static errno_t debugfs_open_joint(
+    reiser4_joint_t **joint,	/* joint to be opened */
+    blk_t blk, void *data	/* blk to pe opened and user-specified data */
+) {
+    *joint = reiser4_tree_load((reiser4_tree_t *)data, blk);
+    return -(*joint == NULL);
+}
+
+static errno_t debugfs_print_joint(
+    reiser4_joint_t *joint,	/* joint to be printed */
+    void *data			/* user-specified data */
+) {
+    reiser4_node_t *node = joint->node;
     uint8_t level = plugin_call(return -1, node->entity->plugin->node_ops,
 	get_level, node->entity);
 
@@ -114,39 +127,6 @@ static errno_t debugfs_print_node(reiser4_node_t *node) {
 		printf("[ %s ]\n", buff);
 	    }
 	}
-	
-	for (i = 0; i < reiser4_node_count(node); i++) {
-	    blk_t blk;
-	    aal_block_t *block;
-	    reiser4_item_t item;
-	    reiser4_node_t *inode;
-	    reiser4_pos_t pos = {i, ~0ul};
-
-	    if (reiser4_item_open(&item, node, &pos)) {
-		aal_exception_error("Can't open item %u in node %llu.", 
-		    i, aal_block_number(node->block));
-		return -1;
-	    }
-
-	    if (!reiser4_item_internal(&item))
-		continue;
-
-	    blk = reiser4_item_get_nptr(&item);
-	    if (!(block = aal_block_open(node->block->device, blk))) {
-		aal_exception_error("Can't read block %llu. %s.", 
-		    blk, node->block->device->error);
-		return -1;
-	    }
-	    
-	    if (!(inode = reiser4_node_open(block))) {
-		aal_exception_error("Can't open node %llu. %s.", 
-		    blk, node->block->device->error);
-		return -1;
-	    }
-
-	    if (debugfs_print_node(inode))
-		return -1;
-	}
     } else {
 	uint32_t i;
 
@@ -184,15 +164,35 @@ static errno_t debugfs_print_node(reiser4_node_t *node) {
 		reiser4_key_get_objectid(&key), reiser4_key_get_offset(&key));
 	    
 	    printf("PLUGIN: 0x%x (%s)\n", item.plugin->h.id, item.plugin->h.label);
-
 	}
     }
     
     return 0;
 }
 
-static errno_t debugfs_print_fs(reiser4_fs_t *fs) {
-    return debugfs_print_node(fs->tree->root->node);
+static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
+    return reiser4_joint_traverse(fs->tree->root, (void *)fs->tree,
+	debugfs_open_joint, debugfs_print_joint, NULL, NULL, NULL, NULL);
+}
+
+static errno_t debugfs_print_super(reiser4_fs_t *fs) {
+    aal_exception_error("Sorry, not implemented yet!");
+    return 0;
+}
+
+static errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
+    aal_exception_error("Sorry, not implemented yet!");
+    return 0;
+}
+   
+static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
+    aal_exception_error("Sorry, not implemented yet!");
+    return 0;
+}
+   
+static errno_t debugfs_print_journal(reiser4_fs_t *fs) {
+    aal_exception_error("Sorry, not implemented yet!");
+    return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -222,12 +222,14 @@ int main(int argc, char *argv[]) {
 	{0, 0, 0, 0}
     };
     
+    debugfs_init();
+    
+    progs_misc_print_banner(argv[0]);
+    
     if (argc < 2) {
 	debugfs_print_usage(argv[0]);
 	return USER_ERROR;
     }
-
-    debugfs_init();
     
     /* Parsing parameters */    
     while ((c = getopt_long_only(argc, argv, "hVe:qfKstboj", long_options, 
@@ -239,7 +241,7 @@ int main(int argc, char *argv[]) {
 		return NO_ERROR;
 	    }
 	    case 'V': {
-		printf(BANNER(argv[0]));
+		progs_misc_print_banner(argv[0]);
 		return NO_ERROR;
 	    }
 	    case 'e': {
@@ -294,8 +296,6 @@ int main(int argc, char *argv[]) {
 	return USER_ERROR;
     }
     
-    printf(BANNER(argv[0]));
-
     if (optind >= argc) {
 	debugfs_print_usage(argv[0]);
 	return USER_ERROR;
@@ -361,7 +361,27 @@ int main(int argc, char *argv[]) {
     }
     
     if (flags & PF_TREE) {
-	if (debugfs_print_fs(fs))
+	if (debugfs_print_tree(fs))
+	    goto error_free_fs;
+    }
+    
+    if (flags & PF_SUPER) {
+	if (debugfs_print_super(fs))
+	    goto error_free_fs;
+    }
+    
+    if (flags & PF_ALLOC) {
+	if (debugfs_print_alloc(fs))
+	    goto error_free_fs;
+    }
+    
+    if (flags & PF_OID) {
+	if (debugfs_print_oid(fs))
+	    goto error_free_fs;
+    }
+    
+    if (flags & PF_JOURNAL) {
+	if (debugfs_print_journal(fs))
 	    goto error_free_fs;
     }
     

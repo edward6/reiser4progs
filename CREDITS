@@ -41,22 +41,22 @@ something very few persons have the skills for, and it is thanks to
 him that we can say that the parser is really not so big compared to
 various bits of our other code, and making a parser work in the kernel
 was not so complicated as everyone would imagine mainly because it was
-him doing it....
+him doing it...
 
 Joshua McDonald wrote the transaction manager, and the flush code.
 The flush code unexpectedly turned out be extremely hairy for reasons
 you can read about on our web page, and he did a great job on an
-extremely difficult task.  
+extremely difficult task.
 
 Nina Reiser handled our accounting, government relations, and much
 more.
 
-Ramon Reiser developed our website.  
+Ramon Reiser developed our website.
 
 Beverly Palmer drew our graphics.
 
 Vitaly Fertman did fsck.  He makes the code simple when it could have
-been so complex, and this is so nice of him....
+been so complex, and this is so nice of him...
 
 Yury Umanets (aka Umka) developed reiser4progs.
 
@@ -65,4 +65,3 @@ It is so nice to have someone like that on the team.  He (plus Chris
 and Jeff) make it possible for the entire rest of the Namesys team to
 focus on Reiser4, and he fixed a whole lot of Reiser4 bugs also.  It
 is just amazing to watch his talent for spotting bugs in action.
-

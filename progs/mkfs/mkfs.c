@@ -119,13 +119,15 @@ int main(int argc, char *argv[]) {
 	{0, 0, 0, 0}
     };
     
+    mkfs_init();
+
+    progs_misc_print_banner(argv[0]);
+    
     if (argc < 2) {
 	mkfs_print_usage(argv[0]);
 	return USER_ERROR;
     }
 
-    mkfs_init();
-    
     memset(uuid, 0, sizeof(uuid));
     memset(label, 0, sizeof(label));
 
@@ -139,7 +141,7 @@ int main(int argc, char *argv[]) {
 		return NO_ERROR;
 	    }
 	    case 'V': {
-		printf(BANNER(argv[0]));
+		progs_misc_print_banner(argv[0]);
 		return NO_ERROR;
 	    }
 	    case 'e': {
@@ -204,8 +206,6 @@ int main(int argc, char *argv[]) {
 	}
     }
     
-    printf(BANNER(argv[0]));
-
     if (optind >= argc) {
 	mkfs_print_usage(argv[0]);
 	return USER_ERROR;

@@ -9,10 +9,8 @@
 
 #include <fsck.h>
 
-static void fsck_print_usage() {
-    fprintf(stderr, "\n");
-    fprintf(stderr, BANNER("fsck.reiser4"));
-    fprintf(stderr, "\nUsage: fsck.reiser4 [ options ] FILE\n");
+static void fsck_print_usage(char *name) {
+    fprintf(stderr, "\nUsage: %s [ options ] FILE\n", name);
     
     fprintf(stderr, "Modes:\n"
 	"  --check                        consistency checking (default).\n"
@@ -167,8 +165,10 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
     data->profile = progs_profile_default();
     fsck_init_streams(data);
 
+    progs_misc_print_banner(argv[0]);
+    
     if (argc < 2) {
-	fsck_print_usage();
+	fsck_print_usage(argv[0]);
 	return USER_ERROR;
     }
 
@@ -228,11 +228,10 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
 */		
 	    case 'h': 
 	    case '?':
-		fsck_print_usage();
+		fsck_print_usage(argv[0]);
 		return NO_ERROR;	    
 	    case 'V': 
-		printf("\n");
-		printf(BANNER("fsck.reiser4"));
+		progs_misc_print_banner(argv[0]);
 		return USER_ERROR;
 	    case 'q': 
 		repair_set_option(REPAIR_OPT_QUIET, data);
@@ -251,7 +250,7 @@ static int fsck_init(repair_data_t *data, int argc, char *argv[])
 	progs_profile_print(data->profile);
 	return NO_ERROR;
     } else if (optind != argc - 1) {
-	fsck_print_usage();
+	fsck_print_usage(argv[0]);
 	return USER_ERROR;
     }
     

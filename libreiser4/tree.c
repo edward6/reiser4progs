@@ -16,7 +16,7 @@
 #ifndef ENABLE_COMPACT
 
 /* Requests block allocator for new block and creates empty node in it */
-static reiser4_joint_t *reiser4_tree_allocate(
+reiser4_joint_t *reiser4_tree_allocate(
     reiser4_tree_t *tree,	    /* tree for operating on */
     uint8_t level		    /* level of new node */
 ) {
@@ -68,7 +68,7 @@ error_free_block:
     return NULL;
 }
 
-static void reiser4_tree_release(reiser4_tree_t *tree, 
+void reiser4_tree_release(reiser4_tree_t *tree, 
     reiser4_joint_t *joint) 
 {
     aal_assert("umka-917", joint != NULL, return);
@@ -86,15 +86,21 @@ static void reiser4_tree_release(reiser4_tree_t *tree,
 
 #endif
 
-static reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree, 
+reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree, 
     blk_t blk) 
 {
     aal_block_t *block;
+    aal_device_t *device;
     reiser4_node_t *node;
     reiser4_joint_t *joint;
 
-    if (!(block = aal_block_open(tree->fs->format->device, blk))) {
-	aal_exception_error("Can't allocate block %llu in memory.", blk);
+    aal_assert("umka-1289", tree != NULL, return NULL);
+    
+    device = tree->fs->format->device;
+    
+    if (!(block = aal_block_open(device, blk))) {
+	aal_exception_error("Can't read block %llu. %s.", 
+	    blk, device->error);
 	return NULL;
     }
     
@@ -726,6 +732,9 @@ errno_t reiser4_tree_mkspace(
     if (new->joint != old->joint && 
         reiser4_node_count(old->joint->node) == 0)
     {
+	if (old->joint->parent)
+	    reiser4_joint_detach(old->joint->parent, old->joint);
+	
         reiser4_tree_release(tree, old->joint);
         old->joint = NULL;
     }

@@ -46,5 +46,14 @@ extern blk_t reiser4_tree_root(reiser4_tree_t *tree);
 extern reiser4_key_t *reiser4_tree_key(reiser4_tree_t *tree);
 extern uint8_t reiser4_tree_height(reiser4_tree_t *tree);
 
+extern reiser4_joint_t *reiser4_tree_allocate(reiser4_tree_t *tree, 
+    uint8_t level);
+
+extern void reiser4_tree_release(reiser4_tree_t *tree, 
+    reiser4_joint_t *joint);
+
+extern reiser4_joint_t *reiser4_tree_load(reiser4_tree_t *tree, 
+    blk_t blk);
+
 #endif
 

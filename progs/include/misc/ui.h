@@ -20,5 +20,7 @@ extern void progs_ui_set_possibilities(aal_list_t *list);
 extern aal_list_t *progs_ui_get_possibilities(void);
 #endif
 
+extern void progs_misc_print_banner(char *name);
+
 #endif
 
