@@ -249,6 +249,9 @@ reiser4_core_t core = {
 		.set_data   = tree_set_data,
 #endif
 	},
+	.profile_ops = {
+		.value = profile_value
+	},
 	.factory_ops = {
 		/* Installing callback for making search for a plugin by its
 		   type and id. */
@@ -271,11 +274,8 @@ reiser4_core_t core = {
 #ifndef ENABLE_STAND_ALONE
 	.key_ops = {
 		.print = key_print
-	},
-#endif
-	.profile_ops = {
-		.value = profile_value
 	}
+#endif
 };
 
 /* Returns libreiser4 max supported interface version */
