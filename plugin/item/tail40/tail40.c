@@ -496,6 +496,7 @@ static item_balance_ops_t balance_ops = {
 	.maxreal_key	  = tail40_maxreal_key,
 	.prep_shift	  = tail40_prep_shift,
 	.shift_units	  = tail40_shift_units,
+	.collision	  = NULL,
 #endif
 	.units            = tail40_units,
 	.lookup		  = tail40_lookup,

@@ -1355,6 +1355,7 @@ static item_balance_ops_t balance_ops = {
 	.prep_shift	  = extent40_prep_shift,
 	.shift_units	  = extent40_shift_units,
 	.maxreal_key	  = extent40_maxreal_key,
+	.collision	  = NULL,
 #endif
 	.units		  = extent40_units,
 	.lookup		  = extent40_lookup,

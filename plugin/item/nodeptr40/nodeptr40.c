@@ -119,6 +119,7 @@ static item_balance_ops_t balance_ops = {
 	.maxreal_key	  = NULL,
 	.update_key	  = NULL,
 	.mergeable	  = NULL,
+	.collision	  = NULL,
 #endif
 	.lookup		  = NULL,
 	.fetch_key	  = NULL,
