@@ -863,8 +863,12 @@ lookup_t reiser4_tree_lookup(
 			if (res == ABSENT) {
 				reiser4_place_inc(place, whole);
 			}
-
-			return res;
+			
+			if (reiser4_place_fetch(place))
+				return FAILED;
+			
+			if (!reiser4_item_branch(place))
+				return res;
 		} 
 
 		/* Loading node by its nodeptr item at @place */
