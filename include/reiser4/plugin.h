@@ -1365,10 +1365,11 @@ typedef struct object_ops object_ops_t;
 */
 struct reiser4_core {
 	tree_ops_t tree_ops;
+	
+	factory_ops_t factory_ops;
 #ifdef ENABLE_SYMLINKS_SUPPORT
 	object_ops_t object_ops;
 #endif
-	factory_ops_t factory_ops;
 };
 
 #define plugin_equal(plugin1, plugin2)                           \
