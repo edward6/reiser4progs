@@ -26,7 +26,7 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	aal_assert("vpf-1195", mode != RM_BUILD ||
 			      !(res & RE_FATAL));
 	
-	reiser4_key_assign(&object->info.object, &object->info.start.key);
+	reiser4_key_assign(&object->info->object, &object->info->start.key);
 
 	aal_strncpy(object->name, 
 		    reiser4_print_key(&object->info.object, P_SHORT),  
@@ -47,21 +47,23 @@ static bool_t callback_object_realize(reiser4_plug_t *plug, void *data) {
 	
 	/* Try to realize the object as an instance of this plugin. */
 	object->entity = plug_call(plug->o.object_ops, realize, 
-				   &object->info);
+				   object->info);
 	
 	if (object->entity != NULL && object->entity != INVAL_PTR) {
-		plug_call(plug->o.object_ops, close,  object->entity);
+		plug_call(plug->o.object_ops, close, object->entity);
 		return TRUE;
 	}
 	
 	return FALSE;
 }
 
+/* FIXME-UMKA->VITALY: Here apparently should be used resier4_object_realize()
+   as it is the same as this one. Also, @parent param shpuld be added here. */
 reiser4_object_t *repair_object_realize(reiser4_tree_t *tree, 
 					reiser4_place_t *place)
 {
+/*	reiser4_plug_t *plug;
 	reiser4_object_t *object;
-	reiser4_plug_t *plug;
 	
 	aal_assert("vpf-1198", tree != NULL);
 	aal_assert("vpf-1199", place != NULL);
@@ -69,10 +71,9 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return NULL;
     
-	object->info.tree = tree;
+	object->info->tree = tree;
 	
-	aal_memcpy(reiser4_object_start(object),
-		   place, sizeof(*place));
+	aal_memcpy(object_start(object), place, sizeof(*place));
 	
 	if (reiser4_object_guess(object, callback_object_realize))
 		goto error_free_object;
@@ -88,7 +89,9 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 	
  error_free_object:
 	aal_free(object);
-	return NULL;
+	return NULL;*/
+
+	return reiser4_object_realize(tree, NULL, place);
 }
 
 /* Open the object on the base of given start @key */
@@ -96,6 +99,8 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 				       reiser4_key_t *key, 
 				       bool_t only)
 {
+	/* FIXME-UMKA->VITALY: This method should be rewritten */
+#if 0
 	reiser4_object_t *object;
 	reiser4_plug_t *plug;
 	reiser4_place_t place;
@@ -142,6 +147,7 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 
  error_close_object:
 	aal_free(object);
+#endif
 	return NULL;
 }
 
