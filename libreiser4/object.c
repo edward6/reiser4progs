@@ -393,7 +393,10 @@ reiser4_object_t *reiser4_object_create(
 				    "the tree being initialized.");
 		return NULL;
 	}
-	
+	/* Allocating the memory for object instance */
+	if (!(object = aal_calloc(sizeof(*object), 0)))
+		return NULL;
+
 	reiser4_object_create_base(fs, parent, object, hint);
 	
 	if (!(object->entity = plugin_call(hint->plugin->o.object_ops,
