@@ -282,20 +282,13 @@ static uint32_t reg40_chunk(reg40_t *reg) {
 }
 
 /* Writes passed data to the file */
-static int32_t reg40_put(object_entity_t *entity, 
-			 void *buff, uint32_t n)
-{
+int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 	errno_t res;
 	reg40_t *reg;
-	place_t *place;
 	
 	uint64_t size;
-	uint32_t atime;
-
 	uint32_t written;
 	uint32_t maxspace;
-
-	sdext_unix_hint_t unix_hint;
 
 	reg = (reg40_t *)entity;
 	maxspace = reg40_chunk(reg);
@@ -313,7 +306,7 @@ static int32_t reg40_put(object_entity_t *entity,
 		plug = STAT_KEY(&reg->obj)->plug;
 		
 		plug_call(plug->o.key_ops, build_gener, &hint.key,
-			  KEY_FILEBODY_TYPE,obj40_locality(&reg->obj),
+			  KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
 			  obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
 			  reg->offset);
 
@@ -335,6 +328,8 @@ static int32_t reg40_put(object_entity_t *entity,
 				     LEAF_LEVEL, &place))
 		{
 		case FAILED:
+			aal_exception_error("Can't found place to put "
+					    "new data at.");
 			return -EIO;
 		case PRESENT:
 			if (hint.plug->id.group == TAIL_ITEM) {
@@ -371,90 +366,16 @@ static int32_t reg40_put(object_entity_t *entity,
 
 		aal_memcpy(&reg->body, &place, sizeof(reg->body));
 
-		buff += hint.count;
+		/* @buff may be NULL for inserting holes */
+		if (buff)
+			buff += hint.count;
+
+		/* Updating counters and offset */
 		written += hint.count;
 		reg->offset += hint.count;
 	}
 	
-	/* Updating stat data place */
-	if (obj40_update(&reg->obj, STAT_PLACE(&reg->obj)))
-		return -EINVAL;
-	
-	/* Updating stat data fields */
-	size = obj40_get_size(&reg->obj);
-
-	/* Updating size if new file offset is further than size. This means,
-	   that file realy got some data additionaly, not only got rewtitten
-	   something. */
-	if (reg->offset > size) {
-		if ((res = obj40_set_size(&reg->obj, reg->offset)))
-			return res;
-	}
-	
-	place = STAT_PLACE(&reg->obj);
-	
-	if ((res = obj40_read_ext(place, SDEXT_UNIX_ID, &unix_hint)))
-		return res;
-	
-	atime = time(NULL);
-	
-	unix_hint.atime = atime;
-	unix_hint.mtime = atime;
-
-	if (reg->offset > unix_hint.bytes)
-		unix_hint.bytes = reg->offset;
-
-	if ((res = obj40_write_ext(place, SDEXT_UNIX_ID, &unix_hint)))
-		return res;
-	
 	return written;
-}
-
-/* Takes care about holes */
-errno_t reg40_holes(object_entity_t *entity) {
-	errno_t res;
-	reg40_t *reg;
-	uint64_t size;
-
-	reg = (reg40_t *)entity;
-
-	/* Updating stat data place */
-	if (obj40_update(&reg->obj, STAT_PLACE(&reg->obj)))
-		return -EINVAL;
-	
-	size = obj40_get_size(&reg->obj);
-
-	/* Writing holes */
-	if (reg->offset > size) {
-		void *holes;
-		int32_t hole;
-		int32_t written;
-
-		hole = reg->offset - size;
-		reg->offset -= hole;
-
-		for (written = 0; written < hole; ) {
-			uint32_t chunk;
-
-			chunk = hole - written;
-
-			if (chunk > reg40_chunk(reg))
-				chunk = reg40_chunk(reg);
-			
-			if (!(holes = aal_calloc(chunk, 0)))
-				return -ENOMEM;
-
-			if (reg40_put(entity, holes, chunk) < 0) {
-				aal_free(holes);
-				return -EIO;
-			}
-
-			aal_free(holes);
-			written += chunk;
-		}
-	}
-
-	return 0;
 }
 
 static errno_t reg40_cut(object_entity_t *entity) {
@@ -535,17 +456,31 @@ static int32_t reg40_write(object_entity_t *entity,
 			   void *buff, uint32_t n) 
 {
 	int32_t res;
+	reg40_t *reg;
+	
+	uint64_t hole;
+	uint64_t size;
 	
 	aal_assert("umka-2280", buff != NULL);
 	aal_assert("umka-2281", entity != NULL);
 
-	if ((res = reg40_holes(entity)))
+	reg = (reg40_t *)entity;
+	size = reg40_size(entity);
+
+	hole = reg->offset > size ?
+		reg->offset - size : 0;
+
+	/* Inserting holes if it is needed */
+	if ((res = reg40_put(entity, NULL, hole)) < 0)
 		return res;
-	
+
+	/* Inseting data */
 	if ((res = reg40_put(entity, buff, n)) < 0)
 		return res;
-	
-	return res;
+
+	/* FIXME-UMKA: Here shouldbe correct bytes value passed */
+	return obj40_touch(&reg->obj, reg->offset,
+			   reg->offset, time(NULL));
 }
 
 static errno_t reg40_truncate(object_entity_t *entity,
@@ -575,22 +510,21 @@ static errno_t reg40_truncate(object_entity_t *entity,
 	reg->offset = n;
 	
 	if (n > size) {
-		if ((res = reg40_holes(entity)))
+		/* Making holes */
+		if ((res = reg40_put(entity, NULL,
+				     n - size)))
+		{
 			goto error_restore_offset;
+		}
 	} else {
+		/* Cutting items/units */
 		if ((res = reg40_cut(entity)))
 			goto error_restore_offset;
 	}
 
-	if (obj40_update(&reg->obj, STAT_PLACE(&reg->obj)))
-		return -EINVAL;
-
-	obj40_set_size(&reg->obj, n);
-
-	/* In the sace of tails bytes should be the same as size field in stat
-	   data. */
-	return obj40_set_bytes(&reg->obj, n);
-
+	/* FIXME-UMKA: Here should be passed correct bytes value */
+	return obj40_touch(&reg->obj, n, n, time(NULL));
+	
  error_restore_offset:
 	reg->offset = offset;
 	return res;

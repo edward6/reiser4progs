@@ -19,8 +19,6 @@ reiser4progs/COPYING.
 
 * plugin inheritance for objects.
 
-* atime updating when reading from file or directory.
-
 * extents support (reg40.c, tree.c, etc).
 
 * special file plugin and special files support in debugfs.

@@ -132,7 +132,41 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid,
 	}
 	
 	/* Insert statdata item into the tree */
-	return obj40_insert(obj, &stat_hint, LEAF_LEVEL, STAT_PLACE(obj));
+	return obj40_insert(obj, &stat_hint, LEAF_LEVEL,
+			    STAT_PLACE(obj));
+}
+
+/* Updates size, bytes and atime fielsds */
+errno_t obj40_touch(obj40_t *obj, uint64_t size,
+		    uint64_t bytes, uint32_t atime)
+{
+	errno_t res;
+	sdext_unix_hint_t unix_hint;
+	place_t *place = STAT_PLACE(obj);
+
+	/* Updating stat data place */
+	if (obj40_update(obj, place))
+		return -EINVAL;
+	
+	/* Updating size if new file offset is further than size. This means,
+	   that file realy got some data additionaly, not only got rewtitten
+	   something. */
+	if (size != obj40_get_size(obj)) {
+		if ((res = obj40_set_size(obj, size)))
+			return res;
+	}
+
+	/* Updating atime and mtime */
+	if ((res = obj40_read_ext(place, SDEXT_UNIX_ID, &unix_hint)))
+		return res;
+	
+	unix_hint.atime = atime;
+	unix_hint.mtime = atime;
+
+	if (bytes != unix_hint.bytes)
+		unix_hint.bytes = bytes;
+
+	return obj40_write_ext(place, SDEXT_UNIX_ID, &unix_hint);
 }
 
 /* Writes stat data extention. */

@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	hint.blocks = 0;
-	hint.blksize = REISER4_BLKSIZE;
+	hint.blksize = 0;
 	
 	memset(override, 0, sizeof(override));
 	memset(hint.uuid, 0, sizeof(hint.uuid));
@@ -227,6 +227,10 @@ int main(int argc, char *argv[]) {
 	
 	if (flags & BF_PLUGS)
 		misc_plugins_print();
+
+	/* Guessing block size by getting page size */
+	if (!hint.blksize)
+		hint.blksize = getpagesize();
 	
 	/* Building list of devices the filesystem will be created on */
 	for (; optind < argc; optind++) {
@@ -267,7 +271,7 @@ int main(int argc, char *argv[]) {
 		host_dev = (char *)walk->data;
     
 		if (stat(host_dev, &st) == -1) {
-			aal_exception_error("can't stat %s.", host_dev);
+			aal_exception_error("Can't stat %s.", host_dev);
 			goto error_free_libreiser4;
 		}
     
@@ -329,7 +333,8 @@ int main(int argc, char *argv[]) {
 
 		/* Checking for "quiet" mode */
 		if (!(flags & BF_QUIET)) {
-			if (aal_exception_yesno("Reiser4 is going to be created on %s.",
+			if (aal_exception_yesno("Reiser4 with block size %u is going "
+						"to be created on %s.", hint.blksize,
 						host_dev) == EXCEPTION_NO)
 			{
 				goto error_free_device;

@@ -13,8 +13,11 @@
 #include "repair/plugin.h"
 
 extern reiser4_plug_t reg40_plug;
+
 extern errno_t reg40_reset(object_entity_t *entity);
-extern errno_t reg40_holes(object_entity_t *entity);
+
+extern int32_t reg40_put(object_entity_t *entity,
+			 void *buff, uint32_t n);
 
 #define known_extentions ((uint64_t)1 << SDEXT_UNIX_ID | 	\
 			  	    1 << SDEXT_LW_ID |		\
@@ -127,7 +130,8 @@ static errno_t reg40_create_hole(reg40_t *reg, uint64_t offset) {
 	object_info_t *info = &reg->obj.info;
 	errno_t res;
 
-	if ((res = reg40_holes((object_entity_t *)reg))) {
+	/* FIXME-UMKA->VITALY: Fix third param (hole size) */
+	if ((res = reg40_put((object_entity_t *)reg, NULL, 0))) {
 		aal_exception_error("The object [%s] failed to create the hole "
 				    "at [%llu-%llu] offsets. Plugin %s.",
 				    core->key_ops.print(&info->object, PO_DEF),
