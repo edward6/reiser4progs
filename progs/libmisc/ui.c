@@ -13,15 +13,19 @@
 
 #ifdef HAVE_LIBREADLINE
 
+#ifndef HAVE_RL_COMPLETION_MATCHES
+#  define OLD_READLINE (1)
+#endif
+
 #include <readline/readline.h>
 #include <readline/history.h>
 
 #ifndef HAVE_RL_COMPLETION_MATCHES
-#define rl_completion_matches completion_matches
+#  define rl_completion_matches completion_matches
 #endif
 
 #ifndef rl_compentry_func_t
-#define rl_compentry_func_t void
+#  define rl_compentry_func_t void
 #endif
 
 static aal_list_t *possibilities = NULL;
