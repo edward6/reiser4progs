@@ -237,42 +237,6 @@ static errno_t node40_get_key(object_entity_t *entity,
 	return 0;
 }
 
-/* Gets item's body at passed @pos */
-static void *node40_item_body(object_entity_t *entity, 
-			      pos_t *pos)
-{
-	node40_t *node;
-    
-	aal_assert("umka-940", pos != NULL);
-	aal_assert("vpf-040", entity != NULL);
-	aal_assert("umka-2023", node40_loaded(entity));
-
-	node = (node40_t *)entity;
-
-	aal_assert("umka-814", pos->item <
-		   nh40_get_num_items(node));
-    
-	return node40_ib_at(node, pos->item);
-}
-
-/* Returns item plugin id at specified @pos */
-static rid_t node40_item_pid(object_entity_t *entity, 
-			     pos_t *pos)
-{
-	node40_t *node;
-    
-	aal_assert("umka-941", pos != NULL);
-	aal_assert("vpf-039", entity != NULL);
-	aal_assert("umka-2024", node40_loaded(entity));
-
-	node = (node40_t *)entity;
-	
-	aal_assert("umka-815", pos->item <
-		   nh40_get_num_items(node));
-    
-	return ih40_get_pid(node40_ih_at(node, pos->item));
-}
-
 /* Returns length of item at pos. */
 static uint16_t node40_item_len(object_entity_t *entity, 
 				pos_t *pos)
@@ -285,9 +249,6 @@ static uint16_t node40_item_len(object_entity_t *entity,
 	aal_assert("umka-2024", node40_loaded(entity));
 
 	node = (node40_t *)entity;
-
-	aal_assert("umka-815", pos->item <
-		   nh40_get_num_items(node));
 
 	/*
 	  Item length is calculated as next item body offset minus current item
@@ -303,18 +264,17 @@ static uint16_t node40_item_len(object_entity_t *entity,
 	return ih40_get_offset(ih - 1) - ih40_get_offset(ih);
 }
 
-#ifndef ENABLE_STAND_ALONE
 /*
   Initializes item entity in order to pass it to an item plugin routine. If unit
   component of pos is set up the function will initialize item's key from the
   unit one.
 */
-static errno_t node40_item(object_entity_t *entity, pos_t *pos,
-			   item_entity_t *item)
+static errno_t node40_get_item(object_entity_t *entity, pos_t *pos,
+			       item_entity_t *item)
 {
 	rid_t pid;
 	node40_t *node;
-
+	
 	aal_assert("umka-1813", pos != NULL);
 	aal_assert("umka-1602", item != NULL);
 	aal_assert("umka-1631", entity != NULL);
@@ -329,13 +289,34 @@ static errno_t node40_item(object_entity_t *entity, pos_t *pos,
 	item->context.blk = aal_block_number(node->block);
 
 	/* Initializing item's plugin */
-	pid = node40_item_pid(entity, pos);
+	pid = ih40_get_pid(node40_ih_at(node, pos->item));
 	
 	if (!(item->plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, pid))) {
 		aal_exception_error("Can't find item plugin by its id "
 				    "0x%x", pid);
 		return -EINVAL;
 	}
+
+	/* Initializing item's pos, body pointer and length */
+	item->pos = *pos;
+	item->len = node40_item_len(entity, pos);
+	item->body = node40_ib_at(node, pos->item);
+
+	return 0;
+}
+
+#ifndef ENABLE_STAND_ALONE
+static errno_t node40_item(object_entity_t *entity,
+			   pos_t *pos, item_entity_t *item)
+{
+	rid_t pid;
+	errno_t res;
+	node40_t *node;
+	
+	node = (node40_t *)entity;
+	
+	if ((res = node40_get_item(entity, pos, item)))
+		return res;
 	
 	/* FIXME-UMKA: Hardcoded key plugin id */
 	if (!(item->key.plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
@@ -350,11 +331,6 @@ static errno_t node40_item(object_entity_t *entity, pos_t *pos,
 	if (node40_get_key(entity, pos, &item->key))
 		return -EINVAL;
 	
-	/* Initializing item's pos, body pointer and length */
-	item->pos = *pos;
-	item->len = node40_item_len(entity, pos);
-	item->body = node40_ib_at(node, pos->item);
-
         /* Getting unit key if unit component is specified */
 	if (pos->unit != ~0ul && item->plugin->item_ops.get_key) {
 		uint32_t units = 1;
@@ -1855,6 +1831,7 @@ static reiser4_plugin_t node40_plugin = {
 		.items		 = node40_items,
 	
 		.get_key	 = node40_get_key,
+		.get_item        = node40_get_item,
 		.get_level	 = node40_get_level,
 		
 #ifndef ENABLE_STAND_ALONE
@@ -1884,11 +1861,8 @@ static reiser4_plugin_t node40_plugin = {
 		.set_key	 = node40_set_key,
 		.set_level       = node40_set_level,
 		.set_mstamp	 = node40_set_mstamp,
-		.set_fstamp      = node40_set_fstamp,
+		.set_fstamp      = node40_set_fstamp
 #endif
-		.item_len	 = node40_item_len,
-		.item_body	 = node40_item_body,
-		.item_pid	 = node40_item_pid
 	}
 };
 

@@ -106,53 +106,14 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 
 /* Initializes all item-related fields */
 errno_t reiser4_place_realize(reiser4_place_t *place) {
-	rid_t pid;
-	reiser4_key_t *key;
-	
-	item_entity_t *item;
 	object_entity_t *entity;
 	
-        aal_assert("umka-1459", place != NULL);
-
-	aal_assert("umka-1895", place->pos.item <
-		   reiser4_node_items(place->node));
+	aal_assert("umka-1459", place != NULL);
 
 	entity = place->node->entity;
-	
-	if ((pid = plugin_call(entity->plugin->node_ops, item_pid,
-			       entity, &place->pos)) == INVAL_PID)
-	{
-		aal_exception_error("Invalid item plugin id has been "
-				    "detected.");
-		return -EINVAL;
-	}
 
-	item = &place->item;
-	
-	if (!(item->plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) {
-		aal_exception_error("Can't find item plugin by its id "
-				    "0x%x.", pid);
-		return -EINVAL;
-	}
-
-	if (!(item->body = plugin_call(entity->plugin->node_ops, item_body,
-				       entity, &place->pos)))
-	{
-		aal_exception_error("Can't get item body.");
-		return -EINVAL;
-	}
-
-	/* Initializing item entity fields */
-	item->pos = place->pos;
-	
-	item->len = plugin_call(entity->plugin->node_ops, item_len,
-				entity, &place->pos);
-
-	/* Initializing item context fields */
-	item->context.blk = place->node->blk;
-	item->context.device = place->node->device;
-
-	return 0;
+	return plugin_call(entity->plugin->node_ops, get_item,
+			   entity, &place->pos, &place->item);
 }
 
 /* This function initializes passed @place by specified params */

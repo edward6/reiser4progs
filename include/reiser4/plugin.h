@@ -943,15 +943,9 @@ struct reiser4_node_ops {
 			    key_entity_t *);
     
 	uint8_t (*get_level) (object_entity_t *);
-    
-	/* Gets item at passed pos */
-	body_t *(*item_body) (object_entity_t *, pos_t *);
 
-	/* Returns item's length by pos */
-	uint16_t (*item_len) (object_entity_t *, pos_t *);
-    
-	/* Gets/sets node's plugin ID */
-	uint16_t (*item_pid) (object_entity_t *, pos_t *);
+	errno_t (*get_item) (object_entity_t *, pos_t *,
+			     item_entity_t *);
 };
 
 typedef struct reiser4_node_ops reiser4_node_ops_t;
