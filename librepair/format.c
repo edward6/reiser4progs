@@ -7,33 +7,24 @@
 
 #include <repair/librepair.h>
 
-static int callback_tail_check(int64_t tail, void *data) {
-    if (tail >= *(int *)data || tail < 0) {
-	aal_exception_error("Invalid tail policy was specified (%ld)", tail);
-	return 0;
-    }
-    
-    return 1;
-}
-
 /* Checks the opened format, or build a new one if it was not openned. */
 static errno_t repair_format_check(reiser4_fs_t *fs, uint8_t mode) {
     reiser4_plugin_t *plugin = NULL;
     errno_t ret = REPAIR_OK;
     count_t count;
-    rid_t tail, pid;
+    rid_t policy, pid;
 
     aal_assert("vpf-165", fs != NULL);
     aal_assert("vpf-833", fs->profile != NULL);
     aal_assert("vpf-171", fs->device != NULL);
     aal_assert("vpf-834", fs->master != NULL);
     
-    tail = reiser4_profile_value(fs->profile, "tail");
+    policy = reiser4_profile_value(fs->profile, "policy");
     
-    if (tail >= TAIL_LAST_ID) {
+    if (policy >= TAIL_LAST_ID) {
 	/* Tail id from the profile is wrong. */
 	aal_exception_error("Invalid tail policy (%u) is specified in the "
-	    "profile.", tail);
+	    "profile.", policy);
 	return -EINVAL;
     }
 
@@ -68,14 +59,14 @@ static errno_t repair_format_check(reiser4_fs_t *fs, uint8_t mode) {
 	    count = aal_device_len(fs->device);
 	    
 	    /* Create the format from the scratch. */
-	    if (!(fs->format = reiser4_format_create(fs, count, tail, pid))) {
+	    if (!(fs->format = reiser4_format_create(fs, count, policy, pid))) {
 		aal_exception_fatal("Cannot create a filesystem of the format "
 		    "(%s).", plugin->h.label);
 		return -EINVAL;
 	    } else {
 		aal_exception_fatal("The format (%s) with tail policy (%u) was "
 		    "created on the partition (%s) of (%llu) block length.", 
-		    plugin->h.label, tail, aal_device_name(fs->device), count);
+		    plugin->h.label, policy, aal_device_name(fs->device), count);
 	    }
 
 	    reiser4_format_set_stamp(fs->format, 0);
@@ -112,14 +103,14 @@ static errno_t repair_format_check(reiser4_fs_t *fs, uint8_t mode) {
     
     pid = reiser4_format_get_policy(fs->format);
     
-    if (pid != tail) {	
+    if (pid != policy) {
 	aal_exception_error("Tail policy (%u) detected on (%s) differs from "
 	    "the specified in the profile (%u). %s", pid, 
-	    aal_device_name(fs->device), tail, mode != REPAIR_CHECK ? 
+	    aal_device_name(fs->device), policy, mode != REPAIR_CHECK ? 
 	    "Fixed." : "");
 	
 	if (mode != REPAIR_CHECK) {
-	    reiser4_format_set_policy(fs->format, tail);
+	    reiser4_format_set_policy(fs->format, policy);
 	    ret |= REPAIR_FIXED;
 	} else
 	    ret |= REPAIR_FIXABLE;
