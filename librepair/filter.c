@@ -384,7 +384,6 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 		hint.count = 1;
 		hint.place_func = NULL;
 		hint.region_func = NULL;
-		hint.item_flags = 0;
 		hint.shift_flags = SF_DEFAULT;
 		
 		res = reiser4_node_remove(place->node, &place->pos, &hint);

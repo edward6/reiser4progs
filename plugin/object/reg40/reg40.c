@@ -395,7 +395,7 @@ static errno_t reg40_check_body(object_entity_t *entity,
 /* Writes passed data to the file. Returns amount of data on disk, that is
    @bytes value, which should be counted in stat data. */
 int64_t reg40_put(object_entity_t *entity, void *buff,
-		  uint64_t n, uint16_t item_flags)
+		  uint64_t n)
 {
 	reg40_t *reg;
 	int64_t written;
@@ -413,7 +413,6 @@ int64_t reg40_put(object_entity_t *entity, void *buff,
 	hint.specific = buff;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
-	hint.item_flags = item_flags;
 	hint.shift_flags = SF_DEFAULT;
 	hint.tree = reg->obj.info.tree;
 	
@@ -454,7 +453,6 @@ static int64_t reg40_cut(object_entity_t *entity, uint64_t n) {
 		  set_offset, &hint.offset, n);
 
 	/* Removing data from the tree. */
-	hint.item_flags = 0;
 	hint.count = size - n;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
@@ -497,7 +495,7 @@ static int64_t reg40_write(object_entity_t *entity,
 		uint32_t hole = offset - size;
 		
 		if ((bytes = reg40_put(entity, NULL,
-				       hole, 0)) < 0)
+				       hole)) < 0)
 		{
 			return bytes;
 		}
@@ -506,7 +504,7 @@ static int64_t reg40_write(object_entity_t *entity,
 	}
 
 	/* Putting data to tree. */
-	if ((res = reg40_put(entity, buff, n, 0)) < 0)
+	if ((res = reg40_put(entity, buff, n)) < 0)
 		return res;
 
 	bytes += res;
@@ -543,7 +541,7 @@ static errno_t reg40_truncate(object_entity_t *entity,
 		
 		/* Inserting holes. */
 		if ((bytes = reg40_put(entity, NULL,
-				       n - size, 0)) < 0)
+				       n - size)) < 0)
 		{
 			return bytes;
 		}

@@ -63,7 +63,6 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 			}
 
 			hint.count = 1;
-			hint.item_flags = 0;
 			hint.place_func = NULL;
 			hint.region_func = NULL;
 			hint.shift_flags = SF_DEFAULT;
@@ -103,7 +102,6 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 				  node_blocknr(node), pos->item);
 
 			hint.count = 1;
-			hint.item_flags = 0;
 			hint.place_func = NULL;
 			hint.region_func = NULL;
 			hint.shift_flags = SF_DEFAULT;
@@ -168,7 +166,6 @@ static errno_t repair_node_keys_check(node_t *node, uint8_t mode) {
 			aal_memset(&hint, 0, sizeof(hint));
 
 			hint.count = 1;
-			hint.item_flags = 0;
 			hint.place_func = NULL;
 			hint.region_func = NULL;
 			hint.shift_flags = SF_DEFAULT;

@@ -141,7 +141,8 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	}
 
 	/* Copying master super block */
-	aal_memcpy(SUPER(master), block->data, sizeof(*SUPER(master)));
+	aal_memcpy(SUPER(master), block->data,
+		   sizeof(*SUPER(master)));
 
 	aal_block_free(block);
     

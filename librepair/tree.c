@@ -375,7 +375,6 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	hint.region_func = NULL;
 	hint.tree = tree;
 	hint.shift_flags = SF_DEFAULT;
-	hint.item_flags = 0;
 	ptr.start = node_blocknr(node);
 	ptr.width = 1;
 	
@@ -481,7 +480,6 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, place_t *dst,
 	hint.plug = dst->plug;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
-	hint.item_flags = 0;
 	hint.shift_flags = SF_DEFAULT;
 	
 	if ((res = reiser4_item_maxreal_key(dst, &dmax)))
@@ -608,10 +606,6 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src,
 	hint.place_func = NULL;
 	hint.region_func = func;
 	hint.data = data;
-
-	/* FIXME-UMKA->VITALY: New item flags shpould be... */
-	hint.item_flags = 0;
-
 	hint.shift_flags = SF_DEFAULT;
 		
 	reiser4_key_assign(&hint.offset, &src->key);

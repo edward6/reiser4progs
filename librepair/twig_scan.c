@@ -75,7 +75,6 @@ static errno_t callback_check_layout(place_t *place, void *data) {
 			hint.place_func = NULL;
 			hint.region_func = NULL;
 			hint.shift_flags = SF_DEFAULT;
-			hint.item_flags = 0;
 
 			res = reiser4_node_remove(node, &place->pos, &hint);
 

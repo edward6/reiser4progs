@@ -1039,11 +1039,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 	hint.specific = &ptr;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
-
 	hint.plug = place->plug;
-
-	/* Getting item flags for new extent items from old one. */
-	hint.item_flags = place->flags;
 
 	/* We force balancing use these flags with disables left shift
 	   in order to not affect to items/units left of insert point,
@@ -1755,7 +1751,6 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node,
     
 	/* Preparing nodeptr item hint. */
 	hint.count = 1;
-	hint.item_flags = 0;
 	hint.specific = &ptr;
 	hint.place_func = NULL;
 	hint.region_func = NULL;

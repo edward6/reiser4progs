@@ -134,7 +134,6 @@ static errno_t callback_node_cleanup(place_t *place, void *data) {
 	hint.region_func = callback_free_extent;
 	hint.data = cleanup;
 	hint.shift_flags = SF_DEFAULT;
-	hint.item_flags = 0;
 
 	/* Remove not checked item. */
 	res = reiser4_tree_remove(cleanup->repair->fs->tree, place, &hint);

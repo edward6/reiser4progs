@@ -49,8 +49,6 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 
 			hole_size = next_offset - look_offset;
 			read = (hole_size > size ? size : hole_size);
-
-			hint->item_flags = 0;
 			
 			/* Making holes in buffer */
 			aal_memset(hint->specific, 0, read);
@@ -58,7 +56,6 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 			/* Prepare hint for read */
 			hint->tree = tree;
 			hint->count = size;
-			hint->item_flags = place.flags;
 			
 			/* Read data from the tree */
 			if ((read = reiser4_tree_read(tree, &place, hint)) < 0) {

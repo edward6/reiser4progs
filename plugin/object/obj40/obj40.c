@@ -44,7 +44,6 @@ errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
 	aal_memset(&stat, 0, sizeof(stat));
 
 	/* Preparing hint and mask */
-	trans.item_flags = 0;
 	trans.specific = &stat;
 	trans.place_func = NULL;
 	trans.region_func = NULL;
@@ -81,7 +80,6 @@ errno_t obj40_load_stat(obj40_t *obj, statdata_hint_t *hint) {
 	aal_assert("umka-2553", obj != NULL);
 
 	/* Preparing hint and mask. */
-	trans.item_flags = 0;
 	trans.specific = hint;
 	trans.place_func = NULL;
 	trans.region_func = NULL;
@@ -105,7 +103,6 @@ errno_t obj40_save_stat(obj40_t *obj, statdata_hint_t *hint) {
 	aal_assert("umka-2554", obj != NULL);
 
 	/* Preparing hint and mask */
-	trans.item_flags = 0;
 	trans.specific = hint;
 	trans.place_func = NULL;
 	trans.region_func = NULL;
@@ -144,7 +141,6 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	}
 
 	hint.count = 1;
-	hint.item_flags = 0;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
 	hint.shift_flags = SF_DEFAULT;
@@ -240,7 +236,6 @@ errno_t obj40_write_ext(place_t *place, rid_t id,
 
 	aal_memset(&stat, 0, sizeof(stat));
 
-	hint.item_flags = 0;
 	hint.specific = &stat;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
@@ -271,7 +266,6 @@ uint64_t obj40_extmask(place_t *place) {
 	aal_memset(&stat, 0, sizeof(stat));
 
 	/* Preparing hint and mask */
-	hint.item_flags = 0;
 	hint.specific = &stat;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
@@ -463,7 +457,6 @@ errno_t obj40_clobber(obj40_t *obj) {
 		return res;
 
 	hint.count = 1;
-	hint.item_flags = 0;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
 	hint.shift_flags = SF_DEFAULT;

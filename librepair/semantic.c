@@ -105,9 +105,6 @@ static errno_t repair_semantic_add_entry(reiser4_object_t *parent,
 	errno_t res;
 
 	aal_memset(&entry, 0, sizeof(entry));
-
-	/* UMKA->FIXME->VITALY: Another value? */
-	entry.item_flags = 0;
 	
 	aal_strncpy(entry.name, name, sizeof(entry.name));
 	reiser4_key_assign(&entry.object, &object->info->object);

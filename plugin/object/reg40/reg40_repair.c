@@ -101,9 +101,7 @@ static void reg40_zero_nlink(obj40_t *obj, uint32_t *nlink) {
 static int64_t reg40_create_hole(reg40_t *reg, uint64_t len) {
 	int64_t res;
 
-	/* FIXME-UMKA->VITALY: Last argument if item flags for new items. Should
-	   it be zero here? */
-	if ((res = reg40_put((object_entity_t *)reg, NULL, len, 0)) < 0) {
+	if ((res = reg40_put((object_entity_t *)reg, NULL, len)) < 0) {
 		uint64_t offset = reg40_offset((object_entity_t *)reg);
 		object_info_t *info = &reg->obj.info;
 
