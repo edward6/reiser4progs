@@ -518,7 +518,7 @@ static errno_t direntry40_feel(item_entity_t *item,
 	if (direntry40_lookup(item, end, &end_pos) != LP_PRESENT)
 		return -EINVAL;
 
-	hint->count = end_pos - pos;
+	hint->count = end_pos - pos + 1;
 
 	hint->len = (sizeof(entry40_t) * hint->count) +
 		direntry40_size(item, pos, hint->count);

@@ -718,21 +718,14 @@ static errno_t node40_feel(object_entity_t *entity, pos_t *pos,
 	if (node40_item(entity, pos, &item))
 		return -EINVAL;
 	
-	hint->plugin = item.plugin;
-	
-	if ((res = node40_get_key(entity, pos, &hint->key)))
-		return res;
-	
 	/* Initializing hint fields */
-	if (pos->unit == ~0ul ||
-	    !hint->plugin->item_ops.feel)
-	{
+	if (pos->unit == ~0ul || !item.plugin->item_ops.feel) {
 		hint->len = item.len;
 		return 0;
 	}
 	
-	return hint->plugin->item_ops.feel(&item, pos->unit,
-					   start, end, hint);
+	return item.plugin->item_ops.feel(&item, pos->unit,
+					  start, end, hint);
 }
 
 static errno_t node40_copy(object_entity_t *dst_entity,
@@ -783,7 +776,7 @@ static errno_t node40_copy(object_entity_t *dst_entity,
 	if (node40_item(dst_entity, dst_pos, &dst_item))
 		return -EINVAL;
 		
-	if ((res = plugin_call(hint->plugin->item_ops, copy,
+	if ((res = plugin_call(src_item.plugin->item_ops, copy,
 			       &dst_item, dst_pos->item,
 			       &src_item, src_pos->item,
 			       start, end, hint)))
