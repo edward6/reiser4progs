@@ -1,7 +1,7 @@
 /*
-  gauge.h -- progress-bar structures.
+  gauge.h -- progress-bar structures and functions.
     
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -40,8 +40,10 @@ struct aal_gauge {
 	uint32_t value;
 };
 
-extern aal_gauge_t *aal_gauge_create(aal_gauge_type_t type, const char *name,
-				     aal_gauge_handler_t handler, void *data);
+extern aal_gauge_t *aal_gauge_create(aal_gauge_type_t type,
+				     const char *name,
+				     aal_gauge_handler_t handler,
+				     void *data);
 
 extern void aal_gauge_update(aal_gauge_t *gauge, uint32_t value);
 

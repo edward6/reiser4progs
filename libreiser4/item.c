@@ -1,7 +1,7 @@
 /*
   item.c -- common reiser4 item functions.
   
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -100,10 +100,10 @@ errno_t reiser4_item_print(
 #endif
 
 /*
-  These couple of functions which are using for determining item type. They are
-  deprecated and will be eliminated soon. That is because we should not be
-  depend in libreiser4 on possible item types. We should rely only on item
-  plugin methods.
+  These are the couple of functions which are used for determining item
+  type. They are deprecated and will be eliminated soon. That is because we
+  should not be depend in libreiser4 on possible item types. We should rely only
+  on item plugin methods.
 */
 bool_t reiser4_item_permissn(reiser4_coord_t *coord) {
 	item_entity_t *item;
@@ -175,6 +175,21 @@ bool_t reiser4_item_nodeptr(reiser4_coord_t *coord) {
 	
 	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
 		item->plugin->h.group == NODEPTR_ITEM;
+}
+
+/* Returns TRUE if @coord points to an internal item */
+bool_t reiser4_item_branch(reiser4_coord_t *coord) {
+	item_entity_t *item;
+	
+	aal_assert("umka-1828", coord != NULL, return 0);
+
+	item = &coord->item;
+	aal_assert("umka-1829", item->plugin != NULL, return 0);
+
+	if (!item->plugin->item_ops.branch)
+		return FALSE;
+
+	return item->plugin->item_ops.branch(item);
 }
 
 /* Returns item type from its plugin */

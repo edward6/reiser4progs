@@ -2,7 +2,7 @@
   node.c -- the personalization of the reiser4 on-disk node. The libreiser4
   internal in-memory tree consists of reiser4_node_t structures.
   
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -480,11 +480,16 @@ reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
 		if (reiser4_coord_open(&coord, node, &pos))
 			return NULL;
 
-		if (!reiser4_item_nodeptr(&coord))
+		/* Checking if item is a branch of tree */
+		if (!reiser4_item_branch(&coord))
 			return node;
 			
 		plugin_call(coord.item.plugin->item_ops, fetch,
 			    &coord.item, &ptr, 0, 1);
+
+		/* Checking item for validness */
+		if (ptr.ptr == INVAL_BLK)
+			return NULL;
 
 		if (!(child = reiser4_node_cbp(node, ptr.ptr))) {
 			aal_device_t *device = node->tree->fs->device;
@@ -777,24 +782,39 @@ uint8_t reiser4_node_level(
 
 #ifndef ENABLE_COMPACT
 
-errno_t reiser4_node_expand(reiser4_node_t *node,
-			    rpos_t *pos, uint32_t len)
+/* Makes copy @count items from @src_node into @dst_node */
+errno_t reiser4_node_copy(reiser4_node_t *dst_node, rpos_t *dst_pos,
+			  reiser4_node_t *src_node, rpos_t *src_pos,
+			  uint32_t count)
+{
+	aal_assert("umka-1819", src_node != NULL, return -1);
+	aal_assert("umka-1821", dst_node != NULL, return -1);
+	aal_assert("umka-1820", src_pos != NULL, return -1);
+	aal_assert("umka-1822", dst_pos != NULL, return -1);
+
+	return plugin_call(src_node->entity->plugin->node_ops, copy,
+			   src_node->entity, src_pos, dst_node->entity,
+			   dst_pos, count);
+}
+
+errno_t reiser4_node_expand(reiser4_node_t *node, rpos_t *pos,
+			    uint32_t len, uint32_t count)
 {
 	aal_assert("umka-1815", node != NULL, return -1);
 	aal_assert("umka-1816", pos != NULL, return -1);
 
 	return plugin_call(node->entity->plugin->node_ops, expand,
-			   node->entity, pos, len);
+			   node->entity, pos, len, count);
 }
 
-errno_t reiser4_node_shrink(reiser4_node_t *node,
-			    rpos_t *pos, uint32_t len)
+errno_t reiser4_node_shrink(reiser4_node_t *node, rpos_t *pos,
+			    uint32_t len, uint32_t count)
 {
 	aal_assert("umka-1817", node != NULL, return -1);
 	aal_assert("umka-1818", pos != NULL, return -1);
 
 	return plugin_call(node->entity->plugin->node_ops, shrink,
-			   node->entity, pos, len);
+			   node->entity, pos, len, count);
 }
 
 /*
@@ -914,7 +934,7 @@ errno_t reiser4_node_shift(
 
 		units = reiser4_item_units(&coord);
 		
-		if (!reiser4_item_nodeptr(&coord))
+		if (!reiser4_item_branch(&coord))
 			continue;
 
 		for (ppos.unit = 0; ppos.unit < units; ppos.unit++) {
@@ -1267,7 +1287,7 @@ errno_t reiser4_node_traverse(
 			goto error_after_func;
 		}
 
-		if (!reiser4_item_nodeptr(&coord))
+		if (!reiser4_item_branch(&coord))
 			continue;
 
 		/* The loop though the units of the current item */

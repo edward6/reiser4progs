@@ -1,12 +1,14 @@
 /*
   ui.c -- callback function for using them for ask user enter something.
     
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
 #ifndef AAL_UI_H
 #define AAL_UI_H
+
+#include <aal/aal.h>
 
 typedef int (*aal_check_numeric_func_t) (int64_t, void *);
 

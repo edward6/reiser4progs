@@ -6,4 +6,9 @@
   reiser4progs/COPYING.
 */
 
+#ifndef PROGS_MPRESSURE_H
+#define PROGS_MPRESSURE_H
+
 extern bool_t progs_mpressure_detect(void);
+
+#endif

@@ -1,7 +1,7 @@
 /*
   block.c -- data block functions.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -12,9 +12,9 @@
 #include <aal/aal.h>
 
 /* 
-   Allocates one block on specified device. Fills its data field by specified
-   char. Marks it as ditry and returns it to caller. This function is widely
-   used in libreiser4 for working with disk blocks (node.c, almost all plugins).
+  Allocates one block on specified device. Fills its data field by specified
+  char. Marks it as ditry and returns it to caller. This function is widely used
+  in libreiser4 for working with disk blocks (node.c, almost all plugins).
 */
 aal_block_t *aal_block_create(
 	aal_device_t *device,	/* device block will eb allocated on */

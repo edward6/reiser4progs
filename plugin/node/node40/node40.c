@@ -414,8 +414,8 @@ static errno_t node40_grow(node40_t *node, rpos_t *pos,
   component of pos is specified, then it will shrink specified by @pos->item
   node by specified @len.
 */
-static errno_t node40_cutdown(node40_t *node, rpos_t *pos,
-			      uint32_t len, uint32_t count)
+static errno_t node40_cutout(node40_t *node, rpos_t *pos,
+			     uint32_t len, uint32_t count)
 {
 	int is_range;
 	
@@ -512,7 +512,7 @@ static errno_t node40_cutdown(node40_t *node, rpos_t *pos,
 
 /*
   Calculates size of a region denoted by @pos and @count. This is used by
-  node40_copy, node40_remove, etc.
+  node40_rep, node40_remove, etc.
 */
 static uint32_t node40_size(node40_t *node, rpos_t *pos, uint32_t count) {
 	int is_range;
@@ -540,15 +540,10 @@ static uint32_t node40_size(node40_t *node, rpos_t *pos, uint32_t count) {
 	return len;
 }
 
-/* Calculates how many items starting from @pos may fit into passed @len */
-static uint32_t node40_count(node40_t *node, rpos_t *pos, uint32_t len) {
-	return 0;
-}
-
 /* Makes copy of @count items from @src_node to @dst_node */
-static errno_t node40_copy(node40_t *src_node, rpos_t *src_pos,
-			   node40_t *dst_node, rpos_t *dst_pos,
-			   uint32_t count)
+static errno_t node40_rep(node40_t *dst_node, rpos_t *dst_pos,
+			  node40_t *src_node, rpos_t *src_pos,
+			  uint32_t count)
 {
 	uint32_t size;
 	uint32_t items;
@@ -706,7 +701,7 @@ errno_t node40_remove(object_entity_t *entity,
 		}
 	}
 	
-	return node40_cutdown(node, pos, len, count);
+	return node40_cutout(node, pos, len, count);
 }
 
 /* Removes items/units starting from the @start and ending at the @end */
@@ -789,7 +784,7 @@ static errno_t node40_cut(object_entity_t *entity,
 		if (!(units = item.plugin->item_ops.units(&item))) {
 			pos.unit = ~0ul;
 
-			if (node40_cutdown(node, &pos, item.len, 1))
+			if (node40_cutout(node, &pos, item.len, 1))
 				return -1;
 		}
 	}
@@ -797,22 +792,30 @@ static errno_t node40_cut(object_entity_t *entity,
 	return 0;
 }
 
-static errno_t node40_expand(object_entity_t *entity,
-			     rpos_t *pos, uint32_t len)
+static errno_t node40_copy(object_entity_t *dst_entity, rpos_t *dst_pos,
+			   object_entity_t *src_entity, rpos_t *src_pos,
+			   uint32_t count)
 {
-	uint32_t count;
-	node40_t *node = (node40_t *)entity;
+	node40_t *dst_node = (node40_t *)dst_entity;
+	node40_t *src_node = (node40_t *)src_entity;
 	
-	if (pos->unit != ~0ul)
-		return node40_cutdown(node, pos, len, 0);
+	return node40_rep(dst_node, dst_pos, src_node, src_pos, count);
+}
 
-	return -1;
+static errno_t node40_expand(object_entity_t *entity,
+			     rpos_t *pos, uint32_t len,
+			     uint32_t count)
+{
+	node40_t *node = (node40_t *)entity;
+	return node40_grow(node, pos, len, count);
 }
 
 static errno_t node40_shrink(object_entity_t *entity,
-			     rpos_t *pos, uint32_t len)
+			     rpos_t *pos, uint32_t len,
+			     uint32_t count)
 {
-	return -1;
+	node40_t *node = (node40_t *)entity;
+	return node40_cutout(node, pos, len, count);
 }
 
 extern errno_t node40_check(object_entity_t *entity);
@@ -1279,7 +1282,7 @@ static errno_t node40_merge(node40_t *src_node,
 	
 	if (remove) {
 		/*
-		  Like to node40_grow, node40_cutdown will remove pointed item
+		  Like to node40_grow, node40_cutout will remove pointed item
 		  if unit component is ~0ul and shrink pointed by pos item if
 		  unit is not ~0ul.
 		*/
@@ -1297,7 +1300,7 @@ static errno_t node40_merge(node40_t *src_node,
 		len = hint->rest;
 	}
 
-	return node40_cutdown(src_node, &pos, len, 1);
+	return node40_cutout(src_node, &pos, len, 1);
 }
 
 /*
@@ -1476,7 +1479,7 @@ static errno_t node40_transfuse(node40_t *src_node,
 	  update node header.
 	*/
 	if (node40_grow(dst_node, &dst_pos, hint->bytes,
-			  hint->items))
+			hint->items))
 	{
 		aal_exception_error("Can't expand node %llu durring "
 				    "shift.", dst_node->block->blk);
@@ -1484,8 +1487,8 @@ static errno_t node40_transfuse(node40_t *src_node,
 	}
 		
 	/* Copying items from src node to dst one */
-	if (node40_copy(src_node, &src_pos, dst_node, &dst_pos,
-			hint->items))
+	if (node40_rep(dst_node, &dst_pos, src_node, &src_pos,
+		       hint->items))
 	{
 		aal_exception_error("Can't copy items from node "
 				    "%llu to node %llu, durring "
@@ -1498,8 +1501,8 @@ static errno_t node40_transfuse(node40_t *src_node,
 	  Shrinking source node after items are copied from it to dst
 	  node.
 	*/
-	if (node40_cutdown(src_node, &src_pos, hint->bytes,
-			   hint->items))
+	if (node40_cutout(src_node, &src_pos, hint->bytes,
+			  hint->items))
 	{
 		aal_exception_error("Can't shrink node "
 				    "%llu durring shift.",
@@ -1647,6 +1650,7 @@ static reiser4_plugin_t node40_plugin = {
 		.shift		 = node40_shift,
 		.shrink		 = node40_shrink,
 		.expand		 = node40_expand,
+		.copy            = node40_copy,
 
 		.set_key	 = node40_set_key,
 		.set_make_stamp	 = node40_set_make_stamp,
@@ -1664,6 +1668,7 @@ static reiser4_plugin_t node40_plugin = {
 		.shift		 = NULL,
 		.shrink		 = NULL,
 		.expand		 = NULL,
+		.copy            = NULL,
 	
 		.set_key	 = NULL,
 		.set_make_stamp  = NULL,

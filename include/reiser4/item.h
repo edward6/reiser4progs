@@ -1,7 +1,7 @@
 /*
   item.h -- common item functions.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -38,6 +38,8 @@ extern errno_t reiser4_item_utmost_key(reiser4_coord_t *coord,
 
 extern errno_t reiser4_item_gap_key(reiser4_coord_t *coord, 
 				    reiser4_key_t *key);
+
+extern bool_t reiser4_item_branch(reiser4_coord_t *coord);
 
 extern bool_t reiser4_item_tail(reiser4_coord_t *coord);
 extern bool_t reiser4_item_extent(reiser4_coord_t *coord);

@@ -1,6 +1,8 @@
 /*
-  bitops.h -- bitops functions
-  Some parts of this code was stolen somewhere from linux.
+  bitops.h -- bitops functions.
+  
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+  reiser4progs/COPYING.
 */
 
 #ifndef AAL_BITOPS_H

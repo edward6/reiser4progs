@@ -1,7 +1,7 @@
 /*
   ui.c -- common for all progs function for work with libreadline.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 

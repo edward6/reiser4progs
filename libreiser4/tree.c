@@ -1,7 +1,7 @@
 /*
   tree.c -- reiser4 tree cache code.
   
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -440,7 +440,7 @@ int reiser4_tree_lookup(
 			return -1;
 		}
 
-		if (!reiser4_item_nodeptr(coord)) {
+		if (!reiser4_item_branch(coord)) {
 
 			if (result == 1)
 				reiser4_coord_realize(coord);

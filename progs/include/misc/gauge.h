@@ -1,7 +1,7 @@
 /*
   gauge.h -- common for all progs gauge fucntions.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 

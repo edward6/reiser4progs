@@ -5,7 +5,7 @@
   application (bootloaders, etc). In the standard mode they are pointed to libc
   memory allocation functions (malloc, free, etc).
   
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 

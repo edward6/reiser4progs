@@ -2,7 +2,7 @@
   file.c -- standard file device abstraction layer. It is used files functions
   to read or write into device.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 

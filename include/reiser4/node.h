@@ -1,7 +1,7 @@
 /*
   node.h -- reiser4 formated node functions.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */ 
 
@@ -54,11 +54,17 @@ extern errno_t reiser4_node_cut(reiser4_node_t *node,
 				rpos_t *start,
 				rpos_t *end);
 
-extern errno_t reiser4_node_expand(reiser4_node_t *node,
-				   rpos_t *pos, uint32_t len);
+extern errno_t reiser4_node_copy(reiser4_node_t *src_node,
+				 rpos_t *src_pos,
+				 reiser4_node_t *dst_node,
+				 rpos_t *dst_pos,
+				 uint32_t count);
 
-extern errno_t reiser4_node_shrink(reiser4_node_t *node,
-				   rpos_t *pos, uint32_t len);
+extern errno_t reiser4_node_expand(reiser4_node_t *node, rpos_t *pos,
+				   uint32_t len, uint32_t count);
+
+extern errno_t reiser4_node_shrink(reiser4_node_t *node, rpos_t *pos,
+				   uint32_t len, uint32_t count);
 
 extern errno_t reiser4_node_shift(reiser4_node_t *node,
 				  reiser4_node_t *neig,
