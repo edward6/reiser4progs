@@ -101,7 +101,7 @@ errno_t reiser4_item_estimate(
 errno_t reiser4_item_feel(reiser4_place_t *place,
 			  reiser4_key_t *start,
 			  reiser4_key_t *end,
-			  copy_hint_t *hint)
+			  feel_hint_t *hint)
 {
 	errno_t res;
 	

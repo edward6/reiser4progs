@@ -70,7 +70,7 @@ static errno_t tail40_rep(item_entity_t *dst_item,
 static errno_t tail40_feel(item_entity_t *item,
 			   key_entity_t *start,
 			   key_entity_t *end,
-			   copy_hint_t *hint)
+			   feel_hint_t *hint)
 {
 	uint64_t end_offset;
 	uint64_t start_offset;
@@ -100,7 +100,7 @@ static errno_t tail40_copy(item_entity_t *dst_item,
 			   uint32_t src_pos,
 			   key_entity_t *start,
 			   key_entity_t *end,
-			   copy_hint_t *hint)
+			   feel_hint_t *hint)
 {
 	aal_assert("umka-2133", end != NULL);
 	aal_assert("umka-2135", hint != NULL);

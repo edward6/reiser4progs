@@ -682,7 +682,8 @@ static errno_t node40_dup(object_entity_t *dst_entity,
 			  pos_t *src_pos,
 			  key_entity_t *start,
 			  key_entity_t *end,
-			  copy_hint_t *hint, 
+			  feel_hint_t *dst_hint, 
+			  feel_hint_t *src_hint,
 			  bool_t is_copy)
 {
 	errno_t res;
@@ -697,6 +698,10 @@ static errno_t node40_dup(object_entity_t *dst_entity,
 
 	aal_assert("umka-2124", dst_entity != NULL);
 	aal_assert("umka-2125", src_entity != NULL);
+	aal_assert("vpf-912", src_hint != NULL);
+	aal_assert("vpf-913", dst_pos != NULL);
+	aal_assert("vpf-914", start != NULL);
+	aal_assert("vpf-915", end != NULL);
 	
 	aal_assert("umka-2029", node40_loaded(dst_entity));
 	aal_assert("umka-2030", node40_loaded(src_entity));
@@ -712,7 +717,7 @@ static errno_t node40_dup(object_entity_t *dst_entity,
 	
 	if (is_copy) {
 		/* Makes expand of the node new items will be inserted in */
-		if (node40_grow(dst_node, dst_pos, hint->len, 1))
+		if (node40_grow(dst_node, dst_pos, src_hint->len, 1))
 			return -EINVAL;
 	}
 	
@@ -726,8 +731,8 @@ static errno_t node40_dup(object_entity_t *dst_entity,
 	  Check if we will copy whole item, or we should call item's copy()
 	  method in order to copy units from @start key through the @end one.
 	*/
-	if (dst_pos->unit == ~0ul && src_item.len == hint->len && 
-	    dst_item.len == hint->len) 
+	if (dst_pos->unit == ~0ul && src_item.len == src_hint->len && 
+	    dst_item.len == src_hint->len) 
 	{
 		return node40_rep(dst_node, dst_pos, src_node,
 				  src_pos, 1);
@@ -736,7 +741,7 @@ static errno_t node40_dup(object_entity_t *dst_entity,
 	if ((res = plugin_call(src_item.plugin->item_ops, copy,
 			       &dst_item, dst_pos->item,
 			       &src_item, src_pos->item,
-			       start, end, hint)))
+			       start, end, src_hint)))
 	{
 		aal_exception_error("Can't copy units from "
 				    "node %llu to node %llu.",
@@ -766,10 +771,10 @@ static errno_t node40_copy(object_entity_t *dst_entity,
 			   pos_t *src_pos,
 			   key_entity_t *start,
 			   key_entity_t *end,
-			   copy_hint_t *hint)
+			   feel_hint_t *hint)
 {
 	return node40_dup(dst_entity, dst_pos, src_entity, src_pos,
-			  start, end, hint, TRUE);
+			  start, end, NULL, hint, TRUE);
 }
 
 static errno_t node40_overwrite(object_entity_t *dst_entity,
@@ -778,10 +783,11 @@ static errno_t node40_overwrite(object_entity_t *dst_entity,
 				pos_t *src_pos,
 				key_entity_t *start,
 				key_entity_t *end,
-				copy_hint_t *hint)
+				feel_hint_t *dst_hint, 
+				feel_hint_t *src_hint)
 {
 	return node40_dup(dst_entity, dst_pos, src_entity, src_pos,
-			  start, end, hint, FALSE);
+			  start, end, dst_hint, src_hint, FALSE);
 }
 
 /* Inserts item described by hint structure into node */

@@ -442,7 +442,7 @@ static errno_t extent40_predict(item_entity_t *src_item,
 static errno_t extent40_feel(item_entity_t *item,
 			     key_entity_t *start,
 			     key_entity_t *end,
-			     copy_hint_t *hint)
+			     feel_hint_t *hint)
 {
 	aal_assert("umka-1997", item != NULL);
 	aal_assert("umka-1998", hint != NULL);
@@ -457,7 +457,7 @@ static errno_t extent40_copy(item_entity_t *dst_item,
 			     uint32_t src_pos,
 			     key_entity_t *start,
 			     key_entity_t *end,
-			     copy_hint_t *hint)
+			     feel_hint_t *hint)
 {
 	aal_assert("umka-2071", dst_item != NULL);
 	aal_assert("umka-2072", src_item != NULL);

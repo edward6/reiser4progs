@@ -1430,16 +1430,19 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 }
 
 /*
-  Overwrites items/units pointed by @dst from @src one, from the key pointed 
-  by src place though the @end one.
+  Overwrites/Inserts items/units pointed by @dst from @src one, from the key 
+  pointed by @src place though the @end one.
 */
-errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
-			       reiser4_place_t *dst,
-			       reiser4_place_t *src,
-			       reiser4_key_t *end)
+static errno_t reiser4_tree_dup(reiser4_tree_t *tree,
+			        reiser4_place_t *dst,
+			        reiser4_place_t *src,
+			        reiser4_key_t *end, 
+			        bool_t is_copy)
 {
 	errno_t res;
-	copy_hint_t src_hint, dst_hint;
+	uint32_t needed;
+	reiser4_place_t old;
+	feel_hint_t src_hint;
 	
 	aal_assert("umka-2161", dst != NULL);
 	aal_assert("umka-2162", src != NULL);
@@ -1455,97 +1458,64 @@ errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
 	if ((res = reiser4_item_feel(src, &src->item.key, end, &src_hint)))
 		return res;
 	
-	if ((res = reiser4_item_feel(dst, &src->item.key, end, &dst_hint)))
-		return res;
-	
 	aal_assert("umka-2122", src_hint.len > 0);
-	aal_assert("vpf-905", dst_hint.len > 0);
-	
-	if (src_hint.len != dst_hint.len) {
-	    /*
-	       FIXME-VITALY: adjust space for the new data according to 
-	       src_hint.len. 
-	    */
-	    aal_exception_warn("Node (%llu), pos (%u/%u) (%k - %k): Overwriting"
-		    " with space adjusting is not ready yet.", src->node->blk, 
-		    src->pos.item, src->pos.unit, &src->item.key, end);
-	    
-	    return 0;	    
-	}
-	    
-	if ((res = reiser4_node_copy(dst->node, &dst->pos,
-				     src->node, &src->pos,
-				     &src->item.key, end, 
-				     &src_hint)))
-	{
-		aal_exception_error("Can't copy an item/unit from node "
-				    "%llu to %llu one.", src->node->blk,
-				    dst->node->blk);
-		return res;
-	}
 
-	if (reiser4_place_leftmost(dst) && dst->node->parent.node) {
-		reiser4_place_t p;
-
-		reiser4_place_init(&p, dst->node->parent.node,
-				   &dst->node->parent.pos);
-		
-		if ((res = reiser4_tree_ukey(tree, &p, &src->item.key)))
-			return res;
-	}
-	
-	return 0;
-}
-
-/*
-  Makes copy of item at passed @src place or some amount of its units to the
-  passed @dst from the key pointed by src though the @end one.
-*/
-errno_t reiser4_tree_copy(reiser4_tree_t *tree,
-			  reiser4_place_t *dst,
-			  reiser4_place_t *src,
-			  reiser4_key_t *end)
-{
-	errno_t res;
-	uint32_t needed;
-	copy_hint_t hint;
-	reiser4_place_t old;
-	   
-	aal_assert("umka-2116", dst != NULL);
-	aal_assert("umka-2117", src != NULL);
-	aal_assert("umka-2119", end != NULL);
-	aal_assert("umka-2115", tree != NULL);
-
-	if (reiser4_tree_fresh(tree)) {
-		aal_exception_error("Can't copy item/units to "
-				    "empty tree.");
-		return -EINVAL;
-	}
-	
-	if ((res = reiser4_item_feel(src, &src->item.key, end, &hint)))
-		return res;
-
-	aal_assert("umka-2122", hint.len > 0);
-	
 	old = *dst;
 	
-	needed = hint.len + (dst->pos.unit == ~0ul ? 
-		reiser4_node_overhead(dst->node) : 0);
+	if (is_copy) {
+		needed = src_hint.len + (dst->pos.unit == ~0ul ? 
+			reiser4_node_overhead(dst->node) : 0);
 	    
-	if ((res = reiser4_tree_expand(tree, dst, needed, SF_DEFAULT))) {
-		aal_exception_error("Can't expand the space for copying.");
-		return res;
+		if ((res = reiser4_tree_expand(tree, dst, needed, 
+					       SF_DEFAULT))) 
+		{
+			aal_exception_error("Can't expand the space for "
+					    "copying.");
+			return res;
+		}
+	
+		if ((res = reiser4_node_copy(dst->node, &dst->pos, src->node,
+					     &src->pos, &src->item.key, end, 
+					     &src_hint)))
+		{
+			aal_exception_error("Can't copy an item/unit from node "
+					    "%llu to %llu one.", src->node->blk,
+					    dst->node->blk);
+			return res;
+		}
+	} else {
+		feel_hint_t dst_hint;
+		
+		if ((res = reiser4_item_feel(dst, &src->item.key, end, 
+					     &dst_hint)))
+			return res;
+		
+		aal_assert("vpf-905", dst_hint.len > 0);
+		
+		if (src_hint.len > dst_hint.len) {
+			needed = src_hint.len - dst_hint.len;
+	    
+			if ((res = reiser4_tree_expand(tree, dst, needed, 
+						       SF_DEFAULT)))
+			{
+				aal_exception_error("Can't expand the space "
+						    "for copying.");
+				return res;
+			}
+		}
+	    
+		if ((res = reiser4_node_overwrite(dst->node, &dst->pos,
+						  src->node, &src->pos,
+						  &src->item.key, end, 
+						  &dst_hint, &src_hint)))
+		{
+			aal_exception_error("Can't copy an item/unit from node "
+					    "%llu to %llu one.", src->node->blk,
+					    dst->node->blk);
+			return res;
+		}    
 	}
 	
-	if ((res = reiser4_node_copy(dst->node, &dst->pos, src->node,
-				     &src->pos, &src->item.key, end, &hint)))
-	{
-		aal_exception_error("Can't copy an item/unit from node "
-				    "%llu to %llu one.", src->node->blk,
-				    dst->node->blk);
-		return res;
-	}
-
 	if (reiser4_place_leftmost(dst) && dst->node->parent.node) {
 		reiser4_place_t p;
 
@@ -1568,8 +1538,32 @@ errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 			return res;
 		}
 	}
-    
+	
 	return 0;
+}
+
+/*
+  Makes copy of item at passed @src place or some amount of its units to the
+  passed @dst from the key pointed by src though the @end one.
+*/
+errno_t reiser4_tree_copy(reiser4_tree_t *tree,
+			  reiser4_place_t *dst,
+			  reiser4_place_t *src,
+			  reiser4_key_t *end)
+{
+	return reiser4_tree_dup(tree, dst, src, end, TRUE);
+}
+
+/*
+  Makes overwrite of item at passed @src place or some amount of its units to 
+  the passed @dst from the key pointed by src though the @end one.
+*/
+errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
+			       reiser4_place_t *dst,
+			       reiser4_place_t *src,
+			       reiser4_key_t *end)
+{
+	return reiser4_tree_dup(tree, dst, src, end, FALSE);
 }
 
 /* Inserts new item/unit described by item hint into the tree */

@@ -553,14 +553,14 @@ uint16_t reiser4_node_maxspace(reiser4_node_t *node) {
 			   maxspace, node->entity);
 }
 
-/* Makes copy @count items from @src_node into @dst_node */
+/* Copies item content from @src_node into @dst_node by keys and hint. */
 errno_t reiser4_node_copy(reiser4_node_t *dst_node,
 			  pos_t *dst_pos,
 			  reiser4_node_t *src_node,
 			  pos_t *src_pos,
 			  reiser4_key_t *start,
 			  reiser4_key_t *end,
-			  copy_hint_t *hint)
+			  feel_hint_t *hint)
 {
 	aal_assert("umka-1819", src_node != NULL);
 	aal_assert("umka-1821", dst_node != NULL);
@@ -571,6 +571,31 @@ errno_t reiser4_node_copy(reiser4_node_t *dst_node,
 			   copy, dst_node->entity, dst_pos,
 			   src_node->entity, src_pos, start,
 			   end, hint);
+}
+
+/* Overwrites item content from @src_node into @dst_node by keys and hints. */
+errno_t reiser4_node_overwrite(reiser4_node_t *dst_node,
+			       pos_t *dst_pos,
+			       reiser4_node_t *src_node,
+			       pos_t *src_pos,
+			       reiser4_key_t *start,
+			       reiser4_key_t *end,
+			       feel_hint_t *dst_hint, 
+			       feel_hint_t *src_hint)
+{
+	aal_assert("vpf-916", src_node != NULL);
+	aal_assert("vpf-917", dst_node != NULL);
+	aal_assert("vpf-918", src_pos != NULL);
+	aal_assert("vpf-919", dst_pos != NULL);
+	aal_assert("vpf-920", start != NULL);
+	aal_assert("vpf-921", end != NULL);
+	aal_assert("vpf-922", dst_hint != NULL);
+	aal_assert("vpf-923", src_hint != NULL);
+
+	return plugin_call(src_node->entity->plugin->node_ops,
+			   overwrite, dst_node->entity, dst_pos,
+			   src_node->entity, src_pos, start,
+			   end, dst_hint, src_hint);
 }
 
 /* Expands passed @node at @pos by @len */

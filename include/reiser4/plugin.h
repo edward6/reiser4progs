@@ -319,12 +319,12 @@ struct shift_hint {
 
 typedef struct shift_hint shift_hint_t;
 
-struct copy_hint {
+struct feel_hint {
 	uint32_t len;
 	uint32_t count;
 };
 
-typedef struct copy_hint copy_hint_t;
+typedef struct feel_hint feel_hint_t;
 
 typedef errno_t (*region_func_t) (void *, uint64_t, uint64_t, void *);
 typedef errno_t (*block_func_t) (object_entity_t *, uint64_t, void *);
@@ -711,11 +711,11 @@ struct reiser4_item_ops {
 
 	/* Copy related functions */
 	errno_t (*feel) (item_entity_t *, key_entity_t *, key_entity_t *, 
-			 copy_hint_t *);
+			 feel_hint_t *);
 
 	errno_t (*copy) (item_entity_t *, uint32_t, item_entity_t *,
 			 uint32_t, key_entity_t *, key_entity_t *,
-			 copy_hint_t *);
+			 feel_hint_t *);
 	/*
 	  Estimates item in order to find out how many bytes is needed for
 	  inserting one more unit.
@@ -887,12 +887,12 @@ struct reiser4_node_ops {
 	errno_t (*copy) (object_entity_t *, pos_t *,
 			 object_entity_t *, pos_t *,
 			 key_entity_t *, key_entity_t *,
-			 copy_hint_t *);
+			 feel_hint_t *);
 		
 	errno_t (*overwrite) (object_entity_t *, pos_t *,
 			      object_entity_t *, pos_t *,
 			      key_entity_t *, key_entity_t *,
-			      copy_hint_t *);
+			      feel_hint_t *, feel_hint_t *);
 	
 	/* Expands node */
 	errno_t (*expand) (object_entity_t *, pos_t *,

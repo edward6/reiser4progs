@@ -33,7 +33,7 @@ extern bool_t reiser4_item_mergeable(reiser4_place_t *place1,
 extern errno_t reiser4_item_feel(reiser4_place_t *place,
 				 reiser4_key_t *start,
 				 reiser4_key_t *end,
-				 copy_hint_t *hint);
+				 feel_hint_t *hint);
 
 extern errno_t reiser4_item_estimate(reiser4_place_t *place,
 				     create_hint_t *hint);
