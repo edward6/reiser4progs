@@ -225,7 +225,7 @@ struct reiser4_tree {
 typedef reiser4_node_t *(*reiser4_open_func_t) (aal_block_t *, void *);
 
 /* Callback function type for preparing per-node traverse data. */
-typedef errno_t (*reiser4_edge_func_t) (reiser4_node_t *, void *);
+//typedef errno_t (*reiser4_edge_func_t) (reiser4_node_t *, void *);
 
 /* Callback function type for node handler. */
 typedef errno_t (*reiser4_handler_func_t) (reiser4_node_t *, void *);
