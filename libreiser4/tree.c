@@ -167,7 +167,7 @@ reiser4_node_t *reiser4_tree_alloc(
 		reiser4_format_get_make_stamp(tree->fs->format));
 	
 	/* Setting up of the free blocks in format */
-	free = reiser4_alloc_free(tree->fs->alloc);
+	free = reiser4_alloc_unused(tree->fs->alloc);
 	reiser4_format_set_free(tree->fs->format, free);
 
 	stamp = reiser4_node_get_flush_stamp(tree->root);
@@ -192,7 +192,7 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 	aal_assert("umka-917", node != NULL);
 
     	/* Sets up the free blocks in block allocator */
-	free = reiser4_alloc_free(tree->fs->alloc);
+	free = reiser4_alloc_unused(tree->fs->alloc);
 	reiser4_alloc_release_region(tree->fs->alloc, node->blk, 1);
 	reiser4_format_set_free(tree->fs->format, free);
     
@@ -313,6 +313,7 @@ reiser4_tree_t *reiser4_tree_create(
 	reiser4_profile_t *profile)	    /* profile to be used */
 {
 	blk_t blk;
+	count_t free;
 	uint8_t level;
 	reiser4_tree_t *tree;
 
@@ -354,7 +355,8 @@ reiser4_tree_t *reiser4_tree_create(
 	reiser4_format_set_root(fs->format, tree->root->blk);
     
 	/* Setting up of the free blocks */
-	reiser4_format_set_free(fs->format, reiser4_alloc_free(fs->alloc));
+	free = reiser4_alloc_unused(fs->alloc);
+	reiser4_format_set_free(fs->format, free);
 
 	tree->root->tree = tree;
 	reiser4_tree_init(tree);

@@ -156,13 +156,13 @@ void reiser4_alloc_close(
 }
 
 /* Returns the number of free blocks in allocator */
-count_t reiser4_alloc_free(
+count_t reiser4_alloc_unused(
 	reiser4_alloc_t *alloc)	/* allocator to be realeased */
 {
 	aal_assert("umka-362", alloc != NULL);
 
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
-			   free, alloc->entity);
+			   unused, alloc->entity);
 }
 
 /* Returns the number of used blocks in allocator */
@@ -279,13 +279,14 @@ errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc,
 	aal_assert("vpf-584", alloc != NULL);
 
 	if (!alloc->forbid) {
-		count_t free = reiser4_alloc_free(alloc);
 		count_t used = reiser4_alloc_used(alloc);
+		count_t unused = reiser4_alloc_unused(alloc);
 		
-		alloc->forbid = aux_bitmap_create(free + used);
+		alloc->forbid = aux_bitmap_create(unused + used);
 	}
 	
 	aux_bitmap_mark_region(alloc->forbid, start, count);
+	
 	return 0;	
 }
 
@@ -295,7 +296,8 @@ errno_t reiser4_alloc_permit(reiser4_alloc_t *alloc,
 	aal_assert("vpf-585", alloc != NULL);
 	
 	if (alloc->forbid) {
-		aux_bitmap_clear_region(alloc->forbid, start, count);
+		aux_bitmap_clear_region(alloc->forbid,
+					start, count);
 	}
 	
 	return 0;
@@ -310,10 +312,10 @@ errno_t reiser4_alloc_assign_forb(reiser4_alloc_t *alloc,
 	aal_assert("umka-1849", bitmap != NULL);
 
 	if (!alloc->forbid) {
-		count_t free = reiser4_alloc_free(alloc);
 		count_t used = reiser4_alloc_used(alloc);
+		count_t unused = reiser4_alloc_unused(alloc);
 		
-		alloc->forbid = aux_bitmap_create(free + used);
+		alloc->forbid = aux_bitmap_create(unused + used);
 	}
 
 	aal_assert("vpf-589", alloc->forbid->size == bitmap->size &&

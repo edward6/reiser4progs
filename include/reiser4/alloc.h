@@ -61,8 +61,8 @@ extern errno_t reiser4_alloc_assign_perm(reiser4_alloc_t *alloc,
 extern void reiser4_alloc_close(reiser4_alloc_t *alloc);
 extern errno_t reiser4_alloc_valid(reiser4_alloc_t *alloc);
 
-extern count_t reiser4_alloc_free(reiser4_alloc_t *alloc);
 extern count_t reiser4_alloc_used(reiser4_alloc_t *alloc);
+extern count_t reiser4_alloc_unused(reiser4_alloc_t *alloc);
 
 extern bool_t reiser4_alloc_used_region(reiser4_alloc_t *alloc,
 					blk_t start, 

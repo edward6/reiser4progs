@@ -1063,7 +1063,7 @@ struct reiser4_alloc_ops {
 	uint64_t (*used) (object_entity_t *);
 
 	/* Returns number of unused blocks */
-	uint64_t (*free) (object_entity_t *);
+	uint64_t (*unused) (object_entity_t *);
 
 	/* Checks blocks allocator on validness */
 	errno_t (*valid) (object_entity_t *);

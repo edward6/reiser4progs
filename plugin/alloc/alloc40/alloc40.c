@@ -438,7 +438,7 @@ static errno_t alloc40_print(object_entity_t *entity,
 #endif
 
 /* Returns free blocks count */
-static uint64_t alloc40_free(object_entity_t *entity) {
+static uint64_t alloc40_unused(object_entity_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 
 	aal_assert("umka-376", alloc != NULL);
@@ -591,8 +591,8 @@ static reiser4_plugin_t alloc40_plugin = {
 		.allocate_region       = NULL,
 		.release_region	       = NULL,
 #endif
-		.free                  = alloc40_free,
 		.used                  = alloc40_used,
+		.unused                = alloc40_unused,
 		.valid                 = alloc40_valid,
 		.layout                = alloc40_layout,
 		.used_region           = alloc40_used_region,
