@@ -789,10 +789,6 @@ struct reiser4_item_ops {
 	   like going from the root to leaves will use this function. */
 	int (*branch) (void);
 	
-	/* Returns TRUE if instances of the plugin can contain data, not just
-	   tree index data. */
-	int (*data) (place_t *);
-	
 	/* Get the key of a particular unit of the item. */
 	errno_t (*get_key) (place_t *, uint32_t, key_entity_t *);
 
