@@ -13,12 +13,9 @@ typedef errno_t (*node_func_t)(reiser4_place_t *, void *);
 
 extern reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk);
 extern errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode);
-extern errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode);
 
 extern errno_t repair_node_traverse(reiser4_node_t *node, 
 				    node_func_t func, void *data);
-
-extern errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key);
 
 extern errno_t repair_node_copy(reiser4_node_t *dst, pos_t *dst_pos, 
 				reiser4_node_t *src, pos_t *src_pos, 

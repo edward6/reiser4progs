@@ -119,175 +119,13 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 	return res;
 }
 
-/* Sets @ld_key to the left delimiting key of the node kept in the parent. */
-static errno_t repair_node_ld_key_fetch(reiser4_node_t *node, 
-					reiser4_key_t *ld_key) 
-{
-	errno_t res;
-	
-	aal_assert("vpf-501", node != NULL);
-	aal_assert("vpf-344", ld_key != NULL);
-	
-	if (node->p.node != NULL) {
-		if ((res = reiser4_place_fetch(&node->p)))
-			return res;
-		
-		if ((res = reiser4_key_assign(ld_key, &node->p.key)))
-			return res;
-	} else {
-		reiser4_key_minimal(ld_key);
-	}
-	
-	return 0;
-}
-
-/* Sets to the @key the right delimiting key of the node kept in the parent. */
-errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
-	reiser4_place_t place;
-	errno_t ret;
-	
-	aal_assert("vpf-502", node != NULL);
-	aal_assert("vpf-347", rd_key != NULL);
-	
-	if (node->p.node != NULL) {
-		/* Take the right delimiting key from the parent. */
-		
-		if ((ret = reiser4_node_realize(node)))
-			return ret;
-		
-		place = node->p;
-		
-		/* If this is the last position in the parent, call the method 
-		   recursevely for the parent. Get the right delimiting key 
-		   otherwise. */		
-		if ((reiser4_node_items(node->p.node) == place.pos.item + 1) &&
-		    (reiser4_item_units(&place) == place.pos.unit + 1 || 
-		     place.pos.unit == MAX_UINT32)) 
-		{
-			if ((ret = repair_node_rd_key(node->p.node, rd_key)))
-				return ret;
-		} else {
-			place.pos.item++;
-			place.pos.unit = 0;
-			
-			if ((ret = reiser4_place_fetch(&place)))
-				return ret;
-			
-			if ((ret = reiser4_key_assign(rd_key, &place.key)))
-				return ret;
-		}
-	} else {
-		rd_key->plug = node->tree->key.plug;
-		reiser4_key_maximal(rd_key);
-	}
-	
-	return 0;
-}
-
-/* Checks the delimiting keys of the node kept in the parent. 
-   
-   FIXME-VITALY: this is not node code, move it to tree code. */
-errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
-	reiser4_place_t place;
-	reiser4_key_t key, d_key;
-	pos_t *pos = &place.pos;
-	int res;
-	
-	aal_assert("vpf-248", node != NULL);
-	aal_assert("vpf-249", node->entity != NULL);
-	aal_assert("vpf-250", node->entity->plug != NULL);
-	
-	if ((res = repair_node_ld_key_fetch(node, &d_key))) {
-		aal_exception_error("Node (%llu): Failed to get the left "
-				    "delimiting key.", node_blocknr(node));
-		return res;
-	}
-	
-	place.pos.item = 0; 
-	place.pos.unit = MAX_UINT32;
-	place.node = node;
-	
-	if ((res = reiser4_place_fetch(&place)))
-		return res;
-	
-	res = reiser4_key_compare(&d_key, &place.key);
-	
-	/* Left delimiting key should match the left key in the node. */
-	if (res > 0) {
-		/* The left delimiting key is much then the left key in the 
-		   node - not legal */
-		aal_exception_error("Node (%llu): The first key [%s] is not "
-				    "equal to the left delimiting key [%s].",
-				    node_blocknr(node), 
-				    reiser4_print_key(&place.key, PO_DEF),
-				    reiser4_print_key(&d_key, PO_DEF));
-		return RE_FATAL;
-	} else if (res < 0) {
-		/* It is legal to have the left key in the node much then 
-		   its left delimiting key - due to removing some items 
-		   from the node, for example. Fix the delemiting key if 
-		   we have parent. */
-		if (node->p.node != NULL) {
-			aal_exception_error("Node (%llu): The left delimiting "
-					    "key [%s] in the parent node (%llu), "
-					    "pos (%u/%u) mismatch the first key "
-					    "[%s] in the node. %s", 
-					    node_blocknr(node),
-					    reiser4_print_key(&place.key, PO_DEF),
-					    node_blocknr(node->p.node), 
-					    place.pos.item,
-					    place.pos.unit, 
-					    reiser4_print_key(&d_key, PO_DEF),
-					    mode == RM_BUILD ? 
-					    "Left delimiting key is fixed." : "");
-			
-			if (mode == RM_BUILD) {
-				if ((res = reiser4_tree_ukey(node->tree, &place,
-							     &d_key)))
-					return res;
-			}
-		}
-	}
-	
-	if ((res = repair_node_rd_key(node, &d_key))) {
-		aal_exception_error("Node (%llu): Failed to get the right "
-				    "delimiting key.", node_blocknr(node));
-		return res;
-	}
-	
-	pos->item = reiser4_node_items(node) - 1;
-	
-	if ((res = reiser4_place_fetch(&place))) {
-		aal_exception_error("Node (%llu): Failed to open the item "
-				    "(%u).", node_blocknr(node), pos->item);
-		return res;
-	}
-	
-	if ((res = reiser4_item_maxreal_key(&place, &key))) {
-		aal_exception_error("Node (%llu): Failed to get the max real "
-				    "key of the last item.", node_blocknr(node));
-		return res;
-	}
-	
-	if (reiser4_key_compare(&key, &d_key) >= 0) {
-		aal_exception_error("Node (%llu): The last key [%s] in the node "
-				    "is greater then the right delimiting key "
-				    "[%s].", node_blocknr(node), 
-				    reiser4_print_key(&key, PO_DEF),
-				    reiser4_print_key(&d_key, PO_DEF));
-		return -ESTRUCT;
-	}
-	
-	return 0;
-}
-
 /* Checks the set of keys of the node. */
 static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
-	reiser4_place_t place;
 	reiser4_key_t key, prev_key;
+	errno_t res, result = 0;
+	reiser4_place_t place;
 	pos_t *pos = &place.pos;
 	uint32_t count;
-	errno_t res;
 	
 	aal_assert("vpf-258", node != NULL);
 	
@@ -311,24 +149,42 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 		if ((res = repair_key_check_struct(&key)) < 0)
 			return res;
 		
-		if (res || reiser4_key_compare(&key, &place.key)) {
+		if (res) {
+			/* Key has some corruptions and cannot be recovered. */
 			remove_hint_t hint;
 			
 			aal_exception_error("Node (%llu): The key [%s] of the "
-					    "item (%u) is broken.", 
+					    "item (%u) is broken.%s", 
 					    node_blocknr(node),
 					    reiser4_print_key(&place.key, PO_DEF),
-					    pos->item);
-
-			hint.count = 1;
+					    pos->item, mode == RM_BUILD ?
+					    " Removed." : "");
+			if (mode != RM_BUILD)
+				return RE_FATAL;
 			
 			if ((res = reiser4_node_remove(node, pos, &hint)))
 				return res;
-			
+
 			pos->item--;
 			count = reiser4_node_items(node);
 			
 			continue;
+		} else if (reiser4_key_compare(&key, &place.key)) {
+			/* Key has been fixed. */
+			aal_exception_error("Node (%llu): The key [%s] of the "
+					    "item (%u) is broken. %s [%s].", 
+					    node_blocknr(node),
+					    reiser4_print_key(&place.key, PO_DEF),
+					    pos->item, (res && mode == RM_CHECK)
+					    ? "Should be" : "Fixed to", 
+					    reiser4_print_key(&key, PO_DEF));
+			
+			if (mode == RM_CHECK)
+				result = RE_FIXABLE;
+			else {
+				reiser4_node_ukey(node, pos, &key);
+				reiser4_node_mkdirty(node);
+			}
 		}
 		
 		if (pos->item) {
@@ -345,7 +201,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 		prev_key = key;
 	}
 	
-	return 0;
+	return result;
 }
 
 /*  Checks the node content.

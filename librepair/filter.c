@@ -176,7 +176,7 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	}
 	
 	/* There are no fatal errors, check delimiting keys. */
-	if ((res = repair_node_dkeys_check(node, fd->repair->mode)) < 0)
+	if ((res = repair_tree_dknode_check(tree, node, fd->repair->mode)) < 0)
 		return res;
 	
 	if (res) {

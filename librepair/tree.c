@@ -98,6 +98,173 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 	return res;
 }
 
+errno_t repair_tree_parent_lkey(reiser4_tree_t *tree,
+				reiser4_node_t *node, 
+				reiser4_key_t *key) 
+{
+	errno_t res;
+	
+	aal_assert("vpf-501", node != NULL);
+	aal_assert("vpf-344", key != NULL);
+	
+	if (node->p.node != NULL) {
+		if ((res = reiser4_place_fetch(&node->p)))
+			return res;
+		
+		if ((res = reiser4_key_assign(key, &node->p.key)))
+			return res;
+	} else {
+		reiser4_key_minimal(key);
+	}
+	
+	return 0;
+}
+
+/* Sets to the @key the right delimiting key of the node kept in the parent. */
+errno_t repair_tree_parent_rkey(reiser4_tree_t *tree, reiser4_node_t *node, 
+				reiser4_key_t *key) 
+{
+	reiser4_place_t place;
+	errno_t ret;
+	
+	aal_assert("vpf-502", node != NULL);
+	aal_assert("vpf-347", key != NULL);
+	
+	if (node->p.node != NULL) {
+		/* Take the right delimiting key from the parent. */
+		
+		if ((ret = reiser4_node_realize(node)))
+			return ret;
+		
+		place = node->p;
+		
+		/* If this is the last position in the parent, call the method 
+		   recursevely for the parent. Get the right delimiting key 
+		   otherwise. */		
+		if ((reiser4_node_items(node->p.node) == place.pos.item + 1) &&
+		    (reiser4_item_units(&place) == place.pos.unit + 1 || 
+		     place.pos.unit == MAX_UINT32)) 
+		{
+			if ((ret = repair_tree_parent_rkey(tree, node->p.node,
+							   key)))
+				return ret;
+		} else {
+			place.pos.item++;
+			place.pos.unit = 0;
+			
+			if ((ret = reiser4_place_fetch(&place)))
+				return ret;
+			
+			if ((ret = reiser4_key_assign(key, &place.key)))
+				return ret;
+		}
+	} else {
+		key->plug = node->tree->key.plug;
+		reiser4_key_maximal(key);
+	}
+	
+	return 0;
+}
+
+/* Checks the delimiting keys of the node kept in the parent. */
+errno_t repair_tree_dknode_check(reiser4_tree_t *tree, 
+				 reiser4_node_t *node, 
+				 uint8_t mode) 
+{
+	reiser4_place_t place;
+	reiser4_key_t key, d_key;
+	pos_t *pos = &place.pos;
+	int res;
+	
+	aal_assert("vpf-1281", tree != NULL);
+	aal_assert("vpf-248", node != NULL);
+	aal_assert("vpf-249", node->entity != NULL);
+	aal_assert("vpf-250", node->entity->plug != NULL);
+	aal_assert("vpf-1280", node->tree != NULL);
+	
+	if ((res = repair_tree_parent_lkey(tree, node, &d_key))) {
+		aal_exception_error("Node (%llu): Failed to get the left "
+				    "delimiting key.", node_blocknr(node));
+		return res;
+	}
+	
+	place.pos.item = 0; 
+	place.pos.unit = MAX_UINT32;
+	place.node = node;
+	
+	if ((res = reiser4_place_fetch(&place)))
+		return res;
+	
+	res = reiser4_key_compare(&d_key, &place.key);
+	
+	/* Left delimiting key should match the left key in the node. */
+	if (res > 0) {
+		/* The left delimiting key is much then the left key in the 
+		   node - not legal */
+		aal_exception_error("Node (%llu): The first key [%s] is not "
+				    "equal to the left delimiting key [%s].",
+				    node_blocknr(node), 
+				    reiser4_print_key(&place.key, PO_DEF),
+				    reiser4_print_key(&d_key, PO_DEF));
+		return RE_FATAL;
+	} else if (res < 0) {
+		/* It is legal to have the left key in the node much then 
+		   its left delimiting key - due to removing some items 
+		   from the node, for example. Fix the delemiting key if 
+		   we have parent. */
+		if (node->p.node != NULL) {
+			aal_exception_error("Node (%llu): The left delimiting "
+					    "key [%s] in the parent node (%llu), "
+					    "pos (%u/%u) mismatch the first key "
+					    "[%s] in the node. %s", 
+					    node_blocknr(node),
+					    reiser4_print_key(&place.key, PO_DEF),
+					    node_blocknr(node->p.node), 
+					    place.pos.item,
+					    place.pos.unit, 
+					    reiser4_print_key(&d_key, PO_DEF),
+					    mode == RM_BUILD ? 
+					    "Left delimiting key is fixed." : "");
+			
+			if (mode == RM_BUILD) {
+				if ((res = reiser4_tree_ukey(tree, &place, &d_key)))
+					return res;
+			}
+		}
+	}
+	
+	if ((res = repair_tree_parent_rkey(tree, node, &d_key))) {
+		aal_exception_error("Node (%llu): Failed to get the right "
+				    "delimiting key.", node_blocknr(node));
+		return res;
+	}
+	
+	pos->item = reiser4_node_items(node) - 1;
+	
+	if ((res = reiser4_place_fetch(&place))) {
+		aal_exception_error("Node (%llu): Failed to open the item "
+				    "(%u).", node_blocknr(node), pos->item);
+		return res;
+	}
+	
+	if ((res = reiser4_item_maxreal_key(&place, &key))) {
+		aal_exception_error("Node (%llu): Failed to get the max real "
+				    "key of the last item.", node_blocknr(node));
+		return res;
+	}
+	
+	if (reiser4_key_compare(&key, &d_key) >= 0) {
+		aal_exception_error("Node (%llu): The last key [%s] in the node "
+				    "is greater then the right delimiting key "
+				    "[%s].", node_blocknr(node), 
+				    reiser4_print_key(&key, PO_DEF),
+				    reiser4_print_key(&d_key, PO_DEF));
+		return -ESTRUCT;
+	}
+	
+	return 0;
+}
+
 /* This function creates nodeptr item on the base of 'node' and insert it 
    to the tree. */
 errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
@@ -133,7 +300,8 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	if (place.node != NULL && reiser4_node_get_level(place.node) < level) {
 		/* Get the key of the found position or the right key. */
 		if (reiser4_place_rightmost(&place)) {
-			if ((res = repair_node_rd_key(place.node, &key)))
+			if ((res = repair_tree_parent_rkey(tree, place.node, 
+							   &key)))
 				return res;
 		} else {			
 			if ((res = reiser4_place_fetch(&place)))
@@ -351,6 +519,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 			if ((res = reiser4_place_fetch(&dst)))
 				return res;
 			
+			
 			if (dst.plug->id.id != src->plug->id.id) {
 				/* FIXME: relocation code should be here. */		
 				aal_exception_error("Tree Overwrite failed to "
@@ -400,9 +569,8 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 			break;
 		
 		/* Lookup by end_key. */
-		res = src->plug->o.item_ops->lookup((place_t *)src, 
-							 &hint.end, 
-							 &src->pos.unit);
+		res = src->plug->o.item_ops->lookup((place_t *)src, &hint.end,
+						    &src->pos.unit);
 		
 		if (src->pos.unit >= src_units)
 			break;

@@ -8,6 +8,16 @@
 
 #include <repair/repair.h>
 
+extern errno_t repair_tree_parent_rkey(reiser4_tree_t *tree, reiser4_node_t *node, 
+				       reiser4_key_t *rd_key);
+
+extern errno_t repair_tree_parent_lkey(reiser4_tree_t *tree, reiser4_node_t *node, 
+				       reiser4_key_t *ld_key); 
+
+extern errno_t repair_tree_dknode_check(reiser4_tree_t *tree, 
+					reiser4_node_t *node, 
+					uint8_t mode);
+
 extern errno_t repair_tree_copy(reiser4_tree_t *, reiser4_place_t *);
 extern errno_t repair_tree_attach(reiser4_tree_t *, reiser4_node_t *);
 
