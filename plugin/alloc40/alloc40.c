@@ -219,7 +219,7 @@ static errno_t callback_sync_bitmap(object_entity_t *format,
 			goto error_free_block;
 
 		aal_memcpy(fake, current, chunk);
-		adler = aal_adler32(current, size);
+		adler = aal_adler32(fake, size);
 		
 		aal_free(fake);
 	} else
@@ -408,7 +408,7 @@ static errno_t callback_check_bitmap(object_entity_t *format,
 			return -1;
 
 		aal_memcpy(fake, current, chunk);
-		cadler = aal_adler32(current, size);
+		cadler = aal_adler32(fake, size);
 		
 		aal_free(fake);
 	} else
