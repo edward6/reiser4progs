@@ -268,8 +268,8 @@ static int64_t extent40_trunc_units(place_t *place,
 errno_t extent40_maxreal_key(place_t *place,
 			     key_entity_t *key) 
 {
-	aal_assert("vpf-437", place != NULL);
 	aal_assert("vpf-438", key  != NULL);
+	aal_assert("vpf-437", place != NULL);
 
 	return body40_maxreal_key(place, key, extent40_offset);
 }
@@ -1026,10 +1026,6 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 			uint64_t width;
 			
 			extent = extent40_body(place) + unit_pos;
-
-			if (unit_pos >= units)
-				extent--;
-			
 			width = et40_get_width(extent);
 
 			if (et40_get_start(extent) == EXTENT_HOLE_UNIT) {

@@ -1078,22 +1078,15 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 			return -EIO;
 		}
 
-		/* Check if we have accessed unallocated extent */
+		/* Check if we have accessed unallocated extent. */
 		if (ptr.start != EXTENT_UNALLOC_UNIT)
 			continue;
 
-		/* Getting unit key */
+		/* Getting unit key. */
 		plug_call(place->plug->o.item_ops->balance,
 			  fetch_key, place, &key);
 
-		/* Checking if some data assigned to this unit. */
-		if (!aal_hash_table_lookup(tree->data, &key)) {
-			aal_bug("umka-3073", "Unallocated extent is found, "
-				"but data is not in cache.");
-			return -EINVAL;
-		}
-
-		/* Loop until all units get allocated */
+		/* Loop until all units get allocated. */
 		for (blocks = 0, width = ptr.width; width > 0; width -= ptr.width) {
 			blk_t blk;
 			uint32_t i;
@@ -1144,9 +1137,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 
 			/* Moving data blocks to right places, saving them and
 			   releasing from the cache. */
-			for (blk = ptr.start, i = 0;
-			     i < ptr.width; i++, blk++)
-			{
+			for (blk = ptr.start, i = 0; i < ptr.width; i++, blk++) {
 				/* Getting data block by @key */
 				block = aal_hash_table_lookup(tree->data, &key);
 				aal_assert("umka-2469", block != NULL);
