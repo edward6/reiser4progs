@@ -33,23 +33,26 @@
 #define L_NAME	1
 
 /* short name is all in the key, long is 16 + '\0' */
-#define NAME_LEN_MIN(kind)        \
+#define NAME_LEN_MIN(kind)		\
         (kind ? 16 + 1: 0)
 
-#define ENTRY_LEN_MIN(kind, pol)  \
+#define ENTRY_LEN_MIN(kind, pol)	\
         (ob_size(pol) + NAME_LEN_MIN(kind))
 
-#define UNIT_LEN_MIN(kind, pol)        \
+#define UNIT_LEN_MIN(kind, pol)		\
         (en_size(pol) + ENTRY_LEN_MIN(kind, pol))
 
-#define DENTRY_LEN_MIN		  \
+#define DENTRY_LEN_MIN			\
         (UNIT_LEN_MIN(S_NAME) + sizeof(cde40_t))
 
-#define en_len_min(count, pol)    \
+#define en_len_min(count, pol)		\
         ((uint64_t)count * UNIT_LEN_MIN(S_NAME, pol) + sizeof(cde40_t))
 
-#define OFFSET(pl, i, pol)        \
-        (uint32_t)((en_get_offset(cde_get_entry(pl, i, pol), pol)))
+#define OFFSET(pl, i, pol)		\
+        ((uint32_t)(en_get_offset(cde_get_entry(pl, i, pol), pol)))
+
+#define SET_OFFSET(pl, i, offset, pol)	\
+	(en_set_offset(cde_get_entry(pl, i, pol), offset, pol))
 
 #define NR	0
 #define R	1
@@ -61,9 +64,11 @@ struct entry_flags {
     
 /* Extention for repair_flag_t */
 #define REPAIR_SKIP	0
+
+extern reiser4_core_t *cde_core;
     
-extern int32_t cde40_remove(place_t *place, uint32_t pos, 
-			    uint32_t count);
+extern errno_t cde40_remove(place_t *place, uint32_t pos, 
+			    remove_hint_t *hint);
 
 extern errno_t cde40_get_key(place_t *place, uint32_t pos, 
 			     key_entity_t *key);
@@ -213,10 +218,8 @@ static uint8_t cde40_short_entry_detect(place_t *place,
 				    start_pos, OFFSET(place, start_pos, pol),
 				    limit + offset,  mode == RM_BUILD ? "Fixed." : "");
 		
-		if (mode == RM_BUILD) {
-			void *entry = cde_get_entry(place, start_pos, pol);
-			en_set_offset(entry, limit + offset, pol);
-		}
+		if (mode == RM_BUILD)
+			SET_OFFSET(place, start_pos, limit + offset, pol);
 	}
 	
 	return length / ENTRY_LEN_MIN(S_NAME, pol);
@@ -270,12 +273,9 @@ static uint8_t cde40_long_entry_detect(place_t *place,
 					    OFFSET(place, start_pos + count, pol),
 					    l_limit, mode == RM_BUILD ? "Fixed." : "");
 			
-			if (mode == RM_BUILD) {
-				void *entry = cde_get_entry(place, start_pos +
-							    count, pol);
-				
-				en_set_offset(entry, l_limit, pol);
-			}
+			if (mode == RM_BUILD)
+				SET_OFFSET(place, start_pos + count, 
+					   l_limit, pol);
 		}
 	}
 	
@@ -415,9 +415,10 @@ static errno_t cde40_offsets_range_check(place_t *place,
 static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 			    uint8_t mode)
 {
-	uint32_t pol;
+	remove_hint_t hint;
 	uint32_t i, last;
 	uint32_t e_count;
+	uint32_t pol;
 	errno_t res = 0;
 	
 	aal_assert("vpf-757", flags != NULL);
@@ -469,8 +470,7 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 	   is valid also, set @count unit offset to the item length. */
 	if (e_count > flags->count && last != flags->count) {
 		if (mode == RM_BUILD) {
-			void *entry = cde_get_entry(place, flags->count, pol);
-			en_set_offset(entry, place->len, pol);
+			SET_OFFSET(place, flags->count, place->len, pol);
 			place_mkdirty(place);
 		} else {
 			res |= RE_FATAL;
@@ -494,9 +494,8 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 		e_count = flags->count;
 		
 		if (mode == RM_BUILD) {
-			void *entry = cde_get_entry(place, 0, pol);
-			en_set_offset(entry, sizeof(cde40_t) +
-				      en_size(pol) * flags->count, pol);
+			SET_OFFSET(place, 0, sizeof(cde40_t) + 
+				   en_size(pol) * flags->count, pol);
 			place_mkdirty(place);
 		}
 	}
@@ -525,16 +524,11 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 				    mode == RM_BUILD ? "Removed." : "");
 		
 		if (mode == RM_BUILD) {
-			if (cde40_remove(place, flags->count, 
-					 e_count - flags->count) < 0) 
-			{
-				aal_exception_error("Node %llu, item %u: remove "
-						    "of the unit (%u), count (%u) "
-						    "failed.", place->block->nr, 
-						    place->pos.item, flags->count, 
-						    e_count - flags->count);
-				return -EINVAL;
-			}
+			hint.count = e_count - flags->count;
+			
+			if ((res |= cde40_remove(place, flags->count, 
+						 &hint)) < 0) 
+				return res;
 			
 			place_mkdirty(place);
 		} else {
@@ -550,13 +544,10 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 				    mode == RM_BUILD ? "Removed." : "");
 		
 		if (mode == RM_BUILD) {
-			if (cde40_remove(place, 0, i) < 0) {
-				aal_exception_error("Node %llu, item %u: remove of "
-						    "the unit (%u), count (%u) "
-						    "failed.", place->block->nr,
-						    place->pos.item, 0, i);
-				return -EINVAL;
-			}
+			hint.count = i;
+			
+			if ((res |= cde40_remove(place, 0, &hint)) < 0)
+						return res;
 			
 			place_mkdirty(place);
 			aal_memmove(flags->elem, flags->elem + i, 
@@ -594,15 +585,11 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 				last = MAX_UINT32;
 				continue;
 			}
+			
+			hint.count = i - last;
 
-			if (cde40_remove(place, last, i - last) < 0) {
-				aal_exception_error("Node %llu, item %u: remove"
-						    "of unit (%u), count (%u) "
-						    "failed.", place->block->nr,
-						    place->pos.item, last, 
-						    i - last);
-				return -EINVAL;
-			}
+			if ((res |= cde40_remove(place, last, &hint)) < 0)
+				return res;
 
 			aal_memmove(flags->elem + last, flags->elem + i,
 				    flags->count - i);
@@ -653,8 +640,83 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 
 	aal_free(flags.elem);
 	
-	/* Check order of entries -- FIXME-VITALY: just simple check for now, 
-	   the whole item is thrown away if smth wrong, to be improved later. */
+	if (repair_error_fatal(res))
+		return res;
+	
+	/* Structure is checked, check the unit keys and its order.
+	   FIXME-VITALY: just simple order check for now, the whole 
+	   item is thrown away if smth wrong, to be improved later. */
+	for (i = 1; i < flags.count; i++) {
+		key_entity_t key;
+		remove_hint_t hint;
+		
+		cde40_get_key(place, i - 1, &key);
+
+		if (OFFSET(place, i - 1, pol) + ob_size(pol) == 
+		    OFFSET(place, i, pol))
+		{
+			/* Check that [i-1] key is not hashed. */
+			if (!plug_call(place->key.plug->o.key_ops, 
+				       hashed, &key))
+				continue;
+
+			/* Hashed, key is wrong, remove the entry. */
+			aal_exception_error("Node (%llu), item (%u): wrong key "
+					    "[%s] of the unit (%u).%s", 
+					    place->block->nr, place->pos.item,
+					    cde_core->key_ops.print(&key, PO_INO),
+					    i - 1, mode == RM_BUILD ? " Removed." 
+					    : "");
+			
+			if (mode != RM_BUILD) {
+				res |= RE_FATAL;
+				continue;
+			}
+
+			/* Remove the entry. */
+			hint.count = 1;
+
+			if ((res |= cde40_remove(place, i - 1, &hint)) < 0)
+				return res;
+
+			i--;
+			flags.count--;
+			continue;
+		} else {
+			/* Check that [i-1] key is hashed. */
+			if (plug_call(place->key.plug->o.key_ops, 
+				      hashed, &key))
+				continue;
+			
+			/* Not hashed, key is wrong, remove the entry. */
+			
+			aal_exception_error("Node (%llu), item (%u): wrong key "
+					    "[%s] of the unit (%u).%s", 
+					    place->block->nr, place->pos.item, 
+					    cde_core->key_ops.print(&key, PO_INO),
+					    i - 1, mode == RM_BUILD ? " Removed." 
+					    : "");
+			
+			if (mode != RM_BUILD) {
+				res |= RE_FATAL;
+				continue;
+			}
+			
+			/* Remove the entry. */
+			hint.count = 1;
+
+			if ((res |= cde40_remove(place, i - 1, &hint)) < 0)
+				return res;
+
+			i--;
+			flags.count--;
+			continue;
+		}
+	}
+	
+	if (res & RE_FATAL)
+		return res;
+
 	for (i = 1; i < flags.count; i++) {
 		void *prev_hash;
 		void *curr_hash;
@@ -673,6 +735,9 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 			return res & RE_FATAL;
 		}
 	}
+	
+	if (flags.count == 0)
+		res &= RE_FATAL;
 	
 	return res;
 	

@@ -71,14 +71,12 @@ uint64_t key_short_get_locality(key_entity_t *key) {
 }
 
 /* Sets up key ordering (is not used in short keys ) */
-static void key_short_set_ordering(key_entity_t *key, 
-				   uint64_t ordering) 
-{
+void key_short_set_ordering(key_entity_t *key, uint64_t ordering) {
 	aal_assert("umka-2331", key != NULL);
 }
 
 /* Returns key ordering (is not used in short keys) */
-static uint64_t key_short_get_ordering(key_entity_t *key) {
+uint64_t key_short_get_ordering(key_entity_t *key) {
 	aal_assert("umka-2332", key != NULL);
 	return 0;
 }
@@ -123,7 +121,7 @@ static uint64_t key_short_get_offset(key_entity_t *key) {
 	return ks_get_offset((key_short_t *)key->body);
 }
 
-static int key_short_tall(key_entity_t *key) {
+static int key_short_hashed(key_entity_t *key) {
 	return (key_short_get_objectid(key) &
 		0x0100000000000000ull) ? 1 : 0;
 }
@@ -136,8 +134,8 @@ static char *key_short_get_name(key_entity_t *key,
 	uint64_t offset;
 	uint64_t objectid;
                                                                                         
-	/* Check if key is not tall one */
-	if (key_short_tall(key))
+	/* Check if the key is a hashed one */
+	if (key_short_hashed(key))
 		return NULL;
 	
 	offset = key_short_get_offset(key);
@@ -379,49 +377,49 @@ extern errno_t key_short_check_struct(key_entity_t *key);
 #endif
 
 static reiser4_key_ops_t key_short_ops = {
-	.tall              = key_short_tall,
-	.assign            = key_short_assign,
-	.clean             = key_short_clean,
-	.minimal           = key_short_minimal,
-	.maximal           = key_short_maximal,
-	.bodysize          = key_short_bodysize,
-	.compfull	   = key_short_compfull,
-	.compraw           = key_short_compraw,
+	.hashed		= key_short_hashed,
+	.assign		= key_short_assign,
+	.clean		= key_short_clean,
+	.minimal	= key_short_minimal,
+	.maximal	= key_short_maximal,
+	.bodysize	= key_short_bodysize,
+	.compfull	= key_short_compfull,
+	.compraw	= key_short_compraw,
 
 #ifndef ENABLE_STAND_ALONE
-	.compshort	   = key_short_compshort,
+	.compshort	= key_short_compshort,
 #endif
 		
-	.build_entry       = key_short_build_entry,
-	.build_gener       = key_short_build_gener,
+	.build_entry	= key_short_build_entry,
+	.build_gener	= key_short_build_gener,
 	
 #ifndef ENABLE_STAND_ALONE
-	.check_struct	   = key_short_check_struct,
-	.print		   = key_short_print,
+	.check_struct	= key_short_check_struct,
+	.print		= key_short_print,
 
-	.set_hash	   = key_short_set_hash,
-	.get_hash	   = key_short_get_hash,
+	.set_hash	= key_short_set_hash,
+	.get_hash	= key_short_get_hash,
 #endif
 		
-	.set_type	   = key_short_set_type,
-	.get_type	   = key_short_get_type,
+	.set_type	= key_short_set_type,
+	.get_type	= key_short_get_type,
 
-	.set_offset	   = key_short_set_offset,
-	.get_offset	   = key_short_get_offset,
+	.set_offset	= key_short_set_offset,
+	.get_offset	= key_short_get_offset,
 	
-	.set_locality	   = key_short_set_locality,
-	.get_locality	   = key_short_get_locality,
+	.set_locality	= key_short_set_locality,
+	.get_locality	= key_short_get_locality,
 
-	.set_objectid	   = key_short_set_objectid,
-	.get_objectid	   = key_short_get_objectid,
+	.set_objectid	= key_short_set_objectid,
+	.get_objectid	= key_short_get_objectid,
 
-	.set_fobjectid	   = key_short_set_fobjectid,
-	.get_fobjectid	   = key_short_get_fobjectid,
+	.set_fobjectid	= key_short_set_fobjectid,
+	.get_fobjectid	= key_short_get_fobjectid,
 
-	.set_ordering	   = key_short_set_ordering,
-	.get_ordering	   = key_short_get_ordering,
+	.set_ordering	= key_short_set_ordering,
+	.get_ordering	= key_short_get_ordering,
 	
-	.get_name          = key_short_get_name
+	.get_name       = key_short_get_name
 };
 
 static reiser4_plug_t key_short_plug = {

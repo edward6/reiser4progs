@@ -12,7 +12,7 @@ extern void key_short_set_locality(key_entity_t *key, key_type_t type);
 extern uint64_t key_short_get_locality(key_entity_t *key);
 extern void key_short_set_fobjectid(key_entity_t *key, uint64_t objectid);
 extern uint64_t key_short_get_fobjectid(key_entity_t *key);
-	
+
 /* Checks than oid is not used in neither locality not objectid. */
 errno_t key_short_check_struct(key_entity_t *key) {
 	key_minor_t minor;

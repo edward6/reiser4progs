@@ -71,15 +71,13 @@ uint64_t key_large_get_locality(key_entity_t *key) {
 }
 
 /* Sets up key ordering (is not used in short keys ) */
-static void key_large_set_ordering(key_entity_t *key, 
-				   uint64_t ordering) 
-{
+void key_large_set_ordering(key_entity_t *key, uint64_t ordering) {
 	aal_assert("umka-2331", key != NULL);
 	kl_set_ordering((key_large_t *)key->body, ordering);
 }
 
 /* Returns key ordering (is not used in short keys) */
-static uint64_t key_large_get_ordering(key_entity_t *key) {
+uint64_t key_large_get_ordering(key_entity_t *key) {
 	aal_assert("umka-2332", key != NULL);
 	return kl_get_ordering((key_large_t *)key->body);
 }
@@ -124,7 +122,7 @@ static uint64_t key_large_get_offset(key_entity_t *key) {
 	return kl_get_offset((key_large_t *)key->body);
 }
 
-static int key_large_tall(key_entity_t *key) {
+static int key_large_hashed(key_entity_t *key) {
 	return (key_large_get_ordering(key) &
 		0x0100000000000000ull) ? 1 : 0;
 }
@@ -141,8 +139,8 @@ static char *key_large_get_name(key_entity_t *key,
 	aal_assert("umka-2352", key != NULL);
 	aal_assert("umka-2353", name != NULL);
 
-	/* Check if key is not tall one */
-	if (key_large_tall(key))
+	/* Check if the key is a hashed one */
+	if (key_large_hashed(key))
 		return NULL;
 
 	offset = key_large_get_offset(key);
@@ -401,48 +399,48 @@ extern errno_t key_large_check_struct(key_entity_t *key);
 #endif
 
 static reiser4_key_ops_t key_large_ops = {
-	.tall              = key_large_tall,
-	.assign            = key_large_assign,
-	.clean             = key_large_clean,
-	.minimal           = key_large_minimal,
-	.maximal           = key_large_maximal,
-	.bodysize          = key_lage_bodysize,
-	.compraw	   = key_large_compraw,
-	.compfull	   = key_large_compfull,
+	.hashed		= key_large_hashed,
+	.assign		= key_large_assign,
+	.clean		= key_large_clean,
+	.minimal	= key_large_minimal,
+	.maximal	= key_large_maximal,
+	.bodysize	= key_lage_bodysize,
+	.compraw	= key_large_compraw,
+	.compfull	= key_large_compfull,
 
 #ifndef ENABLE_STAND_ALONE
-	.compshort	   = key_large_compshort,
+	.compshort	= key_large_compshort,
 #endif
 		
-	.build_entry       = key_large_build_entry,
-	.build_gener       = key_large_build_gener,
+	.build_entry	= key_large_build_entry,
+	.build_gener	= key_large_build_gener,
 	
 #ifndef ENABLE_STAND_ALONE
-	.check_struct      = key_large_check_struct,
-	.print		   = key_large_print,
+	.check_struct	= key_large_check_struct,
+	.print		= key_large_print,
 
-	.set_hash	   = key_large_set_hash,
-	.get_hash	   = key_large_get_hash,
+	.set_hash	= key_large_set_hash,
+	.get_hash	= key_large_get_hash,
 #endif
 		
-	.set_type	   = key_large_set_type,
-	.get_type	   = key_large_get_type,
+	.set_type	= key_large_set_type,
+	.get_type	= key_large_get_type,
 
-	.set_locality	   = key_large_set_locality,
-	.get_locality	   = key_large_get_locality,
+	.set_locality	= key_large_set_locality,
+	.get_locality	= key_large_get_locality,
 
-	.set_ordering	   = key_large_set_ordering,
-	.get_ordering	   = key_large_get_ordering,
+	.set_ordering	= key_large_set_ordering,
+	.get_ordering	= key_large_get_ordering,
 	
-	.set_objectid	   = key_large_set_objectid,
-	.get_objectid	   = key_large_get_objectid,
+	.set_objectid	= key_large_set_objectid,
+	.get_objectid	= key_large_get_objectid,
 
-	.set_fobjectid	   = key_large_set_fobjectid,
-	.get_fobjectid	   = key_large_get_fobjectid,
+	.set_fobjectid	= key_large_set_fobjectid,
+	.get_fobjectid	= key_large_get_fobjectid,
 
-	.set_offset	   = key_large_set_offset,
-	.get_offset	   = key_large_get_offset,
-	.get_name          = key_large_get_name
+	.set_offset	= key_large_set_offset,
+	.get_offset	= key_large_get_offset,
+	.get_name	= key_large_get_name
 };
 
 static reiser4_plug_t key_large_plug = {
