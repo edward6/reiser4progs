@@ -24,7 +24,7 @@ extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      entry_hint_t *entry);
 
 #ifdef ENABLE_SYMLINKS_SUPPORT
-extern reiser4_object_t *reiser4_object_embody(reiser4_fs_t *fs,
+extern reiser4_object_t *reiser4_object_launch(reiser4_fs_t *fs,
 					       reiser4_place_t *place);
 #endif
 
@@ -102,5 +102,7 @@ extern reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 extern errno_t reiser4_object_reset(reiser4_object_t *object);
 
 extern uint32_t reiser4_object_offset(reiser4_object_t *object);
+
+extern bool_t reiser4_object_can_begin(reiser4_place_t *place);
 
 #endif

@@ -555,11 +555,11 @@ static errno_t dfrag_process_node(
 		  circle of the loop, because we are intersted only in the stat
 		  data items, which can be used for opening files.
 		*/
-		if (!reiser4_item_statdata(&place))
+		if (!reiser4_object_can_begin(&place))
 			continue;
 
 		/* Opening object by its stat data item denoded by @place */
-		if (!(object = reiser4_object_embody(frag_hint->tree->fs, &place)))
+		if (!(object = reiser4_object_launch(frag_hint->tree->fs, &place)))
 			continue;
 
 		/* Initializing per-file counters */

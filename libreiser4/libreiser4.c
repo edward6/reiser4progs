@@ -216,7 +216,7 @@ static errno_t object_resolve(void *tree, place_t *place, char *filename,
 	t = (reiser4_tree_t *)tree;
 	p = (reiser4_place_t *)place;
 
-	if (!(o = reiser4_object_embody(t->fs, p)))
+	if (!(o = reiser4_object_launch(t->fs, p)))
 		return -EINVAL;
 
 	/* Setting up the key resolve will start from */

@@ -123,7 +123,8 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
 }
 
 /* Updates the left delimiting key of the node kept in the parent. */
-/* FIXME-VITALY: This must be recursive method. */
+/* FIXME-VITALY: This must be recursive method. + there is smth similar 
+ * in libreiser4 already.*/
 static errno_t repair_node_ld_key_update(reiser4_node_t *node, 
     reiser4_key_t *ld_key) 
 {
@@ -182,6 +183,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 }
 
 /* Checks the delimiting keys of the node kept in the parent. */
+/* FIXME-VITALY: this is not node code, move it to tree code. */
 errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
     reiser4_place_t place;
     reiser4_key_t key, d_key;

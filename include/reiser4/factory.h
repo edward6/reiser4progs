@@ -50,5 +50,8 @@ extern errno_t libreiser4_factory_load(plugin_init_t init,
 
 extern reiser4_plugin_t *libreiser4_factory_cfind(plugin_func_t plugin_func,
 						  void *data);
+extern reiser4_plugin_t *libreiser4_factory_cfind_only(
+				plugin_func_t plugin_func, 
+				void *data);
 #endif
 

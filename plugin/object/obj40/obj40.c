@@ -447,10 +447,7 @@ errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
 	place_t place;
 	oid_t objectid = obj40_objectid(obj);
 	
-	/*
-	  Making lookup in order to find the place the item/unit will be removed
-	  at.
-	*/
+	/* Lookup the place by @key and remove @count items/units if PRESENT. */
 	switch (obj40_lookup(obj, key, LEAF_LEVEL, &place)) {
 	case ABSENT:
 		aal_exception_error("Can't find item/unit durring remove.");

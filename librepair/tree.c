@@ -97,7 +97,7 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
     return res;
 }
 
-/* This function creates nodeptr item on the nase of 'node' and insert it to 
+/* This function creates nodeptr item on the base of 'node' and insert it to 
  * the tree. */
 errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     reiser4_key_t rkey, key;

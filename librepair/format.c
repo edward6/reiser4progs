@@ -103,17 +103,23 @@ static errno_t repair_format_check(reiser4_fs_t *fs, uint8_t mode) {
     
     pid = reiser4_format_get_policy(fs->format);
     
-    if (pid != policy) {
-	aal_exception_error("Tail policy (%u) detected on (%s) differs from "
-	    "the specified in the profile (%u). %s", pid, 
-	    aal_device_name(fs->device), policy, mode != REPAIR_CHECK ? 
-	    "Fixed." : "");
+    if (pid >= TAIL_LAST_ID) {
+	/* Tail id from the profile is wrong. */
+	aal_exception_error("Invalid tail policy (%u) detected in the format "
+	    "on (%s).", pid, aal_device_name(fs->device));
 	
 	if (mode != REPAIR_CHECK) {
+	    aal_exception_error("Fixed to the specified in profile (%u).", policy);
 	    reiser4_format_set_policy(fs->format, policy);
-	    ret |= REPAIR_FIXED;
-	} else
+	    ret |= REPAIR_FIXED;    
+	} else	    
 	    ret |= REPAIR_FIXABLE;
+    }
+    
+    if (pid != policy) {
+	aal_exception_fatal("The tail policy (%u) detected on (%s) differs "
+	    "from the specified in the profile (%u). Do not forget to fix the "
+	    "profile.", pid, aal_device_name(fs->device), policy);
     }
     
     return ret;
@@ -176,5 +182,4 @@ void repair_format_print(reiser4_fs_t *fs, FILE *file, uint16_t options) {
     
     aal_stream_fini(&stream);
 }
-
 

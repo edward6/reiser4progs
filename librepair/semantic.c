@@ -16,7 +16,7 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
     aal_assert("vpf-1037", data != NULL);
     
     /* If this item cannot be the start of the object, skip it. */
-    if (repair_object_can_begin(place) == FALSE)
+    if (reiser4_object_can_begin(place) == FALSE)
 	return 0;
     
     /* If this item was checked already, skip it. */
@@ -26,7 +26,7 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
     sem = (repair_semantic_t *)data;
     
     /* Try to open it. */
-    if ((object = reiser4_object_embody(sem->repair->fs, place)) == NULL)
+    if ((object = reiser4_object_launch(sem->repair->fs, place)) == NULL)
 	return 0;
     
     /* This is really an object, check its structure. */

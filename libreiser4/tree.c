@@ -506,7 +506,8 @@ static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 	locality = REISER4_ROOT_LOCALITY;
 	objectid = REISER4_ROOT_OBJECTID;
 #endif
-	
+	/* FIXME-VITALY->UMKA: Only object plugin can create this key.
+	 * Ask openned '/' for it. */
 	return reiser4_key_build_generic(&tree->key, KEY_STATDATA_TYPE,
 					 locality, objectid, 0);
 }

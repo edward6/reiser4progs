@@ -14,10 +14,11 @@
 #include <reiser4/reiser4.h>
 
 /* Helper callback for probing passed @plugin */
-static bool_t callback_guess_object(reiser4_plugin_t *plugin,
+static bool_t callback_object_guess(reiser4_plugin_t *plugin,
 				     void *data)
 {
 	reiser4_object_t *object;
+	bool_t res;
 
 	/* We are interested only in object plugins here */
 	if (plugin->h.type != OBJECT_PLUGIN_TYPE)
@@ -32,8 +33,12 @@ static bool_t callback_guess_object(reiser4_plugin_t *plugin,
 	object->entity = plugin_call(plugin->o.object_ops, open,
 				     (void *)object->fs->tree,
 				     (void *)&object->place);
-
-	return object->entity != NULL;
+	
+	res = object->entity != NULL;
+	
+	plugin_call(plugin->o.object_ops, close, object->entity);
+	
+	return res;
 }
 
 uint64_t reiser4_object_size(reiser4_object_t *object) {
@@ -44,10 +49,18 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 }
 
 /* This function is trying to open object's entity on @object->place */
-static errno_t reiser4_object_init(reiser4_object_t *object) {
-	if (!libreiser4_factory_cfind(callback_guess_object, object))
+static errno_t reiser4_object_guess(reiser4_object_t *object) {
+	reiser4_plugin_t *plugin;
+	
+	plugin = libreiser4_factory_cfind_only(callback_object_guess, object);
+	
+	if (!plugin)
 		return -EINVAL;
-
+	
+	object->entity = plugin_call(plugin->o.object_ops, open,
+				     (void *)object->fs->tree, 
+				     (void *)&object->place);
+	
 	return object->entity != NULL ? 0 : -EINVAL;
 }
 
@@ -95,7 +108,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	}
 
 	/* Getting object plugin */
-	if ((res = reiser4_object_init(object))) {
+	if ((res = reiser4_object_guess(object))) {
 		aal_exception_error("Can't init object %s.",
 				    track);
 		return res;
@@ -128,7 +141,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 			return -EINVAL;
 
 		/* Initializing entity on new place */
-		if ((res = reiser4_object_init(object)))
+		if ((res = reiser4_object_guess(object)))
 			return -EINVAL;
 	}
 
@@ -232,7 +245,7 @@ reiser4_object_t *reiser4_object_open(
 
 #ifdef ENABLE_SYMLINKS_SUPPORT
 /* This function opens object by its @place */
-reiser4_object_t *reiser4_object_embody(
+reiser4_object_t *reiser4_object_launch(
 	reiser4_fs_t *fs,               /* fs object will be opened on */
 	reiser4_place_t *place)		/* statdata key of object to be opened */
 {
@@ -254,7 +267,7 @@ reiser4_object_t *reiser4_object_embody(
 	aal_memcpy(&object->place, place, sizeof(*place));
 	reiser4_key_assign(&object->key, &object->place.item.key);
 
-	if (reiser4_object_init(object))
+	if (reiser4_object_guess(object))
 		goto error_free_object;
 
 	return object;
@@ -348,7 +361,7 @@ reiser4_object_t *reiser4_object_create(
 
 	/* Initializing fields and preparing the keys */
 	object->fs = fs;
-
+	
 	/* 
 	  This is the special case. In the case parent is NULL, we are trying to
 	  create root directory.
@@ -481,14 +494,15 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	if (reiser4_tree_lookup(object->fs->tree, &entry.object,
 				LEAF_LEVEL, &place) != PRESENT)
 	{
-		aal_exception_error("Can't find stat data of %s/%s. "
-				    "Entry %s points to nowere.",
-				    object->name, name, name);
+		aal_exception_error("Can't find an item pointed by %k. "
+				    "Entry %s/%s points to nowere.",
+				    &entry.object, object->name, name, 
+				    name);
 		return -EINVAL;
 	}
 
 	/* Opening victim statdata by found place */
-	if (!(child = reiser4_object_embody(object->fs, &place))) {
+	if (!(child = reiser4_object_launch(object->fs, &place))) {
 		aal_exception_error("Can't open %s/%s.",
 				    object->name, name);
 		return -EINVAL;
@@ -710,7 +724,7 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	hint.body.dir.hash = reiser4_profile_value(profile, "hash");
 	hint.body.dir.direntry = reiser4_profile_value(profile, "direntry");
 
-	/* Creating directory by passed parameters */
+	/* Creating object by passed parameters */
 	if (!(object = reiser4_object_create(fs, parent, &hint)))
 		return NULL;
 
@@ -752,7 +766,7 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 	hint.body.reg.extent = reiser4_profile_value(profile, "extent");
 	hint.body.reg.policy = reiser4_profile_value(profile, "policy");
 	
-	/* Creating directory by passed parameters */
+	/* Creating object by passed parameters */
 	if (!(object = reiser4_object_create(fs, parent, &hint)))
 		return NULL;
 
@@ -798,7 +812,7 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	aal_strncpy(hint.body.sym, target, 
 		    len > SYMLINK_MAX_LEN ? SYMLINK_MAX_LEN : len);
 	
-	/* Creating directory by passed parameters */
+	/* Creating object by passed parameters */	
 	if (!(object = reiser4_object_create(fs, parent, &hint)))
 		return NULL;
 
@@ -809,4 +823,18 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	
 	return object;
 }
+
+/* Checks if the specified place can be the beginning of an object. */
+bool_t reiser4_object_can_begin(reiser4_place_t *place) {
+    aal_assert("vpf-1033", place != NULL);
+
+    if (reiser4_place_realize(place))
+	return FALSE;
+
+    /* FIXME-VITALY: This is hardcoded way. As only stat data is not what 
+     * must be at the beginning of the object, we have to ask plugin if 
+     * this is a beginning. */
+    return reiser4_item_statdata(place);
+}
+
 #endif
