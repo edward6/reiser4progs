@@ -1047,8 +1047,10 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 
 		if (reiser4_tree_root_node(tree, node))
 			reiser4_tree_set_root(tree, allocnr);
+		
 		/* Rehashing node in @tree->nodes hash table. */
 		reiser4_tree_rehash_node(tree, node, allocnr);
+		
 		if (!reiser4_tree_root_node(tree, node)) {
 			if ((res = reiser4_node_update_ptr(node)))
 				return res;
@@ -2428,7 +2430,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 }
 
 /* Inserts data to the tree. This function is used for inserting items which are
- * not file body items, that is statdata, directory, etc. */
+   not file body items, that is statdata, directory, etc. */
 int64_t reiser4_tree_insert(reiser4_tree_t *tree, place_t *place,
 			    trans_hint_t *hint, uint8_t level)
 {
@@ -2541,7 +2543,10 @@ errno_t reiser4_tree_trav_node(reiser4_tree_t *tree, node_t *node,
 	
 	if (open_func == NULL)
 		open_func = (tree_open_func_t)reiser4_tree_child_node;
-	
+
+	/* Locking @node to make sure, that it will not be released while we are
+	   working with it. Of course, it should be unlocked after we
+	   finished. */
 	reiser4_node_lock(node);
 
 	if ((before_func && (res = before_func(tree, node, data))))

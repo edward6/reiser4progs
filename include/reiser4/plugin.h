@@ -266,13 +266,6 @@ struct node_entity {
 
 typedef struct node_entity node_entity_t;
 
-/* Node related stuff. */
-enum node_flags {
-	NF_FOREIGN = 1 << 0
-};
-
-typedef enum node_flags node_flags_t;
-
 typedef struct node node_t;
 typedef struct place place_t;
 
@@ -314,9 +307,6 @@ struct node {
 	signed int counter;
 
 #ifndef ENABLE_STAND_ALONE
-	/* Some node flags */
-	node_flags_t flags;
-	
 	/* Applications using this library sometimes need to embed information
 	   into the objects of our library for their own use. */
 	void *data;

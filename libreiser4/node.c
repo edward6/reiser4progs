@@ -345,6 +345,10 @@ static int reiser4_node_ack(node_t *node, place_t *place) {
 errno_t reiser4_node_realize(
 	node_t *node)             /* node position will be obtained for */
 {
+#ifndef ENABLE_STAND_ALONE
+	uint32_t i;
+#endif
+	
 	place_t *parent;
         reiser4_key_t lkey;
     
@@ -355,10 +359,8 @@ errno_t reiser4_node_realize(
 
 	/* Checking if we are in position already */
 #ifndef ENABLE_STAND_ALONE
-	if (!(node->flags & NF_FOREIGN)) {
-		if (reiser4_node_ack(node, parent))
-			goto parent_fetch;
-	}
+	if (reiser4_node_ack(node, parent))
+		goto parent_fetch;
 #endif
 
         reiser4_node_leftmost_key(node, &lkey);
@@ -368,45 +370,40 @@ errno_t reiser4_node_realize(
 				&parent->pos) == PRESENT)
 	{
 #ifndef ENABLE_STAND_ALONE
-		if (!(node->flags & NF_FOREIGN)) {
-			if (reiser4_node_ack(node, parent))
-				goto parent_fetch;
-		} else
-#endif
+		if (reiser4_node_ack(node, parent))
 			goto parent_fetch;
+#endif
 	}
 
-	/* Getting position by means of linear traverse */
+	/* Getting position by means of linear traverse. */
 #ifndef ENABLE_STAND_ALONE
-	if (!(node->flags & NF_FOREIGN)) {
+	for (i = 0; i < reiser4_node_items(parent->node); i++) {
 		blk_t blk;
+		uint32_t j;
 		lookup_t res;
-		uint32_t i, j;
-		
-		for (i = 0; i < reiser4_node_items(parent->node); i++) {
-			parent->pos.item = i;
+			
+		parent->pos.item = i;
 
-			if ((res = reiser4_place_fetch(parent)))
-				return res;
+		if ((res = reiser4_place_fetch(parent)))
+			return res;
 
-			if (!reiser4_item_branch(parent->plug))
-				continue;
+		if (!reiser4_item_branch(parent->plug))
+			continue;
 
-			for (j = 0; j < reiser4_item_units(parent); j++) {
-				parent->pos.unit = j;
+		for (j = 0; j < reiser4_item_units(parent); j++) {
+			parent->pos.unit = j;
 				
-				blk = reiser4_item_down_link(parent);
+			blk = reiser4_item_down_link(parent);
 				
-				if (blk == node_blocknr(node))
-					goto parent_fetch;
-			}
+			if (blk == node_blocknr(node))
+				goto parent_fetch;
 		}
 	}
 
 	return -EINVAL;
+
+parent_fetch:
 #endif
-	
- parent_fetch:
 	if (reiser4_place_fetch(parent))
 		return -EINVAL;
 
@@ -439,6 +436,8 @@ lookup_t reiser4_node_lookup(node_t *node, reiser4_key_t *key,
 		return res;
 	}
 
+	/* Wanted key is not key of item. Will look inside found item in order
+	   to find needed unit inside. */
 	if (res == ABSENT) {
 		if (pos->item == 0)
 			return ABSENT;

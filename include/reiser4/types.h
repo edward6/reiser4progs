@@ -19,10 +19,19 @@ typedef struct key_entity reiser4_key_t;
    so, we can declare it here. It contains common for all format fields like
    block size etc. */
 struct reiser4_master_sb {
+	/* Master super block magic. */
 	char ms_magic[4];
+
+	/* Disk format in use. */
 	d16_t ms_format;
+
+	/* Filesyetem block size in use. */
 	d16_t ms_blksize;
+
+	/* Filesyetm uuid in use. */
 	char ms_uuid[16];
+
+	/* Filesystem label in use. */
 	char ms_label[16];
 };
 
@@ -39,10 +48,20 @@ typedef struct reiser4_master_sb reiser4_master_sb_t;
 #define SS_MESSAGE_SIZE 256
 
 struct reiser4_status_sb {
+	/* Status block magic string. */
 	char ss_magic[16];
+
+	/* Flags that contains current fs status like, corrupted, etc. */
 	d64_t ss_status;
+
+	/* Extended status flags. May be used as addition to main ones. */
 	d64_t ss_extended;
+
+	/* If there was some errors in last time filesystem was used, here may
+	   be stored stack trace where it was. */
 	d64_t ss_stack[SS_STACK_SIZE];
+
+	/* Error message related to saved status and stack trace. */
 	char ss_message[SS_MESSAGE_SIZE];
 };
 
