@@ -6,8 +6,8 @@
 #ifndef SPL40_REPAIR_H
 #define SPL40_REPAIR_H
 
-#include <aal/libaal.h>
-#include <reiser4/plugin.h>
+#include "spl40.h"
+#include "plugin/object/obj40/obj40_repair.h"
 
 extern object_entity_t *spl40_recognize(object_info_t *info);
 extern errno_t spl40_check_struct(object_entity_t *object,

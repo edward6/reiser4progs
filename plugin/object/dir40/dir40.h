@@ -8,8 +8,8 @@
 
 #include <aal/libaal.h>
 #include <sys/stat.h>
-#include <reiser4/plugin.h>
-#include <plugin/object/obj40/obj40.h>
+
+#include "plugin/object/obj40/obj40.h"
 
 /* Compaund directory structure */
 struct dir40 {

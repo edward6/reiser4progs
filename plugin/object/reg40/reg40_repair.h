@@ -6,8 +6,8 @@
 #ifndef REG40_REPAIR_H
 #define REG40_REPAIR_H
 
-#include <aal/libaal.h>
-#include <reiser4/plugin.h>
+#include "reg40.h"
+#include "plugin/object/obj40/obj40_repair.h"
 
 extern errno_t reg40_form(object_entity_t *object);
 

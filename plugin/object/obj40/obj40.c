@@ -3,13 +3,6 @@
    
    obj40.c -- reiser4 file 40 plugins common code. */
 
-#include <sys/stat.h>
-
-#ifndef ENABLE_STAND_ALONE
-#  include <time.h>
-#  include <unistd.h>
-#endif
-
 #include "obj40.h"
 
 /* Returns file's oid */

@@ -5,8 +5,7 @@
 
 #ifndef ENABLE_STAND_ALONE
 
-#include "sym40.h"
-#include "repair/plugin.h"
+#include "sym40_repair.h"
 
 #define SYM40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID | 1 << SDEXT_SYMLINK_ID)
 
@@ -32,6 +31,8 @@ static errno_t callback_stat(reiser4_place_t *stat) {
 		return res;
 	
 	return S_ISLNK(lw_hint.mode) ? 0 : RE_FATAL;
+
+	/* FIXME: read object plug_id extention from sd. if present also. */
 }
 
 object_entity_t *sym40_recognize(object_info_t *info) {
@@ -55,27 +56,13 @@ object_entity_t *sym40_recognize(object_info_t *info) {
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-static void sym40_zero_nlink(obj40_t *obj, uint32_t *nlink) {
-	*nlink = 0;
-}
-
-static void sym40_check_mode(obj40_t *obj, uint16_t *mode) {
-	if (!S_ISDIR(*mode)) {
-		*mode &= ~S_IFMT;
-        	*mode |= S_IFLNK;
-	}
-}
-
-static void sym40_check_size(obj40_t *obj, uint64_t *sd_size, uint64_t size) {
-	if (*sd_size != size)
-		*sd_size = size;
-}
-
 errno_t sym40_check_struct(object_entity_t *object,
 			   place_func_t place_func,
 			   void *data, uint8_t mode)
 {
 	sym40_t *sym = (sym40_t *)object;
+	obj40_stat_methods_t methods;
+	obj40_stat_params_t params;
 	reiser4_place_t *place;
 	errno_t res;
 	char *path;
@@ -86,19 +73,16 @@ errno_t sym40_check_struct(object_entity_t *object,
 
 	place = STAT_PLACE(&sym->obj);
 	
-	if ((res = obj40_launch_stat(&sym->obj, sym40_extensions, 
-				     1, S_IFLNK, mode)))
+	aal_memset(&methods, 0, sizeof(methods));
+	aal_memset(&params, 0, sizeof(params));
+	
+	if ((res = obj40_prepare_stat(&sym->obj, S_IFLNK, mode)))
 		return res;
 	
 	/* Try to register SD as an item of this file. */
 	if (place_func && place_func(place, data))
 		return -EINVAL;
 	
-	/* Fix SD's key if differs. */
-	if ((res = obj40_fix_key(&sym->obj, place, 
-				 &sym->obj.info.object, mode)))
-		return res;
-
 	if (!(path = aal_calloc(place->node->block->size, 0)))
 		return -ENOMEM;
 		
@@ -106,11 +90,13 @@ errno_t sym40_check_struct(object_entity_t *object,
 		goto error;
 	
 	/* Fix the SD, if no fatal corruptions were found. */
-	if ((res = obj40_check_stat(&sym->obj, mode == RM_BUILD ? 
-				    sym40_zero_nlink : NULL,
-				    sym40_check_mode, 
-				    sym40_check_size, 
-				    aal_strlen(path), 0, mode)))
+	params.mode = S_IFLNK;
+	params.size = aal_strlen(path);
+	
+	methods.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
+	
+	if ((res = obj40_check_stat(&sym->obj, &methods, 
+				    &params, mode)))
 		goto error;
 
 	aal_free(path);

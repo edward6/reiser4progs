@@ -68,8 +68,7 @@ typedef int32_t lookup_t;
 /* Known by library plugin types. */
 enum reiser4_plug_type {
 	OBJECT_PLUG_TYPE        = 0x0,
-	/* 0x1 is reserved to be compatable with the kernel that distingushes
-	   file and dir plugin types. */
+	DIR_OBJECT_PLUG_TYPE	= 0x1,
 	ITEM_PLUG_TYPE          = 0x2,
 	NODE_PLUG_TYPE          = 0x3,
 	HASH_PLUG_TYPE          = 0x4,
@@ -186,7 +185,7 @@ enum reiser4_sdext_plug_id {
 	SDEXT_PLUG_ID		= 0x4,
 	SDEXT_FLAGS_ID          = 0x5,
 	SDEXT_CAPS_ID		= 0x6,
-	SDEXT_CLASTER_ID	= 0x7,
+	SDEXT_CLUSTER_ID	= 0x7,
 	SDEXT_CRYPTO_ID		= 0x8,
 	SDEXT_LAST_ID
 };

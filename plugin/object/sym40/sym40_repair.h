@@ -6,8 +6,8 @@
 #ifndef SYM40_REPAIR_H
 #define SYM40_REPAIR_H
 
-#include <aal/libaal.h>
-#include <reiser4/plugin.h>
+#include "sym40.h"
+#include "plugin/object/obj40/obj40_repair.h"
 
 extern errno_t sym40_check_struct(object_entity_t *object,
 				  place_func_t place_func,

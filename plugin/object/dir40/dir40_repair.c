@@ -4,8 +4,8 @@
    dir40_repair.c -- reiser4 default directory file plugin repair code. */
  
 #ifndef ENABLE_STAND_ALONE
-#include "dir40.h"
-#include "repair/plugin.h"
+
+#include "dir40_repair.h"
 
 /* Set of extentions that must present. */
 #define DIR40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID)
@@ -39,6 +39,8 @@ static errno_t callback_stat(reiser4_place_t *stat) {
 		return res;
 	
 	return S_ISDIR(lw_hint.mode) ? 0 : RE_FATAL;
+
+	/* FIXME: read object plug_id extention from sd. if present also. */
 }
 
 object_entity_t *dir40_recognize(object_info_t *info) {
@@ -67,18 +69,6 @@ object_entity_t *dir40_recognize(object_info_t *info) {
 
 static void dir40_one_nlink(obj40_t *obj, uint32_t *nlink) {
 	*nlink = 1;
-}
-
-static void dir40_check_mode(obj40_t *obj, uint16_t *mode) {
-	if (!S_ISDIR(*mode)) {
-		*mode &= ~S_IFMT;
-        	*mode |= S_IFDIR;
-	}
-}
-
-static void dir40_check_size(obj40_t *obj, uint64_t *sd_size, uint64_t counted_size) {
-	if (*sd_size != counted_size)
-		*sd_size = counted_size;
 }
 
 static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
@@ -142,12 +132,13 @@ errno_t dir40_check_struct(object_entity_t *object,
 			   void *data, uint8_t mode)
 {
 	dir40_t *dir = (dir40_t *)object;
+	obj40_stat_methods_t methods;
+	obj40_stat_params_t params;
 	reiser4_plug_t *bplug;
 	object_info_t *info;
 	entry_hint_t entry;
 	rid_t pid;
 	
-	uint64_t size, bytes;
 	errno_t res;
 	
 	aal_assert("vpf-1224", dir != NULL);
@@ -155,18 +146,16 @@ errno_t dir40_check_struct(object_entity_t *object,
 	aal_assert("vpf-1197", dir->obj.info.object.plug != NULL);
 	
 	info = &dir->obj.info;
+
+	aal_memset(&methods, 0, sizeof(methods));
+	aal_memset(&params, 0, sizeof(params));
 	
-	if ((res = obj40_launch_stat(&dir->obj, NULL, 1, S_IFDIR, mode)))
+	if ((res = obj40_prepare_stat(&dir->obj, S_IFDIR, mode)))
 		return res;
 	
 	/* Try to register SD as an item of this file. */
 	if (place_func && place_func(&info->start, data))
 		return -EINVAL;
-	
-	/* Fix SD's key if differs. */
-	if ((res = obj40_fix_key(&dir->obj, &info->start, 
-				 &info->object, mode)) < 0)
-		return res;
 	
 	/* Init hash plugin in use. */
 	dir->hash = obj40_plug_recognize(&dir->obj, HASH_PLUG_TYPE, "hash");
@@ -208,8 +197,6 @@ errno_t dir40_check_struct(object_entity_t *object,
 	   in SD then. */
 	if ((res |= dir40_dot(dir, bplug, mode)) < 0)
 		return res;
-	
-	size = 0; bytes = 0; 
 	
 	/* FIXME-VITALY: this probably should be changed. Now hash plug that is
 	   used is taken from SD or the default one from the params. Probably it
@@ -283,10 +270,10 @@ errno_t dir40_check_struct(object_entity_t *object,
 					return -EINVAL;
 
 				/* Count size and bytes. */
-				size += plug_call(dir->body.plug->o.item_ops->object,
+				params.size += plug_call(dir->body.plug->o.item_ops->object,
 						  size, &dir->body);
 
-				bytes += plug_call(dir->body.plug->o.item_ops->object,
+				params.bytes += plug_call(dir->body.plug->o.item_ops->object,
 						   bytes, &dir->body);
 
 			}
@@ -335,8 +322,8 @@ errno_t dir40_check_struct(object_entity_t *object,
 			
 			/* Update accounting info after remove. */
 			if (last) {
-				size--;
-				bytes -= hint.bytes;
+				params.size--;
+				params.bytes -= hint.bytes;
 			}
 			
 			/* Lookup it again. */
@@ -366,11 +353,13 @@ errno_t dir40_check_struct(object_entity_t *object,
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	if (!(res & RE_FATAL)) {
-		res |= obj40_check_stat(&dir->obj, mode == RM_BUILD ?
-					dir40_one_nlink : NULL,
-					dir40_check_mode,
-					dir40_check_size, 
-					size, bytes, mode);
+		params.mode = S_IFDIR;
+		params.nlink = 1;
+		
+		methods.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
+
+		res |= obj40_check_stat(&dir->obj, &methods, 
+					&params, mode);
 	}
 	
 	return res;

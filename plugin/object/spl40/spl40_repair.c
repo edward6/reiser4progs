@@ -4,8 +4,8 @@
    spl40_repair.c -- reiser4 special files plugin repair code. */
 
 #ifndef ENABLE_STAND_ALONE
-#include "spl40.h"
-#include "repair/plugin.h"
+
+#include "spl40_repair.h"
 
 /* Set of extentions that must present. */
 #define SPL40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID)
@@ -24,6 +24,8 @@ static errno_t spl40_extensions(reiser4_place_t *stat) {
 	
 	/* Check that LW and UNIX extensions exist. */
 	return ((extmask & SPL40_EXTS_MUST) == SPL40_EXTS_MUST) ? 0 : RE_FATAL;
+
+	/* FIXME: read object plug_id extention from sd. if present also. */
 }
 
 /* Check SD extensions and that mode in LW extension is DIRFILE. */
@@ -64,11 +66,7 @@ object_entity_t *spl40_recognize(object_info_t *info) {
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-static void spl40_zero_nlink(obj40_t *obj, uint32_t *nlink) {
-	*nlink = 0;
-}
-
-static void spl40_check_mode(obj40_t *obj, uint16_t *mode) {
+static int spl40_check_mode(obj40_t *obj, uint16_t *mode, uint16_t correct) {
 	if (!S_ISCHR(*mode) && !S_ISBLK(*mode) && 
 	    !S_ISFIFO(*mode) && !S_ISSOCK(*mode))
 	{
@@ -77,41 +75,36 @@ static void spl40_check_mode(obj40_t *obj, uint16_t *mode) {
 	}
 }
 
-static void spl40_check_size(obj40_t *obj, uint64_t *sd_size, uint64_t size) {
-	if (*sd_size != size)
-		*sd_size = size;
-}
-
 errno_t spl40_check_struct(object_entity_t *object,
 			   place_func_t place_func,
 			   void *data, uint8_t mode)
 {
 	spl40_t *spl = (spl40_t *)object;
+	obj40_stat_methods_t methods;
+	obj40_stat_params_t params;
 	errno_t res;
 	
 	aal_assert("vpf-1357", spl != NULL);
 	aal_assert("vpf-1358", spl->obj.info.tree != NULL);
 	aal_assert("vpf-1359", spl->obj.info.object.plug != NULL);
 
-	if ((res = obj40_launch_stat(&spl->obj, spl40_extensions, 1, 0, mode)))
+	aal_memset(&methods, 0, sizeof(methods));
+	aal_memset(&params, 0, sizeof(params));
+
+	if ((res = obj40_prepare_stat(&spl->obj, S_IFBLK, mode)))
 		return res;
 	
 	/* Try to register SD as an item of this file. */
 	if (place_func && place_func(&spl->obj.info.start, data))
 		return -EINVAL;
 	
-	/* Fix SD's key if differs. */
-	if ((res = obj40_fix_key(&spl->obj, &spl->obj.info.start,
-				 &spl->obj.info.object, mode)))
-	{
-		return res;
-	}
+	methods.check_mode = spl40_check_mode;
+	methods.check_bytes = SKIP_METHOD;
+	methods.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 	
 	/* Fix the SD, if no fatal corruptions were found. */
-	return obj40_check_stat(&spl->obj, mode == RM_BUILD ? 
-				spl40_zero_nlink : NULL,
-				spl40_check_mode, spl40_check_size,
-				0, MAX_UINT64, mode);
+	return obj40_check_stat(&spl->obj, &methods,
+				&params, mode);
 }
 
 #endif

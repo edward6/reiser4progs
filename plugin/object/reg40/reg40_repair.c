@@ -4,8 +4,8 @@
    reg40_repair.c -- reiser4 regular file plugin repair code. */
  
 #ifndef ENABLE_STAND_ALONE
-#include "reg40.h"
-#include "repair/plugin.h"
+
+#include "reg40_repair.h"
 
 /* Set of extentions that must present. */
 #define REG40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID)
@@ -40,6 +40,8 @@ static errno_t callback_stat(reiser4_place_t *stat) {
 		return res;
 	
 	return S_ISREG(lw_hint.mode) ? 0 : RE_FATAL;
+
+	/* FIXME: read object plug_id extention from sd. if present also. */
 }
 
 object_entity_t *reg40_recognize(object_info_t *info) {
@@ -65,15 +67,8 @@ object_entity_t *reg40_recognize(object_info_t *info) {
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-static void reg40_check_mode(obj40_t *obj, uint16_t *mode) {
-        if (!S_ISREG(*mode)) {
-                *mode &= ~S_IFMT;
-                *mode |= S_IFREG;
-        }
-}
-                                                                                           
-static void reg40_check_size(obj40_t *obj, uint64_t *sd_size, 
-			     uint64_t counted_size) 
+static int reg40_check_size(obj40_t *obj, uint64_t *sd_size, 
+			    uint64_t counted_size) 
 {
 	reg40_t *reg = (reg40_t *)obj;
 	reiser4_plug_t *plug;
@@ -82,7 +77,7 @@ static void reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 	aal_assert("vpf-1318", sd_size != NULL);
 	
 	if (*sd_size >= counted_size)
-		return;
+		return 0;
 	
 	/* sd_size lt counted size, check if it is correct for extent. */
 	plug = reg40_policy_plug(reg, counted_size);
@@ -90,11 +85,12 @@ static void reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 	if (plug->id.group == EXTENT_ITEM) {
 		/* The last extent block can be not used up. */
 		if (*sd_size + STAT_PLACE(obj)->node->block->size > counted_size)
-			return;
+			return 0;
 	}
 	
 	/* SD size is not correct. */
 	*sd_size = counted_size;
+	return 1;
 }
 
 /* Zero nlink number for BUILD mode. */
@@ -333,7 +329,7 @@ static uint64_t reg40_place_maxreal(reiser4_place_t *place) {
 }
 
 static errno_t reg40_hole_cure(object_entity_t *object, 
-			       reg40_repair_t *repair,
+			       obj40_stat_params_t *params,
 			       place_func_t func,
 			       uint8_t mode) 
 {
@@ -371,7 +367,7 @@ static errno_t reg40_hole_cure(object_entity_t *object,
 		return res;
 	}
 
-	repair->bytes += res;
+	params->bytes += res;
 	
 	return 0;
 }
@@ -380,6 +376,8 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 			   void *data, uint8_t mode)
 {
 	reg40_t *reg = (reg40_t *)object;
+	obj40_stat_methods_t methods;
+	obj40_stat_params_t params;
 	reg40_repair_t repair;
 	object_info_t *info;
 	conv_hint_t hint;
@@ -392,8 +390,10 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	
 	info = &reg->obj.info;
 	
-	if ((res = obj40_launch_stat(&reg->obj, callback_stat, 
-				     1, S_IFREG, mode)))
+	aal_memset(&methods, 0, sizeof(methods));
+	aal_memset(&params, 0, sizeof(params));
+	
+	if ((res = obj40_prepare_stat(&reg->obj, S_IFREG, mode)))
 		return res;
 
 	/* Try to register SD as an item of this file. */
@@ -509,7 +509,7 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 				if (result) return result;
 
 				/* Evth was converted, update bytes. */
-				repair.bytes += hint.bytes;
+				params.bytes += hint.bytes;
 			} else {
 				res |= RE_FATAL;
 			}
@@ -533,11 +533,11 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 		if (hint.offset.plug) 
 			goto next;
 		
-		repair.bytes += plug_call(reg->body.plug->o.item_ops->object,
+		params.bytes += plug_call(reg->body.plug->o.item_ops->object,
 					  bytes, &reg->body);
 
 		/* If we found not we looking for, insert the hole. */
-		if ((res |= reg40_hole_cure(object, &repair, func, mode)) < 0)
+		if ((res |= reg40_hole_cure(object, &params, func, mode)) < 0)
 			return res;
 		
 next:
@@ -555,10 +555,13 @@ next:
 		size = plug_call(reg->position.plug->o.key_ops, 
 				 get_offset, &reg->position);
 		
-		res |= obj40_check_stat(&reg->obj, mode == RM_BUILD ?
-					reg40_zero_nlink : NULL,
-					reg40_check_mode, reg40_check_size,
-					size, repair.bytes, mode);
+		params.mode = S_IFREG;
+		
+		methods.check_size = reg40_check_size;
+		methods.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
+
+		res |= obj40_check_stat(&reg->obj, &methods, 
+					&params, mode);
 	}
 
 	return res;

@@ -30,9 +30,7 @@ static uint16_t sdext_symlink_length(void *body) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t sdext_symlink_init(void *body, 
-				  void *hint)
-{
+static errno_t sdext_symlink_init(void *body, void *hint) {
 	uint32_t len;
 	
 	aal_assert("umka-1481", body != NULL);
@@ -50,8 +48,7 @@ extern void sdext_symlink_print(void *body,
 				aal_stream_t *stream, 
 				uint16_t options);
 
-extern errno_t sdext_symlink_check_struct(sdext_entity_t *sdext,
-					  uint8_t mode);
+extern errno_t sdext_symlink_check_struct(sdext_entity_t *sdext, uint8_t mode);
 #endif
 
 static reiser4_sdext_ops_t sdext_symlink_ops = {
