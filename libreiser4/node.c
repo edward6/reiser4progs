@@ -510,9 +510,8 @@ reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
 }
 
 /* Finds specified neighbour node */
-static reiser4_node_t *reiser4_node_fnn(
-	reiser4_node_t *node,
-	aal_direction_t where)
+static reiser4_node_t *reiser4_node_fnn(reiser4_node_t *node,
+					aal_direction_t where)
 {	
 	uint32_t level;
 	reiser4_node_t *old = node;
