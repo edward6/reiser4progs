@@ -46,9 +46,7 @@ static errno_t dir40_telldir(object_entity_t *entity,
 	plug_call(dir->offset.plug->o.key_ops,
 		  assign, offset, &dir->offset);
 
-#ifdef ENABLE_COLLISIONS
 	offset->adjust = dir->adjust;
-#endif
 	
 	return 0;
 }
@@ -95,7 +93,7 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
-#ifdef ENABLE_COLLISIONS
+#ifndef ENABLE_STAND_ALONE
 	dir->adjust = offset->adjust;
 #endif
 	
@@ -113,7 +111,7 @@ errno_t dir40_reset(object_entity_t *entity) {
 	
 	/* Preparing key of the first entry in directory and set directory
 	   adjust to zero. */
-#ifdef ENABLE_COLLISIONS
+#ifndef ENABLE_STAND_ALONE
 	dir->adjust = 0;
 #endif
 	
@@ -187,9 +185,9 @@ static lookup_t dir40_next(object_entity_t *entity) {
 static lookup_t dir40_update(object_entity_t *entity) {
 	dir40_t *dir;
 	lookup_t res;
-	
-#ifdef ENABLE_COLLISIONS
 	uint32_t units;
+	
+#ifndef ENABLE_STAND_ALONE
 	uint32_t adjust;
 #endif
 	
@@ -221,7 +219,7 @@ static lookup_t dir40_update(object_entity_t *entity) {
 			return ABSENT;
 	}
 
-#ifdef ENABLE_COLLISIONS
+#ifndef ENABLE_STAND_ALONE
 	/* Adjusting current position by key's adjust. This is needed
 	   for working fine when key collitions take place. */
 	for (adjust = dir->adjust; adjust;) {
@@ -312,7 +310,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 		if ((res = dir40_fetch(entity, &temp)))
 			return res;
 
-#ifdef ENABLE_COLLISIONS
+#ifndef ENABLE_STAND_ALONE
 		/* Taking care about adjust */
 		if (!plug_call(temp.offset.plug->o.key_ops,
 			       compfull, &temp.offset, &dir->offset))
@@ -328,6 +326,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	return 1;
 }
 
+#ifndef ENABLE_STAND_ALONE
 static int32_t dir40_compent(char *entry1, char *entry2) {
 	uint32_t len1 = aal_strlen(entry1);
 	uint32_t len2 = aal_strlen(entry2);
@@ -340,6 +339,7 @@ static int32_t dir40_compent(char *entry1, char *entry2) {
 
 	return aal_strncmp(entry1, entry2, len1);
 }
+#endif
 
 /* Makes lookup iside directory with specified position correcting mode. This is
    needed to be used in add_entry() for two reasons: for make sure, that passed
@@ -382,7 +382,7 @@ static lookup_t dir40_search(object_entity_t *entity,
 		return res;
 	}
 
-#ifdef ENABLE_COLLISIONS
+#ifndef ENABLE_STAND_ALONE
 	/* Key collisions handling. Sequentional search of the needed entry by
 	   its name. */
 	entry->offset.adjust = 0;
@@ -436,7 +436,7 @@ static lookup_t dir40_search(object_entity_t *entity,
 #else
 	/* Fetching found entry to passed @entry */
 	if (entry && dir40_fetch(entity, entry))
-		return FAILED;
+		return -EIO;
 
 	return PRESENT;
 #endif

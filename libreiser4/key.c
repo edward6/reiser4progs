@@ -182,7 +182,6 @@ void reiser4_key_inc_offset(reiser4_key_t *key, uint64_t value) {
 	reiser4_key_set_offset(key, reiser4_key_get_offset(key) + value);
 }
 
-
 /* Gets key type */
 uint32_t reiser4_key_get_type(reiser4_key_t *key) {
 	aal_assert("umka-698", key != NULL);

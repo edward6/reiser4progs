@@ -78,8 +78,8 @@ errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	
 	rootblk = reiser4_tree_get_root(tree);
 	
-	if (!(tree->root = reiser4_tree_load(tree, NULL,
-					     rootblk)))
+	if (!(tree->root = reiser4_tree_load_node(tree, NULL,
+						  rootblk)))
 	{
 		aal_exception_error("Can't load root node %llu.",
 				    rootblk);
@@ -88,6 +88,16 @@ errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
     
 	tree->root->tree = tree;	
 	return 0;
+}
+
+/* Returns TRUE is passed @node is tree root node */
+static bool_t reiser4_tree_root_node(reiser4_tree_t *tree,
+				     reiser4_node_t *node)
+{
+	aal_assert("umka-2482", tree != NULL);
+	aal_assert("umka-2483", node != NULL);
+
+	return reiser4_tree_get_root(tree) == node_blocknr(node);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -129,7 +139,7 @@ static errno_t reiser4_tree_alloc_root(reiser4_tree_t *tree) {
 
 	height = reiser4_tree_get_height(tree);
 	
-	if (!(root = reiser4_tree_alloc(tree, height)))
+	if (!(root = reiser4_tree_alloc_node(tree, height)))
 		return -ENOSPC;
 
 	return reiser4_tree_assign_root(tree, root);
@@ -138,7 +148,7 @@ static errno_t reiser4_tree_alloc_root(reiser4_tree_t *tree) {
 
 /* Registers passed node in tree and connects left and right neighbour
    nodes. This function does not do any modifications. */
-errno_t reiser4_tree_connect(
+errno_t reiser4_tree_connect_node(
 	reiser4_tree_t *tree,    /* tree instance */
 	reiser4_node_t *parent,	 /* node child will be connected to */
 	reiser4_node_t *node)	 /* child node to be attached */
@@ -168,7 +178,7 @@ errno_t reiser4_tree_connect(
 
 /* Remove specified child from the node children list. Updates all neighbour
    pointers and parent pointer.*/
-errno_t reiser4_tree_disconnect(
+errno_t reiser4_tree_disconnect_node(
 	reiser4_tree_t *tree,    /* tree instance */
 	reiser4_node_t *parent,	 /* node child will be detached from */
 	reiser4_node_t *node)	 /* pointer to child to be deleted */
@@ -190,7 +200,7 @@ errno_t reiser4_tree_disconnect(
 	/* Disconnecting node from the tree */
 	node->tree = NULL;
 	
-	if (reiser4_tree_get_root(tree) == node_blocknr(node)) {
+	if (reiser4_tree_root_node(tree, node)) {
 		/* The case when we're disconnecting root node for some
 		   reasons. And we will let to do so? Yes, why not? */
 		tree->root = NULL;
@@ -203,9 +213,9 @@ errno_t reiser4_tree_disconnect(
 }
 
 /* Loads node and connects it to @parent */
-reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
-				  reiser4_node_t *parent,
-				  blk_t blk)
+reiser4_node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
+				       reiser4_node_t *parent,
+				       blk_t blk)
 {
 	reiser4_node_t *node = NULL;
 
@@ -216,14 +226,17 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 		uint32_t blksize;
 
 		if (tree->mpc_func && tree->mpc_func()) {
-			if (parent)
+			if (parent) {
 				reiser4_node_lock(parent);
+			}
 
-			if (tree->root)
-				reiser4_tree_adjust(tree, tree->root, 1);
+			if (tree->root) {
+				reiser4_tree_adjust_node(tree, tree->root, 1);
+			}
 
-			if (parent)
+			if (parent) {
 				reiser4_node_unlock(parent);
+			}
 		}
 		
 		blksize = reiser4_master_blksize(tree->fs->master);
@@ -235,7 +248,7 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 			return NULL;
 		}
 
-		if (reiser4_tree_connect(tree, parent, node))
+		if (reiser4_tree_connect_node(tree, parent, node))
 			goto error_free_node;
 	}
 
@@ -247,8 +260,8 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 }
 
 /* Unloading node from the tree cache */
-errno_t reiser4_tree_unload(reiser4_tree_t *tree,
-			    reiser4_node_t *node)
+errno_t reiser4_tree_unload_node(reiser4_tree_t *tree,
+				 reiser4_node_t *node)
 {
 	aal_assert("umka-1840", tree != NULL);
 	aal_assert("umka-1842", node != NULL);
@@ -263,7 +276,7 @@ errno_t reiser4_tree_unload(reiser4_tree_t *tree,
 	/* Disconnecting @node from its parent node. */
 	if (node->tree) {
 		reiser4_node_t *parent = node->p.node;
-		reiser4_tree_disconnect(tree, parent, node);
+		reiser4_tree_disconnect_node(tree, parent, node);
 	}
 
 	/* Releasing node */
@@ -271,8 +284,8 @@ errno_t reiser4_tree_unload(reiser4_tree_t *tree,
 }
 
 /* Loads denoted by passed nodeptr @place child node */
-reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
-				   reiser4_place_t *place)
+reiser4_node_t *reiser4_tree_child_node(reiser4_tree_t *tree,
+					reiser4_place_t *place)
 {
 	ptr_hint_t ptr;
 	trans_hint_t hint;
@@ -297,14 +310,14 @@ reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 		return NULL;
 	}
 
-	return reiser4_tree_load(tree, place->node,
-				 ptr.start);
+	return reiser4_tree_load_node(tree, place->node,
+				      ptr.start);
 }
 
 /* Finds both left and right neighbours and connects them into the tree */
-static reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
-					 reiser4_node_t *node,
-					 aal_direction_t where)
+static reiser4_node_t *reiser4_tree_ltrt_node(reiser4_tree_t *tree,
+					      reiser4_node_t *node,
+					      aal_direction_t where)
 {
         int found = 0;
         uint32_t level;
@@ -340,7 +353,7 @@ static reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
                                                                                       
         /* Going down to the level of @node */
         while (level > 0) {
-                if (!(place.node = reiser4_tree_child(tree, &place)))
+                if (!(place.node = reiser4_tree_child_node(tree, &place)))
                         return NULL;
 
 		if (where == D_LEFT) {
@@ -366,16 +379,17 @@ static reiser4_node_t *reiser4_tree_ltrt(reiser4_tree_t *tree,
 	return place.node;
 }
 
-errno_t reiser4_tree_next(reiser4_tree_t *tree, 
-			  reiser4_place_t *place, 
-			  reiser4_place_t *next)
+/* Returns node next to passed @place */
+errno_t reiser4_tree_next_node(reiser4_tree_t *tree, 
+			       reiser4_place_t *place, 
+			       reiser4_place_t *next)
 {
 	aal_assert("umka-867", tree != NULL);
 	aal_assert("umka-868", place != NULL);
 	aal_assert("umka-1491", next != NULL);
 
 	if (place->pos.item >= reiser4_node_items(place->node) - 1) {
-		reiser4_tree_neigh(tree, place->node, D_RIGHT);
+		reiser4_tree_neigh_node(tree, place->node, D_RIGHT);
 
 		if (!place->node->right) {
 			aal_memset(next, 0, sizeof(*next));
@@ -393,9 +407,9 @@ errno_t reiser4_tree_next(reiser4_tree_t *tree,
 }
 
 /* Gets left or right neighbour nodes */
-reiser4_node_t *reiser4_tree_neigh(reiser4_tree_t *tree,
-				   reiser4_node_t *node,
-				   aal_direction_t where)
+reiser4_node_t *reiser4_tree_neigh_node(reiser4_tree_t *tree,
+					reiser4_node_t *node,
+					aal_direction_t where)
 {
 	aal_assert("umka-2219", node != NULL);
 	aal_assert("umka-1859", tree != NULL);
@@ -409,7 +423,7 @@ reiser4_node_t *reiser4_tree_neigh(reiser4_tree_t *tree,
 	{
 		/* Looking for neighbour on disk */
 		reiser4_node_lock(node);
-		reiser4_tree_ltrt(tree, node, where);
+		reiser4_tree_ltrt_node(tree, node, where);
 		reiser4_node_unlock(node);
 	}
 	
@@ -419,30 +433,36 @@ reiser4_node_t *reiser4_tree_neigh(reiser4_tree_t *tree,
 
 #ifndef ENABLE_STAND_ALONE
 /* Requests block allocator for new block and creates empty node in it */
-reiser4_node_t *reiser4_tree_alloc(
+reiser4_node_t *reiser4_tree_alloc_node(
 	reiser4_tree_t *tree,	    /* tree for operating on */
 	uint8_t level)	 	    /* level of new node */
 {
 	rid_t pid;
+	uint32_t stamp;
 	blk_t fake_blk;
 	uint32_t blksize;
-	uint32_t free, stamp;
+	uint64_t free_blocks;
 	reiser4_node_t *node;
     
 	aal_assert("umka-756", tree != NULL);
     
 	/* Setting up of the free blocks in format */
-	if (!(free = reiser4_format_get_free(tree->fs->format)))
+	if (!(free_blocks = reiser4_format_get_free(tree->fs->format)))
 		return NULL;
 	
-	if (tree->mpc_func && tree->mpc_func() && tree->root)
-		reiser4_tree_adjust(tree, tree->root, 1);
+	if (tree->mpc_func && tree->mpc_func() && tree->root) {
+		if (reiser4_tree_adjust_node(tree, tree->root, 1)) {
+			aal_exception_warn("Error when adjusting the "
+					   "tree durring allocating "
+					   "new node.");
+		}
+	}
 	
-	reiser4_format_set_free(tree->fs->format, free - 1);
-
 	fake_blk = reiser4_fake_get();
 	pid = reiser4_param_value("node");
+
 	blksize = reiser4_master_blksize(tree->fs->master);
+	reiser4_format_set_free(tree->fs->format, free_blocks - 1);
 
 	/* Creating new node */
 	if (!(node = reiser4_node_create(tree->fs->device, blksize,
@@ -467,8 +487,8 @@ reiser4_node_t *reiser4_tree_alloc(
 }
 
 /* Unload node and releasing it in block allocator */
-errno_t reiser4_tree_release(reiser4_tree_t *tree,
-			     reiser4_node_t *node)
+errno_t reiser4_tree_release_node(reiser4_tree_t *tree,
+				  reiser4_node_t *node)
 {
 	reiser4_alloc_t *alloc;
 	
@@ -489,7 +509,7 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 	reiser4_format_set_free(tree->fs->format,
 				reiser4_alloc_free(alloc) + 1);
 	
-	return reiser4_tree_unload(tree, node);
+	return reiser4_tree_unload_node(tree, node);
 }
 #endif
 
@@ -828,9 +848,9 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 #endif
 
 /* Flushes some part of tree cache to device starting from passed @node */
-errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
-			    reiser4_node_t *node,
-			    bool_t mpcheck)
+errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
+				 reiser4_node_t *node,
+				 bool_t mpcheck)
 {
 	errno_t res;
 	aal_list_t *walk;
@@ -853,7 +873,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 				return -ENOSPC;
 			}
 
-			if (reiser4_tree_get_root(tree) == node_blocknr(node)) {
+			if (reiser4_tree_root_node(tree, node)) {
 				/* Setting up root node */
 				reiser4_tree_set_root(tree, allocnr);
 			} else {
@@ -880,8 +900,8 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 			next = walk->next;
 			child = (reiser4_node_t *)walk->data;
 			
-			if ((res = reiser4_tree_adjust(tree, child,
-						       mpcheck)))
+			if ((res = reiser4_tree_adjust_node(tree, child,
+							    mpcheck)))
 			{
 				return res;
 			}
@@ -902,7 +922,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 				return -ENOSPC;
 			}
 
-			if (reiser4_tree_get_root(tree) == node_blocknr(node)) {
+			if (reiser4_tree_root_node(tree, node)) {
 				reiser4_tree_set_root(tree, allocnr);
 			} else {
 				/* Assigning new block number to @node */
@@ -967,16 +987,16 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 		}
 
 #endif
-		reiser4_tree_unload(tree, node);
+		reiser4_tree_unload_node(tree, node);
 	}
 
 	return 0;
 }
 
 /* Walking though the tree cache and closing all nodes */
-errno_t reiser4_tree_walk(reiser4_tree_t *tree,
-			  reiser4_node_t *node,
-			  walk_func_t walk_func)
+errno_t reiser4_tree_walk_node(reiser4_tree_t *tree,
+			       reiser4_node_t *node,
+			       walk_func_t walk_func)
 {
 	errno_t res;
 	
@@ -994,8 +1014,8 @@ errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 			child = (reiser4_node_t *)walk->data;
 
 			/* Making recursive call to tree_walk() */
-			if ((res = reiser4_tree_walk(tree, child,
-						     walk_func)))
+			if ((res = reiser4_tree_walk_node(tree, child,
+							  walk_func)))
 			{
 				return res;
 			}
@@ -1033,7 +1053,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 		return 0;
 
         /* Flushing whole tree. */
-	if ((res = reiser4_tree_adjust(tree, tree->root, 0))) {
+	if ((res = reiser4_tree_adjust_node(tree, tree->root, 0))) {
 		aal_exception_error("Can't synchronize metadata.");
 		return res;
 	}
@@ -1052,9 +1072,6 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 /* Returns TRUE if tree has not root node allocated */
 bool_t reiser4_tree_fresh(reiser4_tree_t *tree) {
 	aal_assert("umka-1930", tree != NULL);
-	aal_assert("umka-2210", tree->fs != NULL);
-	aal_assert("umka-2211", tree->fs->format != NULL);
-
 	return (reiser4_tree_get_root(tree) == INVAL_BLK);
 }
 #endif
@@ -1066,11 +1083,11 @@ errno_t reiser4_tree_collapse(reiser4_tree_t *tree) {
 	if (!tree->root)
 		return 0;
 
-	return reiser4_tree_walk(tree, tree->root,
-				 reiser4_tree_unload);
+	return reiser4_tree_walk_node(tree, tree->root,
+				      reiser4_tree_unload_node);
 }
 
-#ifdef ENABLE_COLLISIONS
+#ifndef ENABLE_STAND_ALONE
 /* Makes search of the leftmost item/unit with the same key as passed @place
    has. This is needed to work with key collitions. */
 static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
@@ -1128,7 +1145,7 @@ static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 		}
 
 		/* Getting left neighbour node */
-		reiser4_tree_neigh(tree, walk.node, D_LEFT);
+		reiser4_tree_neigh_node(tree, walk.node, D_LEFT);
 
 		/* Initializing @walk by neighbour node and last item. */
 		if ((walk.node = walk.node->left)) {
@@ -1196,7 +1213,7 @@ lookup_t reiser4_tree_lookup(
 		   or some error occured durring last node lookup. */
 		if (curr_level <= level || res < 0) {
 			if (res == PRESENT) {
-#ifdef ENABLE_COLLISIONS
+#ifndef ENABLE_STAND_ALONE
 				/* If collision handling is allwoed, we will
 				   find leftmost coord with the same key. This
 				   is needed for correct key collitions
@@ -1226,7 +1243,7 @@ lookup_t reiser4_tree_lookup(
 				return res;
 
 			/* Loading node by its nodeptr item at @place */
-			if (!(place->node = reiser4_tree_child(tree, place)))
+			if (!(place->node = reiser4_tree_child_node(tree, place)))
 				return -EIO;
 		} else {
 			return ABSENT;
@@ -1272,7 +1289,7 @@ errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
 /* This function inserts new nodeptr item to the tree and in such way it
    attaches passed @node to it. It also connects passed @node into tree
    cache. */
-errno_t reiser4_tree_attach(
+errno_t reiser4_tree_attach_node(
 	reiser4_tree_t *tree,	    /* tree we will attach node to */
 	reiser4_node_t *node)       /* child to attached */
 {
@@ -1326,21 +1343,21 @@ errno_t reiser4_tree_attach(
 	}
 
 	/* Attaching node to insert point node. */
-	if ((res = reiser4_tree_connect(tree, place.node, node))) {
+	if ((res = reiser4_tree_connect_node(tree, place.node, node))) {
 		aal_exception_error("Can't attach the node %llu to "
 				    "the tree.", node_blocknr(node));
 		return res;
 	}
 
-	reiser4_tree_neigh(tree, node, D_LEFT);
-	reiser4_tree_neigh(tree, node, D_RIGHT);
+	reiser4_tree_neigh_node(tree, node, D_LEFT);
+	reiser4_tree_neigh_node(tree, node, D_RIGHT);
 	
 	return 0;
 }
 
 /* Removes passed @node from the on-disk tree and cache structures */
-errno_t reiser4_tree_detach(reiser4_tree_t *tree,
-			    reiser4_node_t *node)
+errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
+				 reiser4_node_t *node)
 {
 	reiser4_place_t p;
 	trans_hint_t hint;
@@ -1353,7 +1370,7 @@ errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 	
 	if (node->tree) {
 		reiser4_node_t *parent = p.node;
-		reiser4_tree_disconnect(tree, parent, node);
+		reiser4_tree_disconnect_node(tree, parent, node);
 	}
 	
 	/* Removing item/unit from the parent node */
@@ -1380,7 +1397,7 @@ errno_t reiser4_tree_growup(
 	height = reiser4_tree_get_height(tree);
     
 	/* Allocating new root node */
-	if (!(tree->root = reiser4_tree_alloc(tree, height + 1))) {
+	if (!(tree->root = reiser4_tree_alloc_node(tree, height + 1))) {
 		res = -ENOSPC;
 		goto error_back_root;
 	}
@@ -1392,13 +1409,13 @@ errno_t reiser4_tree_growup(
     	reiser4_tree_set_root(tree, node_blocknr(tree->root));
 
 	/* Attaching old root nodfe to tree */
-	if ((res = reiser4_tree_attach(tree, root)))
+	if ((res = reiser4_tree_attach_node(tree, root)))
 		goto error_free_root;
 
 	return 0;
 
  error_free_root:
-	reiser4_tree_release(tree, tree->root);
+	reiser4_tree_release_node(tree, tree->root);
 
  error_back_root:
 	tree->root = root;
@@ -1432,7 +1449,7 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	/* Getting new root as the first child of the old root node */
 	reiser4_place_assign(&place, root, 0, 0);
 
-	if (!(child = reiser4_tree_child(tree, &place))) {
+	if (!(child = reiser4_tree_child_node(tree, &place))) {
 		aal_exception_error("Can't load new root durring "
 				    "drying tree out.");
 		return -EINVAL;
@@ -1441,15 +1458,15 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	aal_assert("umka-1929", root->counter > 1);
 	
 	/* Disconnect old root and its child from the tree */
-	reiser4_tree_disconnect(tree, NULL, root);
-	reiser4_tree_disconnect(tree, root, child);
+	reiser4_tree_disconnect_node(tree, NULL, root);
+	reiser4_tree_disconnect_node(tree, root, child);
 
 	/* Assign new root */
 	reiser4_tree_assign_root(tree, child);
 	
         /* Releasing old root node */
 	reiser4_node_mkclean(root);
-	reiser4_tree_release(tree, root);
+	reiser4_tree_release_node(tree, root);
 
 	/* Updating superblock fields */
 	height = reiser4_tree_get_height(tree);
@@ -1538,7 +1555,7 @@ static errno_t reiser4_tree_care(reiser4_tree_t *tree,
 {
 	errno_t res;
 	
-	if (reiser4_tree_get_root(tree) == node_blocknr(left)) {
+	if (reiser4_tree_root_node(tree, left)) {
 		/* Growing the tree in the case we splitted the root
 		   node. Root node has not parent. */
 		if ((res = reiser4_tree_growup(tree)))
@@ -1547,11 +1564,11 @@ static errno_t reiser4_tree_care(reiser4_tree_t *tree,
 		/* Releasing old node, because it got empty as result of data
 		   shifting. */
 		if (reiser4_node_items(left) == 0) {
-			if ((res = reiser4_tree_detach(tree, left)))
+			if ((res = reiser4_tree_detach_node(tree, left)))
 				return res;
 			
 			reiser4_node_mkclean(left);
-			reiser4_tree_release(tree, left);
+			reiser4_tree_release_node(tree, left);
 		}
 	}
 
@@ -1559,7 +1576,7 @@ static errno_t reiser4_tree_care(reiser4_tree_t *tree,
 	   empty */
 	if (reiser4_node_items(right) > 0) {
 		/* Attaching new node to the tree */
-		if ((res = reiser4_tree_attach(tree, right)))
+		if ((res = reiser4_tree_attach_node(tree, right)))
 			return res;
 	}
 	
@@ -1590,7 +1607,7 @@ int32_t reiser4_tree_expand(
 	if (reiser4_tree_fresh(tree)) {
 		uint8_t level = reiser4_tree_get_height(tree);
 		
-		if (!(place->node = reiser4_tree_alloc(tree, level)))
+		if (!(place->node = reiser4_tree_alloc_node(tree, level)))
 			return -ENOSPC;
 
 		POS_INIT(&place->pos, 0, MAX_UINT32);
@@ -1613,7 +1630,7 @@ int32_t reiser4_tree_expand(
 
 	/* Shifting data into left neighbour if it exists */
 	if ((MSF_LEFT & flags) &&
-	    (left = reiser4_tree_neigh(tree, place->node, D_LEFT)))
+	    (left = reiser4_tree_neigh_node(tree, place->node, D_LEFT)))
 	{
 	    
 		if ((res = reiser4_tree_shift(tree, place, left,
@@ -1634,7 +1651,7 @@ int32_t reiser4_tree_expand(
 
 	/* Shifting data into right neighbour if it exists */
 	if ((MSF_RIGHT & flags) &&
-	    (right = reiser4_tree_neigh(tree, place->node, D_RIGHT)))
+	    (right = reiser4_tree_neigh_node(tree, place->node, D_RIGHT)))
 	{
 	    
 		if ((res = reiser4_tree_shift(tree, place, right,
@@ -1676,7 +1693,7 @@ int32_t reiser4_tree_expand(
 		/* Allocating new node of @level */
 		level = reiser4_node_get_level(place->node);
 	
-		if (!(node = reiser4_tree_alloc(tree, level)))
+		if (!(node = reiser4_tree_alloc_node(tree, level)))
 			return -ENOSPC;
 
 		/* Setting up shift flags */
@@ -1697,7 +1714,7 @@ int32_t reiser4_tree_expand(
 		   @save.node (attaching, detaching from the tree, etc.). */
 		if ((res = reiser4_tree_care(tree, save.node, node))) {
 			reiser4_node_mkclean(node);
-			reiser4_tree_release(tree, node);
+			reiser4_tree_release_node(tree, node);
 			return res;
 		}
 
@@ -1734,7 +1751,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 	/* Packing node in order to keep the tree in well packed state
 	   anyway. Here we will shift data from the target node to its left
 	   neighbour node. */
-	if ((left = reiser4_tree_neigh(tree, place->node, D_LEFT))) {
+	if ((left = reiser4_tree_neigh_node(tree, place->node, D_LEFT))) {
 	    
 		if ((res = reiser4_tree_shift(tree, place, left, MSF_LEFT))) {
 			aal_exception_error("Can't pack node %llu into left.",
@@ -1746,7 +1763,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 	if (reiser4_node_items(place->node) > 0) {
 		/* Shifting the data from the right neigbour node into the
 		   target node. */
-		if ((right = reiser4_tree_neigh(tree, place->node, D_RIGHT))) {
+		if ((right = reiser4_tree_neigh_node(tree, place->node, D_RIGHT))) {
 				
 			reiser4_place_t bogus;
 			bogus.node = right;
@@ -1762,16 +1779,15 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 			}
 
 			if (reiser4_node_items(right) == 0) {
-				reiser4_tree_detach(tree, right);
 				reiser4_node_mkclean(right);
-				reiser4_tree_release(tree, right);
+				reiser4_tree_detach_node(tree, right);
+				reiser4_tree_release_node(tree, right);
 			}
 		}
 	} else {
 		reiser4_node_mkclean(place->node);
-		reiser4_tree_detach(tree, place->node);
-		
-		reiser4_tree_release(tree, place->node);
+		reiser4_tree_detach_node(tree, place->node);
+		reiser4_tree_release_node(tree, place->node);
 		place->node = NULL;
 	}
 
@@ -1810,7 +1826,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 		      place->pos.unit == reiser4_item_units(place)))
 		{
 			/* We are not on the border, split */
-			if ((node = reiser4_tree_alloc(tree, curr)) == NULL) {
+			if ((node = reiser4_tree_alloc_node(tree, curr)) == NULL) {
 				aal_exception_error("Tree failed to allocate "
 						    "a new node.");
 				return -EINVAL;
@@ -1826,12 +1842,13 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			}
 
 			/* Check if we should growup the tree */
-			if (reiser4_tree_get_root(tree) == node_blocknr(place->node))
-				reiser4_tree_growup(tree);
+			if (reiser4_tree_root_node(tree, place->node)) {
+				if ((res = reiser4_tree_growup(tree)))
+					return res;
+			}
 			
-			if ((res = reiser4_tree_attach(tree, node))) {
-				reiser4_tree_release(tree, node);
-				
+			if ((res = reiser4_tree_attach_node(tree, node))) {
+				reiser4_tree_release_node(tree, node);
 				aal_exception_error("Tree is failed to attach "
 						    "node durring split opeartion.");
 				goto error_free_node;
@@ -1843,7 +1860,6 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 		
 		reiser4_place_init(place, node->p.node, &node->p.pos);
 		reiser4_place_inc(place, place->pos.unit == MAX_UINT32);
-		
 		curr++;
 	}
 	
@@ -1862,7 +1878,6 @@ void reiser4_tree_pack_set(reiser4_tree_t *tree,
 	tree->traps.pack = func ? func : callback_tree_pack;
 }
 
-
 /* Switches on/off flag, which displays whenever tree should pack itself after
    remove operations or not. It is needed because all operations like this
    should be under control. */
@@ -1879,16 +1894,17 @@ void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 int32_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 				trans_hint_t *hint)
 {
+	char *buff;
 	errno_t res;
 	uint32_t size;
+	uint64_t bytes;
 	uint32_t total;
 	reiser4_key_t key;
-	unsigned char *buff;
 
 	buff = hint->specific;
 	reiser4_key_assign(&key, &hint->offset);
 	
-	for (total = 0, size = hint->count; size > 0;) {
+	for (total = bytes = 0, size = hint->count; size > 0;) {
 		int32_t write;
 		uint32_t level;
 		reiser4_place_t place;
@@ -1922,12 +1938,14 @@ int32_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 		/* Updating counters */
 		size -= write;
 		total += write;
+		bytes += hint->bytes;
 		
 		/* Updating key and buffer pointer */
 		hint->specific += write;
 		reiser4_key_inc_offset(&hint->offset, write);
 	}
 
+	hint->bytes = bytes;
 	hint->specific = buff;
 	reiser4_key_assign(&hint->offset, &key);
 	
@@ -1938,11 +1956,11 @@ int32_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 int32_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 			       trans_hint_t *hint)
 {
+	char *buff;
 	errno_t res;
 	int32_t total;
 	uint32_t size;
 	reiser4_key_t key;
-	unsigned char *buff;
 
 	buff = hint->specific;
 	reiser4_key_assign(&key, &hint->offset);
@@ -1992,74 +2010,73 @@ int32_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 /* Converts item at passed @place from tail to extent and back from extent to
    tail. */
 errno_t reiser4_tree_conv(reiser4_tree_t *tree,
-			  reiser4_place_t *place,
-			  reiser4_plug_t *plug)
+			  conv_hint_t *hint)
 {
 	char *buff;
 	errno_t res;
 	uint32_t size;
 	uint32_t blksize;
-
-	trans_hint_t hint;
-	key_entity_t maxkey;
+	trans_hint_t trans;
+	reiser4_place_t *place;
 	
 	aal_assert("umka-2406", tree != NULL);
-	aal_assert("umka-2407", place != NULL);
-	aal_assert("umka-2408", plug != NULL);
-
-	if ((res = reiser4_place_fetch(place)))
-		return res;
+	aal_assert("umka-2407", hint != NULL);
 	
-	if (plug_equal(plug, place->plug))
+	aal_assert("umka-2481", hint->plug != NULL);
+	aal_assert("umka-2481", hint->place != NULL);
+
+	place = (reiser4_place_t *)hint->place;
+	
+	if (plug_equal(hint->plug, place->plug)) {
+		hint->bytes = plug_call(place->plug->o.item_ops,
+					bytes, (place_t *)place);
 		return 0;
+	}
 
-	reiser4_item_maxreal_key(place, &maxkey);
-	reiser4_key_assign(&hint.offset, &place->key);
-
-	size = reiser4_key_get_offset(&maxkey) + 1 -
-		reiser4_key_get_offset(&place->key);
-
+	reiser4_key_assign(&trans.offset, &place->key);
 	blksize = reiser4_master_blksize(tree->fs->master);
 
-	while (size > 0) {
-		int32_t trans;
+	for (size = hint->size, hint->bytes = 0; size > 0;) {
+		int32_t conv;
 		
 		/* Preparing buffer to read to it and size to read. */
-		hint.count = blksize;
+		trans.count = blksize;
 
-		if (hint.count > size)
-			hint.count = size;
+		if (trans.count > size)
+			trans.count = size;
 
-		if (!(buff = aal_calloc(hint.count, 0)))
+		if (!(buff = aal_calloc(trans.count, 0)))
 			return -ENOMEM;
 
-		hint.specific = buff;
+		trans.specific = buff;
 
 		/* Reading data from tree */
-		if ((trans = reiser4_tree_read_flow(tree, &hint)) < 0) {
-			res = trans;
+		if ((conv = reiser4_tree_read_flow(tree, &trans)) < 0) {
+			res = conv;
 			goto error_free_buff;
 		}
 		
 		/* Removing read data from the tree. */
-		hint.plug = plug;
+		trans.plug = hint->plug;
 		
-		if ((res = reiser4_tree_truncate(tree, &hint)))
+		if ((res = reiser4_tree_truncate(tree, &trans)))
 			goto error_free_buff;
+
+		/* FIXME-UMKA: Here should be releasing of extent unformatted
+		   blocks if passed @place points to extent item. */
 		
-		hint.count = trans;
+		trans.count = conv;
 		
 		/* Writing data to the tree */
-		if ((trans = reiser4_tree_write_flow(tree, &hint)) < 0) {
-			res = trans;
+		if ((conv = reiser4_tree_write_flow(tree, &trans)) < 0) {
+			res = conv;
 			goto error_free_buff;
 		}
 
-		aal_assert("umka-2477", (uint32_t)trans == hint.count);
+		hint->bytes += trans.bytes;
+		reiser4_key_inc_offset(&trans.offset, conv);
 
-		reiser4_key_inc_offset(&hint.offset, trans);
-
-		size -= trans;
+		size -= conv;
 		aal_free(buff);
 	}
 
@@ -2146,7 +2163,7 @@ static int32_t reiser4_tree_mod(
 		if (level < reiser4_node_get_level(place->node)) {
 			/* Allocating node of requested level and assign place
 			   for insert to it. */
-			if (!(place->node = reiser4_tree_alloc(tree, level)))
+			if (!(place->node = reiser4_tree_alloc_node(tree, level)))
 				return -ENOSPC;
 
 			POS_INIT(&place->pos, 0, MAX_UINT32);
@@ -2168,7 +2185,7 @@ static int32_t reiser4_tree_mod(
 			reiser4_place_assign(place, tree->root,
 					     0, MAX_UINT32);
 		} else {
-			if (!(place->node = reiser4_tree_alloc(tree, level)))
+			if (!(place->node = reiser4_tree_alloc_node(tree, level)))
 				return -ENOMEM;
 			
 			POS_INIT(&place->pos, 0, MAX_UINT32);
@@ -2240,15 +2257,13 @@ static int32_t reiser4_tree_mod(
 	   tree. Also, here we should handle the special case, when tree root
 	   should be changed. */
 	if (place->node != tree->root && !place->node->p.node) {
-		blk_t rootblk = reiser4_tree_get_root(tree);
-
-		if (old.node && rootblk == node_blocknr(old.node)) {
+		if (old.node && reiser4_tree_root_node(tree, old.node)) {
 			if (reiser4_tree_growup(tree))
 				return -EINVAL;
 		}
 		
 		/* Attaching new node to the tree */
-		if ((res = reiser4_tree_attach(tree, place->node)))
+		if ((res = reiser4_tree_attach_node(tree, place->node)))
 			return res;
 	}
 	
@@ -2372,11 +2387,11 @@ errno_t reiser4_tree_truncate(reiser4_tree_t *tree,
 	} else {
 		/* Detaching node from the tree, because it became empty */
 		reiser4_node_mkclean(place.node);
-		reiser4_tree_detach(tree, place.node);
+		reiser4_tree_detach_node(tree, place.node);
 
 		/* Freeing node and updating place node component in order to
 		   let user know that node do not exist any longer. */
-		reiser4_tree_release(tree, place.node);
+		reiser4_tree_release_node(tree, place.node);
 	}
 
 	/* Drying tree up in the case root node has only one item */
@@ -2446,11 +2461,11 @@ errno_t reiser4_tree_remove(
 	} else {
 		/* Detaching node from the tree, because it became empty */
 		reiser4_node_mkclean(place->node);
-		reiser4_tree_detach(tree, place->node);
+		reiser4_tree_detach_node(tree, place->node);
 
 		/* Freeing node and updating place node component in order to
 		   let user know that node do not exist any longer. */
-		reiser4_tree_release(tree, place->node);
+		reiser4_tree_release_node(tree, place->node);
 		place->node = NULL;
 	}
 
@@ -2463,7 +2478,7 @@ errno_t reiser4_tree_remove(
 	return 0;
 }
 
-errno_t reiser4_tree_down(
+errno_t reiser4_tree_trav_node(
 	reiser4_tree_t *tree,		/* tree for traversing it */
 	reiser4_node_t *node,		/* node to be traversed */
 	tree_open_func_t open_func,	/* callback for node opening */
@@ -2479,8 +2494,9 @@ errno_t reiser4_tree_down(
 	aal_assert("vpf-390", node != NULL);
 	aal_assert("umka-1935", tree != NULL);
 	
-	if (open_func == NULL)
-		open_func = (tree_open_func_t)reiser4_tree_child;
+	if (open_func == NULL) {
+		open_func = (tree_open_func_t)reiser4_tree_child_node;
+	}
 	
 	reiser4_node_lock(node);
 
@@ -2519,9 +2535,9 @@ errno_t reiser4_tree_down(
 				goto update;
 
 			/* Traversing the node */
-			if ((res = reiser4_tree_down(tree, child, open_func, 
-						     before_func, update_func, 
-						     after_func, data)) < 0)
+			if ((res = reiser4_tree_trav_node(tree, child, open_func, 
+							  before_func, update_func, 
+							  after_func, data)) < 0)
 			{
 				goto error_after_func;
 			}
@@ -2532,16 +2548,17 @@ errno_t reiser4_tree_down(
 		}
 	}
 	
-	if (after_func)
+	if (after_func) {
 		res = after_func(tree, node, data);
+	}
 
 	reiser4_node_unlock(node);
 	return res;
 
  error_after_func:
-	if (after_func)
+	if (after_func) {
 		res = after_func(tree, node, data);
-
+	}
  error_unlock_node:
 	reiser4_node_unlock(node);
 	return res;
@@ -2550,7 +2567,7 @@ errno_t reiser4_tree_down(
 /* Traverses tree with passed callback functions for each event (node open,
    etc). This is is used for all tree traverse related operations like copy,
    measurements, etc. */
-errno_t reiser4_tree_traverse(
+errno_t reiser4_tree_trav(
 	reiser4_tree_t *tree,		/* node to be traversed */
 	tree_open_func_t open_func,	/* callback for node opening */
 	tree_edge_func_t before_func,	/* start callback */
@@ -2565,15 +2582,15 @@ errno_t reiser4_tree_traverse(
 	if ((res = reiser4_tree_load_root(tree)))
 		return res;
 	
-	return reiser4_tree_down(tree, tree->root, open_func,
-				 before_func, update_func,
-				 after_func, data);
+	return reiser4_tree_trav_node(tree, tree->root, open_func,
+				      before_func, update_func,
+				      after_func, data);
 }
 
 /* Makes copy of @node from @src_tree to @dst_tree */
-reiser4_node_t *reiser4_tree_clone(reiser4_tree_t *src_tree,
-				   reiser4_node_t *src_node,
-				   reiser4_tree_t *dst_tree)
+static reiser4_node_t *reiser4_tree_clone_node(reiser4_tree_t *src_tree,
+					       reiser4_node_t *src_node,
+					       reiser4_tree_t *dst_tree)
 {
 	rid_t pid;
 	blk_t fake_blk;
@@ -2614,9 +2631,9 @@ struct move_hint {
 
 typedef struct move_hint move_hint_t;
 
-static errno_t copy_down(reiser4_tree_t *src_tree,
-			 reiser4_node_t *src_node,
-			 void *data)
+static errno_t clone_down(reiser4_tree_t *src_tree,
+			  reiser4_node_t *src_node,
+			  void *data)
 {
 	errno_t res = 0;
 	move_hint_t *hint;
@@ -2632,8 +2649,8 @@ static errno_t copy_down(reiser4_tree_t *src_tree,
 	if (!(dst_tree = hint->tree))
 		return -EINVAL;
 
-	if (!(dst_node = reiser4_tree_clone(src_tree, src_node,
-					    dst_tree)))
+	if (!(dst_node = reiser4_tree_clone_node(src_tree, src_node,
+						 dst_tree)))
 	{
 		aal_exception_error("Can't clone node %llu.",
 				    node_blocknr(src_node));
@@ -2645,7 +2662,7 @@ static errno_t copy_down(reiser4_tree_t *src_tree,
 	
 	dst_node->flags |= NF_FOREIGN;
 	
-	if ((res = reiser4_tree_connect(dst_tree, parent, dst_node))) {
+	if ((res = reiser4_tree_connect_node(dst_tree, parent, dst_node))) {
 		aal_exception_error("Can't connect node %llu to "
 				    "target tree.", node_blocknr(src_node));
 		goto error_free_dst_node;
@@ -2672,9 +2689,9 @@ static errno_t copy_down(reiser4_tree_t *src_tree,
 }
 
 /* Cutting path by one from the end */
-static errno_t copy_up(reiser4_tree_t *src_tree,
-		       reiser4_node_t *src_node,
-		       void *data)
+static errno_t clone_up(reiser4_tree_t *src_tree,
+			reiser4_node_t *src_node,
+			void *data)
 {
 	aal_list_t *next;
 	aal_list_t *last;
@@ -2693,8 +2710,8 @@ static errno_t copy_up(reiser4_tree_t *src_tree,
 }
 
 /* Makes copy of @src_tree to @dst_tree */
-errno_t reiser4_tree_copy(reiser4_tree_t *src_tree,
-			  reiser4_tree_t *dst_tree)
+errno_t reiser4_tree_clone(reiser4_tree_t *src_tree,
+			   reiser4_tree_t *dst_tree)
 {
 	move_hint_t hint;
 	
@@ -2704,8 +2721,8 @@ errno_t reiser4_tree_copy(reiser4_tree_t *src_tree,
 	hint.path = NULL;
 	hint.tree = dst_tree;
 
-	return reiser4_tree_traverse(src_tree, NULL, copy_down,
-				     NULL, copy_up, &hint);
+	return reiser4_tree_trav(src_tree, NULL, clone_down,
+				 NULL, clone_up, &hint);
 }
 
 /* Resizes @tree by @blocks */

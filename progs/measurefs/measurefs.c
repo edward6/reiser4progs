@@ -95,8 +95,7 @@ static reiser4_node_t *tfrag_open_node(
 	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
 	
-	node = reiser4_tree_child(tree, place);
-	
+	node = reiser4_tree_child_node(tree, place);
 	return node == NULL ? INVAL_PTR : node;
 }
 
@@ -211,10 +210,10 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 		aal_gauge_start(frag_hint.gauge);
 
 	/* Calling tree traversal */
-	if ((res = reiser4_tree_traverse(fs->tree, tfrag_open_node,
-					 tfrag_process_node,
-					 tfrag_update_node,
-					 NULL, &frag_hint)))
+	if ((res = reiser4_tree_trav(fs->tree, tfrag_open_node,
+				     tfrag_process_node,
+				     tfrag_update_node,
+				     NULL, &frag_hint)))
 	{
 		return res;
 	}
@@ -360,8 +359,8 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	if (stat_hint.gauge)
 		aal_gauge_start(stat_hint.gauge);
 	
-	if ((res = reiser4_tree_traverse(fs->tree, NULL, stat_process_node, 
-					 NULL, NULL, &stat_hint)))
+	if ((res = reiser4_tree_trav(fs->tree, NULL, stat_process_node, 
+				     NULL, NULL, &stat_hint)))
 	{
 		return res;
 	}
@@ -592,8 +591,8 @@ errno_t measurefs_data_frag(reiser4_fs_t *fs,
 	if (frag_hint.gauge)
 		aal_gauge_start(frag_hint.gauge);
 	
-	if ((res = reiser4_tree_traverse(fs->tree, NULL, dfrag_process_node, 
-					 dfrag_update_node, NULL, &frag_hint)))
+	if ((res = reiser4_tree_trav(fs->tree, NULL, dfrag_process_node, 
+				     dfrag_update_node, NULL, &frag_hint)))
 		return res;
 
 	if (frag_hint.gauge)

@@ -408,7 +408,8 @@ static errno_t tail40_truncate(place_t *place,
 	}
 
 	hint->ohd = 0;
-	hint->len = hint->bytes = count;
+	hint->len = count;
+	hint->bytes = count;
 	
 	return 0;
 }

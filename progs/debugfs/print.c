@@ -103,9 +103,11 @@ errno_t debugfs_print_block(
 
 /* Makes traverse though the whole tree and prints all nodes */
 errno_t debugfs_print_tree(reiser4_fs_t *fs) {
-	return reiser4_tree_traverse(fs->tree, NULL, 
-				     tprint_process_node,
-				     NULL, NULL, NULL);
+	aal_assert("umka-2486", fs != NULL);
+	
+	return reiser4_tree_trav(fs->tree, NULL,
+				 tprint_process_node,
+				 NULL, NULL, NULL);
 }
 
 /* Prints master super block */

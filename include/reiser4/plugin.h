@@ -498,7 +498,7 @@ struct trans_hint {
 	uint16_t len;
 
 	/* Value needed for updating bytes field in stat data */
-	uint16_t bytes;
+	uint64_t bytes;
 
 	/* This is opaque pointer to item type specific information */
 	void *specific;
@@ -520,6 +520,24 @@ struct trans_hint {
 };
 
 typedef struct trans_hint trans_hint_t;
+
+/* This structure contains related to tail conversion. */
+struct conv_hint {
+	/* New bytes value */
+	uint64_t bytes;
+
+	/* Real item size. This is needed, because only object plugin knows
+	   correct size. */
+	uint32_t size;
+
+	/* Place to be converted */
+	place_t *place;
+
+	/* Plugin item will be converted to. */
+	reiser4_plug_t *plug;
+};
+
+typedef struct conv_hint conv_hint_t;
 
 struct reiser4_key_ops {
 	/* Cleans key up. Actually it just memsets it by zeros, but more smart
@@ -1365,7 +1383,7 @@ struct tree_ops {
 	errno_t (*ukey) (void *, place_t *, key_entity_t *);
 
 	/* Convert some particular place to another plugin. */
-	errno_t (*conv) (void *, place_t *, reiser4_plug_t *plug);
+	errno_t (*conv) (void *, conv_hint_t *);
 #endif
 	/* Returns next items respectively. */
 	errno_t (*next) (void *, place_t *, place_t *);

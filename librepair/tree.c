@@ -328,11 +328,11 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	}
 	
 	/* Setting needed links between nodes in the tree cashe. */
-	if ((res = reiser4_tree_connect(tree, place.node, node)))
+	if ((res = reiser4_tree_connect_node(tree, place.node, node)))
 		return res;
 	
-	reiser4_tree_neigh(tree, node, D_LEFT);
-	reiser4_tree_neigh(tree, node, D_RIGHT);
+	reiser4_tree_neigh_node(tree, node, D_LEFT);
+	reiser4_tree_neigh_node(tree, node, D_RIGHT);
 	
 	return 0;
 }
@@ -416,11 +416,12 @@ static errno_t repair_tree_merge(reiser4_tree_t *tree, reiser4_place_t *dst,
 		if (!old.node->p.node)
 			reiser4_tree_growup(tree);
 		
-		if ((res = reiser4_tree_attach(tree, dst->node))) {
+		if ((res = reiser4_tree_attach_node(tree, dst->node))) {
 			aal_exception_error("Can't attach node %llu to the "
 					    "tree.", node_blocknr(dst->node));
-			
-			reiser4_tree_release(tree, dst->node);	    
+
+			reiser4_node_mkclean(dst->node);
+			reiser4_tree_release_node(tree, dst->node);	    
 			return res;
 		}
 	}
@@ -532,9 +533,11 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 			if (reiser4_place_rightmost(&dst)) {
 				prev = dst;
 				
-				if ((res = reiser4_tree_next(tree, &dst, 
-							     &dst)))
+				if ((res = reiser4_tree_next_node(tree, &dst, 
+								  &dst)))
+				{
 					return res;
+				}
 
 				if (!dst.node) {
 					dst = prev;
@@ -571,12 +574,25 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 		
 		/* Whole item cannot be copied. Convert @dst if needed. */
 		switch(repair_tree_do_conv(tree, dst.plug, src->plug)) {
-		case TRUE:
-			if ((res = reiser4_tree_conv(tree, &dst, src->plug)))
+		case TRUE: {
+			conv_hint_t hint;
+
+			hint.bytes = 0;
+			hint.plug = src->plug;
+			hint.place = (place_t *)&dst;
+			
+			/* FIXME-UMKA->VITALY: This should be fixed to right
+			   item size, which depends on size stat data field for
+			   the last item in file. */
+			hint.size = plug_call(dst.plug->o.item_ops,
+					      size, (place_t *)&dst);
+
+			if ((res = reiser4_tree_conv(tree, &hint)))
 				return res;
 			
 			/* Repeat lookup after @dst conversion. */
 			continue;
+		}
 		case FALSE:
 			break;
 		default:

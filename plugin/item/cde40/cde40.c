@@ -945,7 +945,9 @@ static int callback_comp_entry(void *array, uint32_t pos,
 lookup_t cde40_lookup(place_t *place, key_entity_t *key,
 		      bias_t bias)
 {
+#ifndef ENABLE_STAND_ALONE
 	int32_t i;
+#endif
 
 	aal_assert("umka-610", key != NULL);
 	aal_assert("umka-609", place != NULL);
@@ -958,7 +960,7 @@ lookup_t cde40_lookup(place_t *place, key_entity_t *key,
 			       &place->pos.unit))
 	{
 	case 1:
-#ifdef ENABLE_COLLISIONS
+#ifndef ENABLE_STAND_ALONE
 		/* Making sure, that we have found right unit. This is needed
 		   because of possible key collition. We go to left until we
 		   find, that we found key smaller than passed one. */

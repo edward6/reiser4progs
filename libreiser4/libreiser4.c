@@ -104,9 +104,9 @@ static errno_t tree_next(
 	place_t *place,             /* place of node */
 	place_t *next)	            /* next item will be stored here */
 {
-	return reiser4_tree_next((reiser4_tree_t *)tree, 
-				 (reiser4_place_t *)place,
-				 (reiser4_place_t *)next);
+	return reiser4_tree_next_node((reiser4_tree_t *)tree, 
+				      (reiser4_place_t *)place,
+				      (reiser4_place_t *)next);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -164,8 +164,8 @@ static char *key_print(key_entity_t *key, uint16_t options) {
 	return reiser4_print_key((reiser4_key_t *)key, options);
 }
 
-static errno_t tree_conv(void *tree, place_t *place, reiser4_plug_t *plug) {
-	return reiser4_tree_conv(tree, (reiser4_place_t *)place, plug);
+static errno_t tree_conv(void *tree, conv_hint_t *hint) {
+	return reiser4_tree_conv(tree, hint);
 }
 
 static uint64_t param_value(char *name) {

@@ -284,7 +284,7 @@ errno_t reiser4_node_realize(
         if (reiser4_node_lookup(parent->node, &lkey, FIND_EXACT,
 				&parent->pos) == PRESENT)
 	{
-#if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_COLLISIONS)
+#ifndef ENABLE_STAND_ALONE
 		if (!(node->flags & NF_FOREIGN)) {
 			if (reiser4_node_ack(node, parent))
 				goto parent_fetch;
@@ -294,7 +294,7 @@ errno_t reiser4_node_realize(
 	}
 
 	/* Getting position by means of linear traverse */
-#if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_COLLISIONS)
+#ifndef ENABLE_STAND_ALONE
 	if (!(node->flags & NF_FOREIGN)) {
 		lookup_t res;
 		uint32_t i, j;

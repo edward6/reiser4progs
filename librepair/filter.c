@@ -216,7 +216,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 		goto error;
 	}
 	
-	if (reiser4_tree_connect(tree, place->node, node))
+	if (reiser4_tree_connect_node(tree, place->node, node))
 		goto error_close_node;
 	
 	if (fd->progress_handler && fd->level != LEAF_LEVEL) {
@@ -587,15 +587,15 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 			   (reiser4_format_get_stamp(format) ==
 			    reiser4_node_get_mstamp(tree->root)));
 	
-	if (reiser4_tree_connect(tree, NULL, tree->root))
+	if (reiser4_tree_connect_node(tree, NULL, tree->root))
 		goto error;
 
 	/* Cut the corrupted, unrecoverable parts of the tree off. */
-	res = reiser4_tree_down(tree, tree->root,
-				repair_filter_node_open,
-				repair_filter_node_check,
-				repair_filter_update_traverse,  
-				repair_filter_after_traverse, fd);
+	res = reiser4_tree_trav_node(tree, tree->root,
+				     repair_filter_node_open,
+				     repair_filter_node_check,
+				     repair_filter_update_traverse,  
+				     repair_filter_after_traverse, fd);
 
 	return res < 0 ? res : 0;
  error:

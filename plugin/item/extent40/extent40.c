@@ -168,11 +168,10 @@ static errno_t extent40_truncate(place_t *place, trans_hint_t *hint) {
 			/* Making extent unit shorter */
 			et40_inc_start(extent, remove);
 			et40_dec_width(extent, remove);
-
-			/* Updating bytes */
 			hint->bytes += remove * blksize;
 		} else {
-			/* Here we remove whole unit. */
+			/* Here we remove whole unit. So, we count width blocks
+			   to be released, etc. */
 			hint->len += sizeof(extent40_t);
 			hint->bytes += width * blksize;
 
@@ -727,6 +726,7 @@ static errno_t extent40_estimate_write(place_t *place,
 
 /* Writes data to @place */
 static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
+	char *buff;
 	uint32_t units;
 	uint32_t blksize;
 	
@@ -734,6 +734,7 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 	aal_block_t *block;
 	extent40_t *extent;
 
+	uint64_t max_offset;
 	uint64_t ins_offset;
 	uint64_t uni_offset;
 	uint32_t count, size;
@@ -747,6 +748,7 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 	if (place->pos.unit == MAX_UINT32)
 		place->pos.unit = 0;
 
+	buff = hint->specific;
 	units = extent40_units(place);
 	
 	if (place->pos.unit > units)
@@ -762,15 +764,22 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 	ins_offset = plug_call(hint->offset.plug->o.key_ops,
 			       get_offset, &hint->offset);
 
+	max_offset = plug_call(hint->maxkey.plug->o.key_ops,
+			       get_offset, &hint->maxkey);
+
+	if (max_offset > 0) max_offset++;
+
 	/* Main loop until all data is written */
 	for (hint->bytes = 0, count = hint->count; count > 0;
 	     count -= size)
 	{
-		uint64_t max_offset;
+		uint32_t room;
 
 		/* Calculating size to be written this time. */
-		if ((size = count) > blksize - (ins_offset % blksize))
-			size = blksize - (ins_offset % blksize);
+		room = blksize - (ins_offset % blksize);
+		
+		if ((size = count) > room)
+			size = room;
 		
 		/* Block offset we will insert in. */
 		block_offset = ins_offset - (ins_offset & (blksize - 1));
@@ -778,12 +787,6 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 		/* Preparing key for getting data by it */
 		plug_call(key.plug->o.key_ops, set_offset, &key, block_offset);
 
-		max_offset = plug_call(hint->maxkey.plug->o.key_ops,
-				       get_offset, &hint->maxkey);
-
-		if (max_offset > 0)
-			max_offset++;
-		
 		/* Checking if we write data inside item */
 		if (block_offset < max_offset) {
 			blk_t blk;
@@ -846,9 +849,8 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 				hint->bytes += blksize;
 				max_offset += blksize;
 			} else {
-				if (max_offset > 0) {
+				if (max_offset > 0)
 					extent++;
-				}
 					
 				/* This is the case when we write holes */
 				if (!hint->specific &&
@@ -884,16 +886,14 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 		/* Writting data to @block */
 		if (hint->specific) {
 			uint32_t off = (ins_offset % blksize);
-			
-			aal_memcpy(block->data + off,
-				   hint->specific, size);
-			
+			aal_memcpy(block->data + off, buff, size);
+
+			buff += size;
 			block->dirty = 1;
 		} else {
 			/* Writting hole */
 			if (size < blksize) {
 				uint32_t off = (ins_offset % blksize);
-				
 				aal_memset(block->data + off, 0, size);
 				block->dirty = 1;
 			}

@@ -24,9 +24,6 @@ Configure script is accepting the following keys:
 --disable-monolithic           disable embeding plugins in libreiser4
 			       (default=on)
 
---disable-collisions           disable key collisions handling in stand
-                               alone library (default=on)
-
 --disable-plugins-check        disable plugins validness check in stand alone
                                library (default=on)
 
@@ -79,10 +76,8 @@ plugins and extra checks code into "stand alone" library.
 
 Most convenient configure comand is the following:
 
-./configure --disable-debug --enable-stand-alone
---disable-collisions-handling --disable-plugins-check
---disable-fnv1-hash --disable-rupasov-hash --disable-tea-hash
---disable-deg-hash
+./configure --disable-debug --enable-stand-alone --disable-plugins-check 
+--disable-fnv1-hash --disable-rupasov-hash --disable-tea-hash --disable-deg-hash
 
 This assumes, that r5 hash is used in filesystem, as it is not
 disabled here.

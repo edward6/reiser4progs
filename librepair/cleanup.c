@@ -117,9 +117,9 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 		return -EINVAL;
 	
 	/* Cut the corrupted, unrecoverable parts of the tree off. */
-	res = reiser4_tree_down(fs->tree, fs->tree->root, NULL, 
-				repair_semantic_node_traverse, 
-				NULL, NULL, cleanup);
+	res = reiser4_tree_trav_node(fs->tree, fs->tree->root, NULL, 
+				     repair_semantic_node_traverse, 
+				     NULL, NULL, cleanup);
 	
 	repair_cleanup_update(cleanup);
 	reiser4_fs_sync(fs);

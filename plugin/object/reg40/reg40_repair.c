@@ -396,14 +396,33 @@ errno_t reg40_check_struct(object_entity_t *object,
 				size = bytes = 0;
 				reg40_reset(object);
 			} else {
+				conv_hint_t hint;
+
+				/* FIXME-UMKA->VITALY: This is new bytes field
+				   after convertation. Now it is set up to
+				   zero. Use it after convertation to update
+				   @bytes field in stat data. */
+				hint.bytes = 0;
+
+				hint.plug = bplug;
+				hint.place = &reg->body;
+
+				/* FIXME-UMKA->VITALY: Here should be right item
+				   size. Suppose we have extent and it is last
+				   extent in a file. Extents size is always
+				   multiple of block size. But real size depends
+				   on the size field in object stat data */
+				hint.size = plug_call(reg->body.plug->o.item_ops,
+						      size, &reg->body);
+				
 				/* Tail found, extent should be. Convert. */
-				if ((res |= rcore->tree_ops.conv(info->tree, 
-								 &reg->body,
-								 bplug)) < 0)
+				if ((res |= rcore->tree_ops.conv(info->tree,
+								 &hint)) < 0)
+				{
 					return res;
+				}
 
 			}
-			
 			continue;
 		}
 		

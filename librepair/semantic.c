@@ -830,10 +830,12 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	/* Connect lost objects to their parents -- if parents can be 
 	   identified -- or to "lost+found". */
 	if (sem->repair->mode == RM_BUILD) {
-		if ((res = reiser4_tree_down(tree, tree->root, NULL, 
-					     repair_semantic_node_traverse,
-					     NULL, NULL, sem)))
+		if ((res = reiser4_tree_trav_node(tree, tree->root, NULL, 
+						  repair_semantic_node_traverse,
+						  NULL, NULL, sem)))
+		{
 			goto error_close_lost;
+		}
 	}
 	
  error_close_lost:

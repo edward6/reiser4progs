@@ -22,7 +22,7 @@ struct dir40 {
 	
 	/* Current position in the directory (key and adjust). Adjust is needed
 	   to work fine when key collitions take place. */
-#ifdef ENABLE_COLLISIONS
+#ifndef ENABLE_STAND_ALONE
 	uint32_t adjust;
 #endif
 	

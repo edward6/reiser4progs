@@ -83,26 +83,27 @@ static int32_t reg40_read(object_entity_t *entity,
 {
 	errno_t res;
 	reg40_t *reg;
-	uint64_t size;
 	uint32_t read;
+	uint64_t fsize;
 
 	aal_assert("umka-1183", buff != NULL);
 	aal_assert("umka-1182", entity != NULL);
 
 	reg = (reg40_t *)entity;
-	size = reg40_size(entity);
+	fsize = reg40_size(entity);
 
-	for (read = 0; read < n; ) {
+	for (read = 0; read < n && reg40_offset(entity) < fsize;) {
 		int32_t chunk;
 		trans_hint_t hint;
 
 		/* Update body place. Check for error. */
 		if ((res = reg40_update(entity)) < 0)
 			return res;
-
-		/* Check if file stream is over. */
-		if (res == ABSENT)
-			return 0;
+		else {
+			/* Check if file stream is over. */
+			if (res == ABSENT)
+				return 0;
+		}
 
 		/* Initializing trans hint */
 		plug_call(reg->offset.plug->o.key_ops, assign,
@@ -110,13 +111,21 @@ static int32_t reg40_read(object_entity_t *entity,
 
 		hint.specific = buff;
 		hint.count = n - read;
+
+		/* Calcilating chunk size to read. */
+		if (reg40_offset(entity) + hint.count > fsize)
+			hint.count = fsize - reg40_offset(entity);
+			
 		hint.tree = reg->obj.info.tree;
 
 		/* Calling body item's read() method */
-		if (!(chunk = plug_call(reg->body.plug->o.item_ops,
-					read, &reg->body, &hint)))
+		if ((chunk = plug_call(reg->body.plug->o.item_ops,
+				       read, &reg->body, &hint)) < 0)
 		{
 			return chunk;
+		} else {
+			if (chunk == 0)
+				return 0;
 		}
 
 		buff += chunk; read += chunk;
@@ -294,21 +303,27 @@ reiser4_plug_t *reg40_bplug(reg40_t *reg, uint64_t new_size) {
 /* Makes tail2extent and extent2tail conversion */
 errno_t reg40_convert(object_entity_t *entity, reiser4_plug_t *plug) {
 	reg40_t *reg;
+	uint64_t fsize;
+	uint64_t bytes;
 	uint64_t offset;
 	key_entity_t key;
+	conv_hint_t hint;
 
 	aal_assert("umka-2467", plug != NULL);
 	aal_assert("umka-2466", entity != NULL);
 
 	reg = (reg40_t *)entity;
-	
+	fsize = reg40_size(entity);
+
+	/* Initializing key to be used for walking though the all file items. */
 	plug_call(reg->offset.plug->o.key_ops,
 		  assign, &key, &reg->offset);
 	
-	for (offset = 0; offset < reg40_size(entity); ) {
+	for (bytes = 0, offset = 0; offset < fsize;) {
 		place_t place;
 		uint32_t size;
 
+		/* Looking for item to be converted */
 		switch (obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
 				     FIND_EXACT, &place))
 		{
@@ -318,15 +333,36 @@ errno_t reg40_convert(object_entity_t *entity, reiser4_plug_t *plug) {
 			return -EINVAL;
 		}
 		
+		/* Calculating right item size */
 		size = plug_call(place.plug->o.item_ops,
 				 size, &place);
 
+		if (reg40_offset(entity) + size > fsize)
+			size = fsize - reg40_offset(entity);
+
+		/* Prepare convert hint. */
+		hint.bytes = 0;
+		hint.size = size;
+		hint.plug = plug;
+		hint.place = &place;
+
+		/* Converting item. */
 		if (rcore->tree_ops.conv(reg->obj.info.tree,
-					 &place, plug))
+					 &hint))
 		{
+			aal_exception_error("Can't convert item "
+					    "%s at %llu:%u to %s.",
+					    place.plug->label,
+					    place.block->nr,
+					    place.pos.item,
+					    plug->label);
 			return -EIO;
 		}
-	
+
+		/* Updating bytes */
+		bytes += hint.bytes;
+
+		/* Updating file offset */
 		offset = size + plug_call(key.plug->o.key_ops,
 					  get_offset, &key);
 
@@ -334,10 +370,12 @@ errno_t reg40_convert(object_entity_t *entity, reiser4_plug_t *plug) {
 			  &key, offset);
 	}
 
-	return 0;
+	/* Updating bytes field stat data using collected @bytes. */
+	return obj40_touch(&reg->obj, fsize,
+			   bytes, time(NULL));
 }
 
-errno_t reg40_conv_body(object_entity_t *entity, uint64_t new_size) {
+errno_t reg40_convert_body(object_entity_t *entity, uint64_t new_size) {
 	reg40_t *reg;
 	reiser4_plug_t *bplug;
 	
@@ -506,7 +544,7 @@ static int32_t reg40_write(object_entity_t *entity,
 	size = reg40_size(entity);
 	offset = reg40_offset(entity);
 
-	if (reg40_conv_body(entity, size + n)) {
+	if (reg40_convert_body(entity, size + n)) {
 		aal_exception_error("Can't perform tail "
 				    "conversion.");
 		return -EINVAL;
@@ -551,8 +589,8 @@ static errno_t reg40_truncate(object_entity_t *entity,
 	if (size == n)
 		return 0;
 
-	/* Converting body */
-	if (reg40_conv_body(entity, n)) {
+	/* Converting body. */
+	if (reg40_convert_body(entity, n)) {
 		aal_exception_error("Can't perform tail "
 				    "conversion.");
 		return -EINVAL;
