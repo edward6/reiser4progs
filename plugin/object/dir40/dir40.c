@@ -115,13 +115,13 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 		break;
 	}
 		
-	obj40_relock(&dir->obj, &dir->body, &next);
-	aal_memcpy(&dir->body, &next, sizeof(dir->body));
-
 #ifndef ENABLE_STAND_ALONE
 	aal_memcpy(&dir->offset, offset, sizeof(*offset));
 #endif
-		
+	
+	obj40_relock(&dir->obj, &dir->body, &next);
+	aal_memcpy(&dir->body, &next, sizeof(dir->body));
+
 	if (dir->body.pos.unit == ~0ul)
 		dir->body.pos.unit = 0;
 
@@ -148,11 +148,16 @@ static errno_t dir40_reset(object_entity_t *entity) {
 }
 
 /* Trying to guess hash in use by stat data extention */
-static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
-	/* This function should inspect stat data extentions first. And only if
-	   they do not contain a convenient plugin extention (hash plugin), it
-	   should use some default hash plugin id. */
-	return core->factory_ops.ifind(HASH_PLUGIN_TYPE, HASH_R5_ID);
+static reiser4_plugin_t *dir40_hash(dir40_t *dir, rid_t pid) {
+	if (pid != INVAL_PID) {
+		/* This function should inspect stat data extentions first. And
+		   only if they do not contain a convenient plugin extention
+		   (hash plugin), it should use some default hash plugin id. */
+		return core->factory_ops.ifind(HASH_PLUGIN_TYPE, HASH_R5_ID);
+	} else {
+		/* Getting hash plugin by its id */
+		return core->factory_ops.ifind(HASH_PLUGIN_TYPE, pid);
+	}
 }
 
 /* Switches current dir body item onto next one */
@@ -373,7 +378,7 @@ static object_entity_t *dir40_open(object_info_t *info) {
 		   core, info->tree);
 
 	/* Guessing hash plugin basing on stat data */
-	if (!(dir->hash = dir40_guess(dir))) {
+	if (!(dir->hash = dir40_hash(dir, INVAL_PID))) {
                 aal_exception_error("Can't guess hash plugin for directory "
 				    "%llx.", obj40_objectid(&dir->obj));
                 goto error_free_dir;
@@ -384,7 +389,7 @@ static object_entity_t *dir40_open(object_info_t *info) {
 		   sizeof(info->start));
 	
 	obj40_lock(&dir->obj, &dir->obj.statdata);
-	
+
 	/* Positioning to the first directory unit */
 	if (dir40_reset((object_entity_t *)dir))
 		goto error_free_dir;
@@ -435,17 +440,17 @@ static object_entity_t *dir40_create(object_info_t *info,
 
 	/* Key contains valid locality and objectid only, build start key */
 	plugin_call(info->object.plugin->o.key_ops, build_generic,
-		    &info->object, KEY_STATDATA_TYPE, locality, objectid, 0);
+		    &info->object, KEY_STATDATA_TYPE, locality,
+		    objectid, 0);
 
 	/* Initializing obj handle */
-	obj40_init(&dir->obj, &dir40_plugin, &info->object, core, info->tree);
+	obj40_init(&dir->obj, &dir40_plugin, &info->object,
+		   core, info->tree);
 
 	/* Getting hash plugin */
-	if (!(dir->hash = core->factory_ops.ifind(HASH_PLUGIN_TYPE, 
-						  hint->body.dir.hash)))
-	{
-		aal_exception_error("Can't find hash plugin by its id 0x%x.", 
-				    hint->body.dir.hash);
+	if (!(dir->hash = dir40_hash(dir, hint->body.dir.hash))) {
+		aal_exception_error("Can't find hash plugin by its "
+				    "id 0x%x.", hint->body.dir.hash);
 		goto error_free_dir;
 	}
 
@@ -453,8 +458,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 						    hint->statdata)))
 	{
-		aal_exception_error("Can't find stat data item plugin by its "
-				    "id 0x%x.", hint->statdata);
+		aal_exception_error("Can't find stat data item plugin "
+				    "by its id 0x%x.", hint->statdata);
 
 		goto error_free_dir;
 	}
@@ -462,8 +467,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	if (!(body_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 						    hint->body.dir.direntry)))
 	{
-		aal_exception_error("Can't find direntry item plugin by its id 0x%x.", 
-				    hint->body.dir.direntry);
+		aal_exception_error("Can't find direntry item plugin by "
+				    "its id 0x%x.", hint->body.dir.direntry);
 		goto error_free_dir;
 	}
     
@@ -516,7 +521,6 @@ static object_entity_t *dir40_create(object_info_t *info,
 	/* Light weight hint initializing. New directory will have two links on
 	   it, because of dot entry which points onto directory itself and entry
 	   in parent directory, which points to this new directory. */
-
 	lw_ext.nlink = 1;
 	lw_ext.mode = S_IFDIR | 0755;
 	lw_ext.size = body_hint.count;
@@ -590,6 +594,12 @@ static object_entity_t *dir40_create(object_info_t *info,
 		goto error_free_body;
 	}
 
+	/* Initializing @dir->offset by key of the "." entry */
+	plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
+		    build_entry, &dir->offset, dir->hash,
+		    obj40_locality(&dir->obj),
+		    obj40_objectid(&dir->obj), ".");
+	
 	obj40_lock(&dir->obj, &dir->body);
 	aal_free(body);
 
@@ -617,7 +627,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 	/* Releasing current body item */
 	obj40_relock(&dir->obj, &dir->body, NULL);
 	
-	/* Getting maxiaml possible key form directory item. We will use it for
+	/* Getting maximal possible key form directory item. We will use it for
 	   removing last item and so on util directro contains no items. Thanks
 	   to Nikita for this idea. */
 	plugin_call(dir->body.item.plugin->o.item_ops,
