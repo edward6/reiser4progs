@@ -3,14 +3,13 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* cleanup in node plugins and cde plugins.
+
 * stat data key's odrering should be the same as in entry key, 
   that points to, for large key policy.
 
 * remove libreisr4/key.c and include/reiser4/key.h these are only 
   wrappers for plugin functions with no additional functionality.
-
-* cleanup node plugins, cde plugins and key plugins. All common code
-  should be moved to somewhere.
 
 * dumpfs utility.
 

@@ -35,15 +35,18 @@ void *node_short_ib_at(node_t *node,
 }
 
 static object_entity_t *node_short_init(aal_device_t *device,
-					uint32_t size, blk_t blk)
+					uint32_t size, blk_t blk,
+					reiser4_plug_t *key_plug)
 {
 	object_entity_t *entity;
 
-	if (!(entity = node_common_init(device, size, blk)))
+	if (!(entity = node_common_init(device, size,
+					blk, key_plug)))
+	{
 		return NULL;
+	}
 	
 	entity->plug = &node_short_plug;
-
 	return entity;
 }
 
@@ -90,7 +93,9 @@ static errno_t node_short_get_key(object_entity_t *entity,
 	body = &(node_short_ih_at((node_t *)entity,
 				  pos->item)->key);
 	
+	key->plug = ((node_t *)entity)->key_plug;
 	aal_memcpy(key->body, body, sizeof(key_t));
+	
 	return 0;
 }
 
@@ -132,15 +137,6 @@ errno_t node_short_get_item(object_entity_t *entity,
 	place->len = node_short_len(entity, pos);
 	aal_memcpy(&place->pos, pos, sizeof(pos_t));
 	place->body = node_short_ib_at(node, pos->item);
-
-	/* FIXME-UMKA: Here should be not hardcoded key */
-	if (!(place->key.plug = core->factory_ops.ifind(KEY_PLUG_TYPE,
-							KEY_SHORT_ID)))
-	{
-		aal_exception_error("Can't find key plugin by its id "
-				    "0x%x", KEY_SHORT_ID);
-		return -EINVAL;
-	}
 
 	/* Getting item key */
 	return node_short_get_key(entity, pos, &place->key);

@@ -19,6 +19,7 @@ struct node {
 	uint32_t size;
 	aal_block_t *block;
 	aal_device_t *device;
+	reiser4_plug_t *key_plug;
 
 #ifndef ENABLE_STAND_ALONE
 	int dirty;
@@ -134,7 +135,8 @@ typedef struct node_header node_header_t;
         (((node_t *)entity)->block != NULL)
 
 extern object_entity_t *node_common_init(aal_device_t *device,
-					 uint32_t size, blk_t blk);
+					 uint32_t size, blk_t blk,
+					 reiser4_plug_t *key_plug);
 
 extern int node_common_confirm(object_entity_t *entity);
 extern errno_t node_common_load(object_entity_t *entity);

@@ -840,7 +840,8 @@ struct reiser4_node_ops {
 			   create_hint_t *);
     
 	/* Removes item/unit at specified pos */
-	errno_t (*remove) (object_entity_t *, pos_t *, uint32_t);
+	errno_t (*remove) (object_entity_t *, pos_t *,
+			   uint32_t);
 
 	/* Removes some amount of items/units */
 	errno_t (*cut) (object_entity_t *, pos_t *, pos_t *);
@@ -897,8 +898,8 @@ struct reiser4_node_ops {
 #endif
 
 	/* Cerates node entity */
-	object_entity_t *(*init) (aal_device_t *,
-				  uint32_t, blk_t);
+	object_entity_t *(*init) (aal_device_t *, uint32_t,
+				  blk_t, reiser4_plug_t *);
 	
 	/* Loads data block node lies in */
 	errno_t (*load) (object_entity_t *);

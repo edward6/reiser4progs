@@ -18,11 +18,11 @@ extern uint8_t reiser4_node_get_level(reiser4_node_t *node);
 
 extern reiser4_node_t *reiser4_node_open(aal_device_t *device,
 					 uint32_t size, blk_t blk,
-					 rid_t pid);
+					 rid_t pid, reiser4_plug_t *kplug);
 
 extern reiser4_node_t *reiser4_node_init(aal_device_t *device,
 					 uint32_t size, blk_t blk,
-					 rid_t pid);
+					 rid_t pid, reiser4_plug_t *kplug);
 
 #ifndef ENABLE_STAND_ALONE
 extern errno_t reiser4_node_clone(reiser4_node_t *src,

@@ -48,15 +48,16 @@ uint16_t node_large_free_space_end(node_t *node) {
 /* Creates node_large entity on specified device and block number. This can be
    used later for working with all node methods. */
 static object_entity_t *node_large_init(aal_device_t *device,
-					uint32_t size, blk_t blk)
+					uint32_t size, blk_t blk,
+					reiser4_plug_t *key_plug)
 {
 	object_entity_t *entity;
 
-	if (!(entity = node_common_init(device, size, blk)))
+	if (!(entity = node_common_init(device, size,
+					blk, key_plug)))
 		return NULL;
 	
 	entity->plug = &node_large_plug;
-
 	return entity;
 }
 
@@ -78,7 +79,9 @@ static errno_t node_large_get_key(object_entity_t *entity,
 	body = &(node_large_ih_at((node_t *)entity,
 				  pos->item)->key);
 	
+	key->plug = ((node_t *)entity)->key_plug;
 	aal_memcpy(key->body, body, sizeof(key_t));
+	
 	return 0;
 }
 
@@ -145,15 +148,6 @@ errno_t node_large_get_item(object_entity_t *entity,
 	place->len = node_large_len(entity, pos);
 	place->body = node_large_ib_at(node, pos->item);
 	aal_memcpy(&place->pos, pos, sizeof(pos_t));
-
-	/* FIXME-UMKA: Here should be not hardcoded plugin id */
-	if (!(place->key.plug = core->factory_ops.ifind(KEY_PLUG_TYPE,
-							KEY_LARGE_ID)))
-	{
-		aal_exception_error("Can't find key plugin by its id "
-				    "0x%x", KEY_LARGE_ID);
-		return -EINVAL;
-	}
 
 	/* Getting item key */
 	return node_large_get_key(entity, pos, &place->key);

@@ -238,7 +238,8 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 		/* Node is not loaded yet. Loading it and connecting to @parent
 		   node cache. */
 		if (!(node = reiser4_node_open(tree->fs->device,
-					       blksize, blk, pid)))
+					       blksize, blk, pid,
+					       tree->key.plug)))
 		{
 			aal_exception_error("Can't open node "
 					    "%llu.", blk);
@@ -410,7 +411,8 @@ reiser4_node_t *reiser4_tree_alloc(
 
 	/* Creating new node */
 	if (!(node = reiser4_node_init(tree->fs->device, blocksize,
-				       reiser4_fake_get(), pid)))
+				       reiser4_fake_get(), pid,
+				       tree->key.plug)))
 	{
 		aal_exception_error("Can't initialize node.");
 		return NULL;
@@ -2058,7 +2060,8 @@ reiser4_node_t *reiser4_tree_clone(reiser4_tree_t *src_tree,
 	pid = src_node->entity->plug->id.id;
 	
 	if (!(dst_node = reiser4_node_init(dst_device, src_node->size,
-					   reiser4_fake_get(), pid)))
+					   reiser4_fake_get(), pid,
+					   src_tree->key.plug)))
 	{
 		aal_exception_error("Can't initialize destination "
 				    "node durring tree copy.");

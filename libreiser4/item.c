@@ -156,9 +156,8 @@ errno_t reiser4_item_set_key(reiser4_place_t *place,
 
 	reiser4_key_assign(&place->key, key);
 
-	return plug_call(entity->plug->o.node_ops,
-			 set_key, entity, &place->pos,
-			 key);
+	return plug_call(entity->plug->o.node_ops, set_key,
+			 entity, &place->pos, key);
 }
 #endif
 
@@ -176,8 +175,8 @@ errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 	aal_memcpy(key, &place->key, sizeof(*key));
 
 	if (place->plug->o.item_ops->maxposs_key) {
-		return plug_call(place->plug->o.item_ops, maxposs_key,
-				(place_t *)place, key);
+		return plug_call(place->plug->o.item_ops,
+				 maxposs_key, (place_t *)place, key);
 	}
 
 	return 0;
@@ -215,8 +214,8 @@ errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 	aal_memcpy(key, &place->key, sizeof(*key));
 
 	if (place->plug->o.item_ops->maxreal_key) {
-		return plug_call(place->plug->o.item_ops, maxreal_key,
-				 (place_t *)place, key);
+		return plug_call(place->plug->o.item_ops,
+				 maxreal_key, (place_t *)place, key);
 	}
 		
 	return 0;

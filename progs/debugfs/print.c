@@ -93,7 +93,9 @@ errno_t debugfs_print_block(
 	blksize = reiser4_master_blksize(fs->master);
 	pid = reiser4_profile_value(fs->profile, "node");
 	
-	if (!(node = reiser4_node_open(device, blksize, blk, pid))) {
+	if (!(node = reiser4_node_open(device, blksize, blk, pid,
+				       fs->tree->key.plug)))
+	{
 		fprintf(stdout, "Block %llu is used, but it is not "
 			"a formatted one.\n", blk);
 		return 0;

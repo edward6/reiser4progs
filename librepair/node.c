@@ -18,8 +18,11 @@ reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
 	/* FIXME-UMKA->VITALY: Here should be used real node id. It can be
 	 * obtained from root node. */
 	pid = NODE_LARGE_ID;
+
+	aal_assert("umka-2355", fs->tree != NULL);
 	
-	node = reiser4_node_open(fs->device, blocksize, blk, pid);
+	node = reiser4_node_open(fs->device, blocksize, blk, pid,
+				 fs->tree->key.plug);
 	if (node == NULL)
 		return NULL;
 	

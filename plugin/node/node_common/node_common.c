@@ -51,7 +51,8 @@ uint64_t node_common_get_fstamp(object_entity_t *entity) {
 /* Creates node_common entity on specified device and block number. This can be
    used later for working with all node methods. */
 object_entity_t *node_common_init(aal_device_t *device,
-				  uint32_t size, blk_t blk)
+				  uint32_t size, blk_t blk,
+				  reiser4_plug_t *key_plug)
 {
 	node_t *node;
     
@@ -64,6 +65,7 @@ object_entity_t *node_common_init(aal_device_t *device,
 	node->size = size;
 	node->number = blk;
 	node->device = device;
+	node->key_plug = key_plug;
 
 	return (object_entity_t *)node;
 }

@@ -41,7 +41,7 @@ errno_t reiser4_node_clone(reiser4_node_t *src,
 
 reiser4_node_t *reiser4_node_init(aal_device_t *device,
 				  uint32_t size, blk_t blk,
-				  rid_t pid)
+				  rid_t pid, reiser4_plug_t *kplug)
 {
 	reiser4_node_t *node;
 	reiser4_plug_t *plug;
@@ -61,7 +61,7 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 
 	/* Requesting the plugin for initialization of the entity */
 	if (!(node->entity = plug_call(plug->o.node_ops, init,
-				       device, size, blk)))
+				       device, size, blk, kplug)))
 	{
 		goto error_free_node;
 	}
@@ -153,7 +153,7 @@ errno_t reiser4_node_print(
 /* Opens node on specified device and block number */
 reiser4_node_t *reiser4_node_open(aal_device_t *device,
 				  uint32_t size, blk_t blk,
-				  rid_t pid)
+				  rid_t pid, reiser4_plug_t *kplug)
 {
         reiser4_node_t *node;
 	reiser4_plug_t *plug;
@@ -172,7 +172,7 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
 
 	/* Requesting the plugin for initialization of the entity */
 	if (!(node->entity = plug_call(plug->o.node_ops, init,
-				       device, size, blk)))
+				       device, size, blk, kplug)))
 	{
 		goto error_free_node;
 	}
