@@ -394,9 +394,11 @@ static reiser4_plugin_t stat40_plugin = {
 		.units		= stat40_units,
 		.valid		= stat40_valid,
         
+		.get_key	= NULL,
+		.set_key	= NULL,
+		
 		.max_poss_key	= NULL,
-		.max_real_key   = NULL,
-		.unit_key	= NULL,
+		.max_real_key   = NULL
 	}
 };
 

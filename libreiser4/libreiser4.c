@@ -81,7 +81,7 @@ static int tree_lookup(
 		return lookup;
 
 	if (lookup == PRESENT) {
-		if (reiser4_item_key((reiser4_coord_t *)place))
+		if (reiser4_item_get_key((reiser4_coord_t *)place, NULL))
 			return FAILED;
 	}
 
@@ -113,7 +113,7 @@ static errno_t tree_right(
 			       coord->node->right, &pos))
 		return -1;
 
-	return reiser4_item_key((reiser4_coord_t *)right);
+	return reiser4_item_get_key((reiser4_coord_t *)right, NULL);
 }
 
 /* Handler for requests for left neighbor */
@@ -141,7 +141,7 @@ static errno_t tree_left(
 			       coord->node->left, &pos))
 		return -1;
 
-	return reiser4_item_key((reiser4_coord_t *)left);
+	return reiser4_item_get_key((reiser4_coord_t *)left, NULL);
 }
 
 static errno_t tree_lock(

@@ -926,6 +926,12 @@ static errno_t node40_predict_units(node40_t *src_node,
 		hint->create = !node40_mergeable(&src_item, &dst_item);
 	}
 
+	/*
+	  Calling item's "predict" method in order to estimate how many units
+	  may be shifted out. This method also updates unit component of insert
+	  point position. After this function is finish hint->rest will contain
+	  real number of bytes to be shifted into neighbour item.
+	*/
 	if (hint->create) {
 		uint32_t overhead;
 
@@ -947,17 +953,11 @@ static errno_t node40_predict_units(node40_t *src_node,
 			goto out;
 		
 		hint->rest -= overhead;
-	}
 
-	/*
-	  Calling item's "predict" method in odre to estimate how many units may
-	  be shifted out. This method also updates unit component of insert
-	  point position. After this function is finish hint->rest will contain
-	  real number of bytes to be shifted into neighbour item.
-	*/
-	if (hint->create) {
 		if (src_item.plugin->item_ops.predict(&src_item, NULL, hint))
 			return -1;
+
+		hint->items++;
 	} else {
 		if (src_item.plugin->item_ops.predict(&src_item, &dst_item, hint))
 			return -1;
@@ -968,8 +968,7 @@ static errno_t node40_predict_units(node40_t *src_node,
 	  neighbour item.
 	*/
 	if (hint->flags & SF_MOVIP) {
-		hint->pos.item = hint->flags & SF_LEFT ?
-			dst_items - 1 : 0;
+		hint->pos.item = hint->flags & SF_LEFT ? dst_items - 1 : 0;
 	}
 		
 	return 0;
@@ -1431,6 +1430,13 @@ static errno_t node40_shift(object_entity_t *entity,
 	hint->items = 0;
 
 	/*
+	  Saving shift flags. It is needed because, predict and shift functions
+	  return if insert point was moved to the neighbour in hint->flags
+	  field.
+	*/
+	flags = hint->flags;
+	
+	/*
 	  First of all we should try to merge boundary items if they are
 	  mergeable. This work is performed by unit shift methods with the
 	  special shift flags SF_MERGE. It will forbid creating the new item if
@@ -1458,13 +1464,12 @@ static errno_t node40_shift(object_entity_t *entity,
 
 	/* Insert pos might be chnaged, and we should keep it up to date. */
 	hint->pos = merge.pos;
+	hint->flags = merge.flags;
 
-	/*
-	  Saving shift flags. It is needed because, predict and shift functions
-	  return if insert point was moved to the neighbour in hint->flags
-	  field.
-	*/
-	flags = hint->flags;
+	if (merge.flags & SF_MOVIP)
+		goto out;
+	
+	hint->flags = flags;
 	
 	/*
 	  Estimating shift in order to determine how many items will be shifted,
@@ -1482,7 +1487,7 @@ static errno_t node40_shift(object_entity_t *entity,
 	  neighbour.
 	*/
 	if (hint->flags & SF_MOVIP)
-		return 0;
+		goto out;
 
 	/*
 	  Estimating how many units from the border items may be shifted into
@@ -1500,12 +1505,11 @@ static errno_t node40_shift(object_entity_t *entity,
 	if (hint->flags & SF_MOVIP && hint->units == 0 && hint->create)
 		hint->pos.unit = ~0ul;
 
+ out:
 	/* Updating shift hint by merging results. */
-	if (merge.rest > 0 && merge.units > 0) {
-		hint->items += 1;
-
-		hint->bytes += merge.rest +
-			sizeof(item40_header_t);
+	if (merge.units > 0) {
+		hint->units += merge.units;
+		hint->rest += merge.rest;
 	}
 	
 	return 0;

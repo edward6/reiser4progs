@@ -24,7 +24,7 @@ static uint32_t extent40_units(item_entity_t *item) {
 	return item->len / sizeof(extent40_t);
 }
 
-static errno_t extent40_unit_key(item_entity_t *item, uint32_t pos, 
+static errno_t extent40_get_key(item_entity_t *item, uint32_t pos, 
 	reiser4_key_t *key) 
 {
 	uint32_t i;
@@ -98,7 +98,7 @@ static errno_t extent40_insert(item_entity_t *item, void *buff,
 
 	/* Updating item's key by key of the first unit */
 	if (pos == 0) {
-		if (extent40_unit_key(item, 0, &item->key))
+		if (extent40_get_key(item, 0, &item->key))
 			return -1;
 	}
 	
@@ -140,7 +140,7 @@ static int32_t extent40_remove(item_entity_t *item, uint32_t pos,
 	}
 		
 	if (pos == 0) {
-		if (extent40_unit_key(item, 0, &item->key))
+		if (extent40_get_key(item, 0, &item->key))
 			return -1;
 	}
 	
@@ -361,7 +361,7 @@ static int32_t extent40_update(item_entity_t *item, void *buff,
 	}
 	
 	if (pos == 0) {
-		if (extent40_unit_key(item, 0, &item->key))
+		if (extent40_get_key(item, 0, &item->key))
 			return -1;
 	}
 	
@@ -489,7 +489,7 @@ static errno_t extent40_shift(item_entity_t *src_item,
 		aal_memmove(dst, src, src_item->len - hint->rest);
 
 		/* Updating item's key by the first unit key */
-		if (extent40_unit_key(src_item, 0, &src_item->key))
+		if (extent40_get_key(src_item, 0, &src_item->key))
 			return -1;
 	} else {
 		/* Moving dst tail body into right place */
@@ -503,7 +503,7 @@ static errno_t extent40_shift(item_entity_t *src_item,
 			   src_item->len, hint->rest);
 
 		/* Updating item's key by the first unit key */
-		if (extent40_unit_key(dst_item, 0, &dst_item->key))
+		if (extent40_get_key(dst_item, 0, &dst_item->key))
 			return -1;
 	}
 	
@@ -542,6 +542,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.predict       = NULL,
 		.shift         = NULL,
 #endif
+		.set_key       = NULL,
 		.estimate      = NULL,
 		.check	       = NULL,
 		.valid	       = NULL,
@@ -550,10 +551,10 @@ static reiser4_plugin_t extent40_plugin = {
 		.lookup	       = extent40_lookup,
 		.units	       = extent40_units,
 		.fetch         = extent40_fetch,
+		.get_key       = extent40_get_key,
 		
 		.max_poss_key = extent40_max_poss_key,
 		.max_real_key = extent40_max_real_key,
-		.unit_key     = extent40_unit_key,
 	}
 };
 

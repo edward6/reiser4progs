@@ -239,10 +239,8 @@ errno_t reiser4_node_lkey(
 	if (reiser4_coord_open(&coord, node, &pos))
 		return -1;
 
-	if (reiser4_item_key(&coord))
+	if (reiser4_item_get_key(&coord, key))
 		return -1;
-
-	aal_memcpy(key, &coord.entity.key, sizeof(*key));
 	
 	return 0;
 }
@@ -825,30 +823,37 @@ errno_t reiser4_node_shift(
 	items = reiser4_node_items(neig);
 	
 	for (i = 0; i < hint->items; i++) {
+		uint32_t units;
+		
 		reiser4_coord_t coord;
 		reiser4_node_t *child;
 		reiser4_ptr_hint_t ptr;
 
 		ppos.unit = ~0ul;
-		ppos.item = hint->flags & SF_LEFT ?
-			items - i - 1 : i; 
+		ppos.item = hint->flags & SF_LEFT ? items - i - 1 : i;
 
 		if (reiser4_coord_open(&coord, neig, &ppos))
 			return -1;
 
+		units = reiser4_item_units(&coord);
+		
 		if (!reiser4_item_nodeptr(&coord))
 			continue;
-			
-		plugin_call(return -1, coord.entity.plugin->item_ops,
-			    fetch, &coord.entity, &ptr, 0, 1);
-			
-		if (!(child = reiser4_node_cbp(node, ptr.ptr)))
-			continue;
 
-		reiser4_node_unregister(node, child);
+		for (ppos.unit = 0; ppos.unit < units; ppos.unit++) {
+			
+			plugin_call(return -1, coord.entity.plugin->item_ops,
+				    fetch, &coord.entity, &ptr, ppos.unit, 1);
+			
+			if (!(child = reiser4_node_cbp(node, ptr.ptr)))
+				continue;
 
-		if (reiser4_node_register(neig, child))
-			return -1;
+			reiser4_node_unregister(node, child);
+
+			if (reiser4_node_register(neig, child))
+				return -1;
+		}
+
 	}
 	
 	return 0;
@@ -927,7 +932,7 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 	if (reiser4_coord_open(&coord, node, pos))
 		return -1;
 
-	if (reiser4_item_update(&coord, key))
+	if (reiser4_item_set_key(&coord, key))
 		return -1;
     
 	node->flags |= NF_DIRTY;
@@ -1051,7 +1056,7 @@ errno_t reiser4_node_remove(
 		if (reiser4_coord_open(&coord, node, pos))
 			return -1;
 
-		if (reiser4_item_key(&coord))
+		if (reiser4_item_get_key(&coord, NULL))
 			return -1;
 
 		if ((child = reiser4_node_cbk(node, &coord.entity.key)))

@@ -153,10 +153,8 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
         if ((res = reiser4_coord_open(&coord, node->parent, &node->pos)))
 	    return res;
 	
-	if (reiser4_item_key(&coord))
+	if (reiser4_item_get_key(&coord, ld_key))
 	    return -1;
-
-	aal_memcpy(ld_key, &coord.entity.key, sizeof(*ld_key));
     } else
 	reiser4_key_minimal(ld_key);
     
@@ -179,7 +177,7 @@ static errno_t repair_node_ld_key_update(reiser4_node_t *node,
     if ((res = reiser4_coord_open(&coord, node->parent, &node->pos)))
 	return res;
 
-    return reiser4_item_update(&coord, ld_key);
+    return reiser4_item_set_key(&coord, ld_key);
 }
 
 static errno_t repair_node_rd_key(reiser4_node_t *node, 
@@ -211,13 +209,12 @@ static errno_t repair_node_rd_key(reiser4_node_t *node,
 	} else {
 	    coord.pos.item++;
 	    coord.pos.unit = 0;
+	    
 	    if (reiser4_coord_realize(&coord))
 		return -1;
 
-	    if (reiser4_item_key(&coord))
+	    if (reiser4_item_get_key(&coord, rd_key))
 		return -1;
-
-	    aal_memcpy(rd_key, &coord.entity.key, sizeof(*rd_key));
 	}
     } else
 	reiser4_key_maximal(rd_key);
@@ -262,7 +259,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, repair_data_t *data) {
     if (reiser4_coord_realize(&coord))
 	return -1;
 
-    if (reiser4_item_key(&coord)) {
+    if (reiser4_item_get_key(&coord, NULL)) {
 	aal_exception_error("Node (%llu): Failed to get the left key.",
 	    node->blk);
 	return -1;
@@ -337,13 +334,11 @@ static errno_t repair_node_keys_check(reiser4_node_t *node) {
 	if (reiser4_coord_realize(&coord))
 	    return -1;
 	
-	if (reiser4_item_key(&coord)) {
+	if (reiser4_item_get_key(&coord, &key)) {
 	    aal_exception_error("Node (%llu): Failed to get the key of the "
 		"item (%u).", node->blk, pos->item);
 	    return -1;
 	}
-	
-	aal_memcpy(&key, &coord.entity.key, sizeof(key));
 	
 	if (reiser4_key_valid(&key)) {
 	    aal_exception_error("Node (%llu): The key %k of the item (%u) is "

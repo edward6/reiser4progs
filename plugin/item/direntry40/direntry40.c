@@ -30,17 +30,10 @@ static inline uint32_t direntry40_entry_len(direntry40_t *direntry,
 	return aal_strlen((char *)(objid + 1)) + sizeof(objid40_t) + 1;
 }
 
-static uint32_t direntry40_unit_len(direntry40_t *direntry,
-				    uint32_t pos) 
-{
-	entry40_t *entry = direntry40_entry(direntry, pos);
-	return direntry40_entry_len(direntry, entry);
-}
-
 /* Builds full key by entry components */
-static errno_t direntry40_unit_key(item_entity_t *item,
-				   uint32_t pos,
-				   reiser4_key_t *key)
+static errno_t direntry40_get_key(item_entity_t *item,
+				  uint32_t pos,
+				  reiser4_key_t *key)
 {
 	uint64_t offset;
 	roid_t locality;
@@ -175,7 +168,8 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	uint32_t dst_units;
 	uint32_t space, len;
 	shift_flags_t flags;
-	
+
+	entry40_t *entry;
 	direntry40_t *direntry;
 	
 	aal_assert("umka-1591", src_item != NULL, return 0);
@@ -203,6 +197,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	hint->flags &= ~SF_MOVIP;
 	
 	while (!(hint->flags & SF_MOVIP) && cur < direntry40_units(src_item)) {
+		
 		int check = (src_item->pos == hint->pos.item &&
 			     hint->pos.unit != ~0ul);
 
@@ -222,11 +217,13 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 			}
 		}
 
+		entry = direntry40_entry(direntry, cur);
+			
 		/*
 		  Check is we have enough free space for shifting one more unit
 		  from src item to dst item.
 		*/
-		len = direntry40_unit_len(direntry, cur);
+		len = direntry40_entry_len(direntry, entry);
 
 		if (space < len + sizeof(entry40_t))
 			break;
@@ -338,11 +335,11 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		uint32_t dst_len = 0;
 
 		/* Calculating dst item body length */
-		for (i = 0; i < dst_units; i++)
-			dst_len += direntry40_unit_len(dst_direntry, i);
+/*		for (i = 0; i < dst_units; i++)
+			dst_len += direntry40_unit_len(dst_direntry, i);*/
 				
-/*		dst_len = dst_item->len - hint->rest -
-			sizeof(direntry40_t) - (dst_units * sizeof(entry40_t));*/
+		dst_len = dst_item->len - hint->rest -
+			sizeof(direntry40_t) - (dst_units * sizeof(entry40_t));
 		
 		if (dst_units > 0) {
 
@@ -499,11 +496,11 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	/* Updating items key */
 	if (hint->flags & SF_LEFT) {
 		if (de40_get_count(src_direntry) > 0) {
-			if (direntry40_unit_key(src_item, 0, &src_item->key))
+			if (direntry40_get_key(src_item, 0, &src_item->key))
 				return -1;
 		}
 	} else {
-		if (direntry40_unit_key(dst_item, 0, &dst_item->key))
+		if (direntry40_get_key(dst_item, 0, &dst_item->key))
 			return -1;
 	}
 	
@@ -561,11 +558,15 @@ static errno_t direntry40_insert(item_entity_t *item, void *buff,
 	/* Calculating length of areas to be moved */
 	before = (units - pos) * sizeof(entry40_t);
 	
-	for (i = 0; i < pos; i++)
-		before += direntry40_unit_len(direntry, i);
+	for (i = 0; i < pos; i++) {
+		entry = direntry40_entry(direntry, i);
+		before += direntry40_entry_len(direntry, entry);
+	}
 	
-	for (i = pos; i < units; i++)
-		after += direntry40_unit_len(direntry, i);
+	for (i = pos; i < units; i++) {
+		entry = direntry40_entry(direntry, i);
+		after += direntry40_entry_len(direntry, entry);
+	}
 	
 	/* Updating offsets */
 	for (i = 0; i < pos; i++)
@@ -624,7 +625,7 @@ static errno_t direntry40_insert(item_entity_t *item, void *buff,
 	  needed for corrent updating left delimiting keys.
 	*/
 	if (pos == 0) {
-		if (direntry40_unit_key(item, 0, &item->key))
+		if (direntry40_get_key(item, 0, &item->key))
 			return -1;
 	}
     
@@ -671,7 +672,7 @@ static int32_t direntry40_remove(item_entity_t *item, uint32_t pos,
 	head_len = offset - sizeof(entry40_t) -
 		((void *)entry - (void *)direntry);
 
-	unit_len = direntry40_unit_len(direntry, pos);
+	unit_len = direntry40_entry_len(direntry, entry);
 
 	entry = direntry40_entry(direntry, pos);
 	aal_memmove(entry, entry + 1, head_len);
@@ -684,8 +685,11 @@ static int32_t direntry40_remove(item_entity_t *item, uint32_t pos,
 		offset = en40_get_offset(&direntry->entry[pos]);
 	
 		foot_len = 0;
-		for (i = pos; i < (uint32_t)(de40_get_count(direntry) - 1); i++)
-			foot_len += direntry40_unit_len(direntry, i);
+		
+		for (i = pos; i < (uint32_t)(de40_get_count(direntry) - 1); i++) {
+			entry = direntry40_entry(direntry, i);
+			foot_len += direntry40_entry_len(direntry, entry);
+		}
 
 		src = (void *)direntry + offset;
 		dst = ((void *)direntry + offset) - dec;
@@ -699,7 +703,7 @@ static int32_t direntry40_remove(item_entity_t *item, uint32_t pos,
 	de40_dec_count(direntry, 1);
 
 	if (pos == 0) {
-		if (direntry40_unit_key(item, 0, &item->key))
+		if (direntry40_get_key(item, 0, &item->key))
 			return -1;
 	}
 	
@@ -796,7 +800,7 @@ static errno_t direntry40_max_real_key(item_entity_t *item,
 
 	aal_assert("umka-1653", units > 0, return -1);
 
-	return direntry40_unit_key(item, units - 1, key);
+	return direntry40_get_key(item, units - 1, key);
 }
 
 /* 
@@ -813,7 +817,7 @@ static inline int callback_comp_entry(void *array, uint32_t pos, void *key,
 	item = (item_entity_t *)data;
 	lookkey = (reiser4_key_t *)key;
 	
-	if (direntry40_unit_key(item, pos, &entrykey))
+	if (direntry40_get_key(item, pos, &entrykey))
 		return -1;
     
 	return plugin_call(return -1, item->key.plugin->key_ops, compare,
@@ -907,21 +911,21 @@ static reiser4_plugin_t direntry40_plugin = {
 		.check		= NULL,
 		.print		= NULL,
 		.mergeable      = NULL,
-
 		.shift          = NULL,
 		.predict        = NULL,
 #endif
 		.valid		= NULL,
 		.open           = NULL,
 		.update         = NULL,
+		.set_key	= NULL,
 		
+		.get_key	= direntry40_get_key,
 		.lookup		= direntry40_lookup,
 		.units		= direntry40_units,
 		.fetch          = direntry40_fetch,
 		
 		.max_poss_key	= direntry40_max_poss_key,
-		.max_real_key   = direntry40_max_real_key,
-		.unit_key	= direntry40_unit_key
+		.max_real_key   = direntry40_max_real_key
 	}
 };
 

@@ -253,7 +253,12 @@ struct shift_hint {
 	uint32_t items;
 	uint32_t units;
 
-	/* Bytes to be moved for items and units. */
+	/*
+	  Bytes to be moved for items and units. Actually we might use just item
+	  field for providing needed functionality, but I guess, we will need to
+	  collect some statistics like how much items and units were moved
+	  durring making space for inserting particular item or unit.
+	*/
 	uint32_t bytes;
 	uint32_t rest;
 
@@ -639,7 +644,10 @@ struct reiser4_item_ops {
 	errno_t (*max_real_key) (item_entity_t *, reiser4_key_t *);
 
 	/* Get the key of a particular unit of the item. */
-	errno_t (*unit_key) (item_entity_t *, uint32_t, reiser4_key_t *);
+	errno_t (*get_key) (item_entity_t *, uint32_t, reiser4_key_t *);
+
+	/* Set the key of a particular unit of the item. */
+	errno_t (*set_key) (item_entity_t *, uint32_t, reiser4_key_t *);
 
 	/* Returns unit count */
 	uint32_t (*units) (item_entity_t *);

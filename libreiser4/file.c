@@ -133,22 +133,20 @@ reiser4_file_t *reiser4_file_begin(
 	file->fs = fs;
 	file->coord = *coord;
 	
-	if (reiser4_item_key(coord)) {
+	if (reiser4_item_get_key(coord, &file->key)) {
 		aal_exception_error("Node (%llu), item (%u), unit(%u): Can't "
 				    "get item key.", coord->node->blk, 
 				    coord->pos.item, coord->pos.unit);
 		goto error_free_file;
 	}
 	
-	reiser4_key_init(&file->key, coord->entity.key.plugin,
-			 &coord->entity.key.body);
-
 #ifndef ENABLE_COMPACT
 	{
 		aal_stream_t stream;
 		aal_stream_init(&stream);
 		
 		reiser4_key_print(&file->key, &stream);
+		
 		aal_strncpy(file->name, (char *)stream.data,
 			    sizeof(file->name));
 		

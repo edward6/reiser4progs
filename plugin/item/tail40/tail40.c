@@ -18,7 +18,7 @@ static uint32_t tail40_units(item_entity_t *item) {
 }
 
 /* Returns the key of the specified unit */
-static errno_t tail40_unit_key(item_entity_t *item, uint32_t pos, 
+static errno_t tail40_get_key(item_entity_t *item, uint32_t pos, 
 	reiser4_key_t *key) 
 {
 	uint64_t offset;
@@ -60,7 +60,7 @@ static int32_t tail40_update(item_entity_t *item, void *buff,
 
 	/* Updating the key */
 	if (pos == 0) {
-		if (tail40_unit_key(item, 0, &item->key))
+		if (tail40_get_key(item, 0, &item->key))
 			return -1;
 	}
 
@@ -93,7 +93,7 @@ static errno_t tail40_insert(item_entity_t *item, void *buff,
 
 	/* Updating the key */
 	if (pos == 0) {
-		if (tail40_unit_key(item, 0, &item->key))
+		if (tail40_get_key(item, 0, &item->key))
 			return -1;
 	}
 	
@@ -120,7 +120,7 @@ static int32_t tail40_remove(item_entity_t *item, uint32_t pos,
 
 	/* Updating the key */
 	if (pos == 0) {
-		if (tail40_unit_key(item, 0, &item->key))
+		if (tail40_get_key(item, 0, &item->key))
 			return -1;
 	}
 	
@@ -368,8 +368,8 @@ static errno_t tail40_shift(item_entity_t *src_item,
 		aal_memmove(dst, src, src_item->len - hint->rest);
 
 		/* Updating item's key by the first unit key */
-		if (tail40_unit_key(src_item, 0, &src_item->key))
-				return -1;
+		if (tail40_get_key(src_item, 0, &src_item->key))
+			return -1;
 	} else {
 		/* Moving dst tail body into right place */
 		src = dst_item->body;
@@ -382,8 +382,8 @@ static errno_t tail40_shift(item_entity_t *src_item,
 			   src_item->len, hint->rest);
 
 		/* Updating item's key by the first unit key */
-		if (tail40_unit_key(dst_item, 0, &dst_item->key))
-				return -1;
+		if (tail40_get_key(dst_item, 0, &dst_item->key))
+			return -1;
 	}
 	
 	return 0;
@@ -425,14 +425,15 @@ static reiser4_plugin_t tail40_plugin = {
 		.check	       = NULL,
 		.valid	       = NULL,
 		.estimate      = NULL,
+		.set_key       = NULL,
 
 		.units	       = tail40_units,
 		.lookup	       = tail40_lookup,
 		.fetch         = tail40_fetch,
 		
+		.get_key       = tail40_get_key,
 		.max_poss_key  = tail40_max_poss_key,
 		.max_real_key  = tail40_max_real_key,
-		.unit_key      = tail40_unit_key,
 	}
 };
 

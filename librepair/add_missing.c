@@ -43,7 +43,7 @@ static errno_t callback_preinsert(reiser4_coord_t *coord,
     if ((coord->pos.item < items) && 
 	(coord->pos.unit < units || coord->pos.unit == ~0ul)) 
     {
-	if (reiser4_item_key(coord)) 
+	if (reiser4_item_get_key(coord, NULL)) 
 	    return -1;
 
 	/* if true - the most right key of what is going to be inserted is 
@@ -121,7 +121,7 @@ static errno_t callback_preinsert(reiser4_coord_t *coord,
     aal_assert("vpf-642", neigh.pos.unit < reiser4_item_units(&neigh), 
 	return -1);
     
-    if (reiser4_item_key(&neigh)) {
+    if (reiser4_item_get_key(&neigh, NULL)) {
 	aal_exception_error("Node (%llu), item (%u): Can't get the item key.", 
 	    neigh.node->blk, &neigh.pos.item);
 	return -1;
@@ -368,15 +368,13 @@ errno_t repair_am_pass(repair_data_t *rd) {
 		hint.data = reiser4_item_body(&coord);
 		hint.len = reiser4_item_len(&coord);
 
-		if (reiser4_item_key(&coord)) {
+		if (reiser4_item_get_key(&coord, &hint.key)) {
 		    aal_exception_error("Node (%llu), item (%u), unit (%u): "
 			"failed to get the item key.", node->blk, pos->item, 
 			pos->unit);
 		    goto error_node_free;
 		}
 
-		aal_memcpy(&hint.key, &coord.entity.key, sizeof(hint.key));
-		
 		if (reiser4_item_max_real_key(&coord, &am->max_real_key))
 		    goto error_node_free;
 		
