@@ -70,7 +70,7 @@ reiser4_format_t *reiser4_format_open(
 					   fs->device, blocksize)))
 	{
 		aal_exception_fatal("Can't open disk-format %s.",
-				    plugin->h.label);
+				    plugin->label);
 		goto error_free_format;
 	}
 
@@ -118,7 +118,7 @@ reiser4_format_t *reiser4_format_create(
 					   fs->device, len, blocksize, tail))) 
 	{
 		aal_exception_error("Can't create disk-format %s on %s.", 
-				    plugin->h.label, aal_device_name(fs->device));
+				    plugin->label, aal_device_name(fs->device));
     
 		goto error_free_format;
 	}
@@ -189,7 +189,7 @@ errno_t reiser4_format_reopen(
 					   format->fs->device, blocksize)))
 	{
 		aal_exception_fatal("Can't open disk-format %s.",
-				    plugin->h.label);
+				    plugin->label);
 		return -EINVAL;
 	}
 	

@@ -37,9 +37,11 @@ struct obj40 {
 
 typedef struct obj40 obj40_t;
 
-extern errno_t obj40_stat(obj40_t *obj);
 extern oid_t obj40_objectid(obj40_t *obj);
 extern oid_t obj40_locality(obj40_t *obj);
+extern uint64_t obj40_ordering(obj40_t *obj);
+
+extern errno_t obj40_stat(obj40_t *obj);
 extern rid_t obj40_pid(item_entity_t *item);
 
 extern errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,

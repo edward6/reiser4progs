@@ -1,1 +1,1 @@
-SUBDIRS = node40
+SUBDIRS = node_short node_large

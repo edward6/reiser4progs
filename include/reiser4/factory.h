@@ -15,27 +15,32 @@
 extern void libreiser4_factory_fini(void);
 extern errno_t libreiser4_factory_init(void);
 
+extern void libreiser4_plugin_close(plugin_class_t *class);
+extern errno_t libreiser4_plugin_fini(plugin_class_t *class);
+extern errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin);
+extern reiser4_plugin_t *libreiser4_plugin_init(plugin_class_t *class);
+
 #ifndef ENABLE_STAND_ALONE
-extern reiser4_plugin_t *libreiser4_factory_nfind(const char *name);
+extern reiser4_plugin_t *libreiser4_factory_nfind(char *name);
 #endif
+
+extern reiser4_plugin_t *libreiser4_factory_ifind(rid_t type, rid_t id);
+
+extern reiser4_plugin_t *libreiser4_factory_pfind(rid_t type, rid_t id,
+						  key_policy_t policy);
+
+extern reiser4_plugin_t *libreiser4_factory_cfind(plugin_func_t plugin_func,
+						  void *data, bool_t only);
 
 #if !defined(ENABLE_STAND_ALONE) || defined(ENABLE_PLUGINS_CHECK)
 extern errno_t libreiser4_factory_foreach(plugin_func_t plugin_func,
 					  void *data);
 #endif
 
-extern reiser4_plugin_t *libreiser4_factory_ifind(rid_t type,
-						  rid_t id);
-
-extern void libreiser4_plugin_close(plugin_class_t *class);
-extern errno_t libreiser4_plugin_fini(plugin_class_t *class);
-extern errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin);
-extern reiser4_plugin_t *libreiser4_plugin_init(plugin_class_t *class);
-
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 extern errno_t libreiser4_factory_load(char *name);
 
-errno_t libreiser4_plugin_open(const char *name,
+errno_t libreiser4_plugin_open(char *name,
 			       plugin_class_t *class);
 
 #else
@@ -46,9 +51,6 @@ extern errno_t libreiser4_plugin_open(plugin_init_t init,
 extern errno_t libreiser4_factory_load(plugin_init_t init,
 				       plugin_fini_t fini);
 #endif
-
-extern reiser4_plugin_t *libreiser4_factory_cfind(plugin_func_t plugin_func,
-						  void *data, bool_t only);
 
 #endif
 

@@ -43,15 +43,17 @@ static lookup_t reg40_next(reg40_t *reg) {
 	aal_assert("umka-1161", reg != NULL);
 	
 	/* Building key to be searched by current offset */
-	plugin_call(STAT_KEY(&reg->obj)->plugin->o.key_ops, build_generic,
+	plugin_call(STAT_KEY(&reg->obj)->plugin->o.key_ops, build_gener,
 		    &key, KEY_FILEBODY_TYPE, obj40_locality(&reg->obj), 
-		    obj40_objectid(&reg->obj), reg->offset);
+		    obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
+		    reg->offset);
 
 	/* Getting the next body item from the tree */
 	if ((res = obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
 				&place)) == PRESENT)
 	{
-		obj40_relock(&reg->obj, &reg->body, &place);
+		obj40_relock(&reg->obj, &reg->body,
+			     &place);
 
 		aal_memcpy(&reg->body, &place,
 			   sizeof(reg->body));
@@ -154,10 +156,10 @@ static object_entity_t *reg40_open(object_info_t *info) {
 	aal_assert("umka-1163", info != NULL);
 	aal_assert("umka-1164", info->tree != NULL);
     	
-	if (info->start.item.plugin->h.group != STATDATA_ITEM)
+	if (info->start.item.plugin->id.group != STATDATA_ITEM)
 		return NULL;
 
-	if (obj40_pid(&info->start.item) != reg40_plugin.h.id)
+	if (obj40_pid(&info->start.item) != reg40_plugin.id.id)
 		return NULL;
 
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
@@ -193,7 +195,9 @@ static object_entity_t *reg40_create(object_info_t *info,
 	statdata_hint_t stat;
     	create_hint_t stat_hint;
     
+	uint64_t ordering;
 	sdext_lw_hint_t lw_ext;
+
 	oid_t objectid, locality;
 	sdext_unix_hint_t unix_ext;
 	
@@ -215,10 +219,13 @@ static object_entity_t *reg40_create(object_info_t *info,
 	objectid = plugin_call(info->object.plugin->o.key_ops,
 			       get_objectid, &info->object);
 	
+	ordering = plugin_call(info->object.plugin->o.key_ops,
+			       get_ordering, &info->object);
+	
 	/* Key contains valid locality and objectid only, build start key */
-	plugin_call(info->object.plugin->o.key_ops, build_generic,
+	plugin_call(info->object.plugin->o.key_ops, build_gener,
 		    &info->object, KEY_STATDATA_TYPE, locality,
-		    objectid, 0);
+		    ordering, objectid, 0);
 	
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plugin, &info->object,
@@ -357,14 +364,17 @@ static int32_t reg40_put(object_entity_t *entity,
 	for (written = 0; written < n; ) {
 		place_t place;
 		lookup_t lookup;
+
 		create_hint_t hint;
+		reiser4_plugin_t *plugin;
 
 		/* Preparing @hint->key */
-		hint.key.plugin = STAT_KEY(&reg->obj)->plugin;
+		plugin = STAT_KEY(&reg->obj)->plugin;
 		
-		plugin_call(hint.key.plugin->o.key_ops, build_generic, &hint.key,
-			    KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
-			    obj40_objectid(&reg->obj), reg->offset);
+		plugin_call(plugin->o.key_ops, build_gener, &hint.key,
+			    KEY_FILEBODY_TYPE,obj40_locality(&reg->obj),
+			    obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
+			    reg->offset);
 
 		/* Setting up @hint */
 		hint.count = n - written;
@@ -527,9 +537,10 @@ static errno_t reg40_cut(object_entity_t *entity) {
 
 		key.plugin = STAT_KEY(&reg->obj)->plugin;
 		
-		plugin_call(key.plugin->o.key_ops, build_generic, &key,
+		plugin_call(key.plugin->o.key_ops, build_gener, &key,
 			    KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
-			    obj40_objectid(&reg->obj), size - 1);
+			    obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
+			    size - 1);
 		
 		if (obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
 				 &place) != PRESENT)
@@ -853,16 +864,12 @@ static reiser4_object_ops_t reg40_ops = {
 };
 
 reiser4_plugin_t reg40_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = OBJECT_FILE40_ID,
-		.group = FILE_OBJECT,
-		.type = OBJECT_PLUGIN_TYPE,
+	.cl    = CLASS_INIT,
+	.id    = {OBJECT_FILE40_ID, FILE_OBJECT, OBJECT_PLUGIN_TYPE},
 #ifndef ENABLE_STAND_ALONE
-		.label = "reg40",
-		.desc = "Regular file for reiser4, ver. " VERSION
+	.label = "reg40",
+	.desc  = "Regular file for reiser4, ver. " VERSION,
 #endif
-	},
 	.o = {
 		.object_ops = &reg40_ops
 	}

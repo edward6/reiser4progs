@@ -102,21 +102,30 @@ errno_t reiser4_item_print(
 }
 
 bool_t reiser4_item_filebody(reiser4_place_t *place) {
+	int type;
+	
 	aal_assert("umka-1098", place != NULL);
 
-	return reiser4_key_get_type(&place->item.key) == KEY_FILEBODY_TYPE;
+	type = reiser4_key_get_type(&place->item.key);
+	return type == KEY_FILEBODY_TYPE;
 }
 
 bool_t reiser4_item_statdata(reiser4_place_t *place) {
+	int type;
+	
 	aal_assert("umka-1831", place != NULL);
 
-	return reiser4_key_get_type(&place->item.key) == KEY_STATDATA_TYPE;
+	type = reiser4_key_get_type(&place->item.key);
+	return type == KEY_STATDATA_TYPE;
 }
 
 bool_t reiser4_item_filename(reiser4_place_t *place) {
+	int type;
+	
 	aal_assert("umka-1830", place != NULL);
 
-	return reiser4_key_get_type(&place->item.key) == KEY_FILENAME_TYPE;
+	type = reiser4_key_get_type(&place->item.key);
+	return type == KEY_FILENAME_TYPE;
 }
 
 /* Returns item type from its plugin */
@@ -128,11 +137,11 @@ rid_t reiser4_item_type(reiser4_place_t *place) {
 	item = &place->item;
 	aal_assert("vpf-425", item->plugin != NULL);
 	
-	if (item->plugin->h.type != ITEM_PLUGIN_TYPE)
+	if (item->plugin->id.type != ITEM_PLUGIN_TYPE)
 		return LAST_ITEM;
 		
-	return (item->plugin->h.group < LAST_ITEM ?
-		item->plugin->h.group : LAST_ITEM);
+	return (item->plugin->id.group < LAST_ITEM ?
+		item->plugin->id.group : LAST_ITEM);
 }
 
 /* Retuns item body pointer */
@@ -152,7 +161,6 @@ reiser4_plugin_t *reiser4_item_plugin(reiser4_place_t *place) {
 	aal_assert("umka-755", place != NULL);
 	return place->item.plugin;
 }
-
 #endif
 
 /* Returns TRUE if @place points to an internal item */
@@ -192,16 +200,18 @@ errno_t reiser4_item_set_key(reiser4_place_t *place,
 	
 	aal_assert("umka-1404", key != NULL);
 	aal_assert("umka-1403", place != NULL);
+	aal_assert("umka-2330", key->plugin != NULL);
 
 	item = &place->item;
 	
 	if (!(entity = place->node->entity))
 		return -EINVAL;
 
-	aal_memcpy(&item->key, key, sizeof(*key));
-	
-	return plugin_call(entity->plugin->o.node_ops, set_key, 
-			   entity, &place->pos, key);
+	reiser4_key_assign(&item->key, key);
+
+	return plugin_call(entity->plugin->o.node_ops,
+			   set_key, entity, &place->pos,
+			   key);
 }
 #endif
 
@@ -242,9 +252,11 @@ bool_t reiser4_item_mergeable(reiser4_place_t *place1,
 	
 	if (!item1->plugin->o.item_ops->mergeable)
 		return FALSE;
-	
-	return item1->plugin->o.item_ops->mergeable(item1, item2) ?
-		TRUE : FALSE;
+
+	if (item1->plugin->o.item_ops->mergeable(item1, item2))
+		return TRUE;
+
+	return FALSE;
 }
 
 /* Returns real maximal item key */
@@ -291,7 +303,6 @@ errno_t reiser4_item_insert(reiser4_place_t *place,
 	}
 
 	reiser4_node_mkdirty(place->node);
-	
 	return 0;
 }
 #endif

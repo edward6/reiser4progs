@@ -70,7 +70,9 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 	node->number = blk;
 	node->device = device;
 
-	reiser4_place_assign(&node->p, NULL, 0, ~0ul);
+	reiser4_place_assign(&node->p, NULL,
+			     NULL, 0, ~0ul);
+	
 	return node;
 
  error_free_node:    
@@ -148,74 +150,54 @@ errno_t reiser4_node_print(
 }
 #endif
 
-/* Helper callback for checking if passed @plugin convenient one for passed @blk
-   to open it or not. */
-static bool_t callback_guess_node(reiser4_plugin_t *plugin,
-				  void *data)
-{
-	reiser4_node_t *node;
-
-	/* We are interested only in node plugins here */
-	if (plugin->h.type != NODE_PLUGIN_TYPE)
-		return FALSE;
-	
-	node = (reiser4_node_t *)data;
-	
-	/* Requesting block supposed to be a correct node to be opened and
-	   confirmed about its format. */
-	if (!(node->entity = plugin_call(plugin->o.node_ops, init,
-					 node->device, node->size,
-					 node->number)))
-		return FALSE;
-
-	if (plugin_call(plugin->o.node_ops, load, node->entity))
-		goto error_free_entity;
-		
-	/* Okay, we have found needed node plugin, now we should confirm that
-	   @node is realy formatted node and it uses @plugin. */
-	if (plugin_call(plugin->o.node_ops, confirm, node->entity))
-		return TRUE;
-
- error_free_entity:
-	plugin_call(plugin->o.node_ops, close,
-		    node->entity);
-	
-	node->entity = NULL;
-	return FALSE;
-}
-
-/* This function is trying to detect node plugin */
-static errno_t reiser4_node_guess(reiser4_node_t *node) {
-
-	/* Finding node plugin by its id */
-	if (!libreiser4_factory_cfind(callback_guess_node, node, FALSE))
-		return -EINVAL;
-
-	return 0;
-}
-
 /* Opens node on specified device and block number */
 reiser4_node_t *reiser4_node_open(aal_device_t *device,
-				  uint32_t size,
-				  blk_t blk)
+				  uint32_t size, blk_t blk,
+				  rid_t pid)
 {
         reiser4_node_t *node;
+	reiser4_plugin_t *plugin;
  
         aal_assert("umka-160", device != NULL);
     
         if (!(node = aal_calloc(sizeof(*node), 0)))
                 return NULL;
- 
+
+	/* Finding the node plugin by its id */
+	if (!(plugin = libreiser4_factory_ifind(NODE_PLUGIN_TYPE, pid))) {
+		aal_exception_error("Can't find node plugin by its id "
+				    "0x%x.", pid);
+		goto error_free_node;
+	}
+
+	/* Requesting the plugin for initialization of the entity */
+	if (!(node->entity = plugin_call(plugin->o.node_ops, init,
+					 device, size, blk)))
+	{
+		goto error_free_node;
+	}
+	
+	if (plugin_call(plugin->o.node_ops, load, node->entity))
+		goto error_free_entity;
+		
+	if (!plugin_call(plugin->o.node_ops, confirm, node->entity))
+		goto error_free_data;
+	
 	node->size = size;
         node->number = blk;
         node->device = device;
-
-        if (reiser4_node_guess(node))
-                goto error_free_node;
-     
-        reiser4_place_assign(&node->p, NULL, 0, ~0ul);
+	
+        reiser4_place_assign(&node->p, NULL,
+			     NULL, 0, ~0ul);
+	
         return node;
-     
+	
+ error_free_data:
+	plugin_call(node->entity->plugin->o.node_ops,
+		    unload, node->entity);
+ error_free_entity:
+	plugin_call(node->entity->plugin->o.node_ops,
+		    close, node->entity);
  error_free_node:
         aal_free(node);
         return NULL;
@@ -248,8 +230,11 @@ errno_t reiser4_node_lkey(
 	aal_assert("umka-753", node != NULL);
 	aal_assert("umka-754", key != NULL);
 
-	if ((res = reiser4_place_open(&place, node, &pos)))
+	if ((res = reiser4_place_open(&place, node->tree,
+				      node, &pos)))
+	{
 		return res;
+	}
 
 	return reiser4_key_assign(key, &place.item.key);
 }
@@ -281,8 +266,7 @@ static int reiser4_node_ack(reiser4_node_t *node,
 /* Makes search of nodeptr position in parent node by passed child node. This is
    used for updating parent position in nodes. */
 errno_t reiser4_node_realize(
-	reiser4_node_t *node)	        /* node, position will be obtained
-					   for */
+	reiser4_node_t *node)	        /* node position will be obtained for */
 {
         lookup_t res;
 	uint32_t i, j;
@@ -303,10 +287,10 @@ errno_t reiser4_node_realize(
 			goto parent_realize;
 	}
 #endif
-	
-	/* Getting position by means of using node lookup */
+
         reiser4_node_lkey(node, &lkey);
                                                                                                    
+	/* Getting position by means of using node lookup */
         if (reiser4_node_lookup(parent->node, &lkey,
 				&parent->pos) == PRESENT)
 	{
@@ -360,7 +344,7 @@ errno_t reiser4_node_realize(
  * one (block number is the same as pased @blk) */
 static int callback_comp_blk(
 	const void *node,		/* node find will operate on */
-	const void *blk,		/* key to be find */
+	const void *blk,		/* block number to be found */
 	void *data)			/* user-specified data */
 {
 	if (*(blk_t *)blk < ((reiser4_node_t *)node)->number)
@@ -375,7 +359,7 @@ static int callback_comp_blk(
 /* Finds child node by block number */
 reiser4_node_t *reiser4_node_child(
 	reiser4_node_t *node,	        /* node to be greped */
-	blk_t blk)                      /* left delimiting key */
+	blk_t blk)                      /* block number to be found */
 {
 	aal_list_t *list;
     
@@ -396,15 +380,19 @@ reiser4_node_t *reiser4_node_child(
 /* Helper callback function for comparing two nodes during registering of new
    child. */
 static int callback_comp_node(
-	const void *node1,              /* the first node instance for comparing */
-	const void *node2,              /* the second node */
+	const void *node1,              /* the first node for comparing */
+	const void *node2,              /* the second node for comparing */
 	void *data)		        /* user-specified data */
 {
-	reiser4_key_t lkey1, lkey2;
+	reiser4_key_t lkey1;
+	reiser4_key_t lkey2;
 
-	reiser4_node_lkey((reiser4_node_t *)node1, &lkey1);
-	reiser4_node_lkey((reiser4_node_t *)node2, &lkey2);
-    
+	reiser4_node_lkey((reiser4_node_t *)node1,
+			  &lkey1);
+	
+	reiser4_node_lkey((reiser4_node_t *)node2,
+			  &lkey2);
+	
 	return reiser4_key_compare(&lkey1, &lkey2);
 }
 
@@ -422,6 +410,8 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 					 callback_comp_node, NULL);
 	
 	child->p.node = node;
+	child->p.tree = node->tree;
+	
 	reiser4_node_lock(node);
 	
 	/* Updating node pos in parent node */
@@ -449,6 +439,7 @@ errno_t reiser4_node_disconnect(
 	if (!node->children)
 		return -EINVAL;
     
+	child->p.tree = NULL;
 	child->p.node = NULL;
     
 	/* Updating node children list */
@@ -505,7 +496,7 @@ lookup_t reiser4_node_lookup(
 		pos->item--;
 	}
 		
-	if (reiser4_place_open(&place, node, pos))
+	if (reiser4_place_open(&place, node->tree, node, pos))
 		return FAILED;
 		
 	item = &place.item;
@@ -647,7 +638,7 @@ errno_t reiser4_node_shift(
 		uint32_t units;
 		reiser4_place_t place;
 
-		reiser4_place_assign(&place, neig,
+		reiser4_place_assign(&place, node->tree, neig,
 				     (hint->control & SF_LEFT) ?
 				     items - i - 1 : i, ~0ul);
 
@@ -778,8 +769,11 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 	aal_assert("umka-1000", pos != NULL);
 	aal_assert("umka-1001", key != NULL);
 
-	if ((res = reiser4_place_open(&place, node, pos)))
+	if ((res = reiser4_place_open(&place, node->tree,
+				      node, pos)))
+	{
 		return res;
+	}
 
 	if ((res = reiser4_item_set_key(&place, key)))
 		return res;
@@ -811,7 +805,8 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 
 	items = reiser4_node_items(node);
 	
-	reiser4_place_assign(&place, node, start->item, 0);
+	reiser4_place_assign(&place, node->tree, node,
+			     start->item, 0);
 
 	/* Searchilg for first nodeptr item */
 	for (; place.pos.item < items; place.pos.item++) {
@@ -896,12 +891,17 @@ errno_t reiser4_node_insert(
 	   pos->item. */
 	if ((res = plugin_call(node->entity->plugin->o.node_ops,
 			       insert, node->entity, pos, hint)))
+	{
 		return res;
+	}
 
 	reiser4_node_mkdirty(node);
 	
-	if ((res = reiser4_node_uchildren(node, pos)))
+	if ((res = reiser4_node_uchildren(node, pos))) {
+		aal_exception_error("Can't update child positions in "
+				    "node %llu.", node->number);
 		return res;
+	}
 	
 	return 0;
 }

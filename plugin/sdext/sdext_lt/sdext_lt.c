@@ -74,7 +74,8 @@ static errno_t sdext_lt_print(body_t *body,
 	return 0;
 }
 
-extern errno_t sdext_lt_check_struct(sdext_entity_t *sdext, uint8_t mode);
+extern errno_t sdext_lt_check_struct(sdext_entity_t *sdext,
+				     uint8_t mode);
 #endif
 
 static reiser4_sdext_ops_t sdext_lt_ops = {
@@ -90,17 +91,12 @@ static reiser4_sdext_ops_t sdext_lt_ops = {
 };
 
 static reiser4_plugin_t sdext_lt_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = SDEXT_LT_ID,
-		.group = 0,
-		.type = SDEXT_PLUGIN_TYPE,
+	.cl    = CLASS_INIT,
+	.id    = {SDEXT_LT_ID, 0, SDEXT_PLUGIN_TYPE},
 #ifndef ENABLE_STAND_ALONE
-		.label = "sdext_lt",
-		.desc = "Large times stat data extention "
-		"for reiser4, ver. " VERSION
+	.label = "sdext_lt",
+	.desc  = "Large times stat data extention for reiser4, ver. " VERSION,
 #endif
-	},
 	.o = {
 		.sdext_ops = &sdext_lt_ops
 	}

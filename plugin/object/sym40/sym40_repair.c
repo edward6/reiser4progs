@@ -23,7 +23,7 @@ object_entity_t *sym40_realize(object_info_t *info) {
 		return NULL;
 	
 	/* Double check that this is SD item. */
-	if (info->start.item.plugin->h.group != STATDATA_ITEM)
+	if (info->start.item.plugin->id.group != STATDATA_ITEM)
 		return NULL;
 	
 	/* This is a SD item. It must be the sym SD. */

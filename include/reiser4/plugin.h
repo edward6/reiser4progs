@@ -33,7 +33,7 @@ typedef uint64_t f64_t; typedef f64_t d64_t __attribute__((aligned(8)));
 
 /* Basic reiser4 types used in library and plugins */
 typedef void body_t;
-typedef uint16_t rid_t;
+typedef uint8_t rid_t;
 typedef uint64_t oid_t;
 
 struct pos {
@@ -51,6 +51,13 @@ enum lookup {
 };
 
 typedef enum lookup lookup_t;
+
+enum key_policy {
+	SHORT = 1 << 0,
+	LARGE = 1 << 1
+};
+
+typedef enum key_policy key_policy_t;
 
 #define POS_INIT(p, i, u) \
         (p)->item = i, (p)->unit = u
@@ -91,8 +98,8 @@ typedef enum reiser4_object_group reiser4_object_group_t;
 
 enum reiser4_item_plugin_id {
 	ITEM_STATDATA40_ID	= 0x0,
-	ITEM_SDE40_ID		= 0x1,
-	ITEM_CDE40_ID		= 0x2,
+	ITEM_CDE_LARGE_ID	= 0x1,
+	ITEM_CDE_SHORT_ID	= 0x2,
 	ITEM_NODEPTR40_ID	= 0x3,
 	ITEM_ACL40_ID		= 0x4,
 	ITEM_EXTENT40_ID	= 0x5,
@@ -112,7 +119,8 @@ enum reiser4_item_group {
 typedef enum reiser4_item_group reiser4_item_group_t;
 
 enum reiser4_node_plugin_id {
-	NODE_REISER40_ID	= 0x0,
+	NODE_SHORT_ID	        = 0x0,
+	NODE_LARGE_ID	        = 0x1
 };
 
 enum reiser4_hash_plugin_id {
@@ -151,36 +159,30 @@ enum reiser4_sdext_plugin_id {
 };
 
 enum reiser4_format_plugin_id {
-	FORMAT_REISER40_ID	= 0x0,
-	FORMAT_REISER36_ID	= 0x1
+	FORMAT_REISER40_ID	= 0x0
 };
 
 enum reiser4_oid_plugin_id {
-	OID_REISER40_ID		= 0x0,
-	OID_REISER36_ID		= 0x1
+	OID_REISER40_ID		= 0x0
 };
 
 enum reiser4_alloc_plugin_id {
-	ALLOC_REISER40_ID	= 0x0,
-	ALLOC_REISER36_ID	= 0x1
+	ALLOC_REISER40_ID	= 0x0
 };
 
 enum reiser4_journal_plugin_id {
-	JOURNAL_REISER40_ID	= 0x0,
-	JOURNAL_REISER36_ID	= 0x1
+	JOURNAL_REISER40_ID	= 0x0
 };
 
 enum reiser4_key_plugin_id {
-	KEY_REISER40_ID		= 0x0,
-	KEY_REISER36_ID		= 0x1
+	KEY_SHORT_ID		= 0x0,
+	KEY_LARGE_ID		= 0x1
 };
 
 typedef struct reiser4_plugin reiser4_plugin_t;
 
-#define INVAL_PID               0xffff
-
-/* Maximal possible key size in 8 byte elements */
-#define KEY_SIZE 3
+#define INVAL_PID               0xff
+#define KEY_SIZE                4
 
 struct key_entity {
 	reiser4_plugin_t *plugin;
@@ -223,7 +225,6 @@ struct item_entity {
 	reiser4_plugin_t *plugin;
 
 	pos_t pos;
-
 	body_t *body;
 	uint32_t len;
 	
@@ -244,8 +245,10 @@ struct sdext_entity {
 typedef struct sdext_entity sdext_entity_t;
 
 struct place {
+	void *tree;
 	void *node;
 	pos_t pos;
+	
 	item_entity_t item;
 };
 
@@ -523,30 +526,37 @@ struct reiser4_key_ops {
 	/* Confirms key format */
 	int (*confirm) (key_entity_t *);
 
+	/* Functions for determining is key long */
+	int (*tall) (key_entity_t *);
+
 	/* Returns minimal key for this key-format */
 	key_entity_t *(*minimal) (void);
     
 	/* Returns maximal key for this key-format */
 	key_entity_t *(*maximal) (void);
-    
-	/* Compares two keys by comparing its all components */
-	int (*compare) (key_entity_t *, key_entity_t *);
+
+	/* Shows if key large (4 components) or short (3 components) */
+	int (*large) (void);
 
 	/* Compares two keys by comparing its all components */
-	int (*compare_short) (key_entity_t *, key_entity_t *);
+	int (*compraw) (body_t *, body_t *);
+
+	/* Compares two keys by comparing its all components */
+	int (*compfull) (key_entity_t *, key_entity_t *);
+
+	/* Compares two keys by comparing locality and objectid */
+	int (*compshort) (key_entity_t *, key_entity_t *);
 	
-	/* Functions for determining is key long */
-	int (*tall) (key_entity_t *);
-
 	/* Copyies src key to dst one */
 	errno_t (*assign) (key_entity_t *, key_entity_t *);
 	
 	/* Builds generic key (statdata, file body, etc) */
-	errno_t (*build_generic) (key_entity_t *, key_type_t,
-				  uint64_t, uint64_t, uint64_t);
+	errno_t (*build_gener) (key_entity_t *, key_type_t,
+				uint64_t, uint64_t, uint64_t,
+				uint64_t);
     
 	errno_t (*build_entry) (key_entity_t *, reiser4_plugin_t *,
-				uint64_t, uint64_t, const char *);
+				uint64_t, uint64_t, char *);
 	
 	/* Gets/sets key type (minor in reiser4 notation) */	
 	void (*set_type) (key_entity_t *, key_type_t);
@@ -556,9 +566,17 @@ struct reiser4_key_ops {
 	void (*set_locality) (key_entity_t *, uint64_t);
 	uint64_t (*get_locality) (key_entity_t *);
     
+	/* Gets/sets key locality */
+	void (*set_ordering) (key_entity_t *, uint64_t);
+	uint64_t (*get_ordering) (key_entity_t *);
+    
 	/* Gets/sets key objectid */
 	void (*set_objectid) (key_entity_t *, uint64_t);
 	uint64_t (*get_objectid) (key_entity_t *);
+
+	/* Gets/sets key full objectid */
+	void (*set_fobjectid) (key_entity_t *, uint64_t);
+	uint64_t (*get_fobjectid) (key_entity_t *);
 
 	/* Gets/sets key offset */
 	void (*set_offset) (key_entity_t *, uint64_t);
@@ -933,7 +951,7 @@ struct reiser4_node_ops {
 typedef struct reiser4_node_ops reiser4_node_ops_t;
 
 struct reiser4_hash_ops {
-	uint64_t (*build) (const unsigned char *, uint32_t);
+	uint64_t (*build) (char *, uint32_t);
 };
 
 typedef struct reiser4_hash_ops reiser4_hash_ops_t;
@@ -966,6 +984,10 @@ struct reiser4_format_ops {
 	   "true" if so and "false" otherwise. */
 	int (*confirm) (aal_device_t *device);
 
+	int (*tst_flag) (object_entity_t *, uint8_t);
+	void (*set_flag) (object_entity_t *, uint8_t);
+	void (*clr_flag) (object_entity_t *, uint8_t);
+	
 	void (*set_root) (object_entity_t *, uint64_t);
 	void (*set_len) (object_entity_t *, uint64_t);
 	void (*set_height) (object_entity_t *, uint16_t);
@@ -1000,6 +1022,7 @@ struct reiser4_format_ops {
 	   memory. */
 	void (*close) (object_entity_t *);
     
+	int (*get_flag) (object_entity_t *, uint8_t);
 	uint64_t (*get_root) (object_entity_t *);
 	uint16_t (*get_height) (object_entity_t *);
 
@@ -1190,7 +1213,6 @@ typedef struct reiser4_journal_ops reiser4_journal_ops_t;
 #endif
 
 #define PLUGIN_MAX_LABEL	22
-#define PLUGIN_MAX_NAME		22
 #define PLUGIN_MAX_DESC		64
 
 typedef struct reiser4_core reiser4_core_t;
@@ -1199,18 +1221,33 @@ typedef errno_t (*plugin_fini_t) (reiser4_core_t *);
 typedef reiser4_plugin_t *(*plugin_init_t) (reiser4_core_t *);
 typedef errno_t (*plugin_func_t) (reiser4_plugin_t *, void *);
 
+/* Plugin class descriptor. Used for loading plugins. */
 struct plugin_class {
 	void *data;
 
+	/* Plugin initialization routine */
 	plugin_init_t init;
 	
 #ifndef ENABLE_STAND_ALONE
+	/* Plugin finalization routine. */
 	plugin_fini_t fini;
-	char name[PLUGIN_MAX_NAME];
+
+	/* Plugin location (path for library plugins and address for built-in
+	   ones). This will let user know, that something bad happened to
+	   particular plugin more clearly. */
+	char location[1024];
 #endif
 };
 
 typedef struct plugin_class plugin_class_t;
+
+struct plugin_id {
+	rid_t id;
+	rid_t group;
+	rid_t type;
+};
+
+typedef struct plugin_id plugin_id_t;
 
 #ifndef ENABLE_STAND_ALONE
 #define CLASS_INIT \
@@ -1220,31 +1257,22 @@ typedef struct plugin_class plugin_class_t;
         {NULL, NULL}
 #endif
 
-/* Common plugin header */
-struct plugin_header {
-
-	/* Plugin handle. It is used by plugin factory */
-	plugin_class_t class;
-
-	/* Plugin will be looked by its id, type, etc */
-	rid_t id;
-	rid_t type;
-	rid_t group;
+struct reiser4_plugin {
+	/* Plugin id. This will be used for looking for a plugin. */
+	plugin_id_t id;
+	
+	/* Plugin handle. This will be used by plugin factory. */
+	plugin_class_t cl;
 
 #ifndef ENABLE_STAND_ALONE
 	/* Plugin label (name) */
 	const char label[PLUGIN_MAX_LABEL];
 	
-	/* Plugin description */
+	/* Short plugin description */
 	const char desc[PLUGIN_MAX_DESC];
 #endif
-};
 
-typedef struct plugin_header plugin_header_t;
-
-struct reiser4_plugin {
-	plugin_header_t h;
-
+	/* All possible plugin operations */
 	union {
 		reiser4_item_ops_t *item_ops;
 		reiser4_node_ops_t *node_ops;
@@ -1316,9 +1344,12 @@ struct factory_ops {
 	/* Finds plugin by its attributes (type and id) */
 	reiser4_plugin_t *(*ifind) (rid_t, rid_t);
 	
+	/* Finds plugin by its attributes plus key policy */
+	reiser4_plugin_t *(*pfind) (rid_t, rid_t, key_policy_t);
+	
 #ifndef ENABLE_STAND_ALONE	
 	/* Finds plugin by its type and name */
-	reiser4_plugin_t *(*nfind) (const char *);
+	reiser4_plugin_t *(*nfind) (char *);
 #endif
 };
 
@@ -1345,8 +1376,8 @@ struct reiser4_core {
 };
 
 #define plugin_equal(plugin1, plugin2)                           \
-        (plugin1->h.group == plugin2->h.group &&                 \
-	 plugin1->h.id == plugin2->h.id)
+        (plugin1->id.group == plugin2->id.group &&               \
+	 plugin1->id.id == plugin2->id.id)
 
 
 /* Makes check is needed method implemengted */

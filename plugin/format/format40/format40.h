@@ -30,8 +30,9 @@ struct format40_super {
 
 	d16_t sb_tree_height;
 	d16_t sb_tail_policy;
+	d64_t sb_flags;
 	
-	char sb_unused[440];
+	char sb_unused[432];
 };
 
 typedef struct format40_super format40_super_t;
@@ -62,6 +63,9 @@ typedef struct format40_super format40_super_t;
 
 #define get_sb_tree_height(sb)			aal_get_le16(sb, sb_tree_height)
 #define set_sb_tree_height(sb, val)		aal_set_le16(sb, sb_tree_height, val)
+
+#define get_sb_flags(sb)			aal_get_le64(sb, sb_flags)
+#define set_sb_flags(sb, val)		        aal_set_le64(sb, sb_flags, val)
 
 struct format40 {
 	reiser4_plugin_t *plugin;

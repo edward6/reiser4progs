@@ -121,17 +121,12 @@ static reiser4_sdext_ops_t sdext_unix_ops = {
 };
 
 static reiser4_plugin_t sdext_unix_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = SDEXT_UNIX_ID,
-		.group = 0,
-		.type = SDEXT_PLUGIN_TYPE,
+	.cl    = CLASS_INIT,
+	.id    = {SDEXT_UNIX_ID, 0, SDEXT_PLUGIN_TYPE},
 #ifndef ENABLE_STAND_ALONE
-		.label = "sdext_unix",
-		.desc = "Unix stat data extention for "
-		"reiser4, ver. " VERSION
+	.label = "sdext_unix",
+	.desc  = "Unix stat data extention for reiser4, ver. " VERSION,
 #endif
-	},
 	.o = {
 		.sdext_ops = &sdext_unix_ops
 	}

@@ -27,8 +27,6 @@ static errno_t tprint_process_node(
 	if ((res = reiser4_node_print(node, &stream)))
 		goto error_free_stream;
 
-	/* FIXME-VITALY->UMKA: it printf a node, so it is not binary data and
-	   just a printf could be called here. */
 	debugfs_print_stream(&stream);
 	aal_stream_fini(&stream);
 	
@@ -48,9 +46,10 @@ errno_t debugfs_print_block(
 	reiser4_fs_t *fs,           /* filesystem for work with */
 	blk_t blk)                  /* block number to be printed */
 {
+	rid_t pid;
 	errno_t res;
 	count_t blocks;
-	uint32_t blocksize;
+	uint32_t blksize;
 	aal_device_t *device;
 	reiser4_node_t *node;
 
@@ -90,11 +89,18 @@ errno_t debugfs_print_block(
 	}
 	
 	device = fs->device;
-	blocksize = reiser4_master_blksize(fs->master);
+	blksize = reiser4_master_blksize(fs->master);
 
+	if (!fs->tree->root) {
+		pid = fs->tree->fs->key == LARGE ? NODE_LARGE_ID :
+			NODE_SHORT_ID;
+	} else {
+		pid = fs->tree->root->entity->plugin->id.id;
+	}
+	
 	/* If passed @blk points to a formatted node then open it and print
 	   using print_process_node listed abowe. */
-	if (!(node = reiser4_node_open(device, blocksize, blk))) {
+	if (!(node = reiser4_node_open(device, blksize, blk, pid))) {
 		fprintf(stdout, "Block %llu is used, but it is not "
 			"a formatted one.\n", blk);
 		return 0;

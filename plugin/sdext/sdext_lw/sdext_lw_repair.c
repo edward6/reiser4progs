@@ -17,7 +17,7 @@ errno_t sdext_lw_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 	
 	if (sdext->offset + sizeof(sdext_lw_t) > sdext->sdlen) {
 		aal_exception_error("Does not look like a valid (%s) statdata "
-				    "extention.", sdext->plugin->h.label);
+				    "extention.", sdext->plugin->label);
 		
 		return 	REPAIR_FATAL;
 	}

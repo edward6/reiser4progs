@@ -6,14 +6,19 @@
 
 /* Opens the node if it has correct mkid stamp. */
 reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
+	rid_t pid;
 	uint32_t blocksize;
 	reiser4_node_t *node;
 	
 	aal_assert("vpf-708", fs != NULL);
 	
 	blocksize = reiser4_master_blksize(fs->master);
+
+	/* FIXME-UMKA->VITALY: Here should be used real node id. It can be
+	 * obtained from root node. */
+	pid = NODE_LARGE_ID;
 	
-	if ((node = reiser4_node_open(fs->device, blocksize, blk)) == NULL)
+	if ((node = reiser4_node_open(fs->device, blocksize, blk, pid)) == NULL)
 		return NULL;
 	
 	if (reiser4_format_get_stamp(fs->format) != reiser4_node_get_mstamp(node))
@@ -70,13 +75,13 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		
 		/* Check that the item is legal for this node. If not, it will be 
 		   deleted in update traverse callback method. */
-		if (!repair_tree_legal_level(place.item.plugin->h.group, 
+		if (!repair_tree_legal_level(place.item.plugin->id.group, 
 					     reiser4_node_get_level(node)))
 		{
 			aal_exception_error("Node (%llu): Node level (%u) does not "
 					    "match to the item type (%s).", node->number,
 					    reiser4_node_get_level(node),
-					    place.item.plugin->h.label);
+					    place.item.plugin->label);
 			
 			/* FIXME-VITALY: smth should be done here later. */
 			res |= REPAIR_FATAL;
@@ -115,7 +120,8 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
 		if ((res = reiser4_key_assign(ld_key, &node->p.item.key)))
 			return res;
 	} else {
-		reiser4_key_guess(ld_key);
+		/* FIXME-UMKA->VITALY: This function no longer exists. */
+//		reiser4_key_guess(ld_key);
 		reiser4_key_minimal(ld_key);
 	}
 	
@@ -175,7 +181,8 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 				return ret;
 		}
 	} else {
-		reiser4_key_guess(rd_key);
+		/* FIXME-UMKA->VITALY: This function no longer exists. */
+//		reiser4_key_guess(rd_key);
 		reiser4_key_maximal(rd_key);
 	}
 	
@@ -383,7 +390,7 @@ errno_t repair_node_traverse(reiser4_node_t *node, traverse_node_func_t func,
 	pos->unit = ~0ul;
 	
 	for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
-		if ((res = reiser4_place_open(&place, node, pos))) {
+		if ((res = reiser4_place_open(&place, node->tree, node, pos))) {
 			aal_exception_error("Node (%llu), item (%u): failed to open "
 					    "the item by its place.", node->number, 
 					    pos->item);
@@ -421,8 +428,8 @@ errno_t repair_node_copy(reiser4_node_t *dst, pos_t *dst_pos,
 {
 	aal_assert("vpf-961", dst != NULL);
 	aal_assert("vpf-962", src != NULL);
-	aal_assert("vpf-964", dst->entity->plugin->h.id == 
-		   src->entity->plugin->h.id);
+	aal_assert("vpf-964", dst->entity->plugin->id.id == 
+		   src->entity->plugin->id.id);
 	aal_assert("vpf-967", dst_pos != NULL);
 	aal_assert("vpf-968", src_pos != NULL);
     

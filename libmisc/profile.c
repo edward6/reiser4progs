@@ -14,7 +14,7 @@ static reiser4_profile_t profiles[] = {
 			[0] = {
 				.name  = "node",
 				.type  = NODE_PLUGIN_TYPE,
-				.value = NODE_REISER40_ID
+				.value = NODE_LARGE_ID
 			},
 			[1] = {
 				.name  = "nodeptr",
@@ -37,9 +37,9 @@ static reiser4_profile_t profiles[] = {
 				.value = ITEM_EXTENT40_ID
 			},
 			[5] = {
-				.name  = "direntry",
+				.name  = "cde",
 				.type  = ITEM_PLUGIN_TYPE,
-				.value = ITEM_CDE40_ID
+				.value = ITEM_CDE_LARGE_ID
 			},
 			[6] = {
 				.name  = "acl",
@@ -104,7 +104,7 @@ static reiser4_profile_t profiles[] = {
 			[18] = {
 				.name  = "key",
 				.type  = KEY_PLUGIN_TYPE,
-				.value = KEY_REISER40_ID
+				.value = KEY_LARGE_ID
 			},
 			[19] = {
 				.name  = "sdext",
@@ -120,7 +120,7 @@ static reiser4_profile_t profiles[] = {
 			[0] = {
 				.name  = "node",
 				.type  = NODE_PLUGIN_TYPE,
-				.value = NODE_REISER40_ID
+				.value = NODE_LARGE_ID
 			},
 			[1] = {
 				.name  = "nodeptr",
@@ -143,9 +143,9 @@ static reiser4_profile_t profiles[] = {
 				.value = ITEM_EXTENT40_ID
 			},
 			[5] = {
-				.name  = "direntry",
+				.name  = "cde",
 				.type  = ITEM_PLUGIN_TYPE,
-				.value = ITEM_CDE40_ID
+				.value = ITEM_CDE_LARGE_ID
 			},
 			[6] = {
 				.name  = "acl",
@@ -210,7 +210,7 @@ static reiser4_profile_t profiles[] = {
 			[18] = {
 				.name  = "key",
 				.type  = KEY_PLUGIN_TYPE,
-				.value = KEY_REISER40_ID
+				.value = KEY_LARGE_ID
 			},
 			[19] = {
 				.name  = "sdext",
@@ -226,7 +226,7 @@ static reiser4_profile_t profiles[] = {
 			[0] = {
 				.name  = "node",
 				.type  = NODE_PLUGIN_TYPE,
-				.value = NODE_REISER40_ID
+				.value = NODE_LARGE_ID
 			},
 			[1] = {
 				.name  = "nodeptr",
@@ -249,9 +249,9 @@ static reiser4_profile_t profiles[] = {
 				.value = ITEM_EXTENT40_ID
 			},
 			[5] = {
-				.name  = "direntry",
+				.name  = "cde",
 				.type  = ITEM_PLUGIN_TYPE,
-				.value = ITEM_CDE40_ID
+				.value = ITEM_CDE_LARGE_ID
 			},
 			[6] = {
 				.name  = "acl",
@@ -316,7 +316,7 @@ static reiser4_profile_t profiles[] = {
 			[18] = {
 				.name  = "key",
 				.type  = KEY_PLUGIN_TYPE,
-				.value = KEY_REISER40_ID
+				.value = KEY_LARGE_ID
 			},
 			[19] = {
 				.name  = "sdext",
@@ -410,14 +410,19 @@ void misc_profile_print(reiser4_profile_t *profile) {
 	
 	printf("Profile %s:\n", profile->name);
 	
-	for (i = 0; i < (sizeof(profile->plugin) / sizeof(reiser4_pid_t)); i++) {
+	for (i = 0; i < (sizeof(profile->plugin) / sizeof(reiser4_pid_t));
+	     i++)
+	{
 		reiser4_pid_t *pid = &profiles->plugin[i];
 
-		if (!(plugin = libreiser4_factory_ifind(pid->type, pid->value)))
+		if (!(plugin = libreiser4_factory_ifind(pid->type,
+							pid->value)))
+		{
 			continue;
+		}
 
-		printf("%s:  \t%s(%s).\n", pid->name, plugin->h.label,
-		       plugin->h.desc);
+		printf("%s:  \t%s(%s).\n", pid->name, plugin->label,
+		       plugin->desc);
 	}
 	printf("\n");
 }

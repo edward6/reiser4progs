@@ -30,7 +30,8 @@ enum mkfs_behav_flags {
 	BF_QUIET   = 1 << 1,
 	BF_PLUGS   = 1 << 2,
 	BF_PROFS   = 1 << 3,
-	BF_LOST    = 1 << 4
+	BF_LOST    = 1 << 5,
+	BF_SHORT   = 1 << 4
 };
 
 typedef enum mkfs_behav_flags mkfs_behav_flags_t;
@@ -101,6 +102,7 @@ int main(int argc, char *argv[]) {
 		{"label", required_argument, NULL, 'l'},
 		{"uuid", required_argument, NULL, 'i'},
 		{"lost-found", required_argument, NULL, 's'},
+		{"short-keys", required_argument, NULL, 'k'},
 		{"profile", required_argument, NULL, 'e'},
 		{"known-profiles", no_argument, NULL, 'K'},
 		{"known-plugins", no_argument, NULL, 'P'},
@@ -116,6 +118,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	hint.blocks = 0;
+	hint.key = LARGE;
 	hint.blksize = REISER4_BLKSIZE;
 	
 	memset(override, 0, sizeof(override));
@@ -123,7 +126,7 @@ int main(int argc, char *argv[]) {
 	memset(hint.label, 0, sizeof(hint.label));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfKb:i:l:sPo:",
+	while ((c = getopt_long(argc, argv, "hVe:qfKb:i:l:sPo:k",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -147,6 +150,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 's':
 			flags |= BF_LOST;
+			break;
+		case 'k':
+			flags |= BF_SHORT;
 			break;
 		case 'o':
 			aal_strncat(override, optarg,
@@ -372,6 +378,9 @@ int main(int argc, char *argv[]) {
 			aal_gauge_start(gauge);
 		}
 
+		if (flags & BF_SHORT)
+			hint.key = SHORT;
+
 		/* Creating filesystem */
 		if (!(fs = reiser4_fs_create(device, &hint))) {
 			aal_exception_error("Can't create filesystem on %s.", 
@@ -396,10 +405,8 @@ int main(int argc, char *argv[]) {
 			goto error_free_tree;
 		}
 
-		/* Adding two links to root directory in order to prevent its
-		   removing anyway. */
-		reiser4_object_link(NULL, fs->root, NULL);
-		reiser4_object_link(NULL, fs->root, NULL);
+		/* Linking root to itself */
+		reiser4_object_link(fs->root, fs->root, NULL);
 	
 		/* Creating lost+found directory */
 		if (flags & BF_LOST) {

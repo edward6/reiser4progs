@@ -11,7 +11,7 @@
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
 
-/* Handler for plugin finding requests from all plugins */
+/* Handler for plugin lookup requests from all plugins */
 static reiser4_plugin_t *factory_ifind(
 	rid_t type,		    /* needed type of plugin*/
 	rid_t id)		    /* needed plugin id */
@@ -19,9 +19,18 @@ static reiser4_plugin_t *factory_ifind(
 	return libreiser4_factory_ifind(type, id);
 }
 
+/* Handler for plugin lookup requests from all plugins */
+static reiser4_plugin_t *factory_pfind(
+	rid_t type,		    /* needed type of plugin*/
+	rid_t id,                   /* needed id of plugin */
+	key_policy_t policy)        /* needed key policy */
+{
+	return libreiser4_factory_pfind(type, id, policy);
+}
+
 #ifndef ENABLE_STAND_ALONE
 /* Handler for plugin finding requests from all plugins */
-static reiser4_plugin_t *factory_nfind(const char *name) {
+static reiser4_plugin_t *factory_nfind(char *name) {
 	return libreiser4_factory_nfind(name);
 }
 
@@ -92,24 +101,27 @@ static errno_t tree_next(
 	place_t *place,             /* place of node */
 	place_t *next)	            /* next item will be stored here */
 {
+	reiser4_tree_t *t;
 	reiser4_place_t *curr;
     
 	aal_assert("umka-867", tree != NULL);
 	aal_assert("umka-868", place != NULL);
 	aal_assert("umka-1491", next != NULL);
 
+	t = (reiser4_tree_t *)tree;
 	curr = (reiser4_place_t *)place;
 
 	if (reiser4_place_ltlast(curr)) {
-		reiser4_place_assign((reiser4_place_t *)next,
-				     curr->node, curr->pos.item + 1, ~0ul);
+		reiser4_place_assign((reiser4_place_t *)next, t,
+				     curr->node, curr->pos.item + 1,
+				     ~0ul);
 	} else {
-		reiser4_tree_neigh((reiser4_tree_t *)tree,
-				   curr->node, D_RIGHT);
+		reiser4_tree_neigh(t, curr->node, D_RIGHT);
 
 		if (!curr->node->right)
 			return -EINVAL;
 
+		((reiser4_place_t *)next)->tree = curr->tree;
 		((reiser4_place_t *)next)->node = curr->node->right;
 		reiser4_place_first((reiser4_place_t *)next);
 	}
@@ -124,24 +136,27 @@ static errno_t tree_prev(
 	place_t *place,             /* place of node */
 	place_t *prev)              /* left neighbour will be here */
 {
+	reiser4_tree_t *t;
 	reiser4_place_t *curr;
 	
 	aal_assert("umka-867", tree != NULL);
 	aal_assert("umka-868", place != NULL);
 	aal_assert("umka-1492", prev != NULL);
 
+	t = (reiser4_tree_t *)tree;
 	curr = (reiser4_place_t *)place;
 
 	if (reiser4_place_gtfirst(curr)) {
-		reiser4_place_assign((reiser4_place_t *)prev,
-				     curr->node, curr->pos.item - 1, ~0ul);
+		reiser4_place_assign((reiser4_place_t *)prev, t,
+				     curr->node, curr->pos.item - 1,
+				     ~0ul);
 	} else {
-		reiser4_tree_neigh((reiser4_tree_t *)tree,
-				   curr->node, D_LEFT);
+		reiser4_tree_neigh(t, curr->node, D_LEFT);
 
 		if (!curr->node->left)
 			return -EINVAL;
 
+		((reiser4_place_t *)prev)->tree = curr->tree;
 		((reiser4_place_t *)prev)->node = curr->node->left;
 		reiser4_place_last((reiser4_place_t *)prev);
 	}
@@ -277,6 +292,8 @@ reiser4_core_t core = {
 		/* Installing callback for making search for a plugin by its
 		   type and id. */
 		.ifind = factory_ifind,
+
+		.pfind = factory_pfind,
 
 #ifndef ENABLE_STAND_ALONE
 		/* Installing callback for making search for a plugin by its

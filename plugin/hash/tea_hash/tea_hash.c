@@ -30,7 +30,7 @@ do {								               \
         h1 += b1;							       \
 } while(0)
 
-uint64_t tea_hash_build(const unsigned char *name, uint32_t len) {
+uint64_t tea_hash_build(char *name, uint32_t len) {
 	uint64_t k[] = { 0x9464a485, 0x542e1a94, 0x3e846bff, 0xb75bcfc3}; 
 
 	uint64_t i;
@@ -146,17 +146,12 @@ static reiser4_hash_ops_t tea_hash_ops = {
 };
 
 static reiser4_plugin_t tea_hash_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = HASH_TEA_ID,
-		.group = 0,
-		.type = HASH_PLUGIN_TYPE,
+	.cl = CLASS_INIT,
+	.id = {HASH_TEA_ID, 0, HASH_PLUGIN_TYPE},
 #ifndef ENABLE_STAND_ALONE
-		.label = "tea_hash",
-		.desc = "Implementation tea hash for "
-		"reiser4, ver. " VERSION
+	.label = "tea_hash",
+	.desc = "Tea hash for reiser4, ver. " VERSION,
 #endif
-	},
 	.o = {
 		.hash_ops = &tea_hash_ops
 	}

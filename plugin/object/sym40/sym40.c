@@ -22,10 +22,10 @@ object_entity_t *sym40_open(object_info_t *info) {
 	aal_assert("umka-1163", info != NULL);
 	aal_assert("umka-1164", info->tree != NULL);
  	
-	if (info->start.item.plugin->h.group != STATDATA_ITEM)
+	if (info->start.item.plugin->id.group != STATDATA_ITEM)
 		return NULL;
    
-	if (obj40_pid(&info->start.item) != sym40_plugin.h.id)
+	if (obj40_pid(&info->start.item) != sym40_plugin.id.id)
 		return NULL;
 	
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
@@ -83,7 +83,7 @@ static object_entity_t *sym40_create(object_info_t *info,
 				     object_hint_t *hint)
 {
 	sym40_t *sym;
-    
+	uint64_t ordering;
 	statdata_hint_t stat;
 	create_hint_t stat_hint;
 	oid_t objectid, locality;
@@ -107,10 +107,13 @@ static object_entity_t *sym40_create(object_info_t *info,
 	objectid = plugin_call(info->object.plugin->o.key_ops,
 			       get_objectid, &info->object);
 	
+	ordering = plugin_call(info->object.plugin->o.key_ops,
+			       get_ordering, &info->object);
+	
 	/* Key contains valid locality and objectid only, build start key. */
-	plugin_call(info->object.plugin->o.key_ops, build_generic, 
+	plugin_call(info->object.plugin->o.key_ops, build_gener, 
 		    &info->object, KEY_STATDATA_TYPE, locality,
-		    objectid, 0);
+		    ordering, objectid, 0);
 	
 	/* Inizializes file handle */
 	obj40_init(&sym->obj, &sym40_plugin, &info->object,
@@ -344,16 +347,12 @@ static reiser4_object_ops_t sym40_ops = {
 };
 
 static reiser4_plugin_t sym40_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = OBJECT_SYMLINK40_ID,
-		.group = SYMLINK_OBJECT,
-		.type = OBJECT_PLUGIN_TYPE,
+	.cl    = CLASS_INIT,
+	.id    = {OBJECT_SYMLINK40_ID, SYMLINK_OBJECT, OBJECT_PLUGIN_TYPE},
 #ifndef ENABLE_STAND_ALONE
-		.label = "sym40",
-		.desc = "Symlink for reiser4, ver. " VERSION
+	.label = "sym40",
+	.desc  = "Symlink plugin for reiser4, ver. " VERSION,
 #endif
-	},
 	.o = {
 		.object_ops = &sym40_ops
 	}

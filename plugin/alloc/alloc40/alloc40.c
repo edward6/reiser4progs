@@ -551,7 +551,7 @@ static errno_t alloc40_print(object_entity_t *entity,
 	aal_stream_format(stream, "Block allocator:\n");
 	
 	aal_stream_format(stream, "plugin:\t\t%s\n",
-			  alloc->plugin->h.label);
+			  alloc->plugin->label);
 
 	aal_stream_format(stream, "total blocks:\t%llu\n",
 			  alloc->bitmap->total);
@@ -746,14 +746,10 @@ static reiser4_alloc_ops_t alloc40_ops = {
 };
 
 static reiser4_plugin_t alloc40_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = ALLOC_REISER40_ID,
-		.group = 0,
-		.type = ALLOC_PLUGIN_TYPE,
-		.label = "alloc40",
-		.desc = "Space allocator for reiser4, ver. " VERSION,
-	},
+	.cl = CLASS_INIT,
+	.id = {ALLOC_REISER40_ID, 0, ALLOC_PLUGIN_TYPE},
+	.label = "alloc40",
+	.desc = "Space allocator for reiser4, ver. " VERSION,
 	.o = {
 		.alloc_ops = &alloc40_ops
 	}

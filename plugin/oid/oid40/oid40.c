@@ -127,7 +127,7 @@ static errno_t oid40_print(object_entity_t *entity,
 	aal_stream_format(stream, "Oid allocator:\n");
 	
 	aal_stream_format(stream, "plugin:\t\t%s\n",
-			  entity->plugin->h.label);
+			  entity->plugin->label);
 
 	aal_stream_format(stream, "next oid:\t0x%llx\n",
 			  ((oid40_t *)entity)->next);
@@ -192,14 +192,10 @@ reiser4_oid_ops_t oid40_ops = {
 };
 
 static reiser4_plugin_t oid40_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = OID_REISER40_ID,
-		.group = 0,
-		.type = OID_PLUGIN_TYPE,
-		.label = "oid40",
-		.desc = "Inode allocator for reiser4, ver. " VERSION
-	},
+	.cl    = CLASS_INIT,
+	.id    = {OID_REISER40_ID, 0, OID_PLUGIN_TYPE},
+	.label = "oid40",
+	.desc  = "Inode allocator for reiser4, ver. " VERSION,
 	.o = {
 		.oid_ops = &oid40_ops
 	}

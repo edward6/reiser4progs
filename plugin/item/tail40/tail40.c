@@ -135,7 +135,7 @@ static errno_t tail40_print(item_entity_t *item,
 	aal_assert("umka-1490", stream != NULL);
 
 	aal_stream_format(stream, "TAIL PLUGIN=%s LEN=%u, KEY=",
-			  item->plugin->h.label, item->len);
+			  item->plugin->label, item->len);
 		
 	if (plugin_call(item->key.plugin->o.key_ops, print,
 			&item->key, stream, options))
@@ -413,16 +413,12 @@ static reiser4_item_ops_t tail40_ops = {
 };
 
 static reiser4_plugin_t tail40_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = ITEM_TAIL40_ID,
-		.group = TAIL_ITEM,
-		.type = ITEM_PLUGIN_TYPE,
+	.cl    = CLASS_INIT,
+	.id    = {ITEM_TAIL40_ID, TAIL_ITEM, ITEM_PLUGIN_TYPE},
 #ifndef ENABLE_STAND_ALONE
-		.label = "tail40",
-		.desc = "Tail item for reiser4, ver. " VERSION
+	.label = "tail40",
+	.desc  = "Tail item for reiser4, ver. " VERSION,
 #endif
-	},
 	.o = {
 		.item_ops = &tail40_ops
 	}

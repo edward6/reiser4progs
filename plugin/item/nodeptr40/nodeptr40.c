@@ -94,7 +94,7 @@ static errno_t nodeptr40_print(item_entity_t *item,
 	nodeptr = nodeptr40_body(item);
 
 	aal_stream_format(stream, "NODEPTR PLUGIN=%s LEN=%u, KEY=",
-			  item->plugin->h.label, item->len);
+			  item->plugin->label, item->len);
 		
 	if (plugin_call(item->key.plugin->o.key_ops, print,
 			&item->key, stream, options))
@@ -157,16 +157,12 @@ static reiser4_item_ops_t nodeptr40_ops = {
 };
 
 static reiser4_plugin_t nodeptr40_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = ITEM_NODEPTR40_ID,
-		.group = NODEPTR_ITEM,
-		.type = ITEM_PLUGIN_TYPE,
+	.cl    = CLASS_INIT,
+	.id    = {ITEM_NODEPTR40_ID, NODEPTR_ITEM, ITEM_PLUGIN_TYPE},
 #ifndef ENABLE_STAND_ALONE
-		.label = "nodeptr40",
-		.desc = "Node pointer item for reiser4, ver. " VERSION
+	.label = "nodeptr40",
+	.desc  = "Node pointer item for reiser4, ver. " VERSION,
 #endif
-	},
 	.o = {
 		.item_ops = &nodeptr40_ops
 	}

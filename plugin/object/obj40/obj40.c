@@ -32,6 +32,14 @@ oid_t obj40_locality(obj40_t *obj) {
 			   get_locality, STAT_KEY(obj));
 }
 
+/* Returns file's ordering  */
+uint64_t obj40_ordering(obj40_t *obj) {
+	aal_assert("umka-2334", obj != NULL);
+    
+	return plugin_call(STAT_KEY(obj)->plugin->o.key_ops, 
+			   get_ordering, STAT_KEY(obj));
+}
+
 /* Locks the node place points to */
 errno_t obj40_lock(obj40_t *obj, place_t *place) {
 	aal_assert("umka-1901", obj != NULL);

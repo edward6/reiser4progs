@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
 	if (!(reg = reiser4_object_open(fs->tree, argv[2], TRUE)))
 		goto error_free_tree;
 
-	if (reg->entity->plugin->h.group != FILE_OBJECT) {
+	if (reg->entity->plugin->id.group != FILE_OBJECT) {
 		aal_exception_error("File %s is not a regular file.",
 				    argv[2]);
 		goto error_free_reg;

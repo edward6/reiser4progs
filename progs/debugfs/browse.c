@@ -75,7 +75,7 @@ errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	if (!(object = reiser4_object_open(fs->tree, filename, TRUE)))
 		return -EINVAL;
 
-	switch (object->entity->plugin->h.group) {
+	switch (object->entity->plugin->id.group) {
 	case FILE_OBJECT:
 		res = debugfs_object_cat(object);
 		break;

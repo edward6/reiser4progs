@@ -58,7 +58,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 		
 		if (aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_YESNO, 
 					"Do you want to create a new journal (%s)?",
-					plugin->h.label) == EXCEPTION_NO)
+					plugin->label) == EXCEPTION_NO)
 			return -EINVAL;
 	    
 		if (!(fs->journal = reiser4_journal_create(fs, journal_device, NULL))) {

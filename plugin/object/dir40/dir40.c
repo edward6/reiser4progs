@@ -402,10 +402,10 @@ static object_entity_t *dir40_open(object_info_t *info) {
 	aal_assert("umka-836", info != NULL);
 	aal_assert("umka-837", info->tree != NULL);
 	
-	if (info->start.item.plugin->h.group != STATDATA_ITEM)
+	if (info->start.item.plugin->id.group != STATDATA_ITEM)
 		return NULL;
 	
-	if (obj40_pid(&info->start.item) != dir40_plugin.h.id)
+	if (obj40_pid(&info->start.item) != dir40_plugin.id.id)
 		return NULL;
 
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
@@ -454,6 +454,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	create_hint_t body_hint;
 	create_hint_t stat_hint;
    
+	uint64_t ordering;
 	sdext_lw_hint_t lw_ext;
 	oid_t objectid, locality;
 	sdext_unix_hint_t unix_ext;
@@ -462,8 +463,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	reiser4_plugin_t *body_plugin;
     
 	aal_assert("umka-835", info != NULL);
-	aal_assert("vpf-1095", info->tree != NULL);
 	aal_assert("umka-1739", hint != NULL);
+	aal_assert("vpf-1095", info->tree != NULL);
 
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
@@ -475,10 +476,13 @@ static object_entity_t *dir40_create(object_info_t *info,
 	objectid = plugin_call(info->object.plugin->o.key_ops,
 			       get_objectid, &info->object);
 
+	ordering = plugin_call(info->object.plugin->o.key_ops,
+			       get_ordering, &info->object);
+	
 	/* Key contains valid locality and objectid only, build start key */
-	plugin_call(info->object.plugin->o.key_ops, build_generic,
+	plugin_call(info->object.plugin->o.key_ops, build_gener,
 		    &info->object, KEY_STATDATA_TYPE, locality,
-		    objectid, 0);
+		    ordering, objectid, 0);
 
 	/* Initializing obj handle */
 	obj40_init(&dir->obj, &dir40_plugin, &info->object,
@@ -534,14 +538,14 @@ static object_entity_t *dir40_create(object_info_t *info,
 	aal_strncpy(entry->name, ".", 1);
 
 	/* Building key for the statdata of object new entry will point to. */
-	plugin_call(info->object.plugin->o.key_ops, build_generic,
+	plugin_call(info->object.plugin->o.key_ops, build_gener,
 		    &entry->object, KEY_STATDATA_TYPE, locality,
-		    objectid, 0);
+		    ordering, objectid, 0);
 
 	/* Building key for the hash new entry will have */
 	plugin_call(info->object.plugin->o.key_ops, build_entry,
-		    &entry->offset, dir->hash, locality,
-		    objectid, entry->name);
+		    &entry->offset, dir->hash, locality, objectid,
+		    entry->name);
 	
 	body_hint.type_specific = body;
 
@@ -906,8 +910,13 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	switch (obj40_lookup(&dir->obj, &hint.key,
 			     LEAF_LEVEL, &place))
 	{
-	case FAILED:
 	case PRESENT:
+		aal_exception_error("Entry %s already exists.",
+				    entry->name);
+		return -EINVAL;
+	case FAILED:
+		aal_exception_error("Lookup failed while adding "
+				    "entry.");
 		return -EINVAL;
 	default:
 		break;
@@ -917,6 +926,8 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	if ((res = obj40_insert(&dir->obj, &hint,
 				LEAF_LEVEL, &place)))
 	{
+		aal_exception_error("Can't insert entry %s to "
+				    "tree.", entry->name);
 		return res;
 	}
 
@@ -1203,16 +1214,12 @@ static reiser4_object_ops_t dir40_ops = {
 };
 
 reiser4_plugin_t dir40_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = OBJECT_DIRTORY40_ID,
-		.group = DIRTORY_OBJECT,
-		.type = OBJECT_PLUGIN_TYPE,
+	.cl    = CLASS_INIT,
+	.id    = {OBJECT_DIRTORY40_ID, DIRTORY_OBJECT, OBJECT_PLUGIN_TYPE},
 #ifndef ENABLE_STAND_ALONE
-		.label = "dir40",
-		.desc = "Compound directory for reiser4, ver. " VERSION
+	.label = "dir40",
+	.desc  = "Compound directory for reiser4, ver. " VERSION,
 #endif
-	},
 	.o = {
 		.object_ops = &dir40_ops
 	}

@@ -51,12 +51,13 @@ errno_t reiser4_profile_override(reiser4_profile_t *profile,
 	if (!(pid = reiser4_profile_pid(profile, type)))
 		return -EINVAL;
 
-	if (!(plugin = libreiser4_factory_nfind(name))) {
-		aal_exception_error("Can't find plugin name \"%s\".", name);
+	if (!(plugin = libreiser4_factory_nfind((char *)name))) {
+		aal_exception_error("Can't find plugin name \"%s\".",
+				    name);
 		return -EINVAL;
 	}
 
-	pid->value = plugin->h.id;
+	pid->value = plugin->id.id;
 	return 0;
 }
 #endif

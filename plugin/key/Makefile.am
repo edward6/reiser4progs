@@ -1,1 +1,1 @@
-SUBDIRS = key40
+SUBDIRS = key_short key_large

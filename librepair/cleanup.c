@@ -132,7 +132,7 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 		return 0;
 	}
 	
-	reiser4_tree_load_root(fs->tree);
+	reiser4_tree_lroot(fs->tree);
 	
 	if (fs->tree->root == NULL)
 		return -EINVAL;

@@ -27,10 +27,10 @@ static errno_t callback_data_level(reiser4_plugin_t *plugin, void *data) {
 	
 	aal_assert("vpf-746", data != NULL);
 	
-	if (plugin->h.type != ITEM_PLUGIN_TYPE)
+	if (plugin->id.type != ITEM_PLUGIN_TYPE)
 		return 0;
 	
-	if (!repair_tree_legal_level(plugin->h.group, *level))
+	if (!repair_tree_legal_level(plugin->id.group, *level))
 		return 0;
 	
 	return reiser4_item_data(plugin);
@@ -67,8 +67,9 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree, reiser4_node_t *nod
 	}
 	
 	if (reiser4_item_branch(&place)) {
-		item_entity_t *item = &place.item;
 		ptr_hint_t ptr;
+		uint32_t blksize;
+		item_entity_t *item = &place.item;
 		
 		place.pos.unit = reiser4_item_units(&place) - 1;
 		
@@ -78,10 +79,12 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree, reiser4_node_t *nod
 		{
 			return -EINVAL;
 		}
+
+		blksize = reiser4_master_blksize(tree->fs->master);
 		
 		child = reiser4_node_open(place.node->device, 
-					  reiser4_master_blksize(tree->fs->master), 
-					  ptr.start);
+					  blksize, ptr.start,
+					  node->entity->plugin->id.id);
 		
 		if (!child)
 			return -EINVAL;
@@ -231,7 +234,7 @@ errno_t repair_tree_copy_by_place(reiser4_tree_t *tree, reiser4_place_t *dst,
 	if (reiser4_place_leftmost(dst) && dst->node->p.node) {
 		reiser4_place_t p;
 		
-		reiser4_place_init(&p, dst->node->p.node, &dst->node->p.pos);
+		reiser4_place_init(&p, tree, dst->node->p.node, &dst->node->p.pos);
 		
 		if ((res = reiser4_tree_ukey(tree, &p, &src->item.key)))
 			return res;
@@ -297,7 +300,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 			rnode = reiser4_tree_neigh(tree, dst.node, D_RIGHT);
 			
 			if (rnode != NULL) {
-				if (reiser4_place_open(&rplace, rnode, &rpos))
+				if (reiser4_place_open(&rplace, tree, rnode, &rpos))
 					return -EINVAL;
 				
 				res = reiser4_key_compare(&src_max, &rplace.item.key);
@@ -342,7 +345,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 			if ((res = reiser4_place_realize(&dst)))
 				return res;
 			
-			if (dst.item.plugin->h.id != src->item.plugin->h.id) {
+			if (dst.item.plugin->id.id != src->item.plugin->id.id) {
 				/* FIXME: relocation code should be here. */		
 				aal_exception_error("Tree Overwrite failed to "
 						    "overwrite items of different "

@@ -88,31 +88,16 @@ static errno_t tfrag_open_node(
 	reiser4_place_t *place,     /* place to read the blk number from */
 	void *data)		    /* traverse hint */
 {
-	errno_t res;
-	ptr_hint_t ptr;
-	uint32_t blocksize;
 	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
-	aal_device_t *device = tree->fs->device;
 
 	aal_assert("umka-1556", frag_hint->level > 0);
 	
 	/* As we do not need traverse leaf level at all, we going out here */
 	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
-	
-	/* Fetching node ptr */
-	plugin_call(place->item.plugin->o.item_ops, read, &place->item, &ptr, 
-		    place->pos.unit, 1);
 
-	blocksize = reiser4_master_blksize(tree->fs->master);
-	
-	if ((*node = reiser4_node_open(device, blocksize, ptr.start)) == NULL)
+	if (!(*node = reiser4_tree_child(tree, place)))
 		return -EINVAL;
-	
-	if ((res = reiser4_tree_connect(tree, place->node, *node))) {
-		reiser4_node_close(*node);
-		return -EINVAL;
-	}
 	
 	return 0;
 }
@@ -168,7 +153,7 @@ static errno_t tfrag_process_node(
 		reiser4_place_t place;
 
 		/* Initializing item at @place */
-		if (reiser4_place_open(&place, node, &pos)) {
+		if (reiser4_place_open(&place, tree, node, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->number);
 			return -EINVAL;
@@ -330,7 +315,7 @@ static errno_t stat_process_node(
 			item_entity_t *item;
 			reiser4_place_t place;
 			
-			if ((res = reiser4_place_open(&place, node, &pos))) {
+			if ((res = reiser4_place_open(&place, tree, node, &pos))) {
 				aal_exception_error("Can't open item %u in node %llu.", 
 						    pos.item, node->number);
 				return res;
@@ -517,7 +502,7 @@ static errno_t dfrag_process_node(
 		reiser4_object_t *object;
 
 		/* Initialiing the item at @place */
-		if ((res = reiser4_place_init(&place, node, &pos))) {
+		if ((res = reiser4_place_init(&place, tree, node, &pos))) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->number);
 			return res;

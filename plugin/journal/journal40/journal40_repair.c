@@ -198,7 +198,7 @@ static errno_t callback_journal_txh_check(object_entity_t *entity, blk_t blk,
 	if (journal40_blk_format_check(journal, blk, check_data)) {
 		aal_exception_error("Transaction header lies in the illegal block "
 				    "(%llu) for the used format (%s).", blk, 
-				    journal->format->plugin->h.label);
+				    journal->format->plugin->label);
 		return -ESTRUCT;
 	}
 	
@@ -245,7 +245,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	if (journal40_blk_format_check(journal, blk, check_data)) {
 		aal_exception_error("%s lies in the illegal block (%llu) for the "
 				    "used format (%s).", __blk_type_name(blk_type), 
-				    blk, journal->format->plugin->h.label);
+				    blk, journal->format->plugin->label);
 		return -ESTRUCT;
 	}
 	

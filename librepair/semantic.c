@@ -103,7 +103,7 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
 				    "object pointed by %k failed. Plugin %s.", 
 				    place->node->number, place->pos.item, 
 				    &place->item.key, 
-				    object->entity->plugin->h.label);
+				    object->entity->plugin->label);
 		return res;
 	}
 	
@@ -158,7 +158,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 		return 0;
 	}
 	
-	reiser4_tree_load_root(fs->tree);
+	reiser4_tree_lroot(fs->tree);
 	
 	if (fs->tree->root == NULL)
 		return -EINVAL;

@@ -124,7 +124,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 					    "of the object pointed by %k failed. "
 					    "Plugin %s.", place->node->number, 
 					    place->pos.item, &place->item.key, 
-					    object->entity->plugin->h.label);
+					    object->entity->plugin->label);
 			return res;
 		}
 	}
@@ -200,7 +200,7 @@ errno_t repair_lost_found(repair_lost_found_t *lf) {
 		return 0;
 	}
 	
-	reiser4_tree_load_root(fs->tree);
+	reiser4_tree_lroot(fs->tree);
 	
 	if (fs->tree->root == NULL)
 		return -EINVAL;

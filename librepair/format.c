@@ -54,7 +54,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			if (aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_YESNO,
 						"Do you want to build the on-disk "
 						"format (%s) specified in the profile?",
-						plugin->h.label) == EXCEPTION_NO)
+						plugin->label) == EXCEPTION_NO)
 				return -EINVAL;
 			
 			count = aal_device_len(fs->device);
@@ -64,13 +64,13 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			
 			if (!fs->format) {
 				aal_exception_fatal("Cannot create a filesystem of the "
-						    "format (%s).", plugin->h.label);
+						    "format (%s).", plugin->label);
 				return -EINVAL;
 			} else {
 				aal_exception_fatal("The format (%s) with tail policy "
 						    "(%u) was created on the partition "
 						    "(%s) of (%llu) block length.", 
-						    plugin->h.label, policy, 
+						    plugin->label, policy, 
 						    aal_device_name(fs->device), 
 						    count);
 			}
@@ -83,20 +83,20 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		} else {
 			/* Format was detected on the device. */
 			aal_exception_fatal("The on-disk format (%s) was detected on "
-					    "(%s). %s", plugin->h.label, 
+					    "(%s). %s", plugin->label, 
 					    aal_device_name(fs->device), 
-					    pid != plugin->h.id ? "It differs from "
+					    pid != plugin->id.id ? "It differs from "
 					    "the one specified in the profile. Do not "
 					    "forget to fix the profile." : "");
 			
-			if (pid != plugin->h.id) {
-				set_ms_format(SUPER(fs->master), plugin->h.id);
+			if (pid != plugin->id.id) {
+				set_ms_format(SUPER(fs->master), plugin->id.id);
 				reiser4_master_mkdirty(fs->master);
 			}
 			
 			if (!(fs->format = reiser4_format_open(fs))) {
 				aal_exception_fatal("Failed to open the format (%s) "
-						    "on the (%s).", plugin->h.label, 
+						    "on the (%s).", plugin->label, 
 						    aal_device_name(fs->device));
 				return -EINVAL;
 			}

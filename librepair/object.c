@@ -74,7 +74,7 @@ static bool_t callback_object_realize(reiser4_plugin_t *plugin, void *data) {
 	reiser4_object_t *object;
 	
 	/* We are interested only in object plugins here */
-	if (plugin->h.type != OBJECT_PLUGIN_TYPE)
+	if (plugin->id.type != OBJECT_PLUGIN_TYPE)
 		return FALSE;
 	
 	object = (reiser4_object_t *)data;

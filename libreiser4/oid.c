@@ -74,7 +74,7 @@ reiser4_oid_t *reiser4_oid_open(
 					oid_start, oid_len))) 
 	{
 		aal_exception_error("Can't open oid allocator %s.",
-				    plugin->h.label);
+				    plugin->label);
 		goto error_free_oid;
 	}
 
@@ -141,7 +141,7 @@ reiser4_oid_t *reiser4_oid_create(
 					oid_start, oid_len)))
 	{
 		aal_exception_error("Can't create oid allocator %s.", 
-				    plugin->h.label);
+				    plugin->label);
 		goto error_free_oid;
 	}
 

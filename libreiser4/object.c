@@ -18,7 +18,7 @@ static bool_t callback_object_guess(reiser4_plugin_t *plugin,
 	reiser4_object_t *object;
 
 	/* We are interested only in object plugins here */
-	if (plugin->h.type != OBJECT_PLUGIN_TYPE)
+	if (plugin->id.type != OBJECT_PLUGIN_TYPE)
 		return FALSE;
 	
 	object = (reiser4_object_t *)data;
@@ -435,9 +435,8 @@ reiser4_object_t *reiser4_object_create(
 		goto error_free_object;
 	}
 	
-	/* @hint->object key is build by plugin create method. */
+	/* @hint->object key is built by plugin create method. */
 	reiser4_key_string(&object->info.object, object->name);
-	
 	return object;
 	
  error_free_object:
@@ -762,28 +761,31 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 				     reiser4_object_t *parent,
 				     reiser4_profile_t *profile)
 {
-	reiser4_object_t *object;
+	rid_t pid;
 	object_hint_t hint;
-	rid_t directory;
+	reiser4_object_t *object;
 	
 	aal_assert("vpf-1053", fs != NULL);
-	aal_assert("vpf-1053", name != NULL || parent == NULL);
 	aal_assert("vpf-1053", profile != NULL);
+	aal_assert("vpf-1053", name != NULL || parent == NULL);
 	
-	directory = reiser4_profile_value(profile, "directory");
+	pid = reiser4_profile_value(profile, "directory");
 	
 	/* Preparing object hint */
-	hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, directory);
+	hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, pid);
 
 	if (!hint.plugin) {
 		aal_exception_error("Can't find dir plugin by its id "
-				    "0x%x.", directory);
+				    "0x%x.", pid);
 		return NULL;
 	}
     
 	hint.statdata = reiser4_profile_value(profile, "statdata");
 	hint.body.dir.hash = reiser4_profile_value(profile, "hash");
-	hint.body.dir.direntry = reiser4_profile_value(profile, "direntry");
+
+	/* FIXME-UMKA: This should be handled another way */
+	hint.body.dir.direntry = fs->key == LARGE ? ITEM_CDE_LARGE_ID :
+		ITEM_CDE_SHORT_ID;
 
 	/* Creating object by passed parameters */
 	if (!(object = reiser4_object_create(fs, parent, &hint)))

@@ -75,8 +75,10 @@ typedef struct reiser4_node reiser4_node_t;
 typedef struct reiser4_place reiser4_place_t;
 
 struct reiser4_place {
+	reiser4_tree_t *tree;
 	reiser4_node_t *node;
 	pos_t pos;
+	
 	item_entity_t item;
 };
 
@@ -124,7 +126,7 @@ struct reiser4_node {
 
 	/* Usage counter to prevent releasing used nodes */
 	signed counter;
-	
+
 #ifndef ENABLE_STAND_ALONE
 	/* Some node flags */
 	node_flags_t flags;
@@ -210,7 +212,6 @@ struct reiser4_alloc {
 };
 
 typedef struct reiser4_alloc reiser4_alloc_t;
-
 #endif
 
 /* Oid allocator structure */
@@ -369,11 +370,15 @@ struct reiser4_fs {
 	   into the objects of our library for their own use. */
 	void *data;
 #endif
+
+	/* Key policy (short, large) */
+	key_policy_t key;
 };
 
 struct fs_hint {
 	count_t blocks;
 	uint32_t blksize;
+	key_policy_t key;
 	char uuid[17], label[17];
 	reiser4_profile_t *profile;
 };

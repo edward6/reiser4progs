@@ -17,7 +17,8 @@ extern errno_t reiser4_node_unload(reiser4_node_t *node);
 extern uint8_t reiser4_node_get_level(reiser4_node_t *node);
 
 extern reiser4_node_t *reiser4_node_open(aal_device_t *device,
-					 uint32_t size, blk_t blk);
+					 uint32_t size, blk_t blk,
+					 rid_t pid);
 
 extern reiser4_node_t *reiser4_node_init(aal_device_t *device,
 					 uint32_t size, blk_t blk,

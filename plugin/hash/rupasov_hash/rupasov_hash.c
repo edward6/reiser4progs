@@ -4,13 +4,12 @@
    rupasov_hash.c -- rupasov hash. */
 
 #ifdef ENABLE_RUPASOV_HASH
-
 #include <reiser4/plugin.h>
 
-uint64_t rupasov_hash_build(const unsigned char *name, uint32_t len) {
-	uint32_t j, pow;
+uint64_t rupasov_hash_build(char *name, uint32_t len) {
 	uint32_t i;
 	uint64_t a, c;
+	uint32_t j, pow;
 	
 	for (pow = 1, i = 1; i < len; i++) pow = pow * 10; 
 	
@@ -55,17 +54,12 @@ static reiser4_hash_ops_t rupasov_hash_ops = {
 };
 
 static reiser4_plugin_t rupasov_hash_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = HASH_RUPASOV_ID,
-		.group = 0,
-		.type = HASH_PLUGIN_TYPE,
+	.cl    = CLASS_INIT,
+	.id    = {HASH_RUPASOV_ID, 0, HASH_PLUGIN_TYPE},
 #ifndef ENABLE_STAND_ALONE
-		.label = "rupasov_hash",
-		.desc = "Implementation rupasov hash for "
-		"reiser4, ver. " VERSION
+	.label = "rupasov_hash",
+	.desc  = "Rupasov hash for reiser4, ver. " VERSION,
 #endif
-	},
 	.o = {
 		.hash_ops = &rupasov_hash_ops
 	}
@@ -76,5 +70,4 @@ static reiser4_plugin_t *rupasov_hash_start(reiser4_core_t *c) {
 }
 
 plugin_register(rupasov_hash, rupasov_hash_start, NULL);
-
 #endif

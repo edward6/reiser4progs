@@ -28,6 +28,17 @@ static uint16_t format40_get_height(object_entity_t *entity) {
 	return get_sb_tree_height(SUPER(entity));
 }
 
+static int format40_get_flag(object_entity_t *entity,
+			     uint8_t flag)
+{
+	uint64_t flags;
+
+	aal_assert("umka-2339", entity != NULL);
+
+	flags = get_sb_flags(SUPER(entity));
+	return aal_test_bit(&flags, flag);
+}
+
 #ifndef ENABLE_STAND_ALONE
 static uint64_t format40_get_len(object_entity_t *entity) {
 	aal_assert("umka-401", entity != NULL);
@@ -414,6 +425,41 @@ static void format40_set_height(object_entity_t *entity,
 	set_sb_tree_height(SUPER(entity), height);
 }
 
+static int format40_tst_flag(object_entity_t *entity, 
+			     uint8_t flag) 
+{
+	format40_t *format;
+	
+	aal_assert("umka-2343", entity != NULL);
+
+	format = (format40_t *)entity;
+	return aal_test_bit(&format->super.sb_flags, flag);
+}
+
+static void format40_set_flag(object_entity_t *entity, 
+			      uint8_t flag) 
+{
+	format40_t *format;
+	
+	aal_assert("umka-2340", entity != NULL);
+
+	format = (format40_t *)entity;
+	aal_set_bit(&format->super.sb_flags, flag);
+	format->dirty = 1;
+}
+
+static void format40_clr_flag(object_entity_t *entity, 
+			      uint8_t flag) 
+{
+	format40_t *format;
+	
+	aal_assert("umka-2341", entity != NULL);
+
+	format = (format40_t *)entity;
+	aal_clear_bit(&format->super.sb_flags, flag);
+	format->dirty = 1;
+}
+
 static void format40_set_stamp(object_entity_t *entity, 
 			       uint32_t mkfsid) 
 {
@@ -449,10 +495,10 @@ errno_t format40_print(object_entity_t *entity,
 	aal_stream_format(stream, "Format super block:\n");
 	
 	aal_stream_format(stream, "plugin:\t\t%s\n",
-			  entity->plugin->h.label);
+			  entity->plugin->label);
 	
 	aal_stream_format(stream, "description:\t%s\n",
-			  entity->plugin->h.desc);
+			  entity->plugin->desc);
 
 	offset = (FORMAT40_OFFSET / format->blocksize);
 	
@@ -488,6 +534,11 @@ errno_t format40_print(object_entity_t *entity,
 	
 	aal_stream_format(stream, "tree height:\t%u\n",
 			  get_sb_tree_height(super));
+
+	if (aal_test_bit(&super->sb_flags, 0))
+		aal_stream_format(stream, "key policy:\tLARGE\n");
+	else
+		aal_stream_format(stream, "key policy:\tSHORT\n");
     
 	return 0;
 }
@@ -520,6 +571,7 @@ static reiser4_format_ops_t format40_ops = {
 	.close		= format40_close,
 
 	.get_root	= format40_get_root,
+	.get_flag	= format40_get_flag,
 	.get_height	= format40_get_height,
 		
 #ifndef ENABLE_STAND_ALONE
@@ -528,6 +580,10 @@ static reiser4_format_ops_t format40_ops = {
 	.get_stamp	= format40_get_stamp,
 	.get_policy	= format40_get_policy,
 		
+	.set_flag	= format40_set_flag,
+	.clr_flag	= format40_clr_flag,
+	.tst_flag       = format40_tst_flag,
+	
 	.set_root	= format40_set_root,
 	.set_len	= format40_set_len,
 	.set_free	= format40_set_free,
@@ -541,16 +597,12 @@ static reiser4_format_ops_t format40_ops = {
 };
 
 static reiser4_plugin_t format40_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = FORMAT_REISER40_ID,
-		.group = 0,
-		.type = FORMAT_PLUGIN_TYPE,
+	.cl    = CLASS_INIT,
+	.id    = {FORMAT_REISER40_ID, 0, FORMAT_PLUGIN_TYPE},
 #ifndef ENABLE_STAND_ALONE
-		.label = "format40",
-		.desc = "Disk-format for reiser4, ver. " VERSION
+	.label = "format40",
+	.desc  = "Disk-format for reiser4, ver. " VERSION,
 #endif
-	},
 	.o = {
 		.format_ops = &format40_ops
 	}

@@ -101,7 +101,7 @@ static errno_t callback_guess_format(
 	reiser4_plugin_t *plugin,    /* plugin to be checked */
 	void *data)		     /* needed plugin type */
 {
-	if (plugin->h.type == FORMAT_PLUGIN_TYPE) {
+	if (plugin->id.type == FORMAT_PLUGIN_TYPE) {
 		aal_device_t *device = (aal_device_t *)data;
 		return plugin_call(plugin->o.format_ops, confirm, device);
 	}
@@ -223,9 +223,9 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 			goto error_free_master;
 	    
 		/* Creating in-memory master super block */
-		if (!(master = reiser4_master_create(device, plugin->h.id, 
-						     REISER4_BLKSIZE,
-						     NULL, NULL)))
+		if (!(master = reiser4_master_create(device, plugin->id.id, 
+						     REISER4_BLKSIZE, NULL,
+						     NULL)))
 		{
 			goto error_free_master;
 		}

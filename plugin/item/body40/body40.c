@@ -104,7 +104,7 @@ int body40_mergeable(item_entity_t *item1,
 		    set_offset, &maxreal_key, offset + 1);
 	
 	return !plugin_call(item1->key.plugin->o.key_ops,
-			    compare, &maxreal_key, &item2->key);
+			    compfull, &maxreal_key, &item2->key);
 }
 #endif
 
@@ -137,7 +137,7 @@ lookup_t body40_lookup(item_entity_t *item,
 	size = trans_func ? trans_func(item, units) : units;
 	
 	if (plugin_call(key->plugin->o.key_ops,
-			compare, key, &maxkey) > 0)
+			compfull, key, &maxkey) > 0)
 	{
 		*pos = size;
 		return ABSENT;

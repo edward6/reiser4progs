@@ -155,7 +155,7 @@ void misc_upper_case(char *dst, const char *src) {
 }
 
 static errno_t callback_print_plugin(reiser4_plugin_t *plugin, void *data) {
-	printf("%s:  \t%s.\n", plugin->h.label, plugin->h.desc);
+	printf("%s:  \t%s.\n", plugin->label, plugin->desc);
 	return 0;
 }
 

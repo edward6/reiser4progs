@@ -46,6 +46,14 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	if (!(fs->format = reiser4_format_open(fs)))
 		goto error_free_master;
 
+	if (plugin_call(fs->format->entity->plugin->o.format_ops,
+			tst_flag, fs->format->entity, 0))
+	{
+		fs->key = LARGE;
+	} else {
+		fs->key = SHORT;
+	}
+	
 #ifndef ENABLE_STAND_ALONE
 	if (reiser4_format_valid(fs->format))
 		goto error_free_format;
@@ -57,8 +65,10 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	if (!(fs->alloc = reiser4_alloc_open(fs, blocks)))
 		goto error_free_format;
 
-	if (reiser4_alloc_valid(fs->alloc))
-		aal_exception_warn("Block allocator data seems corrupted.");
+	if (reiser4_alloc_valid(fs->alloc)) {
+		aal_exception_warn("Block allocator data "
+				   "seems corrupted.");
+	}
 	
 	/* Initializes oid allocator */
 	if (!(fs->oid = reiser4_oid_open(fs)))
@@ -75,15 +85,14 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	reiser4_oid_close(fs->oid);
  error_free_alloc:
 	reiser4_alloc_close(fs->alloc);
-#endif
-	
  error_free_format:
 	reiser4_format_close(fs->format);
+#endif
+	
  error_free_master:
 	reiser4_master_close(fs->master);
  error_free_fs:
 	aal_free(fs);
- error:
 	return NULL;
 }
 
@@ -280,6 +289,17 @@ reiser4_fs_t *reiser4_fs_create(
 		goto error_free_master;
 	}
 
+	fs->key = hint->key;
+	
+	/* Taking care about key flags in format super block */
+	if (hint->key == SHORT) {
+		plugin_call(fs->format->entity->plugin->o.format_ops,
+			    clr_flag, fs->format->entity, 0);
+	} else {
+		plugin_call(fs->format->entity->plugin->o.format_ops,
+			    set_flag, fs->format->entity, 0);
+	}
+
 	/* Creates block allocator */
 	if (!(fs->alloc = reiser4_alloc_create(fs, hint->blocks)))
 		goto error_free_format;
@@ -373,12 +393,8 @@ errno_t reiser4_fs_root_key(reiser4_fs_t *fs, reiser4_key_t *key) {
 	locality = REISER4_ROOT_LOCALITY;
 	objectid = REISER4_ROOT_OBJECTID;
 #endif
-	/* FIXME-VITALY: Only object plugin can create this key.  The best way
-	   is to have some method like make_pointer in object plugins which will
-	   do it. But it is useless difficulty for now. */
-	
-	return reiser4_key_build_generic(key, KEY_STATDATA_TYPE,
-					 locality, objectid, 0);
+	return reiser4_key_build_gener(key, KEY_STATDATA_TYPE,
+				       locality, 0, objectid, 0);
 }
 
 #endif

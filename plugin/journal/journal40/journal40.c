@@ -699,10 +699,10 @@ static errno_t journal40_print(object_entity_t *entity,
 	aal_stream_format(stream, "Journal:\n");
 	
 	aal_stream_format(stream, "plugin: \t%s\n",
-			  entity->plugin->h.label);
+			  entity->plugin->label);
 
 	aal_stream_format(stream, "description:\t%s\n\n",
-			  entity->plugin->h.desc);
+			  entity->plugin->desc);
 	
 	aal_stream_format(stream, "Journal header:\n");
 
@@ -762,14 +762,10 @@ static reiser4_journal_ops_t journal40_ops = {
 };
 
 static reiser4_plugin_t journal40_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = JOURNAL_REISER40_ID,
-		.group = 0,
-		.type = JOURNAL_PLUGIN_TYPE,
-		.label = "journal40",
-		.desc = "Journal for reiser4, ver. " VERSION,
-	},
+	.cl    = CLASS_INIT,
+	.id    = {JOURNAL_REISER40_ID, 0, JOURNAL_PLUGIN_TYPE},
+	.label = "journal40",
+	.desc  = "Journal for reiser4, ver. " VERSION,
 	.o = {
 		.journal_ops = &journal40_ops
 	}
@@ -780,5 +776,4 @@ static reiser4_plugin_t *journal40_start(reiser4_core_t *c) {
 }
 
 plugin_register(journal40, journal40_start, NULL);
-
 #endif

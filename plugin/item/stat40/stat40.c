@@ -96,11 +96,11 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 	stat_hint = hint->type_specific;
 
 	/* Reading mask into hint */
-	stat_hint->extmask |= ((uint64_t)1 << sdext->plugin->h.id);
+	stat_hint->extmask |= ((uint64_t)1 << sdext->plugin->id.id);
 
 	/* We load @ext if its hint present in @stat_hint */
-	if (stat_hint->ext[sdext->plugin->h.id]) {
-		void *sdext_hint = stat_hint->ext[sdext->plugin->h.id]; 
+	if (stat_hint->ext[sdext->plugin->id.id]) {
+		void *sdext_hint = stat_hint->ext[sdext->plugin->id.id]; 
 
 		return plugin_call(sdext->plugin->o.sdext_ops, open,
 				   sdext->body, sdext_hint);
@@ -285,7 +285,7 @@ static errno_t callback_body_ext(sdext_entity_t *sdext,
 	body_hint_t *hint = (body_hint_t *)data;
 
 	hint->body = sdext->body;
-	return -(sdext->plugin->h.id >= hint->ext);
+	return -(sdext->plugin->id.id >= hint->ext);
 }
 
 /* Finds extention body by number of bit in 64bits mask */
@@ -315,7 +315,7 @@ static errno_t callback_present_ext(sdext_entity_t *sdext,
 {
 	present_hint_t *hint = (present_hint_t *)data;
 
-	hint->present = (sdext->plugin->h.id == hint->ext);
+	hint->present = (sdext->plugin->id.id == hint->ext);
 	return hint->present;
 }
 
@@ -359,8 +359,8 @@ static errno_t callback_print_ext(sdext_entity_t *sdext,
 	uint16_t length;
 	aal_stream_t *stream = (aal_stream_t *)data;
 
-	print_mask = (sdext->plugin->h.id == 0 ||
-		      (sdext->plugin->h.id + 1) % 16 == 0);
+	print_mask = (sdext->plugin->id.id == 0 ||
+		      (sdext->plugin->id.id + 1) % 16 == 0);
 	
 	if (print_mask)	{
 		aal_stream_format(stream, "mask:\t\t0x%x\n",
@@ -368,10 +368,10 @@ static errno_t callback_print_ext(sdext_entity_t *sdext,
 	}
 				
 	aal_stream_format(stream, "label:\t\t%s\n",
-			  sdext->plugin->h.label);
+			  sdext->plugin->label);
 	
 	aal_stream_format(stream, "plugin:\t\t%s\n",
-			  sdext->plugin->h.desc);
+			  sdext->plugin->desc);
 	
 	aal_stream_format(stream, "offset:\t\t%u\n",
 			  sdext->offset);
@@ -396,7 +396,7 @@ static errno_t stat40_print(item_entity_t *item,
 	aal_assert("umka-1408", stream != NULL);
     
 	aal_stream_format(stream, "STATDATA PLUGIN=%s LEN=%u, KEY=",
-			  item->plugin->h.label, item->len);
+			  item->plugin->label, item->len);
 		
 	if (plugin_call(item->key.plugin->o.key_ops, print,
 			&item->key, stream, options))
@@ -414,12 +414,12 @@ static errno_t stat40_print(item_entity_t *item,
 }
 
 /* Get the plugin id of the type @type if stored in SD. */
-static rid_t stat40_get_plugid(item_entity_t *item, uint16_t type) {
-    aal_assert("vpf-1074", item != NULL);
-
-    return INVAL_PID;
+static rid_t stat40_get_plugid(item_entity_t *item,
+			       uint16_t type)
+{
+	aal_assert("vpf-1074", item != NULL);
+	return INVAL_PID;
 }
-
 #endif
 
 static reiser4_item_ops_t stat40_ops = {
@@ -457,16 +457,12 @@ static reiser4_item_ops_t stat40_ops = {
 };
 
 static reiser4_plugin_t stat40_plugin = {
-	.h = {
-		.class = CLASS_INIT,
-		.id = ITEM_STATDATA40_ID,
-		.group = STATDATA_ITEM,
-		.type = ITEM_PLUGIN_TYPE,
+	.cl    = CLASS_INIT,
+	.id    = {ITEM_STATDATA40_ID, STATDATA_ITEM, ITEM_PLUGIN_TYPE},
 #ifndef ENABLE_STAND_ALONE
-		.label = "stat40",
-		.desc = "Stat data item for reiser4, ver. " VERSION
+	.label = "stat40",
+	.desc  = "Stat data item for reiser4, ver. " VERSION,
 #endif
-	},
 	.o = {
 		.item_ops = &stat40_ops
 	}
