@@ -10,6 +10,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 			      bool_t check)
 {
 #ifndef ENABLE_STAND_ALONE
+	uint64_t flags;
 	count_t blocks;
 	uint32_t blksize;
 #endif
@@ -44,9 +45,10 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 		goto error_free_status;
 
 #ifndef ENABLE_STAND_ALONE
-	if (plug_call(fs->format->entity->plug->o.format_ops,
-		      tst_flag, fs->format->entity, 0))
-	{
+	flags = plug_call(fs->format->entity->plug->o.format_ops,
+			  get_flags, fs->format->entity);
+	
+	if ((1 << REISER4_LARGE_KEYS) & flags) {
 		reiser4_param_override("key", "key_large");
 	} else {
 		reiser4_param_override("key", "key_short");
@@ -308,11 +310,11 @@ reiser4_fs_t *reiser4_fs_create(
 
 	/* Taking care about key flags in format super block */
 	if (reiser4_param_value("key") == KEY_LARGE_ID) {
-		plug_call(fs->format->entity->plug->o.format_ops,
-			  set_flag, fs->format->entity, 0);
+		plug_call(fs->format->entity->plug->o.format_ops, set_flags,
+			  fs->format->entity, (1 << REISER4_LARGE_KEYS));
 	} else {
 		plug_call(fs->format->entity->plug->o.format_ops,
-			  clr_flag, fs->format->entity, 0);
+			  set_flags, fs->format->entity, 0);
 	}
 
 	/* Creates block allocator */

@@ -13,26 +13,43 @@ enum alloc_init {
 
 typedef enum alloc_init alloc_init_t;
 
-/* Funtions for dirtying block allocator. */
 bool_t reiser4_alloc_isdirty(reiser4_alloc_t *alloc) {
-	aal_assert("umka-2097", alloc != NULL);
+	uint32_t state;
+	
+	aal_assert("umka-2655", alloc != NULL);
 
-	return plug_call(alloc->entity->plug->o.alloc_ops,
-			 isdirty, alloc->entity);
+	state = plug_call(alloc->entity->plug->o.alloc_ops,
+			  get_state, alloc->entity);
+	
+	return (state & (1 << ENTITY_DIRTY));
 }
 
 void reiser4_alloc_mkdirty(reiser4_alloc_t *alloc) {
-	aal_assert("umka-2098", alloc != NULL);
+	uint32_t state;
+	
+	aal_assert("umka-2656", alloc != NULL);
 
+	state = plug_call(alloc->entity->plug->o.alloc_ops,
+			  get_state, alloc->entity);
+
+	state |= (1 << ENTITY_DIRTY);
+	
 	plug_call(alloc->entity->plug->o.alloc_ops,
-		  mkdirty, alloc->entity);
+		  set_state, alloc->entity, state);
 }
 
 void reiser4_alloc_mkclean(reiser4_alloc_t *alloc) {
-	aal_assert("umka-2099", alloc != NULL);
+	uint32_t state;
+	
+	aal_assert("umka-2657", alloc != NULL);
 
+	state = plug_call(alloc->entity->plug->o.alloc_ops,
+			  get_state, alloc->entity);
+
+	state &= ~(1 << ENTITY_DIRTY);
+	
 	plug_call(alloc->entity->plug->o.alloc_ops,
-		  mkclean, alloc->entity);
+		  set_state, alloc->entity, state);
 }
 
 /* Common block allocator init function. It is used for open, create and unpack

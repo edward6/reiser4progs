@@ -208,7 +208,7 @@ generic_entity_t *alloc40_unpack(fs_desc_t *desc,
 		goto error_free_crc;
 	}
 
-	alloc->dirty = 1;
+	alloc->state = (1 << ENTITY_DIRTY);
 	aux_bitmap_calc_marked(alloc->bitmap);
 	
 	return (generic_entity_t *)alloc;

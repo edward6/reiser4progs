@@ -25,6 +25,9 @@ struct journal40 {
 
 	/* Filesystem blocksize */
 	uint32_t blksize;
+
+	/* Journal state (dirty, etc). */
+	uint32_t state;
 	
 	/* Joirnal device */
 	aal_device_t *device;
@@ -38,7 +41,6 @@ struct journal40 {
 	/* Journal header and footer */
 	aal_block_t *header;
 	aal_block_t *footer;
-	int dirty;
 };
 
 typedef struct journal40 journal40_t;
@@ -180,8 +182,6 @@ typedef errno_t (*journal40_han_func_t)    \
 #define JHEADER(block) \
         ((journal40_header_t *)block->data)
 #endif
-
-extern void journal40_mkdirty(generic_entity_t *entity);
 
 extern errno_t journal40_traverse(journal40_t *journal,
 				  journal40_txh_func_t txh_func,

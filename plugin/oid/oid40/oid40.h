@@ -22,8 +22,7 @@ struct oid40 {
 
 	uint64_t next;
 	uint64_t used;
-
-	int dirty;
+	uint32_t state;
 };
 
 typedef struct oid40 oid40_t;

@@ -13,6 +13,8 @@
 struct node40 {
 	reiser4_plug_t *plug;
 	aal_block_t *block;
+
+	uint32_t state;
 	reiser4_plug_t *kplug;
 };
 
@@ -56,10 +58,6 @@ struct node40_header {
 }  __attribute__((packed));
 
 typedef struct node40_header node40_header_t;  
-
-extern int node40_isdirty(node_entity_t *entity);
-extern void node40_mkdirty(node_entity_t *entity);
-extern void node40_mkclean(node_entity_t *entity);
 
 extern inline uint32_t node40_key_pol(node40_t *node);
 extern void node40_move(node_entity_t *entity, blk_t nr);

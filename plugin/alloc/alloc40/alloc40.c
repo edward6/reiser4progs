@@ -65,19 +65,16 @@ unsigned int aal_adler32(char *buff, unsigned int n) {
 	return (s2 << 16) | s1;
 }
 
-static int alloc40_isdirty(generic_entity_t *entity) {
+static uint32_t alloc40_get_state(generic_entity_t *entity) {
 	aal_assert("umka-2084", entity != NULL);
-	return ((alloc40_t *)entity)->dirty;
+	return ((alloc40_t *)entity)->state;
 }
 
-static void alloc40_mkdirty(generic_entity_t *entity) {
+static void alloc40_set_state(generic_entity_t *entity,
+			      uint32_t state)
+{
 	aal_assert("umka-2085", entity != NULL);
-	((alloc40_t *)entity)->dirty = 1;
-}
-
-static void alloc40_mkclean(generic_entity_t *entity) {
-	aal_assert("umka-2086", entity != NULL);
-	((alloc40_t *)entity)->dirty = 0;
+	((alloc40_t *)entity)->state = state;
 }
 
 /* Calls func for each block allocator block. This function is used in all block
@@ -189,7 +186,7 @@ static generic_entity_t *alloc40_open(fs_desc_t *desc, uint64_t blocks) {
 		goto error_free_alloc;
 
 	/* Initializing alloc instance. */
-	alloc->dirty = 0;
+	alloc->state = 0;
 	alloc->plug = &alloc40_plug;
 	alloc->device = desc->device;
 	alloc->blksize = desc->blksize;
@@ -248,10 +245,10 @@ static generic_entity_t *alloc40_create(fs_desc_t *desc, uint64_t blocks) {
 		goto error_free_bitmap;
 
 	/* Initializing alloc instance. */
-	alloc->dirty = 1;
 	alloc->plug = &alloc40_plug;
 	alloc->device = desc->device;
 	alloc->blksize = desc->blksize;
+	alloc->state = (1 << ENTITY_DIRTY);
     
 	return (generic_entity_t *)alloc;
 
@@ -276,7 +273,7 @@ static errno_t alloc40_assign(generic_entity_t *entity, void *data) {
 	aal_memcpy(alloc->bitmap->map, bitmap->map, bitmap->size);
 	
 	alloc->bitmap->marked = bitmap->marked;
-	alloc->dirty = 1;
+	alloc->state |= (1 << ENTITY_DIRTY);
 
 	return 0;
 }
@@ -381,7 +378,7 @@ static errno_t alloc40_sync(generic_entity_t *entity) {
 		return res;
 	}
 
-	alloc->dirty = 0;
+	alloc->state &= ~(1 << ENTITY_DIRTY);
 	return res;
 }
 
@@ -410,8 +407,8 @@ static errno_t alloc40_occupy(generic_entity_t *entity,
     
 	aux_bitmap_mark_region(alloc->bitmap,
 			       start, count);
-	alloc->dirty = 1;
-	
+
+	alloc->state |= (1 << ENTITY_DIRTY);
 	return 0;
 }
 
@@ -426,8 +423,8 @@ static errno_t alloc40_release(generic_entity_t *entity,
     
 	aux_bitmap_clear_region(alloc->bitmap,
 				start, count);
-	alloc->dirty = 1;
-	
+
+	alloc->state |= (1 << ENTITY_DIRTY);
 	return 0;
 }
 
@@ -459,7 +456,7 @@ static uint64_t alloc40_allocate(generic_entity_t *entity,
 	if (found > 0) {
 		aux_bitmap_mark_region(alloc->bitmap,
 				       *start, found);
-		alloc->dirty = 1;
+		alloc->state |= (1 << ENTITY_DIRTY);
 	}
 
 	return found;
@@ -681,9 +678,6 @@ static reiser4_alloc_ops_t alloc40_ops = {
 	.sync           = alloc40_sync,
 	.pack           = alloc40_pack,
 	.unpack         = alloc40_unpack,
-	.isdirty        = alloc40_isdirty,
-	.mkdirty        = alloc40_mkdirty,
-	.mkclean        = alloc40_mkclean,
 	.print          = alloc40_print,
 
 	.used           = alloc40_used,
@@ -692,6 +686,8 @@ static reiser4_alloc_ops_t alloc40_ops = {
 	.layout         = alloc40_layout,
 	.occupied       = alloc40_occupied,
 	.available      = alloc40_available,
+	.set_state      = alloc40_set_state,
+	.get_state      = alloc40_get_state,
 
 	.layout_bad	= alloc40_layout_bad,
 	.region		= alloc40_region,

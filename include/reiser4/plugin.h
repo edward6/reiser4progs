@@ -500,6 +500,14 @@ struct object_hint {
 
 typedef struct object_hint object_hint_t;
 
+/* Bits for entity state field. For now here is only "dirty" bit, but possible
+   and other ones. */
+enum entity_state {
+	ENTITY_DIRTY = 0
+};
+
+typedef enum entity_state entity_state_t;
+
 /* Type for region enumerating callback functions. */
 typedef errno_t (*region_func_t) (void *, uint64_t,
 				  uint64_t, void *);
@@ -900,9 +908,8 @@ typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
    not initialized previously hypothetic instance of node. */
 struct reiser4_node_ops {
 #ifndef ENABLE_STAND_ALONE
-	int (*isdirty) (node_entity_t *);
-	void (*mkdirty) (node_entity_t *);
-	void (*mkclean) (node_entity_t *);
+	uint32_t (*get_state) (node_entity_t *);
+	void (*set_state) (node_entity_t *, uint32_t);
 
 	/* Makes clone of passed node */
 	errno_t (*clone) (node_entity_t *, node_entity_t *);
@@ -1035,11 +1042,10 @@ typedef struct reiser4_hash_ops reiser4_hash_ops_t;
 
 /* Disk-format plugin */
 struct reiser4_format_ops {
-	int (*tst_flag) (generic_entity_t *, uint8_t);
+	uint64_t (*get_flags) (generic_entity_t *);
 	
 #ifndef ENABLE_STAND_ALONE
-	void (*set_flag) (generic_entity_t *, uint8_t);
-	void (*clr_flag) (generic_entity_t *, uint8_t);
+	void (*set_flags) (generic_entity_t *, uint64_t);
 	
 	/* Called durring filesystem creating. It forms format-specific super
 	   block, initializes plugins and calls their create method. */
@@ -1048,10 +1054,9 @@ struct reiser4_format_ops {
 	/* Save format data to device. */
 	errno_t (*sync) (generic_entity_t *);
 
-	/* Making format dirty, clean, etc. */
-	int (*isdirty) (generic_entity_t *);
-	void (*mkdirty) (generic_entity_t *);
-	void (*mkclean) (generic_entity_t *);
+	/* Change entity state (dirty, etc) */
+	uint32_t (*get_state) (generic_entity_t *);
+	void (*set_state) (generic_entity_t *, uint32_t);
 
 	/* Format pack/unpack methods. */
 	generic_entity_t *(*unpack) (fs_desc_t *, aal_stream_t *);
@@ -1139,9 +1144,9 @@ struct reiser4_oid_ops {
 	errno_t (*layout) (generic_entity_t *,
 			   region_func_t, void *);
 
-	int (*isdirty) (generic_entity_t *);
-	void (*mkdirty) (generic_entity_t *);
-	void (*mkclean) (generic_entity_t *);
+	/* Entity state functions. */
+	uint32_t (*get_state) (generic_entity_t *);
+	void (*set_state) (generic_entity_t *, uint32_t);
 
 	/* Gets next object id */
 	oid_t (*next) (generic_entity_t *);
@@ -1185,10 +1190,9 @@ struct reiser4_alloc_ops {
 	/* Saves block allocator data to desired device. */
 	errno_t (*sync) (generic_entity_t *);
 
-	/* Make dirty or clean functions. */
-	int (*isdirty) (generic_entity_t *);
-	void (*mkdirty) (generic_entity_t *);
-	void (*mkclean) (generic_entity_t *);
+	/* Make dirty and clean functions. */
+	uint32_t (*get_state) (generic_entity_t *);
+	void (*set_state) (generic_entity_t *, uint32_t);
 	
 	/* Format pack/unpack methods. */
 	generic_entity_t *(*unpack) (fs_desc_t *, aal_stream_t *);
@@ -1268,9 +1272,9 @@ struct reiser4_journal_ops {
 	/* Synchronizes journal */
 	errno_t (*sync) (generic_entity_t *);
 
-	int (*isdirty) (generic_entity_t *);
-	void (*mkdirty) (generic_entity_t *);
-	void (*mkclean) (generic_entity_t *);
+	/* Functions for set/get object state (dirty, clean, etc). */
+	uint32_t (*get_state) (generic_entity_t *);
+	void (*set_state) (generic_entity_t *, uint32_t);
 	
 	/* Replays the journal */
 	errno_t (*replay) (generic_entity_t *);

@@ -7,26 +7,43 @@
 #include <reiser4/reiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
-/* Functions for dirtying node. */
 bool_t reiser4_node_isdirty(reiser4_node_t *node) {
-	aal_assert("umka-2094", node != NULL);
+	uint32_t state;
+	
+	aal_assert("umka-2663", node != NULL);
 
-	return plug_call(node->entity->plug->o.node_ops,
-			 isdirty, node->entity);
+	state = plug_call(node->entity->plug->o.node_ops,
+			  get_state, node->entity);
+	
+	return (state & (1 << ENTITY_DIRTY));
 }
 
 void reiser4_node_mkdirty(reiser4_node_t *node) {
-	aal_assert("umka-2095", node != NULL);
+	uint32_t state;
+	
+	aal_assert("umka-2662", node != NULL);
 
+	state = plug_call(node->entity->plug->o.node_ops,
+			  get_state, node->entity);
+
+	state |= (1 << ENTITY_DIRTY);
+	
 	plug_call(node->entity->plug->o.node_ops,
-		  mkdirty, node->entity);
+		  set_state, node->entity, state);
 }
 
 void reiser4_node_mkclean(reiser4_node_t *node) {
-	aal_assert("umka-2096", node != NULL);
+	uint32_t state;
+	
+	aal_assert("umka-2661", node != NULL);
 
+	state = plug_call(node->entity->plug->o.node_ops,
+			  get_state, node->entity);
+
+	state &= ~(1 << ENTITY_DIRTY);
+	
 	plug_call(node->entity->plug->o.node_ops,
-		  mkclean, node->entity);
+		  set_state, node->entity, state);
 }
 
 /* Clones node @src to @dst. */

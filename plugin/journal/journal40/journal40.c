@@ -9,20 +9,16 @@
 
 extern reiser4_plug_t journal40_plug;
 
-/* Functions for making journal dirty, clean, etc. */
-static int journal40_isdirty(generic_entity_t *entity) {
+static uint32_t journal40_get_state(generic_entity_t *entity) {
 	aal_assert("umka-2081", entity != NULL);
-	return ((journal40_t *)entity)->dirty;
+	return ((journal40_t *)entity)->state;
 }
 
-void journal40_mkdirty(generic_entity_t *entity) {
+static void journal40_set_state(generic_entity_t *entity,
+				uint32_t state)
+{
 	aal_assert("umka-2082", entity != NULL);
-	((journal40_t *)entity)->dirty = 1;
-}
-
-static void journal40_mkclean(generic_entity_t *entity) {
-	aal_assert("umka-2083", entity != NULL);
-	((journal40_t *)entity)->dirty = 0;
+	((journal40_t *)entity)->state = state;
 }
 
 static errno_t journal40_valid(generic_entity_t *entity) {
@@ -98,7 +94,7 @@ static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *forma
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
 
-	journal->dirty = 0;
+	journal->state = 0;
 	journal->format = format;
 	journal->device = desc->device;
 	journal->plug = &journal40_plug;
@@ -166,14 +162,13 @@ static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *for
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
 
-	journal->dirty = 1;
 	journal->format = format;
+	journal->area.len = blocks;
+	journal->area.start = start;
 	journal->device = desc->device;
 	journal->plug = &journal40_plug;
 	journal->blksize = desc->blksize;
-
-	journal->area.len = blocks;
-	journal->area.start = start;
+	journal->state = (1 << ENTITY_DIRTY);
 
 	/* Create journal header and footer. */
 	if (journal40_layout((generic_entity_t *)journal,
@@ -222,7 +217,7 @@ static errno_t journal40_sync(generic_entity_t *entity) {
 	if ((res = journal40_layout(entity, callback_sync_journal, NULL)))
 		return res;
 	
-	((journal40_t *)entity)->dirty = 0;
+	((journal40_t *)entity)->state &= ~(1 << ENTITY_DIRTY);
 	
 	return 0;
 }
@@ -281,7 +276,7 @@ static errno_t journal40_update(journal40_t *journal) {
 	set_jf_used_oids(footer, get_th_used_oids(tx_header));
 	set_jf_next_oid(footer, get_th_next_oid(tx_header));
 
-	journal->dirty = 1;
+	journal->state |= (1 << ENTITY_DIRTY);
 
  error_free_tx_block:
 	aal_block_free(tx_block);
@@ -728,16 +723,15 @@ static reiser4_journal_ops_t journal40_ops = {
 	.open	  	= journal40_open,
 	.create	  	= journal40_create,
 	.sync	  	= journal40_sync,
-	.isdirty  	= journal40_isdirty,
-	.mkdirty  	= journal40_mkdirty,
-	.mkclean  	= journal40_mkclean,
 	.replay   	= journal40_replay,
 	.print    	= journal40_print,
-	.check_struct	= journal40_check_struct,
 	.layout   	= journal40_layout,
 	.valid	  	= journal40_valid,
 	.close	  	= journal40_close,
-	.device   	= journal40_device
+	.device   	= journal40_device,
+	.set_state  	= journal40_set_state,
+	.get_state  	= journal40_get_state,
+	.check_struct	= journal40_check_struct
 };
 
 static reiser4_plug_t journal40_plug = {

@@ -51,19 +51,16 @@ static uint64_t format40_begin(generic_entity_t *entity) {
 	return FORMAT40_BLOCKNR(format->blksize);
 }
 
-static int format40_isdirty(generic_entity_t *entity) {
+static uint32_t format40_get_state(generic_entity_t *entity) {
+	aal_assert("umka-2651", entity != NULL);
+	return ((format40_t *)entity)->state;
+}
+
+void format40_set_state(generic_entity_t *entity,
+			uint32_t state)
+{
 	aal_assert("umka-2078", entity != NULL);
-	return ((format40_t *)entity)->dirty;
-}
-
-void format40_mkdirty(generic_entity_t *entity) {
-	aal_assert("umka-2079", entity != NULL);
-	((format40_t *)entity)->dirty = 1;
-}
-
-static void format40_mkclean(generic_entity_t *entity) {
-	aal_assert("umka-2080", entity != NULL);
-	((format40_t *)entity)->dirty = 0;
+	((format40_t *)entity)->state = state;
 }
 
 static errno_t format40_skipped(generic_entity_t *entity,
@@ -178,10 +175,7 @@ static generic_entity_t *format40_open(fs_desc_t *desc) {
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
 
-#ifndef ENABLE_STAND_ALONE
-	format->dirty = 0;
-#endif
-
+	format->state = 0;
 	format->plug = &format40_plug;
 	format->device = desc->device;
 	format->blksize = desc->blksize;
@@ -247,10 +241,10 @@ static generic_entity_t *format40_create(fs_desc_t *desc,
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
 
-	format->dirty = 1;
 	format->plug = &format40_plug;
 	format->device = desc->device;
 	format->blksize = desc->blksize;
+	format->state |= (1 << ENTITY_DIRTY);
 
 	/* Initializing super block fields. */
 	super = (format40_super_t *)&format->super;
@@ -323,7 +317,7 @@ static errno_t format40_sync(generic_entity_t *entity) {
 		   sizeof(format->super));
 	
 	if (!(res = aal_block_write(&block)))
-		format->dirty = 0;
+		format->state &= ~(1 << ENTITY_DIRTY);
 	
 	aal_block_fini(&block);
 	return res;
@@ -351,15 +345,13 @@ static rid_t format40_oid_pid(generic_entity_t *entity) {
 	return OID_REISER40_ID;
 }
 
-static int format40_tst_flag(generic_entity_t *entity, 
-			     uint8_t flag) 
-{
+static uint64_t format40_get_flags(generic_entity_t *entity) {
 	format40_t *format;
 	
 	aal_assert("umka-2343", entity != NULL);
 
 	format = (format40_t *)entity;
-	return format->super.sb_flags & (1 << flag);
+	return format->super.sb_flags;
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -382,8 +374,8 @@ static void format40_set_root(generic_entity_t *entity,
 {
 	aal_assert("umka-403", entity != NULL);
 
-	((format40_t *)entity)->dirty = 1;
 	set_sb_root_block(SUPER(entity), root);
+	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
 static void format40_set_len(generic_entity_t *entity, 
@@ -391,8 +383,8 @@ static void format40_set_len(generic_entity_t *entity,
 {
 	aal_assert("umka-404", entity != NULL);
 
-	((format40_t *)entity)->dirty = 1;
 	set_sb_block_count(SUPER(entity), blocks);
+	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
 static void format40_set_free(generic_entity_t *entity, 
@@ -400,8 +392,8 @@ static void format40_set_free(generic_entity_t *entity,
 {
 	aal_assert("umka-405", entity != NULL);
 
-	((format40_t *)entity)->dirty = 1;
 	set_sb_free_blocks(SUPER(entity), blocks);
+	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
 static void format40_set_height(generic_entity_t *entity, 
@@ -409,32 +401,20 @@ static void format40_set_height(generic_entity_t *entity,
 {
 	aal_assert("umka-555", entity != NULL);
 
-	((format40_t *)entity)->dirty = 1;
 	set_sb_tree_height(SUPER(entity), height);
+	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
-static void format40_set_flag(generic_entity_t *entity, 
-			      uint8_t flag) 
+static void format40_set_flags(generic_entity_t *entity, 
+			       uint64_t flags) 
 {
 	format40_t *format;
 	
 	aal_assert("umka-2340", entity != NULL);
 
 	format = (format40_t *)entity;
-	aal_set_bit(&format->super.sb_flags, flag);
-	format->dirty = 1;
-}
-
-static void format40_clr_flag(generic_entity_t *entity, 
-			      uint8_t flag) 
-{
-	format40_t *format;
-	
-	aal_assert("umka-2341", entity != NULL);
-
-	format = (format40_t *)entity;
-	aal_clear_bit(&format->super.sb_flags, flag);
-	format->dirty = 1;
+	format->super.sb_flags |= flags;
+	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
 static void format40_set_stamp(generic_entity_t *entity, 
@@ -442,8 +422,8 @@ static void format40_set_stamp(generic_entity_t *entity,
 {
 	aal_assert("umka-1121", entity != NULL);
 
-	((format40_t *)entity)->dirty = 1;
 	set_sb_mkfs_id(SUPER(entity), mkfsid);
+	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
 static void format40_set_policy(generic_entity_t *entity, 
@@ -451,8 +431,8 @@ static void format40_set_policy(generic_entity_t *entity,
 {
 	aal_assert("vpf-830", entity != NULL);
 
-	((format40_t *)entity)->dirty = 1;
 	set_sb_tail_policy(SUPER(entity), tail);
+	((format40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
 errno_t format40_print(generic_entity_t *entity,
@@ -521,9 +501,6 @@ static reiser4_format_ops_t format40_ops = {
 	.device		= format40_device,
 	.valid		= format40_valid,
 	.sync		= format40_sync,
-	.isdirty        = format40_isdirty,
-	.mkdirty        = format40_mkdirty,
-	.mkclean        = format40_mkclean,
 	.create		= format40_create,
 	.print		= format40_print,
 	.layout	        = format40_layout,
@@ -538,7 +515,7 @@ static reiser4_format_ops_t format40_ops = {
 	.oid	        = format40_oid,
 	.close		= format40_close,
 
-	.tst_flag       = format40_tst_flag,
+	.get_flags      = format40_get_flags,
 	.get_root	= format40_get_root,
 	.get_height	= format40_get_height,
 		
@@ -548,15 +525,15 @@ static reiser4_format_ops_t format40_ops = {
 	.get_stamp	= format40_get_stamp,
 	.get_policy	= format40_get_policy,
 		
-	.set_flag	= format40_set_flag,
-	.clr_flag	= format40_clr_flag,
-	
+	.set_flags	= format40_set_flags,
 	.set_root	= format40_set_root,
 	.set_len	= format40_set_len,
 	.set_free	= format40_set_free,
 	.set_height	= format40_set_height,
 	.set_stamp	= format40_set_stamp,
 	.set_policy	= format40_set_policy,
+	.set_state      = format40_set_state,
+	.get_state      = format40_get_state,
 	.journal_pid	= format40_journal_pid,
 	.alloc_pid	= format40_alloc_pid,
 	.check_struct	= format40_check_struct,

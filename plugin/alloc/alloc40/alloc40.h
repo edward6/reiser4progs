@@ -16,12 +16,13 @@
 struct alloc40 {
 	reiser4_plug_t *plug;
 	
+	uint32_t state;
 	uint32_t blksize;
+	
 	aal_device_t *device;
 	aux_bitmap_t *bitmap;
 
 	char *crc;
-	int dirty;
 };
 
 typedef struct alloc40 alloc40_t;

@@ -10,24 +10,42 @@
 
 #ifndef ENABLE_STAND_ALONE
 bool_t reiser4_format_isdirty(reiser4_format_t *format) {
+	uint32_t state;
+	
 	aal_assert("umka-2106", format != NULL);
 
-	return plug_call(format->entity->plug->o.format_ops,
-			 isdirty, format->entity);
+	state = plug_call(format->entity->plug->o.format_ops,
+			  get_state, format->entity);
+	
+	return (state & (1 << ENTITY_DIRTY));
 }
 
 void reiser4_format_mkdirty(reiser4_format_t *format) {
+	uint32_t state;
+	
 	aal_assert("umka-2107", format != NULL);
 
+	state = plug_call(format->entity->plug->o.format_ops,
+			  get_state, format->entity);
+
+	state |= (1 << ENTITY_DIRTY);
+	
 	plug_call(format->entity->plug->o.format_ops,
-		  mkdirty, format->entity);
+		  set_state, format->entity, state);
 }
 
 void reiser4_format_mkclean(reiser4_format_t *format) {
+	uint32_t state;
+	
 	aal_assert("umka-2108", format != NULL);
 
+	state = plug_call(format->entity->plug->o.format_ops,
+			  get_state, format->entity);
+
+	state &= ~(1 << ENTITY_DIRTY);
+	
 	plug_call(format->entity->plug->o.format_ops,
-		  mkclean, format->entity);
+		  set_state, format->entity, state);
 }
 #endif
 
@@ -438,13 +456,15 @@ rid_t reiser4_format_oid_pid(
 
 /* Returns key plugin id */
 rid_t reiser4_format_key_pid(reiser4_format_t *format) {
-	aal_assert("umka-2347", format != NULL);
+	uint64_t flags;
 	
-	if (plug_call(format->entity->plug->o.format_ops,
-		      tst_flag, format->entity, 0))
-	{
+	aal_assert("umka-2347", format != NULL);
+
+	flags = plug_call(format->entity->plug->o.format_ops,
+			  get_flags, format->entity);
+	
+	if (flags & (1 << REISER4_LARGE_KEYS))
 		return KEY_LARGE_ID;
-	}
 
 	return KEY_SHORT_ID;
 }

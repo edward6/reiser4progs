@@ -31,24 +31,6 @@ void *node40_ib_at(node40_t *node, uint32_t pos) {
 		ih_get_offset(ih, node40_key_pol(node));
 }
 
-#ifndef ENABLE_STAND_ALONE
-/* Functions for dirtying nodes. */
-int node40_isdirty(node_entity_t *entity) {
-	aal_assert("umka-2091", entity != NULL);
-	return ((node40_t *)entity)->block->dirty;
-}
-
-void node40_mkdirty(node_entity_t *entity) {
-	aal_assert("umka-2092", entity != NULL);
-	((node40_t *)entity)->block->dirty = 1;
-}
-
-void node40_mkclean(node_entity_t *entity) {
-	aal_assert("umka-2093", entity != NULL);
-	((node40_t *)entity)->block->dirty = 0;
-}
-#endif
-
 /* Returns node level field. */
 static uint8_t node40_get_level(node_entity_t *entity) {
 	aal_assert("umka-1116", entity != NULL);
@@ -56,6 +38,18 @@ static uint8_t node40_get_level(node_entity_t *entity) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+static uint32_t node40_get_state(node_entity_t *entity) {
+	aal_assert("umka-2091", entity != NULL);
+	return ((node40_t *)entity)->state;
+}
+
+static void node40_set_state(node_entity_t *entity,
+			     uint32_t state)
+{
+	aal_assert("umka-2092", entity != NULL);
+	((node40_t *)entity)->state = state;
+}
+
 /* Returns node mkfs stamp. */
 static uint32_t node40_get_mstamp(node_entity_t *entity) {
 	aal_assert("umka-1127", entity != NULL);
@@ -109,13 +103,17 @@ static errno_t node40_fresh(node_entity_t *entity,
 /* Saves node to device */
 static errno_t node40_sync(node_entity_t *entity) {
 	errno_t res;
+	node40_t *node;
 	
 	aal_assert("umka-1552", entity != NULL);
+
+	node = (node40_t *)entity;
 	
-	if ((res = aal_block_write(((node40_t *)entity)->block)))
+	if ((res = aal_block_write(node->block)))
 		return res;
 
-	node40_mkclean(entity);
+	node->state &= ~(1 << ENTITY_DIRTY);
+	
 	return 0;
 }
 
@@ -158,9 +156,9 @@ static void node40_set_mstamp(node_entity_t *entity,
 			      uint32_t stamp)
 {
 	aal_assert("vpf-644", entity != NULL);
-	
-	node40_mkdirty(entity);
+
 	nh_set_mkfs_id((node40_t *)entity, stamp);
+	((node40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
 /* Returns node flush stamp */
@@ -169,8 +167,8 @@ static void node40_set_fstamp(node_entity_t *entity,
 {
 	aal_assert("vpf-643", entity != NULL);
 	
-	node40_mkdirty(entity);
 	nh_set_flush_id((node40_t *)entity, stamp);
+	((node40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
 /* Set new node level to @level. */
@@ -179,8 +177,8 @@ static void node40_set_level(node_entity_t *entity,
 {
 	aal_assert("umka-1864", entity != NULL);
 	
-	node40_mkdirty(entity);
 	nh_set_level((node40_t *)entity, level);
+	((node40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 #endif
 
@@ -419,7 +417,7 @@ errno_t node40_expand(node_entity_t *entity, pos_t *pos,
 		nh_dec_free_space(node, headers);
 	}
 
-	node40_mkdirty(entity);
+	node->state |= (1 << ENTITY_DIRTY);
 	return 0;
 }
 
@@ -515,7 +513,7 @@ errno_t node40_shrink(node_entity_t *entity, pos_t *pos,
 	}
 
 	nh_dec_free_space_start(node, len);
-	node40_mkdirty(entity);
+	node->state |= (1 << ENTITY_DIRTY);
 	
 	return 0;
 }
@@ -592,7 +590,7 @@ errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
 		ih -= ih_size(pol);
 	}
 	
-	node40_mkdirty(dst_entity);
+	dst_node->state |= (1 << ENTITY_DIRTY);
 	return 0;
 }
 
@@ -817,6 +815,7 @@ static errno_t node40_set_key(node_entity_t *entity,
 {
 	void *ih;
 	node40_t *node;
+	uint32_t key_size;
 
 	aal_assert("umka-819", key != NULL);
     	aal_assert("umka-944", pos != NULL);
@@ -829,11 +828,11 @@ static errno_t node40_set_key(node_entity_t *entity,
 	node = (node40_t *)entity;
 
 	ih = node40_ih_at(node, pos->item);
-
-	aal_memcpy(ih, key->body,
-		   key_size(node40_key_pol(node)));
-
-	node40_mkdirty(entity);
+	node->state |= (1 << ENTITY_DIRTY);
+	
+	key_size = key_size(node40_key_pol(node));
+	aal_memcpy(ih, key->body, key_size);
+		
 	return 0;
 }
 
@@ -1556,10 +1555,6 @@ static reiser4_node_ops_t node40_ops = {
 	.fresh		= node40_fresh,
 	.sync           = node40_sync,
 	
-	.isdirty        = node40_isdirty,
-	.mkdirty        = node40_mkdirty,
-	.mkclean        = node40_mkclean,
-	
 	.insert		= node40_insert,
 	.write		= node40_write,
 	.truncate       = node40_truncate,
@@ -1587,6 +1582,9 @@ static reiser4_node_ops_t node40_ops = {
 	.set_flag	= node40_set_flag,
 	.clear_flag	= node40_clear_flag,
 	.test_flag	= node40_test_flag,
+
+	.set_state      = node40_set_state,
+	.get_state      = node40_get_state,
 	.check_struct	= node40_check_struct
 #endif
 };

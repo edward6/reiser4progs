@@ -9,19 +9,16 @@
 
 extern reiser4_plug_t oid40_plug;
 
-static int oid40_isdirty(generic_entity_t *entity) {
+static uint32_t oid40_get_state(generic_entity_t *entity) {
 	aal_assert("umka-2088", entity != NULL);
-	return ((oid40_t *)entity)->dirty;
+	return ((oid40_t *)entity)->state;
 }
 
-static void oid40_mkdirty(generic_entity_t *entity) {
+static void oid40_set_state(generic_entity_t *entity,
+			    uint32_t state)
+{
 	aal_assert("umka-2089", entity != NULL);
-	((oid40_t *)entity)->dirty = 1;
-}
-
-static void oid40_mkclean(generic_entity_t *entity) {
-	aal_assert("umka-2090", entity != NULL);
-	((oid40_t *)entity)->dirty = 0;
+	((oid40_t *)entity)->state = state;
 }
 
 /* Initializies oid allocator instance and loads its data (namely next oid, used
@@ -34,8 +31,7 @@ static generic_entity_t *oid40_open(void *start,
 	if (!(oid = aal_calloc(sizeof(*oid), 0)))
 		return NULL;
 
-	oid->dirty = 0;
-
+	oid->state = 0;
 	oid->len = len;
 	oid->start = start;
     
@@ -60,14 +56,14 @@ static generic_entity_t *oid40_create(void *start,
 	if (!(oid = aal_calloc(sizeof(*oid), 0)))
 		return NULL;
 
-	oid->dirty = 1;
 	oid->len = len;
 	oid->start = start;
+	oid->state = (1 << ENTITY_DIRTY);
 
 	/* Setting up next by OID40_RESERVED. It is needed because all oid less
 	   then OID40_RESERVED will be used for reiser4 insetrnal purposes. */
-	oid->next = OID40_RESERVED;
 	oid->used = 0;
+	oid->next = OID40_RESERVED;
     
 	oid->plug = &oid40_plug;
 	oid40_set_next(start, oid->next);
@@ -101,8 +97,8 @@ static oid_t oid40_allocate(generic_entity_t *entity) {
 
 	((oid40_t *)entity)->next++;
 	((oid40_t *)entity)->used++;
-	((oid40_t *)entity)->dirty = 1;
-	
+
+	((oid40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 	return ((oid40_t *)entity)->next - 1;
 }
 
@@ -113,7 +109,7 @@ static void oid40_release(generic_entity_t *entity,
 	aal_assert("umka-528", entity != NULL);
 
 	((oid40_t *)entity)->used--;
-	((oid40_t *)entity)->dirty = 1;
+	((oid40_t *)entity)->state |= (1 << ENTITY_DIRTY);
 }
 
 /* Prints oid allocator data into passed @stream */
@@ -179,14 +175,13 @@ reiser4_oid_ops_t oid40_ops = {
 	.allocate	= oid40_allocate,
 	.release	= oid40_release,
 	.sync		= oid40_sync,
-	.isdirty        = oid40_isdirty,
-	.mkdirty        = oid40_mkdirty,
-	.mkclean        = oid40_mkclean,
 	.print		= oid40_print,
 	.used		= oid40_used,
 	.free		= oid40_free,
 	.layout         = NULL,
 
+	.set_state      = oid40_set_state,
+	.get_state      = oid40_get_state,
 	.root_locality	= oid40_root_locality,
 	.root_objectid	= oid40_root_objectid
 };

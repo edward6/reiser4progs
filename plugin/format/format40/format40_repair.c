@@ -39,7 +39,7 @@ errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 			}
 			
 			set_sb_block_count(super, count);
-			format40_mkdirty(entity);
+			format->state |= (1 << ENTITY_DIRTY);
 		} else {
 			aal_exception_fatal("Number of blocks found in the "
 					    "superblock (%llu) is not equal to "
@@ -58,7 +58,7 @@ errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 		set_sb_block_count(super, count);
 		
 		if (mode != RM_CHECK)
-			format40_mkdirty(entity);
+			format->state |= (1 << ENTITY_DIRTY);
 		else 
 			res |= RE_FIXABLE;
 	}
@@ -184,7 +184,7 @@ generic_entity_t *format40_unpack(fs_desc_t *desc,
 	/* Read format data from @stream. */
 	aal_stream_read(stream, &format->super, size);
 
-	format->dirty = 1;
+	format->state |= (1 << ENTITY_DIRTY);
 	return (generic_entity_t *)format;
 
  error_free_format:

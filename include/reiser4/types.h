@@ -414,4 +414,8 @@ typedef void (*uuid_unparse_t) (char *uuid,
 typedef errno_t (*walk_func_t) (reiser4_tree_t *,
 				reiser4_node_t *);
 
+/* Number of but to test it in format flags in order know if large keys in use
+   or not. Large keys in use if it is set. */
+#define REISER4_LARGE_KEYS 0
+
 #endif

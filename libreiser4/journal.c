@@ -7,24 +7,42 @@
 #include <reiser4/reiser4.h>
 
 bool_t reiser4_journal_isdirty(reiser4_journal_t *journal) {
-	aal_assert("umka-2100", journal != NULL);
+	uint32_t state;
+	
+	aal_assert("umka-2652", journal != NULL);
 
-	return plug_call(journal->entity->plug->o.journal_ops,
-			 isdirty, journal->entity);
+	state = plug_call(journal->entity->plug->o.journal_ops,
+			  get_state, journal->entity);
+	
+	return (state & (1 << ENTITY_DIRTY));
 }
 
 void reiser4_journal_mkdirty(reiser4_journal_t *journal) {
-	aal_assert("umka-2101", journal != NULL);
+	uint32_t state;
+	
+	aal_assert("umka-2653", journal != NULL);
 
+	state = plug_call(journal->entity->plug->o.journal_ops,
+			  get_state, journal->entity);
+
+	state |= (1 << ENTITY_DIRTY);
+	
 	plug_call(journal->entity->plug->o.journal_ops,
-		  mkdirty, journal->entity);
+		  set_state, journal->entity, state);
 }
 
 void reiser4_journal_mkclean(reiser4_journal_t *journal) {
-	aal_assert("umka-2102", journal != NULL);
+	uint32_t state;
+	
+	aal_assert("umka-2654", journal != NULL);
 
+	state = plug_call(journal->entity->plug->o.journal_ops,
+			  get_state, journal->entity);
+
+	state &= ~(1 << ENTITY_DIRTY);
+	
 	plug_call(journal->entity->plug->o.journal_ops,
-		  mkclean, journal->entity);
+		  set_state, journal->entity, state);
 }
 
 /* This function opens journal on specified device and returns instance of

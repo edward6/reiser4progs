@@ -480,8 +480,8 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 		
 		set_jh_last_commited((journal40_header_t *)journal->header->data, 
 				     data.cur_txh);
-		
-		journal40_mkdirty(entity);
+
+		journal->state |= (1 << ENTITY_DIRTY);
 	}
 	
 	return 0;

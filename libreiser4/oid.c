@@ -8,24 +8,42 @@
 #include <reiser4/reiser4.h>
 
 bool_t reiser4_oid_isdirty(reiser4_oid_t *oid) {
-	aal_assert("umka-2103", oid != NULL);
+	uint32_t state;
+	
+	aal_assert("umka-2660", oid != NULL);
 
-	return plug_call(oid->entity->plug->o.oid_ops,
-			 isdirty, oid->entity);
+	state = plug_call(oid->entity->plug->o.oid_ops,
+			  get_state, oid->entity);
+	
+	return (state & (1 << ENTITY_DIRTY));
 }
 
 void reiser4_oid_mkdirty(reiser4_oid_t *oid) {
-	aal_assert("umka-2104", oid != NULL);
+	uint32_t state;
+	
+	aal_assert("umka-2659", oid != NULL);
 
+	state = plug_call(oid->entity->plug->o.oid_ops,
+			  get_state, oid->entity);
+
+	state |= (1 << ENTITY_DIRTY);
+	
 	plug_call(oid->entity->plug->o.oid_ops,
-		  mkdirty, oid->entity);
+		  set_state, oid->entity, state);
 }
 
 void reiser4_oid_mkclean(reiser4_oid_t *oid) {
-	aal_assert("umka-2105", oid != NULL);
+	uint32_t state;
+	
+	aal_assert("umka-2658", oid != NULL);
 
+	state = plug_call(oid->entity->plug->o.oid_ops,
+			  get_state, oid->entity);
+
+	state &= ~(1 << ENTITY_DIRTY);
+	
 	plug_call(oid->entity->plug->o.oid_ops,
-		  mkclean, oid->entity);
+		  set_state, oid->entity, state);
 }
 
 /* Opens object allocator using start and end pointers */
