@@ -98,11 +98,8 @@ static errno_t tail40_prep_write(reiser4_place_t *place,
 		   we insert data inside tail or behind it. */
 		tail40_maxreal_key(place, &hint->maxkey);
 
-		if ((max_offset = plug_call(hint->maxkey.plug->o.key_ops,
-					    get_offset, &hint->maxkey)) > 0)
-		{
-			max_offset++;
-		}
+		max_offset = plug_call(hint->maxkey.plug->o.key_ops,
+				       get_offset, &hint->maxkey) + 1;
 
 		plug_call(hint->maxkey.plug->o.key_ops,
 			  set_offset, &hint->maxkey, max_offset);
