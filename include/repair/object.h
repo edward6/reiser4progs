@@ -40,6 +40,6 @@ extern reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 extern errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag);
 extern errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag);
 extern int repair_object_test(reiser4_object_t *object, uint16_t flag);
-extern errno_t repair_object_update(reiser4_object_t *object);
+extern errno_t repair_object_form(reiser4_object_t *object);
 
 #endif

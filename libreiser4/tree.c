@@ -532,8 +532,8 @@ static int callback_comp_func(const void *k1,
 			      const void *k2,
 			      void *data)
 {
-	return reiser4_key_compare((reiser4_key_t *)k1,
-				   (reiser4_key_t *)k2);
+	return reiser4_key_compfull((reiser4_key_t *)k1,
+				    (reiser4_key_t *)k2);
 }
 #endif
 
@@ -1094,6 +1094,10 @@ static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 			/* Fetching item info */
 			if (reiser4_place_fetch(&walk))
 				return -EINVAL;
+			
+			/* If items of different objects, get out here. */
+			if (reiser4_key_compshort(&walk.key, key))
+				return 0;
 
 			/* If item's lookup is implemented, we use it. Item key
 			   comparing is used otherwise. */
@@ -1110,7 +1114,7 @@ static errno_t reiser4_tree_leftmost(reiser4_tree_t *tree,
 					return 0;
 				}
 			} else {
-				if (!reiser4_key_compare(&walk.key, key)) {
+				if (!reiser4_key_compfull(&walk.key, key)) {
 					aal_memcpy(place, &walk, sizeof(*place));
 				} else {
 					return 0;
@@ -1171,7 +1175,7 @@ lookup_res_t reiser4_tree_lookup(
 	   the case, when somebody is trying go up of the root by ".." entry in
 	   root directory. If so, we initialize the key to be looked up by root
 	   key. */
-	if (reiser4_key_compare(&wan, &tree->key) < 0)
+	if (reiser4_key_compfull(&wan, &tree->key) < 0)
 		reiser4_key_assign(&wan, &tree->key);
 		    
 	while (1) {

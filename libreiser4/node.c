@@ -394,7 +394,7 @@ static int callback_comp_node(
 	reiser4_node_lkey((reiser4_node_t *)node2,
 			  &lkey2);
 	
-	return reiser4_key_compare(&lkey1, &lkey2);
+	return reiser4_key_compfull(&lkey1, &lkey2);
 }
 
 /* Addes passed @child into children list of @node */
@@ -494,7 +494,7 @@ lookup_res_t reiser4_node_lookup(
 		if (place.plug->o.item_ops->maxposs_key) {
 			reiser4_item_maxposs_key(&place, &maxkey);
 
-			if (reiser4_key_compare(key, &maxkey) > 0) {
+			if (reiser4_key_compfull(key, &maxkey) > 0) {
 				pos->item++;
 				return ABSENT;
 			}

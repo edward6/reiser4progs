@@ -414,14 +414,27 @@ object_entity_t *dir40_fake(object_info_t *info) {
 	return (object_entity_t *)dir;
 }
 
-/* Updates the @object->info.parent. If ".." cannot be found, zero the key. */
-errno_t dir40_update_info(object_entity_t *object) {
+/* Form the correct object from what was recognzed and checked: for now
+   @info.parent, dir->hash, If ".." cannot be found, zero the key. */
+errno_t dir40_form(object_entity_t *object) {
+	dir40_t *dir = (dir40_t *)object;
 	entry_hint_t entry;
-	dir40_t *dir;
 
 	aal_assert("vpf-1269", object != NULL);
 
-	dir = (dir40_t *)object;
+	/* Init hash plugin in use if is not known yet. */
+	if (!dir->hash) {
+		dir->hash = obj40_plug_recognize(&dir->obj, HASH_PLUG_TYPE, 
+						 "hash");
+
+		if (dir->hash == NULL) {
+			aal_exception_error("Directory %s: failed to init "
+					    "hash plugin. Plugin (%s).", 
+					    print_ino(dcore, &dir->obj.info.object),
+					    dir40_plug.label);
+			return -EINVAL;
+		}
+	}
 	
 	switch ((dir40_lookup(object, "..", &entry))) {
 	case ABSENT:

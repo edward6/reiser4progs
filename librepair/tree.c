@@ -182,7 +182,7 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 	if ((res = reiser4_place_open(&place, node, &pos)))
 		return res;
 	
-	res = reiser4_key_compare(&dkey, &place.key);
+	res = reiser4_key_compfull(&dkey, &place.key);
 	
 	/* Left delimiting key should match the left key in the node. */
 	if (res > 0) {
@@ -234,7 +234,7 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 		return res;
 	}
 	
-	if (reiser4_key_compare(&key_max, &dkey) >= 0) {
+	if (reiser4_key_compfull(&key_max, &dkey) >= 0) {
 		aal_exception_error("Node (%llu): The last key [%s] in the node "
 				    "is greater then the right delimiting key "
 				    "[%s].", node_blocknr(node), 
@@ -304,7 +304,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 		/* If the most right key from the node being inserted is 
 		   greater then the key found by lookup, it is not possible 
 		   to insert the node as a whole. */
-		if (reiser4_key_compare(&rkey, &key) >= 0)
+		if (reiser4_key_compfull(&rkey, &key) >= 0)
 			return -ESTRUCT;
 	}
 	
@@ -552,7 +552,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 
 			/* If @src maxkey is not less than the lookuped, items 
 			   are overlapped. Othewise move to the previous pos. */
-			if ((res = reiser4_key_compare(&skey_max, &dkey)) >= 0)
+			if ((res = reiser4_key_compfull(&skey_max, &dkey)) >= 0)
 				whole = FALSE;
 			else if (prev.node)
 				dst = prev;

@@ -47,6 +47,7 @@ static int32_t sym40_read(object_entity_t *entity,
 			  void *buff, uint32_t n)
 {
 	sym40_t *sym;
+	errno_t res;
 
 	aal_assert("umka-1571", buff != NULL);
 	aal_assert("umka-1570", entity != NULL);
@@ -56,8 +57,11 @@ static int32_t sym40_read(object_entity_t *entity,
 	if (obj40_update(&sym->obj))
 		return -EINVAL;
 	
-	obj40_read_ext(STAT_PLACE(&sym->obj),
-		       SDEXT_SYMLINK_ID, buff);
+	if ((res = obj40_read_ext(STAT_PLACE(&sym->obj),
+				  SDEXT_SYMLINK_ID, buff)))
+	{
+		return res;
+	}
 
 	return aal_strlen(buff);
 }
@@ -212,6 +216,7 @@ static errno_t sym40_follow(object_entity_t *entity,
 			    key_entity_t *from,
 			    key_entity_t *key)
 {
+	errno_t res;
 	sym40_t *sym;
 	char path[_SYMLINK_LEN];
 	
@@ -221,8 +226,8 @@ static errno_t sym40_follow(object_entity_t *entity,
 
 	sym = (sym40_t *)entity;
 	
-	if (sym40_read(entity, path, sizeof(path)) != sizeof(path))
-		return -EIO;
+	if ((res = sym40_read(entity, path, sizeof(path)) < 0))
+		return res;
 
 	return sym->obj.core->object_ops.resolve(sym->obj.info.tree,
 						 STAT_PLACE(&sym->obj),
@@ -248,7 +253,7 @@ static reiser4_object_ops_t sym40_ops = {
 	.recognize	= sym40_recognize,
 	.check_struct   = sym40_check_struct,
 
-	.update		= NULL,
+	.form		= NULL,
 	.seek	        = NULL,
 	.write	        = NULL,
 	.convert        = NULL,

@@ -181,6 +181,8 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 		return res;
 	
 	/* Check the mode in the LW extention. */
+	
+	/* sd_butes are set wrongly in the kernel. Waiting for the VS.	
 	if (unix_hint.bytes != bytes) {
 		aal_exception_error("Node (%llu), item (%u): StatData of "
 				    "the file [%s] has the wrong bytes "
@@ -196,6 +198,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 			res = RE_FIXABLE;
 		}
 	}
+	*/
 	
 	if (mode == RM_CHECK)
 		return res;

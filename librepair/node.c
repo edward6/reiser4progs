@@ -173,7 +173,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 			count = reiser4_node_items(node);
 			
 			continue;
-		} else if (reiser4_key_compare(&key, &place.key)) {
+		} else if (reiser4_key_compfull(&key, &place.key)) {
 			/* Key has been fixed. */
 			aal_exception_error("Node (%llu): The key [%s] of the "
 					    "item (%u) is broken. %s [%s].", 
@@ -195,7 +195,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 			return res;
 		
 		if (pos->item) {
-			if (reiser4_key_compare(&prev_key, &key) >= 0) {
+			if (reiser4_key_compfull(&prev_key, &key) >= 0) {
 				aal_exception_error("Node (%llu), items (%u) "
 						    "and (%u): Wrong order of "
 						    "keys.", node_blocknr(node), 

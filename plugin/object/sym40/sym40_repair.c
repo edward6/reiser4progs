@@ -89,6 +89,7 @@ errno_t sym40_check_struct(object_entity_t *object,
 			   void *data, uint8_t mode)
 {
 	sym40_t *sym = (sym40_t *)object;
+	char path[_SYMLINK_LEN];
 	errno_t res;
 	
 	aal_assert("vpf-1232", sym != NULL);
@@ -104,8 +105,13 @@ errno_t sym40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
-	if ((res = obj40_ukey(&sym->obj, &sym->obj.info.start, 
+	if ((res = obj40_ukey(&sym->obj, &sym->obj.info.start,
 			      &sym->obj.info.object, mode)))
+		return res;
+	
+	/* Updating atime and mtime */
+	if ((res = obj40_read_ext(STAT_PLACE(&sym->obj),
+				  SDEXT_SYMLINK_ID, path)))
 		return res;
 	
 	/* Fix the SD, if no fatal corruptions were found. */
@@ -113,6 +119,6 @@ errno_t sym40_check_struct(object_entity_t *object,
 				sym40_one_nlink : NULL,
 				sym40_check_mode, 
 				sym40_check_size, 
-				0, 0, mode);
+				aal_strlen(path), 0, mode);
 }
 #endif

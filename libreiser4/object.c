@@ -321,7 +321,7 @@ reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 	{
 	case PRESENT:
 		/* The key must point to the start of the object. */
-		if (reiser4_key_compare(&place.key, key))
+		if (reiser4_key_compfull(&place.key, key))
 			return NULL;
 	
 		/* If the pointed item was found, object must be
@@ -906,6 +906,9 @@ errno_t reiser4_object_traverse(reiser4_object_t *object,
 	
 	aal_assert("vpf-1090", object != NULL);
 	aal_assert("vpf-1103", open_func != NULL);
+	
+	if (!object->entity->plug->o.object_ops->readdir)
+		return 0;
 	
 	while ((res = reiser4_object_readdir(object, &entry)) > 0) {
 		reiser4_object_t *child = NULL;

@@ -659,8 +659,8 @@ struct reiser4_object_ops {
 	   "/" and "lost+found" direcories if their SD are broken. */
 	object_entity_t *(*fake) (object_info_t *);
 
-	/* Updates the @object->info data. */
-	errno_t (*update) (object_entity_t *);
+	/* Forms the correct object from what was openned/checked. */
+	errno_t (*form) (object_entity_t *);
 #endif
 	
 	/* Change current position to passed value */

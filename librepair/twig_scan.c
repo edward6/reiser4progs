@@ -15,8 +15,6 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 {
 	reiser4_place_t *place = (reiser4_place_t *)object;
 	repair_ts_t *ts = (repair_ts_t *)data;
-
-	int res;
 	blk_t blocknr;
 	
 	aal_assert("vpf-385", ts != NULL);
@@ -33,10 +31,8 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 		return RE_FATAL;
 	}
 	
-	res = aux_bitmap_test_region(ts->bm_met, start, count, 0);
-	
 	/* Pointed region is used already. */
-	if (res == 0) {
+	if (aux_bitmap_test_region(ts->bm_met, start, count, 0) == FALSE) {
 		ts->stat.bad_unfm_ptrs++;
 		return RE_FATAL;
 	}

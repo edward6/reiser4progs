@@ -73,7 +73,9 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 	aal_assert("vpf-1169", sem != NULL);
 	aal_assert("vpf-1170", object != NULL);
 	
-	if (!repair_item_test_flag(object_start(object), OF_CHECKED)) {
+	if (sem->repair->mode != RM_BUILD || 
+	    !repair_item_test_flag(object_start(object), OF_CHECKED)) 
+	{
 		res = repair_object_check_struct(object, 
 						 sem->repair->mode == RM_BUILD ?
 						 callback_register_item : NULL,
@@ -89,7 +91,7 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 	}
 	
 	/* Update the @object->info. */
-	res |= repair_object_update(object);
+	res |= repair_object_form(object);
 	return res;
 }
 
@@ -233,8 +235,8 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 		
 		/* If linked to "lost+found", clear ATTACHED flag to be 
 		   able to relink if any valid link to it will be found. */
-		if (!reiser4_key_compare(&parent->info->object,
-					 &sem->lost->info->object))
+		if (!reiser4_key_compfull(&parent->info->object,
+					  &sem->lost->info->object))
 		{
 			if ((res = repair_object_clear(parent, OF_ATTACHED)))
 				return INVAL_PTR;
@@ -254,8 +256,8 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	
 	/* Check that parent has a link to the object. */
 	while (!(res = reiser4_object_readdir(parent, &entry))) {
-		if (reiser4_key_compare(&object->info->object,
-					&entry.object))
+		if (reiser4_key_compfull(&object->info->object,
+					 &entry.object))
 			break;
 	}
 
@@ -352,8 +354,8 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		
 		/* If parent of the @object matches @parent, just 
 		   check_attach. */
-		if (!reiser4_key_compare(&object->info->parent, 
-					 &parent->info->object))
+		if (!reiser4_key_compfull(&object->info->parent, 
+					  &parent->info->object))
 			break;
 		
 		if (!checked) {

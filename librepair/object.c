@@ -209,12 +209,12 @@ errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag) {
 	return 0;
 }
 
-errno_t repair_object_update(reiser4_object_t *object) {
+errno_t repair_object_form(reiser4_object_t *object) {
 	aal_assert("vpf-1271", object != NULL);
 
-	if (!object->entity->plug->o.object_ops->update)
+	if (!object->entity->plug->o.object_ops->form)
 		return 0;
 
 	return plug_call(object->entity->plug->o.object_ops, 
-			 update, object->entity);
+			 form, object->entity);
 }

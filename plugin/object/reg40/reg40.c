@@ -745,6 +745,8 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	return 0;
 }
 
+extern errno_t reg40_form(object_entity_t *object);
+
 extern object_entity_t *reg40_recognize(object_info_t *info);
 
 extern errno_t reg40_check_struct(object_entity_t *object,
@@ -768,7 +770,7 @@ static reiser4_object_ops_t reg40_ops = {
 	.recognize	= reg40_recognize,
 	.check_struct   = reg40_check_struct,
 
-	.update		= NULL,
+	.form		= reg40_form,
 	.add_entry      = NULL,
 	.rem_entry      = NULL,
 	.attach         = NULL,

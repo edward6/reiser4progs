@@ -488,6 +488,23 @@ errno_t reg40_check_struct(object_entity_t *object,
 	return res;
 }
 
+errno_t reg40_form(object_entity_t *object) {
+	reg40_t *reg = (reg40_t *)object;
+
+	aal_assert("vpf-1319", object != NULL);
+
+	/* Get the reg file tail policy. */
+	if (!(reg->policy = obj40_plug(&reg->obj, POLICY_PLUG_TYPE, "policy")))
+	{
+		aal_exception_error("The object [%s] failed to detect "
+				    "the tail policy.", 
+				    print_ino(rcore, &reg->obj.info.object));
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 void reg40_core(reiser4_core_t *c) {
 	rcore = c;
 }

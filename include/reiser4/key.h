@@ -22,8 +22,11 @@ extern errno_t reiser4_key_set_hash(reiser4_key_t *key,
 				    uint64_t hash);
 #endif
 
-extern int reiser4_key_compare(reiser4_key_t *key1,
-			       reiser4_key_t *key2);
+extern int reiser4_key_compfull(reiser4_key_t *key1,
+				reiser4_key_t *key2);
+
+extern int reiser4_key_compshort(reiser4_key_t *key1,
+				 reiser4_key_t *key2);
 
 extern errno_t reiser4_key_assign(reiser4_key_t *dst,
 				  reiser4_key_t *src);

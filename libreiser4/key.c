@@ -23,7 +23,7 @@ void reiser4_key_free(reiser4_key_t *key) {
 
 /* Compares two keys in plugin independent manner by means of using one of
    passed keys plugin. */
-int reiser4_key_compare(
+int reiser4_key_compfull(
 	reiser4_key_t *key1,	    /* the first key for comparing */
 	reiser4_key_t *key2)	    /* the second one */
 {
@@ -36,6 +36,21 @@ int reiser4_key_compare(
 	return plug_call(key1->plug->o.key_ops, 
 			 compfull, key1, key2);
 }
+
+int reiser4_key_compshort(
+	reiser4_key_t *key1,	    /* the first key for comparing */
+	reiser4_key_t *key2)	    /* the second one */
+{
+	aal_assert("umka-764", key1 != NULL);
+	aal_assert("umka-765", key2 != NULL);
+
+	aal_assert("umka-906", key1->plug != NULL);
+	aal_assert("umka-906", key2->plug != NULL);
+
+	return plug_call(key1->plug->o.key_ops, 
+			 compshort, key1, key2);
+}
+
 
 /* Makes copy src key to dst one */
 errno_t reiser4_key_assign(

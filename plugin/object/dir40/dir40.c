@@ -981,7 +981,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 }
 
 extern object_entity_t *dir40_fake(object_info_t *info);
-extern errno_t dir40_update_info(object_entity_t *object);
+extern errno_t dir40_form(object_entity_t *object);
 extern object_entity_t *dir40_recognize(object_info_t *info);
 
 extern errno_t dir40_check_attach(object_entity_t *object, 
@@ -1009,7 +1009,7 @@ static reiser4_object_ops_t dir40_ops = {
 	.detach		= dir40_detach,
 	.clobber	= dir40_clobber,
 	.recognize	= dir40_recognize,
-	.update		= dir40_update_info,
+	.form		= dir40_form,
 	
 	.seek		= NULL,
 	.write		= NULL,
