@@ -514,7 +514,9 @@ static errno_t node40_cutout(node40_t *node, rpos_t *pos,
   Calculates size of a region denoted by @pos and @count. This is used by
   node40_rep, node40_remove, etc.
 */
-static uint32_t node40_size(node40_t *node, rpos_t *pos, uint32_t count) {
+static uint32_t node40_size(node40_t *node, rpos_t *pos,
+			    uint32_t count)
+{
 	int is_range;
 	uint32_t len;
 	uint32_t items;

@@ -28,7 +28,7 @@ libreiser4_plugin_la_LIBADD  	= libheader.la \
 			          file/file40/libfile40-static.la \
 			          file/dir40/libdir40-static.la \
 			          file/reg40/libreg40-static.la \
-			          file/symlink40/libsymlink40-static.la \
+			          file/sym40/libsym40-static.la \
 			          hash/r5_hash/libr5_hash-static.la \
 			          hash/tea_hash/libtea_hash-static.la \
 			          hash/rupasov_hash/librupasov_hash-static.la \
@@ -60,7 +60,7 @@ libreiser4_plugin_alone_la_LIBADD = libheader-alone.la \
 			          file/file40/libfile40-alone.la \
 			          file/dir40/libdir40-alone.la \
 			          file/reg40/libreg40-alone.la \
-			          file/symlink40/libsymlink40-alone.la \
+			          file/sym40/libsym40-alone.la \
 			          hash/r5_hash/libr5_hash-alone.la \
 			          hash/tea_hash/libtea_hash-alone.la \
 			          hash/rupasov_hash/librupasov_hash-alone.la \

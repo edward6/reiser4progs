@@ -52,8 +52,8 @@ extern errno_t file40_set_mode(file40_t *file, uint16_t mode);
 extern uint64_t file40_get_size(file40_t *file);
 extern errno_t file40_set_size(file40_t *file, uint64_t size);
 
-extern errno_t file40_get_symlink(file40_t *file, char *data);
-extern errno_t file40_set_symlink(file40_t *file, char *data);
+extern errno_t file40_get_sym(file40_t *file, char *data);
+extern errno_t file40_set_sym(file40_t *file, char *data);
 
 extern errno_t file40_lock(file40_t *file, reiser4_place_t *place);
 extern errno_t file40_unlock(file40_t *file, reiser4_place_t *place);

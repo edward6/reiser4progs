@@ -438,7 +438,7 @@ struct reiser4_file_hint {
 		} reg;
 
 		/* Symlink data */
-		char symlink[4096];
+		char sym[4096];
 		
 	} body;
     

@@ -496,7 +496,7 @@ uint32_t reiser4_file_offset(
 
 /* Seeks directory current position to passed pos */
 errno_t reiser4_file_seek(
-	reiser4_file_t *file,	    /* file where position shopuld be chnaged */
+	reiser4_file_t *file,	    /* file where position shopuld be changed */
 	uint32_t offset)	    /* offset for seeking */
 {
 	aal_assert("umka-1129", file != NULL);

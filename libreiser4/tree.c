@@ -1387,7 +1387,7 @@ errno_t reiser4_tree_insert(
 
 	/*
 	  As position after making space is generaly changing, we check is mode
-	  of insert was chnaged or not. If so, we should perform estimate one
+	  of insert was changed or not. If so, we should perform estimate one
 	  more time. This is because, estimated value depends on insert mode. In
 	  the case we are going to insert new item, we should count also
 	  internal item overhead.

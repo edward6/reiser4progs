@@ -303,7 +303,7 @@ AC_OUTPUT([
     plugin/file/file40/Makefile
     plugin/file/dir40/Makefile
     plugin/file/reg40/Makefile
-    plugin/file/symlink40/Makefile
+    plugin/file/sym40/Makefile
     plugin/hash/Makefile
     plugin/hash/r5_hash/Makefile
     plugin/hash/tea_hash/Makefile

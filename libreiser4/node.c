@@ -719,7 +719,6 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 		return -1;
     
 	reiser4_node_mkdirty(node);
-	
 	return 0;
 }
 

@@ -172,7 +172,7 @@ errno_t file40_set_size(file40_t *file, uint64_t size) {
 }
 
 /* Gets symlink from the stat data */
-errno_t file40_get_symlink(file40_t *file, char *data) {
+errno_t file40_get_sym(file40_t *file, char *data) {
 	item_entity_t *item;
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;
@@ -197,7 +197,7 @@ errno_t file40_get_symlink(file40_t *file, char *data) {
 }
 
 /* Updates symlink data */
-errno_t file40_set_symlink(file40_t *file, char *data) {
+errno_t file40_set_sym(file40_t *file, char *data) {
 	item_entity_t *item;
 	reiser4_item_hint_t hint;
 	reiser4_statdata_hint_t stat;

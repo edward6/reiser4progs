@@ -936,7 +936,7 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	de40_inc_count(direntry, count);
 
 	/*
-	  Updating item key by unit key if the first unit was chnaged. It is
+	  Updating item key by unit key if the first unit was changed. It is
 	  needed for corrent updating left delimiting keys.
 	*/
 	if (pos == 0) {

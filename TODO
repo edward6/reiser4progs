@@ -3,15 +3,17 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* --print-journal options in debugfs.
+* debug tree remove stuff.
 
-* --print_block-alloc should also nbe able to print bitmap, not just
-  some info about it like used, free blocks, etc.
+* --print-journal option handling code in debugfs.
+
+* --print_block-alloc should also be able to print bitmap, not just
+  the info about it like used blocks, free blocks, etc.
 
 * something like "print_block" method for format, journal and block
   allocator plugins.
 
-* special file plugin.
+* special file plugin and its support in debugfs.
 
 * big digits stat data fields storing format change.
 
@@ -19,8 +21,6 @@ reiser4progs/COPYING.
   directories.
 
 * smart bitmap working functions (copy, invert, etc).
-
-* special files browsing in debugfs.
 
 * there should be an ability to work with symlinks from the API.
   Currently if we open a symlink we just "follow" it and then work
@@ -33,16 +33,9 @@ reiser4progs/COPYING.
 * return value from the all low level plugin functions should be raised 
   up to the libreiser4 level.
 
-* debug reiser4_tree_remove function.
-
-* probably item_ops need to be rewtiten somehow in order to be able to
-  satisfy fsck requirements like rewriting.
-
 * FIBMAP ioctl implementation in reiser4.
 
 * conform reiser4 and reiser4progs to be worked with LILO and GRUB.
-
-* copy methods in node API. Almost finished.
 
 * writing symlink may require expanding the node. Or we should do 
   not allow write symlinks? Write method may just remove old stat
@@ -56,10 +49,5 @@ reiser4progs/COPYING.
 
 * node plugin insert probably should be renamed into write.
 
-* should "read" method of the item plugin require reiser4_item_hint_t
-  instead of pointer to the unit hint array?
-
-* should reiser4_node_neighbour and friends be moved into tree.c?
-* rename symlink40 into sym40 everywhere is sources.
 * should we move out all bitmap's and alloc's functions which do not work 
   with regions and rename the rest in more simple maner (without region)?
