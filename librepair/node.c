@@ -152,7 +152,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	    if (len > 0) {
 		/* shrink the node */
 		if ((res = plugin_call(node->entity->plugin->node_ops, 
-		    shrink, node->entity, pos, len)))
+		    shrink, node->entity, pos, len, 1)))
 		{
 		    aal_exception_bug("Node (%llu), item (%llu), len (%u): Failed "
 			"to shrink the node on (%u) bytes.", node->blk, pos->item,

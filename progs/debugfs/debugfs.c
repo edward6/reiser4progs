@@ -1,7 +1,7 @@
 /*
   debugfs.c -- program for debugging reiser4 filesystem.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -640,9 +640,6 @@ static errno_t stat_process_node(
 
 			item = &coord.item;
 			
-			if (!reiser4_item_extent(&coord))
-				continue;
-
 			if (!item->plugin->item_ops.layout)
 				continue;
 

@@ -495,6 +495,7 @@ static reiser4_plugin_t stat40_plugin = {
 	    
 		.shift          = NULL,
 		.predict        = NULL,
+		.branch         = NULL,
 
 		.fetch          = stat40_fetch,
 		.units		= stat40_units,

@@ -424,6 +424,7 @@ static reiser4_plugin_t tail40_plugin = {
 		.check	        = NULL,
 		.valid	        = NULL,
 		.estimate       = NULL,
+		.branch         = NULL,
 		.set_key        = NULL,
 
 		.units	        = tail40_units,
