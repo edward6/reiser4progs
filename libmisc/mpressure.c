@@ -12,7 +12,7 @@
 
 /* This function detects if mempry pressure is here. */
 int misc_mpressure_detect(uint32_t nodes) {
-	/* Simple and hardcoded rule. Will be replaced by some more sophisticated
-	   later. */
+	/* Simple and hardcoded rule. Will be replaced by some more
+	   sophisticated later. */
 	return nodes > 2560;
 }

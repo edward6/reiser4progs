@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
                         int j, count;
 //			char part[256];
 
-			aal_snprintf(name, 256, "file name%d", random());
+			aal_snprintf(name, 256, "file name%d", i/*random()*/);
 
 //			fscanf(file, "%s %s\n", name, part);
 //			strcat(name, " ");
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
                         if (!(object = reiser4_reg_create(fs, dir, name)))
                                 continue;
                                                                                        
-                        count = 1;
+                        count = 10000;
                                                                                        
                         for (j = 0; j < count; j++) {
                                 if (reiser4_object_write(object, name,
