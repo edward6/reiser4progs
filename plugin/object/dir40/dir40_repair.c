@@ -17,6 +17,7 @@ extern reiser4_plug_t dir40_plug;
 extern errno_t dir40_reset(object_entity_t *entity);
 extern lookup_t dir40_lookup(object_entity_t *entity, char *name, 
 			     entry_hint_t *entry);
+extern errno_t dir40_readdir(object_entity_t *entity, entry_hint_t *entry);
 
 #define known_extentions ((uint64_t)1 << SDEXT_UNIX_ID | 	\
 			  	    1 << SDEXT_LW_ID |		\
@@ -114,7 +115,6 @@ errno_t dir40_check_struct(object_entity_t *object,
 			   region_func_t region_func,
 			   uint8_t mode, void *data)
 {
-	uint64_t locality, objectid, ordering;
 	uint64_t size, bytes, offset, next;
 	dir40_t *dir = (dir40_t *)object;
 	reiser4_plug_t *bplug;
@@ -157,18 +157,10 @@ errno_t dir40_check_struct(object_entity_t *object,
                 return -EINVAL;
         }
 	
-	locality = plug_call(info->object.plug->o.key_ops,
-			     get_locality, &info->object);
-	
-	objectid = plug_call(info->object.plug->o.key_ops,
-			     get_objectid, &info->object);
-
-	ordering = plug_call(info->object.plug->o.key_ops,
-			     get_ordering, &info->object);
-
 	/* Build the start key of the body. */
 	plug_call(info->object.plug->o.key_ops, build_entry,
-		  &key, dir->hash, locality, objectid, ".");
+		  &key, dir->hash, obj40_locality(&dir->obj),
+		  obj40_objectid(&dir->obj), ".");
 
 	size = 0; bytes = 0; 
 	
@@ -178,30 +170,29 @@ errno_t dir40_check_struct(object_entity_t *object,
 	   order -- choose the hash found among the entries most of the 
 	   times and correct hash plugin in SD. */
 	while (TRUE) {
-		if ((lookup = obj40_lookup(&dir->obj, &key, LEAF_LEVEL, 
-					   &dir->body)) == FAILED)
-			return -EINVAL;
+		entry_hint_t entry;
 		
-		if (lookup == ABSENT) {
-			/* If place is invalid, no more items. */
-			if (!core->tree_ops.valid(info->tree, &dir->body))
-				break;
-			
-			/* Initializing item entity at @next place */
-			if ((res |= core->tree_ops.fetch(info->tree, &dir->body)))
-				return res;
-			
-			/* Check if this is an item of another object. */
-			if (plug_call(key.plug->o.key_ops, compshort, 
-				      &key, &dir->body.key))
-				break;
-		}
+		if (dir40_readdir(object, &entry))
+			break;
 		
 		/* Does the found item plugin match  */
 		if (dir->body.plug != bplug)
 			break;
-
 		
+		/* Try to register this item. Any item has a pointer to objectid
+		   in the key, if it is shared between 2 objects, it should be 
+		   already solved at relocation time. */
+		if (place_func && place_func(object, &dir->body, data))
+			return -EINVAL;
+		
+		
+		
+		/* Count size and bytes. */
+		size += plug_call(dir->body.plug->o.item_ops, 
+					  size, &dir->body);
+		
+		bytes += plug_call(dir->body.plug->o.item_ops, 
+				   bytes, &dir->body);
 	}
 	
 	/* Take care about "." */

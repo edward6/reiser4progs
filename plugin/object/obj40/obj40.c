@@ -336,9 +336,7 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 	
 	return obj40_write_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint);
 }
-#endif
 
-#ifndef ENABLE_STAND_ALONE
 /* Changes nlink field in statdata by passed @value */
 errno_t obj40_link(obj40_t *obj, uint32_t value) {
 	uint32_t nlink = obj40_get_nlink(obj);

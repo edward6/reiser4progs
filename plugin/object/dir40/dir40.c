@@ -146,19 +146,14 @@ static lookup_t dir40_next(object_entity_t *entity) {
 
 	dir = (dir40_t *)entity;
 	
-	/* Making sure, that dir->body points to correct item */
-	if (obj40_update(&dir->obj, &dir->body))
-		return FAILED;
-	
-	dir->body.pos.unit = dir->unit;
-	
 	/* Getting next directory item */
 	if (core->tree_ops.next(dir->obj.info.tree,
 				&dir->body, &next))
 	{
 		return ABSENT;
 	}
-
+	
+	/* FIXME-VITALY: key->compshort is enough here. */
 	if (!dir40_mergeable(entity, &next))
 		return ABSENT;
 
@@ -182,9 +177,7 @@ static lookup_t dir40_next(object_entity_t *entity) {
 }
 
 /* Reads n entries to passed buffer buff */
-static errno_t dir40_readdir(object_entity_t *entity, 
-			     entry_hint_t *entry)
-{
+errno_t dir40_readdir(object_entity_t *entity, entry_hint_t *entry) {
 	dir40_t *dir;
 	uint32_t units;
 	place_t *place;

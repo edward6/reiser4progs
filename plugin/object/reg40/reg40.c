@@ -50,7 +50,7 @@ static reiser4_plug_t *reg40_bplug(object_entity_t *entity, uint32_t size) {
 #endif
 
 /* Updates body place in correspond to file offset */
-static lookup_t reg40_next(reg40_t *reg) {
+lookup_t reg40_next(reg40_t *reg) {
 	lookup_t res;
 	place_t place;
 	key_entity_t key;
