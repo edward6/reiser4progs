@@ -75,8 +75,12 @@ static errno_t tail40_prep_write(place_t *place,
 	   amount of data which may fit into node at passed @place. */
 	if (place->pos.unit == MAX_UINT32) {
 		hint->len = hint->count;
+
+		plug_call(hint->offset.plug->o.key_ops,
+			  assign, &hint->maxkey, &hint->offset);
 	} else {
 		uint32_t right;
+		uint64_t max_offset;
 
 		aal_assert("umka-2284", place != NULL);
 
@@ -86,6 +90,19 @@ static errno_t tail40_prep_write(place_t *place,
 		
 		hint->len = (right >= hint->count ? 0 :
 			     hint->count - right);
+
+		/* Getting maximal real key. It will be needed to determine if
+		   we insert data inside tail or behind it. */
+		tail40_maxreal_key(place, &hint->maxkey);
+
+		if ((max_offset = plug_call(hint->maxkey.plug->o.key_ops,
+					    get_offset, &hint->maxkey)) > 0)
+		{
+			max_offset++;
+		}
+
+		plug_call(hint->maxkey.plug->o.key_ops,
+			  set_offset, &hint->maxkey, max_offset);
 	}
 	
 	return 0;
@@ -95,11 +112,14 @@ static errno_t tail40_prep_write(place_t *place,
 static int64_t tail40_write_units(place_t *place,
 				  trans_hint_t *hint)
 {
+	uint64_t ins_offset;
+	uint64_t max_offset;
 	uint32_t count, pos;
 	
 	aal_assert("umka-1677", hint != NULL);
 	aal_assert("umka-1678", place != NULL);
 
+	hint->bytes = 0;
 	count = hint->count;
         pos = place->pos.unit;
 
@@ -111,6 +131,14 @@ static int64_t tail40_write_units(place_t *place,
 	if (count > place->len - pos)
 		count = place->len - pos;
 
+	/* Getting old max real offset. */
+	max_offset = plug_call(hint->maxkey.plug->o.key_ops,
+			       get_offset, &hint->maxkey);
+
+	/* Getting insert offset. */
+	ins_offset = plug_call(hint->offset.plug->o.key_ops,
+			       get_offset, &hint->offset);
+	
 	/* Checking if we insert a hole. That is @hint->specific si null. If so,
 	   then we write @count of zeros. Writing data from @hint->specific
 	   otherwise. */
@@ -127,9 +155,11 @@ static int64_t tail40_write_units(place_t *place,
 		body40_get_key(place, 0, &place->key, NULL);
 	}
 
-	hint->bytes = count;
+	/* Bytes are added if we wrote something behind of item size. */
+	if (ins_offset + count > max_offset)
+		hint->bytes = ins_offset + count - max_offset;
+	
 	place_mkdirty(place);
-                                                                                       
 	return count;
 }
 

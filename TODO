@@ -14,21 +14,9 @@ reiser4progs/COPYING.
   limit in order to make hash collisions less and thus, to speedup
   loaded nodes access.
 
-* fix bug with empty node in tree cache in tree.c if right move insert
-  point is enabled in tree_expand().
-
 * fix reiser4_print_*. This print stuffshould be moved to libaal.
 
 * check all place_fetch() occurences and remove redundant ones.
-
-* improve tree drying out and growing up in the sense of doing this
-  automaticaly. For instance, if tree_remove() removes last item from
-  root node and releases it, tree should be dried out automatically in
-  this moment. It would let us to call tree_remove() and tree_detach()
-  from tree_dryout().
-
-* improve tree_adjust_node() to be able to stop if memory pressure is
-  gone. Is it realy needed?
 
 * change R4Sb magic to Reiser4Sb both in progs and in kernel code.
 

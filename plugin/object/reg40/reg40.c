@@ -436,7 +436,7 @@ int64_t reg40_put(object_entity_t *entity, void *buff,
 }
 
 /* Cuts some amount of data and makes file length of passed @n value. */
-static int64_t reg40_cut(object_entity_t *entity, uint64_t n) {
+static int64_t reg40_cut(object_entity_t *entity, uint64_t offset) {
 	errno_t res;
 	reg40_t *reg;
 	uint64_t size;
@@ -445,20 +445,22 @@ static int64_t reg40_cut(object_entity_t *entity, uint64_t n) {
 	reg = (reg40_t *)entity;
 	size = reg40_size(entity);
 
+	aal_assert("umka-3076", size > offset);
+
 	/* Preparing key of the data to be truncated. */
 	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops,
 		  assign, &hint.offset, &reg->position);
 		
 	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops,
-		  set_offset, &hint.offset, n);
+		  set_offset, &hint.offset, offset);
 
 	/* Removing data from the tree. */
-	hint.count = size - n;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
+	hint.count = size - offset;
 	hint.shift_flags = SF_DEFAULT;
 	hint.data = reg->obj.info.tree;
-	hint.plug = reg40_policy_plug(reg, n);
+	hint.plug = reg40_policy_plug(reg, offset);
 
 	if ((res = obj40_truncate(&reg->obj, &hint)) < 0)
 		return res;
@@ -492,13 +494,17 @@ static int64_t reg40_write(object_entity_t *entity,
 		
 	/* Inserting holes if needed. */
 	if (offset > size) {
-		uint32_t hole = offset - size;
-		
-		if ((bytes = reg40_put(entity, NULL,
-				       hole)) < 0)
-		{
+		uint64_t hole = offset - size;
+
+		/* Seek back to size of hole, as reg40_put() uses @reg->position
+		   as data write offset. */
+		reg40_seek(entity, offset - hole);
+
+		/* Put a hole of size @hole. */
+		if ((bytes = reg40_put(entity, NULL, hole)) < 0)
 			return bytes;
-		}
+
+		size += hole;
 	} else {
 		bytes = 0;
 	}
@@ -513,8 +519,14 @@ static int64_t reg40_write(object_entity_t *entity,
 	if ((res = obj40_update(&reg->obj)))
 		return res;
 
+	/* Size should be updated only if we write beyond of size. */
+	if (offset >= size)
+		size += n;
+
+	/* Calculating new @bytes and updating stat data fields. */
 	bytes += obj40_get_bytes(&reg->obj);
-	return obj40_touch(&reg->obj, size + n, bytes);
+	
+	return obj40_touch(&reg->obj, size, bytes);
 }
 
 /* Truncates file to passed size @n. */
