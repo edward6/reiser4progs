@@ -313,20 +313,20 @@ struct reiser4_tree {
 #ifndef ENABLE_STAND_ALONE
 
 /* Callback function type for opening node. */
-typedef errno_t (*traverse_open_func_t) (reiser4_tree_t *, 
-					 reiser4_node_t **,
-					 reiser4_place_t *, 
-					 void *);
+typedef errno_t (*tree_open_func_t) (reiser4_tree_t *, 
+				     reiser4_node_t **,
+				     reiser4_place_t *, 
+				     void *);
 
 /* Callback function type for preparing per-node traverse data. */
-typedef errno_t (*traverse_edge_func_t) (reiser4_tree_t *, 
-					 reiser4_node_t *, 
-					 void *);
+typedef errno_t (*tree_edge_func_t) (reiser4_tree_t *, 
+				     reiser4_node_t *, 
+				     void *);
 
 /* Callback function type for preparing per-item traverse data. */
-typedef errno_t (*traverse_update_func_t) (reiser4_tree_t *, 
-					   reiser4_place_t *, 
-					   void *);
+typedef errno_t (*tree_update_func_t) (reiser4_tree_t *, 
+				       reiser4_place_t *, 
+				       void *);
 
 #endif
 

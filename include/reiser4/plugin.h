@@ -416,12 +416,14 @@ struct statdata_hint {
 typedef struct statdata_hint statdata_hint_t;
 
 enum entry_type {
-	ET_NAME		= 1 << 0,
-	ET_SELF		= 1 << 1,
-	ET_PARENT	= 1 << 2
+	ET_SELF		= (1 << 1),
+	ET_NAME		= (1 << 2),
+	ET_PARENT	= (1 << 2) + 1
 };
 
 typedef enum entry_type entry_type_t;
+
+#define ET_BACKLINK(link, back)  ((link >> 1) == (back >> 1) && link != back)
 
 struct entry_hint {
 
