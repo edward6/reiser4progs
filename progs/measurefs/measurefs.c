@@ -633,6 +633,7 @@ int main(int argc, char *argv[]) {
 	};
 
 	measurefs_init();
+	memset(override, 0, sizeof(override));
 
 	if (argc < 2) {
 		measurefs_print_usage(argv[0]);

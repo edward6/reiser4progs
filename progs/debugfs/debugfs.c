@@ -127,7 +127,8 @@ int main(int argc, char *argv[]) {
 	};
 
 	debugfs_init();
-
+	memset(override, 0, sizeof(override));
+	
 	if (argc < 2) {
 		debugfs_print_usage(argv[0]);
 		return USER_ERROR;

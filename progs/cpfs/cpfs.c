@@ -86,7 +86,6 @@ int main(int argc, char *argv[]) {
 	};
     
 	cpfs_init();
-
 	memset(override, 0, sizeof(override));
 
 	/* Parsing parameters */    

@@ -79,6 +79,7 @@ int main(int argc, char *argv[]) {
 	};
 
 	resizefs_init();
+	memset(override, 0, sizeof(override));
 
 	/* Parsing parameters */    
 	while ((c = getopt_long(argc, argv, "Vhqfo:Pp",
