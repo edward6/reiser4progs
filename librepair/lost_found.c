@@ -63,7 +63,7 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 	checked = repair_item_test_flag(start, ITEM_CHECKED);
 
 	/* Check the openned object. */
-	res = repair_object_check(*object, parent, lf->repair->mode);
+	res = repair_object_check(*object, parent, entry, lf->repair->mode);
 
 	if (res < 0) {
 		aal_exception_error("Node (%llu), item (%u): check of the "
@@ -151,7 +151,8 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 		}
 	} else {
 		/* Some not CHECKED item. Try to realize the plugin. */
-		if (!(object = repair_object_realize(lf->repair->fs->tree, place)))
+		if (!(object = repair_object_realize(lf->repair->fs->tree, 
+						     place, FALSE)))
 			return 0;
 		
 		/* This is really an object, check its structure. */

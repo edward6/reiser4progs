@@ -37,7 +37,7 @@ static errno_t callback_semantic_open(reiser4_object_t *parent,
 	checked = repair_item_test_flag(start, ITEM_CHECKED);
 	
 	/* Check the openned object. */
-	res = repair_object_check(*object, parent, sem->repair->mode);
+	res = repair_object_check(*object, parent, entry, sem->repair->mode);
 
 	if (res < 0) {
 		aal_exception_error("Node (%llu), item (%u): check of the object "
@@ -55,8 +55,11 @@ static errno_t callback_semantic_open(reiser4_object_t *parent,
 	} else if (res & REPAIR_FIXABLE)
 		sem->repair->fixable++;
 	
-	if (sem->repair->mode == REPAIR_REBUILD)
+	if (sem->repair->mode == REPAIR_REBUILD && 
+	    aal_strncmp(entry->name, ".", 1) && aal_strncmp(entry->name, "..", 2))
+	{
 		repair_item_set_flag(start, ITEM_REACHABLE);
+	}
 	
 	/* The object was chacked before, skip the traversing of its subtree. */
 	if (checked)
@@ -89,18 +92,19 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
 	aal_assert("vpf-1059", place != NULL);
 	aal_assert("vpf-1037", data != NULL);
 	
-	/* Try to rebuild objects with Statdata only on semantic pass. */
+	sem = (repair_semantic_t *)data;
+	
+	/* Try to rebuild objects with Statdata only on semantic pass.
 	if (!reiser4_item_statdata(place))
 		return 0;
-	
+	*/
+
 	/* If this item was checked already, skip it. */
 	if (repair_item_test_flag(place, ITEM_CHECKED))
 		return 0;
 	
-	sem = (repair_semantic_t *)data;
-	
-	/* Try to realize the object by place. */
-	if (!(object = reiser4_object_realize(sem->repair->fs->tree, place)))
+	/* Try to realize unambiguously the object by the place. */
+	if (!(object = repair_object_realize(sem->repair->fs->tree, place, TRUE)))
 		return 0;
 	
 	/* This is really an object, check its structure. */

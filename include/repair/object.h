@@ -13,9 +13,10 @@
 
 typedef errno_t (*traverse_func_t) (reiser4_object_t *parent, 
 				    reiser4_object_t **object, 
-				    entry_hint_t *entry, void *data);
+				    entry_hint_t *entry, 
+				    void *data);
 
-extern errno_t repair_object_check_struct(reiser4_object_t *object, 
+extern errno_t repair_object_check_struct(reiser4_object_t *object,
 					  place_func_t place_func,
 					  uint8_t mode, void *data);
 
@@ -24,7 +25,8 @@ extern reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 					      reiser4_key_t *key);
 
 extern reiser4_object_t *repair_object_realize(reiser4_tree_t *tree, 
-					       reiser4_place_t *place);
+					       reiser4_place_t *place,
+					       bool_t only);
 
 extern errno_t repair_object_traverse(reiser4_object_t *object, 
 				      traverse_func_t func, 
@@ -36,5 +38,6 @@ extern errno_t repair_object_check_attach(reiser4_object_t *object,
 
 extern errno_t repair_object_check(reiser4_object_t *object,
 			    reiser4_object_t *parent,
+			    entry_hint_t *entry,
 			    uint8_t mode);
 #endif

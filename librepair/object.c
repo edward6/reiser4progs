@@ -146,7 +146,8 @@ reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 
 /* Open the object by some place - not nessesary the first one. */
 reiser4_object_t *repair_object_realize(reiser4_tree_t *tree, 
-					reiser4_place_t *place) 
+					reiser4_place_t *place,
+					bool_t only) 
 {
 	reiser4_object_t *object;
 	
@@ -168,7 +169,7 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 	reiser4_key_assign(&object->info.object,
 			   &object->info.start.item.key);
 	
-	libreiser4_factory_cfind(callback_object_open, object, FALSE);
+	libreiser4_factory_cfind(callback_object_open, object, only);
 	
 	if (!object->entity)
 		goto error_close_object;
@@ -304,6 +305,7 @@ errno_t repair_object_check_attach(reiser4_object_t *object,
 
 errno_t repair_object_check(reiser4_object_t *object,
 			    reiser4_object_t *parent,
+			    entry_hint_t *entry,
 			    uint8_t mode)
 {
 	reiser4_place_t *start;
@@ -311,6 +313,7 @@ errno_t repair_object_check(reiser4_object_t *object,
 	
 	aal_assert("vpf-1139", object != NULL);
 	aal_assert("vpf-1140", parent != NULL);
+	aal_assert("vpf-1140", entry != NULL);
 	
 	start = reiser4_object_start(object);
 	
@@ -320,9 +323,8 @@ errno_t repair_object_check(reiser4_object_t *object,
 						 mode, NULL);
 	}
 	
-	if (repair_error_fatal(res)) {
+	if (repair_error_fatal(res))
 		return res;
-	} 
 	
 	/* Increment the link. */
 	res |= plugin_call(object->entity->plugin->o.object_ops, link, 
@@ -331,10 +333,16 @@ errno_t repair_object_check(reiser4_object_t *object,
 	if (repair_error_fatal(res))
 		return res;
 	
-	/* Check the uplink -- '..' in directories -- if not reachable yet and 
-	   correct it if needed. */
-	if (!repair_item_test_flag(start, ITEM_REACHABLE))
+	/* If the entry in the parent object was not '..' -- in other words we 
+	   go down not up -- check the uplink -- '..' in directories -- if not 
+	   reachable yet and correct the '..' pointer if needed. 
+	   FIXME-VITALY: these '.' and '..' compring should be eliminated here.
+	 */
+	if (!repair_item_test_flag(start, ITEM_REACHABLE) && 
+	    aal_strncmp(entry->name, ".", 1) && aal_strncmp(entry->name, "..", 2))
+	{
 		res |= repair_object_check_attach(object, parent, mode);
-
+	}
+	
 	return res;
 }
