@@ -568,16 +568,16 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 		   as src item and merge method is implemented for this plugin,
 		   call merge. Call it also if dst points to not existent item. 
 		 */
-		if ((dst.plug && plug_equal(dst.plug, src->plug) && 
-		     hint.plug->o.item_ops->repair->merge) || !dst.plug) 
+		if (!hint.plug->o.item_ops->repair->merge) {
+			/* For items without merge method implemented, like SD. */
+			return 0;
+		} else if ((dst.plug && plug_equal(dst.plug, src->plug)) || 
+			   !dst.plug)
 		{
 			if ((res = reiser4_tree_modify(tree, &dst, &hint, level,
 						       callback_prep_merge,
 						       callback_merge)))
 				goto error;
-		} else if (hint.plug->o.item_ops->repair->merge == NULL) {
-			/* For items without merge method implemented, like SD. */
-			return 0;
 		} else {
 			/* For not equal plugins do coping. */
 			aal_error("Node (%llu), item (%u): the item "

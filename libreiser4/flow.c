@@ -362,7 +362,7 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 		trans.specific = buff;
 
 		/* First stage -- reading data from tree. */
-		if ((conv = reiser4_flow_read(tree, &trans)) < 0) {
+		if ((conv = reiser4_flow_read(tree, &trans)) <= 0) {
 			res = conv;
 			goto error_free_buff;
 		}
