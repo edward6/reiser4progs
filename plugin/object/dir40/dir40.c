@@ -1081,9 +1081,9 @@ static errno_t dir40_layout(object_entity_t *entity,
 				return res;
 			}
 		} else {
-			if ((res = callback_item_data(place, place->con.blk,
-						      1, &hint)))
-			{
+			blk_t blk = place->block->nr;
+			
+			if ((res = callback_item_data(place, blk, 1, &hint))) {
 				return res;
 			}
 		}

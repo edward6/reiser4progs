@@ -277,8 +277,7 @@ static errno_t sym40_layout(object_entity_t *entity,
 	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
 		return -EINVAL;
 	
-	blk = STAT_PLACE(&sym->obj)->con.blk;
-
+	blk = STAT_PLACE(&sym->obj)->block->nr;
 	return block_func(entity, blk, data);
 }
 

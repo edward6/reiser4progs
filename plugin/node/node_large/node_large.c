@@ -118,11 +118,6 @@ errno_t node_large_fetch(node_entity_t *entity,
 	if (pos->item >= nh_get_num_items(node))
 		return -EINVAL;
 	
-	/* Initializes item's context (device, block number, etc) */
-	place->con.blk = node->block->nr;
-	place->con.blksize = node->block->size;
-	place->con.device = node->block->device;
-
 	/* Initializing item's plugin */
 	pid = ih_get_pid(node_large_ih_at(node, pos->item));
 	
@@ -135,9 +130,10 @@ errno_t node_large_fetch(node_entity_t *entity,
 	}
 
 	/* Initializing item's pos, body pointer and length */
+	place->block = node->block;
 	place->len = node_large_len(entity, pos);
-	place->body = node_large_ib_at(node, pos->item);
 	aal_memcpy(&place->pos, pos, sizeof(pos_t));
+	place->body = node_large_ib_at(node, pos->item);
 
 	/* Getting item key */
 	return node_large_get_key(entity, pos, &place->key);

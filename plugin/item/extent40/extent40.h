@@ -11,17 +11,23 @@
 #include <plugin/item/body40/body40.h>
 
 struct extent40 {
-	blk_t start;
-	count_t width;
+	d64_t start;
+	d64_t width;
 };
 
 typedef struct extent40 extent40_t;
 
 #define extent40_blksize(place) \
-        (place->con.blksize)
+        ((place)->block->size)
+
+#define extent40_device(place) \
+        ((place)->block->device)
+
+#define extent40_secsize(place) \
+        (extent40_device(place)->blksize)
 
 #define extent40_body(place)	\
-        ((extent40_t *)place->body)
+        ((extent40_t *)(place)->body)
 
 #define et40_get_start(et)	    aal_get_le64((et), start)
 #define et40_set_start(et, val)	    aal_set_le64((et), start, val)

@@ -104,11 +104,6 @@ errno_t node_short_fetch(node_entity_t *entity,
 	
 	node = (node_t *)entity;
 	
-	/* Initialize context (device, block number, etc) */
-	place->con.blk = node->block->nr;
-	place->con.blksize = node->block->size;
-	place->con.device = node->block->device;
-
 	/* Initializing item's plugin */
 	pid = ih_get_pid(node_short_ih_at(node, pos->item));
 	
@@ -121,6 +116,7 @@ errno_t node_short_fetch(node_entity_t *entity,
 	}
 
 	/* Initializing other fields */
+	place->block = node->block;
 	place->len = node_short_len(entity, pos);
 	aal_memcpy(&place->pos, pos, sizeof(pos_t));
 	place->body = node_short_ib_at(node, pos->item);

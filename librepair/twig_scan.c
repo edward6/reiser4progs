@@ -15,19 +15,24 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 {
 	reiser4_place_t *place = (reiser4_place_t *)object;
 	repair_ts_t *ts = (repair_ts_t *)data;
+
 	int res;
+	blk_t blocknr;
 	
 	aal_assert("vpf-385", ts != NULL);
 	aal_assert("vpf-567", ts->bm_met != NULL);
-	
+
+	blocknr = node_blocknr(place->node);
+		
 	/* This must be fixed at the first pass. */
 	if (start >= ts->bm_met->total || count > ts->bm_met->total ||
 	    start >= ts->bm_met->total - count)
 	{
 		aal_exception_error("Node (%llu), item (%u): Pointed region "
 				    "[%llu..%llu] is invalid.", 
-				    place->con.blk, place->pos.item, start,
+				    blocknr, place->pos.item, start,
 				    start + count - 1);
+		
 		ts->stat.bad_unfm_ptrs++;
 		return 1;
 	}
@@ -41,13 +46,14 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 	if (res == 0) {
 		aal_exception_error("Node (%llu), item (%u): pointed region "
 				    "[%llu..%llu] is used already or contains "
-				    "a formatted block.", place->con.blk, 
-				    place->pos.item, start, start + count - 1);
+				    "a formatted block.",
+				    blocknr, place->pos.item, start, start + count - 1);
+		
 		ts->stat.bad_unfm_ptrs++;
 		return 1;
 	}
 	
-	if (aux_bitmap_test(ts->bm_used, place->con.blk))
+	if (aux_bitmap_test(ts->bm_used, blocknr))
 		aux_bitmap_mark_region(ts->bm_unfm_tree, start, count);
 	else
 		aux_bitmap_mark_region(ts->bm_unfm_out, start, count);

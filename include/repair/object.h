@@ -26,8 +26,7 @@ extern errno_t repair_object_check_struct(reiser4_object_t *object,
 
 extern reiser4_object_t *repair_object_launch(reiser4_tree_t *tree,
 					      reiser4_object_t *parent,
-					      reiser4_key_t *key,
-					      bool_t only);
+					      reiser4_key_t *key);
 
 extern reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 					       reiser4_object_t *parent,

@@ -193,7 +193,7 @@ static uint8_t cde_large_short_entry_detect(place_t *place,
 	{
 		aal_exception_error("Node (%llu), item (%u), unit (%u): unit "
 				    "offset (%u) is wrong, should be (%u). %s", 
-				    place->con.blk, place->pos.item, start_pos, 
+				    place->block->nr, place->pos.item, start_pos, 
 				    OFFSET(de, start_pos), limit + offset, 
 				    mode == RM_BUILD ? "Fixed." : "");
 		
@@ -241,8 +241,8 @@ static uint8_t cde_large_long_entry_detect(place_t *place,
 		{
 			aal_exception_error("Node %llu, item %u, unit (%u): unit "
 					    "offset (%u) is wrong, should be (%u). "
-					    "%s", place->con.blk, place->pos.item, 
-					    start_pos + count, 
+					    "%s", place->block->nr,
+					    place->pos.item, start_pos + count, 
 					    OFFSET(de, start_pos+count), l_limit, 
 					    mode == RM_BUILD ? "Fixed." : "");
 			
@@ -306,7 +306,7 @@ static errno_t cde_large_offsets_range_check(place_t *place,
 		if (cde_large_offset_check(place, i)) {
 			aal_exception_error("Node %llu, item %u, unit %u: unit "
 					    "offset (%u) is wrong.", 
-					    place->con.blk, place->pos.item, 
+					    place->block->nr, place->pos.item, 
 					    i, OFFSET(de, i));
 			
 			/* mark offset wrong. */	    
@@ -399,7 +399,7 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 		/* No one R unit was found */
 		aal_exception_error("Node %llu, item %u: no one valid unit has "
 				    "been found. Does not look like a valid `%s` "
-				    "item.", place->con.blk, place->pos.item, 
+				    "item.", place->block->nr, place->pos.item, 
 				    place->plug->label);
 		
 		return RE_FATAL;
@@ -469,8 +469,9 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 	
 	if (e_count != de_get_units(de)) {
 		aal_exception_error("Node %llu, item %u: unit count (%u) is not "
-				    "correct. Should be (%u). %s", place->con.blk, 
-				    place->pos.item, de_get_units(de), e_count, 
+				    "correct. Should be (%u). %s",
+				    place->block->nr, place->pos.item,
+				    de_get_units(de), e_count, 
 				    mode == RM_CHECK ? "" : "Fixed.");
 		
 		if (mode == RM_CHECK) {
@@ -485,8 +486,8 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 		/* Estimated count is greater then the recovered count, in other 
 		   words there are some last unit headers should be removed. */
 		aal_exception_error("Node %llu, item %u: entries [%u..%u] look "
-				    "corrupted. %s", place->con.blk, place->pos.item, 
-				    flags->count, e_count - 1, 
+				    "corrupted. %s", place->block->nr,
+				    place->pos.item, flags->count, e_count - 1, 
 				    mode == RM_BUILD ? "Removed." : "");
 		
 		if (mode == RM_BUILD) {
@@ -495,7 +496,7 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 			{
 				aal_exception_error("Node %llu, item %u: remove "
 						    "of the unit (%u), count (%u) "
-						    "failed.", place->con.blk, 
+						    "failed.", place->block->nr, 
 						    place->pos.item, flags->count, 
 						    e_count - flags->count);
 				return -EINVAL;
@@ -510,7 +511,7 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 	if (i) {
 		/* Some first units should be removed. */
 		aal_exception_error("Node %llu, item %u: entries [%u..%u] look "
-				    " corrupted. %s", place->con.blk, 
+				    " corrupted. %s", place->block->nr, 
 				    place->pos.item, 0, i - 1, 
 				    mode == RM_BUILD ? "Removed." : "");
 		
@@ -518,7 +519,7 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 			if (cde_large_remove(place, 0, i) < 0) {
 				aal_exception_error("Node %llu, item %u: remove of "
 						    "the unit (%u), count (%u) "
-						    "failed.", place->con.blk,
+						    "failed.", place->block->nr,
 						    place->pos.item, 0, i);
 				return -EINVAL;
 			}
@@ -547,7 +548,7 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 			if (aal_test_bit(flags->elem + i, R)) {
 				aal_exception_error("Node %llu, item %u: entries "
 						    "[%u..%u] look corrupted. %s", 
-						    place->con.blk, 
+						    place->block->nr, 
 						    place->pos.item,
 						    last, i - 1, 
 						    mode == RM_BUILD ? 
@@ -563,7 +564,7 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 								    "the unit "
 								    "(%u), count "
 								    "(%u) failed.", 
-								    place->con.blk, 
+								    place->block->nr, 
 								    place->pos.item, 
 								    last, i - last);
 						return -EINVAL;
@@ -603,7 +604,7 @@ errno_t cde_large_check_struct(place_t *place, uint8_t mode) {
 	if (place->len < en_len_min(1)) {
 		aal_exception_error("Node %llu, item %u: item length (%u) is too "
 				    "small to contain a valid item.", 
-				    place->con.blk, place->pos.item, place->len);
+				    place->block->nr, place->pos.item, place->len);
 		return RE_FATAL;
 	}
 	
@@ -715,14 +716,14 @@ errno_t cde_large_copy(place_t *dst, uint32_t dst_pos,
 				if (info->mode == FSCK_CHECK) {
 					aal_exception_error("Node %llu, item %u: "
 							    "wrong offset (%llu).",
-							    place->context.blk, 
+							    place->block->nr, 
 							    place->pos.item, offset);
 
 				}
 	    
 				/* Wrong offset occured. */
 				aal_exception_error("Node %llu, item %u: wrong offset "
-						    "(%llu).", place->context.blk, 
+						    "(%llu).", place->block->nr, 
 						    place->pos.item, offset);
 				if (!start_pos)
 					start_pos = i;
@@ -759,7 +760,7 @@ static errno_t cde_large_count_check(place_t *place,
 		if (en_min_length(count) > place->len) {
 			info->fatal++;
 			aal_exception_error("Node %llu, item %u: unit array is "
-					    "not recognized.", place->context.blk, 
+					    "not recognized.", place->block->nr, 
 					    place->pos.item);
 			return 1;
 		}
@@ -767,14 +768,14 @@ static errno_t cde_large_count_check(place_t *place,
 		if (info->mode == FSCK_CHECK) {
 			aal_exception_error("Node %llu, item %u: unit count (%u) "
 					    "is wrong. Should be (%u).", 
-					    place->con.blk, place->pos.item,
+					    place->block->nr, place->pos.item,
 					    de_get_units(de), count);
 			info->fixable++;
 			return 1;
 		}
 		
 		aal_exception_error("Node %llu, item %u: unit count (%u) is "
-				    "wrong. Fixed to (%u).", place->con.blk, 
+				    "wrong. Fixed to (%u).", place->block->nr, 
 				    place->pos.item, de_get_units(de), count);
 		
 		en_set_count(de, count);
@@ -786,7 +787,7 @@ static errno_t cde_large_count_check(place_t *place,
 				info->fixable++;
 				aal_exception_error("Node %llu, item %u: wrong offset "
 						    "(%llu). Should be (%llu).", 
-						    place->con.blk, place->pos.item,
+						    place->block->nr, place->pos.item,
 						    de->entry[0].offset, 
 						    de_get_units(de) * 
 						    sizeof(entry_t) + 
@@ -796,7 +797,7 @@ static errno_t cde_large_count_check(place_t *place,
 			
 			aal_exception_error("Node %llu, item %u: wrong offset "
 					    "(%llu). Fixed to (%llu).", 
-					    place->con.blk, place->pos.item,
+					    place->block->nr, place->pos.item,
 					    de->entry[0].offset, 
 					    de_get_units(de) * sizeof(entry_t) + 
 					    sizeof(cde_large_t));
@@ -829,7 +830,8 @@ static errno_t cde_large_bad_range_check(place_t *place,
 	    
 			aal_exception_error("Node (%llu), item (%u), unit (%u): "
 					    "unit offset (%u) is wrong, should be "
-					    "(%u). %s", place->context.blk, place->pos.item,
+					    "(%u). %s", place->block->nr,
+					    place->pos.item,
 					    i, OFFSET(de, start_pos + i), offset, 
 					    info->mode == RM_BUILD ? 
 					    "Fixed." : "");
@@ -866,7 +868,7 @@ static errno_t cde_large_bad_range_check(place_t *place,
 				aal_exception_error("Node %llu, item %u, unit (%u): "
 						    "unit offset (%u) is wrong, "
 						    "should be (%u). %s", 
-						    place->con.blk, 
+						    place->block->nr, 
 						    place->pos.item, i, 
 						    OFFSET(de, start + i), 
 						    offset, 

@@ -45,7 +45,7 @@ errno_t stat40_check_struct(place_t *place, uint8_t mode) {
 		return res;
 	else if (res > 0 || !hint.sdext.plug) {
 		aal_exception_error("Node (%llu), item (%u): does not look like a "
-				    "valid stat data.", place->con.blk, 
+				    "valid stat data.", place->block->nr, 
 				    place->pos.item);
 		
 		return RE_FATAL;
@@ -61,7 +61,7 @@ errno_t stat40_check_struct(place_t *place, uint8_t mode) {
 	if (hint.sdext.offset < place->len) {
 		aal_exception_error("Node (%llu), item (%u): item has a wrong "
 				    "length (%u). Should be (%u). %s", 
-				    place->con.blk, place->pos.item, 
+				    place->block->nr, place->pos.item, 
 				    place->len, hint.sdext.offset, 
 				    mode == RM_BUILD ? "Fixed." : "");
 		

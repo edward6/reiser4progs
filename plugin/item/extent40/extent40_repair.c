@@ -59,7 +59,7 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 			aal_exception_error("Node (%llu), item "
 					    "(%u): pointed region "
 					    "[%llu..%llu] is zeroed.", 
-					    place->con.blk, 
+					    place->block->nr, 
 					    place->pos.item, start, 
 					    start + width - 1);
 

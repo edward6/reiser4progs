@@ -14,7 +14,7 @@ uint32_t extent40_units(place_t *place) {
 #ifndef ENABLE_STAND_ALONE
 	if (place->len % sizeof(extent40_t) != 0) {
 		aal_exception_error("Invalid item size detected. Node "
-				    "%llu, item %u.", place->con.blk,
+				    "%llu, item %u.", place->block->nr,
 				    place->pos.item);
 		return 0;
 	}
@@ -202,7 +202,7 @@ static int32_t extent40_read(place_t *place, void *buff,
 	aal_assert("umka-1672", pos != MAX_UINT32);
 
 	blksize = extent40_blksize(place);
-	secsize = place->con.device->blksize;
+	secsize = extent40_secsize(place);
 
 	for (read = count, i = place->pos.unit;
 	     i < extent40_units(place) && count > 0; i++)
@@ -244,33 +244,28 @@ static int32_t extent40_read(place_t *place, void *buff,
 
 			/* Loop though one block (4096) */
 			while (blkchunk > 0) {
-				aal_block_t block;
 				uint32_t secchunk;
 				uint32_t seclocal;
+				aal_block_t *block;
 
-				if (aal_block_init(&block, place->con.device,
-						   secsize, sec))
-				{
-					return -ENOMEM;
-				}
-
-				/* Reading one device block (sector) */
-				if (aal_block_read(&block)) {
-					aal_block_fini(&block);
-					return -EIO;
-				}
-				
 				/* Calculating data chunk to be copied */
 				seclocal = (blklocal % secsize);
 				
 				if ((secchunk = secsize - seclocal) > blkchunk)
 					secchunk = blkchunk;
 
+				/* Reading one sector */
+				if (!(block = aal_block_load(extent40_device(place),
+							     secsize, sec)))
+				{
+					return -EIO;
+				}
+
 				/* Copy data to passed buffer */
-				aal_memcpy(buff, block.data + seclocal,
+				aal_memcpy(buff, block->data + seclocal,
 					   secchunk);
 				
-				aal_block_fini(&block);
+				aal_block_free(block);
 
 				if ((seclocal + secchunk) % secsize == 0)
 					sec++;
@@ -379,7 +374,7 @@ static errno_t extent40_insert(place_t *place,
 
 		/* Setting up data block */
 		if (!(block = core->tree_ops.get_data(hint->tree, &key))) {
-			if (!(block = aal_block_alloc(place->con.device,
+			if (!(block = aal_block_alloc(extent40_device(place),
 						      blksize, 0)))
 			{
 				return -ENOMEM;

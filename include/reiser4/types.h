@@ -75,13 +75,13 @@ typedef struct reiser4_place reiser4_place_t;
 
 struct reiser4_place {
 	reiser4_node_t *node;
+	aal_block_t *block;
 	reiser4_plug_t *plug;
 
 	pos_t pos;
 	body_t *body;
 	uint32_t len;
 	key_entity_t key;
-	place_context_t con;
 };
 
 enum node_flags {

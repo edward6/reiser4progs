@@ -227,23 +227,15 @@ struct node_entity {
 
 typedef struct node_entity node_entity_t;
 
-struct place_context {
-	blk_t blk;
-	uint32_t blksize;
- 	aal_device_t *device; 
-};
-
-typedef struct place_context place_context_t;
-
 struct place {
-	node_entity_t *node;
+	void *node;
+	aal_block_t *block;
 	reiser4_plug_t *plug;
 
 	pos_t pos;
 	body_t *body;
 	uint32_t len;
 	key_entity_t key;
-	place_context_t con;
 };
 
 typedef struct place place_t;
