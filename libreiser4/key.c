@@ -13,7 +13,7 @@
 
 static errno_t callback_guess_key(
 	reiser4_plugin_t *plugin,	    /* plugin to be checked */
-	void *data)			    /* item ot be checked */
+	void *data)			    /* item to be checked */
 {
 	if (plugin->h.type != KEY_PLUGIN_TYPE)
 		return 0;
@@ -35,7 +35,7 @@ errno_t reiser4_key_guess(reiser4_key_t *key) {
 }
 
 /* 
-   Compares two keys in plugin independent maner by means of using one of passed
+   Compares two keys in plugin independent manner by means of using one of passed
    keys plugin.
 */
 int reiser4_key_compare(
