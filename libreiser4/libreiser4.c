@@ -101,8 +101,10 @@ static errno_t tree_next(
 	if (p->pos.item >= reiser4_node_items(p->node) - 1) {
 		reiser4_tree_neigh(t, p->node, D_RIGHT);
 
-		if (!p->node->right)
-			return -EINVAL;
+		if (!p->node->right) {
+			aal_memset(next, 0, sizeof(*next));
+			return 0;
+		}
 
 		reiser4_place_assign((reiser4_place_t *)next,
 				     p->node->right, 0, 0);

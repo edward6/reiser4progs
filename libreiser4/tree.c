@@ -1850,7 +1850,7 @@ errno_t reiser4_tree_down(
 				goto error_after_func;
 
 			if (!child)
-				continue;
+				goto update;
 
 			/* Traversing the node */
 			if ((res = reiser4_tree_down(tree, child, open_func, 
@@ -1860,6 +1860,7 @@ errno_t reiser4_tree_down(
 				goto error_after_func;
 			}
 			
+		update:	
 			if (update_func && (res = update_func(tree, &place, data)))
 				goto error_after_func;
 		}
