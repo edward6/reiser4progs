@@ -10,7 +10,9 @@ reiser4progs/COPYING.
   of start and calculate numberof blocks in cache.
 
 * remove hardcoded hash table sizes for formatted nodes and
-  unformatted ones.
+  unformatted ones. Probably it should depend on memory pressure nodes
+  limit in order to make hash collisions less and thus, to speedup
+  loaded nodes access.
 
 * fix bug with empty node in tree cache in tree.c if right move insert
   point is enabled in tree_expand().
