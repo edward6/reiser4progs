@@ -1391,8 +1391,8 @@ static errno_t reiser4_tree_compress_level(reiser4_tree_t *tree,
 
 	/* Loop until rightmost node is reached. */
 	while ((right = reiser4_tree_neig_node(tree, node, DIR_RIGHT))) {
-		reiser4_place_t bogus;
 		uint32_t flags;
+		reiser4_place_t bogus;
 
 		bogus.node = right;
 
@@ -1443,22 +1443,26 @@ static errno_t reiser4_tree_compress_level(reiser4_tree_t *tree,
 	return 0;
 }
 
+/* Makes tree compression to make tree more compact. It shifts items/units on
+   all levels to left starting from leaf level. This may be used by fsck to make
+   some additional space during reparing in some corner cases. For example, if
+   some tail conversion is performed and filesystem is near to be full, we can
+   run out of space and this function can releases something and in such a way
+   lets fsck finish its job. */
 errno_t reiser4_tree_compress(reiser4_tree_t *tree) {
 	errno_t res;
-	reiser4_node_t *node;
 	uint8_t level;
+	reiser4_node_t *node;
 
 	aal_assert("umka-3000", tree != NULL);
 
 	node = tree->root;
-	
+
+	/* Loop for getting to first node of leaf level. */
 	for (level = reiser4_tree_get_height(tree);
 	     level >= LEAF_LEVEL; level--)
 	{
 		reiser4_place_t place;
-
-		if ((res = reiser4_tree_compress_level(tree, node)))
-			return res;
 
 		/* Are we on internal level at all? */
 		if (level > LEAF_LEVEL) {
@@ -1474,6 +1478,20 @@ errno_t reiser4_tree_compress(reiser4_tree_t *tree) {
 				return -EINVAL;
 			}
 		}
+	}
+
+	/* Loop for packing a level starting from leftmost node on leaf
+	   level. */
+	for (level = LEAF_LEVEL;
+	     level < reiser4_tree_get_height(tree); level++)
+	{
+		reiser4_node_t *parent = node->p.node;
+		
+		if ((res = reiser4_tree_compress_level(tree, node)))
+			return res;
+		
+		if (!(node = parent))
+			break;
 	}
 
 	return 0;

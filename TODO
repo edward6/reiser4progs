@@ -6,9 +6,6 @@ reiser4progs/COPYING.
 * overview sources and eliminate all not needed differences between
   kernel code and progs.
 
-* fix tree_compress(). It should pack nodes starting from leaf level
-  and not the root node.
-
 * handle holes overwriting in extent write code.
 
 * find out how much tree cache size affects performance of tree
