@@ -75,7 +75,7 @@ int aal_list_foreach(aal_list_t *list, foreach_func_t func,
 {
 
 	if (!func)
-		return -1;
+		return -EINVAL;
 
 	while (list) {
 		int res;

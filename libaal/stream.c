@@ -51,7 +51,7 @@ static errno_t aal_stream_grow(aal_stream_t *stream, int size) {
 		stream->size = stream->offset + size + 1;
 
 		if (aal_realloc((void **)&stream->data, stream->size))
-			return -1;
+			return -ENOMEM;
 	}
 
 	return 0;

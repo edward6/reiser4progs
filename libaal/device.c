@@ -120,7 +120,7 @@ errno_t aal_device_write(
 	aal_assert("umka-434", device != NULL);
 	aal_assert("umka-435", buff != NULL);
 	
-	aal_device_check_routine(device, write, return -1);
+	aal_device_check_routine(device, write, return -EINVAL);
 	return device->ops->write(device, buff, block, count);
 }
 
@@ -134,7 +134,7 @@ errno_t aal_device_sync(
 {
 	aal_assert("umka-436", device != NULL);
     
-	aal_device_check_routine(device, sync, return -1);
+	aal_device_check_routine(device, sync, return -EINVAL);
 	return device->ops->sync(device);
 }
 
@@ -212,13 +212,15 @@ errno_t aal_device_set_bs(
 
 #ifndef ENABLE_STAND_ALONE
 	if (!aal_pow_of_two(blocksize)) {
-		aal_exception_error("Block size %u isn't power of two.", blocksize);
-		return -1;
+		aal_exception_error("Block size %u isn't power "
+				    "of two.", blocksize);
+		return -EINVAL;
 	}	
     
 	if (blocksize < 512) {
-		aal_exception_error("Block size can't be less than 512 bytes.");
-		return -1;
+		aal_exception_error("Block size can't be less "
+				    "than 512 bytes.");
+		return -EINVAL;
 	}	
 #endif
 	
@@ -239,7 +241,7 @@ errno_t aal_device_read(
 {
 	aal_assert("umka-433", device != NULL);
 
-	aal_device_check_routine(device, read, return -1);
+	aal_device_check_routine(device, read, return -EINVAL);
 	return device->ops->read(device, buff, block, count);
 }
 

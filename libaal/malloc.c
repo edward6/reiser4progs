@@ -282,10 +282,10 @@ errno_t aal_realloc(
 	void *mem;
 
 	if (!realloc_handler)
-		return -1;
+		return -EINVAL;
 
 	if (!(mem = (void *)realloc_handler(*old, size)))
-		return -1;
+		return -ENOMEM;
     
 	*old = mem;
 	return 0;

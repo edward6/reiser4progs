@@ -49,17 +49,17 @@ errno_t file_open(
 	char *filename;
 
 	if (!device)
-		return -1;
+		return -EINVAL;
 	
 	if (!person || aal_strlen((char *)person) == 0) 
-		return -1;
+		return -EINVAL;
     
 	/*
 	  Initializing device entity (file descripror in the case of file
 	  device).
 	*/
 	if (!(device->entity = aal_calloc(sizeof(int), 0)))
-		return -1;
+		return -ENOMEM;
 
 	/* Opening specified file with specified flags */
 	filename = (char *)person;
@@ -80,8 +80,7 @@ errno_t file_open(
     
  error_free_entity:
 	aal_free(device->entity);
- error:
-	return -1;    
+	return -EINVAL;
 }
 
 /* 
@@ -113,7 +112,7 @@ static errno_t file_read(
 	off_t off, len;
 	
 	if (!device || !buff)
-		return -1;
+		return -EINVAL;
     
 	/* 
 	   Positioning inside file. As configure script defines
@@ -121,6 +120,7 @@ static errno_t file_read(
 	   be mapped into lseek64 one.
 	*/
 	off = (off_t)block * (off_t)device->blocksize;
+	
 	if (lseek(*((int *)device->entity), off, SEEK_SET) == (off_t)-1) {
 		file_error(device);
 		return errno;
@@ -128,6 +128,7 @@ static errno_t file_read(
 
 	/* Reading data form file */
 	len = (off_t)count * (off_t)device->blocksize;
+	
 	if (read(*((int *)device->entity), buff, len) <= 0) {
 		file_error(device);
 		return errno;
@@ -149,10 +150,11 @@ static errno_t file_write(
 	off_t off, len;
 	
 	if (!device || !buff)
-		return -1;
+		return -EINVAL;
 	
 	/* Positioning inside file */
 	off = (off_t)block * (off_t)device->blocksize;
+	
 	if (lseek(*((int *)device->entity), off, SEEK_SET) == (off_t)-1) {
 		file_error(device);
 		return errno;
@@ -160,6 +162,7 @@ static errno_t file_write(
     
 	/* Writing into file */
 	len = (off_t)count * (off_t)device->blocksize;
+	
 	if (write((*(int *)device->entity), buff, len) <= 0) {
 		file_error(device);
 		return errno;
@@ -176,7 +179,7 @@ static errno_t file_sync(
 	aal_device_t *device)	    /* file device to be synchronized */
 {
 	if (!device) 
-		return -1;
+		return -EINVAL;
 	
 	/*
 	  As this is file device, we are using fsync function for synchronizing

@@ -1024,7 +1024,7 @@ static errno_t direntry40_print(item_entity_t *item,
 		objectid = ob40_get_objectid(objid);
 		
 		namewidth = 20 > aal_strlen(name) ? 20 -
-			aal_strlen(name) : 0;
+			aal_strlen(name) + 1 : 1;
 
 		aal_stream_format(stream, "%*d %s%*s %*u %.16llx:%.16llx "
 				  "[ %.7llx:%.7llx ]\n", 3, i, name, namewidth, "", 6,

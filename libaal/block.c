@@ -89,11 +89,13 @@ errno_t aal_block_reopen(
 	aal_device_t *device,	/* device, new block should be reread from */
 	blk_t blk)	        /* block number for rereading */
 {
+	errno_t res;
+	
 	aal_assert("umka-631", block != NULL);
 	aal_assert("umka-632", device != NULL);
 
-	if (aal_device_read(device, block->data, blk, 1))
-		return -1;
+	if ((res = aal_device_read(device, block->data, blk, 1)))
+		return res;
 
 	aal_block_relocate(block, blk);
 	block->device = device;
