@@ -299,8 +299,8 @@ static errno_t direntry40_print(item_entity_t *item, char *buff,
 		objectid = *((uint64_t *)((void *)direntry + entry->offset +
 					  sizeof(uint64_t)));
 
-		aux_strncat(buff, n, "(%i)\t\t\"%s\"\t0x%llx:0x%llx\t0x%llx:0x%llx\n",
-			    i, name, objid, offset, locality, objectid);
+		aux_strncat(buff, n, "\"%s\"\t0x%llx:0x%llx\t0x%llx:0x%llx\n",
+			    name, objid, offset, locality, objectid);
 	}
 
 	return 0;

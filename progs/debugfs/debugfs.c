@@ -49,7 +49,7 @@ static void debugfs_print_usage(char *name) {
 		"                                 block device or mounted partition.\n"
 		"Print options:\n"
 		"  -i | --print-items             forces debugfs.reiser4 to print items\n"
-		"                                 content\n"
+		"                                 content if --print-tree is specified\n"
 		"  -t | --print-tree              prints the whole tree (default).\n"
 		"  -j | --print-journal           prints journal.\n"
 		"  -s | --print-super             prints the both super blocks.\n"
@@ -82,9 +82,7 @@ static errno_t debugfs_open_joint(
 	reiser4_joint_t **joint,    /* joint to be opened */
 	blk_t blk, void *data)	    /* blk to pe opened and user-specified data */
 {
-	struct print_tree_hint *hint = (struct print_tree_hint *)data;
-	
-	*joint = reiser4_tree_load(hint->tree, blk);
+	*joint = reiser4_tree_load(((struct print_tree_hint *)data)->tree, blk);
 	return -(*joint == NULL);
 }
 
@@ -92,12 +90,14 @@ static errno_t debugfs_print_joint(
 	reiser4_joint_t *joint,	   /* joint to be printed */
 	void *data)		   /* user-specified data */
 {
+	uint8_t level;
 	char buff[8192];
 	
 	reiser4_node_t *node = joint->node;
 	struct print_tree_hint *hint = (struct print_tree_hint *)data;
-	uint8_t level = plugin_call(return -1, node->entity->plugin->node_ops,
-				    get_level, node->entity);
+
+	level = plugin_call(return -1, node->entity->plugin->node_ops,
+			    get_level, node->entity);
 
 	printf("%s NODE (%llu) contains level=%u, items=%u, space=%u\n", 
 	       level > LEAF_LEVEL ? "TWIG" : "LEAF", aal_block_number(node->block),
@@ -231,7 +231,6 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 #endif
 
 	printf("\n");
-    
 	return 0;
 }
 
@@ -288,13 +287,99 @@ static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 
 	return 0;
 }
-   
+
 static errno_t debugfs_print_journal(reiser4_fs_t *fs) {
 	aal_exception_error("Sorry, journal print is not implemented yet!");
 	return 0;
 }
 
+struct total_frag_hint {
+	reiser4_tree_t *tree;
+	uint64_t curr, total, bad;
+};
+
+static errno_t debugfs_calc_joint(
+	reiser4_joint_t *joint,	   /* joint to be estimated */
+	void *data)		   /* user-specified data */
+{
+	uint32_t i, level;
+	reiser4_node_t *node = joint->node;
+	struct total_frag_hint *hint = (struct total_frag_hint *)data;
+
+	level = plugin_call(return -1, node->entity->plugin->node_ops,
+			    get_level, node->entity);
+
+	if (level <= LEAF_LEVEL)
+		return 0;
+	
+	for (i = 0; i < reiser4_node_count(node); i++) {
+		int64_t delta;
+		reiser4_coord_t coord;
+		reiser4_ptr_hint_t ptr;
+		reiser4_pos_t pos = {i, ~0ul};
+
+		aal_gauge_touch();
+		
+		if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
+			aal_exception_error("Can't open item %u in node %llu.", 
+					    pos.item, aal_block_number(node->block));
+			return -1;
+		}
+
+		if (plugin_call(continue, coord.entity.plugin->item_ops,
+				fetch, &coord.entity, 0, &ptr, 1))
+			return -1;
+
+		if (hint->curr == 0) {
+			hint->curr = ptr.ptr;
+			continue;
+		}
+
+		if (reiser4_item_nodeptr(&coord)) {
+			delta = hint->curr - ptr.ptr;
+
+			if (labs(delta) > 1)
+				hint->bad++;
+
+			hint->curr = ptr.ptr;
+		} else {
+			if (ptr.ptr == 0)
+				continue;
+			
+			delta = hint->curr - ptr.ptr;
+			
+			if (labs(delta) > 1)
+				hint->bad++;
+
+			hint->curr = ptr.ptr + ptr.width;
+		}
+		hint->total++;
+	}
+	
+	return 0;
+}
+
 static errno_t debugfs_total_fragmentation(reiser4_fs_t *fs) {
+	struct total_frag_hint total_frag_hint;
+	traverse_hint_t traverse_hint = {TO_FORWARD, LEAF_LEVEL};
+
+	aal_memset(&total_frag_hint, 0, sizeof(total_frag_hint));
+	
+	if (aal_gauge_create(GAUGE_INDICATOR, "Estimating fragmentation",
+			     progs_gauge_handler, NULL))
+		return -1;
+	
+	total_frag_hint.tree = fs->tree;
+
+	aal_gauge_start();
+	
+	reiser4_joint_traverse(fs->tree->root, &traverse_hint, (void *)&total_frag_hint,
+			       debugfs_open_joint, debugfs_calc_joint, NULL, NULL, NULL, NULL);
+
+	aal_gauge_free();
+
+	printf("%.2f\n", 1 - (double)total_frag_hint.bad / total_frag_hint.total);
+	
 	return 0;
 };
 
@@ -328,9 +413,9 @@ int main(int argc, char *argv[]) {
 		{"quiet", no_argument, NULL, 'q'},
 		{0, 0, 0, 0}
 	};
-    
+
 	debugfs_init();
-    
+
 	progs_print_banner(argv[0]);
     
 	if (argc < 2) {
@@ -475,6 +560,7 @@ int main(int argc, char *argv[]) {
 	if (total_fragmentation) {
 		if (debugfs_total_fragmentation(fs))
 			goto error_free_fs;
+		flags = 0;
 	}
 	
 	if (flags & PF_SUPER) {

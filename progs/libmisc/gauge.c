@@ -65,10 +65,9 @@ void progs_gauge_handler(aal_gauge_t *gauge) {
 			fputc('\b', stderr);
 		break;
 	}
-	case GAUGE_INDICATOR: {
+	case GAUGE_INDICATOR:
 		progs_gauge_blit();
 		break;
-	}
 	case GAUGE_SILENT: break;
 	}
 
