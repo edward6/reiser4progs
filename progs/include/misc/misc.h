@@ -56,7 +56,7 @@
 #include "version.h"
 #include "ui.h"
 
-#define INVAL_DIG (0x7fffffffffffffff)
+#define INVAL_DIG (0x7fffffff)
 
 extern long long progs_size2long(const char *str);
 extern long long progs_str2long(const char *str, int base);

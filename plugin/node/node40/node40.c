@@ -1777,7 +1777,7 @@ static reiser4_plugin_t node40_plugin = {
 			.type = NODE_PLUGIN_TYPE,
 			.label = "node40",
 #ifndef ENABLE_STAND_ALONE
-			.desc = "Node for reiser4, ver. " VERSION
+			.desc = "Node plugin for reiser4, ver. " VERSION
 #else
 			.desc = ""
 #endif

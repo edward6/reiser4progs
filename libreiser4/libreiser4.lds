@@ -138,14 +138,6 @@ SECTIONS
     *(.gnu.warning)
     *(.gnu.linkonce.t.*)
   } =0x90909090
-  
-  /* Plugins entry points segment */
-  __plugin_start = .;
-  .plugins : {
-    *(.plugins) 
-  } = 0x90909090
-  __plugin_end = .;
-  
   .fini      :
   {
     KEEP (*(.fini))
@@ -196,6 +188,12 @@ SECTIONS
     KEEP (*(SORT(.dtors.*)))
     KEEP (*(.dtors))
   }
+  /* Plugins entry points segment */
+  __plugin_start = .;
+  .plugins : {
+    *(.plugins) 
+  }
+  __plugin_end = .;
   .jcr : { KEEP (*(.jcr)) }
   .got		  : { *(.got.plt) *(.got) }
   .sdata2   : { *(.sdata2) *(.sdata2.*) *(.gnu.linkonce.s2.*) }
@@ -239,6 +237,8 @@ SECTIONS
   . = ALIGN(32 / 8);
   _end = .;
   PROVIDE (end = .);
+
+  
   /* Stabs debugging sections.  */
   .stab 0 : { *(.stab) }
   .stabstr 0 : { *(.stabstr) }

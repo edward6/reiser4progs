@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
 	char uuid[17], label[17];
 	mkfs_behav_flags_t flags = 0;
 	count_t fs_len = 0, dev_len = 0;
-	uint16_t blocksize = REISER4_BLKSIZE;
+	uint32_t blocksize = REISER4_BLKSIZE;
 
 	char *host_dev, *profile_label = "smart40";
     
@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
 			return NO_ERROR;
 		case 'b':
 			/* Parsing blocksize */
-			if ((blocksize = (uint16_t)progs_str2long(optarg, 10)) == INVAL_DIG) {
+			if ((blocksize = progs_str2long(optarg, 10)) == INVAL_DIG) {
 				aal_exception_error("Invalid blocksize (%s).", optarg);
 				return USER_ERROR;
 			}
