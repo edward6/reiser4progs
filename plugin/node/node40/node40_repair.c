@@ -15,23 +15,20 @@
 #include "repair/repair_plugins.h"
 
 #define INVALID_U16	0xffff
+#define MIN_ITEM_LEN	1
+
+typedef enum {
+    /* Item count in node header is wrong. */
+    BLKH_COUNT	= (1 << 0),
+    /* Free space in node header is wrong. */
+    BLKH_FS	= (1 << 1),
+    /* Free space start in node header is wrong. */
+    BLKH_FSS	= (1 << 2)    
+} node40_error_t;
 
 extern errno_t node40_remove(object_entity_t *entity, rpos_t *pos, uint32_t count);
-extern uint16_t node40_items(object_entity_t *entity);
 
-static uint16_t node40_get_offset_at(object_entity_t *entity, int pos) {
-    node40_t *node = (node40_t *)entity;
-    
-    if (pos > nh40_get_num_items(node))
-	return 0;
-    
-    return nh40_get_num_items(node) == pos ? nh40_get_free_space_start(node) :
-	ih40_get_offset(node40_ih_at(node, pos));
-}
-
-static void node40_set_offset_at(object_entity_t *entity, int pos, uint16_t offset) {
-    node40_t *node = (node40_t *)entity;
-    
+static void node40_set_offset_at(node40_t *node, int pos, uint16_t offset) {
     if (pos > nh40_get_num_items(node))
 	return;
     
@@ -41,188 +38,303 @@ static void node40_set_offset_at(object_entity_t *entity, int pos, uint16_t offs
 	ih40_set_offset(node40_ih_at(node, pos), offset);
 }
 
-static errno_t node40_region_delete(object_entity_t *entity,
-    uint16_t start_pos, uint16_t end_pos) 
+static errno_t node40_region_delete(node40_t *node, uint16_t start_pos, 
+    uint16_t end_pos) 
 {
-    int i;
+    uint8_t i;
     rpos_t pos;
     item40_header_t *ih;
-    node40_t *node = (node40_t *)entity;
      
     aal_assert("vpf-201", node != NULL);
     aal_assert("vpf-202", node->block != NULL);
     aal_assert("vpf-213", start_pos <= end_pos);
-    aal_assert("vpf-214", end_pos <= node40_items(entity));
+    aal_assert("vpf-214", end_pos <= nh40_get_num_items(node));
     
     ih = node40_ih_at(node, start_pos);
-    for (i = start_pos; i <= end_pos; i++, ih--) {
-	if (i != end_pos || i == node40_items(entity)) 
-	    node40_set_offset_at(entity, i, ih40_get_offset(ih + 1) + 1);	
-    }
-
-    /*
-      FIXME-UMKA->VITALY: Here can be used node40_remove with right count
-      parameter, or node40_cut.
-    */
+    for (i = start_pos; i < end_pos; i++, ih--)
+	ih40_set_offset(ih, ih40_get_offset(ih + 1) + 1);
+    
     pos.unit = ~0ul;
     pos.item = start_pos - 1;
-    for (i = start_pos - 1; i < end_pos; i++) {
-	if (node40_remove(entity, &pos, 1)) {
-	    aal_exception_bug("Node (%llu): Failed to delete the item (%d) "
-		"of a region (%d-%d).", aal_block_number(node->block), 
-		i - start_pos + 1, start_pos, end_pos);
-	    return -1;
-	}
+    
+    if(node40_remove((object_entity_t *)node, &pos, end_pos - pos.item)) {
+	aal_exception_bug("Node (%llu): Failed to delete the item (%d) of a "
+	    "region [%u..%u].", aal_block_number(node->block), i - pos.item,
+	    start_pos, end_pos);
+	return -1;
     }
     
     return 0;    
 }
 
-/* 
-    Checks the set of items within the node. Delete item with wrong offsets, fix free space,
-    free space start.
-*/
-static errno_t node40_item_array_check(object_entity_t *entity, uint8_t mode) {
-    node40_t *node = (node40_t *)entity;
-    int64_t start_pos, end_pos;
-    uint64_t offset, r_limit;
-    int i, l_pos;
-    blk_t blk;
+static bool_t node40_item_count_valid(uint32_t blk_size, uint32_t count) {
+    if ((blk_size - sizeof(node40_header_t)) / (sizeof(item40_header_t) +
+	MIN_ITEM_LEN) < count)
+	return 0;
+
+    return 1;
+}
+
+static uint32_t node40_count_estimate(node40_t *node) {
+    uint32_t num, blk_size;
+    
+    aal_assert("vpf-804", node != NULL);
+    aal_assert("vpf-806", node->block != NULL);
+    
+    blk_size = aal_block_size(node->block);
+    
+    /* F_S_S is less then node_header + MIN_ITEM_LEN. */
+    if (sizeof(node40_header_t) + MIN_ITEM_LEN > 
+	nh40_get_free_space_start(node))
+	return 0;
+
+    /* F_S_S is greater then the first item  */
+    if (blk_size - sizeof(item40_header_t) < nh40_get_free_space_start(node))
+	return 0;
+
+    /* F_S + node_h + 1 item_h + 1 MIN_ITEM_LEN should be less them blksize. */
+    if (nh40_get_free_space(node) > blk_size - sizeof(node40_header_t) - 
+	sizeof(item40_header_t) - MIN_ITEM_LEN)
+	return 0;
+
+    num = nh40_get_free_space_start(node) + nh40_get_free_space(node);
+	
+    /* F_S_S + F_S > first item header offset. */
+    if (num > blk_size - sizeof(item40_header_t))
+	return 0;
+    
+    num = blk_size - num;
+	
+    /* Between F_S end and end of block should be exact number of ih40_t. */
+    if (num % sizeof(item40_header_t))
+	return 0;
+	
+    num /= sizeof(item40_header_t);
+    
+    if (!node40_item_count_valid(blk_size, num))
+	return 0;
+
+    return num;
+}
+
+/* Count of items is correct. Free space fields and item locations should be 
+ * checked/recovered if broken. */
+static errno_t node40_item_array_check(node40_t *node, uint8_t mode) {
+    uint32_t limit, offset, last_relable, count, i, last_pos;
     errno_t res = REPAIR_OK;
+    bool_t free_valid;
+    blk_t blk;
     
     aal_assert("vpf-208", node != NULL);
     aal_assert("vpf-209", node->block != NULL);
 
     blk = aal_block_number(node->block);
     
-    /* First item offset must be at node40_header bytes. */
-    if (node40_get_offset_at(entity, 0) != sizeof(node40_header_t)) {
-	aal_exception_error("Node (%llu): item (0) has a wrong offset (%u), "
-	    "Should be (%u). %s", blk, node40_get_offset_at(entity, 0), 
-	    sizeof(node40_header_t), mode == REPAIR_CHECK ? "" : "Fixed.");
-
-	/* Node will not be synced on disk, fix it for further checks only. */
-	node40_set_offset_at(entity, 0, sizeof(node40_header_t));	
-	
-	res |= mode != REPAIR_CHECK ? REPAIR_FIXED : REPAIR_FIXABLE;
-    }
-
-    /* Rigth limit for offsets is at item40_headers count from the end of block. */
-    r_limit = node40_free_space_end(node);
-
-    /* Start of free space must be between node40_header and r_limit */
-    if (nh40_get_free_space_start(node) < sizeof(node40_header_t) || 
-	nh40_get_free_space_start(node) > r_limit)
-    {
-	aal_exception_error("Node (%llu): the start of the free space (%u) "
-	    "is invalid.", blk, nh40_get_free_space_start(node));
-	nh40_set_free_space_start(node, INVALID_U16);
-
-	res |= mode != REPAIR_CHECK ? REPAIR_FIXED : REPAIR_FIXABLE;
-    }
-
-    /* Free space cannot be more then r_limit - node40_header */
-    if (nh40_get_free_space(node) + sizeof(node40_header_t) > r_limit) {
-	aal_exception_error("Node (%llu): the free space (%u) is invalid.", 
-	    blk, nh40_get_free_space(node));
-	nh40_set_free_space(node, INVALID_U16);
-
-	res |= mode != REPAIR_CHECK ? REPAIR_FIXED : REPAIR_FIXABLE;
-    }
+    /* Free space fields cossider as valid if count calculated on the base of 
+     * it matches the count ofrm the node_header. */
+    count = nh40_get_num_items(node);
     
-    /* If free_space_start + free_space == r_limit => free_space_start is 
-     * relable. */
-    if ((uint64_t)nh40_get_free_space(node) + nh40_get_free_space_start(node) == r_limit) {
-	r_limit = nh40_get_free_space_start(node);
-    } else if (nh40_get_free_space(node) != INVALID_U16 && 
-	     nh40_get_free_space_start(node) != INVALID_U16)
-    {
-	/* Cannot rely on neither free_space nor free_space_start. */
-	aal_exception_error("Node (%llu): the start of the free space (%u) "
-	    " + free space (%u) is not equal to rigth offset limit (%u).", 
-	    blk, nh40_get_free_space_start(node), nh40_get_free_space(node), 
-	    r_limit);
-	nh40_set_free_space(node, INVALID_U16);
-	nh40_set_free_space_start(node, INVALID_U16);
-    }
- 
-    l_pos = 0;
-    for(i = 1; i <= node40_items(entity); i++) {
-	offset = node40_get_offset_at(entity, i);
+    free_valid = (node40_count_estimate(node) == count);
+    
+    limit = free_valid ? nh40_get_free_space_start(node) : 
+	aal_block_size(node->block) - count * sizeof(item40_header_t);
+    
+    last_pos = 0;
+    last_relable = sizeof(node40_header_t);
+    for(i = 0; i <= count; i++) {
+	offset = (i == count) ? nh40_get_free_space_start(node) : 
+	    ih40_get_offset(node40_ih_at(node, i));
+	
+	if (i == 0) {
+	    if (offset != last_relable) {
+		aal_exception_error("Node (%llu), item (0): Offset (%u) is "
+		    "wrong. Should be (%u). %s", blk, offset, last_relable, 
+		    mode == REPAIR_REBUILD ? "Fixed." : "");
 
-	if (offset == INVALID_U16)
+		if (mode == REPAIR_REBUILD) {
+		    ih40_set_offset(node40_ih_at(node, 0), last_relable);
+		    res |= REPAIR_FIXED;
+		} else {
+		    res |= REPAIR_FATAL;
+		}
+	    }
 	    continue;
-    	    
-	/* Check if the item offset is invalid. */
-	if (offset < sizeof(node40_header_t) || offset > r_limit) {
-	    aal_exception_error("Node (%llu): the offset (%u) of the item"
-		" (%d) is invalid.", blk, offset, i);
-
-	    node40_set_offset_at(entity, i, INVALID_U16);
+	}
+		
+	if (offset < last_relable + (i - last_pos) * MIN_ITEM_LEN || 
+	    offset + (count - i) * MIN_ITEM_LEN > limit) 
+	{
+	    aal_exception_error("Node (%llu), item (%u): Offset (%u) is wrong.", 
+		blk, i, offset);
 	} else {
-	    /* Offset is not INVALID_U16 */
-	    if (node40_get_offset_at(entity, l_pos) > offset)
-		/* Both offsets are in the valid interval and not in increasing 
-		 * order. Not recoverable. */
-		return -1;
-	    if (l_pos != i - 1) {
+	    if ((mode == REPAIR_REBUILD) && (last_pos != i - 1)) {
 		/* Some items are to be deleted. */
-		aal_exception_error("Node (%llu): items [%d-%d] are deleted due "
-		    "to unrecoverable offsets.", blk, l_pos, i - 1);
-		if (node40_region_delete(entity, l_pos + 1, i))
+		aal_exception_error("Node (%llu): Region of items [%d-%d] with "
+		    "wrong offsets is deleted.", blk, last_pos, i - 1);
+		limit -= (offset - last_relable);
+		count -= (i - last_pos);
+		if (node40_region_delete(node, last_pos + 1, i))
 		    return -1;
 		
-		i = l_pos;
+		i = last_pos;
+	    } else {	    
+		last_pos = i;
+		last_relable = (i == count) ?
+		    nh40_get_free_space_start(node) : 
+		    ih40_get_offset(node40_ih_at(node, i));
 	    }
-		
-	    l_pos = i;
 	}
     }
     
-    if (l_pos != node40_items(entity)) {	
-	/* There is a region at the end with broken offsets, 
-	 * free_space_start is also broken. */
-	offset = node40_get_offset_at(entity, l_pos);
-	if (node40_region_delete(entity, l_pos + 1, node40_items(entity)))
-	    return -1;
-	nh40_set_free_space_start(node, offset);
-	nh40_set_free_space(node, node40_free_space_end(node) - offset);
+    if (free_valid) {
+	aal_assert("vpf-807", node40_count_estimate(node) == count);
     }
-
-    return 0;
+    
+    /* Last relable position is not free space spart. Correct it. */
+    if (last_pos != count) {	
+	/* There is left region with broken offsets, remove it. */
+	aal_exception_error("Node (%llu): Free space start (%u) is wrong. "
+	    "Should be (%u). %s", blk, offset, last_relable, 
+	    mode == REPAIR_REBUILD ? "Fixed." : "");
+	
+	if (mode == REPAIR_REBUILD) {
+	    nh40_set_free_space(node, nh40_get_free_space(node) + offset - 
+		last_relable);	
+	    nh40_set_free_space_start(node, last_relable);
+	    res |= REPAIR_FIXED;
+	} else {
+	    res |= REPAIR_FATAL;
+	}
+    }
+    
+    last_relable = aal_block_size(node->block) - last_relable - 
+	sizeof(item40_header_t) * count;
+    
+    if (last_relable != nh40_get_free_space(node)) {
+	/* Free space is wrong. */
+	aal_exception_error("Node (%llu): the free space (%u) is wrong. Should "
+	    "be (%u). %s", blk, nh40_get_free_space(node), last_relable, 
+	    mode == REPAIR_CHECK ? "" : "Fixed.");
+	
+	if (mode == REPAIR_CHECK) {
+	    res |= REPAIR_FIXABLE;
+	} else {
+	    nh40_set_free_space(node, last_relable);
+	    res |= REPAIR_FIXED;
+	}
+    }
+ 
+    return res;
 }
 
-static errno_t node40_item_count_check(object_entity_t *entity, uint8_t mode) {
-    node40_t *node = (node40_t *)entity;
+static errno_t node40_item_array_find(node40_t *node, uint8_t mode) {
+    uint32_t offset, i, nr = 0;
+    errno_t res = REPAIR_OK;
+    blk_t blk;
+    
+    aal_assert("vpf-800", node != NULL);
 
-    aal_assert("vpf-199", node != NULL);
-    aal_assert("vpf-200", node->block != NULL);
-    aal_assert("vpf-247", node->block->device != NULL);
+    blk = aal_block_number(node->block);
+	
+    for (i = 0; ; i++) {
+	offset = ih40_get_offset(node40_ih_at(node, i));
+	if (i) {
+	    if (offset < sizeof(node40_header_t) + i * MIN_ITEM_LEN)
+		break;	
+	} else {
+	    if (offset != sizeof(node40_header_t))
+		return REPAIR_FATAL;
+	}
+	if (aal_block_size(node->block) - sizeof(item40_header_t) * (i + 1) -
+	    MIN_ITEM_LEN < offset)
+	    break;
+	
+	nr++;
+    }
 
-    if (node40_items(entity) > 
-	(aal_device_get_bs(node->block->device) - sizeof(node40_header_t)) / 
-	(sizeof(item40_header_t) + 1)) 
-    {
-	aal_exception_error("Node (%llu): number of items (%u) exceeds the "
-	    "limit.", aal_block_number(node->block), node40_items(entity));
+    /* Only nr - 1 item can be recovered as F_S_S is unknown. */
+    if (nr <= 1)
+	return REPAIR_FATAL;
+    
+    if (--nr != nh40_get_num_items(node)) {
+	aal_exception_error("Node (%llu): Count of items (%u) is wrong. Found "
+	    "only (%u) items. %s", blk, nh40_get_num_items(node), nr, 
+	    mode == REPAIR_REBUILD ? "Fixed." : "");
+
+	if (mode == REPAIR_REBUILD) {
+	    nh40_set_num_items(node, nr);
+	    res = REPAIR_FIXED;
+	} else
+	    return REPAIR_FATAL;
+    }
+    
+    offset = ih40_get_offset(node40_ih_at(node, nr + 1));
+    if (offset != nh40_get_free_space_start(node)) {
+	aal_exception_error("Node (%llu): Free space start (%u) is wrong. (%u) "
+	    "looks correct. %s", blk, nh40_get_free_space_start(node), offset, 
+	    mode == REPAIR_CHECK ? "" : "Fixed.");
+	
+	if (mode != REPAIR_CHECK) {
+	    nh40_set_free_space_start(node, offset);
+	    res |= REPAIR_FIXED;
+	} else
+	    return REPAIR_FIXABLE;
+    }
+    
+    offset = aal_block_size(node->block) - offset - nr * sizeof(item40_header_t);
+
+    if (offset != nh40_get_free_space_start(node)) {
+	aal_exception_error("Node (%llu): Free space (%u) is wrong. Should be "
+	    "(%u). %s", blk, nh40_get_free_space(node), offset, 
+	    mode == REPAIR_CHECK ? "" : "Fixed.");
+	
+	if (mode != REPAIR_CHECK) {
+	    nh40_set_free_space(node, offset);
+	    res |= REPAIR_FIXED;
+	} else
+	    return REPAIR_FIXABLE;
+    }
+    
+    return res;
+}
+
+/* Checks the count of items written in node_header. If it is wrong, it tries
+ * to estimate it on the base of free_space fields and recover if REBUILD mode.
+ * Returns FATAL otherwise. */
+static errno_t node40_count_check(node40_t *node, uint8_t mode) {
+    uint32_t num;
+    blk_t blk;
+    
+    aal_assert("vpf-802", node != NULL);
+    aal_assert("vpf-803", node->block != NULL);
+
+    blk = aal_block_number(node->block);
+
+    if (node40_item_count_valid(aal_block_size(node->block), 
+	nh40_get_num_items(node)))
+	return REPAIR_OK;
+
+    /* Count is wrong. Try to recover it if possible. */
+    num = node40_count_estimate(node);
+    
+    /* Recover is impossible. */
+    if (num == 0) {
+	aal_exception_error("Node (%llu): Count of items (%u) is wrong.", 
+	    blk, nh40_get_num_items(node));
 	return REPAIR_FATAL;
     }
     
-    return REPAIR_OK;
-}
+    /* Recover is possible. */
+    aal_exception_error("Node (%llu): Count of items (%u) is wrong. (%u) looks "
+	"correct. %s", blk, nh40_get_num_items(node), num, 
+	mode == REPAIR_REBUILD ? "Fixed." : "");
 
-static errno_t node40_corrupt(object_entity_t *entity, uint16_t options) {
-    int i;
-    item40_header_t *ih;
-    node40_t *node = (node40_t *)entity;
-    
-    for(i = 0; i < node40_items(entity) + 1; i++) {
-	if (aal_test_bit(&options, i)) {
-	    node40_set_offset_at(entity, i, INVALID_U16);
-	}
+    if (mode == REPAIR_REBUILD) {
+	nh40_set_num_items(node,  num);
+	return REPAIR_FIXED;
     }
-
-    return 0;
+    
+    return REPAIR_FATAL;
 }
 
 errno_t node40_check(object_entity_t *entity, uint8_t mode) {
@@ -231,16 +343,34 @@ errno_t node40_check(object_entity_t *entity, uint8_t mode) {
     
     aal_assert("vpf-194", node != NULL);
  
-    /* Check the count of items */
-    res = node40_item_count_check(entity, mode);
+    /* Check the content of the node40 header. */
+    res = node40_count_check(node, mode);
+    
+    /* Count is wrong and not recoverable on the base of F_S + F_S_S. */
+    if (repair_error_exists(res)) {
+	if (mode != REPAIR_REBUILD)
+	    return res;
 
-    if (repair_error_fatal(res))
-	return res;
+	/* Recover count on the base of correct item array if one exists. */
+	return node40_item_array_find(node, mode);
+    }
+    
+    /* Count looks ok. Recover item array. */
+    return node40_item_array_check(node, mode);    
+}
 
-    /* Check the item array and free space. */
-    res |= node40_item_array_check(entity, mode);
+static errno_t node40_corrupt(object_entity_t *entity, uint16_t options) {
+    node40_t *node = (node40_t *)entity;
+    int i;
+    item40_header_t *ih;    
+    
+    for(i = 0; i < nh40_get_num_items(node) + 1; i++) {
+	if (aal_test_bit(&options, i)) {
+	    node40_set_offset_at(node, i, INVALID_U16);
+	}
+    }
 
-    return res;
+    return 0;
 }
 
 #endif
