@@ -6,13 +6,14 @@ reiser4progs/COPYING.
 * should we split reiser4_fs_create and reiser4_fs_open onto separate
   functions?
 
-* finish balancing code in node40 plugin.
+* shift method for item plugins.
 
 * --print-journal and --print-alloc options in debugfs.
 
 * FIBMAP ioctl implementation in reiser4
 
-* print_block method for format, journal and block allocator plugins.
+* something like print_block method for format, journal and block
+  allocator plugins.
 
 * improve lru list for storing different objects and move it to libaal
 
