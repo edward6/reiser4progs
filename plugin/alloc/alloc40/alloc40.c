@@ -452,8 +452,8 @@ static uint64_t alloc40_allocate(object_entity_t *entity,
 	aal_assert("umka-375", alloc->bitmap != NULL);
 
 	/* Calling bitmap for gettign free area from it */
-	found = aux_bitmap_find_region_cleared(alloc->bitmap,
-					       start, count);
+	found = aux_bitmap_find_region(alloc->bitmap,
+				       start, count, 0);
 
 	/*
 	  Marking the found region as occupied if its length more then zero.
@@ -527,15 +527,16 @@ static uint64_t alloc40_used(object_entity_t *entity) {
 
 /* Checks whether specified blocks are used */
 static int alloc40_occupied(object_entity_t *entity,
-			    uint64_t start, uint64_t count) 
+			    uint64_t start,
+			    uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
 	aal_assert("umka-663", alloc != NULL);
 	aal_assert("umka-664", alloc->bitmap != NULL);
 
-	return aux_bitmap_test_region_marked(alloc->bitmap,
-					     start, count);
+	return aux_bitmap_test_region(alloc->bitmap,
+				      start, count, 1);
 }
 
 /* Checks whether specified blocks are unused */
@@ -548,8 +549,8 @@ static int alloc40_available(object_entity_t *entity,
 	aal_assert("vpf-700", alloc != NULL);
 	aal_assert("vpf-701", alloc->bitmap != NULL);
 
-	return aux_bitmap_test_region_cleared(alloc->bitmap,
-					      start, count);
+	return aux_bitmap_test_region(alloc->bitmap,
+				      start, count, 0);
 }
 
 /*

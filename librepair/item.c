@@ -213,7 +213,7 @@ errno_t repair_item_ptr_unused(reiser4_place_t *place, aux_bitmap_t *bitmap) {
 	return 0;
 
     /* Check that ptr does not point any used block. */
-    if (!aux_bitmap_test_region_cleared(bitmap, ptr.ptr, ptr.width))
+    if (!aux_bitmap_test_region(bitmap, ptr.ptr, ptr.width, 0))
 	goto error;
 	
     return 0;
@@ -304,7 +304,7 @@ errno_t repair_item_ptr_unused(reiser4_place_t *place, aux_bitmap_t *bitmap) {
 	return 0;
 
     /* Check that ptr does not point any used block. */
-    if (!aux_bitmap_test_region_cleared(bitmap, ptr.ptr, ptr.width))
+    if (!aux_bitmap_test_region(bitmap, ptr.ptr, ptr.width, 0))
 	goto error;
 	
     return 0;

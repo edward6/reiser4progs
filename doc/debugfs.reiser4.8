@@ -19,7 +19,7 @@
 debugfs.reiser4 \- the program for debugging the reiser4 filesystem.
 .SH SYNOPSIS
 .B debugfs.reiser4
-debugfs.reiser4 [ options ] FILE1
+debugfs.reiser4 [ options ] FILE
 .SH DESCRIPTION
 .B debugfs.reiser4
 is reiser4 filesystem debug program. You can disscover the internal reiser4 filesystem 
@@ -66,41 +66,6 @@ prints the block allocator data.
 .TP
 .B -d, --print-oid-alloc
 prints the oid allocator data.
-.SH MEASUREMENT OPTIONS
-.TP
-.B -S, --tree-stat
-shows different tree statistics (node packing, internal nodes, leaves, etc)
-.TP
-.B -T, --tree-frag
-measures total tree fragmentation. The result is fragmentation factor
-- value from 0.00000 (minimal fragmentation) to 1.00000 (maximal one). Most
-probably, this factor may affect sequential read performance.
-.TP
-.B -D, --data-frag
-measures average files fragmentation. It means, that fragmentation of
-each file in filesystem will be measured separately and results will
-be avaraged. The result is fragmentation factor - value from 0.00000
-(minimal fragmentation) to 1.00000 (maximal one).
-.sp 1
-Note, that for the fresh filesystem (created not very long time ago)
-and even fully filled by data, this value will be pretty small.
-.TP
-.B -F, --file-frag FILE
-measures fragmentation of the specified file. The result is
-fragmentation factor - value from 0.00000 (minimal fragmentation) to
-1.00000 (maximal one). Note, that fragmentation of a small file
-(depends of used tail policy), which consists of tail items, is not
-very reliable value. That is because, they is always afoot due to
-balancing.
-.sp 1
-Examples:
-.sp 1
-debugfs.reiser4 -F /usr/bin /dev/hda2
-.br
-debugfs.reiser4 -F /bin/bash /dev/hda2
-.TP
-.B -p, --show-each
-show file fragmentation for each file if --data-frag is specified.
 .SH PLUGIN OPTIONS
 .TP
 .B -e, --profile PROFILE

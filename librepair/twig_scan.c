@@ -38,7 +38,7 @@ static errno_t callback_item_region_check(void *object, blk_t start,
     if (!start)
 	return 0;
 
-    res = aux_bitmap_test_region_cleared(ts->bm_met, start, count);
+    res = aux_bitmap_test_region(ts->bm_met, start, count, 0);
 
     /* Pointed region is used already. */
     if (res == 0) {

@@ -123,7 +123,7 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
     /* The validness of this node pointer must be checked at node_check time. */
     if (ptr.start < fd->bm_used->total && ptr.width < fd->bm_used->total &&
 	ptr.start < fd->bm_used->total - ptr.width && 
-	aux_bitmap_test_region_cleared(fd->bm_used, ptr.start, ptr.width))
+	aux_bitmap_test_region(fd->bm_used, ptr.start, ptr.width, 0))
     {
 	aux_bitmap_mark_region(fd->bm_used, ptr.start, ptr.width);
     } else {
