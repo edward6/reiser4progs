@@ -2379,7 +2379,7 @@ static errno_t callback_prep_insert(place_t *place,
 	aal_assert("umka-2440", hint != NULL);
 	aal_assert("umka-2439", place != NULL);
 
-	hint->ohd = 0;
+	hint->overhead = 0;
 	hint->len = 0;
 
 	return plug_call(hint->plug->o.item_ops->object,
@@ -2393,7 +2393,7 @@ static errno_t callback_prep_write(place_t *place,
 	aal_assert("umka-2440", hint != NULL);
 	aal_assert("umka-2439", place != NULL);
 
-	hint->ohd = 0;
+	hint->overhead = 0;
 	hint->len = 0;
 
 	return plug_call(hint->plug->o.item_ops->object,
@@ -2497,7 +2497,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 		return res;
 	
 	/* Needed space to be prepared in tree */
-	needed = hint->len + hint->ohd;
+	needed = hint->len + hint->overhead;
 	mode = (place->pos.unit == MAX_UINT32);
 
 	/* Preparing space in tree. */

@@ -71,7 +71,7 @@ static errno_t nodeptr40_prep_insert(place_t *place,
 	aal_assert("vpf-068", hint != NULL);
 	aal_assert("umka-2436", place != NULL);
 
-	hint->ohd = 0;
+	hint->overhead = 0;
 	hint->len = sizeof(nodeptr40_t);
 	
 	return 0;
@@ -120,45 +120,45 @@ static errno_t nodeptr40_print(place_t *place,
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.fuse             = NULL,
-	.prep_shift       = NULL,
-	.shift_units      = NULL,
-	.maxreal_key      = NULL,
+	.fuse		  = NULL,
+	.prep_shift	  = NULL,
+	.shift_units	  = NULL,
+	.maxreal_key	  = NULL,
 	.update_key	  = NULL,
-	.mergeable        = NULL,
+	.mergeable	  = NULL,
 #endif
-	.lookup           = NULL,
+	.lookup		  = NULL,
 	.fetch_key	  = NULL,
 	.maxposs_key	  = NULL,
-	.units            = nodeptr40_units
+
+	.units		  = nodeptr40_units
 };
 
 static item_object_ops_t object_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.layout           = nodeptr40_layout,
-	.prep_insert      = nodeptr40_prep_insert,
-	.insert_units     = nodeptr40_insert_units,
+	.layout		  = nodeptr40_layout,
+	.prep_insert	  = nodeptr40_prep_insert,
+	.insert_units	  = nodeptr40_insert_units,
 
-	.prep_write       = NULL,
-	.write_units      = NULL,
-	.update_units     = NULL,
-	.remove_units     = NULL,
-	.trunc_units      = NULL,
+	.prep_write	  = NULL,
+	.write_units	  = NULL,
+	.update_units	  = NULL,
+	.remove_units	  = NULL,
+	.trunc_units	  = NULL,
 	.size		  = NULL,
 	.bytes		  = NULL,
 #endif
 	.object_plug	  = NULL,
-	.read_units       = NULL,
-	.fetch_units      = nodeptr40_fetch_units
+	.read_units	  = NULL,
+	.fetch_units	  = nodeptr40_fetch_units
 };
 
 static item_repair_ops_t repair_ops = {
 #ifndef ENABLE_STAND_ALONE	    
 	.check_struct	  = nodeptr40_check_struct,
 	.check_layout	  = nodeptr40_check_layout,
-	
 	.prep_merge	  = NULL,
-	.merge_units      = NULL,
+	.merge		  = NULL,
 #endif
 };
 
@@ -169,18 +169,18 @@ static item_debug_ops_t debug_ops = {
 };
 
 static item_tree_ops_t tree_ops = {
-	.down_link        = nodeptr40_down_link,
+	.down_link	  = nodeptr40_down_link,
 #ifndef ENABLE_STAND_ALONE
-	.update_link      = nodeptr40_update_link
+	.update_link	  = nodeptr40_update_link
 #endif
 };
 
 static reiser4_item_ops_t nodeptr40_ops = {
-	.tree             = &tree_ops,
-	.debug            = &debug_ops,
-	.object           = &object_ops,
-	.repair           = &repair_ops,
-	.balance          = &balance_ops
+	.tree		  = &tree_ops,
+	.debug		  = &debug_ops,
+	.object		  = &object_ops,
+	.repair		  = &repair_ops,
+	.balance	  = &balance_ops
 };
 
 static reiser4_plug_t nodeptr40_plug = {

@@ -85,13 +85,10 @@ uint32_t extent40_unit(place_t *place, uint64_t offset) {
                                                                                          
         extent = extent40_body(place);
                                                                                          
-        for (i = 0; i < extent40_units(place);
-             i++, extent++)
-        {
-                                                                                         
+        for (i = 0; i < extent40_units(place); i++, extent++) {
                 width += et40_get_width(extent) *
                         extent40_blksize(place);
-                                                                                         
+
                 if (offset < width)
                         return i;
         }
@@ -130,7 +127,7 @@ static errno_t extent40_remove_units(place_t *place,
 			return -EINVAL;
 	}
 
-	hint->ohd = 0;
+	hint->overhead = 0;
 	hint->len = sizeof(extent40_t);
 
 	place_mkdirty(place);
@@ -154,7 +151,7 @@ static int64_t extent40_trunc_units(place_t *place,
 	aal_assert("umka-2458", place != NULL);
 	aal_assert("umka-2461", hint != NULL);
 
-	hint->ohd = 0;
+	hint->overhead = 0;
 	hint->len = 0;
 	hint->bytes = 0;
 
@@ -680,7 +677,7 @@ static errno_t extent40_prep_insert(place_t *place,
 	aal_assert("umka-2426", place != NULL);
 	aal_assert("umka-2427", hint != NULL);
 
-	hint->len = (hint->count * sizeof(extent40_t));
+	hint->len = hint->count * sizeof(extent40_t);
 	return 0;
 }
 
@@ -1130,66 +1127,65 @@ static errno_t extent40_shift_units(place_t *src_place, place_t *dst_place,
 
 static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.fuse             = NULL,
-	.update_key       = NULL,
-	.mergeable        = extent40_mergeable,
-	.prep_shift       = extent40_prep_shift,
-	.shift_units      = extent40_shift_units,
-	.maxreal_key      = extent40_maxreal_key,
+	.fuse		  = NULL,
+	.update_key	  = NULL,
+	.mergeable	  = extent40_mergeable,
+	.prep_shift	  = extent40_prep_shift,
+	.shift_units	  = extent40_shift_units,
+	.maxreal_key	  = extent40_maxreal_key,
 #endif
-	.units            = extent40_units,
-	.lookup           = extent40_lookup,
-	.fetch_key        = extent40_fetch_key,
+	.units		  = extent40_units,
+	.lookup		  = extent40_lookup,
+	.fetch_key	  = extent40_fetch_key,
 	.maxposs_key      = extent40_maxposs_key
 };
 
 static item_object_ops_t object_ops = {
 	.object_plug	  = NULL,
-	
 #ifndef ENABLE_STAND_ALONE
-	.remove_units     = extent40_remove_units,
-	.update_units     = extent40_update_units,
-	.prep_insert      = extent40_prep_insert,
-	.insert_units     = extent40_insert_units,
-	.prep_write       = extent40_prep_write,
-	.write_units      = extent40_write_units,
-	.trunc_units      = extent40_trunc_units,
-	.layout           = extent40_layout,
+	.remove_units	  = extent40_remove_units,
+	.update_units	  = extent40_update_units,
+	.prep_insert	  = extent40_prep_insert,
+	.insert_units	  = extent40_insert_units,
+	.prep_write	  = extent40_prep_write,
+	.write_units	  = extent40_write_units,
+	.trunc_units	  = extent40_trunc_units,
+	.layout		  = extent40_layout,
 	.size		  = extent40_size,
 	.bytes		  = extent40_bytes,
 #endif
-	.read_units       = extent40_read_units,
-	.fetch_units      = extent40_fetch_units
+	.read_units	  = extent40_read_units,
+	.fetch_units	  = extent40_fetch_units
 };
 
 static item_repair_ops_t repair_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.prep_merge       = extent40_prep_merge,
-	.merge_units      = extent40_merge_units,
-	.check_layout     = extent40_check_layout,
-	.check_struct	  = extent40_check_struct
+	.check_layout	  = extent40_check_layout,
+	.check_struct	  = extent40_check_struct,
+	.prep_merge	  = extent40_prep_merge,
+	.merge		  = extent40_merge
 #endif
 };
 
 static item_debug_ops_t debug_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.print	          = extent40_print,
+	.print		  = extent40_print,
 #endif
 };
 
 static item_tree_ops_t tree_ops = {
-	.down_link        = NULL,
+	.down_link	  = NULL,
 #ifndef ENABLE_STAND_ALONE
-	.update_link      = NULL,
+	.update_link	  = NULL,
 #endif
 };
 
 static reiser4_item_ops_t extent40_ops = {
-	.tree          = &tree_ops,
-	.debug         = &debug_ops,
-	.object        = &object_ops,
-	.repair        = &repair_ops,
-	.balance       = &balance_ops
+	.tree		  = &tree_ops,
+	.debug		  = &debug_ops,
+	.object		  = &object_ops,
+	.repair		  = &repair_ops,
+	.balance	  = &balance_ops
 };
 
 static reiser4_plug_t extent40_plug = {

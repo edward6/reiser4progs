@@ -195,6 +195,11 @@ static int64_t cde40_fetch_units(place_t *place, trans_hint_t *hint) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+
+uint16_t cde40_overhead() {
+	return sizeof(cde40_t);
+}
+
 /* Returns 1 if items are mergeable, 0 -- otherwise. That is if they belong to
    the same directory. This function is used in shift code from the node plugin
    in order to determine are two items may be merged or not. */
@@ -651,33 +656,32 @@ static errno_t cde40_prep_insert(place_t *place, trans_hint_t *hint) {
 
 	entry = (entry_hint_t *)hint->specific;
 	
-	pol = plug_call(hint->offset.plug->o.key_ops,
-			bodysize);
+	pol = plug_call(hint->offset.plug->o.key_ops, bodysize);
 	
 	hint->len = (hint->count * en_size(pol));
     
 	for (i = 0; i < hint->count; i++, entry++) {
 		hint->len += ob_size(pol);
 
-		/* Calling key plugin for in odrer to find out is passed name is
-		   long one or not. */
+		/* Calling key plugin for in odrer to find 
+		   out is passed name is long one or not. */
 		if (plug_call(hint->offset.plug->o.key_ops,
 			      hashed, &entry->offset))
 		{
-			/* Okay, name is long, so we need add its length to
-			   estimated length. */
+			/* Okay, name is long, so we need add 
+			   its length to estimated length. */
 			hint->len += aal_strlen(entry->name) + 1;
 		}
 	}
 
 	hint->bytes = hint->len;
 	
-	/* If the pos we are going to insert new units is -1, we assume it is
-	   the attempt to insert new directory item. In this case we should also
-	   count item overhead, that is cde40 header which contains the number
-	   of entries in item. */
-	hint->ohd = (place->pos.unit == MAX_UINT32 ?
-		     sizeof(cde40_t) : 0);
+	/* If the pos we are going to insert new units is -1, we assume 
+	   it is the attempt to insert new directory item. In this case 
+	   we should also count item overhead, that is cde40 header which 
+	   contains the number of entries in item. */
+	hint->overhead = (place->pos.unit == MAX_UINT32 ?
+		     cde40_overhead() : 0);
 	
 	return 0;
 }
@@ -799,7 +803,7 @@ errno_t cde40_delete(place_t *place, uint32_t pos,
 	}
 
 	hint->bytes = bytes;
-	hint->ohd = (pos == MAX_UINT32 ? sizeof(cde40_t) : 0);
+	hint->overhead = (pos == MAX_UINT32 ? cde40_overhead() : 0);
 	
 	return 0;
 }
@@ -940,17 +944,23 @@ errno_t cde40_maxposs_key(place_t *place,
 	return 0;
 }
 
-/* Helper function that is used by lookup method for comparing given key with
-   passed entry hash. */
+/* Compare the given key with the entry at the given pos. */
+int cde40_comp_entry(place_t *place, uint32_t pos, key_entity_t *key) {
+	key_entity_t curr;
+
+	cde40_get_hash(place, pos, &curr);
+
+	return plug_call(place->key.plug->o.key_ops,
+			 compfull, &curr, key);
+}
+
+/* Helper function that is used by lookup method for 
+   comparing given key with passed entry hash. */
 static int callback_comp_entry(void *array, uint32_t pos,
 			       void *key, void *data)
 {
-	key_entity_t curr;
-
-	cde40_get_hash((place_t *)data, pos, &curr);
-
-	return plug_call(((place_t *)data)->key.plug->o.key_ops,
-			 compfull, &curr, (key_entity_t *)key);
+	return cde40_comp_entry((place_t *)data, pos, 
+				(key_entity_t *)key);
 }
 
 /* Performs lookup inside cde item. Found position is stored in @pos. */
@@ -977,20 +987,12 @@ lookup_t cde40_lookup(place_t *place, key_entity_t *key,
 		   because of possible key collision. We move left direction
 		   until we find a key smaller than passed one. */
 		for (i = place->pos.unit - 1; i >= 0; i--) {
-			key_entity_t ekey;
-
-			/* Getting entry key */
-			cde40_get_hash(place, i, &ekey);
-
 			/* Comparing keys. We break the loop when keys as not
 			   equal, that means, that we have found needed pos. */
-			if (!plug_call(key->plug->o.key_ops,
-				       compfull, key, &ekey))
-			{
+			if (!cde40_comp_entry(place, i, key))
 				place->pos.unit = i;
-			} else {
+			else
 				return PRESENT;
-			}
 		}
 #endif
 		return PRESENT;
@@ -1002,69 +1004,69 @@ lookup_t cde40_lookup(place_t *place, key_entity_t *key,
 }
 
 static item_balance_ops_t balance_ops = {
-#ifndef ENABLE_STAND_ALONE	    
-	.fuse          = cde40_fuse,
-	.mergeable     = cde40_mergeable,
-	.prep_shift    = cde40_prep_shift,
-	.shift_units   = cde40_shift_units,
-        .maxreal_key   = cde40_maxreal_key,
-	.update_key    = cde40_update_key,
+#ifndef ENABLE_STAND_ALONE
+	.fuse		  = cde40_fuse, 
+	.mergeable	  = cde40_mergeable,
+	.prep_shift	  = cde40_prep_shift,
+	.shift_units	  = cde40_shift_units,
+        .maxreal_key	  = cde40_maxreal_key,
+	.update_key	  = cde40_update_key,
 #endif
-	.units         = cde40_units,
-	.lookup        = cde40_lookup,
-	.fetch_key     = cde40_fetch_key,
-	.maxposs_key   = cde40_maxposs_key
+	.units		  = cde40_units,
+	.lookup		  = cde40_lookup,
+	.fetch_key	  = cde40_fetch_key
 };
 
 static item_object_ops_t object_ops = {
-	.fetch_units   = cde40_fetch_units,
+	.fetch_units	  = cde40_fetch_units,
 	
 #ifndef ENABLE_STAND_ALONE
-	.prep_insert   = cde40_prep_insert,
-	.insert_units  = cde40_insert_units,
-	.remove_units  = cde40_remove_units,
+	.prep_insert	  = cde40_prep_insert,
+	.insert_units	  = cde40_insert_units,
+	.remove_units	  = cde40_remove_units,
+
+	.size		  = cde40_size,
+	.bytes		  = cde40_bytes,
 		 
-	.size          = cde40_size,
-	.bytes         = cde40_bytes,
-		 
-	.update_units  = NULL,
-	.prep_write    = NULL,
-	.write_units   = NULL,
-	.trunc_units   = NULL,
-	.layout        = NULL,
+	.update_units	  = NULL,
+	.prep_write	  = NULL,
+	.write_units	  = NULL,
+	.trunc_units	  = NULL,
+	.layout		  = NULL,
 #endif
-	.read_units    = NULL,
-	.object_plug   = NULL
+	.read_units	  = NULL,
+	.object_plug	  = NULL
 };
 
 static item_debug_ops_t debug_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.print         = cde40_print
+	.print		  = cde40_print
 #endif
 };
 
 static item_repair_ops_t repair_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.prep_merge    = cde40_prep_merge,
-	.merge_units   = cde40_merge_units,
-	.check_struct  = cde40_check_struct,
-	.check_layout  = NULL
+	.check_struct	  = cde40_check_struct,
+	.check_layout	  = NULL,
+
+	.prep_merge	  = cde40_prep_merge,
+	.merge		  = cde40_merge
 #endif
 };
 
 static item_tree_ops_t tree_ops = {
-	.down_link     = NULL,
+	.down_link	  = NULL,
 #ifndef ENABLE_STAND_ALONE
-	.update_link     = NULL
+	.update_link	  = NULL
 #endif
 };
 
 static reiser4_item_ops_t cde40_ops = {
-	.tree          = &tree_ops,
-	.debug         = &debug_ops,
-	.object        = &object_ops,
-	.repair        = &repair_ops,
-	.balance       = &balance_ops
+	.tree		  = &tree_ops,
+	.debug		  = &debug_ops,
+	.object		  = &object_ops,
+	.repair		  = &repair_ops,
+	.balance	  = &balance_ops
 };
 
 static reiser4_plug_t cde40_plug = {

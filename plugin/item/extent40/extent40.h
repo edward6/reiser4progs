@@ -19,11 +19,9 @@ typedef struct extent40 extent40_t;
 
 extern uint32_t extent40_units(place_t *place);
 
-extern uint64_t extent40_offset(place_t *place,
-				uint32_t pos);
+extern uint64_t extent40_offset(place_t *place,	uint32_t pos);
 
-extern uint32_t extent40_unit(place_t *place,
-			      uint64_t offset);
+extern uint32_t extent40_unit(place_t *place, uint64_t offset);
 
 extern lookup_t extent40_lookup(place_t *place,
 				key_entity_t *key, 

@@ -333,6 +333,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, node_t *node) {
 	return 0;
 }
 
+#if 0
 /* Merge @dst item with @src one from the key pointed by @key through the 
    @dst maxreal key. After the coping @key is set to the @dst maxreal key. */
 static errno_t repair_tree_merge(reiser4_tree_t *tree, place_t *dst,
@@ -426,6 +427,7 @@ static errno_t repair_tree_merge(reiser4_tree_t *tree, place_t *dst,
 	
 	return 0;
 }
+#endif
 
 /* Check that conversion is needed. */
 static bool_t repair_tree_should_conv(reiser4_tree_t *tree, 
@@ -457,19 +459,19 @@ static bool_t repair_tree_should_conv(reiser4_tree_t *tree,
 	return -EINVAL;
 }
 
+/* Prepare repair convertion and perform it. */
 static errno_t repair_tree_conv(reiser4_tree_t *tree, 
 				place_t *place,
 				reiser4_plug_t *plug) 
 {
 	conv_hint_t hint;
-	
+
+	/* Set bytes, plug, offset and count in @hint */
 	hint.chunk = 0;
 	hint.bytes = 0;
 	hint.plug = plug;
 	reiser4_key_assign(&hint.offset, &place->key);
 
-	/* FIXME-UMKA->VITALY: This should be fixed to right item size, which 
-	   depends on size stat data field for the last item in file. */
 	hint.count = plug_call(place->plug->o.item_ops->object,
 			       size, place);
 
@@ -504,27 +506,28 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, place_t *dst,
 	return 0;
 }
 
-/* Lookup for the correct @dst place by the @start key in the @tree. */
+/* Lookup for the correct @place place by the @start key in the @tree. */
 static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree, 
-					 place_t *dst,
-					 reiser4_key_t *start,
-					 reiser4_key_t *end)
+					 place_t *place,
+					 trans_hint_t *hint)
 {
+	reiser4_key_t dkey, end;
 	place_t prev;
-	reiser4_key_t dkey;
 	errno_t res;
 	
-	aal_assert("vpf-1364", tree != NULL);
-	aal_assert("vpf-1365", dst != NULL);
-	aal_assert("vpf-1366", start != NULL);
-	aal_assert("vpf-1367", end != NULL);
+	aal_assert("vpf-1364", tree  != NULL);
+	aal_assert("vpf-1365", place != NULL);
+	aal_assert("vpf-1367", hint  != NULL);
 	
-	res = reiser4_tree_lookup(tree, start, LEAF_LEVEL, FIND_EXACT, dst);
+	res = reiser4_tree_lookup(tree, &hint->offset, LEAF_LEVEL,
+				  FIND_EXACT, place);
+	
 	switch(res) {
 	case PRESENT:
-		/* Whole data can not be inserted */
-		if (dst->pos.unit == MAX_UINT32)
-			dst->pos.unit = 0;
+		/* The whole item can not be inserted. */
+		if (place->pos.unit == MAX_UINT32)
+			place->pos.unit = 0;
+
 		return 0;
 	case ABSENT:
 		break;
@@ -534,41 +537,45 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 
 	/* Absent. If non-existent unit or item, there is nothing mergable 
 	   from the right side--lookup would go down there in that case.  */
-	if (reiser4_place_right(dst))
+	if (reiser4_place_right(place))
 		/* Step to right. */
-		reiser4_place_inc(dst, 1);
+		reiser4_place_inc(place, 1);
 
-	if (reiser4_place_rightmost(dst)) {
-		prev = *dst;
+	if (reiser4_place_rightmost(place)) {
+		prev = *place;
 
-		if ((res = reiser4_tree_next_node(tree, dst, dst))) {
+		if ((res = reiser4_tree_next_node(tree, place, place))) {
 			aal_exception_error("vpf-1363: Failed to "
 					    "get the next node.");
 			return res;
 		}
 
 		/* No right node. */
-		if (!dst->node) {
-			*dst = prev;
+		if (!place->node) {
+			*place = prev;
 			return 0;
 		}
 	} else 
 		aal_memset(&prev, 0, sizeof(prev));
 
-	/* Get the current key of the @dst. */
-	if ((res = reiser4_place_fetch(dst)))
+	/* Get the current key of the @place. */
+	if ((res = reiser4_place_fetch(place)))
 		return res;
 
-	if ((res = reiser4_item_get_key(dst, &dkey)))
+	if ((res = reiser4_item_get_key(place, &dkey)))
 		return res;
 
+	if ((res = reiser4_item_maxreal_key((reiser4_place_t *)hint->specific,
+					    &end)))
+		return res;
+	
 	/* If @end key is not less than the lookuped, items are overlapped. 
 	   Othewise move to the previous pos. */
-	if ((res = reiser4_key_compfull(end, &dkey)) >= 0) {
-		if (dst->pos.unit == MAX_UINT32)
-			dst->pos.unit = 0;
+	if ((res = reiser4_key_compfull(&end, &dkey)) >= 0) {
+		if (place->pos.unit == MAX_UINT32)
+			place->pos.unit = 0;
 	} else if (prev.node) {
-		*dst = prev;
+		*place = prev;
 	}
 
 	return 0;
@@ -589,7 +596,6 @@ static errno_t callback_merge(node_t *node, pos_t *pos,
 /* Insert the item into the tree overwriting an existent in the tree item 
    if needed. Does not insert branches. */
 errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src) {
-	reiser4_key_t maxkey;
 	place_t dst;
 	trans_hint_t hint;
 	uint32_t scount;
@@ -607,8 +613,6 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src) {
 	src->pos.unit = 0;
 	
 	/* Init the src maxreal key. */
-	if ((res = reiser4_item_maxreal_key(src, &maxkey)))
-		return res;
 	
 	aal_memset(&hint, 0, sizeof(hint));
 	hint.tree = tree;
@@ -617,19 +621,11 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src) {
 	reiser4_key_assign(&hint.offset, &src->key);
 	level = reiser4_node_get_level(src->node);
 
-	/* FIXME-VITALY: be sure that the tree is of enough level. If not, @dst 
-	   place will be changed in tree_modify during growing up. */
-	
+	/* FIXME-VITALY: be sure that the tree is of enough level. If not, 
+	   @dst place will be changed in tree_modify during growing up. */
 	while (1) {
-		res = repair_tree_insert_lookup(tree, &dst, &hint.offset, &maxkey);
-		if (res) return res;
-		
-		if (dst.pos.unit == MAX_UINT32) {
-			if ((res = repair_tree_merge(tree, &dst, src, NULL)))
-				goto error;
-
-			break;
-		}
+		if ((res = repair_tree_insert_lookup(tree, &dst, &hint)))
+			return res;
 		
 		/* Convert @dst if needed. */
 		if (dst.pos.unit != MAX_UINT32) {
@@ -696,13 +692,11 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, place_t *src) {
 		/* Lookup by end_key. */
 		if ((res = src->plug->o.item_ops->balance->lookup(src, &hint.maxkey, 
 								  FIND_EXACT)) < 0)
-		{
 			return res;
-		}
 		
 		if (src->pos.unit >= scount)
 			break;
-		
+
 		reiser4_key_assign(&hint.offset, &hint.maxkey);
 	}
 	

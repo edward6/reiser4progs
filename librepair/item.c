@@ -88,20 +88,6 @@ errno_t repair_item_check_layout(place_t *place, region_func_t func,
 	return repair_item_check_fini(place, res, length);
 }
 
-errno_t repair_item_estimate_merge(place_t *dst, 
-				   place_t *src,
-				   merge_hint_t *hint)
-{
-	aal_assert("vpf-952", dst  != NULL);
-	aal_assert("vpf-953", src  != NULL);
-	aal_assert("vpf-954", hint != NULL);
-	aal_assert("vpf-955", dst->plug != NULL);
-	aal_assert("vpf-956", src->plug != NULL);
-	
-	return plug_call(src->plug->o.item_ops->repair,
-			 prep_merge, dst, src, hint);
-}
-
 void repair_item_set_flag(place_t *place, uint16_t flag) {
 	aal_assert("vpf-1041", place != NULL);
 	aal_assert("vpf-1111", place->node != NULL);

@@ -8,7 +8,6 @@
 
 #include <repair/repair.h>
 
-typedef errno_t (*repair_extent_func_t)(ptr_hint_t *, void *);
 typedef errno_t (*node_func_t)(place_t *, void *);
 
 extern node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk,
@@ -19,7 +18,4 @@ extern errno_t repair_node_check_struct(node_t *node, uint8_t mode);
 extern errno_t repair_node_traverse(node_t *node, node_func_t func,
 				    void *data);
 
-extern errno_t repair_node_merge(node_t *dst, pos_t *dst_pos, 
-				 node_t *src, pos_t *src_pos, 
-				 merge_hint_t *hint);
 #endif
