@@ -75,33 +75,6 @@ static object_entity_t *symlink40_open(void *tree,
 	return NULL;
 }
 
-/* Gets symlink from the stat data */
-static errno_t symlink40_get_data(reiser4_place_t *place,
-				  char *data)
-{
-	item_entity_t *item;
-	reiser4_item_hint_t hint;
-	reiser4_statdata_hint_t stat;
-
-	aal_memset(&hint, 0, sizeof(hint));
-	aal_memset(&stat, 0, sizeof(stat));
-	
-	hint.hint = &stat;
-	stat.ext[SDEXT_SYMLINK_ID] = data;
-
-	item = &place->item;
-
-	if (!item->plugin->item_ops.open)
-		return -1;
-
-	if (item->plugin->item_ops.open(item, &hint)) {
-		aal_exception_error("Can't open statdata item.");
-		return -1;
-	}
-
-	return 0;
-}
-
 #ifndef ENABLE_COMPACT
 
 static object_entity_t *symlink40_create(void *tree, 
@@ -198,10 +171,19 @@ static object_entity_t *symlink40_create(void *tree,
 
 /* Writes "n" bytes from "buff" to passed file. */
 static int32_t symlink40_write(object_entity_t *entity, 
-			   void *buff, uint32_t n) 
+			       void *buff, uint32_t n) 
 {
-	/* Sorry, not implemented yet! */
-	return 0;
+	symlink40_t *symlink;
+
+	aal_assert("umka-1777", buff != NULL, return -1);
+	aal_assert("umka-1776", entity != NULL, return -1);
+
+	/*
+	  FIXME-UMKA: What about expanding node (and stat data item) first. What
+	  we have do here?
+	*/
+	symlink = (symlink40_t *)entity;
+	return file40_set_symlink(&symlink->file, buff);
 }
 
 static errno_t symlink40_metadata(object_entity_t *entity,
@@ -333,7 +315,7 @@ static errno_t symlink40_follow(object_entity_t *entity,
 
 	symlink = (symlink40_t *)entity;
 	
-	if (symlink40_get_data(&symlink->file.statdata, path))
+	if (file40_get_symlink(&symlink->file, path))
 		return -1;
 
 	plugin = symlink->file.key.plugin;

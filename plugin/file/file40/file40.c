@@ -164,6 +164,56 @@ errno_t file40_set_size(file40_t *file, uint64_t size) {
 	return item->plugin->item_ops.insert(item, &hint, 0);
 }
 
+/* Gets symlink from the stat data */
+errno_t file40_get_symlink(file40_t *file, char *data) {
+	item_entity_t *item;
+	reiser4_item_hint_t hint;
+	reiser4_statdata_hint_t stat;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
+	
+	hint.hint = &stat;
+	stat.ext[SDEXT_SYMLINK_ID] = data;
+
+	item = &file->statdata.item;
+
+	if (!item->plugin->item_ops.open)
+		return -1;
+
+	if (item->plugin->item_ops.open(item, &hint)) {
+		aal_exception_error("Can't open statdata item.");
+		return -1;
+	}
+
+	return 0;
+}
+
+/* Updates symlink data */
+errno_t file40_set_symlink(file40_t *file, char *data) {
+	item_entity_t *item;
+	reiser4_item_hint_t hint;
+	reiser4_statdata_hint_t stat;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
+	
+	hint.hint = &stat;
+	stat.ext[SDEXT_SYMLINK_ID] = data;
+
+	item = &file->statdata.item;
+
+	if (!item->plugin->item_ops.insert)
+		return -1;
+
+	if (item->plugin->item_ops.insert(item, &hint, 0)) {
+		aal_exception_error("Can't update symlink.");
+		return -1;
+	}
+
+	return 0;
+}
+
 errno_t file40_init(file40_t *file, reiser4_plugin_t *plugin,
 		    key_entity_t *key, reiser4_core_t *core,
 		    void *tree)
