@@ -187,9 +187,10 @@ errno_t reiser4_tree_disconnect(
 		node->right = NULL;
 	}
 	
+	/* Disconnecting node from the tree */
 	node->tree = NULL;
 	
-	if (!parent) {
+	if (reiser4_tree_get_root(tree) == node_blocknr(node)) {
 		/* The case when we're disconnecting root node for some
 		   reasons. And we will let to do so? Yes, why not? */
 		tree->root = NULL;
@@ -260,7 +261,10 @@ errno_t reiser4_tree_unload(reiser4_tree_t *tree,
 #endif
 
 	/* Disconnecting @node from its parent node. */
-	reiser4_tree_disconnect(tree, node->p.node, node);
+	if (node->tree) {
+		reiser4_node_t *parent = node->p.node;
+		reiser4_tree_disconnect(tree, parent, node);
+	}
 
 	/* Releasing node */
 	return reiser4_node_close(node);
@@ -477,7 +481,8 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 	/* Check if we're trying to releas a node with fake block number. If
 	   not, free it in block allocator too. */
 	if (!reiser4_fake_ack(node_blocknr(node))) {
-		reiser4_alloc_release(alloc, node_blocknr(node), 1);
+		blk_t blk = node_blocknr(node);
+		reiser4_alloc_release(alloc, blk, 1);
 	}
 
 	/* Updating free blocks in super block */
@@ -1337,22 +1342,23 @@ errno_t reiser4_tree_attach(
 errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 			    reiser4_node_t *node)
 {
+	reiser4_place_t p;
 	trans_hint_t hint;
-	reiser4_place_t parent;
 	
 	aal_assert("umka-1726", tree != NULL);
 	aal_assert("umka-1727", node != NULL);
 
-	/* Save node's parent place in order to use it later in calling
-	   tree_remove() function. */
-	parent = node->p;
-
         /* Disconnecting node from tree cache */
-	reiser4_tree_disconnect(tree, parent.node, node);
+	p = node->p;
+	
+	if (node->tree) {
+		reiser4_node_t *parent = p.node;
+		reiser4_tree_disconnect(tree, parent, node);
+	}
 	
 	/* Removing item/unit from the parent node */
 	hint.count = 1;
-	return reiser4_tree_remove(tree, &parent, &hint);
+	return reiser4_tree_remove(tree, &p, &hint);
 }
 
 /* This function forces tree to grow by one level and sets it up after the
@@ -1746,10 +1752,12 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 			bogus.node = right;
 	    
 			if ((res = reiser4_tree_shift(tree, &bogus,
-						      place->node, MSF_LEFT)))
+						      place->node,
+						      MSF_LEFT)))
 			{
-				aal_exception_error("Can't pack node %llu "
-						    "into left.", node_blocknr(right));
+				aal_exception_error("Can't pack node "
+						    "%llu into left.",
+						    node_blocknr(right));
 				return res;
 			}
 
@@ -2043,7 +2051,7 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 			goto error_free_buff;
 		}
 
-		aal_assert("umka-2477", (uint32_t)trans != hint.count);
+		aal_assert("umka-2477", (uint32_t)trans == hint.count);
 
 		reiser4_key_inc_offset(&hint.offset, trans);
 

@@ -72,7 +72,8 @@ int main(int argc, char *argv[]) {
 		aal_exception_error("Can't open dir %s.", argv[2]);
 		goto error_free_root;
 	}
-    
+
+#if 0
 	{
 		object_hint_t dir_hint;
 	
@@ -105,8 +106,8 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
+#endif
 
-#if 0
 	{
 		object_hint_t reg_hint;
 	
@@ -146,7 +147,6 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
-#endif
 	
 	if (reiser4_object_reset(dir)) {
 		aal_exception_error("Can't reset directory %s.", argv[2]);

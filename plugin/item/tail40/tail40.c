@@ -401,13 +401,15 @@ static errno_t tail40_truncate(place_t *place,
 		count = place->len - pos;
 
 	/* Taking care about rest of tail */
-	if (pos < place->len - 1) {
+	if (pos + count < place->len) {
 		aal_memmove(place->body + pos,
 			    place->body + pos + count,
 			    place->len - (pos + count));
 	}
 
+	hint->ohd = 0;
 	hint->len = hint->bytes = count;
+	
 	return 0;
 }
 
