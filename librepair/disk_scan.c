@@ -164,13 +164,13 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 			goto error_node_close;
 		    }
 
-		    coord.node->flags |= NF_DIRTY;
+		    reiser4_node_mkdirty(coord.node);
 		    pos->item--;
 		}
 	    }
 	    
 	    if (reiser4_node_items(node) == 0)
-		coord.node->flags &= ~NF_DIRTY;
+		reiser4_node_mkclean(coord.node);
 	}
 	
 	/* If node was not recovered - mark it as formatted, otherwise mark it 

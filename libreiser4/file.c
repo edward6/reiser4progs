@@ -102,7 +102,9 @@ static errno_t reiser4_file_realize(
 			aal_exception_error("Can't open parent of directory %s.", track);
 			return -1;
 		}
-	    
+
+		/* Symlinks handling should be here */
+		
 		if (!plugin->file_ops.lookup) {
 			aal_exception_error("Method \"lookup\" is not implemented in %s plugin.", 
 					    plugin->h.label);
