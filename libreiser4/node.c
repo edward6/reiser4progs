@@ -43,7 +43,9 @@ reiser4_node_t *reiser4_node_create(
 
 	node->blk = blk;
 	node->device = device;
+
 	reiser4_node_mkclean(node);
+	POS_INIT(&node->pos, 0, ~0ul);
 	
 	return node;
 
@@ -133,7 +135,9 @@ reiser4_node_t *reiser4_node_open(
     
 	node->blk = blk;
 	node->device = device;
+
 	reiser4_node_mkclean(node);
+	POS_INIT(&node->pos, 0, ~0ul);
 	
 	return node;
     
@@ -178,6 +182,39 @@ errno_t reiser4_node_lkey(
 	return 0;
 }
 
+/*
+  Returns TRUE if node->pos points to the the right nodeptr in parent node and
+  FALSE otherwise.
+*/
+bool_t reiser4_node_actual(reiser4_node_t *node) {
+	reiser4_key_t lkey;
+	reiser4_place_t place;
+
+	aal_assert("umka-1942", node != NULL);
+	aal_assert("umka-1943", node->parent != NULL);
+
+	if (node->pos.item >= reiser4_node_items(node->parent))
+		return FALSE;
+	
+	/* Initializing item in parent node node->pos points to */
+	if (reiser4_place_open(&place, node->parent, &node->pos))
+		return FALSE;
+
+	if (reiser4_item_realize(&place))
+		return FALSE;
+
+	if (node->pos.unit >= reiser4_item_units(&place))
+		return FALSE;
+
+	/*
+	  If node->pos points to correct key, we will not do anything and just
+	  return. Node lookup will be called otherwise.
+	*/
+	reiser4_node_lkey(node, &lkey);
+	
+	return (reiser4_key_compare(&place.item.key, &lkey) == 0);
+}
+
 /* Returns position of passed node in parent node */
 errno_t reiser4_node_pos(
 	reiser4_node_t *node,	        /* node position will be obtained for */
@@ -185,17 +222,16 @@ errno_t reiser4_node_pos(
 {
 	lookup_t res;
 	reiser4_key_t lkey;
-	reiser4_key_t parent_key;
     
 	aal_assert("umka-869", node != NULL);
 	aal_assert("umka-1941", node->parent != NULL);
- 
+
 	reiser4_node_lkey(node, &lkey);
 
 	res = reiser4_node_lookup(node->parent, &lkey,
 				  &node->pos);
 
-	if (res == LP_PRESENT && pos)
+	if (pos)
 		*pos = node->pos;
     
 	return res == LP_PRESENT ? 0 : -1;

@@ -14,12 +14,13 @@
 
 #include <reiser4/types.h>
 
-extern reiser4_node_t *reiser4_node_open(aal_device_t *device,
-					 blk_t blk);
-
+extern bool_t reiser4_node_actual(reiser4_node_t *node);
 extern uint8_t reiser4_node_get_level(reiser4_node_t *node);
 extern uint32_t reiser4_node_get_mstamp(reiser4_node_t *node);
 extern uint64_t reiser4_node_get_fstamp(reiser4_node_t *node);
+
+extern reiser4_node_t *reiser4_node_open(aal_device_t *device,
+					 blk_t blk);
 
 #ifndef ENABLE_ALONE
 
