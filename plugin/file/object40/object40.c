@@ -1,0 +1,319 @@
+/*
+  object40.c -- reiser4 file plugins common code.
+
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+  reiser4progs/COPYING.
+*/
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#include <sys/stat.h>
+
+#ifndef ENABLE_ALONE
+#  include <time.h>
+#  include <unistd.h>
+#endif
+
+#include "object40.h"
+
+/* Returns file's oid */
+roid_t object40_objectid(object40_t *file) {
+	aal_assert("umka-839", file != NULL);
+    
+	return plugin_call(file->key.plugin->key_ops, 
+			   get_objectid, &file->key);
+}
+
+/* Returns file's locality  */
+roid_t object40_locality(object40_t *file) {
+	aal_assert("umka-839", file != NULL);
+    
+	return plugin_call(file->key.plugin->key_ops, 
+			   get_locality, &file->key);
+}
+
+/* Locks the node an item belong to file lies in */
+errno_t object40_lock(object40_t *file, reiser4_place_t *place) {
+	
+	if (place->node)
+		return file->core->tree_ops.lock(file->tree, place);
+
+	return 0;
+}
+
+/* Unlocks the node an item belong to file lies in */
+errno_t object40_unlock(object40_t *file, reiser4_place_t *place) {
+	
+	if (place->node)
+		return file->core->tree_ops.unlock(file->tree, place);
+
+	return 0;
+}
+
+/* Gets mode field from the stat data */
+uint16_t object40_get_mode(object40_t *file) {
+	item_entity_t *item;
+	reiser4_item_hint_t hint;
+	reiser4_statdata_hint_t stat;
+	reiser4_sdext_lw_hint_t lw_hint;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
+
+	/* Preparing hint and mask */
+	hint.type_specific = &stat;
+	stat.ext[SDEXT_LW_ID] = &lw_hint;
+
+	item = &file->statdata.item;
+
+	/* Calling statdata open method if it exists */
+	if (!item->plugin->item_ops.read)
+		return 0;
+
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1) {
+		aal_exception_error("Can't open statdata item.");
+		return 0;
+	}
+
+	return lw_hint.mode;
+}
+
+/* Updates mode field in statdata */
+errno_t object40_set_mode(object40_t *file, uint16_t mode) {
+	item_entity_t *item;
+	reiser4_item_hint_t hint;
+	reiser4_statdata_hint_t stat;
+	reiser4_sdext_lw_hint_t lw_hint;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
+	
+	hint.type_specific = &stat;
+
+	stat.extmask = 1 << SDEXT_LW_ID;
+	stat.ext[SDEXT_LW_ID] = &lw_hint;
+
+	item = &file->statdata.item;
+
+	if (!item->plugin->item_ops.read)
+		return -1;
+
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1) {
+		aal_exception_error("Can't open statdata item.");
+		return -1;
+	}
+
+	lw_hint.mode = mode;
+	
+	if (!item->plugin->item_ops.write)
+		return -1;
+
+	return -(item->plugin->item_ops.write(item, &hint, 0, 1) != 1);
+}
+
+/* Gets size field from the stat data */
+uint64_t object40_get_size(object40_t *file) {
+	item_entity_t *item;
+	reiser4_item_hint_t hint;
+	reiser4_statdata_hint_t stat;
+	reiser4_sdext_lw_hint_t lw_hint;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
+
+	hint.type_specific = &stat;
+	stat.ext[SDEXT_LW_ID] = &lw_hint;
+
+	item = &file->statdata.item;
+
+	if (!item->plugin->item_ops.read)
+		return 0;
+
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1) {
+		aal_exception_error("Can't open statdata item.");
+		return 0;
+	}
+	
+	return lw_hint.size;
+}
+
+/* Updates size field in the stat data */
+errno_t object40_set_size(object40_t *file, uint64_t size) {
+	item_entity_t *item;
+	reiser4_item_hint_t hint;
+	reiser4_statdata_hint_t stat;
+	reiser4_sdext_lw_hint_t lw_hint;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
+	
+	hint.type_specific = &stat;
+
+	stat.extmask = 1 << SDEXT_LW_ID;
+	stat.ext[SDEXT_LW_ID] = &lw_hint;
+
+	item = &file->statdata.item;
+
+	if (!item->plugin->item_ops.read)
+		return -1;
+
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1) {
+		aal_exception_error("Can't open statdata item.");
+		return -1;
+	}
+
+	lw_hint.size = size;
+	
+	if (!item->plugin->item_ops.write)
+		return -1;
+
+	return (item->plugin->item_ops.write(item, &hint, 0, 1) != 1);
+}
+
+/* Gets symlink from the stat data */
+errno_t object40_get_sym(object40_t *file, char *data) {
+	item_entity_t *item;
+	reiser4_item_hint_t hint;
+	reiser4_statdata_hint_t stat;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
+	
+	hint.type_specific = &stat;
+	stat.ext[SDEXT_SYMLINK_ID] = data;
+
+	item = &file->statdata.item;
+
+	if (!item->plugin->item_ops.read)
+		return -1;
+
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1) {
+		aal_exception_error("Can't open statdata item.");
+		return -1;
+	}
+
+	return 0;
+}
+
+/* Updates symlink data */
+errno_t object40_set_sym(object40_t *file, char *data) {
+	item_entity_t *item;
+	reiser4_item_hint_t hint;
+	reiser4_statdata_hint_t stat;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memset(&stat, 0, sizeof(stat));
+	
+	hint.type_specific = &stat;
+	stat.ext[SDEXT_SYMLINK_ID] = data;
+
+	item = &file->statdata.item;
+
+	if (!item->plugin->item_ops.write)
+		return -1;
+
+	/* FIXME-UMKA: What about expanding node first? */
+	if (item->plugin->item_ops.write(item, &hint, 0, 1) != 1) {
+		aal_exception_error("Can't update symlink.");
+		return -1;
+	}
+
+	return 0;
+}
+
+/*
+  Initializes file handle by plugin, key, core operations and opaque pointer to
+  tree file is going to be opened/created in.
+*/
+errno_t object40_init(object40_t *file, reiser4_plugin_t *plugin,
+		      key_entity_t *key, reiser4_core_t *core,
+		      void *tree)
+{
+	aal_assert("umka-1574", file != NULL);
+	aal_assert("umka-1756", plugin != NULL);
+	aal_assert("umka-1757", tree != NULL);
+
+	file->tree = tree;
+	file->core = core;
+	file->plugin = plugin;
+
+	file->key.plugin = key->plugin;
+	
+	return plugin_call(key->plugin->key_ops, assign,
+			   &file->key, key);
+}
+
+/* Performs lookup for the file's stat data */
+errno_t object40_stat(object40_t *file) {
+	aal_assert("umka-857", file != NULL);
+
+	plugin_call(file->key.plugin->key_ops, build_generic,
+		    &file->key, KEY_STATDATA_TYPE, object40_locality(file),
+		    object40_objectid(file), 0);
+
+	/* Unlocking old node */
+	if (file->statdata.node)
+		object40_unlock(file, &file->statdata);
+
+	/* Requesting libreiser4 lookup in order to find stat data position */
+	if (file->core->tree_ops.lookup(file->tree, &file->key, LEAF_LEVEL,
+					&file->statdata) != PRESENT) 
+	{
+		aal_exception_error("Can't find stat data of file 0x%llx.", 
+				    object40_objectid(file));
+
+		if (file->statdata.node)
+			object40_lock(file, &file->statdata);
+		
+		return -1;
+	}
+	
+	/* Locking new node */
+	object40_lock(file, &file->statdata);
+	
+	return 0;
+}
+
+/* Performs lookup and returns result to caller */
+errno_t object40_lookup(object40_t *file, key_entity_t *key,
+			uint8_t stop, reiser4_place_t *place)
+{
+	return file->core->tree_ops.lookup(file->tree, key,
+					   stop, place);
+}
+
+/*
+  Inserts passed item hint into the tree. After function is finished, place
+  contains the coord of the inserted item.
+*/
+errno_t object40_insert(object40_t *file, reiser4_item_hint_t *hint,
+			uint8_t stop, reiser4_place_t *place)
+{
+	roid_t objectid = object40_objectid(file);
+
+	/*
+	  Making lookup in order to find place new item/unit will be inserted
+	  at. If item/unit already exists, or lookup failed, we throw an
+	  exception and return the error code.
+	*/
+	switch (object40_lookup(file, &hint->key, stop, place)) {
+	case PRESENT:
+		aal_exception_error("Key already exists in the tree.");
+		return -1;
+	case FAILED:
+		aal_exception_error("Lookup is failed while trying to insert "
+				    "new item into file 0x%llx.", objectid);
+		return -1;
+	}
+
+	/* Inserting new item/unit into the tree */
+	if (file->core->tree_ops.insert(file->tree, place, hint)) {
+		aal_exception_error("Can't insert new item of file "
+				    "0x%llx into the tree.", objectid);
+		return -1;
+	}
+
+	return 0;
+}
