@@ -223,8 +223,10 @@ static uint64_t aux_bitmap_calc(
 uint64_t aux_bitmap_calc_marked(
 	aux_bitmap_t *bitmap)	 /* bitmap, calculating will be performed in */
 {
-	return aux_bitmap_calc(bitmap, 0, 
-			       bitmap->total, 1);
+	bitmap->marked = aux_bitmap_calc(bitmap, 0, 
+					 bitmap->total, 1);
+
+	return bitmap->marked;
 }
 
 /* The same as previous one */

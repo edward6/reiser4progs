@@ -476,7 +476,13 @@ static errno_t alloc40_print(object_entity_t *entity,
 			     aal_stream_t *stream,
 			     uint16_t options)
 {
+	uint64_t blk;
+	uint64_t start;
+	uint64_t total;
+	uint64_t blocks;
+
 	alloc40_t *alloc;
+	uint32_t blocksize;
 	
 	aal_assert("umka-1778", entity != NULL);
 	aal_assert("umka-1779", stream != NULL);
@@ -501,6 +507,41 @@ static errno_t alloc40_print(object_entity_t *entity,
 	aal_stream_format(stream, "free blocks:\t%llu\n",
 			  alloc->bitmap->total -
 			  alloc->bitmap->marked);
+
+	aal_stream_format(stream, "\nBLK CRC\n");
+	aal_stream_format(stream, "-----------------\n");
+
+	blocksize = alloc->device->blocksize;
+	
+	blocks = (alloc->bitmap->size + blocksize - 1) /
+		blocksize;
+
+	for (blk = 0; blk < blocks; blk++) {
+		aal_stream_format(stream, "%llu  [ 0x%lx ]\n", blk,
+				  *((uint32_t *)alloc->crc + blk));
+	}
+	
+	start = 0;
+	total = alloc->bitmap->total;
+
+	aal_stream_format(stream, "\nBlock map:\n");
+	
+	aal_stream_format(stream, "[ ");
+	
+	while (start < total) {
+		blocks = aux_bitmap_find_region(alloc->bitmap, &start,
+						total - start, 1);
+
+		if (blocks == 0)
+			break;
+
+		aal_stream_format(stream, "%llu(%llu) ",
+				  start, blocks);
+		
+		start += blocks;
+	}
+	
+	aal_stream_format(stream, "]\n");
 	
 	return 0;
 }

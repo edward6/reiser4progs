@@ -223,7 +223,7 @@ inline bit_t aal_find_zero_bits(void *map,
 	bit_t prev;
 	bit_t next;
 
-	prev = aal_find_next_zero_bit(map, size, 0);
+	prev = aal_find_next_zero_bit(map, size, *start);
 	next = aal_find_next_zero_bit(map, size, prev + 1);
 
 	count--;
@@ -246,7 +246,7 @@ inline bit_t aal_find_set_bits(void *map,
 	bit_t prev;
 	bit_t next;
 
-	prev = aal_find_next_set_bit(map, size, 0);
+	prev = aal_find_next_set_bit(map, size, *start);
 	next = aal_find_next_set_bit(map, size, prev + 1);
 
 	count--;
