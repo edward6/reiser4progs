@@ -208,19 +208,6 @@ enum shift_flags {
 
 typedef enum shift_flags shift_flags_t;
 
-struct shift_hint {
-	uint32_t items;
-	uint32_t units;
-
-	uint32_t bytes;
-	uint32_t part;
-
-	reiser4_pos_t pos;
-	shift_flags_t flags;
-};
-
-typedef struct shift_hint shift_hint_t;
-
 /* Type for describing inside the library the objects created by plugins
  * themselves and which also have plugin. For example, node, format, alloc,
  * etc. The pointer of this type will be passed to list plugins for working with
@@ -253,6 +240,22 @@ struct item_entity {
 
 typedef struct item_entity item_entity_t;
 typedef struct reiser4_place reiser4_place_t;
+
+struct shift_hint {
+	uint32_t items;
+	uint32_t units;
+
+	uint32_t bytes;
+	uint32_t part;
+
+	reiser4_pos_t pos;
+	shift_flags_t flags;
+
+	item_entity_t *src_item;
+	item_entity_t *dst_item;
+};
+
+typedef struct shift_hint shift_hint_t;
 
 /* Types for layout defining */
 typedef errno_t (*format_action_func_t) (object_entity_t *, uint64_t, void *);
@@ -698,10 +701,6 @@ struct reiser4_node_ops {
 	/* Performs shift of items and units */
 	errno_t (*shift) (object_entity_t *, object_entity_t *, 
 			  shift_hint_t *);
-    
-	/* Predicts all shift parameters */
-	errno_t (*predict) (object_entity_t *, object_entity_t *, 
-			    shift_hint_t *);
     
 	/* Confirms that given block contains valid node of requested format */
 	int (*confirm) (object_entity_t *);

@@ -33,7 +33,6 @@ static inline uint32_t direntry40_unitlen(direntry40_t *direntry,
 				   uint32_t pos) 
 {
 	aal_assert("umka-1594", direntry != NULL, return 0);
-	aal_assert("umka-936", pos < de40_get_count(direntry), return 0);
 
 	return aal_strlen((char *)(direntry40_unit(direntry, pos) + 1)) +
 		sizeof(objid40_t) + 1;
@@ -133,12 +132,99 @@ static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
 	return 0;
 }
 
+static errno_t direntry40_predict(item_entity_t *src_item,
+				  item_entity_t *dst_item,
+				  shift_hint_t *hint)
+{
+	int inside;
+	uint32_t cur;
+	uint32_t src_units;
+	uint32_t dst_units;
+	uint32_t space, len;
+	
+	direntry40_t *direntry;
+	
+	aal_assert("umka-1591", src_item != NULL, return 0);
+	aal_assert("umka-1592", hint != NULL, return 0);
+
+	space = hint->part;
+	
+	src_units = direntry40_count(src_item);
+
+	dst_units = 0;
+	
+	if (dst_item)
+		dst_units = direntry40_count(dst_item);
+
+	if (!dst_item || !plugin_equal(src_item->plugin, dst_item->plugin)) {
+		dst_units = 0;
+		space -= sizeof(direntry40_t);
+	}
+
+	cur = (hint->flags & SF_LEFT ? 0 : src_units - 1);
+	
+	if (!(direntry = direntry40_body(src_item)))
+		return -1;
+
+	inside = 1;
+	hint->part = 0;
+	
+	while (inside && src_units > 1) {
+		len = direntry40_unitlen(direntry, cur);
+
+		if (space < len + sizeof(entry40_t))
+			break;
+
+		if (hint->pos.unit != ~0ul) {
+			if (!(hint->flags & SF_MOVIP)) {
+				if (hint->flags & SF_LEFT) {
+					if (hint->pos.unit == 0)
+						break;
+				} else {
+					if (hint->pos.unit == src_units - 1)
+						break;
+				}
+			}
+
+			if (hint->flags & SF_LEFT) {
+				if (hint->pos.unit == 0) {
+					inside = 0;
+					hint->pos.unit = dst_units;
+				} else
+					hint->pos.unit--;
+			} else {
+				if (hint->pos.unit >= src_units - 1) {
+					inside = 0;
+					hint->pos.unit = 0;
+
+					if (hint->pos.unit > src_units - 1)
+						break;
+				}
+			}
+		}
+
+		src_units--;
+		dst_units++;
+		hint->units++;
+
+		space -= (len + sizeof(entry40_t));
+		hint->part += (len + sizeof(entry40_t));
+		cur += (hint->flags & SF_LEFT ? -1 : 1);
+	}
+
+	hint->flags = (inside ? hint->flags & ~SF_MOVIP :
+		       hint->flags | SF_MOVIP);
+
+	return 0;
+}
+
 static errno_t direntry40_shift(item_entity_t *src_item,
 				item_entity_t *dst_item,
 				shift_hint_t *hint)
 {
 	uint64_t hash;
 	uint32_t size;
+	uint32_t offset;
 	void *src, *dst;
 	entry40_t *entry;
 	
@@ -206,122 +292,53 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			/* Copyings entry bodies */
 			src = (void *)src_direntry + en40_get_offset(((entry40_t *)src));
 
-			dst = (void *)dst_direntry + (dst_units * sizeof(entry40_t)) +
-				(hint->units * sizeof(entry40_t));
+			dst = (void *)dst_direntry + sizeof(direntry40_t) +
+				((hint->units + dst_units) * sizeof(entry40_t));
 			
 			size = hint->part - (hint->units * sizeof(entry40_t));
 
 			aal_memcpy(dst, src, size);
 
+			/* Updating offset of dst direntry */
+			entry = direntry40_entry(dst_direntry, 0);
+			offset = dst - (void *)dst_direntry;
+			
+			for (i = 0; i < hint->units; i++, entry++) {
+				en40_set_offset(entry, offset);
+				offset += direntry40_unitlen(dst_direntry, i);
+			}
+			
 			/* Moving headers of src direntry */
 			src = (void *)src_direntry + sizeof(direntry40_t) +
 				src_units * sizeof(entry40_t);
 			
 			dst = src - (hint->units * sizeof(entry40_t));
+
 			size = src_item->len - sizeof(direntry40_t) -
-				(src_units * sizeof(entry40_t));
+				(src_units * sizeof(entry40_t)) -
+				(hint->part - (hint->units * sizeof(entry40_t)));
 
 			aal_memmove(dst, src, size);
 
 			/* Updating offsets of src direntry */
-			entry = (entry40_t *)((void *)src_direntry +
-					      sizeof(direntry40_t));
+			entry = direntry40_entry(src_direntry, 0);
 			
 			for (i = 0; i < src_units - hint->units; i++, entry++) {
 				en40_dec_offset(entry, (hint->units *
 							sizeof(entry40_t)));
 			}
+
+			/* Updating items key */
+			entry = direntry40_entry(dst_direntry, 0);
+			hash = *((uint64_t *)entry->entryid.offset);
 		}
 	}
 
 	de40_inc_count(dst_direntry, hint->units);
 	de40_dec_count(src_direntry, hint->units);
 
-	/* Updating items key */
-	entry = direntry40_entry(src_direntry, 0);
-	hash = *((uint64_t *)entry->entryid.offset);
-	
 	plugin_call(return -1, dst_item->key.plugin->key_ops,
 		    set_offset, dst_item->key.body, hash);
-
-	return 0;
-}
-
-static errno_t direntry40_predict(item_entity_t *src_item,
-				  item_entity_t *dst_item,
-				  shift_hint_t *hint)
-{
-	uint32_t cur;
-	uint32_t src_units;
-	uint32_t dst_units;
-	uint32_t space, len;
-	item_entity_t *item;
-	direntry40_t *direntry;
-	
-	aal_assert("umka-1591", src_item != NULL, return 0);
-	aal_assert("umka-1592", hint != NULL, return 0);
-
-	item = src_item;
-	space = hint->part;
-	
-	src_units = direntry40_count(src_item);
-	dst_units = direntry40_count(dst_item);
-
-	if (!plugin_equal(src_item->plugin, dst_item->plugin)) {
-		dst_units = 0;
-		space -= sizeof(direntry40_t);
-	}
-
-	cur = (hint->flags & SF_LEFT ? 0 : src_units - 1);
-	
-	if (!(direntry = direntry40_body(src_item)))
-		return -1;
-
-	hint->part = 0;
-	
-	while (item == src_item && src_units > 2) {
-		len = direntry40_unitlen(direntry, cur);
-
-		if (space < len + sizeof(entry40_t))
-			break;
-		
-		if (!(hint->flags & SF_MOVIP) && item == src_item) {
-			if (hint->flags & SF_LEFT) {
-				if (hint->pos.unit == 0)
-					break;
-			} else {
-				if (hint->pos.unit == src_units - 1)
-					break;
-			}
-		}
-
-		if (hint->flags & SF_LEFT) {
-			if (hint->pos.unit == 0) {
-				hint->pos.unit = dst_units;
-				item = dst_item;
-			} else
-				hint->pos.unit--;
-		} else {
-			if (hint->pos.unit >= src_units - 1) {
-				hint->pos.unit = 0;
-				item = dst_item;
-
-				if (hint->pos.unit > src_units - 1)
-					break;
-			}
-		}
-
-		src_units--;
-		dst_units++;
-		hint->units++;
-
-		space -= (len + sizeof(entry40_t));
-		hint->part += (len + sizeof(entry40_t));
-		cur += (hint->flags & SF_LEFT ? -1 : 1);
-	}
-
-	hint->flags = (item != src_item ? hint->flags | SF_MOVIP :
-		       hint->flags & ~SF_MOVIP);
 
 	return 0;
 }
@@ -515,7 +532,7 @@ static errno_t direntry40_print(item_entity_t *item, aal_stream_t *stream,
 	
 	aal_stream_format(stream, "count:\t\t%u\n", direntry->count);
 
-	for (i = 0; i < direntry->count; i++) {
+	for (i = 0; i < de40_get_count(direntry); i++) {
 		entry40_t *entry = &direntry->entry[i];
 
 		objid = *((uint64_t *)entry->entryid.objectid);

@@ -67,7 +67,7 @@ void reiser4_joint_close(
 {
 	aal_assert("umka-793", joint != NULL, return);
 
-	if (joint->flags & JF_DIRTY) {
+/*	if (joint->flags & JF_DIRTY) {
 		aal_exception_warn("Destroing dirty joint. Block %llu.",
 				   joint->node->blk);
 	}
@@ -75,7 +75,7 @@ void reiser4_joint_close(
 	if (joint->counter) {
 		aal_exception_warn("Destroing locked (%d) joint. Block %llu.",
 				   joint->counter, joint->node->blk);
-	}
+	}*/
 	
 	if (joint->children) {
 		aal_list_t *walk;

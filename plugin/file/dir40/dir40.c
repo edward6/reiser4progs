@@ -452,7 +452,7 @@ static int32_t dir40_write(object_entity_t *entity,
 
 		/* Inserting the entry to the tree */
 		if (core->tree_ops.insert(dir->file.tree, &hint, LEAF_LEVEL, NULL)) {
-			aal_exception_error("Can't add entry %s to the thee.", 
+			aal_exception_error("Can't add entry %s to the tree.", 
 					    entry->name);
 			
 			break;

@@ -20,3 +20,6 @@ reiser4progs/COPYING.
 * join reiser4_node_t and reiser4_joint_t
 
 * special file plugin.
+
+* copy bitmap functions Vitaly need
+
