@@ -644,7 +644,7 @@ struct reiser4_file_ops {
 	/* Writes the data to file from passed buffer */
 	int32_t (*write) (object_entity_t *, void *, uint32_t);
 
-	/* Truncates file to passed length */
+	/* Truncates file at current offset onto passed units */
 	errno_t (*truncate) (object_entity_t *, uint64_t);
 
 	/*

@@ -356,9 +356,9 @@ reiser4_file_t *reiser4_file_create(
 		aal_strncat(file->name, name, sizeof(file->name));
 	} else
 		aal_strncpy(file->name, name, sizeof(file->name));
-    
+
 	/* 
-	  This is a special case. In the case parent is NULL, we are trying to
+	  This is the special case. In the case parent is NULL, we are trying to
 	  create root directory.
 	*/
 	if (parent) {
@@ -390,10 +390,10 @@ reiser4_file_t *reiser4_file_create(
 		reiser4_entry_hint_t entry;
 
 		/* 
-		   Creating entry in parent directory. It should be done first,
-		   because if such directory exist we preffer just return error
-		   and do not delete inserted file stat data and some kind of
-		   body.
+		  Creating entry in parent directory. It should be done first,
+		  because if such directory exist we preffer just return error
+		  and do not delete inserted file stat data and some kind of
+		  body.
 		*/
 		aal_memset(&entry, 0, sizeof(entry));
 	
@@ -439,6 +439,18 @@ static errno_t callback_process_place(
 		
 	aal_stream_write(stream, "\n", 1);
 	return 0;
+}
+
+errno_t reiser4_file_nlink(reiser4_file_t *file) {
+	aal_assert("umka-1910", file != NULL);
+
+	/*
+	  FIXME-UMKA: Here should be removing entry from the parent
+	  directory.
+	*/
+
+	return plugin_call(file->entity->plugin->file_ops,
+			   unlink, file->entity);
 }
 
 /* Prints file items into passed stream */

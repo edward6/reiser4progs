@@ -505,12 +505,40 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	return NULL;
 }
 
+static errno_t dir40_truncate(object_entity_t *entity,
+			      uint64_t n)
+{
+	return -1;
+}
+
 static errno_t dir40_link(object_entity_t *entity) {
+	aal_assert("umka-1908", entity != NULL);
+	
 	return object40_link(&((dir40_t *)entity)->obj, 1);
 }
 
 static errno_t dir40_unlink(object_entity_t *entity) {
-	return object40_link(&((dir40_t *)entity)->obj, -1);
+	dir40_t *dir;
+	uint64_t size;
+	
+	aal_assert("umka-1907", entity != NULL);
+
+	dir = (dir40_t *)entity;
+	
+	if (object40_link(&dir->obj, -1))
+		return -1;
+
+	if (object40_get_nlink(&dir->obj) > 0)
+		return 0;
+	
+	/* Removing directory when nlink became zero */
+	if (dir40_reset(entity))
+		return -1;
+		
+	size = object40_get_size(&dir->obj);
+
+	aal_assert("umka-1909", size > 0);
+	return dir40_truncate(entity, size);
 }
 
 /* Writes @n number of entries described by @buff to passed directory entity */
@@ -717,6 +745,7 @@ static reiser4_plugin_t dir40_plugin = {
 		.metadata   = dir40_metadata,
 		.link       = dir40_link,
 		.unlink     = dir40_unlink,
+		.truncate   = dir40_truncate,
 #else
 		.create	    = NULL,
 		.write	    = NULL,
@@ -724,9 +753,9 @@ static reiser4_plugin_t dir40_plugin = {
 		.metadata   = NULL,
 		.link       = NULL,
 		.unlink     = NULL,
+		.truncate   = NULL,
 #endif
 		.follow     = NULL,
-		.truncate   = NULL,
 		.valid	    = NULL,
 		.seek	    = NULL,
 		
