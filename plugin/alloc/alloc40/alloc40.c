@@ -275,7 +275,7 @@ static errno_t alloc40_sync(object_entity_t *entity) {
 	if (alloc40_layout((object_entity_t *)alloc,
 			   callback_sync_bitmap, alloc))
 	{
-		aal_exception_error("Can't synchronize bitmap.");
+		aal_exception_error("Can't save bitmap.");
 		return -1;
 	}
     

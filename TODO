@@ -14,9 +14,9 @@ reiser4progs/COPYING.
 
 * special file plugin.
 
-* copy bitmap functions Vitaly need
+* copy bitmap functions Vitaly need.
 
-* big digits storing stat data fields format change
+* apply big digits stat data fields storing format changes.
 
 * update parent directory fields (nlink, etc) when creating file or
   directories.
@@ -24,8 +24,8 @@ reiser4progs/COPYING.
 * symlinks and special files browsing in debugfs.
 
 * insert an extent among internals may require perform shift and
-  insert an item (nor extent or nodeptr) may require to perform so
-  called drilling on the twig level.
+  on other hands, insert of an item (nor extent or nodeptr) may 
+  require to perform so called drilling on the twig level.
 
 * improve work with keys in API and plugins. The problem is that we 
   always need the key plugin. Where should we take it everytime?
@@ -33,4 +33,5 @@ reiser4progs/COPYING.
 * return value from the all low level plugin functions should be raised 
   up to the libreiser4 level.
 
-* add overwriting ability to balancing code
+* add overwriting ability to balancing code.
+* conform reiser4 and reiser4progs to be worked with LILO and GRUB.
