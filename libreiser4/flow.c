@@ -27,7 +27,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 
 		lhint.level = LEAF_LEVEL;
 		lhint.key = &hint->offset;
-		lhint.correct_func = NULL;
+		lhint.collision = NULL;
 	
 		/* Looking for the place to read. */
 		if ((res = reiser4_tree_lookup(tree, &lhint,
@@ -141,7 +141,7 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 
 		lhint.level = LEAF_LEVEL;
 		lhint.key = &hint->offset;
-		lhint.correct_func = NULL;
+		lhint.collision = NULL;
 
 		/* Looking for place to write. */
 		if ((res = reiser4_tree_lookup(tree, &lhint,
@@ -210,7 +210,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 
 		lhint.level = LEAF_LEVEL;
 		lhint.key = &hint->offset;
-		lhint.correct_func = NULL;
+		lhint.collision = NULL;
 	
 		if ((res = reiser4_tree_lookup(tree, &lhint, FIND_EXACT,
 					       &place)) < 0)

@@ -228,12 +228,20 @@ uint16_t reiser4_item_get_flags(reiser4_place_t *place) {
 			 place->node, place->pos.item);
 }
 
+lookup_t reiser4_item_collision(reiser4_place_t *place, coll_hint_t *hint) {
+	aal_assert("vpf-1550", place != NULL);
+	aal_assert("vpf-1551", place->plug != NULL);
+	
+	if (!place->plug->o.item_ops->balance->collision)
+		return PRESENT;
+
+	return place->plug->o.item_ops->balance->collision(place, hint);
+}
 #endif
 
 /* Return block number nodeptr item contains. */
 blk_t reiser4_item_down_link(reiser4_place_t *place) {
 	aal_assert("umka-2666", place != NULL);
 	
-	return plug_call(place->plug->o.item_ops->tree,
-			 down_link, place);
+	return plug_call(place->plug->o.item_ops->tree, down_link, place);
 }
