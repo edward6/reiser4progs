@@ -754,7 +754,8 @@ struct reiser4_item_ops {
 	errno_t (*layout) (item_entity_t *, region_func_t, void *);
 
 	/* Does some specific actions if a block the item points to is wrong. */
-	errno_t (*layout_check) (item_entity_t *, region_func_t, void *, uint8_t);
+	errno_t (*layout_check) (item_entity_t *, region_func_t,
+				 void *, uint8_t);
 
 	/* Set the key of a particular unit of the item. */
 	errno_t (*set_key) (item_entity_t *, uint32_t, key_entity_t *);

@@ -274,6 +274,10 @@ typedef errno_t (*detach_func_t) (reiser4_tree_t *,
 
 #ifndef ENABLE_STAND_ALONE
 
+typedef bool_t (*enough_func_t) (reiser4_tree_t *,
+				 reiser4_place_t *,
+				 uint32_t);
+
 /* Tree modification trap typedefs */
 typedef bool_t (*insert_func_t) (reiser4_tree_t *,
 				 reiser4_place_t *,

@@ -1154,16 +1154,37 @@ errno_t reiser4_tree_shift(
 	return 0;
 }
 
-/* Makes space in tree to insert @needed byes of data (item/unit) */
+/* Default enough space condition check function */
+static bool_t enough_by_space(reiser4_tree_t *tree,
+			      reiser4_place_t *place,
+			      uint32_t needed)
+{
+	if (needed <= reiser4_node_space(place->node))
+		return TRUE;
+
+	return FALSE;
+}
+
+/* Enough space condition check function for extents on twig level */
+static bool_t enough_by_place(reiser4_tree_t *tree,
+			      reiser4_place_t *place,
+			      uint32_t needed)
+{
+	return reiser4_place_leftmost(place) ||
+		reiser4_place_rightmost(place);
+}
+
+/* Makes space in tree to insert @needed bytes of data (item/unit) */
 errno_t reiser4_tree_expand(
 	reiser4_tree_t *tree,	    /* tree pointer function operates on */
 	reiser4_place_t *place,	    /* place of insertion point */
+	enough_func_t enough_func,  /* enough condition check func */
 	uint32_t needed,	    /* amount of space that should be freed */
 	uint32_t flags)
 {
 	int alloc;
 	errno_t res;
-	int32_t not_enough;
+	bool_t enough;
 	uint32_t max_space;
 
 	reiser4_place_t old;
@@ -1172,6 +1193,9 @@ errno_t reiser4_tree_expand(
 
 	aal_assert("umka-766", place != NULL);
 	aal_assert("umka-929", tree != NULL);
+
+	if (!enough_func)
+		enough_func = enough_by_space;
 
 	if (needed == 0)
 		return 0;
@@ -1187,8 +1211,8 @@ errno_t reiser4_tree_expand(
 				    "item can be %u bytes long.", max_space);
 		return -EINVAL;
 	}
-    
-	if ((not_enough = needed  - reiser4_node_space(place->node)) <= 0)
+
+	if ((enough = enough_func(tree, place, needed)))
 		return 0;
 
 	old = *place;
@@ -1200,7 +1224,7 @@ errno_t reiser4_tree_expand(
 					      SF_LEFT | SF_UPTIP)))
 			return res;
 	
-		if ((not_enough = needed - reiser4_node_space(place->node)) <= 0)
+		if ((enough = enough_func(tree, place, needed)))
 			return 0;
 	}
 
@@ -1211,23 +1235,25 @@ errno_t reiser4_tree_expand(
 					      SF_RIGHT | SF_UPTIP)))
 			return res;
 	
-		if ((not_enough = needed - reiser4_node_space(place->node)) <= 0)
+		if ((enough = enough_func(tree, place, needed)))
 			return 0;
 	}
 
-	if (!(SF_ALLOC & flags) && not_enough > 0)
+	if (!(SF_ALLOC & flags))
 		return -ENOSPC;
 	
 	/*
 	  Here we still have not enough free space for inserting item/unit into
 	  the tree. Allocating new node and trying to shift data into it.
 	*/
-	for (alloc = 0; (not_enough > 0) && (alloc < 2); alloc++) {
+	for (alloc = 0; !enough && (alloc < 2); alloc++) {
 		uint8_t level;
 		shift_flags_t flags;
 		reiser4_place_t save;
 		reiser4_node_t *node;
-	
+
+		aal_assert("umka-2197", reiser4_node_items(place->node) > 0);
+		
 		level = reiser4_node_get_level(place->node);
 	
 		if (!(node = reiser4_tree_alloc(tree, level)))
@@ -1275,14 +1301,11 @@ errno_t reiser4_tree_expand(
 				return res;
 			}
 		}
-	
-		not_enough = needed - reiser4_node_space(place->node);
+		
+		enough = enough_func(tree, place, needed);
 	}
 
-	if (not_enough > 0)
-		return -ENOSPC;
-	
-	return 0;
+	return enough ? 0 : -ENOSPC;
 }
 
 /* Packs node in @place by means of using shift into/from neighbours */
@@ -1519,8 +1542,8 @@ errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 	
 	old = *dst;
 	
-	if ((res = reiser4_tree_expand(tree, dst, hint.len,
-				       SF_DEFAULT)))
+	if ((res = reiser4_tree_expand(tree, dst, enough_by_space,
+				       hint.len, SF_DEFAULT)))
 	{
 		aal_exception_error("Can't prepare space for "
 				    "copy one more item/unit.");
@@ -1562,6 +1585,60 @@ errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 	return 0;
 }
 
+/* Prepares space in tree before inserting new item/unit inot it */
+static errno_t reiser4_tree_mkspace(
+	reiser4_tree_t *tree,       /* tree we will dealing with */
+	reiser4_place_t *place,     /* target place */
+	create_hint_t *hint)        /* item/unit create hint */
+{
+	uint32_t needed;
+	
+	aal_assert("umka-2194", tree != NULL);
+	aal_assert("umka-2195", place != NULL);
+	aal_assert("umka-2196", hint != NULL);
+	
+	/* Needed space is estimated space plugs item overhead */
+	needed = hint->len + (place->pos.unit == ~0ul ? 
+			      reiser4_node_overhead(place->node) : 0);
+		
+	/*
+	  Handling the case when of insert onto level higher then leaf one and
+	  inserted item contains more than one unit. In this case we need split
+	  the tree out, in order to keep it consistent. The fear example is
+	  extent item which is going to be inserted on twig level.
+	*/
+	if (reiser4_node_get_level(place->node) > LEAF_LEVEL &&
+	    reiser4_item_data(hint->plugin))
+	{
+		errno_t res;
+		
+		/*
+		  Using @leaves_enough_func for checking enough space
+		  condition.
+		*/
+		if ((res = reiser4_tree_expand(tree, place, enough_by_place,
+					       needed, SF_DEFAULT)))
+			return res;
+
+		*place = place->node->parent;
+
+		/*
+		  Using @leaves_enough_func for checking enough space
+		  condition.
+		*/
+		return reiser4_tree_expand(tree, place, enough_by_space,
+					   needed, SF_DEFAULT);
+	} else {
+
+		/*
+		  Using @leaves_enough_func for checking enough space
+		  condition.
+		*/
+		return reiser4_tree_expand(tree, place, enough_by_space,
+					   needed, SF_DEFAULT);
+	}
+}
+
 /* Inserts new item/unit described by item hint into the tree */
 errno_t reiser4_tree_insert(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
@@ -1571,7 +1648,6 @@ errno_t reiser4_tree_insert(
 {
 	int mode;
 	errno_t res;
-	uint32_t needed;
 	
 	reiser4_key_t *key;
 	reiser4_place_t old;
@@ -1660,12 +1736,9 @@ errno_t reiser4_tree_insert(
 		}
 	}
 
+	/* Estimating item/unit to inserted to tree */
 	if ((res = reiser4_item_estimate(place, hint)))
 		return res;
-	
-	/* Needed space is estimated space plugs item overhead */
-	needed = hint->len + (place->pos.unit == ~0ul ? 
-			      reiser4_node_overhead(place->node) : 0);
 	
 	old = *place;
 		
@@ -1682,7 +1755,7 @@ errno_t reiser4_tree_insert(
 	mode = (place->pos.unit == ~0ul);
 
 	/* Making space in tree in order to insert new item/unit into it */
-	if ((res = reiser4_tree_expand(tree, place, needed, SF_DEFAULT))) {
+	if ((res = reiser4_tree_mkspace(tree, place, hint))) {
 		aal_exception_error("Can't prepare space for insert "
 				    "one more item/unit.");
 		return res;

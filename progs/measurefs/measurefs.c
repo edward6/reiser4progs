@@ -42,7 +42,7 @@ static void measurefs_print_usage(char *name) {
 		"Common options:\n"
 		"  -?, -h, --help                  prints program usage.\n"
 		"  -V, --version                   prints current version.\n"
-		"  -q, --quiet                     forces creating filesystem without\n"
+		"  -q, --quiet                     forces using filesystem without\n"
 		"                                  any questions.\n"
 		"  -f, --force                     makes debugfs to use whole disk, not\n"
 		"                                  block device or mounted partition.\n"

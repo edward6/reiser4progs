@@ -1788,7 +1788,7 @@ static errno_t node40_shift(object_entity_t *src_entity,
 	if (hint->result & SF_MOVIP)
 		goto update_hint_out;
 	
-	/* Estimating how many and transfusing items from src node to dst one */
+	/* Transfusing items from src node to dst one */
 	if (node40_transfuse(src_entity, dst_entity, hint)) {
 		aal_exception_error("Can't transfuse nodes %llu and %llu. ",
 				    src_node->block->blk, dst_node->block->blk);
