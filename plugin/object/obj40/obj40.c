@@ -81,20 +81,20 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid,
 	statdata_hint_t stat;
 	sdext_lw_hint_t lw_ext;
 	create_hint_t stat_hint;
-	reiser4_plug_t *stat_plug;
 	sdext_unix_hint_t unix_ext;
 	
+	aal_memset(&stat_hint, 0, sizeof(stat_hint));
+	
 	/* Getting statdata plugin */
-	if (!(stat_plug = obj->core->factory_ops.ifind(ITEM_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find stat data item plugin "
-				    "by its id 0x%x.", pid);
+	if (!(stat_hint.plug =
+	      obj->core->factory_ops.ifind(ITEM_PLUG_TYPE, pid)))
+	{
+		aal_exception_error("Can't find stat data item "
+				    "plugin by its id 0x%x.", pid);
 		return -EINVAL;
 	}
 
-	/* Initializing the stat data hint */
-	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 	stat_hint.count = 1;
-	stat_hint.plug = stat_plug;
 	
 	plug_call(obj->info.object.plug->o.key_ops, assign, 
 		  &stat_hint.key, &obj->info.object);
@@ -104,9 +104,9 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid,
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
     	
 	/* Light weight hint initializing. */
+	lw_ext.size = size;
 	lw_ext.nlink = nlink;
 	lw_ext.mode = mode | 0755;
-	lw_ext.size = size;
 	
 	/* Unix extention hint initializing */
 	unix_ext.rdev = 0;
@@ -122,18 +122,18 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid,
 
 	stat.ext[SDEXT_LW_ID] = &lw_ext;
 	stat.ext[SDEXT_UNIX_ID] = &unix_ext;
-
 	stat_hint.type_specific = &stat;
 
-	if ((obj40_lookup(obj, &stat_hint.key, LEAF_LEVEL, 
-			  STAT_PLACE(obj))) != ABSENT)
+	/* Lookup place new item to be insert at and insert it to tree */
+	switch (obj40_lookup(obj, &stat_hint.key,
+			     LEAF_LEVEL, STAT_PLACE(obj)))
 	{
+	case ABSENT:
+		return obj40_insert(obj, &stat_hint,
+				    LEAF_LEVEL, STAT_PLACE(obj));
+	default:
 		return -EINVAL;
 	}
-	
-	/* Insert statdata item into the tree */
-	return obj40_insert(obj, &stat_hint, LEAF_LEVEL,
-			    STAT_PLACE(obj));
 }
 
 /* Updates size, bytes and atime fielsds */
@@ -142,11 +142,10 @@ errno_t obj40_touch(obj40_t *obj, uint64_t size,
 {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
-	place_t *place = STAT_PLACE(obj);
 
 	/* Updating stat data place */
-	if (obj40_update(obj, place))
-		return -EINVAL;
+	if ((res = obj40_update(obj)))
+		return res;
 	
 	/* Updating size if new file offset is further than size. This means,
 	   that file realy got some data additionaly, not only got rewtitten
@@ -157,8 +156,12 @@ errno_t obj40_touch(obj40_t *obj, uint64_t size,
 	}
 
 	/* Updating atime and mtime */
-	if ((res = obj40_read_ext(place, SDEXT_UNIX_ID, &unix_hint)))
+	if ((res = obj40_read_ext(STAT_PLACE(obj),
+				  SDEXT_UNIX_ID,
+				  &unix_hint)))
+	{
 		return res;
+	}
 	
 	unix_hint.atime = atime;
 	unix_hint.mtime = atime;
@@ -166,11 +169,15 @@ errno_t obj40_touch(obj40_t *obj, uint64_t size,
 	if (bytes != unix_hint.bytes)
 		unix_hint.bytes = bytes;
 
-	return obj40_write_ext(place, SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(STAT_PLACE(obj),
+			       SDEXT_UNIX_ID,
+			       &unix_hint);
 }
 
 /* Writes stat data extention. */
-errno_t obj40_write_ext(place_t *place, rid_t id, void *data) {
+errno_t obj40_write_ext(place_t *place, rid_t id,
+			void *data)
+{
 	create_hint_t hint;
 	statdata_hint_t stat;
 
@@ -213,8 +220,11 @@ uint64_t obj40_extmask(place_t *place) {
 uint16_t obj40_get_mode(obj40_t *obj) {
 	sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lw_hint))
+	if (obj40_read_ext(STAT_PLACE(obj),
+			   SDEXT_LW_ID, &lw_hint))
+	{
 		return 0;
+	}
 	
 	return lw_hint.mode;
 }
@@ -224,12 +234,16 @@ errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
 	errno_t res;
 	sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lw_hint)))
+	if ((res = obj40_read_ext(STAT_PLACE(obj),
+				  SDEXT_LW_ID, &lw_hint)))
+	{
 		return res;
+	}
 
 	lw_hint.mode = mode;
 	
-	return obj40_write_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lw_hint);
+	return obj40_write_ext(STAT_PLACE(obj),
+			       SDEXT_LW_ID, &lw_hint);
 }
 
 /* Updates size field in the stat data */
@@ -237,20 +251,27 @@ errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 	errno_t res;
 	sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lw_hint)))
+	if ((res = obj40_read_ext(STAT_PLACE(obj),
+				  SDEXT_LW_ID, &lw_hint)))
+	{
 		return res;
+	}
 
 	lw_hint.size = size;
 	
-	return obj40_write_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lw_hint);
+	return obj40_write_ext(STAT_PLACE(obj),
+			       SDEXT_LW_ID, &lw_hint);
 }
 
 /* Gets nlink field from the stat data */
 uint32_t obj40_get_nlink(obj40_t *obj) {
 	sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lw_hint))
+	if (obj40_read_ext(STAT_PLACE(obj),
+			   SDEXT_LW_ID, &lw_hint))
+	{
 		return 0;
+	}
 	
 	return lw_hint.nlink;
 }
@@ -260,20 +281,27 @@ errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 	errno_t res;
 	sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lw_hint)))
+	if ((res = obj40_read_ext(STAT_PLACE(obj),
+				  SDEXT_LW_ID, &lw_hint)))
+	{
 		return res;
+	}
 
 	lw_hint.nlink = nlink;
 	
-	return obj40_write_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lw_hint);
+	return obj40_write_ext(STAT_PLACE(obj),
+			       SDEXT_LW_ID, &lw_hint);
 }
 
 /* Gets atime field from the stat data */
 uint32_t obj40_get_atime(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint))
+	if (obj40_read_ext(STAT_PLACE(obj),
+			   SDEXT_UNIX_ID, &unix_hint))
+	{
 		return 0;
+	}
 	
 	return unix_hint.atime;
 }
@@ -283,20 +311,27 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint)))
+	if ((res = obj40_read_ext(STAT_PLACE(obj),
+				  SDEXT_UNIX_ID, &unix_hint)))
+	{
 		return res;
+	}
 
 	unix_hint.atime = atime;
 	
-	return obj40_write_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(STAT_PLACE(obj),
+			       SDEXT_UNIX_ID, &unix_hint);
 }
 
 /* Gets mtime field from the stat data */
 uint32_t obj40_get_mtime(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint))
+	if (obj40_read_ext(STAT_PLACE(obj),
+			   SDEXT_UNIX_ID, &unix_hint))
+	{
 		return 0;
+	}
 	
 	return unix_hint.mtime;
 }
@@ -306,20 +341,27 @@ errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint)))
+	if ((res = obj40_read_ext(STAT_PLACE(obj),
+				  SDEXT_UNIX_ID, &unix_hint)))
+	{
 		return res;
+	}
 
 	unix_hint.mtime = mtime;
 	
-	return obj40_write_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(STAT_PLACE(obj),
+			       SDEXT_UNIX_ID, &unix_hint);
 }
 
 /* Gets bytes field from the stat data */
 uint64_t obj40_get_bytes(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint))
+	if (obj40_read_ext(STAT_PLACE(obj),
+			   SDEXT_UNIX_ID, &unix_hint))
+	{
 		return 0;
+	}
 	
 	return unix_hint.bytes;
 }
@@ -329,12 +371,16 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint)))
+	if ((res = obj40_read_ext(STAT_PLACE(obj),
+				  SDEXT_UNIX_ID, &unix_hint)))
+	{
 		return res;
+	}
 
 	unix_hint.bytes = bytes;
 	
-	return obj40_write_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unix_hint);
+	return obj40_write_ext(STAT_PLACE(obj),
+			       SDEXT_UNIX_ID, &unix_hint);
 }
 
 /* Changes nlink field in statdata by passed @value */
@@ -344,17 +390,20 @@ errno_t obj40_link(obj40_t *obj, uint32_t value) {
 }
 #endif
 
-/* Just returns a plugin for it @pid if specified; otherwise call obj40_pid. */
+/* Just returns a plugin for it @pid if specified; otherwise call
+ * obj40_pid(). */
 reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, char *name) {
 	rid_t pid = obj40_pid(obj, type, name);
 	
 	/* Obtain the plugin by id. */
-	return  pid == INVAL_PID ? NULL :
-		obj->core->factory_ops.ifind(HASH_PLUG_TYPE, pid);
+	if (pid == INVAL_PID)
+		return NULL;
+	
+	return obj->core->factory_ops.ifind(type, pid);
 }
 
-/* This function asks SD for the plugin of the type @type, if 
-   nothing found, it asks core for default one for the @type. */
+/* This function asks SD for the plugin of the type @type, if nothing found, it
+   asks core for default one for the @type. */
 rid_t obj40_pid(obj40_t *obj, rid_t type, char *name) {
 	rid_t pid = plug_call(obj->info.start.plug->o.item_ops, 
 			      plug, &obj->info.start, type);
@@ -391,15 +440,12 @@ errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
 /* Makes sure, that passed place points to right location in tree by means of
    calling tree_lookup() for its key. This is needed, because items may move to
    somewhere after ech balancing. */
-errno_t obj40_update(obj40_t *obj, place_t *place) {
+errno_t obj40_update(obj40_t *obj) {
 	aal_assert("umka-1905", obj != NULL);
-	aal_assert("umka-2366", place != NULL);
-
+		
 	/* Looking for stat data place by */
-	switch (obj->core->tree_ops.lookup(obj->info.tree,
-					   &place->key,
-					   LEAF_LEVEL,
-					   place))
+	switch (obj40_lookup(obj, &STAT_PLACE(obj)->key,
+			     LEAF_LEVEL, STAT_PLACE(obj)))
 	{
 	case PRESENT:
 		return 0;
@@ -440,12 +486,8 @@ errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 }
 
 /* Removes item/unit by @key */
-errno_t obj40_remove(obj40_t *obj, place_t *place,
-		     uint32_t count)
-{
-	if (obj->core->tree_ops.remove(obj->info.tree, place,
-				       count))
-	{
+errno_t obj40_remove(obj40_t *obj, place_t *place, uint32_t count) {
+	if (obj->core->tree_ops.remove(obj->info.tree, place, count)) {
 		aal_exception_error("Can't remove item/unit "
 				    "from object 0x%llx.",
 				    obj40_objectid(obj));
