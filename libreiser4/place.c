@@ -11,12 +11,74 @@
 #include <reiser4/reiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
+
+/* Makes passed @place pointing to the first unit of the first item */
+errno_t reiser4_place_first(reiser4_place_t *place) {
+	if (place->pos.unit == ~0ul) {
+		place->pos.item = 0;
+	} else {
+		POS_INIT(&place->pos, 0, 0);
+	}
+	
+	return 0;
+}
+
+/* Makes passed @place pointing to the last unit of the last item */
+errno_t reiser4_place_last(reiser4_place_t *place) {
+	uint32_t items = reiser4_node_items(place->node);
+			
+	if (place->pos.unit == ~0ul) {
+		place->pos.item = items - 1;
+	} else {
+		uint32_t units;
+
+		if (reiser4_place_realize(place))
+			return -EINVAL;
+
+		units = reiser4_item_units(place);
+				
+		POS_INIT(&place->pos, items - 1, units - 1);
+	}
+
+	return 0;
+}
+
+/* Returns TRUE is passed @place is greter than 0 */
+bool_t reiser4_place_gtfirst(reiser4_place_t *place) {
+	if (place->pos.unit == ~0ul) {
+		return (place->pos.item > 0);
+	} else {
+		return (place->pos.item > 0 ||
+			place->pos.unit > 0);
+	}
+}
+
+/* Returns TRUE is passed @place is greter than 0 */
+bool_t reiser4_place_ltlast(reiser4_place_t *place) {
+	uint32_t items = reiser4_node_items(place->node);
+			
+	if (place->pos.unit == ~0ul) {
+		return (place->pos.item < items - 1);
+	} else {
+		uint32_t units;
+
+		if (reiser4_place_realize(place))
+			return FALSE;
+
+		units = reiser4_item_units(place);
+				
+		return (place->pos.item < items - 1 ||
+			place->pos.unit < units - 1);
+	}
+}
+
 /* Returns TRUE if passed @place points to left delimiting item */
 bool_t reiser4_place_leftmost(reiser4_place_t *place) {
 	aal_assert("umka-1862", place != NULL);
 	
-	return ((place->pos.unit == 0 || place->pos.unit == ~0ul) &&
-		place->pos.item == 0) ? TRUE : FALSE;
+	return (place->pos.unit == 0 ||
+		place->pos.unit == ~0ul) &&
+		place->pos.item == 0;
 }
 
 /*

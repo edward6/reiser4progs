@@ -15,6 +15,11 @@ extern bool_t reiser4_place_rightmost(reiser4_place_t *place);
 extern bool_t reiser4_place_leftmost(reiser4_place_t *place);
 #endif
 
+extern bool_t reiser4_place_gtfirst(reiser4_place_t *place);
+extern bool_t reiser4_place_ltlast(reiser4_place_t *place);
+extern errno_t reiser4_place_first(reiser4_place_t *place);
+extern errno_t reiser4_place_last(reiser4_place_t *place);
+
 extern errno_t reiser4_place_realize(reiser4_place_t *place);
 
 extern errno_t reiser4_place_assign(reiser4_place_t *place,
