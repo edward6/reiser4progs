@@ -91,7 +91,7 @@ static errno_t debugfs_print_node(reiser4_node_t *node) {
 	    printf("PLUGIN: 0x%x (%s)\n", item.plugin->h.id, item.plugin->h.label);
 	   
 	    if (reiser4_item_internal(&item)) {
-		printf("[ %llu ]\n", reiser4_item_get_iptr(&item));
+		printf("[ %llu ]\n", reiser4_item_get_nptr(&item));
 	    } else {
 		char buff[255];
 		
@@ -120,7 +120,7 @@ static errno_t debugfs_print_node(reiser4_node_t *node) {
 	    if (!reiser4_item_internal(&item))
 		continue;
 
-	    blk = reiser4_item_get_iptr(&item);
+	    blk = reiser4_item_get_nptr(&item);
 	    if (!(block = aal_block_open(node->block->device, blk))) {
 		aal_exception_error("Can't read block %llu. %s.", 
 		    blk, node->block->device->error);
