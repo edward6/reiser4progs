@@ -1,6 +1,6 @@
 /*
   node.c -- the personalization of the reiser4 on-disk node. The libreiser4
-  internal in-memory tree consists of reiser4_node_t structures.
+  internal in-memory tree consists of reiser4_node_t instances.
   
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -192,8 +192,6 @@ errno_t reiser4_node_release(reiser4_node_t *node) {
 	aal_assert("umka-1761", node != NULL);
 	aal_assert("umka-1762", node->entity != NULL);
 
-#ifndef ENABLE_ALONE
-	
 	/* Closing children */
 	if (node->children) {
 		aal_list_t *walk;
@@ -208,6 +206,7 @@ errno_t reiser4_node_release(reiser4_node_t *node) {
 		node->children = NULL;
 	}
 
+#ifndef ENABLE_ALONE
 	if (reiser4_node_isdirty(node)) {
 		if (reiser4_node_sync(node)) {
 			aal_exception_error("Can't write node %llu.",
@@ -215,6 +214,7 @@ errno_t reiser4_node_release(reiser4_node_t *node) {
 			return -1;
 		}
 	}
+#endif
 	
 	/* Detaching node from the tree */
 	if (node->parent) {
@@ -232,19 +232,11 @@ errno_t reiser4_node_release(reiser4_node_t *node) {
 	node->left = NULL;
 	node->right = NULL;
 
-	/*
-	  Calling close method from the plugin in odrder to finilize own
-	  entity.
-	*/
-	plugin_call(node->entity->plugin->node_ops,
-		    close, node->entity);
-	    
+	/* Calling node pluign close method to finilize node entity */
+	plugin_call(node->entity->plugin->node_ops, close, node->entity);
+   
 	aal_free(node);
-	
 	return 0;
-#else
-	return reiser4_node_close(node);
-#endif
 }
 
 /* Getting the left delimiting key */
