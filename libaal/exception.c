@@ -157,11 +157,11 @@ aal_exception_option_t aal_exception_throw(
   times while the control flows through the stack, here is the special counter
   for keeping track of how many times exception factory was disabled.
 */
-void aal_exception_disable(void) {
+void aal_exception_off(void) {
 	disable_count++;
 }
 
-void aal_exception_enable(void) {
+void aal_exception_on(void) {
 	if (disable_count > 0)
 		disable_count--;
 }

@@ -11,6 +11,20 @@
 
 #include <reiser4/reiser4.h>
 
+#ifndef ENABLE_ALONE
+
+static inline errno_t callback_tree_pack(reiser4_tree_t *tree,
+					 reiser4_place_t *place,
+					 void *data)
+{
+	aal_assert("umka-1897", tree != NULL);
+	aal_assert("umka-1898", place != NULL);
+
+	return reiser4_tree_shrink(tree, place);
+}
+
+#endif
+
 static int callback_node_free(void *data) {
 	reiser4_node_t *node = (reiser4_node_t *)data;
 	
@@ -511,7 +525,11 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 		goto error_free_tree;
 	}
 
-	reiser4_tree_enable_pack(tree);
+#ifndef ENABLE_ALONE
+	reiser4_tree_pack_on(tree);
+	tree->traps.pack = callback_tree_pack;
+#endif
+		
 	return tree;
 
  error_free_tree:
@@ -1639,17 +1657,28 @@ errno_t reiser4_tree_cut(
 	return 0;
 }
 
+/* Installs ne wpack handler. If it is NULL, default one will be used */
+void reiser4_tree_pack_handler(reiser4_tree_t *tree,
+			       pack_func_t func)
+{
+	aal_assert("umka-1896", tree != NULL);
+
+	tree->traps.pack = (func != NULL) ? func :
+		callback_tree_pack;
+}
+
+
 /*
   Switches on/off flag, which displays should tree pack itself after remove
   operations or not. It is needed because all operations like this should be
   under control.
 */
-void reiser4_tree_enable_pack(reiser4_tree_t *tree) {
+void reiser4_tree_pack_on(reiser4_tree_t *tree) {
 	aal_assert("umka-1881", tree != NULL);
 	tree->flags |= TF_PACK;
 }
 
-void reiser4_tree_disable_pack(reiser4_tree_t *tree) {
+void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 	aal_assert("umka-1882", tree != NULL);
 	tree->flags &= ~TF_PACK;
 }
@@ -1659,8 +1688,8 @@ void reiser4_tree_disable_pack(reiser4_tree_t *tree) {
   "local packing". This is shift as many as possible items and units from the
   node pointed by @place into its left neighbour node and the same shift from
   the right neighbour into target node. This behavior may be controlled by
-  tree's control flags (tree->flags) or by functions treee_enable_pack and
-  tree_disable_pack.
+  tree's control flags (tree->flags) or by functions tree_pack_on() and
+  tree_pack_off().
 */
 errno_t reiser4_tree_remove(
 	reiser4_tree_t *tree,	  /* tree item will be removed from */
@@ -1715,9 +1744,11 @@ errno_t reiser4_tree_remove(
 	  pack the tree about it.
 	*/
 	if (reiser4_node_items(place->node) > 0) {
-		if (tree->flags & TF_PACK) {
-			if (reiser4_tree_shrink(tree, place))
-				return -1;
+		if (tree->flags & TF_PACK && tree->traps.pack) {
+			errno_t res;
+			
+			if ((res = tree->traps.pack(tree, place, tree->traps.data)))
+				return res;
 		}
 	} else {
 		/* Detaching node from the tree, because it became empty */

@@ -299,11 +299,11 @@ AC_OUTPUT([
     plugin/item/direntry40/Makefile
     plugin/item/tail40/Makefile
     plugin/item/extent40/Makefile
-    plugin/file/Makefile
-    plugin/file/object40/Makefile
-    plugin/file/dir40/Makefile
-    plugin/file/reg40/Makefile
-    plugin/file/sym40/Makefile
+    plugin/object/Makefile
+    plugin/object/object40/Makefile
+    plugin/object/dir40/Makefile
+    plugin/object/reg40/Makefile
+    plugin/object/sym40/Makefile
     plugin/hash/Makefile
     plugin/hash/r5_hash/Makefile
     plugin/hash/tea_hash/Makefile

@@ -24,8 +24,8 @@ extern aal_exception_option_t aal_exception_throw(aal_exception_type_t type,
 						  aal_exception_option_t opt,
 						  const char *message, ...);
 
-extern void aal_exception_disable(void);
-extern void aal_exception_enable(void);
+extern void aal_exception_on(void);
+extern void aal_exception_off(void);
 
 #define aal_exception_fatal(msg, list...) \
         aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK, msg, ##list)

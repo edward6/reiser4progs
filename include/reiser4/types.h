@@ -282,6 +282,10 @@ typedef errno_t (*detach_func_t) (reiser4_tree_t *,
 				  reiser4_place_t *,
 				  reiser4_node_t *, void *);
 
+typedef errno_t (*pack_func_t) (reiser4_tree_t *,
+				reiser4_place_t *,
+				void *);
+
 enum tree_flags {
 	TF_PACK = 1 << 0
 };
@@ -315,14 +319,29 @@ struct reiser4_tree {
 
 	/* Tree modification traps */
 	struct {
+		/* These traps will be called durring insert an item/unit */
 		insert_func_t pre_insert;
 		insert_func_t post_insert;
 
+		/* These traps will be called durring remove an item/unit */
 		remove_func_t pre_remove;
 		remove_func_t post_remove;
 
+		/*
+		  These traps will be called for connect/disconnect nodes in
+		  tree. They may be used for keeping track nodes in tree.
+		*/
 		attach_func_t connect;
 		detach_func_t disconnect;
+
+		/*
+		  This trap is called by any remove from the tree. It may be
+		  used for implementing an alternative tree packing in remove
+		  point. By default it uses so called "local packing", that is,
+		  shift target node into left neighbour and shift right node
+		  into target one.
+		*/
+		pack_func_t pack;
 
 		/* Traps used opaque data  */
 		void *data;

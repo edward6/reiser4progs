@@ -1,4 +1,4 @@
-SUBDIRS 			= format journal alloc oid node key hash sdext item file
+SUBDIRS 			= format journal alloc oid node key hash sdext item object
 
 if ENABLE_ALONE
 ALONE_LIBS                      = libreiser4-plugin-alone.la libheader-alone.la libfooter-alone.la
@@ -25,10 +25,10 @@ libreiser4_plugin_la_LIBADD  	= libheader.la \
 			          item/tail40/libtail40-static.la \
 			          item/extent40/libextent40-static.la \
 			          item/stat40/libstat40-static.la \
-			          file/object40/libobject40-static.la \
-			          file/dir40/libdir40-static.la \
-			          file/reg40/libreg40-static.la \
-			          file/sym40/libsym40-static.la \
+			          object/object40/libobject40-static.la \
+			          object/dir40/libdir40-static.la \
+			          object/reg40/libreg40-static.la \
+			          object/sym40/libsym40-static.la \
 			          hash/r5_hash/libr5_hash-static.la \
 			          hash/tea_hash/libtea_hash-static.la \
 			          hash/rupasov_hash/librupasov_hash-static.la \
@@ -57,10 +57,10 @@ libreiser4_plugin_alone_la_LIBADD = libheader-alone.la \
 			          item/tail40/libtail40-alone.la \
 			          item/extent40/libextent40-alone.la \
 			          item/stat40/libstat40-alone.la \
-			          file/object40/libobject40-alone.la \
-			          file/dir40/libdir40-alone.la \
-			          file/reg40/libreg40-alone.la \
-			          file/sym40/libsym40-alone.la \
+			          object/object40/libobject40-alone.la \
+			          object/dir40/libdir40-alone.la \
+			          object/reg40/libreg40-alone.la \
+			          object/sym40/libsym40-alone.la \
 			          hash/r5_hash/libr5_hash-alone.la \
 			          hash/tea_hash/libtea_hash-alone.la \
 			          hash/rupasov_hash/librupasov_hash-alone.la \

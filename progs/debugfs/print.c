@@ -90,7 +90,7 @@ errno_t debugfs_print_block(
 		break;
 	}
 	
-	aal_exception_disable();
+	aal_exception_off();
 	device = fs->device;
 
 	/*
@@ -98,12 +98,12 @@ errno_t debugfs_print_block(
 	  using print_process_node listed abowe.
 	*/
 	if (!(node = reiser4_node_open(device, blk))) {
-		aal_exception_enable();
+		aal_exception_on();
 		aal_exception_info("Node %llu is not a formated one.", blk);
 		return 0;
 	}
 
-	aal_exception_enable();
+	aal_exception_on();
 	
 	if (debugfs_print_node(node))
 		return -1;
