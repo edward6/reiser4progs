@@ -819,6 +819,7 @@ generic_entity_t *journal40_unpack(aal_device_t *device,
 	}
 
 	read = aal_stream_read(stream, journal->header->data, blksize);
+	journal->header->dirty = 1;
 	
 	if (read != blksize) {
 		aal_error("Can't unpack journal header. Stream is over?");
@@ -826,6 +827,7 @@ generic_entity_t *journal40_unpack(aal_device_t *device,
 	}
 
 	read = aal_stream_read(stream, journal->footer->data, blksize);
+	journal->footer->dirty = 1;
 	
 	if (read != blksize) {
 		aal_error("Can't unpack journal footer. Stream is over?");

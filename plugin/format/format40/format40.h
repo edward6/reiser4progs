@@ -24,8 +24,7 @@ struct format40_super {
 	d64_t sb_root_block;
 	
 	/* These 2 fields are for oid data. */
-	d64_t sb_oid;
-	d64_t sb_file_count;
+	d64_t sb_oid[2];
 	
 	d64_t sb_flushes;
     
@@ -85,11 +84,9 @@ extern reiser4_core_t *format40_core;
 #define get_sb_policy(sb)			aal_get_le16(sb, sb_policy)
 #define set_sb_policy(sb, val)			aal_set_le16(sb, sb_policy, val)
 
-#define get_sb_oid(sb)                         aal_get_le64(sb, sb_oid)
-#define set_sb_oid(sb, val)                    aal_set_le64(sb, sb_oid, val)
-
-#define get_sb_file_count(sb)                  aal_get_le64(sb, sb_file_count)
-#define set_sb_file_count(sb, val)             aal_set_le64(sb, sb_file_count, val)
+/* FIXME: Should not be here, oid's stuff. */
+#define get_sb_oid(sb)                         aal_get_le64(sb, sb_oid[0])
+#define get_sb_file_count(sb)                  aal_get_le64(sb, sb_oid[1])
 
 #define get_sb_flushes(sb)			aal_get_le64(sb, sb_flushes)
 #define set_sb_flushes(sb, val)			aal_set_le64(sb, sb_flushes, val)

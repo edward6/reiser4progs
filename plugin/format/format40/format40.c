@@ -359,8 +359,7 @@ static void format40_oid_area(generic_entity_t *entity,
 	
 	*start = &(SUPER(entity)->sb_oid);
 	
-	*len = &(SUPER(entity)->sb_file_count) -
-		&(SUPER(entity)->sb_oid);
+	*len = sizeof(SUPER(entity)->sb_oid);
 }
 
 static rid_t format40_oid_pid(generic_entity_t *entity) {

@@ -133,6 +133,15 @@ static uint64_t tree_slink_locality(tree_entity_t *tree) {
 			 slink_locality);
 }
 
+static errno_t tree_inc_free(tree_entity_t *tree, count_t count) {
+	reiser4_format_t *format;
+
+	aal_assert("vpf-1723", tree != NULL);
+	
+	format = ((reiser4_tree_t *)tree)->fs->format;
+	return reiser4_format_inc_free(format, count);
+}
+
 static errno_t tree_dec_free(tree_entity_t *tree, count_t count) {
 	reiser4_format_t *format;
 
@@ -205,7 +214,8 @@ reiser4_core_t core = {
 		/* Get the safe link locality. */
 		.slink_locality	= tree_slink_locality,
 		
-		/* decriment the free block count in the format. */
+		/* increment/decriment the free block count in the format. */
+		.inc_free	= tree_inc_free,
 		.dec_free	= tree_dec_free,
 #endif
 		/* Returns next item from the passed place. */

@@ -138,6 +138,14 @@ static errno_t extent40_remove_units(reiser4_place_t *place, trans_hint_t *hint)
 			start = et40_get_start(extent);
 			width = et40_get_width(extent);
 
+			if (start != EXTENT_HOLE_UNIT) {
+				if ((res = extent40_core->tree_ops.inc_free(
+					place->node->tree, width)))
+				{
+					return res;
+				}
+			}
+
 			if (start == EXTENT_UNALLOC_UNIT || 
 			    start == EXTENT_HOLE_UNIT)
 				continue;
@@ -237,6 +245,7 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 		uint32_t start;
 		uint32_t width;
 		uint32_t eskip;
+		errno_t res;
 		uint32_t i;
 
 		width = et40_get_width(extent);
@@ -269,10 +278,16 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 		
 		start = et40_get_start(extent);
 		
+		if (start != EXTENT_HOLE_UNIT) {
+			if ((res = extent40_core->tree_ops.inc_free(
+				place->node->tree, remove)))
+			{
+				return res;
+			}
+		}
+
 		/* Calling region remove notification function. */
 		if (start != EXTENT_HOLE_UNIT && start != EXTENT_UNALLOC_UNIT) {
-			errno_t res;
-			
 			if ((res = hint->region_func(start + eskip, 
 						     remove, hint->data)))
 			{
