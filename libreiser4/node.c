@@ -371,8 +371,7 @@ errno_t reiser4_node_sync(reiser4_node_t *node) {
 	if (!reiser4_node_isdirty(node)) 
 		return 0;
 	
-	return plug_call(node->plug->o.node_ops, 
-			 sync, node);
+	return plug_call(node->plug->o.node_ops, sync, node);
 }
 
 /* Updates nodeptr item in parent node */

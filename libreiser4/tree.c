@@ -2387,19 +2387,11 @@ static errno_t tree_shift_todir(reiser4_tree_t *tree, reiser4_place_t *place,
 }
 
 /* This calculates if space in passed @needed is enough for passed @needed. */
-static int32_t tree_calc_space(reiser4_tree_t *tree, reiser4_place_t *place,
-			       uint32_t needed)
+static inline int32_t tree_calc_space(reiser4_place_t *place,
+				      uint32_t overhead)
 {
-	int32_t enough;
-
-	if ((enough = reiser4_node_space(place->node) - needed) >= 0) {
-		enough = reiser4_node_space(place->node);
-		
-		if (place->pos.unit == MAX_UINT32)
-			enough -= reiser4_node_overhead(place->node);
-	}
-	
-	return enough;
+	return reiser4_node_space(place->node) - 
+		(place->pos.unit == MAX_UINT32 ? overhead : 0);
 }
 
 /* Makes space in tree to insert @needed bytes of data. Returns space in insert
@@ -2426,23 +2418,11 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree,
 
 	overhead = reiser4_node_overhead(place->node);
 
-	/* Adding node overhead to @needed. */
-	if (place->pos.unit == MAX_UINT32)
-		needed += overhead;
-
 	/* Check if there is enough space in insert point node. If so -- do
 	   nothing but exit. Here is also check if node is empty. Then we exit
 	   too and return available space in it. */
-	if ((enough = reiser4_node_space(place->node) - needed) >= 0 ||
-	    reiser4_node_items(place->node) == 0)
-	{
-		enough = reiser4_node_space(place->node);
-		
-		if (place->pos.unit == MAX_UINT32)
-			enough -= overhead;
-
+	if ((enough = tree_calc_space(place, overhead)) >= (int32_t)needed)
 		return enough;
-	}
 
 	/* Shifting data into left neighbour if it exists and left shift
 	   allowing flag is specified. */
@@ -2456,7 +2436,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree,
 		reiser4_place_dup(parent, &place->node->p);
 		parent->pos.item++;
 		
-		if ((enough = tree_calc_space(tree, place, needed)) > 0)
+		enough = tree_calc_space(place, overhead);
+
+		if (enough > (int32_t)needed)
 			return enough;
 	}
 
@@ -2472,26 +2454,22 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree,
 		reiser4_place_dup(parent, &place->node->p);
 		parent->pos.item++;
 
-		if ((enough = tree_calc_space(tree, place, needed)) > 0)
+		enough = tree_calc_space(place, overhead);
+		
+		if (enough > (int32_t)needed)
 			return enough;
 	}
 
 	/* Check if we allowed to allocate new nodes if there still not enough
 	   of space for insert @needed bytes of data to tree. */
-	if (!(SF_ALLOW_ALLOC & flags)) {
-		enough = reiser4_node_space(place->node);
-		
-		if (place->pos.unit == MAX_UINT32)
-			enough -= overhead;
-
-		return enough;
-	}
+	if (!(SF_ALLOW_ALLOC & flags))
+		return tree_calc_space(place, overhead);
 	
 	/* Here we still have not enough free space for inserting item/unit into
 	   the tree. Allocating new nodes and trying to shift data into
 	   them. There are possible two tries to allocate new node and shift
 	   insert point to one of them. */
-	for (alloc = 0; enough < 0 && alloc < 2; alloc++) {
+	for (alloc = 0; enough < (int32_t)needed && alloc < 2; alloc++) {
 		reiser4_place_t save;
 		reiser4_node_t *node;
 		uint32_t shift_flags;
@@ -2529,19 +2507,16 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree,
 		if (reiser4_node_items(save.node) == 0) {
 			reiser4_node_lock(save.node);
 			
+			shift_flags = SF_DEFAULT & ~SF_ALLOW_PACK;
+			
 			if ((res = reiser4_tree_detach_node(tree, save.node,
-							    SF_DEFAULT)))
+							    shift_flags)))
 			{
 				reiser4_node_unlock(place->node);
 				return res;
 			}
 
 			reiser4_node_unlock(save.node);
-
-			if (save.node->p.node == parent->node) {
-				if (parent->pos.item < save.node->p.pos.item)
-					parent->pos.item--;
-			}
 		} else {
 			aplace.pos.item++;
 		}
@@ -2583,14 +2558,14 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree,
 		}
 		
 		/* Checking if it is enough of space in @place. */
-		enough = (reiser4_node_space(place->node) - needed);
+		enough = tree_calc_space(place, overhead);
 
 		/* If it is not enough of space and insert point was actually
 		   moved to neighbour node, we set @place to @save and give it
 		   yet another try to make space. */
-		if (enough < 0 && save.node != place->node) {
+		if (enough < (int32_t)needed && save.node != place->node) {
 			*place = save;
-			enough = (reiser4_node_space(place->node) - needed);
+			enough = tree_calc_space(place, overhead);
 		}
 
 		/* Releasing new allocated @node if it is empty and insert point
@@ -2604,12 +2579,6 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree,
 			reiser4_tree_release_node(tree, save.node);
 	}
 
-	/* Return value of free space in insert point node. */
-	enough = reiser4_node_space(place->node);
-		
-	if (place->pos.unit == MAX_UINT32)
-		enough -= overhead;
-	
 	return enough;
 }
 
