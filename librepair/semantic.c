@@ -409,6 +409,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	
  error_rem_entry:
 	res = reiser4_object_rem_entry(parent, entry);
+	sem->stat.rm_entries++;
 	
 	if (res < 0) {
 		aal_exception_error("Semantic traverse failed to remove the "
@@ -417,7 +418,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 				    reiser4_print_key(&entry->offset, PO_INO),
 				    reiser4_print_key(&entry->object, PO_INO));
 	}
-
+	
  error_close_object:
 	if (object)
 		reiser4_object_close(object);
@@ -749,20 +750,31 @@ static void repair_semantic_update(repair_semantic_t *sem) {
 	stat = &sem->stat;
 	aal_stream_init(&stream);
 	
-	aal_stream_format(&stream, "\tObject found:\n");
-	aal_stream_format(&stream, "\tDirectories %llu, Files %llu, Symlinks "
-			  "%llu, Special %llu\n", stat->dirs, stat->files, 
-			  stat->syms, stat->spcls);
-	aal_stream_format(&stream, "\tLost&found of them:\n");
-	aal_stream_format(&stream, "\tDirectories %llu, Files %llu, Symlinks "
-			  "%llu, Special %llu\n", stat->ldirs, stat->lfiles, 
-			  stat->lsyms, stat->lspcls);
-	aal_stream_format(&stream, "\tObjects relocated to another object id "
-			  "%llu\n",stat->shared);
-	aal_stream_format(&stream, "\tRemoved names pointing to nowhere %llu\n",
-			  stat->rm_entries);
-	aal_stream_format(&stream, "\tUnrecoverable objects found %llu\n", 
-			  stat->broken);
+	if (stat->dirs || stat->files || stat->syms || stat->spcls) {
+		aal_stream_format(&stream, "\tObject found:\n");
+		aal_stream_format(&stream, "\tDirectories %llu, Files %llu, "
+				  "Symlinks %llu, Special %llu\n", stat->dirs, 
+				  stat->files, stat->syms, stat->spcls);
+	}
+
+	if (stat->ldirs || stat->lfiles || stat->lsyms || stat->lspcls) {
+		aal_stream_format(&stream, "\tLost&found of them:\n");
+		aal_stream_format(&stream, "\tDirectories %llu, Files %llu, "
+				  "Symlinks %llu, Special %llu\n", stat->ldirs, 
+				  stat->lfiles, stat->lsyms, stat->lspcls);
+	}
+
+	if (stat->shared)
+		aal_stream_format(&stream, "\tObjects relocated to another "
+				  "object id %llu\n", stat->shared);
+
+	if (stat->rm_entries)
+		aal_stream_format(&stream, "\tRemoved names pointing to "
+				  "nowhere %llu\n", stat->rm_entries);
+
+	if (stat->broken)
+		aal_stream_format(&stream, "\tUnrecoverable objects found "
+				  "%llu\n", stat->broken);
 	
 	time_str = ctime(&sem->stat.time);
 	time_str[aal_strlen(time_str) - 1] = '\0';

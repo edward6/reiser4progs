@@ -28,10 +28,16 @@ errno_t repair_fs_open(repair_data_t *repair,
 		aal_exception_fatal("Failed to open the master super block.");
 		goto error_fs_free;
 	}
-    
+
+	if ((res = repair_status_open(repair->fs, repair->mode))) {
+		aal_exception_fatal("Failed to open the status block.");
+		goto error_master_close;
+	}
+	
+	
 	if ((res = repair_format_open(repair->fs, repair->mode))) {
 		aal_exception_fatal("Failed to open the format.");
-		goto error_master_close;
+		goto error_status_close;
 	}
     
 	if ((res = repair_journal_open(repair->fs, journal_device, 
@@ -89,7 +95,11 @@ errno_t repair_fs_open(repair_data_t *repair,
  error_format_close:
 	reiser4_format_close(repair->fs->format);
 	repair->fs->format = NULL;
-    
+
+ error_status_close:
+	reiser4_status_close(repair->fs->status);
+	repair->fs->status = NULL;
+
  error_master_close:
 	reiser4_master_close(repair->fs->master);
 	repair->fs->master = NULL;

@@ -31,11 +31,8 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 
 	blksize = reiser4_master_get_blksize(fs->master);
 
-	if (!(fs->status = reiser4_status_open(device,
-					       blksize)))
-	{
+	if (!(fs->status = reiser4_status_open(device, blksize)))
 		goto error_free_master;
-	}
 #endif
 
 	/* Initializes used disk format. See format.c for details */
@@ -140,35 +137,35 @@ reiser4_owner_t reiser4_fs_belongs(
 	aal_assert("umka-1534", fs != NULL);
 
 	/* Checks if passed @blk belongs to skipped area */
-	if (reiser4_format_skipped(fs->format, callback_check_block, &blk) != 0)
+	if (reiser4_format_skipped(fs->format, callback_check_block, &blk))
 		return O_SKIPPED;
 	
 	/* Checks if passed @blk is master super block */
-	if (reiser4_master_layout(fs->master, callback_check_block, &blk) != 0)
+	if (reiser4_master_layout(fs->master, callback_check_block, &blk))
 		return O_MASTER;
 	
 	/* Checks if passed @blk belongs to format metadata */
-	if (reiser4_format_layout(fs->format, callback_check_block, &blk) != 0)
+	if (reiser4_format_layout(fs->format, callback_check_block, &blk))
 		return O_FORMAT;
 
 	/* Checks if passed @blk belongs to oid allocator metadata */
-	if (reiser4_oid_layout(fs->oid, callback_check_block, &blk) != 0)
+	if (reiser4_oid_layout(fs->oid, callback_check_block, &blk))
 		return O_OID;
 
 	/* Checks if passed @blk belongs to journal metadata if journal
 	   opened. */
 	if (fs->journal) {
 		if (reiser4_journal_layout(fs->journal,
-					   callback_check_block, &blk) != 0)
+					   callback_check_block, &blk))
 			return O_JOURNAL;
 	}
 
 	/* Check if @blk is filesystem status block. */
-	if (reiser4_status_layout(fs->status, callback_check_block, &blk) != 0)
+	if (reiser4_status_layout(fs->status, callback_check_block, &blk))
 		return O_STATUS;
 	
 	/* Checks if passed @blk belongs to block allocator data */
-	if (reiser4_alloc_layout(fs->alloc, callback_check_block, &blk) != 0)
+	if (reiser4_alloc_layout(fs->alloc, callback_check_block, &blk))
 		return O_ALLOC;
 
 	return O_UNKNOWN;
@@ -205,7 +202,7 @@ errno_t reiser4_fs_layout(reiser4_fs_t *fs,
 			return res;
 		}
 	}
-    
+	
 	if ((res = reiser4_status_layout(fs->status, region_func, data)))
 		return res;
 
@@ -281,11 +278,8 @@ reiser4_fs_t *reiser4_fs_create(
 	reiser4_master_set_uuid(fs->master, hint->uuid);
 	reiser4_master_set_label(fs->master, hint->label);
 
-	if (!(fs->status = reiser4_status_create(device,
-						 hint->blksize)))
-	{
+	if (!(fs->status = reiser4_status_create(device, hint->blksize)))
 		goto error_free_master;
-	}
 
 	/* Getting tail policy from default params. */
 	policy = reiser4_param_value("policy");
@@ -381,10 +375,7 @@ errno_t reiser4_fs_sync(
 	if ((res = reiser4_format_sync(fs->format)))
 		return res;
 
-	if ((res = reiser4_master_sync(fs->master)))
-		return res;
-
-	return reiser4_status_sync(fs->status);
+	return reiser4_master_sync(fs->master);
 }
 
 /* Returns the key of the fake root parent */

@@ -26,6 +26,7 @@ extern reiser4_status_t *reiser4_status_open(aal_device_t *device,
 
 extern reiser4_status_t *reiser4_status_create(aal_device_t *device,
 					       uint32_t blksize);
+
 #endif
 
 #endif

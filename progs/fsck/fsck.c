@@ -284,13 +284,12 @@ int main(int argc, char *argv[]) {
 		exit_code = OPER_ERROR;
 		goto free_fs;
 	}
-    
-    
+
 	if (repair_check(&repair)) {
 		exit_code = OPER_ERROR;
 		goto free_tree;
 	}
-    
+
 	fsck_time("fsck.reiser4 finished at");
     
  free_tree:
