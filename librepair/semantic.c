@@ -794,7 +794,8 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 		goto error;
 	}
 	
-	reiser4_tree_lroot(tree);
+	if ((res = reiser4_tree_load_root(tree)))
+		return res;
 	
 	if (tree->root == NULL) {
 		res = -EINVAL;
