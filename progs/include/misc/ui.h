@@ -16,8 +16,10 @@ extern void progs_ui_print_wrap(void *stream, char *text);
 extern void progs_ui_wipe_line(void *stream);
 
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
-extern void progs_ui_set_possibilities(aal_list_t *list);
-extern aal_list_t *progs_ui_get_possibilities(void);
+
+extern void progs_ui_set_variant(aal_list_t *list);
+extern aal_list_t *progs_ui_get_variant(void);
+
 #endif
 
 extern void progs_misc_print_banner(char *name);

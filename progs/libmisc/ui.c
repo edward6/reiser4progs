@@ -28,7 +28,7 @@
 #  define rl_compentry_func_t void
 #endif
 
-static aal_list_t *possibilities = NULL;
+static aal_list_t *variant = NULL;
 
 #endif /* defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H) */
 
@@ -160,7 +160,7 @@ static char *progs_ui_generator(char *text, int state) {
     static aal_list_t *cur = NULL;
     
     if (!state) 
-	cur = possibilities;
+	cur = variant;
     
     while (cur) {
 	aal_memset(s, 0, sizeof(s));
@@ -184,12 +184,12 @@ static char **progs_ui_complete(char *text, int start, int end) {
 	(rl_compentry_func_t *)progs_ui_generator);
 }
 
-void progs_ui_set_possibilities(aal_list_t *list) {
-    possibilities = list;
+void progs_ui_set_variant(aal_list_t *list) {
+    variant = list;
 }
 
-aal_list_t *progs_ui_get_possibilities(void) {
-    return possibilities;
+aal_list_t *progs_ui_get_variant(void) {
+    return variant;
 }
 
 #endif

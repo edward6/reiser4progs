@@ -129,7 +129,7 @@ aal_exception_option_t progs_exception_handler(
     int i;
     void *stream = stderr;
     aal_exception_option_t opt;
-    aal_list_t *possibilities = NULL;
+    aal_list_t *variant = NULL;
     
     if (progs_exception_option_count(exception->options, 0) == 1) {
 	if (!(stream = streams[exception->type]))
@@ -148,10 +148,11 @@ aal_exception_option_t progs_exception_handler(
     for (i = 1; i < aal_log2(EXCEPTION_LAST); i++) {
 	if ((1 << i) & exception->options) {
 	    char *name = aal_exception_option_name(1 << i);
-	    possibilities = aal_list_append(possibilities, name);
+	    variant = aal_list_append(variant, name);
 	}
     }
-    progs_ui_set_possibilities(aal_list_first(possibilities));
+    variant = aal_list_first(variant);
+    progs_ui_set_variant(variant);
 #endif
     
     do {
@@ -159,8 +160,8 @@ aal_exception_option_t progs_exception_handler(
     } while (opt == EXCEPTION_UNHANDLED && isatty(0));
 
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
-    aal_list_free(possibilities);
-    progs_ui_set_possibilities(NULL);
+    aal_list_free(variant);
+    progs_ui_set_variant(NULL);
 #endif
     
     return opt;
