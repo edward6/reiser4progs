@@ -58,7 +58,10 @@ static void debugfs_print_usage(char *name) {
 		"                                any questions.\n"
 		"  -f, --force                   makes debugfs to use whole disk, not\n"
 		"                                block device or mounted partition.\n"
-		"  -c, --cache N                 number of nodes in tree buffer cache\n");
+		"  -c, --cache N                 number of nodes in tree buffer cache\n"
+		"\n"
+		"Temporary Options:\n"
+		"  -C                            convert to the new backup layout.\n");
 }
 
 static errno_t cb_mark_block(void *entity, blk_t start,
