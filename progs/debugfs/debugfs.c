@@ -21,6 +21,16 @@
 #include <aux/aux.h>
 #include <misc/misc.h>
 
+enum debugfs_print_flags {
+    PF_SUPER	= 1 << 0,
+    PF_JOURNAL	= 1 << 1,
+    PF_ALLOC	= 1 << 2,
+    PF_OID	= 1 << 3,
+    PF_TREE	= 1 << 4
+};
+
+typedef enum debugfs_print_flags debugfs_print_flags_t;
+
 /* Prints debugfs options */
 static void debugfs_print_usage(char *name) {
     fprintf(stderr, "Usage: %s [ options ] FILE\n", name);
@@ -33,6 +43,11 @@ static void debugfs_print_usage(char *name) {
 	"                                 any questions.\n"
 	"  -f | --force                   makes debugfs to use whole disk, not\n"
 	"                                 block device or mounted partition.\n"
+	"  -t | --print-tree              prints the whole tree (default).\n"
+	"  -j | --print-journal           prints journal.\n"
+	"  -s | --print-super-block       prints the both super blocks.\n"
+	"  -b | --print-block-alloc       prints block allocator data.\n"
+	"  -o | --print-oid-alloc         prints oid allocator data.\n"
 	"Plugins options:\n"
 	"  -e | --profile PROFILE         profile to be used.\n"
 	"  -K | --known-profiles          prints known profiles.\n");
@@ -70,9 +85,9 @@ static errno_t debugfs_print_node(reiser4_node_t *node) {
 	    }
 
 	    if (reiser4_item_internal(&item))
-		printf("(%u) PTR: len=%u, ", i, reiser4_item_len(&item));
+		printf("(%u) NODEPTR: len=%u, ", i, reiser4_item_len(&item));
 	    else
-		printf("(%u) EXT: len=%u, ", i, reiser4_item_len(&item));
+		printf("(%u) EXTENT: len=%u, ", i, reiser4_item_len(&item));
 	    
 	    if (reiser4_node_get_key(node, &pos, &key)) {
 		aal_exception_error("Can't get key of item %u in node %llu.",
@@ -183,6 +198,7 @@ static errno_t debugfs_print_fs(reiser4_fs_t *fs) {
 int main(int argc, char *argv[]) {
     struct stat st;
     int c, force = 0, quiet = 0;
+    debugfs_print_flags_t flags = 0;
     
     char *host_dev;
     char *profile_label = "default40";
@@ -196,6 +212,11 @@ int main(int argc, char *argv[]) {
 	{"help", no_argument, NULL, 'h'},
 	{"profile", required_argument, NULL, 'e'},
 	{"force", no_argument, NULL, 'f'},
+	{"print-tree", no_argument, NULL, 't'},
+	{"print-journal", no_argument, NULL, 'j'},
+	{"print-super-block", no_argument, NULL, 's'},
+	{"print-block-alloc", no_argument, NULL, 'b'},
+	{"print-oid-alloc", no_argument, NULL, 'o'},
 	{"known-profiles", no_argument, NULL, 'K'},
 	{"quiet", no_argument, NULL, 'q'},
 	{0, 0, 0, 0}
@@ -209,7 +230,7 @@ int main(int argc, char *argv[]) {
     debugfs_init();
     
     /* Parsing parameters */    
-    while ((c = getopt_long_only(argc, argv, "hVe:qfK", long_options, 
+    while ((c = getopt_long_only(argc, argv, "hVe:qfKstboj", long_options, 
 	(int *)0)) != EOF) 
     {
 	switch (c) {
@@ -223,6 +244,26 @@ int main(int argc, char *argv[]) {
 	    }
 	    case 'e': {
 		profile_label = optarg;
+		break;
+	    }
+	    case 'o': {
+		flags |= PF_OID;
+		break;
+	    }
+	    case 'b': {
+		flags |= PF_ALLOC;
+		break;
+	    }
+	    case 's': {
+		flags |= PF_SUPER;
+		break;
+	    }
+	    case 'j': {
+		flags |= PF_JOURNAL;
+		break;
+	    }
+	    case 't': {
+		flags |= PF_TREE;
 		break;
 	    }
 	    case 'f': {
@@ -242,6 +283,15 @@ int main(int argc, char *argv[]) {
 	        return USER_ERROR;
 	    }
 	}
+    }
+    
+    if (flags == 0)
+	flags |= PF_TREE;
+    
+    if (!aal_pow_of_two(flags)) {
+	aal_exception_error("Ambiguous print options has been detected. "
+	    "Please, select one of --print-*");
+	return USER_ERROR;
     }
     
     printf(BANNER(argv[0]));
@@ -310,8 +360,10 @@ int main(int argc, char *argv[]) {
 	goto error_free_libreiser4;
     }
     
-    if (debugfs_print_fs(fs))
-	goto error_free_fs;
+    if (flags & PF_TREE) {
+	if (debugfs_print_fs(fs))
+	    goto error_free_fs;
+    }
     
     /* Deinitializing filesystem instance and device instance */
     reiser4_fs_close(fs);
