@@ -222,7 +222,7 @@ struct reiser4_tree {
 };
 
 /* Callback function type for opening node. */
-typedef reiser4_node_t *(*reiser4_open_func_t) (aal_block_t *, void *);
+typedef errno_t (*reiser4_open_func_t) (reiser4_node_t *, blk_t, void *);
 
 /* Callback function type for preparing per-node traverse data. */
 //typedef errno_t (*reiser4_edge_func_t) (reiser4_node_t *, void *);
