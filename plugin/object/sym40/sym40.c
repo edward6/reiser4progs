@@ -244,8 +244,8 @@ static errno_t sym40_follow(object_entity_t *entity,
 	char path[1024];
 	
 	aal_assert("umka-1775", key != NULL);
+	aal_assert("umka-2245", from != NULL);
 	aal_assert("umka-1774", entity != NULL);
-	aal_assert("umka-2245", current != NULL);
 
 	sym = (sym40_t *)entity;
 	
