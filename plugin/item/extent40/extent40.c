@@ -731,81 +731,78 @@ static errno_t extent40_prep_write(place_t *place,
 		/* Insert point is -1, thus, this is new item insert. So we
 		   reserve space for one extent unit. */
 		hint->len = sizeof(extent40_t);
-		return 0;
-	}
+	} else {
+		unit_pos = place->pos.unit;
+		units = extent40_units(place);
 
-	unit_pos = place->pos.unit;
-	units = extent40_units(place);
+		extent40_fetch_key(place, &key);
+		blksize = extent40_blksize(place);
 
-	extent40_fetch_key(place, &key);
-	blksize = extent40_blksize(place);
+		/* Getting maximal real key. It will be needed to determine if
+		   we insert data inside extent or behind it. */
+		extent40_maxreal_key(place, &hint->maxkey);
 
-	/* Getting maximal real key. It will be needed to determine if we insert
-	   data inside extent or behind it. */
-	extent40_maxreal_key(place, &hint->maxkey);
-
-	if ((max_offset = plug_call(hint->maxkey.plug->o.key_ops,
-				    get_offset, &hint->maxkey)) > 0)
-	{
-		max_offset++;
-	}
-
-	plug_call(hint->maxkey.plug->o.key_ops,
-		  set_offset, &hint->maxkey, max_offset);
-
-	/* Getting unit offset amd insert offset. They both are used during
-	   estimation. */
-	uni_offset = plug_call(key.plug->o.key_ops,
-			       get_offset, &key);
-	
-	ins_offset = plug_call(hint->offset.plug->o.key_ops,
-			       get_offset, &hint->offset);
-
-	/* This loop checks if we insert some data inside extent, we should take
-	   into account posible holes. */
-	for (count = hint->count; count > 0 && unit_pos < units;
-	     count -= size, unit_pos++)
-	{
-		uint64_t unit_size;
-		
-		extent = extent40_body(place) + unit_pos;
-		unit_size = et40_get_width(extent) * blksize;
-		
-		if ((size = unit_size - (ins_offset - uni_offset)) > count)
-			size = count;
-
-		if (et40_get_start(extent) == EXTENT_HOLE_UNIT)	{
-			/* We have found a hole and here we check if write a
-			   data less than hole of size. If so, it will be
-			   splitted out and we need to reserve room for one
-			   extent unit. */
-			if (hint->specific || count < unit_size)
-				hint->len = sizeof(extent40_t);
+		if ((max_offset = plug_call(hint->maxkey.plug->o.key_ops,
+					    get_offset, &hint->maxkey)) > 0)
+		{
+			max_offset++;
 		}
 
-		ins_offset += size;
-		uni_offset += unit_size;
-	}
+		plug_call(hint->maxkey.plug->o.key_ops,
+			  set_offset, &hint->maxkey, max_offset);
 
-	/* This is a handling of the case when the rest of data should be
-	   written to extent. It take care about the cases, when we need to
-	   append some data at the end of extent. */
-	if (count > 0) {
-		extent = extent40_body(place) + units - 1;
+		/* Getting unit offset amd insert offset. They both are used
+		   during estimation. */
+		uni_offset = plug_call(key.plug->o.key_ops,
+				       get_offset, &key);
+	
+		ins_offset = plug_call(hint->offset.plug->o.key_ops,
+				       get_offset, &hint->offset);
+
+		/* This loop checks if we insert some data inside extent, we
+		   should take into account posible holes. */
+		for (count = hint->count; count > 0 && unit_pos < units;
+		     count -= size, unit_pos++)
+		{
+			uint64_t unit_size;
 		
-		/* Check if last unit is allocated already. */
-		if (et40_get_start(extent) == EXTENT_UNALLOC_UNIT) {
-			/* Unit is not allocated yet, so we need only check for
-			   holes. */
-			if (!hint->specific && count >= blksize)
-				hint->len = sizeof(extent40_t);
-		} else {
-			/* Unit is allocated one or hole. */
-			if (et40_get_start(extent) == EXTENT_HOLE_UNIT) {
-				if (hint->specific || count < blksize)
+			extent = extent40_body(place) + unit_pos;
+			unit_size = et40_get_width(extent) * blksize;
+		
+			if ((size = unit_size - (ins_offset - uni_offset)) > count)
+				size = count;
+
+			if (et40_get_start(extent) == EXTENT_HOLE_UNIT)	{
+				/* We will allocate new unit if we write data to
+				   hole and data size less than @unit_size. */
+				if (hint->specific && count < unit_size)
+					hint->len = sizeof(extent40_t);
+			}
+
+			ins_offset += size;
+			uni_offset += unit_size;
+		}
+
+		/* This is a handling of the case when the rest of data should
+		   be written to extent. It take care about the cases, when we
+		   need to append some data at the end of extent. */
+		if (count > 0) {
+			extent = extent40_body(place) + units - 1;
+		
+			/* Check if last unit is allocated already. */
+			if (et40_get_start(extent) == EXTENT_UNALLOC_UNIT) {
+				/* Unit is not allocated yet, so we need only
+				   check for holes. */
+				if (!hint->specific && count >= blksize)
 					hint->len = sizeof(extent40_t);
 			} else {
-				hint->len = sizeof(extent40_t);
+				/* Unit is allocated one or hole. */
+				if (et40_get_start(extent) == EXTENT_HOLE_UNIT) {
+					if (hint->specific || count < blksize)
+						hint->len = sizeof(extent40_t);
+				} else {
+					hint->len = sizeof(extent40_t);
+				}
 			}
 		}
 	}
@@ -866,8 +863,21 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 
 	/* Allocate new unit stage. Here we will set new unit up. */
 	if (ins_offset + hint->count <= max_offset) {
+		uint64_t unit_size;
+		
 		/* Writing inside item. Here we should handle the case of
 		   overwriting hole units. */
+		extent = extent40_body(place) + unit_pos;
+		unit_size = et40_get_width(extent) * blksize;
+		
+		if (et40_get_start(extent) == EXTENT_HOLE_UNIT)	{
+			/* We will allocate new unit if we write data to hole
+			   and data size less than @unit_size. */
+			if (hint->specific && hint->count < unit_size) {
+				aal_error("Sorry, not implemented yet!");
+				return -EINVAL;
+			}
+		}
 	} else {
 		uint32_t width;
 		int allocate = 0;
@@ -883,10 +893,8 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 
 			/* We write inside existent item and have to check its
 			   last unit, in order to know if we can enlarge it. */
-			last = extent40_body(place) + units - 1;
-
-			if (hint->len)
-				last--;
+			last = extent40_body(place) + units - 1 -
+				(hint->len ? 1 : 0);
 			
 			if (et40_get_start(last) == EXTENT_UNALLOC_UNIT) {
 				/* Last unit is unallocated one, thus, we insert
