@@ -435,7 +435,7 @@ typedef struct statdata_hint statdata_hint_t;
 
 struct entry_hint {
 
-	/* Entry key, it may be found by */
+	/* Entry key within the current directory */
 	key_entity_t offset;
 
 	/* The stat data key of the object entry points to */
