@@ -92,14 +92,33 @@ static reiser4_fs_t *busy_fs_open(char *name) {
     
 	if (!(fs = reiser4_fs_open(device, 1))) {
 		aal_error("Can't open filesystem on %s.", name);
-		goto error_free_device;
+		goto error_close_device;
 	}
 
+	if (!(fs->journal = reiser4_journal_open(fs, device))) {
+		aal_error("Failed to open the journal on %s.", name);
+		goto error_close_fs;
+	}
+	
 	fs->tree->mpc_func = misc_mpressure_detect;
 	
-	return fs;
+	if (reiser4_journal_replay(fs->journal)) {
+		aal_error("Failed to replay the journal on %s.", name);
+		goto error_close_journal;
+	}
 	
- error_free_device:
+	reiser4_journal_close(fs->journal);
+	fs->journal = NULL;
+
+	reiser4_fs_sync(fs);
+	
+	return fs;
+
+ error_close_journal:
+	reiser4_journal_close(fs->journal);
+ error_close_fs:
+	reiser4_fs_close(fs);
+ error_close_device:
 	aal_device_close(device);
 	return NULL;
 }

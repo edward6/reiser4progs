@@ -491,7 +491,10 @@ void journal40_invalidate(generic_entity_t *entity) {
 
 	set_jh_last_commited(header, 0);
 	set_jf_last_flushed(footer, 0);
-	
+	set_jf_free_blocks(footer, 0);
+	set_jf_used_oids(footer, 0);
+	set_jf_next_oid(footer, 0);
+
 	journal->state |= (1 << ENTITY_DIRTY);
 }
 
