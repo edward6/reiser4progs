@@ -528,25 +528,6 @@ uint32_t reiser4_node_items(reiser4_node_t *node) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/*
-  Sets up hint by means of uinitializing its fields by item body, item len and
-  if pos points to unit, the set up units related fields.
-*/
-errno_t reiser4_node_feel(reiser4_node_t *node,
-			  pos_t *pos,
-			  reiser4_key_t *start,
-			  reiser4_key_t *end,
-			  copy_hint_t *hint)
-{
-	aal_assert("umka-1999", node != NULL);
-	aal_assert("umka-2000", hint != NULL);
-	aal_assert("umka-2155", end != NULL);
-	aal_assert("umka-2154", start != NULL);
-
-	return plugin_call(node->entity->plugin->node_ops,
-			   feel, node->entity, pos, start,
-			   end, hint);
-}
 
 /* Returns free space of specified node */
 uint16_t reiser4_node_space(reiser4_node_t *node) {

@@ -721,6 +721,9 @@ bool_t reiser4_tree_fresh(reiser4_tree_t *tree) {
 /* 
   Makes search in the tree by specified key. Fills passed place by places of
   found item.
+
+  FIXME-VITALY: It looks like we should lookup down to LEAF level all the time.
+  If so, level is redundant here.
 */
 lookup_t reiser4_tree_lookup(
 	reiser4_tree_t *tree,	/* tree to be grepped */
@@ -1158,7 +1161,6 @@ static bool_t enough_by_place(reiser4_tree_t *tree,
 errno_t reiser4_tree_expand(
 	reiser4_tree_t *tree,	    /* tree pointer function operates on */
 	reiser4_place_t *place,	    /* place of insertion point */
-	enough_func_t enough_func,  /* enough condition check func */
 	uint32_t needed,	    /* amount of space that should be freed */
 	uint32_t flags)
 {
@@ -1173,9 +1175,6 @@ errno_t reiser4_tree_expand(
 
 	aal_assert("umka-766", place != NULL);
 	aal_assert("umka-929", tree != NULL);
-
-	if (!enough_func)
-		enough_func = enough_by_space;
 
 	if (needed == 0)
 		return 0;
@@ -1192,7 +1191,7 @@ errno_t reiser4_tree_expand(
 		return -EINVAL;
 	}
 
-	if ((enough = enough_func(tree, place, needed)))
+	if ((enough = enough_by_space(tree, place, needed)))
 		return 0;
 
 	old = *place;
@@ -1206,7 +1205,7 @@ errno_t reiser4_tree_expand(
 					      SF_LEFT | SF_UPTIP)))
 			return res;
 	
-		if ((enough = enough_func(tree, place, needed)))
+		if ((enough = enough_by_space(tree, place, needed)))
 			return 0;
 	}
 
@@ -1219,7 +1218,7 @@ errno_t reiser4_tree_expand(
 					      SF_RIGHT | SF_UPTIP)))
 			return res;
 	
-		if ((enough = enough_func(tree, place, needed)))
+		if ((enough = enough_by_space(tree, place, needed)))
 			return 0;
 	}
 
@@ -1284,68 +1283,10 @@ errno_t reiser4_tree_expand(
 			}
 		}
 		
-		enough = enough_func(tree, place, needed);
+		enough = enough_by_space(tree, place, needed);
 	}
 
 	return enough ? 0 : -ENOSPC;
-}
-
-/* Prepares space in tree before inserting new item/unit inot it */
-static errno_t reiser4_tree_mkspace(
-	reiser4_tree_t *tree,       /* tree we will dealing with */
-	reiser4_place_t *place,     /* target place */
-	reiser4_plugin_t *plugin,   /* item plugin to be insert */
-	uint32_t len)               /* estimated item len to be insert */
-{
-	uint32_t needed;
-	
-	aal_assert("umka-2194", tree != NULL);
-	aal_assert("umka-2195", place != NULL);
-	aal_assert("umka-2196", plugin != NULL);
-
-	if (len == 0)
-		return 0;
-	
-	/* Needed space is estimated space plugs item overhead */
-	needed = len + (place->pos.unit == ~0ul ? 
-			reiser4_node_overhead(place->node) : 0);
-		
-	/*
-	  Handling the case when of insert onto level higher then leaf one and
-	  inserted item contains more than one unit. In this case we need split
-	  the tree out, in order to keep it consistent. The fear example is
-	  extent item which is going to be inserted on twig level.
-	*/
-	if (reiser4_node_get_level(place->node) > LEAF_LEVEL &&
-	    reiser4_item_data(plugin))
-	{
-		errno_t res;
-		
-		/*
-		  Using @leaves_enough_func for checking enough space
-		  condition.
-		*/
-		if ((res = reiser4_tree_expand(tree, place, enough_by_place,
-					       needed, SF_DEFAULT)))
-			return res;
-
-		*place = place->node->parent;
-
-		/*
-		  Using @leaves_enough_func for checking enough space
-		  condition.
-		*/
-		return reiser4_tree_expand(tree, place, enough_by_space,
-					   needed, SF_DEFAULT);
-	} else {
-
-		/*
-		  Using @leaves_enough_func for checking enough space
-		  condition.
-		*/
-		return reiser4_tree_expand(tree, place, enough_by_space,
-					   needed, SF_DEFAULT);
-	}
 }
 
 /* Packs node in @place by means of using shift into/from neighbours */
@@ -1414,9 +1355,9 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 }
 
 /* Splits out the tree from passed @place up to the passed @level */
-errno_t reiser4_tree_split(reiser4_tree_t *tree, 
-			   reiser4_place_t *place, 
-			   uint8_t level) 
+static errno_t reiser4_tree_split(reiser4_tree_t *tree, 
+				  reiser4_place_t *place, 
+				  uint8_t level)
 {
 	errno_t res;
 	uint8_t curr;
@@ -1430,9 +1371,9 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	aal_assert("vpf-674", level > 0);
 
 	curr = reiser4_node_get_level(place->node);
-	aal_assert("vpf-680", curr <= level);
+	aal_assert("vpf-680", curr < level);
 	
-	while (curr <= level) {
+	while (curr < level) {
 		aal_assert("vpf-676", place->node->parent.node != NULL);
 		
 		if (!(place->pos.item == 0 && place->pos.unit == 0) && 
@@ -1566,6 +1507,7 @@ errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 			  reiser4_key_t *end)
 {
 	errno_t res;
+	uint32_t needed;
 	copy_hint_t hint;
 	reiser4_place_t old;
 	   
@@ -1587,14 +1529,14 @@ errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 	
 	old = *dst;
 	
-	if ((res = reiser4_tree_mkspace(tree, dst, src->item.plugin,
-					hint.len)))
-	{
-		aal_exception_error("Can't prepare space for "
-				    "copy one more item/unit.");
+	needed = hint.len + (dst->pos.unit == ~0ul ? 
+		reiser4_node_overhead(dst->node) : 0);
+	    
+	if ((res = reiser4_tree_expand(tree, dst, needed, SF_DEFAULT))) {
+		aal_exception_error("Can't expand the space for copying.");
 		return res;
 	}
-
+	
 	if ((res = reiser4_node_copy(dst->node, &dst->pos, src->node,
 				     &src->pos, &src->item.key, end, &hint)))
 	{
@@ -1639,6 +1581,7 @@ errno_t reiser4_tree_insert(
 {
 	int mode;
 	errno_t res;
+	uint32_t needed;
 	
 	reiser4_key_t *key;
 	reiser4_place_t old;
@@ -1683,57 +1626,59 @@ errno_t reiser4_tree_insert(
 		}
 
 		return 0;
-	} else {
-		if ((res = reiser4_tree_load_root(tree)))
-			return res;
+	}
+	
+	if ((res = reiser4_tree_load_root(tree)))
+		return res;
+
+	/*
+	  Checking if we have the tree with height smaller than
+	  requested level. If so, we should grow the tree up to
+	  requested level.
+	*/
+	if (level > reiser4_tree_height(tree)) {
+		while (level > reiser4_tree_height(tree))
+			reiser4_tree_growup(tree);
 
 		/*
-		  Checking if we have the tree with height smaller than
-		  requested level. If so, we should grow the tree up to
-		  requested level.
+		  Getting new place item/unit will be inserted at after
+		  tree is growed up. It is needed because we want insert
+		  item onto level equal to the requested one passed by
+		  @level variable.
 		*/
-		if (level > reiser4_tree_height(tree)) {
-
-			while (level > reiser4_tree_height(tree))
-				reiser4_tree_growup(tree);
-
-			/*
-			  Getting new place item/unit will be inserted at after
-			  tree is growed up. It is needed because we want insert
-			  item onto level equal to the requested one passed by
-			  @level variable.
-			*/
-			if (reiser4_tree_lookup(tree, &hint->key, level,
-						place) == LP_FAILED)
-			{
-				aal_exception_error("Lookup failed after "
-						    "tree growed up to "
-						    "requested level %d.",
-						    level);
-				return -EINVAL;
-			}
-		}
-
-		old = *place;
-
-		if (level < reiser4_node_get_level(place->node)) {
-
-			/*
-			  Allocating node of requested level and assign place
-			  for insert to it.
-			*/
-			if (!(place->node = reiser4_tree_alloc(tree, level)))
-				return -ENOSPC;
-
-			POS_INIT(&place->pos, 0, ~0ul);
+		if (reiser4_tree_lookup(tree, &hint->key, level,
+					place) == LP_FAILED)
+		{
+			aal_exception_error("Lookup failed after "
+					    "tree growed up to "
+					    "requested level %d.",
+					    level);
+			return -EINVAL;
 		}
 	}
 
+	old = *place;
+
+	if (level < reiser4_node_get_level(place->node)) {
+		/*
+		  Allocating node of requested level and assign place
+		  for insert to it.
+		*/
+		if (!(place->node = reiser4_tree_alloc(tree, level)))
+			return -ENOSPC;
+
+		POS_INIT(&place->pos, 0, ~0ul);
+	} else if (level > reiser4_node_get_level(place->node)) {
+		
+		/* Prepare the tree for insertion at the level @level. */
+		if ((res = reiser4_tree_split(tree, place, level)))
+			return res;
+	}
+	    
 	/* Estimating item/unit to inserted to tree */
 	if ((res = reiser4_item_estimate(place, hint)))
 		return res;
 	
-		
 	if (tree->traps.pre_insert) {
 		if ((res = tree->traps.pre_insert(tree, place, hint,
 						  tree->traps.data)))
@@ -1745,14 +1690,15 @@ errno_t reiser4_tree_insert(
 	  one) before making space for new inset/unit.
 	*/
 	mode = (place->pos.unit == ~0ul);
-
-	/* Making space in tree in order to insert new item/unit into it */
-	if ((res = reiser4_tree_mkspace(tree, place, hint->plugin, hint->len))) {
-		aal_exception_error("Can't prepare space for insert "
-				    "one more item/unit.");
+	
+	needed = hint->len + (place->pos.unit == ~0ul ? 
+		reiser4_node_overhead(place->node) : 0);
+	    
+	if ((res = reiser4_tree_expand(tree, place, needed, SF_DEFAULT))) {
+		aal_exception_error("Can't expand the space for insertion.");
 		return res;
 	}
-
+	
 	/*
 	  As position after making space is generaly changing, we check is mode
 	  of insert was changed or not. If so, we should perform estimate one

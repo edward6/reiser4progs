@@ -74,7 +74,6 @@ static errno_t nodeptr40_rep(item_entity_t *dst_item,
 }
 
 static errno_t nodeptr40_feel(item_entity_t *item,
-			      uint32_t pos,
 			      key_entity_t *start,
 			      key_entity_t *end,
 			      copy_hint_t *hint)

@@ -93,7 +93,6 @@ extern errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_expand(reiser4_tree_t *tree,
 				   reiser4_place_t *place,
-				   enough_func_t enough_func,
 				   uint32_t needed,
 				   uint32_t flags);
 
@@ -128,10 +127,6 @@ extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree,
 extern blk_t reiser4_tree_root(reiser4_tree_t *tree);
 
 extern uint8_t reiser4_tree_height(reiser4_tree_t *tree);
-
-extern errno_t reiser4_tree_split(reiser4_tree_t *tree, 
-				  reiser4_place_t *place, 
-				  uint8_t level) ;
 
 extern reiser4_node_t *reiser4_tree_alloc(reiser4_tree_t *tree,
 					  uint8_t level);

@@ -676,38 +676,14 @@ static errno_t node40_rep(node40_t *dst_node, pos_t *dst_pos,
 	return 0;
 }
 
-static errno_t node40_feel(object_entity_t *entity, pos_t *pos,
-			   key_entity_t *start, key_entity_t *end,
-			   copy_hint_t *hint)
-{
-	errno_t res;
-	item_entity_t item;
-	
-	aal_assert("umka-1989", pos != NULL);
-	aal_assert("umka-1991", hint != NULL);
-	aal_assert("umka-1987", entity != NULL);
-	aal_assert("umka-2047", node40_loaded(entity));
-
-	if (node40_item(entity, pos, &item))
-		return -EINVAL;
-	
-	/* Initializing hint fields */
-	if (pos->unit == ~0ul || !item.plugin->item_ops.feel) {
-		hint->len = item.len;
-		return 0;
-	}
-	
-	return item.plugin->item_ops.feel(&item, pos->unit,
-					  start, end, hint);
-}
-
-static errno_t node40_copy(object_entity_t *dst_entity,
-			   pos_t *dst_pos,
-			   object_entity_t *src_entity,
-			   pos_t *src_pos,
-			   key_entity_t *start,
-			   key_entity_t *end,
-			   copy_hint_t *hint)
+static errno_t node40_dup(object_entity_t *dst_entity,
+			  pos_t *dst_pos,
+			  object_entity_t *src_entity,
+			  pos_t *src_pos,
+			  key_entity_t *start,
+			  key_entity_t *end,
+			  copy_hint_t *hint, 
+			  bool_t is_copy)
 {
 	errno_t res;
 	uint32_t src_units;
@@ -734,25 +710,29 @@ static errno_t node40_copy(object_entity_t *dst_entity,
 	src_units = plugin_call(src_item.plugin->item_ops,
 				units, &src_item);
 	
-	/*
-	  Check if we will copy whole item, or we should call item's copy()
-	  method in order to copy units from @start key through the @end one.
-
-	  FIXME-VITALY: Feel methods must work in the same way, but they do 
-	  not for now. Probably node40_rep should not be called here at all.
-	
-	if (src_pos->unit == ~0ul || src_units == 1) {
-		return node40_rep(dst_node, dst_pos, src_node,
-				  src_pos, 1);
+	if (is_copy) {
+		/* Makes expand of the node new items will be inserted in */
+		if (node40_grow(dst_node, dst_pos, hint->len, 1))
+			return -EINVAL;
 	}
-	*/
-
+	
 	plugin = src_entity->plugin;
 	aal_assert("umka-2123", plugin != NULL);
 		
 	if (node40_item(dst_entity, dst_pos, &dst_item))
 		return -EINVAL;
 		
+	/*
+	  Check if we will copy whole item, or we should call item's copy()
+	  method in order to copy units from @start key through the @end one.
+	*/
+	if (dst_pos->unit == ~0ul && src_item.len == hint->len && 
+	    dst_item.len == hint->len) 
+	{
+		return node40_rep(dst_node, dst_pos, src_node,
+				  src_pos, 1);
+	}
+	
 	if ((res = plugin_call(src_item.plugin->item_ops, copy,
 			       &dst_item, dst_pos->item,
 			       &src_item, src_pos->item,
@@ -778,6 +758,30 @@ static errno_t node40_copy(object_entity_t *dst_entity,
 
 	dst_node->dirty = 1;
 	return 0;
+}
+
+static errno_t node40_copy(object_entity_t *dst_entity,
+			   pos_t *dst_pos,
+			   object_entity_t *src_entity,
+			   pos_t *src_pos,
+			   key_entity_t *start,
+			   key_entity_t *end,
+			   copy_hint_t *hint)
+{
+	return node40_dup(dst_entity, dst_pos, src_entity, src_pos,
+			  start, end, hint, TRUE);
+}
+
+static errno_t node40_overwrite(object_entity_t *dst_entity,
+				pos_t *dst_pos,
+				object_entity_t *src_entity,
+				pos_t *src_pos,
+				key_entity_t *start,
+				key_entity_t *end,
+				copy_hint_t *hint)
+{
+	return node40_dup(dst_entity, dst_pos, src_entity, src_pos,
+			  start, end, hint, FALSE);
 }
 
 /* Inserts item described by hint structure into node */
@@ -1853,8 +1857,8 @@ static reiser4_plugin_t node40_plugin = {
 		.shift		 = node40_shift,
 		.shrink		 = node40_shrink,
 		.expand		 = node40_expand,
-		.feel            = node40_feel,
 		.copy            = node40_copy,
+		.overwrite       = node40_overwrite,
 
 		.overhead	 = node40_overhead,
 		.maxspace	 = node40_maxspace,

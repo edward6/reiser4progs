@@ -710,8 +710,8 @@ struct reiser4_item_ops {
 	errno_t (*init) (item_entity_t *);
 
 	/* Copy related functions */
-	errno_t (*feel) (item_entity_t *, uint32_t, key_entity_t *,
-			 key_entity_t *, copy_hint_t *);
+	errno_t (*feel) (item_entity_t *, key_entity_t *, key_entity_t *, 
+			 copy_hint_t *);
 
 	errno_t (*copy) (item_entity_t *, uint32_t, item_entity_t *,
 			 uint32_t, key_entity_t *, key_entity_t *,
@@ -884,14 +884,15 @@ struct reiser4_node_ops {
 	errno_t (*shrink) (object_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
-	/* Sets up the passed write hint instance */
-	errno_t (*feel) (object_entity_t *, pos_t *, key_entity_t *,
-			 key_entity_t *, copy_hint_t *);
-	
 	errno_t (*copy) (object_entity_t *, pos_t *,
 			 object_entity_t *, pos_t *,
 			 key_entity_t *, key_entity_t *,
 			 copy_hint_t *);
+		
+	errno_t (*overwrite) (object_entity_t *, pos_t *,
+			      object_entity_t *, pos_t *,
+			      key_entity_t *, key_entity_t *,
+			      copy_hint_t *);
 	
 	/* Expands node */
 	errno_t (*expand) (object_entity_t *, pos_t *,

@@ -499,23 +499,26 @@ static errno_t direntry40_rep(item_entity_t *dst_item, uint32_t dst_pos,
 }
 
 static errno_t direntry40_feel(item_entity_t *item,
-			       uint32_t pos,
 			       key_entity_t *start,
 			       key_entity_t *end,
 			       copy_hint_t *hint)
 {
-	uint32_t end_pos;
+	uint32_t start_pos, end_pos;
 	
 	aal_assert("umka-1992", item != NULL);
 	aal_assert("umka-1993", hint != NULL);
+	
+	if (direntry40_lookup(item, start, &start_pos) != LP_PRESENT)
+		return -EINVAL;
 
 	if (direntry40_lookup(item, end, &end_pos) != LP_PRESENT)
 		return -EINVAL;
-
-	hint->count = end_pos - pos + 1;
+	
+	/* end_key is inclusive, so + 1 */
+	hint->count = end_pos - start_pos + 1;
 
 	hint->len = (sizeof(entry40_t) * hint->count) +
-		direntry40_size(item, pos, hint->count);
+		direntry40_size(item, start_pos, hint->count);
 
 	return 0;
 }

@@ -123,9 +123,9 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     
     /* If some node was found and it is not of higher level then the node being 
      * attached, try to split nodes to be able to attach the node as a whole. */
-    level = reiser4_node_get_level(node);
+    level = reiser4_node_get_level(node) + 1;
     
-    if (place.node != NULL && reiser4_node_get_level(place.node) <= level) {
+    if (place.node != NULL && reiser4_node_get_level(place.node) < level) {
 	/* Get the key of the found position or the nearest right key. */
 	if (reiser4_place_rightmost(&place)) {
 	    if ((res = repair_node_rd_key(place.node, &key)))
@@ -143,8 +143,10 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	if (reiser4_key_compare(&rkey, &key) >= 0)
 	    return -ESTRUCT;
 	
+	/*
 	if ((res = reiser4_tree_split(tree, &place, level)))
 	    return res;
+	*/
     }
     
     hint.type_specific = &ptr;
@@ -160,7 +162,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	return -EINVAL;
     }
 
-    if ((res = reiser4_tree_insert(tree, &place, level + 1, &hint))) {
+    if ((res = reiser4_tree_insert(tree, &place, level, &hint))) {
 	aal_exception_error("Can't insert nodeptr item to the tree.");
 	return res;
     }
