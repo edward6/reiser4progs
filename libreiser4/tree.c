@@ -1446,9 +1446,9 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	return res;
 }
 
-static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
-				     reiser4_place_t *place,
-				     reiser4_item_hint_t *hint)
+static inline errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
+					    reiser4_place_t *place,
+					    reiser4_item_hint_t *hint)
 {
 	/*
 	  Initializing hint context and enviromnent fields. This should be done

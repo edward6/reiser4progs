@@ -33,7 +33,7 @@ static errno_t repair_format_check(reiser4_fs_t *fs, uint8_t mode) {
     if (tail >= TAIL_LAST_ID) {
 	/* Tail id from the profile is wrong. */
 	aal_exception_error("Invalid tail policy (%u) is specified in the "
-	    "profile.", pid);
+	    "profile.", tail);
 	return -EINVAL;
     }
 

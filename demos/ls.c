@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
     
-	if (reiser4_object_reset(dir)) {
+/*	if (reiser4_object_reset(dir)) {
 		aal_exception_error("Can't rewind dir %s.", argv[2]);
 		goto error_free_dir;
 	}
@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
 			     " %s\n", entry.name);
 
 		printf(buff);
-	}
+	}*/
 
 	reiser4_object_close(dir);
 	reiser4_object_close(fs->root);

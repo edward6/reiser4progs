@@ -788,8 +788,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 
 	/* Inserting entry */
 	if ((res = obj40_insert(&dir->obj, &hint, LEAF_LEVEL, &place))) {
-		aal_exception_error("Can't insert entry %s.",
-				    entry->name);
+		aal_exception_error("Can't insert entry %s.", entry->name);
 		return res;
 	}
 
@@ -824,11 +823,11 @@ typedef struct layout_hint layout_hint_t;
 static errno_t callback_item_data(void *object, uint64_t start,
 				  uint64_t count, void *data)
 {
-	item_entity_t *item = (item_entity_t *)object;
 	blk_t blk;
 	errno_t res;
-	
+
 	layout_hint_t *hint = (layout_hint_t *)data;
+	item_entity_t *item = (item_entity_t *)object;
 
 	for (blk = start; blk < start + count; blk++) {
 		if ((res = hint->func(hint->entity, blk, hint->data)))
