@@ -522,20 +522,21 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-static uint32_t callback_hash_func(const void *k) {
-	return 0;
+static uint64_t callback_hash_func(const void *k) {
+	reiser4_key_t *key;
+	
+	key = (reiser4_key_t *)k;
+	
+	return (reiser4_key_get_objectid(key) +
+		reiser4_key_get_offset(key));
 }
 
 static int callback_comp_func(const void *k1,
 			      const void *k2,
 			      void *data)
 {
-	reiser4_key_t *key1, *key2;
-
-	key1 = (reiser4_key_t *)k1;
-	key2 = (reiser4_key_t *)k2;
-	
-	return reiser4_key_compare(key1, key2);
+	return reiser4_key_compare((reiser4_key_t *)k1,
+				   (reiser4_key_t *)k2);
 }
 #endif
 

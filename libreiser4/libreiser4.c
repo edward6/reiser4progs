@@ -85,7 +85,6 @@ static lookup_t tree_lookup(
 /* Initializes item at passed @place */
 static errno_t tree_realize(void *tree, place_t *place) {
 	reiser4_place_t *p = (reiser4_place_t *)place;
-	
 	return reiser4_place_realize(p);
 }
 

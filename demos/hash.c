@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <aal/aal.h>
 
-static uint32_t hash_func(const void *key) {
+static uint64_t hash_func(const void *key) {
 	return (uint32_t)key;
 }
 
