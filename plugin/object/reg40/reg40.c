@@ -215,19 +215,19 @@ static object_entity_t *reg40_create(object_info_t *info,
 	reg->offset = 0;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(info->okey.plugin->o.key_ops,
-			       get_locality, &info->okey);
+	locality = plugin_call(info->object.plugin->o.key_ops,
+			       get_locality, &info->object);
 	
-	objectid = plugin_call(info->okey.plugin->o.key_ops,
-			       get_objectid, &info->okey);
+	objectid = plugin_call(info->object.plugin->o.key_ops,
+			       get_objectid, &info->object);
 	
 	/* Key contains valid locality and objectid only, build start key */
-	plugin_call(info->okey.plugin->o.key_ops, build_generic,
-		    &info->okey, KEY_STATDATA_TYPE, locality,
+	plugin_call(info->object.plugin->o.key_ops, build_generic,
+		    &info->object, KEY_STATDATA_TYPE, locality,
 		    objectid, 0);
 	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, &reg40_plugin, &info->okey,
+	obj40_init(&reg->obj, &reg40_plugin, &info->object,
 		   core, info->tree);
 	
 	/* Getting statdata plugin */
@@ -245,8 +245,8 @@ static object_entity_t *reg40_create(object_info_t *info,
 	stat_hint.plugin = stat_plugin;
 	stat_hint.flags = HF_FORMATD;
 
-	plugin_call(info->okey.plugin->o.key_ops, assign, 
-		    &stat_hint.key, &info->okey);
+	plugin_call(info->object.plugin->o.key_ops, assign, 
+		    &stat_hint.key, &info->object);
     
 	/* Initializing stat data item hint. */
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
@@ -739,33 +739,35 @@ static uint64_t reg40_offset(object_entity_t *entity) {
 
 static reiser4_object_ops_t reg40_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.create	      = reg40_create,
-	.write	      = reg40_write,
-	.truncate     = reg40_truncate,
-	.layout       = reg40_layout,
-	.metadata     = reg40_metadata,
-	.link         = reg40_link,
-	.unlink       = reg40_unlink,
-		
-	.add_entry    = NULL,
-	.rem_entry    = NULL,
-	.check_struct = reg40_check_struct,
-	.check_link   = NULL,
-	.realize      = reg40_realize,
+	.create	        = reg40_create,
+	.write	        = reg40_write,
+	.truncate       = reg40_truncate,
+	.layout         = reg40_layout,
+	.metadata       = reg40_metadata,
+	.link           = reg40_link,
+	.unlink         = reg40_unlink,
+	.realize        = reg40_realize,
+	.check_struct   = reg40_check_struct,
+
+	.check_link     = NULL,
+	.add_entry      = NULL,
+	.rem_entry      = NULL,
+	.attach         = NULL,
+	.detach         = NULL,
 #endif
-	.lookup	      = NULL,
-	.follow       = NULL,
-	.readdir      = NULL,
-	.telldir      = NULL,
-	.seekdir      = NULL,
+	.lookup	        = NULL,
+	.follow         = NULL,
+	.readdir        = NULL,
+	.telldir        = NULL,
+	.seekdir        = NULL,
 		
-	.open	      = reg40_open,
-	.close	      = reg40_close,
-	.reset	      = reg40_reset,
-	.seek	      = reg40_seek,
-	.offset	      = reg40_offset,
-	.size         = reg40_size,
-	.read	      = reg40_read,
+	.open	        = reg40_open,
+	.close	        = reg40_close,
+	.reset	        = reg40_reset,
+	.seek	        = reg40_seek,
+	.offset	        = reg40_offset,
+	.size           = reg40_size,
+	.read	        = reg40_read,
 };
 
 static reiser4_plugin_t reg40_plugin = {

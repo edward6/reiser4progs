@@ -156,16 +156,15 @@ struct reiser4_node {
 #endif
 };
 
-#define OBJECT_NAME_SIZE 256
+#define OBJECT_NAME_SIZE 1024
 
 /* Reiser4 file structure (regular file, directory, symlinks, etc) */
 struct reiser4_object {
-
 	/* Object entity. It is initialized by object plugin */
 	object_entity_t *entity;
-	
+
+	/* Object info (keys, etc) */
 	object_info_t info;
-	
 	bool_t follow;
 
 #ifndef ENABLE_STAND_ALONE

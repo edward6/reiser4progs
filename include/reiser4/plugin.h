@@ -485,10 +485,8 @@ struct object_info {
 	void *tree;
 	place_t start;
 	
-	key_entity_t okey;
-	key_entity_t pkey;
-	
-	object_entity_t *parent;
+	key_entity_t object;
+	key_entity_t parent;
 };
 
 typedef struct object_info object_info_t;
@@ -612,6 +610,12 @@ struct reiser4_object_ops {
 	errno_t (*link) (object_entity_t *);
 	errno_t (*unlink) (object_entity_t *);
 
+	/* Establish parent child relationchip */
+	errno_t (*attach) (object_entity_t *,
+			   object_entity_t *);
+	errno_t (*detach) (object_entity_t *,
+			   object_entity_t *);
+
 	/* Writes the data to file from passed buffer */
 	int32_t (*write) (object_entity_t *, void *, uint32_t);
 
@@ -630,8 +634,8 @@ struct reiser4_object_ops {
 	
 	/*
 	  Function for going through the all data blocks specfied file
-	  occupied. It is needed for different purposes like data fragmentation
-	  counting, etc.
+	  occupies. It is needed for the purposes like data fragmentation
+	  measuring, etc.
 	*/
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 	
@@ -1108,8 +1112,7 @@ struct reiser4_oid_ops {
 	errno_t (*valid) (object_entity_t *);
 #endif
 	
-	/* Object ids of root and root parenr object */
-	oid_t (*hyper_locality) (void);
+	/* Root locality and objectid */
 	oid_t (*root_locality) (void);
 	oid_t (*root_objectid) (void);
 };

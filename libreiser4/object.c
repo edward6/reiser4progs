@@ -76,7 +76,7 @@ static void reiser4_object_fini(reiser4_object_t *object) {
 errno_t reiser4_object_stat(reiser4_object_t *object) {
 	object_info_t *info = &object->info;
 	
-	switch (reiser4_tree_lookup(info->tree, &info->okey,
+	switch (reiser4_tree_lookup(info->tree, &info->object,
 				    LEAF_LEVEL, reiser4_object_start(object)))
 	{
 	case PRESENT:
@@ -84,7 +84,7 @@ errno_t reiser4_object_stat(reiser4_object_t *object) {
 		if (reiser4_place_realize(reiser4_object_start(object)))
 			return -EINVAL;
 
-		reiser4_key_assign(&info->okey, &info->start.item.key);
+		reiser4_key_assign(&info->object, &info->start.item.key);
 		return 0;
 	default:
 		return -EINVAL;
@@ -128,8 +128,8 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		  real stat data item.
 		*/
 		if ((res = plugin->o.object_ops->follow(object->entity,
-							&object->info.pkey,
-							&object->info.okey)))
+							&object->info.parent,
+							&object->info.object)))
 		{
 			aal_exception_error("Can't follow %s.", track);
 			reiser4_object_fini(object);
@@ -148,7 +148,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 			return -EINVAL;
 	}
 
-	reiser4_key_assign(&object->info.pkey, &object->info.okey);
+	reiser4_key_assign(&object->info.parent, &object->info.object);
 #endif
 
 	return 0;
@@ -171,7 +171,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 			     lookup, object->entity, entry, &entry_hint);
 	
 	if (lookup == PRESENT) {
-		res = reiser4_key_assign(&object->info.okey,
+		res = reiser4_key_assign(&object->info.object,
 					 &entry_hint.object);
 	} else {
 		aal_exception_error("Can't find %s.", track);
@@ -229,11 +229,11 @@ reiser4_object_t *reiser4_object_open(
 #endif
 
 #ifdef ENABLE_SYMLINKS_SUPPORT
-	reiser4_key_assign(&object->info.pkey, &tree->key);
+	reiser4_key_assign(&object->info.parent, &tree->key);
 #endif
 
 	/* Resolving path, starting from the root */
-	reiser4_key_assign(&object->info.okey, &tree->key);
+	reiser4_key_assign(&object->info.object, &tree->key);
 	
 	if (reiser4_object_resolve(object, filename, follow))
 		goto error_free_object;
@@ -265,11 +265,11 @@ reiser4_object_t *reiser4_object_launch(
 	aal_memcpy(reiser4_object_start(object),
 		   place, sizeof(*place));
 	
-	reiser4_key_assign(&object->info.okey,
+	reiser4_key_assign(&object->info.object,
 			   &object->info.start.item.key);
 	
 #ifndef ENABLE_STAND_ALONE
-	reiser4_key_string(&object->info.okey, object->name);
+	reiser4_key_string(&object->info.object, object->name);
 #endif
 	
 	if (reiser4_object_guess(object))
@@ -342,10 +342,9 @@ int32_t reiser4_object_write(
 }
 
 /* Helps to create methods */
-static void reiser4_object_base(
-	reiser4_fs_t *fs,
-	reiser4_object_t *parent,
-	reiser4_object_t *object) 
+static void reiser4_object_base(reiser4_fs_t *fs,
+				reiser4_object_t *parent,
+				reiser4_object_t *object) 
 {
 	oid_t objectid, locality;
 	
@@ -353,17 +352,16 @@ static void reiser4_object_base(
 	object->info.tree = fs->tree;
 	
 	if (parent) {
-		reiser4_key_assign(&object->info.pkey,
-				   &parent->info.okey);
+		reiser4_key_assign(&object->info.parent,
+				   &parent->info.object);
 		
 		objectid = reiser4_oid_allocate(fs->oid);
-		locality = reiser4_key_get_objectid(&object->info.pkey);
+		locality = reiser4_key_get_objectid(&object->info.parent);
 	} else {
-		/* If parent is NULL -- special case for '/' directory */
+		/* If parent is NULL -- special case for "/" directory */
+		object->info.parent.plugin = fs->tree->key.plugin;
 		
-		object->info.pkey.plugin = fs->tree->key.plugin;
-		
-		reiser4_fs_root_key(fs, &object->info.pkey);
+		reiser4_fs_root_key(fs, &object->info.parent);
 		
 		locality = reiser4_oid_root_locality(fs->oid);
 		objectid = reiser4_oid_root_objectid(fs->oid);
@@ -374,11 +372,11 @@ static void reiser4_object_base(
 	   the @object->info.object key and plugin create method will build the
 	   whole key there.
 	*/
-	object->info.okey.plugin = object->info.pkey.plugin;
+	object->info.object.plugin = object->info.parent.plugin;
 	
-	reiser4_key_clean(&object->info.okey);
-	reiser4_key_set_locality(&object->info.okey, locality);
-	reiser4_key_set_objectid(&object->info.okey, objectid);
+	reiser4_key_clean(&object->info.object);
+	reiser4_key_set_locality(&object->info.object, locality);
+	reiser4_key_set_objectid(&object->info.object, objectid);
 }
 
 /* Creates new object on specified filesystem */
@@ -398,6 +396,7 @@ reiser4_object_t *reiser4_object_create(
 				    "the tree being initialized.");
 		return NULL;
 	}
+	
 	/* Allocating the memory for object instance */
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return NULL;
@@ -408,12 +407,12 @@ reiser4_object_t *reiser4_object_create(
 					   create, &object->info, hint)))
 	{
 		aal_exception_error("Can't create object with oid 0x%llx.", 
-				    reiser4_key_get_objectid(&object->info.okey));
+				    reiser4_key_get_objectid(&object->info.object));
 		goto error_free_object;
 	}
 	
 	/* @hint->object key is build by plugin create method. */
-	reiser4_key_string(&object->info.okey, object->name);
+	reiser4_key_string(&object->info.object, object->name);
 	
 	return object;
 	
@@ -441,35 +440,52 @@ static errno_t callback_print_place(
 	return 0;
 }
 
+/* Returns @nlink value from the stat data if any */
+uint32_t reiser4_object_links(reiser4_object_t *object) {
+	aal_assert("umka-2293", object != NULL);
+
+	return 0/*plugin_call(object->entity->plugin->o.object_ops,
+			   links)*/;
+}
+
 /* Links @child to @object if it is a directory */
 errno_t reiser4_object_link(reiser4_object_t *object,
 			    reiser4_object_t *child,
 			    const char *name)
 {
 	errno_t res;
-	entry_hint_t entry_hint;
+	entry_hint_t entry;
 	
 	aal_assert("umka-1945", child != NULL);
 
 	/* Check if we need to add entry in parent @object */
 	if (name && object) {
-		aal_memset(&entry_hint, 0, sizeof(entry_hint));	
+		aal_memset(&entry, 0, sizeof(entry));	
 
-		reiser4_key_assign(&entry_hint.object,
-				   &child->info.okey);
-		
-		aal_strncpy(entry_hint.name, name,
-			    sizeof(entry_hint.name));
+		aal_strncpy(entry.name, name, sizeof(entry.name));
+		reiser4_key_assign(&entry.object, &child->info.object);
 
-		if ((res = reiser4_object_add_entry(object, &entry_hint))) {
+		if ((res = reiser4_object_add_entry(object, &entry))) {
 			aal_exception_error("Can't add entry %s to %s.",
 					    name, object->name);
 			return res;
 		}
 	}
 
-	return plugin_call(child->entity->plugin->o.object_ops,
-			   link, child->entity);
+	if ((res = plugin_call(child->entity->plugin->o.object_ops,
+			       link, child->entity)))
+	{
+		return res;
+	}
+
+	if (child->entity->plugin->o.object_ops->attach) {
+		object_entity_t *parent = object ? object->entity : NULL;
+
+		return plugin_call(child->entity->plugin->o.object_ops,
+				   attach, child->entity, parent);
+	}
+
+	return 0;
 }
 
 /* Removes entry from the @object if it is a directory */
@@ -482,7 +498,7 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	reiser4_object_t *child;
 	
 	aal_assert("umka-1910", object != NULL);
-	aal_assert("umka-1918", name != NULL);
+	aal_assert("umka-1911", name != NULL);
 
 	/* Getting child statdata key */
 	if (reiser4_object_lookup(object, name, &entry) != PRESENT) {
@@ -492,14 +508,10 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	}
 
 	/* Removing entry */
-	if (object->entity->plugin->o.object_ops->rem_entry) {
-		if ((res = plugin_call(object->entity->plugin->o.object_ops,
-				       rem_entry, object->entity, &entry)))
-		{
-			aal_exception_error("Can't remove entry %s in %s.",
-					    name, object->name);
-			return res;
-		}
+	if ((res = reiser4_object_rem_entry(object, &entry))) {
+		aal_exception_error("Can't remove entry %s in %s.",
+				    name, object->name);
+		return res;
 	}
 
 	/* Looking up for the victim statdata place */
@@ -508,23 +520,28 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	{
 		aal_exception_error("Can't find an item pointed by %k. "
 				    "Entry %s/%s points to nowere.",
-				    &entry.object, object->name, name, 
-				    name);
+				    &entry.object, object->name, name);
 		return -EINVAL;
 	}
 
 	/* Opening victim statdata by found place */
 	if (!(child = reiser4_object_launch(object->info.tree, &place))) {
-		aal_exception_error("Can't open %s/%s.",
-				    object->name, name);
+		aal_exception_error("Can't open %s/%s.", object->name, name);
 		return -EINVAL;
 	}
 
-	res = plugin_call(child->entity->plugin->o.object_ops,
-			  unlink, child->entity);
+	if ((res = plugin_call(child->entity->plugin->o.object_ops,
+			       unlink, child->entity)))
+	{
+		return res;
+	}
+
+	if (child->entity->plugin->o.object_ops->detach) {
+		return plugin_call(child->entity->plugin->o.object_ops,
+				   detach, child->entity, object->entity);
+	}
 
 	reiser4_object_close(child);
-	
 	return res;
 }
 

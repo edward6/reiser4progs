@@ -226,14 +226,14 @@ static errno_t object_resolve(void *tree, place_t *place, char *filename,
 		return -EINVAL;
 
 	/* Setting up the key resolve will start from */
-	reiser4_key_assign(&o->info.okey, from);
+	reiser4_key_assign(&o->info.object, from);
 
 	/* Resolving symlink */
 	if ((res = reiser4_object_resolve(o, filename, TRUE)))
 		goto error_free_object;
 
 	/* Assigning found key to passed @key */
-	reiser4_key_assign(key, &o->info.okey);
+	reiser4_key_assign(key, &o->info.object);
 
  error_free_object:
 	reiser4_object_close(o);

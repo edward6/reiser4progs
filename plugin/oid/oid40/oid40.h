@@ -11,7 +11,6 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
-#define OID40_HYPER_LOCALITY            0x26
 #define OID40_ROOT_LOCALITY             0x29
 #define OID40_ROOT_OBJECTID             0x2a
 

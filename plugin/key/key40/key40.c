@@ -195,8 +195,8 @@ static int key40_compare_short(key_entity_t *key1,
 		return res;
 	}
 	
-	if (key40_get_type(key1) == KEY_FILENAME_TYPE)
-		return 0;
+/*	if (key40_get_type(key1) == KEY_FILENAME_TYPE)
+		return 0;*/
 	
 	return k40_comp_el((key40_t *)key1->body,
 			   (key40_t *)key2->body, 1);

@@ -10,7 +10,7 @@
 
 #include "obj40.h"
 
-/* The plugin tryes to realize the object: detects the SD, body items. */
+/* The plugin tries to realize the object: detects the SD, body items */
 errno_t obj40_realize(object_info_t *info, 
 		      obj40_realize_func_t mode_func, 
 		      obj40_realize_func_t type_func) 
@@ -24,7 +24,7 @@ errno_t obj40_realize(object_info_t *info,
 
 	aal_assert("vpf-1121", info != NULL);
 	
-	if (info->okey.plugin) {
+	if (info->object.plugin) {
 		/* If the start key is specified it must be the key of StatData. 
 		   If the item pointed by this key was found it must SD, check 
 		   its mode with mode_func. If item was not found, tryes to detect
@@ -33,13 +33,13 @@ errno_t obj40_realize(object_info_t *info,
 		uint64_t locality, objectid;
 		
 		/* If offset != 0 - it cannot be a reg40 object start key. */
-		if (plugin_call(info->okey.plugin->o.key_ops, get_offset, 
-				&info->okey))
+		if (plugin_call(info->object.plugin->o.key_ops, get_offset, 
+				&info->object))
 			return -EINVAL;
 		
 		/* If type != SD type - it cannot be a reg40 object start key. */
-		if (plugin_call(info->okey.plugin->o.key_ops, get_type, 
-				&info->okey) != KEY_STATDATA_TYPE)
+		if (plugin_call(info->object.plugin->o.key_ops, get_type, 
+				&info->object) != KEY_STATDATA_TYPE)
 			return -EINVAL;
 
 		/* If item was realized - the pointed item was found. */
@@ -54,14 +54,14 @@ errno_t obj40_realize(object_info_t *info,
 			return mode_func(lw_hint.mode) ? 0 : -EINVAL;
 		}
 		
-		locality = plugin_call(info->okey.plugin->o.key_ops,
-				       get_locality, &info->okey);
-		objectid = plugin_call(info->okey.plugin->o.key_ops,
-				       get_objectid, &info->okey);
+		locality = plugin_call(info->object.plugin->o.key_ops,
+				       get_locality, &info->object);
+		objectid = plugin_call(info->object.plugin->o.key_ops,
+				       get_objectid, &info->object);
 		
 		/* Item was not realized - the pointed item was not found. 
 		   try to find other reg40 items. */
-		plugin_call(info->okey.plugin->o.key_ops, build_generic, &key,
+		plugin_call(info->object.plugin->o.key_ops, build_generic, &key,
 			    type, locality, objectid, 0);
 		
 		lookup = core->tree_ops.lookup(info->tree, &key, 
@@ -79,8 +79,8 @@ errno_t obj40_realize(object_info_t *info,
 		if ((res = core->tree_ops.realize(info->tree, &place)))
 			return res;
 
-		return plugin_call(info->okey.plugin->o.key_ops, compare_short, 
-				&info->okey, &key) ? -EINVAL : 0;
+		return plugin_call(info->object.plugin->o.key_ops, compare_short, 
+				&info->object, &key) ? -EINVAL : 0;
 	} else {
 		/* Realizing by place, If it is a SD - check its mode with mode_func,
 		   othewise check the type of the specified item. */
@@ -95,7 +95,7 @@ errno_t obj40_realize(object_info_t *info,
 			return mode_func(lw_hint.mode) ? 0 : -EINVAL;
 		}
 		
-		type = plugin_call(info->okey.plugin->o.key_ops, get_type, 
+		type = plugin_call(info->object.plugin->o.key_ops, get_type, 
 				   &info->start.item.key);
 		
 		return type_func(type);

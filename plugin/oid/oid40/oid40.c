@@ -159,19 +159,11 @@ static oid_t oid40_used(object_entity_t *entity) {
 static errno_t oid40_valid(object_entity_t *entity) {
 	aal_assert("umka-966", entity != NULL);
 
-	/*
-	  Next oid should not be lesser than the root parent locality (so called
-	  hyper locality).
-	*/
-	if (((oid40_t *)entity)->next < OID40_HYPER_LOCALITY)
+	/* Next oid should not be less than the root locality */
+	if (((oid40_t *)entity)->next < OID40_ROOT_LOCALITY)
 		return -EINVAL;
 
 	return 0;
-}
-
-/* Returns the root parent locality */
-static oid_t oid40_hyper_locality(void) {
-	return OID40_HYPER_LOCALITY;
 }
 
 /* Returns root locality */
@@ -202,8 +194,7 @@ reiser4_oid_ops_t oid40_ops = {
 	.layout         = NULL,
 
 	.root_locality	= oid40_root_locality,
-	.root_objectid	= oid40_root_objectid,
-	.hyper_locality	= oid40_hyper_locality
+	.root_objectid	= oid40_root_objectid
 };
 
 static reiser4_plugin_t oid40_plugin = {

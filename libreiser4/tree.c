@@ -384,7 +384,7 @@ reiser4_node_t *reiser4_tree_neigh(reiser4_tree_t *tree,
 	{
 		/* Looking for neighbour on disk */
 		reiser4_node_lock(node);
-		reiser4_tree_neigh(tree, node, where);
+		reiser4_tree_ltrt(tree, node, where);
 		reiser4_node_unlock(node);
 	}
 	

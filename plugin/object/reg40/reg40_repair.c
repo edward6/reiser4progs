@@ -32,22 +32,24 @@ object_entity_t *reg40_check_struct(object_info_t *info, place_func_t place,
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
 	
-	if (!info->okey.plugin) {
+	if (!info->object.plugin) {
 		uint64_t locality, objectid;
 		
 		/* Build the SD key. */
 		locality = plugin_call(info->start.item.key.plugin->o.key_ops,
-				       get_locality, &info->okey);
+				       get_locality, &info->object);
 		objectid = plugin_call(info->start.item.plugin->o.key_ops,
-				       get_objectid, &info->okey);
+				       get_objectid, &info->object);
 
 		plugin_call(info->start.item.plugin->o.key_ops, build_generic,
-			    &info->okey, KEY_STATDATA_TYPE, locality, objectid, 0);
+			    &info->object, KEY_STATDATA_TYPE, locality, objectid, 0);
 	}
-	
+
+#if 0
 	if (info->start.item.plugin) {
 		if (info->start.item.plugin->h.group != STATDATA_ITEM)
 	}
+#endif
 	
  error_free_reg:
 	aal_free(reg);

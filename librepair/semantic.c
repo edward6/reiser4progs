@@ -34,9 +34,9 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 	if (!(*object = aal_calloc(sizeof(**object), 0)))
 		return -EINVAL;
 	
-	aal_memcpy(&(*object)->info.okey, &entry->object, sizeof(entry->object));
+	aal_memcpy(&(*object)->info.object, &entry->object, sizeof(entry->object));
 	(*object)->info.tree = parent->info.tree;
-	(*object)->info.pkey = parent->info.okey;
+	(*object)->info.parent = parent->info.object;
 	
 	/* Cannot detect the object plugin, rm the entry. */
 	if ((plugin = repair_object_realize(*object)) == NULL) {
@@ -85,8 +85,8 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 				    " object pointed by %k to the object pointed by %k.",
 				    reiser4_object_start(*object)->node->blk,
 				    (*object)->info.start.pos.item, 
-				    &((*object)->info.okey),
-				    &parent->info.okey);
+				    &((*object)->info.object),
+				    &parent->info.object);
 		
 		goto error_close_object;
 	} 

@@ -24,9 +24,9 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 	if (!(*object = aal_calloc(sizeof(**object), 0)))
 		return -EINVAL;
 	
-	aal_memcpy(&(*object)->info.okey, &entry->object, sizeof(entry->object));
+	aal_memcpy(&(*object)->info.object, &entry->object, sizeof(entry->object));
 	(*object)->info.tree = parent->info.tree;
-	(*object)->info.pkey = parent->info.okey;
+	(*object)->info.parent = parent->info.object;
 	
 	/* Cannot detect the object plugin, rm the entry. */
 	if ((plugin = repair_object_realize(*object)) == NULL) {
@@ -125,12 +125,12 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	/* Object is openned and if it keeps its parent it put it into 
 	   @object.info.parent at , try to link the object to its parent or if it 
 	   fails link it to to the "lost+found". */
-	if (object.info.pkey.plugin) {
+	if (object.info.parent.plugin) {
 		if (!(parent = aal_calloc(sizeof(*parent), 0)))
 			goto error_close_object;
 		
 		repair_object_init(parent, object.info.tree, NULL, 
-				   &object.info.pkey, &object.info.okey);
+				   &object.info.parent, &object.info.object);
 		
 		/* If there is no parent found, zero parent object to link to 
 		   lost+found later. */
@@ -147,7 +147,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 		aal_exception_error("Node %llu, item %u: failed to link the object "
 				    "pointed by %k to the object pointed by %k.",
 				    place->node->blk, place->pos.item, 
-				    &place->item.key, &parent->info.okey);
+				    &place->item.key, &parent->info.object);
 		goto error_close_parent;
 	}
 	
@@ -159,7 +159,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 				    "of the object pointed by %k to the object "
 				    "pointed by %k.", place->node->blk, 
 				    place->pos.item, &place->item.key, 
-				    &parent->info.okey);
+				    &parent->info.object);
 		goto error_close_parent;
 	}
 

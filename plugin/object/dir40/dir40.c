@@ -85,23 +85,19 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 	dir40_t *dir;
 	place_t next;
 	lookup_t res;
+
+	uint64_t locality;
 	
 	aal_assert("umka-1983", entity != NULL);
 	aal_assert("umka-1984", offset != NULL);
 
 	dir = (dir40_t *)entity;
 
-	if ((res = obj40_lookup(&dir->obj, offset,
-				LEAF_LEVEL,
-				&next) == FAILED))
+	switch (obj40_lookup(&dir->obj, offset,
+			     LEAF_LEVEL, &next))
 	{
-		return -EINVAL;
-	}
-
+	case ABSENT:
 #ifndef ENABLE_STAND_ALONE
-	if (res == ABSENT) {
-                uint64_t locality;
-                                                                                    
 		/* Checking if item component in @item->pos is valid one */
 		if (!core->tree_ops.valid(dir->obj.tree, &next))
 			return -EINVAL;
@@ -116,9 +112,12 @@ static errno_t dir40_seekdir(object_entity_t *entity,
                 /* Items are not mergeable */
                 if (locality != obj40_objectid(&dir->obj))
                         return -EINVAL;
-		
-	}
 #endif
+	case FAILED:
+		return -EINVAL;
+	default:
+		break;
+	}
 		
 	obj40_relock(&dir->obj, &dir->body, &next);
 	aal_memcpy(&dir->body, &next, sizeof(dir->body));
@@ -410,8 +409,6 @@ static object_entity_t *dir40_open(object_info_t *info) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-static char *dir40_empty_dir[2] = { ".", ".." };
-
 /*
   Creates dir40 instance and inserts few item in new directory described by
   passed @hint.
@@ -419,7 +416,6 @@ static char *dir40_empty_dir[2] = { ".", ".." };
 static object_entity_t *dir40_create(object_info_t *info,
 				     object_hint_t *hint)
 {
-	uint32_t i;
 	dir40_t *dir;
 
 	entry_hint_t *body;
@@ -430,7 +426,6 @@ static object_entity_t *dir40_create(object_info_t *info,
 	create_hint_t stat_hint;
    
 	oid_t objectid, locality;
-	oid_t plocality, pobjectid;
 
 	sdext_lw_hint_t lw_ext;
 	sdext_unix_hint_t unix_ext;
@@ -446,18 +441,18 @@ static object_entity_t *dir40_create(object_info_t *info,
 		return NULL;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(info->okey.plugin->o.key_ops,
-			       get_locality, &info->okey);
+	locality = plugin_call(info->object.plugin->o.key_ops,
+			       get_locality, &info->object);
 	
-	objectid = plugin_call(info->okey.plugin->o.key_ops,
-			       get_objectid, &info->okey);
+	objectid = plugin_call(info->object.plugin->o.key_ops,
+			       get_objectid, &info->object);
 
 	/* Key contains valid locality and objectid only, build start key */
-	plugin_call(info->okey.plugin->o.key_ops, build_generic,
-		    &info->okey, KEY_STATDATA_TYPE, locality, objectid, 0);
+	plugin_call(info->object.plugin->o.key_ops, build_generic,
+		    &info->object, KEY_STATDATA_TYPE, locality, objectid, 0);
 
 	/* Initializing obj handle */
-	obj40_init(&dir->obj, &dir40_plugin, &info->okey, core, info->tree);
+	obj40_init(&dir->obj, &dir40_plugin, &info->object, core, info->tree);
 
 	/* Getting hash plugin */
 	if (!(dir->hash = core->factory_ops.ifind(HASH_PLUGIN_TYPE, 
@@ -467,13 +462,6 @@ static object_entity_t *dir40_create(object_info_t *info,
 				    hint->body.dir.hash);
 		goto error_free_dir;
 	}
-
-	/* Preparing parent locality and objectid */
-	plocality = plugin_call(info->pkey.plugin->o.key_ops,
-				get_locality, &info->pkey);
-	
-	pobjectid = plugin_call(info->pkey.plugin->o.key_ops,
-				get_objectid, &info->pkey);
 
 	/* Getting item plugins for statdata and body */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
@@ -501,11 +489,11 @@ static object_entity_t *dir40_create(object_info_t *info,
 	  data item hint, because we will need size of direntry item durring
 	  stat data initialization.
 	*/
+   	body_hint.count = 1;
 	body_hint.flags = HF_FORMATD;
 	body_hint.plugin = body_plugin;
-   	body_hint.count = sizeof(dir40_empty_dir) / sizeof(char *);
 	
-	plugin_call(info->okey.plugin->o.key_ops, build_entry,
+	plugin_call(info->object.plugin->o.key_ops, build_entry,
 		    &body_hint.key, dir->hash, locality, objectid, ".");
 
 	if (!(body = aal_calloc(body_hint.count * sizeof(*body), 0)))
@@ -514,39 +502,23 @@ static object_entity_t *dir40_create(object_info_t *info,
 	entry = body;
 	
 	/*
-	  Preparing hint for the empty directory. It consists of two entries:
-	  dot and dotdot.
+	  Preparing hint for the empty directory. It consists only "." for
+	  unlinked directories.
 	*/
-	for (i = 0; i < body_hint.count; i++, entry++) {
-		char *name;
-		uint64_t loc, oid;
+	aal_strncpy(entry->name, ".", 1);
 
-		name = dir40_empty_dir[i];
+	/*
+	  Building key for the statdata of object new entry will point
+	  to.
+	*/
+	plugin_call(info->object.plugin->o.key_ops, build_generic,
+		    &entry->object, KEY_STATDATA_TYPE, locality,
+		    objectid, 0);
 
-		/* Checking if we create "." first */
-		if (!aal_strncmp(name, ".", aal_strlen(name))) {
-			loc = locality;
-			oid = objectid;
-		} else {
-			loc = plocality;
-			oid = pobjectid;
-		}
-
-		/* Preparing entry hints */
-		aal_strncpy(entry->name, name, aal_strlen(name));
-
-		/*
-		  Building key for the statdata of object new entry will point
-		  to.
-		*/
-		plugin_call(info->okey.plugin->o.key_ops, build_generic,
-			    &entry->object, KEY_STATDATA_TYPE, loc, oid, 0);
-
-		/* Building key for the hash new entry will have */
-		plugin_call(info->okey.plugin->o.key_ops, build_entry,
-			    &entry->offset, dir->hash, locality,
-			    objectid, name);
-	}
+	/* Building key for the hash new entry will have */
+	plugin_call(info->object.plugin->o.key_ops, build_entry,
+		    &entry->offset, dir->hash, locality,
+		    objectid, entry->name);
 	
 	body_hint.type_specific = body;
 
@@ -555,8 +527,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	stat_hint.flags = HF_FORMATD;
 	stat_hint.plugin = stat_plugin;
     
-	plugin_call(info->okey.plugin->o.key_ops, assign,
-		    &stat_hint.key, &info->okey);
+	plugin_call(info->object.plugin->o.key_ops, assign,
+		    &stat_hint.key, &info->object);
     
 	/*
 	  Initializing stat data item hint. It uses unix extention and light
@@ -645,12 +617,6 @@ static object_entity_t *dir40_create(object_info_t *info,
 		goto error_free_body;
 	}
 
-	/* Adding one link to parent object */
-	if (info->parent) {
-		plugin_call(info->parent->plugin->o.object_ops,
-			    link, info->parent);
-	}
-	
 	obj40_lock(&dir->obj, &dir->body);
 	aal_free(body);
 
@@ -709,6 +675,69 @@ static errno_t dir40_truncate(object_entity_t *entity,
 	}
 	
 	return 0;
+}
+
+static errno_t dir40_attach(object_entity_t *entity,
+			    object_entity_t *parent)
+{
+	errno_t res;
+	dir40_t *dir, *par;
+	entry_hint_t entry;
+	
+	aal_assert("umka-2289", entity != NULL);
+
+	dir = (dir40_t *)entity;
+	par = parent ? (dir40_t *)parent : dir;
+
+	/* Adding ".." to child */
+	plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
+		    assign, &entry.object, STAT_KEY(&par->obj));
+
+	aal_strncpy(entry.name, "..", 2);
+	
+	if ((res = plugin_call(entity->plugin->o.object_ops,
+			       add_entry, entity, &entry)))
+	{
+		return res;
+	}
+
+	if (parent) {
+		/* Increasing parent's @nlink by one */
+		return plugin_call(parent->plugin->o.object_ops,
+				   link, parent);
+	}
+
+	return 0;
+}
+
+static errno_t dir40_detach(object_entity_t *entity,
+			    object_entity_t *parent)
+{
+	errno_t res;
+	dir40_t *dir, *par;
+	entry_hint_t entry;
+
+	aal_assert("umka-2291", entity != NULL);
+	aal_assert("umka-2292", parent != NULL);
+
+	dir = (dir40_t *)entity;
+	par = (dir40_t *)parent;
+
+	/* Removing ".." from child if it is found */
+	switch (plugin_call(entity->plugin->o.object_ops,
+			    lookup, entity, "..", &entry))
+	{
+	case PRESENT:
+		plugin_call(entity->plugin->o.object_ops,
+			    rem_entry, entity, &entry);
+
+	default:
+		break;
+	}
+
+        /* Decreasing parent's @nlink by one */
+	return plugin_call(parent->plugin->o.object_ops,
+			   unlink, parent);
 }
 
 static errno_t dir40_link(object_entity_t *entity) {
@@ -1065,11 +1094,14 @@ static reiser4_object_ops_t dir40_ops = {
 	.truncate     = dir40_truncate,
 	.add_entry    = dir40_add_entry,
 	.rem_entry    = dir40_rem_entry,
+	.realize      = dir40_realize,
+	.attach       = dir40_attach,
+	.detach       = dir40_detach,
+	
 	.seek	      = NULL,
 	.write        = NULL,
 	.check_struct = NULL,
 	.check_link   = NULL,
-	.realize      = dir40_realize,
 	
 #endif
 	.follow       = NULL,

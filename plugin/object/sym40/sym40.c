@@ -103,19 +103,19 @@ static object_entity_t *sym40_create(object_info_t *info,
 		return NULL;
 	
 	/* Preparing dir oid and locality */
-	locality = plugin_call(info->okey.plugin->o.key_ops,
-			       get_locality, &info->okey);
+	locality = plugin_call(info->object.plugin->o.key_ops,
+			       get_locality, &info->object);
 	
-	objectid = plugin_call(info->okey.plugin->o.key_ops,
-			       get_objectid, &info->okey);
+	objectid = plugin_call(info->object.plugin->o.key_ops,
+			       get_objectid, &info->object);
 	
 	/* Key contains valid locality and objectid only, build start key. */
-	plugin_call(info->okey.plugin->o.key_ops, build_generic, 
-		    &info->okey, KEY_STATDATA_TYPE, locality,
+	plugin_call(info->object.plugin->o.key_ops, build_generic, 
+		    &info->object, KEY_STATDATA_TYPE, locality,
 		    objectid, 0);
 	
 	/* Inizializes file handle */
-	obj40_init(&sym->obj, &sym40_plugin, &info->okey,
+	obj40_init(&sym->obj, &sym40_plugin, &info->object,
 		   core, info->tree);
 	
 	/* Getting statdata plugin */
@@ -132,10 +132,10 @@ static object_entity_t *sym40_create(object_info_t *info,
 
 	stat_hint.plugin = stat_plugin;
 	stat_hint.flags = HF_FORMATD;
-	stat_hint.key.plugin = info->okey.plugin;
+	stat_hint.key.plugin = info->object.plugin;
 	
-	plugin_call(info->okey.plugin->o.key_ops, assign,
-		    &stat_hint.key, &info->okey);
+	plugin_call(info->object.plugin->o.key_ops, assign,
+		    &stat_hint.key, &info->object);
     
 	/*
 	  Initializing stat data item hint. Here we set up the extentions mask
@@ -302,38 +302,37 @@ static void sym40_close(object_entity_t *entity) {
 
 static reiser4_object_ops_t sym40_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.create	      = sym40_create,
-	.layout       = sym40_layout,
-	.metadata     = sym40_metadata,
-	.link         = sym40_link,
-	.unlink       = sym40_unlink,
+	.create	        = sym40_create,
+	.layout         = sym40_layout,
+	.metadata       = sym40_metadata,
+	.link           = sym40_link,
+	.unlink         = sym40_unlink,
+	.realize        = sym40_realize,
 		
-	.seek	      = NULL,
-	.write	      = NULL,
-	.truncate     = NULL,
-	.rem_entry    = NULL,
-	.add_entry    = NULL,
-	.check_struct = NULL,
-	.check_link   = NULL,
-	.realize      = sym40_realize,
+	.seek	        = NULL,
+	.write	        = NULL,
+	.truncate       = NULL,
+	.rem_entry      = NULL,
+	.add_entry      = NULL,
+	.check_struct   = NULL,
+	.check_link     = NULL,
+	.attach         = NULL,
+	.detach         = NULL,
 #endif
-	.lookup	      = NULL,
-	.reset	      = NULL,
-	.offset	      = NULL,
-	.size         = NULL,
-	.readdir      = NULL,
-	.telldir      = NULL,
-	.seekdir      = NULL,
+	.lookup	        = NULL,
+	.reset	        = NULL,
+	.offset	        = NULL,
+	.size           = NULL,
+	.readdir        = NULL,
+	.telldir        = NULL,
+	.seekdir        = NULL,
 
-#ifndef ENABLE_SYMLINKS_SUPPORT
-	.read	      = sym40_read,
-#else
-	.read	      = NULL,
+#ifndef ENABLE_STAND_ALONE
+	.read	        = sym40_read,
 #endif
-	
-	.open	      = sym40_open,
-	.close	      = sym40_close,
-	.follow       = sym40_follow
+	.open	        = sym40_open,
+	.close	        = sym40_close,
+	.follow         = sym40_follow
 };
 
 static reiser4_plugin_t sym40_plugin = {
