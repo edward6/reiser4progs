@@ -67,6 +67,12 @@ extern errno_t reiser4_tree_write(reiser4_tree_t *tree,
 				  reiser4_place_t *dst,
 				  uint32_t count);
 
+extern errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
+				      reiser4_place_t *dst,
+				      reiser4_place_t *src,
+				      reiser4_key_t *start,
+				      reiser4_key_t *end);
+
 extern errno_t reiser4_tree_copy(reiser4_tree_t *tree,
 				 reiser4_place_t *dst,
 				 reiser4_place_t *src,

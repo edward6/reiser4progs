@@ -716,6 +716,8 @@ struct reiser4_item_ops {
 			 uint32_t, key_entity_t *, key_entity_t *,
 			 copy_hint_t *);
 	
+	errno_t (*overwrite) (item_entity_t *, uint32_t, item_entity_t *,
+			      uint32_t, key_entity_t *, key_entity_t *);
 	/*
 	  Estimates item in order to find out how many bytes is needed for
 	  inserting one more unit.
@@ -891,6 +893,10 @@ struct reiser4_node_ops {
 			 object_entity_t *, pos_t *,
 			 key_entity_t *, key_entity_t *,
 			 copy_hint_t *);
+	
+	errno_t (*overwrite) (object_entity_t *, pos_t *,
+			      object_entity_t *, pos_t *,
+			      key_entity_t *, key_entity_t *);
 	
 	/* Expands node */
 	errno_t (*expand) (object_entity_t *, pos_t *,

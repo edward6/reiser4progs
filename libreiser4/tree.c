@@ -1436,6 +1436,53 @@ errno_t reiser4_tree_write(reiser4_tree_t *tree,
 }
 
 /*
+  Overwrites items/units pointed by @dst from @src one, from @start key though
+  the @end one.
+*/
+errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
+			       reiser4_place_t *dst,
+			       reiser4_place_t *src,
+			       reiser4_key_t *start,
+			       reiser4_key_t *end)
+{
+	errno_t res;
+	
+	aal_assert("umka-2161", dst != NULL);
+	aal_assert("umka-2162", src != NULL);
+	aal_assert("umka-2164", end != NULL);
+	aal_assert("umka-2160", tree != NULL);
+	aal_assert("umka-2163", start != NULL);
+
+	if (reiser4_tree_fresh(tree)) {
+		aal_exception_error("Can't write item/units to "
+				    "empty tree.");
+		return -EINVAL;
+	}
+	
+	if ((res = reiser4_node_overwrite(dst->node, &dst->pos,
+					  src->node, &src->pos,
+					  start, end)))
+	{
+		aal_exception_error("Can't copy an item/unit from node "
+				    "%llu to %llu one.", src->node->blk,
+				    dst->node->blk);
+		return res;
+	}
+
+	if (reiser4_place_leftmost(dst) && dst->node->parent.node) {
+		reiser4_place_t p;
+
+		reiser4_place_init(&p, dst->node->parent.node,
+				   &dst->node->parent.pos);
+		
+		if ((res = reiser4_tree_ukey(tree, &p, &src->item.key)))
+			return res;
+	}
+	
+	return 0;
+}
+
+/*
   Makes copy of item at passed @src place or some amount of its units to the
   passed @dst from @start key though the @end one.
 */

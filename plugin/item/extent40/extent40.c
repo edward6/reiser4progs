@@ -102,7 +102,7 @@ static int32_t extent40_remove(item_entity_t *item,
 
 	aal_assert("umka-1834", item != NULL);
 
-	/* FIXME-UMKA: Here will be extent shrinking code */
+	/* FIXME-UMKA */
 	
 	/* Updating item's key by zero's unit one */
 	if (pos == 0) {
@@ -186,7 +186,6 @@ static errno_t extent40_maxposs_key(item_entity_t *item,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Builds maximal real key in use for specified @item */
 static errno_t extent40_utmost_key(item_entity_t *item,
 				   key_entity_t *key) 
@@ -220,7 +219,6 @@ static errno_t extent40_utmost_key(item_entity_t *item,
 	
 	return 0;	
 }
-
 #endif
 
 /*
@@ -379,7 +377,6 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Checks if two extent items are mergeable */
 static int extent40_mergeable(item_entity_t *item1,
 			      item_entity_t *item2)
@@ -434,6 +431,11 @@ static errno_t extent40_estimate(item_entity_t *item, uint32_t pos,
 {
 	aal_assert("umka-1836", hint != NULL);
 
+	/*
+	  FIXME-UMKA: Here also should be handled case when we need add data to
+	  existent allocated extent and we will not need spare at all in some
+	  cases.
+	*/
 	hint->len = sizeof(extent40_t);
 	return 0;
 }
@@ -564,7 +566,7 @@ static errno_t extent40_feel(item_entity_t *item,
 	aal_assert("umka-1998", hint != NULL);
 
 	/* Not implemented yet */
-	return 0;
+	return -EINVAL;
 }
 
 static errno_t extent40_copy(item_entity_t *dst_item,
@@ -577,6 +579,20 @@ static errno_t extent40_copy(item_entity_t *dst_item,
 {
 	aal_assert("umka-2071", dst_item != NULL);
 	aal_assert("umka-2072", src_item != NULL);
+
+	/* Not implemented yet */
+	return -EINVAL;
+}
+
+static errno_t extent40_overwrite(item_entity_t *dst_item,
+				  uint32_t dst_pos,
+				  item_entity_t *src_item,
+				  uint32_t src_pos,
+				  key_entity_t *start,
+				  key_entity_t *end)
+{
+	aal_assert("umka-2178", dst_item != NULL);
+	aal_assert("umka-2179", src_item != NULL);
 
 	/* Not implemented yet */
 	return -EINVAL;
@@ -653,6 +669,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.init	       = extent40_init,
 		.write         = extent40_write,
 		.copy          = extent40_copy,
+		.overwrite     = extent40_overwrite,
 		.estimate      = extent40_estimate,
 		.remove	       = extent40_remove,
 		.print	       = extent40_print,

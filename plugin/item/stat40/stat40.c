@@ -482,6 +482,22 @@ static errno_t stat40_copy(item_entity_t *dst_item,
 	return 0;
 }
 
+static errno_t stat40_overwrite(item_entity_t *dst_item,
+				uint32_t dst_pos,
+				item_entity_t *src_item,
+				uint32_t src_pos,
+				key_entity_t *start,
+				key_entity_t *end)
+{
+	aal_assert("umka-2185", dst_item != NULL);
+	aal_assert("umka-2186", src_item != NULL);
+	
+	aal_memcpy(dst_item->body, src_item->body,
+		   src_item->len);
+	
+	return 0;
+}
+
 #endif
 
 /* Stat data plugin preparing */
@@ -504,6 +520,7 @@ static reiser4_plugin_t stat40_plugin = {
 		.estimate	= stat40_estimate,
 		.feel           = stat40_feel,
 		.copy           = stat40_copy,
+		.overwrite      = stat40_overwrite,
 		.insert		= stat40_insert,
 		.init		= stat40_init,
 		.check		= stat40_check,
