@@ -7,6 +7,8 @@
 #include "sdext_lw.h"
 #include <aux/aux.h>
 
+reiser4_core_t *sdext_lw_core = NULL;
+
 /* Loads extension to passed @hint */
 static errno_t sdext_lw_open(stat_entity_t *stat, void *hint) {
 	sdext_lw_t *ext;
@@ -81,6 +83,7 @@ static reiser4_plug_t sdext_lw_plug = {
 };
 
 static reiser4_plug_t *sdext_lw_start(reiser4_core_t *c) {
+	sdext_lw_core = c;
 	return &sdext_lw_plug;
 }
 

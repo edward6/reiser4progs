@@ -18,9 +18,9 @@ uint32_t extent40_units(reiser4_place_t *place) {
 
 #ifdef ENABLE_DEBUG
 	if (place->len % sizeof(extent40_t) != 0) {
-		aal_error("Node %llu, item %u: Invalid extent item size (%u) "
-			  "detected.", place_blknr(place), place->pos.item, 
-			  place->len);
+		aal_error("Node (%llu), item (%u): Invalid extent "
+			  "item size (%u) detected.", place_blknr(place),
+			  place->pos.item, place->len);
 		return 0;
 	}
 #endif

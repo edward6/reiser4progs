@@ -7,6 +7,8 @@
 #include "sdext_plug.h"
 #include <repair/plugin.h>
 
+#include "sdext_plug.h"
+
 #define PSET_MEMBER_LEN 10
 
 char *opset_name[OPSET_STORE_LAST] = {
@@ -24,6 +26,7 @@ char *opset_name[OPSET_STORE_LAST] = {
 };
 
 errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
+	reiser4_place_t *place;
 	sdhint_plug_t plugh;
 	uint16_t count, i;
 	sdext_plug_t *ext;
@@ -34,23 +37,26 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	
 	ext = (sdext_plug_t *)stat_body(stat);
 	count = sdext_plug_get_count(ext);
+	place = stat->place;
 	
 	if (count > SDEXT_LAST_ID) {
-		fsck_mess("Node (%llu), item (%u): does not look like a "
-			  "valid SD: wrong pset member count detected (%u).",
-			  place_blknr(stat->place), stat->place->pos.item, 
-			  count);
+		fsck_mess("Node (%llu), item (%u), [%s]: does not look "
+			  "like a valid SD plugin set extention: wrong "
+			  "pset member count detected (%u).", 
+			  place_blknr(place), place->pos.item,
+			  print_key(sdext_plug_core, &place->key), count);
 
 		return RE_FATAL;
 	}
 	
 	len = sdext_plug_length(stat, NULL);
 
-	if (stat->offset + len > stat->place->len) {
-		fsck_mess("Node (%llu), item (%u): does not look like a "
-			  "valid SD: wrong pset member count detected (%u).",
-			  place_blknr(stat->place), stat->place->pos.item, 
-			  count);
+	if (stat->offset + len > place->len) {
+		fsck_mess("Node (%llu), item (%u), [%s]: does not look like "
+			  "a valid SD plugin set extention: wrong pset member "
+			  "count detected (%u).", 
+			  place_blknr(place), place->pos.item,
+			  print_key(sdext_plug_core, &place->key), count);
 		return RE_FATAL;
 	}
 	    
@@ -65,19 +71,21 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 
 		if (mem >= OPSET_STORE_LAST) {
 			/* Unknown member. */
-			fsck_mess("Node (%llu), item (%u): the slot (%u) "
+			fsck_mess("Node (%llu), item (%u), [%s]: the slot (%u) "
 				  "contains the invalid opset member (%u).",
-				  place_blknr(stat->place), 
-				  stat->place->pos.item, i, mem);
+				  place_blknr(place), place->pos.item,
+				  print_key(sdext_plug_core, &place->key),
+				  i, mem);
 
 			mask |= (1 << i);
 			remove++;
 		} else if (plugh.plug[mem]) {
 			/* Was met already. */
-			fsck_mess("Node (%llu), item (%u): the slot (%u) "
-				  "contains the opset member (%s) that was "
-				  "met already.", place_blknr(stat->place), 
-				  stat->place->pos.item, i, opset_name[mem]);
+			fsck_mess("Node (%llu), item (%u), [%s]: the slot (%u) "
+				  "contains the opset member (%s) that was met "
+				  "already.",place_blknr(place),place->pos.item,
+				  print_key(sdext_plug_core, &place->key),
+				  i, opset_name[mem]);
 
 			mask |= (1 << i);
 			remove++;
@@ -88,12 +96,12 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 
 			/* Check if the member is valid. */
 			if (plugh.plug[mem] == INVAL_PTR) {
-				fsck_mess("Node (%llu), item (%u): the slot "
-					  "(%u) contains the invalid opset "
-					  "member (%s), id (%u).",
-					  place_blknr(stat->place), 
-					  stat->place->pos.item, i, 
-					  opset_name[mem], id);
+				fsck_mess("Node (%llu), item (%u), [%s]: the "
+					  "slot (%u) contains the invalid "
+					  "opset member (%s), id (%u).",
+					  place_blknr(place), place->pos.item, 
+					  print_key(sdext_plug_core, &place->key),
+					  i, opset_name[mem], id);
 				
 				mask |= (1 << i);
 				remove++;
@@ -114,16 +122,18 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 		return RE_FATAL;
 
 	if (remove == count) {
-		fsck_mess("Node (%llu), item (%u): no slot left. Does "
+		fsck_mess("Node (%llu), item (%u), [%s]: no slot left. Does "
 			  "not look like a valid (%s) statdata extention.",
-			  place_blknr(stat->place), stat->place->pos.item,
+			  place_blknr(place), place->pos.item,
+			  print_key(sdext_plug_core, &place->key),
 			  stat->ext_plug->label);
 		return RE_FATAL;
 	}
 	
 	/* Removing broken slots. */
-	fsck_mess("Node (%llu), item (%u): removing broken slots.",
-		  place_blknr(stat->place), stat->place->pos.item);
+	fsck_mess("Node (%llu), item (%u), [%s]: removing broken slots.",
+		  place_blknr(place), place->pos.item, 
+		  print_key(sdext_plug_core, &place->key));
 	
 	dst = stat_body(stat) + sizeof(sdext_plug_t);
 	len -= sizeof(sdext_plug_t);

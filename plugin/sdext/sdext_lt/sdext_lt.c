@@ -5,6 +5,8 @@
 
 #include "sdext_lt.h"
 
+reiser4_core_t *sdext_lt_core = NULL;
+
 /* Stat data extension length. */
 static uint32_t sdext_lt_length(stat_entity_t *stat, void *h) {
 	return sizeof(sdext_lt_t);
@@ -81,6 +83,7 @@ static reiser4_plug_t sdext_lt_plug = {
 };
 
 static reiser4_plug_t *sdext_lt_start(reiser4_core_t *c) {
+	sdext_lt_core = c;
 	return &sdext_lt_plug;
 }
 

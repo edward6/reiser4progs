@@ -17,6 +17,8 @@ struct sdext_lt {
 
 typedef struct sdext_lt sdext_lt_t;
 
+extern reiser4_core_t *sdext_lt_core;
+
 #define sdext_lt_get_atime(ext)	        aal_get_le32(ext, atime)
 #define sdext_lt_set_atime(ext, val)	aal_set_le32(ext, atime, val)
 

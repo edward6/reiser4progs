@@ -84,19 +84,21 @@ errno_t stat40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 		return res;
 	
 	if (res) {
-		fsck_mess("Node (%llu), item (%u): does not look like a "
-			  "valid stat data.", place_blknr(place),
-			  place->pos.item);
+		fsck_mess("Node (%llu), item (%u), [%s]: does "
+			  "not look like a valid stat data.", 
+			  place_blknr(place), place->pos.item,
+			  print_key(stat40_core, &place->key));
 		
 		return RE_FATAL;
 	}
 	
 	if (stat.len + hint->len < place->len) {
-		fsck_mess("Node (%llu), item (%u): item has the "
-			  "wrong length (%u). Should be (%llu). %s",
+		fsck_mess("Node (%llu), item (%u), [%s]: item has the "
+			  "wrong length (%u). Should be (%llu).%s",
 			  place_blknr(place), place->pos.item, 
+			  print_key(stat40_core, &place->key),
 			  place->len, stat.len + hint->len, 
-			  hint->mode == RM_BUILD ? "Fixed." : "");
+			  hint->mode == RM_BUILD ? " Fixed." : "");
 		
 		if (hint->mode != RM_BUILD)
 			return RE_FATAL;
@@ -107,11 +109,12 @@ errno_t stat40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	
 	/* Check the extention mask. */
 	if (stat.extmask != stat.goodmask) {
-		fsck_mess("Node (%llu), item (%u): item has the wrong "
-			  "extention mask (%llu). Should be (%llu). %s",
-			  place_blknr(place), place->pos.item,
-			  stat.extmask, stat.goodmask,
-			  hint->mode == RM_CHECK ? "" : "Fixed.");
+		fsck_mess("Node (%llu), item (%u), [%s]: item has the "
+			  "wrong extention mask (%llu). Should be (%llu)."
+			  "%s", place_blknr(place), place->pos.item,
+			  print_key(stat40_core, &place->key), stat.extmask,
+			  stat.goodmask, hint->mode == RM_CHECK ? "" : 
+			  " Fixed.");
 		
 		if (hint->mode == RM_CHECK)
 			return RE_FIXABLE;

@@ -90,8 +90,9 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 
 		/* Remove the item if fatal error. */
 		if (ret & RE_FATAL) {
-			fsck_mess("Node (%llu), item (%u): broken item found."
-				  "%s", node->block->nr, pos->item,
+			fsck_mess("Node (%llu), item (%u), [%s]: broken item "
+				  "found.%s", node->block->nr, pos->item,
+				  reiser4_print_key(&place.key, PO_DEFAULT),
 				  mode == RM_BUILD ? " Remove it." : "");
 
 			goto error_remove_item;

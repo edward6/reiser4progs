@@ -17,6 +17,8 @@ struct sdext_lw {
 
 typedef struct sdext_lw sdext_lw_t;
 
+extern reiser4_core_t *sdext_lw_core;
+
 #define sdext_lw_get_mode(ext)		aal_get_le16(ext, mode)
 #define sdext_lw_set_mode(ext, val)	aal_set_le16(ext, mode, val)
 

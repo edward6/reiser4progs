@@ -97,9 +97,10 @@ errno_t extent40_check_layout(reiser4_place_t *place, repair_hint_t *hint,
 		if (!res) continue;
 		
 		/* Zero the problem region. */
-		fsck_mess("Node (%llu), item (%u), unit (%u): "
-			  "points %s region [%llu..%llu].%s",
+		fsck_mess("Node (%llu), item (%u), unit (%u), [%s]: "
+			  "points %s region [%llu..%llu].%s", 
 			  place_blknr(place), place->pos.item, i, 
+			  print_key(extent40_core, &place->key),
 			  res == RE_FATAL? "out of the fs," : 
 			  "to the already used blocks, ", start,
 			  start + width - 1, hint->mode != RM_CHECK ? 
@@ -138,9 +139,10 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	
 	/* Length must be divisible by the extent40 unit length. */
 	if (place->len % sizeof(extent40_t)) {
-		fsck_mess("Node (%llu), item (%u): extent40 "
-			  "item of not valid length found.",
-			  place_blknr(place), place->pos.item);
+		fsck_mess("Node (%llu), item (%u), [%s]: extent40 "
+			  "item of not valid length found.", 
+			  place_blknr(place), place->pos.item,
+			  print_key(extent40_core, &place->key));
 		return RE_FATAL;
 	}
 	
@@ -148,9 +150,10 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	if (plug_call(place->key.plug->o.key_ops, get_offset, &place->key) %
 	    extent40_blksize(place)) 
 	{
-		fsck_mess("Node (%llu), item (%u): extent40 item "
-			  "with not valid key offset found.", 
-			  place_blknr(place), place->pos.item);
+		fsck_mess("Node (%llu), item (%u), [%s]: extent40 "
+			  "item with not valid key offset found.",
+			  place_blknr(place), place->pos.item,
+			  print_key(extent40_core, &place->key));
 		return RE_FATAL;
 	}
 	
@@ -158,7 +161,7 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	units = extent40_units(place);
 	
 	if (!units) {
-		fsck_mess("Node (%llu), item (%u): extent40 item with no units "
+		fsck_mess("Node (%llu), item (%u): empty extent40 item "
 			  "found.", place_blknr(place), place->pos.item);
 		return RE_FATAL;
 	}
@@ -173,9 +176,11 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 		if (start != EXTENT_UNALLOC_UNIT)
 			continue;
 
-		fsck_mess("Node (%llu), item (%u), unit (%u): unallocated unit "
-			  "is found.%s", place_blknr(place), place->pos.item, 
-			  i, hint->mode == RM_CHECK ? "" : "Zeroed.");
+		fsck_mess("Node (%llu), item (%u), unit (%u), "
+			  "[%s]: unallocated unit is found.%s", 
+			  place_blknr(place), place->pos.item, i,
+			  print_key(extent40_core, &place->key),
+			  hint->mode == RM_CHECK ? "" : "Zeroed.");
 		
 		if (hint->mode != RM_CHECK) {
 			et40_set_start(extent, 0);

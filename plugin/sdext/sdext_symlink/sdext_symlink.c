@@ -6,6 +6,8 @@
 #include <reiser4/plugin.h>
 #ifdef ENABLE_SYMLINKS
 
+reiser4_core_t *sdext_symlink_core = NULL;
+
 static uint32_t sdext_symlink_length(stat_entity_t *stat, void *hint) {
 	char *name;
 	
@@ -77,6 +79,7 @@ static reiser4_plug_t sdext_symlink_plug = {
 };
 
 static reiser4_plug_t *sdext_symlink_start(reiser4_core_t *c) {
+	sdext_symlink_core = c;
 	return &sdext_symlink_plug;
 }
 

@@ -529,8 +529,8 @@ static errno_t reiser4_tree_update_node(reiser4_tree_t *tree,
 				if (node->flags & NF_HEARD_BANSHEE)
 					continue;
 
-				aal_bug("umka-3060", "Node %llu is empty but "
-					"not marked as 'heard banshee'.",
+				aal_bug("umka-3060", "Node (%llu) is empty "
+					"but not marked as 'heard banshee'.",
 					node->block->nr);
 			}
 		}
@@ -3052,8 +3052,8 @@ errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
 		/* If there is a suspicion of a corruption, it must be checked
 		   in before_func. All items must be opened here. */
 		if (reiser4_place_open(&place, node, pos)) {
-			aal_error("Can't open item by place. Node %llu, "
-				  "item %u.", node->block->nr, pos->item);
+			aal_error("Node (%llu), item (%u): Can't open item "
+				  "by place.", node->block->nr, pos->item);
 			goto error_after_func;
 		}
 

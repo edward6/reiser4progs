@@ -21,9 +21,10 @@ static errno_t cb_register_item(reiser4_place_t *place, void *data) {
         aal_assert("vpf-1115", place != NULL);
          
         if (reiser4_item_test_flag(place, OF_CHECKED)) {
-                fsck_mess("Node (%llu), item (%u): item registering "
+                fsck_mess("Node (%llu), item (%u), [%s]: item registering "
 			  "failed, it belongs to another object already.",
-			  place_blknr(place), place->pos.item);
+			  place_blknr(place), place->pos.item,
+			  reiser4_print_key(&place->key, PO_DEFAULT));
                 return -EINVAL;
         }
          

@@ -5,6 +5,8 @@
 
 #include "sdext_flags.h"
 
+reiser4_core_t *sdext_flags_core = NULL;
+
 /* Stat data extension length. */
 static uint32_t sdext_flags_length(stat_entity_t *stat, void *hint) {
 	return sizeof(sdext_flags_t);
@@ -74,6 +76,7 @@ static reiser4_plug_t sdext_flags_plug = {
 };
 
 static reiser4_plug_t *sdext_flags_start(reiser4_core_t *c) {
+	sdext_flags_core = c;
 	return &sdext_flags_plug;
 }
 

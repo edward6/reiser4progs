@@ -66,9 +66,10 @@ static errno_t cb_check_layout(reiser4_place_t *place, void *data) {
 		if (ts->repair->mode == RM_BUILD) {
 			trans_hint_t hint;
 
-			fsck_mess("Node (%llu), item (%u): broken "
+			fsck_mess("Node (%llu), item (%u), [%s]: broken "
 				  "item layout. Remove the item.",
-				  node->block->nr, place->pos.item);
+				  node->block->nr, place->pos.item,
+				  reiser4_print_key(&place->key, PO_DEFAULT));
 
 			hint.count = 1;
 			hint.place_func = NULL;

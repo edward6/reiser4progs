@@ -8,6 +8,7 @@
 
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>
+#include "extent40.h"
 
 extern errno_t extent40_prep_insert_raw(reiser4_place_t *place,
 				   trans_hint_t *hint);

@@ -179,10 +179,11 @@ static uint32_t cde40_short_entry_detect(reiser4_place_t *place,
 	for (offset = ENTRY_LEN_MIN(S_NAME, pol); offset < length; 
 	     offset += ENTRY_LEN_MIN(S_NAME, pol), start_pos++) 
 	{
-		fsck_mess("Node (%llu), item (%u), unit (%u): unit "
+		fsck_mess("Node (%llu), item (%u), unit (%u), [%s]: unit "
 			  "offset (%u) is wrong, should be (%u). %s", 
-			  place_blknr(place), place->pos.item,
-			  start_pos, cde_get_offset(place, start_pos, pol),
+			  place_blknr(place), place->pos.item, start_pos,
+			  print_key(cde40_core, &place->key),
+			  cde_get_offset(place, start_pos, pol),
 			  limit + offset,  mode == RM_BUILD ? "Fixed." : "");
 		
 		if (mode == RM_BUILD)
@@ -234,12 +235,13 @@ static uint32_t cde40_long_entry_detect(reiser4_place_t *place,
 		if (mode != REPAIR_SKIP && 
 		    l_limit != cde_get_offset(place, start_pos + count, pol)) 
 		{
-			fsck_mess("Node %llu, item %u, unit (%u): unit "
-				  "offset (%u) is wrong, should be (%u). "
+			fsck_mess("Node (%llu), item (%u), unit (%u), [%s]: "
+				  "unit offset (%u) is wrong, should be (%u)."
 				  "%s", place_blknr(place), place->pos.item,
 				  start_pos + count,
+				  print_key(cde40_core, &place->key), 
 				  cde_get_offset(place, start_pos + count, pol),
-				  l_limit, mode == RM_BUILD ? "Fixed." : "");
+				  l_limit, mode == RM_BUILD ? " Fixed." : "");
 			
 			if (mode == RM_BUILD) {
 				cde_set_offset(place, start_pos + count, 
@@ -307,10 +309,11 @@ static errno_t cde40_offsets_range_check(reiser4_place_t *place,
 	for (i = 0; i < flags->count; i++) {
 		/* Check if the offset is valid. */
 		if (cde40_offset_check(place, i)) {
-			fsck_mess("Node %llu, item %u, unit %u: "
-				  "unit offset (%u) is wrong.", 
-				  place_blknr(place), place->pos.item, 
-				  i, cde_get_offset(place, i, pol));
+			fsck_mess("Node (%llu), item (%u), unit (%u), "
+				  "[%s]: unit offset (%u) is wrong.",
+				  place_blknr(place), place->pos.item, i,
+				  print_key(cde40_core, &place->key),
+				  cde_get_offset(place, i, pol));
 			
 			/* mark offset wrong. */	    
 			aal_set_bit(flags->elem + i, NR);
@@ -406,9 +409,10 @@ static errno_t cde40_filter(reiser4_place_t *place,
 	
 	if (last == 0) {
 		/* No one R unit was found */
-		fsck_mess("Node %llu, item %u: no one valid unit has "
-			  "been found. Does not look like a valid `%s` "
+		fsck_mess("Node (%llu), item (%u), [%s]: no one valid unit "
+			  "has been found. Does not look like a valid `%s` "
 			  "item.", place_blknr(place), place->pos.item, 
+			  print_key(cde40_core, &place->key),
 			  place->plug->label);
 		
 		return RE_FATAL;
@@ -470,11 +474,13 @@ static errno_t cde40_filter(reiser4_place_t *place,
 	}
 	
 	if (e_count != cde_get_units(place)) {
-		fsck_mess("Node %llu, item %u: unit count (%u) "
-			  "is not correct. Should be (%u). %s",
-			  place_blknr(place),  place->pos.item,
+		fsck_mess("Node (%llu), item (%u), [%s]: unit count "
+			  "(%u) is not correct. Should be (%u).%s",
+			  place_blknr(place), place->pos.item,
+			  print_key(cde40_core, &place->key), 
 			  cde_get_units(place), e_count, 
-			  hint->mode == RM_CHECK ? "" : "Fixed.");
+			  hint->mode == RM_CHECK ? "" : 
+			  " Fixed.");
 		
 		if (hint->mode == RM_CHECK) {
 			res |= RE_FIXABLE;
@@ -487,10 +493,10 @@ static errno_t cde40_filter(reiser4_place_t *place,
 	if (flags->count != e_count) {
 		/* Estimated count is greater then the recovered count, in other 
 		   words there are some last unit headers should be removed. */
-		fsck_mess("Node %llu, item %u: entries [%u..%u] look "
-			  "corrupted. %s", place_blknr(place),
-			  place->pos.item, flags->count, e_count - 1, 
-			  hint->mode == RM_BUILD ? "Removed." : "");
+		fsck_mess("Node (%llu), item (%u), [%s]: entries [%u..%u] look "
+			  "corrupted. %s", place_blknr(place), place->pos.item,
+			  print_key(cde40_core, &place->key), flags->count, 
+			  e_count - 1, hint->mode == RM_BUILD ? "Removed." : "");
 		
 		if (hint->mode == RM_BUILD) {
 			hint->len += cde40_cut(place, flags->count, 
@@ -505,9 +511,9 @@ static errno_t cde40_filter(reiser4_place_t *place,
 	
 	if (i) {
 		/* Some first units should be removed. */
-		fsck_mess("Node %llu, item %u: entries [%u..%u] look "
-			  " corrupted. %s", place_blknr(place), 
-			  place->pos.item, 0, i - 1, 
+		fsck_mess("Node (%llu), item (%u), [%s]: entries [%u..%u] look "
+			  "corrupted. %s", place_blknr(place), place->pos.item,
+			  print_key(cde40_core, &place->key), 0, i - 1, 
 			  hint->mode == RM_BUILD ? "Removed." : "");
 		
 		if (hint->mode == RM_BUILD) {
@@ -539,9 +545,10 @@ static errno_t cde40_filter(reiser4_place_t *place,
 		
 		/* Looking for the problem interval end. */
 		if (aal_test_bit(flags->elem + i, R)) {
-			fsck_mess("Node %llu, item %u: entries "
-				  "[%u..%u] look corrupted. %s", 
-				  place_blknr(place), place->pos.item,
+			fsck_mess("Node (%llu), item (%u), [%s]: "
+				  "entries [%u..%u] look corrupted. %s",
+				  place_blknr(place), place->pos.item, 
+				  print_key(cde40_core, &place->key), 
 				  last, i - 1, hint->mode == RM_BUILD ? 
 				  "Removed." : "");
 
@@ -581,9 +588,10 @@ errno_t cde40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	pol = cde40_key_pol(place);
 	
 	if (place->len < en_len_min(1, pol)) {
-		fsck_mess("Node %llu, item %u: item length (%u) is too small "
-			  "to contain a valid item.", place_blknr(place), 
-			  place->pos.item, place->len);
+		fsck_mess("Node (%llu), item (%u), [%s]: item length "
+			  "(%u) is too small to contain a valid item.",
+			  place_blknr(place), place->pos.item, 
+			  print_key(cde40_core, &place->key), place->len);
 		return RE_FATAL;
 	}
 	
@@ -628,7 +636,7 @@ errno_t cde40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 			fsck_mess("Node (%llu), item (%u): wrong key "
 				  "[%s] of the unit (%u).%s", 
 				  place_blknr(place), place->pos.item,
-				  cde40_core->key_ops.print(&key, PO_INODE),
+				  print_inode(cde40_core, &key),
 				  i - 1, hint->mode == RM_BUILD ? 
 				  " Removed." : "");
 			
@@ -657,7 +665,7 @@ errno_t cde40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 			fsck_mess("Node (%llu), item (%u): wrong key "
 				  "[%s] of the unit (%u).%s", 
 				  place_blknr(place), place->pos.item,
-				  cde40_core->key_ops.print(&key, PO_INODE),
+				  print_inode(cde40_core, &key),
 				  i - 1, hint->mode == RM_BUILD ? 
 				  " Removed." : "");
 			
@@ -692,11 +700,10 @@ errno_t cde40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 		if (plug_call(pkey.plug->o.key_ops, compfull, 
 			      &pkey, &ckey) == 1) 
 		{
-			fsck_mess("Node (%llu), item (%u): wrong order of "
-				  "units {%d, %d}. The whole item to be "
-				  "removed -- will be improved soon.",
-				  place_blknr(place), place->pos.item,
-				  i - 1, i);
+			fsck_mess("Node (%llu), item (%u), [%s]: wrong order "
+				  "of units [%d, %d]. The whole item is to be "
+				  "removed.",place_blknr(place),place->pos.item,
+				  print_key(cde40_core, &place->key), i - 1, i);
 			return res | RE_FATAL;
 		}
 		pkey = ckey;
@@ -710,8 +717,8 @@ errno_t cde40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 		fsck_mess("Node (%llu), item (%u): the item key [%s] does "
 			  "not match the first unit key [%s].%s", 
 			  place_blknr(place), place->pos.item,
-			  cde40_core->key_ops.print(&place->key, PO_INODE),
-			  cde40_core->key_ops.print(&ckey, PO_INODE),
+			  print_inode(cde40_core, &place->key),
+			  print_inode(cde40_core, &ckey),
 			  hint->mode == RM_BUILD ? " Fixed." : "");
 		res |= RE_FATAL;
 	}

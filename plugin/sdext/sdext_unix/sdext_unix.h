@@ -24,6 +24,8 @@ struct sdext_unix {
 
 typedef struct sdext_unix sdext_unix_t;
 
+extern reiser4_core_t *sdext_unix_core;
+
 #define sdext_unix_get_uid(ext)		aal_get_le32(ext, uid)
 #define sdext_unix_set_uid(ext, val)	aal_set_le32(ext, uid, val)
 

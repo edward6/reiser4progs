@@ -6,6 +6,8 @@
 
 #include "sdext_unix.h"
 
+reiser4_core_t *sdext_unix_core = NULL;
+
 static uint32_t sdext_unix_length(stat_entity_t *stat, void *hint) {
 	return sizeof(sdext_unix_t);
 }
@@ -90,6 +92,7 @@ static reiser4_plug_t sdext_unix_plug = {
 };
 
 static reiser4_plug_t *sdext_unix_start(reiser4_core_t *c) {
+	sdext_unix_core = c;
 	return &sdext_unix_plug;
 }
 

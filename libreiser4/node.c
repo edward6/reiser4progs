@@ -330,8 +330,9 @@ errno_t reiser4_node_shrink(reiser4_node_t *node, pos_t *pos,
 	if ((res = plug_call(node->plug->o.node_ops, shrink,
 			     node, pos, len, count)))
 	{
-		aal_error("Node %llu, pos %u/%u: can't shrink the node on %u "
-			  "bytes.", node->block->nr, pos->item, pos->unit, len);
+		aal_error("Node (%llu), pos (%u/%u): can't shrink "
+			  "the node on (%u) bytes.", node->block->nr,
+			  pos->item, pos->unit, len);
 	}
 
 	return res;

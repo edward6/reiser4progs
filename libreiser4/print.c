@@ -61,9 +61,7 @@ void reiser4_print_fini(void) {
 
 /* Prints passed @key with @options to some of stream from stream pool and
    retrun pointer to result. */
-char *reiser4_print_key(reiser4_key_t *key,
-			uint16_t options)
-{
+char *reiser4_print_key(reiser4_key_t *key, uint16_t options) {
 	aal_stream_t *stream;
 	
 	aal_assert("umka-2379", key != NULL);

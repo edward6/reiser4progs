@@ -8,13 +8,18 @@
 #include "sdext_flags.h"
 #include <repair/plugin.h>
 
+#include "sdext_flags.h"
+
 errno_t sdext_flags_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	aal_assert("umka-3081", stat != NULL);
 	aal_assert("umka-3082", stat->ext_plug != NULL);
 	
 	if (stat->offset + sizeof(sdext_flags_t) > stat->place->len) {
-		fsck_mess("Does not look like a valid (%s) statdata "
-			  "extension.", stat->ext_plug->label);
+		fsck_mess("Node (%llu), item (%u), [%s]: does not look "
+			  "like a valid (%s) statdata extension.", 
+			  place_blknr(stat->place), stat->place->pos.item,
+			  print_key(sdext_flags_core, &stat->place->key),
+			  stat->ext_plug->label);
 		return RE_FATAL;
 	}
 	

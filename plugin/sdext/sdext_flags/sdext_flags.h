@@ -15,6 +15,8 @@ struct sdext_flags {
 
 typedef struct sdext_flags sdext_flags_t;
 
+extern reiser4_core_t *sdext_flags_core;
+
 #define sdext_flags_get_flags(ext)	 aal_get_le32(ext, flags)
 #define sdext_flags_set_flags(ext, val)  aal_set_le32(ext, flags, val)
 
