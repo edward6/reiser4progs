@@ -10,22 +10,26 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t key40_plugin;
 
+/* Key minor names. They are used key40_print function */
 static const char *const minor_names[] = {
 	"file name", "stat data", "attr name",
 	"attr body", "file body", "unknown"
 };
 
+/* Minimal possible key */
 static key_entity_t minimal_key = {
 	.plugin = &key40_plugin,
 	.body = { 0ull, 0ull, 0ull }
 };
 
+/* Maximal possible key */
 static key_entity_t maximal_key = {
 	.plugin = &key40_plugin,
 	.body = { ~0ull, ~0ull, ~0ull }
 };
 
-const char *key40_m2n(key40_minor_t type) {
+/* Translates passed minor into corresponding name */
+const char *key40_minor2name(key40_minor_t type) {
 	if (type > KEY40_LAST_MINOR)
 		type = KEY40_LAST_MINOR;
     
@@ -72,14 +76,17 @@ static key_type_t key40_minor2type(key40_minor_t minor) {
 	}
 }
 
+/* Returns minimal key */
 static key_entity_t *key40_minimal(void) {
 	return &minimal_key;
 }
 
+/* Returns maximal key */
 static key_entity_t *key40_maximal(void) {
 	return &maximal_key;
 }
 
+/* Compares two first components of the pased keys (locality and objectid) */
 static int key40_compare_short(key40_t *key1, 
 			       key40_t *key2) 
 {
@@ -91,6 +98,10 @@ static int key40_compare_short(key40_t *key1,
 	return k40_comp_el(key1, key2, 1);
 }
 
+/*
+  Compares two passed keys. Returns -1 if key1 lesser than key2, 0 if keys are
+  equal and 1 if key1 is bigger then key2.
+*/
 static int key40_compare(key_entity_t *key1, 
 			 key_entity_t *key2) 
 {
@@ -109,6 +120,7 @@ static int key40_compare(key_entity_t *key1,
 	return k40_comp_el(body1, body2, 2);
 }
 
+/* Assigns src key to dst one  */
 static errno_t key40_assign(key_entity_t *dst,
 			    key_entity_t *src)
 {
@@ -124,6 +136,7 @@ static errno_t key40_assign(key_entity_t *dst,
 	return 0;
 }
 
+/* Checks if passed key is realy key40 one */
 static int key40_confirm(key_entity_t *key) {
 	key40_minor_t minor;
 	
@@ -133,6 +146,7 @@ static int key40_confirm(key_entity_t *key) {
 	return minor < KEY40_LAST_MINOR;
 }
 
+/* Simple validness check */
 static errno_t key40_valid(key_entity_t *key) {
 	uint8_t band;
 	key40_minor_t minor;
@@ -151,6 +165,7 @@ static errno_t key40_valid(key_entity_t *key) {
 	return -1;
 }
 
+/* Sets up key type */
 static void key40_set_type(key_entity_t *key, 
 			   key_type_t type)
 {
@@ -158,11 +173,13 @@ static void key40_set_type(key_entity_t *key,
 	k40_set_minor((key40_t *)key->body, key40_type2minor(type));
 }
 
+/* Returns key type */
 static key_type_t key40_get_type(key_entity_t *key) {
 	aal_assert("umka-635", key != NULL, return 0);
 	return key40_minor2type(k40_get_minor((key40_t *)key->body));
 }
 
+/* Sets up key locality */
 static void key40_set_locality(key_entity_t *key, 
 			       uint64_t locality) 
 {
@@ -170,11 +187,13 @@ static void key40_set_locality(key_entity_t *key,
 	k40_set_locality((key40_t *)key->body, locality);
 }
 
+/* Returns key locality */
 static uint64_t key40_get_locality(key_entity_t *key) {
 	aal_assert("umka-637", key != NULL, return 0);
 	return k40_get_locality((key40_t *)key->body);
 }
-    
+
+/* Sets up key objectid */
 static void key40_set_objectid(key_entity_t *key, 
 			       uint64_t objectid) 
 {
@@ -182,11 +201,13 @@ static void key40_set_objectid(key_entity_t *key,
 	k40_set_objectid((key40_t *)key->body, objectid);
 }
 
-static roid_t key40_get_objectid(key_entity_t *key) {
+/* Returns key objectid */
+static uint64_t key40_get_objectid(key_entity_t *key) {
 	aal_assert("umka-639", key != NULL, return 0);
 	return k40_get_objectid((key40_t *)key->body);
 }
 
+/* Sets up key offset */
 static void key40_set_offset(key_entity_t *key, 
 			     uint64_t offset)
 {
@@ -194,11 +215,13 @@ static void key40_set_offset(key_entity_t *key,
 	k40_set_offset((key40_t *)key->body, offset);
 }
 
+/* Returns key offset */
 static uint64_t key40_get_offset(key_entity_t *key) {
 	aal_assert("umka-641", key != NULL, return 0);
 	return k40_get_offset((key40_t *)key->body);
 }
 
+/* Sets up key offset */
 static void key40_set_hash(key_entity_t *key, 
 			   uint64_t hash)
 {
@@ -206,16 +229,19 @@ static void key40_set_hash(key_entity_t *key,
 	k40_set_hash((key40_t *)key->body, hash);
 }
 
+/* Returns key offset */
 static uint64_t key40_get_hash(key_entity_t *key) {
 	aal_assert("vpf-130", key != NULL, return 0);
 	return k40_get_hash((key40_t *)key->body);
 }
 
+/* Cleans key body */
 static void key40_clean(key_entity_t *key) {
 	aal_assert("vpf-139", key != NULL, return);
 	aal_memset(key->body, 0, sizeof(key40_t));
 }
 
+/* Packing string into uint64_t value */
 static uint64_t key40_pack_string(
 	const char *name, 
 	uint32_t start) 
@@ -233,6 +259,7 @@ static uint64_t key40_pack_string(
 	return str;
 }
 
+/* Builds hash of the passed @name by means of using a hash plugin */
 static errno_t key40_build_hash(key_entity_t *key,
 				reiser4_plugin_t *hash,
 				const char *name) 
@@ -287,11 +314,15 @@ static errno_t key40_build_hash(key_entity_t *key,
 	return 0;
 }
 
-static errno_t key40_build_direntry(key_entity_t *key,
-				    reiser4_plugin_t *hash,
-				    uint64_t locality,
-				    uint64_t objectid,
-				    const char *name) 
+/*
+  Builds key by passed locality, objectid, and name. It is suitable for
+  creating entry keys.
+*/
+static errno_t key40_build_entry(key_entity_t *key,
+				 reiser4_plugin_t *hash,
+				 uint64_t locality,
+				 uint64_t objectid,
+				 const char *name) 
 {
 	aal_assert("vpf-140", key != NULL, return -1);
 	aal_assert("umka-667", name != NULL, return -1);
@@ -305,6 +336,7 @@ static errno_t key40_build_direntry(key_entity_t *key,
 	return key40_build_hash(key, hash, name);
 }
 
+/* Builds generic key by all its components */
 static errno_t key40_build_generic(key_entity_t *key,
 				   key_type_t type,
 				   uint64_t locality,
@@ -318,6 +350,7 @@ static errno_t key40_build_generic(key_entity_t *key,
 	key40_clean(key);
     
 	body = (key40_t *)key->body;
+	
 	k40_set_locality(body, locality);
 	k40_set_objectid(body, objectid);
 	k40_set_minor(body, key40_type2minor(type));
@@ -328,10 +361,10 @@ static errno_t key40_build_generic(key_entity_t *key,
 
 #ifndef ENABLE_COMPACT
 
-errno_t key40_print(
-	key_entity_t *key,
-	aal_stream_t *stream,
-	uint16_t options) 
+/* Prints key into passed stream */
+errno_t key40_print(key_entity_t *key,
+		    aal_stream_t *stream,
+		    uint16_t options) 
 {
 	aal_assert("vpf-191", key != NULL, return -1);
 	aal_assert("umka-1548", stream != NULL, return -1);
@@ -339,7 +372,7 @@ errno_t key40_print(
 	aal_stream_format(stream, "[ key40 %llx:%x:%llx:%llx %s ]",
 			  key40_get_locality(key), key40_get_type(key),
 			  key40_get_objectid(key), key40_get_offset(key),
-			  key40_m2n(key40_get_type(key)));
+			  key40_minor2name(key40_get_type(key)));
 
 	return 0;
 }
@@ -357,8 +390,8 @@ static reiser4_plugin_t key40_plugin = {
 			.desc = "Key for reiserfs 4.0, ver. " VERSION,
 		},
 	
-		.confirm	= key40_confirm,
 		.valid		= key40_valid,
+		.confirm	= key40_confirm,
 		.assign		= key40_assign,
 		.minimal	= key40_minimal,
 		.maximal	= key40_maximal,
@@ -370,7 +403,6 @@ static reiser4_plugin_t key40_plugin = {
 #else
 		.print		= NULL,
 #endif
-		
 		.set_type	= key40_set_type,
 		.get_type	= key40_get_type,
 
@@ -387,7 +419,7 @@ static reiser4_plugin_t key40_plugin = {
 		.get_hash	= key40_get_hash,
 	
 		.build_generic  = key40_build_generic,
-		.build_direntry = key40_build_direntry
+		.build_entry    = key40_build_entry
 	}
 };
 

@@ -529,9 +529,9 @@ struct reiser4_key_ops {
 	errno_t (*build_generic) (key_entity_t *, key_type_t,
 				  uint64_t, uint64_t, uint64_t);
     
-	errno_t (*build_direntry) (key_entity_t *, reiser4_plugin_t *,
-				   uint64_t, uint64_t, const char *);
-
+	errno_t (*build_entry) (key_entity_t *, reiser4_plugin_t *,
+				uint64_t, uint64_t, const char *);
+	
 	/* Gets/sets key type (minor in reiser4 notation) */	
 	void (*set_type) (key_entity_t *, key_type_t);
 	key_type_t (*get_type) (key_entity_t *);

@@ -33,7 +33,7 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	/* Preparing key of the first entry in directory */
 	key.plugin = dir->file.key.plugin;
 	
-	plugin_call(return -1, key.plugin->key_ops, build_direntry,
+	plugin_call(return -1, key.plugin->key_ops, build_entry,
 		    &key, dir->hash, file40_locality(&dir->file),
 		    file40_objectid(&dir->file), ".");
 
@@ -179,7 +179,7 @@ static int dir40_lookup(object_entity_t *entity,
 
 	wanted.plugin = dir->file.key.plugin;
 	
-	plugin_call(return -1, wanted.plugin->key_ops, build_direntry,
+	plugin_call(return -1, wanted.plugin->key_ops, build_entry,
 		    &wanted, dir->hash, file40_locality(&dir->file),
 		    file40_objectid(&dir->file), name);
     
@@ -329,7 +329,7 @@ static object_entity_t *dir40_create(const void *tree,
 	body.count = sizeof(dir40_empty_dir) / sizeof(char *);
 	
 	plugin_call(goto error_free_dir, hint->object.plugin->key_ops,
-		    build_direntry, &body_hint.key, dir->hash, locality,
+		    build_entry, &body_hint.key, dir->hash, locality,
 		    objectid, ".");
 
 	if (!(body.unit = aal_calloc(body.count * sizeof(*body.unit), 0)))
@@ -361,7 +361,7 @@ static object_entity_t *dir40_create(const void *tree,
 		body.unit[i].offset.plugin = hint->object.plugin;
 		
 		plugin_call(goto error_free_body, hint->object.plugin->key_ops,
-			    build_direntry, &body.unit[i].offset, dir->hash,
+			    build_entry, &body.unit[i].offset, dir->hash,
 			    file40_locality(&dir->file), file40_objectid(&dir->file),
 			    body.unit[i].name);
 	}
@@ -468,7 +468,7 @@ static int32_t dir40_write(object_entity_t *entity,
 
 		aal_memcpy(&body_hint.unit[0], entry, sizeof(*entry));
 		
-		plugin_call(return -1, key->plugin->key_ops, build_direntry,
+		plugin_call(return -1, key->plugin->key_ops, build_entry,
 			    &hint.key, dir->hash, file40_locality(&dir->file),
 			    file40_objectid(&dir->file), entry->name);
 

@@ -17,6 +17,8 @@ reiser4progs/COPYING.
 * update parent directory fields (nlink, etc) when creating file or
   directories.
 
+* smart bitmap working functions (copy, invert, etc).
+
 * symlinks and special files browsing in debugfs.
 
 * insert an extent among internals may require perform shift and

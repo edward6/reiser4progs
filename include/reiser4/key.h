@@ -22,10 +22,10 @@ extern errno_t reiser4_key_build_generic(reiser4_key_t *key, uint32_t type,
 					 roid_t locality, roid_t objectid,
 					 uint64_t offset);
 
-extern errno_t reiser4_key_build_direntry(reiser4_key_t *key,
-					  reiser4_plugin_t *plugin,
-					  roid_t locality, roid_t objectid,
-					  const char *name);
+extern errno_t reiser4_key_build_entry(reiser4_key_t *key,
+				       reiser4_plugin_t *plugin,
+				       roid_t locality, roid_t objectid,
+				       const char *name);
 
 extern errno_t reiser4_key_set_type(reiser4_key_t *key, uint32_t type);
 extern errno_t reiser4_key_set_offset(reiser4_key_t *key, uint64_t offset);

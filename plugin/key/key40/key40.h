@@ -122,15 +122,11 @@ static inline int k40_comp_el(void *k1, void *k2, int off) {
 }
 
 /* 
-   Macro to define getter and setter functions for 
-   field F with type T.
+   Macro to define key40 getter and setter functions for field F with type T. It
+   is used for minimize code.
 */
-
-#define DECLARE_KEY40_FIELD(L, U, T)				    \
-extern inline T k40_get_##L (const key40_t *key);		    \
-extern inline void k40_set_##L(key40_t *key, T loc);
 								    
-#define DEFINE_KEY40_FIELD(L, U, T)				    \
+#define key40_field_handler(L, U, T)				    \
 static inline T k40_get_##L (const key40_t *key) {		    \
         aal_assert("vpf-036", key != NULL, return 0);		    \
         return (T) ((k40_get_el(key, KEY40_##U##_INDEX) &	    \
@@ -153,11 +149,11 @@ static inline void k40_set_##L(key40_t *key, T loc) {		    \
         k40_set_el(key, KEY40_##U##_INDEX, el);			    \
 }
 
-DEFINE_KEY40_FIELD(locality, LOCALITY, uint64_t);
-DEFINE_KEY40_FIELD(minor, TYPE, key40_minor_t);
-DEFINE_KEY40_FIELD(band, BAND, uint64_t);
-DEFINE_KEY40_FIELD(objectid, OBJECTID, uint64_t);
-DEFINE_KEY40_FIELD(offset, OFFSET, uint64_t);
-DEFINE_KEY40_FIELD(hash, HASH, uint64_t);
+key40_field_handler(locality, LOCALITY, uint64_t);
+key40_field_handler(minor, TYPE, key40_minor_t);
+key40_field_handler(band, BAND, uint64_t);
+key40_field_handler(objectid, OBJECTID, uint64_t);
+key40_field_handler(offset, OFFSET, uint64_t);
+key40_field_handler(hash, HASH, uint64_t);
 
 #endif

@@ -91,7 +91,7 @@ errno_t reiser4_key_build_generic(
 }
 
 /* Builds full directory key */
-errno_t reiser4_key_build_direntry(
+errno_t reiser4_key_build_entry(
 	reiser4_key_t *key,	    /* key to be built */
 	reiser4_plugin_t *plugin,   /* hash plugin to be used */
 	roid_t locality,	    /* loaclity to be used */
@@ -103,7 +103,7 @@ errno_t reiser4_key_build_direntry(
 	aal_assert("umka-670", name != NULL, return -1);
     
 	return plugin_call(return -1, key->plugin->key_ops, 
-			   build_direntry, key, plugin,
+			   build_entry, key, plugin,
 			   locality, objectid, name);
 }
 
