@@ -38,6 +38,9 @@ struct rpos {
 
 typedef struct rpos rpos_t;
 
+#define rpos_init(p, i, u) \
+        (p)->item = i, (p)->unit = u
+
 enum reiser4_plugin_type {
 	FILE_PLUGIN_TYPE        = 0x0,
 

@@ -879,8 +879,10 @@ errno_t reiser4_node_shift(
 		reiser4_node_t *child;
 		reiser4_ptr_hint_t ptr;
 
-		ppos.unit = ~0ul;
-		ppos.item = hint->flags & SF_LEFT ? items - i - 1 : i;
+		if (hint->flags & SF_LEFT)
+			rpos_init(&ppos, items - i - 1, ~0ul);
+		else 
+			rpos_init(&ppos, i, ~0ul);
 
 		if (reiser4_coord_open(&coord, neig, &ppos))
 			return -1;

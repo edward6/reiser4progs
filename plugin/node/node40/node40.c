@@ -572,13 +572,13 @@ static errno_t node40_copy(node40_t *src_node, rpos_t *src_pos,
 			
 	aal_memcpy(dst, src, headers);
 
-	ih = (item40_header_t *)dst;
-	end = node40_ib_at(dst_node, items - 1);
-
 	/* Updating item headers in dst node */
+	end = node40_ih_at(dst_node, items - 1);
+	ih = (item40_header_t *)dst + count - 1;
+	
 	offset = (body - dst_node->block->data);
 	
-	for (ih += count - 1, i = 0; i < count; i++, ih--) {
+	for (i = 0; i < count; i++, ih--) {
 		uint32_t old = ih40_get_offset(ih);
 		
 		ih40_set_offset(ih, offset);
@@ -757,8 +757,7 @@ static errno_t node40_cut(object_entity_t *entity,
 		
 		/* Removing units inside start item */
 		if (start->unit != ~0ul) {
-			pos.unit = start->unit;
-			pos.item = start->item;
+			pos = *start;
 
 			if (node40_item(&item, node, &pos))
 				return -1;
@@ -774,8 +773,7 @@ static errno_t node40_cut(object_entity_t *entity,
 
 		/* Removing units inside end item */
 		if (end->unit != ~0ul) {
-			pos.unit = end->unit;
-			pos.item = end->item;
+			pos = *end;
 
 			if (node40_item(&item, node, &pos))
 				return -1;
@@ -795,8 +793,7 @@ static errno_t node40_cut(object_entity_t *entity,
 			  previous node40_delete produced empty edge items, they
 			  will eb removed too.
 			*/
-			pos.unit = ~0ul;
-			pos.item = begin;
+			rpos_init(&pos, begin, ~0ul);
 
 			if (node40_delete(node, &pos, count))
 				return -1;
@@ -804,10 +801,8 @@ static errno_t node40_cut(object_entity_t *entity,
 	} else {
 		aal_assert("umka-1795", end->unit != ~0ul, return -1);
 		aal_assert("umka-1794", start->unit != ~0ul, return -1);
-		
-		pos.unit = start->unit;
-		pos.item = start->item;
 
+		pos = *start;
 		count = end->unit - start->unit;
 
 		if (node40_delete(node, &pos, count))
@@ -1111,8 +1106,7 @@ static errno_t node40_merge(node40_t *src_node,
 	  Initializing items to be examaned by the predict method of
 	  corresponding item plugin.
 	*/
-	pos.unit = ~0ul;
-	pos.item = (hint->flags & SF_LEFT ? 0 : src_items - 1);
+	rpos_init(&pos, (hint->flags & SF_LEFT ? 0 : src_items - 1), ~0ul);
 	
 	if (node40_item(&src_item, src_node, &pos))
 		return -1;
@@ -1139,8 +1133,7 @@ static errno_t node40_merge(node40_t *src_node,
 	hint->create = (dst_items == 0);
 
 	if (dst_items > 0) {
-		pos.unit = ~0ul;
-		pos.item = (hint->flags & SF_LEFT ? dst_items - 1 : 0);
+		rpos_init(&pos, (hint->flags & SF_LEFT ? dst_items - 1 : 0), ~0ul);
 		
 		if (node40_item(&dst_item, dst_node, &pos))
 			return -1;
@@ -1203,8 +1196,7 @@ static errno_t node40_merge(node40_t *src_node,
 	if (hint->create) {
 		
 		/* Expanding dst node with creating new item */
-		pos.unit = ~0ul;
-		pos.item = hint->flags & SF_LEFT ? dst_items : 0;
+		rpos_init(&pos, (hint->flags & SF_LEFT ? dst_items : 0), ~0ul);
 		
 		if (node40_expand(dst_node, &pos, hint->rest)) {
 			aal_exception_error("Can't expand node for "
@@ -1232,8 +1224,7 @@ static errno_t node40_merge(node40_t *src_node,
 		  hint->rest. So, we will call node40_expand with unit component
 		  not equal ~0ul.
 		*/
-		pos.unit = 0;
-		pos.item = hint->flags & SF_LEFT ? dst_items - 1 : 0;
+		rpos_init(&pos, (hint->flags & SF_LEFT ? dst_items - 1 : 0), 0);
 
 		if (node40_expand(dst_node, &pos, hint->rest)) {
 			aal_exception_error("Can't expand item for "
@@ -1378,8 +1369,7 @@ static errno_t node40_predict_items(node40_t *src_node,
 					  If unit component if zero, we can
 					  shift whole item pointed by pos.
 					*/
-					pos.unit = ~0ul;
-					pos.item = 0;
+					rpos_init(&pos, 0, ~0ul);
 					
 					if (node40_item(&item, src_node, &pos))
 						return -1;
@@ -1506,11 +1496,9 @@ static errno_t node40_shift_items(node40_t *src_node,
 		nh40_inc_free_space_start(dst_node, hint->bytes);
 		nh40_inc_num_items(dst_node, hint->items);
 		
-		src_pos.unit = ~0ul;
-		src_pos.item = 0;
-		
-		dst_pos.unit = ~0ul;
-		dst_pos.item = dst_items;
+		/* Copying items from src node to dst one */
+		rpos_init(&src_pos, 0, ~0ul);
+		rpos_init(&dst_pos, dst_items, ~0ul);
 		
 		if (node40_copy(src_node, &src_pos, dst_node, &dst_pos,
 				hint->items))
@@ -1521,28 +1509,6 @@ static errno_t node40_shift_items(node40_t *src_node,
 					    dst_node->block->blk);
 			return -1;
 		}
-
-		/* Copying item headers from src node to dst one */
-/*		src = node40_ih_at(src_node, hint->items - 1);
-		dst = node40_ih_at(dst_node, (dst_items + hint->items - 1));
-			
-		aal_memcpy(dst, src, headers);
-
-		ih = (item40_header_t *)dst;*/
-		
-		/* Copying item bodies from src node to dst */
-/*		src = node40_ib_at(src_node, 0);
-
-		dst = dst_node->block->data +
-			nh40_get_free_space_start(dst_node);
-
-		aal_memcpy(dst, src, hint->bytes);
-
-		offset = nh40_get_free_space_start(dst_node);*/
-		
-		/* Updating item headers in dst node */
-/*		for (i = 0; i < hint->items; i++, ih++)
-			ih40_inc_offset(ih, (offset - sizeof(node40_header_t)));*/
 
 		/*
 		  Shrinking source node after items are copied from it to dst
@@ -1587,17 +1553,15 @@ static errno_t node40_shift_items(node40_t *src_node,
 				sizeof(node40_header_t);
 			
 			aal_memmove(dst, src, size);
-
-			nh40_inc_free_space_start(dst_node, hint->bytes);
-			nh40_dec_free_space(dst_node, (hint->bytes + headers));
-			nh40_inc_num_items(dst_node, hint->items);
 		}
 
-		dst_pos.unit = ~0ul;
-		dst_pos.item = 0;
-		
-		src_pos.unit = ~0ul;
-		src_pos.item = src_items - hint->items;
+		nh40_inc_free_space_start(dst_node, hint->bytes);
+		nh40_dec_free_space(dst_node, (hint->bytes + headers));
+		nh40_inc_num_items(dst_node, hint->items);
+
+		/* Copying items from the src node to dst one */
+		rpos_init(&src_pos, src_items - hint->items, ~0ul);
+		rpos_init(&dst_pos, 0, ~0ul);
 		
 		if (node40_copy(src_node, &src_pos, dst_node, &dst_pos,
 				hint->items))
@@ -1608,30 +1572,6 @@ static errno_t node40_shift_items(node40_t *src_node,
 					    dst_node->block->blk);
 			return -1;
 		}
-		
-		/* Copying item headers from src node to dst */
-/*		src = node40_ih_at(src_node, src_items - 1);
-		dst = node40_ih_at(dst_node, hint->items - 1);
-
-		aal_memcpy(dst, src, headers);
-
-		ih = node40_ih_at(dst_node, 0);
-		offset = nh40_get_free_space_start(src_node) - hint->bytes;
-
-		for (i = 0; i < hint->items; i++, ih--)
-			ih40_dec_offset(ih, (offset - sizeof(node40_header_t)));
-
-		ih = node40_ih_at(src_node, src_items - 1) +
-			(hint->items - 1);
-		
-		src = src_node->block->data + ih40_get_offset(ih);
-		dst = dst_node->block->data + sizeof(node40_header_t);
-
-		aal_memcpy(dst, src, hint->bytes);
-
-		nh40_inc_free_space_start(dst_node, hint->bytes);
-		nh40_dec_free_space(dst_node, (hint->bytes + headers));
-		nh40_inc_num_items(dst_node, hint->items);*/
 		
 		/*
 		  Shrinking source node after items are copied from it to dst

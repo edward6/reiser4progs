@@ -1020,8 +1020,7 @@ errno_t reiser4_tree_insert(
 		  only empty root exists.
 		*/
 		if (twig_legal) {
-			coord->pos.item = 0;
-			coord->pos.unit = ~0ul;
+			rpos_init(&coord->pos, 0, ~0ul);
 			
 			if (!(coord->node = reiser4_tree_allocate(tree, LEAF_LEVEL))) {
 				aal_exception_error("Can't allocate new leaf node.");
