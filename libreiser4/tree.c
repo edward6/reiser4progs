@@ -1799,7 +1799,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 					  cbias, &place->pos);
 
 		/* Check if we should finish lookup because we reach stop level
-		   or some error occured during last node lookup. */
+		   or some error occurred during last node lookup. */
 		if (clevel <= hint->level || res < 0) {
 			if (res == PRESENT) {
 #ifndef ENABLE_MINIMAL

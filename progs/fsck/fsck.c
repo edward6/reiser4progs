@@ -58,7 +58,7 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 		break;
 	case RM_FIX:
 		aal_mess("Will fix minor corruptions of "
-			 "the Reiser4 SuperBblock.");
+			 "the Reiser4 SuperBlock.");
 		break;
 	case RM_BUILD:
 		aal_mess("Will build the Reiser4 SuperBlock.");
@@ -140,7 +140,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 		{"no-log", no_argument, NULL, 'n'},
 		{"auto", no_argument, NULL, 'a'},
 		{"force", no_argument, NULL, 'f'},
-		{"cashe", required_argument, 0, 'c'},
+		{"cache", required_argument, 0, 'c'},
 		{"override", required_argument, NULL, 'o'},
 		/* Fsck hidden options. */
 		{"passes-dump", required_argument, 0, 'U'},
@@ -576,7 +576,7 @@ int main(int argc, char *argv[]) {
 	/* Report about the results. */
 	if (res < 0 || ex == OPER_ERROR) {
 		ex = OPER_ERROR;
-		fprintf(stderr, "Operational error occured while fscking.\n");
+		fprintf(stderr, "Operational error occurred while fscking.\n");
 		goto free_fsck;
 	} 
 	

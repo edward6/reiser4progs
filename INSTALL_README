@@ -3,7 +3,7 @@ In order to build the library, type the following command:
 ./one_touch_install
 
 This will check if configure script is in place and then runs it. 
-After configuring if finished, package will built and installed.
+After configuring is finished, package will be built and installed.
 
-Or if you want to have a full control on build process and/or specify
+Or if you want to have full control on build process and/or specify
 some options, read CUSTOM_INSTALL_README please.

@@ -248,7 +248,7 @@ struct mntent *misc_mntent(const char *device) {
 #endif /* defined(MOUNTED) || defined(_PATH_MOUNTED) */
 	
 	/* If has not been checked in neither /proc/mounts nor /etc/mtab (or 
-	   errors have occured), return INVAL_PTR, NULL otherwise. */
+	   errors have occurred), return INVAL_PTR, NULL otherwise. */
 	return (!proc && !path) ? INVAL_PTR : NULL;
 }
 

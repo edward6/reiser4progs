@@ -102,7 +102,7 @@ static reiser4_node_t *tree_frag_open_node(reiser4_tree_t *tree,
 }
 
 /* Handler for region callback for an item. Its objective is to check if region
-   start is not next to current value. If so -- counting bad occurence. */
+   start is not next to current value. If so -- counting bad occurrence. */
 static errno_t tree_frag_process_item(uint64_t start, 
 				      uint64_t count, 
 				      void *data) 
@@ -119,11 +119,11 @@ static errno_t tree_frag_process_item(uint64_t start,
 	/* Calculating delta with current value region end. */
 	delta = hint->curr - start;
 
-	/* Check if delat is more than one. If so -- bad occurence. */
+	/* Check if delta is more than one. If so -- bad occurrence. */
 	if (labs(delta) > 1)
 		hint->bad++;
 
-	/* Counting total regions and updating current blk, whci hwill be used
+	/* Counting total regions and updating current blk, which will be used
 	   for calculating next delta. */
 	hint->total += count;
 	hint->curr = start + count - 1;
@@ -133,7 +133,7 @@ static errno_t tree_frag_process_item(uint64_t start,
 
 /* Traverse passed @node and calculate tree fragmentation for it. The results
    are stored in @frag_hint structure. This function is called from the tree
-   traversal routine for each internal node. See bellow for details. */
+   traversal routine for each internal node. See below for details. */
 static errno_t tree_frag_process_node(reiser4_node_t *node, void *data) {
 	pos_t pos;
 	static int bogus = 0;
@@ -153,7 +153,7 @@ static errno_t tree_frag_process_node(reiser4_node_t *node, void *data) {
 			return -EINVAL;
 		}
 
-		/* FIXME: touch eaery time. show once per second. */
+		/* FIXME: touch every time. show once per second. */
 		if (frag_hint->gauge && pos.item == 0 && bogus++ % 128 == 0)
 			aal_gauge_touch(frag_hint->gauge);
 		
@@ -177,7 +177,7 @@ static errno_t tree_frag_update_node(reiser4_place_t *place, void *data) {
 }
 
 /* Entry point for calculating tree fragmentation. It zeroes out all counters in
-   structure which wiil be passed to actual routines and calls tree_traverse
+   structure which will be passed to actual routines and calls tree_traverse
    function with couple of callbacks for handling all traverse cases (open node,
    traverse node, etc). Actual statistics collecting is performed in the passed
    callbacks and subcallbacks (for item traversing). */
@@ -341,7 +341,7 @@ static errno_t stat_process_node(reiser4_node_t *node, void *data) {
 		stat_hint->branches_used /= (stat_hint->branches + 1);
 	}
 
-	/* Loop though all node items and calling item->layout() method in odrer
+	/* Loop through all node items and calling item->layout() method in order
 	   to calculate all blocks item references.*/
 	for (pos.item = 0; pos.item < reiser4_node_items(node);
 	     pos.item++)
@@ -357,7 +357,7 @@ static errno_t stat_process_node(reiser4_node_t *node, void *data) {
 		}
 
 		/* Calculating item count. This probably should be done in more
-		   item type independant manner. */
+		   item type independent manner. */
 		stat_hint->items++;
 
 		switch (place.plug->id.group) {
@@ -471,7 +471,7 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	printf("Item statistics:\n");
 	printf("  Total items:%*llu\n", 15, stat_hint.items);
 	printf("  Nodeptr items:%*llu\n", 13, stat_hint.nodeptrs);
-	printf("  Statadata items:%*llu\n", 11, stat_hint.statdatas);
+	printf("  Statdata items:%*llu\n", 11, stat_hint.statdatas);
 	printf("  Direntry items:%*llu\n", 12, stat_hint.direntries);
 	printf("  Tail items:%*llu\n", 16, stat_hint.tails);
 	printf("  Extent items:%*llu\n", 14, stat_hint.extents);
@@ -568,7 +568,7 @@ static errno_t data_frag_process_node(reiser4_node_t *node, void *data) {
 	if (frag_hint->level > LEAF_LEVEL)
 		return 0;
 	
-	/* The loop though the all items in current node */
+	/* The loop through all the items in current node */
 	for (pos.item = 0; pos.item < reiser4_node_items(node);
 	     pos.item++)
 	{
@@ -586,7 +586,7 @@ static errno_t data_frag_process_node(reiser4_node_t *node, void *data) {
 		if (!reiser4_item_statdata(&place))
 			continue;
 
-		/* Opening object by its stat data item denoded by @place */
+		/* Opening object by its stat data item denoted by @place */
 		if (!(object = reiser4_object_open(tree, NULL, &place)))
 			continue;
 
@@ -598,8 +598,8 @@ static errno_t data_frag_process_node(reiser4_node_t *node, void *data) {
 		if (frag_hint->gauge && pos.item == 0)
 			aal_gauge_touch(frag_hint->gauge);
 
-		/* Calling calculating the file fragmentation by emans of using
-		   the function we have seen abowe. */
+		/* Calling calculating the file fragmentation by means of using
+		   the function we have seen above. */
 		if (reiser4_object_layout(object, file_frag_process_blk, data)) {
 			aal_error("Can't enumerate data blocks occupied by %s", 
 				  reiser4_print_inode(&object->ent->object));

@@ -13,7 +13,7 @@ reiser4progs/COPYING.
   directory in librepair. Move all repair code from libreiser4/plugin/*
   to librepair/plugin/*.
 
-* fix unalligned access on Itanium2.
+* fix unaligned access on Itanium2.
 
 * dumpfs utility.
 
