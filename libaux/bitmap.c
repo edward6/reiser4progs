@@ -75,13 +75,13 @@ uint64_t aux_bitmap_find(
 ) {
     uint64_t bit;
 	
-    aal_assert("umka-339", bitmap != NULL, return 0);
+    aal_assert("umka-339", bitmap != NULL, return FAKE_BLK);
 	
-    aux_bitmap_range_check(bitmap, start, return 0);
+    aux_bitmap_range_check(bitmap, start, return FAKE_BLK);
 
     if ((bit = aal_find_next_zero_bit(bitmap->map, 
 	    bitmap->total, start)) >= bitmap->total)
-	return ~0ull;
+	return FAKE_BLK;
 
     return bit;
 }
@@ -103,10 +103,10 @@ static uint64_t aux_bitmap_calc(
 ) {
     uint64_t i, bits = 0;
 	
-    aal_assert("umka-340", bitmap != NULL, return 0);
+    aal_assert("umka-340", bitmap != NULL, return FAKE_BLK);
 	
-    aux_bitmap_range_check(bitmap, start, return 0);
-    aux_bitmap_range_check(bitmap, end - 1, return 0);
+    aux_bitmap_range_check(bitmap, start, return FAKE_BLK);
+    aux_bitmap_range_check(bitmap, end - 1, return FAKE_BLK);
 	
     for (i = start; i < end; i++)
 	bits += aux_bitmap_test(bitmap, i) ? flag : !flag;
@@ -154,7 +154,7 @@ uint64_t aux_bitmap_calc_free_in_area(
 uint64_t aux_bitmap_used(
     aux_bitmap_t *bitmap	/* bitmap used blocks number will be obtained from */
 ) {
-    aal_assert("umka-343", bitmap != NULL, return 0);
+    aal_assert("umka-343", bitmap != NULL, return FAKE_BLK);
     return bitmap->used;
 }
 
@@ -162,7 +162,7 @@ uint64_t aux_bitmap_used(
 uint64_t aux_bitmap_free(
     aux_bitmap_t *bitmap	/* bitmap unsuded blocks will be obtained from */
 ) {
-    aal_assert("umka-344", bitmap != NULL, return 0);
+    aal_assert("umka-344", bitmap != NULL, return FAKE_BLK);
     return bitmap->total - bitmap->used;
 }
 
@@ -193,7 +193,7 @@ aux_bitmap_t *aux_bitmap_clone(
 ) {
     aux_bitmap_t *clone;
 
-    aal_assert("umka-358", bitmap != NULL, return 0);	
+    aal_assert("umka-358", bitmap != NULL, return NULL);
 
     if (!(clone = aux_bitmap_create(bitmap->total)))
 	return NULL;

@@ -99,7 +99,7 @@ errno_t aal_device_set_bs(
 }
 
 /* Returns current block size from specified device */
-uint16_t aal_device_get_bs(
+uint32_t aal_device_get_bs(
     aal_device_t *device	/* device instance blocksize will be received from */
 ) {
 

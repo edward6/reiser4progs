@@ -17,7 +17,7 @@
 
 #ifndef WORDS_BIGENDIAN
 
-static inline int aal_le_set_bit(unsigned long nr, void *addr) {
+static inline int aal_le_set_bit(unsigned long long nr, void *addr) {
     unsigned char *p, mask;
     int retval;
 
@@ -31,7 +31,7 @@ static inline int aal_le_set_bit(unsigned long nr, void *addr) {
     return retval;
 }
 
-static inline int aal_le_clear_bit(unsigned long nr, void *addr) {
+static inline int aal_le_clear_bit(unsigned long long nr, void *addr) {
     unsigned char *p, mask;
     int retval;
 
@@ -45,7 +45,7 @@ static inline int aal_le_clear_bit(unsigned long nr, void *addr) {
     return retval;
 }
 
-static inline int aal_le_test_bit(unsigned long nr, const void *addr) {
+static inline int aal_le_test_bit(unsigned long long nr, const void *addr) {
     unsigned char *p, mask;
   
     p = (unsigned char *)addr;
@@ -54,8 +54,8 @@ static inline int aal_le_test_bit(unsigned long nr, const void *addr) {
     return ((mask & *p) != 0);
 }
 
-static inline int aal_le_find_first_zero_bit(const void *vaddr, 
-    unsigned long size) 
+static inline unsigned long long aal_le_find_first_zero_bit(const void *vaddr, 
+    unsigned long long size) 
 {
     const unsigned char *p = vaddr, *addr = vaddr;
     int res;
@@ -76,8 +76,8 @@ static inline int aal_le_find_first_zero_bit(const void *vaddr,
     return (p - addr) * 8 + res;
 }
 
-static inline int aal_le_find_next_zero_bit(const void *vaddr, 
-    unsigned long size, unsigned long offset) 
+static inline unsigned long long aal_le_find_next_zero_bit(const void *vaddr, 
+    unsigned long long size, unsigned long long offset) 
 {
     const unsigned char *addr = vaddr;
     const unsigned char *p = addr + (offset >> 3);
@@ -99,7 +99,7 @@ static inline int aal_le_find_next_zero_bit(const void *vaddr,
 
 #else
 
-static inline int aal_be_set_bit(unsigned long nr, void *addr) {
+static inline int aal_be_set_bit(unsigned long long nr, void *addr) {
     unsigned char mask = 1 << (nr & 0x7);
     unsigned char *p = (uint8_t *) addr + (nr >> 3);
     unsigned char old = *p;
@@ -109,7 +109,7 @@ static inline int aal_be_set_bit(unsigned long nr, void *addr) {
     return (old & mask) != 0;
 }
  
-static inline int aal_be_clear_bit(unsigned long nr, void *addr) {
+static inline int aal_be_clear_bit(unsigned long long nr, void *addr) {
     unsigned char mask = 1 << (nr & 0x07);
     unsigned char *p = (unsigned char *) addr + (nr >> 3);
     unsigned char old = *p;
@@ -118,20 +118,20 @@ static inline int aal_be_clear_bit(unsigned long nr, void *addr) {
     return (old & mask) != 0;
 }
  
-static inline int aal_be_test_bit(unsigned long nr, const void *addr) {
+static inline int aal_be_test_bit(unsigned long long nr, const void *addr) {
     const unsigned char *a = (__const__ unsigned char *)addr;
  
     return ((a[nr >> 3] >> (nr & 0x7)) & 1) != 0;
 }
  
-static inline int aal_be_find_first_zero_bit(const void *vaddr, 
-    unsigned long size) 
+static inline unsigned long long aal_be_find_first_zero_bit(const void *vaddr, 
+    unsigned long long size) 
 {
     return aal_be_find_next_zero_bit(vaddr, size, 0);
 }
 
-static inline unsigned long aal_ffz(unsigned unsigned long word) {
-    unsigned long result = 0;
+static inline int aal_ffz(unsigned long long word) {
+    int result = 0;
  
     while(word & 1) {
         result++;
@@ -141,15 +141,15 @@ static inline unsigned long aal_ffz(unsigned unsigned long word) {
     return result;
 }
 
-static inline int aal_be_find_next_zero_bit(const void *vaddr, 
-    unsigned long size, unsigned long offset) 
+static inline unsigned long long aal_be_find_next_zero_bit(const void *vaddr, 
+    unsigned long long size, unsigned long long offset) 
 {
-    unsigned long *p = ((unsigned long *) vaddr) + (offset >> 5);
-    unsigned long result = offset & ~31ul;
-    unsigned long tmp;
+    unsigned long long *p = ((unsigned long long *) vaddr) + (offset >> 5);
+    unsigned long long result = offset & ~31ul;
+    unsigned long long tmp;
 
     if (offset >= size)
-        return size;
+        return ~0ull;
 
     size -= result;
     offset &= 31ul;
@@ -190,52 +190,47 @@ found_middle:
 #endif
 
 /* Public wrappers for all bitops functions. */
-inline int aal_set_bit(unsigned long nr, void *addr) {
+inline int aal_set_bit(unsigned long long nr, void *addr) {
 #ifndef WORDS_BIGENDIAN    
     return aal_le_set_bit(nr, addr);
 #else
     return aal_be_set_bit(nr, addr);
 #endif 
-    return 0;
 }
 
-inline int aal_clear_bit(unsigned long nr, void *addr) {
+inline int aal_clear_bit(unsigned long long nr, void *addr) {
 #ifndef WORDS_BIGENDIAN    
     return aal_le_clear_bit(nr, addr);
 #else 
     return aal_be_clear_bit(nr, addr);
 #endif 
-    return 0;
 }
 
-inline int aal_test_bit(unsigned long nr, const void *addr) {
+inline int aal_test_bit(unsigned long long nr, const void *addr) {
 #ifndef WORDS_BIGENDIAN    
     return aal_le_test_bit(nr, addr);
 #else 
     return aal_be_test_bit(nr, addr);
 #endif 
-    return 0;
 }
 
-inline int aal_find_first_zero_bit(const void *vaddr, 
-    unsigned long size) 
+inline unsigned long long aal_find_first_zero_bit(const void *vaddr, 
+    unsigned long long size) 
 {
 #ifndef WORDS_BIGENDIAN    
     return aal_le_find_first_zero_bit(vaddr, size);
 #else 
     return aal_be_find_first_zero_bit(vaddr, size);
 #endif 
-    return 0;
 }
 
-inline int aal_find_next_zero_bit(const void *vaddr, 
-    unsigned long  size, unsigned long offset) 
+inline unsigned long long aal_find_next_zero_bit(const void *vaddr, 
+    unsigned long long  size, unsigned long long offset) 
 {
 #ifndef WORDS_BIGENDIAN    
     return aal_le_find_next_zero_bit(vaddr, size, offset);
 #else 
     return aal_be_find_next_zero_bit(vaddr, size, offset);
 #endif 
-    return 0;
 }
 

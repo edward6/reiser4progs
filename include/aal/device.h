@@ -78,7 +78,7 @@ extern void aal_device_close(aal_device_t *device);
 extern errno_t aal_device_set_bs(aal_device_t *device, 
     uint16_t blocksize);
 
-extern uint16_t aal_device_get_bs(aal_device_t *device);
+extern uint32_t aal_device_get_bs(aal_device_t *device);
 
 extern errno_t aal_device_read(aal_device_t *device, 
     void *buff, blk_t block, count_t count);
