@@ -1514,6 +1514,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 }
 #endif
 
+/* Correct passed @place according to handle key collisions. */
 errno_t reiser4_collision_handler(reiser4_place_t *place,
 				  lookup_hint_t *hint,
 				  lookup_bias_t bias,
