@@ -1365,8 +1365,9 @@ struct reiser4_oid_ops {
 	uint32_t (*get_state) (generic_entity_t *);
 	void (*set_state) (generic_entity_t *, uint32_t);
 
-	/* Gets next object id */
-	oid_t (*next) (generic_entity_t *);
+	/* Sets/gets next object id */
+	oid_t (*get_next) (generic_entity_t *);
+	void (*set_next) (generic_entity_t *, oid_t);
 
 	/* Gets next object id */
 	oid_t (*allocate) (generic_entity_t *);
@@ -1374,8 +1375,9 @@ struct reiser4_oid_ops {
 	/* Releases passed object id */
 	void (*release) (generic_entity_t *, oid_t);
     
-	/* Returns the number of used object ids */
-	uint64_t (*used) (generic_entity_t *);
+	/* Gets/sets the number of used object ids */
+	uint64_t (*get_used) (generic_entity_t *);
+	void (*set_used) (generic_entity_t *, uint64_t);
     
 	/* Returns the number of free object ids */
 	uint64_t (*free) (generic_entity_t *);
@@ -1470,11 +1472,11 @@ typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
 struct reiser4_journal_ops {
 	/* Opens journal on specified device. */
 	generic_entity_t *(*open) (fs_desc_t *, generic_entity_t *,
-				   uint64_t, uint64_t);
+				   generic_entity_t *, uint64_t, uint64_t);
 
 	/* Creates journal on specified device. */
 	generic_entity_t *(*create) (fs_desc_t *, generic_entity_t *,
-				     uint64_t, uint64_t);
+				     generic_entity_t *, uint64_t, uint64_t);
 
 	/* Returns the device journal lies on */
 	aal_device_t *(*device) (generic_entity_t *);

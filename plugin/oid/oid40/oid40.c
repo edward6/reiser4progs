@@ -15,12 +15,41 @@ static uint32_t oid40_get_state(generic_entity_t *entity) {
 	return ((oid40_t *)entity)->state;
 }
 
+/* Returnes next oid to be used */
+
+static uint64_t oid40_get_next_oid(generic_entity_t *entity) {
+	aal_assert("umka-1109", entity != NULL);
+	return ((oid40_t *)entity)->next;
+}
+
+/* Returns number of used oids */
+static uint64_t oid40_get_used_oid(generic_entity_t *entity) {
+	aal_assert("umka-530", entity != NULL);
+	return ((oid40_t *)entity)->used;
+}
+
 static void oid40_set_state(generic_entity_t *entity,
 			    uint32_t state)
 {
 	aal_assert("umka-2089", entity != NULL);
 	((oid40_t *)entity)->state = state;
 }
+
+/* Updates next oid to be used */
+
+static void oid40_set_next_oid(generic_entity_t *entity, uint64_t next) {
+	aal_assert("vpf-1588", entity != NULL);
+	((oid40_t *)entity)->next = next;
+	((oid40_t *)entity)->state = (1 << ENTITY_DIRTY);
+}
+
+/* Updates number of used oids */
+static void oid40_set_used_oid(generic_entity_t *entity, uint64_t used) {
+	aal_assert("umka-530", entity != NULL);
+	((oid40_t *)entity)->used = used;
+	((oid40_t *)entity)->state = (1 << ENTITY_DIRTY);
+}
+
 
 /* Open oid allocator on passed format instance. */
 static generic_entity_t *oid40_open(generic_entity_t *format) {
@@ -101,12 +130,6 @@ static errno_t oid40_sync(generic_entity_t *entity) {
 	return 0;
 }
 
-/* Returns next oid to be used */
-static oid_t oid40_next(generic_entity_t *entity) {
-	aal_assert("umka-1109", entity != NULL);
-	return ((oid40_t *)entity)->next;
-}
-
 /* Returns free oid and marks it as used */
 static oid_t oid40_allocate(generic_entity_t *entity) {
 	aal_assert("umka-513", entity != NULL);
@@ -132,12 +155,6 @@ static void oid40_release(generic_entity_t *entity,
 static oid_t oid40_free(generic_entity_t *entity) {
 	aal_assert("umka-961", entity != NULL);
 	return MAX_UINT64 - ((oid40_t *)entity)->next;
-}
-
-/* Returns number of used oids */
-static oid_t oid40_used(generic_entity_t *entity) {
-	aal_assert("umka-530", entity != NULL);
-	return ((oid40_t *)entity)->used;
 }
 
 /* Checks oid allocator for validness */
@@ -166,21 +183,24 @@ reiser4_oid_ops_t oid40_ops = {
 	.close		= oid40_close,
 	.create		= oid40_create,
 	.valid		= oid40_valid,
-	.next		= oid40_next,
 	.allocate	= oid40_allocate,
 	.release	= oid40_release,
 	.sync		= oid40_sync,
 	.print		= oid40_print,
-	.used		= oid40_used,
 	.free		= oid40_free,
 	.layout         = NULL,
 
 	.set_state      = oid40_set_state,
+	.set_next	= oid40_set_next_oid,
+	.set_used	= oid40_set_used_oid,
 	.get_state      = oid40_get_state,
+	.get_next	= oid40_get_next_oid,
+	.get_used	= oid40_get_used_oid,
+	
 	.root_locality	= oid40_root_locality,
 	.root_objectid	= oid40_root_objectid,
 	.lost_objectid	= oid40_lost_objectid,
-	.slink_locality  = oid40_slink_locality
+	.slink_locality = oid40_slink_locality
 };
 
 static reiser4_plug_t oid40_plug = {

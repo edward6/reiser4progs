@@ -36,6 +36,9 @@ struct journal40 {
 	/* Format instance */
 	generic_entity_t *format;
 
+	/* Oid instance */
+	generic_entity_t *oid;
+	
 	/* Area on device, journal may occupie it. */
 	journal40_area_t area;
 	

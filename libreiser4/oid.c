@@ -210,7 +210,7 @@ uint64_t reiser4_oid_used(reiser4_oid_t *oid) {
 	aal_assert("umka-527", oid != NULL);
     
 	return plug_call(oid->entity->plug->o.oid_ops, 
-			 used, oid->entity);
+			 get_used, oid->entity);
 }
 
 /* Returns number of free oids from passed oid allocator */

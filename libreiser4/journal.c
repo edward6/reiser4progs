@@ -92,7 +92,7 @@ reiser4_journal_t *reiser4_journal_open(
 	   found journal plugin. */
 	if (!(journal->entity = plug_call(plug->o.journal_ops, open,
 					  &desc, fs->format->entity,
-					  start, blocks))) 
+					  fs->oid->entity, start, blocks))) 
 	{
 		aal_error("Can't open journal %s on %s.",
 			  plug->label, device->name);
@@ -179,7 +179,7 @@ reiser4_journal_t *reiser4_journal_create(
 	/* Creating journal entity. */
 	if (!(journal->entity = plug_call(plug->o.journal_ops, create,
 					  &desc, fs->format->entity,
-					  start, blocks))) 
+					  fs->oid->entity, start, blocks))) 
 	{
 		aal_error("Can't create journal %s on %s.",
 			  plug->label, journal->device->name);

@@ -149,8 +149,6 @@ errno_t repair_fs_replay(reiser4_fs_t *fs) {
 		return res;
 	}
 
-	repair_journal_invalidate(fs->journal);
-	
 	return 0;
 }
 

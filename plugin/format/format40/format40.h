@@ -25,8 +25,11 @@ struct format40_super {
 	d64_t sb_block_count;
 	d64_t sb_free_blocks;
 	d64_t sb_root_block;
+	
+	/* These 2 fields are for oid data. */
 	d64_t sb_oid;
 	d64_t sb_file_count;
+	
 	d64_t sb_flushes;
     
 	d32_t sb_mkfs_id;
@@ -70,11 +73,11 @@ extern reiser4_core_t *format40_core;
 #define get_sb_tail_policy(sb)			aal_get_le16(sb, sb_tail_policy)
 #define set_sb_tail_policy(sb, val)		aal_set_le16(sb, sb_tail_policy, val)
 
-#define get_sb_oid(sb)				aal_get_le64(sb, sb_oid)
-#define set_sb_oid(sb, val)			aal_set_le64(sb, sb_oid, val)
+#define get_sb_oid(sb)                         aal_get_le64(sb, sb_oid)
+#define set_sb_oid(sb, val)                    aal_set_le64(sb, sb_oid, val)
 
-#define get_sb_file_count(sb)			aal_get_le64(sb, sb_file_count)
-#define set_sb_file_count(sb, val)		aal_set_le64(sb, sb_file_count, val)
+#define get_sb_file_count(sb)                  aal_get_le64(sb, sb_file_count)
+#define set_sb_file_count(sb, val)             aal_set_le64(sb, sb_file_count, val)
 
 #define get_sb_flushes(sb)			aal_get_le64(sb, sb_flushes)
 #define set_sb_flushes(sb, val)			aal_set_le64(sb, sb_flushes, val)

@@ -82,7 +82,8 @@ static errno_t callback_fetch_journal(void *entity, blk_t start,
 /* Open journal on passed @format entity, @start and @blocks. Uses passed @desc
    for getting device journal is working on and fs block size. */
 static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *format,
-					uint64_t start, uint64_t blocks)
+					generic_entity_t *oid, uint64_t start, 
+					uint64_t blocks)
 {
 	journal40_t *journal;
 
@@ -95,6 +96,7 @@ static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *forma
 
 	journal->state = 0;
 	journal->format = format;
+	journal->oid = oid;
 	journal->device = desc->device;
 	journal->plug = &journal40_plug;
 	journal->blksize = desc->blksize;
@@ -148,7 +150,8 @@ static errno_t callback_alloc_journal(void *entity, blk_t start,
 
 /* Create journal entity on passed params. Return create instance to caller. */
 static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *format,
-					  uint64_t start, uint64_t blocks)
+					  generic_entity_t *oid, uint64_t start, 
+					  uint64_t blocks)
 {
 	journal40_t *journal;
     
@@ -161,6 +164,7 @@ static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *for
 		return NULL;
 
 	journal->format = format;
+	journal->oid = oid;
 	journal->area.len = blocks;
 	journal->area.start = start;
 	journal->device = desc->device;
@@ -277,6 +281,32 @@ static errno_t journal40_update(journal40_t *journal) {
  error_free_tx_block:
 	aal_block_free(tx_block);
 	return res;
+}
+
+static errno_t journal40_update_format(journal40_t *journal) {
+	journal40_footer_t *footer;
+	
+	aal_assert("vpf-1582", journal != NULL);
+	aal_assert("vpf-1583", journal->format != NULL);
+	aal_assert("vpf-1584", journal->footer != NULL);
+	aal_assert("vpf-1585", journal->footer->data != NULL);
+
+	footer = JFOOTER(journal->footer);
+	
+	/* If there is no valid info, return. */
+	if (!get_jf_last_flushed(footer))
+		return 0;
+
+	/* Some transaction passed, update format accordingly to the 
+	   footer info. */
+	plug_call(journal->format->plug->o.format_ops, set_free, 
+		  journal->format, get_jf_free_blocks(footer));
+	plug_call(journal->oid->plug->o.oid_ops, set_next,
+		  journal->oid, get_jf_next_oid(footer));
+	plug_call(journal->oid->plug->o.oid_ops, set_used,
+		  journal->oid, get_jf_used_oids(footer));
+
+	return 0;
 }
 
 /* Traverses one journal transaction. This is used for transactions replaying,
@@ -491,9 +521,9 @@ errno_t journal40_traverse(
 	return res;
 }
 
-static errno_t callback_replay_handler(generic_entity_t *entity,
-				       aal_block_t *block,
-				       d64_t orig, void *data) 
+static errno_t callback_replay(generic_entity_t *entity, 
+			       aal_block_t *block,
+			       d64_t orig, void *data)
 {
 	errno_t res;
 	journal40_t *journal;
@@ -510,20 +540,73 @@ static errno_t callback_replay_handler(generic_entity_t *entity,
 	return res;
 }
 
+struct replay_count {
+	uint64_t tx_count;
+	uint64_t blk_count;
+};
+
+typedef struct replay_count replay_count_t;
+
+static errno_t callback_print_replay(generic_entity_t *entity,
+				     aal_block_t *block, blk_t orig,
+				     journal40_block_t type, void *data)
+{
+	journal40_tx_header_t *header;
+	journal40_t *journal;
+	replay_count_t *count;
+	
+	header = (journal40_tx_header_t *)block->data;
+	journal = (journal40_t *)entity;
+	count = (replay_count_t *)data;
+	
+	if (type == JB_WAN)
+		count->blk_count++;
+		
+	/* A print at every transaction. */
+	if (type != JB_LGR)
+		return 0;
+
+	aal_mess("Replaying transaction: id %llu, block count %lu.",
+		 header->th_id, (long unsigned)header->th_total);
+
+	count->tx_count++;
+	
+	return 0;
+}
+
 /* Makes journal replay */
 static errno_t journal40_replay(generic_entity_t *entity) {
+	journal40_t *journal;
+	replay_count_t count;
 	errno_t res;
 
 	aal_assert("umka-412", entity != NULL);
 
-	if ((res = journal40_traverse((journal40_t *)entity, NULL,
-				      callback_replay_handler,
-				      NULL, NULL)))
+	journal = (journal40_t *)entity;
+	
+	/* Traverse the journal and replay all transactions. */
+	if ((res = journal40_traverse(journal, NULL, callback_replay, 
+				      callback_print_replay, &count)))
 	{
 		return res;
 	}
 
-	return journal40_update((journal40_t *)entity);
+	/* Update the format according to the footer's values. */
+	if ((res = journal40_update_format(journal)))
+		return res;
+	
+	/* Update the journal. */
+	if ((res = journal40_update(journal)))
+		return res;
+
+	aal_mess("Reiser4 journal (%s) on %s: %llu transactions replaied "
+		 "of the total %llu blocks.", journal40_plug.label, 
+		 journal->device->name, count.tx_count, count.blk_count);
+
+	/* Invalidate the journal. */
+	journal40_invalidate(entity);
+
+	return 0;
 }
 
 /* Releases the journal */
