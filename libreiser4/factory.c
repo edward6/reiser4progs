@@ -47,7 +47,7 @@ static int callback_match_name(reiser4_plugin_t *plugin, walk_desc_t *desc) {
 			   aal_strlen(desc->name));
 }
 
-#ifndef ENABLE_PLUGINS_CHECK
+#ifdef ENABLE_PLUGINS_CHECK
 
 /* Helper callback for checking plugin validness */
 static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
