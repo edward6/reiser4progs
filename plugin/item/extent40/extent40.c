@@ -865,7 +865,7 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 			       get_offset, &hint->maxkey);
 
 	/* Allocate new unit stage. Here we will set new unit up. */
-	if (ins_offset + hint->count < max_offset) {
+	if (ins_offset + hint->count <= max_offset) {
 		/* Writing inside item. Here we should handle the case of
 		   overwriting hole units. */
 	} else {

@@ -1065,6 +1065,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		hint.specific = &ptr;
 		hint.place_func = NULL;
 		hint.region_func = NULL;
+		hint.plug = place->plug;
 
 		/* We force balancing use these flags with disables left shift
 		   in order to not affect to items/units left of insert point,
@@ -1087,8 +1088,8 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 
 		/* Checking if some data assigned to this unit. */
 		if (!aal_hash_table_lookup(tree->data, &key)) {
-			aal_error("Unallocated extent is found, "
-				  "but data is not in cache.");
+			aal_bug("umka-3073", "Unallocated extent is found, "
+				"but data is not in cache.");
 			return -EINVAL;
 		}
 
@@ -1112,15 +1113,18 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 				{
 					return -EIO;
 				}
+
+				first_time = 0;
 			} else {
 				errno_t res;
-				uint32_t level;
 				place_t iplace;
+				uint32_t level;
 
 				iplace = *place;
 				iplace.pos.unit++;
 
 				/* Insert new extent units. */
+				reiser4_key_assign(&hint.offset, &key);
 				level = reiser4_node_get_level(iplace.node);
 				
 				if ((res = reiser4_tree_insert(tree, &iplace,
@@ -1128,24 +1132,15 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 				{
 					return res;
 				}
-				
+
                                 /* Updating @place by insert point, as it might
 				   be moved due to balancing. */
-				*place = iplace;
+				aal_memcpy(place, &iplace, sizeof(iplace));
 
-				/* Updating key by allocated blocks in order to
-				   keep it in correspondence to right data
-				   block. */
-				offset = plug_call(key.plug->o.key_ops,
-						   get_offset, &key);
-
-				plug_call(key.plug->o.key_ops, set_offset,
-					  &key, offset + (blocks * blksize));
-
-				units++;
+				/* Updating @units as it might be changed after
+				   balancing during tree_insert(). */
+				units = reiser4_item_units(place);
 			}
-
-			first_time = 0;
 
 			/* Moving data blocks to right places, saving them and
 			   releasing from the cache. */
