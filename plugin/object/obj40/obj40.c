@@ -342,6 +342,7 @@ rid_t obj40_pid(item_entity_t *item) {
 		return OBJECT_FILE40_ID;
 	else if (S_ISDIR(lw_hint.mode))
 		return OBJECT_DIRTORY40_ID;
+#ifndef ENABLE_STAND_ALONE	
 	else if (S_ISCHR(lw_hint.mode))
 		return OBJECT_SPECIAL40_ID;
 	else if (S_ISBLK(lw_hint.mode))
@@ -350,6 +351,7 @@ rid_t obj40_pid(item_entity_t *item) {
 		return OBJECT_SPECIAL40_ID;
 	else if (S_ISSOCK(lw_hint.mode))
 		return OBJECT_SPECIAL40_ID;
+#endif
 
 	return INVAL_PID;
 }
@@ -380,24 +382,16 @@ errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,
 /* Performs lookup for the object's stat data */
 errno_t obj40_stat(obj40_t *obj) {
 	lookup_t res;
-	key_entity_t key;
 	
 	aal_assert("umka-1905", obj != NULL);
-
-	key.plugin = obj->statdata.item.key.plugin;
-
-	plugin_call(key.plugin->o.key_ops, build_generic,
-		    &key, KEY_STATDATA_TYPE, obj40_locality(obj),
-		    obj40_objectid(obj), 0);
 
 	/* Unlocking old node if it exists */
 	if (obj->statdata.node != NULL)
 		obj40_unlock(obj, &obj->statdata);
 	
 	/* Lookuing for stat data place by */
-	switch (obj->core->tree_ops.lookup(obj->tree, &key,
-					   LEAF_LEVEL,
-					   &obj->statdata))
+	switch (obj->core->tree_ops.lookup(obj->tree, STAT_KEY(obj),
+					   LEAF_LEVEL, &obj->statdata))
 	{
 	case PRESENT:
 		obj40_lock(obj, &obj->statdata);

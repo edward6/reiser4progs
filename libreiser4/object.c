@@ -43,10 +43,8 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 			   size, object->entity);
 }
 
-/* This function is trying to detect object plugin */
+/* This function is trying to open obejct entity */
 static errno_t reiser4_object_init(reiser4_object_t *object) {
-	
-	/* Finding object plugin by its id */
 	if (!libreiser4_factory_cfind(callback_guess_object, object))
 		return -EINVAL;
 
@@ -62,16 +60,13 @@ static void reiser4_object_fini(reiser4_object_t *object) {
 
 /* Looks up for the object stat data place in tree */
 errno_t reiser4_object_stat(reiser4_object_t *object) {
-	errno_t res;
-
-	/* Performing lookup for statdata of current directory */
 	switch (reiser4_tree_lookup(object->fs->tree, &object->key,
 				    LEAF_LEVEL, &object->place))
 	{
 	case PRESENT:
 		/* Initializing item at @object->place */
-		if ((res = reiser4_place_realize(&object->place)))
-			return res;
+		if (reiser4_place_realize(&object->place))
+			return -EINVAL;
 
 		reiser4_key_assign(&object->key, &object->place.item.key);
 		return 0;
@@ -109,9 +104,13 @@ static errno_t callback_find_statdata(char *track, char *entry,
 #ifdef ENABLE_SYMLINKS_SUPPORT
 	plugin = object->entity->plugin;
 
-	/* Symlinks handling. Method "follow" should be implemented */
+	/* Symlinks handling. Method follow() should be implemented */
 	if (object->follow && plugin->o.object_ops->follow) {
-		
+
+		/*
+		  Calling object's follow() in order to get stat dat key of the
+		  real stat data item.
+		*/
 		if ((res = plugin->o.object_ops->follow(object->entity,
 							&object->parent,
 							&object->key)))
@@ -124,7 +123,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		/* Finalizing entity on old place */
 		reiser4_object_fini(object);
 		
-		/* Getting stat data place by key returned by foloow() */
+		/* Getting stat data place by key returned by follow() */
 		if ((res = reiser4_object_stat(object)))
 			return -EINVAL;
 
