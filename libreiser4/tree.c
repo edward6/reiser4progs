@@ -697,8 +697,7 @@ errno_t reiser4_tree_mkspace(
 		reiser4_coord_t save;
 		reiser4_node_t *node;
 	
-		level = plugin_call(return -1, new->node->entity->plugin->node_ops,
-				    get_level, new->node->entity);
+		level = reiser4_node_level(new->node);
 	
 		if (!(node = reiser4_tree_allocate(tree, level)))
 			return -1;

@@ -413,9 +413,7 @@ static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	frag_hint.gauge = gauge;
 	frag_hint.tree = fs->tree;
 	frag_hint.curr = root->blk;
-
-	frag_hint.level = plugin_call(return -1, root->entity->plugin->node_ops,
-				      get_level, root->entity);
+	frag_hint.level = reiser4_node_level(root);
 
 	aal_memset(&hint, 0, sizeof(hint));
 	
@@ -472,11 +470,11 @@ static errno_t stat_process_node(
 	uint32_t leaves_used;
 	uint32_t formatted_used;
 	uint32_t internals_used;
-	
-	tree_stat_hint_t *stat_hint = (tree_stat_hint_t *)data;
 
-	level = plugin_call(return -1, node->entity->plugin->node_ops,
-			    get_level, node->entity);
+	tree_stat_hint_t *stat_hint =
+		(tree_stat_hint_t *)data;
+
+	level = reiser4_node_level(node);
 
 	if (stat_hint->formatted % 128 == 0)
 		aal_gauge_update(stat_hint->gauge, 0);

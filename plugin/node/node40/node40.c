@@ -957,11 +957,18 @@ static errno_t node40_predict_units(node40_t *src_node,
 		if (src_item.plugin->item_ops.predict(&src_item, &dst_item, hint))
 			return -1;
 	} else {
+		uint32_t overhead = node40_overhead((object_entity_t *)dst_node);
+		
 		/*
 		  In the case items are not mergeable, we need count also item
 		  overhead, because new item will be created.
 		*/
-		hint->part -= node40_overhead((object_entity_t *)dst_node);
+
+		if (hint->part < overhead)
+			return 0;
+		
+		hint->part -= overhead;
+		
 		if (src_item.plugin->item_ops.predict(&src_item, NULL, hint))
 			return -1;
 	}
@@ -1039,13 +1046,10 @@ static errno_t node40_shift_units(node40_t *src_node,
 	  otherwise for inserting new item.
 	*/
 	if (mergeable) {
-		if (hint->flags & SF_LEFT) {
-			pos.item = dst_items - 1;
-			pos.unit = 0;
-		} else {
-			pos.item = 0;
-			pos.unit = 0;
-		}
+		pos.item = hint->flags & SF_LEFT ?
+			dst_items - 1 : 0;
+		
+		pos.unit = 0;
 
 		if (node40_expand(dst_node, &pos, hint->part)) {
 			aal_exception_error("Can't expand item for "
@@ -1059,13 +1063,8 @@ static errno_t node40_shift_units(node40_t *src_node,
 		*/
 		node40_item(&dst_item, dst_node, pos.item);
 	} else {
-		if (hint->flags & SF_LEFT) {
-			pos.item = dst_items;
-			pos.unit = ~0ul;
-		} else {
-			pos.item = 0;
-			pos.unit = ~0ul;
-		}
+		pos.item = hint->flags & SF_LEFT ? dst_items : 0;
+		pos.unit = ~0ul;
 		
 		if (node40_expand(dst_node, &pos, hint->part)) {
 			aal_exception_error("Can't expand node for "
@@ -1092,14 +1091,16 @@ static errno_t node40_shift_units(node40_t *src_node,
 			&src_item, &dst_item, hint))
 		return -1;
 
-	/* Updating dst_node left delimiting key */
-	ih = node40_ih_at(dst_node, dst_item.pos);
-	aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
+	if (hint->flags & SF_LEFT) {
+		/* Updating src_node left delimiting key */
+		ih = node40_ih_at(src_node, src_item.pos);
+		aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
+	} else {
+		/* Updating dst_node left delimiting key */
+		ih = node40_ih_at(dst_node, dst_item.pos);
+		aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
+	}
 	
-	/* Updating src_node left delimiting key */
-	ih = node40_ih_at(src_node, src_item.pos);
-	aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
-
 	/* Updating source node fields */
 	pos.unit = 0;
 	pos.item = src_item.pos;
@@ -1413,6 +1414,10 @@ static errno_t node40_shift(object_entity_t *entity,
 	if (hint->flags & SF_MOVIP)
 		return 0;
 
+	/* We can't splitt item at pos 0 if insert point is has 0 position too. */
+	if (hint->flags & SF_LEFT && hint->pos.item == 0)
+		return 0;
+	
 	/*
 	  Estimating how many units from the border items may be shifted into
 	  neighbour node.

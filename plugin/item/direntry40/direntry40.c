@@ -184,8 +184,13 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	if (dst_item)
 		dst_units = direntry40_count(dst_item);
 
-	if (!dst_item || !direntry40_mergeable(src_item, dst_item))
+	if (!dst_item || !direntry40_mergeable(src_item, dst_item)) {
+		
+		if (space < sizeof(direntry40_t))
+			return 0;
+		
 		space -= sizeof(direntry40_t);
+	}
 
 	cur = (hint->flags & SF_LEFT ? 0 : src_units - 1);
 	
@@ -238,8 +243,9 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 		cur += (flags & SF_LEFT ? -1 : 1);
 		space -= (len + sizeof(entry40_t));
 	}
-	
-	hint->part -= space;
+
+	if (hint->units > 0)
+		hint->part -= space;
 	
 	return 0;
 }
@@ -581,11 +587,13 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	/* Updating direntry count field */
 	de40_inc_count(direntry, dh->count);
 
-	/* Updating item's key */
-	entry = direntry40_entry(direntry, 0);
+	if (pos == 0) {
+		/* Updating item's key */
+		entry = direntry40_entry(direntry, 0);
 
-	if (direntry40_unitkey(item, entry, &item->key))
-		return -1;
+		if (direntry40_unitkey(item, entry, &item->key))
+			return -1;
+	}
     
 	return 0;
 }

@@ -471,9 +471,8 @@ static reiser4_node_t *reiser4_node_fnn(
 	reiser4_ptr_hint_t ptr;
 	reiser4_node_t *old = node;
 	
-	orig = plugin_call(return NULL, node->entity->plugin->node_ops,
-			   get_level, node->entity);
-	level = orig;
+	level = reiser4_node_level(node);
+	orig = level;
 	
 	while (node->parent && !found) {
 		
@@ -753,6 +752,15 @@ errno_t reiser4_node_valid(
 			   valid, node->entity);
 }
 
+uint8_t reiser4_node_level(
+	reiser4_node_t *node)	/* node to be checked */
+{
+	aal_assert("umka-1642", node != NULL, return -1);
+    
+	return plugin_call(return -1, node->entity->plugin->node_ops, 
+			   get_level, node->entity);
+}
+
 #ifndef ENABLE_COMPACT
 
 /*
@@ -836,6 +844,10 @@ errno_t reiser4_node_shift(
 			}
 		}
 	}
+
+	/* We do not need update children lists if we are on left level */
+	if (reiser4_node_level(node) <= LEAF_LEVEL)
+		return 0;
 
 	/* Updating children lists in node and its neighbour */
 	items = reiser4_node_count(neig);
