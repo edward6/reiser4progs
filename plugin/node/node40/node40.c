@@ -1035,18 +1035,6 @@ static errno_t node40_print(object_entity_t *entity,
 
 #endif
 
-/* Checks node for validness */
-static errno_t node40_valid(object_entity_t *entity) {
-	errno_t res;
-	
-	aal_assert("vpf-015", entity != NULL);
-    
-	if ((res = node40_confirm(entity)))
-		return res;
-
-	return 0;
-}
-
 /* Helper callback for comparing two keys. This is used by node lookup */
 static int callback_comp_key(void *node, uint32_t pos,
 			     void *key2, void *data)
@@ -1810,7 +1798,6 @@ static reiser4_plugin_t node40_plugin = {
 		.unload		 = node40_unload,
 	
 		.confirm	 = node40_confirm,
-		.valid		 = node40_valid,
 	
 		.lookup		 = node40_lookup,
 		.items		 = node40_items,

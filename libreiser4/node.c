@@ -424,15 +424,6 @@ uint32_t reiser4_node_items(reiser4_node_t *node) {
 	return plugin_call(node->entity->plugin->node_ops, 
 			   items, node->entity);
 }
-/* Checks node for validness */
-errno_t reiser4_node_valid(
-	reiser4_node_t *node)	/* node to be checked */
-{
-	aal_assert("umka-123", node != NULL);
-    
-	return plugin_call(node->entity->plugin->node_ops, 
-			   valid, node->entity);
-}
 
 #ifndef ENABLE_STAND_ALONE
 

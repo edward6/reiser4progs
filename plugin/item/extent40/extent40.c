@@ -232,11 +232,11 @@ static lookup_t extent40_lookup(item_entity_t *item,
 				key_entity_t *key,
 				uint32_t *pos)
 {
+	uint64_t offset;
+	uint64_t wanted;
 	uint32_t i, units;
 	extent40_t *extent;
 	key_entity_t maxkey;
-
-	uint64_t offset, requested;
 
 	aal_assert("umka-1500", item != NULL);
 	aal_assert("umka-1501", key  != NULL);
@@ -258,15 +258,15 @@ static lookup_t extent40_lookup(item_entity_t *item,
 	offset = plugin_call(key->plugin->key_ops,
 			     get_offset, &item->key);
 
-	requested = plugin_call(key->plugin->key_ops,
-				get_offset, key);
+	wanted = plugin_call(key->plugin->key_ops,
+			     get_offset, key);
 	
 	for (i = 0; i < units; i++, extent++) {
 
 		offset += (extent40_blocksize(item) *
 			   et40_get_width(extent));
 		
-		if (offset > requested) {
+		if (offset > wanted) {
 			*pos = i;
 			return LP_PRESENT;
 		}
@@ -786,7 +786,6 @@ static reiser4_plugin_t extent40_plugin = {
 		.insert	       = NULL,
 		.set_key       = NULL,
 #endif
-		.valid	       = NULL,
 		.branch        = NULL,
 
 		.data	       = extent40_data,

@@ -118,7 +118,6 @@ extern errno_t reiser4_node_unlock(reiser4_node_t *node);
 extern errno_t reiser4_node_close(reiser4_node_t *node);
 
 extern bool_t reiser4_node_confirm(reiser4_node_t *node);
-extern errno_t reiser4_node_valid(reiser4_node_t *node);
 extern uint32_t reiser4_node_items(reiser4_node_t *node);
 
 #define reiser4_node_mkdirty(node) (node->flags |= NF_DIRTY)

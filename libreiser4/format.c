@@ -146,8 +146,6 @@ errno_t reiser4_format_print(reiser4_format_t *format,
 			   print, format->entity, stream, 0);
 }
 
-#endif
-
 /* Checks passed disk-format for validness */
 errno_t reiser4_format_valid(
 	reiser4_format_t *format)	/* format to be checked */
@@ -157,6 +155,8 @@ errno_t reiser4_format_valid(
 	return plugin_call(format->entity->plugin->format_ops, 
 			   valid, format->entity);
 }
+
+#endif
 
 /* Reopens disk-format on specified device */
 reiser4_format_t *reiser4_format_reopen(

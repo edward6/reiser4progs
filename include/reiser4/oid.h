@@ -16,12 +16,12 @@
 
 extern reiser4_oid_t *reiser4_oid_open(reiser4_fs_t *fs);
 extern void reiser4_oid_close(reiser4_oid_t *oid);
-extern errno_t reiser4_oid_valid(reiser4_oid_t *oid);
 
 #ifndef ENABLE_STAND_ALONE
 
-extern reiser4_oid_t *reiser4_oid_create(reiser4_fs_t *fs);
 extern errno_t reiser4_oid_sync(reiser4_oid_t *oid);
+extern errno_t reiser4_oid_valid(reiser4_oid_t *oid);
+extern reiser4_oid_t *reiser4_oid_create(reiser4_fs_t *fs);
 
 extern oid_t reiser4_oid_next(reiser4_oid_t *oid);
 extern oid_t reiser4_oid_allocate(reiser4_oid_t *oid);

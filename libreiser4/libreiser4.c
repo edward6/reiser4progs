@@ -259,9 +259,6 @@ static errno_t tree_unlock(
 	p = (reiser4_place_t *)place;	
 	reiser4_node_unlock(p->node);
 
-	if (!reiser4_node_locked(p->node))
-		reiser4_tree_unload(p->node->tree, p->node);
-
 	return 0;
 }
 

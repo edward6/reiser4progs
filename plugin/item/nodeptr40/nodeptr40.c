@@ -183,7 +183,6 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		
 		.data		= NULL,
 		.lookup		= NULL,
-		.valid		= NULL,
 		.mergeable      = NULL,
 
 		.maxposs_key	= NULL,

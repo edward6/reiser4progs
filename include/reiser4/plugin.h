@@ -700,9 +700,6 @@ struct reiser4_object_ops {
 	/* Returns file size */
 	uint64_t (*size) (object_entity_t *);
 
-	/* Makes simple check of directory */
-	errno_t (*valid) (object_entity_t *);
-
 	/* Change current position to passed value */
 	errno_t (*seek) (object_entity_t *, uint64_t);
 
@@ -788,9 +785,6 @@ struct reiser4_item_ops {
 	/* Reads passed amount of units from the item. */
 	int32_t (*read) (item_entity_t *, void *, uint32_t,
 			 uint32_t);
-
-	/* Checks item for validness */
-	errno_t (*valid) (item_entity_t *);
 
 	/* Returns unit count */
 	uint32_t (*units) (item_entity_t *);
@@ -954,11 +948,8 @@ struct reiser4_node_ops {
 	*/
 	errno_t (*close) (object_entity_t *);
 
-	/* Confirms that given block contains valid node of requested format */
+	/* Confirms that given block contains valid node */
 	int (*confirm) (object_entity_t *);
-
-	/* Check node on validness */
-	errno_t (*valid) (object_entity_t *);
 
 	/* Returns item count */
 	uint16_t (*items) (object_entity_t *);
@@ -1061,6 +1052,14 @@ struct reiser4_format_ops {
 
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 	errno_t (*skipped) (object_entity_t *, block_func_t, void *);
+
+	/*
+	  Checks format-specific super block for validness. Also checks whether
+	  filesystem objects lie in valid places. For example, format-specific
+	  super block for format40 must lie in 17-th block for 4096 byte long
+	  blocks.
+	*/
+	errno_t (*valid) (object_entity_t *);
 #endif
     
 	/*
@@ -1077,14 +1076,6 @@ struct reiser4_format_ops {
     
 	/* Returns the device disk-format lies on */
 	aal_device_t *(*device) (object_entity_t *);
-    
-	/*
-	  Checks format-specific super block for validness. Also checks whether
-	  filesystem objects lie in valid places. For example, format-specific
-	  super block for format40 must lie in 17-th block for 4096 byte long
-	  blocks.
-	*/
-	errno_t (*valid) (object_entity_t *);
     
 	/*
 	  Closes opened or created previously filesystem. Frees all assosiated
@@ -1139,6 +1130,9 @@ struct reiser4_oid_ops {
 	/* Prints oid allocator data */
 	errno_t (*print) (object_entity_t *, aal_stream_t *,
 			  uint16_t);
+
+	/* Makes check for validness */
+	errno_t (*valid) (object_entity_t *);
 #endif
 	
 	/* Opens oid allocator on passed area */
@@ -1146,9 +1140,6 @@ struct reiser4_oid_ops {
 
 	/* Closes passed instance of oid allocator */
 	void (*close) (object_entity_t *);
-    
-	/* Makes check for validness */
-	errno_t (*valid) (object_entity_t *);
     
 	/* Object ids of root and root parenr object */
 	oid_t (*hyper_locality) (void);

@@ -281,15 +281,15 @@ static reiser4_plugin_t *sym40_plug(sym40_t *sym, item_entity_t *item) {
 }
 
 /* Callback function for searching statdata item while parsing symlink */
-static errno_t callback_find_statdata(char *track,
-				      char *entry,
+static errno_t callback_find_statdata(char *track, char *entry,
 				      void *data)
 {
 	sym40_t *sym;
+	place_t *place;
+
 	key_entity_t *key;
 	item_entity_t *item;
 
-	place_t *place;
 	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
 
@@ -331,14 +331,15 @@ static errno_t callback_find_statdata(char *track,
 		if (!(entity = plugin_call(plugin->object_ops, open, 
 					   sym->obj.tree, place)))
 		{
-			aal_exception_error("Can't open parent of directory "
-					    "%s.", track);
+			aal_exception_error("Can't open parent of "
+					    "directory %s.", track);
 			return -EINVAL;
 		}
 
 		if (plugin->object_ops.follow(entity, &sym->obj.key)) {
 			aal_exception_error("Can't follow %s.", track);
-			goto error_free_entity;
+			plugin_call(plugin->object_ops, close, entity);
+			return -EINVAL;
 		}
 
 		plugin_call(plugin->object_ops, close, entity);
@@ -348,10 +349,6 @@ static errno_t callback_find_statdata(char *track,
 		    assign, &sym->parent, &sym->obj.key);
 
 	return 0;
-
- error_free_entity:
-	plugin_call(plugin->object_ops, close, entity);
-	return -EINVAL;
 }
 
 /* Callback for searching entry inside current directory */
@@ -391,7 +388,8 @@ static errno_t callback_find_entry(char *track, char *entry,
 			entry, &entry_hint) != LP_PRESENT)
 	{
 		aal_exception_error("Can't find %s.", track);
-		goto error_free_entity;
+		plugin_call(plugin->object_ops, close, entity);
+		return -EINVAL;
 	}
 
 	plugin_call(plugin->object_ops, close, entity);
@@ -401,11 +399,6 @@ static errno_t callback_find_entry(char *track, char *entry,
 		    &sym->obj.key, &entry_hint.object);
 	
 	return 0;
-	
- error_free_entity:
-	plugin_call(plugin->object_ops, close, entity);
-	return -EINVAL;
-
 }
 
 /*
@@ -497,7 +490,6 @@ static reiser4_plugin_t sym40_plugin = {
 		.rem_entry    = NULL,
 		.add_entry    = NULL,
 #endif
-		.valid	      = NULL,
 		.lookup	      = NULL,
 		.reset	      = NULL,
 		.offset	      = NULL,

@@ -141,8 +141,6 @@ static oid_t oid40_used(object_entity_t *entity) {
 	return ((oid40_t *)entity)->used;
 }
 
-#endif
-
 /* Checks oid allocator for validness */
 static errno_t oid40_valid(object_entity_t *entity) {
 	aal_assert("umka-966", entity != NULL);
@@ -153,6 +151,8 @@ static errno_t oid40_valid(object_entity_t *entity) {
 
 	return 0;
 }
+
+#endif
 
 /* Returns the root parent locality */
 static oid_t oid40_hyper_locality(void) {
@@ -186,10 +186,10 @@ static reiser4_plugin_t oid40_plugin = {
 		},
 		.open		= oid40_open,
 		.close		= oid40_close,
-		.valid		= oid40_valid,
 		
 #ifndef ENABLE_STAND_ALONE	
 		.create		= oid40_create,
+		.valid		= oid40_valid,
 		.next		= oid40_next,
 		.allocate	= oid40_allocate,
 		.release	= oid40_release,

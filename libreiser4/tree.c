@@ -376,19 +376,15 @@ reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
 	level = orig = reiser4_node_get_level(node);
 
 	/*
-	  Going up to the level wher corresponding neighbour node may be
+	  Going up to the level where corresponding neighbour node may be
 	  obtained by its nodeptr item.
 	*/
 	while (node->parent.node && !found) {
-		uint32_t parent_items;
-		
 		if (reiser4_node_pos(node, &pos))
 			return NULL;
 
-		parent_items = reiser4_node_items(node->parent.node);
-		
-		found = (where == D_LEFT ? (pos.item > 0) :
-			 (pos.item < parent_items - 1));
+		found = (where == D_LEFT) ? (pos.item > 0) :
+			(pos.item < reiser4_node_items(node->parent.node) - 1);
 
 		node = node->parent.node;
 		level++;
@@ -406,7 +402,7 @@ reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
 		if (!(node = reiser4_tree_child(tree, &place)))
 			return NULL;
 
-		pos.item = where == D_LEFT ?
+		pos.item = (where == D_LEFT) ?
 			reiser4_node_items(node) - 1 : 0;
 
 		level--;
@@ -793,7 +789,7 @@ lookup_t reiser4_tree_lookup(
 	  key.
 	*/
 	if (reiser4_key_compare(key, &tree->key) < 0)
-		*key = tree->key;
+		reiser4_key_assign(key, &tree->key);
 		    
 	while (1) {
 		reiser4_node_t *node = place->node;

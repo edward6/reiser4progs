@@ -11,13 +11,12 @@
 
 #include <reiser4/reiser4.h>
 
+#ifndef ENABLE_STAND_ALONE
 /* This function checks master super block for validness */
 errno_t reiser4_master_valid(reiser4_master_t *master) {
 	aal_assert("umka-898", master != NULL);
 	return -(!aal_pow_of_two(get_ms_blocksize(SUPER(master))));
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Forms master super block disk structure */
 reiser4_master_t *reiser4_master_create(

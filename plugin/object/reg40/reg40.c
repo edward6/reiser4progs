@@ -539,7 +539,6 @@ static reiser4_plugin_t reg40_plugin = {
 		.add_entry    = NULL,
 		.rem_entry    = NULL,
 #endif
-		.valid	      = NULL,
 		.lookup	      = NULL,
 		.follow       = NULL,
 		.readdir      = NULL,

@@ -29,6 +29,7 @@ extern reiser4_master_t *reiser4_master_create(aal_device_t *device,
 
 extern int reiser4_master_confirm(aal_device_t *device);
 extern errno_t reiser4_master_sync(reiser4_master_t *master);
+extern errno_t reiser4_master_valid(reiser4_master_t *master);
 extern reiser4_plugin_t *reiser4_master_guess(aal_device_t *device);
 
 #endif
@@ -36,7 +37,6 @@ extern reiser4_plugin_t *reiser4_master_guess(aal_device_t *device);
 extern reiser4_master_t *reiser4_master_open(aal_device_t *device);
 extern reiser4_master_t *reiser4_master_reopen(reiser4_master_t *master);
 
-extern errno_t reiser4_master_valid(reiser4_master_t *master);
 extern void reiser4_master_close(reiser4_master_t *master);
 
 extern char *reiser4_master_uuid(reiser4_master_t *master);

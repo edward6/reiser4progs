@@ -46,8 +46,10 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	if (!(fs->master = reiser4_master_open(device)))
 		goto error_free_fs;
     
+#ifndef ENABLE_STAND_ALONE
 	if (reiser4_master_valid(fs->master))
 		goto error_free_master;
+#endif
 
 	blocksize = reiser4_master_blocksize(fs->master);
 		
@@ -62,10 +64,9 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	if (!(fs->format = reiser4_format_open(fs)))
 		goto error_free_master;
 
+#ifndef ENABLE_STAND_ALONE
 	if (reiser4_format_valid(fs->format))
 		goto error_free_format;
-    
-#ifndef ENABLE_STAND_ALONE
 	
 	if ((blocks = reiser4_format_get_len(fs->format)) == INVAL_BLK)
 		goto error_free_format;
@@ -82,8 +83,10 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	if (!(fs->oid = reiser4_oid_open(fs)))
 		goto error_free_alloc;
   
+#ifndef ENABLE_STAND_ALONE
 	if (reiser4_oid_valid(fs->oid))
 		goto error_free_oid;
+#endif
 	
 	return fs;
 

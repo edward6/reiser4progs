@@ -106,8 +106,6 @@ static errno_t format40_layout(object_entity_t *entity,
 	return 0;
 }
 
-#endif
-
 static errno_t format40_super_check(format40_super_t *super, 
 				    aal_device_t *device) 
 {
@@ -115,12 +113,10 @@ static errno_t format40_super_check(format40_super_t *super,
 	blk_t dev_len = aal_device_len(device);
     
 	if (get_sb_block_count(super) > dev_len) {
-#ifndef ENABLE_STAND_ALONE
 		aal_exception_error("Superblock has an invalid block "
 				    "count %llu for device length %llu "
 				    "blocks.", get_sb_block_count(super),
 				    dev_len);
-#endif
 		return -EINVAL;
 	}
     
@@ -129,16 +125,16 @@ static errno_t format40_super_check(format40_super_t *super,
 	if (get_sb_root_block(super) <= offset ||
 	    get_sb_root_block(super) >= dev_len)
 	{
-#ifndef ENABLE_STAND_ALONE
 		aal_exception_error("Superblock has an invalid root block "
 				    "%llu for device length %llu blocks.",
 				    get_sb_root_block(super), dev_len);
-#endif
 		return -EINVAL;
 	}
 	
 	return 0;
 }
+
+#endif
 
 static int format40_magic(format40_super_t *super) {
 	return aal_strncmp(super->sb_magic, FORMAT40_MAGIC, 
@@ -313,8 +309,6 @@ static int format40_confirm(aal_device_t *device) {
 	return 0;
 }
 
-#endif
-
 static errno_t format40_valid(object_entity_t *entity) {
 	format40_t *format;
     
@@ -325,6 +319,8 @@ static errno_t format40_valid(object_entity_t *entity) {
 	return format40_super_check(SUPER(entity),
 				    format->device);
 }
+
+#endif
 
 static void format40_oid(object_entity_t *entity, 
 			 void **oid_start,
@@ -480,10 +476,10 @@ static reiser4_plugin_t format40_plugin = {
 #endif
 		},
 		.open		= format40_open,
-		.valid		= format40_valid,
 		.device		= format40_device,
 		
 #ifndef ENABLE_STAND_ALONE
+		.valid		= format40_valid,
 		.check		= format40_check,
 		.sync		= format40_sync,
 		.create		= format40_create,

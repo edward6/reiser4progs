@@ -34,6 +34,21 @@ static uint64_t dir40_size(object_entity_t *entity) {
 	return obj40_get_size(&dir->obj);
 }
 
+static void dir40_relock(object_entity_t *entity,
+			 place_t *curr, place_t *next)
+{
+	dir40_t *dir = (dir40_t *)entity;
+	
+	aal_assert("umka-2061", curr != NULL);
+	aal_assert("umka-2062", next != NULL);
+	aal_assert("umka-2060", entity != NULL);
+	
+	if (curr->node != NULL)
+		obj40_unlock(&dir->obj, curr);
+	
+	obj40_lock(&dir->obj, next);
+}
+
 static errno_t dir40_telldir(object_entity_t *entity,
 			     key_entity_t *offset)
 {
@@ -49,33 +64,27 @@ static errno_t dir40_telldir(object_entity_t *entity,
 static errno_t dir40_seekdir(object_entity_t *entity,
 			     key_entity_t *offset)
 {
-	dir40_t *dir = (dir40_t *)entity;
+	dir40_t *dir;
+	place_t next;
 	
 	aal_assert("umka-1983", entity != NULL);
 	aal_assert("umka-1984", offset != NULL);
 
-	aal_memcpy(&dir->offset, offset, sizeof(*offset));
-	
-	if (dir->body.node != NULL)
-		obj40_unlock(&dir->obj, &dir->body);
-	
-	/* Lookup for the first direntry item */
-	if (obj40_lookup(&dir->obj, &dir->offset, LEAF_LEVEL,
-			 &dir->body) == LP_PRESENT)
-	{
-		obj40_lock(&dir->obj, &dir->body);
+	dir = (dir40_t *)entity;
 
-		/*
-		  Correcting of the unit position for the case we are at the
-		  start of directory item.
-		*/
+	if (obj40_lookup(&dir->obj, &dir->offset,
+			 LEAF_LEVEL, &next) == LP_PRESENT)
+	{
+		dir40_relock(entity, &dir->body, &next);
+		aal_memcpy(&dir->offset, offset, sizeof(*offset));
+		aal_memcpy(&dir->body, &next, sizeof(dir->body));
+
 		if (dir->body.pos.unit == ~0ul)
 			dir->body.pos.unit = 0;
-				
+
 		return 0;
 	}
 
-	dir->body.node = NULL;
 	return -EINVAL;
 }
 
@@ -129,11 +138,17 @@ static int dir40_mergeable(item_entity_t *item1,
 }
 
 /* Switches current dir body item onto next one */
-static lookup_t dir40_next(dir40_t *dir) {
+static lookup_t dir40_next(object_entity_t *entity) {
+	dir40_t *dir;
 	place_t next;
+
 	item_entity_t *item;
 	reiser4_entry_hint_t entry;
 
+	aal_assert("umka-2063", entity != NULL);
+	
+	dir = (dir40_t *)entity;
+	
 	/* Getting next directory item */
 	if (core->tree_ops.next(dir->obj.tree, &dir->body, &next))
 		return LP_ABSENT;
@@ -142,9 +157,8 @@ static lookup_t dir40_next(dir40_t *dir) {
 	
 	if (!dir40_mergeable(&next.item, item))
 		return LP_ABSENT;
-	
-	obj40_unlock(&dir->obj, &dir->body);
-	obj40_lock(&dir->obj, &next);
+
+	dir40_relock(entity, &dir->body, &next);
 
 	dir->body = next;
 	dir->body.pos.unit = 0;
@@ -191,10 +205,15 @@ static errno_t dir40_readdir(object_entity_t *entity,
 	{
 		/* Updating positions */
 		dir->body.pos.unit++;
-    
+		
 		/* Getting next direntry item */
 		if (dir->body.pos.unit >= units)
-			dir40_next(dir);
+			dir40_next(entity);
+		else {
+			plugin_call(item->plugin->item_ops,
+				    read, item, entry,
+				    dir->body.pos.unit, 1);
+		}
 	
 		return 0;
 	}
@@ -206,111 +225,103 @@ static errno_t dir40_readdir(object_entity_t *entity,
   Makes lookup in directory by name. Fills passed buff by found entry fields
   (offset key, object key, etc).
 */
-static lookup_t dir40_lookup(object_entity_t *entity, 
-			     char *name, reiser4_entry_hint_t *entry) 
+static lookup_t dir40_lookup(object_entity_t *entity, char *name,
+			     reiser4_entry_hint_t *entry) 
 {
-	lookup_t res;
+	dir40_t *dir;
+	place_t next;
+
+	uint64_t objectid;
+	uint64_t locality;
+	
+	item_entity_t *item;
 	key_entity_t wanted;
-	dir40_t *dir = (dir40_t *)entity;
-    
-	aal_assert("umka-1117", entity != NULL);
+
 	aal_assert("umka-1118", name != NULL);
 	aal_assert("umka-1924", entry != NULL);
+	aal_assert("umka-1117", entity != NULL);
 
+	dir = (dir40_t *)entity;
+
+	objectid = obj40_objectid(&dir->obj);
+	locality = obj40_locality(&dir->obj);
 	/*
 	  Preparing key to be used for lookup. It is generating from the
 	  directory oid, locality and name by menas of using hash plugin.
 	*/
 	wanted.plugin = dir->obj.key.plugin;
 	
-	plugin_call(wanted.plugin->key_ops, build_entry,
-		    &wanted,dir->hash, obj40_locality(&dir->obj),
-		    obj40_objectid(&dir->obj), name);
+	plugin_call(wanted.plugin->key_ops, build_entry, &wanted,
+		    dir->hash, locality, objectid, name);
 
+	/* Performing tree lookup */
+	if (obj40_lookup(&dir->obj, &wanted, LEAF_LEVEL, &next) != LP_PRESENT)
+		return LP_ABSENT;
+
+	dir40_relock(entity, &dir->body, &next);
+	aal_memcpy(&dir->body, &next, sizeof(dir->body));
+	
+	if (dir->body.pos.unit == ~0ul)
+		dir->body.pos.unit = 0;
+		
+	item = &dir->body.item;
+	
+	/*
+	  If needed entry is found, we fetch it into local buffer and get stat
+	  data key of the object it points to from it. This key will be used for
+	  searching next entry in passed path and so on.
+	*/
 	entry->object.plugin = wanted.plugin;
 	entry->offset.plugin = wanted.plugin;
 	
-	/* Lookp until needed entry will be found */
-	while (1) {
-		uint32_t units;
-		item_entity_t *item = &dir->body.item;
+	if (plugin_call(item->plugin->item_ops, read, item, entry,
+			dir->body.pos.unit, 1) != 1)
+	{
+		aal_exception_error("Can't read %lu entry from object "
+				    "0x%llx:0x%llx.", dir->body.pos.unit,
+				    locality, objectid);
+		return LP_FAILED;
+	}
 
-		/*
-		  If needed entry is found, we fetch it into local buffer and
-		  get stat data key of the object it points to from it. This key
-		  will be used for searching next entry in passed path and so
-		  on.
-		*/
-		if (plugin_call(item->plugin->item_ops, lookup, item,
-				&wanted, &dir->body.pos.unit) == LP_PRESENT) 
-		{
-			if (plugin_call(item->plugin->item_ops, read, item,
-					entry, dir->body.pos.unit, 1) != 1)
-			{
-				aal_exception_error("Can't read %lu entry "
-						    "from object 0x%llx.",
-						    dir->body.pos.unit,
-						    obj40_objectid(&dir->obj));
-				return LP_FAILED;
-			}
+	aal_memcpy(&dir->offset, &entry->offset, sizeof(dir->offset));
 
 #ifndef ENABLE_COLLISIONS_HANDLING
-			return LP_PRESENT;
+	return LP_PRESENT;
 #else
-			/* Handling possible hash collision */
-			if (aal_strncmp(entry->name, name,
-					aal_strlen(name)) == 0)
-			{
-				aal_memcpy(&dir->offset, &wanted,
-					   sizeof(dir->offset));
-				
-				return LP_PRESENT;
-			}
+	if (aal_strncmp(entry->name, name, aal_strlen(name)) == 0) {
+		aal_memcpy(&dir->offset, &wanted, sizeof(dir->offset));
+		return LP_PRESENT;
+	}
 
-#ifndef ENABLE_STAND_ALONE
-			aal_exception_warn("Hash collision is detected between "
-					   "%s and %s. Sequentional search has "
-					   "been started.", entry->name, name);
-#endif
+	aal_exception_warn("Hash collision is detected between "
+			   "%s and %s. Sequentional search has "
+			   "been started.", entry->name, name);
 
-			if (!item->plugin->item_ops.units)
-				return LP_FAILED;
+	if (!item->plugin->item_ops.units)
+		return LP_FAILED;
 			
-			units = item->plugin->item_ops.units(item);
-
-			/* Sequentional search of the needed entry by its name */
-			for (; dir->body.pos.unit < units; dir->body.pos.unit++) {
-				
-				if (plugin_call(item->plugin->item_ops, read, item,
-						entry, dir->body.pos.unit, 1) != 1)
-				{
-					aal_exception_error("Can't read %lu entry "
-							    "from object 0x%llx.",
-							    dir->body.pos.unit,
-							    obj40_objectid(&dir->obj));
-					return LP_FAILED;
-				}
-
-				if (aal_strncmp(entry->name, name,
-						aal_strlen(name)) == 0)
-				{
-					aal_memcpy(&dir->offset, &wanted,
-						   sizeof(dir->offset));
-				
-					return LP_PRESENT;
-				}
-			}
-				
-			return LP_ABSENT;
-#endif
+	/* Sequentional search of the needed entry by its name */
+	for (; dir->body.pos.unit < item->plugin->item_ops.units(item);
+	     dir->body.pos.unit++)
+	{
+		if (plugin_call(item->plugin->item_ops, read, item,
+				entry, dir->body.pos.unit, 1) != 1)
+		{
+			aal_exception_error("Can't read %lu entry "
+					    "from object 0x%llx.",
+					    dir->body.pos.unit,
+					    obj40_objectid(&dir->obj));
+			return LP_FAILED;
 		}
 
-		/* Getting next direntry item */
-		if ((res = dir40_next(dir)) != LP_PRESENT)
-			return res;
+		if (aal_strncmp(entry->name, name, aal_strlen(name)) == 0) {
+			aal_memcpy(&dir->offset, &wanted, sizeof(dir->offset));
+			return LP_PRESENT;
+		}
 	}
-    
+				
 	return LP_ABSENT;
+#endif
 }
 
 /*
@@ -875,7 +886,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 				return res;
 		}
 		
-		if (dir40_next(dir) != LP_PRESENT)
+		if (dir40_next(entity) != LP_PRESENT)
 			break;
 	}
     
@@ -904,9 +915,8 @@ static errno_t dir40_metadata(object_entity_t *entity,
 		if ((res = func(entity, &dir->body, data)))
 			return res;
 		
-		if (dir40_next(dir) != LP_PRESENT)
+		if (dir40_next(entity) != LP_PRESENT)
 			break;
-			
 	}
 	
 	return res;
@@ -959,7 +969,6 @@ static reiser4_plugin_t dir40_plugin = {
 		.write        = NULL,
 #endif
 		.follow       = NULL,
-		.valid	      = NULL,
 		.seek	      = NULL,
 		.read         = NULL,
 		.offset       = NULL,

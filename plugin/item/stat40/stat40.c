@@ -17,7 +17,7 @@ static reiser4_core_t *core = NULL;
   all statdata extention-related actions. For example for opening, of counting.
 */
 errno_t stat40_traverse(item_entity_t *item,
-			stat40_ext_func_t func,
+			stat40_ext_func_t ext_func,
 			void *data)
 {
 	uint8_t i;
@@ -27,6 +27,7 @@ errno_t stat40_traverse(item_entity_t *item,
 	sdext_entity_t sdext;
 
 	aal_assert("umka-1197", item != NULL);
+	aal_assert("umka-2059", ext_func != NULL);
     
 	stat = stat40_body(item);
 	extmask = st40_get_extmask(stat);
@@ -36,8 +37,8 @@ errno_t stat40_traverse(item_entity_t *item,
 	sdext.pos = sizeof(stat40_t);
 
 	/*
-	  Loop though the all possible extentions and calling passed @func for
-	  each of them if corresponing extention exists.
+	  Loop though the all possible extentions and calling passed @ext_func
+	  for each of them if corresponing extention exists.
 	*/
 	for (i = 0; i < sizeof(uint64_t) * 8; i++) {
 		errno_t res;
@@ -70,10 +71,10 @@ errno_t stat40_traverse(item_entity_t *item,
 		}
 
 		/*
-		  Okay, extention is present, calling callback fucntion for it
+		  Okay, extention is present, calling callback function for it
 		  and if result is not good, returning it to teh caller.
 		*/
-		if ((res = func(&sdext, extmask, data)))
+		if ((res = ext_func(&sdext, extmask, data)))
 			return res;
 
 		/* Calculating the pointer to the next extention body */
@@ -273,12 +274,6 @@ extern errno_t stat40_check(item_entity_t *, uint8_t);
 
 #endif
 
-/* Here we probably should check all stat data extention masks */
-static errno_t stat40_valid(item_entity_t *item) {
-	aal_assert("umka-1007", item != NULL);
-	return 0;
-}
-
 /*
   This function returns unit count. This value must be 1 if item has not
   units. It is because balancing code assumes that if item has more than one
@@ -450,15 +445,14 @@ static reiser4_plugin_t stat40_plugin = {
 		.utmost_key     = NULL,
 		.gap_key	= NULL,
 #endif
+		.data		= stat40_data,
+		.read           = stat40_read,
+		.units		= stat40_units,
+        
 		.lookup		= NULL,
 		.branch         = NULL,
 		.mergeable      = NULL,
 
-		.data		= stat40_data,
-		.read           = stat40_read,
-		.units		= stat40_units,
-		.valid		= stat40_valid,
-        
 		.maxposs_key	= NULL,
 		.get_key	= NULL
 	}

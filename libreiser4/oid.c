@@ -34,10 +34,8 @@ reiser4_oid_t *reiser4_oid_open(
 	oid->fs->oid = oid;
 	
 	if ((pid = reiser4_format_oid_pid(fs->format)) == INVAL_PID) {
-#ifndef ENABLE_STAND_ALONE
 		aal_exception_error("Invalid oid allocator plugin id "
 				    "has been detected.");
-#endif
 		goto error_free_oid;
 	}
     
@@ -195,8 +193,6 @@ uint64_t reiser4_oid_free(reiser4_oid_t *oid) {
 			   free, oid->entity);
 }
 
-#endif
-
 /* Checks specified oid allocator on validness */
 errno_t reiser4_oid_valid(reiser4_oid_t *oid) {
 	aal_assert("umka-962", oid != NULL);
@@ -204,6 +200,8 @@ errno_t reiser4_oid_valid(reiser4_oid_t *oid) {
 	return plugin_call(oid->entity->plugin->oid_ops, 
 			   valid, oid->entity);
 }
+
+#endif
 
 /* Returns root parent locality from specified oid allocator */
 oid_t reiser4_oid_hyper_locality(reiser4_oid_t *oid) {

@@ -83,27 +83,25 @@ static char *direntry40_get_name(item_entity_t *item,
 				 uint32_t pos, char *buff)
 {
 	char *name;
-	objid_t *objid;
 
 	key_entity_t key;
 	direntry40_t *direntry;
 
 	direntry = direntry40_body(item);
-	
-	objid = direntry40_objid(direntry, pos);
 	direntry40_get_key(item, pos, &key);
 
-	/*
+        /*
 	  If name is long, we just copy it from the area after
 	  objectid. Otherwise we extract it from the entry hash.
 	*/
 	if (plugin_call(key.plugin->key_ops, tall, &key)) {
 		uint32_t len;
 		
-		name = (char *)(objid + 1);
+		name = (char *)((direntry40_objid(direntry, pos)) + 1);
+
 		len = aal_strlen(name);
-		
 		aal_strncpy(buff, name, len);
+		
 		*(buff + len) = '\0';
 	} else {
 		uint64_t offset;
@@ -1057,8 +1055,8 @@ static errno_t direntry40_maxposs_key(item_entity_t *item,
 	aal_assert("umka-1648", item != NULL);
 	aal_assert("umka-716", key->plugin != NULL);
 
-	plugin_call(key->plugin->key_ops, assign, key,
-		    &item->key);
+	plugin_call(item->key.plugin->key_ops,
+		    assign, key, &item->key);
 
 	maxkey = plugin_call(key->plugin->key_ops,
 			     maximal,);
@@ -1139,16 +1137,10 @@ static lookup_t direntry40_lookup(item_entity_t *item,
 	aal_assert("umka-609", item != NULL);
 	aal_assert("umka-629", pos != NULL);
     
-	if (!(direntry = direntry40_body(item)))
-		return LP_FAILED;
+	direntry = direntry40_body(item);
 
 	/* Getting maximal possible key */
-	maxkey.plugin = key->plugin;
-
-	plugin_call(maxkey.plugin->key_ops, assign, &maxkey, &item->key);
-	
-	if (direntry40_maxposs_key(item, &maxkey))
-		return LP_FAILED;
+	direntry40_maxposs_key(item, &maxkey);
 
 	/*
 	  If looked key is greater that maximal possible one then we going out
@@ -1162,9 +1154,7 @@ static lookup_t direntry40_lookup(item_entity_t *item,
 	}
 
 	/* Comparing looked key with minimal one */
-	minkey.plugin = key->plugin;
-	
-	plugin_call(minkey.plugin->key_ops, assign, &minkey, &item->key);
+	plugin_call(key->plugin->key_ops, assign, &minkey, &item->key);
 
 	if (plugin_call(key->plugin->key_ops, compare, &minkey, key) > 0) {
 		*pos = 0;
@@ -1173,11 +1163,11 @@ static lookup_t direntry40_lookup(item_entity_t *item,
 
 	/*
 	  Performing binary search inside the direntry in order to find position
-	  iof the looked key.
+	  of the looked key.
 	*/
-	res = aux_bin_search((void *)direntry, units, key, 
-			     callback_comp_entry, (void *)item,
-			     &unit);
+	res = aux_bin_search((void *)direntry, units,
+			     key, callback_comp_entry,
+			     (void *)item, &unit);
 
 	/*
 	  Position correcting for the case key was not found. It is needed for
@@ -1229,7 +1219,6 @@ static reiser4_plugin_t direntry40_plugin = {
 		.layout		= NULL,
 		.layout_check	= NULL,
 #endif
-		.valid		= NULL,
 		.branch         = NULL,
 
 		.data		= direntry40_data,
