@@ -1509,7 +1509,9 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 				return res;
 		}
 		
-		reiser4_place_init(place, node->parent.node, &node->parent.pos);
+		reiser4_place_init(place, node->parent.node,
+				   &node->parent.pos);
+		
 		curr++;
 	}
 	

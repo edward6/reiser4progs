@@ -3,6 +3,9 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* tree_split() was able do not only allocate new nodes, but shift
+  items into neighbour first.
+
 * describe in README how to build reiser4progs, what to do if proper 
   libaal is not found, how to build libreiser4-alone in order to use 
   it with GNU GRUB, configure options etc.
@@ -35,3 +38,5 @@ reiser4progs/COPYING.
 
 * make GRUB working in its native mode (make reiser4 in GRUB less size 
   that it is for now).
+
+* online/offline resizer/repacker.
