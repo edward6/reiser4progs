@@ -101,17 +101,23 @@ static void debugfs_init(void) {
 		progs_exception_set_stream(ex, stderr);
 }
 
-static void debugfs_print_stream(aal_stream_t *stream) {
-	char buff[256];
+#include <stdio.h>
 
-	aal_stream_reset(stream);
-	
-	while (stream->offset < stream->size) {
-		aal_memset(buff, 0, sizeof(buff));
+static errno_t debugfs_print_stream(aal_stream_t *stream) {
+	int len = stream->size;
+	void *ptr = stream->data;
 
-		if ((aal_stream_read(stream, buff, sizeof(buff) - 1)) > 0)
-			printf(buff);
+	while (len > 0) {
+		int written;
+
+		if ((written = write(1, ptr, len)) < 0)
+			return -1;
+		
+		ptr += written;
+		len -= written;
 	}
+
+	return 0;
 }
 
 /* Callback function used in traverse for opening the node */

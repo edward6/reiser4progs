@@ -37,6 +37,3 @@ reiser4progs/COPYING.
   up to the libreiser4 level.
 
 * add overwriting ability to balancing code
-
-* fix bug with directing debugfs output onto less
-  debugfs.reiser4 -tf ~/tmp/loop | less

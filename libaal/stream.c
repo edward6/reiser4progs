@@ -45,8 +45,8 @@ void aal_stream_close(aal_stream_t *stream) {
 
 static errno_t aal_stream_grow(aal_stream_t *stream, int size) {
 	
-	if (stream->offset + size >= stream->size) {
-		stream->size = stream->offset + size + 1;
+	if (stream->offset + size > stream->size) {
+		stream->size = stream->offset + size;
 
 		if (aal_realloc((void **)&stream->data, stream->size))
 			return -1;
@@ -68,11 +68,6 @@ int aal_stream_write(aal_stream_t *stream, void *buff, int size) {
 	return size;
 }
 
-void aal_stream_reset(aal_stream_t *stream) {
-	aal_assert("umka-1711", stream != NULL, return);
-	stream->offset = 0;
-}
-
 int aal_stream_read(aal_stream_t *stream, void *buff, int size) {
 	aal_assert("umka-1546", stream != NULL, return 0);
 	aal_assert("umka-1547", buff != NULL, return 0);
@@ -90,8 +85,13 @@ int aal_stream_read(aal_stream_t *stream, void *buff, int size) {
 	return size;
 }
 
+void aal_stream_reset(aal_stream_t *stream) {
+	aal_assert("umka-1711", stream != NULL, return);
+	stream->offset = 0;
+}
+
 int aal_stream_format(aal_stream_t *stream, const char *format, ...) {
-	int res;
+	int len;
 	char buff[4096];
 	va_list arg_list;
 
@@ -99,18 +99,13 @@ int aal_stream_format(aal_stream_t *stream, const char *format, ...) {
 
 	va_start(arg_list, format);
 	
-	res = aal_vsnprintf(buff, sizeof(buff),
-			    format, arg_list);
+	len = aal_vsnprintf(buff, sizeof(buff), format,
+			    arg_list);
 	
 	va_end(arg_list);
 
-	if (!(res = aal_stream_write(stream, buff, res)))
-		return res;
-
-	*(char *)(stream->data + stream->offset) = '\0';
-
-	if (aal_stream_grow(stream, 1))
-		return 0;
+	if (!(len = aal_stream_write(stream, buff, len)))
+		return len;
 	
-	return res;
+	return len;
 }
