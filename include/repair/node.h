@@ -12,15 +12,14 @@
 #include <repair/repair.h>
 
 typedef errno_t (*repair_extent_func_t)(ptr_hint_t *, void *);
-typedef errno_t (*traverse_node_func_t)(reiser4_place_t *, void *);
+typedef errno_t (*node_func_t)(reiser4_place_t *, void *);
 
 extern reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk);
 extern errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode);
 extern errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode);
 
 extern errno_t repair_node_traverse(reiser4_node_t *node, 
-				    traverse_node_func_t func, 
-				    void *data);
+				    node_func_t func, void *data);
 
 extern errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key);
 

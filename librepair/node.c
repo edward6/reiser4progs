@@ -377,7 +377,7 @@ errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
 }
 
 /* Traverse through all items of the gived node. */
-errno_t repair_node_traverse(reiser4_node_t *node, traverse_node_func_t func, 
+errno_t repair_node_traverse(reiser4_node_t *node, node_func_t func, 
 			     void *data)
 {
 	reiser4_place_t place;

@@ -17,10 +17,17 @@ typedef struct repair_semantic_stat {
 	time_t time;
 } repair_semantic_stat_t;
 
-/* Data filter works on. */
+typedef struct repair_ancestor {
+	reiser4_object_t *object;
+	entry_type_t link;
+} repair_ancestor_t;
+
+/* Data semantic pass works on. */
 typedef struct repair_semantic {
 	repair_data_t *repair;
-	object_check_func_t callback_check;
+	
+	/* Path of semantic recovery. */
+	aal_list_t *path;
 	
 	repair_progress_handler_t *progress_handler;
 	repair_progress_t *progress;
@@ -29,4 +36,14 @@ typedef struct repair_semantic {
 
 extern errno_t repair_semantic(repair_semantic_t *sem);
 
+typedef errno_t (*semantic_link_func_t) (reiser4_object_t *object,
+					 reiser4_object_t *parent,
+					 entry_type_t link, 
+					 void *data);
+
+extern reiser4_object_t *repair_semantic_open_child(reiser4_object_t *parent,
+						    entry_hint_t *entry,
+						    repair_data_t *repair,
+						    semantic_link_func_t func,
+						    void *data);
 #endif

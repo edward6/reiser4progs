@@ -20,7 +20,8 @@ typedef struct repair_lost_found_stat {
 /* Data filter works on. */
 typedef struct repair_lost_found {
 	repair_data_t *repair;
-    
+    	aal_list_t *path;
+	
 	repair_progress_handler_t *progress_handler;
 	repair_progress_t *progress;
 	reiser4_object_t *lost;

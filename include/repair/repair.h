@@ -70,4 +70,6 @@ typedef struct repair_data {
 
 extern errno_t repair_check(repair_data_t *repair);
 
+#define INVAL_PTR ((void *)-1)
+
 #endif

@@ -93,17 +93,17 @@ extern errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_down(reiser4_tree_t *tree,
 				 reiser4_node_t *node,
-				 traverse_open_func_t open_func,
-				 traverse_edge_func_t before_func,
-				 traverse_update_func_t update_func,
-				 traverse_edge_func_t after_func,
+				 tree_open_func_t open_func,
+				 tree_edge_func_t before_func,
+				 tree_update_func_t update_func,
+				 tree_edge_func_t after_func,
 				 void *data);
 
 extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,
-				     traverse_open_func_t open_func,
-				     traverse_edge_func_t before_func,
-				     traverse_update_func_t update_func,
-				     traverse_edge_func_t after_func,
+				     tree_open_func_t open_func,
+				     tree_edge_func_t before_func,
+				     tree_update_func_t update_func,
+				     tree_edge_func_t after_func,
 				     void *data);
 
 #endif
