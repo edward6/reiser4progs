@@ -966,10 +966,10 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *target,
 		} else {
 			/*
 			  Here we should perform some kind of splitting the
-			  border item of the source node onto two part. First
+			  border item of the source node onto two parts. First
 			  part will stay in the source node, and another one
 			  will be moved to neighbour node. Also here needed
-			  space should be prepared in the destination node.
+			  space should be prepared in the neighbour node.
 			*/
 		}
 	}
