@@ -880,7 +880,7 @@ static errno_t node40_predict_units(node40_t *src_node,
 	  insert point point to.
 	*/
 	if (hint->flags & SF_LEFT) {
-		if (hint->pos.item == 0 && hint->pos.unit == ~0ul)
+ 		if (hint->pos.item == 0 && hint->pos.unit == ~0ul)
 			return 0;
 	} else {
 		uint32_t items = nh40_get_num_items(src_node);

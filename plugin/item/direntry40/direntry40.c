@@ -12,8 +12,6 @@ static reiser4_core_t *core = NULL;
 static inline objid40_t *direntry40_unit(direntry40_t *direntry, 
 				  uint32_t pos)
 {
-	aal_assert("umka-1593", direntry != NULL, return NULL);
-
 	return (objid40_t *)((void *)direntry + direntry->entry[pos].offset);
 }
 

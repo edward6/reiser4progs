@@ -794,6 +794,7 @@ errno_t reiser4_tree_insert(
 	reiser4_coord_t *coord,	    /* coord item or unit inserted at */
 	reiser4_item_hint_t *hint)  /* item hint to be inserted */
 {
+	int mode;
 	uint32_t needed;	
 	reiser4_key_t *key;
 	reiser4_coord_t old;
@@ -864,12 +865,31 @@ errno_t reiser4_tree_insert(
 			return res;
 	}
 
+	/*
+	  Saving mode of insert (insert new item, paste units into an existsent
+	  item) before making space for new inset/unit.
+	*/
+	mode = (coord->pos.unit == ~0ul);
+	
 	if (reiser4_tree_mkspace(tree, coord, needed)) {
 		aal_exception_error("Can't prepare space for insert "
 				    "one more item/unit.");
 		return -1;
 	}
-    
+
+	/*
+	  As position after making space is generaly changing, we check is mode
+	  of insert was chnaged or not. If so, we should perform estimate one
+	  more time. This is because, estimated value depends on insert mode. In
+	  the case we are going to insert new item, we should count also
+	  internal item overhead.
+	*/
+	if (mode != (coord->pos.unit == ~0ul)) {
+		
+		if (reiser4_item_estimate(coord, hint))
+			return -1;
+	}
+	
 	if (reiser4_node_insert(coord->node, &coord->pos, hint)) {
 		aal_exception_error("Can't insert an %s into the node %llu.", 
 				    (coord->pos.unit == ~0ul ? "item" : "unit"),
