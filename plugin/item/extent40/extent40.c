@@ -258,28 +258,29 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 
 		start = et40_get_start(extent + i) +
 			((pos - offset) / blocksize);
-		
+
 		for (blk = start; blk < start + et40_get_width(extent + i) &&
 			     count > 0; )
 		{
+			uint32_t local;
+			
 			if (!(block = aal_block_read(item->context.device, blk))) {
 				aal_exception_error("Can't read block "
 						    "%llu.", blk);
 				return -EIO;
 			}
 
-			/* Calculating in-block offset and chunk to be read */
-			offset = (pos % blocksize);
-			chunk = blocksize - offset;
+			/* Calculating local offset and chunk to be read */
+			local = (pos % blocksize);
 
-			if (chunk > count)
+			if ((chunk = blocksize - offset) > count)
 				chunk = count;
 
-			aal_memcpy(buff, block->data + offset, chunk);
+			aal_memcpy(buff, block->data + local, chunk);
 					
 			aal_block_free(block);
 					
-			if ((offset + chunk) % blocksize == 0)
+			if ((local + chunk) % blocksize == 0)
 				blk++;
 
 			count -= chunk; buff += chunk;
