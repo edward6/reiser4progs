@@ -10,8 +10,10 @@
 #include <aux/bitmap.h>
 #include <reiser4/plugin.h>
 
-/* Minimal block number needed to reiser4 filesystem on device. */
-#define REISER4_FS_MIN_SIZE(blksize) (7 + REISER4_MASTER_OFFSET / blksize)
+/* Minimal block number needed to reiser4 filesystem on device: 
+   Master, Format40, Bitmap, JHeader, JFooter, Status, Backup,
+   Twig, Leaf + skipped ones. */
+#define REISER4_FS_MIN_SIZE(blksize) (9 + REISER4_MASTER_OFFSET / blksize)
 
 typedef struct key_entity reiser4_key_t;
 
