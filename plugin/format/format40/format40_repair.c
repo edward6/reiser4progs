@@ -173,20 +173,24 @@ generic_entity_t *format40_unpack(fs_desc_t *desc,
 	format->blksize = desc->blksize;
 
 	/* Read size nad check for validness. */
-	aal_stream_read(stream, &size, sizeof(size));
+	if (aal_stream_read(stream, &size, sizeof(size)) != sizeof(size))
+		goto error_eostream;
 
 	if (size != sizeof(format->super)) {
-		aal_error("Invalid size %u is detected "
-			  "in stream.", size);
+		aal_error("Invalid size %u is detected in stream.", size);
 		goto error_free_format;
 	}
 
 	/* Read format data from @stream. */
-	aal_stream_read(stream, &format->super, size);
+	if (aal_stream_read(stream, &format->super, size) != (int32_t)size)
+		goto error_eostream;
 
 	format->state |= (1 << ENTITY_DIRTY);
 	return (generic_entity_t *)format;
 
+ error_eostream:
+	aal_error("Can't unpack the disk format40. Stream is over?");
+	
  error_free_format:
 	aal_free(format);
 	return NULL;

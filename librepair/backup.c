@@ -55,11 +55,18 @@ static errno_t callback_unpack(void *object, blk_t blk,
 	}
 
 	/* Read from the stream to the allocated block and write the block. */
-	aal_stream_read(stream, block->data, block->size);
+	if (aal_stream_read(stream, block->data, size) != (int64_t)size)
+		goto error_free_block;
+	
 	aal_block_write(block);
 	aal_block_free(block);
 
 	return 0;
+	
+ error_free_block:
+	aal_error("Can't unpack the block (%llu). Stream is over?", blk);
+	aal_block_free(block);
+	return -EIO;
 }
 
 errno_t repair_backup_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {

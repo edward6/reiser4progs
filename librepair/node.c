@@ -329,8 +329,11 @@ node_t *repair_node_unpack(reiser4_tree_t *tree,
 	aal_assert("umka-2624", tree != NULL);
 	aal_assert("umka-2625", stream != NULL);
 
-	aal_stream_read(stream, &pid, sizeof(pid));
-	aal_stream_read(stream, &blk, sizeof(blk));
+	if (aal_stream_read(stream, &pid, sizeof(pid)) != sizeof(pid))
+		goto error_eostream;
+
+	if (aal_stream_read(stream, &blk, sizeof(blk)) != sizeof(blk))
+		goto error_eostream;
 	
 	/* Finding the node plugin by its id */
 	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
@@ -362,6 +365,9 @@ node_t *repair_node_unpack(reiser4_tree_t *tree,
 	aal_free(node);
  error_free_block:
 	aal_block_free(block);
+	return NULL;
+ error_eostream:
+	aal_error("Can't unpack the node. Stream is over?");
 	return NULL;
 }
 

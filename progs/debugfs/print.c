@@ -94,36 +94,28 @@ errno_t debugfs_print_block(
 	}
 	
 	/* Check if @blk is a filesystem block at all */
-	if (!reiser4_alloc_occupied(fs->alloc, blk, 1)) {
-		fprintf(stdout, "Block %llu is marked as not "
-			"used.\n", blk);
-	}
+	fprintf(stdout, "Block %llu is marked as %sused.\n", blk,
+		reiser4_alloc_occupied(fs->alloc, blk, 1) ? "" : "not ");
 
 	/* Determining what is the object block belong to */
 	switch (reiser4_fs_belongs(fs, blk)) {
 	case O_MASTER:
-		fprintf(stdout, "Block %llu is filesystem "
-			"master super block.\n", blk);
+		fprintf(stdout, "It belongs to the fs master super block.\n");
 		return 0;
 	case O_STATUS:
-		fprintf(stdout, "Block %llu is filesystem "
-			"status block.\n", blk);
+		fprintf(stdout, "It belongs to the fs status data.\n");
 		return 0;
 	case O_FORMAT:
-		fprintf(stdout, "Block %llu belongs to format "
-			"metadata.\n", blk);
+		fprintf(stdout, "It belongs to the fs disk format data.\n");
 		return 0;
 	case O_JOURNAL:
-		fprintf(stdout, "Block %llu belongs to journal "
-			"metadata.\n", blk);
+		fprintf(stdout, "It belongs to the fs journal data.\n");
 		return 0;
 	case O_ALLOC:
-		fprintf(stdout, "Block %llu belongs to block "
-			"allocator metadata.\n", blk);
+		fprintf(stdout, "It belongs to the fs block allocator data.\n");
 		return 0;
 	case O_BACKUP:
-		fprintf(stdout, "Block %llu belongs to the fs "
-			"metadata backup.\n", blk);
+		fprintf(stdout, "It belongs to the fs backup data.\n");
 		return 0;
 
 	default:
@@ -131,14 +123,14 @@ errno_t debugfs_print_block(
 	}
 	
 	if (!(node = reiser4_node_open(fs->tree, blk))) {
-		fprintf(stdout, "Block %llu is used, but it is not "
-			"a formatted one.\n", blk);
+		fprintf(stdout, "It does not look like a formatted one.\n");
 		return 0;
 	}
 	
 	debugfs_print_node(node);
 	
 	reiser4_node_close(node);
+	
 	return 0;
 }
 

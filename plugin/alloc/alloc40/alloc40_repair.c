@@ -106,10 +106,19 @@ static errno_t callback_unpack_bitmap(void *entity, blk_t start,
 	if ((chunk = (map + alloc->bitmap->size) - current) > size)
 		chunk = size;
 
-	aal_stream_read(stream, alloc->crc + (offset * CRC_SIZE),
-			CRC_SIZE);
+	if (aal_stream_read(stream, alloc->crc + (offset * CRC_SIZE),
+			    CRC_SIZE) != CRC_SIZE)
+	{
+		aal_error("Can't unpack the bitmap block (%llu)."
+			  "Steam is over?", start);
+		return -EIO;
+	}
 
-	aal_stream_read(stream, current, chunk);
+	if (aal_stream_read(stream, current, chunk) != (int32_t)chunk) {
+		aal_error("Can't unpack the bitmap block (%llu)."
+			  "Steam is over?", start);
+		return -EIO;
+	}
 	
 	return 0;
 }
@@ -165,7 +174,11 @@ generic_entity_t *alloc40_unpack(fs_desc_t *desc,
 	alloc->blksize = desc->blksize;
 
 	/* Read number of bits in bitmap. */
-	aal_stream_read(stream, &blocks, sizeof(blocks));
+	if (aal_stream_read(stream, &blocks, sizeof(blocks)) != sizeof(blocks))
+	{
+		aal_error("Can't unpack the bitmap. Steam is over?");
+		goto error_free_alloc;
+	}
 
 	if (!(alloc->bitmap = aux_bitmap_create(blocks)))
 		goto error_free_alloc;

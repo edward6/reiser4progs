@@ -33,15 +33,20 @@ errno_t repair_alloc_pack(reiser4_alloc_t *alloc, aal_stream_t *stream) {
 
 /* Loads block allocator data from @stream to alloc entity. */
 reiser4_alloc_t *repair_alloc_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
-	rid_t pid;
-	fs_desc_t desc;
-	reiser4_plug_t *plug;
 	reiser4_alloc_t *alloc;
+	reiser4_plug_t *plug;
+	fs_desc_t desc;
+	uint32_t read;
+	rid_t pid;
 	
 	aal_assert("umka-2616", fs != NULL);
 	aal_assert("umka-2617", stream != NULL);
 
-	aal_stream_read(stream, &pid, sizeof(pid));
+	read = aal_stream_read(stream, &pid, sizeof(pid));
+	if (read != sizeof(pid)) {
+		aal_error("Can't unpack the block allocator. Stream is over?");
+		return NULL;
+	}
 	
 	/* Getting needed plugin from plugin factory by its id */
 	if (!(plug = reiser4_factory_ifind(ALLOC_PLUG_TYPE, pid))) {

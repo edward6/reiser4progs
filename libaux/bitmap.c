@@ -339,4 +339,106 @@ char *aux_bitmap_map(
 	return bitmap->map;
 }
 
+/* Packs the bitmap. */
+errno_t aux_bitmap_pack(aux_bitmap_t *bitmap, aal_stream_t *stream) {
+	int zero;
+	uint64_t i, count;
+	
+	aal_assert("vpf-1431", bitmap != NULL);
+	aal_assert("vpf-1432", stream != NULL);
+	
+	aal_stream_write(stream, AUX_BITMAP_MAGIC, sizeof(AUX_BITMAP_MAGIC));
+	aal_stream_write(stream, &bitmap->total, sizeof(bitmap->total));
+
+	count = 0;
+	zero = 0;
+
+	for (i = 0; i < bitmap->total; i++) {
+		if (aux_bitmap_test(bitmap, i)) {
+			if (zero) {
+				/* Previous bit was not set. Write the @count 
+				   and start counting zeroes. */
+				aal_stream_write(stream, &count, sizeof(count));
+
+				count = 1;
+				zero = 0;
+			} else {
+				/* One set bit more. */
+				count++;
+			}
+		} else {
+			if (zero) {
+				/* One zero bit more. */
+				count++;
+			} else {
+				/* Previous bit was set. Write the @count 
+				   and start counting ones. */
+				aal_stream_write(stream, &count, sizeof(count));
+
+				count = 1;
+				zero = 1;
+			}
+		}
+	}
+	
+	/* Write the last @count and @extents. */
+	aal_stream_write(stream, &count, sizeof(count));
+	
+	return 0;
+}
+
+aux_bitmap_t *aux_bitmap_unpack(aal_stream_t *stream) {
+	char *buf[sizeof(AUX_BITMAP_MAGIC)];
+	aux_bitmap_t *bitmap = NULL;
+	uint64_t total, count, bit;
+	int set;
+	
+	aal_assert("vpf-1433", bitmap != NULL);
+	aal_assert("vpf-1434", stream != NULL);
+	
+	/* Read and check the magic. */
+	if (aal_stream_read(stream, buf, sizeof(AUX_BITMAP_MAGIC)) !=
+	    sizeof(AUX_BITMAP_MAGIC))
+		goto error_eostream;
+	
+	if (aal_memcmp(buf, AUX_BITMAP_MAGIC, sizeof(AUX_BITMAP_MAGIC))) {
+		aal_error("Can't unpack the bitmap. Wrong magic found.");
+		return NULL;
+	}
+	
+	/* Read the bitmap size. */
+	if (aal_stream_read(stream, &total, sizeof(total)) != sizeof(total))
+		goto error_eostream;
+	
+	if (!(bitmap = aux_bitmap_create(total)))
+		return NULL;
+	
+	bit = 0;
+	set = 1;
+	while (!aal_stream_eof(stream)) {
+		if (aal_stream_read(stream, &count, sizeof(count)))
+			goto error_eostream;
+
+		if (bit + count > total) {
+			aal_error("Stream with the bitmap looks corrupted.");
+			goto error_free_bitmap;
+		}
+		
+		aux_bitmap_mark_region(bitmap, bit, count);
+		set = !set;
+	}
+	
+	return bitmap;
+
+ error_eostream:
+	aal_error("Can't unpack the bitmap. Stream is over?");
+
+ error_free_bitmap:
+	if (bitmap) {
+		aux_bitmap_close(bitmap);
+	}
+	
+	return NULL;
+}
+
 #endif

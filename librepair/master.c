@@ -149,14 +149,17 @@ errno_t repair_master_pack(reiser4_master_t *master, aal_stream_t *stream) {
 reiser4_master_t *repair_master_unpack(aal_device_t *device, 
 				       aal_stream_t *stream)
 {
-	uint32_t size;
 	reiser4_master_t *master;
+	uint32_t size;
     
 	aal_assert("umka-981", device != NULL);
 	aal_assert("umka-2611", stream != NULL);
 
 	/* Read size and check for validness. */
-	aal_stream_read(stream, &size, sizeof(size));
+	if (aal_stream_read(stream, &size, sizeof(size)) != sizeof(size)) {
+		aal_error("Can't unpack master super block. Stream is over?");
+		return NULL;
+	}
 
 	/* Allocating the memory for master super block struct */
 	if (!(master = aal_calloc(sizeof(*master), 0)))
@@ -169,7 +172,10 @@ reiser4_master_t *repair_master_unpack(aal_device_t *device,
 	}
 
 	/* Read master data from @stream. */
-	aal_stream_read(stream, &master->ent, size);
+	if (aal_stream_read(stream, &master->ent, size) != (int32_t)size) {
+		aal_error("Can't unpack master super block. Stream is over?");
+		goto error_free_master;
+	}
 
 	master->dirty = TRUE;
 	master->device = device;

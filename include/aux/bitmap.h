@@ -10,6 +10,8 @@
 #ifndef ENABLE_STAND_ALONE
 #include <aal/aal.h>
 
+#define AUX_BITMAP_MAGIC	"R4BtMp"
+
 /* Bitmap structure. It contains: pointer to device instance bitmap opened on,
    start on device, total blocks bitmap described, used blocks, pointer to
    memory chunk bit array placed in and bit array size. */

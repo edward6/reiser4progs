@@ -291,7 +291,8 @@ int main(int argc, char *argv[]) {
 			goto error_free_fs;
 		}
 
-		/* Save and free bitmap. */
+		/* Save the bitmap. */
+		
 	} else {
 		/* Open file system on the device */
 		if (!(fs = reiser4_fs_open(device, FALSE))) {

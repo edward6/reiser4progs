@@ -196,7 +196,10 @@ reiser4_format_t *repair_format_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	aal_assert("umka-2606", fs != NULL);
 	aal_assert("umka-2607", stream != NULL);
 
-	aal_stream_read(stream, &pid, sizeof(pid));
+	if (aal_stream_read(stream, &pid, sizeof(pid)) != sizeof(pid)) {
+		aal_error("Can't unpack disk format. Stream is over?");
+		return NULL;
+	}
 
 	/* Getting needed plugin from plugin factory */
 	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid)))  {

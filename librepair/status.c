@@ -88,21 +88,25 @@ reiser4_status_t *repair_status_unpack(aal_device_t *device,
 	aal_assert("umka-2611", stream != NULL);
 
 	/* Read size and check for validness. */
-	aal_stream_read(stream, &size, sizeof(size));
+	if (aal_stream_read(stream, &size, sizeof(size)) != sizeof(size)) {
+		aal_error("Can't unpack the status block. Stream is over?");
+		return NULL;
+	}
 
 	/* Allocating the memory for status super block struct */
 	if (!(status = aal_calloc(sizeof(*status), 0)))
 		return NULL;
 	
 	if (size != sizeof(status->ent)) {
-		aal_error("Invalid size %u is "
-			  "detected in stream.",
-			  size);
+		aal_error("Invalid size %u is detected in stream.", size);
 		goto error_free_status;
 	}
 
 	/* Read status data from @stream. */
-	aal_stream_read(stream, &status->ent, size);
+	if (aal_stream_read(stream, &status->ent, size) != (int32_t)size) {
+		aal_error("Can't unpack the status block. Stream is over?");
+		goto error_free_status;
+	}
 
 	status->dirty = TRUE;
 	status->device = device;
