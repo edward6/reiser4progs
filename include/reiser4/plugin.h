@@ -477,6 +477,9 @@ struct object_hint {
     
 	/* The plugin in use */
 	reiser4_plug_t *plug;
+
+	/* Parent object key. */
+	key_entity_t *parent;
 };
 
 typedef struct object_hint object_hint_t;
@@ -633,7 +636,6 @@ typedef struct reiser4_key_ops reiser4_key_ops_t;
 
 struct reiser4_object_ops {
 #ifndef ENABLE_STAND_ALONE
-	
 	/* Creates new file with passed parent and object keys */
 	object_entity_t *(*create) (object_info_t *,
 				    object_hint_t *);
@@ -648,6 +650,7 @@ struct reiser4_object_ops {
 	/* Establish parent child relationchip */
 	errno_t (*attach) (object_entity_t *,
 			   object_entity_t *);
+	
 	errno_t (*detach) (object_entity_t *,
 			   object_entity_t *);
 
@@ -657,6 +660,7 @@ struct reiser4_object_ops {
 	/* Directory specific methods */
 	errno_t (*add_entry) (object_entity_t *, entry_hint_t *);
 	errno_t (*rem_entry) (object_entity_t *, entry_hint_t *);
+	errno_t (*build_entry) (object_entity_t *, entry_hint_t *);
 	
 	/* Truncates file at current offset onto passed units */
 	errno_t (*truncate) (object_entity_t *, uint64_t);
