@@ -1091,12 +1091,40 @@ errno_t reiser4_node_cut(
 	reiser4_pos_t *start,		    /* start item will be removed at */
 	reiser4_pos_t *end)		    /* end item will be removed at */
 {
+	reiser4_pos_t ppos;
+	
 	aal_assert("umka-1785", node != NULL, return -1);
 	aal_assert("umka-1786", start != NULL, return -1);
 	aal_assert("umka-1787", end != NULL, return -1);
+
+	if (start->item == 0 && node->parent) {
+		if (reiser4_node_pos(node, &ppos))
+			return -1;
+	}
 	
-	return plugin_call(node->entity->plugin->node_ops, cut,
-			   node->entity, start, end);
+	if (plugin_call(node->entity->plugin->node_ops, cut, node->entity,
+			start, end))
+	{
+		aal_exception_error("Can't cut items/units from the node "
+				    "%llu. Start: (%lu, %lu), end: (%lu, %lu).",
+				    node->blk, start->item, start->unit,
+				    end->item, end->unit);
+		return -1;
+	}
+
+	reiser4_node_mkdirty(node);
+	
+	if (start->item == 0 && node->parent) {
+		reiser4_key_t lkey;
+		
+		if (reiser4_node_lkey(node, &lkey))
+			return -1;
+		
+		if (reiser4_node_ukey(node->parent, &ppos, &lkey))
+			return -1;
+	}
+
+	return 0;
 }
 
 /* 
@@ -1154,7 +1182,6 @@ errno_t reiser4_node_remove(
 	/* Updating left deleimiting key in all parent nodes */
 	if (update && node->parent) {
 		if (reiser4_node_items(node) > 0) {
-
 			reiser4_key_t lkey;
 			reiser4_node_lkey(node, &lkey);
 				

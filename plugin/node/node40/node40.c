@@ -457,15 +457,17 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 static errno_t node40_delete(node40_t *node, reiser4_pos_t *pos,
 			     uint32_t count)
 {
+	int is_range;
+	
 	uint32_t size;
+	void *src, *dst;
+
 	uint32_t headers;
 	uint32_t i, items;
-	item_entity_t item;
 	uint32_t len, offset;
 
-	void *src, *dst;
-	int is_range, is_items;
-	item40_header_t *cur, *end;
+	item40_header_t *cur;
+	item40_header_t *end;
 	
 	aal_assert("umka-958", node != NULL, return -1);
 	aal_assert("umka-959", pos != NULL, return -1);
@@ -476,25 +478,7 @@ static errno_t node40_delete(node40_t *node, reiser4_pos_t *pos,
 	is_range = (pos->item < items);
 	aal_assert("umka-960", is_range, return -1);
 
-	is_items = pos->unit == ~0ul;
-		
-	if (pos->unit != ~0ul) {
-		uint32_t units;
-		
-		if (node40_item(&item, node, pos->item))
-			return -1;
-
-		/*
-		  Whole item will be removed because it contains less units than
-		  we are going to remove from it.
-		*/
-		units = plugin_call(item.plugin->item_ops, units, &item);
-
-		if ((is_items = (units <= count)))
-			count = 1;
-	}
-	
-	if (is_items) {
+	if (pos->unit == ~0ul) {
 		is_range = (is_range && pos->item + count <= items);
 		aal_assert("umka-1793", is_range, return -1);
 
@@ -533,6 +517,7 @@ static errno_t node40_delete(node40_t *node, reiser4_pos_t *pos,
 		nh40_dec_num_items(node, count);
 		nh40_inc_free_space(node, (len + headers));
 	} else {
+		item_entity_t item;
 		item40_header_t *ih;
 		uint32_t ilen, offset;
 		
@@ -672,12 +657,18 @@ errno_t node40_remove(object_entity_t *entity,
 }
 
 /* Removes items/units starting from the @start and ending at the @end */
-static errno_t node40_cut(object_entity_t *entity, reiser4_pos_t *start,
+static errno_t node40_cut(object_entity_t *entity,
+			  reiser4_pos_t *start,
 			  reiser4_pos_t *end)
 {
 	node40_t *node;
+	uint32_t units;
+	
+	uint32_t begin;
 	uint32_t count;
+	
 	reiser4_pos_t pos;
+	item_entity_t item;
 	
 	aal_assert("umka-1788", entity != NULL, return -1);
 	aal_assert("umka-1789", start != NULL, return -1);
@@ -687,50 +678,52 @@ static errno_t node40_cut(object_entity_t *entity, reiser4_pos_t *start,
 		
 	/* Check if there some amount of whole items can be removed */
 	if (start->item != end->item) {
+
+		begin = start->item + 1;
+		count = end->item - start->item;
 		
-		if (end->item - start->item > 1) {
-			item_entity_t item;
+		/* Removing units inside start item */
+		if (start->unit != ~0ul) {
+			pos.unit = start->unit;
+			pos.item = start->item;
 
-			/* Removing units inside start item */
-			if (start->unit != ~0ul) {
-				pos.unit = start->unit;
-				pos.item = start->item;
-
-				if (node40_item(&item, node, pos.item))
-					return -1;
+			if (node40_item(&item, node, pos.item))
+				return -1;
 				
-				count = item.plugin->item_ops.units(&item) -
-					start->unit;
+			units = item.plugin->item_ops.units(&item);
 
-				if (node40_delete(node, &pos, count))
-					return -1;
+			if (node40_delete(node, &pos, units - start->unit))
+				return -1;
 
-				/*
-				  FIXME-UMKA: Here we should check if fucntion
-				  shrink deleted the item because it deleted all
-				  its units.
-				*/
-			}
-			
-			/* Removing units inside end item */
-			if (end->unit != ~0ul) {
-				pos.unit = end->unit;
-				pos.item = end->item;
+			if (start->unit == 0)
+				begin--;
+		}
 
-				if (node40_item(&item, node, pos.item))
-					return -1;
+		/* Removing units inside end item */
+		if (end->unit != ~0ul) {
+			pos.unit = end->unit;
+			pos.item = end->item;
+
+			if (node40_item(&item, node, pos.item))
+				return -1;
 				
-				count = item.plugin->item_ops.units(&item) -
-					end->unit;
+			units = item.plugin->item_ops.units(&item);
 
-				if (node40_delete(node, &pos, count))
-					return -1;
-			}
+			if (node40_delete(node, &pos, units - end->unit))
+				return -1;
+
+			if (end->unit >= units)
+				count++;
+		}
 			
-			/* Removing some amount of whole items */
+		if (count > 0) {
+                        /*
+			  Removing some amount of whole items from the node. If
+			  previous node40_delete produced empty edge items, they
+			  will eb removed too.
+			*/
 			pos.unit = ~0ul;
-			pos.item = start->item + 1;
-			count = end->item - start->item + 1;
+			pos.item = begin;
 
 			if (node40_delete(node, &pos, count))
 				return -1;
@@ -746,6 +739,15 @@ static errno_t node40_cut(object_entity_t *entity, reiser4_pos_t *start,
 
 		if (node40_delete(node, &pos, count))
 			return -1;
+
+		if (node40_item(&item, node, pos.item))
+			return -1;
+
+		/* Remove empty item */
+		if (!(units = item.plugin->item_ops.units(&item))) {
+			pos.unit = ~0ul;
+			node40_shrink(node, &pos, item.len);
+		}
 	}
 
 	return 0;
