@@ -171,8 +171,11 @@ static errno_t debugfs_print_joint(
 }
 
 static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
-    return reiser4_joint_traverse(fs->tree->root, (void *)fs->tree,
+    reiser4_joint_traverse(fs->tree->root, (void *)fs->tree,
 	debugfs_open_joint, debugfs_print_joint, NULL, NULL, NULL, NULL);
+    
+    printf("\n");
+    return 0;
 }
 
 static errno_t debugfs_print_super(reiser4_fs_t *fs) {
@@ -187,23 +190,23 @@ static errno_t debugfs_print_super(reiser4_fs_t *fs) {
 	return -1;
     }
     
-    printf(buff);
+    printf(buff); printf("\n");
     
     return 0;
 }
 
 static errno_t debugfs_print_alloc(reiser4_fs_t *fs) {
-    aal_exception_error("Sorry, not implemented yet!");
+    aal_exception_error("Sorry, block allocator print not implemented yet!");
     return 0;
 }
    
 static errno_t debugfs_print_oid(reiser4_fs_t *fs) {
-    aal_exception_error("Sorry, not implemented yet!");
+    aal_exception_error("Sorry, oid allocator print not implemented yet!");
     return 0;
 }
    
 static errno_t debugfs_print_journal(reiser4_fs_t *fs) {
-    aal_exception_error("Sorry, not implemented yet!");
+    aal_exception_error("Sorry, journal print not implemented yet!");
     return 0;
 }
 
@@ -302,12 +305,6 @@ int main(int argc, char *argv[]) {
     if (flags == 0)
 	flags |= PF_TREE;
     
-    if (!aal_pow_of_two(flags)) {
-	aal_exception_error("Ambiguous print options has been detected. "
-	    "Please, select one of --print-*");
-	return USER_ERROR;
-    }
-    
     if (optind >= argc) {
 	debugfs_print_usage(argv[0]);
 	return USER_ERROR;
@@ -372,8 +369,9 @@ int main(int argc, char *argv[]) {
 	goto error_free_libreiser4;
     }
     
-    if (flags & PF_TREE) {
-	if (debugfs_print_tree(fs))
+    if (!aal_pow_of_two(flags) && !force) {
+	if (aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO,
+	    "Ambiguous print options has been detected. Continue?") == EXCEPTION_NO)
 	    goto error_free_fs;
     }
     
@@ -394,6 +392,11 @@ int main(int argc, char *argv[]) {
     
     if (flags & PF_JOURNAL) {
 	if (debugfs_print_journal(fs))
+	    goto error_free_fs;
+    }
+    
+    if (flags & PF_TREE) {
+	if (debugfs_print_tree(fs))
 	    goto error_free_fs;
     }
     
