@@ -274,16 +274,14 @@ reiser4_node_t *reiser4_node_cbp(
 					  callback_comp_blk, NULL)))
 		return NULL;
 
-	child = (reiser4_node_t *)list->data;
-	
-	return child;
+	return (reiser4_node_t *)list->data;
 }
 
 /*
   Helper callback function for comparing two nodes durring registering the new
   child.
 */
-static int callback_comp_node(
+static inline int callback_comp_node(
 	const void *item1,		/* the first node instance for comparing */
 	const void *item2,		/* the second one */
 	void *data)		        /* user-specified data */
@@ -376,8 +374,7 @@ lookup_t reiser4_node_lookup(
 	aal_assert("vpf-048", node != NULL);
 	aal_assert("umka-476", key != NULL);
 
-	pos->item = 0;
-	pos->unit = ~0ul;
+	POS_INIT(pos, 0, ~0ul);
 
 	if (reiser4_node_items(node) == 0)
 		return LP_ABSENT;
@@ -777,13 +774,10 @@ errno_t reiser4_node_insert(
 	aal_assert("umka-990", node != NULL);
 	aal_assert("umka-991", pos != NULL);
 	aal_assert("umka-992", hint != NULL);
-
-#ifdef ENABLE_DEBUG
-	maxspace = reiser4_node_maxspace(node);
-
+	aal_assert("umka-1957", hint->len > 0);
+	
 	aal_assert("umka-761", hint->len > 0 &&
-		   hint->len < maxspace);
-#endif
+		   hint->len < reiser4_node_maxspace(node));
 
 	needed = hint->len + (pos->unit == ~0ul ?
 			      reiser4_node_overhead(node) : 0);
@@ -966,4 +960,3 @@ uint8_t reiser4_node_get_level(reiser4_node_t *node) {
 	return plugin_call(node->entity->plugin->node_ops, 
 			   get_level, node->entity);
 }
-
