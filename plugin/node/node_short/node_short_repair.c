@@ -123,8 +123,8 @@ static uint32_t node_short_count_estimate(node_t *node) {
  * checked/recovered if broken. */
 static errno_t node_short_item_array_check(node_t *node, uint8_t mode) {
 	uint32_t limit, offset, last_relable, count, i, last_pos;
-	errno_t res = RE_OK;
 	bool_t free_valid;
+	errno_t res = 0;
 	blk_t blk;
 	
 	aal_assert("vpf-208", node != NULL);
@@ -149,22 +149,23 @@ static errno_t node_short_item_array_check(node_t *node, uint8_t mode) {
 			ih_get_offset(node_short_ih_at(node, i));
 		
 		if (i == 0) {
-			if (offset != last_relable) {
-				aal_exception_error("Node (%llu), item (0): Offset "
-						    "(%u) is wrong. Should be (%u). "
-						    "%s", blk, offset, last_relable, 
-						    mode == RM_BUILD ? 
-						    "Fixed." : "");
-				
-				if (mode == RM_BUILD) {
-					ih_set_offset(node_short_ih_at(node, 0), 
-							last_relable);
-					res |= RE_FIXED;
-				} else {
-					res |= RE_FATAL;
-				}
-			}
+			if (offset == last_relable)
+				continue;
 			
+			aal_exception_error("Node (%llu), item (0): Offset "
+					    "(%u) is wrong. Should be (%u). "
+					    "%s", blk, offset, last_relable, 
+					    mode == RM_BUILD ? 
+					    "Fixed." : "");
+
+			if (mode == RM_BUILD) {
+				ih_set_offset(node_short_ih_at(node, 0), 
+					      last_relable);
+
+				node_common_mkdirty((node_entity_t *)node);
+			} else
+				res |= RE_FATAL;
+
 			continue;
 		}
 		
@@ -209,7 +210,8 @@ static errno_t node_short_item_array_check(node_t *node, uint8_t mode) {
 			nh_set_free_space(node, nh_get_free_space(node) + 
 					    offset - last_relable);
 			nh_set_free_space_start(node, last_relable);
-			res |= RE_FIXED;
+			
+			node_common_mkdirty((node_entity_t *)node);
 		} else {
 			res |= RE_FATAL;
 		}
@@ -229,7 +231,7 @@ static errno_t node_short_item_array_check(node_t *node, uint8_t mode) {
 			res |= RE_FIXABLE;
 		} else {
 			nh_set_free_space(node, last_relable);
-			res |= RE_FIXED;
+			node_common_mkdirty((node_entity_t *)node);
 		}
 	}
 	
@@ -238,7 +240,7 @@ static errno_t node_short_item_array_check(node_t *node, uint8_t mode) {
 
 static errno_t node_short_item_array_find(node_t *node, uint8_t mode) {
 	uint32_t offset, i, nr = 0;
-	errno_t res = RE_OK;
+	errno_t res = 0;
 	blk_t blk;
 	
 	aal_assert("vpf-800", node != NULL);
@@ -278,10 +280,9 @@ static errno_t node_short_item_array_find(node_t *node, uint8_t mode) {
 		
 		if (mode == RM_BUILD) {
 			nh_set_num_items(node, nr);
-			res = RE_FIXED;
-		} else {
+			node_common_mkdirty((node_entity_t *)node);
+		} else
 			return RE_FATAL;
-		}
 	}
 	
 	offset = ih_get_offset(node_short_ih_at(node, nr + 1));
@@ -293,7 +294,7 @@ static errno_t node_short_item_array_find(node_t *node, uint8_t mode) {
 		
 		if (mode != RM_CHECK) {
 			nh_set_free_space_start(node, offset);
-			res |= RE_FIXED;
+			node_common_mkdirty((node_entity_t *)node);
 		} else
 			return RE_FIXABLE;
 	}
@@ -309,10 +310,9 @@ static errno_t node_short_item_array_find(node_t *node, uint8_t mode) {
 		
 		if (mode != RM_CHECK) {
 			nh_set_free_space(node, offset);
-			res |= RE_FIXED;
-		} else {
+			node_common_mkdirty((node_entity_t *)node);
+		} else
 			return RE_FIXABLE;
-		}
 	}
 	
 	return res;
@@ -332,7 +332,7 @@ static errno_t node_short_count_check(node_t *node, uint8_t mode) {
 	
 	if (node_short_item_count_valid(node->block->size, 
 				    nh_get_num_items(node)))
-		return RE_OK;
+		return 0;
 	
 	/* Count is wrong. Try to recover it if possible. */
 	num = node_short_count_estimate(node);
@@ -349,12 +349,12 @@ static errno_t node_short_count_check(node_t *node, uint8_t mode) {
 			    "correct. %s", blk, nh_get_num_items(node), num, 
 			    mode == RM_BUILD ? "Fixed." : "");
 	
-	if (mode == RM_BUILD) {
-		nh_set_num_items(node,  num);
-		return RE_FIXED;
-	}
+	if (mode != RM_BUILD) 
+		return RE_FATAL;
 	
-	return RE_FATAL;
+	nh_set_num_items(node, num);
+	node_common_mkdirty((node_entity_t *)node);
+	return 0;
 }
 
 errno_t node_short_check_struct(node_entity_t *entity, uint8_t mode) {

@@ -116,7 +116,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 {
 	sdext_lw_hint_t lw_hint, lw_new;
 	sdext_unix_hint_t unix_hint;
-	errno_t res = RE_OK;
+	errno_t res = 0;
 	place_t *stat;
 	
 	aal_assert("vpf-1213", obj != NULL);

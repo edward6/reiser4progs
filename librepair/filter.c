@@ -68,14 +68,9 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 			repair_place_get_lpos(place, ppos);
 
 			hint.count = 1;
-			if (reiser4_node_remove(place->node, &place->pos, &hint)) {
-				aal_exception_error("Node (%llu), pos (%u, "
-						    "%u): Remove failed.",
-						    node_blocknr(place->node),
-						    place->pos.item,
-						    place->pos.unit);
+			
+			if (reiser4_node_remove(place->node, &place->pos, &hint))
 				return INVAL_PTR;
-			}
 			
 			place->pos = ppos;
 		} else
@@ -364,12 +359,9 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 			repair_place_get_lpos(place, prev);
 
 			hint.count = 1;
-			if (reiser4_node_remove(place->node, &place->pos, &hint)) {
-				aal_exception_error("Node (%llu), pos (%u, %u): "
-						    "Remove failed.", node_blocknr(place->node), 
-						    place->pos.item, place->pos.unit);
+
+			if (reiser4_node_remove(place->node, &place->pos, &hint))
 				return -EINVAL;
-			}
 			
 			place->pos = prev;
 		} 

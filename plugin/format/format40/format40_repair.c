@@ -8,11 +8,13 @@
 #include "format40.h"
 #include <repair/plugin.h>
 
+extern void format40_mkdirty(generic_entity_t *entity);
+
 errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 	format40_t *format = (format40_t *)entity;
 	format40_super_t *super;
 	count_t count;
-	errno_t result = RE_OK;
+	errno_t res = 0;
 	
 	aal_assert("vpf-160", entity != NULL);
 	
@@ -39,7 +41,7 @@ errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 			}
 			
 			set_sb_block_count(super, count);
-			result |= RE_FIXED;	    
+			format40_mkdirty(entity);
 		} else {
 			aal_exception_fatal("Number of blocks found in the "
 					    "superblock (%llu) is not equal to "
@@ -57,9 +59,9 @@ errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 		
 		if (mode != RM_CHECK) {
 			set_sb_block_count(super, count);
-			result |= RE_FIXED;
+			format40_mkdirty(entity);
 		} else 
-			result |= RE_FIXABLE;
+			res |= RE_FIXABLE;
 	}
 	
 	/* Check the free block count. */
@@ -70,7 +72,7 @@ errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 				    "" : "Will be fixed later.");
 		
 		if (mode == RM_CHECK)
-			result |= RE_FIXABLE;
+			res |= RE_FIXABLE;
 	}
 	
 	/* Check the root block number. */
@@ -81,12 +83,12 @@ errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 				    "the superblock.", get_sb_root_block(super));
 		
 		if (mode != RM_BUILD)
-			result |= RE_FATAL;
+			res |= RE_FATAL;
 		else 
 			set_sb_root_block(super, INVAL_BLK);
 	}
 	
-	return result;
+	return res;
 }
 
 /* Update from the device only those fields which can be changed while 

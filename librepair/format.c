@@ -8,8 +8,8 @@
 /* Checks the opened format, or build a new one if it was not openned. */
 static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	reiser4_plug_t *plug = NULL;
-	errno_t res = RE_OK;
 	rid_t policy, pid;
+	errno_t res = 0;
 	count_t count;
 	
 	aal_assert("vpf-165", fs != NULL);
@@ -77,8 +77,9 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			reiser4_format_set_stamp(fs->format, 0);
 			set_ms_format(SUPER(fs->master), pid);
 			reiser4_master_mkdirty(fs->master);
+			reiser4_format_mkdirty(fs->format);
 			
-			return RE_FIXED;
+			return 0;
 		} else {
 			/* Format was detected on the device. */
 			aal_exception_fatal("The on-disk format (%s) was detected on "
@@ -123,10 +124,9 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 					    policy);
 			
 			reiser4_format_set_policy(fs->format, policy);
-			res |= RE_FIXED;    
-		} else {
+			reiser4_format_mkdirty(fs->format);
+		} else
 			res |= RE_FIXABLE;
-		}
 	}
 	
 	if (pid != policy) {
@@ -153,9 +153,6 @@ errno_t repair_format_open(reiser4_fs_t *fs, uint8_t mode) {
 	
 	if (repair_error_exists(error))
 		goto error_format_close;
-	
-	if (error & RE_FIXED)
-		reiser4_format_mkdirty(fs->format);
 	
 	return 0;
 	

@@ -557,8 +557,14 @@ errno_t reiser4_node_shrink(reiser4_node_t *node, pos_t *pos,
 	aal_assert("umka-1817", node != NULL);
 	aal_assert("umka-1818", pos != NULL);
 
-	res = plug_call(node->entity->plug->o.node_ops,
-			shrink, node->entity, pos, len, count);
+	if ((res = plug_call(node->entity->plug->o.node_ops,
+			     shrink, node->entity, pos, len, count)))
+	{
+		aal_exception_error("Node %llu, pos %u/%u: can't "
+				    "shrink the node on %u bytes.", 
+				    node_blocknr(node), pos->item, 
+				    pos->unit, len);
+	}
 
 	return res;
 }

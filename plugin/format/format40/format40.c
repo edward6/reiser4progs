@@ -70,7 +70,7 @@ static int format40_isdirty(generic_entity_t *entity) {
 	return ((format40_t *)entity)->dirty;
 }
 
-static void format40_mkdirty(generic_entity_t *entity) {
+void format40_mkdirty(generic_entity_t *entity) {
 	aal_assert("umka-2079", entity != NULL);
 	((format40_t *)entity)->dirty = 1;
 }

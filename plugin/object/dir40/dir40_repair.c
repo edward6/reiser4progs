@@ -12,8 +12,6 @@ extern reiser4_plug_t dir40_plug;
 extern errno_t dir40_reset(object_entity_t *entity);
 extern lookup_t dir40_lookup(object_entity_t *entity, char *name, 
 			     entry_hint_t *entry);
-extern errno_t dir40_readdir(object_entity_t *entity, entry_hint_t *entry);
-extern errno_t dir40_rem_entry(object_entity_t *entity, entry_hint_t *entry);
 extern errno_t dir40_fetch(object_entity_t *entity, entry_hint_t *entry);
 
 #define dir40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
@@ -28,7 +26,7 @@ static errno_t dir40_extentions(place_t *stat) {
 		return RE_FATAL;
 	
 	/* Check that LW and UNIX extentions exist. */
-	return ((extmask & dir40_exts) == dir40_exts) ? RE_OK : RE_FATAL;
+	return ((extmask & dir40_exts) == dir40_exts) ? 0 : RE_FATAL;
 }
 
 /* Check SD extentions and that mode in LW extention is DIRFILE. */
@@ -85,56 +83,6 @@ static void dir40_check_mode(uint16_t *mode) {
 static void dir40_check_size(uint64_t *sd_size, uint64_t counted_size) {
 	if (*sd_size != counted_size)
 		*sd_size = counted_size;
-}
-
-static errno_t dir40_check_entry(dir40_t *dir, 
-				 entry_hint_t *entry, 
-				 uint8_t mode) 
-{
-	object_info_t *info;
-	key_entity_t key;
-	errno_t res;
-	
-	aal_assert("vpf-1239", dir != NULL);
-	aal_assert("vpf-1240", entry != NULL);
-	aal_assert("vpf-1241", entry->offset.plug != NULL);
-	
-	info = &dir->obj.info;
-	
-	/* Check that entry is valid. */
-	plug_call(entry->offset.plug->o.key_ops, build_entry, 
-		  &key, dir->hash, obj40_locality(&dir->obj),
-		  obj40_objectid(&dir->obj), entry->name);
-	
-	if (!plug_call(key.plug->o.key_ops, compfull, &key, &entry->offset))
-		return 0;
-	
-	/* Offset key does not match. Remove the entry. */
-	aal_exception_error("Directory [%s], plugin %s, node [%llu], item "
-			    "[%u], unit [%u]: entry has wrong offset [%s]."
-			    " Should be [%s]. %s", 
-			    print_ino(core, &info->object),
-			    dir40_plug.label, dir->body.block->nr,
-			    dir->body.pos.item, dir->body.pos.unit,
-			    print_key(core, &entry->offset),
-			    print_key(core, &key), mode == RM_BUILD ?
-			    "Removed." : "");
-
-	if (mode != RM_BUILD)
-		return RE_FATAL;
-
-	if ((res = plug_call(dir->body.plug->o.item_ops, remove, &dir->body,
-			     dir->body.pos.unit, 1)))
-	{
-		aal_exception_error("Directory [%s], plugin %s, node [%llu], "
-				    "item [%u], unit [%u]: failed to remove "
-				    "the entry.", print_ino(core, &info->object),
-				    dir40_plug.label, dir->body.block->nr,
-				    dir->body.pos.item, dir->body.pos.unit);
-		return res;
-	}
-	
-	return RE_REMOVED;
 }
 
 static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
@@ -281,8 +229,11 @@ errno_t dir40_check_struct(object_entity_t *object,
 	   order -- choose the hash found among the entries most of the 
 	   times and correct hash plugin in SD. */
 	while (TRUE) {
-		uint32_t units, i;
+		pos_t *pos = &dir->body.pos;
+		remove_hint_t hint;
+		key_entity_t key;
 		errno_t result;
+		uint32_t units;
 		
 		/* Check that the body item is of the current dir. */
 		if ((result = dir40_belongs(dir, bplug)) < 0)  {
@@ -302,22 +253,54 @@ errno_t dir40_check_struct(object_entity_t *object,
 		units = plug_call(dir->body.plug->o.item_ops, 
 				  units, &dir->body);
 		
-		dir->body.pos.unit = 0;
-		for (i = 0; i < units; i++) {
+		for (pos->unit = 0; pos->unit < units; pos->unit++) {
 			/*  */
 			if ((res |= dir40_fetch(object, &entry)) < 0)
 				return res;
 			
-			if ((res |= dir40_check_entry(dir, &entry, mode)) < 0)
+			plug_call(entry.offset.plug->o.key_ops, build_entry, 
+				  &key, dir->hash, obj40_locality(&dir->obj),
+				  obj40_objectid(&dir->obj), entry.name);
+	
+			if (!plug_call(key.plug->o.key_ops, compfull, 
+				       &key, &entry.offset))
+				continue;
+			
+			/* Broken entry found, remove it. */
+			aal_exception_error("Directory [%s], plugin %s, node "
+					    "[%llu], item [%u], unit [%u]: "
+					    "entry has wrong offset [%s]."
+					    " Should be [%s]. %s", 
+					    print_ino(core, &info->object),
+					    dir40_plug.label, 
+					    dir->body.block->nr,
+					    dir->body.pos.item, 
+					    dir->body.pos.unit,
+					    print_key(core, &entry.offset),
+					    print_key(core, &key), 
+					    mode == RM_BUILD ? "Removed." : "");
+
+
+			if (mode != RM_BUILD) {
+				res |= RE_FATAL;
+				continue;
+			}
+
+			hint.count = 1;
+
+			/* FIXME-VITALY: make sure that the tree does not 
+			   get rebalanced while removing the entry. Also 
+			   I suppose that removing the last unit will remove 
+			   the whole item. */
+			if ((res |= obj40_remove(&dir->obj, &dir->body, 
+						 &hint)) < 0)
 				return res;
 
-			if (!(res & RE_REMOVED))
-				dir->body.pos.unit++;
-			else
-				res &= ~RE_REMOVED;
+			units--; 
+			pos->unit--;
 		}
 		
-		if (plug_call(dir->body.plug->o.item_ops, units, &dir->body)) {
+		if (units) {
 			/* Count size and bytes. */
 			size += plug_call(dir->body.plug->o.item_ops, 
 					  size, &dir->body);
@@ -325,21 +308,11 @@ errno_t dir40_check_struct(object_entity_t *object,
 			bytes += plug_call(dir->body.plug->o.item_ops, 
 					   bytes, &dir->body);
 			
-			res |= core->tree_ops.next(dir->obj.info.tree,
-						   &dir->body, &dir->body);
-			if (res < 0)
+			if ((res |= core->tree_ops.next(dir->obj.info.tree,
+							&dir->body, 
+							&dir->body)) < 0)
 				return res;
 		} else {
-			remove_hint_t hint;
-			
-			/* No one unit left, remove the item. */
-			dir->body.pos.unit = MAX_UINT32;
-			hint.count = 1;
-			
-			if ((res |= obj40_remove(&dir->obj, &dir->body, 
-						 &hint)) < 0)
-				return res;
-
 			/* Lookup the last removed entry, get the next item. */
 			if (dir40_lookup(object, entry.name, NULL) == FAILED)
 				return -EINVAL;
@@ -395,8 +368,10 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 	}
 
 	/* ".." matches the parent. Now do parent->nlink++ for REBUILD mode. */
-	return mode != RM_BUILD ? RE_OK :
-	       plug_call(parent->plug->o.object_ops, link, parent);
+	if (mode != RM_BUILD)
+		return 0;
+	
+	return plug_call(parent->plug->o.object_ops, link, parent);
 }
 
 

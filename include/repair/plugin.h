@@ -9,38 +9,34 @@
 #include <aal/types.h>
 
 typedef enum repair_mode {
+	/* Check the consistensy of the fs  */
 	RM_CHECK	= 1,
+	/* Fix all fixable corruptions. */
 	RM_FIX		= 2,
+	/* Rebuild the fs from the found wrecks. */
 	RM_BUILD	= 3,
+	/* Rollback changes have been make by the last fsck run. */
 	RM_BACK		= 4,
+	/* No one mode anymore. */
 	RM_LAST		= 5
 } repair_mode_t;
 
 typedef enum repair_error {
 	/* To make repair_error_t signed. */
 	RE_BUG		= (-1),
-	/* No error were detected. */
-	RE_OK		= (0),
-	/* When item gets removed from the node, to correct position in the 
-	   loop correctly. */
-	RE_REMOVED	= (1 << 0),
-	/* All errors were fixed. */
-	RE_FIXED	= (1 << 1),
 	/* Fixable errors were detected. */
-	RE_FIXABLE	= (1 << 2),
+	RE_FIXABLE	= (1 << 0),
 	/* Fatal errors were detected. */
-	RE_FATAL	= (1 << 3),
+	RE_FATAL	= (1 << 1),
 	/* For expansibility. */
-	RE_LAST		= (1 << 4)
+	RE_LAST		= (1 << 2)
 } repair_error_t;
 
-#define repair_error_exists(result)  ((result > RE_FIXED) || (result < 0))
+#define repair_error_exists(result)  (!result)
 #define repair_error_fatal(result)   ((result >= RE_FATAL) || (result < 0))
 
 #define repair_error_check(result, mode)		\
 ({							\
-	aal_assert("vpf-785", (mode != RM_CHECK) ||	\
-			      !(res & RE_FIXED));	\
 	aal_assert("vpf-786", (mode != RM_FIX) ||	\
 			      !(res & RE_FIXABLE));	\
 	aal_assert("vpf-787", (mode != RM_BUILD) ||	\

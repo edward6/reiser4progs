@@ -779,7 +779,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 }
 
 /* Removing entry from the directory */
-errno_t dir40_rem_entry(object_entity_t *entity, entry_hint_t *entry) {
+static errno_t dir40_rem_entry(object_entity_t *entity, entry_hint_t *entry) {
 	errno_t res;
 	dir40_t *dir;
 	uint64_t size;

@@ -40,9 +40,9 @@ reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk) {
 static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 	reiser4_place_t place;
 	pos_t *pos = &place.pos;
+	errno_t ret, res = 0;
 	uint32_t count;
 	int32_t len;
-	errno_t ret, res = RE_OK;
 	
 	aal_assert("vpf-229", node != NULL);
 	aal_assert("vpf-230", node->entity != NULL);
@@ -70,17 +70,11 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 
 			hint.count = 1;
 
-			if ((ret = reiser4_node_remove(node, pos, &hint))) {
-				aal_exception_bug("Node (%llu): Failed to "
-						  "delete the item (%d).", 
-						  node_blocknr(node), 
-						  pos->item);
-				return ret;
-			}
+			if ((res |= reiser4_node_remove(node, pos, &hint)) < 0)
+				return res;
 
 			pos->item--;
 			count = reiser4_node_items(node);
-			res |= RE_FIXED;
 		} 
 		
 		/* Check that the item is legal for this node. If not, it 
@@ -101,15 +95,26 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		/* Check the item structure. */
 		if ((ret = repair_item_check_struct(&place, mode)) < 0)
 			return ret;
-		
-		res |= ret;
-		
-		if (res & RE_REMOVED) {
+
+		/* Remove the item if fatal error. */
+		if ((ret & RE_FATAL) && (mode == RM_BUILD)) {
+			remove_hint_t hint;
+
+			aal_exception_error("Node (%llu), item (%u): broken "
+					    "item occured, Remove it.",
+					    node_blocknr(node), pos->item);
+
+			hint.count = 1;
+
+			if ((ret = reiser4_node_remove(node, pos, &hint)))
+				return ret;
+			
 			pos->item--;
 			count = reiser4_node_items(node);
-			res &= ~RE_REMOVED;
-			res |= RE_FIXED;
+			ret &= ~RE_FATAL;
 		}
+		
+		res |= ret;
 	}
 	
 	return res;
@@ -315,12 +320,8 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 
 			hint.count = 1;
 			
-			if ((res = reiser4_node_remove(node, pos, &hint))) {
-				aal_exception_bug("Node (%llu): Failed to "
-						  "delete the item (%d).",
-						  node_blocknr(node), pos->item);
+			if ((res = reiser4_node_remove(node, pos, &hint)))
 				return res;
-			}
 			
 			pos->item--;
 			count = reiser4_node_items(node);
@@ -350,20 +351,20 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 		prev_key = key;
 	}
 	
-	return RE_OK;
+	return 0;
 }
 
 /*  Checks the node content.
     Returns values according to repair_error_codes_t. */
 errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
-	errno_t res = RE_OK;
+	errno_t res;
 	
 	aal_assert("vpf-494", node != NULL);
 	aal_assert("vpf-193", node->entity != NULL);    
 	aal_assert("vpf-220", node->entity->plug != NULL);
 	
-	res |= plug_call(node->entity->plug->o.node_ops, check_struct, 
-			 node->entity, mode);
+	res = plug_call(node->entity->plug->o.node_ops, check_struct, 
+			node->entity, mode);
 	
 	if (repair_error_fatal(res))
 		return res;
@@ -378,11 +379,6 @@ errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
 	
 	if (repair_error_fatal(res))
 		return res;    
-	
-	if (res & RE_FIXED) {
-		reiser4_node_mkdirty(node);
-		res &= ~RE_FIXED;
-	}
 	
 	return res;
 }

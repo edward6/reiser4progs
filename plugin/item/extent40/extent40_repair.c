@@ -24,7 +24,7 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 {
 	uint32_t i, units;
 	extent40_t *extent;
-	errno_t res, result = RE_OK;
+	errno_t res, result = 0;
 	
 	aal_assert("vpf-724", place != NULL);
 	aal_assert("vpf-725", func != NULL);
@@ -47,19 +47,18 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 		if (!res)
 			continue;
 		
-		if (mode == RM_CHECK) {
-			result = RE_FIXABLE;
-			continue;
-		}
-		
 		/* Zero the problem region. */
-		aal_exception_error("Node (%llu), item (%u): pointed region "
-				    "[%llu..%llu] is zeroed.", place->block->nr,
-				    place->pos.item, start, start + width - 1);
-		
-		et40_set_start(extent, 0);
-		result = RE_FIXED;
+		aal_exception_error("Node (%llu), item (%u), unit (%u): "
+				    "pointed region [%llu..%llu] is invalid.%s", 
+				    place->block->nr, place->pos.item, 
+				    place->pos.unit, start, start + width - 1,
+				    mode != RM_CHECK ? " Zeroed." : "");
 
+		if (mode != RM_CHECK) {
+			et40_set_start(extent, 0);
+			place_mkdirty(place);
+		} else
+			result = RE_FIXABLE;
 	}
 	
 	return result;
@@ -67,7 +66,7 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 
 errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 	aal_assert("vpf-750", place != NULL);
-	return place->len % sizeof(extent40_t) ? RE_FATAL : RE_OK;
+	return place->len % sizeof(extent40_t) ? RE_FATAL : 0;
 }
 
 errno_t extent40_copy(place_t *dst, uint32_t dst_pos, 

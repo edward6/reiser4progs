@@ -22,9 +22,11 @@ static errno_t callback_check_ext(sdext_entity_t *sdext, uint16_t extmask,
 	
 	hint->sdext = *sdext;
 	
-	return sdext->plug->o.sdext_ops->check_struct ? 
-		sdext->plug->o.sdext_ops->check_struct(sdext, hint->mode) : 
-		RE_OK;
+	if (!sdext->plug->o.sdext_ops->check_struct)
+		return 0;
+	
+	return plug_call(sdext->plug->o.sdext_ops, check_struct,
+			 sdext, hint->mode);
 }
 
 errno_t stat40_check_struct(place_t *place, uint8_t mode) {
@@ -61,13 +63,15 @@ errno_t stat40_check_struct(place_t *place, uint8_t mode) {
 				    place->len, hint.sdext.offset, 
 				    mode == RM_BUILD ? "Fixed." : "");
 		
-		if (mode == RM_BUILD)
-			place->len = hint.sdext.offset;
+		if (mode != RM_BUILD)
+			return RE_FATAL;
 		
-		return mode == RM_BUILD ? RE_FIXED : RE_FATAL;
+		place->len = hint.sdext.offset;
+		place_mkdirty(place);
+		return 0;
 	}
 	
-	return RE_OK;
+	return 0;
 }
 
 errno_t stat40_copy(place_t *dst, uint32_t dst_pos, 

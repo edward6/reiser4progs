@@ -290,7 +290,7 @@ static errno_t cde_short_offsets_range_check(place_t *place,
 {
 	cde_short_t *de = cde_short_body(place);
 	uint32_t i, j, to_compare;
-	errno_t res = RE_OK;
+	errno_t res = 0;
 	
 	aal_assert("vpf-757", flags != NULL);
 	
@@ -350,7 +350,7 @@ static errno_t cde_short_offsets_range_check(place_t *place,
 					   set result properly. */
 					if (i - j > 1) {
 						if (mode == RM_BUILD)
-							res |= RE_FIXED;
+							place_mkdirty(place);
 						else
 							res |= RE_FATAL;
 					}
@@ -382,7 +382,7 @@ static errno_t cde_short_filter(place_t *place, struct entry_flags *flags,
 {
 	cde_short_t *de = cde_short_body(place);
 	uint32_t e_count, i, last;
-	errno_t res = RE_OK;
+	errno_t res = 0;
 	
 	aal_assert("vpf-757", flags != NULL);
 	
@@ -433,7 +433,7 @@ static errno_t cde_short_filter(place_t *place, struct entry_flags *flags,
 	if (e_count > flags->count && last != flags->count) {
 		if (mode == RM_BUILD) {
 			en_set_offset(&de->entry[flags->count], place->len);
-			res |= RE_FIXED;
+			place_mkdirty(place);
 		} else {
 			res |= RE_FATAL;
 		}
@@ -443,7 +443,7 @@ static errno_t cde_short_filter(place_t *place, struct entry_flags *flags,
 		/* Last unit is not valid. */
 		if (mode == RM_BUILD) {
 			place->len = OFFSET(de, last);
-			res |= RE_FIXED;
+			place_mkdirty(place);
 		} else {
 			res |= RE_FATAL;
 		}
@@ -458,7 +458,7 @@ static errno_t cde_short_filter(place_t *place, struct entry_flags *flags,
 		if (mode == RM_BUILD) {	    
 			en_set_offset(&de->entry[0], sizeof(cde_short_t) + 
 					sizeof(entry_t) * flags->count);
-			res |= RE_FIXED;
+			place_mkdirty(place);
 		}
 	}
 	
@@ -473,7 +473,7 @@ static errno_t cde_short_filter(place_t *place, struct entry_flags *flags,
 			res |= RE_FIXABLE;
 		} else {
 			de_set_units(de, e_count);
-			res |= RE_FIXED;
+			place_mkdirty(place);
 		}
 	}
 	
@@ -497,7 +497,7 @@ static errno_t cde_short_filter(place_t *place, struct entry_flags *flags,
 				return -EINVAL;
 			}
 			
-			res |= RE_FIXED;
+			place_mkdirty(place);
 		} else {
 			res |= RE_FATAL;
 		}
@@ -519,7 +519,7 @@ static errno_t cde_short_filter(place_t *place, struct entry_flags *flags,
 				return -EINVAL;
 			}
 			
-			res |= RE_FIXED;
+			place_mkdirty(place);
 			aal_memmove(flags->elem, flags->elem + i, 
 				    flags->count - i);
 			
@@ -572,7 +572,7 @@ static errno_t cde_short_filter(place_t *place, struct entry_flags *flags,
 			i = last;
 			last = MAX_UINT32;
 
-			res |= RE_FIXED;
+			place_mkdirty(place);
 		}
 	}
 	
@@ -583,8 +583,8 @@ static errno_t cde_short_filter(place_t *place, struct entry_flags *flags,
 
 errno_t cde_short_check_struct(place_t *place, uint8_t mode) {
 	struct entry_flags flags;
-	errno_t res = RE_OK;
 	cde_short_t *de;
+	errno_t res = 0;
 	int i;
 	
 	aal_assert("vpf-267", place != NULL);

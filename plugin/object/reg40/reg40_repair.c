@@ -31,7 +31,7 @@ static errno_t reg40_extentions(place_t *stat) {
 		return RE_FATAL;
 	
 	/* Check that LW and UNIX extentions exist. */
-	return ((extmask & reg40_exts) == reg40_exts) ? RE_OK : RE_FATAL;
+	return ((extmask & reg40_exts) == reg40_exts) ? 0 : RE_FATAL;
 }
 
 /* Check SD extentions and that mode in LW extention is REGFILE. */
@@ -133,9 +133,9 @@ errno_t reg40_check_struct(object_entity_t *object,
 	uint64_t size, bytes, offset, next;
 	reg40_t *reg = (reg40_t *)object;
 	object_info_t *info;
-	errno_t res = RE_OK;
 	key_entity_t key;
 	lookup_t lookup;
+	errno_t res = 0;
 
 	aal_assert("vpf-1126", reg != NULL);
 	aal_assert("vpf-1190", reg->obj.info.tree != NULL);
@@ -237,11 +237,6 @@ errno_t reg40_check_struct(object_entity_t *object,
 					      callback_layout, &hint, 
 					      mode)) < 0)
 				return res;
-
-			if (res & RE_FIXED) {
-				/* FIXME-VITALY: mark node ditry. */
-				res &= ~RE_FIXED;
-			}
 		}
 		
 		/* Get the maxreal key of the found item and find next. */

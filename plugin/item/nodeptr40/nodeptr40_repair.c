@@ -23,13 +23,14 @@ errno_t nodeptr40_check_layout(place_t *place, region_func_t region_func,
 	res = region_func(place, blk, 1, data);
 	
 	if (res > 0) {
+		aal_exception_error("Node (%llu), item (%u): wrong pointer to "
+				    "the block %llu.%s", place->block->nr,
+				    place->pos.item, blk, mode == RM_BUILD ?
+				    " Removed." : "");
+
 		if (mode == RM_BUILD) {
-			aal_exception_error("Node (%llu), item (%u): a pointer to "
-					    "the region [%llu..%llu] is removed.", 
-					    place->block->nr, place->pos.item,
-					    blk, blk);
 			place->len = 0;
-			return RE_FIXED;
+			return 0;
 		}
 		
 		return RE_FATAL;
@@ -37,12 +38,12 @@ errno_t nodeptr40_check_layout(place_t *place, region_func_t region_func,
 		return res;
 	}
 	
-	return RE_OK;
+	return 0;
 }
 
 errno_t nodeptr40_check_struct(place_t *place, uint8_t mode) {
 	aal_assert("vpf-751", place != NULL);
-	return place->len != sizeof(nodeptr40_t) ? RE_FATAL : RE_OK;
+	return place->len != sizeof(nodeptr40_t) ? RE_FATAL : 0;
 }
 #endif
 

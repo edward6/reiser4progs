@@ -317,8 +317,8 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 {
 	repair_semantic_t *sem = (repair_semantic_t *)data;
 	reiser4_object_t *object, *upper = NULL;
-	errno_t res = RE_OK;
 	reiser4_place_t *start;
+	errno_t res = 0;
 	bool_t flag;
 	
 	aal_assert("vpf-1172", parent != NULL);

@@ -198,19 +198,11 @@ errno_t repair_add_missing(repair_am_t *am) {
 					remove_hint_t hint;
 
 					hint.count = 1;
-					res = reiser4_node_remove(place.node, pos, &hint);
-					
-					if (res) {
-						aal_exception_error("Node (%llu), item "
-								    "(%u): failed to "
-								    "remove the item.", 
-								    node_blocknr(node),
-								    pos->item);
-						
+
+					if ((res = reiser4_node_remove(place.node, 
+								       pos, &hint)))
 						goto error_node_close;
-					}
 					
-					reiser4_node_mkdirty(place.node);
 					pos->item--;
 					count = reiser4_node_items(node);
 				}

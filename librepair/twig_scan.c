@@ -78,24 +78,32 @@ static errno_t callback_item_check_layout(reiser4_place_t *place, void *data) {
 	if (reiser4_item_branch(place->plug))
 		return 0;
 	
-	res = repair_item_check_layout(place, callback_item_region_check, 
-				       ts, ts->repair->mode);
-	
-	if (res < 0) 
+	if ((res = repair_item_check_layout(place, callback_item_region_check,
+					    ts, ts->repair->mode)) < 0)
 		return res;
 	
-	if (res & RE_FATAL) 
-		ts->repair->fatal++;
-	else if (res & RE_FIXABLE)
+	if (res & RE_FATAL) {
+		if (ts->repair->mode == RM_BUILD) {
+			remove_hint_t hint;
+
+			aal_exception_error("Node (%llu), item (%u): broken "
+					    "item layout. Remove the item.",
+					    node_blocknr(node), 
+					    place->pos.item);
+
+			hint.count = 1;
+
+			if ((res |= reiser4_node_remove(node, &place->pos, 
+							&hint)))
+				return res;
+			
+			place->pos.item--;
+			res &= ~RE_FATAL;
+		} else 
+			ts->repair->fatal++;
+	} else if (res & RE_FIXABLE) {
 		ts->repair->fixable++;
-	else if (res & RE_FIXED)
-		reiser4_node_mkdirty(place->node);
-	else if (res & RE_REMOVED) {
-		/* FIXME: Empty nodes may be left in the tree. Cleanup the 
-		   tree afterwords. */
-		reiser4_node_mkdirty(place->node);
-		place->pos.item--;
-	}
+	} 
 	
 	return 0;
 }
@@ -220,211 +228,3 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 	return -EINVAL;
 }
 
-#if 0
-
-static int comp_extent_blks(const void *elem, const void *needle, void *data) {
-	repair_ovrl_t *ovrl = (repair_ovrl_t *)elem;
-	repair_ovrl_t *new = (repair_ovrl_t *)needle;
-    
-	/* FIXME-VITALY: Correct this when Ymka set all list callbacks of the same 
-	 * interface */
-	return ovrl->ptr.ptr >= new->ptr.ptr ? 1 : 0;
-}
-
-/*
-  static int comp_ovrl_index(const void *elem, const void *needle, void *data) {
-  repair_ovrl_region_t *region = (repair_ovrl_region_t *)elem;
-  repair_ovrl_region_t *new = (repair_ovrl_region_t *)needle;
- 
-  // FIXME-VITALY: Correct this when Ymka set all list callbacks of the same interface 
-  return region->index >= new->index ? 1 : 0;
-  }
-*/
-
-/* Coord pints to a problem extent. Save it into ovrl_list for further handling. */
-static errno_t repair_ts_ovrl_add(reiser4_place_t *place, repair_data_t *rd) {
-	repair_ovrl_t *ovrl;
-	reiser4_node_t *node;
-	aal_list_t *list;
-	repair_ts_t *ts;
-    
-	aal_assert("vpf-520", place != NULL);
-	aal_assert("vpf-521", rd != NULL);
-	aal_assert("vpf-524", rd->alloc != NULL);
-	aal_assert("vpf-525", rd->alloc->entity != NULL);
-
-	if (!(node = place->node)) {
-		aal_exception_fatal("Failed to get the node from the place, but "
-				    "it is expected that the place is build on the node.");
-		return -1;
-	}
-
-	/* Pin it to avoid later closing. */
-	reiser4_node_lock(node);
-
-	ts = repair_ts(rd);
-
-	ovrl = aal_malloc(sizeof(*ovrl));
-    
-	if (plug_call(place->item.plug->item_ops, fetch, 
-		      &place->item, place->pos.unit, &ovrl->ptr, 1) != 1)
-		goto error_free_ovrl;
-
-	ovrl->node = place->node;
-	ovrl->pos = place->pos;	
-	ovrl->conflicts = 0;
-    
-	/* Insert it into the extent list in sorted by ptr.ptr order. */ 
-	/* FIXME-VITALY: This is too slow, tree should be used here instead. */
-	list = aal_list_insert_sorted(ts->ovrl_list, ovrl, comp_extent_blks, NULL);
-
-	if (!ts->ovrl_list)
-		ts->ovrl_list = list;
-
-	ts->ovrl_list = aal_list_first(ts->ovrl_list);
-    
-	return 0;
-    
- error_free_ovrl:    
-	aal_free(ovrl);
-    
-	return -1;
-}
-
-static errno_t handle_ovrl_extents(aal_list_t **ovrl_list) {
-	aal_list_t *left, *right;
-	repair_ovrl_t *l_ovrl, *r_ovrl, *max_conflict = NULL;
-	blk_t r_bound;
-    
-	aal_assert("vpf-552", ovrl_list != NULL);
-	aal_assert("vpf-553", *ovrl_list != NULL);
-   
-	/* Calculate the initial conflics into ovrl_place's */
-	for (left = aal_list_first(*ovrl_list); left != NULL; left = left->next) {
-		l_ovrl = (repair_ovrl_t *)left->data;
-	    
-		r_bound = l_ovrl->ptr.ptr + l_ovrl->ptr.width;
-
-		for (right = left; right != NULL; right = right->next) {
-			r_ovrl = (repair_ovrl_t *)right->data;
-
-			if (r_bound > r_ovrl->ptr.ptr) {
-				l_ovrl->conflicts++;
-				r_ovrl->conflicts++;
-			} else 
-				break;		
-		}
-	}
-
-	/* Build the list of repair_ovrl, sorted by conflict value. */
-	for (left = aal_list_first(*ovrl_list); left != NULL; left = left->next) {
-		l_ovrl = (repair_ovrl_t *)left->data;
-	
-		if (max_conflict == NULL) {
-			max_conflict = l_ovrl;
-			continue;
-		}
-	
-		r_ovrl = max_conflict;
-
-		if (r_ovrl->conflicts < l_ovrl->conflicts) {
-			l_ovrl->next = r_ovrl;
-			r_ovrl->prev = l_ovrl;
-			max_conflict = l_ovrl;
-			continue;
-		}
-
-		while (r_ovrl->next && r_ovrl->next->conflicts > l_ovrl->conflicts) 
-			r_ovrl = r_ovrl->next;
-
-		if (!r_ovrl->next) {
-			l_ovrl->prev = r_ovrl;
-			r_ovrl->next = l_ovrl;
-			continue;
-		}
-
-		r_ovrl->next->prev = l_ovrl;
-		l_ovrl->next = r_ovrl->next;
-		r_ovrl->next = l_ovrl;
-		l_ovrl->prev = r_ovrl;
-	}
-    
-	/* Choose the place with the largest conflicts value, remove it, 
-	 * recalculate conflicts. Continue it unless there is no any conflict. */
-	while (max_conflict && max_conflict->conflicts) {
-		reiser4_place_t place;
-	
-		if (reiser4_place_open(&place, max_conflict->node, CT_JOINT, 
-				       &max_conflict->pos)) 
-			{
-				aal_exception_error("Can't open item by place. Node %llu, item %u.",
-						    max_conflict->node->node->blk, max_conflict->pos.item);
-				return -1;
-			}
-	
-		repair_item_handle_ptr(&place);
-
-		/* FIXME-VITALY: sync it somehow. */
-		r_ovrl = max_conflict;
-		max_conflict = max_conflict->next;
-
-		if (r_ovrl->next)
-			r_ovrl->next->prev = r_ovrl->prev;
-		if (r_ovrl->prev)
-			r_ovrl->prev->next = r_ovrl->next;
-	
-		*ovrl_list = aal_list_remove(*ovrl_list, r_ovrl);
-	
-		reiser4_node_unlock(r_ovrl->node);
-		reiser4_node_release(r_ovrl->node);
-		aal_free(r_ovrl);
-
-		/* Descrement conflict counters of all places around max_conflict, 
-		 * which conflicted with r_ptr. */
-
-	}
-   
-	return 0;
-}
-
-static errno_t repair_ts_ovrl_list_free(aal_list_t **ovrl_list, 
-					ovrl_region_func_t func)
-{
-	repair_ovrl_region_t *region;
-	repair_ovrl_place_t *oc;
-
-	aal_assert("vpf-548", ovrl_list != NULL);
-	aal_assert("vpf-549", *ovrl_list != NULL);
-
-	// If we had bad unfm blocks we should not get 0-length overlapped extent list.
-	aal_assert("vpf-550", aal_list_length(*ovrl_list) != 0);    
-    
-	while (*ovrl_list != NULL) {
-		region = (repair_ovrl_region_t *)aal_list_first(*ovrl_list)->data;
-
-		aal_assert("vpf-551", aal_list_length(region->extents) != 0);
-
-		if (func(region))
-			return -1;
-	
-		*ovrl_list = aal_list_remove(*ovrl_list, region);
-	
-		while (region->extents != NULL) {
-
-			oc = (repair_ovrl_place_t *)aal_list_first(region->extents)->data;
-			region->extents = aal_list_remove(region->extents, oc);
-	    
-			// FIXME-VITALY: close the node, sync it if needed. 
-			reiser4_node_release(reiser4_place_node(oc->place));
-	    
-			aal_free(oc->place);
-			aal_free(oc);
-		}
-
-		aal_free(region);
-	}
-    
-	return 0;
-}
-
-#endif

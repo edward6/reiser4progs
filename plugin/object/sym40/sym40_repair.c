@@ -26,7 +26,7 @@ static errno_t sym40_extentions(place_t *stat) {
 		return RE_FATAL;
 	
 	/* Check that LW, UNIX and SYMLINK extentions exist. */
-	return ((extmask & sym40_exts) == sym40_exts) ? RE_OK : RE_FATAL;
+	return ((extmask & sym40_exts) == sym40_exts) ? 0 : RE_FATAL;
 }
 
 /* Check SD extentions and that mode in LW extention is DIRFILE. */
@@ -88,7 +88,7 @@ errno_t sym40_check_struct(object_entity_t *object,
 {
 	sym40_t *sym = (sym40_t *)object;
 	uint64_t size, bytes;
-	errno_t res = RE_OK;
+	errno_t res;
 	
 	aal_assert("vpf-1232", sym != NULL);
 	aal_assert("vpf-1233", sym->obj.info.tree != NULL);

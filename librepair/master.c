@@ -20,9 +20,8 @@ static int callback_bs_check (int64_t val, void * data) {
 /* Checks the opened master, builds a new one on the base of user profile if no 
    one was opened. */
 static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
-	reiser4_plug_t *plug;
-	errno_t error = RE_OK;
 	uint16_t blocksize = 0;
+	reiser4_plug_t *plug;
 	
 	aal_assert("vpf-730", fs != NULL);
 	aal_assert("vpf-161", fs->master != NULL || fs->device != NULL);
@@ -59,8 +58,6 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 			aal_exception_fatal("A new master superblock was "
 					    "created on (%s).", fs->device->name);
 		}
-		
-		error |= RE_FIXED;
 	} else {
 		/* Master SB was opened. Check it for validness. */
 		
@@ -78,7 +75,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 						       "do you use?");
 			
 			set_ms_blksize(SUPER(fs->master), blocksize);
-			error |= RE_FIXED;
+			reiser4_master_mkdirty(fs->master);
 		}
 	}
 	
@@ -90,12 +87,12 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 		return -EINVAL;
 	}
 	
-	return error;
+	return 0;
 }
 
 /* Opens and checks the master. */
 errno_t repair_master_open(reiser4_fs_t *fs, uint8_t mode) {
-	errno_t ret;
+	errno_t res;
 	
 	aal_assert("vpf-399", fs != NULL);
 	aal_assert("vpf-729", fs->device != NULL);
@@ -104,13 +101,10 @@ errno_t repair_master_open(reiser4_fs_t *fs, uint8_t mode) {
 	fs->master = reiser4_master_open(fs->device);
 	
 	/* Either check the opened master or build a new one. */
-	ret = repair_master_check(fs, mode);
+	res = repair_master_check(fs, mode);
 	
-	if (repair_error_exists(ret))
+	if (repair_error_exists(res))
 		goto error_master_free;
-	
-	if (ret & RE_FIXED)
-		reiser4_master_mkdirty(fs->master);
 	
 	return 0;
 	
@@ -120,6 +114,6 @@ errno_t repair_master_open(reiser4_fs_t *fs, uint8_t mode) {
 		fs->master = NULL;
 	}
 	
-	return ret;
+	return res;
 }
 

@@ -17,7 +17,7 @@ errno_t sdext_lt_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 		return RE_FATAL;
 	}
 	
-	return RE_OK;
+	return 0;
 }
 #endif
 

@@ -53,6 +53,8 @@
 #include <repair/plugin.h>
 #include <aux/bitmap.h>
 
+extern void journal40_mkdirty(generic_entity_t *entity);
+
 /* Traverse flags. */
 #define TF_SAME_TXH_BREAK   1   /* break when current trans was reached. */
 #define TF_DATA_AREA_ONLY   2   /* check if block lies in data area only or in 
@@ -498,10 +500,10 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 		set_jh_last_commited((journal40_header_t *)journal->header->data, 
 				     data.cur_txh);
 		
-		return RE_FIXED;
+		journal40_mkdirty(entity);
 	}
 	
-	return RE_OK;
+	return 0;
 }
 
 #endif

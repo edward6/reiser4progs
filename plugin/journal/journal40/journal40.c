@@ -13,7 +13,7 @@ static int journal40_isdirty(generic_entity_t *entity) {
 	return ((journal40_t *)entity)->dirty;
 }
 
-static void journal40_mkdirty(generic_entity_t *entity) {
+void journal40_mkdirty(generic_entity_t *entity) {
 	aal_assert("umka-2082", entity != NULL);
 	((journal40_t *)entity)->dirty = 1;
 }

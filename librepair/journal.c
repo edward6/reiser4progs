@@ -41,7 +41,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 			    uint8_t mode) 
 {
 	reiser4_plug_t *plug;
-	errno_t ret = RE_OK;
+	errno_t res = 0;
 	rid_t pid;
 	
 	aal_assert("vpf-445", fs != NULL);
@@ -80,13 +80,10 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 		}
 	} else {    
 		/* Check the structure of the opened journal or rebuild it if needed. */
-		ret = repair_journal_check_struct(fs->journal);
+		res = repair_journal_check_struct(fs->journal);
 		
-		if (repair_error_exists(ret))
+		if (repair_error_exists(res))
 			goto error_journal_close;
-		
-		if (ret & RE_FIXED)
-			reiser4_journal_mkdirty(fs->journal);
 	}
 	
 	return 0;
@@ -95,19 +92,19 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 	reiser4_journal_close(fs->journal);
 	fs->journal = NULL;
 	
-	return ret;
+	return res;
 }
 
 errno_t repair_journal_replay(reiser4_journal_t *journal, aal_device_t *device) {
-	errno_t ret = RE_OK;
 	int j_flags, flags;
+	errno_t res = 0;
 	
 	aal_assert("vpf-906", journal != NULL);
 	aal_assert("vpf-907", journal->device != NULL);
 	aal_assert("vpf-908", device != NULL);
 	
-	if (repair_error_exists(ret))
-		return ret;
+	if (repair_error_exists(res))
+		return res;
 	
 	j_flags = journal->device->flags;
 	flags = device->flags;
