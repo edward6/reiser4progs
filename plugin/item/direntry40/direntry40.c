@@ -232,9 +232,19 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 		if (space < len + sizeof(entry40_t))
 			break;
 
-		/* Updating unit pos */
+		/*
+		  Updating unit pos. We will do so in the case item component
+		  of insert point is the same as current item has and unit
+		  component is not ~0ul.
+		*/
 		if (check) {
 			if (flags & SF_LEFT) {
+
+				/*
+				  Insert point is near to be moved into left
+				  neighbour. Checking if we are permitted to do
+				  so and updating insert point.
+				*/
 				if (hint->pos.unit == 0) {
 					if (flags & SF_MOVIP) {
 						hint->flags |= SF_MOVIP;
@@ -246,6 +256,12 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 			} else {
 				if (hint->pos.unit >= src_units - 1) {
 
+					/*
+					  Insert point is near to be shifted in
+					  right neighbour. Checking permissions
+					  and updating unit component of insert
+					  point int hint.
+					*/
 					if (hint->pos.unit == src_units - 1) {
 						if (flags & SF_MOVIP) {
 							hint->flags |= SF_MOVIP;
@@ -263,6 +279,10 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 			}
 		}
 
+		/*
+		  Updating unit number counters and some local variables needed
+		  for controlling predicting main cycle.
+		*/
 		src_units--;
 		dst_units++;
 		hint->units++;
@@ -271,6 +291,10 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 		space -= (len + sizeof(entry40_t));
 	}
 
+	/*
+	  Updating rest field of hint. It is needed for unit shifting. This
+	  value is number of bytes to be moved from src item to dst item.
+	*/
 	if (hint->units > 0)
 		hint->rest -= space;
 	
