@@ -468,7 +468,7 @@ static int32_t reg40_put(object_entity_t *entity,
 static errno_t reg40_holes(object_entity_t *entity) {
 	errno_t res;
 	reg40_t *reg;
-	uint32_t size;
+	uint64_t size;
 
 	reg = (reg40_t *)entity;
 
@@ -511,7 +511,81 @@ static errno_t reg40_holes(object_entity_t *entity) {
 	return 0;
 }
 
-/* Writes "n" bytes from "buff" to passed file. */
+static errno_t reg40_cut(object_entity_t *entity) {
+	errno_t res;
+	reg40_t *reg;
+	uint32_t cut;
+	uint64_t size;
+	
+	reg = (reg40_t *)entity;
+	
+	/* Updating stat data place */
+	if ((res = obj40_stat(&reg->obj)))
+		return res;
+	
+	/* Getting file size */
+	size = obj40_get_size(&reg->obj);
+
+	if (reg->offset >= size)
+		return 0;
+
+	cut = size - reg->offset;
+	
+	while (cut) {
+		place_t place;
+		key_entity_t key;
+
+		key.plugin = STAT_KEY(&reg->obj)->plugin;
+		
+		plugin_call(key.plugin->o.key_ops, build_generic, &key,
+			    KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
+			    obj40_objectid(&reg->obj), size - 1);
+		
+		switch (obj40_lookup(&reg->obj, &key, LEAF_LEVEL, &place)) {
+		case FAILED:
+		case ABSENT:
+			return -EINVAL;
+		default:
+			break;
+		}
+
+		if (core->tree_ops.realize(reg->obj.tree, &place))
+			return -EINVAL;
+
+		/* Check if we can remove whole item at @place */
+		if (place.item.len <= cut) {
+			if (core->tree_ops.remove(reg->obj.tree,
+						  &place, 1))
+			{
+				aal_exception_error("Can't remove item "
+						    "from object 0x%llx.",
+						    obj40_objectid(&reg->obj));
+				return -EINVAL;
+			}
+
+			cut -= place.item.len;
+			size -= place.item.len;
+		} else {
+			place.pos.unit = place.item.len - cut;
+
+			if (core->tree_ops.remove(reg->obj.tree,
+						  &place, cut))
+			{
+				aal_exception_error("Can't remove units "
+						    "from object 0x%llx.",
+						    obj40_objectid(&reg->obj));
+				return -EINVAL;
+			}
+			
+			cut = 0;
+			size -= cut;
+		}
+	}
+
+	return 0;
+}
+
+/* Writes "n" bytes from "buff" to passed file */
 static int32_t reg40_write(object_entity_t *entity, 
 			   void *buff, uint32_t n) 
 {
@@ -553,13 +627,28 @@ static errno_t reg40_truncate(object_entity_t *entity,
 	offset = reg->offset;
 		
 	/* Checking if truncate will increase file size */
+	reg->offset = n;
+	
 	if (n > size) {
-		reg->offset = n;
-		
 		if ((res = reg40_holes(entity)))
 			goto error_restore_offset;
 	} else {
+		if ((res = reg40_cut(entity)))
+			goto error_restore_offset;
 	}
+
+	if ((res = obj40_stat(&reg->obj)))
+		return res;
+
+	obj40_set_size(&reg->obj, n);
+
+	/*
+	  In the sace of tails bytes should be the same as size field in
+	  stat data.
+	*/
+	obj40_set_bytes(&reg->obj, n);
+	
+	return 0;
 
  error_restore_offset:
 	reg->offset = offset;
@@ -643,19 +732,21 @@ static errno_t reg40_layout(object_entity_t *entity,
 		item = &reg->body.item;
 		
 		if (item->plugin->o.item_ops->layout) {
-			res = plugin_call(item->plugin->o.item_ops, layout,
-					  item, callback_item_data, &hint);
-			
-			if (res != 0)
+			if ((res = plugin_call(item->plugin->o.item_ops, layout,
+					       item, callback_item_data, &hint)))
+			{
 				return res;
-			
+			}
 		} else {
 			if ((res = callback_item_data(item, item->context.blk,
 						      1, &hint)))
+			{
 				return res;
+			}
 		}
 		
-		plugin_call(item->plugin->o.item_ops, maxreal_key, item, &key);
+		plugin_call(item->plugin->o.item_ops, maxreal_key,
+			    item, &key);
 		
 		reg->offset = plugin_call(key.plugin->o.key_ops,
 					  get_offset, &key) + 1;

@@ -440,6 +440,7 @@ errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 	return 0;
 }
 
+/* Removes item/unit by @key */
 errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
 		     uint64_t count)
 {
@@ -448,6 +449,7 @@ errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
 	
 	/* Lookup the place by @key and remove @count items/units if PRESENT. */
 	switch (obj40_lookup(obj, key, LEAF_LEVEL, &place)) {
+	case FAILED:
 	case ABSENT:
 		aal_exception_error("Can't find item/unit durring remove.");
 		return -EINVAL;
@@ -459,10 +461,6 @@ errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
 					    "object 0x%llx.", objectid);
 			return -EINVAL;
 		}
-		
-		break;
-	case FAILED:
-		return -EINVAL;
 	}
 
 	return 0;
