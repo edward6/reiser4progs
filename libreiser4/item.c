@@ -9,8 +9,11 @@
 
 #include <reiser4/reiser4.h>
 
-errno_t reiser4_item_open(reiser4_item_t *item, 
-						  reiser4_entity_t *entity, reiser4_pos_t *pos)
+/* Opens item at passed node @entity and @pos */
+errno_t reiser4_item_open(
+	reiser4_item_t *item,     /* item to be initialized */
+	reiser4_entity_t *entity, /* node entity */
+	reiser4_pos_t *pos)       /* pos item will initialized at */
 {
     rpid_t pid;
     
@@ -39,8 +42,11 @@ errno_t reiser4_item_open(reiser4_item_t *item,
     return 0;
 }
 
-errno_t reiser4_item_init(reiser4_item_t *item, 
-						  reiser4_entity_t *entity, reiser4_pos_t *pos) 
+/* Assignes passed @entity and @pos to item */
+errno_t reiser4_item_init(
+	reiser4_item_t *item,     /* item to be initialized */
+	reiser4_entity_t *entity, /* node entity to be assigned */
+	reiser4_pos_t *pos)       /* pos to be assigned */
 {
     aal_assert("umka-1060", entity != NULL, return -1);
     aal_assert("umka-1067", pos != NULL, return -1);
@@ -51,7 +57,8 @@ errno_t reiser4_item_init(reiser4_item_t *item,
     return 0;
 }
 
-/* Returns count of units in item */
+/* Returns count of units in item. If count method is not implemented,
+ * it returns 1 */
 uint32_t reiser4_item_count(reiser4_item_t *item) {
     aal_assert("umka-1030", item != NULL, return 0);
     aal_assert("umka-1068", item->plugin != NULL, return 0);
@@ -110,7 +117,12 @@ errno_t reiser4_item_estimate(
 
 #endif
 
-errno_t reiser4_item_print(reiser4_item_t *item, char *buff, uint32_t n) {
+/* Prints passed @item into passed @buff */
+errno_t reiser4_item_print(
+	reiser4_item_t *item,  /* item to be printed */
+	char *buff,            /* buffer item to be printed in */
+	uint32_t n)            /* buffer size */
+{
     aal_assert("umka-1297", item != NULL, return 0);
     aal_assert("umka-1298", item->plugin != NULL, return 0);
 
@@ -211,6 +223,8 @@ errno_t reiser4_item_get_key(reiser4_item_t *item, reiser4_key_t *key) {
     return ret && -(key->plugin == NULL);
 }
 
+#ifndef ENABLE_COMPACT
+
 errno_t reiser4_item_set_key(reiser4_item_t *item, reiser4_key_t *key) {
     aal_assert("umka-1403", item != NULL, return -1);
     aal_assert("umka-1404", key != NULL, return -1);
@@ -218,6 +232,8 @@ errno_t reiser4_item_set_key(reiser4_item_t *item, reiser4_key_t *key) {
     return plugin_call(return -1, item->node->plugin->node_ops, 
 					   set_key, item->node, item->pos, key);
 }
+
+#endif
 
 errno_t reiser4_item_max_poss_key(reiser4_item_t *item, reiser4_key_t *key) {
     aal_assert("umka-1269", item != NULL, return -1);
