@@ -5,6 +5,98 @@
 
 #include <repair/librepair.h>
 
+errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
+    reiser4_ptr_hint_t hint;
+    rpos_t prev;
+
+    aal_assert("vpf-416", coord != NULL, return -1);
+    aal_assert("vpf-417", coord->node != NULL, return -1);
+    
+    /* Fetch the pointer from the coord. */
+    if (plugin_call(coord->item.plugin->item_ops,
+	fetch, &coord->item, &hint, coord->pos.unit, 1) != 1)
+	return -1;
+    if (hint.width == 1 && reiser4_item_extent(coord)) {
+	/* For one unit extent pointer we can just zero the start block 
+	 * number. */
+	aal_exception_error("Node (%llu), item (%u), unit (%u): pointer "
+	    "(start %llu, count %llu) is zeroed.", 
+	    coord->node->blk, coord->pos.item, 
+	    coord->pos.unit, hint.ptr, hint.width);
+
+	hint.ptr = 0;
+
+	if (plugin_call(coord->item.plugin->item_ops,
+	    update, &coord->item, &hint, coord->pos.unit, 1))
+	    return -1;	    
+    } else {
+	/* For many unit pointers there is no way to figure out what 
+	 * is broken - the start block of the width. 
+	 * Delete the unit if node pointer. 
+	 * Delete the item if extent pointer. */	
+
+	/* Correct position to work with the whole item for extent items. */
+	if (reiser4_item_extent(coord))
+	    coord->pos.unit = ~0ul;
+
+	aal_exception_error("Node (%llu), item (%u), unit (%u): pointer "
+	    "(start %llu, count %llu) is removed.", 
+	    coord->node->blk, coord->pos.item, coord->pos.unit,
+	    hint.ptr, hint.width);
+
+	repair_coord_left_pos_save(coord, &prev);
+	if (reiser4_node_remove(coord->node, &coord->pos, 1))
+	    return -1;		    
+		    
+	coord->pos = prev;
+    }
+
+    return 0;
+}
+
+/* Blocks pointed by coord should not be used in bitmap. 
+ * Returns -1 if fatal error; 1 if not used; 0 - ok. */
+errno_t repair_item_ptr_unused(reiser4_coord_t *coord, aux_bitmap_t *bitmap) {
+    blk_t next_blk;
+    reiser4_ptr_hint_t ptr;
+    int res;
+
+    aal_assert("vpf-500", coord != NULL, return -1);
+    aal_assert("vpf-397", bitmap != NULL, return -1);
+    aal_assert("vpf-497", reiser4_item_nodeptr(coord) || 
+	reiser4_item_extent(coord), return -1);
+
+    if ((res = plugin_call(coord->item.plugin->item_ops, fetch, 
+	&coord->item, &ptr, coord->pos.unit, 1)) != 1)
+	return res;
+
+    /* Ptr can be 0 if extent item only. Width cannot be 0. */
+    if ((!ptr.ptr && reiser4_item_nodeptr(coord)) || !ptr.width) 
+	goto error;
+
+    if ((ptr.ptr >= bitmap->total) || (ptr.width >= bitmap->total) || 
+	(ptr.ptr >= bitmap->total - ptr.width)) 
+	goto error;
+    
+    if (!ptr.ptr)
+	return 0;
+
+    /* Check that ptr does not point any used block. */
+    if (!aux_bitmap_test_region_cleared(bitmap, ptr.ptr, ptr.ptr + ptr.width))
+	goto error;
+	
+    return 0;
+    
+error:
+    aal_exception_error("Node (%llu), item (%u), unit (%u): %s pointer "
+	"(start %llu, count %llu) points to some already used blocks.", 
+	coord->node->blk, coord->pos.item, 
+	coord->pos.unit, reiser4_item_nodeptr(coord) ? "node" : "extent", 
+	ptr.ptr, ptr.width);
+
+    return 1;
+}
+
 /* Prepare coord for just a piece of item insertion. Return the number of 
  * units to be splited. */
 uint32_t repair_item_split(
