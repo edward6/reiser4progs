@@ -320,18 +320,38 @@ static errno_t fsck_prepare(repair_data_t *repair, aal_device_t *host) {
 }
 
 static errno_t fsck_fini(repair_data_t *repair) {
+	reiser4_status_t *status;
 	uint64_t state = 0;
-	
+	int flags;
+
 	aal_assert("vpf-1338", repair != NULL);
 	aal_assert("vpf-1339", repair->fs != NULL);
 	aal_assert("vpf-1340", repair->fs->status != NULL);
 	
+	if (repair->mode == RM_CHECK)
+		return 0;
+	
+	/* Fix the status block. */
 	if (repair->fatal)
 		state = FS_DAMAGED;
 	else if (repair->fixable)
 		state = FS_CORRUPTED;
 	
-	return repair_status_state(repair->fs->status, state);
+	status = repair->fs->status;
+	flags = status->device->flags;
+	
+	repair_status_state(status, state);
+	
+	if (aal_device_reopen(status->device, status->device->blksize, O_RDWR))
+		return -EIO;
+	
+	if (reiser4_status_sync(repair->fs->status))
+		return -EIO;
+
+	if (aal_device_reopen(status->device, status->device->blksize, flags))
+		return -EIO;
+
+	return 0;
 }
 
 int main(int argc, char *argv[]) {
