@@ -1305,6 +1305,11 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		if (hint->rest < overhead)
 			return 0;
 		
+		if (hint->control & SF_UPTIP && hint->control & SF_LEFT) {
+			if (hint->pos.item == 0 && hint->pos.unit == ~0ul)
+				return 0;
+		}
+		
 		hint->rest -= overhead;
 
 		if (plugin_call(src_item.plugin->o.item_ops,

@@ -414,7 +414,13 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 	space = hint->rest;
 		
 	if (hint->control & SF_LEFT) {
-
+		if (hint->control & SF_UPTIP) {
+			if (hint->pos.unit == ~0ul) {
+				hint->units = 0;
+				return 0;
+			}
+		}
+		
 		if (hint->rest > hint->pos.unit * sizeof(extent40_t))
 			hint->rest = hint->pos.unit * sizeof(extent40_t);
 
@@ -432,19 +438,20 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 			}
 		}
 	} else {
-		uint32_t right;
+		uint32_t pos, right;
+		
+		pos = hint->pos.unit == ~0ul ? 0 : hint->pos.unit;
+		
+		if (src_item->len > pos * sizeof(extent40_t)) {
 
-		if (src_item->len > hint->pos.unit * sizeof(extent40_t)) {
-
-			right = src_item->len -
-				(hint->pos.unit * sizeof(extent40_t));
+			right = src_item->len - (pos * sizeof(extent40_t));
 		
 			if (hint->rest > right)
 				hint->rest = right;
 
 			if (hint->control & SF_MOVIP &&
-			    hint->pos.unit == ((src_item->len - hint->rest) / 
-					       sizeof(extent40_t)))
+			    pos == ((src_item->len - hint->rest) / 
+				    sizeof(extent40_t)))
 			{
 				hint->pos.unit = 0;
 				hint->result |= SF_MOVIP;
