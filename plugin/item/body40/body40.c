@@ -82,8 +82,8 @@ errno_t body40_maxreal_key(item_entity_t *item,
 	offset = plugin_call(key->plugin->o.key_ops,
 			     get_offset, key);
 
-	offset += trans_func ? trans_func(item, units) :
-		units;
+	offset += (trans_func ? trans_func(item, units) :
+		   units);
 	
 	plugin_call(key->plugin->o.key_ops, set_offset,
 		    key, offset - 1);

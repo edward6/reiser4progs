@@ -76,6 +76,12 @@ static errno_t tail40_insert(item_entity_t *item,
 	return 0;
 }
 
+/*
+  Estimates how many byte need to write @hint->count into the tree. This
+  function considers also, that tail item is not expandable one. That is, if
+  insert pos point inside the item body, it will not be splitted, but rewritten
+  instead.
+*/
 static errno_t tail40_estimate_insert(item_entity_t *item,
 				      create_hint_t *hint,
 				      uint32_t pos)

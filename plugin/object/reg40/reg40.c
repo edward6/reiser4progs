@@ -354,7 +354,6 @@ static int32_t reg40_put(object_entity_t *entity,
 	uint32_t written;
 	uint32_t maxspace;
 
-	create_hint_t hint;
 	item_entity_t *item;
 	sdext_unix_hint_t unix_hint;
 
@@ -362,12 +361,17 @@ static int32_t reg40_put(object_entity_t *entity,
 	maxspace = reg40_chunk(reg);
 	
 	for (written = 0; written < n; ) {
-		errno_t res;
 		place_t place;
-		
-		oid_t locality;
-		oid_t objectid;
+		lookup_t lookup;
+		create_hint_t hint;
 
+		/* Preparing @hint->key */
+		plugin_call(STAT_KEY(&reg->obj)->plugin->o.key_ops,
+			    build_generic, &hint.key, KEY_FILEBODY_TYPE,
+			    obj40_locality(&reg->obj), obj40_objectid(&reg->obj),
+			    reg->offset);
+
+		/* Setting up @hint */
 		hint.count = n - written;
 		
 		if (hint.count > maxspace)
@@ -376,25 +380,39 @@ static int32_t reg40_put(object_entity_t *entity,
 		hint.flags = HF_FORMATD;
 		hint.plugin = reg->bplug;
 		hint.type_specific = buff;
+		
+		/* Lookup place data will be inserted at */
+		lookup = obj40_lookup(&reg->obj, &hint.key,
+				      LEAF_LEVEL, &place);
 
-		locality = obj40_locality(&reg->obj);
-		objectid = obj40_objectid(&reg->obj);
-
-		plugin_call(STAT_KEY(&reg->obj)->plugin->o.key_ops,
-			    build_generic, &hint.key, KEY_FILEBODY_TYPE,
-			    locality, objectid, reg->offset);
-	
-		switch (obj40_lookup(&reg->obj, &hint.key,
-				     LEAF_LEVEL, &place))
-		{
-		case FAILED:
+		/* Loookup is failed */
+		if (lookup == FAILED) {
 			aal_exception_error("Lookup is failed while "
 					    "writing file.");
 			return -EINVAL;
-		default:
-			break;
 		}
-	
+
+		/*
+		  Checking if we need write chunk by chunk n odrer to rewrite
+		  tail correctly in the case we write tail, that overlaps two
+		  neighbour tails by key.
+		*/
+		if (lookup == PRESENT) {
+			uint64_t offset;
+			key_entity_t maxreal_key;
+
+			plugin_call(place.item.plugin->o.item_ops,
+				    maxreal_key, &place.item, &maxreal_key);
+
+			offset = plugin_call(hint.key.plugin->o.key_ops,
+					     get_offset, &maxreal_key);
+
+			/* Rewritting only tails' last part */
+			if (reg->offset + hint.count > offset + 1)
+				hint.count = (offset + 1) - reg->offset;
+		}
+
+		/* Inserting data to the tree */
 		if ((res = obj40_insert(&reg->obj, &hint,
 					LEAF_LEVEL, &place)))
 		{

@@ -476,52 +476,65 @@ lookup_t reiser4_node_lookup(
 
 	POS_INIT(pos, 0, ~0ul);
 
-	/* Calling node plugin lookup() method */
-	switch ((res = plugin_call(node->entity->plugin->o.node_ops,
-				   lookup, node->entity, key, pos)))
+	/* Calling node plugin lookup method */
+	if ((res = plugin_call(node->entity->plugin->o.node_ops, lookup,
+			       node->entity, key, pos)) == FAILED)
 	{
-	case ABSENT:
+		return FAILED;
+	}
+
+	if (res == ABSENT) {
+		/* Check if node was empty */
 		if (pos->item == 0)
 			return ABSENT;
 		
-		break;
-	default:
-		return res;
+		/*
+		  Correcting position, as node plugin lookup returns position
+		  next to convenient item.
+		*/
+		pos->item--;
 	}
-
-	pos->item--;
-
-	/* Initializing item place points to */
+		
 	if (reiser4_place_open(&place, node, pos))
 		return FAILED;
-
+		
 	item = &place.item;
 
-	/*
-	  We are on the position where key is less then wanted. Key could lie
-	  within the item or after the item.
-	*/
-	if (item->plugin->o.item_ops->maxposs_key) {
-		reiser4_item_maxposs_key(&place, &maxkey);
+	if (res == ABSENT) {
+		/*
+		  We are on the position where key is less then wanted. Key
+		  could lie within the item or after the item.
+		*/
+		if (item->plugin->o.item_ops->maxposs_key) {
+			reiser4_item_maxposs_key(&place, &maxkey);
 
-		if (reiser4_key_compare(key, &maxkey) > 0) {
-			pos->item++;
-			return ABSENT;
+			if (reiser4_key_compare(key, &maxkey) > 0) {
+				pos->item++;
+				return ABSENT;
+			}
 		}
-	}
 	
-	/* Calling lookup method of found item */
-	if (item->plugin->o.item_ops->lookup) {
-		return plugin_call(item->plugin->o.item_ops,
-				   lookup, item, key, &pos->unit);
-	}
+		/* Calling lookup method of found item */
+		if (item->plugin->o.item_ops->lookup) {
+			return plugin_call(item->plugin->o.item_ops,
+					   lookup, item, key, &pos->unit);
+		}
 	
-	/*
-	  Lookup isn't implemented whereas maxposs_key() isn't implemented
-	  too. Is it correct?
-	*/
-	aal_assert("vpf-895", item->plugin->o.item_ops->maxposs_key == NULL);
-	pos->item++;
+		/*
+		  Lookup isn't implemented whereas maxposs_key() isn't
+		  implemented too. Is it correct?
+		*/
+		pos->item++;
+		return ABSENT;
+	} else {
+		/*
+		  If item is found by its key, that means, that we can set unit
+		  component to 0. This is neede to avoid creating mergeable item
+		  (for instance tails) in the same node.
+		*/
+		pos->unit = 0;
+		return PRESENT;
+	}
 
 	return ABSENT;
 }

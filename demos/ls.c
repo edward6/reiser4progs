@@ -129,8 +129,10 @@ int main(int argc, char *argv[]) {
 				reiser4_object_link(dir, object, name);
 				reiser4_object_seek(object, 4035);
 				reiser4_object_write(object, "H", 1);
-				reiser4_object_seek(object, 8192);
-				reiser4_object_write(object, "Test data", 9);
+				reiser4_object_seek(object, 4036 + 4035);
+				reiser4_object_write(object, "H", 1);
+/*				reiser4_object_seek(object, 3735);
+				reiser4_object_write(object, "Test data", 9);*/
 				reiser4_object_close(object);
 			}
 		}

@@ -1277,9 +1277,6 @@ struct reiser4_plugin {
 		reiser4_oid_ops_t *oid_ops;
 		reiser4_key_ops_t *key_ops;
 	} o;
-
-	/* User-specific data */
-	void *data;
 };
 
 struct place {
