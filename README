@@ -17,9 +17,32 @@ make install
 Configure script is accepting the following keys:
 
 --enable-Werror                enable build with gcc -Werror (default=off)
+
 --disable-debug                disable asserts debug information (default=on)
 
 --enable-stand-alone           enable building stand alone library (default=off)
+
+--enable-full-static           turns static build type to "fully static" binaries
+
+--enable-part-static           turns static build type to "partially static" binaries
+
+--enable-mkfs-static           enable mkfs to be built statically with selected static
+                               build type.
+
+--enable-fsck-static           enable fsck to be built statically with selected static
+                               build type.
+
+--enable-cpfs-static           enable cpfs to be built statically with selected static
+                               build type.
+
+--enable-resizefs-static       enable resizefs to be built statically with selected 
+                               static build type.
+
+--enable-debugfs-static        enable debugfs to be built statically with selected 
+                               static build type.
+
+--enable-measurefs-static      enable measurefs to be built statically with selected 
+                               static build type.
 
 --disable-symlinks             disable symlinks support in stand alone
                                library (default=on)
@@ -53,9 +76,6 @@ Configure script is accepting the following keys:
 
 --with-readline                add support fancy command line editing 
                                (default=auto)
-
---with-plugins=PATH            directory plugin libraries (*.so) lie in
-                               (default=${prefix}/lib/reiser4)
 
 --with-libaal=PATH             directory libaal was installed in
 

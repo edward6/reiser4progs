@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 	}
 
 //	misc_param_override("hash=deg_hash");
-//	misc_param_override("policy=tails");
+	misc_param_override("policy=tails");
 		
 	if (!(device = aal_device_open(&file_ops, argv[1], 
 				       512, O_RDWR))) 
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
 			if (!(object = reiser4_reg_create(fs, dir, name)))
 				goto error_free_dir;
 
-			count = 10000;
+			count = 768;
 			
 			for (j = 0; j < count; j++) {
 				if (reiser4_object_write(object, name,

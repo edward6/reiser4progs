@@ -247,7 +247,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	if (aal_strncmp(SUPER(master)->ms_magic, REISER4_MASTER_MAGIC,
 			aal_strlen(REISER4_MASTER_MAGIC)) != 0)
 	{
-		aal_exception_fatal("Wrong magic is found in the master "
+		aal_exception_fatal("Wrong magic found in the master "
 				    "super block.");
 		goto error_free_master;
 	}

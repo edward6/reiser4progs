@@ -676,7 +676,6 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		return 0;
 
 	while (reg40_offset(entity) < size) {
-		uint64_t offset;
 		key_entity_t maxkey;
 		
 		/* Update body place. */
@@ -697,8 +696,8 @@ static errno_t reg40_metadata(object_entity_t *entity,
 			  &reg->body, &maxkey);
 
 		/* Updating file offset */
-		offset = plug_call(maxkey.plug->o.key_ops, get_offset, &maxkey);
-		reg40_seek(entity, reg40_offset(entity) + offset + 1);
+		reg40_seek(entity, plug_call(maxkey.plug->o.key_ops,
+					     get_offset, &maxkey) + 1);
 	}
 	
 	return 0;

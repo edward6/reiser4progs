@@ -1033,7 +1033,7 @@ static errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 }
 #endif
 
-/* Helper callback for comparing two keys. This is used by node lookup */
+/* Helper callback for comparing two keys. This is used by node lookup. */
 static int callback_comp_key(void *node, uint32_t pos,
 			     void *key2, void *data)
 {

@@ -1,7 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   tree.c -- reiser4 tree related code. */
+   tree.c -- reiser4 tree code. */
 
 #include <reiser4/reiser4.h>
 
@@ -401,8 +401,6 @@ errno_t reiser4_tree_unload_node(reiser4_tree_t *tree, node_t *node) {
 node_t *reiser4_tree_child_node(reiser4_tree_t *tree,
 				place_t *place)
 {
-	blk_t blk;
-	
 	aal_assert("umka-1889", tree != NULL);
 	aal_assert("umka-1890", place != NULL);
 	aal_assert("umka-1891", place->node != NULL);
@@ -415,8 +413,8 @@ node_t *reiser4_tree_child_node(reiser4_tree_t *tree,
 	if (!reiser4_item_branch(place->plug))
 		return NULL;
 
-	blk = reiser4_item_down_link(place);
-	return reiser4_tree_load_node(tree, place->node, blk);
+	return reiser4_tree_load_node(tree, place->node,
+				      reiser4_item_down_link(place));
 }
 
 /* Finds both left and right neighbours and connects them into the tree. */
@@ -1799,12 +1797,14 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, place_t *place,
 	if ((res = reiser4_node_shift(node, neig, &hint)))
 		return res;
 
-	/* Updating @node and @neig children's parent position. */
-	if ((res = reiser4_tree_update_node(tree, node)))
-		return res;
+	if (reiser4_node_get_level(node) > LEAF_LEVEL) {
+		/* Updating @node and @neig children's parent position. */
+		if ((res = reiser4_tree_update_node(tree, node)))
+			return res;
 	
-	if ((res = reiser4_tree_update_node(tree, neig)))
-		return res;
+		if ((res = reiser4_tree_update_node(tree, neig)))
+			return res;
+	}
 	
 	/* Updating insert point by pos returned from node_shift(). */
 	place->pos = hint.pos;
@@ -2392,8 +2392,10 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 		return write;
 	}
 
-	if ((res = reiser4_tree_update_node(tree, place->node)))
-		return res;
+	if (reiser4_node_get_level(place->node) > LEAF_LEVEL) {
+		if ((res = reiser4_tree_update_node(tree, place->node)))
+			return res;
+	}
 	
 	/* Parent keys will be updated if we inserted item/unit into leftmost
 	   pos and if target node has parent. */
@@ -2484,8 +2486,10 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, place_t *place,
 		return res;
 	}
 
-	if ((res = reiser4_tree_update_node(tree, place->node)))
-		return res;
+	if (reiser4_node_get_level(place->node) > LEAF_LEVEL) {
+		if ((res = reiser4_tree_update_node(tree, place->node)))
+			return res;
+	}
 
 	/* Updating left deleimiting key in all parent nodes. */
 	if (reiser4_place_leftmost(place) &&

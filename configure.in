@@ -196,16 +196,16 @@ MEASUREFS_LDFLAGS=""
 CPFS_LDFLAGS=""
 RESIZEFS_LDFLAGS=""
 
-AC_ARG_ENABLE(all-static,
-    	[  --enable-all-static      build static binaries [default=no]], ,
-		enable_all_static=no
+AC_ARG_ENABLE(full-static,
+    	[  --enable-full-static     static type fully static binaries [default=no]], ,
+		enable_full_static=no
 )
-if test x$enable_all_static = xyes; then
+if test x$enable_full_static = xyes; then
 	PROGS_LDFLAGS=-all-static
 fi
 
 AC_ARG_ENABLE(part-static,
-    	[  --enable-part-static     build partially static binaries [default=no]], ,
+    	[  --enable-part-static     static type partially static binaries [default=no]], ,
 		enable_part_static=no
 )
 if test x$enable_part_static = xyes; then
@@ -237,8 +237,8 @@ if test x$enable_debugfs_static = xyes; then
 fi
 
 AC_ARG_ENABLE(measurefs-static,
-	[  --enable-measfs-static   builds measurefs statically [default=no]], ,
-		enable_measure_static=no
+	[  --enable-measurefs-static builds measurefs statically [default=no]], ,
+		enable_measurefs_static=no
 )
 if test x$enable_measurefs_static = xyes; then
 	MEASUREFS_LDFLAGS=$PROGS_LDFLAGS

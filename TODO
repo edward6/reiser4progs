@@ -3,6 +3,8 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* fix bug with read/write regular files with tails.
+
 * improve tree drying out and growing up in the sence of doing this
   automaticaly. For instance, if tree_remove() removes lat item from
   root node and releases it, tree should be dried out automatically in

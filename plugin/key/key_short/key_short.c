@@ -207,6 +207,7 @@ static int key_short_compshort(key_entity_t *key1,
 }
 #endif
 
+/* Compares two passed key bodies. */
 static int key_short_compraw(void *key1, void *key2) {
 	int res;
 
