@@ -26,11 +26,8 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 	aal_assert("vpf-161", fs->master != NULL || fs->device != NULL);
 	
 	if (fs->master == NULL) {
-		if (mode != RM_BUILD) {
-			aal_exception_fatal("Master super block cannot be "
-					    "found.");
+		if (mode != RM_BUILD)
 			return RE_FATAL;
-		}
 		
 		/* Master SB was not opened. Create a new one. */
 		if (aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_YESNO,

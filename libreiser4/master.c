@@ -180,32 +180,12 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 
 	aal_block_free(block);
     
-	/* Checking if master super block can be counted as the reiser4 super
-	   block by mean of checking its magic. If it is not reiser4 master
-	   super block, then we trying guess format in use by means of
-	   traversing all format plugins and call its confirm method. */
+	/* Reiser4 master super block is not found on the device. */
 	if (aal_strncmp(SUPER(master)->ms_magic, REISER4_MASTER_MAGIC,
 			sizeof(SUPER(master)->ms_magic)) != 0)
 	{
-		/* Reiser4 was not found on the device. At this point we should
-		   call the function which detects used format on the device. */
-#ifndef ENABLE_STAND_ALONE
-		reiser4_plug_t *plug;
-	    
-		if (!(plug = reiser4_master_guess(device)))
-			goto error_free_master;
-	    
-		/* Creating in-memory master super block */
-		if (!(master = reiser4_master_create(device, plug->id.id, 
-						     sysconf(_SC_PAGESIZE),
-						     NULL, NULL)))
-		{
-			goto error_free_master;
-		}
-	    
-		master->native = FALSE;
-		return master;
-#endif
+		aal_exception_fatal("Wrong magic is found in the master "
+				    "super block.");
 		goto error_free_master;
 	}
     
