@@ -518,9 +518,8 @@ typedef struct create_hint create_hint_t;
 typedef void (*reiser4_abort_t) (char *);
 typedef struct reiser4_core reiser4_core_t;
 
-typedef errno_t (*reiser4_plugin_fini_t) (reiser4_core_t *);
-typedef reiser4_plugin_t *(*reiser4_plugin_init_t) (reiser4_core_t *);
-
+typedef errno_t (*plugin_fini_t) (reiser4_core_t *);
+typedef reiser4_plugin_t *(*plugin_init_t) (reiser4_core_t *);
 typedef errno_t (*reiser4_plugin_func_t) (reiser4_plugin_t *, void *);
 
 #define EMPTY_HANDLE { "", NULL, NULL, NULL, NULL }
@@ -529,8 +528,8 @@ struct plugin_handle {
 	char name[PLUGIN_MAX_NAME];
 	void *data;
 	
-	reiser4_plugin_init_t init;
-	reiser4_plugin_fini_t fini;
+	plugin_init_t init;
+	plugin_fini_t fini;
 	
 	reiser4_abort_t abort;
 };
@@ -1369,26 +1368,29 @@ struct reiser4_core {
   functions. The first one is pointer to plugin init function and second - to
   plugin finalization function. The idea the same as in the linux kernel module
   support.
-
-  This macro installs passed @init and @fini routines to special purposes ELF
-  section in called by us ".plugins" in the case of monolithic bulding. In the
-  case plugin is builing as dynamic library, macro install just wto symbols:
-  __plugin_init and __plugin_fini, which may be accepted durring plugin init by
-  means of using dl* functions.
 */
 #if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
 
-#define plugin_register(init, fini)			       \
-    static reiser4_plugin_init_t __plugin_init		       \
-	    __attribute__((__section__(".plugins"))) = init;   \
+typedef void (*factory_register_t) (plugin_init_t,
+				    plugin_fini_t);
+
+#define plugin_register(i, f)			               \
+    extern factory_register_t __factory_register;              \
                                                                \
-    static reiser4_plugin_fini_t __plugin_fini		       \
-	    __attribute__((__section__(".plugins"))) = fini
+    static void __init_plugin(plugin_init_t init,              \
+	                      plugin_fini_t fini)              \
+                              __attribute__((constructor));    \
+                                                               \
+    static void __init_plugin(plugin_init_t init,              \
+	                      plugin_fini_t fini)              \
+    {                                                          \
+	    __factory_register(i, f);                          \
+    }
 #else
 
-#define plugin_register(init, fini)			       \
-    reiser4_plugin_init_t __plugin_init = init;                \
-    reiser4_plugin_fini_t __plugin_fini = fini
+#define plugin_register(i, f)			               \
+    plugin_init_t __plugin_init = init;                        \
+    plugin_fini_t __plugin_fini = fini
 
 #endif
 

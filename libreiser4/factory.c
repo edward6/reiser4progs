@@ -175,13 +175,13 @@ errno_t libreiser4_plugin_open(const char *name,
 	if (!(addr = find_symbol(handle->data, "__plugin_init", (char *)name)))
 		goto error_free_handle;
     
-	handle->init = *((reiser4_plugin_init_t *)addr);
+	handle->init = *((plugin_init_t *)addr);
 
 	/* Getting plugin fini function */
 	if (!(addr = find_symbol(handle->data, "__plugin_fini", (char *)name)))
 		goto error_free_handle;
     
-	handle->fini = *((reiser4_plugin_fini_t *)addr);
+	handle->fini = *((plugin_fini_t *)addr);
 	handle->abort = abort_func;
 
 	return 0;
@@ -255,22 +255,23 @@ errno_t libreiser4_factory_load(char *name) {
 #else
 
 /* Loads built-in plugin by its entry address */
-errno_t libreiser4_plugin_open(unsigned long *entry,
+errno_t libreiser4_plugin_open(plugin_init_t init,
+			       plugin_fini_t fini,
 			       plugin_handle_t *handle)
 {
 
-	aal_assert("umka-1431", entry != NULL);
+	aal_assert("umka-1431", init != NULL);
 	aal_assert("umka-1432", handle != NULL);
 
 	aal_memset(handle, 0, sizeof(*handle));
 
 #ifndef ENABLE_STAND_ALONE
 	aal_snprintf(handle->name, sizeof(handle->name),
-		     "built-in (0x%lx)", *entry);
+		     "built-in (%p)", init);
 #endif
 	
-	handle->init = (reiser4_plugin_init_t)*entry;
-	handle->fini = (reiser4_plugin_fini_t)*(entry + 1);
+	handle->init = init;
+	handle->fini = fini;
 
 #ifndef ENABLE_STAND_ALONE
 	handle->abort = abort_func;
@@ -289,15 +290,15 @@ void libreiser4_plugin_close(plugin_handle_t *handle) {
   Loads and initializes plugin by its entry. Also this function makes register
   the plugin in plugins list.
 */
-errno_t libreiser4_factory_load(unsigned long *entry) {
+errno_t libreiser4_factory_load(plugin_init_t init,
+				plugin_fini_t fini)
+{
 	errno_t res;
 
 	plugin_handle_t handle;
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("umka-1497", entry != NULL);
-	
-	if ((res = libreiser4_plugin_open(entry, &handle)))
+	if ((res = libreiser4_plugin_open(init, fini, &handle)))
 		return res;
 
 	if (!(plugin = libreiser4_plugin_init(&handle)))
@@ -342,21 +343,12 @@ errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin) {
 
 /* Initializes plugin factory by means of loading all available plugins */
 errno_t libreiser4_factory_init(void) {
-	plugin_handle_t handle;
-	reiser4_plugin_t *plugin;
-	
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 	DIR *dir;
 	struct dirent *ent;
-#else
-	unsigned long *entry;
-	extern unsigned long __plugin_start;
-	extern unsigned long __plugin_end;
-#endif	
+	plugin_handle_t handle;
+	reiser4_plugin_t *plugin;
 
-	aal_assert("umka-159", plugins == NULL);
-
-#if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 	if (!(dir = opendir(PLUGIN_DIR))) {
 		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
 				    "Can't open directory %s.", PLUGIN_DIR);
@@ -387,21 +379,6 @@ errno_t libreiser4_factory_init(void) {
 	}
 	
 	closedir(dir);
-#else
-	/* Loads the all built-in plugins */
-	for (entry = &__plugin_start; entry < &__plugin_end; entry += 2) {
-
-#ifndef ENABLE_STAND_ALONE
-		if (!entry) {
-			aal_exception_warn("Invalid built-in entry detected at "
-					   "address (0x%lx).", &entry);
-			continue;
-		}
-#endif
-
-		if (libreiser4_factory_load(entry))
-			continue;
-	}
 #endif
 	if (aal_list_length(plugins) == 0) {
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
@@ -455,25 +432,6 @@ reiser4_plugin_t *libreiser4_factory_ifind(
 	return found ? (reiser4_plugin_t *)found->data : NULL;
 }
 
-#ifndef ENABLE_STAND_ALONE
-/* Makes search for plugin by name */
-reiser4_plugin_t *libreiser4_factory_nfind(
-	const char *name)			 /* needed plugin name */
-{
-	aal_list_t *found;
-	walk_desc_t desc;
-
-	aal_assert("vpf-156", name != NULL);    
-       
-	desc.name = name;
-
-	found = aal_list_find_custom(aal_list_first(plugins), (void *)&desc, 
-				     (comp_func_t)callback_match_name, NULL);
-
-	return found ? (reiser4_plugin_t *)found->data : NULL;
-}
-#endif
-
 /* Finds plugins by its type and id */
 reiser4_plugin_t *libreiser4_factory_cfind(
 	reiser4_plugin_func_t plugin_func,	 /* per plugin function */
@@ -495,6 +453,23 @@ reiser4_plugin_t *libreiser4_factory_cfind(
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Makes search for plugin by name */
+reiser4_plugin_t *libreiser4_factory_nfind(
+	const char *name)			 /* needed plugin name */
+{
+	aal_list_t *found;
+	walk_desc_t desc;
+
+	aal_assert("vpf-156", name != NULL);    
+       
+	desc.name = name;
+
+	found = aal_list_find_custom(aal_list_first(plugins), (void *)&desc, 
+				     (comp_func_t)callback_match_name, NULL);
+
+	return found ? (reiser4_plugin_t *)found->data : NULL;
+}
+
 /* 
    Calls specified function for every plugin from plugin list. This functions
    is used for getting any plugins information.
@@ -518,3 +493,9 @@ errno_t libreiser4_factory_foreach(
 	return res;
 }
 #endif
+
+void factory_register(plugin_init_t init, plugin_fini_t fini) {
+	libreiser4_factory_load(init, fini);
+}
+
+factory_register_t __factory_register = factory_register;

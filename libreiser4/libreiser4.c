@@ -354,10 +354,6 @@ const char *libreiser4_version(void) {
   before any actions performed on libreiser4.
 */
 errno_t libreiser4_init(void) {
-	extern aal_list_t *plugins;
-	
-	plugins = NULL;
-	
 	if (libreiser4_factory_init()) {
 		aal_exception_fatal("Can't initialize plugin factory.");
 		return -EINVAL;
