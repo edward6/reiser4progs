@@ -5,13 +5,13 @@
 
 #include <reiser4/reiser4.h>
 
+#ifndef ENABLE_STAND_ALONE
 extern errno_t callback_node_insert(reiser4_node_t *node, 
 				    pos_t *pos, trans_hint_t *hint);
 
 extern errno_t callback_node_write(reiser4_node_t *node, 
 				   pos_t *pos, trans_hint_t *hint);
 
-#ifndef ENABLE_STAND_ALONE
 /* Tree packing callback. Used for packing the tree, after delete items. This is
    needed for keeping tree in well packed state. */
 static errno_t callback_tree_pack(reiser4_tree_t *tree,
