@@ -99,34 +99,31 @@ errno_t reiser4_item_print(
 
 #endif
 
-/*
-  These are the couple of functions which are used for determining item
-  type. They are deprecated and will be eliminated soon. That is because we
-  should not be depend in libreiser4 on possible item types. We should rely only
-  on item plugin methods.
-*/
-bool_t reiser4_item_permissn(reiser4_coord_t *coord) {
-	item_entity_t *item;
-	
-	aal_assert("umka-1100", coord != NULL, return 0);
-
-	item = &coord->item;
-	aal_assert("umka-1450", item->plugin != NULL, return 0);
-	
-	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.group == PERMISSN_ITEM;
-}
-
-bool_t reiser4_item_tail(reiser4_coord_t *coord) {
-	item_entity_t *item;
-	
+bool_t reiser4_item_filebody(reiser4_coord_t *coord) {
 	aal_assert("umka-1098", coord != NULL, return 0);
 
-	item = &coord->item;
-	aal_assert("umka-1451", item->plugin != NULL, return 0);
-	
-	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.group == TAIL_ITEM;
+	if (reiser4_item_get_key(coord, NULL))
+		return FALSE;
+
+	return reiser4_key_get_type(&coord->item.key) == KEY_FILEBODY_TYPE;
+}
+
+bool_t reiser4_item_statdata(reiser4_coord_t *coord) {
+	aal_assert("umka-1831", coord != NULL, return 0);
+
+	if (reiser4_item_get_key(coord, NULL))
+		return FALSE;
+
+	return reiser4_key_get_type(&coord->item.key) == KEY_STATDATA_TYPE;
+}
+
+bool_t reiser4_item_filename(reiser4_coord_t *coord) {
+	aal_assert("umka-1830", coord != NULL, return 0);
+
+	if (reiser4_item_get_key(coord, NULL))
+		return FALSE;
+
+	return reiser4_key_get_type(&coord->item.key) == KEY_FILENAME_TYPE;
 }
 
 bool_t reiser4_item_extent(reiser4_coord_t *coord) {
@@ -139,30 +136,6 @@ bool_t reiser4_item_extent(reiser4_coord_t *coord) {
 	
 	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
 		item->plugin->h.group == EXTENT_ITEM;
-}
-
-bool_t reiser4_item_direntry(reiser4_coord_t *coord) {
-	item_entity_t *item;
-	
-	aal_assert("umka-1096", coord != NULL, return 0);
-
-	item = &coord->item;
-	aal_assert("umka-1453", item->plugin != NULL, return 0);
-	
-	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.group == DIRENTRY_ITEM;
-}
-
-bool_t reiser4_item_statdata(reiser4_coord_t *coord) {
-	item_entity_t *item;
-	
-	aal_assert("umka-1094", coord != NULL, return 0);
-
-	item = &coord->item;
-	aal_assert("umka-1454", item->plugin != NULL, return 0);
-	
-	return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.group == STATDATA_ITEM;
 }
 
 bool_t reiser4_item_nodeptr(reiser4_coord_t *coord) {

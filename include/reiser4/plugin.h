@@ -688,7 +688,6 @@ struct reiser4_item_ops {
 	int (*mergeable) (item_entity_t *, item_entity_t *);
 
 	/* Goes through all blocks item points to. */
-	/* FIXME: checnge data_func_t to region_func_t */
 	errno_t (*layout) (item_entity_t *, data_func_t, void *);
 
 	/*

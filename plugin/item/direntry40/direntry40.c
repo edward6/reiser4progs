@@ -1231,7 +1231,6 @@ static reiser4_plugin_t direntry40_plugin = {
 		.maxposs_key	= direntry40_maxposs_key,
 		.utmost_key     = direntry40_utmost_key,
 
-		.gap_key	= NULL,
 		.layout_check	= NULL
 	}
 };
