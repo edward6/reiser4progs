@@ -10,6 +10,7 @@
 
 #define SUPER(master) ((reiser4_master_sb_t *)master->block->data)
 
+/* Checks the blocksize. */
 static int callback_bs_check (int64_t val, void * data) {
     if (!aal_pow_of_two(val))
 	return 0;
@@ -20,6 +21,8 @@ static int callback_bs_check (int64_t val, void * data) {
     return 1;
 }
 
+/* Checks the opened master, builds a new one on the base of user profile if 
+ * no one was opened. */
 static errno_t repair_master_check(reiser4_fs_t *fs) {
     uint16_t blocksize = 0;
     int error = 0;
@@ -79,6 +82,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs) {
     return 0;
 }
 
+/* Opens and checks the master. */
 errno_t repair_master_open(reiser4_fs_t *fs) {
     aal_assert("vpf-399", fs != NULL);
     aal_assert("vpf-729", fs->device != NULL);

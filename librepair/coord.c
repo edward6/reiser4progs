@@ -7,6 +7,7 @@
 
 #include <repair/librepair.h>
 
+/* Just a useful method to handle position when an item or a unit is removed. */
 void repair_coord_left_pos_save(reiser4_place_t *current, rpos_t *pos) {
     *pos = current->pos;
     

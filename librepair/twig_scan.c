@@ -3,18 +3,17 @@
 
     Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
     reiser4progs/COPYING.
+*/
 
-    The twig_scan pass - fsck zeros extent pointers which point to an already 
-    used block. Builds a map of used blocks.
+/*
+    Description: fsck on this pass zeroes extent pointers which point to an 
+    already used block. Builds a map of used blocks.
 */
 
 #include <repair/librepair.h>
 
-/* 
-    Check unfm block pointer if it points to an already used block (leaf, format 
-    area) or out of format area. Return 1 if it does, 0 - does not, -1 error.
-*/
-
+/* Check unfm block pointer if it points to an already used block (leaf, format 
+ * area) or out of format area. Return 1 if it does, 0 - does not, -1 error. */
 static errno_t callback_item_region_check(item_entity_t *item, blk_t start, 
     uint64_t count, void *data) 
 {
@@ -50,7 +49,10 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
     return 0;
 }
 
-static errno_t callback_item_layout(reiser4_place_t *coord, void *data) {
+/* Callback for the traverse which calls item_ops.layout_check method if layout 
+ * exists for all items which can contain data, not tree index data only. 
+ * Shrink the node if item lenght is changed. */
+static errno_t callback_item_layout_check(reiser4_place_t *coord, void *data) {
     reiser4_node_t *node;
     int32_t len;
     int res;
@@ -60,25 +62,30 @@ static errno_t callback_item_layout(reiser4_place_t *coord, void *data) {
 
     node = coord->node;
     
-    if (coord->item.plugin->item_ops.layout) {
-	len = coord->item.plugin->item_ops.layout_check(&coord->item, 
-	    callback_item_region_check, data);
-	if (len > 0) {
-	    /* shrink the node. */
-	    if ((res = plugin_call(node->entity->plugin->node_ops,
-		    shrink, node->entity, &coord->pos, len, 1)))
-	    {
-		aal_exception_bug("Node (%llu), pos (%u, %u), len (%u): Failed "
-		    "to shrink the node on (%u) bytes.", node->blk, 
-		    coord->pos.item, coord->pos.unit, coord->item.len, len);
-		return -1;
-	    }
-	}
+    if (!reiser4_item_data(coord->item.plugin) || 
+	!coord->item.plugin->item_ops.layout_check)
+	return 0;
+    
+    len = coord->item.plugin->item_ops.layout_check(&coord->item, 
+	callback_item_region_check, data);
+    
+    if (len > 0) {
+	/* shrink the node. */
+	if ((res = plugin_call(node->entity->plugin->node_ops,
+	    shrink, node->entity, &coord->pos, len, 1)))
+	{
+	    aal_exception_bug("Node (%llu), pos (%u, %u), len (%u): Failed "
+		"to shrink the node on (%u) bytes.", node->blk, 
+		coord->pos.item, coord->pos.unit, coord->item.len, len);
+	    return -1;
+	}	
     }
 
     return 0;
 }
 
+/* If a fatal error occured, release evth, what was allocated by this moment 
+ * - not only on this pass, smth was allocated on some previous one. */
 static void repair_twig_scan_release(repair_data_t *rd) {
     aal_assert("vpf-741", rd != NULL);
 
@@ -96,6 +103,7 @@ static void repair_twig_scan_release(repair_data_t *rd) {
 	aux_bitmap_close(repair_ts(rd)->bm_unfm_out);
 }
 
+/* Setup the pass to be performed - prepare bitmaps for the further work. */
 static errno_t repair_twig_scan_setup(repair_data_t *rd) {
     repair_ts_t *ts;
     uint32_t i;
@@ -141,14 +149,18 @@ error:
     return -1;
 }
 
+/* Update the pass after performing, prepare some bitmaps content for the 
+ * further work, deallocate some bitmap. */
 static errno_t repair_twig_scan_update(repair_data_t *rd) {
     repair_ts_t *ts;
+    repair_am_t *am;
     uint32_t i;
  
     aal_assert("vpf-577", rd != NULL);
     aal_assert("vpf-593", rd->fs != NULL);
 
     ts = repair_ts(rd);
+    am = repair_am(rd);
  
     for (i = 0; i < ts->bm_met->size; i++) {
 	aal_assert("vpf-576", (ts->bm_met->map[i] & 
@@ -167,6 +179,10 @@ static errno_t repair_twig_scan_update(repair_data_t *rd) {
     reiser4_alloc_assign(rd->fs->alloc, ts->bm_used);
     reiser4_alloc_assign_forb(rd->fs->alloc, ts->bm_met);
 
+    am->bm_leaf = ts->bm_leaf;
+    am->bm_twig = ts->bm_twig;
+
+    aux_bitmap_close(ts->bm_leaf);
     aux_bitmap_close(ts->bm_met);
     aux_bitmap_close(ts->bm_unfm_tree);
     aux_bitmap_close(ts->bm_unfm_out);
@@ -174,6 +190,8 @@ static errno_t repair_twig_scan_update(repair_data_t *rd) {
     return 0;
 }
 
+/* The pass itself, goes through all twigs, check block pointers which items may have 
+ * and account them in proper bitmaps. */
 errno_t repair_twig_scan_pass(repair_data_t *rd) {
     reiser4_node_t *node;
     object_entity_t *entity;
@@ -200,13 +218,9 @@ errno_t repair_twig_scan_pass(repair_data_t *rd) {
 	}
 
 	entity = node->entity;
-	
-	/* This block must contain twig. */
-	aal_assert("vpf-544", reiser4_node_get_level(node) == TWIG_LEVEL);
 
 	/* Lookup the node. */	
-	if ((res = repair_node_traverse(node, 1 << EXTENT_ITEM, 
-	    callback_item_layout, rd)))
+	if ((res = repair_node_traverse(node, callback_item_layout_check, rd)))
 	    goto error_node_free;
 
 	if (!reiser4_node_locked(node))
@@ -256,7 +270,7 @@ static int comp_ovrl_index(const void *elem, const void *needle, void *data) {
 }
 */
 
-/* Coord pints to a problem extent. Save it into ovrl_list for futher handling. */
+/* Coord pints to a problem extent. Save it into ovrl_list for further handling. */
 static errno_t repair_ts_ovrl_add(reiser4_place_t *coord, repair_data_t *rd) {
     repair_ovrl_t *ovrl;
     reiser4_node_t *node;

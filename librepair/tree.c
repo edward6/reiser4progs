@@ -52,6 +52,7 @@ static errno_t repair_tree_max_real_key(reiser4_node_t *node,
     return res;
 }
 
+/* Corrects coord for insertion over the base reiser4_tree_lookup method. */
 lookup_t repair_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key, 
     reiser4_place_t *coord) 
 {

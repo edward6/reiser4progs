@@ -1,9 +1,10 @@
-/*
+/* 
     librepair/disk_scan.c - methods are needed for the third fsck pass. 
-
     Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-    reiser4progs/COPYING.
-  
+    reiser4progs/COPYING. 
+*/
+
+/* 
     The disk_scan pass - fsck scans the blocks which are used, but not 
     in the tree yet. 
 
@@ -44,6 +45,8 @@ static errno_t callback_blk_mark(object_entity_t *entity, blk_t blk, void *data)
     return 0;
 }
 
+/* If a fatal error occured, release evth, what was allocated by this moment 
+ * - not only on this pass, smth was allocated on some previous one. */
 static void repair_disk_scan_release(repair_data_t *rd) {
     aal_assert("vpf-740", rd != NULL);
     
@@ -59,7 +62,10 @@ static void repair_disk_scan_release(repair_data_t *rd) {
 	aux_bitmap_close(repair_ds(rd)->bm_scan);
 }
 
-/*  Prepare the bitmap of blocks which are to be scanned. */
+/* Setup the pass to be performed - create 2 new bitmaps for blocks to be 
+ * scanned, leaves, and formatted blocks which cannot be pointed by nodeptr's
+ * and not accounted anywhere else; fill the scan bitmap with what should be 
+ * scanned. */
 static errno_t repair_disk_scan_setup(repair_data_t *rd) {
     struct ds_alloc_region region;
     reiser4_format_t *format;
@@ -134,15 +140,20 @@ error:
     return -1;
 }
 
+/* The pass inself, goes through all the blocks marked in the scan bitmap, 
+ * and if a block can contain some data to be recovered (formatted and contains 
+ * not tree index data only) then fix all corruptions within the node and 
+ * save it for further insertion. */
 errno_t repair_disk_scan_pass(repair_data_t *rd) {
     reiser4_node_t *node;
     reiser4_place_t coord;
     rpos_t *pos = &coord.pos;
     repair_ds_t *ds;
-    blk_t blk = 0;
-    errno_t res;
+    uint32_t count;
     uint8_t level;
-    
+    errno_t res;
+    blk_t blk = 0;
+
     aal_assert("vpf-514", rd != NULL);
     aal_assert("vpf-705", rd->fs != NULL);
 
@@ -164,9 +175,10 @@ errno_t repair_disk_scan_pass(repair_data_t *rd) {
 
 	level = reiser4_node_get_level(node);
 
-	if (level != LEAF_LEVEL && level != TWIG_LEVEL) {
+	if (!reiser4_tree_data_level(level)) {
+	    /* Node cannot contain data (metadata only), skip it, but save as 
+	     * formatted to check extent pointers. */
 	    aux_bitmap_mark(ds->bm_frmt, blk);
-	    reiser4_node_release(node);
 	    goto next;
 	}
 
@@ -175,49 +187,45 @@ errno_t repair_disk_scan_pass(repair_data_t *rd) {
 	if (res > 0) {
 	    /* Node was not recovered, save it as formatted. */
 	    aux_bitmap_mark(ds->bm_frmt, blk);
-	    reiser4_node_release(node);
 	    goto next;
 	} else if (res < 0)
 	    goto error_node_release;
 
-	if (level == TWIG_LEVEL) {
-	    uint32_t count;
-	    
-	    /* Remove all not extent items. */
-	    coord.node = node;
-	    pos->item = 0;
-	    pos->unit = ~0ul;
-	    count = reiser4_node_items(node);
-	    
-	    for (pos->item = 0; pos->item < count; pos->item++) {
-		if (reiser4_place_realize(&coord)) {
-		    aal_exception_error("Node (%llu), item (%u): failed to open"
-			" the item.", node->blk, pos->item);
+	/* Remove all metadata items. */
+	coord.node = node;
+	pos->unit = ~0ul;
+	count = reiser4_node_items(node);
+	for (pos->item = 0; pos->item < count; pos->item++) {
+	    if (reiser4_place_realize(&coord)) {
+		aal_exception_error("Node (%llu), item (%u): failed to open"
+		    " the item.", node->blk, pos->item);
+		goto error_node_release;
+	    }
+		
+	    /* If an item does not contain data (only metadata), remove it. */	
+	    if (!reiser4_item_data(coord.item.plugin)) {
+		if (reiser4_node_remove(coord.node, pos, 1)) {
+		    aal_exception_error("Node (%llu), item (%u): failed to "
+			"remove the item.", node->blk, pos->item);
 		    goto error_node_release;
 		}
-		
-		if (!reiser4_item_extent(&coord)) {
-		    if (reiser4_node_remove(coord.node, pos, 1)) {
-			aal_exception_error("Node (%llu), item (%u): failed to "
-			    "remove the item.", node->blk, pos->item);
-			goto error_node_release;
-		    }
 
-		    reiser4_node_mkdirty(coord.node);
-		    pos->item--;
-		    count = reiser4_node_items(node);
-		}
+		reiser4_node_mkdirty(coord.node);
+		pos->item--;
+		count = reiser4_node_items(node);
 	    }
+	}
 
-	    if (reiser4_node_items(node) == 0)
-		reiser4_node_mkclean(coord.node);
-	    else 
-		aux_bitmap_mark(ds->bm_twig, blk);
-	} else
+	if (reiser4_node_items(node) == 0) {
+	    reiser4_node_mkclean(coord.node);
+	    aux_bitmap_mark(ds->bm_frmt, blk);
+	} else if (level == TWIG_LEVEL)
+	    aux_bitmap_mark(ds->bm_twig, blk);
+	else
 	    aux_bitmap_mark(ds->bm_leaf, blk);
 	
-	reiser4_node_release(node);
     next:
+	reiser4_node_release(node);
 	blk++;	
     }
     

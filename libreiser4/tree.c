@@ -1369,7 +1369,6 @@ errno_t reiser4_tree_insert(
 	*/
 	if (reiser4_format_get_root(tree->fs->format) == INVAL_BLK) {
 		uint8_t top, bottom;
-
 		if (reiser4_tree_alroot(tree))
 			return -1;
 
@@ -1854,6 +1853,41 @@ errno_t reiser4_tree_traverse(
 	
 	return reiser4_node_traverse(tree->root, hint, open_func, before_func,
 				     setup_func, update_func, after_func);
+}
+
+/* Is the pair level of the tree and the  */
+/* Hardcoded method, valid for the current tree imprementation only. */
+bool_t reiser4_tree_legal_level(uint8_t level, reiser4_item_group_t group) {
+	if (group == NODEPTR_ITEM) {
+		if (level == LEAF_LEVEL)
+			return FALSE;
+	} else if (group == EXTENT_ITEM) {
+		if (level != TWIG_LEVEL)
+			return FALSE;
+	} else return level == LEAF_LEVEL;
+
+	return TRUE;
+}
+
+static errno_t callback_item_data_level(
+	reiser4_plugin_t *plugin,    /* plugin to be checked */
+	void *data)		     /* level to be checked */
+{
+	uint8_t *level = (uint8_t *)data;
+
+	aal_assert("vpf-746", data != NULL, return -1);
+
+	if (!reiser4_tree_legal_level(*level, plugin->h.group))
+		return 0;
+
+	return reiser4_item_data(plugin);
+	    
+}
+
+/* Is the specified level may contain items with user data, not tree index data. */
+/* Hardcoded method, valid for the current tree imprementation only. */
+bool_t reiser4_tree_data_level(uint8_t level) {
+	return (libreiser4_factory_cfind(callback_item_data_level, &level) != NULL);
 }
 
 #endif
