@@ -178,6 +178,7 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 				     item_entity_t *dst_item,
 				     shift_hint_t *hint)
 {
+	uint32_t pos;
 	uint32_t space;
 	
 	aal_assert("umka-1664", src_item != NULL);
@@ -185,44 +186,52 @@ static errno_t tail40_estimate_shift(item_entity_t *src_item,
 
 	space = hint->rest;
 		
+	pos = (hint->pos.unit == ~0ul) ? 0 :
+		hint->pos.unit;
+	
 	if (hint->control & SF_LEFT) {
+		if (hint->control & SF_UPTIP) {
+			
+			if (hint->rest > pos)
+				hint->rest = pos;
 
-		if (hint->rest > hint->pos.unit)
-			hint->rest = hint->pos.unit;
-
-		hint->pos.unit -= hint->rest;
+			pos -= hint->rest;
 		
-		if (hint->pos.unit == 0 && hint->control & SF_MOVIP) {
-			hint->result |= SF_MOVIP;
-			hint->pos.unit = dst_item->len + hint->rest;
+			if (pos == 0 && hint->control & SF_MOVIP) {
+				hint->result |= SF_MOVIP;
+				pos = dst_item->len + hint->rest;
+			}
 		}
 	} else {
 		uint32_t right;
 
-		if (hint->pos.unit < src_item->len) {
-			right = src_item->len - hint->pos.unit;
+		if (hint->control & SF_UPTIP) {
+			if (pos < src_item->len) {
+				right = src_item->len - pos;
 		
-			if (hint->rest > right)
-				hint->rest = right;
+				if (hint->rest > right)
+					hint->rest = right;
 
-			hint->pos.unit += hint->rest;
+				pos += hint->rest;
 			
-			if (hint->pos.unit == src_item->len &&
-			    hint->control & SF_MOVIP)
-			{
-				hint->result |= SF_MOVIP;
-				hint->pos.unit = 0;
-			}
-		} else {
-			if (hint->control & SF_MOVIP) {
-				hint->result |= SF_MOVIP;
-				hint->pos.unit = 0;
-			}
+				if (pos == src_item->len &&
+				    hint->control & SF_MOVIP)
+				{
+					hint->result |= SF_MOVIP;
+					pos = 0;
+				}
+			} else {
+				if (hint->control & SF_MOVIP) {
+					hint->result |= SF_MOVIP;
+					pos = 0;
+				}
 
-			hint->rest = 0;
+				hint->rest = 0;
+			}
 		}
 	}
 
+	hint->pos.unit = pos;
 	return 0;
 }
 

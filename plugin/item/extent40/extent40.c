@@ -406,68 +406,81 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 				       item_entity_t *dst_item,
 				       shift_hint_t *hint)
 {
+	uint32_t pos;
 	uint32_t space;
 	
-	aal_assert("umka-1704", src_item != NULL);
 	aal_assert("umka-1705", hint != NULL);
+	aal_assert("umka-1704", src_item != NULL);
 
 	space = hint->rest;
+
+	pos = (hint->pos.unit == ~0ul) ? 0 :
+		hint->pos.unit;
 		
 	if (hint->control & SF_LEFT) {
+
+		/*
+		  Check if we need to update insert point at all. If not, we
+		  only rely on @hint->rest in that, how many units may be
+		  shifted out to neighbour item.
+		*/
 		if (hint->control & SF_UPTIP) {
+
 			if (hint->pos.unit == ~0ul) {
 				hint->units = 0;
 				return 0;
 			}
-		}
 		
-		if (hint->rest > hint->pos.unit * sizeof(extent40_t))
-			hint->rest = hint->pos.unit * sizeof(extent40_t);
+			if (hint->rest > pos * sizeof(extent40_t))
+				hint->rest = pos * sizeof(extent40_t);
 
-		hint->pos.unit -= hint->rest / sizeof(extent40_t);
-		
-		if (hint->pos.unit == 0 && hint->control & SF_MOVIP) {
-			hint->result |= SF_MOVIP;
+			pos -= hint->rest / sizeof(extent40_t);
 
-			if (dst_item) {
-				hint->pos.unit = (dst_item->len + hint->rest) /
-					sizeof(extent40_t);
-			} else {
-				hint->pos.unit = hint->rest /
-					sizeof(extent40_t);
+			if (pos == 0 && hint->control & SF_MOVIP) {
+				hint->result |= SF_MOVIP;
+
+				if (dst_item) {
+					pos = (dst_item->len + hint->rest) /
+						sizeof(extent40_t);
+				} else {
+					pos = hint->rest / sizeof(extent40_t);
+				}
 			}
 		}
 	} else {
-		uint32_t pos, right;
+		uint32_t right;
 		
-		pos = hint->pos.unit == ~0ul ? 0 : hint->pos.unit;
-		
-		if (src_item->len > pos * sizeof(extent40_t)) {
+		if (hint->control & SF_UPTIP) {
+			if (pos * sizeof(extent40_t) < src_item->len) {
 
-			right = src_item->len - (pos * sizeof(extent40_t));
+				right = src_item->len -
+					(pos * sizeof(extent40_t));
 		
-			if (hint->rest > right)
-				hint->rest = right;
+				if (hint->rest > right)
+					hint->rest = right;
 
-			if (hint->control & SF_MOVIP &&
-			    pos == ((src_item->len - hint->rest) / 
-				    sizeof(extent40_t)))
-			{
-				hint->pos.unit = 0;
-				hint->result |= SF_MOVIP;
+				if (hint->control & SF_MOVIP &&
+				    pos == ((src_item->len - hint->rest) /
+					    sizeof(extent40_t)))
+				{
+					pos = 0;
+					hint->result |= SF_MOVIP;
+				}
+			} else {
+				if (hint->control & SF_MOVIP) {
+					pos = 0;
+					hint->result |= SF_MOVIP;
+				}
+
+				hint->rest = 0;
 			}
-		} else {
-			
-			if (hint->control & SF_MOVIP) {
-				hint->pos.unit = 0;
-				hint->result |= SF_MOVIP;
-			}
-
-			hint->rest = 0;
 		}
 	}
 
-	hint->units = hint->rest / sizeof(extent40_t);
+	hint->pos.unit = pos;
+
+	hint->units = hint->rest /
+		sizeof(extent40_t);
 	
 	return 0;
 }

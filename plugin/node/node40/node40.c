@@ -1304,12 +1304,7 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		*/
 		if (hint->rest < overhead)
 			return 0;
-		
-		if (hint->control & SF_UPTIP && hint->control & SF_LEFT) {
-			if (src_item.pos.item == 0 && hint->pos.unit == ~0ul)
-				return 0;
-		}
-		
+
 		hint->rest -= overhead;
 
 		if (plugin_call(src_item.plugin->o.item_ops,
@@ -1324,7 +1319,7 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		  into neighbour item. In the case of creating new item and left
 		  merge item pos will be equal to dst_items.
 		*/
-		if (hint->result & SF_MOVIP) {
+		if (hint->control & SF_UPTIP && hint->result & SF_MOVIP) {
 			hint->pos.item = (hint->control & SF_LEFT ?
 					  dst_items : 0);
 		}
@@ -1338,7 +1333,7 @@ static errno_t node40_merge(object_entity_t *src_entity,
 			return -EINVAL;
 		}
 
-		if (hint->result & SF_MOVIP) {
+		if (hint->control & SF_UPTIP && hint->result & SF_MOVIP) {
 			hint->pos.item = (hint->control & SF_LEFT ?
 					  dst_items - 1 : 0);
 		}
@@ -1791,8 +1786,12 @@ static errno_t node40_shift(object_entity_t *src_entity,
 	  Thus, insert unit request will be transformed into insert item one by
 	  means of clearing unit component of the insert point in shift hint.
 	*/
-	if (hint->result & SF_MOVIP && hint->units == 0 && hint->create)
+	if (hint->control & SF_UPTIP &&
+	    hint->result & SF_MOVIP &&
+	    hint->units == 0 && hint->create)
+	{
 		hint->pos.unit = ~0ul;
+	}
 
  update_hint_out:
 	src_node->dirty = 1;
