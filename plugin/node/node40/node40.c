@@ -488,7 +488,6 @@ errno_t node40_expand(object_entity_t *entity, pos_t *pos,
 
 	if (is_insert) {
                 /* Setting up the fields of new item */
-		ih40_set_len(ih, len);
 		ih40_set_offset(ih, offset);
 
 		/* Setting up node header */
@@ -497,7 +496,6 @@ errno_t node40_expand(object_entity_t *entity, pos_t *pos,
 	} else {
 		/* Increasing item len mfor the case of pasting new units */
 		ih = node40_ih_at(node, pos->item);
-		ih40_inc_len(ih, len);
 	}
 	
 	node->dirty = 1;
@@ -598,7 +596,6 @@ errno_t node40_shrink(object_entity_t *entity, pos_t *pos,
 
 		/* Updating node header and item header */
 		nh40_inc_free_space(node, len);
-		ih40_dec_len(ih, len);
 	}
 
 	nh40_dec_free_space_start(node, len);
@@ -1794,8 +1791,19 @@ static errno_t node40_shift(object_entity_t *src_entity,
 	return 0;
 }
 
-extern errno_t node40_check(object_entity_t *entity,
-			    uint8_t mode);
+extern void node40_set_flag(object_entity_t *entity, 
+			    uint32_t pos, 
+			    uint16_t flag);
+
+extern void node40_clear_flag(object_entity_t *entity, 
+			      uint32_t pos, 
+			      uint16_t flag);
+
+extern bool_t node40_test_flag(object_entity_t *entity, 
+			       uint32_t pos, 
+			       uint16_t flag);
+
+extern errno_t node40_check(object_entity_t *entity, uint8_t mode);
 
 extern errno_t node40_copy(object_entity_t *dst_entity,
 			   pos_t *dst_pos, 
@@ -1848,7 +1856,10 @@ static reiser4_node_ops_t node40_ops = {
 	.set_key	 = node40_set_key,
 	.set_level       = node40_set_level,
 	.set_mstamp	 = node40_set_mstamp,
-	.set_fstamp      = node40_set_fstamp
+	.set_fstamp      = node40_set_fstamp,
+	.set_flag	 = node40_set_flag,
+	.clear_flag	 = node40_clear_flag,
+	.test_flag	 = node40_test_flag
 #endif
 };
 

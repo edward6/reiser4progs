@@ -23,9 +23,9 @@ typedef enum repair_error_filter {
     REPAIR_BAD_DKEYS	= (REPAIR_ERROR_LAST << 1)
 } repair_error_filter_t;
 
-/* Open callback for traverse. It opens a node at passed blk, creates a node 
- * on it. It does nothing if REPAIR_BAD_PTR is set and set this flag if 
- * node cannot be opeened. Returns error if any. */
+/* Open callback for traverse. It opens a node at passed blk. It does nothing 
+ * if REPAIR_BAD_PTR is set and set this flag if node cannot be opeened. 
+ * Returns error if any. */
 static errno_t repair_filter_node_open(reiser4_node_t **node, blk_t blk, 
     void *data)
 {
@@ -344,7 +344,7 @@ static void repair_filter_setup(repair_filter_t *fd) {
  * the pointer to the root block from the specific super block if 
  * REPAIR_BAD_PTR flag is set, mark that block used in bm_used bitmap 
  * otherwise. */
-static void repair_filter_fini_traverse(repair_filter_t *fd, 
+static void repair_filter_update(repair_filter_t *fd, 
     reiser4_node_t *root) 
 {
     aal_stream_t stream;
@@ -434,6 +434,7 @@ static void repair_filter_fini_traverse(repair_filter_t *fd,
 errno_t repair_filter(repair_filter_t *fd) {
     repair_progress_t progress;
     traverse_hint_t hint;
+    reiser4_fs_t *fs;
     errno_t res;
 
     aal_assert("vpf-536", fd != NULL);
@@ -448,29 +449,30 @@ errno_t repair_filter(repair_filter_t *fd) {
     fd->progress = &progress;
     repair_filter_setup(fd);
     
-    if ((res = repair_filter_node_open(&fd->repair->fs->tree->root, 
-	reiser4_format_get_root(fd->repair->fs->format), fd)) < 0)
+    fs = fd->repair->fs;
+    
+    res = repair_filter_node_open(&fs->tree->root, 
+	reiser4_format_get_root(fs->format), fd);
+    
+    if (res || fs->tree->root == NULL) 
 	return res;
     
-    if (res == 0 && fd->repair->fs->tree->root != NULL) {
-	hint.data = fd;
-	hint.cleanup = 1;
+    hint.data = fd;
+    hint.cleanup = 1;
 
-	/* Cut the corrupted, unrecoverable parts of the tree off. */ 	
-	res = reiser4_tree_down(fd->repair->fs->tree, 
-	    fd->repair->fs->tree->root, &hint, repair_filter_node_open,
-	    repair_filter_node_check,	    repair_filter_setup_traverse,
-	    repair_filter_update_traverse,  repair_filter_after_traverse);
-
-		 
-	if (res < 0)
-	    return res;
+    /* Cut the corrupted, unrecoverable parts of the tree off. */ 	
+    res = reiser4_tree_down(fs->tree,   fs->tree->root, &hint,
+	repair_filter_node_open,	repair_filter_node_check,
+	repair_filter_setup_traverse,   repair_filter_update_traverse,  
+	repair_filter_after_traverse);
 	
-	repair_filter_fini_traverse(fd, fd->repair->fs->tree->root);
+    if (res < 0)
+	return res;
 	
-	reiser4_tree_collapse(fd->repair->fs->tree, fd->repair->fs->tree->root);
-	fd->repair->fs->tree->root = NULL;
-    }
+    repair_filter_update(fd, fs->tree->root);
+	
+    reiser4_tree_collapse(fs->tree, fs->tree->root);
+    fs->tree->root = NULL;
     
     return res;
 }

@@ -452,4 +452,47 @@ errno_t node40_copy(object_entity_t *dst, pos_t *dst_pos,
     return 0;
 }
 
+void node40_set_flag(object_entity_t *entity, uint32_t pos, uint16_t flag) {
+    node40_t *node;
+    item40_header_t *ih; 
+    
+    aal_assert("vpf-1038", entity != NULL);
+    
+    node = (node40_t *)entity;
+    ih = node40_ih_at(node, pos);
+    
+    if (aal_test_bit(ih, flag))
+	return;
+
+    aal_set_bit(ih, flag);
+    node->dirty = 1;
+}
+
+void node40_clear_flag(object_entity_t *entity, uint32_t pos, uint16_t flag) {
+    node40_t *node;
+    item40_header_t *ih; 
+    
+    aal_assert("vpf-1039", entity != NULL);
+    
+    node = (node40_t *)entity;
+    ih = node40_ih_at(node, pos);
+    
+    if (!aal_test_bit(ih, flag))
+	return;
+
+    aal_clear_bit(ih, flag);
+    node->dirty = 1;
+}
+
+bool_t node40_test_flag(object_entity_t *entity, uint32_t pos, uint16_t flag) {
+    node40_t *node;
+    item40_header_t *ih; 
+    
+    aal_assert("vpf-1040", entity != NULL);
+    
+    node = (node40_t *)entity;
+    ih = node40_ih_at(node, pos);
+    
+    return aal_test_bit(ih, flag);
+}
 #endif

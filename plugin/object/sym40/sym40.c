@@ -24,7 +24,10 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 
 	aal_assert("umka-1163", tree != NULL);
 	aal_assert("umka-1164", place != NULL);
-    
+ 	
+	if (place->item.plugin->h.group != STATDATA_ITEM)
+		return NULL;
+   
 	if (obj40_pid(&place->item) != sym40_plugin.h.id)
 		return NULL;
 	

@@ -1,5 +1,6 @@
 librepair_sources            = filesystem.c tree.c master.c format.c journal.c alloc.c node.c item.c \
-			       filter.c disk_scan.c twig_scan.c add_missing.c repair.c
+			       object.c filter.c disk_scan.c twig_scan.c add_missing.c semantic.c \
+			       repair.c
 
 lib_LTLIBRARIES		     = librepair.la
 

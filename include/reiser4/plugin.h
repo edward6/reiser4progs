@@ -545,12 +545,6 @@ struct reiser4_key_ops {
 
 	/* Copyies src key to dst one */
 	errno_t (*assign) (key_entity_t *, key_entity_t *);
-
-	/*
-	  Constructs key by three components without any shifts or something
-	  else. It may be used for building sttadata key by entry.
-	*/
-	errno_t (*build_short) (key_entity_t *, uint64_t, uint64_t);
 	
 	/* Builds generic key (statdata, file body, etc) */
 	errno_t (*build_generic) (key_entity_t *, key_type_t,
@@ -725,7 +719,7 @@ struct reiser4_item_ops {
 	int32_t (*remove) (item_entity_t *, uint32_t, uint32_t);
 	
 	/* Checks the item structure. */
-	errno_t (*check) (item_entity_t *, uint8_t);
+	errno_t (*check_struct) (item_entity_t *, uint8_t);
 	
 	/* Prints item into specified buffer */
 	errno_t (*print) (item_entity_t *, aal_stream_t *, uint16_t);
@@ -734,7 +728,7 @@ struct reiser4_item_ops {
 	errno_t (*layout) (item_entity_t *, region_func_t, void *);
 
 	/* Does some specific actions if a block the item points to is wrong. */
-	errno_t (*layout_check) (item_entity_t *, region_func_t,
+	errno_t (*check_layout) (item_entity_t *, region_func_t,
 				 void *, uint8_t);
 
 	/* Set the key of a particular unit of the item. */
@@ -894,6 +888,11 @@ struct reiser4_node_ops {
 	/* Get mkfs and flush stamps */
 	uint32_t (*get_mstamp) (object_entity_t *);
     	uint64_t (*get_fstamp) (object_entity_t *);
+	
+	/* Get/set/test item flags. */
+	void (*set_flag) (object_entity_t *, uint32_t, uint16_t);
+	void (*clear_flag) (object_entity_t *, uint32_t, uint16_t);
+	bool_t (*test_flag) (object_entity_t *, uint32_t, uint16_t);
 #endif
 
 	/* Cerates node entity */

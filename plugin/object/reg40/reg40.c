@@ -160,7 +160,10 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 
 	aal_assert("umka-1163", tree != NULL);
 	aal_assert("umka-1164", place != NULL);
-    
+    	
+	if (place->item.plugin->h.group != STATDATA_ITEM)
+		return NULL;
+
 	if (obj40_pid(&place->item) != reg40_plugin.h.id)
 		return NULL;
 
@@ -325,10 +328,7 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 	if ((res = reg40_reset(entity)))
 		return res;
 	
-	size = obj40_get_size(&reg->obj);
-	aal_assert("umka-1913", size > 0);
-	
-	if ((res = reg40_truncate(entity, size)))
+	if ((res = reg40_truncate(entity, 0)))
 		return res;
 
 	if ((res = obj40_stat(&reg->obj)))

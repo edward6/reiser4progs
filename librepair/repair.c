@@ -10,6 +10,7 @@
 #include <repair/disk_scan.h>
 #include <repair/twig_scan.h>
 #include <repair/add_missing.h>
+#include <repair/semantic.h>
 
 typedef struct repair_control {
     repair_data_t *repair;
@@ -245,7 +246,7 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 	aal_assert("vpf-576", (control->bm_met->map[i] & 
 	    (control->bm_unfm_tree->map[i] | control->bm_unfm_out->map[i])) 
 	    == 0);
-
+	
 	/* Let met will be leaves, twigs and unfm which are not in the tree. */
 	control->bm_met->map[i] = ((control->bm_leaf->map[i] | 
 	    control->bm_twig->map[i] | control->bm_unfm_out->map[i]) 
@@ -274,6 +275,10 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
     control->bm_used = control->bm_met = control->bm_unfm_tree = 
 	control->bm_unfm_out = NULL;
     
+    return 0;
+}
+
+errno_t repair_sem_prepare(repair_control_t *control, repair_semantic_t *sem) {
     return 0;
 }
 
@@ -338,6 +343,7 @@ errno_t repair_check(repair_data_t *repair) {
     repair_ds_t ds;
     repair_ts_t ts;
     repair_am_t am;
+    repair_semantic_t sem;
     errno_t res;
     
     aal_assert("vpf-852", repair != NULL);
@@ -385,6 +391,12 @@ errno_t repair_check(repair_data_t *repair) {
 	if ((res = repair_add_missing(&am)))
 	    goto error;
     }
+
+    if ((res = repair_sem_prepare(&control, &sem)))
+	goto error;
+
+    if ((res = repair_semantic(&sem)))
+	goto error;
 
 error:
     repair_control_release(&control);

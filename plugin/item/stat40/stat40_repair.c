@@ -32,7 +32,7 @@ static errno_t callback_check_ext(sdext_entity_t *sdext, uint16_t extmask,
 	sdext->plugin->o.sdext_ops->check(sdext, hint->mode) : REPAIR_OK;
 }
 
-errno_t stat40_check(item_entity_t *item, uint8_t mode) {
+errno_t stat40_check_struct(item_entity_t *item, uint8_t mode) {
     struct pos_hint hint;
     errno_t res;
     

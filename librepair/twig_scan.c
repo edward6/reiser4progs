@@ -158,7 +158,6 @@ static void repair_twig_scan_update(repair_ts_t *ts) {
  * and account them in proper bitmaps. */
 errno_t repair_twig_scan(repair_ts_t *ts) {
     repair_progress_t progress;
-    object_entity_t *entity;
     reiser4_node_t *node;
     errno_t res = -1;
     blk_t blk = 0;
@@ -182,8 +181,6 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 		blk);
 	    return -EINVAL;
 	}
-
-	entity = node->entity;
 
 	/* Lookup the node. */	
 	if ((res = repair_node_traverse(node, callback_item_layout_check, ts)))

@@ -134,8 +134,6 @@ static errno_t repair_node_ld_key_update(reiser4_node_t *node,
     if (node->parent.node == NULL)
 	return 0;
     
-    /* FIXME_VITALY: this should be done not here, on the above level? */
-    reiser4_node_mkdirty(node->parent.node);
     return reiser4_item_set_key(&node->parent, ld_key);
 }
 
@@ -363,7 +361,7 @@ errno_t repair_node_check(reiser4_node_t *node, uint8_t mode) {
 }
 
 /* Traverse through all items of the gived node. */
-errno_t repair_node_traverse(reiser4_node_t *node, traverse_item_func_t func, 
+errno_t repair_node_traverse(reiser4_node_t *node, traverse_node_func_t func, 
     void *data) 
 {
     reiser4_place_t place;
@@ -419,5 +417,26 @@ errno_t repair_node_copy(reiser4_node_t *dst, pos_t *dst_pos,
     
     return plugin_call(dst->entity->plugin->o.node_ops, copy, dst->entity, dst_pos, 
 	src->entity, src_pos, hint);
+}
+
+void repair_node_set_flag(reiser4_node_t *node, uint32_t pos, uint16_t flag) {
+    aal_assert("vpf-1041", node != NULL);
+
+    plugin_call(node->entity->plugin->o.node_ops, set_flag, 
+	node->entity, pos, flag);
+}
+
+void repair_node_clear_flag(reiser4_node_t *node, uint32_t pos, uint16_t flag) {
+    aal_assert("vpf-1042", node != NULL);
+
+    plugin_call(node->entity->plugin->o.node_ops, clear_flag, 
+	node->entity, pos, flag);
+}
+
+bool_t repair_node_test_flag(reiser4_node_t *node, uint32_t pos, uint16_t flag) {
+    aal_assert("vpf-1043", node != NULL);
+
+    return plugin_call(node->entity->plugin->o.node_ops, test_flag, 
+	node->entity, pos, flag);
 }
 

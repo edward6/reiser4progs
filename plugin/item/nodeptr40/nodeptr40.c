@@ -116,10 +116,9 @@ static errno_t nodeptr40_print(item_entity_t *item,
 	return 0;
 }
 
-extern errno_t nodeptr40_check(item_entity_t *item,
-			       uint8_t mode);
+extern errno_t nodeptr40_check_struct(item_entity_t *item, uint8_t mode);
 
-extern errno_t nodeptr40_layout_check(item_entity_t *item,
+extern errno_t nodeptr40_check_layout(item_entity_t *item,
 				      region_func_t func, 
 				      void *data, uint8_t mode);
 
@@ -133,9 +132,9 @@ static reiser4_item_ops_t nodeptr40_ops = {
 #ifndef ENABLE_STAND_ALONE	    
 	.insert           = nodeptr40_insert,
 	.print		  = nodeptr40_print,
-	.check		  = nodeptr40_check,
+	.check_struct		  = nodeptr40_check_struct,
 	.layout           = nodeptr40_layout,
-	.layout_check	  = nodeptr40_layout_check,
+	.check_layout	  = nodeptr40_check_layout,
 	.estimate_insert  = nodeptr40_estimate_insert,
 
 	.estimate_copy	  = NULL,

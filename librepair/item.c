@@ -90,12 +90,12 @@ errno_t repair_item_check(reiser4_place_t *place, uint8_t mode) {
     aal_assert("vpf-791", place != NULL);
     aal_assert("vpf-792", place->node != NULL);
     
-    if (!place->item.plugin->o.item_ops->check)
+    if (!place->item.plugin->o.item_ops->check_struct)
 	return 0;
 
     length = place->item.len;
 
-    res = place->item.plugin->o.item_ops->check(&place->item, mode);
+    res = place->item.plugin->o.item_ops->check_struct(&place->item, mode);
 
     if (res < 0)
 	return res;
@@ -120,12 +120,12 @@ errno_t repair_item_layout_check(reiser4_place_t *place,
     aal_assert("vpf-793", place != NULL);
     aal_assert("vpf-794", place->node != NULL);
 
-    if (!place->item.plugin->o.item_ops->layout_check)
+    if (!place->item.plugin->o.item_ops->check_layout)
 	return 0;
 
     length = place->item.len;
 
-    res = place->item.plugin->o.item_ops->layout_check(&place->item, func, 
+    res = place->item.plugin->o.item_ops->check_layout(&place->item, func, 
 	data, mode);
     
     repair_error_check(res, mode);

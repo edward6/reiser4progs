@@ -19,16 +19,15 @@ static objid_t *direntry40_objid(item_entity_t *item,
 }
 
 /* Retutns statdata key of the file entry points to */
-static errno_t direntry40_get_obj(item_entity_t *item,
-				  uint32_t pos,
-				  key_entity_t *key)
+static void direntry40_get_obj(item_entity_t *item,
+			       uint32_t pos,
+			       key_entity_t *key)
 {
 	objid_t *objid = direntry40_objid(item, pos);
 	
-	/* Building key by means of using key plugin */
-	return plugin_call(item->key.plugin->o.key_ops, build_short,
-			   key, ob40_get_locality(objid),
-			   ob40_get_objectid(objid));
+	key->plugin = item->key.plugin;
+	plugin_call(key->plugin->o.key_ops, clean, key);
+	aal_memcpy(key->body, objid, sizeof(*objid));
 }
 
 /*
@@ -906,8 +905,7 @@ extern errno_t direntry40_copy(item_entity_t *dst,
 			       uint32_t src_pos, 
 			       copy_hint_t *hint);
 
-extern errno_t direntry40_check(item_entity_t *item,
-				uint8_t mode);
+extern errno_t direntry40_check_struct(item_entity_t *item, uint8_t mode);
 
 extern errno_t direntry40_estimate_copy(item_entity_t *dst,
 					uint32_t dst_pos,
@@ -1018,7 +1016,7 @@ static reiser4_item_ops_t direntry40_ops = {
 	.insert		   = direntry40_insert,
 	.remove		   = direntry40_remove,
 	.overhead          = direntry40_overhead,
-	.check		   = direntry40_check,
+	.check_struct	   = direntry40_check_struct,
 	.print		   = direntry40_print,
 	.shift             = direntry40_shift,
 	.maxreal_key       = direntry40_maxreal_key,
@@ -1029,7 +1027,7 @@ static reiser4_item_ops_t direntry40_ops = {
 		
 	.set_key	   = NULL,
 	.layout		   = NULL,
-	.layout_check	   = NULL,
+	.check_layout	   = NULL,
 #endif
 	.branch            = NULL,
 

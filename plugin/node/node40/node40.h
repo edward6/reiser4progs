@@ -149,7 +149,7 @@ struct item40_header {
 	key40_t key;
     
 	d16_t offset;
-	d16_t len;
+	d16_t flags;	/* temporary flags, not endian safe - now for fsck */
 	d16_t pid;
 };
 
@@ -161,11 +161,9 @@ typedef struct item40_header item40_header_t;
 #define ih40_inc_offset(ih, val)  ih40_set_offset(ih, (ih40_get_offset(ih) + (val)))
 #define ih40_dec_offset(ih, val)  ih40_set_offset(ih, (ih40_get_offset(ih) - (val)))
 
-#define ih40_get_len(ih)	  aal_get_le16(ih, len)
-#define ih40_set_len(ih, val)	  aal_set_le16(ih, len, val)
-
-#define ih40_inc_len(ih, val)     ih40_set_len(ih, (ih40_get_len(ih) + (val)))
-#define ih40_dec_len(ih, val)     ih40_set_len(ih, (ih40_get_len(ih) - (val)))
+#define ih40_clear_flag(ih, flag) aal_clear_bit(ih->flags, flag)
+#define ih40_test_flag(ih, flag)  aal_test_bit(ih->flags, flag)
+#define ih40_set_flag(ih, flag)	  aal_set_bit(ih->flags, flag)
 
 #define ih40_get_pid(ih)	  aal_get_le16(ih, pid)
 #define ih40_set_pid(ih, val)	  aal_set_le16(ih, pid, (val))

@@ -401,12 +401,12 @@ static reiser4_item_ops_t tail40_ops = {
 	.estimate_insert  = tail40_estimate_insert,
 	
 	.overhead         = NULL,
-	.check	          = NULL,
+	.check_struct	  = NULL,
 	.init	          = NULL,
 	.branch           = NULL,
 	.layout	          = NULL,
 	.set_key          = NULL,
-	.layout_check     = NULL,
+	.check_layout     = NULL,
 #endif
 	.units	          = tail40_units,
 	.lookup	          = tail40_lookup,

@@ -22,7 +22,7 @@ extern uint32_t extent40_unit(item_entity_t *item, uint64_t offset);
 extern lookup_t extent40_lookup(item_entity_t *item, key_entity_t *key, 
     uint32_t *pos);
 
-errno_t extent40_layout_check(item_entity_t *item, region_func_t func, 
+errno_t extent40_check_layout(item_entity_t *item, region_func_t func, 
     void *data, uint8_t mode) 
 {
     uint32_t i, units;
@@ -63,7 +63,7 @@ errno_t extent40_layout_check(item_entity_t *item, region_func_t func,
     return result;
 }
 
-errno_t extent40_check(item_entity_t *item, uint8_t mode) {
+errno_t extent40_check_struct(item_entity_t *item, uint8_t mode) {
     aal_assert("vpf-750", item != NULL);
     return item->len % sizeof(extent40_t) ? REPAIR_FATAL : REPAIR_OK;
 }

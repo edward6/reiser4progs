@@ -533,7 +533,7 @@ static errno_t direntry40_filter(item_entity_t *item, struct entry_flags *flags,
     return res;
 }
 
-errno_t direntry40_check(item_entity_t *item, uint8_t mode) {
+errno_t direntry40_check_struct(item_entity_t *item, uint8_t mode) {
     struct entry_flags flags;
     direntry40_t *de;
     errno_t res = REPAIR_OK;

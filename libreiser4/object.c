@@ -43,7 +43,7 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 			   size, object->entity);
 }
 
-/* This function is trying to open object's entity */
+/* This function is trying to open object's entity on @object->place */
 static errno_t reiser4_object_init(reiser4_object_t *object) {
 	if (!libreiser4_factory_cfind(callback_guess_object, object))
 		return -EINVAL;

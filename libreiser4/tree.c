@@ -460,8 +460,8 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 	reiser4_node_mkclean(node);
 
 	/*
-	  Check if we're releasing fake blk. If so, free it in block allocator
-	  too. Then it will be counted in free_block_count field in format.
+	  Check if we're releasing fake blk. If not, free it in block allocator
+	  too. Otherwise, it will be counted in free_block_count field in format.
 	*/
 	if (!is_fake_blk(node->blk))
 		reiser4_alloc_release(alloc, node->blk, 1);

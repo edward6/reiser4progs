@@ -573,10 +573,9 @@ static errno_t extent40_shift(item_entity_t *src_item,
 	return 0;
 }
 
-extern errno_t extent40_check(item_entity_t *item,
-			      uint8_t mode);
+extern errno_t extent40_check_struct(item_entity_t *item, uint8_t mode);
 
-extern errno_t extent40_layout_check(item_entity_t *item,
+extern errno_t extent40_check_layout(item_entity_t *item,
 				     region_func_t func, 
 				     void *data, uint8_t mode);
 
@@ -601,9 +600,9 @@ static reiser4_item_ops_t extent40_ops = {
 	.print	          = extent40_print,
 	.shift            = extent40_shift,
 	.layout           = extent40_layout,
-	.check	          = extent40_check,
+	.check_struct	  = extent40_check_struct,
 	.maxreal_key      = extent40_maxreal_key,
-	.layout_check     = extent40_layout_check,
+	.check_layout     = extent40_check_layout,
 
 	.estimate_copy    = extent40_estimate_copy,
 	.estimate_shift   = extent40_estimate_shift,

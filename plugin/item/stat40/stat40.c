@@ -263,8 +263,7 @@ static errno_t stat40_insert(item_entity_t *item,
 	return 0;
 }
 
-extern errno_t stat40_check(item_entity_t *,
-			    uint8_t);
+extern errno_t stat40_check_struct(item_entity_t *, uint8_t);
 
 extern errno_t stat40_copy(item_entity_t *dst,
 			   uint32_t dst_pos, 
@@ -449,7 +448,7 @@ static reiser4_item_ops_t stat40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.copy             = stat40_copy,
 	.insert		  = stat40_insert,
-	.check            = stat40_check,
+	.check_struct     = stat40_check_struct,
 	.print		  = stat40_print,
 	.estimate_copy    = stat40_estimate_copy,
 	.estimate_insert  = stat40_estimate_insert,
@@ -464,7 +463,7 @@ static reiser4_item_ops_t stat40_ops = {
 	.remove		  = NULL,
 	.shift            = NULL,
 	.set_key	  = NULL,
-	.layout_check	  = NULL,
+	.check_layout	  = NULL,
 	.maxreal_key      = NULL,
 #endif
 	.lookup		  = NULL,

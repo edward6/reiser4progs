@@ -305,21 +305,15 @@ static errno_t key40_build_generic(key_entity_t *key,
 	key40_clean(key);
 	key->plugin = &key40_plugin;
 	
-	k40_set_locality((key40_t *)key->body,
-			 locality);
-	
-	k40_set_objectid((key40_t *)key->body,
-			 objectid);
-
-	k40_set_minor((key40_t *)key->body,
-		      key40_type2minor(type));
-	
-	k40_set_offset((key40_t *)key->body,
-		       offset);
+	k40_set_locality((key40_t *)key->body, locality);	
+	k40_set_objectid((key40_t *)key->body, objectid);
+	k40_set_minor((key40_t *)key->body, key40_type2minor(type));	
+	k40_set_offset((key40_t *)key->body, offset);
 
 	return 0;
 }
 
+/*
 static errno_t key40_build_short(key_entity_t *key,
 				 uint64_t locality,
 				 uint64_t objectid)
@@ -333,14 +327,15 @@ static errno_t key40_build_short(key_entity_t *key,
 			 (locality & KEY40_LOCALITY_MASK) >>
 			 KEY40_LOCALITY_SHIFT);
 
+	k40_set_objectid((key40_t *)key->body, objectid);
 	k40_set_minor((key40_t *)key->body,
 		      (locality & KEY40_TYPE_MASK));
 
 	k40_set_offset((key40_t *)key->body, 0);
-	k40_set_objectid((key40_t *)key->body, objectid);
 
 	return 0;
 }
+*/
 
 #ifndef ENABLE_STAND_ALONE
 /* Simple validness check */
@@ -424,7 +419,6 @@ static reiser4_key_ops_t key40_ops = {
 	.set_offset	   = key40_set_offset,
 	.get_offset	   = key40_get_offset,
 	
-	.build_short       = key40_build_short,
 	.build_entry       = key40_build_entry,
 	.build_generic     = key40_build_generic
 };

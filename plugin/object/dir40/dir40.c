@@ -348,7 +348,10 @@ static object_entity_t *dir40_open(void *tree, place_t *place) {
 
 	aal_assert("umka-836", tree != NULL);
 	aal_assert("umka-837", place != NULL);
-    
+	
+	if (place->item.plugin->h.group != STATDATA_ITEM)
+		return NULL;
+	
 	if (obj40_pid(&place->item) != dir40_plugin.h.id)
 		return NULL;
 

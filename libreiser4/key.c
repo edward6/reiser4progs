@@ -81,8 +81,8 @@ void reiser4_key_clean(
 errno_t reiser4_key_build_generic(
 	reiser4_key_t *key,	    /* key to be built */
 	uint32_t type,		    /* key type to be used */
-	oid_t locality,	    /* locality to be used */
-	oid_t objectid,	    /* objectid to be used */
+	oid_t locality,		    /* locality to be used */
+	oid_t objectid,		    /* objectid to be used */
 	uint64_t offset)	    /* offset to be used */
 {
 	aal_assert("umka-665", key != NULL);
@@ -96,8 +96,8 @@ errno_t reiser4_key_build_generic(
 errno_t reiser4_key_build_entry(
 	reiser4_key_t *key,	    /* key to be built */
 	reiser4_plugin_t *plugin,   /* hash plugin to be used */
-	oid_t locality,	    /* loaclity to be used */
-	oid_t objectid,	    /* objectid to be used */
+	oid_t locality,		    /* loaclity to be used */
+	oid_t objectid,		    /* objectid to be used */
 	const char *name)	    /* entry name to be hashed */
 {
 	aal_assert("umka-668", key != NULL);

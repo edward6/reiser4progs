@@ -24,6 +24,7 @@
 #include <repair/node.h>
 #include <repair/place.h>
 #include <repair/item.h>
+#include <repair/object.h>
 
 /*  -------------------------------------------------
     | Common scheem for communication with users.   |
