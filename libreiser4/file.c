@@ -293,7 +293,7 @@ errno_t reiser4_file_truncate(
 }
 
 /* Adds speficied entry into passed opened dir */
-errno_t reiser4_file_write(
+int32_t reiser4_file_write(
 	reiser4_file_t *file,	            /* file for writing */
 	void *buff,			    /* new entries buffer */
 	uint64_t n)			    /* the number of entries to be created */
@@ -390,7 +390,7 @@ reiser4_file_t *reiser4_file_create(
 		reiser4_key_assign(&entry.object, &hint->object);
 		aal_strncpy(entry.name, (char *)name, sizeof(entry.name));
 
-		if (reiser4_file_write(parent, (char *)&entry, 1) == -1) {
+		if (reiser4_file_write(parent, (char *)&entry, 1) != 1) {
 			aal_exception_error("Can't add entry %s.", name);
 			goto error_free_file;
 		}

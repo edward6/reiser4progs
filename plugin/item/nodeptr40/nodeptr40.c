@@ -1,7 +1,7 @@
 /*
   nodeptr40.c -- reiser4 default node pointer item plugin.
   
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -17,38 +17,58 @@ static uint32_t nodeptr40_units(item_entity_t *item) {
 	return 1;
 }
 
+/* Reads nodeptr into passed buff */
+static int32_t nodeptr40_read(item_entity_t *item, void *buff,
+			      uint32_t pos, uint32_t count)
+{
+	nodeptr40_t *nodeptr;
+	reiser4_ptr_hint_t *ptr_hint;
+		
+	aal_assert("umka-1419", item != NULL, return -1);
+	aal_assert("umka-1420", buff != NULL, return -1);
+
+	nodeptr = nodeptr40_body(item);
+	ptr_hint = (reiser4_ptr_hint_t *)buff;
+	
+	ptr_hint->width = 1;
+	ptr_hint->ptr = np40_get_ptr(nodeptr);
+	
+	return 1;
+}
+
+static int nodeptr40_branch(item_entity_t *item) {
+	return 1;
+}
+
 #ifndef ENABLE_COMPACT
 
-extern errno_t nodeptr40_layout_check(item_entity_t *item, region_func_t func, 
-				      void *data);
+/* Writes of the specified nodeptr into passed @item*/
+static int32_t nodeptr40_write(item_entity_t *item, void *buff,
+			       uint32_t pos, uint32_t count)
+{
+	nodeptr40_t *nodeptr;
+
+	reiser4_item_hint_t *hint;
+	reiser4_ptr_hint_t *ptr_hint;
+		
+	aal_assert("umka-1423", item != NULL, return -1);
+	aal_assert("umka-1424", buff != NULL, return -1);
+
+	nodeptr = nodeptr40_body(item);
+	
+	hint = (reiser4_item_hint_t *)buff;
+	ptr_hint = (reiser4_ptr_hint_t *)hint->hint;
+	
+	np40_set_ptr(nodeptr, ptr_hint->ptr);
+	return 1;
+}
+
 
 /* Initializes the area nodeptr will lie in */
 static errno_t nodeptr40_init(item_entity_t *item) {
 	aal_assert("umka-1671", item != NULL, return -1);
 	
 	aal_memset(item->body, 0, item->len);
-	return 0;
-}
-
-/* Inserts new nodeptr described by passed @buff */
-static errno_t nodeptr40_insert(item_entity_t *item, void *buff,
-				uint32_t pos, uint32_t count)
-{
-	nodeptr40_t *nodeptr;
-	reiser4_item_hint_t *hint;
-	reiser4_ptr_hint_t *ptr_hint;
-    
-	aal_assert("vpf-063", item != NULL, return -1); 
-	aal_assert("vpf-064", buff != NULL, return -1);
-
-	if (!(nodeptr = nodeptr40_body(item)))
-		return -1;
-	
-	hint = (reiser4_item_hint_t *)buff;
-	ptr_hint = (reiser4_ptr_hint_t *)hint->hint;
-	
-	np40_set_ptr(nodeptr, ptr_hint->ptr);
-	    
 	return 0;
 }
 
@@ -92,33 +112,6 @@ static errno_t nodeptr40_print(item_entity_t *item,
 	return 0;
 }
 
-#endif
-
-/* Reads nodeptr into passed buff */
-static int32_t nodeptr40_fetch(item_entity_t *item, void *buff,
-			       uint32_t pos, uint32_t count)
-{
-	nodeptr40_t *nodeptr;
-	reiser4_ptr_hint_t *ptr_hint;
-		
-	aal_assert("umka-1419", item != NULL, return -1);
-	aal_assert("umka-1420", buff != NULL, return -1);
-
-	nodeptr = nodeptr40_body(item);
-	ptr_hint = (reiser4_ptr_hint_t *)buff;
-	
-	ptr_hint->width = 1;
-	ptr_hint->ptr = np40_get_ptr(nodeptr);
-	
-	return 1;
-}
-
-static int nodeptr40_branch(item_entity_t *item) {
-	return 1;
-}
-
-#ifndef ENABLE_COMPACT
-
 /*
   Layout implementation for nodeptr40. It calls @func for each block nodeptr
   points to.
@@ -140,22 +133,9 @@ static errno_t nodeptr40_layout(item_entity_t *item,
 	return 0;
 }
 
-/* Makes update of the specified nodeptr */
-static int32_t nodeptr40_update(item_entity_t *item, void *buff,
-				uint32_t pos, uint32_t count)
-{
-	nodeptr40_t *nodeptr;
-	reiser4_ptr_hint_t *ptr_hint;
-		
-	aal_assert("umka-1423", item != NULL, return -1);
-	aal_assert("umka-1424", buff != NULL, return -1);
-
-	nodeptr = nodeptr40_body(item);
-	ptr_hint = (reiser4_ptr_hint_t *)buff;
-	
-	np40_set_ptr(nodeptr, ptr_hint->ptr);
-	return 1;
-}
+extern errno_t nodeptr40_layout_check(item_entity_t *item,
+				      region_func_t func, 
+				      void *data);
 
 #endif
 
@@ -173,24 +153,23 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		
 #ifndef ENABLE_COMPACT	    
 		.init		= nodeptr40_init,
-		.insert		= nodeptr40_insert,
-		.update         = nodeptr40_update,
+		.write          = nodeptr40_write,
 		.estimate	= nodeptr40_estimate,
 		.print		= nodeptr40_print,
 		.layout_check	= nodeptr40_layout_check,
 #else
 		.init		= NULL,
-		.insert		= NULL,
-		.update         = NULL,
+		.write          = NULL,
 		.estimate	= NULL,
 		.print		= NULL,
 		.layout_check   = NULL,
 #endif
 		.units		= nodeptr40_units,
-		.fetch          = nodeptr40_fetch,
+		.read           = nodeptr40_read,
 		.layout         = nodeptr40_layout,
 		.branch         = nodeptr40_branch,
 		
+		.insert		= NULL,
 		.belongs        = NULL,
 		.lookup		= NULL,
 		.valid		= NULL,

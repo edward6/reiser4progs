@@ -1,7 +1,7 @@
 /*
   symlink40.c -- reiser4 symlink file plugin.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -40,10 +40,10 @@ static int32_t symlink40_read(object_entity_t *entity,
 
 	item = &symlink->file.statdata.item;
 
-	if (!item->plugin->item_ops.fetch)
+	if (!item->plugin->item_ops.read)
 		return -1;
 
-	if (item->plugin->item_ops.fetch(item, &hint, 0, 1) != 1)
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1)
 		return -1;
 
 	return aal_strlen(buff);

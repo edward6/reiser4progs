@@ -1,7 +1,7 @@
 /*
   direntry40.c -- reiser4 default direntry plugin.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -211,9 +211,9 @@ static errno_t direntry40_get_key(item_entity_t *item,
 	return 0;
 }
 
-/* Fetches @count of the entries starting from @pos into passed @buff */
-static int32_t direntry40_fetch(item_entity_t *item, void *buff,
-				uint32_t pos, uint32_t count)
+/* Reads @count of the entries starting from @pos into passed @buff */
+static int32_t direntry40_read(item_entity_t *item, void *buff,
+			       uint32_t pos, uint32_t count)
 {
 	uint32_t i;
 	reiser4_plugin_t *plugin;
@@ -839,8 +839,8 @@ static int32_t direntry40_expand(direntry40_t *direntry, uint32_t pos,
 }
 
 /* Inserts new entries inside direntry item */
-static errno_t direntry40_insert(item_entity_t *item, void *buff,
-				 uint32_t pos, uint32_t count)
+static int32_t direntry40_write(item_entity_t *item, void *buff,
+				uint32_t pos, uint32_t count)
 {
 	entry40_t *entry;
 	uint32_t i, offset;
@@ -944,7 +944,7 @@ static errno_t direntry40_insert(item_entity_t *item, void *buff,
 			return -1;
 	}
     
-	return 0;
+	return count;
 }
 
 /* Removes @count entries at @pos from passed @item */
@@ -1194,7 +1194,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		
 #ifndef ENABLE_COMPACT	    
 		.init		= direntry40_init,
-		.insert		= direntry40_insert,
+		.write		= direntry40_write,
 		.remove		= direntry40_remove,
 		.estimate	= direntry40_estimate,
 		.check		= direntry40_check,
@@ -1206,7 +1206,7 @@ static reiser4_plugin_t direntry40_plugin = {
 #else
 		.init		= NULL,
 		.estimate	= NULL,
-		.insert		= NULL,
+		.write		= NULL,
 		.remove		= NULL,
 		.check		= NULL,
 		.print		= NULL,
@@ -1217,7 +1217,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.layout		= NULL,
 		.belongs        = NULL,
 		.valid		= NULL,
-		.update         = NULL,
+		.insert         = NULL,
 		.branch         = NULL,
 
 		.gap_key	= NULL,
@@ -1226,7 +1226,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		.get_key	= direntry40_get_key,
 		.lookup		= direntry40_lookup,
 		.units		= direntry40_units,
-		.fetch          = direntry40_fetch,
+		.read           = direntry40_read,
 		
 		.maxposs_key	= direntry40_maxposs_key,
 		.utmost_key     = direntry40_utmost_key,

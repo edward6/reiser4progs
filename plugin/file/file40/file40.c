@@ -1,7 +1,7 @@
 /*
   file40.c -- reiser4 file plugins common code.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -68,10 +68,10 @@ uint16_t file40_get_mode(file40_t *file) {
 	item = &file->statdata.item;
 
 	/* Calling statdata open method if it exists */
-	if (!item->plugin->item_ops.fetch)
+	if (!item->plugin->item_ops.read)
 		return 0;
 
-	if (item->plugin->item_ops.fetch(item, &hint, 0, 1) != 1) {
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1) {
 		aal_exception_error("Can't open statdata item.");
 		return 0;
 	}
@@ -96,20 +96,20 @@ errno_t file40_set_mode(file40_t *file, uint16_t mode) {
 
 	item = &file->statdata.item;
 
-	if (!item->plugin->item_ops.fetch)
+	if (!item->plugin->item_ops.read)
 		return -1;
 
-	if (item->plugin->item_ops.fetch(item, &hint, 0, 1) != 1) {
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1) {
 		aal_exception_error("Can't open statdata item.");
 		return -1;
 	}
 
 	lw_hint.mode = mode;
 	
-	if (!item->plugin->item_ops.insert)
+	if (!item->plugin->item_ops.write)
 		return -1;
 
-	return item->plugin->item_ops.insert(item, &hint, 0, 1);
+	return -(item->plugin->item_ops.write(item, &hint, 0, 1) != 1);
 }
 
 /* Gets size field from the stat data */
@@ -127,10 +127,10 @@ uint64_t file40_get_size(file40_t *file) {
 
 	item = &file->statdata.item;
 
-	if (!item->plugin->item_ops.fetch)
+	if (!item->plugin->item_ops.read)
 		return 0;
 
-	if (item->plugin->item_ops.fetch(item, &hint, 0, 1) != 1) {
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1) {
 		aal_exception_error("Can't open statdata item.");
 		return 0;
 	}
@@ -155,20 +155,20 @@ errno_t file40_set_size(file40_t *file, uint64_t size) {
 
 	item = &file->statdata.item;
 
-	if (!item->plugin->item_ops.fetch)
+	if (!item->plugin->item_ops.read)
 		return -1;
 
-	if (item->plugin->item_ops.fetch(item, &hint, 0, 1) != 1) {
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1) {
 		aal_exception_error("Can't open statdata item.");
 		return -1;
 	}
 
 	lw_hint.size = size;
 	
-	if (!item->plugin->item_ops.insert)
+	if (!item->plugin->item_ops.write)
 		return -1;
 
-	return item->plugin->item_ops.insert(item, &hint, 0, 1);
+	return (item->plugin->item_ops.write(item, &hint, 0, 1) != 1);
 }
 
 /* Gets symlink from the stat data */
@@ -185,10 +185,10 @@ errno_t file40_get_symlink(file40_t *file, char *data) {
 
 	item = &file->statdata.item;
 
-	if (!item->plugin->item_ops.fetch)
+	if (!item->plugin->item_ops.read)
 		return -1;
 
-	if (item->plugin->item_ops.fetch(item, &hint, 0, 1) != 1) {
+	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1) {
 		aal_exception_error("Can't open statdata item.");
 		return -1;
 	}
@@ -210,10 +210,14 @@ errno_t file40_set_symlink(file40_t *file, char *data) {
 
 	item = &file->statdata.item;
 
-	if (!item->plugin->item_ops.insert)
+	if (!item->plugin->item_ops.write)
 		return -1;
 
-	if (item->plugin->item_ops.insert(item, &hint, 0, 1)) {
+	/*
+	  FIXME-UMKA: What about expanding node, etc, etc. before updating
+	  symlink data? Should this function exist at all?
+	*/
+	if (item->plugin->item_ops.write(item, &hint, 0, 1) != 1) {
 		aal_exception_error("Can't update symlink.");
 		return -1;
 	}

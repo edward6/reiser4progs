@@ -641,22 +641,25 @@ struct reiser4_item_ops {
 	reiser4_plugin_t *(*belongs) (item_entity_t *);
 	
 	/* Reads passed amount of units from the item. */
-	int32_t (*fetch) (item_entity_t *, void *, uint32_t,
-			  uint32_t);
+	int32_t (*read) (item_entity_t *, void *, uint32_t,
+			 uint32_t);
 
 	/* Updates passed amount of units in the item */
-	int32_t (*update) (item_entity_t *, void *, uint32_t,
-			   uint32_t);
-
-	/* Removes specified unit from the item. Returns released space */
-	int32_t (*remove) (item_entity_t *, uint32_t,
-			   uint32_t);
+	int32_t (*write) (item_entity_t *, void *, uint32_t,
+			  uint32_t);
 
 	/* Inserts unit described by passed hint into the item */
 	errno_t (*insert) (item_entity_t *, void *, uint32_t,
 			   uint32_t);
 	
-	/* Estimates item */
+	/* Removes specified unit from the item. Returns released space */
+	int32_t (*remove) (item_entity_t *, uint32_t,
+			   uint32_t);
+	
+	/*
+	  Estimates item in order to find out how many bytes is needed for
+	  inserting one more unit.
+	*/
 	errno_t (*estimate) (item_entity_t *, void *, uint32_t,
 			     uint32_t);
     

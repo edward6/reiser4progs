@@ -1,7 +1,7 @@
 /*
   node40.c -- reiser4 default node plugin.
   
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -648,11 +648,11 @@ static errno_t node40_insert(object_entity_t *entity,
 		if (plugin_call(hint->plugin->item_ops, init, &item))
 			return -1;
 
-		return plugin_call(hint->plugin->item_ops, insert, &item,
-				   hint, 0, hint->count);
+		return -(plugin_call(hint->plugin->item_ops, write, &item,
+				     hint, 0, hint->count) != hint->count);
 	} else {
-		if (plugin_call(hint->plugin->item_ops, insert, &item,
-				hint, pos->unit, hint->count))
+		if (plugin_call(hint->plugin->item_ops, write, &item,
+				hint, pos->unit, hint->count) != hint->count)
 		{
 			/* Was unable to insert new unit */
 			return -1;

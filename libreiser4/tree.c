@@ -451,7 +451,7 @@ int reiser4_tree_lookup(
 		item = &coord->item;
 		
 		/* Getting the node pointer from internal item */
-		plugin_call(item->plugin->item_ops, fetch, item, &ptr,
+		plugin_call(item->plugin->item_ops, read, item, &ptr,
 			    coord->pos.unit, 1);
 		
 		if (ptr.ptr == INVAL_BLK) {
@@ -509,6 +509,7 @@ errno_t reiser4_tree_attach(
 	aal_memset(&ptr, 0, sizeof(ptr));
 
 	hint.hint = &ptr;
+	hint.count = 1;
 
 	ptr.ptr = node->blk;
 	ptr.width = 1;
@@ -1118,11 +1119,9 @@ errno_t reiser4_tree_insert(
 	return 0;
 }
 
-
-
 /* 
-    The method should insert/overwrite the specified src coord to the dst coord
-    from count items/units started at src coord.
+   The method should insert/overwrite the specified src coord to the dst coord
+   from count items/units started at src coord.
 */
 errno_t reiser4_tree_write(
 	reiser4_tree_t *tree,	    /* tree insertion is performing into. */

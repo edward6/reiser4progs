@@ -484,7 +484,7 @@ reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
 		if (!reiser4_item_branch(&coord))
 			return node;
 			
-		plugin_call(coord.item.plugin->item_ops, fetch,
+		plugin_call(coord.item.plugin->item_ops, read,
 			    &coord.item, &ptr, 0, 1);
 
 		/* Checking item for validness */
@@ -940,7 +940,7 @@ errno_t reiser4_node_shift(
 		for (ppos.unit = 0; ppos.unit < units; ppos.unit++) {
 			
 			plugin_call(coord.item.plugin->item_ops,
-				    fetch, &coord.item, &ptr, ppos.unit, 1);
+				    read, &coord.item, &ptr, ppos.unit, 1);
 			
 			if (!(child = reiser4_node_cbp(node, ptr.ptr)))
 				continue;
@@ -1295,7 +1295,7 @@ errno_t reiser4_node_traverse(
 			reiser4_ptr_hint_t ptr;
 
 			/* Fetching node ptr */
-			plugin_call(coord.item.plugin->item_ops, fetch,
+			plugin_call(coord.item.plugin->item_ops, read,
 				    &coord.item, &ptr, pos->unit, 1);
 		
 			if (ptr.ptr != INVAL_BLK && ptr.ptr != 0) {

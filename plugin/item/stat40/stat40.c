@@ -1,7 +1,7 @@
 /*
   stat40.c -- reiser4 default stat data plugin.
     
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -116,8 +116,8 @@ static errno_t callback_open_ext(uint8_t ext, reiser4_plugin_t *plugin,
 }
 
 /* Fetches whole statdata item with extentions into passed @buff */
-static int32_t stat40_fetch(item_entity_t *item, void *buff,
-			    uint32_t pos, uint32_t count)
+static int32_t stat40_read(item_entity_t *item, void *buff,
+			   uint32_t pos, uint32_t count)
 {
 	aal_assert("umka-1414", item != NULL, return -1);
 	aal_assert("umka-1415", buff != NULL, return -1);
@@ -198,8 +198,8 @@ static errno_t stat40_estimate(item_entity_t *item, void *buff,
 }
 
 /* This method inserts the stat data extentions */
-static errno_t stat40_insert(item_entity_t *item, void *buff,
-			     uint32_t pos, uint32_t count)
+static int32_t stat40_write(item_entity_t *item, void *buff,
+			    uint32_t pos, uint32_t count)
 {
 	uint8_t i;
 	rbody_t *extbody;
@@ -263,7 +263,7 @@ static errno_t stat40_insert(item_entity_t *item, void *buff,
 		extbody += plugin_call(plugin->sdext_ops, length, extbody);
 	}
     
-	return 0;
+	return count;
 }
 
 extern errno_t stat40_check(item_entity_t *);
@@ -442,7 +442,7 @@ static reiser4_plugin_t *stat40_belongs(item_entity_t *item) {
 	hint.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 	
-	if (stat40_fetch(item, &hint, 0, 1) != 1) {
+	if (stat40_read(item, &hint, 0, 1) != 1) {
 		aal_exception_error("Can't open statdata extention (0x%x)",
 				    SDEXT_LW_ID);
 		return NULL;
@@ -476,13 +476,13 @@ static reiser4_plugin_t stat40_plugin = {
 		
 #ifndef ENABLE_COMPACT
 		.estimate	= stat40_estimate,
-		.insert		= stat40_insert,
+		.write		= stat40_write,
 		.init		= stat40_init,
 		.check		= stat40_check,
 		.print		= stat40_print,
 #else
 		.estimate	= NULL,
-		.insert		= NULL,
+		.write		= NULL,
 		.init		= NULL,
 		.check		= NULL,
 		.print		= NULL,
@@ -490,14 +490,14 @@ static reiser4_plugin_t stat40_plugin = {
 		.layout         = NULL,
 		.remove		= NULL,
 		.lookup		= NULL,
-		.update         = NULL,
+		.insert         = NULL,
 		.mergeable      = NULL,
 	    
 		.shift          = NULL,
 		.predict        = NULL,
 		.branch         = NULL,
 
-		.fetch          = stat40_fetch,
+		.read           = stat40_read,
 		.units		= stat40_units,
 		.valid		= stat40_valid,
 		.belongs        = stat40_belongs,

@@ -40,7 +40,7 @@ errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_key_t *k
 	item_entity_t *item = &parent->item;
 	reiser4_ptr_hint_t ptr;
 
-	if (plugin_call(item->plugin->item_ops, fetch, item, 
+	if (plugin_call(item->plugin->item_ops, read, item, 
 	    &ptr, parent->pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
 	    return -1;
 

@@ -21,7 +21,7 @@ static errno_t callback_extent_used(reiser4_coord_t *coord, void *data) {
 
     for (pos->unit = 0; pos->unit < units; pos->unit++) {
 	if (plugin_call(coord->item.plugin->item_ops,
-	    fetch, &coord->item, &ptr, coord->pos.unit, 1) != 1)
+	    read, &coord->item, &ptr, coord->pos.unit, 1) != 1)
 	    return -1;
 
 	/* All these blocks should not be used in the allocator and should be 

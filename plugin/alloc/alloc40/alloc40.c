@@ -3,7 +3,7 @@
   and it deals with bitmap blocks. For the all bitmap-related actions, we use
   aux_bitmap from the libaux.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 

@@ -1,7 +1,7 @@
 /*
   dir40.c -- reiser4 default directory object plugin.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -149,7 +149,7 @@ static int32_t dir40_read(object_entity_t *entity,
 			return read;
 
 		/* Reading piece of data */
-		chunk = plugin_call(item->plugin->item_ops, fetch,
+		chunk = plugin_call(item->plugin->item_ops, read,
 				    item, entry, dir->body.pos.unit, chunk);
 
 		/* If actual read data is zero, we going out */
@@ -207,7 +207,7 @@ static int dir40_lookup(object_entity_t *entity,
 		{
 			reiser4_entry_hint_t entry;
 
-			if (plugin_call(item->plugin->item_ops, fetch, item,
+			if (plugin_call(item->plugin->item_ops, read, item,
 					&entry, dir->body.pos.unit, 1) != 1)
 				return -1;
 

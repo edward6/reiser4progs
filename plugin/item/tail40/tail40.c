@@ -1,7 +1,7 @@
 /*
   tail40.c -- reiser4 default tail plugin.
     
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -38,11 +38,26 @@ static errno_t tail40_get_key(item_entity_t *item,
 	return 0;
 }
 
+static int32_t tail40_read(item_entity_t *item, void *buff,
+			   uint32_t pos, uint32_t count)
+{
+	aal_assert("umka-1673", item != NULL, return -1);
+	aal_assert("umka-1674", buff != NULL, return -1);
+	aal_assert("umka-1675", pos < item->len, return -1);
+
+	if (count > item->len - pos)
+		count = item->len - pos;
+	
+	aal_memcpy(buff, item->body + pos, count);
+	
+	return count;
+}
+
 #ifndef ENABLE_COMPACT
 
 /* Rewrites tail from passed @pos by data specifed by hint */
-static int32_t tail40_update(item_entity_t *item, void *buff,
-			     uint32_t pos, uint32_t count)
+static int32_t tail40_write(item_entity_t *item, void *buff,
+			    uint32_t pos, uint32_t count)
 {
 	aal_assert("umka-1677", buff != NULL, return -1);
 	aal_assert("umka-1678", item != NULL, return -1);
@@ -61,39 +76,6 @@ static int32_t tail40_update(item_entity_t *item, void *buff,
 	}
 
 	return count;
-}
-
-/* Inserts tail data into specified tail */
-static errno_t tail40_insert(item_entity_t *item, void *buff,
-			     uint32_t pos, uint32_t count)
-{
-	uint32_t len;
-	void *src, *dst;
-	reiser4_item_hint_t *hint;
-	
-	aal_assert("umka-1172", item != NULL, return -1); 
-	aal_assert("umka-1178", buff != NULL, return -1);
-
-	hint = (reiser4_item_hint_t *)buff;
-	len = item->len - hint->len;
-		
-	/* Prepare the room for new data */
-	if (pos < len - 1) {
-		src = item->body + pos;
-		dst = item->body + pos + hint->len;
-		aal_memmove(dst, src, len - pos);
-	}
-
-	/* Copying new data into freed place */
-	aal_memcpy(item->body + pos, hint->data, hint->len);
-
-	/* Updating the key */
-	if (pos == 0) {
-		if (tail40_get_key(item, 0, &item->key))
-			return -1;
-	}
-	
-	return 0;
 }
 
 /* Removes the part of tail body */
@@ -193,21 +175,6 @@ static errno_t tail40_utmost_key(item_entity_t *item,
 		    offset + item->len - 1);
 	
 	return 0;
-}
-
-static int32_t tail40_fetch(item_entity_t *item, void *buff,
-			    uint32_t pos, uint32_t count)
-{
-	aal_assert("umka-1673", item != NULL, return -1);
-	aal_assert("umka-1674", buff != NULL, return -1);
-	aal_assert("umka-1675", pos < item->len, return -1);
-
-	if (count > item->len - pos)
-		count = item->len - pos;
-	
-	aal_memcpy(buff, item->body + pos, count);
-	
-	return count;
 }
 
 static int tail40_lookup(item_entity_t *item,
@@ -402,8 +369,7 @@ static reiser4_plugin_t tail40_plugin = {
 		
 #ifndef ENABLE_COMPACT
 		.init	        = tail40_init,
-		.insert	        = tail40_insert,
-		.update	        = tail40_update,
+		.write	        = tail40_write,
 		.remove	        = tail40_remove,
 		.print	        = tail40_print,
 		.mergeable      = tail40_mergeable,
@@ -411,14 +377,14 @@ static reiser4_plugin_t tail40_plugin = {
 		.shift	        = tail40_shift,
 #else
 		.init	        = NULL,
-		.insert	        = NULL,
-		.update	        = NULL,
+		.write	        = NULL,
 		.remove	        = NULL,
 		.print	        = NULL,
 		.mergeable      = NULL,
 		.predict        = NULL,
 		.shift	        = NULL,
 #endif
+		.insert	        = NULL,
 		.layout	        = NULL,
 		.belongs        = NULL,
 		.check	        = NULL,
@@ -429,7 +395,7 @@ static reiser4_plugin_t tail40_plugin = {
 
 		.units	        = tail40_units,
 		.lookup	        = tail40_lookup,
-		.fetch	        = tail40_fetch,
+		.read	        = tail40_read,
 		
 		.maxposs_key    = tail40_maxposs_key,
 		.utmost_key     = tail40_utmost_key,

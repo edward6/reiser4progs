@@ -106,62 +106,11 @@ static errno_t extent40_get_key(item_entity_t *item,
 
 #ifndef ENABLE_COMPACT
 
-extern errno_t extent40_layout_check(item_entity_t *item, region_func_t func, 
-				     void *data);
-
 static errno_t extent40_estimate(item_entity_t *item, void *buff,
 				 uint32_t pos, uint32_t count)
 {
 	/* Sorry, not implemented yet */
 	return -1;
-}
-
-/* Inserts next extent unit(s) at specified @pos */
-static errno_t extent40_insert(item_entity_t *item, void *buff,
-			       uint32_t pos, uint32_t count)
-{
-	void *src, *dst;
-	uint32_t i, units;
-
-	extent40_t *extent;
-	reiser4_item_hint_t *hint;
-	reiser4_ptr_hint_t *ptr_hint;
-
-	aal_assert("umka-1202", item != NULL, return -1); 
-	aal_assert("umka-1203", buff != NULL, return -1);
-	aal_assert("umka-1656", pos != ~0ul, return -1);
-
-	if (!(extent = extent40_body(item)))
-		return -1;
-
-	hint = (reiser4_item_hint_t *)buff;
-	ptr_hint = (reiser4_ptr_hint_t *)hint;
-	
-	units = extent40_units(item) - count;
-	
-	/* Preparing room for the new extent units */
-	if (pos < units - 1) {
-		src = extent + pos;
-		dst = extent + pos + count;
-		
-		aal_memmove(dst, src, (units - pos) *
-			    sizeof(extent40_t));
-	}
-	
-	extent += pos;
-	
-	for (i = 0; i < count; i++, extent++, ptr_hint++) {
-		et40_set_start(extent, ptr_hint->ptr);
-		et40_set_width(extent, ptr_hint->width);
-	}
-
-	/* Updating item's key by key of the first unit */
-	if (pos == 0) {
-		if (extent40_get_key(item, 0, &item->key))
-			return -1;
-	}
-	
-	return 0;
 }
 
 static errno_t extent40_init(item_entity_t *item) {
@@ -249,6 +198,10 @@ static errno_t extent40_print(item_entity_t *item,
     
 	return 0;
 }
+
+extern errno_t extent40_layout_check(item_entity_t *item,
+				     region_func_t func, 
+				     void *data);
 
 #endif
 
@@ -392,8 +345,8 @@ static uint32_t extent40_unit(item_entity_t *item,
   Reads @count bytes of extent data from the extent item at passed @pos into
   specified @buff.
 */
-static int32_t extent40_fetch(item_entity_t *item, void *buff,
-			      uint32_t pos, uint32_t count)
+static int32_t extent40_read(item_entity_t *item, void *buff,
+			     uint32_t pos, uint32_t count)
 {
 	uint32_t i, units;
 	uint32_t read = 0;
@@ -470,6 +423,12 @@ static int32_t extent40_fetch(item_entity_t *item, void *buff,
 
 #ifndef ENABLE_COMPACT
 
+static int32_t extent40_write(item_entity_t *item, void *buff,
+			      uint32_t pos, uint32_t count)
+{
+	return 0;
+}
+
 /*
   Calls @func for each block number extent points to. It is needed for
   calculating fragmentation, etc.
@@ -500,38 +459,6 @@ static errno_t extent40_layout(item_entity_t *item,
 	}
 			
 	return 0;
-}
-
-/* Updates the number of extent units */
-static int32_t extent40_update(item_entity_t *item, void *buff,
-			       uint32_t pos, uint32_t count)
-{
-	uint32_t i;
-	extent40_t *extent;
-	reiser4_ptr_hint_t *ptr_hint;
-	
-	aal_assert("umka-1425", item != NULL, return -1);
-	aal_assert("umka-1426", buff != NULL, return -1);
-	aal_assert("umka-1680", pos != ~0ul, return -1);
-
-	if (!(extent = extent40_body(item)))
-		return -1;
-
-	ptr_hint = (reiser4_ptr_hint_t *)buff;
-
-	extent += pos;
-	
-	for (i = pos; i < extent40_units(item); i++, extent++, ptr_hint++) {
-		et40_set_start(extent, ptr_hint->ptr);
-		et40_set_width(extent, ptr_hint->width);
-	}
-	
-	if (pos == 0) {
-		if (extent40_get_key(item, 0, &item->key))
-			return -1;
-	}
-	
-	return i - pos;
 }
 
 /* Checks if two extent items are mergeable */
@@ -687,8 +614,7 @@ static reiser4_plugin_t extent40_plugin = {
 		
 #ifndef ENABLE_COMPACT
 		.init	       = extent40_init,
-		.update        = extent40_update,
-		.insert	       = extent40_insert,
+		.write         = extent40_write,
 		.estimate      = extent40_estimate,
 		.remove	       = extent40_remove,
 		.print	       = extent40_print,
@@ -700,8 +626,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.layout_check  = extent40_layout_check,
 #else
 		.init	       = NULL,
-		.update        = NULL,
-		.insert	       = NULL,
+		.write         = NULL,
 		.estimate      = NULL,
 		.remove	       = NULL,
 		.print	       = NULL,
@@ -712,8 +637,8 @@ static reiser4_plugin_t extent40_plugin = {
 		.gap_key       = NULL,
 		
 		.layout_check  = NULL,
-	
 #endif
+		.insert	       = NULL,
 		.belongs       = NULL,
 		.check	       = NULL,
 		.valid	       = NULL,
@@ -722,7 +647,7 @@ static reiser4_plugin_t extent40_plugin = {
 
 		.lookup	       = extent40_lookup,
 		.units	       = extent40_units,
-		.fetch         = extent40_fetch,
+		.read          = extent40_read,
 
 		.maxposs_key   = extent40_maxposs_key,
 		.utmost_key    = extent40_utmost_key,

@@ -1,7 +1,7 @@
 /*
   dir40.h -- reiser4 hashed directory plugin structures.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -11,6 +11,7 @@
 #include <aal/aal.h>
 #include <sys/stat.h>
 #include <reiser4/plugin.h>
+
 #include <plugin/file/file40/file40.h>
 
 /* Compaund directory structure */
