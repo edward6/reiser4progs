@@ -675,6 +675,7 @@ errno_t reiser4_joint_traverse(
 {
 	errno_t result = 0;
 	reiser4_coord_t coord;
+	object_entity_t *entity;
 	reiser4_pos_t *pos = &coord.pos;
 	
 	reiser4_joint_t *child = NULL;
@@ -683,9 +684,14 @@ errno_t reiser4_joint_traverse(
 	aal_assert("vpf-390", joint!= NULL, return -1);
 	aal_assert("vpf-391", joint->node != NULL, return -1);
 
+	entity = joint->node->entity;
+	
+	hint->level = plugin_call(return -1, entity->plugin->node_ops,
+				  get_level, entity);
+	
 	joint->counter++;
 	
-	if ((before_func && (result = before_func(joint, hint->data))))
+	if ((before_func && (result = before_func(joint, hint))))
 		goto error;
 
 	for (pos->item = 0; pos->item < reiser4_node_count(joint->node); pos->item++) {
@@ -715,7 +721,7 @@ errno_t reiser4_joint_traverse(
 			if (ptr.ptr != FAKE_BLK && ptr.ptr != 0) {
 				child = NULL;
 					
-				if (setup_func && (result = setup_func(&coord, hint->data)))
+				if (setup_func && (result = setup_func(&coord, hint)))
 					goto error_after_func;
 
 				if (!open_func)
@@ -723,14 +729,14 @@ errno_t reiser4_joint_traverse(
 
 				if (!(child = reiser4_joint_find(joint, &coord.entity.key))) {
 						
-					if ((result = open_func(&child, ptr.ptr, hint->data)))
+					if ((result = open_func(&child, ptr.ptr, hint)))
 						goto error_update_func;
 
 					if (!child)
 						goto update;
 
 					if (reiser4_joint_attach(joint, child))
-						goto error_update_func;
+						goto error_free_child;
 
 					child->data = (void *)1;
 				}
@@ -741,7 +747,10 @@ errno_t reiser4_joint_traverse(
 								     setup_func,
 								     update_func,
 								     after_func)) < 0)
-					goto error_update_func;
+					goto error_free_child;
+
+				hint->level = plugin_call(return -1, entity->plugin->node_ops,
+							  get_level, entity);
 				
 				if (child->data && !child->children) {
 					reiser4_joint_detach(joint, child);
@@ -749,7 +758,7 @@ errno_t reiser4_joint_traverse(
 				}
 					
 			update:
-				if (update_func && (result = update_func(&coord, hint->data)))
+				if (update_func && (result = update_func(&coord, hint)))
 					goto error_after_func;
 			}
 				
@@ -759,25 +768,27 @@ errno_t reiser4_joint_traverse(
 		}
 	}
 	
-	if (after_func && (result = after_func(joint, hint->data)))
+	if (after_func && (result = after_func(joint, hint)))
 		goto error;
 
 	joint->counter--;
 	return result;
 
- error_update_func:
+ error_free_child:
 	
 	if (child->data && !child->children) {
 		reiser4_joint_detach(joint, child);
 		reiser4_joint_close(child);
 	}
 
+ error_update_func:
+	
 	if (update_func)
-		result = update_func(&coord, hint->data);
+		result = update_func(&coord, hint);
     
  error_after_func:
 	if (after_func)
-		result = after_func(joint, hint->data);
+		result = after_func(joint, hint);
     
  error:
 	joint->counter--;
