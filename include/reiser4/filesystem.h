@@ -13,6 +13,7 @@
 #endif
 
 #include <aal/aal.h>
+#include <aux/bitmap.h>
 #include <reiser4/plugin.h>
 #include <reiser4/key.h>
 
@@ -235,6 +236,7 @@ typedef struct reiser4_journal reiser4_journal_t;
 /* Block allocator structure */
 struct reiser4_alloc {
 	object_entity_t *entity;
+	aux_bitmap_t *forbid;
 };
 
 typedef struct reiser4_alloc reiser4_alloc_t;
@@ -247,11 +249,13 @@ struct reiser4_oid {
 typedef struct reiser4_oid reiser4_oid_t;
 
 /* Tree modification trap typedefs */
-typedef int (*preinsert_func_t) (reiser4_coord_t *, reiser4_item_hint_t *);
-typedef int (*pstinsert_func_t) (reiser4_coord_t *, reiser4_item_hint_t *);
+typedef int (*preinsert_func_t) (reiser4_coord_t *, reiser4_item_hint_t *, 
+				 void *);
+typedef int (*pstinsert_func_t) (reiser4_coord_t *, reiser4_item_hint_t *, 
+				 void *);
 
-typedef int (*preremove_func_t) (reiser4_coord_t *);
-typedef int (*pstremove_func_t) (reiser4_coord_t *);
+typedef int (*preremove_func_t) (reiser4_coord_t *, void *);
+typedef int (*pstremove_func_t) (reiser4_coord_t *, void *);
 
 /* Tree structure */
 struct reiser4_tree {
@@ -279,11 +283,14 @@ struct reiser4_tree {
 	void *mpressure;
 
 	/* Tree modification traps */
-	preinsert_func_t preinsert;
-	pstinsert_func_t pstinsert;
+	struct {
+		preinsert_func_t preinsert;
+		pstinsert_func_t pstinsert;
 
-	preremove_func_t preremove;
-	pstremove_func_t pstremove;
+		preremove_func_t preremove;
+		pstremove_func_t pstremove;
+		void *data;
+	} traps;
 
 	/* Tree related plugin ids */
 	struct {
