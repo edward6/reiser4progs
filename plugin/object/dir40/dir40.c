@@ -277,8 +277,8 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 	entry->object.plugin = wanted.plugin;
 	entry->offset.plugin = wanted.plugin;
 	
-	if (plugin_call(item->plugin->item_ops, read, item, entry,
-			dir->body.pos.unit, 1) != 1)
+	if (plugin_call(item->plugin->item_ops, read, item,
+			entry, dir->body.pos.unit, 1) != 1)
 	{
 		aal_exception_error("Can't read %lu entry from object "
 				    "0x%llx:0x%llx.", dir->body.pos.unit,

@@ -272,10 +272,13 @@ errno_t reiser4_node_pbc(
         if (reiser4_node_lookup(place->node, &lkey,
 				&place->pos) == LP_PRESENT)
 	{
+#ifndef ENABLE_STAND_ALONE
 		if (reiser4_node_ack(node, place))
+#endif
 			goto out_update_place;
 	}
 
+#ifndef ENABLE_STAND_ALONE
 	for (i = 0; i < reiser4_node_items(place->node); i++) {
 		place->pos.item = i;
 
@@ -300,6 +303,7 @@ errno_t reiser4_node_pbc(
 	}
 
 	return -EINVAL;
+#endif
 	
  out_update_place:
 	if (reiser4_item_units(place) == 1)

@@ -88,7 +88,6 @@ static errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Assignes passed @node as new root */
 static errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
 					reiser4_node_t *node)
@@ -130,7 +129,6 @@ static errno_t reiser4_tree_alloc_root(reiser4_tree_t *tree) {
 
 	return reiser4_tree_assign_root(tree, root);
 }
-
 #endif
 
 /*
