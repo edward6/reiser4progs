@@ -192,10 +192,18 @@ static errno_t tail40_estimate_shift(place_t *src_place,
 	aal_assert("umka-2279", hint != NULL);
 	aal_assert("umka-1664", src_place != NULL);
 
+	/* Check if we have to check for insert point to be staying inside src
+	   place. This is usually needed. Otherwise, we want to shift
+	   everything. */
 	if (!(src_place->pos.item == hint->pos.item &&
 	      hint->pos.unit != MAX_UINT32))
 	{
-		goto out_update_hint;
+		if (hint->rest > src_place->len)
+			hint->rest = src_place->len;
+	
+		hint->units = hint->rest;
+		
+		return 0;
 	}
 	
 	if (hint->control & MSF_LEFT) {
@@ -255,8 +263,6 @@ static errno_t tail40_estimate_shift(place_t *src_place,
 		}
 	}
 
- out_update_hint:
-	hint->units = hint->rest;
 	return 0;
 }
 
