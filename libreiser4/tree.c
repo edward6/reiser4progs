@@ -1475,8 +1475,9 @@ errno_t reiser4_tree_growup(
 	reiser4_tree_t *tree)	/* tree to be growed up */
 {
 	errno_t res;
-	uint8_t height;
-	reiser4_node_t *root;
+	uint32_t new_height;
+	reiser4_node_t *new_root;
+	reiser4_node_t *old_root;
 
 	aal_assert("umka-1701", tree != NULL);
 	aal_assert("umka-1736", tree->root != NULL);
@@ -1484,41 +1485,37 @@ errno_t reiser4_tree_growup(
 	if ((res = reiser4_tree_load_root(tree)))
 		return res;
 	
-	root = tree->root;
-	height = reiser4_tree_get_height(tree);
+	old_root = tree->root;
+	new_height = reiser4_tree_get_height(tree) + 1;
     
 	/* Allocating new root node */
-	if (!(tree->root = reiser4_tree_alloc_node(tree, height + 1))) {
-		res = -ENOSPC;
-		goto error_back_root;
-	}
+	if (!(new_root = reiser4_tree_alloc_node(tree, new_height)))
+		return -ENOSPC;
 
-	tree->root->tree = tree;
+	/* Assign new root node, changing tree height and root node
+	   blk in format. */
+	if ((res = reiser4_tree_assign_root(tree, new_root)))
+		return res;
 
-	/* Updating root block number and height in super block */
-	reiser4_tree_set_height(tree, height + 1);
-    	reiser4_tree_set_root(tree, node_blocknr(tree->root));
-
-	/* Attaching old root nodfe to tree */
-	if ((res = reiser4_tree_attach_node(tree, root)))
-		goto error_free_root;
+	/* Attaching old root node to tree. */
+	if ((res = reiser4_tree_attach_node(tree, old_root)))
+		goto error_return_root;
 
 	return 0;
 
- error_free_root:
-	reiser4_tree_release_node(tree, tree->root);
-
- error_back_root:
-	tree->root = root;
+ error_return_root:
+	reiser4_tree_release_node(tree, new_root);
+	reiser4_tree_assign_root(tree, old_root);
+	
 	return res;
 }
 
 /* Decreases tree height by one level */
 errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	errno_t res;
-	reiser4_node_t *root;
-	reiser4_node_t *child;
 	reiser4_place_t place;
+	reiser4_node_t *new_root;
+	reiser4_node_t *old_root;
 
 	aal_assert("umka-1731", tree != NULL);
 	aal_assert("umka-1737", tree->root != NULL);
@@ -1530,40 +1527,40 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	if ((res = reiser4_tree_load_root(tree)))
 		return res;
 
-	root = tree->root;
+	old_root = tree->root;
 	
 	/* Check if we can dry tree out safely */
-	if (reiser4_node_items(root) > 1)
+	if (reiser4_node_items(old_root) > 1)
 		return -EINVAL;
 
 	/* Getting new root as the first child of the old root node */
-	reiser4_place_assign(&place, root, 0, 0);
+	reiser4_place_assign(&place, old_root, 0, 0);
 
-	if (!(child = reiser4_tree_child_node(tree, &place))) {
+	if (!(new_root = reiser4_tree_child_node(tree, &place))) {
 		aal_exception_error("Can't load new root durring "
 				    "drying tree out.");
 		return -EINVAL;
 	}
 
-	aal_assert("umka-1929", root->counter > 1);
+	aal_assert("umka-1929", old_root->counter > 1);
 	
 	/* Disconnect old root and its child from the tree */
-	reiser4_tree_disconnect_node(tree, NULL, root);
-	reiser4_tree_disconnect_node(tree, root, child);
+	reiser4_tree_disconnect_node(tree, NULL, old_root);
+	reiser4_tree_disconnect_node(tree, old_root, new_root);
 
 	/* Assign new root. Setting tree height to new root level and root block
 	   number to new root block number. */
-	reiser4_tree_assign_root(tree, child);
+	reiser4_tree_assign_root(tree, new_root);
 	
         /* Releasing old root node */
-	reiser4_node_mkclean(root);
-	reiser4_tree_release_node(tree, root);
+	reiser4_node_mkclean(old_root);
+	reiser4_tree_release_node(tree, old_root);
 
 	return 0;
 }
 
-/* Tries to shift items and units from @place to passed @neig node. After it is
-   finished place will contain new insert point. */
+/* Tries to shift items and units from @place to passed @neig node. After that
+   it's finished, place will contain new insert point. */
 errno_t reiser4_tree_shift(
 	reiser4_tree_t *tree,	/* tree we will operate on */
 	reiser4_place_t *place,	/* insert point place */
@@ -1581,30 +1578,46 @@ errno_t reiser4_tree_shift(
     
 	aal_memset(&hint, 0, sizeof(hint));
 
+	/* Preapre shift hint. Initializing shift flags (shift direction, is it
+	   allowed to create new nodes, etc) and insert point. */
 	node = place->node;
 	hint.control = flags;
 	hint.pos = place->pos;
 
+	/* Perform node shift from @node to @neig. */
 	if ((res = reiser4_node_shift(node, neig, &hint)))
 		return res;
 
+	/* Updating insert point by pos returned from node_shift(). */
 	place->pos = hint.pos;
 
+	/* Check if insert point was moved to neighbour node. If so, assign
+	   neightbour node to insert point coord. */
 	if (hint.result & MSF_IPMOVE)
 		place->node = neig;
 
 	/* Updating left delimiting keys in the tree */
 	if (hint.control & MSF_LEFT) {
-		
+
+		/* Check if we need update key in insert part of tree. That is
+		   if source node is not empty and there was actually moved at
+		   least one item or unit. */
 		if (reiser4_node_items(node) > 0 &&
 		    (hint.items > 0 || hint.units > 0))
 		{
+
+			/* Check if node is connected to tree or it is not root
+			   and updating left delimiting keys makes sence at
+			   all. */
 			if (node->p.node) {
 				reiser4_place_t p;
 
+				/* Getting leftmost key from @node.  */
 				if ((res = reiser4_node_lkey(node, &lkey)))
 					return res;
 
+				/* Recursive updating of all internal keys that
+				   supposed to be updated. */
 				reiser4_place_init(&p, node->p.node,
 						   &node->p.pos);
 				
@@ -1615,6 +1628,10 @@ errno_t reiser4_tree_shift(
 			}
 		}
 	} else {
+		/* The same checks and insernal keys update actions as for left
+		   shift. Diference is that, we will get leftmost key from
+		   neighbour node, becaause its leftmost key will be changed as
+		   soon as at least one item or unit is shifted to it. */
 		if (hint.items > 0 || hint.units > 0) {
 
 			if (neig->p.node) {
@@ -1708,7 +1725,9 @@ int32_t reiser4_tree_expand(
 	/* Adding node overhead to @needed */
 	if (place->pos.unit == MAX_UINT32)
 		needed += overhead;
-	
+
+	/* Check if there is enough of space in insert point node. If so -- do
+	   nothing, but exit. */
 	if ((enough = reiser4_node_space(place->node) - needed) > 0) {
 		enough = reiser4_node_space(place->node);
 		
@@ -1722,13 +1741,15 @@ int32_t reiser4_tree_expand(
 	if ((MSF_LEFT & flags) &&
 	    (left = reiser4_tree_neigh_node(tree, place->node, D_LEFT)))
 	{
-	    
+
+		/* Shift items from @place to @left neighbour. */
 		if ((res = reiser4_tree_shift(tree, place, left,
 					      MSF_LEFT | MSF_IPUPDT)))
 		{
 			return res;
 		}
-	
+
+		/* Check fo result of shift -- space in node. */
 		if ((enough = reiser4_node_space(place->node) - needed) > 0) {
 			enough = reiser4_node_space(place->node);
 		
@@ -1743,13 +1764,16 @@ int32_t reiser4_tree_expand(
 	if ((MSF_RIGHT & flags) &&
 	    (right = reiser4_tree_neigh_node(tree, place->node, D_RIGHT)))
 	{
-	    
+
+		/* Shift items from @place to @right neighbour. */
 		if ((res = reiser4_tree_shift(tree, place, right,
 					      MSF_RIGHT | MSF_IPUPDT)))
 		{
 			return res;
 		}
-	
+
+		/* Check if node has enough of space and fucntion should do
+		   nothing but exit with success return code. */
 		if ((enough = reiser4_node_space(place->node) - needed) > 0) {
 			enough = reiser4_node_space(place->node);
 		
@@ -1760,6 +1784,8 @@ int32_t reiser4_tree_expand(
 		}
 	}
 
+	/* Check if we allowed to allocate new nodes if there still not enough
+	   of space for insert @needed bytes of data to tree. */
 	if (!(MSF_ALLOC & flags)) {
 		enough = reiser4_node_space(place->node);
 		
@@ -1868,6 +1894,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 				return res;
 			}
 
+			/* Check if node got enmpty. If so -- release it. */
 			if (reiser4_node_items(right) == 0) {
 				reiser4_node_mkclean(right);
 				reiser4_tree_detach_node(tree, right);
@@ -1875,6 +1902,7 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 			}
 		}
 	} else {
+		/* Release node, because it got empty. */
 		reiser4_node_mkclean(place->node);
 		reiser4_tree_detach_node(tree, place->node);
 		reiser4_tree_release_node(tree, place->node);
@@ -1889,36 +1917,43 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree,
 	return 0;
 }
 
-/* Splits out the tree from passed @place up to the passed @level */
+/* Splits out the tree from passed @place up until passed @level is
+   reached. This is used in fsck and in extents write code. */
 static errno_t reiser4_tree_split(reiser4_tree_t *tree, 
 				  reiser4_place_t *place, 
 				  uint8_t level)
 {
 	errno_t res;
-	uint8_t curr;
+	uint32_t curr_level;
 	reiser4_node_t *node;
 	
+	aal_assert("vpf-674", level > 0);
 	aal_assert("vpf-672", tree != NULL);
 	aal_assert("vpf-673", place != NULL);
 	aal_assert("vpf-813", place->node != NULL);
-	aal_assert("vpf-674", level > 0);
 
-	curr = reiser4_node_get_level(place->node);
-	aal_assert("vpf-680", curr < level);
-	
-	while (curr < level) {
+	curr_level = reiser4_node_get_level(place->node);
+	aal_assert("vpf-680", curr_level < level);
+
+	/* Loop until desired @level is reached.*/
+	while (curr_level < level) {
 		aal_assert("vpf-676", place->node->p.node != NULL);
 
+		/* Check if @place points inside node. That is should we split
+		   node or not. */
 		if (!reiser4_place_leftmost(place) &&
 		    !reiser4_place_rightmost(place))
 		{
-			/* We are not on the border, split */
-			if (!(node = reiser4_tree_alloc_node(tree, curr))) {
+			/* We are not on the border, split @place->node. That is
+			   allocate new right neighbour node and move all item
+			   right to @place->pos to new allocated node. */
+			if (!(node = reiser4_tree_alloc_node(tree, curr_level))) {
 				aal_exception_error("Tree failed to allocate "
 						    "a new node.");
 				return -EINVAL;
 			}
-    
+
+			/* Perform shift. */
 			if ((res = reiser4_tree_shift(tree, place, node,
 						      MSF_RIGHT | MSF_IPUPDT)))
 			{
@@ -1933,24 +1968,31 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 				if ((res = reiser4_tree_growup(tree)))
 					return res;
 			}
-			
+
+			/* Attach new node to tree. */
 			if ((res = reiser4_tree_attach_node(tree, node))) {
 				reiser4_tree_release_node(tree, node);
 				aal_exception_error("Tree is failed to attach "
 						    "node durring split opeartion.");
 				goto error_free_node;
 			}
-			
+
+			/* Updating @place by parent coord from @place. */
 			reiser4_place_init(place, node->p.node, &node->p.pos);
 		} else {
 			node = place->node;
 
+			/* There is nothing to move out. We are on node border
+			   (rightmost or leftmost). Here we should just go up by
+			   one level and increment position if @place was at
+			   rightmost position in node. */
 			if (reiser4_place_rightmost(place)) {
 				bool_t whole;
 				
 				reiser4_place_init(place, node->p.node,
 						   &node->p.pos);
-				
+
+				/* Increment position. */
 				whole = (place->pos.unit == MAX_UINT32);
 				reiser4_place_inc(place, whole);
 			} else {
@@ -1959,7 +2001,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			}
 		}
 
-		curr++;
+		curr_level++;
 	}
 	
 	return 0;
@@ -1969,7 +2011,9 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	return res;
 }
 
-/* Installs new pack handler. If it is NULL, default one will be used */
+/* Installs new pack handler. If it is NULL, default one will be used. Pack
+   handler is a fucntion, which is called when tree need to be packed after some
+   actions like remove. */
 void reiser4_tree_pack_set(reiser4_tree_t *tree,
 			   pack_func_t func)
 {
@@ -1977,9 +2021,8 @@ void reiser4_tree_pack_set(reiser4_tree_t *tree,
 	tree->traps.pack = func ? func : callback_tree_pack;
 }
 
-/* Switches on/off flag, which displays whenever tree should pack itself after
-   remove operations or not. It is needed because all operations like this
-   should be under control. */
+/* Switches on/off pack flag, which displays whether tree should pack itself
+   after remove operations. */
 void reiser4_tree_pack_on(reiser4_tree_t *tree) {
 	aal_assert("umka-1881", tree != NULL);
 	tree->flags |= TF_PACK;
@@ -1990,7 +2033,8 @@ void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 	tree->flags &= ~TF_PACK;
 }
 
-/* Releases passed region in block allocator. This is used in tail convertion */
+/* Releases passed region in block allocator. This is used in tail durring tree
+   trunacte. */
 static errno_t callback_region_func(void *entity, uint64_t start,
 				    uint64_t width, void *data)
 {
@@ -1998,6 +2042,8 @@ static errno_t callback_region_func(void *entity, uint64_t start,
 	return reiser4_alloc_release(tree->fs->alloc, start, width);
 }
 
+/* Writes flow described by @hint to tree. Takes care about keys in index part
+   of tree, root updatings, etc. Returns number of bytes actually written. */
 int64_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 				trans_hint_t *hint)
 {
@@ -2010,7 +2056,8 @@ int64_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 
 	buff = hint->specific;
 	reiser4_key_assign(&key, &hint->offset);
-	
+
+	/* Loop until desired number of bytes is written. */
 	for (total = bytes = 0, size = hint->count; size > 0;) {
 		int32_t write;
 		uint32_t level;
@@ -2018,7 +2065,7 @@ int64_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 
 		hint->count = size;
 
-		/* Looking for place to write */
+		/* Looking for place to write. */
 		if ((res = reiser4_tree_lookup(tree, &hint->offset,
 					       LEAF_LEVEL, FIND_CONV,
 					       &place)) < 0)
@@ -2026,13 +2073,15 @@ int64_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 			return res;
 		}
 
-		/* Writing data to to tree */
+		/* Making decission if we should write data to leaf level or to
+		   twig. Probably this may be improved somehow. */
 		if (hint->plug->id.group == TAIL_ITEM) {
 			level = LEAF_LEVEL;
 		} else {
 			level = TWIG_LEVEL;
 		}
 		
+		/* Writing data to tree. */
 		if ((write = reiser4_tree_write(tree, &place,
 						hint, level)) < 0)
 		{
@@ -2148,7 +2197,7 @@ int64_t reiser4_tree_trunc_flow(reiser4_tree_t *tree,
 			}
 		}
 	
-		/* Checking if the node became empty. If so, we release it. */
+		/* Checking if the node got empty. If so, we release it. */
 		if (reiser4_node_items(place.node) > 0) {
 			if ((tree->flags & TF_PACK) && tree->traps.pack) {
 				if ((res = tree->traps.pack(tree, &place,
@@ -2252,6 +2301,8 @@ errno_t reiser4_tree_conv_flow(reiser4_tree_t *tree,
 	return res;
 }
 
+/* Estimates how many bytes is needed to insert data described by @hint. Uses
+   item's estimate_insert() or estimate_write() for that. */
 static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
 				     reiser4_place_t *place,
 				     trans_hint_t *hint,
@@ -2276,7 +2327,8 @@ static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
 	}
 }
 
-/* Function for tree modifications */
+/* Function for tree modifications. It is used for inserting data to tree (stat
+   data items, directries) or writting (tails, extents). */
 static int64_t reiser4_tree_mod(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
 	reiser4_place_t *place,	    /* place item or unit inserted at */
@@ -2291,6 +2343,9 @@ static int64_t reiser4_tree_mod(
 	uint32_t needed;
 	reiser4_place_t old;
 
+	/* Check if tree has at least one node. If so -- load root node. Tree
+	   has not nodes just after it is created. Root node and first leaf will
+	   be created on demand then. */
 	if (!reiser4_tree_fresh(tree)) {
 		if ((res = reiser4_tree_load_root(tree)))
 			return res;
@@ -2374,6 +2429,9 @@ static int64_t reiser4_tree_mod(
 		return space;
 	}
 
+	/* Checking if we still have less space than needed. This is ENOSPC case
+	   if we tried to insert data. And normal case for writtig data, because
+	   we can write at least one byte. */
 	if ((uint32_t)space < needed) {
 		if (insert)
 			return -ENOSPC;
@@ -2381,7 +2439,7 @@ static int64_t reiser4_tree_mod(
 		hint->len = hint->count = space;
 	}
 
-	/* As insert point is changing durring make space, we check if insert
+	/* As insert point is changing durring make space, we check if insertq
 	   mode was changed too. If so, we should perform estimate one more time
 	   in order to get right space for @hint. That is because, estimated
 	   value depends on insert point. */

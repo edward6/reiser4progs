@@ -44,7 +44,7 @@ static void debugfs_print_usage(char *name) {
 		"  -a, --print-alloc               prints block allocator data.\n"
 		"  -b, --print-block N             prints block by its number.\n"
 		"  -n, --print-nodes FILE          prints all nodes file lies in.\n"
-		"  -i, --print-items FILE          prints all items specified file\n"
+		"  -i, --print-file FILE           prints all items specified file\n"
 		"                                  consists of.\n"
 		"Plugins options:\n"
 		"  -P, --print-params              prints default params.\n"
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
 		{"print-oid", no_argument, NULL, 'd'},
 		{"print-block", required_argument, NULL, 'b'},
 		{"print-nodes", required_argument, NULL, 'n'},
-		{"print-items", required_argument, NULL, 'i'},
+		{"print-file", required_argument, NULL, 'i'},
 		{"print-params", no_argument, NULL, 'P'},
 		{"print-plugins", no_argument, NULL, 'p'},
 		{"override", required_argument, NULL, 'o'},

@@ -22,7 +22,7 @@ object_entity_t *spl40_open(object_info_t *info) {
 	if (!(spl = aal_calloc(sizeof(*spl), 0)))
 		return NULL;
 
-	/* Initalizing file handle */
+	/* Initalizing file handle. */
 	obj40_init(&spl->obj, &spl40_plug, spl40_core, info);
 	
 	if (obj40_pid(&spl->obj, OBJECT_PLUG_TYPE, "special") != 
@@ -31,7 +31,7 @@ object_entity_t *spl40_open(object_info_t *info) {
 		goto error_free_spl;
 	}
 	
-	/* Initializing statdata place */
+	/* Initializing statdata place. */
 	aal_memcpy(STAT_PLACE(&spl->obj), &info->start,
 		   sizeof(info->start));
 	

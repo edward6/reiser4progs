@@ -2,7 +2,7 @@
    reiser4progs/COPYING.
    
    libreiser4.c -- version control functions, library initialization code and
-   plugin-accessible library functions implemetation. */
+   plugin-accessible library functions. */
 
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
