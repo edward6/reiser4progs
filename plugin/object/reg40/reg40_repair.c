@@ -14,6 +14,11 @@
 
 extern reiser4_plug_t reg40_plug;
 
+extern errno_t reg40_seek(object_entity_t *entity, 
+			  uint64_t offset);
+
+extern uint64_t reg40_offset(object_entity_t *entity);
+
 extern errno_t reg40_reset(object_entity_t *entity);
 extern lookup_t reg40_next(reg40_t *reg);
 extern int32_t reg40_put(object_entity_t *entity,
@@ -133,8 +138,9 @@ static errno_t reg40_create_hole(reg40_t *reg, uint64_t len) {
 	if ((res = reg40_put((object_entity_t *)reg, NULL, len))) {
 		aal_exception_error("The object [%s] failed to create the hole "
 				    "at [%llu-%llu] offsets. Plugin %s.",
-				    print_ino(core, &info->object), reg->offset,
-				    reg->offset + len - 1, reg->obj.plug->label);
+				    print_ino(core, &info->object),
+				    reg40_offset((object_entity_t *)reg),
+				    offset, reg->obj.plug->label);
 	}
 
 	return res;
@@ -174,7 +180,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	plug_call(info->start.plug->o.key_ops, build_gener, 
 		  &key,  KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
 		  obj40_ordering(&reg->obj), obj40_objectid(&reg->obj),
-		  reg->offset);
+		  reg40_offset(object));
 	
 	size = 0; bytes = 0; next = 0;
 	
@@ -213,9 +219,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 				return -EINVAL;
 		} 
 
-		
 		/* If we found not we looking foe, insert the hole. */
-		if (reg->offset != offset) {
+		if (reg40_offset(object) != offset) {
 			if (mode == RM_BUILD) {
 				/* Save offset to avoid another registering. */
 				next = offset;
@@ -231,7 +236,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 			aal_exception_error("The object [%s] has a break at "
 					    "[%llu-%llu] offsets. Plugin %s.",
 					    print_ino(core, &info->object),
-					    reg->offset, offset,
+					    reg40_offset(object), offset,
 					    reg->obj.plug->label);
 			res |= RE_FATAL;
 		} else
@@ -271,11 +276,14 @@ errno_t reg40_check_struct(object_entity_t *object,
 		
 		/* Get the maxreal key of the found item and find next. */
 		if ((res |= plug_call(reg->body.plug->o.item_ops, 
-				     maxreal_key, &reg->body, &key)))
+				      maxreal_key, &reg->body, &key)))
+		{
 			return res;
-		
-		reg->offset = plug_call(key.plug->o.key_ops, 
-					get_offset, &key) + 1;
+		}
+
+		reg40_seek(object, plug_call(key.plug->o.key_ops, 
+					     get_offset, &key) + 1);
+
 	}
 	
 	/* Fix the SD, if no fatal corruptions were found. */
