@@ -604,7 +604,10 @@ struct reiser4_object_ops {
 #ifndef ENABLE_STAND_ALONE
 	
 	/* Creates new file with passed parent and object keys */
-	object_entity_t *(*create) (object_info_t *, object_hint_t *);
+	object_entity_t *(*create) (object_info_t *,
+				    object_hint_t *);
+
+	errno_t (*clobber) (object_entity_t *);
 
 	/* These methods change @nlink value of passed @entity */
 	errno_t (*link) (object_entity_t *);

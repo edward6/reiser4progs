@@ -421,6 +421,14 @@ reiser4_object_t *reiser4_object_create(
 	return NULL;
 }
 
+/* Removes object body and stat data */
+errno_t reiser4_object_clobber(reiser4_object_t *object) {
+	aal_assert("umka-2297", object != NULL);
+
+	return plugin_call(object->entity->plugin->o.object_ops,
+			   clobber, object->entity);
+}
+
 /* Returns @nlink value from the stat data if any */
 uint32_t reiser4_object_links(reiser4_object_t *object) {
 	aal_assert("umka-2293", object != NULL);

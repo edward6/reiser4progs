@@ -583,6 +583,23 @@ static errno_t reg40_truncate(object_entity_t *entity,
 	return res;
 }
 
+static errno_t reg40_clobber(object_entity_t *entity) {
+	errno_t res;
+	reg40_t *reg;
+	
+	aal_assert("umka-2299", entity != NULL);
+
+	if ((res = reg40_truncate(entity, 0)))
+		return res;
+
+	reg = (reg40_t *)entity;
+	
+	if (obj40_stat(&reg->obj))
+		return -EINVAL;
+
+	return obj40_remove(&reg->obj, STAT_KEY(&reg->obj), 1);
+}
+
 struct layout_hint {
 	object_entity_t *entity;
 	block_func_t func;
@@ -753,6 +770,7 @@ static reiser4_object_ops_t reg40_ops = {
 	.unlink         = reg40_unlink,
 	.links          = reg40_links,
 	.realize        = reg40_realize,
+	.clobber        = reg40_clobber,
 	.check_struct   = reg40_check_struct,
 
 	.check_link     = NULL,

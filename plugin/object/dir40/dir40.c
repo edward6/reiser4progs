@@ -677,6 +677,23 @@ static errno_t dir40_truncate(object_entity_t *entity,
 	return 0;
 }
 
+static errno_t dir40_clobber(object_entity_t *entity) {
+	errno_t res;
+	dir40_t *dir;
+	
+	aal_assert("umka-2298", entity != NULL);
+
+	if ((res = dir40_truncate(entity, 0)))
+		return res;
+
+	dir = (dir40_t *)entity;
+
+	if (obj40_stat(&dir->obj))
+		return -EINVAL;
+
+	return obj40_remove(&dir->obj, STAT_KEY(&dir->obj), 1);
+}
+
 static errno_t dir40_attach(object_entity_t *entity,
 			    object_entity_t *parent)
 {
@@ -1080,6 +1097,7 @@ static reiser4_object_ops_t dir40_ops = {
 	.realize      = dir40_realize,
 	.attach       = dir40_attach,
 	.detach       = dir40_detach,
+	.clobber      = dir40_clobber,
 	
 	.seek	      = NULL,
 	.write        = NULL,

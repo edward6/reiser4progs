@@ -197,6 +197,20 @@ static object_entity_t *sym40_create(object_info_t *info,
 	return NULL;
 }
 
+static errno_t sym40_clobber(object_entity_t *entity) {
+	errno_t res;
+	sym40_t *sym;
+	
+	aal_assert("umka-2300", entity != NULL);
+
+	sym = (sym40_t *)entity;
+	
+	if (obj40_stat(&sym->obj))
+		return -EINVAL;
+
+	return obj40_remove(&sym->obj, STAT_KEY(&sym->obj), 1);
+}
+
 static uint32_t sym40_links(object_entity_t *entity) {
 	aal_assert("umka-2295", entity != NULL);
 	return obj40_get_nlink(&((sym40_t *)entity)->obj);
@@ -313,6 +327,7 @@ static reiser4_object_ops_t sym40_ops = {
 	.link           = sym40_link,
 	.unlink         = sym40_unlink,
 	.realize        = sym40_realize,
+	.clobber        = sym40_clobber,
 		
 	.seek	        = NULL,
 	.write	        = NULL,
