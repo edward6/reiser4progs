@@ -1163,42 +1163,42 @@ static void dir40_close(object_entity_t *entity) {
 
 static reiser4_object_ops_t dir40_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.create	      = dir40_create,
-	.layout       = dir40_layout,
-	.metadata     = dir40_metadata,
-	.link         = dir40_link,
-	.unlink       = dir40_unlink,
-	.links        = dir40_links,
-	.truncate     = dir40_truncate,
-	.add_entry    = dir40_add_entry,
-	.rem_entry    = dir40_rem_entry,
-	.realize      = dir40_realize,
-	.attach       = dir40_attach,
-	.detach       = dir40_detach,
-	.clobber      = dir40_clobber,
+	.create		= dir40_create,
+	.layout		= dir40_layout,
+	.metadata	= dir40_metadata,
+	.link		= dir40_link,
+	.unlink		= dir40_unlink,
+	.links		= dir40_links,
+	.truncate	= dir40_truncate,
+	.add_entry	= dir40_add_entry,
+	.rem_entry	= dir40_rem_entry,
+	.realize	= dir40_realize,
+	.attach		= dir40_attach,
+	.detach		= dir40_detach,
+	.clobber	= dir40_clobber,
 	
-	.seek	      = NULL,
-	.write        = NULL,
-	.check_struct = NULL,
-	.check_link   = NULL,
+	.seek		= NULL,
+	.write		= NULL,
+	.check_struct	= NULL,
+	.check_backlink	= NULL,
 	
 #endif
-	.follow       = NULL,
-	.read         = NULL,
-	.offset       = NULL,
-		
-	.open	      = dir40_open,
-	.close	      = dir40_close,
-	.reset	      = dir40_reset,
-	.lookup	      = dir40_lookup,
-	.size	      = dir40_size,
-	.seekdir      = dir40_seekdir,
-	.readdir      = dir40_readdir,
+	.follow		= NULL,
+	.read		= NULL,
+	.offset		= NULL,
+	
+	.open		= dir40_open,
+	.close		= dir40_close,
+	.reset		= dir40_reset,
+	.lookup		= dir40_lookup,
+	.size		= dir40_size,
+	.seekdir	= dir40_seekdir,
+	.readdir	= dir40_readdir,
 
 #ifndef ENABLE_STAND_ALONE
-	.telldir      = dir40_telldir,
+	.telldir	= dir40_telldir,
 #else
-	.telldir      = NULL
+	.telldir	= NULL
 #endif
 };
 

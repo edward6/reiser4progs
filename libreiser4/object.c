@@ -636,7 +636,6 @@ lookup_t reiser4_object_lookup(reiser4_object_t *object,
 {
 	aal_assert("umka-1919", object != NULL);
 	aal_assert("umka-1920", name != NULL);
-	aal_assert("umka-1921", entry != NULL);
 
 	if (!object->entity->plugin->o.object_ops->lookup)
 		return FAILED;

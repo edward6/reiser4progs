@@ -7,80 +7,14 @@
 extern errno_t callback_check_struct(object_entity_t *object, place_t *place, 
 				     void *data);
 
-static errno_t callback_semantic_open(reiser4_object_t *parent, 
-				      reiser4_object_t **object, 
-				      entry_hint_t *entry, void *data)
+static errno_t callback_semantic_open(reiser4_object_t *parent, entry_hint_t *entry,
+				      reiser4_object_t **object, void *data)
 {
-	repair_semantic_t *sem;
-	reiser4_place_t *start;
-	bool_t checked;
-	errno_t res;
+	aal_assert("vpf-1144", data != NULL);
 	
-	aal_assert("vpf-1101", parent != NULL);
-	aal_assert("vpf-1102", entry != NULL);
-	aal_assert("vpf-1104", data != NULL);
-	
-	sem = (repair_semantic_t *)data;
-	
-	/* Trying to open the object by the given @entry->object key. */
-	if (!(*object = repair_object_launch(parent->info.tree, parent, 
-					     &entry->object))) 
-	{
-		if (sem->repair->mode == REPAIR_REBUILD)
-			goto error_rem_entry;
-		
-		sem->repair->fixable++;
-		return 0;
-	}
-	
-	start = reiser4_object_start(*object);
-	checked = repair_item_test_flag(start, ITEM_CHECKED);
-	
-	/* Check the openned object. */
-	res = repair_object_check(*object, parent, entry, sem->repair->mode);
-
-	if (res < 0) {
-		aal_exception_error("Node (%llu), item (%u): check of the object "
-				    "pointed by %k from the %k (%s) failed.", 
-				    start->node->number, start->pos.item,
-				    &entry->object, &entry->offset, entry->name);
-
-		goto error_close_object;
-	} else if (res & REPAIR_FATAL) {
-		if (sem->repair->mode == REPAIR_REBUILD)
-			goto error_rem_entry;
-
-		sem->repair->fatal++;
-		goto error_close_object;
-	} else if (res & REPAIR_FIXABLE)
-		sem->repair->fixable++;
-	
-	if (sem->repair->mode == REPAIR_REBUILD && 
-	    aal_strncmp(entry->name, ".", 1) && aal_strncmp(entry->name, "..", 2))
-	{
-		repair_item_set_flag(start, ITEM_REACHABLE);
-	}
-	
-	/* The object was chacked before, skip the traversing of its subtree. */
-	if (checked)
-		reiser4_object_close(*object);
-	
-	return 0;
- 	
- error_rem_entry:
-	res = reiser4_object_rem_entry(parent, entry);
-
-	if (res) {
-		aal_exception_error("Semantic traverse failed to remove the entry "
-				    "%k (%s) pointing to %k.", &entry->offset, 
-				    entry->name, &entry->object);
-	}
-	
- error_close_object:
-	if (*object)
-		reiser4_object_close(*object);
-	
-	return res < 0 ? res : 0;
+	return repair_object_check(parent, entry, object,
+				   ((repair_semantic_t *)data)->repair,
+				   NULL, NULL);
 }
 
 static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) {

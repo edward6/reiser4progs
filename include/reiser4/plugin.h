@@ -624,7 +624,7 @@ struct reiser4_object_ops {
 				 place_func_t, uint8_t, void *);
 	
 	/* Checks if this is a correct uplink of the object. */
-	errno_t (*check_link) (object_entity_t *, object_entity_t *, uint8_t);
+	errno_t (*check_backlink) (object_entity_t *, object_entity_t *, uint8_t);
 	
 	/* Realizes if the object can be of this plugin and can be recovered as
 	   a such. */

@@ -7,113 +7,65 @@
 extern errno_t callback_check_struct(object_entity_t *object, place_t *place, 
 				     void *data);
 
-static errno_t repair_lost_found_unlink(reiser4_object_t *parent) {
+static void repair_lost_found_make_lost_name(reiser4_object_t *object, 
+					     char *name) 
+{
+	reiser4_key_string(&object->info.object, name);
+	aal_memmove(object->name + 10, object->name, OBJECT_NAME_SIZE - 10);
+	aal_memcpy(object->name, "lost_name_", 10);
+}
+
+static errno_t repair_lost_found_unlink(reiser4_object_t *object, void *data) {
+	char name[OBJECT_NAME_SIZE];
+	repair_lost_found_t *lf;
 	reiser4_place_t *start;
 	entry_hint_t entry;
 	errno_t res;
 	
-	start = reiser4_object_start(parent);	
-	
-	if ((res = reiser4_object_readdir(parent, &entry))) {
-		aal_exception_error("Node %llu, item %u: readdir of the object "
-				    "%k.", start->node->number, start->pos.item,
-				    &parent->info.object);
-		return res;
-	}
-	
-	if ((res = reiser4_object_unlink(parent, entry.name))) {
-		aal_exception_error("Node %llu, item %u: unlink from the object "
-				    "%k of the object pointed by %k failed.",
-				    start->node->number, start->pos.item,
-				    &parent->info.object, &entry.object);
-
-		return res;
-	}
-	
-	return 0;
-}
-
-static errno_t callback_object_open(reiser4_object_t *parent, 
-				    reiser4_object_t **object, 
-				    entry_hint_t *entry, void *data)
-{
-	repair_lost_found_t *lf;
-	reiser4_place_t *start;
-	bool_t checked;
-	errno_t res;
-	
-	aal_assert("vpf-1101", parent != NULL);
-	aal_assert("vpf-1102", entry != NULL);
-	aal_assert("vpf-1104", data != NULL);
+	aal_assert("vpf-1148", object != NULL);
+	aal_assert("vpf-1149", data != NULL);
 	
 	lf = (repair_lost_found_t *)data;
 	
-	/* Trying to open the object by the given @entry->object key. */
-	if (!(*object = repair_object_launch(parent->info.tree, parent, 
-					     &entry->object))) 
-	{
-		if (lf->repair->mode == REPAIR_REBUILD)
-			goto error_rem_entry;
-		
-		lf->repair->fixable++;
+	start = reiser4_object_start(object);	
+	
+	/* If REACHABLE, skip it as objects linked to L&F are not marked as such. */
+	if (repair_item_test_flag(start, ITEM_REACHABLE))
 		return 0;
+	
+	repair_lost_found_make_lost_name(object, name);
+	
+	/* If lookup cannot find the object in L&F, nothing to unlink. */
+	if (reiser4_object_lookup(lf->lost, name, NULL) != PRESENT)
+		return 0;
+
+	if ((res = reiser4_object_unlink(lf->lost, name))) {
+		aal_exception_error("Node %llu, item %u: unlink from the object "
+				    "%k of the object pointed by %k failed.",
+				    start->node->number, start->pos.item,
+				    &lf->lost->info.object, &entry.object);
 	}
 	
-	start = reiser4_object_start(*object);
-	checked = repair_item_test_flag(start, ITEM_CHECKED);
+	return res;
+}
 
-	/* Check the openned object. */
-	res = repair_object_check(*object, parent, entry, lf->repair->mode);
+typedef struct object_open {
+	repair_lost_found_t *lf;
+	object_check_func_t func;
+} object_open_t;
 
-	if (res < 0) {
-		aal_exception_error("Node (%llu), item (%u): check of the "
-				    "object pointed by %k from the %k (%s) "
-				    "failed.", start->node->number, 
-				    start->pos.item, &entry->object, 
-				    &entry->offset, entry->name);
-		goto error_close_object;
-	} else if (res & REPAIR_FATAL) {
-		if (lf->repair->mode == REPAIR_REBUILD)
-			goto error_rem_entry;
-
-		lf->repair->fatal++;
-		goto error_close_object;
-	} else if (res & REPAIR_FIXABLE)
-		lf->repair->fixable++;
-
-	/* This is a correct parent of the object, attach the object to it. */
-	if (!repair_item_test_flag(start, ITEM_REACHABLE) && checked) {
-		/* If it's not REACHABLE, it can be linked to 'lost+found'. If 
-		   so, unlink it from 'lost+found' and link to the @parent. */
-		if (!reiser4_object_seekdir(lf->lost, &(*object)->info.object)) {
-			if ((res = repair_lost_found_unlink(lf->lost)))
-			    goto error_close_object;
-		}
-	}
-
-	if (lf->repair->mode == REPAIR_REBUILD)
-		repair_item_set_flag(start, ITEM_REACHABLE);
+static errno_t callback_lost_found_open(reiser4_object_t *parent, 
+					entry_hint_t *entry, 
+					reiser4_object_t **object, 
+					void *data)
+{
+	object_open_t *open = (object_open_t *)data;
 	
-	/* The object was chacked before, skip the traversing of its subtree. */
-	if (checked)
-		reiser4_object_close(*object);
+	aal_assert("vpf-1144", open != NULL);
+	aal_assert("vpf-1150", open->lf != NULL);
 	
-	return 0;
-
- error_rem_entry:
-	res = reiser4_object_rem_entry(parent, entry);
-	
-	if (res) {
-		aal_exception_error("Lost&Found traverse failed to remove the entry "
-				    "%k (%s) pointing to %k.", &entry->offset,
-				    entry->name, &entry->object);
-	}
-
- error_close_object:
-	if (*object)
-		reiser4_object_close(*object);
-	
-	return res < 0 ? res : 0;
+	return repair_object_check(parent, entry, object, open->lf->repair,
+				   open->func, open->lf);
 }
 
 static errno_t repair_lost_found_object_check(reiser4_place_t *place, 
@@ -122,6 +74,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	reiser4_object_t *object, *parent;
 	repair_lost_found_t *lf;
 	reiser4_place_t *start;
+	object_open_t open;
 	errno_t res = 0;
 	
 	aal_assert("vpf-1059", place != NULL);
@@ -168,8 +121,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 		}
 	} 
 	
-	aal_memmove(object->name + 10, object->name, OBJECT_NAME_SIZE - 10);
-	aal_memcpy(object->name, "lost_name_", 10);
+	repair_lost_found_make_lost_name(object, object->name);
 	
 	start = reiser4_object_start(object);
 
@@ -199,7 +151,9 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	}
 	
 	/* Fix '..' if needed. */
-	if ((res = repair_object_check_attach(object, parent, lf->repair->mode))) {
+	if ((res = repair_object_check_backlink(object, parent, ET_NAME, 
+						lf->repair->mode))) 
+	{
 		aal_exception_error("Node %llu, item %u: failed to check the uplink "
 				    "from the object %k to the object %k.",
 				    start->node->number, start->pos.item, 
@@ -214,7 +168,10 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 		reiser4_object_close(parent);
 	}
 	
-	if ((res = repair_object_traverse(object, callback_object_open, lf)))
+	open.lf = lf;
+	open.func = repair_lost_found_unlink;
+	
+	if ((res = repair_object_traverse(object, callback_lost_found_open, &open)))
 		goto error_close_object;
 	
 	/* The whole reachable subtree must be recovered for now and marked as 

@@ -267,7 +267,7 @@ errno_t repair_object_traverse(reiser4_object_t *object,
 		
 		/* Some entry was read. Try to detect the object of the paticular 
 		   plugin pointed by this entry. */
-		if ((res = func(object, &child, &entry, data)))
+		if ((res = func(object, &entry, &child, data)))
 			return res;
 		
 		if (child == NULL)
@@ -282,38 +282,38 @@ errno_t repair_object_traverse(reiser4_object_t *object,
 	return 0;
 }
 
-/* Check '..' entry of directories. If the directory object keeps '..' and it 
-   matches the parent -- OK; if the directory object should not keep '..'-- OK. 
-   If '..' points to another object, fix '..' to point if REBUILD mode or 
-   return FIXABLE error othewise. */
-errno_t repair_object_check_attach(reiser4_object_t *object, 
-				   reiser4_object_t *parent, 
-				   uint8_t mode)
+/* @parent is the object where the @object name of the type @type was found.
+   Check the backlink -- '..' for directories if @type == NAME, that name 
+   exists if @type == DOTDOT, etc. On REBUILD pass, insert the name if missed
+   and fix '..' to point correctly. */
+errno_t repair_object_check_backlink(reiser4_object_t *object, 
+				     reiser4_object_t *parent, 
+				     entry_type_t type,
+				     uint8_t mode)
 {
 	aal_assert("vpf-1044", object != NULL);
 	aal_assert("vpf-1098", object->entity != NULL);
 	aal_assert("vpf-1099", parent != NULL);
 	aal_assert("vpf-1100", parent->entity != NULL);
 	
-	if (!object->entity->plugin->o.object_ops->check_link)
+	if (!object->entity->plugin->o.object_ops->check_backlink)
 		return 0;
 	
-	return object->entity->plugin->o.object_ops->check_link(object->entity, 
-								parent->entity, 
-								mode);
+	return object->entity->plugin->o.object_ops->check_backlink(object->entity, 
+								    parent->entity, 
+								    mode);
 }
 
-errno_t repair_object_check(reiser4_object_t *object,
-			    reiser4_object_t *parent,
-			    entry_hint_t *entry,
-			    uint8_t mode)
+static errno_t repair_object_check_base(reiser4_object_t *object,
+					reiser4_object_t *parent,
+					entry_type_t type,
+					uint8_t mode)
 {
 	reiser4_place_t *start;
 	errno_t res = REPAIR_OK;
 	
 	aal_assert("vpf-1139", object != NULL);
 	aal_assert("vpf-1140", parent != NULL);
-	aal_assert("vpf-1140", entry != NULL);
 	
 	start = reiser4_object_start(object);
 	
@@ -336,13 +336,84 @@ errno_t repair_object_check(reiser4_object_t *object,
 	/* If the entry in the parent object was not '..' -- in other words we 
 	   go down not up -- check the uplink -- '..' in directories -- if not 
 	   reachable yet and correct the '..' pointer if needed. 
-	   FIXME-VITALY: these '.' and '..' compring should be eliminated here.
 	 */
-	if (!repair_item_test_flag(start, ITEM_REACHABLE) && 
-	    aal_strncmp(entry->name, ".", 1) && aal_strncmp(entry->name, "..", 2))
-	{
-		res |= repair_object_check_attach(object, parent, mode);
-	}
+	if (!repair_item_test_flag(start, ITEM_REACHABLE))
+		res |= repair_object_check_backlink(object, parent, type, mode);
 	
 	return res;
+}
+
+errno_t repair_object_check(reiser4_object_t *parent, entry_hint_t *entry,
+			    reiser4_object_t **object, repair_data_t *repair,
+			    object_check_func_t func, void *data) 
+{
+	reiser4_place_t *start;
+	bool_t checked;
+	errno_t res;
+	
+	aal_assert("vpf-1101", parent != NULL);
+	aal_assert("vpf-1102", entry != NULL);
+	aal_assert("vpf-1145", object != NULL);
+	aal_assert("vpf-1146", repair != NULL);
+	
+	/* Trying to open the object by the given @entry->object key. */
+	if (!(*object = repair_object_launch(parent->info.tree, parent, 
+					     &entry->object))) 
+	{
+		if (repair->mode == REPAIR_REBUILD)
+			goto error_rem_entry;
+		
+		repair->fixable++;
+		return 0;
+	}
+	
+	start = reiser4_object_start(*object);
+	checked = repair_item_test_flag(start, ITEM_CHECKED);
+	
+	/* Check the openned object. */
+	res = repair_object_check_base(*object, parent, entry->type, repair->mode);
+
+	if (res < 0) {
+		aal_exception_error("Node (%llu), item (%u): check of the object "
+				    "pointed by %k from the %k (%s) failed.", 
+				    start->node->number, start->pos.item,
+				    &entry->object, &entry->offset, entry->name);
+
+		goto error_close_object;
+	} else if (res & REPAIR_FATAL) {
+		if (repair->mode == REPAIR_REBUILD)
+			goto error_rem_entry;
+
+		repair->fatal++;
+		goto error_close_object;
+	} else if (res & REPAIR_FIXABLE)
+		repair->fixable++;
+	
+	if (checked && func)
+		func(*object, data);
+	
+	if (repair->mode == REPAIR_REBUILD && entry->type == ET_NAME)
+		repair_item_set_flag(start, ITEM_REACHABLE);
+	
+	/* The object was chacked before, skip the traversing of its subtree. */
+	if (checked)
+		reiser4_object_close(*object);
+	
+	return 0;
+ 	
+ error_rem_entry:
+	res = reiser4_object_rem_entry(parent, entry);
+
+	if (res) {
+		aal_exception_error("Semantic traverse failed to remove the entry "
+				    "%k (%s) pointing to %k.", &entry->offset, 
+				    entry->name, &entry->object);
+	}
+	
+ error_close_object:
+	if (*object)
+		reiser4_object_close(*object);
+	
+	return res < 0 ? res : 0;
+
 }
