@@ -73,7 +73,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 		}
 	}
 	
-	/* Initializes oid allocator */
+	/* Initializes oid allocator. */
 	if (!(fs->oid = reiser4_oid_open(fs)))
 		goto error_free_alloc;
   

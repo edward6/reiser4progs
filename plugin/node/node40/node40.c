@@ -1049,7 +1049,6 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	
 	/* We can't split the leftmost and rightmost items if they are the same
 	   insetr point points to. */
-
 	if (hint->pos.unit == MAX_UINT32) {
 		if ((left_shift && hint->pos.item == 0) ||
 		    (!left_shift && hint->pos.item == src_items))
@@ -1135,6 +1134,14 @@ static errno_t node40_unite(node_entity_t *src_entity,
 			if (left_shift)
 				hint->pos.item = dst_items;
 		}
+
+		/* Check if shift_units() may shift something at all. If no --
+		   getting out of here. */
+		if (hint->units == 0)
+			return 0;
+
+		/* Prepare pos new item will be craeted at. */
+		POS_INIT(&pos, (left_shift ? dst_items : 0), MAX_UINT32);
 	} else {
 		/* The same for case when we will not create new item, but will
 		   shift units into existent one in neighbour node. */
@@ -1152,40 +1159,49 @@ static errno_t node40_unite(node_entity_t *src_entity,
 			if (left_shift)
 				hint->pos.item = dst_items - 1;
 		}
+
+		/* Check if shift_units() may shift something at all. If no --
+		   getting out of here. */
+		if (hint->units == 0)
+			return 0;
+
+		/* Prepare pos, item will be expanded at. Items are mergeable,
+		   so we do not need to create new item in @dst_entity. We just
+		   need to expand existent dst item by @hint->rest, thus unit
+		   component of @pos is set to 0.*/
+		POS_INIT(&pos, (left_shift ? dst_items - 1 : 0), 0);
 	}
 
-	/* Check if shift_units() may shift something at all. If no --
-	   getting out of here. */
-	if (hint->units == 0)
-		return 0;
-		
-	if (hint->create) {
-		/* Expanding dst node with creating new item we will shift units
-		   to it. */
-		POS_INIT(&pos, (left_shift ? dst_items : 0), MAX_UINT32);
-		
-		if (node40_expand(dst_entity, &pos, hint->rest, 1)) {
-			aal_exception_error("Can't expand node for "
-					    "shifting units into it.");
-			return -EINVAL;
-		}
+	/* Expanding node by @hint->rest at @pos. */
+	if (node40_expand(dst_entity, &pos, hint->rest, 1)) {
+		aal_exception_error("Can't expand node for "
+				    "shifting units into it.");
+		return -EINVAL;
+	}
 
-		/* Increasing number of shifted whole items. */
+	if (hint->create) {
+		/* Increasing number of shifted items. This is needed, because
+		   higher abstraction levels will use it to determine was
+		   something shifted or not. */
 		hint->items++;
 		
-		/* Setting up new item fields */
+		/* Setting up new item fields such as plugin id and key. */
 		dst_ih = node40_ih_at(dst_node, pos.item);
+
 		ih_set_pid(dst_ih, src_place.plug->id.id, pol);
+		aal_memcpy(dst_ih, src_place.key.body, key_size(pol));
 
-		aal_memcpy(dst_ih, src_place.key.body,
-			   key_size(pol));
-
-		/* Copying flags to new created item */
+		/* Copying old item flags to new created one. This is needed,
+		   because these flags may say, for instance, that item is
+		   already checked by fsck and thus, new item which is created
+		   by splitting old one should have the same flags. This is also
+		   needed, because items with different flags will not be merged
+		   and this will cause bad tree packing. */
 		src_ih = node40_ih_at(src_node, src_place.pos.item);
 		ih_set_flags(dst_ih, ih_get_flags(src_ih, pol), pol); 
 
-		/* Initializing dst item after it was created by expand()
-		   function. */
+		/* Initializing @dst_place after that new item was created by
+		   expand() function at it. */
 		if (node40_fetch(dst_entity, &pos, &dst_place))
 			return -EINVAL;
 
@@ -1195,18 +1211,6 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		   calculate the number of units by own len, like extent40
 		   does. */
 		dst_place.len = 0;
-	} else {
-		/* Items are mergeable, so we do not need to create new item in
-		   the dst node. We just need to expand existent dst item by
-		   hint->rest. So, we will call expand() with unit component not
-		   equal MAX_UINT32. */
-		POS_INIT(&pos, (left_shift ? dst_items - 1 : 0), 0);
-
-		if (node40_expand(dst_entity, &pos, hint->rest, 1)) {
-			aal_exception_error("Can't expand item for "
-					    "shifting units into it.");
-			return -EINVAL;
-		}
 	}
 
 	/* Shift units from @src_place to @dst_place. */
@@ -1258,6 +1262,8 @@ static errno_t node40_unite(node_entity_t *src_entity,
 			hint->pos.item--;
 		}
 	} else {
+		/* Sources item will not be removed, because it is not yet
+		 * empty, it will be just shrinked by @hint->rest. */
 		pos.unit = 0;
 		len = hint->rest;
 	}
