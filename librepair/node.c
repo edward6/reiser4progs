@@ -38,7 +38,7 @@ errno_t repair_node_child_max_real_key(reiser4_coord_t *c, reiser4_key_t *key)
 	if (reiser4_coord_realize(&coord)) {
 	    aal_exception_error("Node (%llu): Failed to open the item (%u).",
 		coord.node->blk, coord.pos.item);
-	    goto error_close_child;
+	    goto error_child_close;
 	}
 	
 	res = repair_node_child_max_real_key(&coord, key);
@@ -50,7 +50,7 @@ errno_t repair_node_child_max_real_key(reiser4_coord_t *c, reiser4_key_t *key)
     } else 
 	return reiser4_item_max_real_key(&coord, key);
 
-error_close_child:
+error_child_close:
     reiser4_node_close(child);
     return -1;
 }
@@ -65,11 +65,11 @@ reiser4_node_t *repair_node_open(reiser4_format_t *format, blk_t blk) {
 	return NULL;
 
     if (reiser4_format_get_stamp(format) != reiser4_node_stamp(node))
-	goto error_free_node;
+	goto error_node_free;
 
     return node;
     
-error_free_node:
+error_node_free:
     reiser4_node_close(node);
     return NULL;
 }

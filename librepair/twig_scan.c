@@ -67,7 +67,6 @@ static errno_t repair_ts_setup(traverse_hint_t *hint, repair_data_t *rd) {
     aal_assert("vpf-569", ts->bm_leaf != NULL, return -1);
     aal_assert("vpf-570", ts->bm_met != NULL, return -1);
     aal_assert("vpf-571", ts->bm_unfm_tree != NULL, return -1);
-    aal_assert("vpf-571", ts->bm_unfm_out != NULL, return -1);
 
     hint->data = rd;
     hint->objects = 1 << EXTENT_ITEM;
@@ -95,21 +94,17 @@ static errno_t repair_ts_setup(traverse_hint_t *hint, repair_data_t *rd) {
 
 static errno_t repair_ts_update(repair_data_t *rd) {
     repair_ts_t *ts;
-    repair_am_t *am;
     uint32_t i;
  
     aal_assert("vpf-577", rd != NULL, return -1);
     aal_assert("vpf-593", rd->fs != NULL, return -1);
 
     ts = repair_ts(rd);
-    am = repair_am(rd);
  
-    for (i = 0; i < am->bm_insert->size; i++) {
+    for (i = 0; i < ts->bm_met->size; i++) {
 	aal_assert("vpf-576", (ts->bm_met->map[i] & 
 	    (ts->bm_unfm_tree->map[i] | ts->bm_unfm_out->map[i])) == 0, 
 	    return -1);
-
-	am->bm_insert->map[i] = ts->bm_leaf->map[i] & ts->bm_twig->map[i];
 
 	ts->bm_met->map[i] |= ts->bm_unfm_tree->map[i] | ts->bm_unfm_out->map[i];
 	ts->bm_used->map[i] |= ts->bm_unfm_tree->map[i];
@@ -119,7 +114,6 @@ static errno_t repair_ts_update(repair_data_t *rd) {
     reiser4_alloc_assign(rd->fs->alloc, ts->bm_used);
     reiser4_alloc_assign_forb(rd->fs->alloc, ts->bm_met);
 
-    aux_bitmap_close(ts->bm_leaf);
     aux_bitmap_close(ts->bm_met);
     aux_bitmap_close(ts->bm_unfm_tree);
     aux_bitmap_close(ts->bm_unfm_out);
@@ -146,8 +140,6 @@ errno_t repair_ts_pass(repair_data_t *rd) {
     /* There were found overlapped extents. Look through twigs, build list of
      * extents for each problem region. */ 
     while ((blk = aux_bitmap_find_marked(ts->bm_twig, blk)) != INVAL_BLK) {
-	aal_assert("vpf-426", aux_bitmap_test(ts->bm_used, blk), return -1);
-	
 	if ((node = repair_node_open(rd->fs->format, blk)) == NULL) {
 	    aal_exception_fatal("Twig scan pass failed to open the twig (%llu)",
 		blk);
@@ -157,17 +149,21 @@ errno_t repair_ts_pass(repair_data_t *rd) {
 	entity = node->entity;
 	
 	/* This block must contain twig. */
-	aal_assert("vpf-544", plugin_call(goto error_free_node, 
+	aal_assert("vpf-544", plugin_call(goto error_node_free, 
 	    entity->plugin->node_ops, get_level, entity) == TWIG_LEVEL, 
-	    goto error_free_node);
+	    goto error_node_free);
 
 	/* Lookup the node. */	
 	if ((res = reiser4_node_traverse(node, &hint, NULL, NULL,
 	    callback_ptr_handler, NULL, NULL)))
-	    goto error_free_node;
+	    goto error_node_free;
 
 	if (!node->counter)
-	    reiser4_node_close(node);	
+	    reiser4_node_close(node);
+
+	/* Do not keep twig marked in bm_twigs if it is in the tree already. */
+	if (aux_bitmap_test(ts->bm_used, blk))
+	    aux_bitmap_clear(ts->bm_twig, blk);
     }
 
     if (repair_ts_update(rd))
@@ -175,7 +171,7 @@ errno_t repair_ts_pass(repair_data_t *rd) {
     
     return 0;
 
-error_free_node:
+error_node_free:
     reiser4_node_close(node);
 
     return -1;

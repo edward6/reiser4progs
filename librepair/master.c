@@ -87,13 +87,13 @@ reiser4_master_t *repair_master_open(aal_device_t *host_device) {
 	
     /* Either check the opened master or build a new one. */
     if (repair_master_check(&master, host_device))
-	goto error_free_master;
+	goto error_master_free;
     
     aal_assert("vpf-477", master != NULL, goto error);
     
     return master;
     
-error_free_master:
+error_master_free:
     if (master)
 	reiser4_master_close(master);
 error:    

@@ -42,10 +42,10 @@ reiser4_fs_t *repair_fs_open(aal_device_t *host_device,
 	return NULL;
 
     if ((fs->master = repair_master_open(host_device)) == NULL)
-	goto error_free_fs;
+	goto error_fs_free;
 	
     if ((fs->format = repair_format_open(fs->master, profile)) == NULL)
-	goto error_close_master;
+	goto error_master_close;
     
     /* Block and oid allocator plugins are specified by format plugin unambiguously, 
      * so there is nothing to be checked additionally here. */
@@ -53,26 +53,26 @@ reiser4_fs_t *repair_fs_open(aal_device_t *host_device,
 	reiser4_format_get_len(fs->format))) == NULL) 
     {
 	aal_exception_fatal("Failed to open a block allocator.");
-	goto error_close_format;
+	goto error_format_close;
     }
 
     if ((fs->oid = reiser4_oid_open(fs->format)) == NULL) {	
 	aal_exception_fatal("Failed to open an object id allocator.");
-	goto error_close_alloc;
+	goto error_alloc_close;
     }
     
     return fs;
 
-error_close_alloc:
+error_alloc_close:
     reiser4_alloc_close(fs->alloc);
     
-error_close_format:
+error_format_close:
     reiser4_format_close(fs->format);
     
-error_close_master:
+error_master_close:
     reiser4_master_close(fs->master);
 
-error_free_fs:
+error_fs_free:
     aal_free(fs);
 
     return NULL;

@@ -68,8 +68,10 @@ typedef struct repair_ts {
 /* Add missing. */
 typedef struct repair_am {
     aux_bitmap_t *bm_used;
-    aux_bitmap_t *bm_insert;
-
+    aux_bitmap_t *bm_twig;
+    aux_bitmap_t *bm_leaf;
+    aux_bitmap_t *bm_uninserable;
+    
     reiser4_tree_t *tree;
 
     reiser4_key_t max_real_key;

@@ -44,11 +44,11 @@ reiser4_journal_t *repair_journal_open(reiser4_format_t *format,
     
     /* Check the structure of the opened journal or rebuild it if needed. */
     if (repair_journal_check(journal))
-	goto error_close_journal;
+	goto error_journal_close;
     
     return journal;
     
-error_close_journal:
+error_journal_close:
     reiser4_journal_close(journal);
 error:
     return NULL;
@@ -68,13 +68,13 @@ errno_t repair_journal_handle(reiser4_format_t *format,
 
     /* FIXME-VITALY: What if we do it on RO partition? */
     if (reiser4_journal_replay(journal))
-	goto error_close_journal;
+	goto error_journal_close;
 
     reiser4_journal_close(journal);
 
     return 0;
     
-error_close_journal:
+error_journal_close:
     reiser4_journal_close(journal);
 
     return -1;

@@ -537,6 +537,7 @@ errno_t reiser4_tree_attach(
 
 	hint.hint = &ptr;
 	ptr.ptr = node->blk;
+	ptr.width = 1;
 
 	reiser4_node_lkey(node, &hint.key);
 

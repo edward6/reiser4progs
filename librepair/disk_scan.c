@@ -52,6 +52,9 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
     aal_assert("vpf-511", rd->fs != NULL, return -1);
     
     ds = repair_ds(rd);
+    
+    aal_assert("vpf-633", ds->bm_used != NULL, return -1);
+    
     format = rd->fs->format;
     
     /* Allocate a bitmap for blocks to be scanned on this pass. */ 
@@ -102,6 +105,8 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
 
 errno_t repair_ds_pass(repair_data_t *rd) {
     reiser4_node_t *node;
+    reiser4_coord_t coord;
+    reiser4_pos_t *pos = &coord.pos;
     repair_ds_t *ds;
     blk_t blk = 0;
     errno_t res;
@@ -122,8 +127,8 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 	if ((node = repair_node_open(rd->fs->format, blk)))
 	    continue;
 
-	level = plugin_call(return -1, node->entity->plugin->node_ops, 
-	    get_level, node->entity);
+	level = plugin_call(goto error_node_close, 
+	    node->entity->plugin->node_ops, get_level, node->entity);
 
 	if (level != LEAF_LEVEL && level != TWIG_LEVEL) {
 	    aux_bitmap_mark(ds->bm_frmt, blk);
@@ -133,11 +138,42 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 
 	res = repair_node_check(node, ds->bm_used);
 	
-	if (res < 0) {
-	    reiser4_node_close(node);
-	    return res;
-	}
+	if (res < 0)
+	    goto error_node_close;
 
+	if (level == TWIG_LEVEL) {
+	    uint32_t count;
+	    
+	    /* Remove all not extent items. */
+	    coord.node = node;
+	    pos->item = 0;
+	    pos->unit = ~0ul;
+	    count = reiser4_node_items(node);
+	    
+	    for (pos->item = 0; pos->item < count; pos->item++) 
+	    {
+		if (reiser4_coord_realize(&coord)) {
+		    aal_exception_error("Node (%llu), item (%u): failed to open"
+			" the item.", node->blk, pos->item);
+		    goto error_node_close;
+		}
+		
+		if (!reiser4_item_extent(&coord)) {
+		    if (reiser4_node_remove(coord.node, pos)) {
+			aal_exception_error("Node (%llu), item (%u): failed to "
+			    "remove the item.", node->blk, pos->item);
+			goto error_node_close;
+		    }
+
+		    coord.node->flags |= NF_DIRTY;
+		    pos->item--;
+		}
+	    }
+	    
+	    if (reiser4_node_items(node) == 0)
+		coord.node->flags &= ~NF_DIRTY;
+	}
+	
 	/* If node was not recovered - mark it as formatted, otherwise mark it 
 	 * as leaf or twig correspondently. */
 	if (res > 0) 
@@ -149,4 +185,9 @@ errno_t repair_ds_pass(repair_data_t *rd) {
     }
     
     return 0;
+    
+error_node_close:
+    reiser4_node_close(node);
+    
+    return -1;
 }

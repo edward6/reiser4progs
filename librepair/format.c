@@ -112,13 +112,13 @@ reiser4_format_t *repair_format_open(reiser4_master_t *master,
 
     /* Check the opened disk format or rebuild it if needed. */
     if (repair_format_check(&format, host_device, profile))
-	goto error_close_format;
+	goto error_format_close;
 
     aal_assert("vpf-478", format != NULL, goto error);
 
     return format;
 
-error_close_format:
+error_format_close:
     if (format)
 	reiser4_format_close(format);
 error:
