@@ -602,12 +602,14 @@ static errno_t repair_update(repair_control_t *control) {
 	if (correct != val) {
 		if (mode != RM_BUILD) {
 			aal_mess("Free block count %llu found in the format is "
-				 "wrong. %s %llu.", correct, mode == RM_CHECK ? 
-				 "Sould be" : "Fixed to", val);
+				 "wrong. %s %llu.", val, mode == RM_CHECK ? 
+				 "Sould be" : "Fixed to", correct);
 		}
 
 		if (mode != RM_CHECK)
 			reiser4_format_set_free(fs->format, correct);
+		else
+			control->repair->fixable++;
 	}
 	
 	/* Check the next free oid. */
@@ -618,13 +620,15 @@ static errno_t repair_update(repair_control_t *control) {
 	if (control->oid && control->oid != val) {
 		if (mode != RM_BUILD) {
 			aal_mess("First not used oid %llu is wrong. %s %llu.",
-				 control->oid, mode == RM_CHECK ? "Sould be" :
-				 "Fixed to", val);
+				 val, mode == RM_CHECK ? "Sould be" : 
+				 "Fixed to", control->oid);
 		}
 
 		if (mode != RM_CHECK) {
 			plug_call(fs->oid->entity->plug->o.oid_ops, set_next,
 				  fs->oid->entity, control->oid);
+		} else {
+			control->repair->fixable++;
 		}
 	}
 	

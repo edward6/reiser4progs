@@ -719,7 +719,9 @@ typedef struct coll_hint coll_hint_t;
 
 /* Lookup bias. */
 enum lookup_bias {
+	/* Find for read, the match should be exact. */
 	FIND_EXACT              = 1,
+	/* Find for insert, the match should not be exaact. */
 	FIND_CONV               = 2
 };
 

@@ -264,9 +264,10 @@ lookup_t reiser4_node_lookup(reiser4_node_t *node,
 			return res;
 		}
 
-		/* Check for @bias. If it is FIND_CONV, this means, that we're
-		   looking for convenient pos for insert into. */
-		if (bias == FIND_CONV) {
+		/* Check for @bias. If it is FIND_CONV (we're looking for a
+		   convenient pos to insert into) or not the branch, move to
+		   the next pos. */
+		if (!reiser4_item_branch(place.plug) || bias == FIND_CONV) {
 			pos->item++;
 			return ABSENT;
 		}

@@ -7,7 +7,7 @@
 #include "spl40.h"
 #include "repair/plugin.h"
 
-#define spl40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
+#define spl40_exts ((uint64_t)1 << SDEXT_LW_ID)
 
 static errno_t spl40_extensions(reiser4_place_t *stat) {
 	uint64_t extmask;

@@ -77,6 +77,7 @@ int main(int argc, char *argv[]) {
 		
 //		FILE *file;
                 reiser4_object_t *object;
+		entry_hint_t entry;
 
 		srandom(time(0));
 
@@ -86,11 +87,12 @@ int main(int argc, char *argv[]) {
 		for (i = 0; i < 1000; i++) {
 //                        int j, count;
 //			char part[256];
+			uint64_t size[3] = {51200, 0, 1024};
 
 			aal_snprintf(name[0], 256, "file name%d", i/*random()*/);
 			aal_snprintf(name[1], 256, "file name%d.c", i/*random()*/);
 			aal_snprintf(name[2], 256, "file name%d.o", i/*random()*/);
-			aal_snprintf(name[3], 256, "very very very long file name%d", i);
+/*			aal_snprintf(name[3], 256, "very very very long file name%d", i);
 			aal_snprintf(name[4], 256, "very very very long file name%d.c", i);
 			aal_snprintf(name[5], 256, "very very very long file name%d.o", i);
 
@@ -98,10 +100,17 @@ int main(int argc, char *argv[]) {
 //			strcat(name, " ");
 //			strcat(name, part);
 //			printf("%s\n", name);
-
-			for (k = 0; k < 6; k++) {
+*/
+			for (k = 0; k < 3; k++) {
 				if (!(object = reiser4_reg_create(fs, dir, name[k])))
 					continue;
+
+				
+				if (reiser4_object_write(object, NULL, size[k]) < 0) {
+					aal_error("Can't write data to file %s.", 
+						  name[k]);
+					break;
+				}
 #if 0
 				count = 1000;
 
@@ -118,6 +127,25 @@ int main(int argc, char *argv[]) {
 				}
 #endif
 				reiser4_object_close(object);
+			}
+
+			/* Get the second file and write there some more. */
+			if (reiser4_object_lookup(dir, name[1], &entry) != PRESENT)  {
+				aal_error("Cannot find just created object %s.", name[1]);
+				break;
+			}
+
+			if (!(object = reiser4_object_launch(fs->tree, dir, 
+							     &entry.object))) 
+			{
+				aal_error("Cannot open the object %s.", name[1]);
+				break;
+			}
+			
+			if (reiser4_object_write(object, NULL, 1024) < 0) {
+				aal_error("Can't write data to file %s.", 
+					  name[k]);
+					break;
 			}
                 }
         }

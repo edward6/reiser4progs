@@ -7,7 +7,7 @@
 #include "reg40.h"
 #include "repair/plugin.h"
 
-#define reg40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
+#define reg40_exts ((uint64_t)1 << SDEXT_LW_ID)
 
 static errno_t reg40_extensions(reiser4_place_t *stat) {
 	uint64_t extmask;

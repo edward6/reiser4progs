@@ -991,8 +991,7 @@ errno_t cde40_maxposs_key(reiser4_place_t *place,
 		  assign, key, &place->key);
 
 	/* Getting maximal key from current key plugin. */
-	maxkey = plug_call(key->plug->o.key_ops,
-			   maximal);
+	maxkey = plug_call(key->plug->o.key_ops, maximal);
 
 	/* Setting up @key by mans of putting to it offset, ordering and
 	   objectid from values from maximal key. */

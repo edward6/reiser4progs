@@ -8,9 +8,7 @@
 #include "sym40.h"
 #include "repair/plugin.h"
 
-#define sym40_exts ((uint64_t)1 << SDEXT_UNIX_ID |	\
-			      1 << SDEXT_LW_ID |	\
-			      1 << SDEXT_SYMLINK_ID)
+#define sym40_exts ((uint64_t)1 << SDEXT_LW_ID | 1 << SDEXT_SYMLINK_ID)
 
 static errno_t sym40_extensions(reiser4_place_t *stat) {
 	uint64_t extmask;

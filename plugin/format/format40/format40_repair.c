@@ -34,12 +34,12 @@ errno_t format40_update(generic_entity_t *entity) {
 	
 	super = (format40_super_t *)block.data;
 
-	format->super.sb_oid = super->sb_oid;
-	format->super.sb_free_blocks = super->sb_free_blocks;
+	/* oid, free blocks and file count are updated right into 
+	   the format. */
 	format->super.sb_root_block = super->sb_root_block;
-	format->super.sb_file_count = super->sb_file_count;
 	format->super.sb_tree_height = super->sb_tree_height;
 	format->super.sb_flushes = super->sb_flushes;
+	format->state |= (1 << ENTITY_DIRTY);
 	
  error_free_block:
 	aal_block_fini(&block);

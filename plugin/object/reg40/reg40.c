@@ -477,7 +477,6 @@ static int64_t reg40_write(object_entity_t *entity,
 	uint64_t size;
 	uint64_t offset;
 	
-	aal_assert("umka-2280", buff != NULL);
 	aal_assert("umka-2281", entity != NULL);
 
 	reg = (reg40_t *)entity;

@@ -7,7 +7,7 @@
 #include "dir40.h"
 #include "repair/plugin.h"
 
-#define dir40_exts ((uint64_t)1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID)
+#define dir40_exts ((uint64_t)1 << SDEXT_LW_ID)
 
 static errno_t dir40_extensions(reiser4_place_t *stat) {
 	uint64_t extmask;
@@ -92,7 +92,7 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 		return res;
 	
 	if ((res = obj40_find_item(&dir->obj, &dir->position,  
-				   FIND_EXACT, NULL, NULL,
+				   FIND_CONV, NULL, NULL,
 				   &dir->body)) < 0)
 	{
 		return res;
