@@ -10,8 +10,6 @@
 
 static reiser4_core_t *core = NULL;
 
-#define extent40_body(item) ((extent40_t *)item->body)
-
 /* Returns blocksize of the device passed extent @item lies on */
 static uint32_t extent40_blocksize(item_entity_t *item) {
 	aal_device_t *device;
@@ -21,7 +19,7 @@ static uint32_t extent40_blocksize(item_entity_t *item) {
 }
 
 /* Returns number of units in passed extent @item */
-static uint32_t extent40_units(item_entity_t *item) {
+uint32_t extent40_units(item_entity_t *item) {
 	aal_assert("umka-1446", item != NULL, return 0);
 
 	if (item->len % sizeof(extent40_t) != 0) {
@@ -92,10 +90,10 @@ static errno_t extent40_get_key(item_entity_t *item,
 				uint32_t offset, 
 				key_entity_t *key) 
 {
-	aal_assert("vpf-622", item != NULL, return -1);
-	aal_assert("vpf-623", key != NULL, return -1);
+	aal_assert("vpf-714", item != NULL, return -1);
+	aal_assert("vpf-715", key != NULL, return -1);
 
-	aal_assert("vpf-625", offset < extent40_size(item),
+	aal_assert("vpf-716", offset < extent40_size(item),
 		   return -1);
 	
 	aal_memcpy(key, &item->key, sizeof(*key));
@@ -107,6 +105,9 @@ static errno_t extent40_get_key(item_entity_t *item,
 }
 
 #ifndef ENABLE_COMPACT
+
+extern errno_t extent40_layout_check(item_entity_t *item, region_func_t func, 
+				     void *data);
 
 static errno_t extent40_estimate(item_entity_t *item,
 				 void *buff, uint32_t pos)
@@ -515,7 +516,8 @@ static errno_t extent40_layout(item_entity_t *item,
 		for (blk = start; blk < start + width; blk++) {
 			errno_t res;
 			
-			if ((res = func(item, blk, data)))
+			/* Call func for not zero blk. */
+			if (blk && (res = func(item, blk, data)))
 				return res;
 		}
 	}
@@ -713,6 +715,8 @@ static reiser4_plugin_t extent40_plugin = {
 		.predict       = extent40_predict,
 		.shift         = extent40_shift,
 		.layout        = extent40_layout,
+		.gap_key       = extent40_max_real_key,		
+		.layout_check  = extent40_layout_check,
 #else
 		.init	       = NULL,
 		.update        = NULL,
@@ -724,6 +728,10 @@ static reiser4_plugin_t extent40_plugin = {
 		.predict       = NULL,
 		.shift         = NULL,
 		.layout        = NULL,
+		.gap_key       = NULL,
+		
+		.layout_check  = NULL,
+	
 #endif
 		.belongs       = NULL,
 		.check	       = NULL,
@@ -735,9 +743,8 @@ static reiser4_plugin_t extent40_plugin = {
 		.fetch         = extent40_fetch,
 		.get_key       = extent40_get_key,
 		
-		.max_poss_key = extent40_max_poss_key,
-		.max_real_key = extent40_max_real_key,
-		.gap_key      = extent40_max_real_key
+		.max_poss_key  = extent40_max_poss_key,
+		.max_real_key  = extent40_max_real_key,
 	}
 };
 

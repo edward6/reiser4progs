@@ -348,22 +348,6 @@ static int stat40_sdext_present(item_entity_t *item,
 
 #ifndef ENABLE_COMPACT
 
-/* Stat data layout implementation */
-static errno_t stat40_layout(item_entity_t *item,
-			     data_func_t func,
-			     void *data)
-{
-	errno_t res;
-	
-	aal_assert("umka-1751", item != NULL, return -1);
-	aal_assert("umka-1752", func != NULL, return -1);
-
-	if ((res = func(item, item->con.blk, data)))
-		return res;
-
-	return 0;
-}
-
 /* Callback for counting the number of stat data extentions in use */
 static int callback_count_ext(uint8_t ext, reiser4_plugin_t *plugin,
 			      uint16_t extmask, rbody_t *extbody,
@@ -496,15 +480,14 @@ static reiser4_plugin_t stat40_plugin = {
 		.init		= stat40_init,
 		.check		= stat40_check,
 		.print		= stat40_print,
-		.layout         = stat40_layout,
 #else
 		.estimate	= NULL,
 		.insert		= NULL,
 		.init		= NULL,
 		.check		= NULL,
 		.print		= NULL,
-		.layout         = NULL,
 #endif
+		.layout         = NULL,
 		.remove		= NULL,
 		.lookup		= NULL,
 		.update         = NULL,
@@ -523,7 +506,8 @@ static reiser4_plugin_t stat40_plugin = {
 		
 		.max_poss_key	= NULL,
 		.max_real_key   = NULL,
-		.gap_key	= NULL
+		.gap_key	= NULL,
+		.layout_check	= NULL
 	}
 };
 

@@ -414,7 +414,7 @@ static errno_t node40_expand(node40_t *node, rpos_t *pos,
   component of pos is specified, then it will shrink specified by @pos->item
   node by specified @len.
 */
-static errno_t node40_shrink(node40_t *node, rpos_t *pos,
+static errno_t node40_shrink(object_entity_t *entity, rpos_t *pos,
 			     uint32_t len, uint32_t count)
 {
 	int is_range;
@@ -428,6 +428,8 @@ static errno_t node40_shrink(node40_t *node, rpos_t *pos,
 
 	item40_header_t *cur;
 	item40_header_t *end;
+
+	node40_t *node = (node40_t *)entity;
 	
 	aal_assert("umka-1798", node != NULL, return -1);
 	aal_assert("umka-1799", pos != NULL, return -1);
@@ -769,15 +771,12 @@ static errno_t node40_cut(object_entity_t *entity,
 		/* Removing units inside start item */
 		if (start->unit != ~0ul) {
 			pos = *start;
-
 			if (node40_item(&item, node, &pos))
 				return -1;
 				
 			units = item.plugin->item_ops.units(&item);
-
 			if (node40_delete(node, &pos, units - start->unit))
 				return -1;
-
 			if (start->unit == 0)
 				begin--;
 		}
@@ -785,7 +784,6 @@ static errno_t node40_cut(object_entity_t *entity,
 		/* Removing units inside end item */
 		if (end->unit != ~0ul) {
 			pos = *end;
-
 			if (node40_item(&item, node, &pos))
 				return -1;
 				
@@ -793,7 +791,6 @@ static errno_t node40_cut(object_entity_t *entity,
 
 			if (node40_delete(node, &pos, units - end->unit))
 				return -1;
-
 			if (end->unit >= units)
 				count++;
 		}
@@ -805,17 +802,14 @@ static errno_t node40_cut(object_entity_t *entity,
 			  will eb removed too.
 			*/
 			rpos_init(&pos, begin, ~0ul);
-
 			if (node40_delete(node, &pos, count))
 				return -1;
 		}
 	} else {
 		aal_assert("umka-1795", end->unit != ~0ul, return -1);
 		aal_assert("umka-1794", start->unit != ~0ul, return -1);
-
 		pos = *start;
 		count = end->unit - start->unit;
-
 		if (node40_delete(node, &pos, count))
 			return -1;
 
@@ -1300,7 +1294,7 @@ static errno_t node40_merge(node40_t *src_node,
 		len = hint->rest;
 	}
 
-	return node40_shrink(src_node, &pos, len, 1);
+	return node40_shrink((object_entity_t *)src_node, &pos, len, 1);
 
  out:
 	hint->flags &= ~SF_MOVIP;
@@ -1649,6 +1643,7 @@ static reiser4_plugin_t node40_plugin = {
 		.set_make_stamp	 = node40_set_make_stamp,
 		.set_flush_stamp = node40_set_flush_stamp,
 	
+		.shrink		= node40_shrink,
 		.item_legal	 = node40_item_legal,
 #else
 		.create		 = NULL,
@@ -1663,6 +1658,7 @@ static reiser4_plugin_t node40_plugin = {
 		.set_key	 = NULL,
 		.set_stamp	 = NULL,
 	
+		.shrink		 = NULL,
 		.item_legal	 = NULL,
 #endif
 		.item_len	 = node40_item_len,

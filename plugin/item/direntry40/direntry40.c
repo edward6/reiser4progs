@@ -254,25 +254,6 @@ static int32_t direntry40_fetch(item_entity_t *item, void *buff,
 #ifndef ENABLE_COMPACT
 
 /*
-  Layout function implementation. It is used for traversing item bodies for
-  example, for printhing their data.
-*/
-static errno_t direntry40_layout(item_entity_t *item,
-				 data_func_t func,
-				 void *data)
-{
-	errno_t res;
-	
-	aal_assert("umka-1747", item != NULL, return -1);
-	aal_assert("umka-1748", func != NULL, return -1);
-
-	if ((res = func(item, item->con.blk, data)))
-		return res;
-
-	return 0;
-}
-
-/*
   Returns TRUE is two items are mergeable. That is if they have the same plugin
   id and belong to the same directory. This function is used in balancing from
   the node plugin in order to determine are two items need to be merged or not.
@@ -1223,7 +1204,6 @@ static reiser4_plugin_t direntry40_plugin = {
 
 		.shift          = direntry40_shift,
 		.predict        = direntry40_predict,
-		.layout         = direntry40_layout,
 #else
 		.init		= NULL,
 		.estimate	= NULL,
@@ -1234,8 +1214,8 @@ static reiser4_plugin_t direntry40_plugin = {
 		.mergeable      = NULL,
 		.shift          = NULL,
 		.predict        = NULL,
-		.layout         = NULL,
 #endif
+		.layout		= NULL,
 		.belongs        = NULL,
 		.valid		= NULL,
 		.update         = NULL,
@@ -1248,7 +1228,9 @@ static reiser4_plugin_t direntry40_plugin = {
 		
 		.max_poss_key	= direntry40_max_poss_key,
 		.max_real_key   = direntry40_max_real_key,
-		.gap_key	= NULL
+		
+		.gap_key	= NULL,
+		.layout_check	= NULL
 	}
 };
 
