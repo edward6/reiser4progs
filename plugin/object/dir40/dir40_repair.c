@@ -329,7 +329,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent, 
 			   uint8_t mode)
 {
-	dir40_t *odir = (dir40_t *)object;
+	dir40_t *dir = (dir40_t *)object;
 	entry_hint_t entry;
 	lookup_t lookup;
 	uint32_t links;
@@ -344,16 +344,27 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 
 	switch(lookup) {
 	case PRESENT:
-		/* If the key matches the parent -- ok. */
-		if (!plug_call(entry.object.plug->o.key_ops, compfull, 
-			       &entry.object, &parent->info.object))
-			break;
+		if (parent) {
+			/* If the key matches the parent -- ok. */
+			if (!plug_call(entry.object.plug->o.key_ops, compfull, 
+				       &entry.object, &parent->info.object))
+				break;
 
+		} else {
+			/* Set the parent key correctly if possible. */
+			plug_call(entry.object.plug->o.key_ops, assign,
+				  &object->info.parent, &entry.object);
+			
+			return 0;
+		}
+		
 		return RE_FATAL;
 	case ABSENT:
+		if (mode == RM_CHECK)
+			return RE_FIXABLE;
 		
 		/* Adding ".." to the @object pointing to the @parent. */
-		plug_call(STAT_KEY(&odir->obj)->plug->o.key_ops, assign,
+		plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops, assign,
 			  &entry.object, &parent->info.object);
 		
 		if ((res = plug_call(object->plug->o.object_ops,
