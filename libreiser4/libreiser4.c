@@ -134,10 +134,8 @@ static lookup_t tree_lookup(
 			return LP_FAILED;
 		}
 
-		if (reiser4_key_guess(&item->key)) {
-			aal_exception_error("Can't guess item key plugin.");
+		if (reiser4_key_guess(&item->key))
 			return LP_FAILED;
-		}
 	}
 
 	return res;

@@ -143,6 +143,7 @@ errno_t reiser4_tree_connect(
 	errno_t res;
 	
 	aal_assert("umka-1857", tree != NULL);
+	aal_assert("umka-561", parent != NULL);
 	aal_assert("umka-564", node != NULL);
 
 	if (node->blk == reiser4_tree_root(tree)) {
@@ -701,8 +702,11 @@ void reiser4_tree_collapse(reiser4_tree_t *tree,
 		aal_list_t *walk;
 
 		for (walk = node->children; walk; ) {
-			aal_list_t *next = aal_list_next(walk);
-			reiser4_node_t *child = (reiser4_node_t *)walk->data;
+			aal_list_t *next;
+			reiser4_node_t *child;
+			
+			next = walk->next;
+			child = (reiser4_node_t *)walk->data;
 			
 			reiser4_tree_collapse(tree, child);
 			walk = next;

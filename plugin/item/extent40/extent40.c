@@ -51,22 +51,29 @@ static uint64_t extent40_offset(item_entity_t *item,
 }
 
 /* Gets the number of unit specified offset lies in */
+#ifndef ENABLE_STAND_ALONE
 static uint32_t extent40_unit(item_entity_t *item,
 			      uint64_t offset)
+#else
+static uint32_t extent40_unit(item_entity_t *item,
+			      uint32_t offset)
+#endif
 {
 	uint32_t i;
-	uint32_t blocksize;
 	extent40_t *extent;
 
 	extent = extent40_body(item);
-	blocksize = extent40_blocksize(item);
 	
-	for (i = 0; i < extent40_units(item); i++, extent++) {
+	for (i = 0; i < extent40_units(item); i++) {
+		uint32_t width;
 
-		if (offset < et40_get_width(extent) * blocksize)
+		width = et40_get_width(extent + i) *
+			extent40_blocksize(item);
+		
+		if (offset < width)
 			return i;
 
-		offset -= et40_get_width(extent) * blocksize;
+		offset -= width;
 	}
 
 	return i;

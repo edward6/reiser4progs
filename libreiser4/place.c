@@ -10,8 +10,6 @@
 
 #include <reiser4/reiser4.h>
 
-#ifndef ENABLE_STAND_ALONE
-
 /* Makes passed @place pointing to the first unit of the first item */
 errno_t reiser4_place_first(reiser4_place_t *place) {
 	if (place->pos.unit == ~0ul) {
@@ -71,6 +69,8 @@ bool_t reiser4_place_ltlast(reiser4_place_t *place) {
 			place->pos.unit < units - 1);
 	}
 }
+
+#ifndef ENABLE_STAND_ALONE
 
 /* Returns TRUE if passed @place points to left delimiting item */
 bool_t reiser4_place_leftmost(reiser4_place_t *place) {

@@ -446,7 +446,7 @@ void libreiser4_factory_fini(void) {
 		aal_list_t *temp;
 		reiser4_plugin_t *plugin;
 		
-		temp = aal_list_prev(walk);
+		temp = walk->prev;
 		plugin = (reiser4_plugin_t *)walk->data;
 		
 		libreiser4_factory_unload(plugin);
