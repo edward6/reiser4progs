@@ -123,14 +123,14 @@ static int dir40_next(object_entity_t *entity) {
 
 	/* Getting the right neighbour */
 	if (core->tree_ops.right(dir->tree, &dir->body, &right))
-		return -1;
+		return 0;
 
 	/* Checking if they have the same plugin id */
 	if (right.entity.plugin->h.sign.id != dir->body.entity.plugin->h.sign.id)
 		return 0;
 
 	/* Getting locality of the current and right nodes in order yot
-	 * determine are they mergable or not */
+	 * determine are they mergeable or not */
 	curr_locality = plugin_call(return -1, dir->key.plugin->key_ops,
 				    get_locality, dir->body.entity.key.body);
 	
@@ -168,7 +168,7 @@ static int32_t dir40_read(object_entity_t *entity,
     
 	for (i = 0; i < n; i++) {
 		/* Check if we should get next item in right neighbour */
-		if (dir->body.pos.unit >= count && !dir40_next(entity))
+		if (dir->body.pos.unit >= count && dir40_next(entity) != 1)
 			break;
 
 		item = &dir->body.entity;
@@ -229,7 +229,7 @@ static int dir40_lookup(object_entity_t *entity,
 			return 1;
 		}
 	
-		if (!dir40_next(entity))
+		if (dir40_next(entity) != 1)
 			return 0;
 	}
     
@@ -537,7 +537,7 @@ static errno_t dir40_layout(object_entity_t *entity, file_layout_func_t func,
 		if ((res = func(entity, &dir->body, data)))
 			return res;
 		
-		if (!dir40_next(entity))
+		if (dir40_next(entity) != 1)
 			break;
 			
 	} while (1);

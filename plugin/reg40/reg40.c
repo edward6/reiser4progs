@@ -156,7 +156,7 @@ static int reg40_next(object_entity_t *entity) {
 
 	/* Getting the right neighbour */
 	if (core->tree_ops.right(reg->tree, &reg->body, &right))
-		return -1;
+		return 0;
 
 	group = right.entity.plugin->h.sign.group;
 	
@@ -203,7 +203,7 @@ static int32_t reg40_read(object_entity_t *entity,
 
 		if (item->plugin->h.sign.group == TAIL_ITEM) {
 			/* Check if we need next item */
-			if (reg->body.pos.unit >= item->len && reg40_next(entity))
+			if (reg->body.pos.unit >= item->len && reg40_next(entity) != 1)
 				break;
 
 			/* Calculating the chunk of data to be read. If it is zero, we

@@ -14,8 +14,6 @@ reiser4progs/COPYING.
 * move the all common code of reg40 and dir40 plugins to separate
   file.
 
-* node print method for printing the all node items
-
 * finish balancing code in node40 plugin.
 
 * reg40_layout, which will allow us to measure the fragmentation of
