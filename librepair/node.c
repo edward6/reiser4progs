@@ -36,8 +36,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 		
 		continue;		
 	    } 
-		
-	    aal_exception_error("Node (%llu): Failed to open the item (%u).", 
+
+	    aal_exception_fatal("Node (%llu): Failed to open the item (%u).", 
 		aal_block_number(node->block), pos.item);
 
 	    return res;

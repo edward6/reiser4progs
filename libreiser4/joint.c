@@ -621,8 +621,8 @@ errno_t reiser4_joint_traverse(
 	void *data,			     /* user-spacified data */
 	reiser4_open_func_t open_func,	     /* callback for node opening */
 	reiser4_edge_func_t before_func,     /* callback to be called at the beginning */
-	reiser4_setup_func_t setup_func,     /* callback to be called before the recursive traverse */
-	reiser4_setup_func_t update_func,    /* callback to be called after the recursive traverse */
+	reiser4_setup_func_t setup_func,     /* callback to be called before a child  */
+	reiser4_setup_func_t update_func,    /* callback to be called after a child */
 	reiser4_edge_func_t after_func)      /* callback to be called at the end */
 {
 	reiser4_pos_t pos;
