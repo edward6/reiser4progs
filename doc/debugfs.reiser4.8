@@ -1,0 +1,70 @@
+.\"						Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH debugfs.reiser4 8 "02 Oct, 2002" reiser4progs "reiser4progs manual"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+debugfs.reiser4 \- the program for debugging the reiser4 filesystem.
+.SH SYNOPSIS
+.B debugfs.reiser4
+debugfs.reiser4 [ options ] FILE1
+.SH DESCRIPTION
+.B debugfs.reiser4
+is reiser4 filesystem debug program. You can disscover the internal reiser4 filesystem 
+structures by using it.
+.SH COMMON OPTIONS
+.TP
+.B -V, --version
+prints program version
+.TP
+.B -?, -u, --usage
+prints program usage
+.TP
+.B -q, --quiet
+forces using the filesystem without any questions
+.TP
+.B -f, --force
+makes debugfs to use whole disk, not block device or mounted partition.
+.SH PRINT OPTIONS
+.TP
+.B -t, --print-tree
+prints the internal tree.
+.TP
+.B -s, --print-super-block
+prints the both super blocks: master super block and format specific one.
+.TP
+.B -j, --print-journal
+prints the journal with not commited transaction (if any).
+.TP
+.B -b, --print-block-alloc
+prints the block allocator data.
+.TP
+.B -b, --print-oid-alloc
+prints the oid allocator data.
+.SH PLUGIN OPTIONS
+.TP
+.B -e, --profile PROFILE
+profile to be used.
+.TP
+.B -K, --known-profiles
+prints known profiles.
+.RS
+.SH REPORTING BUGS
+Report bugs to <umka@namesys.com>, <reiserfs-list@namesys.com>
+.SH SEE ALSO
+.BR libreiser4 (8)
+.SH AUTHOR
+This manual page was written by Yury Umanets <umka@namesys.com>
+
