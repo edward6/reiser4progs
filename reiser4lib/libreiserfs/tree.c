@@ -14,8 +14,9 @@ int reiserfs_tree_open(reiserfs_fs_t *fs) {
 	return 1;
 }
 
-void reiserfs_tree_close(reiserfs_fs_t *fs) {
+void reiserfs_tree_close(reiserfs_fs_t *fs, int sync) {
 	ASSERT(fs != NULL, return);
+	ASSERT(fs->tree != NULL, return);
 	
 	aal_free(fs->tree);
 	fs->tree = NULL;

@@ -25,7 +25,7 @@ int reiserfs_alloc_open(reiserfs_fs_t *fs) {
 	id = reiserfs_super_alloc_plugin(fs);
 	if (!(plugin = reiserfs_plugin_find(REISERFS_ALLOC_PLUGIN, id))) {
 		aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, "umka-016",
-			"Can't find block allocator plugin by its identifier %d.", id);
+			"Can't find block allocator plugin by its identifier %x.", id);
 		goto error_free_alloc;
 	}
 
@@ -46,10 +46,11 @@ error:
 	return 0;
 }
 
-void reiserfs_alloc_close(reiserfs_fs_t *fs) {
+void reiserfs_alloc_close(reiserfs_fs_t *fs, int sync) {
 	ASSERT(fs != NULL, return);
+	ASSERT(fs->alloc != NULL, return);
 	
-	fs->alloc->plugin->alloc.done(fs->alloc->entity);
+	fs->alloc->plugin->alloc.done(fs->alloc->entity, sync);
 	aal_free(fs->alloc);
 	fs->alloc = NULL;
 }
