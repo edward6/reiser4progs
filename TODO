@@ -8,14 +8,6 @@ reiser4progs/COPYING.
 
 * handle holes overwriting in extent write code.
 
-* find out how much tree cache size affects performance of tree
-  operations.
-
-* remove hardcoded hash table sizes for formatted nodes and
-  unformatted ones. Probably it should depend on memory pressure nodes
-  limit in order to make hash collisions less and thus, to speedup
-  loaded nodes access.
-
 * move plugin directory to libreiser4 directory. Maintain own plugin
   directory in librepair. Move all repair code from libreiser4/plugin/*
   to librepair/plugin/*.

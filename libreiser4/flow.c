@@ -249,7 +249,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 				reiser4_place_t p;
 				reiser4_key_t lkey;
 
-				/* Updating parent keys */
+				/* Updating parent keys. */
 				reiser4_node_leftmost_key(place.node, &lkey);
 				
 				reiser4_place_init(&p, place.node->p.node,
