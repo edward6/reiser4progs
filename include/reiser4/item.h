@@ -13,10 +13,10 @@
 #include <reiser4/filesystem.h>
 
 extern errno_t reiser4_item_init(reiser4_item_t *item, 
-    reiser4_node_t *node, reiser4_pos_t *pos);
+    reiser4_entity_t *entity, reiser4_pos_t *pos);
 
 extern errno_t reiser4_item_open(reiser4_item_t *item, 
-    reiser4_node_t *node, reiser4_pos_t *pos);
+    reiser4_entity_t *entity, reiser4_pos_t *pos);
 
 extern uint32_t reiser4_item_count(reiser4_item_t *item);
 

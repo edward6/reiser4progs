@@ -65,12 +65,21 @@ static int tree_lookup(
     uint8_t level,		    /* stop level */
     reiser4_place_t *place)	    /* the same as reiser4_coord_t;result will be stored in */
 {
+	int ret;
+	reiser4_coord_t coord;
+	
     aal_assert("umka-851", key != NULL, return -1);
     aal_assert("umka-850", tree != NULL, return -1);
     aal_assert("umka-852", place != NULL, return -1);
     
-    return reiser4_tree_lookup((reiser4_tree_t *)tree, 
-							   key, level, (reiser4_coord_t *)place);
+    ret = reiser4_tree_lookup((reiser4_tree_t *)tree, 
+							  key, level, &coord);
+
+	place->pos = coord.pos;
+	place->entity = coord.joint->node->entity;
+	place->data = (void *)coord.joint;
+
+	return ret;
 }
 
 /* Handler for requests for right neighbor */
@@ -83,14 +92,15 @@ static errno_t tree_right(
     aal_assert("umka-867", tree != NULL, return -1);
     aal_assert("umka-868", place != NULL, return -1);
     
-    joint = (reiser4_joint_t *)place->joint; 
+    joint = (reiser4_joint_t *)place->data; 
     
     /* Rasing from the device tree lies on both neighbors */
     if (reiser4_joint_realize(joint) || !joint->right)
 		return -1;
 
     /* Filling passed coord by right neighbor coords */
-    place->joint = joint->right;
+    place->data = (void *)joint->right;
+	place->entity = joint->right->node->entity;
 
     place->pos.item = 0;
     place->pos.unit = 0;
@@ -108,14 +118,15 @@ static errno_t tree_left(
     aal_assert("umka-867", tree != NULL, return -1);
     aal_assert("umka-868", place != NULL, return -1);
     
-    joint = (reiser4_joint_t *)place->joint; 
+    joint = (reiser4_joint_t *)place->data; 
     
     /* Rasing from the device tree lies on both neighbors */
     if (reiser4_joint_realize(joint) || !joint->left)
 		return -1;
 
     /* Filling passed coord by left neighbor coords */
-    place->joint = joint->left;
+    place->data = (void *)joint->left;
+	place->entity = joint->left->node->entity;
 
     place->pos.item = 0;
     place->pos.unit = 0;
@@ -139,15 +150,14 @@ static uint32_t tree_nodespace(const void *tree) {
 
 static errno_t item_open(
     reiser4_item_t *item,		/* item to gettin body from */
-    reiser4_place_t *place)		/* the place the item is going to open */
+    reiser4_entity_t *entity,	/* node entity the item lies in */
+	reiser4_pos_t *pos)         /* pos of item in node */
 {
-    reiser4_node_t *node;
-    
-    aal_assert("umka-1218", place != NULL, return -1);
+    aal_assert("umka-1218", entity != NULL, return -1);
+    aal_assert("umka-1218", pos != NULL, return -1);
     aal_assert("umka-1219", item != NULL, return -1);
     
-    node = ((reiser4_joint_t *)place->joint)->node;
-    return reiser4_item_open(item, node, &place->pos);
+    return reiser4_item_open(item, entity, pos);
 }
 
 /* Hanlder for item length requests arrive from the all plugins */

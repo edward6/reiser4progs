@@ -964,8 +964,14 @@ union reiser4_plugin {
    should keep libreiser4 structures unknown for plugins.
 */
 struct reiser4_place {
-	void *joint;
+    /* Node entity */
+	reiser4_entity_t *entity;
+	   
+    /* Position in node */
 	reiser4_pos_t pos;
+
+    /* The libreiser4 private data */
+	void *data;
 };
 
 typedef struct reiser4_place reiser4_place_t;
@@ -1028,7 +1034,8 @@ struct reiser4_core {
     struct {
 	    
 		/* Opens item on passed place */
-		errno_t (*open) (reiser4_item_t *, reiser4_place_t *);
+		errno_t (*open) (reiser4_item_t *, reiser4_entity_t *,
+						 reiser4_pos_t *);
 
 		/* Returns pointer to the item body */
 		reiser4_body_t *(*body) (reiser4_item_t *);
@@ -1063,8 +1070,8 @@ typedef struct reiser4_core reiser4_core_t;
 
 #else
 
-#define plugin_call(action, ops, method, args...)		    \
-    ({ops.method(args);})					    \
+#define plugin_call(action, ops, method, args...) \
+    ops.method(args);
     
 #endif
 
