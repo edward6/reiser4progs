@@ -2439,6 +2439,7 @@ int64_t reiser4_tree_modify(
 		}
 	}
 
+	/* Handling the case when tree is empty (just after mkfs). */
 	if (!reiser4_tree_fresh(tree)) {
 		old = *place;
 		
@@ -2473,7 +2474,7 @@ int64_t reiser4_tree_modify(
 		}
 	}
 	
-	/* Estimating item/unit to inserted.written to tree */
+	/* Estimating item/unit to inserted/written to tree. */
 	if ((res = estimate(place, hint)))
 		return res;
 	
@@ -2482,12 +2483,8 @@ int64_t reiser4_tree_modify(
 	mode = (place->pos.unit == MAX_UINT32);
 
 	/* Preparing space in tree. */
-	space = reiser4_tree_expand(tree, place, needed, MSF_DEF);
-
-	/* Checking for space returned by tree_expand(). */
-	if (space < 0) {
-		aal_exception_error("Error while preparing "
-				    "space in tree.");
+	if ((space = reiser4_tree_expand(tree, place, needed, MSF_DEF)) < 0) {
+		aal_exception_error("Can't prepare space in tree.");
 		return space;
 	}
 
@@ -2495,11 +2492,19 @@ int64_t reiser4_tree_modify(
 	   if we tried to insert data. And normal case for writtig data, because
 	   we can write at least one byte. */
 	if ((uint32_t)space < needed) {
-		/* 
-		   FIXME-VITALY->UMKA: smth to be done with it.
-		   if (insert) return -ENOSPC; 
-		 */
-		hint->len = hint->count = space;
+
+		/* Check if we insert file body items. If so, we can insert only
+		   part of passed stream. Error will be returned otherwise. */
+		if (hint->plug->id.group != TAIL_ITEM &&
+		    hint->plug->id.group != EXTENT_ITEM)
+		{
+			return -ENOSPC;
+		}
+		
+		/* Check is we have spece at all. */
+		if (!(hint->len = hint->count = space)) {
+			return -ENOSPC;
+		}
 	}
 
 	/* As insert point is changing durring make space, we check if insertq
@@ -2511,7 +2516,7 @@ int64_t reiser4_tree_modify(
 			return res;
 	}
 
-	/* Inserting/writing data to node */
+	/* Inserting/writing data to node. */
 	if ((write = reiser4_node_modify(place->node, &place->pos,
 					 hint, modify)) < 0)
 	{
