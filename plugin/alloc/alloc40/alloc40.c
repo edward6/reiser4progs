@@ -560,7 +560,7 @@ errno_t callback_check_bitmap(object_entity_t *entity,
 				   "should be 0x%x.", blk, ladler,
 				   cadler);
 	
-		return -EINVAL;
+		return -ESTRUCT;
 	}
 
 	/* 
