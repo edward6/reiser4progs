@@ -638,6 +638,10 @@ static errno_t dir40_metadata(object_entity_t *entity,
 
 #endif
 
+/*
+  Freeing dir40 instance. That is unlocking nodes current statdata and body lie
+  in and freeing all occpied memory.
+*/
 static void dir40_close(object_entity_t *entity) {
 	dir40_t *dir = (dir40_t *)entity;
 	

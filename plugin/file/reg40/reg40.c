@@ -19,6 +19,10 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t reg40_plugin;
 
+/*
+  Resets file position. That is it searches first body item and sets file's
+  offset to zero.
+*/
 static errno_t reg40_reset(object_entity_t *entity) {
 	reg40_t *reg;
 	uint64_t size;
@@ -30,7 +34,8 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	
 	if ((size = file40_get_size(&reg->file)) == 0)
 		return 0;
-	
+
+	/* Building body key to be found */
 	key.plugin = reg->file.key.plugin;
 	
 	plugin_call(return -1, key.plugin->key_ops, build_generic, &key,
@@ -38,10 +43,12 @@ static errno_t reg40_reset(object_entity_t *entity) {
 		    file40_objectid(&reg->file), 0);
     
 	file40_unlock(&reg->file, &reg->body);
-	
-	if (core->tree_ops.lookup(reg->file.tree, &key,
-				  LEAF_LEVEL, &reg->body) != PRESENT)
-	{
+
+	/*
+	  Perform lookup with instruction to stop on the leaf level. In the case
+	  first item is extent, we will stop on twig level.
+	*/
+	if (file40_lookup(&reg->file, &key, LEAF_LEVEL, &reg->body) != PRESENT)	{
 		/*
 		  Cleaning body node. It is needed because functions below check
 		  this in order to determine is file has a body or not.
@@ -50,8 +57,8 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	}
 	
 	/*
-	  Locking node the current body lies in, due to prevent the throwing
-	  it out of tree cache.
+	  Locking node the current body lies in, due to prevent the throwing it
+	  out of tree cache.
 	*/
 	file40_lock(&reg->file, &reg->body);
 
@@ -66,6 +73,7 @@ static errno_t reg40_next(reg40_t *reg) {
 	key_entity_t key;
 	reiser4_place_t place;
 
+	/* Building key to be searched by current offset */
 	key.plugin = reg->file.key.plugin;
 	
 	plugin_call(return -1, key.plugin->key_ops, build_generic, &key,
@@ -78,11 +86,14 @@ static errno_t reg40_next(reg40_t *reg) {
 	place = reg->body;
 	
 	/* Getting the next body item from the tree */
-	res = core->tree_ops.lookup(reg->file.tree, &key,
-				    LEAF_LEVEL, &reg->body);
+	res = file40_lookup(&reg->file, &key, LEAF_LEVEL, &reg->body);
 
 	if (res != PRESENT) {
-		/* Restoring previous body place */
+		/*
+		  Restoring previous body place. It is needed because we provide
+		  the behavior which makes user sure that if next position is
+		  not found, we should stay at the end of file.
+		*/
 		reg->body = place;
 	}
 
@@ -152,6 +163,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	return read;
 }
 
+/* Opening reg40 by statdata coord passed in @place */
 static object_entity_t *reg40_open(void *tree, 
 				   reiser4_place_t *place) 
 {
@@ -165,13 +177,16 @@ static object_entity_t *reg40_open(void *tree,
 		return NULL;
 
 	key = &place->item.key;
-	
+
+	/* Initializing file handle */
 	if (file40_init(&reg->file, &reg40_plugin, key, core, tree))
 		goto error_free_reg;
-	
+
+	/* saving statdata coord and looking the code it lies in */
 	aal_memcpy(&reg->file.statdata, place, sizeof(*place));
 	file40_lock(&reg->file, &reg->file.statdata);
-	
+
+	/* Position onto the first body item */
 	if (reg40_reset((object_entity_t *)reg)) {
 		aal_exception_error("Can't reset file 0x%llx.", 
 				    file40_objectid(&reg->file));
@@ -187,6 +202,7 @@ static object_entity_t *reg40_open(void *tree,
 
 #ifndef ENABLE_COMPACT
 
+/* Creating the file described by pased @hint */
 static object_entity_t *reg40_create(void *tree, 
 				     reiser4_file_hint_t *hint) 
 {
@@ -211,7 +227,8 @@ static object_entity_t *reg40_create(void *tree,
 		return NULL;
 
 	reg->offset = 0;
-    
+
+	/* Initializing file handle */
 	if (file40_init(&reg->file, &reg40_plugin, &hint->object, core, tree))
 		goto error_free_reg;
 	
@@ -220,7 +237,8 @@ static object_entity_t *reg40_create(void *tree,
 
 	parent_locality = plugin_call(return NULL, hint->object.plugin->key_ops, 
 				      get_locality, &hint->parent);
-    
+
+	/* Getting statdata plugin */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 						    hint->statdata)))
 	{
@@ -244,7 +262,7 @@ static object_entity_t *reg40_create(void *tree,
 	lw_ext.mode = S_IFREG | 0755;
 	lw_ext.nlink = 2;
 
-	/* This should be modifyed by write */
+	/* This should be modified by write function later */
 	lw_ext.size = 0;
     
 	unix_ext.uid = getuid();
@@ -262,6 +280,7 @@ static object_entity_t *reg40_create(void *tree,
 
 	stat_hint.hint = &stat;
 
+	/* Insert statdata item into the tree */
 	if (file40_insert(&reg->file, &stat_hint, LEAF_LEVEL, &place))
 		goto error_free_reg;
 
@@ -275,12 +294,11 @@ static object_entity_t *reg40_create(void *tree,
 }
 
 static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
-	/* Sorry, not implemented yet! */
 	return -1;
 }
 
 /* 
-   Returns plugin (tail or extent) for next write operation basing on passed 
+   Returns plugin (tail or extent) for next write operation basing on passed
    size to be writen. This function will be using tail policy plugin for find
    out what next item should be writen.
 */
@@ -311,6 +329,10 @@ static errno_t callback_item_data(item_entity_t *item,
 	return hint->func(hint->entity, blk, hint->data);
 }
 
+/*
+  Implements reg40 layout function. It traverses all blocks belong to the file
+  and needed for calculating fragmentation, printing, etc.
+*/
 static errno_t reg40_layout(object_entity_t *entity,
 			    block_func_t func,
 			    void *data)
@@ -335,7 +357,11 @@ static errno_t reg40_layout(object_entity_t *entity,
 		
 	while (size < reg->offset) {
 		item_entity_t *item = &reg->body.item;
-		
+
+		/*
+		  Calling item layout function for the each item belong to the
+		  file.
+		*/
 		if ((res = plugin_call(return -1, item->plugin->item_ops,
 				       layout, item, callback_item_data, &hint)))
 			return res;
@@ -352,6 +378,10 @@ static errno_t reg40_layout(object_entity_t *entity,
 	return 0;
 }
 
+/*
+  Implements reg40 metadata function. It traverses items belong to the file and
+  needed for calculating fragmentation, printing, etc.
+*/
 static errno_t reg40_metadata(object_entity_t *entity,
 			      place_func_t func,
 			      void *data)
