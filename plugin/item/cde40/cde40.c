@@ -19,13 +19,12 @@ static void *cde40_entry(place_t *place, uint32_t pos) {
 /* Returns pointer to the objectid entry component. */
 static void *cde40_objid(place_t *place, uint32_t pos) {
 	uint32_t pol = cde40_key_pol(place);
-	void *entry = cde_get_entry(place, pos, pol);
+	void *entry = cde40_entry(place, pos);
 	return (place->body + en_get_offset(entry, pol));
 }
 
 static void *cde40_hash(place_t *place, uint32_t pos) {
-	uint32_t pol = cde40_key_pol(place);
-	return cde_get_entry(place, pos, pol);
+	return cde40_entry(place, pos);
 }
 
 /* Returns statdata key of the object entry points to */
@@ -261,13 +260,13 @@ uint32_t cde40_size_units(place_t *place, uint32_t pos, uint32_t count) {
 		return 0;
 
 	pol = cde40_key_pol(place);
-	entry_start = cde_get_entry(place, pos, pol);
+	entry_start = cde40_entry(place, pos);
 
 	if (pos + count < cde_get_units(place)) {
 		size = 0;
-		entry_end = cde_get_entry(place, pos + count, pol);
+		entry_end = cde40_entry(place, pos + count);
 	} else {
-		entry_end = cde_get_entry(place, pos + count - 1, pol);
+		entry_end = cde40_entry(place, pos + count - 1);
 		size = cde40_get_len(place, pos + count - 1);
 
 	}
@@ -324,7 +323,7 @@ errno_t cde40_rep(place_t *dst_place, uint32_t dst_pos,
 	aal_memcpy(dst, src, size);
 
 	/* Updating offset of dst cde */
-	entry = cde_get_entry(dst_place, dst_pos, pol);
+	entry = cde40_entry(dst_place, dst_pos);
 
 	offset += sizeof(cde40_t) +
 		(dst_units * en_size(pol)) + headers;
@@ -392,11 +391,11 @@ static uint32_t cde40_shrink(place_t *place, uint32_t pos,
 	remove = cde40_size_units(place, pos, count);
 
 	/* Moving headers and first part of bodies (before passed @pos) */
-	entry = cde_get_entry(place, pos, pol);
+	entry = cde40_entry(place, pos);
 	aal_memmove(entry, entry + (en_size(pol) * count), first);
 
 	/* Setting up the entry offsets */
-	entry = cde_get_entry(place, 0, pol);
+	entry = cde40_entry(place, 0);
 	
 	for (i = 0; i < pos; i++) {
 		en_dec_offset(entry, headers, pol);
@@ -407,7 +406,7 @@ static uint32_t cde40_shrink(place_t *place, uint32_t pos,
 	if (second > 0) {
 		void *src, *dst;
 
-		entry = cde_get_entry(place, pos, pol);
+		entry = cde40_entry(place, pos);
 		src = place->body + en_get_offset(entry, pol);
 		dst = src - (headers + remove);
 		
@@ -415,7 +414,7 @@ static uint32_t cde40_shrink(place_t *place, uint32_t pos,
 
 		/* Setting up entry offsets */
 		for (i = pos; i < units - count; i++) {
-			entry = cde_get_entry(place, i, pol);
+			entry = cde40_entry(place, i);
 			en_dec_offset(entry, (headers + remove), pol);
 		}
 	}
@@ -452,10 +451,10 @@ uint32_t cde40_expand(place_t *place, uint32_t pos,
 	   will be used later in this function. */
 	if (units > 0) {
 		if (pos < units) {
-			entry = cde_get_entry(place, pos, pol);
+			entry = cde40_entry(place, pos);
 			offset = en_get_offset(entry, pol) + headers;
 		} else {
-			entry = cde_get_entry(place, units - 1, pol);
+			entry = cde40_entry(place, units - 1);
 			offset = en_get_offset(entry, pol) + en_size(pol) +
 				cde40_get_len(place, units - 1);
 		}
@@ -471,7 +470,7 @@ uint32_t cde40_expand(place_t *place, uint32_t pos,
 	second = cde40_size_units(place, pos, units - pos);
 	
 	/* Updating offset of entries which lie before insert point */
-	entry = cde_get_entry(place, 0, pol);
+	entry = cde40_entry(place, 0);
 	
 	for (i = 0; i < pos; i++) {
 		en_inc_offset(entry, headers, pol);
@@ -479,7 +478,7 @@ uint32_t cde40_expand(place_t *place, uint32_t pos,
 	}
     
 	/* Updating offset of entries which lie after insert point */
-	entry = cde_get_entry(place, pos, pol);
+	entry = cde40_entry(place, pos);
 	
 	for (i = pos; i < units; i++) {
 		en_inc_offset(entry, len, pol);
@@ -496,7 +495,7 @@ uint32_t cde40_expand(place_t *place, uint32_t pos,
     
 	/* Moving unit headers if it is needed */
 	if (first) {
-		src = cde_get_entry(place, pos, pol);
+		src = cde40_entry(place, pos);
 		dst = src + headers;
 		aal_memmove(dst, src, first);
 	}
@@ -697,11 +696,11 @@ static errno_t cde40_insert(place_t *place, uint32_t pos,
 	offset = cde40_expand(place, pos, hint->count, hint->len);
 	
 	/* Creating new entries */
-	entry = cde_get_entry(place, pos, pol);
+	entry = cde40_entry(place, pos);
 	
 	for (i = 0; i < hint->count; i++, entry_hint++)	{
 		void *objid;
-		uint64_t oid, loc;
+		uint64_t oid;
 		uint64_t off, ord;
 
 		key_entity_t *hash;
@@ -841,7 +840,7 @@ static errno_t cde40_print(place_t *place,
 	for (i = 0; i < cde_get_units(place); i++) {
 		uint64_t offset, haobj;
 		void *objid = cde40_objid(place, i);
-		void *entry = cde_get_entry(place, i, pol);
+		void *entry = cde40_entry(place, i);
 
 		cde40_get_name(place, i, name, sizeof(name));
 
@@ -948,7 +947,6 @@ lookup_t cde40_lookup(place_t *place, key_entity_t *key,
 		      uint32_t *pos)
 {
 	int32_t i;
-	lookup_t res;
 	key_entity_t maxkey;
 
 	aal_assert("umka-610", key != NULL);
