@@ -161,7 +161,13 @@ errno_t reiser4_joint_pos(
 	return -1;
 
     reiser4_node_lkey(joint->node, &lkey);
-    return -(reiser4_node_lookup(joint->parent->node, &lkey, pos) != 1);
+    
+    if (reiser4_node_lookup(joint->parent->node, &lkey, pos) != 1)
+	return -1;
+
+    joint->pos = *pos;
+    
+    return 0;
 }
 
 /* 
