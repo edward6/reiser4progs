@@ -487,7 +487,7 @@ static int64_t reg40_write(object_entity_t *entity,
 	offset = reg40_offset(entity);
 
 	/* Convert body items if needed. */
-	if ((res = reg40_check_body(entity, size + n))) {
+	if ((res = reg40_check_body(entity, offset + n))) {
 		aal_error("Can't perform tail conversion.");
 		return res;
 	}

@@ -99,12 +99,15 @@ int main(int argc, char *argv[]) {
                         count = 100000;
                                                                                        
                         for (j = 0; j < count; j++) {
-				reiser4_object_seek(object, 4096);
+/*				reiser4_object_seek(object,
+						    reiser4_object_offset(object) + 4096);*/
+				
                                 if (reiser4_object_write(object, name,
                                                          aal_strlen(name)) < 0)
                                 {
                                         aal_error("Can't write data "
                                                   "to file %s.", name);
+					break;
                                 }
                         }
                                                                                        
