@@ -29,7 +29,9 @@ reiser4_node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, bool_t check) 
 }
 
 /* Checks all the items of the node. */
-static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
+static errno_t repair_node_items_check(reiser4_node_t *node, place_func_t func,
+				       uint8_t mode, void *data) 
+{
 	reiser4_key_t key, prev;
 	trans_hint_t hint;
 	errno_t res, ret;
@@ -114,6 +116,9 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		if ((ret = reiser4_item_maxreal_key(&place, &key)))
 			return ret;
 		
+		if (func && (ret = func(&place, data)))
+			return ret;
+		
 		prev = key;
 		
 		continue;
@@ -191,7 +196,9 @@ errno_t repair_node_check_level(reiser4_node_t *node, uint8_t mode) {
 }
 
 /*  Checks the node content. */
-errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
+errno_t repair_node_check_struct(reiser4_node_t *node, place_func_t func,
+				 uint8_t mode, void *data) 
+{
 	errno_t res;
 	
 	aal_assert("vpf-494", node != NULL);
@@ -202,7 +209,7 @@ errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
 	if (repair_error_fatal(res))
 		return res;
 	
-	res |= repair_node_items_check(node, mode);
+	res |= repair_node_items_check(node, func, mode, data);
 	
 	return res;
 }

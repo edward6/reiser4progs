@@ -17,6 +17,8 @@ typedef struct repair_filter_stat {
 	uint64_t bad_nodes,    bad_leaves,    bad_twigs;
 	uint64_t bad_dk_nodes, bad_dk_leaves, bad_dk_twigs;
 	uint64_t bad_ptrs;
+	
+	uint64_t *files, tmp;
 	time_t time;
 } repair_filter_stat_t;
 

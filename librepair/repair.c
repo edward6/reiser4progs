@@ -133,6 +133,7 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	aal_memset(filter, 0, sizeof(*filter));    
 	filter->repair = control->repair;
 	filter->check_node = &control->check_node;
+	filter->stat.files = &control->files;
 	
 	fs_len = reiser4_format_get_len(control->repair->fs->format);
 	
@@ -229,6 +230,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	ds->bm_twig = control->bm_twig;
 	ds->bm_met = control->bm_met;
 	ds->check_node = &control->check_node;
+	ds->stat.files = &control->files;
 	
 	repair = ds->repair;
 	
@@ -380,12 +382,12 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 	aal_assert("vpf-861", control->repair->fs != NULL);
 	
 	aal_memset(am, 0, sizeof(*am));
-	
 	am->repair = control->repair;
 	am->bm_leaf = control->bm_leaf;
 	am->bm_twig = control->bm_twig;
 	am->bm_used = control->bm_used;
-	
+	am->stat.files = &control->files;
+
 	for (i = 0; i < control->bm_met->size; i++) {
 		/* Leave there twigs and leaves that are not in the tree. */
 		control->bm_twig->map[i] &= ~(control->bm_used->map[i]);
@@ -429,6 +431,7 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 
 	aux_bitmap_close(control->bm_twig);
 	control->bm_twig = NULL;
+	sem->stat.files = control->files;
 	
 	if (control->repair->mode == RM_BUILD) {
 		aal_assert("vpf-1335", control->repair->mode != RM_BUILD || 

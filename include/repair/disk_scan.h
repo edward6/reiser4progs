@@ -15,6 +15,8 @@ typedef struct repair_ds_stat {
 	uint64_t read_nodes;
 	uint64_t good_nodes, good_leaves, good_twigs;
 	uint64_t fixed_nodes, fixed_leaves, fixed_twigs;
+
+	uint64_t *files, tmp;
 	time_t time;
 } repair_ds_stat_t;
 

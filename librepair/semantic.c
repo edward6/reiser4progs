@@ -62,6 +62,10 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 						 sem->repair->mode, sem);
 		if (res < 0) return res;
 		
+		sem->stat.reached_files++;
+		aal_gauge_set_value(sem->gauge, sem->stat.reached_files 
+				    * 100 / sem->stat.files);
+		aal_gauge_touch(sem->gauge);
 		repair_error_count(sem->repair, res);
 	}
 	
@@ -725,46 +729,22 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 	return res;
 }
 
-static void repair_semantic_setup(repair_semantic_t *sem) {
-	/*
-	aal_memset(sem->progress, 0, sizeof(*sem->progress));
-
-	if (!sem->progress_handler)
-		return;
-
-	sem->progress->type = GAUGE_SEM;
-	sem->progress->text = "***** Semantic Traverse Pass: reiser4 "
-		"semantic tree checking.";
-	sem->progress->state = PROGRESS_STAT;
-	time(&sem->stat.time);
-	sem->progress_handler(sem->progress);
-	sem->progress->text = NULL;
-	*/
-}
-
 static void repair_semantic_update(repair_semantic_t *sem) {
 	repair_semantic_stat_t *stat;
 	aal_stream_t stream;
 	char *time_str;
 
-	//if (!sem->progress_handler)
-		return;
-	
 	stat = &sem->stat;
 	aal_stream_init(&stream, NULL, &memory_stream);
 	
-	if (stat->dirs || stat->files || stat->syms || stat->spcls) {
-		aal_stream_format(&stream, "\tObject found:\n");
-		aal_stream_format(&stream, "\tDirectories %llu, Files %llu, "
-				  "Symlinks %llu, Special %llu\n", stat->dirs, 
-				  stat->files, stat->syms, stat->spcls);
+	if (stat->reached_files) {
+		aal_stream_format(&stream, "\tFound %llu objects.\n",
+				  stat->reached_files);
 	}
 
-	if (stat->ldirs || stat->lfiles || stat->lsyms || stat->lspcls) {
-		aal_stream_format(&stream, "\tLost&found of them:\n");
-		aal_stream_format(&stream, "\tDirectories %llu, Files %llu, "
-				  "Symlinks %llu, Special %llu\n", stat->ldirs, 
-				  stat->lfiles, stat->lsyms, stat->lspcls);
+	if (stat->lost_files) {
+		aal_stream_format(&stream, "\tLost&found %llu objects.\n",
+				  stat->lost_files);
 	}
 
 	if (stat->shared)
@@ -786,11 +766,7 @@ static void repair_semantic_update(repair_semantic_t *sem) {
 	time_str = ctime(&sem->stat.time);
 	time_str[aal_strlen(time_str) - 1] = '\0';
 	aal_stream_format(&stream, time_str);
-/*
-	sem->progress->state = PROGRESS_STAT;
-	sem->progress->text = (char *)stream.entity;
-	sem->progress_handler(sem->progress);
-*/
+	aal_mess(stream.entity);
 	aal_stream_fini(&stream);
 }
 
@@ -812,12 +788,16 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 		goto error;
 	}
 	
-	aal_mess("CHECKING REISER4 SEMANTIC TREE");
-	time(&sem->stat.time);
-
 	if ((res = reiser4_tree_load_root(tree)))
 		return res;
-	
+
+	aal_mess("CHECKING SEMANTIC TREE");
+	sem->gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS], 
+				      NULL, NULL, 500, NULL);
+	aal_gauge_set_value(sem->gauge, 0);
+	aal_gauge_touch(sem->gauge);
+	time(&sem->stat.time);
+
 	if (tree->root == NULL) {
 		res = -EINVAL;
 		goto error_update;
@@ -863,6 +843,8 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	}
 	
  error_update:
+	aal_gauge_done(sem->gauge);
+	aal_gauge_free(sem->gauge);
 	repair_semantic_update(sem);	
 	
  error:

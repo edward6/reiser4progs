@@ -52,9 +52,10 @@ static void repair_add_missing_update(repair_am_t *am) {
 	
 	aal_stream_init(&stream, NULL, &memory_stream);
 	
-	aal_stream_format(&stream, "\tTwigs: read %llu, inserted %llu, by "
-			  "item %llu\n", stat->read_twigs, stat->by_twig,
-			  stat->by_item_twigs);
+	aal_stream_format(&stream, "\tTwigs: read %llu, inserted %llu, "
+			  "by item %llu, empty %llu\n", stat->read_twigs, 
+			  stat->by_twig, stat->by_item_twigs,
+			  stat->empty);
 	
 	aal_stream_format(&stream, "\tLeaves: read %llu, inserted %llu, by "
 			  "item %llu\n", stat->read_leaves, stat->by_leaf, 
@@ -126,7 +127,7 @@ static errno_t repair_am_blk_used(repair_am_t *am, blk_t blk) {
 }
 
 typedef struct stat_bitmap {
-	uint64_t read, by_node, by_item;
+	uint64_t read, by_node, by_item, empty;
 } stat_bitmap_t;
 
 static errno_t repair_am_nodes_insert(repair_am_t *am, 
@@ -170,6 +171,7 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 			aux_bitmap_clear(bitmap, node->block->nr);
 			repair_am_blk_free(am, node->block->nr);
 			reiser4_node_close(node);
+			stat->empty++;
 			blk++;
 			continue;
 		}
@@ -261,7 +263,14 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 			res = repair_tree_insert(am->repair->fs->tree, &place,
 						 cb_item_mark_region, am);
 			
-			if (res) goto error_close_node;
+			if (res < 0) 
+				goto error_close_node;
+			
+			if (res && place.plug->id.group == STAT_ITEM) {
+				/* If insertion cannot be performed for the 
+				   statdata item, descement file counter. */
+				(*am->stat.files)--;
+			}
 		}
 
 		aux_bitmap_clear(bitmap, node->block->nr);
@@ -319,11 +328,12 @@ errno_t repair_add_missing(repair_am_t *am) {
 			goto error;
 		
 		if (bnum) {
-			am->stat.read_twigs = stat.read;
-			am->stat.by_twig = stat.by_node;
-		} else {
 			am->stat.read_leaves = stat.read;
 			am->stat.by_leaf = stat.by_node;
+		} else {
+			am->stat.read_twigs = stat.read;
+			am->stat.by_twig = stat.by_node;
+			am->stat.empty = stat.empty;
 		}
 	
 		aal_gauge_done(am->gauge);

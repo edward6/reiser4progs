@@ -251,6 +251,15 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	return NULL;
 }
 
+static errno_t cb_count_sd(reiser4_place_t *place, void *data) {
+	repair_filter_t *fd = (repair_filter_t *)data;
+
+	if (place->plug->id.group == STAT_ITEM)
+		fd->stat.tmp++;
+
+	return 0;
+}
+
 /* Before callback for traverse. It checks node level, node consistency, and 
    delimiting keys. If any check reveals a problem with the data consistency 
    it sets RE_FATAL flag. */
@@ -290,10 +299,14 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 		goto error;
 	} 
 	
-	if ((res = repair_node_check_struct(node, fd->repair->mode)) < 0)
+	if ((res = repair_node_check_struct(node, cb_count_sd, 
+					    fd->repair->mode, fd)) < 0)
 		return res;
 	
 	if (!(res & RE_FATAL)) {
+		(*fd->stat.files) += fd->stat.tmp;
+		fd->stat.tmp = 0;
+
 		res |= repair_node_check_level(node, fd->repair->mode);
 		if (res < 0) return res;
 	}
@@ -638,7 +651,7 @@ errno_t repair_filter(repair_filter_t *fd) {
 	aal_assert("vpf-816", fd->repair->fs->tree != NULL);
 	aal_assert("vpf-815", fd->bm_used != NULL);
 
-	aal_mess("CHECKING REISER4 STORAGE TREE");
+	aal_mess("CHECKING STORAGE TREE");
 	fd->gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS], 
 				     cb_gauge_tree_percent, NULL, 500, NULL);
 	time(&fd->stat.time);

@@ -14,10 +14,13 @@
 
 /* Statistics gathered during the pass. */
 typedef struct repair_semantic_stat {
-	uint64_t dirs, files, syms, spcls;
-	uint64_t ldirs, lfiles, lsyms, lspcls;
+	uint64_t reached_files;
+	uint64_t lost_files;
 	uint64_t shared, rm_entries, broken;
 	uint64_t oid;
+
+	/* Files counted on previous passes. */
+	uint64_t files;
 	time_t time;
 } repair_semantic_stat_t;
 
@@ -34,6 +37,8 @@ typedef struct repair_semantic {
 	reiser4_object_t *lost;
 	
 	repair_semantic_stat_t stat;
+
+	aal_gauge_t *gauge;
 } repair_semantic_t;
 
 extern errno_t repair_semantic(repair_semantic_t *sem);

@@ -152,7 +152,7 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 		return 0;
 	}
 	
-	aal_mess("LOOKING FOR UNCONNECTED NODES");
+	aal_mess("CLEANUPING STORAGE TREE");
 	cleanup->gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
 					  cb_gauge_tree_percent, NULL, 500, NULL);
 	aal_gauge_set_value(cleanup->gauge, 0);

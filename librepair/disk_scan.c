@@ -49,6 +49,16 @@ static void repair_disk_scan_update(repair_ds_t *ds) {
 	aal_stream_fini(&stream);
 }
 
+static errno_t cb_count_sd(reiser4_place_t *place, void *data) {
+	repair_ds_t *ds = (repair_ds_t *)data;
+
+	if (place->plug->id.group == STAT_ITEM)
+		ds->stat.tmp++;
+
+	return 0;
+}
+
+
 /* The pass inself, goes through all the blocks marked in the scan bitmap, and
    if a block can contain some data to be recovered (formatted and contains not
    tree index data only) then fix all corruptions within the node and save it
@@ -82,8 +92,8 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 		aal_gauge_set_value(gauge, ds->stat.read_nodes * 100 / total);
 		aal_gauge_touch(gauge);
 		
-		if (!(node = repair_node_open(ds->repair->fs->tree, blk, 
-					      *ds->check_node))) 
+		if (!(node = repair_node_open(ds->repair->fs->tree, 
+					      blk, *ds->check_node)))
 		{
 			blk++;
 			continue;
@@ -96,13 +106,17 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 		if (!repair_tree_data_level(level))
 			goto next;
 		
-		if ((res = repair_node_check_struct(node, ds->repair->mode)) < 0)
+		if ((res = repair_node_check_struct(node, cb_count_sd, 
+						    ds->repair->mode, ds)) < 0)
 		{
 			reiser4_node_close(node);
 			goto error;
 		}
 		
 		if (!(res & RE_FATAL)) {
+			(*ds->stat.files) += ds->stat.tmp;
+			ds->stat.tmp = 0;
+			
 			res |= repair_node_check_level(node, ds->repair->mode);
 			
 			if (res < 0) {
@@ -144,4 +158,3 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 	repair_disk_scan_update(ds);
 	return res;
 }
-

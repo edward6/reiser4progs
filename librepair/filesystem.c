@@ -198,7 +198,8 @@ errno_t repair_fs_pack(reiser4_fs_t *fs,
 		if (!(node = reiser4_node_open(fs->tree, blk)))
 			continue;
 
-		if ((res = repair_node_check_struct(node, RM_CHECK)) < 0)
+		if ((res = repair_node_check_struct(node, NULL, 
+						    RM_CHECK, NULL)) < 0)
 			return res;
 
 		if (res) {

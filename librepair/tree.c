@@ -550,7 +550,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 					  reiser4_print_key(&src->key, PO_DEFAULT),
 					  place_blknr(src), src->pos.item);
 
-				   return 0;
+				   return RE_FATAL;
 			}
 			
 			if (conv) {
@@ -593,7 +593,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 			if ((res = repair_tree_copy(tree, &dst, src, &key)))
 				return res;
 			*/
-			return 0;
+			return RE_FATAL;
 		}
 
 		if (!src->plug->o.item_ops->balance->lookup)

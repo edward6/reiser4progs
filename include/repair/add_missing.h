@@ -13,7 +13,9 @@
 /* Statistics gathered during the pass. */
 typedef struct repair_am_stat {
 	uint64_t read_leaves, by_leaf, by_item_leaves;
-	uint64_t read_twigs,  by_twig, by_item_twigs;
+	uint64_t read_twigs,  by_twig, by_item_twigs, empty;
+
+	uint64_t *files;
 	time_t time;
 } repair_am_stat_t;
 
