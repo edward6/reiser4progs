@@ -113,6 +113,10 @@ static int32_t nodeptr40_fetch(item_entity_t *item, void *buff,
 	return 1;
 }
 
+static int nodeptr40_branch(item_entity_t *item) {
+	return 1;
+}
+
 #ifndef ENABLE_COMPACT
 
 /*
@@ -184,8 +188,9 @@ static reiser4_plugin_t nodeptr40_plugin = {
 #endif
 		.units		= nodeptr40_units,
 		.fetch          = nodeptr40_fetch,
-	
-		.layout         = NULL,
+		.layout         = nodeptr40_layout,
+		.branch         = nodeptr40_branch,
+		
 		.belongs        = NULL,
 		.lookup		= NULL,
 		.valid		= NULL,

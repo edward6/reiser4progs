@@ -1218,6 +1218,9 @@ static reiser4_plugin_t direntry40_plugin = {
 		.belongs        = NULL,
 		.valid		= NULL,
 		.update         = NULL,
+		.branch         = NULL,
+
+		.gap_key	= NULL,
 		.set_key	= NULL,
 		
 		.get_key	= direntry40_get_key,
@@ -1227,7 +1230,8 @@ static reiser4_plugin_t direntry40_plugin = {
 		
 		.maxposs_key	= direntry40_maxposs_key,
 		.utmost_key     = direntry40_utmost_key,
-		.gap_key	= NULL
+
+		.gap_key	= NULL,
 		.layout_check	= NULL
 	}
 };
