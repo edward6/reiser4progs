@@ -54,30 +54,6 @@ reiser4_node_t *reiser4_node_create(
 	return NULL;
 }
 
-errno_t reiser4_node_write(reiser4_node_t *dst_node, pos_t *dst_pos,
-			   reiser4_node_t *src_node, pos_t *src_pos,
-			   uint32_t count, write_hint_t *hint)
-{
-	return plugin_call(dst_node->entity->plugin->node_ops,
-			   write, dst_node->entity, dst_pos,
-			   src_node->entity, src_pos, count,
-			   hint);
-}
-
-/*
-  Sets up hint by means of uinitializing its fields by item body, item len and
-  if pos points to unit, the set up units related fields.
-*/
-errno_t reiser4_node_feel(reiser4_node_t *node, pos_t *pos,
-			  uint32_t count, write_hint_t *hint)
-{
-	aal_assert("umka-1999", node != NULL);
-	aal_assert("umka-2000", hint != NULL);
-
-	return plugin_call(node->entity->plugin->node_ops,
-			   feel, node->entity, pos, count, hint);
-}
-
 /* Prints passed @node to the specified @stream */
 errno_t reiser4_node_print(
 	reiser4_node_t *node,   /* node to be printed */
@@ -96,7 +72,7 @@ errno_t reiser4_node_print(
   Helper callback for checking if passed @plugin convenient one for passed @blk
   to open it or not.
 */
-static errno_t callback_guess_node(reiser4_plugin_t *plugin,
+static int callback_guess_node(reiser4_plugin_t *plugin,
 				   void *data)
 {
 	reiser4_node_t *node = (reiser4_node_t *)data;
@@ -110,7 +86,7 @@ static errno_t callback_guess_node(reiser4_plugin_t *plugin,
 		*/
 		if (!(node->entity = plugin_call(plugin->node_ops, open,
 						 node->device, node->blk)))
-			return -EINVAL;
+			return 0;
 
 		/* Okay, we have found needed node plugin */
 		if (plugin_call(plugin->node_ops, confirm, node->entity))
@@ -426,6 +402,33 @@ errno_t reiser4_node_valid(
 }
 
 #ifndef ENABLE_ALONE
+
+errno_t reiser4_node_write(reiser4_node_t *dst_node, pos_t *dst_pos,
+			   reiser4_node_t *src_node, pos_t *src_pos,
+			   uint32_t count, write_hint_t *hint)
+{
+	aal_assert("umka-2008", dst_node != NULL);
+	aal_assert("umka-2009", src_node != NULL);
+	
+	return plugin_call(dst_node->entity->plugin->node_ops,
+			   write, dst_node->entity, dst_pos,
+			   src_node->entity, src_pos, count,
+			   hint);
+}
+
+/*
+  Sets up hint by means of uinitializing its fields by item body, item len and
+  if pos points to unit, the set up units related fields.
+*/
+errno_t reiser4_node_feel(reiser4_node_t *node, pos_t *pos,
+			  uint32_t count, write_hint_t *hint)
+{
+	aal_assert("umka-1999", node != NULL);
+	aal_assert("umka-2000", hint != NULL);
+
+	return plugin_call(node->entity->plugin->node_ops,
+			   feel, node->entity, pos, count, hint);
+}
 
 /* Returns free space of specified node */
 uint16_t reiser4_node_space(reiser4_node_t *node) {

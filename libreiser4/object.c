@@ -14,7 +14,7 @@
 #include <reiser4/reiser4.h>
 
 /* Helper callback for probing paased @plugin */
-static errno_t callback_guess_object(reiser4_plugin_t *plugin,
+static int callback_guess_object(reiser4_plugin_t *plugin,
 				     void *data)
 {
 	void *tree, *place;

@@ -486,7 +486,7 @@ reiser4_plugin_t *libreiser4_factory_cfind(
 	
 	aal_list_foreach_forward(plugins, walk) {
 		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
-	
+
 		if (plugin_func(plugin, data))
 			return plugin;
 	}
