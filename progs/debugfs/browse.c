@@ -48,11 +48,13 @@ static errno_t debugfs_dir_cat(reiser4_object_t *object) {
 
 	/* The loop until all entry read */
 	while (reiser4_object_readdir(object, &entry) > 0) {
+		char *key = reiser4_print_key(&entry.object,
+					      PO_DEFAULT);
+		
 		aal_memset(buff, 0, sizeof(buff));
 		
 		aal_snprintf(buff, sizeof(buff), "[%s] %s\n",
-			     reiser4_print_key(&entry.object, PO_DEF),
-			     entry.name);
+			     key, entry.name);
 
 		debugfs_print_buff(buff, aal_strlen(buff));
 	}

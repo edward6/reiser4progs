@@ -193,10 +193,10 @@ static errno_t stat40_prep_insert(place_t *place, trans_hint_t *hint) {
 /* Function for modifying stat40. */
 static int64_t stat40_modify(place_t *place, trans_hint_t *hint, int insert) {
 	uint16_t i;
-	body_t *extbody;
+	void *extbody;
 	statdata_hint_t *stat_hint;
     
-	extbody = (body_t *)place->body;
+	extbody = (void *)place->body;
 	stat_hint = (statdata_hint_t *)hint->specific;
 
 	if (place->pos.unit == MAX_UINT32 && insert)
@@ -276,7 +276,7 @@ static int64_t stat40_update_units(place_t *place, trans_hint_t *hint) {
    mask. Needed for fsck. */
 static errno_t stat40_remove_units(place_t *place, trans_hint_t *hint) {
 	uint16_t i;
-	body_t *extbody;
+	void *extbody;
 	uint16_t chunks = 0;
 	reiser4_plug_t *plug;
 	statdata_hint_t *stat_hint;
@@ -287,7 +287,7 @@ static errno_t stat40_remove_units(place_t *place, trans_hint_t *hint) {
 	hint->ohd = 0;
 	hint->len = 0;
 	
-	extbody = (body_t *)place->body;
+	extbody = (void *)place->body;
 	stat_hint = (statdata_hint_t *)hint->specific;
 
 	for (i = 0; i < STAT40_EXTNR; i++) {
@@ -353,7 +353,7 @@ static errno_t stat40_remove_units(place_t *place, trans_hint_t *hint) {
 
 /* Helper structrure for keeping track of stat data extention body */
 struct body_hint {
-	body_t *body;
+	void *body;
 	uint8_t ext;
 };
 
@@ -371,7 +371,7 @@ static errno_t callback_body_ext(sdext_entity_t *sdext,
 }
 
 /* Finds extention body by number of bit in 64bits mask */
-body_t *stat40_sdext_body(place_t *place, uint8_t bit) {
+void *stat40_sdext_body(place_t *place, uint8_t bit) {
 	struct body_hint hint = {NULL, bit};
 
 	if (stat40_traverse(place, callback_body_ext, &hint) < 0)
@@ -472,10 +472,9 @@ static errno_t stat40_print(place_t *place,
     
 	aal_stream_format(stream, "STATDATA PLUGIN=%s LEN=%u, KEY=[%s] "
 			  "UNITS=1\n", place->plug->label, place->len,
-			  core->key_ops.print(&place->key, PO_DEF));
+			  core->key_ops.print(&place->key, PO_DEFAULT));
 		
 	aal_stream_format(stream, "exts:\t\t%u\n", stat40_sdext_count(place));
-
 	return stat40_traverse(place, callback_print_ext, (void *)stream);
 }
 #endif

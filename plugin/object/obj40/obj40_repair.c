@@ -144,7 +144,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 		aal_exception_error("Node (%llu), item (%u): failed to update "
 				    "the StatData of the file [%s]. Plugin "
 				    "(%s).", stat->block->nr, stat->pos.item,
-				    print_ino(obj->core, &stat->key), 
+				    print_inode(obj->core, &stat->key), 
 				    stat->plug->label);
 		return res;
 	}
@@ -167,7 +167,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 				    "the file [%s] has the wrong mode (%u),"
 				    "%s (%u). Plugin (%s).", 
 				    stat->block->nr, stat->pos.item, 
-				    print_ino(obj->core, &stat->key),
+				    print_inode(obj->core, &stat->key),
 				    lw_hint.mode, mode == RM_CHECK ? 
 				    "Should be" : "Fixed to", lw_new.mode, 
 				    stat->plug->label);
@@ -183,7 +183,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 				    "the file [%s] has the wrong size "
 				    "(%llu), %s (%llu). Plugin (%s).",
 				    stat->block->nr, stat->pos.item, 
-				    print_ino(obj->core, &stat->key),
+				    print_inode(obj->core, &stat->key),
 				    lw_hint.size, mode == RM_CHECK ? 
 				    "Should be" : "Fixed to", lw_new.size, 
 				    stat->plug->label);
@@ -207,7 +207,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 				    "the file [%s] has the wrong bytes "
 				    "(%llu), %s (%llu). Plugin (%s).", 
 				    stat->block->nr, stat->pos.item, 
-				    print_ino(obj->core, &stat->key),
+				    print_inode(obj->core, &stat->key),
 				    unix_hint.bytes, mode == RM_CHECK ? 
 				    "Should be" : "Fixed to", bytes, 
 				    stat->plug->label);
@@ -299,7 +299,7 @@ errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func,
 	   the special case and usually is not used as object plugin cannot 
 	   be recognized w/out SD. Used for for "/" and "lost+found" recovery. */
 	aal_exception_error("The file [%s] does not have a StatData item. %s"
-			    "Plugin %s.", print_ino(obj->core, key), 
+			    "Plugin %s.", print_inode(obj->core, key), 
 			    mode == RM_BUILD ? " Creating a new one." :
 			    "",  obj->plug->label);
 
@@ -316,7 +316,7 @@ errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func,
 	{
 		aal_exception_error("The file [%s] failed to create a "
 				    "StatData item. Plugin %s.", 
-				    print_ino(obj->core, key),
+				    print_inode(obj->core, key),
 				    obj->plug->label);
 	}
 

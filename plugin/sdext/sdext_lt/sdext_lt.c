@@ -5,12 +5,12 @@
 
 #include "sdext_lt.h"
 
-static uint16_t sdext_lt_length(body_t *body) {
+static uint16_t sdext_lt_length(void *body) {
 	return sizeof(sdext_lt_t);
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t sdext_lt_open(body_t *body, 
+static errno_t sdext_lt_open(void *body, 
 			     void *hint) 
 {
 	sdext_lt_t *ext;
@@ -29,7 +29,7 @@ static errno_t sdext_lt_open(body_t *body,
 	return 0;
 }
 
-static errno_t sdext_lt_init(body_t *body, 
+static errno_t sdext_lt_init(void *body, 
 			     void *hint)
 {
 	sdext_lt_hint_t *sdext_lt;
@@ -51,7 +51,7 @@ static errno_t sdext_lt_init(body_t *body,
 	return 0;
 }
 
-static errno_t sdext_lt_print(body_t *body,
+static errno_t sdext_lt_print(void *body,
 			      aal_stream_t *stream,
 			      uint16_t options)
 {

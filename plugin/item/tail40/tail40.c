@@ -142,7 +142,7 @@ static errno_t tail40_print(place_t *place, aal_stream_t *stream,
 
 	aal_stream_format(stream, "TAIL PLUGIN=%s LEN=%u, KEY=[%s]\n",
 			  place->plug->label, place->len,
-			  core->key_ops.print(&place->key, PO_DEF));
+			  core->key_ops.print(&place->key, PO_DEFAULT));
 	return 0;
 }
 

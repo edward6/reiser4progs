@@ -3,6 +3,8 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* comment stat data extention plugins.
+
 * move plugin directory to libreiser4 directory. Maintain own plugin
   directory in librepair. Move all repair code from libreiser4/plugin/*
   to librepair/plugin/*.

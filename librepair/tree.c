@@ -183,8 +183,8 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 		aal_exception_error("Node (%llu): The first key [%s] is not "
 				    "equal to the left delimiting key [%s].",
 				    node_blocknr(node), 
-				    reiser4_print_key(&place.key, PO_DEF),
-				    reiser4_print_key(&dkey, PO_DEF));
+				    reiser4_print_key(&place.key, PO_DEFAULT),
+				    reiser4_print_key(&dkey, PO_DEFAULT));
 		return RE_FATAL;
 	}
 	
@@ -199,10 +199,10 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 				    "in the parent node (%llu), pos (%u/%u) do "
 				    "not match the first key [%s] in the node."
 				    "%s", node_blocknr(node),
-				    reiser4_print_key(&place.key, PO_DEF),
+				    reiser4_print_key(&place.key, PO_DEFAULT),
 				    node_blocknr(node->p.node),
 				    place.pos.item, place.pos.unit, 
-				    reiser4_print_key(&dkey, PO_DEF),
+				    reiser4_print_key(&dkey, PO_DEFAULT),
 				    mode == RM_BUILD ? "Fixed." : "");
 
 		if (mode != RM_BUILD) 
@@ -230,8 +230,8 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 		aal_exception_error("Node (%llu): The last key [%s] in the node "
 				    "is greater then the right delimiting key "
 				    "[%s].", node_blocknr(node), 
-				    reiser4_print_key(&key_max, PO_DEF),
-				    reiser4_print_key(&dkey, PO_DEF));
+				    reiser4_print_key(&key_max, PO_DEFAULT),
+				    reiser4_print_key(&dkey, PO_DEFAULT));
 		return -ESTRUCT;
 	}
 	
@@ -651,9 +651,9 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 						       "Skip insertion.", 
 						       node_blocknr(dst.node), dst.pos.item,
 						       dst.plug->label, 
-						       reiser4_print_key(&dst.key, PO_INO),
+						       reiser4_print_key(&dst.key, PO_INODE),
 						       src->plug->label,
-						       reiser4_print_key(&src->key, PO_INO),
+						       reiser4_print_key(&src->key, PO_INODE),
 						       node_blocknr(src->node), 
 						       src->pos.item);
 
@@ -677,9 +677,9 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 					    "insertion.", 
 					    node_blocknr(dst.node), dst.pos.item,
 					    dst.plug->label, 
-					    reiser4_print_key(&dst.key, PO_INO),
+					    reiser4_print_key(&dst.key, PO_INODE),
 					    src->plug->label,
-					    reiser4_print_key(&src->key, PO_INO),
+					    reiser4_print_key(&src->key, PO_INODE),
 					    node_blocknr(src->node), 
 					    src->pos.item);
 
@@ -720,7 +720,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 				    "(%llu), item (%u) by the key [%s] failed.",
 				    node_blocknr(src->node), src->pos.item, 
 				    node_blocknr(dst.node), dst.pos.item,
-				    reiser4_print_key(&hint.offset, PO_INO));
+				    reiser4_print_key(&hint.offset, PO_INODE));
 	}
 	
 	return res;

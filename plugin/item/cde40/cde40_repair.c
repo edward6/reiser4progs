@@ -636,7 +636,7 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 			aal_exception_error("Node (%llu), item (%u): wrong key "
 					    "[%s] of the unit (%u).%s", 
 					    place->block->nr, place->pos.item,
-					    cde40_core->key_ops.print(&key, PO_INO),
+					    cde40_core->key_ops.print(&key, PO_INODE),
 					    i - 1, mode == RM_BUILD ? " Removed." 
 					    : "");
 			
@@ -665,7 +665,7 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 			aal_exception_error("Node (%llu), item (%u): wrong key "
 					    "[%s] of the unit (%u).%s", 
 					    place->block->nr, place->pos.item, 
-					    cde40_core->key_ops.print(&key, PO_INO),
+					    cde40_core->key_ops.print(&key, PO_INODE),
 					    i - 1, mode == RM_BUILD ? " Removed." 
 					    : "");
 			

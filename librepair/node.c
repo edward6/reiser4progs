@@ -150,7 +150,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 			aal_exception_error("Node (%llu): The key [%s] of the "
 					    "item (%u) is broken.%s", 
 					    node_blocknr(node),
-					    reiser4_print_key(&place.key, PO_DEF),
+					    reiser4_print_key(&place.key, PO_DEFAULT),
 					    pos->item, mode == RM_BUILD ?
 					    " Removed." : "");
 			if (mode != RM_BUILD)
@@ -168,10 +168,10 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 			aal_exception_error("Node (%llu): The key [%s] of the "
 					    "item (%u) is broken. %s [%s].", 
 					    node_blocknr(node),
-					    reiser4_print_key(&place.key, PO_DEF),
+					    reiser4_print_key(&place.key, PO_DEFAULT),
 					    pos->item, (res && mode == RM_CHECK)
 					    ? "Should be" : "Fixed to", 
-					    reiser4_print_key(&key, PO_DEF));
+					    reiser4_print_key(&key, PO_DEFAULT));
 			
 			if (mode == RM_CHECK)
 				result = RE_FIXABLE;

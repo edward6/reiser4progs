@@ -101,7 +101,7 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	info = &dir->obj.info;
 	
 	aal_exception_error("Directory [%s]: The entry \".\" is not found.%s "
-			    "Plugin (%s).", print_ino(dir40_core, &info->object), 
+			    "Plugin (%s).", print_inode(dir40_core, &info->object), 
 			    mode != RM_CHECK ? " Inserts a new one." : "", 
 			    dir->obj.plug->label);
 	
@@ -247,7 +247,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 	
 	if (dir->hash == NULL) {
                 aal_exception_error("Directory %s: failed to init hash plugin."
-				    "Plugin (%s).", print_ino(dir40_core, &info->object),
+				    "Plugin (%s).", print_inode(dir40_core, &info->object),
 				    dir40_plug.label);
                 return -EINVAL;
         }
@@ -306,7 +306,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 					    "[%llu], item [%u]: item of the "
 					    "illegal plugin [%s] with the key "
 					    "of this object found.%s",
-					    print_ino(dir40_core, &info->object),
+					    print_inode(dir40_core, &info->object),
 					    dir40_plug.label, 
 					    dir->body.block->nr,
 					    dir->body.pos.item,
@@ -363,7 +363,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 					    "[%llu], item [%u], unit [%u]: "
 					    "entry has wrong offset [%s]."
 					    " Should be [%s]. %s", 
-					    print_ino(dir40_core, &info->object),
+					    print_inode(dir40_core, &info->object),
 					    dir40_plug.label, 
 					    dir->body.block->nr,
 					    dir->body.pos.item, 
@@ -452,20 +452,20 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 		aal_exception_error("Directory [%s], plugin [%s]: the object "
 				    "is attached already to [%s] and cannot "
 				    "be attached to [%s].", 
-				    print_ino(dir40_core, &object->info.object),
+				    print_inode(dir40_core, &object->info.object),
 				    dir40_plug.label, 
 				    print_key(dir40_core, &entry.object),
-				    print_ino(dir40_core, &parent->info.object));
+				    print_inode(dir40_core, &parent->info.object));
 
 		return RE_FATAL;
 	case ABSENT:
 		/* Not attached yet. */
 		aal_exception_error("Directory [%s], plugin [%s]: the object "
 				    "is not attached. %s [%s].", 
-				    print_ino(dir40_core, &object->info.object),
+				    print_inode(dir40_core, &object->info.object),
 				    dir40_plug.label, mode == RM_CHECK ? 
 				    "Reached from" : "Attaching to",
-				    print_ino(dir40_core, &parent->info.object));
+				    print_inode(dir40_core, &parent->info.object));
 	
 		if (mode == RM_CHECK)
 			return RE_FIXABLE;
@@ -529,7 +529,7 @@ errno_t dir40_form(object_entity_t *object) {
 		if (dir->hash == NULL) {
 			aal_exception_error("Directory [%s]: failed to init "
 					    "hash plugin. Plugin (%s).", 
-					    print_ino(dir40_core, &dir->obj.info.object),
+					    print_inode(dir40_core, &dir->obj.info.object),
 					    dir40_plug.label);
 			return -EINVAL;
 		}

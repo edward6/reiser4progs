@@ -10,7 +10,7 @@ static void repair_semantic_lost_name(reiser4_object_t *object, char *name) {
 	uint8_t len;
 
 	len = aal_strlen(LOST_PREFIX);
-	key = reiser4_print_key(&object->info->object, PO_INO);
+	key = reiser4_print_key(&object->info->object, PO_INODE);
 	
 	aal_memcpy(name, LOST_PREFIX, len);
 	aal_memcpy(name + len, key, aal_strlen(key));
@@ -317,7 +317,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	
 	if (object == NULL) {
 		aal_exception_error("Failed to open the object [%s].", 
-				    reiser4_print_key(&entry->offset, PO_INO));
+				    reiser4_print_key(&entry->offset, PO_INODE));
 		
 		if (sem->repair->mode != RM_CHECK)
 			goto error_rem_entry;
@@ -404,8 +404,8 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		aal_exception_error("Semantic traverse failed to remove the "
 				    "entry \"%s\" [%s] pointing to [%s].", 
 				    entry->name, 
-				    reiser4_print_key(&entry->offset, PO_INO),
-				    reiser4_print_key(&entry->object, PO_INO));
+				    reiser4_print_key(&entry->offset, PO_INODE),
+				    reiser4_print_key(&entry->object, PO_INODE));
 	}
 	
  error_close_object:
@@ -526,7 +526,7 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 
 		aal_exception_error("The directory [%s] is recognized by the "
 				    "%s plugin which is not a directory one.", 
-				    reiser4_print_key(key, PO_INO), 
+				    reiser4_print_key(key, PO_INODE), 
 				    object->entity->plug->label);
 		
 		reiser4_object_close(object);
@@ -534,7 +534,7 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 		/* No plugin was recognized. */
 		aal_exception_error("Failed to recognize the plugin for the "
 				    "directory [%s].", 
-				    reiser4_print_key(key, PO_INO));
+				    reiser4_print_key(key, PO_INODE));
 	}
 	
 	if (sem->repair->mode != RM_BUILD)
@@ -554,7 +554,7 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 
 	aal_exception_error("Trying to recover the directory [%s] "
 			    "with the default plugin--%s.",
-			    reiser4_print_key(key, PO_INO), plug->label);
+			    reiser4_print_key(key, PO_INODE), plug->label);
 
 	
 	return repair_object_fake(tree, parent, key, plug);

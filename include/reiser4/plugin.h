@@ -40,7 +40,6 @@ typedef uint32_t f32_t; typedef f32_t d32_t __attribute__((aligned(4)));
 typedef uint64_t f64_t; typedef f64_t d64_t __attribute__((aligned(8)));
 
 /* Basic reiser4 types used by both library and plugins. */
-typedef void body_t;
 typedef uint8_t rid_t;
 typedef uint64_t oid_t;
 
@@ -214,8 +213,8 @@ enum key_type {
 typedef enum key_type key_type_t;
 
 enum print_options {
-	PO_DEF			= 0x0,
-	PO_INO			= 0x1
+	PO_DEFAULT              = 0x0,
+	PO_INODE                = 0x1
 };
 
 typedef enum print_options print_options_t;
@@ -242,7 +241,7 @@ struct place {
 	reiser4_plug_t *plug;
 
 	pos_t pos;
-	body_t *body;
+	void *body;
 	uint32_t len;
 	key_entity_t key;
 };
@@ -270,7 +269,7 @@ typedef struct object_entity object_entity_t;
 struct sdext_entity {
 	reiser4_plug_t *plug;
 
-	body_t *body;
+	void *body;
 	uint32_t sdlen;
 	uint32_t offset;
 };
@@ -588,7 +587,7 @@ struct reiser4_key_ops {
 	uint32_t (*bodysize) (void);
 
 	/* Compares two keys by comparing its all components */
-	int (*compraw) (body_t *, body_t *);
+	int (*compraw) (void *, void *);
 
 	/* Compares two keys by comparing its all components */
 	int (*compfull) (key_entity_t *, key_entity_t *);
@@ -890,20 +889,20 @@ typedef struct reiser4_item_ops reiser4_item_ops_t;
 struct reiser4_sdext_ops {
 #ifndef ENABLE_STAND_ALONE
 	/* Initialize stat data extention data at passed pointer */
-	errno_t (*init) (body_t *, void *);
+	errno_t (*init) (void *, void *);
 
 	/* Prints stat data extention data into passed buffer */
-	errno_t (*print) (body_t *, aal_stream_t *, uint16_t);
+	errno_t (*print) (void *, aal_stream_t *, uint16_t);
 
 	/* Checks sd extention content. */
 	errno_t (*check_struct) (sdext_entity_t *, uint8_t);
 #endif
 
 	/* Reads stat data extention data */
-	errno_t (*open) (body_t *, void *);
+	errno_t (*open) (void *, void *);
 
 	/* Returns length of the extention */
-	uint16_t (*length) (body_t *);
+	uint16_t (*length) (void *);
 };
 
 typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
@@ -1509,8 +1508,11 @@ struct reiser4_core {
 #endif
 };
 
-#define print_key(core, key) (core->key_ops.print(key, PO_DEF))
-#define print_ino(core, key) (core->key_ops.print(key, PO_INO))
+#define print_key(core, key) \
+(core->key_ops.print(key, PO_DEFAULT))
+
+#define print_inode(core, key) \
+(core->key_ops.print(key, PO_INODE))
 
 #define plug_equal(plug1, plug2)                                 \
         (plug1->id.type == plug2->id.type &&                     \

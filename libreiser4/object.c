@@ -136,7 +136,7 @@ reiser4_object_t *reiser4_object_open(
 
 	/* Initializing object name. It is stat data key as string. */
 #ifndef ENABLE_STAND_ALONE
-	name = reiser4_print_key(&object->info->object, PO_INO);
+	name = reiser4_print_key(&object->info->object, PO_INODE);
 	aal_strncpy(object->name, name, sizeof(object->name));
 #endif
 
@@ -205,7 +205,7 @@ reiser4_object_t *reiser4_object_guess(
 
 	/* Initializing object name. */
 #ifndef ENABLE_STAND_ALONE
-	name = reiser4_print_key(&object->info->object, PO_INO);
+	name = reiser4_print_key(&object->info->object, PO_INODE);
 	aal_strncpy(object->name, name, sizeof(object->name));
 #endif
 	
@@ -408,7 +408,7 @@ reiser4_object_t *reiser4_object_create(
 	object->info = &object->entity->info;
 	
 	/* @hint->object key is built by plugin create method. */
-	name = reiser4_print_key(&object->info->object, PO_INO);
+	name = reiser4_print_key(&object->info->object, PO_INODE);
 	aal_strncpy(object->name, name, sizeof(object->name));
 	
 	return object;
@@ -505,10 +505,10 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	if (reiser4_tree_lookup(object->info->tree, &entry->object,
 				LEAF_LEVEL, FIND_EXACT, &place) != PRESENT)
 	{
+		char *key = reiser4_print_key(&entry->object, PO_DEFAULT);
 		aal_exception_error("Can't find an item pointed by %s. "
 				    "Entry %s/%s points to nowere.",
-				    reiser4_print_key(&entry->object, PO_DEF),
-				    object->name, entry->name);
+				    key, object->name, entry->name);
 		return -EINVAL;
 	}
 

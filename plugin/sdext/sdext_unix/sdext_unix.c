@@ -11,12 +11,12 @@
 
 #include "sdext_unix.h"
 
-static uint16_t sdext_unix_length(body_t *body) {
+static uint16_t sdext_unix_length(void *body) {
 	return sizeof(sdext_unix_t);
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t sdext_unix_open(body_t *body, 
+static errno_t sdext_unix_open(void *body, 
 			       void *hint) 
 {
 	sdext_unix_t *ext;
@@ -39,7 +39,7 @@ static errno_t sdext_unix_open(body_t *body,
 	return 0;
 }
 
-static errno_t sdext_unix_init(body_t *body, 
+static errno_t sdext_unix_init(void *body, 
 			       void *hint) 
 {
 	sdext_unix_t *ext;
@@ -65,7 +65,7 @@ static errno_t sdext_unix_init(body_t *body,
 	return 0;
 }
 
-static errno_t sdext_unix_print(body_t *body, aal_stream_t *stream,
+static errno_t sdext_unix_print(void *body, aal_stream_t *stream,
 				uint16_t options)
 {
 	sdext_unix_t *ext;

@@ -907,9 +907,9 @@ static errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 
 /* Helper callback for comparing two keys. This is used by node lookup */
 static int callback_comp_key(void *node, uint32_t pos,
-			     body_t *key2, void *data)
+			     void *key2, void *data)
 {
-	body_t *key1;
+	void *key1;
 	
 	aal_assert("umka-566", node != NULL);
 	aal_assert("umka-567", key2 != NULL);

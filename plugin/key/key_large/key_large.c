@@ -222,7 +222,7 @@ static int key_large_compshort(key_entity_t *key1,
 }
 #endif
 
-static int key_large_compraw(body_t *key1, body_t *key2) {
+static int key_large_compraw(void *key1, void *key2) {
 	int res;
 
 	if ((res = kl_comp_el((key_large_t *)key1,
@@ -374,7 +374,7 @@ errno_t key_large_print(key_entity_t *key,
 	aal_assert("vpf-191", key != NULL);
 	aal_assert("umka-1548", stream != NULL);
 
-	if (options == PO_INO) {
+	if (options == PO_INODE) {
 		aal_stream_format(stream, "%llx:%llx:%llx",
 				  key_large_get_locality(key),
 				  key_large_get_ordering(key),

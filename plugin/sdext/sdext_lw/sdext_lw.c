@@ -11,7 +11,7 @@
 #include "sdext_lw.h"
 #include <aux/aux.h>
 
-static errno_t sdext_lw_open(body_t *body, 
+static errno_t sdext_lw_open(void *body, 
 			     void *hint) 
 {
 	sdext_lw_t *ext;
@@ -30,12 +30,12 @@ static errno_t sdext_lw_open(body_t *body,
 	return 0;
 }
 
-static uint16_t sdext_lw_length(body_t *body) {
+static uint16_t sdext_lw_length(void *body) {
 	return sizeof(sdext_lw_t);
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t sdext_lw_init(body_t *body, 
+static errno_t sdext_lw_init(void *body, 
 			     void *hint) 
 {
 	sdext_lw_hint_t *sdext_lw;
@@ -93,7 +93,7 @@ static void sdext_lw_parse_mode(uint16_t mode, char *str) {
 	str[10] = '\0';
 }
 
-static errno_t sdext_lw_print(body_t *body, aal_stream_t *stream,
+static errno_t sdext_lw_print(void *body, aal_stream_t *stream,
 			      uint16_t options)
 {
 	char mode[16];

@@ -26,7 +26,7 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	reiser4_key_assign(&object->info->object, &object->info->start.key);
 
 	aal_strncpy(object->name, 
-		    reiser4_print_key(&object->info->object, PO_INO),
+		    reiser4_print_key(&object->info->object, PO_INODE),
 		    sizeof(object->name));
 	
 	return res;
@@ -100,7 +100,7 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	
 	object->info = &object->entity->info;
 	
-	name = reiser4_print_key(&object->info->object, PO_INO);
+	name = reiser4_print_key(&object->info->object, PO_INODE);
 	aal_strncpy(object->name, name, sizeof(object->name));
 
 	return object;

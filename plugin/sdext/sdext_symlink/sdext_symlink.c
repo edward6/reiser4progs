@@ -6,7 +6,7 @@
 #ifdef ENABLE_SYMLINKS
 #include <reiser4/plugin.h>
 
-static errno_t sdext_symlink_open(body_t *body, 
+static errno_t sdext_symlink_open(void *body, 
 				  void *hint) 
 {
 	char *data;
@@ -24,13 +24,13 @@ static errno_t sdext_symlink_open(body_t *body,
 	return 0;
 }
 
-static uint16_t sdext_symlink_length(body_t *body) {
+static uint16_t sdext_symlink_length(void *body) {
 	aal_assert("umka-1488", body != NULL);
 	return aal_strlen((char *)body) + 1;
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t sdext_symlink_init(body_t *body, 
+static errno_t sdext_symlink_init(void *body, 
 				  void *hint)
 {
 	uint32_t len;
@@ -46,7 +46,7 @@ static errno_t sdext_symlink_init(body_t *body,
 	return 0;
 }
 
-static errno_t sdext_symlink_print(body_t *body,
+static errno_t sdext_symlink_print(void *body,
 				   aal_stream_t *stream,
 				   uint16_t options)
 {

@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
     
 	while (reiser4_object_readdir(dir, &entry) > 0) {
 		aal_snprintf(buff, sizeof(buff), "[%s] %s\n",
-			     reiser4_print_key(&entry.object, PO_DEF),
+			     reiser4_print_key(&entry.object, PO_DEFAULT),
 			     entry.name);
 
 		printf(buff);

@@ -125,7 +125,7 @@ struct reiser4_place {
 	reiser4_plug_t *plug;
 
 	pos_t pos;
-	body_t *body;
+	void *body;
 	uint32_t len;
 	key_entity_t key;
 };
