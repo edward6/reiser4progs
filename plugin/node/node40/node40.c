@@ -735,11 +735,6 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 	uint32_t dst_items;
 	item40_header_t *ih;
 	uint32_t headers_size;
-
-	item40_header_t *end;
-	item40_header_t *cur;
-	item40_header_t *ins;
-	item40_header_t *start;
 	node40_estimate_t estimate;
 
 	aal_assert("umka-1305", entity != NULL, return -1);
@@ -763,52 +758,33 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 
 	dst_items = nh40_get_num_items(estimate.dst);
 	src_items = nh40_get_num_items(estimate.src);
-		
-	start = node40_ih_at(estimate.src, 0);
-	end = node40_ih_at(estimate.src, src_items - 1);
-	
-	cur = (estimate.flags & SF_LEFT ? start : end);
+	headers_size = sizeof(item40_header_t) * estimate.items;
 
 	if (estimate.flags & SF_LEFT) {
-		ih = start - (estimate.items - 1);
+		ih = node40_ih_at(estimate.src, estimate.items - 1);
 		
-		/* Copying item headers */
+		/* Copying item headers from src node to dst */
 		dst = node40_ih_at(estimate.dst, dst_items - 1);
-
-		headers_size = sizeof(item40_header_t) * estimate.items;
 		dst -= headers_size;
 			
 		aal_memcpy(dst, ih, headers_size);
 
-		/* Copying data */
+		/* Copying item bodies from src node to dst */
 		src = ih40_get_offset(ih) + estimate.src->block->data;
 		dst = estimate.dst->block->data + nh40_get_free_space_start(estimate.dst);
 
 		aal_memcpy(dst, src, estimate.bytes);
 
-		/* Updating item headers and destination node fields */
+		/* Updating item headers */
 		ih = (item40_header_t *)dst;
 		
 		for (i = 0; i < estimate.items; i++, ih++) {
 			uint32_t offset = nh40_get_free_space_start(estimate.dst);
 			ih40_set_offset(ih, (uint32_t)(offset - ih40_get_offset(ih)));
 		}
-
-		nh40_set_free_space(estimate.dst, nh40_get_free_space(estimate.dst) -
-				    estimate.bytes - headers_size);
-
-		nh40_set_num_items(estimate.dst, dst_items - 1);
-
-		/* Updating source node fields */
-		nh40_set_free_space(estimate.src, nh40_get_free_space(estimate.src) +
-				    estimate.bytes + headers_size);
-
-		nh40_set_num_items(estimate.src, src_items - 1);
 	} else {
 		/* Preparing space for moving item headers in destination
 		 * node */
-		headers_size = sizeof(item40_header_t) * estimate.items;
-		
 		src = node40_ih_at(estimate.dst, dst_items - 1);
 		dst = src - headers_size;
 		
@@ -836,9 +812,31 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 		aal_memcpy(dst, src, headers_size);
 
 		/* Copying item bodies */
-		
+		ih = node40_ih_at(estimate.src, src_items - estimate.items);
+		src = estimate.src->block->data + ih40_get_offset(ih);
+		dst = node40_ib_at(estimate.dst, 0);
+
+		aal_memcpy(dst, src, estimate.bytes);
 	}
 	
+	/* Updating destination node fields */
+	nh40_set_free_space(estimate.dst, nh40_get_free_space(estimate.dst) -
+			    estimate.bytes - headers_size);
+
+	nh40_set_num_items(estimate.dst, dst_items + estimate.items);
+
+	/* Updating source node fields */
+	nh40_set_free_space(estimate.src, nh40_get_free_space(estimate.src) +
+			    estimate.bytes + headers_size);
+
+	nh40_set_num_items(estimate.src, src_items - estimate.items);
+	
+	/* Updating free space start field in the both nodes */
+	nh40_set_free_space_start(estimate.src, nh40_get_free_space_start(estimate.src) -
+				  estimate.bytes);
+
+	nh40_set_free_space_start(estimate.dst, nh40_get_free_space_start(estimate.dst) +
+				  estimate.bytes);
 	
 	/*
 	  If after moving the items we will have some amount of free space in

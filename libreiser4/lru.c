@@ -24,8 +24,8 @@ errno_t reiser4_lru_adjust(reiser4_lru_t *lru) {
 	
 	aal_assert("umka-1519", lru != NULL, return -1);
 
-	aal_exception_info("Shrinking tree cache on %u nodes.",
-			   lru->adjust);
+/*	aal_exception_info("Shrinking tree cache on %u nodes.",
+			   lru->adjust);*/
 	
 	if (!lru->adjustable)
 		lru->adjust = 1;
