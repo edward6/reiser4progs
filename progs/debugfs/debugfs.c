@@ -28,8 +28,8 @@ enum debugfs_print_flags {
     PF_SUPER	= 1 << 0,
     PF_JOURNAL	= 1 << 1,
     PF_ALLOC	= 1 << 2,
-    PF_OID	= 1 << 3,
-    PF_TREE	= 1 << 4
+    PF_OID	    = 1 << 3,
+    PF_TREE	    = 1 << 4
 };
 
 typedef enum debugfs_print_flags debugfs_print_flags_t;
@@ -69,16 +69,16 @@ static void debugfs_init(void) {
 /* Callback function used in traverse for opening the node */
 static errno_t debugfs_open_joint(
     reiser4_joint_t **joint,	/* joint to be opened */
-    blk_t blk, void *data	/* blk to pe opened and user-specified data */
-	) {
+    blk_t blk, void *data)	    /* blk to pe opened and user-specified data */
+{
     *joint = reiser4_tree_load((reiser4_tree_t *)data, blk);
     return -(*joint == NULL);
 }
 
 static errno_t debugfs_print_joint(
-    reiser4_joint_t *joint,	/* joint to be printed */
-    void *data			/* user-specified data */
-	) {
+    reiser4_joint_t *joint,	   /* joint to be printed */
+    void *data)			       /* user-specified data */
+{
     char buff[255];
     reiser4_node_t *node = joint->node;
     uint8_t level = plugin_call(return -1, node->entity->plugin->node_ops,
@@ -108,7 +108,7 @@ static errno_t debugfs_print_joint(
 			else
 				printf("(%u) EXTENT: len=%u, ", i, reiser4_item_len(&item));
 	    
-			if (reiser4_node_get_key(node, &pos, &key)) {
+			if (reiser4_item_get_key(&item, &key)) {
 				aal_exception_error("Can't get key of item %u in node %llu.",
 									i, aal_block_number(node->block));
 				return -1;
@@ -141,7 +141,7 @@ static errno_t debugfs_print_joint(
 				return -1;
 			}
 
-			if (reiser4_node_get_key(node, &pos, &key)) {
+			if (reiser4_item_get_key(&item, &key)) {
 				aal_exception_error("Can't get key of item %u in node %llu.",
 									i, aal_block_number(node->block));
 				return -1;

@@ -47,9 +47,6 @@ extern int reiser4_node_lookup(reiser4_node_t *node,
 
 extern int reiser4_node_confirm(reiser4_node_t *node);
 
-extern errno_t reiser4_node_get_key(reiser4_node_t *node, 
-    reiser4_pos_t *pos, reiser4_key_t *key);
-
 #ifndef ENABLE_COMPACT
 
 extern reiser4_node_t *reiser4_node_create(aal_device_t *device, 
@@ -60,9 +57,6 @@ extern errno_t reiser4_node_flush(reiser4_node_t *node);
 
 extern errno_t reiser4_node_insert(reiser4_node_t *node, 
     reiser4_pos_t *pos, reiser4_item_hint_t *hint);
-
-extern errno_t reiser4_node_set_key(reiser4_node_t *node, 
-    reiser4_pos_t *pos, reiser4_key_t *key);
 
 #endif
 

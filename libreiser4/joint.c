@@ -110,9 +110,10 @@ reiser4_joint_t *reiser4_joint_find(
 static errno_t reiser4_joint_neighbour_key(
     reiser4_joint_t *joint,	/* joint for working with */
     direction_t direction,	/* direction (left or right) */
-    reiser4_key_t *key		/* key pointer result should be stored */
-	) {
+    reiser4_key_t *key)		/* key pointer result should be stored */
+{
     reiser4_pos_t pos;
+	reiser4_item_t item;
     
     aal_assert("umka-770", joint != NULL, return -1);
     aal_assert("umka-771", key != NULL, return -1);
@@ -141,9 +142,11 @@ static errno_t reiser4_joint_neighbour_key(
     }
     
     pos.item += (direction == D_RIGHT ? 1 : -1);
-    reiser4_node_get_key(joint->parent->node, &pos, key);
-    
-    return 0;
+
+	if (reiser4_item_open(&item, joint->parent->node->entity, &pos))
+		return -1;
+	
+    return reiser4_item_get_key(&item, key);
 }
 
 /* Returns position of passed joint in parent node */
@@ -395,6 +398,7 @@ errno_t reiser4_joint_sync(
 errno_t reiser4_joint_update_key(reiser4_joint_t *joint, 
 								 reiser4_pos_t *pos, reiser4_key_t *key)
 {
+	reiser4_item_t item;
     reiser4_pos_t parent_pos;
     
     aal_assert("umka-999", joint != NULL, return -1);
@@ -403,8 +407,11 @@ errno_t reiser4_joint_update_key(reiser4_joint_t *joint,
     
     aal_assert("umka-1002", 
 			   reiser4_node_count(joint->node) > 0, return -1);
-    
-    if (reiser4_node_set_key(joint->node, pos, key))
+
+	if (reiser4_item_open(&item, joint->node->entity, pos))
+		return -1;
+	
+    if (reiser4_item_set_key(&item, key))
         return -1;
     
     if (pos->item == 0 && (pos->unit == ~0ul || pos->unit == 0)) {
@@ -487,9 +494,15 @@ errno_t reiser4_joint_remove(
 	   internal node.
     */
     if (joint->children) {
+		reiser4_item_t item;
 		reiser4_joint_t *child;
-	
-		reiser4_node_get_key(joint->node, pos, &key);
+
+		if (reiser4_item_open(&item, joint->node->entity, pos))
+			return -1;
+			
+		if (reiser4_item_get_key(&item, &key))
+			return -1;
+		
 		child = reiser4_joint_find(joint, &key);
         reiser4_joint_detach(joint, child);
     }
@@ -556,9 +569,14 @@ errno_t reiser4_joint_move(
     
     if (src_joint->children) {
         reiser4_key_t key;
+		reiser4_item_t item;
         reiser4_joint_t *child;
 
-        reiser4_node_get_key(src_joint->node, src_pos, &key);
+		if (reiser4_item_open(&item, src_joint->node->entity, src_pos))
+			return -1;
+		
+        if (reiser4_item_get_key(&item, &key))
+			return -1;
 	
         if ((child = reiser4_joint_find(src_joint, &key))) {
 			reiser4_joint_detach(src_joint, child);

@@ -30,7 +30,10 @@ extern errno_t reiser4_item_estimate(reiser4_item_t *item,
 
 #endif
 
-extern errno_t reiser4_item_key(reiser4_item_t *item, 
+extern errno_t reiser4_item_get_key(reiser4_item_t *item, 
+    reiser4_key_t *key);
+
+extern errno_t reiser4_item_set_key(reiser4_item_t *item, 
     reiser4_key_t *key);
 
 extern errno_t reiser4_item_max_poss_key(reiser4_item_t *item, 

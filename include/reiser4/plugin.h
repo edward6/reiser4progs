@@ -8,7 +8,7 @@
 
 #include <aal/aal.h>
 
-#define LEAF_LEVEL	    (1)
+#define LEAF_LEVEL	        (1)
 #define DEFAULT_BLOCKSIZE   (4096)
 
 #define MASTER_OFFSET	    (65536)
@@ -121,51 +121,51 @@ enum reiser4_hash_plugin_id {
 typedef enum reiser4_hash reiser4_hash_t;
 
 enum reiser4_tail_plugin_id {
-    TAIL_NEVER_ID		  = 0x0,
-    TAIL_SUPPRESS_ID	  = 0x1,
-    TAIL_FOURK_ID		  = 0x2,
-    TAIL_ALWAYS_ID		  = 0x3,
-    TAIL_SMART_ID		  = 0x4,
-    TAIL_LAST_ID		  = 0x5
+    TAIL_NEVER_ID		 = 0x0,
+    TAIL_SUPPRESS_ID	 = 0x1,
+    TAIL_FOURK_ID		 = 0x2,
+    TAIL_ALWAYS_ID		 = 0x3,
+    TAIL_SMART_ID		 = 0x4,
+    TAIL_LAST_ID		 = 0x5
 };
 
 enum reiser4_perm_plugin_id {
-    PERM_RWX_ID			  = 0x0
+    PERM_RWX_ID			 = 0x0
 };
 
 enum reiser4_sdext_plugin_id {
-    SDEXT_LW_ID			  = 0x0,
-    SDEXT_UNIX_ID		  = 0x1,
-    SDEXT_SYMLINK_ID	  = 0x2,
-    SDEXT_PLUGIN_ID		  = 0x3,
-    SDEXT_GEN_AND_FLGS_ID = 0x4,
-    SDEXT_CAPABILITIES_ID = 0x5,
-    SDEXT_LARGE_TIMES_ID  = 0x6
+    SDEXT_LW_ID			 = 0x0,
+    SDEXT_UNIX_ID		 = 0x1,
+    SDEXT_SYMLINK_ID	 = 0x2,
+    SDEXT_PLUGIN_ID		 = 0x3,
+    SDEXT_GEN_FLAGS_ID   = 0x4,
+    SDEXT_CAPS_ID        = 0x5,
+    SDEXT_LARGE_TIMES_ID = 0x6
 };
 
 enum reiser4_format_plugin_id {
-    FORMAT_REISER40_ID	  = 0x0,
-    FORMAT_REISER36_ID	  = 0x1
+    FORMAT_REISER40_ID	 = 0x0,
+    FORMAT_REISER36_ID	 = 0x1
 };
 
 enum reiser4_oid_plugin_id {
-    OID_REISER40_ID		  = 0x0,
-    OID_REISER36_ID		  = 0x1
+    OID_REISER40_ID		 = 0x0,
+    OID_REISER36_ID		 = 0x1
 };
 
 enum reiser4_alloc_plugin_id {
-    ALLOC_REISER40_ID	  = 0x0,
-    ALLOC_REISER36_ID	  = 0x1
+    ALLOC_REISER40_ID	 = 0x0,
+    ALLOC_REISER36_ID	 = 0x1
 };
 
 enum reiser4_journal_plugin_id {
-    JOURNAL_REISER40_ID	  = 0x0,
-    JOURNAL_REISER36_ID	  = 0x1
+    JOURNAL_REISER40_ID	 = 0x0,
+    JOURNAL_REISER36_ID	 = 0x1
 };
 
 enum reiser4_key_plugin_id {
-    KEY_REISER40_ID		  = 0x0,
-    KEY_REISER36_ID		  = 0x1
+    KEY_REISER40_ID		 = 0x0,
+    KEY_REISER36_ID		 = 0x1
 };
 
 typedef union reiser4_plugin reiser4_plugin_t;

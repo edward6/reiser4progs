@@ -16,8 +16,8 @@ reiser4_node_t *reiser4_node_create(
     aal_device_t *device,	/* device new node will be created on*/
     blk_t blk,			/* block new node will be created on */
     rpid_t pid,			/* node plugin id to be used */
-    uint8_t level		/* node level */
-	) {
+    uint8_t level)		/* node level */
+{
     reiser4_node_t *node;
     reiser4_plugin_t *plugin;
     
@@ -56,54 +56,33 @@ reiser4_node_t *reiser4_node_create(
 
 /* Saves specified node to its device */
 errno_t reiser4_node_sync(
-    reiser4_node_t *node	/* node to be save */
-	) {
+    reiser4_node_t *node)	/* node to be save */
+{
     aal_assert("umka-798", node != NULL, return -1);
     return aal_block_sync(node->block);
-}
-
-/* Updates key in specified position */
-errno_t reiser4_node_set_key(
-    reiser4_node_t *node,	/* node to be updated */
-    reiser4_pos_t *pos,		/* pos key will be updated in */
-    reiser4_key_t *key		/* key to be used */
-	) {
-    aal_assert("umka-804", node != NULL, return -1);
-    aal_assert("umka-805", key != NULL, return -1);
-    aal_assert("umka-938", pos != NULL, return -1);
-
-    plugin_call(return -1, node->entity->plugin->node_ops, 
-				set_key, node->entity, pos, key);
-    
-    return 0;
 }
 
 #endif
 
 /* This function is trying to detect node plugin */
 static reiser4_plugin_t *reiser4_node_guess(
-    aal_block_t *block		/* block node lies in */
-	) {
+    aal_block_t *block)		/* block node lies in */
+{
     rpid_t pid;
-    reiser4_plugin_t *plugin;
     
     aal_assert("umka-902", block != NULL, return NULL);
     
     pid = *((uint16_t *)block->data);
     
     /* Finding node plugin by its id from node header */
-    if (!(plugin = libreiser4_factory_ifind(NODE_PLUGIN_TYPE, pid))) {
-		/* FIXME-UMKA: Here will be further guessing code */
-    }
-
-    return plugin;
+    return libreiser4_factory_ifind(NODE_PLUGIN_TYPE, pid);
 }
 
 /* Opens node on specified device and block number */
 reiser4_node_t *reiser4_node_open(
     aal_device_t *device,	/* device node will be opened on */
-    blk_t blk			/* block number node will be opened on */
-	) {
+    blk_t blk)			/* block number node will be opened on */
+{
     reiser4_node_t *node;
     reiser4_plugin_t *plugin;
 
@@ -131,10 +110,10 @@ reiser4_node_t *reiser4_node_open(
     */
     if (!(node->entity = plugin_call(goto error_free_node, 
 									 plugin->node_ops, open, node->block)))
-		{
-			aal_exception_error("Can't initialize node entity.");
-			goto error_free_block;
-		}
+	{
+		aal_exception_error("Can't initialize node entity.");
+		goto error_free_block;
+	}
 	    
     return node;
     
@@ -164,17 +143,20 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 /* Gets left delemiting key from the specified node */
 errno_t reiser4_node_lkey(
     reiser4_node_t *node,	/* node the ldkey will be obtained from */
-    reiser4_key_t *key		/* key pointer found key will be stored in */
-	) {
+    reiser4_key_t *key)		/* key pointer found key will be stored in */
+{
     reiser4_pos_t pos;
+	reiser4_item_t item;
 
     aal_assert("umka-753", node != NULL, return -1);
     aal_assert("umka-754", key != NULL, return -1);
 
     reiser4_pos_init(&pos, 0, ~0ul);
-    reiser4_node_get_key(node, &pos, key);
 
-    return 0;
+	if (reiser4_item_open(&item, node->entity, &pos))
+		return -1;
+	
+    return reiser4_item_get_key(&item, key);
 }
 
 
@@ -206,7 +188,7 @@ errno_t reiser4_node_copy(reiser4_node_t *dst_node,
     hint.plugin = reiser4_item_plugin(&item);
     
     /* Getting the key of item that is going to be copied */
-    reiser4_node_get_key(src_node, src_pos, (reiser4_key_t *)&hint.key);
+    reiser4_item_get_key(&item, (reiser4_key_t *)&hint.key);
 
     /* Insering the item into new location */
     if (reiser4_node_insert(dst_node, dst_pos, &hint))
@@ -236,8 +218,8 @@ errno_t reiser4_node_move(reiser4_node_t *dst_node,
 */
 errno_t reiser4_node_split(
     reiser4_node_t *node,	/* node to be splitted */
-    reiser4_node_t *right	/* node right half of splitted node will be stored */
-	) {
+    reiser4_node_t *right)	/* node right half of splitted node will be stored */
+{
     uint32_t median;
     reiser4_pos_t dst_pos, src_pos;
     
@@ -259,8 +241,8 @@ errno_t reiser4_node_split(
 
 /* Checks node for validness */
 errno_t reiser4_node_valid(
-    reiser4_node_t *node	/* node to be checked */
-	) {
+    reiser4_node_t *node)	/* node to be checked */
+{
     aal_assert("umka-123", node != NULL, return -1);
     
     return plugin_call(return -1, node->entity->plugin->node_ops, 
@@ -283,8 +265,8 @@ int reiser4_node_confirm(reiser4_node_t *node) {
 int reiser4_node_lookup(
     reiser4_node_t *node,	/* node to be grepped */
     reiser4_key_t *key,		/* key to be find */
-    reiser4_pos_t *pos		/* found pos will be stored here */
-	) {
+    reiser4_pos_t *pos)		/* found pos will be stored here */
+{
     int lookup; 
     reiser4_item_t item;
     reiser4_key_t maxkey;
@@ -366,8 +348,8 @@ uint32_t reiser4_node_count(reiser4_node_t *node) {
 /* Removes specified by pos item from node */
 errno_t reiser4_node_remove(
     reiser4_node_t *node,	/* node item will be removed from */
-    reiser4_pos_t *pos		/* position item will be removed at */
-	) {
+    reiser4_pos_t *pos)		/* position item will be removed at */
+{
     aal_assert("umka-767", node != NULL, return -1);
     aal_assert("umka-768", pos != NULL, return -1);
 
@@ -395,10 +377,10 @@ errno_t reiser4_node_remove(
 
 /* Inserts item described by item hint into specified node at specified pos */
 errno_t reiser4_node_insert(
-    reiser4_node_t *node,	/* node new item will be inserted in */
-    reiser4_pos_t *pos,		/* position new item will be inserted at */
-    reiser4_item_hint_t *hint	/* item hint */
-	) {
+    reiser4_node_t *node,	    /* node new item will be inserted in */
+    reiser4_pos_t *pos,		    /* position new item will be inserted at */
+    reiser4_item_hint_t *hint)	/* item hint */
+{
     errno_t ret;
     
     aal_assert("vpf-111", node != NULL, return -1);
@@ -457,8 +439,8 @@ errno_t reiser4_node_insert(
 
 /* Returns node plugin id in use */
 uint16_t reiser4_node_pid(
-    reiser4_node_t *node	/* node pid to be obtained */
-	) {
+    reiser4_node_t *node)	/* node pid to be obtained */
+{
     aal_assert("umka-828", node != NULL, return FAKE_PLUGIN);
     
     return plugin_call(return 0, node->entity->plugin->node_ops,
@@ -488,29 +470,4 @@ uint16_t reiser4_node_maxspace(reiser4_node_t *node) {
     return plugin_call(return 0, node->entity->plugin->node_ops, 
 					   maxspace, node->entity);
 }
-
-/* Returns key from specified node at sepcified pos */
-errno_t reiser4_node_get_key(
-    reiser4_node_t *node,	/* node key will be got from */
-    reiser4_pos_t *pos,		/* pos key will be got at */
-    reiser4_key_t *key		/* place found key will be stored in */
-	) {
-    errno_t res;
-    
-    aal_assert("umka-565", node != NULL, return -1);
-    aal_assert("umka-803", key != NULL, return -1);
-    aal_assert("umka-947", pos != NULL, return -1);
-    
-    if ((res = plugin_call(return -1, node->entity->plugin->node_ops, 
-						   get_key, node->entity, pos, key)))
-		return res;
-
-    /* 
-	   FIXME-VITALY: when this guess will check key structure, plugin 
-	   should be set outside here. Fsck should be able to recover such 
-	   keys but it won't getting -1.
-    */
-    return -((key->plugin = reiser4_key_guess(&key->body)) == NULL);
-}
-
 

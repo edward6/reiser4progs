@@ -191,17 +191,32 @@ reiser4_body_t *reiser4_item_body(reiser4_item_t *item) {
 					   item_body, item->node, item->pos);
 }
 
-errno_t reiser4_item_key(reiser4_item_t *item, reiser4_key_t *key) {
-    aal_assert("umka-1215", item != NULL, return -1);
-    aal_assert("umka-1271", key != NULL, return -1);
-    
-    return plugin_call(return -1, item->node->plugin->node_ops, 
-					   get_key, item->node, item->pos, key);
-}
-
 reiser4_plugin_t *reiser4_item_plugin(reiser4_item_t *item) {
     aal_assert("umka-755", item != NULL, return NULL);
     return item->plugin;
+}
+
+errno_t reiser4_item_get_key(reiser4_item_t *item, reiser4_key_t *key) {
+	int ret;
+	
+    aal_assert("umka-1215", item != NULL, return -1);
+    aal_assert("umka-1271", key != NULL, return -1);
+    
+    ret = plugin_call(return -1, item->node->plugin->node_ops, 
+					  get_key, item->node, item->pos, key);
+
+	key->plugin = reiser4_key_guess(&key->body);
+	aal_assert("umka-1406", key->plugin != NULL, return -1);
+	
+    return ret && -(key->plugin == NULL);
+}
+
+errno_t reiser4_item_set_key(reiser4_item_t *item, reiser4_key_t *key) {
+    aal_assert("umka-1403", item != NULL, return -1);
+    aal_assert("umka-1404", key != NULL, return -1);
+
+    return plugin_call(return -1, item->node->plugin->node_ops, 
+					   set_key, item->node, item->pos, key);
 }
 
 errno_t reiser4_item_max_poss_key(reiser4_item_t *item, reiser4_key_t *key) {

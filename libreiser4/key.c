@@ -192,7 +192,7 @@ errno_t reiser4_key_set_objectid(
 /* Updates key locality */
 errno_t reiser4_key_set_locality(
     reiser4_key_t *key,	    /* key locality will be updated in */
-    roid_t locality		    /* new locality */
+    roid_t locality)	    /* new locality */
 {
     aal_assert("umka-696", key != NULL, return -1);
     aal_assert("umka-697", key->plugin != NULL, return -1);

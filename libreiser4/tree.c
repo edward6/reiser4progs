@@ -318,7 +318,7 @@ int reiser4_tree_lookup(
     blk_t target;
     int lookup, deep;
     
-    reiser4_key_t ldkey;
+    reiser4_key_t lkey;
     reiser4_item_t item;
     reiser4_coord_t fake;
     reiser4_joint_t *parent;
@@ -386,14 +386,14 @@ int reiser4_tree_lookup(
 		   Check whether specified node already in cache. If so, we use node
 		   from the cache.
 		*/
-		reiser4_node_get_key(coord->joint->node, &coord->pos, &ldkey);
+		reiser4_item_get_key(&item, &lkey);
 
-		if (!(coord->joint = reiser4_joint_find(parent, &ldkey))) {
+		if (!(coord->joint = reiser4_joint_find(parent, &lkey))) {
 			/* 
 			   Node was not found in the cache, we open it and attach to the 
 			   cache.
 			*/
-			if (!(coord->joint = reiser4_tree_load(tree, target/*, deep*/))) {
+			if (!(coord->joint = reiser4_tree_load(tree, target))) {
 				aal_exception_error("Can't load node %llu durring lookup.", target);
 				return -1;
 			}

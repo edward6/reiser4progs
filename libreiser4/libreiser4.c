@@ -184,7 +184,7 @@ static errno_t item_key(
     aal_assert("umka-870", item != NULL, return -1);
     aal_assert("umka-871", key != NULL, return -1);
 
-    return reiser4_item_key(item, key);
+    return reiser4_item_get_key(item, key);
 }
 
 /* Handler for plugin id requests */
@@ -200,15 +200,15 @@ static reiser4_plugin_t *item_plugin(
 /* Support for the %k occurences in the formated messages */
 #define PA_REISER4_KEY  (PA_LAST)
 
-static int __arginfo_k(const struct printf_info *info, size_t n, int *argtypes) {
+static int arginfo_k(const struct printf_info *info, size_t n, int *argtypes) {
     if (n > 0)
         argtypes[0] = PA_REISER4_KEY | PA_FLAG_PTR;
     
     return 1;
 }
 
-static int __print_key(FILE * stream, const struct printf_info *info, 
-					   const void *const *args) 
+static int print_key(FILE * stream, const struct printf_info *info, 
+					 const void *const *args) 
 {
     int len;
     char buffer[100];
@@ -306,7 +306,7 @@ errno_t libreiser4_init(void) {
     }
     
 #ifndef ENABLE_COMPACT
-    register_printf_function ('k', __print_key, __arginfo_k);
+    register_printf_function ('k', print_key, arginfo_k);
 #endif
     
     return 0;

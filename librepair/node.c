@@ -133,8 +133,9 @@ errno_t repair_node_ld_key(reiser4_key_t *ld_key, repair_check_t *data,
 	internal pointers.
     */
     if (path_length > 0)
-	return reiser4_node_get_key(repair_cut_node_at(data, path_length), item->pos, 
-	    ld_key);
+/*	return reiser4_node_get_key(repair_cut_node_at(data, path_length), item->pos, 
+	ld_key);*/
+		return reiser4_item_get_key(item, ld_key);
 
     reiser4_key_minimal(ld_key);
     
@@ -166,8 +167,15 @@ errno_t repair_node_rd_key(reiser4_key_t *rd_key, repair_check_t *data,
 	} else {
 	    pos = *item->pos;
 	    pos.item++;
-	    return reiser4_node_get_key(repair_cut_node_at(data, path_length), &pos,
-		rd_key);
+/*	    return reiser4_node_get_key(repair_cut_node_at(data, path_length), &pos,
+		rd_key);*/
+		
+		/* FIXME-UMKA->VITALY: Here should be more convenient way */
+		{
+			reiser4_item_t fake;
+			reiser4_item_open(&fake, item->node, &pos);
+			return reiser4_item_get_key(&fake, rd_key);
+		}
 	}
     }
 
@@ -203,7 +211,12 @@ static errno_t repair_node_dkeys_check(reiser4_node_t *node,
     }
     
     reiser4_pos_init(&pos, 0, ~0ul);
-    if (reiser4_node_get_key(node, &pos, &key)) {
+	
+    if (repair_item_open(&item, node, &pos))
+		return -1;
+	
+/*    if (reiser4_node_get_key(node, &pos, &key)) {*/
+	if (reiser4_item_get_key(&item, &key)) {
 	aal_exception_error("Node (%llu): Failed to get the left key.",
 	    aal_block_number(node->block));
 	return -1;
@@ -268,11 +281,16 @@ static errno_t repair_node_keys_check(reiser4_node_t *node,
     
     pos.item = reiser4_node_count(node) - 1;
     do {
-	if (reiser4_node_get_key(node, &pos, &key)) {
+		reiser4_item_t item;
+		if (reiser4_item_open(&item, node->entity, &pos))
+			return -1;
+/*	if (reiser4_node_get_key(node, &pos, &key)) {*/
+	if (reiser4_item_get_key(&item, &key)) {
 	    aal_exception_error("Node (%llu): Failed to get the key of the "
 		"item (%u).", aal_block_number(node->block), pos.item);
 	    return -1;
 	}
+	
 	if (reiser4_key_valid(&key)) {
 	    aal_exception_error("Node (%llu): The key %k of the item (%u) is "
 		"not valid. Item removed.", aal_block_number(node->block), 
@@ -284,6 +302,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node,
 		return -1;
 	    }
 	}
+	
 	if (pos.item) {	    
 	    if ((res = reiser4_key_compare(&prev_key, &key)) > 0 || 
 		(res == 0 && (reiser4_key_get_type(&key) != KEY_FILENAME_TYPE ||
