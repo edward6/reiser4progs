@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
 
 				reiser4_object_link(dir, object, name);
 
-				for (j = 0; j < 200; j++) {
+				for (j = 0; j < 2000; j++) {
 					reiser4_object_write(object, name,
 							     aal_strlen(name));
 				}

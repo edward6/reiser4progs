@@ -309,6 +309,7 @@ static errno_t extent40_estimate_insert(place_t *place, uint32_t pos,
 		hint->len = sizeof(extent40_t);
 	} else {
 		key_entity_t key;
+		extent40_t *extent;
 		key_entity_t maxkey;
 		
 		uint64_t ins_offset;
@@ -316,19 +317,26 @@ static errno_t extent40_estimate_insert(place_t *place, uint32_t pos,
 
 		/* Check if we will need to create addition unit. If so we need
 		   space for this new unit. */
+		extent = extent40_body(place);
+
 		extent40_get_key(place, pos, &key);
 		extent40_maxreal_key(place, &maxkey);
 
-		ins_offset = plug_call(key.plug->o.key_ops,
-				       get_offset, &key);
+		/* Write offset initializing */
+		ins_offset = (plug_call(key.plug->o.key_ops,
+					get_offset, &key) +
+			      hint->offset);
 
 		max_offset = plug_call(maxkey.plug->o.key_ops,
 				       get_offset, &maxkey);
 
-		if (ins_offset + hint->offset +
-		    hint->count > max_offset)
-		{
-			hint->len = sizeof(extent40_t);
+		if (ins_offset + hint->count > max_offset) {
+			uint32_t unit;
+
+			unit = extent40_unit(place, ins_offset);
+
+			if (et40_get_start(extent + unit) != 1)
+				hint->len = sizeof(extent40_t);
 		}
 	}
 
@@ -352,12 +360,6 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 
 	blksize = extent40_blksize(place);
 	extent = extent40_body(place) + pos;
-	
-	/* Forming extent unit */
-	if (hint->len) {
-		et40_set_start(extent, 1);
-		et40_set_width(extent, 0);
-	}
 	
 	/* Getting offset of block data will be written in. */
 	extent40_get_key(place, pos, &key);
@@ -383,9 +385,11 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 				return -ENOMEM;
 			}
 
-			core->tree_ops.set_data(hint->tree, &key, block);
-			et40_inc_width(extent, 1);
 			hint->bytes += blksize;
+			et40_set_start(extent, 1);
+			et40_inc_width(extent, 1);
+			
+			core->tree_ops.set_data(hint->tree, &key, block);
 		}
 
 		/* Writting data to @block */
