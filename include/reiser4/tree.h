@@ -54,7 +54,7 @@ extern errno_t reiser4_tree_remove(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_shift(reiser4_tree_t *tree,
 				  reiser4_coord_t *coord,
-				  reiser4_node_t *node,
+				  reiser4_node_t *neig,
 				  uint32_t flags);
 
 extern errno_t reiser4_tree_shrink(reiser4_tree_t *tree,

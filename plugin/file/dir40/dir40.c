@@ -64,42 +64,46 @@ static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
 	return core->factory_ops.ifind(HASH_PLUGIN_TYPE, HASH_R5_ID);
 }
 
+static int dir40_mergeable(item_entity_t *item1,
+			   item_entity_t *item2)
+{
+	reiser4_plugin_t *plugin1;
+	reiser4_plugin_t *plugin2;
+	
+	plugin1 = item1->plugin;
+	plugin2 = item2->plugin;
+
+	/* Checking if items are mergeable */
+	if (!plugin_equal(plugin1, plugin2))
+		return 0;
+
+	/*
+	  Calling item's mergeable methods for determining if they are mergeable
+	  or not.
+	*/
+	return plugin_call(plugin1->item_ops, mergeable,
+			   item1, item2);
+}
+
 /* Makes position onto next direntry item */
 static int dir40_next(dir40_t *dir) {
-	uint32_t units;
-	item_entity_t *item;
-
 	reiser4_place_t right;
 	reiser4_plugin_t *this_plugin;
 	reiser4_plugin_t *right_plugin;
 
-	item = &dir->body.item;
-	
-	units = plugin_call(item->plugin->item_ops, units, item);
-	
-	if (dir->body.pos.unit < units)
-		return 0;
-	
 	/*
-	  Getting the right neighbour. While key40 is using, next direntry item
-	  will lie in the right neighbour node. Probably we should do here like
-	  reg40_next does. And namely do not access rigfht neighbour, but rather
-	  perform lookup with current hash plus one and then check if found item
-	  is mergeable with current one.
+	  Getting the right neighbour node of the node current item lies
+	  in. While key40 is in use, next direntry item will lie in the right
+	  neighbour node. Probably we should do here like reg40_next does. And
+	  namely do not access right neighbour, but rather perform lookup with
+	  current hash plus one and then check if found item is mergeable with
+	  current one or not.
 	*/
 	if (core->tree_ops.right(dir->file.tree, &dir->body, &right))
 		return 0;
 
-	right_plugin = right.item.plugin;
-	this_plugin = dir->body.item.plugin;
-
-	/* Checking if items are mergeable */
-	if (!plugin_equal(this_plugin, right_plugin))
-		return 0;
-	
-	if (!plugin_call(this_plugin->item_ops, mergeable, &right.item,
-			 &dir->body.item))
-		return 0;
+	if (!dir40_mergeable(&right.item, &dir->body.item))
+		return ABSENT;
 	
 	file40_unlock(&dir->file, &dir->body);
 	file40_lock(&dir->file, &right);
@@ -118,6 +122,7 @@ static int32_t dir40_read(object_entity_t *entity,
 	uint64_t size;
 	uint32_t read;
 	uint32_t chunk;
+	uint32_t units;
 
 	item_entity_t *item;
 	reiser4_entry_hint_t *entry;
@@ -138,12 +143,14 @@ static int32_t dir40_read(object_entity_t *entity,
 		n = size - dir->offset;
 	
 	entry = (reiser4_entry_hint_t *)buff;
+	
+	item = &dir->body.item;
+
+	units = plugin_call(item->plugin->item_ops,
+			    units, item);
 
 	/* Loop until requested data is read */
-	for (read = 0; read < n; read += chunk) {
-		uint32_t units;
-		
-		item = &dir->body.item;
+	for (read = 0; read < n; entry += chunk) {
 		
 		if ((chunk = n - read) == 0)
 			return read;
@@ -157,11 +164,21 @@ static int32_t dir40_read(object_entity_t *entity,
 			return read;
 
 		/* Updating positions */
-		entry += chunk;
+		read += chunk;
 		dir->offset += chunk;
 		dir->body.pos.unit += chunk;
 
-		dir40_next(dir);
+		/* Getting next direntry item to be current */
+		if (dir->body.pos.unit >= units) {
+			
+			if (dir40_next(dir) != PRESENT)
+				break;
+
+			item = &dir->body.item;
+
+			units = plugin_call(item->plugin->item_ops,
+					    units, item);
+		}
 	}
     
 	return read;

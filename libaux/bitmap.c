@@ -23,7 +23,7 @@ do {								        \
 
 /* 
   Checks whether passed block is inside of bitmap and marks it. This function
-  also increses marked block counter.
+  also increases marked block counter.
 */
 void aux_bitmap_mark(
 	aux_bitmap_t *bitmap,	    /* bitmap instance passed bit will be marked in */
@@ -90,11 +90,11 @@ int aux_bitmap_test(
 
 /* 
   Checks whether passed range of blocks is inside of bitmap and marks
-  blocks. This function also increses marked block counter.
+  blocks. This function also increseas marked block counter.
 */
 void aux_bitmap_mark_region(
-	aux_bitmap_t *bitmap,	    /* bitmap range of bits to be marked in */
-	uint64_t start,		    /* start bit of the range */
+	aux_bitmap_t *bitmap,	    /* bitmap for working with */
+	uint64_t start,		    /* start bit of the region */
 	uint64_t count)		    /* bit count to be marked */
 {
 	aal_assert("vpf-472", bitmap != NULL, return);

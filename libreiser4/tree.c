@@ -747,28 +747,130 @@ errno_t reiser4_tree_dryup(reiser4_tree_t *tree) {
 errno_t reiser4_tree_shift(
 	reiser4_tree_t *tree,	/* tree we will operate on */
 	reiser4_coord_t *coord,	/* insert point coord */
-	reiser4_node_t *node,	/* node items will be shifted to */
+	reiser4_node_t *neig,	/* node items will be shifted to */
 	uint32_t flags)	        /* some flags (direction, move ip or not, etc) */
 {
+	rpos_t pos;
+	uint32_t i, items;
+	reiser4_key_t lkey;
+	
 	shift_hint_t hint;
+	reiser4_node_t *node;
 
 	aal_assert("umka-1225", tree != NULL, return -1);
 	aal_assert("umka-1226", coord != NULL, return -1);
-	aal_assert("umka-1227", node != NULL, return -1);
+	aal_assert("umka-1227", neig != NULL, return -1);
     
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	hint.control = flags;
 	hint.pos = coord->pos;
+
+	node = coord->node;
 	
-	if (reiser4_node_shift(coord->node, node, &hint) < 0)
+	/*
+	  Saving node position in parent. It will be used bellow for updating
+	  left delemiting key.
+	*/
+	if (hint.control & SF_LEFT) {
+		if (node->parent) {
+			if (reiser4_node_pos(node, &pos)) {
+				aal_exception_error("Can't find node %llu in "
+						    "its parent node.", node->blk);
+				return -1;
+			}
+		}
+	} else {
+		if (neig->parent) {
+			if (reiser4_node_pos(neig, &pos)) {
+				aal_exception_error("Can't find node %llu in "
+						    "its parent node.", neig->blk);
+				return -1;
+			}
+		}
+	}
+	
+	if (reiser4_node_shift(node, neig, &hint))
 		return -1;
 
 	coord->pos = hint.pos;
 
 	if (hint.result & SF_MOVIP)
-		coord->node = node;
+		coord->node = neig;
 
+	if (hint.items > 0 || hint.units > 0) {
+		reiser4_node_mkdirty(node);
+		reiser4_node_mkdirty(neig);
+	}
+	
+	/* Updating left delimiting keys in the tree */
+	if (hint.control & SF_LEFT) {
+		
+		if (reiser4_node_items(node) != 0 &&
+		    (hint.items > 0 || hint.units > 0))
+		{
+			if (node->parent) {
+				if (reiser4_node_lkey(node, &lkey))
+					return -1;
+				
+				if (reiser4_node_ukey(node->parent, &pos, &lkey))
+					return -1;
+			}
+		}
+	} else {
+		if (hint.items > 0 || hint.units > 0) {
+
+			if (neig->parent) {
+				if (reiser4_node_lkey(neig, &lkey))
+					return -1;
+				
+				if (reiser4_node_ukey(neig->parent, &pos, &lkey))
+					return -1;
+			}
+		}
+	}
+
+	/* We do not need update children lists if we are on leaf level */
+	if (reiser4_node_level(node) <= LEAF_LEVEL)
+		return 0;
+
+	/* Updating children lists in node and its neighbour */
+	items = reiser4_node_items(neig);
+	
+	for (i = 0; i < hint.items; i++) {
+		uint32_t units;
+		
+		reiser4_coord_t coord;
+		reiser4_node_t *child;
+		reiser4_ptr_hint_t ptr;
+
+		POS_INIT(&pos, (hint.control & SF_LEFT) ?
+			 items - i - 1 : i, ~0ul);
+
+		if (reiser4_coord_open(&coord, neig, &pos))
+			return -1;
+
+		units = reiser4_item_units(&coord);
+		
+		if (!reiser4_item_branch(&coord))
+			continue;
+
+		for (pos.unit = 0; pos.unit < units; pos.unit++) {
+			
+			plugin_call(coord.item.plugin->item_ops,
+				    read, &coord.item, &ptr, pos.unit, 1);
+			
+			if (!(child = reiser4_node_cbp(node, ptr.ptr)))
+				continue;
+
+			reiser4_node_unregister(node, child);
+
+			if (reiser4_node_register(neig, child))
+				return -1;
+		}
+
+	}
+	
 	return 0;
 }
 

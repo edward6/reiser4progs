@@ -98,6 +98,12 @@ extern errno_t reiser4_node_attach(reiser4_node_t *node,
 extern void reiser4_node_detach(reiser4_node_t *node,
 				reiser4_node_t *child);
 
+extern errno_t reiser4_node_register(reiser4_node_t *node,
+				     reiser4_node_t *child);
+
+extern void reiser4_node_unregister(reiser4_node_t *node,
+				    reiser4_node_t *child);
+
 extern int reiser4_node_lookup(reiser4_node_t *node,
 			       reiser4_key_t *key,
 			       rpos_t *pos);
