@@ -20,6 +20,11 @@ struct reg40 {
 
 	/* Current position in the reg file */
 	reiser4_key_t position;
+	
+#ifndef ENABLE_STAND_ALONE
+	/* File body plugin is use. */
+	reiser4_plug_t *body_plug;
+#endif
 };
 
 typedef struct reg40 reg40_t;
@@ -35,7 +40,7 @@ extern errno_t reg40_seek(object_entity_t *entity,
 
 extern errno_t reg40_reset(object_entity_t *entity);
 extern uint64_t reg40_offset(object_entity_t *entity);
-extern lookup_t reg40_update_body(object_entity_t *entity);
+extern lookup_t reg40_update_body(reg40_t *reg);
 
 extern reiser4_plug_t *reg40_policy_plug(reg40_t *reg,
 					 uint64_t new_size);

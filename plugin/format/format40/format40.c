@@ -233,7 +233,6 @@ static generic_entity_t *format40_create(fs_desc_t *desc,
 	format40_super_t *super;
     
 	aal_assert("umka-395", desc != NULL);
-	aal_assert("umka-2649", blocks > 0);
 
 	/* Initializing format instance. */
 	if (!(format = aal_calloc(sizeof(*format), 0)))

@@ -44,7 +44,6 @@ static int reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 			    uint64_t counted_size) 
 {
 	reg40_t *reg = (reg40_t *)obj;
-	reiser4_plug_t *plug;
 	
 	aal_assert("vpf-1318", reg != NULL);
 	aal_assert("vpf-1318", sd_size != NULL);
@@ -53,9 +52,7 @@ static int reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 		return 0;
 	
 	/* sd_size lt counted size, check if it is correct for extent. */
-	plug = reg40_policy_plug(reg, counted_size);
-
-	if (plug->id.group == EXTENT_ITEM) {
+	if (reg->body_plug->id.group == EXTENT_ITEM) {
 		/* The last extent block can be not used up. */
 		if (*sd_size + STAT_PLACE(obj)->node->block->size > counted_size)
 			return 0;
@@ -63,6 +60,7 @@ static int reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 	
 	/* SD size is not correct. */
 	*sd_size = counted_size;
+	
 	return 1;
 }
 
@@ -130,27 +128,18 @@ static errno_t reg40_check_ikey(reg40_t *reg) {
 	return offset % reg->body.node->block->size ? RE_FATAL : 0;
 }
 
-typedef struct reg40_repair {
-	reiser4_plug_t *bplug;
-	uint64_t maxreal;
-} reg40_repair_t;
-
-static errno_t reg40_next(object_entity_t *object, 
-			  reg40_repair_t *repair,
-			  uint8_t mode)
-{
+static errno_t reg40_next(object_entity_t *object, uint8_t mode) {
 	reg40_t *reg = (reg40_t *)object;
 	object_info_t *info;
 	trans_hint_t hint;
 	errno_t res;
 	
 	aal_assert("vpf-1344", object != NULL);
-	aal_assert("vpf-1345", repair != NULL);
 	
 	info = &reg->obj.info;
 
  start:
-	if ((res = reg40_update_body(object)) < 0)
+	if ((res = reg40_update_body(reg)) < 0)
 		return res;
 
 	if (res == ABSENT) {
@@ -240,16 +229,15 @@ static errno_t reg40_next(object_entity_t *object,
 
 /* Returns 1 if the convertion is needed right now, 0 if should be delayed. */
 static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
-			      reg40_repair_t *repair, uint8_t mode)
+			      uint64_t maxreal, uint8_t mode)
 {
 	object_info_t *info;
 	
 	aal_assert("vpf-1348", reg != NULL);
 	aal_assert("vpf-1349", hint != NULL);
-	aal_assert("vpf-1350", repair != NULL);
 	aal_assert("vpf-1353", reg->body.plug != NULL);
 	
-	if (plug_equal(reg->body.plug, repair->bplug))
+	if (plug_equal(reg->body.plug, reg->body_plug))
 		return 0;
 
 	info = &reg->obj.info;
@@ -282,7 +270,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 	/* The current item should be converted to the body plug. 
 	   Gather all items of the same wrong plug and convert them 
 	   all together at once later. */
-	hint->plug = repair->bplug;
+	hint->plug = reg->body_plug;
 	
 	if (hint->offset.plug == NULL) {
 		plug_call(reg->body.key.plug->o.key_ops, assign,
@@ -292,7 +280,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 	}
 
 	/* Count of bytes 0-this item offset. */
-	hint->count = repair->maxreal + 1 - 
+	hint->count = maxreal + 1 - 
 		plug_call(reg->body.key.plug->o.key_ops,
 			  get_offset, &hint->offset);
 
@@ -363,10 +351,10 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 {
 	reg40_t *reg = (reg40_t *)object;
 	obj40_stat_hint_t hint;
-	reg40_repair_t repair;
 	obj40_stat_ops_t ops;
 	object_info_t *info;
 	conv_hint_t conv;
+	uint64_t maxreal;
 	errno_t res = 0;
 	uint64_t size;
 
@@ -386,7 +374,6 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	if (func && func(&info->start, data))
 		return -EINVAL;
 	
-	aal_memset(&repair, 0, sizeof(repair));
 	aal_memset(&conv, 0, sizeof(conv));
 
 	conv.place_func = func;
@@ -395,7 +382,7 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	while (1) {
 		errno_t result;
 		
-		if ((result = reg40_next(object, &repair, mode)) < 0)
+		if ((result = reg40_next(object, mode)) < 0)
 			return result;
 		
 		if (result) {
@@ -404,12 +391,12 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 		}
 		
 		if (reg->body.plug) {
-			repair.maxreal = reg40_place_maxreal(&reg->body);
+			maxreal = reg40_place_maxreal(&reg->body);
 			
-			if (!repair.bplug)
-				repair.bplug = reg->body.plug;
+			if (!reg->body_plug)
+				reg->body_plug = reg->body.plug;
 			
-			if (repair.maxreal == MAX_UINT64) {
+			if (maxreal == MAX_UINT64) {
 				uint64_t offset;
 				
 				offset = plug_call(reg->body.key.plug->o.key_ops,
@@ -436,7 +423,7 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 			} else {
 				/* Prepare the convertion if needed. */
 				result = reg40_conv_prepare(reg, &conv, 
-							    &repair, mode);
+							    maxreal, mode);
 			}
 		}
 	
@@ -499,11 +486,11 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 		
 next:
 		/* The limit is reached. */
-		if (repair.maxreal == MAX_UINT64)
+		if (maxreal == MAX_UINT64)
 			break;
 		
 		/* Find the next after the maxreal key. */
-		reg40_seek(object, repair.maxreal + 1);
+		reg40_seek(object, maxreal + 1);
 	}
 	
 	

@@ -55,10 +55,8 @@ static void reg40_close(object_entity_t *entity) {
 }
 
 /* Updates body place in correspond to file offset. */
-lookup_t reg40_update_body(object_entity_t *entity) {
-	reg40_t *reg = (reg40_t *)entity;
-
-	aal_assert("umka-1161", entity != NULL);
+lookup_t reg40_update_body(reg40_t *reg) {
+	aal_assert("umka-1161", reg != NULL);
 	
 	/* Getting the next body item from the tree */
 	return obj40_find_item(&reg->obj, &reg->position, 
@@ -152,7 +150,17 @@ static object_entity_t *reg40_open(object_info_t *info) {
 
 	/* Reseting file (setting offset to 0) */
 	reg40_reset((object_entity_t *)reg);
-	
+
+#ifndef ENABLE_STAND_ALONE
+	/* Get the body plugin in use. */
+	if (reg40_update_body(reg) <= 0) {
+		aal_free(reg);
+		return NULL;
+	}
+
+	reg->body_plug = reg->body.plug;
+#endif
+
 	return (object_entity_t *)reg;
 }
 
@@ -188,6 +196,7 @@ static object_entity_t *reg40_create(object_hint_t *hint) {
 
 	/* Reset file. */
 	reg40_reset((object_entity_t *)reg);
+
 	return (object_entity_t *)reg;
 
  error_free_reg:
@@ -294,44 +303,34 @@ static errno_t reg40_convert(object_entity_t *entity,
 static errno_t reg40_check_body(object_entity_t *entity,
 				uint64_t new_size)
 {
+	reiser4_plug_t *plug;
 	reg40_t *reg;
-	uint64_t fsize;
-
-	reiser4_plug_t *body_plug;
-	reiser4_plug_t *policy_plug;
 	
 	aal_assert("umka-2395", entity != NULL);
 
 	reg = (reg40_t *)entity;
-	fsize = reg40_size(entity);
 	
 	/* There is nothing to convert? */
-	if (!fsize || !new_size)
+	if (!reg->body_plug || !new_size)
 		return 0;
 
-	/* Getting policy plugin. It will be used for new file body items and
-	   old body items will be converted to. */
-	if (!(policy_plug = reg40_policy_plug(reg, new_size))) {
-		aal_error("Can't get body plugin for new file size %llu.",
-			  new_size);
+	/* Getting item plugin that should be used according to 
+	   the current tail policy plugin. */
+	if (!(plug = reg40_policy_plug(reg, new_size))) {
+		aal_error("Can't get body plugin for new "
+			  "file size %llu.", new_size);
 		return -EIO;
 	}
 
-	/* Getting old file body plugin. This is needed for comparing with new
-	   body plugin, told us by tail policy plugin. */
-	if (!(body_plug = reg40_policy_plug(reg, fsize))) {
-		aal_error("Can't get body plugin for old file size %llu.",
-			  fsize);
-		return -EIO;
-	}
-		
 	/* Comparing new plugin and old one. If they are the same, conversion if
 	   not needed. */
-	if (plug_equal(policy_plug, body_plug))
+	if (plug_equal(plug, reg->body_plug))
 		return 0;
 
 	/* Convert file. */
-	return reg40_convert(entity, policy_plug);
+	reg->body_plug = plug;
+	
+	return reg40_convert(entity, plug);
 }
 
 /* Writes passed data to the file. Returns amount of data on disk, that is
@@ -342,7 +341,6 @@ int64_t reg40_put(object_entity_t *entity, void *buff,
 	reg40_t *reg;
 	int64_t written;
 	trans_hint_t hint;
-	uint64_t new_offset;
 
 	reg = (reg40_t *)entity;
 
@@ -356,15 +354,10 @@ int64_t reg40_put(object_entity_t *entity, void *buff,
 	hint.region_func = NULL;
 	hint.shift_flags = SF_DEFAULT;
 	hint.place_func = place_func;
+	hint.plug = reg->body_plug;
 	
 	plug_call(reg->position.plug->o.key_ops,
 		  assign, &hint.offset, &reg->position);
-
-	/* Getting file plugin for new offset. */
-	new_offset = reg40_offset(entity) + n;
-	
-	if (!(hint.plug = reg40_policy_plug(reg, new_offset)))
-		return -EIO;
 
 	/* Write data to tree. */
 	if ((written = obj40_write(&reg->obj, &hint)) < 0)
@@ -419,7 +412,7 @@ static int64_t reg40_write(object_entity_t *entity,
 	int64_t bytes;
 	uint64_t size;
 	uint64_t offset;
-	
+
 	aal_assert("umka-2281", entity != NULL);
 
 	reg = (reg40_t *)entity;
@@ -427,8 +420,7 @@ static int64_t reg40_write(object_entity_t *entity,
 	offset = reg40_offset(entity);
 
 	/* Convert body items if needed. */
-	if ((offset + n > size) && (res = reg40_check_body(entity, offset + n)))
-	{
+	if ((res = reg40_check_body(entity, offset + n))) {
 		aal_error("Can't perform tail conversion.");
 		return res;
 	}
@@ -437,8 +429,8 @@ static int64_t reg40_write(object_entity_t *entity,
 	if (offset > size) {
 		uint64_t hole = offset - size;
 
-		/* Seek back to size of hole, as reg40_put() uses @reg->position
-		   as data write offset. */
+		/* Seek back to size of hole, as reg40_put() uses 
+		   @reg->position as data write offset. */
 		reg40_seek(entity, offset - hole);
 
 		/* Put a hole of size @hole. */
@@ -587,7 +579,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 		reiser4_place_t *place = &reg->body;
 		
 		/* Update current body coord. */
-		if ((res = reg40_update_body(entity)) < 0)
+		if ((res = reg40_update_body(reg)) < 0)
 			return res;
 
 		/* Check if file stream is over. */
@@ -649,7 +641,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		reiser4_key_t maxkey;
 		
 		/* Update body place. */
-		if ((res = reg40_update_body(entity)) < 0)
+		if ((res = reg40_update_body(reg)) < 0)
 			return res;
 
 		/* Check if file stream is over. */
