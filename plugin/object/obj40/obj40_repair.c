@@ -10,6 +10,7 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "obj40.h"
+#include "obj40_repair.h"
 #include <repair/plugin.h>
 
 /* Checks that @obj->info.start is SD of the wanted file.  */
@@ -189,5 +190,71 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	return res;
 }
 
-#endif
+/* Fix @place->key if differs from @key. */
+errno_t obj40_ukey(obj40_t *obj, place_t *place, 
+		   key_entity_t *key, uint8_t mode) 
+{
+	errno_t res;
+	
+	aal_assert("vpf-1218", obj != NULL);
+	
+	if (!key->plug->o.key_ops->compfull(key, &place->key))
+		return 0;
+	
+	aal_exception_error("Node (%llu), item(%u): the key [%s] of the "
+			    "item is wrong, %s [%s]. Plugin (%s).", 
+			    place->block->nr, place->pos.unit, 
+			    obj->core->key_ops.print(&place->key, PO_DEF),
+			    mode == RM_BUILD ? "fixed to" : "should be", 
+			    obj->core->key_ops.print(key, PO_DEF), 
+			    obj->plug->label);
+	
+	if (mode != RM_BUILD)
+		return RE_FATAL;
+	
+	if ((res = obj->core->tree_ops.ukey(obj->info.tree, place, key))) {
+		aal_exception_error("Node (%llu), item(%u): update of the "
+				    "item key failed.", place->block->nr,
+				    place->pos.unit);
+	}
 
+	return res;
+}
+
+/* Verbose wrapper for obj40_create_stat depending on the repair mode. Used 
+   when SD is not found while recovery. This is the special case and usually 
+   is not used as object plugin cannot be realized w/out SD. Used for for "/"
+   and "lost+found" recovery. */
+errno_t obj40_recreate_stat(obj40_t *obj, uint32_t nlink, 
+			    uint16_t fmode, uint8_t mode) 
+{
+	key_entity_t *key;
+	uint64_t pid;
+	errno_t res;
+	
+	key = &obj->info.object;
+	
+	aal_exception_error("Regfile [%s] does not have a StatData item.%s"
+			    "Plugin %s.", core->key_ops.print(key, PO_INO),
+			    mode == RM_BUILD ? " Creating a new one." : "",
+			    obj->plug->label);
+
+	if (mode != RM_BUILD)
+		return RE_FATAL;
+	
+	pid = core->profile_ops.value("statdata");
+	
+	if (pid == INVAL_PID)
+		return -EINVAL;
+	
+	if ((res = obj40_create_stat(obj, pid,  0, 0, nlink, fmode))) {
+		aal_exception_error("Regfile [%s] failed to create a "
+				    "StatData item. Plugin %s.", 
+				    core->key_ops.print(key, PO_INO),
+				    obj->plug->label);
+	}
+	
+	return res;
+}
+
+#endif

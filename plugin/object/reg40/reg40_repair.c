@@ -10,6 +10,7 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "reg40.h"
+#include <plugin/object/obj40/obj40_repair.h>
 #include "repair/plugin.h"
 
 extern reiser4_plug_t reg40_plug;
@@ -90,73 +91,6 @@ object_entity_t *reg40_realize(object_info_t *info) {
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-/* Fix place key if differs from @key. */
-static errno_t reg40_ukey(reg40_t *reg, place_t *place, key_entity_t *key, 
-			  uint8_t mode) 
-{
-	object_info_t *info;
-	errno_t res;
-	
-	aal_assert("vpf-1218", reg != NULL);
-	
-	info = &reg->obj.info;
-	
-	if (!key->plug->o.key_ops->compfull(key, &place->key))
-		return 0;
-	
-	aal_exception_error("Node (%llu), item(%u): the key [%s] of the "
-			    "item is wrong, %s [%s]. Plugin (%s).", 
-			    place->block->nr, place->pos.unit, 
-			    core->key_ops.print(&place->key, PO_DEF),
-			    mode == RM_BUILD ? "fixed to" : "should be", 
-			    core->key_ops.print(key, PO_DEF), 
-			    reg->obj.plug->label);
-	
-	if (mode != RM_BUILD)
-		return RE_FATAL;
-	
-	if ((res = core->tree_ops.ukey(info->tree, place, key))) {
-		aal_exception_error("Node (%llu), item(%u): update of the "
-				    "item key failed.", place->block->nr,
-				    place->pos.unit);
-	}
-
-	return res;
-}
-
-static errno_t reg40_recreate_stat(reg40_t *reg, uint8_t mode) {
-	key_entity_t *key;
-	uint64_t pid;
-	errno_t res;
-	
-	key = &reg->obj.info.object;
-	
-	aal_exception_error("Regfile [%s] does not have a StatData item.%s"
-			    "Plugin %s.", core->key_ops.print(key, PO_INO),
-			    mode == RM_BUILD ? " Creating a new one." : "",
-			    reg->obj.plug->label);
-
-	if (mode != RM_BUILD)
-		return RE_FATAL;
-	
-	pid = core->profile_ops.value("statdata");
-	
-	if (pid == INVAL_PID)
-		return -EINVAL;
-	
-	/* SD not found, create a new one. Special case and not used in 
-	   reg40. Usualy objects w/out SD are skipped as they just fail 
-	   to realize themselves. */
-	if ((res = obj40_create_stat(&reg->obj, pid,  0, 0, 0, S_IFREG))) {
-		aal_exception_error("Regfile [%s] failed to create a "
-				    "StatData item. Plugin %s.", 
-				    core->key_ops.print(key, PO_INO),
-				    reg->obj.plug->label);
-	}
-	
-	return res;
-}
-
 typedef struct layout_hint {
 	object_entity_t *entity;
 	region_func_t region_func;
@@ -184,7 +118,7 @@ static void reg40_check_mode(uint16_t *mode) {
 static void reg40_check_size(uint64_t *sd_size, uint64_t counted_size) {
         /* FIXME-VITALY: This is not correct for extents as the last
            block can be not used completely. Where to take the policy
-           plugin to figure out if size is correct? */
+           plugin to figure out if the size is correct? */
         if (*sd_size < counted_size)
                 *sd_size = counted_size;
 }
@@ -239,7 +173,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 		if ((res = obj40_stat(&reg->obj, reg40_extentions)) < 0)
 			return res;
 		
-		if (res && (res = reg40_recreate_stat(reg, mode)))
+		if (res && (res = obj40_recreate_stat(&reg->obj, 0, 
+						      S_IFREG, mode)))
 			return res;
 	} else {
 		/* If SD is not correct. Fix it if needed. */
@@ -263,7 +198,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
-	if ((res = reg40_ukey(reg, &info->start, &info->object, mode)))
+	if ((res = obj40_ukey(&reg->obj, &info->start, &info->object, mode)))
 		return res;
 	
 	/* Build the start key of the body. */
@@ -307,7 +242,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 				return -EINVAL;
 
 			/* Fix item key if differs. */
-			if ((res |= reg40_ukey(reg, &reg->body, 
+			if ((res |= obj40_ukey(&reg->obj, &reg->body, 
 					       &key, mode)) < 0)
 				return res;
 		} 

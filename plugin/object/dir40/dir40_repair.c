@@ -10,6 +10,7 @@
 #ifndef ENABLE_STAND_ALONE
 
 #include "dir40.h"
+#include <plugin/object/obj40/obj40_repair.h>
 #include "repair/plugin.h"
 
 extern reiser4_plug_t dir40_plug;
@@ -94,73 +95,6 @@ object_entity_t *dir40_realize(object_info_t *info) {
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-/* Fix place key if differs from @key. */
-static errno_t dir40_ukey(dir40_t *dir, place_t *place, key_entity_t *key, 
-			  uint8_t mode) 
-{
-	object_info_t *info;
-	errno_t res;
-	
-	aal_assert("vpf-1218", dir != NULL);
-	
-	info = &dir->obj.info;
-	
-	if (!key->plug->o.key_ops->compfull(key, &place->key))
-		return 0;
-	
-	aal_exception_error("Node (%llu), item(%u): the key [%s] of the "
-			    "item is wrong, %s [%s]. Plugin (%s).", 
-			    place->block->nr, place->pos.unit, 
-			    core->key_ops.print(&place->key, PO_DEF),
-			    mode == RM_BUILD ? "fixed to" : "should be", 
-			    core->key_ops.print(key, PO_DEF), 
-			    dir->obj.plug->label);
-	
-	if (mode != RM_BUILD)
-		return RE_FATAL;
-	
-	if ((res = core->tree_ops.ukey(info->tree, place, key))) {
-		aal_exception_error("Node (%llu), item(%u): update of the "
-				    "item key failed.", place->block->nr,
-				    place->pos.unit);
-	}
-
-	return res;
-}
-
-/* SD not found, create a new one. This is a special case and is not used 
-   usually (only for "/" and "lost+found" recovery), but just skipped as 
-   cannot be realized by any plugin. */
-static errno_t dir40_recreate_stat(dir40_t *dir, uint8_t mode) {
-	key_entity_t *key;
-	uint64_t pid;
-	errno_t res;
-	
-	key = &dir->obj.info.object;
-	
-	aal_exception_error("Dirfile [%s] does not have a StatData item.%s"
-			    "Plugin %s.", core->key_ops.print(key, PO_INO),
-			    mode == RM_BUILD ? " Creating a new one." : "",
-			    dir->obj.plug->label);
-	
-	if (mode != RM_BUILD)
-		return RE_FATAL;
-	
-	pid = core->profile_ops.value("statdata");
-	
-	if (pid == INVAL_PID)
-		return -EINVAL;
-	
-	if ((res = obj40_create_stat(&dir->obj, pid, 0, 0,  1, S_IFDIR))) {
-		aal_exception_error("Dirfile [%s] failed to create "
-				    "a StatData item. Plugin %s.",
-				    core->key_ops.print(key, PO_INO),
-				    dir->obj.plug->label);
-	}
-	
-	return res;
-}
-
 static void dir40_one_nlink(uint32_t *nlink) {
 	*nlink = 1;
 }
@@ -209,8 +143,9 @@ errno_t dir40_check_struct(object_entity_t *object,
 		if ((res = obj40_stat(&dir->obj, dir40_extentions)) < 0)
 			return res;
 		
-		if (res && (res = dir40_recreate_stat(dir, mode)))
-			return res;
+		if (res && (res = obj40_recreate_stat(&dir->obj, 1, 
+						      S_IFDIR, mode)))
+				return res;
 	} else {
 		/* If SD is not correct. Fix it if needed. */
 		uint64_t extmask;
@@ -233,7 +168,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
-	if ((res |= dir40_ukey(dir, &info->start, &info->object, mode)))
+	if ((res |= obj40_ukey(&dir->obj, &info->start, &info->object, mode)))
 		return res;
 	
 	while (TRUE) {

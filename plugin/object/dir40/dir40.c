@@ -486,9 +486,9 @@ static object_entity_t *dir40_create(object_info_t *info,
     
 	aal_memset(&body_hint, 0, sizeof(body_hint));
 	
-	/* Initializing direntry item hint. This should be done before the stat
-	   data item hint, because we will need size of direntry item durring
-	   stat data initialization. */
+	/* Initializing direntry item hint. This should be done before the 
+	   stat data item hint, because we will need size of direntry item 
+	   durring stat data initialization. */
    	body_hint.count = 1;
 	body_hint.plug = body_plug;
 	
@@ -535,22 +535,15 @@ static object_entity_t *dir40_create(object_info_t *info,
 	}
 	
         /* Looking for place to insert directory body */
-	switch (obj40_lookup(&dir->obj, &body_hint.key,
-			     LEAF_LEVEL, &dir->body))
+	if (obj40_lookup(&dir->obj, &body_hint.key, LEAF_LEVEL, 
+			 &dir->body) != ABSENT)
 	{
-	case FAILED:
-	case PRESENT:
 		goto error_free_body;
-	default:
-		break;
 	}
 	
 	/* Inserting the direntry item into the tree */
-	if (obj40_insert(&dir->obj, &body_hint,
-			 LEAF_LEVEL, &dir->body))
-	{
+	if (obj40_insert(&dir->obj, &body_hint, LEAF_LEVEL, &dir->body))
 		goto error_free_body;
-	}
 
 	if (dir40_reset((object_entity_t *)dir))
 		goto error_free_body;
