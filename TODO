@@ -23,9 +23,6 @@ reiser4progs/COPYING.
 
 * few disk-format changes (direntry format, big digits storing in stat data)
 
-* extent hint for inserting extents into the tree 
-* unit_key function into item plugin 
-
 * --print-file option in debugfs for printing nodes
   specified file lies in.
 
@@ -33,7 +30,6 @@ reiser4progs/COPYING.
   directories.
 
 * symlinks and special files browsing in debugfs.
-* creating extents code in extent40 plugin.
 
 * insert an extent among internals may require perform shift and
   insert an item (nor extent or nodeptr) may require to perform so
@@ -46,3 +42,5 @@ reiser4progs/COPYING.
   up to the libreiser4 level.
 
 * add overwriting ability to balancing code
+
+* update of unit key function
