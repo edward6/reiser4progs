@@ -33,7 +33,8 @@ static errno_t callback_blk_mark(object_entity_t *entity, blk_t blk, void *data)
     aal_assert("vpf-558", region->bm_scan != NULL, return -1);
     aal_assert("vpf-560", entity != NULL, return -1);
 
-    plugin_call(return -1, entity->plugin->alloc_ops, mark, entity, blk);
+    /* FIXME: what do we need this line for? */
+    /* plugin_call(return -1, entity->plugin->alloc_ops, mark, entity, blk); */
     
     if (!aux_bitmap_test(region->bm_used, blk))
 	aux_bitmap_mark(region->bm_scan, blk);
@@ -78,6 +79,9 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
 	    "formatted blocks.");
 	return -1;
     }
+	    
+    region.bm_used = ds->bm_used;	    
+    region.bm_scan = ds->bm_scan;
 
     /* FIXME-VITALY: optimize it later somehow. */
     /* Build a bitmap of blocks which are not in the tree yet. */
@@ -85,9 +89,6 @@ static errno_t repair_ds_setup(repair_data_t *rd) {
 	if (aux_bitmap_test(ds->bm_used, i) && 
 	    !reiser4_alloc_test(rd->fs->alloc, i)) 
 	{
-	    region.bm_used = ds->bm_used;
-	    region.bm_scan = ds->bm_scan;
-
 	    /* Block was met as formatted, but unused in on-disk block 
 	     * allocator. Looks like the bitmap block of the allocator
 	     * has not been synced on disk. Scan through all its blocks. */
@@ -137,7 +138,12 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 
 	res = repair_node_check(node, ds->bm_used);
 	
-	if (res < 0)
+	if (res > 0) {
+	    /* Node was not recovered, save it as formatted. */
+	    aux_bitmap_mark(ds->bm_frmt, blk);
+	    reiser4_node_close(node);
+	    continue;
+	} else if (res < 0)
 	    goto error_node_close;
 
 	if (level == TWIG_LEVEL) {
@@ -149,8 +155,7 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 	    pos->unit = ~0ul;
 	    count = reiser4_node_items(node);
 	    
-	    for (pos->item = 0; pos->item < count; pos->item++) 
-	    {
+	    for (pos->item = 0; pos->item < count; pos->item++) {
 		if (reiser4_coord_realize(&coord)) {
 		    aal_exception_error("Node (%llu), item (%u): failed to open"
 			" the item.", node->blk, pos->item);
@@ -168,18 +173,14 @@ errno_t repair_ds_pass(repair_data_t *rd) {
 		    pos->item--;
 		}
 	    }
-	    
+
 	    if (reiser4_node_items(node) == 0)
 		reiser4_node_mkclean(coord.node);
-	}
+	    else 
+		aux_bitmap_mark(ds->bm_twig, blk);
+	} else
+	    aux_bitmap_mark(ds->bm_leaf, blk);
 	
-	/* If node was not recovered - mark it as formatted, otherwise mark it 
-	 * as leaf or twig correspondently. */
-	if (res > 0) 
-	    aux_bitmap_mark(ds->bm_frmt, blk);
-	else 
-	    aux_bitmap_mark(level == LEAF_LEVEL ? ds->bm_leaf : ds->bm_twig, blk);
-
 	reiser4_node_close(node);
     }
     
