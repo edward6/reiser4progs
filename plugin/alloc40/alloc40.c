@@ -49,7 +49,7 @@ static errno_t callback_fetch_bitmap(reiser4_entity_t *format,
     
     aal_memcpy(current, block->data + CRC_SIZE, size);
     
-    aal_memcpy((void *)(alloc->crc + (blk / size / 8) * CRC_SIZE), 
+    aal_memcpy((void *)(alloc->crc + ((blk / size / 8) * CRC_SIZE)), 
 	block->data, CRC_SIZE);
     
     aal_block_free(block);
@@ -67,7 +67,7 @@ static reiser4_entity_t *alloc40_open(reiser4_entity_t *format,
     aal_device_t *device;
     reiser4_layout_func_t layout;
     
-    uint32_t blocksize, crcsize;
+    uint32_t blocksize, crcsize, mapsize;
     
     aal_assert("umka-364", format != NULL, return NULL);
 
@@ -84,8 +84,9 @@ static reiser4_entity_t *alloc40_open(reiser4_entity_t *format,
 	return NULL;
     
     blocksize = aal_device_get_bs(device) - CRC_SIZE;
+    mapsize = (((len - 1) / blocksize / 8) + 1) * blocksize;
     
-    if (!(alloc->bitmap = reiser4_bitmap_create(len)))
+    if (!(alloc->bitmap = reiser4_bitmap_create(len, mapsize)))
 	goto error_free_alloc;
   
     crcsize = (alloc->bitmap->size / blocksize) * CRC_SIZE;
@@ -131,7 +132,7 @@ static reiser4_entity_t *alloc40_create(reiser4_entity_t *format,
     alloc40_t *alloc;
     aal_device_t *device;
     
-    uint32_t blocksize, crcsize;
+    uint32_t blocksize, crcsize, mapsize;
 
     aal_assert("umka-365", format != NULL, return NULL);
 	
@@ -148,8 +149,9 @@ static reiser4_entity_t *alloc40_create(reiser4_entity_t *format,
 	return NULL;
 
     blocksize = aal_device_get_bs(device) - CRC_SIZE;
+    mapsize = (((len - 1) / blocksize / 8) + 1) * blocksize;
     
-    if (!(alloc->bitmap = reiser4_bitmap_create(len)))
+    if (!(alloc->bitmap = reiser4_bitmap_create(len, mapsize)))
 	goto error_free_alloc;
   
     crcsize = (alloc->bitmap->size / blocksize) * CRC_SIZE;

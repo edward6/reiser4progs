@@ -62,21 +62,15 @@ static errno_t reg40_reset(reiser4_entity_t *entity) {
 	return -1;
     }
     
-    /* 
-	FIXME-UMKA: Here should be the initializing of reg file body plugin and
-       	pointer to body itself.
-    */
-    
-/*    if (!(reg->direntry.plugin = 
+    if (!(reg->body.plugin = 
 	core->factory_ops.plugin_ifind(ITEM_PLUGIN_TYPE, pid)))
     {
 	aal_exception_error("Can't find item plugin by its id 0x%x.", pid);
 	return -1;
     }
     
-    if (core->tree_ops.item_body(dir->tree, &dir->place, 
-	    &dir->direntry.body, NULL))
-        return -1;*/
+    if (core->tree_ops.item_body(reg->tree, &reg->place, &reg->body.body, NULL))
+        return -1;
     
     reg->offset = 0;
     reg->place.pos.unit = 0;
@@ -225,16 +219,6 @@ static reiser4_entity_t *reg40_create(const void *tree,
 	goto error_free_reg;
     }
     
-    /* FIXME-UMKA: Here should be the initializing of some kind of body plugin */
-/*    if (!(reg->direntry.plugin = 
-	core->factory_ops.plugin_ifind(ITEM_PLUGIN_TYPE, hint->direntry_pid)))
-    {
-	aal_exception_error("Can't find direntry item plugin by its id 0x%x.", 
-	    hint->direntry_pid);
-	
-	goto error_free_dir;
-    }*/
-
     /* Initializing the stat data hint */
     aal_memset(&stat_hint, 0, sizeof(stat_hint));
     
@@ -245,10 +229,12 @@ static reiser4_entity_t *reg40_create(const void *tree,
 	assign, stat_hint.key.body, object->body);
     
     /* Initializing stat data item hint. */
-    stat.mode = S_IFDIR | 0755;
+    stat.mode = S_IFREG | 0755;
     stat.extmask = 1 << SDEXT_UNIX_ID;
     stat.nlink = 2;
-    stat.size = 2;
+
+    /* File size, should be changed by truncate */
+    stat.size = 0;
     
     unix_ext.uid = getuid();
     unix_ext.gid = getgid();
@@ -257,7 +243,7 @@ static reiser4_entity_t *reg40_create(const void *tree,
     unix_ext.ctime = time(NULL);
     unix_ext.rdev = 0;
 
-    /* FIXME-UMKA: Here should be real file size in bytes */
+    /* Taken space, should be changed by write */
     unix_ext.bytes = 0;
 
     stat.extentions.count = 1;
@@ -272,30 +258,19 @@ static reiser4_entity_t *reg40_create(const void *tree,
 	goto error_free_reg;
     }
     
-    /* FIXME-UMKA: Here should be inserting file body in the tree */
-/*    if (core->tree_ops.item_insert(tree, &direntry_hint)) {
-	aal_exception_error("Can't insert direntry item of object 0x%llx into "
-	    "the thee.", objectid);
-	goto error_free_dir;
-    }*/
-    
     reg->key.plugin = object->plugin;
     plugin_call(goto error_free_reg, object->plugin->key_ops,
 	assign, reg->key.body, object->body);
     
     /* Grabbing the stat data item */
     if (reg40_realize(reg)) {
-      
 	aal_exception_error("Can't grab stat data of file 0x%llx.", 
 	    reg40_objectid(reg));
-	
 	goto error_free_reg;
     }
 
-    if (reg40_reset((reiser4_entity_t *)reg)) {
-	aal_exception_error("Can't reset file 0x%llx.", reg40_objectid(reg));
-	goto error_free_reg;
-    }
+    reg->offset = 0;
+    reg->place.pos.unit = 0;
     
     return (reiser4_entity_t *)reg;
 

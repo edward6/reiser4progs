@@ -44,7 +44,7 @@ extern count_t reiser4_bitmap_calc_used_in_area(reiser4_bitmap_t *bitmap,
 extern count_t reiser4_bitmap_calc_unused_in_area(reiser4_bitmap_t *bitmap, 
     blk_t start, blk_t end);
 
-extern reiser4_bitmap_t *reiser4_bitmap_create(count_t len);
+extern reiser4_bitmap_t *reiser4_bitmap_create(count_t len, uint32_t size);
 extern reiser4_bitmap_t *reiser4_bitmap_clone(reiser4_bitmap_t *bitmap);
 
 extern void reiser4_bitmap_close(reiser4_bitmap_t *bitmap);
