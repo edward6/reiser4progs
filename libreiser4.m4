@@ -27,7 +27,7 @@ AC_CHECK_LIB(reiser4, reiser4_fs_open, ,
     http://www.namesys.com/pub/reiser4progs])]
 $3)
 
-AC_MSG_CHECKING(for libreiser4 - version >= $1)
+AC_MSG_CHECKING(for libreiser4 version >= $1)
 
 AC_TRY_LINK_FUNC(libreiser4_version,,
     AC_MSG_RESULT(failed)
@@ -59,9 +59,9 @@ int main() {
 	exit(1);
     }
 	
-    if ((major >= $libreiser4_config_major_version) ||
+    if ((major >= $libreiser4_config_major_version) &&
 	((major == $libreiser4_config_major_version) && 
-	(minor >= $libreiser4_config_minor_version)) ||
+	(minor >= $libreiser4_config_minor_version)) &&
 	((major == $libreiser4_config_major_version) && 
 	(minor == $libreiser4_config_minor_version) && 
 	(micro >= $libreiser4_config_micro_version))) 
@@ -70,11 +70,11 @@ int main() {
     } else {
 	printf("\nAn old version of libreiser4 (%s) was found.\n",
 	    version);
-	printf("You need a version of libreiser4 newer than %d.%d.%d.\n",
-	    $libreiser4_config_major_version, 
-	    $libreiser4_config_minor_version,
-	    $libreiser4_config_micro_version);
-	printf("You can get it at - http://www.namesys.com/pub/reiser4progs\n");
+	printf("You need a version of libreiser4 newer than or "
+            "equal to %d.%d.%d.\n", $libreiser4_config_major_version, 
+	    $libreiser4_config_minor_version, $libreiser4_config_micro_version);
+
+	printf("You can get it at http://www.namesys.com/pub/reiser4progs\n");
 	return 1;
     }
 }

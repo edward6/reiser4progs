@@ -76,15 +76,15 @@ static errno_t tree_insert(
 	void *tree,	            /* opaque pointer to the tree */
 	place_t *place,	            /* insertion point will be saved here */
 	uint8_t level,              /* target level */
-	create_hint_t *item)        /* item hint to be inserted into tree */
+	create_hint_t *hint)        /* item hint to be inserted into tree */
 {
 	aal_assert("umka-846", tree != NULL);
-	aal_assert("umka-847", item != NULL);
+	aal_assert("umka-847", hint != NULL);
 	aal_assert("umka-1643", place != NULL);
 
 	return reiser4_tree_insert((reiser4_tree_t *)tree,
 				   (reiser4_place_t *)place,
-				   level, item);
+				   level, hint);
 }
 
 /* Handler for item removing requests from the all plugins */
