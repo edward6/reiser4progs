@@ -5,14 +5,6 @@
   reiser4progs/COPYING.
 */
 
-/*
-  Returns TRUE if passed value is power of two, FALSE otherwise. This function
-  is used for checking block size for validness.
-*/
-int aal_pow_of_two(unsigned long n) {
-	return (n & -n) == n;
-}
-
 /* Retuns log2 of passed value */
 int aal_log2(unsigned long n) {
 	unsigned long x;
@@ -22,6 +14,13 @@ int aal_log2(unsigned long n) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+/*
+  Returns TRUE if passed value is power of two, FALSE otherwise. This function
+  is used for checking block size for validness.
+*/
+int aal_pow_of_two(unsigned long n) {
+	return (n & -n) == n;
+}
 
 /* Calculates factorial */
 long long int aal_fact(long long int n) {
@@ -81,5 +80,4 @@ unsigned int aal_adler32(char *buff, unsigned int n) {
     
 	return (s2 << 16) | s1;
 }
-
 #endif

@@ -489,11 +489,11 @@ static reiser4_plugin_t sym40_plugin = {
 		.truncate     = NULL,
 		.rem_entry    = NULL,
 		.add_entry    = NULL,
+		.seek	      = NULL,
 #endif
 		.lookup	      = NULL,
 		.reset	      = NULL,
 		.offset	      = NULL,
-		.seek	      = NULL,
 		.size         = NULL,
 		.readdir      = NULL,
 		.telldir      = NULL,

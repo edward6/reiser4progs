@@ -20,13 +20,13 @@ extern reiser4_object_t *reiser4_object_open(reiser4_fs_t *fs,
 extern int32_t reiser4_object_read(reiser4_object_t *object,
 				   void *buff, uint64_t n);
 
+extern errno_t reiser4_object_seekdir(reiser4_object_t *object,
+				      reiser4_key_t *offset);
+
 extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      reiser4_entry_hint_t *entry);
 
 extern errno_t reiser4_object_telldir(reiser4_object_t *object,
-				      reiser4_key_t *offset);
-
-extern errno_t reiser4_object_seekdir(reiser4_object_t *object,
 				      reiser4_key_t *offset);
 
 extern lookup_t reiser4_object_lookup(reiser4_object_t *object,
@@ -38,6 +38,8 @@ extern errno_t reiser4_object_stat(reiser4_object_t *object);
 extern uint64_t reiser4_object_size(reiser4_object_t *object);
 
 #ifndef ENABLE_STAND_ALONE
+extern errno_t reiser4_object_seek(reiser4_object_t *object,
+				   uint32_t offset);
 
 extern reiser4_object_t *reiser4_object_begin(reiser4_fs_t *fs,
 					      reiser4_place_t *place);
@@ -78,8 +80,5 @@ extern errno_t reiser4_object_metadata(reiser4_object_t *object,
 extern errno_t reiser4_object_reset(reiser4_object_t *object);
 
 extern uint32_t reiser4_object_offset(reiser4_object_t *object);
-
-extern errno_t reiser4_object_seek(reiser4_object_t *object,
-				   uint32_t offset);
 
 #endif

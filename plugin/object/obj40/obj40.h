@@ -55,25 +55,20 @@ extern lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 
 extern errno_t obj40_fini(obj40_t *obj);
 
-
-extern uint16_t obj40_get_mode(obj40_t *obj);
-extern uint64_t obj40_get_size(obj40_t *obj);
-extern uint32_t obj40_get_nlink(obj40_t *obj);
-extern uint32_t obj40_get_atime(obj40_t *obj);
-extern uint32_t obj40_get_mtime(obj40_t *obj);
-extern uint64_t obj40_get_bytes(obj40_t *obj);
-extern errno_t obj40_get_sym(obj40_t *obj, char *data);
-
 extern errno_t obj40_read_lw(item_entity_t *item,
 			     reiser4_sdext_lw_hint_t *lw_hint);
 
-extern errno_t obj40_read_unix(item_entity_t *item,
-			       reiser4_sdext_unix_hint_t *unix_hint);
+#ifdef ENABLE_SYMLINKS_SUPPORT
+extern errno_t obj40_get_sym(obj40_t *obj, char *data);
+#endif
 
 #ifndef ENABLE_STAND_ALONE
 
 extern errno_t obj40_write_lw(item_entity_t *item,
 			      reiser4_sdext_lw_hint_t *lw_hint);
+
+extern errno_t obj40_read_unix(item_entity_t *item,
+			       reiser4_sdext_unix_hint_t *unix_hint);
 
 extern errno_t obj40_write_unix(item_entity_t *item,
 				reiser4_sdext_unix_hint_t *unix_hint);
@@ -84,7 +79,16 @@ extern errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink);
 extern errno_t obj40_set_atime(obj40_t *obj, uint32_t atime);
 extern errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime);
 extern errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes);
+
+extern uint16_t obj40_get_mode(obj40_t *obj);
+extern uint32_t obj40_get_nlink(obj40_t *obj);
+extern uint32_t obj40_get_atime(obj40_t *obj);
+extern uint32_t obj40_get_mtime(obj40_t *obj);
+extern uint64_t obj40_get_bytes(obj40_t *obj);
+
+#ifdef ENABLE_SYMLINKS_SUPPORT
 extern errno_t obj40_set_sym(obj40_t *obj, char *data);
+#endif
 
 extern errno_t obj40_link(obj40_t *obj, uint32_t value);
 
@@ -96,6 +100,7 @@ extern errno_t obj40_insert(obj40_t *obj, reiser4_item_hint_t *hint,
 
 #endif
 
+extern uint64_t obj40_get_size(obj40_t *obj);
 extern errno_t obj40_lock(obj40_t *obj, place_t *place);
 extern errno_t obj40_unlock(obj40_t *obj, place_t *place);
 

@@ -966,10 +966,10 @@ static reiser4_plugin_t dir40_plugin = {
 		.truncate     = dir40_truncate,
 		.add_entry    = dir40_add_entry,
 		.rem_entry    = dir40_rem_entry,
+		.seek	      = NULL,
 		.write        = NULL,
 #endif
 		.follow       = NULL,
-		.seek	      = NULL,
 		.read         = NULL,
 		.offset       = NULL,
 		
@@ -978,9 +978,9 @@ static reiser4_plugin_t dir40_plugin = {
 		.reset	      = dir40_reset,
 		.lookup	      = dir40_lookup,
 		.size	      = dir40_size,
+		.seekdir      = dir40_seekdir,
 		.readdir      = dir40_readdir,
-		.telldir      = dir40_telldir,
-		.seekdir      = dir40_seekdir
+		.telldir      = dir40_telldir
 	}
 };
 

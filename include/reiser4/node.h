@@ -84,6 +84,7 @@ extern errno_t reiser4_node_write(reiser4_node_t *dst_node, pos_t *dst_pos,
 				  reiser4_node_t *src_node, pos_t *src_pos,
 				  uint32_t count, write_hint_t *hint);
 
+extern bool_t reiser4_node_confirm(reiser4_node_t *node);
 extern uint16_t reiser4_node_space(reiser4_node_t *node);
 extern uint16_t reiser4_node_overhead(reiser4_node_t *node);
 extern uint16_t reiser4_node_maxspace(reiser4_node_t *node);
@@ -114,7 +115,6 @@ extern errno_t reiser4_node_lock(reiser4_node_t *node);
 extern errno_t reiser4_node_unlock(reiser4_node_t *node);
 extern errno_t reiser4_node_close(reiser4_node_t *node);
 
-extern bool_t reiser4_node_confirm(reiser4_node_t *node);
 extern uint32_t reiser4_node_items(reiser4_node_t *node);
 
 #define reiser4_node_mkdirty(node) (node->flags |= NF_DIRTY)

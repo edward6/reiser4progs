@@ -350,16 +350,18 @@ errno_t reiser4_node_disconnect(
 	return 0;
 }
 
+#ifndef ENABLE_STAND_ALONE
 bool_t reiser4_node_confirm(reiser4_node_t *node) {
 	aal_assert("umka-123", node != NULL);
     
 	return plugin_call(node->entity->plugin->node_ops, 
 			   confirm, node->entity);
 }
+#endif
 
 /* 
   This function makes search inside specified node for passed key. Position will
-  eb stored in passed @pos.
+  be stored in passed @pos.
 */
 lookup_t reiser4_node_lookup(
 	reiser4_node_t *node,	/* node to be grepped */

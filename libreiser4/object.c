@@ -249,7 +249,6 @@ reiser4_object_t *reiser4_object_open(
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* This function opens object by its @place */
 reiser4_object_t *reiser4_object_begin(
 	reiser4_fs_t *fs,               /* fs object will be opened on */
@@ -638,17 +637,7 @@ int32_t reiser4_object_read(
 			   read, object->entity, buff, n);
 }
 
-/* Retutns current position in directory */
-uint32_t reiser4_object_offset(
-	reiser4_object_t *object)    /* dir position will be obtained from */
-{
-	aal_assert("umka-875", object != NULL);
-	aal_assert("umka-876", object->entity != NULL);
-
-	return plugin_call(object->entity->plugin->object_ops, 
-			   offset, object->entity);
-}
-
+#ifndef ENABLE_STAND_ALONE
 /* Seeks directory current position to passed pos */
 errno_t reiser4_object_seek(
 	reiser4_object_t *object,    /* object where position shopuld be changed */
@@ -662,6 +651,18 @@ errno_t reiser4_object_seek(
 	
 	return plugin_call(object->entity->plugin->object_ops, 
 			   seek, object->entity, offset);
+}
+#endif
+
+/* Retutns current position in directory */
+uint32_t reiser4_object_offset(
+	reiser4_object_t *object)    /* dir position will be obtained from */
+{
+	aal_assert("umka-875", object != NULL);
+	aal_assert("umka-876", object->entity != NULL);
+
+	return plugin_call(object->entity->plugin->object_ops, 
+			   offset, object->entity);
 }
 
 /* Reads entry at current @object offset to passed @entry hint */

@@ -683,6 +683,9 @@ struct reiser4_object_ops {
 	  counting, etc.
 	*/
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
+
+	/* Change current position to passed value */
+	errno_t (*seek) (object_entity_t *, uint64_t);
 #endif
 	
 	/* Opens file with specified key */
@@ -700,9 +703,6 @@ struct reiser4_object_ops {
 	/* Returns file size */
 	uint64_t (*size) (object_entity_t *);
 
-	/* Change current position to passed value */
-	errno_t (*seek) (object_entity_t *, uint64_t);
-
 	/* Makes lookup inside file */
 	lookup_t (*lookup) (object_entity_t *, char *,
 			    reiser4_entry_hint_t *);
@@ -717,11 +717,11 @@ struct reiser4_object_ops {
 	errno_t (*readdir) (object_entity_t *,
 			    reiser4_entry_hint_t *);
 
-	/* Change current position in directory */
-	errno_t (*seekdir) (object_entity_t *, key_entity_t *);
-
 	/* Return current position in dirctory */
 	errno_t (*telldir) (object_entity_t *, key_entity_t *);
+
+	/* Change current position in directory */
+	errno_t (*seekdir) (object_entity_t *, key_entity_t *);
 };
 
 typedef struct reiser4_object_ops reiser4_object_ops_t;

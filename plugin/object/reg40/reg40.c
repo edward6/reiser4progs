@@ -477,6 +477,19 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	return 0;
 }
 
+static errno_t reg40_seek(object_entity_t *entity, 
+			  uint64_t offset) 
+{
+	reg40_t *reg;
+	
+	aal_assert("umka-1968", entity != NULL);
+
+	reg = (reg40_t *)entity;
+	reg->offset = offset;
+
+	return 0;
+}
+
 #endif
 
 static void reg40_close(object_entity_t *entity) {
@@ -497,19 +510,6 @@ static void reg40_close(object_entity_t *entity) {
 static uint64_t reg40_offset(object_entity_t *entity) {
 	aal_assert("umka-1159", entity != NULL);
 	return ((reg40_t *)entity)->offset;
-}
-
-static errno_t reg40_seek(object_entity_t *entity, 
-			  uint64_t offset) 
-{
-	reg40_t *reg;
-	
-	aal_assert("umka-1968", entity != NULL);
-
-	reg = (reg40_t *)entity;
-	reg->offset = offset;
-
-	return 0;
 }
 
 static reiser4_plugin_t reg40_plugin = {
@@ -535,6 +535,7 @@ static reiser4_plugin_t reg40_plugin = {
 		.metadata     = reg40_metadata,
 		.link         = reg40_link,
 		.unlink       = reg40_unlink,
+		.seek	      = reg40_seek,
 		
 		.add_entry    = NULL,
 		.rem_entry    = NULL,
@@ -549,7 +550,6 @@ static reiser4_plugin_t reg40_plugin = {
 		.close	      = reg40_close,
 		.reset	      = reg40_reset,
 		.offset	      = reg40_offset,
-		.seek	      = reg40_seek,
 		.size         = reg40_size,
 		.read	      = reg40_read
 	}

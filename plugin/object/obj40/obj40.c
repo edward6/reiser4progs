@@ -76,8 +76,17 @@ errno_t obj40_read_lw(item_entity_t *item,
 	return 0;
 }
 
-#ifndef ENABLE_STAND_ALONE
+/* Gets size field from the stat data */
+uint64_t obj40_get_size(obj40_t *obj) {
+	reiser4_sdext_lw_hint_t lw_hint;
 
+	if (obj40_read_lw(&obj->statdata.item, &lw_hint))
+		return 0;
+	
+	return lw_hint.size;
+}
+
+#ifndef ENABLE_STAND_ALONE
 /*
   Writes light weight stat data extention from passed @lw_hint into @obj stat
   data item.
@@ -107,8 +116,6 @@ errno_t obj40_write_lw(item_entity_t *item,
 	return 0;
 }
 
-#endif
-
 /* Reads unix stat data extention into passed @unix_hint */
 errno_t obj40_read_unix(item_entity_t *item,
 			reiser4_sdext_unix_hint_t *unix_hint)
@@ -132,8 +139,6 @@ errno_t obj40_read_unix(item_entity_t *item,
 
 	return 0;
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Writes unix stat data extention into @obj stat data item */
 errno_t obj40_write_unix(item_entity_t *item,
@@ -161,8 +166,6 @@ errno_t obj40_write_unix(item_entity_t *item,
 	return 0;
 }
 
-#endif
-
 /* Gets mode field from the stat data */
 uint16_t obj40_get_mode(obj40_t *obj) {
 	reiser4_sdext_lw_hint_t lw_hint;
@@ -172,8 +175,6 @@ uint16_t obj40_get_mode(obj40_t *obj) {
 	
 	return lw_hint.mode;
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Updates mode field in statdata */
 errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
@@ -187,20 +188,6 @@ errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
 	return obj40_write_lw(&obj->statdata.item, &lw_hint);
 }
 
-#endif
-
-/* Gets size field from the stat data */
-uint64_t obj40_get_size(obj40_t *obj) {
-	reiser4_sdext_lw_hint_t lw_hint;
-
-	if (obj40_read_lw(&obj->statdata.item, &lw_hint))
-		return 0;
-	
-	return lw_hint.size;
-}
-
-#ifndef ENABLE_STAND_ALONE
-
 /* Updates size field in the stat data */
 errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 	errno_t res;
@@ -213,8 +200,6 @@ errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 	return obj40_write_lw(&obj->statdata.item, &lw_hint);
 }
 
-#endif
-
 /* Gets nlink field from the stat data */
 uint32_t obj40_get_nlink(obj40_t *obj) {
 	reiser4_sdext_lw_hint_t lw_hint;
@@ -224,8 +209,6 @@ uint32_t obj40_get_nlink(obj40_t *obj) {
 	
 	return lw_hint.nlink;
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Updates nlink field in the stat data */
 errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
@@ -239,8 +222,6 @@ errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 	return obj40_write_lw(&obj->statdata.item, &lw_hint);
 }
 
-#endif
-
 /* Gets atime field from the stat data */
 uint32_t obj40_get_atime(obj40_t *obj) {
 	reiser4_sdext_unix_hint_t unix_hint;
@@ -250,8 +231,6 @@ uint32_t obj40_get_atime(obj40_t *obj) {
 	
 	return unix_hint.atime;
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Updates atime field in the stat data */
 errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
@@ -265,8 +244,6 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 	return obj40_write_unix(&obj->statdata.item, &unix_hint);
 }
 
-#endif
-
 /* Gets mtime field from the stat data */
 uint32_t obj40_get_mtime(obj40_t *obj) {
 	reiser4_sdext_unix_hint_t unix_hint;
@@ -276,8 +253,6 @@ uint32_t obj40_get_mtime(obj40_t *obj) {
 	
 	return unix_hint.mtime;
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Updates mtime field in the stat data */
 errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
@@ -291,8 +266,6 @@ errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 	return obj40_write_unix(&obj->statdata.item, &unix_hint);
 }
 
-#endif
-
 /* Gets bytes field from the stat data */
 uint64_t obj40_get_bytes(obj40_t *obj) {
 	reiser4_sdext_unix_hint_t unix_hint;
@@ -302,8 +275,6 @@ uint64_t obj40_get_bytes(obj40_t *obj) {
 	
 	return unix_hint.bytes;
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Updates mtime field in the stat data */
 errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
@@ -316,8 +287,9 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 	unix_hint.bytes = bytes;
 	return obj40_write_unix(&obj->statdata.item, &unix_hint);
 }
-
 #endif
+
+#ifdef ENABLE_SYMLINKS_SUPPORT
 /* Gets symlink from the stat data */
 errno_t obj40_get_sym(obj40_t *obj, char *data) {
 	item_entity_t *item;
@@ -342,7 +314,6 @@ errno_t obj40_get_sym(obj40_t *obj, char *data) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Updates symlink data */
 errno_t obj40_set_sym(obj40_t *obj, char *data) {
 	item_entity_t *item;
@@ -365,6 +336,7 @@ errno_t obj40_set_sym(obj40_t *obj, char *data) {
 
 	return 0;
 }
+#endif
 
 #endif
 
@@ -473,7 +445,6 @@ lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Changes nlink field in statdata by passed @value */
 errno_t obj40_link(obj40_t *obj, uint32_t value) {
 	uint32_t nlink;
@@ -551,5 +522,4 @@ errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
 
 	return 0;
 }
-
 #endif
