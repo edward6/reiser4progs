@@ -197,8 +197,7 @@ reiser4_file_t *reiser4_file_begin(
 		goto error_free_file;
 	}
 
-	aal_snprintf(file->name, sizeof(file->name), "file %llx",
-		     reiser4_key_get_objectid(&file->key));
+	reiser4_key_string(&file->key, file->name);
 
 	/* Guessing file plugin */
 	if (!(plugin = reiser4_file_plugin(file))) {
@@ -307,21 +306,18 @@ int32_t reiser4_file_write(
 
 /* Creates new file on specified filesystem */
 reiser4_file_t *reiser4_file_create(
-	reiser4_fs_t *fs,		    /* filesystem dir will be created on */
-	const char *name,		    /* name of entry */
-	reiser4_file_hint_t *hint)	    /* directory hint */
+	reiser4_fs_t *fs,		    /* fs obejct will be created on */
+	reiser4_file_t *parent,             /* parent file */
+	reiser4_file_hint_t *hint)	    /* object hint */
 {
 	reiser4_file_t *file;
 	reiser4_plugin_t *plugin;
-
-	char *entry = NULL;
-	reiser4_file_t *parent = NULL;
     
 	roid_t objectid, locality;
     
 	aal_assert("umka-790", fs != NULL);
 	aal_assert("umka-1128", hint != NULL);
-	aal_assert("umka-1152", name != NULL);
+	aal_assert("umka-1948", parent != NULL);
 	aal_assert("umka-1917", hint->plugin != NULL);
 
 	if (!fs->tree) {
@@ -336,29 +332,8 @@ reiser4_file_t *reiser4_file_create(
 	if (!(file = aal_calloc(sizeof(*file), 0)))
 		return NULL;
 
-	aal_strncpy(file->name, name, sizeof(file->name));
-	
-	/* Initializing fileds and preparing the keys */
+	/* Initializing fields and preparing the keys */
 	file->fs = fs;
-
-	/* Opening parent file */
-	if (aal_strncmp(name, "/", aal_strlen(name)) != 0) {
-		char p[256];
-
-		while (file->name[aal_strlen(file->name) - 1] == '/')
-			file->name[aal_strlen(file->name) - 1] = '\0';
-
-		if ((entry = aal_strrchr(file->name, '/')))
-			entry += 1;
-
-		aal_memset(p, 0, sizeof(p));
-		aal_strncpy(p, name, (uint32_t)(entry - file->name));
-
-		if (!(parent = reiser4_file_open(fs, p))) {
-			aal_exception_error("Can't open %s.", p);
-			goto error_free_file;
-		}
-	}
 
 	/* 
 	  This is the special case. In the case parent is NULL, we are trying to
@@ -368,65 +343,36 @@ reiser4_file_t *reiser4_file_create(
 		reiser4_key_assign(&hint->parent, &parent->key);
 		objectid = reiser4_oid_allocate(fs->oid);
 	} else {
-		roid_t root_locality = reiser4_oid_root_locality(fs->oid);
-		roid_t hyper_locality = reiser4_oid_hyper_locality(fs->oid);
-		
 		hint->parent.plugin = fs->tree->key.plugin;
-		reiser4_key_build_generic(&hint->parent, KEY_STATDATA_TYPE, 
-					  hyper_locality, root_locality, 0);
-
+		
+		if (reiser4_fs_hyper_key(fs, &hint->parent))
+			goto error_free_file;
+		
 		objectid = reiser4_oid_root_objectid(fs->oid);
 	}
 
 	locality = reiser4_key_get_objectid(&hint->parent);
     
-	/* Building stat data key of directory */
+	/* Building stat data key of the new object */
 	hint->object.plugin = hint->parent.plugin;
 	
 	reiser4_key_build_generic(&hint->object, KEY_STATDATA_TYPE,
 				  locality, objectid, 0);
     
 	reiser4_key_assign(&file->key, &hint->object);
-    
-	/* Creating entry in parent */
-	if (parent && entry) {
-		reiser4_entry_hint_t entry_hint;
-
-		/* 
-		  Creating entry in parent directory. It should be done first,
-		  because if such directory exist we preffer just return error
-		  and do not delete inserted file stat data and some kind of
-		  body.
-		*/
-		aal_memset(&entry_hint, 0, sizeof(entry_hint));
+	reiser4_key_string(&file->key, file->name);
 	
-		reiser4_key_assign(&entry_hint.object, &hint->object);
-		aal_strncpy(entry_hint.name, entry, sizeof(entry_hint.name));
-
-		if (reiser4_file_write(parent, &entry_hint, 1) != 1) {
-			aal_exception_error("Can't add entry %s to %s.",
-					    entry, parent->name);
-			goto error_free_parent;
-		}
-	}
-
 	if (!(file->entity = plugin_call(plugin->file_ops, create, fs->tree,
 					 (parent ? parent->entity : NULL),
 					 hint, (place_t *)&file->place)))
 	{
 		aal_exception_error("Can't create file with oid 0x%llx.", 
 				    reiser4_key_get_objectid(&file->key));
-		goto error_free_parent;
+		goto error_free_file;
 	}
 
-	if (parent)
-		reiser4_file_close(parent);
-	
 	return file;
 
- error_free_parent:
-	if (parent)
-		reiser4_file_close(parent);
  error_free_file:
 	aal_free(file);
 	return NULL;
@@ -437,8 +383,8 @@ static errno_t callback_process_place(
 	place_t *place,            /* next file block */
 	void *data)                /* user-specified data */
 {
-	reiser4_place_t *p = (reiser4_place_t *)place;
 	aal_stream_t *stream = (aal_stream_t *)data;
+	reiser4_place_t *p = (reiser4_place_t *)place;
 	
 	if (reiser4_item_print(p, stream)) {
 		aal_exception_error("Can't print item %lu in node %llu.",
@@ -450,8 +396,41 @@ static errno_t callback_process_place(
 	return 0;
 }
 
+/* Links @child to @file if it is a directory */
+errno_t reiser4_file_link(reiser4_file_t *file,
+			 reiser4_file_t *child,
+			 const char *name)
+{
+	reiser4_entry_hint_t entry_hint;
+	
+	aal_assert("umka-1944", file != NULL);
+	aal_assert("umka-1945", child != NULL);
+	aal_assert("umka-1946", name != NULL);
+	
+	aal_memset(&entry_hint, 0, sizeof(entry_hint));
+	
+	reiser4_key_assign(&entry_hint.object, &child->key);
+	aal_strncpy(entry_hint.name, name, sizeof(entry_hint.name));
+
+	if (reiser4_file_write(file, &entry_hint, 1) != 1) {
+		aal_exception_error("Can't add entry %s to %s.",
+				    name, file->name);
+		return -1;
+	}
+
+	if (plugin_call(file->entity->plugin->file_ops, link,
+			file->entity))
+	{
+		aal_exception_error("Can't link %s to %s.",
+				    name, file->name);
+		return -1;
+	}
+
+	return 0;
+}
+
 /* Removes entry from the @file if it is a directory */
-errno_t reiser4_file_remove(reiser4_file_t *file,
+errno_t reiser4_file_unlink(reiser4_file_t *file,
 			    const char *name)
 {
 	reiser4_file_t *child;

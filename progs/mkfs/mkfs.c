@@ -76,13 +76,15 @@ static void mkfs_init(void) {
 /* Crates directory */
 static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs,
 		                       const char *name,
+				       reiser4_file_t *parent,
 				       reiser4_profile_t *profile)
 {
 	rpid_t hash;
 	rpid_t dirtory;
 	rpid_t statdata;
 	rpid_t direntry;
-	
+
+	reiser4_file_t *file;
 	reiser4_file_hint_t hint;
 
 	dirtory = reiser4_profile_value(profile, "directory");
@@ -100,9 +102,17 @@ static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs,
 	hint.statdata = reiser4_profile_value(profile, "statdata");
 	hint.body.dir.hash = reiser4_profile_value(profile, "hash");
 	hint.body.dir.direntry = reiser4_profile_value(profile, "direntry");
-	
+
 	/* Creating directory by passed parameters */
-	return reiser4_file_create(fs, name, &hint);
+	if (!(file = reiser4_file_create(fs, parent, &hint)))
+		return NULL;
+
+	if (parent) {
+		if (reiser4_file_link(parent, file, name))
+			return NULL;
+	}
+
+	return file;
 }
 
 int main(int argc, char *argv[]) {
@@ -400,7 +410,7 @@ int main(int argc, char *argv[]) {
 			goto error_free_journal;
     
 		/* Creating root directory */
-		if (!(fs->root = mkfs_create_dir(fs, "/", profile))) {
+		if (!(fs->root = mkfs_create_dir(fs, NULL, NULL, profile))) {
 			aal_exception_error("Can't create filesystem root "
 					    "directory.");
 			goto error_free_tree;
@@ -410,8 +420,8 @@ int main(int argc, char *argv[]) {
 		if (flags & BF_LOST) {
 			reiser4_file_t *object;
 	    
-			if (!(object = mkfs_create_dir(fs, "/lost+found",
-						       profile)))
+			if (!(object = mkfs_create_dir(fs, "lost+found",
+						       fs->root, profile)))
 			{
 				aal_exception_error("Can't create lost+found "
 						    "directory.");

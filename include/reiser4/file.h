@@ -37,11 +37,15 @@ extern errno_t reiser4_file_print(reiser4_file_t *file,
 				  aal_stream_t *stream);
 
 extern reiser4_file_t *reiser4_file_create(reiser4_fs_t *fs,
-					   const char *name,
+					   reiser4_file_t *parent,
 					   reiser4_file_hint_t *hint);
 
-extern errno_t reiser4_file_remove(reiser4_file_t *file,
-				   const char *entry);
+extern errno_t reiser4_file_link(reiser4_file_t *file,
+				 reiser4_file_t *child,
+				 const char *name);
+
+extern errno_t reiser4_file_unlink(reiser4_file_t *file,
+				   const char *name);
 
 extern int32_t reiser4_file_write(reiser4_file_t *file,
 				  void *buff,

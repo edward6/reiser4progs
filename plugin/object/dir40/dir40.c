@@ -332,7 +332,8 @@ static char *dir40_empty_dir[2] = { ".", ".." };
 */
 static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 				     reiser4_file_hint_t *hint,
-				     place_t *place) {
+				     place_t *place)
+{
 	uint32_t i;
 	dir40_t *dir;
 
@@ -476,9 +477,9 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	  it, because of dot entry which points onto directory itself and entry
 	  in parent directory, which points to this new directory.
 	*/
+	lw_ext.nlink = 1;
 	lw_ext.mode = S_IFDIR | 0755;
 	lw_ext.size = body_hint.count;
-	lw_ext.nlink = (parent != NULL ? 2 : 3);
 
 	/* Unix extention hint initializing */
 	unix_ext.rdev = 0;

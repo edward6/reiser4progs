@@ -326,3 +326,19 @@ void reiser4_fs_close(
 	/* Freeing memory occupied by fs instance */
 	aal_free(fs);
 }
+
+/* Returns the key of the fake root parent */
+errno_t reiser4_fs_hyper_key(reiser4_fs_t *fs, reiser4_key_t *key) {
+	roid_t root_locality;
+	roid_t hyper_locality;
+	
+	aal_assert("umka-1949", fs != NULL);
+	aal_assert("umka-1950", key != NULL);
+	aal_assert("umka-1951", key->plugin != NULL);
+	
+	root_locality = reiser4_oid_root_locality(fs->oid);
+	hyper_locality = reiser4_oid_hyper_locality(fs->oid);
+		
+	return reiser4_key_build_generic(key, KEY_STATDATA_TYPE, 
+					 hyper_locality, root_locality, 0);
+}

@@ -91,11 +91,15 @@ int main(int argc, char *argv[]) {
 			for (i = 0; i < 5000; i++) {
 				aal_memset(name, 0, sizeof(name));
 
-				aal_snprintf(name, 256, "%s/testdir%d",
-					     dir->name, i);
+				aal_snprintf(name, 256, "testdir%d", i);
 
-				if (!(file = reiser4_file_create(fs, name, &dir_hint)))
+				if (!(file = reiser4_file_create(fs, dir, &dir_hint)))
 					goto error_free_dir;
+
+				if (reiser4_file_link(dir, file, name)) {
+					reiser4_file_close(file);
+					goto error_free_dir;
+				}
 
 				place = file->place;
 				reiser4_file_close(file);
@@ -103,7 +107,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
     
-//	reiser4_file_remove(dir, "testdir0");
+//	reiser4_file_unlink(dir, "testdir0");
 	
 	if (reiser4_file_reset(dir)) {
 		aal_exception_error("Can't rewind dir %s.", argv[2]);
@@ -119,11 +123,6 @@ int main(int argc, char *argv[]) {
 		printf((char *)stream.data);
 		
 		aal_stream_fini(&stream);
-	}
-
-	if (reiser4_file_reset(dir)) {
-		aal_exception_error("Can't rewind dir %s.", argv[2]);
-		goto error_free_dir;
 	}
 
 /*	place.pos.item = 0;

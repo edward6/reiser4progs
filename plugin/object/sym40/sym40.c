@@ -149,7 +149,7 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 
 	/* Lightweigh extention hint setup */
 	lw_ext.mode = S_IFLNK | 0755;
-	lw_ext.nlink = 2;
+	lw_ext.nlink = 1;
 	lw_ext.size = 0;
 
 	/* Unix extention hint setup */

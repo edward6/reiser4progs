@@ -15,7 +15,10 @@
 #include <reiser4/types.h>
 
 #ifndef ENABLE_ALONE
+
+extern errno_t reiser4_key_string(reiser4_key_t *key, char *buff);
 extern errno_t reiser4_key_print(reiser4_key_t *key, aal_stream_t *stream);
+
 #endif
 
 extern int reiser4_key_compare(reiser4_key_t *key1, reiser4_key_t *key2);

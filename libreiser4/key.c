@@ -241,6 +241,24 @@ errno_t reiser4_key_print(reiser4_key_t *key, aal_stream_t *stream) {
 			   key, stream, 0); 
 }
 
+errno_t reiser4_key_string(reiser4_key_t *key, char *buff) {
+	aal_stream_t stream;
+
+	aal_stream_init(&stream);
+
+	if (reiser4_key_print(key, &stream))
+		goto error_free_stream;
+	
+	aal_strncpy(buff, stream.data, stream.offset);
+	aal_stream_fini(&stream);
+
+	return 0;
+
+ error_free_stream:
+	aal_stream_fini(&stream);
+	return -1;
+}
+
 #endif
 
 errno_t reiser4_key_valid(reiser4_key_t *key) {
@@ -249,3 +267,4 @@ errno_t reiser4_key_valid(reiser4_key_t *key) {
 
 	return plugin_call(key->plugin->key_ops, valid, key);
 }
+

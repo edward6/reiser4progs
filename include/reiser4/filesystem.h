@@ -36,4 +36,7 @@ extern errno_t reiser4_fs_mark(reiser4_fs_t *fs);
 
 extern void reiser4_fs_close(reiser4_fs_t *fs);
 
+extern errno_t reiser4_fs_hyper_key(reiser4_fs_t *fs,
+				    reiser4_key_t *key);
+
 #endif
