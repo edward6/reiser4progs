@@ -190,7 +190,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
     if (node->parent.node != NULL) {
 	/* Take the right delimiting key from the parent. */
 	
-	if ((ret = reiser4_node_pos(node, NULL)))
+	if ((ret = reiser4_node_pbc(node, NULL)))
 	    return ret;
 
 	place = node->parent;

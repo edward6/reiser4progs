@@ -91,7 +91,7 @@ extern uint64_t reiser4_node_get_fstamp(reiser4_node_t *node);
 extern errno_t reiser4_node_lkey(reiser4_node_t *node,
 				 reiser4_key_t *key);
 
-extern errno_t reiser4_node_pos(reiser4_node_t *node,
+extern errno_t reiser4_node_pbc(reiser4_node_t *node,
 				pos_t *pos);
 
 extern reiser4_node_t *reiser4_node_cbp(reiser4_node_t *node,

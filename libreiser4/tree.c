@@ -346,7 +346,7 @@ reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 	plugin_call(place->item.plugin->item_ops,
 		    read, &place->item, &ptr, 0, 1);
 
-	if (ptr.start == INVAL_BLK)
+	if (!VALID_BLK(ptr.start))
 		return NULL;
 	
 	return reiser4_tree_load(tree, place->node,
@@ -374,7 +374,7 @@ reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
 	  obtained by its nodeptr item.
 	*/
 	while (node->parent.node && !found) {
-		if (reiser4_node_pos(node, &pos))
+		if (reiser4_node_pbc(node, &pos))
 			return NULL;
 
 		found = (where == D_LEFT) ? (pos.item > 0) :
@@ -868,7 +868,7 @@ errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
 			reiser4_place_init(&p, place->node->parent.node,
 					   &place->pos);
 			
-			if ((res = reiser4_node_pos(place->node, &p.pos)))
+			if ((res = reiser4_node_pbc(place->node, &p.pos)))
 				return res;
 	    
 			if ((res = reiser4_tree_ukey(tree, &p, key)))
@@ -1408,7 +1408,7 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 		} else {
 			node = place->node;
 			
-			if ((res = reiser4_node_pos(node, NULL)))
+			if ((res = reiser4_node_pbc(node, NULL)))
 				return res;
 		}
 		
@@ -1974,7 +1974,7 @@ errno_t reiser4_tree_down(
 			plugin_call(place.item.plugin->item_ops, read,
 				    &place.item, &ptr, pos->unit, 1);
 
-			if (ptr.start == INVAL_BLK || ptr.start == 0)
+			if (!VALID_BLK(ptr.start))
 				continue;
 			
 			if (setup_func && (res = setup_func(&place, hint->data))) {

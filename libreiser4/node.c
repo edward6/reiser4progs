@@ -224,26 +224,63 @@ errno_t reiser4_node_lkey(
 	return reiser4_item_get_key(&place, key);
 }
 
-/* Returns position of passed node in parent node */
-errno_t reiser4_node_pos(
+/*
+  Makes search of nodeptr position in parent node by passed child node. This is
+  used for updating parent position in nodes.
+*/
+errno_t reiser4_node_pbc(
 	reiser4_node_t *node,	        /* node position will be obtained for */
 	pos_t *pos)		        /* pointer result will be stored in */
 {
-	lookup_t res;
-	reiser4_key_t lkey;
+	errno_t res;
+	uint32_t i, j;
+	
+	ptr_hint_t ptr;
+	reiser4_place_t *place;
     
 	aal_assert("umka-869", node != NULL);
-	aal_assert("umka-1941", node->parent.node != NULL);
 
-	reiser4_node_lkey(node, &lkey);
+	place = &node->parent;
+	aal_assert("umka-1941", place->node != NULL);
+	
+	if (place->pos.item < reiser4_node_items(place->node)) {
+		if ((res = reiser4_place_realize(place)))
+			return res;
+	}
+	
+	plugin_call(place->item.plugin->item_ops, read,
+		    &place->item, &ptr, place->pos.unit, 1);
 
-	res = reiser4_node_lookup(node->parent.node, &lkey,
-				  &node->parent.pos);
+	if (ptr.start == node->blk)
+		goto out_update_place;
 
+	for (i = 0; i < reiser4_node_items(place->node); i++) {
+		place->pos.item = i;
+
+		if ((res = reiser4_place_realize(place)))
+			return res;
+		
+		for (j = 0; j < reiser4_item_units(place); j++) {
+			place->pos.unit = j;
+			
+			plugin_call(place->item.plugin->item_ops,
+				    read, &place->item, &ptr, j, 1);
+
+			if (ptr.start == node->blk)
+				goto out_update_place;
+		}
+	}
+
+	return -EINVAL;
+	
+ out_update_place:
+	if (reiser4_item_units(place) == 1)
+		place->pos.unit = ~0ul;
+		
 	if (pos)
-		*pos = node->parent.pos;
-    
-	return res == LP_PRESENT ? 0 : -EINVAL;
+		*pos = place->pos;
+
+	return 0;
 }
 
 static int callback_comp_blk(
@@ -325,7 +362,7 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 	child->parent.node = node;
 	
 	/* Updating node pos in parent node */
-	if ((res = reiser4_node_pos(child, &child->parent.pos))) {
+	if ((res = reiser4_node_pbc(child, &child->parent.pos))) {
 		aal_exception_error("Can't find child %llu in "
 				    "parent node %llu.",
 				    child->blk, node->blk);
@@ -755,7 +792,7 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 
 		aal_assert("umka-1886", child->parent.node == node);
 
-		if ((res = reiser4_node_pos(child, &child->parent.pos)))
+		if ((res = reiser4_node_pbc(child, &child->parent.pos)))
 			return res;
 	}
 	

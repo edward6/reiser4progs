@@ -373,6 +373,9 @@ struct ptr_hint {
 
 typedef struct ptr_hint ptr_hint_t;
 
+#define VALID_BLK(blk) \
+        (blk != INVAL_BLK && blk != 0)
+
 struct sdext_unix_hint {
 	uint32_t uid;
 	uint32_t gid;
