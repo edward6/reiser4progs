@@ -61,6 +61,7 @@ reiser4_master_t *reiser4_master_create(
 	/* Setting up block filesystem used */
 	set_ms_blocksize(SUPER(master), blocksize);
 
+	master->dirty = TRUE;
 	master->native = TRUE;
 	master->device = device;
 	
@@ -94,8 +95,8 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 
 	blocksize = master->device->blocksize;
 	
-	aal_stream_format(stream, "offset:\t\t%llu\n",
-			  MASTER_OFFSET / blocksize);
+	aal_stream_format(stream, "offset:\t\t%lu\n",
+			  (MASTER_OFFSET / blocksize));
 	
 	aal_stream_format(stream, "blocksize:\t%u\n",
 			  reiser4_master_blocksize(master));
@@ -170,7 +171,9 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	if (!(master = aal_calloc(sizeof(*master), 0)))
 		return NULL;
 
+	master->dirty = FALSE;
 	master->device = device;
+	
 	offset = (blk_t)(MASTER_OFFSET / BLOCKSIZE);
 
 	/* Setting up default block size (4096) to used device */
@@ -276,6 +279,8 @@ errno_t reiser4_master_sync(
 		goto error_free_block;
 	}
 
+	master->dirty = FALSE;
+	
 	return 0;
 	
  error_free_block:

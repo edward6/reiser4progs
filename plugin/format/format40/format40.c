@@ -406,8 +406,8 @@ errno_t format40_print(object_entity_t *entity,
 	aal_stream_format(stream, "plugin:\t\t%s\n", entity->plugin->h.label);
 	aal_stream_format(stream, "description:\t%s\n", entity->plugin->h.desc);
 	
-	aal_stream_format(stream, "offset:\t\t%llu\n", FORMAT40_OFFSET /
-			  format->device->blocksize);
+	aal_stream_format(stream, "offset:\t\t%lu\n", (FORMAT40_OFFSET /
+						       format->device->blocksize));
     
 	aal_stream_format(stream, "magic:\t\t%s\n", super->sb_magic);
 	aal_stream_format(stream, "flushes:\t%llu\n", get_sb_flushes(super));

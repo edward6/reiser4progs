@@ -55,6 +55,9 @@ struct reiser4_master {
 	*/
 	bool_t native;
 
+	/* Flag for denoting that fact that master is dirty */
+	bool_t dirty;
+
 	/* Device master is opened on */
 	aal_device_t *device;
 
@@ -240,6 +243,9 @@ struct reiser4_format {
 	   initialization.
 	*/
 	object_entity_t *entity;
+
+	/* Flag for denoting that fact format is dirty */
+	bool_t dirty;
 };
 
 typedef struct reiser4_format reiser4_format_t;
@@ -259,6 +265,9 @@ struct reiser4_journal {
 
 	/* Journal entity. Initializied by plugin */
 	object_entity_t *entity;
+
+	/* Flag for denoting that fact journal is dirty */
+	bool_t dirty;
 };
 
 typedef struct reiser4_journal reiser4_journal_t;
@@ -269,6 +278,9 @@ struct reiser4_alloc {
 	
 	aux_bitmap_t *forbid;
 	object_entity_t *entity;
+
+	/* Flag for denoting that fact block allocator is dirty */
+	bool_t dirty;
 };
 
 typedef struct reiser4_alloc reiser4_alloc_t;

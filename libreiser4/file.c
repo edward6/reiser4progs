@@ -58,7 +58,9 @@ errno_t reiser4_file_stat(reiser4_file_t *file) {
 }
 
 /* Callback function for finding statdata of the current directory */
-static errno_t callback_find_statdata(char *track, char *entry, void *data) {
+static errno_t callback_find_statdata(char *track, char *entry,
+				      void *data)
+{
 	place_t *place;
 	reiser4_file_t *file;
 	object_entity_t *entity;
@@ -113,6 +115,7 @@ static errno_t callback_find_statdata(char *track, char *entry, void *data) {
 static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	place_t *place;
 	reiser4_file_t *file;
+	
 	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
 	reiser4_entry_hint_t entry_hint;
@@ -253,7 +256,7 @@ reiser4_file_t *reiser4_file_open(
 
 /* This function opens file by its @place */
 reiser4_file_t *reiser4_file_begin(
-	reiser4_fs_t *fs,		/* fs object will be opened on */
+	reiser4_fs_t *fs,               /* fs object will be opened on */
 	reiser4_place_t *place)		/* statdata key of file to be opened */
 {
 	place_t *p;

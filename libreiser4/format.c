@@ -33,6 +33,7 @@ reiser4_format_t *reiser4_format_open(
 		return NULL;
     
 	format->fs = fs;
+	format->dirty = FALSE;
 	format->fs->format = format;
 
 	pid = reiser4_master_format(fs->master);
@@ -87,6 +88,7 @@ reiser4_format_t *reiser4_format_create(
 		return NULL;
 
 	format->fs = fs;
+	format->dirty = TRUE;
 	format->fs->format = format;
 	
 	/* 
@@ -116,8 +118,13 @@ errno_t reiser4_format_sync(
 {
 	aal_assert("umka-107", format != NULL);
     
-	return plugin_call(format->entity->plugin->format_ops,
-			   sync, format->entity);
+	if(plugin_call(format->entity->plugin->format_ops,
+		       sync, format->entity))
+		return -1;
+
+	format->dirty = FALSE;
+	
+	return 0;
 }
 
 /* Confirms disk-format (simple check) */
@@ -130,7 +137,9 @@ int reiser4_format_confirm(
 			   confirm, format->fs->device);
 }
 
-errno_t reiser4_format_print(reiser4_format_t *format, aal_stream_t *stream) {
+errno_t reiser4_format_print(reiser4_format_t *format,
+			     aal_stream_t *stream)
+{
 	aal_assert("umka-1560", format != NULL);
 	aal_assert("umka-1561", stream != NULL);
 
@@ -169,7 +178,7 @@ void reiser4_format_close(
 	reiser4_format_t *format)	/* format to be closed */
 {
 	aal_assert("umka-1505", format != NULL);
-   
+
 	format->fs->format = NULL;
 	
 	plugin_call(format->entity->plugin->format_ops,
@@ -255,6 +264,8 @@ void reiser4_format_set_root(
 {
 	aal_assert("umka-420", format != NULL);
 
+	format->dirty = TRUE;
+	
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_root, format->entity, root);
 }
@@ -266,6 +277,8 @@ void reiser4_format_set_len(
 {
 	aal_assert("umka-422", format != NULL);
     
+	format->dirty = TRUE;
+	
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_len, format->entity, blocks);
 }
@@ -277,6 +290,8 @@ void reiser4_format_set_free(
 {
 	aal_assert("umka-424", format != NULL);
     
+	format->dirty = TRUE;
+	
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_free, format->entity, blocks);
 }
@@ -288,6 +303,8 @@ void reiser4_format_set_height(
 {
 	aal_assert("umka-559", format != NULL);
     
+	format->dirty = TRUE;
+	
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_height, format->entity, height);
 }
@@ -299,6 +316,8 @@ void reiser4_format_set_stamp(
 {
 	aal_assert("umka-1125", format != NULL);
     
+	format->dirty = TRUE;
+	
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_stamp, format->entity, stamp);
 }

@@ -34,6 +34,7 @@ reiser4_alloc_t *reiser4_alloc_open(
 		return NULL;
 
 	alloc->fs = fs;
+	alloc->dirty = FALSE;
 	alloc->fs->alloc = alloc;
 	
 	if ((pid = reiser4_format_alloc_pid(fs->format)) == INVAL_PID) {
@@ -85,6 +86,7 @@ reiser4_alloc_t *reiser4_alloc_create(
 		return NULL;
 
 	alloc->fs = fs;
+	alloc->dirty = TRUE;
 	alloc->fs->alloc = alloc;
 	
 	if ((pid = reiser4_format_alloc_pid(fs->format)) == INVAL_PID) {
@@ -119,18 +121,28 @@ errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc, aux_bitmap_t *bitmap) {
 	aal_assert("vpf-582", alloc != NULL);
 	aal_assert("umka-1848", bitmap != NULL);
 
-	return plugin_call(alloc->entity->plugin->alloc_ops, 
-			   assign, alloc->entity, bitmap);
+	if (plugin_call(alloc->entity->plugin->alloc_ops, 
+			assign, alloc->entity, bitmap))
+		return -1;
+
+	alloc->dirty = TRUE;
+	
+	return 0;
 }
 
 /* Make request to allocator plugin in order to save its data to device */
 errno_t reiser4_alloc_sync(
-	reiser4_alloc_t *alloc)	/* allocator to be syncked */
+	reiser4_alloc_t *alloc)	/* allocator to be synced */
 {
 	aal_assert("umka-139", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->alloc_ops, 
-			   sync, alloc->entity);
+	if (plugin_call(alloc->entity->plugin->alloc_ops, sync,
+			alloc->entity))
+		return -1;
+
+	alloc->dirty = FALSE;
+
+	return 0;
 }
 
 errno_t reiser4_alloc_print(reiser4_alloc_t *alloc, aal_stream_t *stream) {
@@ -187,6 +199,8 @@ errno_t reiser4_alloc_occupy_region(
 {
 	aal_assert("umka-501", alloc != NULL);
 
+	alloc->dirty = TRUE;
+	
 	plugin_call(alloc->entity->plugin->alloc_ops, 
 		    occupy_region, alloc->entity, start, count);
 
@@ -201,6 +215,8 @@ errno_t reiser4_alloc_release_region(
 {
 	aal_assert("umka-503", alloc != NULL);
 
+	alloc->dirty = TRUE;
+	
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   release_region, alloc->entity, start, count);
 }
@@ -213,6 +229,8 @@ count_t reiser4_alloc_allocate_region(
 {
 	aal_assert("umka-505", alloc != NULL);
 
+	alloc->dirty = TRUE;
+	
 	return plugin_call(alloc->entity->plugin->alloc_ops, 
 			   allocate_region, alloc->entity, start, count);
 }

@@ -113,14 +113,15 @@ void reiser4_fs_close(
     
 	aal_assert("umka-230", fs != NULL);
 
+	reiser4_fs_sync(fs);
+	
 	/* Closing the all filesystem objects */
-    
 	reiser4_oid_close(fs->oid);
 	
 #ifndef ENABLE_ALONE
 	reiser4_alloc_close(fs->alloc);
 #endif
-	
+
 	reiser4_format_close(fs->format);
 	reiser4_master_close(fs->master);
 
@@ -327,22 +328,28 @@ errno_t reiser4_fs_sync(
 		return -1;
     
 	/* Synchronizing the journal */
-	if (fs->journal && reiser4_journal_sync(fs->journal))
-		return -1;
+	if (fs->journal && fs->journal->dirty) {
+		if (reiser4_journal_sync(fs->journal))
+			return -1;
+	}
     
 	/* Synchronizing block allocator */
-	if (reiser4_alloc_sync(fs->alloc))
+	if (fs->alloc->dirty && reiser4_alloc_sync(fs->alloc))
 		return -1;
     
 	/* Synchronizing the object allocator */
 	if (reiser4_oid_sync(fs->oid))
 		return -1;
     
-	if (reiser4_format_sync(fs->format))
-		return -1;
+	if (fs->format->dirty) {
+		if (reiser4_format_sync(fs->format))
+			return -1;
+	}
 
-	if (reiser4_master_sync(fs->master))
-		return -1;
+	if (fs->master->dirty) {
+		if (reiser4_master_sync(fs->master))
+			return -1;
+	}
 
 	return 0;
 }

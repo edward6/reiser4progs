@@ -192,6 +192,11 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_assert("umka-824", node != NULL);
 	aal_assert("umka-903", node->entity != NULL);
 
+#ifndef ENABLE_ALONE
+	if (reiser4_node_isdirty(node))
+		reiser4_node_sync(node);
+#endif
+	
 	plugin_call(node->entity->plugin->node_ops,
 		    close, node->entity);
 	    

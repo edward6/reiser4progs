@@ -431,17 +431,6 @@ int main(int argc, char *argv[]) {
 			reiser4_file_close(object);
 		}
 	
-		/* 
-		  Flushing all filesystem buffers onto the device. In this time
-		  are flushing master super block, format specific super block,
-		  oid allocator data, block allocator data (alloc40 which in use
-		  flushes bitmap) and tree cache.
-		*/
-		if (reiser4_fs_sync(fs)) {
-			aal_exception_error("Can't synchronize created filesystem.");
-			goto error_free_root;
-		}
-
 		aal_gauge_done(gauge);
 	
 		aal_gauge_rename(gauge, "Synchronizing %s", host_dev);
