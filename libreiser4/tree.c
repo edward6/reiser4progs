@@ -2354,7 +2354,7 @@ static int32_t tree_calc_space(reiser4_tree_t *tree, reiser4_place_t *place,
 {
 	int32_t enough;
 
-	if ((enough = reiser4_node_space(place->node) - needed) > 0) {
+	if ((enough = reiser4_node_space(place->node) - needed) >= 0) {
 		enough = reiser4_node_space(place->node);
 		
 		if (place->pos.unit == MAX_UINT32)
@@ -2526,10 +2526,6 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		
 		/* Checking if it is enough of space in @place. */
 		enough = (reiser4_node_space(place->node) - needed);
-
-		/* Check if asked space is more than block size. */
-		if (enough < 0 && needed > reiser4_node_maxspace(place->node))
-			break;
 
 		/* If it is not enough of space and insert point was actually
 		   moved to neighbour node, we set @place to @save and give it
@@ -2945,16 +2941,8 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 
 	/* Checking if we still have less space than needed. This is ENOSPC case
 	   if we tried to insert data. */
-	if ((uint32_t)space < needed) {
-		if (hint->plug->id.group != TAIL_ITEM)
-			return -ENOSPC;
-
-		if (!(hint->len = hint->count = space)) {
-			aal_error("Can't prepare %u bytes of space "
-				  "in tree.", needed);
-			return -ENOSPC;
-		}
-	}
+	if ((uint32_t)space < needed)
+		return -ENOSPC;
 
 	/* Making yet another estimate if insert mode is changed after making
 	   space. That is if we wanted to insert new unit into existent item,

@@ -121,7 +121,9 @@ static errno_t callback_node_cleanup(reiser4_place_t *place, void *data) {
 
 			place->pos.item--;
 			
-			aal_memset(&cleanup->neigh, 0, sizeof(cleanup->neigh));
+			if (reiser4_place_fetch(&cleanup->neigh))
+				return -EINVAL;
+
 			return 0;
 		} 
 		

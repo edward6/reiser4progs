@@ -66,6 +66,8 @@ static int64_t tail40_read_units(reiser4_place_t *place,
 static errno_t tail40_prep_write(reiser4_place_t *place,
 				 trans_hint_t *hint)
 {
+	uint16_t space;
+	
 	aal_assert("umka-1836", hint != NULL);
 	aal_assert("umka-2437", place != NULL);
 
@@ -104,6 +106,12 @@ static errno_t tail40_prep_write(reiser4_place_t *place,
 		plug_call(hint->maxkey.plug->o.key_ops,
 			  set_offset, &hint->maxkey, max_offset);
 	}
+	
+	space = tail40_core->node_ops.maxspace(place->node);
+	
+	if (hint->len > space)
+		hint->len = space;
+		
 	
 	return 0;
 }

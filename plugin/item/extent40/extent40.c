@@ -183,7 +183,10 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 	if (place->pos.unit == MAX_UINT32)
 		place->pos.unit = 0;
 
-	esize = extent40_size(place);
+	/* Get the amount of bytes from the current unit through the end of 
+	   the item. */
+	esize = extent40_size(place) - 
+		extent40_offset(place, place->pos.unit);
 
 	if ((count = hint->count) > esize)
 		count = esize;
