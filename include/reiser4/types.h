@@ -191,9 +191,6 @@ struct reiser4_object {
 
 	/* File first item key */
 	reiser4_key_t key;
-
-	/* The key of parent file */
-	reiser4_key_t dir;
 	
 	/* Referrence to the filesystem file opened on */
 	reiser4_fs_t *fs;

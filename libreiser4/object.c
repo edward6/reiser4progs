@@ -121,8 +121,6 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		object->entity = NULL;
 	}
 	
-	reiser4_key_assign(&object->dir, &object->key);
-	
 	return 0;
 
  error_free_entity:
@@ -132,7 +130,9 @@ static errno_t callback_find_statdata(char *track, char *entry,
 }
 
 /* Callback function for finding passed @entry inside the current directory */
-static errno_t callback_find_entry(char *track, char *entry, void *data) {
+static errno_t callback_find_entry(char *track, char *entry,
+				   void *data)
+{
 	errno_t res;
 	reiser4_object_t *object;
 	reiser4_plugin_t *plugin;
@@ -235,7 +235,6 @@ reiser4_object_t *reiser4_object_open(
 #endif
 
 	reiser4_key_assign(&object->key, &fs->tree->key);
-	reiser4_key_assign(&object->dir, &fs->tree->key);
     
 	/* 
 	  Parsing path and looking for object's stat data. We assume, that name
