@@ -342,7 +342,7 @@ reiser4_node_t *reiser4_node_child(
 	/* Using aal_list_find_custom function with local helper function for
 	   comparing block numbers. */
 	if ((list = aal_list_find_custom(node->children, (void *)&blk,
-					  callback_comp_blk, NULL)))
+					 callback_comp_blk, NULL)))
 	{
 		return (reiser4_node_t *)list->data;
 	}
@@ -374,13 +374,13 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 			     reiser4_node_t *child)
 {
 	errno_t res;
-	aal_list_t *current;
+	aal_list_t *curr;
 
 	aal_assert("umka-1758", node != NULL);
 	aal_assert("umka-1759", child != NULL);
 	
-	current = aal_list_insert_sorted(node->children, child,
-					 callback_comp_node, NULL);
+	curr = aal_list_insert_sorted(node->children, child,
+				      callback_comp_node, NULL);
 	
 	child->p.node = node;
 	reiser4_node_lock(node);
@@ -392,8 +392,8 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 		return res;
 	}
 
-	if (!current->prev)
-		node->children = current;
+	if (!curr->prev)
+		node->children = curr;
 
 	return 0;
 }
@@ -729,8 +729,7 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 	uint32_t items;
 
 	reiser4_place_t place;
-	aal_list_t *walk = NULL;
-	aal_list_t *list = NULL;
+	aal_list_t *walk, *list = NULL;
 
 	aal_assert("umka-1887", node != NULL);
 	aal_assert("umka-1888", start != NULL);

@@ -202,7 +202,6 @@ void misc_set_variant(aal_list_t *list) {
 aal_list_t *misc_get_variant(void) {
 	return variant;
 }
-
 #endif
 
 /* Common alpha handler. Params are the same as in numeric handler */

@@ -170,7 +170,6 @@ static errno_t dir40_next(object_entity_t *entity) {
 		return -EINVAL;
 	}
 	
-	/* FIXME-VITALY: key->compshort is enough here. */
 	aal_memcpy(&dir->body, &place, sizeof(place));
 
 	/* Reading next direntry in order to get its key and put it to

@@ -195,7 +195,7 @@ errno_t reiser4_factory_load(char *name) {
 
 #ifdef ENABLE_PLUGINS_CHECK
 	if ((res = reiser4_factory_foreach(callback_check_plug,
-					      (void *)plug)))
+					   (void *)plug)))
 	{
 		aal_exception_warn("Plugin %s will not be registereg in "
 				   "plugin factory.", plug->h.class.name);
@@ -404,11 +404,14 @@ void reiser4_factory_fini(void) {
 }
 
 /* Helper callback function for matching plugin by type and id */
-static int callback_match_id(reiser4_plug_t *plug,
-			     walk_desc_t *desc, void *data)
+static int callback_match_id(const void *plug,
+			     const void *desc,
+			     void *data)
 {
-	return !(plug->id.type == desc->type 
-		 && plug->id.id == desc->id);
+	walk_desc_t *d = (walk_desc_t *)desc;
+	reiser4_plug_t *p = (reiser4_plug_t *)plug;
+
+	return !(p->id.type == d->type && p->id.id == d->id);
 }
 
 /* Finds plugins by its type and id */
@@ -421,11 +424,11 @@ reiser4_plug_t *reiser4_factory_ifind(
 
 	aal_assert("umka-155", plugins != NULL);    
 	
-	desc.type = type;
 	desc.id = id;
+	desc.type = type;
 
-	found = aal_list_find_custom(aal_list_first(plugins), (void *)&desc, 
-				     (comp_func_t)callback_match_id, NULL);
+	found = aal_list_find_custom(plugins, (void *)&desc,
+				     callback_match_id, NULL);
 
 	return found ? (reiser4_plug_t *)found->data : NULL;
 }

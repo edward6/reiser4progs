@@ -667,9 +667,13 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 	   function for next level nodes if memory pressure event is still
 	   actual. */
 	if (node->children) {
-		aal_list_foreach_forward(node->children, walk) {
+		aal_list_t *next;
+
+		/* Here should construction like this (with @next used), because
+		   current item may be removed by tree_adjust() function. */
+		for (walk = node->children; walk; walk = next) {
+			next = walk->next;
 			child = (reiser4_node_t *)walk->data;
-			aal_assert("umka-2384", child->entity != NULL);
 			
 			if ((res = reiser4_tree_adjust(tree, child, check)))
 				return res;
