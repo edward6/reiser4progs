@@ -1600,11 +1600,11 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
 
    (1) This pass is supposed to merge two border items in @src_entity and
    @dst_entity if they are mergeable at all. This is needed to prevent creation
-   of mergeable items in the same node during balancing.
+   of mergeable items in the same node during consequent shift of whole items.
 
    (2) Second pass is supposed to move as many whole items from @src_entity to
    @dst_entity as possible. That is exactly how many how does @dst_entity free
-   space allow. This is actually main job of shift() function.
+   space allow. This is actually main job of node40_shift() function.
 
    (3) And finally third pass should again merge two border items in @src_entity
    and @dst_entity after some number of whole items was moved to @dst_entity. It

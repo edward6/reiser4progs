@@ -765,7 +765,7 @@ static errno_t extent40_prep_write(place_t *place,
 				       get_offset, &hint->offset);
 
 		/* This loop checks if we insert some data inside extent and we
-		   should take into account posible holes. */
+		   should take into account possible holes. */
 		for (count = hint->count; count > 0 && unit_pos < units;
 		     count -= size, unit_pos++)
 		{
@@ -779,8 +779,9 @@ static errno_t extent40_prep_write(place_t *place,
 
 			if (et40_get_start(extent) == EXTENT_HOLE_UNIT)	{
 				/* We will allocate new unit if we write data to
-				   hole and data size less than @unit_size. */
-				if (hint->specific)
+				   hole and data size that may be written in
+				   this unit does not equal to @unit_size. */
+				if (hint->specific && unit_size != size)
 					hint->len += sizeof(extent40_t);
 			}
 
@@ -983,8 +984,6 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 			et40_set_width(extent, width);
 		}
 
-		max_offset += (width * blksize);
-		
 		/* Allocating new block if needed and attaching it to data
 		   cache. */
 		if (allocate) {
@@ -992,33 +991,42 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 
 			/* Adjusting offset of first block to make it pointed to
 			   the border of block. */
-			offset = plug_call(hint->offset.plug->o.key_ops,
-					   get_offset, &hint->offset);
-
-			offset = (offset + (hint->count % blksize)) -
-				((offset + (hint->count % blksize)) &
+			offset = (ins_offset + (hint->count % blksize)) -
+				((ins_offset + (hint->count % blksize)) &
 				 (blksize - 1));
 
 			plug_call(key.plug->o.key_ops, set_offset, &key, offset);
 			
-			for (; width > 0; width--) {
+			for (count = hint->count; count > 0;
+			     count -= size, ins_offset += size)
+			{
+				uint32_t room;
+
+				/* Calculating size to be written this time. */
+				room = blksize - (ins_offset % blksize);
 				
-				if (!(block = aal_block_alloc(device, blksize, 0)))
-					return -ENOMEM;
+				if ((size = count) > room)
+					size = room;
 
-				extent40_core->tree_ops.put_data(hint->tree,
-								 &key, block);
+				if (offset >= max_offset) {
+					if (!(block = aal_block_alloc(device, blksize, 0)))
+						return -ENOMEM;
 
+					extent40_core->tree_ops.put_data(hint->tree,
+									 &key, block);
+
+					/* Updating @hint->bytes field by blksize, as
+					   new block is allocated. */
+					hint->bytes += blksize;
+					max_offset += blksize;
+				}
+				
 				/* Update @key offset. */
 				offset = plug_call(key.plug->o.key_ops,
-						   get_offset, &key);
+						   get_offset, &key) + blksize;
 
 				plug_call(key.plug->o.key_ops, set_offset,
-					  &key, offset + blksize);
-
-				/* Updating @hint->bytes field by blksize, as
-				   new block is allocated. */
-				hint->bytes += blksize;
+					  &key, offset);
 			}
 		}
 	}
@@ -1026,6 +1034,9 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 	/* Updating @key by unit key as it is changed. */
 	extent40_fetch_key(place, &key);
 
+	ins_offset = plug_call(hint->offset.plug->o.key_ops,
+			       get_offset, &hint->offset);
+	
 	/* Second stage -- writing data to allocated blocks. */
 	for (count = hint->count; count > 0; count -= size) {
 		uint32_t off;
