@@ -32,7 +32,7 @@ errno_t nodeptr40_layout_check(item_entity_t *item, region_func_t func,
     if (res > 0) {
 	if (mode == REPAIR_REBUILD) {
 	    aal_exception_error("Node (%llu), item (%u): a pointer to the "
-		"region [%llu..%llu] is removed.", item->con.blk, blk, blk);
+		"region [%llu..%llu] is removed.", item->context.blk, blk, blk);
 	    item->len = 0;
 	    
 	    return REPAIR_FIXED;

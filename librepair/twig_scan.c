@@ -28,7 +28,7 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
 	start >= ts->bm_met->total - count)
     {
 	aal_exception_error("Node (%llu), item (%u): Pointed region "
-	    "[%llu..%llu] is invalid.", item->con.blk, item->pos.item, 
+	    "[%llu..%llu] is invalid.", item->context.blk, item->pos.item, 
 	    start, start + count - 1);
 	return 1;
     }
@@ -42,12 +42,12 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
     if (res == 0) {
 	aal_exception_error("Node (%llu), item (%u): Pointed region "
 	    "[%llu..%llu] is used already or contains a formatted block.", 
-	    item->con.blk, item->pos.item, item->pos.unit, item->pos.unit, 
+	    item->context.blk, item->pos.item, item->pos.unit, item->pos.unit, 
 	    start, start + count - 1);
 	return 1;
     } 
     
-    if (aux_bitmap_test(ts->bm_used, item->con.blk))
+    if (aux_bitmap_test(ts->bm_used, item->context.blk))
 	aux_bitmap_mark_region(ts->bm_unfm_tree, start, count);
     else
 	aux_bitmap_mark_region(ts->bm_unfm_out, start, count);
