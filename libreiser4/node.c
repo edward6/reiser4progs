@@ -146,37 +146,22 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
     return 0;
 }
 
-/* Gets right delimiting key from the specified node */
-errno_t reiser4_node_rkey(
-    reiser4_node_t *node,	/* node the rdkey will be obtained from */
-    reiser4_key_t *key		/* key pointer to store the found rdkey */
-) {
-    reiser4_pos_t pos;
-    
-    aal_assert("umka-753", node != NULL, return -1);
-    aal_assert("umka-754", key != NULL, return -1);
-    
-    reiser4_pos_init(&pos, reiser4_node_count(node) - 1, ~0ul);
-    reiser4_node_get_key(node, &pos, key);
-    
-    return 0;
-}
-
 /* Gets left delemiting key from the specified node */
 errno_t reiser4_node_lkey(
     reiser4_node_t *node,	/* node the ldkey will be obtained from */
     reiser4_key_t *key		/* key pointer found key will be stored in */
 ) {
     reiser4_pos_t pos;
-    
+
     aal_assert("umka-753", node != NULL, return -1);
     aal_assert("umka-754", key != NULL, return -1);
 
     reiser4_pos_init(&pos, 0, ~0ul);
     reiser4_node_get_key(node, &pos, key);
-    
+
     return 0;
 }
+
 
 #ifndef ENABLE_COMPACT
 
@@ -463,15 +448,17 @@ errno_t reiser4_node_traverse(
     aal_block_t *block,			/* root block traverse will be going from */
     reiser4_open_func_t open_func,	/* callback will be used for opening node */
     reiser4_handler_func_t handler_func,/* callback will be called on node */
-    reiser4_edge_func_t before_func,	/* callback will be called before all childs */
+    reiser4_setup_func_t before_func,	/* callback will be called before all childs */
     reiser4_setup_func_t setup_func,	/* callback will be called before a child */
     reiser4_setup_func_t update_func,	/* callback will be called after a child */
-    reiser4_edge_func_t after_func,	/* callback will be called after all childs  */
+    reiser4_setup_func_t after_func,	/* callback will be called after all childs  */
     void *data				/* user-spacified data */
 ) {
     errno_t result = 0;
     aal_device_t *device;
     reiser4_node_t *node;
+    reiser4_item_t item;
+    reiser4_pos_t pos;
     
     aal_assert("umka-1029", block != NULL, return -1);
     aal_assert("umka-1024", open_func != NULL, return -1);
@@ -485,11 +472,7 @@ errno_t reiser4_node_traverse(
     }
     
     if ((handler_func && !(result = handler_func(node, data))) || !handler_func) {
-	uint16_t unit;
-	reiser4_item_t item;
-	reiser4_pos_t pos = {0, 0};
-
-	if (before_func && (result = before_func(node, data)))
+	if (before_func && (result = before_func(node, &item, data)))
 	    goto error_free_node;
 
 	for (; pos.item < reiser4_node_count(node); pos.item++) {
@@ -498,46 +481,55 @@ errno_t reiser4_node_traverse(
 	    if (reiser4_item_open(&item, node, &pos)) {
 		aal_exception_error("Can't open item by its coord. Node %llu, item %u.",
 		    aal_block_number(node->block), pos.item);
-		goto error_free_node;
+		goto error_after_func;
 	    }
 	    
 	    if (!reiser4_item_internal(&item))
 		continue;
 
-	    for (unit = 0; unit < reiser4_item_count(&item); unit++) {
+	    pos.unit = reiser4_item_count(&item) == 1 ? ~0ul : 0;
+	    while(1) {
 		blk_t target;
-
-		pos.unit = reiser4_item_count(&item) == 1 ? ~0ul : unit;
-
-		if ((target = reiser4_item_get_iptr(&item)) > 0) {
-
+		
+		if ((target = reiser4_item_get_nptr(&item))) {
+		    if (setup_func && (result = setup_func(node, &item, data)))
+			goto error_after_func;
+	
 		    if (!(block = aal_block_open(device, target))) {
 			aal_exception_error("Can't read block %llu. %s.", 
 			    target, device->error);
-			goto error_free_node;
+			goto error_update_func;
 		    }
-	
-		    if (setup_func && (result = setup_func(node, &item, data)))
-			goto error_free_node;
-		    	    
+	    	    
 		    if ((result = reiser4_node_traverse(block, open_func, 
-			    handler_func, before_func, setup_func, 
-			    update_func, after_func, data)))
-			goto error_free_node;
+			handler_func, before_func, setup_func, 
+			update_func, after_func, data)))
+			goto error_update_func;
 
 		    if (update_func && (result = update_func(node, &item, data)))
-			goto error_free_node;
+			goto error_after_func;
 		}
+
+		if (pos.unit == ~0ul || pos.unit == (reiser4_item_count(&item) - 1))
+		    break;
+		
+		pos.unit ++;
 	    }
 	}
 	
-	if (after_func && (result = after_func(node, data)))
-	    goto error_free_node;	
+	if (after_func && (result = after_func(node, &item, data)))
+	    goto error_free_node;
     }
 
     reiser4_node_close(node);
     return result;
 
+error_update_func:
+    if (update_func)
+       result = update_func(node, &item, data);
+error_after_func:
+    if (after_func)
+	result = after_func(node, &item, data);
 error_free_node:
     reiser4_node_close(node);
 error:
@@ -603,4 +595,5 @@ errno_t reiser4_node_get_key(
     */
     return -((key->plugin = reiser4_key_guess(&key->body)) == NULL);
 }
+
 
