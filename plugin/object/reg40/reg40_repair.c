@@ -271,6 +271,7 @@ static errno_t reg40_next(object_entity_t *object,
 		return RE_FATAL;
 
 	hint.count = 1;
+	hint.shift_flags = SF_DEFAULT;
 
 	/* Item has wrong key, remove it. */
 	if ((res = obj40_remove(&reg->obj, &reg->body, &hint)))
@@ -350,7 +351,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 			/* Evth is to be converted. */
 			repair->bytes = 0;
 
-			return 1;
+			return 2;
 		} 
 	}
 	
@@ -382,27 +383,25 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 		  reg->body.plug->label, reg->policy->label,
 		  mode == RM_BUILD ? " Converted." : "");
 
-	/* Return 1 if the conversion should be performed right now. */
-	return mode == RM_BUILD ? 0 : 1;
+	/* Convertion is postponed; do not bother with it for not RM_BUILD. */
+	return mode == RM_BUILD ? 1 : 2;
 }
 
 /* Obtains the maxreal key of the given place.
    Returns: maxreal key if evth is ok.
    0 -- no place; MAX_UINT64 -- some error. */
 static uint64_t reg40_place_maxreal(reiser4_place_t *place) {
+	uint64_t offset, size;
 	reiser4_key_t key;
-	errno_t res;
 	
-	if (!place->plug)
+	offset = plug_call(place->key.plug->o.key_ops, get_offset, &place->key);
+	size = plug_call(place->plug->o.item_ops->object, size, place);
+	
+	if (offset > MAX_UINT64 - size)
 		return MAX_UINT64;
 
 	/* Get the maxreal key of the found item. */
-	if ((res = plug_call(place->plug->o.item_ops->balance, 
-			     maxreal_key, place, &key)))
-	{
-		return MAX_UINT64;
-	}
-
+	plug_call(place->plug->o.item_ops->balance, maxreal_key, place, &key);
 	return plug_call(key.plug->o.key_ops, get_offset, &key);
 }
 
@@ -535,17 +534,32 @@ errno_t reg40_check_struct(object_entity_t *object,
 		if (reg->body.plug) {
 			repair.maxreal = reg40_place_maxreal(&reg->body);
 
-			if (repair.maxreal == MAX_UINT64)
-				return -EINVAL;
+			if (repair.maxreal == MAX_UINT64) {
+				uint64_t offset;
+				
+				offset = plug_call(reg->body.key.plug->o.key_ops,
+						   get_offset, &reg->body.key);
+				
+				aal_error("The object [%s]: found item "
+					  "has the wrong offset (%llu).%s",
+					  print_inode(reg40_core, &info->object),
+					  offset, mode != RM_CHECK ? " Removed"
+					  : "");
 
-			/* Prepare the convertion if needed. */
-			result = plug_equal(reg->body.plug, repair.bplug) ? 1 :
-				reg40_conv_prepare(reg, &hint, &repair, mode);
-		} else
-			result = 1;
+				reg->body.plug = NULL;
+			} else {			
+				/* Prepare the convertion if needed. */
+				if (!plug_equal(reg->body.plug, repair.bplug))
+					result = reg40_conv_prepare(reg, &hint, 
+								    &repair, mode);
+			}
+		}
 	
-		/* If result != 0 -- convertion is needed if smth was prepared. */
-		if (result && hint.offset.plug) {
+		/* If result == 2 -- convertion is needed;
+		   If result == 1 -- conversion is postponed;
+		   If result == 0 -- conversion is not postponed anymore;
+		   If hint.offset.plug != NULL, conversion was postponed. */
+		if ((result == 0 && hint.offset.plug) || result == 2) {
 			if (mode == RM_BUILD) {
 				result = reg40_core->flow_ops.convert(info->tree,
 								      &hint);
@@ -554,8 +568,9 @@ errno_t reg40_check_struct(object_entity_t *object,
 
 				/* Evth was converted, update bytes. */
 				repair.bytes += hint.bytes;
-			} else 
+			} else {
 				res |= RE_FATAL;
+			}
 			
 			aal_memset(&hint.offset, 0, sizeof(hint.offset));
 			goto next;
@@ -574,7 +589,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		if ((res |= reg40_hole_cure(object, &repair, mode)) < 0)
 			return res;
 		
-		/* Count bytes if no conversion is being prepared. */
+		/* Count bytes if no conversion has been postponed. */
 		if (!hint.offset.plug) {
 			repair.bytes += plug_call(reg->body.plug->o.item_ops->object,
 						  bytes, &reg->body);

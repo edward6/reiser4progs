@@ -1343,6 +1343,7 @@ static item_object_ops_t object_ops = {
 	.layout		  = extent40_layout,
 	.size		  = extent40_size,
 	.bytes		  = extent40_bytes,
+	.overhead	  = NULL,
 #endif
 	.read_units	  = extent40_read_units,
 	.fetch_units	  = extent40_fetch_units
