@@ -36,10 +36,10 @@ extern errno_t repair_check(repair_data_t *repair);
 
 #define repair_error_count(repair, error)		\
 ({							\
-	if (res > 0) {					\
+	if (error > 0) {					\
 		if (error & RE_FATAL)			\
 			repair->fatal++;		\
-		else if (res & RE_FIXABLE)		\
+		else if (error & RE_FIXABLE)		\
 			repair->fixable++;		\
 	}						\
 })

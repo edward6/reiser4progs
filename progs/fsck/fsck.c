@@ -401,9 +401,9 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	repair_error_count(repair, res);
 	
 	/* Leave device RW if not CHECK mode. */
+	reiser4_journal_sync(repair->fs->journal);
+	reiser4_fs_sync(repair->fs);
 	if (fs_mode == RM_CHECK) {
-		reiser4_journal_sync(repair->fs->journal);
-		reiser4_fs_sync(repair->fs);
 		if (aal_device_reopen(host, host->blksize, flags)) {
 			aal_fatal("Failed to reopen the device RW.");
 			res = -EIO;

@@ -11,7 +11,7 @@ dnl
 dnl Adds the required libraries to $REISER4_LIBS and does an
 dnl AC_SUBST(REISER4_LIBS)
 
-AC_DEFUN(AC_CHECK_LIBREISER4,
+AC_DEFUN([AC_CHECK_LIBREISER4],
 [
 
 dnl save LIBS

@@ -102,18 +102,15 @@ errno_t extent40_check_layout(reiser4_place_t *place,
 			result = RE_FIXABLE;
 	}
 	
-	units = extent40_join_units(place, hint->mode != RM_CHECK);
-	
-	if (units) {
-		fsck_mess("Node (%llu), item (%u): %u mergable units were "
-			  "found in the extent40 unit.%s", place_blknr(place),
-			  place->pos.item, units, hint->mode == RM_CHECK ? "" : 
-			  " Fixed.");
-		
-		if (hint->mode != RM_CHECK)
+	if (hint->mode != RM_CHECK) {
+		if ((units = extent40_join_units(place, 1))) {
+			fsck_mess("Node (%llu), item (%u): %u mergable units "
+				  "were found in the extent40 unit.%s", 
+				  place_blknr(place), place->pos.item, units, 
+				  hint->mode == RM_CHECK ? "" : " Merged.");
+			
 			hint->len += (units * sizeof(extent40_t));
-		else 
-			result |= RE_FIXABLE;
+		}
 	}
 	
 	return result;
@@ -178,18 +175,15 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 			res |= RE_FIXABLE;
 	}
 	
-	units = extent40_join_units(place, hint->mode != RM_CHECK);
-
-	if (units) {
-		fsck_mess("Node (%llu), item (%u): %u mergable units were "
-			  "found in the extent40 unit.%s", place_blknr(place),
-			  place->pos.item, units, hint->mode == RM_CHECK ? "" : 
-			  " Fixed.");
-		
-		if (hint->mode != RM_CHECK)
+	if (hint->mode != RM_CHECK) {
+		if ((units = extent40_join_units(place, 1))) {
+			fsck_mess("Node (%llu), item (%u): %u mergable units "
+				  "were found in the extent40 unit.%s", 
+				  place_blknr(place), place->pos.item, units, 
+				  hint->mode == RM_CHECK ? "" : " Merged.");
+			
 			hint->len += (units * sizeof(extent40_t));
-		else 
-			res |= RE_FIXABLE;
+		}
 	}
 	
 	return res;
@@ -415,9 +409,9 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 		
 		/* Set the correct width. Start is 0 because allocated 
 		   units are not overwritten. */
-		et40_set_start(dextent + dstart + count, 0);
+		et40_set_start(dextent + place->pos.unit + count, 0);
 		width = et40_get_width(dextent + place->pos.unit) - tail;
-		et40_set_width(dextent + dstart + count, width);
+		et40_set_width(dextent + place->pos.unit + count, width);
 
 		/* Fix the current dst unit after cutting. */
 		et40_set_width(dextent + place->pos.unit, tail);
@@ -430,9 +424,6 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 
 		/* Fix the current dst unit. */
 		et40_set_width(dextent + place->pos.unit, head);
-
-		/* Move to the next unit. */
-		dextent++;
 	}
 
 	dextent += dstart;

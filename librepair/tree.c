@@ -494,7 +494,6 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 	hint.place_func = NULL;
 	hint.region_func = func;
 	hint.data = data;
-	hint.shift_flags = SF_DEFAULT;
 	
 	aal_memcpy(&hint.offset, &src->key, sizeof(src->key));
 	level = reiser4_node_get_level(src->node);
@@ -544,13 +543,32 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 
 		/* Insert_raw can insert the whole item (!dst.plug) or if dst &
 		   src items are of the same plugin. */
-		if ((dst.plug && plug_equal(dst.plug, src->plug)) || !dst.plug)
-		{
+		if (!dst.plug || plug_equal(dst.plug, src->plug)) {
+			hint.shift_flags = SF_DEFAULT;
+			
+			/* If we are in the middle of the unit, set HOLD_POS
+			   to not lose the unit it if some space is needed. */
+			if (dst.plug) {
+				reiser4_key_t ukey;
+
+				reiser4_item_get_key(&dst, &ukey);
+				
+				if (reiser4_key_compfull(&ukey, 
+							 &hint.offset) <= 0)
+				{
+					hint.shift_flags |= SF_HOLD_POS;
+				}
+			}
+			
 			res = reiser4_tree_modify(tree, &dst, &hint, level,
 						  cb_prep_insert_raw,
 						  cb_insert_raw);
 			
 			if (res) goto error;
+		} else if (dst.plug->id.group == TAIL_ITEM) {
+			/* Do not overwrite tail items as they do not have 
+			   holes. Only a hole can be overwritten. */
+			return 0;
 		} else {
 			/* For not equal plugins do coping. */
 			fsck_mess("Node (%llu), item (%u): the item (%s) [%s] "
@@ -573,10 +591,11 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 		lhint.key = &hint.maxkey;
 			
 		/* Lookup by end_key. */
-		res = src->plug->o.item_ops->balance->lookup(src, &lhint,
-							     FIND_EXACT);
-
-		if (res < 0) return res;
+		if ((res = plug_call(src->plug->o.item_ops->balance,
+				     lookup, src, &lhint, FIND_EXACT)) < 0)
+		{
+			return res;
+		}
 		
 		if (src->pos.unit >= scount)
 			break;

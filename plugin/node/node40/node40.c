@@ -1272,13 +1272,6 @@ static errno_t node40_unite(reiser4_node_t *src_entity,
 	   not point it, that is next insert will not be dealing with it. */
 	remove = (hint->units_bytes == src_place.len || units == 0);
 	
-	/*
-	if (hint->control & SF_UPDATE_POINT) {
-		remove = remove && (hint->result & SF_MOVE_POINT ||
-				    pos.item != hint->pos.item);
-	}
-	*/
-	
 	/* Updating item's keys after shift_unit() is finished. */
 	if (left_shift) {
 		/* We do not need to update key of the src item which is going

@@ -14,11 +14,20 @@ errno_t repair_fs_open(repair_data_t *repair,
 {
 	reiser4_fs_t *fs;
 	errno_t res = 0;
+	uint64_t len;
 
 	aal_assert("vpf-851",  repair != NULL);
 	aal_assert("vpf-159",  hdevice != NULL);
 	aal_assert("vpf-1556", jdevice != NULL);
- 
+
+	len = aal_device_len(hdevice);
+	if (reiser4_fs_check_len(hdevice, 512, len)) {
+		fsck_mess("The given device '%s' is of %llu what is too "
+			  "small for the filesystem.", hdevice->name, len);
+		repair_error_count(repair, RE_FATAL);
+		return 0;
+	}
+	
 	/* Allocating memory and initializing fields */
 	if (!(fs = repair->fs = aal_calloc(sizeof(*repair->fs), 0)))
 		return -ENOMEM;

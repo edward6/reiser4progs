@@ -2242,9 +2242,9 @@ static errno_t tree_shift_todir(reiser4_tree_t *tree, reiser4_place_t *place,
 
 	if (SF_ALLOW_MERGE & flags)
 		shift_flags |= SF_ALLOW_MERGE;
-		
-	if (SF_MOVE_POINT & flags)
-		shift_flags |= SF_MOVE_POINT;
+	
+	if (SF_HOLD_POS & flags)
+		shift_flags |= SF_HOLD_POS;
 
 	old_node = place->node;
 
@@ -2382,6 +2382,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 			if (SF_ALLOW_MERGE & flags)
 				shift_flags |= SF_ALLOW_MERGE;
 
+			if (SF_HOLD_POS & flags)
+				shift_flags |= SF_HOLD_POS;
+			
 			/* We will allow to move insert point to neighbour node 
 			   if we at first iteration in this loop or if place 
 			   points behind the last unit of last item in current 
@@ -2393,7 +2396,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 			   new insert point. */
 			if ((res = reiser4_tree_shift(tree, place, node, 
 						      shift_flags)))
+			{
 				return res;
+			}
 
 			/* Preparing new @node parent place. */
 			tree_next_child_pos(save.node, &aplace);
@@ -2460,20 +2465,16 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		/* If we are still in the same node, but on not-esistent 
 		   anymore item, set unit position to MAX_UINT32. */
 		if (save.node == place->node && place->pos.item >= left_items)
-			place->pos.unit = MAX_UINT32;
+			aal_assert("vpf-1793", place->pos.unit == MAX_UINT32);
 	
 		/* Checking if it is enough of space in @place. */
 		enough = tree_calc_space(place, ioverh);
 
-		/* If it is not enough of space and insert point was actually
-		   moved to neighbour node, we set @place to @save and give it
-		   yet another try to make space. */
 		if (enough < (int32_t)ilen && save.node != place->node) {
-			aal_memcpy(place, &save, sizeof(save));
-			if (!place->pos.unit)
-				place->pos.unit = MAX_UINT32;
-			
-			enough = tree_calc_space(place, ioverh);
+			aal_bug("vpf-1796", "When the insertion point is "
+				"moved to the new node, it is the second "
+				"node allocation and there must be enother "
+				"space.");
 		}
 
 		/* Releasing new allocated @node if it is empty and insert point
@@ -2483,8 +2484,10 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		
 		/* Releasing save.@node if it is empty and insert point is not
 		   inside it. */
-		if (reiser4_node_items(save.node) == 0 && save.node != place->node)
-			reiser4_tree_release_node(tree, save.node);
+		if (left_items == 0 && save.node != place->node) {
+			aal_bug("vpf-1795", "The insert point cannot "
+				"move to the new node with all items.");
+		}
 	}
 
 	return enough;
@@ -2922,7 +2925,6 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 			return res;
 		}
 	}
-	
 
 	/* Calling @hint->place_func if a new item was created. */
 	if (hint->place_func && place->pos.unit == MAX_UINT32) {

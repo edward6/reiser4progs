@@ -433,7 +433,8 @@ enum shift_flags {
 	   shift. */
 	SF_MOVE_POINT    = 1 << 2,
 
-	/* Allows to update insert point during shift. */
+	/* Care about the insert point, shift only till this point. If not 
+	   given, as much data as fit the destination node will be shifted. */
 	SF_UPDATE_POINT  = 1 << 3,
 
 	/* Controls if shift allowed to merge border items or only whole items
@@ -446,7 +447,10 @@ enum shift_flags {
 	   in existent nodes (one insert point points to and its neighbours)*/
 	SF_ALLOW_ALLOC   = 1 << 5,
 
-	SF_ALLOW_PACK    = 1 << 6
+	SF_ALLOW_PACK    = 1 << 6,
+
+	/* Hold (do not leave) the current position (pointed by place->pos). */
+	SF_HOLD_POS      = 1 << 7
 };
 
 typedef enum shift_flags shift_flags_t;

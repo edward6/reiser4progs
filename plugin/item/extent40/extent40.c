@@ -1321,6 +1321,7 @@ static errno_t extent40_prep_shift(reiser4_place_t *src_place,
 				   shift_hint_t *hint)
 {
 	int check_point;
+	uint32_t units;
 	
 	aal_assert("umka-1705", hint != NULL);
 	aal_assert("umka-1704", src_place != NULL);
@@ -1336,27 +1337,35 @@ static errno_t extent40_prep_shift(reiser4_place_t *src_place,
 		/* If we have to take into account insert point. */
 		if (hint->control & SF_UPDATE_POINT && check_point) {
 			left = hint->pos.unit * sizeof(extent40_t);
+		
+			if (hint->control & SF_HOLD_POS &&
+			    hint->control & SF_MOVE_POINT)
+			{
+				units = extent40_units(src_place);
+				if (units > hint->pos.unit)
+					left += sizeof(extent40_t);
+			}
 			
 			if (hint->units_bytes > left)
 				hint->units_bytes = left;
 
-			hint->pos.unit -= hint->units_bytes /
-				sizeof(extent40_t);
-
-			if (hint->pos.unit == 0 &&
+			/* Units to be moved. */
+			units = hint->units_bytes / sizeof(extent40_t);
+			
+			if (hint->pos.unit <= units &&
 			    (hint->control & SF_MOVE_POINT))
 			{
 				hint->result |= SF_MOVE_POINT;
 
-				if (dst_place) {
-					hint->pos.unit = dst_place->len +
-						hint->units_bytes;
-				
-					hint->pos.unit /= sizeof(extent40_t);
-				} else {
-					hint->pos.unit = hint->units_bytes /
-						sizeof(extent40_t);
-				}
+				hint->pos.unit = dst_place ? dst_place->len : 0;
+				hint->pos.unit += hint->units_bytes;
+				hint->pos.unit /= sizeof(extent40_t);
+
+				if (hint->control & SF_HOLD_POS)
+					hint->pos.unit--;
+			} else {
+				hint->pos.unit -= hint->units_bytes /
+					sizeof(extent40_t);
 			}
 		} else {
 			if (hint->units_bytes > src_place->len)
@@ -1367,28 +1376,30 @@ static errno_t extent40_prep_shift(reiser4_place_t *src_place,
 
 		/* The same check as abowe, but for right shift */
 		if (hint->control & SF_UPDATE_POINT && check_point) {
-			uint32_t units;
-
 			units = extent40_units(src_place);
 			
 			/* Check is it is possible to move something into right
 			   neighbour item. */
 			if (hint->pos.unit < units) {
-				right = (units - hint->pos.unit) *
-					sizeof(extent40_t);
-		
+				units -= hint->pos.unit;
+				units *= sizeof(extent40_t);
+				right = units;
+	
+				if (hint->control & SF_HOLD_POS &&
+				    !(hint->control & SF_MOVE_POINT))
+				{
+					right -= sizeof(extent40_t);
+				}
+
 				if (hint->units_bytes > right)
 					hint->units_bytes = right;
 
 				if ((hint->control & SF_MOVE_POINT) &&
-				    hint->units_bytes == right)
+				    hint->units_bytes == units)
 				{
 					hint->result |= SF_MOVE_POINT;
 					hint->pos.unit = 0;
-				} else {
-					hint->units_bytes = right -
-						hint->units_bytes;
-				}
+				} 
 			} else {
 				/* There is noning to move, update insert point,
 				   flags and out. */
