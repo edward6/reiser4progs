@@ -661,7 +661,7 @@ errno_t reiser4_tree_mkspace(
 	*/
 	if (needed > max_space) {
 		aal_exception_error("Item size is too big. Maximal possible "
-				    "item size can be %u bytes long.", max_space);
+				    "item can be %u bytes long.", max_space);
 		return -1;
 	}
     
@@ -762,7 +762,7 @@ errno_t reiser4_tree_insert(
 {
 	int lookup;
 	uint32_t needed;
-    
+
 	reiser4_key_t *key;
 	reiser4_coord_t fake;
 	reiser4_coord_t insert;
@@ -844,7 +844,7 @@ errno_t reiser4_tree_insert(
 		if (!tree->preinsert(&insert, hint))
 			return -1;
 	}
-	
+
 	if (reiser4_node_insert(insert.node, &insert.pos, hint)) {
 		aal_exception_error("Can't insert an %s into the node %llu.", 
 				    (insert.pos.unit == ~0ul ? "item" : "unit"),

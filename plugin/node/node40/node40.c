@@ -536,7 +536,7 @@ static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
 		return 0;
 
 	/* Updating left delimiting key */
-	if (item.pos == 0 && pos->unit == 0) {
+	if (pos->item == 0 && pos->unit == 0) {
 		ih = node40_ih_at(node, item.pos);
 		aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
 	}
@@ -601,7 +601,7 @@ static errno_t node40_cut(object_entity_t *entity,
 		return -1;
 
 	/* Updating left delimiting key */
-	if (item.pos == 0 && pos->unit == 0)
+	if (pos->item == 0 && pos->unit == 0)
 		aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
 
 	return 0;

@@ -462,62 +462,38 @@ static reiser4_node_t *reiser4_node_fnn(
 	reiser4_node_t *node,
 	direction_t direction)
 {
-	uint32_t stop;
+	int found = 0;
+	uint32_t orig;
 	uint32_t level;
 
 	reiser4_pos_t pos;
 	reiser4_node_t *child;
 	reiser4_coord_t coord;
 	reiser4_ptr_hint_t ptr;
-	
 	reiser4_node_t *old = node;
 	
-	stop = plugin_call(return NULL, node->entity->plugin->node_ops,
+	orig = plugin_call(return NULL, node->entity->plugin->node_ops,
 			   get_level, node->entity);
+	level = orig;
 	
-	while (node->parent) {
-		int found;
-			
+	while (node->parent && !found) {
+		
 		if (reiser4_node_pos(node, &pos))
 			return NULL;
 
 		found = (direction == D_LEFT ? (pos.item > 0) :
 			 (pos.item < reiser4_node_count(node->parent) - 1));
-		
-		if (found) {
-			pos.item += (direction == D_LEFT ? -1 : 1);
-			
-			if (reiser4_coord_open(&coord, node->parent, &pos))
-				return NULL;
 
-			if (!reiser4_item_nodeptr(&coord))
-				return NULL;
-			
-			plugin_call(return NULL, coord.entity.plugin->item_ops,
-				    fetch, &coord.entity, 0, &ptr, 1);
-
-			if (!(child = reiser4_node_cbp(node->parent, ptr.ptr))) {
-				child = reiser4_tree_load(node->parent->tree, ptr.ptr);
-
-				if (reiser4_node_register(node->parent, child))
-					return NULL;
-			}
-
-			node = child;
-			goto found;
-		} else
-			node = node->parent;
+		level++;
+		node = node->parent;
 	}
 
-	if (pos.item == (direction == D_LEFT ? 0 : reiser4_node_count(node) - 1))
+	if (!found)
 		return NULL;
-
+	
 	pos.item += (direction == D_LEFT ? -1 : 1);
 	
-	level = plugin_call(return NULL, node->entity->plugin->node_ops,
-			    get_level, node->entity);
-	
-	while (level > stop) {
+	while (level > orig) {
 		if (reiser4_coord_open(&coord, node, &pos))
 			return NULL;
 
@@ -533,12 +509,14 @@ static reiser4_node_t *reiser4_node_fnn(
 			if (reiser4_node_register(node, child))
 				return NULL;
 		}
-			
-		node = child;
+
 		level--;
+		node = child;
+
+		pos.item = (direction == D_LEFT ?
+			    reiser4_node_count(node) - 1 : 0);
 	}
 
- found:
 	if (direction == D_LEFT) {
 		old->left = node;
 		node->right = old;
