@@ -15,8 +15,6 @@
 
 #ifndef ENABLE_COMPACT
 
-ENABLE_COMPACT
-
 /* Requests block allocator for new block and creates empty node in it */
 reiser4_joint_t *reiser4_tree_allocate(
     reiser4_tree_t *tree,	    /* tree for operating on */
@@ -523,7 +521,15 @@ static errno_t reiser4_tree_shift(
 	reiser4_node_count(coord->joint->node) > 0, return -1);
 
     old = *coord;
-    
+
+    {
+      shift_flags_t flags = 0;
+      flags |= (direction == D_LEFT ? SF_LEFT : SF_RIGHT);
+      if (move_ip) flags |= SF_MOVIP;
+      plugin_call(, coord->joint->node->entity->plugin->node_ops, shift,
+	    old.joint->node->entity, joint->node->entity, &old.pos, flags);
+    }
+
     while (1) {
     
 	/* Prepare the src and dst coords for moving */

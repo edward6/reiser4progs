@@ -1,6 +1,6 @@
 /*
-    plugin.h -- reiser4 plugin factory implementation.
-    Copyright (C) 1996-2002 Hans Reiser
+  plugin.h -- reiser4 plugin factory implementation.
+  Copyright (C) 1996-2002 Hans Reiser
 */
 
 #ifndef PLUGIN_H
@@ -21,9 +21,17 @@ enum direction {
 
 typedef enum direction direction_t;
 
+enum shift_flags {
+    SF_LEFT	 = 1 << 0,
+    SF_RIGHT = 1 << 1,
+    SF_MOVIP = 1 << 2
+};
+
+typedef enum shift_flags shift_flags_t;
+
 /* 
-    Defining types for disk structures. All types like f32_t are fake types needed
-    to avoid gcc-2.95.x bug with typedef of aligned types.
+   Defining types for disk structures. All types like f32_t are fake types needed
+   to avoid gcc-2.95.x bug with typedef of aligned types.
 */
 typedef uint8_t  f8_t;  typedef f8_t  d8_t  __attribute__((aligned(1)));
 typedef uint16_t f16_t; typedef f16_t d16_t __attribute__((aligned(2)));
@@ -36,36 +44,36 @@ typedef uint16_t rpid_t;
 typedef void reiser4_body_t;
 
 enum reiser4_plugin_type {
-    FILE_PLUGIN_TYPE		= 0x0,
+    FILE_PLUGIN_TYPE    = 0x0,
 
-    /* 
-	In reiser4 kernel code DIR_PLUGIN_TYPE also exists, but libreiser4 works 
-	with files and directories by the unified interface and we do not need that
-	additional type. But we have to be commpatible, because reiser4_plugin_type
-	may be stored in stat data extentions.
+    /*
+	   In reiser4 kernel code DIR_PLUGIN_TYPE also exists, but libreiser4 works
+	   with files and directories by the unified interface and we do not need that
+	   additional type. But we have to be compatible, because reiser4_plugin_type
+	   may be stored in stat data extentions.
     */
 
-    ITEM_PLUGIN_TYPE		= 0x2,
-    NODE_PLUGIN_TYPE		= 0x3,
-    HASH_PLUGIN_TYPE		= 0x4,
-    TAIL_PLUGIN_TYPE		= 0x5,
-    PERM_PLUGIN_TYPE		= 0x6,
-    SDEXT_PLUGIN_TYPE		= 0x7,
-    FORMAT_PLUGIN_TYPE		= 0x8,
+    ITEM_PLUGIN_TYPE	= 0x2,
+    NODE_PLUGIN_TYPE	= 0x3,
+    HASH_PLUGIN_TYPE	= 0x4,
+    TAIL_PLUGIN_TYPE	= 0x5,
+    PERM_PLUGIN_TYPE	= 0x6,
+    SDEXT_PLUGIN_TYPE	= 0x7,
+    FORMAT_PLUGIN_TYPE	= 0x8,
     OID_PLUGIN_TYPE		= 0x9,
-    ALLOC_PLUGIN_TYPE		= 0xa,
-    JNODE_PLUGIN_TYPE		= 0xb,
-    JOURNAL_PLUGIN_TYPE		= 0xc,
+    ALLOC_PLUGIN_TYPE	= 0xa,
+    JNODE_PLUGIN_TYPE	= 0xb,
+    JOURNAL_PLUGIN_TYPE	= 0xc,
     KEY_PLUGIN_TYPE		= 0xd
 };
 
 typedef enum reiser4_plugin_type reiser4_plugin_type_t;
 
 enum reiser4_file_plugin_id {
-    FILE_REGULAR40_ID		= 0x0,
-    FILE_DIRTORY40_ID		= 0x1,
-    FILE_SYMLINK40_ID		= 0x2,
-    FILE_SPECIAL40_ID		= 0x3
+    FILE_REGULAR40_ID	= 0x0,
+    FILE_DIRTORY40_ID	= 0x1,
+    FILE_SYMLINK40_ID	= 0x2,
+    FILE_SPECIAL40_ID	= 0x3
 };
 
 enum reiser4_file_group {
@@ -78,12 +86,12 @@ enum reiser4_file_group {
 typedef enum reiser4_file_group reiser4_file_group_t;
 
 enum reiser4_item_plugin_id {
-    ITEM_STATDATA40_ID		= 0x0,
+    ITEM_STATDATA40_ID	= 0x0,
     ITEM_SDE40_ID		= 0x1,
     ITEM_CDE40_ID		= 0x2,
-    ITEM_NODEPTR40_ID		= 0x3,
+    ITEM_NODEPTR40_ID	= 0x3,
     ITEM_ACL40_ID		= 0x4,
-    ITEM_EXTENT40_ID		= 0x5,
+    ITEM_EXTENT40_ID	= 0x5,
     ITEM_TAIL40_ID		= 0x6
 };
 
@@ -99,7 +107,7 @@ enum reiser4_item_group {
 typedef enum reiser4_item_group reiser4_item_group_t;
 
 enum reiser4_node_plugin_id {
-    NODE_REISER40_ID		= 0x0,
+    NODE_REISER40_ID	= 0x0,
 };
 
 enum reiser4_hash_plugin_id {
@@ -107,57 +115,57 @@ enum reiser4_hash_plugin_id {
     HASH_R5_ID			= 0x1,
     HASH_TEA_ID			= 0x2,
     HASH_FNV1_ID		= 0x3,
-    HASH_DEGENERATE_ID		= 0x4
+    HASH_DEGENERATE_ID	= 0x4
 };
 
 typedef enum reiser4_hash reiser4_hash_t;
 
 enum reiser4_tail_plugin_id {
-    TAIL_NEVER_ID		= 0x0,
-    TAIL_SUPPRESS_ID		= 0x1,
-    TAIL_FOURK_ID		= 0x2,
-    TAIL_ALWAYS_ID		= 0x3,
-    TAIL_SMART_ID		= 0x4,
-    TAIL_LAST_ID		= 0x5
+    TAIL_NEVER_ID		  = 0x0,
+    TAIL_SUPPRESS_ID	  = 0x1,
+    TAIL_FOURK_ID		  = 0x2,
+    TAIL_ALWAYS_ID		  = 0x3,
+    TAIL_SMART_ID		  = 0x4,
+    TAIL_LAST_ID		  = 0x5
 };
 
 enum reiser4_perm_plugin_id {
-    PERM_RWX_ID			= 0x0
+    PERM_RWX_ID			  = 0x0
 };
 
 enum reiser4_sdext_plugin_id {
-    SDEXT_LW_ID			= 0x0,
-    SDEXT_UNIX_ID		= 0x1,
-    SDEXT_SYMLINK_ID		= 0x2,
-    SDEXT_PLUGIN_ID		= 0x3,
-    SDEXT_GEN_AND_FLAGS_ID	= 0x4,
-    SDEXT_CAPABILITIES_ID	= 0x5,
-    SDEXT_LARGE_TIMES_ID	= 0x6
+    SDEXT_LW_ID			  = 0x0,
+    SDEXT_UNIX_ID		  = 0x1,
+    SDEXT_SYMLINK_ID	  = 0x2,
+    SDEXT_PLUGIN_ID		  = 0x3,
+    SDEXT_GEN_AND_FLGS_ID = 0x4,
+    SDEXT_CAPABILITIES_ID = 0x5,
+    SDEXT_LARGE_TIMES_ID  = 0x6
 };
 
 enum reiser4_format_plugin_id {
-    FORMAT_REISER40_ID		= 0x0,
-    FORMAT_REISER36_ID		= 0x1
+    FORMAT_REISER40_ID	  = 0x0,
+    FORMAT_REISER36_ID	  = 0x1
 };
 
 enum reiser4_oid_plugin_id {
-    OID_REISER40_ID		= 0x0,
-    OID_REISER36_ID		= 0x1
+    OID_REISER40_ID		  = 0x0,
+    OID_REISER36_ID		  = 0x1
 };
 
 enum reiser4_alloc_plugin_id {
-    ALLOC_REISER40_ID		= 0x0,
-    ALLOC_REISER36_ID		= 0x1
+    ALLOC_REISER40_ID	  = 0x0,
+    ALLOC_REISER36_ID	  = 0x1
 };
 
 enum reiser4_journal_plugin_id {
-    JOURNAL_REISER40_ID		= 0x0,
-    JOURNAL_REISER36_ID		= 0x1
+    JOURNAL_REISER40_ID	  = 0x0,
+    JOURNAL_REISER36_ID	  = 0x1
 };
 
 enum reiser4_key_plugin_id {
-    KEY_REISER40_ID		= 0x0,
-    KEY_REISER36_ID		= 0x1
+    KEY_REISER40_ID		  = 0x0,
+    KEY_REISER36_ID		  = 0x1
 };
 
 typedef union reiser4_plugin reiser4_plugin_t;
@@ -172,14 +180,14 @@ typedef struct reiser4_entity reiser4_entity_t;
 
 /* Types for layout defining */
 typedef errno_t (*reiser4_action_func_t) (reiser4_entity_t *, 
-    uint64_t, void *);
+										  uint64_t, void *);
 
 typedef errno_t (*reiser4_layout_func_t) (reiser4_entity_t *, 
-    reiser4_action_func_t, void *);
+										  reiser4_action_func_t, void *);
 
 /* 
-    Maximal possible key size. It is used for creating temporary keys by declaring 
-    array of uint8_t elements reiser4_KEY_SIZE long.
+   Maximal possible key size. It is used for creating temporary keys by declaring 
+   array of uint8_t elements reiser4_KEY_SIZE long.
 */
 #define KEY_SIZE 24
 
@@ -215,30 +223,30 @@ struct reiser4_item {
 typedef struct reiser4_item reiser4_item_t;
 
 /* 
-    To create a new item or to insert into the item we need to perform the 
-    following operations:
+   To create a new item or to insert into the item we need to perform the 
+   following operations:
     
-    (1) Create the description of the data being inserted.
-    (2) Ask item plugin how much space is needed for the data, described in 1.
+   (1) Create the description of the data being inserted.
+   (2) Ask item plugin how much space is needed for the data, described in 1.
     
-    (3) Free needed space for data being inserted.
-    (4) Ask item plugin to create an item (to paste into the item) on the base
-        of description from 1.
+   (3) Free needed space for data being inserted.
+   (4) Ask item plugin to create an item (to paste into the item) on the base
+   of description from 1.
 
-    For such purposes we have:
+   For such purposes we have:
     
-    (1) Fixed description structures for all item types (statdata, direntry, 
-	internal, etc).
+   (1) Fixed description structures for all item types (statdata, direntry, 
+   internal, etc).
     
-    (2) Estimate common item method which gets coord of where to insert into 
-        (NULL or unit == -1 for insertion, otherwise it is pasting) and data 
-	description from 1.
+   (2) Estimate common item method which gets coord of where to insert into 
+   (NULL or unit == -1 for insertion, otherwise it is pasting) and data 
+   description from 1.
     
-    (3) Insert node methods prepare needed space and call create/paste item 
-        methods if data description is specified.
+   (3) Insert node methods prepare needed space and call create/paste item 
+   methods if data description is specified.
     
-    (4) Create/Paste item methods if data description has not beed specified 
-        on 3. 
+   (4) Create/Paste item methods if data description has not beed specified 
+   on 3. 
 */
 
 struct reiser4_internal_hint {    
@@ -273,8 +281,8 @@ struct reiser4_statdata_hint {
     
     /* Stat data extention hints */
     struct {
-	uint8_t count;
-	void *hint[64];
+		uint8_t count;
+		void *hint[64];
     } ext;
 };
 
@@ -284,14 +292,14 @@ struct reiser4_entry_hint {
 
     /* Locality and objectid of object pointed by entry */
     struct {
-	roid_t locality;
-	roid_t objectid;
+		roid_t locality;
+		roid_t objectid;
     } objid;
 
     /* Offset of entry */
     struct {
-	roid_t objectid;
-	uint64_t offset;
+		roid_t objectid;
+		uint64_t offset;
     } entryid;
 
     /* Name of entry */
@@ -313,17 +321,17 @@ struct reiser4_file_hint {
     /* Hint for a file body */
     union {
 	
-	/* Plugin ids for the directory body */
-	struct {
-	    rpid_t direntry_pid;
-	    rpid_t hash_pid;
-	} dir;
+		/* Plugin ids for the directory body */
+		struct {
+			rpid_t direntry_pid;
+			rpid_t hash_pid;
+		} dir;
 	
-	/* Plugin id for the regular file body */
-	struct {
-	    rpid_t tail_pid;
-	    rpid_t extent_pid;
-	} file;
+		/* Plugin id for the regular file body */
+		struct {
+			rpid_t tail_pid;
+			rpid_t extent_pid;
+		} file;
 	
     } body;
     
@@ -334,19 +342,19 @@ struct reiser4_file_hint {
 typedef struct reiser4_file_hint reiser4_file_hint_t;
 
 /* 
-    Create item or paste into item on the base of this structure. Here "data" is 
-    a pointer to data to be copied. 
+   Create item or paste into item on the base of this structure. Here "data" is 
+   a pointer to data to be copied. 
 */ 
 struct reiser4_item_hint {
     /*
-	This is pointer to already formated item body. It is useful for item copying, 
-	replacing, etc. This will be used by fsck probably.
+	  This is pointer to already formated item body. It is useful for item copying, 
+	  replacing, etc. This will be used by fsck probably.
     */
     void *data;
 
     /*
-	This is pointer to hint which describes item. It is widely used for creating 
-	an item.
+	  This is pointer to hint which describes item. It is widely used for creating 
+	  an item.
     */
     void *hint;
     
@@ -409,23 +417,23 @@ struct reiser4_key_ops {
     errno_t (*assign) (reiser4_body_t *, reiser4_body_t *);
     
     /* 
-	Cleans key up. Actually it just memsets it by zeros, but more smart behavior 
-	may be implemented.
+	   Cleans key up. Actually it just memsets it by zeros, but more smart behavior 
+	   may be implemented.
     */
     void (*clean) (reiser4_body_t *);
 
     errno_t (*build_generic) (reiser4_body_t *, 
-	reiser4_key_type_t, uint64_t, uint64_t, uint64_t);
+							  reiser4_key_type_t, uint64_t, uint64_t, uint64_t);
     
     errno_t (*build_direntry) (reiser4_body_t *, 
-	reiser4_plugin_t *, uint64_t, uint64_t, 
-	const char *);
+							   reiser4_plugin_t *, uint64_t, uint64_t, 
+							   const char *);
     
     errno_t (*build_objid) (reiser4_body_t *, 
-	reiser4_key_type_t, uint64_t, uint64_t);
+							reiser4_key_type_t, uint64_t, uint64_t);
     
     errno_t (*build_entryid) (reiser4_body_t *, 
-	reiser4_plugin_t *, const char *);
+							  reiser4_plugin_t *, const char *);
 
     /* Gets/sets key type (minor in reiser4 notation) */	
     void (*set_type) (reiser4_body_t *, reiser4_key_type_t);
@@ -449,7 +457,7 @@ struct reiser4_key_ops {
 
     /* Prints key into specified buffer */
     errno_t (*print) (reiser4_body_t *, char *, 
-	uint32_t, uint16_t);
+					  uint32_t, uint16_t);
 };
 
 typedef struct reiser4_key_ops reiser4_key_ops_t;
@@ -459,7 +467,7 @@ struct reiser4_file_ops {
 
     /* Creates new file with passed parent and object keys */
     reiser4_entity_t *(*create) (const void *, reiser4_key_t *, 
-	reiser4_key_t *, reiser4_file_hint_t *); 
+								 reiser4_key_t *, reiser4_file_hint_t *); 
     
     /* Opens a file with specified key */
     reiser4_entity_t *(*open) (const void *, reiser4_key_t *);
@@ -528,25 +536,29 @@ struct reiser4_item_ops {
 
     /* Inserts unit described by passed hint into the item */
     errno_t (*insert) (reiser4_item_t *, uint32_t, 
-	reiser4_item_hint_t *);
+					   reiser4_item_hint_t *);
     
     /* Removes specified unit from the item. Returns released space */
     uint16_t (*remove) (reiser4_item_t *, uint32_t);
 
     /* Estimates item */
     errno_t (*estimate) (reiser4_item_t *, uint32_t, 
-	reiser4_item_hint_t *);
+						 reiser4_item_hint_t *);
     
     /* Checks item for validness */
     errno_t (*valid) (reiser4_item_t *);
 
     /* Makes lookup for passed key */
     int (*lookup) (reiser4_item_t *, reiser4_key_t *, 
-	uint32_t *);
+				   uint32_t *);
 
+	/* Performs shift of units from passed @src item to @dst item */
+	int (*shift) (reiser4_item_t *, reiser4_item_t *,
+				  uint32_t *, shift_flags_t);
+	
     /* Prints item into specified buffer */
     errno_t (*print) (reiser4_item_t *, char *, uint32_t, 
-	uint16_t);
+					  uint16_t);
 
     /* Get the max key which could be stored in the item of this type */
     errno_t (*max_poss_key) (reiser4_item_t *, reiser4_key_t *);
@@ -565,9 +577,9 @@ struct reiser4_item_ops {
 
     /* Methods specific to particular type of item */
     union {
-	reiser4_ptr_ops_t ptr;
-	reiser4_statdata_ops_t statdata;
-	reiser4_direntry_ops_t direntry;
+		reiser4_ptr_ops_t ptr;
+		reiser4_statdata_ops_t statdata;
+		reiser4_direntry_ops_t direntry;
     } specific;
 };
 
@@ -586,46 +598,38 @@ struct reiser4_sdext_ops {
 
 typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
 
-enum shift_flags {
-    SF_LEFT	= 1 << 0,
-    SF_RIGHT	= 1 << 1,
-    SF_MOVIP	= 1 << 2
-};
-
-typedef enum shift_flags shift_flags_t;
-
 /*
-    Node plugin operates on passed block. It doesn't any initialization, so it 
-    hasn't close method and all its methods accepts first argument aal_block_t, 
-    not initialized previously hypothetic instance of node.
+  Node plugin operates on passed block. It doesn't any initialization, so it 
+  hasn't close method and all its methods accepts first argument aal_block_t, 
+  not initialized previously hypothetic instance of node.
 */
 struct reiser4_node_ops {
     reiser4_plugin_header_t h;
 
     /* 
-	Forms empty node incorresponding to given level in specified block.
-	Initializes instance of node and returns it to caller.
+	   Forms empty node incorresponding to given level in specified block.
+	   Initializes instance of node and returns it to caller.
     */
     reiser4_entity_t *(*create) (aal_block_t *, uint8_t);
 
     /* 
-	Opens node (parses data in orser to check whether it is valid for this
-	node type), initializes instance and returns it to caller.
-     */
+	   Opens node (parses data in orser to check whether it is valid for this
+	   node type), initializes instance and returns it to caller.
+	*/
     reiser4_entity_t *(*open) (aal_block_t *);
 
     /* 
-	Finalizes work with node (compresses data back) and frees all memory.
-	Returns the error code to caller.
+	   Finalizes work with node (compresses data back) and frees all memory.
+	   Returns the error code to caller.
     */
     errno_t (*close) (reiser4_entity_t *);
 
     /* 
-	Performs shift of items and units. Returns 1 if move point shifted to
-	passed node, 0 if not shifted and -1 in the case of error.
+	   Performs shift of items and units. Returns 1 if move point shifted to
+	   passed node, 0 if not shifted and -1 in the case of error.
     */
     int (*shift) (reiser4_entity_t *, reiser4_entity_t *, 
-	reiser4_pos_t *pos, shift_flags_t);
+				  reiser4_pos_t *pos, shift_flags_t);
     
     /* Confirms that given block contains valid node of requested format */
     int (*confirm) (aal_block_t *);
@@ -658,32 +662,32 @@ struct reiser4_node_ops {
     uint16_t (*pid) (reiser4_entity_t *);
     
     /* 
-	Makes lookup inside node by specified key. Returns TRUE in the case exact
-	match was found and FALSE otherwise.
+	   Makes lookup inside node by specified key. Returns TRUE in the case exact
+	   match was found and FALSE otherwise.
     */
     int (*lookup) (reiser4_entity_t *, reiser4_key_t *, 
-	reiser4_pos_t *);
+				   reiser4_pos_t *);
     
     /* Inserts item at specified pos */
     errno_t (*insert) (reiser4_entity_t *, reiser4_pos_t *, 
-	reiser4_item_hint_t *);
+					   reiser4_item_hint_t *);
     
     /* Removes item at specified pos */
     errno_t (*remove) (reiser4_entity_t *, reiser4_pos_t *);
     
     /* Pastes units at specified pos */
     errno_t (*paste) (reiser4_entity_t *, reiser4_pos_t *, 
-	reiser4_item_hint_t *);
+					  reiser4_item_hint_t *);
     
     /* Removes unit at specified pos */
     errno_t (*cut) (reiser4_entity_t *, reiser4_pos_t *);
     
     /* Gets/sets key at pos */
     errno_t (*get_key) (reiser4_entity_t *, reiser4_pos_t *, 
-	reiser4_key_t *);
+						reiser4_key_t *);
     
     errno_t (*set_key) (reiser4_entity_t *, reiser4_pos_t *, 
-	reiser4_key_t *);
+						reiser4_key_t *);
 
     /* Gets/sets node level */
     uint8_t (*get_level) (reiser4_entity_t *);
@@ -735,16 +739,16 @@ struct reiser4_format_ops {
     reiser4_plugin_header_t h;
     
     /* 
-	Called during filesystem opening (mounting).
-	It reads format-specific super block and initializes
-	plugins suitable for this format.
+	   Called during filesystem opening (mounting).
+	   It reads format-specific super block and initializes
+	   plugins suitable for this format.
     */
     reiser4_entity_t *(*open) (aal_device_t *);
     
     /* 
-	Called during filesystem creating. It forms format-specific
-	super block, initializes plugins and calls their create 
-	method.
+	   Called during filesystem creating. It forms format-specific
+	   super block, initializes plugins and calls their create 
+	   method.
     */
     reiser4_entity_t *(*create) (aal_device_t *, uint64_t, uint16_t);
     
@@ -752,16 +756,16 @@ struct reiser4_format_ops {
     aal_device_t *(*device) (reiser4_entity_t *);
     
     /*
-	Called during filesystem syncing. It calls method sync
-	for every "child" plugin (block allocator, journal, etc).
+	  Called during filesystem syncing. It calls method sync
+	  for every "child" plugin (block allocator, journal, etc).
     */
     errno_t (*sync) (reiser4_entity_t *);
 
     /*
-	Checks format-specific super block for validness. Also checks
-	whether filesystem objects lie in valid places. For example,
-	format-specific super block for format40 must lie in 17-th
-	block for 4096 byte long blocks.
+	  Checks format-specific super block for validness. Also checks
+	  whether filesystem objects lie in valid places. For example,
+	  format-specific super block for format40 must lie in 17-th
+	  block for 4096 byte long blocks.
     */
     errno_t (*valid) (reiser4_entity_t *);
     
@@ -772,20 +776,20 @@ struct reiser4_format_ops {
     errno_t (*print) (reiser4_entity_t *, char *, uint32_t, uint16_t);
     
     /*
-	Probes whether filesystem on given device has this format.
-	Returns "true" if so and "false" otherwise.
+	  Probes whether filesystem on given device has this format.
+	  Returns "true" if so and "false" otherwise.
     */
     int (*confirm) (aal_device_t *device);
 
     /*
-	Closes opened or created previously filesystem. Frees
-	all assosiated memory.
+	  Closes opened or created previously filesystem. Frees
+	  all assosiated memory.
     */
     void (*close) (reiser4_entity_t *);
     
     /*
-	Returns format string for this format. For example
-	"reiserfs 4.0".
+	  Returns format string for this format. For example
+	  "reiserfs 4.0".
     */
     const char *(*name) (reiser4_entity_t *);
 
@@ -861,7 +865,7 @@ struct reiser4_oid_ops {
 
     /* Prints oid allocator data */
     errno_t (*print) (reiser4_entity_t *, char *, 
-	uint32_t, uint16_t);
+					  uint32_t, uint16_t);
 
     /* Object ids of root and root parenr object */
     roid_t (*root_parent_locality) (void);
@@ -956,12 +960,12 @@ union reiser4_plugin {
 };
 
 /* 
-    The replica of coord for using in plugins. Field "joint" is void * because we 
-    should keep libreiser4 structures unknown for plugins.
+   The replica of coord for using in plugins. Field "joint" is void * because we 
+   should keep libreiser4 structures unknown for plugins.
 */
 struct reiser4_place {
-   void *joint;
-   reiser4_pos_t pos;
+	void *joint;
+	reiser4_pos_t pos;
 };
 
 typedef struct reiser4_place reiser4_place_t;
@@ -974,69 +978,69 @@ struct reiser4_node_header {
 typedef struct reiser4_node_header reiser4_node_header_t;
 
 /* 
-    This structure is passed to all plugins in initialization time and used
-    for access libreiser4 factories.
+   This structure is passed to all plugins in initialization time and used
+   for access libreiser4 factories.
 */
 struct reiser4_core {
     
     struct {
 	
-	/* Finds plugin by its attribues (type and id) */
-	reiser4_plugin_t *(*ifind)(rpid_t, rpid_t);
+		/* Finds plugin by its attribues (type and id) */
+		reiser4_plugin_t *(*ifind)(rpid_t, rpid_t);
 	
-	/* Finds plugin by its type and name */
-	reiser4_plugin_t *(*nfind)(rpid_t, const char *);
+		/* Finds plugin by its type and name */
+		reiser4_plugin_t *(*nfind)(rpid_t, const char *);
 	
     } factory_ops;
     
     struct {
-	/*
-	    Makes lookup in the tree in order to know where say stat data item of a
-	    file realy lies. It is used in all object plugins.
-	*/
-	int (*lookup) (const void *, reiser4_key_t *, uint8_t, reiser4_place_t *);
+		/*
+		  Makes lookup in the tree in order to know where say stat data item of a
+		  file realy lies. It is used in all object plugins.
+		*/
+		int (*lookup) (const void *, reiser4_key_t *, uint8_t, reiser4_place_t *);
 
-	/* 
-	    Inserts item/unit into the tree by calling reiser4_tree_insert function,
-	    used by all object plugins (dir, file, etc)
-	*/
-	errno_t (*insert)(const void *, reiser4_item_hint_t *, uint8_t, 
-	    reiser4_place_t *);
+		/* 
+		   Inserts item/unit into the tree by calling reiser4_tree_insert function,
+		   used by all object plugins (dir, file, etc)
+		*/
+		errno_t (*insert)(const void *, reiser4_item_hint_t *, uint8_t, 
+						  reiser4_place_t *);
     
-	/*
-	    Removes item/unit from the tree. It is used in all object plugins for
-	    modification purposes.
-	*/
-	errno_t (*remove)(const void *, reiser4_key_t *, uint8_t);
+		/*
+		  Removes item/unit from the tree. It is used in all object plugins for
+		  modification purposes.
+		*/
+		errno_t (*remove)(const void *, reiser4_key_t *, uint8_t);
 	
-	/* Returns right and left neighbour respectively */
-	errno_t (*right) (const void *, reiser4_place_t *);
-	errno_t (*left) (const void *, reiser4_place_t *);
+		/* Returns right and left neighbour respectively */
+		errno_t (*right) (const void *, reiser4_place_t *);
+		errno_t (*left) (const void *, reiser4_place_t *);
 
-	/* Returns blocksize in passed tree */
-	uint32_t (*blockspace) (const void *);
+		/* Returns blocksize in passed tree */
+		uint32_t (*blockspace) (const void *);
 	
-	/* Returns maximal available space in a node */
-	uint32_t (*nodespace) (const void *);
+		/* Returns maximal available space in a node */
+		uint32_t (*nodespace) (const void *);
 	
     } tree_ops;
 
     struct {
 	    
-	/* Opens item on passed place */
-	errno_t (*open) (reiser4_item_t *, reiser4_place_t *);
+		/* Opens item on passed place */
+		errno_t (*open) (reiser4_item_t *, reiser4_place_t *);
 
-	/* Returns pointer to the item body */
-	reiser4_body_t *(*body) (reiser4_item_t *);
+		/* Returns pointer to the item body */
+		reiser4_body_t *(*body) (reiser4_item_t *);
 	
-	/* Returns key by specified coord */
-	errno_t (*key) (reiser4_item_t *, reiser4_key_t *);
+		/* Returns key by specified coord */
+		errno_t (*key) (reiser4_item_t *, reiser4_key_t *);
     
-	/* Returs plugin by coord */
-	reiser4_plugin_t *(*plugin) (reiser4_item_t *);
+		/* Returs plugin by coord */
+		reiser4_plugin_t *(*plugin) (reiser4_item_t *);
 	
-	/* Returns item length */
-	uint32_t (*len) (reiser4_item_t *);
+		/* Returns item length */
+		uint32_t (*len) (reiser4_item_t *);
 
     } item_ops;
 };

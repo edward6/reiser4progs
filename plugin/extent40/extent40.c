@@ -1,6 +1,6 @@
 /*
-    extent40.c -- reiser4 default extent plugin.
-    Copyright (C) 1996-2002 Hans Reiser.
+  extent40.c -- reiser4 default extent plugin.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #include "extent40.h"
@@ -9,25 +9,26 @@ static reiser4_core_t *core = NULL;
 
 static extent40_t *extent40_body(reiser4_item_t *item) {
 
-    if (item == NULL) return NULL;
+    if (item == NULL)
+		return NULL;
     
     return (extent40_t *)plugin_call(return NULL, item->node->plugin->node_ops, 
-	item_body, item->node, item->pos);
+									 item_body, item->node, item->pos);
 }
 
 static uint32_t extent40_count(reiser4_item_t *item) {
 
     if (item == NULL) 
-	return 0;
+		return 0;
     
     return plugin_call(return 0, item->node->plugin->node_ops, 
-	item_len, item->node, item->pos) / sizeof(extent40_t);
+					   item_len, item->node, item->pos) / sizeof(extent40_t);
 }
 
 #ifndef ENABLE_COMPACT
 
 static errno_t extent40_init(reiser4_item_t *item, 
-    reiser4_item_hint_t *hint)
+							 reiser4_item_hint_t *hint)
 {
     aal_assert("umka-1202", item != NULL, return -1); 
     aal_assert("umka-1203", hint != NULL, return -1);
@@ -37,7 +38,7 @@ static errno_t extent40_init(reiser4_item_t *item,
 }
 
 static errno_t extent40_insert(reiser4_item_t *item, uint32_t pos, 
-    reiser4_item_hint_t *hint)
+							   reiser4_item_hint_t *hint)
 {
     return -1;
 }
@@ -49,7 +50,7 @@ static uint16_t extent40_remove(reiser4_item_t *item, uint32_t pos) {
 #endif
 
 static errno_t extent40_print(reiser4_item_t *item, char *buff, 
-    uint32_t n, uint16_t options) 
+							  uint32_t n, uint16_t options) 
 {
     extent40_t *extent;
     uint16_t i, count;
@@ -61,15 +62,15 @@ static errno_t extent40_print(reiser4_item_t *item, char *buff,
     count = extent40_count(item);
 
     for (i = 0; i < count; i++) {
-	aal_snprintf(buff, n, "%llu(%llu)", et40_get_start(extent + i),
-	    et40_get_width(extent + i));
+		aal_snprintf(buff, n, "%llu(%llu)", et40_get_start(extent + i),
+					 et40_get_width(extent + i));
     }
     
     return 0;
 }
 
 static errno_t extent40_max_poss_key(reiser4_item_t *item,
-    reiser4_key_t *key) 
+									 reiser4_key_t *key) 
 {
     uint64_t offset;
     reiser4_body_t *maxkey;
@@ -78,23 +79,23 @@ static errno_t extent40_max_poss_key(reiser4_item_t *item,
     aal_assert("umka-1212", key != NULL, return -1);
 
     if (plugin_call(return 0, item->node->plugin->node_ops,
-	    get_key, item->node, item->pos, key))
-	return -1;
+					get_key, item->node, item->pos, key))
+		return -1;
     
     maxkey = plugin_call(return -1, key->plugin->key_ops,
-	maximal,);
+						 maximal,);
     
     offset = plugin_call(return -1, key->plugin->key_ops,
-	get_offset, maxkey);
+						 get_offset, maxkey);
     
     plugin_call(return -1, key->plugin->key_ops, set_offset, 
-	key->body, offset);
+				key->body, offset);
 
     return 0;
 }
 
 static errno_t extent40_max_real_key(reiser4_item_t *item,
-    reiser4_key_t *key) 
+									 reiser4_key_t *key) 
 {
     return 0;
 }
@@ -106,7 +107,7 @@ static errno_t extent40_set_ptr(reiser4_item_t *item, uint64_t ptr) {
     aal_assert("vpf-359", item->pos != NULL, return -1);
 
     aal_assert("vpf-356", 
-	item->pos->unit < extent40_count(item), return -1);
+			   item->pos->unit < extent40_count(item), return -1);
     
     et40_set_start(extent40_body(item) + item->pos->unit, ptr);
 
@@ -114,13 +115,13 @@ static errno_t extent40_set_ptr(reiser4_item_t *item, uint64_t ptr) {
 }
 
 static errno_t extent40_set_width(reiser4_item_t *item, 
-    uint64_t width) 
+								  uint64_t width) 
 {
     aal_assert("vpf-364", item != NULL, return -1);
     aal_assert("vpf-365", item->pos != NULL, return -1);
     
     aal_assert("vpf-366", 
-	item->pos->unit < extent40_count(item), return -1);
+			   item->pos->unit < extent40_count(item), return -1);
 
     et40_set_width(extent40_body(item) + item->pos->unit, width);
 
@@ -134,7 +135,7 @@ static uint64_t extent40_get_ptr(reiser4_item_t *item) {
     aal_assert("vpf-367", item->pos != NULL, return 0);
 
     aal_assert("vpf-358", 
-	item->pos->unit < extent40_count(item), return 0);
+			   item->pos->unit < extent40_count(item), return 0);
 
     return et40_get_start(extent40_body(item) + item->pos->unit);
 }
@@ -144,21 +145,21 @@ static uint64_t extent40_get_width(reiser4_item_t *item) {
     aal_assert("vpf-365", item->pos != NULL, return FAKE_BLK);
 
     aal_assert("vpf-366", 
-	item->pos->unit < extent40_count(item), return FAKE_BLK);
+			   item->pos->unit < extent40_count(item), return FAKE_BLK);
 
     return et40_get_width(extent40_body(item) + item->pos->unit);
 }
 
 static reiser4_plugin_t extent40_plugin = {
     .item_ops = {
-	.h = {
-	    .handle = NULL,
-	    .id = ITEM_EXTENT40_ID,
-	    .group = EXTENT_ITEM,
-	    .type = ITEM_PLUGIN_TYPE,
-	    .label = "extent40",
-	    .desc = "Extent item for reiserfs 4.0, ver. " VERSION,
-	},
+		.h = {
+			.handle = NULL,
+			.id = ITEM_EXTENT40_ID,
+			.group = EXTENT_ITEM,
+			.type = ITEM_PLUGIN_TYPE,
+			.label = "extent40",
+			.desc = "Extent item for reiserfs 4.0, ver. " VERSION,
+		},
 #ifndef ENABLE_COMPACT
         .init		= extent40_init,
         .insert		= extent40_insert,
@@ -172,26 +173,27 @@ static reiser4_plugin_t extent40_plugin = {
         .check		= NULL,
         .lookup		= NULL,
         .valid		= NULL,
-	.detect		= NULL,
+		.detect		= NULL,
+		.shift      = NULL,
 
         .count		= extent40_count,
         .max_poss_key	= extent40_max_poss_key,
         .max_real_key   = extent40_max_real_key,
         .print		= extent40_print,
 	
-	.specific = {
-	    .ptr = {
-		.get_ptr    = extent40_get_ptr,
-		.get_width  = extent40_get_width,
+		.specific = {
+			.ptr = {
+				.get_ptr    = extent40_get_ptr,
+				.get_width  = extent40_get_width,
 #ifndef ENABLE_COMPACT
-		.set_ptr    = extent40_set_ptr,
-		.set_width  = extent40_set_width
+				.set_ptr    = extent40_set_ptr,
+				.set_width  = extent40_set_width
 #else
-		.set_ptr    = NULL,
-		.set_width  = NULL
+				.set_ptr    = NULL,
+				.set_width  = NULL
 #endif
-	    }
-	}
+			}
+		}
     }
 };
 
@@ -201,4 +203,3 @@ static reiser4_plugin_t *extent40_start(reiser4_core_t *c) {
 }
 
 plugin_register(extent40_start);
-

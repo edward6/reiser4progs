@@ -1,6 +1,6 @@
 /*
-    tail40.c -- reiser4 default tail plugin.
-    Copyright (C) 1996-2002 Hans Reiser.
+  tail40.c -- reiser4 default tail plugin.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #include <reiser4/plugin.h>
@@ -12,13 +12,13 @@ static reiser4_body_t *tail40_body(reiser4_item_t *item) {
     if (item == NULL) return NULL;
     
     return plugin_call(return NULL, item->node->plugin->node_ops, 
-	item_body, item->node, item->pos);
+					   item_body, item->node, item->pos);
 }
 
 #ifndef ENABLE_COMPACT
 
 static errno_t tail40_init(reiser4_item_t *item, 
-    reiser4_item_hint_t *hint)
+						   reiser4_item_hint_t *hint)
 {
     aal_assert("umka-1172", item != NULL, return -1); 
     aal_assert("umka-1173", hint != NULL, return -1);
@@ -29,7 +29,7 @@ static errno_t tail40_init(reiser4_item_t *item,
 }
 
 static errno_t tail40_insert(reiser4_item_t *item, uint32_t pos, 
-    reiser4_item_hint_t *hint)
+							 reiser4_item_hint_t *hint)
 {
     aal_memcpy(tail40_body(item) + pos, hint->data, hint->len);
     return 0;
@@ -38,7 +38,7 @@ static errno_t tail40_insert(reiser4_item_t *item, uint32_t pos,
 #endif
 
 static errno_t tail40_max_poss_key(reiser4_item_t *item,
-    reiser4_key_t *key) 
+								   reiser4_key_t *key) 
 {
     uint64_t offset;
     reiser4_body_t *maxkey;
@@ -47,29 +47,29 @@ static errno_t tail40_max_poss_key(reiser4_item_t *item,
     aal_assert("umka-1210", key != NULL, return -1);
 
     if (plugin_call(return 0, item->node->plugin->node_ops,
-	    get_key, item->node, item->pos, key))
-	return -1;
+					get_key, item->node, item->pos, key))
+		return -1;
     
     maxkey = plugin_call(return -1, key->plugin->key_ops,
-	maximal,);
+						 maximal,);
     
     offset = plugin_call(return -1, key->plugin->key_ops,
-	get_offset, maxkey);
+						 get_offset, maxkey);
     
     plugin_call(return -1, key->plugin->key_ops, set_offset, 
-	key->body, offset);
+				key->body, offset);
 
     return 0;
 }
 
 static errno_t tail40_max_real_key(reiser4_item_t *item,
-    reiser4_key_t *key) 
+								   reiser4_key_t *key) 
 {
     return 0;
 }
 
 static int tail40_lookup(reiser4_item_t *item, reiser4_key_t *key, 
-    uint32_t *pos)
+						 uint32_t *pos)
 {
     uint32_t len;
     uint32_t cur_offset;
@@ -86,25 +86,25 @@ static int tail40_lookup(reiser4_item_t *item, reiser4_key_t *key,
     tail40_max_poss_key(item, &maxkey);
 
     if (plugin_call(return -1, key->plugin->key_ops, compare,
-	key->body, maxkey.body))
-    {
-	*pos = core->item_ops.len(item);
-	return 0;
-    }
+					key->body, maxkey.body))
+		{
+			*pos = core->item_ops.len(item);
+			return 0;
+		}
 
     curkey.plugin = key->plugin;
     core->item_ops.key(item, &curkey);
     len = core->item_ops.len(item);
     
     cur_offset = plugin_call(return -1, key->plugin->key_ops,
-	get_offset, curkey.body);
+							 get_offset, curkey.body);
     
     wan_offset = plugin_call(return -1, key->plugin->key_ops,
-	get_offset, key->body);
+							 get_offset, key->body);
     
     if (wan_offset >= cur_offset && wan_offset < cur_offset + len) {
-	*pos = wan_offset - cur_offset;
-	return 1;
+		*pos = wan_offset - cur_offset;
+		return 1;
     }
 
     *pos = len;
@@ -113,14 +113,14 @@ static int tail40_lookup(reiser4_item_t *item, reiser4_key_t *key,
 
 static reiser4_plugin_t tail40_plugin = {
     .item_ops = {
-	.h = {
-	    .handle = NULL,
-	    .id = ITEM_TAIL40_ID,
-	    .group = TAIL_ITEM,
-	    .type = ITEM_PLUGIN_TYPE,
-	    .label = "tail40",
-	    .desc = "Tail item for reiserfs 4.0, ver. " VERSION,
-	},
+		.h = {
+			.handle = NULL,
+			.id = ITEM_TAIL40_ID,
+			.group = TAIL_ITEM,
+			.type = ITEM_PLUGIN_TYPE,
+			.label = "tail40",
+			.desc = "Tail item for reiserfs 4.0, ver. " VERSION,
+		},
 #ifndef ENABLE_COMPACT
         .init		= tail40_init,
         .insert		= tail40_insert,
@@ -138,8 +138,9 @@ static reiser4_plugin_t tail40_plugin = {
         .valid		= NULL,
         .print		= NULL,
         .detect		= NULL,
+		.shift      = NULL,
 
-	.specific	= {}
+		.specific	= {}
     }
 };
 
