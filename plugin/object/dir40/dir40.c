@@ -174,8 +174,11 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	dir->body.pos.unit = dir->unit;
 	
 	/* Getting next directory item */
-	core->tree_ops.next(dir->obj.tree,
-			    &dir->body, &next);
+	if (core->tree_ops.next(dir->obj.tree,
+				&dir->body, &next))
+	{
+		return ABSENT;
+	}
 
 	if (!dir40_mergeable(entity, &next))
 		return ABSENT;
@@ -1084,7 +1087,6 @@ static errno_t dir40_layout(object_entity_t *entity,
 		place_t *place = &dir->body;
 		
 		if (place->plug->o.item_ops->layout) {
-			
 			/* Calling item's layout method */
 			if ((res = plug_call(place->plug->o.item_ops, layout,
 					     place, callback_item_data, &hint)))
@@ -1098,6 +1100,8 @@ static errno_t dir40_layout(object_entity_t *entity,
 				return res;
 			}
 		}
+
+		dir->unit = MAX_UINT32;
 		
 		if (dir40_next(entity) != PRESENT)
 			return 0;
@@ -1126,6 +1130,8 @@ static errno_t dir40_metadata(object_entity_t *entity,
 		if ((res = place_func(entity, &dir->body, data)))
 			return res;
 		
+		dir->unit = MAX_UINT32;
+		
 		if (dir40_next(entity) != PRESENT)
 			return 0;
 	}
@@ -1133,8 +1139,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 	return res;
 }
 
-extern object_entity_t *dir40_realize (object_info_t *);
-
+extern object_entity_t *dir40_realize(object_info_t *info);
 #endif
 
 /* Freeing dir40 instance. That is unlocking nodes current statdata and body lie

@@ -97,7 +97,6 @@ extern reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 					    const char *name,
 					    const char *target);
 
-extern bool_t reiser4_object_begin(reiser4_place_t *place);
 extern errno_t reiser4_object_guess(reiser4_object_t *object);
 
 typedef reiser4_object_t *(*object_open_func_t) (reiser4_object_t *parent, 

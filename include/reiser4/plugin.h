@@ -485,6 +485,9 @@ struct create_hint {
 
 	/* Count of units to be inserted into the tree */
 	uint16_t count;
+
+	/* Used for inserting data to extent items */
+	uint32_t offset;
     
 	/* The key of item/unit to be inserted */
 	key_entity_t key;

@@ -361,8 +361,6 @@ static int32_t reg40_put(object_entity_t *entity,
 	
 	for (written = 0; written < n; ) {
 		place_t place;
-		lookup_t lookup;
-
 		create_hint_t hint;
 		reiser4_plug_t *plug;
 
@@ -384,20 +382,17 @@ static int32_t reg40_put(object_entity_t *entity,
 		hint.type_specific = buff;
 		
 		/* Lookup place data will be inserted at */
-		lookup = obj40_lookup(&reg->obj, &hint.key,
-				      LEAF_LEVEL, &place);
-
-		/* Loookup is failed */
-		if (lookup == FAILED) {
+		switch (obj40_lookup(&reg->obj, &hint.key,
+				     LEAF_LEVEL, &place))
+		{
+		case FAILED:
 			aal_exception_error("Lookup is failed while "
 					    "writing file.");
 			return -EINVAL;
-		}
-
-		/* Checking if we need write chunk by chunk n odrer to rewrite
-		   tail correctly in the case we write tail, that overlaps two
-		   neighbour tails by key. */
-		if (lookup == PRESENT) {
+		case PRESENT: {
+			/* Checking if we need write chunk by chunk in odrer to
+			   rewrite tail correctly in the case we write the tail,
+			   that overlaps two neighbour tails by key. */
 			uint64_t offset;
 			key_entity_t maxreal_key;
 
@@ -410,6 +405,9 @@ static int32_t reg40_put(object_entity_t *entity,
 			/* Rewritting only tails' last part */
 			if (reg->offset + hint.count > offset + 1)
 				hint.count = (offset + 1) - reg->offset;
+		}
+		default:
+			break;
 		}
 
 		/* Inserting data to the tree */
@@ -435,7 +433,7 @@ static int32_t reg40_put(object_entity_t *entity,
 	size = obj40_get_size(&reg->obj);
 
 	/* Updating size if new file offset is further than size. This means,
-	   that file realy got some data additionaly, not only got rewtittem
+	   that file realy got some data additionaly, not only got rewtitten
 	   something. */
 	if (reg->offset > size) {
 		if ((res = obj40_set_size(&reg->obj, reg->offset)))

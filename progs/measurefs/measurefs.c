@@ -494,17 +494,11 @@ static errno_t dfrag_process_node(
 		reiser4_object_t *object;
 
 		/* Initialiing the item at @place */
-		if ((res = reiser4_place_init(&place, node, &pos))) {
+		if ((res = reiser4_place_open(&place, node, &pos))) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, node->number);
 			return res;
 		}
-
-		/* If the item is not a stat data item, we getting to the next
-		   circle of the loop, because we are intersted only in the stat
-		   data items, which can be used for opening files. */
-		if (!reiser4_object_begin(&place))
-			continue;
 
 		/* Opening object by its stat data item denoded by @place */
 		if (!(object = reiser4_object_realize(tree, &place)))

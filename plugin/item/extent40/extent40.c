@@ -204,7 +204,6 @@ lookup_t extent40_lookup(place_t *place,
 static int32_t extent40_read(place_t *place, void *buff,
 			     uint32_t pos, uint32_t count)
 {
-	key_entity_t key;
 	uint32_t read, i;
 	uint32_t blksize;
 	uint32_t sectorsize;
@@ -232,8 +231,6 @@ static int32_t extent40_read(place_t *place, void *buff,
 #else
 		uint32_t blk, start;
 #endif
-		extent40_get_key(place, i, &key);
-
 		/* Calculating start block for read */
 		start = blk = et40_get_start(extent40_body(place) + i) +
 			((pos - (uint32_t)extent40_offset(place, i)) /
@@ -321,6 +318,15 @@ static errno_t extent40_insert(place_t *place,
 			       create_hint_t *hint,
 			       uint32_t pos)
 {
+	uint32_t count;
+	uint32_t offset;
+
+	aal_assert("umka-2357", hint != NULL);
+	aal_assert("umka-2356", place != NULL);
+
+	count = hint->count;
+	offset = hint->offset;
+	
 	return -EINVAL;
 }
 
