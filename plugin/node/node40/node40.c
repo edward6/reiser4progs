@@ -1125,10 +1125,13 @@ static errno_t node40_sync(object_entity_t *entity) {
 /* Prepare text node description and push it into specified @stream. */
 static errno_t node40_print(object_entity_t *entity,
 			    aal_stream_t *stream,
+			    uint32_t start, 
+			    uint32_t count, 
 			    uint16_t options) 
 {
 	pos_t pos;
 	uint8_t level;
+	uint32_t last;
 	node40_t *node;
 	item_entity_t item;
 
@@ -1148,11 +1151,16 @@ static errno_t node40_print(object_entity_t *entity,
 			  nh40_get_mkfs_id(node), nh40_get_flush_id(node));
 	
 	pos.unit = ~0ul;
-
+	
+	if (start == ~0ul)
+	    start = 0;
+	
+	last = node40_items(entity);
+	if (last > start + count)
+	    last = start + count;
+	
 	/* Loop through the all items */
-	for (pos.item = 0; pos.item < node40_items(entity);
-	     pos.item++)
-	{
+	for (pos.item = start; pos.item < last; pos.item++) {
 
 		if (node40_item(entity, &pos, &item))
 			return -EINVAL;

@@ -224,6 +224,8 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 		: "unrecoverable", ptr.start, fd->repair->mode == REPAIR_REBUILD
 		? "Removed." : "The whole subtree is skipped.");
 	    
+	    level = reiser4_node_get_level(place->node);
+	    
 	    /* Extents cannot point to this node. */
 	    aux_bitmap_mark_region(fd->bm_met, ptr.start, ptr.width);
 	    fd->stat.bad_nodes += ptr.width;
