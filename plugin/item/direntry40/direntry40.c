@@ -13,6 +13,34 @@ direntry40_t *direntry40_body(item_entity_t *item) {
 	return (direntry40_t *)item->body;
 }
 
+static inline objid40_t *direntry40_unit(direntry40_t *direntry, 
+				  uint32_t pos)
+{
+	aal_assert("umka-1593", direntry != NULL, return NULL);
+	aal_assert("umka-1595", pos < de40_get_count(direntry), return NULL);
+
+	return (objid40_t *)((void *)direntry + direntry->entry[pos].offset);
+}
+
+static inline entry40_t *direntry40_entry(direntry40_t *direntry, 
+				  uint32_t pos)
+{
+	aal_assert("umka-1596", direntry != NULL, return NULL);
+	aal_assert("umka-1597", pos < de40_get_count(direntry), return NULL);
+
+	return &direntry->entry[pos];
+}
+
+static inline uint32_t direntry40_unitlen(direntry40_t *direntry, 
+				   uint32_t pos) 
+{
+	aal_assert("umka-1594", direntry != NULL, return 0);
+	aal_assert("umka-936", pos < de40_get_count(direntry), return 0);
+
+	return aal_strlen((char *)(direntry40_unit(direntry, pos) + 1)) +
+		sizeof(objid40_t) + 1;
+}
+
 static uint32_t direntry40_count(item_entity_t *item) {
 	direntry40_t *direntry;
     
@@ -25,38 +53,33 @@ static uint32_t direntry40_count(item_entity_t *item) {
 static errno_t direntry40_fetch(item_entity_t *item, uint32_t pos,
 				void *buff, uint32_t count)
 {
-	entry40_t *en;
-	uint32_t offset;
-    
+	entry40_t *entry;
 	objid40_t *objid;
 	direntry40_t *direntry;
-	reiser4_entry_hint_t *entry;
+	reiser4_entry_hint_t *hint;
     
 	aal_assert("umka-866", item != NULL, return -1);
 	aal_assert("umka-1418", buff != NULL, return -1);
+	aal_assert("umka-1598", pos < de40_get_count(direntry), return -1);
     
-	entry = (reiser4_entry_hint_t *)buff;
+	hint = (reiser4_entry_hint_t *)buff;
+	
+	aal_assert("umka-1599", hint != NULL, return -1);
 	
 	if (!(direntry = direntry40_body(item)))
 		return -1;
     
 	if (pos > direntry40_count(item))
 		return -1;
-    
-	offset = sizeof(direntry40_t) + pos * sizeof(entry40_t);
-	en = (entry40_t *)(((void *)direntry) + offset);
-    
-	entry->entryid.objectid = eid_get_objectid((entryid40_t *)(&en->entryid));
-	entry->entryid.offset = eid_get_offset((entryid40_t *)(&en->entryid));
-    
-	offset = en40_get_offset(en); 
-	objid = (objid40_t *)(((void *)direntry) + offset);
-    
-	entry->objid.objectid = oid_get_objectid(objid);
-	entry->objid.locality = oid_get_locality(objid);
 
-	offset += sizeof(*objid);
-	entry->name = ((void *)direntry) + offset;
+	entry = direntry40_entry(direntry, pos);
+	hint->entryid.objectid = eid_get_objectid(&entry->entryid);
+	hint->entryid.offset = eid_get_offset(&entry->entryid);
+
+	objid = direntry40_unit(direntry, pos);
+	hint->objid.objectid = oid_get_objectid(objid);
+	hint->objid.locality = oid_get_locality(objid);
+	hint->name = (char *)(objid + 1);
     
 	return 0;
 }
@@ -112,21 +135,6 @@ static errno_t direntry40_estimate(item_entity_t *item, uint32_t pos,
 	return 0;
 }
 
-static uint32_t direntry40_unitlen(direntry40_t *direntry, 
-				   uint32_t pos) 
-{
-	char *name;
-	uint32_t offset;
-    
-	aal_assert("umka-936", 
-		   pos < de40_get_count(direntry), return 0);
-    
-	offset = en40_get_offset(&direntry->entry[pos]);
-	name = (char *)(((char *)direntry) + offset + sizeof(objid40_t));
-	    
-	return (aal_strlen(name) + sizeof(objid40_t) + 1);
-}
-
 static errno_t direntry40_shift(item_entity_t *src_item,
 				item_entity_t *dst_item,
 				shift_hint_t *hint)
@@ -171,16 +179,18 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 
 				/* Updating offsets of dst direntry */
 				entry = (entry40_t *)src;
-				for (i = 0; i < dst_units; i++, entry++) {
-					en40_set_offset(entry, en40_get_offset(entry) +
-							hint->part);
-				}
+				
+				for (i = 0; i < dst_units; i++, entry++)
+					en40_inc_offset(entry, hint->part);
 			
 				aal_memmove(dst, src, size);
 
 				/* Moving entry bodies of dst direntry */
 				src = src + (dst_units*sizeof(entry40_t));
-				dst = src + (hint->part - (hint->units * sizeof(entry40_t)));
+
+				dst = src + (hint->part - (hint->units *
+							   sizeof(entry40_t)));
+				
 				size -= dst_units*sizeof(entry40_t);
 			
 				aal_memmove(dst, src, size);
@@ -216,19 +226,21 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			aal_memmove(dst, src, size);
 
 			/* Updating offsets of src direntry */
-			entry = (entry40_t *)((void *)src_direntry + sizeof(direntry40_t));
+			entry = (entry40_t *)((void *)src_direntry +
+					      sizeof(direntry40_t));
+			
 			for (i = 0; i < src_units - hint->units; i++, entry++) {
-				en40_set_offset(entry, en40_get_offset(entry) -
-					(hint->units * sizeof(entry40_t)));
+				en40_dec_offset(entry, (hint->units *
+							sizeof(entry40_t)));
 			}
 		}
 	}
 
-	de40_set_count(dst_direntry, (de40_get_count(dst_direntry) + hint->units));
-	de40_set_count(src_direntry, (de40_get_count(src_direntry) - hint->units));
+	de40_inc_count(dst_direntry, hint->units);
+	de40_dec_count(src_direntry, hint->units);
 
 	/* Updating items key */
-	entry = (entry40_t *)(void *)src_direntry + sizeof(direntry40_t);
+	entry = direntry40_entry(src_direntry, 0);
 	hash = *((uint64_t *)entry->entryid.offset);
 	
 	plugin_call(return -1, dst_item->key.plugin->key_ops,
@@ -337,6 +349,7 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	aal_assert("umka-791", item != NULL, return -1);
 	aal_assert("umka-792", hint != NULL, return -1);
 	aal_assert("umka-897", pos != ~0ul, return -1);
+	aal_assert("umka-1600", hint->len > 0, return -1);
 
 	if (!(direntry = direntry40_body(item)))
 		return -1;
@@ -363,9 +376,6 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	} else
 		offset = sizeof(direntry40_t) + headers_size;
 
-	if (direntry40_estimate(item, pos, hint))
-		return -1;
-    
 	/* Calculating length of areas to be moved */
 	len_before = (units - pos) * sizeof(entry40_t);
 	
@@ -376,16 +386,11 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 		len_after += direntry40_unitlen(direntry, i);
 	
 	/* Updating offsets */
-	for (i = 0; i < pos; i++) {
-		en40_set_offset(&direntry->entry[i], 
-				en40_get_offset(&direntry->entry[i]) + 
-				headers_size);
-	}
+	for (i = 0; i < pos; i++)
+		en40_inc_offset(&direntry->entry[i], headers_size);
     
-	for (i = pos; i < units; i++) {
-		en40_set_offset(&direntry->entry[i],
-				en40_get_offset(&direntry->entry[i]) + hint->len);
-	}
+	for (i = pos; i < units; i++)
+		en40_inc_offset(&direntry->entry[i], hint->len);
     
 	/* Moving unit bodies */
 	if (pos < units) {
@@ -422,7 +427,7 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	}
     
 	/* Updating direntry count field */
-	de40_set_count(direntry, units + direntry_hint->count);
+	de40_inc_count(direntry, direntry_hint->count);
     
 	return 0;
 }
@@ -487,13 +492,12 @@ static uint16_t direntry40_remove(item_entity_t *item,
 			    ((char *)direntry) + offset, foot_len);
 
 		for (i = pos; i < (uint32_t)de40_get_count(direntry) - 1; i++) {
-			en40_set_offset(&direntry->entry[i], 
-					en40_get_offset(&direntry->entry[i]) - 
+			en40_dec_offset(&direntry->entry[i],
 					(sizeof(entry40_t) + rem_len));
 		}
 	}
     
-	de40_set_count(direntry, de40_get_count(direntry) - 1);
+	de40_dec_count(direntry, 1);
     
 	return rem_len + sizeof(entry40_t);
 }

@@ -36,11 +36,11 @@ struct objid40 {
 
 typedef struct objid40 objid40_t;
 
-#define oid_get_locality(oid)		    LE64_TO_CPU(*((d64_t *)oid->locality))
-#define oid_set_locality(oid, val)	    (*(d64_t *)oid->locality) = CPU_TO_LE64(val)
+#define oid_get_locality(oid)		    LE64_TO_CPU(*((d64_t *)(oid)->locality))
+#define oid_set_locality(oid, val)	    (*(d64_t *)(oid)->locality) = CPU_TO_LE64(val)
 
-#define oid_get_objectid(oid)		    LE64_TO_CPU(*((d64_t *)oid->objectid))
-#define oid_set_objectid(oid, val)	    (*(d64_t *)oid->objectid) = CPU_TO_LE64(val)
+#define oid_get_objectid(oid)		    LE64_TO_CPU(*((d64_t *)(oid)->objectid))
+#define oid_set_objectid(oid, val)	    (*(d64_t *)(oid)->objectid) = CPU_TO_LE64(val)
 
 
 /* Part of the key, describing the entry. */
@@ -51,11 +51,11 @@ struct entryid40 {
 
 typedef struct entryid40 entryid40_t;
 
-#define eid_get_objectid(eid)		    LE64_TO_CPU(*((d64_t *)eid->objectid))
-#define eid_set_objectid(eid, val)	    (*(d64_t *)eid->objectid) = CPU_TO_LE64(val)
+#define eid_get_objectid(eid)		    LE64_TO_CPU(*((d64_t *)(eid)->objectid))
+#define eid_set_objectid(eid, val)	    (*(d64_t *)(eid)->objectid) = CPU_TO_LE64(val)
 
-#define eid_get_offset(eid)		    LE64_TO_CPU(*((d64_t *)eid->offset))
-#define eid_set_offset(eid, val)	    (*(d64_t *)eid->offset) = CPU_TO_LE64(val)
+#define eid_get_offset(eid)		    LE64_TO_CPU(*((d64_t *)(eid)->offset))
+#define eid_set_offset(eid, val)	    (*(d64_t *)(eid)->offset) = CPU_TO_LE64(val)
 
 struct entry40 {
 	entryid40_t entryid;		    /* unit's part of key - hash for key40 */
@@ -72,9 +72,21 @@ struct direntry40 {
 typedef struct direntry40 direntry40_t;
 
 #define de40_get_count(de)		    aal_get_le16(de, count)
-#define de40_set_count(de, num)		    aal_set_le16(de, count, num)
+#define de40_set_count(de, val)		    aal_set_le16(de, count, val)
 
 #define en40_get_offset(en)		    aal_get_le16(en, offset)
-#define en40_set_offset(en, num)	    aal_set_le16(en, offset, num)
+#define en40_set_offset(en, val)	    aal_set_le16(en, offset, val)
+
+#define de40_inc_count(de, val) \
+        de40_set_count(de, (de40_get_count(de) + val))
+
+#define de40_dec_count(de, val) \
+        de40_set_count(de, (de40_get_count(de) - val))
+
+#define en40_inc_offset(de, val) \
+        en40_set_offset(de, (en40_get_offset(de) + val))
+
+#define en40_dec_offset(de, val) \
+        en40_set_offset(de, (en40_get_offset(de) - val))
 
 #endif
