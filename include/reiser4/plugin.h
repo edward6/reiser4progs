@@ -1,7 +1,7 @@
 /*
-  plugin.h -- reiser4 plugin factory implementation.
+  plugin.h -- reiser4 plugin known types and macros.
 
-  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
+  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
@@ -46,9 +46,10 @@ enum reiser4_plugin_type {
 
 	/*
 	  In reiser4 kernel code DIR_PLUGIN_TYPE exists, but libreiser4 works
-	  with files and directories by the unified interface and we do not need
-	  that additional type. But we have to be compatible, because
-	  reiser4_plugin_type may be stored in stat data extentions.
+	  with files and directories by the unified interface and do not need an
+	  additional type for that. But we have to be compatible, because
+	  reiser4_plugin_type may be stored in stat data extentions. So, next
+	  type has 0x2 identifier, not 0x1 one.
 	*/
 
 	ITEM_PLUGIN_TYPE	= 0x2,
@@ -689,7 +690,15 @@ struct reiser4_item_ops {
 	/* Goes through all blocks item points to. */
 	/* FIXME: checnge data_func_t to region_func_t */
 	errno_t (*layout) (item_entity_t *, data_func_t, void *);
-		
+
+	/*
+	  Returns TRUE is specified item is a nodeptr one. That is, it points to
+	  formatted node in the tree. If this method if not implemented, then
+	  item is assumed as not nodeptr one. All tree running operations like
+	  going from the root to leaves will use this function.
+	*/
+	int (*branch) (item_entity_t *);
+	
 	/* Does some specific actions if a block the item points to is wrong. */
 	/* FIXME: I wish it to be joint with layout, but how? */
 	int32_t (*layout_check) (item_entity_t *, region_func_t, void *);
@@ -800,7 +809,8 @@ struct reiser4_node_ops {
 		       rpos_t *);
     
 	/* Inserts item at specified pos */
-	errno_t (*insert) (object_entity_t *, rpos_t *, reiser4_item_hint_t *);
+	errno_t (*insert) (object_entity_t *, rpos_t *,
+			   reiser4_item_hint_t *);
     
 	/* Removes item/unit at specified pos */
 	errno_t (*remove) (object_entity_t *, rpos_t *, uint32_t);
@@ -809,15 +819,22 @@ struct reiser4_node_ops {
 	errno_t (*cut) (object_entity_t *, rpos_t *, rpos_t *);
     
 	/* Shrinks node without calling any item methods */
-	errno_t (*shrink) (object_entity_t *, rpos_t *, uint32_t);
+	errno_t (*shrink) (object_entity_t *, rpos_t *,
+			   uint32_t, uint32_t);
+
+	errno_t (*copy) (object_entity_t *, rpos_t *,
+			 object_entity_t *, rpos_t *, uint32_t);
 	
 	/* Expands node */
-	errno_t (*expand) (object_entity_t *, rpos_t *, uint32_t);
+	errno_t (*expand) (object_entity_t *, rpos_t *,
+			   uint32_t, uint32_t);
 	
 	/* Gets/sets key at pos */
-	errno_t (*get_key) (object_entity_t *, rpos_t *, key_entity_t *);
+	errno_t (*get_key) (object_entity_t *, rpos_t *,
+			    key_entity_t *);
     
-	errno_t (*set_key) (object_entity_t *, rpos_t *, key_entity_t *);
+	errno_t (*set_key) (object_entity_t *, rpos_t *,
+			    key_entity_t *);
 
 	/* Gets/sets node level */
 	uint8_t (*level) (object_entity_t *);
