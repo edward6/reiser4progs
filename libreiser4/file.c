@@ -107,6 +107,7 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	reiser4_file_t *file;
 	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
+	reiser4_entry_hint_t entry_hint;
 	
 	file = (reiser4_file_t *)data;
 
@@ -130,13 +131,15 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 
 	/* Looking up for @enrty in current directory */
 	if (plugin_call(plugin->file_ops, lookup, entity,
-			entry, &file->key) != LP_PRESENT)
+			entry, &entry_hint) != LP_PRESENT)
 	{
 		aal_exception_error("Can't find %s.", track);
 		goto error_free_entity;
 	}
 
 	plugin_call(plugin->file_ops, close, entity);
+	reiser4_key_assign(&file->key, &entry_hint.object);
+	
 	return 0;
 	
  error_free_entity:

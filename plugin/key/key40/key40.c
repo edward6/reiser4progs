@@ -365,6 +365,28 @@ static errno_t key40_build_generic(key_entity_t *key,
 	return 0;
 }
 
+static errno_t key40_construct(key_entity_t *key,
+			       uint64_t locality,
+			       uint64_t objectid,
+			       uint64_t offset)
+{
+	key40_t *body;
+
+	aal_assert("umka-1960", key != NULL);
+
+	key40_clean(key);
+    
+	body = (key40_t *)key->body;
+	
+	k40_set_locality(body, (locality & KEY40_LOCALITY_MASK) >>
+			 KEY40_LOCALITY_SHIFT);
+	
+	k40_set_objectid(body, objectid);
+	k40_set_offset(body, offset);
+
+	return 0;
+}
+
 #ifndef ENABLE_ALONE
 
 /* Prints key into passed stream */
@@ -423,7 +445,8 @@ static reiser4_plugin_t key40_plugin = {
 	
 		.set_hash	= key40_set_hash,
 		.get_hash	= key40_get_hash,
-	
+
+		.construct      = key40_construct,
 		.build_generic  = key40_build_generic,
 		.build_entry    = key40_build_entry
 	}

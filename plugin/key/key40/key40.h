@@ -32,23 +32,23 @@ typedef enum {
 
 typedef enum {
 	/* Major "locale", aka dirid. Sits in 1st element */
-	KEY40_LOCALITY_INDEX  = 0,
+	KEY40_LOCALITY_INDEX   = 0,
     
 	/* Minor "locale", aka item type. Sits in 1st element */
-	KEY40_TYPE_INDEX	  = 0,
+	KEY40_TYPE_INDEX       = 0,
     
 	/* Object band. Sits in 2nd element */
-	KEY40_BAND_INDEX	  = 1,
+	KEY40_BAND_INDEX       = 1,
     
 	/* Object id. Sits in 2nd element */
-	KEY40_OBJECTID_INDEX  = 1,
+	KEY40_OBJECTID_INDEX   = 1,
     
 	/* Offset. Sits in 3rd element */
-	KEY40_OFFSET_INDEX	  = 2,
+	KEY40_OFFSET_INDEX     = 2,
     
 	/* Name hash. Sits in 3rd element */
-	KEY40_HASH_INDEX	  = 2,
-	KEY40_LAST_INDEX	  = 3
+	KEY40_HASH_INDEX       = 2,
+	KEY40_LAST_INDEX       = 3
     
 } key40_field_t;
 

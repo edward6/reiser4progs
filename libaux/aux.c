@@ -77,6 +77,9 @@ errno_t aux_parse_path(const char *path, aux_pre_parse_t pre_func,
 
 	while (1) {
 		errno_t res;
+
+		if (track[aal_strlen(track) - 1] != '/')
+			track[aal_strlen(track)] = '/';
 		
 		if ((res = pre_func(track, entry, data)))
 			return res;
@@ -91,8 +94,6 @@ errno_t aux_parse_path(const char *path, aux_pre_parse_t pre_func,
 
 		if ((res = post_func(track, entry, data)))
 			return res;
-		
-		track[aal_strlen(track)] = '/';
 	}
 
 	return 0;
