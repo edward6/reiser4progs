@@ -15,11 +15,28 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t oid40_plugin;
 
+#ifndef ENABLE_STAND_ALONE
+static int oid40_isdirty(object_entity_t *entity) {
+	aal_assert("umka-2088", entity != NULL);
+	return ((oid40_t *)entity)->dirty;
+}
+
+static void oid40_mkdirty(object_entity_t *entity) {
+	aal_assert("umka-2089", entity != NULL);
+	((oid40_t *)entity)->dirty = 1;
+}
+
+static void oid40_mkclean(object_entity_t *entity) {
+	aal_assert("umka-2090", entity != NULL);
+	((oid40_t *)entity)->dirty = 0;
+}
+#endif
+
 /*
   Initializies oid allocator instance and loads its data (namely next oid, used
   oids, etc).
 */
-static object_entity_t *oid40_open(const void *start, 
+static object_entity_t *oid40_open(void *start, 
 				   uint32_t len) 
 {
 	oid40_t *oid;
@@ -27,12 +44,15 @@ static object_entity_t *oid40_open(const void *start,
 	if (!(oid = aal_calloc(sizeof(*oid), 0)))
 		return NULL;
 
-	oid->start = start;
+#ifndef ENABLE_STAND_ALONE
+	oid->dirty = 0;
+#endif
 	oid->len = len;
+	oid->start = start;
     
+	oid->plugin = &oid40_plugin;
 	oid->next = oid40_get_next(start);
 	oid->used = oid40_get_used(start);
-	oid->plugin = &oid40_plugin;
     
 	return (object_entity_t *)oid;
 }
@@ -45,7 +65,7 @@ static void oid40_close(object_entity_t *entity) {
 #ifndef ENABLE_STAND_ALONE
 
 /* Initializes oid allocator instance and return it to the caller */
-static object_entity_t *oid40_create(const void *start, 
+static object_entity_t *oid40_create(void *start, 
 				     uint32_t len) 
 {
 	oid40_t *oid;
@@ -53,8 +73,9 @@ static object_entity_t *oid40_create(const void *start,
 	if (!(oid = aal_calloc(sizeof(*oid), 0)))
 		return NULL;
 
-	oid->start = start;
+	oid->dirty = 1;
 	oid->len = len;
+	oid->start = start;
 
 	/*
 	  Setting up next by OID40_RESERVED. It is needed because all oid less
@@ -64,7 +85,6 @@ static object_entity_t *oid40_create(const void *start,
 	oid->used = 0;
     
 	oid->plugin = &oid40_plugin;
-    
 	oid40_set_next(start, oid->next);
 	oid40_set_used(start, oid->used);
     
@@ -80,7 +100,7 @@ static errno_t oid40_sync(object_entity_t *entity) {
     
 	oid40_set_used(((oid40_t *)entity)->start, 
 		       ((oid40_t *)entity)->used);
-    
+
 	return 0;
 }
 
@@ -96,7 +116,11 @@ static oid_t oid40_allocate(object_entity_t *entity) {
 
 	((oid40_t *)entity)->next++;
 	((oid40_t *)entity)->used++;
-    
+
+#ifndef ENABLE_STAND_ALONE
+	((oid40_t *)entity)->dirty = 1;
+#endif
+	
 	return ((oid40_t *)entity)->next - 1;
 }
 
@@ -105,7 +129,12 @@ static void oid40_release(object_entity_t *entity,
 			  oid_t oid)
 {
 	aal_assert("umka-528", entity != NULL);
+
 	((oid40_t *)entity)->used--;
+	
+#ifndef ENABLE_STAND_ALONE
+	((oid40_t *)entity)->dirty = 1;
+#endif
 }
 
 /* Prints oid allocator data into passed @stream */
@@ -145,7 +174,10 @@ static oid_t oid40_used(object_entity_t *entity) {
 static errno_t oid40_valid(object_entity_t *entity) {
 	aal_assert("umka-966", entity != NULL);
 
-	/* Next oid should not be lesser than the root parent locality */
+	/*
+	  Next oid should not be lesser than the root parent locality (so called
+	  hyper locality).
+	*/
 	if (((oid40_t *)entity)->next < OID40_HYPER_LOCALITY)
 		return -EINVAL;
 
@@ -194,6 +226,9 @@ static reiser4_plugin_t oid40_plugin = {
 		.allocate	= oid40_allocate,
 		.release	= oid40_release,
 		.sync		= oid40_sync,
+		.isdirty        = oid40_isdirty,
+		.mkdirty        = oid40_mkdirty,
+		.mkclean        = oid40_mkclean,
 		.print		= oid40_print,
 		.used		= oid40_used,
 		.free		= oid40_free,

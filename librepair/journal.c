@@ -78,7 +78,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 	    goto error_journal_close;
 
 	if (ret & REPAIR_FIXED)
-	    fs->journal->dirty = TRUE;
+	    reiser4_journal_mkdirty(fs->journal);
     }
     
     return 0;

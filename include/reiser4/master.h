@@ -36,6 +36,10 @@ extern reiser4_plugin_t *reiser4_master_guess(aal_device_t *device);
 extern char *reiser4_master_uuid(reiser4_master_t *master);
 extern char *reiser4_master_label(reiser4_master_t *master);
 extern char *reiser4_master_magic(reiser4_master_t *master);
+
+extern bool_t reiser4_master_isdirty(reiser4_master_t *master);
+extern void reiser4_master_mkdirty(reiser4_master_t *master);
+extern void reiser4_master_mkclean(reiser4_master_t *master);
 #endif
 
 extern reiser4_master_t *reiser4_master_open(aal_device_t *device);

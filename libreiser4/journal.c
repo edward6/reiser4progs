@@ -13,6 +13,27 @@
 
 #include <reiser4/reiser4.h>
 
+bool_t reiser4_journal_isdirty(reiser4_journal_t *journal) {
+	aal_assert("umka-2100", journal != NULL);
+
+	return plugin_call(journal->entity->plugin->journal_ops,
+			   isdirty, journal->entity);
+}
+
+void reiser4_journal_mkdirty(reiser4_journal_t *journal) {
+	aal_assert("umka-2101", journal != NULL);
+
+	plugin_call(journal->entity->plugin->journal_ops,
+		    mkdirty, journal->entity);
+}
+
+void reiser4_journal_mkclean(reiser4_journal_t *journal) {
+	aal_assert("umka-2102", journal != NULL);
+
+	plugin_call(journal->entity->plugin->journal_ops,
+		    mkclean, journal->entity);
+}
+
 /* 
    This function opens journal on specified device and returns instance of
    opened journal.
@@ -158,8 +179,6 @@ reiser4_journal_t *reiser4_journal_create(
 	if (reiser4_journal_mark(journal))
 		goto error_free_entity;
 	
-	journal->dirty = TRUE;
-	
 	return journal;
 
  error_free_entity:
@@ -188,18 +207,13 @@ errno_t reiser4_journal_replay(
 errno_t reiser4_journal_sync(
 	reiser4_journal_t *journal)	/* journal to be saved */
 {
-	errno_t res;
 	aal_assert("umka-100", journal != NULL);
-	
-	if (journal->dirty == FALSE)
+
+	if (!reiser4_journal_isdirty(journal))
 		return 0;
 	
-	if ((res = plugin_call(journal->entity->plugin->journal_ops, 
-			       sync, journal->entity)))
-		return res;
-
-	journal->dirty = FALSE;
-	return 0;
+	return plugin_call(journal->entity->plugin->journal_ops, 
+			   sync, journal->entity);
 }
 
 /* Checks jouranl structure for validness */

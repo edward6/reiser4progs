@@ -19,6 +19,21 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t journal40_plugin;
 
+static int journal40_isdirty(object_entity_t *entity) {
+	aal_assert("umka-2081", entity != NULL);
+	return ((journal40_t *)entity)->dirty;
+}
+
+static void journal40_mkdirty(object_entity_t *entity) {
+	aal_assert("umka-2082", entity != NULL);
+	((journal40_t *)entity)->dirty = 1;
+}
+
+static void journal40_mkclean(object_entity_t *entity) {
+	aal_assert("umka-2083", entity != NULL);
+	((journal40_t *)entity)->dirty = 0;
+}
+
 static errno_t journal40_layout(object_entity_t *entity,
 				block_func_t func,
 				void *data)
@@ -100,6 +115,7 @@ static object_entity_t *journal40_open(object_entity_t *format,
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
 
+	journal->dirty = 0;
 	journal->device = device;
 	journal->format = format;
 	journal->plugin = &journal40_plugin;
@@ -137,8 +153,9 @@ static errno_t callback_alloc_journal(object_entity_t *entity,
 				      blk_t blk, void *data)
 {
 	aal_device_t *device;
-	journal40_t *journal = (journal40_t *)entity;
+	journal40_t *journal;
 
+	journal = (journal40_t *)entity;
 	device = journal->device;
 	
 	if (!journal->header) {
@@ -170,7 +187,8 @@ static object_entity_t *journal40_create(object_entity_t *format,
     
 	if (!(journal = aal_calloc(sizeof(*journal), 0)))
 		return NULL;
-    
+
+	journal->dirty = 1;
 	journal->device = device;
 	journal->format = format;
 	journal->plugin = &journal40_plugin;
@@ -221,8 +239,16 @@ static errno_t callback_sync_journal(object_entity_t *entity,
 }
 
 static errno_t journal40_sync(object_entity_t *entity) {
+	errno_t res;
+
 	aal_assert("umka-410", entity != NULL);
-	return journal40_layout(entity, callback_sync_journal, entity);
+
+	if ((res = journal40_layout(entity, callback_sync_journal, entity)))
+		return res;
+
+	((journal40_t *)entity)->dirty = 0;
+	
+	return 0;
 }
 
 static errno_t callback_journal_handler(object_entity_t *entity,
@@ -246,8 +272,9 @@ static errno_t callback_journal_handler(object_entity_t *entity,
 static errno_t journal40_update(journal40_t *journal) {
 	aal_device_t *device;
 	aal_block_t *tx_block;
-	journal40_footer_t *footer;	
+	journal40_footer_t *footer;
 	journal40_header_t *header;
+	
 	journal40_tx_header_t *tx_header;
 	uint64_t last_commited_tx, last_flushed_tx;
 
@@ -291,9 +318,15 @@ static errno_t journal40_update(journal40_t *journal) {
 	set_jf_nr_files(footer, get_th_nr_files(tx_header));
 	set_jf_next_oid(footer, get_th_next_oid(tx_header));
 
+	journal->dirty = 1;
+
 	return 0;
 }
 
+/*
+  Makes traverses of one transaction. This is used for transactions replaying,
+  checking, etc.
+*/
 errno_t journal40_traverse_trans(
 	journal40_t *journal,			/* journal object to be traversed */
 	aal_block_t *tx_block,			/* trans header of a transaction */
@@ -450,8 +483,9 @@ errno_t journal40_traverse(
 			goto error_free_tx_list;
 	    
 		if (!(tx_block = aal_block_open(device, txh_blk))) {
-			aal_exception_error("Can't read block %llu while traversing "
-					    "the journal. %s.", txh_blk, device->error);
+			aal_exception_error("Can't read block %llu while "
+					    "traversing the journal. %s.",
+					    txh_blk, device->error);
 			res = -EINVAL;
 			goto error_free_tx_list;
 		}
@@ -459,8 +493,8 @@ errno_t journal40_traverse(
 		tx_header = (journal40_tx_header_t *)tx_block->data;
 
 		if (aal_memcmp(tx_header->magic, TXH_MAGIC, TXH_MAGIC_SIZE)) {
-			aal_exception_error("Invalid transaction header has been "
-					    "detected.");
+			aal_exception_error("Invalid transaction header "
+					    "has been detected.");
 			res = -ESTRUCT;
 			goto error_free_tx_list;
 		}
@@ -498,6 +532,7 @@ errno_t journal40_traverse(
 	return res;
 }
 
+/* Makes journal replay */
 static errno_t journal40_replay(object_entity_t *entity) {
 	errno_t res;
 	aal_assert("umka-412", entity != NULL);
@@ -510,6 +545,7 @@ static errno_t journal40_replay(object_entity_t *entity) {
 	return journal40_update((journal40_t *)entity);
 }
 
+/* Prints journal structures into passed @stream */
 static errno_t journal40_print(object_entity_t *entity,
 			       aal_stream_t *stream, 
 			       uint16_t options)
@@ -520,6 +556,7 @@ static errno_t journal40_print(object_entity_t *entity,
 	return 0;
 }
 
+/* Releases the journal */
 static void journal40_close(object_entity_t *entity) {
 	journal40_t *journal = (journal40_t *)entity;
     
@@ -542,16 +579,19 @@ static reiser4_plugin_t journal40_plugin = {
 			.label = "journal40",
 			.desc = "Journal for reiser4, ver. " VERSION,
 		},
-		.open	= journal40_open,
-		.create	= journal40_create,
-		.sync	= journal40_sync,
-		.replay = journal40_replay,
-		.print  = journal40_print,
-		.check  = journal40_check,
-		.layout = journal40_layout,
-		.valid	= journal40_valid,
-		.close	= journal40_close,
-		.device = journal40_device
+		.open	  = journal40_open,
+		.create	  = journal40_create,
+		.sync	  = journal40_sync,
+		.isdirty  = journal40_isdirty,
+		.mkdirty  = journal40_mkdirty,
+		.mkclean  = journal40_mkclean,
+		.replay   = journal40_replay,
+		.print    = journal40_print,
+		.check    = journal40_check,
+		.layout   = journal40_layout,
+		.valid	  = journal40_valid,
+		.close	  = journal40_close,
+		.device   = journal40_device
 	}
 };
 

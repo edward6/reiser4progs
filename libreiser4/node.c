@@ -8,6 +8,29 @@
 
 #include <reiser4/reiser4.h>
 
+#ifndef ENABLE_STAND_ALONE
+bool_t reiser4_node_isdirty(reiser4_node_t *node) {
+	aal_assert("umka-2094", node != NULL);
+
+	return plugin_call(node->entity->plugin->node_ops,
+			   isdirty, node->entity);
+}
+
+void reiser4_node_mkdirty(reiser4_node_t *node) {
+	aal_assert("umka-2095", node != NULL);
+
+	plugin_call(node->entity->plugin->node_ops,
+		    mkdirty, node->entity);
+}
+
+void reiser4_node_mkclean(reiser4_node_t *node) {
+	aal_assert("umka-2096", node != NULL);
+
+	plugin_call(node->entity->plugin->node_ops,
+		    mkclean, node->entity);
+}
+#endif
+
 reiser4_node_t *reiser4_node_init(aal_device_t *device,
 				  blk_t blk, rid_t pid)
 {
@@ -32,10 +55,6 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 					 device, blk))) 
 		goto error_free_node;
 
-#ifndef ENABLE_STAND_ALONE
-	reiser4_node_mkclean(node);
-#endif
-	
 	node->blk = blk;
 	node->device = device;
 
@@ -51,10 +70,6 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 errno_t reiser4_node_load(reiser4_node_t *node) {
 	aal_assert("umka-2053", node != NULL);
 
-#ifndef ENABLE_STAND_ALONE
-	reiser4_node_mkclean(node);
-#endif
-	
 	return plugin_call(node->entity->plugin->node_ops,
 			   load, node->entity);
 }
@@ -78,8 +93,6 @@ errno_t reiser4_node_form(reiser4_node_t *node,
 {
 	aal_assert("umka-2052", node != NULL);
 
-	reiser4_node_mkdirty(node);
-	
 	return plugin_call(node->entity->plugin->node_ops,
 			   form, node->entity, level);
 }
@@ -161,10 +174,6 @@ reiser4_node_t *reiser4_node_open(
         if (reiser4_node_guess(node))
                 goto error_free_node;
      
-#ifndef ENABLE_STAND_ALONE
-        reiser4_node_mkclean(node);
-#endif
- 
         reiser4_place_assign(&node->parent,
                              NULL, 0, ~0ul);
          
@@ -486,9 +495,6 @@ errno_t reiser4_node_copy(reiser4_node_t *dst_node, pos_t *dst_pos,
 			  copy, src_node->entity, src_pos,
 			  dst_node->entity, dst_pos, count);
 
-	if (res == 0)
-		reiser4_node_mkdirty(dst_node);
-
 	return res;
 }
 
@@ -504,9 +510,6 @@ errno_t reiser4_node_expand(reiser4_node_t *node, pos_t *pos,
 	res = plugin_call(node->entity->plugin->node_ops,
 			  expand, node->entity, pos, len, count);
 
-	if (res == 0)
-		reiser4_node_mkdirty(node);
-
 	return res;
 }
 
@@ -521,9 +524,6 @@ errno_t reiser4_node_shrink(reiser4_node_t *node, pos_t *pos,
 
 	res = plugin_call(node->entity->plugin->node_ops,
 			  shrink, node->entity, pos, len, count);
-
-	if (res == 0)
-		reiser4_node_mkdirty(node);
 
 	return res;
 }
@@ -563,9 +563,6 @@ errno_t reiser4_node_shift(
 		return 0;
 
 	/* Marking nodes as dirty */
-	reiser4_node_mkdirty(node);
-	reiser4_node_mkdirty(neig);
-	
 	if (!node->children)
 		return 0;
 
@@ -663,8 +660,6 @@ errno_t reiser4_node_sync(
 
 			return res;
 		}
-
-		reiser4_node_mkclean(node);
 	}
 
 	return 0;
@@ -691,7 +686,6 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 	if ((res = reiser4_item_set_key(&place, key)))
 		return res;
     
-	reiser4_node_mkdirty(node);
 	return 0;
 }
 

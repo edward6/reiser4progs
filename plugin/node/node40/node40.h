@@ -23,6 +23,11 @@ struct node40 {
 	reiser4_plugin_t *plugin;
 
 	blk_t blk;
+	
+#ifndef ENABLE_STAND_ALONE
+	int dirty;
+#endif
+	
 	aal_block_t *block;
 	aal_device_t *device;
 };

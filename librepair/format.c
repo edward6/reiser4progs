@@ -71,7 +71,7 @@ static errno_t repair_format_check(reiser4_fs_t *fs, uint8_t mode) {
 
 	    reiser4_format_set_stamp(fs->format, 0);
 	    set_ms_format(SUPER(fs->master), pid);
-	    fs->master->dirty = TRUE;
+	    reiser4_master_mkdirty(fs->master);
 	    
 	    return REPAIR_FIXED;
 	} else {
@@ -135,7 +135,7 @@ errno_t repair_format_open(reiser4_fs_t *fs, uint8_t mode) {
 	goto error_format_close;
 
     if (error & REPAIR_FIXED)
-	fs->format->dirty = TRUE;
+	reiser4_format_mkdirty(fs->format);
     
     return 0;
 

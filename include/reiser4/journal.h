@@ -32,7 +32,10 @@ extern errno_t reiser4_journal_print(reiser4_journal_t *journal,
 				     aal_stream_t *stream);
 
 extern void reiser4_journal_close(reiser4_journal_t *journal);
+extern void reiser4_journal_mkdirty(reiser4_journal_t *journal);
+extern void reiser4_journal_mkclean(reiser4_journal_t *journal);
 extern errno_t reiser4_journal_valid(reiser4_journal_t *journal);
+extern bool_t reiser4_journal_isdirty(reiser4_journal_t *journal);
 
 extern errno_t reiser4_journal_layout(reiser4_journal_t *journal, 
 				      block_func_t func,

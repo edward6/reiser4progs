@@ -34,6 +34,10 @@ struct journal40 {
 	/* Journal header and footer */
 	aal_block_t *header;
 	aal_block_t *footer;
+
+#ifndef ENABLE_STAND_ALONE
+	int dirty;
+#endif
 };
 
 typedef struct journal40 journal40_t;

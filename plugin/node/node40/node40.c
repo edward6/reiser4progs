@@ -13,8 +13,25 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t node40_plugin;
 
+#ifndef ENABLE_STAND_ALONE
+static int node40_isdirty(object_entity_t *entity) {
+	aal_assert("umka-2091", entity != NULL);
+	return ((node40_t *)entity)->dirty;
+}
+
+static void node40_mkdirty(object_entity_t *entity) {
+	aal_assert("umka-2092", entity != NULL);
+	((node40_t *)entity)->dirty = 1;
+}
+
+static void node40_mkclean(object_entity_t *entity) {
+	aal_assert("umka-2093", entity != NULL);
+	((node40_t *)entity)->dirty = 0;
+}
+#endif
+
 /* Returns node level */
-uint8_t node40_get_level(object_entity_t *entity) {
+static uint8_t node40_get_level(object_entity_t *entity) {
 	aal_assert("umka-1116", entity != NULL);
 	aal_assert("umka-2017", node40_loaded(entity));
 	
@@ -22,7 +39,6 @@ uint8_t node40_get_level(object_entity_t *entity) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Returns node make stamp */
 static uint32_t node40_get_mstamp(object_entity_t *entity) {
 	aal_assert("umka-1127", entity != NULL);
@@ -38,7 +54,6 @@ static uint64_t node40_get_fstamp(object_entity_t *entity) {
 	
 	return nh40_get_flush_id((node40_t *)entity);
 }
-
 #endif
 
 /* Returns item header by pos */
@@ -89,6 +104,9 @@ static object_entity_t *node40_init(aal_device_t *device,
 		return NULL;
 
 	node->blk = blk;
+#ifndef ENABLE_STAND_ALONE
+	node->dirty = 0;
+#endif
 	node->device = device;
 	node->plugin = &node40_plugin;
 
@@ -96,7 +114,6 @@ static object_entity_t *node40_init(aal_device_t *device,
 }
 
 #ifndef ENABLE_STAND_ALONE
-
 /* Opens node on passed device and block number */
 static errno_t node40_form(object_entity_t *entity,
 			   uint8_t level)
@@ -122,10 +139,10 @@ static errno_t node40_form(object_entity_t *entity,
 	
 	nh40_set_free_space(node, free_space);
 	nh40_set_free_space_start(node, sizeof(node40_header_t));
-   
+
+	node->dirty = 1;
 	return 0;
 }
-
 #endif
 
 static errno_t node40_load(object_entity_t *entity) {
@@ -140,6 +157,10 @@ static errno_t node40_load(object_entity_t *entity) {
 					   node->blk)))
 		return -EIO;
 
+#ifndef ENABLE_STAND_ALONE
+	node->dirty = 0;
+#endif
+	
 	return 0;
 }
 
@@ -151,6 +172,10 @@ static errno_t node40_unload(object_entity_t *entity) {
 
 	aal_block_close(node->block);
 	node->block = NULL;
+
+#ifndef ENABLE_STAND_ALONE
+	node->dirty = 0;
+#endif
 
 	return 0;
 }
@@ -506,6 +531,7 @@ static errno_t node40_grow(node40_t *node, pos_t *pos,
 		ih40_inc_len(ih, len);
 	}
 	
+	node->dirty = 1;
 	return 0;
 }
 
@@ -608,6 +634,8 @@ static errno_t node40_cutout(node40_t *node, pos_t *pos,
 	}
 
 	nh40_dec_free_space_start(node, len);
+	node->dirty = 1;
+	
 	return 0;
 }
 
@@ -669,6 +697,7 @@ static errno_t node40_rep(node40_t *dst_node, pos_t *dst_pos,
 			offset += ih40_get_offset(ih - 1) - old;
 	}
 	
+	dst_node->dirty = 1;
 	return 0;
 }
 
@@ -714,6 +743,7 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 		if (hint->flags == HF_RAWDATA) {
 			aal_memcpy(item.body, hint->type_specific,
 				   hint->len);
+			node->dirty = 1;
 			return 0;
 		}
 		
@@ -735,6 +765,7 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
 	}
 
+	node->dirty = 1;
 	return 0;
 }
 
@@ -919,6 +950,7 @@ static void node40_set_mstamp(object_entity_t *entity,
 	aal_assert("vpf-644", entity != NULL);
 	aal_assert("umka-2038", node40_loaded(entity));
 	
+	((node40_t *)entity)->dirty = 1;
 	nh40_set_mkfs_id((node40_t *)entity, stamp);
 }
 
@@ -929,6 +961,7 @@ static void node40_set_fstamp(object_entity_t *entity,
 	aal_assert("vpf-643", entity != NULL);
 	aal_assert("umka-2039", node40_loaded(entity));
 	
+	((node40_t *)entity)->dirty = 1;
 	nh40_set_flush_id((node40_t *)entity, stamp);
 }
 
@@ -938,6 +971,7 @@ static void node40_set_level(object_entity_t *entity,
 	aal_assert("umka-1864", entity != NULL);
 	aal_assert("umka-2040", node40_loaded(entity));
 	
+	((node40_t *)entity)->dirty = 1;
 	nh40_set_level((node40_t *)entity, level);
 }
 
@@ -962,6 +996,8 @@ static errno_t node40_set_key(object_entity_t *entity,
 	aal_memcpy(&(node40_ih_at(node, pos->item)->key),
 		   key->body, sizeof(key->body));
 
+	node->dirty = 1;
+
 	return 0;
 }
 
@@ -978,10 +1014,17 @@ static errno_t node40_set_stamp(object_entity_t *entity,
 
 /* Saves node to device */
 static errno_t node40_sync(object_entity_t *entity) {
+	errno_t res;
+	
 	aal_assert("umka-1552", entity != NULL);
 	aal_assert("umka-2043", node40_loaded(entity));
 	
-	return aal_block_sync(((node40_t *)entity)->block);
+	if ((res = aal_block_sync(((node40_t *)entity)->block)))
+		return res;
+
+	((node40_t *)entity)->dirty = 0;
+	
+	return 0;
 }
 
 /* Prepare text node description and push it into specified @stream. */
@@ -1754,6 +1797,8 @@ static errno_t node40_shift(object_entity_t *src_entity,
 		hint->pos.unit = ~0ul;
 
  update_hint_out:
+	src_node->dirty = 1;
+	dst_node->dirty = 1;
 	
 	/* Updating shift hint by merging results. */
 	if (merge.units > 0) {
@@ -1800,6 +1845,9 @@ static reiser4_plugin_t node40_plugin = {
 		
 		.form		 = node40_form,
 		.sync            = node40_sync,
+		.isdirty         = node40_isdirty,
+		.mkdirty         = node40_mkdirty,
+		.mkclean         = node40_mkclean,
 		.insert		 = node40_insert,
 		.remove		 = node40_remove,
 		.cut             = node40_cut,

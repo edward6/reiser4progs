@@ -55,7 +55,7 @@ struct reiser4_master {
 	*/
 	bool_t native;
 
-	/* Flag for denoting that fact that master is dirty */
+	/* Flag for marking master as dirty */
 	bool_t dirty;
 
 	/* Device master is opened on */
@@ -97,12 +97,6 @@ struct reiser4_place {
 	pos_t pos;
 	item_entity_t item;
 };
-
-enum node_flags {
-	NF_DIRTY = 1 << 0
-};
-
-typedef enum node_flags node_flags_t;
 
 struct lru_link {
 
@@ -163,10 +157,6 @@ struct reiser4_node {
 	signed counter;
 	
 #ifndef ENABLE_STAND_ALONE
-	
-	/* Some node flags (dirty, etc) */
-	uint32_t flags;
-	
 	/*
 	  Applications using this library sometimes need to embed information
 	  into the objects of our library for their own use.
@@ -231,9 +221,6 @@ struct reiser4_format {
 	   initialization.
 	*/
 	object_entity_t *entity;
-
-	/* Flag for denoting that fact format is dirty */
-	bool_t dirty;
 };
 
 typedef struct reiser4_format reiser4_format_t;
@@ -253,9 +240,6 @@ struct reiser4_journal {
 
 	/* Journal entity. Initializied by plugin */
 	object_entity_t *entity;
-
-	/* Flag for denoting that fact journal is dirty */
-	bool_t dirty;
 };
 
 typedef struct reiser4_journal reiser4_journal_t;
@@ -266,9 +250,6 @@ struct reiser4_alloc {
 	
 	aux_bitmap_t *forbid;
 	object_entity_t *entity;
-
-	/* Flag for denoting that fact block allocator is dirty */
-	bool_t dirty;
 };
 
 typedef struct reiser4_alloc reiser4_alloc_t;

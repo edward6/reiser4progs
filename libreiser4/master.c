@@ -12,10 +12,33 @@
 #include <reiser4/reiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
+bool_t reiser4_master_isdirty(reiser4_master_t *master) {
+	aal_assert("umka-2109", master != NULL);
+	return master->dirty;
+}
+
+void reiser4_master_mkdirty(reiser4_master_t *master) {
+	aal_assert("umka-2110", master != NULL);
+	master->dirty = 1;
+}
+
+void reiser4_master_mkclean(reiser4_master_t *master) {
+	aal_assert("umka-2111", master != NULL);
+	master->dirty = 0;
+}
+
 /* This function checks master super block for validness */
 errno_t reiser4_master_valid(reiser4_master_t *master) {
+	uint32_t blocksize;
+	
 	aal_assert("umka-898", master != NULL);
-	return -(!aal_pow_of_two(get_ms_blocksize(SUPER(master))));
+
+	blocksize = get_ms_blocksize(SUPER(master));
+
+	if (!aal_pow_of_two(blocksize))
+		return -EINVAL;
+
+	return 0;
 }
 
 /* Forms master super block disk structure */

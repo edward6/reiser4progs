@@ -20,11 +20,15 @@
 struct oid40 {
 	reiser4_plugin_t *plugin;
 
-	const void *start;
+	void *start;
 	uint32_t len;
 
 	uint64_t next;
 	uint64_t used;
+
+#ifndef ENABLE_STAND_ALONE
+	int dirty;
+#endif
 };
 
 typedef struct oid40 oid40_t;

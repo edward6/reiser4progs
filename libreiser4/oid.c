@@ -12,6 +12,29 @@
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
 
+#ifndef ENABLE_STAND_ALONE
+bool_t reiser4_oid_isdirty(reiser4_oid_t *oid) {
+	aal_assert("umka-2103", oid != NULL);
+
+	return plugin_call(oid->entity->plugin->oid_ops,
+			   isdirty, oid->entity);
+}
+
+void reiser4_oid_mkdirty(reiser4_oid_t *oid) {
+	aal_assert("umka-2104", oid != NULL);
+
+	plugin_call(oid->entity->plugin->oid_ops,
+		    mkdirty, oid->entity);
+}
+
+void reiser4_oid_mkclean(reiser4_oid_t *oid) {
+	aal_assert("umka-2105", oid != NULL);
+
+	plugin_call(oid->entity->plugin->oid_ops,
+		    mkclean, oid->entity);
+}
+#endif
+
 /* Opens object allocator using start and end pointers */
 reiser4_oid_t *reiser4_oid_open(
 	reiser4_fs_t *fs)	    /* fs oid will be opened on */

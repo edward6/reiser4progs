@@ -14,9 +14,32 @@
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
 
+#ifndef ENABLE_STAND_ALONE
+bool_t reiser4_format_isdirty(reiser4_format_t *format) {
+	aal_assert("umka-2106", format != NULL);
+
+	return plugin_call(format->entity->plugin->format_ops,
+			   isdirty, format->entity);
+}
+
+void reiser4_format_mkdirty(reiser4_format_t *format) {
+	aal_assert("umka-2107", format != NULL);
+
+	plugin_call(format->entity->plugin->format_ops,
+		    mkdirty, format->entity);
+}
+
+void reiser4_format_mkclean(reiser4_format_t *format) {
+	aal_assert("umka-2108", format != NULL);
+
+	plugin_call(format->entity->plugin->format_ops,
+		    mkclean, format->entity);
+}
+#endif
+
 /* 
-   Opens disk-format on specified device. Actually it just calls specified by
-   "pid" disk-format plugin and that plugin makes all dirty work.
+  Opens disk-format on specified device. Actually it just calls specified by
+  "pid" disk-format plugin and that plugin makes all dirty work.
 */
 reiser4_format_t *reiser4_format_open(
 	reiser4_fs_t *fs)	/* fs the format will be opened on */
@@ -33,7 +56,6 @@ reiser4_format_t *reiser4_format_open(
 		return NULL;
     
 	format->fs = fs;
-	format->dirty = FALSE;
 	format->fs->format = format;
 
 	pid = reiser4_master_format(fs->master);
@@ -87,7 +109,6 @@ reiser4_format_t *reiser4_format_create(
 		return NULL;
 
 	format->fs = fs;
-	format->dirty = TRUE;
 	format->fs->format = format;
 	
 	/* 
@@ -115,15 +136,10 @@ reiser4_format_t *reiser4_format_create(
 errno_t reiser4_format_sync(
 	reiser4_format_t *format)	/* disk-format to be saved */
 {
-	errno_t res;
 	aal_assert("umka-107", format != NULL);
-
-	if ((res = plugin_call(format->entity->plugin->format_ops,
-			       sync, format->entity)))
-		return res;
-
-	format->dirty = FALSE;
-	return 0;
+	
+	return plugin_call(format->entity->plugin->format_ops,
+			   sync, format->entity);
 }
 
 /* Confirms disk-format (simple check) */
@@ -283,8 +299,6 @@ void reiser4_format_set_root(
 {
 	aal_assert("umka-420", format != NULL);
 
-	format->dirty = TRUE;
-	
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_root, format->entity, root);
 }
@@ -296,8 +310,6 @@ void reiser4_format_set_len(
 {
 	aal_assert("umka-422", format != NULL);
     
-	format->dirty = TRUE;
-	
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_len, format->entity, blocks);
 }
@@ -309,8 +321,6 @@ void reiser4_format_set_free(
 {
 	aal_assert("umka-424", format != NULL);
     
-	format->dirty = TRUE;
-	
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_free, format->entity, blocks);
 }
@@ -322,8 +332,6 @@ void reiser4_format_set_height(
 {
 	aal_assert("umka-559", format != NULL);
     
-	format->dirty = TRUE;
-	
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_height, format->entity, height);
 }
@@ -335,8 +343,6 @@ void reiser4_format_set_stamp(
 {
 	aal_assert("umka-1125", format != NULL);
     
-	format->dirty = TRUE;
-	
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_stamp, format->entity, stamp);
 }
@@ -348,8 +354,6 @@ void reiser4_format_set_policy(
 {
 	aal_assert("vpf-835", format != NULL);
     
-	format->dirty = TRUE;
-	
 	plugin_call(format->entity->plugin->format_ops, 
 		    set_policy, format->entity, policy);
 }

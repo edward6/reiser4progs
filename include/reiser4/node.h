@@ -113,11 +113,11 @@ extern errno_t reiser4_node_close(reiser4_node_t *node);
 
 extern uint32_t reiser4_node_items(reiser4_node_t *node);
 
-#define reiser4_node_mkdirty(node) (node->flags |= NF_DIRTY)
-#define reiser4_node_mkclean(node) (node->flags &= ~NF_DIRTY)
-
-#define reiser4_node_isdirty(node) (node->flags & NF_DIRTY)
-#define reiser4_node_isclean(node) (!reiser4_node_isdirty(node))
+#ifndef ENABLE_STAND_ALONE
+extern bool_t reiser4_node_isdirty(reiser4_node_t *node);
+extern void reiser4_node_mkdirty(reiser4_node_t *node);
+extern void reiser4_node_mkclean(reiser4_node_t *node);
+#endif
 
 #define reiser4_node_lock(node) (node->counter++)
 #define reiser4_node_unlock(node) (node->counter--)

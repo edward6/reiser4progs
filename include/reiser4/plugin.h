@@ -515,14 +515,15 @@ typedef struct create_hint create_hint_t;
 #define PLUGIN_MAX_NAME		22
 #define PLUGIN_MAX_DESC		64
 
+#define EMPTY_HANDLE \
+        { "", NULL, NULL, NULL, NULL }
+
 typedef void (*reiser4_abort_t) (char *);
 typedef struct reiser4_core reiser4_core_t;
 
 typedef errno_t (*plugin_fini_t) (reiser4_core_t *);
 typedef reiser4_plugin_t *(*plugin_init_t) (reiser4_core_t *);
 typedef errno_t (*plugin_func_t) (reiser4_plugin_t *, void *);
-
-#define EMPTY_HANDLE { "", NULL, NULL, NULL, NULL }
 
 struct plugin_handle {
 	char name[PLUGIN_MAX_NAME];
@@ -852,6 +853,10 @@ struct reiser4_node_ops {
 	/* Checks thoroughly the node structure and fixes what needed. */
 	errno_t (*check) (object_entity_t *, uint8_t);
 
+	int (*isdirty) (object_entity_t *);
+	void (*mkdirty) (object_entity_t *);
+	void (*mkclean) (object_entity_t *);
+
 	/* Prints node into given buffer */
 	errno_t (*print) (object_entity_t *, aal_stream_t *,
 			  uint16_t);
@@ -996,6 +1001,10 @@ struct reiser4_format_ops {
 	*/
 	errno_t (*sync) (object_entity_t *);
 	
+	int (*isdirty) (object_entity_t *);
+	void (*mkdirty) (object_entity_t *);
+	void (*mkclean) (object_entity_t *);
+	
 	/* 
 	   Update only fields which can be changed after journal replay in 
 	   memory to avoid second checking.
@@ -1073,7 +1082,7 @@ struct reiser4_format_ops {
 	    
 	rid_t (*oid_pid) (object_entity_t *);
 
-	/* Returns area where oid data lies */
+	/* Returns area where oid data lies in */
 	void (*oid) (object_entity_t *, void **, uint32_t *);
 };
 
@@ -1082,12 +1091,24 @@ typedef struct reiser4_format_ops reiser4_format_ops_t;
 struct reiser4_oid_ops {
 	reiser4_plugin_header_t h;
 
+	/* Opens oid allocator on passed area */
+	object_entity_t *(*open) (void *,
+				  uint32_t);
+
+	/* Closes passed instance of oid allocator */
+	void (*close) (object_entity_t *);
+    
 #ifndef ENABLE_STAND_ALONE
 	/* Creates oid allocator on passed area */
-	object_entity_t *(*create) (const void *, uint32_t);
+	object_entity_t *(*create) (void *,
+				    uint32_t);
 
 	/* Synchronizes oid allocator */
 	errno_t (*sync) (object_entity_t *);
+
+	int (*isdirty) (object_entity_t *);
+	void (*mkdirty) (object_entity_t *);
+	void (*mkclean) (object_entity_t *);
 
 	/* Gets next object id */
 	oid_t (*next) (object_entity_t *);
@@ -1112,12 +1133,6 @@ struct reiser4_oid_ops {
 	errno_t (*valid) (object_entity_t *);
 #endif
 	
-	/* Opens oid allocator on passed area */
-	object_entity_t *(*open) (const void *, uint32_t);
-
-	/* Closes passed instance of oid allocator */
-	void (*close) (object_entity_t *);
-    
 	/* Object ids of root and root parenr object */
 	oid_t (*hyper_locality) (void);
 	oid_t (*root_locality) (void);
@@ -1146,6 +1161,10 @@ struct reiser4_alloc_ops {
 	/* Synchronizes block allocator */
 	errno_t (*sync) (object_entity_t *);
 
+	int (*isdirty) (object_entity_t *);
+	void (*mkdirty) (object_entity_t *);
+	void (*mkclean) (object_entity_t *);
+	
 	/* Returns number of used blocks */
 	uint64_t (*used) (object_entity_t *);
 
@@ -1214,6 +1233,10 @@ struct reiser4_journal_ops {
 	/* Synchronizes journal */
 	errno_t (*sync) (object_entity_t *);
 
+	int (*isdirty) (object_entity_t *);
+	void (*mkdirty) (object_entity_t *);
+	void (*mkclean) (object_entity_t *);
+	
 	/* Replays the journal */
 	errno_t (*replay) (object_entity_t *);
 
@@ -1372,6 +1395,7 @@ struct reiser4_core {
   support.
 */
 #if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
+
 typedef void (*register_builtin_t) (plugin_init_t,
 				    plugin_fini_t);
 

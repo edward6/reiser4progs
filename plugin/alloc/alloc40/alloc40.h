@@ -19,7 +19,9 @@
 struct alloc40 {
 	reiser4_plugin_t *plugin;
 	
+	int dirty;
 	char *crc;
+	
 	aal_device_t *device;
 	aux_bitmap_t *bitmap;
 };

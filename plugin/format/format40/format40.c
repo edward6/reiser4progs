@@ -64,6 +64,21 @@ static uint16_t format40_get_height(object_entity_t *entity) {
 
 #ifndef ENABLE_STAND_ALONE
 
+static int format40_isdirty(object_entity_t *entity) {
+	aal_assert("umka-2078", entity != NULL);
+	return ((format40_t *)entity)->dirty;
+}
+
+static void format40_mkdirty(object_entity_t *entity) {
+	aal_assert("umka-2079", entity != NULL);
+	((format40_t *)entity)->dirty = 1;
+}
+
+static void format40_mkclean(object_entity_t *entity) {
+	aal_assert("umka-2080", entity != NULL);
+	((format40_t *)entity)->dirty = 0;
+}
+
 static errno_t format40_skipped(object_entity_t *entity,
 				block_func_t func,
 				void *data) 
@@ -181,6 +196,9 @@ static object_entity_t *format40_open(aal_device_t *device) {
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
 
+#ifndef ENABLE_STAND_ALONE
+	format->dirty = 0;
+#endif
 	format->device = device;
 	format->plugin = &format40_plugin;
     
@@ -237,7 +255,8 @@ static object_entity_t *format40_create(aal_device_t *device,
     
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
-    
+
+	format->dirty = 1;
 	format->device = device;
 	format->plugin = &format40_plugin;
 
@@ -295,7 +314,9 @@ static errno_t format40_sync(object_entity_t *entity) {
 		res = -EIO;
 	}
     
+	format->dirty = 0;
 	aal_block_close(block);
+	
 	return res;
 }
 
@@ -360,6 +381,8 @@ static void format40_set_root(object_entity_t *entity,
 			      uint64_t root) 
 {
 	aal_assert("umka-403", entity != NULL);
+
+	((format40_t *)entity)->dirty = 1;
 	set_sb_root_block(SUPER(entity), root);
 }
 
@@ -367,6 +390,8 @@ static void format40_set_len(object_entity_t *entity,
 			     uint64_t blocks) 
 {
 	aal_assert("umka-404", entity != NULL);
+
+	((format40_t *)entity)->dirty = 1;
 	set_sb_block_count(SUPER(entity), blocks);
 }
 
@@ -374,6 +399,8 @@ static void format40_set_free(object_entity_t *entity,
 			      uint64_t blocks) 
 {
 	aal_assert("umka-405", entity != NULL);
+
+	((format40_t *)entity)->dirty = 1;
 	set_sb_free_blocks(SUPER(entity), blocks);
 }
 
@@ -381,6 +408,8 @@ static void format40_set_height(object_entity_t *entity,
 				uint16_t height) 
 {
 	aal_assert("umka-555", entity != NULL);
+
+	((format40_t *)entity)->dirty = 1;
 	set_sb_tree_height(SUPER(entity), height);
 }
 
@@ -388,6 +417,8 @@ static void format40_set_stamp(object_entity_t *entity,
 			       uint32_t mkfsid) 
 {
 	aal_assert("umka-1121", entity != NULL);
+
+	((format40_t *)entity)->dirty = 1;
 	set_sb_mkfs_id(SUPER(entity), mkfsid);
 }
 
@@ -395,6 +426,8 @@ static void format40_set_policy(object_entity_t *entity,
 			       uint16_t tail)
 {
 	aal_assert("vpf-830", entity != NULL);
+
+	((format40_t *)entity)->dirty = 1;
 	set_sb_tail_policy(SUPER(entity), tail);
 }
 
@@ -458,7 +491,9 @@ errno_t format40_print(object_entity_t *entity,
 	return 0;
 }
 
-extern errno_t format40_check(object_entity_t *entity, uint8_t mode);
+extern errno_t format40_check(object_entity_t *entity,
+			      uint8_t mode);
+
 extern errno_t format40_update(object_entity_t *entity);
 
 #endif
@@ -484,6 +519,9 @@ static reiser4_plugin_t format40_plugin = {
 		.valid		= format40_valid,
 		.check		= format40_check,
 		.sync		= format40_sync,
+		.isdirty        = format40_isdirty,
+		.mkdirty        = format40_mkdirty,
+		.mkclean        = format40_mkclean,
 		.create		= format40_create,
 		.print		= format40_print,
 		.layout	        = format40_layout,

@@ -33,6 +33,10 @@ extern errno_t reiser4_oid_print(reiser4_oid_t *oid,
 extern uint64_t reiser4_oid_free(reiser4_oid_t *oid);
 extern uint64_t reiser4_oid_used(reiser4_oid_t *oid);
 
+extern bool_t reiser4_oid_isdirty(reiser4_oid_t *oid);
+extern void reiser4_oid_mkdirty(reiser4_oid_t *oid);
+extern void reiser4_oid_mkclean(reiser4_oid_t *oid);
+
 #endif
 
 extern oid_t reiser4_oid_root_locality(reiser4_oid_t *oid);

@@ -20,8 +20,24 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t alloc40_plugin;
 
-extern errno_t alloc40_related_region(object_entity_t *entity, blk_t blk, 
-				      region_func_t func, void *data);
+extern errno_t alloc40_related_region(object_entity_t *entity,
+				      blk_t blk, region_func_t func,
+				      void *data);
+
+static int alloc40_isdirty(object_entity_t *entity) {
+	aal_assert("umka-2084", entity != NULL);
+	return ((alloc40_t *)entity)->dirty;
+}
+
+static void alloc40_mkdirty(object_entity_t *entity) {
+	aal_assert("umka-2085", entity != NULL);
+	((alloc40_t *)entity)->dirty = 1;
+}
+
+static void alloc40_mkclean(object_entity_t *entity) {
+	aal_assert("umka-2086", entity != NULL);
+	((alloc40_t *)entity)->dirty = 0;
+}
 
 /*
   Calls func for each block allocator block. This function is used in all block
@@ -137,6 +153,8 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	if (!(alloc->bitmap = aux_bitmap_create(len)))
 		goto error_free_alloc;
 
+	alloc->dirty = 0;
+
 	/* Calulating crc array size */
 	crcsize = ((alloc->bitmap->size + blocksize - 1) /
 		   blocksize) * CRC_SIZE;
@@ -200,6 +218,7 @@ static object_entity_t *alloc40_create(aal_device_t *device,
 	if (!(alloc->crc = aal_calloc(crcsize, 0)))
 		goto error_free_bitmap;
     
+	alloc->dirty = 1;
 	alloc->device = device;
 	alloc->plugin = &alloc40_plugin;
     
@@ -221,11 +240,14 @@ static errno_t alloc40_assign(object_entity_t *entity, void *data) {
 	aal_assert("vpf-580", alloc != NULL);
 	aal_assert("vpf-579", bitmap != NULL);
 	
-	aal_assert("vpf-581", alloc->bitmap->total == bitmap->total && 
-		alloc->bitmap->size == bitmap->size);
+	aal_assert("vpf-581", alloc->bitmap->total == bitmap->total);
+	aal_assert("umka-2087", alloc->bitmap->size == bitmap->size);
 
-	aal_memcpy(alloc->bitmap->map, bitmap->map, bitmap->size);
+	aal_memcpy(alloc->bitmap->map, bitmap->map,
+		   bitmap->size);
+	
 	alloc->bitmap->marked = bitmap->marked;
+	alloc->dirty = 1;
 
 	return 0;
 }
@@ -245,7 +267,8 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 
 	/*
 	  Allocating new block and filling it by 0xff bytes (all bits are turned
-	  on).
+	  on). This is needed in order to make the rest of last block filled by
+	  0xff istead of 0x00 as it might be by default.
 	*/
 	if (!(block = aal_block_create(alloc->device, blk, 0xff))) {
 		aal_exception_error("Can't allocate bitmap block %llu. %s.", 
@@ -317,7 +340,9 @@ static errno_t alloc40_sync(object_entity_t *entity) {
 		aal_exception_error("Can't save bitmap.");
 		return res;
 	}
-    
+
+	alloc->dirty = 0;
+	
 	return 0;
 }
 
@@ -345,6 +370,8 @@ static errno_t alloc40_occupy_region(object_entity_t *entity,
 	aal_assert("umka-371", alloc->bitmap != NULL);
     
 	aux_bitmap_mark_region(alloc->bitmap, start, count);
+	alloc->dirty = 1;
+	
 	return 0;
 }
 
@@ -358,6 +385,8 @@ static errno_t alloc40_release_region(object_entity_t *entity,
 	aal_assert("umka-373", alloc->bitmap != NULL);
     
 	aux_bitmap_clear_region(alloc->bitmap, start, count);
+	alloc->dirty = 1;
+	
 	return 0;
 }
 
@@ -384,14 +413,17 @@ static uint64_t alloc40_allocate_region(object_entity_t *entity,
 					       start, count);
 
 	/*
-	  Marking found region as occupied if found region has length more then
-	  zero. Probably we should implement more flexible behavior here. And
-	  probably we should do not mark found blocks as used in hope the caller
-	  will decide is found area enough convenient or not. If so, he will
+	  Marking the found region as occupied if its length more then zero.
+	  Probably we should implement more flexible behavior here. And probably
+	  we should do not mark found blocks as used in hope the caller will
+	  decide is found area is not enough convenient for him. If so, he will
 	  call marking found area as occupied by himself.
 	*/
-	if (found > 0)
-		aux_bitmap_mark_region(alloc->bitmap, *start, found);
+	if (found > 0) {
+		aux_bitmap_mark_region(alloc->bitmap,
+				       *start, found);
+		alloc->dirty = 1;
+	}
 
 	return found;
 }
@@ -532,8 +564,8 @@ errno_t callback_check_bitmap(object_entity_t *entity,
 	}
 
 	/* 
-	   FIXME: Probably the check that the bitmap bit is set should be here 
-	   also. 
+	   FIXME-FITALY: Probably the check that the bitmap bit is set should be
+	   here also.
 	*/
 	return 0;
 }
@@ -572,6 +604,9 @@ static reiser4_plugin_t alloc40_plugin = {
 		.create		       = alloc40_create,
 		.assign		       = alloc40_assign,
 		.sync		       = alloc40_sync,
+		.isdirty               = alloc40_isdirty,
+		.mkdirty               = alloc40_mkdirty,
+		.mkclean               = alloc40_mkclean,
 		.print                 = alloc40_print,
 		.check                 = alloc40_check,
 		

@@ -68,6 +68,10 @@ typedef struct format40_super format40_super_t;
 struct format40 {
 	reiser4_plugin_t *plugin;
 
+#ifndef ENABLE_STAND_ALONE
+	int dirty;
+#endif
+	
 	aal_device_t *device;
 	format40_super_t super;
 };

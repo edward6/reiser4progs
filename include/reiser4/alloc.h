@@ -59,6 +59,10 @@ extern errno_t reiser4_alloc_assign_perm(reiser4_alloc_t *alloc,
 extern void reiser4_alloc_close(reiser4_alloc_t *alloc);
 extern errno_t reiser4_alloc_valid(reiser4_alloc_t *alloc);
 
+extern bool_t reiser4_alloc_isdirty(reiser4_alloc_t *alloc);
+extern void reiser4_alloc_mkdirty(reiser4_alloc_t *alloc);
+extern void reiser4_alloc_mkclean(reiser4_alloc_t *alloc);
+
 extern count_t reiser4_alloc_used(reiser4_alloc_t *alloc);
 extern count_t reiser4_alloc_unused(reiser4_alloc_t *alloc);
 

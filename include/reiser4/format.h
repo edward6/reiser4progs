@@ -22,6 +22,10 @@ extern int reiser4_format_confirm(reiser4_format_t *format);
 extern errno_t reiser4_format_sync(reiser4_format_t *format);
 extern errno_t reiser4_format_reopen(reiser4_format_t *format);
 
+extern bool_t reiser4_format_isdirty(reiser4_format_t *format);
+extern void reiser4_format_mkdirty(reiser4_format_t *format);
+extern void reiser4_format_mkclean(reiser4_format_t *format);
+
 extern reiser4_format_t *reiser4_format_create(reiser4_fs_t *fs,
 					       count_t len,
 					       uint16_t tail,
