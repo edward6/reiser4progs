@@ -1671,95 +1671,60 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	
 	return res;
 }
-#endif
 
 /* Correct passed @place according to handle key collisions. */
-lookup_t reiser4_collision_handler(reiser4_place_t *place,
-				   lookup_hint_t *hint,
-				   lookup_bias_t bias,
-				   lookup_t lookup)
+lookup_t reiser4_tree_collision(reiser4_tree_t *tree, 
+				reiser4_place_t *place,
+				coll_hint_t *hint)
 {
-#ifndef ENABLE_STAND_ALONE
-	char *name;
-	entry_hint_t entry;
-	trans_hint_t trans;
-	reiser4_tree_t *tree;
-#endif
-
-	aal_assert("vpf-1523", hint != NULL);
+	lookup_t lookup = PRESENT;
+	uint32_t units, unit;
+	uint32_t adjust = 0;
+	
 	aal_assert("vpf-1522", place != NULL);
-	aal_assert("vpf-1524", hint->data != NULL);
 	
-	if (lookup != PRESENT)
-		return lookup;
+	if (hint == NULL) return PRESENT;
 	
-#ifndef ENABLE_STAND_ALONE
-	if (place->pos.unit == MAX_UINT32)
-		place->pos.unit = 0;
-
-	/* Only direntry items have collisions. */
-	if (place->plug->id.group != DIRENTRY_ITEM)
+	/* If type does not match, there is no collision found. */
+	if (place->plug->id.group != hint->type)
 		return PRESENT;
 
 	/* Key collisions handling. Sequentional search by name. */
-	trans.count = 1;
-	trans.specific = &entry;
-	trans.place_func = NULL;
-	trans.region_func = NULL;
-	trans.shift_flags = SF_DEFAULT;
-	
-	name = hint->data;
-	place->key.adjust = 0;
-	tree = (reiser4_tree_t *)place->node->tree;
 	
 	while (1) {
-		int32_t comp;
-		uint32_t units;
-		reiser4_place_t temp;
+		units = plug_call(place->plug->o.item_ops->balance, units, place);
 
-		/* Check if item is over. */
-		units = plug_call(place->plug->o.item_ops->balance,
-				  units, place);
-
-		if (place->pos.unit >= units) {
+		if (place->pos.unit != MAX_UINT32 && place->pos.unit >= units) {
+			reiser4_place_t temp;
+			
 			/* Getting next item. */
 			if ((reiser4_tree_next_place(tree, place, &temp)))
 				return -EIO;
 			
 			/* Directory is over? */
-			if (!temp.node || !plug_equal(place->plug, temp.plug))
+			if (!temp.node || !plug_equal(place->plug, temp.plug)) {
+				place->key.adjust = adjust;
 				return ABSENT;
+			}
 
 			aal_memcpy(place, &temp, sizeof(*place));
 		}
+		
+		unit = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
+		
+		if ((lookup = reiser4_item_collision(place, hint)) < 0)
+			return lookup;
+		
+		adjust += place->pos.unit - unit;
 
-		/* Fetching current unit (entry) into @temp entry hint.*/
-		aal_memcpy(&entry.place, place, sizeof(*place));
-
-		if (reiser4_tree_fetch(tree, place, &trans) < 0)
-			return -EIO;
-
-		/* Checking if we found needed name. */
-		comp = aal_strcmp(entry.name, name);
-
-		/* If current name is less then we need, we increase collisions
-		   counter -- @adjust. */
-		if (comp < 0) {
-			place->pos.unit++;
-			place->key.adjust++;
-		} else if (comp > 0) {
-			/* The current name is greather then the given one. */
-			return ABSENT;
-		} else {
-			/* We have found entry we need. */
+		if (place->pos.unit < units)
 			break;
-		}
 	}
-#endif
+	
+	place->key.adjust = adjust;
 	return PRESENT;
 }
 
-#ifndef ENABLE_STAND_ALONE
 /* Makes search of the leftmost item/unit with the same key as passed @key is
    starting from @place. This is needed to work with key collisions. */
 static errno_t reiser4_tree_collision_start(reiser4_tree_t *tree,
@@ -1838,8 +1803,8 @@ static errno_t reiser4_tree_collision_start(reiser4_tree_t *tree,
 }
 #endif
 
-#define restore_and_exit(dst, src, res)		\
-	do {dst = src; return res;} while (0)
+#define restore_and_exit(res) \
+	do {hint->key = saved; return res;} while (0)
 
 /* Makes search in the tree by specified @key. Fills passed place by data of
    found item. That is body pointer, plugin, etc. */
@@ -1913,48 +1878,44 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 				if (reiser4_tree_collision_start(tree, place,
 								 &wanted))
 				{
-					restore_and_exit(hint->key, saved, -EIO);
+					restore_and_exit(-EIO);
+				}
+
+				/* Handle collisions. */
+				if (hint->collision) {
+					if ((res = hint->collision(tree, place, 
+								   hint->hint)) < 0)
+						restore_and_exit(res);
 				}
 #endif
 				/* Fetching item at @place if key is found */
 				if (reiser4_place_fetch(place))
-					restore_and_exit(hint->key, saved, -EIO);
+					restore_and_exit(-EIO);
+
 			}
 			
-			goto correct;
+			restore_and_exit(res);
 		}
 
 		/* Initializing @place. This should be done before using any
 		   item methods or access @place fields. */
-		if (!reiser4_place_valid(place)) {
-			res = ABSENT;
-			goto correct;
-		}
+		if (!reiser4_place_valid(place))
+			restore_and_exit(ABSENT);
 		
 		if (reiser4_place_fetch(place))
-			restore_and_exit(hint->key, saved, -EIO);
+			restore_and_exit(-EIO);
 
 		/* Checking is item at @place is nodeptr one. If not, we correct
 		   posision back. */
 		if (!reiser4_item_branch(place->plug))
-			goto correct;
+			restore_and_exit(res);
 
 		/* Loading node by its nodeptr item at @place. */
 		if (!(place->node = reiser4_tree_child_node(tree, place)))
-			restore_and_exit(hint->key, saved, -EIO);
+			restore_and_exit(-EIO);
 	}
 	
-	res = ABSENT;
-	
- correct:
-#ifndef ENABLE_STAND_ALONE
-	/* Correcting found pos if the corresponding callback is specified. */
-	if (hint->correct_func)
-		res = hint->correct_func(place, hint, bias, res);
-#endif
-
-	hint->key = saved;
-	return res;
+	restore_and_exit(ABSENT);
 }
 
 /* Reads data from the @tree from @place to passed @hint */
