@@ -66,8 +66,11 @@ extern errno_t reiser4_node_nkey(reiser4_node_t *node,
 extern errno_t reiser4_node_pos(reiser4_node_t *node,
 				reiser4_pos_t *pos);
 
-extern reiser4_node_t *reiser4_node_child(reiser4_node_t *node,
-					  reiser4_key_t *key);
+extern reiser4_node_t *reiser4_node_cbk(reiser4_node_t *node,
+					reiser4_key_t *key);
+
+extern reiser4_node_t *reiser4_node_cbp(reiser4_node_t *node,
+					blk_t blk);
 
 extern errno_t reiser4_node_attach(reiser4_node_t *node,
 				   reiser4_node_t *child);

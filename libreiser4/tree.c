@@ -472,7 +472,7 @@ int reiser4_tree_lookup(
 		*/
 		parent->counter++;
 		
-		if (!(coord->node = reiser4_node_child(parent, &item->key))) {
+		if (!(coord->node = reiser4_node_cbk(parent, &item->key))) {
 			/* 
 			   Node was not found in the cache, we open it and
 			   attach to the cache.

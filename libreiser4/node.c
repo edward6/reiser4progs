@@ -371,26 +371,6 @@ reiser4_node_t *reiser4_node_right(reiser4_node_t *node) {
 }
 
 /*
-  Helper callback function for comparing two nodes durring registering the new
-  child.
-*/
-static int callback_comp_node(
-	const void *item1,		/* the first node instance for comparing */
-	const void *item2,		/* the second one */
-	void *data)		        /* user-specified data */
-{
-	reiser4_key_t lkey1, lkey2;
-
-	reiser4_node_t *node1 = (reiser4_node_t *)item1;
-	reiser4_node_t *node2 = (reiser4_node_t *)item2;
-    
-	reiser4_node_lkey(node1, &lkey1);
-	reiser4_node_lkey(node2, &lkey2);
-    
-	return reiser4_key_compare(&lkey1, &lkey2);
-}
-
-/*
   Helper callback function for comparing two keys durring registering the new
   child.
 */
@@ -412,7 +392,7 @@ static inline int callback_comp_key(
 }
 
 /* Finds child by its left delimiting key */
-reiser4_node_t *reiser4_node_child(
+reiser4_node_t *reiser4_node_cbk(
 	reiser4_node_t *node,	        /* node to be greped */
 	reiser4_key_t *key)		/* left delimiting key */
 {
@@ -436,6 +416,71 @@ reiser4_node_t *reiser4_node_child(
 		aal_exception_warn("Can't update tree lru.");
 
 	return child;
+}
+
+static inline int callback_comp_blk(
+	const void *item,		/* node find will operate on */
+	const void *blk,		/* key to be find */
+	void *data)			/* user-specified data */
+{
+	reiser4_node_t *node;
+
+	node = (reiser4_node_t *)item;
+
+	if (*(blk_t *)blk < node->blk)
+		return -1;
+
+	if (*(blk_t *)blk > node->blk)
+		return 1;
+
+	return 0;
+}
+
+/* Finds child by block number */
+reiser4_node_t *reiser4_node_cbp(
+	reiser4_node_t *node,	        /* node to be greped */
+	blk_t blk)		        /* left delimiting key */
+{
+	aal_list_t *list;
+	reiser4_node_t *child;
+    
+	if (!node->children)
+		return NULL;
+    
+	/*
+	  Using aal_list_find_custom function with local helper functions for
+	  comparing block numbers.
+	*/
+	if (!(list = aal_list_find_custom(node->children, (void *)&blk,
+					  callback_comp_blk, NULL)))
+		return NULL;
+
+	child = (reiser4_node_t *)list->data;
+
+	if (node->tree && aal_lru_touch(node->tree->lru, (void *)child))
+		aal_exception_warn("Can't update tree lru.");
+
+	return child;
+}
+
+/*
+  Helper callback function for comparing two nodes durring registering the new
+  child.
+*/
+static int callback_comp_node(
+	const void *item1,		/* the first node instance for comparing */
+	const void *item2,		/* the second one */
+	void *data)		        /* user-specified data */
+{
+	reiser4_key_t lkey1, lkey2;
+
+	reiser4_node_t *node1 = (reiser4_node_t *)item1;
+	reiser4_node_t *node2 = (reiser4_node_t *)item2;
+    
+	reiser4_node_lkey(node1, &lkey1);
+	reiser4_node_lkey(node2, &lkey2);
+    
+	return reiser4_key_compare(&lkey1, &lkey2);
 }
 
 /*
@@ -677,6 +722,7 @@ errno_t reiser4_node_shift(
 	shift_hint_t *hint)
 {
 	int retval;
+	uint32_t i, items;
 	reiser4_pos_t ldpos;
 	reiser4_key_t ldkey;
 	reiser4_plugin_t *plugin;
@@ -720,6 +766,7 @@ errno_t reiser4_node_shift(
 
 	/* Updating left delimiting keys in the tree */
 	if (hint->flags & SF_LEFT) {
+		
 		if (reiser4_node_count(node) != 0 &&
 		    (hint->items > 0 || hint->units > 0))
 		{
@@ -734,7 +781,6 @@ errno_t reiser4_node_shift(
 			}
 		}
 	} else {
-
 		if (hint->items > 0 || hint->units > 0) {
 			neig->flags |= NF_DIRTY;
 			
@@ -746,14 +792,43 @@ errno_t reiser4_node_shift(
 					return -1;
 			}
 		}
-		
 	}
 
+	items = reiser4_node_count(neig);
+	
+	/* Updating children list */
+	for (i = 0; i < hint->items; i++) {
+		reiser4_pos_t pos;
+		reiser4_coord_t coord;
+		reiser4_node_t *child;
+		reiser4_ptr_hint_t ptr;
+
+		pos.item = hint->flags & SF_LEFT ? items - i - 1 : i; 
+
+		if (reiser4_coord_open(&coord, neig, &pos))
+			return -1;
+
+		if (!reiser4_item_nodeptr(&coord))
+			continue;
+			
+		if (plugin_call(return -1, coord.entity.plugin->item_ops,
+				fetch, &coord.entity, 0, &ptr, 1))
+			return -1;
+			
+		if (!(child = reiser4_node_cbp(node, ptr.ptr)))
+			continue;
+
+		reiser4_node_detach(node, child);
+
+		if (reiser4_node_attach(neig, child))
+			return -1;
+	}
+	
 	return 0;
 }
 
 /*
-  Synchronizes passed @node by means of using resursive pass though all
+  Synchronizes passed @node by means of using resursive walk though the all
   children. There is possible to pass as parameter of this function the root
   node pointer. In this case the whole tree will be flushed onto device, tree
   lies on.
@@ -956,7 +1031,7 @@ errno_t reiser4_node_remove(
 		if (reiser4_item_key(&coord, &key))
 			return -1;
 		
-		if ((child = reiser4_node_child(node, &key)))
+		if ((child = reiser4_node_cbk(node, &key)))
 			reiser4_node_detach(node, child);
 	}
 
@@ -1067,7 +1142,7 @@ errno_t reiser4_node_traverse(
 				if (!open_func)
 					goto update;
 
-				if (!(child = reiser4_node_child(node, &coord.entity.key))) {
+				if (!(child = reiser4_node_cbk(node, &coord.entity.key))) {
 						
 					if ((result = open_func(&child, ptr.ptr, hint->data)))
 						goto error_update_func;

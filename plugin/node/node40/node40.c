@@ -836,7 +836,7 @@ static errno_t node40_merge_items(node40_t *src_node,
 		if (hint->pos.item == 0)
 			return 0;
 	} else {
-		if (hint->pos.item == src_items - 1)
+		if (hint->pos.item >= src_items - 1)
 			return 0;
 	}
 	
@@ -859,6 +859,7 @@ static errno_t node40_merge_items(node40_t *src_node,
 
 	hint->items = 1;
 	hint->bytes = src_item.len;
+	hint->units = src_item.plugin->item_ops.count(&src_item);
 
 	if (hint->bytes > nh40_get_free_space(dst_node))
 		return 0;
@@ -1419,9 +1420,6 @@ static errno_t node40_shift(object_entity_t *entity,
 	if (node40_shift_units(src_node, dst_node, hint))
 		return -1;
 
-	hint->items += merge.items;
-	hint->bytes += merge.bytes;
-	
 	return 0;
 }
 
