@@ -627,7 +627,7 @@ static uint16_t node40_space(object_entity_t *entity) {
 }
 
 /* Returns node level */
-uint8_t node40_get_level(object_entity_t *entity) {
+uint8_t node40_level(object_entity_t *entity) {
 	aal_assert("umka-1116", entity != NULL, return 0);
 	return nh40_get_level(((node40_t *)entity));
 }
@@ -682,17 +682,6 @@ static errno_t node40_set_key(object_entity_t *entity,
 	return 0;
 }
 
-/* Updating node level */
-static errno_t node40_set_level(
-	object_entity_t *entity,
-	uint8_t level)
-{
-	aal_assert("umka-1115", entity != NULL, return -1);
-
-	nh40_set_level(((node40_t *)entity), level);
-	return 0;
-}
-
 /* Updating node stamp */
 static errno_t node40_set_stamp(
 	object_entity_t *entity,
@@ -718,7 +707,7 @@ static errno_t node40_print(object_entity_t *entity,
 	aal_assert("vpf-023", entity != NULL, return -1);
 	aal_assert("umka-457", stream != NULL, return -1);
 
-	level = node40_get_level(entity);
+	level = node40_level(entity);
 	aal_assert("umka-1580", level > 0, return -1);
 
 	aal_stream_format(stream, "%s NODE (%llu) contains level=%u, "
@@ -764,7 +753,7 @@ errno_t node40_item_legal(object_entity_t *entity,
 	aal_assert("vpf-225", node != NULL, return -1);
 	aal_assert("vpf-237", plugin != NULL, return -1);
     
-	level = node40_get_level(entity);
+	level = node40_level(entity);
     
 	if (plugin->h.group == NODEPTR_ITEM) {
 		if (level == NODE40_LEAF)
@@ -1542,7 +1531,7 @@ static reiser4_plugin_t node40_plugin = {
 		.pid		= node40_pid,
 	
 		.get_key	= node40_get_key,
-		.get_level	= node40_get_level,
+		.level		= node40_level,
 		.get_make_stamp	= node40_get_make_stamp,
 		.get_flush_stamp= node40_get_flush_stamp,
 	
@@ -1558,7 +1547,6 @@ static reiser4_plugin_t node40_plugin = {
 		.shift		= node40_shift,
 
 		.set_key	= node40_set_key,
-		.set_level	= node40_set_level,
 		.set_make_stamp	= node40_set_make_stamp,
 		.set_flush_stamp= node40_set_flush_stamp,
 	
@@ -1575,7 +1563,6 @@ static reiser4_plugin_t node40_plugin = {
 		.shift		= NULL,
 	
 		.set_key	= NULL,
-		.set_level	= NULL,
 		.set_stamp	= NULL,
 	
 		.item_legal	= NULL,
