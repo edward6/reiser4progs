@@ -458,10 +458,13 @@ errno_t reiser4_fs_pack(reiser4_fs_t *fs, aal_stream_t *stream) {
 reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 				aal_stream_t *stream)
 {
+	uint64_t bn;
 	uint32_t bs;
 	reiser4_fs_t *fs;
 	char sign[5] = {0};
-
+	
+	aal_block_t *block;
+	
 	aal_assert("umka-2633", device != NULL);
 	aal_assert("umka-2648", stream != NULL);
 
@@ -500,6 +503,26 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 	if (!(fs->format = reiser4_format_unpack(fs, stream)))
 		goto error_free_master;
 
+	/* Write into the very last block on the fs to make the output 
+	   of the proper size. */
+	bn = reiser4_format_get_len(fs->format) - 1;
+	bs = reiser4_master_get_blksize(fs->master);
+
+	if (!(block = aal_block_alloc(device, bs, bn))) {
+		aal_exception_error("Can't allocate the very last block (%llu) "
+				    "on the fs: %s", bn, device->error);
+		goto error_free_format;
+	}
+
+	if (aal_block_write(block)) {
+		aal_exception_error("Can't write the very last block (%llu) "
+				    "on the fs: %s", bn, device->error);
+		aal_free(block);
+		goto error_free_format;
+	}
+
+	aal_free(block);
+	
 	if (!(fs->oid = reiser4_oid_open(fs)))
 		goto error_free_format;
 			
@@ -533,23 +556,17 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 		goto error_free_alloc;
 	}
 
-	bs = reiser4_master_get_blksize(fs->master);
-	
-	if (!(fs->status = reiser4_status_unpack(device, bs,
-						 stream)))
-	{
+	if (!(fs->status = reiser4_status_unpack(device, bs, stream)))
 		goto error_free_alloc;
-	}
 
 	while (1) {
 		node_t *node;
 		
 		if (aal_stream_read(stream, &sign, 4) != 4) {
-			if (aal_stream_eof(stream)) {
+			if (aal_stream_eof(stream))
 				break;
-			} else {
+			else
 				goto error_free_status;
-			}
 		}
 
 		if (!aal_strncmp(sign, NODE_PACK_SIGN, 4)) {
@@ -589,6 +606,7 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 	aal_free(fs);
 	return NULL;
 }
+
 #endif
 
 /* Returns the key of the fake root parent */

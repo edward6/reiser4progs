@@ -327,13 +327,6 @@ static errno_t fsck_check_init(repair_data_t *repair, aal_device_t *host) {
 	
 	aal_stream_fini(&stream);
 	
-	if (repair->mode != RM_CHECK) {
-		aal_device_t *device = repair->fs->device;
-		
-		if (aal_device_reopen(device, device->blksize, O_RDWR))
-			return -EIO;
-	}
-	
 	return 0;
 }
 
@@ -407,6 +400,13 @@ int main(int argc, char *argv[]) {
 	repair.debug_flag = aal_test_bit(&parse_data.options, FSCK_OPT_DEBUG);
 	repair.progress_handler = gauge_handler;    
 	
+	if (parse_data.sb_mode != RM_CHECK || parse_data.fs_mode != RM_CHECK) {
+		aal_device_t *device = parse_data.host_device;
+		
+		if (aal_device_reopen(device, device->blksize, O_RDWR))
+			return -EIO;
+	}
+
 	if ((res = fsck_check_init(&repair, parse_data.host_device)) || 
 	    repair.fatal)
 	{

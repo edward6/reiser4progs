@@ -49,7 +49,7 @@ static errno_t callback_check_layout(void *entity, blk_t start,
 	
 	/* If bitmap block looks corrupted or the very first bit is not set,
 	   call func for the region */
-	if (res || alloc40_occupied(entity, start, 1))
+	if (res || !alloc40_occupied(entity, start, 1))
 		hint->region_func(entity, start, width, hint->data);
 	
 	return 0;

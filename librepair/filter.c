@@ -53,7 +53,8 @@ static void repair_filter_node_handle(repair_filter_t *fd, blk_t blk,
 			if (mark == RM_BAD)
 				fd->stat.bad_leaves++;
 		}
-		return;
+
+		break;
 	case TWIG_LEVEL:
 		if (mark == RM_MARK) {
 			if (fd->bm_twig)
@@ -66,17 +67,20 @@ static void repair_filter_node_handle(repair_filter_t *fd, blk_t blk,
 			if (mark == RM_BAD)
 				fd->stat.bad_twigs++;
 		}
-		return;
-	default:
-		if (fd->bm_met) {
-			if (mark == RM_MARK)
-				aux_bitmap_mark_region(fd->bm_met, blk, 1);
-			else if (mark == RM_CLEAR)
-				aux_bitmap_clear_region(fd->bm_met, blk, 1);
-		}
 		
-		return;
+		break;
+	default:
+		break;
 	}
+	
+	if (fd->bm_met) {
+		if (mark == RM_MARK)
+			aux_bitmap_mark_region(fd->bm_met, blk, 1);
+		else if (mark == RM_CLEAR)
+			aux_bitmap_clear_region(fd->bm_met, blk, 1);
+	}
+
+	return;
 }
 
 static void repair_filter_read_node(repair_filter_t *fd, 
@@ -190,8 +194,8 @@ static node_t *repair_filter_node_open(reiser4_tree_t *tree,
 				    "to the block (%llu) which is in the tree "
 				    "already.%s", node_blocknr(place->node), 
 				    place->pos.item, place->pos.unit, blk,
-				    fd->repair->mode == RM_BUILD ? "Removed." : 
-				    "The whole subtree is skipped.");
+				    fd->repair->mode == RM_BUILD ? " Removed." : 
+				    " The whole subtree is skipped.");
 		error = 1;
 	}
 	
@@ -269,8 +273,9 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 
 	/* Skip this check if level is not set (root node only). */
 	if (fd->level != level) {
-		aal_exception_error("Level of the node (%u) doesn't matche the "
-				    "expected one (%u).%s", level, fd->level,
+		aal_exception_error("Level (%u) of the node (%llu) doesn't "
+				    "match the expected one (%u).%s", 
+				    level, node_blocknr(node), fd->level,
 				    fd->repair->mode == RM_BUILD ? "Removed." :
 				    "The whole subtree is skipped.");
 		
@@ -307,7 +312,7 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	if (res) {
 		repair_filter_bad_dk(fd, node_blocknr(node), level);
 		fd->repair->fatal++;
-		return res;
+		goto error;
 	}
 	
 	return 0;

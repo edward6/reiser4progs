@@ -241,7 +241,6 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	ds->bm_leaf = control->bm_leaf;
 	ds->bm_twig = control->bm_twig;
 	ds->bm_met = control->bm_met;
-	ds->bm_scan = control->bm_scan;
 	ds->check_node = &control->check_node;
 	
 	ds->progress_handler = control->repair->progress_handler;
@@ -257,7 +256,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	}
 	
 	/* Allocate a bitmap of blocks to be scanned on this pass. */ 
-	if (!(control->bm_scan = aux_bitmap_create(fs_len))) {
+	if (!(ds->bm_scan = control->bm_scan = aux_bitmap_create(fs_len))) {
 		aal_exception_error("Failed to allocate a bitmap of blocks "
 				    "unconnected from the tree.");
 		return -EINVAL;
@@ -286,7 +285,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		aal_assert("vpf-1329", (control->bm_leaf->map[i] & 
 					~control->bm_met->map[i]) == 0);
 		
-		/* Zeroing leaf & twig bitmaps of ndoes taht are in the tree. */
+		/* Zeroing leaf & twig bitmaps of ndoes that are in the tree. */
 		control->bm_twig->map[i] = 0;
 		control->bm_leaf->map[i] = 0;
 			

@@ -191,7 +191,7 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 		res = RE_FIXABLE;
 	}
 	
-	if (res && res != RM_CHECK)  {
+	if (res && mode != RM_CHECK)  {
 		res = obj40_write_ext(stat, SDEXT_LW_ID, &lw_new);
 		if (res) return res;
 	}
@@ -219,12 +219,12 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	}
 	*/
 	
-	if (res && res != RM_CHECK) {
+	if (res && mode != RM_CHECK) {
 		res = obj40_write_ext(stat, SDEXT_LW_ID, &lw_new);
 		if (res) return res;
 	}
 	
-	return 0;
+	return res;
 }
 
 /* Fix @place->key if differs from @key. */
@@ -295,9 +295,12 @@ errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func,
 	if ((res = obj40_stat(obj, stat_func)) <= 0)
 		return res;
 	
-	/* Check showed that this is not right SD, create a new one. This is 
-	   the special case and usually is not used as object plugin cannot 
-	   be recognized w/out SD. Used for for "/" and "lost+found" recovery. */
+	/* Check showed that this is not right SD, create a new one. 
+	   
+	   THIS IS THE SPECIAL CASE and usually is not used as object plugin 
+	   cannot be recognized w/out SD. Used for for "/" and "lost+found" 
+	   recovery. */
+	
 	aal_exception_error("The file [%s] does not have a StatData item. %s"
 			    "Plugin %s.", print_inode(obj->core, key), 
 			    mode == RM_BUILD ? " Creating a new one." :
@@ -309,8 +312,6 @@ errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func,
 	if ((pid = obj->core->param_ops.value("statdata") == INVAL_PID))
 		return -EINVAL;
 
-	/* FIXME-UMKA->VITALY: Here also should be passed valid @rdev if this is
-	   a special file device stat data item. */
 	if ((res = obj40_create_stat(obj, pid, mask, 0, 0,
 				     0, nlink, objmode, NULL)))
 	{

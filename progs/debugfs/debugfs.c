@@ -244,8 +244,7 @@ int main(int argc, char *argv[]) {
 	if (behav_flags & BF_UNPACK_META) {
 		aal_stream_t stream;
 		
-		aal_stream_init(&stream, stdin,
-				&file_stream);
+		aal_stream_init(&stream, stdin, &file_stream);
 		
 		if (!(fs = reiser4_fs_unpack(device, &stream))) {
 			aal_exception_error("Can't unpack filesystem.");
@@ -255,14 +254,15 @@ int main(int argc, char *argv[]) {
 		aal_stream_fini(&stream);
 
 		if (reiser4_fs_sync(fs)) {
-			aal_exception_error("Can't save unpacked "
-					    "filesystem.");
+			aal_exception_error("Can't save unpacked filesystem.");
 			goto error_free_fs;
 		}
 	} else {
 		/* Open file system on the device */
 		if (!(fs = reiser4_fs_open(device, FALSE))) {
-			aal_exception_error("Can't open reiser4 on %s", host_dev);
+			aal_exception_error("Can't open reiser4 on %s", 
+					    host_dev);
+			
 			goto error_free_device;
 		}
 	}

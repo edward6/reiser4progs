@@ -1328,13 +1328,13 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 
 	if (!tree->root)
 		return 0;
-
+/*
 	if ((res = reiser4_tree_compress(tree))) {
 		aal_exception_error("Can't compress tree during "
 				    "synchronizing.");
 		return res;
 	}
-
+*/
         /* Flushing formatted nodes starting from root node with memory pressure
 	   flag set to 0, that is do not check memory presure, and save
 	   everything. */
@@ -2959,9 +2959,8 @@ errno_t reiser4_tree_trav_node(reiser4_tree_t *tree, node_t *node,
 	aal_assert("vpf-390", node != NULL);
 	aal_assert("umka-1935", tree != NULL);
 	
-	if (open_func == NULL) {
+	if (open_func == NULL)
 		open_func = (tree_open_func_t)reiser4_tree_child_node;
-	}
 	
 	reiser4_node_lock(node);
 
@@ -3013,17 +3012,16 @@ errno_t reiser4_tree_trav_node(reiser4_tree_t *tree, node_t *node,
 		}
 	}
 	
-	if (after_func) {
+	if (after_func)
 		res = after_func(tree, node, data);
-	}
 
 	reiser4_node_unlock(node);
 	return res;
 
  error_after_func:
-	if (after_func) {
+	if (after_func)
 		res = after_func(tree, node, data);
-	}
+
  error_unlock_node:
 	reiser4_node_unlock(node);
 	return res;

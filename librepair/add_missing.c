@@ -389,7 +389,8 @@ errno_t repair_add_missing(repair_am_t *am) {
 	}
 	
 	repair_add_missing_update(am);
-	reiser4_tree_sync(am->repair->fs->tree);
+	reiser4_fs_sync(am->repair->fs);
+	
 	return 0;
 
  error:

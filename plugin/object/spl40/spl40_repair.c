@@ -35,7 +35,9 @@ static errno_t callback_stat(place_t *stat) {
 	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)))
 		return res;
 	
-	return S_ISLNK(lw_hint.mode) ? 0 : RE_FATAL;
+	return  S_ISCHR(lw_hint.mode) || S_ISBLK(lw_hint.mode) || 
+		S_ISFIFO(lw_hint.mode) || S_ISSOCK(lw_hint.mode) ? 
+		0 : RE_FATAL;
 }
 
 object_entity_t *spl40_recognize(object_info_t *info) {
@@ -64,10 +66,11 @@ static void spl40_zero_nlink(obj40_t *obj, uint32_t *nlink) {
 }
 
 static void spl40_check_mode(obj40_t *obj, uint16_t *mode) {
-	if (!S_ISDIR(*mode)) {
+	if (!S_ISCHR(*mode) && !S_ISBLK(*mode) && 
+	    !S_ISFIFO(*mode) && !S_ISSOCK(*mode))
+	{
 		*mode &= ~S_IFMT;
-		/* FIXME-VITALY: put the correct mode here. */
-        	*mode |= 0;
+        	*mode |= S_IFBLK;
 	}
 }
 
@@ -88,10 +91,8 @@ errno_t spl40_check_struct(object_entity_t *object,
 	aal_assert("vpf-1359", spl->obj.info.object.plug != NULL);
 
 	if ((res = obj40_launch_stat(&spl->obj, spl40_extensions, 
-				     spl40_exts, 1, S_IFLNK, mode)))
-	{
+				     0, 1, 0, mode)))
 		return res;
-	}
 	
 	/* Try to register SD as an item of this file. */
 	if (place_func && place_func(object, &spl->obj.info.start, data))
@@ -100,9 +101,7 @@ errno_t spl40_check_struct(object_entity_t *object,
 	/* Fix SD's key if differs. */
 	if ((res = obj40_fix_key(&spl->obj, &spl->obj.info.start,
 				 &spl->obj.info.object, mode)))
-	{
 		return res;
-	}
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	return obj40_check_stat(&spl->obj, mode == RM_BUILD ? 

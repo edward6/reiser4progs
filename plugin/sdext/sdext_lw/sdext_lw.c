@@ -61,23 +61,20 @@ static errno_t sdext_lw_init(void *body,
 static char sdext_lw_file_type(uint16_t mode) {
 	if (S_ISDIR(mode))
 		return 'd';
-
 	if (S_ISCHR(mode))
 		return 'c';
-
 	if (S_ISBLK(mode))
 		return 'b';
-
 	if (S_ISFIFO(mode))
 		return 'p';
-
 	if (S_ISLNK(mode))
 		return 'l';
-
 	if (S_ISSOCK(mode))
 		return 's';
+	if (S_ISREG (mode))
+		return '-';
 
-	return '-';
+	return '?';
 }
 
 static void sdext_lw_parse_mode(uint16_t mode, char *str) {
