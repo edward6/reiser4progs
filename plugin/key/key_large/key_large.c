@@ -201,6 +201,7 @@ static void key_large_clean(key_entity_t *key) {
 static int key_large_compshort(key_entity_t *key1, 
 			       key_entity_t *key2) 
 {
+	uint64_t ord1, ord2;
 	int res;
 
 	aal_assert("umka-2217", key1 != NULL);
@@ -213,6 +214,14 @@ static int key_large_compshort(key_entity_t *key1,
 		return res;
 	}
 	
+	ord1 = key_large_get_ordering(key1);
+	ord2 = key_large_get_ordering(key2);
+	
+	/* Checking ordering. */
+	if ((res = aal_memcmp(&ord1, &ord2, sizeof(ord1))))
+		return res;
+	
+	/* There is nothing to check for entry keys anymore. */
 	if (key_large_get_type(key1) == KEY_FILENAME_TYPE)
 		return 0;
 	

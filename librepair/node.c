@@ -372,6 +372,7 @@ errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
 	if (repair_error_fatal(res))
 		return res;
 	
+	/* FIXME-VITALY: check key minors accordingly to item types. */
 	res |= repair_node_keys_check(node, mode);
 	
 	if (repair_error_fatal(res))
