@@ -243,7 +243,6 @@ static object_entity_t *reg40_create(object_info_t *info,
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 
 	stat_hint.plug = stat_plug;
-	stat_hint.flags = HF_FORMATD;
 
 	plug_call(info->object.plug->o.key_ops, assign, 
 		  &stat_hint.key, &info->object);
@@ -381,7 +380,6 @@ static int32_t reg40_put(object_entity_t *entity,
 		if (hint.count > maxspace)
 			hint.count = maxspace;
 		
-		hint.flags = HF_FORMATD;
 		hint.plug = reg->bplug;
 		hint.type_specific = buff;
 		

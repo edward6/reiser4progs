@@ -471,20 +471,9 @@ struct object_info {
 
 typedef struct object_info object_info_t;
 
-/* Flags for using in item hint for denoting is type_specific point for type
-   specific hint or onto raw data. */
-enum hint_flags {
-	HF_FORMATD    = 1 << 0,
-	HF_RAWDATA    = 1 << 1
-};
-
-typedef enum hint_flags hint_flags_t;
-
 /* This structure contains fields which describe an item or unit to be inserted
    into the tree. */ 
 struct create_hint {
-	hint_flags_t flags;
-	
 	/* This is pointer to already formated item body. It is useful for item
 	   copying, replacing, etc. This will be used by fsck probably. */
 	void *data;
@@ -1260,6 +1249,9 @@ struct reiser4_plug {
 	
 	/* Short plugin description */
 	const char desc[PLUG_MAX_DESC];
+
+	/* User-application data */
+	void *data;
 #endif
 
 	/* All possible plugin operations */

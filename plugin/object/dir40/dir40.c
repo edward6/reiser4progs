@@ -514,7 +514,6 @@ static object_entity_t *dir40_create(object_info_t *info,
 	   stat data initialization. */
    	body_hint.count = 1;
 	body_hint.plug = body_plug;
-	body_hint.flags = HF_FORMATD;
 	
 	plug_call(info->object.plug->o.key_ops, build_entry,
 		  &body_hint.key, dir->hash, locality, objectid, ".");
@@ -543,7 +542,6 @@ static object_entity_t *dir40_create(object_info_t *info,
 	/* Initializing stat data hint */
 	stat_hint.count = 1;
 	stat_hint.plug = stat_plug;
-	stat_hint.flags = HF_FORMATD;
     
 	plug_call(info->object.plug->o.key_ops, assign,
 		  &stat_hint.key, &info->object);
@@ -814,7 +812,6 @@ static uint32_t dir40_estimate(object_entity_t *entity,
 	aal_memset(&hint, 0, sizeof(hint));
 
 	hint.count = 1;
-	hint.flags = HF_FORMATD;
 	hint.type_specific = entry;
 	hint.plug = dir->body.plug;
 	hint.key.plug = STAT_KEY(&dir->obj)->plug;
@@ -879,7 +876,6 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	hint.count = 1;
-	hint.flags = HF_FORMATD;
 	hint.plug = dir->body.plug;
 	hint.type_specific = (void *)entry;
 

@@ -200,7 +200,7 @@ static uint32_t node_large_size(node_t *node, pos_t *pos,
 errno_t node_large_expand(object_entity_t *entity, pos_t *pos,
 			  uint32_t len, uint32_t count)
 {
-	int is_insert;
+	int insert;
 	
 	node_t *node;
 	uint32_t item;
@@ -218,18 +218,18 @@ errno_t node_large_expand(object_entity_t *entity, pos_t *pos,
 		return 0;
 	
 	/* Checks for input validness */
-	is_insert = (pos->unit == MAX_UINT32);
+	insert = (pos->unit == MAX_UINT32);
 
 	items = nh_get_num_items(node);
 	headers = count * sizeof(item_header_t);
 
 	aal_assert("vpf-026", nh_get_free_space(node) >= 
-		   len + (is_insert ? sizeof(item_header_t) : 0));
+		   len + (insert ? sizeof(item_header_t) : 0));
 	
 	aal_assert("vpf-027", pos->item <= items);
 
 	/* Getting real pos of the item to be updated */
-	item = pos->item + !is_insert;
+	item = pos->item + !insert;
 	ih = node_large_ih_at(node, item);
 
 	/* If item pos is inside the range [0..count - 1], we should perform the
@@ -254,7 +254,7 @@ errno_t node_large_expand(object_entity_t *entity, pos_t *pos,
 
 		/* If this is the insert new item mode, we should prepare the
 		   room for new item header and set it up. */
-		if (is_insert) {
+		if (insert) {
 			src = node_large_ih_at(node, items - 1);
 
 			dst = node_large_ih_at(node, items - 1 +
@@ -274,7 +274,7 @@ errno_t node_large_expand(object_entity_t *entity, pos_t *pos,
 	nh_inc_free_space_start(node, len);
 	nh_dec_free_space(node, len);
 
-	if (is_insert) {
+	if (insert) {
                 /* Setting up the fields of new item */
 		ih_set_offset(ih, offset);
 
@@ -282,7 +282,7 @@ errno_t node_large_expand(object_entity_t *entity, pos_t *pos,
 		nh_inc_num_items(node, count);
 		nh_dec_free_space(node, headers);
 	} else {
-		/* Increasing item len mfor the case of pasting new units */
+		/* Increasing item len for the case of pasting new units */
 		ih = node_large_ih_at(node, pos->item);
 	}
 	
@@ -498,14 +498,6 @@ static errno_t node_large_insert(object_entity_t *entity, pos_t *pos,
 
 	/* Updating item header plugin id if we insert new item */
 	if (pos->unit == MAX_UINT32) {
-		if (hint->flags == HF_RAWDATA) {
-			aal_memcpy(place.body, hint->type_specific,
-				   hint->len);
-
-			node->dirty = 1;
-			return 0;
-		}
-
 		/* Calling item plugin to perform initializing the item */
 		if (hint->plug->o.item_ops->init)
 			hint->plug->o.item_ops->init(&place);

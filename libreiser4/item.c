@@ -33,10 +33,6 @@ errno_t reiser4_item_estimate(
 	
 	aal_assert("vpf-106", place != NULL);
 	aal_assert("umka-541", hint != NULL);
-   
-	if (hint->flags == HF_RAWDATA)
-		return 0;
-
 	aal_assert("umka-2230", hint->plug != NULL);
 
 	/* Method estimate_insert() may be not implemented as it is not needed

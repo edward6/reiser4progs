@@ -951,7 +951,6 @@ errno_t reiser4_tree_attach(
 	nodeptr_hint.start = node->number;
 
 	hint.count = 1;
-	hint.flags = HF_FORMATD;
 	hint.type_specific = &nodeptr_hint;
 
 	reiser4_node_lkey(node, &hint.key);

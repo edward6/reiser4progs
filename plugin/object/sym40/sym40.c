@@ -132,7 +132,6 @@ static object_entity_t *sym40_create(object_info_t *info,
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
 
 	stat_hint.plug = stat_plug;
-	stat_hint.flags = HF_FORMATD;
 	stat_hint.key.plug = info->object.plug;
 	
 	plug_call(info->object.plug->o.key_ops, assign,
