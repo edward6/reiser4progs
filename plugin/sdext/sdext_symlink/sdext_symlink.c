@@ -6,7 +6,6 @@
 */
 
 #ifdef ENABLE_SYMLINKS_SUPPORT
-#include <aux/aux.h>
 #include <reiser4/plugin.h>
 
 static reiser4_core_t *core = NULL;
@@ -16,13 +15,17 @@ static errno_t sdext_symlink_open(body_t *body,
 				  void *hint) 
 {
 	char *data;
+	uint32_t len;
 	
 	aal_assert("umka-1483", body != NULL);
 	aal_assert("umka-1484", hint != NULL);
 
 	data = (char *)body;
+	len = aal_strlen(data);
 	
-	aal_memcpy((char *)hint, data, aal_strlen(data));
+	aal_memcpy(hint, data, len);
+	*((char *)hint + len) = '\0';
+	
 	return 0;
 }
 
@@ -35,11 +38,15 @@ static uint16_t sdext_symlink_length(body_t *body) {
 static errno_t sdext_symlink_init(body_t *body, 
 				  void *hint)
 {
+	uint32_t len;
+	
 	aal_assert("umka-1481", body != NULL);
 	aal_assert("umka-1482", hint != NULL);
 
-	aal_memcpy((char *)body, (char *)hint,
-		   aal_strlen((char *)hint));
+	len = aal_strlen((char *)hint);
+
+	aal_memcpy(body, hint, len);
+	*((char *)body + len) = '\0';
 	
 	return 0;
 }
@@ -54,7 +61,7 @@ static errno_t sdext_symlink_print(body_t *body,
 	aal_stream_format(stream, "len:\t\t%u\n",
 			  aal_strlen((char *)body));
 	
-	aal_stream_format(stream, "value:\t\t\"%s\"\n",
+	aal_stream_format(stream, "data:\t\t\"%s\"\n",
 			  (char *)body);
 	
 	return 0;
@@ -99,5 +106,4 @@ static reiser4_plugin_t *sdext_symlink_start(reiser4_core_t *c) {
 }
 
 plugin_register(sdext_symlink, sdext_symlink_start, NULL);
-
 #endif

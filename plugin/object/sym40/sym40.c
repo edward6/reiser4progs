@@ -21,8 +21,8 @@ extern reiser4_plugin_t sym40_plugin;
 static int32_t sym40_read(object_entity_t *entity, 
 			  void *buff, uint32_t n)
 {
-	item_entity_t *item;
 	create_hint_t hint;
+	item_entity_t *item;
 	statdata_hint_t stat;
 
 	sym40_t *sym = (sym40_t *)entity;
@@ -75,10 +75,6 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 					&sym->parent);
 	
 	return (object_entity_t *)sym;
-
- error_free_sym:
-	aal_free(sym);
-	return NULL;
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -242,110 +238,114 @@ static reiser4_plugin_t *sym40_plug(sym40_t *sym, item_entity_t *item) {
 						obj40_pid(item));
 }
 
-/* Callback function for searching statdata item while parsing symlink */
-static errno_t callback_find_statdata(char *track, char *entry,
-				      void *data)
-{
-	sym40_t *sym;
-	place_t *place;
-
-	key_entity_t *key;
-	item_entity_t *item;
-
-	object_entity_t *entity;
-	reiser4_plugin_t *plugin;
-
-	sym = (sym40_t *)data;
-	key = STAT_KEY(&sym->obj);
-	
-	place = &sym->obj.statdata;
-	item = &sym->obj.statdata.item;
+static errno_t sym40_stat(sym40_t *sym) {
+	key_entity_t *key = STAT_KEY(&sym->obj);
 		
 	/* Performing lookup for statdata of current directory */
 	if (obj40_lookup(&sym->obj, key, LEAF_LEVEL,
 			 &sym->obj.statdata) != LP_PRESENT)
 	{
-		aal_exception_error("Can't find stat data of %s.",
-				    track);
 		return -EINVAL;
 	}
 
-	if (sym->obj.core->tree_ops.realize(sym->obj.tree,
-					    &sym->obj.statdata))
-		return -EINVAL;
+	return 0;
+}
+
+/* Callback function for searching statdata item while parsing symlink */
+static errno_t callback_find_statdata(char *track, char *entry,
+				      void *data)
+{
+	errno_t res;
+	sym40_t *sym;
 	
+	item_entity_t *item;
+	object_entity_t *entity;
+	reiser4_plugin_t *plugin;
+
+	sym = (sym40_t *)data;
+	item = &sym->obj.statdata.item;
+	
+	/* Updating stat data place by key */
+	if ((res = sym40_stat(sym)))
+		return res;
+
 	/* Getting file plugin */
 	if (!(plugin = sym40_plug(sym, item))) {
-		aal_exception_error("Can't find file plugin for "
-				    "%s.", track);
+		aal_exception_error("Can't find plugin "
+				    "for %s.", track);
 		return -EINVAL;
 	}
 
-	/* Symlinks handling. Method "follow" should be implemented */
+	/* Nested symlinks handling. Method "follow" should be implemented */
 	if (plugin->o.object_ops->follow) {
-		
-		if (!(entity = plugin_call(plugin->o.object_ops, open, 
-					   sym->obj.tree, place)))
+		if (!(entity = plugin_call(plugin->o.object_ops,
+					   open, sym->obj.tree,
+					   &sym->obj.statdata)))
 		{
-			aal_exception_error("Can't open parent of "
-					    "directory %s.", track);
+			aal_exception_error("Can't open %s.", track);
 			return -EINVAL;
 		}
 
-		if (plugin->o.object_ops->follow(entity, STAT_KEY(&sym->obj))) {
+		if ((res = plugin_call(plugin->o.object_ops, follow,
+				       entity, STAT_KEY(&sym->obj))))
+		{
 			aal_exception_error("Can't follow %s.", track);
-			plugin_call(plugin->o.object_ops, close, entity);
-			return -EINVAL;
+			goto error_free_entity;
 		}
 
 		plugin_call(plugin->o.object_ops, close, entity);
+
+		if ((res = sym40_stat(sym)))
+			return res;
 	}
 	
 	plugin_call(STAT_KEY(&sym->obj)->plugin->o.key_ops,
 		    assign, &sym->parent, STAT_KEY(&sym->obj));
 
 	return 0;
+	
+ error_free_entity:
+	plugin_call(plugin->o.object_ops, close, entity);
+	return res;
 }
 
 /* Callback for searching entry inside current directory */
 static errno_t callback_find_entry(char *track, char *entry,
 				   void *data)
 {
+	errno_t res;
 	sym40_t *sym;
-	place_t *place;
-	item_entity_t *item;
 	
+	item_entity_t *item;
 	object_entity_t *entity;
+
 	entry_hint_t entry_hint;
 	reiser4_plugin_t *plugin;
 	
 	sym = (sym40_t *)data;
-	place = &sym->obj.statdata;
 	item = &sym->obj.statdata.item;
 
 	/* Getting file plugin */
 	if (!(plugin = sym40_plug(sym, item))) {
-		aal_exception_error("Can't find file plugin for "
-				    "%s.", track);
+		aal_exception_error("Can't find plugin "
+				    "for %s.", track);
 		return -EINVAL;
 	}
 
 	/* Opening currect diretory */
-	if (!(entity = plugin_call(plugin->o.object_ops, open, 
-				   sym->obj.tree, place)))
+	if (!(entity = plugin_call(plugin->o.object_ops,
+				   open, sym->obj.tree,
+				   &sym->obj.statdata)))
 	{
-		aal_exception_error("Can't open parent of directory "
-				    "%s.", track);
 		return -EINVAL;
 	}
 
 	/* Looking up for @enrty in current directory */
-	if (plugin_call(plugin->o.object_ops, lookup, entity,
-			entry, &entry_hint) != LP_PRESENT)
+	if ((res = plugin_call(plugin->o.object_ops, lookup, entity,
+			       entry, &entry_hint) != LP_PRESENT))
 	{
 		aal_exception_error("Can't find %s.", track);
-		plugin_call(plugin->o.object_ops, close, entity);
-		return -EINVAL;
+		goto error_free_entity;
 	}
 
 	plugin_call(plugin->o.object_ops, close, entity);
@@ -355,6 +355,10 @@ static errno_t callback_find_entry(char *track, char *entry,
 		    STAT_KEY(&sym->obj), &entry_hint.object);
 	
 	return 0;
+
+ error_free_entity:
+	plugin_call(plugin->o.object_ops, close, entity);
+	return res;
 }
 
 /*
@@ -367,20 +371,18 @@ static errno_t sym40_follow(object_entity_t *entity,
 {
 	errno_t res;
 	sym40_t *sym;
+	char path[1024];
 	
-	char path[256];
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("umka-1774", entity != NULL);
 	aal_assert("umka-1775", key != NULL);
+	aal_assert("umka-1774", entity != NULL);
 
 	sym = (sym40_t *)entity;
-	aal_memset(path, 0, sizeof(path));
+	plugin = STAT_KEY(&sym->obj)->plugin;
 	
 	if ((res = obj40_get_sym(&sym->obj, path)))
 		return res;
-
-	plugin = STAT_KEY(&sym->obj)->plugin;
 		
 	/*
 	  Assigning parent key to root one of path symlink has is beginning from
@@ -394,11 +396,9 @@ static errno_t sym40_follow(object_entity_t *entity,
 			    STAT_KEY(&sym->obj), &sym->parent);
 	}
 
-	res = aux_parse_path(path, callback_find_statdata,
-			     callback_find_entry, (void *)entity);
-
-	/* If there is no errors, we assign result ot passed @key */
-	if (res == 0) {
+	if (!(res = aux_parse_path(path, callback_find_statdata,
+				  callback_find_entry, (void *)entity)))
+	{
 		plugin_call(plugin->o.key_ops, assign, key,
 			    STAT_KEY(&sym->obj));
 	}
