@@ -68,6 +68,7 @@ static aal_block_t *reiserfs_format40_super_open(aal_device_t *device) {
 static reiserfs_format40_t *reiserfs_format40_open(aal_device_t *host_device, 
     aal_device_t *journal_device) 
 {
+    uint16_t oid_offset;
     reiserfs_format40_t *format;
     reiserfs_plugin_t *journal_plugin;
     reiserfs_plugin_t *alloc_plugin;
@@ -119,7 +120,7 @@ static reiserfs_format40_t *reiserfs_format40_open(aal_device_t *host_device,
 	}
     }
     
-/*    if (!(oid_plugin = factory->find_by_coords(REISERFS_OID_PLUGIN, 
+    if (!(oid_plugin = factory->find_by_coords(REISERFS_OID_PLUGIN, 
 	REISERFS_FORMAT40_OID))) 
     {
 	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK,
@@ -128,12 +129,17 @@ static reiserfs_format40_t *reiserfs_format40_open(aal_device_t *host_device,
 	goto error_free_journal;
     }
     
+    /* Initializing oid allocator on super block */
     reiserfs_check_method(oid_plugin->oid, open, goto error_free_journal);
-    if (!(format->oid = oid_plugin->oid.open(host_device))) {
+    
+    oid_offset = (void *)(&(((reiserfs_format40_super_t *)format->super->data)->sb_oid)) -
+	format->super->data;
+	    
+    if (!(format->oid = oid_plugin->oid.open(format->super, oid_offset))) {
 	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, 
 	    "Can't open oid allocator \"%s\".", oid_plugin->h.label);
 	goto error_free_journal;
-    }*/
+    }
     
     return format;
 
@@ -160,13 +166,6 @@ static error_t reiserfs_format40_sync(reiserfs_format40_t *format) {
    
     aal_assert("umka-394", format != NULL, return -1); 
    
-    if (aal_device_write_block(format->device, format->super)) {
-	offset = aal_device_get_block_nr(format->device, format->super);
-	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK,
-	    "Can't write superblock to %llu.", offset);
-	return -1;
-    }
-    
     if (!(plugin = factory->find_by_coords(REISERFS_ALLOC_PLUGIN, 
 	REISERFS_FORMAT40_ALLOC))) 
     {
@@ -191,7 +190,7 @@ static error_t reiserfs_format40_sync(reiserfs_format40_t *format) {
     reiserfs_check_method(plugin->journal, sync, return -1);
     plugin->journal.sync(format->journal);
     
-/*    if (!(plugin = factory->find_by_coords(REISERFS_OID_PLUGIN, 
+    if (!(plugin = factory->find_by_coords(REISERFS_OID_PLUGIN, 
 	REISERFS_FORMAT40_OID))) 
     {
 	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK,
@@ -201,7 +200,14 @@ static error_t reiserfs_format40_sync(reiserfs_format40_t *format) {
     }
     
     reiserfs_check_method(plugin->oid, sync, return -1);
-    plugin->oid.sync(format->oid);*/
+    plugin->oid.sync(format->oid);
+    
+    if (aal_device_write_block(format->device, format->super)) {
+	offset = aal_device_get_block_nr(format->device, format->super);
+	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK,
+	    "Can't write superblock to %llu.", offset);
+	return -1;
+    }
     
     return 0;
 }
@@ -211,6 +217,7 @@ static reiserfs_format40_t *reiserfs_format40_create(aal_device_t *host_device,
     count_t blocks, aal_device_t *journal_device, reiserfs_params_opaque_t *journal_params)
 {
     blk_t blk;
+    uint16_t oid_offset;
     reiserfs_format40_t *format;
     reiserfs_format40_super_t *super;
     
@@ -299,7 +306,7 @@ static reiserfs_format40_t *reiserfs_format40_create(aal_device_t *host_device,
     alloc_plugin->alloc.use(format->alloc, (REISERFS_JOURNAL40_FOOTER / 
 	aal_device_get_blocksize(host_device)));
     
-/*    if (!(oid_plugin = factory->find_by_coords(REISERFS_OID_PLUGIN, 
+    if (!(oid_plugin = factory->find_by_coords(REISERFS_OID_PLUGIN, 
 	REISERFS_FORMAT40_OID))) 
     {
 	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK,
@@ -308,18 +315,19 @@ static reiserfs_format40_t *reiserfs_format40_create(aal_device_t *host_device,
     }
     
     reiserfs_check_method(oid_plugin->oid, create, goto error_free_journal);
-    if (!(format->oid = oid_plugin->oid.create(host_device))) {
+    
+    oid_offset = (void *)(&(((reiserfs_format40_super_t *)format->super->data)->sb_oid)) -
+	format->super->data;
+	    
+    if (!(format->oid = oid_plugin->oid.create(format->super, oid_offset))) {
 	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, 
 	    "Can't create oid allocator \"%s\".", oid_plugin->h.label);
 	goto error_free_journal;
     }
     
-    reiserfs_check_method(oid_plugin->oid, find, goto error_free_oid);
-    set_sb_oid(super, oid_plugin->oid.find(format->oid));*/
+    reiserfs_check_method(oid_plugin->oid, alloc, goto error_free_oid);
+    set_sb_oid(super, oid_plugin->oid.alloc(format->oid));
     
-    /* Here must inode number from oid allocator plugin */
-    set_sb_oid(super, 41);
-
     return format;
 
 error_free_oid:
@@ -374,7 +382,7 @@ static void reiserfs_format40_close(reiserfs_format40_t *format) {
 	plugin->journal.close(format->journal);
     }
     
-/*    if (!(plugin = factory->find_by_coords(REISERFS_OID_PLUGIN, 
+    if (!(plugin = factory->find_by_coords(REISERFS_OID_PLUGIN, 
 	REISERFS_FORMAT40_OID))) 
     {
 	aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK,
@@ -383,7 +391,7 @@ static void reiserfs_format40_close(reiserfs_format40_t *format) {
     }
     
     reiserfs_check_method(plugin->oid, close, return);
-    plugin->journal.close(format->oid);*/
+    plugin->journal.close(format->oid);
     
     aal_device_free_block(format->super);
     aal_free(format);

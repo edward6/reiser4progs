@@ -81,10 +81,12 @@ struct reiserfs_common_item_plugin {
     
     int (*remove_units) (reiserfs_opaque_t *, int32_t, int32_t);
     
-    /*  Estimate gets coords (where to insert/past into) and item_info
+    /*  
+	Estimate gets coords (where to insert/past into) and item_info
 	(what needs to be inserted). If coords is NULL, then this is 
 	insertion, othewise it is pasting. The amount of needed space
-	should be set into item_info->lenght. */
+	should be set into item_info->lenght. 
+    */
     error_t (*estimate) (reiserfs_opaque_t *, reiserfs_opaque_t *);
     
     int (*is_internal) ();
@@ -166,8 +168,10 @@ struct reiserfs_node_plugin {
     uint16_t (*get_free_space) (reiserfs_opaque_t *);
     void (*set_free_space) (reiserfs_opaque_t *, uint32_t);
 
-    /*  this is optional method. That means that there could be 
-	node formats which do not keep level. */
+    /*  
+	this is optional method. That means that there could be 
+	node formats which do not keep level 
+    */
     uint8_t (*get_level) (reiserfs_opaque_t *);
     void (*set_level) (reiserfs_opaque_t *, uint8_t);
 
@@ -239,11 +243,14 @@ typedef struct reiserfs_format_plugin reiserfs_format_plugin_t;
 struct reiserfs_oid_plugin {
     reiserfs_plugin_header_t h;
 
-    reiserfs_opaque_t *(*open) (aal_device_t *);
-    reiserfs_opaque_t *(*create) (aal_device_t *);
+    reiserfs_opaque_t *(*open) (aal_block_t *, uint16_t);
+    reiserfs_opaque_t *(*create) (aal_block_t *, uint16_t);
+    
     void (*close) (reiserfs_opaque_t *);
     error_t (*sync) (reiserfs_opaque_t *);
-    uint64_t (*find) (reiserfs_opaque_t *);
+    
+    uint64_t (*alloc) (reiserfs_opaque_t *);
+    void (*dealloc) (reiserfs_opaque_t *, uint64_t);
 };
 
 typedef struct reiserfs_oid_plugin reiserfs_oid_plugin_t;
@@ -258,8 +265,9 @@ struct reiserfs_alloc_plugin {
 
     void (*use) (reiserfs_opaque_t *, blk_t);
     void (*unuse) (reiserfs_opaque_t *, blk_t);
-    blk_t (*find) (reiserfs_opaque_t *, blk_t);
     
+    blk_t (*alloc) (reiserfs_opaque_t *);
+
     count_t (*free) (reiserfs_opaque_t *);
     count_t (*used) (reiserfs_opaque_t *);
 };
