@@ -149,8 +149,10 @@ static errno_t stat40_valid(reiser4_item_t *item) {
     return 0;
 }
 
+/* Type for stat40 layout callback function */
 typedef int (*stat40_perext_func_t) (uint8_t, uint16_t, reiser4_body_t *, void *);
 
+/* The function which implements stat40 layout pass */
 static int stat40_layout(reiser4_item_t *item,
 						 stat40_perext_func_t perext_func, void *data)
 {
@@ -195,6 +197,7 @@ static int stat40_layout(reiser4_item_t *item,
     return 1;
 }
 
+/* Callbakc for counting the number of stat data extentions in use */
 static int stat40_callback_count(uint8_t ext, uint16_t extmask,
 					  reiser4_body_t *extbody, void *data)
 {
@@ -213,15 +216,17 @@ static uint32_t stat40_count(reiser4_item_t *item) {
     return count;
 }
 
-struct extbody_hint {
+/* Helper structrure for keeping track of stat data extention body */
+struct body_hint {
 	reiser4_body_t *body;
 	uint8_t ext;
 };
 
+/* Callback function for finding stat data extention body by bit */
 static int stat40_callback_body(uint8_t ext, uint16_t extmask,
 								reiser4_body_t *extbody, void *data)
 {
-	struct extbody_hint *hint = (struct extbody_hint *)data;
+	struct body_hint *hint = (struct body_hint *)data;
 
 	hint->body = extbody;
 	return (ext < hint->ext);
@@ -230,7 +235,7 @@ static int stat40_callback_body(uint8_t ext, uint16_t extmask,
 static reiser4_body_t *stat40_sdext_body(reiser4_item_t *item, 
 										 uint8_t bit)
 {
-	struct extbody_hint hint = {NULL, bit};
+	struct body_hint hint = {NULL, bit};
 
 	if (!stat40_layout(item, stat40_callback_body, &hint) < 0)
 		return NULL;
@@ -238,47 +243,33 @@ static reiser4_body_t *stat40_sdext_body(reiser4_item_t *item,
     return hint.body;
 }
 
+/* Helper structure for keeping track of presence of a stat data
+ * extention */
+struct present_hint {
+	int present;
+	uint8_t ext;
+};
+
+/* Callback for getting presence information for certain stat data
+ * extention */
+static int stat40_callback_present(uint8_t ext, uint16_t extmask,
+								   reiser4_body_t *extbody, void *data)
+{
+	struct present_hint *hint = (struct present_hint *)data;
+	
+	hint->present = (((1 << ext) & extmask));
+	return (!hint->present && ext < hint->ext);
+}
+
 static int stat40_sdext_present(reiser4_item_t *item, 
 								uint8_t bit)
 {
-    uint8_t i;
-    stat40_t *stat;
-    uint16_t extmask;
-    reiser4_body_t *extbody;
-   
-    aal_assert("umka-1409", item != NULL, return 0);
+	struct present_hint hint = {0, bit};
 
-    stat = stat40_body(item);
-    extbody = (void *)stat + sizeof(stat40_t);
-    
-    extmask = st40_get_extmask(stat);
+	if (!stat40_layout(item, stat40_callback_body, &hint) < 0)
+		return 0;
 
-    for (i = 0; i <= bit; i++) {
-        reiser4_plugin_t *plugin;
-	
-        if (((1 << i) & extmask))
-			return 1;
-	    
-		if (((uint64_t)1 << i) & (((uint64_t)1 << 0xf) | 
-								  ((uint64_t)1 << 0x1f) |
-								  ((uint64_t)1 << 0x2f))) 
-		{
-			extbody = (void *)extbody + sizeof(d16_t);
-			extmask = *((uint16_t *)extbody);
-			continue;
-		}
-		
-		if (!(plugin = core->factory_ops.ifind(SDEXT_PLUGIN_TYPE, i))) {
-			aal_exception_warn("Can't find stat data extention plugin "
-							   "by its id 0x%x.", i);
-			return 0;
-		}
-	
-		extbody = (void *)extbody +
-			plugin_call(return 0, plugin->sdext_ops, length,);
-    }
-
-    return 0;
+	return hint.present;
 }
 
 static errno_t stat40_sdext_open(reiser4_item_t *item, 

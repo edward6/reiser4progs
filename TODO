@@ -19,15 +19,4 @@ Copyright (C) 1996-2002 Hans Reiser
 * rewrite progs/libmisc/profile.c in order to be using the last chnages in plugin 
   header structure.
 
-* what about tree plugin? it sounds odd? at the moment we have two kinds of tree 
-  which we probably should support. 
-
-(1) reiser4 tree: emtpy tree contains twig node and leaf root directory lies in, 
-    node pointers on all levels are items, LEAF_LEVEL + 1 contains not just node 
-    pointers, but also extents.
-(2) reiser3 tree: empty tree contains just leaf with root directory, node pointers
-    on all levels > LEAF_LEVEL are not items, but fully differnt structure, on level
-    LEAF_LEVEL + 1 we have not extents.
-
-Can we eliminate these differences inside current design of tree code?
-
+* stat40 plugin probably should know nothing about its extentions.
