@@ -28,7 +28,7 @@ errno_t body40_get_key(place_t *place, uint32_t pos,
 	return 0;
 }
 
-/* Returns maximal possible key from file body items */
+/* Returns maximal possible key for file body item at @place. */
 errno_t body40_maxposs_key(place_t *place, key_entity_t *key) {
 	uint64_t offset;
 	key_entity_t *maxkey;
@@ -49,7 +49,7 @@ errno_t body40_maxposs_key(place_t *place, key_entity_t *key) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Returns max real key inside passed @place */
+/* Returns max real key inside passed @place. */
 errno_t body40_maxreal_key(place_t *place,
 			   key_entity_t *key,
 			   trans_func_t trans_func) 
@@ -75,7 +75,7 @@ errno_t body40_maxreal_key(place_t *place,
 	return 0;
 }
 
-/* Checks if two items are mergeable */
+/* Checks if two file body items are mergeable. */
 int body40_mergeable(place_t *place1, place_t *place2) {
 	uint64_t offset;
 	key_entity_t maxkey;

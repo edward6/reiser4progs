@@ -6,6 +6,9 @@
 #include <reiser4/reiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
+/* All default plugin ids. This is used for getting plugin id if it cannot be
+   obtained by usual way (get from disk structures, etc.). All these may be
+   chnaged. */
 reiser4_param_t default_param = {
 	.name = "default",
 	.pid  = {
@@ -107,6 +110,7 @@ reiser4_param_t default_param = {
 	}
 };
 
+/* Returns plugin param instnace by its name. */
 reiser4_pid_t *reiser4_param_pid(const char *name) {
 	uint32_t i;
 
@@ -128,6 +132,7 @@ reiser4_pid_t *reiser4_param_pid(const char *name) {
 	return NULL;
 }
 
+/* Return plugin id by param name. */
 uint64_t reiser4_param_value(const char *name) {
 	reiser4_pid_t *pid;
 
@@ -139,6 +144,7 @@ uint64_t reiser4_param_value(const char *name) {
 	return pid->value;
 }
 
+/* Overrides plugin id by @value found by @name. */
 errno_t reiser4_param_override(const char *name,
 			       const char *value)
 {
