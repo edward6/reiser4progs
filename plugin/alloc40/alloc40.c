@@ -41,7 +41,7 @@ static errno_t callback_fetch_bitmap(reiser4_entity_t *format,
 	return -1;
     }
 
-    start = alloc->bitmap->map;
+    start = aux_bitmap_map(alloc->bitmap);
     
     size = aal_block_size(block) - CRC_SIZE;
     current = start + (size * (blk / size / 8));
@@ -199,7 +199,7 @@ static errno_t callback_flush_bitmap(reiser4_entity_t *format,
 	return -1;
     }
 
-    start = alloc->bitmap->map;
+    start = aux_bitmap_map(alloc->bitmap);
     
     size = aal_block_size(block) - CRC_SIZE;
     current = start + (size * (blk / size / 8));
@@ -303,8 +303,8 @@ static blk_t alloc40_allocate(reiser4_entity_t *entity) {
 	It is possible to implement here more smart allocation algorithm. For
 	instance, it may look for contiguous areas.
     */
-    if (!(blk = aux_bitmap_find(alloc->bitmap, 0)))
-	return 0;
+    if ((blk = aux_bitmap_find(alloc->bitmap, 0)) == ~0ull)
+	return ~0ull;
     
     aux_bitmap_mark(alloc->bitmap, blk);
     return blk;
@@ -345,7 +345,7 @@ int alloc40_test(reiser4_entity_t *entity, blk_t blk) {
 static errno_t callback_check_bitmap(reiser4_entity_t *format, 
     blk_t blk, void *data)
 {
-    char *current;
+    char *current, *start;
     aal_device_t *device;
     
     uint32_t size, i, n;
@@ -365,15 +365,17 @@ static errno_t callback_check_bitmap(reiser4_entity_t *format,
     size = aal_device_get_bs(device) - CRC_SIZE;
     i = (blk / size / 8);
     
+    start = aux_bitmap_map(alloc->bitmap);
+    
     /* Getting pointer to next bitmap portion */
-    current = alloc->bitmap->map + (i * size);
+    current = start + (i * size);
 	    
     /* Getting the checksum from loaded crc map */
     ladler = *((uint32_t *)(alloc->crc + (i * CRC_SIZE)));
     
     /* Calculating adler checksumm for piece of bitmap */
-    chunk = (alloc->bitmap->map + alloc->bitmap->size) - current > (int)size ? 
-	(int)size : (int)((alloc->bitmap->map + alloc->bitmap->size) - current);
+    chunk = (start + alloc->bitmap->size) - current > (int)size ? 
+	(int)size : (int)((start + alloc->bitmap->size) - current);
     
     cadler = aal_adler32(current, chunk);
 

@@ -81,7 +81,7 @@ uint64_t aux_bitmap_find(
 
     if ((bit = aal_find_next_zero_bit(bitmap->map, 
 	    bitmap->total, start)) >= bitmap->total)
-	return 0;
+	return ~0ull;
 
     return bit;
 }
@@ -173,9 +173,9 @@ aux_bitmap_t *aux_bitmap_create(uint64_t len) {
     if (!(bitmap = (aux_bitmap_t *)aal_calloc(sizeof(*bitmap), 0)))
 	return NULL;
 	
-    bitmap->size = (len + 7) / 8;
     bitmap->used = 0;
     bitmap->total = len;
+    bitmap->size = (len + 7) / 8;
     
     if (!(bitmap->map = aal_calloc(bitmap->size, 0)))
 	goto error_free_bitmap;

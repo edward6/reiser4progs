@@ -270,6 +270,8 @@ extern void reiser4_fs_close(reiser4_fs_t *fs);
 
 #ifndef ENABLE_COMPACT
 
+extern errno_t reiser4_fs_clobber(aal_device_t *device);
+
 extern reiser4_fs_t *reiser4_fs_create(reiser4_profile_t *profile, 
     aal_device_t *host_device, size_t blocksize, const char *uuid, 
     const char *label, count_t len, aal_device_t *journal_device, 

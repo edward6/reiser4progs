@@ -30,7 +30,7 @@ static reiser4_avatar_t *reiser4_tree_allocate(
     aal_assert("umka-756", tree != NULL, return NULL);
     
     /* Allocating the block */
-    if (!(blk = reiser4_alloc_allocate(tree->fs->alloc))) {
+    if ((blk = reiser4_alloc_allocate(tree->fs->alloc)) == ~0ull) {
         aal_exception_error("Can't allocate block for a node.");
 	return NULL;
     }
@@ -240,7 +240,7 @@ reiser4_tree_t *reiser4_tree_create(
     }
     
     /* Getting free block from block allocator for place root block in it */
-    if (!(blk = reiser4_alloc_allocate(fs->alloc))) {
+    if ((blk = reiser4_alloc_allocate(fs->alloc)) == ~0ull) {
         aal_exception_error("Can't allocate block for the root node.");
 	goto error_free_tree;
     }

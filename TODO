@@ -2,17 +2,12 @@ This file is part of reiser4progs package
 Copyright (C) 1996-2002 Hans Reiser
 
 * all functions which return errno_t should return real errno, not just -1.
-* is it necessary to allocate block for the tree node immediately? it might be done in flush time.
 * add INVALID_BLK macro and return it from the all blk-returning functions as error value.
 
 * should we have reset method in object plugins? does call like seek(obj, 0) will not be 
   convenient enough
 
 * should we throw out uint32_t additional param (unit pos) from item plugin functions?
-* should all plugins (object plugins) know about reiser4_cache_t?
-* should we have core->item_ops->item_plugin function? not item_pid one?
 * rename internal40 to nodeptr40
 * should items have read/write methods?
-* should we splitt reiser4_sf_cerate and reiser4_fs_open onto separate functions?
-* delete item if it doesn't contains units anymore
- 
+* should we split reiser4_fs_cerate and reiser4_fs_open onto separate functions?

@@ -147,11 +147,29 @@ aal_device_t *reiser4_fs_journal_device(reiser4_fs_t *fs) {
 
 #ifndef ENABLE_COMPACT
 
-#define REISER4_MIN_SIZE 23
+/* Destroys reiser4 super block */
+errno_t reiser4_fs_clobber(aal_device_t *device) {
+    aal_block_t *block;
+    
+    aal_assert("umka-1273", device != NULL, return -1);
+
+    if (!(block = aal_block_create(device, (MASTER_OFFSET / device->blocksize), 0)))
+	return -1;
+
+    if (aal_block_sync(block)) {
+	aal_exception_error("Can't write block %llu.", 
+	    aal_block_number(block));
+	return -1;
+    }
+
+    return 0;
+}
+
+#define REISER4_MIN_SIZE 122
 
 /* Creates filesystem on specified host and journal devices */
 reiser4_fs_t *reiser4_fs_create(
-    reiser4_profile_t *profile,    /* profile to be used for new filesystem */
+    reiser4_profile_t *profile,	    /* profile to be used for new filesystem */
     aal_device_t *host_device,	    /* device filesystem will be lie on */
     size_t blocksize,		    /* blocksize to be used in new filesystem */
     const char *uuid,		    /* uuid to be used */
