@@ -917,7 +917,7 @@ static errno_t fprint_process_blk(
 
 		item = &coord->entity;
 
-		aal_stream_format(&stream, "NODE %llu, ITEM (%lu) ",
+		aal_stream_format(&stream, "NODE %llu, ITEM (%u) ",
 				  coord->node->blk, coord->pos.item);
 		
 		aal_stream_format(&stream, groups[item->plugin->h.group]);
