@@ -125,7 +125,7 @@ static reiser4_plugin_t sdext_unix_plugin = {
 		
 #ifndef ENABLE_ALONE
 		.print   = sdext_unix_print,
-		.check	 = NULL,
+		.check	 = sdext_unix_check,
 #else
 		.print   = NULL,
 		.check	 = NULL,
