@@ -156,7 +156,7 @@ errno_t alloc40_pack(generic_entity_t *entity,
 
 	/* Calling layout() function for packing all bitmap blocks. */
 	if ((res = alloc40_layout(entity, callback_pack_bitmap, stream))) {
-		aal_exception_error("Can't pack bitmap.");
+		aal_error("Can't pack bitmap.");
 		return res;
 	}
 
@@ -204,7 +204,7 @@ generic_entity_t *alloc40_unpack(fs_desc_t *desc,
 	if (alloc40_layout((generic_entity_t *)alloc,
 			   callback_unpack_bitmap, stream))
 	{
-		aal_exception_error("Can't unpack bitmap.");
+		aal_error("Can't unpack bitmap.");
 		goto error_free_crc;
 	}
 

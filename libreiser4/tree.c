@@ -239,7 +239,7 @@ errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	root_blk = reiser4_tree_get_root(tree);
 	
 	if (!(tree->root = reiser4_tree_load_node(tree, NULL, root_blk))) {
-		aal_exception_error("Can't load root node %llu.", root_blk);
+		aal_error("Can't load root node %llu.", root_blk);
 		return -EIO;
 	}
 
@@ -429,28 +429,28 @@ node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 				if (reiser4_tree_adjust_node(tree,
 							     tree->root))
 				{
-					aal_exception_error("Can't adjust tree "
-							    "during loading node.");
+					aal_error("Can't adjust tree "
+						  "during loading node.");
 					return NULL;
 				}
 			} else {
-				aal_exception_warn("Tree seems to be empty, but "
-						   "there memory pressure event "
-						   "has been detected.");
+				aal_warn("Tree seems to be empty, but "
+					 "there memory pressure event "
+					 "has been detected.");
 			}
 		}
 		
 		/* Node is not loaded yet. Loading it and connecting to @parent
 		   node cache. */
 		if (!(node = reiser4_node_open(tree, blk))) {
-			aal_exception_error("Can't open node %llu.", blk);
+			aal_error("Can't open node %llu.", blk);
 			return NULL;
 		}
 
 		/* Connect loaded node to cache. */
 		if (reiser4_tree_connect_node(tree, parent, node)) {
-			aal_exception_error("Can't connect node %llu "
-					    "to tree cache.", node_blocknr(node));
+			aal_error("Can't connect node %llu "
+				  "to tree cache.", node_blocknr(node));
 			goto error_free_node;
 		}
 	}
@@ -472,15 +472,15 @@ errno_t reiser4_tree_unload_node(reiser4_tree_t *tree, node_t *node) {
 #ifndef ENABLE_STAND_ALONE
 	/* Check if node is dirty. */
 	if (reiser4_node_isdirty(node)) {
-		aal_exception_warn("Unloading dirty node %llu.",
-				   node_blocknr(node));
+		aal_warn("Unloading dirty node %llu.",
+			 node_blocknr(node));
 	}
 #endif
 
 	/* Disconnecting @node from its parent node. */
 	if ((res = reiser4_tree_disconnect_node(tree, node))) {
-		aal_exception_error("Can't disconnect node from "
-				    "tree cache.");
+		aal_error("Can't disconnect node from "
+			  "tree cache.");
 		return res;
 	}
 
@@ -650,15 +650,15 @@ node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 		if (tree->root) {
 			/* Memory pressure is here, trying to release nodes. */
 			if (reiser4_tree_adjust_node(tree, tree->root)) {
-				aal_exception_error("Error when adjusting "
-						    "tree during allocating "
-						    "new node.");
+				aal_error("Error when adjusting "
+					  "tree during allocating "
+					  "new node.");
 				return NULL;
 			}
 		} else {
-			aal_exception_warn("Tree seems to be empty, but "
-					   "memory pressure event has "
-					   "been detected");
+			aal_warn("Tree seems to be empty, but "
+				 "memory pressure event has "
+				 "been detected");
 		}
 	}
 
@@ -674,7 +674,7 @@ node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 
 	/* Creating new node. */
 	if (!(node = reiser4_node_create(tree, fake_blk, pid, level))) {
-		aal_exception_error("Can't initialize new fake node.");
+		aal_error("Can't initialize new fake node.");
 		return NULL;
 	}
 
@@ -728,13 +728,13 @@ static void reiser4_tree_discard_node(reiser4_tree_t *tree,
 				      node_t *node)
 {
 	if (reiser4_tree_detach_node(tree, node)) {
-		aal_exception_error("Can't detach node %llu from "
-				    "tree.", node_blocknr(node));
+		aal_error("Can't detach node %llu from "
+			  "tree.", node_blocknr(node));
 	}
 	
 	if (reiser4_tree_release_node(tree, node)) {
-		aal_exception_error("Can't release node %llu.",
-				    node_blocknr(node));
+		aal_error("Can't release node %llu.",
+			  node_blocknr(node));
 	}
 }
 
@@ -803,8 +803,8 @@ static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 	if (!(tree->key.plug = reiser4_factory_ifind(KEY_PLUG_TYPE,
 						     pid)))
 	{
-		aal_exception_error("Can't find key plugin by its "
-				    "id 0x%x.", pid);
+		aal_error("Can't find key plugin by its "
+			  "id 0x%x.", pid);
 		return -EINVAL;
 	}
 
@@ -853,8 +853,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 
 	/* Building tree root key. It is used in tree lookup, etc. */
 	if (reiser4_tree_key(tree)) {
-		aal_exception_error("Can't build the tree "
-				    "root key.");
+		aal_error("Can't build the tree root key.");
 		goto error_free_data;
 	}
     
@@ -940,8 +939,8 @@ static errno_t reiser4_tree_alloc_nodeptr(reiser4_tree_t *tree,
 		/* Checking for loaded node. If it is, then we move it new
 		   allocated node blk. */
 		if (!(node = reiser4_tree_lookup_node(tree, blk))) {
-			aal_exception_error("Can't find node by its "
-					    "nodeptr %llu.", blk);
+			aal_error("Can't find node by its "
+				  "nodeptr %llu.", blk);
 			return -EINVAL;
 		}
 		
@@ -1075,8 +1074,8 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 
 				/* Saving block to device. */
 				if ((res = aal_block_write(block))) {
-					aal_exception_error("Can't write block "
-							    "%llu.", block->nr);
+					aal_error("Can't write block "
+						  "%llu.", block->nr);
 					return res;
 				}
 
@@ -1208,8 +1207,7 @@ errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree, node_t *node) {
 #ifndef ENABLE_STAND_ALONE
 	/* Okay, node is allocated now and ready to be saved to device. */
 	if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
-		aal_exception_error("Can't write node %llu.",
-				    node_blocknr(node));
+		aal_error("Can't write node %llu.", node_blocknr(node));
 		return -EIO;
 	}
 #endif
@@ -1316,9 +1314,8 @@ static errno_t reiser4_tree_compress_level(reiser4_tree_t *tree,
 		if ((res = reiser4_tree_shift(tree, &bogus,
 					      node, flags)))
 		{
-			aal_exception_error("Can't shift node "
-					    "%llu into left.",
-					    node_blocknr(right));
+			aal_error("Can't shift node %llu into left.",
+				  node_blocknr(right));
 			return res;
 		}
 
@@ -1376,8 +1373,8 @@ errno_t reiser4_tree_compress(reiser4_tree_t *tree) {
 
 			/* Getting first node of the next level. */
 			if (!(node = reiser4_tree_child_node(tree, &place))) {
-				aal_exception_error("Can't get first node on "
-						    "level %u.", level);
+				aal_error("Can't get first node on level %u.",
+					  level);
 				return -EINVAL;
 			}
 		}
@@ -1399,8 +1396,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	   flag set to 0, that is do not check memory presure, and save
 	   everything. */
 	if ((res = reiser4_tree_adjust_node(tree, tree->root))) {
-		aal_exception_error("Can't save formatted nodes "
-				    "to device.");
+		aal_error("Can't save formatted nodes to device.");
 		return res;
 	}
 
@@ -1409,8 +1405,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	if ((res = aal_hash_table_foreach(tree->data,
 					  callback_save_block, tree)))
 	{
-		aal_exception_error("Can't save unformatted nodes "
-				    "to device.");
+		aal_error("Can't save unformatted nodes to device.");
 		return res;
 	}
 	
@@ -1546,8 +1541,8 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
 				   needed for correct key collisions handling in
 				   object plugins (directory ones). */
 				if (reiser4_tree_leftmost(tree, place, &wan)) {
-					aal_exception_error("Can't find leftmost "
-							    "position during lookup.");
+					aal_error("Can't find leftmost "
+						  "position during lookup.");
 					return -EIO;
 				}
 #endif	
@@ -1667,8 +1662,8 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node) {
 	if (!(hint.plug = reiser4_factory_ifind(ITEM_PLUG_TYPE,
 						pid)))
 	{
-		aal_exception_error("Can't find item plugin by "
-				    "its id 0x%x.", pid);
+		aal_error("Can't find item plugin by "
+			  "its id 0x%x.", pid);
 		return -EINVAL;
 	}
 
@@ -1688,15 +1683,14 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node) {
 	   key that exists in tree (key collision) and second case is useful
 	   case, when key is not in tree. */
 	if ((res = reiser4_tree_insert(tree, &place, &hint, level)) < 0) {
-		aal_exception_error("Can't insert nodeptr item "
-				    "to the tree.");
+		aal_error("Can't insert nodeptr item to the tree.");
 		return res;
 	}
 
 	/* Connecting node to tree cache. */
 	if ((res = reiser4_tree_connect_node(tree, place.node, node))) {
-		aal_exception_error("Can't connect node %llu to "
-				    "tree cache.", node_blocknr(node));
+		aal_error("Can't connect node %llu to "
+			  "tree cache.", node_blocknr(node));
 		return res;
 	}
 
@@ -1729,9 +1723,9 @@ errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 	   nodeptr item in parent, as parent may get empty and we will unable to
 	   release it as it is locked by connect @node. */
 	if ((res = reiser4_tree_disconnect_node(tree, node))) {
-		aal_exception_error("Can't disconnect node %llu "
-				    "from tree during detach it.",
-				    node_blocknr(node));
+		aal_error("Can't disconnect node %llu "
+			  "from tree during detach it.",
+			  node_blocknr(node));
 		return res;
 	}
 	
@@ -1779,16 +1773,16 @@ errno_t reiser4_tree_growup(reiser4_tree_t *tree) {
 	/* Assign new root node, changing tree height and root node blk in
 	   format used in fs instance tree belongs to. */
 	if ((res = reiser4_tree_assign_root(tree, new_root))) {
-		aal_exception_error("Can't assign new root node "
-				    "durring tree growing up.");
+		aal_error("Can't assign new root node "
+			  "durring tree growing up.");
 		goto error_free_new_root;
 	}
 
 	/* Attaching old root node to tree. */
 	if ((res = reiser4_tree_attach_node(tree, old_root))) {
-		aal_exception_error("Can't attach old root node "
-				    "to new root node during tree "
-				    "growing up.");
+		aal_error("Can't attach old root node "
+			  "to new root node during tree "
+			  "growing up.");
 		goto error_return_root;
 	}
 
@@ -1830,30 +1824,30 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 	reiser4_place_assign(&place, old_root, 0, 0);
 
 	if (!(new_root = reiser4_tree_child_node(tree, &place))) {
-		aal_exception_error("Can't load new root during "
-				    "drying tree out.");
+		aal_error("Can't load new root during "
+			  "drying tree out.");
 		return -EINVAL;
 	}
 
 	/* Detaching new root from its parent. */
 	if ((res = reiser4_tree_disconnect_node(tree, new_root))) {
-		aal_exception_error("Can't disconnect new root from "
-				    "tree during tree drying out.");
+		aal_error("Can't disconnect new root from "
+			  "tree during tree drying out.");
 		return res;
 	}
 	
 	/* Detaching old root from its parent. */
 	if ((res = reiser4_tree_detach_node(tree, old_root))) {
-		aal_exception_error("Can't detach old root from tree "
-				    "during tree drying out.");
+		aal_error("Can't detach old root from tree "
+			  "during tree drying out.");
 		goto error_connect_new_root;
 	}
 
 	/* Assign new root node. Setting tree height to new root level and root
 	   block number to new root block number. */
 	if ((res = reiser4_tree_assign_root(tree, new_root))) {
-		aal_exception_error("Can't assign new root node "
-				    "durring tree drying out.");
+		aal_error("Can't assign new root node "
+			  "durring tree drying out.");
 		goto error_assign_old_root;
 	}
 	
@@ -2146,8 +2140,8 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree, place_t *place) {
 	   neighbour node. */
 	if ((left = reiser4_tree_neigh_node(tree, place->node, DIR_LEFT))) {
 		if ((res = reiser4_tree_shift(tree, place, left, flags))) {
-			aal_exception_error("Can't pack node %llu into left.",
-					    node_blocknr(place->node));
+			aal_error("Can't pack node %llu into left.",
+				  node_blocknr(place->node));
 			return res;
 		}
 	}
@@ -2166,9 +2160,9 @@ errno_t reiser4_tree_shrink(reiser4_tree_t *tree, place_t *place) {
 						      place->node,
 						      flags)))
 			{
-				aal_exception_error("Can't pack node "
-						    "%llu into left.",
-						    node_blocknr(right));
+				aal_error("Can't pack node "
+					  "%llu into left.",
+					  node_blocknr(right));
 				return res;
 			}
 
@@ -2222,8 +2216,8 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			   allocate new right neighbour node and move all item
 			   right to @place->pos to new allocated node. */
 			if (!(node = reiser4_tree_alloc_node(tree, curr_level))) {
-				aal_exception_error("Tree failed to allocate "
-						    "a new node.");
+				aal_error("Tree failed to allocate "
+					  "a new node.");
 				return -EINVAL;
 			}
 
@@ -2235,9 +2229,8 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			if ((res = reiser4_tree_shift(tree, place, node,
 						      flags)))
 			{
-				aal_exception_error("Tree failed to shift "
-						    "into a newly "
-						    "allocated node.");
+				aal_error("Tree failed to shift into a "
+					  "newly allocated node.");
 				goto error_free_node;
 			}
 
@@ -2250,8 +2243,8 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			/* Attach new node to tree. */
 			if ((res = reiser4_tree_attach_node(tree, node))) {
 				reiser4_tree_release_node(tree, node);
-				aal_exception_error("Tree is failed to attach "
-						    "node during split opeartion.");
+				aal_error("Tree is failed to attach "
+					  "node during split opeartion.");
 				goto error_free_node;
 			}
 
@@ -2363,10 +2356,8 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 		if ((res = reiser4_tree_lookup(tree, &hint->offset, level,
 					       FIND_CONV, place) < 0))
 		{
-			aal_exception_error("Lookup failed after "
-					    "tree growed up to "
-					    "requested level %d.",
-					    level);
+			aal_error("Lookup failed after tree growed up to "
+				  "requested level %d.", level);
 			return res;
 		}
 	}
@@ -2424,7 +2415,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 
 	/* Preparing space in tree. */
 	if ((space = reiser4_tree_expand(tree, place, needed, SF_DEFAULT)) < 0) {
-		aal_exception_error("Can't prepare space in tree.");
+		aal_error("Can't prepare space in tree.");
 		return space;
 	}
 
@@ -2443,10 +2434,10 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 		
 		/* Check is we have space at all. */
 		if (!(hint->len = hint->count = space)) {
-			aal_exception_error("Can't prepare space in tree. "
-					    "Node %llu, item %u, unit %u.",
-					    node_blocknr(place->node),
-					    place->pos.item, place->pos.unit);
+			aal_error("Can't prepare space in tree. "
+				  "Node %llu, item %u, unit %u.",
+				  node_blocknr(place->node),
+				  place->pos.item, place->pos.unit);
 			return -ENOSPC;
 		}
 	}
@@ -2465,8 +2456,8 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 	if ((write = reiser4_node_modify(place->node, &place->pos,
 					 hint, modify_func)) < 0)
 	{
-		aal_exception_error("Can't insert data to node %llu.",
-				    node_blocknr(place->node));
+		aal_error("Can't insert data to node %llu.",
+			  node_blocknr(place->node));
 		return write;
 	}
 
@@ -2649,9 +2640,9 @@ errno_t reiser4_tree_trav_node(reiser4_tree_t *tree, node_t *node,
 		/* If there is a suspicion of a corruption, it must be checked
 		   in before_func. All items must be opened here. */
 		if (reiser4_place_open(&place, node, pos)) {
-			aal_exception_error("Can't open item by place. Node "
-					    "%llu, item %u.", node_blocknr(node),
-					    pos->item);
+			aal_error("Can't open item by place. Node "
+				  "%llu, item %u.", node_blocknr(node),
+				  pos->item);
 			goto error_after_func;
 		}
 

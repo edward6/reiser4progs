@@ -178,11 +178,11 @@ static uint8_t cde40_short_entry_detect(place_t *place,
 	for (offset = ENTRY_LEN_MIN(S_NAME, pol); offset < length; 
 	     offset += ENTRY_LEN_MIN(S_NAME, pol), start_pos++) 
 	{
-		aal_exception_error("Node (%llu), item (%u), unit (%u): unit "
-				    "offset (%u) is wrong, should be (%u). %s", 
-				    place->block->nr, place->pos.item,
-				    start_pos, cde_get_offset(place, start_pos, pol),
-				    limit + offset,  mode == RM_BUILD ? "Fixed." : "");
+		aal_error("Node (%llu), item (%u), unit (%u): unit "
+			  "offset (%u) is wrong, should be (%u). %s", 
+			  place->block->nr, place->pos.item,
+			  start_pos, cde_get_offset(place, start_pos, pol),
+			  limit + offset,  mode == RM_BUILD ? "Fixed." : "");
 		
 		if (mode == RM_BUILD)
 			cde_set_offset(place, start_pos, limit + offset, pol);
@@ -232,12 +232,12 @@ static uint8_t cde40_long_entry_detect(place_t *place,
 		if (mode != REPAIR_SKIP && 
 		    l_limit != cde_get_offset(place, start_pos + count, pol)) 
 		{
-			aal_exception_error("Node %llu, item %u, unit (%u): unit "
-					    "offset (%u) is wrong, should be (%u). "
-					    "%s", place->block->nr, place->pos.item,
-					    start_pos + count,
-					    cde_get_offset(place, start_pos + count, pol),
-					    l_limit, mode == RM_BUILD ? "Fixed." : "");
+			aal_error("Node %llu, item %u, unit (%u): unit "
+				  "offset (%u) is wrong, should be (%u). "
+				  "%s", place->block->nr, place->pos.item,
+				  start_pos + count,
+				  cde_get_offset(place, start_pos + count, pol),
+				  l_limit, mode == RM_BUILD ? "Fixed." : "");
 			
 			if (mode == RM_BUILD)
 				cde_set_offset(place, start_pos + count, 
@@ -304,10 +304,10 @@ static errno_t cde40_offsets_range_check(place_t *place,
 	for (i = 0; i < flags->count; i++) {
 		/* Check if the offset is valid. */
 		if (cde40_offset_check(place, i)) {
-			aal_exception_error("Node %llu, item %u, unit %u: unit "
-					    "offset (%u) is wrong.", 
-					    place->block->nr, place->pos.item, 
-					    i, cde_get_offset(place, i, pol));
+			aal_error("Node %llu, item %u, unit %u: unit "
+				  "offset (%u) is wrong.", 
+				  place->block->nr, place->pos.item, 
+				  i, cde_get_offset(place, i, pol));
 			
 			/* mark offset wrong. */	    
 			aal_set_bit(flags->elem + i, NR);
@@ -400,10 +400,10 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 	
 	if (last == 0) {
 		/* No one R unit was found */
-		aal_exception_error("Node %llu, item %u: no one valid unit has "
-				    "been found. Does not look like a valid `%s` "
-				    "item.", place->block->nr, place->pos.item, 
-				    place->plug->label);
+		aal_error("Node %llu, item %u: no one valid unit has "
+			  "been found. Does not look like a valid `%s` "
+			  "item.", place->block->nr, place->pos.item, 
+			  place->plug->label);
 		
 		return RE_FATAL;
 	}
@@ -471,11 +471,11 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 	}
 	
 	if (e_count != cde_get_units(place)) {
-		aal_exception_error("Node %llu, item %u: unit count (%u) "
-				    "is not correct. Should be (%u). %s",
-				    place->block->nr,  place->pos.item,
-				    cde_get_units(place), e_count, 
-				    mode == RM_CHECK ? "" : "Fixed.");
+		aal_error("Node %llu, item %u: unit count (%u) "
+			  "is not correct. Should be (%u). %s",
+			  place->block->nr,  place->pos.item,
+			  cde_get_units(place), e_count, 
+			  mode == RM_CHECK ? "" : "Fixed.");
 		
 		if (mode == RM_CHECK) {
 			res |= RE_FIXABLE;
@@ -488,10 +488,10 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 	if (flags->count != e_count) {
 		/* Estimated count is greater then the recovered count, in other 
 		   words there are some last unit headers should be removed. */
-		aal_exception_error("Node %llu, item %u: entries [%u..%u] look "
-				    "corrupted. %s", place->block->nr,
-				    place->pos.item, flags->count, e_count - 1, 
-				    mode == RM_BUILD ? "Removed." : "");
+		aal_error("Node %llu, item %u: entries [%u..%u] look "
+			  "corrupted. %s", place->block->nr,
+			  place->pos.item, flags->count, e_count - 1, 
+			  mode == RM_BUILD ? "Removed." : "");
 		
 		if (mode == RM_BUILD) {
 			hint.count = e_count - flags->count;
@@ -508,10 +508,10 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 	
 	if (i) {
 		/* Some first units should be removed. */
-		aal_exception_error("Node %llu, item %u: entries [%u..%u] look "
-				    " corrupted. %s", place->block->nr, 
-				    place->pos.item, 0, i - 1, 
-				    mode == RM_BUILD ? "Removed." : "");
+		aal_error("Node %llu, item %u: entries [%u..%u] look "
+			  " corrupted. %s", place->block->nr, 
+			  place->pos.item, 0, i - 1, 
+			  mode == RM_BUILD ? "Removed." : "");
 		
 		if (mode == RM_BUILD) {
 			hint.count = i;
@@ -544,11 +544,11 @@ static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 		
 		/* Looking for the problem interval end. */
 		if (aal_test_bit(flags->elem + i, R)) {
-			aal_exception_error("Node %llu, item %u: entries "
-					    "[%u..%u] look corrupted. %s", 
-					    place->block->nr, place->pos.item,
-					    last, i - 1, mode == RM_BUILD ? 
-					    "Removed." : "");
+			aal_error("Node %llu, item %u: entries "
+				  "[%u..%u] look corrupted. %s", 
+				  place->block->nr, place->pos.item,
+				  last, i - 1, mode == RM_BUILD ? 
+				  "Removed." : "");
 
 			if (mode != RM_BUILD) {
 				res |= RE_FATAL;
@@ -589,9 +589,9 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 	pol = cde40_key_pol(place);
 	
 	if (place->len < en_len_min(1, pol)) {
-		aal_exception_error("Node %llu, item %u: item length (%u) is too "
-				    "small to contain a valid item.", 
-				    place->block->nr, place->pos.item, place->len);
+		aal_error("Node %llu, item %u: item length (%u) is too "
+			  "small to contain a valid item.", 
+			  place->block->nr, place->pos.item, place->len);
 		return RE_FATAL;
 	}
 	
@@ -631,12 +631,11 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 				continue;
 
 			/* Hashed, key is wrong, remove the entry. */
-			aal_exception_error("Node (%llu), item (%u): wrong key "
-					    "[%s] of the unit (%u).%s", 
-					    place->block->nr, place->pos.item,
-					    cde40_core->key_ops.print(&key, PO_INODE),
-					    i - 1, mode == RM_BUILD ? " Removed." 
-					    : "");
+			aal_error("Node (%llu), item (%u): wrong key "
+				  "[%s] of the unit (%u).%s", 
+				  place->block->nr, place->pos.item,
+				  cde40_core->key_ops.print(&key, PO_INODE),
+				  i - 1, mode == RM_BUILD ? " Removed." : "");
 			
 			if (mode != RM_BUILD) {
 				res |= RE_FATAL;
@@ -659,13 +658,11 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 				continue;
 			
 			/* Not hashed, key is wrong, remove the entry. */
-			
-			aal_exception_error("Node (%llu), item (%u): wrong key "
-					    "[%s] of the unit (%u).%s", 
-					    place->block->nr, place->pos.item, 
-					    cde40_core->key_ops.print(&key, PO_INODE),
-					    i - 1, mode == RM_BUILD ? " Removed." 
-					    : "");
+			aal_error("Node (%llu), item (%u): wrong key "
+				  "[%s] of the unit (%u).%s", 
+				  place->block->nr, place->pos.item, 
+				  cde40_core->key_ops.print(&key, PO_INODE),
+				  i - 1, mode == RM_BUILD ? " Removed." : "");
 			
 			if (mode != RM_BUILD) {
 				res |= RE_FATAL;
@@ -695,12 +692,12 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 		cde40_get_hash(place, i, &ckey);
 		
 		if (plug_call(pkey.plug->o.key_ops, compfull, &pkey, &ckey) == 1) {
-			aal_exception_error("Node (%llu), item (%u): wrong "
-					    "order of units {%d, %d}. The "
-					    "whole item has to be removed -- "
-					    "will be improved soon.", 
-					    place->block->nr, place->pos.item, 
-					    i - 1, i);
+			aal_error("Node (%llu), item (%u): wrong "
+				  "order of units {%d, %d}. The "
+				  "whole item has to be removed -- "
+				  "will be improved soon.", 
+				  place->block->nr, place->pos.item, 
+				  i - 1, i);
 			return res & RE_FATAL;
 		}
 		pkey = ckey;

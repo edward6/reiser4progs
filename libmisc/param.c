@@ -21,8 +21,8 @@ errno_t misc_param_override(char *override) {
 			continue;
 
 		if (!(index = aal_strchr(entry, '='))) {
-			aal_exception_error("Invalid params override "
-					    "entry detected %s.", entry);
+			aal_error("Invalid params override "
+				  "entry detected %s.", entry);
 			return -EINVAL;
 		}
 
@@ -32,8 +32,8 @@ errno_t misc_param_override(char *override) {
 		aal_strncpy(name, entry, index - entry);
 
 		if (index + 1 == '\0') {
-			aal_exception_error("Invalid params override "
-					    "entry detected %s.", entry);
+			aal_error("Invalid params override "
+				  "entry detected %s.", entry);
 			return -EINVAL;
 		}
 		

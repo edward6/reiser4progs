@@ -95,9 +95,8 @@ reiser4_master_t *reiser4_master_unpack(aal_device_t *device,
 		return NULL;
 	
 	if (size != sizeof(master->ent)) {
-		aal_exception_error("Invalid size %u is "
-				    "detected in stream.",
-				    size);
+		aal_error("Invalid size %u is detected in stream.",
+			  size);
 		goto error_free_master;
 	}
 
@@ -131,8 +130,8 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	if (!(format_plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE,
 						  format_pid)))
 	{
-		aal_exception_error("Can't find format plugin "
-				    "by its id 0x%x.", format_pid);
+		aal_error("Can't find format plugin "
+			  "by its id 0x%x.", format_pid);
 	}
 	
 	aal_stream_format(stream, "Master super block (%lu):\n",
@@ -234,7 +233,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 				     REISER4_MASTER_OFFSET /
 				     device->blksize)))
 	{
-		aal_exception_fatal("Can't read master super block.");
+		aal_fatal("Can't read master super block.");
 		goto error_free_master;
 	}
 
@@ -247,8 +246,8 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	if (aal_strncmp(SUPER(master)->ms_magic, REISER4_MASTER_MAGIC,
 			aal_strlen(REISER4_MASTER_MAGIC)) != 0)
 	{
-		aal_exception_fatal("Wrong magic found in the master "
-				    "super block.");
+		aal_fatal("Wrong magic found in the master "
+			  "super block.");
 		goto error_free_master;
 	}
     
@@ -275,8 +274,8 @@ errno_t reiser4_master_reopen(reiser4_master_t *master) {
 	if (!(block = aal_block_load(master->device,
 				     blksize, offset)))
 	{
-		aal_exception_fatal("Can't read master super block "
-				    "at %llu.", offset);
+		aal_fatal("Can't read master super block "
+			  "at %llu.", offset);
 		return -EIO;
 	}
 
@@ -319,9 +318,9 @@ errno_t reiser4_master_sync(
 	
 	/* Writing master super block to its device */
 	if ((res = aal_block_write(block))) {
-		aal_exception_error("Can't write master super block "
-				    "at %llu. %s.", block->nr,
-				    block->device->error);
+		aal_error("Can't write master super block "
+			  "at %llu. %s.", block->nr,
+			  block->device->error);
 		goto error_free_block;
 	}
 

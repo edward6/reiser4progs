@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
 
 			/* Parsing block number */
 			if ((blocknr = misc_str2long(optarg, 10)) == INVAL_DIG) {
-				aal_exception_error("Invalid block number (%s).", optarg);
+				aal_error("Invalid block number (%s).", optarg);
 				return USER_ERROR;
 			}
 			
@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
 		misc_print_banner(argv[0]);
 
 	if (libreiser4_init()) {
-		aal_exception_error("Can't initialize libreiser4.");
+		aal_error("Can't initialize libreiser4.");
 		goto error;
 	}
 
@@ -200,8 +200,8 @@ int main(int argc, char *argv[]) {
 		override[aal_strlen(override) - 1] = '\0';
 		
 		if (!(behav_flags & BF_QUIET)) {
-			aal_exception_mess("Overriding default params "
-					   "by \"%s\".", override);
+			aal_mess("Overriding default params "
+				 "by \"%s\".", override);
 		}
 		
 		if (misc_param_override(override))
@@ -220,15 +220,15 @@ int main(int argc, char *argv[]) {
 	host_dev = argv[optind];
     
 	if (stat(host_dev, &st) == -1) {
-		aal_exception_error("Can't stat %s. %s.", host_dev,
-				    strerror(errno));
+		aal_error("Can't stat %s. %s.", host_dev,
+			  strerror(errno));
 		goto error_free_libreiser4;
 	}
 	
 	/* Checking if passed partition is mounted */
 	if (misc_dev_mounted(host_dev, "rw") && !(behav_flags & BF_FORCE)) {
-		aal_exception_error("Device %s is mounted 'rw' at the moment. "
-				    "Use -f to force over.", host_dev);
+		aal_error("Device %s is mounted 'rw' at the moment. "
+			  "Use -f to force over.", host_dev);
 		goto error_free_libreiser4;
 	}
 
@@ -237,8 +237,8 @@ int main(int argc, char *argv[]) {
 				       (behav_flags & BF_UNPACK_META ) ?
 				       O_RDWR : O_RDONLY)))
 	{
-		aal_exception_error("Can't open %s. %s.", host_dev,
-				    strerror(errno));
+		aal_error("Can't open %s. %s.", host_dev,
+			  strerror(errno));
 		goto error_free_libreiser4;
 	}
 
@@ -248,29 +248,28 @@ int main(int argc, char *argv[]) {
 		aal_stream_init(&stream, stdin, &file_stream);
 		
 		if (!(fs = reiser4_fs_unpack(device, &stream))) {
-			aal_exception_error("Can't unpack filesystem.");
+			aal_error("Can't unpack filesystem.");
 			goto error_free_device;
 		}
 
 		aal_stream_fini(&stream);
 
 		if (reiser4_fs_sync(fs)) {
-			aal_exception_error("Can't save unpacked filesystem.");
+			aal_error("Can't save unpacked filesystem.");
 			goto error_free_fs;
 		}
 	} else {
 		/* Open file system on the device */
 		if (!(fs = reiser4_fs_open(device, FALSE))) {
-			aal_exception_error("Can't open reiser4 on %s", 
-					    host_dev);
-			
+			aal_error("Can't open reiser4 on %s", 
+				  host_dev);
 			goto error_free_device;
 		}
 	}
 	
 	/* Opening the journal */
 	if (!(fs->journal = reiser4_journal_open(fs, device))) {
-		aal_exception_error("Can't open journal on %s", host_dev);
+		aal_error("Can't open journal on %s", host_dev);
 		goto error_free_fs;
 	}
 		
@@ -333,7 +332,7 @@ int main(int argc, char *argv[]) {
 				&file_stream);
 		
 		if (reiser4_fs_pack(fs, &stream)) {
-			aal_exception_error("Can't pack filesystem.");
+			aal_error("Can't pack filesystem.");
 			goto error_free_journal;
 		}
 

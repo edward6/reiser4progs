@@ -60,9 +60,8 @@ static errno_t callback_fetch_journal(void *entity, blk_t start,
 					       journal->blksize,
 					       start)))
 	{
-		aal_exception_error("Can't read journal header from "
-				    "block %llu. %s.", start,
-				    journal->device->error);
+		aal_error("Can't read journal header from block "
+			  "%llu. %s.", start, journal->device->error);
 		return -EIO;
 	}
 	
@@ -71,8 +70,7 @@ static errno_t callback_fetch_journal(void *entity, blk_t start,
 					       journal->blksize,
 					       start + 1)))
 	{
-		aal_exception_error("Can't read journal footer from "
-				    "block %llu. %s.",
+		aal_error("Can't read journal footer from block %llu. %s.",
 				    start + 1, journal->device->error);
 		return -EIO;
 	}
@@ -108,8 +106,7 @@ static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *forma
 	if (journal40_layout((generic_entity_t *)journal,
 			     callback_fetch_journal, journal))
 	{
-		aal_exception_error("Can't open journal "
-				    "header/footer.");
+		aal_error("Can't open journal header/footer.");
 		goto error_free_journal;
 	}
 
@@ -131,8 +128,8 @@ static errno_t callback_alloc_journal(void *entity, blk_t start,
 						journal->blksize,
 						start)))
 	{
-		aal_exception_error("Can't alloc journal header "
-				    "on block %llu.", start);
+		aal_error("Can't alloc journal header on "
+			  "block %llu.", start);
 		return -ENOMEM;
 	}
 
@@ -140,8 +137,8 @@ static errno_t callback_alloc_journal(void *entity, blk_t start,
 						journal->blksize,
 						start + 1)))
 	{
-		aal_exception_error("Can't alloc journal footer "
-				    "on block %llu.", start + 1);
+		aal_error("Can't alloc journal footer "
+			  "on block %llu.", start + 1);
 		return -ENOMEM;
 	}
 
@@ -174,8 +171,7 @@ static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *for
 	if (journal40_layout((generic_entity_t *)journal,
 			     callback_alloc_journal, journal))
 	{
-		aal_exception_error("Can't create journal "
-				    "header/footer.");
+		aal_error("Can't create journal header/footer.");
 		goto error_free_journal;
 	}
     
@@ -194,14 +190,14 @@ static errno_t callback_sync_journal(void *entity, blk_t start,
 	journal40_t *journal = (journal40_t *)entity;
 	
 	if (aal_block_write(journal->header)) {
-		aal_exception_error("Can't write journal header. "
-				    "%s.", journal->device->error);
+		aal_error("Can't write journal header. %s.",
+			  journal->device->error);
 		return -EIO;
 	}
 	
 	if (aal_block_write(journal->footer)) {
-		aal_exception_error("Can't write journal footer. "
-				    "%s.", journal->device->error);
+		aal_error("Can't write journal footer. %s.",
+			  journal->device->error);
 		return -EIO;
 	}
 
@@ -255,17 +251,16 @@ static errno_t journal40_update(journal40_t *journal) {
 	if (!(tx_block = aal_block_load(device, journal->blksize,
 					last_commited_tx)))
 	{
-		aal_exception_error("Can't read block %llu while updating "
-				    "the journal. %s.", last_commited_tx,
-				    device->error);
+		aal_error("Can't read block %llu while updating "
+			  "the journal. %s.", last_commited_tx,
+			  device->error);
 		return -EIO;
 	}
 
 	tx_header = (journal40_tx_header_t *)tx_block->data;
 	
 	if (aal_memcmp(tx_header->magic, TXH_MAGIC, TXH_MAGIC_SIZE)) {
-		aal_exception_error("Invalid transaction header has "
-				    "been detected.");
+		aal_error("Invalid transaction header has been detected.");
 		res = -EINVAL;
 		goto error_free_tx_block;
 	}
@@ -320,9 +315,9 @@ errno_t journal40_traverse_trans(
 		if (!(log_block = aal_block_load(device, journal->blksize,
 						 log_blk)))
 		{
-			aal_exception_error("Can't read block %llu while "
-					    "traversing the journal. %s.", 
-					    log_blk, device->error);
+			aal_error("Can't read block %llu while "
+				  "traversing the journal. %s.", 
+				  log_blk, device->error);
 			return -EIO;
 		}
 
@@ -331,8 +326,7 @@ errno_t journal40_traverse_trans(
 		log_blk = get_lh_next_block(lr_header);
 
 		if (aal_memcmp(lr_header->magic, LGR_MAGIC, LGR_MAGIC_SIZE)) {
-			aal_exception_error("Invalid log record header has been"
-					    " detected.");
+			aal_error("Invalid log record header has been detected.");
 			res = -ESTRUCT;
 			goto error_free_log_block;
 		}
@@ -365,10 +359,10 @@ errno_t journal40_traverse_trans(
 				if (!(wan_block = aal_block_load(device, journal->blksize,
 								 get_le_wandered(entry))))
 				{
-					aal_exception_error("Can't read block %llu while "
-							    "traversing the journal. %s.",
-							    get_le_wandered(entry), 
-							    device->error);
+					aal_error("Can't read block %llu while "
+						  "traversing the journal. %s.",
+						  get_le_wandered(entry), 
+						  device->error);
 					res = -EIO;
 					goto error_free_log_block;
 				}
@@ -447,9 +441,8 @@ errno_t journal40_traverse(
 		if (!(tx_block = aal_block_load(device, journal->blksize,
 						txh_blk)))
 		{
-			aal_exception_error("Can't read block %llu while "
-					    "traversing the journal. %s.",
-					    txh_blk, device->error);
+			aal_error("Can't read block %llu while traversing "
+				  "the journal. %s.", txh_blk, device->error);
 			res = -EIO;
 			goto error_free_tx_list;
 		}
@@ -457,8 +450,7 @@ errno_t journal40_traverse(
 		tx_header = (journal40_tx_header_t *)tx_block->data;
 
 		if (aal_memcmp(tx_header->magic, TXH_MAGIC, TXH_MAGIC_SIZE)) {
-			aal_exception_error("Invalid transaction header "
-					    "has been detected.");
+			aal_error("Invalid transaction header has been detected.");
 			res = -ESTRUCT;
 			goto error_free_tx_list;
 		}
@@ -510,9 +502,7 @@ static errno_t callback_replay_handler(generic_entity_t *entity,
 	aal_block_move(block, journal->device, orig);
 	    
 	if ((res = aal_block_write(block))) {
-		aal_exception_error("Can't write block %llu.", 
-				    block->nr);
-		
+		aal_error("Can't write block %llu.", block->nr);
 		aal_block_free(block);
 	}
 

@@ -542,8 +542,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	if (!(dir->hash = dir40_core->factory_ops.ifind(HASH_PLUG_TYPE, 
 						   hint->body.dir.hash))) 
 	{
-		aal_exception_error("Can't find hash plugin by its "
-				    "id 0x%x.", hint->body.dir.hash);
+		aal_error("Can't find hash plugin by its "
+			  "id 0x%x.", hint->body.dir.hash);
 		goto error_free_dir;
 	}
 
@@ -553,8 +553,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	if (!(body_plug = dir40_core->factory_ops.ifind(ITEM_PLUG_TYPE, 
 							body_pid)))
 	{
-		aal_exception_error("Can't find direntry item plugin by "
-				    "its id 0x%x.", body_pid);
+		aal_error("Can't find direntry item plugin by "
+			  "its id 0x%x.", body_pid);
 		goto error_free_dir;
 	}
     

@@ -100,20 +100,20 @@ static errno_t format40_check(generic_entity_t *entity,
 		(format->blksize / format->device->blksize);
 	
 	if (get_sb_block_count(super) > max_format_len) {
-		aal_exception_error("Superblock has an invalid block "
-				    "count %llu for max possible length "
-				    "%llu blocks.", get_sb_block_count(super),
-				    max_format_len);
+		aal_error("Superblock has an invalid block "
+			  "count %llu for max possible length "
+			  "%llu blocks.", get_sb_block_count(super),
+			  max_format_len);
 		return -EINVAL;
 	}
     
 	if (get_sb_root_block(super) <= format40_start(entity) ||
 	    get_sb_root_block(super) >= max_format_len)
 	{
-		aal_exception_error("Superblock has an invalid root block "
-				    "%llu. It must lie between %llu and %llu "
-				    "blocks.", get_sb_root_block(super),
-				    format40_start(entity), max_format_len);
+		aal_error("Superblock has an invalid root block "
+			  "%llu. It must lie between %llu and %llu "
+			  "blocks.", get_sb_root_block(super),
+			  format40_start(entity), max_format_len);
 		return -EINVAL;
 	}
 	
@@ -137,8 +137,8 @@ static errno_t format40_super_open(format40_t *format) {
 		       format->blksize, offset);
 
 	if ((res = aal_block_read(&block))) {
-		aal_exception_error("Can't read format40 super block. "
-				    "%s.", format->device->error);
+		aal_error("Can't read format40 super block. "
+			  "%s.", format->device->error);
 		goto error_free_block;
 	}
 
@@ -282,9 +282,8 @@ static generic_entity_t *format40_create(fs_desc_t *desc,
 	if (format40_clobber_block((generic_entity_t *)format,
 				   0, start, NULL))
 	{
-		aal_exception_error("Can't clobber format "
-				    "skipped area [%u-%llu].",
-				    0, start - 1);
+		aal_error("Can't clobber format skipped area [%u-%llu].",
+			  0, start - 1);
 		aal_free(format);
 		return NULL;
 	}
@@ -435,8 +434,8 @@ errno_t format40_print(generic_entity_t *entity,
 	if (!(tail_plug = core->factory_ops.ifind(POLICY_PLUG_TYPE,
 						   tail_pid)))
 	{
-		aal_exception_error("Can't find tail policy plugin "
-				    "by its id 0x%x.", tail_pid);
+		aal_error("Can't find tail policy plugin "
+			  "by its id 0x%x.", tail_pid);
 	}
 		
 	aal_stream_format(stream, "Format super block (%lu):\n",

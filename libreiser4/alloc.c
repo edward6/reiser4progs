@@ -71,15 +71,15 @@ static reiser4_alloc_t *reiser4_alloc_init(reiser4_fs_t *fs,
 	alloc->fs->alloc = alloc;
 	
 	if ((pid = reiser4_format_alloc_pid(fs->format)) == INVAL_PID) {
-		aal_exception_error("Invalid block allocator plugin id has "
-				    "been found.");
+		aal_error("Invalid block allocator plugin id has "
+			  "been found.");
 		goto error_free_alloc;
 	}
     
 	/* Finding block allocator plugin */
 	if (!(plug = reiser4_factory_ifind(ALLOC_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find block allocator plugin by "
-				    "its id 0x%x.", pid);
+		aal_error("Can't find block allocator plugin by "
+			  "its id 0x%x.", pid);
 		goto error_free_alloc;
 	}
 
@@ -99,8 +99,7 @@ static reiser4_alloc_t *reiser4_alloc_init(reiser4_fs_t *fs,
 	}
 
 	if (!alloc->entity) {
-		aal_exception_error("Can't initialize block "
-				    "allocator.");
+		aal_error("Can't initialize block allocator.");
 		goto error_free_alloc;
 	}
 
@@ -164,8 +163,8 @@ reiser4_alloc_t *reiser4_alloc_unpack(reiser4_fs_t *fs,
 	
 	/* Getting needed plugin from plugin factory by its id */
 	if (!(plug = reiser4_factory_ifind(ALLOC_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find block allocator plugin "
-				    "by its id 0x%x.", pid);
+		aal_error("Can't find block allocator plugin "
+			  "by its id 0x%x.", pid);
 		return NULL;
 	}
     
@@ -183,7 +182,7 @@ reiser4_alloc_t *reiser4_alloc_unpack(reiser4_fs_t *fs,
 	if (!(alloc->entity = plug_call(plug->o.alloc_ops, unpack,
 					&desc, stream)))
 	{
-		aal_exception_error("Can't unpack block allocator.");
+		aal_error("Can't unpack block allocator.");
 		goto error_free_alloc;
 	}
 	

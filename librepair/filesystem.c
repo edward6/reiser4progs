@@ -27,14 +27,14 @@ errno_t repair_fs_open(repair_data_t *repair,
 	res |= repair_master_open(repair->fs, repair->mode);
 	
 	if (repair_error_fatal(res)) {
-		aal_exception_fatal("Failed to open the master super block.");
+		aal_fatal("Failed to open the master super block.");
 		goto error_fs_free;
 	}
 	
 	res |= repair_format_open(repair->fs, repair->mode);
 	
 	if (repair_error_fatal(res)) {
-		aal_exception_fatal("Failed to open the format.");
+		aal_fatal("Failed to open the format.");
 		goto error_master_close;
 	}
 
@@ -44,29 +44,29 @@ errno_t repair_fs_open(repair_data_t *repair,
 	res |= repair_status_open(repair->fs, repair->mode);
 	
 	if (repair_error_fatal(res)) {
-		aal_exception_fatal("Failed to open the status block.");
+		aal_fatal("Failed to open the status block.");
 		goto error_format_close;
 	}
 	
 	res |= repair_journal_open(repair->fs, journal_device, repair->mode);
 	
 	if (repair_error_fatal(res)) {
-		aal_exception_fatal("Failed to open the journal.");
+		aal_fatal("Failed to open the journal.");
 		goto error_status_close;
 	}
 	
 	res |= repair_journal_replay(repair->fs->journal, repair->fs->device);
 	
 	if (repair_error_fatal(res)) {
-		aal_exception_fatal("Failed to replay the journal.");
+		aal_fatal("Failed to replay the journal.");
 		goto error_journal_close;
 	}
 	
 	res |= repair_format_update(repair->fs->format);
 	
 	if (repair_error_fatal(res)) {
-		aal_exception_fatal("Failed to update the format after journal "
-				    "replaying.");
+		aal_fatal("Failed to update the format after journal "
+			  "replaying.");
 		goto error_journal_close;
 	}
 
@@ -75,7 +75,7 @@ errno_t repair_fs_open(repair_data_t *repair,
 	/* Block and oid allocator plugins are specified by format plugin 
 	 * unambiguously, so there is nothing to be checked here anymore. */
 	if (!(repair->fs->alloc = reiser4_alloc_open(repair->fs, len))) {
-		aal_exception_fatal("Failed to open a block allocator.");
+		aal_fatal("Failed to open a block allocator.");
 		res = -EINVAL;
 		goto error_journal_close;
 	}
@@ -84,10 +84,10 @@ errno_t repair_fs_open(repair_data_t *repair,
 		goto error_alloc_close;
 	
 	if (error && repair->mode != RM_CHECK)
-		aal_exception_mess("Checksums will be fixed later.\n");
+		aal_mess("Checksums will be fixed later.\n");
 		
 	if (!(repair->fs->oid = reiser4_oid_open(repair->fs))) {	
-		aal_exception_fatal("Failed to open an object id allocator.");
+		aal_fatal("Failed to open an object id allocator.");
 		res = -EINVAL;
 		goto error_alloc_close;
 	}

@@ -77,8 +77,7 @@ node_t *reiser4_node_create(reiser4_tree_t *tree, blk_t nr,
     
 	/* Finding the node plugin by its id */
 	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find node plugin by its "
-				    "id 0x%x.", pid);
+		aal_error("Can't find node plugin by its id 0x%x.", pid);
 		return NULL;
 	}
 
@@ -147,8 +146,8 @@ node_t *reiser4_node_unpack(reiser4_tree_t *tree, aal_stream_t *stream) {
 	
 	/* Finding the node plugin by its id */
 	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find node plugin by its id "
-				    "0x%x.", pid);
+		aal_error("Can't find node plugin by its id "
+			  "0x%x.", pid);
 		return NULL;
 	}
 
@@ -252,8 +251,8 @@ node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr) {
 
 	/* Load block at @nr, that node lie in. */
 	if (!(block = aal_block_load(device, size, nr))) {
-		aal_exception_error("Can't load node %llu. %s.",
-				    nr, device->error);
+		aal_error("Can't load node %llu. %s.",
+			  nr, device->error);
 		goto error_free_node;
 	}
 
@@ -286,8 +285,7 @@ errno_t reiser4_node_fini(node_t *node) {
 #ifndef ENABLE_STAND_ALONE
 	/* Node should be clean when it is going to be closed. */
 	if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
-		aal_exception_error("Can't write node %llu.",
-				    node_blocknr(node));
+		aal_error("Can't write node %llu.", node_blocknr(node));
 	}
 #endif
 
@@ -447,10 +445,10 @@ errno_t reiser4_node_shrink(node_t *node, pos_t *pos,
 	if ((res = plug_call(node->entity->plug->o.node_ops,
 			     shrink, node->entity, pos, len, count)))
 	{
-		aal_exception_error("Node %llu, pos %u/%u: can't "
-				    "shrink the node on %u bytes.", 
-				    node_blocknr(node), pos->item, 
-				    pos->unit, len);
+		aal_error("Node %llu, pos %u/%u: can't "
+			  "shrink the node on %u bytes.", 
+			  node_blocknr(node), pos->item, 
+			  pos->unit, len);
 	}
 
 	return res;
@@ -536,9 +534,9 @@ int64_t reiser4_node_modify(node_t *node, pos_t *pos,
 	
 	/* Checking if item length is greater then free space in the node. */
 	if (needed > reiser4_node_space(node)) {
-		aal_exception_error("There is no space to insert new "
-				    "item/unit of (%u) size in the node "
-				    "(%llu).", len, node_blocknr(node));
+		aal_error("There is no space to insert new "
+			  "item/unit of (%u) size in the node "
+			  "(%llu).", len, node_blocknr(node));
 		return -EINVAL;
 	}
 
@@ -612,9 +610,9 @@ errno_t reiser4_node_remove(node_t *node, pos_t *pos,
 	if ((res = plug_call(node->entity->plug->o.node_ops,
 			     remove, node->entity, pos, hint)))
 	{
-		aal_exception_error("Can't remove %llu items/units "
-				    "from node %llu.", hint->count,
-				    node_blocknr(node));
+		aal_error("Can't remove %llu items/units "
+			  "from node %llu.", hint->count,
+			  node_blocknr(node));
 		return res;
 	}
 

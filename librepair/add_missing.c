@@ -113,9 +113,9 @@ static errno_t repair_am_node_prepare(repair_am_t *am, node_t *node) {
 
 	for (place.pos.item = 0; place.pos.item < count; place.pos.item++) {
 		if ((res = reiser4_place_fetch(&place))) {
-			aal_exception_error("Node (%llu), item (%u): failed to "
-					    "open the item.",node_blocknr(node),
-					    place.pos.item);
+			aal_error("Node (%llu), item (%u): failed to "
+				  "open the item.",node_blocknr(node),
+				  place.pos.item);
 
 			return res;
 		}
@@ -184,8 +184,8 @@ static errno_t repair_am_nodes_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 			am->progress_handler(am->progress);
 
 		if (node == NULL) {
-			aal_exception_fatal("Add Missing pass failed to "
-					    "open the node (%llu)", blk);
+			aal_fatal("Add Missing pass failed to "
+				  "open the node (%llu)", blk);
 
 			return -EINVAL;
 		}
@@ -204,8 +204,8 @@ static errno_t repair_am_nodes_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 
 		res = repair_tree_attach(am->repair->fs->tree, node);
 		if (res < 0 && res != -ESTRUCT) {
-			aal_exception_bug("Add missing pass failed to attach "
-					  "the node (%llu) to the tree.", blk);
+			aal_bug("Add missing pass failed to attach "
+				"the node (%llu) to the tree.", blk);
 
 			goto error_close_node;
 		} else if (res == 0) {
@@ -262,8 +262,8 @@ static errno_t repair_am_items_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 			am->progress_handler(am->progress);
 
 		if (node == NULL) {
-			aal_exception_fatal("Add Missing pass failed to "
-					    "open the node (%llu)", blk);
+			aal_fatal("Add Missing pass failed to "
+				  "open the node (%llu)", blk);
 			return -EINVAL;
 		}
 
@@ -277,9 +277,9 @@ static errno_t repair_am_items_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 			aal_assert("vpf-636", pos->unit == MAX_UINT32);
 
 			if ((res = reiser4_place_fetch(&place))) {
-				aal_exception_error("Node (%llu), item (%u): "
-						    "cannot open the item "
-						    "place.", blk, pos->item);
+				aal_error("Node (%llu), item (%u): "
+					  "cannot open the item "
+					  "place.", blk, pos->item);
 
 				goto error_close_node;
 			}

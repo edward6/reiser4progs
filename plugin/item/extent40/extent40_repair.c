@@ -49,13 +49,13 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 		if (!res) continue;
 		
 		/* Zero the problem region. */
-		aal_exception_error("Node (%llu), item (%u), unit (%u): "
-				    "points %s region [%llu..%llu].%s",
-				    place->block->nr, place->pos.item, i, 
-				    res == RE_FATAL? "out of the fs," : 
-				    "to the already used blocks, ", start,
-				    start + width - 1, mode != RM_CHECK ? 
-				    " Zeroed." : "");
+		aal_error("Node (%llu), item (%u), unit (%u): "
+			  "points %s region [%llu..%llu].%s",
+			  place->block->nr, place->pos.item, i, 
+			  res == RE_FATAL? "out of the fs," : 
+			  "to the already used blocks, ", start,
+			  start + width - 1, mode != RM_CHECK ? 
+			  " Zeroed." : "");
 
 		if (mode != RM_CHECK) {
 			et40_set_start(extent, 0);
@@ -76,9 +76,9 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 	
 	/* Length must be divisible by the extent40 unit length. */
 	if (place->len % sizeof(extent40_t)) {
-		aal_exception_error("Node (%llu), item (%u): extent40 "
-				    "item of not valid length found.",
-				    place->block->nr, place->pos.item);
+		aal_error("Node (%llu), item (%u): extent40 "
+			  "item of not valid length found.",
+			  place->block->nr, place->pos.item);
 		return RE_FATAL;
 	}
 	
@@ -86,9 +86,9 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 	if (plug_call(place->key.plug->o.key_ops, get_offset, &place->key) %
 	    extent40_blksize(place)) 
 	{
-		aal_exception_error("Node (%llu), item (%u): extent40 item "
-				    "with not valid key offset found.", 
-				    place->block->nr, place->pos.item);
+		aal_error("Node (%llu), item (%u): extent40 item "
+			  "with not valid key offset found.", 
+			  place->block->nr, place->pos.item);
 		return RE_FATAL;
 	}
 	
@@ -96,9 +96,9 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 	units = extent40_units(place);
 	
 	if (!units) {
-		aal_exception_error("Node (%llu), item (%u): extent40 "
-				    "item with no units found.",
-				    place->block->nr, place->pos.item);
+		aal_error("Node (%llu), item (%u): extent40 "
+			  "item with no units found.",
+			  place->block->nr, place->pos.item);
 		return RE_FATAL;
 	}
 	
@@ -112,11 +112,11 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 		if (start != EXTENT_UNALLOC_UNIT)
 			continue;
 
-		aal_exception_error("Node (%llu), item (%u), unit (%u): "
-				    "unallocated unit is found.%s",
-				    place->block->nr, place->pos.item, i, 
-				    mode == RM_CHECK ? "" : "Zeroed.");
-
+		aal_error("Node (%llu), item (%u), unit (%u): "
+			  "unallocated unit is found.%s",
+			  place->block->nr, place->pos.item, i, 
+			  mode == RM_CHECK ? "" : "Zeroed.");
+		
 		if (mode != RM_CHECK) {
 			et40_set_start(extent, 0);
 			place_mkdirty(place);

@@ -45,8 +45,10 @@ bool_t misc_mpressure_detect(void) {
 		return 0;
 
 	/* Open info file of current process. */
+
+	/* FIXME-UMKA: Is this safe enough on 2.6.x? */
 	if (!(file = fopen("/proc/self/stat", "r"))) {
-		aal_exception_error("Can't open /proc/self/stat.");
+		aal_error("Can't open /proc/self/stat.");
 		return 0;
 	}
 

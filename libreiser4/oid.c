@@ -65,15 +65,15 @@ reiser4_oid_t *reiser4_oid_open(
 	oid->fs->oid = oid;
 	
 	if ((pid = reiser4_format_oid_pid(fs->format)) == INVAL_PID) {
-		aal_exception_error("Invalid oid allocator plugin id "
-				    "has been detected.");
+		aal_error("Invalid oid allocator plugin id "
+			  "has been detected.");
 		goto error_free_oid;
 	}
     
 	/* Getting oid allocator plugin */
 	if (!(plug = reiser4_factory_ifind(OID_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find oid allocator plugin by "
-				    "its id 0x%x.", pid);
+		aal_error("Can't find oid allocator plugin by "
+			  "its id 0x%x.", pid);
 		goto error_free_oid;
 	}
     
@@ -81,8 +81,8 @@ reiser4_oid_t *reiser4_oid_open(
 	if (!(oid->entity = plug_call(plug->o.oid_ops, open,
 				      fs->format->entity))) 
 	{
-		aal_exception_error("Can't open oid allocator %s.",
-				    plug->label);
+		aal_error("Can't open oid allocator %s.",
+			  plug->label);
 		goto error_free_oid;
 	}
 
@@ -126,15 +126,15 @@ reiser4_oid_t *reiser4_oid_create(
 	oid->fs->oid = oid;
 	
 	if ((pid = reiser4_format_oid_pid(fs->format)) == INVAL_PID) {
-		aal_exception_error("Invalid oid allocator plugin id "
-				    "has been detected.");
+		aal_error("Invalid oid allocator plugin id "
+			  "has been detected.");
 		goto error_free_oid;
 	}
     
 	/* Getting plugin from plugin id */
 	if (!(plug = reiser4_factory_ifind(OID_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find oid allocator plugin "
-				    "by its id 0x%x.", pid);
+		aal_error("Can't find oid allocator plugin "
+			  "by its id 0x%x.", pid);
 		goto error_free_oid;
 	}
     
@@ -142,8 +142,8 @@ reiser4_oid_t *reiser4_oid_create(
 	if (!(oid->entity = plug_call(plug->o.oid_ops, create,
 				      fs->format->entity)))
 	{
-		aal_exception_error("Can't create oid allocator %s.", 
-				    plug->label);
+		aal_error("Can't create oid allocator %s.", 
+			  plug->label);
 		goto error_free_oid;
 	}
 

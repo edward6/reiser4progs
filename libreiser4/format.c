@@ -75,8 +75,8 @@ reiser4_format_t *reiser4_format_open(
     
 	/* Finding needed disk-format plugin by its plugin id. */
 	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find disk-format plugin by "
-				    "its id 0x%x.", pid);
+		aal_error("Can't find disk-format plugin by "
+			  "its id 0x%x.", pid);
 		goto error_free_format;
 	}
     
@@ -84,8 +84,8 @@ reiser4_format_t *reiser4_format_open(
 	if (!(format->entity = plug_call(plug->o.format_ops,
 					 open, &desc)))
 	{
-		aal_exception_fatal("Can't open disk-format %s.",
-				    plug->label);
+		aal_fatal("Can't open disk-format %s.",
+			  plug->label);
 		goto error_free_format;
 	}
 
@@ -112,8 +112,8 @@ reiser4_format_t *reiser4_format_create(
 
 	/* Getting needed plugin from plugin factory */
 	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid)))  {
-		aal_exception_error("Can't find disk-format plugin by "
-				    "its id 0x%x.", pid);
+		aal_error("Can't find disk-format plugin by "
+			  "its id 0x%x.", pid);
 		return NULL;
 	}
     
@@ -135,8 +135,8 @@ reiser4_format_t *reiser4_format_create(
 	if (!(format->entity = plug_call(plug->o.format_ops,
 					 create, &desc, blocks))) 
 	{
-		aal_exception_error("Can't create format %s on %s.",
-				    plug->label, fs->device->name);
+		aal_error("Can't create format %s on %s.",
+			  plug->label, fs->device->name);
     
 		aal_free(format);
 		return NULL;
@@ -172,8 +172,8 @@ reiser4_format_t *reiser4_format_unpack(reiser4_fs_t *fs,
 
 	/* Getting needed plugin from plugin factory */
 	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid)))  {
-		aal_exception_error("Can't find disk-format plugin by "
-				    "its id 0x%x.", pid);
+		aal_error("Can't find disk-format plugin by "
+			  "its id 0x%x.", pid);
 		return NULL;
 	}
     
@@ -190,7 +190,7 @@ reiser4_format_t *reiser4_format_unpack(reiser4_fs_t *fs,
 	if (!(format->entity = plug_call(plug->o.format_ops,
 					 unpack, &desc, stream)))
 	{
-		aal_exception_error("Can't unpack disk-format.");
+		aal_error("Can't unpack disk-format.");
 		goto error_free_format;
 	}
 

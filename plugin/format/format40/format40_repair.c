@@ -41,19 +41,19 @@ errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 			set_sb_block_count(super, count);
 			format->state |= (1 << ENTITY_DIRTY);
 		} else {
-			aal_exception_fatal("Number of blocks found in the "
-					    "superblock (%llu) is not equal to "
-					    "the size of the partition (%llu).\n "
-					    "Check the partition size first.", 
-					    get_sb_block_count(super), count);
+			aal_fatal("Number of blocks found in the "
+				  "superblock (%llu) is not equal to "
+				  "the size of the partition (%llu).\n "
+				  "Check the partition size first.", 
+				  get_sb_block_count(super), count);
 			return RE_FATAL;
 		}
 	} else if (count > get_sb_block_count(super)) {
 		/* Device is larger then fs size. */
-		aal_exception_fatal("Number of blocks found in the superblock "
-				    "(%llu) is not equal to the size of the "
-				    "partition (%llu). %s", get_sb_block_count(super),
-				    count, mode != RM_CHECK ? "Fixed.": "");
+		aal_fatal("Number of blocks found in the superblock "
+			  "(%llu) is not equal to the size of the "
+			  "partition (%llu). %s", get_sb_block_count(super),
+			  count, mode != RM_CHECK ? "Fixed.": "");
 		
 		set_sb_block_count(super, count);
 		
@@ -65,10 +65,10 @@ errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 	
 	/* Check the free block count. */
 	if (get_sb_free_blocks(super) > get_sb_block_count(super)) {
-		aal_exception_error("Invalid free block count (%llu) found in the "
-				    "superblock. %s", get_sb_free_blocks(super), 
-				    mode == RM_CHECK ? 
-				    "" : "Will be fixed later.");
+		aal_error("Invalid free block count (%llu) found in the "
+			  "superblock. %s", get_sb_free_blocks(super), 
+			  mode == RM_CHECK ? 
+			  "" : "Will be fixed later.");
 		
 		if (mode == RM_CHECK)
 			res |= RE_FIXABLE;
@@ -78,8 +78,8 @@ errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 	if (get_sb_root_block(super) >= get_sb_block_count(super) || 
 	    get_sb_root_block(super) <= FORMAT40_BLOCKNR(format->blksize))
 	{
-		aal_exception_error("Invalid root block number (%llu) found in "
-				    "the superblock.", get_sb_root_block(super));
+		aal_error("Invalid root block number (%llu) found in "
+			  "the superblock.", get_sb_root_block(super));
 		
 		if (mode != RM_BUILD)
 			res |= RE_FATAL;
@@ -109,16 +109,15 @@ errno_t format40_update(generic_entity_t *entity) {
 		return res;
 	
 	if ((res = aal_block_read(&block))) {
-		aal_exception_error("Failed to read the block "
-				    "(%llu).", blk);
+		aal_error("Failed to read the block (%llu).", blk);
 		goto error_free_block;
 	}
 	
 	super = (format40_super_t *)block.data;
 
+	format->super.sb_oid = super->sb_oid;
 	format->super.sb_free_blocks = super->sb_free_blocks;
 	format->super.sb_root_block = super->sb_root_block;
-	format->super.sb_oid = super->sb_oid;
 	format->super.sb_file_count = super->sb_file_count;
 	format->super.sb_tree_height = super->sb_tree_height;
 	format->super.sb_flushes = super->sb_flushes;
@@ -175,9 +174,8 @@ generic_entity_t *format40_unpack(fs_desc_t *desc,
 	aal_stream_read(stream, &size, sizeof(size));
 
 	if (size != sizeof(format->super)) {
-		aal_exception_error("Invalid size %u is "
-				    "detected in stream.",
-				    size);
+		aal_error("Invalid size %u is detected "
+			  "in stream.", size);
 		goto error_free_format;
 	}
 

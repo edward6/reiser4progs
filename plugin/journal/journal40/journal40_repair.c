@@ -181,16 +181,16 @@ static errno_t callback_journal_txh_check(generic_entity_t *entity, blk_t blk,
 	check_data->flags = 1 << TF_DATA_AREA_ONLY;
 	
 	if (journal40_blk_format_check(journal, blk, check_data)) {
-		aal_exception_error("Transaction header lies in the illegal block "
-				    "(%llu) for the used format (%s).", blk, 
-				    journal->format->plug->label);
+		aal_error("Transaction header lies in the illegal block "
+			  "(%llu) for the used format (%s).", blk, 
+			  journal->format->plug->label);
 		return -ESTRUCT;
 	}
 	
 	if (aux_bitmap_test(check_data->journal_layout, blk)) {
 		/* TxH block is met not for the 1 time. Kill the journal. */
-		aal_exception_error("Transaction header in the block (%llu) was "
-				    "met already.", blk);
+		aal_error("Transaction header in the block (%llu) was "
+			  "met already.", blk);
 		return -ESTRUCT;
 	}
 	
@@ -228,9 +228,9 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 	check_data->flags = blk_type == JB_ORG ? 0 : 1 << TF_DATA_AREA_ONLY;
 	
 	if (journal40_blk_format_check(journal, blk, check_data)) {
-		aal_exception_error("%s lies in the illegal block (%llu) for the "
-				    "used format (%s).", __blk_type_name(blk_type), 
-				    blk, journal->format->plug->label);
+		aal_error("%s lies in the illegal block (%llu) for the "
+			  "used format (%s).", __blk_type_name(blk_type), 
+			  blk, journal->format->plug->label);
 		return -ESTRUCT;
 	}
 	
@@ -242,18 +242,18 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 		if (!(log_block = aal_block_load(txh_block->device,
 						 journal->blksize, blk)))
 		{
-			aal_exception_error("Can't read block %llu while "
-					    "traversing the journal. %s.", blk, 
-					    txh_block->device->error);
+			aal_error("Can't read block %llu while "
+				  "traversing the journal. %s.", blk, 
+				  txh_block->device->error);
 			return -EIO;
 		}
 		
 		lr_header = (journal40_lr_header_t *)log_block->data;
 		
 		if (aal_memcmp(lr_header->magic, LGR_MAGIC, LGR_MAGIC_SIZE)) {
-			aal_exception_error("Transaction Header (%llu), Log record "
-					    "(%llu): Log Record Magic was not found.", 
-					    check_data->cur_txh, blk);
+			aal_error("Transaction Header (%llu), Log record "
+				  "(%llu): Log Record Magic was not found.", 
+				  check_data->cur_txh, blk);
 			aal_block_free(log_block);
 			return -ESTRUCT;
 		}
@@ -264,10 +264,10 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 	if (aux_bitmap_test(check_data->journal_layout, blk)) {
 		/* blk was met in the current trans more then once. */
 		if (aux_bitmap_test(check_data->current_layout, blk)) {
-			aal_exception_error("Transaction Header (%llu): %s block "
-					    "(%llu) was met in the transaction "
-					    "more then once.", check_data->cur_txh, 
-					    __blk_type_name(blk_type), blk);
+			aal_error("Transaction Header (%llu): %s block "
+				  "(%llu) was met in the transaction "
+				  "more then once.", check_data->cur_txh, 
+				  __blk_type_name(blk_type), blk);
 			return -ESTRUCT;
 		}
 		
@@ -296,27 +296,27 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 							 check_data);
 				
 				if (ret != -ESTRUCT) {
-					aal_exception_bug("Traverse failed to "
-							  "find a transaction the "
-							  "block (%llu) was met for "
-							  "the first time.", blk);
+					aal_bug("Traverse failed to "
+						"find a transaction the "
+						"block (%llu) was met for "
+						"the first time.", blk);
 					return ret;
 				}
 				
 				/* Found trans is the oldest problem, return it 
 				   to caller. */				
-				aal_exception_error("Transaction Header (%llu): "
-						    "transaction looks correct but "
-						    "uses the block (%llu) already "
-						    "used in the transaction (%llu).", 
-						    check_data->cur_txh, blk, 
-						    check_data->wanted_blk);
+				aal_error("Transaction Header (%llu): "
+					  "transaction looks correct but "
+					  "uses the block (%llu) already "
+					  "used in the transaction (%llu).", 
+					  check_data->cur_txh, blk, 
+					  check_data->wanted_blk);
 				
 				check_data->cur_txh = check_data->wanted_blk;
 			} else if (ret != -ESTRUCT) {
-				aal_exception_error("Transaction Header (%llu): "
-						    "corrupted log record circle "
-						    "found.", txh_block->nr);
+				aal_error("Transaction Header (%llu): "
+					  "corrupted log record circle "
+					  "found.", txh_block->nr);
 				
 				return ret;
 			}
@@ -333,18 +333,18 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 						 check_data);
 			
 			if (ret != -ESTRUCT) {
-				aal_exception_bug("Traverse failed to find a "
-						  "transaction the block (%llu) was "
-						  "met for the first time.", blk);
+				aal_bug("Traverse failed to find a "
+					"transaction the block (%llu) was "
+					"met for the first time.", blk);
 				return ret;
 			}
 			
-			aal_exception_error("Transaction Header (%llu): transaction "
-					    "looks correct but uses the block (%llu) "
-					    "already used in the transaction (%llu) "
-					    "as a %s block.", check_data->cur_txh,
-					    blk, check_data->wanted_blk, 
-					    __blk_type_name(check_data->found_type));
+			aal_error("Transaction Header (%llu): transaction "
+				  "looks correct but uses the block (%llu) "
+				  "already used in the transaction (%llu) "
+				  "as a %s block.", check_data->cur_txh,
+				  blk, check_data->wanted_blk, 
+				  __blk_type_name(check_data->found_type));
 			
 			/* The oldest problem transaction for TxH or LGR is the 
 			   current one, and for WAN, ORG is that found trans. */
@@ -367,21 +367,21 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 						 NULL, NULL, check_data);
 			
 			if (ret != -ESTRUCT) {
-				aal_exception_bug("Traverse failed to find a "
-						  "transaction the block (%llu) was "
-						  "met for the first time.", blk);
+				aal_bug("Traverse failed to find a "
+					"transaction the block (%llu) was "
+					"met for the first time.", blk);
 				return ret;
 			}
 			
 			/* If TxH was found, the current transaction is the oldest 
 			   problem trans. */
 			if (check_data->found_type != JB_INV) {
-				aal_exception_error("Transaction Header (%llu): "
-						    "original location (%llu) was "
-						    "met before as a Transaction "
-						    "Header of one of the next "
-						    "transactions.", 
-						    check_data->cur_txh, blk);
+				aal_error("Transaction Header (%llu): "
+					  "original location (%llu) was "
+					  "met before as a Transaction "
+					  "Header of one of the next "
+					  "transactions.", 
+					  check_data->cur_txh, blk);
 				return -ESTRUCT;
 			}
 		}
@@ -416,14 +416,14 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 	data.layout = layout;
 	
 	if (!(data.journal_layout = aux_bitmap_create(data.fs_len))) {
-		aal_exception_error("Failed to allocate a control bitmap for "
-				    "journal layout.");
+		aal_error("Failed to allocate a control bitmap for "
+			  "journal layout.");
 		return -ENOMEM;
 	}
 	
 	if (!(data.current_layout = aux_bitmap_create(data.fs_len))) {
-		aal_exception_error("Failed to allocate a control bitmap of the "
-				    "current transaction blocks.");
+		aal_error("Failed to allocate a control bitmap of the "
+			  "current transaction blocks.");
 		return -ENOMEM;
 	}
 	
@@ -436,8 +436,8 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 	if (ret) {
 		/* Journal should be updated */
 		if (!data.cur_txh) {
-			aal_exception_error("Journal has broken list of transaction "
-					    "headers. Reinitialize the journal.");
+			aal_error("Journal has broken list of transaction "
+				  "headers. Reinitialize the journal.");
 			
 			data.cur_txh = 
 				get_jf_last_flushed((journal40_footer_t *)
@@ -451,26 +451,21 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 			device = journal40_device((generic_entity_t *)journal);
 			
 			if (device == NULL) {
-				aal_exception_error("Invalid device has been "
-						    "detected.");
+				aal_error("Invalid device has been detected.");
 				return -EINVAL;
 			}
 			
 			if (!(tx_block = aal_block_load(device, journal->blksize,
 							data.cur_txh)))
 			{
-				aal_exception_error("Can't read the block %llu "
-						    "while checking the journal."
-						    " %s.", data.cur_txh, 
-						    device->error);
+				aal_error("Can't read the block %llu while checking "
+					  "the journal. %s.", data.cur_txh, device->error);
 				return -EIO;
 			}
 			
-			aal_exception_error("Corrupted transaction (%llu) was "
-					    "found. The last valid transaction "
-					    "is (%llu).", data.cur_txh,
-					    get_th_prev_tx((journal40_tx_header_t *)
-							   tx_block->data));
+			aal_error("Corrupted transaction (%llu) was found. The last "
+				  "valid transaction is (%llu).", data.cur_txh,
+				  get_th_prev_tx((journal40_tx_header_t *)tx_block->data));
 			
 			data.cur_txh = get_th_prev_tx((journal40_tx_header_t *)
 						      tx_block->data);

@@ -20,9 +20,8 @@ errno_t sdext_symlink_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 	while (*((char *)sdext->body + offset)) {
 		offset++;
 		if (offset == sdext->sdlen) {
-			aal_exception_error("Does not look like a valid (%s) "
-					    "statdata extension.", 
-					    sdext->plug->label);
+			aal_error("Does not look like a valid (%s) "
+				  "statdata extension.", sdext->plug->label);
 			
 			return RE_FATAL;
 		}

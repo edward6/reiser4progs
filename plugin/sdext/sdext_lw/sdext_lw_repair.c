@@ -13,9 +13,8 @@ errno_t sdext_lw_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 	aal_assert("vpf-783", sdext->plug != NULL);
 	
 	if (sdext->offset + sizeof(sdext_lw_t) > sdext->sdlen) {
-		aal_exception_error("Does not look like a valid (%s) statdata "
-				    "extension.", sdext->plug->label);
-		
+		aal_error("Does not look like a valid (%s) statdata "
+			  "extension.", sdext->plug->label);
 		return 	RE_FATAL;
 	}
 	

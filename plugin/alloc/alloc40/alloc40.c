@@ -136,8 +136,8 @@ static errno_t callback_fetch_bitmap(void *entity, blk_t start,
 	}
 
 	if ((res = aal_block_read(&block))) {
-		aal_exception_error("Can't read bitmap block %llu. %s.",
-				    start, alloc->device->error);
+		aal_error("Can't read bitmap block %llu. %s.",
+			  start, alloc->device->error);
 		goto error_free_block;
 	}
 
@@ -204,7 +204,7 @@ static generic_entity_t *alloc40_open(fs_desc_t *desc, uint64_t blocks) {
 	if (alloc40_layout((generic_entity_t *)alloc,
 			   callback_fetch_bitmap, alloc))
 	{
-		aal_exception_error("Can't load ondisk bitmap.");
+		aal_error("Can't load ondisk bitmap.");
 		goto error_free_bitmap;
 	}
 
@@ -352,8 +352,8 @@ static errno_t callback_sync_bitmap(void *entity, blk_t start,
 
 	/* Saving block onto device it was allocated on */
 	if ((res = aal_block_write(&block))) {
-		aal_exception_error("Can't write bitmap block %llu. "
-				    "%s.", start, alloc->device->error);
+		aal_error("Can't write bitmap block %llu. "
+			  "%s.", start, alloc->device->error);
 	}
 
  error_free_block:
@@ -374,7 +374,7 @@ static errno_t alloc40_sync(generic_entity_t *entity) {
 	/* Calling layout() function for saving all bitmap blocks to device
 	   block allocator lies on. */
 	if ((res = alloc40_layout(entity, callback_sync_bitmap, alloc))) {
-		aal_exception_error("Can't save bitmap to device.");
+		aal_error("Can't save bitmap to device.");
 		return res;
 	}
 
@@ -522,7 +522,7 @@ static errno_t alloc40_print(generic_entity_t *entity,
 	if ((res = alloc40_layout((generic_entity_t *)alloc,
 				  callback_print_bitmap, stream)))
 	{
-		aal_exception_error("Can't print bitmap.");
+		aal_error("Can't print bitmap.");
 		return res;
 	}
 	
@@ -597,17 +597,15 @@ static int alloc40_available(generic_entity_t *entity,
 }
 
 static void callback_inval_warn(blk_t start, uint32_t ladler, uint32_t cadler) {
-	aal_exception_warn("Checksum missmatch in bitmap block %llu. Checksum "
-			   "is 0x%x, should be 0x%x.", start, ladler, cadler);
+	aal_warn("Checksum missmatch in bitmap block %llu. Checksum "
+		 "is 0x%x, should be 0x%x.", start, ladler, cadler);
 }
 
 typedef void (*inval_func_t) (blk_t start, uint32_t ladler, uint32_t cadler);
 
 /* Callback function for checking one bitmap block on validness. Here we just
    calculate actual checksum and compare it with loaded one. */
-errno_t callback_valid(void *entity, blk_t start,
-		       count_t width, void *data)
-{
+errno_t callback_valid(void *entity, blk_t start, count_t width, void *data) {
 	uint32_t chunk;
 	uint64_t offset;
 	alloc40_t *alloc;

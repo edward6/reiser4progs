@@ -227,8 +227,8 @@ static int64_t misc_numeric_handler(
 			return defvalue;
 
 		if ((value = misc_size2long(line)) == INVAL_DIG) {
-			aal_exception_error("Invalid numeric has been detected (%s). "
-					    "Number is expected (1, 1K, 1M, 1G)", line);
+			aal_error("Invalid numeric has been detected (%s). "
+				  "Number is expected (1, 1K, 1M, 1G)", line);
 			continue;
 		}
 	

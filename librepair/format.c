@@ -20,15 +20,15 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	
 	if (policy >= TAIL_LAST_ID) {
 		/* Tail id from the profile is wrong. */
-		aal_exception_error("Invalid tail policy (%u) is specified in "
-				    "the profile.", policy);
+		aal_error("Invalid tail policy (%u) is specified in "
+			  "the profile.", policy);
 		return -EINVAL;
 	}
 	
 	if (fs->format == NULL) {
 		/* Format was not opened. */
-		aal_exception_fatal("Cannot open the on-disk format on (%s)",
-				    fs->device->name);
+		aal_fatal("Cannot open the on-disk format on (%s)",
+			  fs->device->name);
 		
 		if (mode != RM_BUILD)
 			/* Fatal error in the format structure. */
@@ -39,21 +39,21 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		/* Try to detect a format on the device. */
 		if (!(plug = reiser4_master_guess(fs->device))) {
 			/* Format was not detected on the device. */
-			aal_exception_fatal("Cannot detect an on-disk format on (%s).",
-					    fs->device->name);
+			aal_fatal("Cannot detect an on-disk format on (%s).",
+				  fs->device->name);
 			
 			plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid);
 			
 			if (!plug) {
-				aal_exception_fatal("Cannot find the format plugin "
-						    "(0x%x) specified in the profile.", 
-						    pid);
+				aal_fatal("Cannot find the format plugin "
+					  "(0x%x) specified in the profile.", 
+					  pid);
 				return -EINVAL;
 			}
 
-			if (aal_exception_yesno("Do you want to build the on-disk "
-						"format (%s) specified in the profile?",
-						plug->label) == EXCEPTION_NO)
+			if (aal_yesno("Do you want to build the on-disk "
+				      "format (%s) specified in the profile?",
+				      plug->label) == EXCEPTION_NO)
 				return -EINVAL;
 			
 			count = aal_device_len(fs->device);
@@ -62,15 +62,15 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			fs->format = reiser4_format_create(fs, count, policy, pid);
 			
 			if (!fs->format) {
-				aal_exception_fatal("Cannot create a filesystem of the "
-						    "format (%s).", plug->label);
+				aal_fatal("Cannot create a filesystem of the "
+					  "format (%s).", plug->label);
 				return -EINVAL;
 			} else {
-				aal_exception_fatal("The format (%s) with tail policy "
-						    "(%u) was created on the partition "
-						    "(%s) of (%llu) block length.", 
-						    plug->label, policy, 
-						    fs->device->name, count);
+				aal_fatal("The format (%s) with tail policy "
+					  "(%u) was created on the partition "
+					  "(%s) of (%llu) block length.", 
+					  plug->label, policy, 
+					  fs->device->name, count);
 			}
 			
 			reiser4_format_set_stamp(fs->format, 0);
@@ -81,19 +81,19 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			return 0;
 		} else {
 			/* Format was detected on the device. */
-			aal_exception_fatal("The on-disk format (%s) was detected on "
-					    "(%s). %s", plug->label, fs->device->name, 
-					    pid != plug->id.id ? "It differs from "
-					    "the one specified in the profile. Do not "
-					    "forget to fix the profile." : "");
+			aal_fatal("The on-disk format (%s) was detected on "
+				  "(%s). %s", plug->label, fs->device->name, 
+				  pid != plug->id.id ? "It differs from "
+				  "the one specified in the profile. Do not "
+				  "forget to fix the profile." : "");
 			
 			set_ms_format(SUPER(fs->master), plug->id.id);
 			reiser4_master_mkdirty(fs->master);
 			
 			if (!(fs->format = reiser4_format_open(fs))) {
-				aal_exception_fatal("Failed to open the format (%s) "
-						    "on the (%s).", plug->label, 
-						    fs->device->name);
+				aal_fatal("Failed to open the format (%s) "
+					  "on the (%s).", plug->label, 
+					  fs->device->name);
 				return -EINVAL;
 			}
 		}
@@ -111,10 +111,10 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	
 	if (pid >= TAIL_LAST_ID) {
 		/* Tail id from the profile is wrong. */
-		aal_exception_error("Invalid tail policy (%u) detected in the format "
-				    "on (%s). %s (%u) -- from the profile.", pid, 
-				    fs->device->name, mode == RM_CHECK ? "Should be" :
-				    "Fixed to", policy);
+		aal_error("Invalid tail policy (%u) detected in the format "
+			  "on (%s). %s (%u) -- from the profile.", pid, 
+			  fs->device->name, mode == RM_CHECK ? "Should be" :
+			  "Fixed to", policy);
 		
 		reiser4_format_set_policy(fs->format, policy);
 
@@ -123,10 +123,10 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		else
 			res |= RE_FIXABLE;
 	} else if (pid != policy) {
-		aal_exception_fatal("The tail policy (%u) detected on (%s) differs "
-				    "from the specified in the profile (%u). Do not "
-				    "forget to fix the profile.", pid, fs->device->name,
-				    policy);
+		aal_fatal("The tail policy (%u) detected on (%s) differs "
+			  "from the specified in the profile (%u). Do not "
+			  "forget to fix the profile.", pid, fs->device->name,
+			  policy);
 	}
 	
 	return res;

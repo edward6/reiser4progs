@@ -23,10 +23,10 @@ errno_t nodeptr40_check_layout(place_t *place, region_func_t region_func,
 	res = region_func(place, blk, 1, data);
 	
 	if (res > 0) {
-		aal_exception_error("Node (%llu), item (%u): wrong pointer to "
-				    "the block %llu.%s", place->block->nr,
-				    place->pos.item, blk, mode == RM_BUILD ?
-				    " Removed." : "");
+		aal_error("Node (%llu), item (%u): wrong pointer to "
+			  "the block %llu.%s", place->block->nr,
+			  place->pos.item, blk, mode == RM_BUILD ?
+			  " Removed." : "");
 
 		if (mode == RM_BUILD) {
 			place->len = 0;

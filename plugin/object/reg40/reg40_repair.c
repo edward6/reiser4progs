@@ -105,10 +105,10 @@ static int64_t reg40_create_hole(reg40_t *reg, uint64_t len) {
 		uint64_t offset = reg40_offset((object_entity_t *)reg);
 		object_info_t *info = &reg->obj.info;
 
-		aal_exception_error("The object [%s] failed to create the hole "
-				    "at [%llu-%llu] offsets. Plugin %s.",
-				    print_inode(reg40_core, &info->object),
-				    offset, offset + len, reg->obj.plug->label);
+		aal_error("The object [%s] failed to create the hole "
+			  "at [%llu-%llu] offsets. Plugin %s.",
+			  print_inode(reg40_core, &info->object),
+			  offset, offset + len, reg->obj.plug->label);
 	}
 
 	return res;
@@ -243,28 +243,24 @@ static errno_t reg40_next(object_entity_t *object,
 	if (!plug_equal(reg->body.plug, repair->eplug) && 
 	    !plug_equal(reg->body.plug, repair->tplug))
 	{
-		aal_exception_error("The object [%s] (%s), node (%llu),"
-				    "item (%u): the item [%s] of the "
-				    "invalid plugin (%s) found.%s",
-				    print_inode(reg40_core, &info->object),
-				    reg->obj.plug->label,
-				    reg->body.block->nr, 
-				    reg->body.pos.item,
-				    print_key(reg40_core, &reg->body.key),
-				    reg->body.plug->label, 
-				    mode == RM_BUILD ? 
-				    " Removed." : "");
+		aal_error("The object [%s] (%s), node (%llu),"
+			  "item (%u): the item [%s] of the "
+			  "invalid plugin (%s) found.%s",
+			  print_inode(reg40_core, &info->object),
+			  reg->obj.plug->label, reg->body.block->nr, 
+			  reg->body.pos.item,
+			  print_key(reg40_core, &reg->body.key),
+			  reg->body.plug->label, mode == RM_BUILD ? 
+			  " Removed." : "");
 	} else if (reg40_check_ikey(reg)) {
-		aal_exception_error("The object [%s] (%s), node (%llu),"
-				    "item (%u): the item [%s] has the "
-				    "wrong offset.%s",
-				    print_inode(reg40_core, &info->object),
-				    reg->obj.plug->label,
-				    reg->body.block->nr, 
-				    reg->body.pos.item,
-				    print_key(reg40_core, &reg->body.key),
-				    mode == RM_BUILD ? 
-				    " Removed." : "");
+		aal_error("The object [%s] (%s), node (%llu),"
+			  "item (%u): the item [%s] has the "
+			  "wrong offset.%s",
+			  print_inode(reg40_core, &info->object),
+			  reg->obj.plug->label, reg->body.block->nr, 
+			  reg->body.pos.item,
+			  print_key(reg40_core, &reg->body.key),
+			  mode == RM_BUILD ? " Removed." : "");
 	} else
 		return 0;
 
@@ -298,15 +294,15 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 	aal_assert("vpf-1354", !plug_equal(reg->body.plug, repair->bplug));
 
 	info = &reg->obj.info;
-	aal_exception_error("The object [%s] (%s), node (%llu), item (%u): the "
-			    "found item [%s] of the plugin (%s) does not match "
-			    "the detected tail policy (%s).%s", 
-			    print_inode(reg40_core, &info->object),
-			    reg->obj.plug->label, reg->body.block->nr, 
-			    reg->body.pos.item,
-			    print_key(reg40_core, &reg->body.key),
-			    reg->body.plug->label, reg->policy->label,
-			    mode == RM_BUILD ? " Converted." : "");
+	aal_error("The object [%s] (%s), node (%llu), item (%u): the "
+		  "found item [%s] of the plugin (%s) does not match "
+		  "the detected tail policy (%s).%s", 
+		  print_inode(reg40_core, &info->object),
+		  reg->obj.plug->label, reg->body.block->nr, 
+		  reg->body.pos.item,
+		  print_key(reg40_core, &reg->body.key),
+		  reg->body.plug->label, reg->policy->label,
+		  mode == RM_BUILD ? " Converted." : "");
 
 	if (mode != RM_BUILD) 
 		return 1;
@@ -401,13 +397,13 @@ static errno_t reg40_hole_cure(object_entity_t *object,
 
 	info = &object->info;
 	
-	aal_exception_error("The object [%s] has a break at [%llu-%llu] "
-			    "offsets. Plugin %s.%s", 
-			    print_inode(reg40_core, &info->object), 
-			    reg40_offset(object), offset, 
-			    reg->obj.plug->label,
-			    mode == RM_BUILD ? " Writing a hole there." 
-			    : "");
+	aal_error("The object [%s] has a break at [%llu-%llu] "
+		  "offsets. Plugin %s.%s", 
+		  print_inode(reg40_core, &info->object), 
+		  reg40_offset(object), offset, 
+		  reg->obj.plug->label,
+		  mode == RM_BUILD ? " Writing a hole there." 
+		  : "");
 
 	if (mode != RM_BUILD)
 		return RE_FATAL;
@@ -453,8 +449,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 	if (!(reg->policy = obj40_plug(&reg->obj, POLICY_PLUG_TYPE, 
 				       "policy")))
 	{
-		aal_exception_error("The object [%s] failed to detect the tail "
-				    "policy.", print_inode(reg40_core, &info->object));
+		aal_error("The object [%s] failed to detect the tail "
+			  "policy.", print_inode(reg40_core, &info->object));
 		return -EINVAL;
 	}
 	
@@ -465,26 +461,26 @@ errno_t reg40_check_struct(object_entity_t *object,
 	if (!(repair.extent = reg40_core->factory_ops.ifind(POLICY_PLUG_TYPE, 
 							    TAIL_NEVER_ID)))
 	{
-		aal_exception_error("Failed to find the 'tail never' tail "
-				    "policy plugin.");
+		aal_error("Failed to find the 'tail never' tail "
+			  "policy plugin.");
 		return -EINVAL;
 	}
 	
 	/* Get the extent item plugin. FIXME-VITALY: param_ops.valus+ifind
 	   for now untill we can point tail item in plug_extension */
 	if (!(repair.eplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "extent"))){
-		aal_exception_error("The object [%s] failed to detect the "
-				    "extent plugin to use.", 
-				    print_inode(reg40_core, &info->object));
+		aal_error("The object [%s] failed to detect the "
+			  "extent plugin to use.", 
+			  print_inode(reg40_core, &info->object));
 		return -EINVAL;
 	}
 
 	/* Get the tail item plugin. FIXME-VITALY: param_ops.valus+ifind
 	   for now untill we can point extent item in plug_extension */
 	if (!(repair.tplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "tail"))) {
-		aal_exception_error("The object [%s] failed to detect the "
-				    "tail plugin to use.", 
-				    print_inode(reg40_core, &info->object));
+		aal_error("The object [%s] failed to detect the "
+			  "tail plugin to use.", 
+			  print_inode(reg40_core, &info->object));
 		return -EINVAL;
 	}
 	
@@ -589,9 +585,9 @@ errno_t reg40_form(object_entity_t *object) {
 	/* Get the reg file tail policy. */
 	if (!(reg->policy = obj40_plug(&reg->obj, POLICY_PLUG_TYPE, "policy")))
 	{
-		aal_exception_error("The object [%s] failed to detect "
-				    "the tail policy.", 
-				    print_inode(reg40_core, &reg->obj.info.object));
+		aal_error("The object [%s] failed to detect "
+			  "the tail policy.", 
+			  print_inode(reg40_core, &reg->obj.info.object));
 		return -EINVAL;
 	}
 

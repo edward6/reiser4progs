@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 	ls_init();
 
 	if (libreiser4_init()) {
-		aal_exception_error("Can't initialize libreiser4.");
+		aal_error("Can't initialize libreiser4.");
 		return 0xff;
 	}
 
@@ -51,25 +51,25 @@ int main(int argc, char *argv[]) {
 	if (!(device = aal_device_open(&file_ops, argv[1], 
 				       512, O_RDWR))) 
 	{
-		aal_exception_error("Can't open device %s.", argv[1]);
+		aal_error("Can't open device %s.", argv[1]);
 		goto error_free_libreiser4;
 	}
     
 	if (!(fs = reiser4_fs_open(device, TRUE))) {
-		aal_exception_error("Can't open filesystem on %s.", 
-				    device->name);
+		aal_error("Can't open filesystem on %s.", 
+			  device->name);
 		goto error_free_device;
 	}
 
 	fs->tree->mpc_func = misc_mpressure_detect;
     
 	if (!(fs->root = reiser4_object_open(fs->tree, "/", TRUE))) {
-		aal_exception_error("Can't open root dir.");
+		aal_error("Can't open root dir.");
 		goto error_free_fs;
 	}
     
 	if (!(dir = reiser4_object_open(fs->tree, argv[2], TRUE))) {
-		aal_exception_error("Can't open dir %s.", argv[2]);
+		aal_error("Can't open dir %s.", argv[2]);
 		goto error_free_root;
 	}
 
@@ -92,8 +92,8 @@ int main(int argc, char *argv[]) {
 				if (reiser4_object_write(object, name,
 							 aal_strlen(name)) < 0)
 				{
-					aal_exception_error("Can't write data "
-							    "to file %s.", name);
+					aal_error("Can't write data "
+						  "to file %s.", name);
 				}
 			}
 				
@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	if (reiser4_object_reset(dir)) {
-		aal_exception_error("Can't reset directory %s.", argv[2]);
+		aal_error("Can't reset directory %s.", argv[2]);
 		goto error_free_dir;
 	}
 

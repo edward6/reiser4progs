@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
 	/* Initializing libreiser4 (getting plugins, checking them on validness,
 	   etc). */
 	if (libreiser4_init()) {
-		aal_exception_error("Can't initialize libreiser4.");
+		aal_error("Can't initialize libreiser4.");
 		goto error;
 	}
 
@@ -139,8 +139,8 @@ int main(int argc, char *argv[]) {
 		override[aal_strlen(override) - 1] = '\0';
 
 		if (!(flags & BF_QUIET)) {
-			aal_exception_mess("Overriding default params "
-					   "by \"%s\".", override);
+			aal_mess("Overriding default params "
+				 "by \"%s\".", override);
 		}
 
 		if (misc_param_override(override))
@@ -174,15 +174,14 @@ int main(int argc, char *argv[]) {
 	   device, then we emmit exception and propose user to use -f flag to
 	   force. */
 	if (stat(src_dev, &st) == -1) {
-		aal_exception_error("Device %s does not exist.",
-				    src_dev);
+		aal_error("Device %s does not exist.", src_dev);
 		goto error_free_libreiser4;
 	}
     
 	if (!S_ISBLK(st.st_mode)) {
 		if (!(flags & BF_FORCE)) {
-			aal_exception_error("Device %s is not block device. "
-					    "Use -f to force over.", src_dev);
+			aal_error("Device %s is not block device. "
+				  "Use -f to force over.", src_dev);
 			goto error_free_libreiser4;
 		}
 	} else {
@@ -190,30 +189,30 @@ int main(int argc, char *argv[]) {
 		     (SCSI_BLK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 16 == 0)) &&
 		    !(flags & BF_FORCE))
 		{
-			aal_exception_error("Device %s is an entire harddrive, not "
-					    "just one partition.", src_dev);
+			aal_error("Device %s is an entire harddrive, not "
+				  "just one partition.", src_dev);
 			goto error_free_libreiser4;
 		}
 	}
    
 	/* Checking if passed partition is mounted */
 	if (misc_dev_mounted(src_dev, "rw") && !(flags & BF_FORCE)) {
-		aal_exception_error("Device %s is mounted for read/write "
-				    "at the moment. Use -f to force over.",
-				    src_dev);
+		aal_error("Device %s is mounted for read/write "
+			  "at the moment. Use -f to force over.",
+			  src_dev);
 		goto error_free_libreiser4;
 	}
 
 	/* The same checks for @dst_dev */
 	if (stat(dst_dev, &st) == -1) {
-		aal_exception_error("Can't stat %s.", dst_dev);
+		aal_error("Can't stat %s.", dst_dev);
 		goto error_free_libreiser4;
 	}
     
 	if (!S_ISBLK(st.st_mode)) {
 		if (!(flags & BF_FORCE)) {
-			aal_exception_error("Device %s is not block device. "
-					    "Use -f to force over.", dst_dev);
+			aal_error("Device %s is not block device. "
+				  "Use -f to force over.", dst_dev);
 			goto error_free_libreiser4;
 		}
 	} else {
@@ -221,22 +220,22 @@ int main(int argc, char *argv[]) {
 		     (SCSI_BLK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 16 == 0)) &&
 		    !(flags & BF_FORCE))
 		{
-			aal_exception_error("Device %s is an entire harddrive, not "
-					    "just one partition.", dst_dev);
+			aal_error("Device %s is an entire harddrive, not "
+				  "just one partition.", dst_dev);
 			goto error_free_libreiser4;
 		}
 	}
    
 	/* Checking if passed partition is mounted */
 	if (misc_dev_mounted(dst_dev, NULL) && !(flags & BF_FORCE)) {
-		aal_exception_error("Device %s is mounted at the moment. "
-				    "Use -f to force over.", dst_dev);
+		aal_error("Device %s is mounted at the moment. "
+			  "Use -f to force over.", dst_dev);
 		goto error_free_libreiser4;
 	}
 
 	if (!strcmp(dst_dev, src_dev)) {
-		aal_exception_error("Destination device is the same "
-				    "as source one.");
+		aal_error("Destination device is the same "
+			  "as source one.");
 		goto error_free_libreiser4;
 	}
 	
@@ -244,8 +243,8 @@ int main(int argc, char *argv[]) {
 	if (!(src_device = aal_device_open(&file_ops, src_dev, 
 					   512, O_RDONLY))) 
 	{
-		aal_exception_error("Can't open %s. %s.", src_dev,
-				    strerror(errno));
+		aal_error("Can't open %s. %s.", src_dev,
+			  strerror(errno));
 		goto error_free_libreiser4;
 	}
     
@@ -253,15 +252,15 @@ int main(int argc, char *argv[]) {
 	if (!(dst_device = aal_device_open(&file_ops, dst_dev, 
 					   512, O_RDWR))) 
 	{
-		aal_exception_error("Can't open %s. %s.", dst_dev,
-				    strerror(errno));
+		aal_error("Can't open %s. %s.", dst_dev,
+			  strerror(errno));
 		goto error_free_src_device;
 	}
 
 	/* Checking for "quiet" mode */
 	if (!(flags & BF_QUIET)) {
-		if (aal_exception_yesno("All data on %s will be lost. "
-					"Are you sure?", dst_dev) == EXCEPTION_NO)
+		if (aal_yesno("All data on %s will be lost. "
+			      "Are you sure?", dst_dev) == EXCEPTION_NO)
 		{
 			goto error_free_dst_device;
 		}
@@ -276,8 +275,8 @@ int main(int argc, char *argv[]) {
 
 	/* Opening source fs */
 	if (!(src_fs = reiser4_fs_open(src_device, TRUE))) {
-		aal_exception_error("Cannot open src filesystem on %s.",
-				    src_dev);
+		aal_error("Cannot open src filesystem on %s.",
+			  src_dev);
 		goto error_free_dst_device;
 	}
 
@@ -295,8 +294,8 @@ int main(int argc, char *argv[]) {
 	
 	/* Creating dst filesystem */
 	if (!(dst_fs = reiser4_fs_create(dst_device, &hint))) {
-		aal_exception_error("Can't create filesystem on %s.", 
-				    dst_dev);
+		aal_error("Can't create filesystem on %s.", 
+			  dst_dev);
 		goto error_free_src_fs;
 	}
 
@@ -308,7 +307,7 @@ int main(int argc, char *argv[]) {
 
 
 	if (reiser4_fs_copy(src_fs, dst_fs)) {
-		aal_exception_error("Can't copy %s to %s.", src_dev, dst_dev);
+		aal_error("Can't copy %s to %s.", src_dev, dst_dev);
 		goto error_free_dst_journal;
 	}
 	
@@ -326,8 +325,8 @@ int main(int argc, char *argv[]) {
 	/* Synchronizing device. If device we are using is a file device
 	   (libaal/file.c), then function fsync will be called. */
 	if (aal_device_sync(dst_device)) {
-		aal_exception_error("Can't synchronize device %s.", 
-				    dst_dev);
+		aal_error("Can't synchronize device %s.", 
+			  dst_dev);
 		goto error_free_dst_device;
 	}
 

@@ -66,10 +66,10 @@ static errno_t callback_check_layout(place_t *place, void *data) {
 		if (ts->repair->mode == RM_BUILD) {
 			trans_hint_t hint;
 
-			aal_exception_error("Node (%llu), item (%u): broken "
-					    "item layout. Remove the item.",
-					    node_blocknr(node), 
-					    place->pos.item);
+			aal_error("Node (%llu), item (%u): broken "
+				  "item layout. Remove the item.",
+				  node_blocknr(node), 
+				  place->pos.item);
 
 			hint.count = 1;
 			hint.place_func = NULL;
@@ -180,8 +180,8 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 		node = reiser4_node_open(ts->repair->fs->tree, blk);
 		
 		if (node == NULL) {
-			aal_exception_fatal("Twig scan pass failed to open "
-					    "the twig (%llu)", blk);
+			aal_fatal("Twig scan pass failed to open "
+				  "the twig (%llu)", blk);
 			return -EINVAL;
 		}
 		

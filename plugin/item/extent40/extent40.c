@@ -14,9 +14,9 @@ uint32_t extent40_units(place_t *place) {
 
 #ifndef ENABLE_STAND_ALONE
 	if (place->len % sizeof(extent40_t) != 0) {
-		aal_exception_error("Invalid item size detected. Node "
-				    "%llu, item %u.", place->block->nr,
-				    place->pos.item);
+		aal_error("Invalid item size detected. Node "
+			  "%llu, item %u.", place->block->nr,
+			  place->pos.item);
 		return 0;
 	}
 #endif

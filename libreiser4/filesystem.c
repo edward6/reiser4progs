@@ -68,8 +68,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 
 	if (check) {
 		if (reiser4_alloc_valid(fs->alloc)) {
-			aal_exception_warn("Block allocator data "
-					   "seems corrupted.");
+			aal_warn("Block allocator data seems corrupted.");
 		}
 	}
 	
@@ -238,8 +237,8 @@ reiser4_fs_t *reiser4_fs_create(
 
 	/* Makes check for validness of specified block size value */
 	if (!aal_pow2(hint->blksize)) {
-		aal_exception_error("Invalid block size %u. It must "
-				    "be power of two.", hint->blksize);
+		aal_error("Invalid block size %u. It must "
+			  "be power of two.", hint->blksize);
 		return NULL;
 	}
 
@@ -247,19 +246,18 @@ reiser4_fs_t *reiser4_fs_create(
 		(hint->blksize / device->blksize);
 	
 	if (hint->blocks > dev_len) {
-		aal_exception_error("Device %s is too small (%llu) "
-				    "for filesystem %llu blocks long.",
-				    device->name, dev_len,
-				    hint->blocks);
+		aal_error("Device %s is too small (%llu) "
+			  "for filesystem %llu blocks long.",
+			  device->name, dev_len, hint->blocks);
 		return NULL;
 	}
 	
 	/* Checks whether filesystem size is enough big. */
 	if (hint->blocks < REISER4_FS_MIN_SIZE(hint->blksize)) {
-		aal_exception_error("Requested filesystem size (%llu) is"
-				    "too small. Reiser4 required minimal "
-				    "size %u blocks long.", hint->blocks,
-				    REISER4_FS_MIN_SIZE(hint->blksize));
+		aal_error("Requested filesystem size (%llu) is"
+			  "too small. Reiser4 required minimal "
+			  "size %u blocks long.", hint->blocks,
+			  REISER4_FS_MIN_SIZE(hint->blksize));
 		return NULL;
 	}
     
@@ -314,7 +312,7 @@ reiser4_fs_t *reiser4_fs_create(
 		goto error_free_oid;
 	
 	if (reiser4_fs_layout(fs, callback_mark_block, fs->alloc)) {
-		aal_exception_error("Can't mark filesystem blocks used.");
+		aal_error("Can't mark filesystem blocks used.");
 		goto error_free_tree;
 	}
 
@@ -470,14 +468,14 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 	fs->device = device;
 
 	if (aal_stream_read(stream, &sign, 4) != 4) {
-		aal_exception_error("Can't unpack master super "
-				    "block. Stream is over?");
+		aal_error("Can't unpack master super "
+			  "block. Stream is over?");
 		goto error_free_fs;
 	}
 
 	if (aal_strncmp(sign, MASTER_PACK_SIGN, 4)) {
-		aal_exception_error("Invalid master sign %s is "
-				    "detected in stream.", sign);
+		aal_error("Invalid master sign %s is "
+			  "detected in stream.", sign);
 		goto error_free_fs;
 	}
 	
@@ -485,14 +483,14 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 		goto error_free_fs;
 
 	if (aal_stream_read(stream, &sign, 4) != 4) {
-		aal_exception_error("Can't unpack format super "
-				    "block. Stream is over?");
+		aal_error("Can't unpack format super "
+			  "block. Stream is over?");
 		goto error_free_master;
 	}
 
 	if (aal_strncmp(sign, FORMAT_PACK_SIGN, 4)) {
-		aal_exception_error("Invalid format sign %s is "
-				    "detected in stream.", sign);
+		aal_error("Invalid format sign %s is "
+			  "detected in stream.", sign);
 		goto error_free_master;
 	}
 	
@@ -505,14 +503,14 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 	bs = reiser4_master_get_blksize(fs->master);
 
 	if (!(block = aal_block_alloc(device, bs, bn))) {
-		aal_exception_error("Can't allocate the very last block (%llu) "
-				    "on the fs: %s", bn, device->error);
+		aal_error("Can't allocate the very last block (%llu) "
+			  "on the fs: %s", bn, device->error);
 		goto error_free_format;
 	}
 
 	if (aal_block_write(block)) {
-		aal_exception_error("Can't write the very last block (%llu) "
-				    "on the fs: %s", bn, device->error);
+		aal_error("Can't write the very last block (%llu) "
+			  "on the fs: %s", bn, device->error);
 		aal_free(block);
 		goto error_free_format;
 	}
@@ -526,14 +524,14 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 		goto error_free_oid;
 			
 	if (aal_stream_read(stream, &sign, 4) != 4) {
-		aal_exception_error("Can't unpack block "
-				    "allocator. Stream is over?");
+		aal_error("Can't unpack block "
+			  "allocator. Stream is over?");
 		goto error_free_tree;
 	}
 
 	if (aal_strncmp(sign, ALLOC_PACK_SIGN, 4)) {
-		aal_exception_error("Invalid block alloc sign %s is "
-				    "detected in stream.", sign);
+		aal_error("Invalid block alloc sign %s is "
+			  "detected in stream.", sign);
 		goto error_free_tree;
 	}
 
@@ -541,14 +539,14 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 		goto error_free_tree;
 			
 	if (aal_stream_read(stream, &sign, 4) != 4) {
-		aal_exception_error("Can't unpack status "
-				    "block. Stream is over?");
+		aal_error("Can't unpack status "
+			  "block. Stream is over?");
 		goto error_free_alloc;
 	}
 
 	if (aal_strncmp(sign, STATUS_PACK_SIGN, 4)) {
-		aal_exception_error("Invalid status block sign %s is "
-				    "detected in stream.", sign);
+		aal_error("Invalid status block sign %s is "
+			  "detected in stream.", sign);
 		goto error_free_alloc;
 	}
 
@@ -576,10 +574,8 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 		
 			reiser4_node_close(node);
 		} else {
-			aal_exception_error("Invalid object %s is "
-					    "detected in stream. "
-					    "Node is expacted.",
-					    sign);
+			aal_error("Invalid object %s is detected in stream. "
+				  "Node is expacted.", sign);
 			goto error_free_fs;
 		}
 	}

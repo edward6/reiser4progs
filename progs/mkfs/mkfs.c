@@ -162,31 +162,29 @@ int main(int argc, char *argv[]) {
 		case 'b':
 			/* Parsing blocksize */
 			if ((hint.blksize = misc_str2long(optarg, 10)) == INVAL_DIG) {
-				aal_exception_error("Invalid blocksize (%s).", optarg);
+				aal_error("Invalid blocksize (%s).", optarg);
 				return USER_ERROR;
 			}
 			
 			if (!aal_pow2(hint.blksize)) {
-				aal_exception_error("Invalid blocksize (%u). "
-						    "It must power of two.",
-						    hint.blksize);
+				aal_error("Invalid blocksize (%u). It must power "
+					  "of two.", hint.blksize);
 				return USER_ERROR;	
 			}
 			break;
 		case 'i':
 			/* Parsing passed by user uuid */
 			if (aal_strlen(optarg) != 36) {
-				aal_exception_error("Invalid uuid was "
-						    "specified (%s).",
-						    optarg);
+				aal_error("Invalid uuid was specified (%s).",
+					   optarg);
 				return USER_ERROR;
 			}
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 			{
 				if (uuid_parse(optarg, hint.uuid) < 0) {
-					aal_exception_error("Invalid uuid was "
-							    "specified (%s).",
-							    optarg);
+					aal_error("Invalid uuid was "
+						  "specified (%s).",
+						  optarg);
 					return USER_ERROR;
 				}
 			}
@@ -213,7 +211,7 @@ int main(int argc, char *argv[]) {
 	/* Initializing libreiser4 (getting plugins, checking them on validness,
 	   etc). */
 	if (libreiser4_init()) {
-		aal_exception_error("Can't initialize libreiser4.");
+		aal_error("Can't initialize libreiser4.");
 		goto error;
 	}
 
@@ -223,8 +221,8 @@ int main(int argc, char *argv[]) {
 		override[aal_strlen(override) - 1] = '\0';
 
 		if (!(flags & BF_QUIET)) {
-			aal_exception_mess("Overriding default params "
-					   "by \"%s\".", override);
+			aal_mess("Overriding default params "
+				 "by \"%s\".", override);
 		}
 
 		if (misc_param_override(override))
@@ -247,26 +245,25 @@ int main(int argc, char *argv[]) {
 	} else {
 		if (!(flags & BF_FORCE)) {
 			if (hint.blksize != (uint32_t)sysconf(_SC_PAGESIZE)) {
-				aal_exception_warn("Block size (%u) and page size "
-						   "(%ld) mismatch is detected. "
-						   "Reiser4 does not support block "
-						   "sizes different than page size "
-						   "yet. Use -f to force over.",
-						   hint.blksize, sysconf(_SC_PAGESIZE));
+				aal_warn("Block size (%u) and page size "
+					 "(%ld) mismatch is detected. "
+					 "Reiser4 does not support block "
+					 "sizes different than page size "
+					 "yet. Use -f to force over.",
+					 hint.blksize, sysconf(_SC_PAGESIZE));
 				goto error_free_libreiser4;
 			}
 		}
 	}
 	
 	if (!(flags & BF_QUIET)) {
-		aal_exception_mess("Block size %u will be used.",
-				   hint.blksize);
+		aal_mess("Block size %u will be used.", hint.blksize);
 	}
 #else
 	if (!hint.blksize) {
-		aal_exception_warn("Can't guess page size. Default "
-				   "block size (4096) will be used, "
-				   "or use -b option instead.");
+		aal_warn("Can't guess page size. Default "
+			 "block size (4096) will be used, "
+			 "or use -b option instead.");
 		hint.blksize = 4096;
 	}
 #endif
@@ -274,7 +271,7 @@ int main(int argc, char *argv[]) {
 #ifdef HAVE_UNAME
 	/* Guessing system type */
 	if (uname(&sysinfo) == -1) {
-		aal_exception_warn("Can't guess system type.");
+		aal_warn("Can't guess system type.");
 		goto error_free_libreiser4;
 	}
 
@@ -282,18 +279,18 @@ int main(int argc, char *argv[]) {
 		if (aal_strncmp(sysinfo.release, "2.5", 3) &&
 		    aal_strncmp(sysinfo.release, "2.6", 3))
 		{
-			aal_exception_warn("%s %s is detected. Reiser4 does not "
-					   "support such a platform. Use -f to "
-					   "force over.", sysinfo.sysname,
-					   sysinfo.release);
+			aal_warn("%s %s is detected. Reiser4 does not "
+				 "support such a platform. Use -f to "
+				 "force over.", sysinfo.sysname,
+				 sysinfo.release);
 			goto error_free_libreiser4;
 		}
 
 	}
 
 	if (!(flags & BF_QUIET)) {
-		aal_exception_mess("%s %s is detected.", sysinfo.sysname,
-				   sysinfo.release);
+		aal_mess("%s %s is detected.", sysinfo.sysname,
+			 sysinfo.release);
 	}
 #endif
 
@@ -304,8 +301,8 @@ int main(int argc, char *argv[]) {
 			if (misc_size2long(argv[optind]) != INVAL_DIG &&
 			    hint.blocks != 0)
 			{
-				aal_exception_error("Filesystem length already "
-						    "set to %llu.", hint.blocks);
+				aal_error("Filesystem length already "
+					  "set to %llu.", hint.blocks);
 				continue;
 			}
 			
@@ -316,8 +313,8 @@ int main(int argc, char *argv[]) {
 				/* Converting into fs blocksize blocks */
 				hint.blocks /= (hint.blksize / 1024);
 			} else {
-				aal_exception_error("%s is not a valid size nor an "
-						    "existent file.", argv[optind]);
+				aal_error("%s is not a valid size nor an "
+					  "existent file.", argv[optind]);
 				goto error_free_libreiser4;
 			}
 		} else {
@@ -336,8 +333,8 @@ int main(int argc, char *argv[]) {
 		host_dev = (char *)walk->data;
     
 		if (stat(host_dev, &st) == -1) {
-			aal_exception_error("Can't stat %s. %s.", host_dev,
-					    strerror(errno));
+			aal_error("Can't stat %s. %s.", host_dev,
+				  strerror(errno));
 			goto error_free_libreiser4;
 		}
     
@@ -347,9 +344,9 @@ int main(int argc, char *argv[]) {
 		   to use -f flag to force. */
 		if (!S_ISBLK(st.st_mode)) {
 			if (!(flags & BF_FORCE)) {
-				aal_exception_error("Device %s is not block "
-						    "device. Use -f to force "
-						    "over.", host_dev);
+				aal_error("Device %s is not block "
+					  "device. Use -f to force "
+					  "over.", host_dev);
 				goto error_free_libreiser4;
 			}
 		} else {
@@ -359,17 +356,17 @@ int main(int argc, char *argv[]) {
 			      MINOR(st.st_rdev) % 16 == 0)) &&
 			    !(flags & BF_FORCE))
 			{
-				aal_exception_error("Device %s is an entire "
-						    "harddrive, not just one "
-						    "partition.", host_dev);
+				aal_error("Device %s is an entire "
+					  "harddrive, not just one "
+					  "partition.", host_dev);
 				goto error_free_libreiser4;
 			}
 		}
    
 		/* Checking if passed partition is mounted */
 		if (misc_dev_mounted(host_dev, NULL) && !(flags & BF_FORCE)) {
-			aal_exception_error("Device %s is mounted at the moment. "
-					    "Use -f to force over.", host_dev);
+			aal_error("Device %s is mounted at the moment. "
+				  "Use -f to force over.", host_dev);
 			goto error_free_libreiser4;
 		}
 
@@ -383,15 +380,15 @@ int main(int argc, char *argv[]) {
 			char uuid[256];
 				
 			uuid_unparse(hint.uuid, uuid);
-			aal_exception_mess("Uuid %s will be used.", uuid);
+			aal_mess("Uuid %s will be used.", uuid);
 		}
 #endif
 		/* Opening device */
 		if (!(device = aal_device_open(&file_ops, host_dev, 
 					       512, O_RDWR))) 
 		{
-			aal_exception_error("Can't open %s. %s.",
-					    host_dev, strerror(errno));
+			aal_error("Can't open %s. %s.",
+				  host_dev, strerror(errno));
 			goto error_free_libreiser4;
 		}
     
@@ -403,18 +400,18 @@ int main(int argc, char *argv[]) {
 			hint.blocks = dev_len;
 	
 		if (hint.blocks > dev_len) {
-			aal_exception_error("Filesystem wouldn't fit "
-					    "into device %llu blocks "
-					    "long, %llu blocks required.",
-					    dev_len, hint.blocks);
+			aal_error("Filesystem wouldn't fit "
+				  "into device %llu blocks "
+				  "long, %llu blocks required.",
+				  dev_len, hint.blocks);
 			goto error_free_device;
 		}
 
 		/* Checking for "quiet" mode */
 		if (!(flags & BF_QUIET)) {
-			if (aal_exception_yesno("Reiser4 is going to be "
-						"created on %s.",
-						host_dev) == EXCEPTION_NO)
+			if (aal_yesno("Reiser4 is going to be "
+				      "created on %s.",
+				      host_dev) == EXCEPTION_NO)
 			{
 				goto error_free_device;
 			}
@@ -429,8 +426,8 @@ int main(int argc, char *argv[]) {
 
 		/* Creating filesystem */
 		if (!(fs = reiser4_fs_create(device, &hint))) {
-			aal_exception_error("Can't create filesystem on %s.", 
-					    device->name);
+			aal_error("Can't create filesystem on %s.", 
+				  device->name);
 			goto error_free_device;
 		}
 
@@ -440,24 +437,26 @@ int main(int argc, char *argv[]) {
 
 		/* Creating root directory */
 		if (!(fs->root = reiser4_dir_create(fs, NULL, NULL))) {
-			aal_exception_error("Can't create filesystem "
-					    "root directory.");
+			aal_error("Can't create filesystem "
+				  "root directory.");
 			goto error_free_journal;
 		}
 
 		/* Linking root to itself */
 		if (reiser4_object_link(fs->root, fs->root, NULL)) {
-			aal_exception_error("Can't link root directory "
-					    "to itself.");
+			aal_error("Can't link root directory "
+				  "to itself.");
 		}
 	
 		/* Creating lost+found directory */
 		if (flags & BF_LOST) {
 			reiser4_object_t *object;
 	    
-			if (!(object = reiser4_dir_create(fs, fs->root, "lost+found"))) {
-				aal_exception_error("Can't create \"/lost+found\" "
-						    "directory.");
+			if (!(object = reiser4_dir_create(fs, fs->root,
+							  "lost+found")))
+			{
+				aal_error("Can't create \"/lost+found\" "
+					  "directory.");
 				goto error_free_root;
 			}
 	    
@@ -492,8 +491,8 @@ int main(int argc, char *argv[]) {
 		/* Synchronizing device. If device we are using is a file device
 		   (libaal/file.c), then function fsync will be called. */
 		if (aal_device_sync(device)) {
-			aal_exception_error("Can't synchronize device %s.", 
-					    device->name);
+			aal_error("Can't synchronize device %s.", 
+				  device->name);
 			goto error_free_device;
 		}
 

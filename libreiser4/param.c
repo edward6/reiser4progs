@@ -155,20 +155,17 @@ errno_t reiser4_param_override(const char *name,
 	aal_assert("umka-923", value != NULL);
 
 	if (!(pid = reiser4_param_pid(name))) {
-		aal_exception_error("Can't find param \"%s\".",
-				    name);
+		aal_error("Can't find param \"%s\".", name);
 		return -EINVAL;
 	}
 
 	if (!(plug = reiser4_factory_nfind((char *)value))) {
-		aal_exception_error("Can't find plugin by name "
-				    "\"%s\".", value);
+		aal_error("Can't find plugin by name \"%s\".", value);
 		return -EINVAL;
 	}
 
 	if (pid->type != plug->id.type) {
-		aal_exception_error("Can't override plugins of "
-				    "different types.");
+		aal_error("Can't override plugins of different types.");
 		return -EINVAL;
 	}
 

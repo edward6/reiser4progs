@@ -46,10 +46,10 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 		
 		/* Checks whether filesystem size is enough big. */
 		if (dev_len < (count_t)REISER4_FS_MIN_SIZE(blksize)) {
-			aal_exception_error("The device '%s' of %llu blocks is "
-					    "too small for the %u block size "
-					    "fs.", fs->device->name, dev_len,
-					    REISER4_FS_MIN_SIZE(blksize));
+			aal_error("The device '%s' of %llu blocks is "
+				  "too small for the %u block size "
+				  "fs.", fs->device->name, dev_len,
+				  REISER4_FS_MIN_SIZE(blksize));
 			return -EINVAL;
 		}
 
@@ -60,13 +60,13 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 		/* Create a new master SB. */
 		if (!(fs->master = reiser4_master_create(fs->device, blksize)))
 		{
-			aal_exception_fatal("Failed to create a new master "
-					    "super block.");
-				return -EINVAL;
+			aal_fatal("Failed to create a new master "
+				  "super block.");
+			return -EINVAL;
 		}
 
-		aal_exception_info("A new master superblock is created"
-				   "on (%s).", fs->device->name);
+		aal_info("A new master superblock is created"
+			 "on (%s).", fs->device->name);
 		
 		reiser4_master_set_uuid(fs->master, NULL);
 		reiser4_master_set_label(fs->master, NULL);
@@ -76,9 +76,9 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 		
 		/* Check the blocksize. */
 		if (!aal_pow2(reiser4_master_get_blksize(fs->master))) {			
-			aal_exception_fatal("Invalid blocksize found in the "
-					    "master super block (%u).",
-					    reiser4_master_get_blksize(fs->master));
+			aal_fatal("Invalid blocksize found in the "
+				  "master super block (%u).",
+				  reiser4_master_get_blksize(fs->master));
 			
 			if (mode != RM_BUILD)
 				return RE_FATAL;
@@ -94,9 +94,9 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 
 	/* Setting actual used block size from master super block */
 	if (aal_device_set_bs(fs->device, reiser4_master_get_blksize(fs->master))) {
-		aal_exception_fatal("Invalid block size was specified (%u). It "
-				    "must be power of two.",
-				    reiser4_master_get_blksize(fs->master));
+		aal_fatal("Invalid block size was specified (%u). It "
+			  "must be power of two.",
+			  reiser4_master_get_blksize(fs->master));
 		return -EINVAL;
 	}
 	

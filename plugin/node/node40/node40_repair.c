@@ -57,9 +57,9 @@ static errno_t node40_region_delete(node40_t *node,
 	len = node40_size(node, &pos, count);
 
 	if (node40_shrink((node_entity_t *)node, &pos, len, count)) {
-		aal_exception_bug("Node (%llu): Failed to delete the item (%d) "
-				  "of a region [%u..%u].", node->block->nr, 
-				  i - pos.item, start_pos, end_pos);
+		aal_bug("Node (%llu): Failed to delete the item (%d) "
+			"of a region [%u..%u].", node->block->nr, 
+			i - pos.item, start_pos, end_pos);
 		return -EIO;
 	}
 	
@@ -160,11 +160,10 @@ static errno_t node40_item_check_array(node40_t *node, uint8_t mode) {
 			if (offset == last_relable)
 				continue;
 			
-			aal_exception_error("Node (%llu), item (0): Offset "
-					    "(%u) is wrong. Should be (%u). "
-					    "%s", blk, offset, last_relable, 
-					    mode == RM_BUILD ? 
-					    "Fixed." : "");
+			aal_error("Node (%llu), item (0): Offset "
+				  "(%u) is wrong. Should be (%u). "
+				  "%s", blk, offset, last_relable, 
+				  mode == RM_BUILD ? "Fixed." : "");
 
 			if (mode == RM_BUILD) {
 				ih_set_offset(node40_ih_at(node, 0), 
@@ -180,14 +179,14 @@ static errno_t node40_item_check_array(node40_t *node, uint8_t mode) {
 		if (offset < last_relable + (i - last_pos) * MIN_ITEM_LEN || 
 		    offset + (count - i) * MIN_ITEM_LEN > limit) 
 		{
-			aal_exception_error("Node (%llu), item (%u): Offset (%u) "
-					    "is wrong.", blk, i, offset);
+			aal_error("Node (%llu), item (%u): Offset (%u) "
+				  "is wrong.", blk, i, offset);
 		} else {
 			if ((mode == RM_BUILD) && (last_pos != i - 1)) {
 				/* Some items are to be deleted. */
-				aal_exception_error("Node (%llu): Region of items "
-						    "[%d-%d] with wrong offsets is "
-						    "deleted.", blk, last_pos, i - 1);
+				aal_error("Node (%llu): Region of items "
+					  "[%d-%d] with wrong offsets is "
+					  "deleted.", blk, last_pos, i - 1);
 				limit -= (offset - last_relable);
 				count -= (i - last_pos);
 				if (node40_region_delete(node, last_pos + 1, i))
@@ -210,9 +209,9 @@ static errno_t node40_item_check_array(node40_t *node, uint8_t mode) {
 	/* Last relable position is not free space spart. Correct it. */
 	if (last_pos != count) {	
 		/* There is left region with broken offsets, remove it. */
-		aal_exception_error("Node (%llu): Free space start (%u) is wrong. "
-				    "Should be (%u). %s", blk, offset, last_relable, 
-				    mode == RM_BUILD ? "Fixed." : "");
+		aal_error("Node (%llu): Free space start (%u) is wrong. "
+			  "Should be (%u). %s", blk, offset, last_relable, 
+			  mode == RM_BUILD ? "Fixed." : "");
 		
 		if (mode == RM_BUILD) {
 			nh_set_free_space(node, nh_get_free_space(node) + 
@@ -230,10 +229,10 @@ static errno_t node40_item_check_array(node40_t *node, uint8_t mode) {
 	
 	if (last_relable != nh_get_free_space(node)) {
 		/* Free space is wrong. */
-		aal_exception_error("Node (%llu): the free space (%u) is wrong. "
-				    "Should be (%u). %s", blk, 
-				    nh_get_free_space(node), last_relable,
-				    mode == RM_CHECK ? "" : "Fixed.");
+		aal_error("Node (%llu): the free space (%u) is wrong. "
+			  "Should be (%u). %s", blk, 
+			  nh_get_free_space(node), last_relable,
+			  mode == RM_CHECK ? "" : "Fixed.");
 		
 		if (mode == RM_CHECK) {
 			res |= RE_FIXABLE;
@@ -281,10 +280,10 @@ static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
 		return RE_FATAL;
 	
 	if (--nr != nh_get_num_items(node)) {
-		aal_exception_error("Node (%llu): Count of items (%u) is wrong. "
-				    "Found only (%u) items. %s", blk, 
-				    nh_get_num_items(node), nr, 
-				    mode == RM_BUILD ? "Fixed." : "");
+		aal_error("Node (%llu): Count of items (%u) is wrong. "
+			  "Found only (%u) items. %s", blk, 
+			  nh_get_num_items(node), nr, 
+			  mode == RM_BUILD ? "Fixed." : "");
 		
 		if (mode == RM_BUILD) {
 			nh_set_num_items(node, nr);
@@ -295,10 +294,10 @@ static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
 	
 	offset = ih_get_offset(node40_ih_at(node, nr + 1), pol);
 	if (offset != nh_get_free_space_start(node)) {
-		aal_exception_error("Node (%llu): Free space start (%u) is wrong. "
-				    "(%u) looks correct. %s", blk, 
-				    nh_get_free_space_start(node), offset, 
-				    mode == RM_CHECK ? "" : "Fixed.");
+		aal_error("Node (%llu): Free space start (%u) is wrong. "
+			  "(%u) looks correct. %s", blk, 
+			  nh_get_free_space_start(node), offset, 
+			  mode == RM_CHECK ? "" : "Fixed.");
 		
 		if (mode != RM_CHECK) {
 			nh_set_free_space_start(node, offset);
@@ -311,10 +310,10 @@ static errno_t node40_item_find_array(node40_t *node, uint8_t mode) {
 		nr * ih_size(pol);
 	
 	if (offset != nh_get_free_space_start(node)) {
-		aal_exception_error("Node (%llu): Free space (%u) is wrong. "
-				    "Should be (%u). %s", blk, 
-				    nh_get_free_space(node), offset, 
-				    mode == RM_CHECK ? "" : "Fixed.");
+		aal_error("Node (%llu): Free space (%u) is wrong. "
+			  "Should be (%u). %s", blk, 
+			  nh_get_free_space(node), offset, 
+			  mode == RM_CHECK ? "" : "Fixed.");
 		
 		if (mode != RM_CHECK) {
 			nh_set_free_space(node, offset);
@@ -346,15 +345,15 @@ static errno_t node40_count_check(node40_t *node, uint8_t mode) {
 	
 	/* Recover is impossible. */
 	if (num == 0) {
-		aal_exception_error("Node (%llu): Count of items (%u) is wrong.", 
-				    blk, nh_get_num_items(node));
+		aal_error("Node (%llu): Count of items (%u) is wrong.", 
+			  blk, nh_get_num_items(node));
 		return RE_FATAL;
 	}
 	
 	/* Recover is possible. */
-	aal_exception_error("Node (%llu): Count of items (%u) is wrong. (%u) looks "
-			    "correct. %s", blk, nh_get_num_items(node), num, 
-			    mode == RM_BUILD ? "Fixed." : "");
+	aal_error("Node (%llu): Count of items (%u) is wrong. (%u) looks "
+		  "correct. %s", blk, nh_get_num_items(node), num, 
+		  mode == RM_BUILD ? "Fixed." : "");
 	
 	if (mode != RM_BUILD) 
 		return RE_FATAL;

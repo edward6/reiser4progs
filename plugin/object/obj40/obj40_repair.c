@@ -141,11 +141,11 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	
 	/* Update the SD place. */
 	if ((res = obj40_update(obj))) {
-		aal_exception_error("Node (%llu), item (%u): failed to update "
-				    "the StatData of the file [%s]. Plugin "
-				    "(%s).", stat->block->nr, stat->pos.item,
-				    print_inode(obj->core, &stat->key), 
-				    stat->plug->label);
+		aal_error("Node (%llu), item (%u): failed to update "
+			  "the StatData of the file [%s]. Plugin "
+			  "(%s).", stat->block->nr, stat->pos.item,
+			  print_inode(obj->core, &stat->key), 
+			  stat->plug->label);
 		return res;
 	}
 	
@@ -166,14 +166,14 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	
 	/* Check the mode in the LW extension. */
 	if (lw_new.mode != lw_hint.mode) {
-		aal_exception_error("Node (%llu), item (%u): StatData of "
-				    "the file [%s] has the wrong mode (%u),"
-				    "%s (%u). Plugin (%s).", 
-				    stat->block->nr, stat->pos.item, 
-				    print_inode(obj->core, &stat->key),
-				    lw_hint.mode, mode == RM_CHECK ? 
-				    "Should be" : "Fixed to", lw_new.mode, 
-				    stat->plug->label);
+		aal_error("Node (%llu), item (%u): StatData of "
+			  "the file [%s] has the wrong mode (%u),"
+			  "%s (%u). Plugin (%s).", 
+			  stat->block->nr, stat->pos.item, 
+			  print_inode(obj->core, &stat->key),
+			  lw_hint.mode, mode == RM_CHECK ? 
+			  "Should be" : "Fixed to", lw_new.mode, 
+			  stat->plug->label);
 		
 		res = RE_FIXABLE;
 	}
@@ -182,14 +182,14 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	
 	/* Check the size in the LW extension. */
 	if (lw_new.size != lw_hint.size) {
-		aal_exception_error("Node (%llu), item (%u): StatData of "
-				    "the file [%s] has the wrong size "
-				    "(%llu), %s (%llu). Plugin (%s).",
-				    stat->block->nr, stat->pos.item, 
-				    print_inode(obj->core, &stat->key),
-				    lw_hint.size, mode == RM_CHECK ? 
-				    "Should be" : "Fixed to", lw_new.size, 
-				    stat->plug->label);
+		aal_error("Node (%llu), item (%u): StatData of "
+			  "the file [%s] has the wrong size "
+			  "(%llu), %s (%llu). Plugin (%s).",
+			  stat->block->nr, stat->pos.item, 
+			  print_inode(obj->core, &stat->key),
+			  lw_hint.size, mode == RM_CHECK ? 
+			  "Should be" : "Fixed to", lw_new.size, 
+			  stat->plug->label);
 		
 		res = RE_FIXABLE;
 	}
@@ -206,14 +206,14 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	
 	/* sd_butes are set wrongly in the kernel. Waiting for the VS.	
 	if (unix_hint.bytes != bytes) {
-		aal_exception_error("Node (%llu), item (%u): StatData of "
-				    "the file [%s] has the wrong bytes "
-				    "(%llu), %s (%llu). Plugin (%s).", 
-				    stat->block->nr, stat->pos.item, 
-				    print_inode(obj->core, &stat->key),
-				    unix_hint.bytes, mode == RM_CHECK ? 
-				    "Should be" : "Fixed to", bytes, 
-				    stat->plug->label);
+		aal_error("Node (%llu), item (%u): StatData of "
+		"the file [%s] has the wrong bytes "
+		"(%llu), %s (%llu). Plugin (%s).", 
+		stat->block->nr, stat->pos.item, 
+		print_inode(obj->core, &stat->key),
+		unix_hint.bytes, mode == RM_CHECK ? 
+		"Should be" : "Fixed to", bytes, 
+		stat->plug->label);
 		
 		if (mode == RM_CHECK) {
 			unix_hint.bytes = bytes;
@@ -241,12 +241,12 @@ errno_t obj40_fix_key(obj40_t *obj, place_t *place,
 	if (!key->plug->o.key_ops->compfull(key, &place->key))
 		return 0;
 	
-	aal_exception_error("Node (%llu), item(%u): the key [%s] of the "
-			    "item is wrong, %s [%s]. Plugin (%s).", 
-			    place->block->nr, place->pos.unit, 
-			    print_key(obj->core, &place->key),
-			    mode == RM_BUILD ? "fixed to" : "should be", 
-			    print_key(obj->core, key), obj->plug->label);
+	aal_error("Node (%llu), item(%u): the key [%s] of the "
+		  "item is wrong, %s [%s]. Plugin (%s).", 
+		  place->block->nr, place->pos.unit, 
+		  print_key(obj->core, &place->key),
+		  mode == RM_BUILD ? "fixed to" : "should be", 
+		  print_key(obj->core, key), obj->plug->label);
 	
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
@@ -254,9 +254,9 @@ errno_t obj40_fix_key(obj40_t *obj, place_t *place,
 	if ((res = obj->core->tree_ops.update_key(obj->info.tree,
 						  place, key)))
 	{
-		aal_exception_error("Node (%llu), item(%u): update of the "
-				    "item key failed.", place->block->nr,
-				    place->pos.unit);
+		aal_error("Node (%llu), item(%u): update of the "
+			  "item key failed.", place->block->nr,
+			  place->pos.unit);
 	}
 
 	return res;
@@ -285,10 +285,10 @@ errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func,
 	if (lookup == PRESENT) {
 		/* FIXME-VITALY: fix the found SD if needed. */
 		if (stat_func && (res = stat_func(start))) {
-			aal_exception_error("Node (%llu), item (%u): StatData "
-					    "is not of the current object. "
-					    "Plugin (%s)", start->block->nr,
-					    start->pos.item, start->plug->label);
+			aal_error("Node (%llu), item (%u): StatData "
+				  "is not of the current object. "
+				  "Plugin (%s)", start->block->nr,
+				  start->pos.item, start->plug->label);
 		}
 
 		return res;
@@ -304,10 +304,10 @@ errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func,
 	   cannot be recognized w/out SD. Used for for "/" and "lost+found" 
 	   recovery. */
 	
-	aal_exception_error("The file [%s] does not have a StatData item. %s"
-			    "Plugin %s.", print_inode(obj->core, key), 
-			    mode == RM_BUILD ? " Creating a new one." :
-			    "",  obj->plug->label);
+	aal_error("The file [%s] does not have a StatData item. %s"
+		  "Plugin %s.", print_inode(obj->core, key), 
+		  mode == RM_BUILD ? " Creating a new one." :
+		  "",  obj->plug->label);
 
 	if (mode != RM_BUILD)
 		return RE_FATAL;
@@ -318,10 +318,10 @@ errno_t obj40_launch_stat(obj40_t *obj, stat_func_t stat_func,
 	if ((res = obj40_create_stat(obj, pid, mask, 0, 0,
 				     0, nlink, objmode, NULL)))
 	{
-		aal_exception_error("The file [%s] failed to create a "
-				    "StatData item. Plugin %s.", 
-				    print_inode(obj->core, key),
-				    obj->plug->label);
+		aal_error("The file [%s] failed to create a "
+			  "StatData item. Plugin %s.", 
+			  print_inode(obj->core, key),
+			  obj->plug->label);
 	}
 
 	return res;

@@ -43,20 +43,20 @@ int main(int argc, char *argv[]) {
 	cat_init();
 
 	if (libreiser4_init()) {
-		aal_exception_error("Can't initialize libreiser4.");
+		aal_error("Can't initialize libreiser4.");
 		return 0xff;
 	}
     
 	if (!(device = aal_device_open(&file_ops, argv[1], 
 				       512, O_RDWR))) 
 	{
-		aal_exception_error("Can't open device %s.", argv[1]);
+		aal_error("Can't open device %s.", argv[1]);
 		goto error_free_libreiser4;
 	}
     
 	if (!(fs = reiser4_fs_open(device, TRUE))) {
-		aal_exception_error("Can't open filesystem on %s.", 
-				    device->name);
+		aal_error("Can't open filesystem on %s.", 
+			  device->name);
 		goto error_free_device;
 	}
 
@@ -66,8 +66,8 @@ int main(int argc, char *argv[]) {
 		goto error_free_fs;
 
 	if (reg->entity->plug->id.group != REG_OBJECT) {
-		aal_exception_error("File %s is not a regular file.",
-				    argv[2]);
+		aal_error("File %s is not a regular file.",
+			  argv[2]);
 		goto error_free_reg;
 	}
 

@@ -116,7 +116,7 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 	
 	fprintf(stderr, "Will use (%s) params.\n", data->param->name);
 
-	if (aal_exception_yesno("Continue?") == EXCEPTION_NO) 
+	if (aal_yesno("Continue?") == EXCEPTION_NO) 
 		return USER_ERROR;
      
 	return NO_ERROR; 
@@ -185,8 +185,8 @@ static errno_t fsck_init(fsck_parse_t *data,
 			break;
 		case 'l':
 			if ((stream = fopen(optarg, "w")) == NULL) {
-				aal_exception_fatal("Cannot not open the "
-						    "logfile (%s).", optarg);
+				aal_fatal("Cannot not open the "
+					  "logfile (%s).", optarg);
 				return OPER_ERROR;
 			} 
 			
@@ -199,8 +199,8 @@ static errno_t fsck_init(fsck_parse_t *data,
 			break;
 		case 'b':
 			if ((backup = fopen(optarg, "w+")) == NULL) {
-				aal_exception_fatal("Cannot not open the "
-						    "backup file (%s).", optarg);
+				aal_fatal("Cannot not open the "
+					  "backup file (%s).", optarg);
 				return OPER_ERROR;
 			}
 
@@ -250,9 +250,9 @@ static errno_t fsck_init(fsck_parse_t *data,
 	/* Check if device is mounted and we are able to fsck it. */ 
 	if (misc_dev_mounted(argv[optind], NULL)) {
 		if (!misc_dev_mounted(argv[optind], "ro")) {
-			aal_exception_fatal("The partition (%s) is mounted "
-					    "w/ write permissions, cannot "
-					    "fsck it.", argv[optind]);
+			aal_fatal("The partition (%s) is mounted "
+				  "w/ write permissions, cannot "
+				  "fsck it.", argv[optind]);
 			return USER_ERROR;
 		} else {
 			aal_set_bit(&data->options, FSCK_OPT_READ_ONLY);
@@ -262,8 +262,8 @@ static errno_t fsck_init(fsck_parse_t *data,
 	if (!(data->host_device = aal_device_open(ops, argv[optind], 
 						  512, O_RDONLY))) 
 	{
-		aal_exception_fatal("Cannot open the partition (%s): %s.",
-				    argv[optind], strerror(errno));
+		aal_fatal("Cannot open the partition (%s): %s.",
+			  argv[optind], strerror(errno));
 		return OPER_ERROR;
 	}
 
@@ -308,8 +308,8 @@ static errno_t fsck_check_init(repair_data_t *repair, aal_device_t *host) {
 		return res;
 
 	if (repair->fs == NULL) {
-		aal_exception_fatal("Cannot open the FileSystem on (%s).", 
-				    host->name);
+		aal_fatal("Cannot open the FileSystem on (%s).", 
+			  host->name);
 		
 		return res;
 	}
@@ -391,7 +391,7 @@ int main(int argc, char *argv[]) {
     
 	/* Initializing libreiser4 with factory sanity check */
 	if ((res = libreiser4_init())) {
-		aal_exception_fatal("Cannot initialize the libreiser4.");
+		aal_fatal("Cannot initialize the libreiser4.");
 		goto free_device;
 	}
 	
@@ -436,8 +436,8 @@ int main(int argc, char *argv[]) {
  free_device:
 	if (parse_data.host_device) {
 		if (aal_device_sync(parse_data.host_device)) {
-			aal_exception_fatal("Cannot synchronize the device (%s).", 
-					    parse_data.host_device->name);
+			aal_fatal("Cannot synchronize the device (%s).", 
+				  parse_data.host_device->name);
 			ex = OPER_ERROR;
 		}
 		aal_device_close(parse_data.host_device);
@@ -447,7 +447,7 @@ int main(int argc, char *argv[]) {
 	
 	/* Report about the results. */
 	if (res < 0) {
-		aal_exception_mess("Operational error occured while fscking.");
+		aal_mess("Operational error occured while fscking.");
 		return OPER_ERROR;
 	} 
 	

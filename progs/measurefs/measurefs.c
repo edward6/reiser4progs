@@ -150,8 +150,8 @@ static errno_t tree_frag_process_node(reiser4_tree_t *tree,
 
 		/* Initializing item at @place */
 		if (reiser4_place_open(&place, node, &pos)) {
-			aal_exception_error("Can't open item %u in node %llu.", 
-					    pos.item, node_blocknr(node));
+			aal_error("Can't open item %u in node %llu.", 
+				  pos.item, node_blocknr(node));
 			return -EINVAL;
 		}
 
@@ -349,8 +349,8 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 
 		/* Fetching item data. */
 		if ((res = reiser4_place_open(&place, node, &pos))) {
-			aal_exception_error("Can't open item %u in node %llu.",
-					    pos.item, node_blocknr(node));
+			aal_error("Can't open item %u in node %llu.",
+				  pos.item, node_blocknr(node));
 			return res;
 		}
 
@@ -537,8 +537,8 @@ errno_t measurefs_file_frag(reiser4_fs_t *fs,
 	if ((res = reiser4_object_layout(object, file_frag_process_blk,
 					 &frag_hint)))
 	{
-		aal_exception_error("Can't enumerate data blocks "
-				    "occupied by %s", filename);
+		aal_error("Can't enumerate data blocks "
+			  "occupied by %s", filename);
 		goto error_free_object;
 	}
 	
@@ -582,8 +582,8 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 
 		/* Initialiing the item at @place */
 		if ((res = reiser4_place_open(&place, node, &pos))) {
-			aal_exception_error("Can't open item %u in node %llu.", 
-					    pos.item, node_blocknr(node));
+			aal_error("Can't open item %u in node %llu.", 
+				  pos.item, node_blocknr(node));
 			return res;
 		}
 
@@ -605,8 +605,8 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 		/* Calling calculating the file fragmentation by emans of using
 		   the function we have seen abowe. */
 		if (reiser4_object_layout(object, file_frag_process_blk, data)) {
-			aal_exception_error("Can't enumerate data blocks "
-					    "occupied by %s", object->name);
+			aal_error("Can't enumerate data blocks "
+				  "occupied by %s", object->name);
 			goto error_close_object;
 		}
 
@@ -626,8 +626,8 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 			double curr_factor = frag_hint->files > 0 ?
 				(double)frag_hint->current / frag_hint->files : 0;
 			
-			aal_exception_mess("Fragmentation for %s: %.6f [av. %.6f ]",
-					   object->name, file_factor, curr_factor);
+			aal_mess("Fragmentation for %s: %.6f [av. %.6f ]",
+				 object->name, file_factor, curr_factor);
 		}
 
 	error_close_object:
@@ -658,7 +658,7 @@ errno_t measurefs_data_frag(reiser4_fs_t *fs,
 		if (!(frag_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
 							 NULL)))
 		{
-			aal_exception_fatal("Out of memory!");
+			aal_fatal("Out of memory!");
 			return -ENOMEM;
 		}
 
@@ -777,7 +777,7 @@ int main(int argc, char *argv[]) {
 		misc_print_banner(argv[0]);
 
 	if (libreiser4_init()) {
-		aal_exception_error("Can't initialize libreiser4.");
+		aal_error("Can't initialize libreiser4.");
 		goto error;
 	}
 
@@ -787,8 +787,8 @@ int main(int argc, char *argv[]) {
 		override[aal_strlen(override) - 1] = '\0';
 		
 		if (!(flags & BF_QUIET)) {
-			aal_exception_mess("Overriding default params "
-					   "by \"%s\".", override);
+			aal_mess("Overriding default params "
+				 "by \"%s\".", override);
 		}
 		
 		if (misc_param_override(override))
@@ -812,8 +812,8 @@ int main(int argc, char *argv[]) {
     
 	/* Checking if passed partition is mounted */
 	if (misc_dev_mounted(host_dev, NULL) && !(flags & BF_FORCE)) {
-		aal_exception_error("Device %s is mounted at the moment. "
-				    "Use -f to force over.", host_dev);
+		aal_error("Device %s is mounted at the moment. "
+			  "Use -f to force over.", host_dev);
 		goto error_free_libreiser4;
 	}
 
@@ -821,15 +821,15 @@ int main(int argc, char *argv[]) {
 	if (!(device = aal_device_open(&file_ops, host_dev,
 				       512, O_RDONLY)))
 	{
-		aal_exception_error("Can't open %s. %s.", host_dev,
-				    strerror(errno));
+		aal_error("Can't open %s. %s.", host_dev,
+			  strerror(errno));
 		goto error_free_libreiser4;
 	}
 
 	/* Open file system on the device */
 	if (!(fs = reiser4_fs_open(device, TRUE))) {
-		aal_exception_error("Can't open reiser4 on %s",
-				    host_dev);
+		aal_error("Can't open reiser4 on %s",
+			  host_dev);
 		goto error_free_device;
 	}
 
@@ -838,8 +838,8 @@ int main(int argc, char *argv[]) {
 	/* Check if specified options are compatible. For instance, --show-each
 	   can be used only if --data-frag was specified. */
 	if (!(flags & BF_DATA_FRAG) && (flags & BF_SHOW_FILE)) {
-		aal_exception_warn("Option --show-file is only active if "
-				   "--data-frag is specified.");
+		aal_warn("Option --show-file is only active if "
+			 "--data-frag is specified.");
 	}
 
 	if (!(flags & BF_TREE_FRAG || flags & BF_DATA_FRAG ||

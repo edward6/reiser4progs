@@ -30,7 +30,7 @@ reiser4_status_t *reiser4_status_open(aal_device_t *device,
 	if (!(block = aal_block_load(device, status->blksize,
 				     REISER4_STATUS_BLOCK)))
 	{
-		aal_exception_fatal("Can't read status block.");
+		aal_fatal("Can't read status block.");
 		goto error_free_status;
 	}
 
@@ -43,8 +43,8 @@ reiser4_status_t *reiser4_status_open(aal_device_t *device,
 	if (aal_strncmp(STATUS(status)->ss_magic, REISER4_STATUS_MAGIC,
 			aal_strlen(REISER4_STATUS_MAGIC)) != 0)
 	{
-		aal_exception_error("Wrong magic is found in the "
-				    "filesystem status block.");
+		aal_error("Wrong magic is found in the "
+			  "filesystem status block.");
 		
 		goto error_free_status;
 	}
@@ -103,9 +103,9 @@ errno_t reiser4_status_sync(reiser4_status_t *status) {
 	
 	/* Writing status block to device */
 	if ((res = aal_block_write(block))) {
-		aal_exception_error("Can't write status block "
-				    "at %llu. %s.", block->nr,
-				    block->device->error);
+		aal_error("Can't write status block "
+			  "at %llu. %s.", block->nr,
+			  block->device->error);
 		goto error_free_block;
 	}
 
@@ -165,9 +165,9 @@ reiser4_status_t *reiser4_status_unpack(aal_device_t *device,
 		return NULL;
 	
 	if (size != sizeof(status->ent)) {
-		aal_exception_error("Invalid size %u is "
-				    "detected in stream.",
-				    size);
+		aal_error("Invalid size %u is "
+			  "detected in stream.",
+			  size);
 		goto error_free_status;
 	}
 

@@ -14,8 +14,8 @@ static errno_t debugfs_reg_cat(reiser4_object_t *object) {
 	char buff[4096];
 	
 	if ((res = reiser4_object_reset(object))) {
-		aal_exception_error("Can't reset object %s.",
-				    object->name);
+		aal_error("Can't reset object %s.",
+			  object->name);
 		return res;
 	}
 
@@ -41,8 +41,8 @@ static errno_t debugfs_dir_cat(reiser4_object_t *object) {
 	entry_hint_t entry;
 	
 	if ((res = reiser4_object_reset(object))) {
-		aal_exception_error("Can't reset object %s.",
-				    object->name);
+		aal_error("Can't reset object %s.",
+			  object->name);
 		return res;
 	}
 
@@ -83,8 +83,8 @@ static errno_t debugfs_spl_cat(reiser4_object_t *object) {
 	stat_hint.ext[SDEXT_UNIX_ID] = &unix_hint;
 
 	if ((res = reiser4_object_stat(object, &stat_hint))) {
-		aal_exception_error("Can't stat object %s.",
-				    object->name);
+		aal_error("Can't stat object %s.",
+			  object->name);
 		return res;
 	}
 
@@ -106,7 +106,7 @@ errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 	reiser4_object_t *object;
 	
 	if (!(object = reiser4_object_open(fs->tree, filename, TRUE))) {
-		aal_exception_error("Can't open %s.", filename);
+		aal_error("Can't open %s.", filename);
 		return -EINVAL;
 	}
 
@@ -124,8 +124,8 @@ errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 		res = debugfs_spl_cat(object);
 		break;
 	default:
-		aal_exception_info("Sorry, browsing of the special "
-				   "files is not implemented yet.");
+		aal_info("Sorry, browsing of the special "
+			 "files is not implemented yet.");
 	}
 	
 	reiser4_object_close(object);

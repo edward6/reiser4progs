@@ -59,8 +59,8 @@ errno_t stat40_traverse(place_t *place, ext_func_t ext_func,
 
 		/* Getting extension plugin from the plugin factory */
 		if (!(sdext->plug = core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
-			aal_exception_warn("Can't find stat data extension plugin "
-					   "by its id 0x%x.", i);
+			aal_warn("Can't find stat data extension plugin "
+				 "by its id 0x%x.", i);
 			return 0;
 		}
 
@@ -178,8 +178,8 @@ static errno_t stat40_prep_insert(place_t *place, trans_hint_t *hint) {
 
 		/* Getting extension plugin */
 		if (!(plug = core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
-			aal_exception_warn("Can't find stat data extension plugin "
-					   "by its id 0x%x.", i);
+			aal_warn("Can't find stat data extension plugin "
+				 "by its id 0x%x.", i);
 			continue;
 		}
 
@@ -238,8 +238,8 @@ static int64_t stat40_modify(place_t *place, trans_hint_t *hint, int insert) {
 
 		/* Getting extension plugin by extent number. */
 		if (!(plug = core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
-			aal_exception_warn("Can't find stat data extension plugin "
-					   "by its id 0x%x.", i);
+			aal_warn("Can't find stat data extension plugin "
+				 "by its id 0x%x.", i);
 			continue;
 		}
 
@@ -332,8 +332,8 @@ static errno_t stat40_remove_units(place_t *place, trans_hint_t *hint) {
 
 		/* Getting extension plugin by extent number. */
 		if (!(plug = core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
-			aal_exception_warn("Can't find stat data extension plugin "
-					   "by its id 0x%x.", i);
+			aal_warn("Can't find stat data extension plugin "
+				 "by its id 0x%x.", i);
 			return -EINVAL;
 		}
 

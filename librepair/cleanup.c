@@ -109,8 +109,8 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	fs = cleanup->repair->fs;
 	
 	if (reiser4_tree_fresh(fs->tree)) {
-		aal_exception_warn("No reiser4 metadata were found. Cleanup "
-				   "pass is skipped.");
+		aal_warn("No reiser4 metadata were found. Cleanup "
+			 "pass is skipped.");
 		return 0;
 	}
 	
@@ -219,8 +219,8 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	tree = cleanup->repair->fs->tree;
 	
 	if (reiser4_tree_fresh(tree)) {
-		aal_exception_warn("No reiser4 metadata were found. Cleanup "
-				   "pass is skipped.");
+		aal_warn("No reiser4 metadata were found. Cleanup "
+			 "pass is skipped.");
 		return 0;
 	}
 	

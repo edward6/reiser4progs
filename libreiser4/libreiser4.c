@@ -278,8 +278,7 @@ errno_t libreiser4_init(void) {
 #endif
     
 	if (reiser4_factory_init()) {
-		aal_exception_fatal("Can't initialize "
-				    "plugin factory.");
+		aal_fatal("Can't initialize plugin factory.");
 		goto error_fini_print;
 	}
 

@@ -129,8 +129,8 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	
 	/* Getting statdata plugin */
 	if (!(hint.plug = obj->core->factory_ops.ifind(ITEM_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find stat data item plugin by "
-				    "its id 0x%x.", pid);
+		aal_error("Can't find stat data item plugin by "
+			  "its id 0x%x.", pid);
 		return -EIO;
 	}
 
@@ -150,8 +150,7 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	
 	/* Unix extension hint initializing */
 	if (rdev && bytes) {
-		aal_exception_error("Invalid stat data params (rdev or "
-				    "bytes).");
+		aal_error("Invalid stat data params (rdev or bytes).");
 		return -EINVAL;
 	} else {
 		unix_ext.rdev = rdev;

@@ -23,11 +23,11 @@ static errno_t callback_register_item(void *object, place_t *place, void *data)
         aal_assert("vpf-1115", place != NULL);
          
         if (repair_item_test_flag(place, OF_CHECKED)) {
-                aal_exception_error("Node (%llu), item (%u): item registering "
-                                    "failed--it belongs to another object "
-                                    "already. Plugin (%s).",
-				    place->block->nr, place->pos.unit,
-				    ((object_entity_t *)object)->plug->label);
+                aal_error("Node (%llu), item (%u): item registering "
+			  "failed--it belongs to another object "
+			  "already. Plugin (%s).",
+			  place->block->nr, place->pos.unit,
+			  ((object_entity_t *)object)->plug->label);
                 return 1;
         }
          
@@ -106,8 +106,8 @@ static errno_t repair_semantic_add_entry(reiser4_object_t *parent,
 	reiser4_key_assign(&entry.object, &object->info->object);
 
 	if ((res = reiser4_object_add_entry(parent, &entry)))
-		aal_exception_error("Can't add entry %s to %s.",
-				    name, parent->name);
+		aal_error("Can't add entry %s to %s.",
+			  name, parent->name);
 	
 	return res;
 }
@@ -317,8 +317,8 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		return INVAL_PTR;
 	
 	if (object == NULL) {
-		aal_exception_error("Failed to open the object [%s].", 
-				    reiser4_print_key(&entry->object, PO_INODE));
+		aal_error("Failed to open the object [%s].", 
+			  reiser4_print_key(&entry->object, PO_INODE));
 		
 		if (sem->repair->mode != RM_CHECK)
 			goto error_rem_entry;
@@ -402,11 +402,11 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	sem->stat.rm_entries++;
 	
 	if (res < 0) {
-		aal_exception_error("Semantic traverse failed to remove the "
-				    "entry \"%s\" [%s] pointing to [%s].", 
-				    entry->name, 
-				    reiser4_print_key(&entry->offset, PO_INODE),
-				    reiser4_print_key(&entry->object, PO_INODE));
+		aal_error("Semantic traverse failed to remove the "
+			  "entry \"%s\" [%s] pointing to [%s].", 
+			  entry->name, 
+			  reiser4_print_key(&entry->offset, PO_INODE),
+			  reiser4_print_key(&entry->object, PO_INODE));
 	}
 	
  error_close_object:
@@ -525,37 +525,37 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 		if (object->entity->plug->id.group == DIR_OBJECT)
 			return object;
 
-		aal_exception_error("The directory [%s] is recognized by the "
-				    "%s plugin which is not a directory one.", 
-				    reiser4_print_key(key, PO_INODE), 
-				    object->entity->plug->label);
+		aal_error("The directory [%s] is recognized by the "
+			  "%s plugin which is not a directory one.", 
+			  reiser4_print_key(key, PO_INODE), 
+			  object->entity->plug->label);
 		
 		reiser4_object_close(object);
 	} else {
 		/* No plugin was recognized. */
-		aal_exception_error("Failed to recognize the plugin for the "
-				    "directory [%s].", 
-				    reiser4_print_key(key, PO_INODE));
+		aal_error("Failed to recognize the plugin for the "
+			  "directory [%s].", 
+			  reiser4_print_key(key, PO_INODE));
 	}
 	
 	if (sem->repair->mode != RM_BUILD)
 		return NULL;
 	
 	if ((pid = reiser4_param_value("directory")) == INVAL_PID) {
-		aal_exception_error("Can't get the valid plugin id "
-				    "for the directory plugin.");
+		aal_error("Can't get the valid plugin id "
+			  "for the directory plugin.");
 		return INVAL_PTR;
 	}
 
 	if (!(plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find item plugin by its "
-				    "id 0x%x.", pid);
+		aal_error("Can't find item plugin by its "
+			  "id 0x%x.", pid);
 		return INVAL_PTR;
 	}
 
-	aal_exception_error("Trying to recover the directory [%s] "
-			    "with the default plugin--%s.",
-			    reiser4_print_key(key, PO_INODE), plug->label);
+	aal_error("Trying to recover the directory [%s] "
+		  "with the default plugin--%s.",
+		  reiser4_print_key(key, PO_INODE), plug->label);
 
 	
 	return repair_object_fake(tree, parent, key, plug);
@@ -592,19 +592,19 @@ static errno_t repair_semantic_dir_prepare(repair_semantic_t *sem,
 		plug = object->entity->plug;
 		aal_assert("vpf-1405", plug->o.object_ops->detach != NULL);
 
-		aal_exception_info("Object [%s]: detaching.", 
-				   reiser4_print_key(&object->info->object,
-						     PO_INODE));
+		aal_info("Object [%s]: detaching.", 
+			 reiser4_print_key(&object->info->object,
+					   PO_INODE));
 		
 		if ((res = plug_call(object->entity->plug->o.object_ops,
 				     detach, object->entity, NULL)))
 			return res;
 		
-		aal_exception_info("Object [%s]: attaching to [%s].", 
-				   reiser4_print_key(&object->info->object,
-						     PO_INODE),
-				   reiser4_print_key(&object->info->parent,
-						     PO_INODE));
+		aal_info("Object [%s]: attaching to [%s].", 
+			 reiser4_print_key(&object->info->object,
+					   PO_INODE),
+			 reiser4_print_key(&object->info->parent,
+					   PO_INODE));
 
 		break;
 	}
@@ -625,7 +625,7 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 	
 	if (sem->root == NULL) {
 		sem->repair->fatal++;
-		aal_exception_error("No root directory openned.");
+		aal_error("No root directory openned.");
 		return RE_FATAL;
 	} else if (sem->root == INVAL_PTR)
 		return -EINVAL;
@@ -699,8 +699,8 @@ static errno_t repair_semantic_lost_open(repair_semantic_t *sem) {
 		if (!(sem->lost = reiser4_dir_create(fs, sem->root,
 						     "lost+found")))
 		{
-			aal_exception_error("Semantic pass failed: cannot "
-					    "create 'lost+found' directory.");
+			aal_error("Semantic pass failed: cannot "
+				  "create 'lost+found' directory.");
 			return -EINVAL;
 		}
 		
@@ -811,8 +811,8 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	tree = sem->repair->fs->tree;
 	
 	if (reiser4_tree_fresh(tree)) {
-		aal_exception_warn("No reiser4 metadata were found. Semantic "
-				   "pass is skipped.");
+		aal_warn("No reiser4 metadata were found. Semantic "
+			 "pass is skipped.");
 		goto error;
 	}
 	

@@ -446,8 +446,8 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 		reiser4_key_assign(&entry->object, &child->info->object);
 
 		if ((res = reiser4_object_add_entry(object, entry))) {
-			aal_exception_error("Can't add entry %s to %s.",
-					    entry->name, object->name);
+			aal_error("Can't add entry %s to %s.",
+				  entry->name, object->name);
 			return res;
 		}
 	}
@@ -487,15 +487,15 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 	if (reiser4_object_lookup(object, entry->name,
 				  entry) != PRESENT)
 	{
-		aal_exception_error("Can't find entry %s in %s.",
-				    entry->name, object->name);
+		aal_error("Can't find entry %s in %s.",
+			  entry->name, object->name);
 		return -EINVAL;
 	}
 
 	/* Removing entry from @object. */
 	if ((res = reiser4_object_rem_entry(object, entry))) {
-		aal_exception_error("Can't remove entry %s in %s.",
-				    entry->name, object->name);
+		aal_error("Can't remove entry %s in %s.",
+			  entry->name, object->name);
 		return res;
 	}
 	
@@ -504,16 +504,16 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 				LEAF_LEVEL, FIND_EXACT, &place) != PRESENT)
 	{
 		char *key = reiser4_print_key(&entry->object, PO_DEFAULT);
-		aal_exception_error("Can't find an item pointed by %s. "
-				    "Entry %s/%s points to nowere.",
-				    key, object->name, entry->name);
+		aal_error("Can't find an item pointed by %s. "
+			  "Entry %s/%s points to nowere.",
+			  key, object->name, entry->name);
 		return -EINVAL;
 	}
 
 	/* Opening victim object by found place */
 	if (!(child = reiser4_object_realize(object->tree, object, &place))) {
-		aal_exception_error("Can't open %s/%s. Object is corrupted?",
-				    object->name, entry->name);
+		aal_error("Can't open %s/%s. Object is corrupted?",
+			  object->name, entry->name);
 		return -EINVAL;
 	}
 
@@ -548,9 +548,9 @@ static errno_t callback_print_place(void *entity, place_t *place,
 	aal_stream_t *stream = (aal_stream_t *)data;
 	
 	if ((res = reiser4_item_print(place, stream))) {
-		aal_exception_error("Can't print item %u in "
-				    "node %llu.", place->pos.item,
-				    node_blocknr(place->node));
+		aal_error("Can't print item %u in "
+			  "node %llu.", place->pos.item,
+			  node_blocknr(place->node));
 		return res;
 	}
 		
@@ -743,9 +743,9 @@ static reiser4_object_t *reiser4_object_comp(reiser4_tree_t *tree,
 	   object. This is name and offset key. */
 	if (parent) {
 		if (!parent->entity->plug->o.object_ops->build_entry) {
-			aal_exception_error("Object %s has not build_entry() "
-					    "method implemented. Is it dir "
-					    "object at all?", parent->name);
+			aal_error("Object %s has not build_entry() "
+				  "method implemented. Is it dir "
+				  "object at all?", parent->name);
 			return NULL;
 		}
 		
@@ -827,8 +827,8 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, pid);
 
 	if (!hint.plug) {
-		aal_exception_error("Can't find directory plugin "
-				    "by its id 0x%x.", pid);
+		aal_error("Can't find directory plugin "
+			  "by its id 0x%x.", pid);
 		return NULL;
 	}
 
@@ -869,8 +869,8 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, regular);
 
 	if (!hint.plug) {
-		aal_exception_error("Can't find regual file plugin "
-				    "by its id 0x%x.", regular);
+		aal_error("Can't find regual file plugin "
+			  "by its id 0x%x.", regular);
 		return NULL;
 	}
 
@@ -913,8 +913,8 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, symlink);
 
 	if (!hint.plug) {
-		aal_exception_error("Can't find symlink plugin by "
-				    "its id 0x%x.", symlink);
+		aal_error("Can't find symlink plugin by "
+			  "its id 0x%x.", symlink);
 		return NULL;
 	}
 
@@ -956,8 +956,8 @@ reiser4_object_t *reiser4_spl_create(reiser4_fs_t *fs,
 	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, special);
 
 	if (!hint.plug) {
-		aal_exception_error("Can't find special file plugin "
-				    "by its id 0x%x.", special);
+		aal_error("Can't find special file plugin "
+			  "by its id 0x%x.", special);
 		return NULL;
 	}
 

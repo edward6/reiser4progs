@@ -29,17 +29,17 @@ static errno_t callback_check_plug(reiser4_plug_t *plug,
 	if (!aal_strncmp(examined->label, plug->label,
 			 PLUG_MAX_LABEL))
 	{
-		aal_exception_error("Plugin %s has the same label "
-				    "as %s.", examined->cl.loc,
-				    plug->cl.loc);
+		aal_error("Plugin %s has the same label "
+			  "as %s.", examined->cl.loc,
+			  plug->cl.loc);
 		return -EINVAL;
 	}
 	
 	/* Check plugin group. It should not be more or equal LAST_ITEM. */
 	if (examined->id.group >= LAST_ITEM) {
-		aal_exception_error("Plugin %s has invalid group id "
-				    "0x%x.", examined->cl.loc,
-				    examined->id.group);
+		aal_error("Plugin %s has invalid group id "
+			  "0x%x.", examined->cl.loc,
+			  examined->id.group);
 		return -EINVAL;
 	}
 
@@ -49,9 +49,8 @@ static errno_t callback_check_plug(reiser4_plug_t *plug,
 	    examined->id.id == plug->id.id &&
 	    examined->id.type == plug->id.type)
 	{
-		aal_exception_error("Plugin %s has the same id as "
-				    "%s.", examined->cl.loc,
-				    plug->cl.loc);
+		aal_error("Plugin %s has the same id as "
+			  "%s.", examined->cl.loc, plug->cl.loc);
 		return -EINVAL;
 	}
 
@@ -68,8 +67,8 @@ static reiser4_plug_t *reiser4_plug_init(plug_class_t *class) {
 		return NULL;
 
 	if (!(plug = class->init(&core))) {
-		aal_exception_warn("Plugin's init() method (%p) "
-				   "failed", (void *)class->init);
+		aal_warn("Plugin's init() method (%p) "
+			 "failed", (void *)class->init);
 		return NULL;
 	}
 
@@ -91,9 +90,9 @@ static errno_t reiser4_plug_fini(plug_class_t *class) {
 	/* Calling plugin fini() method if any. */
 	if (class->fini) {
 		if ((res = class->fini(&core))) {
-			aal_exception_warn("Method fini() of plugin "
-					   "%s has failed. Error %llx.",
-					   class->loc, res);
+			aal_warn("Method fini() of plugin "
+				 "%s has failed. Error %llx.",
+				 class->loc, res);
 		}
 	}
 
@@ -113,8 +112,8 @@ reiser4_plug_t *reiser4_factory_load(plug_class_t *class) {
 	
 #ifndef ENABLE_STAND_ALONE
 	if (reiser4_factory_foreach(callback_check_plug, (void *)plug))	{
-		aal_exception_warn("Plugin %s will not be attached to "
-				   "plugin factory.", plug->cl.loc);
+		aal_warn("Plugin %s will not be attached to "
+			 "plugin factory.", plug->cl.loc);
 		reiser4_factory_unload(plug);
 		return NULL;
 	}
@@ -245,8 +244,8 @@ errno_t reiser4_factory_init(void) {
 	   there are no one, plugin factory is considered not successfully
 	   initialized.*/
 	if (plugins->real == 0) {
-                aal_exception_error("There are no valid "
-				    "builtin plugins found.");
+                aal_error("There are no valid "
+			  "builtin plugins found.");
 		aal_hash_table_free(plugins);
                 return -EINVAL;
         }

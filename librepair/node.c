@@ -52,10 +52,10 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 		if (reiser4_place_fetch(&place)) {
 			trans_hint_t hint;
 			
-			aal_exception_error("Node (%llu): Failed to open the "
-					    "item (%u). %s", node_blocknr(node),
-					    pos->item, mode == RM_BUILD ? 
-					    "Removed." : "");
+			aal_error("Node (%llu): Failed to open the "
+				  "item (%u). %s", node_blocknr(node),
+				  pos->item, mode == RM_BUILD ? 
+				  "Removed." : "");
 			
 			if (mode != RM_BUILD) {
 				res |= RE_FATAL;
@@ -78,11 +78,11 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 		if (!repair_tree_legal_level(place.plug->id.group, 
 					     reiser4_node_get_level(node)))
 		{
-			aal_exception_error("Node (%llu): Node level (%u) does "
-					    "not match to the item type (%s).",
-					    node_blocknr(node), 
-					    reiser4_node_get_level(node),
-					    place.plug->label);
+			aal_error("Node (%llu): Node level (%u) does "
+				  "not match to the item type (%s).",
+				  node_blocknr(node), 
+				  reiser4_node_get_level(node),
+				  place.plug->label);
 			
 			return RE_FATAL;
 		}
@@ -95,9 +95,9 @@ static errno_t repair_node_items_check(node_t *node, uint8_t mode) {
 		if ((ret & RE_FATAL) && (mode == RM_BUILD)) {
 			trans_hint_t hint;
 
-			aal_exception_error("Node (%llu), item (%u): broken "
-					    "item occured, Remove it.",
-					    node_blocknr(node), pos->item);
+			aal_error("Node (%llu), item (%u): broken "
+				  "item occured, Remove it.",
+				  node_blocknr(node), pos->item);
 
 			hint.count = 1;
 			hint.place_func = NULL;
@@ -137,9 +137,9 @@ static errno_t repair_node_keys_check(node_t *node, uint8_t mode) {
 			return res;
 		
 		if ((res = reiser4_key_assign(&key, &place.key))) {
-			aal_exception_error("Node (%llu): Failed to get the "
-					    "key of the item (%u).",
-					    node_blocknr(node), pos->item);
+			aal_error("Node (%llu): Failed to get the "
+				  "key of the item (%u).",
+				  node_blocknr(node), pos->item);
 			return res;
 		}
 		
@@ -150,12 +150,12 @@ static errno_t repair_node_keys_check(node_t *node, uint8_t mode) {
 			/* Key has some corruptions and cannot be recovered. */
 			trans_hint_t hint;
 			
-			aal_exception_error("Node (%llu): The key [%s] of the "
-					    "item (%u) is broken.%s", 
-					    node_blocknr(node),
-					    reiser4_print_key(&place.key, PO_DEFAULT),
-					    pos->item, mode == RM_BUILD ?
-					    " Removed." : "");
+			aal_error("Node (%llu): The key [%s] of the "
+				  "item (%u) is broken.%s", 
+				  node_blocknr(node),
+				  reiser4_print_key(&place.key, PO_DEFAULT),
+				  pos->item, mode == RM_BUILD ?
+				  " Removed." : "");
 			if (mode != RM_BUILD)
 				return RE_FATAL;
 
@@ -172,13 +172,13 @@ static errno_t repair_node_keys_check(node_t *node, uint8_t mode) {
 			continue;
 		} else if (reiser4_key_compfull(&key, &place.key)) {
 			/* Key has been fixed. */
-			aal_exception_error("Node (%llu): The key [%s] of the "
-					    "item (%u) is broken. %s [%s].", 
-					    node_blocknr(node),
-					    reiser4_print_key(&place.key, PO_DEFAULT),
-					    pos->item, (res && mode == RM_CHECK)
-					    ? "Should be" : "Fixed to", 
-					    reiser4_print_key(&key, PO_DEFAULT));
+			aal_error("Node (%llu): The key [%s] of the "
+				  "item (%u) is broken. %s [%s].", 
+				  node_blocknr(node),
+				  reiser4_print_key(&place.key, PO_DEFAULT),
+				  pos->item, (res && mode == RM_CHECK)
+				  ? "Should be" : "Fixed to", 
+				  reiser4_print_key(&key, PO_DEFAULT));
 			
 			if (mode == RM_CHECK)
 				result = RE_FIXABLE;
@@ -193,10 +193,10 @@ static errno_t repair_node_keys_check(node_t *node, uint8_t mode) {
 		
 		if (pos->item) {
 			if (reiser4_key_compfull(&prev_key, &key) >= 0) {
-				aal_exception_error("Node (%llu), items (%u) "
-						    "and (%u): Wrong order of "
-						    "keys.", node_blocknr(node), 
-						    pos->item - 1, pos->item);
+				aal_error("Node (%llu), items (%u) "
+					  "and (%u): Wrong order of "
+					  "keys.", node_blocknr(node), 
+					  pos->item - 1, pos->item);
 				
 				return RE_FATAL;
 			}
@@ -222,8 +222,8 @@ errno_t repair_node_check_struct(node_t *node, uint8_t mode) {
 	
 	/* Level of the node must be > 0 */
 	if (!level) {
-		aal_exception_error("Node (%llu): illegal level found (%u).", 
-				    node_blocknr(node), level);
+		aal_error("Node (%llu): illegal level found (%u).", 
+			  node_blocknr(node), level);
 		return RE_FATAL;
 	}
 
@@ -260,9 +260,9 @@ errno_t repair_node_traverse(node_t *node, node_func_t func,
 	
 	for (pos->item = 0; pos->item < reiser4_node_items(node); pos->item++) {
 		if ((res = reiser4_place_open(&place, node, pos))) {
-			aal_exception_error("Node (%llu), item (%u): failed to "
-					    "open the item by its place.", 
-					    node_blocknr(node), pos->item);
+			aal_error("Node (%llu), item (%u): failed to "
+				  "open the item by its place.", 
+				  node_blocknr(node), pos->item);
 			return res;
 		}
 		

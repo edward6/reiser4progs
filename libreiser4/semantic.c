@@ -50,7 +50,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 
 	/* Initializing object at @place. */
 	if (!(resol->entity = plug_call(plug->o.object_ops, open, &resol->info))) {
-		aal_exception_error("Can't open object %s.", track);
+		aal_error("Can't open object %s.", track);
 		return -EINVAL;
 	}
 	
@@ -72,7 +72,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 
 		/* Symlink cannot be followed */
 		if (res != 0) {
-			aal_exception_error("Can't follow %s.", track);
+			aal_error("Can't follow %s.", track);
 			return res;
 		}
 		
@@ -94,7 +94,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		if (!(resol->entity = plug_call(plug->o.object_ops,
 						open, &resol->info)))
 		{
-			aal_exception_error("Can't open object %s.", track);
+			aal_error("Can't open object %s.", track);
 			return -EINVAL;
 		}
 	}
@@ -120,7 +120,7 @@ static errno_t callback_find_entry(char *track, char *name,
 		return res;
 	} else {
 		if (res != PRESENT) {
-			aal_exception_error("Can't find %s.", track);
+			aal_error("Can't find %s.", track);
 			
 			plug_call(resol->entity->plug->o.object_ops,
 				  close, resol->entity);
@@ -167,8 +167,8 @@ reiser4_plug_t *reiser4_semantic_plug(reiser4_tree_t *tree,
 	}
 
 	if (!(plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find object plugin by its "
-				    "id 0x%x.", pid);
+		aal_error("Can't find object plugin by its "
+			  "id 0x%x.", pid);
 		return NULL;
 	}
 

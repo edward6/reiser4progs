@@ -94,9 +94,9 @@ errno_t debugfs_print_block(
 	count_t blocks;
 
 	if (blk >= (blocks = reiser4_format_get_len(fs->format))) {
-		aal_exception_error("Block %llu is out of filesystem "
-				    "size %llu-%llu.", blk, (uint64_t)0,
-				    (uint64_t)blocks);
+		aal_error("Block %llu is out of filesystem "
+			  "size %llu-%llu.", blk, (uint64_t)0,
+			  (uint64_t)blocks);
 		return -EINVAL;
 	}
 	
@@ -198,8 +198,8 @@ errno_t debugfs_print_format(reiser4_fs_t *fs) {
 	aal_stream_t stream;
 
 	if (!fs->format->entity->plug->o.format_ops->print) {
-		aal_exception_info("Format print method is not "
-				   "implemented.");
+		aal_info("Format print method is not "
+			 "implemented.");
 		return 0;
 	}
     
@@ -217,8 +217,8 @@ errno_t debugfs_print_oid(reiser4_fs_t *fs) {
 	aal_stream_t stream;
     
 	if (!fs->oid->entity->plug->o.oid_ops->print) {
-		aal_exception_info("Oid allocator print method is "
-				   "not implemented.");
+		aal_info("Oid allocator print method is "
+			 "not implemented.");
 		return 0;
 	}
 
@@ -314,8 +314,8 @@ errno_t debugfs_print_file(
 		if ((res = reiser4_object_metadata(object, fprint_process_place,
 						   &hint)))
 		{
-			aal_exception_error("Can't print object %s metadata.",
-					    object->name);
+			aal_error("Can't print object %s metadata.",
+				  object->name);
 		}
 	}
 

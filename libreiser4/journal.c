@@ -71,15 +71,14 @@ reiser4_journal_t *reiser4_journal_open(
 	journal->fs->journal = journal;
 
 	if ((pid = reiser4_format_journal_pid(fs->format)) == INVAL_PID) {
-		aal_exception_error("Invalid journal plugin id has "
-				    "been found.");
+		aal_error("Invalid journal plugin id has been found.");
 		goto error_free_journal;
 	}
  
 	/* Getting plugin by its id from plugin factory */
 	if (!(plug = reiser4_factory_ifind(JOURNAL_PLUG_TYPE, pid))) {
-		aal_exception_error("Can't find journal plugin by its "
-				    "id 0x%x.", pid);
+		aal_error("Can't find journal plugin by its "
+			  "id 0x%x.", pid);
 		goto error_free_journal;
 	}
 
@@ -95,8 +94,8 @@ reiser4_journal_t *reiser4_journal_open(
 					  &desc, fs->format->entity,
 					  start, blocks))) 
 	{
-		aal_exception_error("Can't open journal %s on %s.",
-				    plug->label, device->name);
+		aal_error("Can't open journal %s on %s.",
+			  plug->label, device->name);
 		goto error_free_journal;
 	}
 	
@@ -162,14 +161,12 @@ reiser4_journal_t *reiser4_journal_create(
 
 	/* Getting journal plugin to be used. */
 	if ((pid = reiser4_format_journal_pid(fs->format)) == INVAL_PID) {
-		aal_exception_error("Invalid journal plugin id has "
-				    "been found.");
+		aal_error("Invalid journal plugin id has been found.");
 		goto error_free_journal;
 	}
     
 	if (!(plug = reiser4_factory_ifind(JOURNAL_PLUG_TYPE, pid)))  {
-		aal_exception_error("Can't find journal plugin by "
-				    "its id 0x%x.", pid);
+		aal_error("Can't find journal plugin by its id 0x%x.", pid);
 		goto error_free_journal;
 	}
     
@@ -184,14 +181,14 @@ reiser4_journal_t *reiser4_journal_create(
 					  &desc, fs->format->entity,
 					  start, blocks))) 
 	{
-		aal_exception_error("Can't create journal %s on %s.",
-				    plug->label, journal->device->name);
+		aal_error("Can't create journal %s on %s.",
+			  plug->label, journal->device->name);
 		goto error_free_journal;
 	}
 	
 	if (reiser4_journal_mark(journal)) {
-		aal_exception_error("Can't mark journal blocks used in "
-				    "block allocator.");
+		aal_error("Can't mark journal blocks used in "
+			  "block allocator.");
 		goto error_free_entity;
 	}
 	

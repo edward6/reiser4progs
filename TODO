@@ -3,6 +3,9 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* check all places printf is used there and replace it by aal_mess() 
+  if it makes sense. 
+
 * make tree_insert() code paths shorter, that it do nor use lots of
   checks of the same conditions and calculations like needed space.
 

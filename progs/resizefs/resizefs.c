@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
 		misc_print_banner(argv[0]);
 
 	if (libreiser4_init()) {
-		aal_exception_error("Can't initialize libreiser4.");
+		aal_error("Can't initialize libreiser4.");
 		goto error;
 	}
 
@@ -130,8 +130,8 @@ int main(int argc, char *argv[]) {
 		override[aal_strlen(override) - 1] = '\0';
 
 		if (!(flags & BF_QUIET)) {
-			aal_exception_mess("Overriding default params "
-					   "by \"%s\".", override);
+			aal_mess("Overriding default params "
+				 "by \"%s\".", override);
 		}
 		
 		if (misc_param_override(override))
@@ -150,8 +150,8 @@ int main(int argc, char *argv[]) {
 	host_dev = argv[optind++];
     
 	if (stat(host_dev, &st) == -1) {
-		aal_exception_error("Can't stat %s. %s.", host_dev,
-				    strerror(errno));
+		aal_error("Can't stat %s. %s.", host_dev,
+			  strerror(errno));
 		goto error_free_libreiser4;
 	}
 	
@@ -160,8 +160,8 @@ int main(int argc, char *argv[]) {
 	   then we emmit exception and propose user to use -f flag to force. */
 	if (!S_ISBLK(st.st_mode)) {
 		if (!(flags & BF_FORCE)) {
-			aal_exception_error("Device %s is not block device. "
-					    "Use -f to force over.", host_dev);
+			aal_error("Device %s is not block device. "
+				  "Use -f to force over.", host_dev);
 			goto error_free_libreiser4;
 		}
 	} else {
@@ -169,16 +169,16 @@ int main(int argc, char *argv[]) {
 		     (SCSI_BLK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 16 == 0)) &&
 		    (!(flags & BF_FORCE)))
 		{
-			aal_exception_error("Device %s is an entire harddrive, not "
-					    "just one partition.", host_dev);
+			aal_error("Device %s is an entire harddrive, not "
+				  "just one partition.", host_dev);
 			goto error_free_libreiser4;
 		}
 	}
    
 	/* Checking if passed partition is mounted */
 	if (misc_dev_mounted(host_dev, NULL) && !(flags & BF_FORCE)) {
-		aal_exception_error("Device %s is mounted at the moment. "
-				    "Use -f to force over.", host_dev);
+		aal_error("Device %s is mounted at the moment. "
+			  "Use -f to force over.", host_dev);
 		goto error_free_libreiser4;
 	}
 
@@ -186,31 +186,29 @@ int main(int argc, char *argv[]) {
 	if (!(device = aal_device_open(&file_ops, host_dev,
 				       512, O_RDWR)))
 	{
-		aal_exception_error("Can't open %s. %s.", host_dev,
-				    strerror(errno));
+		aal_error("Can't open %s. %s.", host_dev,
+			  strerror(errno));
 		goto error_free_libreiser4;
 	}
 
 	/* Open file system on the device */
 	if (!(fs = reiser4_fs_open(device, TRUE))) {
-		aal_exception_error("Can't open reiser4 on %s",
-				    host_dev);
+		aal_error("Can't open reiser4 on %s", host_dev);
 		goto error_free_device;
 	}
 
 	fs_len = misc_size2long(argv[optind]);
 
 	if (fs_len == INVAL_DIG) {
-		aal_exception_error("Invalid new filesystem "
-				    "size %s.", argv[optind]);
+		aal_error("Invalid new filesystem "
+			  "size %s.", argv[optind]);
 		goto error_free_fs;
 	}
 	
 	fs_len /= (reiser4_master_get_blksize(fs->master) / 1024);
 
 	if (reiser4_fs_resize(fs, fs_len)) {
-		aal_exception_error("Can't resize reiser4 on %s.",
-				    host_dev);
+		aal_error("Can't resize reiser4 on %s.", host_dev);
 		goto error_free_fs;
 	}
 	

@@ -43,20 +43,20 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 	/* Try to open the journal. */
 	if ((fs->journal = reiser4_journal_open(fs, journal_device)) == NULL) {
 		/* failed to open a journal. Build a new one. */
-		aal_exception_fatal("Failed to open a journal by its id (0x%x).",
-				    reiser4_format_journal_pid(fs->format));
+		aal_fatal("Failed to open a journal by its id (0x%x).",
+			  reiser4_format_journal_pid(fs->format));
 		
 		if (mode != RM_BUILD)
 			return RE_FATAL;
 		
 		if ((pid = reiser4_format_journal_pid(fs->format)) == INVAL_PID) {
-			aal_exception_error("Invalid journal plugin id has been found.");
+			aal_error("Invalid journal plugin id has been found.");
 			return -EINVAL;
 		}
 		
 		if (!(plug = reiser4_factory_ifind(JOURNAL_PLUG_TYPE, pid)))  {
-			aal_exception_error("Cannot find journal plugin by its id 0x%x.",
-					    pid);
+			aal_error("Cannot find journal plugin by its id 0x%x.",
+				  pid);
 			return -EINVAL;
 		}
 		
@@ -66,8 +66,8 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 			return -EINVAL;
 	    
 		if (!(fs->journal = reiser4_journal_create(fs, journal_device))) {
-			aal_exception_fatal("Cannot create a journal by its id (0x%x).",
-					    reiser4_format_journal_pid(fs->format));
+			aal_fatal("Cannot create a journal by its id (0x%x).",
+				  reiser4_format_journal_pid(fs->format));
 			return -EINVAL;
 		}
 	} else {    

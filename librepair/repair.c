@@ -141,8 +141,8 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	/* Allocate a bitmap of blocks belong to the format area - skipped, 
 	   super block, journal, bitmaps. */
 	if (!(control->bm_used = filter->bm_used = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of format "
-				    "layout.");
+		aal_error("Failed to allocate a bitmap of format "
+			  "layout.");
 		return -EINVAL;
 	}
 	
@@ -150,8 +150,8 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	if (reiser4_fs_layout(control->repair->fs, callback_format_mark,
 			      filter->bm_used)) 
 	{
-		aal_exception_error("Failed to mark the filesystem area as "
-				    "used in the bitmap.");
+		aal_error("Failed to mark the filesystem area as "
+			  "used in the bitmap.");
 		return -EINVAL;
 	}
 	
@@ -161,8 +161,8 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	
 	/* Allocate a bitmap of twig blocks in the tree. */
 	if (!(control->bm_twig = filter->bm_twig = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of twig "
-				    "blocks.");
+		aal_error("Failed to allocate a bitmap of twig "
+			  "blocks.");
 		return -EINVAL;
 	}
 
@@ -172,8 +172,8 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	/* A bitmap of leaves removed from the tree and to be inserted back. */
 	control->bm_leaf = filter->bm_leaf = aux_bitmap_create(fs_len);
 	if (!control->bm_leaf) {
-		aal_exception_error("Failed to allocate a bitmap of leaves "
-				    "unconnected from the tree.");
+		aal_error("Failed to allocate a bitmap of leaves "
+			  "unconnected from the tree.");
 		return -EINVAL;
 	}
 	
@@ -182,8 +182,8 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	if (!(control->bm_met = filter->bm_met = 
 	      aux_bitmap_clone(filter->bm_used))) 
 	{
-		aal_exception_error("Failed to allocate a bitmap of blocks "
-				    "that are met on the filesystem.");
+		aal_error("Failed to allocate a bitmap of blocks "
+			  "that are met on the filesystem.");
 		return -EINVAL;
 	}
 	
@@ -250,15 +250,15 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	fs_len = reiser4_format_get_len(repair->fs->format);
 	
 	if (!(control->bm_alloc = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of allocated "
-				    "blocks.");
+		aal_error("Failed to allocate a bitmap of allocated "
+			  "blocks.");
 		return -EINVAL;
 	}
 	
 	/* Allocate a bitmap of blocks to be scanned on this pass. */ 
 	if (!(ds->bm_scan = control->bm_scan = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of blocks "
-				    "unconnected from the tree.");
+		aal_error("Failed to allocate a bitmap of blocks "
+			  "unconnected from the tree.");
 		return -EINVAL;
 	}
 
@@ -430,8 +430,8 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 		fs_len = reiser4_format_get_len(control->repair->fs->format);
 
 		if (!(control->bm_alloc = aux_bitmap_create(fs_len))) {
-			aal_exception_error("Failed to allocate a bitmap of "
-					    "allocated blocks.");
+			aal_error("Failed to allocate a bitmap of "
+				  "allocated blocks.");
 			return -EINVAL;
 		}
 
@@ -443,8 +443,8 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 			return 0;
 		
 		if (!(bm_temp = aux_bitmap_clone(control->bm_alloc))) {
-			aal_exception_error("Failed to allocate a backup of "
-					    "allocated blocks bitmap.");
+			aal_error("Failed to allocate a backup of "
+				  "allocated blocks bitmap.");
 			return -EINVAL;
 		}
 		
@@ -479,11 +479,11 @@ static errno_t repair_sem_fini(repair_control_t *control) {
 	fs_len = reiser4_format_get_len(control->repair->fs->format);
 	
 	if (repair_bitmap_compare(control->bm_alloc, control->bm_used, 0)) {
-		aal_exception_error("On-disk used blocks and really used "
-				    "blocks differ.%s", 
-				    control->repair->mode == RM_FIX && 
-				    !control->repair->fatal ? " Fixed." 
-				    : "");
+		aal_error("On-disk used blocks and really used "
+			  "blocks differ.%s", 
+			  control->repair->mode == RM_FIX && 
+			  !control->repair->fatal ? " Fixed." 
+			  : "");
 
 		if (control->repair->mode == RM_FIX && !control->repair->fatal)
 		{
@@ -539,15 +539,15 @@ static errno_t debug_am_prepare(repair_control_t *control, repair_am_t *am) {
 	fs_len = reiser4_format_get_len(control->repair->fs->format);
 	
 	if (!(am->bm_leaf = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of leaves "
-				    "removed from the tree and to be inserted "
-				    "later back item-by-item.");
+		aal_error("Failed to allocate a bitmap of leaves "
+			  "removed from the tree and to be inserted "
+			  "later back item-by-item.");
 		return -EINVAL;
 	}
 	
 	if (!(am->bm_twig = aux_bitmap_create(fs_len))) {
-		aal_exception_error("Failed to allocate a bitmap of twig "
-				    "blocks.");
+		aal_error("Failed to allocate a bitmap of twig "
+			  "blocks.");
 		return -EINVAL;
 	}
 	
@@ -659,8 +659,8 @@ errno_t repair_check(repair_data_t *repair) {
 	}
 
 	if (repair->mode != RM_BUILD && repair->fatal) {
-		aal_exception_mess("\nFatal corruptions were found. "
-				   "Semantic pass is skipped.");
+		aal_mess("\nFatal corruptions were found. "
+			 "Semantic pass is skipped.");
 	} else {
 		/* Check the semantic reiser4 tree. */
 		if ((res = repair_sem_prepare(&control, &sem)))

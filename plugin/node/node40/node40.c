@@ -320,8 +320,7 @@ errno_t node40_fetch(node_entity_t *entity,
 	if (!(place->plug = core->factory_ops.ifind(ITEM_PLUG_TYPE,
 						    pid)))
 	{
-		aal_exception_error("Can't find item plugin by its "
-				    "id 0x%x.", pid);
+		aal_error("Can't find item plugin by its id 0x%x.", pid);
 		return -EINVAL;
 	}
 
@@ -652,8 +651,7 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
                                                                                               
         /* Makes expand of the node new items will be inserted in. */
         if (node40_expand(entity, pos, len, 1)) {
-                aal_exception_error("Can't expand node for insert "
-                                    "item/unit.");
+                aal_error("Can't expand node for insert item/unit.");
                 return -EINVAL;
         }
                                                                                               
@@ -670,16 +668,14 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
                                                                                               
         /* Preparing place for calling item plugin with them. */
         if (node40_fetch(entity, pos, &place)) {
-                aal_exception_error("Can't fetch item data.");
+                aal_error("Can't fetch item data.");
                 return -EINVAL;
         }
 
 	/* Inserting units into @place. */
 	if ((write = modify_func(&place, hint)) < 0) {
-		aal_exception_error("Can't insert unit to "
-				    "node %llu, item %u.",
-				    node->block->nr,
-				    place.pos.item);
+		aal_error("Can't insert unit to node %llu, item %u.",
+				    node->block->nr, place.pos.item);
 		return write;
 	}
                                                                                               
@@ -880,8 +876,7 @@ static errno_t node40_fuse(node_entity_t *entity,  pos_t *left_pos,
 	delta = left_pos->item - right_pos->item;
 	
 	if (aal_abs(delta) > 1) {
-		aal_exception_error("Can't fuse items which "
-				    "lie side by side.");
+		aal_error("Can't fuse items which lie side by side.");
 		return -EINVAL;
 	}
 
@@ -909,14 +904,12 @@ static errno_t node40_fuse(node_entity_t *entity,  pos_t *left_pos,
 
 	/* Second stage. Fusing item bodies. */
 	if ((res = node40_fetch(entity, left_pos, &left_place))) {
-		aal_exception_error("Can't fetch left item "
-				    "during items fuse.");
+		aal_error("Can't fetch left item during items fuse.");
 		return res;
 	}
 	
 	if ((res = node40_fetch(entity, right_pos, &right_place))) {
-		aal_exception_error("Can't fetch right item "
-				    "during items fuse.");
+		aal_error("Can't fetch right item during items fuse.");
 		return res;
 	}
 
@@ -1316,8 +1309,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 	/* Expanding node by @hint->units_bytes at @pos. */
 	if (node40_expand(dst_entity, &pos, hint->units_bytes, 1)) {
-		aal_exception_error("Can't expand node for "
-				    "shifting units into it.");
+		aal_error("Can't expand node for shifting units into it.");
 		return -EINVAL;
 	}
 
@@ -1347,7 +1339,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	if (plug_call(src_place.plug->o.item_ops->balance,
 		      shift_units, &src_place, &dst_place, hint))
 	{
-		aal_exception_error("Can't shift units.");
+		aal_error("Can't shift units.");
 		return -EINVAL;
 	}
 
@@ -1662,8 +1654,8 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	   merge items. */
 	if (hint->control & SF_ALLOW_MERGE) {
 		if ((res = node40_unite(src_entity, dst_entity, hint, 0))) {
-			aal_exception_error("Can't merge two nodes during "
-					    "node shift operation.");
+			aal_error("Can't merge two nodes during "
+				  "node shift operation.");
 			return res;
 		}
 	} else {
@@ -1697,8 +1689,8 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	/* Second pass is started here. Moving some amount of whole items from
 	   @src_entity to @dst_entity. */
 	if ((res = node40_transfuse(src_entity, dst_entity, hint))) {
-		aal_exception_error("Can't transfuse two nodes "
-				    "during node shift operation.");
+		aal_error("Can't transfuse two nodes during node "
+			  "shift operation.");
 		return res;
 	}
 
@@ -1713,8 +1705,8 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	   up. */
 	if (hint->control & SF_ALLOW_MERGE) {
 		if ((res = node40_unite(src_entity, dst_entity, hint, 1))) {
-			aal_exception_error("Can't merge two nodes during"
-					    "node shift operation.");
+			aal_error("Can't merge two nodes during"
+				  "node shift operation.");
 			return res;
 		}
 	}

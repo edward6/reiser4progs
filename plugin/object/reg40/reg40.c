@@ -161,7 +161,7 @@ static object_entity_t *reg40_open(object_info_t *info) {
 	if (!(reg->policy = obj40_plug(&reg->obj, POLICY_PLUG_TYPE,
 				       "policy")))
 	{
-		aal_exception_error("Can't get file policy plugin.");
+		aal_error("Can't get file policy plugin.");
 		goto error_free_reg;
 	}
 #endif
@@ -214,8 +214,8 @@ static object_entity_t *reg40_create(object_info_t *info,
 		hint->body.reg.policy = reg40_core->param_ops.value("policy");
 
 		if (hint->body.reg.policy == INVAL_PID) {
-			aal_exception_error("Invalid default tail policy "
-					    "plugin id has been detected.");
+			aal_error("Invalid default tail policy "
+				  "plugin id has been detected.");
 			goto error_free_reg;
 		}
 	}
@@ -224,8 +224,8 @@ static object_entity_t *reg40_create(object_info_t *info,
 	if (!(reg->policy = reg40_core->factory_ops.ifind(POLICY_PLUG_TYPE,
 						     hint->body.reg.policy)))
 	{
-		aal_exception_error("Can't find tail policy plugin by "
-				    "its id 0x%x.", hint->body.reg.policy);
+		aal_error("Can't find tail policy plugin by "
+			  "its id 0x%x.", hint->body.reg.policy);
 		goto error_free_reg;
 	}
 
@@ -369,18 +369,16 @@ static errno_t reg40_check_body(object_entity_t *entity,
 	/* Getting policy plugin. It will be used for new file body items and
 	   old body items will be converted to. */
 	if (!(policy_plug = reg40_policy_plug(reg, new_size))) {
-		aal_exception_error("Can't get body plugin "
-				    "for new file size %llu.",
-				    new_size);
+		aal_error("Can't get body plugin for new file size %llu.",
+			  new_size);
 		return -EIO;
 	}
 
 	/* Getting old file body plugin. This is needed for comparing with new
 	   body plugin, told us by tail policy plugin. */
 	if (!(body_plug = reg40_policy_plug(reg, fsize))) {
-		aal_exception_error("Can't get body plugin "
-				    "for old file size %llu.",
-				    fsize);
+		aal_error("Can't get body plugin for old file size %llu.",
+			  fsize);
 		return -EIO;
 	}
 		
@@ -481,8 +479,7 @@ static int64_t reg40_write(object_entity_t *entity,
 
 	/* Convert body items if needed. */
 	if ((res = reg40_check_body(entity, size + n))) {
-		aal_exception_error("Can't perform tail "
-				    "conversion.");
+		aal_error("Can't perform tail conversion.");
 		return res;
 	}
 		
@@ -525,8 +522,7 @@ static errno_t reg40_truncate(object_entity_t *entity,
 	if (n > size) {
 		/* Converting body if needed. */
 		if ((res = reg40_check_body(entity, n))) {
-			aal_exception_error("Can't perform tail "
-					    "conversion.");
+			aal_error("Can't perform tail conversion.");
 			return res;
 		}
 		
@@ -553,8 +549,7 @@ static errno_t reg40_truncate(object_entity_t *entity,
 
 		/* Converting body if needed. */
 		if ((res = reg40_check_body(entity, n))) {
-			aal_exception_error("Can't perform tail "
-					    "conversion.");
+			aal_error("Can't perform tail conversion.");
 			return res;
 		}
 
