@@ -73,7 +73,7 @@ diff -urN --exclude=Makefile.in --exclude=configure --exclude='*.info' --exclude
 +fi
 +
 +if test x"$enable_reiser4_support" != xno; then
-+  AC_CHECK_LIB(reiser4-alone, __sym40_plugin_init, 
++  AC_CHECK_LIB(reiser4-alone, __sym40_plug_init, 
 +    REISER4_CFLAGS="$REISER4_CFLAGS -DENABLE_SYMLINKS=1",
 +AC_MSG_WARN(Reiser4 symlinks support is disabled.), 
 +    -laal-alone

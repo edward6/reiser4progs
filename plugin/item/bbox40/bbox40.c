@@ -12,6 +12,7 @@ static uint32_t bbox40_units(reiser4_place_t *place) {
 	return 1;
 }
 
+#ifndef ENABLE_STAND_ALONE
 static errno_t bbox40_prep_insert(reiser4_place_t *place,
 				  trans_hint_t *hint)
 {
@@ -78,6 +79,7 @@ static errno_t bbox40_remove_units(reiser4_place_t *place,
 
 	return 0;
 }
+#endif
 
 static errno_t bbox40_fetch_units(reiser4_place_t *place,
 				  trans_hint_t *hint)
