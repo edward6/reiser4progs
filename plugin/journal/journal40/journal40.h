@@ -168,7 +168,7 @@ typedef errno_t (*journal40_sec_func_t) (object_entity_t *, aal_block_t *,
 					 blk_t, journal40_bel_t, void *);
 
 typedef errno_t (*journal40_han_func_t) (object_entity_t *, aal_block_t *, 
-					 d64_t, void *);
+					 blk_t, void *);
 
 #define JFOOTER(block) \
         ((journal40_footer_t *)block->data)

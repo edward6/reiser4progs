@@ -542,25 +542,120 @@ static errno_t journal40_replay(object_entity_t *entity) {
 	return journal40_update((journal40_t *)entity);
 }
 
+/* Safely extracts string field from passed location */
+static void extract_string(char *stor, char *orig, uint32_t max) {
+	uint32_t i;
+	
+	for (i = 0; i < max; i++) {
+		if (orig[i] == '\0')
+			break;
+	}
+
+	aal_memcpy(stor, orig, i);
+}
+
 static errno_t callback_print_txh(object_entity_t *entity,
 				  blk_t blk, void *data)
 {
+	aal_block_t *block;
+	journal40_t *journal;
+	aal_stream_t *stream;
+
+	char magic[TXH_MAGIC_SIZE];
+	journal40_tx_header_t *txh;
+
+	if (blk == INVAL_BLK)
+		return -EINVAL;
+	
+	stream = (aal_stream_t *)data;
+	journal = (journal40_t *)entity;
+
+	if (!(block = aal_block_open(journal->device, blk)))
+		return -EIO;
+	
+	txh = (journal40_tx_header_t *)block->data;
+
+	aal_stream_format(stream, "Transaction header:\n");
+
+	aal_memset(magic, 0, sizeof(magic));
+	extract_string(magic, txh->magic, sizeof(magic));
+	
+	aal_stream_format(stream, "magic:\t%s\n", magic);
+
+	aal_stream_format(stream, "id: \t0x%llx\n",
+			  get_th_id(txh));
+	
+	aal_stream_format(stream, "total:\t%lu\n",
+			  get_th_total(txh));
+	
+	aal_stream_format(stream, "prev:\t%llu\n",
+			  get_th_prev_tx(txh));
+	
+	aal_stream_format(stream, "next block:\t%llu\n",
+			  get_th_next_block(txh));
+	
+	aal_stream_format(stream, "free blocks:\t%llu\n",
+			  get_th_free_blocks(txh));
+	
+	aal_stream_format(stream, "used oids:\t%llu\n",
+			  get_th_used_oids(txh));
+	
+	aal_stream_format(stream, "next oid:\t0x%llx\n\n",
+			  get_th_next_oid(txh));
+	
+	aal_block_close(block);
+
 	return 0;
 }
 
 /* Printing pair (wandered and original) blocks */
 static errno_t callback_print_par(object_entity_t *entity,
 				  aal_block_t *block,
-				  d64_t original,
+				  blk_t original,
 				  void *data)
 {
+	aal_stream_t *stream;
+	stream = (aal_stream_t *)data;
+	
+	aal_stream_format(stream, "%llu -> %llu\n",
+			  original, block->blk);
 	return 0;
 }
 
-static errno_t callback_print_log(object_entity_t *entity,
+static errno_t callback_print_lgr(object_entity_t *entity,
 				  aal_block_t *block, blk_t blk,
 				  journal40_bel_t bel, void *data)
 {
+	aal_stream_t *stream;
+	char magic[LGR_MAGIC_SIZE];
+	journal40_lr_header_t *lgr;
+	
+	if (bel != BEL_LGR)
+		return 0;
+
+	stream = (aal_stream_t *)data;
+	lgr = (journal40_lr_header_t *)block->data;
+	
+	aal_stream_format(stream, "Log record:\n");
+
+	aal_memset(magic, 0, sizeof(magic));
+	extract_string(magic, lgr->magic, sizeof(magic));
+	
+	aal_stream_format(stream, "magic:\t%s\n",
+			  magic);
+	
+	aal_stream_format(stream, "id: \t0x%llx\n",
+			  get_lh_id(lgr));
+	
+	aal_stream_format(stream, "total:\t%lu\n",
+			  get_lh_total(lgr));
+	
+	aal_stream_format(stream, "serial:\t0x%lx\n",
+			  get_lh_serial(lgr));
+	
+	aal_stream_format(stream, "next block:\t%llu\n\n",
+			  get_lh_next_block(lgr));
+	
 	return 0;
 }
 
@@ -613,7 +708,7 @@ static errno_t journal40_print(object_entity_t *entity,
 	return journal40_traverse((journal40_t *)entity,
 				  callback_print_txh,
 				  callback_print_par,
-				  callback_print_log,
+				  callback_print_lgr,
 				  (void *)stream);
 }
 
