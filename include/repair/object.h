@@ -14,6 +14,7 @@
 
 #include <repair/repair.h>
 
+#if 0
 typedef struct repair_object {
     /* Realized plugin of the object. */
     reiser4_plugin_t *plugin;
@@ -31,14 +32,16 @@ typedef struct repair_object {
     key_entity_t *parent;
 } repair_object_t;
 
+extern reiser4_object_t *repair_object_open(repair_object_t *hint);
 extern void repair_object_init(repair_object_t *hint, reiser4_tree_t *tree);
 extern errno_t repair_object_launch(repair_object_t *hint, 
     reiser4_key_t *parent, reiser4_key_t *key);
-extern errno_t repair_object_realize(repair_object_t *hint, 
-    reiser4_place_t *place);
+#endif
 
-extern errno_t repair_object_check_struct(repair_object_t *hint, uint8_t mode);
-extern errno_t repair_object_traverse(reiser4_object_t *hint);
-extern reiser4_object_t *repair_object_open(repair_object_t *hint);
+extern errno_t repair_object_realize(reiser4_object_t *object);
+extern errno_t repair_object_check_struct(reiser4_object_t *object, 
+    uint8_t mode);
+extern errno_t repair_object_traverse(reiser4_object_t *object);
+extern errno_t repair_object_launch(reiser4_object_t *object);
 
 #endif

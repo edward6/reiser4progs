@@ -8,12 +8,11 @@
 #include <repair/semantic.h>
 
 static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) {
-    reiser4_object_t *object;
+    reiser4_object_t object;
     repair_semantic_t *sem;
-    repair_object_t hint;
     reiser4_key_t parent;
     errno_t res = 0;
-	
+    
     aal_assert("vpf-1059", place != NULL);
     aal_assert("vpf-1037", data != NULL);
     
@@ -25,38 +24,35 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
     if (repair_node_test_flag(place->node, place->pos.item, ITEM_CHECKED))
 	return 0;
     
-    sem = (repair_semantic_t *)data;    
-    repair_object_init(&hint, sem->repair->fs->tree);
+    sem = (repair_semantic_t *)data;
+    
+    aal_memset(&object, 0, sizeof(object));
+    object.info.tree = sem->repair->fs->tree;
+    aal_memcpy(&object.info.start, place, sizeof(*place));
     
     /* Try to realize the plugin. */
-    if (repair_object_realize(&hint, place))
+    if (repair_object_realize(&object))
 	return 0;
     
     /* This is really an object, check its structure. */
-    if ((res = repair_object_check_struct(&hint, sem->repair->mode))) {
+    if ((res = repair_object_check_struct(&object, sem->repair->mode))) {
 	aal_exception_error("Node %llu, item %u: check of the object structure "
 	    "failed.", place->node->blk, place->pos.item);
 	return res;
     }
     
-    /* Open the object and traverse its child pointers. */
-    if ((object = repair_object_open(&hint)) == NULL) {
-	aal_exception_error("Node %llu, item %u: failed to open an object %k.",
-	    place->node->blk, place->pos.item, &hint.place.item.key);
-	return -EINVAL;
-    }
-	
-    if ((res = repair_object_traverse(object)))
+    if ((res = repair_object_traverse(&object)))
 	goto error_close_object;
     
     /* The whole reachable subtree must be recovered for now and marked as 
      * REACHABLE. */
-    
+
+    plugin_call(object.entity->plugin->o.object_ops, close, object.entity);
+
     return 0;
-
+    
 error_close_object:
-    reiser4_object_close(object);
-
+    plugin_call(object.entity->plugin->o.object_ops, close, object.entity);
     return res;
 }
 
@@ -66,7 +62,7 @@ static errno_t repair_semantic_node_traverse(reiser4_node_t *node, void *data) {
 
 errno_t repair_semantic(repair_semantic_t *sem) {
     repair_progress_t progress;
-    repair_object_t object;
+    reiser4_object_t object;
     traverse_hint_t hint;
     reiser4_fs_t *fs;
     errno_t res;
@@ -97,10 +93,13 @@ errno_t repair_semantic(repair_semantic_t *sem) {
     if (fs->tree->root == NULL)
 	return -EINVAL;
     
-    repair_object_init(&object, fs->tree);
-
+    aal_memset(&object, 0, sizeof(object));
+    object.info.tree = fs->tree;
+    object.info.parent = fs->tree->key;
+    object.info.object = fs->tree->key;
+    
     /* Make sure that '/' exists. */
-    if (repair_object_launch(&object, &fs->tree->key, &fs->tree->key)) {
+    if (repair_object_realize(&object)) {
 	reiser4_object_t *root;
 	
 	/* Failed to realize the root directory, create a new one. */	

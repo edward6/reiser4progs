@@ -50,7 +50,7 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 }
 
 /* This function is trying to open object's entity on @object->place */
-static errno_t reiser4_object_guess(reiser4_object_t *object) {
+errno_t reiser4_object_guess(reiser4_object_t *object) {
 	reiser4_plugin_t *plugin;
 	
 	plugin = libreiser4_factory_cfind_only(callback_object_guess, object);
@@ -263,16 +263,16 @@ reiser4_object_t *reiser4_object_launch(
     
 	object->info.tree = tree;
 	
+	aal_memcpy(&object->info.start, place, sizeof(*place));
+	reiser4_key_assign(&object->info.object, &object->info.start.item.key);
+	
 #ifndef ENABLE_STAND_ALONE
 	reiser4_key_string(&object->info.object, object->name);
 #endif
 	
-	aal_memcpy(&object->info.start, place, sizeof(*place));
-	reiser4_key_assign(&object->info.object, &object->info.start.item.key);
-
 	if (reiser4_object_guess(object))
 		goto error_free_object;
-
+	
 	return object;
 	
  error_free_object:

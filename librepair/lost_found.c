@@ -10,12 +10,11 @@
 static errno_t repair_lost_found_object_check(reiser4_place_t *place, 
     void *data) 
 {
-    reiser4_object_t *object;
+    bool_t checked, reachable;
+    reiser4_object_t object;
     repair_lost_found_t *lf;
-    repair_object_t hint;
     reiser4_key_t parent;
     errno_t res = 0;
-    bool_t checked, reachable;
     
     aal_assert("vpf-1059", place != NULL);
     aal_assert("vpf-1037", data != NULL);
@@ -34,41 +33,35 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
     }
     
     lf = (repair_lost_found_t *)data;    
-
+    
+    aal_memset(&object, 0, sizeof(object));
+    object.info.tree = lf->repair->fs->tree;
+    aal_memcpy(&object.info.start, place, sizeof(*place));
+    
     /* This is not checked item or not reachable SD. Try to recover it. */
     if (!checked) {
-	repair_object_init(&hint, lf->repair->fs->tree);
-    
 	/* Try to realize the plugin. */
-	if (repair_object_realize(&hint, place))
+	if (repair_object_realize(&object))
 	    return 0;
-    
+	
 	/* This is really an object, check its structure. */
-	if ((res = repair_object_check_struct(&hint, lf->repair->mode))) {
+	if ((res = repair_object_check_struct(&object, lf->repair->mode))) {
 	    aal_exception_error("Node %llu, item %u: Check of the object "
 		"openned on the item failed.", place->node->blk, 
 		place->pos.item);
 	    return res;
 	}
-    
-	if ((object = repair_object_open(&hint)) == NULL) {
-	    aal_exception_error("Node %llu, item %u: failed to open an object "
-		"%k.", place->node->blk, place->pos.item, &hint.place.item.key);
-	    return -EINVAL;
-	}
     } else {
 	/* Not reachable. */
-	object = reiser4_object_launch(lf->repair->fs->tree, place);
-	
-	if (object == NULL) {
+	if (repair_object_launch(&object)) {
 	    aal_exception_error("Node %llu, item %u: failed to open an object "
-		"%k.", place->node->blk, place->pos.item, &hint.place.item.key);
+		"%k.", place->node->blk, place->pos.item, &place->item.key);
 	    return -EINVAL;
 	}
     }
     
     /* link the object to its parent or to the "lost+found" directory. */
-    if (object->info.parent.plugin) {
+    if (object.info.parent.plugin) {
 	/* Parent key was obtained from the object. Try to find the parent 
 	 * object, if it fails, link the object to lost+found. */
     }
@@ -76,11 +69,12 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
     /* The whole reachable subtree must be recovered for now and marked as 
      * REACHABLE. */
     
+    plugin_call(object.entity->plugin->o.object_ops, close, object.entity);
+    
     return 0;
 
 error_close_object:
-    reiser4_object_close(object);
-
+    plugin_call(object.entity->plugin->o.object_ops, close, object.entity);
     return res;
 }
 
