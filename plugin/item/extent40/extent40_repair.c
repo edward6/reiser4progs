@@ -209,7 +209,7 @@ static inline uint32_t extent40_head(reiser4_place_t *place,
 	offset = koffset - offset;
 	doffset = extent40_offset(place, pos);
 	
-	aal_assert("vpf-1381", offset >= doffset);
+	aal_assert("vpf-1787", offset >= doffset);
 	
 	return (offset - doffset) / place_blksize(place);
 }
@@ -226,8 +226,8 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 
 	src = (reiser4_place_t *)hint->specific;
 
-	sextent = extent40_body(src) + src->pos.unit;
-	dextent = extent40_body(place) + place->pos.unit;
+	sextent = extent40_body(src);
+	dextent = extent40_body(place);
 	
 	/* Get the offset of the dst item key. */
 	offset = plug_call(hint->offset.plug->o.key_ops, 
@@ -238,8 +238,7 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	sunits = extent40_units(src);
 	
 	/* Get the head within the first @src unit. */
-	hint->head = extent40_head(src, src->pos.unit, &hint->offset);
-	hint->tail = 0;
+	hint->head = hint->tail = 0;
 	hint->insert_flags = 0;
 
 	if (place->pos.unit == MAX_UINT32 ||
@@ -251,6 +250,8 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 			     &hint->offset, &place->key) < 0)
 	{
 		/* The item head to be inserted. */		
+		hint->head = extent40_head(src, src->pos.unit, &hint->offset);
+
 		/* Get the @src end unit and the tail within it. */
 		offset -= plug_call(hint->offset.plug->o.key_ops,
 				    get_offset, &src->key);
@@ -258,7 +259,11 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 		send = extent40_unit(src, offset - 1);
 		hint->tail = et40_get_width(sextent + send) - 
 			extent40_head(src, send, &place->key);
-	} else if (!et40_get_start(dextent) && et40_get_start(sextent)) {
+	} else if (!et40_get_start(dextent + place->pos.unit) && 
+		   et40_get_start(sextent + src->pos.unit)) 
+	{
+		hint->head = extent40_head(src, src->pos.unit, &hint->offset);
+		
 		/* Estimate the overwrite. */
 		hint->insert_flags |= ET40_OVERWRITE;
 
@@ -274,6 +279,9 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 			hint->tail = (extent40_offset(src, send + 1) - offset)
 				/ place_blksize(src);
 		} else {
+			/* The src item finished earlier then dst item by key 
+			   offset, then some part of the dst item will not be
+			   overwritten, set TAIL falg here. */
 			send = sunits - 1;
 			hint->tail = 0;
 			hint->insert_flags |= ET40_TAIL;
@@ -290,6 +298,9 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	hint->len = hint->count;
 	
 	if (hint->insert_flags & ET40_OVERWRITE) {
+		/* If this is an overrite, the current dst unit can be used 
+		   instead of adding another one (if there is no head in dst)
+		   and one more unit should be inserted (if there is a tail). */
 		hint->len += (hint->insert_flags & ET40_TAIL ? 1 : 0)
 			- (hint->insert_flags & ET40_HEAD ? 0 : 1);
 	}
@@ -360,15 +371,18 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 
 		return 0;
 	}
-	
-	/* Get the start key offset. */
-	offset = plug_call(hint->offset.plug->o.key_ops,
-			   get_offset, &hint->offset);
 
-	count = hint->count + (hint->insert_flags & ET40_TAIL ? 1 : 0)
-		- (hint->insert_flags & ET40_HEAD ? 0 : 1);
+	count = hint->count;
+
+	if (hint->insert_flags & ET40_OVERWRITE) {
+		count += hint->insert_flags & ET40_TAIL ? 1 : 0;
+		count -= hint->insert_flags & ET40_HEAD ? 0 : 1;
+	}
 
 	/* Set the maxkey offset correctly. */
+	offset = plug_call(hint->offset.plug->o.key_ops, 
+			   get_offset, &src->key);
+
 	offset += extent40_offset(src, src->pos.unit + hint->count);
 	offset -= hint->tail * place_blksize(src);
 	plug_call(hint->offset.plug->o.key_ops, set_offset, 
