@@ -18,13 +18,6 @@
 
 #define DEFAULT_BLOCKSIZE   (4096)
 
-enum direction {
-	D_LEFT  = 0,
-	D_RIGHT = 1
-};
-
-typedef enum direction direction_t;
-
 /* 
    Defining the types for disk structures. All types like f32_t are fake ones
    needed to avoid gcc-2.95.x bug with typedef of aligned types.

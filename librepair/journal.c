@@ -8,7 +8,8 @@
 static errno_t repair_journal_check(reiser4_journal_t *journal) {
     aal_assert("vpf-460", journal != NULL, return -1);
 
-    /* FIXME-UMKA->VITALY: Where we should get filesystem layout function? */
+    /* FIXME-UMKA->VITALY: Where we should get filesystem layout function?
+     * Actually we have one in fs API. But we have not fs access here. */
     if (plugin_call(return -1, journal->entity->plugin->journal_ops, check, 
 	journal->entity, NULL))
     {

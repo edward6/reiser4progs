@@ -60,10 +60,6 @@ extern errno_t reiser4_node_traverse(reiser4_node_t *node,
 extern errno_t reiser4_node_lkey(reiser4_node_t *node,
 				 reiser4_key_t *key);
 
-extern errno_t reiser4_node_nkey(reiser4_node_t *node,
-				 direction_t direction,
-				 reiser4_key_t *key);
-
 extern errno_t reiser4_node_pos(reiser4_node_t *node,
 				reiser4_pos_t *pos);
 

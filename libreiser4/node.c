@@ -247,62 +247,6 @@ errno_t reiser4_node_lkey(
 	return 0;
 }
 
-/* Returns left or right neighbor key for passed node */
-errno_t reiser4_node_nkey(
-	reiser4_node_t *node,	        /* node for working with */
-	direction_t direction,	        /* direction (left or right) */
-	reiser4_key_t *key)		/* key pointer result should be stored */
-{
-	reiser4_pos_t pos;
-	reiser4_coord_t coord;
-    
-	aal_assert("umka-770", node != NULL, return -1);
-	aal_assert("umka-771", key != NULL, return -1);
-    
-	if (reiser4_node_pos(node, &pos))
-		return -1;
-    
-	if (direction == D_LEFT) {
-		reiser4_node_t *parent;
-	
-		if (!(parent = node->parent))
-			return -1;
-		
-		if (pos.item == 0) {
-			
-			if (!parent->parent)
-				return -1;
-			
-			return reiser4_node_nkey(parent->parent, direction, key);
-		}
-	} else {
-		reiser4_node_t *parent;
-
-		if (!(parent = node->parent))
-			return -1;
-	
-		if (pos.item == reiser4_node_items(parent) - 1) {
-
-			if (!parent->parent)
-				return -1;
-		
-			return reiser4_node_nkey(parent->parent, direction, key);
-		}
-	}
-    
-	pos.item += (direction == D_RIGHT ? 1 : -1);
-
-	if (reiser4_coord_open(&coord, node->parent, &pos))
-		return -1;
-	
-	if (reiser4_item_key(&coord))
-		return -1;
-
-	aal_memcpy(key, &coord.entity.key, sizeof(*key));
-	
-	return 0;
-}
-
 /* Returns position of passed node in parent node */
 errno_t reiser4_node_pos(
 	reiser4_node_t *node,	        /* node position will be obtained for */
@@ -467,9 +411,13 @@ static errno_t reiser4_node_register(reiser4_node_t *node,
 	return 0;
 }
 
+/*
+  Finds specified neighbour node. Direction 0 specifies, we should find left
+  neighbour node.
+*/
 static reiser4_node_t *reiser4_node_fnn(
 	reiser4_node_t *node,
-	direction_t direction)
+	int direction)
 {
 	int found = 0;
 	uint32_t orig;
@@ -489,7 +437,7 @@ static reiser4_node_t *reiser4_node_fnn(
 		if (reiser4_node_pos(node, &pos))
 			return NULL;
 
-		found = (direction == D_LEFT ? (pos.item > 0) :
+		found = (direction == 0 ? (pos.item > 0) :
 			 (pos.item < reiser4_node_items(node->parent) - 1));
 
 		level++;
@@ -499,7 +447,7 @@ static reiser4_node_t *reiser4_node_fnn(
 	if (!found)
 		return NULL;
 	
-	pos.item += (direction == D_LEFT ? -1 : 1);
+	pos.item += (direction == 0 ? -1 : 1);
 	
 	while (level > orig) {
 		if (reiser4_coord_open(&coord, node, &pos))
@@ -521,11 +469,11 @@ static reiser4_node_t *reiser4_node_fnn(
 		level--;
 		node = child;
 
-		pos.item = (direction == D_LEFT ?
+		pos.item = (direction == 0 ?
 			    reiser4_node_items(node) - 1 : 0);
 	}
 
-	if (direction == D_LEFT) {
+	if (direction == 0) {
 		old->left = node;
 		node->right = old;
 	} else {
@@ -534,6 +482,14 @@ static reiser4_node_t *reiser4_node_fnn(
 	}
 	
 	return node;
+}
+
+static reiser4_node_t *reiser4_node_lnn(reiser4_node_t *node) {
+	return reiser4_node_fnn(node, 0);
+}
+
+static reiser4_node_t *reiser4_node_rnn(reiser4_node_t *node) {
+	return reiser4_node_fnn(node, 1);
 }
 
 /* 
@@ -551,7 +507,7 @@ reiser4_node_t *reiser4_node_left(
 
 	if (!node->left) {
 		aal_assert("umka-1629", node->tree != NULL, return NULL);
-		node->left = reiser4_node_fnn(node, D_LEFT);
+		node->left = reiser4_node_lnn(node);
 	}
 
 	return node->left;
@@ -566,7 +522,7 @@ reiser4_node_t *reiser4_node_right(reiser4_node_t *node) {
     
 	if (!node->right) {
 		aal_assert("umka-1630", node->tree != NULL, return NULL);
-		node->right = reiser4_node_fnn(node, D_RIGHT);
+		node->right = reiser4_node_rnn(node);
 	}
     
 	return node->right;
@@ -586,8 +542,8 @@ errno_t reiser4_node_attach(
 	if (reiser4_node_register(node, child))
 		return -1;
 	
-	child->left = reiser4_node_fnn(child, D_LEFT);
-	child->right = reiser4_node_fnn(child, D_RIGHT);
+	child->left = reiser4_node_lnn(child);
+	child->right = reiser4_node_rnn(child);
 	
 	return 0;
 }
