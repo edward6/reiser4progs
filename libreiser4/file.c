@@ -34,10 +34,9 @@ static reiser4_plugin_t *reiser4_file_guess(reiser4_coord_t *coord) {
 }
 
 /* 
-   Performs lookup of file statdata by its name. result of lookuping are stored
-   in passed object fileds. Returns error code or 0 if there is no errors. This
-   function also supports symlinks and it rather might be called "stat", by
-   means of work it performs.
+   Performs lookup of file statdata by its name. Result is stored in passed
+   object fileds. Returns error code or 0 if there are no errors. This function
+   also supports symlinks and it rather might be called "stat".
 */
 static errno_t reiser4_file_realize(
 	reiser4_file_t *file,	    /* file lookup will be performed in */

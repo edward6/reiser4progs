@@ -31,7 +31,12 @@ static errno_t direntry40_unit_key(item_entity_t *item,
 	objid = direntry40_unit(direntry, pos);
 	
 	objectid = oid40_get_objectid(objid);
-	locality = oid40_get_locality(objid);
+
+	/*
+	  FIXME-UMKA: Here is cutting out the minor from the locality. It is not
+	  very good direntry plugin knows about key inetrnals.
+	*/
+	locality = (oid40_get_locality(objid) & 0xfffffffffffffff0ull) >> 4;
 		
 	key->plugin = item->key.plugin;
 	
