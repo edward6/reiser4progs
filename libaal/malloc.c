@@ -185,7 +185,7 @@ aal_malloc_handler_t aal_malloc_get_handler(void) {
   it failed then reports about this.
 */
 void *aal_malloc(
-	size_t size)		    /* size of memory piece to be allocated */
+	unsigned int size)          /* size of memory piece to be allocated */
 {
 	void *mem;
 
@@ -205,7 +205,7 @@ void *aal_malloc(
 
 /* Allocates memory piese and fills it by specified byte */
 void *aal_calloc(
-	size_t size,		    /* size of memory piece to be allocated */
+	unsigned int size,	    /* size of memory piece to be allocated */
 	char c)
 {
 	void *mem;
@@ -238,7 +238,7 @@ aal_realloc_handler_t aal_realloc_get_handler(void) {
 */
 errno_t aal_realloc(
 	void **old,		    /* pointer to previously allocated piece */
-	size_t size)		    /* new size */
+	unsigned int size)	    /* new size */
 {
 	void *mem;
 

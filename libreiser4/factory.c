@@ -112,6 +112,8 @@ errno_t libreiser4_plugin_fini(plugin_handle_t *handle) {
 	return ret;
 }
 
+extern reiser4_abort_t abort_func;
+
 #if !defined(ENABLE_COMPACT) && !defined(ENABLE_MONOLITHIC)
 
 /*
@@ -167,7 +169,7 @@ errno_t libreiser4_plugin_open(const char *name,
 		goto error_free_handle;
     
 	handle->fini = *((reiser4_plugin_fini_t *)addr);
-	handle->abort = libreiser4_abort;
+	handle->abort = abort_func;
 
 	return 0;
     
@@ -251,6 +253,7 @@ errno_t libreiser4_plugin_open(unsigned long *entry,
 	
 	handle->init = (reiser4_plugin_init_t)*entry;
 	handle->fini = (reiser4_plugin_fini_t)*(entry + 1);
+	handle->abort = abort_func;
 
 	return 0;
 }

@@ -9,17 +9,14 @@
   reiser4progs/COPYING.
 */
 
-#ifndef MALLOC_H
-#define MALLOC_H
+#ifndef AAL_MALLOC_H
+#define AAL_MALLOC_H
 
-#include <sys/types.h>
-
-typedef void *(*aal_malloc_handler_t) (size_t);
-typedef void *(*aal_realloc_handler_t) (void *, size_t);
+typedef void *(*aal_malloc_handler_t) (unsigned int);
+typedef void *(*aal_realloc_handler_t) (void *, unsigned int);
 typedef void (*aal_free_handler_t) (void *);
 
-typedef errno_t (*aal_mpressure_handler_t) (void *, int);
-
+typedef errno_t (*aal_mpressure_handler_t) (void *, unsigned int);
 typedef int (*aal_mpressure_detect_t) (void);
 
 extern errno_t aal_mpressure_check(void);
@@ -39,12 +36,13 @@ extern void aal_mpressure_handler_free(void *handler);
 
 extern void aal_malloc_set_handler(aal_malloc_handler_t handler);
 extern aal_malloc_handler_t aal_malloc_get_handler(void);
-extern void *aal_malloc(size_t size);
-extern void *aal_calloc(size_t size, char c);
+
+extern void *aal_malloc(unsigned int size);
+extern void *aal_calloc(unsigned int size, char c);
 
 extern void aal_realloc_set_handler(aal_realloc_handler_t handler);
 extern aal_realloc_handler_t aal_realloc_get_handler(void);
-extern int aal_realloc(void** old, size_t size);
+extern int aal_realloc(void** old, unsigned int size);
 
 extern void aal_free_set_handler(aal_free_handler_t handler);
 extern aal_free_handler_t aal_free_get_handler(void);

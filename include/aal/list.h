@@ -6,8 +6,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef LIST_H
-#define LIST_H
+#ifndef AAL_LIST_H
+#define AAL_LIST_H
 
 typedef struct aal_list aal_list_t;
 

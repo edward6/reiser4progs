@@ -12,7 +12,6 @@
 #  include <config.h>
 #endif
 
-#include <aal/aal.h>
 #include <reiser4/filesystem.h>
 
 extern reiser4_alloc_t *reiser4_alloc_open(reiser4_fs_t *fs, 
@@ -65,13 +64,13 @@ extern errno_t reiser4_alloc_valid(reiser4_alloc_t *alloc);
 extern count_t reiser4_alloc_free(reiser4_alloc_t *alloc);
 extern count_t reiser4_alloc_used(reiser4_alloc_t *alloc);
 
-extern int reiser4_alloc_used_region(reiser4_alloc_t *alloc,
-				     blk_t start, 
-				     count_t count);
+extern bool_t reiser4_alloc_used_region(reiser4_alloc_t *alloc,
+					blk_t start, 
+					count_t count);
 
-extern int reiser4_alloc_unused_region(reiser4_alloc_t *alloc,
-				       blk_t start, 
-				       count_t count);
+extern bool_t reiser4_alloc_unused_region(reiser4_alloc_t *alloc,
+					  blk_t start, 
+					  count_t count);
 
 extern errno_t reiser4_alloc_related_region(reiser4_alloc_t *alloc,
 					    blk_t blk, block_func_t func,

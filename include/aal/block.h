@@ -5,8 +5,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef BLOCK_H
-#define BLOCK_H
+#ifndef AAL_BLOCK_H
+#define AAL_BLOCK_H
 
 /*
   Disk block structure. It is a replica of struct buffer_head from the linux
@@ -31,7 +31,8 @@ extern aal_block_t *aal_block_open(aal_device_t *device,
 				   blk_t blk);
 
 extern errno_t aal_block_reopen(aal_block_t *block, 
-				aal_device_t *device, blk_t blk);
+				aal_device_t *device,
+				blk_t blk);
 
 extern void aal_block_close(aal_block_t *block);
 extern errno_t aal_block_sync(aal_block_t *block);

@@ -5,8 +5,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef PRINT_H
-#define PRINT_H
+#ifndef AAL_PRINT_H
+#define AAL_PRINT_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

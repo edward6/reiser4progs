@@ -6,8 +6,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef BITMAP_H
-#define BITMAP_H
+#ifndef AUX_BITMAP_H
+#define AUX_BITMAP_H
 
 #include <aal/aal.h>
 
@@ -46,13 +46,13 @@ extern void aux_bitmap_clear_region(aux_bitmap_t *bitmap,
 				    uint64_t start,
 				    uint64_t end);
 
-extern int aux_bitmap_test_region_marked(aux_bitmap_t *bitmap,
-					 uint64_t start,	
-					 uint64_t end);
+extern bool_t aux_bitmap_test_region_marked(aux_bitmap_t *bitmap,
+					    uint64_t start,	
+					    uint64_t end);
 
-extern int aux_bitmap_test_region_cleared(aux_bitmap_t *bitmap,
-					  uint64_t start,	
-					  uint64_t end);
+extern bool_t aux_bitmap_test_region_cleared(aux_bitmap_t *bitmap,
+					     uint64_t start,	
+					     uint64_t end);
 
 extern uint64_t aux_bitmap_find_region_marked(aux_bitmap_t *bitmap,
 					      uint64_t *start,

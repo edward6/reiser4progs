@@ -5,8 +5,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef OBJECT_H
-#define OBJECT_H
+#ifndef FILE_H
+#define FILE_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

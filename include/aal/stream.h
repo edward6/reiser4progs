@@ -5,8 +5,8 @@
   reiser4progs/COPYING.
 */  
 
-#ifndef STREAM_H
-#define STREAM_H
+#ifndef AAL_STREAM_H
+#define AAL_STREAM_H
 
 struct aal_stream {
 	int size;

@@ -226,7 +226,7 @@ errno_t reiser4_alloc_valid(
 #endif
 
 /* Returns TRUE if specified blocks used. */
-int reiser4_alloc_used_region(
+bool_t reiser4_alloc_used_region(
 	reiser4_alloc_t *alloc,	/* allocator for working with */
 	blk_t start, 		/* start block to be tested (used or not) */
 	count_t count)		/* count of blocks to be tested */
@@ -238,7 +238,7 @@ int reiser4_alloc_used_region(
 }
 
 /* Returns TRUE if specified blocks unused. */
-int reiser4_alloc_unused_region(
+bool_t reiser4_alloc_unused_region(
 	reiser4_alloc_t *alloc,	/* allocator for working with */
 	blk_t start, 		/* start block to be tested (used or not) */
 	count_t count)		/* count of blocks to be tested */

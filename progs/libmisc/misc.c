@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <mntent.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <errno.h>
 
 #include <sys/stat.h>
 #include <sys/vfs.h>
@@ -16,48 +18,68 @@
 #include <aux/aux.h>
 #include <reiser4/reiser4.h>
 
+#include <misc/misc.h>
+
 #define KB 1024
 #define MB (KB * KB)
 #define GB (KB * MB)
 
-/* Converts human readable size string like "256M" into kb */
-long long progs_parse_size(
-	const char *str,		/* string to be converted */
-	int *error)			/* error will be stored here */
-{
-	long long size;
-	char number[255], label = 0;
-	 
-	if (error)
-		*error = 0;
+/*
+  Converts passed @str into long long value. In the case of error, INVAL_DIG
+  will be returned.
+*/
+long long progs_str2long(const char *str, int base) {
+	char *error;
+	long long result = 0;
+
+	if (!str)
+		return INVAL_DIG;
+
+	result = strtol(str, &error, base);
 	
-	if (!str || strlen(str) == 0) {
-		if (error) *error = 1;
-		return 0;
-	}	
+	if (errno == ERANGE || *error)
+		return INVAL_DIG;
+	
+	return result;
+}
+
+
+/*
+  Converts human readable size string like "256M" into Kb. In the case of error,
+  INVAL_DIG will be returned.
+*/
+long long progs_size2long(const char *str) {
+	int valid;
+	char label;
+	
+	long long result;
+	char number[255];
+	 
+	if (!str)
+		return INVAL_DIG;
 	
 	memset(number, 0, 255);
 	aal_strncpy(number, str, strlen(str));
 	label = number[strlen(number) - 1];
-	
-	if (toupper(label) == toupper('k') || toupper(label) == toupper('m') || 
-	    toupper(label) == toupper('g'))
+
+	valid = toupper(label) == toupper('k') ||
+		toupper(label) == toupper('m') || 
+		toupper(label) == toupper('g');
+
+	if (valid)
 		number[strlen(number) - 1] = '\0';
-	else
-		label = 0;	
 	
-	if ((size = aux_strtol(number, error)) == 0 && *error)
-		return 0;
+	if ((result = progs_str2long(number, 10)) == INVAL_DIG)
+		return INVAL_DIG;
 	
 	if (toupper(label) == toupper('m'))
-		size = size * MB;
+		result *= MB;
 	else if (toupper(label) == toupper('k'))
-		size = size * KB;
+		result *= KB;
 	else if (toupper(label) == toupper('g'))
-		size = size * GB;
+		result *= GB;
 
-	*error = ~0;
-	return size;
+	return result;
 }
 
 /* 

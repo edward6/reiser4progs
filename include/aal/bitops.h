@@ -3,8 +3,8 @@
   Some parts of this code was stolen somewhere from linux.
 */
 
-#ifndef BITOPS_H
-#define BITOPS_H
+#ifndef AAL_BITOPS_H
+#define AAL_BITOPS_H
 
 typedef unsigned long long bit_t;
 

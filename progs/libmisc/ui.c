@@ -247,13 +247,12 @@ static int64_t progs_numeric_handler(
 		     prompt, defvalue);
     
 	while (1) {
-		int error;
 		char *line;
 	
 		if (aal_strlen((line = progs_readline(buff, stderr))) == 0) 
 			return defvalue;
 
-		if (!(value = progs_parse_size(line, &error)) && error != ~0) {
+		if ((value = progs_size2long(line)) == INVAL_DIG) {
 			aal_exception_error("Invalid numeric has been detected (%s). "
 					    "Number is expected (1, 1K, 1M, 1G)", line);
 			continue;

@@ -5,8 +5,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef UI_H
-#define UI_H
+#ifndef AAL_UI_H
+#define AAL_UI_H
 
 typedef int (*aal_check_numeric_func_t) (int64_t, void *);
 

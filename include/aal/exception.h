@@ -5,8 +5,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef EXCEPTION_H
-#define EXCEPTION_H
+#ifndef AAL_EXCEPTION_H
+#define AAL_EXCEPTION_H
 
 #include <aal/aal.h>
 

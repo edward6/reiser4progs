@@ -1173,12 +1173,10 @@ int main(int argc, char *argv[]) {
 			print_flags |= PF_TREE;
 			break;
 		case 'n': {
-			int error;
-			
 			print_flags |= PF_BLOCK;
 
 			/* Parsing block number */
-			if (!(blocknr = aux_strtol(optarg, &error)) && error) {
+			if ((blocknr = progs_str2long(optarg, 10)) == INVAL_DIG) {
 				aal_exception_error("Invalid block number (%s).", optarg);
 				return USER_ERROR;
 			}

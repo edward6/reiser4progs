@@ -8,28 +8,20 @@
 #ifndef AUX_H
 #define AUX_H
 
-#include <stdint.h>
 #include <aal/aal.h>
 
-#ifndef ENABLE_COMPACT
-
-#include <stdlib.h>
-#include <errno.h>
-
-extern long int aux_strtol(const char *str, int *error);
-
-#endif
-
-typedef int (*aux_comp_func_t) (void *, uint32_t, void *, void *);
-
+/* Path parsing stuff */
 typedef errno_t (*aux_pre_parse_t) (char *, char *, void *);
 typedef errno_t (*aux_post_parse_t) (char *, char *, void *);
 
 extern errno_t aux_parse_path(char *path, aux_pre_parse_t pre_func,
 			      aux_post_parse_t post_func, void *data);
 
+/* Binary search stuff */
+typedef int (*aux_comp_func_t) (void *, uint32_t, void *, void *);
+
 extern int aux_bin_search(void *array, uint32_t count, void *needle,
-			 aux_comp_func_t comp_func, void *, uint64_t *pos);
+			  aux_comp_func_t comp_func, void *, uint64_t *pos);
 
 #endif
 

@@ -101,15 +101,8 @@ static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs, reiser4_profile_t *prof
 }
 
 int main(int argc, char *argv[]) {
-	struct stat st;
-    
-	int c, error;
-	char uuid[17], label[17];
-	mkfs_behav_flags_t flags = 0;
-	count_t fs_len = 0, dev_len = 0;
-	char *host_dev, *profile_label = "smart40";
-	uint16_t blocksize = DEFAULT_BLOCKSIZE;
-    
+	int c;
+	
 	reiser4_fs_t *fs;
 	aal_device_t *device;
 	reiser4_profile_t *profile;
@@ -117,6 +110,13 @@ int main(int argc, char *argv[]) {
 	aal_gauge_t *gauge;
 	aal_list_t *walk = NULL;
 	aal_list_t *devices = NULL;
+    
+	struct stat st;
+	char uuid[17], label[17];
+	mkfs_behav_flags_t flags = 0;
+	count_t fs_len = 0, dev_len = 0;
+	uint16_t blocksize = DEFAULT_BLOCKSIZE;
+	char *host_dev, *profile_label = "smart40";
     
 	static struct option long_options[] = {
 		{"version", no_argument, NULL, 'V'},
@@ -175,10 +175,11 @@ int main(int argc, char *argv[]) {
 			return NO_ERROR;
 		case 'b':
 			/* Parsing blocksize */
-			if (!(blocksize = (uint16_t)aux_strtol(optarg, &error)) && error) {
+			if ((blocksize = (uint16_t)progs_str2long(optarg, 10)) == INVAL_DIG) {
 				aal_exception_error("Invalid blocksize (%s).", optarg);
 				return USER_ERROR;
 			}
+			
 			if (!aal_pow_of_two(blocksize)) {
 				aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_CANCEL, 
 						    "Invalid block size %u. It must power of two.",
@@ -238,17 +239,16 @@ int main(int argc, char *argv[]) {
 	/* Building list of devices filesystem will be created on */
 	for (; optind < argc; optind++) {
 		if (stat(argv[optind], &st) == -1) {
-			fs_len = (progs_parse_size(argv[optind], &error));
-			if (!error || error == ~0) {
-				if (error != ~0 && fs_len < blocksize) {
+			fs_len = (progs_size2long(argv[optind]));
+			
+			if (fs_len != INVAL_DIG) {
+				if (fs_len < blocksize) {
 					aal_exception_error("%s is not a valid "
-							    "size nor an existent "
-							    "file.", argv[optind]);
+							    "filesystem size.",
+							    argv[optind]);
 					goto error_free_libreiser4;
 				}
-		
-				if (error != ~0)
-					fs_len /= blocksize;
+				fs_len /= blocksize;
 			} else {
 				aal_exception_error("%s is not a valid size nor an "
 						    "existent file.", argv[optind]);

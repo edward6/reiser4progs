@@ -39,13 +39,13 @@ extern errno_t reiser4_item_max_real_key(reiser4_coord_t *coord,
 extern errno_t reiser4_item_gap_key(reiser4_coord_t *coord, 
 				    reiser4_key_t *key);
 
-extern int reiser4_item_tail(reiser4_coord_t *coord);
-extern int reiser4_item_extent(reiser4_coord_t *coord);
-extern int reiser4_item_nodeptr(reiser4_coord_t *coord);
-extern int reiser4_item_statdata(reiser4_coord_t *coord);
-extern int reiser4_item_permissn(reiser4_coord_t *coord);
-extern int reiser4_item_filebody(reiser4_coord_t *coord);
-extern int reiser4_item_direntry(reiser4_coord_t *coord);
+extern bool_t reiser4_item_tail(reiser4_coord_t *coord);
+extern bool_t reiser4_item_extent(reiser4_coord_t *coord);
+extern bool_t reiser4_item_nodeptr(reiser4_coord_t *coord);
+extern bool_t reiser4_item_statdata(reiser4_coord_t *coord);
+extern bool_t reiser4_item_permissn(reiser4_coord_t *coord);
+extern bool_t reiser4_item_filebody(reiser4_coord_t *coord);
+extern bool_t reiser4_item_direntry(reiser4_coord_t *coord);
 
 extern rpid_t reiser4_item_type(reiser4_coord_t *coord);
 

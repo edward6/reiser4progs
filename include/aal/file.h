@@ -5,8 +5,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef FILE_H
-#define FILE_H
+#ifndef AAL_FILE_H
+#define AAL_FILE_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

@@ -5,8 +5,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef LRU_H
-#define LRU_H
+#ifndef AAL_LRU_H
+#define AAL_LRU_H
 
 #include <aal/list.h>
 

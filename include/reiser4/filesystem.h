@@ -46,14 +46,14 @@ typedef struct reiser4_master_super reiser4_master_super_t;
 #define set_mr_blocksize(mr, val)	aal_set_le16(mr, mr_blocksize, val)
 
 struct reiser4_master {
-	int native;
+	bool_t native;
 
 	aal_block_t *block;
 	reiser4_master_super_t *super;
 };
 
-typedef struct reiser4_master reiser4_master_t;
 typedef struct reiser4_fs reiser4_fs_t;
+typedef struct reiser4_master reiser4_master_t;
 
 /* 
    Profile structure. It describes what plugins will be used for every part of
@@ -222,10 +222,9 @@ struct reiser4_journal {
 	reiser4_fs_t *fs;
     
 	/* 
-	   Device journal opened on. In the case of standard journal this field
-	   will be pointing to the same device as in disk-format struct. If the
-	   journal is t relocated one then device will be contain pointer to
-	   opened device journal is opened on.
+	   Device journal will be opened on. In the case journal lie on the same
+	   device as filesystem does, this field will point to the same device
+	   instance as in fs struct.
 	*/
 	aal_device_t *device;
 
@@ -254,16 +253,19 @@ struct reiser4_oid {
 typedef struct reiser4_oid reiser4_oid_t;
 
 /* Tree modification trap typedefs */
-typedef int (*pre_insert_func_t) (reiser4_coord_t *,
-				  reiser4_item_hint_t *, 
-				  void *);
+typedef bool_t (*pre_insert_func_t) (reiser4_coord_t *,
+				     reiser4_item_hint_t *, 
+				     void *);
 
-typedef int (*post_insert_func_t) (reiser4_coord_t *,
-				   reiser4_item_hint_t *, 
-				   void *);
+typedef bool_t (*post_insert_func_t) (reiser4_coord_t *,
+				      reiser4_item_hint_t *, 
+				      void *);
 
-typedef int (*pre_remove_func_t) (reiser4_coord_t *, void *);
-typedef int (*post_remove_func_t) (reiser4_coord_t *, void *);
+typedef bool_t (*pre_remove_func_t) (reiser4_coord_t *,
+				     void *);
+
+typedef bool_t (*post_remove_func_t) (reiser4_coord_t *,
+				      void *);
 
 /* Tree structure */
 struct reiser4_tree {
@@ -310,9 +312,11 @@ struct reiser4_tree {
 
 struct traverse_hint {
 
-	/* Flag which shows, should traverse remove nodes from tree cache or
-	 * not */
-	int cleanup;
+	/*
+	  Flag which shows should traverse remove nodes from the tree cache
+	  after they are passed or not.
+	*/
+	bool_t cleanup;
 	
 	/* user-spacified data */
 	void *data;

@@ -14,7 +14,6 @@
    1 - key on *pos found exact key on *pos position; 
    0 - exact key has not been found. key of *pos < then wanted.
 */
-
 int aux_bin_search(
 	void *array,		        /* opaque pointer to array item will be searched in */
 	uint32_t count,		        /* array length */
@@ -56,31 +55,7 @@ int aux_bin_search(
 	return 0;
 }
 
-long int aux_strtol(
-	const char *str,	        /* string to be converted */
-	int *error)		        /* error will be stored here */
-{
-	char *err;
-	long result = 0;
-
-	if (error)
-		*error = 0;
-	
-	if (!str) {
-		if (error) *error = 1; 
-		return 0;
-	}	
-	
-	result = strtol(str, &err, 10);
-	
-	if (errno == ERANGE || *err) {
-		if (error) *error = 1;
-		return 0;
-	}	
-	
-	return result;
-}
-
+/* Parse standard unix path function */
 errno_t aux_parse_path(char *path, aux_pre_parse_t pre_func,
 		       aux_post_parse_t post_func, void *data)
 {

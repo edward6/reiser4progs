@@ -5,8 +5,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef GAUGE_H
-#define GAUGE_H
+#ifndef AAL_GAUGE_H
+#define AAL_GAUGE_H
 
 typedef struct aal_gauge aal_gauge_t;
 

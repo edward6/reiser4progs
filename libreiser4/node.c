@@ -446,7 +446,7 @@ static errno_t reiser4_node_register(reiser4_node_t *node,
 }
 
 reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
-				       int direction)
+				       aal_direction_t where)
 {
 	int found = 0;
 	uint32_t orig;
@@ -464,7 +464,7 @@ reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
 		if (reiser4_node_pos(node, &pos))
 			return NULL;
 
-		found = (direction == 0 ? (pos.item > 0) :
+		found = (where == D_LEFT ? (pos.item > 0) :
 			 (pos.item < reiser4_node_items(node->parent) - 1));
 
 		level++;
@@ -474,7 +474,7 @@ reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
 	if (!found)
 		return NULL;
 	
-	pos.item += (direction == 0 ? -1 : 1);
+	pos.item += (where == D_LEFT ? -1 : 1);
 	
 	while (level > orig) {
 		if (reiser4_coord_open(&coord, node, &pos))
@@ -502,7 +502,7 @@ reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
 		level--;
 		node = child;
 
-		pos.item = (direction == 0 ?
+		pos.item = (where == D_LEFT ?
 			    reiser4_node_items(node) - 1 : 0);
 	}
 
@@ -650,7 +650,7 @@ void reiser4_node_detach(
 	reiser4_node_unregister(node, child);
 }
 
-int reiser4_node_confirm(reiser4_node_t *node) {
+bool_t reiser4_node_confirm(reiser4_node_t *node) {
 	aal_assert("umka-123", node != NULL, return 0);
     
 	return plugin_call(node->entity->plugin->node_ops, 

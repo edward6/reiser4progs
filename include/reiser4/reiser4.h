@@ -12,19 +12,6 @@
 extern "C" {
 #endif
 
-#undef NULL
-#ifdef __cplusplus
-#  define NULL 0
-#else
-#  define NULL ((void *)0)
-#endif
-
-#if defined(__sparc__) || defined(__sparcv9)
-#  include <sys/int_types.h>
-#else
-#  include <stdint.h>
-#endif
-
 #include <aal/aal.h>
 
 #include "filesystem.h"

@@ -5,8 +5,8 @@
   reiser4progs/COPYING.
 */
 
-#ifndef DEBUG_H
-#define DEBUG_H
+#ifndef AAL_DEBUG_H
+#define AAL_DEBUG_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

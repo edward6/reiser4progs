@@ -9,8 +9,8 @@
 #define REISER4_MISC_H
 
 #include <aal/aal.h>
-#include <reiser4/filesystem.h>
 #include <misc/misc.h>
+#include <reiser4/filesystem.h>
 
 #include <linux/major.h>
 
@@ -55,9 +55,13 @@
 #include "version.h"
 #include "ui.h"
 
-extern int progs_dev_mounted(const char *name, const char *ops);
-extern long long progs_parse_size(const char *str, int *error);
+#define INVAL_DIG (0x7fffffffffffffff)
+
+extern long long progs_size2long(const char *str);
+extern long long progs_str2long(const char *str, int base);
+
 extern void progs_upper_case(char *dst, const char *src);
+extern int progs_dev_mounted(const char *name, const char *ops);
 
 extern void progs_plugin_list(void);
 extern void progs_mpressure_init(void);

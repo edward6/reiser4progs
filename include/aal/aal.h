@@ -42,13 +42,12 @@ typedef int bool_t;
 /* 
   Macro for checking the format string in situations like this:
 
-  aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, "Operation %d failed.", 
-  "open");
+  aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, "Operation %d failed.",
+                      "open");
 
   As aal_exception_throw is declared with this macro, compiller in the comile
   time will make warning about incorrect format string.
 */
-#undef __aal_check_format__
 #ifdef __GNUC__
 #  define __aal_check_format__(style, format, start) \
        __attribute__((__format__(style, format, start)))
@@ -56,13 +55,23 @@ typedef int bool_t;
 #  define __aal_check_format__(style, format, start)
 #endif
 
-#if defined(__sparc__) || defined(__sparcv9)
+#if !defined(__GNUC__) && (defined(__sparc__) || defined(__sparcv9))
 #  include <sys/int_types.h>
 #else
 #  include <stdint.h>
 #endif
 
 #include <stdarg.h>
+
+/* Simple type for direction denoting */
+enum aal_direction {
+	D_TOP    = 1 << 0,
+	D_BOTTOM = 1 << 1,
+	D_LEFT   = 1 << 2,
+	D_RIGHT  = 1 << 3
+};
+
+typedef enum aal_direction aal_direction_t;
 
 /* 
   This type is used for return of result of execution some function.

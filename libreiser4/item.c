@@ -99,7 +99,7 @@ errno_t reiser4_item_print(
 
 #endif
 
-int reiser4_item_permissn(reiser4_coord_t *coord) {
+bool_t reiser4_item_permissn(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
 	aal_assert("umka-1100", coord != NULL, return 0);
@@ -111,7 +111,7 @@ int reiser4_item_permissn(reiser4_coord_t *coord) {
 		item->plugin->h.group == PERMISSN_ITEM;
 }
 
-int reiser4_item_tail(reiser4_coord_t *coord) {
+bool_t reiser4_item_tail(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
 	aal_assert("umka-1098", coord != NULL, return 0);
@@ -123,7 +123,7 @@ int reiser4_item_tail(reiser4_coord_t *coord) {
 		item->plugin->h.group == TAIL_ITEM;
 }
 
-int reiser4_item_extent(reiser4_coord_t *coord) {
+bool_t reiser4_item_extent(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
 	aal_assert("vpf-238", coord != NULL, return 0);
@@ -135,7 +135,7 @@ int reiser4_item_extent(reiser4_coord_t *coord) {
 		item->plugin->h.group == EXTENT_ITEM;
 }
 
-int reiser4_item_direntry(reiser4_coord_t *coord) {
+bool_t reiser4_item_direntry(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
 	aal_assert("umka-1096", coord != NULL, return 0);
@@ -147,7 +147,7 @@ int reiser4_item_direntry(reiser4_coord_t *coord) {
 		item->plugin->h.group == DIRENTRY_ITEM;
 }
 
-int reiser4_item_statdata(reiser4_coord_t *coord) {
+bool_t reiser4_item_statdata(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
 	aal_assert("umka-1094", coord != NULL, return 0);
@@ -159,7 +159,7 @@ int reiser4_item_statdata(reiser4_coord_t *coord) {
 		item->plugin->h.group == STATDATA_ITEM;
 }
 
-int reiser4_item_nodeptr(reiser4_coord_t *coord) {
+bool_t reiser4_item_nodeptr(reiser4_coord_t *coord) {
 	item_entity_t *item;
 	
 	aal_assert("vpf-042", coord != NULL, return 0);

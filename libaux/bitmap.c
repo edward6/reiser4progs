@@ -7,7 +7,6 @@
 */
 
 #include <aux/bitmap.h>
-#include <aal/aal.h>
 
 /* 
    This macros is used for checking whether given block is inside of allowed
@@ -127,23 +126,24 @@ void aux_bitmap_clear_region(
 }
 
 /* Tests if all bits of the interval [start,end) are marked in the bitmap. */
-int aux_bitmap_test_region_marked(
+bool_t aux_bitmap_test_region_marked(
 	aux_bitmap_t *bitmap,	    /* bitmap, range of blocks to be tested in */
 	uint64_t start,		    /* start bit of the range */
 	uint64_t end)		    /* bit count to be marked */
 {
 	blk_t next;
-	aal_assert("vpf-474", bitmap != NULL, return 0);
 	
-	aux_bitmap_bound_check(bitmap, start, return 0);
-	aux_bitmap_bound_check(bitmap, end - 1, return 0);
+	aal_assert("vpf-474", bitmap != NULL, return FALSE);
+	
+	aux_bitmap_bound_check(bitmap, start, return FALSE);
+	aux_bitmap_bound_check(bitmap, end - 1, return FALSE);
 	
 	next = aux_bitmap_find_cleared(bitmap, start);
 
 	if (next >= start && next < end)
-		return 0;
+		return FALSE;
 
-	return 1;
+	return TRUE;
 }
 
 /* Finds first cleared bit in bitmap, starting from passed "start" */
@@ -184,23 +184,24 @@ uint64_t aux_bitmap_find_marked(
 }
 
 /* Tests if all bits of the interval [start,end) are cleared in the bitmap. */
-int aux_bitmap_test_region_cleared(
+bool_t aux_bitmap_test_region_cleared(
 	aux_bitmap_t *bitmap,	    /* bitmap, range of blocks to be tested in */
 	uint64_t start,		    /* start bit of the range */
 	uint64_t end)		    /* bit count to be clean */
 {
 	blk_t next;
-	aal_assert("vpf-471", bitmap != NULL, return 0);
 	
-	aux_bitmap_bound_check(bitmap, start, return 0);
-	aux_bitmap_bound_check(bitmap, end - 1, return 0);
+	aal_assert("vpf-471", bitmap != NULL, return FALSE);
+	
+	aux_bitmap_bound_check(bitmap, start, return FALSE);
+	aux_bitmap_bound_check(bitmap, end - 1, return FALSE);
 	
 	next = aux_bitmap_find_marked(bitmap, start);
 
 	if (next >= start && next < end)
-		return 0;
+		return FALSE;
 
-	return 1;
+	return TRUE;
 }
 
 /* Finds first cleared bit in bitmap, starting from passed "start" */
@@ -352,8 +353,7 @@ void aux_bitmap_close(
 	aal_free(bitmap);
 }
 
-/* Returns bitmap's map (memory chunk, bits array placed in) for direct
- * access */
+/* Return bitmap's map (memory chunk, bits array lies in) for direct access */
 char *aux_bitmap_map(
 	aux_bitmap_t *bitmap)	    /* bitmap, the bit array will be obtained from */
 {
