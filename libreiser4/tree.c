@@ -734,6 +734,8 @@ lookup_t reiser4_tree_lookup(
 	reiser4_place_t *place)	/* place the found item to be stored */
 {
 	lookup_t res;
+	bool_t moved;
+	uint32_t units;
 
 	aal_assert("umka-742", key != NULL);
 	aal_assert("umka-1760", tree != NULL);
@@ -774,16 +776,10 @@ lookup_t reiser4_tree_lookup(
 			return res;
 		}
 
-		/* Position correcting for internal levels */
-		if (res == LP_ABSENT) {
-			
-			if ((place->pos.unit == ~0ul ||
-			     place->pos.unit == 0) && 
-			    place->pos.item == 0)
-			{
-				return LP_FAILED;
-			}
+		moved = FALSE;
 		
+		/* Position correcting for internal levels */
+		if (res == LP_ABSENT && place->pos.item != 0) {
 			if (place->pos.unit == ~0ul ||
 			    place->pos.unit == 0)
 			{
@@ -792,26 +788,31 @@ lookup_t reiser4_tree_lookup(
 			} else {
 				place->pos.unit--;
 			}
+			
+			moved = TRUE;
 		}
 		
 		/* Initializing item at @place */
 		if (reiser4_place_realize(place))
 			return LP_FAILED;
 		
+		units = reiser4_item_units(place);
+		
+		if (moved)
+			place->pos.unit = units - 1;
+		    
 		/* Checking is item at @place is nodeptr one */
 		if (!reiser4_item_branch(place)) {
-			if (res == LP_ABSENT) {
-				if (place->pos.unit == ~0ul)
+			if (moved) {
+				if (place->pos.unit == units - 1) {
 					place->pos.item++;
-				else 
+					place->pos.unit = 0;
+				} else 
 					place->pos.unit++;
 			}
 
 			return res;
-		} else {
-			if (res == LP_ABSENT && place->pos.unit == ~0ul)
-				place->pos.unit = reiser4_item_units(place) - 1;
-		}
+		} 
 
 		/* Loading node by nodeptr item @place points to */
 		if (!(place->node = reiser4_tree_child(tree, place)))
@@ -1429,143 +1430,6 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
  error_free_node:
 	reiser4_node_close(node);
 	return res;
-}
-
-/*
-  Overwrites/Inserts items/units pointed by @dst from @src one, from the key 
-  pointed by @src place though the @end one.
-*/
-static errno_t reiser4_tree_dup(reiser4_tree_t *tree,
-			        reiser4_place_t *dst,
-			        reiser4_place_t *src,
-			        reiser4_key_t *end, 
-			        bool_t is_copy)
-{
-	errno_t res;
-	uint32_t needed;
-	reiser4_place_t old;
-	feel_hint_t src_hint;
-	
-	aal_assert("umka-2161", dst != NULL);
-	aal_assert("umka-2162", src != NULL);
-	aal_assert("umka-2164", end != NULL);
-	aal_assert("umka-2160", tree != NULL);
-
-	if (reiser4_tree_fresh(tree)) {
-		aal_exception_error("Can't write item/units to "
-				    "empty tree.");
-		return -EINVAL;
-	}
-	
-	if ((res = reiser4_item_feel(src, &src->item.key, end, &src_hint)))
-		return res;
-	
-	aal_assert("umka-2122", src_hint.len > 0);
-
-	old = *dst;
-	
-	if (is_copy) {
-		needed = src_hint.len + (dst->pos.unit == ~0ul ? 
-			reiser4_node_overhead(dst->node) : 0);
-	    
-		if ((res = reiser4_tree_expand(tree, dst, needed, 
-					       SF_DEFAULT))) 
-		{
-			aal_exception_error("Can't expand the space for "
-					    "copying.");
-			return res;
-		}
-	
-		if ((res = reiser4_node_copy(dst->node, &dst->pos, src->node,
-					     &src->pos, &src->item.key, end, 
-					     &src_hint)))
-		{
-			aal_exception_error("Can't copy an item/unit from node "
-					    "%llu to %llu one.", src->node->blk,
-					    dst->node->blk);
-			return res;
-		}
-	} else {
-		feel_hint_t dst_hint;
-		
-		if ((res = reiser4_item_feel(dst, &src->item.key, end, 
-					     &dst_hint)))
-			return res;
-		
-		aal_assert("vpf-905", dst_hint.len > 0);
-		
-		if (src_hint.len > dst_hint.len) {
-			needed = src_hint.len - dst_hint.len;
-	    
-			if ((res = reiser4_tree_expand(tree, dst, needed, 
-						       SF_DEFAULT)))
-			{
-				aal_exception_error("Can't expand the space "
-						    "for copying.");
-				return res;
-			}
-		}
-	    
-		if ((res = reiser4_node_overwrite(dst->node, &dst->pos,
-						  src->node, &src->pos,
-						  &src->item.key, end, 
-						  &dst_hint, &src_hint)))
-		{
-			aal_exception_error("Can't copy an item/unit from node "
-					    "%llu to %llu one.", src->node->blk,
-					    dst->node->blk);
-			return res;
-		}    
-	}
-	
-	if (reiser4_place_leftmost(dst) && dst->node->parent.node) {
-		reiser4_place_t p;
-
-		reiser4_place_init(&p, dst->node->parent.node,
-				   &dst->node->parent.pos);
-		
-		if ((res = reiser4_tree_ukey(tree, &p, &src->item.key)))
-			return res;
-	}
-	
-	if (dst->node != tree->root && !dst->node->parent.node) {
-		
-		if (!old.node->parent.node)
-			reiser4_tree_growup(tree);
-	
-		if ((res = reiser4_tree_attach(tree, dst->node))) {
-			aal_exception_error("Can't attach node %llu to "
-					    "the tree.", dst->node->blk);
-			reiser4_tree_release(tree, dst->node);
-			return res;
-		}
-	}
-	
-	return 0;
-}
-
-/*
-  Makes copy of item at passed @src place or some amount of its units to the
-  passed @dst from the key pointed by src though the @end one.
-*/
-errno_t reiser4_tree_copy(reiser4_tree_t *tree,
-			  reiser4_place_t *dst,
-			  reiser4_place_t *src,
-			  reiser4_key_t *end)
-{
-	return reiser4_tree_dup(tree, dst, src, end, TRUE);
-}
-
-/*
-  Makes overwrite of item at passed @src place or some amount of its units to 
-  the passed @dst from the key pointed by src though the @end one.
-*/
-errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
-			       reiser4_place_t *dst,
-			       reiser4_place_t *src,
-			       reiser4_key_t *end)
-{
-	return reiser4_tree_dup(tree, dst, src, end, FALSE);
 }
 
 /* Inserts new item/unit described by item hint into the tree */
