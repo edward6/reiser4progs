@@ -338,7 +338,8 @@ errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
 /* Registers passed node in tree and connects left and right neighbour
    nodes. This function does not do any tree modifications. */
 errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
-				  reiser4_node_t *parent, reiser4_node_t *node)
+				  reiser4_node_t *parent, 
+				  reiser4_node_t *node)
 {
 	aal_assert("umka-1857", tree != NULL);
 	aal_assert("umka-2261", node != NULL);
@@ -374,6 +375,7 @@ errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 			aal_error("Can't adjust tree during connect "
 				  "node %llu.", node_blocknr(node));
 			reiser4_node_unlock(node);
+			reiser4_tree_unhash_node(tree, node);
 			return -EINVAL;
 		}
 		

@@ -1300,12 +1300,12 @@ static errno_t extent40_shift_units(reiser4_place_t *src_place,
 		extent40_copy(dst_place, pos, src_place, 0,
 			      hint->units_number);
 
-		/* Removing units in @src_place. */
-		extent40_shrink(src_place, 0, hint->units_number);
-
 		/* Updating item's key by the first unit key. */
 		body40_get_key(src_place, hint->units_number,
 			       &src_place->key, extent40_offset);
+
+		/* Removing units in @src_place. */
+		extent40_shrink(src_place, 0, hint->units_number);
 	} else {
 		/* Preparing space in @dst_place */
 		extent40_expand(dst_place, 0, hint->units_number);
@@ -1315,13 +1315,13 @@ static errno_t extent40_shift_units(reiser4_place_t *src_place,
 		
 		extent40_copy(dst_place, 0, src_place, pos,
 			      hint->units_number);
-
-		/* Removing units in @src_place. */
-		extent40_shrink(src_place, pos, hint->units_number);
-
+		
 		/* Updating item's key by the first unit key. */
 		body40_get_key(src_place, pos, &dst_place->key,
 			       extent40_offset);
+
+		/* Removing units in @src_place. */
+		extent40_shrink(src_place, pos, hint->units_number);
 	}
 	
 	return 0;
