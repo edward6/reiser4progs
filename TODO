@@ -29,4 +29,8 @@ reiser4progs/COPYING.
   right neighbour, not int onew allocated node. This will improve node
   packing substantionaly.
 
-* add extent hint for inserting extents into the tree
+* extent hint for inserting extents into the tree 
+* unit_key function into item plugin 
+
+* --print-file option in debugfs for printing nodes
+  specified file lies in
