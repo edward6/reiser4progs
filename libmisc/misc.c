@@ -95,7 +95,7 @@ long long misc_size2long(const char *str) {
    We are using stating of every mount entry instead of just name comparing,
    because file /proc/mounts may contain as devices like /dev/hda1 as
    ide/host0/bus0/targ... */
-errno_t misc_dev_mounted(
+int misc_dev_mounted(
 	const char *name,	/* device name to be checked */
 	const char *mode)	/* mount options for check */
 {
@@ -113,26 +113,33 @@ errno_t misc_dev_mounted(
 	/* Procfs magic is 0x9fa0 */
 	if (statfs("/proc", &fs_st) == -1 || fs_st.f_type != 0x9fa0) {
 
-                /* Proc is not mounted, check if it is the root partition */
+                /* Proc is not mounted, check if it is the root partition. */
 		if ((res = stat("/", &mnt_st)) == -1) 
 			return res;
  
 		if (mnt_st.st_dev == giv_st.st_rdev) 	    
 			return 1;	
         
-		return -EINVAL;
+		return 0;
 	}
     
 	/* Check /proc/mounts file. */
 	if (!(mnt = setmntent("/proc/mounts", "r")))
-		return -EINVAL;
+		return 0;
 
 	/* Loop until all entries are looked. */
 	while ((ent = getmntent(mnt))) {
 		/* Getting stat information and check if this is device we are
 		   interested in to check. */
 		if (stat(ent->mnt_fsname, &mnt_st) == 0) {
-			if (mnt_st.st_rdev == giv_st.st_rdev) {
+
+			/* Here we check also if current entry is not directory,
+			   because we will have hit if it is a directory like
+			   /proc or /sys and device we are checking is loop and
+			   they both lie on the same device (say /dev/hda1). */
+			if (!S_ISDIR(mnt_st.st_mode) &&
+			    mnt_st.st_rdev == giv_st.st_rdev)
+			{
 				char *token;
 
 				/* Okay, we have found needed device, now we

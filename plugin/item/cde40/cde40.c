@@ -519,7 +519,6 @@ static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
 		/* Check if we should update unit pos. we will update it if we
 		   are at insert point and unit pos is not MAX_UINT32. */
 		if (check && (flags & SF_UPDATE_POINT)) {
-			
 			if (!(flags & SF_MOVE_POINT)) {
 				if (flags & SF_LEFT_SHIFT) {
 					if (hint->pos.unit == 0)

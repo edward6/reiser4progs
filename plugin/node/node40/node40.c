@@ -1044,7 +1044,7 @@ static int node40_mergeable(place_t *src, place_t *dst) {
 		src->plug->o.item_ops->balance->mergeable(src, dst);
 }
 
-static int node40_splitable(place_t *place) {
+static int node40_splittable(place_t *place, shift_hint_t *hint) {
 	uint32_t units;
 	
 	/* Check if item's shift_units() and prep_shift() method are
@@ -1059,13 +1059,15 @@ static int node40_splitable(place_t *place) {
 	if (!place->plug->o.item_ops->balance->units)
 		return 0;
 
-	units = plug_call(place->plug->o.item_ops->balance,
-			  units, place);
+	if (hint->control & SF_UPDATE_POINT) {
+		units = plug_call(place->plug->o.item_ops->balance,
+				  units, place);
 
-	/* Those item can be splitted that contains more than 1 unit or insert
-	   point lies behind the last unit. */
-	if (units > 1 || place->pos.unit >= units)
-		return 1;
+		/* Those item can be splitted that contains more than 1 unit or
+		   insert point lies behind the last unit. */
+		if (units > 1 || place->pos.unit >= units)
+			return 1;
+	}
 	
 	return 0;
 }
@@ -1135,8 +1137,10 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	left_shift = (hint->control & SF_LEFT_SHIFT);
 	
 	/* We can't split the leftmost and rightmost items if they are the same
-	   insetr point points to. */
-	if (hint->pos.unit == MAX_UINT32) {
+	   insert point points to. */
+	if ((hint->control & SF_UPDATE_POINT) &&
+	    hint->pos.unit == MAX_UINT32)
+	{
 		if ((left_shift && hint->pos.item == 0) ||
 		    (!left_shift && hint->pos.item == src_items))
 		{
@@ -1150,7 +1154,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 	/* Items that do not implement prep_shift() and shift_units() methods
 	   cannot be splitted. */
-	if (!node40_splitable(&src_place))
+	if (!node40_splittable(&src_place, hint))
 		return 0;
 	
 	/* Checking if items are mergeable */

@@ -3,6 +3,9 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* do we really need both SF_UPDATE_POINT and SF_MOVE_POINT shift
+  flags.
+
 * implement tree_resize() and tree_copy().
 
 * improve tree_adjust_node() to be able to stop if memory pressure is
@@ -25,13 +28,10 @@ reiser4progs/COPYING.
   directory in librepair. Move all repair code from libreiser4/plugin/*
   to librepair/plugin/*.
 
-* make reg40 plugin to use the ability to make tail convertion with
-  chunks different than default ones.
-
 * should we introduce two stat data related methods 
   something like load_sd() and save_sd() like kernel does?
 
-* fix unaligned access on Itanium2.
+* fix unalligned access on Itanium2.
 
 * dumpfs utility.
 

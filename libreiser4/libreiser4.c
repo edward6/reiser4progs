@@ -266,11 +266,13 @@ const char *libreiser4_version(void) {
    before any actions performed on libreiser4. */
 errno_t libreiser4_init(void) {
 #ifndef ENABLE_STAND_ALONE
-	aal_stream_init(&print_stream, NULL, &memory_stream);
+	aal_stream_init(&print_stream, NULL,
+			&memory_stream);
 #endif
     
 	if (reiser4_factory_init()) {
-		aal_exception_fatal("Can't initialize plugin factory.");
+		aal_exception_fatal("Can't initialize "
+				    "plugin factory.");
 		goto error_free_print;
 	}
 

@@ -80,23 +80,31 @@ aal_device_t *reiser4_tree_get_device(reiser4_tree_t *tree) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* As @node already lies in @tree->nodes hash table and it is going to change
+   its block number, we have to update its hash entry in @tree->nodes. This
+   function does that job and also moves @node to @new_blk location. */
 static errno_t reiser4_tree_rehash_node(reiser4_tree_t *tree,
 					node_t *node, blk_t new_blk)
 {
 	blk_t old_blk;
 	blk_t *set_blk;
 
+	/* Moving @node to @new_blk. */
 	old_blk = node_blocknr(node);
 	reiser4_node_move(node, new_blk);
 
+	/* Allocating memory for entry key. */
 	if (!(set_blk = aal_calloc(sizeof(*set_blk), 0)))
 		return -ENOMEM;
 
+	/* Assign new block number value. */
 	*set_blk = new_blk;
-	
+
+	/* Remove old hash table entry. */
 	if (aal_hash_table_remove(tree->nodes, &old_blk))
 		return -EINVAL;
 
+	/* Insert new hash table entry. */
 	return aal_hash_table_insert(tree->nodes, set_blk, node);
 }
 #endif
@@ -825,6 +833,8 @@ void reiser4_tree_close(reiser4_tree_t *tree) {
 #ifndef ENABLE_STAND_ALONE
 	aal_hash_table_free(tree->data);
 #endif
+
+	aal_assert("umka-3011", tree->nodes->real == 0);
 	
 	/* Releasing fomatted nodes hash table. */
 	aal_hash_table_free(tree->nodes);
@@ -1212,10 +1222,118 @@ static errno_t callback_save_block( void *entry, void *data) {
 	return 0;
 }
 
+/* Packs one level at passed @node. Moves all items and units from right node
+   to left neighbour node and so on until rightmost node is reached. */
+static errno_t reiser4_tree_pack_level(reiser4_tree_t *tree,
+				       node_t *node)
+{
+	errno_t res;
+	node_t *right;
+	
+	aal_assert("umka-3009", tree != NULL);
+	aal_assert("umka-3010", node != NULL);
+
+	/* Loop until rightmost node is reached. */
+	while ((right = reiser4_tree_neigh_node(tree, node,
+						DIR_RIGHT)))
+	{
+		node_t *next;
+		place_t bogus;
+		uint32_t flags;
+
+		bogus.node = right;
+
+		/* Left shift and merge is allowed. As this function will be
+		   used mostly in the case of out of space, we do not allow to
+		   allocate new nodes during shift. */
+		flags = (SF_LEFT_SHIFT | SF_ALLOW_MERGE);
+
+		/* Getting node next to @right. It is needed for setting @node
+		   to it for next time of loop if right will get empty after
+		   shift and will be discarded. */
+		next = reiser4_tree_neigh_node(tree, right,
+					       DIR_RIGHT);
+
+		/* Shift items andunits from @right to @node with @flags. */
+		if ((res = reiser4_tree_shift(tree, &bogus,
+					      node, flags)))
+		{
+			aal_exception_error("Can't pack node "
+					    "%llu into left.",
+					    node_blocknr(right));
+			return res;
+		}
+
+		/* Check if node get empty. If so we release it. */
+		if (reiser4_node_items(right) == 0) {
+			/* Releasing @right node from tree cache and from tree
+			   structures (that is remove internal nodeptr item in
+			   parent node if any). */
+			reiser4_tree_discard_node(tree, right, 1);
+
+			/* If @next is null we get out of here, as we reached
+			   rightmost node. */
+			if (!next)
+				return 0;
+			
+			/* As @right get empty and will be discarded, we assign
+			   @node to node next to @right ascuired earlier. */
+			node = next;
+		} else {
+			/* Small speedup. If @next (that is @right's neighbours
+			   node) is null we won't to get it one more time. And
+			   this also means, that we reached rightmost node and
+			   can get out of here. */
+			if (!next)
+				return 0;
+			
+			/* Updating @node by @right in order to move control
+			   flow to right neighbour node and so on until
+			   rightmost one is reached. */
+			node = right;
+		}
+	}
+	
+	return 0;
+}
+
 /* Pack tree to make it more compact. Needed for fsck to pack tree after each
    pass and in the case of lack of disk space. */
 errno_t reiser4_tree_pack(reiser4_tree_t *tree) {
+	errno_t res;
+	node_t *node;
+	uint8_t level;
+
 	aal_assert("umka-3000", tree != NULL);
+
+	/* We start from root node. */
+	node = tree->root;
+	
+	/* Loop through all levels of treeand pack eah of them by
+	   tree_pack_level() function. */
+	for (level = reiser4_tree_get_height(tree);
+	     level >= LEAF_LEVEL; level--)
+	{
+		place_t place;
+
+		if ((res = reiser4_tree_pack_level(tree, node)))
+			return res;
+
+		if (level > LEAF_LEVEL) {
+			/* Getting first nodeptr on level to get node by it and
+			   in such a manner to move control flow to next level
+			   of tree. */
+			reiser4_place_assign(&place, node, 0, 0);
+
+			/* Getting first node of the next level. */
+			if (!(node = reiser4_tree_child_node(tree, &place))) {
+				aal_exception_error("Can't get first node on "
+						    "level %u.", level);
+				return -EINVAL;
+			}
+		}
+	}
+
 	return 0;
 }
 
@@ -1227,6 +1345,12 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 
 	if (!tree->root)
 		return 0;
+
+	if ((res = reiser4_tree_pack(tree))) {
+		aal_exception_error("Can't pack tree during "
+				    "synchronizing.");
+		return res;
+	}
 
         /* Flushing formatted nodes starting from root node with memory pressure
 	   flag set to 0, that is do not check memory presure, and save
@@ -1618,10 +1742,6 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node) {
 				    "tree cache.", node_blocknr(node));
 		return res;
 	}
-
-	/* Getting left and right neighbours. */
-	reiser4_tree_neigh_node(tree, node, DIR_LEFT);
-	reiser4_tree_neigh_node(tree, node, DIR_RIGHT);
 	
 	return 0;
 }
@@ -1801,8 +1921,8 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, place_t *place,
 		{
 
 			/* Check if node is connected to tree or it is not root
-			   and updating left delimiting keys makes sense at
-			   all. */
+			   and updating left delimiting keys if it makes sense
+			   at all. */
 			if (node->p.node) {
 				place_t p;
 
@@ -2057,7 +2177,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 	return enough;
 }
 
-/* Packs node in @place by means of using shift into/from neighbours */
+/* Packs node in @place by means of using shift to left. */
 errno_t reiser4_tree_shrink(reiser4_tree_t *tree, place_t *place) {
 	errno_t res;
 	uint32_t flags;
