@@ -62,6 +62,18 @@ static int tail40_data(void) {
 
 #ifndef ENABLE_STAND_ALONE
 
+static errno_t tail40_copy(item_entity_t *dst_item,
+			   uint32_t dst_pos,
+			   item_entity_t *src_item,
+			   uint32_t src_pos,
+			   uint32_t count)
+{
+	aal_assert("umka-2075", dst_item != NULL);
+	aal_assert("umka-2076", src_item != NULL);
+
+	return -EINVAL;
+}
+
 /* Rewrites tail from passed @pos by data specifed by hint */
 static int32_t tail40_write(item_entity_t *item, void *buff,
 			    uint32_t pos, uint32_t count)
@@ -418,6 +430,7 @@ static reiser4_plugin_t tail40_plugin = {
 		
 #ifndef ENABLE_STAND_ALONE
 		.init	        = tail40_init,
+		.copy	        = tail40_copy,
 		.write	        = tail40_write,
 		.remove	        = tail40_remove,
 		.print	        = tail40_print,
@@ -426,7 +439,6 @@ static reiser4_plugin_t tail40_plugin = {
 		.feel           = tail40_feel,
 		.utmost_key     = tail40_utmost_key,
 		.gap_key        = tail40_utmost_key,
-		.insert	        = NULL,
 		.check	        = NULL,
 		.estimate       = NULL,
 		.set_key        = NULL,

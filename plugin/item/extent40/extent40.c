@@ -687,6 +687,18 @@ static errno_t extent40_predict(item_entity_t *src_item,
 	return 0;
 }
 
+static errno_t extent40_copy(item_entity_t *dst_item,
+			     uint32_t dst_pos,
+			     item_entity_t *src_item,
+			     uint32_t src_pos,
+			     uint32_t count)
+{
+	aal_assert("umka-2071", dst_item != NULL);
+	aal_assert("umka-2072", src_item != NULL);
+
+	return -EINVAL;
+}
+
 static errno_t extent40_shift(item_entity_t *src_item,
 			      item_entity_t *dst_item,
 			      shift_hint_t *hint)
@@ -772,6 +784,7 @@ static reiser4_plugin_t extent40_plugin = {
 #ifndef ENABLE_STAND_ALONE
 		.init	       = extent40_init,
 		.write         = extent40_write,
+		.copy          = extent40_copy,
 		.estimate      = extent40_estimate,
 		.remove	       = extent40_remove,
 		.print	       = extent40_print,
@@ -783,8 +796,6 @@ static reiser4_plugin_t extent40_plugin = {
 		.gap_key       = extent40_utmost_key,
 		.utmost_key    = extent40_utmost_key,
 		.layout_check  = extent40_layout_check,
-
-		.insert	       = NULL,
 		.set_key       = NULL,
 #endif
 		.branch        = NULL,

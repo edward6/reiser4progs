@@ -825,6 +825,19 @@ static int32_t direntry40_expand(item_entity_t *item, uint32_t pos,
 	return offset;
 }
 
+/* Makes copy of @count amount of units from @src_item to @dst_one */
+static errno_t direntry40_copy(item_entity_t *dst_item,
+			       uint32_t dst_pos,
+			       item_entity_t *src_item,
+			       uint32_t src_pos,
+			       uint32_t count)
+{
+	aal_assert("umka-2069", dst_item != NULL);
+	aal_assert("umka-2070", src_item != NULL);
+
+	return -EINVAL;
+}
+
 /* Inserts new entries inside direntry item */
 static int32_t direntry40_write(item_entity_t *item, void *buff,
 				uint32_t pos, uint32_t count)
@@ -923,8 +936,7 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 
 /* Removes @count entries at @pos from passed @item */
 int32_t direntry40_remove(item_entity_t *item,
-			  uint32_t pos,
-			  uint32_t count)
+			  uint32_t pos, uint32_t count)
 {
 	uint32_t len;
 	direntry40_t *direntry;
@@ -1203,6 +1215,7 @@ static reiser4_plugin_t direntry40_plugin = {
 		
 #ifndef ENABLE_STAND_ALONE	    
 		.init		= direntry40_init,
+		.copy		= direntry40_copy,
 		.write		= direntry40_write,
 		.remove		= direntry40_remove,
 		.estimate	= direntry40_estimate,
@@ -1215,7 +1228,6 @@ static reiser4_plugin_t direntry40_plugin = {
 		
 		.set_key	= NULL,
 		.gap_key	= NULL,
-		.insert         = NULL,
 		.layout		= NULL,
 		.layout_check	= NULL,
 #endif

@@ -717,14 +717,13 @@ struct reiser4_item_ops {
 	/* Prepares item body for working with it */
 	errno_t (*init) (item_entity_t *);
 
+	errno_t (*copy) (item_entity_t *, uint32_t, item_entity_t *,
+			 uint32_t, uint32_t);
+	
 	/* Updates passed amount of units in the item */
 	int32_t (*write) (item_entity_t *, void *, uint32_t,
 			  uint32_t);
 
-	/* Inserts unit described by passed hint into the item */
-	errno_t (*insert) (item_entity_t *, void *, uint32_t,
-			   uint32_t);
-	
 	/* Removes specified unit from the item. Returns released space */
 	int32_t (*remove) (item_entity_t *, uint32_t,
 			   uint32_t);

@@ -44,8 +44,7 @@ static int nodeptr40_branch(void) {
   Layout implementation for nodeptr40. It calls @func for each block nodeptr
   points to.
 */
-static errno_t nodeptr40_layout(item_entity_t *item,
-				region_func_t func,
+static errno_t nodeptr40_layout(item_entity_t *item, region_func_t func,
 				void *data)
 {
 	errno_t res;
@@ -62,6 +61,18 @@ static errno_t nodeptr40_layout(item_entity_t *item,
 }
 
 #ifndef ENABLE_STAND_ALONE
+
+static errno_t nodeptr40_copy(item_entity_t *dst_item,
+			      uint32_t dst_pos,
+			      item_entity_t *src_item,
+			      uint32_t src_pos,
+			      uint32_t count)
+{
+	aal_assert("umka-2073", dst_item != NULL);
+	aal_assert("umka-2074", src_item != NULL);
+
+	return -EINVAL;
+}
 
 /* Writes of the specified nodeptr into passed @item*/
 static int32_t nodeptr40_write(item_entity_t *item, void *buff,
@@ -159,6 +170,7 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		},
 #ifndef ENABLE_STAND_ALONE	    
 		.init		= nodeptr40_init,
+		.copy           = nodeptr40_copy,
 		.write          = nodeptr40_write,
 		.estimate	= nodeptr40_estimate,
 		.print		= nodeptr40_print,
@@ -166,7 +178,6 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.layout         = nodeptr40_layout,
 		.layout_check	= nodeptr40_layout_check,
 
-		.insert		= NULL,
 		.remove		= NULL,
 		.feel           = NULL,
 

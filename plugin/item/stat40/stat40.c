@@ -200,7 +200,7 @@ static errno_t stat40_estimate(item_entity_t *item, void *buff,
 	return 0;
 }
 
-/* This method inserts the stat data extentions */
+/* This method writes the stat data extentions */
 static int32_t stat40_write(item_entity_t *item, void *buff,
 			    uint32_t pos, uint32_t count)
 {
@@ -433,9 +433,9 @@ static reiser4_plugin_t stat40_plugin = {
 		.init		= stat40_init,
 		.check		= stat40_check,
 		.print		= stat40_print,
+		.copy           = NULL,
 		.layout         = NULL,
 		.remove		= NULL,
-		.insert         = NULL,
 		.shift          = NULL,
 		.predict        = NULL,
 		.set_key	= NULL,
