@@ -9,6 +9,10 @@
 
 static reiser4_core_t *core = NULL;
 
+/*
+  Returns pointer to the objectid entry component in passed @direntry at pased
+  @pos. It is used in code bellow.
+*/
 static inline objid40_t *direntry40_unit(direntry40_t *direntry, 
 					 uint32_t pos)
 {
@@ -16,6 +20,7 @@ static inline objid40_t *direntry40_unit(direntry40_t *direntry,
 	return (objid40_t *)((void *)direntry + offset);
 }
 
+/* Retutns statdata key of the file entry points to */
 static errno_t direntry40_unit_key(item_entity_t *item,
 				   uint32_t pos,
 				   key_entity_t *key)
@@ -37,25 +42,29 @@ static errno_t direntry40_unit_key(item_entity_t *item,
 	  very good direntry plugin knows about key inetrnals.
 	*/
 	locality = (oid40_get_locality(objid) & 0xfffffffffffffff0ull) >> 4;
-		
+
+	/* Building key by means of using key plugin */
 	key->plugin = item->key.plugin;
 	
 	return plugin_call(return -1, key->plugin->key_ops, build_generic,
 			   key, KEY_FILENAME_TYPE, locality, objectid, 0);
 }
 
+/* Returns pointer to entry at passed @pos */
 static inline entry40_t *direntry40_entry(direntry40_t *direntry, 
 					  uint32_t pos)
 {
 	return &direntry->entry[pos];
 }
 
+/* Retutns TRUE if passed name is long and can't fit into objectid */
 #define OID_CHARS (sizeof(uint64_t) - 1)
 
 static inline int direntry40_name_long(char *name) {
 	return (aal_strlen(name) > OID_CHARS + sizeof(uint64_t));
 }
 
+/* The same as previous function but works on entry */
 static inline int direntry40_entry_long(direntry40_t *direntry,
 					entry40_t *entry)
 {
@@ -63,16 +72,28 @@ static inline int direntry40_entry_long(direntry40_t *direntry,
 	return (objectid & 0x0100000000000000ull) ? 1 : 0;
 }
 
+/*
+  Calculates entry length. This function is widely used in shift code and
+  modification code.
+*/
 static inline uint32_t direntry40_entry_len(direntry40_t *direntry,
 					    entry40_t *entry)
 {
 	uint32_t len;
 	objid40_t *objid;
 
+	/* Counting objectid size */
 	len = sizeof(objid40_t);
-	
+
+	/*
+	  If entry contains long name it is stored just after objectid.
+	  Otherwise, entry name is stored in objectid and offset of the
+	  entry. This trick saves a lot of space in directories, because the
+	  average name is shorter than 15 symbols.
+	*/
 	if (direntry40_entry_long(direntry, entry)) {
-		
+
+		/* Counting name length too */
 		objid = (objid40_t *)((void *)direntry +
 				      entry->offset);
 		
@@ -82,6 +103,7 @@ static inline uint32_t direntry40_entry_len(direntry40_t *direntry,
 	return len;
 }
 
+/* Extracts the part of entry name from the 64bits value it was packed to */
 static char *direntry40_unpack_string(uint64_t value, char *buff) {
 	do {
 		*buff = value >> (64 - 8);
@@ -95,6 +117,7 @@ static char *direntry40_unpack_string(uint64_t value, char *buff) {
 	return buff; 
 }
 
+/* Extracts entry name from the passed @entry to passed @buff */
 static char *direntry40_entry_name(direntry40_t *direntry,
 				   entry40_t *entry, char *buff)
 {
@@ -105,10 +128,15 @@ static char *direntry40_entry_name(direntry40_t *direntry,
 
 	objid = (objid40_t *)((void *)direntry +
 			      entry->offset);
-	
+
+	/*
+	  If name is long, we just copy it from the area after
+	  objectid. Otherwise we extract it from the entry hash.
+	*/
 	if (direntry40_entry_long(direntry, entry)) {
 		char *name = (char *)(objid + 1);
 		uint32_t len = aal_strlen(name);
+		
 		aal_strncpy(buff, name, len);
 		*(buff + len) = '\0';
 	} else {
@@ -117,6 +145,7 @@ static char *direntry40_entry_name(direntry40_t *direntry,
 		
 		offset = eid40_get_offset(&entry->entryid);
 
+		/* Special case, handling "." entry */
 		if (objectid == 0ull && offset == 0ull) {
 			*buff = '.';
 			*(buff + 1) = '\0';
@@ -129,6 +158,7 @@ static char *direntry40_entry_name(direntry40_t *direntry,
 	return buff;
 }
 
+/* Returns the number of usets passed direntry item contains */
 static uint32_t direntry40_units(item_entity_t *item) {
 	direntry40_t *direntry;
     
@@ -138,7 +168,10 @@ static uint32_t direntry40_units(item_entity_t *item) {
 	return de40_get_count(direntry);
 }
 
-/* Builds full key by entry components */
+/*
+  Builds full key by entry components. It is needed for updating keys after
+  shift, insert, etc. Also library requires unit keys sometims.
+*/
 static errno_t direntry40_get_key(item_entity_t *item,
 				  uint32_t pos,
 				  key_entity_t *key)
@@ -161,12 +194,15 @@ static errno_t direntry40_get_key(item_entity_t *item,
 	aal_assert("umka-1647", pos < units, return -1);
 	entry = direntry40_entry(direntry40_body(item), pos);
 
+	/* Getting item key params */
 	locality = plugin_call(return -1, item->key.plugin->key_ops,
 			       get_locality, &item->key);
 
+	/* Getting entry key params */
 	objectid = *((uint64_t *)&entry->entryid);
 	offset = *((uint64_t *)&entry->entryid + 1);
 
+	/* Building the full key */
 	key->plugin = item->key.plugin;
 	
 	plugin_call(return -1, item->key.plugin->key_ops, build_generic,
@@ -175,6 +211,7 @@ static errno_t direntry40_get_key(item_entity_t *item,
 	return 0;
 }
 
+/* Fetches @count of the entries starting from @pos into passed @buff */
 static int32_t direntry40_fetch(item_entity_t *item, void *buff,
 				uint32_t pos, uint32_t count)
 {
@@ -216,6 +253,10 @@ static int32_t direntry40_fetch(item_entity_t *item, void *buff,
 
 #ifndef ENABLE_COMPACT
 
+/*
+  Layout function implementation. It is used for traversing item bodies for
+  example, for printhing their data.
+*/
 static errno_t direntry40_layout(item_entity_t *item,
 				 data_func_t func,
 				 void *data)
@@ -231,6 +272,11 @@ static errno_t direntry40_layout(item_entity_t *item,
 	return 0;
 }
 
+/*
+  Returns TRUE is two items are mergeable. That is if they have the same plugin
+  id and belong to the same directory. This function is used in balancing from
+  the node plugin in order to determine are two items need to be merged or not.
+*/
 static int direntry40_mergeable(item_entity_t *item1,
 				item_entity_t *item2)
 {
@@ -241,7 +287,11 @@ static int direntry40_mergeable(item_entity_t *item1,
 	aal_assert("umka-1582", item2 != NULL, return -1);
 
 	plugin = item1->key.plugin;
-	
+
+	/*
+	  Items mergeable if they have the same locality, that is oid of the
+	  directory they belong to.
+	*/
 	locality1 = plugin_call(return -1, plugin->key_ops,
 				get_locality, &item1->key);
 
@@ -251,6 +301,10 @@ static int direntry40_mergeable(item_entity_t *item1,
 	return (locality1 == locality2);
 }
 
+/*
+  Estimates how much bytes will be needed to prepare in node in odrer to make
+  room for inserting new entries.
+*/
 static errno_t direntry40_estimate(item_entity_t *item,
 				   reiser4_item_hint_t *hint,
 				   uint32_t pos) 
@@ -270,12 +324,22 @@ static errno_t direntry40_estimate(item_entity_t *item,
 			hint->len += aal_strlen(direntry_hint->unit[i].name) + 1;
 	}
 
+	/*
+	  If the pos we are going to insert new units is ~0ul, we assume it is
+	  the attempt to insert new directory item. In this case we should also
+	  count item overhead, that is direntry40 header which contains the
+	  number of entries in item.
+	*/
 	if (pos == ~0ul)
 		hint->len += sizeof(direntry40_t);
     
 	return 0;
 }
 
+/*
+  Predicts how many entries and bytes can be shifted from the @src_item to
+  @dst_item. The behavior of the function depends on the passed @hint.
+*/
 static errno_t direntry40_predict(item_entity_t *src_item,
 				  item_entity_t *dst_item,
 				  shift_hint_t *hint)
@@ -296,7 +360,11 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	dst_units = dst_item ? direntry40_units(dst_item) : 0;
 
 	space = hint->rest;
-	
+
+	/*
+	  If hint's create flag is present, we need to create new direntry item,
+	  so we should count its overhead.
+	*/
 	if (hint->create) {
 		
 		if (space < sizeof(direntry40_t))
@@ -314,7 +382,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	hint->flags &= ~SF_MOVIP;
 	
 	while (!(hint->flags & SF_MOVIP) && cur < direntry40_units(src_item)) {
-		
+
 		int check = (src_item->pos.item == hint->pos.item &&
 			     hint->pos.unit != ~0ul);
 
@@ -415,6 +483,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	return 0;
 }
 
+/* Makes shift of the entries from the @src_item to the @dst_item */
 static errno_t direntry40_shift(item_entity_t *src_item,
 				item_entity_t *dst_item,
 				shift_hint_t *hint)
@@ -622,7 +691,9 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	return 0;
 }
 
-static int32_t direntry40_shrink(direntry40_t *direntry, uint32_t pos,
+/* Shrinks direntry item in order to delete some entries */
+static int32_t direntry40_shrink(direntry40_t *direntry,
+				 uint32_t pos,
 				 uint32_t count)
 {
 	entry40_t *entry;
@@ -704,7 +775,9 @@ static int32_t direntry40_shrink(direntry40_t *direntry, uint32_t pos,
 	return (remove + headers);
 }
 
-static int32_t direntry40_remove(item_entity_t *item, uint32_t pos,
+/* Removes @count entries at @pos from passed @item */
+static int32_t direntry40_remove(item_entity_t *item,
+				 uint32_t pos,
 				 uint32_t count)
 {
 	uint32_t len;
@@ -715,12 +788,14 @@ static int32_t direntry40_remove(item_entity_t *item, uint32_t pos,
 	if (!(direntry = direntry40_body(item)))
 		return -1;
 
+	/* Shrinking direntry */
 	if ((len = direntry40_shrink(direntry, pos, count)) <= 0) {
 		aal_exception_error("Can't shrink direntry at pos "
 				    "%u by %u entries.", pos, count);
 		return -1;
 	}
-	
+
+	/* Updating item key */
 	if (pos == 0 && de40_get_count(direntry) > 0) {
 		if (direntry40_get_key(item, 0, &item->key))
 			return -1;
@@ -810,6 +885,7 @@ static int32_t direntry40_expand(direntry40_t *direntry, uint32_t pos,
 	return offset;
 }
 
+/* Inserts new entries inside direntry item */
 static errno_t direntry40_insert(item_entity_t *item,
 				 reiser4_item_hint_t *hint,
 				 uint32_t pos)
@@ -921,6 +997,7 @@ static errno_t direntry40_insert(item_entity_t *item,
 	return 0;
 }
 
+/* Prepares area new item will be created at */
 static errno_t direntry40_init(item_entity_t *item) {
 	aal_assert("umka-1010", item != NULL, return -1);
 	
@@ -928,6 +1005,7 @@ static errno_t direntry40_init(item_entity_t *item) {
 	return 0;
 }
 
+/* Prints direntry item into passed @stream */
 static errno_t direntry40_print(item_entity_t *item,
 				aal_stream_t *stream,
 				uint16_t options) 
@@ -956,6 +1034,7 @@ static errno_t direntry40_print(item_entity_t *item,
 	
 	aal_stream_format(stream, "count:\t\t%u\n", de40_get_count(direntry));
 
+	/* Loop though the all entries */
 	for (i = 0; i < de40_get_count(direntry); i++) {
 		entry40_t *entry = &direntry->entry[i];
 
@@ -981,6 +1060,10 @@ extern errno_t direntry40_check(item_entity_t *item);
 
 #endif
 
+/*
+  Returns maximal possible key in direntry item. It is needed for lookuping
+  needed entry by entry key.
+*/
 static errno_t direntry40_max_poss_key(item_entity_t *item, 
 				       key_entity_t *key) 
 {
@@ -1014,6 +1097,7 @@ static errno_t direntry40_max_poss_key(item_entity_t *item,
 	return 0;
 }
 
+/* Returns real maximal key in direntry item */
 static errno_t direntry40_max_real_key(item_entity_t *item, 
 				       key_entity_t *key) 
 {
@@ -1034,12 +1118,10 @@ static errno_t direntry40_max_real_key(item_entity_t *item,
 
 /* 
    Helper function that is used by lookup method for comparing given key with
-   passed dirid.
+   passed entry hash.
 */
-static inline int callback_comp_entry(void *array,
-				      uint32_t pos,
-				      void *key, 
-				      void *data)
+static inline int callback_comp_entry(void *array, uint32_t pos,
+				      void *key, void *data)
 {
 	item_entity_t *item;
 	key_entity_t *wanted;
@@ -1055,6 +1137,7 @@ static inline int callback_comp_entry(void *array,
 			   compare, &current, wanted);
 }
 
+/* Performs lookup inside direntry. Found pos is stored in @pos */
 static int direntry40_lookup(item_entity_t *item,
 			     key_entity_t *key,
 			     uint32_t *pos)
@@ -1074,15 +1157,20 @@ static int direntry40_lookup(item_entity_t *item,
     
 	if (!(direntry = direntry40_body(item)))
 		return -1;
-    
+
+	/* Getting maximal possible key */
 	maxkey.plugin = key->plugin;
-	
+
 	plugin_call(return -1, maxkey.plugin->key_ops,
 		    assign, &maxkey, &item->key);
 	
 	if (direntry40_max_poss_key(item, &maxkey))
 		return -1;
 
+	/*
+	  If looked key is greater that maximal possible one then we going out
+	  and return FALSE, that is the key not found.
+	*/
 	units = direntry40_units(item);
 	
 	if (plugin_call(return -1, key->plugin->key_ops,
@@ -1091,7 +1179,8 @@ static int direntry40_lookup(item_entity_t *item,
 		*pos = units;
 		return 0;
 	}
-    
+
+	/* Comparing looked key with minimal one */
 	minkey.plugin = key->plugin;
 	
 	plugin_call(return -1, minkey.plugin->key_ops,
@@ -1103,11 +1192,20 @@ static int direntry40_lookup(item_entity_t *item,
 		*pos = 0;
 		return 0;
 	}
-    
+
+	/*
+	  Performing binary search inside the direntry in order to find position
+	  iof the looked key.
+	*/
 	result = aux_bin_search((void *)direntry, units, key, 
 				callback_comp_entry, (void *)item,
 				&unit);
 
+	/*
+	  Position correcting for the case key was not found. It is needed for
+	  the case when we are going to insert new entry and searching the
+	  position of insertion.
+	*/
 	if (result != -1) {
 		*pos = (uint32_t)unit;
 
@@ -1118,6 +1216,7 @@ static int direntry40_lookup(item_entity_t *item,
 	return result;
 }
 
+/* Preparing direntry plugin structure */
 static reiser4_plugin_t direntry40_plugin = {
 	.item_ops = {
 		.h = {
