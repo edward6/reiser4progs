@@ -17,7 +17,11 @@ errno_t common40_get_key(item_entity_t *item,
 			 key_entity_t *key,
 			 trans_func_t trans_func)
 {
+#ifndef ENABLE_STAND_ALONE
 	uint64_t offset;
+#else
+	uint32_t offset;
+#endif
 
 	plugin_call(item->key.plugin->key_ops, assign,
 		    key, &item->key);
@@ -37,7 +41,11 @@ errno_t common40_get_key(item_entity_t *item,
 errno_t common40_maxposs_key(item_entity_t *item,
 			     key_entity_t *key) 
 {
+#ifndef ENABLE_STAND_ALONE
 	uint64_t offset;
+#else
+	uint32_t offset;
+#endif
 	key_entity_t *maxkey;
     
 	plugin_call(item->key.plugin->key_ops, assign,
@@ -62,8 +70,13 @@ errno_t common40_maxreal_key(item_entity_t *item,
 			     key_entity_t *key,
 			     trans_func_t trans_func) 
 {
+#ifndef ENABLE_STAND_ALONE
 	uint64_t units;
 	uint64_t offset;
+#else
+	uint32_t units;
+	uint32_t offset;
+#endif
 
 	units = plugin_call(item->plugin->item_ops,
 			    units, item);
@@ -87,8 +100,12 @@ errno_t common40_maxreal_key(item_entity_t *item,
 int common40_mergeable(item_entity_t *item1,
 		       item_entity_t *item2)
 {
-	key_entity_t maxreal_key;
+#ifndef ENABLE_STAND_ALONE
 	uint64_t maxreal, offset;
+#else
+	uint32_t maxreal, offset;
+#endif
+	key_entity_t maxreal_key;
 	reiser4_plugin_t *plugin;
 	oid_t objectid1, objectid2;
 	
@@ -133,9 +150,15 @@ lookup_t common40_lookup(item_entity_t *item,
 			 uint64_t *pos,
 			 trans_func_t trans_func)
 {
+#ifndef ENABLE_STAND_ALONE
 	uint64_t size;
 	uint64_t offset;
 	uint64_t wanted;
+#else
+	uint32_t size;
+	uint32_t offset;
+	uint32_t wanted;
+#endif
 	
 	uint32_t units;
 	key_entity_t maxkey;

@@ -229,8 +229,6 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	for (i = extent40_unit(item, pos);
 	     i < extent40_units(item) && count > 0; i++)
 	{
-		blk_t blk;
-		uint64_t start;
 		uint32_t chunk;
 		
 		/*
@@ -242,8 +240,12 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		*/
 		
 #ifndef ENABLE_STAND_ALONE
+		uint64_t blk;
+		uint64_t start;
 		uint64_t offset;
 #else
+		uint32_t blk;
+		uint32_t start;
 		uint32_t offset;
 #endif
 

@@ -23,7 +23,11 @@ struct reg40 {
 	place_t body;
 
 	/* Current position in the directory */
+#ifndef ENABLE_STAND_ALONE
 	uint64_t offset;
+#else
+	uint32_t offset;
+#endif
 };
 
 typedef struct reg40 reg40_t;

@@ -91,8 +91,13 @@ static int32_t reg40_read(object_entity_t *entity,
 			  void *buff, uint32_t n)
 {
 	errno_t res;
+#ifndef ENABLE_STAND_ALONE
 	uint64_t size;
+	uint64_t offset;
+#else
+	uint32_t size;
 	uint32_t offset;
+#endif
 	item_entity_t *item;
 	uint32_t read, chunk;
 	
