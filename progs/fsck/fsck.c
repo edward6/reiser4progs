@@ -366,3 +366,19 @@ free_device:
     return exit_code;
 }
 
+int fsck_children_check(reiser4_node_t *node) {
+    aal_list_t *list, *walk;
+    int i = 0;
+    
+    list = node->children;
+    aal_list_foreach_forward(list, walk) {
+	reiser4_node_t *child = (reiser4_node_t *)walk->data;
+
+	if (child->parent.node != node)
+	    return i;
+
+	i++;
+    }
+
+    return -1;
+}

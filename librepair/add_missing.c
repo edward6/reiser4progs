@@ -181,7 +181,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 		reiser4_node_mkclean(place.node);
 		aux_bitmap_clear(bitmap, node->blk);
 		reiser4_alloc_permit(am->repair->fs->alloc, node->blk, 1);
-		goto first_next;
+		goto find_next;
 	    }
 		
 	    res = repair_tree_attach(am->repair->fs->tree, node);
@@ -206,11 +206,12 @@ errno_t repair_add_missing(repair_am_t *am) {
 
 		if (res)
 		    goto error_node_close;
-
+		
+		blk++;
+		continue;
 	    } /* if res > 0 - uninsertable case - insert by items later. */
 	
-	first_next:
-
+	find_next:
 	    reiser4_node_close(node);
 	    blk++;
 	}

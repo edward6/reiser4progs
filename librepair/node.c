@@ -150,7 +150,6 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
     
     aal_assert("vpf-501", node != NULL);
     aal_assert("vpf-344", ld_key != NULL);
-    aal_assert("vpf-407", ld_key->plugin != NULL);
 
     if (node->parent.node != NULL) {
 	if ((ret = reiser4_place_realize(&node->parent)))
@@ -187,7 +186,6 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
     
     aal_assert("vpf-502", node != NULL);
     aal_assert("vpf-347", rd_key != NULL);
-    aal_assert("vpf-408", rd_key->plugin != NULL);
 
     if (node->parent.node != NULL) {
 	/* Take the right delimiting key from the parent. */

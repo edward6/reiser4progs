@@ -1451,8 +1451,8 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	while (curr <= level) {
 		aal_assert("vpf-676", place->node->parent.node != NULL);
 		
-		if (!(place->pos.item == 0 && place->pos.unit == 0) || 
-		    !(place->pos.item == reiser4_node_items(place->node)) || 
+		if (!(place->pos.item == 0 && place->pos.unit == 0) && 
+		    !(place->pos.item == reiser4_node_items(place->node)) && 
 		    !(place->pos.item + 1 == reiser4_node_items(place->node) &&
 		      place->pos.unit == reiser4_item_units(place)))
 		{
