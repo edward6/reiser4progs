@@ -606,8 +606,8 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 		/* Calling calculating the file fragmentation by emans of using
 		   the function we have seen abowe. */
 		if (reiser4_object_layout(object, file_frag_process_blk, data)) {
-			aal_error("Can't enumerate data blocks "
-				  "occupied by %s", object->name);
+			aal_error("Can't enumerate data blocks occupied by %s", 
+				  reiser4_print_key(&object->ent->object, PO_INODE));
 			goto error_close_object;
 		}
 
@@ -628,7 +628,8 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 				(double)frag_hint->current / frag_hint->files : 0;
 			
 			aal_mess("Fragmentation for %s: %.6f [av. %.6f ]",
-				 object->name, file_factor, curr_factor);
+				 reiser4_print_key(&object->ent->object, PO_INODE),
+				 file_factor, curr_factor);
 		}
 
 	error_close_object:

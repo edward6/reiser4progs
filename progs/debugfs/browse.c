@@ -15,7 +15,7 @@ static errno_t debugfs_reg_cat(reiser4_object_t *object) {
 	
 	if ((res = reiser4_object_reset(object))) {
 		aal_error("Can't reset object %s.",
-			  object->name);
+			  reiser4_print_key(&object->ent->object, PO_INODE));
 		return res;
 	}
 
@@ -39,8 +39,8 @@ static errno_t debugfs_dir_cat(reiser4_object_t *object) {
 	entry_hint_t entry;
 	
 	if ((res = reiser4_object_reset(object))) {
-		aal_error("Can't reset object %s.",
-			  object->name);
+		aal_error("Can't reset object %s.", 
+			  reiser4_print_key(&object->ent->object, PO_INODE));
 		return res;
 	}
 
@@ -73,7 +73,8 @@ static errno_t debugfs_spl_cat(reiser4_object_t *object) {
 	stath.ext[SDEXT_UNIX_ID] = &unixh;
 
 	if ((res = reiser4_object_stat(object, &stath))) {
-		aal_error("Can't stat object %s.", object->name);
+		aal_error("Can't stat object %s.", 
+			  reiser4_print_key(&object->ent->object, PO_INODE));
 		return res;
 	}
 
