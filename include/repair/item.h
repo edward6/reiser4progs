@@ -15,9 +15,9 @@ extern errno_t repair_item_check_layout(reiser4_place_t *place,
 					region_func_t func, 
 					void *data, uint8_t mode);
 
-extern errno_t repair_item_estimate_copy(reiser4_place_t *dst, 
-					 reiser4_place_t *src, 
-					 copy_hint_t *hint);
+extern errno_t repair_item_estimate_merge(reiser4_place_t *dst, 
+					  reiser4_place_t *src, 
+					  merge_hint_t *hint);
 
 
 extern void repair_item_set_flag(reiser4_place_t *place,

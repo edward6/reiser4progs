@@ -57,9 +57,9 @@ extern errno_t reiser4_tree_attach(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 				   reiser4_node_t *node);
 
-extern errno_t reiser4_tree_convert(reiser4_tree_t *tree,
-				    reiser4_place_t *place,
-				    reiser4_plug_t *plug);
+extern errno_t reiser4_tree_conv(reiser4_tree_t *tree,
+				 reiser4_place_t *place,
+				 reiser4_plug_t *plug);
 
 extern errno_t reiser4_tree_insert(reiser4_tree_t *tree,
 				   reiser4_place_t *place,

@@ -259,18 +259,17 @@ errno_t repair_node_traverse(reiser4_node_t *node, node_func_t func,
 	return 0;
 }
 
-errno_t repair_node_copy(reiser4_node_t *dst, pos_t *dst_pos, 
-			 reiser4_node_t *src, pos_t *src_pos, 
-			 copy_hint_t *hint) 
+errno_t repair_node_merge(reiser4_node_t *dst, pos_t *dst_pos, 
+			  reiser4_node_t *src, pos_t *src_pos, 
+			  merge_hint_t *hint) 
 {
 	aal_assert("vpf-961", dst != NULL);
 	aal_assert("vpf-962", src != NULL);
-	aal_assert("vpf-964", dst->entity->plug->id.id == 
-		   src->entity->plug->id.id);
+	aal_assert("vpf-964", plug_equal(dst->entity->plug, src->entity->plug));
 	aal_assert("vpf-967", dst_pos != NULL);
 	aal_assert("vpf-968", src_pos != NULL);
     
-	return plug_call(dst->entity->plug->o.node_ops, copy, dst->entity,
+	return plug_call(dst->entity->plug->o.node_ops, merge, dst->entity,
 			 dst_pos, src->entity, src_pos, hint);
 }
 

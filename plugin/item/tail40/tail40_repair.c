@@ -20,9 +20,9 @@ extern errno_t tail40_rep(place_t *dst_place, uint32_t dst_pos,
 
 extern uint32_t tail40_units(place_t *place);
 
-errno_t tail40_copy(place_t *dst, uint32_t dst_pos, 
-		    place_t *src, uint32_t src_pos, 
-		    copy_hint_t *hint)
+errno_t tail40_merge(place_t *dst, uint32_t dst_pos, 
+		     place_t *src, uint32_t src_pos, 
+		     merge_hint_t *hint)
 {
 	aal_assert("vpf-987", dst  != NULL);
 	aal_assert("vpf-988", src  != NULL);
@@ -34,9 +34,9 @@ errno_t tail40_copy(place_t *dst, uint32_t dst_pos,
 	return tail40_rep(dst, dst_pos, src, src_pos, hint->src_count);
 }
 
-errno_t tail40_estimate_copy(place_t *dst, uint32_t dst_pos, 
-			     place_t *src, uint32_t src_pos, 
-			     copy_hint_t *hint)
+errno_t tail40_estimate_merge(place_t *dst, uint32_t dst_pos, 
+			      place_t *src, uint32_t src_pos, 
+			      merge_hint_t *hint)
 {
 	uint64_t src_offset, dst_max, src_max, src_end;
 	key_entity_t key;

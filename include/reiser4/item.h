@@ -23,6 +23,8 @@ extern errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 
 extern rid_t reiser4_item_type(reiser4_place_t *place);
 extern bool_t reiser4_item_statdata(reiser4_place_t *place);
+extern errno_t reiser4_item_key(reiser4_place_t *place, reiser4_key_t *key);
+
 #endif
 
 extern errno_t reiser4_item_maxposs_key(reiser4_place_t *place,

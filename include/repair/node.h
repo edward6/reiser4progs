@@ -17,7 +17,7 @@ extern errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode);
 extern errno_t repair_node_traverse(reiser4_node_t *node, 
 				    node_func_t func, void *data);
 
-extern errno_t repair_node_copy(reiser4_node_t *dst, pos_t *dst_pos, 
-				reiser4_node_t *src, pos_t *src_pos, 
-				copy_hint_t *hint);
+extern errno_t repair_node_merge(reiser4_node_t *dst, pos_t *dst_pos, 
+				 reiser4_node_t *src, pos_t *src_pos, 
+				 merge_hint_t *hint);
 #endif

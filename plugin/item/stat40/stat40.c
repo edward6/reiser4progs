@@ -264,13 +264,13 @@ static errno_t stat40_insert(place_t *place, uint32_t pos,
 extern errno_t stat40_check_struct(place_t *place,
 				   uint8_t mode);
 
-extern errno_t stat40_copy(place_t *dst, uint32_t dst_pos, 
-			   place_t *src, uint32_t src_pos, 
-			   copy_hint_t *hint);
+extern errno_t stat40_merge(place_t *dst, uint32_t dst_pos, 
+			    place_t *src, uint32_t src_pos, 
+			    merge_hint_t *hint);
 
-extern errno_t stat40_estimate_copy(place_t *dst, uint32_t dst_pos, 
-				    place_t *src, uint32_t src_pos, 
-				    copy_hint_t *hint);
+extern errno_t stat40_estimate_merge(place_t *dst, uint32_t dst_pos, 
+				     place_t *src, uint32_t src_pos, 
+				     merge_hint_t *hint);
 
 /* Helper structrure for keeping track of stat data extention body */
 struct body_hint {
@@ -449,12 +449,12 @@ static reiser4_item_ops_t stat40_ops = {
 	
 #ifndef ENABLE_STAND_ALONE
 	.init             = stat40_init,
-	.copy             = stat40_copy,
+	.merge		  = stat40_merge,
 	.insert		  = stat40_insert,
 	.print		  = stat40_print,
 	
 	.check_struct     = stat40_check_struct,
-	.estimate_copy    = stat40_estimate_copy,
+	.estimate_merge   = stat40_estimate_merge,
 	.estimate_insert  = stat40_estimate_insert,
 
 	.estimate_shift   = NULL,

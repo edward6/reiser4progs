@@ -315,26 +315,26 @@ struct shift_hint {
 
 typedef struct shift_hint shift_hint_t;
 
-struct copy_hint {	
+struct merge_hint {	
 	uint32_t dst_count;
 	uint32_t src_count;
 	int32_t  len_delta;
 	
 	key_entity_t start, end;
 	
-	/* Fields bellow are only related to extent estimate_copy() and copy()
-	   operations. */
+	/* Fields bellow are only related to extent estimate_merge() and 
+	   merge() operations. */
 	
 	/* Offset in blocks in the start and end units of dst and src */
 	uint64_t dst_tail, src_tail;
 	uint64_t dst_head, src_head;
 
-	/* Should be dst head and tail splitted into 2 units while performing
-	   copy() operation. */
+	/* Should be dst head and tail splitted into 2 units while 
+	   performing merge() operation. */
 	bool_t head, tail;
 };
 
-typedef struct copy_hint copy_hint_t;
+typedef struct merge_hint merge_hint_t;
 
 typedef errno_t (*region_func_t) (void *, uint64_t,
 				  uint64_t, void *);
@@ -717,10 +717,10 @@ struct reiser4_item_ops {
 	/* Returns overhead */
 	uint16_t (*overhead) (place_t *);
 	
-	/* Estimate copy operation */
-	errno_t (*estimate_copy) (place_t *, uint32_t, 
-				  place_t *, uint32_t, 
-				  copy_hint_t *);
+	/* Estimate the merge operation */
+	errno_t (*estimate_merge) (place_t *, uint32_t, 
+				   place_t *, uint32_t, 
+				   merge_hint_t *);
 
 	/* Estimates insert operation */
 	errno_t (*estimate_insert) (place_t *, uint32_t,
@@ -742,8 +742,9 @@ struct reiser4_item_ops {
 
 	/* Copies some amount of units from @src_item to @dst_item with partial
 	   overwritting. */
-	errno_t (*copy) (place_t *, uint32_t, place_t *, uint32_t,
-			 copy_hint_t *);
+	errno_t (*merge) (place_t *, uint32_t, 
+			  place_t *, uint32_t,
+			  merge_hint_t *);
 
 	/* Copes @count units from @src_item to @dst_item */
 	errno_t (*rep) (place_t *, uint32_t, place_t *, uint32_t,
@@ -877,11 +878,10 @@ struct reiser4_node_ops {
 	errno_t (*shrink) (node_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
-	/* Makes copy from @src_entity to @dst_entity with partial
-	   overwriting. */
-	errno_t (*copy) (node_entity_t *, pos_t *, 
-			 node_entity_t *, pos_t *, 
-			 copy_hint_t *);
+	/* Merge 2 items--insert/overwrite @src_entity parts to @dst_entity. */
+	errno_t (*merge) (node_entity_t *, pos_t *, 
+			  node_entity_t *, pos_t *, 
+			  merge_hint_t *);
 
 	/* Copies items from @src_entity to @dst_entity */
 	errno_t (*rep) (node_entity_t *, pos_t *,

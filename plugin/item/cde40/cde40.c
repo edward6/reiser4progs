@@ -886,15 +886,15 @@ static uint64_t cde40_bytes(place_t *place) {
 	return place->len;
 }
 
-extern errno_t cde40_copy(place_t *dst, uint32_t dst_pos, 
-			  place_t *src, uint32_t src_pos, 
-			  copy_hint_t *hint);
+extern errno_t cde40_merge(place_t *dst, uint32_t dst_pos, 
+			   place_t *src, uint32_t src_pos, 
+			   merge_hint_t *hint);
 
 extern errno_t cde40_check_struct(place_t *place, uint8_t mode);
 
-extern errno_t cde40_estimate_copy(place_t *dst, uint32_t dst_pos,
-				   place_t *src, uint32_t src_pos,
-				   copy_hint_t *hint);
+extern errno_t cde40_estimate_merge(place_t *dst, uint32_t dst_pos,
+				    place_t *src, uint32_t src_pos,
+				    merge_hint_t *hint);
 #endif
 
 /* Returns maximal possible key in cde item. It is needed for lookuping needed
@@ -1012,7 +1012,7 @@ lookup_t cde40_lookup(place_t *place, key_entity_t *key,
 static reiser4_item_ops_t cde40_ops = {
 #ifndef ENABLE_STAND_ALONE	    
 	.init		   = cde40_init,
-	.copy		   = cde40_copy,
+	.merge		   = cde40_merge,
 	.rep		   = cde40_rep,
 	.expand		   = cde40_expand,
 	.shrink		   = cde40_shrink,
@@ -1027,7 +1027,7 @@ static reiser4_item_ops_t cde40_ops = {
 	
 	.set_key	   = cde40_set_key,
 	.maxreal_key       = cde40_maxreal_key,
-	.estimate_copy	   = cde40_estimate_copy,
+	.estimate_merge	   = cde40_estimate_merge,
 	.estimate_shift    = cde40_estimate_shift,
 	.estimate_insert   = cde40_estimate_insert,
 	

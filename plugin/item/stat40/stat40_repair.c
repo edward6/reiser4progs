@@ -74,9 +74,9 @@ errno_t stat40_check_struct(place_t *place, uint8_t mode) {
 	return 0;
 }
 
-errno_t stat40_copy(place_t *dst, uint32_t dst_pos, 
-		    place_t *src, uint32_t src_pos, 
-		    copy_hint_t *hint) 
+errno_t stat40_merge(place_t *dst, uint32_t dst_pos, 
+		     place_t *src, uint32_t src_pos, 
+		     merge_hint_t *hint) 
 {
 	aal_assert("vpf-979", dst  != NULL);
 	aal_assert("vpf-980", src  != NULL);
@@ -87,9 +87,9 @@ errno_t stat40_copy(place_t *dst, uint32_t dst_pos,
 	return 0;
 }
 
-errno_t stat40_estimate_copy(place_t *dst, uint32_t dst_pos, 
-			     place_t *src, uint32_t src_pos, 
-			     copy_hint_t *hint)
+errno_t stat40_estimate_merge(place_t *dst, uint32_t dst_pos, 
+			      place_t *src, uint32_t src_pos, 
+			      merge_hint_t *hint)
 {
 	key_entity_t *key;
 	

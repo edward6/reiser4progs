@@ -80,10 +80,7 @@ bool_t reiser4_place_leftmost(reiser4_place_t *place) {
 		place->pos.item == 0);
 }
 
-/*
-  Returns TRUE if passed @place points after the last unit of last item in the
-  node.
-*/
+/* Returns TRUE if @place sits after the last unit of last item in the node. */
 bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 	uint32_t items;
 	uint32_t units;
@@ -102,6 +99,26 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 	
 	return (place->pos.item == items - 1 && 
 		place->pos.unit == units);
+}
+
+/* Returns TRUE for non-existent unit of existent item. */
+bool_t reiser4_place_right(reiser4_place_t *place) {
+	uint32_t items;
+	uint32_t units;
+
+	aal_assert("vpf-1292", place != NULL);
+
+	items = reiser4_node_items(place->node);
+	
+	if (place->pos.item >= items)
+		return FALSE;
+	
+	if (reiser4_place_fetch(place))
+		return FALSE;
+	
+	units = reiser4_item_units(place);
+	
+	return place->pos.unit == units;
 }
 #endif
 

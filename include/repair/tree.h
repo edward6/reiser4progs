@@ -18,7 +18,7 @@ extern errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 					reiser4_node_t *node, 
 					uint8_t mode);
 
-extern errno_t repair_tree_copy(reiser4_tree_t *, reiser4_place_t *);
+extern errno_t repair_tree_insert(reiser4_tree_t *, reiser4_place_t *);
 extern errno_t repair_tree_attach(reiser4_tree_t *, reiser4_node_t *);
 
 extern bool_t repair_tree_legal_level(reiser4_item_group_t group,

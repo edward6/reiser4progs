@@ -102,12 +102,11 @@ errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 	
 	aal_memcpy(key, &place->key, sizeof(*key));
 
-	if (place->plug->o.item_ops->maxposs_key) {
-		return plug_call(place->plug->o.item_ops,
-				 maxposs_key, (place_t *)place, key);
-	}
-
-	return 0;
+	if (place->plug->o.item_ops->maxposs_key == NULL)
+		return 0;
+	
+	return plug_call(place->plug->o.item_ops,
+			 maxposs_key, (place_t *)place, key);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -121,12 +120,11 @@ errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 
 	aal_memcpy(key, &place->key, sizeof(*key));
 
-	if (place->plug->o.item_ops->maxreal_key) {
-		return plug_call(place->plug->o.item_ops,
-				 maxreal_key, (place_t *)place, key);
-	}
-		
-	return 0;
+	if (place->plug->o.item_ops->maxreal_key == NULL)
+		return 0;
+
+	return plug_call(place->plug->o.item_ops,
+			 maxreal_key, (place_t *)place, key);
 }
 
 errno_t reiser4_item_ukey(reiser4_place_t *place, reiser4_key_t *key) {
@@ -136,6 +134,19 @@ errno_t reiser4_item_ukey(reiser4_place_t *place, reiser4_key_t *key) {
 	aal_memcpy(&place->key, key, sizeof(*key));
 	
 	return reiser4_node_ukey(place->node, &place->pos, &place->key);
+}
+
+errno_t reiser4_item_key(reiser4_place_t *place, reiser4_key_t *key) {
+	aal_assert("vpf-1290", place != NULL);
+	aal_assert("vpf-1291", key != NULL);
+
+	aal_memcpy(&place->key, key, sizeof(*key));
+	
+	if (place->plug->o.item_ops->get_key == NULL)
+		return 0;
+	
+	return plug_call(place->plug->o.item_ops, get_key, (place_t *)place,
+			 place->pos.unit, key);
 }
 
 #endif

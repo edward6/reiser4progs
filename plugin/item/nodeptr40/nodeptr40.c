@@ -125,11 +125,11 @@ static reiser4_item_ops_t nodeptr40_ops = {
 	.check_layout	  = nodeptr40_check_layout,
 	.estimate_insert  = nodeptr40_estimate_insert,
 
-	.estimate_copy	  = NULL,
+	.estimate_merge	  = NULL,
 	.estimate_shift   = NULL,
 
 	.init		  = NULL,
-	.copy             = NULL,
+	.merge            = NULL,
 	.rep		  = NULL,
 	.expand		  = NULL,
 	.shrink           = NULL,

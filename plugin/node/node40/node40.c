@@ -867,7 +867,7 @@ static bool_t node40_splitable(place_t *place) {
 
 /* Merges border items of the src and dst nodes. The behavior depends on the
    passed hint pointer. */
-static errno_t node40_merge(node_entity_t *src_entity,
+static errno_t node40_unite(node_entity_t *src_entity,
 			    node_entity_t *dst_entity, 
 			    shift_hint_t *hint)
 {
@@ -1362,7 +1362,7 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	   usage and might also led to some unstable behavior of the code which
 	   assume that next mergeable item lies in the neighbour node, not the
 	   next to it (directory read and lookup code). */
-	if ((res = node40_merge(src_entity, dst_entity, &merge))) {
+	if ((res = node40_unite(src_entity, dst_entity, &merge))) {
 		aal_exception_error("Can't merge two nodes durring "
 				    "node shift operation.");
 		return res;
@@ -1389,7 +1389,7 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	/* Merges border items with ability to create new item in the dst node.
 	   Here our objective is to shift into neighbour node as many units as
 	   possible. */
-	if ((res = node40_merge(src_entity, dst_entity, hint))) {
+	if ((res = node40_unite(src_entity, dst_entity, hint))) {
 		aal_exception_error("Can't merge two nodes durring "
 				    "node shift operation.");
 		return res;
@@ -1425,9 +1425,9 @@ extern bool_t node40_test_flag(node_entity_t *entity,
 extern errno_t node40_check_struct(node_entity_t *entity,
 				   uint8_t mode);
 
-extern errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos, 
-			   node_entity_t *src_entity, pos_t *src_pos, 
-			   copy_hint_t *hint);
+extern errno_t node40_merge(node_entity_t *dst_entity, pos_t *dst_pos, 
+			    node_entity_t *src_entity, pos_t *src_pos, 
+			    merge_hint_t *hint);
 #endif
 
 static reiser4_node_ops_t node40_ops = {
@@ -1456,7 +1456,7 @@ static reiser4_node_ops_t node40_ops = {
 	.shift		= node40_shift,
 	.shrink		= node40_shrink,
 	.expand		= node40_expand,
-	.copy           = node40_copy,
+	.merge          = node40_merge,
 	.rep            = node40_rep,
 
 	.overhead	= node40_overhead,

@@ -70,9 +70,9 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 	return place->len % sizeof(extent40_t) ? RE_FATAL : 0;
 }
 
-errno_t extent40_copy(place_t *dst, uint32_t dst_pos, 
-		      place_t *src, uint32_t src_pos, 
-		      copy_hint_t *hint)
+errno_t extent40_merge(place_t *dst, uint32_t dst_pos, 
+		       place_t *src, uint32_t src_pos, 
+		       merge_hint_t *hint)
 {
 	extent40_t *dst_body, *src_body;
 	uint32_t dst_units, src_units;
@@ -146,9 +146,9 @@ errno_t extent40_copy(place_t *dst, uint32_t dst_pos,
 }
 
 /* FIXME-VITALY: Do not forget to handle the case with unit's @start == 0. */
-errno_t extent40_estimate_copy(place_t *dst, uint32_t dst_pos, 
-			       place_t *src, uint32_t src_pos, 
-			       copy_hint_t *hint)
+errno_t extent40_estimate_merge(place_t *dst, uint32_t dst_pos, 
+				place_t *src, uint32_t src_pos, 
+				merge_hint_t *hint)
 {
 	uint64_t dst_max, src_min, src_max, src_end;
 	uint64_t src_start, dst_start, dst_min;

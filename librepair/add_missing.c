@@ -265,8 +265,8 @@ static errno_t repair_am_items_insert(repair_am_t *am, aux_bitmap_t *bitmap,
 				goto error_close_node;
 			}
 
-			if ((res = repair_tree_copy(am->repair->fs->tree, 
-						    &place)) < 0)
+			if ((res = repair_tree_insert(am->repair->fs->tree, 
+						      &place)) < 0)
 				goto error_close_node;
 
 			if (res == 0) {

@@ -1008,8 +1008,7 @@ errno_t reiser4_tree_attach(
 
 	/* Inserting node pointer into tree */
 	if ((res = reiser4_tree_insert(tree, &place, &hint, level))) {
-		aal_exception_error("Can't insert nodeptr item to "
-				    "the tree.");
+		aal_exception_error("Can't insert nodeptr item to the tree.");
 		return res;
 	}
 
@@ -1513,9 +1512,9 @@ void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 }
 
 /* Converts from tail to extent and back from extent to tail passed @place */
-errno_t reiser4_tree_convert(reiser4_tree_t *tree,
-			     reiser4_place_t *place,
-			     reiser4_plug_t *plug)
+errno_t reiser4_tree_conv(reiser4_tree_t *tree,
+			  reiser4_place_t *place,
+			  reiser4_plug_t *plug)
 {
 	errno_t res;
 	
@@ -1552,15 +1551,13 @@ errno_t reiser4_tree_insert(
 	aal_assert("umka-1644", place != NULL);
 	aal_assert("umka-1645", hint->plug != NULL);
 
-	/* Checking if tree is fresh one, thus, it does not have the root
-	   node. If so, we allocate new node of the requested level, insert
-	   item/unit into it and then attach it into the empty tree by means of
-	   using reiser4_tree_attach() function. This function will take care
-	   about another things which should be done for keeping reiser4 tree in
-	   tact and namely alloate new root and insert one nodeptr item into
-	   it. */
+	/* Checking if tree is fresh one, thus, it does not have the root node.
+	   If so, we allocate new node of the requested level, insert item/unit
+	   into it and then attach it into the empty tree by means of using 
+	   reiser4_tree_attach() function. This function will take care about 
+	   another things which should be done for keeping reiser4 tree intact 
+	   and namely alloate new root and insert one nodeptr item into it. */
 	if (reiser4_tree_fresh(tree)) {
-
 		if (level == LEAF_LEVEL) {
 			if ((res = reiser4_tree_aroot(tree)))
 				return res;
@@ -1596,10 +1593,9 @@ errno_t reiser4_tree_insert(
 		while (level > reiser4_tree_height(tree))
 			reiser4_tree_growup(tree);
 
-		/* Getting new place item/unit will be inserted at after tree is
-		   growed up. It is needed because we want insert item onto
-		   level equal to the requested one passed by @level
-		   variable. */
+		/* Getting new place item/unit will be inserted at after tree 
+		   is growed up. It is needed because we want to insert item 
+		   into the node of the given @level. */
 		if (reiser4_tree_lookup(tree, &hint->key, level,
 					place) == FAILED)
 		{

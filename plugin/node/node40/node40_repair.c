@@ -421,9 +421,9 @@ errno_t node40_corrupt(node_entity_t *entity, uint16_t options) {
 	return 0;
 }
 
-errno_t node40_copy(node_entity_t *dst, pos_t *dst_pos, 
-		    node_entity_t *src, pos_t *src_pos, 
-		    copy_hint_t *hint) 
+errno_t node40_merge(node_entity_t *dst, pos_t *dst_pos, 
+		     node_entity_t *src, pos_t *src_pos, 
+		     merge_hint_t *hint) 
 {
 	place_t dst_place, src_place;
 	node40_t *dst_node, *src_node;
@@ -439,22 +439,22 @@ errno_t node40_copy(node_entity_t *dst, pos_t *dst_pos,
 	if (hint && hint->src_count == 0)
 		return 0;
 	
-	/* Just a part of src item being copied, gets merged with dst item. */
 	if (node40_fetch(src, src_pos, &src_place))
 		return -EINVAL;
 	
-	/* Expand the node if needed. */
+	/* If the whole @src item is to be inserted */
 	if (!hint) {
+		/* Expand the node if needed. */
 		if (node40_expand(dst, dst_pos, src_place.len, 1))
 			return -EINVAL;
-	} else if (hint->len_delta > 0) {
+
+		return node40_rep(dst, dst_pos, src, src_pos, 1);
+	}
+	
+	if (hint->len_delta > 0) {
 		if (node40_expand(dst, dst_pos, hint->len_delta, 1))
 			return -EINVAL;
 	} 
-	
-	/* If the whole @src item is to be inserted */
-	if (!hint)
-		return node40_rep(dst, dst_pos, src, src_pos, 1);
 	
 	/* Just a part of src item being copied, gets merged with dst item. */
 	if (node40_fetch(src, src_pos, &src_place))
@@ -464,10 +464,10 @@ errno_t node40_copy(node_entity_t *dst, pos_t *dst_pos,
 	if (node40_fetch(dst, dst_pos, &dst_place))
 		return -EINVAL;
 	
-	if ((res = plug_call(src_place.plug->o.item_ops, copy, &dst_place, 
+	if ((res = plug_call(src_place.plug->o.item_ops, merge, &dst_place, 
 			     dst_pos->unit, &src_place, src_pos->unit, hint)))
 	{
-		aal_exception_error("Can't copy units from node %llu to node %llu.",
+		aal_exception_error("Can't merge units from node %llu to node %llu.",
 				    src_node->block->nr, dst_node->block->nr);
 		return res;
 	}

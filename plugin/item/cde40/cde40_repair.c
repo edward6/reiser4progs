@@ -746,9 +746,9 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 	return res;
 }
 
-errno_t cde40_estimate_copy(place_t *dst, uint32_t dst_pos,
-			    place_t *src, uint32_t src_pos, 
-			    copy_hint_t *hint)
+errno_t cde40_estimate_merge(place_t *dst, uint32_t dst_pos,
+			     place_t *src, uint32_t src_pos, 
+			     merge_hint_t *hint)
 {
 	uint32_t units, next_pos, pos;
 	key_entity_t dst_key;
@@ -797,16 +797,16 @@ errno_t cde40_estimate_copy(place_t *dst, uint32_t dst_pos,
 	return 0;
 }
 
-errno_t cde40_copy(place_t *dst, uint32_t dst_pos, 
-			place_t *src, uint32_t src_pos, 
-			copy_hint_t *hint)
+errno_t cde40_merge(place_t *dst, uint32_t dst_pos, 
+		    place_t *src, uint32_t src_pos, 
+		    merge_hint_t *hint)
 {
 	aal_assert("vpf-1014", dst != NULL);
 	aal_assert("vpf-1013", src != NULL);
 	aal_assert("vpf-1012", hint != NULL);
 	aal_assert("vpf-1011", hint->dst_count == 0);
 	
-	/* Preparing root for copying units into it */
+	/* Preparing root for merging units into it */
 	cde40_expand(dst, dst_pos, hint->src_count, hint->len_delta);
 	return cde40_rep(dst, dst_pos, src, src_pos, hint->src_count);
 }
