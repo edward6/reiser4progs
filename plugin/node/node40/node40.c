@@ -649,10 +649,27 @@ uint8_t node40_get_level(object_entity_t *entity) {
 	return nh40_get_level(((node40_t *)entity));
 }
 
-/* Returns node stamp */
-static uint32_t node40_get_stamp(object_entity_t *entity) {
+/* Returns node make stamp */
+static uint32_t node40_get_make_stamp(object_entity_t *entity) {
 	aal_assert("umka-1127", entity != NULL, return -1);
 	return nh40_get_mkfs_id(((node40_t *)entity));
+}
+
+/* Returns node make stamp */
+static void node40_set_make_stamp(object_entity_t *entity, uint32_t stamp) {
+	aal_assert("vpf-644", entity != NULL, return);
+	nh40_set_mkfs_id(((node40_t *)entity), stamp);
+}
+
+/* Returns node flush stamp */
+static uint64_t node40_get_flush_stamp(object_entity_t *entity) {
+	aal_assert("vpf-645", entity != NULL, return -1);
+	return nh40_get_flush_id(((node40_t *)entity));
+}
+/* Returns node flush stamp */
+static void node40_set_flush_stamp(object_entity_t *entity, uint64_t stamp) {
+	aal_assert("vpf-643", entity != NULL, return);
+	nh40_set_flush_id(((node40_t *)entity), stamp);
 }
 
 #ifndef ENABLE_COMPACT
@@ -1503,7 +1520,8 @@ static reiser4_plugin_t node40_plugin = {
 	
 		.get_key	= node40_get_key,
 		.get_level	= node40_get_level,
-		.get_stamp	= node40_get_stamp,
+		.get_make_stamp	= node40_get_make_stamp,
+		.get_flush_stamp= node40_get_flush_stamp,
 	
 #ifndef ENABLE_COMPACT
 		.create		= node40_create,
@@ -1518,7 +1536,8 @@ static reiser4_plugin_t node40_plugin = {
 
 		.set_key	= node40_set_key,
 		.set_level	= node40_set_level,
-		.set_stamp	= node40_set_stamp,
+		.set_make_stamp	= node40_set_make_stamp,
+		.set_flush_stamp= node40_set_flush_stamp,
 	
 		.item_legal	= node40_item_legal,
 #else
