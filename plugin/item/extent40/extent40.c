@@ -55,15 +55,14 @@ static errno_t extent40_get_key(item_entity_t *item,
 				key_entity_t *key)
 {
 	uint32_t i;
+	uint64_t offset;
 	extent40_t *extent;
-	uint64_t offset, blocksize;
 	
 	aal_assert("vpf-622", item != NULL);
 	aal_assert("vpf-623", key != NULL);
 	aal_assert("vpf-625", pos < extent40_units(item));
 	
 	extent = extent40_body(item);
-	blocksize = extent40_blocksize(item);
 
 	plugin_call(item->key.plugin->key_ops, assign,
 		    key, &item->key);
@@ -71,8 +70,10 @@ static errno_t extent40_get_key(item_entity_t *item,
 	offset = plugin_call(key->plugin->key_ops,
 			     get_offset, key);
 
-	for (i = 0; i < pos; i++, extent++)
-		offset += et40_get_width(extent) * blocksize;
+	for (i = 0; i < pos; i++, extent++) {
+		offset += et40_get_width(extent) *
+			extent40_blocksize(item);
+	}
 
 	plugin_call(key->plugin->key_ops, set_offset,
 		    key, offset);

@@ -23,19 +23,19 @@ errno_t stat40_traverse(item_entity_t *item,
 	uint8_t i;
 	stat40_t *stat;
 	uint16_t extmask;
-	
 	sdext_entity_t sdext;
 
 	aal_assert("umka-1197", item != NULL);
 	aal_assert("umka-2059", ext_func != NULL);
     
 	stat = stat40_body(item);
-	extmask = st40_get_extmask(stat);
 
 	sdext.len = item->len;
 	sdext.body = item->body;
 	sdext.pos = sizeof(stat40_t);
 
+	extmask = st40_get_extmask(stat);
+	
 	/*
 	  Loop though the all possible extentions and calling passed @ext_func
 	  for each of them if corresponing extention exists.

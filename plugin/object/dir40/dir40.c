@@ -53,7 +53,9 @@ static errno_t dir40_telldir(object_entity_t *entity,
 	aal_assert("umka-1985", entity != NULL);
 	aal_assert("umka-1986", offset != NULL);
 
-	aal_memcpy(offset, &dir->offset, sizeof(*offset));
+	aal_memcpy(offset, &dir->offset,
+		   sizeof(*offset));
+	
 	return 0;
 }
 
