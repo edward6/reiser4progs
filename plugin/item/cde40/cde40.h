@@ -33,6 +33,7 @@ struct objid3 {
 
 typedef struct objid3 objid3_t;
 
+
 struct hash3 {
 	d8_t objectid[8];
 	d8_t offset[8];
@@ -130,71 +131,76 @@ extern uint32_t cde40_cut(reiser4_place_t *place, uint32_t pos,
 extern uint16_t cde40_overhead();
 
 #if defined(ENABLE_SHORT_KEYS) && defined(ENABLE_LARGE_KEYS)
+
+/* objidN_t macroses. */
+#define ob_loc(ob, pol)							\
+	((pol == 3) ?							\
+	 ((objid3_t *)(ob))->locality :					\
+	 ((objid4_t *)(ob))->locality)
+ 
 #define ob_get_locality(ob, pol)					\
-        ((pol == 3) ?							\
-	 LE64_TO_CPU(*((d64_t *)((objid3_t *)(ob))->locality)) :	\
-	 LE64_TO_CPU(*((d64_t *)((objid4_t *)(ob))->locality)))
+	LE64_TO_CPU(get_unaligned((d64_t *)ob_loc(ob, pol)))
 
 #define ob_set_locality(ob, val, pol)					\
-        ((pol == 3) ?							\
-	 (*(d64_t *)((objid3_t *)(ob))->locality) = CPU_TO_LE64(val) :	\
-	 (*(d64_t *)((objid4_t *)(ob))->locality) = CPU_TO_LE64(val))
+	put_unaligned((d64_t *)ob_loc(ob, pol), CPU_TO_LE64(val))
+
+#define ob_oid(ob, pol)							\
+	((pol == 3) ?							\
+	 ((objid3_t *)(ob))->objectid :					\
+	 ((objid4_t *)(ob))->objectid)
 
 #define ob_get_objectid(ob, pol)					\
-        ((pol == 3) ?							\
-	 LE64_TO_CPU(*((d64_t *)((objid3_t *)(ob))->objectid)) :	\
-	 LE64_TO_CPU(*((d64_t *)((objid4_t *)(ob))->objectid)))
+	LE64_TO_CPU(get_unaligned((d64_t *)ob_oid(ob, pol)))
 
 #define ob_set_objectid(ob, val, pol)					\
-        ({if (pol == 3)							\
-	 (*(d64_t *)((objid3_t *)(ob))->objectid) = CPU_TO_LE64(val);	\
-         else								\
-	 (*(d64_t *)((objid4_t *)(ob))->objectid) = CPU_TO_LE64(val);})
+	put_unaligned((d64_t *)ob_oid(ob, pol), CPU_TO_LE64(val))
+
+#define ob_ord(ob, pol) ((pol == 3) ? 0 : ((objid4_t *)(ob))->ordering)
 
 #define ob_get_ordering(ob, pol)					\
-        ((pol == 3) ? 0 :						\
-	 LE64_TO_CPU(*((d64_t *)((objid4_t *)(ob))->ordering)))
+	LE64_TO_CPU(get_unaligned((d64_t *)ob_ord(ob, pol)))
 
 #define ob_set_ordering(ob, val, pol)					\
-        ({if (pol == 3) do {} while(0); else				\
-	 (*(d64_t *)((objid4_t *)(ob))->ordering) = CPU_TO_LE64(val);})
+	({if (pol == 3) do {} while(0); else				\
+	 put_unaligned((d64_t *)ob_ord(ob, pol), CPU_TO_LE64(val));})
 
-#define ob_size(pol)							\
-        ((pol == 3) ? sizeof(objid3_t) : sizeof(objid4_t))
+#define ob_size(pol) ((pol == 3) ? sizeof(objid3_t) : sizeof(objid4_t))
+
+/* hashN_t macroses.  */
+#define ha_oid(ha, pol)							\
+	((pol == 3) ?							\
+	 ((hash3_t *)(ha))->objectid :					\
+	 ((hash4_t *)(ha))->objectid)
 
 #define ha_get_objectid(ha, pol)					\
-        ((pol == 3) ?							\
-	 LE64_TO_CPU(*((d64_t *)((hash3_t *)(ha))->objectid)) :		\
-	 LE64_TO_CPU(*((d64_t *)((hash4_t *)(ha))->objectid)))
+	LE64_TO_CPU(get_unaligned((d64_t *)ha_oid(ha, pol)))
 
 #define ha_set_objectid(ha, val, pol)					\
-        ({if (pol == 3)							\
-         (*(d64_t *)((hash3_t *)(ha))->objectid) = CPU_TO_LE64(val);	\
-	 else								\
-	 (*(d64_t *)((hash4_t *)(ha))->objectid) = CPU_TO_LE64(val);})
+	put_unaligned((d64_t *)ha_oid(ha, pol),  CPU_TO_LE64(val))
+
+#define ha_off(ha, pol)							\
+	((pol == 3) ?							\
+	 ((hash3_t *)(ha))->offset :					\
+	 ((hash4_t *)(ha))->offset)
 
 #define ha_get_offset(ha, pol)						\
-        ((pol == 3) ?							\
-         LE64_TO_CPU(*((d64_t *)((hash3_t *)(ha))->offset)) :		\
-	 LE64_TO_CPU(*((d64_t *)((hash4_t *)(ha))->offset)))
-	 
+	LE64_TO_CPU(get_unaligned((d64_t *)ha_off(ha, pol)))
+
 #define ha_set_offset(ha, val, pol)					\
-        ({if (pol == 3)							\
-        (*(d64_t *)((hash3_t *)(ha))->offset) = CPU_TO_LE64(val);	\
-        else								\
-        (*(d64_t *)((hash4_t *)(ha))->offset) = CPU_TO_LE64(val);})
+	put_unaligned((d64_t *)ha_off(ha, pol), CPU_TO_LE64(val))
+
+#define ha_ord(ha, pol) ((pol == 3) ? 0 : ((hash4_t *)(ha))->ordering)
 
 #define ha_get_ordering(ha, pol)					\
-        ((pol == 3) ? 0 :						\
-	 LE64_TO_CPU(*((d64_t *)((hash4_t *)(ha))->ordering)))
-	 
+	LE64_TO_CPU(get_unaligned((d64_t *)ha_ord(ha, pol)))
+
 #define ha_set_ordering(ha, val, pol)					\
-        ({if (pol == 3) do {} while(0); else				\
-        (*(d64_t *)((hash4_t *)(ha))->ordering) = CPU_TO_LE64(val);})
+	({if (pol == 3) do {} while(0); else				\
+	 put_unaligned((d64_t *)ha_ord(ha, pol), CPU_TO_LE64(val));})
 
-#define ha_size(pol)							\
-        ((pol == 3) ? sizeof(hash3_t) : sizeof(hash4_t))
+#define ha_size(pol) ((pol == 3) ? sizeof(hash3_t) : sizeof(hash4_t))
 
+/* entryN_t macroses */
 #define en_get_offset(en, pol)						\
         ((pol == 3) ?							\
 	 aal_get_le16(((entry3_t *)(en)), offset) :			\
@@ -214,97 +220,108 @@ extern uint16_t cde40_overhead();
 	 (void *)(&((cde403_t *)(pl)->body)->entry[pos]) :		\
 	 (void *)(&((cde404_t *)(pl)->body)->entry[pos]))
 
-#else
-#if defined(ENABLE_SHORT_KEYS)
+#elif defined(ENABLE_SHORT_KEYS)
+
+/* objidN_t macroses.  */
 #define ob_get_locality(ob, pol)					\
-	 LE64_TO_CPU(*((d64_t *)((objid3_t *)(ob))->locality))
+	LE64_TO_CPU(get_unaligned((d64_t *)((objid3_t *)(ob))->locality))
 
 #define ob_set_locality(ob, val, pol)					\
-	 (*(d64_t *)((objid3_t *)(ob))->locality) = CPU_TO_LE64(val)
+	put_unaligned((d64_t *)((objid3_t *)(ob))->locality,		\
+		      CPU_TO_LE64(val))
 
 #define ob_get_objectid(ob, pol)					\
-	 LE64_TO_CPU(*((d64_t *)((objid3_t *)(ob))->objectid))
+	LE64_TO_CPU(get_unaligned((d64_t *)((objid3_t *)(ob))->objectid))
 
 #define ob_set_objectid(ob, val, pol)					\
-	 (*(d64_t *)((objid3_t *)(ob))->objectid) = CPU_TO_LE64(val)
+	put_unaligned((d64_t *)((objid3_t *)(ob))->objectid,		\
+		      CPU_TO_LE64(val))
 
 #define ob_get_ordering(ob, pol) (0)
 #define ob_set_ordering(ob, val, pol) do {} while(0)
 
-#define ob_size(pol)							\
-        (sizeof(objid3_t))
+#define ob_size(pol) (sizeof(objid3_t))
 
+/* hashN_t macroses.  */
 #define ha_get_objectid(ha, pol)					\
-	 LE64_TO_CPU(*((d64_t *)((hash3_t *)(ha))->objectid))
+	LE64_TO_CPU(get_unaligned((d64_t *)((hash3_t *)(ha))->objectid))
 
 #define ha_set_objectid(ha, val, pol)					\
-         (*(d64_t *)((hash3_t *)(ha))->objectid) = CPU_TO_LE64(val)
+	put_unaligned((d64_t *)((hash3_t *)(ha))->objectid,		\
+		      CPU_TO_LE64(val))
 
 #define ha_get_offset(ha, pol)						\
-         LE64_TO_CPU(*((d64_t *)((hash3_t *)(ha))->offset))
-	 
+	LE64_TO_CPU(get_unaligned((d64_t *)((hash3_t *)(ha))->offset))
+
 #define ha_set_offset(ha, val, pol)					\
-        (*(d64_t *)((hash3_t *)(ha))->offset) = CPU_TO_LE64(val)
+	put_unaligned((d64_t *)((hash3_t *)(ha))->offset,		\
+		      CPU_TO_LE64(val))
 
 #define ha_get_ordering(ha, pol) (0)
 #define ha_set_ordering(ha, val, pol) do {} while (0)
 
-#define ha_size(pol)							\
-        (sizeof(hash3_t))
+#define ha_size(pol) (sizeof(hash3_t))
 
+/* entryN_t macroses */
 #define en_get_offset(en, pol)						\
 	 aal_get_le16(((entry3_t *)(en)), offset)
 
 #define en_set_offset(en, val, pol)					\
          aal_set_le16(((entry3_t *)(en)), offset, val)
 
-#define en_size(pol)							\
-        (sizeof(entry3_t))
+#define en_size(pol) (sizeof(entry3_t))
 
 #define cde_get_entry(pl, pos, pol)					\
 	 ((void *)(&((cde403_t *)pl->body)->entry[pos]))
-#else
+
+#elif defined(ENABLE_LARGE_KEYS)
+/* objidN_t macroses. */
 #define ob_get_locality(ob, pol)					\
-	 LE64_TO_CPU(*((d64_t *)((objid4_t *)(ob))->locality))
+	LE64_TO_CPU(get_unaligned((d64_t *)((objid4_t *)(ob))->locality))
 
 #define ob_set_locality(ob, val, pol)					\
-	 (*(d64_t *)((objid4_t *)(ob))->locality) = CPU_TO_LE64(val)
+	put_unaligned((d64_t *)((objid4_t *)(ob))->locality,		\
+		      CPU_TO_LE64(val))
 
 #define ob_get_objectid(ob, pol)					\
-	 LE64_TO_CPU(*((d64_t *)((objid4_t *)(ob))->objectid))
+	LE64_TO_CPU(get_unaligned((d64_t *)((objid4_t *)(ob))->objectid))
 
 #define ob_set_objectid(ob, val, pol)					\
-	 (*(d64_t *)((objid4_t *)(ob))->objectid) = CPU_TO_LE64(val)
+	put_unaligned((d64_t *)((objid4_t *)(ob))->objectid,		\
+		      CPU_TO_LE64(val))
 
 #define ob_get_ordering(ob, pol)					\
-	 LE64_TO_CPU(*((d64_t *)((objid4_t *)(ob))->ordering))
+	LE64_TO_CPU(get_unaligned((d64_t *)((objid4_t *)(ob))->ordering))
 
 #define ob_set_ordering(ob, val, pol)					\
-	 (*(d64_t *)((objid4_t *)(ob))->ordering) = CPU_TO_LE64(val)
+	put_unaligned((d64_t *)((objid4_t *)(ob))->ordering,		\
+		      CPU_TO_LE64(val))
 
-#define ob_size(pol)							\
-        (sizeof(objid4_t))
+#define ob_size(pol) (sizeof(objid4_t))
 
+/* hashN_t macroses.  */
 #define ha_get_objectid(ha, pol)					\
-	 LE64_TO_CPU(*((d64_t *)((hash4_t *)(ha))->objectid))
+	LE64_TO_CPU(get_unaligned((d64_t *)((hash4_t *)(ha))->objectid))
 
 #define ha_set_objectid(ha, val, pol)					\
-         (*(d64_t *)((hash4_t *)(ha))->objectid) = CPU_TO_LE64(val)
+	put_unaligned((d64_t *)((hash4_t *)(ha))->objectid,		\
+		      CPU_TO_LE64(val))
 
 #define ha_get_offset(ha, pol)						\
-         LE64_TO_CPU(*((d64_t *)((hash4_t *)(ha))->offset))
+	LE64_TO_CPU(get_unaligned((d64_t *)((hash4_t *)(ha))->offset))
 	 
 #define ha_set_offset(ha, val, pol)					\
-        (*(d64_t *)((hash4_t *)(ha))->offset) = CPU_TO_LE64(val)
+	put_unaligned((d64_t *)((hash4_t *)(ha))->offset,		\
+		      CPU_TO_LE64(val))
 
 #define ha_get_ordering(ha, pol)					\
-         LE64_TO_CPU(*((d64_t *)((hash4_t *)(ha))->ordering))
+	LE64_TO_CPU(get_unaligned((d64_t *)((hash4_t *)(ha))->ordering))
 
 #define ha_set_ordering(ha, val, pol)					\
-        (*(d64_t *)((hash4_t *)(ha))->ordering) = CPU_TO_LE64(val)
+	put_unaligned((d64_t *)((hash4_t *)(ha))->ordering,		\
+		      CPU_TO_LE64(val))
 
-#define ha_size(pol)							\
-        (sizeof(hash4_t))
+#define ha_size(pol) (sizeof(hash4_t))
 
 #define en_get_offset(en, pol)						\
 	 aal_get_le16(((entry4_t *)(en)), offset)
@@ -312,12 +329,10 @@ extern uint16_t cde40_overhead();
 #define en_set_offset(en, val, pol)					\
          aal_set_le16(((entry4_t *)(en)), offset, val)
 
-#define en_size(pol)							\
-        (sizeof(entry4_t))
+#define en_size(pol) (sizeof(entry4_t))
 
 #define cde_get_entry(pl, pos, pol)					\
 	 ((void *)(&((cde404_t *)pl->body)->entry[pos]))
-#endif
 #endif
 
 #define cde_get_units(pl)						\

@@ -108,14 +108,14 @@ extern uint64_t key_short_get_fobjectid(reiser4_key_t *key);
 static inline uint64_t ks_get_el(const key_short_t *key,
 				 key_short_field_t off)
 {
-	return LE64_TO_CPU(key->el[off]);
+	return LE64_TO_CPU(get_unaligned(key->el + off));
 }
 
 static inline void ks_set_el(key_short_t *key,
 			     key_short_field_t off,
 			     uint64_t value)
 {
-	key->el[off] = CPU_TO_LE64(value);
+	put_unaligned(key->el + off, CPU_TO_LE64(value));
 }
 
 static inline int ks_comp_el(void *k1, void *k2, int off) {

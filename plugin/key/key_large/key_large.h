@@ -120,14 +120,14 @@ extern uint64_t key_large_get_fobjectid(reiser4_key_t *key);
 static inline uint64_t kl_get_el(const key_large_t *key,
 				 key_large_field_t off)
 {
-	return LE64_TO_CPU(key->el[off]);
+	return LE64_TO_CPU(get_unaligned(key->el + off));
 }
 
 static inline void kl_set_el(key_large_t *key,
 			     key_large_field_t off,
 			     uint64_t value)
 {
-	key->el[off] = CPU_TO_LE64(value);
+	put_unaligned(key->el + off, CPU_TO_LE64(value));
 }
 
 static inline int kl_comp_el(void *k1, void *k2, int off) {

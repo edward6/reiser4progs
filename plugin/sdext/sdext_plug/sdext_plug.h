@@ -27,14 +27,14 @@ typedef struct sdext_plug sdext_plug_t;
 
 extern reiser4_core_t *sdext_plug_core;
 
-#define sdext_plug_get_count(ext)		aal_get_le16(ext, count)
-#define sdext_plug_set_count(ext, val)		aal_set_le16(ext, count, val)
+#define sdext_plug_get_count(ext)		aal_get_le16((ext), count)
+#define sdext_plug_set_count(ext, val)		aal_set_le16((ext), count, (val))
 
-#define sdext_plug_get_member(ext, n)		aal_get_le16(&(ext->slot[n]), member)
-#define sdext_plug_set_member(ext, n, val)	aal_set_le16(&(ext->slot[n]), member, val)
+#define sdext_plug_get_member(ext, n)		aal_get_le16(&((ext)->slot[n]), member)
+#define sdext_plug_set_member(ext, n, val)	aal_set_le16(&((ext)->slot[n]), member, (val))
 
-#define sdext_plug_get_pid(ext, n)		aal_get_le16(&(ext->slot[n]), plug)
-#define sdext_plug_set_pid(ext, n, val)		aal_set_le16(&(ext->slot[n]), plug, val)
+#define sdext_plug_get_pid(ext, n)		aal_get_le16(&((ext)->slot[n]), plug)
+#define sdext_plug_set_pid(ext, n, val)		aal_set_le16(&((ext)->slot[n]), plug, (val))
 
 extern uint32_t sdext_plug_length(stat_entity_t *stat, void *hint);
 
