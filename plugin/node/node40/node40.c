@@ -767,21 +767,17 @@ errno_t node40_item_legal(object_entity_t *entity,
 
 #endif
 
-/* Helper callback for getting next key from the node */
-static inline void *callback_get_key(void *node, uint32_t pos,
-				     void *data)
-{
-	return &node40_ih_at((node40_t *)node, pos)->key;
-}
-
 /* Helper callback for comparing two keys. Thios is used by node lookup */
-static inline int callback_comp_key(void *key1,
+static inline int callback_comp_key(void *node, uint32_t pos,
 				    void *key2, void *data)
 {
-	aal_assert("umka-566", key1 != NULL, return -1);
+	void *key1;
+	aal_assert("umka-566", node != NULL, return -1);
 	aal_assert("umka-567", key2 != NULL, return -1);
 	aal_assert("umka-656", data != NULL, return -1);
 
+	key1 = &node40_ih_at((node40_t *)node, pos)->key;
+	
 	return plugin_call(return -1, ((reiser4_plugin_t *)data)->key_ops, 
 			   compare, key1, key2);
 }
@@ -808,8 +804,8 @@ static int node40_lookup(object_entity_t *entity,
 	items = nh40_get_num_items(node);
 
 	/* Calling binsearch with local callbacks in order to find needed key */
-	if ((lookup = aux_binsearch(node, items, key->body, callback_get_key, 
-				    callback_comp_key, key->plugin, &item)) != -1)
+	if ((lookup = aux_binsearch(node, items, key->body, callback_comp_key, 
+				    key->plugin, &item)) != -1)
 		pos->item = item;
 
 	return lookup;

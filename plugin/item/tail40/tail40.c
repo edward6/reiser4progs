@@ -87,8 +87,36 @@ static errno_t tail40_max_real_key(item_entity_t *item,
 			     get_offset, key);
 	
 	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		key, offset + item->len);
+		key, offset + item->len - 1);
 	
+	return 0;
+}
+
+static uint32_t tail40_units(item_entity_t *item) {
+	return item->len;
+}
+
+static errno_t tail40_unit_key(item_entity_t *item, uint16_t pos, 
+	reiser4_key_t *key) 
+{
+	uint64_t offset;
+	uint16_t count;
+
+	aal_assert("vpf-626", item != NULL, return -1);
+	aal_assert("vpf-627", key != NULL, return -1);
+
+	count = tail40_count(item);
+
+	aal_assert("vpf-628", pos < count, return -1);
+	
+	aal_memcpy(key, &item->key, sizeof(*key));
+
+	offset = plugin_call(return -1, key->plugin->key_ops,
+			     get_offset, key->body);
+
+	plugin_call(return -1, key->plugin->key_ops, set_offset, 
+		    key->body, offset + pos);
+
 	return 0;
 }
 
@@ -140,10 +168,6 @@ static int tail40_lookup(item_entity_t *item, reiser4_key_t *key,
 
 	*pos = item->len;
 	return 0;
-}
-
-static uint32_t tail40_units(item_entity_t *item) {
-	return item->len;
 }
 
 #ifndef ENABLE_COMPACT
@@ -236,6 +260,7 @@ static reiser4_plugin_t tail40_plugin = {
 		
 		.max_poss_key  = tail40_max_poss_key,
 		.max_real_key  = tail40_max_real_key,
+		.unit_key      = tail40_unit_key,
 	}
 };
 
