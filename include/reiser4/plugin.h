@@ -378,13 +378,16 @@ enum shift_flags {
 	/* Controls if shift allowed to allocate new nodes during making
 	   space. This is needed sometimes if there is not enough of free space
 	   in existent nodes (one insert point points to and its neighbours)*/
-	SF_ALLOW_ALLOC   = 1 << 5
+	SF_ALLOW_ALLOC   = 1 << 5,
+
+	SF_ALLOW_PACK    = 1 << 6
 };
 
 typedef enum shift_flags shift_flags_t;
 
-#define SF_DEFAULT \
-(SF_ALLOW_LEFT | SF_ALLOW_RIGHT | SF_ALLOW_ALLOC | SF_ALLOW_MERGE | SF_MOVE_POINT)
+#define SF_DEFAULT					   \
+	(SF_ALLOW_LEFT | SF_ALLOW_RIGHT | SF_ALLOW_ALLOC | \
+	 SF_ALLOW_MERGE | SF_MOVE_POINT | SF_ALLOW_PACK)
 
 struct shift_hint {
 	/* Flag which shows that we need create an item before we will move

@@ -276,7 +276,11 @@ static errno_t tree_next_child_pos(reiser4_tree_t *tree,
 	aal_assert("umka-3121", place != NULL);
 
 	if (left != NULL) {
-		reiser4_place_dup(place, &left->p);
+		errno_t res;
+
+		if ((res = tree_find_child_pos(tree, parent, left, place)))
+			return res;
+		
 		place->pos.item++;
 	} else {
 		reiser4_place_assign(place, parent,
@@ -3176,8 +3180,10 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, reiser4_place_t *place,
 			place->node = NULL;
 		}
 	} else {
-		if ((res = reiser4_tree_shrink(tree, place)))
-			return res;
+		if (hint->shift_flags & SF_ALLOW_PACK) {
+			if ((res = reiser4_tree_shrink(tree, place)))
+				return res;
+		}
 	}
 
 	/* Drying tree up in the case root node exists and tree is singular,
