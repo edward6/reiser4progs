@@ -90,6 +90,9 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 		return NULL;
 	}
 	
+	if (reiser4_tree_connect(tree, place->node, node))
+		goto error_close_node;
+	
 	if (fd->progress_handler && fd->level != LEAF_LEVEL) {
 		fd->progress->state = PROGRESS_UPDATE;
 		fd->progress->u.tree.i_total = reiser4_node_items(place->node);

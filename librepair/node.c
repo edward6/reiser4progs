@@ -137,20 +137,6 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
 	return 0;
 }
 
-/* Updates the left delimiting key of the node kept in the parent.
-   
-   FIXME-VITALY: This must be recursive method. + there is smth similar in 
-   libreiser4 already.*/
-static errno_t repair_node_ld_key_update(reiser4_node_t *node, 
-					 reiser4_key_t *ld_key) 
-{
-	aal_assert("vpf-467", node != NULL);
-	aal_assert("vpf-468", ld_key != NULL);
-	aal_assert("vpf-469", ld_key->plug != NULL);
-
-	return reiser4_node_ukey(node->p.node, &node->p.pos, ld_key);
-}
-
 /* Sets to the @key the right delimiting key of the node kept in the parent. */
 errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 	reiser4_place_t place;
@@ -252,8 +238,8 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 					    "Left delimiting key is fixed." : "");
 			
 			if (mode == RM_BUILD) {
-				res = repair_node_ld_key_update(node, &d_key);
-				if (res)
+				if ((res = reiser4_tree_ukey(node->tree, &place,
+							     &d_key)))
 					return res;
 			}
 		}
