@@ -228,21 +228,19 @@ static int reiser4_node_ack(reiser4_node_t *node,
 {
 	ptr_hint_t ptr;
 	
-	if (place->pos.item < reiser4_node_items(place->node)) {
-		if (reiser4_place_realize(place))
-			return 0;
+	if (!(place->pos.item < reiser4_node_items(place->node)))
+		return 0;
+	       
+	if (reiser4_place_realize(place))
+		return 0;
 
-		if (!reiser4_item_branch(place))
-			return 0;
-	}
-	
+	if (!reiser4_item_branch(place))
+		return 0;
+
 	plugin_call(place->item.plugin->item_ops, read,
 		    &place->item, &ptr, place->pos.unit, 1);
 
-	if (ptr.start == node->blk)
-		return 1;
-
-	return 0;
+	return ptr.start == node->blk;
 }
 
 /*
