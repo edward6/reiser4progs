@@ -158,7 +158,7 @@ static object_entity_t *symlink40_create(const void *tree,
 	/* Calling balancing code in order to insert statdata item into the tree */
 	if (core->tree_ops.insert(tree, &stat_hint, LEAF_LEVEL, NULL)) {
 		aal_exception_error("Can't insert stat data item of object 0x%llx into "
-				    "the thee.", objectid);
+				    "the tree.", objectid);
 		goto error_free_symlink;
 	}
     

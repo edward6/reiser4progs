@@ -366,14 +366,14 @@ static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
 	/* Calling balancing code in order to insert statdata item into the tree */
 	if (core->tree_ops.insert(tree, &stat_hint, LEAF_LEVEL, NULL)) {
 		aal_exception_error("Can't insert stat data item of object 0x%llx "
-				    "into the thee.", objectid);
+				    "into the tree.", objectid);
 		goto error_free_body;
 	}
     
 	/* Inserting the direntry item into the tree */
 	if (core->tree_ops.insert(tree, &body_hint, LEAF_LEVEL, NULL)) {
 		aal_exception_error("Can't insert direntry item of object 0x%llx "
-				    "into the thee.", objectid);
+				    "into the tree.", objectid);
 		goto error_free_body;
 	}
 

@@ -715,102 +715,33 @@ static int node40_mergeable(item_entity_t *item1, item_entity_t *item2) {
 		item1->plugin->item_ops.mergeable(item1, item2);
 }
 
-static errno_t node40_predict(object_entity_t *entity,
-			      object_entity_t *target, 
-			      shift_hint_t *hint)
+static errno_t node40_predict_units(node40_t *src_node,
+				    node40_t *dst_node, 
+				    shift_hint_t *hint)
 {
 	int mergeable;
 	uint32_t units;
-	node40_t *src, *dst;
-	item40_header_t *cur;
-	item40_header_t *end;
-	reiser4_plugin_t *plugin;
-
-	uint32_t len, dst_space;
-	uint32_t src_items, dst_items;
-
+	uint32_t dst_items;
+	uint32_t src_items;
+	
 	reiser4_pos_t src_pos;
 	reiser4_pos_t dst_pos;
-
 	item_entity_t src_item;
 	item_entity_t dst_item;
+
+	aal_assert("umka-1624", hint != NULL, return -1);
+	aal_assert("umka-1622", src_node != NULL, return -1);
+	aal_assert("umka-1623", dst_node != NULL, return -1);
 	
-	src = (node40_t *)entity;
-	dst = (node40_t *)target;
-	
-	src_items = nh40_get_num_items(src);
-	dst_items = nh40_get_num_items(dst);
+	src_items = nh40_get_num_items(src_node) -
+		hint->items;
 
-	end = node40_ih_at(src, src_items - 1);
-	cur = (hint->flags & SF_LEFT ? node40_ih_at(src, 0) : end);
-
-	dst_space = node40_space((object_entity_t *)dst);
-
-	hint->part = 0;
-	hint->bytes = 0;
-	
-	if (cur == end)
-		len = nh40_get_free_space_start(src) -
-			ih40_get_offset(cur);
-	else {
-		len = ih40_get_offset(cur - 1) -
-			ih40_get_offset(cur);
-	}
-		
-	/* Predicting how many whole item may be shifted */
-	while (src_items > 0) {
-
-		/* Getting length of current item */
-		if (cur == end)
-			len = nh40_get_free_space_start(src) -
-				ih40_get_offset(cur);
-		else {
-			len = ih40_get_offset(cur - 1) -
-				ih40_get_offset(cur);
-		}
-
-		/*
-		  We go out if there is no enough free space to shift one more
-		  whole item.
-		*/
-		if (dst_space < (len + sizeof(item40_header_t)))
-			break;
-
-		/* Updating position and shift hint */
-		if (hint->flags & SF_LEFT) {
-			if (hint->pos.item == 0)
-				break;
-			else
-				hint->pos.item--;
-		} else {
-			if (hint->pos.item >= src_items - 1)
-				break;
-		}
-
-		src_items--;
-		dst_items++;
-		
-		hint->items++;
-		hint->bytes += len;
-		
-		cur += (hint->flags & SF_LEFT ? -1 : 1);
-		dst_space -= (len + sizeof(item40_header_t));
-
-		aal_assert("umka-1612", dst_space < node40_maxspace(entity),
-			   return -1);
-	}
-
-	hint->part = dst_space;
-				
-	aal_assert("umka-1611", hint->bytes <= node40_maxspace(entity) +
-		   sizeof(item40_header_t), return -1);
-	
-	aal_assert("umka-1614", hint->part <= node40_maxspace(entity) +
-		   sizeof(item40_header_t), return -1);
+	dst_items = nh40_get_num_items(dst_node) +
+		hint->items;
 	
 	if (src_items == 0 || hint->part == 0)
 		return 0;
-
+	
 	aal_memset(&src_item, 0, sizeof(src_item));
 	aal_memset(&dst_item, 0, sizeof(dst_item));
 	
@@ -824,7 +755,7 @@ static errno_t node40_predict(object_entity_t *entity,
 			src_pos.unit = ~0ul;
 			src_pos.item = hint->items;
 		
-			node40_item_init(&src_item, (object_entity_t *)src,
+			node40_item_init(&src_item, (object_entity_t *)src_node,
 					 &src_pos);
 
 			if (hint->items > 0) {
@@ -832,13 +763,13 @@ static errno_t node40_predict(object_entity_t *entity,
 				dst_pos.item = hint->items - 1;
 		
 				node40_item_init(&dst_item,
-					(object_entity_t *)src, &dst_pos);
+						 (object_entity_t *)src_node, &dst_pos);
 			} else {
 				dst_pos.unit = ~0ul;
 				dst_pos.item = dst_items - 1;
 		
 				node40_item_init(&dst_item,
-					(object_entity_t *)dst, &dst_pos);
+					(object_entity_t *)dst_node, &dst_pos);
 			}
 
 			units = plugin_call(return -1, src_item.plugin->item_ops,
@@ -853,7 +784,7 @@ static errno_t node40_predict(object_entity_t *entity,
 			     units <= 1) && (hint->flags & SF_MOVIP))
 			{
 				hint->items++;
-				hint->bytes += len;
+				hint->bytes += src_item.len;
 				hint->pos.item = dst_items;
 				
 				return 0;
@@ -872,9 +803,6 @@ static errno_t node40_predict(object_entity_t *entity,
 			} else {
 				hint->part -= sizeof(item40_header_t);
 
-				aal_assert("umka-1612", hint->part < node40_maxspace(entity),
-					   return -1);
-
 				if (src_item.plugin->item_ops.predict(&src_item, NULL, hint))
 					return -1;
 			}
@@ -886,9 +814,10 @@ static errno_t node40_predict(object_entity_t *entity,
 	} else {
 		/* Initializing src item */
 		src_pos.unit = ~0ul;
-		src_pos.item = nh40_get_num_items(src) - hint->items - 1;
+		src_pos.item = nh40_get_num_items(src_node) - hint->items - 1;
 		
-		node40_item_init(&src_item, (object_entity_t *)src, &src_pos);
+		node40_item_init(&src_item,
+				 (object_entity_t *)src_node, &src_pos);
 
 		units = plugin_call(return -1, src_item.plugin->item_ops,
 				    count, &src_item);
@@ -903,29 +832,32 @@ static errno_t node40_predict(object_entity_t *entity,
 			    units <= 1) && (hint->flags & SF_MOVIP))
 			{
 				hint->items++;
-				hint->bytes += len;
+				hint->bytes += src_item.len;
 				hint->pos.item = 0;
 				
 				return 0;
 			}
 
 			/* Initializing dst item */
-			if (nh40_get_num_items(src) - hint->items <
-			    nh40_get_num_items(src))
+			if (nh40_get_num_items(src_node) - hint->items <
+			    nh40_get_num_items(src_node))
 			{
 				dst_pos.unit = ~0ul;
-				dst_pos.item = nh40_get_num_items(src) - hint->items;;
+
+				dst_pos.item = nh40_get_num_items(src_node) -
+					hint->items;
 		
-				node40_item_init(&dst_item, (object_entity_t *)src,
+				node40_item_init(&dst_item,
+						 (object_entity_t *)src_node,
 						 &dst_pos);
 				
 			} else {
-				if (nh40_get_num_items(dst) > 0) {
+				if (nh40_get_num_items(dst_node) > 0) {
 					dst_pos.unit = ~0ul;
 					dst_pos.item = 0;
 		
 					node40_item_init(&dst_item,
-						(object_entity_t *)dst, &dst_pos);
+						(object_entity_t *)dst_node, &dst_pos);
 				}
 			}
 
@@ -966,183 +898,96 @@ static errno_t node40_predict(object_entity_t *entity,
 		}
 	}
 
-	aal_assert("umka-1611", hint->part <= node40_maxspace(entity) +
-		   sizeof(item40_header_t), return -1);
-	
 	return 0;
 }
 
-static errno_t node40_shift(object_entity_t *entity,
-			    object_entity_t *target, 
-			    shift_hint_t *hint)
+static errno_t node40_predict_items(node40_t *src_node,
+				    node40_t *dst_node, 
+				    shift_hint_t *hint)
+{
+	uint32_t len;
+	uint32_t items;
+	uint32_t space;
+
+	item40_header_t *cur;
+	item40_header_t *end;
+
+	aal_assert("umka-1620", hint != NULL, return -1);
+	aal_assert("umka-1621", src_node != NULL, return -1);
+	aal_assert("umka-1619", dst_node != NULL, return -1);
+	
+	/* There are no items to shift? */
+	if (!(items = nh40_get_num_items(src_node)))
+		return 0;
+
+	end = node40_ih_at(src_node, items - 1);
+	cur = (hint->flags & SF_LEFT ? node40_ih_at(src_node, 0) : end);
+
+	space = node40_space((object_entity_t *)dst_node);
+
+	hint->bytes = 0;
+	
+	/* Predicting how many whole item may be shifted */
+	while (items > 0) {
+		/* Getting length of current item */
+		if (cur == end)
+			len = nh40_get_free_space_start(src_node) -
+				ih40_get_offset(cur);
+		else {
+			len = ih40_get_offset(cur - 1) -
+				ih40_get_offset(cur);
+		}
+
+		/*
+		  We go out if there is no enough free space to shift one more
+		  whole item.
+		*/
+		if (space < (len + sizeof(item40_header_t)))
+			break;
+
+		/* Updating insert position */
+		if (hint->flags & SF_LEFT) {
+			if (hint->pos.item == 0)
+				break;
+			else
+				hint->pos.item--;
+		} else {
+			if (hint->pos.item >= items - 1)
+				break;
+		}
+
+		items--;
+		hint->items++;
+		hint->bytes += len;
+
+		space -= (len + sizeof(item40_header_t));
+		cur += (hint->flags & SF_LEFT ? -1 : 1);
+	}
+
+	hint->part = space;
+
+	return node40_predict_units(src_node, dst_node, hint);
+}
+
+static errno_t node40_shift_units(node40_t *src_node,
+				  node40_t *dst_node, 
+				  shift_hint_t *hint)
 {
 	int mergeable;
-	void *dst, *src;
-	uint32_t i, size;
+	reiser4_pos_t pos;
 	uint32_t src_items;
 	uint32_t dst_items;
-
 	item40_header_t *ih;
-	uint32_t headers_size;
-
-	node40_t *src_node;
-	node40_t *dst_node;
-
-	item_entity_t src_item;
-	item_entity_t dst_item;
 
 	reiser4_pos_t src_pos;
 	reiser4_pos_t dst_pos;
+	item_entity_t src_item;
+	item_entity_t dst_item;
+
+	aal_assert("umka-1627", hint != NULL, return -1);
+	aal_assert("umka-1625", src_node != NULL, return -1);
+	aal_assert("umka-1626", dst_node != NULL, return -1);
 	
-	aal_assert("umka-1305", entity != NULL, return -1);
-	aal_assert("umka-1306", target != NULL, return -1);
-	aal_assert("umka-1579", hint != NULL, return -1);
-
-	src_node = (node40_t *)entity;
-	dst_node = (node40_t *)target;
-
-	dst_items = nh40_get_num_items(dst_node);
-	src_items = nh40_get_num_items(src_node);
-
-	/*
-	  Estimating shift in order to determine how many items will be shifted,
-	  how much bytes, etc.
-	*/
-	if (node40_predict(entity, target, hint)) {
-
-		blk_t src_blk = aal_block_number(src_node->block);
-		blk_t dst_blk = aal_block_number(dst_node->block);
-
-		aal_exception_error("Can't predict shift for source node "
-				    "%llu, destination node %llu.", src_blk,
-				    dst_blk);
-		return -1;
-	}
-
-	aal_assert("umka-1590", hint->items <= src_items, return -1);
-	
-	/* Nothing should be shifted */
-	if (hint->items == 0 || hint->bytes == 0)
-		goto shift_units;
-	
-	headers_size = sizeof(item40_header_t) * hint->items;
-
-	if (hint->flags & SF_LEFT) {
-		uint32_t offset;
-		
-		/* Copying item headers from src node to dst */
-		src = node40_ih_at(src_node, hint->items - 1);
-		dst = node40_ih_at(dst_node, (dst_items + hint->items - 1));
-			
-		aal_memcpy(dst, src, headers_size);
-
-		ih = (item40_header_t *)dst;
-		
-		/* Copying item bodies from src node to dst */
-		src = node40_ib_at(src_node, 0);
-
-		dst = dst_node->block->data +
-			nh40_get_free_space_start(dst_node);
-
-		aal_memcpy(dst, src, hint->bytes);
-
-		offset = nh40_get_free_space_start(dst_node);
-		
-		/* Updating item headers in dst node */
-		for (i = 0; i < hint->items; i++, ih++) {
-			ih40_inc_offset(ih, (offset - sizeof(node40_header_t)));
-			aal_assert("umka-1618", ih40_get_offset(ih) < offset + hint->bytes,
-				   return -1);
-		}
-
-		if (src_items > hint->items) {
-			/* Moving src item headers to right place */
-			src = node40_ih_at(src_node, src_items - 1);
-			dst = src + headers_size;
-
-			aal_memmove(dst, src, (src_items - hint->items) *
-				    sizeof(item40_header_t));
-
-			/* Moving src item bodies to right place */
-			src = src_node->block->data + sizeof(node40_header_t) +
-				hint->bytes;
-			
-			dst = src_node->block->data + sizeof(node40_header_t);
-
-			aal_memmove(dst, src, nh40_get_free_space_start(src_node) -
-				    hint->bytes);
-
-			/* Updating item headers in src node */
-			ih = node40_ih_at(src_node, src_items - hint->items - 1);
-		
-			for (i = 0; i < src_items - hint->items; i++, ih++)
-				ih40_dec_offset(ih, hint->bytes);
-		}
-	} else {
-		uint32_t offset;
-		
-		/* Preparing space for headers in dst node */
-		if (dst_items > 0) {
-			src = node40_ih_at(dst_node, dst_items - 1);
-			dst = src - headers_size;
-
-			size = dst_items * sizeof(item40_header_t);
-			
-			aal_memmove(dst, src, size);
-
-			/* Updating item headers */
-			ih = (item40_header_t *)dst;
-			
-			for (i = 0; i < dst_items; i++, ih++)
-				ih40_inc_offset(ih, hint->bytes);
-			
-			/* Preparing space for bodies in dst node */
-			src = dst_node->block->data + sizeof(node40_header_t);
-			dst = src + hint->bytes;
-
-			size = nh40_get_free_space_start(dst_node) -
-				sizeof(node40_header_t);
-			
-			aal_memmove(dst, src, size);
-		}
-
-		/* Copying item headers from src node to dst */
-		src = node40_ih_at(src_node, src_items - 1);
-		dst = node40_ih_at(dst_node, hint->items - 1);
-
-		aal_memcpy(dst, src, headers_size);
-
-		/* Updating item headers in dst node */
-		offset = nh40_get_free_space_start(src_node) - hint->bytes;
-		ih = node40_ih_at(src_node, src_items - hint->items);
-		aal_assert("umka-1616", offset == ih40_get_offset(ih), return -1);
-		
-		ih = node40_ih_at(dst_node, 0);
-
-		for (i = 0; i < hint->items; i++, ih--)
-			ih40_dec_offset(ih, (offset - sizeof(node40_header_t)));
-
-		/* Copying item bodies from src node to dst */
-		ih = node40_ih_at(src_node, src_items - 1) +
-			(hint->items - 1);
-		
-		src = src_node->block->data + ih40_get_offset(ih);
-		dst = dst_node->block->data + sizeof(node40_header_t);
-
-		aal_memcpy(dst, src, hint->bytes);
-	}
-	
-	/* Updating destination node fields */
-	nh40_dec_free_space(dst_node, (hint->bytes + headers_size));
-	nh40_inc_num_items(dst_node, hint->items);
-	nh40_inc_free_space_start(dst_node, hint->bytes);
-	
-	/* Updating source node fields */
-	nh40_inc_free_space(src_node, (hint->bytes + headers_size));
-	nh40_dec_num_items(src_node, hint->items);
-	nh40_dec_free_space_start(src_node, hint->bytes);
-
- shift_units:
 	/*
 	  If after moving the items we still having some amount of free space in
 	  destination node, we should try to shift units from the last item to
@@ -1188,8 +1033,6 @@ static errno_t node40_shift(object_entity_t *entity,
 	
 	/* Checking if items are mergeable */
 	if (mergeable) {
-		reiser4_pos_t pos;
-
 		if (hint->flags & SF_LEFT) {
 			pos.item = dst_items - 1;
 			pos.unit = dst_item.plugin->item_ops.count(&dst_item);
@@ -1207,8 +1050,6 @@ static errno_t node40_shift(object_entity_t *entity,
 		ih = node40_ih_at(dst_node, pos.item);
 		node40_item_init(&dst_item, (object_entity_t *)dst_node, &pos);
 	} else {
-		reiser4_pos_t pos;
-
 		if (hint->flags & SF_LEFT) {
 			pos.item = dst_items;
 			pos.unit = dst_item.plugin->item_ops.count(&dst_item);
@@ -1248,6 +1089,166 @@ static errno_t node40_shift(object_entity_t *entity,
 	nh40_dec_free_space_start(src_node, hint->part);
 
 	return 0;
+}
+
+static errno_t node40_shift_items(node40_t *src_node,
+				  node40_t *dst_node, 
+				  shift_hint_t *hint)
+{
+	void *dst, *src;
+	uint32_t offset;
+	uint32_t i, size;
+	uint32_t src_items;
+	uint32_t dst_items;
+
+	item40_header_t *ih;
+	uint32_t headers_size;
+	
+	aal_assert("umka-1305", src_node != NULL, return -1);
+	aal_assert("umka-1306", dst_node != NULL, return -1);
+	aal_assert("umka-1579", hint != NULL, return -1);
+
+	dst_items = nh40_get_num_items(dst_node);
+	src_items = nh40_get_num_items(src_node);
+
+	/*
+	  Estimating shift in order to determine how many items will be shifted,
+	  how much bytes, etc.
+	*/
+	if (node40_predict_items(src_node, dst_node, hint)) {
+
+		blk_t src_blk = aal_block_number(src_node->block);
+		blk_t dst_blk = aal_block_number(dst_node->block);
+
+		aal_exception_error("Can't predict shift for source node "
+				    "%llu, destination node %llu.", src_blk,
+				    dst_blk);
+		return -1;
+	}
+
+	aal_assert("umka-1590", hint->items <= src_items, return -1);
+	
+	/* No items to be shifted. Probably w can shift units? */
+	if (hint->items == 0 || hint->bytes == 0)
+		return node40_shift_units(src_node, dst_node, hint);
+	
+	headers_size = sizeof(item40_header_t) * hint->items;
+
+	if (hint->flags & SF_LEFT) {
+		/* Copying item headers from src node to dst */
+		src = node40_ih_at(src_node, hint->items - 1);
+		dst = node40_ih_at(dst_node, (dst_items + hint->items - 1));
+			
+		aal_memcpy(dst, src, headers_size);
+
+		ih = (item40_header_t *)dst;
+		
+		/* Copying item bodies from src node to dst */
+		src = node40_ib_at(src_node, 0);
+
+		dst = dst_node->block->data +
+			nh40_get_free_space_start(dst_node);
+
+		aal_memcpy(dst, src, hint->bytes);
+
+		offset = nh40_get_free_space_start(dst_node);
+		
+		/* Updating item headers in dst node */
+		for (i = 0; i < hint->items; i++, ih++)
+			ih40_inc_offset(ih, (offset - sizeof(node40_header_t)));
+
+		if (src_items > hint->items) {
+			/* Moving src item headers to right place */
+			src = node40_ih_at(src_node, src_items - 1);
+			dst = src + headers_size;
+
+			aal_memmove(dst, src, (src_items - hint->items) *
+				    sizeof(item40_header_t));
+
+			/* Moving src item bodies to right place */
+			src = src_node->block->data + sizeof(node40_header_t) +
+				hint->bytes;
+			
+			dst = src_node->block->data + sizeof(node40_header_t);
+
+			aal_memmove(dst, src, nh40_get_free_space_start(src_node) -
+				    hint->bytes);
+
+			/* Updating item headers in src node */
+			ih = node40_ih_at(src_node, src_items - hint->items - 1);
+		
+			for (i = 0; i < src_items - hint->items; i++, ih++)
+				ih40_dec_offset(ih, hint->bytes);
+		}
+	} else {
+		/* Preparing space for headers in dst node */
+		if (dst_items > 0) {
+			src = node40_ih_at(dst_node, dst_items - 1);
+			dst = src - headers_size;
+
+			size = dst_items * sizeof(item40_header_t);
+			
+			aal_memmove(dst, src, size);
+
+			/* Updating item headers */
+			ih = (item40_header_t *)dst;
+			
+			for (i = 0; i < dst_items; i++, ih++)
+				ih40_inc_offset(ih, hint->bytes);
+			
+			/* Preparing space for bodies in dst node */
+			src = dst_node->block->data + sizeof(node40_header_t);
+			dst = src + hint->bytes;
+
+			size = nh40_get_free_space_start(dst_node) -
+				sizeof(node40_header_t);
+			
+			aal_memmove(dst, src, size);
+		}
+
+		/* Copying item headers from src node to dst */
+		src = node40_ih_at(src_node, src_items - 1);
+		dst = node40_ih_at(dst_node, hint->items - 1);
+
+		aal_memcpy(dst, src, headers_size);
+
+		/* Updating item headers in dst node */
+		ih = node40_ih_at(dst_node, 0);
+		offset = nh40_get_free_space_start(src_node) - hint->bytes;
+
+		for (i = 0; i < hint->items; i++, ih--)
+			ih40_dec_offset(ih, (offset - sizeof(node40_header_t)));
+
+		/* Copying item bodies from src node to dst */
+		ih = node40_ih_at(src_node, src_items - 1) +
+			(hint->items - 1);
+		
+		src = src_node->block->data + ih40_get_offset(ih);
+		dst = dst_node->block->data + sizeof(node40_header_t);
+
+		aal_memcpy(dst, src, hint->bytes);
+	}
+	
+	/* Updating destination node fields */
+	nh40_dec_free_space(dst_node, (hint->bytes + headers_size));
+	nh40_inc_num_items(dst_node, hint->items);
+	nh40_inc_free_space_start(dst_node, hint->bytes);
+	
+	/* Updating source node fields */
+	nh40_inc_free_space(src_node, (hint->bytes + headers_size));
+	nh40_dec_num_items(src_node, hint->items);
+	nh40_dec_free_space_start(src_node, hint->bytes);
+
+	return node40_shift_units(src_node, dst_node, hint);
+}
+
+static errno_t node40_shift(object_entity_t *entity, object_entity_t *neighb,
+			    shift_hint_t *hint)
+{
+	node40_t *src_node = (node40_t *)entity;
+	node40_t *dst_node = (node40_t *)neighb;
+	
+	return node40_shift_items(src_node, dst_node, hint);
 }
 
 #endif
