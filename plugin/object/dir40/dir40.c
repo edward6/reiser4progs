@@ -94,10 +94,9 @@ errno_t dir40_reset(object_entity_t *entity) {
 errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry) {
 	trans_hint_t hint;
 
+	aal_memset(&hint, 0, sizeof(hint));
 	hint.count = 1;
 	hint.specific = entry;
-	hint.place_func = NULL;
-	hint.region_func = NULL;
 	hint.shift_flags = SF_DEFAULT;
 
 	/* Reading entry to passed @entry */
@@ -598,9 +597,9 @@ static errno_t dir40_truncate(object_entity_t *entity, uint64_t n) {
 		if (!obj40_belong(&place, dir->body.plug, &dir->position))
 			return 0;
 
+		aal_memset(&hint, 0, sizeof(hint));
+		
 		hint.count = 1;
-		hint.place_func = NULL;
-		hint.region_func = NULL;
 		hint.shift_flags = SF_DEFAULT;
 		place.pos.unit = MAX_UINT32;
 		
@@ -774,6 +773,8 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	/* Looking for place to insert directory entry */
 	switch (dir40_search(entity, entry->name, FIND_EXACT, &temp)) {
 	case PRESENT:
+		aal_memset(&hint, 0, sizeof(hint));
+
 		hint.count = 1;
 		hint.place_func = NULL;
 		hint.region_func = NULL;
