@@ -1001,11 +1001,11 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 
 /* 
    Inserts item or unit into node. Keeps track of changes of the left delimiting
-   keys.
+   keys in all parent nodes.
 */
 errno_t reiser4_node_insert(
 	reiser4_node_t *node,	            /* node item will be inserted in */
-	rpos_t *pos,	    	    /* pos item will be inserted at */
+	rpos_t *pos,                        /* pos item will be inserted at */
 	reiser4_item_hint_t *hint)	    /* item hint to be inserted */
 {
 	errno_t ret;
@@ -1058,7 +1058,7 @@ errno_t reiser4_node_insert(
 	}
 
 	/* 
-	   Inserting new item or passting unit into one existent item pointed by
+	   Inserting new item or pasting unit into one existent item pointed by
 	   pos->item.
 	*/
 	if ((ret = plugin_call(node->entity->plugin->node_ops,
@@ -1080,9 +1080,9 @@ errno_t reiser4_node_insert(
 
 /* Inserts/overwrites some amount of items/units */
 errno_t reiser4_node_write(
-	reiser4_node_t *dst_node,               /* destination node */
+	reiser4_node_t *dst_node,        /* destination node */
 	rpos_t *dst_pos,                 /* destination pos */
-	reiser4_node_t *src_node,               /* source node */
+	reiser4_node_t *src_node,        /* source node */
 	rpos_t *src_pos,                 /* source pos */
 	uint32_t count)
 {
@@ -1091,9 +1091,9 @@ errno_t reiser4_node_write(
 
 /* Removes some amount of item/units */
 errno_t reiser4_node_cut(
-	reiser4_node_t *node,	            /* node item will be removed from */
-	rpos_t *start,		    /* start item will be removed at */
-	rpos_t *end)		    /* end item will be removed at */
+	reiser4_node_t *node,	         /* node item will be removed from */
+	rpos_t *start,		         /* start item will be removed at */
+	rpos_t *end)		         /* end item will be removed at */
 {
 	rpos_t ppos;
 	
@@ -1137,7 +1137,8 @@ errno_t reiser4_node_cut(
 */
 errno_t reiser4_node_remove(
 	reiser4_node_t *node,	            /* node item will be removed from */
-	rpos_t *pos)		    /* pos item will be removed at */
+	rpos_t *pos,                        /* pos item will be removed at */
+	uint32_t count)                     /* the number of item/units */
 {
 	int update;
 	rpos_t ppos;
@@ -1180,8 +1181,13 @@ errno_t reiser4_node_remove(
 	  Removing item or unit. We assume that we are going to remove unit if
 	  unit component is setted up.
 	*/
-	if (plugin_call(node->entity->plugin->node_ops, remove, node->entity, pos))
+	if (plugin_call(node->entity->plugin->node_ops, remove,
+			node->entity, pos, count))
+	{
+		aal_exception_error("Can't remove %lu items/units from "
+				    "node %llu.", count, node->blk);
 		return -1;
+	}
 
 	/* Updating left deleimiting key in all parent nodes */
 	if (update && node->parent) {
@@ -1196,7 +1202,7 @@ errno_t reiser4_node_remove(
 			   Removing cached node from the tree in the case it has
 			   not items anymore.
 			*/
-			if (reiser4_node_remove(node->parent, &ppos))
+			if (reiser4_node_remove(node->parent, &ppos, 1))
 				return -1;
 		}
 	}
@@ -1206,7 +1212,7 @@ errno_t reiser4_node_remove(
 	return 0;
 }
 
-/* This function traverse passed node. */
+/* This function traverse passed node */
 errno_t reiser4_node_traverse(
 	reiser4_node_t *node,		     /* node which should be traversed */
 	traverse_hint_t *hint,		     /* hint for traverse and for callback methods */

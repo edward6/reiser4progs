@@ -608,7 +608,7 @@ errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 	reiser4_coord_init(&coord, parent, &node->pos);
 	
 	/* Removing item/unit from the parent node */
-	if (reiser4_tree_remove(tree, &coord))
+	if (reiser4_tree_remove(tree, &coord, 1))
 		return -1;
 
 	reiser4_node_detach(parent, node);
@@ -1194,7 +1194,7 @@ errno_t reiser4_tree_cut(
 				  pos will point correct position in parent node.
 				*/
 				
-				if (reiser4_node_remove(neig->parent, &neig->pos))
+				if (reiser4_node_remove(neig->parent, &neig->pos, 1))
 					return -1;
 
 				reiser4_node_mkclean(neig);
@@ -1262,7 +1262,8 @@ errno_t reiser4_tree_cut(
 /* Removes item by specified key */
 errno_t reiser4_tree_remove(
 	reiser4_tree_t *tree,	  /* tree item will be removed from */
-	reiser4_coord_t *coord)	  /* coord item will be removed at */
+	reiser4_coord_t *coord,   /* coord item will be removed at */
+	uint32_t count)
 {
 	bool_t res;
 
@@ -1273,7 +1274,7 @@ errno_t reiser4_tree_remove(
 	}
 
 	/* Removing iten/unit from the node */
-	if (reiser4_node_remove(coord->node, &coord->pos))
+	if (reiser4_node_remove(coord->node, &coord->pos, count))
 		return -1;
 
 	/*

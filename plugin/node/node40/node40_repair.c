@@ -11,7 +11,7 @@
 
 #define INVALID_U16	0xffff
 
-extern errno_t node40_remove(object_entity_t *entity, rpos_t *pos);
+extern errno_t node40_remove(object_entity_t *entity, rpos_t *pos, uint32_t count);
 extern uint16_t node40_items(object_entity_t *entity);
 extern uint8_t node40_level(object_entity_t *entity);
 
@@ -56,10 +56,14 @@ static errno_t node40_region_delete(object_entity_t *entity,
 	    node40_set_offset_at(entity, i, ih40_get_offset(ih + 1) + 1);	
     }
 
+    /*
+      FIXME-UMKA->VITALY: Here can be used node40_remove with right count
+      parameter, or node40_cut.
+    */
     pos.unit = ~0ul;
     pos.item = start_pos - 1;
     for (i = start_pos - 1; i < end_pos; i++) {
-	if (node40_remove(entity, &pos)) {
+	if (node40_remove(entity, &pos, 1)) {
 	    aal_exception_bug("Node (%llu): Failed to delete the item (%d) "
 		"of a region (%d-%d).", aal_block_number(node->block), 
 		i - start_pos + 1, start_pos, end_pos);

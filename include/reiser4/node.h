@@ -37,11 +37,12 @@ extern errno_t reiser4_node_ukey(reiser4_node_t *node,
 				 reiser4_key_t *key);
 
 extern errno_t reiser4_node_insert(reiser4_node_t *node,
-				   rpos_t *pos,
+   				   rpos_t *pos,
 				   reiser4_item_hint_t *hint);
 
+
 extern errno_t reiser4_node_remove(reiser4_node_t *node,
-				   rpos_t *pos);
+				   rpos_t *pos, uint32_t count);
 
 extern errno_t reiser4_node_write(reiser4_node_t *dst_node,
 				  rpos_t *dst_pos,

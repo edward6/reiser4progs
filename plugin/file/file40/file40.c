@@ -109,7 +109,7 @@ errno_t file40_set_mode(file40_t *file, uint16_t mode) {
 	if (!item->plugin->item_ops.insert)
 		return -1;
 
-	return item->plugin->item_ops.insert(item, &hint, 0);
+	return item->plugin->item_ops.insert(item, &hint, 0, 1);
 }
 
 /* Gets size field from the stat data */
@@ -168,7 +168,7 @@ errno_t file40_set_size(file40_t *file, uint64_t size) {
 	if (!item->plugin->item_ops.insert)
 		return -1;
 
-	return item->plugin->item_ops.insert(item, &hint, 0);
+	return item->plugin->item_ops.insert(item, &hint, 0, 1);
 }
 
 /* Gets symlink from the stat data */
@@ -213,7 +213,7 @@ errno_t file40_set_symlink(file40_t *file, char *data) {
 	if (!item->plugin->item_ops.insert)
 		return -1;
 
-	if (item->plugin->item_ops.insert(item, &hint, 0)) {
+	if (item->plugin->item_ops.insert(item, &hint, 0, 1)) {
 		aal_exception_error("Can't update symlink.");
 		return -1;
 	}

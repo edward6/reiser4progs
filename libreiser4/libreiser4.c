@@ -86,13 +86,14 @@ static errno_t tree_insert(
 /* Handler for item removing requests from the all plugins */
 static errno_t tree_remove(
 	void *tree,	            /* opaque pointer to the tree */
-	reiser4_place_t *place)	    /* coord of the item to be removerd */
+	reiser4_place_t *place,	    /* coord of the item to be removerd */
+	uint32_t count)
 {
 	aal_assert("umka-848", tree != NULL, return -1);
 	aal_assert("umka-849", place != NULL, return -1);
     
 	return reiser4_tree_remove((reiser4_tree_t *)tree,
-				   (reiser4_coord_t *)place);
+				   (reiser4_coord_t *)place, count);
 }
 
 #endif
