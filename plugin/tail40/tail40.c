@@ -121,10 +121,12 @@ static int tail40_lookup(reiser4_item_t *item, reiser4_key_t *key,
 static reiser4_plugin_t tail40_plugin = {
     .item_ops = {
 		.h = {
-			.handle = NULL,
-			.id = ITEM_TAIL40_ID,
-			.group = TAIL_ITEM,
-			.type = ITEM_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = ITEM_TAIL40_ID,
+				.group = TAIL_ITEM,
+				.type = ITEM_PLUGIN_TYPE
+			},
 			.label = "tail40",
 			.desc = "Tail item for reiserfs 4.0, ver. " VERSION,
 		},
@@ -159,5 +161,5 @@ static reiser4_plugin_t *tail40_start(reiser4_core_t *c) {
     return &tail40_plugin;
 }
 
-plugin_register(tail40_start);
+plugin_register(tail40_start, NULL);
 

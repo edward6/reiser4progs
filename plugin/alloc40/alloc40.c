@@ -421,10 +421,12 @@ errno_t alloc40_valid(reiser4_entity_t *entity) {
 static reiser4_plugin_t alloc40_plugin = {
     .alloc_ops = {
 		.h = {
-			.handle = NULL,
-			.id = ALLOC_REISER40_ID,
-			.group = 0,
-			.type = ALLOC_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = ALLOC_REISER40_ID,
+				.group = 0,
+				.type = ALLOC_PLUGIN_TYPE
+			},
 			.label = "alloc40",
 			.desc = "Space allocator for reiserfs 4.0, ver. " VERSION,
 		},
@@ -456,4 +458,4 @@ static reiser4_plugin_t *alloc40_start(reiser4_core_t *c) {
     return &alloc40_plugin;
 }
 
-plugin_register(alloc40_start);
+plugin_register(alloc40_start, NULL);

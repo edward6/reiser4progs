@@ -21,10 +21,12 @@ uint64_t r5_hash_build(const unsigned char *name, uint32_t len) {
 static reiser4_plugin_t r5_hash_plugin = {
     .hash_ops = {
 		.h = {
-			.handle = NULL,
-			.id = HASH_R5_ID,
-			.group = 0,
-			.type = HASH_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = HASH_R5_ID,
+				.group = 0,
+				.type = HASH_PLUGIN_TYPE
+			},
 			.label = "r5_hash",
 			.desc = "Implementation of r5 hash for reiserfs 4.0, ver. " VERSION,
 		},
@@ -36,4 +38,4 @@ static reiser4_plugin_t *r5_hash_start(reiser4_core_t *c) {
     return &r5_hash_plugin;
 }
 
-plugin_register(r5_hash_start);
+plugin_register(r5_hash_start, NULL);

@@ -44,7 +44,6 @@ int reiser4_key_compare(
     aal_assert("umka-765", key2 != NULL, return -1);
     aal_assert("umka-906", key1->plugin != NULL, return -1);
     aal_assert("umka-906", key2->plugin != NULL, return -1);
-    aal_assert("umka-906", key1->plugin->h.id == key2->plugin->h.id, return -1);
 
     return plugin_call(return -1, key1->plugin->key_ops, 
 					   compare, key1->body, key2->body);

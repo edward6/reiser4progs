@@ -372,21 +372,42 @@ typedef struct reiser4_item_hint reiser4_item_hint_t;
 
 #define PLUGIN_MAX_LABEL	16
 #define PLUGIN_MAX_DESC		256
+#define PLUGIN_MAX_NAME		256
+
+typedef struct reiser4_core reiser4_core_t;
+
+typedef reiser4_plugin_t *(*reiser4_plugin_init_t) (reiser4_core_t *);
+typedef errno_t (*reiser4_plugin_fini_t) (reiser4_core_t *);
+typedef errno_t (*reiser4_plugin_func_t) (reiser4_plugin_t *, void *);
+
+struct plugin_handle {
+	char name[PLUGIN_MAX_NAME];
+	reiser4_plugin_init_t init;
+	reiser4_plugin_fini_t fini;
+	void *data;
+};
+
+typedef struct plugin_handle plugin_handle_t;
+
+struct plugin_sign {
+    rpid_t id;
+    rpid_t type;
+    rpid_t group;
+};
+
+typedef struct plugin_sign plugin_sign_t;
 
 /* Common plugin header */
 struct reiser4_plugin_header {
 
-    /* Plugin handle used in the case plugins are dynamic loadable libraries */
-    void *handle;
+    /*
+	  Plugin handle. It is used for initializing and finalizing particular
+	  plugin.
+	*/
+    plugin_handle_t handle;
 
-    /* Plugin identifier */
-    rpid_t id;
-
-    /* Plugin type */
-    rpid_t type;
-
-    /* Plugin group. Used for distinguish the plugins with the same type */
-    rpid_t group;
+	/* Plugin will be found by its sign */
+	plugin_sign_t sign;
 
     /* Label and description */
     const char label[PLUGIN_MAX_LABEL];
@@ -942,11 +963,14 @@ union reiser4_plugin {
     reiser4_journal_ops_t journal_ops;
     reiser4_key_ops_t key_ops;
     reiser4_sdext_ops_t sdext_ops;
+
+	/* User-specific data */
+	void *data;
 };
 
 /* 
-   The replica of coord for using in plugins. Field "joint" is void * because we 
-   should keep libreiser4 structures unknown for plugins.
+   The replica of coord for using in plugins. Field "joint" is void * because
+   we should keep libreiser4 structures unknown for plugins.
 */
 struct reiser4_place {
     /* Node entity */
@@ -1037,8 +1061,6 @@ struct reiser4_core {
     } item_ops;
 };
 
-typedef struct reiser4_core reiser4_core_t;
-
 /* Plugin functions and macros */
 #ifndef ENABLE_COMPACT
 
@@ -1060,18 +1082,20 @@ typedef struct reiser4_core reiser4_core_t;
     
 #endif
 
-typedef reiser4_plugin_t *(*reiser4_plugin_entry_t) (reiser4_core_t *);
-typedef errno_t (*reiser4_plugin_func_t) (reiser4_plugin_t *, void *);
-
 #if defined(ENABLE_COMPACT) || defined(ENABLE_MONOLITHIC)
-    
-#define plugin_register(entry)					                    \
-    static reiser4_plugin_entry_t __plugin_entry		            \
-	    __attribute__((__section__(".plugins"))) = entry
+
+#define plugin_register(init, fini)					                \
+    static reiser4_plugin_init_t __plugin_init		                \
+	    __attribute__((__section__(".plugins"))) = init;            \
+                                                                    \
+    static reiser4_plugin_fini_t __plugin_fini		                \
+	    __attribute__((__section__(".plugins"))) = fini
+
 #else
 
-#define plugin_register(entry)					                    \
-    reiser4_plugin_entry_t __plugin_entry = entry
+#define plugin_register(init, fini)					                \
+    static reiser4_plugin_init_t __plugin_init = init;              \
+    static reiser4_plugin_fini_t __plugin_fini = fini
 
 #endif
 

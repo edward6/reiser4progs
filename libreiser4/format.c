@@ -174,7 +174,7 @@ reiser4_format_t *reiser4_format_reopen(
     rpid_t pid;
     aal_assert("umka-428", format != NULL, return NULL);
 
-    pid = format->entity->plugin->h.id;
+    pid = format->entity->plugin->h.sign.id;
     
     reiser4_format_close(format);
     return reiser4_format_open(device, pid);

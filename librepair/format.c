@@ -56,7 +56,7 @@ static reiser4_plugin_t *__choose_format(reiser4_fs_t *fs,
 	    return NULL;
     } else {
 	/* Format was detected on the partition. */
-	if (repair_data(fs)->profile->format != plugin->h.id)
+	if (repair_data(fs)->profile->format != plugin->h.sign.id)
 	    aal_exception_fatal("The detected on-disk format (%s) differs from "
 		"the profile's one.\nDo not forget to specify the correct "
 		"on-disk format in the profile next time.", plugin->h.label);
@@ -89,7 +89,7 @@ errno_t repair_format_check(reiser4_fs_t *fs) {
 	    check.
 	*/
 	if (!(fs->format = reiser4_format_create(repair_data(fs)->host_device, 
-	    0, FAKE_PLUGIN, plugin->h.id))) 
+	    0, FAKE_PLUGIN, plugin->h.sign.id))) 
 	{
 	    aal_exception_fatal("Cannot create a filesystem of the format "
 		"(%s).", plugin->h.label);

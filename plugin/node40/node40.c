@@ -262,7 +262,7 @@ static errno_t node40_expand(node40_t *node,
     aal_memcpy(&ih->key, hint->key.body, sizeof(ih->key));
     
     ih40_set_offset(ih, offset);
-    ih40_set_pid(ih, hint->plugin->h.id);
+    ih40_set_pid(ih, hint->plugin->h.sign.id);
     ih40_set_len(ih, hint->len);
     
     return 0;
@@ -680,10 +680,12 @@ static int node40_shift(reiser4_entity_t *entity, reiser4_entity_t *target,
 static reiser4_plugin_t node40_plugin = {
     .node_ops = {
 		.h = {
-			.handle = NULL,
-			.id = NODE_REISER40_ID,
-			.group = 0,
-			.type = NODE_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = NODE_REISER40_ID,
+				.group = 0,
+				.type = NODE_PLUGIN_TYPE
+			},
 			.label = "node40",
 			.desc = "Node for reiserfs 4.0, ver. " VERSION,
 		},
@@ -746,5 +748,5 @@ static reiser4_plugin_t *node40_start(reiser4_core_t *c) {
     return &node40_plugin;
 }
 
-plugin_register(node40_start);
+plugin_register(node40_start, NULL);
 

@@ -140,10 +140,12 @@ static roid_t oid40_root_objectid(void) {
 static reiser4_plugin_t oid40_plugin = {
     .oid_ops = {
 		.h = {
-			.handle = NULL,
-			.id = OID_REISER40_ID,
-			.group = 0,
-			.type = OID_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = OID_REISER40_ID,
+				.group = 0,
+				.type = OID_PLUGIN_TYPE
+			},
 			.label = "oid40",
 			.desc = "Inode allocator for reiserfs 4.0, ver. " VERSION,
 		},
@@ -179,5 +181,5 @@ static reiser4_plugin_t *oid40_start(reiser4_core_t *c) {
     return &oid40_plugin;
 }
 
-plugin_register(oid40_start);
+plugin_register(oid40_start, NULL);
 

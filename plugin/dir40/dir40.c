@@ -143,7 +143,7 @@ static errno_t dir40_next(reiser4_entity_t *entity) {
     if (core->item_ops.open(&next_item, place->entity, &place->pos))
 		goto error_set_context;
     
-    if (next_item.plugin->h.id != dir->body.plugin->h.id)
+    if (next_item.plugin->h.sign.id != dir->body.plugin->h.sign.id)
         goto error_set_context;
 	
     /* Getting key of the first item in the right neightbour */
@@ -618,10 +618,12 @@ static int dir40_confirm(reiser4_item_t *item) {
 static reiser4_plugin_t dir40_plugin = {
     .file_ops = {
 		.h = {
-			.handle = NULL,
-			.id = FILE_DIRTORY40_ID,
-			.group = DIRTORY_FILE,
-			.type = FILE_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = FILE_DIRTORY40_ID,
+				.group = DIRTORY_FILE,
+				.type = FILE_PLUGIN_TYPE
+			},
 			.label = "dir40",
 			.desc = "Compound directory for reiserfs 4.0, ver. " VERSION,
 		},
@@ -652,5 +654,5 @@ static reiser4_plugin_t *dir40_start(reiser4_core_t *c) {
     return &dir40_plugin;
 }
 
-plugin_register(dir40_start);
+plugin_register(dir40_start, NULL);
 

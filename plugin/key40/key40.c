@@ -337,10 +337,12 @@ extern errno_t key40_print(reiser4_body_t *body, char *buff,
 static reiser4_plugin_t key40_plugin = {
     .key_ops = {
 		.h = {
-			.handle = NULL,
-			.id = KEY_REISER40_ID,
-			.group = 0,
-			.type = KEY_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = KEY_REISER40_ID,
+				.group = 0,
+				.type = KEY_PLUGIN_TYPE
+			},
 			.label = "key40",
 			.desc = "Key for reiserfs 4.0, ver. " VERSION,
 		},
@@ -382,5 +384,5 @@ static reiser4_plugin_t *key40_start(reiser4_core_t *c) {
     return &key40_plugin;
 }
 
-plugin_register(key40_start);
+plugin_register(key40_start, NULL);
 

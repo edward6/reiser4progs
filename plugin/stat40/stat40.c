@@ -344,10 +344,12 @@ static errno_t stat40_max_poss_key(reiser4_item_t *item,
 static reiser4_plugin_t stat40_plugin = {
     .item_ops = {
 		.h = {
-			.handle = NULL,
-			.id = ITEM_STATDATA40_ID,
-			.group = STATDATA_ITEM,
-			.type = ITEM_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = ITEM_STATDATA40_ID,
+				.group = STATDATA_ITEM,
+				.type = ITEM_PLUGIN_TYPE
+			},
 			.label = "stat40",
 			.desc = "Stat data for reiserfs 4.0, ver. " VERSION,
 		},
@@ -366,6 +368,7 @@ static reiser4_plugin_t stat40_plugin = {
 #endif
         .lookup		= NULL,
 		.shift      = NULL,
+		
 		.fetch      = NULL,
 		.update     = NULL,
 	    
@@ -384,5 +387,5 @@ static reiser4_plugin_t *stat40_start(reiser4_core_t *c) {
     return &stat40_plugin;
 }
 
-plugin_register(stat40_start);
+plugin_register(stat40_start, NULL);
 

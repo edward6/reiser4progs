@@ -71,10 +71,12 @@ static errno_t sdext_unix_print(reiser4_body_t *body,
 static reiser4_plugin_t sdext_unix_plugin = {
     .sdext_ops = {
 		.h = {
-			.handle = NULL,
-			.id = SDEXT_UNIX_ID,
-			.group = 0,
-			.type = SDEXT_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = SDEXT_UNIX_ID,
+				.group = 0,
+				.type = SDEXT_PLUGIN_TYPE
+			},
 			.label = "sdext_unix",
 			.desc = "Unix stat data extention for reiserfs 4.0, ver. " VERSION,
 		},
@@ -90,5 +92,5 @@ static reiser4_plugin_t *sdext_unix_start(reiser4_core_t *c) {
     return &sdext_unix_plugin;
 }
 
-plugin_register(sdext_unix_start);
+plugin_register(sdext_unix_start, NULL);
 

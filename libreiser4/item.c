@@ -134,48 +134,48 @@ int reiser4_item_permissn(reiser4_item_t *item) {
     aal_assert("umka-1100", item != NULL, return 0);
     aal_assert("umka-1101", item->plugin != NULL, return 0);
 
-    return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.group == PERMISSN_ITEM;
+    return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
+		item->plugin->h.sign.group == PERMISSN_ITEM;
 }
 
 int reiser4_item_tail(reiser4_item_t *item) {
     aal_assert("umka-1098", item != NULL, return 0);
     aal_assert("umka-1099", item->plugin != NULL, return 0);
 
-    return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.group == TAIL_ITEM;
+    return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
+		item->plugin->h.sign.group == TAIL_ITEM;
 }
 
 int reiser4_item_extent(reiser4_item_t *item) {
     aal_assert("vpf-238", item != NULL, return 0);
     aal_assert("vpf-239", item->plugin != NULL, return 0);
 
-    return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.group == EXTENT_ITEM;
+    return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
+		item->plugin->h.sign.group == EXTENT_ITEM;
 }
 
 int reiser4_item_direntry(reiser4_item_t *item) {
     aal_assert("umka-1096", item != NULL, return 0);
     aal_assert("umka-1097", item->plugin != NULL, return 0);
 
-    return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.group == DIRENTRY_ITEM;
+    return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
+		item->plugin->h.sign.group == DIRENTRY_ITEM;
 }
 
 int reiser4_item_statdata(reiser4_item_t *item) {
     aal_assert("umka-1094", item != NULL, return 0);
     aal_assert("umka-1095", item->plugin != NULL, return 0);
 
-    return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.group == STATDATA_ITEM;
+    return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
+		item->plugin->h.sign.group == STATDATA_ITEM;
 }
 
 int reiser4_item_nodeptr(reiser4_item_t *item) {
     aal_assert("vpf-042", item != NULL, return 0);
     aal_assert("umka-1072", item->plugin != NULL, return 0);
 
-    return item->plugin->h.type == ITEM_PLUGIN_TYPE &&
-		item->plugin->h.group == NODEPTR_ITEM;
+    return item->plugin->h.sign.type == ITEM_PLUGIN_TYPE &&
+		item->plugin->h.sign.group == NODEPTR_ITEM;
 }
 
 uint32_t reiser4_item_len(reiser4_item_t *item) {

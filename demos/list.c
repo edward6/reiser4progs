@@ -1,6 +1,6 @@
 /*
-    list.c -- small list example.
-    Copyright (C) 1996-2002 Hans Reiser.
+  list.c -- small list example.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #include <aal/aal.h>

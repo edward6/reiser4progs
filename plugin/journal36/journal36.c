@@ -43,10 +43,12 @@ static errno_t journal36_replay(reiser4_entity_t *entity) {
 static reiser4_plugin_t journal36_plugin = {
     .journal_ops = {
 		.h = {
-			.handle = NULL,
-			.id = JOURNAL_REISER36_ID,
-			.group = 0,
-			.type = JOURNAL_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = JOURNAL_REISER36_ID,
+				.group = 0,
+				.type = JOURNAL_PLUGIN_TYPE
+			},
 			.label = "journal36",
 			.desc = "Default journal for reiserfs 3.6.x, ver. " VERSION,
 		},
@@ -65,5 +67,5 @@ static reiser4_plugin_t *journal36_start(reiser4_core_t *c) {
     return &journal36_plugin;
 }
 
-plugin_register(journal36_start);
+plugin_register(journal36_start, NULL);
 

@@ -365,7 +365,7 @@ errno_t progs_profile_override(reiser4_profile_t *profile,
 		return -1;
     }
     
-    *field = plugin->h.id;
+    *field = plugin->h.sign.id;
  
     return 0;
 }

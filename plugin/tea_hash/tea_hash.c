@@ -141,10 +141,12 @@ uint64_t tea_hash_build(const unsigned char *name, uint32_t len) {
 static reiser4_plugin_t tea_hash_plugin = {
     .hash_ops = {
 		.h = {
-			.handle = NULL,
-			.id = HASH_TEA_ID,
-			.group = 0,
-			.type = HASH_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = HASH_TEA_ID,
+				.group = 0,
+				.type = HASH_PLUGIN_TYPE
+			},
 			.label = "tea_hash",
 			.desc = "Implementation of tea hash for reiserfs 4.0, ver. " VERSION,
 		},
@@ -156,5 +158,5 @@ static reiser4_plugin_t *tea_hash_start(reiser4_core_t *c) {
     return &tea_hash_plugin;
 }
 
-plugin_register(tea_hash_start);
+plugin_register(tea_hash_start, NULL);
 

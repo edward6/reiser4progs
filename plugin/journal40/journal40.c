@@ -384,10 +384,12 @@ static void journal40_close(reiser4_entity_t *entity) {
 static reiser4_plugin_t journal40_plugin = {
     .journal_ops = {
 		.h = {
-			.handle = NULL,
-			.id = JOURNAL_REISER40_ID,
-			.group = 0,
-			.type = JOURNAL_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = JOURNAL_REISER40_ID,
+				.group = 0,
+				.type = JOURNAL_PLUGIN_TYPE
+			},
 			.label = "journal40",
 			.desc = "Default journal for reiserfs 4.0, ver. " VERSION,
 		},
@@ -412,5 +414,5 @@ static reiser4_plugin_t *journal40_start(reiser4_core_t *c) {
     return &journal40_plugin;
 }
 
-plugin_register(journal40_start);
+plugin_register(journal40_start, NULL);
 

@@ -435,10 +435,12 @@ static int direntry40_lookup(reiser4_item_t *item,
 static reiser4_plugin_t direntry40_plugin = {
     .item_ops = {
 		.h = {
-			.handle = NULL,
-			.id = ITEM_CDE40_ID,
-			.group = DIRENTRY_ITEM,
-			.type = ITEM_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = ITEM_CDE40_ID,
+				.group = DIRENTRY_ITEM,
+				.type = ITEM_PLUGIN_TYPE
+			},
 			.label = "direntry40",
 			.desc = "Compound direntry for reiserfs 4.0, ver. " VERSION,
 		},
@@ -475,5 +477,5 @@ static reiser4_plugin_t *direntry40_start(reiser4_core_t *c) {
     return &direntry40_plugin;
 }
 
-plugin_register(direntry40_start);
+plugin_register(direntry40_start, NULL);
 

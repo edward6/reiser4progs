@@ -266,10 +266,12 @@ static void format36_set_free(reiser4_entity_t *entity,
 static reiser4_plugin_t format36_plugin = {
     .format_ops = {
 		.h = {
-			.handle = NULL,
-			.id = FORMAT_REISER40_ID,
-			.group = 0,
-			.type = FORMAT_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = FORMAT_REISER40_ID,
+				.group = 0,
+				.type = FORMAT_PLUGIN_TYPE
+			},
 			.label = "format36",
 			.desc = "Disk-format for reiserfs 3.6.x, ver. " VERSION,
 		},
@@ -325,4 +327,4 @@ static reiser4_plugin_t *format36_start(reiser4_core_t *c) {
     return &format36_plugin;
 }
 
-plugin_register(format36_start);
+plugin_register(format36_start, NULL);

@@ -27,9 +27,16 @@ extern reiser4_plugin_t *libreiser4_factory_nfind(rpid_t type,
 extern reiser4_plugin_t *libreiser4_factory_cfind(reiser4_plugin_func_t func,
     void *data);
 
-extern reiser4_plugin_t *libreiser4_plugin_fload(const char *name);
-extern reiser4_plugin_t *libreiser4_plugin_eload(reiser4_plugin_entry_t entry);
-extern void libreiser4_plugin_uload(reiser4_plugin_t *plugin);
+extern reiser4_plugin_t *libreiser4_plugin_init(plugin_handle_t *handle);
+errno_t libreiser4_plugin_fini(plugin_handle_t *handle);
+
+#if !defined(ENABLE_COMPACT) && !defined(ENABLE_MONOLITHIC)
+errno_t libreiser4_plugin_file_load(const char *name, plugin_handle_t *handle);
+void libreiser4_plugin_file_uload(plugin_handle_t *handle);
+#else
+extern errno_t libreiser4_plugin_entry_load(unsigned long *entry, plugin_handle_t *handle);
+extern void libreiser4_plugin_entry_uload(plugin_handle_t *handle);
+#endif
 
 #endif
 

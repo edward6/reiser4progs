@@ -131,10 +131,12 @@ static errno_t nodeptr40_update(reiser4_item_t *item, uint32_t pos,
 static reiser4_plugin_t nodeptr40_plugin = {
     .item_ops = {
 		.h = {
-    	    .handle = NULL,
-			.id = ITEM_NODEPTR40_ID,
-			.group = NODEPTR_ITEM,
-			.type = ITEM_PLUGIN_TYPE,
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = ITEM_NODEPTR40_ID,
+				.group = NODEPTR_ITEM,
+				.type = ITEM_PLUGIN_TYPE,
+			},
 			.label = "nodeptr40",
 			.desc = "Internal item for reiserfs 4.0, ver. " VERSION,
 		},
@@ -170,4 +172,4 @@ static reiser4_plugin_t *nodeptr40_start(reiser4_core_t *c) {
     return &nodeptr40_plugin;
 }
 
-plugin_register(nodeptr40_start);
+plugin_register(nodeptr40_start, NULL);

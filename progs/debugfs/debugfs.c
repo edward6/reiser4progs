@@ -118,7 +118,8 @@ static errno_t debugfs_print_joint(
 			reiser4_key_print(&key, buff, sizeof(buff));
 			printf("KEY: %s, ", buff);
 
-			printf("PLUGIN: 0x%x (%s)\n", item.plugin->h.id, item.plugin->h.label);
+			printf("PLUGIN: 0x%x (%s)\n", item.plugin->h.sign.id,
+				   item.plugin->h.label);
 	   
 			aal_memset(buff, 0, sizeof(buff));
 
@@ -163,7 +164,8 @@ static errno_t debugfs_print_joint(
 			reiser4_key_print(&key, buff, sizeof(buff));
 			printf("KEY: %s, ", buff);
 	    
-			printf("PLUGIN: 0x%x (%s)\n", item.plugin->h.id, item.plugin->h.label);
+			printf("PLUGIN: 0x%x (%s)\n", item.plugin->h.sign.id,
+				   item.plugin->h.label);
 		}
     }
     

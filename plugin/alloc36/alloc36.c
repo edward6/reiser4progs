@@ -1,6 +1,6 @@
 /*
-    alloc36.c -- Space allocator plugin for reiser3.6.x.
-    Copyright (C) 1996-2002 Hans Reiser.
+  alloc36.c -- Space allocator plugin for reiser3.6.x.
+  Copyright (C) 1996-2002 Hans Reiser.
 */
 
 #ifdef HAVE_CONFIG_H
@@ -14,42 +14,42 @@ extern reiser4_plugin_t alloc36_plugin;
 static reiser4_core_t *core = NULL;
 
 static reiser4_entity_t *alloc36_open(reiser4_entity_t *format, 
-    count_t len) 
+									  count_t len) 
 {
     reiser4_alloc36_t *alloc;
 
     if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
-	return NULL;
+		return NULL;
 	
     alloc->format = format;
     alloc->plugin = &alloc36_plugin;
 
     return (reiser4_entity_t *)alloc;
 
-error_free_alloc:
+  error_free_alloc:
     aal_free(alloc);
-error:
+  error:
     return NULL;
 }
 
 #ifndef ENABLE_COMPACT
 
 static reiser4_entity_t *alloc36_create(reiser4_entity_t *format, 
-    count_t len) 
+										count_t len) 
 {
     reiser4_alloc36_t *alloc;
 
     if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
-	return NULL;
+		return NULL;
 
     alloc->format = format;
     alloc->plugin = &alloc36_plugin;
     
     return (reiser4_entity_t *)alloc;
 
-error_free_alloc:
+  error_free_alloc:
     aal_free(alloc);
-error:
+  error:
     return NULL;
 }
 
@@ -67,35 +67,37 @@ static void alloc36_close(reiser4_entity_t *entity) {
 
 static reiser4_plugin_t alloc36_plugin = {
     .alloc_ops = {
-	.h = {
-	    .handle = NULL,
-	    .id = ALLOC_REISER36_ID,
-	    .group = 0,
-	    .type = ALLOC_PLUGIN_TYPE,
-	    .label = "alloc36",
-	    .desc = "Space allocator for reiserfs 3.6.x, ver. " VERSION,
-	},
+		.h = {
+			.handle = { "", NULL, NULL, NULL },
+			.sign   = {
+				.id = ALLOC_REISER36_ID,
+				.group = 0,
+				.type = ALLOC_PLUGIN_TYPE
+			},
+			.label = "alloc36",
+			.desc = "Space allocator for reiserfs 3.6.x, ver. " VERSION,
+		},
 
 #ifndef ENABLE_COMPACT
-	.create	    = alloc36_create,
-	.sync	    = alloc36_sync,
+		.create	    = alloc36_create,
+		.sync	    = alloc36_sync,
 #else
-	.create	    = NULL,
-	.sync	    = NULL,
+		.create	    = NULL,
+		.sync	    = NULL,
 #endif
-	.close	    = alloc36_close,
-	.open	    = alloc36_open,
+		.close	    = alloc36_close,
+		.open	    = alloc36_open,
 
-	.mark	    = NULL,
-	.test	    = NULL,
+		.mark	    = NULL,
+		.test	    = NULL,
 	
-	.allocate   = NULL,
-	.release    = NULL,
+		.allocate   = NULL,
+		.release    = NULL,
 	
-	.free	    = NULL,
-	.used	    = NULL,
+		.free	    = NULL,
+		.used	    = NULL,
 
-	.valid	    = NULL
+		.valid	    = NULL
     }
 };
 
@@ -104,5 +106,4 @@ static reiser4_plugin_t *alloc36_start(reiser4_core_t *c) {
     return &alloc36_plugin;
 }
 
-plugin_register(alloc36_start);
-
+plugin_register(alloc36_start, NULL);
