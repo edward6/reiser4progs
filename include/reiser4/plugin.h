@@ -725,15 +725,12 @@ typedef struct trans_hint trans_hint_t;
 
 /* This structure contains related to tail conversion. */
 struct conv_hint {
-	/* Chuck size to be used for tail convertion. */
-	uint32_t chunk;
-	
 	/* New bytes value */
 	uint64_t bytes;
 
 	/* Bytes to be converted. */
 	uint64_t count;
-
+	
 	/* File will be converted starting from this key. */
 	reiser4_key_t offset;
 	

@@ -175,7 +175,9 @@ static errno_t extent40_remove_units(reiser4_place_t *place, trans_hint_t *hint)
 static int64_t extent40_trunc_units(reiser4_place_t *place,
 				    trans_hint_t *hint)
 {
-	uint32_t size;
+	int32_t size;
+	uint32_t epos;
+	uint32_t skip;
 	uint64_t count;
 	uint64_t esize;
 	uint64_t offset;
@@ -195,41 +197,65 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 	if (place->pos.unit == MAX_UINT32)
 		place->pos.unit = 0;
 
-	/* Get the amount of bytes from the current unit through the end of 
-	   the item. */
-	esize = extent40_size(place) - 
-		extent40_offset(place, place->pos.unit);
-
-	if ((count = hint->count) > esize)
-		count = esize;
-	
-	extent = extent40_body(place) +
-		place->pos.unit;
-
 	blksize = extent40_blksize(place);
+	extent = extent40_body(place) + place->pos.unit;
+	offset = plug_call(hint->offset.plug->o.key_ops, 
+			   get_offset, &hint->offset);
+
+	/* Get the amount of bytes that cannot be cut at the start. */
+	skip = (blksize - offset % blksize);
+	if (skip == blksize)
+		skip = 0;
+
+	/* Set the start key offset to the block border. */
+	offset += skip;
+	key = hint->offset;
+	plug_call(key.plug->o.key_ops, set_offset, &key, offset);
+
+	/* Get the amount of bytes from @offset through the end of the item. */
+	offset -= plug_call(hint->offset.plug->o.key_ops, 
+			   get_offset, &place->key);
+	esize = extent40_size(place) - offset;
+
+	aal_assert("vpf-1759", offset % blksize == 0);
+	
+	/* Get number of blocks to be skipped within the unit. */
+	epos = (offset - extent40_offset(place, place->pos.unit)) / blksize;
+	
+	if (hint->count < skip)
+		return hint->count;
+	
+	if ((count = hint->count - skip) > esize)
+		count = esize;
 
 	/* Loop though the units until @count of bytes are truncated. We do not
 	   increase @place->po.unit, because it will be the same for all ticks
 	   of the loop, as units will be removed fully or partially and this
 	   means, that @count is over. */
 	for (size = count; size > 0; ) {
-		uint32_t i;
+		uint32_t remove;
 		uint32_t start;
 		uint32_t width;
-		uint32_t remove;
+		uint32_t eskip;
+		uint32_t i;
 
 		width = et40_get_width(extent);
+		eskip = size == (int64_t)count ? epos : 0;
 
+		aal_assert("vpf-1760", eskip < width);
+		
 		/* Calculating what is to be cut out. */
-		if ((remove = size / blksize) > width) {
-			remove = width;
-		} else if (remove == 0) {
+		if ((remove = size / blksize) > width - eskip)
+			remove = width - eskip;
+		
+		/* No one block needs to be removed anymore. */
+		if (remove == 0)
 			break;
-		}
-			
-		if (extent40_fetch_key(place, &key))
-			return -EIO;
-	
+		
+		aal_assert("vpf-1761", eskip == 0 || remove == width - eskip);
+		aal_assert("vpf-1762", place->pos.unit == 0 || 
+			   remove == width - eskip);
+		
 		/* Removing unit data from the cache */
 		for (i = 0; i < remove; i++) {
 			aal_hash_table_remove(hint->blocks, &key);
@@ -247,8 +273,8 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 		if (start != EXTENT_HOLE_UNIT && start != EXTENT_UNALLOC_UNIT) {
 			errno_t res;
 			
-			if ((res = hint->region_func(start, remove, 
-						     hint->data)))
+			if ((res = hint->region_func(start + eskip, 
+						     remove, hint->data)))
 			{
 				return res;
 			}
@@ -258,7 +284,10 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 			hint->bytes += remove * blksize;
 		
 		/* Check if we remove whole unit. */
-		if (remove < width) {
+		if (eskip) {
+			et40_dec_width(extent, remove);
+			hint->bytes += remove * blksize;
+		} else if (remove < width) {
 			if (start != EXTENT_HOLE_UNIT &&
 			    start != EXTENT_UNALLOC_UNIT)
 			{
@@ -288,17 +317,15 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 	}
 
 	/* Updating key if it makes sense. */
-	count = count / blksize * blksize;
-	
-	if (place->pos.unit == 0 && count) {
+	if (place->pos.unit == 0 && epos == 0 && count) {
 		offset = plug_call(place->key.plug->o.key_ops,
 				   get_offset, &place->key);
 		
 		plug_call(place->key.plug->o.key_ops, set_offset,
-			  &place->key, offset + count);
+			  &place->key, offset + count / blksize * blksize);
 	}
 	
-	return count;
+	return count + skip;
 }
 
 /* Builds maximal real key in use for specified @place */

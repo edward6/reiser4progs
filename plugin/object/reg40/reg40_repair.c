@@ -285,7 +285,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 	hint->count = maxreal + 1 - 
 		plug_call(reg->body.key.plug->o.key_ops,
 			  get_offset, &hint->offset);
-
+	
 	/* Convertion is postponed; do not bother with it for not RM_BUILD. */
 	return 1;
 }
@@ -450,10 +450,8 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 				  mode == RM_BUILD ? " Converted." : "");
 
 			if (mode == RM_BUILD) {
-				result = reg40_core->flow_ops.convert(info->tree,
-								      &conv);
-
-				if (result) return result;
+				if ((result = obj40_convert(&reg->obj, &conv)))
+					return result;
 
 				/* Evth was converted, update bytes. */
 				hint.bytes += conv.bytes;

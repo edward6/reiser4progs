@@ -101,7 +101,7 @@ int main() {
     	printf("\nAn old version of libaal (%s) was found.\n",
 		version);
 
-    	printf("You need a version of libaal newer than %d.%d.%d.\n", 
+    	printf("You need a libaal of the version %d.%d.%d or newer.\n", 
 		$libaal_config_major_version, $libaal_config_minor_version, 
 		$libaal_config_micro_version);
 

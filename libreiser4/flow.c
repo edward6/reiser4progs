@@ -331,6 +331,7 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 	errno_t res;
 	int64_t conv;
 	uint64_t size;
+	int64_t insert;
 	uint32_t blksize;
 	trans_hint_t trans;
 	
@@ -341,29 +342,22 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 	blksize = reiser4_tree_get_blksize(tree);
 	reiser4_key_assign(&trans.offset, &hint->offset);
 
-	/* Check if convertion chunk is zero. If so -- use filesystem block
-	   size. */
-	if (hint->chunk == 0)
-		hint->chunk = blksize;
-
+	insert = hint->count;
+		
 	/* Check if number of bytes to be converted is not multiple of block
-	   size and this is tail2extent conversion. If so, have to align
-	   @hint->count byblock size into highest side. */
-	if (hint->plug->id.group == EXTENT_ITEM && 
-	    hint->count != MAX_UINT64 && (hint->count & (blksize - 1)) != 0)
-	{
+	   size. If so, have to round @hint->count up to blksize. */
+	if (hint->count != MAX_UINT64 && (hint->count & (blksize - 1)) != 0) {
 		hint->count += blksize -
 			(hint->count & (blksize - 1));
 	}
 	
 	/* Loop until @size bytes is converted. */
 	for (size = hint->count, hint->bytes = 0;
-	     size > 0; size -= conv)
+	     size > 0; size -= conv, insert -= conv)
 	{
 		/* Each convertion tick may be divided onto tree stages:
 
-		   (1) Read convert chunk (@hint->chunk bytes long now) to
-		   @trans hint.
+		   (1) Read blksize bytes @trans hint.
 
 		   (2) Truncate data in tree we have just read described by
 		   @trans hint.
@@ -374,10 +368,7 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 		*/
 		
 		/* Preparing buffer to read data to it. */
-		trans.count = hint->chunk;
-
-		if (trans.count > size)
-			trans.count = size;
+		trans.count = blksize > size ? size : blksize;
 
 		if (!(buff = aal_calloc(trans.count, 0)))
 			return -ENOMEM;
@@ -410,16 +401,17 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 			goto error_free_buff;
 		}
 
-		trans.count = conv;
-		trans.plug = hint->plug;
-		trans.shift_flags = SF_DEFAULT;
-		trans.place_func = hint->place_func;
-		
-		/* Third stage -- writing data back to tree with new item plugin
-		   used.*/
-		if ((conv = reiser4_flow_write(tree, &trans)) < 0) {
-			res = conv;
-			goto error_free_buff;
+		if (insert > 0) {
+			/* Insert only allowed amount of bytes. */
+			trans.count = conv > insert ? insert : conv;
+			trans.plug = hint->plug;
+			trans.shift_flags = SF_DEFAULT;
+			trans.place_func = hint->place_func;
+
+			/* Third stage -- writing data back to tree with 
+			   new item plugin used.*/
+			if ((res = reiser4_flow_write(tree, &trans)) < 0)
+				goto error_free_buff;
 		}
 
 		hint->bytes += trans.bytes;

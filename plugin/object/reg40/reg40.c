@@ -289,7 +289,7 @@ static errno_t reg40_convert(object_entity_t *entity,
 	/* Prepare convert hint. */
 	hint.plug = plug;
 
-	hint.count = MAX_UINT64;
+	hint.count = reg40_size(entity);
 	hint.place_func = NULL;
 
 	/* Converting file data. */
@@ -497,12 +497,13 @@ static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
 		bytes += obj40_get_bytes(&reg->obj);
 		return obj40_touch(&reg->obj, n, bytes);
 	} else {
+		/*
 		if (reg->body_plug->id.group == EXTENT_ITEM) {
 			uint32_t blksize;
 			
 			blksize = STAT_PLACE(&reg->obj)->node->block->size;
 			size = (n + blksize - 1) / blksize * blksize;
-		} else
+		} else */
 			size = n;
 			
 		/* Cutting items/units */
