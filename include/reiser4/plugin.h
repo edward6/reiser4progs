@@ -14,13 +14,13 @@
 
 #include <aal/aal.h>
 
-#define TMAX_LEVEL              5
 #define LEAF_LEVEL	        1
 #define TWIG_LEVEL	        (LEAF_LEVEL + 1)
 
 #define MASTER_MAGIC	        ("R4Sb")
 #define MASTER_OFFSET	        (65536)
-#define BLOCKSIZE               (4096)
+
+#define REISER4_BLKSIZE         (4096)
 
 /* 
   Defining the types for disk structures. All types like f32_t are fake ones
@@ -32,16 +32,16 @@ typedef uint32_t f32_t; typedef f32_t d32_t __attribute__((aligned(4)));
 typedef uint64_t f64_t; typedef f64_t d64_t __attribute__((aligned(8)));
 
 /* Basic reiser4 types used in library and plugins */
-typedef void rbody_t;
-typedef uint64_t roid_t;
-typedef uint16_t rpid_t;
+typedef void body_t;
+typedef uint16_t rid_t;
+typedef uint64_t oid_t;
 
-struct rpos {
+struct pos {
 	uint32_t item;
 	uint32_t unit;
 };
 
-typedef struct rpos rpos_t;
+typedef struct pos pos_t;
 
 enum lookup {
 	LP_PRESENT              = 1,
@@ -224,10 +224,10 @@ typedef struct item_context item_context_t;
 struct item_entity {
 	reiser4_plugin_t *plugin;
 
-	rpos_t pos;
+	pos_t pos;
 
 	uint32_t len;
-	rbody_t *body;
+	body_t *body;
 	
 	key_entity_t key;
 	
@@ -302,7 +302,7 @@ struct shift_hint {
 	uint32_t result;
 
 	/* Insert point. It will be modified durring shfiting */
-	rpos_t pos;
+	pos_t pos;
 };
 
 typedef struct shift_hint shift_hint_t;
@@ -393,7 +393,7 @@ typedef struct reiser4_sdext_lt_hint reiser4_sdext_lt_hint_t;
 
 struct sdext_entity {
 	reiser4_plugin_t *plugin;
-	rbody_t *body;
+	body_t *body;
 	uint32_t pos, len;
 };
 
@@ -427,22 +427,22 @@ typedef struct reiser4_entry_hint reiser4_entry_hint_t;
 
 struct reiser4_object_hint {
 	
-	rpid_t statdata;
+	rid_t statdata;
 
 	/* Hint for a file body */
 	union {
 
 		/* Plugin ids for the directory body */
 		struct {
-			rpid_t direntry;
-			rpid_t hash;
+			rid_t direntry;
+			rid_t hash;
 		} dir;
 	
 		/* Plugin id for the regular file body */
 		struct {
-			rpid_t tail;
-			rpid_t extent;
-			rpid_t policy;
+			rid_t tail;
+			rid_t extent;
+			rid_t policy;
 		} reg;
 
 		/* Symlink data */
@@ -543,9 +543,9 @@ struct reiser4_plugin_header {
 	plugin_handle_t handle;
 
 	/* Plugin will be looked by its id, type, etc */
-	rpid_t id;
-	rpid_t type;
-	rpid_t group;
+	rid_t id;
+	rid_t type;
+	rid_t group;
 
 	/* Label and description */
 	const char label[PLUGIN_MAX_LABEL];
@@ -811,20 +811,20 @@ struct reiser4_sdext_ops {
 
 #ifndef ENABLE_ALONE
 	/* Initialize stat data extention data at passed pointer */
-	errno_t (*init) (rbody_t *, void *);
+	errno_t (*init) (body_t *, void *);
 
 	/* Prints stat data extention data into passed buffer */
-	errno_t (*print) (rbody_t *, aal_stream_t *, uint16_t);
+	errno_t (*print) (body_t *, aal_stream_t *, uint16_t);
 
 	/* Checks sd extention content. */
 	errno_t (*check) (sdext_entity_t *, uint8_t);
 #endif
 
 	/* Reads stat data extention data */
-	errno_t (*open) (rbody_t *, void *);
+	errno_t (*open) (body_t *, void *);
 
 	/* Returns length of the extention */
-	uint16_t (*length) (rbody_t *);
+	uint16_t (*length) (body_t *);
 };
 
 typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
@@ -868,27 +868,28 @@ struct reiser4_node_ops {
 	uint16_t (*space) (object_entity_t *);
 
 	/* Inserts item at specified pos */
-	errno_t (*insert) (object_entity_t *, rpos_t *,
+	errno_t (*insert) (object_entity_t *, pos_t *,
 			   reiser4_item_hint_t *);
     
 	/* Removes item/unit at specified pos */
-	errno_t (*remove) (object_entity_t *, rpos_t *, uint32_t);
+	errno_t (*remove) (object_entity_t *, pos_t *, uint32_t);
 
 	/* Removes some amount of items/units */
-	errno_t (*cut) (object_entity_t *, rpos_t *, rpos_t *);
+	errno_t (*cut) (object_entity_t *, pos_t *, pos_t *);
     
 	/* Shrinks node without calling any item methods */
-	errno_t (*shrink) (object_entity_t *, rpos_t *,
+	errno_t (*shrink) (object_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 
-	errno_t (*copy) (object_entity_t *, rpos_t *,
-			 object_entity_t *, rpos_t *, uint32_t);
+	errno_t (*copy) (object_entity_t *, pos_t *,
+			 object_entity_t *, pos_t *,
+			 uint32_t);
 	
 	/* Expands node */
-	errno_t (*expand) (object_entity_t *, rpos_t *,
+	errno_t (*expand) (object_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
 	
-	errno_t (*set_key) (object_entity_t *, rpos_t *,
+	errno_t (*set_key) (object_entity_t *, pos_t *,
 			    key_entity_t *);
 
 	void (*set_level) (object_entity_t *, uint8_t);
@@ -920,10 +921,10 @@ struct reiser4_node_ops {
     
 	/* Makes lookup inside node by specified key */
 	lookup_t (*lookup) (object_entity_t *, key_entity_t *, 
-			    rpos_t *);
+			    pos_t *);
     
 	/* Gets/sets key at pos */
-	errno_t (*get_key) (object_entity_t *, rpos_t *,
+	errno_t (*get_key) (object_entity_t *, pos_t *,
 			    key_entity_t *);
     
 	uint8_t (*get_level) (object_entity_t *);
@@ -933,13 +934,13 @@ struct reiser4_node_ops {
     	uint64_t (*get_fstamp) (object_entity_t *);
 
 	/* Gets item at passed pos */
-	rbody_t *(*item_body) (object_entity_t *, rpos_t *);
+	body_t *(*item_body) (object_entity_t *, pos_t *);
 
 	/* Returns item's length by pos */
-	uint16_t (*item_len) (object_entity_t *, rpos_t *);
+	uint16_t (*item_len) (object_entity_t *, pos_t *);
     
 	/* Gets/sets node's plugin ID */
-	uint16_t (*item_pid) (object_entity_t *, rpos_t *);
+	uint16_t (*item_pid) (object_entity_t *, pos_t *);
 };
 
 typedef struct reiser4_node_ops reiser4_node_ops_t;
@@ -1004,8 +1005,8 @@ struct reiser4_format_ops {
 	void (*set_free) (object_entity_t *, uint64_t);
 	void (*set_stamp) (object_entity_t *, uint32_t);
 
-	rpid_t (*journal_pid) (object_entity_t *);
-	rpid_t (*alloc_pid) (object_entity_t *);
+	rid_t (*journal_pid) (object_entity_t *);
+	rid_t (*alloc_pid) (object_entity_t *);
 
 	errno_t (*layout) (object_entity_t *, block_func_t, void *);
 	errno_t (*skipped) (object_entity_t *, block_func_t, void *);
@@ -1050,7 +1051,7 @@ struct reiser4_format_ops {
     
 	uint32_t (*get_stamp) (object_entity_t *);
     
-	rpid_t (*oid_pid) (object_entity_t *);
+	rid_t (*oid_pid) (object_entity_t *);
 
 	/* Returns area where oid data lies */
 	void (*oid) (object_entity_t *, void **, uint32_t *);
@@ -1069,13 +1070,13 @@ struct reiser4_oid_ops {
 	errno_t (*sync) (object_entity_t *);
 
 	/* Gets next object id */
-	roid_t (*next) (object_entity_t *);
+	oid_t (*next) (object_entity_t *);
 
 	/* Gets next object id */
-	roid_t (*allocate) (object_entity_t *);
+	oid_t (*allocate) (object_entity_t *);
 
 	/* Releases passed object id */
-	void (*release) (object_entity_t *, roid_t);
+	void (*release) (object_entity_t *, oid_t);
     
 	/* Returns the number of used object ids */
 	uint64_t (*used) (object_entity_t *);
@@ -1098,9 +1099,9 @@ struct reiser4_oid_ops {
 	errno_t (*valid) (object_entity_t *);
     
 	/* Object ids of root and root parenr object */
-	roid_t (*hyper_locality) (void);
-	roid_t (*root_locality) (void);
-	roid_t (*root_objectid) (void);
+	oid_t (*hyper_locality) (void);
+	oid_t (*root_locality) (void);
+	oid_t (*root_objectid) (void);
 };
 
 typedef struct reiser4_oid_ops reiser4_oid_ops_t;
@@ -1238,7 +1239,7 @@ union reiser4_plugin {
 
 struct place {
 	void *node;
-	rpos_t pos;
+	pos_t pos;
 	item_entity_t item;
 };
 
@@ -1298,12 +1299,12 @@ struct tree_ops {
 typedef struct tree_ops tree_ops_t;
 
 struct factory_ops {
-	
+
 	/* Finds plugin by its attributes (type and id) */
-	reiser4_plugin_t *(*ifind) (rpid_t, rpid_t);
+	reiser4_plugin_t *(*ifind) (rid_t, rid_t);
 	
 	/* Finds plugin by its type and name */
-	reiser4_plugin_t *(*nfind) (rpid_t, const char *);
+	reiser4_plugin_t *(*nfind) (rid_t, const char *);
 };
 
 typedef struct factory_ops factory_ops_t;

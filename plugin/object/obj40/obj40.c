@@ -19,7 +19,7 @@
 #include "obj40.h"
 
 /* Returns file's oid */
-roid_t obj40_objectid(obj40_t *obj) {
+oid_t obj40_objectid(obj40_t *obj) {
 	aal_assert("umka-1899", obj != NULL);
     
 	return plugin_call(obj->key.plugin->key_ops, 
@@ -27,7 +27,7 @@ roid_t obj40_objectid(obj40_t *obj) {
 }
 
 /* Returns file's locality  */
-roid_t obj40_locality(obj40_t *obj) {
+oid_t obj40_locality(obj40_t *obj) {
 	aal_assert("umka-1900", obj != NULL);
     
 	return plugin_call(obj->key.plugin->key_ops, 
@@ -429,7 +429,7 @@ errno_t obj40_link(obj40_t *obj, uint32_t value) {
 errno_t obj40_insert(obj40_t *obj, reiser4_item_hint_t *hint,
 		     uint8_t level, place_t *place)
 {
-	roid_t objectid = obj40_objectid(obj);
+	oid_t objectid = obj40_objectid(obj);
 
 	/*
 	  Making lookup in order to find place new item/unit will be inserted
@@ -458,7 +458,7 @@ errno_t obj40_remove(obj40_t *obj, key_entity_t *key,
 		     uint64_t count)
 {
 	place_t place;
-	roid_t objectid = obj40_objectid(obj);
+	oid_t objectid = obj40_objectid(obj);
 	
 	/*
 	  Making lookup in order to find the place the item/unit will be removed

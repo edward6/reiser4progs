@@ -29,9 +29,8 @@ enum behav_flags {
 	BF_TSTAT    = 1 << 4,
 	BF_DFRAG    = 1 << 5,
 	BF_SEACH    = 1 << 6,
-	BF_LS       = 1 << 7,
-	BF_CAT      = 1 << 8,
-	BF_PLUGS    = 1 << 9
+	BF_CAT      = 1 << 7,
+	BF_PLUGS    = 1 << 8
 };
 
 typedef enum behav_flags behav_flags_t;

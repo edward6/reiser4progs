@@ -100,7 +100,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     reiser4_ptr_hint_t ptr;
     reiser4_key_t rkey, key;
     errno_t res;
-    rpid_t pid;
+    rid_t pid;
     uint32_t level;
     lookup_t lookup;
 

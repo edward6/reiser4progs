@@ -23,9 +23,9 @@ extern errno_t reiser4_oid_valid(reiser4_oid_t *oid);
 extern reiser4_oid_t *reiser4_oid_create(reiser4_fs_t *fs);
 extern errno_t reiser4_oid_sync(reiser4_oid_t *oid);
 
-extern roid_t reiser4_oid_next(reiser4_oid_t *oid);
-extern roid_t reiser4_oid_allocate(reiser4_oid_t *oid);
-extern void reiser4_oid_release(reiser4_oid_t *oid, roid_t id);
+extern oid_t reiser4_oid_next(reiser4_oid_t *oid);
+extern oid_t reiser4_oid_allocate(reiser4_oid_t *oid);
+extern void reiser4_oid_release(reiser4_oid_t *oid, oid_t id);
 
 extern errno_t reiser4_oid_print(reiser4_oid_t *oid,
 				 aal_stream_t *stream);
@@ -35,9 +35,9 @@ extern uint64_t reiser4_oid_used(reiser4_oid_t *oid);
 
 #endif
 
-extern roid_t reiser4_oid_root_locality(reiser4_oid_t *oid);
-extern roid_t reiser4_oid_root_objectid(reiser4_oid_t *oid);
-extern roid_t reiser4_oid_hyper_locality(reiser4_oid_t *oid);
+extern oid_t reiser4_oid_root_locality(reiser4_oid_t *oid);
+extern oid_t reiser4_oid_root_objectid(reiser4_oid_t *oid);
+extern oid_t reiser4_oid_hyper_locality(reiser4_oid_t *oid);
 
 #endif
 

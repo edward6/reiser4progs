@@ -21,7 +21,7 @@
 reiser4_format_t *reiser4_format_open(
 	reiser4_fs_t *fs)	/* fs the format will be opened on */
 {
-	rpid_t pid;
+	rid_t pid;
 	reiser4_format_t *format;
 	reiser4_plugin_t *plugin;
 	
@@ -69,7 +69,7 @@ reiser4_format_t *reiser4_format_create(
 	reiser4_fs_t *fs,	/* fs the format will be created on */
 	count_t len,		/* filesystem length in blocks */
 	uint16_t tail,		/* tail policy to be used */
-	rpid_t pid)		/* disk-format plugin id to be used */
+	rid_t pid)		/* disk-format plugin id to be used */
 {
 	reiser4_format_t *format;
 	reiser4_plugin_t *plugin;
@@ -323,7 +323,7 @@ void reiser4_format_set_stamp(
 }
 
 /* Returns jouranl plugin id in use */
-rpid_t reiser4_format_journal_pid(
+rid_t reiser4_format_journal_pid(
 	reiser4_format_t *format)	/* disk-format journal pid will be obtained from */
 {
 	aal_assert("umka-115", format != NULL);
@@ -333,7 +333,7 @@ rpid_t reiser4_format_journal_pid(
 }
 
 /* Returns block allocator plugin id in use */
-rpid_t reiser4_format_alloc_pid(
+rid_t reiser4_format_alloc_pid(
 	reiser4_format_t *format)	/* disk-format allocator pid will be obtained from */
 {
 	aal_assert("umka-117", format != NULL);
@@ -367,7 +367,7 @@ errno_t reiser4_format_layout(reiser4_format_t *format,
 #endif
 
 /* Returns oid allocator plugin id in use */
-rpid_t reiser4_format_oid_pid(
+rid_t reiser4_format_oid_pid(
 	reiser4_format_t *format)	/* disk-format oid allocator pid will be obtained from */
 {
 	aal_assert("umka-491", format != NULL);

@@ -74,7 +74,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
     uint8_t mode) 
 {
     reiser4_place_t place;
-    rpos_t *pos = &place.pos;
+    pos_t *pos = &place.pos;
     uint32_t count;
     int32_t len;
     errno_t res = REPAIR_OK;
@@ -267,7 +267,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 errno_t repair_node_dkeys_check(reiser4_node_t *node) {
     reiser4_place_t place;
     reiser4_key_t key, d_key;
-    rpos_t *pos = &place.pos;
+    pos_t *pos = &place.pos;
     int res;
 
     aal_assert("vpf-248", node != NULL);
@@ -361,7 +361,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node) {
 static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
     reiser4_place_t place;
     reiser4_key_t key, prev_key;
-    rpos_t *pos = &place.pos;
+    pos_t *pos = &place.pos;
     uint32_t count;
     errno_t res;
     
@@ -451,7 +451,7 @@ errno_t repair_node_traverse(reiser4_node_t *node, traverse_item_func_t func,
     void *data) 
 {
     reiser4_place_t place;
-    rpos_t *pos = &place.pos;
+    pos_t *pos = &place.pos;
     uint32_t items;
 
     aal_assert("vpf-744", node != NULL);

@@ -11,7 +11,7 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sdext_lt_plugin;
 
-static errno_t sdext_lt_open(rbody_t *body, 
+static errno_t sdext_lt_open(body_t *body, 
 			     void *hint) 
 {
 	sdext_lt_t *ext;
@@ -30,13 +30,13 @@ static errno_t sdext_lt_open(rbody_t *body,
 	return 0;
 }
 
-static uint16_t sdext_lt_length(rbody_t *body) {
+static uint16_t sdext_lt_length(body_t *body) {
 	return sizeof(sdext_lt_t);
 }
 
 #ifndef ENABLE_ALONE
 
-static errno_t sdext_lt_init(rbody_t *body, 
+static errno_t sdext_lt_init(body_t *body, 
 			     void *hint) 
 {
 	sdext_lt_t *ext;
@@ -55,7 +55,8 @@ static errno_t sdext_lt_init(rbody_t *body,
 	return 0;
 }
 
-static errno_t sdext_lt_print(rbody_t *body, aal_stream_t *stream,
+static errno_t sdext_lt_print(body_t *body,
+			      aal_stream_t *stream,
 			      uint16_t options)
 {
 	sdext_lt_t *ext;
@@ -65,9 +66,14 @@ static errno_t sdext_lt_print(rbody_t *body, aal_stream_t *stream,
 
 	ext = (sdext_lt_t *)body;
 
-	aal_stream_format(stream, "atime:\t\t%u\n", sdext_lt_get_atime(ext));
-	aal_stream_format(stream, "mtime:\t\t%u\n", sdext_lt_get_mtime(ext));
-	aal_stream_format(stream, "ctime:\t\t%u\n", sdext_lt_get_ctime(ext));
+	aal_stream_format(stream, "atime:\t\t%u\n",
+			  sdext_lt_get_atime(ext));
+	
+	aal_stream_format(stream, "mtime:\t\t%u\n",
+			  sdext_lt_get_mtime(ext));
+	
+	aal_stream_format(stream, "ctime:\t\t%u\n",
+			  sdext_lt_get_ctime(ext));
 	
 	return 0;
 }

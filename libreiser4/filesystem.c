@@ -18,7 +18,7 @@
 reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 			      reiser4_profile_t *profile)
 {
-	rpid_t pid;
+	rid_t pid;
 
 #ifndef ENABLE_ALONE
 	count_t blocks;
@@ -229,8 +229,8 @@ reiser4_fs_t *reiser4_fs_create(
 	reiser4_profile_t *profile,	/* profile to be used for new filesystem */
 	count_t blocks)		        /* filesystem length in blocks */
 {
-	rpid_t policy;
-	rpid_t format;
+	rid_t policy;
+	rid_t format;
 	
 	reiser4_fs_t *fs;
 	uint32_t blocksize;
@@ -359,8 +359,8 @@ errno_t reiser4_fs_sync(
 
 /* Returns the key of the fake root parent */
 errno_t reiser4_fs_hyper_key(reiser4_fs_t *fs, reiser4_key_t *key) {
-	roid_t root_locality;
-	roid_t hyper_locality;
+	oid_t root_locality;
+	oid_t hyper_locality;
 	
 	aal_assert("umka-1949", fs != NULL);
 	aal_assert("umka-1950", key != NULL);

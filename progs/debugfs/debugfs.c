@@ -35,10 +35,8 @@ static void debugfs_print_usage(char *name) {
 		"  -f, --force                     makes debugfs to use whole disk, not\n"
 		"                                  block device or mounted partition.\n"
 		"Browsing options:\n"
-		"  -l, --ls FILE                   browses passed file like standard\n"
-		"                                  ls program.\n"
 		"  -c, --cat FILE                  browses passed file like standard\n"
-		"                                  cat program.\n"
+		"                                  cat and ls programs.\n"
 		"Print options:\n"
 		"  -t, --print-tree                prints the whole tree.\n"
 		"  -j, --print-journal             prints journal.\n"
@@ -136,15 +134,15 @@ int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
 	char *host_dev;
+
 	uint32_t print_flags = 0;
 	uint32_t behav_flags = 0;
 
 	char override[4096];
-	char *ls_filename = NULL;
+
 	char *cat_filename = NULL;
 	char *frag_filename = NULL;
 	char *print_filename = NULL;
-	
 	char *profile_label = "smart40";
     
 	reiser4_fs_t *fs;
@@ -157,7 +155,6 @@ int main(int argc, char *argv[]) {
 		{"version", no_argument, NULL, 'V'},
 		{"help", no_argument, NULL, 'h'},
 		{"force", no_argument, NULL, 'f'},
-		{"ls", required_argument, NULL, 'l'},
 		{"cat", required_argument, NULL, 'c'},
 		{"print-tree", no_argument, NULL, 't'},
 		{"print-journal", no_argument, NULL, 'j'},
@@ -188,7 +185,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfKtbdjTDpSF:c:l:n:i:wo:P",
+	while ((c = getopt_long(argc, argv, "hVe:qfKtbdjTDpSF:c:n:i:wo:P",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -249,10 +246,6 @@ int main(int argc, char *argv[]) {
 		case 'c':
 			behav_flags |= BF_CAT;
 			cat_filename = optarg;
-			break;
-		case 'l':
-			behav_flags |= BF_LS;
-			ls_filename = optarg;
 			break;
 		case 'F':
 			behav_flags |= BF_FFRAG;
@@ -358,7 +351,7 @@ int main(int argc, char *argv[]) {
 
 	/* Opening device with file_ops and default blocksize */
 	if (!(device = aal_device_open(&file_ops, host_dev,
-				       BLOCKSIZE, O_RDONLY)))
+				       REISER4_BLKSIZE, O_RDONLY)))
 	{
 		aal_exception_error("Can't open %s. %s.", host_dev,
 				    strerror(errno));
@@ -444,11 +437,6 @@ int main(int argc, char *argv[]) {
 	}
 	
 	/* Handling print options */
-	if ((behav_flags & BF_LS)) {
-		if (debugfs_browse(fs, ls_filename))
-			goto error_free_fs;
-	}
-	
 	if ((behav_flags & BF_CAT)) {
 		if (debugfs_browse(fs, cat_filename))
 			goto error_free_fs;

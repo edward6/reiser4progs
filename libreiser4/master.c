@@ -24,7 +24,7 @@ errno_t reiser4_master_valid(reiser4_master_t *master) {
 /* Forms master super block disk structure */
 reiser4_master_t *reiser4_master_create(
 	aal_device_t *device,	    /* device master will be created on */
-	rpid_t format_pid,	    /* disk format plugin id to be used */
+	rid_t format_pid,	    /* disk format plugin id to be used */
 	uint32_t blocksize,	    /* blocksize to be used */
 	const char *uuid,	    /* uuid to be used */
 	const char *label)	    /* filesystem label to be used */
@@ -121,15 +121,14 @@ int reiser4_master_confirm(aal_device_t *device) {
     
 	aal_assert("umka-901", device != NULL);
     
-	offset = (blk_t)(MASTER_OFFSET / BLOCKSIZE);
+	offset = (blk_t)(MASTER_OFFSET / REISER4_BLKSIZE);
 
 	/* Setting up default block size (4096) to used device */
-	aal_device_set_bs(device, BLOCKSIZE);
+	aal_device_set_bs(device, REISER4_BLKSIZE);
     
 	/* Reading the block where master super block lies */
 	if (!(block = aal_block_open(device, offset))) {
-		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
-				    "Can't read master super block "
+		aal_exception_fatal("Can't read master super block "
 				    "at %llu.", offset);
 		return 0;
 	}
@@ -140,8 +139,7 @@ int reiser4_master_confirm(aal_device_t *device) {
 		uint32_t blocksize = get_ms_blocksize(super);
 			
 		if (aal_device_set_bs(device, blocksize)) {
-			aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
-					    "Invalid block size detected %u.",
+			aal_exception_fatal("Invalid block size detected %u.",
 					    blocksize);
 			goto error_free_block;
 		}
@@ -174,15 +172,14 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	master->dirty = FALSE;
 	master->device = device;
 	
-	offset = (blk_t)(MASTER_OFFSET / BLOCKSIZE);
+	offset = (blk_t)(MASTER_OFFSET / REISER4_BLKSIZE);
 
 	/* Setting up default block size (4096) to used device */
-	aal_device_set_bs(device, BLOCKSIZE);
+	aal_device_set_bs(device, REISER4_BLKSIZE);
     
 	/* Reading the block where master super block lies */
 	if (!(block = aal_block_open(device, offset))) {
-		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
-				    "Can't read master super block "
+		aal_exception_fatal("Can't read master super block "
 				    "at %llu.", offset);
 		goto error_free_master;
 	}
@@ -214,11 +211,12 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	    
 			/* Creating in-memory master super block */
 			if (!(master = reiser4_master_create(device, plugin->h.id, 
-							     BLOCKSIZE, NULL, NULL)))
+							     REISER4_BLKSIZE,
+							     NULL, NULL)))
 			{
-				aal_exception_error("Can't find format in use after "
-						    "probe the all registered format "
-						    "plugins.");
+				aal_exception_error("Can't find format in "
+						    "use after probe the all "
+						    "registered format plugins.");
 				goto error_free_master;
 			}
 	    
@@ -300,7 +298,7 @@ char *reiser4_master_magic(reiser4_master_t *master) {
 	return SUPER(master)->ms_magic;
 }
 
-rpid_t reiser4_master_format(reiser4_master_t *master) {
+rid_t reiser4_master_format(reiser4_master_t *master) {
 	aal_assert("umka-982", master != NULL);
 	return get_ms_format(SUPER(master));
 }

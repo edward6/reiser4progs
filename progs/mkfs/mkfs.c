@@ -79,10 +79,10 @@ static reiser4_object_t *mkfs_create_dir(reiser4_fs_t *fs,
 				       reiser4_object_t *parent,
 				       reiser4_profile_t *profile)
 {
-	rpid_t hash;
-	rpid_t statdata;
-	rpid_t direntry;
-	rpid_t directory;
+	pid_t hash;
+	pid_t statdata;
+	pid_t direntry;
+	pid_t directory;
 
 	reiser4_object_t *object;
 	reiser4_object_hint_t hint;
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
 	char uuid[17], label[17];
 	mkfs_behav_flags_t flags = 0;
 	count_t fs_len = 0, dev_len = 0;
-	uint16_t blocksize = BLOCKSIZE;
+	uint16_t blocksize = REISER4_BLKSIZE;
 
 	char *host_dev, *profile_label = "smart40";
     

@@ -25,7 +25,7 @@ extern errno_t reiser4_format_sync(reiser4_format_t *format);
 extern reiser4_format_t *reiser4_format_create(reiser4_fs_t *fs,
 					       count_t len,
 					       uint16_t tail,
-					       rpid_t pid);
+					       rid_t pid);
 
 extern errno_t reiser4_format_skipped(reiser4_format_t *format, 
 				      block_func_t func,
@@ -56,8 +56,8 @@ extern errno_t reiser4_format_mark(reiser4_format_t *format,
 extern errno_t reiser4_format_print(reiser4_format_t *format,
 				    aal_stream_t *stream);
 
-extern rpid_t reiser4_format_alloc_pid(reiser4_format_t *format);
-extern rpid_t reiser4_format_journal_pid(reiser4_format_t *format);
+extern rid_t reiser4_format_alloc_pid(reiser4_format_t *format);
+extern rid_t reiser4_format_journal_pid(reiser4_format_t *format);
 
 #endif
 
@@ -72,7 +72,7 @@ extern uint16_t reiser4_format_get_height(reiser4_format_t *format);
 extern uint32_t reiser4_format_get_stamp(reiser4_format_t *format);
 
 extern const char *reiser4_format_name(reiser4_format_t *format);
-extern rpid_t reiser4_format_oid_pid(reiser4_format_t *format);
+extern rid_t reiser4_format_oid_pid(reiser4_format_t *format);
 
 #endif
 

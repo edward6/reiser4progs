@@ -47,7 +47,7 @@ static errno_t callback_layout(reiser4_place_t *place, void *data) {
  * were found on the partition during the previous passes. */
 errno_t repair_add_missing(repair_am_t *am) {
     reiser4_place_t place;
-    rpos_t *pos = &place.pos;
+    pos_t *pos = &place.pos;
     reiser4_node_t *node;
     aux_bitmap_t *bitmap;
     uint32_t items, count, i;

@@ -138,7 +138,7 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
 	    "Removed." : "The whole subtree is skipped.");
 	
 	if (fd->mode == REPAIR_REBUILD) {
-	    rpos_t ppos;
+	    pos_t ppos;
 	    
 	    repair_place_get_lpos(place, ppos);
 	
@@ -220,7 +220,7 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 	    aal_assert("vpf-827: Not expected case.", FALSE);
 	
 	if (fd->mode == REPAIR_REBUILD) {
-	    rpos_t prev;
+	    pos_t prev;
 	    
 	    /* The node corruption was not fixed - delete the internal item. */
 	    repair_place_get_lpos(place, prev);

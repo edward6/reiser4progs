@@ -326,8 +326,8 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	uint32_t i;
 	dir40_t *dir;
 
-	roid_t parent_locality;
-	roid_t objectid, locality;
+	oid_t parent_locality;
+	oid_t objectid, locality;
 
 	reiser4_entry_hint_t *body;
 	reiser4_entry_hint_t *entry;

@@ -39,7 +39,7 @@ uint32_t repair_item_split(
 static errno_t repair_item_check_fini(reiser4_place_t *place, 
     repair_error_t result, uint32_t old_len, uint8_t mode) 
 {
-    rpos_t pos;
+    pos_t pos;
     
     if (place->item.len)
 	result = REPAIR_FATAL;

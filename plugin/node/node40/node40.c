@@ -159,7 +159,7 @@ uint16_t node40_items(object_entity_t *entity) {
 
 /* Returns key at passed @pos */
 static errno_t node40_get_key(object_entity_t *entity,
-			      rpos_t *pos, key_entity_t *key) 
+			      pos_t *pos, key_entity_t *key) 
 {
 	uint32_t items;
 	node40_t *node = (node40_t *)entity;
@@ -179,7 +179,7 @@ static errno_t node40_get_key(object_entity_t *entity,
 
 /* Gets item's body at passed @pos */
 static void *node40_item_body(object_entity_t *entity, 
-			      rpos_t *pos)
+			      pos_t *pos)
 {
 	uint32_t items;
 	node40_t *node = (node40_t *)entity;
@@ -194,8 +194,8 @@ static void *node40_item_body(object_entity_t *entity,
 }
 
 /* Returns item plugin id at specified @pos */
-static rpid_t node40_item_pid(object_entity_t *entity, 
-			      rpos_t *pos)
+static rid_t node40_item_pid(object_entity_t *entity, 
+			     pos_t *pos)
 {
 	int is_range;
 	node40_t *node = (node40_t *)entity;
@@ -211,7 +211,7 @@ static rpid_t node40_item_pid(object_entity_t *entity,
 
 /* Returns length of item at pos. */
 static uint16_t node40_item_len(object_entity_t *entity, 
-				rpos_t *pos)
+				pos_t *pos)
 {
 	int is_range;
 	item40_header_t *ih;
@@ -243,9 +243,9 @@ static uint16_t node40_item_len(object_entity_t *entity,
   unit one.
 */
 static errno_t node40_item(item_entity_t *item,
-			   node40_t *node, rpos_t *pos)
+			   node40_t *node, pos_t *pos)
 {
-	rpid_t pid;
+	rid_t pid;
 	int is_range;
 
 	aal_assert("umka-1602", item != NULL);
@@ -334,7 +334,7 @@ static uint16_t node40_maxspace(object_entity_t *entity) {
   Calculates size of a region denoted by @pos and @count. This is used by
   node40_rep, node40_remove, etc.
 */
-static uint32_t node40_size(node40_t *node, rpos_t *pos,
+static uint32_t node40_size(node40_t *node, pos_t *pos,
 			    uint32_t count)
 {
 	int is_range;
@@ -366,7 +366,7 @@ static uint32_t node40_size(node40_t *node, rpos_t *pos,
   Makes expand passed @node by @len in odrer to make room for insert new
   items/units. This function is used by insert and shift methods.
 */
-static errno_t node40_grow(node40_t *node, rpos_t *pos,
+static errno_t node40_grow(node40_t *node, pos_t *pos,
 			   uint32_t len, uint32_t count)
 {
 	int is_space;
@@ -469,7 +469,7 @@ static errno_t node40_grow(node40_t *node, rpos_t *pos,
   component of pos is specified, then it will shrink specified by @pos->item
   node by specified @len.
 */
-static errno_t node40_cutout(node40_t *node, rpos_t *pos,
+static errno_t node40_cutout(node40_t *node, pos_t *pos,
 			     uint32_t len, uint32_t count)
 {
 	int is_range;
@@ -566,8 +566,8 @@ static errno_t node40_cutout(node40_t *node, rpos_t *pos,
 }
 
 /* Makes copy of @count items from @src_node to @dst_node */
-static errno_t node40_rep(node40_t *dst_node, rpos_t *dst_pos,
-			  node40_t *src_node, rpos_t *src_pos,
+static errno_t node40_rep(node40_t *dst_node, pos_t *dst_pos,
+			  node40_t *src_node, pos_t *src_pos,
 			  uint32_t count)
 {
 	uint32_t size;
@@ -627,7 +627,7 @@ static errno_t node40_rep(node40_t *dst_node, rpos_t *dst_pos,
 }
 
 /* Inserts item described by hint structure into node */
-static errno_t node40_insert(object_entity_t *entity, rpos_t *pos,
+static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 			     reiser4_item_hint_t *hint)
 {
 	node40_t *node;
@@ -692,7 +692,7 @@ static errno_t node40_insert(object_entity_t *entity, rpos_t *pos,
 
 /* This function removes item/unit from the node at specified @pos */
 errno_t node40_remove(object_entity_t *entity, 
-		      rpos_t *pos, uint32_t count) 
+		      pos_t *pos, uint32_t count) 
 {
 	uint32_t len;
 	node40_t *node;
@@ -727,7 +727,7 @@ errno_t node40_remove(object_entity_t *entity,
 
 /* Removes items/units starting from the @start and ending at the @end */
 static errno_t node40_cut(object_entity_t *entity,
-			  rpos_t *start, rpos_t *end)
+			  pos_t *start, pos_t *end)
 {
 	node40_t *node;
 	uint32_t units;
@@ -735,7 +735,7 @@ static errno_t node40_cut(object_entity_t *entity,
 	uint32_t begin;
 	uint32_t count;
 	
-	rpos_t pos;
+	pos_t pos;
 	item_entity_t item;
 	
 	aal_assert("umka-1788", entity != NULL);
@@ -813,8 +813,8 @@ static errno_t node40_cut(object_entity_t *entity,
 	return 0;
 }
 
-static errno_t node40_copy(object_entity_t *dst_entity, rpos_t *dst_pos,
-			   object_entity_t *src_entity, rpos_t *src_pos,
+static errno_t node40_copy(object_entity_t *dst_entity, pos_t *dst_pos,
+			   object_entity_t *src_entity, pos_t *src_pos,
 			   uint32_t count)
 {
 	node40_t *dst_node = (node40_t *)dst_entity;
@@ -824,7 +824,7 @@ static errno_t node40_copy(object_entity_t *dst_entity, rpos_t *dst_pos,
 }
 
 static errno_t node40_expand(object_entity_t *entity,
-			     rpos_t *pos, uint32_t len,
+			     pos_t *pos, uint32_t len,
 			     uint32_t count)
 {
 	node40_t *node = (node40_t *)entity;
@@ -832,7 +832,7 @@ static errno_t node40_expand(object_entity_t *entity,
 }
 
 static errno_t node40_shrink(object_entity_t *entity,
-			     rpos_t *pos, uint32_t len,
+			     pos_t *pos, uint32_t len,
 			     uint32_t count)
 {
 	node40_t *node = (node40_t *)entity;
@@ -866,7 +866,7 @@ static void node40_set_level(object_entity_t *entity,
 
 /* Updates key at @pos by specified @key */
 static errno_t node40_set_key(object_entity_t *entity, 
-			      rpos_t *pos,
+			      pos_t *pos,
 			      key_entity_t *key) 
 {
 	uint32_t items;
@@ -905,7 +905,7 @@ static errno_t node40_print(object_entity_t *entity,
 			    aal_stream_t *stream,
 			    uint16_t options) 
 {
-	rpos_t pos;
+	pos_t pos;
 	uint8_t level;
 	item_entity_t item;
 
@@ -991,7 +991,7 @@ static inline int callback_comp_key(void *node, uint32_t pos,
 */
 static lookup_t node40_lookup(object_entity_t *entity, 
 			      key_entity_t *key,
-			      rpos_t *pos)
+			      pos_t *pos)
 {
 	int64_t item;
 	lookup_t res; 
@@ -1070,7 +1070,7 @@ static errno_t node40_merge(node40_t *src_node,
 {
 	int remove;
 
-	rpos_t pos;
+	pos_t pos;
 	uint32_t len;
 	
 	uint32_t dst_items;
@@ -1300,12 +1300,12 @@ static errno_t node40_transfuse(node40_t *src_node,
 				node40_t *dst_node, 
 				shift_hint_t *hint)
 {
-	rpos_t pos;
+	pos_t pos;
 	uint32_t len;
 	uint32_t space;
 
-	rpos_t src_pos;
-	rpos_t dst_pos;
+	pos_t src_pos;
+	pos_t dst_pos;
 
 	uint32_t overhead;
 	uint32_t src_items;

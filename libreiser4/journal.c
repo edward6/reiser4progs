@@ -21,7 +21,7 @@ reiser4_journal_t *reiser4_journal_open(
 	reiser4_fs_t *fs,	        /* fs journal will be opened on */
 	aal_device_t *device)	        /* device journal will be opened on */
 {
-	rpid_t pid;
+	rid_t pid;
 	blk_t start;
 	count_t len;
 	
@@ -110,7 +110,7 @@ reiser4_journal_t *reiser4_journal_create(
 	aal_device_t *device,	        /* device journal will be created on */
 	void *hint)		        /* journal params (opaque pointer) */
 {
-	rpid_t pid;
+	rid_t pid;
 	blk_t start;
 	count_t len;
 	

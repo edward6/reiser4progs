@@ -47,8 +47,8 @@ static errno_t direntry40_get_key(item_entity_t *item,
 				  uint32_t pos,
 				  key_entity_t *key)
 {
-	roid_t locality;
-	roid_t objectid;
+	oid_t locality;
+	oid_t objectid;
 	uint64_t offset;
 
 	entry40_t *entry;
@@ -226,7 +226,7 @@ static int direntry40_mergeable(item_entity_t *item1,
 				item_entity_t *item2)
 {
 	reiser4_plugin_t *plugin;
-	roid_t locality1, locality2;
+	oid_t locality1, locality2;
 	
 	aal_assert("umka-1581", item1 != NULL);
 	aal_assert("umka-1582", item2 != NULL);

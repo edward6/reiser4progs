@@ -231,8 +231,8 @@ static int tail40_mergeable(item_entity_t *item1,
 {
 	reiser4_plugin_t *plugin;
 	uint64_t offset1, offset2;
-	roid_t objectid1, objectid2;
-	roid_t locality1, locality2;
+	oid_t objectid1, objectid2;
+	oid_t locality1, locality2;
 	
 	aal_assert("umka-1584", item1 != NULL);
 	aal_assert("umka-1585", item2 != NULL);

@@ -22,7 +22,7 @@ reiser4_alloc_t *reiser4_alloc_open(
 	reiser4_fs_t *fs,	/* fs allocator is going to be opened on */
 	count_t count)		/* filesystem size in blocks */
 {
-	rpid_t pid;
+	rid_t pid;
 	reiser4_alloc_t *alloc;
 	reiser4_plugin_t *plugin;
 	
@@ -74,7 +74,7 @@ reiser4_alloc_t *reiser4_alloc_create(
 	reiser4_fs_t *fs,           /* fs block allocator is going to be created on */
 	count_t count)		    /* filesystem size in blocks */
 {
-	rpid_t pid;
+	rid_t pid;
 	reiser4_alloc_t *alloc;
 	reiser4_plugin_t *plugin;
 	

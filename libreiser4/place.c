@@ -40,7 +40,7 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 
 /* Initializes all item-related fields */
 errno_t reiser4_place_realize(reiser4_place_t *place) {
-	rpid_t pid;
+	rid_t pid;
 	reiser4_key_t *key;
 	item_entity_t *item;
 	object_entity_t *entity;
@@ -97,7 +97,7 @@ errno_t reiser4_place_realize(reiser4_place_t *place) {
 errno_t reiser4_place_init(
 	reiser4_place_t *place,	 /* place to be initialized */
 	reiser4_node_t *node,	 /* the first component of place */
-	rpos_t *pos)	         /* place pos component */
+	pos_t *pos)	         /* place pos component */
 {
 	aal_assert("umka-795", place != NULL);
     
@@ -115,7 +115,7 @@ errno_t reiser4_place_assign(
 	uint32_t item,            /* item component */
 	uint32_t unit)	          /* unit component */
 {
-	rpos_t pos = {item, unit};
+	pos_t pos = {item, unit};
 	
         aal_assert("umka-1730", place != NULL);
 	
@@ -127,7 +127,7 @@ errno_t reiser4_place_assign(
 errno_t reiser4_place_open(
 	reiser4_place_t *place,	 /* place to be initialized */
 	reiser4_node_t *node,	 /* the first component of place */
-	rpos_t *pos)	         /* place pos component */
+	pos_t *pos)	         /* place pos component */
 {
 	errno_t res;
 	

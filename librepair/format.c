@@ -12,7 +12,7 @@
 static reiser4_plugin_t *repair_format_confirm(reiser4_profile_t *profile, 
     aal_device_t *host_device)
 {
-    rpid_t format;
+    rid_t format;
     reiser4_plugin_t *plugin = NULL;
    
     aal_assert("vpf-167", profile != NULL);

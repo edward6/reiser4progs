@@ -125,10 +125,8 @@ static int32_t reg40_read(object_entity_t *entity,
 		offset = reg->offset - offset;
 
 		/* Calling body item's "read" method */
-		chunk = plugin_call(item->plugin->item_ops, read,
-				    item, buff, offset, chunk);
-
-		if (chunk == 0)
+		if ((chunk = plugin_call(item->plugin->item_ops, read,
+					 item, buff, offset, chunk)) <= 0)
 			return read;
 		
 		buff += chunk;
@@ -188,8 +186,8 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 {
 	reg40_t *reg;
 	
-	roid_t parent_locality;
-	roid_t objectid, locality;
+	oid_t parent_locality;
+	oid_t objectid, locality;
 
 	reiser4_plugin_t *stat_plugin;
     

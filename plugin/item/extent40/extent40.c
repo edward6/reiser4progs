@@ -22,8 +22,9 @@ uint32_t extent40_units(item_entity_t *item) {
 	aal_assert("umka-1446", item != NULL);
 
 	if (item->len % sizeof(extent40_t) != 0) {
-		aal_exception_error("Invalid item size detected. Node %llu, "
-				    "item %u.", item->context.blk, item->pos);
+		aal_exception_error("Invalid item size detected. "
+				    "Node %llu, item %u.",
+				    item->context.blk, item->pos);
 		return 0;
 	}
 		
@@ -42,16 +43,16 @@ static uint64_t extent40_size(item_entity_t *item) {
 	for (i = 0; i < extent40_units(item); i++)
 		blocks += et40_get_width(extent + i);
     
-	return (blocks * aal_device_get_bs(item->context.device));
+	return (blocks * item->context.device->blocksize);
 }
 
 /*
   Builds the key of the unit at @pos and stores it inside passed @key
   variable. It is needed for updating item key after shifting, etc.
 */
-static errno_t extent40_unit_key(item_entity_t *item,
-				 uint32_t pos, 
-				 key_entity_t *key)
+static errno_t extent40_get_key(item_entity_t *item,
+				uint32_t pos, 
+				key_entity_t *key)
 {
 	uint32_t i;
 	extent40_t *extent;
@@ -59,16 +60,17 @@ static errno_t extent40_unit_key(item_entity_t *item,
 	
 	aal_assert("vpf-622", item != NULL);
 	aal_assert("vpf-623", key != NULL);
-	aal_assert("vpf-625", pos <  extent40_units(item));
+	aal_assert("vpf-625", pos < extent40_units(item));
 	
-	aal_memcpy(key, &item->key, sizeof(*key));
-		
-	offset = plugin_call(key->plugin->key_ops, get_offset, key);
-
 	extent = extent40_body(item);
 	blocksize = extent40_blocksize(item);
 
-	/* Calulating key offset to be used */
+	plugin_call(item->key.plugin->key_ops, assign,
+		    key, &item->key);
+		
+	offset = plugin_call(key->plugin->key_ops,
+			     get_offset, key);
+
 	for (i = 0; i < pos; i++, extent++)
 		offset += et40_get_width(extent) * blocksize;
 
@@ -82,23 +84,27 @@ static errno_t extent40_unit_key(item_entity_t *item,
   offset will be set up to the passed offset. So, it can be not at the start of
   an extent unit.
 */
-static errno_t extent40_get_key(item_entity_t *item,
-				uint32_t offset, 
-				key_entity_t *key) 
+/*static errno_t extent40_unit_key(item_entity_t *item,
+				 uint32_t offset,
+				 key_entity_t *key)
 {
-	aal_assert("vpf-714", item != NULL);
-	aal_assert("vpf-715", key != NULL);
-	aal_assert("vpf-716", offset < extent40_size(item));
+        aal_assert("vpf-714", item != NULL);
+        aal_assert("vpf-715", key != NULL);
+        aal_assert("vpf-716", offset < extent40_size(item));
+                                                                                                   
+	plugin_call(item->key.plugin->key_ops, assign,
+		    key, &item->key);
+                                                                                                   
+        offset += plugin_call(key->plugin->key_ops,
+			      get_offset, key);
 	
-	aal_memcpy(key, &item->key, sizeof(*key));
-		
-	offset += plugin_call(key->plugin->key_ops, get_offset, key);
-	plugin_call(key->plugin->key_ops, set_offset, key, offset);
-	
-	return 0;
-}
-
-static int extent40_data () {
+        plugin_call(key->plugin->key_ops, set_offset,
+		    key, offset);
+                                                                                                   
+        return 0;
+}*/
+                                                                                                   
+static int extent40_data(void) {
 	return 1;
 }
 
@@ -123,7 +129,7 @@ static int32_t extent40_remove(item_entity_t *item,
 	
 	/* Updating item's key by zero's unit one */
 	if (pos == 0) {
-		if (extent40_unit_key(item, 0, &item->key))
+		if (extent40_get_key(item, 0, &item->key))
 			return -1;
 	}
 	
@@ -167,7 +173,8 @@ static errno_t extent40_print(item_entity_t *item,
 	return 0;
 }
 
-extern errno_t extent40_layout_check(item_entity_t *item, region_func_t func, 
+extern errno_t extent40_layout_check(item_entity_t *item,
+				     region_func_t func, 
 				     void *data, uint8_t mode);
 
 #endif
@@ -259,13 +266,18 @@ static lookup_t extent40_lookup(item_entity_t *item,
 	if (!(units = extent40_units(item)))
 		return LP_FAILED;
 
-	if (plugin_call(key->plugin->key_ops, compare, key, &maxkey) > 0) {
+	if (plugin_call(key->plugin->key_ops,
+			compare, key, &maxkey) > 0)
+	{
 		*pos = extent40_size(item);
 		return LP_ABSENT;
 	}
 
-	lookuped = plugin_call(key->plugin->key_ops, get_offset, key);
-	offset = plugin_call(key->plugin->key_ops, get_offset, &item->key);
+	lookuped = plugin_call(key->plugin->key_ops,
+			       get_offset, key);
+	
+	offset = plugin_call(key->plugin->key_ops,
+			     get_offset, &item->key);
 
 	blocksize = extent40_blocksize(item);
 		
@@ -273,12 +285,12 @@ static lookup_t extent40_lookup(item_entity_t *item,
 		offset += (blocksize * et40_get_width(extent));
 		
 		if (offset > lookuped) {
-			*pos = offset - (offset - lookuped);
+			*pos = i;
 			return LP_PRESENT;
 		}
 	}
 
-	*pos = extent40_size(item);
+	*pos = units - 1;
 	return LP_ABSENT;
 }
 
@@ -341,12 +353,9 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		start = et40_get_start(extent + i);
 		width = et40_get_width(extent + i);
 
-		if (extent40_unit_key(item, i, &key))
+		if (extent40_get_key(item, i, &key))
 			return -1;
 
-		if (!item->key.plugin->key_ops.get_offset)
-			return -1;
-		
 		/* Calculating in-unit local offset */
 		offset = plugin_call(item->key.plugin->key_ops,
 				     get_offset, &key);
@@ -389,8 +398,8 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 static int extent40_mergeable(item_entity_t *item1, item_entity_t *item2) {
 	reiser4_plugin_t *plugin;
 	uint64_t offset1, offset2;
-	roid_t objectid1, objectid2;
-	roid_t locality1, locality2;
+	oid_t objectid1, objectid2;
+	oid_t locality1, locality2;
 	
 	aal_assert("umka-1581", item1 != NULL);
 	aal_assert("umka-1582", item2 != NULL);
@@ -598,7 +607,7 @@ static int32_t extent40_write(item_entity_t *item, void *buff,
 	
         /* Updating the key */
 	if (pos == 0) {
-		if (extent40_unit_key(item, 0, &item->key))
+		if (extent40_get_key(item, 0, &item->key))
 			return -1;
 	}
 	
@@ -782,10 +791,10 @@ static reiser4_plugin_t extent40_plugin = {
 		.read          = extent40_read,
 		.mergeable     = extent40_mergeable,
 
+		.get_key       = extent40_get_key,
 		.gap_key       = extent40_utmost_key,
 		.maxposs_key   = extent40_maxposs_key,
-		.utmost_key    = extent40_utmost_key,
-		.get_key       = extent40_get_key
+		.utmost_key    = extent40_utmost_key
 	}
 };
 

@@ -202,7 +202,7 @@ static int32_t stat40_write(item_entity_t *item, void *buff,
 			    uint32_t pos, uint32_t count)
 {
 	uint8_t i;
-	rbody_t *extbody;
+	body_t *extbody;
 
 	reiser4_item_hint_t *hint;
 	reiser4_statdata_hint_t *stat_hint;
@@ -210,7 +210,7 @@ static int32_t stat40_write(item_entity_t *item, void *buff,
 	aal_assert("vpf-076", item != NULL); 
 	aal_assert("vpf-075", buff != NULL);
 
-	extbody = (rbody_t *)item->body;
+	extbody = (body_t *)item->body;
 
 	hint = (reiser4_item_hint_t *)buff;
 	stat_hint = (reiser4_statdata_hint_t *)hint->type_specific;
@@ -289,7 +289,7 @@ static uint32_t stat40_units(item_entity_t *item) {
 
 /* Helper structrure for keeping track of stat data extention body */
 struct body_hint {
-	rbody_t *body;
+	body_t *body;
 	uint8_t ext;
 };
 
@@ -304,7 +304,7 @@ static int callback_body_ext(sdext_entity_t *sdext, uint16_t extmask,
 }
 
 /* Finds extention body by number of bit in 64bits mask */
-static rbody_t *stat40_sdext_body(item_entity_t *item, 
+static body_t *stat40_sdext_body(item_entity_t *item, 
 					 uint8_t bit)
 {
 	struct body_hint hint = {NULL, bit};

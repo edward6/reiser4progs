@@ -176,6 +176,7 @@ errno_t reiser4_tree_connect(
 #endif
 	
 #ifndef ENABLE_ALONE
+	
 	/* Attaching new node into tree's lru list */
 	if ((res = aal_lru_attach(tree->lru, (void *)node))) {
 		aal_exception_error("Can't attach node %llu to "
@@ -374,7 +375,7 @@ reiser4_node_t *reiser4_tree_neighbour(reiser4_tree_t *tree,
 	uint32_t orig;
 	uint32_t level;
 
-	rpos_t pos;
+	pos_t pos;
 	reiser4_node_t *old;
 	reiser4_place_t place;
 
@@ -482,7 +483,7 @@ reiser4_node_t *reiser4_tree_alloc(
 	uint8_t level)	 	    /* level of new node */
 {
 	blk_t blk;
-	rpid_t pid;
+	rid_t pid;
 
 	uint32_t free, stamp;
 	reiser4_node_t *node;
@@ -552,10 +553,10 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 */
 static errno_t reiser4_tree_key(
 	reiser4_tree_t *tree,	/* tree to be used */
-	rpid_t pid)	        /* key plugin in use */
+	rid_t pid)	        /* key plugin in use */
 {
 	reiser4_oid_t *oid;
-	roid_t objectid, locality;
+	oid_t objectid, locality;
 	reiser4_plugin_t *plugin;
     
 	aal_assert("umka-1090", tree != NULL);
@@ -765,7 +766,7 @@ lookup_t reiser4_tree_lookup(
 	uint8_t deep;
 	lookup_t res;
 	reiser4_place_t fake;
-	rpos_t pos = {0, ~0ul};
+	pos_t pos = {0, ~0ul};
 
 	aal_assert("umka-1760", tree != NULL);
 	aal_assert("umka-742", key != NULL);
@@ -903,7 +904,7 @@ errno_t reiser4_tree_attach(
 	reiser4_tree_t *tree,	    /* tree we will attach node to */
 	reiser4_node_t *node)       /* child to attached */
 {
-	rpid_t pid;
+	rid_t pid;
 	errno_t res;
 	uint8_t level;
 	
@@ -1377,7 +1378,7 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	errno_t res;
 	uint8_t curr;
 	
-	rpos_t pos = {0, 0};
+	pos_t pos = {0, 0};
 	reiser4_node_t *node;
 	
 	aal_assert("vpf-672", tree != NULL);
@@ -1741,7 +1742,7 @@ errno_t reiser4_tree_cut(
 	}
 
 	if (start->node != end->node) {
-		rpos_t pos = {~0ul, ~0ul};
+		pos_t pos = {~0ul, ~0ul};
 
 		/* Removing start + 1 though end - 1 node from the tree */
 		node = reiser4_tree_right(tree, start->node);
@@ -2015,7 +2016,7 @@ errno_t reiser4_tree_down(
 {
 	errno_t res = 0;
 	reiser4_place_t place;
-	rpos_t *pos = &place.pos;
+	pos_t *pos = &place.pos;
 	reiser4_node_t *child = NULL;
  
 	aal_assert("vpf-418", hint != NULL);

@@ -22,7 +22,7 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sdext_unix_plugin;
 
-static errno_t sdext_unix_open(rbody_t *body, 
+static errno_t sdext_unix_open(body_t *body, 
 			       void *hint) 
 {
 	sdext_unix_t *ext;
@@ -45,13 +45,13 @@ static errno_t sdext_unix_open(rbody_t *body,
 	return 0;
 }
 
-static uint16_t sdext_unix_length(rbody_t *body) {
+static uint16_t sdext_unix_length(body_t *body) {
 	return sizeof(sdext_unix_t);
 }
 
 #ifndef ENABLE_ALONE
 
-static errno_t sdext_unix_init(rbody_t *body, 
+static errno_t sdext_unix_init(body_t *body, 
 			       void *hint) 
 {
 	sdext_unix_t *ext;
@@ -74,7 +74,7 @@ static errno_t sdext_unix_init(rbody_t *body,
 	return 0;
 }
 
-static errno_t sdext_unix_print(rbody_t *body, aal_stream_t *stream,
+static errno_t sdext_unix_print(body_t *body, aal_stream_t *stream,
 				uint16_t options)
 {
 	sdext_unix_t *ext;
@@ -89,19 +89,30 @@ static errno_t sdext_unix_print(rbody_t *body, aal_stream_t *stream,
 	aal_memset(uid, 0, sizeof(uid));
 	aal_memset(gid, 0, sizeof(gid));
 
-	aal_stream_format(stream, "uid:\t\t%u\n", sdext_unix_get_uid(ext));
-	aal_stream_format(stream, "gid:\t\t%u\n", sdext_unix_get_gid(ext));
+	aal_stream_format(stream, "uid:\t\t%u\n",
+			  sdext_unix_get_uid(ext));
+	
+	aal_stream_format(stream, "gid:\t\t%u\n",
+			  sdext_unix_get_gid(ext));
 	
 	atm = sdext_unix_get_atime(ext);
 	mtm = sdext_unix_get_mtime(ext);
 	ctm = sdext_unix_get_ctime(ext);
 
-	aal_stream_format(stream, "atime:\t\t%s", ctime((time_t *)&atm));
-	aal_stream_format(stream, "mtime:\t\t%s", ctime((time_t *)&mtm));
-	aal_stream_format(stream, "ctime:\t\t%s", ctime((time_t *)&ctm));
+	aal_stream_format(stream, "atime:\t\t%s",
+			  ctime((time_t *)&atm));
+	
+	aal_stream_format(stream, "mtime:\t\t%s",
+			  ctime((time_t *)&mtm));
+	
+	aal_stream_format(stream, "ctime:\t\t%s",
+			  ctime((time_t *)&ctm));
 
-	aal_stream_format(stream, "rdev:\t\t%u\n", sdext_unix_get_rdev(ext));
-	aal_stream_format(stream, "bytes:\t\t%llu\n", sdext_unix_get_bytes(ext));
+	aal_stream_format(stream, "rdev:\t\t%u\n",
+			  sdext_unix_get_rdev(ext));
+	
+	aal_stream_format(stream, "bytes:\t\t%llu\n",
+			  sdext_unix_get_bytes(ext));
 
 	return 0;
 }

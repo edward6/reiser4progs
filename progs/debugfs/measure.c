@@ -79,7 +79,7 @@ static errno_t tfrag_process_node(
 	reiser4_node_t *node,	   /* node to be estimated */
 	void *data)	           /* user-specified data */
 {
-	rpos_t pos;
+	pos_t pos;
 	tfrag_hint_t *frag_hint;
 
 	frag_hint = (tfrag_hint_t *)data;
@@ -273,7 +273,7 @@ static errno_t stat_process_node(
 	  it. Otherwise we just update stat structure.
 	*/
 	if (level > LEAF_LEVEL) {
-		rpos_t pos = {~0ul, ~0ul};
+		pos_t pos = {~0ul, ~0ul};
 		
 		internals_used = aal_device_get_bs(device) -
 			reiser4_node_space(node);
@@ -483,7 +483,7 @@ static errno_t dfrag_process_node(
 	reiser4_node_t *node,       /* node to be inspected */
 	void *data)                 /* traverse hint */
 {
-	rpos_t pos;
+	pos_t pos;
 	static int bogus = 0;
 	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
 

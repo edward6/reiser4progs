@@ -14,7 +14,7 @@
 reiser4_node_t *reiser4_node_create(
 	aal_device_t *device,	/* device new node will be created on*/
 	blk_t blk,		/* block new node will be created on */
-	rpid_t pid,		/* node plugin id to be used */
+	rid_t pid,		/* node plugin id to be used */
 	uint8_t level)		/* node level */
 {
 	reiser4_node_t *node;
@@ -182,7 +182,7 @@ errno_t reiser4_node_lkey(
 {
 	errno_t res;
 	reiser4_place_t place;
-	rpos_t pos = {0, ~0ul};
+	pos_t pos = {0, ~0ul};
 
 	aal_assert("umka-753", node != NULL);
 	aal_assert("umka-754", key != NULL);
@@ -196,7 +196,7 @@ errno_t reiser4_node_lkey(
 /* Returns position of passed node in parent node */
 errno_t reiser4_node_pos(
 	reiser4_node_t *node,	        /* node position will be obtained for */
-	rpos_t *pos)		        /* pointer result will be stored in */
+	pos_t *pos)		        /* pointer result will be stored in */
 {
 	lookup_t res;
 	reiser4_key_t lkey;
@@ -342,7 +342,7 @@ bool_t reiser4_node_confirm(reiser4_node_t *node) {
 lookup_t reiser4_node_lookup(
 	reiser4_node_t *node,	/* node to be grepped */
 	reiser4_key_t *key,	/* key to be find */
-	rpos_t *pos)	        /* found pos will be stored here */
+	pos_t *pos)	        /* found pos will be stored here */
 {
 	lookup_t res;
 
@@ -439,8 +439,8 @@ uint16_t reiser4_node_maxspace(reiser4_node_t *node) {
 }
 
 /* Makes copy @count items from @src_node into @dst_node */
-errno_t reiser4_node_copy(reiser4_node_t *dst_node, rpos_t *dst_pos,
-			  reiser4_node_t *src_node, rpos_t *src_pos,
+errno_t reiser4_node_copy(reiser4_node_t *dst_node, pos_t *dst_pos,
+			  reiser4_node_t *src_node, pos_t *src_pos,
 			  uint32_t count)
 {
 	errno_t res;
@@ -464,7 +464,7 @@ errno_t reiser4_node_copy(reiser4_node_t *dst_node, rpos_t *dst_pos,
 }
 
 /* Expands passed @node at @pos by @len */
-errno_t reiser4_node_expand(reiser4_node_t *node, rpos_t *pos,
+errno_t reiser4_node_expand(reiser4_node_t *node, pos_t *pos,
 			    uint32_t len, uint32_t count)
 {
 	errno_t res;
@@ -482,7 +482,7 @@ errno_t reiser4_node_expand(reiser4_node_t *node, rpos_t *pos,
 }
 
 /* Shrinks passed @node at @pos by @len */
-errno_t reiser4_node_shrink(reiser4_node_t *node, rpos_t *pos,
+errno_t reiser4_node_shrink(reiser4_node_t *node, pos_t *pos,
 			    uint32_t len, uint32_t count)
 {
 	errno_t res;
@@ -588,7 +588,7 @@ errno_t reiser4_node_shift(
 
 	/* Updating children positions in both nodes */
 	if (hint->control & SF_LEFT) {
-		rpos_t pos;
+		pos_t pos;
 
 		/* Updating neighbour starting from the first moved item */
 		POS_INIT(&pos, reiser4_node_items(neig) -
@@ -603,7 +603,7 @@ errno_t reiser4_node_shift(
 		if ((res = reiser4_node_uchildren(node, &pos)))
 			return res;
 	} else {
-		rpos_t pos;
+		pos_t pos;
 
 		/* Updating neighbour starting from the first item */
 		POS_INIT(&pos, 0, ~0ul);
@@ -646,7 +646,7 @@ errno_t reiser4_node_sync(
   levels of tre tree).
 */
 errno_t reiser4_node_ukey(reiser4_node_t *node,
-			  rpos_t *pos,
+			  pos_t *pos,
 			  reiser4_key_t *key)
 {
 	errno_t res;
@@ -671,7 +671,7 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
   modifying.
 */
 errno_t reiser4_node_uchildren(reiser4_node_t *node,
-			       rpos_t *start)
+			       pos_t *start)
 {
 	errno_t res;
 	uint32_t items;
@@ -745,7 +745,7 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 */
 errno_t reiser4_node_insert(
 	reiser4_node_t *node,	         /* node item will be inserted in */
-	rpos_t *pos,                     /* pos item will be inserted at */
+	pos_t *pos,                     /* pos item will be inserted at */
 	reiser4_item_hint_t *hint)	 /* item hint to be inserted */
 {
 	errno_t res;
@@ -790,9 +790,9 @@ errno_t reiser4_node_insert(
 /* Inserts/overwrites some amount of items/units */
 errno_t reiser4_node_write(
 	reiser4_node_t *dst_node,        /* destination node */
-	rpos_t *dst_pos,                 /* destination pos */
+	pos_t *dst_pos,                 /* destination pos */
 	reiser4_node_t *src_node,        /* source node */
-	rpos_t *src_pos,                 /* source pos */
+	pos_t *src_pos,                 /* source pos */
 	uint32_t count)
 {
 	aal_exception_error("Sorry, not implemented yet!");
@@ -802,8 +802,8 @@ errno_t reiser4_node_write(
 /* Removes some amount of item/units */
 errno_t reiser4_node_cut(
 	reiser4_node_t *node,	         /* node item will be removed from */
-	rpos_t *start,		         /* start item will be removed at */
-	rpos_t *end)		         /* end item will be removed at */
+	pos_t *start,		         /* start item will be removed at */
+	pos_t *end)		         /* end item will be removed at */
 {
 	errno_t res;
 	
@@ -837,7 +837,7 @@ errno_t reiser4_node_cut(
 */
 errno_t reiser4_node_remove(
 	reiser4_node_t *node,	            /* node item will be removed from */
-	rpos_t *pos,                        /* pos item will be removed at */
+	pos_t *pos,                        /* pos item will be removed at */
 	uint32_t count)                     /* the number of item/units */
 {
 	errno_t res;

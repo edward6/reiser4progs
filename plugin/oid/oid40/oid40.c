@@ -85,13 +85,13 @@ static errno_t oid40_sync(object_entity_t *entity) {
 }
 
 /* Returns next oid to be used */
-static roid_t oid40_next(object_entity_t *entity) {
+static oid_t oid40_next(object_entity_t *entity) {
 	aal_assert("umka-1109", entity != NULL);
 	return ((oid40_t *)entity)->next;
 }
 
 /* Returns free oid and marks it as used */
-static roid_t oid40_allocate(object_entity_t *entity) {
+static oid_t oid40_allocate(object_entity_t *entity) {
 	aal_assert("umka-513", entity != NULL);
 
 	((oid40_t *)entity)->next++;
@@ -102,7 +102,7 @@ static roid_t oid40_allocate(object_entity_t *entity) {
 
 /* Releases passed oid */
 static void oid40_release(object_entity_t *entity, 
-			  roid_t oid)
+			  oid_t oid)
 {
 	aal_assert("umka-528", entity != NULL);
 	((oid40_t *)entity)->used--;
@@ -130,13 +130,13 @@ static errno_t oid40_print(object_entity_t *entity,
 }
 
 /* Returns number of free oids */
-static roid_t oid40_free(object_entity_t *entity) {
+static oid_t oid40_free(object_entity_t *entity) {
 	aal_assert("umka-961", entity != NULL);
 	return ~0ull - ((oid40_t *)entity)->next;
 }
 
 /* Returns number of used oids */
-static roid_t oid40_used(object_entity_t *entity) {
+static oid_t oid40_used(object_entity_t *entity) {
 	aal_assert("umka-530", entity != NULL);
 	return ((oid40_t *)entity)->used;
 }
@@ -155,17 +155,17 @@ static errno_t oid40_valid(object_entity_t *entity) {
 }
 
 /* Returns the root parent locality */
-static roid_t oid40_hyper_locality(void) {
+static oid_t oid40_hyper_locality(void) {
 	return OID40_HYPER_LOCALITY;
 }
 
 /* Returns root locality */
-static roid_t oid40_root_locality(void) {
+static oid_t oid40_root_locality(void) {
 	return OID40_ROOT_LOCALITY;
 }
 
 /* Returns root oid */
-static roid_t oid40_root_objectid(void) {
+static oid_t oid40_root_objectid(void) {
 	return OID40_ROOT_OBJECTID;
 }
 

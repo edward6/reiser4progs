@@ -20,8 +20,8 @@
 
 /* Helper structure used in searching of plugins */
 struct walk_desc {
-	rpid_t id;			    /* needed plugin id */
-	rpid_t type;		            /* needed plugin type */
+	rid_t id;			    /* needed plugin id */
+	rid_t type;		            /* needed plugin type */
 	const char *name;
 };
 
@@ -423,8 +423,8 @@ void libreiser4_factory_fini(void) {
 
 /* Finds plugins by its type and id */
 reiser4_plugin_t *libreiser4_factory_ifind(
-	rpid_t type,			         /* requested plugin type */
-	rpid_t id)				 /* requested plugin id */
+	rid_t type,			         /* requested plugin type */
+	rid_t id)				 /* requested plugin id */
 {
 	aal_list_t *found;
 	walk_desc_t desc;

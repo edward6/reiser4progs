@@ -16,7 +16,7 @@
 
 #define MIN_ITEM_LEN	1
 
-extern errno_t node40_remove(object_entity_t *entity, rpos_t *pos, uint32_t count);
+extern errno_t node40_remove(object_entity_t *entity, pos_t *pos, uint32_t count);
 
 static void node40_set_offset_at(node40_t *node, int pos, uint16_t offset) {
     if (pos > nh40_get_num_items(node))
@@ -32,7 +32,7 @@ static errno_t node40_region_delete(node40_t *node, uint16_t start_pos,
     uint16_t end_pos) 
 {
     uint8_t i;
-    rpos_t pos;
+    pos_t pos;
     item40_header_t *ih;
      
     aal_assert("vpf-201", node != NULL);

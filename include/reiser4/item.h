@@ -47,11 +47,11 @@ extern bool_t reiser4_item_filename(reiser4_place_t *place);
 
 extern bool_t reiser4_item_branch(reiser4_place_t *place);
 extern bool_t reiser4_item_data(reiser4_plugin_t *plugin);
-extern rpid_t reiser4_item_type(reiser4_place_t *place);
+extern rid_t reiser4_item_type(reiser4_place_t *place);
 
 extern uint32_t reiser4_item_len(reiser4_place_t *place);
 extern uint32_t reiser4_item_units(reiser4_place_t *place);
-extern rbody_t *reiser4_item_body(reiser4_place_t *place);
+extern body_t *reiser4_item_body(reiser4_place_t *place);
 extern reiser4_plugin_t *reiser4_item_plugin(reiser4_place_t *place);
 
 

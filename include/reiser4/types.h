@@ -94,7 +94,7 @@ typedef struct reiser4_place reiser4_place_t;
 
 struct reiser4_place {
 	reiser4_node_t *node;
-	rpos_t pos;
+	pos_t pos;
 	item_entity_t item;
 };
 

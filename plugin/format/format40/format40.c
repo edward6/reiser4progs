@@ -339,17 +339,17 @@ static const char *format40_name(object_entity_t *entity) {
 	return formats[0];
 }
 
-static rpid_t format40_oid_pid(object_entity_t *entity) {
+static rid_t format40_oid_pid(object_entity_t *entity) {
 	return OID_REISER40_ID;
 }
 
 #ifndef ENABLE_ALONE
 
-static rpid_t format40_journal_pid(object_entity_t *entity) {
+static rid_t format40_journal_pid(object_entity_t *entity) {
 	return JOURNAL_REISER40_ID;
 }
 
-static rpid_t format40_alloc_pid(object_entity_t *entity) {
+static rid_t format40_alloc_pid(object_entity_t *entity) {
 	return ALLOC_REISER40_ID;
 }
 

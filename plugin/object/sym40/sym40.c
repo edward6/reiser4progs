@@ -88,9 +88,9 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 				     reiser4_object_hint_t *hint,
 				     place_t *place)
 {
-	roid_t objectid;
-	roid_t locality;
-	roid_t parent_locality;
+	oid_t objectid;
+	oid_t locality;
+	oid_t parent_locality;
 
 	sym40_t *sym;
 	reiser4_plugin_t *stat_plugin;

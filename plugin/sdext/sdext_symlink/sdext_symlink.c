@@ -11,7 +11,7 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sdext_symlink_plugin;
 
-static errno_t sdext_symlink_open(rbody_t *body, 
+static errno_t sdext_symlink_open(body_t *body, 
 				  void *hint) 
 {
 	char *data;
@@ -25,14 +25,14 @@ static errno_t sdext_symlink_open(rbody_t *body,
 	return 0;
 }
 
-static uint16_t sdext_symlink_length(rbody_t *body) {
+static uint16_t sdext_symlink_length(body_t *body) {
 	aal_assert("umka-1488", body != NULL);
 	return aal_strlen((char *)body) + 1;
 }
 
 #ifndef ENABLE_ALONE
 
-static errno_t sdext_symlink_init(rbody_t *body, 
+static errno_t sdext_symlink_init(body_t *body, 
 				  void *hint) 
 {
 	char *data;
@@ -45,8 +45,9 @@ static errno_t sdext_symlink_init(rbody_t *body,
 	return 0;
 }
 
-static errno_t sdext_symlink_print(rbody_t *body, aal_stream_t *stream,
-			      uint16_t options)
+static errno_t sdext_symlink_print(body_t *body,
+				   aal_stream_t *stream,
+				   uint16_t options)
 {
 	aal_assert("umka-1485", body != NULL);
 	aal_assert("umka-1486", stream != NULL);

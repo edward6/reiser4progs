@@ -16,7 +16,7 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sdext_lw_plugin;
 
-static errno_t sdext_lw_init(rbody_t *body, 
+static errno_t sdext_lw_init(body_t *body, 
 			     void *hint) 
 {
 	sdext_lw_t *ext;
@@ -35,7 +35,7 @@ static errno_t sdext_lw_init(rbody_t *body,
 	return 0;
 }
 
-static errno_t sdext_lw_open(rbody_t *body, 
+static errno_t sdext_lw_open(body_t *body, 
 			     void *hint) 
 {
 	sdext_lw_t *ext;
@@ -54,7 +54,7 @@ static errno_t sdext_lw_open(rbody_t *body,
 	return 0;
 }
 
-static uint16_t sdext_lw_length(rbody_t *body) {
+static uint16_t sdext_lw_length(body_t *body) {
 	return sizeof(sdext_lw_t);
 }
 
@@ -96,7 +96,7 @@ static void sdext_lw_parse_mode(uint16_t mode, char *str) {
 	str[10] = '\0';
 }
 
-static errno_t sdext_lw_print(rbody_t *body, aal_stream_t *stream,
+static errno_t sdext_lw_print(body_t *body, aal_stream_t *stream,
 			      uint16_t options)
 {
 	char mode[16];
@@ -112,8 +112,12 @@ static errno_t sdext_lw_print(rbody_t *body, aal_stream_t *stream,
 	sdext_lw_parse_mode(sdext_lw_get_mode(ext), mode);
 	
 	aal_stream_format(stream, "mode:\t\t%s\n", mode);
-	aal_stream_format(stream, "nlink:\t\t%u\n", sdext_lw_get_nlink(ext));
-	aal_stream_format(stream, "size:\t\t%llu\n", sdext_lw_get_size(ext));
+	
+	aal_stream_format(stream, "nlink:\t\t%u\n",
+			  sdext_lw_get_nlink(ext));
+	
+	aal_stream_format(stream, "size:\t\t%llu\n",
+			  sdext_lw_get_size(ext));
 	
 	return 0;
 }

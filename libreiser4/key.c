@@ -76,8 +76,8 @@ void reiser4_key_clean(
 errno_t reiser4_key_build_generic(
 	reiser4_key_t *key,	    /* key to be built */
 	uint32_t type,		    /* key type to be used */
-	roid_t locality,	    /* locality to be used */
-	roid_t objectid,	    /* objectid to be used */
+	oid_t locality,	    /* locality to be used */
+	oid_t objectid,	    /* objectid to be used */
 	uint64_t offset)	    /* offset to be used */
 {
 	aal_assert("umka-665", key != NULL);
@@ -91,8 +91,8 @@ errno_t reiser4_key_build_generic(
 errno_t reiser4_key_build_entry(
 	reiser4_key_t *key,	    /* key to be built */
 	reiser4_plugin_t *plugin,   /* hash plugin to be used */
-	roid_t locality,	    /* loaclity to be used */
-	roid_t objectid,	    /* objectid to be used */
+	oid_t locality,	    /* loaclity to be used */
+	oid_t objectid,	    /* objectid to be used */
 	const char *name)	    /* entry name to be hashed */
 {
 	aal_assert("umka-668", key != NULL);
@@ -145,7 +145,7 @@ errno_t reiser4_key_set_hash(
 /* Updates key objectid */
 errno_t reiser4_key_set_objectid(
 	reiser4_key_t *key,	    /* key objectid will be updated in */
-	roid_t objectid)	    /* new objectid */
+	oid_t objectid)	    /* new objectid */
 {
 	aal_assert("umka-694", key != NULL);
 	aal_assert("umka-695", key->plugin != NULL);
@@ -159,7 +159,7 @@ errno_t reiser4_key_set_objectid(
 /* Updates key locality */
 errno_t reiser4_key_set_locality(
 	reiser4_key_t *key,	    /* key locality will be updated in */
-	roid_t locality)	    /* new locality */
+	oid_t locality)	    /* new locality */
 {
 	aal_assert("umka-696", key != NULL);
 	aal_assert("umka-697", key->plugin != NULL);
@@ -194,7 +194,7 @@ uint64_t reiser4_key_get_hash(reiser4_key_t *key) {
 }
 
 /* Returns key objectid */
-roid_t reiser4_key_get_objectid(reiser4_key_t *key) {
+oid_t reiser4_key_get_objectid(reiser4_key_t *key) {
 	aal_assert("umka-702", key != NULL);
 	aal_assert("umka-703", key->plugin != NULL);
 
@@ -202,7 +202,7 @@ roid_t reiser4_key_get_objectid(reiser4_key_t *key) {
 }
 
 /* Returns key locality */
-roid_t reiser4_key_get_locality(reiser4_key_t *key) {
+oid_t reiser4_key_get_locality(reiser4_key_t *key) {
 	aal_assert("umka-704", key != NULL);
 	aal_assert("umka-705", key->plugin != NULL);
 

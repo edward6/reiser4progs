@@ -56,15 +56,15 @@ void libreiser4_set_abort(reiser4_abort_t func) {
 
 /* Handler for plugin finding requests from all plugins */
 static reiser4_plugin_t *factory_ifind(
-	rpid_t type,		    /* needed type of plugin*/
-	rpid_t id)		    /* needed plugin id */
+	rid_t type,		    /* needed type of plugin*/
+	rid_t id)		    /* needed plugin id */
 {
 	return libreiser4_factory_ifind(type, id);
 }
 
 /* Handler for plugin finding requests from all plugins */
 static reiser4_plugin_t *factory_nfind(
-	rpid_t type,		    /* needed type of plugin*/
+	rid_t type,		    /* needed type of plugin*/
 	const char *name)	    /* needed plugin name (label) */
 {
 	return libreiser4_factory_nfind(name);

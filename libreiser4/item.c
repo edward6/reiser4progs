@@ -161,7 +161,7 @@ bool_t reiser4_item_branch(reiser4_place_t *place) {
 }
 
 /* Returns item type from its plugin */
-rpid_t reiser4_item_type(reiser4_place_t *place) {
+rid_t reiser4_item_type(reiser4_place_t *place) {
 	item_entity_t *item;
 	
 	aal_assert("vpf-424", place != NULL);
@@ -189,7 +189,7 @@ uint32_t reiser4_item_len(reiser4_place_t *place) {
 }
 
 /* Retuns item body pointer */
-rbody_t *reiser4_item_body(reiser4_place_t *place) {
+body_t *reiser4_item_body(reiser4_place_t *place) {
 	item_entity_t *item;
 	
 	aal_assert("umka-554", place != NULL);

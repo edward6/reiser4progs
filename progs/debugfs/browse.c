@@ -26,7 +26,8 @@ static errno_t debugfs_object_cat(reiser4_object_t *object) {
 	while (1) {
 		aal_memset(buff, 0, sizeof(buff));
 
-		if (!(read = reiser4_object_read(object, buff, sizeof(buff))))
+		if ((read = reiser4_object_read(object, buff,
+						sizeof(buff))) <= 0)
 			break;
 
 		debugfs_print_buff(buff, read);
@@ -68,17 +69,20 @@ static errno_t debugfs_object_ls(reiser4_object_t *object) {
 
 /* Common entry point for --ls and --cat options handling code */
 errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
-	errno_t res = 0;
+	errno_t res = -1;
 	reiser4_object_t *object;
 	
 	if (!(object = reiser4_object_open(fs, filename)))
 		return -1;
 
-	if (object->entity->plugin->h.group == FILE_OBJECT)
+	switch (object->entity->plugin->h.group) {
+	case FILE_OBJECT:
 		res = debugfs_object_cat(object);
-	else if (object->entity->plugin->h.group == DIRTORY_OBJECT)
+		break;
+	case DIRTORY_OBJECT:
 		res = debugfs_object_ls(object);
-	else {
+		break;
+	default:
 		aal_exception_info("Sorry, browsing of the special "
 				   "files is not implemented yet.");
 	}
