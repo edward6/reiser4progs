@@ -48,7 +48,7 @@ static int reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 	aal_assert("vpf-1318", reg != NULL);
 	aal_assert("vpf-1318", sd_size != NULL);
 	
-	if (*sd_size >= counted_size)
+	if (*sd_size == counted_size)
 		return 0;
 	
 	/* sd_size lt counted size, check if it is correct for extent. */
