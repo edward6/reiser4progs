@@ -429,7 +429,7 @@ void format40_set_key(generic_entity_t *entity, rid_t key) {
 	flags &= ~(1 << FORMAT40_KEY_LARGE);
 	flags |= ((key == KEY_LARGE_ID) ? (1 << FORMAT40_KEY_LARGE) : 0);
 	set_sb_flags(SUPER(entity), flags);
-	format40_mkdirty(SUPER(entity));
+	format40_mkdirty(entity);
 }
 #endif
 

@@ -42,32 +42,21 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	aal_assert("vpf-171", fs->device != NULL);
 	aal_assert("vpf-834", fs->master != NULL);
 	
-	/* If opened backup does not match opened format, close format. */
 	pid = reiser4_master_get_format(fs->master);
-	if (fs->format && pid != fs->format->ent->plug->id.id) {
-		reiser4_format_close(fs->format);
-		fs->format = NULL;
-	}
 
 	/* If format is not opened but the master has been changed, try
 	 to open format again -- probably the master format plug id has 
 	 been changed. */
-	if (!fs->format && reiser4_master_isdirty(fs->master))
+	if (!fs->format && pid < FORMAT_LAST_ID && 
+	    reiser4_master_isdirty(fs->master))
+	{
 		fs->format = reiser4_format_open(fs);
+	}
 
 	/* If format is still not opened, return the error not in 
 	   the BUILD mode. */
-	if (!fs->format) {
-		/* Format was not overridden, try to detect it. */
-		if ((plug = reiser4_master_guess(fs->device))) {
-			aal_info("Trying to detect it ... '%s' is detected. "
-				 "Fsck with -o format='%s' option will have "
-				 "an effect.", plug->label, plug->label);
-		}
-				
-		if (mode != RM_BUILD)
-			return RE_FATAL;
-	}
+	if (!fs->format && mode != RM_BUILD)
+		return RE_FATAL;
 	
 	/* Prepare the format hint for the futher checks. */
 	aal_memset(&hint, 0, sizeof(hint));
@@ -95,6 +84,7 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 
 		aal_ui_get_alpha(buff, cb_check_plugname, &plug, 
 				 "Enter the key plugin name");
+		hint.mask |= (1 << PM_KEY);
 	}
 	hint.key = plug->id.id;
 	

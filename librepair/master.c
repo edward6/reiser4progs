@@ -27,6 +27,7 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	reiser4_plug_t *format;
 	fs_hint_t hint;
 	uint16_t size;
+	int new = 0;
 	rid_t pid;
 	int over;
 	char *s;
@@ -79,8 +80,9 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		reiser4_master_set_label(fs->master, master ? 
 					 master->ms_label : NULL);
 
-		pid = master ? get_ms_format(master) : format->id.id;
+		pid = master ? get_ms_format(master) : INVAL_PID;
 		reiser4_master_set_format(fs->master, pid);
+		new = 1;
 	} else if (master) {
 		/* Master SB & backup are opened. Fix accoring to backup. */
 		size = reiser4_master_get_blksize(fs->master);
@@ -182,20 +184,54 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	
 	pid = reiser4_master_get_format(fs->master);
 	
-	/* If the format is overridden, fix master accordingly to the specified 
-	   value. */ 
+	/* If the format is overridden, fix master according to the profile. */
 	if (over && pid != format->id.id) {
-		/* The @plug is the correct one. */
-		fsck_mess("The specified reiser4 format on '%s' is '%s'. Its "
-			  "id (0x%x) does not match the on-disk id (0x%x).%s", 
-			  fs->device->name, format->label, format->id.id, pid,
-			  mode == RM_BUILD ? " Fixed." : " Has effect in BUILD "
-			  "mode only.");
+		if (!new || master) {
+			/* Do not swear if the master has been just created. */
+			fsck_mess("The specified disk format on '%s' is '%s'. "
+				  "Its id (0x%x) does not match the on-disk id "
+				  "(0x%x).%s", fs->device->name, format->label,
+				  format->id.id, pid, mode == RM_BUILD ? 
+				  " Fixed." :" Has effect in BUILD mode only.");
+		}
 
 		if (mode != RM_BUILD)
 			return RE_FATAL;
 
-		reiser4_master_set_format(fs->master, format->id.id);
+		pid = format->id.id;
+		reiser4_master_set_format(fs->master, pid);
+	}
+
+	/* If format is opened but the format plugin id has been changed, 
+	   close the format. */
+	if (fs->format && pid != fs->format->ent->plug->id.id) {
+		reiser4_format_close(fs->format);
+		fs->format = NULL;
+	}
+
+	if (!over && !master && !fs->format && mode == RM_BUILD) {
+		/* If there is no backup and format plug id is not overridden
+		   in the profile, format plug id has not been changed in the 
+		   master! 
+		   
+		   In the BUILD mode: a new master has been just created or a 
+		   master was opened but the format was not. For both cases --
+		   ask for the format plugin to be used, otherwise, leave it as
+		   is. 
+		   
+		   WARNING: the default format plugin is used while there is 
+		   the only format plugin. */
+		
+		if (pid != format->id.id) {
+			if (!new) {
+				fsck_mess("The on-disk format plugin id 0x%x "
+					  "is not correct. Using the default "
+					  "one 0x%x('%s').", pid, format->id.id,
+					  format->label);
+			}
+			
+			reiser4_master_set_format(fs->master, format->id.id);
+		}
 	}
 
 	return 0;
