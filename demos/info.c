@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
 			progs_exception_set_stream(i, stderr);
 	}
     
-	if (!(device = aal_file_open(argv[1], DEFAULT_BLOCKSIZE, O_RDONLY))) {
+	if (!(device = aal_device_open(&file_ops, argv[1], DEFAULT_BLOCKSIZE, O_RDONLY))) {
 		aal_exception_error("Can't open device %s.", argv[1]);
 		goto error_free_libreiser4;
 	}
@@ -104,14 +104,14 @@ int main(int argc, char *argv[]) {
     
 	reiser4_fs_close(fs);
 	libreiser4_done();
-	aal_file_close(device);
+	aal_device_close(device);
 
 	return 0;
 
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:
-	aal_file_close(device);
+	aal_device_close(device);
  error_free_libreiser4:
 	libreiser4_done();
  error:

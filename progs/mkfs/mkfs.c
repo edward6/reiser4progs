@@ -309,7 +309,7 @@ int main(int argc, char *argv[]) {
 			uuid_generate(uuid);
 #endif
 		/* Opening device */
-		if (!(device = aal_file_open(host_dev, blocksize, O_RDWR))) {
+		if (!(device = aal_device_open(&file_ops, host_dev, blocksize, O_RDWR))) {
 			char *error = strerror(errno);
 	
 			aal_exception_error("Can't open %s. %s.", host_dev, error);
@@ -342,8 +342,8 @@ int main(int argc, char *argv[]) {
 		aal_gauge_start(gauge);
 
 		/* Creating filesystem */
-		if (!(fs = reiser4_fs_create(profile, device, blocksize, 
-					     (const char *)uuid, (const char *)label, fs_len, device, NULL))) 
+		if (!(fs = reiser4_fs_create(profile, device, uuid, label,
+					     fs_len, device, NULL))) 
 		{
 			aal_exception_error("Can't create filesystem on %s.", 
 					    aal_device_name(device));
@@ -414,7 +414,7 @@ int main(int argc, char *argv[]) {
 	
 		/* Freeing the filesystem instance and device instance */
 		reiser4_fs_close(fs);
-		aal_file_close(device);
+		aal_device_close(device);
 	}
     
 	/* Freeing the all used objects */
@@ -434,7 +434,7 @@ int main(int argc, char *argv[]) {
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:
-	aal_file_close(device);
+	aal_device_close(device);
  error_free_libreiser4:
 	libreiser4_done();
  error:

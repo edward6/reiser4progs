@@ -1033,7 +1033,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Opening device */
-	if (!(device = aal_file_open(host_dev, DEFAULT_BLOCKSIZE, O_RDONLY))) {
+	if (!(device = aal_device_open(&file_ops, host_dev, DEFAULT_BLOCKSIZE, O_RDONLY))) {
 		aal_exception_error("Can't open %s. %s.", host_dev,
 				    strerror(errno));
 		goto error_free_libreiser4;
@@ -1133,7 +1133,7 @@ int main(int argc, char *argv[]) {
     
 	/* Deinitializing filesystem instance and device instance */
 	reiser4_fs_close(fs);
-	aal_file_close(device);
+	aal_device_close(device);
     
 	/* 
 	   Deinitializing libreiser4. At the moment only plugins are unloading 
@@ -1146,7 +1146,7 @@ int main(int argc, char *argv[]) {
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:
-	aal_file_close(device);
+	aal_device_close(device);
  error_free_libreiser4:
 	libreiser4_done();
  error:

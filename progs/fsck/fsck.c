@@ -244,7 +244,7 @@ static int fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	}
     }
     
-    if (!(data->host_device = aal_file_open(argv[optind], 
+    if (!(data->host_device = aal_device_open(&file_ops, argv[optind], 
 	DEFAULT_BLOCKSIZE, O_RDWR))) 
     {
 	aal_exception_fatal("Cannot open the partition (%s): %s.", argv[optind], 
@@ -363,7 +363,7 @@ free_fs:
     repair_fs_close(fs);
 free_device:
     if (data.host_device)
-	aal_file_close(data.host_device);
+	aal_device_close(data.host_device);
 free_libreiser4:
     libreiser4_done();
 

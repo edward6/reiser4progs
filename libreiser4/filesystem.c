@@ -219,14 +219,14 @@ errno_t reiser4_fs_mark(reiser4_fs_t *fs) {
 reiser4_fs_t *reiser4_fs_create(
 	reiser4_profile_t *profile,	/* profile to be used for new filesystem */
 	aal_device_t *host_device,	/* device filesystem will be lie on */
-	size_t blocksize,		/* blocksize to be used in new filesystem */
-	const char *uuid,		/* uuid to be used */
-	const char *label,		/* label to be used */
+	char *uuid,		        /* uuid to be used */
+	char *label,		        /* label to be used */
 	count_t len,		        /* filesystem length in blocks */
 	aal_device_t *journal_device,   /* device journal will be lie on */
 	void *journal_hint)	        /* journal params (most probably will be used for r3) */
 {
 	reiser4_fs_t *fs;
+	uint32_t blocksize;
 	blk_t blk, master_offset;
 	blk_t journal_area_start;
 	blk_t journal_area_end;
@@ -237,6 +237,8 @@ reiser4_fs_t *reiser4_fs_create(
 	aal_assert("umka-150", journal_device != NULL, return NULL);
 	aal_assert("vpf-113", profile != NULL, return NULL);
 
+	blocksize = host_device->blocksize;
+	
 	/* Makes check for validness of specified block size value */
 	if (!aal_pow_of_two(blocksize)) {
 		aal_exception_error("Invalid block size %u. It must be power of two.", 

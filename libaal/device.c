@@ -36,9 +36,9 @@
 */
 aal_device_t *aal_device_open(
 	struct aal_device_ops *ops, /* pointer to device operations */
-	uint16_t blocksize,	    /* block size device is working with */
-	int flags,		    /* flags device opened with (O_RDONLY, etc) */
-	void *data)		    /* some caller specified data */
+	void *personality,          /* device personality (filename, etc) */
+	uint32_t blocksize,         /* block size device is working with */
+	int flags)		    /* flags device opened with (O_RDONLY, etc) */
 {
 	aal_device_t *device;
 
@@ -46,12 +46,14 @@ aal_device_t *aal_device_open(
     
 	/* Rough check for blocksize validness */
 	if (!aal_pow_of_two(blocksize)) {
-		aal_exception_error("Block size %u isn't power of two.", blocksize);
+		aal_exception_error("Block size %u isn't power "
+				    "of two.", blocksize);
 		return NULL;
 	}	
     
 	if (blocksize < 512) {
-		aal_exception_error("Block size can't be less than 512 bytes.");
+		aal_exception_error("Block size can't be less than "
+				    "512 bytes.");
 		return NULL;
 	}	
     
@@ -60,11 +62,30 @@ aal_device_t *aal_device_open(
 		return NULL;
 
 	device->ops = ops;
-	device->data = data;
+	device->flags = flags;
+	device->blocksize = blocksize;
+	device->personality = personality;
+
+	if (ops->open(device, personality, blocksize, flags))
+		goto error_free_device;
+
+	return device;
+	
+ error_free_device:
+	aal_free(device);
+	return NULL;
+}
+
+errno_t aal_device_reopen(
+	aal_device_t *device,       /* device for reopening */
+	uint32_t blocksize,         /* block size device is working with */
+	int flags)		    /* flags device opened with (O_RDONLY...) */
+{
 	device->flags = flags;
 	device->blocksize = blocksize;
 
-	return device;
+	return device->ops->open(device, device->personality,
+				 blocksize, flags);
 }
 
 int aal_device_readonly(aal_device_t *device) {
@@ -77,6 +98,8 @@ void aal_device_close(
 	aal_device_t *device)	/* device to be closed */
 {
 	aal_assert("umka-430", device != NULL, return);
+
+	device->ops->close(device);
 	aal_free(device);
 }
 
@@ -86,7 +109,7 @@ void aal_device_close(
 */
 errno_t aal_device_set_bs(
 	aal_device_t *device,	/* device to be set with passed blocksize */
-	uint16_t blocksize)	/* new blocksize value */
+	uint32_t blocksize)	/* new blocksize value */
 {
 	aal_assert("umka-431", device != NULL, return -1);
 	
@@ -186,19 +209,6 @@ int aal_device_equals(
 	
 	aal_device_check_routine(device1, equals, return 0);
 	return device1->ops->equals(device1, device2);
-}
-
-/* 
-   Retuns device stat information by calling "stat" operation from specified
-   device instance.
-*/
-uint32_t aal_device_stat(
-	aal_device_t *device)	/* device instance to be stated */
-{
-	aal_assert("umka-440", device != NULL, return 0);
-	
-	aal_device_check_routine(device, stat, return 0);
-	return device->ops->stat(device);
 }
 
 /* Returns device length in blocks */

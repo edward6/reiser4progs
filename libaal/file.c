@@ -21,11 +21,10 @@
 #include <string.h>
 
 #include <sys/stat.h>
-//#include <asm/ioctl.h>
 #include <sys/ioctl.h>
 
 /* Function for saving last error message into device assosiated buffer */
-static void save_error(
+static void file_error(
 	aal_device_t *device)	    /* device, error will be saved into */
 {
 	char *error;
@@ -35,6 +34,69 @@ static void save_error(
 
 	if ((error = strerror(errno)))
 		aal_strncpy(device->error, error, aal_strlen(error));
+}
+
+/*
+  Opens actual file, initializes aal_device_t instance and returns it to caller.
+  This function as well fille device at all is whidely used in all reiser4progs
+  (mkfs, fsck, etc) for opening a device and working with them.
+*/
+errno_t file_open(
+	aal_device_t *device,
+	void *personality,	    /* name of file to be used as file device */
+	uint32_t blocksize,	    /* used blocksize */
+	int flags)		    /* flags file will be opened with */
+{
+	int fd;
+	char *filename;
+
+	if (!device)
+		return -1;
+	
+	if (!personality || aal_strlen((char *)personality) == 0) 
+		return -1;
+    
+	/* Initializing device entity (file descripror in the case of file device) */
+	if (!(device->entity = aal_calloc(sizeof(int), 0)))
+		return -1;
+
+	/* Opening specified file with specified flags */
+	filename = (char *)personality;
+	
+#if defined(O_LARGEFILE)
+	if ((fd = open(filename, flags | O_LARGEFILE)) == -1)
+#else
+	if ((fd = open(filename, flags)) == -1)
+#endif
+		goto error_free_device;
+
+	*(int *)device->entity = fd;
+	
+	aal_strncpy(device->name, filename,
+		    sizeof(device->name));
+	
+	return 0;
+    
+ error_free_device:
+	aal_free(device);
+ error:
+	return -1;    
+}
+
+/* 
+   Closes file device. Close opened file descriptor, frees all assosiated
+   memory.  It is usualy called at end for work any utility from reiser4progs
+   set.
+*/
+void file_close(
+	aal_device_t *device)	     /* file device to be closed */
+{
+	if (!device) 
+		return;
+
+	/* Closing entity (file descriptor) */
+	close(*((int *)device->entity));
+	aal_free(device->entity);
 }
 
 /*
@@ -59,14 +121,14 @@ static errno_t file_read(
 	*/
 	off = (off_t)block * (off_t)device->blocksize;
 	if (lseek(*((int *)device->entity), off, SEEK_SET) == (off_t)-1) {
-		save_error(device);
+		file_error(device);
 		return errno;
 	}
 
 	/* Reading data form file */
 	len = (off_t)count * (off_t)device->blocksize;
 	if (read(*((int *)device->entity), buff, len) <= 0) {
-		save_error(device);
+		file_error(device);
 		return errno;
 	}
     
@@ -91,14 +153,14 @@ static errno_t file_write(
 	/* Positioning inside file */
 	off = (off_t)block * (off_t)device->blocksize;
 	if (lseek(*((int *)device->entity), off, SEEK_SET) == (off_t)-1) {
-		save_error(device);
+		file_error(device);
 		return errno;
 	}
     
 	/* Writing into file */
 	len = (off_t)count * (off_t)device->blocksize;
 	if (write((*(int *)device->entity), buff, len) <= 0) {
-		save_error(device);
+		file_error(device);
 		return errno;
 	}
 	
@@ -117,7 +179,7 @@ static errno_t file_sync(
 	
 	/* As this is file device, we are using fsync function for synchronizing file */
 	if (fsync(*((int *)device->entity))) {
-		save_error(device);
+		file_error(device);
 		return errno;
 	}
 
@@ -152,27 +214,6 @@ static int file_equals(
 	return !aal_strncmp((char *)device1->data, 
 			    (char *)device2->data,
 			    aal_strlen((char *)device1->data));
-}
-
-/*
-  Handler for "stat" operation for use with file device. See bellow for
-  understanding where it is used.
-*/
-static uint32_t file_stat(
-	aal_device_t *device)	    /* file device to be stated */
-{
-	struct stat st;
-	
-	if (!device)
-		return 0;
-    
-	/* Stating file device by using standard "stat" function */
-	if (stat((char *)device->data, &st)) {
-		save_error(device);
-		return 0;
-	}
-	
-	return (uint32_t)st.st_rdev;
 }
 
 #if defined(__linux__) && defined(_IOR) && !defined(BLKGETSIZE64)
@@ -225,7 +266,7 @@ static count_t file_len(
 	if ((max_off = lseek(*((int *)device->entity), 
 			     0, SEEK_END)) == (off_t)-1) 
 	{
-		save_error(device);
+		file_error(device);
 		return INVAL_BLK;
 	}
     
@@ -238,108 +279,15 @@ static count_t file_len(
   device. It is pretty simple. The same as in linux implemented abstraction from
   interrupt controller.
 */
-static struct aal_device_ops ops = {
-	.read = file_read,	    /* handler for "read" operation */	    
-	.write = file_write,	    /* handler for "write" operation */
-	.sync = file_sync,	    /* handler for "sync" operation */
-	.flags = file_flags,	    /* handler for "flags" obtaining */
+struct aal_device_ops file_ops = {
+	.open   = file_open,        /* handler for "open" operation */
+	.close  = file_close,       /* handler for "create" operation */
+	.read   = file_read,	    /* handler for "read" operation */	    
+	.write  = file_write,	    /* handler for "write" operation */
+	.sync   = file_sync,	    /* handler for "sync" operation */
+	.flags  = file_flags,	    /* handler for "flags" obtaining */
 	.equals = file_equals,	    /* handler for comparing two devices */
-	.stat = file_stat,	    /* hanlder for stating device */
-	.len = file_len		    /* handler for length obtaining */
+	.len    = file_len	    /* handler for length obtaining */
 };
-
-/*
-  Opens actual file, initializes aal_device_t instance and returns it to caller.
-  This function as well fille device at all is whidely used in all reiser4progs
-  (mkfs, fsck, etc) for opening a device and working with them.
-*/
-aal_device_t *aal_file_open(
-	const char *file,	    /* name of file to be used as file device */
-	uint16_t blocksize,	    /* used blocksize */
-	int flags)		    /* flags file will be opened with */
-{
-	int fd;
-	aal_device_t *device;
-	
-	if (!file) 
-		return NULL;
-    
-	/* Opening specified file with specified flags */
-#if defined(O_LARGEFILE)
-	if ((fd = open(file, flags | O_LARGEFILE)) == -1)
-#else
-	if ((fd = open(file, flags)) == -1)
-#endif
-		return NULL;
-    
-	/* Initializing wrapper aal_device for it */
-	device = aal_device_open(&ops, blocksize, flags, (void *)file);
-	aal_strncpy(device->name, file, aal_strlen(file));
-
-	/* Initializing device entity (file descripror in the case of file device) */
-	if (!(device->entity = aal_calloc(sizeof(int), 0)))
-		goto error_free_device;
-
-	*((int *)device->entity) = fd;
-    
-	return device;
-    
- error_free_device:
-	aal_device_close(device);
- error:
-	return NULL;    
-}
-
-/*
-  This function reopens opened previously file device in order to change flags,
-  device was opened with.
-*/
-errno_t aal_file_reopen(
-	aal_device_t *device,	    /* file device to be reopened */
-	int flags)	            /* flags device will be reopened with */
-{
-	int fd;
-	
-	if (!device) 
-		return -1;
-
-	/* Close previously opened entity (file descriptor) */
-	close(*((int *)device->entity));
-    
-	/* Reopening file */
-#if defined(O_LARGEFILE)
-	if ((fd = open((char *)device->data, flags | O_LARGEFILE)) == -1) {
-#else
-	if ((fd = open((char *)device->data, flags)) == -1) {
-#endif
-		save_error(device);
-		return errno;
-	}
-    
-	/* Reinitializing entity */
-	*((int *)device->entity) = fd;
-	device->flags = flags;
-
-	return 0;
-}
-
-/* 
-   Closes file device. Close opened file descriptor, frees all assosiated
-   memory.  It is usualy called at end for work any utility from reiser4progs
-   set.
-*/
-void aal_file_close(
-	aal_device_t *device)	    /* file device to be closed */
-{
-	if (!device) 
-		return;
-
-	/* Closing entity (file descriptor) */
-	close(*((int *)device->entity));
-
-	/* Closing device and freeing all assosiated memory */
-	aal_free(device->entity);
-	aal_device_close(device);
-}
 
 #endif
