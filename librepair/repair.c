@@ -10,6 +10,7 @@
 #include <repair/add_missing.h>
 #include <repair/semantic.h>
 #include <repair/cleanup.h>
+#include <stdio.h>
 
 typedef struct repair_control {
 	repair_data_t *repair;

@@ -8,6 +8,8 @@
 #endif
 
 #include "gauge.h"
+#include <stdio.h>
+#include <unistd.h>
 
 /* Current progs gauge. Used for correct pausing when exception */
 

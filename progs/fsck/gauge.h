@@ -11,7 +11,6 @@
 #endif
 
 #include <time.h>
-#include <unistd.h>
 
 #include <misc/misc.h>
 #include <misc/gauge.h>
