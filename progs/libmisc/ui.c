@@ -11,7 +11,7 @@
 #  include <config.h>
 #endif
 
-#ifdef HAVE_LIBREADLINE
+#if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
 
 #ifndef HAVE_RL_COMPLETION_MATCHES
 #  define OLD_READLINE (1)
@@ -30,7 +30,7 @@
 
 static aal_list_t *possibilities = NULL;
 
-#endif /* HAVE_LIBREADLINE */
+#endif /* defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H) */
 
 #include <misc/misc.h>
 
@@ -45,7 +45,7 @@ char *progs_ui_readline(
     
     aal_assert("umka-1021", prompt != NULL, return NULL);
     
-#ifdef HAVE_LIBREADLINE
+#if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
     if ((line = readline(prompt)) && aal_strlen(line)) {
 	HIST_ENTRY *last_entry = current_history();
 	if (!last_entry || aal_strncmp(last_entry->line, line, aal_strlen(line)))
@@ -152,7 +152,7 @@ void progs_ui_print_wrap(void *stream, char *text) {
     }
 }
 
-#ifdef HAVE_LIBREADLINE
+#if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
 
 static char *progs_ui_generator(char *text, int state) {
     char *opt;
@@ -258,7 +258,7 @@ static int64_t progs_ui_numeric_handler(
 static void _init(void) __attribute__((constructor));
 
 static void _init(void) {
-#ifdef HAVE_LIBREADLINE
+#if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
     rl_initialize();
     rl_attempted_completion_function = 
 	(CPPFunction *)progs_ui_complete;
@@ -268,4 +268,3 @@ static void _init(void) {
     aal_ui_set_numeric_handler(progs_ui_numeric_handler);
     aal_ui_set_alpha_handler(progs_ui_alpha_handler);
 }
-

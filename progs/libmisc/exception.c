@@ -144,7 +144,7 @@ aal_exception_option_t progs_exception_handler(
     if (progs_exception_option_count(exception->options, 0) == 1)
 	return exception->options;
 
-#ifdef HAVE_LIBREADLINE
+#if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
     for (i = 1; i < aal_log2(EXCEPTION_LAST); i++) {
 	if ((1 << i) & exception->options) {
 	    char *name = aal_exception_option_name(1 << i);
@@ -158,7 +158,7 @@ aal_exception_option_t progs_exception_handler(
 	opt = progs_exception_prompt(exception->options);
     } while (opt == EXCEPTION_UNHANDLED && isatty(0));
 
-#ifdef HAVE_LIBREADLINE
+#if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
     aal_list_free(possibilities);
     progs_ui_set_possibilities(NULL);
 #endif

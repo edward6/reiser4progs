@@ -52,9 +52,11 @@ libuuid could not be found which is required for the --with-uuid
 	)
 	$with_uuid=no
     )
-    PROGS_LDADD="$PROGS_LDADD $LIBS"
+    UUID_LIBS="$LIBS"
     LIBS="$OLD_LIBS"
 fi
+
+AC_SUBST(UUID_LIBS)
 
 AC_ARG_WITH(readline,
     [  --with-readline        support fancy command line editing], ,
@@ -72,11 +74,11 @@ GNU Readline could not be found which is required for the --with-readline
 	    with_readline=no,
 	    -lncurses
     )
-    PROGS_LDADD="$PROGS_LDADD $LIBS"
+    PROGS_LIBS="$PROGS_LIBS $LIBS"
     LIBS="$OLD_LIBS"
 fi
 
-AC_SUBST(PROGS_LDADD)
+AC_SUBST(PROGS_LIBS)
 
 AM_ENABLE_SHARED
 
@@ -141,7 +143,7 @@ AM_PROG_LIBTOOL
 
 if test "$with_uuid" = yes; then
     AC_CHECK_HEADERS(uuid/uuid.h, ,
-	AC_MSG_ERROR(
+	AC_MSG_WARN(
 The headers for libuuid could not be found which
 are required for the --with-uuid option.
 	)
@@ -150,7 +152,7 @@ fi
 
 if test "$with_readline" = yes; then
     AC_CHECK_HEADERS(readline/readline.h readline/history.h, ,
-	AC_MSG_ERROR(
+	AC_MSG_WARN(
 The headers for GNU Readline could not be found which
 are required for the --with-readline option.
 	)
@@ -167,7 +169,7 @@ AC_C_BIGENDIAN
 dnl Checks for library functions.
 if test "$with_readline" = yes; then
     OLD_LIBS="$LIBS"
-    LIBS="$LIBS $PROGS_LDADD"
+    LIBS="$LIBS $PROGS_LIBS"
     AC_CHECK_FUNCS(rl_completion_matches)
     LIBS="$OLD_LIBS"
 fi

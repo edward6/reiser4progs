@@ -7,10 +7,6 @@
 #  include <config.h> 
 #endif
 
-#ifdef HAVE_LIBUUID
-#  include <uuid/uuid.h>
-#endif
-
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>

@@ -7,7 +7,7 @@
 #  include <config.h> 
 #endif
 
-#ifdef HAVE_LIBUUID
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 #  include <uuid/uuid.h>
 #endif
 
@@ -179,7 +179,7 @@ int main(int argc, char *argv[]) {
 		    aal_exception_error("Invalid uuid was specified (%s).", optarg);
 		    return USER_ERROR;
 		}
-#ifdef HAVE_LIBUUID
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 		{
 		    if (uuid_parse(optarg, uuid) < 0) {
 			aal_exception_error("Invalid uuid was specified (%s).", optarg);
@@ -292,7 +292,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Generating uuid if it was not specified and if libuuid is in use */
-#ifdef HAVE_LIBUUID
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 	if (aal_strlen(uuid) == 0)
 	    uuid_generate(uuid);
 #endif
