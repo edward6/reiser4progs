@@ -87,18 +87,19 @@ Most convenient configure comand is the following:
 This assumes, that r5 hash is used in filesystem, as it is not
 disabled here.
 
-In the case configure script unable to find libaal check the
+In the case configure script unable to find libaal, check the
 following:
 
 (1) Make sure, that your system has installed libaal of the correct
-version (configure script says about expected version)
+version (configure script says about expected version).
 
-(2) Make sure, that you have one copy of libaal in the system.
-(3) Make sure, that you have specified correct libaal dir using 
+(2) Make sure, that you have one copy of libaal in the system.  
+
+(3) Make sure, that you have specified correct libaal directory using
 --with-libaal option.
 
-(4) Make sure, that /etc/ld.so.conf contains path to the directory
-libaal installed in.
+(4) Make sure, that /etc/ld.so.conf contains correct path to the
+directory libaal installed in.
 
 (5) Make sure, that dynamic linker cache is up to date. Running
 ldconfig will not be overkill.
