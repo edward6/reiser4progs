@@ -338,8 +338,8 @@ const char *reiser4_fs_name(
 rpid_t reiser4_fs_format_pid(
     reiser4_fs_t *fs		/* filesystem disk format pid will be obtained from */
 ) {
-    aal_assert("umka-151", fs != NULL, return -1);
-    aal_assert("umka-152", fs->master != NULL, return -1);
+    aal_assert("umka-151", fs != NULL, return FAKE_PLUGIN);
+    aal_assert("umka-152", fs->master != NULL, return FAKE_PLUGIN);
 
     return reiser4_master_format(fs->master);
 }

@@ -528,7 +528,7 @@ error:
 uint16_t reiser4_node_pid(
     reiser4_node_t *node	/* node pid to be obtained */
 ) {
-    aal_assert("umka-828", node != NULL, return 0);
+    aal_assert("umka-828", node != NULL, return FAKE_PLUGIN);
     
     return plugin_call(return 0, node->entity->plugin->node_ops,
 	pid, node->entity);

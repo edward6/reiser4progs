@@ -323,7 +323,7 @@ void reiser4_format_set_stamp(
 rpid_t reiser4_format_journal_pid(
     reiser4_format_t *format	/* disk-format journal pid will be obtained from */
 ) {
-    aal_assert("umka-115", format != NULL, return -1);
+    aal_assert("umka-115", format != NULL, return FAKE_PLUGIN);
 	
     return plugin_call(return -1, format->entity->plugin->format_ops, 
 	journal_pid, format->entity);
@@ -333,7 +333,7 @@ rpid_t reiser4_format_journal_pid(
 rpid_t reiser4_format_alloc_pid(
     reiser4_format_t *format	/* disk-format allocator pid will be obtained from */
 ) {
-    aal_assert("umka-117", format != NULL, return -1);
+    aal_assert("umka-117", format != NULL, return FAKE_PLUGIN);
 	
     return plugin_call(return -1, format->entity->plugin->format_ops, 
 	alloc_pid, format->entity);
@@ -343,7 +343,7 @@ rpid_t reiser4_format_alloc_pid(
 rpid_t reiser4_format_oid_pid(
     reiser4_format_t *format	/* disk-format oid allocator pid will be obtained from */
 ) {
-    aal_assert("umka-491", format != NULL, return -1);
+    aal_assert("umka-491", format != NULL, return FAKE_PLUGIN);
 	
     return plugin_call(return -1, format->entity->plugin->format_ops, 
 	oid_pid, format->entity);
