@@ -20,13 +20,6 @@ struct node40 {
 
 typedef struct node40 node40_t;
 
-struct node40_flush {
-	d32_t mkfs_id;
-	d64_t flush_id;
-};
-
-typedef struct node40_flush node40_flush_t;
-
 /* Format of node header for node_common */
 struct node40_header {
 
@@ -42,14 +35,18 @@ struct node40_header {
 	/* Free space start */
 	d16_t free_space_start;
 
-	/* node magic 0x52344653 */
-	d32_t magic;
-    
+	struct {
+		/* node magic 0x52344653 */
+		d32_t magic;
+
+		d32_t mkfs_id;
+		d64_t flush_id;
+
+		d16_t flags;
+	} fsck;
+
 	/* Node level */
 	d8_t level;
-
-	/* Node flush stamp */
-	node40_flush_t flush;
 };
 
 typedef struct node40_header node40_header_t;  
@@ -70,22 +67,22 @@ typedef struct node40_header node40_header_t;
         (nh((node)->block)->level = val)
 
 #define nh_get_magic(node)                \
-        aal_get_le32(nh((node)->block), magic)
+        aal_get_le32(nh((node)->block), fsck.magic)
 
 #define nh_set_magic(node, val)           \
-        aal_set_le32(nh((node)->block), magic, val)
+        aal_set_le32(nh((node)->block), fsck.magic, val)
 
 #define nh_set_mkfs_id(node, val)         \
-        aal_set_le32(nh((node)->block), flush.mkfs_id, val)
+        aal_set_le32(nh((node)->block), fsck.mkfs_id, val)
 
 #define nh_get_mkfs_id(node)              \
-        aal_get_le32(nh((node)->block), flush.mkfs_id)
+        aal_get_le32(nh((node)->block), fsck.mkfs_id)
 
 #define nh_set_flush_id(node, val)        \
-        aal_set_le64(nh((node)->block), flush.flush_id, val)
+        aal_set_le64(nh((node)->block), fsck.flush_id, val)
 
 #define nh_get_flush_id(node)             \
-        aal_get_le64(nh((node)->block), flush.flush_id)
+        aal_get_le64(nh((node)->block), fsck.flush_id)
 
 #define nh_get_num_items(node)            \
         aal_get_le16(nh((node)->block), num_items)

@@ -242,10 +242,6 @@ static int reiser4_node_ack(reiser4_node_t *node,
 errno_t reiser4_node_realize(
 	reiser4_node_t *node)	        /* node position will be obtained for */
 {
-        lookup_t res;
-	uint32_t i, j;
-	ptr_hint_t ptr;
-
         reiser4_key_t lkey;
 	reiser4_place_t *parent;
     
@@ -280,6 +276,10 @@ errno_t reiser4_node_realize(
 	/* Getting position by means of linear traverse */
 #if !defined(ENABLE_STAND_ALONE) && defined(ENABLE_COLLISIONS)
 	if (!(node->flags & NF_FOREIGN)) {
+		lookup_t res;
+		uint32_t i, j;
+		ptr_hint_t ptr;
+		
 		for (i = 0; i < reiser4_node_items(parent->node); i++) {
 			parent->pos.item = i;
 

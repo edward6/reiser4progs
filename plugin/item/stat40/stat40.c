@@ -446,13 +446,13 @@ static rid_t stat40_plugid(place_t *place, rid_t type) {
 static reiser4_item_ops_t stat40_ops = {
 	.read             = stat40_read,
 	.units		  = stat40_units,
+	.plugid	          = stat40_plugid,
 	
 #ifndef ENABLE_STAND_ALONE
 	.init             = stat40_init,
 	.copy             = stat40_copy,
 	.insert		  = stat40_insert,
 	.print		  = stat40_print,
-	.plugid	          = stat40_plugid,
 	
 	.check_struct     = stat40_check_struct,
 	.estimate_copy    = stat40_estimate_copy,

@@ -12,15 +12,13 @@ inline uint32_t cde40_key_pol(place_t *place) {
 }
 
 static void *cde40_entry(place_t *place, uint32_t pos) {
-	uint32_t pol = cde40_key_pol(place);
-	return cde_get_entry(place, pos, pol);
+	return cde_get_entry(place, pos, cde40_key_pol(place));
 }
 
 /* Returns pointer to the objectid entry component. */
 static void *cde40_objid(place_t *place, uint32_t pos) {
-	uint32_t pol = cde40_key_pol(place);
 	void *entry = cde40_entry(place, pos);
-	return (place->body + en_get_offset(entry, pol));
+	return (place->body + en_get_offset(entry, cde40_key_pol(place)));
 }
 
 static void *cde40_hash(place_t *place, uint32_t pos) {
@@ -111,9 +109,8 @@ static char *cde40_get_name(place_t *place, uint32_t pos,
         /* If name is long, we just copy it from the area after
            objectid. Otherwise we extract it from the entry hash. */
         if (plug_call(key.plug->o.key_ops, tall, &key)) {
-		uint32_t pol = cde40_key_pol(place);
 		void *objid = cde40_objid(place, pos);
-                char *ptr = (char *)(objid + ob_size(pol));
+                char *ptr = (char *)(objid + ob_size(cde40_key_pol(place)));
                 aal_strncpy(buff, ptr, len);
         } else {
 		plug_call(key.plug->o.key_ops, get_name,
@@ -161,7 +158,7 @@ uint32_t cde40_units(place_t *place) {
 static int32_t cde40_read(place_t *place, void *buff,
 			  uint32_t pos, uint32_t count)
 {
-	uint32_t i, units;
+	uint32_t i;
 	entry_hint_t *hint;
     
 	aal_assert("umka-866", place != NULL);
@@ -171,11 +168,13 @@ static int32_t cde40_read(place_t *place, void *buff,
 	hint = (entry_hint_t *)buff;
 
 #ifndef ENABLE_STAND_ALONE
-	units = cde40_units(place);
+	{
+		uint32_t units = cde40_units(place);
 	
-	/* Check if count is valid one */
-	if (count > units - pos)
-		count = units - pos;
+		/* Check if count is valid one */
+		if (count > units - pos)
+			count = units - pos;
+	}
 #endif
 
 	for (i = pos; i < pos + count; i++, hint++) {

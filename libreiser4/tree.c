@@ -511,9 +511,9 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
  error_free_data:
 #ifndef ENABLE_STAND_ALONE
 	aal_hash_table_free(tree->data);
-#endif
  error_free_tree:
 	aal_free(tree);
+#endif
 	return NULL;
 }
 

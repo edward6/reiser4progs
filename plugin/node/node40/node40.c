@@ -22,10 +22,9 @@ void *node40_ih_at(node40_t *node, uint32_t pos) {
 /* Retutrns item body by pos */
 void *node40_ib_at(node40_t *node, uint32_t pos) {
 	void *ih = node40_ih_at(node, pos);
-	uint32_t pol = node40_key_pol(node);
-	
+
 	return node->block->data +
-		ih_get_offset(ih, pol);
+		ih_get_offset(ih, node40_key_pol(node));
 }
 
 #ifndef ENABLE_STAND_ALONE
