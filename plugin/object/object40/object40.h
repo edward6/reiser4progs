@@ -50,7 +50,7 @@ extern errno_t object40_init(object40_t *object, reiser4_plugin_t *plugin,
 			     void *tree);
 
 extern lookup_t object40_lookup(object40_t *object, key_entity_t *key,
-				uint8_t stop, place_t *place);
+				uint8_t level, place_t *place);
 
 extern errno_t object40_fini(object40_t *object);
 
@@ -73,7 +73,7 @@ extern errno_t object40_set_sym(object40_t *object, char *data);
 extern errno_t object40_link(object40_t *object, uint32_t value);
 
 extern errno_t object40_insert(object40_t *object, reiser4_item_hint_t *hint,
-			       uint8_t stop, place_t *place);
+			       uint8_t level, place_t *place);
 
 extern errno_t object40_remove(object40_t *object, key_entity_t *key,
 			       uint64_t count);

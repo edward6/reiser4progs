@@ -55,8 +55,8 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	{
 		aal_exception_error("Can't find direntry of object "
 				    "0x%llx.", object40_objectid(&dir->obj));
-		
-		object40_lock(&dir->obj, &dir->body);
+
+		dir->body.node = NULL;
 		return -1;
 	}
 
@@ -320,7 +320,6 @@ static object_entity_t *dir40_open(void *tree,
 
 	/* Copying statdata place and looking node it lies in */
 	aal_memcpy(&dir->obj.statdata, place, sizeof(*place));
-
 	object40_lock(&dir->obj, &dir->obj.statdata);
 	
 	/* Positioning to the first directory unit */
@@ -528,7 +527,6 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	
 	/* Saving stat data place insert function has returned */
 	aal_memcpy(&dir->obj.statdata, place, sizeof(*place));
-
 	object40_lock(&dir->obj, &dir->obj.statdata);
     
 	/* Inserting the direntry item into the tree */
@@ -864,8 +862,11 @@ static void dir40_close(object_entity_t *entity) {
 	
 	aal_assert("umka-750", entity != NULL);
 
-	object40_unlock(&dir->obj, &dir->obj.statdata);
-	object40_unlock(&dir->obj, &dir->body);
+	if (dir->obj.statdata.node != NULL)
+		object40_unlock(&dir->obj, &dir->obj.statdata);
+
+	if (dir->body.node != NULL)
+		object40_unlock(&dir->obj, &dir->body);
 	
 	aal_free(entity);
 }

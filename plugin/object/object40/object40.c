@@ -386,6 +386,7 @@ errno_t object40_init(object40_t *object, reiser4_plugin_t *plugin,
 
 /* Performs lookup for the object's stat data */
 errno_t object40_stat(object40_t *object) {
+	lookup_t res;
 	uint64_t objectid, locality;
 	
 	aal_assert("umka-1905", object != NULL);
@@ -398,19 +399,21 @@ errno_t object40_stat(object40_t *object) {
 		    objectid, 0);
 
 	/* Unlocking old node */
-	if (object->statdata.node)
+	if (object->statdata.node != NULL)
 		object40_unlock(object, &object->statdata);
 	
-	/* Requesting libreiser4 lookup in order to find stat data position */
-	if (object->core->tree_ops.lookup(object->tree, &object->key, LEAF_LEVEL,
-					  &object->statdata) != LP_PRESENT) 
-	{
-		aal_exception_error("Can't find stat data of object 0x%llx.", 
-				    objectid);
-
-		if (object->statdata.node)
-			object40_lock(object, &object->statdata);
+	/*
+	  Requesting libreiser4 lookup in order to find stat data place in the
+	  tree.
+	*/
+	res = object->core->tree_ops.lookup(object->tree, &object->key,
+					    LEAF_LEVEL, &object->statdata);
+	
+	if (res != LP_PRESENT) {
+		aal_exception_error("Can't find stat data of object "
+				    "0x%llx.", objectid);
 		
+		object->statdata.node = NULL;
 		return -1;
 	}
 
@@ -425,10 +428,10 @@ errno_t object40_stat(object40_t *object) {
 
 /* Performs lookup and returns result to caller */
 lookup_t object40_lookup(object40_t *object, key_entity_t *key,
-			 uint8_t stop, place_t *place)
+			 uint8_t level, place_t *place)
 {
 	return object->core->tree_ops.lookup(object->tree, key,
-					     stop, place);
+					     level, place);
 }
 
 #ifndef ENABLE_ALONE
@@ -452,7 +455,7 @@ errno_t object40_link(object40_t *object,
   contains the place of the inserted item.
 */
 errno_t object40_insert(object40_t *object, reiser4_item_hint_t *hint,
-			uint8_t stop, place_t *place)
+			uint8_t level, place_t *place)
 {
 	roid_t objectid = object40_objectid(object);
 
@@ -461,7 +464,7 @@ errno_t object40_insert(object40_t *object, reiser4_item_hint_t *hint,
 	  at. If item/unit already exists, or lookup failed, we throw an
 	  exception and return the error code.
 	*/
-	switch (object40_lookup(object, &hint->key, stop, place)) {
+	switch (object40_lookup(object, &hint->key, level, place)) {
 	case LP_ABSENT:
 		if (object->core->tree_ops.insert(object->tree, place, hint)) {
 			aal_exception_error("Can't insert new item/unit of object "
@@ -473,8 +476,6 @@ errno_t object40_insert(object40_t *object, reiser4_item_hint_t *hint,
 		aal_exception_error("Key already exists in the tree.");
 		return -1;
 	case LP_FAILED:
-		aal_exception_error("Lookup is failed while trying to insert "
-				    "new item/unit into object 0x%llx.", objectid);
 		return -1;
 	}
 
@@ -506,9 +507,6 @@ errno_t object40_remove(object40_t *object, key_entity_t *key,
 		
 		break;
 	case LP_FAILED:
-		aal_exception_error("Lookup is failed while trying to "
-				    "remove item/unit from object "
-				    "0x%llx.", objectid);
 		return -1;
 	}
 

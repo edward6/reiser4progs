@@ -466,8 +466,11 @@ static void reg40_close(object_entity_t *entity) {
 	aal_assert("umka-1170", entity != NULL);
 
 	/* Unlocking statdata and body */
-	object40_unlock(&reg->obj, &reg->obj.statdata);
-	object40_unlock(&reg->obj, &reg->body);
+	if (reg->obj.statdata.node != NULL)
+		object40_unlock(&reg->obj, &reg->obj.statdata);
+
+	if (reg->body.node != NULL)
+		object40_unlock(&reg->obj, &reg->body);
 	
 	aal_free(entity);
 }

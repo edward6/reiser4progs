@@ -1467,7 +1467,23 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	return -1;
 }
 
-/* Inserts new item described by item hint into the tree */
+static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
+				     reiser4_place_t *place,
+				     reiser4_item_hint_t *hint)
+{
+	/*
+	  Initializing hint context and enviromnent fields. This should be done
+	  before estimate is called, because it may use these fields.
+	*/
+	hint->context.blk = place->node->blk;
+	hint->context.device = tree->fs->device;
+	hint->alloc = tree->fs->alloc->entity;
+	
+	/* Estimating item in order to insert it into found node */
+	return reiser4_item_estimate(place, hint);
+}
+
+/* Inserts new item/unit described by item hint into the tree */
 errno_t reiser4_tree_insert(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
 	reiser4_place_t *place,	    /* place item or unit inserted at */
@@ -1505,6 +1521,9 @@ errno_t reiser4_tree_insert(
 			return -1;
 		
 		POS_INIT(&place->pos, 0, ~0ul);
+		
+		if (reiser4_tree_estimate(tree, place, hint))
+			return -1;
 		
 		if (reiser4_node_insert(place->node, &place->pos, hint)) {
 			reiser4_tree_release(tree, place->node);
@@ -1549,6 +1568,11 @@ errno_t reiser4_tree_insert(
 		}
 
 		if (level < reiser4_node_get_level(place->node)) {
+
+			/*
+			  Allocating ndoe iof requested level and assign place
+			  for insert to it.
+			*/
 			if (!(place->node = reiser4_tree_alloc(tree, level)))
 				return -1;
 
@@ -1556,18 +1580,9 @@ errno_t reiser4_tree_insert(
 		}
 	}
 
-	/*
-	  Initializing hint context and enviromnent fields. This should be done
-	  before estimate is called, because it may use these fields.
-	*/
-	hint->context.blk = place->node->blk;
-	hint->context.device = tree->fs->device;
-	hint->alloc = tree->fs->alloc->entity;
-	
-	/* Estimating item in order to insert it into found node */
-	if (reiser4_item_estimate(place, hint))
+	if (reiser4_tree_estimate(tree, place, hint))
 		return -1;
-
+	
 	/* Needed space is estimated space plugs item overhead */
 	needed = hint->len + (place->pos.unit == ~0ul ? 
 			      reiser4_node_overhead(place->node) : 0);
