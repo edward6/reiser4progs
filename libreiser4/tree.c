@@ -29,7 +29,7 @@ reiser4_joint_t *reiser4_tree_allocate(
 	aal_assert("umka-756", tree != NULL, return NULL);
     
 	/* Allocating the block */
-	if ((blk = reiser4_alloc_allocate(tree->fs->alloc)) == ~0ull) {
+	if ((blk = reiser4_alloc_allocate(tree->fs->alloc)) == FAKE_BLK) {
 		aal_exception_error("Can't allocate block for a node.");
 		return NULL;
 	}
@@ -220,7 +220,7 @@ reiser4_tree_t *reiser4_tree_create(
 	}
     
 	/* Getting free block from block allocator for place root block in it */
-	if ((blk = reiser4_alloc_allocate(fs->alloc)) == ~0ull) {
+	if ((blk = reiser4_alloc_allocate(fs->alloc)) == FAKE_BLK) {
 		aal_exception_error("Can't allocate block for the root node.");
 		goto error_free_tree;
 	}
@@ -712,7 +712,7 @@ errno_t reiser4_tree_mkspace(
 	
 		/* Checking if the old have enough free space after shifting */
 		if (not_enough > 0 && save.u.joint != new->u.joint && 
-		    new->pos.unit == ~0ull) 
+		    new->pos.unit == ~0ul) 
 		{
 			*new = save;
 			not_enough = needed - reiser4_node_space(new->u.joint->node);

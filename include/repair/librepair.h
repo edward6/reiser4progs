@@ -14,7 +14,7 @@
 #include <repair/filesystem.h>
 #include <repair/format.h>
 #include <repair/node.h>
-#include <repair/item.h>
+#include <repair/coord.h>
 #include <repair/filter.h>
 #include <repair/scan.h>
 #include <reiser4/reiser4.h>

@@ -12,6 +12,7 @@
 
 #include <repair/repair.h>
 
-errno_t repair_scan_node_check(reiser4_joint_t *, void *);
+extern errno_t repair_scan_setup(reiser4_fs_t *, repair_check_t *);
+extern errno_t repair_scan_node_check(reiser4_joint_t *, void *);
 
 #endif

@@ -23,7 +23,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	pos.unit = ~0ul;
 	
 	/* Open the item, checking its plugin id. */
-	if ((res = repair_item_open(&coord, node, &pos))) {
+	if ((res = repair_coord_open(&coord, node, CT_NODE, &pos))) {
 	    if (res > 0) {
 		aal_exception_error("Node (%llu): Failed to open the item (%u)."
 		    " Removed.", aal_block_number(node->block), pos.item);
@@ -60,7 +60,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	pos.unit = reiser4_item_count(&coord) - 1;
 	
 	do {
-	    if ((res = repair_item_nptr_check(node, &coord, data)) < 0) 
+	    if ((res = repair_coord_ptr_check(&coord, data)) < 0) 
 		return -1;
 	    else {
 		reiser4_ptr_hint_t hint;
@@ -337,50 +337,4 @@ errno_t repair_joint_check(reiser4_joint_t *joint, repair_check_t *data) {
     return 0;
 }
 
-/* 
-    Zero extent pointers which point to an already used block. 
-    Returns -1 if block is used already.
-*/
-errno_t repair_node_handle_pointers(reiser4_node_t *node, repair_check_t *data) 
-{
-    reiser4_coord_t coord;
-    reiser4_pos_t pos = {0, 0};
-    
-    aal_assert("vpf-384", node != NULL, return -1);
-    aal_assert("vpf-385", data != NULL, return -1);
-    aal_assert("vpf-386", !aux_bitmap_test(repair_scan_data(data)->formatted, 
-	aal_block_number(node->block)), return -1);
 
-    aux_bitmap_mark(repair_scan_data(data)->formatted, 
-	aal_block_number(node->block));
-    aux_bitmap_clear(repair_scan_data(data)->used, 
-	aal_block_number(node->block));
-   
-    for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++)  {	
-	if (repair_item_open(&coord, node, &pos)) {
-	    aal_exception_error("Node (%llu): failed to open the item (%u).", 
-		aal_block_number(node->block), pos.item);
-	    return -1;
-	}	    
-
-	if (!reiser4_item_extent(&coord) && !reiser4_item_nodeptr(&coord))
-	    continue;
-
-	for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
-		reiser4_ptr_hint_t ptr;
-	    blk_t form_blk, used_blk;
-
-	    if (plugin_call(return -1, coord.entity.plugin->item_ops, fetch,
-		    &coord.entity, 0, &ptr, 1))
-	        return -1;
-		
-	    aal_assert("vpf-387", 
-		(ptr.ptr < reiser4_format_get_len(data->format)) && 
-		(ptr.width < reiser4_format_get_len(data->format)) && 
-		(ptr.ptr + ptr.width < reiser4_format_get_len(data->format)), 
-		return -1);
-	}
-    }
-    
-    return 0;
-}

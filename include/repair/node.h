@@ -19,8 +19,5 @@ extern errno_t repair_joint_ld_key(reiser4_joint_t*joint, reiser4_key_t *ld_key,
 extern errno_t repair_joint_rd_key(reiser4_joint_t *joint, reiser4_key_t *rd_key, 
     repair_check_t *data);
 
-extern errno_t repair_node_handle_pointers(reiser4_node_t *node, 
-    repair_check_t *data);
-
 #endif
 

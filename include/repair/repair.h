@@ -57,7 +57,6 @@ struct repair_check {
     reiser4_format_t *format;
     uint16_t options;
     uint64_t flags;
-    aux_bitmap_t *many_pointed_blocks;
     union {
 	struct {
 	    aux_bitmap_t *format_layout;
@@ -66,7 +65,6 @@ struct repair_check {
 	} filter;
 	struct {
 	    aux_bitmap_t *format_layout;
-	    aux_bitmap_t *formatted;
 	    aux_bitmap_t *used;
 	    reiser4_oid_t *oid_control;
 	} scan;

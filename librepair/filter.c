@@ -21,15 +21,6 @@ errno_t repair_filter_joint_open(reiser4_joint_t **joint, blk_t blk, void *data)
     if (repair_test_flag(check_data, REPAIR_BAD_PTR))
 	return 0;
 	
-/*    if (!aux_bitmap_test(repair_filter_data(check_data)->format_layout, blk)) {
-	aal_exception_error("Node (%llu): format area cannot contain a node.", 
-	    blk);
-
-	repair_set_flag(check_data, REPAIR_NOT_FIXED);
-	return 1;
-    }
-*/  
-
     device = check_data->format->device;
     
     if ((node = reiser4_node_open(device, blk)) == NULL) {
@@ -96,7 +87,7 @@ errno_t repair_filter_setup_traverse(reiser4_joint_t *joint,
     aal_assert("vpf-255", data != NULL, return -1);
     aal_assert("vpf-269", coord != NULL, return -1);
 
-    if ((res = repair_item_nptr_check(joint->node, coord, check_data)) > 0) 
+    if ((res = repair_coord_ptr_check(coord, check_data)) > 0) 
 	repair_set_flag(check_data, REPAIR_BAD_PTR);
 
     return 0;
@@ -144,23 +135,8 @@ errno_t repair_filter_joint_check(reiser4_joint_t *joint, void *data) {
     return res;
 }
 
+/* Setup data and initialize data->pass.filter. */
 errno_t repair_filter_setup(reiser4_fs_t *fs, repair_check_t *data) {
-/*  Will be needed on scan pass.
-    if (!(data->a_control = reiser4_alloc_create(fs->format, 
-	reiser4_format_get_len(fs->format)))) 
-    {
-	aal_exception_fatal("Failed to create a control allocator.");
-	return -1;
-    }
-        
-    if (!(data->oid_control = reiser4_oid_create(fs->format))) {
-	aal_exception_fatal("Failed to create a control oid allocator.");
-	return -1;
-    }
-    
-   // Mark the format area as used in the control allocator
-    reiser4_format_mark(fs->format, data->a_control);
-*/
  
     if (!(repair_filter_data(data)->formatted = aux_bitmap_create(
 	reiser4_format_get_len(data->format)))) 
@@ -197,7 +173,7 @@ errno_t repair_filter_setup(reiser4_fs_t *fs, repair_check_t *data) {
 
 errno_t repair_filter_update(reiser4_fs_t *fs, repair_check_t *data) {    
     if (repair_test_flag(data, REPAIR_NOT_FIXED)) {
-	reiser4_format_set_root(data->format, ~0ull);
+	reiser4_format_set_root(data->format, FAKE_BLK);
 	repair_clear_flag(data, REPAIR_NOT_FIXED);
     } else {
 	/* Mark the root block as a formatted block in the bitmap. */
