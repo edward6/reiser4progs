@@ -312,19 +312,20 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 		return 1;
 
 	hint->plug = repair->eplug;
-	repair->bplug = repair->eplug;
 	
 	if (plug_equal(repair->bplug, repair->tplug)) {
 		/* Extent found, tail should be. Convert evth between 0 and 
 		   the current offset to extents, start from the beginning 
 		   using extent only policy then. */
 			
+		repair->bplug = repair->eplug;
+		
 		/* Count of bytes - this item offset. */
 		hint->count = plug_call(reg->body.key.plug->o.key_ops, 
 					get_offset, &reg->body.key);
 		
-		/* If count == 0, nothingto convert. */
-		if (hint->count)
+		/* If count == 0, nothing to convert. */
+		if (!hint->count)
 			return 0;
 
 		/* Set the start key for convertion. */
