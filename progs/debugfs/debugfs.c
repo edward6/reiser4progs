@@ -138,8 +138,9 @@ static errno_t print_open_node(
 	void *data)		    /* traverse data */
 {
 	reiser4_tree_t *tree = (reiser4_tree_t *)data;
+	aal_device_t *device = tree->fs->device;
 
-	*node = reiser4_tree_load(tree, blk);
+	*node = reiser4_node_open(device, blk);
 	return -(*node == NULL);
 }
 
@@ -165,6 +166,7 @@ static errno_t print_process_node(
 
 static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk) {
 	errno_t res = 0;
+	aal_device_t *device;
 	reiser4_node_t *node;
 	struct traverse_hint hint;
 
@@ -196,9 +198,11 @@ static errno_t debugfs_print_block(reiser4_fs_t *fs, blk_t blk) {
 	
 	aal_exception_disable();
 	
-	if (!(node = reiser4_tree_load(fs->tree, blk))) {
+	device = fs->device;
+	
+	if (!(node = reiser4_node_open(device, blk))) {
 		aal_exception_enable();
-		aal_exception_info("Node %llu is not a formated node.", blk);
+		aal_exception_info("Node %llu is not a formated one.", blk);
 		return 0;
 	}
 
@@ -333,6 +337,7 @@ static errno_t tfrag_open_node(
 	void *data)		    /* traverse hint */
 {	
 	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
+	aal_device_t *device = frag_hint->tree->fs->device;
 
 	aal_assert("umka-1556", frag_hint->level > 0, return -1);
 	
@@ -341,7 +346,7 @@ static errno_t tfrag_open_node(
 	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
 	
-	*node = reiser4_tree_load(frag_hint->tree, blk);
+	*node = reiser4_node_open(device, blk);
 	return -(*node == NULL);
 }
 
@@ -477,8 +482,9 @@ static errno_t stat_open_node(
 	void *data)		    /* traverse data */
 {
 	tree_stat_hint_t *stat_hint = (tree_stat_hint_t *)data;
+	aal_device_t *device = stat_hint->tree->fs->device;
 
-	*node = reiser4_tree_load(stat_hint->tree, blk);
+	*node = reiser4_node_open(device, blk);
 	return -(*node == NULL);
 }
 
@@ -698,8 +704,9 @@ static errno_t dfrag_open_node(
 	void *data)		    /* traverse data */
 {
 	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
+	aal_device_t *device = frag_hint->tree->fs->device;
 
-	*node = reiser4_tree_load(frag_hint->tree, blk);
+	*node = reiser4_node_open(device, blk);
 	return -(*node == NULL);
 }
 
