@@ -105,7 +105,6 @@ typedef struct reiser4_coord reiser4_coord_t;
 
 struct reiser4_coord {
 	reiser4_node_t *node;
-	
 	reiser4_pos_t pos;
 	item_entity_t item;
 };

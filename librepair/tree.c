@@ -58,7 +58,6 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     reiser4_coord_t coord;
     reiser4_item_hint_t hint;
     reiser4_ptr_hint_t ptr;
-    reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
     reiser4_key_t rkey, key;
     errno_t res;
     uint32_t level;
@@ -80,7 +79,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 
     reiser4_node_lkey(node, &hint.key);
 
-    if ((lookup = reiser4_tree_lookup(tree, &hint.key, &stop, &coord)))
+    if ((lookup = reiser4_tree_lookup(tree, &hint.key, LEAF_LEVEL, &coord)))
 	return lookup;
 	
     /* If coord points to a not existing position, move right a bit. */
@@ -135,7 +134,6 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 
 /* Insert the item with overwriting of existent in the tree items if needed. */
 errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
-    reiser4_level_t stop;
     reiser4_item_hint_t hint;
     reiser4_coord_t coord;
     reiser4_key_t rkey;
@@ -162,10 +160,8 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *insert) {
 	return -1;
     }
 
-    stop.top = stop.bottom = LEAF_LEVEL;
- 
     while (length) {
-	if ((res = reiser4_tree_lookup(tree, &hint.key, &stop, &coord)) < 0)
+	if ((res = reiser4_tree_lookup(tree, &hint.key, LEAF_LEVEL, &coord)) < 0)
 	    return res;
 	else if (res == 0) {
 	    /* Start key does not exist in the tree. Prepare the insertion. */

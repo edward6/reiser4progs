@@ -41,7 +41,7 @@ static int32_t symlink40_read(object_entity_t *entity,
 	hint.hint = &stat;
 	stat.ext[SDEXT_SYMLINK_ID] = buff;
 
-	item = &symlink->file.statdata.entity;
+	item = &symlink->file.statdata.item;
 	
 	if (plugin_call(return -1, item->plugin->item_ops, open, item, &hint))
 		return -1;
@@ -61,7 +61,7 @@ static object_entity_t *symlink40_open(const void *tree,
 	if (!(symlink = aal_calloc(sizeof(*symlink), 0)))
 		return NULL;
 
-	key = &place->entity.key;
+	key = &place->item.key;
 		
 	if (file40_init(&symlink->file, key, &symlink40_plugin, tree, core))
 		goto error_free_symlink;
@@ -94,8 +94,6 @@ static object_entity_t *symlink40_create(const void *tree,
     
 	reiser4_sdext_lw_hint_t lw_ext;
 	reiser4_sdext_unix_hint_t unix_ext;
-    
-	reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
 	
 	aal_assert("umka-1741", tree != NULL, return NULL);
 	aal_assert("umka-1740", hint != NULL, return NULL);
@@ -103,8 +101,8 @@ static object_entity_t *symlink40_create(const void *tree,
 	if (!(symlink = aal_calloc(sizeof(*symlink), 0)))
 		return NULL;
     
-	if (file40_init(&symlink->file, &hint->object, &symlink40_plugin, tree, core))
-		goto error_free_symlink;
+	file40_init(&symlink->file, &hint->object, &symlink40_plugin,
+		    tree, core);
 	
 	locality = file40_locality(&symlink->file);
 	objectid = file40_objectid(&symlink->file);
@@ -155,7 +153,7 @@ static object_entity_t *symlink40_create(const void *tree,
 
 	stat_hint.hint = &stat;
 
-	if (file40_insert(&symlink->file, &stat_hint, &stop, &place))
+	if (file40_insert(&symlink->file, &stat_hint, LEAF_LEVEL, &place))
 		goto error_free_symlink;
 
 	aal_memcpy(&symlink->file.statdata, &place, sizeof(place));
@@ -200,7 +198,7 @@ static errno_t symlink40_layout(object_entity_t *entity,
 	aal_assert("umka-1720", entity != NULL, return -1);
 
 	symlink = (symlink40_t *)entity;
-	blk = symlink->file.statdata.entity.con.blk;
+	blk = symlink->file.statdata.item.con.blk;
 		
 	return func(entity, blk, data);
 }

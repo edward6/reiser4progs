@@ -50,7 +50,7 @@ extern errno_t reiser4_tree_mkspace(reiser4_tree_t *tree, reiser4_coord_t *coord
 #endif
 
 extern int reiser4_tree_lookup(reiser4_tree_t *tree, reiser4_key_t *key,
-			       reiser4_level_t *level, reiser4_coord_t *coord);
+			       uint8_t stop, reiser4_coord_t *coord);
 
 extern blk_t reiser4_tree_root(reiser4_tree_t *tree);
 extern uint8_t reiser4_tree_height(reiser4_tree_t *tree);

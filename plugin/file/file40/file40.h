@@ -60,6 +60,6 @@ extern errno_t file40_init(file40_t *file, key_entity_t *key,
 			   reiser4_core_t *core);
 
 extern errno_t file40_insert(file40_t *file, reiser4_item_hint_t *hint,
-			 reiser4_level_t *stop, reiser4_place_t *place);
+			     uint8_t stop, reiser4_place_t *place);
 
 #endif

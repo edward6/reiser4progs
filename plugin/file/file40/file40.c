@@ -60,13 +60,15 @@ uint16_t file40_get_mode(reiser4_place_t *place) {
 	hint.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
-	item = &place->entity;
+	item = &place->item;
 
 	if (!item->plugin->item_ops.open)
 		return 0;
 
-	if (item->plugin->item_ops.open(item, &hint))
+	if (item->plugin->item_ops.open(item, &hint)) {
+		aal_exception_error("Can't open statdata item.");
 		return 0;
+	}
 
 	return lw_hint.mode;
 }
@@ -88,13 +90,15 @@ uint64_t file40_get_size(reiser4_place_t *place) {
 	hint.hint = &stat;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
-	item = &place->entity;
+	item = &place->item;
 
 	if (!item->plugin->item_ops.open)
 		return 0;
 
-	if (item->plugin->item_ops.open(item, &hint))
+	if (item->plugin->item_ops.open(item, &hint)) {
+		aal_exception_error("Can't open statdata item.");
 		return 0;
+	}
 	
 	return lw_hint.size;
 }
@@ -114,13 +118,15 @@ errno_t file40_set_size(reiser4_place_t *place, uint64_t size) {
 	stat.extmask = 1 << SDEXT_LW_ID;
 	stat.ext[SDEXT_LW_ID] = &lw_hint;
 
-	item = &place->entity;
+	item = &place->item;
 
 	if (!item->plugin->item_ops.open)
 		return -1;
 
-	if (item->plugin->item_ops.open(item, &hint))
+	if (item->plugin->item_ops.open(item, &hint)) {
+		aal_exception_error("Can't open statdata item.");
 		return -1;
+	}
 
 	lw_hint.size = size;
 	
@@ -132,16 +138,15 @@ errno_t file40_set_size(reiser4_place_t *place, uint64_t size) {
 
 errno_t file40_init(file40_t *file, key_entity_t *key,
 		    reiser4_plugin_t *plugin,
-		    const void *tree,
-		    reiser4_core_t *core)
+		    const void *tree, reiser4_core_t *core)
 {
 	aal_assert("umka-1574", file != NULL, return -1);
 	aal_assert("umka-1756", plugin != NULL, return -1);
 	aal_assert("umka-1757", tree != NULL, return -1);
 
-	file->plugin = plugin;
 	file->tree = tree;
 	file->core = core;
+	file->plugin = plugin;
 
 	file->key.plugin = key->plugin;
 	
@@ -150,8 +155,6 @@ errno_t file40_init(file40_t *file, key_entity_t *key,
 }
 
 errno_t file40_realize(file40_t *file) {
-	reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
-	
 	aal_assert("umka-857", file != NULL, return -1);	
 
 	plugin_call(return -1, file->key.plugin->key_ops, build_generic, 
@@ -161,7 +164,7 @@ errno_t file40_realize(file40_t *file) {
 	if (file->statdata.node)
 		file40_unlock(file, &file->statdata);
 	
-	if (file->core->tree_ops.lookup(file->tree, &file->key, &stop,
+	if (file->core->tree_ops.lookup(file->tree, &file->key, LEAF_LEVEL,
 					&file->statdata) != PRESENT) 
 	{
 		aal_exception_error("Can't find stat data of file 0x%llx.", 
@@ -183,12 +186,12 @@ errno_t file40_realize(file40_t *file) {
   contains the coord of the inserted item.
 */
 errno_t file40_insert(file40_t *file, reiser4_item_hint_t *hint,
-		      reiser4_level_t *stop, reiser4_place_t *place)
+		      uint8_t stop, reiser4_place_t *place)
 {
 	roid_t objectid = file40_objectid(file);
 	
 	switch (file->core->tree_ops.lookup(file->tree, &hint->key,
-				      stop, place))
+					    stop, place))
 	{
 	case PRESENT:
 		aal_exception_error("Key already exists in the tree.");

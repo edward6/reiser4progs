@@ -50,7 +50,8 @@ extern errno_t reiser4_file_metadata(reiser4_file_t *file,
 
 extern errno_t reiser4_file_reset(reiser4_file_t *object);
 extern uint32_t reiser4_file_offset(reiser4_file_t *object);
-extern errno_t reiser4_file_seek(reiser4_file_t *object, uint32_t offset);
+extern errno_t reiser4_file_seek(reiser4_file_t *object,
+				 uint32_t offset);
 
 #endif
 

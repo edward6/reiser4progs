@@ -68,7 +68,7 @@ static errno_t tree_remove(
 static int tree_lookup(
 	const void *tree,	    /* opaque pointer to the tree */
 	reiser4_key_t *key,	    /* key to be found */
-	reiser4_level_t *level,	    /* stop level */
+	uint8_t stop,	            /* stop level */
 	reiser4_place_t *place)	    /* result will be stored in */
 {
 	int lookup;
@@ -78,13 +78,14 @@ static int tree_lookup(
 	aal_assert("umka-850", tree != NULL, return -1);
 	aal_assert("umka-852", place != NULL, return -1);
 
-	if ((lookup = reiser4_tree_lookup((reiser4_tree_t *)tree, key, level,
+	if ((lookup = reiser4_tree_lookup((reiser4_tree_t *)tree, key, stop,
 					  (reiser4_coord_t *)place)) == FAILED)
 		return lookup;
 	
 	coord = (reiser4_coord_t *)place;
 	
 	if (lookup == PRESENT) {
+		
 		item_entity_t *item = &coord->item;
 		object_entity_t *entity = coord->node->entity;
 		
@@ -318,4 +319,3 @@ errno_t libreiser4_init(void) {
 void libreiser4_done(void) {
 	libreiser4_factory_done();
 }
-

@@ -63,13 +63,12 @@ static errno_t reiser4_file_realize(
 
 	while (1) {
 		reiser4_place_t *place;
-		reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
 		
 		reiser4_key_set_type(&file->key, KEY_STATDATA_TYPE);
 		reiser4_key_set_offset(&file->key, 0);
 	
 		if (reiser4_tree_lookup(file->fs->tree, &file->key, 
-					&stop, &file->coord) != PRESENT) 
+					LEAF_LEVEL, &file->coord) != PRESENT) 
 		{
 			aal_exception_error("Can't find stat data of directory %s.", track);
 			return -1;
@@ -277,14 +276,16 @@ reiser4_file_t *reiser4_file_create(
 	aal_assert("umka-1152", name != NULL, return NULL);
 
 	if (!fs->tree) {
-		aal_exception_error("Can't created file without initialized tree.");
+		aal_exception_error("Can't created file without "
+				    "initialized tree.");
 		return NULL;
 	}
     
 	/* Getting plugin will be used for file creating */
 	if (!(plugin = hint->plugin)) {
 		if (!parent) {
-			aal_exception_error("Can't find plugin for file creating.");
+			aal_exception_error("Can't find plugin for "
+					    "file creating.");
 			return NULL;
 		}
 	

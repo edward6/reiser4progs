@@ -23,13 +23,13 @@ extern reiser4_plugin_t dir40_plugin;
 static reiser4_core_t *core = NULL;
 
 static errno_t dir40_reset(object_entity_t *entity) {
+	dir40_t *dir;
 	key_entity_t key;
+    
+	aal_assert("umka-864", entity != NULL, return -1);
+    
+	dir = (dir40_t *)entity;
 	
-	dir40_t *dir = (dir40_t *)entity;
-	reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
-    
-	aal_assert("umka-864", dir != NULL, return -1);
-    
 	/* Preparing key of the first entry in directory */
 	key.plugin = dir->file.key.plugin;
 	
@@ -40,7 +40,7 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	file40_unlock(&dir->file, &dir->body);
 	
 	if (core->tree_ops.lookup(dir->file.tree, &key,
-				  &stop, &dir->body) != PRESENT)
+				  LEAF_LEVEL, &dir->body) != PRESENT)
 	{
 		aal_exception_error("Can't find direntry of object 0x%llx.", 
 				    file40_objectid(&dir->file));
@@ -75,7 +75,7 @@ static int dir40_next(dir40_t *dir) {
 	reiser4_plugin_t *this_plugin;
 	reiser4_plugin_t *right_plugin;
 
-	item = &dir->body.entity;
+	item = &dir->body.item;
 	
 	units = plugin_call(return -1, item->plugin->item_ops,
 			    units, item);
@@ -90,15 +90,15 @@ static int dir40_next(dir40_t *dir) {
 	if (core->tree_ops.right(dir->file.tree, &dir->body, &right))
 		return 0;
 
-	right_plugin = right.entity.plugin;
-	this_plugin = dir->body.entity.plugin;
+	right_plugin = right.item.plugin;
+	this_plugin = dir->body.item.plugin;
 
 	/* Checking if items are mergeable */
 	if (!plugin_equal(this_plugin, right_plugin))
 		return 0;
 	
 	if (!plugin_call(return 0, this_plugin->item_ops, mergeable,
-			 &right.entity, &dir->body.entity))
+			 &right.item, &dir->body.item))
 		return 0;
 	
 	file40_unlock(&dir->file, &dir->body);
@@ -140,7 +140,7 @@ static int32_t dir40_read(object_entity_t *entity,
 	for (read = 0; read < n; read += chunk) {
 		uint32_t units;
 		
-		item = &dir->body.entity;
+		item = &dir->body.item;
 		
 		if ((chunk = n - read) == 0)
 			return read;
@@ -184,7 +184,7 @@ static int dir40_lookup(object_entity_t *entity,
 		    file40_objectid(&dir->file), name);
     
 	while (1) {
-		item_entity_t *item = &dir->body.entity;
+		item_entity_t *item = &dir->body.item;
 
 		if (plugin_call(return -1, item->plugin->item_ops, lookup, 
 				item, &wanted, &dir->body.pos.unit) == PRESENT) 
@@ -220,7 +220,7 @@ static object_entity_t *dir40_open(const void *tree,
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
 
-	key = &place->entity.key;
+	key = &place->item.key;
 	
 	if (file40_init(&dir->file, key, &dir40_plugin, tree, core))
 		goto error_free_dir;
@@ -272,8 +272,6 @@ static object_entity_t *dir40_create(const void *tree,
     
 	reiser4_sdext_lw_hint_t lw_ext;
 	reiser4_sdext_unix_hint_t unix_ext;
-
-	reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
 	
 	aal_assert("umka-835", tree != NULL, return NULL);
 	aal_assert("umka-1739", hint != NULL, return NULL);
@@ -406,7 +404,7 @@ static object_entity_t *dir40_create(const void *tree,
 	stat_hint.hint = &stat;
 
 	/* Inserting stat data and body into the tree */
-	if (file40_insert(&dir->file, &stat_hint, &stop, &place))
+	if (file40_insert(&dir->file, &stat_hint, LEAF_LEVEL, &place))
 		goto error_free_body;
 	
 	/* Saving stat data coord insert function has returned */
@@ -414,7 +412,7 @@ static object_entity_t *dir40_create(const void *tree,
 	file40_lock(&dir->file, &dir->file.statdata);
     
 	/* Inserting the direntry item into the tree */
-	if (file40_insert(&dir->file, &body_hint, &stop, &place))
+	if (file40_insert(&dir->file, &body_hint, LEAF_LEVEL, &place))
 		goto error_free_body;
 	
 	/* Saving directory start in local body coord */
@@ -441,15 +439,15 @@ static int32_t dir40_write(object_entity_t *entity,
 	
 	reiser4_place_t place;
 	reiser4_item_hint_t hint;
+	reiser4_entry_hint_t *entry;
 	dir40_t *dir = (dir40_t *)entity;
 	reiser4_direntry_hint_t body_hint;
     
-	reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
-	reiser4_entry_hint_t *entry = (reiser4_entry_hint_t *)buff;
-    
 	aal_assert("umka-844", dir != NULL, return -1);
-	aal_assert("umka-845", entry != NULL, return -1);
+	aal_assert("umka-845", buff != NULL, return -1);
    
+	entry = (reiser4_entry_hint_t *)buff;
+	
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&body_hint, 0, sizeof(body_hint));
 	
@@ -464,7 +462,7 @@ static int32_t dir40_write(object_entity_t *entity,
 		key_entity_t *key = &dir->file.key;
 		
 		hint.key.plugin = key->plugin;
-		hint.plugin = dir->body.entity.plugin;
+		hint.plugin = dir->body.item.plugin;
 
 		aal_memcpy(&body_hint.unit[0], entry, sizeof(*entry));
 		
@@ -477,8 +475,9 @@ static int32_t dir40_write(object_entity_t *entity,
 		plugin_call(return -1, key->plugin->key_ops, assign,
 			    &body_hint.unit[0].offset, &hint.key);
 
-		if (file40_insert(&dir->file, &hint, &stop, &place)) {
-			aal_exception_error("Can't insert entry %s.", entry->name);
+		if (file40_insert(&dir->file, &hint, LEAF_LEVEL, &place)) {
+			aal_exception_error("Can't insert entry %s.",
+					    entry->name);
 			return -1;
 		}
 		
@@ -531,7 +530,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 	dir = (dir40_t *)entity;
 	
 	while (1) {
-		item_entity_t *item = &dir->body.entity;
+		item_entity_t *item = &dir->body.item;
 		
 		if ((res = plugin_call(return -1, item->plugin->item_ops, layout,
 				       item, callback_item_data, &hint)))

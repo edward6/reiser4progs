@@ -22,14 +22,14 @@ static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t reg40_plugin;
 
 static errno_t reg40_reset(object_entity_t *entity) {
+	reg40_t *reg;
 	uint64_t size;
 	key_entity_t key;
-
-	reg40_t *reg = (reg40_t *)entity;
-	reiser4_level_t stop = {LEAF_LEVEL, TWIG_LEVEL};
     
-	aal_assert("umka-1161", reg != NULL, return -1);
+	aal_assert("umka-1161", entity != NULL, return -1);
 
+	reg = (reg40_t *)entity;
+	
 	if ((size = file40_get_size(&reg->file.statdata)) == 0)
 		return 0;
 	
@@ -41,8 +41,15 @@ static errno_t reg40_reset(object_entity_t *entity) {
     
 	file40_unlock(&reg->file, &reg->body);
 	
-	if (core->tree_ops.lookup(reg->file.tree, &key, &stop, &reg->body) != PRESENT)
+	if (core->tree_ops.lookup(reg->file.tree, &key,
+				  LEAF_LEVEL, &reg->body) != PRESENT)
+	{
+		/*
+		  Cleaning body node. It is needed because functions below check
+		  this in order to determine is file has a body or not.
+		*/
 		reg->body.node = NULL;
+	}
 	
 	/*
 	  Locking node the current body lies in, due to prevent the throwing
@@ -61,8 +68,6 @@ static errno_t reg40_next(reg40_t *reg) {
 	key_entity_t key;
 	reiser4_place_t place;
 
-	reiser4_level_t stop = {LEAF_LEVEL, TWIG_LEVEL};
-
 	key.plugin = reg->file.key.plugin;
 	
 	plugin_call(return -1, key.plugin->key_ops, build_generic, &key,
@@ -76,10 +81,12 @@ static errno_t reg40_next(reg40_t *reg) {
 	
 	/* Getting the next body item from the tree */
 	res = core->tree_ops.lookup(reg->file.tree, &key,
-				    &stop, &reg->body);
+				    LEAF_LEVEL, &reg->body);
 
-	if (res != PRESENT)
+	if (res != PRESENT) {
+		/* Restoring previous body place */
 		reg->body = place;
+	}
 
 	/* Locking new body or old one if lookup failed */
 	file40_lock(&reg->file, &reg->body);
@@ -115,7 +122,7 @@ static int32_t reg40_read(object_entity_t *entity,
 	  call item's fetch method.
 	*/
 	for (read = 0; read < n; read += chunk) {
-		item = &reg->body.entity;
+		item = &reg->body.item;
 		
 		if (item->pos.unit == ~0ul)
 			item->pos.unit = 0;
@@ -159,7 +166,7 @@ static object_entity_t *reg40_open(const void *tree,
 	if (!(reg = aal_calloc(sizeof(*reg), 0)))
 		return NULL;
 
-	key = &place->entity.key;
+	key = &place->item.key;
 	
 	if (file40_init(&reg->file, key, &reg40_plugin, tree, core))
 		goto error_free_reg;
@@ -198,8 +205,6 @@ static object_entity_t *reg40_create(const void *tree,
     
 	reiser4_sdext_lw_hint_t lw_ext;
 	reiser4_sdext_unix_hint_t unix_ext;
-
-	reiser4_level_t stop = {LEAF_LEVEL, LEAF_LEVEL};
 	
 	aal_assert("umka-1169", tree != NULL, return NULL);
 	aal_assert("umka-1738", hint != NULL, return NULL);
@@ -259,7 +264,7 @@ static object_entity_t *reg40_create(const void *tree,
 
 	stat_hint.hint = &stat;
 
-	if (file40_insert(&reg->file, &stat_hint, &stop, &place))
+	if (file40_insert(&reg->file, &stat_hint, LEAF_LEVEL, &place))
 		goto error_free_reg;
 
 	aal_memcpy(&reg->file.statdata, &place, sizeof(place));
@@ -331,7 +336,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 	hint.entity = entity;
 		
 	while (size < reg->offset) {
-		item_entity_t *item = &reg->body.entity;
+		item_entity_t *item = &reg->body.item;
 		
 		if ((res = plugin_call(return -1, item->plugin->item_ops,
 				       layout, item, callback_item_data, &hint)))
@@ -369,7 +374,7 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		return 0;
 	
 	while (reg->offset < size) {
-		item_entity_t *item = &reg->body.entity;
+		item_entity_t *item = &reg->body.item;
 			
 		if ((res = func(entity, &reg->body, data)))
 			return res;

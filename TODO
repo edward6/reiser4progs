@@ -42,3 +42,5 @@ reiser4progs/COPYING.
 * copy methods in node API.
 
 * should we have the unit position inside an extent in bytes?
+
+* symlink support in reiser4_file_realize function.

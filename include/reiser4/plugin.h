@@ -1083,12 +1083,14 @@ union reiser4_plugin {
 	reiser4_tail_ops_t tail_ops;
 	reiser4_hook_ops_t hook_ops;
 	reiser4_perm_ops_t perm_ops;
-	reiser4_format_ops_t format_ops;
-	reiser4_oid_ops_t oid_ops;
-	reiser4_alloc_ops_t alloc_ops;
-	reiser4_journal_ops_t journal_ops;
-	reiser4_key_ops_t key_ops;
+
 	reiser4_sdext_ops_t sdext_ops;
+	reiser4_alloc_ops_t alloc_ops;
+	reiser4_format_ops_t format_ops;
+	reiser4_journal_ops_t journal_ops;
+
+	reiser4_oid_ops_t oid_ops;
+	reiser4_key_ops_t key_ops;
 
 	/* User-specific data */
 	void *data;
@@ -1097,7 +1099,7 @@ union reiser4_plugin {
 struct reiser4_place {
 	void *node;
 	reiser4_pos_t pos;
-	item_entity_t entity;
+	item_entity_t item;
 };
 
 /* The common node header */
@@ -1106,12 +1108,6 @@ struct node_header {
 };
 
 typedef struct node_header node_header_t;
-
-struct reiser4_level {
-	uint8_t top, bottom;
-};
-
-typedef struct reiser4_level reiser4_level_t;
 
 /* 
    This structure is passed to all plugins in initialization time and used for
@@ -1140,7 +1136,7 @@ struct reiser4_core {
 		  Makes lookup in the tree in order to know where say stat data
 		  item of a file realy lies. It is used in all object plugins.
 		*/
-		int (*lookup) (const void *, key_entity_t *, reiser4_level_t *,
+		int (*lookup) (const void *, key_entity_t *, uint8_t,
 			       reiser4_place_t *);
 
 		/* 

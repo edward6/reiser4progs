@@ -404,19 +404,18 @@ uint8_t reiser4_tree_height(reiser4_tree_t *tree) {
 int reiser4_tree_lookup(
 	reiser4_tree_t *tree,	/* tree to be grepped */
 	reiser4_key_t *key,	/* key to be find */
-	reiser4_level_t *level,	/* stop level for search */
+	uint8_t level,	        /* stop level for search */
 	reiser4_coord_t *coord)	/* coord of found item */
 {
 	int result, deep;
 
 	reiser4_coord_t fake;
+	reiser4_ptr_hint_t ptr;
 	reiser4_pos_t pos = {0, ~0ul};
 	reiser4_node_t *parent = NULL;
 
-	reiser4_ptr_hint_t ptr;
-
+	aal_assert("umka-1760", tree != NULL, return -1);
 	aal_assert("umka-742", key != NULL, return -1);
-	aal_assert("umka-1498", level != NULL, return -1);
 
 	if (!coord)
 		coord = &fake;
@@ -447,8 +446,8 @@ int reiser4_tree_lookup(
 			return result;
 
 		/* Check if we should finish lookup because we reach stop level */
-		if (deep <= level->top) {
-			
+		if (deep <= level) {
+
 			if (result == 1)
 				reiser4_coord_realize(coord);
 			
@@ -465,8 +464,13 @@ int reiser4_tree_lookup(
 			return -1;
 		}
 
-		if (!reiser4_item_nodeptr(coord))
-			return deep <= level->bottom ? result : 0;
+		if (!reiser4_item_nodeptr(coord)) {
+
+			if (result == 1)
+				reiser4_coord_realize(coord);
+			
+			return result;
+		}
 		
 		item = &coord->item;
 		
@@ -517,7 +521,7 @@ errno_t reiser4_tree_attach(
 	int result;
 
 	errno_t res;
-	reiser4_level_t stop;
+	uint8_t stop;
 	reiser4_coord_t coord;
 	reiser4_ptr_hint_t ptr;
 	reiser4_item_hint_t hint;
@@ -546,19 +550,18 @@ errno_t reiser4_tree_attach(
 		return -1;
 	}
 
-	stop.top = reiser4_node_level(node) + 1;
-	stop.bottom = stop.top;
+	stop = reiser4_node_level(node) + 1;
 
 	/*
 	  Checking if we have the tree with height smaller than node we are
 	  going to attach in it. If so, we should grow the tree by requested
 	  level.
 	*/
-	while (stop.top > reiser4_tree_height(tree))
+	while (stop > reiser4_tree_height(tree))
 		reiser4_tree_grow(tree);
 		
 	/* Looking up for the insert coord */
-	if ((result = reiser4_tree_lookup(tree, &hint.key, &stop, &coord))) {
+	if ((result = reiser4_tree_lookup(tree, &hint.key, stop, &coord))) {
 
 		if (result == FAILED) {
 			aal_stream_t stream = EMPTY_STREAM;
