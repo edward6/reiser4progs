@@ -186,116 +186,124 @@ typedef struct item_header4 item_header4_t;
 #endif
 
 #if defined(ENABLE_SHORT_KEYS) && defined(ENABLE_LARGE_KEYS)
-#define ih_size(pol)                                        \
-        ((pol == 3) ?                                       \
-	 sizeof(item_header3_t) :                           \
+#define ih_size(pol)						\
+        ((pol == 3) ?						\
+	 sizeof(item_header3_t) :				\
          sizeof(item_header4_t))
 
-#define key_size(pol)                                       \
-        ((pol == 3) ?                                       \
-	 sizeof(key3_t) :                                   \
+#define key_size(pol)						\
+        ((pol == 3) ?						\
+	 sizeof(key3_t) :					\
 	 sizeof(key4_t))
 
-#define ih_get_offset(ih, pol)	                            \
-        ((pol == 3) ?                                       \
-	 aal_get_le16((item_header3_t *)(ih), offset) :     \
+#define ih_get_offset(ih, pol)					\
+        ((pol == 3) ?						\
+	 aal_get_le16((item_header3_t *)(ih), offset) :		\
          aal_get_le16((item_header4_t *)(ih), offset))
 
-#define ih_set_offset(ih, val, pol)                         \
-        ((pol == 3) ?                                       \
-	 aal_set_le16((item_header3_t *)(ih), offset, val) :\
+#define ih_set_offset(ih, val, pol)				\
+        ((pol == 3) ?						\
+	 aal_set_le16((item_header3_t *)(ih), offset, val) :	\
          aal_set_le16((item_header4_t *)(ih), offset, val))
 
-#define ih_get_flags(ih, pol)                               \
-        ((pol == 3) ?                                       \
-         aal_get_le16((item_header3_t *)(ih), flags) :      \
+#define ih_get_flags(ih, pol)					\
+        ((pol == 3) ?						\
+         aal_get_le16((item_header3_t *)(ih), flags) :		\
 	 aal_get_le16((item_header4_t *)(ih), flags))
 
-#define ih_set_flags(ih, val, pol)                          \
-        ((pol == 3) ?                                       \
-         aal_set_le16((item_header3_t *)(ih), flags, val) : \
+#define ih_set_flags(ih, val, pol)				\
+        ((pol == 3) ?						\
+         aal_set_le16((item_header3_t *)(ih), flags, val) :	\
 	 aal_set_le16((item_header4_t *)(ih), flags, val))
 
-#define ih_get_pid(ih, pol)                                 \
-        ((pol == 3) ?                                       \
-         aal_get_le16((item_header3_t *)(ih), pid) :        \
+#define ih_get_pid(ih, pol)					\
+        ((pol == 3) ?						\
+         aal_get_le16((item_header3_t *)(ih), pid) :		\
 	 aal_get_le16((item_header4_t *)(ih), pid))
 
-#define ih_set_pid(ih, val, pol)                            \
-        ((pol == 3) ?                                       \
-         aal_set_le16((item_header3_t *)(ih), pid, val) :   \
+#define ih_set_pid(ih, val, pol)				\
+        ((pol == 3) ?						\
+         aal_set_le16((item_header3_t *)(ih), pid, val) :	\
 	 aal_set_le16((item_header4_t *)(ih), pid, val))
 #else
 #if defined(ENABLE_SHORT_KEYS)
-#define ih_size(pol)                                        \
+#define ih_size(pol)						\
         sizeof(item_header3_t)
 
-#define key_size(pol)                                       \
+#define key_size(pol)						\
         sizeof(key3_t)
 
-#define ih_get_offset(ih, pol)	                            \
+#define ih_get_offset(ih, pol)					\
         aal_get_le16((item_header3_t *)(ih), offset)
 
-#define ih_set_offset(ih, val, pol)                         \
+#define ih_set_offset(ih, val, pol)				\
 	aal_set_le16((item_header3_t *)(ih), offset, val)
 
-#define ih_get_flags(ih, pol)                               \
+#define ih_get_flags(ih, pol)					\
         aal_get_le16((item_header3_t *)(ih), flags)
 
-#define ih_set_flags(ih, val, pol)                          \
+#define ih_set_flags(ih, val, pol)				\
         aal_set_le16((item_header3_t *)(ih), flags, val)
 
-#define ih_get_pid(ih, pol)                                 \
+#define ih_get_pid(ih, pol)					\
         aal_get_le16((item_header3_t *)(ih), pid)
 
-#define ih_set_pid(ih, val, pol)                            \
+#define ih_set_pid(ih, val, pol)				\
         aal_set_le16((item_header3_t *)(ih), pid, val)
 #else
-#define ih_size(pol)                                        \
+#define ih_size(pol)						\
         sizeof(item_header4_t)
 
-#define key_size(pol)                                       \
+#define key_size(pol)						\
         sizeof(key4_t)
 
-#define ih_get_offset(ih, pol)	                            \
+#define ih_get_offset(ih, pol)					\
         aal_get_le16((item_header4_t *)(ih), offset)
 
-#define ih_set_offset(ih, val, pol)                         \
+#define ih_set_offset(ih, val, pol)				\
 	aal_set_le16((item_header4_t *)(ih), offset, val)
 
-#define ih_get_flags(ih, pol)                               \
+#define ih_get_flags(ih, pol)					\
         aal_get_le16((item_header4_t *)(ih), flags)
 
-#define ih_set_flags(ih, val, pol)                          \
+#define ih_set_flags(ih, val, pol)				\
         aal_set_le16((item_header4_t *)(ih), flags, val)
 
-#define ih_get_pid(ih, pol)                                 \
+#define ih_get_pid(ih, pol)					\
         aal_get_le16((item_header4_t *)(ih), pid)
 
-#define ih_set_pid(ih, val, pol)                            \
+#define ih_set_pid(ih, val, pol)				\
         aal_set_le16((item_header4_t *)(ih), pid, val)
 #endif
 #endif
 
-#define ih_inc_offset(ih, val, pol)                        \
-        ih_set_offset((ih), (ih_get_offset((ih), pol) +    \
+#define ih_inc_offset(ih, val, pol)				\
+        ih_set_offset((ih), (ih_get_offset((ih), pol) +		\
         (val)), pol)
 
-#define ih_dec_offset(ih, val, pol)                        \
-        ih_set_offset((ih), (ih_get_offset((ih), pol) -    \
+#define ih_dec_offset(ih, val, pol)				\
+        ih_set_offset((ih), (ih_get_offset((ih), pol) -		\
         (val)), pol)
 
-#define ih_clear_flag(ih, flag, pol)                       \
-        ih_set_flags(ih, (ih_get_flags(ih, pol) & ~flag),  \
-        pol)
+#define ih_clear_flag(ih, flag, pol)				\
+({								\
+	uint16_t flags = ih_get_flags(ih, pol);			\
+	aal_clear_bit(&flags, flag);				\
+        ih_set_flags(ih, flags, pol);				\
+})
 
-#define ih_set_flag(ih, flag, pol)                         \
-        ih_set_flags(ih, (ih_get_flags(ih, pol) | flag),   \
-        pol)
+#define ih_set_flag(ih, flag, pol)				\
+({								\
+	uint16_t flags = ih_get_flags(ih, pol);			\
+	aal_set_bit(&flags, flag);				\
+        ih_set_flags(ih, flags, pol);				\
+})
 
-#define ih_test_flag(ih, flag, pol)                        \
-        ({uint16_t flags = ih_get_flags(ih, pol);          \
-        aal_test_bit(&flags, flag);})
+#define ih_test_flag(ih, flag, pol)				\
+({								\
+	uint16_t flags = ih_get_flags(ih, pol);			\
+        aal_test_bit(&flags, flag);				\
+})
 
 extern void node40_mkdirty(node_entity_t *entity);
 extern void node40_mkclean(node_entity_t *entity);
@@ -309,6 +317,5 @@ typedef int64_t (*modyfy_func_t) (place_t *place, trans_hint_t *hint);
 
 extern int64_t node40_modify(node_entity_t *entity, pos_t *pos, 
 			     trans_hint_t *hint, modyfy_func_t modify_func);
-
 
 #endif
