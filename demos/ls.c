@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
 		reg_hint.body.reg.policy = TAIL_NEVER_ID;
 
 		{
-			int i;
+			int i, j;
 			char name[256];
 			reiser4_object_t *object;
 	    
@@ -134,8 +134,7 @@ int main(int argc, char *argv[]) {
 
 				reiser4_object_link(dir, object, name);
 				
-				reiser4_object_write(object, "H", 1);
-				reiser4_object_write(object, "H", 1);
+				reiser4_object_write(object, name, aal_strlen(name));
 				reiser4_object_close(object);
 			}
 		}

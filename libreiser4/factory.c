@@ -266,10 +266,11 @@ errno_t reiser4_factory_load(plug_init_t init, plug_fini_t fini) {
 	
 	plugins = aal_list_append(plugins, plug);
 	return 0;
-	
+#ifdef ENABLE_PLUGINS_CHECK
  error_free_plug:
 	reiser4_factory_unload(plug);
 	return res;
+#endif
 }
 
 #endif

@@ -306,7 +306,8 @@ static errno_t extent40_estimate_insert(place_t *place, uint32_t pos,
 
 	if (pos == MAX_UINT32)
 		hint->len = sizeof(extent40_t);
-	else {
+	
+/*	else {
 		key_entity_t key;
 		key_entity_t maxkey;
 		
@@ -326,7 +327,7 @@ static errno_t extent40_estimate_insert(place_t *place, uint32_t pos,
 
 		if (ins_offset + hint->count > max_offset)
 			hint->len = sizeof(extent40_t);
-	}
+	} */
 
 	return 0;
 }
@@ -339,23 +340,20 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 	aal_block_t *block;
 	extent40_t *extent;
 
-	uint32_t count;
+	uint32_t count, size;
 	uint64_t unit_offset;
 	uint64_t block_offset;
 	
 	aal_assert("umka-2357", hint != NULL);
 	aal_assert("umka-2356", place != NULL);
 
-	count = hint->count;
 	blksize = extent40_blksize(place);
+	extent = extent40_body(place) + pos;
 	
 	/* Forming extent unit */
 	if (hint->len != 0) {
-		extent = extent40_body(place) + pos;
-
 		et40_set_start(extent, 1);
-		et40_set_width(extent, (count - 1) /
-			       blksize + 1);
+		et40_set_width(extent, 0);
 	}
 	
 	/* Getting offset of block data will be written in. */
@@ -367,9 +365,7 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 	block_offset = (unit_offset + hint->offset) -
 		(unit_offset & (blksize - 1));
 
-	while (count > 0) {
-		uint32_t size;
-		
+	for (count = hint->count; count > 0; count -= size) {
 		/* Preparing key for getting data by it */
 		plug_call(key.plug->o.key_ops, set_offset,
 			  &key, block_offset);
@@ -383,6 +379,7 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 			}
 
 			core->tree_ops.set_data(hint->tree, &key, block);
+			et40_inc_width(extent, 1);
 		}
 
 		/* Writting data to @block */
@@ -399,7 +396,6 @@ static errno_t extent40_insert(place_t *place, uint32_t pos,
 				   hint->type_specific, size);
 		}
 
-		count -= size;
 		block_offset += blksize;
 	}
 	

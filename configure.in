@@ -87,9 +87,12 @@ int main() {
 	exit(1);
     }
 	
-    if (((major == $libaal_config_major_version) && 
-        (minor == $libaal_config_minor_version) && 
-        (micro >= $libaal_config_micro_version))) 
+    if ((major >= $libaal_config_major_version) &&
+	((major == $libaal_config_major_version) && 
+	(minor >= $libaal_config_minor_version)) &&
+	((major == $libaal_config_major_version) && 
+	(minor == $libaal_config_minor_version) && 
+	(micro >= $libaal_config_micro_version))) 
     {
 	return 0;
     }
@@ -581,6 +584,7 @@ AC_OUTPUT([
     progs/cpfs/Makefile
     debug/Makefile
     doc/Makefile
+    reiser4progs.spec
 ])
 
 echo
