@@ -91,8 +91,12 @@ prints all plugins libreiser4 know about.
 .B -o, --override TYPE=PLUGIN, ...
 overrides the default plugin of the type "TYPE" by the plugin "PLUGIN"
 in the plugin profile.
-.sp 1
-Examples:
+.SH Temporary Options
+.TP
+.B -C
+converts to the new backup layout. Use this only if you created a reiser4 
+fs with some previous version of reiser4progs. 
+.SH Examples:
 .sp 1
 debugfs.reiser4 -o nodeptr=nodeptr41,hash=rupasov_hash /dev/hda2
 .RS
