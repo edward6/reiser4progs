@@ -119,8 +119,8 @@ static reiser4_plugin_t internal40_plugin = {
         .remove		= NULL,
 
 	.max_poss_key	= internal40_max_poss_key,
+	.max_real_key   = internal40_max_poss_key,
         .print		= internal40_print,
-	.max_real_key   = internal40_maxkey,
 	
     	.specific = {
 	    .internal = {

@@ -49,9 +49,9 @@ static errno_t __after_traverse(reiser4_node_t *node, reiser4_item_t *item,
 	repair_set_flag(check_data, REPAIR_NOT_FIXED);
 
     aal_list_remove(repair_cut_data(check_data)->nodes_path, 
-	aal_list_last(repair_cut_data(check_data)->nodes_path)->item);
+	aal_list_last(repair_cut_data(check_data)->nodes_path)->data);
     aal_list_remove(repair_cut_data(check_data)->items_path, 
-	aal_list_last(repair_cut_data(check_data)->items_path)->item);
+	aal_list_last(repair_cut_data(check_data)->items_path)->data);
     
     return 0;
 }

@@ -456,8 +456,8 @@ static reiser4_plugin_t direntry40_plugin = {
         .print		= direntry40_print,
         .lookup		= direntry40_lookup,
         .max_poss_key	= direntry40_max_poss_key,
-        .count		= direntry40_count,
         .max_real_key   = direntry40_max_real_key,
+        .count		= direntry40_count,
 	
 	.specific = {
 	    .direntry = { 

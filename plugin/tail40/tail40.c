@@ -129,7 +129,8 @@ static reiser4_plugin_t tail40_plugin = {
         .init		= NULL,
         .insert		= NULL,
 #endif
-        .max_poss_key    = tail40_max_poss_key,
+        .max_poss_key   = tail40_max_poss_key,
+        .max_real_key	= tail40_max_real_key,
         .lookup		= tail40_lookup,
         .remove		= NULL,
         .estimate	= NULL,
@@ -137,7 +138,6 @@ static reiser4_plugin_t tail40_plugin = {
         .count		= NULL,
         .valid		= NULL,
         .print		= NULL,
-        .max_real_key	= tail40_max_real_key,
 
 	.specific	= {}
     }

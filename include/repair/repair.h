@@ -86,11 +86,11 @@ typedef struct repair_check repair_check_t;
 
 #define repair_cut_node_at(data, h)				    \
     (h < aal_list_length(repair_cut_data(data)->nodes_path) ?	    \
-     aal_list_at(repair_cut_data(data)->nodes_path, h)->item :	    \
+     aal_list_at(repair_cut_data(data)->nodes_path, h)->data :	    \
      NULL)
 #define repair_cut_item_at(data, h)				    \
     (h < aal_list_length(repair_cut_data(data)->items_path) ?	    \
-     aal_list_at(repair_cut_data(data)->items_path, h)->item :	    \
+     aal_list_at(repair_cut_data(data)->items_path, h)->data :	    \
      NULL)
 
 #endif
