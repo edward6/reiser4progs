@@ -231,7 +231,7 @@ static int64_t extent40_trunc_units(place_t *place,
 		size -= chunk;
 	}
 
-	/* Updating key if it makes sence */
+	/* Updating key if it makes sense. */
 	if (pos == 0 && place->len > (uint32_t)hint->len) {
 		offset = plug_call(place->key.plug->o.key_ops,
 				   get_offset, &place->key);
@@ -589,7 +589,7 @@ uint32_t extent40_expand(place_t *place, uint32_t pos, uint32_t count) {
 		src = (extent40_t *)place->body + pos;
 		dst = src + (count * sizeof(extent40_t));
 
-		size = (extent40_units(place) - pos) *
+		size = (extent40_units(place) - pos - count) *
 			sizeof(extent40_t);
 
 		aal_memmove(dst, src, size);
@@ -1067,19 +1067,22 @@ static errno_t extent40_prep_shift(place_t *src_place,
 static errno_t extent40_shift_units(place_t *src_place, place_t *dst_place,
 				    shift_hint_t *hint)
 {
+	uint32_t pos;
+	uint64_t offset;
+	
 	aal_assert("umka-1708", hint != NULL);
 	aal_assert("umka-1706", src_place != NULL);
 	aal_assert("umka-1707", dst_place != NULL);
 
 	if (hint->control & SF_LEFT_SHIFT) {
-		
+		pos = extent40_units(dst_place) - hint->units;
+			
 		/* Preparing space in @dst_place */
-		extent40_expand(dst_place, extent40_units(dst_place), 
-				hint->units);
+		extent40_expand(dst_place, pos, hint->units, 0);
 
 		/* Copying data from the @src_place to @dst_place */
-		extent40_copy(dst_place, extent40_units(dst_place),
-			      src_place, 0, hint->units);
+		extent40_copy(dst_place, pos, src_place, 0,
+			      hint->units);
 
 		/* Removing units in @src_place */
 		extent40_shrink(src_place, 0, hint->units);
@@ -1088,9 +1091,6 @@ static errno_t extent40_shift_units(place_t *src_place, place_t *dst_place,
 		body40_get_key(src_place, hint->units,
 			       &src_place->key, extent40_offset);
 	} else {
-		uint32_t pos;
-		uint64_t offset;
-
 		/* Preparing space in @dst_place */
 		extent40_expand(dst_place, 0, hint->units);
 
