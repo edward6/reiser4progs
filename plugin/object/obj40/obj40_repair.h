@@ -35,7 +35,7 @@ typedef struct obj40_stat_params obj40_stat_params_t;
 
 extern reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, 
 					    rid_t type, 
-					    char *name);
+					    rid_t index);
 
 extern errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func);
 

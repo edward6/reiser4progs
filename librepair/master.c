@@ -21,8 +21,8 @@ static int callback_bs_check (int64_t val, void * data) {
    one was opened. */
 static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 	reiser4_plug_t *plug;
-	rid_t format, pid;
 	uint16_t blksize;
+	rid_t pid;
 	
 	aal_assert("vpf-730", fs != NULL);
 	aal_assert("vpf-161", fs->master != NULL || fs->device != NULL);
@@ -88,29 +88,25 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 		return -EINVAL;
 	}
 	
-	format = reiser4_param_value("format");
+	plug = reiser4_profile_plug(PROF_FORMAT);
 	pid = reiser4_master_get_format(fs->master);
 	
 	/* If the format is overridden, fix master accordingly to the specified 
 	   value. */ 
-	if (pid != format && reiser4_param_get_flag("format", PF_OVERRIDDEN)) {
-		/* The @format is correct value. */
-		if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, format))) {
-			aal_error("Can't find format plugin by its id 0x%x.", 
-				  format);
-			return -EINVAL;
-		}
-
+	if (reiser4_profile_get_flag(PROF_FORMAT, PF_OVERRIDDEN) &&
+	    pid != plug->id.id)
+	{
+		/* The @plug is the correct one. */
 		aal_fatal("The specified reiser4 format on '%s' is '%s'. Its "
 			  "id (0x%x) does not match the on-disk id (0x%x).%s", 
-			  fs->device->name, plug->label, format, pid, 
+			  fs->device->name, plug->label, plug->id.id, pid, 
 			  mode == RM_BUILD ? " Fixed." : " Has effect in BUILD "
 			  "mode only.");
 
 		if (mode != RM_BUILD)
 			return RE_FATAL;
 
-		reiser4_master_set_format(fs->master, format);
+		reiser4_master_set_format(fs->master, plug->id.id);
 		reiser4_master_mkdirty(fs->master);
 	}
 	

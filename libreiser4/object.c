@@ -803,31 +803,28 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 				     reiser4_object_t *parent,
 				     const char *name)
 {
-	rid_t pid;
 	entry_hint_t entry;
 	object_hint_t hint;
+	reiser4_plug_t *plug;
 	
 	aal_assert("vpf-1053", fs != NULL);
 	
-	pid = reiser4_param_value("directory");
-	
 	/* Preparing object hint */
-	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, pid);
-
-	if (!hint.plug) {
-		aal_error("Can't find directory plugin "
-			  "by its id 0x%x.", pid);
-		return NULL;
-	}
+	hint.plug = reiser4_profile_plug(PROF_DIR);
 
 	/* Preparing directory label. */
 	hint.label.mode = 0;
-	hint.label.statdata = reiser4_param_value("statdata");
+	plug = reiser4_profile_plug(PROF_STATDATA);
+	hint.label.statdata = plug->id.id;
 	
 	/* Preparing directory body. */
-	hint.body.dir.hash = reiser4_param_value("hash");
-	hint.body.dir.fibre = reiser4_param_value("fibre");
-	hint.body.dir.direntry = reiser4_param_value("direntry");
+	plug = reiser4_profile_plug(PROF_HASH);
+	hint.body.dir.hash = plug->id.id;
+	plug = reiser4_profile_plug(PROF_FIBRE);
+	hint.body.dir.fibre = plug->id.id;
+	plug = reiser4_profile_plug(PROF_DIRENTRY);
+	hint.body.dir.direntry = plug->id.id;
+	
 	hint.parent = (parent ? &parent->info->object : NULL);
 
 	if (name) {
@@ -846,31 +843,28 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 				     reiser4_object_t *parent,
 				     const char *name)
 {
-	rid_t regular;
 	entry_hint_t entry;
 	object_hint_t hint;
+	reiser4_plug_t *plug;
 	
 	aal_assert("vpf-1054", fs != NULL);
 	
-	regular = reiser4_param_value("regular");
-	
 	/* Preparing object hint */
-	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, regular);
-
-	if (!hint.plug) {
-		aal_error("Can't find regual file plugin "
-			  "by its id 0x%x.", regular);
-		return NULL;
-	}
+	hint.plug = reiser4_profile_plug(PROF_REG);
 
 	/* Preparing label fields. */
 	hint.label.mode = 0;
-	hint.label.statdata = reiser4_param_value("statdata");
+	plug = reiser4_profile_plug(PROF_STATDATA);
+	hint.label.statdata = plug->id.id;
 
 	/* Preparing body fields. */
-	hint.body.reg.tail = reiser4_param_value("tail");
-	hint.body.reg.extent = reiser4_param_value("extent");
-	hint.body.reg.policy = reiser4_param_value("policy");
+	plug = reiser4_profile_plug(PROF_TAIL);
+	hint.body.reg.tail = plug->id.id;
+	plug = reiser4_profile_plug(PROF_EXTENT);
+	hint.body.reg.extent = plug->id.id;
+	plug = reiser4_profile_plug(PROF_POLICY);
+	hint.body.reg.policy = plug->id.id;
+	
 	hint.parent = (parent ? &parent->info->object : NULL);
 	
 	if (name) {
@@ -889,27 +883,20 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 		                     const char *name,
 		                     const char *target)
 {
-	rid_t symlink;
 	entry_hint_t entry;
 	object_hint_t hint;
+	reiser4_plug_t *plug;
 	
 	aal_assert("vpf-1186", fs != NULL);
 	aal_assert("vpf-1057", target != NULL);
 	
-	symlink = reiser4_param_value("symlink");
-	
 	/* Preparing object hint */
-	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, symlink);
-
-	if (!hint.plug) {
-		aal_error("Can't find symlink plugin by "
-			  "its id 0x%x.", symlink);
-		return NULL;
-	}
+	hint.plug = reiser4_profile_plug(PROF_SYM);
 
 	/* Preparing label fields. */
 	hint.label.mode = 0;
-	hint.label.statdata = reiser4_param_value("statdata");
+	plug = reiser4_profile_plug(PROF_STATDATA);
+	hint.label.statdata = plug->id.id;
 
 	/* Preparing body fields. */
 	hint.body.sym = (char *)target;
@@ -932,27 +919,20 @@ reiser4_object_t *reiser4_spl_create(reiser4_fs_t *fs,
 				     uint32_t mode,
 		                     uint64_t rdev)
 {
-	rid_t special;
 	entry_hint_t entry;
 	object_hint_t hint;
+	reiser4_plug_t *plug;
 	
 	aal_assert("umka-2534", fs != NULL);
 	aal_assert("umka-2535", rdev != 0);
 	
-	special = reiser4_param_value("special");
-	
 	/* Preparing object hint. */
-	hint.plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, special);
-
-	if (!hint.plug) {
-		aal_error("Can't find special file plugin "
-			  "by its id 0x%x.", special);
-		return NULL;
-	}
+	hint.plug = reiser4_profile_plug(PROF_SPL);
 
 	/* Preparing label fields. */
 	hint.label.mode = mode;
-	hint.label.statdata = reiser4_param_value("statdata");
+	plug = reiser4_profile_plug(PROF_STATDATA);
+	hint.label.statdata = plug->id.id;
 
 	/* Preparing body fields. */
 	hint.body.spl.rdev = rdev;

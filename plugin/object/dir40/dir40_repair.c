@@ -154,7 +154,9 @@ errno_t dir40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	
 	/* Init hash plugin in use. */
-	dir->hash = obj40_plug_recognize(&dir->obj, HASH_PLUG_TYPE, "hash");
+	dir->hash = obj40_plug_recognize(&dir->obj, 
+					 HASH_PLUG_TYPE, 
+					 PROF_HASH);
 	
 	if (dir->hash == NULL) {
                 aal_error("Directory %s: failed to init hash plugin. Plugin "
@@ -164,7 +166,9 @@ errno_t dir40_check_struct(object_entity_t *object,
         }
 	
 	/* Init hash plugin in use. */
-	dir->fibre = obj40_plug_recognize(&dir->obj, FIBRE_PLUG_TYPE, "fibre");
+	dir->fibre = obj40_plug_recognize(&dir->obj, 
+					  FIBRE_PLUG_TYPE, 
+					  PROF_FIBRE);
 	
 	if (dir->fibre == NULL) {
                 aal_error("Directory %s: failed to init the fibration plugin. "
@@ -175,7 +179,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 
 	/* FIXME-VITALY: take it from SD first. But of which type -- there is 
 	   only ITEM_TYPE for now. */
-	if ((pid = dir40_core->param_ops.value("direntry")) == INVAL_PID) {
+	if ((pid = dir40_core->profile_ops.value(PROF_DIRENTRY)) == INVAL_PID) {
 		aal_error("Failed to get a plugid for direntry from "
 			  "the params.");
 		return -EINVAL;
@@ -476,7 +480,7 @@ errno_t dir40_form(object_entity_t *object) {
 	if (!dir->hash) {
 		dir->hash = obj40_plug_recognize(&dir->obj, 
 						 HASH_PLUG_TYPE, 
-						 "hash");
+						 PROF_HASH);
 
 		if (dir->hash == NULL) {
 			aal_error("Directory [%s]: failed to init "
@@ -491,7 +495,7 @@ errno_t dir40_form(object_entity_t *object) {
 	if (!dir->fibre) {
 		dir->fibre = obj40_plug_recognize(&dir->obj, 
 						 FIBRE_PLUG_TYPE, 
-						 "fibre");
+						 PROF_FIBRE);
 
 		if (dir->fibre == NULL) {
 			aal_error("Directory [%s]: failed to init "

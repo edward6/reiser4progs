@@ -30,7 +30,7 @@ extern "C" {
 #include <reiser4/status.h>
 #include <reiser4/item.h>
 #include <reiser4/factory.h>
-#include <reiser4/param.h>
+#include <reiser4/profile.h>
 #include <reiser4/print.h>
 #include <reiser4/fake.h>
 #include <reiser4/debug.h>

@@ -841,8 +841,8 @@ errno_t reiser4_tree_place_key(reiser4_tree_t *tree,
 reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 					uint8_t level)
 {
+	reiser4_plug_t *plug;
 	blk_t blk;
-	rid_t pid;
 	
 	reiser4_node_t *node;
 	uint32_t stamp;
@@ -855,7 +855,7 @@ reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	/* Allocating fake block number. */
 	blk = reiser4_fake_get();
 	format = tree->fs->format;
-	pid = reiser4_param_value("node");
+	plug = reiser4_profile_plug(PROF_NODE);
 
 	/* Setting up of the free blocks in format. */
 	if (!(free_blocks = reiser4_format_get_free(format)))
@@ -864,7 +864,7 @@ reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	reiser4_format_set_free(format, free_blocks - 1);
 
 	/* Creating new node. */
-	if (!(node = reiser4_node_create(tree, blk, pid, level))) {
+	if (!(node = reiser4_node_create(tree, blk, plug->id.id, level))) {
 		aal_error("Can't initialize new fake node.");
 		return NULL;
 	}
@@ -997,10 +997,6 @@ inline uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
 reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	reiser4_tree_t *tree;
 
-#ifndef ENABLE_STAND_ALONE
-	rid_t pid;
-#endif
-
 	aal_assert("umka-737", fs != NULL);
 
 	/* Allocating memory for tree instance */
@@ -1016,12 +1012,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 
 	/* Initializing nodeptr plugin to be used for attaching new nodes to
 	   tree.*/
-	pid = reiser4_param_value("nodeptr");
-	
-	if (!(tree->nodeptr = reiser4_factory_ifind(ITEM_PLUG_TYPE, pid))) {
-		aal_error("Can't find nodeptr plugin by its id 0x%x.", pid);
-		goto error_free_tree;
-	}
+//	tree->nodeptr = reiser4_profile_plug(PROF_NODEPTR);
 #endif
 	
 	/* Initializing hash table for storing loaded formatted nodes in it. */
@@ -2009,14 +2000,13 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
 	aal_assert("umka-913", tree != NULL);
 	aal_assert("umka-916", node != NULL);
 	aal_assert("umka-3104", place != NULL);
-	aal_assert("umka-3131", tree->nodeptr != NULL);
 
 	hint.count = 1;
 	hint.specific = &ptr;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
 	hint.shift_flags = flags;
-	hint.plug = tree->nodeptr;
+	hint.plug = reiser4_profile_plug(PROF_NODEPTR);
 
 	ptr.width = 1;
 	ptr.start = node_blocknr(node);

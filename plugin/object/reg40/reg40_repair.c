@@ -396,7 +396,9 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 		return -EINVAL;
 	
 	/* Get the reg file tail policy. */
-	if (!(reg->policy = obj40_plug(&reg->obj, POLICY_PLUG_TYPE, "policy")))
+	if (!(reg->policy = obj40_plug(&reg->obj, 
+				       POLICY_PLUG_TYPE, 
+				       PROF_POLICY)))
 	{
 		aal_error("The object [%s] failed to "
 			  "detect the tail policy.", 
@@ -406,18 +408,24 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	
 	aal_memset(&repair, 0, sizeof(repair));
 	
-	/* Get the extent item plugin. FIXME-VITALY: param_ops.valus+ifind
+	/* Get the extent item plugin. FIXME-VITALY: profile_ops.valus+ifind
 	   for now untill we can point tail item in plug_extension */
-	if (!(repair.eplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "extent"))){
+	if (!(repair.eplug = obj40_plug(&reg->obj, 
+					ITEM_PLUG_TYPE, 
+					PROF_EXTENT))) 
+	{
 		aal_error("The object [%s] failed to detect the "
 			  "extent plugin to use.", 
 			  print_inode(reg40_core, &info->object));
 		return -EINVAL;
 	}
 
-	/* Get the tail item plugin. FIXME-VITALY: param_ops.valus+ifind
+	/* Get the tail item plugin. FIXME-VITALY: profile_ops.valus+ifind
 	   for now untill we can point extent item in plug_extension */
-	if (!(repair.tplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "tail"))) {
+	if (!(repair.tplug = obj40_plug(&reg->obj, 
+					ITEM_PLUG_TYPE, 
+					PROF_TAIL))) 
+	{
 		aal_error("The object [%s] failed to detect the "
 			  "tail plugin to use.", 
 			  print_inode(reg40_core, &info->object));
@@ -572,7 +580,9 @@ errno_t reg40_form(object_entity_t *object) {
 	reg40_reset(object);
 	
 	/* Get the reg file tail policy. */
-	if (!(reg->policy = obj40_plug(&reg->obj, POLICY_PLUG_TYPE, "policy")))
+	if (!(reg->policy = obj40_plug(&reg->obj, 
+				       POLICY_PLUG_TYPE, 
+				       PROF_POLICY)))
 	{
 		aal_error("The object [%s] failed to detect "
 			  "the tail policy.", 

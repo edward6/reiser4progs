@@ -415,18 +415,18 @@ static object_entity_t *dir40_open(object_info_t *info) {
 	/* Initializing obj handle for the directory */
 	obj40_init(&dir->obj, &dir40_plug, dir40_core, info);
 	
-	if (obj40_pid(&dir->obj, OBJECT_PLUG_TYPE,
-		      "directory") !=  dir40_plug.id.id)
+	if (obj40_pid(&dir->obj, OBJECT_PLUG_TYPE, PROF_DIR) !=  
+	    dir40_plug.id.id)
 	{
 		goto error_free_dir;
 	}
 	
 	/* Getting hash plugin basing on stat data and/or param set. */
-	if (!(dir->hash = obj40_plug(&dir->obj, HASH_PLUG_TYPE, "hash")))
+	if (!(dir->hash = obj40_plug(&dir->obj, HASH_PLUG_TYPE, PROF_HASH)))
                 goto error_free_dir;
 	
 	/* Getting fibre plugin basing on stat data and/or param set. */
-	if (!(dir->fibre = obj40_plug(&dir->obj, FIBRE_PLUG_TYPE, "fibre")))
+	if (!(dir->fibre = obj40_plug(&dir->obj, FIBRE_PLUG_TYPE, PROF_FIBRE)))
                 goto error_free_dir;
 
 	/* Positioning to the first directory unit. */

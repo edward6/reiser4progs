@@ -112,8 +112,10 @@ static errno_t tree_convert(void *tree, conv_hint_t *hint) {
 	return reiser4_flow_convert(t, hint);
 }
 
-static uint64_t param_value(char *name) {
-	return reiser4_param_value(name);
+static rid_t profile_value(rid_t index) {
+	reiser4_plug_t *plug;
+	plug = reiser4_profile_plug(index);
+	return plug->id.id;
 }
 
 static int item_mergeable(reiser4_place_t *place1,
@@ -211,8 +213,8 @@ reiser4_core_t core = {
 #endif
 	},
 #ifndef ENABLE_STAND_ALONE
-	.param_ops = {
-		.value = param_value
+	.profile_ops = {
+		.value = profile_value
 	},
 #endif
 #ifdef ENABLE_SYMLINKS
@@ -257,6 +259,9 @@ errno_t libreiser4_init(void) {
 		goto error_fini_print;
 	}
 
+#ifndef ENABLE_STAND_ALONE
+	reiser4_profile_init();
+#endif
 	return 0;
 	
  error_fini_print:

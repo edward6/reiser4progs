@@ -26,7 +26,7 @@ object_entity_t *sym40_open(object_info_t *info) {
 	/* Initalizing file handle */
 	obj40_init(&sym->obj, &sym40_plug, sym40_core, info);
 	
-	if (obj40_pid(&sym->obj, OBJECT_PLUG_TYPE, "symlink") != 
+	if (obj40_pid(&sym->obj, OBJECT_PLUG_TYPE, PROF_SYM) != 
 	    sym40_plug.id.id)
 	{
 		goto error_free_sym;

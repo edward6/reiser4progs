@@ -150,16 +150,17 @@ static object_entity_t *reg40_open(object_info_t *info) {
 
 	/* Checking if stat data contains points to object, which can be handled
 	   by current plugin. */
-	if (obj40_pid(&reg->obj, OBJECT_PLUG_TYPE,
-		      "regular") !=  reg40_plug.id.id)
+	if (obj40_pid(&reg->obj, OBJECT_PLUG_TYPE, PROF_REG) != 
+	    reg40_plug.id.id)
 	{
 		goto error_free_reg;
 	}
 
 	/* Initializing tail policy plugin. */
 #ifndef ENABLE_STAND_ALONE
-	if (!(reg->policy = obj40_plug(&reg->obj, POLICY_PLUG_TYPE,
-				       "policy")))
+	if (!(reg->policy = obj40_plug(&reg->obj, 
+				       POLICY_PLUG_TYPE,
+				       PROF_POLICY)))
 	{
 		aal_error("Can't get file policy plugin.");
 		goto error_free_reg;
@@ -210,7 +211,8 @@ static object_entity_t *reg40_create(object_info_t *info,
 	if (hint->body.reg.policy == INVAL_PID) {
 		/* Getting default tail policy from param if passed hint
 		   contains no valid tail policy plugin id. */
-		hint->body.reg.policy = reg40_core->param_ops.value("policy");
+		hint->body.reg.policy = 
+			reg40_core->profile_ops.value(PROF_POLICY);
 
 		if (hint->body.reg.policy == INVAL_PID) {
 			aal_error("Invalid default tail policy "
@@ -295,10 +297,10 @@ reiser4_plug_t *reg40_policy_plug(reg40_t *reg, uint64_t new_size) {
 	if (plug_call(reg->policy->o.policy_ops, tails, new_size)) {
 		/* Trying to get non-standard tail plugin from stat data. And if
 		   it is not found, default one from params will be taken. */
-		return obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "tail");
+		return obj40_plug(&reg->obj, ITEM_PLUG_TYPE, PROF_TAIL);
 	} else {
 		/* The same for extent plugin */
-		return obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "extent");
+		return obj40_plug(&reg->obj, ITEM_PLUG_TYPE, PROF_EXTENT);
 	}
 }
 

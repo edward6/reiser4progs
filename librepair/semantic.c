@@ -528,7 +528,6 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 	reiser4_object_t *object;
 	reiser4_plug_t *plug;
 	reiser4_tree_t *tree;
-	rid_t pid;
 	
 	aal_assert("vpf-1250", sem != NULL);
 	aal_assert("vpf-1251", key != NULL);
@@ -558,21 +557,11 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 	if (sem->repair->mode != RM_BUILD)
 		return NULL;
 	
-	if ((pid = reiser4_param_value("directory")) == INVAL_PID) {
-		aal_error("Can't get the valid plugin id "
-			  "for the directory plugin.");
-		return INVAL_PTR;
-	}
-
-	if (!(plug = reiser4_factory_ifind(OBJECT_PLUG_TYPE, pid))) {
-		aal_error("Can't find item plugin by its id 0x%x.", pid);
-		return INVAL_PTR;
-	}
+	plug = reiser4_profile_plug(PROF_DIR);
 
 	aal_error("Trying to recover the directory [%s] with the default plugin"
 		  "--%s.", reiser4_print_key(key, PO_INODE), plug->label);
 
-	
 	return repair_object_fake(tree, parent, key, plug);
 }
 

@@ -251,8 +251,7 @@ reiser4_fs_t *reiser4_fs_create(
 	aal_device_t *device,           /* device filesystem will be lie on */
 	fs_hint_t *hint)                /* filesystem hint */
 {
-	rid_t policy;
-	rid_t format;
+	reiser4_plug_t *format, *policy, *key;
 
 	count_t free;
 	reiser4_fs_t *fs;
@@ -274,7 +273,7 @@ reiser4_fs_t *reiser4_fs_create(
 	fs->device = device;
 		
 	/* Create master super block. */
-	format = reiser4_param_value("format");
+	format = reiser4_profile_plug(PROF_FORMAT);
 		
 	if (!(fs->master = reiser4_master_create(device, hint->blksize)))
 		goto error_free_fs;
@@ -283,7 +282,7 @@ reiser4_fs_t *reiser4_fs_create(
 		goto error_free_master;
 
 	/* Setting up master super block. */
-	reiser4_master_set_format(fs->master, format);
+	reiser4_master_set_format(fs->master, format->id.id);
 	reiser4_master_set_uuid(fs->master, hint->uuid);
 	reiser4_master_set_label(fs->master, hint->label);
 
@@ -291,17 +290,20 @@ reiser4_fs_t *reiser4_fs_create(
 		goto error_free_master;
 
 	/* Getting tail policy from default params. */
-	policy = reiser4_param_value("policy");
+	policy = reiser4_profile_plug(PROF_POLICY);
 	
 	/* Creates disk format. */
-	if (!(fs->format = reiser4_format_create(fs, hint->blocks,
-						 policy, format)))
+	if (!(fs->format = reiser4_format_create(fs, hint->blocks, 
+						 policy->id.id,
+						 format->id.id)))
 	{
 		goto error_free_status;
 	}
 
 	/* Taking care about key flags in format super block */
-	if (reiser4_param_value("key") == KEY_LARGE_ID) {
+	key = reiser4_profile_plug(PROF_KEY);
+	
+	if (key->id.id == KEY_LARGE_ID) {
 		plug_call(fs->format->entity->plug->o.format_ops, set_flags,
 			  fs->format->entity, (1 << REISER4_LARGE_KEYS));
 	} else {
@@ -419,30 +421,29 @@ errno_t reiser4_fs_sync(
 errno_t reiser4_fs_init_params(reiser4_fs_t *fs) {
 	uint16_t flags, pid;
 	
-	if (!reiser4_param_get_flag("format", PF_OVERRIDDEN)) {
+	if (!reiser4_profile_get_flag(PROF_FORMAT, PF_OVERRIDDEN)) {
 		pid = reiser4_master_get_format(fs->master);
-		reiser4_param_set("format", pid);
-		reiser4_param_set_flag("format", PF_READ);
+		reiser4_profile_set(PROF_FORMAT, pid);
+		reiser4_profile_set_flag(PROF_FORMAT, PF_READ);
 	}
 	
-	if (!reiser4_param_get_flag("key", PF_OVERRIDDEN)) {
+	if (!reiser4_profile_get_flag(PROF_KEY, PF_OVERRIDDEN)) {
 		flags = plug_call(fs->format->entity->plug->o.format_ops,
 				  get_flags, fs->format->entity);
 
 		/* Set the default fs key plugin in the profile. */
-		if ((1 << REISER4_LARGE_KEYS) & flags) {
-			reiser4_param_override("key", "key_large");
-		} else {
-			reiser4_param_override("key", "key_short");
-		}
+		if ((1 << REISER4_LARGE_KEYS) & flags)
+			reiser4_profile_override(PROF_KEY, "key_large");
+		else
+			reiser4_profile_override(PROF_KEY, "key_short");
 
-		reiser4_param_set_flag("key", PF_READ);
+		reiser4_profile_set_flag(PROF_KEY, PF_READ);
 	}
 
-	if (!reiser4_param_get_flag("policy", PF_OVERRIDDEN)) {
+	if (!reiser4_profile_get_flag(PROF_POLICY, PF_OVERRIDDEN)) {
 		pid = reiser4_format_get_policy(fs->format);
-		reiser4_param_set("policy", pid);
-		reiser4_param_set_flag("policy", PF_READ);
+		reiser4_profile_set(PROF_POLICY, pid);
+		reiser4_profile_set_flag(PROF_POLICY, PF_READ);
 	}
 	
 	return 0;

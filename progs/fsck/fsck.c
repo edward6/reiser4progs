@@ -26,10 +26,11 @@ static void fsck_print_usage(char *name) {
 		"  -v, --verbose                 makes fsck to be verbose\n"
 		"  -r                            ignored\n"
 		"Plugins options:\n"
-		"  -p, --print-params            prints default params.\n"
+		"  -p, --print-profile           prints the plugin profile.\n"
 		"  -l, --print-plugins           prints all known plugins.\n"
 		"  -o, --override TYPE=PLUGIN    overrides the default plugin of the type\n"
-	        "                                \"TYPE\" by the plugin \"PLUGIN\".\n"
+	        "                                \"TYPE\" by the plugin \"PLUGIN\" in the\n"
+		"                                profile.\n"
 		"Common options:\n"
 		"  -?, -h, --help                prints program usage.\n"
 		"  -V, --version                 prints current version.\n"
@@ -128,7 +129,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 		{"fix", no_argument, &mode, RM_FIX},
 		{"build-sb", no_argument, &sb_mode, RM_BUILD},
 		{"build-fs", no_argument, &fs_mode, RM_BUILD},
-		{"print-params", no_argument, &mode, RM_SHOW_PARM},
+		{"print-profile", no_argument, &mode, RM_SHOW_PARM},
 		{"print-plugins", no_argument, &mode, RM_SHOW_PLUG},
 		/* Fsck hidden modes. */
 		{"rollback", no_argument, &mode, RM_BACK},
@@ -241,8 +242,18 @@ static errno_t fsck_init(fsck_parse_t *data,
 		goto oper_error;
 	}
 
+	if (aal_strlen(override) > 0) {
+		override[aal_strlen(override) - 1] = '\0';
+
+		aal_mess("Overriding the plugin profile by \"%s\".", 
+			 override);
+		
+		if (misc_profile_override(override))
+			goto oper_error;
+	}
+
 	if (mode == RM_SHOW_PARM) {
-		misc_param_print();
+		misc_profile_print();
 		goto user_error;
 	}
 
@@ -301,15 +312,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 	aal_gauge_set_handler(GAUGE_PERCENTAGE, gauge_rate);
 	aal_gauge_set_handler(GAUGE_TREE, gauge_tree);
 
-	if (aal_strlen(override) > 0) {
-		override[aal_strlen(override) - 1] = '\0';
-
-		aal_mess("Overriding default params by \"%s\".", override);
 		
-		if (misc_param_override(override))
-			goto oper_error;
-	}
-	
 	return fsck_ask_confirmation(data, argv[optind]);
 	
  user_error:

@@ -33,10 +33,11 @@ static void resizefs_print_usage(char *name) {
     
 	fprintf(stderr, 
 		"Plugins options:\n"
-		"  -p, --print-params            prints default params.\n"
+		"  -p, --print-profile           prints default profile.\n"
 		"  -l, --print-plugins           prints known plugins.\n"
 	        "  -o, --override TYPE=PLUGIN    overrides the default plugin of the type\n"
-	        "                                \"TYPE\" by the plugin \"PLUGIN\".\n"
+	        "                                \"TYPE\" by the plugin \"PLUGIN\" in the\n"
+		"                                profile.\n"
 		"Common options:\n"
 		"  -?, -h, --help                prints program usage.\n"
 		"  -V, --version                 prints current version.\n"
@@ -74,7 +75,7 @@ int main(int argc, char *argv[]) {
 		{"help", no_argument, NULL, 'h'},
 		{"force", no_argument, NULL, 'f'},
 		{"quiet", no_argument, NULL, 'q'},
-		{"print-params", no_argument, NULL, 'p'},
+		{"print-profile", no_argument, NULL, 'p'},
 		{"print-plugins", no_argument, NULL, 'l'},
 		{"override", required_argument, NULL, 'o'},
 		{"cache", required_argument, NULL, 'c'},
@@ -140,16 +141,16 @@ int main(int argc, char *argv[]) {
 		override[aal_strlen(override) - 1] = '\0';
 
 		if (!(flags & BF_QUIET)) {
-			aal_mess("Overriding default params "
-				 "by \"%s\".", override);
+			aal_mess("Overriding the plugin profile by \"%s\".",
+				 override);
 		}
 		
-		if (misc_param_override(override))
+		if (misc_profile_override(override))
 			goto error_free_libreiser4;
 	}
 	
 	if (flags & BF_SHOW_PARM)
-		misc_param_print();
+		misc_profile_print();
 
 	if (flags & BF_SHOW_PLUG)
 		misc_plugins_print();

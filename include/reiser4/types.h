@@ -123,30 +123,11 @@ struct reiser4_status {
 
 typedef struct reiser4_status reiser4_status_t;
 
-enum reiser4_pid_flags {
+enum reiser4_profile_flags {
 	PF_OVERRIDDEN = 0x0,
 	PF_READ       = 0x1
 };
 
-struct reiser4_pid {
-	char name[255];
-	uint32_t type;
-	uint64_t value;
-	uint8_t flags;
-};
-
-typedef struct reiser4_pid reiser4_pid_t;
-
-#define PARAM_NR 20
-
-/* Profile structure. It describes what plugins will be used for every part of
-   the filesystem. */
-struct reiser4_param {
-	char name[10];
-	reiser4_pid_t pid[PARAM_NR];
-};
-
-typedef struct reiser4_param reiser4_param_t;
 typedef struct reiser4_tree reiser4_tree_t;
 
 #define OBJECT_NAME_SIZE 1024
@@ -291,7 +272,7 @@ struct reiser4_tree {
 
 	/* Saved nodeptr plugin is stored here. This is needed for speedup
 	   attaching new nodes to tree. */
-	reiser4_plug_t *nodeptr;
+//	reiser4_plug_t *nodeptr;
 #endif
 	
 	/* Formatted nodes hash table. */
@@ -354,6 +335,9 @@ struct reiser4_fs {
 	/* Pointer to the semantic tree wrapper object */
 	reiser4_object_t *root;
 
+	/* Profile of the all default fs plugins. */
+	reiser4_profile_t *profile;
+	
 	/* Applications using this library sometimes need to embed information
 	   into the objects of our library for their own use. */
 	void *data;

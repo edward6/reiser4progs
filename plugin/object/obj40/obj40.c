@@ -595,8 +595,8 @@ errno_t obj40_unlink(obj40_t *obj) {
 #endif
 
 /* Obtains the plugin of the plugid returned by obj40_pid(). */
-reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, char *name) {
-	rid_t pid = obj40_pid(obj, type, name);
+reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, rid_t index) {
+	rid_t pid = obj40_pid(obj, type, index);
 
 	/* Obtain the plugin by id. */
 	if (pid == INVAL_PID)
@@ -607,7 +607,7 @@ reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, char *name) {
 
 /* Obtains plugid of the type @type from the SD if it is kept there, othewise
    obtains the default one from the params. */
-rid_t obj40_pid(obj40_t *obj, rid_t type, char *name) {
+rid_t obj40_pid(obj40_t *obj, rid_t type, rid_t index) {
 	rid_t pid;
 	
 	aal_assert("vpf-1235", obj != NULL);
@@ -619,7 +619,7 @@ rid_t obj40_pid(obj40_t *obj, rid_t type, char *name) {
 	/* If nothing found in SD, obtain the default one. */
 	if (pid == INVAL_PID) {
 #ifndef ENABLE_STAND_ALONE
-		pid = obj->core->param_ops.value(name);
+		pid = obj->core->profile_ops.value(index);
 #else
 		if (type == HASH_PLUG_TYPE)
 			pid = HASH_R5_ID;

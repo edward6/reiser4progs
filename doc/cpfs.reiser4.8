@@ -42,16 +42,17 @@ sets tree cache node number to passed value. This affects very much
 behavior of libreiser4. It affects speed, tree allocation, etc.
 .SH PLUGIN OPTIONS
 .TP
-.B -p, --print-params
-prints default parameters. This is the set of plugins used for each
-filesystem object (format, node, file, directories, hashes, etc.). If
---override is specified, then prints modified parameters.
+.B -p, --print-profile
+prints the plugin profile. This is the set of default plugins used for all 
+parts of a filesystem -- format, nodes, files, directories, hashes, etc. If
+--override is specified, then prints modified plugins.
 .TP
 .B -l, --print-plugins
 prints all plugins libreiser4 know about.
 .TP
 .B -o, --override TYPE=PLUGIN, ...
 overrides the default plugin of the type "TYPE" by the plugin "PLUGIN"
+in the plugin profile.
 .sp 1
 Examples:
 .sp 1

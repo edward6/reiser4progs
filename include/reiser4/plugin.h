@@ -43,7 +43,7 @@ typedef uint32_t f32_t; typedef f32_t d32_t __attribute__((aligned(4)));
 typedef uint64_t f64_t; typedef f64_t d64_t __attribute__((aligned(8)));
 
 /* Basic reiser4 types used by both library and plugins. */
-typedef uint8_t rid_t;
+typedef uint32_t rid_t;
 typedef uint64_t oid_t;
 
 /* Type for position in node (item and unit component). */
@@ -260,6 +260,43 @@ enum key_type {
 };
 
 typedef enum key_type key_type_t;
+
+/* Profile index. This is the full index of plugin profile. Access ..... 
+   by it to get plugins for every part of a filesystem. */
+enum reiser4_profile_index {
+	PROF_FORMAT	= 0x0,
+	PROF_JOURNAL	= 0x1,
+	PROF_OID	= 0x2,
+	PROF_ALLOC	= 0x3,
+	PROF_KEY	= 0x4,
+	PROF_NODE	= 0x5,
+	
+	PROF_STATDATA	= 0x6,
+	PROF_NODEPTR	= 0x7,
+	PROF_DIRENTRY	= 0x8,
+	PROF_TAIL	= 0x9,
+	PROF_EXTENT	= 0xa,
+	PROF_ACL	= 0xc,
+	PROF_PERM	= 0xb,
+	
+	PROF_REG	= 0xd,
+	PROF_DIR	= 0xe,
+	PROF_SYM	= 0xf,
+	PROF_SPL	= 0x10,
+	
+	PROF_HASH	= 0x11,
+	PROF_FIBRE	= 0x12,
+	PROF_POLICY	= 0x13,
+	PROF_LAST
+};
+
+struct reiser4_prof {
+	reiser4_plug_t *plug;
+	uint8_t flags;
+};
+
+typedef struct reiser4_prof reiser4_profile_t;
+
 
 /* Known print options for key. */
 enum print_options {
@@ -711,7 +748,7 @@ struct conv_hint {
 typedef struct conv_hint conv_hint_t;
 
 struct coll_hint {
-	int type;
+	uint8_t type;
 	void *specific;
 };
 
@@ -1685,12 +1722,12 @@ typedef struct object_ops object_ops_t;
 #endif
 
 #ifndef ENABLE_STAND_ALONE
-struct param_ops {
-	/* Obtains the param value by its name. */
-	uint64_t (*value) (char *);
+struct profile_ops {
+	/* Obtains the profile value by its name. */
+	rid_t (*value) (rid_t index);
 };
 
-typedef struct param_ops param_ops_t;
+typedef struct profile_ops profile_ops_t;
 
 struct key_ops {
 	char *(*print) (reiser4_key_t *, uint16_t);
@@ -1714,7 +1751,7 @@ struct reiser4_core {
 	factory_ops_t factory_ops;
 	
 #ifndef ENABLE_STAND_ALONE
-	param_ops_t param_ops;
+	profile_ops_t profile_ops;
 #endif
 	
 #ifdef ENABLE_SYMLINKS

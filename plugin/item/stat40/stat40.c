@@ -186,9 +186,10 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 
 /* Function for modifying stat40. */
 static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int insert) {
-	uint16_t i;
-	void *extbody;
 	statdata_hint_t *stat_hint;
+	uint16_t extmask = 0;
+	void *extbody;
+	uint16_t i;
     
 	extbody = (void *)place->body;
 	stat_hint = (statdata_hint_t *)hint->specific;
@@ -200,7 +201,6 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 		return 0;
     
 	for (i = 0; i < STAT40_EXTNR; i++) {
-		static uint16_t extmask = 0;
 		reiser4_plug_t *plug;
 	    
 		/* Stat data contains 16 bit mask of extensions used in it. The
@@ -294,12 +294,15 @@ static int64_t stat40_update_units(reiser4_place_t *place, trans_hint_t *hint) {
 /* Removes stat data extensions marked in passed hint stat data extensions
    mask. Needed for fsck. */
 static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
-	uint16_t i;
-	void *extbody;
-	uint16_t chunks = 0;
-	reiser4_plug_t *plug;
 	statdata_hint_t *stat_hint;
-		
+	reiser4_plug_t *plug;
+	uint16_t old_extmask = 0;
+	uint16_t new_extmask;
+	uint16_t extsize;
+	uint16_t chunks = 0;
+	void *extbody;
+	uint16_t i;
+
 	aal_assert("umka-2590", place != NULL);
 	aal_assert("umka-2591", hint != NULL);
 
@@ -310,10 +313,6 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 	stat_hint = (statdata_hint_t *)hint->specific;
 
 	for (i = 0; i < STAT40_EXTNR; i++) {
-		static uint16_t extsize;
-		static uint16_t new_extmask;
-		static uint16_t old_extmask = 0;
-		
 		/* Check if we are on next extension mask. */
 		if (i == 0 || ((i + 1) % 16 == 0)) {
 			/* Getting current old mask. It is needed to calculate
@@ -456,19 +455,19 @@ static rid_t stat40_object_plug(reiser4_place_t *place, rid_t type) {
 
 #ifndef ENABLE_STAND_ALONE	
 		if (S_ISLNK(lw_hint.mode))
-			return stat40_core->param_ops.value("symlink");
+			return stat40_core->profile_ops.value(PROF_SYM);
 		else if (S_ISREG(lw_hint.mode))
-			return stat40_core->param_ops.value("regular");
+			return stat40_core->profile_ops.value(PROF_REG);
 		else if (S_ISDIR(lw_hint.mode))
-			return stat40_core->param_ops.value("directory");
+			return stat40_core->profile_ops.value(PROF_DIR);
 		else if (S_ISCHR(lw_hint.mode))
-			return stat40_core->param_ops.value("special");
+			return stat40_core->profile_ops.value(PROF_SPL);
 		else if (S_ISBLK(lw_hint.mode))
-			return stat40_core->param_ops.value("special");
+			return stat40_core->profile_ops.value(PROF_SPL);
 		else if (S_ISFIFO(lw_hint.mode))
-			return stat40_core->param_ops.value("special");
+			return stat40_core->profile_ops.value(PROF_SPL);
 		else if (S_ISSOCK(lw_hint.mode))
-			return stat40_core->param_ops.value("special");
+			return stat40_core->profile_ops.value(PROF_SPL);
 #else
 		if (S_ISLNK(lw_hint.mode))
 			return OBJECT_SYM40_ID;

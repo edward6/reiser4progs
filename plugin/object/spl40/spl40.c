@@ -25,7 +25,7 @@ object_entity_t *spl40_open(object_info_t *info) {
 	/* Initalizing file handle. */
 	obj40_init(&spl->obj, &spl40_plug, spl40_core, info);
 	
-	if (obj40_pid(&spl->obj, OBJECT_PLUG_TYPE, "special") != 
+	if (obj40_pid(&spl->obj, OBJECT_PLUG_TYPE, PROF_SPL) != 
 	    spl40_plug.id.id)
 	{
 		goto error_free_spl;

@@ -11,7 +11,7 @@
    obtains the default one from the params. This differs from obj40_plug as it
    checks if the id from the SD is a valid one. 
    FIXME: similar to obj40_plug. Eliminate it when plugin extention is ready. */
-reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, char *name) {
+reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, rid_t index) {
 	reiser4_plug_t *plug;
 	rid_t pid;
 	
@@ -34,7 +34,7 @@ reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, char *name) {
 	
 	/* Id either is not kept in SD or has not been found, 
 	   obtain the default one. */
-	if ((pid = obj->core->param_ops.value(name)) == INVAL_PID)
+	if ((pid = obj->core->profile_ops.value(index)) == INVAL_PID)
 		return NULL;
 	
 	return obj->core->factory_ops.ifind(type, pid);
@@ -516,8 +516,7 @@ errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 	
-	if ((pid = obj->core->param_ops.value("statdata") == INVAL_PID))
-		return -EINVAL;
+	pid = obj->core->profile_ops.value(PROF_STATDATA);
 
 	if ((res = obj40_create_stat(obj, pid, 0, 0, 0, 0, objmode, 
 				     objmode == S_IFLNK ? "FAKE_LINK" : NULL)))
