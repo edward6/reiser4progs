@@ -39,7 +39,7 @@ static lookup_t reg40_next(reg40_t *reg) {
 	aal_assert("umka-1161", reg != NULL);
 	
 	/* Building key to be searched by current offset */
-	key.plugin = reg->obj.key.plugin;
+	key.plugin = STAT_KEY(&reg->obj)->plugin;
 	
 	plugin_call(key.plugin->key_ops, build_generic, &key,
 		    KEY_FILEBODY_TYPE, obj40_locality(&reg->obj), 
@@ -268,10 +268,10 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 	stat_hint.type_specific = &stat;
 
 	/* Insert statdata item into the tree */
-	if (obj40_insert(&reg->obj, &stat_hint, LEAF_LEVEL, place))
+	if (obj40_insert(&reg->obj, &stat_hint, LEAF_LEVEL, &reg->obj.statdata))
 		goto error_free_reg;
 
-	aal_memcpy(&reg->obj.statdata, place, sizeof(*place));
+	aal_memcpy(place, &reg->obj.statdata, sizeof(*place));
 	obj40_lock(&reg->obj, &reg->obj.statdata);
     
 	if (parent) {
@@ -329,7 +329,7 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 	if ((res = obj40_stat(&reg->obj)))
 		return res;
 
-	return obj40_remove(&reg->obj, &reg->obj.key, 1);
+	return obj40_remove(&reg->obj, STAT_KEY(&reg->obj), 1);
 }
 
 /* 

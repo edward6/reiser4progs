@@ -21,17 +21,17 @@
 /* Returns file's oid */
 oid_t obj40_objectid(obj40_t *obj) {
 	aal_assert("umka-1899", obj != NULL);
-    
-	return plugin_call(obj->key.plugin->key_ops, 
-			   get_objectid, &obj->key);
+
+	return plugin_call(STAT_KEY(obj)->plugin->key_ops, 
+			   get_objectid, STAT_KEY(obj));
 }
 
 /* Returns file's locality  */
 oid_t obj40_locality(obj40_t *obj) {
 	aal_assert("umka-1900", obj != NULL);
     
-	return plugin_call(obj->key.plugin->key_ops, 
-			   get_locality, &obj->key);
+	return plugin_call(STAT_KEY(obj)->plugin->key_ops, 
+			   get_locality, STAT_KEY(obj));
 }
 
 /* Locks the node place points to */
@@ -67,11 +67,11 @@ errno_t obj40_read_lw(item_entity_t *item,
 	stat.ext[SDEXT_LW_ID] = lw_hint;
 
 	/* Calling statdata open method if it exists */
-	if (!item->plugin->item_ops.read)
+	if (plugin_call(item->plugin->item_ops, read,
+			item, &hint, 0, 1) != 1)
+	{
 		return -EINVAL;
-
-	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1)
-		return -EINVAL;
+	}
 	
 	return 0;
 }
@@ -107,10 +107,8 @@ errno_t obj40_write_lw(item_entity_t *item,
 
 	stat.ext[SDEXT_LW_ID] = lw_hint;
 
-	if (!item->plugin->item_ops.insert)
-		return -EINVAL;
-
-	return item->plugin->item_ops.insert(item, &hint, 0);
+	return plugin_call(item->plugin->item_ops, insert,
+			   item, &hint, 0);
 }
 
 /* Reads unix stat data extention into passed @unix_hint */
@@ -128,11 +126,11 @@ errno_t obj40_read_unix(item_entity_t *item,
 	stat.ext[SDEXT_UNIX_ID] = unix_hint;
 
 	/* Calling statdata open method if it exists */
-	if (!item->plugin->item_ops.read)
+	if (plugin_call(item->plugin->item_ops, read,
+			item, &hint, 0, 1) != 1)
+	{
 		return -EINVAL;
-
-	if (item->plugin->item_ops.read(item, &hint, 0, 1) != 1)
-		return -EINVAL;
+	}
 
 	return 0;
 }
@@ -154,10 +152,8 @@ errno_t obj40_write_unix(item_entity_t *item,
 
 	stat.ext[SDEXT_UNIX_ID] = unix_hint;
 
-	if (!item->plugin->item_ops.insert)
-		return -EINVAL;
-
-	return item->plugin->item_ops.insert(item, &hint, 0);
+	return plugin_call(item->plugin->item_ops, insert,
+			   item, &hint, 0);
 }
 
 /* Gets mode field from the stat data */
@@ -335,7 +331,7 @@ rid_t obj40_pid(item_entity_t *item) {
 	sdext_lw_hint_t lw_hint;
 
 	if (obj40_read_lw(item, &lw_hint))
-		return 0;
+		return INVAL_PID;
 
 	/*
 	  FIXME-UMKA: Here also should be discovering the stat data extentions
@@ -378,7 +374,7 @@ errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,
 
 	/* Initializing stat data key */
 	plugin_call(key->plugin->key_ops, assign,
-		    &obj->key, key);
+		    STAT_KEY(obj), key);
 
 	return 0;
 }
@@ -386,6 +382,7 @@ errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,
 /* Performs lookup for the object's stat data */
 errno_t obj40_stat(obj40_t *obj) {
 	lookup_t res;
+	key_entity_t *key;
 	uint64_t objectid, locality;
 	
 	aal_assert("umka-1905", obj != NULL);
@@ -393,9 +390,10 @@ errno_t obj40_stat(obj40_t *obj) {
 	objectid = obj40_objectid(obj);
 	locality = obj40_locality(obj);
 	
-	plugin_call(obj->key.plugin->key_ops, build_generic,
-		    &obj->key, KEY_STATDATA_TYPE, locality,
-		    objectid, 0);
+	key = STAT_KEY(obj);
+	
+	plugin_call(key->plugin->key_ops, build_generic, key,
+		    KEY_STATDATA_TYPE, locality, objectid, 0);
 
 	/* Unlocking old node if it exists */
 	if (obj->statdata.node != NULL)
@@ -405,20 +403,16 @@ errno_t obj40_stat(obj40_t *obj) {
 	  Requesting libreiser4 lookup in order to find stat data place in the
 	  tree.
 	*/
-	res = obj->core->tree_ops.lookup(obj->tree, &obj->key,
-					 LEAF_LEVEL, &obj->statdata);
+	res = obj->core->tree_ops.lookup(obj->tree, key, LEAF_LEVEL,
+					 &obj->statdata);
 
 	if (res != LP_PRESENT) {
 		aal_exception_error("Can't find stat data of object "
 				    "0x%llx.", objectid);
-		
 		obj->statdata.node = NULL;
 		return -EINVAL;
 	}
 
-	plugin_call(obj->key.plugin->key_ops, assign, &obj->key,
-		    &obj->statdata.item.key);
-	
 	/* Locking new node */
 	obj40_lock(obj, &obj->statdata);
 	return 0;

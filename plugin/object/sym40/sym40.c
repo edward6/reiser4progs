@@ -159,11 +159,11 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 	stat_hint.type_specific = &stat;
 
 	/* Inserting stat data into the tree */
-	if (obj40_insert(&sym->obj, &stat_hint, LEAF_LEVEL, place))
+	if (obj40_insert(&sym->obj, &stat_hint, LEAF_LEVEL, &sym->obj.statdata))
 		goto error_free_sym;
 
 	/* Saving statdata place and locking the node it lies in */
-	aal_memcpy(&sym->obj.statdata, place, sizeof(*place));
+	aal_memcpy(place, &sym->obj.statdata, sizeof(*place));
 
 	obj40_lock(&sym->obj, &sym->obj.statdata);
 		
@@ -202,7 +202,7 @@ static errno_t sym40_unlink(object_entity_t *entity) {
 		return 0;
 	
 	/* Removing file when nlink became zero */
-	return obj40_remove(&sym->obj, &sym->obj.key, 1);
+	return obj40_remove(&sym->obj, STAT_KEY(&sym->obj), 1);
 }
 
 /* Writes "n" bytes from "buff" to passed file. */
@@ -280,7 +280,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	reiser4_plugin_t *plugin;
 
 	sym = (sym40_t *)data;
-	key = &sym->obj.key;
+	key = STAT_KEY(&sym->obj);
 	
 	place = &sym->obj.statdata;
 	item = &sym->obj.statdata.item;
@@ -322,7 +322,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 			return -EINVAL;
 		}
 
-		if (plugin->object_ops.follow(entity, &sym->obj.key)) {
+		if (plugin->object_ops.follow(entity, STAT_KEY(&sym->obj))) {
 			aal_exception_error("Can't follow %s.", track);
 			plugin_call(plugin->object_ops, close, entity);
 			return -EINVAL;
@@ -331,8 +331,8 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		plugin_call(plugin->object_ops, close, entity);
 	}
 	
-	plugin_call(sym->obj.key.plugin->key_ops,
-		    assign, &sym->parent, &sym->obj.key);
+	plugin_call(STAT_KEY(&sym->obj)->plugin->key_ops,
+		    assign, &sym->parent, STAT_KEY(&sym->obj));
 
 	return 0;
 }
@@ -382,7 +382,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 
 	/* Assign found key to symlink's object stat data key */
 	plugin_call(item->key.plugin->key_ops, assign,
-		    &sym->obj.key, &entry_hint.object);
+		    STAT_KEY(&sym->obj), &entry_hint.object);
 	
 	return 0;
 }
@@ -410,7 +410,7 @@ static errno_t sym40_follow(object_entity_t *entity,
 	if ((res = obj40_get_sym(&sym->obj, path)))
 		return res;
 
-	plugin = sym->obj.key.plugin;
+	plugin = STAT_KEY(&sym->obj)->plugin;
 		
 	/*
 	  Assigning parent key to root one of path symlink has is beginning from
@@ -418,10 +418,10 @@ static errno_t sym40_follow(object_entity_t *entity,
 	*/
 	if (path[0] == '/') {
 		sym->obj.core->tree_ops.rootkey(sym->obj.tree,
-						&sym->obj.key);
+						STAT_KEY(&sym->obj));
 	} else {
 		plugin_call(plugin->key_ops, assign,
-			    &sym->obj.key, &sym->parent);
+			    STAT_KEY(&sym->obj), &sym->parent);
 	}
 
 	res = aux_parse_path(path, callback_find_statdata,
@@ -430,7 +430,7 @@ static errno_t sym40_follow(object_entity_t *entity,
 	/* If there is no errors, we assign result ot passed @key */
 	if (res == 0) {
 		plugin_call(plugin->key_ops, assign, key,
-			    &sym->obj.key);
+			    STAT_KEY(&sym->obj));
 	}
 
 	return res;

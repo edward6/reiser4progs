@@ -290,6 +290,7 @@ static errno_t key40_build_entry(key_entity_t *key,
 
 	key40_clean(key);
 
+	key->plugin = &key40_plugin;
 	key40_set_locality(key, objectid);
 	key40_set_type(key, key40_minor2type(KEY40_FILENAME_MINOR));
     
@@ -311,6 +312,7 @@ static errno_t key40_build_generic(key_entity_t *key,
     
 	body = (key40_t *)key->body;
 	
+	key->plugin = &key40_plugin;
 	k40_set_locality(body, locality);
 	k40_set_objectid(body, objectid);
 	k40_set_minor(body, key40_type2minor(type));
@@ -331,6 +333,7 @@ static errno_t key40_build_short(key_entity_t *key,
     
 	body = (key40_t *)key->body;
 
+	key->plugin = &key40_plugin;
 	k40_set_locality(body, (locality & KEY40_LOCALITY_MASK) >>
 			 KEY40_LOCALITY_SHIFT);
 

@@ -96,7 +96,7 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	dir = (dir40_t *)entity;
 	
 	/* Preparing key of the first entry in directory */
-	key.plugin = dir->obj.key.plugin;
+	key.plugin = STAT_KEY(&dir->obj)->plugin;
 	
 	plugin_call(key.plugin->key_ops, build_entry, &key,
 		    dir->hash, obj40_locality(&dir->obj),
@@ -233,7 +233,8 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 {
 	dir40_t *dir;
 	place_t next;
-
+	lookup_t res;
+	
 	uint64_t objectid;
 	uint64_t locality;
 	
@@ -252,13 +253,15 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 	  Preparing key to be used for lookup. It is generating from the
 	  directory oid, locality and name by menas of using hash plugin.
 	*/
-	wanted.plugin = dir->obj.key.plugin;
+	wanted.plugin = STAT_KEY(&dir->obj)->plugin;
 	
 	plugin_call(wanted.plugin->key_ops, build_entry, &wanted,
 		    dir->hash, locality, objectid, name);
 
 	/* Performing tree lookup */
-	if (obj40_lookup(&dir->obj, &wanted, LEAF_LEVEL, &next) != LP_PRESENT)
+	res = obj40_lookup(&dir->obj, &wanted, LEAF_LEVEL, &next);
+
+	if (res != LP_PRESENT)
 		return LP_ABSENT;
 
 	dir40_relock(entity, &dir->body, &next);
@@ -456,7 +459,6 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	*/
 	body_hint.flags = HF_FORMATD;
 	body_hint.plugin = body_plugin;
-	body_hint.key.plugin = hint->object.plugin; 
    	body_hint.count = sizeof(dir40_empty_dir) / sizeof(char *);
 	
 	plugin_call(hint->object.plugin->key_ops, build_entry,
@@ -511,10 +513,9 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	stat_hint.count = 1;
 	stat_hint.flags = HF_FORMATD;
 	stat_hint.plugin = stat_plugin;
-	stat_hint.key.plugin = hint->object.plugin;
     
-	plugin_call(hint->object.plugin->key_ops, assign, &stat_hint.key,
-		    &hint->object);
+	plugin_call(hint->object.plugin->key_ops, assign,
+		    &stat_hint.key, &hint->object);
     
 	/*
 	  Initializing stat data item hint. It uses unix extention and light
@@ -560,11 +561,11 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	stat_hint.type_specific = &stat;
 
 	/* Inserting stat data and body into the tree */
-	if (obj40_insert(&dir->obj, &stat_hint, LEAF_LEVEL, place))
+	if (obj40_insert(&dir->obj, &stat_hint, LEAF_LEVEL, &dir->obj.statdata))
 		goto error_free_body;
 	
 	/* Saving stat data place insert function has returned */
-	aal_memcpy(&dir->obj.statdata, place, sizeof(*place));
+	aal_memcpy(place, &dir->obj.statdata, sizeof(*place));
 	obj40_lock(&dir->obj, &dir->obj.statdata);
     
 	/* Inserting the direntry item into the tree */
@@ -605,7 +606,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 
 	aal_assert("umka-1925", entity != NULL);
 
-	key.plugin = dir->obj.key.plugin;
+	key.plugin = STAT_KEY(&dir->obj)->plugin;
 
 	/*
 	  Generating last item key by means of using maximal one (Nikita's
@@ -688,7 +689,7 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 	if ((res = obj40_stat(&dir->obj)))
 		return res;
 	
-	return obj40_remove(&dir->obj, &dir->obj.key, 1);
+	return obj40_remove(&dir->obj, STAT_KEY(&dir->obj), 1);
 }
 
 /* Removing entry from the directory */
@@ -710,10 +711,10 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	aal_assert("umka-1923", entry != NULL);
 
 	dir = (dir40_t *)entity;
-	key = &dir->obj.key;
+	key = STAT_KEY(&dir->obj);
 
 	/* Generating key of the entry to be removed */
-	entry->offset.plugin = dir->obj.key.plugin;
+	entry->offset.plugin = key->plugin;
 	
 	plugin_call(key->plugin->key_ops, build_entry, &entry->offset,
 		    dir->hash, obj40_locality(&dir->obj),
@@ -738,10 +739,12 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	hint.flags = HF_FORMATD;
 	hint.type_specific = entry;
 	hint.plugin = dir->body.item.plugin;
-	hint.key.plugin = dir->obj.key.plugin;
+	hint.key.plugin = STAT_KEY(&dir->obj)->plugin;
 
-	if ((res = plugin_call(hint.plugin->item_ops,
-			       estimate, NULL, 0, 1, &hint)))
+	res = plugin_call(hint.plugin->item_ops,
+			  estimate, NULL, 0, 1, &hint);
+	
+	if (res != 0)
 		return res;
 
 	item = &dir->obj.statdata.item;
@@ -778,7 +781,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	aal_assert("umka-845", entry != NULL);
 
 	dir = (dir40_t *)entity;
-	key = &dir->obj.key;
+	key = STAT_KEY(&dir->obj);
 	
 	aal_memset(&hint, 0, sizeof(hint));
 	

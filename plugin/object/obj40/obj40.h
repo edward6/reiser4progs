@@ -11,6 +11,9 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
+#define STAT_KEY(o) \
+        (&((o)->statdata.item.key))
+
 struct obj40 {
 
 	/*
@@ -19,12 +22,6 @@ struct obj40 {
 	*/
 	reiser4_plugin_t *plugin;
     
-	/* 
-	  The key of stat data (or just first item if stat data doesn't exist)
-	  for this object.
-	*/
-	key_entity_t key;
-
 	/* Stat data coord stored here */
 	place_t statdata;
 
