@@ -300,7 +300,8 @@ errno_t journal40_traverse_trans(
 	journal40_t *journal,			/* journal object to be traversed */
 	aal_block_t *tx_block,			/* trans header of a transaction */
 	journal40_handler_func_t handler_func,	/* wandered/original pair callback */
-	journal40_sec_func_t sec_func,		/* secondary (LR, wand, orig) blocks callback */
+	journal40_sec_func_t sec_func,		/* secondary (LGR, wand, orig) blocks 
+						   callback */
 	void *data) 
 {
 	uint64_t log_blk;
@@ -408,7 +409,8 @@ errno_t journal40_traverse(
 	journal40_t *journal,			/* journal object to be traversed */
 	journal40_handler_func_t handler_func,	/* wandered/original pair callback */
 	journal40_txh_func_t txh_func,		/* TxH block callback */
-	journal40_sec_func_t sec_func,		/* secondary (LR, wand, orig) blocks callback */
+	journal40_sec_func_t sec_func,		/* secondary (LGR, wand, orig) blocks 
+						   callback */
 	void *data)				/* opaque data for traverse callbacks. */ 
 {
 	int ret;

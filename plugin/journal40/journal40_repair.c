@@ -17,14 +17,14 @@
 Jouranl check 
  a. no one block can point before the master sb and after the end of a 
     partition.
- b. TxH, LR, wandered blocks
-    - cannot be met more then once.
+ b. TxH, LGR, wandered blocks
+    - cannot be met more then once in the whole journal.
     - cannot point to format area.
-    - cannot point to original blocks from the current transaction and from 
-    the previous ones.
+    - cannot be met as original blocks from the current transaction and from 
+    the previous ones, but could be of next ones.
  c. Original blocks 
-    - cannot be met more then once in the same transaction.
-    - cannot point to any journal block from next transactions.
+    - cannot point to any journal block from any next and the current 
+    transactions.
 
 Problems.
  1. out of bounds.
@@ -41,10 +41,10 @@ I. TxH.
  5. (Good magic, so we met it as wand/orig in previous transactions) - cut the 
     journal to that previous transaction; - cannot happen as TxH blocks are 
     handled first.
-II. LR.
+II. LGR.
  1.2.3. Cut the journal to the current transaction. 
- 4.5. (LR magic is ok) 
-    If the current transaction is of a good LR circle - cut the journal to that 
+ 4.5. (LGR magic is ok) 
+    If the current transaction is of a good LGR circle - cut the journal to that 
     previous transaction. If not OK - to this transaction. 
 III. wandered
  1.2. Cut the journal to the current transaction. 
@@ -61,21 +61,21 @@ FIXME-VITALY: For now II.4.5. and III.5. - cut to the previous transaction.
 
 */
 
-/* Flags. */
-#define SAME_TXH_BREAK	1
+/* Traverse flags. */
+#define TF_SAME_TXH_BREAK   1   /* break when current trans was reached. */
 
 typedef struct journal40_check {
-    aux_bitmap_t *journal_layout;   /* Blocks are pointed by journal. */
+    aux_bitmap_t *journal_layout;   /* All blocks are pointed by journal. */
     aux_bitmap_t *current_layout;   /* Blocks of current trans only. */
-    blk_t format_start, format_len; /* Format bounds */
-    blk_t cur_txh;		    /* Current TxH block - for current trans 
-				       blocks handling. Should be set to 
-				       TxH blocknumber which should be cut 
-				       off. */
-    blk_t find_blk;		    /* Look for this block. and put the found 
-				       trans here. */
+    blk_t format_start, format_len; /* Format bounds. */
+    blk_t cur_txh;		    /* TxH block of the current trans at
+				       traverse time. And the oldest problem 
+				       trans at traverse return time if return 
+				       1. */
+    blk_t wanted_blk;		    /* Nested traverses look for this block
+				       and put the TxH block of the found trans 
+				       here. */
     int found_type;		    /* Put the type of the found block here. */
-    int older_txh;		    /*  */
     int flags;
 } journal40_check_t;
 
@@ -93,15 +93,17 @@ extern errno_t journal40_traverse_trans(journal40_t *, aal_block_t *,
 
 extern aal_device_t *journal40_device(object_entity_t *entity);
 
-static errno_t callback_mark_format_block(object_entity_t *format, blk_t blk,  
+
+/* Callback for format.layout. Returns 1 for all fotmat blocks. */
+static errno_t callback_check_format_block(object_entity_t *format, blk_t blk,  
     void *data)
 {
-    aux_bitmap_t *bm = (aux_bitmap_t *)data;
-    aux_bitmap_mark(bm, blk);
-    
-    return 0;
+    blk_t *wanted_blk = (blk_t *)data;
+
+    return *wanted_blk == blk;
 }
 
+/* Check if blk belongs to format area. */
 static int journal40_blk_format_check(object_entity_t *format, blk_t blk, 
     journal40_check_t *data) 
 {
@@ -114,41 +116,46 @@ static int journal40_blk_format_check(object_entity_t *format, blk_t blk,
 
     /* blk belongs to format area */
     return plugin_call(return -1, format->plugin->format_ops, layout, format, 
-	callback_mark_format_block, data->journal_layout);
+	callback_check_format_block, &blk);
 }
 
+/* TxH callback for nested traverses. Should find the transaction which TxH 
+ * block number equals to wanted blk. Set found_type then to TxH. 
+ * Returns 1 when traverse should be stopped, zeroes found_type if no satisfied 
+ * transaction was found. */
 static errno_t callback_find_txh_blk(object_entity_t *entity, blk_t blk, 
     void *data) 
 {
     journal40_check_t *check_data = (journal40_check_t *)data;
- 
-    if (check_data->find_blk == blk) {
-	/* Found as a TxH of one of the early transaction. Cut to this 
-	 * transaction. find_blk equals blk already. */
+
+    /* If wanted blk == TxH block number. */
+    if (check_data->wanted_blk == blk) {
+	/* wanted_blk equals blk already. */
 	check_data->found_type = TXH;
 	return 1;
     }
  
-    if (check_data->cur_txh == blk) {
-	if (check_data->flags & (1 << SAME_TXH_BREAK)) {
-	    check_data->found_type = 0;
-	    return 1;
-	}
-
-	check_data->older_txh = 1;
+    /* If the current transaction was reached and traverse should stop here. */
+    if ((check_data->cur_txh == blk) && 
+	(check_data->flags & (1 << TF_SAME_TXH_BREAK))) 
+    {
+	check_data->found_type = 0;
+	return 1;
     }
  
     return 0;    
 }
 
+/* Secondary (not TxH) blocks callback for nested traverses. Should find the 
+ * transaction which contains block number equal to wanted blk. Set wanted_blk 
+ * to TxH block number and found_type to the type of found blk. */
 static errno_t callback_find_sec_blk(object_entity_t *entity, 
     aal_block_t *txh_block, blk_t blk, int blk_type, void *data) 
 {
     journal40_check_t *check_data = (journal40_check_t *)data;
 
-    if (check_data->find_blk == blk) {
-	/* Wanted blk found, cut to this transaction. */
-	check_data->find_blk = aal_block_number(txh_block);
+    if (check_data->wanted_blk == blk) {
+	check_data->wanted_blk = aal_block_number(txh_block);
 	check_data->found_type = blk_type;
 	return 1;
     }
@@ -156,6 +163,9 @@ static errno_t callback_find_sec_blk(object_entity_t *entity,
     return 0;
 }
 
+/* TxH callback for traverse. Returns 1 if blk is a block out of format bound 
+ * or of format area or is met more then once. data->cur_txh = 0 all the way
+ * here to explain the traverse caller that the whole journal is invalid. */
 static errno_t callback_journal_txh_check(object_entity_t *entity, blk_t blk, 
     void *data) 
 {
@@ -178,6 +188,8 @@ static errno_t callback_journal_txh_check(object_entity_t *entity, blk_t blk,
     return 0;
 }
 
+/* Secondary blocks callback for traverse. Does all the work described above 
+ * for all block types except TxH. */
 static errno_t callback_journal_sec_check(object_entity_t *entity, 
     aal_block_t *txh_block, blk_t blk, int blk_type, void *data) 
 {
@@ -192,14 +204,23 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 
     /* If we start working with a new trans, zero the current trans bitmap. */
     if (check_data->cur_txh != aal_block_number(txh_block)) {
-	aal_memset(check_data->current_layout->map, 
-	    check_data->current_layout->size, 0);
+	aal_memset(check_data->current_layout->map, 0,
+	    check_data->current_layout->size);
 	check_data->cur_txh = aal_block_number(txh_block);
     }
-    if ((ret = journal40_blk_format_check(journal->format, blk, check_data))) 
-	return ret;
 
-    /* Read the block and check the magic for LR. */
+    /* Check that blk is not out of bound and (not for original block) that it 
+     * is not from format area. */
+    if (blk_type == ORG) {
+	if (blk >= check_data->format_len || blk < check_data->format_start) 
+	    return 1;
+    } else {
+	ret = journal40_blk_format_check(journal->format, blk, check_data);
+	if (ret)	
+	    return ret;
+    }    
+
+    /* Read the block and check the magic for LGR. */
     if (blk_type == LGR) {
 	aal_block_t *log_block;
 	journal40_lr_header_t *lr_header;
@@ -223,6 +244,9 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
     if (aux_bitmap_test(check_data->journal_layout, blk)) {
 	/* Block was met before. */
 	if (blk_type == LGR) {
+	    /* Check LRG circle for this trans. If it is valid - cut the 
+	     * journal to the trans where blk was met for the first time. 
+	     * If it is not valid - cut the journal to this trans. */
 	    /* Run traverse for this trans only with no callbacks. 
 	     * If returns not 0 - cur_txh = blk_txh. 0 - no problem - run 
 	     * traverse for searching the first transaction where blk is met. 
@@ -232,10 +256,12 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	    if (aux_bitmap_test(check_data->current_layout, blk)) 
 		return 1;
 
+	    /* Traverse of 1 trans with no callbacks shows if LRG circle is 
+	     * valid. */
 	    ret = journal40_traverse_trans(journal, txh_block, NULL, NULL, NULL);
 	    if (ret == 0) {
 		/* Find the place we met blk previous time. */
-		check_data->find_blk = blk;
+		check_data->wanted_blk = blk;
 		if ((ret = journal40_traverse(journal, NULL, NULL, 
 		    callback_find_sec_blk, check_data)) != 1) 
 		{
@@ -244,16 +270,16 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 			"the unexpected value (%d).", blk, ret);
 		    return -1;
 		}
-		check_data->cur_txh = check_data->find_blk;
+		/* Found trans is the oldest problem, return it to caller. */
+		check_data->cur_txh = check_data->wanted_blk;
 	    } else if (ret < 0) 
 		return ret;
 
 	    return 1;
 	} else if (blk_type == WAN) {
-	    /* Run the whole traverse to get the type of blk we met before.
-	     * If TxH or LR - cur_txh = blk_txh, 
-	     * Otherwise cur_txh = blk_THAT_txh. */	    
-	    check_data->find_blk = blk;
+	    /* Run the whole traverse to find the transaction we met blk for the first 
+	     * time and get its type. */	    
+	    check_data->wanted_blk = blk;
 	    check_data->flags = 0;
 	    if ((ret = journal40_traverse(journal, NULL, callback_find_txh_blk, 
 		callback_find_sec_blk, check_data)) != 1)
@@ -263,9 +289,11 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 		    "the unexpected value (%d).", blk, ret);
 		return -1;
 	    }
-	    
+	
+	    /* The oldest problem transaction for TxH or LGR is the current one, 
+	     * and for WAN, ORG is that found trans. */    
 	    if (check_data->found_type == WAN || check_data->found_type == ORG)
-		check_data->cur_txh = check_data->find_blk;
+		check_data->cur_txh = check_data->wanted_blk;
 
 	    return 1;
 	} else if (blk_type == ORG) {
@@ -273,9 +301,12 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	    if (aux_bitmap_test(check_data->current_layout, blk)) 
 		return 1;
 
-	    /* What if the TxH of any next trans? */	    
-	    check_data->find_blk = blk;
-	    check_data->flags = (1 << SAME_TXH_BREAK);
+	    /* If we met it before as TxH block, it could be one of next trans',
+	     * run traverse with one txh callback to find it out. */
+	    check_data->wanted_blk = blk;
+
+	    /* Stop looking through TxH's when reach the current trans. */
+	    check_data->flags = (1 << TF_SAME_TXH_BREAK);
 	    if ((ret = journal40_traverse(journal, NULL, callback_find_txh_blk, 
 		NULL, check_data)) != 1)
 	    {
@@ -285,6 +316,8 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 		return -1;
 	    }
 
+	    /* If TxH was found, the current transaction is the oldest problem 
+	     * trans. */
 	    if (check_data->found_type != 0) 		
 		return 1;
 	}
@@ -299,10 +332,11 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 errno_t journal40_check(object_entity_t *entity) {
     journal40_t *journal = (journal40_t *)entity;
     journal40_check_t data;
+    errno_t ret;
     
     aal_assert("vpf-447", journal != NULL, return -1);
 
-    aal_memset(&data, sizeof(data), 0);
+    aal_memset(&data, 0, sizeof(data));
     
     data.format_start = plugin_call(return -1, journal->format->plugin->format_ops,
 	start, journal->format);
@@ -322,7 +356,22 @@ errno_t journal40_check(object_entity_t *entity) {
 	return -1;
     }    
     
-    return journal40_traverse((journal40_t *)entity, NULL, 
-	callback_journal_txh_check, callback_journal_sec_check, &data);
+    if ((ret = journal40_traverse((journal40_t *)entity, NULL, 
+	callback_journal_txh_check, callback_journal_sec_check, &data)) < 0)
+	return ret;
+
+
+    if (ret) {
+	/* Journal should be updated */
+	if (!data.cur_txh)
+	    data.cur_txh = get_jf_last_flushed(
+		(journal40_footer_t *)journal->footer->data);
+	
+	set_jh_last_commited((journal40_header_t *)journal->header->data, 
+	    data.cur_txh);
+    }
+    
+    return 0;
+    
 }
 
