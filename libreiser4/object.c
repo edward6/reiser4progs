@@ -275,6 +275,39 @@ reiser4_object_t *reiser4_object_realize(
 	return NULL;
 }
 
+/* Try to open the object on the base of the given key. */
+reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
+					reiser4_object_t *parent,
+					reiser4_key_t *key) 
+{
+	reiser4_object_t *object;
+	reiser4_place_t place;
+	lookup_t lookup;
+	
+	aal_assert("vpf-1136", tree != NULL);
+	aal_assert("vpf-1136", key != NULL);
+	
+	if (reiser4_tree_lookup(tree, key, LEAF_LEVEL, &place) != PRESENT)
+		return NULL;
+
+	/* The start of the object seems to be found. */
+	if (reiser4_place_realize(&place))
+		return NULL;
+	
+	/* The key must point to the start of the object. */
+	if (reiser4_key_compare(&place.item.key, key))
+		return NULL;
+	
+	/* If the pointed item was found, object must be opanable. 
+	   @parent probably should be passed here. */
+	object = reiser4_object_realize(tree, &place);
+	
+	if (!object)
+		return NULL;
+	
+	return object;
+}
+
 errno_t reiser4_object_truncate(
 	reiser4_object_t *object,           /* object for truncating */
 	uint64_t n)			    /* the number of entries */

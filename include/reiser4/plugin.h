@@ -612,7 +612,7 @@ struct reiser4_object_ops {
 	errno_t (*check_struct) (object_entity_t *, object_info_t *, 
 				 place_func_t, uint8_t, void *);
 	
-	/* Checks and recover the up link of the object. */
+	/* Checks if this is a correct uplink of the object. */
 	errno_t (*check_link) (object_entity_t *, object_entity_t *, uint8_t);
 	
 	/* Realizes if the object can be of this plugin and can be recovered as

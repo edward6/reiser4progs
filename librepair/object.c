@@ -251,8 +251,9 @@ reiser4_plugin_t *repair_object_realize(reiser4_object_t *object) {
 
 #endif
 
-errno_t repair_object_traverse(reiser4_object_t *object, traverse_func_t func, 
-			       void *data) 
+errno_t repair_object_traverse(reiser4_object_t *object,
+			       traverse_func_t func,
+			       void *data)
 {
 	entry_hint_t entry;
 	errno_t res = 0;
@@ -265,7 +266,7 @@ errno_t repair_object_traverse(reiser4_object_t *object, traverse_func_t func,
 		reiser4_object_t *child = NULL;
 		
 		/* Some entry was read. Try to detect the object of the paticular 
-		   plugin pointed by this entry. */	
+		   plugin pointed by this entry. */
 		if ((res = func(object, &child, &entry, data)))
 			return res;
 		
@@ -281,20 +282,23 @@ errno_t repair_object_traverse(reiser4_object_t *object, traverse_func_t func,
 	return 0;
 }
 
-/* Check '..' entry of directories. Fix the parent pointer if needed, mark REACHABLE 
-   if the parent pointer in the object matches the parent pointer, nlink++. */
+/* Check '..' entry of directories. If the directory object keeps '..' and it 
+   matches the parent -- OK; if the directory object does not keep '..'-- OK. 
+   If the directory allows the only downlink from a parent, fix '..' to point
+   to this parent. */
 errno_t repair_object_check_link(reiser4_object_t *object, 
-				 reiser4_object_t *parent, 
-				 uint8_t mode) 
+				 reiser4_object_t *parent, uint8_t mode) 
 {
 	aal_assert("vpf-1044", object != NULL);
 	aal_assert("vpf-1098", object->entity != NULL);
 	aal_assert("vpf-1099", parent != NULL);
 	aal_assert("vpf-1100", parent->entity != NULL);
 	
-	repair_item_set_flag(reiser4_object_start(object), ITEM_REACHABLE);
-	
-	return plugin_call(object->entity->plugin->o.object_ops, check_link, 
-			   object->entity, parent->entity, mode);
+	if (!object->entity->plugin->o.object_ops->check_link)
+		return 0;
+		
+	return object->entity->plugin->o.object_ops->check_link(object->entity, 
+								parent->entity, 
+								mode);
 }
 

@@ -7,14 +7,13 @@
 extern errno_t callback_check_struct(object_entity_t *object, place_t *place, 
 				     void *data);
 
-static errno_t callback_object_open(reiser4_object_t *parent, 
-				    reiser4_object_t **object, 
-				    entry_hint_t *entry, void *data)
+errno_t callback_semantic_open(reiser4_object_t *parent, 
+			       reiser4_object_t **object, 
+			       entry_hint_t *entry, void *data)
 {
 	repair_semantic_t *sem;
 	reiser4_key_t key;
 	errno_t res = 0;
-	int checked;
 	
 	aal_assert("vpf-1101", parent != NULL);
 	aal_assert("vpf-1102", entry != NULL);
@@ -25,16 +24,12 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 	aal_memset(&key, 0, sizeof(key));
 	aal_memcpy(&key, &entry->object, sizeof(entry->object));
 	
-	*object = repair_object_launch(parent->info.tree, parent, &key);
-	
-	if (*object == NULL)
+	if (!(*object = repair_object_launch(parent->info.tree, parent, &key)))
 		return -EINVAL;
-	
-	checked = repair_item_test_flag(reiser4_object_start(*object), ITEM_CHECKED);
 	
 	/* Object->start contains the first item of the object. Do not check it if 
 	   checked already. */
-	if (!checked) {
+	if (!repair_item_test_flag(reiser4_object_start(*object), ITEM_CHECKED)) {
 		/* The realized object has not been checked yet. */
 		res = repair_object_check_struct(*object, callback_check_struct, 
 						 sem->repair->mode, sem);
@@ -64,18 +59,37 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 		}
 	}
 	
-	/* Check the uplink - '..' in directories. */
-	if ((res = repair_object_check_link(*object, parent, sem->repair->mode))) {
+	/* Check the uplink - '..' in directories. If it is correct, mark as 
+	   REACHABLE, othewise wait if it will be reached from somewhere else
+	   and if not, link it to lost+found. */
+	res = repair_object_check_link(*object, parent, sem->repair->mode);
+	
+	if (res == 0) {
+		repair_item_set_flag(reiser4_object_start(*object), ITEM_REACHABLE);
+	} else if (res != -ESTRUCT) {
+		/* Error occured. */
 		aal_exception_error("Node %llu, item %u: failed to check the link of the"
 				    " object pointed by %k to the object pointed by %k.",
 				    reiser4_object_start(*object)->node->blk,
 				    (*object)->info.start.pos.item, 
 				    &((*object)->info.object),
 				    &parent->info.object);
+
+		goto error_close_object;
+	}
+	
+	if ((res = plugin_call((*object)->entity->plugin->o.object_ops,
+			       link, (*object)->entity)))
+	{
+		aal_exception_error("Node %llu, item %u: failed to link the "
+				    "object pointed by %k.",
+				    reiser4_object_start(*object)->node->blk,
+				    (*object)->info.start.pos.item, 
+				    &((*object)->info.object));
 		
 		goto error_close_object;
-	} 
-	
+	}
+
 	return 0;
 	
  error_close_object:
@@ -103,16 +117,13 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
 	sem = (repair_semantic_t *)data;
 	
 	/* Try to realize the object by place. */
-	object = reiser4_object_realize(sem->repair->fs->tree, place);
-	
-	if (object == NULL)
+	if (!(object = reiser4_object_realize(sem->repair->fs->tree, place)))
 		return 0;
 	
 	/* This is really an object, check its structure. */
-	res = repair_object_check_struct(object, callback_check_struct, 
-					 sem->repair->mode, sem);
-	
-	if (res) {
+	if ((res = repair_object_check_struct(object, callback_check_struct,
+					      sem->repair->mode, sem))) 
+	{
 		aal_exception_error("Node %llu, item %u: structure check of the "
 				    "object pointed by %k failed. Plugin %s.", 
 				    place->node->blk, place->pos.item, 
@@ -121,7 +132,7 @@ static errno_t repair_semantic_object_check(reiser4_place_t *place, void *data) 
 		return res;
 	}
 	
-	if ((res = repair_object_traverse(object, callback_object_open, sem)))
+	if ((res = repair_object_traverse(object, callback_semantic_open, sem)))
 		goto error_close_object;
 	
 	/* The whole reachable subtree must be recovered for now and marked as 
