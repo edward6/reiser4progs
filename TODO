@@ -11,4 +11,5 @@ Copyright (C) 1996-2002 Hans Reiser
 * should we split reiser4_fs_create and reiser4_fs_open onto separate functions?
 * probably tree traverse function should belong to the tree?
 * reiser4_joint_realize may be improved by rid of lookup
+* add check of all journal strucrures durring replaying the journal
 
