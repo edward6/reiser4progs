@@ -264,7 +264,7 @@ int main(int argc, char *argv[]) {
 	
 	/* Opening @src_device */
 	if (!(src_device = aal_device_open(&file_ops, src_dev, 
-					   REISER4_SECSIZE, O_RDWR))) 
+					   REISER4_SECSIZE, O_RDONLY))) 
 	{
 		aal_exception_error("Can't open %s. %s.", src_dev,
 				    strerror(errno));
@@ -273,7 +273,8 @@ int main(int argc, char *argv[]) {
     
 	/* Opening @dst_device */
 	if (!(dst_device = aal_device_open(&file_ops, dst_dev, 
-					   REISER4_SECSIZE, O_RDWR))) 
+					   REISER4_SECSIZE,
+					   O_RDWR))) 
 	{
 		aal_exception_error("Can't open %s. %s.", dst_dev,
 				    strerror(errno));
@@ -284,7 +285,9 @@ int main(int argc, char *argv[]) {
 	if (!(flags & BF_QUIET)) {
 		if (aal_exception_yesno("All data on %s will be lost. "
 					"Are you sure?", dst_dev) == EXCEPTION_NO)
+		{
 			goto error_free_dst_device;
+		}
 	}
     
 	if (gauge) {

@@ -155,8 +155,8 @@ static void key_large_clean(key_entity_t *key) {
 }
 
 static int key_large_tall(key_entity_t *key) {
-	uint64_t objectid = key_large_get_objectid(key);
-	return (objectid & 0x0100000000000000ull) ? 1 : 0;
+	return (key_large_get_ordering(key) &
+		0x0100000000000000ull) ? 1 : 0;
 }
 
 #ifndef ENABLE_STAND_ALONE

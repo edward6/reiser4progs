@@ -340,7 +340,8 @@ int main(int argc, char *argv[]) {
 #endif
 		/* Opening device */
 		if (!(device = aal_device_open(&file_ops, host_dev, 
-					       REISER4_SECSIZE, O_RDWR))) 
+					       REISER4_SECSIZE,
+					       O_RDWR))) 
 		{
 			aal_exception_error("Can't open %s. %s.",
 					    host_dev, strerror(errno));

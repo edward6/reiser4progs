@@ -243,10 +243,11 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
     }
     
     if (!(data->host_device = aal_device_open(&file_ops, argv[optind], 
-	REISER4_SECSIZE, O_RDWR))) 
+					      REISER4_SECSIZE,
+					      O_RDWR))) 
     {
 	aal_exception_fatal("Cannot open the partition (%s): %s.", argv[optind], 
-	    strerror(errno));
+			    strerror(errno));
 	return OPER_ERROR;
     }
 
