@@ -1034,90 +1034,87 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 errno_t reiser4_tree_adjust_node(reiser4_tree_t *tree,
 				 node_t *node)
 {
+	uint32_t i;
+	errno_t res;
+	blk_t allocnr;
+
 	aal_assert("umka-2302", tree != NULL);
 	aal_assert("umka-2303", node != NULL);
 
 #ifndef ENABLE_STAND_ALONE
-	/* We are dealing only with dirty nodes. */
-	if (reiser4_node_isdirty(node)) {
-		uint32_t i;
-		errno_t res;
-		blk_t allocnr;
-
-		/* Requesting block allocator to allocate the real block number
-		   for fake allocated node. */
-		if (reiser4_fake_ack(node_blocknr(node))) {
-			if (!reiser4_alloc_allocate(tree->fs->alloc,
-						    &allocnr, 1))
-			{
-				return -ENOSPC;
-			}
-
-			if (reiser4_tree_root_node(tree, node))
-				reiser4_tree_set_root(tree, allocnr);
-				
-			/* Rehashing node in @tree->nodes hash table. */
-			reiser4_tree_rehash_node(tree, node, allocnr);
-				
-			if (!reiser4_tree_root_node(tree, node)) {
-				if ((res = reiser4_node_update_ptr(node)))
-					return res;
-			}
+	/* Requesting block allocator to allocate the real block number
+	   for fake allocated node. */
+	if (reiser4_fake_ack(node_blocknr(node))) {
+		if (!reiser4_alloc_allocate(tree->fs->alloc,
+					    &allocnr, 1))
+		{
+			return -ENOSPC;
 		}
 
-		/* Allocating all children nodes if we are up on
-		   @tree->bottom. */
-		if (reiser4_node_get_level(node) >= tree->bottom) {
-			/* Going though the all items in node and allocating
-			   them if needed. */
-			for (i = 0; i < reiser4_node_items(node); i++) {
-				place_t place;
+		if (reiser4_tree_root_node(tree, node))
+			reiser4_tree_set_root(tree, allocnr);
 
-				/* Initializing item at @i. */
-				reiser4_place_assign(&place, node,
-						     i, MAX_UINT32);
+		/* Rehashing node in @tree->nodes hash table. */
+		reiser4_tree_rehash_node(tree, node, allocnr);
 
-				if ((res = reiser4_place_fetch(&place)))
+		if (!reiser4_tree_root_node(tree, node)) {
+			if ((res = reiser4_node_update_ptr(node)))
+				return res;
+		}
+	}
+
+	/* Allocating all children nodes if we are up on
+	   @tree->bottom. */
+	if (reiser4_node_get_level(node) >= tree->bottom) {
+		/* Going though the all items in node and allocating
+		   them if needed. */
+		for (i = 0; i < reiser4_node_items(node); i++) {
+			place_t place;
+
+			/* Initializing item at @i. */
+			reiser4_place_assign(&place, node,
+					     i, MAX_UINT32);
+
+			if ((res = reiser4_place_fetch(&place)))
+				return res;
+
+			/* It is not good, that we refference here to
+			   particular item group. But, we have to do so,
+			   considering, that this is up tree to know
+			   about items type in it. Probably this is why
+			   tree should be plugin too to handle things
+			   like this in more flexible manner. */
+			if (place.plug->id.group == NODEPTR_ITEM) {
+				blk_t blk;
+				uint32_t j;
+				node_t *child;
+
+				/* Allocating unallocated nodeptr item
+				   at @place. */
+				if ((res = reiser4_tree_alloc_nodeptr(tree, &place)))
 					return res;
 
-				/* It is not good, that we refference here to
-				   particular item group. But, we have to do so,
-				   considering, that this is up tree to know
-				   about items type in it. Probably this is why
-				   tree should be plugin too to handle things
-				   like this in more flexible manner. */
-				if (place.plug->id.group == NODEPTR_ITEM) {
-					blk_t blk;
-					uint32_t j;
-					node_t *child;
-					
-					/* Allocating unallocated nodeptr item
-					   at @place. */
-					if ((res = reiser4_tree_alloc_nodeptr(tree, &place)))
-						return res;
+				for (j = 0; j < reiser4_item_units(&place); j++) {
+					/* Getting child node by its
+					   nodeptr. If child is loaded,
+					   we call tree_adjust_node()
+					   onit recursively in order to
+					   allocate it and its items. */
+					place.pos.unit = j;
 
-					for (j = 0; j < reiser4_item_units(&place); j++) {
-						/* Getting child node by its
-						   nodeptr. If child is loaded,
-						   we call tree_adjust_node()
-						   onit recursively in order to
-						   allocate it and its items. */
-						place.pos.unit = j;
-			
-						blk = reiser4_item_down_link(&place);
+					blk = reiser4_item_down_link(&place);
 
-						if (!(child = reiser4_tree_lookup_node(tree, blk)))
-							continue;
+					if (!(child = reiser4_tree_lookup_node(tree, blk)))
+						continue;
 
-						if ((res = reiser4_tree_adjust_node(tree, child)))
-							return res;
-					}
-				} else if (place.plug->id.group == EXTENT_ITEM) {
-					/* Allocating unallocated extent item at
-					   @place. */
-					if ((res = reiser4_tree_alloc_extent(tree, &place)))
+					if ((res = reiser4_tree_adjust_node(tree, child)))
 						return res;
 				}
+			} else if (place.plug->id.group == EXTENT_ITEM) {
+				/* Allocating unallocated extent item at
+				   @place. */
+				if ((res = reiser4_tree_alloc_extent(tree, &place)))
+					return res;
 			}
 		}
 	}
