@@ -680,6 +680,7 @@ static reiser4_plugin_t extent40_plugin = {
 		
 		.max_poss_key = extent40_max_poss_key,
 		.max_real_key = extent40_max_real_key,
+		.gap_key      = extent40_max_real_key
 	}
 };
 

@@ -5,34 +5,6 @@
 
 #include <repair/librepair.h>
 
-errno_t repair_item_key(reiser4_coord_t *coord, reiser4_key_t *key) {
-    aal_assert("vpf-677", coord != NULL, return -1);
-    aal_assert("vpf-679", coord->node != NULL, return -1);
-    aal_assert("vpf-678", key != NULL, return -1);
- 
-    if (coord->pos.item == reiser4_node_items(coord->node)) {
-	if (repair_node_rd_key(coord->node, key))
-	    return -1;
-    } else {
-	if (reiser4_coord_realize(coord)) {
-	    aal_exception_error("Node (%llu): failed to open the item on "
-		"the parent node.", coord->node->blk);
-	    return -1;
-	}
-
-	aal_assert("vpf-671", coord->pos.unit < reiser4_item_units(coord), 
-	    return -1);
-	
-	if (reiser4_item_get_key(coord, key)) {
-	    aal_exception_error("Node (%llu): failed to get the item key "
-		"by its coord.", coord->node->blk);	    
-	    return -1;
-	}
-    }
-    
-    return 0;
-}
-
 errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
     reiser4_ptr_hint_t hint;
     reiser4_pos_t prev;
@@ -123,6 +95,34 @@ error:
 	ptr.ptr, ptr.width);
 
     return 1;
+}
+
+/* Prepare coord for just a piece of item insertion. Return the number of 
+ * units to be splited. */
+uint32_t repair_item_split(
+    reiser4_coord_t *coord, 
+    reiser4_key_t *rd_key)  /* split to this right delimiting key */
+{    
+    reiser4_key_t key;
+    uint32_t unit = 0;
+
+    if (reiser4_item_max_real_key(coord, &key))
+	return -1;
+ 
+    /* rd_key greater then max real key - nothing to split. */
+    if (reiser4_key_compare(rd_key, &key) > 0) 
+	return reiser4_item_units(coord);
+ 
+    /* Split. Lookup method must be implemented in this case. */
+    if (plugin_call(return -1, coord->item.plugin->item_ops, lookup, 
+	&coord->item, rd_key, &unit) == -1) 
+    {
+	aal_exception_error("Lookup in the item %d in the node %llu failed.", 
+	    coord->pos.item, coord->node->blk);
+	return -1;
+    }       
+   
+    return unit;
 }
 
 /* Blocks pointed by coord should not be used in bitmap. 

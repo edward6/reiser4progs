@@ -82,6 +82,8 @@ extern int reiser4_node_lookup(reiser4_node_t *node,
 extern errno_t reiser4_node_lock(reiser4_node_t *node);
 extern errno_t reiser4_node_unlock(reiser4_node_t *node);
 extern errno_t reiser4_node_close(reiser4_node_t *node);
+extern reiser4_node_t *reiser4_node_next_neighbour(reiser4_node_t *node, 
+						   int direction);
 extern reiser4_node_t *reiser4_node_left(reiser4_node_t *node);
 extern reiser4_node_t *reiser4_node_right(reiser4_node_t *node);
 

@@ -314,3 +314,20 @@ errno_t reiser4_item_max_real_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	return 0;
 }
 
+errno_t reiser4_item_gap_key(reiser4_coord_t *coord, reiser4_key_t *key) {
+	item_entity_t *entity;
+	
+	aal_assert("vpf-691", coord != NULL, return -1);
+	aal_assert("vpf-688", key != NULL, return -1);
+	
+	entity = &coord->item;
+	aal_assert("vpf-692", coord->item.plugin != NULL, return 0);
+	
+	if (reiser4_item_get_key(coord, key))
+	    return -1;
+
+	if (entity->plugin->item_ops.gap_key) 
+		return entity->plugin->item_ops.gap_key(entity, key);
+	
+	return 0;
+}

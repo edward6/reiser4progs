@@ -412,13 +412,9 @@ static errno_t reiser4_node_register(reiser4_node_t *node,
 	return 0;
 }
 
-/*
-  Finds specified neighbour node. Direction 0 specifies, we should find left
-  neighbour node.
-*/
-static reiser4_node_t *reiser4_node_fnn(
+reiser4_node_t *reiser4_node_neighbour(
 	reiser4_node_t *node,
-	int direction)
+	int direction) 
 {
 	int found = 0;
 	uint32_t orig;
@@ -428,11 +424,10 @@ static reiser4_node_t *reiser4_node_fnn(
 	reiser4_node_t *child;
 	reiser4_coord_t coord;
 	reiser4_ptr_hint_t ptr;
-	reiser4_node_t *old = node;
 	
 	level = reiser4_node_level(node);
 	orig = level;
-	
+
 	while (node->parent && !found) {
 		
 		if (reiser4_node_pos(node, &pos))
@@ -455,7 +450,7 @@ static reiser4_node_t *reiser4_node_fnn(
 			return NULL;
 
 		if (!reiser4_item_nodeptr(&coord))
-			return NULL;
+			return node;
 			
 		plugin_call(return NULL, coord.item.plugin->item_ops,
 			    fetch, &coord.item, &ptr, 0, 1);
@@ -480,6 +475,28 @@ static reiser4_node_t *reiser4_node_fnn(
 			    reiser4_node_items(node) - 1 : 0);
 	}
 
+	return node;
+}
+
+/*
+  Finds specified neighbour node. Direction 0 specifies, we should find left
+  neighbour node.
+*/
+static reiser4_node_t *reiser4_node_fnn(
+	reiser4_node_t *node,
+	int direction)
+{	
+	reiser4_node_t *old = node;
+	uint32_t level;
+	
+	level = reiser4_node_level(node);
+	
+	if (!(node = reiser4_node_neighbour(node, direction)))
+		return NULL;
+	
+	if (level != reiser4_node_level(node))
+		return NULL;
+	
 	if (direction == 0) {
 		old->left = node;
 		node->right = old;
@@ -661,7 +678,7 @@ int reiser4_node_lookup(
 	*/
 		
 	/* FIXME-UMKA: Here should not be hardcoded key40 plugin id */
-	maxkey.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, KEY_REISER40_ID);
+	/* maxkey.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, KEY_REISER40_ID); */
 
 	if (reiser4_item_max_poss_key(&coord, &maxkey))
 		return -1;
