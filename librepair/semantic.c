@@ -12,6 +12,7 @@ static errno_t callback_semantic_open(reiser4_object_t *parent,
 				      entry_hint_t *entry, void *data)
 {
 	repair_semantic_t *sem;
+	reiser4_place_t *start;
 	reiser4_key_t key;
 	errno_t res = 0;
 	
@@ -27,8 +28,9 @@ static errno_t callback_semantic_open(reiser4_object_t *parent,
 	if (!(*object = repair_object_launch(parent->info.tree, parent, &key))) {
 		if (sem->repair->mode == REPAIR_REBUILD) {
 			if ((res = reiser4_object_rem_entry(parent, entry))) {
-				aal_exception_error("Semantic traverse failed to remove "
-						    "the entry %k (%s) pointing to %k.", 
+				aal_exception_error("Semantic traverse failed "
+						    "to remove the entry %k "
+						    "(%s) pointing to %k.",
 						    &entry->offset, entry->name,
 						    &entry->object);
 				return res;
@@ -43,23 +45,24 @@ static errno_t callback_semantic_open(reiser4_object_t *parent,
 		res = res < 0 ? res : 0;
 		goto error_close_object;
 	}
-
+	
+	start = reiser4_object_start(*object);
+	
 	/* Check the uplink - '..' in directories. If it is correct, mark as 
 	   REACHABLE, othewise wait if it will be reached from somewhere else
 	   and if not, link it to lost+found. */
 	res = repair_object_check_link(*object, parent, sem->repair->mode);
 	
 	if (res == 0) {
-		repair_item_set_flag(reiser4_object_start(*object), ITEM_REACHABLE);
+		repair_item_set_flag(start, ITEM_REACHABLE);
 	} else if (res != -ESTRUCT) {
 		/* Error occured. */
-		aal_exception_error("Node %llu, item %u: failed to check the link of the"
-				    " object pointed by %k to the object pointed by %k.",
-				    reiser4_object_start(*object)->node->blk,
-				    (*object)->info.start.pos.item, 
-				    &((*object)->info.object),
+		aal_exception_error("Node %llu, item %u: failed to check the "
+				    "link of the object pointed by %k to the "
+				    "object pointed by %k.", start->node->blk,
+				    start->pos.item, &((*object)->info.object),
 				    &parent->info.object);
-
+		
 		goto error_close_object;
 	}
 	

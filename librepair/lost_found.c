@@ -13,6 +13,7 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 {
 	repair_lost_found_t *lf;
 	entry_hint_t lost_entry;
+	reiser4_place_t *start;
 	reiser4_key_t key;
 	bool_t checked;
 	errno_t res;
@@ -41,9 +42,11 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 		return 0;
 	}
 	
+	start = reiser4_object_start(*object);
+	
 	/* If the object was checked already, close it at the end to avoid subtree
 	   walking as subtree was checked also. */
-	checked = repair_item_test_flag(reiser4_object_start(*object), ITEM_CHECKED);
+	checked = repair_item_test_flag(start, ITEM_CHECKED);
 	
 	if ((res = repair_object_check(*object, parent, entry, lf->repair))) {
 		res = res < 0 ? res : 0;
@@ -53,54 +56,51 @@ static errno_t callback_object_open(reiser4_object_t *parent,
 	/* Object was reached already, link it to @parent. */
 	res = repair_object_check_link(*object, parent, lf->repair->mode);
 	
-	if (res == 0) {
-		/* This is a correct parent of the object, attach the object to it. */
-		if (!repair_item_test_flag(reiser4_object_start(*object), 
-					   ITEM_REACHABLE)
-		    && checked)
-		{
-			/* If it's not REACHABLE, it can be linked to 'lost+found'. If 
-			   so, unlink it from 'lost+found' and link to the @parent. */
-			if (!reiser4_object_seekdir(lf->lost, &key)) {
-				if ((res = reiser4_object_readdir(lf->lost, &lost_entry))) {
-					aal_exception_error("Node %llu, item %u: readdir"
-							    "of the object pointed by %k"
-							    "from 'lost+found' %k failed.",
-							    reiser4_object_start(*object)->node->blk,
-							    (*object)->info.start.pos.item,
-							    &((*object)->info.object),
-							    lf->lost->info.object);
-					goto error_close_object;
-				}
+	if (res != -ESTRUCT) {
+		/* Error occured. */
+		aal_exception_error("Node %llu, item %u: failed to check the link "
+				    "of the object pointed by %k to the object "
+				    "pointed by %k.", start->node->blk,
+				    start->pos.item, &((*object)->info.object),
+				    &parent->info.object);
+		
+		goto error_close_object;
+	} else if (res < 0)
+		goto error_close_object;
 
-				if ((res = reiser4_object_unlink(lf->lost, lost_entry.name)))
-				{
-					aal_exception_error("Node %llu, item %u: unlink"
-							    "of the object pointed by %k"
-							    "from 'lost+found' %k failed.",
-							    reiser4_object_start(*object)->node->blk,
-							    (*object)->info.start.pos.item,
-							    &((*object)->info.object),
-							    lf->lost->info.object);
+	/* This is a correct parent of the object, attach the object to it. */
+	if (!repair_item_test_flag(start, ITEM_REACHABLE) && checked) {
+		/* If it's not REACHABLE, it can be linked to 'lost+found'. If 
+		   so, unlink it from 'lost+found' and link to the @parent. */
+		if (!reiser4_object_seekdir(lf->lost, &key)) {
+			if ((res = reiser4_object_readdir(lf->lost, &lost_entry))) {
+				aal_exception_error("Node %llu, item %u: readdir"
+						    "of the object pointed by %k"
+						    "from 'lost+found' %k failed.",
+						    start->node->blk,
+						    start->pos.item,
+						    &((*object)->info.object),
+						    lf->lost->info.object);
+				goto error_close_object;
+			}
 
-					goto error_close_object;
-				}
+			if ((res = reiser4_object_unlink(lf->lost, lost_entry.name)))
+			{
+				aal_exception_error("Node %llu, item %u: unlink"
+						    "of the object pointed by %k"
+						    "from 'lost+found' %k failed.",
+						    start->node->blk,
+						    start->pos.item,
+						    &((*object)->info.object),
+						    lf->lost->info.object);
+				
+				goto error_close_object;
 			}
 		}
-		
-		repair_item_set_flag(reiser4_object_start(*object), ITEM_REACHABLE);
-	} else if (res != -ESTRUCT) {
-		/* Error occured. */
-		aal_exception_error("Node %llu, item %u: failed to check the link of the"
-				    " object pointed by %k to the object pointed by %k.",
-				    reiser4_object_start(*object)->node->blk,
-				    (*object)->info.start.pos.item, 
-				    &((*object)->info.object),
-				    &parent->info.object);
-
-		goto error_close_object;
 	}
-	
+
+	repair_item_set_flag(start, ITEM_REACHABLE);
+
 	if (checked)
 		reiser4_object_close(*object);
 	
