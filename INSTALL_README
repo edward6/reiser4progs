@@ -1,6 +1,6 @@
 In order to build the library, type the following command:
 
-./install
+./one_touch_install
 
 This will check if configure script is in place and then runs it. 
 After configuring if finished, package will built and installed.

@@ -1,4 +1,4 @@
-To build the package you need to make the following:
+To build the package you need to make the following actions:
 
 ./prepare
 ./configure [OPTIONS]
