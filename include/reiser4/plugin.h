@@ -440,9 +440,8 @@ typedef struct reiser4_file_hint reiser4_file_hint_t;
 */ 
 struct reiser4_item_hint {
 	/*
-	  This is pointer to already formated item body. It is useful
-	  for item copying, replacing, etc. This will be used by fsck
-	  probably.
+	  This is pointer to already formated item body. It is useful for item
+	  copying, replacing, etc. This will be used by fsck probably.
 	*/
 	void *data;
 

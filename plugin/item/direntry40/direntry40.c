@@ -1102,9 +1102,9 @@ static int direntry40_lookup(item_entity_t *item,
 		return 0;
 	}
     
-	result = aux_binsearch((void *)direntry, units, key, 
-			       callback_comp_entry, (void *)item,
-			       &unit);
+	result = aux_bin_search((void *)direntry, units, key, 
+				callback_comp_entry, (void *)item,
+				&unit);
 
 	if (result != -1) {
 		*pos = (uint32_t)unit;

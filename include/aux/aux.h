@@ -18,16 +18,18 @@
 
 extern long int aux_strtol(const char *str, int *error);
 
-extern int aux_strncat(char *dest, uint32_t n, const char *format, ...)
-__check_format__(printf, 3, 4);
-    
 #endif
 
-typedef int (*reiser4_comp_func_t) (void *, uint32_t, void *, void *);
+typedef int (*aux_comp_func_t) (void *, uint32_t, void *, void *);
 
-extern int aux_binsearch(void *array, uint32_t count, 
-			 void *needle, reiser4_comp_func_t comp_func, 
-			 void *, uint64_t *pos);
+typedef errno_t (*aux_pre_parse_t) (char *, char *, void *);
+typedef errno_t (*aux_post_parse_t) (char *, char *, void *);
+
+extern errno_t aux_parse_path(char *path, aux_pre_parse_t pre_func,
+			      aux_post_parse_t post_func, void *data);
+
+extern int aux_bin_search(void *array, uint32_t count, void *needle,
+			 aux_comp_func_t comp_func, void *, uint64_t *pos);
 
 #endif
 

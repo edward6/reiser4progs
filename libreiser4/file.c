@@ -9,8 +9,8 @@
 #  include <config.h>
 #endif
 
+#include <aux/aux.h>
 #include <reiser4/reiser4.h>
-#include <sys/stat.h>
 
 /* Callback function for probing all file plugins */
 static errno_t callback_guess_file(
@@ -33,111 +33,95 @@ static reiser4_plugin_t *reiser4_file_guess(reiser4_coord_t *coord) {
 	return libreiser4_factory_cfind(callback_guess_file, (void *)coord);
 }
 
+/* Callback function for finding statdata of the current directory */
+static errno_t callback_find_statdata(char *track, char *entry, void *data) {
+	reiser4_file_t *file = (reiser4_file_t *)data;
+
+	/* Setting up the file key */
+	reiser4_key_set_offset(&file->key, 0);
+	reiser4_key_set_type(&file->key, KEY_STATDATA_TYPE);
+
+	/* Performing lookup for statdata of current directory */
+	if (reiser4_tree_lookup(file->fs->tree, &file->key, 
+				LEAF_LEVEL, &file->coord) != PRESENT) 
+	{
+		aal_exception_error("Can't find stat data of "
+				    "directory %s.", track);
+		return -1;
+	}
+
+	/* Initializing item at @coord */
+	if (reiser4_coord_realize(&file->coord))
+		return -1;
+
+	return reiser4_item_get_key(&file->coord, &file->key);
+}
+
+/* Callback function for finding passed @entry inside the current directory */
+static errno_t callback_find_entry(char *track, char *entry, void *data) {
+	reiser4_file_t *file;
+	reiser4_place_t *place;
+	object_entity_t *entity;
+	reiser4_plugin_t *plugin;
+	
+	file = (reiser4_file_t *)data;
+
+	/*
+	  File's key field points ot the statdata of the current directory
+	  (actually it is not neccessary directory).
+	*/
+	if (!(plugin = reiser4_file_guess(&file->coord))) {
+		aal_exception_error("Can't guess file plugin for "
+				    "parent of %s.", track);
+		return -1;
+	}
+
+	/* Opening currect diretory */
+	place = (reiser4_place_t *)&file->coord;
+		
+	if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
+				   file->fs->tree, place)))
+	{
+		aal_exception_error("Can't open parent of directory "
+				    "%s.", track);
+		return -1;
+	}
+
+	reiser4_key_assign(&file->dir, &file->key);
+
+	/* Looking up for @enrty in current directory */
+	if (plugin_call(goto error_free_entity, plugin->file_ops, lookup,
+			entity, entry, &file->key) != PRESENT)
+	{
+		aal_exception_error("Can't find %s.", track);
+		goto error_free_entity;
+	}
+
+	plugin_call(return -1, plugin->file_ops, close, entity);
+	return 0;
+	
+ error_free_entity:
+	plugin_call(return -1, plugin->file_ops, close, entity);
+	return -1;
+}
+
 /* 
    Performs lookup of file statdata by its name. Result is stored in passed
    object fileds. Returns error code or 0 if there are no errors. This function
    also supports symlinks and it rather might be called "stat".
 */
-static errno_t reiser4_file_realize(
+static errno_t reiser4_file_lookup(
 	reiser4_file_t *file,	    /* file lookup will be performed in */
-	const char *name)	    /* name to be parsed */
+	char *name)	            /* name to be parsed */
 {
 	object_entity_t *entity;
 	reiser4_plugin_t *plugin;
 
-	char track[4096], path[4096];
-	char *pointer = NULL, *entryname = NULL;
-
 	aal_assert("umka-682", file != NULL, return -1);
 	aal_assert("umka-681", name != NULL, return -1);
-    
-	aal_memset(path, 0, sizeof(path));
-	aal_memset(track, 0, sizeof(track));
-    
-	aal_strncpy(path, name, sizeof(path));
-    
-	if (path[0] != '.' || path[0] == '/')
-		track[aal_strlen(track)] = '/';
-  
-	pointer = path[0] == '/' ? &path[1] : &path[0];
 
-	while (1) {
-		reiser4_place_t *place;
-		
-		reiser4_key_set_offset(&file->key, 0);
-		reiser4_key_set_type(&file->key, KEY_STATDATA_TYPE);
-	
-		if (reiser4_tree_lookup(file->fs->tree, &file->key, 
-					LEAF_LEVEL, &file->coord) != PRESENT) 
-		{
-			aal_exception_error("Can't find stat data of "
-					    "directory %s.", track);
-			return -1;
-		}
-	
-		if (reiser4_coord_realize(&file->coord))
-			return -1;
-
-		if (reiser4_item_get_key(&file->coord, &file->key))
-			return -1;
-    
-		if (!(entryname = aal_strsep(&pointer, "/")))
-			break;
-		
-		if (!aal_strlen(entryname))
-			continue;
-	
-		aal_strncat(track, entryname, aal_strlen(entryname));
-	
-		if (!(plugin = reiser4_file_guess(&file->coord))) {
-			aal_exception_error("Can't guess file plugin for "
-					    "parent of %s.", track);
-			return -1;
-		}
-
-		place = (reiser4_place_t *)&file->coord;
-		
-		if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
-					   file->fs->tree, place)))
-		{
-			aal_exception_error("Can't open parent of directory "
-					    "%s.", track);
-			return -1;
-		}
-
-//		if (file->coord->item.plugin->item_ops.follow) {
-			/*
-			  If the file may be followed (symlink) we call follow
-			  method in order to find actual stat data coord.
-			*/
-/*			if (file->coord->item.plugin->item_ops.follow(entity,
-								      &file->key))
-			{
-				aal_exception_error("Can't follow file.");
-				return -1;
-			}
-		}*/
-
-		reiser4_key_assign(&file->dir, &file->key);
-		
-		if (!plugin->file_ops.lookup) {
-			aal_exception_error("Method \"lookup\" is not implemented in "
-					    "%s plugin.", plugin->h.label);
-		
-			plugin_call(return -1, plugin->file_ops, close, entity);
-			return -1;
-		}
-	
-		if (plugin->file_ops.lookup(entity, entryname, &file->key) != PRESENT) {
-			plugin_call(return -1, plugin->file_ops, close, entity);
-			return -1;
-		}
-	    
-		plugin_call(return -1, plugin->file_ops, close, entity);
-		track[aal_strlen(track)] = '/';
-	}
-
-	return 0;
+	return aux_parse_path(name, callback_find_statdata,
+			      callback_find_entry, (void *)file);
 }
 
 /* This function opens file by its @coord */
@@ -193,7 +177,7 @@ reiser4_file_t *reiser4_file_begin(
 /* This function opens file by its name */
 reiser4_file_t *reiser4_file_open(
 	reiser4_fs_t *fs,		/* fs object will be opened on */
-	const char *name)		/* name of file to be opened */
+	char *name)		        /* name of file to be opened */
 {
 	reiser4_file_t *file;
 	reiser4_place_t *place;
@@ -223,7 +207,7 @@ reiser4_file_t *reiser4_file_open(
 	   method should convert name previously into absolute one by getcwd
 	   function.
 	*/
-	if (reiser4_file_realize(file, name)) {
+	if (reiser4_file_lookup(file, name)) {
 		aal_exception_error("Can't find file %s.", name);
 		goto error_free_file;
 	}

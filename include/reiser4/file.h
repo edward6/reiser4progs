@@ -13,7 +13,7 @@
 #endif
 
 extern reiser4_file_t *reiser4_file_open(reiser4_fs_t *fs,
-					 const char *name);
+					 char *name);
 
 extern reiser4_file_t *reiser4_file_begin(reiser4_fs_t *fs,
 					  reiser4_coord_t *coord);

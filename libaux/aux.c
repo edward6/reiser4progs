@@ -15,11 +15,11 @@
    0 - exact key has not been found. key of *pos < then wanted.
 */
 
-int aux_binsearch(
+int aux_bin_search(
 	void *array,		        /* opaque pointer to array item will be searched in */
 	uint32_t count,		        /* array length */
 	void *needle,		        /* array item to be found */
-	reiser4_comp_func_t comp_func,  /* callback function for comparing items from the array */
+	aux_comp_func_t comp_func,      /* callback function for comparing items from the array */
 	void *data,			/* user-specified data */
 	uint64_t *pos)		        /* pointer result will be saved in */
 {
@@ -83,27 +83,46 @@ long int aux_strtol(
 	return result;
 }
 
-int aux_strncat(
-	char *dest,	               /* a buffer where result will be stored */
-	uint32_t n,	               /* size of the buffer */
-	const char *format,	       /* format string */
-	...)		               /* list of params */
+errno_t aux_parse_path(char *path, aux_pre_parse_t pre_func,
+		       aux_post_parse_t post_func, void *data)
 {
-	int res;
-	uint32_t size;
-	va_list arg_list;
+	char track[4096];
+	char local[4096];
 
-	if (!(size = n - aal_strlen(dest)))
-		return 0;
+	char *entry = NULL;
+	char *pointer = NULL;
+
+	aal_memset(track, 0, sizeof(track));
+	aal_memset(local, 0, sizeof(local));
+
+	aal_strncpy(local, path, sizeof(local));
 	
-	va_start(arg_list, format);
+	if (local[0] != '.' || local[0] == '/')
+		track[aal_strlen(track)] = '/';
+  
+	pointer = (local[0] == '/' ? &local[1] : &local[0]);
 
-	res = aal_vsnprintf(dest + aal_strlen(dest), 
-		      size, format, arg_list);
+	while (1) {
+		errno_t res;
+		
+		if ((res = pre_func(track, entry, data)))
+			return res;
     
-	va_end(arg_list);
-    
-	return res;
+		if (!(entry = aal_strsep(&pointer, "/")))
+			break;
+		
+		if (!aal_strlen(entry))
+			continue;
+	
+		aal_strncat(track, entry, aal_strlen(entry));
+
+		if ((res = post_func(track, entry, data)))
+			return res;
+		
+		track[aal_strlen(track)] = '/';
+	}
+
+	return 0;
 }
 
 #endif

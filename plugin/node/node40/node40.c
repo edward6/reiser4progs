@@ -814,8 +814,8 @@ static int node40_lookup(object_entity_t *entity,
 	node = (node40_t *)entity;
 	items = nh40_get_num_items(node);
 
-	result = aux_binsearch(node, items, key, callback_comp_key, 
-			       key->plugin, &item);
+	result = aux_bin_search(node, items, key, callback_comp_key, 
+				key->plugin, &item);
 	
 	pos->item = item;
 
