@@ -589,9 +589,9 @@ errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
 	return 0;
 }
 
-/* Inserts item described by hint structure into node */
-static errno_t node40_insert(node_entity_t *entity,
-			     pos_t *pos, insert_hint_t *hint)
+/* Mode modifying fucntion. */
+static errno_t node40_mod(node_entity_t *entity, pos_t *pos,
+			  trans_hint_t *hint, bool_t insert)
 {
 	void *ih;
 	errno_t res;
@@ -600,10 +600,6 @@ static errno_t node40_insert(node_entity_t *entity,
 	place_t place;
 	node40_t *node;
     
-	aal_assert("vpf-119", pos != NULL);
-	aal_assert("umka-1814", hint != NULL);
-	aal_assert("umka-818", entity != NULL);
-
 	len = hint->len + hint->ohd;
     
 	/* Makes expand of the node new items will be inserted in */
@@ -638,13 +634,24 @@ static errno_t node40_insert(node_entity_t *entity,
 			hint->plug->o.item_ops->init(&place);
 	}
 
-	/* Inserting units into @item */
-	if ((res = plug_call(hint->plug->o.item_ops, insert,
-			     &place, hint)))
-	{
-		aal_exception_error("Can't insert unit to "
-				    "node %llu.", node->block->nr);
-		return res;
+	if (insert) {
+		/* Inserting units into @place */
+		if (!(res = plug_call(hint->plug->o.item_ops,
+				      insert, &place, hint)))
+		{
+			aal_exception_error("Can't insert unit to "
+					    "node %llu.", node->block->nr);
+			return res;
+		}
+	} else {
+		/* Writes data into @place */
+		if (!(res = plug_call(hint->plug->o.item_ops,
+				      write, &place, hint)))
+		{
+			aal_exception_error("Can't insert unit to "
+					    "node %llu.", node->block->nr);
+			return res;
+		}
 	}
 	
 	/* Updating item's key if we insert new item or if we insert unit into
@@ -656,9 +663,29 @@ static errno_t node40_insert(node_entity_t *entity,
 	return 0;
 }
 
+static errno_t node40_insert(node_entity_t *entity,
+			     pos_t *pos, trans_hint_t *hint)
+{
+	aal_assert("umka-2448", pos != NULL);
+	aal_assert("umka-1814", hint != NULL);
+	aal_assert("umka-818", entity != NULL);
+
+	return node40_mod(entity, pos, hint, 1);
+}
+
+static errno_t node40_write(node_entity_t *entity,
+			    pos_t *pos, trans_hint_t *hint)
+{
+	aal_assert("umka-2449", pos != NULL);
+	aal_assert("umka-2450", hint != NULL);
+	aal_assert("umka-2451", entity != NULL);
+
+	return node40_mod(entity, pos, hint, 0);
+}
+
 /* This function removes item/unit from the node at specified @pos */
 errno_t node40_remove(node_entity_t *entity, pos_t *pos,
-		      remove_hint_t *hint) 
+		      trans_hint_t *hint) 
 {
 	errno_t res;
 	uint32_t pol;
@@ -1456,6 +1483,7 @@ static reiser4_node_ops_t node40_ops = {
 	.mkclean        = node40_mkclean,
 	
 	.insert		= node40_insert,
+	.write		= node40_write,
 	.remove		= node40_remove,
 	.print		= node40_print,
 	.shift		= node40_shift,

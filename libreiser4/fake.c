@@ -4,7 +4,6 @@
    fake.c -- functions for working with fake block numbers. */
 
 #ifndef ENABLE_STAND_ALONE
-
 #include <reiser4/reiser4.h>
 
 static blk_t fake_gen = 0;

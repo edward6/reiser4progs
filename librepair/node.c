@@ -53,7 +53,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		
 		/* Open the item, checking its plugin id. */
 		if (reiser4_place_fetch(&place)) {
-			remove_hint_t hint;
+			trans_hint_t hint;
 			
 			aal_exception_error("Node (%llu): Failed to open the "
 					    "item (%u). %s", node_blocknr(node),
@@ -95,7 +95,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 
 		/* Remove the item if fatal error. */
 		if ((ret & RE_FATAL) && (mode == RM_BUILD)) {
-			remove_hint_t hint;
+			trans_hint_t hint;
 
 			aal_exception_error("Node (%llu), item (%u): broken "
 					    "item occured, Remove it.",
@@ -149,7 +149,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 		
 		if (res) {
 			/* Key has some corruptions and cannot be recovered. */
-			remove_hint_t hint;
+			trans_hint_t hint;
 			
 			aal_exception_error("Node (%llu): The key [%s] of the "
 					    "item (%u) is broken.%s", 

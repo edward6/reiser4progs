@@ -20,21 +20,23 @@ uint32_t tail40_units(place_t *place) {
 errno_t tail40_get_key(place_t *place, 
 		       key_entity_t *key) 
 {
+	uint32_t pos;
+	
 	aal_assert("vpf-627", key != NULL);
 	aal_assert("vpf-626", place != NULL);
-	
-	return body40_get_key(place, place->pos.unit, key, NULL);
+
+	pos = place->pos.unit;
+	return body40_get_key(place, pos, key, NULL);
 }
 
-static int32_t tail40_read(place_t *place, void *buff,
-			   uint32_t pos, uint32_t count)
-{
+static int32_t tail40_read(place_t *place, trans_hint_t *hint) {
+	aal_assert("umka-1674", hint != NULL);
 	aal_assert("umka-1673", place != NULL);
-	aal_assert("umka-1674", buff != NULL);
-	aal_assert("umka-1675", pos < place->len);
 
-	aal_memcpy(buff, place->body + pos, count);
-	return count;
+	aal_memcpy(hint->specific, place->body +
+		   hint->offset, hint->count);
+	
+	return hint->count;
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -42,10 +44,11 @@ static int32_t tail40_read(place_t *place, void *buff,
    function considers also, that tail item is not expandable one. That is, if
    insert pos point inside the item body, it will not be splitted, but rewritten
    instead. */
-static errno_t tail40_estimate_insert(place_t *place,
-				      insert_hint_t *hint)
+static errno_t tail40_estimate_write(place_t *place,
+				     trans_hint_t *hint)
 {
 	aal_assert("umka-1836", hint != NULL);
+	aal_assert("umka-2437", place != NULL);
 
 	if (place->pos.unit == MAX_UINT32) {
 		hint->len = hint->count;
@@ -55,6 +58,7 @@ static errno_t tail40_estimate_insert(place_t *place,
 		aal_assert("umka-2284", place != NULL);
 		
 		right = place->len - place->pos.unit;
+		
 		hint->len = (right >= hint->count ? 0 :
 			     hint->count - right);
 	}
@@ -62,9 +66,9 @@ static errno_t tail40_estimate_insert(place_t *place,
 	return 0;
 }
 
-/* Rewrites tail from passed @pos by data specifed by hint */
-static errno_t tail40_insert(place_t *place,
-			     insert_hint_t *hint)
+/* Rewrites tail from passed @pos by data from hint */
+static int32_t tail40_write(place_t *place,
+			    trans_hint_t *hint)
 {
 	uint32_t pos;
 	uint32_t count;
@@ -74,6 +78,9 @@ static errno_t tail40_insert(place_t *place,
 
 	count = hint->count;
 	pos = place->pos.unit;
+
+	if (pos == MAX_UINT32)
+		pos = 0;
 	
 	if (count > place->len - pos)
 		count = place->len - pos;
@@ -99,43 +106,7 @@ static errno_t tail40_insert(place_t *place,
 	return 0;
 }
 
-/* Removes the part of tail body */
-static errno_t tail40_remove(place_t *place,
-			     remove_hint_t *hint)
-{
-	uint32_t pos;
-	uint32_t count;
-	void *src, *dst;
-	
-	aal_assert("umka-2403", hint != NULL);
-	aal_assert("umka-1661", place != NULL);
-	aal_assert("umka-1663", pos < place->len);
-
-	count = hint->count;
-	pos = place->pos.unit;
-	
-	if (pos + count > place->len)
-		count = place->len - pos;
-			
-	hint->ohd = 0;
-	hint->len = place->len - (pos + count);
-	
-	src = place->body + pos;
-	dst = src + count;
-
-	aal_memmove(dst, src, hint->len);
-
-	/* Updating the key */
-	if (pos == 0) {
-		body40_get_key(place, 0, &place->key, NULL);
-	}
-
-	place_mkdirty(place);
-	return 0;
-}
-
-static errno_t tail40_print(place_t *place,
-			    aal_stream_t *stream,
+static errno_t tail40_print(place_t *place, aal_stream_t *stream,
 			    uint16_t options)
 {
 	aal_assert("umka-1489", place != NULL);
@@ -147,9 +118,7 @@ static errno_t tail40_print(place_t *place,
 	return 0;
 }
 
-errno_t tail40_maxreal_key(place_t *place, 
-			   key_entity_t *key) 
-{
+errno_t tail40_maxreal_key(place_t *place, key_entity_t *key) {
 	aal_assert("vpf-442", place != NULL);
 	aal_assert("vpf-443", key != NULL);
 
@@ -393,8 +362,7 @@ static reiser4_item_ops_t tail40_ops = {
 	.maxposs_key      = tail40_maxposs_key,
 #ifndef ENABLE_STAND_ALONE
 	.merge	          = tail40_merge,
-	.insert	          = tail40_insert,
-	.remove	          = tail40_remove,
+	.write	          = tail40_write,
 	.mergeable        = tail40_mergeable,
 	.print	          = tail40_print,
 	.shift	          = tail40_shift,
@@ -404,11 +372,15 @@ static reiser4_item_ops_t tail40_ops = {
 	.maxreal_key      = tail40_maxreal_key,
 	.estimate_merge   = tail40_estimate_merge,
 	.estimate_shift   = tail40_estimate_shift,
-	.estimate_insert  = tail40_estimate_insert,
+	.estimate_write   = tail40_estimate_write,
 	
-	.overhead         = NULL,
 	.check_struct	  = NULL,
+	.estimate_insert  = NULL,
+	.overhead         = NULL,
+	.insert	          = NULL,
+	.update           = NULL,
 	.init	          = NULL,
+	.remove	          = NULL,
 	.branch           = NULL,
 	.layout	          = NULL,
 	.set_key          = NULL,
@@ -416,6 +388,7 @@ static reiser4_item_ops_t tail40_ops = {
 #else
 	.mergeable        = NULL,
 #endif
+	.fetch            = NULL,
 	.plugid		  = NULL
 };
 

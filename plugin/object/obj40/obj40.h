@@ -107,10 +107,13 @@ extern errno_t obj40_set_bytes(obj40_t *obj,
 extern errno_t obj40_recognize(obj40_t *obj, stat_func_t stat_func);
 
 extern errno_t obj40_remove(obj40_t *obj, place_t *place,
-			    remove_hint_t *hint);
+			    trans_hint_t *hint);
 
 extern errno_t obj40_insert(obj40_t *obj, place_t *place,
-			    insert_hint_t *hint, uint8_t level);
+			    trans_hint_t *hint, uint8_t level);
+
+extern errno_t obj40_write(obj40_t *obj, place_t *place,
+			   trans_hint_t *hint, uint8_t level);
 
 extern errno_t obj40_ukey(obj40_t *obj, place_t *place, 
 			  key_entity_t *key, uint8_t mode);

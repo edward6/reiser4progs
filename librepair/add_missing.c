@@ -100,7 +100,7 @@ static void repair_add_missing_update(repair_am_t *am) {
 
 static errno_t repair_am_node_prepare(repair_am_t *am, reiser4_node_t *node) {
 	reiser4_place_t place;
-	remove_hint_t hint;
+	trans_hint_t hint;
 	uint32_t count;
 	errno_t res;
 	

@@ -70,13 +70,19 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 	
 	if (reiser4_item_branch(place.plug)) {
 		ptr_hint_t ptr;
+		trans_hint_t hint;
 		uint32_t blksize;
 		
 		place.pos.unit = reiser4_item_units(&place) - 1;
+
+		hint.count = 1;
+		hint.specific = &ptr;
 		
-		if (plug_call(place.plug->o.item_ops, read, (place_t *)&place,
-			      &ptr, place.pos.unit, 1) != 1)
-			return -EINVAL;
+		if (plug_call(place.plug->o.item_ops, fetch,
+			      (place_t *)&place, &hint) != 1)
+		{
+			return -EIO;
+		}
 		
 		if (ptr.start == INVAL_BLK)
 			return -EINVAL;
@@ -253,7 +259,7 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	reiser4_key_t rkey, key;
 	reiser4_place_t place;
-	insert_hint_t hint;
+	trans_hint_t hint;
 	lookup_res_t lookup;
 	ptr_hint_t ptr;
 	uint32_t level;
@@ -469,7 +475,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
 				reiser4_place_t *src, reiser4_key_t *key)
 {
 	reiser4_key_t dmax;
-	insert_hint_t hint;
+	trans_hint_t hint;
 	errno_t res;
 	
 	aal_assert("vpf-1298", tree != NULL);

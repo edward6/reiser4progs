@@ -38,7 +38,7 @@ uint64_t obj40_ordering(obj40_t *obj) {
 
 /* Reads stat data extention */
 errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
-	insert_hint_t hint;
+	trans_hint_t hint;
 	statdata_hint_t stat;
 
 	aal_memset(&stat, 0, sizeof(stat));
@@ -46,14 +46,15 @@ errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
 	/* Preparing hint and mask */
 	hint.specific = &stat;
 	
-	if (data)
+	if (data) {
 		stat.ext[id] = data;
+	}
 	
 	/* Calling statdata open method if any */
-	if (plug_call(place->plug->o.item_ops, read,
-		      place, &hint, 0, 1) != 1)
+	if (plug_call(place->plug->o.item_ops,
+		      fetch, place, &hint) != 1)
 	{
-		return -EINVAL;
+		return -EIO;
 	}
 	
 	return 0;
@@ -74,7 +75,7 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 			  uint64_t size, uint64_t bytes, uint32_t nlink,
 			  uint16_t mode, char *path)
 {
-	insert_hint_t hint;
+	trans_hint_t hint;
 	statdata_hint_t stat;
 	sdext_lw_hint_t lw_ext;
 	sdext_unix_hint_t unix_ext;
@@ -175,27 +176,32 @@ errno_t obj40_touch(obj40_t *obj, uint64_t size,
 errno_t obj40_write_ext(place_t *place, rid_t id,
 			void *data)
 {
-	insert_hint_t hint;
+	trans_hint_t hint;
 	statdata_hint_t stat;
 
 	aal_memset(&stat, 0, sizeof(stat));
 
 	hint.specific = &stat;
 
-	if (plug_call(place->plug->o.item_ops, read,
-		      place, &hint, 0, 1) != 1)
+	if (plug_call(place->plug->o.item_ops,
+		      fetch, place, &hint) != 1)
 	{
-		return -EINVAL;
+		return -EIO;
 	}
 
 	stat.ext[id] = data;
 
-	return plug_call(place->plug->o.item_ops,
-			 insert, place, &hint);
+	if (!plug_call(place->plug->o.item_ops,
+		       update, place, &hint))
+	{
+		return -EIO;
+	}
+
+	return 0;
 }
 
 uint64_t obj40_extmask(place_t *place) {
-	insert_hint_t hint;
+	trans_hint_t hint;
 	statdata_hint_t stat;
 
 	aal_memset(&stat, 0, sizeof(stat));
@@ -204,8 +210,8 @@ uint64_t obj40_extmask(place_t *place) {
 	hint.specific = &stat;
 	
 	/* Calling statdata open method if any */
-	if (plug_call(place->plug->o.item_ops, read,
-		      place, &hint, 0, 1) != 1)
+	if (plug_call(place->plug->o.item_ops,
+		      fetch, place, &hint) != 1)
 	{
 		return MAX_UINT64;
 	}
@@ -477,14 +483,22 @@ lookup_res_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 /* Inserts passed item hint into the tree. After function is finished, place
    contains the place of the inserted item. */
 errno_t obj40_insert(obj40_t *obj, place_t *place,
-		     insert_hint_t *hint, uint8_t level)
+		     trans_hint_t *hint, uint8_t level)
 {
 	return obj->core->tree_ops.insert(obj->info.tree,
 					  place, hint, level);
 }
 
+/* Writes data to tree */
+errno_t obj40_write(obj40_t *obj, place_t *place,
+		    trans_hint_t *hint, uint8_t level)
+{
+	return obj->core->tree_ops.write(obj->info.tree,
+					 place, hint, level);
+}
+
 /* Removes item/unit by @key */
-errno_t obj40_remove(obj40_t *obj, place_t *place, remove_hint_t *hint) {
+errno_t obj40_remove(obj40_t *obj, place_t *place, trans_hint_t *hint) {
 	return obj->core->tree_ops.remove(obj->info.tree, place, hint);
 }
 #endif

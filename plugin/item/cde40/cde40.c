@@ -167,20 +167,17 @@ uint32_t cde40_units(place_t *place) {
 	return cde_get_units(place);
 }
 
-/* Reads @count of the entries starting from @pos into passed @buff */
-static int32_t cde40_read(place_t *place, void *buff,
-			  uint32_t pos, uint32_t count)
-{
-	uint32_t i;
+static int32_t cde40_fetch(place_t *place, trans_hint_t *hint) {
+	uint32_t i, pos;
 	entry_hint_t *entry;
     
+	aal_assert("umka-1418", hint != NULL);
 	aal_assert("umka-866", place != NULL);
-	aal_assert("umka-1418", buff != NULL);
-	aal_assert("umka-1598", pos < cde40_units(place));
 
-	entry = (entry_hint_t *)buff;
+	pos = place->pos.unit;
+	entry = (entry_hint_t *)hint->specific;
 	
-	for (i = pos; i < pos + count; i++, entry++) {
+	for (i = pos; i < pos + hint->count; i++, entry++) {
 		cde40_get_obj(place, i, &entry->object);
 		cde40_get_hash(place, i, &entry->offset);
 		
@@ -188,7 +185,7 @@ static int32_t cde40_read(place_t *place, void *buff,
 			       sizeof(entry->name));
 	}
 	
-	return count;
+	return hint->count;
 }
 
 /* Returns 1 if items are mergeable, 0 -- otherwise. That is if they belong to
@@ -382,7 +379,7 @@ static uint32_t cde40_shrink(place_t *place, uint32_t pos,
 	cde_dec_units(place, count);
 	place_mkdirty(place);
 	
-	return 0;
+	return remove;
 }
 
 /* Prepares cde40 for insert new entries */
@@ -635,7 +632,7 @@ static errno_t cde40_shift(place_t *src_place,
 /* Estimates how much bytes will be needed to prepare in node in odrer to make
    room for inserting new entries. */
 static errno_t cde40_estimate_insert(place_t *place,
-				     insert_hint_t *hint)
+				     trans_hint_t *hint)
 {
 	uint32_t i, pol;
 	entry_hint_t *entry;
@@ -665,18 +662,21 @@ static errno_t cde40_estimate_insert(place_t *place,
 		}
 	}
 
-	/* If the pos we are going to insert new units is MAX_UINT32, we assume
-	   it is the attempt to insert new directory item. In this case we
-	   should also count item overhead, that is cde40 header which contains
-	   the number of entries in item. */
+	hint->bytes = hint->len;
+	
+	/* If the pos we are going to insert new units is -1, we assume it is
+	   the attempt to insert new directory item. In this case we should also
+	   count item overhead, that is cde40 header which contains the number
+	   of entries in item. */
 	hint->ohd = (place->pos.unit == MAX_UINT32 ?
 		     cde40_overhead(place) : 0);
+	
 	return 0;
 }
 
 /* Inserts new entries to cde item */
-static errno_t cde40_insert(place_t *place,
-			    insert_hint_t *hint)
+static int32_t cde40_insert(place_t *place,
+			    trans_hint_t *hint)
 {
 	void *entry;
 	uint32_t pol, i, offset;
@@ -766,35 +766,36 @@ static errno_t cde40_insert(place_t *place,
 	}
 
 	place_mkdirty(place);
-	return 0;
+	return hint->count;
 }
 
 errno_t cde40_delete(place_t *place, uint32_t pos,
-		     remove_hint_t *hint)
+		     trans_hint_t *hint)
 {
-	uint32_t len;
 	uint32_t pol;
+	uint32_t bytes;
 
 	pol = cde40_key_pol(place);
-	len = hint->count * en_size(pol);
-	len += cde40_regsize(place, pos, hint->count);
+	bytes = (hint->count * en_size(pol));
 	
-	/* Shrinking cde */
-	cde40_shrink(place, pos, hint->count, 0);
+	/* Shrinking cde item */
+	bytes += cde40_shrink(place, pos, hint->count, 0);
 	
 	/* Updating item key */
 	if (pos == 0 && cde40_units(place) > 0) {
 		cde40_get_hash(place, 0, &place->key);
 	}
 
+	hint->bytes = bytes;
+	
 	hint->ohd = (pos == MAX_UINT32 ?
 		     cde40_overhead(place) : 0);
-
+	
 	return 0;
 }
 
 /* Removes @count entries at @pos from passed @place */
-static errno_t cde40_remove(place_t *place, remove_hint_t *hint) {
+static errno_t cde40_remove(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-934", place != NULL);
 	aal_assert("umka-2400", hint != NULL);
 
@@ -1014,16 +1015,20 @@ static reiser4_item_ops_t cde40_ops = {
 	.estimate_merge	   = cde40_estimate_merge,
 	.estimate_shift    = cde40_estimate_shift,
 	.estimate_insert   = cde40_estimate_insert,
-	
+
+	.update            = NULL,
+	.write             = NULL,
 	.layout		   = NULL,
 	.check_layout	   = NULL,
+	.estimate_write    = NULL,
 #endif
+	.read              = NULL,
 	.branch            = NULL,
 	.plugid		   = NULL,
 
 	.lookup		   = cde40_lookup,
 	.units		   = cde40_units,
-	.read              = cde40_read,
+	.fetch             = cde40_fetch,
 	.get_key	   = cde40_get_key,
 	.mergeable         = cde40_mergeable,
 	.maxposs_key	   = cde40_maxposs_key

@@ -126,15 +126,16 @@ errno_t dir40_reset(object_entity_t *entity) {
 
 /* Fetches current unit to passed @entry */
 errno_t dir40_fetch(object_entity_t *entity, entry_hint_t *entry) {
-	uint32_t pos;
 	dir40_t *dir;
+	trans_hint_t hint;
 
+	hint.count = 1;
+	hint.specific = entry;
 	dir = (dir40_t *)entity;
-	pos = dir->body.pos.unit;
 
 	/* Reading entry to passed @entry */
-	if (plug_call(dir->body.plug->o.item_ops, read,
-		      &dir->body, entry, pos, 1) != 1)
+	if (plug_call(dir->body.plug->o.item_ops,
+		      fetch, &dir->body, &hint) != 1)
 	{
 		return -EIO;
 	}
@@ -493,7 +494,7 @@ static object_entity_t *dir40_create(object_info_t *info,
 	dir40_t *dir;
 	uint64_t mask;
 	entry_hint_t entry;
-	insert_hint_t body_hint;
+	trans_hint_t body_hint;
 	reiser4_plug_t *body_plug;
     
 	aal_assert("umka-835", info != NULL);
@@ -608,7 +609,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 
 	while (1) {
 		place_t place;
-		remove_hint_t hint;
+		trans_hint_t hint;
 
 		/* Looking for the last directory item */
 		switch ((obj40_lookup(&dir->obj, &key, LEAF_LEVEL,
@@ -636,7 +637,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 static errno_t dir40_clobber(object_entity_t *entity) {
 	errno_t res;
 	dir40_t *dir;
-	remove_hint_t hint;
+	trans_hint_t hint;
 		
 	aal_assert("umka-2298", entity != NULL);
 
@@ -758,7 +759,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	uint64_t bytes;
 	
 	entry_hint_t temp;
-	insert_hint_t hint;
+	trans_hint_t hint;
 
 	aal_assert("umka-844", entity != NULL);
 	aal_assert("umka-845", entry != NULL);
@@ -800,7 +801,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	/* Updating stat data fields */
 	entry->len = hint.len;
 	size = dir40_size(entity) + 1;
-	bytes = obj40_get_bytes(&dir->obj) + hint.len;
+	bytes = obj40_get_bytes(&dir->obj) + hint.bytes;
 	return obj40_touch(&dir->obj, size, bytes, time(NULL));
 }
 
@@ -814,7 +815,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	uint64_t bytes;
 	
 	entry_hint_t temp;
-	remove_hint_t hint;
+	trans_hint_t hint;
 	
 	aal_assert("umka-1923", entry != NULL);
 	aal_assert("umka-1922", entity != NULL);
@@ -846,7 +847,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	/* Updating stat data fields */
 	entry->len = hint.len;
 	size = dir40_size(entity) - 1;
-	bytes = obj40_get_bytes(&dir->obj) - hint.len;
+	bytes = obj40_get_bytes(&dir->obj) - hint.bytes;
 	return obj40_touch(&dir->obj, size, bytes, time(NULL));
 }
 

@@ -4,13 +4,6 @@
    sym40.c -- reiser4 symlink file plugin. */
 
 #ifdef ENABLE_SYMLINKS
-
-#ifndef ENABLE_STAND_ALONE
-#  include <time.h>
-#  include <unistd.h>
-#  include <limits.h>
-#endif
-
 #include "sym40.h"
 
 reiser4_core_t *score = NULL;
@@ -54,9 +47,6 @@ static int32_t sym40_read(object_entity_t *entity,
 			  void *buff, uint32_t n)
 {
 	sym40_t *sym;
-	place_t *place;
-	insert_hint_t hint;
-	statdata_hint_t stat;
 
 	aal_assert("umka-1571", buff != NULL);
 	aal_assert("umka-1570", entity != NULL);
@@ -65,20 +55,9 @@ static int32_t sym40_read(object_entity_t *entity,
 
 	if (obj40_update(&sym->obj))
 		return -EINVAL;
-
-	aal_memset(&hint, 0, sizeof(hint));
-	aal_memset(&stat, 0, sizeof(stat));
-
-	hint.specific = &stat;
-	stat.ext[SDEXT_SYMLINK_ID] = buff;
-
-	place = STAT_PLACE(&sym->obj);
-
-	if (plug_call(place->plug->o.item_ops,
-		      read, place, &hint, 0, 1) != 1)
-	{
-		return -EINVAL;
-	}
+	
+	obj40_read_ext(STAT_PLACE(&sym->obj),
+		       SDEXT_SYMLINK_ID, buff);
 
 	return aal_strlen(buff);
 }
@@ -89,6 +68,7 @@ static object_entity_t *sym40_create(object_info_t *info,
 				     object_hint_t *hint)
 {
 	sym40_t *sym;
+	uint32_t len;
 	uint64_t mask;
 	
 	aal_assert("umka-1741", info != NULL);
@@ -103,9 +83,11 @@ static object_entity_t *sym40_create(object_info_t *info,
 
 	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID |
 		1 << SDEXT_SYMLINK_ID);
+
+	len = aal_strlen(hint->body.sym);
 	
 	if (obj40_create_stat(&sym->obj, hint->statdata, mask,
-			      0, 0, 0, S_IFLNK, hint->body.sym))
+			      len, len, 0, S_IFLNK, hint->body.sym))
 	{
 		goto error_free_sym;
 	}
@@ -123,7 +105,7 @@ static object_entity_t *sym40_create(object_info_t *info,
 
 static errno_t sym40_clobber(object_entity_t *entity) {
 	sym40_t *sym;
-	remove_hint_t hint;
+	trans_hint_t hint;
 	
 	aal_assert("umka-2300", entity != NULL);
 
@@ -221,12 +203,6 @@ extern errno_t sym40_check_struct(object_entity_t *object,
 				  place_func_t place_func,
 				  region_func_t region_func,
 				  void *data, uint8_t mode);
-#endif
-
-#ifdef ENABLE_STAND_ALONE
-#  define _SYMLINK_LEN 256
-#else
-#  define _SYMLINK_LEN _POSIX_PATH_MAX
 #endif
 
 /* This function reads symlink and parses it by means of using aux_parse_path

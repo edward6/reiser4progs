@@ -281,7 +281,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		if ((!plug_equal(reg->body.plug, eplug) && 
 		     !plug_equal(reg->body.plug, tplug)) || result) 
 		{
-			remove_hint_t hint;
+			trans_hint_t hint;
 			hint.count = 1;
 			
 			aal_exception_error("The object [%s] of the plugin %s "

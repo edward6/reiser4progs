@@ -84,7 +84,7 @@ static errno_t callback_item_check_layout(reiser4_place_t *place, void *data) {
 	
 	if (res & RE_FATAL) {
 		if (ts->repair->mode == RM_BUILD) {
-			remove_hint_t hint;
+			trans_hint_t hint;
 
 			aal_exception_error("Node (%llu), item (%u): broken "
 					    "item layout. Remove the item.",

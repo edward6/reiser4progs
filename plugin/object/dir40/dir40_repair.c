@@ -86,7 +86,7 @@ static void dir40_check_size(uint64_t *sd_size, uint64_t counted_size) {
 }
 
 static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
-	insert_hint_t body_hint;
+	trans_hint_t body_hint;
 	object_info_t *info;
 	entry_hint_t entry;
 	errno_t res;
@@ -226,7 +226,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 	   SD. */
 	while (TRUE) {
 		pos_t *pos = &dir->body.pos;
-		remove_hint_t hint;
+		trans_hint_t hint;
 		key_entity_t key;
 		uint32_t units;
 		errno_t ret;

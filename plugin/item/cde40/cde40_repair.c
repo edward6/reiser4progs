@@ -68,7 +68,7 @@ struct entry_flags {
 extern reiser4_core_t *cde_core;
     
 extern errno_t cde40_delete(place_t *place, uint32_t pos,
-			    remove_hint_t *hint);
+			    trans_hint_t *hint);
 
 extern errno_t cde40_get_hash(place_t *place, uint32_t pos, 
 			      key_entity_t *key);
@@ -415,7 +415,7 @@ static errno_t cde40_offsets_range_check(place_t *place,
 static errno_t cde40_filter(place_t *place, struct entry_flags *flags,
 			    uint8_t mode)
 {
-	remove_hint_t hint;
+	trans_hint_t hint;
 	uint32_t i, last;
 	uint32_t e_count;
 	uint32_t pol;
@@ -648,7 +648,7 @@ errno_t cde40_check_struct(place_t *place, uint8_t mode) {
 	   item is thrown away if smth wrong, to be improved later. */
 	for (i = 1; i < flags.count; i++) {
 		key_entity_t key;
-		remove_hint_t hint;
+		trans_hint_t hint;
 		
 		cde40_get_hash(place, i - 1, &key);
 

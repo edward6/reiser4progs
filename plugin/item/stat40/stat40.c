@@ -12,10 +12,7 @@ static reiser4_core_t *core = NULL;
 /* The function which implements stat40 layout pass. This function is used for
    all statdata extention-related actions. For example for reading, or
    counting. */
-errno_t stat40_traverse(place_t *place,
-			ext_func_t ext_func,
-			void *data)
-{
+errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data) {
 	uint16_t i, len;
 	uint16_t chunks = 0;
 	uint16_t extmask = 0;
@@ -82,9 +79,10 @@ errno_t stat40_traverse(place_t *place,
 
 /* Callback for opening one extention */
 static errno_t callback_open_ext(sdext_entity_t *sdext,
-				 uint16_t extmask, void *data)
+				 uint16_t extmask,
+				 void *data)
 {
-	insert_hint_t *hint;
+	trans_hint_t *hint;
 	statdata_hint_t *stat_hint;
 
 	/* Method open is not defined, this probably means, we only interested
@@ -93,7 +91,7 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 	if (!sdext->plug->o.sdext_ops->open)
 		return 0;
 	
-	hint = (insert_hint_t *)data;
+	hint = (trans_hint_t *)data;
 	stat_hint = hint->specific;
 
 	/* Reading mask into hint */
@@ -111,13 +109,11 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 }
 
 /* Fetches whole statdata item with extentions into passed @buff */
-static int32_t stat40_read(place_t *place, void *buff,
-			   uint32_t pos, uint32_t count)
-{
+static int32_t stat40_fetch(place_t *place, trans_hint_t *hint) {
+	aal_assert("umka-1415", hint != NULL);
 	aal_assert("umka-1414", place != NULL);
-	aal_assert("umka-1415", buff != NULL);
 
-	if (stat40_traverse(place, callback_open_ext, buff))
+	if (stat40_traverse(place, callback_open_ext, hint))
 		return -EINVAL;
 
 	return 1;
@@ -155,7 +151,7 @@ static errno_t stat40_init(place_t *place) {
 /* Estimates how many bytes will be needed for creating statdata item described
    by passed @hint at passed @pos. */
 static errno_t stat40_estimate_insert(place_t *place,
-				      insert_hint_t *hint)
+				      trans_hint_t *hint)
 {
 	uint16_t i;
 	statdata_hint_t *stat_hint;
@@ -206,8 +202,8 @@ static errno_t stat40_estimate_insert(place_t *place,
 }
 
 /* This method writes the stat data extentions */
-static errno_t stat40_insert(place_t *place,
-			     insert_hint_t *hint)
+static int32_t stat40_insert(place_t *place,
+			     trans_hint_t *hint)
 {
 	uint16_t i;
 	body_t *extbody;
@@ -268,7 +264,7 @@ static errno_t stat40_insert(place_t *place,
 	}
     
 	place_mkdirty(place);
-	return 0;
+	return 1;
 }
 
 extern errno_t stat40_check_struct(place_t *place,
@@ -411,7 +407,7 @@ static errno_t stat40_print(place_t *place,
 
 /* Get the plugin id of the type @type if stored in SD. */
 static rid_t stat40_plugid(place_t *place, rid_t type) {
-	insert_hint_t hint;
+	trans_hint_t hint;
 	statdata_hint_t stat;
 	sdext_lw_hint_t lw_hint;
 	
@@ -426,7 +422,7 @@ static rid_t stat40_plugid(place_t *place, rid_t type) {
 		hint.specific = &stat;
 		stat.ext[SDEXT_LW_ID] = &lw_hint;
 
-		if (stat40_read(place, &hint, 0, 1) != 1)
+		if (stat40_fetch(place, &hint) != 1)
 			return INVAL_PID;
 
 #ifndef ENABLE_STAND_ALONE	
@@ -458,7 +454,7 @@ static rid_t stat40_plugid(place_t *place, rid_t type) {
 }
 
 static reiser4_item_ops_t stat40_ops = {
-	.read             = stat40_read,
+	.fetch            = stat40_fetch,
 	.units		  = stat40_units,
 	.plugid	          = stat40_plugid,
 	.maxposs_key	  = stat40_maxposs_key,
@@ -467,6 +463,7 @@ static reiser4_item_ops_t stat40_ops = {
 	.init             = stat40_init,
 	.merge		  = stat40_merge,
 	.insert		  = stat40_insert,
+	.update		  = stat40_insert,
 	.print		  = stat40_print,
 	
 	.check_struct     = stat40_check_struct,
@@ -474,16 +471,20 @@ static reiser4_item_ops_t stat40_ops = {
 	.estimate_insert  = stat40_estimate_insert,
 
 	.estimate_shift   = NULL,
+	.estimate_write   = NULL,
+	
 	.overhead         = NULL,
 	.layout           = NULL,
 	.remove		  = NULL,
 	.shift            = NULL,
-	.set_key	  = NULL,
+	.write            = NULL,
 	.size		  = NULL,
 	.bytes		  = NULL,
+	.set_key	  = NULL,
 	.check_layout	  = NULL,
 	.maxreal_key      = NULL,
 #endif
+	.read             = NULL,
 	.lookup		  = NULL,
 	.branch           = NULL,
 	.get_key	  = NULL,

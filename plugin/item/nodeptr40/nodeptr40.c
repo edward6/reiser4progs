@@ -13,18 +13,16 @@ static uint32_t nodeptr40_units(place_t *place) {
 	return 1;
 }
 
-/* Reads nodeptr into passed buff */
-static int32_t nodeptr40_read(place_t *place, void *buff,
-			      uint32_t pos, uint32_t count)
-{
+/* Fetches nodeptr into passed @hint */
+static int32_t nodeptr40_fetch(place_t *place, trans_hint_t *hint) {
 	nodeptr40_t *nodeptr;
 	ptr_hint_t *ptr_hint;
 		
+	aal_assert("umka-1420", hint != NULL);
 	aal_assert("umka-1419", place != NULL);
-	aal_assert("umka-1420", buff != NULL);
 
-	ptr_hint = (ptr_hint_t *)buff;
 	nodeptr = nodeptr40_body(place);
+	ptr_hint = (ptr_hint_t *)hint->specific;
 	
 	ptr_hint->width = 1;
 	ptr_hint->start = np40_get_ptr(nodeptr);
@@ -43,35 +41,36 @@ static errno_t nodeptr40_layout(place_t *place,
 				region_func_t region_func,
 				void *data)
 {
-	nodeptr40_t *nodeptr;
+	blk_t blk;
 	
 	aal_assert("umka-1749", place != NULL);
 	aal_assert("umka-2354", place->body != NULL);
 	aal_assert("umka-1750", region_func != NULL);
 
-	nodeptr = nodeptr40_body(place);
-	return region_func(place, np40_get_ptr(nodeptr), 1, data);
+	blk = np40_get_ptr(nodeptr40_body(place));
+	return region_func(place, blk, 1, data);
 }
 
 /* Estimates how many bytes is needed for creating new nodeptr */
 static errno_t nodeptr40_estimate_insert(place_t *place,
-					 insert_hint_t *hint)
+					 trans_hint_t *hint)
 {
 	aal_assert("vpf-068", hint != NULL);
+	aal_assert("umka-2436", place != NULL);
 
 	hint->len = sizeof(nodeptr40_t);
 	return 0;
 }
 
 /* Writes of the specified nodeptr into passed @place */
-static errno_t nodeptr40_insert(place_t *place,
-				insert_hint_t *hint)
+static int32_t nodeptr40_insert(place_t *place,
+				trans_hint_t *hint)
 {
 	nodeptr40_t *nodeptr;
 	ptr_hint_t *ptr_hint;
 		
-	aal_assert("umka-1423", place != NULL);
 	aal_assert("umka-1424", hint != NULL);
+	aal_assert("umka-1423", place != NULL);
 
 	nodeptr = nodeptr40_body(place);
 	
@@ -79,7 +78,7 @@ static errno_t nodeptr40_insert(place_t *place,
 	np40_set_ptr(nodeptr, ptr_hint->start);
 
 	place_mkdirty(place);
-	return 0;
+	return 1;
 }
 
 /* Prints passed nodeptr into @stream */
@@ -113,24 +112,27 @@ extern errno_t nodeptr40_check_layout(place_t *place,
 #endif
 
 static reiser4_item_ops_t nodeptr40_ops = {
+	.fetch            = nodeptr40_fetch,
 	.units		  = nodeptr40_units,
-	.read             = nodeptr40_read,
 	.branch           = nodeptr40_branch,
 	
 #ifndef ENABLE_STAND_ALONE	    
 	.print		  = nodeptr40_print,
 	.layout           = nodeptr40_layout,
 	.insert           = nodeptr40_insert,
+	.update           = nodeptr40_insert,
 	.check_struct	  = nodeptr40_check_struct,
 	.check_layout	  = nodeptr40_check_layout,
 	.estimate_insert  = nodeptr40_estimate_insert,
 
 	.estimate_merge	  = NULL,
 	.estimate_shift   = NULL,
+	.estimate_write   = NULL,
 
 	.init		  = NULL,
-	.merge            = NULL,
+	.write            = NULL,
 	.remove		  = NULL,
+	.merge            = NULL,
 	.shift            = NULL,
 	.size		  = NULL,
 	.bytes		  = NULL,
@@ -138,6 +140,7 @@ static reiser4_item_ops_t nodeptr40_ops = {
 	.set_key	  = NULL,
 	.maxreal_key      = NULL,
 #endif
+	.read             = NULL,
 	.lookup		  = NULL,
 	.plugid		  = NULL,
 	.mergeable        = NULL,

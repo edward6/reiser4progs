@@ -220,6 +220,7 @@ static int reiser4_node_ack(reiser4_node_t *node,
 			    reiser4_place_t *place)
 {
 	ptr_hint_t ptr;
+	trans_hint_t hint;
 	
 	if (!(place->pos.item < reiser4_node_items(place->node)))
 		return 0;
@@ -230,8 +231,14 @@ static int reiser4_node_ack(reiser4_node_t *node,
 	if (!reiser4_item_branch(place->plug))
 		return 0;
 
-	plug_call(place->plug->o.item_ops, read,
-		  (place_t *)place, &ptr, place->pos.unit, 1);
+	hint.count = 1;
+	hint.specific = &ptr;
+	
+	if (plug_call(place->plug->o.item_ops, fetch,
+		      (place_t *)place, &hint) != 1)
+	{
+		return 0;
+	}
 
 	return ptr.start == node_blocknr(node);
 }
@@ -279,6 +286,7 @@ errno_t reiser4_node_realize(
 		uint32_t i, j;
 		ptr_hint_t ptr;
 		lookup_res_t res;
+		trans_hint_t hint;
 		
 		for (i = 0; i < reiser4_node_items(parent->node); i++) {
 			parent->pos.item = i;
@@ -291,9 +299,15 @@ errno_t reiser4_node_realize(
 
 			for (j = 0; j < reiser4_item_units(parent); j++) {
 				parent->pos.unit = j;
-			
-				plug_call(parent->plug->o.item_ops, read,
-					  (place_t *)parent, &ptr, j, 1);
+
+				hint.count = 1;
+				hint.specific = &ptr;
+				
+				if (plug_call(parent->plug->o.item_ops, fetch,
+					      (place_t *)parent, &hint) != 1)
+				{
+					return -EIO;
+				}
 
 				if (ptr.start == node_blocknr(node))
 					goto parent_fetch;
@@ -602,8 +616,14 @@ errno_t reiser4_node_shift(
 		uint32_t units;
 		reiser4_place_t place;
 
-		reiser4_place_assign(&place, neig, (hint->control & SF_LEFT) ?
-				     items - i - 1 : i, MAX_UINT32);
+		if (hint->control & SF_LEFT) {
+			reiser4_place_assign(&place, neig,
+					     items - i - 1,
+					     MAX_UINT32);
+		} else {
+			reiser4_place_assign(&place, neig,
+					     i, MAX_UINT32);
+		}
 
 		if ((res = reiser4_place_fetch(&place)))
 			return res;
@@ -616,12 +636,19 @@ errno_t reiser4_node_shift(
 		
 		for (; place.pos.unit < units; place.pos.unit++) {
 			ptr_hint_t ptr;
+			trans_hint_t hint;
 			reiser4_node_t *child;
 
 			/* Getting nodeptr and looking for the cached child by
 			   using it. */
-			plug_call(place.plug->o.item_ops, read,
-				  (place_t *)&place, &ptr, place.pos.unit, 1);
+			hint.count = 1;
+			hint.specific = &ptr;
+			
+			if (plug_call(place.plug->o.item_ops, fetch,
+				      (place_t *)&place, &hint) != 1)
+			{
+				return -EIO;
+			}
 			
 			if (!(child = reiser4_node_child(node, ptr.start)))
 			        continue;
@@ -689,7 +716,7 @@ errno_t reiser4_node_sync(
 /* Updates nodeptr item in parent node */
 errno_t reiser4_node_upos(reiser4_node_t *node) {
 	errno_t res;
-	insert_hint_t hint;
+	trans_hint_t hint;
 	ptr_hint_t nodeptr_hint;
 
 	aal_assert("umka-2263", node != NULL);
@@ -707,7 +734,7 @@ errno_t reiser4_node_upos(reiser4_node_t *node) {
 	if ((res = reiser4_place_fetch(&node->p)))
 		return res;
 
-	return plug_call(node->p.plug->o.item_ops, insert,
+	return plug_call(node->p.plug->o.item_ops, update,
 			 (place_t *)&node->p, &hint);
 }
 
@@ -730,7 +757,6 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 			    pos_t *start)
 {
 	errno_t res;
-	ptr_hint_t ptr;
 	uint32_t items;
 
 	reiser4_place_t place;
@@ -767,15 +793,23 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 
 	/* Searching for the first loaded child found nodeptr item points to */
 	for (; place.pos.item < items; place.pos.item++) {
-
+		ptr_hint_t ptr;
+		trans_hint_t hint;
+		
 		if ((res = reiser4_place_fetch(&place)))
 			return res;
 		
 		if (!reiser4_item_branch(place.plug))
 			continue;
+
+		hint.count = 1;
+		hint.specific = &ptr;
 		
-		plug_call(place.plug->o.item_ops, read,
-			  (place_t *)&place, &ptr, place.pos.unit, 1);
+		if (plug_call(place.plug->o.item_ops, fetch,
+			      (place_t *)&place, &hint) != 1)
+		{
+			return -EIO;
+		}
 	
 		if ((list = aal_list_find_custom(node->children,
 						 (void *)&ptr.start,
@@ -785,8 +819,9 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 		}
 	}
 
-	if (!list)
+	if (list == NULL) {
 		return 0;
+	}
 
 	/* Updating childrens in-parent position */
 	aal_list_foreach_forward(list, walk) {
@@ -801,21 +836,17 @@ errno_t reiser4_node_uchild(reiser4_node_t *node,
 	return 0;
 }
 
-/* Inserts item or unit into node. Keeps track of changes of the left delimiting
-   keys in all parent nodes. */
-errno_t reiser4_node_insert(
+/* Node modifying fucntion. */
+errno_t reiser4_node_mod(
 	reiser4_node_t *node,	         /* node item will be inserted in */
 	pos_t *pos,                      /* pos item will be inserted at */
-	insert_hint_t *hint)             /* item hint to be inserted */
+	trans_hint_t *hint,              /* item hint to be inserted */
+	bool_t insert)                   /* modifying mode (insert/write) */
 {
 	errno_t res;
 	uint32_t len;
 	uint32_t needed;
     
-	aal_assert("umka-990", node != NULL);
-	aal_assert("umka-991", pos != NULL);
-	aal_assert("umka-992", hint != NULL);
-
 	len = hint->len + hint->ohd;
 
 	needed = len + (pos->unit == MAX_UINT32 ?
@@ -829,12 +860,21 @@ errno_t reiser4_node_insert(
 		return -EINVAL;
 	}
 
-	/* Inserting new item or pasting unit into one existent item pointed by
-	   pos->item. */
-	if ((res = plug_call(node->entity->plug->o.node_ops,
-			     insert, node->entity, pos, hint)))
-	{
-		return res;
+	if (insert) {
+		/* Inserting new item or pasting unit into one existent item pointed by
+		   pos->item. */
+		if ((res = plug_call(node->entity->plug->o.node_ops,
+				     insert, node->entity, pos, hint)))
+		{
+			return res;
+		}
+	} else {
+		/* Writing data to node. */
+		if ((res = plug_call(node->entity->plug->o.node_ops,
+				     write, node->entity, pos, hint)))
+		{
+			return res;
+		}
 	}
 
 	if ((res = reiser4_node_uchild(node, pos))) {
@@ -846,12 +886,32 @@ errno_t reiser4_node_insert(
 	return 0;
 }
 
+errno_t reiser4_node_insert(reiser4_node_t *node,
+			    pos_t *pos, trans_hint_t *hint)
+{
+	aal_assert("umka-990", node != NULL);
+	aal_assert("umka-991", pos != NULL);
+	aal_assert("umka-992", hint != NULL);
+
+	return reiser4_node_mod(node, pos, hint, 1);
+}
+
+errno_t reiser4_node_write(reiser4_node_t *node,
+			   pos_t *pos, trans_hint_t *hint)
+{
+	aal_assert("umka-2445", node != NULL);
+	aal_assert("umka-2446", pos != NULL);
+	aal_assert("umka-2447", hint != NULL);
+
+	return reiser4_node_mod(node, pos, hint, 0);
+}
+
 /* Deletes item or unit from cached node. Keeps track of changes of the left
    delimiting key. */
 errno_t reiser4_node_remove(
 	reiser4_node_t *node,	          /* node item will be removed from */
 	pos_t *pos,                       /* pos item will be removed at */
-	remove_hint_t *hint)
+	trans_hint_t *hint)
 {
 	errno_t res;
 	

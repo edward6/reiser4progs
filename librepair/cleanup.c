@@ -19,7 +19,7 @@ static errno_t repair_cleanup_check(reiser4_place_t *place, void *data) {
 	cleanup = (repair_cleanup_t *)data;
 	
 	if (!repair_item_test_flag(place, OF_CHECKED)) {
-		remove_hint_t hint;
+		trans_hint_t hint;
 		
 		/* Not checked item does not belong to any object. Remove. */
 		hint.count = 1;

@@ -30,6 +30,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
 	reiser4_node_t *node = NULL;
+	trans_hint_t hint;
 	ptr_hint_t ptr;
 	
 	aal_assert("vpf-379", fd != NULL);
@@ -40,8 +41,14 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	aal_assert("vpf-1187", place != NULL);
 	
 	/* Fetching node ptr */
-	plug_call(place->plug->o.item_ops, read, (place_t *)place,
-		  &ptr, place->pos.unit, 1);
+	hint.count = 1;
+	hint.specific = &ptr;
+	
+	if (plug_call(place->plug->o.item_ops, fetch,
+		      (place_t *)place, &hint) != 1)
+	{
+		return NULL;
+	}
 	
 	if (ptr.start > fd->bm_used->total ||
 	    ptr.width > fd->bm_used->total ||
@@ -62,7 +69,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 		fd->stat.bad_ptrs += ptr.width;
 		if (fd->repair->mode == RM_BUILD) {
 			pos_t ppos;
-			remove_hint_t hint;
+			trans_hint_t hint;
 			
 			repair_place_get_lpos(place, ppos);
 
@@ -274,18 +281,22 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
 	ptr_hint_t ptr;
+	trans_hint_t hint;
 	uint8_t level;
     
 	aal_assert("vpf-257", fd != NULL);
 	aal_assert("vpf-434", place != NULL);
-    
-	if (plug_call(place->plug->o.item_ops, read, (place_t *)place, 
-		      &ptr, place->pos.unit, 1) != 1)
+
+	hint.count = 1;
+	hint.specific = &ptr;
+	
+	if (plug_call(place->plug->o.item_ops, read,
+		      (place_t *)place, &hint) != 1)
 	{
 		aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed "
 				    "to fetch the node pointer.",node_blocknr(place->node),
 				    place->pos.item, place->pos.unit);
-		return -EINVAL;
+		return -EIO;
 	}
 	
 	if (fd->flags) {
@@ -351,7 +362,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 		
 		if (fd->repair->mode == RM_BUILD) {
 			pos_t prev;
-			remove_hint_t hint;
+			trans_hint_t hint;
 			
 			fd->repair->fatal--;
 			/* The node corruption was not fixed - delete the 

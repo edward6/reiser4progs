@@ -108,6 +108,7 @@ static int32_t reg40_read(object_entity_t *entity,
 		n = size - offset;
 
 	for (read = 0; read < n; ) {
+		trans_hint_t hint;
 
 		if ((res = reg40_update(entity)))
 			return res;
@@ -115,14 +116,18 @@ static int32_t reg40_read(object_entity_t *entity,
 		chunk = n - read;
 
 		/* Calculating in-item offset */
-		offset = reg40_offset(entity);;
+		offset = reg40_offset(entity);
 
 		offset -= plug_call(reg->body.key.plug->o.key_ops,
 				    get_offset, &reg->body.key);
 
+		hint.count = chunk;
+		hint.offset = offset;
+		hint.specific = buff;
+
 		/* Calling body item's read() method */
-		if (!(chunk = plug_call(reg->body.plug->o.item_ops, read,
-					&reg->body, buff, offset, chunk)))
+		if (!(chunk = plug_call(reg->body.plug->o.item_ops,
+					read, &reg->body, &hint)))
 		{
 			return chunk;
 		}
@@ -372,7 +377,7 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 		uint32_t level;
 		uint64_t offset;
 
-		insert_hint_t hint;
+		trans_hint_t hint;
 		key_entity_t maxkey;
 
 		/* Preparing hint key */
@@ -431,8 +436,8 @@ int32_t reg40_put(object_entity_t *entity, void *buff, uint32_t n) {
 			LEAF_LEVEL + 1 : LEAF_LEVEL;
 
 		/* Inserting data to the tree */
-		if ((res = obj40_insert(&reg->obj, &reg->body,
-					&hint, level)))
+		if ((res = obj40_write(&reg->obj, &reg->body,
+				       &hint, level)))
 		{
 			return res;
 		}
@@ -462,7 +467,7 @@ static int32_t reg40_cut(object_entity_t *entity,
 	uint64_t size;
 
 	int32_t bytes = 0;
-	remove_hint_t hint;
+	trans_hint_t hint;
 	
 	reg = (reg40_t *)entity;
 	size = reg40_size(entity);
@@ -615,7 +620,7 @@ static errno_t reg40_truncate(object_entity_t *entity,
 static errno_t reg40_clobber(object_entity_t *entity) {
 	errno_t res;
 	reg40_t *reg;
-	remove_hint_t hint;
+	trans_hint_t hint;
 	
 	aal_assert("umka-2299", entity != NULL);
 

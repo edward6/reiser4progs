@@ -266,6 +266,7 @@ reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 				   reiser4_place_t *place)
 {
 	ptr_hint_t ptr;
+	trans_hint_t hint;
 	
 	aal_assert("umka-1889", tree != NULL);
 	aal_assert("umka-1890", place != NULL);
@@ -277,9 +278,15 @@ reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 	/* Checking if item is a branch of tree */
 	if (!reiser4_item_branch(place->plug))
 		return NULL;
-			
-	plug_call(place->plug->o.item_ops, read,
-		  (place_t *)place, &ptr, 0, 1);
+
+	hint.count = 1;
+	hint.specific = &ptr;
+	
+	if (plug_call(place->plug->o.item_ops, fetch,
+		      (place_t *)place, &hint) != 1)
+	{
+		return NULL;
+	}
 
 	return reiser4_tree_load(tree, place->node,
 				 ptr.start);
@@ -579,17 +586,28 @@ void reiser4_tree_fini(reiser4_tree_t *tree) {
 static errno_t reiser4_tree_alloc_nodeptr(reiser4_tree_t *tree,
 					  reiser4_place_t *place)
 {
+	place_t nptr;
 	ptr_hint_t ptr;
-	uint32_t i, units;
-	insert_hint_t hint;
+	uint32_t units;
+	trans_hint_t hint;
 	reiser4_node_t *child;
 	
+	aal_memcpy(&nptr, place, sizeof(nptr));
+	
 	units = plug_call(place->plug->o.item_ops,
-			  units, (place_t *)place);
-					
-	for (i = 0; i < units; i++) {
-		plug_call(place->plug->o.item_ops, read,
-			  (place_t *)place, &ptr, i, 1);
+			  units, &nptr);
+
+	for (nptr.pos.unit = 0; nptr.pos.unit < units;
+	     nptr.pos.unit++)
+	{
+		hint.count = 1;
+		hint.specific = &ptr;
+		
+		if (plug_call(nptr.plug->o.item_ops,
+			      fetch, &nptr, &hint) != 1)
+		{
+			return -EIO;
+		}
 
 		if (!reiser4_fake_ack(ptr.start))
 			continue;
@@ -617,13 +635,23 @@ static errno_t reiser4_tree_alloc_nodeptr(reiser4_tree_t *tree,
 		ptr.width = 1;
 		hint.specific = &ptr;
 
-		plug_call(place->plug->o.item_ops, insert,
-			  (place_t *)place, &hint);
+		if (plug_call(place->plug->o.item_ops,
+			      update, &nptr, &hint) != 1)
+		{
+			return -EIO;
+		}
 					
 		/* Assigning node to new node blk */
 		reiser4_node_move(child, ptr.start);
 	}
 
+	return 0;
+}
+
+/* Allocates extent item at passed @place */
+static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
+					 reiser4_place_t *place)
+{
 	return 0;
 }
 #endif
@@ -680,7 +708,8 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 					if (reiser4_tree_alloc_nodeptr(tree, &place))
 						return -EINVAL;
 				} else {
-					/* Extents will be allocated here */
+					if (reiser4_tree_alloc_extent(tree, &place))
+						return -EINVAL;
 				}
 			}
 		}
@@ -1009,7 +1038,7 @@ errno_t reiser4_tree_attach(
 	errno_t res;
 	uint8_t level;
 	
-	insert_hint_t hint;
+	trans_hint_t hint;
 	reiser4_place_t place;
 	ptr_hint_t nodeptr_hint;
 
@@ -1019,12 +1048,12 @@ errno_t reiser4_tree_attach(
 	/* Preparing nodeptr item hint */
 	aal_memset(&hint, 0, sizeof(hint));
 
+	hint.count = 1;
+	hint.specific = &nodeptr_hint;
+
 	/* Prepare nodeptr hint from passed @node */
 	nodeptr_hint.width = 1;
 	nodeptr_hint.start = node_blocknr(node);
-
-	hint.count = 1;
-	hint.specific = &nodeptr_hint;
 
 	reiser4_node_lkey(node, &hint.key);
 	pid = reiser4_param_value("nodeptr");
@@ -1075,7 +1104,7 @@ errno_t reiser4_tree_attach(
 errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 			    reiser4_node_t *node)
 {
-	remove_hint_t hint;
+	trans_hint_t hint;
 	reiser4_place_t parent;
 	
 	aal_assert("umka-1726", tree != NULL);
@@ -1580,24 +1609,43 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 	return 0;
 }
 
-/* Inserts new item/unit described by item hint into the tree */
-errno_t reiser4_tree_insert(
+static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
+				     reiser4_place_t *place,
+				     trans_hint_t *hint,
+				     bool_t insert)
+{
+	aal_assert("umka-2438", tree != NULL);
+	aal_assert("umka-2440", hint != NULL);
+	aal_assert("umka-2439", place != NULL);
+	aal_assert("umka-2230", hint->plug != NULL);
+
+	hint->len = 0;
+	hint->ohd = 0;
+
+	if (insert) {
+		return plug_call(hint->plug->o.item_ops,
+				 estimate_insert,
+				 (place_t *)place, hint);
+	} else {
+		return plug_call(hint->plug->o.item_ops,
+				 estimate_write,
+				 (place_t *)place, hint);
+	}
+}
+
+/* Function for tre modifying */
+static errno_t reiser4_tree_mod(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
 	reiser4_place_t *place,	    /* place item or unit inserted at */
-	insert_hint_t *hint,        /* item hint to be inserted */
-	uint8_t level)              /* level item/unit will be inserted on */
+	trans_hint_t *hint,         /* item hint to be inserted */
+	uint8_t level,              /* level item/unit will be inserted on */
+	bool_t insert)              /* is this insert operation or write */
 {
 	int mode;
 	errno_t res;
 	uint32_t len;
 	uint32_t needed;
 	reiser4_place_t old;
-
-	aal_assert("umka-779", tree != NULL);
-	aal_assert("umka-779", hint != NULL);
-	
-	aal_assert("umka-1644", place != NULL);
-	aal_assert("umka-1645", hint->plug != NULL);
 
 	/* Checking if tree is fresh one, thus, it does not have the root node.
 	   If so, we allocate new node of the requested level, insert item/unit
@@ -1616,10 +1664,17 @@ errno_t reiser4_tree_insert(
 		
 		POS_INIT(&place->pos, 0, MAX_UINT32);
 		
-		if ((res = reiser4_item_estimate(place, hint)))
+		if ((res = reiser4_tree_estimate(tree, place,
+						 hint, insert)))
+		{
 			return res;
-		
-		if ((res = reiser4_node_insert(place->node, &place->pos, hint))) {
+		}
+
+		if ((res = reiser4_node_mod(place->node, &place->pos,
+					    hint, insert)))
+		{
+			aal_exception_error("Can't insert data to node %llu.",
+					    node_blocknr(place->node));
 			reiser4_tree_release(tree, place->node);
 			return res;
 		}
@@ -1670,16 +1725,16 @@ errno_t reiser4_tree_insert(
 		if ((res = reiser4_tree_split(tree, place, level)))
 			return res;
 	}
-	    
-	/* Estimating item/unit to inserted to tree */
-	if ((res = reiser4_item_estimate(place, hint)))
+
+	/* Estimating item/unit to inserted.written to tree */
+	if ((res = reiser4_tree_estimate(tree, place, hint, insert)))
 		return res;
+	
+	len = hint->len + hint->ohd;
 	
 	/* Saving mode of insert (insert new item, paste units to the existent
 	   one) before making space for new inset/unit. */
 	mode = (place->pos.unit == MAX_UINT32);
-
-	len = hint->len + hint->ohd;
 	
 	/* Needed space to be prepared in tree */
 	needed = len + (place->pos.unit == MAX_UINT32 ? 
@@ -1695,14 +1750,19 @@ errno_t reiser4_tree_insert(
 	   more time. That is because, estimated value depends on insert
 	   mode. */
 	if (mode != (place->pos.unit == MAX_UINT32)) {
-		if ((res = reiser4_item_estimate(place, hint)))
+		if ((res = reiser4_tree_estimate(tree, place,
+						 hint, insert)))
+		{
 			return res;
+		}
 	}
 
-	/* Inserting item/unit and updating parent keys */
-	if ((res = reiser4_node_insert(place->node, &place->pos, hint))) {
-		aal_exception_error("Can't insert an item/unit into the "
-				    "node %llu.", node_blocknr(place->node));
+	/* Inserting/writing data to node */
+	if ((res = reiser4_node_mod(place->node, &place->pos,
+				    hint, insert)))
+	{
+		aal_exception_error("Can't insert data to node %llu.",
+				    node_blocknr(place->node));
 		return res;
 	}
 
@@ -1743,12 +1803,42 @@ errno_t reiser4_tree_insert(
 	return reiser4_place_fetch(place);
 }
 
+/* Inserts data to the tree */
+errno_t reiser4_tree_insert(reiser4_tree_t *tree,
+			    reiser4_place_t *place,
+			    trans_hint_t *hint,
+			    uint8_t level)
+{
+	aal_assert("umka-779", tree != NULL);
+	aal_assert("umka-779", hint != NULL);
+	
+	aal_assert("umka-1644", place != NULL);
+	aal_assert("umka-1645", hint->plug != NULL);
+
+	return reiser4_tree_mod(tree, place, hint, level, 1);
+}
+
+/* Writes data to the tree */
+errno_t reiser4_tree_write(reiser4_tree_t *tree,
+			   reiser4_place_t *place,
+			   trans_hint_t *hint,
+			   uint8_t level)
+{
+	aal_assert("umka-2441", tree != NULL);
+	aal_assert("umka-2442", hint != NULL);
+	
+	aal_assert("umka-2443", place != NULL);
+	aal_assert("umka-2444", hint->plug != NULL);
+
+	return reiser4_tree_mod(tree, place, hint, level, 0);
+}
+
 /* Removes item/unit at passed @place. This functions also perform so called
    "local packing". */
 errno_t reiser4_tree_remove(
 	reiser4_tree_t *tree,	  /* tree item will be removed from */
 	reiser4_place_t *place,   /* place the item will be removed at */
-	remove_hint_t *hint)
+	trans_hint_t *hint)
 {
 	errno_t res;
 

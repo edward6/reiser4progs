@@ -804,8 +804,11 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	hint.body.dir.direntry = reiser4_param_value("direntry");
 
 	/* Creating object by passed parameters */
-	if (!(object = reiser4_object_create(fs->tree, parent, &hint)))
+	if (!(object = reiser4_object_create(fs->tree,
+					     parent, &hint)))
+	{
 		return NULL;
+	}
 
 	if (parent) {
 		if (reiser4_object_link(parent, object, name))

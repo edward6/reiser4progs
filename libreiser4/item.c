@@ -20,22 +20,6 @@ uint32_t reiser4_item_units(reiser4_place_t *place) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Estimating insert operation. */
-errno_t reiser4_item_estimate(
-	reiser4_place_t *place,	   /* item we will work with */
-	insert_hint_t *hint)       /* item hint to be estimated */
-{
-	aal_assert("vpf-106", place != NULL);
-	aal_assert("umka-541", hint != NULL);
-	aal_assert("umka-2230", hint->plug != NULL);
-
-	hint->len = 0;
-	hint->ohd = 0;
-
-	return plug_call(hint->plug->o.item_ops,
-			 estimate_insert, (place_t *)place, hint);
-}
-
 /* Prints passed @place into passed @buff */
 errno_t reiser4_item_print(
 	reiser4_place_t *place,    /* item to be printed */

@@ -484,11 +484,11 @@ typedef struct object_hint object_hint_t;
 
 /* This structure contains fields which describe an item or unit to be inserted
    into the tree. */ 
-struct insert_hint {
+struct trans_hint {
 	/* Overhead of data to be insetred. This is needed for the case when we
-	 * insert directory item and tree should now how many space should be
-	 * prepared in the tree ohd + len, but we don't need overhead for
-	 * updating stat data bytes field. */
+	   insert directory item and tree should now how many space should be
+	   prepared in the tree ohd + len, but we don't need overhead for
+	   updating stat data bytes field. */
 	uint16_t ohd;
 	
 	/* Length of the data to be inserted */
@@ -504,13 +504,13 @@ struct insert_hint {
 	void *tree;
 
 	/* Used for insert extent data */
-	uint32_t offset;
+	uint64_t offset;
 
 	/* Max offset in target item. */
-	uint32_t maxoff;
+	uint64_t maxoff;
 	
 	/* Count of units to be inserted into the tree */
-	uint16_t count;
+	uint32_t count;
 
 	/* The key of item/unit to be inserted */
 	key_entity_t key;
@@ -519,21 +519,7 @@ struct insert_hint {
 	reiser4_plug_t *plug;
 };
 
-typedef struct insert_hint insert_hint_t;
-
-struct remove_hint {
-	
-	/* Overhead of removed data */
-	uint32_t ohd;
-	
-	/* Length of removed data */
-	uint16_t len;
-
-	/* Number of items/units to be removed */
-	uint16_t count;
-};
-
-typedef struct remove_hint remove_hint_t;
+typedef struct trans_hint trans_hint_t;
 
 struct reiser4_key_ops {
 	/* Cleans key up. Actually it just memsets it by zeros, but more smart
@@ -723,24 +709,33 @@ struct reiser4_item_ops {
 	/* Returns overhead */
 	uint16_t (*overhead) (place_t *);
 	
+	/* Estimates insert operation */
+	errno_t (*estimate_insert) (place_t *, trans_hint_t *);
+
+	/* Estimates insert operation */
+	errno_t (*estimate_write) (place_t *, trans_hint_t *);
+
 	/* Estimate the merge operation */
 	errno_t (*estimate_merge) (place_t *, place_t *, 
 				   merge_hint_t *);
-
-	/* Estimates insert operation */
-	errno_t (*estimate_insert) (place_t *, insert_hint_t *);
 
 	/* Predicts the shift parameters (units, bytes, etc) */
 	errno_t (*estimate_shift) (place_t *, place_t *,
 				   shift_hint_t *);
 	
 	/* Inserts some amount of units described by passed hint into passed
-	   item. */
-	errno_t (*insert) (place_t *, insert_hint_t *);
+	   item denoted by place. */
+	int32_t (*insert) (place_t *, trans_hint_t *);
 
-	/* Removes specified unit from the item. */
-	errno_t (*remove) (place_t *, remove_hint_t *);
+	/* Writes data to item */
+	int32_t (*write) (place_t *, trans_hint_t *);
 	
+	/* Removes specified unit from the item. */
+	errno_t (*remove) (place_t *, trans_hint_t *);
+
+	/* Updates unit at passed place by data from passed hint */
+	int32_t (*update) (place_t *, trans_hint_t *);
+
 	/* Performs shift of units from passed @src item to @dst item */
 	errno_t (*shift) (place_t *, place_t *, shift_hint_t *);
 
@@ -780,9 +775,11 @@ struct reiser4_item_ops {
 	/* Checks if items mergeable. Returns 1 if so, 0 otherwise */
 	int (*mergeable) (place_t *, place_t *);
 
-	/* Reads passed amount of units from the item. */
-	int32_t (*read) (place_t *, void *, uint32_t,
-			 uint32_t);
+	/* Reads passed amount of bytes from the item. */
+	int32_t (*read) (place_t *, trans_hint_t *);
+
+	/* Fetches one or more units at passed @place to passed hint */
+	int32_t (*fetch) (place_t *, trans_hint_t *);
 
 	/* Returns unit count */
 	uint32_t (*units) (place_t *);
@@ -797,13 +794,14 @@ struct reiser4_item_ops {
 	/* Get the max key which could be stored in the item of this type */
 	errno_t (*maxposs_key) (place_t *, key_entity_t *);
 
-	/* Get the plugin id of the specified type if stored in SD. */
-	rid_t (*plugid) (place_t *, rid_t);
-	
 #ifndef ENABLE_STAND_ALONE
 	/* Get the max real key which is stored in the item */
 	errno_t (*maxreal_key) (place_t *, key_entity_t *);
 #endif
+	
+	/* Get the plugin id of the specified type if stored in SD. */
+	rid_t (*plugid) (place_t *, rid_t);
+	
 };
 
 typedef struct reiser4_item_ops reiser4_item_ops_t;
@@ -864,11 +862,15 @@ struct reiser4_node_ops {
 
 	/* Inserts item at specified pos */
 	errno_t (*insert) (node_entity_t *, pos_t *,
-			   insert_hint_t *);
+			   trans_hint_t *);
+    
+	/* Writes data to the node */
+	errno_t (*write) (node_entity_t *, pos_t *,
+			  trans_hint_t *);
     
 	/* Removes item/unit at specified pos */
 	errno_t (*remove) (node_entity_t *, pos_t *,
-			   remove_hint_t *);
+			   trans_hint_t *);
 
 	/* Shrinks node without calling any item methods */
 	errno_t (*shrink) (node_entity_t *, pos_t *,
@@ -1327,14 +1329,18 @@ struct tree_ops {
 	int (*valid) (void *, place_t *);
 	
 #ifndef ENABLE_STAND_ALONE
-	/* Inserts item/unit in the tree by calling reiser4_tree_insert function,
-	   used by all object plugins (dir, file, etc) */
+	/* Inserts item/unit in the tree by calling tree_insert() function, used
+	   by all object plugins (dir, file, etc) */
 	errno_t (*insert) (void *, place_t *,
-			   insert_hint_t *, uint8_t);
+			   trans_hint_t *, uint8_t);
+
+	/* Writes some data to tree */
+	int32_t (*write) (void *, place_t *,
+			  trans_hint_t *, uint8_t);
     
 	/* Removes item/unit from the tree. It is used in all object plugins for
 	   modification purposes. */
-	errno_t (*remove) (void *, place_t *, remove_hint_t *);
+	errno_t (*remove) (void *, place_t *, trans_hint_t *);
 
 	/* Functions for getting/setting extent data */
 	aal_block_t *(*get_data) (void *, key_entity_t *);

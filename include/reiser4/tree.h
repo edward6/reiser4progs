@@ -63,12 +63,17 @@ extern errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_insert(reiser4_tree_t *tree,
 				   reiser4_place_t *place,
-				   insert_hint_t *hint,
+				   trans_hint_t *hint,
 				   uint8_t level);
+
+extern errno_t reiser4_tree_write(reiser4_tree_t *tree,
+				  reiser4_place_t *place,
+				  trans_hint_t *hint,
+				  uint8_t level);
 
 extern errno_t reiser4_tree_remove(reiser4_tree_t *tree,
 				   reiser4_place_t *place,
-				   remove_hint_t *hint);
+				   trans_hint_t *hint);
 
 extern errno_t reiser4_tree_shift(reiser4_tree_t *tree,
 				  reiser4_place_t *place,

@@ -25,7 +25,7 @@ static reiser4_plug_t *factory_nfind(char *name) {
 static errno_t tree_insert(
 	void *tree,	            /* opaque pointer to the tree */
 	place_t *place,	            /* insertion point will be saved here */
-	insert_hint_t *hint,        /* item hint to be inserted into tree */
+	trans_hint_t *hint,         /* item hint to be inserted into tree */
 	uint8_t level)              /* target level */
 {
 	aal_assert("umka-846", tree != NULL);
@@ -37,11 +37,27 @@ static errno_t tree_insert(
 				   hint, level);
 }
 
+/* Handler for write data to the tree */
+static errno_t tree_write(
+	void *tree,	            /* opaque pointer to the tree */
+	place_t *place,	            /* insertion point will be saved here */
+	trans_hint_t *hint,         /* item hint to be inserted into tree */
+	uint8_t level)              /* target level */
+{
+	aal_assert("umka-846", tree != NULL);
+	aal_assert("umka-847", hint != NULL);
+	aal_assert("umka-1643", place != NULL);
+
+	return reiser4_tree_write((reiser4_tree_t *)tree,
+				  (reiser4_place_t *)place,
+				  hint, level);
+}
+
 /* Handler for item removing requests from the all plugins */
 static errno_t tree_remove(
 	void *tree,	            /* opaque pointer to the tree */
 	place_t *place,	            /* place of the item to be removerd */
-	remove_hint_t *hint)
+	trans_hint_t *hint)
 {
 	aal_assert("umka-848", tree != NULL);
 	aal_assert("umka-849", place != NULL);
@@ -232,6 +248,8 @@ reiser4_core_t core = {
 #ifndef ENABLE_STAND_ALONE
 		/* Callback function for inserting items into the tree */
 		.insert	    = tree_insert,
+
+		.write	    = tree_write,
 
 		/* Callback function for removing items from the tree */
 		.remove	    = tree_remove,

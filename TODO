@@ -3,8 +3,6 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
-* cleanup item read/write/insert interface.
-
 * fix unaligned access on Itanium2.
 
 * tail conversion in reg40 plugin.
@@ -18,7 +16,7 @@ reiser4progs/COPYING.
 
 * plugin inheritance for objects.
 
-* finish extents support (reg40.c, tree.c, etc).
+* finish extents support (tree.c).
 
 * special file plugin and special files support in debugfs.
 

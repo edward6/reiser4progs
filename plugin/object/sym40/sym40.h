@@ -8,12 +8,24 @@
 #ifndef SYM40_H
 #define SYM40_H
 
+#ifndef ENABLE_STAND_ALONE
+#  include <time.h>
+#  include <unistd.h>
+#  include <limits.h>
+#endif
+
 #include <aal/aal.h>
 #include <aux/aux.h>
 #include <sys/stat.h>
 
 #include <reiser4/plugin.h>
 #include <plugin/object/obj40/obj40.h>
+
+#ifdef ENABLE_STAND_ALONE
+#  define _SYMLINK_LEN 256
+#else
+#  define _SYMLINK_LEN _POSIX_PATH_MAX
+#endif
 
 /* Compaund directory structure */
 struct sym40 {
