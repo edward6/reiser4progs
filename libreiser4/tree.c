@@ -1359,7 +1359,7 @@ errno_t reiser4_tree_expand(
 			reiser4_node_mkclean(save.node);
 			reiser4_tree_release(tree, save.node);
 		}
-		
+
 		/* Attaching new allocated node into the tree, if it is not empty */
 		if (reiser4_node_items(node) > 0) {
 

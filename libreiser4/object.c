@@ -330,8 +330,6 @@ reiser4_object_t *reiser4_object_create(
 	object_hint_t *hint)                 /* object hint */
 {
 	reiser4_object_t *object;
-	reiser4_plugin_t *plugin;
-    
 	oid_t objectid, locality;
     
 	aal_assert("umka-790", fs != NULL);
@@ -344,8 +342,6 @@ reiser4_object_t *reiser4_object_create(
 		return NULL;
 	}
     
-	plugin = hint->plugin;
-	
 	/* Allocating the memory for object instance */
 	if (!(object = aal_calloc(sizeof(*object), 0)))
 		return NULL;
@@ -380,9 +376,10 @@ reiser4_object_t *reiser4_object_create(
 	reiser4_key_assign(&object->key, &hint->object);
 	reiser4_key_string(&object->key, object->name);
 	
-	if (!(object->entity = plugin_call(plugin->o.object_ops, create, fs->tree,
-					 (parent ? parent->entity : NULL),
-					 hint, (place_t *)&object->place)))
+	if (!(object->entity = plugin_call(hint->plugin->o.object_ops,
+					   create, fs->tree, parent ?
+					   parent->entity : NULL,
+					   hint, (place_t *)&object->place)))
 	{
 		aal_exception_error("Can't create object with oid 0x%llx.", 
 				    reiser4_key_get_objectid(&object->key));
