@@ -421,6 +421,8 @@ errno_t format40_print(object_entity_t *entity, aal_stream_t *stream,
 	block = ((format40_t *)entity)->block;
 	super = format40_super(block);
     
+	aal_stream_format(stream, "Format super block:\n");
+	
 	aal_stream_format(stream, "plugin:\t\t%s\n", entity->plugin->h.label);
 	aal_stream_format(stream, "description:\t%s\n", entity->plugin->h.desc);
 	aal_stream_format(stream, "offset:\t\t%llu\n", aal_block_number(block));

@@ -372,6 +372,8 @@ static errno_t alloc40_print(object_entity_t *entity,
 
 	alloc = (alloc40_t *)entity;
 
+	aal_stream_format(stream, "Block allocator:\n");
+	
 	aal_stream_format(stream, "plugin:\t\t%s\n",
 			  alloc->plugin->h.label);
 
