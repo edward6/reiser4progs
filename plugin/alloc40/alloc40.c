@@ -212,7 +212,7 @@ static errno_t callback_sync_bitmap(object_entity_t *format,
 
 	aal_memcpy(block->data + CRC_SIZE, current, chunk);
 
-	if (chunk < size) {
+/*	if (chunk < size) {
 		void *fake;
 
 		if (!(fake = aal_calloc(size, 0)))
@@ -222,7 +222,7 @@ static errno_t callback_sync_bitmap(object_entity_t *format,
 		adler = aal_adler32(fake, size);
 		
 		aal_free(fake);
-	} else
+	} else*/
 		adler = aal_adler32(current, chunk);
 	
 	aal_memcpy(block->data, &adler, sizeof(adler));
@@ -401,7 +401,7 @@ static errno_t callback_check_bitmap(object_entity_t *format,
 	/* Calculating adler checksumm for piece of bitmap */
 	chunk = free > size ? size : free;
 
-	if (chunk < size) {
+/*	if (chunk < size) {
 		void *fake;
 
 		if (!(fake = aal_calloc(size, 0)))
@@ -411,7 +411,7 @@ static errno_t callback_check_bitmap(object_entity_t *format,
 		cadler = aal_adler32(fake, size);
 		
 		aal_free(fake);
-	} else
+	} else*/
 		cadler = aal_adler32(current, chunk);
 
 	/* 
