@@ -379,11 +379,11 @@ static errno_t tail40_remove(place_t *place, trans_hint_t *hint) {
 	return 0;
 }
 
-static errno_t tail40_truncate(place_t *place,
+static int64_t tail40_truncate(place_t *place,
 			       trans_hint_t *hint)
 {
 	uint32_t pos;
-	uint32_t count;
+	uint64_t count;
 
 	aal_assert("umka-2480", hint != NULL);
 	aal_assert("umka-2479", place != NULL);
@@ -407,11 +407,17 @@ static errno_t tail40_truncate(place_t *place,
 			    place->len - (pos + count));
 	}
 
+	/* Updating key */
+	if (pos == 0 && pos + count < place->len) {
+		body40_get_key(place, pos + count,
+			       &place->key, NULL);
+	}
+	
 	hint->ohd = 0;
 	hint->len = count;
 	hint->bytes = count;
 	
-	return 0;
+	return count;
 }
 
 /* Returns item size in bytes */

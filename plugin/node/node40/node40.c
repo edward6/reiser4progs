@@ -685,13 +685,13 @@ static int32_t node40_write(node_entity_t *entity,
 }
 
 /* Truncates node at @pos. Needed for tail conversion. */
-errno_t node40_truncate(node_entity_t *entity, pos_t *pos,
-			trans_hint_t *hint)
+static int64_t node40_truncate(node_entity_t *entity, pos_t *pos,
+			       trans_hint_t *hint)
 {
 	void *ih;
-	errno_t res;
 	uint32_t pol;
 	uint32_t len;
+	int64_t count;
 	place_t place;
 	node40_t *node;
 	
@@ -704,45 +704,45 @@ errno_t node40_truncate(node_entity_t *entity, pos_t *pos,
 	if (node40_fetch(entity, pos, &place))
 		return -EINVAL;
 
-	/* Check if item has truncate() method. */
-	if (place.plug->o.item_ops->truncate) {
-		/* Item has truncate(), so it contains some structure
-		   (extent40), not just stream of bytes (tail40). */
-		if ((res = plug_call(place.plug->o.item_ops,
-				     truncate, &place, hint)))
-		{
-			return res;
-		}
+	/* Item has truncate(), so it contains some structure (extent40), not
+	   just stream of bytes (tail40). */
+	if ((count = plug_call(place.plug->o.item_ops,
+			       truncate, &place, hint)) < 0)
+	{
+		return count;
+	}
 
-		/* Updating key if it makes sence, that is we has not truncated
-		   whole item. */
-		if (place.len > hint->len) {
-			pol = node40_key_pol(node);
-			ih = node40_ih_at(node, place.pos.item);
-			aal_memcpy(ih, place.key.body, key_size(pol));
-		}
-	} else {
-		/* Item has not truncate(), we suppose, that hint->len*/
-		hint->ohd = 0;
-		hint->len = hint->count;
+	/* Updating key if it makes sence, that is we has not truncated whole
+	   item. */
+	if ((int32_t)place.len > hint->len + hint->ohd) {
+		pol = node40_key_pol(node);
+		ih = node40_ih_at(node, place.pos.item);
+		aal_memcpy(ih, place.key.body, key_size(pol));
 	}
 
 	/* Shrinking node */
 	if ((len = hint->ohd + hint->len)) {
-
+		errno_t res;
+		uint32_t number;
+		
 		/* If len to be cut out is the same as item size, we remove
 		   whole item. Shribk item otherwise. */
 		if (len >= place.len) {
+			number = 1;
 			place.pos.unit = MAX_UINT32;
-			return node40_shrink(entity, &place.pos, len, 1);
 		} else {
+			number = count;
 			place.pos.unit = 0;
-			return node40_shrink(entity, &place.pos, len,
-					     hint->count);
+		}
+		
+		if ((res = node40_shrink(entity, &place.pos,
+					 len, number)))
+		{
+			return res;
 		}
 	}
 
-	return 0;
+	return count;
 }
 
 /* This function removes item/unit from the node at specified @pos */

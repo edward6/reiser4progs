@@ -2027,6 +2027,7 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 {
 	char *buff;
 	errno_t res;
+	int64_t conv;
 	uint32_t size;
 	uint32_t blksize;
 	trans_hint_t trans;
@@ -2049,9 +2050,9 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 	reiser4_key_assign(&trans.offset, &place->key);
 	blksize = reiser4_master_get_blksize(tree->fs->master);
 
-	for (size = hint->size, hint->bytes = 0; size > 0;) {
-		int32_t conv;
-		
+	for (size = hint->size, hint->bytes = 0;
+	     size > 0; size -= conv)
+	{
 		/* Preparing buffer to read to it and size to read. */
 		trans.count = blksize;
 
@@ -2074,14 +2075,14 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 		trans.region_func = callback_region_func;
 		
 		/* Removing read data from the tree. */
+		trans.count = conv;
 		trans.plug = hint->plug;
 
-		if ((res = reiser4_tree_truncate(tree, &trans)))
+		if ((conv = reiser4_tree_truncate(tree, &trans)) < 0) {
+			res = conv;
 			goto error_free_buff;
+		}
 
-		/* FIXME-UMKA: Here should be releasing of extent unformatted
-		   blocks if passed @place points to extent item. */
-		
 		trans.count = conv;
 		
 		/* Writing data to the tree */
@@ -2093,7 +2094,6 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 		hint->bytes += trans.bytes;
 		reiser4_key_inc_offset(&trans.offset, conv);
 
-		size -= conv;
 		aal_free(buff);
 	}
 
@@ -2228,7 +2228,6 @@ static int32_t reiser4_tree_mod(
 	}
 
 	if ((uint32_t)space < needed) {
-		
 		/* FIXME-UMKA: Dirty hack. Here should be something like calling
 		   some item plugin method in order to determine if @space is
 		   enough for it. */
@@ -2341,83 +2340,101 @@ int32_t reiser4_tree_write(reiser4_tree_t *tree,
 
 /* Truncates item @hint->offset point to by value stored in @hint->count. This
    is used durring tail conversion. */
-errno_t reiser4_tree_truncate(reiser4_tree_t *tree,
+int64_t reiser4_tree_truncate(reiser4_tree_t *tree,
 			      trans_hint_t *hint)
 {
 	errno_t res;
-	reiser4_place_t place;
+	int64_t trunc;
+	uint32_t size;
+	uint64_t total;
+	key_entity_t key;
 
 	aal_assert("umka-2475", tree != NULL);
 	aal_assert("umka-2476", hint != NULL);
-	
-	if ((res = reiser4_tree_lookup(tree, &hint->offset,
-				       LEAF_LEVEL, FIND_EXACT,
-				       &place)) < 0)
+
+	reiser4_key_assign(&key, &hint->offset);
+
+	for (total = 0, size = hint->count; size > 0;
+	     size -= trunc, total += trunc)
 	{
-		return res;
-	}
-
-	/* Nothing found by @hint->key */
-	if (res == ABSENT) {
-		return -EIO;
-	}
-	
-	if (plug_call(place.node->entity->plug->o.node_ops,
-		      truncate, place.node->entity, &place.pos,
-		      hint))
-	{
-		return -EIO;
-	}
-
-	/* Updating left delimiting keys in all parent nodes */
-	if (reiser4_place_leftmost(&place) &&
-	    place.node->p.node)
-	{
-
-		/* If node became empty it will be detached from the tree, so
-		   updating is not needed and impossible, because it has no
-		   items. */
-		if (reiser4_node_items(place.node) > 0) {
-			reiser4_place_t p;
-			reiser4_key_t lkey;
-
-			/* Updating parent keys */
-			reiser4_node_lkey(place.node, &lkey);
-				
-			reiser4_place_init(&p, place.node->p.node,
-					   &place.node->p.pos);
-
-			if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
-				return res;
+		reiser4_place_t place;
+		
+		if ((res = reiser4_tree_lookup(tree, &hint->offset,
+					       LEAF_LEVEL, FIND_EXACT,
+					       &place)) < 0)
+		{
+			return res;
 		}
-	}
-	
-	/* Checking if the node became empty. If so, we release it. */
-	if (reiser4_node_items(place.node) > 0) {
-		if ((tree->flags & TF_PACK) && tree->traps.pack) {
-			if ((res = tree->traps.pack(tree, &place,
-						    tree->traps.data)))
-			{
-				return res;
+
+		/* Nothing found by @hint->key */
+		if (res == ABSENT)
+			return total;
+
+		hint->count = size;
+
+		/* Calling node truncate method. */
+		if ((trunc = plug_call(place.node->entity->plug->o.node_ops,
+				       truncate, place.node->entity, &place.pos,
+				       hint)) < 0)
+		{
+			return trunc;
+		}
+
+		/* Updating left delimiting keys in all parent nodes */
+		if (reiser4_place_leftmost(&place) &&
+		    place.node->p.node)
+		{
+
+			/* If node became empty it will be detached from the
+			   tree, so updating is not needed and impossible,
+			   because it has no items. */
+			if (reiser4_node_items(place.node) > 0) {
+				reiser4_place_t p;
+				reiser4_key_t lkey;
+
+				/* Updating parent keys */
+				reiser4_node_lkey(place.node, &lkey);
+				
+				reiser4_place_init(&p, place.node->p.node,
+						   &place.node->p.pos);
+
+				if ((res = reiser4_tree_ukey(tree, &p, &lkey)))
+					return res;
 			}
 		}
-	} else {
-		/* Detaching node from the tree, because it became empty */
-		reiser4_node_mkclean(place.node);
-		reiser4_tree_detach_node(tree, place.node);
+	
+		/* Checking if the node became empty. If so, we release it. */
+		if (reiser4_node_items(place.node) > 0) {
+			if ((tree->flags & TF_PACK) && tree->traps.pack) {
+				if ((res = tree->traps.pack(tree, &place,
+							    tree->traps.data)))
+				{
+					return res;
+				}
+			}
+		} else {
+			/* Detaching node from the tree, because it became
+			   empty. */
+			reiser4_node_mkclean(place.node);
+			reiser4_tree_detach_node(tree, place.node);
 
-		/* Freeing node and updating place node component in order to
-		   let user know that node do not exist any longer. */
-		reiser4_tree_release_node(tree, place.node);
+			/* Freeing node and updating place node component in
+			   order to let user know that node do not exist any
+			   longer. */
+			reiser4_tree_release_node(tree, place.node);
+		}
+
+		/* Drying tree up in the case root node has only one item */
+		if (reiser4_tree_singular(tree) && !reiser4_tree_minimal(tree))	{
+			if ((res = reiser4_tree_dryout(tree)))
+				return res;
+		}
+
+		reiser4_key_inc_offset(&hint->offset, trunc);
 	}
 
-	/* Drying tree up in the case root node has only one item */
-	if (reiser4_tree_singular(tree) && !reiser4_tree_minimal(tree))	{
-		if ((res = reiser4_tree_dryout(tree)))
-			return res;
-	}
-
-	return 0;
+	reiser4_key_assign(&hint->offset, &key);
+	return total;
 }
 
 /* Removes item/unit at passed @place. This functions also perform so called

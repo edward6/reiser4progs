@@ -49,6 +49,33 @@ static errno_t extent40_get_key(place_t *place, key_entity_t *key) {
 }
 
 #ifndef ENABLE_STAND_ALONE
+/* Returns item size in bytes */
+static uint64_t extent40_size(place_t *place) {
+	uint32_t units = extent40_units(place);
+	return extent40_offset(place, units);
+}
+
+/* Returns actual item size on disk */
+static uint64_t extent40_bytes(place_t *place) {
+	extent40_t *extent;
+	uint32_t i, blocks;
+    
+	aal_assert("umka-2204", place != NULL);
+	
+	extent = extent40_body(place);
+	
+	/* Count only valuable units. */
+	for (blocks = 0, i = 0; i < extent40_units(place);
+	     i++, extent++)
+	{
+		if (et40_get_start(extent))
+			blocks += et40_get_width(extent);
+	}
+    
+	return (blocks * extent40_blksize(place));
+
+}
+
 /* Gets the number of unit specified offset lies in */
 uint32_t extent40_unit(place_t *place, uint64_t offset) {
 	uint32_t i;
@@ -110,9 +137,11 @@ static errno_t extent40_remove(place_t *place,
 }
 
 /* Truncates extent item stating from left by @hint->count bytes */
-static errno_t extent40_truncate(place_t *place, trans_hint_t *hint) {
+static int64_t extent40_truncate(place_t *place, trans_hint_t *hint) {
 	uint32_t pos;
 	uint32_t size;
+	uint64_t count;
+	uint64_t esize;
 	uint64_t offset;
 	uint32_t blksize;
 	
@@ -131,18 +160,23 @@ static errno_t extent40_truncate(place_t *place, trans_hint_t *hint) {
 	
 	if (pos == MAX_UINT32)
 		pos = 0;
+
+	esize = extent40_size(place);
+
+	if ((count = hint->count) > esize)
+		count = esize;
 	
 	blksize = extent40_blksize(place);
 	extent = extent40_body(place) + pos;
 
-	for (size = hint->count; size > 0; ) {
+	for (size = count; size > 0; ) {
 		uint32_t width;
 		uint32_t chunk;
 		uint32_t remove;
 
 		width = et40_get_width(extent);
 
-		/* Calculating chunk to be cut out */
+		/* Calculating chunk to be cut out. */
 		if ((chunk = size) > (width * blksize))
 			chunk = (width * blksize);
 
@@ -197,15 +231,15 @@ static errno_t extent40_truncate(place_t *place, trans_hint_t *hint) {
 	}
 
 	/* Updating key if it makes sence */
-	if (place->len > hint->len) {
+	if (pos == 0 && place->len > hint->len) {
 		offset = plug_call(place->key.plug->o.key_ops,
 				   get_offset, &place->key);
 		
 		plug_call(place->key.plug->o.key_ops, set_offset,
-			  &place->key, offset + hint->count);
+			  &place->key, offset + count);
 	}
 	
-	return 0;
+	return count;
 }
 
 /* Prints extent item into specified @stream */
@@ -1084,33 +1118,6 @@ static errno_t extent40_shift(place_t *src_place, place_t *dst_place,
 	}
 	
 	return 0;
-}
-
-/* Returns item size in bytes */
-static uint64_t extent40_size(place_t *place) {
-	uint32_t units = extent40_units(place);
-	return extent40_offset(place, units);
-}
-
-/* Returns actual item size on disk */
-static uint64_t extent40_bytes(place_t *place) {
-	extent40_t *extent;
-	uint32_t i, blocks;
-    
-	aal_assert("umka-2204", place != NULL);
-	
-	extent = extent40_body(place);
-	
-	/* Count only valuable units. */
-	for (blocks = 0, i = 0; i < extent40_units(place);
-	     i++, extent++)
-	{
-		if (et40_get_start(extent))
-			blocks += et40_get_width(extent);
-	}
-    
-	return (blocks * extent40_blksize(place));
-
 }
 
 extern errno_t extent40_check_struct(place_t *place,
