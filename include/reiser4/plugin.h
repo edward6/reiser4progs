@@ -670,7 +670,6 @@ struct reiser4_object_ops {
 	/* Creates the fake object by the gived @info. Needed to recover 
 	   "/" and "lost+found" direcories if their SD are broken. */
 	object_entity_t *(*fake) (object_info_t *);
-
 #endif
 	
 	/* Change current position to passed value */
