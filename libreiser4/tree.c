@@ -3044,9 +3044,6 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, reiser4_place_t *place,
 	aal_assert("umka-2056", place != NULL);
 	aal_assert("umka-2392", hint != NULL);
 
-	if (hint->count == 0)
-		return -EINVAL;
-	
 	/* Removing iten/unit from the node. */
 	if ((res = reiser4_node_remove(place->node, &place->pos, hint)))
 		return res;

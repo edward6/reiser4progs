@@ -6,7 +6,7 @@
 
 #include "sdext_unix.h"
 
-static uint16_t sdext_unix_length(void *body) {
+static uint16_t sdext_unix_length(void *body, void *hint) {
 	return sizeof(sdext_unix_t);
 }
 

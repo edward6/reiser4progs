@@ -33,7 +33,6 @@ errno_t stat40_traverse(reiser4_place_t *place, ext_func_t ext_func,
 		errno_t res;
 
 		if (i == 0 || ((i + 1) % 16 == 0)) {
-
 			/* Check if next pack exists. */
 			if (i > 0) {
 				if (!((1 << (16 - 1)) & extmask) || 
@@ -67,7 +66,8 @@ errno_t stat40_traverse(reiser4_place_t *place, ext_func_t ext_func,
 		if (!(sdext->plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i)))
 			continue;
 		
-		len = plug_call(sdext->plug->o.sdext_ops, length, sdext->body);
+		len = plug_call(sdext->plug->o.sdext_ops, 
+				length, sdext->body);
 
 		/* Call the callback for every found extension. */
 		if ((res = ext_func(sdext, extmask, data)))
@@ -177,8 +177,8 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 
 		/* Calculating length of the corresponding extension and add it
 		   to the estimated value. */
-		hint->len += plug_call(plug->o.sdext_ops,
-				       length, stat_hint->ext[i]);
+		hint->len += plug_call(plug->o.sdext_ops, length, 
+				       stat_hint->ext[i]);
 	}
 	
 	return 0;
@@ -200,11 +200,8 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 		return 0;
     
 	for (i = 0; i < STAT40_EXTNR; i++) {
+		static uint16_t extmask = 0;
 		reiser4_plug_t *plug;
-
-		/* Check if extension is present */
-		if (!(((uint64_t)1 << i) & stat_hint->extmask))
-			continue;
 	    
 		/* Stat data contains 16 bit mask of extensions used in it. The
 		   first 15 bits of the mask denote the first 15 extensions in
@@ -213,20 +210,36 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 		   mask present and so on. So, we should add sizeof(mask) to
 		   extension body pointer, in the case we are on bit dedicated
 		   to indicating if next extension exists or not. */
-		if (i % 16 == 0) {
-			if (insert) {
-				uint16_t extmask;
-			
-				/* Modifying extensions mask. */
-				extmask = ((stat_hint->extmask >> i) &
-					   0x000000000000ffff);
-
-				extmask |= st40_get_extmask((stat40_t *)extbody);
-				st40_set_extmask((stat40_t *)extbody, extmask);
+		/* Check if we are on next extension mask. */
+		if (i == 0 || ((i + 1) % 16 == 0)) {
+			if (i > 0) {
+				if (!((1 << (16 - 1)) & extmask) || 
+				    i + 1 == STAT40_EXTNR)
+				{
+					break;
+				}
 			}
 			
-			extbody = (void *)extbody + sizeof(d16_t);
+			extmask = *((uint16_t *)extbody);
+
+			if (insert) {
+				/* Calculating new extmask in order to 
+				   update old one. */
+				extmask |= (((stat_hint->extmask >> i) &
+					     0x000000000000ffff));
+
+				/* Update mask.*/
+				*((uint16_t *)extbody) = extmask;
+			}
+			
+			extbody += sizeof(d16_t);
+
+			if (i > 0) continue;
 		}
+
+		/* Check if extension is present in mask */
+		if (!(((uint64_t)1 << i) & extmask))
+			continue;
 
 		/* Getting extension plugin by extent number. */
 		if (!(plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
@@ -237,10 +250,22 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 
 		/* Initializing extension data at passed area */
 		if (stat_hint->ext[i]) {
+			if (insert) {
+				uint32_t extsize;
+
+				/* Moving the rest of stat data to the right 
+				   to keep stat data extension packed. */
+				extsize = plug_call(plug->o.sdext_ops, length,
+						    stat_hint->ext[i]);
+
+				aal_memmove(extbody + extsize, extbody, place->len -
+					    ((extbody + extsize) - place->body));
+			}
+			
 			plug_call(plug->o.sdext_ops, init, extbody,
 				  stat_hint->ext[i]);
 		}
-	
+
 		/* Getting pointer to the next extension. It is evaluating as
 		   the previous pointer plus its size. */
 		extbody += plug_call(plug->o.sdext_ops, length, extbody);
@@ -285,16 +310,14 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 	stat_hint = (statdata_hint_t *)hint->specific;
 
 	for (i = 0; i < STAT40_EXTNR; i++) {
-		uint16_t extsize;
-		uint16_t new_extmask;
-		uint16_t old_extmask = 0;
-
+		static uint16_t extsize;
+		static uint16_t new_extmask;
+		static uint16_t old_extmask = 0;
+		
 		/* Check if we are on next extension mask. */
 		if (i == 0 || ((i + 1) % 16 == 0)) {
 			/* Getting current old mask. It is needed to calculate
 			   extbody correctly to shrink stat data. */
-			old_extmask = *((uint16_t *)extbody);
-
 			if (i > 0) {
 				if (!((1 << (16 - 1)) & old_extmask) || 
 				    i + 1 == STAT40_EXTNR)
@@ -302,6 +325,9 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 					break;
 				}
 			}
+			
+			old_extmask = *((uint16_t *)extbody);
+
 			
 			/* Calculating new extmask in order to update old
 			   one. */
@@ -330,14 +356,17 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 
 		extsize = plug_call(plug->o.sdext_ops, length, extbody);
 		
-		/* Moving the rest of stat data to left in odrer to keep stat
-		   data extension packed. */
-		aal_memmove(extbody, extbody + extsize, place->len -
-			    ((extbody + extsize) - place->body));
-		
-		/* Getting pointer to the next extension. It is evaluating as
-		   the previous pointer plus its size. */
-		extbody += extsize;
+		if ((((uint64_t)1 << i) & stat_hint->extmask)) {
+			/* Moving the rest of stat data to left in odrer to 
+			   keep stat data extension packed. */
+			aal_memmove(extbody, extbody + extsize, place->len -
+				    ((extbody + extsize) - place->body));
+
+			hint->len += extsize;
+		} else {
+			/* Setting pointer to the next extension. */
+			extbody += extsize;
+		}
 	}
 	
 	place_mkdirty(place);

@@ -183,7 +183,6 @@ static void key_short_clean(reiser4_key_t *key) {
 static int key_short_compshort(reiser4_key_t *key1, 
 			       reiser4_key_t *key2) 
 {
-	uint64_t oid1, oid2;
 	int res;
 
 	aal_assert("umka-2217", key1 != NULL);
@@ -199,11 +198,9 @@ static int key_short_compshort(reiser4_key_t *key1,
 	if (key_short_get_type(key1) == KEY_FILENAME_TYPE)
 		return 0;
 	
-	oid1 = key_short_get_objectid(key1);
-	oid2 = key_short_get_objectid(key2);
-	
 	/* Checking object id */
-	return aal_memcmp(&oid1, &oid2, sizeof(oid1));
+	return ks_comp_el((key_short_t *)key1->body,
+			  (key_short_t *)key2->body, 1);
 }
 
 /* Compares two passed key bodies. */

@@ -136,17 +136,63 @@ static inline int obj40_check_mode(obj40_t *obj,
 static inline errno_t obj40_check_lw_ext(obj40_t *obj, 
 					 obj40_stat_methods_t *methods,
 					 obj40_stat_params_t *params, 
-					 uint8_t mode)
+					 uint8_t mode, int present)
 {
-	reiser4_place_t *stat = &obj->info.start;
+	reiser4_place_t *start = &obj->info.start;
 	sdext_lw_hint_t hint, correct;
 	errno_t res;
 	int fixed;
 
 	aal_memset(&hint, 0, sizeof(hint));
 	
+	/* If the LW extention is not present, skip checking or add it. */
+	if (!present) {
+		trans_hint_t trans;
+		statdata_hint_t stat;
+		
+		/* If the LW extention is not mandatory, skip checking. */
+		if (!(params->must_exts & (1 << SDEXT_LW_ID)))
+			return 0;
+		
+		aal_error("Node (%llu), item (%u), plugin (%s): StatData of the"
+			  " file [%s] does not have a mandatory light-weight "
+			  "extention.%s Plugin (%s).", start->node->block->nr, 
+			  start->pos.item, start->plug->label,
+			  print_inode(obj->core, &start->key),
+			  mode != RM_CHECK ? "Added." : "", obj->plug->label);
+
+		if (mode == RM_CHECK)
+			return RE_FIXABLE;
+		
+		/* Add missed, mandatory extention. */
+		aal_memset(&trans, 0, sizeof(trans));
+		aal_memset(&stat, 0, sizeof(stat));
+		
+		trans.shift_flags = SF_DEFAULT;
+		trans.specific = &stat;
+		trans.plug = start->plug;
+		
+		hint.size = params->size;
+		hint.nlink = params->nlink;
+		hint.mode = params->mode | 0755;
+
+		stat.ext[SDEXT_LW_ID] = &hint;
+		stat.extmask = (1 << SDEXT_LW_ID);
+
+		start->pos.unit = 0;
+
+		if ((res = obj40_insert(obj, start, &trans, LEAF_LEVEL)))
+			return res;
+
+		if ((res = obj40_update(obj)))
+			return res;
+
+		/* Do not return here, but check the new extention with the 
+		   given set of methods instead. */
+	}
+	
 	/* Read LW extension. */
-	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &hint)))
+	if ((res = obj40_read_ext(start, SDEXT_LW_ID, &hint)))
 		return res;
 
 	/* Form the correct LW extension. */
@@ -177,12 +223,12 @@ static inline errno_t obj40_check_lw_ext(obj40_t *obj,
 	}
 
 	if (fixed) {
-		aal_error("Node (%llu), item (%u): StatData of the file [%s] "
-			  "has the wrong mode (%u), %s (%u). Plugin (%s).",
-			  stat->node->block->nr, stat->pos.item, 
-			  print_inode(obj->core, &stat->key),
-			  hint.mode, mode == RM_CHECK ? "Should be" : 
-			  "Fixed to", correct.mode, stat->plug->label);
+		aal_error("Node (%llu), item (%u): StatData of the "
+			  "file [%s] has the wrong mode (%u), %s (%u).",
+			  start->node->block->nr, start->pos.item,
+			  print_inode(obj->core, &start->key), hint.mode,
+			  mode == RM_CHECK ? "Should be" : "Fixed to", 
+			  correct.mode);
 
 		res = RE_FIXABLE;
 	}
@@ -197,18 +243,18 @@ static inline errno_t obj40_check_lw_ext(obj40_t *obj,
 	}
 
 	if (fixed) {
-		aal_error("Node (%llu), item (%u): StatData of the file [%s] "
-			  "has the wrong size (%llu), %s (%llu). Plugin (%s).",
-			  stat->node->block->nr, stat->pos.item, 
-			  print_inode(obj->core, &stat->key),
-			  hint.size, mode == RM_CHECK ? "Should be" : 
-			  "Fixed to", correct.size, stat->plug->label);
+		aal_error("Node (%llu), item (%u): StatData of the file "
+			  "[%s] has the wrong size (%llu), %s (%llu).",
+			  start->node->block->nr, start->pos.item, 
+			  print_inode(obj->core, &start->key), hint.size, 
+			  mode == RM_CHECK ? "Should be" : "Fixed to", 
+			  correct.size);
 
 		res = RE_FIXABLE;
 	}
 
 	if (res && mode != RM_CHECK)
-		return obj40_write_ext(stat, SDEXT_LW_ID, &correct);
+		return obj40_write_ext(start, SDEXT_LW_ID, &correct);
 	
 	return res;
 }
@@ -216,16 +262,67 @@ static inline errno_t obj40_check_lw_ext(obj40_t *obj,
 static inline errno_t obj40_check_unix_ext(obj40_t *obj, 
 					   obj40_stat_methods_t *methods,
 					   obj40_stat_params_t *params, 
-					   uint8_t mode)
+					   uint8_t mode, int present)
 {
-	reiser4_place_t *stat = &obj->info.start;
+	reiser4_place_t *start = &obj->info.start;
 	sdext_unix_hint_t hint, correct;
 	errno_t res;
 	int fixed;
 
 	aal_memset(&hint, 0, sizeof(hint));
 	
-	if ((res = obj40_read_ext(stat, SDEXT_UNIX_ID, &hint)) < 0)
+	/* If the UNIX extention is not present, skip checking or add it. */
+	if (!present) {
+		trans_hint_t trans;
+		statdata_hint_t stat;
+		
+		/* If the LW extention is not mandatory, skip checking. */
+		if (!(params->must_exts & (1 << SDEXT_UNIX_ID)))
+			return 0;
+		
+		aal_error("Node (%llu), item (%u), plugin (%s): StatData of the"
+			  " file [%s] does not have a mandatory unix extention."
+			  "%s Plugin (%s).", start->node->block->nr, 
+			  start->pos.item, start->plug->label,
+			  print_inode(obj->core, &start->key),
+			  mode != RM_CHECK ? " Added." : "", obj->plug->label);
+
+		if (mode == RM_CHECK)
+			return RE_FIXABLE;
+
+		/* Add missed, mandatory extention. */
+		aal_memset(&trans, 0, sizeof(trans));
+		aal_memset(&stat, 0, sizeof(stat));
+		
+		trans.shift_flags = SF_DEFAULT;
+		trans.specific = &stat;
+		trans.plug = start->plug;
+		
+		hint.rdev = 0;
+		hint.bytes = params->bytes;
+		
+		hint.uid = getuid();
+		hint.gid = getgid();
+		hint.atime = time(NULL);
+		hint.mtime = hint.atime;
+		hint.ctime = hint.atime;
+
+		stat.ext[SDEXT_UNIX_ID] = &hint;
+		stat.extmask = (1 << SDEXT_UNIX_ID);
+
+		start->pos.unit = 0;
+		
+		if ((res = obj40_insert(obj, start, &trans, LEAF_LEVEL)))
+			return res;
+
+		if ((res = obj40_update(obj)))
+			return res;
+
+		/* Do not return here, but check the new extention with the 
+		   given set of methods instead. */
+	}
+
+	if ((res = obj40_read_ext(start, SDEXT_UNIX_ID, &hint)) < 0)
 		return res;
 	
 	correct = hint;
@@ -242,12 +339,12 @@ static inline errno_t obj40_check_unix_ext(obj40_t *obj,
 
 	if (fixed) {
 		/* sd_bytes are set wrongly in the kernel. */
-		aal_error("Node (%llu), item (%u): StatData of the file [%s] "
-			  "has the wrong bytes (%llu), %s (%llu). Plugin (%s).",
-			  stat->node->block->nr, stat->pos.item, 
-			  print_inode(obj->core, &stat->key),
-			  hint.bytes, mode == RM_CHECK ? "Should be" : 
-			  "Fixed to", correct.bytes, stat->plug->label);
+		aal_error("Node (%llu), item (%u): StatData of the file "
+			  "[%s] has the wrong bytes (%llu), %s (%llu).",
+			  start->node->block->nr, start->pos.item, 
+			  print_inode(obj->core, &start->key), hint.bytes, 
+			  mode == RM_CHECK ? "Should be" : "Fixed to", 
+			  correct.bytes);
 		
 		/* Zero rdev because rdev and bytes is the union on disk
 		   but not in the unix_hint. */
@@ -257,50 +354,80 @@ static inline errno_t obj40_check_unix_ext(obj40_t *obj,
 
 	
 	if (res && mode != RM_CHECK)
-		return obj40_write_ext(stat, SDEXT_UNIX_ID, &correct);
+		return obj40_write_ext(start, SDEXT_UNIX_ID, &correct);
 
 	return res;
 }
 
-errno_t obj40_check_stat(obj40_t *obj, /*uint64_t must_exts, uint64_t unkn_exts,*/
+/* Check the set of SD extentions and their contents. */
+errno_t obj40_check_stat(obj40_t *obj,
 			 obj40_stat_methods_t *methods, 
 			 obj40_stat_params_t *params,
-			 /*nlink_func_t nlink_func, mode_func_t mode_func, 
-			 size_func_t size_func, uint64_t size, 
-			 uint64_t bytes, */ uint8_t mode)
+			 uint8_t mode)
 {
-	reiser4_place_t *stat;
+	reiser4_place_t *start;
 	uint64_t extmask;
 	errno_t res;
 	
 	aal_assert("vpf-1213", obj != NULL);
 	
-	stat = &obj->info.start;
+	start = &obj->info.start;
 	
 	/* Update the SD place. */
-	if ((res = obj40_update(obj))) {
-		aal_error("Node (%llu), item (%u): failed to update "
-			  "the StatData of the file [%s]. Plugin (%s).", 
-			  stat->node->block->nr, stat->pos.item,
-			  print_inode(obj->core, &stat->key), 
-			  stat->plug->label);
+	if ((res = obj40_update(obj)))
 		return res;
-	}
 	
-	if ((extmask = obj40_extmask(stat)) == MAX_UINT64) {
+	/* Get the set of present SD extentions. */
+	if ((extmask = obj40_extmask(start)) == MAX_UINT64) {
 		aal_error("Node (%llu), item (%u), plugin (%s): failed "
 			  "to obtain the StatData extention mask.",
-			  stat->node->block->nr, stat->pos.item,
-			  stat->plug->label);
+			  start->node->block->nr, start->pos.item,
+			  start->plug->label);
 		return res;
 	}
-	
+
+	/* Remove unknown SD extentions. */
+	if (extmask & params->unkn_exts) {
+		trans_hint_t trans;
+		statdata_hint_t stat;
+		
+		aal_memset(&trans, 0, sizeof(trans));
+		aal_memset(&stat, 0, sizeof(stat));
+		
+		stat.extmask = extmask & params->unkn_exts;
+		
+		aal_error("Node (%llu), item (%u): StatData of the file "
+			  "[%s] has some unknown extentions (mask=%llu).%s"
+			  " Plugin (%s).", start->node->block->nr, 
+			  start->pos.item, print_inode(obj->core, &start->key),
+			  stat.extmask, mode != RM_CHECK ? " Removed." : "", 
+			  start->plug->label);
+
+		if (mode != RM_CHECK) {
+			trans.specific = &stat;
+			trans.shift_flags = SF_DEFAULT;
+			start->pos.unit = 0;
+			trans.count = 0;
+
+			if ((res = obj40_remove(obj, start, &trans)))
+				return res;
+
+			/* Update the SD place. */
+			if ((res = obj40_update(obj)))
+				return res;
+		}
+	}
+
 	/* Check the LW extension. */
-	if ((res = obj40_check_lw_ext(obj, methods, params, mode)))
+	if ((res = obj40_check_lw_ext(obj, methods, params, mode,
+				      extmask & (1 << SDEXT_LW_ID))) < 0)
 		return res;
-	
+
 	/* Check the UNIX extention. */
-	return obj40_check_unix_ext(obj, methods, params, mode);
+	res |= obj40_check_unix_ext(obj, methods, params, mode,
+				    extmask & (1 << SDEXT_UNIX_ID));
+
+	return res;
 }
 
 /* Fix @place->key if differs from @key. */
@@ -314,9 +441,10 @@ errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place,
 	if (!key->plug->o.key_ops->compfull(key, &place->key))
 		return 0;
 	
-	aal_error("Node (%llu), item(%u): the key [%s] of the item is "
-		  "wrong, %s [%s]. Plugin (%s).", place->node->block->nr,
-		  place->pos.unit, print_key(obj->core, &place->key),
+	aal_error("Node (%llu), item (%u), plugin (%s): the key "
+		  "[%s] of the item is wrong, %s [%s]. Plugin (%s).", 
+		  place->node->block->nr, place->pos.unit, 
+		  place->plug->label, print_key(obj->core, &place->key),
 		  mode == RM_BUILD ? "fixed to" : "should be", 
 		  print_key(obj->core, key), obj->plug->label);
 	
@@ -359,7 +487,7 @@ errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 		
 		/* Not SD item is found. Possible only when a fake
 		   object was created. */
-		aal_error("Node (%llu), item (%u), %s: not "
+		aal_error("Node (%llu), item (%u), plugin (%s): not "
 			  "StatData is found by the key (%s).%s",
 			  start->node->block->nr, start->pos.item, 
 			  start->plug->label, print_key(obj->core, key),
@@ -394,9 +522,8 @@ errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 	if ((res = obj40_create_stat(obj, pid, 0, 0, 0, 0, objmode, 
 				     objmode == S_IFLNK ? "FAKE_LINK" : NULL)))
 	{
-		aal_error("The file [%s] failed to create a "
-			  "StatData item. Plugin %s.", 
-			  print_inode(obj->core, key),
+		aal_error("The file [%s] failed to create a StatData item. "
+			  "Plugin %s.", print_inode(obj->core, key),
 			  obj->plug->label);
 	}
 

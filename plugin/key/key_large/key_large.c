@@ -190,7 +190,6 @@ static void key_large_clean(reiser4_key_t *key) {
 static int key_large_compshort(reiser4_key_t *key1, 
 			       reiser4_key_t *key2) 
 {
-	uint64_t ord1, ord2;
 	int res;
 
 	aal_assert("umka-2217", key1 != NULL);

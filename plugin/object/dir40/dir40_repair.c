@@ -67,10 +67,6 @@ object_entity_t *dir40_recognize(object_info_t *info) {
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-static void dir40_one_nlink(obj40_t *obj, uint32_t *nlink) {
-	*nlink = 1;
-}
-
 static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	object_info_t *info;
 	entry_hint_t entry;
@@ -355,6 +351,8 @@ errno_t dir40_check_struct(object_entity_t *object,
 	if (!(res & RE_FATAL)) {
 		params.mode = S_IFDIR;
 		params.nlink = 1;
+		params.must_exts = DIR40_EXTS_MUST;
+		params.unkn_exts = DIR40_EXTS_UNKN;
 		
 		methods.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 

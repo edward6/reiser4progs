@@ -92,6 +92,7 @@ errno_t sym40_check_struct(object_entity_t *object,
 	/* Fix the SD, if no fatal corruptions were found. */
 	params.mode = S_IFLNK;
 	params.size = aal_strlen(path);
+	params.must_exts = SYM40_EXTS_MUST;
 	
 	methods.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 	

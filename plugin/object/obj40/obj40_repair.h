@@ -27,6 +27,8 @@ struct obj40_stat_params {
 	uint64_t bytes;
 	uint32_t nlink;
 	uint16_t mode;
+	uint64_t must_exts;
+	uint64_t unkn_exts;
 };
 
 typedef struct obj40_stat_params obj40_stat_params_t;

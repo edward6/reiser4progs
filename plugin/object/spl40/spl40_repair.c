@@ -67,12 +67,15 @@ object_entity_t *spl40_recognize(object_info_t *info) {
 }
 
 static int spl40_check_mode(obj40_t *obj, uint16_t *mode, uint16_t correct) {
-	if (!S_ISCHR(*mode) && !S_ISBLK(*mode) && 
-	    !S_ISFIFO(*mode) && !S_ISSOCK(*mode))
+	if (S_ISCHR(*mode) || S_ISBLK(*mode) ||
+	    S_ISFIFO(*mode) || S_ISSOCK(*mode))
 	{
-		*mode &= ~S_IFMT;
-        	*mode |= S_IFBLK;
+		return 0;
 	}
+		
+	*mode &= ~S_IFMT;
+	*mode |= S_IFBLK;
+	return 1;
 }
 
 errno_t spl40_check_struct(object_entity_t *object,
@@ -97,6 +100,9 @@ errno_t spl40_check_struct(object_entity_t *object,
 	/* Try to register SD as an item of this file. */
 	if (place_func && place_func(&spl->obj.info.start, data))
 		return -EINVAL;
+	
+	params.must_exts = SPL40_EXTS_MUST;
+	params.unkn_exts = SPL40_EXTS_UNKN;
 	
 	methods.check_mode = spl40_check_mode;
 	methods.check_bytes = SKIP_METHOD;

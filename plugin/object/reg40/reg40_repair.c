@@ -93,11 +93,6 @@ static int reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 	return 1;
 }
 
-/* Zero nlink number for BUILD mode. */
-static void reg40_zero_nlink(obj40_t *obj, uint32_t *nlink) {
-        *nlink = 0;
-}
-
 /* Lookup for the end byte and find out the body plug for such a size. */
 static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 	reiser4_place_t place;
@@ -556,6 +551,8 @@ next:
 				 get_offset, &reg->position);
 		
 		params.mode = S_IFREG;
+		params.must_exts = REG40_EXTS_MUST;
+		params.unkn_exts = REG40_EXTS_UNKN;
 		
 		methods.check_size = reg40_check_size;
 		methods.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
