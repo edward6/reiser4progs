@@ -59,12 +59,12 @@ int main(int argc, char *argv[]) {
 
 	fs->tree->mpc_func = misc_mpressure_detect;
     
-	if (!(fs->root = reiser4_semantic_open(fs->tree, "/", 1))) {
+	if (!(fs->root = reiser4_semantic_open(fs->tree, "/", NULL, 1))) {
 		aal_error("Can't open root dir.");
 		goto error_free_fs;
 	}
     
-	if (!(dir = reiser4_semantic_open(fs->tree, argv[2], 1))) {
+	if (!(dir = reiser4_semantic_open(fs->tree, argv[2], NULL, 1))) {
 		aal_error("Can't open dir %s.", argv[2]);
 		goto error_free_root;
 	}

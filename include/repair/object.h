@@ -24,9 +24,9 @@ extern reiser4_object_t *repair_object_obtain(reiser4_tree_t *tree,
 					      reiser4_object_t *parent,
 					      reiser4_key_t *key);
 
-extern reiser4_object_t *repair_object_fetch(reiser4_tree_t *tree,
-					     reiser4_object_t *parent,
-					     reiser4_place_t *place);
+extern reiser4_object_t *repair_object_open(reiser4_tree_t *tree,
+					    reiser4_object_t *parent,
+					    reiser4_place_t *place);
 
 extern errno_t repair_object_check_attach(reiser4_object_t *object, 
 					  reiser4_object_t *parent, 

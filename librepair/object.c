@@ -33,25 +33,6 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	return res;
 }
 
-static object_entity_t *callback_object_open(object_info_t *info) {
-	/* Try to init on the StatData. */
-	if (reiser4_object_init(info))
-		return INVAL_PTR;
-
-	return plug_call(info->opset.plug[OPSET_OBJ]->o.object_ops,
-			 recognize, info);
-}
-
-reiser4_object_t *repair_object_fetch(reiser4_tree_t *tree, 
-				      reiser4_object_t *parent,
-				      reiser4_place_t *place) 
-{
-	aal_assert("vpf-1622", place != NULL);
-	
-	return reiser4_object_open(tree, parent, &place->key, 
-				   place, callback_object_open);
-}
-
 /* Create the fake object--needed for "/" and "lost+found" recovery when SD 
    is corrupted and not directory plugin gets realized. */
 reiser4_object_t *repair_object_fake(reiser4_tree_t *tree, 
@@ -76,9 +57,8 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	info.tree = (tree_entity_t *)tree;
 	reiser4_key_assign(&info.object, key);
 
-	if (parent) {
+	if (parent)
 		reiser4_key_assign(&info.parent, &parent->ent->object);
-	}
 	
 	/* Create the fake object. */
 	if (!(object->ent = plug_call(plug->o.object_ops, fake, &info)))
@@ -92,6 +72,25 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
  error_close_object:
 	aal_free(object);
 	return NULL;
+}
+
+static object_entity_t *callback_object_open(object_info_t *info) {
+	/* Try to init on the StatData. */
+	if (reiser4_object_init(info))
+		return INVAL_PTR;
+
+	return plug_call(info->opset.plug[OPSET_OBJ]->o.object_ops,
+			 recognize, info);
+}
+
+reiser4_object_t *repair_object_open(reiser4_tree_t *tree, 
+				     reiser4_object_t *parent,
+				     reiser4_place_t *place) 
+{
+	aal_assert("vpf-1622", place != NULL);
+	
+	return reiser4_object_form(tree, parent, &place->key, 
+				   place, callback_object_open);
 }
 
 /* Open the object on the base of given start @key */
@@ -114,7 +113,7 @@ reiser4_object_t *repair_object_obtain(reiser4_tree_t *tree,
 	
 	/* Even if ABSENT, pass the found place through object recognize 
 	   method to check all possible corruptions. */
-	return reiser4_object_open(tree, parent, key, &place, 
+	return reiser4_object_form(tree, parent, key, &place, 
 				   callback_object_open);
 }
 

@@ -567,8 +567,8 @@ static errno_t dir40_truncate(object_entity_t *entity, uint64_t n) {
 
 	/* Creating maximal possible key in order to find last directory item
 	   and remove it from the tree. Thanks to Nikita for this idea. */
-	plug_call(dir->body.plug->o.key_ops,
-		  set_offset, &key, MAX_UINT64);
+	plug_call(dir->body.key.plug->o.key_ops, assign, &key, &dir->body.key);
+	plug_call(dir->body.key.plug->o.key_ops, set_offset, &key, MAX_UINT64);
 
 	while (1) {
 		trans_hint_t hint;
@@ -589,6 +589,7 @@ static errno_t dir40_truncate(object_entity_t *entity, uint64_t n) {
 		hint.place_func = NULL;
 		hint.region_func = NULL;
 		hint.shift_flags = SF_DEFAULT;
+		place.pos.unit = MAX_UINT32;
 		
 		/* Removing item from the tree */
 		if ((res = obj40_remove(&dir->obj, &place, &hint)))

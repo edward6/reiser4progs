@@ -497,7 +497,7 @@ static errno_t callback_tree_scan(reiser4_place_t *place, void *data) {
 		return 0;
 	
 	/* Try to open the object by its SD. */
-	object = repair_object_fetch(sem->repair->fs->tree, NULL, place);
+	object = repair_object_open(sem->repair->fs->tree, NULL, place);
 	
 	if (object == INVAL_PTR)
 		return -EINVAL;

@@ -8,11 +8,9 @@
 
 #include <reiser4/types.h>
 
-extern object_entity_t *reiser4_semantic_resolve(reiser4_tree_t *tree,
-						 char *path, reiser4_key_t *from,
-						 bool_t follow);
-
 extern reiser4_object_t *reiser4_semantic_open(reiser4_tree_t *tree,
-					       char *path, bool_t follow);
+					       char *path, 
+					       reiser4_key_t *from,
+					       bool_t follow);
 
 #endif

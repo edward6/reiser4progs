@@ -62,59 +62,46 @@ int aux_bin_search(
 errno_t aux_parse_path(char *path, aux_pre_entry_t pre_func,
 		       aux_post_entry_t post_func, void *data)
 {
-	char *entry = NULL;
-	char *pointer = NULL;
 	char local[MAX_PATH] = {0};
-	
-#ifndef ENABLE_STAND_ALONE
-	char track[MAX_PATH] = {0};
-#endif
+	char *pointer = NULL;
+	char *entry = NULL;
+	errno_t res;
 
 	/* Initializing local variable path is stored in. */
 	aal_strncpy(local, path, sizeof(local));
-	pointer = local[0] != '/' ? &local[0] : &local[1];
+	
+	if (local[0] == '/') {
+		if ((res = post_func(NULL, NULL, data)))
+			return res;
+		
+		pointer = &local[1];
+	} else {
+		pointer = local;
+	}
 
 	/* Loop until local is finished parse. */
 	while (1) {
-		errno_t res;
-
-#ifndef ENABLE_STAND_ALONE
-		uint16_t len;
-
-		len = aal_strlen(track);
-			
-		if (len == 0 || track[len - 1] != '/')
-			track[len] = '/';
-
-		if ((res = pre_func(track, entry, data)))
+		if ((res = pre_func(path, entry, data)))
 			return res;
-#else
-		if ((res = pre_func(NULL, entry, data)))
-			return res;
-#endif
 
 		/* Using strsep() for parsing path with delimiting char
-		   "/". This probably may be improved with bias do not use
-		   hardcoded "/" and use some macro instead. */
-		if (!(entry = aal_strsep(&pointer, "/")))
-			break;
+		   "/". This probably may be improved with bias do not 
+		   use hardcoded "/" and use some macro instead. */
+		while (1) {
+			if (!(entry = aal_strsep(&pointer, "/")))
+				return 0;
 
-		if (!aal_strlen(entry)) {
-			if (!pointer || !aal_strlen(pointer))
+			if (aal_strlen(entry)) 
 				break;
+			
+			if (!pointer || !aal_strlen(pointer))
+				return 0;
 			else
 				continue;
 		}
 	
-#ifndef ENABLE_STAND_ALONE
-		aal_strncat(track, entry, aal_strlen(entry));
-
-		if ((res = post_func(track, entry, data)))
+		if ((res = post_func(path, entry, data)))
 			return res;
-#else
-		if ((res = post_func(NULL, entry, data)))
-			return res;
-#endif
 	}
 
 	return 0;

@@ -133,20 +133,20 @@ static uint64_t tree_slink_locality(tree_entity_t *tree) {
 static errno_t object_resolve(tree_entity_t *tree, char *path,
 			      reiser4_key_t *from, reiser4_key_t *key)
 {
+	reiser4_object_t *object;
 	reiser4_tree_t *t;
-	object_entity_t *o;
 	
 	t = (reiser4_tree_t *)tree;
 
 	/* Resolving symlink path. */
-	if (!(o = reiser4_semantic_resolve(t, path, from, 1)))
+	if (!(object = reiser4_semantic_open(t, path, from, 1)))
 		return -EINVAL;
 
 	/* Save object stat data key to passed @key. */
-	reiser4_key_assign(key, &o->object);
+	reiser4_key_assign(key, &object->ent->object);
 
 	/* Close found object. */
-	plug_call(o->opset.plug[OPSET_OBJ]->o.object_ops, close, o);
+	reiser4_object_close(object);
 
 	return 0;
 }
