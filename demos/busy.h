@@ -23,7 +23,7 @@
 typedef struct busy_target {
 	reiser4_fs_t *fs;
 	char path[PATH_MAXLEN];
-	int64_t offset;
+	long long int offset;
 } busy_target_t;
 
 typedef struct busy_ctx {

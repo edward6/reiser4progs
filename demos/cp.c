@@ -146,10 +146,10 @@ errno_t cp_cmd(busy_ctx_t *ctx) {
 		
 		rbytes = src_obj ?
 			reiser4_object_read(src_obj, buf, ctx->blksize) :
-			fread(buf, 1, ctx->blksize, src_file);
+			(int64_t)fread(buf, 1, ctx->blksize, src_file);
 		
 		if (rbytes < 0) {
-			aal_error("Read of %llu-th by %d bytes failed.",
+			aal_error("Read of %llu-th by %u bytes failed.",
 				  ctx->count - count, ctx->blksize);
 			goto error_free_buf;
 		}
@@ -160,10 +160,10 @@ errno_t cp_cmd(busy_ctx_t *ctx) {
 		/* Write. */
 		wbytes = dst_obj ?
 			reiser4_object_write(dst_obj, buf, rbytes):
-			fwrite(buf, 1, rbytes, dst_file);
+			(int64_t)fwrite(buf, 1, rbytes, dst_file);
 
 		if (wbytes < rbytes) {
-			aal_error("Write of %llu-th by %d bytes failed.",
+			aal_error("Write of %llu-th by %u bytes failed.",
 				  ctx->count - count, ctx->blksize);
 			goto error_free_buf;
 		}
