@@ -554,23 +554,6 @@ uint16_t reiser4_node_maxspace(reiser4_node_t *node) {
 			   maxspace, node->entity);
 }
 
-errno_t reiser4_node_overwrite(reiser4_node_t *dst_node,
-			       pos_t *dst_pos,
-			       reiser4_node_t *src_node,
-			       pos_t *src_pos,
-			       reiser4_key_t *start,
-			       reiser4_key_t *end)
-{
-	aal_assert("umka-2165", src_node != NULL);
-	aal_assert("umka-2166", dst_node != NULL);
-	aal_assert("umka-2167", src_pos != NULL);
-	aal_assert("umka-2168", dst_pos != NULL);
-
-	return plugin_call(src_node->entity->plugin->node_ops,
-			   overwrite, src_node->entity, src_pos,
-			   dst_node->entity, dst_pos, start, end);
-}
-
 /* Makes copy @count items from @src_node into @dst_node */
 errno_t reiser4_node_copy(reiser4_node_t *dst_node,
 			  pos_t *dst_pos,

@@ -584,20 +584,6 @@ static errno_t extent40_copy(item_entity_t *dst_item,
 	return -EINVAL;
 }
 
-static errno_t extent40_overwrite(item_entity_t *dst_item,
-				  uint32_t dst_pos,
-				  item_entity_t *src_item,
-				  uint32_t src_pos,
-				  key_entity_t *start,
-				  key_entity_t *end)
-{
-	aal_assert("umka-2178", dst_item != NULL);
-	aal_assert("umka-2179", src_item != NULL);
-
-	/* Not implemented yet */
-	return -EINVAL;
-}
-
 static errno_t extent40_shift(item_entity_t *src_item,
 			      item_entity_t *dst_item,
 			      shift_hint_t *hint)
@@ -669,7 +655,6 @@ static reiser4_plugin_t extent40_plugin = {
 		.init	       = extent40_init,
 		.write         = extent40_write,
 		.copy          = extent40_copy,
-		.overwrite     = extent40_overwrite,
 		.estimate      = extent40_estimate,
 		.remove	       = extent40_remove,
 		.print	       = extent40_print,

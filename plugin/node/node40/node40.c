@@ -808,81 +808,6 @@ static errno_t node40_copy(object_entity_t *dst_entity,
 	return 0;
 }
 
-static errno_t node40_overwrite(object_entity_t *dst_entity,
-				pos_t *dst_pos,
-				object_entity_t *src_entity,
-				pos_t *src_pos,
-				key_entity_t *start,
-				key_entity_t *end)
-{
-	errno_t res;
-	uint32_t src_units;
-	node40_t *dst_node;
-	node40_t *src_node;
-	
-	item40_header_t *ih;
-	item_entity_t src_item;
-	item_entity_t dst_item;
-	reiser4_plugin_t *plugin;
-
-	aal_assert("umka-2169", dst_entity != NULL);
-	aal_assert("umka-2170", src_entity != NULL);
-	
-	aal_assert("umka-2171", node40_loaded(dst_entity));
-	aal_assert("umka-2172", node40_loaded(src_entity));
-	
-	dst_node = (node40_t *)dst_entity;
-	src_node = (node40_t *)src_entity;
-	
-	if (node40_item(src_entity, src_pos, &src_item))
-		return -EINVAL;
-
-	src_units = plugin_call(src_item.plugin->item_ops,
-				units, &src_item);
-	
-	/*
-	  Check if we will write whole item, or we should call item overwrite()
-	  method in order to overwrite units from @start key through the @end
-	  one.
-	*/
-	if (src_pos->unit == ~0ul || src_units == 1) {
-		return node40_rep(dst_node, dst_pos, src_node,
-				  src_pos, 1);
-	}
-
-	plugin = src_item.plugin;
-	aal_assert("umka-2173", plugin != NULL);
-	
-	if (node40_item(dst_entity, dst_pos, &dst_item))
-		return -EINVAL;
-		
-	if ((res = plugin_call(plugin->item_ops, overwrite,
-			       &dst_item, dst_pos->item,
-			       &src_item, src_pos->item,
-			       start, end)))
-	{
-		aal_exception_error("Can't write units from"
-				    "node %llu to node %llu.",
-				    src_node->block->blk,
-				    dst_node->block->blk);
-		return res;
-	}
-
-	/*
-	  Updating item's key if we insert new item or if we insert unit
-	  into leftmost postion.
-	*/
-	if (dst_pos->unit == 0) {
-		ih = node40_ih_at(dst_node, dst_pos->item);
-		
-		aal_memcpy(&ih->key, dst_item.key.body,
-			   sizeof(ih->key));
-	}
-
-	dst_node->dirty = 1;
-	return 0;
-}
-
 /* Inserts item described by hint structure into node */
 static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 			     create_hint_t *hint)
@@ -1955,7 +1880,6 @@ static reiser4_plugin_t node40_plugin = {
 		.expand		 = node40_expand,
 		.feel            = node40_feel,
 		.copy            = node40_copy,
-		.overwrite       = node40_overwrite,
 
 		.overhead	 = node40_overhead,
 		.maxspace	 = node40_maxspace,

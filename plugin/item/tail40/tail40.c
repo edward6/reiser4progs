@@ -123,22 +123,6 @@ static errno_t tail40_copy(item_entity_t *dst_item,
 			  src_pos, hint->count);
 }
 
-static errno_t tail40_overwrite(item_entity_t *dst_item,
-				uint32_t dst_pos,
-				item_entity_t *src_item,
-				uint32_t src_pos,
-				key_entity_t *start,
-				key_entity_t *end)
-{
-	aal_assert("umka-2187", end != NULL);
-	aal_assert("umka-2188", start != NULL);
-	aal_assert("umka-2189", dst_item != NULL);
-	aal_assert("umka-2190", src_item != NULL);
-
-	return tail40_rep(dst_item, dst_pos, src_item,
-			  src_pos, src_item->len);
-}
-
 /* Rewrites tail from passed @pos by data specifed by hint */
 static int32_t tail40_write(item_entity_t *item, void *buff,
 			    uint32_t pos, uint32_t count)
@@ -485,7 +469,6 @@ static reiser4_plugin_t tail40_plugin = {
 #ifndef ENABLE_STAND_ALONE
 		.init	        = tail40_init,
 		.copy	        = tail40_copy,
-		.overwrite      = tail40_overwrite,
 		.write	        = tail40_write,
 		.remove	        = tail40_remove,
 		.print	        = tail40_print,

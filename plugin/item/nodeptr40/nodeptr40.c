@@ -108,22 +108,6 @@ static errno_t nodeptr40_copy(item_entity_t *dst_item,
 			     src_item, src_pos);
 }
 
-static errno_t nodeptr40_overwrite(item_entity_t *dst_item,
-				   uint32_t dst_pos,
-				   item_entity_t *src_item,
-				   uint32_t src_pos,
-				   key_entity_t *start,
-				   key_entity_t *end)
-{
-	aal_assert("umka-2180", end != NULL);
-	aal_assert("umka-2182", start != NULL);
-	aal_assert("umka-2183", dst_item != NULL);
-	aal_assert("umka-2184", src_item != NULL);
-	
-	return nodeptr40_rep(dst_item, dst_pos,
-			     src_item, src_pos);
-}
-
 /* Writes of the specified nodeptr into passed @item*/
 static errno_t nodeptr40_insert(item_entity_t *item,
 				create_hint_t *hint,
@@ -217,7 +201,6 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.init		= nodeptr40_init,
 		.feel           = nodeptr40_feel,
 		.copy           = nodeptr40_copy,
-		.overwrite      = nodeptr40_overwrite,
 		.insert         = nodeptr40_insert,
 		.estimate	= nodeptr40_estimate,
 		.print		= nodeptr40_print,

@@ -579,30 +579,6 @@ static errno_t direntry40_copy(item_entity_t *dst_item,
 			      src_pos, hint->count);
 }
 
-static errno_t direntry40_overwrite(item_entity_t *dst_item,
-				    uint32_t dst_pos,
-				    item_entity_t *src_item,
-				    uint32_t src_pos,
-				    key_entity_t *start,
-				    key_entity_t *end)
-{
-	uint32_t count;
-	uint32_t end_pos;
-	
-	aal_assert("umka-2174", dst_item != NULL);
-	aal_assert("umka-2175", src_item != NULL);
-	aal_assert("umka-2176", start != NULL);
-	aal_assert("umka-2177", end != NULL);
-	
-	if (direntry40_lookup(src_item, end, &end_pos) != LP_PRESENT)
-		return -EINVAL;
-
-	count = end_pos - src_pos;
-	
-	return direntry40_rep(dst_item, dst_pos, src_item,
-			      src_pos, count);
-}
-
 /* Shrinks direntry item in order to delete some entries */
 static int32_t direntry40_shrink(item_entity_t *item,
 				 uint32_t pos, uint32_t count)
@@ -1173,7 +1149,6 @@ static reiser4_plugin_t direntry40_plugin = {
 #ifndef ENABLE_STAND_ALONE	    
 		.init		= direntry40_init,
 		.copy		= direntry40_copy,
-		.overwrite      = direntry40_overwrite,
 		.insert		= direntry40_insert,
 		.remove		= direntry40_remove,
 		.estimate	= direntry40_estimate,

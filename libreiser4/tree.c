@@ -1446,6 +1446,7 @@ errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
 			       reiser4_key_t *end)
 {
 	errno_t res;
+	copy_hint_t hint;
 	
 	aal_assert("umka-2161", dst != NULL);
 	aal_assert("umka-2162", src != NULL);
@@ -1459,9 +1460,14 @@ errno_t reiser4_tree_overwrite(reiser4_tree_t *tree,
 		return -EINVAL;
 	}
 	
-	if ((res = reiser4_node_overwrite(dst->node, &dst->pos,
-					  src->node, &src->pos,
-					  start, end)))
+	if ((res = reiser4_item_feel(src, start, end, &hint)))
+		return res;
+
+	aal_assert("umka-2122", hint.len > 0);
+	
+	if ((res = reiser4_node_copy(dst->node, &dst->pos,
+				     src->node, &src->pos,
+				     start, end, &hint)))
 	{
 		aal_exception_error("Can't copy an item/unit from node "
 				    "%llu to %llu one.", src->node->blk,
