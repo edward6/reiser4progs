@@ -111,8 +111,8 @@ errno_t reiser4_item_feel(reiser4_place_t *place,
 	if ((res = reiser4_place_realize(place)))
 		return res;
 		
-	return plugin_call(place->item.plugin->item_ops, feel,
-			   &place->item, place->pos.unit,
+	return plugin_call(place->item.plugin->item_ops, feel, &place->item, 
+			   place->pos.unit == ~0ul ? 0 : place->pos.unit,
 			   start, end, hint);
 }
 

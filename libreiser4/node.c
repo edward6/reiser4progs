@@ -265,9 +265,6 @@ errno_t reiser4_node_pbc(
 
 	place = &node->parent;
 	
-	if (reiser4_place_realize(place))
-		return -EINVAL;
-
 #ifndef ENABLE_STAND_ALONE
 	if (reiser4_node_ack(node, place))
 		goto out_update_place;
@@ -313,6 +310,10 @@ errno_t reiser4_node_pbc(
 #endif
 	
  out_update_place:
+		
+	if (reiser4_place_realize(place))
+		return -EINVAL;
+
 	if (reiser4_item_units(place) == 1)
 		place->pos.unit = ~0ul;
 		
@@ -586,8 +587,8 @@ errno_t reiser4_node_copy(reiser4_node_t *dst_node,
 	aal_assert("umka-1822", dst_pos != NULL);
 
 	return plugin_call(src_node->entity->plugin->node_ops,
-			   copy, src_node->entity, src_pos,
-			   dst_node->entity, dst_pos, start,
+			   copy, dst_node->entity, dst_pos,
+			   src_node->entity, src_pos, start,
 			   end, hint);
 }
 

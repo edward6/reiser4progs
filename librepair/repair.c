@@ -251,9 +251,11 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 	    control->bm_twig->map[i] | control->bm_unfm_out->map[i]) 
 	    & ~(control->bm_used->map[i]));
 	
-	/* Leave there only unused twigs. */
+	/* Leave there only unused twigs, leaves. */
 	control->bm_twig->map[i] &= ~(control->bm_used->map[i]);
-	control->bm_leaf->map[i] &= ~(control->bm_leaf->map[i]);
+	control->bm_leaf->map[i] &= ~(control->bm_used->map[i]);
+	
+	/* Account as used all unformatted pointed blocks. */
 	control->bm_used->map[i] |= control->bm_unfm_tree->map[i];
     }
     

@@ -969,7 +969,6 @@ static errno_t direntry40_maxposs_key(item_entity_t *item,
 
 	aal_assert("umka-1649", key != NULL);
 	aal_assert("umka-1648", item != NULL);
-	aal_assert("umka-716", key->plugin != NULL);
 
 	plugin_call(item->key.plugin->key_ops,
 		    assign, key, &item->key);

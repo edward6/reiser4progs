@@ -238,15 +238,6 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
     aal_assert("vpf-249", node->entity != NULL);
     aal_assert("vpf-250", node->entity->plugin != NULL);
 
-    /* FIXME-VITALY: Fixed plugin id is used for key. */
-    if (!(d_key.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, 
-	KEY_REISER40_ID))) 
-    {
-	aal_exception_error("Can't find key plugin by its id 0x%x.", 
-	    KEY_REISER40_ID);
-	return -EINVAL;
-    }
-
     if ((res = repair_node_ld_key_fetch(node, &d_key))) {
 	aal_exception_error("Node (%llu): Failed to get the left delimiting key.", 
 	    node->blk);

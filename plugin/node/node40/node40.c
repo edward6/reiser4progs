@@ -737,15 +737,19 @@ static errno_t node40_copy(object_entity_t *dst_entity,
 	/*
 	  Check if we will copy whole item, or we should call item's copy()
 	  method in order to copy units from @start key through the @end one.
-	*/
+
+	  FIXME-VITALY: Feel methods must work in the same way, but they do 
+	  not for now. Probably node40_rep should not be called here at all.
+	
 	if (src_pos->unit == ~0ul || src_units == 1) {
 		return node40_rep(dst_node, dst_pos, src_node,
 				  src_pos, 1);
 	}
+	*/
 
 	plugin = src_entity->plugin;
 	aal_assert("umka-2123", plugin != NULL);
-	
+		
 	if (node40_item(dst_entity, dst_pos, &dst_item))
 		return -EINVAL;
 		
