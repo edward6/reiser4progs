@@ -374,10 +374,10 @@ typedef errno_t (*traverse_setup_func_t) (reiser4_place_t *, void *);
 /* Filesystem compound structure */
 struct reiser4_fs {
     
-	/* Device filesystem is opended/created on */
+	/* Device filesystem is opened/created on */
 	aal_device_t *device;
     
-	/* Pointer to the master super block wrapp object */
+	/* Pointer to the master super block wrapper object */
 	reiser4_master_t *master;
 
 	/* Pointer to the disk-format instance */
@@ -389,13 +389,13 @@ struct reiser4_fs {
 	/* Pointer to the block allocator in use */
 	reiser4_alloc_t *alloc;
 
-	/* Pointer to the oid allocator */
+	/* Pointer to the oid allocator in use */
 	reiser4_oid_t *oid;
 
-	/* The part of tree */
+	/* Pointer to the storage tree wrapper object */
 	reiser4_tree_t *tree;
 
-	/* Root file (by default directory) */
+	/* Pointer to the semantic tree wrapper object */
 	reiser4_file_t *root;
 
 	/*
