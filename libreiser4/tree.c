@@ -1599,7 +1599,7 @@ errno_t reiser4_tree_remove(
 	reiser4_coord_t *coord,   /* coord item will be removed at */
 	uint32_t count)
 {
-	bool_t res;
+	errno_t res;
 
 	/* Calling "pre_remove" handler if it is defined */
 	if (tree->traps.pre_remove) {
@@ -1608,10 +1608,34 @@ errno_t reiser4_tree_remove(
 			return res;
 	}
 
-	/* Removing iten/unit from the node */
-	if (reiser4_node_remove(coord->node, &coord->pos, count))
-		return -1;
+	/* Removing item/unit and updating parent keys */
+	{
+		rpos_t ppos;
+		int update = reiser4_coord_utmost(coord);
+	
+		if (update && coord->node->parent) {
+			if (reiser4_node_pos(coord->node, &ppos))
+				return -1;
+		}
+		
+		/* Removing iten/unit from the node */
+		if (reiser4_node_remove(coord->node, &coord->pos, count))
+			return -1;
 
+		/* Updating left deleimiting key in all parent nodes */
+		if (update && coord->node->parent) {
+			if (reiser4_node_items(coord->node) > 0) {
+
+				reiser4_key_t lkey;
+				reiser4_node_lkey(coord->node, &lkey);
+				
+				if (reiser4_node_ukey(coord->node->parent,
+						      &ppos, &lkey))
+					return -1;
+			}
+		}
+	}
+	
 	/*
 	  Checking if the node became empty. If so, we release it, otherwise we
 	  pack the tree about it.

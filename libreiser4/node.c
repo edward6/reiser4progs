@@ -831,24 +831,8 @@ errno_t reiser4_node_remove(
 	rpos_t *pos,                        /* pos item will be removed at */
 	uint32_t count)                     /* the number of item/units */
 {
-	int update;
-	rpos_t ppos;
-	reiser4_coord_t coord;
-
 	aal_assert("umka-993", node != NULL);
 	aal_assert("umka-994", pos != NULL);
-
-	/*
-	  Update parent node will be performed in the case we are going to
-	  remove the leftmost item or the leftmost unit of the leftmost item.
-	*/
-	update = (pos->item == 0 && (pos->unit == 0 ||
-				     pos->unit == ~0ul));
-	
-	if (update && node->parent) {
-		if (reiser4_node_pos(node, &ppos))
-			return -1;
-	}
 
 	/*
 	  Removing item or unit. We assume that we are going to remove unit if
@@ -862,26 +846,7 @@ errno_t reiser4_node_remove(
 		return -1;
 	}
 
-	/* Updating left deleimiting key in all parent nodes */
-	if (update && node->parent) {
-		if (reiser4_node_items(node) > 0) {
-			reiser4_key_t lkey;
-			reiser4_node_lkey(node, &lkey);
-				
-			if (reiser4_node_ukey(node->parent, &ppos, &lkey))
-				return -1;
-		} else {
-			/* 
-			  Removing cached node from the tree in the case it has
-			  not items anymore.
-			*/
-			if (reiser4_node_remove(node->parent, &ppos, 1))
-				return -1;
-		}
-	}
-
 	reiser4_node_mkdirty(node);
-	
 	return 0;
 }
 
