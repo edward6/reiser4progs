@@ -46,8 +46,15 @@ dnl Check for libuuid
 if test "$with_uuid" = yes; then
     OLD_LIBS="$LIBS"
     LIBS="$LIBS $PROGS_LDADD"
-    AC_CHECK_LIB(uuid, uuid_generate)
-    PROGS_LDADD="$PROGS_LDADD $LIBS"
+    AC_CHECK_LIB(uuid, uuid_generate
+	PROGS_LDADD="$PROGS_LDADD -luuid"
+	AC_DEFINE(HAVE_LIBUUID),
+	AC_MSG_WARN(
+libuuid could not be found which is required for the --with-uuid
+	)
+	$with_uuid=no,
+	$PROGS_LDADD
+    )
     LIBS="$OLD_LIBS"
 fi
 
@@ -133,21 +140,19 @@ AM_PROG_LIBTOOL
 
 if test "$with_uuid" = yes; then
     AC_CHECK_HEADERS(uuid/uuid.h, ,
-	AC_MSG_WARN(
+	AC_MSG_ERROR(
 The headers for libuuid could not be found which
 are required for the --with-uuid option.
 	)
-	AC_DEFINE(HAVE_LIBUUID, 0)
     )
 fi
 
 if test "$with_readline" = yes; then
     AC_CHECK_HEADERS(readline/readline.h readline/history.h, ,
-	AC_MSG_WARN(
+	AC_MSG_ERROR(
 The headers for GNU Readline could not be found which
 are required for the --with-readline option.
 	)
-	AC_DEFINE(HAVE_LIBREADLINE, 0)
     )
 fi
 
