@@ -14,6 +14,7 @@
 
 extern reiser4_plug_t reg40_plug;
 extern errno_t reg40_reset(object_entity_t *entity);
+extern errno_t reg40_create_sd(obj40_t *obj, uint64_t sd);
 
 /* Check SD extentions and that mode in LW extention is REGFILE. */
 static errno_t callback_sd(place_t *sd) {
@@ -224,8 +225,8 @@ static errno_t reg40_realize_sd(place_t *sd, uint8_t mode) {
 #endif
 
 errno_t reg40_check_struct(object_entity_t *object, 
-			   place_func_t register_func, 
-			   uint8_t mode,  void *data)
+			   place_func_t register_func,
+			   uint8_t mode, void *data)
 {
 	uint64_t locality, objectid, ordering;
 	reg40_t *reg = (reg40_t *)object;
@@ -255,8 +256,13 @@ errno_t reg40_check_struct(object_entity_t *object,
 		
 		/*  */
 		if (res) {
-			/* SD of this file is not found, create a new one. */
+			uint64_t sd;
 			
+			sd = core->tree_ops.profile(info->tree, "statdata");
+			
+			/* SD of this file is not found, create a new one. */
+			if ((res = reg40_create_sd(&reg->obj, sd)))
+				return res;
 		} else {
 			/* SD is found, fix the item key (~offset is wrong). */
 			info->start.key = info->object;

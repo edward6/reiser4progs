@@ -199,6 +199,20 @@ static uint32_t tree_maxspace(void *tree) {
 	
 	return reiser4_node_maxspace(root);
 }
+
+static uint64_t tree_profile(void *t, char *entry) {
+	reiser4_tree_t *tree = (reiser4_tree_t *)t;
+	
+	aal_assert("vpf-1201", tree != NULL);
+	aal_assert("vpf-1202", entry != NULL);
+	aal_assert("vpf-1203", tree->fs != NULL);
+	
+	if (tree->fs->profile == NULL)
+		return INVAL_PID;
+	
+	return reiser4_profile_value(tree->fs->profile, entry);
+}
+
 #endif
 
 #ifdef ENABLE_SYMLINKS
@@ -267,6 +281,9 @@ reiser4_core_t core = {
 		
 		.maxspace   = tree_maxspace,
 		.blksize    = tree_blksize,
+
+		/* Get the default plugin id. */
+		.profile    = tree_profile,
 #endif
 
 		/* Data related functions */

@@ -1315,6 +1315,9 @@ struct tree_ops {
 	errno_t (*set_data) (void *, key_entity_t *,
 			     aal_block_t *);
 	
+	/* Obtains the profile value for @entry. */
+	uint64_t (*profile) (void *, char *);
+	
 #endif
 	/* Returns next and prev items respectively */
 	errno_t (*next) (void *, place_t *, place_t *);

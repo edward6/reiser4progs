@@ -18,6 +18,7 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	if ((res = plug_call(object->entity->plug->o.object_ops, check_struct,
 			     object->entity, place_func, data, mode)) < 0)
+		return res;
 	
 	repair_error_check(res, mode);
 	aal_assert("vpf-1195", mode != RM_BUILD ||
