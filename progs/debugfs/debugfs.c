@@ -57,7 +57,7 @@ static void debugfs_print_usage(char *name) {
 		"  -c, --cache N                 number of nodes in tree buffer cache\n"
 		"\n"
 		"Temporary Options:\n"
-		"  -C                            convert to the new backup layout.\n");
+		"  -C                            converts to the new backup layout.\n");
 }
 
 

@@ -158,7 +158,7 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 		}
 		
 		/* Lookup the node. */	
-		if ((res = reiser4_node_trav(node, cb_check_layout, ts)))		
+		if ((res = reiser4_node_trav(node, cb_check_layout, ts)))
 			goto error_node_free;
 		
 		if (reiser4_node_isdirty(node))

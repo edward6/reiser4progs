@@ -303,7 +303,7 @@ void alloc40_print(generic_entity_t *entity,
 
 
 static void cb_inval_warn(blk_t start, uint32_t ladler, uint32_t cadler) {
-	fsck_mess("Checksum missmatch in bitmap block %llu. Checksum "
+	fsck_mess("Checksum mismatch in bitmap block %llu. Checksum "
 		  "is 0x%x, should be 0x%x.", start, ladler, cadler);
 }
 

@@ -506,7 +506,7 @@ static int alloc40_available(generic_entity_t *entity,
 }
 
 static void cb_inval_warn(blk_t start, uint32_t ladler, uint32_t cadler) {
-	aal_error("Checksum missmatch in bitmap block %llu. Checksum "
+	aal_error("Checksum mismatch in bitmap block %llu. Checksum "
 		  "is 0x%x, should be 0x%x.", start, ladler, cadler);
 }
 

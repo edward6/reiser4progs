@@ -20,14 +20,14 @@ enum print_flags {
 typedef enum print_flags print_flags_t;
 
 enum behav_flags {
-	BF_FORCE       = 1 << 0,
-	BF_YES         = 1 << 1,
-	BF_CAT         = 1 << 2,
-	BF_SHOW_PARM   = 1 << 3,
-	BF_SHOW_PLUG   = 1 << 4,
-	BF_PACK_META   = 1 << 5,
-	BF_UNPACK_META = 1 << 6,
-	BF_FREE_NEW_BACKUP = 1 << 7
+	BF_FORCE		= 1 << 0,
+	BF_YES			= 1 << 1,
+	BF_CAT			= 1 << 2,
+	BF_SHOW_PARM		= 1 << 3,
+	BF_SHOW_PLUG		= 1 << 4,
+	BF_PACK_META		= 1 << 5,
+	BF_UNPACK_META		= 1 << 6,
+	BF_FREE_NEW_BACKUP	= 1 << 7
 };
 
 typedef enum behav_flags behav_flags_t;
