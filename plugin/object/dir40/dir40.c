@@ -72,8 +72,8 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
-	if (obj40_lookup(&dir->obj, &dir->offset,
-			 LEAF_LEVEL, &next) == LP_PRESENT)
+	if (obj40_lookup(&dir->obj, offset, LEAF_LEVEL,
+			 &next) == LP_PRESENT)
 	{
 		dir40_relock(entity, &dir->body, &next);
 		aal_memcpy(&dir->offset, offset, sizeof(*offset));

@@ -42,6 +42,7 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 errno_t reiser4_place_realize(reiser4_place_t *place) {
 	rid_t pid;
 	reiser4_key_t *key;
+	
 	item_entity_t *item;
 	object_entity_t *entity;
 	

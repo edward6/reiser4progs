@@ -182,10 +182,7 @@ errno_t libreiser4_plugin_open(const char *name,
 		goto error_free_handle;
     
 	handle->fini = *((reiser4_plugin_fini_t *)addr);
-
-#ifndef ENABLE_STAND_ALONE
 	handle->abort = abort_func;
-#endif
 
 	return 0;
     
@@ -268,7 +265,6 @@ errno_t libreiser4_plugin_open(unsigned long *entry,
 
 	aal_memset(handle, 0, sizeof(*handle));
 
-	
 #ifndef ENABLE_STAND_ALONE
 	aal_snprintf(handle->name, sizeof(handle->name),
 		     "built-in (0x%lx)", *entry);

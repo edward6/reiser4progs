@@ -238,6 +238,8 @@ static lookup_t tail40_lookup(item_entity_t *item,
 	return LP_ABSENT;
 }
 
+#ifndef ENABLE_STAND_ALONE
+
 static int tail40_mergeable(item_entity_t *item1,
 			    item_entity_t *item2)
 {
@@ -280,8 +282,6 @@ static int tail40_mergeable(item_entity_t *item1,
 	
 	return 1;
 }
-
-#ifndef ENABLE_STAND_ALONE
 
 /* Estimates how many bytes may be shifted into neighbour item */
 static errno_t tail40_predict(item_entity_t *src_item,
