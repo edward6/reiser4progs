@@ -801,10 +801,8 @@ static bool_t node_large_mergeable(place_t *src, place_t *dst) {
 	if (!plug_equal(src->plug, dst->plug))
 		return FALSE;
 
-	if (!src->plug->o.item_ops->mergeable)
-		return FALSE;
-	
-	return src->plug->o.item_ops->mergeable(src, dst);
+	return src->plug->o.item_ops->mergeable &&
+		src->plug->o.item_ops->mergeable(src, dst);
 }
 
 static bool_t node_large_splitable(place_t *place) {
@@ -927,17 +925,18 @@ static errno_t node_large_merge(node_entity_t *src_entity,
 	int remove;
 	uint32_t len;
 
+	node_t *src_node;
+	node_t *dst_node;
+
 	uint32_t overhead;
 	uint32_t dst_items;
 	uint32_t src_items;
 	
-	node_t *src_node;
-	node_t *dst_node;
-
 	place_t src_place;
 	place_t dst_place;
 
-	item_header_t *ih;
+	item_header_t *src_ih;
+	item_header_t *dst_ih;
 
 	aal_assert("umka-1624", hint != NULL);
 	aal_assert("umka-1622", src_entity != NULL);
@@ -989,6 +988,14 @@ static errno_t node_large_merge(node_entity_t *src_entity,
 		if (node_large_fetch(dst_entity, &pos, &dst_place))
 			return -EINVAL;
 
+		/* Check if items has the same flags. If so, they can be
+		   merged. */
+		src_ih = node_large_ih_at(src_node, src_place.pos.item);
+		dst_ih = node_large_ih_at(dst_node, dst_place.pos.item);
+
+		if (src_ih->flags != dst_ih->flags)
+			return 0;
+		
 		if (hint->control & SF_LEFT) {
 			hint->create = !node_large_mergeable(&dst_place,
 							     &src_place);
@@ -1068,11 +1075,15 @@ static errno_t node_large_merge(node_entity_t *src_entity,
 		hint->items++;
 		
 		/* Setting up new item fields */
-		ih = node_large_ih_at(dst_node, pos.item);
-		ih_set_pid(ih, src_place.plug->id.id);
+		dst_ih = node_large_ih_at(dst_node, pos.item);
+		ih_set_pid(dst_ih, src_place.plug->id.id);
 
-		aal_memcpy(&ih->key, src_place.key.body,
-			   sizeof(ih->key));
+		aal_memcpy(&dst_ih->key, src_place.key.body,
+			   sizeof(dst_ih->key));
+
+		/* Copying flags to new created item */
+		src_ih = node_large_ih_at(src_node, src_place.pos.item);
+		ih_set_flags(dst_ih, src_ih->flags); 
 
 		/* Initializing dst item after it was created by node_large_expand()
 		   function. */
@@ -1135,12 +1146,16 @@ static errno_t node_large_merge(node_entity_t *src_entity,
 		/* We do not need update key of the src item which is going to
 		   be removed. */
 		if (!remove) {
-			ih = node_large_ih_at(src_node, src_place.pos.item);
-			aal_memcpy(&ih->key, src_place.key.body, sizeof(ih->key));
+			src_ih = node_large_ih_at(src_node, src_place.pos.item);
+
+			aal_memcpy(&src_ih->key, src_place.key.body,
+				   sizeof(src_ih->key));
 		}
 	} else {
-		ih = node_large_ih_at(dst_node, dst_place.pos.item);
-		aal_memcpy(&ih->key, dst_place.key.body, sizeof(ih->key));
+		dst_ih = node_large_ih_at(dst_node, dst_place.pos.item);
+
+		aal_memcpy(&dst_ih->key, dst_place.key.body,
+			   sizeof(dst_ih->key));
 	}
 	
 	if (remove) {

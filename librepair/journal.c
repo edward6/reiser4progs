@@ -11,7 +11,7 @@
    journal, is of the special filesystem areas - skipped, block allocator,
    oid alocator, etc. */
 
-static errno_t callback_fs_check(void *layout, block_func_t func, void *data) {
+static errno_t callback_fs_check(void *layout, region_func_t func, void *data) {
 	reiser4_fs_t *fs = (reiser4_fs_t *)layout;
 	
 	aal_assert("vpf-737", fs != NULL);

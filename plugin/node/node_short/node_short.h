@@ -32,13 +32,19 @@ typedef struct item_header item_header_t;
         aal_get_le16(ih, offset)
 
 #define ih_set_offset(ih, val)         \
-        aal_set_le16(ih, offset, val);
+        aal_set_le16(ih, offset, val)
 
 #define ih_inc_offset(ih, val)         \
         ih_set_offset(ih, (ih_get_offset(ih) + (val)))
 
 #define ih_dec_offset(ih, val)         \
         ih_set_offset(ih, (ih_get_offset(ih) - (val)))
+
+#define ih_get_flags(ih)               \
+        aal_get_le16(ih, flags)
+
+#define ih_set_flags(ih, val)          \
+        aal_set_le16(ih, flags, val)
 
 #define ih_clear_flag(ih, flag)        \
         aal_clear_bit(ih->flags, flag)

@@ -23,11 +23,11 @@ typedef struct repair_control {
 } repair_control_t;
 
 /* Callback for the format_ops.layout method - mark all blocks in the bitmap. */
-static errno_t callback_format_mark(void *format, blk_t blk, void *data) {
+static errno_t callback_format_mark(void *format, blk_t start,
+				    count_t width, void *data)
+{
 	aux_bitmap_t *format_layout = (aux_bitmap_t *)data;
-	
-	aux_bitmap_mark(format_layout, blk);
-	
+	aux_bitmap_mark_region(format_layout, start, width);
 	return 0;
 }
 

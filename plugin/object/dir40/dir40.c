@@ -819,39 +819,27 @@ errno_t dir40_rem_entry(object_entity_t *entity, entry_hint_t *entry) {
 	return obj40_touch(&dir->obj, size, bytes, time(NULL));
 }
 
-/* Directory layout related stuff */
 struct layout_hint {
-	object_entity_t *entity;
-	block_func_t block_func;
 	void *data;
+	object_entity_t *entity;
+	region_func_t region_func;
 };
 
 typedef struct layout_hint layout_hint_t;
 
-static errno_t callback_item_data(void *object, uint64_t start,
-				  uint64_t count, void *data)
+static errno_t callback_item_layout(void *place, blk_t start,
+				    count_t width, void *data)
 {
-	blk_t blk;
-	errno_t res;
-
-	place_t *place = (place_t *)object;
 	layout_hint_t *hint = (layout_hint_t *)data;
 
-	for (blk = start; blk < start + count; blk++) {
-		if ((res = hint->block_func(hint->entity, blk,
-					    hint->data)))
-		{
-			return res;
-		}
-	}
-
-	return 0;
+	return hint->region_func(hint->entity, start,
+				 width, hint->data);
 }
 
 /* Layout function implementation. It is needed for printing, fragmentation
    calculating, etc. */
 static errno_t dir40_layout(object_entity_t *entity,
-			    block_func_t block_func,
+			    region_func_t region_func,
 			    void *data)
 {
 	errno_t res;
@@ -859,34 +847,34 @@ static errno_t dir40_layout(object_entity_t *entity,
 	layout_hint_t hint;
 
 	aal_assert("umka-1473", entity != NULL);
-	aal_assert("umka-1474", block_func != NULL);
-
-	hint.data = data;
-	hint.entity = entity;
-	hint.block_func = block_func;
+	aal_assert("umka-1474", region_func != NULL);
 
 	dir = (dir40_t *)entity;
 	
 	if ((res = dir40_update(entity)))
 		return res;
+
+	hint.data = data;
+	hint.entity = entity;
+	hint.region_func = region_func;
 	
 	while (1) {
 		place_t *place = &dir->body;
 		
 		if (dir->body.plug->o.item_ops->layout) {
-
+			
 			/* Calling item's layout method */
-			if ((res = plug_call(dir->body.plug->o.item_ops,
-					     layout, &dir->body,
-					     callback_item_data, &hint)))
+			if ((res = plug_call(place->plug->o.item_ops, layout,
+					     place, callback_item_layout,
+					     &hint)))
 			{
 				return res;
 			}
 		} else {
 			blk_t blk = place->block->nr;
 			
-			if ((res = callback_item_data(&place->block, blk,
-						      1, &hint)))
+			if ((res = callback_item_layout(place, blk,
+							1, &hint)))
 			{
 				return res;
 			}

@@ -4,11 +4,7 @@
    journal40.c -- reiser4 default journal plugin. */
 
 #ifndef ENABLE_STAND_ALONE
-
 #include "journal40.h"
-
-#define JOURNAL40_HEADER (4096 * 19)
-#define JOURNAL40_FOOTER (4096 * 20)
 
 extern reiser4_plug_t journal40_plug;
 
@@ -28,39 +24,20 @@ static void journal40_mkclean(generic_entity_t *entity) {
 }
 
 static errno_t journal40_layout(generic_entity_t *entity,
-				block_func_t block_func,
+				region_func_t region_func,
 				void *data)
 {
 	blk_t blk;
 	errno_t res;
-	
-	uint32_t blksize;
 	journal40_t *journal;
 
 	aal_assert("umka-1040", entity != NULL);
-	aal_assert("umka-1041", block_func != NULL);
+	aal_assert("umka-1041", region_func != NULL);
     
 	journal = (journal40_t *)entity;
-	blksize = journal->blksize;
 	
-	blk = JOURNAL40_HEADER / blksize;
-    
-	if ((res = block_func(entity, blk, data)))
-		return res;
-    
-	blk = JOURNAL40_FOOTER / blksize;
-    
-	return block_func(entity, blk, data);
-}
-
-static errno_t journal40_hcheck(journal40_header_t *header) {
-	aal_assert("umka-515", header != NULL);
-	return 0;
-}
-
-static errno_t journal40_fcheck(journal40_footer_t *footer) {
-	aal_assert("umka-516", footer != NULL);
-	return 0;
+	blk = JOURNAL40_BLOCKNR(journal->blksize);
+	return region_func(entity, blk, 2, data);
 }
 
 aal_device_t *journal40_device(generic_entity_t *entity) {
@@ -68,32 +45,29 @@ aal_device_t *journal40_device(generic_entity_t *entity) {
 	return ((journal40_t *)entity)->device;
 }
 
-static errno_t callback_fetch_journal(void *entity, blk_t blk,
-				      void *data)
+static errno_t callback_fetch_journal(void *entity, blk_t start,
+				      count_t width, void *data)
 {
-	uint32_t blksize;
-	aal_device_t *device;
-	journal40_t *journal;
-
-	journal = (journal40_t *)entity;
-
-	device = journal->device;
-	blksize = journal->blksize;
+	journal40_t *journal = (journal40_t *)entity;
 		
-	if (!journal->header) {
-		if (!(journal->header = aal_block_load(device, blksize, blk))) {
-			aal_exception_error("Can't read journal header "
-					    "from block %llu. %s.", blk,
-					    device->error);
-			return -EIO;
-		}
-	} else {
-		if (!(journal->footer = aal_block_load(device, blksize, blk))) {
-			aal_exception_error("Can't read journal footer "
-					    "from block %llu. %s.", blk,
-					    device->error);
-			return -EIO;
-		}
+	if (!(journal->header = aal_block_load(journal->device,
+					       journal->blksize,
+					       start)))
+	{
+		aal_exception_error("Can't read journal header from "
+				    "block %llu. %s.", start,
+				    journal->device->error);
+		return -EIO;
+	}
+	
+	if (!(journal->footer = aal_block_load(journal->device,
+					       journal->blksize,
+					       start + 1)))
+	{
+		aal_exception_error("Can't read journal footer from "
+				    "block %llu. %s.",
+				    start + 1, journal->device->error);
+		return -EIO;
 	}
     
 	return 0;
@@ -118,8 +92,8 @@ static generic_entity_t *journal40_open(generic_entity_t *format,
 	journal->blksize = blksize;
 	journal->plug = &journal40_plug;
 
-	journal->area.start = start;
 	journal->area.len = len;
+	journal->area.start = start;
 
 	if (journal40_layout((generic_entity_t *)journal,
 			     callback_fetch_journal, journal))
@@ -136,55 +110,42 @@ static generic_entity_t *journal40_open(generic_entity_t *format,
 }
 
 static errno_t journal40_valid(generic_entity_t *entity) {
-	errno_t res;
-	journal40_t *journal;
-    
 	aal_assert("umka-965", entity != NULL);
-    
-	journal = (journal40_t *)entity;
-	
-	if ((res = journal40_hcheck(journal->header->data)))
-		return res;
-	
-	return journal40_fcheck(journal->footer->data);
+
+	/* FIXME-UMKA: Not implemented yet! */
+	return 0;
 }
 
-static errno_t callback_alloc_journal(void *entity, blk_t blk,
-				      void *data)
+static errno_t callback_alloc_journal(void *entity, blk_t start,
+				      count_t width, void *data)
 {
-	uint32_t blksize;
-	aal_device_t *device;
-	journal40_t *journal;
-
-	journal = (journal40_t *)entity;
-	device = journal->device;
-	blksize = journal->blksize;
+	journal40_t *journal = (journal40_t *)entity;
 	
-	if (!journal->header) {
-		if (!(journal->header = aal_block_alloc(device, blksize,
-							blk)))
-		{
-			aal_exception_error("Can't alloc journal "
-					    "header on block %llu.", blk);
-			return -ENOMEM;
-		}
-	} else {
-		if (!(journal->footer = aal_block_alloc(device, blksize,
-							 blk)))
-		{
-			aal_exception_error("Can't alloc journal footer "
-					    "on block %llu.", blk);
-			return -ENOMEM;
-		}
+	if (!(journal->header = aal_block_alloc(journal->device,
+						journal->blksize,
+						start)))
+	{
+		aal_exception_error("Can't alloc journal header "
+				    "on block %llu.", start);
+		return -ENOMEM;
 	}
-    
+
+	if (!(journal->footer = aal_block_alloc(journal->device,
+						journal->blksize,
+						start + 1)))
+	{
+		aal_exception_error("Can't alloc journal footer "
+				    "on block %llu.", start + 1);
+		return -ENOMEM;
+	}
+
 	return 0;
 }
 
 static generic_entity_t *journal40_create(generic_entity_t *format,
-					 aal_device_t *device,
-					 uint64_t start, uint64_t len,
-					 uint32_t blksize, void *hint)
+					  aal_device_t *device,
+					  uint64_t start, uint64_t len,
+					  uint32_t blksize, void *hint)
 {
 	journal40_t *journal;
     
@@ -200,8 +161,8 @@ static generic_entity_t *journal40_create(generic_entity_t *format,
 	journal->blksize = blksize;
 	journal->plug = &journal40_plug;
 
-	journal->area.start = start;
 	journal->area.len = len;
+	journal->area.start = start;
     
 	if (journal40_layout((generic_entity_t *)journal,
 			     callback_alloc_journal, journal))
@@ -217,32 +178,23 @@ static generic_entity_t *journal40_create(generic_entity_t *format,
 	return NULL;
 }
 
-static errno_t callback_sync_journal(void *entity, blk_t blk,
-				     void *data)
+static errno_t callback_sync_journal(void *entity, blk_t start,
+				     count_t width, void *data)
 {
-	aal_device_t *device;
-	journal40_t *journal;
-
-	journal = (journal40_t *)entity;
+	journal40_t *journal = (journal40_t *)entity;
 	
-	device = journal->device;
-
-	if (blk == journal->header->nr) {
-		if (aal_block_write(journal->header)) {
-			aal_exception_error("Can't write journal "
-					    "header to block %llu. "
-					    "%s.", blk, device->error);
-			return -EIO;
-		}
-	} else {
-		if (aal_block_write(journal->footer)) {
-			aal_exception_error("Can't write journal "
-					    "footer to block %llu. "
-					    "%s.", blk, device->error);
-			return -EIO;
-		}
+	if (aal_block_write(journal->header)) {
+		aal_exception_error("Can't write journal header. "
+				    "%s.", journal->device->error);
+		return -EIO;
 	}
-    
+	
+	if (aal_block_write(journal->footer)) {
+		aal_exception_error("Can't write journal footer. "
+				    "%s.", journal->device->error);
+		return -EIO;
+	}
+
 	return 0;
 }
 

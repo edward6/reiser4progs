@@ -12,24 +12,24 @@ struct alloc_hint {
 	errno_t error;
 };
 
-extern errno_t callback_check_bitmap(object_entity_t *entity, uint64_t blk, 
-				     void *data);
+extern errno_t callback_check_bitmap(object_entity_t *entity, blk_t start, 
+				     count_t width, void *data);
 
-extern errno_t alloc40_layout(object_entity_t *entity, block_func_t func,
+extern errno_t alloc40_layout(object_entity_t *entity, region_func_t func,
 			      void *data);
 
 extern errno_t alloc40_related(object_entity_t *entity, blk_t blk, 
 			       region_func_t func, void *data);
 
-static errno_t callback_check_layout(void *entity, uint64_t blk, 
-				     void *data) 
+static errno_t callback_check_layout(void *entity, blk_t start, 
+				     count_t width, void *data) 
 {
 	struct alloc_hint *hint = (struct alloc_hint *)data;
 	alloc40_t *alloc = (alloc40_t *)entity;
 	uint32_t size, offset;
 	errno_t res;
 	
-	res = callback_check_bitmap(entity, blk, data);
+	res = callback_check_bitmap(entity, start, width, data);
 	
 	if (res == -ESTRUCT) {
 		/* Rebuild scans everything first, before rebuilding, so mark 
@@ -39,7 +39,7 @@ static errno_t callback_check_layout(void *entity, uint64_t blk,
 		if (hint->mode == RM_BUILD) {
 			/* Data are corrupted. */
 			size = alloc->blksize - CRC_SIZE;
-			offset = (blk / size / 8) * size;
+			offset = (start / size / 8) * size;
 			aux_bitmap_mark_region(alloc->bitmap, offset, size);
 		} else {
 			hint->error = RE_FIXABLE;

@@ -768,13 +768,13 @@ static lookup_t node_short_lookup(node_entity_t *entity,
 #ifndef ENABLE_STAND_ALONE
 /* Checks if two item entities are mergeable */
 static bool_t node_short_mergeable(place_t *src, place_t *dst) {
+	/* Check if plugins are equal */
 	if (!plug_equal(src->plug, dst->plug))
 		return FALSE;
 
-	if (!src->plug->o.item_ops->mergeable)
-		return FALSE;
-	
-	return src->plug->o.item_ops->mergeable(src, dst);
+	/* Check if mergeable is implemented and calling it if it is. */
+	return src->plug->o.item_ops->mergeable &&
+		src->plug->o.item_ops->mergeable(src, dst);
 }
 
 static bool_t node_short_splitable(place_t *place) {
@@ -897,17 +897,18 @@ static errno_t node_short_merge(node_entity_t *src_entity,
 	int remove;
 	uint32_t len;
 
+	node_t *src_node;
+	node_t *dst_node;
+
 	uint32_t overhead;
 	uint32_t dst_items;
 	uint32_t src_items;
 	
-	node_t *src_node;
-	node_t *dst_node;
-
 	place_t src_place;
 	place_t dst_place;
 
-	item_header_t *ih;
+	item_header_t *src_ih;
+	item_header_t *dst_ih;
 	
 	aal_assert("umka-1624", hint != NULL);
 	aal_assert("umka-1622", src_entity != NULL);
@@ -946,8 +947,8 @@ static errno_t node_short_merge(node_entity_t *src_entity,
 	if (node_short_fetch(src_entity, &pos, &src_place))
 		return -EINVAL;
 
-	/* Items that do not implement predict and shift methods cannot be
-	   splitted. */
+	/* Items that do not implement estimate_shift() and shift() methods
+	   cannot be splitted. */
 	if (!node_short_splitable(&src_place))
 		return 0;
 	
@@ -959,10 +960,21 @@ static errno_t node_short_merge(node_entity_t *src_entity,
 		if (node_short_fetch(dst_entity, &pos, &dst_place))
 			return -EINVAL;
 
-		if (hint->control & SF_LEFT)
-			hint->create = !node_short_mergeable(&dst_place, &src_place);
-		else
-			hint->create = !node_short_mergeable(&src_place, &dst_place);
+		/* Check if items has the same flags. If so, they can be
+		   merged. */
+		src_ih = node_short_ih_at(src_node, src_place.pos.item);
+		dst_ih = node_short_ih_at(dst_node, dst_place.pos.item);
+
+		if (src_ih->flags != dst_ih->flags)
+			return 0;
+		
+		if (hint->control & SF_LEFT) {
+			hint->create = !node_short_mergeable(&dst_place,
+							     &src_place);
+		} else {
+			hint->create = !node_short_mergeable(&src_place,
+							     &dst_place);
+		}
 	} else
 		hint->create = 1;
 
@@ -1002,9 +1014,8 @@ static errno_t node_short_merge(node_entity_t *src_entity,
 					  dst_items : 0);
 		}
 	} else {
-		if (plug_call(src_place.plug->o.item_ops,
-			      estimate_shift, &src_place,
-			      &dst_place, hint))
+		if (plug_call(src_place.plug->o.item_ops, estimate_shift,
+			      &src_place, &dst_place, hint))
 		{
 			return -EINVAL;
 		}
@@ -1034,11 +1045,15 @@ static errno_t node_short_merge(node_entity_t *src_entity,
 		hint->items++;
 		
 		/* Setting up new item fields */
-		ih = node_short_ih_at(dst_node, pos.item);
-		ih_set_pid(ih, src_place.plug->id.id);
+		dst_ih = node_short_ih_at(dst_node, pos.item);
+		ih_set_pid(dst_ih, src_place.plug->id.id);
 
-		aal_memcpy(&ih->key, src_place.key.body,
-			   sizeof(ih->key));
+		aal_memcpy(&dst_ih->key, src_place.key.body,
+			   sizeof(dst_ih->key));
+
+		/* Copying flags to new created item */
+		src_ih = node_short_ih_at(src_node, src_place.pos.item);
+		ih_set_flags(dst_ih, src_ih->flags); 
 
 		/* Initializing dst item after it was created by node_short_expand()
 		   function. */
@@ -1101,16 +1116,16 @@ static errno_t node_short_merge(node_entity_t *src_entity,
 		/* We do not need update key of the src item which is going to
 		   be removed. */
 		if (!remove) {
-			ih = node_short_ih_at(src_node, src_place.pos.item);
+			src_ih = node_short_ih_at(src_node, src_place.pos.item);
 
-			aal_memcpy(&ih->key, src_place.key.body,
-				   sizeof(ih->key));
+			aal_memcpy(&src_ih->key, src_place.key.body,
+				   sizeof(src_ih->key));
 		}
 	} else {
-		ih = node_short_ih_at(dst_node, dst_place.pos.item);
+		dst_ih = node_short_ih_at(dst_node, dst_place.pos.item);
 
-		aal_memcpy(&ih->key, dst_place.key.body,
-			   sizeof(ih->key));
+		aal_memcpy(&dst_ih->key, dst_place.key.body,
+			   sizeof(dst_ih->key));
 	}
 	
 	if (remove) {

@@ -90,19 +90,22 @@ reiser4_journal_t *reiser4_journal_open(
 }
 
 errno_t reiser4_journal_layout(reiser4_journal_t *journal, 
-			       block_func_t func, void *data)
+			       region_func_t region_func,
+			       void *data)
 {
 	aal_assert("umka-1078", journal != NULL);
-	aal_assert("umka-1079", func != NULL);
+	aal_assert("umka-1079", region_func != NULL);
 
 	return plug_call(journal->entity->plug->o.journal_ops,
-			   layout, journal->entity, func, data);
+			 layout, journal->entity, region_func,
+			 data);
 }
 
-static errno_t callback_action_mark(void *entity, blk_t blk,
-				    void *data)
+static errno_t callback_action_mark(void *entity, blk_t start,
+				    count_t width, void *data)
 {
-	return reiser4_alloc_occupy((reiser4_alloc_t *)data, blk, 1);
+	return reiser4_alloc_occupy((reiser4_alloc_t *)data,
+				    start, width);
 }
 
 /* Marks format area as used */

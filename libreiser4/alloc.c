@@ -288,14 +288,15 @@ bool_t reiser4_alloc_available(
 }
 
 errno_t reiser4_alloc_layout(reiser4_alloc_t *alloc, 
-			     block_func_t func,
+			     region_func_t region_func,
 			     void *data)
 {
 	aal_assert("umka-1080", alloc != NULL);
-	aal_assert("umka-1081", func != NULL);
+	aal_assert("umka-1081", region_func != NULL);
 
 	return plug_call(alloc->entity->plug->o.alloc_ops,
-			 layout, alloc->entity, func, data);
+			 layout, alloc->entity, region_func,
+			 data);
 }
 
 errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc,

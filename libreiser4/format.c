@@ -367,25 +367,27 @@ rid_t reiser4_format_alloc_pid(
 }
 
 errno_t reiser4_format_skipped(reiser4_format_t *format, 
-			       block_func_t func,
+			       region_func_t region_func,
 			       void *data)
 {
 	aal_assert("umka-1083", format != NULL);
-	aal_assert("umka-1084", func != NULL);
+	aal_assert("umka-1084", region_func != NULL);
 
 	return plug_call(format->entity->plug->o.format_ops,
-			 skipped, format->entity, func, data);
+			 skipped, format->entity, region_func,
+			 data);
 }
 
 errno_t reiser4_format_layout(reiser4_format_t *format, 
-			      block_func_t func,
+			      region_func_t region_func,
 			      void *data)
 {
 	aal_assert("umka-1076", format != NULL);
-	aal_assert("umka-1077", func != NULL);
+	aal_assert("umka-1077", region_func != NULL);
 
 	return plug_call(format->entity->plug->o.format_ops,
-			 layout, format->entity, func, data);
+			 layout, format->entity, region_func,
+			 data);
 }
 
 /* Returns oid allocator plugin id in use */

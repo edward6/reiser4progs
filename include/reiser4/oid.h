@@ -13,7 +13,7 @@ extern void reiser4_oid_close(reiser4_oid_t *oid);
 extern reiser4_oid_t *reiser4_oid_open(reiser4_fs_t *fs);
 
 extern errno_t reiser4_oid_layout(reiser4_oid_t *oid,
-				  block_func_t block_func,
+				  region_func_t region_func,
 				  void *data);
 
 extern errno_t reiser4_oid_sync(reiser4_oid_t *oid);
@@ -37,7 +37,6 @@ extern void reiser4_oid_mkclean(reiser4_oid_t *oid);
 extern oid_t reiser4_oid_root_locality(reiser4_oid_t *oid);
 extern oid_t reiser4_oid_root_objectid(reiser4_oid_t *oid);
 extern oid_t reiser4_oid_hyper_locality(reiser4_oid_t *oid);
-
 #endif
 
 #endif

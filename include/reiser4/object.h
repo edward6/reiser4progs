@@ -9,6 +9,20 @@
 
 #include <reiser4/types.h>
 
+typedef errno_t (*object_init_t) (reiser4_object_t *, 
+				  reiser4_object_t *);
+
+typedef reiser4_object_t *(*object_open_func_t) (reiser4_object_t *, 
+						 entry_hint_t *, 
+						 void *);
+
+extern void reiser4_object_close(reiser4_object_t *object);
+extern errno_t reiser4_object_stat(reiser4_object_t *object);
+extern uint64_t reiser4_object_size(reiser4_object_t *object);
+
+extern errno_t reiser4_object_seek(reiser4_object_t *object,
+				   uint32_t offset);
+
 extern int32_t reiser4_object_read(reiser4_object_t *object,
 				   void *buff, uint32_t n);
 
@@ -18,9 +32,6 @@ extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 extern reiser4_object_t *reiser4_object_open(reiser4_tree_t *tree,
 					     char *filename,
 					     bool_t follow);
-
-typedef errno_t (*object_init_t) (reiser4_object_t *object, 
-				  reiser4_object_t *parent);
 
 extern reiser4_object_t *reiser4_object_guess(reiser4_tree_t *tree, 
 					      reiser4_object_t *parent,	
@@ -38,13 +49,6 @@ extern reiser4_object_t *reiser4_object_realize(reiser4_tree_t *tree,
 extern reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 					       reiser4_object_t *parent,
 					       reiser4_key_t *key);
-
-extern void reiser4_object_close(reiser4_object_t *object);
-extern errno_t reiser4_object_stat(reiser4_object_t *object);
-extern uint64_t reiser4_object_size(reiser4_object_t *object);
-
-extern errno_t reiser4_object_seek(reiser4_object_t *object,
-				   uint32_t offset);
 
 #ifndef ENABLE_STAND_ALONE
 extern reiser4_object_t *reiser4_object_create(reiser4_tree_t *tree,
@@ -89,10 +93,12 @@ extern errno_t reiser4_object_truncate(reiser4_object_t *object,
 				       uint64_t n);
 
 extern errno_t reiser4_object_layout(reiser4_object_t *object,
-				     block_func_t func, void *data);
+				     region_func_t region_func,
+				     void *data);
 
 extern errno_t reiser4_object_metadata(reiser4_object_t *object,
-				       place_func_t func, void *data);
+				       place_func_t place_func,
+				       void *data);
 
 extern reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 					    reiser4_object_t *parent,
@@ -106,10 +112,6 @@ extern reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 					    reiser4_object_t *parent,
 					    const char *name,
 					    const char *target);
-
-typedef reiser4_object_t *(*object_open_func_t) (reiser4_object_t *parent, 
-						 entry_hint_t *entry, 
-						 void *data);
 
 extern errno_t reiser4_object_traverse(reiser4_object_t *object, 
 				       object_open_func_t open_func,

@@ -177,13 +177,13 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 				reiser4_node_unlock(parent);
 		}
 		
-		blksize = reiser4_master_blksize(tree->fs->master);
-
 #ifndef ENABLE_STAND_ALONE
 		pid = reiser4_profile_value("node");
 #else
 		pid = reiser4_format_node_pid(tree->fs->format);
 #endif
+
+		blksize = reiser4_master_blksize(tree->fs->master);
 
 		/* Node is not loaded yet. Loading it and connecting to @parent
 		   node cache. */

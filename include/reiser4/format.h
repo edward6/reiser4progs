@@ -24,11 +24,11 @@ extern reiser4_format_t *reiser4_format_create(reiser4_fs_t *fs,
 					       rid_t pid);
 
 extern errno_t reiser4_format_skipped(reiser4_format_t *format, 
-				      block_func_t func,
+				      region_func_t func,
 				      void *data);
 
 extern errno_t reiser4_format_layout(reiser4_format_t *format, 
-				     block_func_t func,
+				     region_func_t func,
 				     void *data);
 
 extern void reiser4_format_set_root(reiser4_format_t *format, 

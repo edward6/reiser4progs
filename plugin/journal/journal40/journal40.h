@@ -7,9 +7,11 @@
 #define JOURNAL40_h
 
 #ifndef ENABLE_STAND_ALONE
-
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
+
+#define JOURNAL40_BLOCKNR(blksize) \
+        ((REISER4_MASTER_OFFSET / blksize) + 3)
 
 struct journal40_area {
 	blk_t start;
@@ -21,24 +23,21 @@ typedef struct journal40_area journal40_area_t;
 struct journal40 {
 	reiser4_plug_t *plug;
 
+	/* Filesystem blocksize */
+	uint32_t blksize;
+	
 	/* Joirnal device */
 	aal_device_t *device;
 
 	/* Format instance */
 	generic_entity_t *format;
 
-	/* Filesystem blocksize */
-	uint32_t blksize;
-
 	journal40_area_t area;
 	
 	/* Journal header and footer */
 	aal_block_t *header;
 	aal_block_t *footer;
-
-#ifndef ENABLE_STAND_ALONE
 	int dirty;
-#endif
 };
 
 typedef struct journal40 journal40_t;

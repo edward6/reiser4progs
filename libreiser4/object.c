@@ -611,21 +611,21 @@ errno_t reiser4_object_print(reiser4_object_t *object,
 /* Enumerates all blocks passed @object occupies */
 errno_t reiser4_object_layout(
 	reiser4_object_t *object,   /* object we working with */
-	block_func_t block_func,    /* layout callback */
+	region_func_t region_func,  /* layout callback function */
 	void *data)                 /* user-specified data */
 {
 	reiser4_plug_t *plug;
 	
 	aal_assert("umka-1469", object != NULL);
-	aal_assert("umka-1470", block_func != NULL);
+	aal_assert("umka-1470", region_func != NULL);
 
 	plug = object->entity->plug;
 	
 	if (!plug->o.object_ops->layout)
 		return 0;
 	
-	return plug->o.object_ops->layout(object->entity,
-					  block_func, data);
+	return plug_call(plug->o.object_ops, layout,
+			 object->entity, region_func, data);
 }
 
 /* Enumerates all items object consists of */
@@ -644,8 +644,8 @@ errno_t reiser4_object_metadata(
 	if (!plug->o.object_ops->metadata)
 		return 0;
 	
-	return plug->o.object_ops->metadata(object->entity,
-					    place_func, data);
+	return plug_call(plug->o.object_ops, metadata,
+			 object->entity, place_func, data);
 }
 
 /* Makes lookup inside the @object */

@@ -41,7 +41,7 @@ static void debugfs_print_usage(char *name) {
 		"  -t, --print-tree                prints the whole tree.\n"
 		"  -j, --print-journal             prints journal.\n"
 		"  -d, --print-oid                 prints oid allocator data.\n"
-		"  -k, --print-alloc               prints block allocator data.\n"
+		"  -a, --print-alloc               prints block allocator data.\n"
 		"  -b, --print-block N             prints block by its number.\n"
 		"  -n, --print-nodes FILE          prints all nodes file lies in.\n"
 		"  -i, --print-items FILE          prints all items specified file\n"
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
 		{"print-tree", no_argument, NULL, 't'},
 		{"print-journal", no_argument, NULL, 'j'},
 		{"print-super", no_argument, NULL, 's'},
-		{"print-alloc", no_argument, NULL, 'k'},
+		{"print-alloc", no_argument, NULL, 'a'},
 		{"print-oid", no_argument, NULL, 'd'},
 		{"print-block", required_argument, NULL, 'b'},
 		{"print-nodes", required_argument, NULL, 'n'},
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:Ppsk",
+	while ((c = getopt_long(argc, argv, "hVqftb:djc:n:i:o:Ppsa",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
 		case 'd':
 			print_flags |= PF_OID;
 			break;
-		case 'k':
+		case 'a':
 			print_flags |= PF_ALLOC;
 			break;
 		case 's':

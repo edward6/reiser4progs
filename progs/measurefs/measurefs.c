@@ -217,9 +217,12 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 
 	/* Calling tree traversal */
 	if ((res = reiser4_tree_traverse(fs->tree, tfrag_open_node,
-					 tfrag_process_node, tfrag_update_node,
+					 tfrag_process_node,
+					 tfrag_update_node,
 					 NULL, &frag_hint)))
+	{
 		return res;
+	}
 
 	if (frag_hint.gauge)
 		aal_gauge_free(frag_hint.gauge);
@@ -253,12 +256,13 @@ typedef struct tstat_hint tstat_hint_t;
 static errno_t stat_process_item(
 	void *entity,		    /* item we traverse now */
 	uint64_t start,             /* region start */
-	uint64_t count,             /* region count */
+	uint64_t width,             /* region count */
 	void *data)                 /* one of blk item points to */
 {
-	tstat_hint_t *stat_hint = (tstat_hint_t *)data;
-	stat_hint->nodes += count;
+	tstat_hint_t *stat_hint;
 
+	stat_hint = (tstat_hint_t *)data;
+	stat_hint->nodes += width;
 	return 0;
 }
 
@@ -363,7 +367,9 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	
 	if ((res = reiser4_tree_traverse(fs->tree, NULL, stat_process_node, 
 					 NULL, NULL, &stat_hint)))
+	{
 		return res;
+	}
 
 	if (stat_hint.gauge) {
 		aal_gauge_free(stat_hint.gauge);
@@ -404,25 +410,26 @@ typedef struct ffrag_hint ffrag_hint_t;
    traversing. */
 static errno_t ffrag_process_blk(
 	void *entity,              /* file to be inspected */
-	blk_t blk,                 /* next file block */
+	blk_t start,               /* start block of next region */
+	count_t width,             /* width of the next region */
 	void *data)                /* user-specified data */
 {
 	int64_t delta;
 	ffrag_hint_t *frag_hint;
 
 	frag_hint = (ffrag_hint_t *)data;
-	
+
 	/* Check if we are went here first time */
 	if (frag_hint->last > 0) {
-		delta = frag_hint->last - blk;
+		delta = frag_hint->last - start;
 
 		if (labs(delta) > 1)
 			frag_hint->bad++;
 
-		frag_hint->total++;
+		frag_hint->total += width;
 	}
 
-	frag_hint->last = blk;
+	frag_hint->last = start + width - 1;
 	return 0;
 }
 
@@ -474,7 +481,6 @@ static errno_t dfrag_process_node(
 	void *data)                 /* traverse hint */
 {
 	pos_t pos;
-	static int bogus = 0;
 	ffrag_hint_t *frag_hint;
 
 	pos.unit = MAX_UINT32;
@@ -512,10 +518,8 @@ static errno_t dfrag_process_node(
 		frag_hint->last = 0;
 		frag_hint->total = 0;
 
-		if (frag_hint->gauge && bogus++ % 16 == 0)
+		if (frag_hint->gauge)
 			aal_gauge_update(frag_hint->gauge, 0);
-
-		bogus %= 16;
 
 		/* Calling calculating the file fragmentation by emans of using
 		   the function we have seen abowe. */

@@ -347,10 +347,8 @@ typedef struct copy_hint copy_hint_t;
 typedef errno_t (*region_func_t) (void *, uint64_t,
 				  uint64_t, void *);
 
-typedef errno_t (*block_func_t) (void *, uint64_t, void *);
 typedef errno_t (*place_func_t) (void *, place_t *, void *);
-
-typedef errno_t (*layout_func_t) (void *, block_func_t, void *);
+typedef errno_t (*layout_func_t) (void *, region_func_t, void *);
 typedef errno_t (*metadata_func_t) (void *, place_func_t, void *);
 
 /* To create a new item or to insert into the item we need to perform the
@@ -644,14 +642,15 @@ struct reiser4_object_ops {
 	/* Function for going through the all data blocks specfied file
 	   occupies. It is needed for the purposes like data fragmentation
 	   measuring, etc. */
-	errno_t (*layout) (object_entity_t *, block_func_t, void *);
+	errno_t (*layout) (object_entity_t *, region_func_t, void *);
 	
 	/* Checks and recover the structure of the object. */
 	errno_t (*check_struct) (object_entity_t *, place_func_t, 
 				 region_func_t, void *, uint8_t);
 	
 	/* Checks attach of the @object to the @parent. */
-	errno_t (*check_attach) (object_entity_t *, object_entity_t *, uint8_t);
+	errno_t (*check_attach) (object_entity_t *, object_entity_t *,
+				 uint8_t);
 	
 	/* Realizes if the object can be of this plugin and can be 
 	   recovered as a such. */
@@ -990,8 +989,8 @@ struct reiser4_format_ops {
 	rid_t (*journal_pid) (generic_entity_t *);
 	rid_t (*alloc_pid) (generic_entity_t *);
 
-	errno_t (*layout) (generic_entity_t *, block_func_t, void *);
-	errno_t (*skipped) (generic_entity_t *, block_func_t, void *);
+	errno_t (*layout) (generic_entity_t *, region_func_t, void *);
+	errno_t (*skipped) (generic_entity_t *, region_func_t, void *);
 
 	/* Checks format-specific super block for validness. Also checks whether
 	   filesystem objects lie in valid places. For example, format-specific
@@ -1053,7 +1052,7 @@ struct reiser4_oid_ops {
 	errno_t (*sync) (generic_entity_t *);
 
 	errno_t (*layout) (generic_entity_t *,
-			   block_func_t, void *);
+			   region_func_t, void *);
 
 	int (*isdirty) (generic_entity_t *);
 	void (*mkdirty) (generic_entity_t *);
@@ -1131,7 +1130,8 @@ struct reiser4_alloc_ops {
 			  uint16_t);
 
 	/* Calls func for each block in block allocator */
-	errno_t (*layout) (generic_entity_t *, block_func_t, void *);
+	errno_t (*layout) (generic_entity_t *,
+			   region_func_t, void *);
 	
 	/* Checks if passed range of blocks used */
 	int (*occupied) (generic_entity_t *, uint64_t,
@@ -1197,10 +1197,11 @@ struct reiser4_journal_ops {
 			  uint16_t);
 	
 	/* Checks thoroughly the journal structure. */
-	errno_t (*check_struct) (generic_entity_t *, layout_func_t, void *);
+	errno_t (*check_struct) (generic_entity_t *,
+				 layout_func_t, void *);
 
 	/* Calls func for each block in block allocator */
-	errno_t (*layout) (generic_entity_t *, block_func_t,
+	errno_t (*layout) (generic_entity_t *, region_func_t,
 			   void *);
 };
 

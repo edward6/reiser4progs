@@ -31,7 +31,7 @@ extern errno_t reiser4_journal_valid(reiser4_journal_t *journal);
 extern bool_t reiser4_journal_isdirty(reiser4_journal_t *journal);
 
 extern errno_t reiser4_journal_layout(reiser4_journal_t *journal, 
-				      block_func_t func,
+				      region_func_t region_func,
 				      void *data);
 
 #endif

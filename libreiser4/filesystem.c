@@ -114,10 +114,11 @@ void reiser4_fs_close(
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t callback_check_block(void *entity, uint64_t blk,
-				    void *data)
+static errno_t callback_check_block(void *entity, blk_t start,
+				    count_t width, void *data)
 {
-	return -(blk == *(uint64_t *)data);
+	blk_t blk = *(blk_t *)data;
+	return (blk >= start && blk < start + width);
 }
 
 /* Returns passed @blk owner */
@@ -155,37 +156,42 @@ reiser4_owner_t reiser4_fs_belongs(
 }
 
 /* Enumerates all filesystem areas (block alloc, journal, etc.) */
-errno_t reiser4_fs_layout(
-	reiser4_fs_t *fs,
-	block_func_t block_func, 
-	void *data)
+errno_t reiser4_fs_layout(reiser4_fs_t *fs,
+			  region_func_t region_func, 
+			  void *data)
 {
 	errno_t res;
 
 	/* Enumerating skipped area */
-	if ((res = reiser4_format_skipped(fs->format, block_func, data)))
+	if ((res = reiser4_format_skipped(fs->format, region_func, data)))
 		return res;
 	
 	/* Enumerating oid allocator area */
-	if ((res = reiser4_oid_layout(fs->oid, block_func, data)))
+	if ((res = reiser4_oid_layout(fs->oid, region_func, data)))
 		return res;
 	
 	/* Enumerating format area */
-	if ((res = reiser4_format_layout(fs->format, block_func, data)))
+	if ((res = reiser4_format_layout(fs->format, region_func, data)))
 		return res;
 
 	/* Enumerating journal area */
 	if (fs->journal) {
-		if ((res = reiser4_journal_layout(fs->journal, block_func, data)))
+		if ((res = reiser4_journal_layout(fs->journal,
+						  region_func, data)))
+		{
 			return res;
+		}
 	}
     
 	/* Enumerating block allocator area */
-	return reiser4_alloc_layout(fs->alloc, block_func, data);
+	return reiser4_alloc_layout(fs->alloc, region_func, data);
 }
 
-static errno_t callback_mark_block(void *entity, blk_t blk, void *data) {
-	return reiser4_alloc_occupy((reiser4_alloc_t *)data, blk, 1);
+static errno_t callback_mark_block(void *entity, blk_t start,
+				   count_t width, void *data)
+{
+	return reiser4_alloc_occupy((reiser4_alloc_t *)data,
+				    start, width);
 }
 
 /* Marks filesystem area as used */
@@ -196,8 +202,8 @@ errno_t reiser4_fs_mark(reiser4_fs_t *fs) {
 	aal_assert("umka-1684", fs->alloc != NULL);
 
         /* Marking master super block */
-	blk = REISER4_MASTER_OFFSET /
-		reiser4_master_blksize(fs->master);
+	blk = (REISER4_MASTER_OFFSET /
+	       reiser4_master_blksize(fs->master));
 	
 	reiser4_alloc_occupy(fs->alloc, blk, 1);
 	

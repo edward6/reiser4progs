@@ -111,7 +111,7 @@ errno_t alloc40_related(generic_entity_t *entity, blk_t blk,
 /* Calls func for each block allocator block. This function is used in all block
    block allocator operations like load, save, etc. */
 errno_t alloc40_layout(generic_entity_t *entity,
-		       block_func_t block_func,
+		       region_func_t region_func,
 		       void *data) 
 {
 	count_t bpb;
@@ -119,7 +119,7 @@ errno_t alloc40_layout(generic_entity_t *entity,
 	blk_t blk, start;
 	
 	aal_assert("umka-347", entity != NULL);
-	aal_assert("umka-348", block_func != NULL);
+	aal_assert("umka-348", region_func != NULL);
 
 	alloc = (alloc40_t *)entity;
 
@@ -136,7 +136,7 @@ errno_t alloc40_layout(generic_entity_t *entity,
 	{
 		errno_t res;
 		
-		if ((res = block_func(entity, blk, data)))
+		if ((res = region_func(entity, blk, 1, data)))
 			return res;
 	}
     
@@ -147,14 +147,14 @@ errno_t alloc40_layout(generic_entity_t *entity,
    saves it in allocator checksums area. Actually this function is callback one
    which is called by alloc40_layout function in order to load all bitmap map
    from the device. See alloc40_open for details. */
-static errno_t callback_fetch_bitmap(void *entity, uint64_t blk,
-				     void *data)
+static errno_t callback_fetch_bitmap(void *entity, blk_t start,
+				     count_t width, void *data)
 {
 	errno_t res;
 	uint64_t offset;
 	alloc40_t *alloc;
 	aal_block_t block;
-	char *current, *start;
+	char *current, *map;
 	uint32_t size, chunk, free;
     
 	aal_assert("umka-1053", entity != NULL);
@@ -162,25 +162,25 @@ static errno_t callback_fetch_bitmap(void *entity, uint64_t blk,
 	alloc = (alloc40_t *)entity;
 
 	if ((res = aal_block_init(&block, alloc->device,
-				  alloc->blksize, blk)))
+				  alloc->blksize, start)))
 	{
 		return res;
 	}
 
 	if ((res = aal_block_read(&block))) {
-		aal_exception_error("Can't read bitmap block %llu. "
-				    "%s.", blk, alloc->device->error);
+		aal_exception_error("Can't read bitmap block %llu. %s.",
+				    start, alloc->device->error);
 		goto error_free_block;
 	}
 
 	size = alloc->blksize - CRC_SIZE;
-	start = aux_bitmap_map(alloc->bitmap);
+	map = aux_bitmap_map(alloc->bitmap);
 
-	offset = blk / size / 8;
-	current = start + (size * offset);
+	offset = start / size / 8;
+	current = map + (size * offset);
 
 	/* Calculating where and how many bytes will be copied */
-	free = (start + alloc->bitmap->size) - current;
+	free = (map + alloc->bitmap->size) - current;
 	chunk = free > size ? size : free;
 
 	/* Copying bitmap data and crc data into corresponding memory areas in
@@ -332,13 +332,13 @@ static errno_t alloc40_extract(generic_entity_t *entity, void *data) {
 }
 
 /* Callback for saving one bitmap block onto device */
-static errno_t callback_sync_bitmap(void *entity, uint64_t blk,
-				    void *data)
+static errno_t callback_sync_bitmap(void *entity, blk_t start,
+				    count_t width, void *data)
 {
 	errno_t res;
 	alloc40_t *alloc;
 	aal_block_t block;
-	char *current, *start; 
+	char *current, *map; 
 	uint32_t size, adler, chunk;
 	
 	aal_assert("umka-1055", entity != NULL);
@@ -349,7 +349,7 @@ static errno_t callback_sync_bitmap(void *entity, uint64_t blk,
 	   turned on). This is needed in order to make the rest of last block
 	   filled by 0xff istead of 0x00 as it might be by default. */
 	if ((res = aal_block_init(&block, alloc->device,
-				  alloc->blksize, blk)))
+				  alloc->blksize, start)))
 	{
 		return res;
 	}
@@ -357,12 +357,12 @@ static errno_t callback_sync_bitmap(void *entity, uint64_t blk,
 	aal_block_fill(&block, 0xff);
 
 	size = block.size - CRC_SIZE;
-	start = aux_bitmap_map(alloc->bitmap);
-	current = start + (size * (blk / size / 8));
+	map = aux_bitmap_map(alloc->bitmap);
+	current = map + (size * (start / size / 8));
     
 	/* Copying the piece of bitmap map into allocated block to be saved */
-	chunk = (start + alloc->bitmap->size) - current > (int)size ? 
-		(int)size : (int)((start + alloc->bitmap->size) - current);
+	chunk = (map + alloc->bitmap->size) - current > (int)size ? 
+		(int)size : (int)((map + alloc->bitmap->size) - current);
 
 	aal_memcpy(block.data + CRC_SIZE, current, chunk);
 
@@ -389,7 +389,7 @@ static errno_t callback_sync_bitmap(void *entity, uint64_t blk,
 	/* Saving block onto device it was allocated on */
 	if ((res = aal_block_write(&block))) {
 		aal_exception_error("Can't write bitmap block %llu. "
-				    "%s.", blk, alloc->device->error);
+				    "%s.", start, alloc->device->error);
 	}
 
  error_free_block:
@@ -500,12 +500,11 @@ static uint64_t alloc40_allocate(generic_entity_t *entity,
 	return found;
 }
 
-static errno_t callback_print_bitmap(void *entity, uint64_t blk,
-				     void *data)
+static errno_t callback_print_bitmap(void *entity, blk_t start,
+				     count_t width, void *data)
 {
 	uint32_t size;
 	uint64_t offset;
-
 	alloc40_t *alloc;
 	aal_stream_t *stream;
 	
@@ -513,10 +512,9 @@ static errno_t callback_print_bitmap(void *entity, uint64_t blk,
 	stream = (aal_stream_t *)data;
 
 	size = alloc->blksize - CRC_SIZE;
+	offset = start / size / 8;
 	
-	offset = blk / size / 8;
-	
-	aal_stream_format(stream, "%*llu [ 0x%lx ]\n", 10, blk,
+	aal_stream_format(stream, "%*llu [ 0x%lx ]\n", 10, start,
 			  *((uint32_t *)alloc->crc + offset));
 
 	return 0;
@@ -641,27 +639,27 @@ static int alloc40_available(generic_entity_t *entity,
 
 /* Callback function for checking one bitmap block on validness. Here we just
    calculate actual checksum and compare it with loaded one. */
-errno_t callback_check_bitmap(void *entity, uint64_t blk,
-			      void *data)
+errno_t callback_check_bitmap(void *entity, blk_t start,
+			      count_t width, void *data)
 {
 	uint32_t chunk;
 	uint64_t offset;
 	alloc40_t *alloc;
 	uint32_t size, free;
-	char *current, *start;
+	char *current, *map;
 	uint32_t ladler, cadler;
     
 	alloc = (alloc40_t *)entity;
 	size = alloc->blksize - CRC_SIZE;
-	start = aux_bitmap_map(alloc->bitmap);
+	map = aux_bitmap_map(alloc->bitmap);
     
 	/* Getting pointer to next bitmap portion */
-	offset = blk / size / 8;
-	current = start + (offset * size);
+	offset = start / size / 8;
+	current = map + (offset * size);
 	    
 	/* Getting the checksum from loaded crc map */
 	ladler = *((uint32_t *)(alloc->crc + (offset * CRC_SIZE)));
-	free = (start + alloc->bitmap->size) - current;
+	free = (map + alloc->bitmap->size) - current;
     
 	/* Calculating adler checksumm for piece of bitmap */
 	chunk = free > size ? size : free;
@@ -684,7 +682,7 @@ errno_t callback_check_bitmap(void *entity, uint64_t blk,
 	if (ladler != cadler) {
 		aal_exception_warn("Checksum missmatch in bitmap "
 				   "block %llu. Checksum is 0x%x, "
-				   "should be 0x%x.", blk, ladler,
+				   "should be 0x%x.", start, ladler,
 				   cadler);
 	
 		return -ESTRUCT;

@@ -23,7 +23,7 @@ extern errno_t reiser4_fs_copy(reiser4_fs_t *src_fs,
 			       reiser4_fs_t *dst_fs);
 
 extern errno_t reiser4_fs_layout(reiser4_fs_t *fs,
-				 block_func_t block_func, 
+				 region_func_t region_func, 
 				 void *data);
 
 extern reiser4_owner_t reiser4_fs_belongs(reiser4_fs_t *fs,

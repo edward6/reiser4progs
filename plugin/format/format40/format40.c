@@ -81,45 +81,35 @@ static void format40_mkclean(generic_entity_t *entity) {
 }
 
 static errno_t format40_skipped(generic_entity_t *entity,
-				block_func_t block_func,
+				region_func_t region_func,
 				void *data) 
 {
-	errno_t res;
-	blk_t blk, offset;
+	blk_t offset;
 	format40_t *format;
         
 	aal_assert("umka-1085", entity != NULL);
-	aal_assert("umka-1086", block_func != NULL);
+	aal_assert("umka-1086", region_func != NULL);
 
 	format = (format40_t *)entity;
 	offset = MASTER_BLOCKNR(format->blksize);
     
-	for (blk = 0; blk < offset; blk++) {
-		if ((res = block_func(entity, blk, data)))
-			return res;
-	}
-    
-	return 0;
+	return region_func(entity, 0, offset, data);
 }
 
 static errno_t format40_layout(generic_entity_t *entity,
-			       block_func_t block_func,
+			       region_func_t region_func,
 			       void *data) 
 {
 	blk_t blk;
-	errno_t res;
 	format40_t *format;
         
 	aal_assert("umka-1042", entity != NULL);
-	aal_assert("umka-1043", block_func != NULL);
+	aal_assert("umka-1043", region_func != NULL);
     
 	format = (format40_t *)entity;
 	blk = FORMAT40_BLOCKNR(format->blksize);
     
-	if ((res = block_func(entity, blk, data)))
-		return res;
-    
-	return 0;
+	return region_func(entity, blk, 1, data);
 }
 
 static errno_t format40_check(generic_entity_t *entity,
@@ -227,9 +217,10 @@ static void format40_close(generic_entity_t *entity) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t callback_clobber_block(void *entity, blk_t blk,
-				      void *data) 
+static errno_t callback_clobber_block(void *entity, blk_t start,
+				      count_t width, void *data) 
 {
+	blk_t blk;
 	errno_t res;
 	aal_block_t block;
 	format40_t *format;
@@ -243,8 +234,15 @@ static errno_t callback_clobber_block(void *entity, blk_t blk,
 	}
 	
 	aal_block_fill(&block, 0);
-	res = aal_block_write(&block);
-	
+
+	for (blk = start; blk < start + width; blk++) {
+		aal_block_move(&block, format->device, blk);
+		
+		if ((res = aal_block_write(&block)))
+			goto error_free_block;
+	}
+
+ error_free_block:
 	aal_block_fini(&block);
 	return res;
 }

@@ -196,14 +196,14 @@ static errno_t sym40_metadata(object_entity_t *entity,
 
 /* Calls function @func for each block symlink items lie in */
 static errno_t sym40_layout(object_entity_t *entity,
-			    block_func_t block_func,
+			    region_func_t region_func,
 			    void *data)
 {
 	blk_t blk;
 	sym40_t *sym;
 
 	aal_assert("umka-1720", entity != NULL);
-	aal_assert("umka-1721", block_func != NULL);
+	aal_assert("umka-1721", region_func != NULL);
 
 	sym = (sym40_t *)entity;
 
@@ -211,7 +211,7 @@ static errno_t sym40_layout(object_entity_t *entity,
 		return -EINVAL;
 	
 	blk = STAT_PLACE(&sym->obj)->block->nr;
-	return block_func(entity, blk, data);
+	return region_func(entity, blk, 1, data);
 }
 
 extern object_entity_t *sym40_realize(object_info_t *info);

@@ -636,81 +636,70 @@ static errno_t reg40_clobber(object_entity_t *entity) {
 			    STAT_PLACE(&reg->obj), &hint);
 }
 
-/* Layout related stuff */
 struct layout_hint {
-	object_entity_t *entity;
-	block_func_t block_func;
 	void *data;
+	object_entity_t *entity;
+	region_func_t region_func;
 };
 
 typedef struct layout_hint layout_hint_t;
 
-static errno_t callback_item_data(void *object, uint64_t start,
-				  uint64_t count, void *data)
+static errno_t callback_item_layout(void *place, blk_t start,
+				    count_t width, void *data)
 {
-	blk_t blk;
-	errno_t res;
-	
-	place_t *place = (place_t *)object;
 	layout_hint_t *hint = (layout_hint_t *)data;
 
-	for (blk = start; blk < start + count; blk++) {
-		if ((res = hint->block_func(hint->entity, blk,
-					    hint->data)))
-		{
-			return res;
-		}
-	}
-
-	return 0;
+	return hint->region_func(hint->entity, start,
+				 width, hint->data);
 }
 
 /* Traverses all blocks belong to the passed file and calls passed @block_func
    for each of them. It is needed for calculating fragmentation, printing,
    etc. */
 static errno_t reg40_layout(object_entity_t *entity,
-			    block_func_t block_func,
+			    region_func_t region_func,
 			    void *data)
 {
 	errno_t res;
 	reg40_t *reg;
 	uint64_t size;
+	uint64_t offset;
+
 	layout_hint_t hint;
-	
+	key_entity_t maxkey;
+		
 	aal_assert("umka-1471", entity != NULL);
-	aal_assert("umka-1472", block_func != NULL);
+	aal_assert("umka-1472", region_func != NULL);
 
 	reg = (reg40_t *)entity;
 	
 	if (!(size = reg40_size(entity)))
 		return 0;
 
-	/* Preparing layout hint */
 	hint.data = data;
 	hint.entity = entity;
-	hint.block_func = block_func;
-		
+	hint.region_func = region_func;
+	
 	while (reg40_offset(entity) < size) {
-		uint64_t offset;
-		key_entity_t maxkey;
+		place_t *place = &reg->body;
 		
 		/* Updating place fo current body item */
 		if ((res = reg40_update(entity)))
 			return res;
 
 		/* Calling enumerator funtions */
-		if (reg->body.plug->o.item_ops->layout) {
-			if ((res = plug_call(reg->body.plug->o.item_ops,
-					     layout, &reg->body,
-					     callback_item_data, &hint)))
+		if (place->plug->o.item_ops->layout) {
+			if ((res = plug_call(place->plug->o.item_ops, layout,
+					     place, callback_item_layout,
+					     &hint)))
 			{
 				return res;
 			}
 		} else {
-			blk_t blk = reg->body.block->nr;
+			blk_t blk = place->block->nr;
 			
-			if ((res = callback_item_data(&reg->body, blk,
-						      1, &hint)))
+			if ((res = callback_item_layout(place, blk,
+							1, &hint)))
 			{
 				return res;
 			}

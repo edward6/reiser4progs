@@ -101,10 +101,11 @@ static char *__blk_type_name(journal40_block_t blk_type) {
 }
 
 /* Callback for format.layout. Returns 1 for all fotmat blocks. */
-static errno_t callback_check_format_block(void *entity, blk_t blk,
-					   void *data)
+static errno_t callback_check_format_block(void *entity, blk_t start,
+					   count_t width, void *data)
 {
-	return blk == *(blk_t *)data;
+	blk_t blk = *(blk_t *)data;
+	return (blk >= start && blk < start + width);
 }
 
 /* Check if blk belongs to format area. */
