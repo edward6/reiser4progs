@@ -1,7 +1,7 @@
 /* Copyright 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   repair/plugin.h - reiser4 plugins repair code known types and macros. */
+   repair/plugin.h - reiser4 plugins repair code methods. */
 
 #ifndef REPAIR_PLUGIN_H
 #define REPAIR_PLUGIN_H
@@ -22,32 +22,14 @@ typedef enum repair_mode {
 } repair_mode_t;
 
 typedef enum repair_error {
-	/* To make repair_error_t signed. */
-	RE_BUG		= (-1),
 	/* Fixable errors were detected. */
-	RE_FIXABLE	= (1 << 0),
+	RE_FIXABLE	= 1 << 32,
 	/* Fatal errors were detected. */
-	RE_FATAL	= (1 << 1),
+	RE_FATAL	= 1 << 33,
 	/* For expansibility. */
-	RE_LAST		= (1 << 2)
+	RE_LAST		= 1 << 34,
 } repair_error_t;
 
-#define repair_error_exists(result)  (result)
-#define repair_error_fatal(result)   ((result >= RE_FATAL) || (result < 0))
-
-#define repair_error_check(res, mode)				\
-({								\
-	if (res > 0) {						\
-		aal_assert("vpf-786", (mode != RM_FIX) ||	\
-				      !(res & RE_FIXABLE));	\
-		aal_assert("vpf-787", (mode != RM_BUILD) ||	\
-				      !(res & RE_FIXABLE));	\
-	}							\
-})
-
-#define LOST_PREFIX "lost_name_"
-
-extern void repair_set_error(uint32_t error);
-extern uint32_t repair_get_error();
+#define repair_error_fatal(result)   ((result & RE_FATAL) || (result < 0))
 
 #endif
