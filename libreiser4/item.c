@@ -78,7 +78,7 @@ uint32_t reiser4_item_count(reiser4_item_t *item) {
     
     2. Insertion of info: 
     a) pos->unit == ~0ul 
-    b) hint->info != NULL
+    b) hint->hint != NULL
     c) hint->plugin != NULL
     
     3. Pasting of data: 
@@ -88,7 +88,7 @@ uint32_t reiser4_item_count(reiser4_item_t *item) {
     
     4. Pasting of info: 
     a) pos->unit_pos != ~0ul 
-    b) hint->info != NULL
+    b) hint->hint != NULL
     c) get hint->plugin on the base of pos.
 */
 errno_t reiser4_item_estimate(

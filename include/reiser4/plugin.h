@@ -162,11 +162,11 @@ typedef errno_t (*reiser4_layout_func_t) (reiser4_entity_t *,
     Maximal possible key size. It is used for creating temporary keys by declaring 
     array of uint8_t elements reiser4_KEY_SIZE long.
 */
-#define REISER4_KEY_SIZE 24
+#define KEY_SIZE 24
 
 struct reiser4_key {
     reiser4_plugin_t *plugin;
-    uint8_t body[REISER4_KEY_SIZE];
+    uint8_t body[KEY_SIZE];
 };
 
 typedef struct reiser4_key reiser4_key_t;
@@ -256,7 +256,7 @@ struct reiser4_statdata_hint {
     struct {
 	uint8_t count;
 	void *hint[64];
-    } extentions;
+    } ext;
 };
 
 typedef struct reiser4_statdata_hint reiser4_statdata_hint_t;
@@ -343,16 +343,16 @@ struct reiser4_item_hint {
 
 typedef struct reiser4_item_hint reiser4_item_hint_t;
 
-#define REISER4_PLUGIN_MAX_LABEL	16
-#define REISER4_PLUGIN_MAX_DESC		256
+#define PLUGIN_MAX_LABEL	16
+#define PLUGIN_MAX_DESC		256
 
 /* Common plugin header */
 struct reiser4_plugin_header {
     void *handle;
     rpid_t id;
     reiser4_plugin_type_t type;
-    const char label[REISER4_PLUGIN_MAX_LABEL];
-    const char desc[REISER4_PLUGIN_MAX_DESC];
+    const char label[PLUGIN_MAX_LABEL];
+    const char desc[PLUGIN_MAX_DESC];
 };
 
 typedef struct reiser4_plugin_header reiser4_plugin_header_t;

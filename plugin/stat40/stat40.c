@@ -52,7 +52,7 @@ static errno_t stat40_init(reiser4_item_t *item,
 	}
 	
 	plugin_call(return -1, plugin->sdext_ops, init, extention, 
-	    stat_hint->extentions.hint[i]);
+	    stat_hint->ext.hint[i]);
 	
 	/* 
 	    Getting pointer to the next extention. It is evaluating as previous 

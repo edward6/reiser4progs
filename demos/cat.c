@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 	return 0xff;
     }
     
-    if (!(device = aal_file_open(argv[1], DEFAULT_BLOCKSIZE, O_RDONLY))) {
+    if (!(device = aal_file_open(argv[1], DEFAULT_BLOCKSIZE, O_RDWR))) {
 	aal_exception_error("Can't open device %s.", argv[1]);
 	goto error_free_libreiser4;
     }
@@ -61,7 +61,22 @@ int main(int argc, char *argv[]) {
 	goto error_free_device;
     }
     
-    if (!(reg = reiser4_file_open(fs, argv[2]))) {
+    {
+	reiser4_plugin_t *reg_plugin;
+	reiser4_file_hint_t reg_hint;
+	
+	reg_hint.plugin = libreiser4_factory_ifind(FILE_PLUGIN_TYPE, FILE_REGULAR40_ID);
+	reg_hint.statdata_pid = ITEM_STATDATA40_ID;
+	
+	reg_hint.body.file.tail_pid = ITEM_TAIL40_ID;
+	reg_hint.body.file.extent_pid = ITEM_EXTENT40_ID;
+	
+	reg = reiser4_file_create(fs, &reg_hint, fs->root, "testfile");
+
+	reiser4_file_write(reg, "test small contant", 18);
+    }
+    
+/*    if (!(reg = reiser4_file_open(fs, argv[2]))) {
 	aal_exception_error("Can't open file %s.", argv[2]);
 	goto error_free_fs;
     }
@@ -73,9 +88,10 @@ int main(int argc, char *argv[]) {
 	    break;
 
 	printf("%s", buff);
-    }
+    }*/
     
     reiser4_file_close(reg);
+    reiser4_fs_sync(fs);
     reiser4_fs_close(fs);
     
     libreiser4_done();

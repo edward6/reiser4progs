@@ -94,6 +94,7 @@ static errno_t dir40_realize(dir40_t *dir) {
     if (core->item_ops.open(&dir->statdata, &dir->place)) {
 	aal_exception_error("Can't open the stadata of directory 0x%llx.",
 	    dir40_objectid(dir));
+	return -1;
     }
     
     if (!(dir->hash = dir40_guess(dir))) {
@@ -123,7 +124,6 @@ static errno_t dir40_next(reiser4_entity_t *entity) {
     if (core->item_ops.open(&next_item, place))
 	goto error_set_context;
     
-    /* Here we check is next item belongs to this directory */
     if (next_item.plugin->h.id != dir->body.plugin->h.id)
         goto error_set_context;
 	
@@ -137,11 +137,11 @@ static errno_t dir40_next(reiser4_entity_t *entity) {
         Getting locality of both keys in order to determine is they are 
         mergeable.
     */
-    curr_locality = plugin_call(goto error_set_context, dir->key.plugin->key_ops,
-        get_locality, dir->key.body);
+    curr_locality = plugin_call(goto error_set_context, 
+	dir->key.plugin->key_ops, get_locality, dir->key.body);
 	
-    next_locality = plugin_call(goto error_set_context, dir->key.plugin->key_ops,
-        get_locality, next_key.body);
+    next_locality = plugin_call(goto error_set_context, 
+	dir->key.plugin->key_ops, get_locality, next_key.body);
 	
     /* Determining is items are mergeable */
     if (curr_locality == next_locality) {
@@ -434,11 +434,11 @@ static reiser4_entity_t *dir40_create(const void *tree,
     
     unix_ext.bytes = body_hint.len;
     
-    aal_memset(&stat.extentions, 0, sizeof(stat.extentions));
+    aal_memset(&stat.ext, 0, sizeof(stat.ext));
     
-    stat.extentions.count = 2;
-    stat.extentions.hint[0] = &lw_ext;
-    stat.extentions.hint[1] = &unix_ext;
+    stat.ext.count = 2;
+    stat.ext.hint[0] = &lw_ext;
+    stat.ext.hint[1] = &unix_ext;
 
     stat_hint.hint = &stat;
     

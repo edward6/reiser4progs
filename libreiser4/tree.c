@@ -810,7 +810,6 @@ errno_t reiser4_tree_insert(
 
     aal_assert("umka-779", tree != NULL, return -1);
     aal_assert("umka-779", hint != NULL, return -1);
-//    aal_assert("umka-909", coord != NULL, return -1);
   
     if (!coord) coord = &fake;
     
@@ -823,7 +822,7 @@ errno_t reiser4_tree_insert(
     if (lookup == 1) {
 	aal_exception_error(
 	    "Key (0x%llx 0x%x 0x%llx 0x%llx) already exists in tree.", 
-	    reiser4_key_get_locality(key), reiser4_key_get_type(key),
+	    reiser4_key_get_locality(key), reiser4_key_get_type(key), 
 	    reiser4_key_get_objectid(key), reiser4_key_get_offset(key));
 	return -1;
     }
