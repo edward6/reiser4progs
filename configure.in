@@ -188,8 +188,6 @@ dnl make libc threadsafe (not required for us for awhile, but useful other users
 dnl ibreiser4)
 GENERIC_CFLAGS="$GENERIC_CFLAGS -D_REENTRANT"
 
-if test x$enable_alone = xno; then
-
 AC_SYS_LARGEFILE
 
 if test -z "${ac_cv_sys_file_offset_bits}"; then
@@ -204,8 +202,6 @@ AC_CHECK_SIZEOF(off_t, 64, [
 	#include <sys/types.h>
 	#include <unistd.h>
 ])
-
-fi
 
 AM_PROG_LIBTOOL
 

@@ -154,7 +154,6 @@ static errno_t tfrag_update_node(reiser4_place_t *place, void *data) {
 errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
-	reiser4_node_t *root;
 	tfrag_hint_t frag_hint;
 
 	/*
@@ -165,15 +164,13 @@ errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 				       "Tree fragmentation", NULL)))
 		return -1;
 	
-	root = fs->tree->root;
-
 	/* Preparing serve structure, statistics will be stored in  */
 	frag_hint.bad = 0;
 	frag_hint.total = 0;
 	frag_hint.gauge = gauge;
 	frag_hint.tree = fs->tree;
-	frag_hint.curr = root->blk;
-	frag_hint.level = reiser4_node_get_level(root);
+	frag_hint.curr = reiser4_tree_root(fs->tree);
+	frag_hint.level = reiser4_tree_height(fs->tree);
 
 	aal_memset(&hint, 0, sizeof(hint));
 	
