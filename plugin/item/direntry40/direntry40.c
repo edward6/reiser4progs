@@ -922,8 +922,9 @@ static errno_t direntry40_print(item_entity_t *item,
 				aal_stream_t *stream,
 				uint16_t options) 
 {
+	uint32_t i, j;
 	char name[256];
-	uint32_t i, namewidth;
+	uint32_t namewidth;
 	direntry40_t *direntry;
 	uint64_t locality, objectid;
 	
@@ -944,13 +945,12 @@ static errno_t direntry40_print(item_entity_t *item,
 	aal_stream_format(stream, " UNITS=%u\n",
 			  de40_get_units(direntry));
 
-	aal_stream_format(stream, "NR%*s NAME%*s OFFSET HASH%*s "
-			  "SDKEY%*s\n", 1, " ", 17, " ", 29, " ",
-			  13, " ");
+	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "
+			  "SDKEY%*s\n", 22, " ", 29, " ", 13, " ");
 	
 	aal_stream_format(stream, "----------------------------"
 			  "------------------------------------"
-			  "---------------------\n");
+			  "-----------------------\n");
 	
 	/* Loop though the all entries */
 	for (i = 0; i < de40_get_units(direntry); i++) {
@@ -959,14 +959,22 @@ static errno_t direntry40_print(item_entity_t *item,
 
 		direntry40_get_name(item, i, name);
 
+		/* Cutting name by 25 symbols */
+		if (aal_strlen(name) > 25) {
+			for (j = 0; j < 3; j++)
+				name[23 + j] = '.';
+
+			name[23 + j] = '\0';
+		}
+
 		locality = ob40_get_locality(objid);
 		objectid = ob40_get_objectid(objid);
 		
-		namewidth = 20 > aal_strlen(name) ? 20 -
+		namewidth = aal_strlen(name) < 25 ? 25 -
 			aal_strlen(name) + 1 : 1;
 
 		aal_stream_format(stream, "%*d %s%*s %*u %.16llx:%.16llx "
-				  "[ %.7llx:%.7llx ]\n", 3, i, name, namewidth, "", 6,
+				  "%.7llx:%.7llx\n", 3, i, name, namewidth, " ", 6,
 				  entry->offset, ha40_get_objectid(&entry->hash),
 				  ha40_get_offset(&entry->hash), locality, objectid);
 	}

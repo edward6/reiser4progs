@@ -411,10 +411,10 @@ static errno_t callback_print_ext(sdext_entity_t *sdext,
 	aal_stream_format(stream, "plugin:\t\t%s\n",
 			  sdext->plugin->h.desc);
 	
-	aal_stream_format(stream, "offset:\t\t%s\n",
+	aal_stream_format(stream, "offset:\t\t%u\n",
 			  sdext->offset);
 	
-	aal_stream_format(stream, "len:\t\t%s\n",
+	aal_stream_format(stream, "len:\t\t%u\n",
 			  sdext->len);
 	
 	plugin_call(sdext->plugin->sdext_ops, print,
