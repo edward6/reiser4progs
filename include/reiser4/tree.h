@@ -134,12 +134,12 @@ extern errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
 extern reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 					       uint8_t level);
 
-extern int64_t reiser4_tree_modify(reiser4_tree_t *tree, 
+extern int64_t reiser4_tree_modify(reiser4_tree_t *tree,
 				   reiser4_place_t *place,
-				   trans_hint_t *hint, 
+				   trans_hint_t *hint,
 				   uint8_t level, 
-				   estimate_func_t estimate,
-				   modify_func_t modify);
+				   estimate_func_t estimate_func,
+				   modify_func_t modify_func);
 
 extern errno_t reiser4_tree_clone(reiser4_tree_t *src_tree,
 				  reiser4_tree_t *dst_tree);
