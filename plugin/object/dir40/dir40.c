@@ -520,6 +520,11 @@ static errno_t dir40_truncate(object_entity_t *entity,
 
 	key.plugin = dir->obj.key.plugin;
 
+	/*
+	  Generating last item key by means of using maximal one (Nikita's
+	  idea). So, we remove whole directory starting from the last item step
+	  by step.
+	*/
 	maxkey = plugin_call(key.plugin->key_ops, maximal,);
 	offset = plugin_call(key.plugin->key_ops, get_offset, maxkey);
 	objectid = plugin_call(key.plugin->key_ops, get_objectid, maxkey);
@@ -530,7 +535,8 @@ static errno_t dir40_truncate(object_entity_t *entity,
 
 	while (1) {
 		place_t place;
-		
+
+		/* Looking for the last directory item */
 		if ((object40_lookup(&dir->obj, &key, LEAF_LEVEL,
 				     &place)) == LP_FAILED)
 		{
@@ -541,9 +547,11 @@ static errno_t dir40_truncate(object_entity_t *entity,
 			return -1;
 		}
 
+		/* Checking if found item belongs this directory */
 		if (!dir40_mergeable(&dir->body.item, &place.item))
 			return 0;
-		
+
+		/* Removing item from the tree */
 		if (dir->obj.core->tree_ops.remove(dir->obj.tree, &place, 1)) {
 			aal_exception_error("Can't remove directory item "
 					    "from directory 0x%llx.",
