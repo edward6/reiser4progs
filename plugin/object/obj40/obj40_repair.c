@@ -369,9 +369,9 @@ static inline errno_t obj40_check_plug(obj40_t *obj, uint8_t mode) {
 	for (i = 0, diff = 0; i < OPSET_STORE_LAST; i++) {
 		if (!plugh.plug[i]) {
 			/* Leave all present on-disk pset members. */
-			if (aal_test_bit(&obj->info.opset.mask, i)) {
+			if (obj->info.opset.mask & (1 << i)) {
 				plugh.plug[i] = obj->info.opset.plug[i];
-				aal_set_bit(&plugh.mask, i);
+				plugh.mask |= (1 << i);
 			}
 
 			continue;
@@ -408,8 +408,8 @@ static inline errno_t obj40_check_plug(obj40_t *obj, uint8_t mode) {
 			continue;
 		} 
 		
-		if (!aal_test_bit(&obj->info.opset.mask, i) &&
-		    aal_test_bit(&plugh.mask, i)) 
+		if (!(obj->info.opset.mask & (1 << i)) && 
+		    (plugh.mask & (1 << i))) 
 		{
 			aal_error("Node (%llu), item (%u), plugin (%s), "
 				  "[%s]: needs pset member (%u) set to "

@@ -248,21 +248,21 @@ void reiser4_opset_diff(reiser4_tree_t *tree, reiser4_opset_t *opset) {
 
 		/* Only not fs-default essential plugins are stored. */
 		if (tree->ent.opset[i] != opset->plug[i]) {
-			aal_set_bit(&opset->mask, i);
+			opset->mask |= (1 << i);
 			continue;
 		}
 
 
 		/* Remove from SD existent essential plugins that match 
 		   the fs-defaul ones. */
-		if (aal_test_bit(&opset->mask, i)) {
-			aal_clear_bit(&opset->mask, i);
+		if (opset->mask & (1 << i)) {
+			opset->mask &= ~(1 << i);
 			opset->plug[i] = INVAL_PTR;
 			continue;
 		}
 
 		/* All present Non-Essential plugins are left on disk. */
-		aal_clear_bit(&opset->mask, i);
+		opset->mask &= ~(1 << i);
 		opset->plug[i] = NULL;
 	}
 }

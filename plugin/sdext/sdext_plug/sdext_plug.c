@@ -15,8 +15,10 @@ uint16_t sdext_plug_length(stat_entity_t *stat, void *hint) {
 		sdhint_plug_t *h = (sdhint_plug_t *)hint;
 		uint8_t i;
 
-		for (i = 0; i < OPSET_STORE_LAST; i++)
-			count += ((aal_test_bit(&h->mask, i)) ? 1 : 0);
+		for (i = 0; i < OPSET_STORE_LAST; i++) {
+			if (h->mask & (1 << i))
+				count++;
+		}
 	} else {
 		sdext_plug_t *plug = (sdext_plug_t *)stat_body(stat);
 		
@@ -71,7 +73,7 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 		if (!h->plug[mem])
 			h->plug[mem] = INVAL_PTR;
 #endif
-		aal_set_bit(&plugh->mask, mem);
+		plugh->mask |= (1 << mem);
 	}
 
 	return 0;
@@ -92,7 +94,7 @@ static errno_t sdext_plug_init(stat_entity_t *stat, void *hint) {
 	
 	for (mem = 0; mem < OPSET_STORE_LAST; mem++) {
 		/* Find the plugin to be stored. */
-		if (!aal_test_bit(&plugh->mask, mem))
+		if (!(plugh->mask & (1 << mem)))
 			continue;
 
 		sdext_plug_set_member(ext, count, mem);

@@ -58,7 +58,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 				  place_blknr(stat->place), 
 				  stat->place->pos.item, i, mem);
 
-			aal_set_bit(&mask, i);
+			mask |= (1 << i);
 			remove++;
 		} else if (plugh.plug[mem]) {
 			/* Was met already. */
@@ -67,7 +67,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 				  "met already.", place_blknr(stat->place), 
 				  stat->place->pos.item, i, opset_name[mem]);
 
-			aal_set_bit(&mask, i);
+			mask |= (1 << i);
 			remove++;
 		} else {
 			/* Obtain the plugin. */
@@ -83,7 +83,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 					  stat->place->pos.item, i, 
 					  opset_name[mem], id);
 				
-				aal_set_bit(&mask, i);
+				mask |= (1 << i);
 				remove++;
 			} else if (!plugh.plug[mem]) {
 				/* For those members where no one plugin is 
@@ -117,7 +117,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 		(count - 1) * (sizeof(sdext_plug_slot_t));
 	
 	for (i = count - 1; i >= 0; i--, dst -= sizeof(sdext_plug_slot_t)) {
-		if (!aal_test_bit(&mask, i))
+		if (!(mask & (1 << i)))
 			continue;
 
 		aal_memmove(dst, dst + sizeof(sdext_plug_slot_t),

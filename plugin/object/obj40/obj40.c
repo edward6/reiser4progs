@@ -235,7 +235,7 @@ errno_t obj40_create_stat(obj40_t *obj, uint64_t size, uint64_t bytes,
 	aal_memcpy(&plugh, &obj->info, sizeof(plugh));
 #if 0
 	for (i = 0, plcount = 0; i < OPSET_LAST; i++) {
-		plugs.pset[i] = aal_test_bit(&obj->info.opmask, i) ? 
+		plugs.pset[i] = (obj->info.opmask & (1 << i)) ? 
 			obj->info.opset.plug[i] : NULL;
 
 		/* Smth to be stored. */
