@@ -2502,10 +2502,6 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 					reiser4_node_unlock(place->node);
 					return res;
 				}
-				
-				/* Updating new root parent after tree grow. */
-				reiser4_place_dup(&aplace, &save.node->p);
-				aplace.pos.item++;
 			}
 
 			reiser4_node_lock(save.node);
@@ -2888,9 +2884,6 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	/* Checking if we have the tree with height less than requested
 	   level. If so, we should grow the tree up to requested level. */
 	if (level > reiser4_tree_get_height(tree)) {
-		if (reiser4_tree_fresh(tree))
-			return -EINVAL;
-		
 		reiser4_node_lock(place->node);
 
 		if ((res = tree_growup_level(tree, level))) {
