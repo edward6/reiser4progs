@@ -36,6 +36,9 @@ extern errno_t reiser4_tree_detach(reiser4_tree_t *tree, reiser4_node_t *node);
 extern errno_t reiser4_tree_insert(reiser4_tree_t *tree, reiser4_coord_t *coord,
 				   reiser4_item_hint_t *hint);
 
+extern errno_t reiser4_tree_overwrite(reiser4_tree_t *tree, reiser4_coord_t *coord,
+				      reiser4_item_hint_t *hint);
+
 extern errno_t reiser4_tree_remove(reiser4_tree_t *tree, reiser4_coord_t *coord);
 
 extern errno_t reiser4_tree_shift(reiser4_tree_t *tree, reiser4_coord_t *coord,
