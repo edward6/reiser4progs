@@ -45,13 +45,6 @@ enum lookup {
 
 typedef enum lookup lookup_t;
 
-enum key_policy {
-	SHORT = 1 << 0,
-	LARGE = 1 << 1
-};
-
-typedef enum key_policy key_policy_t;
-
 #define POS_INIT(p, i, u) \
         (p)->item = i, (p)->unit = u
 
@@ -91,8 +84,8 @@ typedef enum reiser4_object_group reiser4_object_group_t;
 
 enum reiser4_item_plug_id {
 	ITEM_STATDATA40_ID	= 0x0,
-	ITEM_CDE_LARGE_ID	= 0x1,
-	ITEM_CDE_SHORT_ID	= 0x2,
+	ITEM_SDE40_ID	        = 0x1,
+	ITEM_CDE40_ID	        = 0x2,
 	ITEM_NODEPTR40_ID	= 0x3,
 	ITEM_ACL40_ID		= 0x4,
 	ITEM_EXTENT40_ID	= 0x5,
@@ -112,8 +105,7 @@ enum reiser4_item_group {
 typedef enum reiser4_item_group reiser4_item_group_t;
 
 enum reiser4_node_plug_id {
-	NODE_SHORT_ID	        = 0x0,
-	NODE_LARGE_ID	        = 0x1
+	NODE40_ID               = 0x0
 };
 
 enum reiser4_hash_plug_id {
@@ -548,10 +540,8 @@ struct reiser4_key_ops {
 	/* Returns maximal key for this key-format */
 	key_entity_t *(*maximal) (void);
 
-#if 0
 	/* Returns key size for particular key-format */
 	uint32_t (*bodysize) (void);
-#endif
 
 	/* Compares two keys by comparing its all components */
 	int (*compraw) (body_t *, body_t *);
@@ -881,9 +871,6 @@ struct reiser4_node_ops {
 	errno_t (*remove) (node_entity_t *, pos_t *,
 			   remove_hint_t *);
 
-	/* Removes some amount of items/units */
-	errno_t (*cut) (node_entity_t *, pos_t *, pos_t *);
-	
 	/* Shrinks node without calling any item methods */
 	errno_t (*shrink) (node_entity_t *, pos_t *,
 			   uint32_t, uint32_t);
@@ -947,7 +934,7 @@ struct reiser4_node_ops {
 			  place_t *);
 	
 	/* Returns item count */
-	uint16_t (*items) (node_entity_t *);
+	uint32_t (*items) (node_entity_t *);
     
 	/* Makes lookup inside node by specified key */
 	lookup_t (*lookup) (node_entity_t *, key_entity_t *, 
@@ -1370,9 +1357,6 @@ struct factory_ops {
 
 	/* Finds plugin by its attributes (type and id) */
 	reiser4_plug_t *(*ifind) (rid_t, rid_t);
-	
-	/* Finds plugin by its attributes plus key policy */
-	reiser4_plug_t *(*pfind) (rid_t, rid_t, key_policy_t);
 	
 #ifndef ENABLE_STAND_ALONE
 	/* Finds plugin by its type and name */
