@@ -746,14 +746,14 @@ static errno_t dir40_unlink(object_entity_t *entity) {
 	if (obj40_get_nlink(&dir->obj) > 1)
 		return 0;
 	
-	/* Removing directory when nlink became zero */
+	/* Removing directory when nlink gets 1 */
 	if ((res = dir40_reset(entity)))
 		return res;
 		
 	if ((res = dir40_truncate(entity, 0)))
 		return res;
 
-	/* FIXME-UMKA: Here should be parent @link value decreased */
+	/* FIXME-UMKA: Here should be parent @nlink value decreased */
 
 	if ((res = obj40_stat(&dir->obj)))
 		return res;
@@ -772,11 +772,12 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	uint32_t units;
 	uint32_t atime;
 
+	entry_hint_t ent;
+	create_hint_t hint;
+	
 	key_entity_t *key;
 	item_entity_t *item;
 
-	entry_hint_t ent;
-	create_hint_t hint;
 	oid_t locality, objectid;
 	sdext_unix_hint_t unix_hint;
 	
