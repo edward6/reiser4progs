@@ -381,7 +381,7 @@ reiser4_node_t *reiser4_node_cbp(
 }
 
 /*
-  Helper callback function for comparing two nodes durring registering the new
+  Helper callback function for comparing two nodes during registering of new
   child.
 */
 static int callback_comp_node(
@@ -457,7 +457,7 @@ bool_t reiser4_node_confirm(reiser4_node_t *node) {
 #endif
 
 /* 
-  This function makes search inside specified node for passed key. Position will
+  This function makes search inside of specified node for passed key. Position will
   be stored in passed @pos.
 */
 lookup_t reiser4_node_lookup(
@@ -498,7 +498,7 @@ lookup_t reiser4_node_lookup(
 	item = &place.item;
 
 	/*
-	  We are on the position where key is less then wanted. Key could lies
+	  We are on the position where key is less then wanted. Key could lie
 	  within the item or after the item.
 	*/
 	if (item->plugin->o.item_ops->maxposs_key) {
@@ -608,7 +608,7 @@ errno_t reiser4_node_shift(
 
 	/*
 	  Trying shift something from @node into @neig. As result insert point
-	  may be shifted to.
+	  may be shifted too.
 	*/
 	plugin = node->entity->plugin;
 	
@@ -624,6 +624,7 @@ errno_t reiser4_node_shift(
 		return 0;
 
 	/* Marking nodes as dirty */
+	/* FIXME-GREEN->UMKA: the above comment is misleading */
 	if (!node->children)
 		return 0;
 
@@ -780,7 +781,7 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 }
 
 /*
-  Updates children in-parent position. It is used durring internal nodes
+  Updates children in-parent position. It is used during internal nodes
   modifying.
 */
 errno_t reiser4_node_uchildren(reiser4_node_t *node,
@@ -880,7 +881,7 @@ errno_t reiser4_node_insert(
 	needed = hint->len + (pos->unit == ~0ul ?
 			      reiser4_node_overhead(node) : 0);
 	
-	/* Checking if item length is gretter then free space in node */
+	/* Checking if item length is greater then free space in the node */
 	if (needed > reiser4_node_space(node)) {
 		aal_exception_error("There is no space to insert new "
 				    "item/unit of (%u) size in the node "
