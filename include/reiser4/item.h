@@ -36,12 +36,16 @@ extern errno_t reiser4_item_max_poss_key(reiser4_item_t *item,
 /* Internal item methods */
 extern int reiser4_item_internal(reiser4_item_t *item);
 extern blk_t reiser4_item_get_nptr(reiser4_item_t *item);
+extern count_t reiser4_item_get_nwidth(reiser4_item_t *item);
 extern int reiser4_item_extent(reiser4_item_t *item);
 
 #ifndef ENABLE_COMPACT
 
 extern errno_t reiser4_item_set_nptr(reiser4_item_t *item,
     blk_t blk); 
+
+extern errno_t reiser4_item_set_nwidth(reiser4_item_t *item,
+    count_t width); 
 
 #endif
 
