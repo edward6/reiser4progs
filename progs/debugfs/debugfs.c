@@ -629,6 +629,9 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)
+		print_flags = PF_SUPER;
+		
 	if (!(print_flags & PF_TREE) && (print_flags & PF_ITEMS)) {
 		aal_exception_warn("Option --print-items is only active if "
 				   "--print-tree is specified.");

@@ -21,9 +21,9 @@ static errno_t callback_fetch_bitmap(object_entity_t *format,
 				     uint64_t blk, void *data)
 {
 	aal_block_t *block;
-	uint32_t size, chunk;
 	aal_device_t *device;
 	char *current, *start;
+	uint32_t size, chunk, free;
 	alloc40_t *alloc = (alloc40_t *)data;
     
 	aal_assert("umka-1053", alloc != NULL, return -1);
@@ -47,15 +47,15 @@ static errno_t callback_fetch_bitmap(object_entity_t *format,
     
 	size = aal_block_size(block) - CRC_SIZE;
 	current = start + (size * (blk / size / 8));
-    
-	chunk = (start + alloc->bitmap->size) - current > (int)size ? 
-		(int)size : (int)((start + alloc->bitmap->size) - current);
-	    
+
+	free = (start + alloc->bitmap->size) - current;
+	chunk = free > size ? size : free;
+
 	aal_memcpy(current, block->data + CRC_SIZE, chunk);
-    
-	aal_memcpy((void *)(alloc->crc + ((blk / size / 8) * CRC_SIZE)), 
+
+	aal_memcpy(alloc->crc + (blk / size / 8) * CRC_SIZE,
 		   block->data, CRC_SIZE);
-    
+	
 	aal_block_close(block);
 	return 0;
     
@@ -92,7 +92,7 @@ static object_entity_t *alloc40_open(object_entity_t *format,
 	if (!(alloc->bitmap = aux_bitmap_create(len)))
 		goto error_free_alloc;
   
-	crcsize = (alloc->bitmap->size / blocksize) * CRC_SIZE;
+	crcsize = ((alloc->bitmap->size + blocksize - 1) / blocksize) * CRC_SIZE;
     
 	if (!(alloc->crc = aal_calloc(crcsize, 0)))
 		goto error_free_bitmap;
@@ -360,7 +360,7 @@ static errno_t callback_check_bitmap(object_entity_t *format,
 	char *current, *start;
 	aal_device_t *device;
     
-	uint32_t size, i, n;
+	uint32_t size, i, n, free;
 	uint32_t ladler, cadler, chunk;
     
 	alloc40_t *alloc = (alloc40_t *)data;
@@ -384,10 +384,10 @@ static errno_t callback_check_bitmap(object_entity_t *format,
 	    
 	/* Getting the checksum from loaded crc map */
 	ladler = *((uint32_t *)(alloc->crc + (i * CRC_SIZE)));
+	free = (start + alloc->bitmap->size) - current;
     
 	/* Calculating adler checksumm for piece of bitmap */
-	chunk = (start + alloc->bitmap->size) - current > (int)size ? 
-		(int)size : (int)((start + alloc->bitmap->size) - current);
+	chunk = free > size ? size : free;
     
 	cadler = aal_adler32(current, chunk);
 
@@ -411,7 +411,7 @@ errno_t alloc40_valid(object_entity_t *entity) {
 	format_layout_func_t layout;
     
 	alloc40_t *alloc = (alloc40_t *)entity;
-    
+
 	aal_assert("umka-963", alloc != NULL, return -1);
 	aal_assert("umka-964", alloc->bitmap != NULL, return -1);
     
