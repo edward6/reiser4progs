@@ -71,7 +71,7 @@ reiser4_alloc_t *reiser4_alloc_open(
 		goto error_free_alloc;
 	}
     
-	blocksize = reiser4_master_blocksize(fs->master);
+	blocksize = reiser4_master_blksize(fs->master);
 	
 	/* Calling "open" method from block allocator plugin */
 	if (!(alloc->entity = plugin_call(plugin->o.alloc_ops, open,
@@ -125,7 +125,7 @@ reiser4_alloc_t *reiser4_alloc_create(
 		goto error_free_alloc;
 	}
     
-	blocksize = reiser4_master_blocksize(fs->master);
+	blocksize = reiser4_master_blksize(fs->master);
 	
 	/* Query the block allocator plugin for creating allocator entity */
 	if (!(alloc->entity = plugin_call(plugin->o.alloc_ops, create,

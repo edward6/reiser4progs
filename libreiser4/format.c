@@ -60,7 +60,7 @@ reiser4_format_t *reiser4_format_open(
 	format->fs->format = format;
 
 	pid = reiser4_master_format(fs->master);
-	blocksize = reiser4_master_blocksize(fs->master);
+	blocksize = reiser4_master_blksize(fs->master);
     
 	/* Finding needed disk-format plugin by its plugin id */
 	if (!(plugin = libreiser4_factory_ifind(FORMAT_PLUGIN_TYPE, pid))) {
@@ -114,7 +114,7 @@ reiser4_format_t *reiser4_format_create(
 	format->fs = fs;
 	format->fs->format = format;
 	
-	blocksize = reiser4_master_blocksize(fs->master);
+	blocksize = reiser4_master_blksize(fs->master);
 	
 	/* 
 	   Initializing entity of disk-format by means of calling "create" method 
@@ -189,7 +189,7 @@ errno_t reiser4_format_reopen(
 	plugin = format->entity->plugin;
 	plugin_call(plugin->o.format_ops, close, format->entity);
 	
-	blocksize = reiser4_master_blocksize(format->fs->master);
+	blocksize = reiser4_master_blksize(format->fs->master);
 	
 	if (!(format->entity = plugin_call(plugin->o.format_ops, open,
 					   format->fs->device, blocksize)))

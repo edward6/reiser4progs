@@ -120,7 +120,7 @@ static errno_t tfrag_open_node(
 	if (frag_hint->level <= LEAF_LEVEL)
 		return 0;
 
-	blocksize = reiser4_master_blocksize(frag_hint->tree->fs->master);
+	blocksize = reiser4_master_blksize(frag_hint->tree->fs->master);
 	return -((*node = reiser4_node_open(device, blocksize, blk)) == NULL);
 }
 
@@ -309,7 +309,7 @@ static errno_t stat_open_node(
 	tstat_hint_t *stat_hint = (tstat_hint_t *)data;
 	aal_device_t *device = stat_hint->tree->fs->device;
 
-	blocksize = reiser4_master_blocksize(stat_hint->tree->fs->master);
+	blocksize = reiser4_master_blksize(stat_hint->tree->fs->master);
 	return -((*node = reiser4_node_open(device, blocksize, blk)) == NULL);
 }
 
@@ -558,7 +558,7 @@ static errno_t dfrag_open_node(
 	ffrag_hint_t *frag_hint = (ffrag_hint_t *)data;
 	aal_device_t *device = frag_hint->tree->fs->device;
 
-	blocksize = reiser4_master_blocksize(frag_hint->tree->fs->master);
+	blocksize = reiser4_master_blksize(frag_hint->tree->fs->master);
 	return -((*node = reiser4_node_open(device, blocksize, blk)) == NULL);
 }
 

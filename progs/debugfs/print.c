@@ -29,7 +29,7 @@ static errno_t tprint_open_node(
 	tree = (reiser4_tree_t *)data;
 
 	device = tree->fs->device;
-	blocksize = reiser4_master_blocksize(tree->fs->master);
+	blocksize = reiser4_master_blksize(tree->fs->master);
 	return -((*node = reiser4_node_open(device, blocksize, blk)) == NULL);
 }
 
@@ -110,7 +110,7 @@ errno_t debugfs_print_block(
 	}
 	
 	device = fs->device;
-	blocksize = reiser4_master_blocksize(fs->master);
+	blocksize = reiser4_master_blksize(fs->master);
 
 	/*
 	  If passed @blk points to a formatted node then open it and print

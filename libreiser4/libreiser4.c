@@ -190,7 +190,7 @@ static uint32_t tree_blocksize(void *tree) {
 	aal_assert("umka-1220", tree != NULL);
 	
 	fs = ((reiser4_tree_t *)tree)->fs;
-	return reiser4_master_blocksize(fs->master);
+	return reiser4_master_blksize(fs->master);
 }
 
 static uint32_t tree_maxspace(void *tree) {

@@ -257,7 +257,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_tree;
 	}
 	
-	fs_len /= reiser4_master_blocksize(fs->master);
+	fs_len /= reiser4_master_blksize(fs->master);
 	fs->tree->traps.connect = resizefs_connect_handler;
 
 	if (reiser4_fs_resize(fs, fs_len)) {

@@ -271,7 +271,7 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 	if (!parent || !(node = reiser4_node_cbp(parent, blk))) {
 		uint32_t blocksize;
 
-		blocksize = reiser4_master_blocksize(tree->fs->master);
+		blocksize = reiser4_master_blksize(tree->fs->master);
 		
 		/*
 		  Node is not loaded. Loading it and connecting to @parent
@@ -464,7 +464,7 @@ reiser4_node_t *reiser4_tree_alloc(
 	}
 
 	device = tree->fs->device;
-	blocksize = reiser4_master_blocksize(tree->fs->master);
+	blocksize = reiser4_master_blksize(tree->fs->master);
 	
 	/* Getting node plugin id from the profile */
 	pid = reiser4_profile_value(tree->fs->profile, "node");

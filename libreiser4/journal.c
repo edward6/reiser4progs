@@ -78,7 +78,7 @@ reiser4_journal_t *reiser4_journal_open(
 	start = reiser4_format_start(fs->format);
 	len = reiser4_format_get_len(fs->format);
 
-	blocksize = reiser4_master_blocksize(fs->master);
+	blocksize = reiser4_master_blksize(fs->master);
 	
 	/* 
 	   Initializing journal entity by means of calling "open" method from
@@ -169,7 +169,7 @@ reiser4_journal_t *reiser4_journal_create(
 	start = reiser4_format_start(fs->format);
 	len = reiser4_format_get_len(fs->format);
 	
-	blocksize = reiser4_master_blocksize(fs->master);
+	blocksize = reiser4_master_blksize(fs->master);
 	
 	/* Initializing journal entity */
 	if (!(journal->entity = plugin_call(plugin->o.journal_ops, create,

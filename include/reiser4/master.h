@@ -48,7 +48,7 @@ extern reiser4_master_t *reiser4_master_open(aal_device_t *device);
 
 extern void reiser4_master_close(reiser4_master_t *master);
 extern rid_t reiser4_master_format(reiser4_master_t *master);
-extern uint32_t reiser4_master_blocksize(reiser4_master_t *master);
+extern uint32_t reiser4_master_blksize(reiser4_master_t *master);
 
 #endif
 

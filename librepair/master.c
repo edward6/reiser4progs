@@ -65,9 +65,9 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 	/* Master SB was opened. Check it for validness. */
 
 	/* Check the blocksize. */
-	if (!aal_pow2(reiser4_master_blocksize(fs->master))) {
+	if (!aal_pow2(reiser4_master_blksize(fs->master))) {
 	    aal_exception_fatal("Invalid blocksize found in the master super "
-		"block (%u).", reiser4_master_blocksize(fs->master));
+		"block (%u).", reiser4_master_blksize(fs->master));
 
 	    if (mode != REPAIR_REBUILD)
 		return -EINVAL;
@@ -81,9 +81,9 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
     }
 
     /* Setting actual used block size from master super block */
-    if (aal_device_set_bs(fs->device, reiser4_master_blocksize(fs->master))) {
+    if (aal_device_set_bs(fs->device, reiser4_master_blksize(fs->master))) {
         aal_exception_fatal("Invalid block size was specified (%u). It must "
-	    "be power of two.", reiser4_master_blocksize(fs->master));
+	    "be power of two.", reiser4_master_blksize(fs->master));
 	return -EINVAL;
     }
     

@@ -131,7 +131,7 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	aal_assert("umka-1568", master != NULL);
 	aal_assert("umka-1569", stream != NULL);
 
-	blocksize = reiser4_master_blocksize(master);
+	blocksize = reiser4_master_blksize(master);
 	
 	aal_stream_format(stream, "Master super block:\n");
 	
@@ -139,7 +139,7 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 			  (REISER4_MASTER_OFFSET / blocksize));
 	
 	aal_stream_format(stream, "blocksize:\t%u\n",
-			  reiser4_master_blocksize(master));
+			  reiser4_master_blksize(master));
 
 	aal_stream_format(stream, "magic:\t\t%s\n",
 			  reiser4_master_magic(master));
@@ -352,7 +352,7 @@ rid_t reiser4_master_format(reiser4_master_t *master) {
 	return get_ms_format(SUPER(master));
 }
 
-uint32_t reiser4_master_blocksize(reiser4_master_t *master) {
+uint32_t reiser4_master_blksize(reiser4_master_t *master) {
 	aal_assert("umka-983", master != NULL);
 	return get_ms_blocksize(SUPER(master));
 }
