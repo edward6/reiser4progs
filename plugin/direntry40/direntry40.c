@@ -7,7 +7,7 @@
 
 static reiser4_core_t *core = NULL;
 
-static direntry40_t *direntry40_body(reiser4_item_t *item) {
+direntry40_t *direntry40_body(reiser4_item_t *item) {
 
     if (item == NULL) return NULL;
     
@@ -366,6 +366,13 @@ static errno_t direntry40_max_poss_key(reiser4_item_t *item,
     return 0;
 }
 
+/* Returns the key of the last unit. */
+static errno_t direntry40_max_real_key(reiser4_item_t *item, 
+    reiser4_key_t *key) 
+{
+    return 0;
+}
+
 static int direntry40_lookup(reiser4_item_t *item, 
     reiser4_key_t *key, uint32_t *pos)
 {
@@ -450,6 +457,7 @@ static reiser4_plugin_t direntry40_plugin = {
         .lookup		= direntry40_lookup,
         .max_poss_key	= direntry40_max_poss_key,
         .count		= direntry40_count,
+        .max_real_key   = direntry40_max_real_key,
 	
 	.specific = {
 	    .direntry = { 
