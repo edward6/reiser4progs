@@ -179,7 +179,7 @@ struct reiser4_file {
 	/* Object entity. It is initialized by object plugin */
 	object_entity_t *entity;
     
-	/* The coord of the file's first item (stat data one?) */
+	/* The place of the file's first item (stat data one?) */
 	reiser4_place_t place;
 
 	/* File first item key */
