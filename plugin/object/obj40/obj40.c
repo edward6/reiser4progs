@@ -42,6 +42,14 @@ errno_t obj40_fetch_item(obj40_t *obj, reiser4_place_t *place) {
 			 place->node, &place->pos, place);
 }
 
+/* Checks if @place has valid position. */
+bool_t obj40_valid_item(obj40_t *obj, reiser4_place_t *place) {
+	uint32_t items = plug_call(place->node->plug->o.node_ops,
+				   items, place->node);
+	
+	return (place->pos.item < items);
+}
+
 /* Reads one stat data extension to @data. */
 errno_t obj40_read_ext(reiser4_place_t *place, rid_t id,
 		       void *data)

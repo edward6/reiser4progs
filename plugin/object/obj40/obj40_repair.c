@@ -49,7 +49,7 @@ errno_t obj40_stat(obj40_t *obj, stat_func_t stat_func) {
 	info = &obj->info;
 	
 	if (!info->start.plug) {
-		if (!obj->core->tree_ops.valid(info->tree, &info->start))
+		if (!obj40_valid_item(obj, &info->start))
 			return RE_FATAL;
 
 		if ((res = obj40_fetch_item(obj, &info->start)))

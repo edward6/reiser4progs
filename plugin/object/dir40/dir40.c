@@ -41,7 +41,7 @@ int32_t dir40_belong(dir40_t *dir, reiser4_place_t *place) {
 	   needed because tree_lookup() does not fetch item data at place if it
 	   was not found. So, it may point to unexistent item and we should
 	   check this here. */
-	if (!dir40_core->tree_ops.valid(dir->obj.info.tree, place))
+	if (!obj40_valid_item(&dir->obj, place))
 		return 0;
 
 	/* Fetching item info at @place. This is needed to make sue, that all

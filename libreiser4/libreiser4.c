@@ -79,11 +79,6 @@ static int64_t tree_read(void *tree, trans_hint_t *hint) {
 	return reiser4_flow_read(t, hint);
 }
 
-/* Returns TRUE if passed @place points to some real item in a node. */
-static int tree_valid(void *tree, reiser4_place_t *place) {
-	return reiser4_place_valid(place);
-}
-
 /* Handler for requests for next item. */
 static errno_t tree_next(void *tree, reiser4_place_t *place,
 			 reiser4_place_t *next)
@@ -182,10 +177,6 @@ reiser4_core_t core = {
 #endif
 	},
 	.tree_ops = {
-	
-		/* Installing "valid" callback */
-		.valid      = tree_valid,
-
 		/* This one for lookuping the tree */
 		.lookup	    = tree_lookup,
 

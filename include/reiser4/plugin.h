@@ -1560,14 +1560,13 @@ struct flow_ops {
 typedef struct flow_ops flow_ops_t;
 
 struct tree_ops {
-	/* Checks if passed @place points to some real item inside a node. */
-	int (*valid) (void *, reiser4_place_t *);
-	
 	/* Makes lookup in the tree in order to know where say stat data item of
 	   a file realy lies. It is used in all object plugins. */
 	lookup_t (*lookup) (void *, lookup_hint_t *, lookup_bias_t,
 			    reiser4_place_t *);
 
+	/* Collisions handler. It takes start place and looks for actual data in
+	   collided array. */
 	lookup_t (*collision) (reiser4_place_t *, lookup_hint_t *hint,
 			       lookup_bias_t bias, lookup_t lookup);
 #ifndef ENABLE_STAND_ALONE

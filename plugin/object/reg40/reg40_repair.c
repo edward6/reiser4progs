@@ -115,7 +115,7 @@ static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 		return NULL;
 
 	/* If place is invalid, there is no items of the file. */
-	if (!reg40_core->tree_ops.valid(reg->obj.info.tree, &place))
+	if (!obj40_valid_item(&reg->obj, &place))
 		return reg40_policy_plug(reg, 0);
 
 	/* Initializing item entity. */
@@ -186,7 +186,7 @@ static errno_t reg40_next(object_entity_t *object,
 
 	if (res == ABSENT) {
 		/* If place is invalid, no more reg40 items. */
-		if (!reg40_core->tree_ops.valid(info->tree, &reg->body))
+		if (!obj40_valid_item(&reg->obj, &reg->body))
 			goto end;
 
 		/* Initializing item entity at @next place */

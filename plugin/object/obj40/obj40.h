@@ -40,6 +40,9 @@ extern oid_t obj40_locality(obj40_t *obj);
 extern uint64_t obj40_ordering(obj40_t *obj);
 extern uint64_t obj40_get_size(obj40_t *obj);
 
+extern bool_t obj40_valid_item(obj40_t *obj,
+			       reiser4_place_t *place);
+
 extern errno_t obj40_fetch_item(obj40_t *obj,
 				reiser4_place_t *place);
 
