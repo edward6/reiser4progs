@@ -1799,7 +1799,7 @@ errno_t reiser4_tree_growup(reiser4_tree_t *tree) {
 		goto error_return_root;
 	}
 
-	return reiser4_tree_connect_node(tree, NULL, new_root);
+	return 0;
 
 error_return_root:
 	reiser4_tree_assign_root(tree, old_root);
