@@ -329,15 +329,14 @@ static errno_t format40_valid(generic_entity_t *entity) {
 }
 #endif
 
-static void format40_oid(generic_entity_t *entity, 
-			 void **oid_start,
-			 uint32_t *oid_len) 
+static void format40_oid_area(generic_entity_t *entity, 
+			      void **start, uint32_t *len) 
 {
 	aal_assert("umka-732", entity != NULL);
 	
-	*oid_start = &(SUPER(entity)->sb_oid);
+	*start = &(SUPER(entity)->sb_oid);
 	
-	*oid_len = &(SUPER(entity)->sb_file_count) -
+	*len = &(SUPER(entity)->sb_file_count) -
 		&(SUPER(entity)->sb_oid);
 }
 
@@ -512,12 +511,12 @@ static reiser4_format_ops_t format40_ops = {
 	.unpack         = format40_unpack,
 #endif
 	.open		= format40_open,
-	.oid	        = format40_oid,
 	.close		= format40_close,
 
 	.get_flags      = format40_get_flags,
 	.get_root	= format40_get_root,
 	.get_height	= format40_get_height,
+	.oid_area       = format40_oid_area,
 		
 #ifndef ENABLE_STAND_ALONE
 	.get_len	= format40_get_len,

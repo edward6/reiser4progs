@@ -1118,25 +1118,26 @@ struct reiser4_format_ops {
 	uint32_t (*get_stamp) (generic_entity_t *);
 	uint16_t (*get_policy) (generic_entity_t *);
 #endif
-	    
+
+	/* Return plugin id for oid allocator. */
 	rid_t (*oid_pid) (generic_entity_t *);
 
 	/* Returns area where oid data lies in */
-	void (*oid) (generic_entity_t *, void **, uint32_t *);
+	void (*oid_area) (generic_entity_t *, void **, uint32_t *);
 };
 
 typedef struct reiser4_format_ops reiser4_format_ops_t;
 
 struct reiser4_oid_ops {
-	/* Opens oid allocator on passed area */
-	generic_entity_t *(*open) (void *, uint32_t);
+	/* Opens oid allocator on passed format entity. */
+	generic_entity_t *(*open) (generic_entity_t *);
 
 	/* Closes passed instance of oid allocator */
 	void (*close) (generic_entity_t *);
     
 #ifndef ENABLE_STAND_ALONE
-	/* Creates oid allocator on passed area */
-	generic_entity_t *(*create) (void *, uint32_t);
+	/* Creates oid allocator on passed format entity. */
+	generic_entity_t *(*create) (generic_entity_t *);
 
 	/* Synchronizes oid allocator */
 	errno_t (*sync) (generic_entity_t *);

@@ -54,9 +54,6 @@ reiser4_oid_t *reiser4_oid_open(
 	reiser4_oid_t *oid;
 	reiser4_plug_t *plug;
 
-	void *oid_start;
-	uint32_t oid_len;
-
 	aal_assert("umka-1698", fs != NULL);
 	aal_assert("umka-519", fs->format != NULL);
 
@@ -80,12 +77,9 @@ reiser4_oid_t *reiser4_oid_open(
 		goto error_free_oid;
 	}
     
-	plug_call(fs->format->entity->plug->o.format_ops, 
-		  oid, fs->format->entity, &oid_start, &oid_len);
-    
-	/* Initializing oid allocator entity */
+	/* Initializing oid allocator entity. */
 	if (!(oid->entity = plug_call(plug->o.oid_ops, open,
-				      oid_start, oid_len))) 
+				      fs->format->entity))) 
 	{
 		aal_exception_error("Can't open oid allocator %s.",
 				    plug->label);
@@ -120,9 +114,6 @@ reiser4_oid_t *reiser4_oid_create(
 	rid_t pid;
 	reiser4_oid_t *oid;
 	reiser4_plug_t *plug;
-
-	void *oid_start;
-	uint32_t oid_len;
 	
 	aal_assert("umka-729", fs != NULL);
 	aal_assert("umka-1699", fs->format != NULL);
@@ -147,12 +138,9 @@ reiser4_oid_t *reiser4_oid_create(
 		goto error_free_oid;
 	}
     
-	plug_call(fs->format->entity->plug->o.format_ops, 
-		  oid, fs->format->entity, &oid_start, &oid_len);
-    
-	/* Initializing entity */
+	/* Initializing oid allocator entity. */
 	if (!(oid->entity = plug_call(plug->o.oid_ops, create,
-				      oid_start, oid_len)))
+				      fs->format->entity)))
 	{
 		aal_exception_error("Can't create oid allocator %s.", 
 				    plug->label);

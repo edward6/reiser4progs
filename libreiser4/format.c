@@ -468,4 +468,3 @@ rid_t reiser4_format_key_pid(reiser4_format_t *format) {
 
 	return KEY_SHORT_ID;
 }
-

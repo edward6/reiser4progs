@@ -16,10 +16,11 @@
 
 struct oid40 {
 	reiser4_plug_t *plug;
+	generic_entity_t *format;
 
 	void *start;
 	uint32_t len;
-
+	
 	uint64_t next;
 	uint64_t used;
 	uint32_t state;

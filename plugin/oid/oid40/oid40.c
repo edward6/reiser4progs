@@ -21,24 +21,26 @@ static void oid40_set_state(generic_entity_t *entity,
 	((oid40_t *)entity)->state = state;
 }
 
-/* Initializies oid allocator instance and loads its data (namely next oid, used
-   oids, etc). */
-static generic_entity_t *oid40_open(void *start, 
-				   uint32_t len) 
-{
+/* Open oid allocator on passed format instance. */
+static generic_entity_t *oid40_open(generic_entity_t *format) {
 	oid40_t *oid;
 
+	aal_assert("umka-2664", format != NULL);
+	
 	if (!(oid = aal_calloc(sizeof(*oid), 0)))
 		return NULL;
 
 	oid->state = 0;
-	oid->len = len;
-	oid->start = start;
-    
+	oid->format = format;
 	oid->plug = &oid40_plug;
-	oid->next = oid40_get_next(start);
-	oid->used = oid40_get_used(start);
+
+	/* Getting oid pluign work area from format plugin. */
+	plug_call(format->plug->o.format_ops, oid_area,
+		  format, &oid->start, &oid->len);
     
+	oid->next = oid40_get_next(oid->start);
+	oid->used = oid40_get_used(oid->start);
+	
 	return (generic_entity_t *)oid;
 }
 
@@ -47,28 +49,28 @@ static void oid40_close(generic_entity_t *entity) {
 	aal_free(entity);
 }
 
-/* Initializes oid allocator instance and return it to the caller */
-static generic_entity_t *oid40_create(void *start, 
-				     uint32_t len) 
-{
+/* Initializes oid allocator instance and returns it to caller. */
+static generic_entity_t *oid40_create(generic_entity_t *format) {
 	oid40_t *oid;
 
 	if (!(oid = aal_calloc(sizeof(*oid), 0)))
 		return NULL;
 
-	oid->len = len;
-	oid->start = start;
 	oid->state = (1 << ENTITY_DIRTY);
 
 	/* Setting up next by OID40_RESERVED. It is needed because all oid less
 	   then OID40_RESERVED will be used for reiser4 insetrnal purposes. */
 	oid->used = 0;
-	oid->next = OID40_RESERVED;
-    
 	oid->plug = &oid40_plug;
-	oid40_set_next(start, oid->next);
-	oid40_set_used(start, oid->used);
-    
+	oid->next = OID40_RESERVED;
+
+	/* Getting oid pluign work area from format plugin. */
+	plug_call(format->plug->o.format_ops, oid_area,
+		  format, &oid->start, &oid->len);
+	
+	oid40_set_next(oid->start, oid->next);
+	oid40_set_used(oid->start, oid->used);
+
 	return (generic_entity_t *)oid;
 }
 
