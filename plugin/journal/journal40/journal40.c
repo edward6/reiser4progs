@@ -336,15 +336,10 @@ errno_t journal40_traverse_trans(
 		lr_header = (journal40_lr_header_t *)log_block->data;
 		log_blk = get_lh_next_block(lr_header);
 
-		/*
-		  FIXME-UMKA->VITALY: What about return value here? Do you need
-		  exactly one? What does it mean? May thios code be adopted to
-		  current schema (EINVAL, etc)? May be -ESTRUCT is good one?
-		*/
 		if (aal_memcmp(lr_header->magic, LGR_MAGIC, LGR_MAGIC_SIZE)) {
 			aal_exception_error("Invalid log record header has been"
 					    " detected.");
-			res = 1;
+			res = -ESTRUCT;
 			goto error;
 		}
 
@@ -466,7 +461,7 @@ errno_t journal40_traverse(
 		if (aal_memcmp(tx_header->magic, TXH_MAGIC, TXH_MAGIC_SIZE)) {
 			aal_exception_error("Invalid transaction header has been "
 					    "detected.");
-			res = 1;
+			res = -ESTRUCT;
 			goto error_free_tx_list;
 		}
 
