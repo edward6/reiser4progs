@@ -60,14 +60,17 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
     
-	if (!(fs = reiser4_fs_open(device, device))) {
+	if (!(fs = reiser4_fs_open(device))) {
 		aal_exception_error("Can't open filesystem on %s.", 
 				    aal_device_name(device));
 		goto error_free_device;
 	}
 
-	if (!(reg = reiser4_file_open(fs, argv[2])))
+	if (!(fs->tree = reiser4_tree_open(fs)))
 		goto error_free_fs;
+    
+	if (!(reg = reiser4_file_open(fs, argv[2])))
+		goto error_free_tree;
 
 	if (reg->entity->plugin->h.group != REGULAR_FILE) {
 		aal_exception_error("File %s is not a regular file.",
@@ -96,6 +99,8 @@ int main(int argc, char *argv[]) {
 
  error_free_reg:
 	reiser4_file_close(reg);
+ error_free_tree:
+	reiser4_tree_close(fs->tree);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:

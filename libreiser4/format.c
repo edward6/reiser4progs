@@ -33,6 +33,7 @@ reiser4_format_t *reiser4_format_open(
 		return NULL;
     
 	format->fs = fs;
+	format->fs->format = format;
 
 	pid = reiser4_master_format(fs->master);
     
@@ -87,6 +88,7 @@ reiser4_format_t *reiser4_format_create(
 		return NULL;
 
 	format->fs = fs;
+	format->fs->format = format;
 	
 	/* 
 	   Initializing entity of disk-format by means of calling "create" method 
@@ -159,6 +161,8 @@ void reiser4_format_close(
 {
 	aal_assert("umka-1505", format != NULL);
    
+	format->fs->format = NULL;
+	
 	plugin_call(format->entity->plugin->format_ops,
 		    close, format->entity);
     

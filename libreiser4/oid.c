@@ -31,6 +31,7 @@ reiser4_oid_t *reiser4_oid_open(
 		return NULL;
 
 	oid->fs = fs;
+	oid->fs->oid = oid;
 	
 	if ((pid = reiser4_format_oid_pid(fs->format)) == INVAL_PID) {
 		aal_exception_error("Invalid oid allocator plugin id has been detected.");
@@ -68,6 +69,8 @@ void reiser4_oid_close(
 {
 	aal_assert("umka-1507", oid != NULL);
 	
+	oid->fs->oid = NULL;
+	
 	plugin_call(oid->entity->plugin->oid_ops, 
 		    close, oid->entity);
     
@@ -94,6 +97,9 @@ reiser4_oid_t *reiser4_oid_create(
 	if (!(oid = aal_calloc(sizeof(*oid), 0)))
 		return NULL;
    
+	oid->fs = fs;
+	oid->fs->oid = oid;
+	
 	if ((pid = reiser4_format_oid_pid(fs->format)) == INVAL_PID) {
 		aal_exception_error("Invalid oid allocator plugin id "
 				    "has been detected.");

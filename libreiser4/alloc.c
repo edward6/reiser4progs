@@ -32,6 +32,7 @@ reiser4_alloc_t *reiser4_alloc_open(
 		return NULL;
 
 	alloc->fs = fs;
+	alloc->fs->alloc = alloc;
 	
 	if ((pid = reiser4_format_alloc_pid(fs->format)) == INVAL_PID) {
 		aal_exception_error("Invalid block allocator plugin id has "
@@ -83,6 +84,9 @@ reiser4_alloc_t *reiser4_alloc_create(
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
 
+	alloc->fs = fs;
+	alloc->fs->alloc = alloc;
+	
 	if ((pid = reiser4_format_alloc_pid(fs->format)) == INVAL_PID) {
 		aal_exception_error("Invalid block allocator plugin id "
 				    "has been found.");
@@ -145,6 +149,8 @@ void reiser4_alloc_close(
 {
 	aal_assert("umka-1504", alloc != NULL);
 
+	alloc->fs->alloc = NULL;
+	
 	/* Calling the plugin for close its internal instance properly */
 	plugin_call(alloc->entity->plugin->alloc_ops, 
 		    close, alloc->entity);

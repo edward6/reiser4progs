@@ -57,15 +57,18 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
     
-	if (!(fs = reiser4_fs_open(device, device))) {
+	if (!(fs = reiser4_fs_open(device))) {
 		aal_exception_error("Can't open filesystem on %s.", 
 				    aal_device_name(device));
 		goto error_free_device;
 	}
     
+	if (!(fs->tree = reiser4_tree_open(fs)))
+		goto error_free_fs;
+    
 	if (!(fs->root = reiser4_file_open(fs, "/"))) {
 		aal_exception_error("Can't open root dir.");
-		goto error_free_fs;
+		goto error_free_tree;
 	}
     
 	if (!(dir = reiser4_file_open(fs, argv[2]))) {
@@ -120,6 +123,8 @@ int main(int argc, char *argv[]) {
 //        reiser4_fs_sync(fs);
 
 	reiser4_file_close(fs->root);
+	reiser4_tree_close(fs->tree);
+	
 	reiser4_fs_close(fs);
     
 	libreiser4_done();
@@ -131,6 +136,8 @@ int main(int argc, char *argv[]) {
 	reiser4_file_close(dir);
  error_free_root:
 	reiser4_file_close(fs->root);
+ error_free_tree:
+	reiser4_tree_close(fs->tree);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:

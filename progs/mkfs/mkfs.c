@@ -341,18 +341,27 @@ int main(int argc, char *argv[]) {
 		aal_gauge_start(gauge);
 
 		/* Creating filesystem */
-		if (!(fs = reiser4_fs_create(device, uuid, label, fs_len,
-					     profile, device, NULL))) 
+		if (!(fs = reiser4_fs_create(device, uuid, label,
+					     profile, fs_len))) 
 		{
 			aal_exception_error("Can't create filesystem on %s.", 
 					    aal_device_name(device));
 			goto error_free_device;
 		}
 
+		/* Creating journal */
+		if (!(fs->journal = reiser4_journal_create(fs, device, NULL)))
+			goto error_free_fs;
+
+		/* Creating tree (root node, etc) */
+		if (!(fs->tree = reiser4_tree_create(fs, profile)))
+			goto error_free_journal;
+    
+		/* Creating root directory */
 		if (!(fs->root = mkfs_create_dir(fs, profile, NULL, "/"))) {
 			aal_exception_error("Can't create filesystem root "
 					    "directory.");
-			goto error_free_fs;
+			goto error_free_tree;
 		}
 	
 		/* Creating lost+found directory */
@@ -412,7 +421,13 @@ int main(int argc, char *argv[]) {
 
 		/* Freeing the root directory */
 		reiser4_file_close(fs->root);
-	
+
+		/* Freeing tree */
+		reiser4_tree_close(fs->tree);
+		
+		/* Freeing journal */
+		reiser4_journal_close(fs->journal);
+
 		/* Freeing the filesystem instance and device instance */
 		reiser4_fs_close(fs);
 		aal_device_close(device);
@@ -432,6 +447,10 @@ int main(int argc, char *argv[]) {
 
  error_free_root:
 	reiser4_file_close(fs->root);
+ error_free_tree:
+	reiser4_tree_close(fs->tree);
+ error_free_journal:
+	reiser4_journal_close(fs->journal);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:

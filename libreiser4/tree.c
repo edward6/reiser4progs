@@ -281,6 +281,7 @@ reiser4_tree_t *reiser4_tree_open(reiser4_fs_t *fs) {
 		return NULL;
     
 	tree->fs = fs;
+	tree->fs->tree = tree;
 
 	/* Building the tree root key */
 	if (reiser4_tree_key(tree, KEY_REISER40_ID)) {
@@ -325,6 +326,7 @@ reiser4_tree_t *reiser4_tree_create(
 		return NULL;
 
 	tree->fs = fs;
+	tree->fs->tree = tree;
     
 	/* Building the tree root key */
 	if (reiser4_tree_key(tree, profile->key)) {
@@ -406,6 +408,8 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 void reiser4_tree_close(reiser4_tree_t *tree) {
 	aal_assert("umka-134", tree != NULL);
 
+	tree->fs->tree = NULL;
+	
 	/* Freeing tree cashe and tree itself*/
 	reiser4_node_close(tree->root);
 

@@ -1312,11 +1312,14 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Open file system on the device */
-	if (!(fs = reiser4_fs_open(device, device))) {
+	if (!(fs = reiser4_fs_open(device))) {
 		aal_exception_error("Can't open reiser4 on %s", host_dev);
 		goto error_free_libreiser4;
 	}
 
+	if (!(fs->tree = reiser4_tree_open(fs)))
+		goto error_free_fs;
+    
 	fs->tree->traps.attach = debugfs_attach_handler;
 	
 	/*
@@ -1329,7 +1332,7 @@ int main(int argc, char *argv[]) {
 	{
 		if (aal_exception_yesno("Few print options has been detected. "
 					"Continue?") == EXCEPTION_NO)
-			goto error_free_fs;
+			goto error_free_tree;
 	}
 
 	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)
@@ -1428,6 +1431,9 @@ int main(int argc, char *argv[]) {
 		if (debugfs_print_file(fs, print_filename, print_flags))
 			goto error_free_fs;
 	}
+
+	/* Freeing tree */
+	reiser4_tree_close(fs->tree);
     
 	/* Deinitializing filesystem instance and device instance */
 	reiser4_fs_close(fs);
@@ -1441,6 +1447,8 @@ int main(int argc, char *argv[]) {
     
 	return NO_ERROR;
 
+ error_free_tree:
+	reiser4_tree_close(fs->tree);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:

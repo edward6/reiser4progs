@@ -45,6 +45,8 @@ reiser4_journal_t *reiser4_journal_open(
 	}
     
 	journal->fs = fs;
+	journal->fs->journal = journal;
+	
 	journal->device = device;
 
 	start = reiser4_format_start(fs->format);
@@ -72,6 +74,25 @@ reiser4_journal_t *reiser4_journal_open(
 }
 
 #ifndef ENABLE_COMPACT
+
+static errno_t callback_action_mark(
+	object_entity_t *entity,	/* device for operating on */ 
+	blk_t blk,			/* block number to be marked */
+	void *data)			/* pointer to block allocator */
+{
+	reiser4_alloc_t *alloc = (reiser4_alloc_t *)data;
+	return reiser4_alloc_occupy_region(alloc, blk, 1);
+}
+
+/* Marks format area as used */
+errno_t reiser4_journal_mark(reiser4_journal_t *journal) {
+	aal_assert("umka-1855", journal != NULL);
+	aal_assert("umka-1856", journal->fs != NULL);
+	aal_assert("umka-1856", journal->fs->alloc != NULL);
+	
+	return reiser4_journal_layout(journal, callback_action_mark,
+				      journal->fs->alloc);
+}
 
 /* Creates journal on specified jopurnal. Returns initialized instance */
 reiser4_journal_t *reiser4_journal_create(
@@ -104,6 +125,8 @@ reiser4_journal_t *reiser4_journal_create(
 	}
     
 	journal->fs = fs;
+	journal->fs->journal = journal;
+	
 	journal->device = device;
 	
 	start = reiser4_format_start(fs->format);
@@ -120,8 +143,14 @@ reiser4_journal_t *reiser4_journal_create(
 		goto error_free_journal;
 	}
 	
+	if (reiser4_journal_mark(journal))
+		goto error_free_entity;
+			
 	return journal;
 
+ error_free_entity:
+	plugin_call(journal->entity->plugin->journal_ops, 
+		    close, journal->entity);
  error_free_journal:
 	aal_free(journal);
 	return NULL;
@@ -190,7 +219,9 @@ void reiser4_journal_close(
 	reiser4_journal_t *journal)	/* jouranl to be closed */
 {
 	aal_assert("umka-102", journal != NULL);
-    
+
+	journal->fs->journal = NULL;
+	
 	plugin_call(journal->entity->plugin->journal_ops, 
 		    close, journal->entity);
     

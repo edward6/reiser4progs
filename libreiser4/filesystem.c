@@ -22,9 +22,11 @@ errno_t reiser4_fs_layout(
 	
 	if (reiser4_format_layout(fs->format, func, data))
 		return -1;
-    
-	if (reiser4_journal_layout(fs->journal, func, data))
-		return -1;
+
+	if (fs->journal) {
+		if (reiser4_journal_layout(fs->journal, func, data))
+			return -1;
+	}
     
 	return reiser4_alloc_layout(fs->alloc, func, data);
 }
@@ -33,26 +35,23 @@ errno_t reiser4_fs_layout(
    Opens filesysetm on specified host device and journal device. Replays the
    journal if "replay" flag is specified.
 */
-reiser4_fs_t *reiser4_fs_open(
-	aal_device_t *host_device,	    /* device filesystem will lie on */
-	aal_device_t *journal_device)       /* device journal will lie on */
-{
+reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 	rpid_t pid;
-	count_t len;
+	count_t blocks;
 	uint32_t blocksize;
 	
 	reiser4_fs_t *fs;
 
-	aal_assert("umka-148", host_device != NULL);
+	aal_assert("umka-148", device != NULL);
 
 	/* Allocating memory and initializing fields */
 	if (!(fs = aal_calloc(sizeof(*fs), 0)))
 		return NULL;
 
-	fs->device = host_device;
+	fs->device = device;
 	
 	/* Reads master super block. See above for details */
-	if (!(fs->master = reiser4_master_open(host_device)))
+	if (!(fs->master = reiser4_master_open(device)))
 		goto error_free_fs;
     
 	if (reiser4_master_valid(fs->master))
@@ -61,7 +60,7 @@ reiser4_fs_t *reiser4_fs_open(
 	blocksize = reiser4_master_blocksize(fs->master);
 		
 	/* Setting actual used block size from master super block */
-	if (aal_device_set_bs(host_device, blocksize)) {
+	if (aal_device_set_bs(device, blocksize)) {
 		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
 				    "Invalid block size detected %u.",
 				    blocksize);
@@ -75,51 +74,27 @@ reiser4_fs_t *reiser4_fs_open(
 	if (reiser4_format_valid(fs->format))
 		goto error_free_format;
     
-	if ((len = reiser4_format_get_len(fs->format)) == INVAL_BLK)
+	if ((blocks = reiser4_format_get_len(fs->format)) == INVAL_BLK)
 		goto error_free_format;
     
 	/* Initializes block allocator. See alloc.c for details */
-	if (!(fs->alloc = reiser4_alloc_open(fs, len)))
+	if (!(fs->alloc = reiser4_alloc_open(fs, blocks)))
 		goto error_free_format;
 
 	if (reiser4_alloc_valid(fs->alloc))
 		aal_exception_warn("Block allocator data seems corrupted.");
 	
-	/* Journal device may be not specified. In this case it will not be opened */
-	if (journal_device) {
-	    
-		/* Setting up block size in use for journal device */
-		aal_device_set_bs(journal_device, blocksize);
-
-		/* Initializing the journal. See  journal.c for details */
-		if (!(fs->journal = reiser4_journal_open(fs, journal_device)))
-			goto error_free_alloc;
-    
-		if (reiser4_journal_valid(fs->journal))
-			goto error_free_journal;
-
-	}
-    
 	/* Initializes oid allocator */
 	if (!(fs->oid = reiser4_oid_open(fs)))
-		goto error_free_journal;
+		goto error_free_alloc;
   
 	if (reiser4_oid_valid(fs->oid))
 		goto error_free_oid;
 
-	/* Opens the tree starting from root block */
-	if (!(fs->tree = reiser4_tree_open(fs)))
-		goto error_free_oid;
-    
 	return fs;
 
- error_free_tree:
-	reiser4_tree_close(fs->tree);
  error_free_oid:
 	reiser4_oid_close(fs->oid);
- error_free_journal:
-	if (fs->journal)
-		reiser4_journal_close(fs->journal);
  error_free_alloc:
 	reiser4_alloc_close(fs->alloc);
  error_free_format:
@@ -130,19 +105,6 @@ reiser4_fs_t *reiser4_fs_open(
 	aal_free(fs);
  error:
 	return NULL;
-}
-
-aal_device_t *reiser4_fs_host_device(reiser4_fs_t *fs) {
-	aal_assert("umka-970", fs != NULL);
-	aal_assert("umka-971", fs->format != NULL);
-
-	return fs->device;
-}
-
-aal_device_t *reiser4_fs_journal_device(reiser4_fs_t *fs) {
-	aal_assert("umka-972", fs != NULL);
-
-	return (fs->journal ? fs->journal->device : NULL);
 }
 
 static errno_t callback_check_block(
@@ -164,8 +126,11 @@ reiser4_owner_t reiser4_fs_belongs(
 	if (reiser4_format_layout(fs->format, callback_check_block, &blk) != 0)
 		return O_FORMAT;
 
-	if (reiser4_journal_layout(fs->journal, callback_check_block, &blk) != 0)
-		return O_JOURNAL;
+	if (fs->journal) {
+		if (reiser4_journal_layout(fs->journal,
+					   callback_check_block, &blk) != 0)
+			return O_JOURNAL;
+	}
 
 	if (reiser4_alloc_layout(fs->alloc, callback_check_block, &blk) != 0)
 		return O_ALLOC;
@@ -215,14 +180,12 @@ errno_t reiser4_fs_mark(reiser4_fs_t *fs) {
 
 #define REISER4_MIN_SIZE 122
 
-/* Creates filesystem on specified host and journal devices */
+/* Create filesystem on specified host device and with passed params */
 reiser4_fs_t *reiser4_fs_create(
-	aal_device_t *host_device,	/* device filesystem will be lie on */
+	aal_device_t *device,           /* device filesystem will be lie on */
 	char *uuid, char *label,        /* uuid and label to be used */
-	count_t len,		        /* filesystem length in blocks */
 	reiser4_profile_t *profile,	/* profile to be used for new filesystem */
-	aal_device_t *journal_device,   /* device journal will be lie on */
-	void *journal_hint)	        /* journal params (most probably will be used for r3) */
+	count_t blocks)		        /* filesystem length in blocks */
 {
 	reiser4_fs_t *fs;
 	uint32_t blocksize;
@@ -232,31 +195,32 @@ reiser4_fs_t *reiser4_fs_create(
     
 	reiser4_file_hint_t root_hint;
 
-	aal_assert("umka-149", host_device != NULL);
-	aal_assert("umka-150", journal_device != NULL);
+	aal_assert("umka-149", device != NULL);
 	aal_assert("vpf-113", profile != NULL);
+	aal_assert("umka-1854", blocks > 0);
 
-	blocksize = host_device->blocksize;
+	blocksize = device->blocksize;
 	
 	/* Makes check for validness of specified block size value */
 	if (!aal_pow_of_two(blocksize)) {
-		aal_exception_error("Invalid block size %u. It must be power of two.", 
-				    blocksize);
+		aal_exception_error("Invalid block size %u. It must be "
+				    "power of two.", blocksize);
 		return NULL;
 	}
 
-	if (len > aal_device_len(host_device)) {
+	if (blocks > aal_device_len(device)) {
 		aal_exception_error(
-			"Device %s is too small (%llu) for filesystem %u blocks long.", 
-			aal_device_name(host_device), aal_device_len(host_device), len);
+			"Device %s is too small (%llu) for filesystem %u "
+			"blocks long.", aal_device_name(device),
+			aal_device_len(device), blocks);
 		return NULL;
 	}
     
 	/* Checks whether filesystem size is enough big */
-	if (len < REISER4_MIN_SIZE) {
+	if (blocks < REISER4_MIN_SIZE) {
 		aal_exception_error("Requested filesytem size (%llu) too small. "
 				    "ReiserFS required minimal size %u blocks long.", 
-				    len, REISER4_MIN_SIZE);
+				    blocks, REISER4_MIN_SIZE);
 		return NULL;
 	}
     
@@ -264,46 +228,31 @@ reiser4_fs_t *reiser4_fs_create(
 	if (!(fs = aal_calloc(sizeof(*fs), 0)))
 		return NULL;
 	
-	fs->device = host_device;
+	fs->device = device;
 	
 	/* Creates master super block */
-	if (!(fs->master = reiser4_master_create(host_device, profile->format, 
+	if (!(fs->master = reiser4_master_create(device, profile->format, 
 						 blocksize, uuid, label)))
 		goto error_free_fs;
 
 	/* Creates disk format */
-	if (!(fs->format = reiser4_format_create(fs, len, profile->tail,
+	if (!(fs->format = reiser4_format_create(fs, blocks, profile->tail,
 						 profile->format)))
 		goto error_free_master;
 
 	/* Creates block allocator */
-	if (!(fs->alloc = reiser4_alloc_create(fs, len)))
+	if (!(fs->alloc = reiser4_alloc_create(fs, blocks)))
 		goto error_free_format;
 
-	/* Creates journal on journal device */
-	if (!(fs->journal = reiser4_journal_create(fs, journal_device,
-						   journal_hint)))
-		goto error_free_alloc;
-   
 	if (reiser4_fs_mark(fs))
-		goto error_free_journal;
+		goto error_free_alloc;
     
 	/* Initializes oid allocator */
 	if (!(fs->oid = reiser4_oid_create(fs)))
-		goto error_free_journal;
+		goto error_free_alloc;
 
-	/* Creates tree */
-	if (!(fs->tree = reiser4_tree_create(fs, profile)))
-		goto error_free_oid;
-    
 	return fs;
 
- error_free_tree:
-	reiser4_tree_close(fs->tree);
- error_free_oid:
-	reiser4_oid_close(fs->oid);
- error_free_journal:
-	reiser4_journal_close(fs->journal);
  error_free_alloc:
 	reiser4_alloc_close(fs->alloc);
  error_free_format:
@@ -326,7 +275,7 @@ errno_t reiser4_fs_sync(
 	aal_assert("umka-231", fs != NULL);
    
 	/* Synchronizing the tree */
-	if (reiser4_tree_sync(fs->tree))
+	if (fs->tree && reiser4_tree_sync(fs->tree))
 		return -1;
     
 	/* Synchronizing the journal */
@@ -360,12 +309,8 @@ void reiser4_fs_close(
 	aal_assert("umka-230", fs != NULL);
     
 	/* Closing the all filesystem objects */
-	reiser4_tree_close(fs->tree);
 	reiser4_oid_close(fs->oid);
     
-	if (fs->journal)
-		reiser4_journal_close(fs->journal);
-	
 	reiser4_alloc_close(fs->alloc);
 	reiser4_format_close(fs->format);
 	reiser4_master_close(fs->master);
