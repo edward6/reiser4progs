@@ -219,6 +219,7 @@ errno_t reiser4_node_lkey(
 	return reiser4_item_get_key(&place, key);
 }
 
+#ifndef ENABLE_STAND_ALONE
 /*
   Checking if passed @place has nodeptr that points onto passed @node. This is
   needed for node_pbp() function.
@@ -242,6 +243,7 @@ static int reiser4_node_ack(reiser4_node_t *node,
 
 	return ptr.start == node->blk;
 }
+#endif
 
 /*
   Makes search of nodeptr position in parent node by passed child node. This is
@@ -263,8 +265,10 @@ errno_t reiser4_node_pbc(
 	place = &node->parent;
 	aal_assert("umka-1941", place->node != NULL);
 
+#ifndef ENABLE_STAND_ALONE
 	if (reiser4_node_ack(node, place))
 		goto out_update_place;
+#endif
 	
 	/* Getting position by key */
         reiser4_node_lkey(node, &lkey);
@@ -360,19 +364,14 @@ reiser4_node_t *reiser4_node_cbp(
   child.
 */
 static int callback_comp_node(
-	const void *item1,		/* the first node instance for comparing */
-	const void *item2,		/* the second one */
+	const void *node1,              /* the first node instance for comparing */
+	const void *node2,              /* the second node */
 	void *data)		        /* user-specified data */
 {
-	reiser4_node_t *node1;
-	reiser4_node_t *node2;
 	reiser4_key_t lkey1, lkey2;
 
-	node1 = (reiser4_node_t *)item1;
-	node2 = (reiser4_node_t *)item2;
-
-	reiser4_node_lkey(node1, &lkey1);
-	reiser4_node_lkey(node2, &lkey2);
+	reiser4_node_lkey((reiser4_node_t *)node1, &lkey1);
+	reiser4_node_lkey((reiser4_node_t *)node2, &lkey2);
     
 	return reiser4_key_compare(&lkey1, &lkey2);
 }
@@ -513,7 +512,7 @@ lookup_t reiser4_node_lookup(
 		return res;
 	}
 	
-	/* maxoss_key method must be implemented or we should not get here. */
+	/* Method maxoss_key() must be implemented or we should not get here */
 	aal_assert("vpf-895", item->plugin->item_ops.maxposs_key == NULL);
 	pos->item++;
 
