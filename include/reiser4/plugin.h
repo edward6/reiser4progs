@@ -9,31 +9,32 @@
 #include <aal/libaal.h>
 
 /* Leaf and twig levels. */
-#define LEAF_LEVEL	        1
-#define TWIG_LEVEL	        (LEAF_LEVEL + 1)
+#define LEAF_LEVEL			1
+#define TWIG_LEVEL			(LEAF_LEVEL + 1)
 
 /* Master related stuff like magic and offset in bytes. These are used by both
    plugins and library itself. */
-#define REISER4_MASTER_MAGIC	("ReIsEr4")
-#define REISER4_MASTER_OFFSET	(65536)
+#define REISER4_MASTER_MAGIC		("ReIsEr4")
+#define REISER4_MASTER_OFFSET		(65536)
+#define REISER4_MASTER_BLOCKNR(blksize)	(REISER4_MASTER_OFFSET/blksize)
 
 /* The same for fs stat block. */
-#define REISER4_STATUS_BLOCK    (21)
-#define REISER4_STATUS_MAGIC    ("ReiSeR4StATusBl")
+#define REISER4_STATUS_BLOCKNR(blksize)	(REISER4_MASTER_BLOCKNR(blksize) + 5)
+#define REISER4_STATUS_MAGIC		("ReiSeR4StATusBl")
 
-/* Max number of backups on the reiser4. */
-#define REISER4_BACKUPS_MAX	16
+/* Where the backup starts. */
+#define REISER4_BACKUP_START(blksize)	(REISER4_MASTER_BLOCKNR(blksize) + 6)
 
 /* Root key locality and objectid. This is actually defined in oid plugin,
    but hardcoded here to exclude oid plugin from the stand alone mode at all,
    nothing but these oids is needed there. */
-#define REISER4_ROOT_LOCALITY   (0x29)
-#define REISER4_ROOT_OBJECTID   (0x2a)
+#define REISER4_ROOT_LOCALITY		(0x29)
+#define REISER4_ROOT_OBJECTID		(0x2a)
 
 /* Macros for hole and unallocated extents. Used by both plugins (extent40) and
    library itself. */
-#define EXTENT_HOLE_UNIT        (0)
-#define EXTENT_UNALLOC_UNIT     (1)
+#define EXTENT_HOLE_UNIT		(0)
+#define EXTENT_UNALLOC_UNIT		(1)
 
 /* Defining the types for disk structures. All types like f32_t are fake ones
    and needed to avoid gcc-2.95.x bug with size of typedefined aligned types. */

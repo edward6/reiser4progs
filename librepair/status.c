@@ -127,7 +127,7 @@ void repair_status_print(reiser4_status_t *status, aal_stream_t *stream) {
 	aal_assert("umka-2494", stream != NULL);
 
 	aal_stream_format(stream, "FS status block (%lu):\n", 
-			  REISER4_STATUS_BLOCK);
+			  REISER4_STATUS_BLOCKNR(status->blksize));
 
 	state = get_ss_status(STATUS(status));
 	extended = get_ss_extended(STATUS(status));

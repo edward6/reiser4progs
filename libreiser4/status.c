@@ -28,7 +28,7 @@ reiser4_status_t *reiser4_status_open(aal_device_t *device,
 	
 	/* Reading the block where master super block lies */
 	if (!(block = aal_block_load(device, status->blksize,
-				     REISER4_STATUS_BLOCK)))
+				     REISER4_STATUS_BLOCKNR(blksize))))
 	{
 		aal_fatal("Can't read status block.");
 		goto error_free_status;
@@ -88,7 +88,7 @@ errno_t reiser4_status_sync(reiser4_status_t *status) {
 		return 0;
 	
 	blksize = status->blksize;
-	offset = REISER4_STATUS_BLOCK;
+	offset = REISER4_STATUS_BLOCKNR(status->blksize);
 
 	if (!(block = aal_block_alloc(status->device, blksize, offset)))
 		return -ENOMEM;
@@ -122,7 +122,7 @@ errno_t reiser4_status_layout(reiser4_status_t *status,
 	aal_assert("umka-2491", status != NULL);
 	aal_assert("umka-2492", region_func != NULL);
 
-	blk = REISER4_STATUS_BLOCK;
+	blk = REISER4_STATUS_BLOCKNR(status->blksize);
 	return region_func(status, blk, 1, data);
 }
 #endif

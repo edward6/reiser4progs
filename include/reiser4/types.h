@@ -13,7 +13,7 @@
 /* Minimal block number needed for a reiser4 filesystem: Master, Format40,
    Bitmap, JHeader, JFooter, Status, Backup, Twig, Leaf + skipped ones. */
 #define REISER4_FS_MIN_SIZE(blksize) \
-	(9 + REISER4_MASTER_OFFSET / blksize)
+	(9 + REISER4_MASTER_BLOCKNR(blksize))
 
 /* Master super block structure. It is the same for all reiser4 filesystems,
    so, we can declare it here. It contains common for all format fields like

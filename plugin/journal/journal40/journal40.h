@@ -12,7 +12,7 @@
 #include <reiser4/plugin.h>
 
 #define JOURNAL40_BLOCKNR(blksize) \
-        ((REISER4_MASTER_OFFSET / blksize) + 3)
+        (REISER4_MASTER_BLOCKNR(blksize) + 3)
 
 struct journal40_area {
 	blk_t start;

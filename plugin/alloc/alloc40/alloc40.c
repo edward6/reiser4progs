@@ -10,7 +10,7 @@
 #include "alloc40_repair.h"
 
 #define ALLOC40_BLOCKNR(blksize) \
-        ((REISER4_MASTER_OFFSET / blksize) + 2)
+        (REISER4_MASTER_BLOCKNR(blksize) + 2)
 
 /* Calculates the adler32 checksum for the data pointed by "buff" of the length
    "n". This function was originally taken from zlib, version 1.1.3, July 9th,

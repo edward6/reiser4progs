@@ -83,7 +83,7 @@ errno_t reiser4_master_layout(reiser4_master_t *master,
 	aal_assert("vpf-1317", region_func != NULL);
 
 	blksize = get_ms_blksize(SUPER(master));
-	blk = REISER4_MASTER_OFFSET / blksize;
+	blk = REISER4_MASTER_BLOCKNR(blksize);
 	return region_func(master, blk, 1, data);
 }
 
@@ -133,8 +133,7 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	
 	/* Reading the block where master super block lies */
 	if (!(block = aal_block_load(device, device->blksize,
-				     REISER4_MASTER_OFFSET /
-				     device->blksize)))
+				     REISER4_MASTER_BLOCKNR(device->blksize))))
 	{
 		aal_fatal("Can't read master super block.");
 		goto error_free_master;
@@ -172,7 +171,7 @@ errno_t reiser4_master_reopen(reiser4_master_t *master) {
 	aal_assert("umka-1576", master != NULL);
 
 	blksize = master->device->blksize;
-	offset = (blk_t)(REISER4_MASTER_OFFSET / blksize);
+	offset = (blk_t)(REISER4_MASTER_BLOCKNR(blksize));
 	
 	/* Reading the block where master super block lies */
 	if (!(block = aal_block_load(master->device,
@@ -207,7 +206,7 @@ errno_t reiser4_master_sync(
 		return 0;
 	
 	blksize = get_ms_blksize(SUPER(master));
-	offset = REISER4_MASTER_OFFSET / blksize;
+	offset = REISER4_MASTER_BLOCKNR(blksize);
 
 	if (!(block = aal_block_alloc(master->device,
 				      blksize, offset)))

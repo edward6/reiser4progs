@@ -216,7 +216,7 @@ void repair_master_print(reiser4_master_t *master,
 	}
 	
 	aal_stream_format(stream, "Master super block (%lu):\n",
-			  REISER4_MASTER_OFFSET / blksize);
+			  REISER4_MASTER_BLOCKNR(blksize));
 	
 	aal_stream_format(stream, "magic:\t\t%s\n",
 			  reiser4_master_get_magic(master));

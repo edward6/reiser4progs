@@ -273,7 +273,7 @@ static generic_entity_t *format40_create(fs_desc_t *desc,
 	/* Clobbering format skipped area in order to let mount to detect
 	   reiser4 correctly without specifying exact filesystem type. Skipped
 	   area is [0-15] blocks. */
-	start = MASTER_BLOCKNR(format->blksize);
+	start = REISER4_MASTER_BLOCKNR(format->blksize);
 	
 	if (format40_clobber_block((generic_entity_t *)format,
 				   0, start, NULL))

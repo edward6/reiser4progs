@@ -12,10 +12,7 @@
 #define FORMAT40_MAGIC "ReIsEr40FoRmAt"
 
 #define FORMAT40_BLOCKNR(blksize) \
-        ((REISER4_MASTER_OFFSET / blksize) + 1)
-
-#define MASTER_BLOCKNR(blksize) \
-        (REISER4_MASTER_OFFSET / blksize)
+        (REISER4_MASTER_BLOCKNR(blksize) + 1)
 
 #define SUPER(entity) (&((format40_t *)entity)->super)
 
