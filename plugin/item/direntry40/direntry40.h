@@ -38,11 +38,11 @@ struct objid40 {
 
 typedef struct objid40 objid40_t;
 
-#define oid_get_locality(oid)		    LE64_TO_CPU(*((d64_t *)(oid)->locality))
-#define oid_set_locality(oid, val)	    (*(d64_t *)(oid)->locality) = CPU_TO_LE64(val)
+#define oid40_get_locality(oid)		    LE64_TO_CPU(*((d64_t *)(oid)->locality))
+#define oid40_set_locality(oid, val)	    (*(d64_t *)(oid)->locality) = CPU_TO_LE64(val)
 
-#define oid_get_objectid(oid)		    LE64_TO_CPU(*((d64_t *)(oid)->objectid))
-#define oid_set_objectid(oid, val)	    (*(d64_t *)(oid)->objectid) = CPU_TO_LE64(val)
+#define oid40_get_objectid(oid)		    LE64_TO_CPU(*((d64_t *)(oid)->objectid))
+#define oid40_set_objectid(oid, val)	    (*(d64_t *)(oid)->objectid) = CPU_TO_LE64(val)
 
 
 /* Part of the key, describing the entry. */
@@ -53,11 +53,11 @@ struct entryid40 {
 
 typedef struct entryid40 entryid40_t;
 
-#define eid_get_objectid(eid)		    LE64_TO_CPU(*((d64_t *)(eid)->objectid))
-#define eid_set_objectid(eid, val)	    (*(d64_t *)(eid)->objectid) = CPU_TO_LE64(val)
+#define eid40_get_objectid(eid)		    LE64_TO_CPU(*((d64_t *)(eid)->objectid))
+#define eid40_set_objectid(eid, val)	    (*(d64_t *)(eid)->objectid) = CPU_TO_LE64(val)
 
-#define eid_get_offset(eid)		    LE64_TO_CPU(*((d64_t *)(eid)->offset))
-#define eid_set_offset(eid, val)	    (*(d64_t *)(eid)->offset) = CPU_TO_LE64(val)
+#define eid40_get_offset(eid)		    LE64_TO_CPU(*((d64_t *)(eid)->offset))
+#define eid40_set_offset(eid, val)	    (*(d64_t *)(eid)->offset) = CPU_TO_LE64(val)
 
 struct entry40 {
 	entryid40_t entryid;		    /* unit's part of key - hash for key40 */

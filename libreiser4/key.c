@@ -90,21 +90,6 @@ errno_t reiser4_key_build_generic(
 			   objectid, offset);
 }
 
-/* Builds short non-directory key */
-errno_t reiser4_key_build_objid(
-	reiser4_key_t *key,	    /* key to be built */
-	uint32_t type,		    /* key type */
-	roid_t locality,	    /* key locality */
-	roid_t objectid)	    /* key objectid */
-{
-	aal_assert("umka-665", key != NULL, return -1);
-	aal_assert("umka-666", key->plugin != NULL, return -1);
-
-	return plugin_call(return -1, key->plugin->key_ops, 
-			   build_objid, key, type, locality,
-			   objectid);
-}
-
 /* Builds full directory key */
 errno_t reiser4_key_build_direntry(
 	reiser4_key_t *key,	    /* key to be built */
@@ -120,20 +105,6 @@ errno_t reiser4_key_build_direntry(
 	return plugin_call(return -1, key->plugin->key_ops, 
 			   build_direntry, key, plugin,
 			   locality, objectid, name);
-}
-
-/* Builds short entry key */
-errno_t reiser4_key_build_entryid(
-	reiser4_key_t *key,	    /* key to be built */
-	reiser4_plugin_t *plugin,   /* hash plugin to be used */
-	const char *name)	    /* entry name */
-{
-	aal_assert("umka-668", key != NULL, return -1);
-	aal_assert("umka-669", key->plugin != NULL, return -1);
-	aal_assert("umka-670", name != NULL, return -1);
-    
-	return plugin_call(return -1, key->plugin->key_ops, 
-			   build_entryid, key, plugin, name);
 }
 
 /* Sets key type */
@@ -275,7 +246,6 @@ void reiser4_key_minimal(reiser4_key_t *key) {
 
 #ifndef ENABLE_COMPACT
 
-/* Prints key to passed buffer */
 errno_t reiser4_key_print(reiser4_key_t *key, aal_stream_t *stream) {
 	aal_assert("vpf-189", key != NULL, return -1);
 	aal_assert("vpf-190", key->plugin != NULL, return -1);

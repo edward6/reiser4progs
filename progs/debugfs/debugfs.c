@@ -821,7 +821,7 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs, uint32_t flags) {
 
 static errno_t debugfs_file_cat(reiser4_file_t *file) {
 	int32_t read;
-	char buff[/*4096*/256];
+	char buff[4096];
 	
 	if (reiser4_file_reset(file)) {
 		aal_exception_error("Can't reset file %s.", file->name);
@@ -849,8 +849,14 @@ static errno_t debugfs_file_ls(reiser4_file_t *file) {
 	}
 	
 	while (reiser4_file_read(file, &entry, 1)) {
-		printf("[%llx:%llx] %s\n", (entry.objid.locality >> 4), 
-		       entry.objid.objectid, entry.name);
+		aal_stream_t stream;
+		aal_stream_init(&stream);
+		
+		reiser4_key_print(&entry.object, &stream);
+		aal_stream_format(&stream, " %s\n", entry.name);
+		debugfs_print_stream(&stream);
+		
+		aal_stream_fini(&stream);
 	}
 
 	printf("\n");

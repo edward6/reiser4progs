@@ -195,9 +195,8 @@ static int dir40_lookup(object_entity_t *entity,
 					item, &entry, dir->body.pos.unit, 1) != 1)
 				return -1;
 
-			plugin_call(return -1, key->plugin->key_ops, build_generic,
-				    key, KEY_STATDATA_TYPE, entry.objid.locality,
-				    entry.objid.objectid, 0);
+			plugin_call(return -1, key->plugin->key_ops, assign,
+				    key, &entry.object);
 	    
 			return 1;
 		}
@@ -260,6 +259,7 @@ static object_entity_t *dir40_create(const void *tree,
 	dir40_t *dir;
 
 	reiser4_place_t place;
+	roid_t parent_locality;
 	roid_t objectid, locality;
 
 	reiser4_statdata_hint_t stat;
@@ -294,6 +294,9 @@ static object_entity_t *dir40_create(const void *tree,
     
 	locality = file40_locality(&dir->file);
 	objectid = file40_objectid(&dir->file);
+
+	parent_locality = plugin_call(return NULL, hint->object.plugin->key_ops,
+				      get_locality, &hint->parent);
     
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 						    hint->statdata)))
@@ -334,20 +337,33 @@ static object_entity_t *dir40_create(const void *tree,
 
 	/* Preparing hist for the empty directory */
 	for (i = 0; i < body.count; i++) {
-		key_entity_t dumb;
-		char *name = dir40_empty_dir[i];
+		char *name;
+		uint64_t loc, oid;
 			
+		if (i == 0) {
+			loc = locality;
+			oid = objectid;
+		} else {
+			loc = parent_locality;
+			oid = locality;
+		}
+		
+		name = dir40_empty_dir[i];
+		
 		aal_strncpy(body.unit[i].name, name, aal_strlen(name));
-    
-		plugin_call(goto error_free_body, hint->object.plugin->key_ops,
-			    build_objid, &dumb, KEY_STATDATA_TYPE, locality, objectid);
 
-		aal_memcpy(&body.unit[i].objid, dumb.body, sizeof(body.unit[i].objid));
+		body.unit[i].object.plugin = hint->object.plugin;
+		
+		plugin_call(goto error_free_body, hint->object.plugin->key_ops,
+			    build_generic, &body.unit[i].object, KEY_STATDATA_TYPE,
+			    loc, oid, 0);
 	
+		body.unit[i].offset.plugin = hint->object.plugin;
+		
 		plugin_call(goto error_free_body, hint->object.plugin->key_ops,
-			    build_entryid, &dumb, dir->hash, body.unit[i].name);
-
-		aal_memcpy(&body.unit[i].entryid, dumb.body, sizeof(body.unit[i].entryid));
+			    build_direntry, &body.unit[i].offset, dir->hash,
+			    file40_locality(&dir->file), file40_objectid(&dir->file),
+			    body.unit[i].name);
 	}
 	
 	body_hint.hint = &body;
@@ -445,35 +461,21 @@ static int32_t dir40_write(object_entity_t *entity,
 	hint.hint = &body_hint;
   
 	for (i = 0; i < n; i++) {
-		uint64_t locality;
-		uint64_t objectid;
+		key_entity_t *key = &dir->file.key;
 		
-		key_entity_t *key;
-		key_entity_t dumb;
-
-		key = &dir->file.key;
-		locality = entry->objid.locality;
-		objectid = entry->objid.objectid;
-		
-		plugin_call(break, key->plugin->key_ops, build_objid,
-			    &dumb, KEY_STATDATA_TYPE, locality, objectid);
-
-		aal_memcpy(&entry->objid, dumb.body, sizeof(entry->objid));
-		
-		plugin_call(break, key->plugin->key_ops, build_entryid,
-			    &dumb, dir->hash, entry->name);
-
-		aal_memcpy(&entry->entryid, dumb.body, sizeof(entry->entryid));
-		
-		aal_memcpy(&body_hint.unit[0], entry, sizeof(*entry));
-    
 		hint.key.plugin = key->plugin;
+		hint.plugin = dir->body.entity.plugin;
+
+		aal_memcpy(&body_hint.unit[0], entry, sizeof(*entry));
 		
-		plugin_call(break, key->plugin->key_ops, build_direntry,
+		plugin_call(return -1, key->plugin->key_ops, build_direntry,
 			    &hint.key, dir->hash, file40_locality(&dir->file),
 			    file40_objectid(&dir->file), entry->name);
-    
-		hint.plugin = dir->body.entity.plugin;
+
+		body_hint.unit[0].offset.plugin = key->plugin;
+			
+		plugin_call(return -1, key->plugin->key_ops, assign,
+			    &body_hint.unit[0].offset, &hint.key);
 
 		if (file40_insert(&dir->file, &hint, &stop, &place)) {
 			aal_exception_error("Can't insert entry %s.", entry->name);

@@ -12,7 +12,31 @@ static reiser4_core_t *core = NULL;
 static inline objid40_t *direntry40_unit(direntry40_t *direntry, 
 					 uint32_t pos)
 {
-	return (objid40_t *)((void *)direntry + direntry->entry[pos].offset);
+	uint32_t offset = direntry->entry[pos].offset;
+	return (objid40_t *)((void *)direntry + offset);
+}
+
+static errno_t direntry40_unit_key(item_entity_t *item,
+				   uint32_t pos,
+				   key_entity_t *key)
+{
+	uint64_t locality;
+	uint64_t objectid;
+
+	objid40_t *objid;
+	direntry40_t *direntry;
+	reiser4_plugin_t *plugin;
+	
+	direntry = direntry40_body(item);
+	objid = direntry40_unit(direntry, pos);
+	
+	objectid = oid40_get_objectid(objid);
+	locality = oid40_get_locality(objid);
+		
+	key->plugin = item->key.plugin;
+	
+	return plugin_call(return -1, key->plugin->key_ops, build_generic,
+			   key, KEY_FILENAME_TYPE, locality, objectid, 0);
 }
 
 static inline entry40_t *direntry40_entry(direntry40_t *direntry, 
@@ -30,7 +54,7 @@ static inline int direntry40_name_long(char *name) {
 static inline int direntry40_entry_long(direntry40_t *direntry,
 					entry40_t *entry)
 {
-	uint64_t objectid = eid_get_objectid(&entry->entryid);
+	uint64_t objectid = eid40_get_objectid(&entry->entryid);
 	return (objectid & 0x0100000000000000ull) ? 1 : 0;
 }
 
@@ -51,6 +75,51 @@ static inline uint32_t direntry40_entry_len(direntry40_t *direntry,
 	}
 	
 	return len;
+}
+
+static char *direntry40_unpack_string(uint64_t value, char *buff) {
+	do {
+		*buff = value >> (64 - 8);
+		if (*buff)
+			buff++;
+		value <<= 8;
+		
+	} while (value != 0);
+
+	*buff = '\0';
+	return buff; 
+}
+
+static char *direntry40_entry_name(direntry40_t *direntry,
+				   entry40_t *entry, char *buff)
+{
+	char *cont;
+	uint64_t offset;
+	objid40_t *objid;
+	uint64_t objectid;
+
+	objid = (objid40_t *)((void *)direntry +
+			      entry->offset);
+	
+	if (direntry40_entry_long(direntry, entry)) {
+		char *name = (char *)(objid + 1);
+		aal_strncpy(buff, name, aal_strlen(name));
+	} else {
+		objectid = (eid40_get_objectid(&entry->entryid) &
+			    ~0x0100000000000000ull);
+		
+		offset = eid40_get_offset(&entry->entryid);
+
+		if (objectid == 0ull && offset == 0ull) {
+			*buff = '.';
+			*(buff + 1) = '\0';
+		} else {
+			cont = direntry40_unpack_string(objectid, buff);
+			direntry40_unpack_string(offset, cont);
+		}
+	}
+
+	return buff;
 }
 
 static uint32_t direntry40_units(item_entity_t *item) {
@@ -99,57 +168,11 @@ static errno_t direntry40_get_key(item_entity_t *item,
 	return 0;
 }
 
-static char *direntry40_unpack_string(uint64_t value, char *buff) {
-	do {
-		*buff = value >> (64 - 8);
-		if (*buff)
-			buff++;
-		value <<= 8;
-		
-	} while (value != 0);
-
-	*buff = '\0';
-	return buff; 
-}
-
-static char *direntry40_extract_name(direntry40_t *direntry,
-				     entry40_t *entry, char *buff)
-{
-	char *cont;
-	uint64_t offset;
-	objid40_t *objid;
-	uint64_t objectid;
-
-	objid = (objid40_t *)((void *)direntry +
-			      entry->offset);
-	
-	if (direntry40_entry_long(direntry, entry)) {
-		char *name = (char *)(objid + 1);
-		aal_strncpy(buff, name, aal_strlen(name));
-	} else {
-		objectid = (eid_get_objectid(&entry->entryid) &
-			    ~0x0100000000000000ull);
-		
-		offset = eid_get_offset(&entry->entryid);
-
-		if (objectid == 0ull && offset == 0ull) {
-			*buff = '.';
-			*(buff + 1) = '\0';
-		} else {
-			cont = direntry40_unpack_string(objectid, buff);
-			direntry40_unpack_string(offset, cont);
-		}
-	}
-
-	return buff;
-}
-
 static int32_t direntry40_fetch(item_entity_t *item, void *buff,
 				uint32_t pos, uint32_t count)
 {
 	uint32_t i;
-	entry40_t *entry;
-	objid40_t *objid;
+	reiser4_plugin_t *plugin;
 
 	direntry40_t *direntry;
 	reiser4_entry_hint_t *hint;
@@ -169,18 +192,16 @@ static int32_t direntry40_fetch(item_entity_t *item, void *buff,
 
 	if (count > direntry40_units(item) - pos)
 		count = direntry40_units(item) - pos;
-	
-	for (i = pos; i < pos + count; i++, hint++) {
-		entry = direntry40_entry(direntry, i);
-		
-		hint->entryid.objectid = eid_get_objectid(&entry->entryid);
-		hint->entryid.offset = eid_get_offset(&entry->entryid);
 
-		direntry40_extract_name(direntry, entry, hint->name);
-				
-		objid = direntry40_unit(direntry, pos);
-		hint->objid.objectid = oid_get_objectid(objid);
-		hint->objid.locality = oid_get_locality(objid);
+	plugin = item->key.plugin;
+		
+	for (i = pos; i < pos + count; i++, hint++) {
+		entry40_t *entry = direntry40_entry(direntry, i);
+
+		direntry40_get_key(item, i, &hint->offset);
+		direntry40_entry_name(direntry, entry, hint->name);
+
+		direntry40_unit_key(item, i, &hint->object);
 	}
     
 	return i - pos;
@@ -822,21 +843,43 @@ static errno_t direntry40_insert(item_entity_t *item,
 	for (i = 0; i < count; i++, entry++) {
 		objid40_t *objid;
 		entryid40_t *entryid;
-		
-		entryid = &entry->entryid;
+		uint64_t oid, loc, off;
+
+		key_entity_t *hash;
+		key_entity_t *object;
+
+		entryid = (entryid40_t *)&entry->entryid;
 		objid = (objid40_t *)((void *)direntry + offset);
 		
 		/* Setting up the offset of new entry */
 		en40_set_offset(entry, offset);
 
-		/* Creating proper entry identifier (hash) */
-		aal_memcpy(entryid, &direntry_hint->unit[i].entryid,
-			   sizeof(entryid40_t));
-
-		/* Creating stat data key and name if it is needed */
-		aal_memcpy(objid, &direntry_hint->unit[i].objid,
-			   sizeof(objid40_t));
+		hash = &direntry_hint->unit[i].offset;
 		
+		/* Creating proper entry identifier (hash) */
+		oid = plugin_call(return -1, hash->plugin->key_ops,
+				  get_objectid, hash);
+		
+		eid40_set_objectid(entryid, oid);
+
+		off = plugin_call(return -1, hash->plugin->key_ops,
+				  get_offset, hash);
+
+		eid40_set_offset(entryid, off);
+
+		/* Creating stat data key ,entry points to */
+		object = &direntry_hint->unit[i].object;
+
+		loc = plugin_call(return -1, object->plugin->key_ops,
+				  get_locality, object);
+
+		oid40_set_locality(objid, loc);
+
+		oid = plugin_call(return -1, object->plugin->key_ops,
+				  get_objectid, object);
+		
+		oid40_set_objectid(objid, oid);
+
 		offset += sizeof(objid40_t);
 
 		/*
@@ -909,10 +952,10 @@ static errno_t direntry40_print(item_entity_t *item,
 	for (i = 0; i < de40_get_count(direntry); i++) {
 		entry40_t *entry = &direntry->entry[i];
 
-		objid = eid_get_objectid(&entry->entryid);
-		offset = eid_get_offset(&entry->entryid);
+		objid = eid40_get_objectid(&entry->entryid);
+		offset = eid40_get_offset(&entry->entryid);
 
-		direntry40_extract_name(direntry, entry, name);
+		direntry40_entry_name(direntry, entry, name);
 
 		locality = *((uint64_t *)((void *)direntry + entry->offset));
 		

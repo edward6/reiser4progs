@@ -12,8 +12,6 @@ reiser4progs/COPYING.
 
 * special file plugin.
 
-* copy bitmap functions Vitaly need.
-
 * big digits stat data fields storing format change.
 
 * update parent directory fields (nlink, etc) when creating file or
@@ -44,5 +42,3 @@ reiser4progs/COPYING.
 * reiser4_file_print function.
 
 * reiser4_tree_splitt function.
-
-* put key_entity_t into entry hint instead of entryid, etc.

@@ -103,9 +103,15 @@ int main(int argc, char *argv[]) {
 		goto error_free_dir;
 	}
     
-	while (reiser4_file_read(dir, (char *)&entry, 1)) {
-		fprintf(stdout, "[%llx:%llx] %s\n", (entry.objid.locality >> 4), 
-			entry.objid.objectid, entry.name);
+	while (reiser4_file_read(dir, (void *)&entry, 1)) {
+		aal_stream_t stream;
+		aal_stream_init(&stream);
+		
+		reiser4_key_print(&entry.object, &stream);
+		aal_stream_format(&stream, " %s\n", entry.name);
+		printf((char *)stream.data);
+		
+		aal_stream_fini(&stream);
 	}
     
 	reiser4_file_close(dir);

@@ -310,11 +310,11 @@ reiser4_file_t *reiser4_file_create(
 		objectid = reiser4_oid_allocate(parent->fs->oid);
 	} else {
 		roid_t root_locality = reiser4_oid_root_locality(fs->oid);
-		roid_t root_parent_locality = reiser4_oid_hyper_locality(fs->oid);
+		roid_t hyper_locality = reiser4_oid_hyper_locality(fs->oid);
 		
 		hint->parent.plugin = fs->tree->key.plugin;
 		reiser4_key_build_generic(&hint->parent, KEY_STATDATA_TYPE, 
-					  root_parent_locality, root_locality, 0);
+					  hyper_locality, root_locality, 0);
 
 		objectid = reiser4_oid_root_objectid(fs->oid);
 	}
@@ -330,7 +330,7 @@ reiser4_file_t *reiser4_file_create(
 	reiser4_key_assign(&file->key, &hint->object);
     
 	/* Creating entry in parent */
-	if (parent) {   
+	if (parent) {
 		reiser4_entry_hint_t entry;
 
 		/* 
@@ -341,8 +341,7 @@ reiser4_file_t *reiser4_file_create(
 		*/
 		aal_memset(&entry, 0, sizeof(entry));
 	
-		entry.objid.objectid = reiser4_key_get_objectid(&file->key);
-		entry.objid.locality = reiser4_key_get_locality(&file->key);
+		reiser4_key_assign(&entry.object, &hint->object);
 		aal_strncpy(entry.name, (char *)name, sizeof(entry.name));
 
 		if (reiser4_file_write(parent, (char *)&entry, 1) == -1) {

@@ -33,7 +33,7 @@ const char *key40_m2n(key40_minor_t type) {
 }
 
 /* Translates key type from libreiser4 type to key40 one */
-static key40_minor_t key40_t2m(key_type_t type) {
+static key40_minor_t key40_type2minor(key_type_t type) {
 	switch (type) {
 	case KEY_FILENAME_TYPE:
 		return KEY40_FILENAME_MINOR;
@@ -53,7 +53,7 @@ static key40_minor_t key40_t2m(key_type_t type) {
 }
 
 /* Translates key type from key40 to libreiser4 one */
-static key_type_t key40_m2t(key40_minor_t minor) {
+static key_type_t key40_minor2type(key40_minor_t minor) {
 	switch (minor) {
 	case KEY40_FILENAME_MINOR:
 		return KEY_FILENAME_TYPE;
@@ -80,9 +80,8 @@ static key_entity_t *key40_maximal(void) {
 	return &maximal_key;
 }
 
-static int key40_compare_short(
-	key40_t *key1, 
-	key40_t *key2) 
+static int key40_compare_short(key40_t *key1, 
+			       key40_t *key2) 
 {
 	int result;
 
@@ -92,9 +91,8 @@ static int key40_compare_short(
 	return k40_comp_el(key1, key2, 1);
 }
 
-static int key40_compare(
-	key_entity_t *key1, 
-	key_entity_t *key2) 
+static int key40_compare(key_entity_t *key1, 
+			 key_entity_t *key2) 
 {
 	int result;
 	key40_t *body1, *body2;
@@ -111,15 +109,16 @@ static int key40_compare(
 	return k40_comp_el(body1, body2, 2);
 }
 
-static errno_t key40_assign(
-	key_entity_t *dst,
-	key_entity_t *src)
+static errno_t key40_assign(key_entity_t *dst,
+			    key_entity_t *src)
 {
 	aal_assert("umka-1110", dst != NULL, return -1);
 	aal_assert("umka-1111", src != NULL, return -1);
 
-	if (dst->plugin->h.id != src->plugin->h.id)
-		return -1;
+	if (src->plugin && dst->plugin) {
+		if (dst->plugin->h.id != src->plugin->h.id)
+			return -1;
+	}
 	
 	aal_memcpy(dst->body, src->body, sizeof(key40_t));
 	return 0;
@@ -152,22 +151,20 @@ static errno_t key40_valid(key_entity_t *key) {
 	return -1;
 }
 
-static void key40_set_type(
-	key_entity_t *key, 
-	key_type_t type)
+static void key40_set_type(key_entity_t *key, 
+			   key_type_t type)
 {
 	aal_assert("umka-634", key != NULL, return);
-	k40_set_minor((key40_t *)key->body, key40_t2m(type));
+	k40_set_minor((key40_t *)key->body, key40_type2minor(type));
 }
 
 static key_type_t key40_get_type(key_entity_t *key) {
 	aal_assert("umka-635", key != NULL, return 0);
-	return key40_m2t(k40_get_minor((key40_t *)key->body));
+	return key40_minor2type(k40_get_minor((key40_t *)key->body));
 }
 
-static void key40_set_locality(
-	key_entity_t *key, 
-	uint64_t locality) 
+static void key40_set_locality(key_entity_t *key, 
+			       uint64_t locality) 
 {
 	aal_assert("umka-636", key != NULL, return);
 	k40_set_locality((key40_t *)key->body, locality);
@@ -267,7 +264,7 @@ static errno_t key40_build_hash(key_entity_t *key,
 		}
 	} else {
 
-		/* Build hash */
+		/* Build hash by means of using hash plugin */
 		if (!hash->hash_ops.build)
 			return -1;
 		
@@ -276,6 +273,11 @@ static errno_t key40_build_hash(key_entity_t *key,
 						aal_strlen(name) - OID_CHARS);
 	}
 
+	/*
+	  Objectid must occupie 60 bits. If it takes more, then we have broken
+	  key, or objectid allocator reached this value, that impossible in near
+	  future and apprentry denotes bug in object allocator.
+	*/
 	aal_assert("umka-1499", !(objectid & ~KEY40_OBJECTID_MASK), return -1);
 
 	/* Setting up objectid and offset */
@@ -298,39 +300,16 @@ static errno_t key40_build_direntry(key_entity_t *key,
 	key40_clean(key);
 
 	key40_set_locality(key, objectid);
-	key40_set_type(key, key40_m2t(KEY40_FILENAME_MINOR));
+	key40_set_type(key, key40_minor2type(KEY40_FILENAME_MINOR));
     
 	return key40_build_hash(key, hash, name);
 }
 
-static errno_t key40_build_entryid(key_entity_t *key, 
-				   reiser4_plugin_t *hash,
-				   const char *name) 
-{
-	key40_t *body;
-	key_entity_t dumb;
-    
-	aal_assert("vpf-142", key != NULL, return -1);
-	aal_assert("umka-1755", hash != NULL, return -1);
-    
-	key40_clean(&dumb);
-
-	if (key40_build_hash(&dumb, hash, name))
-		return -1;
-
-	body = (key40_t *)dumb.body;
-	aal_memset(key->body, 0, sizeof(uint64_t) * 2);
-	aal_memcpy(key->body, &body->el[1], sizeof(uint64_t) * 2);
-
-	return 0;
-}
-
-static errno_t key40_build_generic(
-	key_entity_t *key,
-	key_type_t type,
-	uint64_t locality,
-	uint64_t objectid,
-	uint64_t offset) 
+static errno_t key40_build_generic(key_entity_t *key,
+				   key_type_t type,
+				   uint64_t locality,
+				   uint64_t objectid,
+				   uint64_t offset)
 {
 	key40_t *body;
 
@@ -341,33 +320,8 @@ static errno_t key40_build_generic(
 	body = (key40_t *)key->body;
 	k40_set_locality(body, locality);
 	k40_set_objectid(body, objectid);
-	k40_set_minor(body, key40_t2m(type));
+	k40_set_minor(body, key40_type2minor(type));
 	k40_set_offset(body, offset);
-
-	return 0;
-}
-
-static errno_t key40_build_objid(
-	key_entity_t *key,
-	key_type_t type,
-	uint64_t locality,
-	uint64_t objectid)
-{
-	key40_t *body;
-	key_entity_t dumb;
-    
-	aal_assert("vpf-143", key != NULL, return -1);
-    
-	key40_clean(&dumb);
-
-	body = (key40_t *)dumb.body;
-	
-	k40_set_locality(body, locality);
-	k40_set_objectid(body, objectid);
-	k40_set_minor(body, key40_t2m(type));
-    
-	aal_memset(key->body, 0, sizeof(uint64_t) * 2);
-	aal_memcpy(key->body, body, sizeof(uint64_t) * 2);
 
 	return 0;
 }
@@ -433,10 +387,7 @@ static reiser4_plugin_t key40_plugin = {
 		.get_hash	= key40_get_hash,
 	
 		.build_generic  = key40_build_generic,
-		.build_direntry = key40_build_direntry,
-	
-		.build_objid	= key40_build_objid,
-		.build_entryid  = key40_build_entryid
+		.build_direntry = key40_build_direntry
 	}
 };
 

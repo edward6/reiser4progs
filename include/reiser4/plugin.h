@@ -375,17 +375,11 @@ typedef struct reiser4_statdata_hint reiser4_statdata_hint_t;
 
 struct reiser4_entry_hint {
 
-	/* Locality and objectid of object pointed by entry */
-	struct {
-		roid_t locality;
-		roid_t objectid;
-	} objid;
+	/* Entry key, it may be found by */
+	key_entity_t offset;
 
-	/* Offset of entry */
-	struct {
-		roid_t objectid;
-		uint64_t offset;
-	} entryid;
+	/* The stat data key of the object entry points to */
+	key_entity_t object;
 
 	/* Name of entry */
 	char name[256];
@@ -530,18 +524,13 @@ struct reiser4_key_ops {
 
 	/* Copyies src key to dst one */
 	errno_t (*assign) (key_entity_t *, key_entity_t *);
-    
+
+	/* Builds generic key (statdata, file body, etc) */
 	errno_t (*build_generic) (key_entity_t *, key_type_t,
 				  uint64_t, uint64_t, uint64_t);
     
 	errno_t (*build_direntry) (key_entity_t *, reiser4_plugin_t *,
 				   uint64_t, uint64_t, const char *);
-    
-	errno_t (*build_objid) (key_entity_t *, key_type_t,
-				uint64_t, uint64_t);
-    
-	errno_t (*build_entryid) (key_entity_t *, reiser4_plugin_t *,
-				  const char *);
 
 	/* Gets/sets key type (minor in reiser4 notation) */	
 	void (*set_type) (key_entity_t *, key_type_t);
