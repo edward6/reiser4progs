@@ -93,6 +93,15 @@ errno_t reiser4_tree_connect(
 	if ((res = reiser4_node_connect(parent, node)))
 		return res;
 
+	node->tree = tree;
+	
+	/* Attaching new node into tree's lru list */
+	if (aal_lru_attach(tree->lru, (void *)node)) {
+		aal_exception_error("Can't attach node %llu to tree LRU.",
+				    node->blk);
+		return -1;
+	}
+
 	reiser4_node_lock(parent);
 	
 	if (tree->traps.connect) {
@@ -102,7 +111,7 @@ errno_t reiser4_tree_connect(
 			return -1;
 			
 		/*
-		  Placing callback calling into lock/unlock braces for
+		  Arounding the callback calling by lock/unlock braces for
 		  preventing it freeing by handler.
 		*/
 		reiser4_node_lock(node);
@@ -172,12 +181,21 @@ errno_t reiser4_tree_disconnect(
 		node->right = NULL;
 	}
 
+	/* Detaching node from the global tree LRU list */
+	if (aal_lru_detach(tree->lru, (void *)node))
+		return -1;
+
+	/*
+	  If parent is not exist, then we consider the @node is root and do not
+	  do any unlock and disconnect from the parent.
+	*/
 	if (!parent) {
 		node->parent = NULL;
 		return 0;
 	}
 
 	reiser4_node_unlock(parent);
+	
 	return reiser4_node_disconnect(parent, node);
 }
 
@@ -205,6 +223,17 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 		
 		if (parent && reiser4_tree_connect(tree, parent, node))
 			goto error_free_node;
+	} else {
+		/*
+		  Touching node in LRU list in odrer to let it know that we
+		  access it and in such maner move to the head of list.
+		*/
+		if (aal_lru_touch(tree->lru, (void *)node)) {
+			aal_exception_error("Updating tree LRU is failed "
+					    "while node loading from the "
+					    "tree cache.");
+			return NULL;
+		}
 	}
 	
 	return node;
@@ -902,7 +931,7 @@ errno_t reiser4_tree_attach(
 
 			reiser4_place_assign(&place, tree->root, 0, ~0ul);
 		
-			if (reiser4_node_insert(place.node, &place.pos, &hint))
+			if (reiser4_tree_insert(tree, &place, level, &hint))
 				return -1;
 		
 			reiser4_node_set_level(place.node, level);
@@ -1462,6 +1491,13 @@ errno_t reiser4_tree_insert(
 	  and namely alloate new root and insert one nodeptr item into it.
 	*/
 	if (reiser4_tree_fresh(tree)) {
+
+		if (level == LEAF_LEVEL) {
+			
+			if (reiser4_tree_alloc_root(tree))
+				return -1;
+			
+		}
 		
 		if (!(place->node = reiser4_tree_alloc(tree, level)))
 			return -1;
@@ -1488,17 +1524,21 @@ errno_t reiser4_tree_insert(
 		  requested level. If so, we should grow the tree up to
 		  requested level.
 		*/
-		while (level > reiser4_tree_height(tree))
-			reiser4_tree_growup(tree);
 
-		/* Getting new place item/unit will be inserted at */
-		if (reiser4_tree_lookup(tree, &hint->key, level,
-					place) == LP_FAILED)
-		{
-			aal_exception_error("Lookup failed after tree "
-					    "growed up to requested level %d.",
-					    level);
-			return -1;
+		if (level > reiser4_tree_height(tree)) {
+			while (level > reiser4_tree_height(tree))
+				reiser4_tree_growup(tree);
+
+			/* Getting new place item/unit will be inserted at */
+			if (reiser4_tree_lookup(tree, &hint->key, level,
+						place) == LP_FAILED)
+			{
+				aal_exception_error("Lookup failed after "
+						    "tree growed up to "
+						    "requested level %d.",
+						    level);
+				return -1;
+			}
 		}
 	}
 

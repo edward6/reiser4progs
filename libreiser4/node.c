@@ -183,24 +183,22 @@ errno_t reiser4_node_pos(
 	reiser4_node_t *node,	        /* node position will be obtained for */
 	rpos_t *pos)		        /* pointer result will be stored in */
 {
+	lookup_t res;
 	reiser4_key_t lkey;
 	reiser4_key_t parent_key;
     
 	aal_assert("umka-869", node != NULL);
+	aal_assert("umka-1941", node->parent != NULL);
  
-	if (!node->parent)
-		return -1;
-
 	reiser4_node_lkey(node, &lkey);
-    
-	if (reiser4_node_lookup(node->parent, &lkey,
-				&node->pos) != LP_PRESENT)
-		return -1;
 
-	if (pos != NULL)
+	res = reiser4_node_lookup(node->parent, &lkey,
+				  &node->pos);
+
+	if (res == LP_PRESENT && pos)
 		*pos = node->pos;
     
-	return 0;
+	return res == LP_PRESENT ? 0 : -1;
 }
 
 static inline int callback_comp_blk(
@@ -241,10 +239,7 @@ reiser4_node_t *reiser4_node_cbp(
 		return NULL;
 
 	child = (reiser4_node_t *)list->data;
-
-	if (node->tree && aal_lru_touch(node->tree->lru, (void *)child))
-		aal_exception_warn("Can't update tree lru.");
-
+	
 	return child;
 }
 
@@ -284,9 +279,8 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 					 callback_comp_node, NULL);
 	
 	child->parent = node;
-	child->tree = node->tree;
-
-	/* Checking tree validness and updating node parent pos */
+	
+	/* Updating node pos in parent node */
 	if (reiser4_node_pos(child, &child->pos)) {
 		aal_exception_error("Can't find child %llu in parent "
 				    "node %llu.", child->blk, node->blk);
@@ -295,10 +289,6 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 
 	if (!current->prev)
 		node->children = current;
-
-	/* Attaching new node into tree's lru list */
-	if (node->tree && aal_lru_attach(node->tree->lru, (void *)child))
-		aal_exception_warn("Can't attach node to tree lru.");
 
 	return 0;
 }
@@ -320,9 +310,6 @@ errno_t reiser4_node_disconnect(
 	
 	if (!next || !next->prev)
 		node->children = next;
-
-	if (node->tree && aal_lru_detach(node->tree->lru, (void *)child))
-		return -1;
 
 	return 0;
 }
