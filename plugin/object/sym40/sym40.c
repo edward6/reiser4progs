@@ -86,6 +86,7 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 				     object_hint_t *hint, place_t *place)
 {
 	sym40_t *sym;
+	oid_t objectid, locality;
     
 	statdata_hint_t stat;
 	create_hint_t stat_hint;
@@ -100,7 +101,17 @@ static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
 
 	if (!(sym = aal_calloc(sizeof(*sym), 0)))
 		return NULL;
-
+	
+	/* Preparing dir oid and locality */
+	locality = plugin_call(hint->object.plugin->o.key_ops, get_locality, 
+			       &hint->object);
+	objectid = plugin_call(hint->object.plugin->o.key_ops, get_objectid, 
+			       &hint->object);
+	
+	/* Key contains valid locality and objectid only, build start key. */
+	plugin_call(hint->object.plugin->o.key_ops, build_generic, 
+		    &hint->object, KEY_STATDATA_TYPE, locality, objectid, 0);
+	
 	/* Inizializes file handle */
 	obj40_init(&sym->obj, &sym40_plugin, &hint->object, core, tree);
 	

@@ -470,8 +470,8 @@ struct object_hint {
 	} body;
     
 	key_entity_t object; 
-	key_entity_t parent;
-		
+	key_entity_t parent;		
+	
 	/* The plugin in use */
 	reiser4_plugin_t *plugin;
 };

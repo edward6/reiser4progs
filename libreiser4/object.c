@@ -18,7 +18,7 @@ static bool_t callback_object_guess(reiser4_plugin_t *plugin,
 				     void *data)
 {
 	reiser4_object_t *object;
-	bool_t res;
+	bool_t res = FALSE;
 
 	/* We are interested only in object plugins here */
 	if (plugin->h.type != OBJECT_PLUGIN_TYPE)
@@ -34,9 +34,10 @@ static bool_t callback_object_guess(reiser4_plugin_t *plugin,
 				     (void *)object->fs->tree,
 				     (void *)&object->place);
 	
-	res = object->entity != NULL;
-	
-	plugin_call(plugin->o.object_ops, close, object->entity);
+	if (object->entity != NULL) {	
+	    plugin_call(plugin->o.object_ops, close, object->entity);
+	    res = TRUE;
+	}
 	
 	return res;
 }
@@ -344,7 +345,7 @@ reiser4_object_t *reiser4_object_create(
 {
 	reiser4_object_t *object;
 	oid_t objectid, locality;
-    
+	
 	aal_assert("umka-790", fs != NULL);
 	aal_assert("umka-1128", hint != NULL);
 	aal_assert("umka-1917", hint->plugin != NULL);
@@ -368,26 +369,23 @@ reiser4_object_t *reiser4_object_create(
 	*/
 	if (parent) {
 		reiser4_key_assign(&hint->parent, &parent->key);
+		
 		objectid = reiser4_oid_allocate(fs->oid);
+		locality = reiser4_key_get_objectid(&hint->parent);
 	} else {
 		hint->parent.plugin = fs->tree->key.plugin;
 		
 		if (reiser4_fs_hyper_key(fs, &hint->parent))
 			goto error_free_object;
 		
+		locality = reiser4_oid_root_locality(fs->oid);
 		objectid = reiser4_oid_root_objectid(fs->oid);
 	}
-
-	locality = reiser4_key_get_objectid(&hint->parent);
-    
-	/* Building stat data key of the new object */
-	hint->object.plugin = hint->parent.plugin;
 	
-	reiser4_key_build_generic(&hint->object, KEY_STATDATA_TYPE,
-				  locality, objectid, 0);
-    
-	reiser4_key_assign(&object->key, &hint->object);
-	reiser4_key_string(&object->key, object->name);
+	hint->object.plugin = hint->parent.plugin;
+	reiser4_key_clean(&hint->object);
+	reiser4_key_set_locality(&hint->object, locality);
+	reiser4_key_set_objectid(&hint->object, objectid);
 	
 	if (!(object->entity = plugin_call(hint->plugin->o.object_ops,
 					   create, fs->tree, parent ?
@@ -398,7 +396,10 @@ reiser4_object_t *reiser4_object_create(
 				    reiser4_key_get_objectid(&object->key));
 		goto error_free_object;
 	}
-
+	
+	reiser4_key_assign(&object->key, &hint->object);
+	reiser4_key_string(&object->key, object->name);
+	
 	return object;
 
  error_free_object:

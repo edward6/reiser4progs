@@ -497,19 +497,8 @@ static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 				    "by its id 0x%x.", pid);
 		return -EINVAL;
 	}
-    
-	/* Building root key */
-#ifndef ENABLE_STAND_ALONE
-	locality = reiser4_oid_root_locality(tree->fs->oid);
-	objectid = reiser4_oid_root_objectid(tree->fs->oid);
-#else
-	locality = REISER4_ROOT_LOCALITY;
-	objectid = REISER4_ROOT_OBJECTID;
-#endif
-	/* FIXME-VITALY->UMKA: Only object plugin can create this key.
-	 * Ask openned '/' for it. */
-	return reiser4_key_build_generic(&tree->key, KEY_STATDATA_TYPE,
-					 locality, objectid, 0);
+	
+	return reiser4_fs_root_key(tree->fs, &tree->key);
 }
 
 /* Returns tree root block number */

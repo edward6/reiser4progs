@@ -66,27 +66,27 @@ errno_t debugfs_print_block(
 	
 	/* Check if @blk is a filesystem block at all */
 	if (!reiser4_alloc_occupied(fs->alloc, blk, 1))
-		fprintf(stdout, "Block %llu is not used.", blk);
+		fprintf(stdout, "Block %llu is not used.\n", blk);
 	else
-		fprintf(stdout, "Block %llu is used.", blk);
+		fprintf(stdout, "Block %llu is used.\n", blk);
 
 	/* Determining what is the object block belong to */
 	switch (reiser4_fs_belongs(fs, blk)) {
 	case O_SKIPPED:
 		fprintf(stdout, "Block %llu belongs to skipped area "
-			"in the begin of partition.", blk);
+			"in the begin of partition.\n", blk);
 		return 0;
 	case O_FORMAT:
 		fprintf(stdout, "Block %llu belongs to format "
-			"metadata.", blk);
+			"metadata.\n", blk);
 		return 0;
 	case O_JOURNAL:
 		fprintf(stdout, "Block %llu belongs to journal "
-			"metadata.", blk);
+			"metadata.\n", blk);
 		return 0;
 	case O_ALLOC:
 		fprintf(stdout, "Block %llu belongs to block "
-			"allocator metadata.", blk);
+			"allocator metadata.\n", blk);
 		return 0;
 	default:
 		break;
@@ -100,8 +100,7 @@ errno_t debugfs_print_block(
 	  using print_process_node listed abowe.
 	*/
 	if (!(node = reiser4_node_open(device, blocksize, blk))) {
-		fprintf(stdout, "Block %llu is not a formatted "
-			"one.", blk);
+		fprintf(stdout, "Block %llu is not a formatted one.\n", blk);
 		return 0;
 	}
 	

@@ -360,19 +360,29 @@ errno_t reiser4_fs_sync(
 }
 
 /* Returns the key of the fake root parent */
-errno_t reiser4_fs_hyper_key(reiser4_fs_t *fs, reiser4_key_t *key) {
+errno_t reiser4_fs_root_key(reiser4_fs_t *fs, reiser4_key_t *key) {
 	oid_t root_locality;
-	oid_t hyper_locality;
+	oid_t root_objectid;
 	
 	aal_assert("umka-1949", fs != NULL);
 	aal_assert("umka-1950", key != NULL);
 	aal_assert("umka-1951", key->plugin != NULL);
-	
+
+#ifndef ENABLE_STAND_ALONE
 	root_locality = reiser4_oid_root_locality(fs->oid);
-	hyper_locality = reiser4_oid_hyper_locality(fs->oid);
-		
-	return reiser4_key_build_generic(key, KEY_STATDATA_TYPE, 
-					 hyper_locality,
-					 root_locality, 0);
+	root_objectid = reiser4_oid_root_objectid(fs->oid);
+#else
+	root_locality = REISER4_ROOT_LOCALITY;
+	root_objectid = REISER4_ROOT_OBJECTID;
+#endif
+	/* FIXME-VITALY->UMKA: Only object plugin can create this key.
+	 * Ask openned '/' for it. */
+	return reiser4_key_build_generic(key, KEY_STATDATA_TYPE,
+					 root_locality, root_objectid, 0);
 }
+
+errno_t reiser4_fs_hyper_key(reiser4_fs_t *fs, reiser4_key_t *key) {
+	return reiser4_fs_root_key(fs, key);
+}
+
 #endif

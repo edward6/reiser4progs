@@ -406,7 +406,7 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 	create_hint_t body_hint;
 	create_hint_t stat_hint;
    
-	oid_t parent_locality;
+	oid_t plocality, pobjectid;
 	oid_t objectid, locality;
 
 	sdext_lw_hint_t lw_ext;
@@ -420,6 +420,16 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
+	
+	/* Preparing dir oid and locality */
+	locality = plugin_call(hint->object.plugin->o.key_ops, get_locality, 
+			       &hint->object);
+	objectid = plugin_call(hint->object.plugin->o.key_ops, get_objectid, 
+			       &hint->object);
+
+	/* Key contains valid locality and objectid only, build start key. */
+	plugin_call(hint->object.plugin->o.key_ops, build_generic, 
+		    &hint->object, KEY_STATDATA_TYPE, locality, objectid, 0);
 
 	/* Initializing obj handle */
 	obj40_init(&dir->obj, &dir40_plugin, &hint->object, core, tree);
@@ -433,12 +443,12 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 		goto error_free_dir;
 	}
 
-	/* Preparing dir oid and locality and parent locality */
-	locality = obj40_locality(&dir->obj);
-	objectid = obj40_objectid(&dir->obj);
-
-	parent_locality = plugin_call(hint->object.plugin->o.key_ops,
-				      get_locality, &hint->parent);
+	/* Preparing parent locality and objectid */
+	plocality = plugin_call(hint->object.plugin->o.key_ops,
+				get_locality, &hint->parent);
+	
+	pobjectid = plugin_call(hint->object.plugin->o.key_ops,
+				get_objectid, &hint->parent);
 
 	/* Getting item plugins for statdata and body */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
@@ -490,8 +500,8 @@ static object_entity_t *dir40_create(void *tree, object_entity_t *parent,
 			loc = locality;
 			oid = objectid;
 		} else {
-			loc = parent_locality;
-			oid = locality;
+			loc = plocality;
+			oid = pobjectid;
 		}
 
 		/* Preparing entry hints */

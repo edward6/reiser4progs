@@ -196,6 +196,7 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 				     object_hint_t *hint, place_t *place) 
 {
 	reg40_t *reg;
+	oid_t objectid, locality;
 	
 	statdata_hint_t stat;
     	create_hint_t stat_hint;
@@ -213,7 +214,17 @@ static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
 		return NULL;
 
 	reg->offset = 0;
-
+	
+	/* Preparing dir oid and locality */
+	locality = plugin_call(hint->object.plugin->o.key_ops, get_locality, 
+			       &hint->object);
+	objectid = plugin_call(hint->object.plugin->o.key_ops, get_objectid, 
+			       &hint->object);
+	
+	/* Key contains valid locality and objectid only, build start key. */
+	plugin_call(hint->object.plugin->o.key_ops, build_generic, 
+		    &hint->object, KEY_STATDATA_TYPE, locality, objectid, 0);
+	
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plugin, &hint->object, core, tree);
 	
