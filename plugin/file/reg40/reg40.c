@@ -78,10 +78,8 @@ static errno_t reg40_next(reg40_t *reg) {
 	res = core->tree_ops.lookup(reg->file.tree, &key,
 				    &stop, &reg->body);
 
-	if (res != PRESENT) {
+	if (res != PRESENT)
 		reg->body = place;
-		return res;
-	}
 
 	/* Locking new body or old one if lookup failed */
 	file40_lock(&reg->file, &reg->body);
@@ -167,7 +165,7 @@ static object_entity_t *reg40_open(const void *tree,
 		goto error_free_reg;
 	
 	aal_memcpy(&reg->file.statdata, place, sizeof(*place));
-	reg->file.core->tree_ops.lock(tree, &reg->file.statdata);
+	file40_lock(&reg->file, &reg->file.statdata);
 	
 	if (reg40_reset((object_entity_t *)reg)) {
 		aal_exception_error("Can't reset file 0x%llx.", 
@@ -365,8 +363,9 @@ static errno_t reg40_metadata(object_entity_t *entity,
 			      void *data)
 {
 	errno_t res;
-	uint64_t size;
-
+	reiser4_key_t key;
+	uint64_t size, offset;
+	
 	reg40_t *reg = (reg40_t *)entity;
 	
 	aal_assert("umka-1716", entity != NULL, return -1);
@@ -375,61 +374,25 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	if ((res = func(entity, &reg->file.statdata, data)))
 		return res;
 
-	size = file40_get_size(&reg->file.statdata);
-	
-	if (!reg->body.node)
+	if ((size = file40_get_size(&reg->file.statdata)) == 0)
 		return 0;
 	
-	while (1) {
+	while (reg->offset < size) {
+		uint64_t offset;
+		item_entity_t *item = &reg->body.entity;
+			
 		if ((res = func(entity, &reg->body, data)))
 			return res;
 
-		if (reg->body.entity.plugin->h.group == TAIL_ITEM) {
-			/*
-			  Updating file offset by tail length. It is needed for
-			  reg40_next function. It will find next item of the
-			  file.
-			*/
-			reg->offset += reg->body.entity.len;
-		} else {
-			uint32_t units;
-			uint32_t blocksize;
-			reiser4_ptr_hint_t ptr;
+		plugin_call(return -1, item->plugin->item_ops,
+			    max_real_key, item, &key);
 
-			/*
-			  Updating file offset by all extent units width
-			  multiplied by blocksize.
-			*/
-			
-			reiser4_pos_t pos = reg->body.pos;
+		offset = plugin_call(return -1, key.plugin->key_ops,
+				     get_offset, key.body);
+		
+		reg->offset = offset + 1;
 
-			units = plugin_call(return -1, reg->body.entity.plugin->item_ops,
-					    units, &reg->body.entity);
-
-			blocksize = reg->body.entity.con.device->blocksize;
-
-			if (pos.unit == ~0ul)
-				pos.unit = 0;
-			
-			for (; pos.unit < units; pos.unit++) {
-				uint64_t blk;
-				
-				if (plugin_call(return -1, reg->body.entity.plugin->item_ops,
-						fetch, &reg->body.entity, &ptr, pos.unit, 1) != 1)
-				{
-					aal_exception_error("Can't fetch data from extent item. "
-							    "Pos %lu, count %lu.", pos.unit, 1);
-					return -1;
-				}
-
-				reg->offset += ptr.width * blocksize;
-			}
-		}
-
-		/* Getting next file item. */
-		if (reg40_next(reg) != PRESENT)
-			break;
-			
+		reg40_next(reg);
 	}
 	
 	return 0;

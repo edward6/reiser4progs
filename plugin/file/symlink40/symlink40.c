@@ -159,6 +159,7 @@ static object_entity_t *symlink40_create(const void *tree,
 		goto error_free_symlink;
 
 	aal_memcpy(&symlink->file.statdata, &place, sizeof(place));
+	file40_lock(&symlink->file, &symlink->file.statdata);
 		
 	return (object_entity_t *)symlink;
 

@@ -965,7 +965,7 @@ static errno_t debugfs_print_file(reiser4_fs_t *fs,
 	hint.old = 0;
 	hint.data = fs;
 	hint.flags = flags;
-	
+
 	if (reiser4_file_metadata(file, fprint_process_blk, &hint)) {
 		aal_exception_error("Can't print file %s metadata.",
 				    file->name);

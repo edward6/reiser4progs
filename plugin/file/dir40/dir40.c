@@ -238,7 +238,7 @@ static object_entity_t *dir40_open(const void *tree,
         }
 
 	aal_memcpy(&dir->file.statdata, place, sizeof(*place));
-	dir->file.core->tree_ops.lock(tree, &dir->file.statdata);
+	file40_lock(&dir->file, &dir->file.statdata);
 	
 	/* Positioning to the first directory unit */
 	if (dir40_reset((object_entity_t *)dir)) {
@@ -397,7 +397,7 @@ static object_entity_t *dir40_create(const void *tree,
 	
 	/* Saving stat data coord insert function has returned */
 	aal_memcpy(&dir->file.statdata, &place, sizeof(place));
-	dir->file.core->tree_ops.lock(dir->file.tree, &dir->file.statdata);
+	file40_lock(&dir->file, &dir->file.statdata);
     
 	/* Inserting the direntry item into the tree */
 	if (file40_insert(&dir->file, &body_hint, &stop, &place))
@@ -405,7 +405,7 @@ static object_entity_t *dir40_create(const void *tree,
 	
 	/* Saving directory start in local body coord */
 	aal_memcpy(&dir->body, &place, sizeof(place));
-	dir->file.core->tree_ops.lock(dir->file.tree, &dir->body);
+	file40_lock(&dir->file, &dir->body);
 	
 	aal_free(body.unit);
 	return (object_entity_t *)dir;

@@ -12,6 +12,13 @@ static reiser4_core_t *core = NULL;
 
 #define extent40_body(item) ((extent40_t *)item->body)
 
+static uint32_t extent40_blocksize(item_entity_t *item) {
+	aal_device_t *device;
+
+	device = item->con.device;
+	return aal_device_get_bs(device);
+}
+
 static uint32_t extent40_units(item_entity_t *item) {
 	aal_assert("umka-1446", item != NULL, return 0);
 
@@ -205,6 +212,8 @@ static errno_t extent40_max_poss_key(item_entity_t *item,
 	aal_assert("umka-1211", item != NULL, return -1);
 	aal_assert("umka-1212", key != NULL, return -1);
 
+	key->plugin = item->key.plugin;
+	
 	if (plugin_call(return -1, key->plugin->key_ops,
 			assign, key->body, item->key.body))
 		return -1;
@@ -224,12 +233,14 @@ static errno_t extent40_max_poss_key(item_entity_t *item,
 static errno_t extent40_max_real_key(item_entity_t *item,
 				     reiser4_key_t *key) 
 {
-	uint32_t i;
-	uint64_t offset, delta, blocksize;
+	uint32_t i, blocksize;
+	uint64_t delta, offset;
 	
 	aal_assert("vpf-437", item != NULL, return -1);
 	aal_assert("vpf-438", key  != NULL, return -1);
 
+	key->plugin = item->key.plugin;
+	
 	if (plugin_call(return -1, key->plugin->key_ops,
 			assign, key->body, item->key.body))
 		return -1;
@@ -238,10 +249,8 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 				  get_offset, key->body)))
 		return -1;
 	
-	blocksize = item->con.device->blocksize;
-	
-	aal_assert("vpf-440", blocksize != 0, return -1);
-	
+	blocksize = extent40_blocksize(item);
+
 	/* Key offset + for all units { width * blocksize } */
 	for (i = 0; i < extent40_units(item); i++) {
 		delta = et40_get_width(extent40_body(item) + i);
@@ -257,8 +266,8 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 		offset += delta;
 	}
 
-	plugin_call(return -1, key->plugin->key_ops, set_offset, key->body, 
-		    offset - 1);
+	plugin_call(return -1, key->plugin->key_ops, set_offset,
+		    key->body, offset - 1);
 	
 	return 0;	
 }
@@ -312,13 +321,6 @@ static int extent40_lookup(item_entity_t *item, reiser4_key_t *key,
 
 	*pos = count - 1;
 	return 1;
-}
-
-static uint32_t extent40_blocksize(item_entity_t *item) {
-	aal_device_t *device;
-
-	device = item->con.device;
-	return aal_device_get_bs(device);
 }
 
 static uint32_t extent40_unit(item_entity_t *item,

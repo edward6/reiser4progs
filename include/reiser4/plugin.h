@@ -809,6 +809,7 @@ struct reiser4_node_ops {
 	/* Gets/sets node make and flush stamps */
 	uint32_t (*get_make_stamp) (object_entity_t *);
 	void (*set_make_stamp) (object_entity_t *, uint32_t);
+	
     	uint64_t (*get_flush_stamp) (object_entity_t *);
 	void (*set_flush_stamp) (object_entity_t *, uint64_t);
 

@@ -44,3 +44,5 @@ reiser4progs/COPYING.
 * conform reiser4 and reiser4progs to be worked with LILO and GRUB.
 
 * copy methods in node API.
+
+* reiser4_file_print function
