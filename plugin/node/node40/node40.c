@@ -825,9 +825,8 @@ static int node40_lookup(object_entity_t *entity,
 #ifndef ENABLE_COMPACT
 
 /* Checks if two item entities are mergeable */
-static int node40_mergeable(
-	item_entity_t *item1,
-	item_entity_t *item2)
+static int node40_mergeable(item_entity_t *item1,
+			    item_entity_t *item2)
 {
 	if (!plugin_equal(item1->plugin, item2->plugin))
 		return 0;
@@ -837,15 +836,23 @@ static int node40_mergeable(
 }
 
 /*
-  Estimates how many units may be shifted from src_node to dst_node. The result
-  is stored inside @hint.
+  Merges border items of the src and dst nodes. The behavior depends on the
+  passed hint pointer.
 */
-static errno_t node40_predict_units(node40_t *src_node,
-				    node40_t *dst_node, 
-				    shift_hint_t *hint)
+static errno_t node40_merge(node40_t *src_node,
+			    node40_t *dst_node, 
+			    shift_hint_t *hint)
 {
+	int remove;
+	uint32_t len;
+	
+	reiser4_pos_t pos;
+	
 	uint32_t dst_items;
 	uint32_t src_items;
+	
+	item40_header_t *ih;
+	
 	item_entity_t src_item;
 	item_entity_t dst_item;
 
@@ -860,8 +867,8 @@ static errno_t node40_predict_units(node40_t *src_node,
 		goto out;
 	
 	/*
-	  We can't splitt item the first and last items if they lie in position
-	  insert point point to.
+	  We can't split the first and last items if they lie in position insert
+	  point points to.
 	*/
 	if (hint->flags & SF_LEFT) {
  		if (hint->pos.item == 0 && hint->pos.unit == ~0ul)
@@ -878,8 +885,8 @@ static errno_t node40_predict_units(node40_t *src_node,
 	  Initializing items to be examaned by the predict method of
 	  corresponding item plugin.
 	*/
-	node40_item(&src_item, src_node, hint->flags & SF_LEFT ?
-		    0 : src_items - 1);
+	node40_item(&src_item, src_node, hint->flags & SF_LEFT ? 0 :
+		    src_items - 1);
 
 	/*
 	  Items that do not implement predict and shift methods cannot be
@@ -940,70 +947,27 @@ static errno_t node40_predict_units(node40_t *src_node,
 		if (src_item.plugin->item_ops.predict(&src_item, NULL, hint))
 			return -1;
 
-		dst_items++;
+		/*
+		  Updating item componet of the insert point if it was moved into
+		  neighbour item. In the case of creating new item and left
+		  merge item pos will be equla to dst_items.
+		*/
+		if (hint->flags & SF_MOVIP)
+			hint->pos.item = hint->flags & SF_LEFT ? dst_items : 0;
+		
 		hint->items++;
 	} else {
 		if (src_item.plugin->item_ops.predict(&src_item, &dst_item, hint))
 			return -1;
+
+		if (hint->flags & SF_MOVIP)
+			hint->pos.item = hint->flags & SF_LEFT ? dst_items - 1 : 0;
 	}
 
-	/*
-	  Updating item componet of the insert point if it was moved into
-	  neighbour item.
-	*/
-	if (hint->flags & SF_MOVIP) {
-		hint->pos.item = hint->flags & SF_LEFT ?
-			dst_items - 1 : 0;
-	}
-		
-	return 0;
-
- out:
-	hint->flags &= ~SF_MOVIP;
-	return 0;
-}
-
-/*
-  Makes shift units from src_node to dst_node, basing on @hint previously
-  estimated.
-*/
-static errno_t node40_shift_units(node40_t *src_node,
-				  node40_t *dst_node, 
-				  shift_hint_t *hint)
-{
-	int remove;
-	uint32_t len;
-	reiser4_pos_t pos;
-	uint32_t src_items;
-	uint32_t dst_items;
-	item40_header_t *ih;
-
-	item_entity_t src_item;
-	item_entity_t dst_item;
-
-	aal_assert("umka-1627", hint != NULL, return -1);
-	aal_assert("umka-1625", src_node != NULL, return -1);
-	aal_assert("umka-1626", dst_node != NULL, return -1);
-	
-	/*
-	  If after moving the items we still having some amount of free space in
-	  destination node, we should try to shift units from the last item to
-	  first item of destination node.
-	*/
-	if (hint->units == 0 || hint->rest == 0)
+	/* Shift code */
+	if (hint->units == 0)
 		return 0;
-
-	/* Getting item number from the src node and dst one */
-	src_items = nh40_get_num_items(src_node);
-	dst_items = nh40_get_num_items(dst_node);
-
-	aal_memset(&src_item, 0, sizeof(src_item));
-	aal_memset(&dst_item, 0, sizeof(dst_item));
-
-	/* Initializing src item entity */
-	node40_item(&src_item, src_node, hint->flags & SF_LEFT ?
-		    0 : src_items - 1);
-
+	
 	if (hint->create) {
 		
 		/* Expanding dst node with creating new item */
@@ -1068,7 +1032,6 @@ static errno_t node40_shift_units(node40_t *src_node,
 	
 	/* Updating item's keys */
 	if (hint->flags & SF_LEFT) {
-
 		/*
 		  We do not need update key of the src item which is going to be
 		  removed.
@@ -1103,6 +1066,10 @@ static errno_t node40_shift_units(node40_t *src_node,
 	}
 
 	return node40_shrink(src_node, &pos, len);
+
+ out:
+	hint->flags &= ~SF_MOVIP;
+	return 0;
 }
 
 /*
@@ -1441,14 +1408,8 @@ static errno_t node40_shift(object_entity_t *entity,
 	*/
 	merge.rest = node40_space(neighb);
 
-	/*
-	  Estimating units to be merged and merge them by using function
-	  node40_shift_units.
-	*/
-	if (node40_predict_units(src_node, dst_node, &merge))
-		return -1;
-
-	if (node40_shift_units(src_node, dst_node, &merge))
+	/* Merges border items */
+	if (node40_merge(src_node, dst_node, &merge))
 		return -1;
 
 	/* Insert pos might be chnaged, and we should keep it up to date. */
@@ -1478,17 +1439,10 @@ static errno_t node40_shift(object_entity_t *entity,
 	if (hint->flags & SF_MOVIP)
 		goto out;
 
-	/*
-	  Estimating how many units from the border items may be shifted into
-	  neighbour node.
-	*/
+	/* Merges border items */
 	hint->flags = flags;
 
-	if (node40_predict_units(src_node, dst_node, hint))
-		return -1;
-
-	/* Shifting units from src_node to dst_node */
-	if (node40_shift_units(src_node, dst_node, hint))
+	if (node40_merge(src_node, dst_node, hint))
 		return -1;
 
 	if (hint->flags & SF_MOVIP && hint->units == 0 && hint->create)
