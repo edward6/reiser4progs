@@ -180,7 +180,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 		return INVAL_PTR;
 	
 	if (blk >= fd->bm_used->total) {
-		aal_error("Node (%llu), item (%u), unit (%u): Points to the "
+		fsck_mess("Node (%llu), item (%u), unit (%u): Points to the "
 			  "invalid block (%llu).%s", place_blknr(place),
 			  place->pos.item, place->pos.unit, blk, 
 			  fd->repair->mode == RM_BUILD ? " Removed." :
@@ -190,7 +190,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	
 	if (aux_bitmap_test_region(fd->bm_used, blk, 1, 1)) {
 		/* Bad pointer detected. Remove if possible. */
-		aal_error("Node (%llu), item (%u), unit (%u): Points to the "
+		fsck_mess("Node (%llu), item (%u), unit (%u): Points to the "
 			  "block (%llu) which is in the tree already.%s", 
 			  place_blknr(place), place->pos.item, 
 			  place->pos.unit, blk, fd->repair->mode == RM_BUILD ?
@@ -203,7 +203,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	if (!(node = repair_tree_load_node(fd->repair->fs->tree, place->node, 
 					   blk, *fd->check_node))) 
 	{
-		aal_error("Node (%llu): failed to open the node pointed by the "
+		fsck_mess("Node (%llu): failed to open the node pointed by the "
 			  "node (%llu), item (%u), unit (%u) on the level (%u)."
 			  " The whole subtree is skipped.", blk, 
 			  place_blknr(place), place->pos.item, 
@@ -264,7 +264,7 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 
 	/* Check the level. */
 	if (fd->level != level) {
-		aal_error("Level (%u) of the node (%llu) doesn't match the "
+		fsck_mess("Level (%u) of the node (%llu) doesn't match the "
 			  "expected one (%u). %s", level, node->block->nr, 
 			  fd->level, fd->repair->mode == RM_BUILD ? 
 			  "Removed." : "The whole subtree is skipped.");
@@ -342,7 +342,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 	aal_assert("vpf-434", place != NULL);
 
 	if ((blk = reiser4_item_down_link(place)) == INVAL_BLK) {
-		aal_fatal("Node (%llu), item (%u), unit(%u): Failed to "
+		aal_error("Node (%llu), item (%u), unit(%u): Failed to "
 			  "fetch the node pointer.", place_blknr(place),
 			  place->pos.item, place->pos.unit);
 		return -EIO;
@@ -352,7 +352,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 		return 0;
 
 	if ((fd->flags & RE_FATAL) || (fd->flags & RE_EMPTY)) {
-		aal_error("Node (%llu): the node is %s. Pointed from "
+		fsck_mess("Node (%llu): the node is %s. Pointed from "
 			  "the node (%llu), item (%u), unit (%u). %s",
 			  blk, fd->flags & RE_EMPTY ? "empty" :
 			  fd->repair->mode == RM_BUILD ? "unrecoverable" : 
@@ -360,7 +360,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 			  place->pos.unit, fd->repair->mode == RM_BUILD ? 
 			  "Removed." : "The whole subtree is skipped.");
 	} else if (fd->flags & RE_DKEYS) {
-		aal_error("Node (%llu), item (%u), unit (%u): Points to "
+		fsck_mess("Node (%llu), item (%u), unit (%u): Points to "
 			  "the node [%llu] with wrong delimiting keys. %s",
 			  place_blknr(place), place->pos.item, 
 			  place->pos.unit, blk, fd->repair->mode == RM_BUILD ?
@@ -468,7 +468,7 @@ static void repair_filter_update(repair_filter_t *fd) {
 	
 	if (fd->flags) {
 		if (!(fd->flags & RE_PTR)) {
-			aal_error("Root node (%llu): the node is %s. %s",
+			fsck_mess("Root node (%llu): the node is %s. %s",
 				  reiser4_format_get_root(format), 
 				  fd->flags & RE_EMPTY ? "empty" :
 				  fd->repair->mode == RM_BUILD ? 
@@ -500,7 +500,7 @@ static void repair_filter_update(repair_filter_t *fd) {
 	height = reiser4_format_get_height(fd->repair->fs->format);
 	fd->level--;
 	if (height != fd->level) {
-		aal_mess("The tree height %u found in the format is wrong. "
+		fsck_mess("The tree height %u found in the format is wrong. "
 			 "%s %u.", height, fd->repair->mode == RM_CHECK ? 
 			 "Should be" : "Fixed to", fd->level);
 
@@ -606,7 +606,7 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 	if (!(tree->root = repair_tree_load_node(fd->repair->fs->tree, 
 						 NULL, root, 0)))
 	{
-		aal_error("Node (%llu): failed to open the root node. "
+		fsck_mess("Node (%llu): failed to open the root node. "
 			  "The whole filter pass is skipped.", root);
 		
 		goto error;

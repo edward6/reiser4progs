@@ -22,7 +22,7 @@ errno_t sdext_symlink_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	}
 	
 	if (offset >= stat->place->len) {
-		aal_error("Does not look like a valid (%s) "
+		fsck_mess("Does not look like a valid (%s) "
 			  "statdata extension.", stat->ext_plug->label);
 
 		return RE_FATAL;

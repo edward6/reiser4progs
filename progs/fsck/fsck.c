@@ -92,18 +92,13 @@ static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
 	return NO_ERROR; 
 }
 
-static void fsck_init_streams(fsck_parse_t *data) {
-	
-	if ((data && aal_test_bit(&data->options, FSCK_OPT_VERBOSE)) || !data)
-		misc_exception_set_stream(EXCEPTION_TYPE_INFO, stderr);
-	
-	misc_exception_set_stream(EXCEPTION_TYPE_ERROR, 
-				  data ? data->logfile: stderr);
+static void fsck_init_streams() {
+	int ex;
 
-	misc_exception_set_stream(EXCEPTION_TYPE_WARNING, stderr);
+	for (ex = 0; ex < EXCEPTION_TYPE_LAST; ex++)
+		misc_exception_set_stream(ex, stderr);
+	
 	misc_exception_set_stream(EXCEPTION_TYPE_MESSAGE, stdout);
-	misc_exception_set_stream(EXCEPTION_TYPE_FATAL, stderr);
-	misc_exception_set_stream(EXCEPTION_TYPE_BUG, stderr);
 	misc_exception_set_stream(EXCEPTION_TYPE_INFO, stdout);
 }
 
@@ -152,7 +147,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 		{0, 0, 0, 0}
 	};
 
-	fsck_init_streams(NULL);
+	fsck_init_streams();
 	memset(override, 0, sizeof(override));
 	data->logfile = stderr;
 
@@ -311,8 +306,9 @@ static errno_t fsck_init(fsck_parse_t *data,
 	aal_gauge_set_handler(GAUGE_PERCENTAGE, gauge_rate);
 	aal_gauge_set_handler(GAUGE_TREE, gauge_tree);
 
-	fsck_init_streams(data);
-		
+	misc_exception_set_stream(EXCEPTION_TYPE_FSCK, 
+				  data->logfile ? data->logfile : stderr);
+	
 	return fsck_ask_confirmation(data, argv[optind]);
 	
  user_error:
@@ -409,10 +405,6 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	repair->fixable = 0;
 	repair->mode = fs_mode;
 
-	/* Check the openned fs. */
-	if ((res = repair_fs_valid(repair->fs, fs_mode)) < 0)
-		goto error_close_fs;
-	
 	repair_error_count(repair, res);
 	
 	repair->fs->tree->mpc_func = misc_mpressure_detect;

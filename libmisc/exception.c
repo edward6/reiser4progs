@@ -15,6 +15,19 @@
 #include <aal/libaal.h>
 #include <misc/misc.h>
 
+/* Strings for all exception types */
+static char *type_names[] = {
+	"",
+        "Info ",
+        "",
+        "Warn ",
+        "Error",
+        "Fatal",
+        "Bug  "
+};
+
+#define TYPES_COUNT (sizeof(type_names) / sizeof(void *))
+
 /* This function returns number of specified turned on options */
 static int misc_exception_option_count(
 	aal_exception_option_t options,	    /* options to be inspected */
@@ -70,11 +83,11 @@ static void misc_exception_print_wrap(aal_exception_t *exception,
 
 	aal_memset(buff, 0, sizeof(buff));
     
-	if (exception->type != EXCEPTION_TYPE_BUG &&
-	    exception->type != EXCEPTION_TYPE_MESSAGE)
+	if (exception->type != EXCEPTION_TYPE_MESSAGE &&
+	    exception->type < TYPES_COUNT)
 	{
 		aal_snprintf(buff, sizeof(buff), "%s: ", 
-			     aal_exception_type_name(exception->type));
+			     type_names[exception->type]);
 	}
     
 	aal_strncat(buff, exception->message, 

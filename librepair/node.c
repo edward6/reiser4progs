@@ -51,7 +51,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		
 		/* Open the item, checking its plugin id. */
 		if (reiser4_place_fetch(&place)) {
-			aal_error("Node (%llu): Failed to open the item (%u)."
+			fsck_mess("Node (%llu): Failed to open the item (%u)."
 				  "%s", node->block->nr, pos->item, mode ==
 				  RM_BUILD ? " Removed." : "");
 			
@@ -65,7 +65,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		
 		if (ret) {
 			/* Key has some corruptions and cannot be recovered. */
-			aal_error("Node (%llu): The key [%s] of the item "
+			fsck_mess("Node (%llu): The key [%s] of the item "
 				  "(%u) is broken.%s", node->block->nr,
 				  reiser4_print_key(&place.key, PO_DEFAULT),
 				  pos->item, mode == RM_BUILD ? " Removed." : 
@@ -74,7 +74,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 			goto error_remove_item;
 		} else if (reiser4_key_compfull(&key, &place.key)) {
 			/* Key has been fixed. */
-			aal_error("Node (%llu): The key [%s] of the item (%u) "
+			fsck_mess("Node (%llu): The key [%s] of the item (%u) "
 				  "is broken. %s [%s].", node->block->nr,
 				  reiser4_print_key(&place.key, PO_DEFAULT),
 				  pos->item, (ret && mode == RM_CHECK) ? 
@@ -95,7 +95,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 
 		/* Remove the item if fatal error. */
 		if (ret & RE_FATAL) {
-			aal_error("Node (%llu), item (%u): broken item found."
+			fsck_mess("Node (%llu), item (%u): broken item found."
 				  "%s", node->block->nr, pos->item,
 				  mode == RM_BUILD ? " Remove it." : "");
 
@@ -106,7 +106,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		
 		if (prev.plug) {
 			if (reiser4_key_compfull(&prev, &key) >= 0) {
-				aal_error("Node (%llu), items (%u) and "
+				fsck_mess("Node (%llu), items (%u) and "
 					  "(%u): Wrong order of keys.",
 					  node->block->nr, pos->item - 1,
 					  pos->item);
@@ -165,7 +165,7 @@ errno_t repair_node_check_level(reiser4_node_t *node, uint8_t mode) {
 	
 	/* Level of the node must be > 0 */
 	if (!level) {
-		aal_error("Node (%llu): illegal level found (%u).", 
+		fsck_mess("Node (%llu): illegal level found (%u).", 
 			  node->block->nr, level);
 		return RE_FATAL;
 	}
@@ -182,7 +182,7 @@ errno_t repair_node_check_level(reiser4_node_t *node, uint8_t mode) {
 		if (!repair_tree_legal_level(place.plug, 
 					     reiser4_node_get_level(node)))
 		{
-			aal_error("Node (%llu): Node level (%u) does not match "
+			fsck_mess("Node (%llu): Node level (%u) does not match "
 				  "to the item type (%s).", node->block->nr, 
 				  reiser4_node_get_level(node),
 				  place.plug->label);

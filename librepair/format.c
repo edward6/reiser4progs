@@ -43,11 +43,11 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			if (mode != RM_BUILD)
 				return RE_FATAL;
 		} else {
-			aal_fatal("Number of blocks found in the superblock "
-				  "(%llu) is not equal to the size of the "
-				  "partition (%llu).%s", fs_len, dev_len, 
-				  mode != RM_BUILD ? " Assuming this is "
-				  "correct.": "");
+			aal_warn("Number of blocks found in the superblock "
+				 "(%llu) is not equal to the size of the "
+				 "partition (%llu).%s", fs_len, dev_len, 
+				 mode != RM_BUILD ? " Assuming this is "
+				 "correct.": "");
 		}
 		
 		if (mode == RM_BUILD) {
@@ -146,7 +146,7 @@ static errno_t repair_format_open_check(reiser4_fs_t *fs, uint8_t mode) {
 	
 	if (fs->format == NULL) {
 		/* Format was not opened. */
-		aal_fatal("Cannot open the on-disk format on (%s)",
+		aal_error("Cannot open the on-disk format on (%s)",
 			  fs->device->name);
 		
 		over = reiser4_profile_overridden(PROF_FORMAT);
@@ -218,8 +218,8 @@ static errno_t repair_format_open_check(reiser4_fs_t *fs, uint8_t mode) {
 				  plug->label, fs->device->name);
 			return -EINVAL;
 		} else {
-			aal_fatal("The format '%s' was created on '%s'.",
-				  plug->label, fs->device->name);
+			aal_warn("The format '%s' was created on '%s'.",
+				 plug->label, fs->device->name);
 		}
 
 		reiser4_format_set_stamp(fs->format, 0);

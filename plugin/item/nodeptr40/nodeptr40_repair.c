@@ -23,7 +23,7 @@ errno_t nodeptr40_check_layout(reiser4_place_t *place, repair_hint_t *hint,
 	res = region_func(place, blk, 1, data);
 	
 	if (res > 0) {
-		aal_error("Node (%llu), item (%u): wrong pointer to "
+		fsck_mess("Node (%llu), item (%u): wrong pointer to "
 			  "the block %llu.%s", place_blknr(place),
 			  place->pos.item, blk, hint->mode == RM_BUILD ?
 			  " Removed." : "");

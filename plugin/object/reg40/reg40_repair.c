@@ -188,7 +188,7 @@ static errno_t reg40_next(object_entity_t *object, uint8_t mode) {
 	if (!plug_equal(reg->body.plug, info->opset.plug[OPSET_EXTENT]) && 
 	    !plug_equal(reg->body.plug, info->opset.plug[OPSET_TAIL]))
 	{
-		aal_error("The object [%s] (%s), node (%llu),"
+		fsck_mess("The object [%s] (%s), node (%llu),"
 			  "item (%u): the item [%s] of the "
 			  "invalid plugin (%s) found.%s",
 			  print_inode(reg40_core, &info->object),
@@ -198,7 +198,7 @@ static errno_t reg40_next(object_entity_t *object, uint8_t mode) {
 			  object->opset.plug[OPSET_OBJ]->label, 
 			  mode == RM_BUILD ? " Removed." : "");
 	} else if (reg40_check_ikey(reg)) {
-		aal_error("The object [%s] (%s), node (%llu),"
+		fsck_mess("The object [%s] (%s), node (%llu),"
 			  "item (%u): the item [%s] has the "
 			  "wrong offset.%s",
 			  print_inode(reg40_core, &info->object),
@@ -323,7 +323,7 @@ static errno_t reg40_hole_cure(object_entity_t *object,
 	if ((len = offset - reg40_offset(object)) == 0)
 		return 0;
 
-	aal_error("The object [%s] has a break at [%llu-%llu] offsets. "
+	fsck_mess("The object [%s] has a break at [%llu-%llu] offsets. "
 		  "Plugin %s.%s", print_inode(reg40_core, &object->object),
 		  offset - len, offset, object->opset.plug[OPSET_OBJ]->label,
 		  mode == RM_BUILD ? " Writing a hole there." : "");
@@ -402,7 +402,7 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 				offset = plug_call(reg->body.key.plug->o.key_ops,
 						   get_offset, &reg->body.key);
 				
-				aal_error("The object [%s]: found item "
+				fsck_mess("The object [%s]: found item "
 					  "has the wrong offset (%llu).%s",
 					  print_inode(reg40_core, &info->object),
 					  offset, mode != RM_CHECK ? " Removed"
@@ -437,7 +437,7 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 			offset = plug_call(conv.offset.plug->o.key_ops,
 					   get_offset, &conv.offset);
 			
-			aal_error("The object [%s] (%s): items at offsets "
+			fsck_mess("The object [%s] (%s): items at offsets "
 				  "[%llu..%llu] does not not match the "
 				  "detected tail policy (%s).%s",
 				  print_inode(reg40_core, &info->object),

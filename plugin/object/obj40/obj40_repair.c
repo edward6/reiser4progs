@@ -134,12 +134,11 @@ static inline errno_t obj40_check_lw(obj40_t *obj,
 		if (!(hint->must_exts & (1 << SDEXT_LW_ID)))
 			return 0;
 		
-		aal_error("Node (%llu), item (%u), plugin (%s), "
-			  "[%s]: no mandatory light-weight extention."
-			  "%s Plugin (%s).", place_blknr(start),
-			  start->pos.item, start->plug->label,
+		fsck_mess("Node (%llu), item (%u), [%s] (%s): no mandatory "
+			  "light-weight extention.%s Plugin (%s).",
+			  place_blknr(start), start->pos.item, 
 			  print_inode(obj->core,&start->key),
-			  mode != RM_CHECK ? "Added." : "",
+			  start->plug->label, mode != RM_CHECK ? "Added." : "",
 			  obj->info.opset.plug[OPSET_OBJ]->label);
 
 		if (mode == RM_CHECK)
@@ -204,12 +203,11 @@ static inline errno_t obj40_check_lw(obj40_t *obj,
 	}
 
 	if (fixed) {
-		aal_error("Node (%llu), item (%u), plugin (%s) [%s]: wrong "
-			  "mode (%u), %s (%u).", place_blknr(start),
-			  start->pos.item, start->plug->label,
-			  print_inode(obj->core, &start->key),
-			  lwh.mode, mode == RM_CHECK ? "Should be" : 
-			  "Fixed to", correct.mode);
+		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong mode (%u), "
+			  "%s (%u).", place_blknr(start), start->pos.item, 
+			  print_inode(obj->core, &start->key), 
+			  start->plug->label, lwh.mode, mode == RM_CHECK ? 
+			  "Should be" : "Fixed to", correct.mode);
 
 		res = RE_FIXABLE;
 	}
@@ -224,12 +222,11 @@ static inline errno_t obj40_check_lw(obj40_t *obj,
 	}
 
 	if (fixed) {
-		aal_error("Node (%llu), item (%u), plugin (%s) [%s]: wrong "
-			  "size (%llu), %s (%llu).", place_blknr(start), 
-			  start->pos.item, start->plug->label,
-			  print_inode(obj->core, &start->key), lwh.size, 
-			  mode == RM_CHECK ? "Should be" : "Fixed to", 
-			  correct.size);
+		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong size (%llu)"
+			  ", %s (%llu).", place_blknr(start), start->pos.item, 
+			  print_inode(obj->core, &start->key), 
+			  start->plug->label, lwh.size, mode == RM_CHECK ? 
+			  "Should be" : "Fixed to", correct.size);
 
 		res = RE_FIXABLE;
 	}
@@ -261,12 +258,10 @@ static inline errno_t obj40_check_unix(obj40_t *obj,
 		if (!(hint->must_exts & (1 << SDEXT_UNIX_ID)))
 			return 0;
 		
-		aal_error("Node (%llu), item (%u), plugin (%s), [%s]: no "
-			  "mandatory unix extention.%s Plugin (%s).", 
-			  place_blknr(start), start->pos.item, 
-			  start->plug->label,
-			  print_inode(obj->core, &start->key),
-			  mode != RM_CHECK ? " Added." : "", 
+		fsck_mess("Node (%llu), item (%u), [%s] (%s): no mandatory "
+			  "unix extention.%s Plugin (%s).", place_blknr(start),
+			  start->pos.item, print_inode(obj->core, &start->key),
+			  start->plug->label, mode != RM_CHECK ? " Added." : "",
 			  obj->info.opset.plug[OPSET_OBJ]->label);
 
 		if (mode == RM_CHECK)
@@ -320,12 +315,11 @@ static inline errno_t obj40_check_unix(obj40_t *obj,
 
 	if (fixed) {
 		/* sd_bytes are set wrongly in the kernel. */
-		aal_error("Node (%llu), item (%u), plugin (%s), [%s]: wrong "
-			  "bytes (%llu), %s (%llu).", place_blknr(start), 
-			  start->pos.item, start->plug->label,
-			  print_inode(obj->core, &start->key), 
-			  unixh.bytes, mode == RM_CHECK ? "Should be" : 
-			  "Fixed to", correct.bytes);
+		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong bytes "
+			  "(%llu), %s (%llu).", place_blknr(start), 
+			  start->pos.item, print_inode(obj->core, &start->key),
+			  start->plug->label, unixh.bytes, mode == RM_CHECK ? 
+			  "Should be" : "Fixed to", correct.bytes);
 		
 		/* Zero rdev because rdev and bytes is the union on disk
 		   but not in the unixh. */
@@ -379,13 +373,13 @@ static inline errno_t obj40_check_plug(obj40_t *obj, uint8_t mode) {
 		
 		if (plugh.plug[i] == INVAL_PTR) {
 			/* Remove all wrongly present on-disk pset members. */
-			aal_error("Node (%llu), item (%u), plugin "
-				  "(%s), [%s]: essential pset member "
-				  "(%u) matches the fs-default one (%s)."
-				  "%s Removed.", place_blknr(start), 
-				  start->pos.item, start->plug->label,
+			fsck_mess("Node (%llu), item (%u), [%s] (%s): "
+				  "essential pset member (%u) matches "
+				  "the fs-default one (%s).%s Removed.",
+				  place_blknr(start), start->pos.item, 
 				  print_inode(obj->core, &start->key),
-				  i, obj->info.opset.plug[i]->label,
+				  start->plug->label, i, 
+				  obj->info.opset.plug[i]->label,
 				  mode == RM_CHECK ? " Should be" : "");
 
 			plugh.plug[i] = 0;
@@ -395,12 +389,13 @@ static inline errno_t obj40_check_plug(obj40_t *obj, uint8_t mode) {
 		
 		if (plugh.plug[i] != obj->info.opset.plug[i]) {
 			/* Fix wrong plugins in pset members. */
-			aal_error("Node (%llu), item (%u), plugin (%s), "
-				  "[%s]: essential pset member (%u) is "
-				  "(%s), %s (%s).", place_blknr(start),
-				  start->pos.item, start->plug->label,
+			fsck_mess("Node (%llu), item (%u), [%s] (%s): "
+				  "essential pset member (%u) is (%s), "
+				  "%s (%s).", 
+				  place_blknr(start), start->pos.item,
 				  print_inode(obj->core, &start->key),
-				  i, obj->info.opset.plug[i]->label,
+				  start->plug->label, i, 
+				  obj->info.opset.plug[i]->label,
 				  mode == RM_CHECK ? " Should be" : 
 				  "Fixed to", plugh.plug[i]->label);
 
@@ -411,12 +406,12 @@ static inline errno_t obj40_check_plug(obj40_t *obj, uint8_t mode) {
 		if (!(obj->info.opset.mask & (1 << i)) && 
 		    (plugh.mask & (1 << i))) 
 		{
-			aal_error("Node (%llu), item (%u), plugin (%s), "
-				  "[%s]: needs pset member (%u) set to "
-				  "(%s).%s", place_blknr(start),
-				  start->pos.item, start->plug->label,
+			fsck_mess("Node (%llu), item (%u), [%s] (%s): needs "
+				  "pset member (%u) set to (%s).%s", 
+				  place_blknr(start), start->pos.item, 
 				  print_inode(obj->core, &start->key),
-				  i, obj->info.opset.plug[i]->label,
+				  start->plug->label, i, 
+				  obj->info.opset.plug[i]->label,
 				  mode == RM_CHECK ? "" : " Added.");
 
 			diff++;
@@ -481,11 +476,11 @@ errno_t obj40_update_stat(obj40_t *obj, obj40_stat_ops_t *ops,
 	
 	/* Get the set of present SD extentions. */
 	if ((extmask = obj40_extmask(start)) == MAX_UINT64) {
-		aal_error("Node (%llu), item (%u), plugin (%s): failed "
+		aal_error("Node (%llu), item (%u), (%s): failed "
 			  "to obtain the StatData extention mask.",
 			  place_blknr(start), start->pos.item,
 			  start->plug->label);
-		return res;
+		return -EIO;
 	}
 
 	/* Remove unknown SD extentions. */
@@ -498,7 +493,7 @@ errno_t obj40_update_stat(obj40_t *obj, obj40_stat_ops_t *ops,
 		
 		stat.extmask = extmask & hint->unkn_exts;
 		
-		aal_error("Node (%llu), item (%u), [%s]: StatData has some "
+		fsck_mess("Node (%llu), item (%u), [%s]: StatData has some "
 			  "unknown extentions (mask=%llu).%s Plugin (%s).",
 			  place_blknr(start), start->pos.item, 
 			  print_inode(obj->core, &start->key),
@@ -550,7 +545,7 @@ errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place,
 	if (!key->plug->o.key_ops->compfull(key, &place->key))
 		return 0;
 	
-	aal_error("Node (%llu), item (%u), plugin (%s): the key [%s] of the "
+	fsck_mess("Node (%llu), item (%u), (%s): the key [%s] of the "
 		  "item is wrong, %s [%s]. Plugin (%s).", place_blknr(place),
 		  place->pos.unit, place->plug->label, 
 		  print_key(obj->core, &place->key), mode == RM_CHECK ? 
@@ -595,7 +590,7 @@ errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 		
 		/* Not SD item is found. Possible only when a fake
 		   object was created. */
-		aal_error("Node (%llu), item (%u), plugin (%s): not "
+		fsck_mess("Node (%llu), item (%u), (%s): not "
 			  "StatData is found by the key (%s).%s",
 			  place_blknr(start), start->pos.item, 
 			  start->plug->label, print_key(obj->core, key),
@@ -623,7 +618,7 @@ errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 	   cannot be recognized w/out SD. Used for for "/" and "lost+found" 
 	   recovery. */
 	
-	aal_error("The file [%s] does not have a StatData item.%s Plugin %s.",
+	fsck_mess("The file [%s] does not have a StatData item.%s Plugin %s.",
 		  print_inode(obj->core, key), mode == RM_BUILD ? " Creating "
 		  "a new one." : "",  obj->info.opset.plug[OPSET_OBJ]->label);
 

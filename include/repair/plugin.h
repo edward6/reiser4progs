@@ -35,4 +35,12 @@ typedef enum repair_mode {
 
 #define repair_error_fatal(result)   ((result & RE_FATAL) || (result < 0))
 
+#define EXCEPTION_TYPE_FSCK EXCEPTION_TYPE_LAST
+
+#define fsck_mess(msg, list...)				\
+	aal_exception_throw(EXCEPTION_TYPE_FSCK,	\
+			    EXCEPTION_OPT_OK,		\
+			    "FSCK: "msg,		\
+			    ##list)
+
 #endif

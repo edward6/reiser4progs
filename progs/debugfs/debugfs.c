@@ -68,6 +68,10 @@ static void debugfs_init(void) {
 	/* Setting up exception streams. */
 	for (ex = 0; ex < EXCEPTION_TYPE_LAST; ex++)
 		misc_exception_set_stream(ex, stderr);
+	
+	misc_exception_set_stream(EXCEPTION_TYPE_MESSAGE, stdout);
+	misc_exception_set_stream(EXCEPTION_TYPE_INFO, stdout);
+	misc_exception_set_stream(EXCEPTION_TYPE_FSCK, stderr);
 }
 
 int main(int argc, char *argv[]) {

@@ -63,7 +63,7 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	
 	info = &dir->obj.info;
 	
-	aal_error("Directory [%s]: The entry \".\" is not found.%s "
+	fsck_mess("Directory [%s]: The entry \".\" is not found.%s "
 		  "Plugin (%s).", print_inode(dir40_core, &info->object), 
 		  mode != RM_CHECK ? " Insert a new one." : "", 
 		  dir->obj.info.opset.plug[OPSET_OBJ]->label);
@@ -160,8 +160,8 @@ errno_t dir40_check_struct(object_entity_t *object,
 		   plugin, it should be converted. */
 		/*if (dir->body.plug->id.group != DIR_ITEM) */
 		if (dir->body.plug != object->opset.plug[OPSET_DIRITEM]) {
-			aal_error("Directory [%s], plugin [%s], node [%llu], "
-				  "item [%u]: item of the illegal plugin [%s] "
+			fsck_mess("Directory [%s] (%s), node [%llu], "
+				  "item [%u]: item of the illegal plugin (%s) "
 				  "with the key of this object found.%s",
 				  print_inode(dir40_core, &info->object),
 				  dir40_plug.label, place_blknr(&dir->body),
@@ -227,7 +227,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 				goto next;
 			
 			/* Broken entry found, remove it. */
-			aal_error("Directory [%s], plugin [%s], node [%llu], "
+			fsck_mess("Directory [%s] (%s), node [%llu], "
 				  "item [%u], unit [%u]: entry has wrong "
 				  "offset [%s]. Should be [%s].%s", 
 				  print_inode(dir40_core, &info->object),
@@ -326,7 +326,7 @@ errno_t dir40_check_attach(object_entity_t *object,
 			break;
 		
 		/* Already attached. */
-		aal_error("Directory [%s], plugin [%s]: the object "
+		fsck_mess("Directory [%s] (%s): the object "
 			  "is attached already to [%s] and cannot "
 			  "be attached to [%s].", 
 			  print_inode(dir40_core, &object->object),
@@ -341,7 +341,7 @@ errno_t dir40_check_attach(object_entity_t *object,
 		if (plug_call(object->info.object.plug->o.key_ops, compfull,
 			      &object->info.object, &parent->info.object))
 		{
-			aal_error("Directory [%s], plugin [%s]: the "
+			fsck_mess("Directory [%s] (%s): the "
 			"object is not attached. %s [%s].",
 			print_inode(dir40_core, &object->info.object),
 			dir40_plug.label, mode == RM_CHECK ? 
@@ -350,7 +350,7 @@ errno_t dir40_check_attach(object_entity_t *object,
 		}
 */		
 		if (mode == RM_CHECK) {
-			aal_error("Directory [%s], plugin [%s]: the object "
+			fsck_mess("Directory [%s] (%s): the object "
 				  "is not attached. Reached from [%s].",
 				  print_inode(dir40_core, &object->object),
 				  dir40_plug.label,

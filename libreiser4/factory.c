@@ -65,8 +65,8 @@ static reiser4_plug_t *reiser4_plug_init(plug_class_t *cl) {
 		return NULL;
 
 	if (!(plug = cl->init(&core))) {
-		aal_warn("Plugin's init() method (%p) "
-			 "failed", (void *)cl->init);
+		aal_error("Plugin's init() method (%p) "
+			  "failed", (void *)cl->init);
 		return NULL;
 	}
 
@@ -83,9 +83,8 @@ static errno_t reiser4_plug_fini(reiser4_plug_t *plug) {
 	/* Calling plugin fini() method if any. */
 	if (plug->cl.fini) {
 		if ((res = plug->cl.fini(&core))) {
-			aal_warn("Method fini() of plugin "
-				 "%s has failed. Error %llx.",
-				 plug->label, res);
+			aal_error("Method fini() of plugin %s has "
+				  "failed. Error %llx.", plug->label, res);
 		}
 	}
 
@@ -105,8 +104,8 @@ reiser4_plug_t *reiser4_factory_load(plug_class_t *cl) {
 	
 #ifndef ENABLE_STAND_ALONE
 	if (reiser4_factory_foreach(callback_check_plug, (void *)plug))	{
-		aal_warn("Plugin %s will not be attached to "
-			 "plugin factory.", plug->label);
+		aal_error("Plugin %s will not be attached to "
+			  "plugin factory.", plug->label);
 		reiser4_factory_unload(plug);
 		return NULL;
 	}

@@ -201,7 +201,7 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 	/* Fatal error if the maxreal key greater than the right 
 	   delimiting key. */
 	if (reiser4_key_compfull(&key_max, &dkey) > 0) {
-		aal_error("Node (%llu): The last key [%s] in the node "
+		fsck_mess("Node (%llu): The last key [%s] in the node "
 			  "is greater then the right delimiting key "
 			  "[%s].", node->block->nr, 
 			  reiser4_print_key(&key_max, PO_DEFAULT),
@@ -228,7 +228,7 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 	if (comp > 0) {
 		/* The left delimiting key is much then the left key in the 
 		   node - not legal */
-		aal_error("Node (%llu): The first key [%s] is not equal to the "
+		fsck_mess("Node (%llu): The first key [%s] is not equal to the "
 			  "left delimiting key [%s].", node->block->nr, 
 			  reiser4_print_key(&place.key, PO_DEFAULT),
 			  reiser4_print_key(&dkey, PO_DEFAULT));
@@ -242,7 +242,7 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 	if (node->p.node == NULL) 
 		return 0;
 
-	aal_error("Node (%llu): The left delimiting key [%s] in the "
+	fsck_mess("Node (%llu): The left delimiting key [%s] in the "
 		  "parent node (%llu), pos (%u/%u) does not match the "
 		  "first key [%s] in the node.%s", node->block->nr,
 		  reiser4_print_key(&place.key, PO_DEFAULT),
@@ -446,7 +446,7 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 		reiser4_node_lock(prev.node);
 		
 		if ((res = reiser4_tree_next_place(tree, place, place))) {
-			aal_error("vpf-1363: Failed to get the next node.");
+			aal_error("Failed to get the next node.");
 			reiser4_node_unlock(prev.node);
 			return res;
 		}
@@ -557,7 +557,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 				break;
 			default:
 				/* Conversion cannot be performed. */
-				aal_error("Node (%llu), item (%u): the item (%s) "
+				fsck_mess("Node (%llu), item (%u): the item (%s) "
 					  "[%s] is overlapped by keys with the "
 					  "item (%s) [%s] being inserted [node "
 					  "%llu, item %u]. Skip insertion.",
@@ -588,7 +588,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 				goto error;
 		} else {
 			/* For not equal plugins do coping. */
-			aal_error("Node (%llu), item (%u): the item (%s) [%s] "
+			fsck_mess("Node (%llu), item (%u): the item (%s) [%s] "
 				  "is overlapped by keys with the item (%s) "
 				  "[%s] being inserted [node %llu, item %u]. "
 				  "Copying is not ready yet, skip insertion.",

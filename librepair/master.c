@@ -35,11 +35,9 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 			return RE_FATAL;
 		
 		/* Master SB was not opened. Create a new one. */
-		if (aal_exception_throw(EXCEPTION_TYPE_MESSAGE, 
-					EXCEPTION_OPT_YESNO,
-					"Master super block cannot be found. Do"
-					" you want to build a new one on (%s)?",
-					fs->device->name) == EXCEPTION_OPT_NO)
+		if (aal_yesno("Master super block cannot be found. Do"
+			      " you want to build a new one on (%s)?",
+			      fs->device->name) == EXCEPTION_OPT_NO)
 		{
 			return -EINVAL;
 		}
@@ -50,11 +48,11 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 		/* Create a new master SB. */
 		if (!(fs->master = reiser4_master_create(fs->device, blksize)))
 		{
-			aal_fatal("Failed to create a new master super block.");
+			aal_error("Failed to create a new master super block.");
 			return -EINVAL;
 		}
 
-		aal_info("A new master superblock is created on (%s).", 
+		aal_warn("A new master superblock is created on (%s).", 
 			 fs->device->name);
 		
 		reiser4_master_set_uuid(fs->master, NULL);
@@ -67,7 +65,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 		if (!callback_bs_check(reiser4_master_get_blksize(fs->master), 
 				       NULL))
 		{
-			aal_fatal("Invalid blocksize found in the "
+			aal_error("Invalid blocksize found in the "
 				  "master super block (%u).",
 				  reiser4_master_get_blksize(fs->master));
 			
@@ -85,7 +83,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 
 	/* Setting actual used block size from master super block */
 	if (aal_device_set_bs(fs->device, reiser4_master_get_blksize(fs->master))) {
-		aal_fatal("Invalid block size was specified (%u). It "
+		aal_error("Invalid block size was specified (%u). It "
 			  "must be power of two.",
 			  reiser4_master_get_blksize(fs->master));
 		return -EINVAL;
@@ -98,7 +96,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 	   value. */ 
 	if (reiser4_profile_overridden(PROF_FORMAT) && pid != plug->id.id) {
 		/* The @plug is the correct one. */
-		aal_fatal("The specified reiser4 format on '%s' is '%s'. Its "
+		aal_error("The specified reiser4 format on '%s' is '%s'. Its "
 			  "id (0x%x) does not match the on-disk id (0x%x).%s", 
 			  fs->device->name, plug->label, plug->id.id, pid, 
 			  mode == RM_BUILD ? " Fixed." : " Has effect in BUILD "

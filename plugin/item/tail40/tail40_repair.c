@@ -13,7 +13,7 @@ errno_t tail40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	aal_assert("vpf-1508", place != NULL);
 	
 	if (!place->len) {
-		aal_error("Node (%llu), item (%u): tail40 item of zero length "
+		fsck_mess("Node (%llu), item (%u): tail40 item of zero length "
 			  "found.", place_blknr(place), place->pos.item);
 		return RE_FATAL;
 	} 

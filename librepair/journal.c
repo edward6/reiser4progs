@@ -47,7 +47,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 	/* Try to open the journal. */
 	if ((fs->journal = reiser4_journal_open(fs, journal_device)) == NULL) {
 		/* failed to open a journal. Build a new one. */
-		aal_fatal("Failed to open a journal by its id (0x%x).",
+		aal_error("Failed to open a journal by its id (0x%x).",
 			  reiser4_format_journal_pid(fs->format));
 		
 		if (mode != RM_BUILD)
@@ -64,15 +64,14 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 			return -EINVAL;
 		}
 		
-		if (aal_exception_throw(EXCEPTION_TYPE_ERROR, EXCEPTION_OPT_YESNO, 
-					"Do you want to create a new journal (%s)?",
+		if (aal_yesno("Do you want to create a new journal (%s)?",
 					plug->label) == EXCEPTION_OPT_NO)
 		{
 			return -EINVAL;
 		}
 	    
 		if (!(fs->journal = reiser4_journal_create(fs, journal_device))) {
-			aal_fatal("Cannot create a journal by its id (0x%x).",
+			aal_error("Cannot create a journal by its id (0x%x).",
 				  reiser4_format_journal_pid(fs->format));
 			return -EINVAL;
 		}

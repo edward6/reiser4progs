@@ -12,7 +12,7 @@ errno_t sdext_lt_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	aal_assert("vpf-782", stat->ext_plug != NULL);
 	
 	if (stat->offset + sizeof(sdext_lt_t) > stat->place->len) {
-		aal_error("Does not look like a valid (%s) statdata "
+		fsck_mess("Does not look like a valid (%s) statdata "
 			  "extension.", stat->ext_plug->label);
 		return RE_FATAL;
 	}

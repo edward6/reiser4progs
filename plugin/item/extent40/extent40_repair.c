@@ -97,7 +97,7 @@ errno_t extent40_check_layout(reiser4_place_t *place, repair_hint_t *hint,
 		if (!res) continue;
 		
 		/* Zero the problem region. */
-		aal_error("Node (%llu), item (%u), unit (%u): "
+		fsck_mess("Node (%llu), item (%u), unit (%u): "
 			  "points %s region [%llu..%llu].%s",
 			  place_blknr(place), place->pos.item, i, 
 			  res == RE_FATAL? "out of the fs," : 
@@ -115,7 +115,7 @@ errno_t extent40_check_layout(reiser4_place_t *place, repair_hint_t *hint,
 	units = extent40_join_units(place, hint->mode != RM_CHECK);
 	
 	if (units) {
-		aal_error("Node (%llu), item (%u): %u mergable units were "
+		fsck_mess("Node (%llu), item (%u): %u mergable units were "
 			  "found in the extent40 unit.%s", place_blknr(place),
 			  place->pos.item, units, hint->mode == RM_CHECK ? "" : 
 			  " Fixed.");
@@ -138,7 +138,7 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	
 	/* Length must be divisible by the extent40 unit length. */
 	if (place->len % sizeof(extent40_t)) {
-		aal_error("Node (%llu), item (%u): extent40 "
+		fsck_mess("Node (%llu), item (%u): extent40 "
 			  "item of not valid length found.",
 			  place_blknr(place), place->pos.item);
 		return RE_FATAL;
@@ -148,7 +148,7 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	if (plug_call(place->key.plug->o.key_ops, get_offset, &place->key) %
 	    extent40_blksize(place)) 
 	{
-		aal_error("Node (%llu), item (%u): extent40 item "
+		fsck_mess("Node (%llu), item (%u): extent40 item "
 			  "with not valid key offset found.", 
 			  place_blknr(place), place->pos.item);
 		return RE_FATAL;
@@ -158,7 +158,7 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	units = extent40_units(place);
 	
 	if (!units) {
-		aal_error("Node (%llu), item (%u): extent40 item with no units "
+		fsck_mess("Node (%llu), item (%u): extent40 item with no units "
 			  "found.", place_blknr(place), place->pos.item);
 		return RE_FATAL;
 	}
@@ -173,7 +173,7 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 		if (start != EXTENT_UNALLOC_UNIT)
 			continue;
 
-		aal_error("Node (%llu), item (%u), unit (%u): unallocated unit "
+		fsck_mess("Node (%llu), item (%u), unit (%u): unallocated unit "
 			  "is found.%s", place_blknr(place), place->pos.item, 
 			  i, hint->mode == RM_CHECK ? "" : "Zeroed.");
 		
@@ -187,7 +187,7 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	units = extent40_join_units(place, hint->mode != RM_CHECK);
 
 	if (units) {
-		aal_error("Node (%llu), item (%u): %u mergable units were "
+		fsck_mess("Node (%llu), item (%u): %u mergable units were "
 			  "found in the extent40 unit.%s", place_blknr(place),
 			  place->pos.item, units, hint->mode == RM_CHECK ? "" : 
 			  " Fixed.");

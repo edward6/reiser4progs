@@ -90,7 +90,7 @@ errno_t stat40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 		return res;
 	
 	if (res) {
-		aal_error("Node (%llu), item (%u): does not look like a "
+		fsck_mess("Node (%llu), item (%u): does not look like a "
 			  "valid stat data.", place_blknr(place),
 			  place->pos.item);
 		
@@ -98,7 +98,7 @@ errno_t stat40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	}
 	
 	if (stat.len + hint->len < place->len) {
-		aal_error("Node (%llu), item (%u): item has the "
+		fsck_mess("Node (%llu), item (%u): item has the "
 			  "wrong length (%u). Should be (%llu). %s",
 			  place_blknr(place), place->pos.item, 
 			  place->len, stat.len + hint->len, 
@@ -113,7 +113,7 @@ errno_t stat40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	
 	/* Check the extention mask. */
 	if (stat.extmask != stat.goodmask) {
-		aal_error("Node (%llu), item (%u): item has the wrong "
+		fsck_mess("Node (%llu), item (%u): item has the wrong "
 			  "extention mask (%llu). Should be (%llu). %s",
 			  place_blknr(place), place->pos.item,
 			  stat.extmask, stat.goodmask,

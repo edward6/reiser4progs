@@ -21,7 +21,7 @@ static errno_t callback_register_item(reiser4_place_t *place, void *data) {
         aal_assert("vpf-1115", place != NULL);
          
         if (reiser4_item_test_flag(place, OF_CHECKED)) {
-                aal_error("Node (%llu), item (%u): item registering "
+                fsck_mess("Node (%llu), item (%u): item registering "
 			  "failed, it belongs to another object already.",
 			  place_blknr(place), place->pos.item);
                 return -EINVAL;
@@ -332,7 +332,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		return INVAL_PTR;
 	
 	if (object == NULL) {
-		aal_error("Failed to find the object [%s] pointed "
+		fsck_mess("Failed to find the object [%s] pointed "
 			  "by the entry [%s].%s",
 			  reiser4_print_key(&entry->object, PO_INODE),
 			  reiser4_print_key(&entry->offset, PO_INODE),
@@ -551,7 +551,7 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 		if (object->ent->opset.plug[OPSET_OBJ]->id.group == DIR_OBJECT)
 			return object;
 
-		aal_error("The directory [%s] is recognized by the "
+		fsck_mess("The directory [%s] is recognized by the "
 			  "%s plugin which is not a directory one.", 
 			  reiser4_print_key(key, PO_INODE), 
 			  object->ent->opset.plug[OPSET_OBJ]->label);
@@ -559,7 +559,7 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 		reiser4_object_close(object);
 	} else {
 		/* No plugin was recognized. */
-		aal_error("Failed to recognize the plugin for the directory "
+		fsck_mess("Failed to recognize the plugin for the directory "
 			  "[%s].", reiser4_print_key(key, PO_INODE));
 	}
 	
@@ -567,7 +567,7 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 		return NULL;
 
 	plug = reiser4_profile_plug(PROF_DIR);
-	aal_error("Trying to recover the directory [%s] with the default "
+	fsck_mess("Trying to recover the directory [%s] with the default "
 		  "plugin--%s.", reiser4_print_key(key, PO_INODE), plug->label);
 
 	return repair_object_fake(tree, parent, key, plug);
@@ -600,13 +600,13 @@ static errno_t repair_semantic_object_check(repair_semantic_t *sem,
 		else if (res == 0) 
 			break;
 		
-		aal_info("Object [%s]: detaching.", 
+		fsck_mess("Object [%s]: detaching.", 
 			 reiser4_print_key(&object->ent->object, PO_INODE));
 		
 		if ((res = repair_semantic_unlink(sem, NULL, object, NULL)))
 			return res;
 		
-		aal_info("Object [%s]: attaching to [%s].", 
+		fsck_mess("Object [%s]: attaching to [%s].", 
 			 reiser4_print_key(&object->ent->object, PO_INODE),
 			 reiser4_print_key(&object->ent->parent, PO_INODE));
 
@@ -629,7 +629,7 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 	
 	if (sem->root == NULL) {
 		sem->repair->fatal++;
-		aal_error("No root directory openned.");
+		fsck_mess("No root directory openned.");
 		return RE_FATAL;
 	} else if (sem->root == INVAL_PTR) {
 		sem->root = NULL;
@@ -669,7 +669,7 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 		if ((res = repair_fs_lost_key(fs, &lost)))
 			return res;
 		
-		aal_error("No 'lost+found' entry found. "
+		fsck_mess("No 'lost+found' entry found. "
 			  "Building a new object with the key %s.",
 			  reiser4_print_key(&lost, PO_INODE));
 	} else {
@@ -684,7 +684,7 @@ static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {
 		return -EINVAL;
 	} else if (sem->lost == NULL) {
 		sem->repair->fatal++;
-		aal_error("No 'lost+found' directory openned.");
+		fsck_mess("No 'lost+found' directory openned.");
 		return RE_FATAL;
 	}
 

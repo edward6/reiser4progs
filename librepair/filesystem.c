@@ -13,7 +13,6 @@ errno_t repair_fs_open(repair_data_t *repair,
 		       aal_device_t *jdevice)
 {
 	errno_t res = 0;
-	uint64_t len;
 
 	aal_assert("vpf-851",  repair != NULL);
 	aal_assert("vpf-159",  hdevice != NULL);
@@ -49,13 +48,11 @@ errno_t repair_fs_open(repair_data_t *repair,
 		goto error_format_close;
 	}
 	
-	len = reiser4_format_get_len(repair->fs->format);
 
-	/* Block and oid allocator plugins are specified by format plugin 
-	 * unambiguously, so there is nothing to be checked here anymore. */
-	if (!(repair->fs->alloc = reiser4_alloc_open(repair->fs, len))) {
-		aal_fatal("Failed to open a block allocator.");
-		res = -EINVAL;
+	res |= repair_alloc_open(repair->fs, repair->mode);
+
+	if (repair_error_fatal(res)) {
+		aal_fatal("Failed to open the block allocator.");
 		goto error_status_close;
 	}
 	
@@ -73,6 +70,7 @@ errno_t repair_fs_open(repair_data_t *repair,
 	}
 	
 	if (!(repair->fs->tree = reiser4_tree_init(repair->fs))) {
+		aal_fatal("Failed to init the fs-global plugin set.");
 		res = -ENOMEM;
 		goto error_journal_close;
 	}
@@ -109,23 +107,6 @@ error_journal_close:
 
 	repair_error_count(repair, res);
 	return res < 0 ? res : 0;
-}
-
-errno_t repair_fs_valid(reiser4_fs_t *fs, uint8_t mode) {
-	errno_t res;
-	
-	if (!(res = reiser4_alloc_valid(fs->alloc)))
-		return 0;
-	
-	if (res != -ESTRUCT) 
-		return res;
-
-	if (mode != RM_CHECK) {
-		aal_mess("Checksums will be fixed later.\n");
-		return 0;
-	}
-	
-	return RE_FIXABLE;
 }
 
 errno_t repair_fs_replay(reiser4_fs_t *fs) {

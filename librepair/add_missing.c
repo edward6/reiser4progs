@@ -110,9 +110,8 @@ static errno_t repair_am_node_prepare(repair_am_t *am, reiser4_node_t *node) {
 
 	for (place.pos.item = 0; place.pos.item < count; place.pos.item++) {
 		if ((res = reiser4_place_fetch(&place))) {
-			aal_error("Node (%llu), item (%u): failed to "
-				  "open the item.",node->block->nr,
-				  place.pos.item);
+			aal_error("Node (%llu), item (%u): failed to open the "
+				  "item.",node->block->nr, place.pos.item);
 
 			return res;
 		}
@@ -181,7 +180,7 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 			am->progress_handler(am->progress);
 
 		if (node == NULL) {
-			aal_fatal("Add Missing pass failed to "
+			aal_error("Add Missing pass failed to "
 				  "open the node (%llu)", blk);
 
 			return -EINVAL;
@@ -202,8 +201,8 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 		res = repair_tree_attach_node(am->repair->fs->tree, node);
 		
 		if (res < 0 && res != -ESTRUCT) {
-			aal_bug("vpf-3068", "Add missing pass failed to attach "
-				"the node (%llu) to the tree.", blk);
+			aal_error("Add missing pass failed to attach "
+				  "the node (%llu) to the tree.", blk);
 
 			goto error_close_node;
 		} else if (res == 0) {
@@ -261,7 +260,7 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 			am->progress_handler(am->progress);
 
 		if (node == NULL) {
-			aal_fatal("Add Missing pass failed to "
+			aal_error("Add Missing pass failed to "
 				  "open the node (%llu)", blk);
 			return -EINVAL;
 		}

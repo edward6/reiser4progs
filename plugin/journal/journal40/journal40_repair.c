@@ -184,7 +184,7 @@ static errno_t callback_journal_txh_check(generic_entity_t *entity, blk_t blk,
 	check_data->flags = 1 << TF_DATA_AREA_ONLY;
 	
 	if (journal40_blk_format_check(journal, blk, check_data)) {
-		aal_error("Transaction header lies in the illegal block "
+		fsck_mess("Transaction header lies in the illegal block "
 			  "(%llu) for the used format (%s).", blk, 
 			  journal->format->plug->label);
 		return -ESTRUCT;
@@ -192,7 +192,7 @@ static errno_t callback_journal_txh_check(generic_entity_t *entity, blk_t blk,
 	
 	if (aux_bitmap_test(check_data->journal_layout, blk)) {
 		/* TxH block is met not for the 1 time. Kill the journal. */
-		aal_error("Transaction header in the block (%llu) was "
+		fsck_mess("Transaction header in the block (%llu) was "
 			  "met already.", blk);
 		return -ESTRUCT;
 	}
@@ -231,7 +231,7 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 	check_data->flags = blk_type == JB_ORG ? 0 : 1 << TF_DATA_AREA_ONLY;
 	
 	if (journal40_blk_format_check(journal, blk, check_data)) {
-		aal_error("%s lies in the illegal block (%llu) for the "
+		fsck_mess("%s lies in the illegal block (%llu) for the "
 			  "used format (%s).", __blk_type_name(blk_type), 
 			  blk, journal->format->plug->label);
 		return -ESTRUCT;
@@ -254,7 +254,7 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 		lr_header = (journal40_lr_header_t *)log_block->data;
 		
 		if (aal_memcmp(lr_header->magic, LGR_MAGIC, LGR_MAGIC_SIZE)) {
-			aal_error("Transaction Header (%llu), Log record "
+			fsck_mess("Transaction Header (%llu), Log record "
 				  "(%llu): Log Record Magic was not found.", 
 				  check_data->cur_txh, blk);
 			aal_block_free(log_block);
@@ -267,7 +267,7 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 	if (aux_bitmap_test(check_data->journal_layout, blk)) {
 		/* blk was met in the current trans more then once. */
 		if (aux_bitmap_test(check_data->current_layout, blk)) {
-			aal_error("Transaction Header (%llu): %s block "
+			fsck_mess("Transaction Header (%llu): %s block "
 				  "(%llu) was met in the transaction "
 				  "more then once.", check_data->cur_txh, 
 				  __blk_type_name(blk_type), blk);
@@ -299,16 +299,16 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 							 check_data);
 				
 				if (ret != -ESTRUCT) {
-					aal_bug("vpf-3063", "Traverse failed to "
-						"find a transaction the "
-						"block (%llu) was met for "
-						"the first time.", blk);
+					aal_error("Traverse failed to find "
+						  "a transaction the block "
+						  "(%llu) was met for the "
+						  "first time.", blk);
 					return ret;
 				}
 				
 				/* Found trans is the oldest problem, return it 
 				   to caller. */				
-				aal_error("Transaction Header (%llu): "
+				fsck_mess("Transaction Header (%llu): "
 					  "transaction looks correct but "
 					  "uses the block (%llu) already "
 					  "used in the transaction (%llu).", 
@@ -336,13 +336,13 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 						 check_data);
 			
 			if (ret != -ESTRUCT) {
-				aal_bug("vpf-3066", "Traverse failed to find a "
-					"transaction the block (%llu) was "
-					"met for the first time.", blk);
+				aal_error("Traverse failed to find a "
+					  "transaction the block (%llu) was "
+					  "met for the first time.", blk);
 				return ret;
 			}
 			
-			aal_error("Transaction Header (%llu): transaction "
+			fsck_mess("Transaction Header (%llu): transaction "
 				  "looks correct but uses the block (%llu) "
 				  "already used in the transaction (%llu) "
 				  "as a %s block.", check_data->cur_txh,
@@ -370,16 +370,16 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 						 NULL, NULL, check_data);
 			
 			if (ret != -ESTRUCT) {
-				aal_bug("vpf-3067", "Traverse failed to find a "
-					"transaction the block (%llu) was "
-					"met for the first time.", blk);
+				aal_error("Traverse failed to find a "
+					  "transaction the block (%llu) was "
+					  "met for the first time.", blk);
 				return ret;
 			}
 			
 			/* If TxH was found, the current transaction is the oldest 
 			   problem trans. */
 			if (check_data->found_type != JB_INV) {
-				aal_error("Transaction Header (%llu): "
+				fsck_mess("Transaction Header (%llu): "
 					  "original location (%llu) was "
 					  "met before as a Transaction "
 					  "Header of one of the next "
@@ -439,7 +439,7 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 	if (ret) {
 		/* Journal should be updated */
 		if (!data.cur_txh) {
-			aal_error("Journal has broken list of transaction "
+			fsck_mess("Journal has broken list of transaction "
 				  "headers. Reinitialize the journal.");
 			
 			data.cur_txh = 
@@ -466,7 +466,7 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 				return -EIO;
 			}
 			
-			aal_error("Corrupted transaction (%llu) was found. The last "
+			fsck_mess("Corrupted transaction (%llu) was found. The last "
 				  "valid transaction is (%llu).", data.cur_txh,
 				  get_th_prev_tx((journal40_tx_header_t *)tx_block->data));
 			
@@ -578,8 +578,7 @@ static errno_t callback_print_par(generic_entity_t *entity,
 				  blk_t orig, void *data)
 {
 	aal_stream_format((aal_stream_t *)data,
-			  "%llu -> %llu\n",
-			  orig, block->nr);
+			  "%llu -> %llu\n", orig, block->nr);
 	return 0;
 }
 

@@ -26,7 +26,7 @@ errno_t repair_status_open(reiser4_fs_t *fs, uint8_t mode) {
 		fs->status->dirty = 0;
 		return RE_FIXABLE;
 	} else
-		aal_error("Creating a new status block.");
+		aal_warn("Creating a new status block.");
 	
 	return 0;
 }

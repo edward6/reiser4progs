@@ -35,7 +35,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	len = sdext_plug_length(stat, NULL);
 	
 	if (stat->offset + len < stat->place->len) {
-		aal_error("Node (%llu), item (%u): does not look like a "
+		fsck_mess("Node (%llu), item (%u): does not look like a "
 			  "valid plug extention: wrong count of plugins "
 			  "detected (%u).", place_blknr(stat->place),
 			  stat->place->pos.item, count);
@@ -53,7 +53,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 
 		if (mem >= OPSET_STORE_LAST) {
 			/* Unknown member. */
-			aal_error("Node (%llu), item (%u): the slot (%u) "
+			fsck_mess("Node (%llu), item (%u): the slot (%u) "
 				  "contains the invalid opset member (%u).",
 				  place_blknr(stat->place), 
 				  stat->place->pos.item, i, mem);
@@ -62,7 +62,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 			remove++;
 		} else if (plugh.plug[mem]) {
 			/* Was met already. */
-			aal_error("Node (%llu), item (%u): the slot (%u) "
+			fsck_mess("Node (%llu), item (%u): the slot (%u) "
 				  "contains the opset member (%s) that was "
 				  "met already.", place_blknr(stat->place), 
 				  stat->place->pos.item, i, opset_name[mem]);
@@ -76,7 +76,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 
 			/* Check if the member is valid. */
 			if (plugh.plug[mem] == INVAL_PTR) {
-				aal_error("Node (%llu), item (%u): the slot "
+				fsck_mess("Node (%llu), item (%u): the slot "
 					  "(%u) contains the invalid opset "
 					  "member (%s), id (%u).",
 					  place_blknr(stat->place), 
@@ -102,7 +102,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 		return RE_FATAL;
 
 	if (remove == count) {
-		aal_error("Node (%llu), item (%u): no slot left. Does "
+		fsck_mess("Node (%llu), item (%u): no slot left. Does "
 			  "not look like a valid (%s) statdata extention.",
 			  place_blknr(stat->place), stat->place->pos.item,
 			  stat->ext_plug->label);
@@ -110,7 +110,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	}
 	
 	/* Removing broken slots. */
-	aal_error("Node (%llu), item (%u): removing broken slots.",
+	fsck_mess("Node (%llu), item (%u): removing broken slots.",
 		  place_blknr(stat->place), stat->place->pos.item);
 	
 	dst = stat_body(stat) + sizeof(sdext_plug_t) + 

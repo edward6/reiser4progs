@@ -1477,6 +1477,9 @@ struct reiser4_alloc_ops {
 
 	/* Checks blocks allocator on validness */
 	errno_t (*valid) (generic_entity_t *);
+	
+	/* Checks blocks allocator on validness */
+	errno_t (*check_struct) (generic_entity_t *, uint8_t mode);
 
 	/* Prints block allocator data */
 	void (*print) (generic_entity_t *, aal_stream_t *, uint16_t);

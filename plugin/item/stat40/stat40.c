@@ -291,8 +291,8 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 
 		/* Getting extension plugin */
 		if (!(plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
-			aal_warn("Can't find stat data extension plugin "
-				 "by its id 0x%x.", i);
+			aal_error("Can't find stat data extension plugin "
+				  "by its id 0x%x.", i);
 			return -EINVAL;
 		}
 
@@ -367,8 +367,8 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 
 		/* Getting extension plugin by extent number. */
 		if (!(plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
-			aal_warn("Can't find stat data extension plugin "
-				 "by its id 0x%x.", i);
+			aal_error("Can't find stat data extension plugin "
+				  "by its id 0x%x.", i);
 			return -EINVAL;
 		}
 
@@ -477,7 +477,7 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 
 		/* Getting extension plugin by extent number. */
 		if (!(plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
-			aal_warn("Can't find stat data extension plugin "
+			aal_error("Can't find stat data extension plugin "
 				 "by its id 0x%x.", i);
 			return -EINVAL;
 		}

@@ -104,7 +104,7 @@ errno_t alloc40_layout(generic_entity_t *entity,
 	for (blk = start; blk < start + alloc->bitmap->total;
 	     blk = ((blk / bpb) + 1) * bpb) 
 	{
-		res = region_func(entity, blk, 1, data);
+		res |= region_func(entity, blk, 1, data);
 		
 		if (res && res != -ESTRUCT)
 			return res;
@@ -508,8 +508,8 @@ static int alloc40_available(generic_entity_t *entity,
 static void callback_inval_warn(blk_t start, uint32_t ladler,
 				uint32_t cadler)
 {
-	aal_warn("Checksum missmatch in bitmap block %llu. Checksum "
-		 "is 0x%x, should be 0x%x.", start, ladler, cadler);
+	aal_error("Checksum missmatch in bitmap block %llu. Checksum "
+		  "is 0x%x, should be 0x%x.", start, ladler, cadler);
 }
 
 typedef void (*inval_func_t) (blk_t, uint32_t, uint32_t);
@@ -522,7 +522,8 @@ errno_t callback_valid_block(void *entity, blk_t start,
 	uint32_t chunk;
 	uint64_t offset;
 	alloc40_t *alloc;
-	
+	errno_t res;
+
 	uint32_t size, free;
 	char *current, *map;
 	inval_func_t inval_func;
@@ -560,12 +561,12 @@ errno_t callback_valid_block(void *entity, blk_t start,
 
 	/* If loaded checksum and calculated one are not equal, we have
 	   corrupted bitmap. */
-	if (ladler != cadler && inval_func) {
+	res = (ladler != cadler) ? -ESTRUCT : 0;
+	
+	if (res && inval_func)
 		inval_func(start, ladler, cadler);
-		return -ESTRUCT;
-	}
 
-	return 0;
+	return res;
 }
 
 /* Checks allocator on validness  */
@@ -638,7 +639,8 @@ static reiser4_alloc_ops_t alloc40_ops = {
 	.region		= alloc40_region,
 	.occupy	        = alloc40_occupy,
 	.allocate       = alloc40_allocate,
-	.release        = alloc40_release
+	.release        = alloc40_release,
+	.check_struct   = alloc40_check_struct
 };
 
 reiser4_plug_t alloc40_plug = {

@@ -16,7 +16,7 @@ errno_t bbox40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	type = plug_call(place->key.plug->o.key_ops, get_offset, &place->key);
 
 	if (type >= SL_LAST) {
-		aal_error("Node (%llu), item (%u): safe link item (%s) of the "
+		fsck_mess("Node (%llu), item (%u): safe link item (%s) of the "
 			  "unknown type (%llu) found.", place_blknr(place), 
 			  place->pos.item, place->plug->label, type);
 		
@@ -30,7 +30,7 @@ errno_t bbox40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 		size += sizeof(uint64_t);
 
 	if (size != place->len) {
-		aal_error("Node (%llu), item (%u): safe link item (%s) of "
+		fsck_mess("Node (%llu), item (%u): safe link item (%s) of "
 			  "the wrong length (%u) found. Should be (%u).", 
 			  place_blknr(place), place->pos.item, 
 			  place->plug->label, place->len, size);

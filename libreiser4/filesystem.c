@@ -58,7 +58,8 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 
 	if (check) {
 		if (reiser4_alloc_valid(fs->alloc)) {
-			aal_warn("Block allocator data seems corrupted.");
+			aal_error("Block allocator data seems corrupted.");
+			goto error_free_alloc;
 		}
 	}
 	

@@ -140,9 +140,9 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	
 	/* Allocate a bitmap of blocks belong to the format area - skipped, 
 	   super block, journal, bitmaps. */
-	if (!(control->bm_used = filter->bm_used = aux_bitmap_create(fs_len))) {
-		aal_error("Failed to allocate a bitmap of format "
-			  "layout.");
+	if (!(control->bm_used = filter->bm_used = aux_bitmap_create(fs_len))) 
+	{
+		aal_error("Failed to allocate a bitmap of format layout.");
 		return -EINVAL;
 	}
 	
@@ -244,7 +244,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		file = fopen(control->repair->bitmap_file, "r");
 		
 		if (file == NULL) {
-			aal_fatal("Cannot not open the bitmap file (%s).",
+			aal_error("Cannot not open the bitmap file (%s).",
 				  control->repair->bitmap_file);
 			return -EINVAL;
 		}
@@ -254,6 +254,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		if (!(ds->bm_scan = aux_bitmap_unpack(&stream))) {
 			aal_error("Can't unpack the bitmap of "
 				  "packed blocks.");
+			
 			fclose(file);
 			aal_stream_fini(&stream);
 			return -EINVAL;
@@ -504,7 +505,7 @@ static errno_t repair_sem_fini(repair_control_t *control,
 	fs_len = reiser4_format_get_len(control->repair->fs->format);
 	
 	if (repair_bitmap_compare(control->bm_alloc, control->bm_used, 0)) {
-		aal_error("On-disk used blocks and really used blocks "
+		fsck_mess("On-disk used blocks and really used blocks "
 			  "differ.%s", control->repair->mode == RM_FIX &&
 			  !control->repair->fatal ? " Fixed." : "");
 
@@ -601,9 +602,9 @@ static errno_t repair_update(repair_control_t *control) {
 	
 	if (correct != val) {
 		if (mode != RM_BUILD) {
-			aal_mess("Free block count %llu found in the format is "
-				 "wrong. %s %llu.", val, mode == RM_CHECK ? 
-				 "Sould be" : "Fixed to", correct);
+			fsck_mess("Free block count %llu found in the format is "
+				  "wrong. %s %llu.", val, mode == RM_CHECK ? 
+				  "Sould be" : "Fixed to", correct);
 		}
 
 		if (mode != RM_CHECK)
@@ -619,9 +620,9 @@ static errno_t repair_update(repair_control_t *control) {
 	   shared oid handling will be realy. */
 	if (control->oid && control->oid > val) {
 		if (mode != RM_BUILD) {
-			aal_mess("First not used oid %llu is wrong. %s %llu.",
-				 val, mode == RM_CHECK ? "Sould be" : 
-				 "Fixed to", control->oid);
+			fsck_mess("First not used oid %llu is wrong. %s %llu.",
+				  val, mode == RM_CHECK ? "Sould be" : 
+				  "Fixed to", control->oid);
 		}
 
 		if (mode != RM_CHECK) {
@@ -730,7 +731,7 @@ errno_t repair_check(repair_data_t *repair) {
 	}
 
 	if (repair->mode != RM_BUILD && repair->fatal) {
-		aal_mess("\nFatal corruptions were found. "
+		aal_warn("\nFatal corruptions were found. "
 			 "Semantic pass is skipped.");
 	} else {
 		/* Check the semantic reiser4 tree. */

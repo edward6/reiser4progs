@@ -5,6 +5,13 @@
 
 #include <repair/librepair.h>
 
+errno_t repair_alloc_check_struct(reiser4_alloc_t *alloc, uint8_t mode) {
+	aal_assert("vpf-1659", alloc != NULL);
+
+	return plug_call(alloc->ent->plug->o.alloc_ops,
+			 check_struct, alloc->ent, mode);
+}
+
 errno_t repair_alloc_layout_bad(reiser4_alloc_t *alloc, region_func_t func, 
 				void *data) 
 {
@@ -80,3 +87,13 @@ reiser4_alloc_t *repair_alloc_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	return NULL;
 }
 
+errno_t repair_alloc_open(reiser4_fs_t *fs, uint8_t mode) {
+	uint64_t len;
+
+	len = reiser4_format_get_len(fs->format);
+	
+	if (!(fs->alloc = reiser4_alloc_open(fs, len)))
+		return -EINVAL;
+
+	return repair_alloc_check_struct(fs->alloc, mode);
+}

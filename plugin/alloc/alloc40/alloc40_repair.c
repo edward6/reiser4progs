@@ -13,6 +13,9 @@ struct alloc_hint {
 	void *data;
 };
 
+extern errno_t callback_valid_block(void *entity, blk_t start,
+				    count_t width, void *data);
+
 static errno_t callback_check_layout(void *entity, blk_t start, 
 				     count_t width, void *data) 
 {
@@ -292,5 +295,39 @@ void alloc40_print(generic_entity_t *entity,
 	
 	aal_stream_format(stream, "]\n");
 }
+
+
+static void callback_inval_warn(blk_t start, uint32_t ladler,
+				uint32_t cadler)
+{
+	fsck_mess("Checksum missmatch in bitmap block %llu. Checksum "
+		  "is 0x%x, should be 0x%x.", start, ladler, cadler);
+}
+
+/* Checks allocator on validness  */
+errno_t alloc40_check_struct(generic_entity_t *entity, uint8_t mode) {
+	alloc40_t *alloc = (alloc40_t *)entity;
+	errno_t res;
+
+	aal_assert("umka-963", alloc != NULL);
+	aal_assert("umka-964", alloc->bitmap != NULL);
+
+	/* Calling layout function for traversing all the bitmap blocks with
+	   checking callback function. */
+	res = alloc40_layout((generic_entity_t *)alloc,
+			     callback_valid_block,
+			     callback_inval_warn);
+
+	if (res != -ESTRUCT)
+		return res;
+
+	/* Checksums are not correct. */
+	if (mode == RM_CHECK)
+		return RE_FIXABLE;
+
+	fsck_mess("Checksums will be fixed later.");
+	return 0;
+}
+
 
 #endif
