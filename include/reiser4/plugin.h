@@ -601,6 +601,13 @@ struct reiser4_key_ops {
 	/* Copyies src key to dst one */
 	errno_t (*assign) (key_entity_t *, key_entity_t *);
 
+	/*
+	  Constructs key by three components without any shifts or something
+	  else. It may be used for building sttadata key by entry.
+	*/
+	errno_t (*construct) (key_entity_t *, uint64_t, uint64_t,
+			      uint64_t);
+	
 	/* Builds generic key (statdata, file body, etc) */
 	errno_t (*build_generic) (key_entity_t *, key_type_t,
 				  uint64_t, uint64_t, uint64_t);
