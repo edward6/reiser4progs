@@ -88,11 +88,11 @@ typedef struct journal40_check {
     void *layout;
 } journal40_check_t;
 
-extern errno_t journal40_traverse(journal40_t *, journal40_handler_func_t,
-    journal40_txh_func_t,journal40_sec_func_t, void *);
+extern errno_t journal40_traverse(journal40_t *, journal40_txh_func_t,
+    journal40_wan_func_t, journal40_sec_func_t, void *);
 
 extern errno_t journal40_traverse_trans(journal40_t *, aal_block_t *, 
-    journal40_handler_func_t, journal40_sec_func_t, void *);
+    journal40_wan_func_t, journal40_sec_func_t, void *);
 
 extern aal_device_t *journal40_device(object_entity_t *entity);
 
@@ -329,7 +329,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	    check_data->wanted_blk = blk;
 	    check_data->flags = 0;
 
-	    if ((ret = journal40_traverse(journal, NULL, callback_find_txh_blk, 
+	    if ((ret = journal40_traverse(journal, callback_find_txh_blk, NULL, 
 		callback_find_sec_blk, check_data)) != -ESTRUCT)
 	    {
 		aal_exception_bug("Traverse which should find a transaction"
@@ -360,7 +360,7 @@ static errno_t callback_journal_sec_check(object_entity_t *entity,
 	    /* Stop looking through TxH's when reach the current trans. */
 	    check_data->flags = (1 << TF_SAME_TXH_BREAK);
 
-	    if ((ret = journal40_traverse(journal, NULL, callback_find_txh_blk, 
+	    if ((ret = journal40_traverse(journal, callback_find_txh_blk, NULL,
 		NULL, check_data)) != -ESTRUCT)
 	    {
 		aal_exception_bug("Traverse which should find a transaction"
@@ -420,8 +420,8 @@ errno_t journal40_check(object_entity_t *entity, layout_func_t fs_layout,
 	return -ENOMEM;
     }    
     
-    ret = journal40_traverse((journal40_t *)entity, NULL, 
-	callback_journal_txh_check, callback_journal_sec_check, &data);
+    ret = journal40_traverse((journal40_t *)entity, callback_journal_txh_check,
+        NULL, callback_journal_sec_check, &data);
     
     if (ret && ret != -ESTRUCT)
 	return ret;

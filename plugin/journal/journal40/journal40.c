@@ -251,9 +251,9 @@ static errno_t journal40_sync(object_entity_t *entity) {
 	return 0;
 }
 
-static errno_t callback_journal_handler(object_entity_t *entity,
-					aal_block_t *block,
-					d64_t original, void *data) 
+static errno_t callback_replay_handler(object_entity_t *entity,
+				       aal_block_t *block,
+				       d64_t original, void *data) 
 {
 	aal_block_relocate(block, original);
 	    
@@ -328,10 +328,10 @@ static errno_t journal40_update(journal40_t *journal) {
   checking, etc.
 */
 errno_t journal40_traverse_trans(
-	journal40_t *journal,			/* journal object to be traversed */
-	aal_block_t *tx_block,			/* trans header of a transaction */
-	journal40_handler_func_t handler_func,	/* wandered/original pair callback */
-	journal40_sec_func_t sec_func,		/* secondary blocks callback */
+	journal40_t *journal,                   /* journal object to be traversed */
+	aal_block_t *tx_block,                  /* trans header of a transaction */
+	journal40_wan_func_t wan_func,          /* wandered/original pair callback */
+	journal40_sec_func_t sec_func,          /* secondary blocks callback */
 	void *data) 
 {
 	errno_t res;
@@ -395,7 +395,7 @@ errno_t journal40_traverse_trans(
 					goto error_free_log_block;
 			}
 	
-			if (handler_func) {
+			if (wan_func) {
 				wan_block = aal_block_open(device, get_le_wandered(entry));
 		
 				if (!wan_block) {
@@ -407,8 +407,8 @@ errno_t journal40_traverse_trans(
 					goto error_free_log_block;
 				}
 
-				if ((res = handler_func((object_entity_t *)journal, wan_block, 
-							get_le_original(entry), data)))
+				if ((res = wan_func((object_entity_t *)journal, wan_block, 
+						    get_le_original(entry), data)))
 					goto error_free_wandered;
 
 				aal_block_close(wan_block);
@@ -439,11 +439,11 @@ errno_t journal40_traverse_trans(
   < 0 some error (-ESTRUCT, -EIO, etc)
 */
 errno_t journal40_traverse(
-	journal40_t *journal,			/* journal object to be traversed */
-	journal40_handler_func_t handler_func,	/* wandered/original pair callback */
-	journal40_txh_func_t txh_func,		/* TxH block callback */
-	journal40_sec_func_t sec_func,		/* secondary blocks callback */
-	void *data)				/* opaque data for traverse callbacks. */ 
+	journal40_t *journal,                   /* journal object to be traversed */
+	journal40_txh_func_t txh_func,          /* TxH block callback */
+	journal40_wan_func_t wan_func,          /* wandered/original pair callback */
+	journal40_sec_func_t sec_func,          /* secondary blocks callback */
+	void *data)                             /* opaque data for traverse callbacks */ 
 {
 	errno_t res;
 	uint64_t txh_blk;
@@ -508,8 +508,8 @@ errno_t journal40_traverse(
 		tx_block = (aal_block_t *)aal_list_last(tx_list)->data;
 		
 		if ((res = journal40_traverse_trans(journal, tx_block,
-						    handler_func, 
-						    sec_func, data)))
+						    wan_func, sec_func,
+						    data)))
 			goto error_free_tx_list;
 	
 		tx_list = aal_list_remove(tx_list, tx_block);
@@ -536,9 +536,9 @@ static errno_t journal40_replay(object_entity_t *entity) {
 	errno_t res;
 	aal_assert("umka-412", entity != NULL);
 
-	if ((res = journal40_traverse((journal40_t *)entity,
-				      callback_journal_handler, 
-				      NULL, NULL, NULL)))
+	if ((res = journal40_traverse((journal40_t *)entity, NULL,
+				      callback_replay_handler,
+				      NULL, NULL)))
 		return res;
 
 	return journal40_update((journal40_t *)entity);

@@ -503,8 +503,8 @@ static errno_t ffrag_process_blk(
 
 /* Calculates the passed file fragmentation */
 errno_t measurefs_file_frag(reiser4_fs_t *fs,
-			  char *filename,
-			  uint32_t gauge)
+			    char *filename,
+			    uint32_t gauge)
 {
 	errno_t res = 0;
 	ffrag_hint_t frag_hint;

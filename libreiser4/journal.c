@@ -226,7 +226,9 @@ errno_t reiser4_journal_valid(
 			   valid, journal->entity);
 }
 
-errno_t reiser4_journal_print(reiser4_journal_t *journal, aal_stream_t *stream) {
+errno_t reiser4_journal_print(reiser4_journal_t *journal,
+			      aal_stream_t *stream)
+{
 	aal_assert("umka-1564", journal != NULL);
 	aal_assert("umka-1565", stream != NULL);
 

@@ -156,10 +156,10 @@ typedef struct journal40_lr_entry journal40_lr_entry_t;
 #define get_le_wandered(le)			aal_get_le64(le, le_wandered)
 #define set_le_wandered(le, val)		aal_set_le64(le, le_wandered, val)
 
-typedef errno_t (*journal40_handler_func_t) (object_entity_t *, aal_block_t *, 
-					     d64_t, void *);
-
 typedef errno_t (*journal40_txh_func_t) (object_entity_t *, blk_t, void *);
+
+typedef errno_t (*journal40_wan_func_t) (object_entity_t *, aal_block_t *, 
+					 d64_t, void *);
 
 typedef errno_t (*journal40_sec_func_t) (object_entity_t *, aal_block_t *, 
 					 blk_t, int, void *);
