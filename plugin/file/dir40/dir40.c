@@ -19,6 +19,7 @@
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t dir40_plugin;
 
+/* Resets internal direntry position at zero */
 static errno_t dir40_reset(object_entity_t *entity) {
 	dir40_t *dir;
 	key_entity_t key;
@@ -36,9 +37,8 @@ static errno_t dir40_reset(object_entity_t *entity) {
 
 	file40_unlock(&dir->file, &dir->body);
 	
-	if (core->tree_ops.lookup(dir->file.tree, &key,
-				  LEAF_LEVEL, &dir->body) != PRESENT)
-	{
+	/* Lookup for the first direntry item */
+	if (file40_lookup(&dir->file, &key, LEAF_LEVEL, &dir->body) != PRESENT)	{
 		aal_exception_error("Can't find direntry of object 0x%llx.", 
 				    file40_objectid(&dir->file));
 		
@@ -47,7 +47,8 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	}
 
 	file40_lock(&dir->file, &dir->body);
-	
+
+	/* Initializing positions */
 	dir->offset = 0;
 	dir->body.pos.unit = 0;
 
@@ -64,6 +65,7 @@ static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
 	return core->factory_ops.ifind(HASH_PLUGIN_TYPE, HASH_R5_ID);
 }
 
+/* Makes position onto next direntry item */
 static int dir40_next(dir40_t *dir) {
 	uint32_t units;
 	item_entity_t *item;
@@ -82,7 +84,10 @@ static int dir40_next(dir40_t *dir) {
 	
 	/*
 	  Getting the right neighbour. While key40 is using, next direntry item
-	  will lie in the right neighbour node.
+	  will lie in the right neighbour node. Probably we should do here like
+	  reg40_next does. And namely do not access rigfht neighbour, but rather
+	  perform lookup with current hash plus one and then check if found item
+	  is mergeable with current one.
 	*/
 	if (core->tree_ops.right(dir->file.tree, &dir->body, &right))
 		return 0;
@@ -124,8 +129,10 @@ static int32_t dir40_read(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
+	/* Getting stat data item coord */
 	file40_stat(&dir->file);
-	
+
+	/* Getting size from teh statdata */
 	if ((size = file40_get_size(&dir->file)) == 0)
 		return 0;
 
@@ -134,6 +141,7 @@ static int32_t dir40_read(object_entity_t *entity,
 	
 	entry = (reiser4_entry_hint_t *)buff;
 
+	/* Loop until requested data is read */
 	for (read = 0; read < n; read += chunk) {
 		uint32_t units;
 		
@@ -142,12 +150,15 @@ static int32_t dir40_read(object_entity_t *entity,
 		if ((chunk = n - read) == 0)
 			return read;
 
+		/* Reading piece of data */
 		chunk = plugin_call(return -1, item->plugin->item_ops, fetch,
 				    item, entry, dir->body.pos.unit, chunk);
 
+		/* If actual read data is zero, we going out */
 		if (chunk == 0)
 			return read;
 
+		/* Updating positions */
 		entry += chunk;
 		dir->offset += chunk;
 		dir->body.pos.unit += chunk;
@@ -174,15 +185,26 @@ static int dir40_lookup(object_entity_t *entity,
 	aal_assert("umka-1119", key != NULL, return -1);
 	aal_assert("umka-1120", key->plugin != NULL, return -1);
 
+	/*
+	  Preparing key to be used for lookup. It is generating from the
+	  directory oid, locality and name by menas of using hash plugin.
+	*/
 	wanted.plugin = dir->file.key.plugin;
 	
 	plugin_call(return -1, wanted.plugin->key_ops, build_entry,
 		    &wanted, dir->hash, file40_locality(&dir->file),
 		    file40_objectid(&dir->file), name);
-    
+
+	/* Lookp until needed entry will be found */
 	while (1) {
 		item_entity_t *item = &dir->body.item;
 
+		/*
+		  If needed entry is found, we fetch it into local buffer and
+		  get stat data key of the object it points to from it. This key
+		  will be used for searching next entry in passed path and so
+		  on.
+		*/
 		if (plugin_call(return -1, item->plugin->item_ops, lookup, 
 				item, &wanted, &dir->body.pos.unit) == PRESENT) 
 		{
@@ -197,7 +219,7 @@ static int dir40_lookup(object_entity_t *entity,
 	    
 			return 1;
 		}
-	
+
 		if (dir40_next(dir) != PRESENT)
 			return 0;
 	}
@@ -205,6 +227,10 @@ static int dir40_lookup(object_entity_t *entity,
 	return 0;
 }
 
+/*
+  Initializing dir40 instance by stat data place, resetring directory be means
+  of using dir40_reset function and return instance to caller.
+*/
 static object_entity_t *dir40_open(void *tree, 
 				   reiser4_place_t *place) 
 {
@@ -218,16 +244,19 @@ static object_entity_t *dir40_open(void *tree,
 		return NULL;
 
 	key = &place->item.key;
-	
+
+	/* Initializing file handle for the directory */
 	if (file40_init(&dir->file, &dir40_plugin, key, core, tree))
 		goto error_free_dir;
 
+	/* Guessing hash plugin basing on stat data */
 	if (!(dir->hash = dir40_guess(dir))) {
                 aal_exception_error("Can't guess hash plugin for directory "
 				    "%llx.", file40_objectid(&dir->file));
                 goto error_free_dir;
         }
 
+	/* Copying statdata coord and looking node it lies in */
 	aal_memcpy(&dir->file.statdata, place, sizeof(*place));
 	file40_lock(&dir->file, &dir->file.statdata);
 	
@@ -249,6 +278,10 @@ static object_entity_t *dir40_open(void *tree,
 
 static char *dir40_empty_dir[2] = { ".", ".." };
 
+/*
+  Creates dir40 instance and inserts few item in new directory described by
+  passed @hint.
+*/
 static object_entity_t *dir40_create(void *tree,
 				     reiser4_file_hint_t *hint) 
 {
@@ -275,10 +308,12 @@ static object_entity_t *dir40_create(void *tree,
 
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
 		return NULL;
-    
+
+	/* Initializing file handle */
 	if (file40_init(&dir->file, &dir40_plugin, &hint->object, core, tree))
 		goto error_free_dir;
-	
+
+	/* Getting hash plugin */
 	if (!(dir->hash = core->factory_ops.ifind(HASH_PLUGIN_TYPE, 
 						  hint->body.dir.hash)))
 	{
@@ -286,13 +321,15 @@ static object_entity_t *dir40_create(void *tree,
 				    hint->body.dir.hash);
 		goto error_free_dir;
 	}
-    
+
+	/* Preparing dir oid and locality and parent locality */
 	locality = file40_locality(&dir->file);
 	objectid = file40_objectid(&dir->file);
 
 	parent_locality = plugin_call(return NULL, hint->object.plugin->key_ops,
 				      get_locality, &hint->parent);
-    
+
+	/* Getting item plugins for statdata and body */
 	if (!(stat_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
 						    hint->statdata)))
 	{
@@ -330,11 +367,14 @@ static object_entity_t *dir40_create(void *tree,
 	if (!(body.unit = aal_calloc(body.count * sizeof(*body.unit), 0)))
 		goto error_free_dir;
 
-	/* Preparing hist for the empty directory */
+	/*
+	  Preparing hint for the empty directory. It consists of two entries:
+	  dot and dotdot.
+	*/
 	for (i = 0; i < body.count; i++) {
 		char *name;
 		uint64_t loc, oid;
-			
+
 		if (i == 0) {
 			loc = locality;
 			oid = objectid;
@@ -342,17 +382,23 @@ static object_entity_t *dir40_create(void *tree,
 			loc = parent_locality;
 			oid = locality;
 		}
-		
+
+		/* Preparing entry hints */
 		name = dir40_empty_dir[i];
 		
 		aal_strncpy(body.unit[i].name, name, aal_strlen(name));
 
+		/*
+		  Building key for the statdata of object new entry will point
+		  to.
+		*/
 		body.unit[i].object.plugin = hint->object.plugin;
-		
+
 		plugin_call(goto error_free_body, hint->object.plugin->key_ops,
 			    build_generic, &body.unit[i].object, KEY_STATDATA_TYPE,
 			    loc, oid, 0);
-	
+
+		/* Building key for the hash new entry will have */
 		body.unit[i].offset.plugin = hint->object.plugin;
 		
 		plugin_call(goto error_free_body, hint->object.plugin->key_ops,
@@ -370,13 +416,22 @@ static object_entity_t *dir40_create(void *tree,
 	plugin_call(goto error_free_body, hint->object.plugin->key_ops,
 		    assign, &stat_hint.key, &hint->object);
     
-	/* Initializing stat data item hint. */
+	/*
+	  Initializing stat data item hint. It uses unix extention and light
+	  weight one. So we set up the mask in corresponding maner.
+	*/
 	stat.extmask = 1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID;
-    
+
+	/*
+	  Light weight hint initializing. New directory will have two links on
+	  it, because of dot entry which points onto directory itself and entry
+	  in parent directory, which points to this new directory.
+	*/
 	lw_ext.nlink = 2;
 	lw_ext.size = body.count;
 	lw_ext.mode = S_IFDIR | 0755;
-    
+
+	/* Unix extention hint initializing */
 	unix_ext.rdev = 0;
 	unix_ext.uid = getuid();
 	unix_ext.gid = getgid();
@@ -384,6 +439,10 @@ static object_entity_t *dir40_create(void *tree,
 	unix_ext.mtime = time(NULL);
 	unix_ext.ctime = time(NULL);
 
+	/*
+	  Estimating body item and setting up "bytes" field from the unix
+	  extetion.
+	*/
 	if (plugin_call(goto error_free_body, body_plugin->item_ops,
 			estimate, NULL, &body_hint, ~0ul))
 	{
@@ -454,7 +513,8 @@ static int32_t dir40_write(object_entity_t *entity,
 		return -1;
     
 	hint.hint = &body_hint;
-  
+
+	/* Loop until told amount of bytes will be writen */
 	for (i = 0; i < n; i++) {
 		key_entity_t *key = &dir->file.key;
 		
@@ -462,7 +522,8 @@ static int32_t dir40_write(object_entity_t *entity,
 		hint.plugin = dir->body.item.plugin;
 
 		aal_memcpy(&body_hint.unit[0], entry, sizeof(*entry));
-		
+
+		/* Building key of the new entry */
 		plugin_call(return -1, key->plugin->key_ops, build_entry,
 			    &hint.key, dir->hash, file40_locality(&dir->file),
 			    file40_objectid(&dir->file), entry->name);
@@ -472,6 +533,7 @@ static int32_t dir40_write(object_entity_t *entity,
 		plugin_call(return -1, key->plugin->key_ops, assign,
 			    &body_hint.unit[0].offset, &hint.key);
 
+		/* Inserting it into tree */
 		if (file40_insert(&dir->file, &hint, LEAF_LEVEL, &place)) {
 			aal_exception_error("Can't insert entry %s.",
 					    entry->name);
@@ -481,7 +543,7 @@ static int32_t dir40_write(object_entity_t *entity,
 		entry++;
 	}
 
-	/* Updating size field */
+	/* Updating size field in stat data */
 	file40_stat(&dir->file);
 	
 	size = file40_get_size(&dir->file);
@@ -509,6 +571,10 @@ static errno_t callback_item_data(item_entity_t *item,
 	return hint->func(hint->entity, blk, hint->data);
 }
 
+/*
+  Layout function implementation. It is needed for printing, fragmentation
+  calculating, etc.
+*/
 static errno_t dir40_layout(object_entity_t *entity,
 			    block_func_t func,
 			    void *data)
@@ -540,6 +606,11 @@ static errno_t dir40_layout(object_entity_t *entity,
 	return 0;
 }
 
+/*
+  Metadata function implementation. It traverses all directory items and calls
+  @func for each of them. It is needed for printing, fragmentation calculating,
+  etc.
+*/
 static errno_t dir40_metadata(object_entity_t *entity,
 			      place_func_t func,
 			      void *data)
