@@ -78,7 +78,7 @@ static void debugfs_print_usage(char *name) {
 		"  -o, --print-oid-alloc     prints oid allocator data.\n"
 		"  -n, --print-block N       prints block by its number.\n"
 		"  -i, --print-file FILE     prints the all file's metadata.\n"
-		"  -w, --show-items          forces --print-file show only items"
+		"  -w, --show-items          forces --print-file show only items\n"
 		"                            which are belong to specified file.\n"
 		"Measurement options:\n"
 		"  -S, --tree-stat           measures some tree characteristics\n"
