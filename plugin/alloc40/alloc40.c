@@ -174,7 +174,7 @@ static object_entity_t *alloc40_create(object_entity_t *format,
 	return NULL;
 }
 
-static errno_t callback_flush_bitmap(object_entity_t *format, 
+static errno_t callback_sync_bitmap(object_entity_t *format, 
 				     uint64_t blk, void *data)
 {
 	aal_block_t *block;
@@ -219,7 +219,7 @@ static errno_t callback_flush_bitmap(object_entity_t *format,
 			goto error_free_block;
 
 		aal_memcpy(fake, current, chunk);
-		adler = aal_adler32(current, chunk);
+		adler = aal_adler32(current, size);
 		
 		aal_free(fake);
 	} else
@@ -258,7 +258,7 @@ static errno_t alloc40_sync(object_entity_t *entity) {
 		return -1;
 	}
     
-	if (layout(alloc->format, callback_flush_bitmap, alloc)) {
+	if (layout(alloc->format, callback_sync_bitmap, alloc)) {
 		aal_exception_error("Can't synchronize bitmap.");
 		return -1;
 	}
@@ -408,7 +408,7 @@ static errno_t callback_check_bitmap(object_entity_t *format,
 			return -1;
 
 		aal_memcpy(fake, current, chunk);
-		cadler = aal_adler32(current, chunk);
+		cadler = aal_adler32(current, size);
 		
 		aal_free(fake);
 	} else

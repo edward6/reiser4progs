@@ -159,12 +159,11 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 	master = fs->master;
     
 	printf("Master super block:\n");
-	printf("block number:\t%llu\n", aal_block_number(master->block));
-	printf("block size:\t%u\n", reiser4_master_blocksize(master));
+	printf("offset:\t\t%llu\n", aal_block_number(master->block));
+	printf("blocksize:\t%u\n", reiser4_master_blocksize(master));
 
 	printf("magic:\t\t%s\n", reiser4_master_magic(master));
 	printf("format:\t\t%x\n", reiser4_master_format(master));
-	printf("label:\t\t%s\n", reiser4_master_label(master));
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 	{
@@ -173,7 +172,8 @@ errno_t debugfs_print_master(reiser4_fs_t *fs) {
 		printf("uuid:\t\t%s\n", uuid);
 	}
 #endif
-
+	printf("label:\t\t%s\n", reiser4_master_label(master));
+	
 	printf("\n");
 	return 0;
 }
@@ -245,7 +245,7 @@ struct tree_frag_hint {
 	count_t total, bad;
 };
 
-static errno_t callback_tree_fragmentation(
+static errno_t callback_tree_frag(
 	reiser4_joint_t *joint,	   /* joint to be estimated */
 	void *data)		   /* user-specified data */
 {
@@ -308,7 +308,7 @@ static errno_t callback_tree_fragmentation(
 	return 0;
 }
 
-static errno_t debugfs_tree_fragmentation(reiser4_fs_t *fs) {
+static errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	aal_gauge_t *gauge;
 	traverse_hint_t hint;
 	struct tree_frag_hint frag_hint;
@@ -331,7 +331,7 @@ static errno_t debugfs_tree_fragmentation(reiser4_fs_t *fs) {
 	aal_gauge_start(gauge);
 	
 	reiser4_joint_traverse(fs->tree->root, (void *)&hint, debugfs_open_joint,
-			       callback_tree_fragmentation, NULL, NULL, NULL);
+			       callback_tree_frag, NULL, NULL, NULL);
 
 	aal_gauge_free(gauge);
 
@@ -349,7 +349,7 @@ struct file_frag_hint {
 	count_t total, bad;
 };
 
-static errno_t callback_file_fragmentation(object_entity_t *entity, blk_t blk,
+static errno_t callback_file_frag(object_entity_t *entity, blk_t blk,
 					   void *data)
 {
 	int64_t delta;
@@ -373,7 +373,7 @@ static errno_t callback_file_fragmentation(object_entity_t *entity, blk_t blk,
 	return 0;
 }
 
-static errno_t debugfs_file_fragmentation(reiser4_fs_t *fs, char *filename) {
+static errno_t debugfs_file_frag(reiser4_fs_t *fs, char *filename) {
 	aal_block_t *block;
 	aal_gauge_t *gauge;
 	reiser4_file_t *file;
@@ -396,7 +396,7 @@ static errno_t debugfs_file_fragmentation(reiser4_fs_t *fs, char *filename) {
 	aal_gauge_rename(gauge, "Fragmentation for %s is", filename);
 	aal_gauge_start(gauge);
 	
-	if (reiser4_file_layout(file, callback_file_fragmentation, (void *)&hint)) {
+	if (reiser4_file_layout(file, callback_file_frag, (void *)&hint)) {
 		aal_exception_error("Can't enumerate blocks occupied by %s",
 				    filename);
 		goto error_free_gauge;
@@ -473,9 +473,47 @@ static errno_t debugfs_node_packing(reiser4_fs_t *fs) {
 	return 0;
 }
 
-static errno_t debugfs_data_fragmentation(reiser4_fs_t *fs) {
-	aal_exception_info("Sorry, not implemented yet!");
-	return -1;
+struct data_frag_hint {
+	reiser4_tree_t *tree;
+	aal_gauge_t *gauge;
+
+	double factor;
+	count_t total;
+};
+
+static errno_t callback_data_frag(reiser4_joint_t *joint, void *data) {
+	return 0;
+}
+
+static errno_t debugfs_data_frag(reiser4_fs_t *fs) {
+	aal_gauge_t *gauge;
+	traverse_hint_t hint;
+	struct data_frag_hint frag_hint;
+
+	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "Data fragmentation",
+				       progs_gauge_handler, NULL)))
+		return -1;
+	
+	aal_memset(&frag_hint, 0, sizeof(frag_hint));
+
+	frag_hint.tree = fs->tree;
+	frag_hint.gauge = gauge;
+
+	aal_memset(&hint, 0, sizeof(hint));
+	
+	hint.data = (void *)&frag_hint;
+	hint.objects = 1 << NODEPTR_ITEM;
+
+	aal_gauge_start(gauge);
+	
+	reiser4_joint_traverse(fs->tree->root, (void *)&hint, debugfs_open_joint,
+			       callback_data_frag, NULL, NULL, NULL);
+
+	aal_gauge_free(gauge);
+
+	printf("%.5f\n", frag_hint.factor);
+	
+	return 0;
 }
 
 static errno_t debugfs_file_cat(reiser4_file_t *file) {
@@ -735,19 +773,19 @@ int main(int argc, char *argv[]) {
 	}
 
 	if ((behav_flags & BF_TFRAG)) {
-		if (debugfs_tree_fragmentation(fs))
+		if (debugfs_tree_frag(fs))
 			goto error_free_fs;
 		print_flags = 0;
 	}
 
 	if ((behav_flags & BF_DFRAG)) {
-		if (debugfs_data_fragmentation(fs))
+		if (debugfs_data_frag(fs))
 			goto error_free_fs;
 		print_flags = 0;
 	}
 
 	if ((behav_flags & BF_FFRAG)) {
-		if (debugfs_file_fragmentation(fs, frag_filename))
+		if (debugfs_file_frag(fs, frag_filename))
 			goto error_free_fs;
 		print_flags = 0;
 	}

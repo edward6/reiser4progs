@@ -464,13 +464,13 @@ errno_t format40_print(object_entity_t *entity, char *buff,
     
     aux_strncat(buff, n, "plugin:\t\t%s\n", entity->plugin->h.label);
     aux_strncat(buff, n, "description:\t%s\n", entity->plugin->h.desc);
-    aux_strncat(buff, n, "block number:\t%llu\n", aal_block_number(block));
+    aux_strncat(buff, n, "offset:\t\t%llu\n", aal_block_number(block));
     
     aux_strncat(buff, n, "magic:\t\t%s\n", super->sb_magic);
     aux_strncat(buff, n, "flushes:\t%llu\n", get_sb_flushes(super));
     aux_strncat(buff, n, "stamp:\t\t0x%x\n", get_sb_mkfs_id(super));
     
-    aux_strncat(buff, n, "total blocks:\t%llu\n",get_sb_block_count(super));
+    aux_strncat(buff, n, "length:\t\t%llu\n",get_sb_block_count(super));
     aux_strncat(buff, n, "free blocks:\t%llu\n", get_sb_free_blocks(super));
     aux_strncat(buff, n, "root block:\t%llu\n", get_sb_root_block(super));
     aux_strncat(buff, n, "tail policy:\t%u\n", get_sb_tail_policy(super));
