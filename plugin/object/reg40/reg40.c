@@ -326,7 +326,6 @@ static errno_t reg40_link(object_entity_t *entity) {
 static errno_t reg40_unlink(object_entity_t *entity) {
 	errno_t res;
 	reg40_t *reg;
-	uint64_t size;
 	
 	aal_assert("umka-1911", entity != NULL);
 
@@ -335,23 +334,7 @@ static errno_t reg40_unlink(object_entity_t *entity) {
 	if ((res = obj40_stat(&reg->obj)))
 		return res;
 
-	if ((res = obj40_link(&reg->obj, -1)))
-		return res;
-
-	if (obj40_get_nlink(&reg->obj) > 0)
-		return 0;
-	
-	/* Removing file when nlink became zero */
-	if ((res = reg40_reset(entity)))
-		return res;
-	
-	if ((res = reg40_truncate(entity, 0)))
-		return res;
-
-	if ((res = obj40_stat(&reg->obj)))
-		return res;
-
-	return obj40_remove(&reg->obj, STAT_KEY(&reg->obj), 1);
+	return obj40_link(&reg->obj, -1);
 }
 
 static uint32_t reg40_chunk(reg40_t *reg) {
@@ -725,9 +708,12 @@ static errno_t reg40_metadata(object_entity_t *entity,
 	return 0;
 }
 
-extern errno_t reg40_realize (object_info_t *);
-extern object_entity_t *reg40_check_struct(object_info_t *, place_func_t, 
-					   uint8_t, void *);
+extern errno_t reg40_realize(object_info_t *info);
+
+extern object_entity_t *reg40_check_struct(object_info_t *info,
+					   place_func_t func, 
+					   uint8_t mode,
+					   void *data);
 
 #endif
 
@@ -747,9 +733,7 @@ static void reg40_close(object_entity_t *entity) {
 
 	/* Unlocking statdata and body */
 	obj40_relock(&reg->obj, &reg->obj.statdata, NULL);
-
-	if (reg->body.node != NULL)
-		obj40_relock(&reg->obj, &reg->body, NULL);
+	obj40_relock(&reg->obj, &reg->body, NULL);
 	
 	aal_free(entity);
 }

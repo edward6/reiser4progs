@@ -22,7 +22,8 @@ errno_t reg40_realize(object_info_t *info) {
 	return obj40_realize(info, callback_mode_reg, callback_type_file);
 }
 
-object_entity_t *reg40_check_struct(object_info_t *info, place_func_t place,
+object_entity_t *reg40_check_struct(object_info_t *info,
+				    place_func_t func,
 				    uint16_t mode, void *data) 
 {
 	reg40_t *reg;

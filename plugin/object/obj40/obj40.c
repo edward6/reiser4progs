@@ -390,18 +390,17 @@ errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,
 
 /* Performs lookup for the object's stat data */
 errno_t obj40_stat(obj40_t *obj) {
+	place_t place;
+	
 	aal_assert("umka-1905", obj != NULL);
 
-	/* Unlocking old node if it exists */
-	if (obj->statdata.node != NULL)
-		obj40_unlock(obj, &obj->statdata);
-	
 	/* Lookuing for stat data place by */
 	switch (obj->core->tree_ops.lookup(obj->tree, STAT_KEY(obj),
-					   LEAF_LEVEL, &obj->statdata))
+					   LEAF_LEVEL, &place))
 	{
 	case PRESENT:
-		obj40_lock(obj, &obj->statdata);
+		obj40_relock(obj, &obj->statdata, &place);
+		aal_memcpy(&obj->statdata, &place, sizeof(place));
 		return 0;
 	default:
 		aal_exception_error("Can't find stat data of object "

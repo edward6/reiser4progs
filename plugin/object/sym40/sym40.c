@@ -232,14 +232,7 @@ static errno_t sym40_unlink(object_entity_t *entity) {
 	if ((res = obj40_stat(&sym->obj)))
 		return res;
 
-	if ((res = obj40_link(&sym->obj, -1)))
-		return res;
-
-	if (obj40_get_nlink(&sym->obj) > 0)
-		return 0;
-	
-	/* Removing file when nlink became zero */
-	return obj40_remove(&sym->obj, STAT_KEY(&sym->obj), 1);
+	return obj40_link(&sym->obj, -1);
 }
 
 /* Calls function @func for each symlink item (statdata only) */
