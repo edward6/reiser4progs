@@ -285,6 +285,7 @@ static errno_t tail40_prep_shift(place_t *src_place,
 		}
 	}
 
+	hint->units = hint->rest;
 	return 0;
 }
 

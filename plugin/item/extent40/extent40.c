@@ -1063,6 +1063,7 @@ static errno_t extent40_prep_shift(place_t *src_place,
 		}
 	}
 
+	hint->units = hint->rest / sizeof(extent40_t);
 	return 0;
 }
 

@@ -1074,7 +1074,7 @@ static lookup_t node40_lookup(node_entity_t *entity,
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Checks if two item entities are mergeable */
+/* Checks if two items are mergeable. */
 static int node40_mergeable(place_t *src, place_t *dst) {
 	/* Check if plugins are equal */
 	if (!plug_equal(src->plug, dst->plug))
@@ -1085,9 +1085,8 @@ static int node40_mergeable(place_t *src, place_t *dst) {
 		src->plug->o.item_ops->balance->mergeable(src, dst);
 }
 
+/* Checks if @place is splittable. */
 static int node40_splittable(place_t *place, shift_hint_t *hint) {
-	uint32_t units;
-
 	/* Check if item's shift_units() and prep_shift() method are
 	   implemented. */
 	if (!place->plug->o.item_ops->balance->shift_units ||
@@ -1096,20 +1095,12 @@ static int node40_splittable(place_t *place, shift_hint_t *hint) {
 		return 0;
 	}
 	
-	/* We can't shift units from items with one unit */
+	/* We can't shift units from items with one unit. */
 	if (!place->plug->o.item_ops->balance->units)
 		return 0;
-
-	if (hint->control & SF_UPDATE_POINT) {
-		units = plug_call(place->plug->o.item_ops->balance,
-				  units, place);
-
-		/* That item can be splitted which contains more than 1 unit or
-		   insert point lies behind the last unit. */
-		return (units > 1 && place->pos.unit >= units);
-	}
 	
-	return 1;
+	return (plug_call(place->plug->o.item_ops->balance,
+			  units, place) > 0);
 }
 
 /* Initializes place by border item data (leftmost or rightmost). */

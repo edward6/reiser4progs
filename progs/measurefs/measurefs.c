@@ -547,7 +547,7 @@ static errno_t data_frag_process_node(reiser4_tree_t *tree,
 			double curr_factor = frag_hint->files > 0 ?
 				(double)frag_hint->current / frag_hint->files : 0;
 			
-			aal_exception_mess("Fragmentation for %s: %.6f [ %.6f ]",
+			aal_exception_mess("Fragmentation for %s: %.6f [av. %.6f ]",
 					   object->name, file_factor, curr_factor);
 		}
 
