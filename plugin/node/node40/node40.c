@@ -1483,12 +1483,8 @@ static errno_t node40_predict(object_entity_t *src_entity,
 			      object_entity_t *dst_entity, 
 			      shift_hint_t *hint)
 {
-	pos_t pos;
-	uint32_t len;
-	
 	uint32_t flags;
 	uint32_t space;
-	uint32_t overhead;
 	
 	uint32_t src_items;
 	uint32_t dst_items;
@@ -1502,26 +1498,27 @@ static errno_t node40_predict(object_entity_t *src_entity,
 	src_node = (node40_t *)src_entity;
 	dst_node = (node40_t *)dst_entity;
 
-	dst_items = nh40_get_num_items(dst_node);
+	dst_items = node40_items(dst_entity);
 	
-	if (!(src_items = nh40_get_num_items(src_node)))
+	if (!(src_items = node40_items(src_entity)))
 		return 0;
 
 	space = node40_space(dst_entity);
-	overhead = node40_overhead(dst_entity);
-	
-	end = node40_ih_at(src_node, src_items - 1);
 
+	end = node40_ih_at(src_node,
+			   src_items - 1);
+	
 	cur = (hint->control & SF_LEFT ?
 	       node40_ih_at(src_node, 0) : end);
 	
 	/*
-	  Estimating will be finished if src_items value will be exhausted of if
-	  insert point will be shifted into neighbour node.
+	  Estimating will be finished if @src_items value is exhausted or insert
+	  point is shifted out to neighbour node.
 	*/
 	flags = hint->control;
 	
 	while (!(hint->result & SF_MOVIP) && src_items > 0) {
+		uint32_t len;
 
 		if (!(flags & SF_MOVIP) && (flags & SF_RIGHT)) {
 			if (hint->pos.item >= src_items)
@@ -1536,7 +1533,7 @@ static errno_t node40_predict(object_entity_t *src_entity,
 		  We go out if there is no enough free space to shift one more
 		  whole item.
 		*/
-		if (space < len + overhead)
+		if (space < len + node40_overhead(dst_entity))
 			break;
 
 		if (flags & SF_UPTIP) {
@@ -1544,6 +1541,7 @@ static errno_t node40_predict(object_entity_t *src_entity,
 			/* Updating insert position */
 			if (flags & SF_LEFT) {
 				if (hint->pos.item == 0) {
+					pos_t pos;
 					uint32_t units;
 					item_entity_t item;
 
@@ -1620,11 +1618,10 @@ static errno_t node40_predict(object_entity_t *src_entity,
 		/* Updating some counters and shift hint */
 		hint->items++;
 		hint->bytes += len;
-
 		src_items--; dst_items++;
 		
-		space -= (len + overhead);
 		cur += (flags & SF_LEFT ? -1 : 1);
+		space -= (len + node40_overhead(dst_entity));
 	}
 
 	/*
