@@ -128,7 +128,7 @@ static char *direntry40_get_name(item_entity_t *item,
 	return buff;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /*
   Calculates entry length. This function is widely used in shift code and
@@ -246,7 +246,7 @@ static int direntry40_mergeable(item_entity_t *item1,
 	return (locality1 == locality2);
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /*
   Estimates how much bytes will be needed to prepare in node in odrer to make
@@ -1073,7 +1073,7 @@ static errno_t direntry40_maxposs_key(item_entity_t *item,
 	return 0;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Returns real maximal key in direntry item */
 static errno_t direntry40_utmost_key(item_entity_t *item, 
@@ -1202,7 +1202,7 @@ static reiser4_plugin_t direntry40_plugin = {
 			.desc = "Compound direntry for reiser4, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_ALONE	    
+#ifndef ENABLE_STAND_ALONE	    
 		.init		= direntry40_init,
 		.write		= direntry40_write,
 		.remove		= direntry40_remove,

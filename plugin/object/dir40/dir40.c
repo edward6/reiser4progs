@@ -9,7 +9,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 #  include <time.h>
 #  include <unistd.h>
 #endif
@@ -254,7 +254,7 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 				return LP_FAILED;
 			}
 
-#ifndef ENABLE_KCW
+#ifndef ENABLE_COLLISIONS_HANDLING
 			return LP_PRESENT;
 #else
 			/* Handling possible hash collision */
@@ -267,7 +267,7 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 				return LP_PRESENT;
 			}
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 			aal_exception_warn("Hash collision is detected between "
 					   "%s and %s. Sequentional search has "
 					   "been started.", entry->name, name);
@@ -361,7 +361,7 @@ static object_entity_t *dir40_open(void *tree, place_t *place) {
 	return NULL;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static char *dir40_empty_dir[2] = { ".", ".." };
 
@@ -688,7 +688,10 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	dir40_t *dir;
 	uint64_t size;
 	uint32_t atime;
+	uint64_t bytes;
+
 	key_entity_t *key;
+	reiser4_item_hint_t hint;
 	
 	aal_assert("umka-1922", entity != NULL);
 	aal_assert("umka-1923", entry != NULL);
@@ -710,11 +713,31 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	if ((res = obj40_stat(&dir->obj)))
 		return res;
 	
+	/* Updating size field */
 	size = obj40_get_size(&dir->obj);
 
 	if ((res = obj40_set_size(&dir->obj, size - 1)))
 		return res;
 
+	aal_memset(&hint, 0, sizeof(hint));
+
+	/* Updating bytes field */
+	bytes = obj40_get_bytes(&dir->obj);
+	
+	hint.count = 1;
+	hint.flags = HF_FORMATD;
+	hint.type_specific = entry;
+	hint.plugin = dir->body.item.plugin;
+	hint.key.plugin = dir->obj.key.plugin;
+
+	if ((res = plugin_call(hint.plugin->item_ops,
+			       estimate, NULL, &hint, 0, 1)))
+		return res;
+		
+	if ((res = obj40_set_bytes(&dir->obj, bytes + hint.len)))
+		return res;
+	
+	/* Updating atime and mtime fields */
 	atime = time(NULL);
 	
 	if ((res = obj40_set_atime(&dir->obj, atime)))
@@ -730,6 +753,7 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	errno_t res;
 	uint64_t size;
 	uint32_t atime;
+	uint64_t bytes;
 
 	dir40_t *dir;
 	place_t place;
@@ -776,6 +800,11 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	if ((res = obj40_set_size(&dir->obj, size + 1)))
 		return res;
 
+	bytes = obj40_get_bytes(&dir->obj);
+
+	if ((res = obj40_set_bytes(&dir->obj, bytes + hint.len)))
+		return res;
+	
 	atime = time(NULL);
 	
 	if ((res = obj40_set_atime(&dir->obj, atime)))
@@ -918,7 +947,7 @@ static reiser4_plugin_t dir40_plugin = {
 			.desc = "Compound directory for reiser4, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.create	      = dir40_create,
 		.layout       = dir40_layout,
 		.metadata     = dir40_metadata,

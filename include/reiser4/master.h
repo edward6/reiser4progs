@@ -14,7 +14,7 @@
 
 #include <reiser4/types.h>
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 #define SUPER(master) (&master->super)
 

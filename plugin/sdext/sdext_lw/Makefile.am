@@ -18,7 +18,7 @@ libsdext_lw_la_LDFLAGS		= @PLUGIN_LDFLAGS@
 libsdext_lw_la_CFLAGS           = @GENERIC_CFLAGS@
 endif
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 ALONE_LIBS                      = libsdext_lw-alone.la
 else
 ALONE_LIBS                      =
@@ -26,7 +26,7 @@ endif
 
 noinst_LTLIBRARIES   	        = $(STATIC_LIBS) $(ALONE_LIBS)
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 libsdext_lw_alone_la_SOURCES    = $(sdext_lw_sources)
 libsdext_lw_alone_la_CFLAGS     = @ALONE_CFLAGS@
 endif

@@ -4,7 +4,7 @@ libreiser4_sources	     = libreiser4.c filesystem.c format.c journal.c \
 			       alloc.c oid.c factory.c node.c tree.c key.c \
 			       object.c place.c master.c item.c profile.c print.c
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 ALONE_LIBS                   = libreiser4-alone.la
 else
 ALONE_LIBS                   =
@@ -42,7 +42,7 @@ libreiser4_static_la_LIBADD  = $(top_builddir)/libaal/libaal-static.la \
 libreiser4_static_la_SOURCES = $(libreiser4_sources)
 libreiser4_static_la_CFLAGS  = @GENERIC_CFLAGS@
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 
 libreiser4_alone_la_LIBADD   = $(top_builddir)/libaal/libaal-alone.la \
 			       $(top_builddir)/libaux/libaux-alone.la \

@@ -633,7 +633,7 @@ struct reiser4_key_ops {
 	void (*set_hash) (key_entity_t *, uint64_t);
 	uint64_t (*get_hash) (key_entity_t *);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	/* Check of key structure */
 	errno_t (*valid) (key_entity_t *);
     
@@ -648,7 +648,7 @@ typedef struct reiser4_key_ops reiser4_key_ops_t;
 struct reiser4_object_ops {
 	reiser4_plugin_header_t h;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	/* Creates new file with passed parent and object keys */
 	object_entity_t *(*create) (void *, object_entity_t *,
 				    reiser4_object_hint_t *,
@@ -732,7 +732,7 @@ typedef struct reiser4_object_ops reiser4_object_ops_t;
 struct reiser4_item_ops {
 	reiser4_plugin_header_t h;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	/* Prepares item body for working with it */
 	errno_t (*init) (item_entity_t *);
 
@@ -818,7 +818,7 @@ struct reiser4_item_ops {
 	/* Get the max key which could be stored in the item of this type */
 	errno_t (*maxposs_key) (item_entity_t *, key_entity_t *);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	
 	/* Get the max real key which is stored in the item */
 	errno_t (*utmost_key) (item_entity_t *, key_entity_t *);
@@ -837,7 +837,7 @@ typedef struct reiser4_item_ops reiser4_item_ops_t;
 struct reiser4_sdext_ops {
 	reiser4_plugin_header_t h;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	/* Initialize stat data extention data at passed pointer */
 	errno_t (*init) (body_t *, void *);
 
@@ -865,7 +865,7 @@ typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
 struct reiser4_node_ops {
 	reiser4_plugin_header_t h;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	/* Saves node onto device */
 	errno_t (*sync) (object_entity_t *);
 	
@@ -1018,7 +1018,7 @@ typedef struct reiser4_perm_ops reiser4_perm_ops_t;
 struct reiser4_format_ops {
 	reiser4_plugin_header_t h;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	/* 
 	   Called during filesystem creating. It forms format-specific super
 	   block, initializes plugins and calls their create method.
@@ -1114,7 +1114,7 @@ typedef struct reiser4_format_ops reiser4_format_ops_t;
 struct reiser4_oid_ops {
 	reiser4_plugin_header_t h;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	/* Creates oid allocator on passed area */
 	object_entity_t *(*create) (const void *, uint32_t);
 
@@ -1158,7 +1158,7 @@ struct reiser4_oid_ops {
 
 typedef struct reiser4_oid_ops reiser4_oid_ops_t;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 struct reiser4_alloc_ops {
 	reiser4_plugin_header_t h;
@@ -1277,7 +1277,7 @@ union reiser4_plugin {
 	reiser4_object_ops_t object_ops;
 	reiser4_format_ops_t format_ops;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	reiser4_alloc_ops_t alloc_ops;
 	reiser4_journal_ops_t journal_ops;
 #endif
@@ -1304,7 +1304,7 @@ typedef struct node_header node_header_t;
 
 struct tree_ops {
 		
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	/* Returns blocksize in passed tree */
 	uint32_t (*blocksize) (void *);
 	
@@ -1325,7 +1325,7 @@ struct tree_ops {
 	/* Initializes all item fields in passed place */
 	errno_t (*realize) (void *, place_t *);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	/* 
 	   Inserts item/unit in the tree by calling reiser4_tree_insert
 	   function, used by all object plugins (dir, file, etc)
@@ -1381,7 +1381,7 @@ struct reiser4_core {
   then calls it. In the case it is not implemented, abort handler will be called
 */
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 #define plugin_call(ops, method, args...) ({                    \
         if (!ops.method && ops.h.handle.abort)                  \
                ops.h.handle.abort("Method \""#method"\" isn't " \
@@ -1405,7 +1405,7 @@ struct reiser4_core {
   __plugin_init and __plugin_fini, which may be accepted durring plugin init by
   means of using dl* functions.
 */
-#if defined(ENABLE_ALONE) || defined(ENABLE_MONOLITHIC)
+#if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
 
 #define plugin_register(init, fini)			       \
     static reiser4_plugin_init_t __plugin_init		       \

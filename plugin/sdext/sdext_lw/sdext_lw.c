@@ -9,7 +9,7 @@
 #include "sdext_lw.h"
 #include <aux/aux.h>
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 #  include <sys/stat.h>
 #endif
 
@@ -58,7 +58,7 @@ static uint16_t sdext_lw_length(body_t *body) {
 	return sizeof(sdext_lw_t);
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static char sdext_lw_file_type(uint16_t mode) {
 	if (S_ISDIR(mode))
@@ -138,7 +138,7 @@ static reiser4_plugin_t sdext_lw_plugin = {
 		},
 		.open	 = sdext_lw_open,
 		
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.init	 = sdext_lw_init,
 		.print   = sdext_lw_print,
 		.check   = sdext_lw_check,

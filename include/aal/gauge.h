@@ -8,7 +8,7 @@
 #ifndef AAL_GAUGE_H
 #define AAL_GAUGE_H
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 #include <aal/types.h>
 

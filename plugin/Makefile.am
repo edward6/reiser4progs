@@ -1,6 +1,6 @@
 SUBDIRS 			= format journal alloc oid node key hash sdext item object
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 ALONE_LIBS                      = libreiser4-plugin-alone.la
 else
 ALONE_LIBS                      = 
@@ -57,7 +57,7 @@ libreiser4_plugin_la_LIBADD  	= format/format40/libformat40-static.la \
                                   $(monolithic_rupasov_hash_libs) $(monolithic_tea_hash_libs)
 endif
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 
 if ENABLE_R5_HASH
 alone_r5_hash_libs              = hash/r5_hash/libr5_hash-alone.la

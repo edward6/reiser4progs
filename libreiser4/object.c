@@ -219,7 +219,7 @@ reiser4_object_t *reiser4_object_open(
 	aal_assert("umka-789", name != NULL);
 
 	if (!fs->tree) {
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		aal_exception_error("Can't open object without "
 				    "the tree being initialized.");
 #endif
@@ -231,7 +231,7 @@ reiser4_object_t *reiser4_object_open(
     
 	object->fs = fs;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	aal_strncpy(object->name, name, sizeof(object->name));
 #endif
 
@@ -258,7 +258,7 @@ reiser4_object_t *reiser4_object_open(
 	return NULL;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* This function opens object by its @place */
 reiser4_object_t *reiser4_object_begin(

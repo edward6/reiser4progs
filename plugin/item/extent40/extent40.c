@@ -83,7 +83,7 @@ static int extent40_data(void) {
 	return 1;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static errno_t extent40_init(item_entity_t *item) {
 	aal_assert("umka-1669", item != NULL);
@@ -182,7 +182,7 @@ static errno_t extent40_maxposs_key(item_entity_t *item,
 	return 0;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Builds maximal real key in use for specified @item */
 static errno_t extent40_utmost_key(item_entity_t *item,
@@ -378,7 +378,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	return read;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Checks if two extent items are mergeable */
 static int extent40_mergeable(item_entity_t *item1,
@@ -763,7 +763,7 @@ static reiser4_plugin_t extent40_plugin = {
 			.desc = "Extent item for reiser4, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.init	       = extent40_init,
 		.write         = extent40_write,
 		.estimate      = extent40_estimate,
@@ -789,7 +789,7 @@ static reiser4_plugin_t extent40_plugin = {
 		.units	       = extent40_units,
 		.read          = extent40_read,
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.mergeable     = extent40_mergeable,
 #else
 		.mergeable     = NULL,

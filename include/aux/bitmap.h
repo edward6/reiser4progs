@@ -9,7 +9,7 @@
 #ifndef AUX_BITMAP_H
 #define AUX_BITMAP_H
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 #include <aal/aal.h>
 

@@ -11,7 +11,7 @@
 
 #include <aal/aal.h>
 
-#ifdef ENABLE_ALONE
+#ifdef ENABLE_STAND_ALONE
 
 /* 
   Memory and string working functions. They are full analog of standard ones.

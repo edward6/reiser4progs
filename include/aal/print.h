@@ -14,7 +14,7 @@
 
 #include <aal/types.h>
 
-#ifdef ENABLE_ALONE
+#ifdef ENABLE_STAND_ALONE
 
 extern int aal_vsnprintf(char *buff, uint32_t n, const char *format, 
 			 va_list arg_list);

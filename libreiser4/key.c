@@ -234,7 +234,7 @@ void reiser4_key_minimal(reiser4_key_t *key) {
 	aal_memcpy(key->body, entity->body, sizeof(key->body));
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 errno_t reiser4_key_print(reiser4_key_t *key, aal_stream_t *stream) {
 	aal_assert("vpf-189", key != NULL);

@@ -81,7 +81,7 @@ aal_block_t *aal_block_open(
 	return block;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Makes reread of specified block */
 errno_t aal_block_reopen(

@@ -9,7 +9,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 #  include <time.h>
 #  include <unistd.h>
 #endif
@@ -184,7 +184,7 @@ static object_entity_t *reg40_open(void *tree, place_t *place) {
 	return NULL;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Creating the file described by pased @hint */
 static object_entity_t *reg40_create(void *tree, object_entity_t *parent,
@@ -519,7 +519,7 @@ static reiser4_plugin_t reg40_plugin = {
 			.desc = "Regular file for reiser4, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.create	      = reg40_create,
 		.write	      = reg40_write,
 		.truncate     = reg40_truncate,

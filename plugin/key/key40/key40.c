@@ -340,7 +340,7 @@ static errno_t key40_build_short(key_entity_t *key,
 	return 0;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Simple validness check */
 static errno_t key40_valid(key_entity_t *key) {
@@ -413,7 +413,7 @@ static reiser4_plugin_t key40_plugin = {
 		.compare	= key40_compare,
 		.tall           = key40_tall,
 		
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.valid		= key40_valid,
 		.print		= key40_print,
 #endif

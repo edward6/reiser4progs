@@ -18,7 +18,7 @@ libstat40_la_LDFLAGS	    = @PLUGIN_LDFLAGS@
 libstat40_la_CFLAGS         = @GENERIC_CFLAGS@
 endif
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 ALONE_LIBS                  = libstat40-alone.la
 else
 ALONE_LIBS                  =
@@ -26,7 +26,7 @@ endif
 
 noinst_LTLIBRARIES          = $(STATIC_LIBS) $(ALONE_LIBS)
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 libstat40_alone_la_SOURCES  = $(stat40_sources)
 libstat40_alone_la_CFLAGS   = @ALONE_CFLAGS@
 endif

@@ -21,7 +21,7 @@ extern uint32_t aal_block_size(aal_block_t *block);
 
 extern blk_t aal_block_number(aal_block_t *block);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 extern errno_t aal_block_reopen(aal_block_t *block, 
 				aal_device_t *device,

@@ -18,7 +18,7 @@ libtail40_la_LDFLAGS	    = @PLUGIN_LDFLAGS@
 libtail40_la_CFLAGS         = @GENERIC_CFLAGS@
 endif
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 ALONE_LIBS                  = libtail40-alone.la
 else
 ALONE_LIBS                  =
@@ -26,7 +26,7 @@ endif
 
 noinst_LTLIBRARIES          = $(STATIC_LIBS) $(ALONE_LIBS)
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 libtail40_alone_la_SOURCES  = $(tail40_sources)
 libtail40_alone_la_CFLAGS   = @ALONE_CFLAGS@
 endif

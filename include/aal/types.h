@@ -31,7 +31,7 @@ typedef unsigned int            uint32_t;
 __extension__
 typedef unsigned long long int  uint64_t;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 #  include <stdarg.h>
 #else
 
@@ -134,7 +134,7 @@ typedef int (*foreach_func_t) (const void *, const void *);
 struct lru_ops {
 	int (*free) (void *);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	int (*sync) (void *);
 #endif
 
@@ -187,7 +187,7 @@ struct aal_device_ops;
 */
 struct aal_device {
 	
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	int flags;
 	
 	void *data;
@@ -288,7 +288,7 @@ typedef struct aal_exception aal_exception_t;
 
 typedef aal_exception_option_t (*aal_exception_handler_t) (aal_exception_t *ex);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 typedef struct aal_gauge aal_gauge_t;
 

@@ -6,7 +6,7 @@
   reiser4progs/COPYING.
 */
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE 1
@@ -49,7 +49,7 @@ static uint16_t sdext_unix_length(body_t *body) {
 	return sizeof(sdext_unix_t);
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static errno_t sdext_unix_init(body_t *body, 
 			       void *hint) 
@@ -133,7 +133,7 @@ static reiser4_plugin_t sdext_unix_plugin = {
 		},
 		.open	 = sdext_unix_open,
 		
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.init	 = sdext_unix_init,
 		.print   = sdext_unix_print,
 		.check   = sdext_unix_check,

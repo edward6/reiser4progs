@@ -10,14 +10,14 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 #  include <stdlib.h>
 #endif
 
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static void libreiser4_abort(char *message);
 reiser4_abort_t abort_func = libreiser4_abort;
@@ -29,7 +29,7 @@ reiser4_abort_t abort_func = libreiser4_abort;
 static void libreiser4_abort(char *message) {
 	aal_exception_fatal(message);
 	
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	exit(-1);
 #endif
 }
@@ -70,7 +70,7 @@ static reiser4_plugin_t *factory_nfind(
 	return libreiser4_factory_nfind(name);
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Handler for item insert requests from the all plugins */
 static errno_t tree_insert(
@@ -265,7 +265,7 @@ static errno_t tree_unlock(
 	return 0;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static uint32_t tree_blocksize(void *tree) {
 	aal_assert("umka-1220", tree != NULL);
@@ -305,7 +305,7 @@ reiser4_core_t core = {
 		/* Returns prev item from the passed place */
 		.prev	    = tree_prev,
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		/* Callback function for inserting items into the tree */
 		.insert	    = tree_insert,
 
@@ -365,7 +365,7 @@ errno_t libreiser4_init(void) {
 		return -EINVAL;
 	}
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	if (reiser4_print_init()) {
 		aal_exception_error("Can't initialize print factory");
 		goto error_free_factory;

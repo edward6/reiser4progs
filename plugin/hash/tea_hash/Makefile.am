@@ -16,7 +16,7 @@ libtea_hash_la_LDFLAGS	      = @PLUGIN_LDFLAGS@
 libtea_hash_la_CFLAGS         = @GENERIC_CFLAGS@
 endif
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 ALONE_LIBS                    = libtea_hash-alone.la
 else
 ALONE_LIBS                    =
@@ -24,7 +24,7 @@ endif
 
 noinst_LTLIBRARIES	      = $(STATIC_LIBS) $(ALONE_LIBS)
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 libtea_hash_alone_la_SOURCES  = $(tea_hash_sources)
 libtea_hash_alone_la_CFLAGS   = @ALONE_CFLAGS@
 endif

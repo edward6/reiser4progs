@@ -86,7 +86,7 @@ static object_entity_t *node40_init(aal_device_t *device,
 	return (object_entity_t *)node;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Opens node on passed device and block number */
 static errno_t node40_form(object_entity_t *entity,
@@ -334,7 +334,7 @@ static errno_t node40_item(item_entity_t *item,
 	return 0;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Returns node free space */
 static uint16_t node40_space(object_entity_t *entity) {
@@ -1104,7 +1104,7 @@ static lookup_t node40_lookup(object_entity_t *entity,
 	return res;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static errno_t node40_feel(object_entity_t *entity, pos_t *pos,
 			   uint32_t count, write_hint_t *hint)
@@ -1793,7 +1793,7 @@ static reiser4_plugin_t node40_plugin = {
 		.get_mstamp	 = node40_get_mstamp,
 		.get_fstamp      = node40_get_fstamp,
 	
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.form		 = node40_form,
 		.sync            = node40_sync,
 		.insert		 = node40_insert,

@@ -9,7 +9,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 #include "stat40.h"
 #include <repair/repair_plugin.h>

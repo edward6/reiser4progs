@@ -34,7 +34,7 @@ static uint16_t sdext_lt_length(body_t *body) {
 	return sizeof(sdext_lt_t);
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static errno_t sdext_lt_init(body_t *body, 
 			     void *hint) 
@@ -94,7 +94,7 @@ static reiser4_plugin_t sdext_lt_plugin = {
 		},
 		.open	 = sdext_lt_open,
 		
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.init	 = sdext_lt_init,
 		.print   = sdext_lt_print,
 		.check   = sdext_lt_check,

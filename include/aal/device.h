@@ -15,7 +15,7 @@ extern aal_device_t *aal_device_open(struct aal_device_ops *ops,
 				     uint32_t blocksize,
 				     int flags);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 extern errno_t aal_device_sync(aal_device_t *device);
 

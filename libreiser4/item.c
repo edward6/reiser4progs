@@ -34,7 +34,7 @@ uint32_t reiser4_item_units(reiser4_place_t *place) {
 	return 1;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /*
   We can estimate size for insertion and for pasting of hint->data (to be
@@ -250,7 +250,7 @@ errno_t reiser4_item_realize(reiser4_place_t *place) {
 	return reiser4_item_get_key(place, NULL);
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Updates item key in node and in place->item.key field */
 errno_t reiser4_item_set_key(reiser4_place_t *place,
@@ -305,7 +305,7 @@ errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 	return 0;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 bool_t reiser4_item_mergeable(reiser4_place_t *place1,
 			      reiser4_place_t *place2)

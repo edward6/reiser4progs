@@ -9,7 +9,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 #  include <time.h>
 #  include <unistd.h>
 #endif
@@ -84,7 +84,7 @@ static object_entity_t *sym40_open(void *tree, place_t *place) {
 	return NULL;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Creates symlink and returns initialized instance to the caller */
 static object_entity_t *sym40_create(void *tree, object_entity_t *parent,
@@ -481,7 +481,7 @@ static reiser4_plugin_t sym40_plugin = {
 			.desc = "Symlink for reiser4, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.create	      = sym40_create,
 		.write	      = sym40_write,
 		.layout       = sym40_layout,

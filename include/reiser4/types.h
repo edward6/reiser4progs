@@ -162,7 +162,7 @@ struct reiser4_node {
 	/* Usage counter to prevent releasing used nodes */
 	signed counter;
 	
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	
 	/* Some node flags (dirty, etc) */
 	uint32_t flags;
@@ -190,7 +190,7 @@ struct reiser4_object {
 	/* Referrence to the filesystem file opened on */
 	reiser4_fs_t *fs;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	
 	/* Full file name */
 	char name[256];
@@ -205,7 +205,7 @@ struct reiser4_object {
 
 typedef struct reiser4_object reiser4_object_t;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 enum reiser4_owner {
 	O_SKIPPED  = 1 << 0,
@@ -238,7 +238,7 @@ struct reiser4_format {
 
 typedef struct reiser4_format reiser4_format_t;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Journal structure */
 struct reiser4_journal {
@@ -291,7 +291,7 @@ typedef errno_t (*detach_func_t) (reiser4_tree_t *,
 				  reiser4_place_t *,
 				  reiser4_node_t *, void *);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Tree modification trap typedefs */
 typedef bool_t (*insert_func_t) (reiser4_tree_t *,
@@ -337,7 +337,7 @@ struct reiser4_tree {
 	*/
 	aal_lru_t *lru;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	/* Tree operation control flags */
 	uint32_t flags;
 #endif
@@ -345,7 +345,7 @@ struct reiser4_tree {
 	/* Tree modification traps */
 	struct {
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		/* These traps will be called durring insert an item/unit */
 		insert_func_t pre_insert;
 		insert_func_t post_insert;
@@ -361,7 +361,7 @@ struct reiser4_tree {
 		attach_func_t connect;
 		detach_func_t disconnect;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		/*
 		  This trap is called by any remove from the tree. It may be
 		  used for implementing an alternative tree packing in remove
@@ -377,7 +377,7 @@ struct reiser4_tree {
 	} traps;
 };
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 struct traverse_hint {
 
@@ -416,7 +416,7 @@ struct reiser4_fs {
 	/* Pointer to the disk-format instance */
 	reiser4_format_t *format;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	/* Pointer to the journal in use */
 	reiser4_journal_t *journal;
 
@@ -430,7 +430,7 @@ struct reiser4_fs {
 	/* Pointer to the storage tree wrapper object */
 	reiser4_tree_t *tree;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	
 	/* Pointer to the semantic tree wrapper object */
 	reiser4_object_t *root;

@@ -6,7 +6,7 @@
   reiser4progs/COPYING.
 */
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 #include <aux/bitmap.h>
 

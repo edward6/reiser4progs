@@ -14,7 +14,7 @@
 
 #include <reiser4/types.h>
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 extern errno_t reiser4_key_string(reiser4_key_t *key,
 				  char *buff);

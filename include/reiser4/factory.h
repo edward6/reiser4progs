@@ -30,7 +30,7 @@ extern errno_t libreiser4_plugin_fini(plugin_handle_t *handle);
 extern errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin);
 extern reiser4_plugin_t *libreiser4_plugin_init(plugin_handle_t *handle);
 
-#if !defined(ENABLE_ALONE) && !defined(ENABLE_MONOLITHIC)
+#if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 
 extern errno_t libreiser4_factory_load(char *name);
 extern void libreiser4_plugin_close(plugin_handle_t *handle);

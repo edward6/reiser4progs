@@ -32,7 +32,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 #include "direntry40.h"
 #include <aux/bitmap.h>

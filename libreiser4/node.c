@@ -32,7 +32,7 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 					 device, blk))) 
 		goto error_free_node;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	reiser4_node_mkclean(node);
 #endif
 	
@@ -51,7 +51,7 @@ reiser4_node_t *reiser4_node_init(aal_device_t *device,
 errno_t reiser4_node_load(reiser4_node_t *node) {
 	aal_assert("umka-2053", node != NULL);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	reiser4_node_mkclean(node);
 #endif
 	
@@ -62,7 +62,7 @@ errno_t reiser4_node_load(reiser4_node_t *node) {
 errno_t reiser4_node_unload(reiser4_node_t *node) {
 	aal_assert("umka-2054", node != NULL);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	if (reiser4_node_isdirty(node))
 		reiser4_node_sync(node);
 #endif
@@ -71,7 +71,7 @@ errno_t reiser4_node_unload(reiser4_node_t *node) {
 			   unload, node->entity);
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 errno_t reiser4_node_form(reiser4_node_t *node,
 			  uint8_t level)
@@ -161,7 +161,7 @@ reiser4_node_t *reiser4_node_open(
         if (reiser4_node_guess(node))
                 goto error_free_node;
      
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
         reiser4_node_mkclean(node);
 #endif
  
@@ -185,7 +185,7 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_assert("umka-824", node != NULL);
 	aal_assert("umka-903", node->entity != NULL);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	if (reiser4_node_isdirty(node))
 		reiser4_node_sync(node);
 #endif
@@ -434,7 +434,7 @@ errno_t reiser4_node_valid(
 			   valid, node->entity);
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 errno_t reiser4_node_write(reiser4_node_t *dst_node, pos_t *dst_pos,
 			   reiser4_node_t *src_node, pos_t *src_pos,

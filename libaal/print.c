@@ -11,7 +11,7 @@
 
 #include <aal/aal.h>
 
-#ifdef ENABLE_ALONE
+#ifdef ENABLE_STAND_ALONE
 
 enum format_modifier {
 	mod_empty,

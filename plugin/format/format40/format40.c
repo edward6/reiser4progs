@@ -11,7 +11,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 #  include <time.h>
 #  include <stdlib.h>
 #endif
@@ -60,7 +60,7 @@ static uint64_t format40_begin(object_entity_t *entity) {
 	return FORMAT40_OFFSET / format->device->blocksize;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static errno_t format40_skipped(object_entity_t *entity,
 				block_func_t func,
@@ -115,7 +115,7 @@ static errno_t format40_super_check(format40_super_t *super,
 	blk_t dev_len = aal_device_len(device);
     
 	if (get_sb_block_count(super) > dev_len) {
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		aal_exception_error("Superblock has an invalid block "
 				    "count %llu for device length %llu "
 				    "blocks.", get_sb_block_count(super),
@@ -129,7 +129,7 @@ static errno_t format40_super_check(format40_super_t *super,
 	if (get_sb_root_block(super) <= offset ||
 	    get_sb_root_block(super) >= dev_len)
 	{
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		aal_exception_error("Superblock has an invalid root block "
 				    "%llu for device length %llu blocks.",
 				    get_sb_root_block(super), dev_len);
@@ -201,7 +201,7 @@ static void format40_close(object_entity_t *entity) {
 	aal_free(entity);
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static errno_t callback_clobber_block(object_entity_t *entity, 
 				      blk_t blk, void *data) 
@@ -348,7 +348,7 @@ static rid_t format40_oid_pid(object_entity_t *entity) {
 	return OID_REISER40_ID;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static rid_t format40_journal_pid(object_entity_t *entity) {
 	return JOURNAL_REISER40_ID;
@@ -479,7 +479,7 @@ static reiser4_plugin_t format40_plugin = {
 		.valid		= format40_valid,
 		.device		= format40_device,
 		
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.check		= format40_check,
 		.sync		= format40_sync,
 		.create		= format40_create,
@@ -500,7 +500,7 @@ static reiser4_plugin_t format40_plugin = {
 		.get_height	= format40_get_height,
 		.get_stamp	= format40_get_stamp,
 		.get_policy	= format40_get_policy, 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.set_root	= format40_set_root,
 		.set_len	= format40_set_len,
 		.set_free	= format40_set_free,

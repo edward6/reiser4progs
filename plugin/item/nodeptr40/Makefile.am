@@ -19,7 +19,7 @@ libnodeptr40_la_LDFLAGS		= @PLUGIN_LDFLAGS@
 libnodeptr40_la_CFLAGS          = @GENERIC_CFLAGS@
 endif
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 ALONE_LIBS                      = libnodeptr40-alone.la
 else
 ALONE_LIBS                      =
@@ -27,7 +27,7 @@ endif
 
 noinst_LTLIBRARIES	        = $(STATIC_LIBS) $(ALONE_LIBS)
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 libnodeptr40_alone_la_SOURCES   = $(nodeptr40_sources)
 libnodeptr40_alone_la_CFLAGS    = @ALONE_CFLAGS@
 endif

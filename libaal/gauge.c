@@ -25,7 +25,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 #include <stdio.h>
 #include <aal/aal.h>

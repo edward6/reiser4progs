@@ -128,7 +128,7 @@ static int stat40_data(void) {
 	return 1;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Prepares item area */
 static errno_t stat40_init(item_entity_t *item) {
@@ -351,7 +351,7 @@ static int stat40_sdext_present(item_entity_t *item,
 	return hint.present;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Callback for counting the number of stat data extentions in use */
 static errno_t callback_count_ext(sdext_entity_t *sdext, uint16_t extmask, 
@@ -428,7 +428,7 @@ static reiser4_plugin_t stat40_plugin = {
 			.desc = "Stat data item for reiser4, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.estimate	= stat40_estimate,
 		.write		= stat40_write,
 		.init		= stat40_init,

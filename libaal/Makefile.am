@@ -4,7 +4,7 @@ libaal_sources  	 = device.c file.c exception.c list.c malloc.c \
 			   print.c string.c math.c debug.c bitops.c \
 			   gauge.c block.c ui.c stream.c lru.c
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 ALONE_LIBS               = libaal-alone.la 
 else
 ALONE_LIBS               = 
@@ -24,7 +24,7 @@ libaal_static_la_SOURCES = $(libaal_sources)
 
 libaal_static_la_CFLAGS  = @GENERIC_CFLAGS@
 
-if ENABLE_ALONE
+if ENABLE_STAND_ALONE
 libaal_alone_la_SOURCES  = $(libaal_sources)
 libaal_alone_la_CFLAGS   = @ALONE_CFLAGS@
 endif

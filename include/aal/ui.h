@@ -8,7 +8,7 @@
 #ifndef AAL_UI_H
 #define AAL_UI_H
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 #include <aal/types.h>
 

@@ -34,7 +34,7 @@ reiser4_oid_t *reiser4_oid_open(
 	oid->fs->oid = oid;
 	
 	if ((pid = reiser4_format_oid_pid(fs->format)) == INVAL_PID) {
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		aal_exception_error("Invalid oid allocator plugin id "
 				    "has been detected.");
 #endif
@@ -81,7 +81,7 @@ void reiser4_oid_close(
 	aal_free(oid);
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Creates oid allocator in specified area */
 reiser4_oid_t *reiser4_oid_create(

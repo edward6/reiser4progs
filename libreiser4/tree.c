@@ -11,7 +11,7 @@
 
 #include <reiser4/reiser4.h>
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static inline errno_t callback_tree_pack(reiser4_tree_t *tree,
 					 reiser4_place_t *place,
@@ -34,7 +34,7 @@ static int callback_node_free(void *data) {
 	return reiser4_tree_unload(node->tree, node) == 0;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static int callback_node_sync(void *data) {
 	reiser4_node_t *node = (reiser4_node_t *)data;
@@ -61,7 +61,7 @@ static void callback_set_prev(void *data, aal_list_t *prev) {
 		
 static lru_ops_t lru_ops = {
 	.free      = callback_node_free,
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	.sync      = callback_node_sync,
 #endif
 	.get_next  = callback_get_next,
@@ -92,7 +92,7 @@ static errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	return 0;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Assignes passed @node as new root */
 static errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
@@ -255,7 +255,7 @@ errno_t reiser4_tree_disconnect(
 		return 0;
 	}
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	reiser4_node_unlock(parent);
 #endif
 	
@@ -474,7 +474,7 @@ reiser4_node_t *reiser4_tree_right(reiser4_tree_t *tree,
 	return node->right;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Requests block allocator for new block and creates empty node in it */
 reiser4_node_t *reiser4_tree_alloc(
@@ -632,7 +632,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	if (!(tree->lru = aal_lru_create(&lru_ops)))
 		goto error_free_tree;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 	reiser4_tree_pack_on(tree);
 	tree->traps.pack = callback_tree_pack;
 #endif
@@ -644,7 +644,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	return NULL;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Saves passed @nodes and its children onto device */
 static errno_t reiser4_tree_flush(reiser4_tree_t *tree,
@@ -847,7 +847,7 @@ lookup_t reiser4_tree_lookup(
 	return LP_ABSENT;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /*
   Returns TRUE if passed @tree has minimal possible height nd thus cannot be

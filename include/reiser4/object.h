@@ -37,7 +37,7 @@ extern void reiser4_object_close(reiser4_object_t *object);
 extern errno_t reiser4_object_stat(reiser4_object_t *object);
 extern uint64_t reiser4_object_size(reiser4_object_t *object);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 extern reiser4_object_t *reiser4_object_begin(reiser4_fs_t *fs,
 					      reiser4_place_t *place);

@@ -60,7 +60,7 @@ static int tail40_data(void) {
 	return 1;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Rewrites tail from passed @pos by data specifed by hint */
 static int32_t tail40_write(item_entity_t *item, void *buff,
@@ -173,7 +173,7 @@ static errno_t tail40_maxposs_key(item_entity_t *item,
 	return 0;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static errno_t tail40_utmost_key(item_entity_t *item,
 				 key_entity_t *key) 
@@ -282,7 +282,7 @@ static int tail40_mergeable(item_entity_t *item1,
 	return 1;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Estimates how many bytes may be shifted into neighbour item */
 static errno_t tail40_predict(item_entity_t *src_item,
@@ -413,7 +413,7 @@ static reiser4_plugin_t tail40_plugin = {
 			.desc = "Tail item for reiser4, ver. " VERSION,
 		},
 		
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.init	        = tail40_init,
 		.write	        = tail40_write,
 		.remove	        = tail40_remove,
@@ -438,7 +438,7 @@ static reiser4_plugin_t tail40_plugin = {
 		.read	        = tail40_read,
 		.data		= tail40_data,
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.mergeable      = tail40_mergeable,
 #else
 		.mergeable      = NULL,

@@ -24,7 +24,7 @@ errno_t aal_lru_adjust(aal_lru_t *lru) {
 		data = walk->data;
 		walk = walk->prev;
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		if (lru->ops->sync) {
 			if (!lru->ops->sync(data))
 				continue;

@@ -19,7 +19,7 @@ extern void reiser4_fs_close(reiser4_fs_t *fs);
 extern reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 				     reiser4_profile_t *profile);
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 extern reiser4_owner_t reiser4_fs_belongs(reiser4_fs_t *fs,
 					  blk_t blk);

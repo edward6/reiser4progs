@@ -61,7 +61,7 @@ static errno_t nodeptr40_layout(item_entity_t *item,
 	return 0;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 /* Writes of the specified nodeptr into passed @item*/
 static int32_t nodeptr40_write(item_entity_t *item, void *buff,
@@ -152,7 +152,7 @@ static reiser4_plugin_t nodeptr40_plugin = {
 			.label = "nodeptr40",
 			.desc = "Node pointer item for reiser4, ver. " VERSION,
 		},
-#ifndef ENABLE_ALONE	    
+#ifndef ENABLE_STAND_ALONE	    
 		.init		= nodeptr40_init,
 		.write          = nodeptr40_write,
 		.estimate	= nodeptr40_estimate,

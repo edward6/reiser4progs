@@ -8,7 +8,7 @@
 #ifndef AAL_STREAM_H
 #define AAL_STREAM_H
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 #include <aal/types.h>
 

@@ -30,7 +30,7 @@ static uint16_t sdext_symlink_length(body_t *body) {
 	return aal_strlen((char *)body) + 1;
 }
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 static errno_t sdext_symlink_init(body_t *body, 
 				  void *hint)
@@ -74,7 +74,7 @@ static reiser4_plugin_t sdext_symlink_plugin = {
 		},
 		.open	 = sdext_symlink_open,
 		
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 		.init	 = sdext_symlink_init,
 		.print   = sdext_symlink_print,
 		.check   = sdext_symlink_check,

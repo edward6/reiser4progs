@@ -10,7 +10,7 @@
 #  include <config.h>
 #endif
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 #if defined(HAVE_PRINTF_H) && defined (HAVE_REGISTER_PRINTF_FUNCTION)
 
@@ -54,7 +54,7 @@ static int callback_print_key(FILE *file, const struct printf_info *info,
 
 #endif
 
-#ifndef ENABLE_ALONE
+#ifndef ENABLE_STAND_ALONE
 
 errno_t reiser4_print_init(void) {
 	
