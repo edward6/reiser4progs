@@ -28,7 +28,7 @@ static errno_t callback_check_ext(sdext_entity_t *sdext, uint16_t extmask,
 	
 	return sdext->plug->o.sdext_ops->check_struct ? 
 		sdext->plug->o.sdext_ops->check_struct(sdext, hint->mode) : 
-		REPAIR_OK;
+		RE_OK;
 }
 
 errno_t stat40_check_struct(place_t *place, uint8_t mode) {
@@ -48,7 +48,7 @@ errno_t stat40_check_struct(place_t *place, uint8_t mode) {
 				    "valid stat data.", place->con.blk, 
 				    place->pos.item);
 		
-		return REPAIR_FATAL;
+		return RE_FATAL;
 	}
 	
 	/* Hint is set up by callback, so the last extention lenght has not been 
@@ -63,15 +63,15 @@ errno_t stat40_check_struct(place_t *place, uint8_t mode) {
 				    "length (%u). Should be (%u). %s", 
 				    place->con.blk, place->pos.item, 
 				    place->len, hint.sdext.offset, 
-				    mode == REPAIR_REBUILD ? "Fixed." : "");
+				    mode == RM_BUILD ? "Fixed." : "");
 		
-		if (mode == REPAIR_REBUILD)
+		if (mode == RM_BUILD)
 			place->len = hint.sdext.offset;
 		
-		return mode == REPAIR_REBUILD ? REPAIR_FIXED : REPAIR_FATAL;
+		return mode == RM_BUILD ? RE_FIXED : RE_FATAL;
 	}
 	
-	return REPAIR_OK;
+	return RE_OK;
 }
 
 errno_t stat40_copy(place_t *dst, uint32_t dst_pos, 

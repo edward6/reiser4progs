@@ -69,15 +69,15 @@ static void fsck_print_usage(char *name) {
 \nWill check consistency of the filesystem on (%s).\n"
 
 static errno_t fsck_ask_confirmation(fsck_parse_t *data, char *host_name) {
-    if (data->mode == REPAIR_CHECK) {
+    if (data->mode == RM_CHECK) {
 	fprintf(stderr, CHECK_WARNING, host_name);
-    } else if (data->mode == REPAIR_FIX) {
+    } else if (data->mode == RM_FIX) {
 	fprintf(stderr, CHECK_WARNING, host_name);
 	fprintf(stderr, "Will fix corruptions which can be fixed without "
 	    "rebuilding the tree.\n");
-    } else if (data->mode == REPAIR_REBUILD) {
+    } else if (data->mode == RM_BUILD) {
 	fprintf(stderr, REBUILD_WARNING, host_name);	
-    } else if (data->mode == REPAIR_ROLLBACK) {
+    } else if (data->mode == RM_BACK) {
 	fprintf(stderr, "Will rollback all data saved in (%s) into (%s).\n", 
 	    "", host_name);
     }
@@ -106,15 +106,15 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
     FILE *stream;
     static int flag;
     char override[4096];
-    static int mode = REPAIR_CHECK;
+    static int mode = RM_CHECK;
 
     static struct option long_options[] = {
 	/* Fsck modes */
-	{"check", no_argument, &mode, REPAIR_CHECK},
-        {"fixable", no_argument, &mode, REPAIR_FIX},
-        {"rebuild", no_argument, &mode, REPAIR_REBUILD},
+	{"check", no_argument, &mode, RM_CHECK},
+        {"fixable", no_argument, &mode, RM_FIX},
+        {"rebuild", no_argument, &mode, RM_BUILD},
 	/* Fsck hidden modes. */
-	{"rollback-fsck-changes", no_argument, &mode, REPAIR_ROLLBACK},
+	{"rollback-fsck-changes", no_argument, &mode, RM_BACK},
 	/* Fsck options */
 	{"logfile", required_argument, 0, 'l'},
 	{"version", no_argument, NULL, 'V'},

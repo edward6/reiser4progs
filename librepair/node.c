@@ -43,7 +43,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 	pos_t *pos = &place.pos;
 	uint32_t count;
 	int32_t len;
-	errno_t ret, res = REPAIR_OK;
+	errno_t ret, res = RE_OK;
 	
 	aal_assert("vpf-229", node != NULL);
 	aal_assert("vpf-230", node->entity != NULL);
@@ -59,10 +59,10 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		if (reiser4_place_fetch(&place)) {
 			aal_exception_error("Node (%llu): Failed to open the "
 					    "item (%u). %s", node->number, 
-					    pos->item, mode == REPAIR_REBUILD ? 
+					    pos->item, mode == RM_BUILD ? 
 					    "Removed." : "");
 			
-			if (mode == REPAIR_REBUILD) {
+			if (mode == RM_BUILD) {
 				if ((ret = reiser4_node_remove(node, pos, 1))) {
 					aal_exception_bug("Node (%llu): Failed to "
 							  "delete the item (%d).", 
@@ -72,9 +72,9 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 				
 				pos->item--;
 				count = reiser4_node_items(node);
-				res |= REPAIR_FIXED;
+				res |= RE_FIXED;
 			} else {
-				res |= REPAIR_FATAL;
+				res |= RE_FATAL;
 			}
 			
 			continue;
@@ -92,7 +92,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 					    place.plug->label);
 			
 			/* FIXME-VITALY: smth should be done here later. */
-			res |= REPAIR_FATAL;
+			res |= RE_FATAL;
 		}
 		
 		/* Check the item structure. */
@@ -101,11 +101,11 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		
 		res |= ret;
 		
-		if (res & REPAIR_REMOVED) {
+		if (res & RE_REMOVED) {
 			pos->item--;
 			count = reiser4_node_items(node);
-			res &= ~REPAIR_REMOVED;
-			res |= REPAIR_FIXED;
+			res &= ~RE_REMOVED;
+			res |= RE_FIXED;
 		}
 	}
 	
@@ -227,7 +227,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 		aal_exception_error("Node (%llu): The first key %k is not "
 				    "equal to the left delimiting key %k.",
 				    node->number, &place.key, &d_key);
-		return REPAIR_FATAL;
+		return RE_FATAL;
 	} else if (res < 0) {
 		/* It is legal to have the left key in the node much then 
 		   its left delimiting key - due to removing some items 
@@ -240,11 +240,11 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 					    "%k in the node. %s", node->number,
 					    &place.key, node->p.node->number,
 					    place.pos.item, place.pos.unit, 
-					    &d_key, mode == REPAIR_REBUILD ? 
+					    &d_key, mode == RM_BUILD ? 
 					    "Left delimiting key is fixed." : 
 					    "");
 			
-			if (mode == REPAIR_REBUILD) {
+			if (mode == RM_BUILD) {
 				res = repair_node_ld_key_update(node, &d_key);
 				if (res)
 					return res;
@@ -343,20 +343,20 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 						    "keys.", node->number, 
 						    pos->item - 1, pos->item);
 				
-				return REPAIR_FATAL;
+				return RE_FATAL;
 			}
 		}
 		
 		prev_key = key;
 	}
 	
-	return REPAIR_OK;
+	return RE_OK;
 }
 
 /*  Checks the node content.
     Returns values according to repair_error_codes_t. */
 errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
-	errno_t res = REPAIR_OK;
+	errno_t res = RE_OK;
 	
 	aal_assert("vpf-494", node != NULL);
 	aal_assert("vpf-193", node->entity != NULL);    
@@ -378,9 +378,9 @@ errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
 	if (repair_error_fatal(res))
 		return res;    
 	
-	if (res & REPAIR_FIXED) {
+	if (res & RE_FIXED) {
 		reiser4_node_mkdirty(node);
-		res &= ~REPAIR_FIXED;
+		res &= ~RE_FIXED;
 	}
 	
 	return res;

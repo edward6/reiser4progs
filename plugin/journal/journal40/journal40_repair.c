@@ -505,10 +505,10 @@ errno_t journal40_check_struct(object_entity_t *entity,
 		set_jh_last_commited((journal40_header_t *)journal->header->data, 
 				     data.cur_txh);
 		
-		return REPAIR_FIXED;
+		return RE_FIXED;
 	}
 	
-	return REPAIR_OK;
+	return RE_OK;
 }
 
 #endif

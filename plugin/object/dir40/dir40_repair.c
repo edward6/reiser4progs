@@ -16,12 +16,27 @@ extern reiser4_plug_t dir40_plug;
 extern lookup_t dir40_lookup(object_entity_t *entity, char *name, 
 			     entry_hint_t *entry);
 
-static errno_t callback_mode(uint16_t mode) {
-	return S_ISDIR(mode) ? 0 : -EINVAL;
-}
-
-static errno_t callback_type(uint16_t type) {
-	return type == KEY_FILENAME_TYPE ? 0 : -EINVAL;
+/* Check SD extentions and that mode in LW extention is REGFILE. */
+static errno_t callback_sd(place_t *sd) {
+	sdext_lw_hint_t lw_hint;
+	uint64_t mask, extmask;
+	errno_t res;
+	
+	/*  SD may contain LW and UNIX extentions only. 
+	    FIXME-VITALY: tail policy is not supported yet. */
+	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
+	
+	if ((extmask = obj40_extmask(sd)) == MAX_UINT64)
+		return -EINVAL;
+	
+	if (mask != extmask)
+		return RE_FATAL;
+	
+	/* Check the mode in the LW extention. */
+	if ((res = obj40_read_ext(sd, SDEXT_LW_ID, &lw_hint)) < 0)
+		return res;
+	
+	return S_ISDIR(lw_hint.mode) ? 0 : RE_FATAL;
 }
 
 /* Build the key of the '.'. */
@@ -44,8 +59,8 @@ object_entity_t *dir40_realize(object_info_t *info) {
 	dir40_t *dir;
 	errno_t res;
 	
-	if ((res = obj40_realize(info, callback_mode, callback_type, 
-				 callback_body)))
+	if ((res = obj40_realize(info, callback_sd, callback_body,
+				 1 << KEY_FILENAME_TYPE)))
 		return res < 0 ? INVAL_PTR : NULL;
 	
 	if (!(dir = aal_calloc(sizeof(*dir), 0)))
@@ -81,7 +96,7 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 			       &entry.object, STAT_KEY(&pdir->obj)))
 			break;
 
-		return REPAIR_FATAL;
+		return RE_FATAL;
 	case ABSENT:
 		
 		/* Adding ".." to the @object pointing to the @parent. */
@@ -96,9 +111,9 @@ errno_t dir40_check_attach(object_entity_t *object, object_entity_t *parent,
 	}
 
 	/* ".." matches the parent. Now do parent->nlink++ for REBUILD mode. */
-	return mode == REPAIR_REBUILD ? 
+	return mode == RM_BUILD ? 
 	       plug_call(parent->plug->o.object_ops, link, parent) :
-	       REPAIR_OK;
+	       RE_OK;
 }
 
 #endif

@@ -11,10 +11,15 @@
 
 #include "sym40.h"
 
+extern reiser4_plug_t sym40_plug;
+
 extern object_entity_t *sym40_open(object_info_t *info);
 
 object_entity_t *sym40_realize(object_info_t *info) {
+	sym40_t *sym;
 	sdext_lw_hint_t lw_hint;
+	uint64_t mask, extmask;
+	errno_t res;
 	
 	aal_assert("vpf-1124", info != NULL);
 	
@@ -27,14 +32,27 @@ object_entity_t *sym40_realize(object_info_t *info) {
 	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
 	
-	/* This is a SD item. It must be the sym SD. */
-	if (obj40_read_lw(&info->start, &lw_hint))
+	mask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID | 1 << SDEXT_SYMLINK_ID);
+	
+	if ((extmask = obj40_extmask(&info->start)) == MAX_UINT64)
+		return INVAL_PTR;
+	
+	if (extmask != mask)
+		return INVAL_PTR;
+	
+	/* Check the mode in the LW extention. */
+	if ((res = obj40_read_ext(&info->start, SDEXT_LW_ID, &lw_hint)) < 0)
 		return INVAL_PTR;
 	
 	if (!S_ISLNK(lw_hint.mode))
-		return NULL;
+	    return INVAL_PTR;
 	
-	return sym40_open(info);
+	if (!(sym = aal_calloc(sizeof(*sym), 0)))
+		return INVAL_PTR;
+	
+	obj40_init(&sym->obj, &sym40_plug, NULL, core, info->tree);
+
+	return (object_entity_t *)sym;
 }
 
 #endif

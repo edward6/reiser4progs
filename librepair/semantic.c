@@ -44,9 +44,9 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 					      sem->repair->mode, NULL)) < 0)
 		return res;
 	
-	if (res & REPAIR_FATAL)
+	if (res & RE_FATAL)
 		sem->repair->fatal++;
-	else if (res & REPAIR_FIXABLE)
+	else if (res & RE_FIXABLE)
 		sem->repair->fixable++;
 	
 	return res;
@@ -70,13 +70,13 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 					      sem->repair->mode)) < 0)
 		return res;
 	
-	if (res & REPAIR_FATAL) {
+	if (res & RE_FATAL) {
 		sem->repair->fatal++;
 		return res;
-	} else if (res & REPAIR_FIXABLE)
+	} else if (res & RE_FIXABLE)
 		sem->repair->fixable++;
 	
-	if (sem->repair->mode != REPAIR_REBUILD)
+	if (sem->repair->mode != RM_BUILD)
 		return res;
 	
 	/* Increment the link. */
@@ -254,7 +254,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 {
 	repair_semantic_t *sem = (repair_semantic_t *)data;
 	reiser4_object_t *object, *upper = NULL;
-	errno_t res = REPAIR_OK;
+	errno_t res = RE_OK;
 	reiser4_place_t *start;
 	bool_t flag;
 	
@@ -272,7 +272,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		return INVAL_PTR;
 	
 	if (object == NULL) {
-		if (sem->repair->mode == REPAIR_REBUILD)
+		if (sem->repair->mode == RM_BUILD)
 			goto error_rem_entry;
 		
 		sem->repair->fixable++;
@@ -317,7 +317,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	/* Check the attach with @parent. */
 	if ((res = repair_semantic_check_attach(sem, parent, object)) < 0)
 		goto error_close_object;
-	else if (res & REPAIR_FATAL && sem->repair->mode == REPAIR_REBUILD) {
+	else if (res & RE_FATAL && sem->repair->mode == RM_BUILD) {
 		sem->repair->fatal--;
 		goto error_rem_entry;
 	}

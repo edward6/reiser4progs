@@ -28,25 +28,25 @@ errno_t nodeptr40_check_layout(place_t *place, region_func_t region_func,
 	res = region_func(place, blk, 1, data);
 	
 	if (res > 0) {
-		if (mode == REPAIR_REBUILD) {
+		if (mode == RM_BUILD) {
 			aal_exception_error("Node (%llu), item (%u): a pointer to "
 					    "the region [%llu..%llu] is removed.", 
 					    place->con.blk, blk, blk);
 			place->len = 0;
-			return REPAIR_FIXED;
+			return RE_FIXED;
 		}
 		
-		return REPAIR_FATAL;
+		return RE_FATAL;
 	} else if (res < 0) {
 		return res;
 	}
 	
-	return REPAIR_OK;
+	return RE_OK;
 }
 
 errno_t nodeptr40_check_struct(place_t *place, uint8_t mode) {
 	aal_assert("vpf-751", place != NULL);
-	return place->len != sizeof(nodeptr40_t) ? REPAIR_FATAL : REPAIR_OK;
+	return place->len != sizeof(nodeptr40_t) ? RE_FATAL : RE_OK;
 }
 
 #endif

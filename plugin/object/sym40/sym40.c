@@ -346,7 +346,7 @@ static reiser4_object_ops_t sym40_ops = {
 	.follow         = sym40_follow
 };
 
-static reiser4_plug_t sym40_plug = {
+reiser4_plug_t sym40_plug = {
 	.cl    = CLASS_INIT,
 	.id    = {OBJECT_SYMLINK40_ID, SYMLINK_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE

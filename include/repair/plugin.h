@@ -8,42 +8,43 @@
 
 #include <aal/types.h>
 
-typedef enum repair_flag {
-	REPAIR_CHECK    = 1,
-	REPAIR_FIX	    = 2,
-	REPAIR_REBUILD  = 3,
-	REPAIR_ROLLBACK = 4
-} repair_flag_t;
+typedef enum repair_mode {
+	RM_CHECK	= 1,
+	RM_FIX		= 2,
+	RM_BUILD	= 3,
+	RM_BACK		= 4,
+	RM_LAST		= 5
+} repair_mode_t;
 
 typedef enum repair_error {
 	/* To make repair_error_t signed. */
-	REPAIR_BUG		= (-1),
+	RE_BUG		= (-1),
 	/* No error were detected. */
-	REPAIR_OK		= (0),
+	RE_OK		= (0),
 	/* When item gets removed from the node, to correct position in the 
 	   loop correctly. */
-	REPAIR_REMOVED	= (1 << 0),
+	RE_REMOVED	= (1 << 0),
 	/* All errors were fixed. */
-	REPAIR_FIXED	= (1 << 1),
+	RE_FIXED	= (1 << 1),
 	/* Fixable errors were detected. */
-	REPAIR_FIXABLE	= (1 << 2),
+	RE_FIXABLE	= (1 << 2),
 	/* Fatal errors were detected. */
-	REPAIR_FATAL	= (1 << 3),
+	RE_FATAL	= (1 << 3),
 	/* For expansibility. */
-	REPAIR_ERROR_LAST	= (1 << 4)
+	RE_LAST		= (1 << 4)
 } repair_error_t;
 
-#define repair_error_exists(result)  ((result > REPAIR_FIXED) || (result < 0))
-#define repair_error_fatal(result)   ((result >= REPAIR_FATAL) || (result < 0))
+#define repair_error_exists(result)  ((result > RE_FIXED) || (result < 0))
+#define repair_error_fatal(result)   ((result >= RE_FATAL) || (result < 0))
 
-#define repair_error_check(result, mode)			\
-({								\
-	aal_assert("vpf-785", (mode != REPAIR_CHECK) ||		\
-			      !(res & REPAIR_FIXED));		\
-	aal_assert("vpf-786", (mode != REPAIR_FIX) ||		\
-			      !(res & REPAIR_FIXABLE));		\
-	aal_assert("vpf-787", (mode != REPAIR_REBUILD) ||	\
-			      !(res & REPAIR_FIXABLE));		\
+#define repair_error_check(result, mode)		\
+({							\
+	aal_assert("vpf-785", (mode != RM_CHECK) ||	\
+			      !(res & RE_FIXED));	\
+	aal_assert("vpf-786", (mode != RM_FIX) ||	\
+			      !(res & RE_FIXABLE));	\
+	aal_assert("vpf-787", (mode != RM_BUILD) ||	\
+			      !(res & RE_FIXABLE));	\
 })
 
 #define LOST_PREFIX "lost_name_"

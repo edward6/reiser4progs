@@ -78,13 +78,13 @@ static errno_t callback_item_check_layout(reiser4_place_t *place, void *data) {
 	if (res < 0) 
 		return res;
 	
-	if (res & REPAIR_FATAL) 
+	if (res & RE_FATAL) 
 		ts->repair->fatal++;
-	else if (res & REPAIR_FIXABLE)
+	else if (res & RE_FIXABLE)
 		ts->repair->fixable++;
-	else if (res & REPAIR_FIXED)
+	else if (res & RE_FIXED)
 		reiser4_node_mkdirty(place->node);
-	else if (res & REPAIR_REMOVED) {
+	else if (res & RE_REMOVED) {
 		/* FIXME: Empty nodes may be left in the tree. Cleanup the 
 		   tree afterwords. */
 		reiser4_node_mkdirty(place->node);

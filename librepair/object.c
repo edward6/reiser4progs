@@ -18,11 +18,11 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	if ((res = plug_call(object->entity->plug->o.object_ops, 
 			     check_struct, object->entity, &object->info,
-			     place_func, mode, data)) < 0)
+			     place_func, data, mode)) < 0)
 	
 	repair_error_check(res, mode);
-	aal_assert("vpf-1195", mode != REPAIR_REBUILD ||
-			      !(res & REPAIR_FATAL));
+	aal_assert("vpf-1195", mode != RM_BUILD ||
+			      !(res & RE_FATAL));
 	
 	reiser4_key_assign(&object->info.object, &object->info.start.key);
 	reiser4_key_string(&object->info.object, object->name);

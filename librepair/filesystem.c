@@ -14,7 +14,7 @@ errno_t repair_fs_open(repair_data_t *repair,
 		       reiser4_profile_t *profile)
 {
 	void *oid_area_start, *oid_area_end;
-	errno_t error = REPAIR_OK;
+	errno_t error = RE_OK;
 
 	aal_assert("vpf-851", repair != NULL);
 	aal_assert("vpf-159", host_device != NULL);
@@ -102,9 +102,9 @@ errno_t repair_fs_open(repair_data_t *repair,
 	repair->fs = NULL;
 
 	if (error > 0) {
-		if (error & REPAIR_FATAL)
+		if (error & RE_FATAL)
 			repair->fatal++;
-		else if (error & REPAIR_FIXABLE)
+		else if (error & RE_FIXABLE)
 			repair->fixable++;
 
 		error = 0;

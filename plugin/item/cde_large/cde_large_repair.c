@@ -195,9 +195,9 @@ static uint8_t cde_large_short_entry_detect(place_t *place,
 				    "offset (%u) is wrong, should be (%u). %s", 
 				    place->con.blk, place->pos.item, start_pos, 
 				    OFFSET(de, start_pos), limit + offset, 
-				    mode == REPAIR_REBUILD ? "Fixed." : "");
+				    mode == RM_BUILD ? "Fixed." : "");
 		
-		if (mode == REPAIR_REBUILD)
+		if (mode == RM_BUILD)
 			en_set_offset(&de->entry[start_pos], limit + offset);
 	}
 	
@@ -244,9 +244,9 @@ static uint8_t cde_large_long_entry_detect(place_t *place,
 					    "%s", place->con.blk, place->pos.item, 
 					    start_pos + count, 
 					    OFFSET(de, start_pos+count), l_limit, 
-					    mode == REPAIR_REBUILD ? "Fixed." : "");
+					    mode == RM_BUILD ? "Fixed." : "");
 			
-			if (mode == REPAIR_REBUILD)
+			if (mode == RM_BUILD)
 				en_set_offset(&de->entry[start_pos + count], 
 						l_limit);
 		}
@@ -295,7 +295,7 @@ static errno_t cde_large_offsets_range_check(place_t *place,
 {
 	cde_large_t *de = cde_large_body(place);
 	uint32_t i, j, to_compare;
-	errno_t res = REPAIR_OK;
+	errno_t res = RE_OK;
 	
 	aal_assert("vpf-757", flags != NULL);
 	
@@ -354,10 +354,10 @@ static errno_t cde_large_offsets_range_check(place_t *place,
 					   some offsets have been recovered, 
 					   set result properly. */
 					if (i - j > 1) {
-						if (mode == REPAIR_REBUILD)
-							res |= REPAIR_FIXED;
+						if (mode == RM_BUILD)
+							res |= RE_FIXED;
 						else
-							res |= REPAIR_FATAL;
+							res |= RE_FATAL;
 					}
 					
 					/* Mark all recovered elements as R. */
@@ -387,7 +387,7 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 {
 	cde_large_t *de = cde_large_body(place);
 	uint32_t e_count, i, last;
-	errno_t res = REPAIR_OK;
+	errno_t res = RE_OK;
 	
 	aal_assert("vpf-757", flags != NULL);
 	
@@ -402,7 +402,7 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 				    "item.", place->con.blk, place->pos.item, 
 				    place->plug->label);
 		
-		return REPAIR_FATAL;
+		return RE_FATAL;
 	}
 	
 	flags->count = --last;
@@ -436,21 +436,21 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 	/* If there is enough space for another entry header, and the @last entry 
 	   is valid also, set @count unit offset to the item length. */
 	if (e_count > flags->count && last != flags->count) {
-		if (mode == REPAIR_REBUILD) {
+		if (mode == RM_BUILD) {
 			en_set_offset(&de->entry[flags->count], place->len);
-			res |= REPAIR_FIXED;
+			res |= RE_FIXED;
 		} else {
-			res |= REPAIR_FATAL;
+			res |= RE_FATAL;
 		}
 	}
  	
-	if (flags->count == last && mode == REPAIR_REBUILD) {
+	if (flags->count == last && mode == RM_BUILD) {
 		/* Last unit is not valid. */
-		if (mode == REPAIR_REBUILD) {
+		if (mode == RM_BUILD) {
 			place->len = OFFSET(de, last);
-			res |= REPAIR_FIXED;
+			res |= RE_FIXED;
 		} else {
-			res |= REPAIR_FATAL;
+			res |= RE_FATAL;
 		}
 	}
 	
@@ -460,10 +460,10 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 		   unit.*/
 		e_count = flags->count;
 		
-		if (mode == REPAIR_REBUILD) {	    
+		if (mode == RM_BUILD) {	    
 			en_set_offset(&de->entry[0], sizeof(cde_large_t) + 
 					sizeof(entry_t) * flags->count);
-			res |= REPAIR_FIXED;
+			res |= RE_FIXED;
 		}
 	}
 	
@@ -471,13 +471,13 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 		aal_exception_error("Node %llu, item %u: unit count (%u) is not "
 				    "correct. Should be (%u). %s", place->con.blk, 
 				    place->pos.item, de_get_units(de), e_count, 
-				    mode == REPAIR_CHECK ? "" : "Fixed.");
+				    mode == RM_CHECK ? "" : "Fixed.");
 		
-		if (mode == REPAIR_CHECK) {
-			res |= REPAIR_FIXABLE;
+		if (mode == RM_CHECK) {
+			res |= RE_FIXABLE;
 		} else {
 			de_set_units(de, e_count);
-			res |= REPAIR_FIXED;
+			res |= RE_FIXED;
 		}
 	}
 	
@@ -487,9 +487,9 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 		aal_exception_error("Node %llu, item %u: entries [%lu..%lu] look "
 				    "corrupted. %s", place->con.blk, place->pos.item, 
 				    flags->count, e_count - 1, 
-				    mode == REPAIR_REBUILD ? "Removed." : "");
+				    mode == RM_BUILD ? "Removed." : "");
 		
-		if (mode == REPAIR_REBUILD) {
+		if (mode == RM_BUILD) {
 			if (cde_large_remove(place, flags->count, 
 					     e_count - flags->count) < 0) 
 			{
@@ -501,9 +501,9 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 				return -EINVAL;
 			}
 			
-			res |= REPAIR_FIXED;
+			res |= RE_FIXED;
 		} else {
-			res |= REPAIR_FATAL;
+			res |= RE_FATAL;
 		}
 	}
 	
@@ -512,9 +512,9 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 		aal_exception_error("Node %llu, item %u: entries [%lu..%lu] look "
 				    " corrupted. %s", place->con.blk, 
 				    place->pos.item, 0, i - 1, 
-				    mode == REPAIR_REBUILD ? "Removed." : "");
+				    mode == RM_BUILD ? "Removed." : "");
 		
-		if (mode == REPAIR_REBUILD) {
+		if (mode == RM_BUILD) {
 			if (cde_large_remove(place, 0, i) < 0) {
 				aal_exception_error("Node %llu, item %u: remove of "
 						    "the unit (%u), count (%u) "
@@ -523,14 +523,14 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 				return -EINVAL;
 			}
 			
-			res |= REPAIR_FIXED;
+			res |= RE_FIXED;
 			aal_memmove(flags->elem, flags->elem + i, 
 				    flags->count - i);
 			
 			flags->count -= i;
 			i = 0;
 		} else {
-			res |= REPAIR_FATAL;
+			res |= RE_FATAL;
 		}
 	}
 	
@@ -550,10 +550,10 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 						    place->con.blk, 
 						    place->pos.item,
 						    last, i - 1, 
-						    mode == REPAIR_REBUILD ? 
+						    mode == RM_BUILD ? 
 						    "Removed." : "");
 				
-				if (mode == REPAIR_REBUILD) {
+				if (mode == RM_BUILD) {
 					if (cde_large_remove(place, last, 
 							     i - last) < 0) 
 					{
@@ -577,9 +577,9 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 					
 					i = last;
 					
-					res |= REPAIR_FIXED;
+					res |= RE_FIXED;
 				} else {
-					res |= REPAIR_FATAL;
+					res |= RE_FATAL;
 				}
 				
 				last = MAX_UINT32;
@@ -595,7 +595,7 @@ static errno_t cde_large_filter(place_t *place, struct entry_flags *flags,
 errno_t cde_large_check_struct(place_t *place, uint8_t mode) {
 	struct entry_flags flags;
 	cde_large_t *de;
-	errno_t res = REPAIR_OK;
+	errno_t res = RE_OK;
 	int i, j;
 	
 	aal_assert("vpf-267", place != NULL);
@@ -604,7 +604,7 @@ errno_t cde_large_check_struct(place_t *place, uint8_t mode) {
 		aal_exception_error("Node %llu, item %u: item length (%u) is too "
 				    "small to contain a valid item.", 
 				    place->con.blk, place->pos.item, place->len);
-		return REPAIR_FATAL;
+		return RE_FATAL;
 	}
 	
 	de = cde_large_body(place);
@@ -831,10 +831,10 @@ static errno_t cde_large_bad_range_check(place_t *place,
 					    "unit offset (%u) is wrong, should be "
 					    "(%u). %s", place->context.blk, place->pos.item,
 					    i, OFFSET(de, start_pos + i), offset, 
-					    info->mode == REPAIR_REBUILD ? 
+					    info->mode == RM_BUILD ? 
 					    "Fixed." : "");
 			
-			if (info->mode == REPAIR_REBUILD) {
+			if (info->mode == RM_BUILD) {
 				en_set_offset(&de->entry[i], offset);
 				info->fixed++;
 			} else
@@ -870,10 +870,10 @@ static errno_t cde_large_bad_range_check(place_t *place,
 						    place->pos.item, i, 
 						    OFFSET(de, start + i), 
 						    offset, 
-						    info->mode == REPAIR_REBUILD ? 
+						    info->mode == RM_BUILD ? 
 						    "Fixed." : "");
 				
-				if (info->mode == REPAIR_REBUILD) {
+				if (info->mode == RM_BUILD) {
 					en_set_offset(&de->entry[i], offset);
 					info->fixed++;
 				} else

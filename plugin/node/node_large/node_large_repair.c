@@ -126,7 +126,7 @@ static uint32_t node_large_count_estimate(node_t *node) {
  * checked/recovered if broken. */
 static errno_t node_large_item_array_check(node_t *node, uint8_t mode) {
 	uint32_t limit, offset, last_relable, count, i, last_pos;
-	errno_t res = REPAIR_OK;
+	errno_t res = RE_OK;
 	bool_t free_valid;
 	blk_t blk;
 	
@@ -156,15 +156,15 @@ static errno_t node_large_item_array_check(node_t *node, uint8_t mode) {
 				aal_exception_error("Node (%llu), item (0): Offset "
 						    "(%u) is wrong. Should be (%u). "
 						    "%s", blk, offset, last_relable, 
-						    mode == REPAIR_REBUILD ? 
+						    mode == RM_BUILD ? 
 						    "Fixed." : "");
 				
-				if (mode == REPAIR_REBUILD) {
+				if (mode == RM_BUILD) {
 					ih_set_offset(node_large_ih_at(node, 0), 
 							last_relable);
-					res |= REPAIR_FIXED;
+					res |= RE_FIXED;
 				} else {
-					res |= REPAIR_FATAL;
+					res |= RE_FATAL;
 				}
 			}
 			
@@ -177,7 +177,7 @@ static errno_t node_large_item_array_check(node_t *node, uint8_t mode) {
 			aal_exception_error("Node (%llu), item (%u): Offset (%u) "
 					    "is wrong.", blk, i, offset);
 		} else {
-			if ((mode == REPAIR_REBUILD) && (last_pos != i - 1)) {
+			if ((mode == RM_BUILD) && (last_pos != i - 1)) {
 				/* Some items are to be deleted. */
 				aal_exception_error("Node (%llu): Region of items "
 						    "[%d-%d] with wrong offsets is "
@@ -206,15 +206,15 @@ static errno_t node_large_item_array_check(node_t *node, uint8_t mode) {
 		/* There is left region with broken offsets, remove it. */
 		aal_exception_error("Node (%llu): Free space start (%u) is wrong. "
 				    "Should be (%u). %s", blk, offset, last_relable, 
-				    mode == REPAIR_REBUILD ? "Fixed." : "");
+				    mode == RM_BUILD ? "Fixed." : "");
 		
-		if (mode == REPAIR_REBUILD) {
+		if (mode == RM_BUILD) {
 			nh_set_free_space(node, nh_get_free_space(node) + 
 					    offset - last_relable);
 			nh_set_free_space_start(node, last_relable);
-			res |= REPAIR_FIXED;
+			res |= RE_FIXED;
 		} else {
-			res |= REPAIR_FATAL;
+			res |= RE_FATAL;
 		}
 	}
 	
@@ -226,13 +226,13 @@ static errno_t node_large_item_array_check(node_t *node, uint8_t mode) {
 		aal_exception_error("Node (%llu): the free space (%u) is wrong. "
 				    "Should be (%u). %s", blk, 
 				    nh_get_free_space(node), last_relable,
-				    mode == REPAIR_CHECK ? "" : "Fixed.");
+				    mode == RM_CHECK ? "" : "Fixed.");
 		
-		if (mode == REPAIR_CHECK) {
-			res |= REPAIR_FIXABLE;
+		if (mode == RM_CHECK) {
+			res |= RE_FIXABLE;
 		} else {
 			nh_set_free_space(node, last_relable);
-			res |= REPAIR_FIXED;
+			res |= RE_FIXED;
 		}
 	}
 	
@@ -241,7 +241,7 @@ static errno_t node_large_item_array_check(node_t *node, uint8_t mode) {
 
 static errno_t node_large_item_array_find(node_t *node, uint8_t mode) {
 	uint32_t offset, i, nr = 0;
-	errno_t res = REPAIR_OK;
+	errno_t res = RE_OK;
 	blk_t blk;
 	
 	aal_assert("vpf-800", node != NULL);
@@ -256,7 +256,7 @@ static errno_t node_large_item_array_find(node_t *node, uint8_t mode) {
 				break;	
 		} else {
 			if (offset != sizeof(node_header_t))
-				return REPAIR_FATAL;
+				return RE_FATAL;
 		}
 		
 		if (aal_block_size(node->block) - 
@@ -271,19 +271,19 @@ static errno_t node_large_item_array_find(node_t *node, uint8_t mode) {
 	
 	/* Only nr - 1 item can be recovered as free space start is unknown. */
 	if (nr <= 1)
-		return REPAIR_FATAL;
+		return RE_FATAL;
 	
 	if (--nr != nh_get_num_items(node)) {
 		aal_exception_error("Node (%llu): Count of items (%u) is wrong. "
 				    "Found only (%u) items. %s", blk, 
 				    nh_get_num_items(node), nr, 
-				    mode == REPAIR_REBUILD ? "Fixed." : "");
+				    mode == RM_BUILD ? "Fixed." : "");
 		
-		if (mode == REPAIR_REBUILD) {
+		if (mode == RM_BUILD) {
 			nh_set_num_items(node, nr);
-			res = REPAIR_FIXED;
+			res = RE_FIXED;
 		} else {
-			return REPAIR_FATAL;
+			return RE_FATAL;
 		}
 	}
 	
@@ -292,13 +292,13 @@ static errno_t node_large_item_array_find(node_t *node, uint8_t mode) {
 		aal_exception_error("Node (%llu): Free space start (%u) is wrong. "
 				    "(%u) looks correct. %s", blk, 
 				    nh_get_free_space_start(node), offset, 
-				    mode == REPAIR_CHECK ? "" : "Fixed.");
+				    mode == RM_CHECK ? "" : "Fixed.");
 		
-		if (mode != REPAIR_CHECK) {
+		if (mode != RM_CHECK) {
 			nh_set_free_space_start(node, offset);
-			res |= REPAIR_FIXED;
+			res |= RE_FIXED;
 		} else
-			return REPAIR_FIXABLE;
+			return RE_FIXABLE;
 	}
 	
 	offset = aal_block_size(node->block) - offset - 
@@ -308,13 +308,13 @@ static errno_t node_large_item_array_find(node_t *node, uint8_t mode) {
 		aal_exception_error("Node (%llu): Free space (%u) is wrong. "
 				    "Should be (%u). %s", blk, 
 				    nh_get_free_space(node), offset, 
-				    mode == REPAIR_CHECK ? "" : "Fixed.");
+				    mode == RM_CHECK ? "" : "Fixed.");
 		
-		if (mode != REPAIR_CHECK) {
+		if (mode != RM_CHECK) {
 			nh_set_free_space(node, offset);
-			res |= REPAIR_FIXED;
+			res |= RE_FIXED;
 		} else {
-			return REPAIR_FIXABLE;
+			return RE_FIXABLE;
 		}
 	}
 	
@@ -335,7 +335,7 @@ static errno_t node_large_count_check(node_t *node, uint8_t mode) {
 	
 	if (node_large_item_count_valid(aal_block_size(node->block), 
 				    nh_get_num_items(node)))
-		return REPAIR_OK;
+		return RE_OK;
 	
 	/* Count is wrong. Try to recover it if possible. */
 	num = node_large_count_estimate(node);
@@ -344,20 +344,20 @@ static errno_t node_large_count_check(node_t *node, uint8_t mode) {
 	if (num == 0) {
 		aal_exception_error("Node (%llu): Count of items (%u) is wrong.", 
 				    blk, nh_get_num_items(node));
-		return REPAIR_FATAL;
+		return RE_FATAL;
 	}
 	
 	/* Recover is possible. */
 	aal_exception_error("Node (%llu): Count of items (%u) is wrong. (%u) looks "
 			    "correct. %s", blk, nh_get_num_items(node), num, 
-			    mode == REPAIR_REBUILD ? "Fixed." : "");
+			    mode == RM_BUILD ? "Fixed." : "");
 	
-	if (mode == REPAIR_REBUILD) {
+	if (mode == RM_BUILD) {
 		nh_set_num_items(node,  num);
-		return REPAIR_FIXED;
+		return RE_FIXED;
 	}
 	
-	return REPAIR_FATAL;
+	return RE_FATAL;
 }
 
 errno_t node_large_check_struct(object_entity_t *entity, uint8_t mode) {
@@ -371,7 +371,7 @@ errno_t node_large_check_struct(object_entity_t *entity, uint8_t mode) {
 	
 	/* Count is wrong and not recoverable on the base of free space end. */
 	if (repair_error_exists(res)) {
-		if (mode != REPAIR_REBUILD)
+		if (mode != RM_BUILD)
 			return res;
 		
 		/* Recover count on the base of correct item array if one exists. */

@@ -21,17 +21,17 @@ static int callback_bs_check (int64_t val, void * data) {
    one was opened. */
 static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 	reiser4_plug_t *plug;
-	errno_t error = REPAIR_OK;
+	errno_t error = RE_OK;
 	uint16_t blocksize = 0;
 	
 	aal_assert("vpf-730", fs != NULL);
 	aal_assert("vpf-161", fs->master != NULL || fs->device != NULL);
 	
 	if (fs->master == NULL) {
-		if (mode != REPAIR_REBUILD) {
+		if (mode != RM_BUILD) {
 			aal_exception_fatal("Master super block cannot be "
 					    "found.");
-			return REPAIR_FATAL;
+			return RE_FATAL;
 		}
 		
 		/* Master SB was not opened. Create a new one. */
@@ -62,7 +62,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 					    aal_device_name(fs->device));
 		}
 		
-		error |= REPAIR_FIXED;
+		error |= RE_FIXED;
 	} else {
 		/* Master SB was opened. Check it for validness. */
 		
@@ -72,7 +72,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 					    "master super block (%u).",
 					    reiser4_master_blksize(fs->master));
 			
-			if (mode != REPAIR_REBUILD)
+			if (mode != RM_BUILD)
 				return -EINVAL;
 			
 			blocksize = aal_ui_get_numeric(4096, callback_bs_check,
@@ -80,7 +80,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 						       "do you use?");
 			
 			set_ms_blksize(SUPER(fs->master), blocksize);
-			error |= REPAIR_FIXED;
+			error |= RE_FIXED;
 		}
 	}
 	
@@ -111,7 +111,7 @@ errno_t repair_master_open(reiser4_fs_t *fs, uint8_t mode) {
 	if (repair_error_exists(ret))
 		goto error_master_free;
 	
-	if (ret & REPAIR_FIXED)
+	if (ret & RE_FIXED)
 		reiser4_master_mkdirty(fs->master);
 	
 	return 0;

@@ -17,10 +17,10 @@ errno_t sdext_unix_check_struct(sdext_entity_t *sdext, uint8_t mode) {
 		aal_exception_error("Does not look like a valid (%s) statdata "
 				    "extention.", sdext->plug->label);
 		
-		return REPAIR_FATAL;
+		return RE_FATAL;
 	}
 	
-	return REPAIR_OK;
+	return RE_OK;
 }
 
 #endif

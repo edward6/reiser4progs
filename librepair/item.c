@@ -15,7 +15,7 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
 	pos_t pos;
 	
 	if (place->len == 0)
-		result = REPAIR_FATAL;
+		result = RE_FATAL;
 	
 	if (old_len != place->len && !repair_error_exists(result)) {
 		aal_assert("vpf-768", old_len > place->len);
@@ -35,10 +35,10 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
 			return ret;
 		}
 		
-		result = REPAIR_FIXED;
+		result = RE_FIXED;
 	}
 	
-	if ((result & REPAIR_FATAL) && mode == REPAIR_REBUILD) {
+	if ((result & RE_FATAL) && mode == RM_BUILD) {
 		aal_exception_error("Node (%llu), item (%u): unrecoverable "
 				    "corruption found. Remove item.", 
 				    place->node->number, place->pos.item);
@@ -53,7 +53,7 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
 			return ret;
 		}
 		
-		result = REPAIR_REMOVED;
+		result = RE_REMOVED;
 	}
 	
 	return result;
@@ -61,7 +61,7 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
 
 /* Calls the item check method to check the item structure and shrink the 
    node if item length has been changed. Returns values are described in 
-   repair_error_t, but REPAIR_FIXED. */
+   repair_error_t, but RE_FIXED. */
 errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
 	uint32_t length;
 	errno_t res;
@@ -81,17 +81,17 @@ errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
 	
 	repair_error_check(res, mode);
 	
-	aal_assert("vpf-789", mode != REPAIR_CHECK || 
+	aal_assert("vpf-789", mode != RM_CHECK || 
 			      length == place->len);
 	
-	aal_assert("vpf-767", length == place->len || res != REPAIR_OK);
+	aal_assert("vpf-767", length == place->len || res != RE_OK);
 	
 	return repair_item_check_fini(place, res, length, mode);
 }
 
 /* Calls the item check_layout method to check the layout of an item and 
    shrink the node if item length has been changed. Returns values are 
-   described in repair_error_codes_t, but REPAIR_FIXED. */
+   described in repair_error_codes_t, but RE_FIXED. */
 errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func, 
 				 void *data, uint8_t mode) 
 {
@@ -110,9 +110,9 @@ errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func,
 						    data, mode);
 	
 	repair_error_check(res, mode);
-	aal_assert("vpf-795", mode != REPAIR_CHECK || 
+	aal_assert("vpf-795", mode != RM_CHECK || 
 			      length == place->len);
-	aal_assert("vpf-796", length == place->len || res != REPAIR_OK);
+	aal_assert("vpf-796", length == place->len || res != RE_OK);
 	
 	return repair_item_check_fini(place, res, length, mode);
 }

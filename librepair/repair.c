@@ -209,7 +209,7 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts) {
 	
 	fs_len =  reiser4_format_get_len(ts->repair->fs->format);
 	
-	if (control->repair->mode != REPAIR_REBUILD) {
+	if (control->repair->mode != RM_BUILD) {
 		uint32_t i;
 		
 		for (i = 0; i < control->bm_met->size; i++) {
@@ -405,7 +405,7 @@ errno_t repair_check(repair_data_t *repair) {
 	if ((res = repair_filter(&filter)))
 		goto error;
 	
-	if (repair->mode == REPAIR_REBUILD) {
+	if (repair->mode == RM_BUILD) {
 		if ((res = repair_ds_prepare(&control, &ds)))
 			goto error;
 		
@@ -419,7 +419,7 @@ errno_t repair_check(repair_data_t *repair) {
 	if ((res = repair_twig_scan(&ts)))
 		goto error;
 	
-	if (repair->mode == REPAIR_REBUILD) {
+	if (repair->mode == RM_BUILD) {
 		if ((res = repair_am_prepare(&control, &am)))
 			goto error;
 		
@@ -433,7 +433,7 @@ errno_t repair_check(repair_data_t *repair) {
 	if ((res = repair_semantic(&sem)))
 		goto error;
 	
-	if (repair->mode == REPAIR_REBUILD) {
+	if (repair->mode == RM_BUILD) {
 		if ((res = repair_cleanup_prepare(&control, &cleanup)))
 			goto error;
 		

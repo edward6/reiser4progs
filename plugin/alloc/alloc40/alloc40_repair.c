@@ -41,13 +41,13 @@ static errno_t callback_check_layout(object_entity_t *entity, uint64_t blk,
 		   as much as possible to be scanned. Fixable scans only what 
 		   is reachable through the internal tree, so leave it as is 
 		   to be fixed later. */
-		if (hint->mode == REPAIR_REBUILD) {
+		if (hint->mode == RM_BUILD) {
 			/* Data are corrupted. */
 			size = aal_device_get_bs(alloc->device) - CRC_SIZE;
 			offset = (blk / size / 8) * size;
 			aux_bitmap_mark_region(alloc->bitmap, offset, size);
 		} else {
-			hint->error = REPAIR_FIXABLE;
+			hint->error = RE_FIXABLE;
 		}
 		
 		res = 0;
@@ -70,7 +70,7 @@ errno_t alloc40_check_struct(object_entity_t *entity, uint8_t mode) {
 	hint.error = 0;
 	error = alloc40_layout(entity, callback_check_layout, &hint);
 	
-	if (hint.error == REPAIR_FIXABLE && mode == REPAIR_FIX) {
+	if (hint.error == RE_FIXABLE && mode == RM_FIX) {
 		aal_exception_warn("Checksums will be fixed later.\n");
 		return 0;
 	}

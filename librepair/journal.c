@@ -32,7 +32,7 @@ static errno_t repair_journal_check_struct(reiser4_journal_t *journal) {
 		return res;
 
 	/* All journal corruption must be fixed at once they are detected. */
-	repair_error_check(res, REPAIR_REBUILD);
+	repair_error_check(res, RM_BUILD);
 	
 	return res;
 }
@@ -41,7 +41,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 			    uint8_t mode) 
 {
 	reiser4_plug_t *plug;
-	errno_t ret = REPAIR_OK;
+	errno_t ret = RE_OK;
 	rid_t pid;
 	
 	aal_assert("vpf-445", fs != NULL);
@@ -54,8 +54,8 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 		aal_exception_fatal("Failed to open a journal by its id (0x%x).",
 				    reiser4_format_journal_pid(fs->format));
 		
-		if (mode != REPAIR_REBUILD)
-			return REPAIR_FATAL;
+		if (mode != RM_BUILD)
+			return RE_FATAL;
 		
 		if ((pid = reiser4_format_journal_pid(fs->format)) == INVAL_PID) {
 			aal_exception_error("Invalid journal plugin id has been found.");
@@ -85,7 +85,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 		if (repair_error_exists(ret))
 			goto error_journal_close;
 		
-		if (ret & REPAIR_FIXED)
+		if (ret & RE_FIXED)
 			reiser4_journal_mkdirty(fs->journal);
 	}
 	
@@ -99,7 +99,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 }
 
 errno_t repair_journal_replay(reiser4_journal_t *journal, aal_device_t *device) {
-	errno_t ret = REPAIR_OK;
+	errno_t ret = RE_OK;
 	int j_flags, flags;
 	
 	aal_assert("vpf-906", journal != NULL);

@@ -17,7 +17,7 @@ errno_t format40_check_struct(object_entity_t *entity, uint8_t mode) {
 	format40_t *format = (format40_t *)entity;
 	format40_super_t *super;
 	count_t count;
-	errno_t result = REPAIR_OK;
+	errno_t result = RE_OK;
 	
 	aal_assert("vpf-160", entity != NULL);
 	
@@ -27,7 +27,7 @@ errno_t format40_check_struct(object_entity_t *entity, uint8_t mode) {
 	/* Check the fs size. */
 	if (count < get_sb_block_count(super)) {
 		/* Device is smaller then fs size. */
-		if (mode == REPAIR_REBUILD) {
+		if (mode == RM_BUILD) {
 			if (aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_YESNO,
 						"Number of blocks found in the "
 						"superblock (%llu) is not equal "
@@ -42,38 +42,38 @@ errno_t format40_check_struct(object_entity_t *entity, uint8_t mode) {
 			}
 			
 			set_sb_block_count(super, count);
-			result |= REPAIR_FIXED;	    
+			result |= RE_FIXED;	    
 		} else {
 			aal_exception_fatal("Number of blocks found in the "
 					    "superblock (%llu) is not equal to "
 					    "the size of the partition (%llu).\n "
 					    "Check the partition size first.", 
 					    get_sb_block_count(super), count);
-			return REPAIR_FATAL;
+			return RE_FATAL;
 		}
 	} else if (count > get_sb_block_count(super)) {
 		/* Device is larger then fs size. */
 		aal_exception_fatal("Number of blocks found in the superblock "
 				    "(%llu) is not equal to the size of the "
 				    "partition (%llu). %s", get_sb_block_count(super),
-				    count, mode != REPAIR_CHECK ? "Fixed.": "");
+				    count, mode != RM_CHECK ? "Fixed.": "");
 		
-		if (mode != REPAIR_CHECK) {
+		if (mode != RM_CHECK) {
 			set_sb_block_count(super, count);
-			result |= REPAIR_FIXED;
+			result |= RE_FIXED;
 		} else 
-			result |= REPAIR_FIXABLE;
+			result |= RE_FIXABLE;
 	}
 	
 	/* Check the free block count. */
 	if (get_sb_free_blocks(super) > get_sb_block_count(super)) {
 		aal_exception_error("Invalid free block count (%llu) found in the "
 				    "superblock. %s", get_sb_free_blocks(super), 
-				    mode == REPAIR_CHECK ? 
+				    mode == RM_CHECK ? 
 				    "" : "Will be fixed later.");
 		
-		if (mode == REPAIR_CHECK)
-			result |= REPAIR_FIXABLE;
+		if (mode == RM_CHECK)
+			result |= RE_FIXABLE;
 	}
 	
 	count = (FORMAT40_OFFSET / aal_device_get_bs(format->device));
@@ -85,8 +85,8 @@ errno_t format40_check_struct(object_entity_t *entity, uint8_t mode) {
 		aal_exception_error("Invalid root block number (%llu) found in "
 				    "the superblock.", get_sb_root_block(super));
 		
-		if (mode != REPAIR_REBUILD)
-			result |= REPAIR_FATAL;
+		if (mode != RM_BUILD)
+			result |= RE_FATAL;
 		else 
 			set_sb_root_block(super, INVAL_BLK);
 	}

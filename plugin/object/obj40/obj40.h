@@ -53,22 +53,15 @@ extern lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 
 extern errno_t obj40_fini(obj40_t *obj);
 
-extern errno_t obj40_read_lw(place_t *place,
-			     sdext_lw_hint_t *lw_hint);
+extern errno_t obj40_read_ext(place_t *place, rid_t id, void *data);
 
 #ifdef ENABLE_SYMLINKS
 extern errno_t obj40_get_sym(obj40_t *obj, char *data);
 #endif
 
 #ifndef ENABLE_STAND_ALONE
-extern errno_t obj40_write_lw(place_t *place,
-			      sdext_lw_hint_t *lw_hint);
-
-extern errno_t obj40_read_unix(place_t *place,
-			       sdext_unix_hint_t *unix_hint);
-
-extern errno_t obj40_write_unix(place_t *place,
-				sdext_unix_hint_t *unix_hint);
+extern errno_t obj40_write_ext(place_t *place, rid_t id, void *data);
+extern uint64_t obj40_extmask(place_t *sd);
 
 extern uint16_t obj40_get_mode(obj40_t *obj);
 extern uint32_t obj40_get_nlink(obj40_t *obj);
@@ -102,13 +95,16 @@ extern errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 extern errno_t obj40_remove(obj40_t *obj, place_t *place,
 			    uint32_t count);
 
-typedef bool_t (*realize_func_t) (uint16_t);
-typedef bool_t (*realize_func_body_t) (object_info_t *, key_entity_t *);
+typedef errno_t (*realize_sd_func_t)   (place_t *);
+typedef errno_t (*realize_body_func_t) (object_info_t *, key_entity_t *);
 
 extern errno_t obj40_realize(object_info_t *info, 
-			     realize_func_t mode_func, 
-			     realize_func_t type_func,
-			     realize_func_body_t body_func);
+			     realize_sd_func_t sd_func,
+			     realize_body_func_t body_func,
+			     uint64_t item_type);
+
+errno_t obj40_check_sd(place_t *sd);
+
 #endif
 
 extern uint64_t obj40_get_size(obj40_t *obj);

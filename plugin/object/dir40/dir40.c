@@ -928,7 +928,8 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	if ((res = obj40_set_size(&dir->obj, size + 1)))
 		return res;
 
-	if ((res = obj40_read_unix(&dir->obj.statdata, &unix_hint)))
+	if ((res = obj40_read_ext(&dir->obj.statdata, SDEXT_UNIX_ID, 
+				  &unix_hint)))
 		return res;
 	
 	atime = time(NULL);
@@ -937,7 +938,8 @@ static errno_t dir40_add_entry(object_entity_t *entity,
 	unix_hint.mtime = atime;
 	unix_hint.bytes += dir40_estimate(entity, entry);
 
-	if ((res = obj40_write_unix(&dir->obj.statdata, &unix_hint)))
+	if ((res = obj40_write_ext(&dir->obj.statdata, SDEXT_UNIX_ID, 
+				   &unix_hint)))
 		return res;
 
 	/* Updating body place */
@@ -1025,7 +1027,8 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	if ((res = obj40_set_size(&dir->obj, size - 1)))
 		return res;
 
-	if ((res = obj40_read_unix(&dir->obj.statdata, &unix_hint)))
+	if ((res = obj40_read_ext(&dir->obj.statdata, SDEXT_UNIX_ID, 
+				  &unix_hint)))
 		return res;
 	
 	atime = time(NULL);
@@ -1034,7 +1037,7 @@ static errno_t dir40_rem_entry(object_entity_t *entity,
 	unix_hint.mtime = atime;
 	unix_hint.bytes -= dir40_estimate(entity, entry);
 
-	return obj40_write_unix(&dir->obj.statdata, &unix_hint);
+	return obj40_write_ext(&dir->obj.statdata, SDEXT_UNIX_ID, &unix_hint);
 }
 
 struct layout_hint {

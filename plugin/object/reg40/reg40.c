@@ -442,7 +442,7 @@ static int32_t reg40_put(object_entity_t *entity,
 	
 	place = &reg->obj.statdata;
 	
-	if ((res = obj40_read_unix(place, &unix_hint)))
+	if ((res = obj40_read_ext(place, SDEXT_UNIX_ID, &unix_hint)))
 		return res;
 	
 	atime = time(NULL);
@@ -453,7 +453,7 @@ static int32_t reg40_put(object_entity_t *entity,
 	if (reg->offset > unix_hint.bytes)
 		unix_hint.bytes = reg->offset;
 
-	if ((res = obj40_write_unix(place, &unix_hint)))
+	if ((res = obj40_write_ext(place, SDEXT_UNIX_ID, &unix_hint)))
 		return res;
 	
 	return written;
@@ -789,11 +789,10 @@ static errno_t reg40_metadata(object_entity_t *entity,
 
 extern object_entity_t *reg40_realize(object_info_t *info);
 
-extern errno_t reg40_check_struct(object_entity_t *object, 
-				  object_info_t *info, 
-				  place_func_t place_func, 
-				  uint8_t mode, 
-				  void *data);
+extern errno_t reg40_check_struct(object_entity_t *object,
+				  object_info_t *info,
+				  place_func_t register_func,
+				  void *data, uint8_t mode);
 
 #endif
 

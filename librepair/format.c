@@ -8,7 +8,7 @@
 /* Checks the opened format, or build a new one if it was not openned. */
 static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	reiser4_plug_t *plug = NULL;
-	errno_t res = REPAIR_OK;
+	errno_t res = RE_OK;
 	rid_t policy, pid;
 	count_t count;
 	
@@ -31,9 +31,9 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		aal_exception_fatal("Cannot open the on-disk format on (%s)",
 				    aal_device_name(fs->device));
 		
-		if (mode != REPAIR_REBUILD)
+		if (mode != RM_BUILD)
 			/* Fatal error in the format structure. */
-			return REPAIR_FATAL;
+			return RE_FATAL;
 		
 		pid = reiser4_profile_value(fs->profile, "format");
 		
@@ -80,7 +80,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			set_ms_format(SUPER(fs->master), pid);
 			reiser4_master_mkdirty(fs->master);
 			
-			return REPAIR_FIXED;
+			return RE_FIXED;
 		} else {
 			/* Format was detected on the device. */
 			aal_exception_fatal("The on-disk format (%s) was detected on "
@@ -121,14 +121,14 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		aal_exception_error("Invalid tail policy (%u) detected in the format "
 				    "on (%s).", pid, aal_device_name(fs->device));
 		
-		if (mode != REPAIR_CHECK) {
+		if (mode != RM_CHECK) {
 			aal_exception_error("Fixed to the specified in profile (%u).", 
 					    policy);
 			
 			reiser4_format_set_policy(fs->format, policy);
-			res |= REPAIR_FIXED;    
+			res |= RE_FIXED;    
 		} else {
-			res |= REPAIR_FIXABLE;
+			res |= RE_FIXABLE;
 		}
 	}
 	
@@ -157,7 +157,7 @@ errno_t repair_format_open(reiser4_fs_t *fs, uint8_t mode) {
 	if (repair_error_exists(error))
 		goto error_format_close;
 	
-	if (error & REPAIR_FIXED)
+	if (error & RE_FIXED)
 		reiser4_format_mkdirty(fs->format);
 	
 	return 0;
