@@ -65,7 +65,7 @@ static lru_ops_t lru_ops = {
   reiser4_node_ukey functions in recursive maner.
 */
 errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
-			  resier4_place_t *place,
+			  reiser4_place_t *place,
 			  reiser4_key_t *key)
 {
 	aal_assert("umka-1892", tree != NULL);
@@ -84,12 +84,12 @@ errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
 			if (reiser4_node_pos(place->node, &p.pos))
 				return -1;
 	    
-			if (reiser4_tree_ukey(node->parent, &p, key))
+			if (reiser4_tree_ukey(tree, &p, key))
 				return -1;
 		}
 	}
 
-	if (reiser4_node_ukey(place.node, &place->pos, key))
+	if (reiser4_node_ukey(place->node, &place->pos, key))
 		return -1;
 
 	return 0;
@@ -1025,7 +1025,7 @@ errno_t reiser4_tree_shift(
 				if (reiser4_node_lkey(node, &lkey))
 					return -1;
 
-				reiser4_place_init(&p, node->parent, &pos);
+				reiser4_place_init(&p, node->parent, &node->pos);
 				
 				if (reiser4_tree_ukey(tree, &p, &lkey))
 					return -1;
@@ -1040,7 +1040,7 @@ errno_t reiser4_tree_shift(
 				if (reiser4_node_lkey(neig, &lkey))
 					return -1;
 				
-				reiser4_place_init(&p, neig->parent, &pos);
+				reiser4_place_init(&p, neig->parent, &neig->pos);
 				
 				if (reiser4_tree_ukey(tree, &p, &lkey))
 					return -1;
@@ -1488,9 +1488,12 @@ errno_t reiser4_tree_insert(
 	}
 
 	if (reiser4_place_leftmost(place) && place->node->parent) {
-		rpos_t *pos = &place->node->pos;
+		reiser4_place_t p;
+
+		reiser4_place_init(&p, place->node->parent,
+				   &place->node->pos);
 		
-		if (reiser4_tree_ukey(tree, place, &hint->key))
+		if (reiser4_tree_ukey(tree, &p, &hint->key))
 			return -1;
 	}
 	
@@ -1599,17 +1602,8 @@ errno_t reiser4_tree_cut(
 		
 		while (neig && neig != start->node) {
 			if (neig->parent) {
-
-				/*
-				  As we removing from the right to left, node's
-				  pos will point correct position in parent node.
-				*/
-				
-				if (reiser4_node_remove(neig->parent, &neig->pos, 1))
-					return -1;
-
-				reiser4_node_mkclean(neig);
 				reiser4_tree_detach(tree, neig);
+				reiser4_node_mkclean(neig);
 				reiser4_tree_release(tree, neig);
 			}
 						
@@ -1621,6 +1615,20 @@ errno_t reiser4_tree_cut(
 
 		if (reiser4_node_cut(start->node, &start->pos, &pos))
 			return -1;
+
+		if (reiser4_place_leftmost(start) && start->node->parent) {
+			reiser4_place_t p;
+			reiser4_key_t lkey;
+
+			if (reiser4_node_lkey(start->node, &lkey))
+				return -1;
+			
+			reiser4_place_init(&p, start->node->parent,
+					   &start->node->pos);
+
+			if (reiser4_tree_ukey(tree, &p, &lkey))
+				return -1;
+		}
 		
 		if (reiser4_node_items(start->node) > 0) {
 			if (reiser4_tree_shrink(tree, start))
@@ -1639,6 +1647,20 @@ errno_t reiser4_tree_cut(
 		if (reiser4_node_cut(end->node, &pos, &end->pos))
 			return -1;
 
+		if (reiser4_place_leftmost(end) && end->node->parent) {
+			reiser4_place_t p;
+			reiser4_key_t lkey;
+
+			if (reiser4_node_lkey(end->node, &lkey))
+				return -1;
+			
+			reiser4_place_init(&p, end->node->parent,
+					   &end->node->pos);
+
+			if (reiser4_tree_ukey(tree, &p, &lkey))
+				return -1;
+		}
+		
 		if (reiser4_node_items(end->node) > 0) {
 			if (reiser4_tree_shrink(tree, end))
 				return -1;
@@ -1654,6 +1676,20 @@ errno_t reiser4_tree_cut(
 		if (reiser4_node_cut(start->node, &start->pos, &end->pos))
 			return -1;
 
+		if (reiser4_place_leftmost(start) && start->node->parent) {
+			reiser4_place_t p;
+			reiser4_key_t lkey;
+
+			if (reiser4_node_lkey(start->node, &lkey))
+				return -1;
+			
+			reiser4_place_init(&p, start->node->parent,
+					   &start->node->pos);
+
+			if (reiser4_tree_ukey(tree, &p, &lkey))
+				return -1;
+		}
+		
 		if (reiser4_node_items(start->node) > 0) {
 			if (reiser4_tree_shrink(tree, start))
 				return -1;
@@ -1726,15 +1762,16 @@ errno_t reiser4_tree_remove(
 		  items.
 		*/
 		if (reiser4_node_items(place->node) > 0) {
-			rpos_t *pos;
+			reiser4_place_t p;
 			reiser4_key_t lkey;
 
 			/* Updating parent keys */
-			pos = &place->node->pos;
 			reiser4_node_lkey(place->node, &lkey);
 				
-			if (reiser4_node_ukey(place->node->parent,
-					      pos, &lkey))
+			reiser4_place_init(&p, place->node->parent,
+					   &place->node->pos);
+
+			if (reiser4_tree_ukey(tree, &p, &lkey))
 				return -1;
 		}
 	}

@@ -86,7 +86,7 @@ extern errno_t reiser4_tree_expand(reiser4_tree_t *tree,
 				   uint32_t flags);
 
 extern errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
-				 resier4_place_t *place,
+				 reiser4_place_t *place,
 				 reiser4_key_t *key);
 
 extern errno_t reiser4_tree_traverse(reiser4_tree_t *tree,

@@ -651,24 +651,12 @@ errno_t reiser4_node_ukey(reiser4_node_t *node,
 			  rpos_t *pos,
 			  reiser4_key_t *key)
 {
-	rpos_t ppos;
 	reiser4_place_t place;
     
 	aal_assert("umka-999", node != NULL);
 	aal_assert("umka-1000", pos != NULL);
 	aal_assert("umka-1001", key != NULL);
-	aal_assert("umka-1002", reiser4_node_items(node) > 0);
 
-	if (pos->item == 0 && (pos->unit == ~0ul || pos->unit == 0)) {
-		if (node->parent) {
-			if (reiser4_node_pos(node, &ppos))
-				return -1;
-	    
-			if (reiser4_node_ukey(node->parent, &ppos, key))
-				return -1;
-		}
-	}
-    
 	if (reiser4_place_open(&place, node, pos))
 		return -1;
 
@@ -806,35 +794,18 @@ errno_t reiser4_node_cut(
 	rpos_t *start,		         /* start item will be removed at */
 	rpos_t *end)		         /* end item will be removed at */
 {
-	rpos_t ppos;
-	
 	aal_assert("umka-1785", node != NULL);
 	aal_assert("umka-1786", start != NULL);
 	aal_assert("umka-1787", end != NULL);
 
-	if (start->item == 0 && node->parent) {
-		if (reiser4_node_pos(node, &ppos))
-			return -1;
-	}
-	
-	if (plugin_call(node->entity->plugin->node_ops, cut,
-			node->entity, start, end))
+	if (plugin_call(node->entity->plugin->node_ops,
+			cut, node->entity, start, end))
 	{
 		aal_exception_error("Can't cut items/units from the node "
 				    "%llu. Start: (%lu, %lu), end: (%lu, %lu).",
 				    node->blk, start->item, start->unit,
 				    end->item, end->unit);
 		return -1;
-	}
-
-	if (start->item == 0 && node->parent) {
-		reiser4_key_t lkey;
-		
-		if (reiser4_node_lkey(node, &lkey))
-			return -1;
-		
-		if (reiser4_node_ukey(node->parent, &ppos, &lkey))
-			return -1;
 	}
 
 	/* Updating children */
