@@ -68,7 +68,7 @@ static aal_device_t *journal40_device(object_entity_t *entity) {
 
 static object_entity_t *journal40_open(object_entity_t *format) {
 	journal40_t *journal;
-	reiser4_layout_func_t layout;
+	format_layout_func_t layout;
 
 	aal_assert("umka-409", format != NULL, return NULL);
     
@@ -148,7 +148,7 @@ static object_entity_t *journal40_create(object_entity_t *format,
 					  void *params) 
 {
 	journal40_t *journal;
-	reiser4_layout_func_t layout;
+	format_layout_func_t layout;
     
 	aal_assert("umka-1057", format != NULL, return NULL);
     
@@ -211,7 +211,7 @@ static errno_t callback_sync_journal(object_entity_t *format,
 }
 
 static errno_t journal40_sync(object_entity_t *entity) {
-	reiser4_layout_func_t layout;
+	format_layout_func_t layout;
 	journal40_t *journal = (journal40_t *)entity;
 
 	aal_assert("umka-410", journal != NULL, return -1);

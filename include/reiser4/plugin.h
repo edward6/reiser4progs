@@ -233,12 +233,16 @@ struct item_entity {
 };
 
 typedef struct item_entity item_entity_t;
+typedef struct reiser4_place reiser4_place_t;
 
 /* Types for layout defining */
-typedef errno_t (*reiser4_action_func_t) (object_entity_t *, uint64_t, void *);
+typedef errno_t (*format_action_func_t) (object_entity_t *, uint64_t, void *);
 
-typedef errno_t (*reiser4_layout_func_t) (object_entity_t *,
-					  reiser4_action_func_t, void *);
+typedef errno_t (*format_layout_func_t) (object_entity_t *, format_action_func_t,
+					 void *);
+
+/* Type for file layout callback function */
+typedef errno_t (*file_layout_func_t) (object_entity_t *, uint64_t, void *);
 
 /* 
    To create a new item or to insert into the item we need to perform the
@@ -542,6 +546,9 @@ struct reiser4_file_ops {
 
 	/* Truncates file to passed length */
 	errno_t (*truncate) (object_entity_t *, uint64_t);
+
+	/* Function for going throught all blocks specfied file occupied */
+	errno_t (*layout) (object_entity_t *, file_layout_func_t, void *);
 };
 
 typedef struct reiser4_file_ops reiser4_file_ops_t;
@@ -845,10 +852,10 @@ struct reiser4_format_ops {
 	void (*oid_area)(object_entity_t *, void **, uint32_t *);
 
 	/* The set of methods for going through format blocks */
-	reiser4_layout_func_t skipped_layout;
-	reiser4_layout_func_t format_layout;
-	reiser4_layout_func_t alloc_layout;
-	reiser4_layout_func_t journal_layout;
+	format_layout_func_t skipped_layout;
+	format_layout_func_t format_layout;
+	format_layout_func_t alloc_layout;
+	format_layout_func_t journal_layout;
 };
 
 typedef struct reiser4_format_ops reiser4_format_ops_t;
@@ -1000,8 +1007,6 @@ struct reiser4_place {
 	reiser4_pos_t pos;
 	item_entity_t entity;
 };
-
-typedef struct reiser4_place reiser4_place_t;
 
 /* The common node header */
 struct reiser4_node_header {

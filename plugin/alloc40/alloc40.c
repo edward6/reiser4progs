@@ -69,7 +69,7 @@ static object_entity_t *alloc40_open(object_entity_t *format,
 {
 	alloc40_t *alloc;
 	aal_device_t *device;
-	reiser4_layout_func_t layout;
+	format_layout_func_t layout;
     
 	uint32_t blocksize, crcsize;
     
@@ -233,7 +233,7 @@ static errno_t callback_flush_bitmap(object_entity_t *format,
 
 /* Saves alloc40 data (bitmap in fact) to device */
 static errno_t alloc40_sync(object_entity_t *entity) {
-	reiser4_layout_func_t layout;
+	format_layout_func_t layout;
     
 	alloc40_t *alloc = (alloc40_t *)entity;
 
@@ -408,7 +408,7 @@ static errno_t callback_check_bitmap(object_entity_t *format,
 
 /* Checks allocator on validness using loaded checksums */
 errno_t alloc40_valid(object_entity_t *entity) {
-	reiser4_layout_func_t layout;
+	format_layout_func_t layout;
     
 	alloc40_t *alloc = (alloc40_t *)entity;
     

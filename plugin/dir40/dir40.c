@@ -534,6 +534,15 @@ static int32_t dir40_write(object_entity_t *entity,
 	return i;
 }
 
+static errno_t dir40_layout(object_entity_t *dir, file_layout_func_t func,
+			    void *data)
+{
+	aal_assert("umka-1473", dir != NULL, return -1);
+	aal_assert("umka-1474", func != NULL, return -1);
+
+	return -1;
+}
+
 #endif
 
 static void dir40_close(object_entity_t *entity) {
@@ -599,10 +608,12 @@ static reiser4_plugin_t dir40_plugin = {
 		.create	    = dir40_create,
 		.write	    = dir40_write,
 		.truncate   = dir40_truncate,
+		.layout     = dir40_layout,
 #else
 		.create	    = NULL,
 		.write	    = NULL,
 		.truncate   = NULL,
+		.layout     = NULL,
 #endif
 		.valid	    = NULL,
 		

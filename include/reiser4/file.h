@@ -13,8 +13,8 @@
 #endif
 
 extern reiser4_file_t *reiser4_file_open(reiser4_fs_t *fs, const char *name);
-extern void reiser4_file_close(reiser4_file_t *object);
-extern reiser4_plugin_t *reiser4_file_guess(reiser4_file_t *object);
+extern void reiser4_file_close(reiser4_file_t *file);
+extern reiser4_plugin_t *reiser4_file_guess(reiser4_file_t *file);
 extern errno_t reiser4_file_read(reiser4_file_t *file, void *buff, uint64_t n);
 
 #ifndef ENABLE_COMPACT
@@ -22,8 +22,11 @@ extern errno_t reiser4_file_read(reiser4_file_t *file, void *buff, uint64_t n);
 extern reiser4_file_t *reiser4_file_create(reiser4_fs_t *fs, reiser4_file_hint_t *hint,
 					   reiser4_file_t *parent,  const char *name);
 
-extern errno_t reiser4_file_write(reiser4_file_t *object, void *buff, uint64_t n);
-extern errno_t reiser4_file_truncate(reiser4_file_t *object, uint64_t n);
+extern errno_t reiser4_file_write(reiser4_file_t *file, void *buff, uint64_t n);
+extern errno_t reiser4_file_truncate(reiser4_file_t *file, uint64_t n);
+
+extern errno_t reiser4_file_layout(reiser4_file_t *file, file_layout_func_t func,
+				   void *data);
 
 #endif
 

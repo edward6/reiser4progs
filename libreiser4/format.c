@@ -357,7 +357,7 @@ rpid_t reiser4_format_oid_pid(
 /* Enumerates all filesystem areas (block alloc, journal, etc.) */
 errno_t reiser4_format_layout(
 	reiser4_format_t *format,
-	reiser4_action_func_t action_func, 
+	format_action_func_t action_func, 
 	void *data)
 {
 	if (reiser4_format_skipped_layout(format, action_func, data))
@@ -373,7 +373,7 @@ errno_t reiser4_format_layout(
 }
 
 errno_t reiser4_format_skipped_layout(reiser4_format_t *format, 
-				      reiser4_action_func_t action_func, void *data)
+				      format_action_func_t action_func, void *data)
 {
 	aal_assert("umka-1083", format != NULL, return -1);
 	aal_assert("umka-1084", action_func != NULL, return -1);
@@ -383,7 +383,7 @@ errno_t reiser4_format_skipped_layout(reiser4_format_t *format,
 }
 
 errno_t reiser4_format_format_layout(reiser4_format_t *format, 
-				     reiser4_action_func_t action_func, void *data)
+				     format_action_func_t action_func, void *data)
 {
 	aal_assert("umka-1076", format != NULL, return -1);
 	aal_assert("umka-1077", action_func != NULL, return -1);
@@ -393,7 +393,7 @@ errno_t reiser4_format_format_layout(reiser4_format_t *format,
 }
 
 errno_t reiser4_format_journal_layout(reiser4_format_t *format, 
-				      reiser4_action_func_t action_func, void *data)
+				      format_action_func_t action_func, void *data)
 {
 	aal_assert("umka-1078", format != NULL, return -1);
 	aal_assert("umka-1079", action_func != NULL, return -1);
@@ -403,7 +403,7 @@ errno_t reiser4_format_journal_layout(reiser4_format_t *format,
 }
 
 errno_t reiser4_format_alloc_layout(reiser4_format_t *format, 
-				    reiser4_action_func_t action_func, void *data)
+				    format_action_func_t action_func, void *data)
 {
 	aal_assert("umka-1080", format != NULL, return -1);
 	aal_assert("umka-1081", action_func != NULL, return -1);

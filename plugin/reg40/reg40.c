@@ -460,6 +460,15 @@ static int32_t reg40_write(object_entity_t *entity,
 	return wrote;
 }
 
+static errno_t reg40_layout(object_entity_t *reg, file_layout_func_t func,
+			    void *data)
+{
+	aal_assert("umka-1471", reg != NULL, return -1);
+	aal_assert("umka-1472", func != NULL, return -1);
+
+	return -1;
+}
+
 #endif
 
 static void reg40_close(object_entity_t *entity) {
@@ -518,10 +527,12 @@ static reiser4_plugin_t reg40_plugin = {
 		.create	    = reg40_create,
 		.write	    = reg40_write,
 		.truncate   = reg40_truncate,
+		.layout     = reg40_layout,
 #else
 		.create	    = NULL,
 		.write	    = NULL,
 		.truncate   = NULL,
+		.layout     = NULL,
 #endif
 		.valid	    = NULL,
 		.lookup	    = NULL,

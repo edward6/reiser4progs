@@ -354,7 +354,7 @@ uint32_t reiser4_file_offset(
 
 /* Seeks directory current position to passed pos */
 errno_t reiser4_file_seek(
-	reiser4_file_t *file,	    /* dir where position shopuld be chnaged */
+	reiser4_file_t *file,	    /* file where position shopuld be chnaged */
 	uint32_t offset)	    /* offset for seeking */
 {
 	aal_assert("umka-1129", file != NULL, return -1);
@@ -363,3 +363,16 @@ errno_t reiser4_file_seek(
 	return plugin_call(return -1, file->entity->plugin->file_ops, 
 			   seek, file->entity, offset);
 }
+
+errno_t reiser4_file_layout(
+	reiser4_file_t *file,       /* file we working with */
+	file_layout_func_t func,    /* layout callback */
+	void *data)                 /* user-spaecified data */
+{
+	aal_assert("umka-1469", file != NULL, return -1);
+	aal_assert("umka-1470", func != NULL, return -1);
+
+	return plugin_call(return -1, file->entity->plugin->file_ops, 
+			   layout, file->entity, func, data);
+}
+

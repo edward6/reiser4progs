@@ -41,7 +41,8 @@ enum debugfs_behav_flags {
 	BF_FORCE    = 1 << 0,
 	BF_QUIET    = 1 << 1,
 	BF_TFRAG    = 1 << 2,
-	BF_FFRAG    = 1 << 3
+	BF_DFRAG    = 1 << 3,
+	BF_FFRAG    = 1 << 4
 };
 
 typedef enum debugfs_behav_flags debugfs_behav_flags_t;
@@ -52,26 +53,28 @@ static void debugfs_print_usage(char *name) {
     
 	fprintf(stderr, 
 		"Common options:\n"
-		"  -? | -h | --help               prints program usage.\n"
-		"  -V | --version                 prints current version.\n"
-		"  -q | --quiet                   forces creating filesystem without\n"
+		"  -?, -h | --help                prints program usage.\n"
+		"  -V, --version                  prints current version.\n"
+		"  -q, --quiet                    forces creating filesystem without\n"
 		"                                 any questions.\n"
-		"  -f | --force                   makes debugfs to use whole disk, not\n"
+		"  -f, --force                    makes debugfs to use whole disk, not\n"
 		"                                 block device or mounted partition.\n"
 		"Print options:\n"
-		"  -i | --print-items             forces debugfs.reiser4 to print items\n"
+		"  -i, --print-items              forces debugfs.reiser4 to print items\n"
 		"                                 content if --print-tree is specified\n"
-		"  -t | --print-tree              prints the whole tree (default).\n"
-		"  -j | --print-journal           prints journal.\n"
-		"  -s | --print-super             prints the both super blocks.\n"
-		"  -b | --print-block-alloc       prints block allocator data.\n"
-		"  -o | --print-oid-alloc         prints oid allocator data.\n"
+		"  -t, --print-tree               prints the whole tree (default).\n"
+		"  -j, --print-journal            prints journal.\n"
+		"  -s, --print-super              prints the both super blocks.\n"
+		"  -b, --print-block-alloc        prints block allocator data.\n"
+		"  -o, --print-oid-alloc          prints oid allocator data.\n"
 		"Measurement options:\n"
-		"  -T | --total-fragmentation     measures total tree fragmentation\n"
-		"  -F | --files-fragmentation     measures average files fragmentation\n"
+		"  -T, --tree-fragmentation       measures total tree fragmentation\n"
+		"  -D, --data-fragmentation       measures average files fragmentation\n"
+		"  -F, --file-fragmentation FILE  measures fragmentation of the specified\n"
+		"                                 file\n"
 		"Plugins options:\n"
-		"  -e | --profile PROFILE         profile to be used.\n"
-		"  -K | --known-profiles          prints known profiles.\n");
+		"  -e, --profile PROFILE          profile to be used.\n"
+		"  -K, --known-profiles           prints known profiles.\n");
 }
 
 /* Initializes used by debugfs exception streams */
@@ -303,7 +306,7 @@ static errno_t debugfs_print_journal(reiser4_fs_t *fs) {
 	return 0;
 }
 
-struct total_frag_hint {
+struct tree_frag_hint {
 	reiser4_tree_t *tree;
 	aal_gauge_t *gauge;
 
@@ -317,7 +320,7 @@ static errno_t debugfs_calc_joint(
 {
 	uint32_t i, level;
 	reiser4_node_t *node = joint->node;
-	struct total_frag_hint *hint = (struct total_frag_hint *)data;
+	struct tree_frag_hint *hint = (struct tree_frag_hint *)data;
 
 	level = plugin_call(return -1, node->entity->plugin->node_ops,
 			    get_level, node->entity);
@@ -366,31 +369,102 @@ static errno_t debugfs_calc_joint(
 	return 0;
 }
 
-static errno_t debugfs_total_fragmentation(reiser4_fs_t *fs) {
+static errno_t debugfs_tree_fragmentation(reiser4_fs_t *fs) {
 	aal_gauge_t *gauge;
-	struct total_frag_hint total_frag_hint;
+	struct tree_frag_hint hint;
 
-	aal_memset(&total_frag_hint, 0, sizeof(total_frag_hint));
+	aal_memset(&hint, 0, sizeof(hint));
 	
-	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "Estimating fragmentation",
+	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "Tree fragmentation",
 				       progs_gauge_handler, NULL)))
 		return -1;
 	
-	total_frag_hint.tree = fs->tree;
-	total_frag_hint.gauge = gauge;
+	hint.tree = fs->tree;
+	hint.gauge = gauge;
 
 	aal_gauge_start(gauge);
 	
-	reiser4_joint_traverse(fs->tree->root, (void *)&total_frag_hint,
-			       debugfs_open_joint, debugfs_calc_joint, NULL, NULL, NULL, NULL);
+	reiser4_joint_traverse(fs->tree->root, (void *)&hint, debugfs_open_joint,
+			       debugfs_calc_joint, NULL, NULL, NULL, NULL);
 
 	aal_gauge_free(gauge);
 
-	printf("%.2f\n", total_frag_hint.total > 0 ?
-	       (double)total_frag_hint.bad / total_frag_hint.total : 0);
+	printf("%.2f\n", hint.total > 0 ? (double)hint.bad / hint.total : 0);
 	
 	return 0;
 };
+
+struct file_frag_hint {
+	reiser4_fs_t *fs;
+	aal_gauge_t *gauge;
+
+	blk_t curr;
+	count_t total, bad;
+};
+
+static errno_t callback_file_fragmentation(object_entity_t *entity,
+					   uint64_t blk, void *data)
+{
+	int64_t delta;
+	struct file_frag_hint *hint = (struct file_frag_hint *)data;
+
+	if (hint->curr == 0) {
+		hint->curr = blk;
+		return 0;
+	}
+		
+	delta = hint->curr - blk;
+
+	if (labs(delta) > 1)
+		hint->bad++;
+
+	hint->total++;
+
+	return 0;
+}
+
+static errno_t debugfs_file_fragmentation(reiser4_fs_t *fs, char *filename) {
+	aal_gauge_t *gauge;
+	reiser4_file_t *file;
+	struct file_frag_hint hint;
+
+	if (!(file = reiser4_file_open(fs, filename)))
+		return -1;
+
+	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "File fragmentation",
+				       progs_gauge_handler, NULL)))
+		goto error_free_file;
+	
+	aal_memset(&hint, 0, sizeof(hint));
+	
+	hint.fs = fs;
+	hint.gauge = gauge;
+
+	if (reiser4_file_layout(file, callback_file_fragmentation, (void *)&hint)) {
+		aal_exception_error("Can't enumerate blocks occupied by %s",
+				    filename);
+		goto error_free_gauge;
+	}
+	
+	aal_gauge_free(gauge);
+
+	printf("%.2f\n", hint.total > 0 ? (double)hint.bad / hint.total : 0);
+
+	reiser4_file_close(file);
+	
+	return 0;
+
+ error_free_gauge:
+	aal_gauge_free(gauge);
+ error_free_file:
+	reiser4_file_close(file);
+	return -1;
+}
+
+static errno_t debugfs_data_fragmentation(reiser4_fs_t *fs) {
+	aal_exception_info("Sorry, not implemented yet!");
+	return -1;
+}
 
 int main(int argc, char *argv[]) {
 	int c;
@@ -399,6 +473,7 @@ int main(int argc, char *argv[]) {
 	debugfs_behav_flags_t behav_flags = 0;
     
 	char *host_dev;
+	char *filename = NULL;
 	char *profile_label = "smart40";
     
 	reiser4_fs_t *fs;
@@ -416,8 +491,9 @@ int main(int argc, char *argv[]) {
 		{"print-super", no_argument, NULL, 's'},
 		{"print-block-alloc", no_argument, NULL, 'b'},
 		{"print-oid-alloc", no_argument, NULL, 'o'},
-		{"total-fragmentation", no_argument, NULL, 'T'},
-		{"files-fragmentation", no_argument, NULL, 'F'},
+		{"tree-fragmentation", no_argument, NULL, 'T'},
+		{"data-fragmentation", no_argument, NULL, 'D'},
+		{"file-fragmentation", required_argument, NULL, 'F'},
 		{"known-profiles", no_argument, NULL, 'K'},
 		{"quiet", no_argument, NULL, 'q'},
 		{0, 0, 0, 0}
@@ -433,7 +509,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbojiTF",
+	while ((c = getopt_long_only(argc, argv, "hVe:qfKstbojiTDF:",
 				     long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -467,11 +543,17 @@ int main(int argc, char *argv[]) {
 		case 'T':
 			behav_flags |= BF_TFRAG;
 			break;
+		case 'D':
+			behav_flags |= BF_DFRAG;
+			break;
 		case 'F':
 			behav_flags |= BF_FFRAG;
-			
-			aal_exception_info("Sorry, not implemented yet!");
-			return NO_ERROR;
+			if (aal_strlen((filename = optarg)) == 0) {
+				aal_exception_error("File name is required for "
+						    "--file-fragmentation option.");
+				return USER_ERROR;
+			}
+			break;
 		case 'f':
 			behav_flags |= BF_FORCE;
 			break;
@@ -571,38 +653,53 @@ int main(int argc, char *argv[]) {
 				   "--print-tree is specified.");
 	}
 
-	if ((behav_flags & BF_TFRAG)) {
-		if (debugfs_total_fragmentation(fs))
-			goto error_free_fs;
-		print_flags = 0;
-	}
+	if (behav_flags != 0) {
+		if ((behav_flags & BF_TFRAG)) {
+			if (debugfs_tree_fragmentation(fs))
+				goto error_free_fs;
+			print_flags = 0;
+		}
+
+		if ((behav_flags & BF_DFRAG)) {
+			if (debugfs_data_fragmentation(fs))
+				goto error_free_fs;
+			print_flags = 0;
+		}
+
+		if ((behav_flags & BF_FFRAG)) {
+			if (debugfs_file_fragmentation(fs, filename))
+				goto error_free_fs;
+			print_flags = 0;
+		}
 	
-	if (print_flags & PF_SUPER) {
-		if (debugfs_print_master(fs))
-			goto error_free_fs;
+	} else {
+		if (print_flags & PF_SUPER) {
+			if (debugfs_print_master(fs))
+				goto error_free_fs;
 	
-		if (debugfs_print_format(fs))
-			goto error_free_fs;
-	}
+			if (debugfs_print_format(fs))
+				goto error_free_fs;
+		}
     
-	if (print_flags & PF_OID) {
-		if (debugfs_print_oid(fs))
-			goto error_free_fs;
-	}
+		if (print_flags & PF_OID) {
+			if (debugfs_print_oid(fs))
+				goto error_free_fs;
+		}
     
-	if (print_flags & PF_ALLOC) {
-		if (debugfs_print_alloc(fs))
-			goto error_free_fs;
-	}
+		if (print_flags & PF_ALLOC) {
+			if (debugfs_print_alloc(fs))
+				goto error_free_fs;
+		}
     
-	if (print_flags & PF_JOURNAL) {
-		if (debugfs_print_journal(fs))
-			goto error_free_fs;
-	}
+		if (print_flags & PF_JOURNAL) {
+			if (debugfs_print_journal(fs))
+				goto error_free_fs;
+		}
     
-	if (print_flags & PF_TREE) {
-		if (debugfs_print_tree(fs, print_flags))
-			goto error_free_fs;
+		if (print_flags & PF_TREE) {
+			if (debugfs_print_tree(fs, print_flags))
+				goto error_free_fs;
+		}
 	}
     
 	/* Deinitializing filesystem instance and device instance */

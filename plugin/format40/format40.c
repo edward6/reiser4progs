@@ -67,7 +67,8 @@ static uint32_t format40_get_stamp(object_entity_t *entity) {
 
 /* This function describes journal layout in format40 */
 static errno_t format40_journal_layout(object_entity_t *entity,
-				       reiser4_action_func_t action_func, void *data)
+				       format_action_func_t action_func,
+				       void *data)
 {
 	blk_t blk;
 	format40_t *format = (format40_t *)entity;
@@ -93,7 +94,7 @@ static errno_t format40_journal_layout(object_entity_t *entity,
 #define CRC_SIZE 4
 
 static errno_t format40_alloc_layout(object_entity_t *entity,
-				     reiser4_action_func_t action_func, void *data) 
+				     format_action_func_t action_func, void *data) 
 {
 	count_t bpb;
 	blk_t blk, start;
@@ -116,7 +117,7 @@ static errno_t format40_alloc_layout(object_entity_t *entity,
 }
 
 static errno_t format40_skipped_layout(object_entity_t *entity,
-				       reiser4_action_func_t action_func, void *data) 
+				       format_action_func_t action_func, void *data) 
 {
 	blk_t blk, offset;
 	format40_t *format = (format40_t *)entity;
@@ -135,7 +136,7 @@ static errno_t format40_skipped_layout(object_entity_t *entity,
 }
 
 static errno_t format40_format_layout(object_entity_t *entity,
-				      reiser4_action_func_t action_func, void *data) 
+				      format_action_func_t action_func, void *data) 
 {
 	blk_t blk, offset;
 	format40_t *format = (format40_t *)entity;
