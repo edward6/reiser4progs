@@ -106,19 +106,14 @@ error_free_journal:
 }
 
 /* Replays specified journal. Returns error code */
-errno_t reiser4_journal_replay(
+int reiser4_journal_replay(
     reiser4_journal_t *journal	/* journal to be replayed */
 ) {
     aal_assert("umka-727", journal != NULL, return -1);
     
     /* Calling plugin for actual replaying */
-    if (plugin_call(return -1, journal->entity->plugin->journal_ops, 
-	replay, journal->entity)) 
-    {
-	aal_exception_error("Can't replay journal");
-	return -1;
-    }
-    return 0;
+    return plugin_call(return -1, journal->entity->plugin->journal_ops, 
+	replay, journal->entity);
 }
 
 /* Saves journal strucres on jouranl's device */

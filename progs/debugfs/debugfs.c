@@ -172,10 +172,11 @@ static errno_t debugfs_print_joint(
 }
 
 static errno_t debugfs_print_tree(reiser4_fs_t *fs) {
+    printf("\n");
+    
     reiser4_joint_traverse(fs->tree->root, (void *)fs->tree,
 	debugfs_open_joint, debugfs_print_joint, NULL, NULL, NULL, NULL);
     
-    printf("\n");
     return 0;
 }
 
@@ -184,6 +185,8 @@ static errno_t debugfs_print_super(reiser4_fs_t *fs) {
 
     aal_memset(buff, 0, sizeof(buff));
     
+    printf("\n");
+    
     if (plugin_call(return -1, fs->format->entity->plugin->format_ops,
 	print, fs->format->entity, buff, sizeof(buff), 0))
     {
@@ -191,7 +194,7 @@ static errno_t debugfs_print_super(reiser4_fs_t *fs) {
 	return -1;
     }
     
-    printf(buff); printf("\n");
+    printf(buff);
     
     return 0;
 }

@@ -4,6 +4,7 @@
 */
 
 #include <aal/aal.h>
+#include <fcntl.h>
 
 /* 
     This macro is used for checking whether specified routine from the device 
@@ -62,6 +63,11 @@ aal_device_t *aal_device_open(
     device->blocksize = blocksize;
 
     return device;
+}
+
+int aal_device_readonly(aal_device_t *device) {
+    aal_assert("umka-1291", device != NULL, return -1);
+    return (device->flags & O_RDONLY) == O_RDONLY;
 }
 
 /* Closes device. Frees all assosiated memory */

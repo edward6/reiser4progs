@@ -171,10 +171,13 @@ reiser4_format_t *reiser4_format_reopen(
     reiser4_format_t *format,	/* format to be reopened */
     aal_device_t *device	/* device format will be reopened on */
 ) {
+    rpid_t pid;
     aal_assert("umka-428", format != NULL, return NULL);
 
+    pid = format->entity->plugin->h.id;
+    
     reiser4_format_close(format);
-    return reiser4_format_open(device, format->entity->plugin->h.id);
+    return reiser4_format_open(device, pid);
 }
 
 /* Closes passed disk-format */

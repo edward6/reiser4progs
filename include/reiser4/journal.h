@@ -23,7 +23,7 @@ extern reiser4_journal_t *reiser4_journal_create(reiser4_format_t *format,
     aal_device_t *device, void *params);
 
 extern errno_t reiser4_journal_sync(reiser4_journal_t *journal);
-extern errno_t reiser4_journal_replay(reiser4_journal_t *journal);
+extern int reiser4_journal_replay(reiser4_journal_t *journal);
 
 #endif
 

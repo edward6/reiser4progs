@@ -97,5 +97,7 @@ extern count_t aal_device_len(aal_device_t *device);
 extern char *aal_device_name(aal_device_t *device);
 extern char *aal_device_error(aal_device_t *device);
 
+extern int aal_device_readonly(aal_device_t *device);
+
 #endif
 

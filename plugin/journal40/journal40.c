@@ -231,23 +231,100 @@ static void journal40_close(reiser4_entity_t *entity) {
     aal_free(journal);
 }
 
+static errno_t journal40_replay_transaction(journal40_t *journal, 
+    aal_block_t *tx_block) 
+{
+    uint32_t total;
+    uint64_t log_blk;
+    uint32_t end_blk;
+    
+    aal_device_t *device;
+    aal_block_t *log_block;
+
+    journal40_footer_t *footer;
+    journal40_lr_header_t *lr_header;
+    journal40_tx_header_t *tx_header;
+    
+    device = journal->device;
+    tx_header = (journal40_tx_header_t *)tx_block->data;
+    
+    end_blk = aal_block_number(tx_block);
+    log_blk = get_th_next_block(tx_header);
+    total = get_th_total(tx_header);
+    
+    while (log_blk != end_blk) {
+	uint32_t i, capacity;
+	journal40_lr_entry_t *entry;
+	    
+	if (!(log_block = aal_block_open(device, log_blk))) {
+	    aal_exception_error("Can't read block %llu while replaying "
+		"the journal. %s.", log_blk, device->error);
+	    return -1;
+	}
+
+	lr_header = (journal40_lr_header_t *)log_block->data;
+	log_blk = get_lh_next_block(lr_header);
+
+	entry = (journal40_lr_entry_t *)(lr_header + 1);
+	
+	capacity = (device->blocksize - sizeof(journal40_lr_header_t)) / 
+	    sizeof(journal40_lr_entry_t);
+	
+	for (i = 0; i < capacity; i++) {
+	    aal_block_t *block = aal_block_open(device, get_le_wandered(entry));
+	    
+	    if (!block) {
+		aal_exception_error("Can't read block %llu while replaying "
+		    "the journal. %s.", get_le_wandered(entry), device->error);
+		return -1;
+	    }
+
+	    aal_block_relocate(block, get_le_original(entry));
+	    
+	    if (aal_block_sync(block)) {
+		aal_exception_error("Can't write block %llu.", 
+		    aal_block_number(block));
+		
+		aal_block_free(block);
+		return -1;
+	    }
+	    
+	    aal_block_free(block);
+	    entry++;
+	}
+
+	aal_block_free(log_block);
+
+	footer = (journal40_footer_t *)journal->footer->data;
+	
+	/* Updating journal footer */
+	set_jf_last_flushed(footer, aal_block_number(tx_block));
+	set_jf_free_blocks(footer, get_th_free_blocks(tx_header));
+	set_jf_nr_files(footer, get_th_nr_files(tx_header));
+	set_jf_next_oid(footer, get_th_next_oid(tx_header));
+    }
+    
+    return 0;
+}
+
 /* 
     Replays oldest transaction. Returns 1 if replayed, 0 if there are no not 
     flushed transactions and -1 in the case of error.
 */
 static int format40_replay_oldest(journal40_t *journal) {
+    int ret;
     uint64_t prev_tx;
     uint64_t last_flushed_tx;
     uint64_t last_commited_tx;
 
-    uint32_t total;
-    uint64_t log_record_blk;
-    
-    aal_block_t *block;
+    aal_block_t *tx_block;
     journal40_tx_header_t *tx_header;
     
-    last_commited_tx = get_jh_last_commited((journal40_header_t *)journal->header);
-    last_flushed_tx = get_jf_last_flushed((journal40_footer_t *)journal->footer);
+    last_commited_tx = 
+	get_jh_last_commited((journal40_header_t *)journal->header->data);
+    
+    last_flushed_tx = 
+	get_jf_last_flushed((journal40_footer_t *)journal->footer->data);
     
     /* Check if all transactions are replayed */
     if (last_commited_tx == last_flushed_tx)
@@ -258,44 +335,39 @@ static int format40_replay_oldest(journal40_t *journal) {
     /* Searching for oldest not flushed transaction */
     while (1) {
 
-	if (!(block = aal_block_open(journal->device, prev_tx)))
+	if (!(tx_block = aal_block_open(journal->device, prev_tx))) {
+	    aal_exception_error("Can't read block %llu while replaying "
+		"the journal. %s.", prev_tx, journal->device->error);
 	    return -1;
+	}
 	
-	tx_header = (journal40_tx_header_t *)block->data;
+	tx_header = (journal40_tx_header_t *)tx_block->data;
 	prev_tx = get_th_prev_tx(tx_header);
 
 	if (prev_tx == last_flushed_tx)
 	    break;
 
-	aal_block_free(block);
+	aal_block_free(tx_block);
     }
     
-    total = get_th_total(tx_header);
-    log_record_blk = get_th_next_block(tx_header);
+    ret = journal40_replay_transaction(journal, tx_block);
+    aal_block_free(tx_block);
 
-/*    if (journal40_replay_transaction(tx_header))
-	goto error_free_block;*/
-
-    aal_block_free(block);
-    return 1;
-    
-error_free_block:
-    aal_block_free(block);
-    return -1;
+    return (ret == 0);
 }
 
 static int journal40_replay(reiser4_entity_t *entity) {
-    int ret, nr_tran = 0;
+    int ret, trans_nr = 0;
     
     aal_assert("umka-412", entity != NULL, return -1);
 
     while ((ret = format40_replay_oldest((journal40_t *)entity)) == 1)
-	nr_tran++;
+	trans_nr++;
     
-    if (ret < 0)
-	aal_exception_error("Can't replay all transactions.");
+    if (trans_nr)
+	journal40_sync(entity);
     
-    return nr_tran;
+    return trans_nr;
 }
 
 static reiser4_plugin_t journal40_plugin = {
