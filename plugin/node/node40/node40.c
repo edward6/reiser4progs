@@ -725,7 +725,6 @@ static errno_t node40_predict_units(node40_t *src_node,
 	int mergeable;
 	uint32_t dst_items;
 	uint32_t src_items;
-	
 	item_entity_t src_item;
 	item_entity_t dst_item;
 
@@ -742,65 +741,162 @@ static errno_t node40_predict_units(node40_t *src_node,
 	aal_memset(&src_item, 0, sizeof(src_item));
 	aal_memset(&dst_item, 0, sizeof(dst_item));
 	
-	/* Predicting how many units may be shifted */
-	if (hint->flags & SF_LEFT) {
-		/*
-		  Initializing items to be examaned by the predict method of
-		  corresponding item plugin.
-		*/
-		node40_item(&src_item, src_node, 0);
-		node40_item(&dst_item, dst_node, dst_items - 1);
+	/*
+	  Initializing items to be examaned by the predict method of
+	  corresponding item plugin.
+	*/
+	node40_item(&src_item, src_node,
+		    (hint->flags & SF_LEFT ? 0 : src_items - 1));
 			
-		if (!src_item.plugin->item_ops.predict)
-			return 0;
+	if (!src_item.plugin->item_ops.predict)
+		return 0;
 
-		/* Checking if items are mergeable */
-		if ((mergeable = node40_mergeable(&src_item, &dst_item))) {
+	/* Checking if items are mergeable */
+	mergeable = dst_items > 0;
 
-			if (src_item.plugin->item_ops.predict(&src_item,
-							      &dst_item, hint))
-				return -1;
-				
-		} else {
-			hint->part -= sizeof(item40_header_t);
-			if (src_item.plugin->item_ops.predict(&src_item, NULL, hint))
-				return -1;
-		}
-
-		if (hint->flags & SF_MOVIP)
-			hint->pos.item = dst_items - 1;
-
-	} else {
-		/* Initializing src item */
-		node40_item(&src_item, src_node, src_items - 1);
-
-		mergeable = dst_items > 0;
+	if (dst_items > 0) {
+		node40_item(&dst_item, dst_node,
+			    (hint->flags & SF_LEFT ? dst_items - 1 : 0));
 		
-		if (dst_items > 0) {
+		mergeable = node40_mergeable(&src_item, &dst_item);
+	}
+
+	if (!src_item.plugin->item_ops.predict)
+		return 0;
+	
+	if (mergeable) {
+		if (src_item.plugin->item_ops.predict(&src_item,
+						      &dst_item, hint))
+			return -1;
+				
+	} else {
+		hint->part -= sizeof(item40_header_t);
+		if (src_item.plugin->item_ops.predict(&src_item, NULL, hint))
+			return -1;
+	}
+
+	if (hint->flags & SF_MOVIP)
+		hint->pos.item = (hint->flags & SF_LEFT ? dst_items - 1 : 0);
+		
+	return 0;
+}
+
+static errno_t node40_shift_units(node40_t *src_node,
+				  node40_t *dst_node, 
+				  shift_hint_t *hint)
+{
+	int mergeable;
+	reiser4_pos_t pos;
+	uint32_t src_items;
+	uint32_t dst_items;
+	item40_header_t *ih;
+
+	item_entity_t src_item;
+	item_entity_t dst_item;
+
+	aal_assert("umka-1627", hint != NULL, return -1);
+	aal_assert("umka-1625", src_node != NULL, return -1);
+	aal_assert("umka-1626", dst_node != NULL, return -1);
+	
+	/*
+	  If after moving the items we still having some amount of free space in
+	  destination node, we should try to shift units from the last item to
+	  first item of destination node.
+	*/
+	if (hint->units == 0 || hint->part == 0)
+		return 0;
+
+	src_items = nh40_get_num_items(src_node);
+	dst_items = nh40_get_num_items(dst_node);
+
+	aal_memset(&src_item, 0, sizeof(src_item));
+	aal_memset(&dst_item, 0, sizeof(dst_item));
+
+	node40_item(&src_item, src_node, src_items - 1);
+	
+	mergeable = dst_items > 0;
+	
+	if (dst_items > 0) {
+		if (hint->flags & SF_LEFT)
+			node40_item(&dst_item, dst_node, dst_items - 1);
+		else
 			node40_item(&dst_item, dst_node, 0);
 
-			/* Calling predict method from the item plugin */
-			if (!src_item.plugin->item_ops.predict)
-				return 0;
-
-			mergeable = node40_mergeable(&src_item, &dst_item);
-		}
-				
-		if (mergeable) {
-			if (src_item.plugin->item_ops.predict(&src_item,
-							      &dst_item, hint))
-				return -1;
-		} else {
-			hint->part -= sizeof(item40_header_t);
-
-			if (src_item.plugin->item_ops.predict(&src_item,
-							      NULL, hint))
-				return -1;
-		}
-
-		if (hint->flags & SF_MOVIP)
-			hint->pos.item = 0;
+		mergeable = node40_mergeable(&src_item, &dst_item);
 	}
+	
+	if (!src_item.plugin->item_ops.count)
+		return 0;
+	
+	if (src_item.plugin->item_ops.count(&src_item) <= 1)
+		return 0;
+	
+	/* Checking if items are mergeable */
+	if (mergeable) {
+		if (hint->flags & SF_LEFT) {
+			pos.item = dst_items - 1;
+			pos.unit = dst_item.plugin->item_ops.count(&dst_item);
+		} else {
+			pos.item = 0;
+			pos.unit = 0;
+		}
+
+		if (node40_expand(dst_node, &pos, hint->part)) {
+			aal_exception_error("Can't expand item for "
+					    "shifting units into it.");
+			return -1;
+		}
+		
+		ih = node40_ih_at(dst_node, pos.item);
+
+		/*
+		  Reinitializing dst item after it was expanded by node40_expand
+		  function.
+		*/
+		node40_item(&dst_item, dst_node, pos.item);
+	} else {
+		if (hint->flags & SF_LEFT) {
+			pos.item = dst_items;
+			pos.unit = dst_item.plugin->item_ops.count(&dst_item);
+		} else {
+			pos.item = 0;
+			pos.unit = ~0ul;
+		}
+		
+		if (node40_expand(dst_node, &pos, hint->part)) {
+			aal_exception_error("Can't expand node for "
+					    "shifting units into it.");
+			return -1;
+		}
+		
+		nh40_inc_num_items(dst_node, 1);
+
+		/* Setting up new item fiedls */
+		ih = node40_ih_at(dst_node, pos.item);
+		ih40_set_pid(ih, src_item.plugin->h.sign.id);
+		aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
+
+		/*
+		  Initializing dst item after it was created by node40_expand
+		  function.
+		*/
+		node40_item(&dst_item, dst_node, pos.item);
+	}
+
+	/* Calling item method shift */
+	if (plugin_call(return -1, src_item.plugin->item_ops, shift,
+			&src_item, &dst_item, hint))
+		return -1;
+
+	aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
+
+	/* Updating src item length */
+	ih = node40_ih_at(src_node, src_item.pos);
+	ih40_dec_len(ih, hint->part);
+
+	/* Updating source node fields */
+	nh40_inc_free_space(src_node, hint->part);
+	nh40_dec_free_space_start(src_node, hint->part);
 
 	return 0;
 }
@@ -922,126 +1018,6 @@ static errno_t node40_predict_items(node40_t *src_node,
 	}
 	
 	hint->part = space;
-
-	return 0;
-}
-
-static errno_t node40_shift_units(node40_t *src_node,
-				  node40_t *dst_node, 
-				  shift_hint_t *hint)
-{
-	int mergeable;
-	reiser4_pos_t pos;
-	uint32_t src_items;
-	uint32_t dst_items;
-	item40_header_t *ih;
-
-	item_entity_t src_item;
-	item_entity_t dst_item;
-
-	aal_assert("umka-1627", hint != NULL, return -1);
-	aal_assert("umka-1625", src_node != NULL, return -1);
-	aal_assert("umka-1626", dst_node != NULL, return -1);
-	
-	/*
-	  If after moving the items we still having some amount of free space in
-	  destination node, we should try to shift units from the last item to
-	  first item of destination node.
-	*/
-	if (hint->units == 0 || hint->part == 0)
-		return 0;
-
-	src_items = nh40_get_num_items(src_node);
-	dst_items = nh40_get_num_items(dst_node);
-
-	aal_memset(&src_item, 0, sizeof(src_item));
-	aal_memset(&dst_item, 0, sizeof(dst_item));
-
-	node40_item(&src_item, src_node, src_items - 1);
-	
-	mergeable = dst_items > 0;
-	
-	if (dst_items > 0) {
-		if (hint->flags & SF_LEFT)
-			node40_item(&dst_item, dst_node, dst_items - 1);
-		else
-			node40_item(&dst_item, dst_node, 0);
-
-		mergeable = node40_mergeable(&src_item, &dst_item);
-	}
-	
-	if (!src_item.plugin->item_ops.count)
-		return 0;
-	
-	if (src_item.plugin->item_ops.count(&src_item) <= 1)
-		return 0;
-	
-	/* Checking if items are mergeable */
-	if (mergeable) {
-		if (hint->flags & SF_LEFT) {
-			pos.item = dst_items - 1;
-			pos.unit = dst_item.plugin->item_ops.count(&dst_item);
-		} else {
-			pos.item = 0;
-			pos.unit = 0;
-		}
-
-		if (node40_expand(dst_node, &pos, hint->part)) {
-			aal_exception_error("Can't expand item for "
-					    "shifting units into it.");
-			return -1;
-		}
-		
-		ih = node40_ih_at(dst_node, pos.item);
-
-		/*
-		  Reinitializing dst item after it was expanded by node40_expand
-		  function.
-		*/
-		node40_item(&dst_item, dst_node, pos.item);
-	} else {
-		if (hint->flags & SF_LEFT) {
-			pos.item = dst_items;
-			pos.unit = dst_item.plugin->item_ops.count(&dst_item);
-		} else {
-			pos.item = 0;
-			pos.unit = ~0ul;
-		}
-		
-		if (node40_expand(dst_node, &pos, hint->part)) {
-			aal_exception_error("Can't expand node for "
-					    "shifting units into it.");
-			return -1;
-		}
-		
-		nh40_inc_num_items(dst_node, 1);
-
-		/* Setting up new item fiedls */
-		ih = node40_ih_at(dst_node, pos.item);
-		ih40_set_pid(ih, src_item.plugin->h.sign.id);
-		aal_memcpy(&ih->key, src_item.key.body, sizeof(ih->key));
-
-		/*
-		  Initializing dst item after it was created by node40_expand
-		  function.
-		*/
-		node40_item(&dst_item, dst_node, pos.item);
-	}
-
-	/* Calling item method shift */
-	if (plugin_call(return -1, src_item.plugin->item_ops, shift,
-			&src_item, &dst_item, hint))
-		return -1;
-
-	aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
-
-	/* Updating src item length */
-	ih = node40_ih_at(src_node, src_item.pos);
-	ih40_dec_len(ih, hint->part);
-
-	/* Updating source node fields */
-	nh40_inc_free_space(src_node, hint->part);
-	nh40_dec_free_space_start(src_node, hint->part);
 
 	return 0;
 }
@@ -1188,6 +1164,13 @@ static errno_t node40_shift(object_entity_t *entity, object_entity_t *neighb,
 	node40_t *dst_node = (node40_t *)neighb;
 
 	flags = hint->flags;
+	
+/*	if (node40_predict_units(src_node, dst_node, hint))
+		return -1;
+
+	if (node40_shift_units(src_node, dst_node, hint))
+		return 0;*/
+
 	
 	/*
 	  Estimating shift in order to determine how many items will be shifted,

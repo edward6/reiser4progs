@@ -195,9 +195,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	flags = hint->flags;
 	hint->flags &= ~SF_MOVIP;
 	
-	while (!(hint->flags & SF_MOVIP) && src_units > 1 &&
-	       cur < direntry40_count(src_item))
-	{
+	while (!(hint->flags & SF_MOVIP) && cur < direntry40_count(src_item)) {
 		len = direntry40_unitlen(direntry, cur);
 
 		if (space < len + sizeof(entry40_t))
