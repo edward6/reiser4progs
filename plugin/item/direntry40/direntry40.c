@@ -267,6 +267,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	uint32_t offset;
 	void *src, *dst;
 	entry40_t *entry;
+	uint32_t headers;
 	
 	direntry40_t *src_direntry;
 	direntry40_t *dst_direntry;
@@ -288,7 +289,8 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	dst_units = de40_get_count(dst_direntry);
 	
 	aal_assert("umka-1604", src_units >= hint->units, return -1);
-
+	headers = hint->units * sizeof(entry40_t);
+		
 	if (hint->flags & SF_LEFT) {
 		
 		if (dst_units > 0) {
@@ -299,7 +301,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			src = (void *)dst_direntry + sizeof(direntry40_t) +
 				(dst_units * sizeof(entry40_t));
 			
-			dst = src + (hint->units * sizeof(entry40_t));
+			dst = src + headers;
 
 			size = len - sizeof(direntry40_t) -
 				dst_units * sizeof(entry40_t);
@@ -309,10 +311,8 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			/* Updating offsets of dst direntry */
 			entry = direntry40_entry(dst_direntry, 0);
 
-			for (i = 0; i < dst_units; i++, entry++) {
-				uint32_t inc = hint->units * sizeof(entry40_t);
-				en40_inc_offset(entry, inc);
-			}
+			for (i = 0; i < dst_units; i++, entry++)
+				en40_inc_offset(entry, headers);
 		}
 
                 /* Copying entry headers */
@@ -321,18 +321,21 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		dst = (void *)dst_direntry + sizeof(direntry40_t) +
 			(dst_units * sizeof(entry40_t));
 		
-		size = hint->units * sizeof(entry40_t);
-
-		aal_memcpy(dst, src, size);
+		aal_memcpy(dst, src, headers);
 
 		/* Copyings entry bodies */
 		src = (void *)src_direntry + en40_get_offset((entry40_t *)src);
 
-		entry = direntry40_entry(dst_direntry, dst_units - 1);
-		dst = (void *)dst_direntry + en40_get_offset(entry) +
-			direntry40_unit_len(dst_direntry, dst_units - 1);
+		/* Calculating body length */
+		len = 0;
 		
-		size = hint->part - (hint->units * sizeof(entry40_t));
+		for (i = 0; i < dst_units; i++)
+			len = direntry40_unit_len(dst_direntry, i);
+			
+		dst = (void *)dst_direntry + sizeof(direntry40_t) +
+			((dst_units + hint->units) * sizeof(entry40_t)) + len;
+		
+		size = hint->part - headers;
 
 		/* FIXME-UMKA: Is this enough reliable? */
 		if (dst_units == 0)
@@ -397,7 +400,8 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			
 			/* Moving entry headers of dst direntry */
 			src = (void *)dst_direntry + sizeof(direntry40_t);
-			dst = src + (hint->units * sizeof(entry40_t));
+			
+			dst = src + headers;
 			size = len - sizeof(direntry40_t);
 
 			aal_memmove(dst, src, size);
@@ -411,8 +415,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			/* Moving entry bodies of dst direntry */
 			src = dst + (dst_units * sizeof(entry40_t));
 
-			dst = src + (hint->part - (hint->units *
-						   sizeof(entry40_t)));
+			dst = src + (hint->part - headers);
 				
 			size -= (dst_units * sizeof(entry40_t));
 			
@@ -424,9 +427,8 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			((src_units - hint->units) * sizeof(entry40_t));
 
 		dst = (void *)dst_direntry + sizeof(direntry40_t);
-		size = hint->units * sizeof(entry40_t);
 
-		aal_memcpy(dst, src, size);
+		aal_memcpy(dst, src, headers);
 
 		/* Copyings entry bodies */
 		src = (void *)src_direntry + en40_get_offset((entry40_t *)src);
@@ -434,7 +436,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		dst = (void *)dst_direntry + sizeof(direntry40_t) +
 			((hint->units + dst_units) * sizeof(entry40_t));
 			
-		size = hint->part - (hint->units * sizeof(entry40_t));
+		size = hint->part - headers;
 
 		/* FIXME-UMKA: Is this enough reliable? */
 		if (dst_units == 0)
@@ -445,7 +447,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		/* Updating offset of dst direntry */
 		entry = direntry40_entry(dst_direntry, 0);
 		offset = dst - (void *)dst_direntry;
-			
+		
 		for (i = 0; i < hint->units; i++, entry++) {
 			en40_set_offset(entry, offset);
 			offset += direntry40_unit_len(dst_direntry, i);
@@ -457,7 +459,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			src = (void *)src_direntry + sizeof(direntry40_t) +
 				(src_units * sizeof(entry40_t));
 			
-			dst = src - (hint->units * sizeof(entry40_t));
+			dst = src - headers;
 
 			size = src_item->len - sizeof(direntry40_t) -
 				(src_units * sizeof(entry40_t));
@@ -467,10 +469,8 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			/* Updating offsets of src direntry */
 			entry = direntry40_entry(src_direntry, 0);
 			
-			for (i = 0; i < src_units - hint->units; i++, entry++) {
-				uint32_t offset = hint->units * sizeof(entry40_t);
-				en40_dec_offset(entry, offset);
-			}
+			for (i = 0; i < src_units - hint->units; i++, entry++)
+				en40_dec_offset(entry, headers);
 		}
 	}
 
@@ -499,8 +499,9 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 {
 	uint32_t units;
 	void *src, *dst;
+
+	uint32_t headers;
 	uint32_t i, offset;
-	uint32_t headers_size;
 
 	uint32_t len_after = 0;
 	uint32_t len_before = 0;
@@ -523,20 +524,20 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 		return -1;
 
 	units = de40_get_count(direntry);
-	headers_size = dh->count * sizeof(entry40_t);
+	headers = dh->count * sizeof(entry40_t);
 		
 	/* Getting offset of new entry body will be created at */
 	if (units > 0) {
 		if (pos < de40_get_count(direntry)) {
 			entry = direntry40_entry(direntry, pos);
-			offset = en40_get_offset(entry) + headers_size;
+			offset = en40_get_offset(entry) + headers;
 		} else {
 			entry = direntry40_entry(direntry, units - 1);
 			offset = en40_get_offset(entry) + sizeof(entry40_t) +
 				direntry40_unit_len(direntry, units - 1);
 		}
 	} else
-		offset = sizeof(direntry40_t) + headers_size;
+		offset = sizeof(direntry40_t) + headers;
 
 	/* Calculating length of areas to be moved */
 	len_before = (units - pos) * sizeof(entry40_t);
@@ -549,7 +550,7 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	
 	/* Updating offsets */
 	for (i = 0; i < pos; i++)
-		en40_inc_offset(&direntry->entry[i], headers_size);
+		en40_inc_offset(&direntry->entry[i], headers);
     
 	for (i = pos; i < units; i++)
 		en40_inc_offset(&direntry->entry[i], hint->len);
@@ -557,9 +558,9 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	/* Moving unit bodies */
 	if (pos < units) {
 		dst = (void *)direntry + offset + hint->len -
-			headers_size;
+			headers;
 
-		src = (void *)direntry + offset - headers_size;
+		src = (void *)direntry + offset - headers;
 		
 		aal_memmove(dst, src, len_after);
 	}

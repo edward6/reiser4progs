@@ -800,13 +800,19 @@ errno_t reiser4_node_shift(
 	*/
 	if (hint->flags & SF_LEFT) {
 		if (node->parent) {
-			if (reiser4_node_pos(node, &pos))
+			if (reiser4_node_pos(node, &pos)) {
+				aal_exception_error("Can't find node %llu in "
+						    "its parent node.", node->blk);
 				return -1;
+			}
 		}
 	} else {
 		if (neig->parent) {
-			if (reiser4_node_pos(neig, &pos))
+			if (reiser4_node_pos(neig, &pos)) {
+				aal_exception_error("Can't find node %llu in "
+						    "its parent node.", neig->blk);
 				return -1;
+			}
 		}
 	}
 

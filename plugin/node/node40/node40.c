@@ -307,7 +307,7 @@ static errno_t node40_item(item_entity_t *item,
 */
 static errno_t node40_expand(node40_t *node,
 			     reiser4_pos_t *pos,
-			     uint32_t len)
+			     uint32_t size)
 {
 	int is_space;
 	int is_range;
@@ -323,7 +323,7 @@ static errno_t node40_expand(node40_t *node,
 	/* Checks for input validness */
 	is_insert = (pos->unit == ~0ul);
 
-	is_space = (nh40_get_free_space(node) >= len +
+	is_space = (nh40_get_free_space(node) >= size +
 		    (is_insert ? sizeof(item40_header_t) : 0));
     
 	is_range = (pos->item <= nh40_get_num_items(node));
@@ -340,21 +340,22 @@ static errno_t node40_expand(node40_t *node,
 	  the data moving and offset upadting.
 	*/
 	if (item_pos < nh40_get_num_items(node)) {
-		uint32_t size;
+		uint32_t tomove;
 		void *src, *dst;
 
 		offset = ih40_get_offset(ih);
 
 		src = node->block->data + offset;
-		dst = node->block->data + offset + len;
-		size = nh40_get_free_space_start(node) - offset;
+		dst = src + size;
+
+		tomove = nh40_get_free_space_start(node) - offset;
 
 		/* Moving items bodies */
-		aal_memmove(dst, src, size);
+		aal_memmove(dst, src, tomove);
 
 		/* Updating item offsets */
 		for (i = item_pos; i < nh40_get_num_items(node); i++, ih--) 
-			ih40_inc_offset(ih, len);
+			ih40_inc_offset(ih, size);
 
 		/*
 		  If this is the insert new item mode, we should prepare the
@@ -370,13 +371,13 @@ static errno_t node40_expand(node40_t *node,
 		offset = nh40_get_free_space_start(node);
 
 	/* Updating node's free space and free space start fields */
-	nh40_inc_free_space_start(node, len);
-	nh40_dec_free_space(node, len);
+	nh40_inc_free_space_start(node, size);
+	nh40_dec_free_space(node, size);
 
 	if (is_insert) {
 
                 /* Setting up the fields of new item */
-		ih40_set_len(ih, len);
+		ih40_set_len(ih, size);
 		ih40_set_offset(ih, offset);
 
 		nh40_inc_num_items(node, 1);
@@ -385,12 +386,12 @@ static errno_t node40_expand(node40_t *node,
 		nh40_dec_free_space(node, sizeof(item40_header_t));
 
 		/* Initializing new item's body */
-		aal_memset(node->block->data + offset, 0, len);
+		aal_memset(node->block->data + offset, 0, size);
 	} else {
 
 		/* Increasing item len mfor the case of pasting new units */
 		ih = node40_ih_at(node, pos->item);
-		ih40_inc_len(ih, len);
+		ih40_inc_len(ih, size);
 	}
 	
 	return 0;
@@ -399,12 +400,13 @@ static errno_t node40_expand(node40_t *node,
 /* Makes shrink node by passed @len after item/unit was removed */
 static errno_t node40_shrink(node40_t *node,
 			     reiser4_pos_t *pos,
-			     uint32_t len) 
+			     uint32_t size) 
 {
 	int is_range;
     
+	uint32_t len;
 	uint32_t offset;
-	uint32_t item_len;
+	
 	item40_header_t *ih;
 
 	/* Checking input for validness */
@@ -417,32 +419,33 @@ static errno_t node40_shrink(node40_t *node,
 	ih = node40_ih_at(node, pos->item);
     
 	offset = ih40_get_offset(ih);
-	item_len = node40_item_len((object_entity_t *)node, pos);
+	len = node40_item_len((object_entity_t *)node, pos);
 
 	/*
 	  If we are going to remove not the last item, we need update item
 	  bodies and them offsets.
 	*/
-	if ((offset + item_len) < nh40_get_free_space_start(node)) {
-		uint32_t size;
+	if ((offset + len) < nh40_get_free_space_start(node)) {
+		uint32_t tomove;
 		void *src, *dst;
 		
 		item40_header_t *cur;
 		item40_header_t *end;
 	
 		/* Moving item bodies */
-		src = node->block->data + offset + item_len;
-		dst = src - len;
+		src = node->block->data + offset + len;
+		dst = src - size;
 		
-		size = nh40_get_free_space_start(node) - offset - len;
+		tomove = nh40_get_free_space_start(node) -
+			offset - len;
 		
-		aal_memmove(dst, src, size);
+		aal_memmove(dst, src, tomove);
     
 		/* Updating item offsets after bodies moving */
 		end = node40_ih_at(node, nh40_get_num_items(node) - 1);
 
 		for (cur = ih - 1; cur >= end; cur--)
-			ih40_dec_offset(cur, len);
+			ih40_dec_offset(cur, size);
 	
 		/* Moving item headers if this is the item remove case */
 		if (pos->unit == ~0ul)
@@ -451,11 +454,11 @@ static errno_t node40_shrink(node40_t *node,
 
 	/* Updating item header in the case of cutting */
 	if (pos->unit != ~0ul)
-		ih40_dec_len(ih, len);
+		ih40_dec_len(ih, size);
 
 	/* Updating node header */
-	nh40_dec_free_space_start(node, len);
-	nh40_inc_free_space(node, len);
+	nh40_dec_free_space_start(node, size);
+	nh40_inc_free_space(node, size);
 
 	/*
 	  Increasing free space by item overhead in the case of removing whole
@@ -922,7 +925,7 @@ static errno_t node40_merge_items(node40_t *src_node,
 	*/
 	pos.item = src_item.pos;
 
-	if (src_item.plugin->item_ops.units(&src_item) <= hint->units) {
+	if (src_item.plugin->item_ops.units(&src_item) == 0) {
 		hint->items = 1;
 		hint->bytes = src_item.len;
 		
@@ -1131,7 +1134,9 @@ static errno_t node40_shift_units(node40_t *src_node,
 	/* Updating source node fields */
 	pos.item = src_item.pos;
 
-	if (src_item.plugin->item_ops.units(&src_item) <= hint->units) {
+	if (src_item.plugin->item_ops.units(&src_item) == 0 &&
+		pos.item != hint->pos.item)
+	{
 		pos.unit = ~0ul;
 		len = src_item.len;
 
@@ -1290,11 +1295,12 @@ static errno_t node40_shift_items(node40_t *src_node,
 	void *dst, *src;
 	uint32_t offset;
 	uint32_t i, size;
+	uint32_t headers;
+	
 	uint32_t src_items;
 	uint32_t dst_items;
 
 	item40_header_t *ih;
-	uint32_t headers_size;
 	
 	aal_assert("umka-1305", src_node != NULL, return -1);
 	aal_assert("umka-1306", dst_node != NULL, return -1);
@@ -1307,14 +1313,14 @@ static errno_t node40_shift_items(node40_t *src_node,
 	dst_items = nh40_get_num_items(dst_node);
 	src_items = nh40_get_num_items(src_node);
 
-	headers_size = sizeof(item40_header_t) * hint->items;
+	headers = sizeof(item40_header_t) * hint->items;
 
 	if (hint->flags & SF_LEFT) {
 		/* Copying item headers from src node to dst */
 		src = node40_ih_at(src_node, hint->items - 1);
 		dst = node40_ih_at(dst_node, (dst_items + hint->items - 1));
 			
-		aal_memcpy(dst, src, headers_size);
+		aal_memcpy(dst, src, headers);
 
 		ih = (item40_header_t *)dst;
 		
@@ -1335,7 +1341,7 @@ static errno_t node40_shift_items(node40_t *src_node,
 		if (src_items > hint->items) {
 			/* Moving src item headers to right place */
 			src = node40_ih_at(src_node, src_items - 1);
-			dst = src + headers_size;
+			dst = src + headers;
 
 			aal_memmove(dst, src, (src_items - hint->items) *
 				    sizeof(item40_header_t));
@@ -1359,7 +1365,7 @@ static errno_t node40_shift_items(node40_t *src_node,
 		/* Preparing space for headers in dst node */
 		if (dst_items > 0) {
 			src = node40_ih_at(dst_node, dst_items - 1);
-			dst = src - headers_size;
+			dst = src - headers;
 
 			size = dst_items * sizeof(item40_header_t);
 			
@@ -1385,7 +1391,7 @@ static errno_t node40_shift_items(node40_t *src_node,
 		src = node40_ih_at(src_node, src_items - 1);
 		dst = node40_ih_at(dst_node, hint->items - 1);
 
-		aal_memcpy(dst, src, headers_size);
+		aal_memcpy(dst, src, headers);
 
 		/* Updating item headers in dst node */
 		ih = node40_ih_at(dst_node, 0);
@@ -1405,12 +1411,12 @@ static errno_t node40_shift_items(node40_t *src_node,
 	}
 	
 	/* Updating destination node fields */
-	nh40_dec_free_space(dst_node, (hint->bytes + headers_size));
+	nh40_dec_free_space(dst_node, (hint->bytes + headers));
 	nh40_inc_num_items(dst_node, hint->items);
 	nh40_inc_free_space_start(dst_node, hint->bytes);
 	
 	/* Updating source node fields */
-	nh40_inc_free_space(src_node, (hint->bytes + headers_size));
+	nh40_inc_free_space(src_node, (hint->bytes + headers));
 	nh40_dec_num_items(src_node, hint->items);
 	nh40_dec_free_space_start(src_node, hint->bytes);
 
