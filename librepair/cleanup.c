@@ -57,8 +57,8 @@ static void repair_cleanup_update(repair_cleanup_t *cleanup) {
 	aal_stream_fini(&stream);
 }
 
-static errno_t callback_free_extent(void *object, uint64_t start, 
-				    uint64_t count, void *data)
+static errno_t cb_free_extent(void *object, uint64_t start, 
+			      uint64_t count, void *data)
 {
 	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
 	reiser4_alloc_t *alloc = cleanup->repair->fs->alloc;
@@ -76,7 +76,7 @@ static errno_t callback_free_extent(void *object, uint64_t start,
 	return 0;
 }
 
-static errno_t callback_node_cleanup(reiser4_place_t *place, void *data) {
+static errno_t cb_node_cleanup(reiser4_place_t *place, void *data) {
 	repair_cleanup_t *cleanup = (repair_cleanup_t *)data;
 	trans_hint_t hint;
 	errno_t res;
@@ -139,7 +139,7 @@ static errno_t callback_node_cleanup(reiser4_place_t *place, void *data) {
 	place->pos.unit = MAX_UINT32;
 	hint.count = 1;
 	hint.place_func = NULL;
-	hint.region_func = callback_free_extent;
+	hint.region_func = cb_free_extent;
 	hint.data = cleanup;
 	hint.shift_flags = SF_DEFAULT;
 
@@ -175,7 +175,7 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	repair_cleanup_setup(cleanup);
 	
 	if ((res = repair_tree_scan(cleanup->repair->fs->tree, 
-				    callback_node_cleanup, cleanup)))
+				    cb_node_cleanup, cleanup)))
 		return res;
 
 	repair_cleanup_update(cleanup);

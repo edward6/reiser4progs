@@ -17,9 +17,7 @@ extern reiser4_core_t core;
 /* Helper callback for checking plugin validness. It if called for each plugin
    in order to compare its characteristics with characteristics of new
    registered one. */
-static errno_t callback_check_plug(reiser4_plug_t *plug,
-				   void *data)
-{
+static errno_t cb_check_plug(reiser4_plug_t *plug, void *data) {
 	reiser4_plug_t *examined = (reiser4_plug_t *)data;
 
 	if (examined == plug)
@@ -103,7 +101,7 @@ reiser4_plug_t *reiser4_factory_load(plug_class_t *cl) {
 		return NULL;
 	
 #ifndef ENABLE_STAND_ALONE
-	if (reiser4_factory_foreach(callback_check_plug, (void *)plug))	{
+	if (reiser4_factory_foreach(cb_check_plug, (void *)plug)) {
 		aal_error("Plugin %s will not be attached to "
 			  "plugin factory.", plug->label);
 		reiser4_factory_unload(plug);
@@ -127,11 +125,11 @@ errno_t reiser4_factory_unload(reiser4_plug_t *plug) {
 
 /* Helper functions used for calculating hash and for comparing two entries from
    plugin hash table during its modifying. */
-static uint64_t callback_hash_func(void *key) {
+static uint64_t cb_hash_func(void *key) {
 	return (uint64_t)((plug_ident_t *)key)->type;
 }
 
-static int callback_comp_func(void *key1, void *key2,
+static int cb_comp_func(void *key1, void *key2,
 			      void *data)
 {
 	return (!ident_equal((plug_ident_t *)key1,
@@ -164,8 +162,7 @@ errno_t reiser4_factory_init(void) {
 
 	/* Init plugin hash table. */
 	if (!(plugins = aal_hash_table_create(PLUGINS_TABLE_SIZE,
-					      callback_hash_func,
-					      callback_comp_func,
+					      cb_hash_func, cb_comp_func,
 					      NULL, NULL)))
 	{
 		return -ENOMEM;
@@ -271,9 +268,7 @@ errno_t reiser4_factory_init(void) {
 }
 
 /* Helper function for unloading one plugin. */
-static errno_t callback_unload_plug(reiser4_plug_t *plug,
-				    void *data)
-{
+static errno_t cb_unload_plug(reiser4_plug_t *plug, void *data) {
 	return reiser4_plug_fini(plug);
 }
 
@@ -281,7 +276,7 @@ static errno_t callback_unload_plug(reiser4_plug_t *plug,
 void reiser4_factory_fini(void) {
 	aal_assert("umka-335", plugins != NULL);
 
-	reiser4_factory_foreach(callback_unload_plug, NULL);
+	reiser4_factory_foreach(cb_unload_plug, NULL);
 	aal_hash_table_free(plugins);
 }
 
@@ -297,7 +292,7 @@ typedef struct enum_hint enum_hint_t;
 
 /* Helper function for calling passed plug_func() for each plugin from passed
    plugin hash table. */
-static errno_t callback_foreach_plug(void *entry, void *data) {
+static errno_t cb_foreach_plug(void *entry, void *data) {
 	errno_t res;
 	enum_hint_t *hint;
 	reiser4_plug_t *plug;
@@ -318,7 +313,7 @@ static errno_t callback_foreach_plug(void *entry, void *data) {
 #ifndef ENABLE_STAND_ALONE
 /* Helper function for comparing each plugin registered in plugin factory with
    passed one in order to check if they name the same . */
-static errno_t callback_nfind_plug(void *entry, void *data) {
+static errno_t cb_nfind_plug(void *entry, void *data) {
 	enum_hint_t *hint = (enum_hint_t *)data;
 	aal_hash_node_t *node = (aal_hash_node_t *)entry;
 	reiser4_plug_t *plug = (reiser4_plug_t *)node->value;
@@ -346,8 +341,7 @@ errno_t reiser4_factory_foreach(plug_func_t plug_func, void *data) {
 	hint.data = data;
 	hint.plug_func = plug_func;
 
-	return aal_hash_table_foreach(plugins,
-				      callback_foreach_plug, &hint);
+	return aal_hash_table_foreach(plugins, cb_foreach_plug, &hint);
 }
 
 /* Finds plugin by its type and id. */
@@ -379,7 +373,7 @@ reiser4_plug_t *reiser4_factory_cfind(plug_func_t plug_func, void *data) {
 	hint.plug = NULL;
 	hint.plug_func = plug_func;
 
-	aal_hash_table_foreach(plugins, callback_foreach_plug, &hint);
+	aal_hash_table_foreach(plugins, cb_foreach_plug, &hint);
 	
 	return hint.plug;
 }
@@ -394,8 +388,7 @@ reiser4_plug_t *reiser4_factory_nfind(char *name) {
 	hint.plug = NULL;
 	hint.data = name;
 
-	aal_hash_table_foreach(plugins, callback_nfind_plug,
-			       &hint);
+	aal_hash_table_foreach(plugins, cb_nfind_plug, &hint);
 	
 	return hint.plug;
 }

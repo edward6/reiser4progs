@@ -88,7 +88,7 @@ errno_t reiser4_master_layout(reiser4_master_t *master,
 }
 
 /* Callback function for comparing plugins */
-static errno_t callback_guess_format(
+static errno_t cb_guess_format(
 	reiser4_plug_t *plug,        /* plugin to be checked */
 	void *data)		     /* needed plugin type */
 {
@@ -114,7 +114,7 @@ static errno_t callback_guess_format(
 reiser4_plug_t *reiser4_master_guess(aal_device_t *device) {
 	/* Calls factory_cfind() (custom find) method in order to find
 	   convenient plugin with guess_format() callback function. */
-	return reiser4_factory_cfind(callback_guess_format, device);
+	return reiser4_factory_cfind(cb_guess_format, device);
 }
 #endif
 

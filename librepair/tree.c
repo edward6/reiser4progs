@@ -21,7 +21,7 @@ bool_t repair_tree_legal_level(reiser4_plug_t *plug, uint8_t level) {
 	return level == LEAF_LEVEL;
 }
 
-static errno_t callback_data_level(reiser4_plug_t *plug, void *data) {
+static errno_t cb_data_level(reiser4_plug_t *plug, void *data) {
 	uint8_t *level = (uint8_t *)data;
 	
 	aal_assert("vpf-746", data != NULL);
@@ -39,8 +39,7 @@ bool_t repair_tree_data_level(uint8_t level) {
 	if (level == 0)
 		return 0;
 	
-	return (reiser4_factory_cfind(callback_data_level,
-				      &level) != NULL);
+	return (reiser4_factory_cfind(cb_data_level, &level) != NULL);
 }
 
 /* Get the max real key existed in the tree. Go down through all right-most 
@@ -483,16 +482,13 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 	return 0;
 }
 
-static errno_t callback_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
-	return plug_call(hint->plug->o.item_ops->repair,
+static errno_t cb_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
+	return plug_call(hint->plug->o.item_ops->repair, 
 			 prep_merge, place, hint);
 }
 
-static errno_t callback_merge(reiser4_node_t *node, pos_t *pos,
-			      trans_hint_t *hint)
-{
-	return plug_call(node->plug->o.node_ops, 
-			 merge, node, pos, hint);
+static errno_t cb_merge(reiser4_node_t *node, pos_t *pos, trans_hint_t *hint) {
+	return plug_call(node->plug->o.node_ops, merge, node, pos, hint);
 }
 
 /* Insert the item into the tree overwriting an existent in the tree item 
@@ -583,8 +579,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 			   !dst.plug)
 		{
 			if ((res = reiser4_tree_modify(tree, &dst, &hint, level,
-						       callback_prep_merge,
-						       callback_merge)))
+						       cb_prep_merge,cb_merge)))
 				goto error;
 		} else {
 			/* For not equal plugins do coping. */

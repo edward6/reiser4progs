@@ -866,8 +866,8 @@ struct layout_hint {
 
 typedef struct layout_hint layout_hint_t;
 
-static errno_t callback_item_layout(void *place, blk_t start,
-				    count_t width, void *data)
+static errno_t cb_item_layout(void *place, blk_t start,
+			      count_t width, void *data)
 {
 	layout_hint_t *hint = (layout_hint_t *)data;
 	return hint->region_func(hint->entity, start,
@@ -909,7 +909,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 		if (dir->body.plug->o.item_ops->object->layout) {
 			/* Calling item's layout method */
 			if ((res = plug_call(place->plug->o.item_ops->object,
-					     layout, place, callback_item_layout,
+					     layout, place, cb_item_layout,
 					     &hint)))
 			{
 				return res;
@@ -919,7 +919,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 			   itself. */
 			blk_t blk = place_blknr(place);
 			
-			if ((res = callback_item_layout(place, blk, 1, &hint)))
+			if ((res = cb_item_layout(place, blk, 1, &hint)))
 				return res;
 		}
 

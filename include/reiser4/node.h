@@ -19,11 +19,11 @@ extern uint64_t reiser4_node_get_fstamp(reiser4_node_t *node);
 extern errno_t reiser4_node_update_ptr(reiser4_node_t *node);
 extern void reiser4_node_move(reiser4_node_t *node, blk_t nr);
 
-extern errno_t callback_node_insert(reiser4_node_t *node, pos_t *pos,
-				    trans_hint_t *hint);
+extern errno_t cb_node_insert(reiser4_node_t *node, pos_t *pos,
+			      trans_hint_t *hint);
 
-extern errno_t callback_node_write(reiser4_node_t *node, pos_t *pos,
-				   trans_hint_t *hint);
+extern errno_t cb_node_write(reiser4_node_t *node, pos_t *pos,
+			     trans_hint_t *hint);
 
 extern reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
 					   reiser4_plug_t *plug,

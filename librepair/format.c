@@ -5,7 +5,7 @@
 
 #include <repair/librepair.h>
 
-static int callback_check_count(int64_t val, void *data) {
+static int cb_check_count(int64_t val, void *data) {
 	reiser4_fs_t *fs = (reiser4_fs_t *)data;
 	
 	if (val < 0) 
@@ -14,7 +14,7 @@ static int callback_check_count(int64_t val, void *data) {
 	return reiser4_fs_check_len(fs, val) ? 0 : 1;
 }
 
-static int callback_check_plugname(char *name, void *data) {
+static int cb_check_plugname(char *name, void *data) {
 	reiser4_plug_t **plug = (reiser4_plug_t **)data;
 	
 	if (!name) return 0;
@@ -65,8 +65,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		
 		if (mode == RM_BUILD) {
 			/* Confirm that size is correct. */
-			fs_len = aal_ui_get_numeric(dev_len, 
-						   callback_check_count,
+			fs_len = aal_ui_get_numeric(dev_len, cb_check_count,
 						   fs, "Enter the correct "
 						   "block count please");
 			
@@ -248,8 +247,8 @@ static errno_t repair_format_open_check(reiser4_fs_t *fs, uint8_t mode) {
 			aal_memcpy(buff, defplug->label, 
 				   aal_strlen(defplug->label));
 			
-			aal_ui_get_alpha(buff, callback_check_plugname,
-					 &plug, "Enter the key plugin name");
+			aal_ui_get_alpha(buff, cb_check_plugname, &plug, 
+					 "Enter the key plugin name");
 		}
 
 		if (!plug) plug = defplug;

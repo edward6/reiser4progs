@@ -87,8 +87,8 @@ static errno_t repair_bitmap_compare(aux_bitmap_t *bm1, aux_bitmap_t *bm2,
 }
 
 /* Callback for the format_ops.layout method - mark all blocks in the bitmap. */
-static errno_t callback_format_mark(void *format, blk_t start,
-				    count_t width, void *data)
+static errno_t cb_format_mark(void *format, blk_t start,
+			      count_t width, void *data)
 {
 	aux_bitmap_t *format_layout = (aux_bitmap_t *)data;
 	aux_bitmap_mark_region(format_layout, start, width);
@@ -96,8 +96,8 @@ static errno_t callback_format_mark(void *format, blk_t start,
 }
 
 
-static errno_t callback_alloc(reiser4_alloc_t *alloc, uint64_t start, 
-			      uint64_t count, void *data) 
+static errno_t cb_alloc(reiser4_alloc_t *alloc, uint64_t start, 
+			uint64_t count, void *data) 
 {
 	repair_control_t *control = (repair_control_t *)data;
 	
@@ -108,8 +108,8 @@ static errno_t callback_alloc(reiser4_alloc_t *alloc, uint64_t start,
 	return 0;
 }
 
-static errno_t callback_release(reiser4_alloc_t *alloc, uint64_t start, 
-				uint64_t count, void *data) 
+static errno_t cb_release(reiser4_alloc_t *alloc, uint64_t start, 
+			  uint64_t count, void *data) 
 {
 	repair_control_t *control = (repair_control_t *)data;
 	
@@ -147,7 +147,7 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	}
 	
 	/* Mark all format area block in the bm_used bitmap. */
-	if (reiser4_fs_layout(control->repair->fs, callback_format_mark,
+	if (reiser4_fs_layout(control->repair->fs, cb_format_mark,
 			      filter->bm_used)) 
 	{
 		aal_error("Failed to mark the filesystem area as "
@@ -155,8 +155,8 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 		return -EINVAL;
 	}
 	
-	control->repair->fs->alloc->hook.alloc = callback_alloc;
-	control->repair->fs->alloc->hook.release = callback_release;
+	control->repair->fs->alloc->hook.alloc = cb_alloc;
+	control->repair->fs->alloc->hook.release = cb_release;
 	control->repair->fs->alloc->hook.data = control;
 	
 	/* Allocate a bitmap of twig blocks in the tree. */
@@ -192,7 +192,7 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 
 /* Mark blk in the scan bitmap if not marked in used bitmap (in this case it 
    is a node). */
-static errno_t callback_region_mark(void *object, blk_t blk, 
+static errno_t cb_region_mark(void *object, blk_t blk, 
 				    uint64_t count, void *data)
 {
 	repair_control_t *control = (repair_control_t *)data;
@@ -296,8 +296,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	
 	/* Mark all broken regions of allocator as to be scanned. */
 	if ((res = repair_alloc_layout_bad(repair->fs->alloc,
-					   callback_region_mark,
-					   control)))
+					   cb_region_mark, control)))
 		return res;
 
 	/* Build a bitmap of what was met already. */
@@ -320,7 +319,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		   has not been synced on disk. Scan through all its blocks. */
 		if (~control->bm_alloc->map[i] & control->bm_met->map[i]) {
 			reiser4_alloc_region(repair->fs->alloc, i * 8,
-					     callback_region_mark, control);
+					     cb_region_mark, control);
 		} else {
 			control->bm_scan->map[i] |= 
 				(control->bm_alloc->map[i] & 

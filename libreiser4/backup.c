@@ -47,8 +47,8 @@ void reiser4_backup_close(reiser4_backup_t *backup) {
 }
 
 /* Assign the block to @blk block number and write it. */
-static errno_t callback_write_block(void *object, blk_t blk, 
-				    uint64_t count, void *data) 
+static errno_t cb_write_block(void *object, blk_t blk, 
+			      uint64_t count, void *data) 
 {
 	aal_block_t *block = (aal_block_t *)data;
 
@@ -82,14 +82,13 @@ void reiser4_backup_sync(reiser4_backup_t *backup) {
 	aal_stream_read(backup->stream, block->data, block->size);
 	
 	/* Write the block to all backup copies. */
-	reiser4_backup_layout(backup->fs, callback_write_block,
-			      backup->stream);
+	reiser4_backup_layout(backup->fs, cb_write_block, backup->stream);
 	
 	aal_block_free(block);
 }
 
-static errno_t callback_region_last(void *object, blk_t blk, 
-				    uint64_t count, void *data) 
+static errno_t cb_region_last(void *object, blk_t blk, 
+			      uint64_t count, void *data) 
 {
 	*((blk_t *)data) = count == 1 ? 0 :
 		blk + count - 1;
@@ -119,8 +118,7 @@ errno_t reiser4_backup_layout(reiser4_fs_t *fs,
 	delta = len / (REISER4_BACKUPS_MAX + 1);
 	
 	for (blk = delta - 1; blk < len; blk += delta) {
-		reiser4_alloc_region(fs->alloc, blk, 
-				     callback_region_last, &copy);
+		reiser4_alloc_region(fs->alloc, blk, cb_region_last, &copy);
 
 		/* If copy == 0 -- it is not possible to have the last copy 
 		   on this fs as the last block is the allocator one. If the 

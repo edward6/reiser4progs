@@ -130,8 +130,8 @@ void reiser4_fs_close(reiser4_fs_t *fs) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-static errno_t callback_check_block(void *entity, blk_t start,
-				    count_t width, void *data)
+static errno_t cb_check_block(void *entity, blk_t start,
+			      count_t width, void *data)
 {
 	blk_t blk = *(blk_t *)data;
 	return (blk >= start && blk < start + width);
@@ -145,36 +145,33 @@ reiser4_owner_t reiser4_fs_belongs(
 	aal_assert("umka-1534", fs != NULL);
 
 	/* Checks if passed @blk is master super block */
-	if (reiser4_master_layout(fs->master, callback_check_block, &blk))
+	if (reiser4_master_layout(fs->master, cb_check_block, &blk))
 		return O_MASTER;
 	
 	/* Checks if passed @blk belongs to format metadata */
-	if (reiser4_format_layout(fs->format, callback_check_block, &blk))
+	if (reiser4_format_layout(fs->format, cb_check_block, &blk))
 		return O_FORMAT;
 
 	/* Checks if passed @blk belongs to oid allocator metadata */
-	if (reiser4_oid_layout(fs->oid, callback_check_block, &blk))
+	if (reiser4_oid_layout(fs->oid, cb_check_block, &blk))
 		return O_OID;
 
 	/* Checks if passed @blk belongs to journal metadata if journal
 	   opened. */
 	if (fs->journal) {
-		if (reiser4_journal_layout(fs->journal,
-					   callback_check_block, &blk))
-		{
+		if (reiser4_journal_layout(fs->journal, cb_check_block, &blk))
 			return O_JOURNAL;
-		}
 	}
 
 	/* Check if @blk is filesystem status block. */
-	if (reiser4_status_layout(fs->status, callback_check_block, &blk))
+	if (reiser4_status_layout(fs->status, cb_check_block, &blk))
 		return O_STATUS;
 	
 	/* Checks if passed @blk belongs to block allocator data */
-	if (reiser4_alloc_layout(fs->alloc, callback_check_block, &blk))
+	if (reiser4_alloc_layout(fs->alloc, cb_check_block, &blk))
 		return O_ALLOC;
 
-	if (reiser4_backup_layout(fs, callback_check_block, &blk))
+	if (reiser4_backup_layout(fs, cb_check_block, &blk))
 		return O_BACKUP;
 	
 	return O_UNKNOWN;
@@ -215,8 +212,8 @@ errno_t reiser4_fs_layout(reiser4_fs_t *fs,
 	return reiser4_backup_layout(fs, region_func, data);
 }
 
-static errno_t callback_mark_block(void *entity, blk_t start,
-				   count_t width, void *data)
+static errno_t cb_mark_block(void *entity, blk_t start,
+			     count_t width, void *data)
 {
 	return reiser4_alloc_occupy((reiser4_alloc_t *)data,
 				    start, width);
@@ -327,7 +324,7 @@ reiser4_fs_t *reiser4_fs_create(
 	if (!(fs->backup = reiser4_backup_create(fs)))
 		goto error_free_tree;
 	
-	if (reiser4_fs_layout(fs, callback_mark_block, fs->alloc)) {
+	if (reiser4_fs_layout(fs, cb_mark_block, fs->alloc)) {
 		aal_error("Can't mark filesystem blocks used.");
 		goto error_free_backup;
 	}

@@ -938,8 +938,8 @@ static errno_t node40_set_key(reiser4_node_t *entity,
 #endif
 
 /* Helper callback for comparing two keys. This is used by node lookup. */
-static int callback_comp_key(void *node, uint32_t pos,
-			     void *key2, void *data)
+static int cb_comp_key(void *node, uint32_t pos,
+		       void *key2, void *data)
 {
 	void *key1;
 	
@@ -966,7 +966,7 @@ static lookup_t node40_lookup(reiser4_node_t *entity,
 	aal_assert("umka-3089", hint->key != NULL);
 
 	switch (aux_bin_search(entity, node40_items(entity),
-			       hint->key->body, callback_comp_key,
+			       hint->key->body, cb_comp_key,
 			       hint->key->plug, &pos->item))
 	{
 	case 1:

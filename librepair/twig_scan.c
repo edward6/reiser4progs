@@ -10,8 +10,8 @@
 /* Check unfm block pointer if it points to an already used block (leaf, 
    format area) or out of format area. Return 1 if it does, 0 - does not,
    -1 error. */
-static errno_t callback_item_region_check(void *object, blk_t start, 
-					  uint64_t count, void *data) 
+static errno_t cb_item_region_check(void *object, blk_t start, 
+				    uint64_t count, void *data) 
 {
 	repair_ts_t *ts = (repair_ts_t *)data;
 	
@@ -44,7 +44,7 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 /* Callback for the traverse which calls item_ops.check_layout method if 
    layout exists for all items which can contain data, not tree index data
    only. Shrink the node if item lenght is changed. */
-static errno_t callback_check_layout(reiser4_place_t *place, void *data) {
+static errno_t cb_check_layout(reiser4_place_t *place, void *data) {
 	repair_ts_t *ts = (repair_ts_t *)data;
 	reiser4_node_t *node;
 	errno_t res;
@@ -58,7 +58,7 @@ static errno_t callback_check_layout(reiser4_place_t *place, void *data) {
 	if (reiser4_item_branch(place->plug))
 		return 0;
 	
-	if ((res = repair_item_check_layout(place, callback_item_region_check,
+	if ((res = repair_item_check_layout(place, cb_item_region_check,
 					    ts, ts->repair->mode)) < 0)
 		return res;
 	
@@ -187,7 +187,7 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 		}
 		
 		/* Lookup the node. */	
-		res = reiser4_node_trav(node, callback_check_layout, ts);
+		res = reiser4_node_trav(node, cb_check_layout, ts);
 		
 		if (res) goto error_node_free;
 		

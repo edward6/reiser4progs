@@ -14,10 +14,7 @@ typedef struct repair_stat_hint {
 	uint64_t len;
 } repair_stat_hint_t;
 
-static errno_t callback_check_ext(stat_entity_t *stat, 
-				  uint64_t extmask, 
-				  void *data)
-{
+static errno_t cb_check_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 	repair_stat_hint_t *hint = (repair_stat_hint_t *)data;
 	uint8_t chunk;
 	uint32_t len;
@@ -61,10 +58,7 @@ static errno_t callback_check_ext(stat_entity_t *stat,
 	return 0;
 }
 
-static errno_t callback_fix_mask(stat_entity_t *stat, 
-				 uint64_t extmask, 
-				 void *data)
-{
+static errno_t cb_fix_mask(stat_entity_t *stat, uint64_t extmask, void *data) {
 	uint64_t *mask = (uint64_t *)data;
 
 	if (stat->ext_plug) 
@@ -86,7 +80,7 @@ errno_t stat40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	aal_memset(&stat, 0, sizeof(stat));
 	stat.repair = hint;
 	
-	if ((res = stat40_traverse(place, callback_check_ext, &stat)) < 0)
+	if ((res = stat40_traverse(place, cb_check_ext, &stat)) < 0)
 		return res;
 	
 	if (res) {
@@ -122,7 +116,7 @@ errno_t stat40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 		if (hint->mode == RM_CHECK)
 			return RE_FIXABLE;
 
-		if ((res = stat40_traverse(place, callback_fix_mask, 
+		if ((res = stat40_traverse(place, cb_fix_mask, 
 					   &stat.goodmask)) < 0)
 			return res;
 
@@ -134,10 +128,7 @@ errno_t stat40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 
 
 /* Callback for counting stat data extensions in use. */
-static errno_t callback_count_ext(stat_entity_t *stat,
-				  uint64_t extmask, 
-				  void *data)
-{
+static errno_t cb_count_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 	if (!stat->ext_plug) 
 		return 0;
 
@@ -149,17 +140,14 @@ static errno_t callback_count_ext(stat_entity_t *stat,
 static uint32_t stat40_sdext_count(reiser4_place_t *place) {
         uint32_t count = 0;
 
-        if (stat40_traverse(place, callback_count_ext, &count) < 0)
+        if (stat40_traverse(place, cb_count_ext, &count) < 0)
                 return 0;
 
         return count;
 }
 
 /* Prints extension into @stream. */
-static errno_t callback_print_ext(stat_entity_t *stat, 
-				  uint64_t extmask, 
-				  void *data)
-{
+static errno_t cb_print_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 	uint16_t length;
 	aal_stream_t *stream;
 
@@ -197,6 +185,6 @@ void stat40_print(reiser4_place_t *place, aal_stream_t *stream,
 	aal_stream_format(stream, "UNITS=1\nexts:\t\t%u\n", 
 			  stat40_sdext_count(place));
 	
-	stat40_traverse(place, callback_print_ext, (void *)stream);
+	stat40_traverse(place, cb_print_ext, (void *)stream);
 }
 #endif

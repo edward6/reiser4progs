@@ -117,8 +117,8 @@ errno_t alloc40_layout(generic_entity_t *entity,
    saves it in allocator checksums area. Actually this function is callback one
    which is called by alloc40_layout function in order to load all bitmap map
    from the device. See alloc40_open for details. */
-static errno_t callback_fetch_bitmap(void *entity, blk_t start,
-				     count_t width, void *data)
+static errno_t cb_fetch_bitmap(void *entity, blk_t start,
+			       count_t width, void *data)
 {
 	errno_t res;
 	uint64_t offset;
@@ -201,9 +201,7 @@ static generic_entity_t *alloc40_open(fs_desc_t *desc, uint64_t blocks) {
 
 	/* Calling alloc40_layout() method with fetch_bitmap() callback to load
 	   all bitmap blocks. */
-	if (alloc40_layout((generic_entity_t *)alloc,
-			   callback_fetch_bitmap, alloc))
-	{
+	if (alloc40_layout((generic_entity_t *)alloc, cb_fetch_bitmap, alloc)) {
 		aal_error("Can't load ondisk bitmap.");
 		goto error_free_bitmap;
 	}
@@ -295,8 +293,8 @@ static errno_t alloc40_extract(generic_entity_t *entity, void *data) {
 }
 
 /* Callback for saving one bitmap block onto device */
-static errno_t callback_sync_bitmap(void *entity, blk_t start,
-				    count_t width, void *data)
+static errno_t cb_sync_bitmap(void *entity, blk_t start,
+			      count_t width, void *data)
 {
 	errno_t res;
 	alloc40_t *alloc;
@@ -371,7 +369,7 @@ static errno_t alloc40_sync(generic_entity_t *entity) {
 
 	/* Calling layout() function for saving all bitmap blocks to device
 	   block allocator lies on. */
-	if ((res = alloc40_layout(entity, callback_sync_bitmap, alloc))) {
+	if ((res = alloc40_layout(entity, cb_sync_bitmap, alloc))) {
 		aal_error("Can't save bitmap to device.");
 		return res;
 	}
@@ -505,9 +503,7 @@ static int alloc40_available(generic_entity_t *entity,
 				      start, count, 0);
 }
 
-static void callback_inval_warn(blk_t start, uint32_t ladler,
-				uint32_t cadler)
-{
+static void cb_inval_warn(blk_t start, uint32_t ladler, uint32_t cadler) {
 	aal_error("Checksum missmatch in bitmap block %llu. Checksum "
 		  "is 0x%x, should be 0x%x.", start, ladler, cadler);
 }
@@ -516,9 +512,7 @@ typedef void (*inval_func_t) (blk_t, uint32_t, uint32_t);
 
 /* Callback function for checking one bitmap block on validness. Here we just
    calculate actual checksum and compare it with loaded one. */
-errno_t callback_valid_block(void *entity, blk_t start,
-			     count_t width, void *data)
-{
+errno_t cb_valid_block(void *entity, blk_t start, count_t width, void *data) {
 	uint32_t chunk;
 	uint64_t offset;
 	alloc40_t *alloc;
@@ -579,8 +573,7 @@ errno_t alloc40_valid(generic_entity_t *entity) {
 	/* Calling layout function for traversing all the bitmap blocks with
 	   checking callback function. */
 	return alloc40_layout((generic_entity_t *)alloc,
-			      callback_valid_block,
-			      callback_inval_warn);
+			      cb_valid_block, cb_inval_warn);
 }
 
 /* Call @func for all blocks which belong to the same bitmap block as passed

@@ -432,16 +432,12 @@ int64_t reiser4_node_modify(reiser4_node_t *node, pos_t *pos,
 	return write;
 }
 
-errno_t callback_node_insert(reiser4_node_t *node, pos_t *pos,
-			     trans_hint_t *hint) 
-{
+errno_t cb_node_insert(reiser4_node_t *node, pos_t *pos, trans_hint_t *hint) {
 	return plug_call(node->plug->o.node_ops,
 			 insert, node, pos, hint);
 }
 
-errno_t callback_node_write(reiser4_node_t *node, pos_t *pos,
-			    trans_hint_t *hint) 
-{
+errno_t cb_node_write(reiser4_node_t *node, pos_t *pos, trans_hint_t *hint) {
 	return plug_call(node->plug->o.node_ops,
 			 write, node, pos, hint);
 }
@@ -453,8 +449,7 @@ errno_t reiser4_node_insert(reiser4_node_t *node, pos_t *pos,
 	aal_assert("umka-990", node != NULL);
 	aal_assert("umka-992", hint != NULL);
 	
-	return reiser4_node_modify(node, pos, hint,
-				   callback_node_insert);
+	return reiser4_node_modify(node, pos, hint, cb_node_insert);
 }
 
 int64_t reiser4_node_write(reiser4_node_t *node, pos_t *pos,
@@ -464,8 +459,7 @@ int64_t reiser4_node_write(reiser4_node_t *node, pos_t *pos,
 	aal_assert("umka-2447", hint != NULL);
 	aal_assert("umka-2445", node != NULL);
 
-	return reiser4_node_modify(node, pos, hint,
-				   callback_node_write);
+	return reiser4_node_modify(node, pos, hint, cb_node_write);
 }
 
 int64_t reiser4_node_trunc(reiser4_node_t *node, pos_t *pos,

@@ -51,8 +51,8 @@ aal_device_t *journal40_device(generic_entity_t *entity) {
 
 /* Helper function for fetching journal footer and header in initialization
    time. */
-static errno_t callback_fetch_journal(void *entity, blk_t start,
-				      count_t width, void *data)
+static errno_t cb_fetch_journal(void *entity, blk_t start,
+				count_t width, void *data)
 {
 	journal40_t *journal = (journal40_t *)entity;
 
@@ -107,7 +107,7 @@ static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *forma
 	/* Calling journal enumerator in order to fetch journal header and
 	   footer. */
 	if (journal40_layout((generic_entity_t *)journal,
-			     callback_fetch_journal, journal))
+			     cb_fetch_journal, journal))
 	{
 		aal_error("Can't open journal header/footer.");
 		goto error_free_journal;
@@ -122,8 +122,8 @@ static generic_entity_t *journal40_open(fs_desc_t *desc, generic_entity_t *forma
 
 /* Helper function for creating empty journal header and footer. Used in journal
    create time. */
-static errno_t callback_alloc_journal(void *entity, blk_t start,
-				      count_t width, void *data)
+static errno_t cb_alloc_journal(void *entity, blk_t start,
+				count_t width, void *data)
 {
 	journal40_t *journal = (journal40_t *)entity;
 	
@@ -174,7 +174,7 @@ static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *for
 
 	/* Create journal header and footer. */
 	if (journal40_layout((generic_entity_t *)journal,
-			     callback_alloc_journal, journal))
+			     cb_alloc_journal, journal))
 	{
 		aal_error("Can't create journal header/footer.");
 		goto error_free_journal;
@@ -189,8 +189,8 @@ static generic_entity_t *journal40_create(fs_desc_t *desc, generic_entity_t *for
 
 /* Helper function for save jopurnal header and footer to device journal is
    working on. */
-static errno_t callback_sync_journal(void *entity, blk_t start,
-				     count_t width, void *data)
+static errno_t cb_sync_journal(void *entity, blk_t start,
+			       count_t width, void *data)
 {
 	journal40_t *journal = (journal40_t *)entity;
 	
@@ -215,7 +215,7 @@ static errno_t journal40_sync(generic_entity_t *entity) {
 
 	aal_assert("umka-410", entity != NULL);
 
-	if ((res = journal40_layout(entity, callback_sync_journal, entity)))
+	if ((res = journal40_layout(entity, cb_sync_journal, entity)))
 		return res;
 	
 	((journal40_t *)entity)->state &= ~(1 << ENTITY_DIRTY);
@@ -521,9 +521,9 @@ errno_t journal40_traverse(
 	return res;
 }
 
-static errno_t callback_replay(generic_entity_t *entity, 
-			       aal_block_t *block,
-			       d64_t orig, void *data)
+static errno_t cb_replay(generic_entity_t *entity, 
+			 aal_block_t *block,
+			 d64_t orig, void *data)
 {
 	errno_t res;
 	journal40_t *journal;
@@ -547,9 +547,9 @@ struct replay_count {
 
 typedef struct replay_count replay_count_t;
 
-static errno_t callback_print_replay(generic_entity_t *entity,
-				     aal_block_t *block, blk_t orig,
-				     journal40_block_t type, void *data)
+static errno_t cb_print_replay(generic_entity_t *entity,
+			       aal_block_t *block, blk_t orig,
+			       journal40_block_t type, void *data)
 {
 	journal40_tx_header_t *header;
 	journal40_t *journal;
@@ -587,8 +587,8 @@ static errno_t journal40_replay(generic_entity_t *entity) {
 	aal_memset(&count, 0, sizeof(count));
 	
 	/* Traverse the journal and replay all transactions. */
-	if ((res = journal40_traverse(journal, NULL, callback_replay, 
-				      callback_print_replay, &count)))
+	if ((res = journal40_traverse(journal, NULL, cb_replay, 
+				      cb_print_replay, &count)))
 	{
 		return res;
 	}

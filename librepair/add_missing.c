@@ -8,8 +8,8 @@
 
 /* Callback for item_ops->layout method to mark all the blocks, items points 
    to, in the allocator. */
-static errno_t callback_item_mark_region(void *object, uint64_t start, 
-					 uint64_t count, void *data)
+static errno_t cb_item_mark_region(void *object, uint64_t start, 
+				   uint64_t count, void *data)
 {
 	repair_am_t *am = (repair_am_t *)data;
 	
@@ -28,7 +28,7 @@ static errno_t callback_item_mark_region(void *object, uint64_t start,
 /* Callback for traverse through all items of the node. Calls for the item, 
    determined by place, layout method, if it is not the branch and has pointers
    to some blocks. */
-static errno_t callback_layout(reiser4_place_t *place, void *data) {
+static errno_t cb_layout(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-649", place != NULL);
 	aal_assert("vpf-748", !reiser4_item_branch(place->plug));
 
@@ -38,7 +38,7 @@ static errno_t callback_layout(reiser4_place_t *place, void *data) {
 	/* All these blocks should not be used in the allocator and should be 
 	   forbidden for allocation. Check it somehow first. */
 	return plug_call(place->plug->o.item_ops->object, layout,
-			 place, callback_item_mark_region, data);
+			 place, cb_item_mark_region, data);
 }
 
 static void repair_add_missing_setup(repair_am_t *am) {
@@ -212,7 +212,7 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 
 			stat->by_node++;
 
-			res = reiser4_node_trav(node, callback_layout, am);
+			res = reiser4_node_trav(node, cb_layout, am);
 			if (res) goto error_close_node;
 
 		} else {
@@ -282,7 +282,7 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 			}
 
 			res = repair_tree_insert(am->repair->fs->tree, &place,
-						 callback_item_mark_region, am);
+						 cb_item_mark_region, am);
 			
 			if (res) goto error_close_node;
 		}

@@ -222,8 +222,8 @@ errno_t repair_fs_pack(reiser4_fs_t *fs,
 	return 0;
 }
 
-static errno_t callback_mark_used(void *object, uint64_t start,
-				  uint64_t count, void *data) 
+static errno_t cb_mark_used(void *object, uint64_t start,
+			    uint64_t count, void *data) 
 {
 	aux_bitmap_t *bitmap = (aux_bitmap_t *)data;
 
@@ -355,7 +355,7 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 		/* Resize the bitmap. */
 		aux_bitmap_resize(bitmap, len);
 		
-		if (reiser4_fs_layout(fs, callback_mark_used, bitmap)) {
+		if (reiser4_fs_layout(fs, cb_mark_used, bitmap)) {
 			aal_error("Can't to mark all frozen fs "
 				  "blocks as used in the bitmap.");
 			goto error_free_status;

@@ -7,7 +7,7 @@
 #include <repair/librepair.h>
 
 /* Checks the blocksize. */
-static int callback_bs_check (int64_t val, void * data) {
+static int cb_bs_check (int64_t val, void * data) {
 	if (!aal_pow2(val))
 		return 0;
     
@@ -24,7 +24,7 @@ static int callback_bs_check (int64_t val, void * data) {
    one was opened. */
 static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 	reiser4_plug_t *plug;
-	uint16_t blksize;
+	uint16_t size;
 	rid_t pid;
 	
 	aal_assert("vpf-730", fs != NULL);
@@ -42,11 +42,11 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 			return -EINVAL;
 		}
 		
-		blksize = aal_ui_get_numeric(4096, callback_bs_check, NULL,
-					     "Which block size do you use?");
+		size = aal_ui_get_numeric(4096, cb_bs_check, NULL,
+					  "Which block size do you use?");
 		
 		/* Create a new master SB. */
-		if (!(fs->master = reiser4_master_create(fs->device, blksize)))
+		if (!(fs->master = reiser4_master_create(fs->device, size)))
 		{
 			aal_error("Failed to create a new master super block.");
 			return -EINVAL;
@@ -62,8 +62,7 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 		/* Master SB was opened. Check it for validness. */
 		
 		/* Check the blocksize. */
-		if (!callback_bs_check(reiser4_master_get_blksize(fs->master), 
-				       NULL))
+		if (!cb_bs_check(reiser4_master_get_blksize(fs->master), NULL))
 		{
 			aal_error("Invalid blocksize found in the "
 				  "master super block (%u).",
@@ -72,11 +71,11 @@ static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
 			if (mode != RM_BUILD)
 				return RE_FATAL;
 			
-			blksize = aal_ui_get_numeric(4096, callback_bs_check,
-						     NULL, "Which block size "
-						     "do you use?");
+			size = aal_ui_get_numeric(4096, cb_bs_check, NULL,
+						  "Which block size do you "
+						  "use?");
 
-			reiser4_master_set_blksize(fs->master, blksize);
+			reiser4_master_set_blksize(fs->master, size);
 			reiser4_master_mkdirty(fs->master);
 		}
 	}

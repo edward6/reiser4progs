@@ -94,8 +94,8 @@ static char *__blk_type_name(journal40_block_t blk_type) {
 }
 
 /* Callback for format.layout. Returns 1 for all fotmat blocks. */
-static errno_t callback_check_format_block(void *entity, blk_t start,
-					   count_t width, void *data)
+static errno_t cb_check_format_block(void *entity, blk_t start,
+				     count_t width, void *data)
 {
 	blk_t blk = *(blk_t *)data;
 	return (blk >= start && blk < start + width);
@@ -118,7 +118,7 @@ static errno_t journal40_blk_format_check(journal40_t *journal, blk_t blk,
 		return 0;
 	
 	/* blk belongs to format area */
-	return data->fs_layout(data->layout, callback_check_format_block, &blk) ? 
+	return data->fs_layout(data->layout, cb_check_format_block, &blk) ? 
 		-ESTRUCT : 0;
 }
 
@@ -126,8 +126,7 @@ static errno_t journal40_blk_format_check(journal40_t *journal, blk_t blk,
    block number equals to wanted blk. Set found_type then to TxH. Returns 1 
    when traverse should be stopped, zeroes found_type if no satisfied 
    transaction was found. */
-static errno_t callback_find_txh_blk(generic_entity_t *entity, blk_t blk, 
-				     void *data) 
+static errno_t cb_find_txh_blk(generic_entity_t *entity, blk_t blk, void *data)
 {
 	journal40_check_t *check_data = (journal40_check_t *)data;
 	
@@ -152,11 +151,8 @@ static errno_t callback_find_txh_blk(generic_entity_t *entity, blk_t blk,
 /* Secondary (not TxH) blocks callback for nested traverses. Should find the 
    transaction which contains block number equal to wanted blk. Set wanted_blk 
    to TxH block number and found_type to the type of found blk. */
-static errno_t callback_find_sec_blk(generic_entity_t *entity, 
-				     aal_block_t *txh_block, 
-				     blk_t blk, 
-				     journal40_block_t blk_type, 
-				     void *data) 
+static errno_t cb_find_sec_blk(generic_entity_t *entity, aal_block_t *txh_block,
+			       blk_t blk, journal40_block_t blk_type,void *data)
 {
 	journal40_check_t *check_data = (journal40_check_t *)data;
 	
@@ -172,8 +168,8 @@ static errno_t callback_find_sec_blk(generic_entity_t *entity,
 /* TxH callback for traverse. Returns 1 if blk is a block out of format bound 
    or of format area or is met more then once. data->cur_txh = 0 all the way
    here to explain the traverse caller that the whole journal is invalid. */
-static errno_t callback_journal_txh_check(generic_entity_t *entity, blk_t blk, 
-					  void *data) 
+static errno_t cb_journal_txh_check(generic_entity_t *entity, 
+				    blk_t blk, void *data) 
 {
 	journal40_t *journal = (journal40_t *)entity;
 	journal40_check_t *check_data = (journal40_check_t *)data;
@@ -204,11 +200,9 @@ static errno_t callback_journal_txh_check(generic_entity_t *entity, blk_t blk,
 
 /* Secondary blocks callback for traverse. Does all the work described above for 
    all block types except TxH. */
-static errno_t callback_journal_sec_check(generic_entity_t *entity, 
-					  aal_block_t *txh_block, 
-					  blk_t blk, 
-					  journal40_block_t blk_type, 
-					  void *data) 
+static errno_t cb_journal_sec_check(generic_entity_t *entity, 
+				    aal_block_t *txh_block, blk_t blk, 
+				    journal40_block_t blk_type, void *data)
 {
 	journal40_t *journal = (journal40_t *)entity;
 	journal40_check_t *check_data = (journal40_check_t *)data;
@@ -295,7 +289,7 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 				check_data->wanted_blk = blk;
 				
 				ret = journal40_traverse(journal, NULL, NULL, 
-							 callback_find_sec_blk, 
+							 cb_find_sec_blk, 
 							 check_data);
 				
 				if (ret != -ESTRUCT) {
@@ -331,8 +325,8 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 			check_data->wanted_blk = blk;
 			check_data->flags = 0;
 			
-			ret = journal40_traverse(journal, callback_find_txh_blk, 
-						 NULL, callback_find_sec_blk, 
+			ret = journal40_traverse(journal, cb_find_txh_blk, 
+						 NULL, cb_find_sec_blk, 
 						 check_data);
 			
 			if (ret != -ESTRUCT) {
@@ -366,7 +360,7 @@ static errno_t callback_journal_sec_check(generic_entity_t *entity,
 			/* Stop looking through TxH's when reach the current trans. */
 			check_data->flags = (1 << TF_SAME_TXH_BREAK);
 			
-			ret = journal40_traverse(journal, callback_find_txh_blk, 
+			ret = journal40_traverse(journal, cb_find_txh_blk, 
 						 NULL, NULL, check_data);
 			
 			if (ret != -ESTRUCT) {
@@ -430,8 +424,8 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 		return -ENOMEM;
 	}
 	
-	ret = journal40_traverse((journal40_t *)entity, callback_journal_txh_check,
-				 NULL, callback_journal_sec_check, &data);
+	ret = journal40_traverse((journal40_t *)entity, cb_journal_txh_check,
+				 NULL, cb_journal_sec_check, &data);
 	
 	if (ret && ret != -ESTRUCT)
 		return ret;
@@ -514,8 +508,8 @@ static void extract_string(char *stor, char *orig, uint32_t max) {
 }
 
 /* Helper function for printing transaction header. */
-static errno_t callback_print_txh(generic_entity_t *entity,
-				  blk_t blk, void *data)
+static errno_t cb_print_txh(generic_entity_t *entity,
+			    blk_t blk, void *data)
 {
 	aal_block_t *block;
 	journal40_t *journal;
@@ -573,9 +567,9 @@ static errno_t callback_print_txh(generic_entity_t *entity,
 }
 
 /* Printing pair (wandered and original) blocks */
-static errno_t callback_print_par(generic_entity_t *entity,
-				  aal_block_t *block,
-				  blk_t orig, void *data)
+static errno_t cb_print_par(generic_entity_t *entity,
+			    aal_block_t *block,
+			    blk_t orig, void *data)
 {
 	aal_stream_format((aal_stream_t *)data,
 			  "%llu -> %llu\n", orig, block->nr);
@@ -583,9 +577,9 @@ static errno_t callback_print_par(generic_entity_t *entity,
 }
 
 /* hellper function for printing log record. */
-static errno_t callback_print_lgr(generic_entity_t *entity,
-				  aal_block_t *block, blk_t blk,
-				  journal40_block_t bel, void *data)
+static errno_t cb_print_lgr(generic_entity_t *entity,
+			    aal_block_t *block, blk_t blk,
+			    journal40_block_t bel, void *data)
 {
 	aal_stream_t *stream;
 	char magic[LGR_MAGIC_SIZE];
@@ -668,11 +662,8 @@ void journal40_print(generic_entity_t *entity,
 			  get_jf_used_oids(footer));
 
 	/* Print all transactions. */
-	journal40_traverse((journal40_t *)entity, 
-			   callback_print_txh,
-			   callback_print_par,
-			   callback_print_lgr,
-			   (void *)stream);
+	journal40_traverse((journal40_t *)entity, cb_print_txh,
+			   cb_print_par, cb_print_lgr, (void *)stream);
 }
 #endif
 

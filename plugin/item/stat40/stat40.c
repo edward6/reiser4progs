@@ -80,10 +80,7 @@ errno_t stat40_traverse(reiser4_place_t *place,
 }
 
 /* Callback for opening one extension */
-static errno_t callback_open_ext(stat_entity_t *stat,
-				 uint64_t extmask, 
-				 void *data)
-{
+static errno_t cb_open_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 	stat_hint_t *stath;
 	trans_hint_t *hint;
 
@@ -170,7 +167,7 @@ static int64_t stat40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
 		}
 	}
 	
-	if (stat40_traverse(place, callback_open_ext, hint))
+	if (stat40_traverse(place, cb_open_ext, hint))
 		return -EINVAL;
 
 	/* Adjust OPSET_OBJ. */

@@ -110,8 +110,8 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 #ifndef ENABLE_STAND_ALONE
 /* Releases passed region in block allocator. This is used in tail during tree
    trunacte. */
-static errno_t callback_release_region(void *entity, uint64_t start,
-				       uint64_t width, void *data)
+static errno_t cb_release_region(void *entity, uint64_t start,
+				 uint64_t width, void *data)
 {
 	reiser4_tree_t *tree = (reiser4_tree_t *)data;
 	return reiser4_alloc_release(tree->fs->alloc, start, width);
@@ -204,7 +204,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 
 	/* Setting up region func to release region callback. It is needed for
 	   releasing extent blocks. */
-	hint->region_func = callback_release_region;
+	hint->region_func = cb_release_region;
 
 	for (total = 0, size = hint->count; size > 0;
 	     size -= trunc, total += trunc)

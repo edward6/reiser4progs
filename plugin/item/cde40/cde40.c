@@ -1025,8 +1025,8 @@ int cde40_comp_hash(reiser4_place_t *place, uint32_t pos, reiser4_key_t *key) {
 
 /* Helper function that is used by lookup method for 
    comparing given key with passed entry hash. */
-static int callback_comp_hash(void *array, uint32_t pos,
-			      void *key, void *data)
+static int cb_comp_hash(void *array, uint32_t pos,
+			void *key, void *data)
 {
 	return cde40_comp_hash((reiser4_place_t *)data, pos, 
 			       (reiser4_key_t *)key);
@@ -1047,7 +1047,7 @@ lookup_t cde40_lookup(reiser4_place_t *place,
 	/* Bin search within the cde item to get the position of 
 	   the wanted key. */
 	switch (aux_bin_search(place->body, cde40_units(place),
-			       hint->key, callback_comp_hash,
+			       hint->key, cb_comp_hash,
 			       place, &place->pos.unit))
 	{
 	case 1:

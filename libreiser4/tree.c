@@ -310,7 +310,7 @@ errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 }
 
 #if 0
-static errno_t callback_count_children(reiser4_place_t *place, void *data) {
+static errno_t cb_count_children(reiser4_place_t *place, void *data) {
 	uint32_t *count = (uint32_t *)data;
 	blk_t blk;
 	
@@ -325,7 +325,7 @@ static errno_t callback_count_children(reiser4_place_t *place, void *data) {
 uint32_t debug_node_loaded_children(reiser4_node_t *node) {
 	uint32_t count = 0;
 	if (!node) return 0;
-	reiser4_node_trav(node, callback_count_children, &count);
+	reiser4_node_trav(node, cb_count_children, &count);
 	return count;
 }
 
@@ -917,24 +917,24 @@ errno_t reiser4_tree_discard_node(reiser4_tree_t *tree,
 
 /* Helper function for freeing passed key instance tree's data hashtable entry
    is going to be removed. */
-static void callback_blocks_keyrem_func(void *key) {
+static void cb_blocks_keyrem_func(void *key) {
 	reiser4_key_free((reiser4_key_t *)key);
 }
 
 /* Helper function for freeing hash value, that is, data block. */
-static void callback_blocks_valrem_func(void *val) {
+static void cb_blocks_valrem_func(void *val) {
 	aal_block_free((aal_block_t *)val);
 }
 
 /* Helper function for calculating 64-bit hash by passed key. This is used for
    tree's data hash. */
-static uint64_t callback_blocks_hash_func(void *key) {
+static uint64_t cb_blocks_hash_func(void *key) {
 	return (reiser4_key_get_objectid((reiser4_key_t *)key) +
 		reiser4_key_get_offset((reiser4_key_t *)key));
 }
 
 /* Helper function for comparing two keys during tree's data hash lookups. */
-static int callback_blocks_comp_func(void *key1, void *key2,
+static int cb_blocks_comp_func(void *key1, void *key2,
 				     void *data)
 {
 	return reiser4_key_compfull((reiser4_key_t *)key1,
@@ -953,19 +953,17 @@ inline uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
 
 /* Helpher function for freeing keys in @tree->nodes hash table during its
    destroying. */
-static void callback_nodes_keyrem_func(void *key) {
+static void cb_nodes_keyrem_func(void *key) {
 	aal_free(key);
 }
 
 /* Return hash number from passed key value from @tree->nodes hashtable. */
-static uint64_t callback_nodes_hash_func(void *key) {
+static uint64_t cb_nodes_hash_func(void *key) {
 	return *(uint64_t *)key;
 }
 
 /* Compares two passed keys of @tree->nodes hash table during lookup in it. */
-static int callback_nodes_comp_func(void *key1, void *key2,
-				    void *data)
-{
+static int cb_nodes_comp_func(void *key1, void *key2, void *data) {
 	if (*(uint64_t *)key1 < *(uint64_t *)key2)
 		return -1;
 
@@ -995,9 +993,9 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 
 	/* Initializing hash table for storing loaded formatted nodes in it. */
 	if (!(tree->nodes = aal_hash_table_create(TREE_NODES_TABLE_SIZE,
-						  callback_nodes_hash_func,
-						  callback_nodes_comp_func,
-						  callback_nodes_keyrem_func,
+						  cb_nodes_hash_func,
+						  cb_nodes_comp_func,
+						  cb_nodes_keyrem_func,
 						  NULL)))
 	{
 		goto error_free_tree;
@@ -1008,10 +1006,10 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	   it. This uses all callbacks we described above for getting hash
 	   values, lookup, etc. */
 	if (!(tree->blocks = aal_hash_table_create(TREE_BLOCKS_TABLE_SIZE,
-						   callback_blocks_hash_func,
-						   callback_blocks_comp_func,
-						   callback_blocks_keyrem_func,
-						   callback_blocks_valrem_func)))
+						   cb_blocks_hash_func,
+						   cb_blocks_comp_func,
+						   cb_blocks_keyrem_func,
+						   cb_blocks_valrem_func)))
 	{
 		goto error_free_nodes;
 	}
@@ -1091,7 +1089,7 @@ void reiser4_tree_close(reiser4_tree_t *tree) {
 	aal_free(tree);
 }
 #ifndef ENABLE_STAND_ALONE
-static errno_t callback_flags_dup(reiser4_place_t *place, void *data) {
+static errno_t cb_flags_dup(reiser4_place_t *place, void *data) {
 	reiser4_item_dup_flags(place, *(uint16_t *)data);
 	return 0;
 }
@@ -1115,7 +1113,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 	hint.specific = &ptr;
 	hint.plug = place->plug;
 	hint.region_func = NULL;
-	hint.place_func = callback_flags_dup;
+	hint.place_func = cb_flags_dup;
 	hint.data = &flags;
 
 	/* We force balancing use these flags with disables left shift
@@ -1234,9 +1232,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 	return 0;
 }
 
-static errno_t callback_node_adjust(reiser4_tree_t *tree, 
-				    reiser4_node_t *node)
-{
+static errno_t cb_node_adjust(reiser4_tree_t *tree, reiser4_node_t *node) {
 	errno_t res;
 	
 	aal_assert("umka-2302", tree != NULL);
@@ -1271,9 +1267,7 @@ static errno_t callback_node_adjust(reiser4_tree_t *tree,
 
 /* Runs through the node in @place and calls tree_adjust_node() for all
    children. */
-static errno_t callback_nodeptr_adjust(reiser4_tree_t *tree, 
-				       reiser4_place_t *place) 
-{
+static errno_t cb_nodeptr_adjust(reiser4_tree_t *tree, reiser4_place_t *place) {
 	/* It is not good, that we reference here to particular item group. But,
 	   we have to do so, considering, that this is up to tree to know about
 	   items type in it. Probably this is why tree should be plugin too to
@@ -1285,9 +1279,7 @@ static errno_t callback_nodeptr_adjust(reiser4_tree_t *tree,
 	return reiser4_tree_alloc_extent(tree, place);
 }
 
-static errno_t callback_node_unload(reiser4_tree_t *tree, 
-				    reiser4_node_t *node)
-{	
+static errno_t cb_node_unload(reiser4_tree_t *tree, reiser4_node_t *node) {
 	count_t free_blocks;
 
 	/* Updating free space counter in format. */
@@ -1326,9 +1318,9 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
 		if (reiser4_node_items(tree->root))
 #ifndef ENABLE_STAND_ALONE
 			res = reiser4_tree_walk_node(tree, tree->root, 
-						     callback_node_adjust,
-						     callback_nodeptr_adjust,
-						     callback_node_unload);
+						     cb_node_adjust,
+						     cb_nodeptr_adjust,
+						     cb_node_unload);
 #else
 			res = reiser4_tree_walk_node(tree, tree->root, 
 						     reiser4_tree_unload_node);
@@ -1416,7 +1408,7 @@ errno_t reiser4_tree_walk_node(reiser4_tree_t *tree,
 #ifndef ENABLE_STAND_ALONE
 /* Helper function for save one unformatted block to device. Used from
    tree_sync() to save all in-memory unfromatted blocks. */
-static errno_t callback_save_block( void *entry, void *data) {
+static errno_t cb_save_block( void *entry, void *data) {
 	aal_hash_node_t *node = (aal_hash_node_t *)entry;
 	aal_block_t *block = (aal_block_t *)node->value;
 
@@ -1566,9 +1558,9 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	   flag set to 0, that is do not check memory presure, and save
 	   everything. */
 	if ((res = reiser4_tree_walk_node(tree, tree->root, 
-					  callback_node_adjust,
-					  callback_nodeptr_adjust,
-					  callback_node_unload)))
+					  cb_node_adjust,
+					  cb_nodeptr_adjust,
+					  cb_node_unload)))
 	{
 		aal_error("Can't save formatted nodes to device.");
 		return res;
@@ -1576,9 +1568,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 
 	/* Flushing unformatted blocks (extents data) attached to @tree->data
 	   hash table. */
-	if ((res = aal_hash_table_foreach(tree->blocks,
-					  callback_save_block, tree)))
-	{
+	if ((res = aal_hash_table_foreach(tree->blocks, cb_save_block, tree))) {
 		aal_error("Can't save unformatted nodes to device.");
 		return res;
 	}
@@ -2650,9 +2640,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 }
 
 /* Estimates how many bytes is needed to insert data described by @hint. */
-static errno_t callback_prep_insert(reiser4_place_t *place, 
-				    trans_hint_t *hint) 
-{
+static errno_t cb_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-2440", hint != NULL);
 	aal_assert("umka-2439", place != NULL);
 
@@ -2664,9 +2652,7 @@ static errno_t callback_prep_insert(reiser4_place_t *place,
 }
 
 /* Estimates how many bytes is needed to write data described by @hint. */
-static errno_t callback_prep_write(reiser4_place_t *place, 
-				   trans_hint_t *hint) 
-{
+static errno_t cb_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-3007", hint != NULL);
 	aal_assert("umka-3008", place != NULL);
 
@@ -2939,8 +2925,7 @@ int64_t reiser4_tree_insert(reiser4_tree_t *tree, reiser4_place_t *place,
 	aal_assert("umka-1645", hint->plug != NULL);
 
 	return reiser4_tree_modify(tree, place, hint, level, 
-				   callback_prep_insert,
-				   callback_node_insert);
+				   cb_prep_insert, cb_node_insert);
 }
 
 /* Writes data to the tree. used for puting tail and extents to tree. */
@@ -2954,8 +2939,7 @@ int64_t reiser4_tree_write(reiser4_tree_t *tree, reiser4_place_t *place,
 	aal_assert("umka-2444", hint->plug != NULL);
 
 	return reiser4_tree_modify(tree, place, hint, level,
-				   callback_prep_write,
-				   callback_node_write);
+				   cb_prep_write, cb_node_write);
 }
 
 /* Removes item/unit at @place. */

@@ -13,16 +13,16 @@ struct alloc_hint {
 	void *data;
 };
 
-extern errno_t callback_valid_block(void *entity, blk_t start,
-				    count_t width, void *data);
+extern errno_t cb_valid_block(void *entity, blk_t start,
+			      count_t width, void *data);
 
-static errno_t callback_check_layout(void *entity, blk_t start, 
-				     count_t width, void *data) 
+static errno_t cb_check_layout(void *entity, blk_t start, 
+			       count_t width, void *data) 
 {
 	struct alloc_hint *hint = (struct alloc_hint *)data;
 	errno_t res;
 
-	res = callback_valid_block(entity, start, width, NULL);
+	res = cb_valid_block(entity, start, width, NULL);
 	
 	if (res && res != -ESTRUCT)
 		return res;
@@ -50,12 +50,12 @@ errno_t alloc40_layout_bad(generic_entity_t *entity,
 	hint.data = data;
 	hint.region_func = region_func;
 	
-	return alloc40_layout(entity, callback_check_layout, &hint);
+	return alloc40_layout(entity, cb_check_layout, &hint);
 }
 
 /* Callback for packing one bitmap block. */
-static errno_t callback_pack_bitmap(void *entity, blk_t start,
-				    count_t width, void *data)
+static errno_t cb_pack_bitmap(void *entity, blk_t start,
+			      count_t width, void *data)
 {
 	uint32_t size;
 	uint32_t chunk;
@@ -86,8 +86,8 @@ static errno_t callback_pack_bitmap(void *entity, blk_t start,
 }
 
 /* Callback for unpacking one bitmap block. */
-static errno_t callback_unpack_bitmap(void *entity, blk_t start,
-				      count_t width, void *data)
+static errno_t cb_unpack_bitmap(void *entity, blk_t start,
+				count_t width, void *data)
 {
 	uint32_t size;
 	uint32_t chunk;
@@ -147,7 +147,7 @@ errno_t alloc40_pack(generic_entity_t *entity,
 	aal_stream_write(stream, &len, sizeof(len));
 
 	/* Calling layout() function for packing all bitmap blocks. */
-	if ((res = alloc40_layout(entity, callback_pack_bitmap, stream))) {
+	if ((res = alloc40_layout(entity, cb_pack_bitmap, stream))) {
 		aal_error("Can't pack bitmap.");
 		return res;
 	}
@@ -198,7 +198,7 @@ generic_entity_t *alloc40_unpack(fs_desc_t *desc,
 	/* Calling layout() function for reading all bitmap blocks to
 	   @alloc->bitmap. */
 	if (alloc40_layout((generic_entity_t *)alloc,
-			   callback_unpack_bitmap, stream))
+			   cb_unpack_bitmap, stream))
 	{
 		aal_error("Can't unpack bitmap.");
 		goto error_free_crc;
@@ -218,8 +218,8 @@ generic_entity_t *alloc40_unpack(fs_desc_t *desc,
 	return NULL;
 }
 
-static errno_t callback_print_bitmap(void *entity, blk_t start,
-				     count_t width, void *data)
+static errno_t cb_print_bitmap(void *entity, blk_t start,
+			       count_t width, void *data)
 {
 	uint32_t size;
 	uint64_t offset;
@@ -275,7 +275,7 @@ void alloc40_print(generic_entity_t *entity,
 
 	/* Calling alloc40_layout() in order to print all block checksums */
 	alloc40_layout((generic_entity_t *)alloc, 
-		       callback_print_bitmap, stream);
+		       cb_print_bitmap, stream);
 	
 	start = 0;
 	total = alloc->bitmap->total;
@@ -297,9 +297,7 @@ void alloc40_print(generic_entity_t *entity,
 }
 
 
-static void callback_inval_warn(blk_t start, uint32_t ladler,
-				uint32_t cadler)
-{
+static void cb_inval_warn(blk_t start, uint32_t ladler, uint32_t cadler) {
 	fsck_mess("Checksum missmatch in bitmap block %llu. Checksum "
 		  "is 0x%x, should be 0x%x.", start, ladler, cadler);
 }
@@ -315,8 +313,7 @@ errno_t alloc40_check_struct(generic_entity_t *entity, uint8_t mode) {
 	/* Calling layout function for traversing all the bitmap blocks with
 	   checking callback function. */
 	res = alloc40_layout((generic_entity_t *)alloc,
-			     callback_valid_block,
-			     callback_inval_warn);
+			     cb_valid_block, cb_inval_warn);
 
 	if (res != -ESTRUCT)
 		return res;

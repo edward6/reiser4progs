@@ -66,7 +66,7 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	return NULL;
 }
 
-static object_entity_t *callback_object_open(object_info_t *info) {
+static object_entity_t *cb_object_open(object_info_t *info) {
 	/* Try to init on the StatData. */
 	if (reiser4_object_init(info))
 		return INVAL_PTR;
@@ -82,7 +82,7 @@ reiser4_object_t *repair_object_open(reiser4_tree_t *tree,
 	aal_assert("vpf-1622", place != NULL);
 	
 	return reiser4_object_form(tree, parent, &place->key, 
-				   place, callback_object_open);
+				   place, cb_object_open);
 }
 
 /* Open the object on the base of given start @key */
@@ -105,8 +105,7 @@ reiser4_object_t *repair_object_obtain(reiser4_tree_t *tree,
 	
 	/* Even if ABSENT, pass the found place through object recognize 
 	   method to check all possible corruptions. */
-	return reiser4_object_form(tree, parent, key, &place, 
-				   callback_object_open);
+	return reiser4_object_form(tree, parent, key, &place, cb_object_open);
 }
 
 /* Checks the attach between @parent and @object */
@@ -213,7 +212,7 @@ errno_t repair_object_refresh(reiser4_object_t *object) {
 }
 
 /* Helper function for printing passed @place into @stream. */
-static errno_t callback_print_place(reiser4_place_t *place, void *data) {
+static errno_t cb_print_place(reiser4_place_t *place, void *data) {
 	aal_stream_t *stream = (aal_stream_t *)data;
 	
 	repair_item_print(place, stream);
@@ -223,5 +222,5 @@ static errno_t callback_print_place(reiser4_place_t *place, void *data) {
 
 /* Prints object items into passed stream */
 void repair_object_print(reiser4_object_t *object, aal_stream_t *stream) {
-	reiser4_object_metadata(object, callback_print_place, stream);
+	reiser4_object_metadata(object, cb_print_place, stream);
 }

@@ -178,14 +178,14 @@ void misc_upper_case(char *dst, const char *src) {
 	dst[i] = '\0';
 }
 
-static errno_t callback_print_plug(reiser4_plug_t *plug, void *data) {
+static errno_t cb_print_plug(reiser4_plug_t *plug, void *data) {
 	printf("\"%s\": %s\n", plug->label, plug->desc);
 	return 0;
 }
 
 void misc_plugins_print(void) {
 	printf("Known plugins:\n");
-	reiser4_factory_foreach(callback_print_plug, NULL);
+	reiser4_factory_foreach(cb_print_plug, NULL);
 	printf("\n");
 }
 

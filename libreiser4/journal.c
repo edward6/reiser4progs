@@ -117,8 +117,8 @@ errno_t reiser4_journal_layout(reiser4_journal_t *journal,
 			 journal->ent, region_func, data);
 }
 
-static errno_t callback_action_mark(void *entity, blk_t start,
-				    count_t width, void *data)
+static errno_t cb_action_mark(void *entity, blk_t start,
+			      count_t width, void *data)
 {
 	return reiser4_alloc_occupy((reiser4_alloc_t *)data,
 				    start, width);
@@ -130,7 +130,7 @@ errno_t reiser4_journal_mark(reiser4_journal_t *journal) {
 	aal_assert("umka-1856", journal->fs != NULL);
 	aal_assert("umka-1856", journal->fs->alloc != NULL);
 	
-	return reiser4_journal_layout(journal, callback_action_mark,
+	return reiser4_journal_layout(journal, cb_action_mark,
 				      journal->fs->alloc);
 }
 

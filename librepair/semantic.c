@@ -17,7 +17,7 @@ static void repair_semantic_lost_name(reiser4_object_t *object, char *name) {
 }
 
 /* Callback for repair_object_check_struct. Mark the passed item as CHECKED. */
-static errno_t callback_register_item(reiser4_place_t *place, void *data) {
+static errno_t cb_register_item(reiser4_place_t *place, void *data) {
         aal_assert("vpf-1115", place != NULL);
          
         if (reiser4_item_test_flag(place, OF_CHECKED)) {
@@ -55,7 +55,7 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 	    !reiser4_item_test_flag(object_start(object), OF_CHECKED)) 
 	{
 		place_func_t place_func = sem->repair->mode == RM_BUILD ?
-			callback_register_item : NULL;
+			cb_register_item : NULL;
 		
 		res = repair_object_check_struct(object, place_func,
 						 sem->repair->mode, sem);
@@ -81,7 +81,7 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 	aal_assert("vpf-1255", parent != NULL);
 	
 	place_func = sem->repair->mode == RM_BUILD ? 
-		callback_register_item : NULL;
+		cb_register_item : NULL;
 	
 	/* Even if this object is ATTACHED already it may allow many 
 	   names to itself -- check the attach with this @parent. */
@@ -122,7 +122,7 @@ static errno_t repair_semantic_add_entry(reiser4_object_t *parent,
 	
 	aal_strncpy(entry.name, name, sizeof(entry.name));
 	reiser4_key_assign(&entry.object, &object->ent->object);
-	entry.place_func = callback_register_item;
+	entry.place_func = cb_register_item;
 	entry.data = NULL;
 	
 	if ((res = reiser4_object_add_entry(parent, &entry)))
@@ -306,9 +306,8 @@ static errno_t repair_semantic_uptraverse(repair_semantic_t *sem,
 					  reiser4_object_t *parent,
 					  reiser4_object_t *object);
 
-static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent, 
-						  entry_hint_t *entry,
-						  void *data)
+static reiser4_object_t *cb_object_traverse(reiser4_object_t *parent, 
+					    entry_hint_t *entry, void *data)
 {
 	repair_semantic_t *sem = (repair_semantic_t *)data;
 	reiser4_object_t *object;
@@ -474,7 +473,7 @@ static errno_t repair_semantic_uptraverse(repair_semantic_t *sem,
 		goto error_close_upper;
 	
 	/* Traverse from the upper found object. */
-	res = reiser4_object_traverse(o, callback_object_traverse, sem);
+	res = reiser4_object_traverse(o, cb_object_traverse, sem);
 
  error_close_upper:
 	
@@ -483,7 +482,7 @@ static errno_t repair_semantic_uptraverse(repair_semantic_t *sem,
 	return res;
 }
 
-static errno_t callback_tree_scan(reiser4_place_t *place, void *data) {
+static errno_t cb_tree_scan(reiser4_place_t *place, void *data) {
 	repair_semantic_t *sem = (repair_semantic_t *)data;
 	reiser4_object_t *object;
 	errno_t res;
@@ -592,7 +591,7 @@ static errno_t repair_semantic_object_check(repair_semantic_t *sem,
 	while (sem->repair->mode == RM_BUILD) {
 		/* Check the attach before. */
 		res = repair_object_check_attach(parent, object, 
-						 callback_register_item,
+						 cb_register_item, 
 						 sem, RM_FIX);
 		
 		if (res < 0)  
@@ -837,7 +836,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	}
 
 	/* Traverse "/" and recover all reachable subtree. */
-	res = reiser4_object_traverse(sem->root, callback_object_traverse, sem);
+	res = reiser4_object_traverse(sem->root, cb_object_traverse, sem);
 	if (res) goto error_close_lost;
 
 	reiser4_object_close(sem->root);
@@ -846,7 +845,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	/* Connect lost objects to their parents -- if parents can be 
 	   identified -- or to "lost+found". */
 	if (sem->repair->mode == RM_BUILD) {
-		if ((res = repair_tree_scan(tree, callback_tree_scan, sem)))
+		if ((res = repair_tree_scan(tree, cb_tree_scan, sem)))
 			goto error_close_lost;
 	}
 	

@@ -17,7 +17,7 @@ struct resolve {
 typedef struct resolve resolve_t;
 
 /* Callback function for finding statdata of the current directory */
-static errno_t callback_find_statdata(char *path, char *entry, void *data) {
+static errno_t cb_find_statdata(char *path, char *entry, void *data) {
 #ifdef ENABLE_SYMLINKS
 	reiser4_plug_t *plug;
 #endif
@@ -71,7 +71,7 @@ static errno_t callback_find_statdata(char *path, char *entry, void *data) {
 }
 
 /* Callback function to find @name inside the current object. */
-static errno_t callback_find_entry(char *path, char *name, void *data) {
+static errno_t cb_find_entry(char *path, char *name, void *data) {
 	reiser4_plug_t *plug;
 	entry_hint_t entry;
 	resolve_t *resol;
@@ -134,8 +134,8 @@ reiser4_object_t *reiser4_semantic_open(
 	/* Parsing path and looking for object's stat data. We assume, that name
 	   is absolute one. So, user, who calls this method should convert name
 	   previously into absolute one by means of using getcwd() function. */
-	if (aux_parse_path(path, callback_find_statdata,
-			   callback_find_entry, &resol))
+	if (aux_parse_path(path, cb_find_statdata,
+			   cb_find_entry, &resol))
 		goto error_free_resol;
 
 	if (resol.parent)
