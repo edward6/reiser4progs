@@ -67,28 +67,32 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 	/* Even if this object is ATTACHED already it may allow many names
 	   to itself -- check the attach with this @parent. */
 	if ((res = repair_object_check_attach(parent, object,
-					      sem->repair->mode)))
-	{
-		aal_exception_error("Node (%llu), item (%u): attach check "
-				    "of the object pointed by %s failed. "
-				    "Plugin %s.", start->node->number,
-				    start->pos.item, object->name,
-				    object->entity->plug->label);
+					      sem->repair->mode)) < 0)
 		return res;
-	}
+	
+	if (res & REPAIR_FATAL) {
+		sem->repair->fatal++;
+		return res;
+	} else if (res & REPAIR_FIXABLE)
+		sem->repair->fixable++;
+	
+	if (sem->repair->mode != REPAIR_REBUILD)
+		return res;
+	
+	/* Increment the link. */
+	if ((res = plug_call(object->entity->plug->o.object_ops, link, 
+			     object->entity)))
+		return res;
+
+	if (object->info.parent.plug == NULL)
+		return 0;
 	
 	/* If parent pointed does not exists in the object or matches the 
 	   parent mark as ATTACHED. */
-	if (sem->repair->mode == REPAIR_REBUILD && 
-	    (object->info.parent.plug == NULL ||
-	     !reiser4_key_compare(&object->info.parent, &parent->info.object)))
-	{
+	if (!reiser4_key_compare(&object->info.parent, &parent->info.object))
 		repair_item_set_flag(start, OF_ATTACHED);
-	}
-		
-	/* Increment the link. */
-	return plug_call(object->entity->plug->o.object_ops, link, 
-			 object->entity);
+	
+	return 0;
 }
 
 static errno_t repair_semantic_add_entry(reiser4_object_t *parent, 
@@ -102,10 +106,9 @@ static errno_t repair_semantic_add_entry(reiser4_object_t *parent,
 	aal_strncpy(entry.name, name, sizeof(entry.name));
 	reiser4_key_assign(&entry.object, &object->info.object);
 
-	if ((res = reiser4_object_add_entry(object, &entry))) {
+	if ((res = reiser4_object_add_entry(object, &entry)))
 		aal_exception_error("Can't add entry %s to %s.",
 				    name, parent->name);
-	}
 	
 	return res;
 }
@@ -306,8 +309,10 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	/* Check the attach with @parent. */
 	if ((res = repair_semantic_check_attach(sem, parent, object)) < 0)
 		goto error_close_object;
-	else if (res & REPAIR_FATAL && sem->repair->mode == REPAIR_REBUILD)
+	else if (res & REPAIR_FATAL && sem->repair->mode == REPAIR_REBUILD) {
+		sem->repair->fatal--;
 		goto error_rem_entry;
+	}
 	
 	/* If object has been attached already -- it was traversed already. 
 	   close the object here to avoid another traversing. */
