@@ -26,6 +26,9 @@ extern errno_t reiser4_master_sync(reiser4_master_t *master);
 
 extern reiser4_plugin_t *reiser4_master_guess(aal_device_t *device);
 
+extern errno_t reiser4_master_print(reiser4_master_t *master,
+				    aal_stream_t *stream);
+
 #endif
 
 extern errno_t reiser4_master_valid(reiser4_master_t *master);

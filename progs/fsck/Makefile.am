@@ -4,7 +4,7 @@ fsck_reiser4_SOURCES 	= fsck.c fsck.h
 fsck_reiser4_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
 			  $(top_builddir)/librepair/librepair.la \
 			  $(top_builddir)/progs/libmisc/libmisc.la \
-			  $(PROGS_LIBS)
+			  @PROGS_LIBS@
 
 
 fsck_reiser4_LDFLAGS 	= $(PROGS_LDFLAGS)

@@ -116,6 +116,14 @@ errno_t reiser4_alloc_sync(
 			   sync, alloc->entity);
 }
 
+errno_t reiser4_alloc_print(reiser4_alloc_t *alloc, aal_stream_t *stream) {
+	aal_assert("umka-1566", alloc != NULL, return -1);
+	aal_assert("umka-1567", stream != NULL, return -1);
+
+	return plugin_call(return -1, alloc->entity->plugin->alloc_ops,
+			   print, alloc->entity, stream, 0);
+}
+
 #endif
 
 /* Close passed allocator instance */

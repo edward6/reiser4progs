@@ -107,6 +107,9 @@ errno_t reiser4_lru_attach(reiser4_lru_t *lru, reiser4_joint_t *joint) {
 	aal_assert("umka-1525", lru != NULL, return -1);
 	aal_assert("umka-1526", joint != NULL, return -1);
 
+	if (aal_mpressure_check())
+		return -1;
+	
 	joint->prev = lru->list;
 	joint->next = lru->list ? lru->list->next : NULL;
 

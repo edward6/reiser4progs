@@ -46,6 +46,9 @@ extern void reiser4_format_set_stamp(reiser4_format_t *format,
 extern errno_t reiser4_format_mark(reiser4_format_t *format, 
 				   reiser4_alloc_t *alloc);
 
+extern errno_t reiser4_format_print(reiser4_format_t *format,
+				    aal_stream_t *stream);
+
 #endif
 
 extern errno_t reiser4_format_valid(reiser4_format_t *format);

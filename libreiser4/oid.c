@@ -164,6 +164,14 @@ errno_t reiser4_oid_sync(reiser4_oid_t *oid) {
 			   sync, oid->entity);
 }
 
+errno_t reiser4_oid_print(reiser4_oid_t *oid, aal_stream_t *stream) {
+	aal_assert("umka-1562", oid != NULL, return -1);
+	aal_assert("umka-1563", stream != NULL, return -1);
+
+	return plugin_call(return -1, oid->entity->plugin->oid_ops,
+			   print, oid->entity, stream, 0);
+}
+
 #endif
 
 /* Returns number of used oids from passed oid allocator */

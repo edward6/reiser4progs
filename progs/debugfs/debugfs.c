@@ -9,6 +9,10 @@
 #  include <config.h> 
 #endif
 
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
+#  include <uuid/uuid.h>
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
@@ -17,10 +21,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
-
-#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-#  include <uuid/uuid.h>
-#endif
 
 #include <aux/aux.h>
 #include <misc/misc.h>
@@ -137,7 +137,7 @@ static errno_t debugfs_print_joint(
 		goto error_free_stream;
 
 	printf((char *)stream.data);
-	
+
 	aal_stream_fini(&stream);
 	return 0;
 	
@@ -163,29 +163,26 @@ static errno_t debugfs_print_tree(reiser4_fs_t *fs, print_flags_t flags) {
 }
 
 errno_t debugfs_print_master(reiser4_fs_t *fs) {
-	reiser4_master_t *master;
-    
+	aal_stream_t stream;
+	
 	aal_assert("umka-1299", fs != NULL, return -1);
 
-	master = fs->master;
-    
-	printf("Master super block:\n");
-	printf("offset:\t\t%llu\n", aal_block_number(master->block));
-	printf("blocksize:\t%u\n", reiser4_master_blocksize(master));
-
-	printf("magic:\t\t%s\n", reiser4_master_magic(master));
-	printf("format:\t\t%x\n", reiser4_master_format(master));
+	aal_stream_init(&stream);
+		
+	if (reiser4_master_print(fs->master, &stream))
+		return -1;
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 	{
 		char uuid[37];
-		uuid_unparse(reiser4_master_uuid(master), uuid);
-		printf("uuid:\t\t%s\n", uuid);
+		uuid_unparse(reiser4_master_uuid(fs->master), uuid);
+		aal_stream_format(&stream, "uuid:\t\t%s\n", uuid);
 	}
 #endif
-	printf("label:\t\t%s\n", reiser4_master_label(master));
-	
+
+	printf((char *)stream.data);
 	printf("\n");
+	
 	return 0;
 }
 
@@ -200,9 +197,7 @@ static errno_t debugfs_print_format(reiser4_fs_t *fs) {
 	aal_stream_init(&stream);
 	
 	printf("Format super block:\n");
-	if (fs->format->entity->plugin->format_ops.print(fs->format->entity, 
-							 &stream, 0))
-	{
+	if (reiser4_format_print(fs->format, &stream)) {
 		aal_exception_error("Can't print format specific super block.");
 		goto error_free_stream;
 	}

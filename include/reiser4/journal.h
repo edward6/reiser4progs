@@ -27,6 +27,9 @@ extern reiser4_journal_t *reiser4_journal_create(reiser4_format_t *format,
 extern errno_t reiser4_journal_sync(reiser4_journal_t *journal);
 extern int reiser4_journal_replay(reiser4_journal_t *journal);
 
+extern errno_t reiser4_journal_print(reiser4_journal_t *journal,
+				     aal_stream_t *stream);
+
 #endif
 
 extern errno_t reiser4_journal_valid(reiser4_journal_t *journal);

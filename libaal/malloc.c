@@ -202,9 +202,6 @@ void *aal_malloc(
 {
 	void *mem;
 
-/*	if (aal_mpressure_check())
-		return NULL;*/
-		
 	/* 
 	   We are using simple printf function instead of exception, because
 	   exception initialization is needed correctly worked memory allocation
@@ -261,9 +258,6 @@ errno_t aal_realloc(
 	if (!realloc_handler)
 		return -1;
 
-	if (aal_mpressure_check())
-		return -1;
-	
 	if (!(mem = (void *)realloc_handler(*old, size)))
 		return -1;
     

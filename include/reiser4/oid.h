@@ -28,6 +28,9 @@ extern roid_t reiser4_oid_next(reiser4_oid_t *oid);
 extern roid_t reiser4_oid_allocate(reiser4_oid_t *oid);
 extern void reiser4_oid_release(reiser4_oid_t *oid, roid_t id);
 
+extern errno_t reiser4_oid_print(reiser4_oid_t *oid,
+				 aal_stream_t *stream);
+
 #endif
 
 extern uint64_t reiser4_oid_free(reiser4_oid_t *oid);

@@ -94,6 +94,30 @@ reiser4_plugin_t *reiser4_master_guess(aal_device_t *device) {
 	return libreiser4_factory_cfind(callback_guess_format, device);
 }
 
+errno_t reiser4_master_print(reiser4_master_t *master,
+			     aal_stream_t *stream)
+{
+	aal_assert("umka-1568", master != NULL, return -1);
+	aal_assert("umka-1569", stream != NULL, return -1);
+	
+	aal_stream_format(stream, "offset:\t\t%llu\n",
+			  aal_block_number(master->block));
+	
+	aal_stream_format(stream, "blocksize:\t%u\n",
+			  reiser4_master_blocksize(master));
+
+	aal_stream_format(stream, "magic:\t\t%s\n",
+			  reiser4_master_magic(master));
+	
+	aal_stream_format(stream, "format:\t\t%x\n",
+			  reiser4_master_format(master));
+
+	aal_stream_format(stream, "label:\t\t%s\n",
+			  reiser4_master_label(master));
+
+	return 0;
+}
+
 #endif
 
 /* Makes probing of reiser4 master super block on given device */

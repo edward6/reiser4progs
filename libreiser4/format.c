@@ -166,6 +166,14 @@ errno_t reiser4_format_mark(
 	return 0;
 }
 
+errno_t reiser4_format_print(reiser4_format_t *format, aal_stream_t *stream) {
+	aal_assert("umka-1560", format != NULL, return -1);
+	aal_assert("umka-1561", stream != NULL, return -1);
+
+	return plugin_call(return -1, format->entity->plugin->format_ops,
+			   print, format->entity, stream, 0);
+}
+
 #endif
 
 /* Reopens disk-format on specified device */

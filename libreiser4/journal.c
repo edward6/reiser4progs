@@ -139,6 +139,14 @@ errno_t reiser4_journal_valid(
 			   valid, journal->entity);
 }
 
+errno_t reiser4_journal_print(reiser4_journal_t *journal, aal_stream_t *stream) {
+	aal_assert("umka-1564", journal != NULL, return -1);
+	aal_assert("umka-1565", stream != NULL, return -1);
+
+	return plugin_call(return -1, journal->entity->plugin->journal_ops,
+			   print, journal->entity, stream, 0);
+}
+
 #endif
 
 /* Closes journal by means of freeing all assosiated memory */

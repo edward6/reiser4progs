@@ -21,10 +21,4 @@ reiser4progs/COPYING.
 
 * join reiser4_node_t and reiser4_joint_t
 
-* find out do we need big endian bitops code. If no, remove it.
-
-* should we have print methods in format, alloc and oid in libreiser4?
-
-* debug lru and memory pressure code.
-
 * symlink and special file plugins.

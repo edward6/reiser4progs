@@ -11,7 +11,7 @@
 
 extern inline int aal_set_bit(unsigned long long nr, void *addr);
 extern inline int aal_clear_bit(unsigned long long nr, void *addr);
-extern inline int aal_test_bit(unsigned long long nr, void *addr);
+extern inline int aal_test_bit(unsigned long long nr, const void *addr);
 
 extern inline void aal_clear_bits(void *vaddr, 
 				  unsigned long long  start,
