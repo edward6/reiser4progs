@@ -61,3 +61,5 @@ reiser4progs/COPYING.
 
 * should reiser4_node_neighbour and friends be moved into tree.c?
 * rename symlink40 into sym40 everywhere is sources.
+* should we move out all bitmap's and alloc's functions which do not work 
+  with regions and rename the rest in more simple maner (without region)?

@@ -140,7 +140,7 @@ aal_exception_option_t progs_exception_handler(
     
 	if (progs_exception_option_count(exception->options, 0) == 1) {
 		if (!(stream = streams[exception->type]))
-			return EXCEPTION_UNHANDLED;
+			stream = stderr;
 	}
 
 	if ((tty = fileno(stream)) == -1)
