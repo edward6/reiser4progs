@@ -96,6 +96,7 @@ static errno_t reg40_ukey(reg40_t *reg, place_t *place, key_entity_t *key,
 			  uint8_t mode) 
 {
 	object_info_t *info;
+	errno_t res;
 	
 	aal_assert("vpf-1218", reg != NULL);
 	
@@ -113,7 +114,13 @@ static errno_t reg40_ukey(reg40_t *reg, place_t *place, key_entity_t *key,
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 	
-	return core->tree_ops.ukey(info->tree, place, key);
+	if ((res = core->tree_ops.ukey(info->tree, place, key))) {
+		aal_exception_error("Node (%llu), item(%u): update of the "
+				    "item key failed.", place->con.blk,
+				    place->pos.unit);
+	}
+
+	return res;
 }
 
 static errno_t reg40_check_stat(reg40_t *reg, uint64_t size, 
@@ -318,12 +325,8 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
-	if ((result |= reg40_ukey(reg, &info->start, &info->object, mode))) {
-		aal_exception_error("Node (%llu), item(%u): update of the "
-				    "item key failed.", info->start.con.blk,
-				    info->start.pos.unit);
+	if ((result |= reg40_ukey(reg, &info->start, &info->object, mode)))
 		return result;
-	}
 	
 	/* Build the start key of the body. */
 	plug_call(info->start.plug->o.key_ops, build_gener, &key,
@@ -368,37 +371,43 @@ errno_t reg40_check_struct(object_entity_t *object,
 			/* Fix item key if differs. */
 			if ((result |= reg40_ukey(reg, &reg->body, 
 						  &key, mode)) < 0)
-			{
-				aal_exception_error("Node (%llu), item(%u): "
-						    "update of the item key "
-						    "failed.", reg->body.con.blk,
-						    reg->body.pos.unit);
-
 				return result;
-			}
 		} 
 
 		reg->bplug = reg->body.plug;
 		
 		/* If we found not we looking foe, insert the hole. */
 		if (reg->offset != offset) {
-			/* Save the offset -- this item is registered once. */
-			next = offset;
-			
-			/* This should work correctly with extents and 
-			   put there flags for newly inserted items. */
-			if ((res = reg40_holes(object))) {
-				aal_exception_error("The object [%s] failed to "
-						    "create the hole on offsets"
-						    " [%llu-%llu]. Plugin %s.",
+			if (mode == RM_BUILD) {
+				/* Save offset to avoid another registering. */
+				next = offset;
+				
+				/* This should work correctly with extents and 
+				   put there flags for newly inserted items. */
+				if ((res = reg40_holes(object))) {
+					aal_exception_error("The object [%s] "
+							    "failed to create "
+							    "the hole at [%llu"
+							    "%llu] offsets. "
+							    "Plugin %s.",
+							    core->key_ops.print(&info->object, 0),
+							    reg->offset, offset,
+							    reg->obj.plug->label);
+					return res;
+				}
+
+				/* Scan through all just created holes. */
+				continue;
+			} else {
+				aal_exception_error("The object [%s] "
+						    "has nothing at "
+						    "[%llu-%llu] "
+						    "offsets. Plugin %s.",
 						    core->key_ops.print(&info->object, 0),
 						    reg->offset, offset,
 						    reg->obj.plug->label);
-				return res;
+				result |= RE_FATAL;
 			}
-			
-			/* Scan through all just created holes. */
-			continue;
 		} else
 			next = 0;
 		
@@ -437,9 +446,9 @@ errno_t reg40_check_struct(object_entity_t *object,
 			  &key, reg->offset);
 	}
 	
-	/* Fix the SD -- mode, lw and unix extentions. */
-	
-	result |= reg40_check_stat(reg, size, bytes, mode);
+	/* Fix the SD, if no fatal corruptions were found. */
+	if (!(result & RE_FATAL))
+		result |= reg40_check_stat(reg, size, bytes, mode);
 
 	return result;
 }
