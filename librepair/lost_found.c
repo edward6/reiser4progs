@@ -217,7 +217,7 @@ errno_t repair_lost_found(repair_lost_found_t *lf) {
 			return -EINVAL;
 		}
 		
-		lf->lost = reiser4_dir_create(fs, "lost+found", root, fs->profile);
+		lf->lost = reiser4_dir_create(fs, root, "lost+found");
 		
 		if (lf->lost == NULL) {
 			aal_exception_error("Lost&Found pass failed: cannot create "

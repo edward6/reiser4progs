@@ -398,9 +398,7 @@ int main(int argc, char *argv[]) {
 			goto error_free_journal;
     
 		/* Creating root directory */
-		if (!(fs->root = reiser4_dir_create(fs, NULL, NULL,
-						    hint.profile)))
-		{
+		if (!(fs->root = reiser4_dir_create(fs, NULL, NULL))) {
 			aal_exception_error("Can't create filesystem "
 					    "root directory.");
 			goto error_free_tree;
@@ -413,12 +411,8 @@ int main(int argc, char *argv[]) {
 		if (flags & BF_LOST) {
 			reiser4_object_t *object;
 	    
-			if (!(object = reiser4_dir_create(fs, "lost+found",
-							  fs->root,
-							  hint.profile)))
-			{
-				aal_exception_error("Can't create lost+found "
-						    "directory.");
+			if (!(object = reiser4_dir_create(fs, fs->root, "lost+found"))) {
+				aal_exception_error("Can't create lost+found directory.");
 				goto error_free_root;
 			}
 	    

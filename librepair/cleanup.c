@@ -148,7 +148,7 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 	cleanup->lost = reiser4_object_open(fs->tree, "/lost+found", FALSE);
 	
 	if (cleanup->lost == NULL) {	
-		cleanup->lost = reiser4_dir_create(fs, "lost+found", root, fs->profile);
+		cleanup->lost = reiser4_dir_create(fs, root, "lost+found");
 		
 		if (cleanup->lost == NULL) {
 			aal_exception_error("Cleanup failed to find '/' directory.");

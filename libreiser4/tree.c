@@ -964,7 +964,7 @@ errno_t reiser4_tree_attach(
 	switch ((res = reiser4_tree_lookup(tree, &hint.key,
 					   level, &place)))
 	{
-	case ABSENT:
+	case PRESENT:
 		aal_exception_error("Can't attach node. Key already "
 				    "exists in tree.");
 		return -EINVAL;

@@ -440,8 +440,6 @@ struct entry_hint {
 
 typedef struct entry_hint entry_hint_t;
 
-#define SYMLINK_MAX_LEN 1024
-
 struct object_hint {
 	
 	rid_t statdata;
@@ -451,8 +449,8 @@ struct object_hint {
 
 		/* Plugin ids for the directory body */
 		struct {
-			rid_t direntry;
 			rid_t hash;
+			rid_t direntry;
 		} dir;
 	
 		/* Plugin id for the regular file body */
@@ -463,7 +461,7 @@ struct object_hint {
 		} reg;
 
 		/* Symlink data */
-		char sym[SYMLINK_MAX_LEN];
+		char *sym;
 	} body;
     
 	/* The plugin in use */

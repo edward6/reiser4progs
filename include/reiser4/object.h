@@ -9,18 +9,18 @@
 
 #include <reiser4/types.h>
 
+extern int32_t reiser4_object_read(reiser4_object_t *object,
+				   void *buff, uint32_t n);
+
+extern errno_t reiser4_object_readdir(reiser4_object_t *object,
+				      entry_hint_t *entry);
+
 extern reiser4_object_t *reiser4_object_open(reiser4_tree_t *tree,
 					     char *filename,
 					     bool_t follow);
 
 extern errno_t reiser4_object_resolve(reiser4_object_t *object,
 				      char *filename, bool_t follow);
-
-extern int32_t reiser4_object_read(reiser4_object_t *object,
-				   void *buff, uint32_t n);
-
-extern errno_t reiser4_object_readdir(reiser4_object_t *object,
-				      entry_hint_t *entry);
 
 extern reiser4_object_t *reiser4_object_realize(reiser4_tree_t *tree,
 						reiser4_place_t *place);
@@ -85,24 +85,20 @@ extern errno_t reiser4_object_metadata(reiser4_object_t *object,
 				       place_func_t func, void *data);
 
 extern reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
-					    const char *name,
 					    reiser4_object_t *parent,
-					    reiser4_profile_t *profile);
+					    const char *name);
 
 extern reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
-					    const char *name,
 					    reiser4_object_t *parent,
-					    reiser4_profile_t *profile);
+					    const char *name);
 
 extern reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
-					    const char *name,
-					    const char *target,
 					    reiser4_object_t *parent,
-					    reiser4_profile_t *profile);
+					    const char *name,
+					    const char *target);
 
 extern bool_t reiser4_object_begin(reiser4_place_t *place);
 extern errno_t reiser4_object_guess(reiser4_object_t *object);
-
 #endif
 
 extern errno_t reiser4_object_reset(reiser4_object_t *object);

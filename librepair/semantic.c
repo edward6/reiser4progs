@@ -168,7 +168,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	/* Make sure that '/' exists. */
 	if (root == NULL) {
 		/* Failed to realize the root directory, create a new one. */
-		if (!(root = reiser4_dir_create(fs, NULL, NULL, fs->profile))) {
+		if (!(root = reiser4_dir_create(fs, NULL, NULL))) {
 			aal_exception_error("Failed to create the root directory.");
 			return -EINVAL;
 		}

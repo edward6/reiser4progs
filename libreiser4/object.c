@@ -757,19 +757,16 @@ errno_t reiser4_object_telldir(reiser4_object_t *object,
 
 /* Creates directory */
 reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
-				     const char *name,
 				     reiser4_object_t *parent,
-				     reiser4_profile_t *profile)
+				     const char *name)
 {
 	rid_t pid;
 	object_hint_t hint;
 	reiser4_object_t *object;
 	
 	aal_assert("vpf-1053", fs != NULL);
-	aal_assert("vpf-1053", profile != NULL);
-	aal_assert("vpf-1053", name != NULL || parent == NULL);
 	
-	pid = reiser4_profile_value(profile, "directory");
+	pid = reiser4_profile_value(fs->profile, "directory");
 	
 	/* Preparing object hint */
 	hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, pid);
@@ -780,12 +777,9 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 		return NULL;
 	}
     
-	hint.statdata = reiser4_profile_value(profile, "statdata");
-	hint.body.dir.hash = reiser4_profile_value(profile, "hash");
-
-	/* FIXME-UMKA: This should be handled another way */
-	hint.body.dir.direntry = fs->key == LARGE ? ITEM_CDE_LARGE_ID :
-		ITEM_CDE_SHORT_ID;
+	hint.statdata = reiser4_profile_value(fs->profile, "statdata");
+	hint.body.dir.hash = reiser4_profile_value(fs->profile, "hash");
+	hint.body.dir.direntry = reiser4_format_key_pid(fs->format);
 
 	/* Creating object by passed parameters */
 	if (!(object = reiser4_object_create(fs, parent, &hint)))
@@ -801,19 +795,16 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 
 /* Creates file */
 reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
-				     const char *name,
 				     reiser4_object_t *parent,
-				     reiser4_profile_t *profile)
+				     const char *name)
 {
 	rid_t regular;
 	object_hint_t hint;
 	reiser4_object_t *object;
 	
 	aal_assert("vpf-1054", fs != NULL);
-	aal_assert("vpf-1055", name != NULL || parent == NULL);
-	aal_assert("vpf-1056", profile != NULL);
 	
-	regular = reiser4_profile_value(profile, "regular");
+	regular = reiser4_profile_value(fs->profile, "regular");
 	
 	/* Preparing object hint */
 	hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, regular);
@@ -824,10 +815,10 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 		return NULL;
 	}
 	
-	hint.statdata = reiser4_profile_value(profile, "statdata");
-	hint.body.reg.tail = reiser4_profile_value(profile, "tail");
-	hint.body.reg.extent = reiser4_profile_value(profile, "extent");
-	hint.body.reg.policy = reiser4_profile_value(profile, "policy");
+	hint.statdata = reiser4_profile_value(fs->profile, "statdata");
+	hint.body.reg.tail = reiser4_profile_value(fs->profile, "tail");
+	hint.body.reg.extent = reiser4_profile_value(fs->profile, "extent");
+	hint.body.reg.policy = reiser4_profile_value(fs->profile, "policy");
 	
 	/* Creating object by passed parameters */
 	if (!(object = reiser4_object_create(fs, parent, &hint)))
@@ -843,22 +834,18 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 
 /* Creates symlink */
 reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
-		                     const char *name,
-		                     const char *target,
 				     reiser4_object_t *parent,
-				     reiser4_profile_t *profile)
+		                     const char *name,
+		                     const char *target)
 {
-	reiser4_object_t *object;	
-	object_hint_t hint;
 	rid_t symlink;
-	uint16_t len;
+	object_hint_t hint;
+	reiser4_object_t *object;
 	
 	aal_assert("vpf-1054", fs != NULL);
-	aal_assert("vpf-1055", name != NULL || parent == NULL);
-	aal_assert("vpf-1056", profile != NULL);
 	aal_assert("vpf-1057", target != NULL);
 	
-	symlink = reiser4_profile_value(profile, "symlink");
+	symlink = reiser4_profile_value(fs->profile, "symlink");
 	
 	/* Preparing object hint */
 	hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE, symlink);
@@ -869,12 +856,8 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 		return NULL;
 	}
 	
-	hint.statdata = reiser4_profile_value(profile, "statdata");
-	
-	len = aal_strlen(target);
-	
-	aal_strncpy(hint.body.sym, target, 
-		    len > SYMLINK_MAX_LEN ? SYMLINK_MAX_LEN : len);
+	hint.body.sym = (char *)target;
+	hint.statdata = reiser4_profile_value(fs->profile, "statdata");
 	
 	/* Creating object by passed parameters */	
 	if (!(object = reiser4_object_create(fs, parent, &hint)))
