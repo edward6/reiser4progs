@@ -2470,6 +2470,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		   yet another try to make space. */
 		if (enough < (int32_t)ilen && save.node != place->node) {
 			aal_memcpy(place, &save, sizeof(save));
+			if (!place->pos.unit)
+				place->pos.unit = MAX_UINT32;
+			
 			enough = tree_calc_space(place, ioverh);
 		}
 

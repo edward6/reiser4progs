@@ -195,9 +195,9 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	return res;
 }
 
-static inline uint32_t extent40_head(reiser4_place_t *place, 
-				     uint32_t pos, 
-				     reiser4_key_t *key) 
+static uint32_t extent40_head(reiser4_place_t *place, 
+			      uint32_t pos, 
+			      reiser4_key_t *key) 
 {
 	uint64_t koffset, offset, doffset;
 
@@ -248,7 +248,7 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	    place->pos.unit == extent40_units(place))
 	{
 		/* The whole item to be inserted. */
-		send = extent40_units(src) - 1;
+		send = sunits - 1;
 	} else if (plug_call(place->key.plug->o.key_ops, compfull, 
 			     &hint->offset, &place->key) < 0)
 	{
@@ -323,10 +323,17 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	sextent = extent40_body(src);
 	dextent = extent40_body(place);
 
-	dstart = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
-	sstart = src->pos.unit == MAX_UINT32 ? 0 : src->pos.unit;
-	dstart += (hint->insert_flags & ET40_HEAD ? 1 : 0);
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = 0;
 	
+	/* @head & @tail were calculated for the start unit, but 
+	   if ET40_HEAD flag is set, data should be inserted to 
+	   the next unit. */
+	dstart = place->pos.unit + 
+		(hint->insert_flags & ET40_HEAD ? 1 : 0);
+	
+	sstart = src->pos.unit == MAX_UINT32 ? 0 : src->pos.unit;
+
 	/* Set the maxkey of the passed operation. */
 	aal_memcpy(&hint->maxkey, &hint->offset, sizeof(hint->maxkey));
 	
@@ -381,7 +388,7 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	offset = plug_call(hint->offset.plug->o.key_ops, 
 			   get_offset, &src->key);
 
-	offset += extent40_offset(src, src->pos.unit + hint->count);
+	offset += extent40_offset(src, sstart + hint->count);
 	offset -= hint->tail * place_blksize(src);
 	plug_call(hint->offset.plug->o.key_ops, set_offset, 
 		  &hint->maxkey, offset);
@@ -397,7 +404,7 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 		/* Get the amount of blocks to be left in the tail. */
 		head = extent40_head(place, place->pos.unit, &hint->offset);
 	} 
-	
+
 	/* Expanding extent item at @place */
 	extent40_expand(place, dstart, count);
 

@@ -778,6 +778,9 @@ static int64_t extent40_insert_units(reiser4_place_t *place,
 	aal_assert("umka-2429", hint != NULL);
 	aal_assert("umka-2428", place != NULL);
 
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = 0;
+
 	/* Expanding extent item at @place */
 	extent40_expand(place, place->pos.unit,
 			hint->count);

@@ -52,7 +52,7 @@ errno_t tail40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 			hint->count = 0;
 	}
 
-	hint->overhead = (place->pos.unit == MAX_UINT32) ? place->off : 0;
+	hint->overhead = place->off;
 	hint->bytes = 0;
 	hint->len = hint->count;
 
@@ -69,14 +69,13 @@ errno_t tail40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	aal_assert("vpf-988", hint != NULL);
 
 	src = (reiser4_place_t *)hint->specific;
-	
+	pos = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
+
 	offset = plug_call(hint->offset.plug->o.key_ops,
 			   get_offset, &hint->offset);
 	
 	if (hint->count) {
 		/* Expand @place & copy @hint->count units there from @src. */
-		pos = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
-
 		if (place->pos.unit != MAX_UINT32)
 			tail40_expand(place, place->pos.unit, hint->len);
 
@@ -87,7 +86,7 @@ errno_t tail40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 		
 		offset += hint->count;
 	} else
-		offset += tail40_units(place) - place->pos.unit;
+		offset += tail40_units(place) - pos;
 	
 	/* Set the maxkey of the passed operation. */
 	aal_memcpy(&hint->maxkey, &hint->offset, sizeof(hint->maxkey));
@@ -96,7 +95,7 @@ errno_t tail40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 		  set_offset, &hint->maxkey, offset);
 
 	/* Update the item key. */
-	if (place->pos.unit == 0 && hint->count) {
+	if (pos == 0 && hint->count) {
 		aal_memcpy(&place->key, &hint->offset, sizeof(place->key));
 	}
 	

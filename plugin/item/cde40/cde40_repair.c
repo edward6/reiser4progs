@@ -848,21 +848,25 @@ int64_t cde40_insert_raw(reiser4_place_t *place, trans_hint_t *trans) {
 	aal_assert("vpf-1371", trans != NULL);
 
 	src = (reiser4_place_t *)trans->specific;
+	dpos = place->pos.unit;
+	
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = 0;
 	
 	sunits = cde40_units(src);
 	
 	if (trans->count) {
 		/* Expand @place & copy @trans->count units there from @src. */
-		dpos = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
-		
-		if (place->pos.unit != MAX_UINT32)
+		if (dpos != MAX_UINT32)
 			cde40_expand(place, dpos, trans->count, trans->len);
 		else
 			cde_set_units(place, 0);
 		
-		if ((res = cde40_copy(place, dpos, src, src->pos.unit, 
-				      trans->count)))
+		if ((res = cde40_copy(place, place->pos.unit, 
+				      src, src->pos.unit, trans->count)))
+		{
 			return res;
+		}
 
 		spos = src->pos.unit + trans->count;
 
