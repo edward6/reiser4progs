@@ -1,7 +1,7 @@
 includedir			= -I$(top_srcdir)/include
 libdir				= $(plugindir)
 
-key_short_sources               = key_short.c key_short.h
+key_short_sources               = key_short.c key_short.h key_short_repair.c
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS                     = libkey_short-static.la

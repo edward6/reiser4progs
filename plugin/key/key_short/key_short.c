@@ -38,19 +38,9 @@ static errno_t key_short_assign(key_entity_t *dst,
 	return 0;
 }
 
-/* Checks if passed key is realy key_short one */
-static int key_short_confirm(key_entity_t *key) {
-	key_minor_t minor;
-	
-	aal_assert("vpf-137", key != NULL);
-	
-	minor = ks_get_minor((key_short_t *)key->body); 
-	return minor < KEY_LAST_MINOR;
-}
-
 /* Sets up key type */
 static void key_short_set_type(key_entity_t *key, 
-			       key_type_t type)
+			       key_type_t type) 
 {
 	aal_assert("umka-634", key != NULL);
 
@@ -59,7 +49,7 @@ static void key_short_set_type(key_entity_t *key,
 }
 
 /* Returns key type */
-static key_type_t key_short_get_type(key_entity_t *key) {
+key_type_t key_short_get_type(key_entity_t *key) {
 	key_minor_t minor;
 	
 	aal_assert("umka-635", key != NULL);
@@ -69,15 +59,13 @@ static key_type_t key_short_get_type(key_entity_t *key) {
 }
 
 /* Sets up key locality */
-static void key_short_set_locality(key_entity_t *key, 
-				   uint64_t locality) 
-{
+void key_short_set_locality(key_entity_t *key, uint64_t locality) {
 	aal_assert("umka-636", key != NULL);
 	ks_set_locality((key_short_t *)key->body, locality);
 }
 
 /* Returns key locality */
-static uint64_t key_short_get_locality(key_entity_t *key) {
+uint64_t key_short_get_locality(key_entity_t *key) {
 	aal_assert("umka-637", key != NULL);
 	return ks_get_locality((key_short_t *)key->body);
 }
@@ -110,15 +98,13 @@ static uint64_t key_short_get_objectid(key_entity_t *key) {
 }
 
 /* Sets up full key objectid */
-static void key_short_set_fobjectid(key_entity_t *key, 
-				    uint64_t objectid) 
-{
+void key_short_set_fobjectid(key_entity_t *key, uint64_t objectid) {
 	aal_assert("umka-2345", key != NULL);
 	ks_set_fobjectid((key_short_t *)key->body, objectid);
 }
 
 /* Returns full key objectid */
-static uint64_t key_short_get_fobjectid(key_entity_t *key) {
+uint64_t key_short_get_fobjectid(key_entity_t *key) {
 	aal_assert("umka-2346", key != NULL);
 	return ks_get_fobjectid((key_short_t *)key->body);
 }
@@ -359,27 +345,6 @@ static errno_t key_short_build_gener(key_entity_t *key,
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Simple validness check */
-static errno_t key_short_valid(key_entity_t *key) {
-	uint8_t band;
-	key_minor_t minor;
-	
-	aal_assert("vpf-243", key != NULL);
-
-	if (!key_short_confirm(key))
-		return -EINVAL;
-	
-	minor = ks_get_minor((key_short_t *)key->body);
-	band = ks_get_band((key_short_t *)key->body);
-
-	if (band == 0)
-		return 0;
-	
-	if (minor == KEY_FILENAME_MINOR && band == 1)
-		return 0;
-
-	return -EINVAL;
-}
 
 /* Prints key into passed stream */
 errno_t key_short_print(key_entity_t *key,
@@ -408,6 +373,9 @@ errno_t key_short_print(key_entity_t *key,
 	
 	return 0;
 }
+
+extern errno_t key_short_check_struct(key_entity_t *key, uint8_t mode);
+
 #endif
 
 static reiser4_key_ops_t key_short_ops = {
@@ -428,7 +396,7 @@ static reiser4_key_ops_t key_short_ops = {
 	.build_gener       = key_short_build_gener,
 	
 #ifndef ENABLE_STAND_ALONE
-	.valid		   = key_short_valid,
+	.check_struct	   = key_short_check_struct,
 	.print		   = key_short_print,
 
 	.set_hash	   = key_short_set_hash,

@@ -27,4 +27,18 @@ char *reiser4_print_key(reiser4_key_t *key,
 	
 	return (char *)stream.data;
 }
+
+char *repair_print_node(reiser4_node_t *node, uint32_t start, 
+			uint32_t count, uint16_t options) 
+{
+	if (node == NULL)
+		return NULL;
+	
+	aal_stream_reset(&stream);
+	plug_call(node->entity->plug->o.node_ops, print, node->entity, 
+		  &stream, start, count, options);
+	
+	return (char *)stream.data;
+}
+
 #endif

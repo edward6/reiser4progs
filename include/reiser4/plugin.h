@@ -601,6 +601,8 @@ struct reiser4_key_ops {
 	/* Prints key into specified buffer */
 	errno_t (*print) (key_entity_t *, aal_stream_t *,
 			  uint16_t);
+
+	errno_t (*check_struct) (key_entity_t *, uint8_t);
 #endif
 };
 

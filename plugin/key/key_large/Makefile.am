@@ -1,7 +1,7 @@
 includedir			= -I$(top_srcdir)/include
 libdir				= $(plugindir)
 
-key_large_sources               = key_large.c key_large.h
+key_large_sources               = key_large.c key_large.h key_large_repair.c
 
 if ENABLE_MONOLITHIC
 STATIC_LIBS                     = libkey_large-static.la

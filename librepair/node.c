@@ -369,7 +369,6 @@ errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
 	if (repair_error_fatal(res))
 		return res;
 	
-	/* FIXME-VITALY: check key minors accordingly to item types. */
 	res |= repair_node_keys_check(node, mode);
 	
 	if (repair_error_fatal(res))
@@ -409,24 +408,6 @@ errno_t repair_node_traverse(reiser4_node_t *node, node_func_t func,
 	}
 	
 	return 0;
-}
-
-void repair_node_print(reiser4_node_t *node, uint32_t start, uint32_t count, 
-		       uint16_t options) 
-{
-	aal_stream_t stream;
-	
-	if (node == NULL)
-		return;
-	
-	aal_stream_init(&stream);
-	
-	plug_call(node->entity->plug->o.node_ops, print, node->entity, 
-		  &stream, start, count, options);
-	
-	printf(stream.data);
-	fflush(stdout);
-	aal_stream_fini(&stream);
 }
 
 errno_t repair_node_copy(reiser4_node_t *dst, pos_t *dst_pos, 
