@@ -113,18 +113,12 @@ static errno_t callback_find_statdata(char *track, char *entry,
 						     &object->key)))
 		{
 			aal_exception_error("Can't follow %s.", track);
-			goto error_free_entity;
 		}
 	}
 
 	plugin_call(plugin->object_ops, close, object->entity);
 	object->entity = NULL;
 	
-	return 0;
-
- error_free_entity:
-	plugin_call(plugin->object_ops, close, object->entity);
-	object->entity = NULL;
 	return res;
 }
 
@@ -133,6 +127,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 				   void *data)
 {
 	errno_t res;
+	lookup_t lookup;
 	reiser4_object_t *object;
 	reiser4_plugin_t *plugin;
 	reiser4_entry_hint_t entry_hint;
@@ -153,27 +148,21 @@ static errno_t callback_find_entry(char *track, char *entry,
 	}
 
 	plugin = object->entity->plugin;
-	
-	aal_memset(&entry_hint, 0, sizeof(entry_hint));
-	
+
 	/* Looking up for @entry in current directory */
-	if (plugin_call(plugin->object_ops, lookup, object->entity,
-			entry, &entry_hint) != LP_PRESENT)
-	{
+	lookup = plugin_call(plugin->object_ops, lookup,
+			     object->entity, entry, &entry_hint);
+	
+	if (lookup == LP_PRESENT)
+		reiser4_key_assign(&object->key, &entry_hint.object);
+	else {
 		aal_exception_error("Can't find %s.", track);
-		goto error_free_entity;
+		res = -EINVAL;
 	}
 
-	reiser4_key_assign(&object->key, &entry_hint.object);
 	plugin_call(plugin->object_ops, close, object->entity);
 	object->entity = NULL;
-	
-	return 0;
-	
- error_free_entity:
-	plugin_call(plugin->object_ops, close, object->entity);
-	object->entity = NULL;
-	return -EINVAL;
+	return res;
 }
 
 /* 

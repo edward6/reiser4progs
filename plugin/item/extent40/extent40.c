@@ -312,7 +312,6 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	uint32_t blocksize;
 	
 	aal_block_t *block;
-	aal_device_t *device;
 	uint32_t read = count;
 
 	aal_assert("umka-1421", item != NULL);
@@ -320,20 +319,24 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	aal_assert("umka-1672", pos != ~0ul);
 
 	extent = extent40_body(item);
-
-	device = item->context.device;
 	blocksize = extent40_blocksize(item);
 
 	for (i = extent40_unit(item, pos);
 	     i < extent40_units(item) && count > 0; i++)
 	{
 		blk_t blk;
-		uint64_t start, width;
-		uint32_t chunk, offset;
+		uint64_t start;
+		uint32_t chunk;
+		uint32_t offset;
 
-		start = et40_get_start(extent + i);
-		width = et40_get_width(extent + i);
-
+		/*
+		  FIXME-UMKA: Here offset is 32bit value and apparently this
+		  code will not be working well with files larger than 4Gb.  We
+		  can't merely use here uint64_t due to stand alone mode, which
+		  is building without gcc built-in functions like __udivdi3 and
+		  __umoddi3 dedicated to working with 64bit digits.
+		*/
+		
 		extent40_get_key(item, i, &key);
 
 		/* Calculating in-unit local offset */
@@ -343,11 +346,13 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		offset -= plugin_call(item->key.plugin->key_ops,
 				      get_offset, &item->key);
 
-		start += ((pos - offset) / blocksize);
+		start = et40_get_start(extent + i) +
+			((pos - offset) / blocksize);
 		
-		for (blk = start; blk < start + width && count > 0; ) {
-
-			if (!(block = aal_block_open(device, blk))) {
+		for (blk = start; blk < start + et40_get_width(extent + i) &&
+			     count > 0; )
+		{
+			if (!(block = aal_block_open(item->context.device, blk))) {
 				aal_exception_error("Can't read block "
 						    "%llu.", blk);
 				return -EIO;

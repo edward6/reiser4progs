@@ -98,12 +98,8 @@ static int32_t reg40_read(object_entity_t *entity,
 	if (reg->offset > size)
 		return -EINVAL;
 	
-	/* The file has not data at all */
-	if (size == 0 || !reg->body.node)
-		return 0;
-
-	/* Nothing can be read */
-	if (reg->offset == size)
+	/* The file has not data or nothing can be read */
+	if (!reg->body.node || reg->offset == size)
 		return 0;
 
 	if (n > size - reg->offset)

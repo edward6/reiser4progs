@@ -90,7 +90,7 @@ errno_t aux_parse_path(const char *path, aux_pre_entry_t pre_func,
 			return res;
     
 		if (!(entry = aal_strsep(&pointer, "/")))
-			break;
+			return 0;
 
 		if (!aal_strlen(entry))
 			continue;
