@@ -43,7 +43,7 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 			   size, object->entity);
 }
 
-/* This function is trying to open obejct entity */
+/* This function is trying to open object's entity */
 static errno_t reiser4_object_init(reiser4_object_t *object) {
 	if (!libreiser4_factory_cfind(callback_guess_object, object))
 		return -EINVAL;
@@ -108,7 +108,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	if (object->follow && plugin->o.object_ops->follow) {
 
 		/*
-		  Calling object's follow() in order to get stat dat key of the
+		  Calling object's follow() in order to get stat data key of the
 		  real stat data item.
 		*/
 		if ((res = plugin->o.object_ops->follow(object->entity,
@@ -520,7 +520,7 @@ errno_t reiser4_object_print(reiser4_object_t *object,
 errno_t reiser4_object_layout(
 	reiser4_object_t *object,   /* object we working with */
 	block_func_t func,          /* layout callback */
-	void *data)                 /* user-spaecified data */
+	void *data)                 /* user-specified data */
 {
 	reiser4_plugin_t *plugin;
 	
@@ -572,9 +572,9 @@ lookup_t reiser4_object_lookup(reiser4_object_t *object,
 }
 #endif
 
-/* Seeks directory current position to passed pos */
+/* Sets directory current position to passed pos */
 errno_t reiser4_object_seek(
-	reiser4_object_t *object,    /* object where position shopuld be changed */
+	reiser4_object_t *object,    /* object where position should be changed */
 	uint32_t offset)	     /* offset for seeking */
 {
 	aal_assert("umka-1129", object != NULL);
@@ -630,7 +630,7 @@ int32_t reiser4_object_read(
 			   read, object->entity, buff, n);
 }
 
-/* Retutns current position in directory */
+/* Returns current position in directory */
 uint32_t reiser4_object_offset(
 	reiser4_object_t *object)    /* dir position will be obtained from */
 {
