@@ -36,6 +36,7 @@ forces creating filesystem without any questions
 .TP
 .B -f, --force
 makes mkfs to use whole disk, not block device or mounted partition.
+.SH MKFS OPTIONS
 .TP
 .B -b, --block-size N
 block size to be used (4096 only at the moment)
@@ -48,13 +49,13 @@ universally unique identifier to be used
 .TP
 .B -s, --lost-found
 forces mkfs to create lost+found directory.
+.TP
+.B -k, --keys=LARGE|SHORT
+key length to be used in filesystem. By default LARGE is used. It
+contains one more component, called "orderring" and needed for making
+files data lie in the readdir() order. This improves file access time,
+but makes creation time worse.
 .SH PLUGIN OPTIONS
-.TP
-.B -e, --profile PROFILE
-profile to be used.
-.TP
-.B -K, --known-profiles
-prints known profiles.
 .TP
 .B -P, --known-plugins
 prints known plugins.
