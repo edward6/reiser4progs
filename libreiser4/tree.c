@@ -141,7 +141,7 @@ errno_t reiser4_tree_connect(
 		reiser4_node_unlock(node);
 	}
 
-	return 0;
+	return res;
 }
 
 /*
@@ -154,7 +154,6 @@ errno_t reiser4_tree_disconnect(
 	reiser4_node_t *node)	 /* pointer to child to be deleted */
 {
 	errno_t res;
-	aal_list_t *next;
 	
 	aal_assert("umka-1858", tree != NULL);
 	aal_assert("umka-563", node != NULL);
@@ -191,6 +190,13 @@ errno_t reiser4_tree_disconnect(
 	}
 #endif
 	
+	/*
+	  The case when we're going to disconnect root node for some
+	  reasons. And we will let do so? Yes, why not?
+	*/
+	if (node->blk == reiser4_tree_root(tree))
+		return 0;
+	
 	/* Disconnecting left and right neighbours */
 	if (node->left) {
 		node->left->right = NULL;
@@ -202,28 +208,20 @@ errno_t reiser4_tree_disconnect(
 		node->right = NULL;
 	}
 	
-	/*
-	  If parent is not exist, then we consider the @node is root and do not
-	  do any unlock and disconnect from the parent.
-	*/
-	if (!parent)
-		return 0;
-
 	reiser4_node_unlock(parent);
-	
-	return reiser4_node_disconnect(parent, node);
+	reiser4_node_disconnect(parent, node);
+
+	return 0;
 }
 
+/* Loads node and connects it to @parent */
 reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 				  reiser4_node_t *parent,
 				  blk_t blk)
 {
-	aal_device_t *device;
 	reiser4_node_t *node = NULL;
 
 	aal_assert("umka-1289", tree != NULL);
-    
-	device = tree->fs->device;
 
 	/* Checking if node in the local cache of @parent */
 	if (!parent || !(node = reiser4_node_cbp(parent, blk))) {
@@ -232,11 +230,14 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 		blocksize = reiser4_master_blksize(tree->fs->master);
 		
 		/*
-		  Node is not loaded. Loading it and connecting to @parent
-		  cache.
+		  Node is not loaded yet. Loading it and connecting to @parent
+		  node cache.
 		*/
-		if (!(node = reiser4_node_open(device, blocksize, blk))) {
-			aal_exception_error("Can't open node %llu.", blk);
+		if (!(node = reiser4_node_open(tree->fs->device,
+					       blocksize, blk)))
+		{
+			aal_exception_error("Can't open node "
+					    "%llu.", blk);
 			return NULL;
 		}
 
@@ -471,34 +472,31 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 /* Builds root key and stores it in passed @tree instance */
 static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 	rid_t pid;
-	reiser4_oid_t *oid;
-	reiser4_plugin_t *plugin;
 	oid_t locality, objectid;
     
 	aal_assert("umka-1090", tree != NULL);
 	aal_assert("umka-1091", tree->fs != NULL);
 	aal_assert("umka-1092", tree->fs->oid != NULL);
 
-	oid = tree->fs->oid;
-	pid = KEY_REISER40_ID;
-	
 #ifndef ENABLE_STAND_ALONE
 	pid = reiser4_profile_value(tree->fs->profile, "key");
+#else
+	pid = KEY_REISER40_ID;
 #endif
     
 	/* Finding needed key plugin by its identifier */
-	if (!(plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, pid))) {
-		aal_exception_error("Can't find key plugin by its "
-				    "id 0x%x.", pid);
+	if (!(tree->key.plugin = libreiser4_factory_ifind(
+		      KEY_PLUGIN_TYPE, pid)))
+	{
+		aal_exception_error("Can't find key plugin "
+				    "by its id 0x%x.", pid);
 		return -EINVAL;
 	}
     
 	/* Building root key */
-	tree->key.plugin = plugin;
-
 #ifndef ENABLE_STAND_ALONE
-	locality = reiser4_oid_root_locality(oid);
-	objectid = reiser4_oid_root_objectid(oid);
+	locality = reiser4_oid_root_locality(tree->fs->oid);
+	objectid = reiser4_oid_root_objectid(tree->fs->oid);
 #else
 	locality = REISER4_ROOT_LOCALITY;
 	objectid = REISER4_ROOT_OBJECTID;
