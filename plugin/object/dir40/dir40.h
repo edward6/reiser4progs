@@ -23,7 +23,7 @@ struct dir40 {
 	place_t body;
 
 	/* Current position in the directory */
-	uint32_t offset;
+	key_entity_t offset;
 
 	/* Hash plugin in use */
 	reiser4_plugin_t *hash;

@@ -663,21 +663,6 @@ int32_t reiser4_object_read(
 			   read, object->entity, buff, n);
 }
 
-/* Reads entry at current @object offset to passed @entry hint */
-errno_t reiser4_object_readdir(reiser4_object_t *object,
-			       reiser4_entry_hint_t *entry)
-{
-	aal_assert("umka-1973", object != NULL);
-	aal_assert("umka-1974", entry != NULL);
-
-	if (!object->entity->plugin->object_ops.readdir)
-		return -1;
-	
-	return plugin_call(object->entity->plugin->object_ops, 
-			   readdir, object->entity, entry);
-}
-
-
 /* Retutns current position in directory */
 uint32_t reiser4_object_offset(
 	reiser4_object_t *object)    /* dir position will be obtained from */
@@ -702,4 +687,46 @@ errno_t reiser4_object_seek(
 	
 	return plugin_call(object->entity->plugin->object_ops, 
 			   seek, object->entity, offset);
+}
+
+/* Reads entry at current @object offset to passed @entry hint */
+errno_t reiser4_object_readdir(reiser4_object_t *object,
+			       reiser4_entry_hint_t *entry)
+{
+	aal_assert("umka-1973", object != NULL);
+	aal_assert("umka-1974", entry != NULL);
+
+	if (!object->entity->plugin->object_ops.readdir)
+		return -1;
+	
+	return plugin_call(object->entity->plugin->object_ops, 
+			   readdir, object->entity, entry);
+}
+
+/* Change current position in passed @object if it is a directory */
+errno_t reiser4_object_seekdir(reiser4_object_t *object,
+			       reiser4_key_t *offset)
+{
+	aal_assert("umka-1979", object != NULL);
+	aal_assert("umka-1980", offset != NULL);
+
+	if (!object->entity->plugin->object_ops.seekdir)
+		return -1;
+
+	return plugin_call(object->entity->plugin->object_ops,
+			   seekdir, object->entity, offset);
+}
+
+/* Return current position in passed @object if it is a directory */
+errno_t reiser4_object_telldir(reiser4_object_t *object,
+			       reiser4_key_t *offset)
+{
+	aal_assert("umka-1981", object != NULL);
+	aal_assert("umka-1982", offset != NULL);
+
+	if (!object->entity->plugin->object_ops.telldir)
+		return -1;
+
+	return plugin_call(object->entity->plugin->object_ops,
+			   telldir, object->entity, offset);
 }

@@ -646,8 +646,8 @@ struct reiser4_object_ops {
 	int32_t (*write) (object_entity_t *, void *, uint32_t);
 
 	/* Directory specific methods */
-	errno_t (*rem_entry) (object_entity_t *, reiser4_entry_hint_t *);
 	errno_t (*add_entry) (object_entity_t *, reiser4_entry_hint_t *);
+	errno_t (*rem_entry) (object_entity_t *, reiser4_entry_hint_t *);
 	
 	/* Truncates file at current offset onto passed units */
 	errno_t (*truncate) (object_entity_t *, uint64_t);
@@ -684,7 +684,7 @@ struct reiser4_object_ops {
 	/* Makes simple check of directory */
 	errno_t (*valid) (object_entity_t *);
 
-	/* Returns current position in directory */
+	/* Change current position to passed value */
 	errno_t (*seek) (object_entity_t *, uint64_t);
 
 	/* Makes lookup inside file */
@@ -700,6 +700,12 @@ struct reiser4_object_ops {
 	/* Directory read method */
 	errno_t (*readdir) (object_entity_t *,
 			    reiser4_entry_hint_t *);
+
+	/* Change current position in directory */
+	errno_t (*seekdir) (object_entity_t *, key_entity_t *);
+
+	/* Return current position in dirctory */
+	errno_t (*telldir) (object_entity_t *, key_entity_t *);
 };
 
 typedef struct reiser4_object_ops reiser4_object_ops_t;

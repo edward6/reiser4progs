@@ -14,14 +14,20 @@
 
 #include <reiser4/types.h>
 
+extern reiser4_object_t *reiser4_object_open(reiser4_fs_t *fs,
+					     const char *name);
+
 extern int32_t reiser4_object_read(reiser4_object_t *object,
 				   void *buff, uint64_t n);
 
 extern errno_t reiser4_object_readdir(reiser4_object_t *object,
 				      reiser4_entry_hint_t *entry);
 
-extern reiser4_object_t *reiser4_object_open(reiser4_fs_t *fs,
-					     const char *name);
+extern errno_t reiser4_object_telldir(reiser4_object_t *object,
+				      reiser4_key_t *offset);
+
+extern errno_t reiser4_object_seekdir(reiser4_object_t *object,
+				      reiser4_key_t *offset);
 
 extern lookup_t reiser4_object_lookup(reiser4_object_t *object,
 				      const char *name,

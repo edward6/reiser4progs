@@ -34,6 +34,51 @@ static uint64_t dir40_size(object_entity_t *entity) {
 	return obj40_get_size(&dir->obj);
 }
 
+static errno_t dir40_telldir(object_entity_t *entity,
+			     key_entity_t *offset)
+{
+	dir40_t *dir = (dir40_t *)entity;
+	
+	aal_assert("umka-1985", entity != NULL);
+	aal_assert("umka-1986", offset != NULL);
+
+	aal_memcpy(offset, &dir->offset, sizeof(*offset));
+	return 0;
+}
+
+static errno_t dir40_seekdir(object_entity_t *entity,
+			     key_entity_t *offset)
+{
+	dir40_t *dir = (dir40_t *)entity;
+	
+	aal_assert("umka-1983", entity != NULL);
+	aal_assert("umka-1984", offset != NULL);
+
+	aal_memcpy(&dir->offset, offset, sizeof(*offset));
+	
+	if (dir->body.node != NULL)
+		obj40_unlock(&dir->obj, &dir->body);
+	
+	/* Lookup for the first direntry item */
+	if (obj40_lookup(&dir->obj, &dir->offset, LEAF_LEVEL,
+			 &dir->body) == LP_PRESENT)
+	{
+		obj40_lock(&dir->obj, &dir->body);
+
+		/*
+		  Correcting of the unit position for the case we are at the
+		  start of directory item.
+		*/
+		if (dir->body.pos.unit == ~0ul)
+			dir->body.pos.unit = 0;
+				
+		return 0;
+	}
+
+	dir->body.node = NULL;
+	return -1;
+}
+
 /* Resets internal direntry position at zero */
 static errno_t dir40_reset(object_entity_t *entity) {
 	dir40_t *dir;
@@ -50,27 +95,7 @@ static errno_t dir40_reset(object_entity_t *entity) {
 		    dir->hash, obj40_locality(&dir->obj),
 		    obj40_objectid(&dir->obj), ".");
 
-	if (dir->body.node != NULL)
-		obj40_unlock(&dir->obj, &dir->body);
-	
-	/* Lookup for the first direntry item */
-	if (obj40_lookup(&dir->obj, &key, LEAF_LEVEL,
-			 &dir->body) != LP_PRESENT)
-	{
-		aal_exception_error("Can't find direntry of object "
-				    "0x%llx.", obj40_objectid(&dir->obj));
-
-		dir->body.node = NULL;
-		return -1;
-	}
-
-	obj40_lock(&dir->obj, &dir->body);
-
-	/* Initializing positions */
-	dir->offset = 0;
-	dir->body.pos.unit = 0;
-
-	return 0;
+	return dir40_seekdir(entity, &key);
 }
 
 /* Trying to guess hash in use by stat data extention */
@@ -100,13 +125,14 @@ static int dir40_mergeable(item_entity_t *item1,
 	  Calling item's mergeable methods for determining if they are mergeable
 	  or not.
 	*/
-	return plugin_call(plugin1->item_ops, mergeable,
-			   item1, item2);
+	return plugin_call(plugin1->item_ops, mergeable, item1, item2);
 }
 
 /* Switches current dir body item onto next one */
 static lookup_t dir40_next(dir40_t *dir) {
 	place_t next;
+	item_entity_t *item;
+	reiser4_entry_hint_t entry;
 
 	/* Getting next directory item */
 	if (core->tree_ops.next(dir->obj.tree, &dir->body, &next))
@@ -120,6 +146,16 @@ static lookup_t dir40_next(dir40_t *dir) {
 
 	dir->body = next;
 	dir->body.pos.unit = 0;
+
+	item = &dir->body.item;
+
+	/* Updating current position by entry offset key */
+	if (plugin_call(item->plugin->item_ops, read, item,
+			&entry, dir->body.pos.unit, 1) == 1)
+	{
+		aal_memcpy(&dir->offset, &entry.offset,
+			   sizeof(dir->offset));
+	}
 	
 	return LP_PRESENT;
 }
@@ -131,7 +167,6 @@ static errno_t dir40_readdir(object_entity_t *entity,
 	dir40_t *dir;
 	uint64_t size;
 	uint32_t units;
-
 	item_entity_t *item;
 
 	aal_assert("umka-844", entity != NULL);
@@ -152,20 +187,19 @@ static errno_t dir40_readdir(object_entity_t *entity,
 	
 	/* Reading piece of data */
 	if (plugin_call(item->plugin->item_ops, read, item,
-			entry, dir->body.pos.unit, 1) != 1)
+			entry, dir->body.pos.unit, 1) == 1)
 	{
-		return -1;
+		/* Updating positions */
+		dir->body.pos.unit++;
+    
+		/* Getting next direntry item */
+		if (dir->body.pos.unit >= units)
+			dir40_next(dir);
+	
+		return 0;
 	}
 
-	/* Updating positions */
-	dir->offset++;
-	dir->body.pos.unit++;
-    
-	/* Getting next direntry item */
-	if (dir->body.pos.unit >= units)
-		dir40_next(dir);
-	
-	return 0;
+	return -1;
 }
 
 /* 
@@ -220,12 +254,15 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 				return LP_FAILED;
 			}
 
-#ifdef ENABLE_ALONE
-			return LP_PRESENT;
-#else
 			/* Handling possible hash collision */
-			if (aal_strncmp(entry->name, name, aal_strlen(name)) == 0)
+			if (aal_strncmp(entry->name, name,
+					aal_strlen(name)) == 0)
+			{
+				aal_memcpy(&dir->offset, &wanted,
+					   sizeof(dir->offset));
+				
 				return LP_PRESENT;
+			}
 
 			aal_exception_warn("Hash collision is detected between "
 					   "%s and %s. Sequentional search has "
@@ -249,13 +286,17 @@ static lookup_t dir40_lookup(object_entity_t *entity,
 					return LP_FAILED;
 				}
 
-				if (aal_strncmp(entry->name, name, aal_strlen(name)) == 0)
+				if (aal_strncmp(entry->name, name,
+						aal_strlen(name)) == 0)
+				{
+					aal_memcpy(&dir->offset, &wanted,
+						   sizeof(dir->offset));
+				
 					return LP_PRESENT;
+				}
 			}
 				
 			return LP_ABSENT;
-#endif
-			
 		}
 
 		/* Getting next direntry item */
@@ -856,11 +897,6 @@ static void dir40_close(object_entity_t *entity) {
 	aal_free(entity);
 }
 
-static uint64_t dir40_offset(object_entity_t *entity) {
-	aal_assert("umka-874", entity != NULL);
-	return ((dir40_t *)entity)->offset;
-}
-
 static reiser4_plugin_t dir40_plugin = {
 	.object_ops = {
 		.h = {
@@ -887,14 +923,16 @@ static reiser4_plugin_t dir40_plugin = {
 		.valid	      = NULL,
 		.seek	      = NULL,
 		.read         = NULL,
+		.offset       = NULL,
 		
 		.open	      = dir40_open,
 		.close	      = dir40_close,
 		.reset	      = dir40_reset,
 		.lookup	      = dir40_lookup,
-		.offset	      = dir40_offset,
 		.size	      = dir40_size,
 		.readdir      = dir40_readdir,
+		.telldir      = dir40_telldir,
+		.seekdir      = dir40_seekdir
 	}
 };
 

@@ -487,6 +487,8 @@ static reiser4_plugin_t sym40_plugin = {
 		.seek	      = NULL,
 		.size         = NULL,
 		.readdir      = NULL,
+		.telldir      = NULL,
+		.seekdir      = NULL,
 		
 		.follow       = sym40_follow,
 		.open	      = sym40_open,

@@ -526,6 +526,8 @@ static reiser4_plugin_t reg40_plugin = {
 		.lookup	      = NULL,
 		.follow       = NULL,
 		.readdir      = NULL,
+		.telldir      = NULL,
+		.seekdir      = NULL,
 		
 		.open	      = reg40_open,
 		.close	      = reg40_close,
