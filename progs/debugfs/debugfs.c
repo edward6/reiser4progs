@@ -1,6 +1,8 @@
 /*
-  debugfs.c -- program to debug reiser4 filesystem.
-  Copyright (C) 1996-2002 Hans Reiser.
+  debugfs.c -- program for debugging reiser4 filesystem.
+
+  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  reiser4progs/COPYING.
 */
 
 #ifdef HAVE_CONFIG_H
@@ -66,7 +68,7 @@ static void debugfs_print_usage(char *name) {
 		"  -o | --print-oid-alloc         prints oid allocator data.\n"
 		"Measurement options:\n"
 		"  -T | --total-fragmentation     measures total tree fragmentation\n"
-		"  -F | --files-fragmentation     measures average file fragmentation\n"
+		"  -F | --files-fragmentation     measures average files fragmentation\n"
 		"Plugins options:\n"
 		"  -e | --profile PROFILE         profile to be used.\n"
 		"  -K | --known-profiles          prints known profiles.\n");
