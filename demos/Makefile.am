@@ -1,13 +1,17 @@
-noinst_PROGRAMS = cat
+noinst_SCRIPTS  = detect
+
+noinst_PROGRAMS = busy
 
 INCLUDES	= -I$(top_srcdir)/include
 
-cat_SOURCES	= cat.c
+busy_SOURCES	= misc.c ls.c stat.c create.c ln.c rm.c cp.c busy.c
 
-cat_LDFLAGS     = @PROGS_LDFLAGS@
+busy_LDFLAGS    = @PROGS_LDFLAGS@
 
-cat_CFLAGS	= @GENERIC_CFLAGS@
+busy_CFLAGS	= @GENERIC_CFLAGS@
 
-cat_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
+busy_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
 	          $(top_builddir)/libmisc/libmisc.la \
 		  $(PROGS_LIBS)
+
+EXTRA_DIST      = $(noinst_SCRIPTS)
