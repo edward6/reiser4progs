@@ -121,7 +121,7 @@ void progs_print_wrap(void *stream, char *text) {
 	if (!(width = progs_screen_width()))
 		width = 80;
 
-	while ((word = aal_strsep(&text, " ,;"))) {
+	while ((word = aal_strsep(&text, " "))) {
 		if (!line || aal_strlen(line) + aal_strlen(word) > width) {
 			if (line)
 				list = aal_list_append(list, line);

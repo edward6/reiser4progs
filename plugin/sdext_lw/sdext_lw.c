@@ -9,6 +9,10 @@
 #include "sdext_lw.h"
 #include <aux/aux.h>
 
+#ifndef ENABLE_COMPACT
+#  include <sys/stat.h>
+#endif
+
 static reiser4_core_t *core = NULL;
 extern reiser4_plugin_t sdext_lw_plugin;
 
@@ -56,9 +60,46 @@ static uint16_t sdext_lw_length(reiser4_body_t *body) {
 
 #ifndef ENABLE_COMPACT
 
+static char sdext_lw_file_type(uint16_t mode) {
+	if (S_ISDIR(mode))
+		return 'd';
+
+	if (S_ISCHR(mode))
+		return 'c';
+
+	if (S_ISBLK(mode))
+		return 'b';
+
+	if (S_ISFIFO(mode))
+		return 'p';
+
+	if (S_ISLNK(mode))
+		return 'l';
+
+	if (S_ISSOCK(mode))
+		return 's';
+
+	return '-';
+}
+
+static void sdext_lw_parse_mode(uint16_t mode, char *str) {
+	str[0] = sdext_lw_file_type(mode);
+	str[1] = mode & S_IRUSR ? 'r' : '-';
+	str[2] = mode & S_IWUSR ? 'w' : '-';
+	str[3] = mode & S_IXUSR ? 'x' : '-';
+	str[4] = mode & S_IRGRP ? 'r' : '-';
+	str[5] = mode & S_IWGRP ? 'w' : '-';
+	str[6] = mode & S_IXGRP ? 'x' : '-';
+	str[7] = mode & S_IROTH ? 'r' : '-';
+	str[8] = mode & S_IWOTH ? 'w' : '-';
+	str[9] = mode & S_IXOTH ? 'x' : '-';
+	str[10] = '\0';
+}
+
 static errno_t sdext_lw_print(reiser4_body_t *body, aal_stream_t *stream,
 			      uint16_t options)
 {
+	char mode[16];
 	sdext_lw_t *ext;
 	
 	aal_assert("umka-1410", body != NULL, return -1);
@@ -66,7 +107,13 @@ static errno_t sdext_lw_print(reiser4_body_t *body, aal_stream_t *stream,
 
 	ext = (sdext_lw_t *)body;
 
-	aal_stream_format(stream, "mode:\t\t0%o\n", sdext_lw_get_mode(ext));
+//	aal_stream_format(stream, "mode:\t\t0%o\n", sdext_lw_get_mode(ext));
+
+	aal_memset(mode, 0, sizeof(mode));
+
+	sdext_lw_parse_mode(sdext_lw_get_mode(ext), mode);
+	
+	aal_stream_format(stream, "mode:\t\t%s\n", mode);
 	aal_stream_format(stream, "nlink:\t\t%u\n", sdext_lw_get_nlink(ext));
 	aal_stream_format(stream, "size:\t\t%llu\n", sdext_lw_get_size(ext));
 	

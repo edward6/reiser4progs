@@ -15,11 +15,6 @@ reiser4progs/COPYING.
 
 * FIBMAP ioctl implementation in reiser4
 
-* human readable stat data mode field in debugfs.reiser4 --print-tree
-  --print-items option
-
-* pos.c where reiser4_pos_t relatited code should lie
-
 * move memory pressure mechanism to libaal
 
 * print_block method for format, journal and block allocator plugins.
