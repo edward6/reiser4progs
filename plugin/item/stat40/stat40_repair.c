@@ -65,7 +65,7 @@ static errno_t cb_fix_mask(stat_entity_t *stat, uint64_t extmask, void *data) {
 		return 0;
 
 	/* This time the callback is called for the extmask. Fix it. */
-	*((uint16_t *)stat_body(stat)) = *(uint16_t *)mask;
+	st40_set_extmask(stat_body(stat), *(uint16_t *)mask);
 
 	(*mask) >>= 16;
 	return 0;

@@ -42,7 +42,7 @@ errno_t stat40_traverse(reiser4_place_t *place,
 				}
 			}
 			
-			extmask = *((uint16_t *)stat_body(&stat));
+			extmask = st40_get_extmask(stat_body(&stat));
 			
 			stat.ext_plug = NULL;
 			
@@ -314,7 +314,7 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 
 	/* If this is a new item being inserted, zero the on-disk mask. */
 	if (place->pos.unit == MAX_UINT32 && insert)
-		((stat40_t *)stat_body(&stat))->extmask = 0;
+		st40_set_extmask(stat_body(&stat), 0);
 
 	if (!stath->extmask)
 		return 0;
@@ -339,7 +339,7 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 				}
 			}
 			
-			extmask = *((uint16_t *)stat_body(&stat));
+			extmask = st40_get_extmask(stat_body(&stat));
 
 			if (insert) {
 				/* Calculating new extmask in order to 
@@ -348,7 +348,7 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 					     0x000000000000ffff));
 
 				/* Update mask.*/
-				*((uint16_t *)stat_body(&stat)) = extmask;
+				st40_set_extmask(stat_body(&stat), extmask);
 			}
 			
 			stat.offset += sizeof(d16_t);
@@ -449,7 +449,7 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 				}
 			}
 			
-			old_extmask = *((uint16_t *)stat_body(&stat));
+			old_extmask = st40_get_extmask(stat_body(&stat));
 
 			
 			/* Calculating new extmask in order to update old
@@ -458,7 +458,7 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 						       0x000000000000ffff));
 
 			/* Update mask.*/
-			*((uint16_t *)stat_body(&stat)) = new_extmask;
+			st40_set_extmask(stat_body(&stat), new_extmask);
 				
 			chunks++;
 			stat.offset += sizeof(d16_t);

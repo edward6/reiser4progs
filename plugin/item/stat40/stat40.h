@@ -29,7 +29,7 @@ extern reiser4_core_t *stat40_core;
 
 #define STAT40_EXTNR (64)
 
-#define st40_get_extmask(stat)		aal_get_le16(stat, extmask)
-#define st40_set_extmask(stat, val)	aal_set_le16(stat, extmask, val)
+#define st40_get_extmask(stat)		aal_get_le16(((stat40_t *)stat), extmask)
+#define st40_set_extmask(stat, val)	aal_set_le16(((stat40_t *)stat), extmask, val)
 
 #endif
