@@ -392,18 +392,18 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
 	return 0;
 }
 
-static lookup_t callback_lookup(reiser4_place_t *place, 
-				lookup_hint_t *hint,
-				lookup_bias_t bias,
-				lookup_t lookup)
+lookup_t callback_lookup(reiser4_place_t *place, 
+			 lookup_bias_t bias,
+			 lookup_t lookup,
+			 void *data)
 {
+	reiser4_place_t *dst = (reiser4_place_t *)data;
 	reiser4_key_t dkey, end;
 	reiser4_place_t prev;
-	reiser4_place_t *dst;
 	errno_t res;
 
 	aal_assert("vpf-1519", place != NULL);
-	aal_assert("vpf-1520", hint != NULL);
+	aal_assert("vpf-1520", dst != NULL);
 
 	if (lookup == PRESENT) {
 		/* The whole item can not be inserted. */
@@ -459,8 +459,6 @@ static lookup_t callback_lookup(reiser4_place_t *place,
 	if ((res = reiser4_item_get_key(place, &dkey)))
 		return res;
 
-	dst = (reiser4_place_t *)hint->data;
-	
 	if ((res = reiser4_item_maxreal_key(dst, &end)))
 		return res;
 	
@@ -474,6 +472,92 @@ static lookup_t callback_lookup(reiser4_place_t *place,
 	}
 
 	return ABSENT;
+}
+
+/* Lookup for the correct @place place by the @start key in the @tree. */
+static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree, 
+					 reiser4_place_t *place,
+					 trans_hint_t *hint)
+{
+	reiser4_key_t dkey, end;
+	lookup_hint_t lhint;
+	reiser4_place_t prev;
+
+	errno_t res;
+	
+	aal_assert("vpf-1364", tree  != NULL);
+	aal_assert("vpf-1365", place != NULL);
+	aal_assert("vpf-1367", hint  != NULL);
+
+	aal_memset(&lhint, 0, sizeof(lhint));
+	lhint.level = LEAF_LEVEL;
+	lhint.key = &hint->offset;
+	lhint.collision = NULL;
+	lhint.hint = NULL;
+	
+	switch ((res = reiser4_tree_lookup(tree, &lhint, FIND_EXACT, place))) {
+	case PRESENT:
+		/* The whole item can not be inserted. */
+		if (place->pos.unit == MAX_UINT32)
+			place->pos.unit = 0;
+
+		if (reiser4_place_fetch(place))
+			return -EIO;
+
+		return 0;
+	case ABSENT:
+		break;
+	default:
+		return res;
+	}
+
+	/* Absent. If non-existent unit or item, there is nothing mergable 
+	   from the right side--lookup would go down there in that case.  */
+	if (reiser4_place_right(place))
+		/* Step to right. */
+		reiser4_place_inc(place, 1);
+
+	if (reiser4_place_rightmost(place)) {
+		prev = *place;
+
+		reiser4_node_lock(prev.node);
+		
+		if ((res = reiser4_tree_next_place(tree, place, place))) {
+			aal_error("vpf-1363: Failed to get the next node.");
+			reiser4_node_unlock(prev.node);
+			return res;
+		}
+		
+		reiser4_node_unlock(prev.node);
+		
+		/* No right node. */
+		if (!place->node) {
+			*place = prev;
+			return 0;
+		}
+	} else 
+		aal_memset(&prev, 0, sizeof(prev));
+
+	/* Get the current key of the @place. */
+	if (reiser4_place_fetch(place))
+		return -EIO;
+
+	if ((res = reiser4_item_get_key(place, &dkey)))
+		return res;
+
+	if ((res = reiser4_item_maxreal_key((reiser4_place_t *)hint->specific, &end)))
+		return res;
+	
+	/* If @end key is not less than the lookuped, items are overlapped. 
+	   Othewise move to the previous pos. */
+	if ((res = reiser4_key_compfull(&end, &dkey)) >= 0) {
+		if (place->pos.unit == MAX_UINT32)
+			place->pos.unit = 0;
+	} else if (prev.node) {
+		*place = prev;
+	}
+
+	return 0;
 }
 
 static errno_t callback_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
@@ -529,15 +613,8 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 	reiser4_key_assign(&hint.offset, &src->key);
 	level = reiser4_node_get_level(src->node);
 	
-	aal_memset(&lhint, 0, sizeof(lhint));
-	lhint.level = LEAF_LEVEL;
-	lhint.key = &hint.offset;
-	lhint.correct_func = callback_lookup;
-	lhint.data = src;
-
 	while (1) {
-		if ((res = reiser4_tree_lookup(tree, &lhint, 
-					       FIND_EXACT, &dst)) < 0)
+		if ((res = repair_tree_insert_lookup(tree, &dst, &hint)))
 			return res;
 		
 		/* Convert @dst if needed. */
@@ -677,7 +754,7 @@ errno_t repair_tree_scan(reiser4_tree_t *tree, place_func_t func, void *data) {
                 /* FIXME-VITALY: This is not key-collision-safe. */
 		hint.key = &key;
 		hint.level = LEAF_LEVEL;
-		hint.correct_func = NULL;
+		hint.collision = NULL;
 
                 /* Lookup the key. */
                 if ((lookup = reiser4_tree_lookup(tree, &hint, FIND_EXACT, 
@@ -692,8 +769,8 @@ errno_t repair_tree_scan(reiser4_tree_t *tree, place_func_t func, void *data) {
 			
 			/* Go down to the child if branch. */
 			if ((res = reiser4_item_branch(place.plug))) {
-				place.node = reiser4_tree_child_node(tree, 
-								     &place);
+				place.node = 
+					reiser4_tree_child_node(tree, &place);
 				
 				if (!place.node) return -EIO;
 
