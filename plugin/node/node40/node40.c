@@ -353,7 +353,6 @@ static errno_t node40_expand(node40_t *node, reiser4_pos_t *pos,
 	if (is_insert) {
 		ih40_set_len(ih, len);
 		ih40_set_offset(ih, offset);
-		aal_memset(node->block->data + offset, 0, len);
 	} else {
 		ih = node40_ih_at(node, pos->item);
 		ih40_inc_len(ih, len);
@@ -456,6 +455,7 @@ static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
 			    reiser4_item_hint_t *hint) 
 {
 	item_entity_t item;
+	item40_header_t *ih;
 	node40_t *node = (node40_t *)entity;
     
 	aal_assert("umka-1017", node != NULL, return -1);
@@ -467,10 +467,17 @@ static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
 	if (node40_item_init(&item, entity, pos))
 		return -1;
 	
-	node40_get_key(entity, pos, &item.key);
-	    
-	return plugin_call(return -1, hint->plugin->item_ops, 
-			   insert, &item, pos->unit, hint);
+	if (plugin_call(return -1, hint->plugin->item_ops, 
+			insert, &item, pos->unit, hint))
+		return 0;
+
+	/* Updating left delimiting key */
+	if (item.pos == 0 && pos->unit == 0) {
+		ih = node40_ih_at(node, item.pos);
+		aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
+	}
+
+	return 0;
 }
 
 /* This function removes item from the node at specified pos */
@@ -502,10 +509,10 @@ static errno_t node40_cut(object_entity_t *entity,
 	rpid_t pid;
 	uint16_t len;
     
-	item40_header_t *ih;
-    
 	item_entity_t item;
+	item40_header_t *ih;
 	reiser4_plugin_t *plugin;
+
 	node40_t *node = (node40_t *)entity;
 	
 	aal_assert("umka-988", node != NULL, return -1);
@@ -527,14 +534,18 @@ static errno_t node40_cut(object_entity_t *entity,
 	
 	node40_get_key(entity, pos, &item.key);
 	
-	if (!(len = plugin_call(return 0, plugin->item_ops, remove, 
-				&item, pos->unit)))
+	if (!(len = plugin_call(return -1, plugin->item_ops,
+				remove, &item, pos->unit)))
 		return -1;
 	
 	if (node40_shrink(node, pos, len))
 		return -1;
 	
-	ih40_set_len(ih, node40_item_len((object_entity_t *)node, pos) - len);
+	ih40_dec_len(ih, len);
+
+	/* Updating left delimiting key */
+	if (item.pos == 0 && pos->unit)
+		aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
 
 	return 0;
 }
@@ -991,8 +1002,8 @@ static errno_t node40_shift(object_entity_t *entity,
 	aal_assert("umka-1590", hint->items <= src_items, goto out);
 	
 	/* Nothing should be shifted */
-	if (hint->items == 0 && hint->units == 0)
-		goto out;
+	if (hint->items == 0 || hint->bytes == 0)
+		goto shift_units;
 	
 	headers_size = sizeof(item40_header_t) * hint->items;
 
@@ -1105,12 +1116,13 @@ static errno_t node40_shift(object_entity_t *entity,
 	nh40_dec_num_items(src_node, hint->items);
 	nh40_dec_free_space_start(src_node, hint->bytes);
 
+ shift_units:
 	/*
 	  If after moving the items we still having some amount of free space in
 	  destination node, we should try to shift units from the last item to
 	  first item of destination node.
 	*/
-	if (hint->part == 0 || hint->units == 0)
+	if (hint->units == 0 || hint->part == 0)
 		goto out;
 
 	src_items = nh40_get_num_items(src_node);

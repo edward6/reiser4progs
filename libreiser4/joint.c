@@ -319,8 +319,11 @@ errno_t reiser4_joint_attach(
     
 	child->parent = joint;
     
-	if (reiser4_joint_pos(child, &child->pos))
+	if (reiser4_joint_pos(child, &child->pos)) {
+		aal_exception_error("Can't find child %llu in parent node %llu.",
+				    child->node->blk, joint->node->blk);
 		return -1;
+	}
     
 	child->tree = joint->tree;
     
