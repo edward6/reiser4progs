@@ -13,7 +13,7 @@
 #include <repair/plugin.h>
 
 /* Checks that @obj->info.start is SD of the wanted file.  */
-errno_t obj40_check_sd(obj40_t *obj, realize_func_t sd_func) {
+errno_t obj40_check_stat(obj40_t *obj, realize_func_t stat_func) {
 	object_info_t *info;
 	errno_t res;
 
@@ -37,12 +37,12 @@ errno_t obj40_check_sd(obj40_t *obj, realize_func_t sd_func) {
 		return RE_FATAL;
 	
 	/* Some SD is realized. Check that this is our SD. */
-	return sd_func(&info->start);
+	return stat_func(&info->start);
 }
 
 /* The plugin tries to realize the object: detects the SD, body items */
-errno_t obj40_realize(obj40_t *obj, realize_func_t sd_func, 
-		      realize_key_func_t key_func, uint64_t types)
+errno_t obj40_realize(obj40_t *obj, realize_func_t stat_func, 
+		      realize_key_func_t key_func)
 {
 	object_info_t *info;
 	errno_t res;
@@ -76,37 +76,18 @@ errno_t obj40_realize(obj40_t *obj, realize_func_t sd_func,
 			      &info->object))
 			return RE_FATAL;
 	} else {
-		/* Realizing on the place: if not SD, build SD key and 
-		   try to find it. Do not recover obj40 without SD at all. */
+		/* Realizing on the SD. */
+		aal_assert("vpf-1204",  info->start.plug->id.group == 
+			   		STATDATA_ITEM);
 		
 		/* Build the SD key into @info->object. */
 		if ((res = key_func(obj)))
 			return -EINVAL;
-		
-		if (info->start.plug->id.group != STATDATA_ITEM) {
-			lookup_t lookup;
-			key_type_t type;
-
-			type = plug_call(info->start.key.plug->o.key_ops, 
-					 get_type, &info->start.key);
-
-			/* Wrong item type. */
-			if ((type & types) == 0) 
-				return RE_FATAL;
-
-			lookup = core->tree_ops.lookup(info->tree, 
-						       &info->object,
-						       LEAF_LEVEL, 
-						       &info->start);
-
-			if (lookup == FAILED)
-				return -EINVAL;
-		}
 	}
 	
 	/* @info->object is the key of SD for now and @info->start is the 
 	   result of tree lookup by @info->object -- skip objects w/out SD. */
-	return obj40_check_sd(obj, sd_func);
+	return obj40_check_stat(obj, stat_func);
 }
 
 #endif

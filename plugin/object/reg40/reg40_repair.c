@@ -14,12 +14,13 @@
 
 extern reiser4_plug_t reg40_plug;
 extern errno_t reg40_reset(object_entity_t *entity);
-extern errno_t reg40_create_sd(obj40_t *obj, uint64_t sd);
+extern errno_t reg40_create_stat(obj40_t *obj, uint64_t sd);
 
 /* Check SD extentions and that mode in LW extention is REGFILE. */
-static errno_t callback_sd(place_t *sd) {
+static errno_t callback_stat(place_t *sd) {
 	sdext_lw_hint_t lw_hint;
 	uint64_t mask, extmask;
+	uint64_t reg;
 	errno_t res;
 	
 	/*  SD may contain LW and UNIX extentions only. 
@@ -97,7 +98,7 @@ object_entity_t *reg40_realize(object_info_t *info) {
 	/* Initializing file handle */
 	obj40_init(&reg->obj, &reg40_plug, core, info);
 	
-	if ((res = obj40_realize(&reg->obj, callback_sd, callback_key,
+	if ((res = obj40_realize(&reg->obj, callback_stat, callback_key,
 				 1 << KEY_FILEBODY_TYPE)))
 		goto error;
 	
@@ -110,7 +111,7 @@ object_entity_t *reg40_realize(object_info_t *info) {
 	return res < 0 ? INVAL_PTR : NULL;
 }
 
-errno_t reg40_check_sd(place_t *sd, uint8_t mode) {
+errno_t reg40_check_stat(place_t *sd, uint8_t mode) {
 
 #if 0
 	errno_t res;
@@ -251,7 +252,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	/* It must be correct SD. Fix it if needed. */
 	if (lookup == ABSENT) {
 		/* Check if found place is our SD with broken key. */
-		if ((res = obj40_check_sd(&reg->obj, callback_sd)) < 0)
+		if ((res = obj40_check_stat(&reg->obj, callback_stat)) < 0)
 			return res;
 		
 		/*  */
@@ -260,8 +261,13 @@ errno_t reg40_check_struct(object_entity_t *object,
 			
 			sd = core->tree_ops.profile(info->tree, "statdata");
 			
-			/* SD of this file is not found, create a new one. */
-			if ((res = reg40_create_sd(&reg->obj, sd)))
+			if (sd = INVAL_PID)
+				return -EINVAL;
+			
+			/* SD not found, create a new one. Special case and not
+			   used in reg40. Usualy objects w/out SD are skipped as
+			   they just fail to realize themselves. */
+			if ((res = reg40_create_stat(&reg->obj, sd)))
 				return res;
 		} else {
 			/* SD is found, fix the item key (~offset is wrong). */
@@ -269,11 +275,12 @@ errno_t reg40_check_struct(object_entity_t *object,
 		}
 	}
 	
+	plug_call(info->start.plug->o.key_ops, build_gener, &key,
+		  KEY_FILEBODY_TYPE, locality, ordering, objectid, 
+		  reg->offset);
+
 	/* Reg40 object (its SD item) has been openned or created. */
 	while (TRUE) {
-		plug_call(info->start.plug->o.key_ops, build_gener, &key,
-			  KEY_FILEBODY_TYPE, locality, ordering, objectid, 
-			  reg->offset);
 
 		lookup = obj40_lookup(&reg->obj, &key, LEAF_LEVEL, &reg->body);
 		

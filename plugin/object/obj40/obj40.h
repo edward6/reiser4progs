@@ -93,12 +93,13 @@ extern errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 extern errno_t obj40_remove(obj40_t *obj, place_t *place,
 			    uint32_t count);
 
-typedef errno_t (*realize_func_t) (place_t *);
+typedef errno_t (*realize_stat_func_t) (place_t *);
 typedef errno_t (*realize_key_func_t) (obj40_t *);
 
-extern errno_t obj40_check_sd(obj40_t *obj, realize_func_t sd_func);
-extern errno_t obj40_realize(obj40_t *obj, realize_func_t sd_func,
-			     realize_key_func_t key_func, uint64_t types);
+extern errno_t obj40_check_stat(obj40_t *obj, realize_func_t stat_func);
+
+extern errno_t obj40_realize(obj40_t *obj, realize_stat_func_t stat_func,
+			     realize_key_func_t key_func);
 
 
 #endif
