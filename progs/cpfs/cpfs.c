@@ -281,10 +281,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_dst_device;
 	}
 
-	if (!(src_fs->tree = reiser4_tree_init(src_fs, misc_mpressure_detect))) {
-		aal_exception_error("Can't initialize tree of %s.", src_dev);
-		goto error_free_src_fs;
-	}
+	src_fs->tree->mpc_func = misc_mpressure_detect;
 
 	/* Creating destinatrion fs */
 	aal_strncpy(hint.uuid, reiser4_master_get_uuid(src_fs->master),
@@ -300,22 +297,19 @@ int main(int argc, char *argv[]) {
 	if (!(dst_fs = reiser4_fs_create(dst_device, &hint))) {
 		aal_exception_error("Can't create filesystem on %s.", 
 				    dst_dev);
-		goto error_free_src_tree;
+		goto error_free_src_fs;
 	}
 
+	dst_fs->tree->mpc_func = misc_mpressure_detect;
+	
 	/* Creating journal */
 	if (!(dst_fs->journal = reiser4_journal_create(dst_fs, dst_device, NULL)))
 		goto error_free_dst_fs;
 
-	/* Initializing dst tree */
-	if (!(dst_fs->tree = reiser4_tree_init(dst_fs, misc_mpressure_detect))) {
-		aal_exception_error("Can't initialize tree of %s.", dst_dev);
-		goto error_free_dst_journal;
-	}
 
 	if (reiser4_fs_copy(src_fs, dst_fs)) {
 		aal_exception_error("Can't copy %s to %s.", src_dev, dst_dev);
-		goto error_free_dst_tree;
+		goto error_free_dst_journal;
 	}
 	
 	if (gauge) {
@@ -323,9 +317,6 @@ int main(int argc, char *argv[]) {
 		aal_gauge_free(gauge);
 	}
 
-	/* Freeing dst tree */
-	reiser4_tree_fini(dst_fs->tree);
-		
 	/* Freeing dst journal */
 	reiser4_journal_close(dst_fs->journal);
 
@@ -347,14 +338,10 @@ int main(int argc, char *argv[]) {
 	libreiser4_fini();
 	return NO_ERROR;
 	
- error_free_dst_tree:
-	reiser4_tree_fini(dst_fs->tree);
  error_free_dst_journal:
 	reiser4_journal_close(dst_fs->journal);
  error_free_dst_fs:
 	reiser4_fs_close(dst_fs);
- error_free_src_tree:
-	reiser4_tree_fini(src_fs->tree);
  error_free_src_fs:
 	reiser4_fs_close(src_fs);
  error_free_dst_device:

@@ -18,8 +18,7 @@ extern int64_t reiser4_tree_read(reiser4_tree_t *tree,
 extern int64_t reiser4_tree_read_flow(reiser4_tree_t *tree,
 				      trans_hint_t *hint);
 
-extern reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
-					 mpc_func_t mpc_func);
+extern reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs);
 
 extern int64_t reiser4_tree_fetch(reiser4_tree_t *tree,
 				  reiser4_place_t *place,

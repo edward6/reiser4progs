@@ -255,7 +255,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		aal_stream_fini(&stream);
-		
+
 		if (reiser4_fs_sync(fs)) {
 			aal_exception_error("Can't save unpacked "
 					    "filesystem.");
@@ -267,18 +267,14 @@ int main(int argc, char *argv[]) {
 			aal_exception_error("Can't open reiser4 on %s", host_dev);
 			goto error_free_device;
 		}
-
-		/* Opening the journal */
-		if (!(fs->journal = reiser4_journal_open(fs, device))) {
-			aal_exception_error("Can't open journal on %s", host_dev);
-			goto error_free_fs;
-		}
-
-		/* Initializing tree. */
-		if (!(fs->tree = reiser4_tree_init(fs, NULL)))
-			goto error_free_journal;
 	}
 	
+	/* Opening the journal */
+	if (!(fs->journal = reiser4_journal_open(fs, device))) {
+		aal_exception_error("Can't open journal on %s", host_dev);
+		goto error_free_fs;
+	}
+		
 	/* In the case no print flags was specified, debugfs will print super
 	   blocks by defaut. */
 	if (print_flags == 0 && (behav_flags & ~(BF_FORCE | BF_QUIET)) == 0)
@@ -287,48 +283,48 @@ int main(int argc, char *argv[]) {
 	/* Handling print options */
 	if ((behav_flags & BF_CAT)) {
 		if (debugfs_browse(fs, cat_filename))
-			goto error_free_tree;
+			goto error_free_journal;
 	}
 	
 	if (print_flags & PF_SUPER) {
 		if (debugfs_print_master(fs))
-			goto error_free_tree;
+			goto error_free_journal;
 	
 		if (debugfs_print_status(fs))
-			goto error_free_tree;
+			goto error_free_journal;
 		
 		if (debugfs_print_format(fs))
-			goto error_free_tree;
+			goto error_free_journal;
 	}
     
 	if (print_flags & PF_OID) {
 		if (debugfs_print_oid(fs))
-			goto error_free_tree;
+			goto error_free_journal;
 	}
     
 	if (print_flags & PF_ALLOC) {
 		if (debugfs_print_alloc(fs))
-			goto error_free_tree;
+			goto error_free_journal;
 	}
     
 	if (print_flags & PF_JOURNAL) {
 		if (debugfs_print_journal(fs))
-			goto error_free_tree;
+			goto error_free_journal;
 	}
     
 	if (print_flags & PF_TREE) {
 		if (debugfs_print_tree(fs))
-			goto error_free_tree;
+			goto error_free_journal;
 	}
 
 	if (print_flags & PF_BLOCK) {
 		if (debugfs_print_block(fs, blocknr))
-			goto error_free_tree;
+			goto error_free_journal;
 	}
     
 	if (print_flags & PF_NODES || print_flags & PF_ITEMS) {
 		if (debugfs_print_file(fs, print_filename, print_flags))
-			goto error_free_tree;
+			goto error_free_journal;
 	}
 
 	if (behav_flags & BF_PACK_META) {
@@ -339,18 +335,14 @@ int main(int argc, char *argv[]) {
 		
 		if (reiser4_fs_pack(fs, &stream)) {
 			aal_exception_error("Can't pack filesystem.");
-			goto error_free_tree;
+			goto error_free_journal;
 		}
 
 		aal_stream_fini(&stream);
 	}
 	
-	/* Releasing the tree */
-	reiser4_tree_fini(fs->tree);
-
 	/* Closing the journal */
-	if (fs->journal)
-		reiser4_journal_close(fs->journal);
+	reiser4_journal_close(fs->journal);
 	
 	/* Closing filesystem itself */
 	reiser4_fs_close(fs);
@@ -363,8 +355,6 @@ int main(int argc, char *argv[]) {
 	libreiser4_fini();
 	return NO_ERROR;
 
- error_free_tree:
-	reiser4_tree_fini(fs->tree);
  error_free_journal:
 	reiser4_journal_close(fs->journal);
  error_free_fs:

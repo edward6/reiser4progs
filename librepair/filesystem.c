@@ -91,10 +91,19 @@ errno_t repair_fs_open(repair_data_t *repair,
 		res = -EINVAL;
 		goto error_alloc_close;
 	}
+
+	if ((repair->fs->tree = reiser4_tree_init(repair->fs))) {
+		res = -ENOMEM;
+		goto error_oid_close;
+	}
+		
 	
 	repair_error_count(repair, res);
 	return 0;
 
+ error_oid_close:
+	reiser4_tree_fini(repair->fs->tree);
+	
  error_alloc_close:
 	reiser4_alloc_close(repair->fs->alloc);
 	repair->fs->alloc = NULL;

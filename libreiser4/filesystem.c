@@ -81,10 +81,13 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	}
 #endif
 	
-	return fs;
+	if (!(fs->tree = reiser4_tree_init(fs)))
+		goto error_free_oid;
 	
-#ifndef ENABLE_STAND_ALONE
+	return fs;
+
  error_free_oid:
+#ifndef ENABLE_STAND_ALONE
 	reiser4_oid_close(fs->oid);
  error_free_alloc:
 	reiser4_alloc_close(fs->alloc);
@@ -112,10 +115,11 @@ void reiser4_fs_close(
 #ifndef ENABLE_STAND_ALONE
 	if (!aal_device_readonly(fs->device))
 		reiser4_fs_sync(fs);
-
-	/* Closing the all filesystem objects */
+#endif
+	reiser4_tree_fini(fs->tree);
+	
+#ifndef ENABLE_STAND_ALONE
 	reiser4_oid_close(fs->oid);
-
 	reiser4_alloc_close(fs->alloc);
 #endif
 
@@ -319,9 +323,12 @@ reiser4_fs_t *reiser4_fs_create(
 	if (!(fs->oid = reiser4_oid_create(fs)))
 		goto error_free_alloc;
 	
+	if (!(fs->tree = reiser4_tree_init(fs)))
+		goto error_free_oid;
+	
 	if (reiser4_fs_layout(fs, callback_mark_block, fs->alloc)) {
 		aal_exception_error("Can't mark filesystem blocks used.");
-		goto error_free_oid;
+		goto error_free_tree;
 	}
 
 	free = reiser4_alloc_free(fs->alloc);
@@ -329,6 +336,8 @@ reiser4_fs_t *reiser4_fs_create(
 
 	return fs;
 
+ error_free_tree:
+	reiser4_tree_fini(fs->tree);
  error_free_oid:
 	reiser4_oid_close(fs->oid);
  error_free_alloc:
@@ -368,10 +377,11 @@ errno_t reiser4_fs_sync(
 	reiser4_fs_t *fs)		/* fs instance to be synchronized */
 {
 	errno_t res;
+	
 	aal_assert("umka-231", fs != NULL);
    
 	/* Synchronizing the tree */
-	if (fs->tree && (res = reiser4_tree_sync(fs->tree)))
+	if ((res = reiser4_tree_sync(fs->tree)))
 		return res;
     
 	/* Synchronizing block allocator */
@@ -500,8 +510,9 @@ reiser4_fs_t *reiser4_fs_unpack(aal_device_t *device,
 			if (!(fs->oid = reiser4_oid_open(fs)))
 				goto error_free_format;
 			
-			if (!(fs->tree = reiser4_tree_init(fs, NULL)))
+			if (!(fs->tree = reiser4_tree_init(fs)))
 				goto error_free_oid;
+			
 		} else if (!aal_strncmp(sign, ALLOC_PACK_SIGN, 4)) {
 			if (fs->alloc) {
 				aal_exception_error("Few \"alloc\" objects "

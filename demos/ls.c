@@ -59,13 +59,12 @@ int main(int argc, char *argv[]) {
 				    device->name);
 		goto error_free_device;
 	}
-    
-	if (!(fs->tree = reiser4_tree_init(fs, misc_mpressure_detect)))
-		goto error_free_fs;
+
+	fs->tree->mpc_func = misc_mpressure_detect;
     
 	if (!(fs->root = reiser4_object_open(fs->tree, "/", TRUE))) {
 		aal_exception_error("Can't open root dir.");
-		goto error_free_tree;
+		goto error_free_fs;
 	}
     
 	if (!(dir = reiser4_object_open(fs->tree, argv[2], TRUE))) {
@@ -116,7 +115,6 @@ int main(int argc, char *argv[]) {
 	
 	reiser4_object_close(dir);
 	reiser4_object_close(fs->root);
-	reiser4_tree_fini(fs->tree);
 	reiser4_fs_close(fs);
     
 	libreiser4_fini();
@@ -128,8 +126,6 @@ int main(int argc, char *argv[]) {
 	reiser4_object_close(dir);
  error_free_root:
 	reiser4_object_close(fs->root);
- error_free_tree:
-	reiser4_tree_fini(fs->tree);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:

@@ -626,9 +626,7 @@ static int callback_comp_func(const void *k1,
 #endif
 
 /* Opens the tree (that is, the tree cache) on specified filesystem */
-reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
-				  mpc_func_t mpc_func)
-{
+reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	reiser4_tree_t *tree;
 
 	aal_assert("umka-737", fs != NULL);
@@ -639,7 +637,6 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
 
 	tree->fs = fs;
 	tree->fs->tree = tree;
-	tree->mpc_func = mpc_func;
 
 #ifndef ENABLE_STAND_ALONE
 	if (!(tree->data = aal_hash_table_alloc(callback_hash_func,

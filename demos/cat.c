@@ -60,11 +60,10 @@ int main(int argc, char *argv[]) {
 		goto error_free_device;
 	}
 
-	if (!(fs->tree = reiser4_tree_init(fs, misc_mpressure_detect)))
-		goto error_free_fs;
-
+	fs->tree->mpc_func = misc_mpressure_detect;
+	
 	if (!(reg = reiser4_object_open(fs->tree, argv[2], TRUE)))
-		goto error_free_tree;
+		goto error_free_fs;
 
 	if (reg->entity->plug->id.group != REG_OBJECT) {
 		aal_exception_error("File %s is not a regular file.",
@@ -72,16 +71,6 @@ int main(int argc, char *argv[]) {
 		goto error_free_reg;
 	}
 
-/*	{
-		reiser4_plug_t *plug;
-
-		plug = reiser4_factory_ifind(ITEM_PLUG_TYPE,
-					     ITEM_TAIL40_ID);
-
-		plug_call(reg->entity->plug->o.object_ops,
-			  convert, reg->entity, plug);
-	}*/
-	
 	while (1) {
 		int32_t read;
 		
@@ -97,9 +86,8 @@ int main(int argc, char *argv[]) {
 	}
     
 	reiser4_object_close(reg);
-
-	reiser4_tree_fini(fs->tree);
 	reiser4_fs_close(fs);
+	
 	libreiser4_fini();
 	aal_device_close(device);
     
@@ -107,8 +95,6 @@ int main(int argc, char *argv[]) {
 
  error_free_reg:
 	reiser4_object_close(reg);
- error_free_tree:
-	reiser4_tree_fini(fs->tree);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:

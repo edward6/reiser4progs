@@ -193,20 +193,17 @@ int main(int argc, char *argv[]) {
 
 	/* Open file system on the device */
 	if (!(fs = reiser4_fs_open(device, TRUE))) {
-		aal_exception_error("Can't open reiser4 on %s", host_dev);
+		aal_exception_error("Can't open reiser4 on %s",
+				    host_dev);
 		goto error_free_device;
 	}
 
-	/* Initializing tree and tree's traps */
-	if (!(fs->tree = reiser4_tree_init(fs, NULL)))
-		goto error_free_fs;
-    
 	fs_len = misc_size2long(argv[optind]);
 
 	if (fs_len == INVAL_DIG) {
 		aal_exception_error("Invalid new filesystem "
 				    "size %s.", argv[optind]);
-		goto error_free_tree;
+		goto error_free_fs;
 	}
 	
 	fs_len /= (reiser4_master_get_blksize(fs->master) / 1024);
@@ -214,12 +211,9 @@ int main(int argc, char *argv[]) {
 	if (reiser4_fs_resize(fs, fs_len)) {
 		aal_exception_error("Can't resize reiser4 on %s.",
 				    host_dev);
-		goto error_free_tree;
+		goto error_free_fs;
 	}
 	
-	/* Freeing tree */
-	reiser4_tree_fini(fs->tree);
-    
 	/* Deinitializing filesystem instance and device instance */
 	reiser4_fs_close(fs);
 	aal_device_close(device);
@@ -229,8 +223,6 @@ int main(int argc, char *argv[]) {
 	libreiser4_fini();
 	return NO_ERROR;
 
- error_free_tree:
-	reiser4_tree_fini(fs->tree);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:

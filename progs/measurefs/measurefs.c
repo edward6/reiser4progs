@@ -762,10 +762,8 @@ int main(int argc, char *argv[]) {
 		goto error_free_device;
 	}
 
-	/* Initializing tree and tree's traps */
-	if (!(fs->tree = reiser4_tree_init(fs, misc_mpressure_detect)))
-		goto error_free_fs;
-    
+	fs->tree->mpc_func = misc_mpressure_detect;
+
 	/* Check if specified options are compatible. For instance, --show-each
 	   can be used only if --data-frag was specified. */
 	if (!(flags & BF_DFRAG) && (flags & BF_SFILE)) {
@@ -782,28 +780,25 @@ int main(int argc, char *argv[]) {
 	/* Handling measurements options */
 	if (flags & BF_TFRAG) {
 		if (measurefs_tree_frag(fs, flags))
-			goto error_free_tree;
+			goto error_free_fs;
 	}
 
 	if (flags & BF_DFRAG) {
 		if (measurefs_data_frag(fs, flags))
-			goto error_free_tree;
+			goto error_free_fs;
 	}
 
 	if (flags & BF_FFRAG) {
 		if (measurefs_file_frag(fs, frag_filename,
 					flags))
-			goto error_free_tree;
+			goto error_free_fs;
 	}
 	
 	if (flags & BF_TSTAT) {
 		if (measurefs_tree_stat(fs, flags))
-			goto error_free_tree;
+			goto error_free_fs;
 	}
 
-	/* Freeing tree */
-	reiser4_tree_fini(fs->tree);
-    
 	/* Deinitializing filesystem instance and device instance */
 	reiser4_fs_close(fs);
 	aal_device_close(device);
@@ -813,8 +808,6 @@ int main(int argc, char *argv[]) {
 	libreiser4_fini();
 	return NO_ERROR;
 
- error_free_tree:
-	reiser4_tree_fini(fs->tree);
  error_free_fs:
 	reiser4_fs_close(fs);
  error_free_device:

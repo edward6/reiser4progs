@@ -435,15 +435,11 @@ int main(int argc, char *argv[]) {
 		if (!(fs->journal = reiser4_journal_create(fs, device, NULL)))
 			goto error_free_fs;
 
-		/* Creating tree */
-		if (!(fs->tree = reiser4_tree_init(fs, NULL)))
-			goto error_free_journal;
-    
 		/* Creating root directory */
 		if (!(fs->root = reiser4_dir_create(fs, NULL, NULL))) {
 			aal_exception_error("Can't create filesystem "
 					    "root directory.");
-			goto error_free_tree;
+			goto error_free_journal;
 		}
 
 		/* Linking root to itself */
@@ -484,9 +480,6 @@ int main(int argc, char *argv[]) {
 		/* Freeing the root directory */
 		reiser4_object_close(fs->root);
 
-		/* Freeing tree */
-		reiser4_tree_fini(fs->tree);
-		
 		/* Freeing journal */
 		reiser4_journal_close(fs->journal);
 
@@ -518,8 +511,6 @@ int main(int argc, char *argv[]) {
 
  error_free_root:
 	reiser4_object_close(fs->root);
- error_free_tree:
-	reiser4_tree_fini(fs->tree);
  error_free_journal:
 	reiser4_journal_close(fs->journal);
  error_free_fs:
