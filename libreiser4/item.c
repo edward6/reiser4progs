@@ -180,10 +180,8 @@ rpid_t reiser4_item_type(reiser4_coord_t *coord) {
 	if (item->plugin->h.sign.type != ITEM_PLUGIN_TYPE)
 		return UNKNOWN_ITEM;
 		
-	return (item->plugin->h.sign.group >= 0 && 
-		item->plugin->h.sign.group < UNKNOWN_ITEM ?
-		item->plugin->h.sign.group :
-		UNKNOWN_ITEM);
+	return (item->plugin->h.sign.group < UNKNOWN_ITEM ?
+		item->plugin->h.sign.group : UNKNOWN_ITEM);
 }
 
 uint32_t reiser4_item_len(reiser4_coord_t *coord) {

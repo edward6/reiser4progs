@@ -8,66 +8,72 @@
 
 #include <repair/librepair.h>
 
+/* To be removed when relable. */
+errno_t repair_scan_joint_check(reiser4_joint_t *joint, void *data) {
+    repair_check_t *check_data = data;
+
+    aal_assert("vpf-427", check_data != NULL, return -1);
+    aal_assert("vpf-428", joint != NULL, return -1);
+    aal_assert("vpf-429", joint->node != NULL, return -1);
+    aal_assert("vpf-430", joint->node->block != NULL, return -1);    
+
+    aal_assert("vpf-426", !aux_bitmap_test(repair_scan_data(check_data)->used, 
+	aal_block_number(joint->node->block)), return -1);
+
+    return 0;    
+}
+
 /* 
     Zero extent pointers which point to an already used block. 
     Returns -1 if block is used already.
 */
-static errno_t repair_scan_handle_pointers(reiser4_node_t *node, 
-    repair_check_t *data) 
-{
-    reiser4_coord_t coord;
-    reiser4_pos_t pos = {0, 0};
+errno_t repair_scan_handle_pointers(reiser4_coord_t *coord, void *data) {
+    repair_check_t *check_data = data;
+    reiser4_ptr_hint_t ptr;
     int res;
     
-    aal_assert("vpf-384", node != NULL, return -1);
-    aal_assert("vpf-385", data != NULL, return -1);
-    aal_assert("vpf-386", !aux_bitmap_test(repair_scan_data(data)->used, 
-	aal_block_number(node->block)), return -1);
+    aal_assert("vpf-384", coord != NULL, return -1);
+    aal_assert("vpf-385", check_data != NULL, return -1);
+    aal_assert("vpf-431", reiser4_coord_block(coord) != NULL, return -1);
+    aal_assert("vpf-386", !aux_bitmap_test(repair_scan_data(check_data)->used, 
+	aal_block_number(reiser4_coord_block(coord))), return -1);
 
-    for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++)  {	
-	if (repair_coord_open(&coord, node, CT_NODE, &pos)) {
-	    aal_exception_error("Node (%llu): failed to open the item (%u).", 
-		aal_block_number(node->block), pos.item);
-	    return -1;
-	}	    
-
-	if (!reiser4_item_extent(&coord))
-	    continue;
-
-	for (pos.unit = 0; pos.unit < reiser4_item_count(&coord); pos.unit++) {
+    if (plugin_call(return -1, coord->entity.plugin->item_ops,
+	fetch, &coord->entity, coord->pos.unit, &ptr, 1))
+	return -1;
+    
+    /* This must be fixed at the first pass. */
+    aal_assert("vpf-387", 
+	(ptr.ptr < reiser4_format_get_len(check_data->format)) && 
+	(ptr.width < reiser4_format_get_len(check_data->format)) && 
+	(ptr.ptr + ptr.width < reiser4_format_get_len(check_data->format)), 
+	return -1);
 	    
-	    { /* Debug. */
-		reiser4_ptr_hint_t ptr;
-
-		if (plugin_call(return -1, coord.entity.plugin->item_ops, fetch,
-		    &coord.entity, pos.unit, &ptr, 1))
-		    return -1;
-
-		/* This must be fixed at the first pass. */
-		aal_assert("vpf-387", 
-		    (ptr.ptr < reiser4_format_get_len(data->format)) && 
-		    (ptr.width < reiser4_format_get_len(data->format)) && 
-		    (ptr.ptr + ptr.width < reiser4_format_get_len(data->format)), 
-		    return -1);
-	    }
+    /* FIXME-VITALY: Improve it later - it could be just width to be
+     * obviously wrong. Or start block. Give a hint into 
+     * repair_item_ptr_format_check which returns what is obviously 
+     * wrong. */
 	    
-	    /* FIXME-VITALY: Improve it later - it could be just width to be
-	     * obviously wrong. Or start block. Give a hint into 
-	     * repair_item_ptr_format_check which returns what is obviously 
-	     * wrong. */
-	    if ((res = repair_item_ptr_bitmap_used(&coord, 
-		repair_scan_data(data)->used, data)) < 0) 
-		return res;
-	    else if ((res > 0) && repair_item_fix_pointer(&coord)) 
-		return -1;
-	}
-    }
+    if ((res = repair_item_ptr_bitmap_used(coord, 
+	repair_scan_data(check_data)->used, check_data)) < 0) 
+	return res;
+    else if ((res > 0) && repair_item_fix_pointer(coord)) 
+	return -1;
     
     return 0;
 }
 
 errno_t repair_scan_node_check(reiser4_joint_t *joint, void *data) {
-    return repair_scan_handle_pointers(joint->node, (repair_check_t *)data);
+    traverse_hint_t hint;
+
+    aal_assert("vpf-384", joint != NULL, return -1);
+    aal_assert("vpf-385", data != NULL, return -1);
+    
+    hint.objects = 1 << EXTENT_ITEM;
+    hint.data = data;
+    
+    return reiser4_joint_traverse(joint, &hint, NULL, repair_scan_joint_check, 
+	repair_scan_handle_pointers, NULL, NULL);
 }
 
 

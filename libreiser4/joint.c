@@ -614,7 +614,7 @@ errno_t reiser4_joint_move(
 	return 0;
 }
 
-int reiser4_joint_traverse_continue(rpid_t objects, rpid_t type) {
+static int reiser4_joint_traverse_continue(rpid_t objects, rpid_t type) {
 	return (objects & (1 << type));
 }
 
@@ -633,7 +633,6 @@ errno_t reiser4_joint_traverse(
 	reiser4_coord_t coord;
 	reiser4_joint_t *child;
     
-	aal_assert("umka-1024", open_func != NULL, return -1);
 	aal_assert("vpf-390", joint!= NULL, return -1);
 	aal_assert("vpf-391", joint->node != NULL, return -1);
 	aal_assert("vpf-392", joint->node->block != NULL, return -1);
@@ -672,23 +671,25 @@ errno_t reiser4_joint_traverse(
 				if (setup_func && (result = setup_func(&coord, hint->data)))
 					goto error_after_func;
 
-				if ((result = open_func(&child, ptr.ptr, hint->data)))
-					goto error_update_func;
-
-				if (child) {
-					reiser4_joint_attach(joint, child);
- 
-					if ((result = reiser4_joint_traverse(child,
-									     hint, 
-									     open_func,
-									     before_func, 
-									     setup_func,
-									     update_func,
-									     after_func)))
+				if (open_func) {
+					if ((result = open_func(&child, ptr.ptr, hint->data)))
 						goto error_update_func;
 
-					reiser4_joint_detach(joint, child);
-					reiser4_joint_close(child);
+					if (child) {
+						reiser4_joint_attach(joint, child);
+ 
+						if ((result = reiser4_joint_traverse(child,
+										     hint, 
+										     open_func,
+										     before_func, 
+										     setup_func,
+										     update_func,
+										     after_func)))
+							goto error_update_func;
+
+						reiser4_joint_detach(joint, child);
+						reiser4_joint_close(child);
+					}
 				}
 
 				if (update_func && (result = update_func(&coord, hint->data)))
