@@ -504,11 +504,8 @@ static errno_t callback_data_frag(reiser4_joint_t *joint, void *data) {
 	pos.unit = ~0ul;
 	
 	for (pos.item = 0; pos.item < reiser4_node_count(node); pos.item++) {
-		int64_t delta, oid;
+		reiser4_file_t *file;
 		reiser4_coord_t coord;
-
-		object_entity_t *entity;
-		reiser4_plugin_t *plugin;
 
 		if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
@@ -519,36 +516,20 @@ static errno_t callback_data_frag(reiser4_joint_t *joint, void *data) {
 		if (!reiser4_item_statdata(&coord))
 			continue;
 
-		oid = reiser4_key_get_objectid(&coord.entity.key);
-		
-		if (!(plugin = libreiser4_factory_cfind(callback_statdata_guess,
-							(void *)&coord.entity)))
-		{
-			aal_exception_warn("Can't find plugin for file %llx.", oid);
+		if (!(file = reiser4_file_begin(hint->tree->fs, &coord)))
+			continue;
+
+		hint->curr = 0;
+
+		if (reiser4_file_layout(file, callback_file_frag, data)) {
+			aal_exception_error("Can't enumerate blocks occupied by %s",
+					    file->name);
+			
+			reiser4_file_close(file);
 			continue;
 		}
-
-		if (!plugin->file_ops.layout) {
-			aal_exception_warn("Method \"layout\" is not implemented "
-					   "in file.", oid);
-			continue;
-		}
-
-		if (!(entity = plugin_call(return -1, plugin->file_ops, open,
-					   hint->tree, &coord.entity.key)))
-		{
-			aal_exception_error("Can't open file %llx.", oid);
-			return -1;
-		}
 		
-		if (plugin->file_ops.layout(entity, callback_file_frag, data)) {
-			aal_exception_error("Can't enumerate blocks occupied "
-					    "by file %llx", oid);
-			plugin_call(return -1, plugin->file_ops, close, entity);
-			return -1;
-		}
-
-		plugin_call(return -1, plugin->file_ops, close, entity);
+		reiser4_file_close(file);
 	}
 	
 	return 0;

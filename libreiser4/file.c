@@ -29,9 +29,9 @@ static errno_t callback_guess_file(
    Tries to guess object plugin type passed first item plugin and item
    body. Most probably, that passed item body is stat data body.
 */
-reiser4_plugin_t *reiser4_file_guess(reiser4_file_t *file) {
-	aal_assert("umka-1296", file->coord.u.joint != NULL, return NULL);
-	return libreiser4_factory_cfind(callback_guess_file, (void *)&file->coord.entity);
+static reiser4_plugin_t *reiser4_file_guess(reiser4_coord_t *coord) {
+	aal_assert("umka-1296", coord != NULL, return NULL);
+	return libreiser4_factory_cfind(callback_guess_file, (void *)&coord->entity);
 }
 
 /* 
@@ -83,7 +83,7 @@ static errno_t reiser4_file_realize(
 	
 		aal_strncat(track, entryname, aal_strlen(entryname));
 	
-		if (!(plugin = reiser4_file_guess(file))) {
+		if (!(plugin = reiser4_file_guess(&file->coord))) {
 			aal_exception_error("Can't guess file plugin for "
 					    "parent of %s.", track);
 			return -1;
@@ -116,6 +116,50 @@ static errno_t reiser4_file_realize(
 	return 0;
 }
 
+/* This function opens file by its @coord */
+reiser4_file_t *reiser4_file_begin(
+	reiser4_fs_t *fs,		/* fs object will be opened on */
+	reiser4_coord_t *coord)		/* statdata key of file to be opened */
+{
+	reiser4_file_t *file;
+	reiser4_plugin_t *plugin;
+	
+	aal_assert("umka-1508", fs != NULL, return NULL);
+	aal_assert("umka-1509", coord != NULL, return NULL);
+
+	if (!(file = aal_calloc(sizeof(*file), 0)))
+		return NULL;
+    
+	file->fs = fs;
+	file->coord = *coord;
+	
+	reiser4_key_init(&file->key, coord->entity.key.plugin,
+			 &coord->entity.key.body);
+
+#ifndef ENABLE_COMPACT
+	reiser4_key_print(&file->key, file->name, sizeof(file->name));
+#endif
+	
+	if (!(plugin = reiser4_file_guess(&file->coord))) {
+		aal_exception_error("Can't find file plugin for %s.",
+				    file->name);
+		goto error_free_file;
+	}
+    
+	if (!(file->entity = plugin_call(goto error_free_file, plugin->file_ops,
+					 open, fs->tree, &file->key)))
+	{
+		aal_exception_error("Can't open %s.", file->name);
+		goto error_free_file;
+	}
+	
+	return file;
+	
+ error_free_file:
+	aal_free(file);
+	return NULL;
+}
+
 /* This function opens file by its name */
 reiser4_file_t *reiser4_file_open(
 	reiser4_fs_t *fs,		/* fs object will be opened on */
@@ -144,17 +188,17 @@ reiser4_file_t *reiser4_file_open(
 	reiser4_key_init(&file->key, root_key->plugin, root_key->body);
     
 	/* 
-	   I assume that name is absolute name. So, user, who will call this
-	   method should convert name previously into absolute one by getcwd
-	   function.
+	   Getting file's stat data key by means of parsing its path. I assume
+	   that name is absolute name. So, user, who will call this method
+	   should convert name previously into absolute one by getcwd function.
 	*/
 	if (reiser4_file_realize(file, name)) {
 		aal_exception_error("Can't find file %s.", name);
 		goto error_free_file;
 	}
     
-	if (!(plugin = reiser4_file_guess(file))) {
-		aal_exception_error("Can't detect file plugin for %s.", name);
+	if (!(plugin = reiser4_file_guess(&file->coord))) {
+		aal_exception_error("Can't find file plugin for %s.", name);
 		goto error_free_file;
 	}
     

@@ -24,3 +24,5 @@ reiser4progs/COPYING.
 
 * human readable stat data mode field in debugfs.reiser4 --print-tree
   --print-items option
+
+* pos.c where pos relatited code should lie
