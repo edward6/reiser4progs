@@ -871,8 +871,10 @@ static errno_t node40_cut(object_entity_t *entity,
 	return 0;
 }
 
-static errno_t node40_copy(object_entity_t *dst_entity, pos_t *dst_pos,
-			   object_entity_t *src_entity, pos_t *src_pos,
+static errno_t node40_copy(object_entity_t *dst_entity,
+			   pos_t *dst_pos,
+			   object_entity_t *src_entity,
+			   pos_t *src_pos,
 			   uint32_t count)
 {
 	node40_t *dst_node;
@@ -1107,7 +1109,7 @@ static lookup_t node40_lookup(object_entity_t *entity,
 #ifndef ENABLE_STAND_ALONE
 
 static errno_t node40_feel(object_entity_t *entity, pos_t *pos,
-			   uint32_t count, write_hint_t *hint)
+			   uint32_t count, copy_hint_t *hint)
 {
 	rid_t pid;
 	errno_t res;
@@ -1172,20 +1174,6 @@ static errno_t node40_feel(object_entity_t *entity, pos_t *pos,
 		return hint->plugin->item_ops.feel(&item, pos->unit,
 						   count, hint);
 	}
-}
-
-static errno_t node40_write(object_entity_t *dst_entity, pos_t *dst_pos,
-			    object_entity_t *src_entity, pos_t *src_pos,
-			    uint32_t count, write_hint_t *hint)
-{
-	aal_assert("umka-2005", hint != NULL);
-	aal_assert("umka-2003", src_pos != NULL);
-	aal_assert("umka-2004", dst_pos != NULL);
-	aal_assert("umka-2001", src_entity != NULL);
-	aal_assert("umka-2002", dst_entity != NULL);
-
-	/* Not implemented yet! */
-	return -EINVAL;
 }
 
 /* Checks if two item entities are mergeable */
@@ -1823,7 +1811,6 @@ static reiser4_plugin_t node40_plugin = {
 		.expand		 = node40_expand,
 		.copy            = node40_copy,
 		.feel            = node40_feel,
-		.write           = node40_write,
 
 		.overhead	 = node40_overhead,
 		.maxspace	 = node40_maxspace,

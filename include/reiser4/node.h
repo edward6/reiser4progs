@@ -78,11 +78,7 @@ extern errno_t reiser4_node_shift(reiser4_node_t *node,
 				  shift_hint_t *hint);
 
 extern errno_t reiser4_node_feel(reiser4_node_t *node, pos_t *pos,
-				 uint32_t count, write_hint_t *hint);
-
-extern errno_t reiser4_node_write(reiser4_node_t *dst_node, pos_t *dst_pos,
-				  reiser4_node_t *src_node, pos_t *src_pos,
-				  uint32_t count, write_hint_t *hint);
+				 uint32_t count, copy_hint_t *hint);
 
 extern bool_t reiser4_node_confirm(reiser4_node_t *node);
 extern uint16_t reiser4_node_space(reiser4_node_t *node);

@@ -1450,6 +1450,15 @@ static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
 	return reiser4_item_estimate(place, hint);
 }
 
+/* This will be removed soon */
+errno_t reiser4_tree_write(reiser4_tree_t *tree,
+			   reiser4_place_t *src,
+			   reiser4_place_t *dst,
+			   uint32_t count)
+{
+	return -1;
+}
+
 /* Inserts new item/unit described by item hint into the tree */
 errno_t reiser4_tree_insert(
 	reiser4_tree_t *tree,	    /* tree new item will be inserted in */
@@ -1643,76 +1652,6 @@ errno_t reiser4_tree_insert(
 			return res;
 	}
     
-	return 0;
-}
-
-/* 
-  The method should insert/overwrite the specified src place to the dst place
-  from count items/units started at src place.
-*/
-errno_t reiser4_tree_write(
-	reiser4_tree_t *tree,	    /* tree insertion is performing into */
-	reiser4_place_t *dst,       /* place found by lookup */
-	reiser4_place_t *src,       /* place to be inserted */
-	uint32_t count)             /* number of units to be inserted */
-{
-	errno_t res;
-	uint32_t units;
-	uint32_t needed;
-	write_hint_t hint;
-	
-	aal_assert("vpf-683", tree != NULL);
-	aal_assert("vpf-684", dst != NULL);
-	aal_assert("vpf-685", src != NULL);
-
-	units = reiser4_node_items(src->node);
-
-	/* Checking passed @count on validness */
-	if (src->pos.item + count > units)
-		count = units - src->pos.item;
-
-	/* Initializing item at passed @src place */
-	if ((res = reiser4_place_realize(src)))
-		return res;
-		
-	/*
-	  Initializing item key at passed @src place. This is needed for
-	  getting its key for searching the place we should insert it in
-	  @tree.
-	*/
-	if ((res = reiser4_item_realize(src)))
-		return res;
-
-	if ((res = reiser4_node_feel(src->node, &src->pos,
-				     count, &hint)))
-	{
-		aal_exception_error("Can't estimate tree write "
-				    "operation.");
-		return res;
-	}
-
-	/*
-	  FIXME-UMKA: Here should be smart calculating how many byte we need to
-	  prepare in write point. We will solve this when Vitaly is arrive.
-	*/
-	needed = hint.header_len + hint.body_len;
-	
-	if ((res = reiser4_tree_expand(tree, dst, needed, SF_DEFAULT))) {
-		aal_exception_error("Can't prepare space for insert "
-				    "one more item/unit.");
-		return res;
-	}
-	
-	if ((res = reiser4_node_write(dst->node, &dst->pos,
-				      src->node, &src->pos,
-				      count, &hint)))
-	{
-		aal_exception_error("Can't write %lu items/units from "
-				    "node %llu to %llu one.", count,
-				    src->node->blk, dst->node->blk);
-		return res;
-	}
-		
 	return 0;
 }
 

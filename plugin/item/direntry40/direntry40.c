@@ -945,7 +945,7 @@ int32_t direntry40_remove(item_entity_t *item,
 }
 
 static errno_t direntry40_feel(item_entity_t *item, uint32_t pos,
-			       uint32_t count, write_hint_t *hint)
+			       uint32_t count, copy_hint_t *hint)
 {
 	uint32_t units;
 	direntry40_t *direntry;

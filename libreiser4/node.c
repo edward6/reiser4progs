@@ -429,25 +429,12 @@ uint32_t reiser4_node_items(reiser4_node_t *node) {
 
 #ifndef ENABLE_STAND_ALONE
 
-errno_t reiser4_node_write(reiser4_node_t *dst_node, pos_t *dst_pos,
-			   reiser4_node_t *src_node, pos_t *src_pos,
-			   uint32_t count, write_hint_t *hint)
-{
-	aal_assert("umka-2008", dst_node != NULL);
-	aal_assert("umka-2009", src_node != NULL);
-	
-	return plugin_call(dst_node->entity->plugin->node_ops,
-			   write, dst_node->entity, dst_pos,
-			   src_node->entity, src_pos, count,
-			   hint);
-}
-
 /*
   Sets up hint by means of uinitializing its fields by item body, item len and
   if pos points to unit, the set up units related fields.
 */
 errno_t reiser4_node_feel(reiser4_node_t *node, pos_t *pos,
-			  uint32_t count, write_hint_t *hint)
+			  uint32_t count, copy_hint_t *hint)
 {
 	aal_assert("umka-1999", node != NULL);
 	aal_assert("umka-2000", hint != NULL);

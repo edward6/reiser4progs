@@ -63,15 +63,15 @@ extern errno_t reiser4_tree_attach(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 				   reiser4_node_t *node);
 
+extern errno_t reiser4_tree_write(reiser4_tree_t *tree,
+				  reiser4_place_t *src,
+				  reiser4_place_t *dst,
+				  uint32_t count);
+
 extern errno_t reiser4_tree_insert(reiser4_tree_t *tree,
 				   reiser4_place_t *place,
 				   uint8_t level,
 				   reiser4_item_hint_t *hint);
-
-extern errno_t reiser4_tree_write(reiser4_tree_t *tree,
-				  reiser4_place_t *dst,
-				  reiser4_place_t *src,
-				  uint32_t count);
 
 extern errno_t reiser4_tree_cut(reiser4_tree_t *tree,
 				reiser4_place_t *start,

@@ -385,7 +385,7 @@ static errno_t tail40_shift(item_entity_t *src_item,
 }
 
 static errno_t tail40_feel(item_entity_t *item, uint32_t pos,
-			   uint32_t count, write_hint_t *hint)
+			   uint32_t count, copy_hint_t *hint)
 {
 	aal_assert("umka-1995", item != NULL);
 	aal_assert("umka-1996", hint != NULL);

@@ -311,7 +311,7 @@ struct shift_hint {
 typedef struct shift_hint shift_hint_t;
 
 /* This struct is used for writing data from the one place to another */
-struct write_hint {
+struct copy_hint {
 	void *header_data;
 	uint32_t header_len;
 
@@ -323,7 +323,7 @@ struct write_hint {
 	reiser4_plugin_t *plugin;
 };
 
-typedef struct write_hint write_hint_t;
+typedef struct copy_hint copy_hint_t;
 
 typedef errno_t (*region_func_t) (void *, uint64_t, uint64_t, void *);
 typedef errno_t (*block_func_t) (object_entity_t *, uint64_t, void *);
@@ -754,7 +754,7 @@ struct reiser4_item_ops {
 	errno_t (*layout) (item_entity_t *, region_func_t, void *);
 
 	/* Tree write related functions */
-	errno_t (*feel) (item_entity_t *, uint32_t, uint32_t, write_hint_t *);
+	errno_t (*feel) (item_entity_t *, uint32_t, uint32_t, copy_hint_t *);
 
 	/* Does some specific actions if a block the item points to is wrong. */
 	errno_t (*layout_check) (item_entity_t *, region_func_t, void *, uint8_t);
@@ -891,15 +891,7 @@ struct reiser4_node_ops {
 
 	/* Sets up the passed write hint instance */
 	errno_t (*feel) (object_entity_t *, pos_t *,
-			 uint32_t, write_hint_t *);
-	
-	/*
-	  Writes items and units from src node to dst one by passed write
-	  hint.
-	*/
-	errno_t (*write) (object_entity_t *, pos_t *,
-			  object_entity_t *, pos_t *,
-			  uint32_t, write_hint_t *);
+			 uint32_t, copy_hint_t *);
 	
 	errno_t (*set_key) (object_entity_t *, pos_t *,
 			    key_entity_t *);
