@@ -1,20 +1,16 @@
 SUBDIRS 			= format journal alloc oid node key hash sdext item object
 
 if ENABLE_ALONE
-ALONE_LIBS                      = libreiser4-plugin-alone.la libheader-alone.la libfooter-alone.la
+ALONE_LIBS                      = libreiser4-plugin-alone.la
 else
 ALONE_LIBS                      = 
 endif
 
-noinst_LTLIBRARIES	     	= libheader.la libfooter.la libreiser4-plugin.la $(ALONE_LIBS)
+noinst_LTLIBRARIES	     	= libreiser4-plugin.la $(ALONE_LIBS)
 
 if ENABLE_MONOLITHIC
 
-libheader_la_SOURCES 		= header.c
-libfooter_la_SOURCES 		= footer.c
-
-libreiser4_plugin_la_LIBADD  	= libheader.la \
-			          format/format40/libformat40-static.la \
+libreiser4_plugin_la_LIBADD  	= format/format40/libformat40-static.la \
 			          journal/journal40/libjournal40-static.la \
 			          alloc/alloc40/liballoc40-static.la \
 			          oid/oid40/liboid40-static.la \
@@ -36,17 +32,12 @@ libreiser4_plugin_la_LIBADD  	= libheader.la \
 			          sdext/sdext_unix/libsdext_unix-static.la \
 			          sdext/sdext_lw/libsdext_lw-static.la \
 			          sdext/sdext_lt/libsdext_lt-static.la \
-			          sdext/sdext_symlink/libsdext_symlink-static.la \
-			          libfooter.la
+			          sdext/sdext_symlink/libsdext_symlink-static.la
 endif
 
 if ENABLE_ALONE
 
-libheader_alone_la_SOURCES 	= header.c
-libfooter_alone_la_SOURCES 	= footer.c
-
-libreiser4_plugin_alone_la_LIBADD = libheader-alone.la \
-			          format/format40/libformat40-alone.la \
+libreiser4_plugin_alone_la_LIBADD = format/format40/libformat40-alone.la \
 			          oid/oid40/liboid40-alone.la \
 			          node/node40/libnode40-alone.la \
 			          key/key40/libkey40-alone.la \
@@ -63,8 +54,7 @@ libreiser4_plugin_alone_la_LIBADD = libheader-alone.la \
 			          sdext/sdext_unix/libsdext_unix-alone.la \
 			          sdext/sdext_lw/libsdext_lw-alone.la \
 			          sdext/sdext_lt/libsdext_lt-alone.la \
-			          sdext/sdext_symlink/libsdext_symlink-alone.la \
-			          libfooter-alone.la
+			          sdext/sdext_symlink/libsdext_symlink-alone.la
 
 libreiser4_plugin_alone_la_SOURCES =
 

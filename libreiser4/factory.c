@@ -384,7 +384,7 @@ errno_t libreiser4_factory_init(void) {
 	closedir(dir);
 #else
 	/* Loads the all built-in plugins */
-	for (entry = &__plugin_start + 1; entry < &__plugin_end; entry += 2) {
+	for (entry = &__plugin_start; entry < &__plugin_end; entry += 2) {
 	
 		if (!entry) {
 			aal_exception_warn("Invalid built-in entry detected at "
