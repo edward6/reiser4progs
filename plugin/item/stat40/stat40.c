@@ -426,7 +426,11 @@ static reiser4_plugin_t stat40_plugin = {
 			.group = STATDATA_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "stat40",
-			.desc = "Stat data item for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Stat data item for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 		
 #ifndef ENABLE_STAND_ALONE

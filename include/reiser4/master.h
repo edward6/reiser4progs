@@ -14,9 +14,9 @@
 
 #include <reiser4/types.h>
 
-#ifndef ENABLE_STAND_ALONE
-
 #define SUPER(master) (&master->super)
+
+#ifndef ENABLE_STAND_ALONE
 
 extern errno_t reiser4_master_print(reiser4_master_t *master,
 				    aal_stream_t *stream);

@@ -8,6 +8,8 @@
 #ifndef AAL_EXCEPTION_H
 #define AAL_EXCEPTION_H
 
+#ifndef ENABLE_STAND_ALONE
+
 #include <aal/types.h>
 
 extern char *aal_exception_type_name(aal_exception_type_t type);
@@ -27,29 +29,55 @@ extern aal_exception_option_t aal_exception_throw(aal_exception_type_t type,
 extern void aal_exception_on(void);
 extern void aal_exception_off(void);
 
-#define aal_exception_fatal(msg, list...) \
+#define aal_exception_fatal(msg, list...)       \
         aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK, msg, ##list)
 	
-#define aal_exception_bug(msg, list...)	\
+#define aal_exception_bug(msg, list...)	        \
         aal_exception_throw(EXCEPTION_BUG, EXCEPTION_OK, msg, ##list)
 	
-#define aal_exception_error(msg, list...) \
+#define aal_exception_error(msg, list...)       \
         aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_OK, msg, ##list)
 	
-#define aal_exception_warn(msg, list...) \
+#define aal_exception_warn(msg, list...)        \
         aal_exception_throw(EXCEPTION_WARNING, EXCEPTION_OK, msg, ##list)
 	
-#define aal_exception_info(msg, list...) \
+#define aal_exception_info(msg, list...)        \
         aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_OK, msg, ##list)
 
-#define aal_exception_yesno(msg, list...) \
+#define aal_exception_yesno(msg, list...)       \
         aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_YESNO, msg, ##list)
 
-#define aal_exception_okcancel(msg, list...) \
+#define aal_exception_okcancel(msg, list...)    \
         aal_exception_throw(EXCEPTION_INFORMATION, EXCEPTION_OKCANCEL, msg, ##list)
 
 #define aal_exception_retryignore(msg, list...) \
         aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_RETRYIGNORE, msg, ##list)
+
+#else
+#define aal_exception_fatal(msg, list...)       \
+        do {} while (0)
+	
+#define aal_exception_bug(msg, list...)	        \
+        do {} while (0)
+	
+#define aal_exception_error(msg, list...)       \
+        do {} while (0)
+	
+#define aal_exception_warn(msg, list...)        \
+        do {} while (0)
+	
+#define aal_exception_info(msg, list...)        \
+        do {} while (0)
+
+#define aal_exception_yesno(msg, list...)       \
+        do {} while (0)
+
+#define aal_exception_okcancel(msg, list...)    \
+        do {} while (0)
+
+#define aal_exception_retryignore(msg, list...) \
+        do {} while (0)
+#endif
 
 #endif
 

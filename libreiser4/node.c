@@ -237,7 +237,7 @@ errno_t reiser4_node_pos(
 	return res == LP_PRESENT ? 0 : -EINVAL;
 }
 
-static inline int callback_comp_blk(
+static int callback_comp_blk(
 	const void *item,		/* node find will operate on */
 	const void *blk,		/* key to be find */
 	void *data)			/* user-specified data */
@@ -281,7 +281,7 @@ reiser4_node_t *reiser4_node_cbp(
   Helper callback function for comparing two nodes durring registering the new
   child.
 */
-static inline int callback_comp_node(
+static int callback_comp_node(
 	const void *item1,		/* the first node instance for comparing */
 	const void *item2,		/* the second one */
 	void *data)		        /* user-specified data */

@@ -11,10 +11,6 @@
 #ifndef AAL_STRING_H
 #define AAL_STRING_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include <aal/types.h>
 
 extern void *aal_memset(void *dest, int c, uint32_t n);
@@ -34,23 +30,20 @@ extern char *aal_strsep(char **stringp, const char *delim);
 
 extern char *aal_strndup(const char *s, uint32_t n);
 
+#if 0
 extern int aal_stoa(int d, uint32_t n, char *a,
 		    int base, int flags);
 
 extern int aal_lstoa(long int d, uint32_t n, char *a,
 		     int base, int flags);
 
-extern int aal_llstoa(long long d, uint32_t n,
-		      char *a, int base, int flags);
 
 extern int aal_utoa(unsigned int d, uint32_t n, char *a,
 		    int base, int flags);
 
 extern int aal_lutoa(unsigned long int d, uint32_t n, char *a,
 		     int base, int flags);
-
-extern int aal_llutoa(unsigned long long d, uint32_t n, char *a,
-		      int base, int flags);
+#endif
 
 #endif
 

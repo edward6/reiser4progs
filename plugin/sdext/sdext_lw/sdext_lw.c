@@ -134,7 +134,11 @@ static reiser4_plugin_t sdext_lw_plugin = {
 			.group = 0,
 			.type = SDEXT_PLUGIN_TYPE,
 			.label = "sdext_lw",
-			.desc = "Light stat data extention for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Light stat data extention for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 		.open	 = sdext_lw_open,
 		

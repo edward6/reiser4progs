@@ -13,9 +13,9 @@
 
 #ifndef ENABLE_STAND_ALONE
 
-static inline errno_t callback_tree_pack(reiser4_tree_t *tree,
-					 reiser4_place_t *place,
-					 void *data)
+static errno_t callback_tree_pack(reiser4_tree_t *tree,
+				  reiser4_place_t *place,
+				  void *data)
 {
 	aal_assert("umka-1897", tree != NULL);
 	aal_assert("umka-1898", place != NULL);
@@ -201,6 +201,7 @@ errno_t reiser4_tree_disconnect(
 	aal_assert("umka-1858", tree != NULL);
 	aal_assert("umka-563", node != NULL);
 
+#ifndef ENABLE_STAND_ALONE
 	if (tree->traps.disconnect) {
 		reiser4_place_t place;
 
@@ -230,6 +231,7 @@ errno_t reiser4_tree_disconnect(
 			return res;
 
 	}
+#endif
 	
 	/* Disconnecting left and right neighbours */
 	if (node->left) {
@@ -765,23 +767,19 @@ lookup_t reiser4_tree_lookup(
 	uint8_t level,	        /* stop level for search */
 	reiser4_place_t *place)	/* place the found item to be stored */
 {
-	uint8_t deep;
 	lookup_t res;
-	reiser4_place_t fake;
+	uint8_t curr_level;
 	pos_t pos = {0, ~0ul};
 
-	aal_assert("umka-1760", tree != NULL);
 	aal_assert("umka-742", key != NULL);
-
-	if (!place) place = &fake;
+	aal_assert("umka-1760", tree != NULL);
+	aal_assert("umka-2057", place != NULL);
 
 	reiser4_place_init(place, tree->root, &pos);
 
 	if (reiser4_tree_fresh(tree))
 		return LP_ABSENT;
 	
-	deep = reiser4_tree_height(tree);
-
 	/* Making sure that root exists */
 	if (reiser4_tree_load_root(tree))
 		return LP_FAILED;
@@ -800,18 +798,16 @@ lookup_t reiser4_tree_lookup(
 	while (1) {
 		reiser4_node_t *node = place->node;
 	
-		if (reiser4_node_items(node) == 0)
-			return LP_ABSENT;
-
 		/* 
 		  Looking up for key inside node. Result of lookuping will be
 		  stored in &place->pos.
 		*/
-		if ((res = reiser4_node_lookup(node, key, &place->pos)) == LP_FAILED)
-			return res;
+		res = reiser4_node_lookup(node, key, &place->pos);
 
+		curr_level = reiser4_node_get_level(node);
+		
 		/* Check if we should finish lookup because we reach stop level */
-		if (deep <= level) {
+		if (curr_level <= level || res == LP_FAILED) {
 
 			if (res == LP_PRESENT)
 				reiser4_place_realize(place);
@@ -840,8 +836,6 @@ lookup_t reiser4_tree_lookup(
 			aal_exception_error("Can't load node by its nodeptr.");
 			return LP_FAILED;
 		}
-		
-		deep--;
 	}
     
 	return LP_ABSENT;
@@ -1446,9 +1440,9 @@ errno_t reiser4_tree_split(reiser4_tree_t *tree,
 	return res;
 }
 
-static inline errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
-					    reiser4_place_t *place,
-					    reiser4_item_hint_t *hint)
+static errno_t reiser4_tree_estimate(reiser4_tree_t *tree,
+				     reiser4_place_t *place,
+				     reiser4_item_hint_t *hint)
 {
 	/*
 	  Initializing hint context and enviromnent fields. This should be done

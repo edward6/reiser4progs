@@ -70,7 +70,11 @@ static reiser4_plugin_t sdext_symlink_plugin = {
 			.group = 0,
 			.type = SDEXT_PLUGIN_TYPE,
 			.label = "sdext_symlink",
-			.desc = "Symlink stat data extention for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Symlink stat data extention for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 		.open	 = sdext_symlink_open,
 		

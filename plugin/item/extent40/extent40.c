@@ -11,23 +11,23 @@ static reiser4_core_t *core = NULL;
 
 /* Returns blocksize of the device passed extent @item lies on */
 static uint32_t extent40_blocksize(item_entity_t *item) {
-	aal_device_t *device;
-
-	device = item->context.device;
-	return aal_device_get_bs(device);
+	aal_assert("umka-2058", item != NULL);
+	return item->context.device->blocksize;
 }
 
 /* Returns number of units in passed extent @item */
 uint32_t extent40_units(item_entity_t *item) {
 	aal_assert("umka-1446", item != NULL);
 
+#ifndef ENABLE_STAND_ALONE
 	if (item->len % sizeof(extent40_t) != 0) {
 		aal_exception_error("Invalid item size detected. "
 				    "Node %llu, item %u.",
 				    item->context.blk, item->pos);
 		return 0;
 	}
-		
+#endif
+	
 	return item->len / sizeof(extent40_t);
 }
 
@@ -74,7 +74,8 @@ static errno_t extent40_get_key(item_entity_t *item,
 	for (i = 0; i < pos; i++, extent++)
 		offset += et40_get_width(extent) * blocksize;
 
-	plugin_call(key->plugin->key_ops, set_offset, key, offset);
+	plugin_call(key->plugin->key_ops, set_offset,
+		    key, offset);
 	
 	return 0;
 }
@@ -168,8 +169,8 @@ static errno_t extent40_maxposs_key(item_entity_t *item,
 
 	key->plugin = item->key.plugin;
 	
-	if (plugin_call(key->plugin->key_ops, assign, key, &item->key))
-		return -EINVAL;
+	plugin_call(key->plugin->key_ops, assign,
+		    key, &item->key);
     
 	maxkey = plugin_call(key->plugin->key_ops,
 			     maximal,);
@@ -232,21 +233,17 @@ static lookup_t extent40_lookup(item_entity_t *item,
 				uint32_t *pos)
 {
 	uint32_t i, units;
-	uint32_t blocksize;
-	
 	extent40_t *extent;
 	key_entity_t maxkey;
-	uint64_t offset, lookuped;
+
+	uint64_t offset, requested;
 
 	aal_assert("umka-1500", item != NULL);
 	aal_assert("umka-1501", key  != NULL);
 	aal_assert("umka-1502", pos != NULL);
 	
-	if (!(extent = extent40_body(item)))
-		return LP_FAILED;
-	
-	if (extent40_maxposs_key(item, &maxkey))
-		return LP_FAILED;
+	extent = extent40_body(item);
+	extent40_maxposs_key(item, &maxkey);
 
 	if (!(units = extent40_units(item)))
 		return LP_FAILED;
@@ -258,18 +255,18 @@ static lookup_t extent40_lookup(item_entity_t *item,
 		return LP_ABSENT;
 	}
 
-	lookuped = plugin_call(key->plugin->key_ops,
-			       get_offset, key);
-	
 	offset = plugin_call(key->plugin->key_ops,
 			     get_offset, &item->key);
 
-	blocksize = extent40_blocksize(item);
-		
+	requested = plugin_call(key->plugin->key_ops,
+				get_offset, key);
+	
 	for (i = 0; i < units; i++, extent++) {
-		offset += (blocksize * et40_get_width(extent));
+
+		offset += (extent40_blocksize(item) *
+			   et40_get_width(extent));
 		
-		if (offset > lookuped) {
+		if (offset > requested) {
 			*pos = i;
 			return LP_PRESENT;
 		}
@@ -308,29 +305,28 @@ static uint32_t extent40_unit(item_entity_t *item,
 static int32_t extent40_read(item_entity_t *item, void *buff,
 			     uint32_t pos, uint32_t count)
 {
-	uint32_t i, units;
-	uint32_t read = 0;
-	uint32_t blocksize;
+	uint32_t i;
 
 	key_entity_t key;
 	extent40_t *extent;
+	uint32_t blocksize;
 	
 	aal_block_t *block;
 	aal_device_t *device;
+	uint32_t read = count;
 
 	aal_assert("umka-1421", item != NULL);
 	aal_assert("umka-1422", buff != NULL);
 	aal_assert("umka-1672", pos != ~0ul);
 
 	extent = extent40_body(item);
-	units = extent40_units(item);
 
 	device = item->context.device;
 	blocksize = extent40_blocksize(item);
 
-	i = extent40_unit(item, pos);
-	
-	for (; i < units && read < count; i++) {
+	for (i = extent40_unit(item, pos);
+	     i < extent40_units(item) && count > 0; i++)
+	{
 		blk_t blk;
 		uint64_t start, width;
 		uint32_t chunk, offset;
@@ -338,8 +334,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 		start = et40_get_start(extent + i);
 		width = et40_get_width(extent + i);
 
-		if (extent40_get_key(item, i, &key))
-			return -EINVAL;
+		extent40_get_key(item, i, &key);
 
 		/* Calculating in-unit local offset */
 		offset = plugin_call(item->key.plugin->key_ops,
@@ -350,11 +345,11 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 
 		start += ((pos - offset) / blocksize);
 		
-		for (blk = start; blk < start + width && read < count; ) {
+		for (blk = start; blk < start + width && count > 0; ) {
 
 			if (!(block = aal_block_open(device, blk))) {
-				aal_exception_error("Can't read block %llu.",
-						    blk);
+				aal_exception_error("Can't read block "
+						    "%llu.", blk);
 				return -EIO;
 			}
 
@@ -362,8 +357,8 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 			offset = (pos % blocksize);
 			chunk = blocksize - offset;
 
-			if (chunk > count - read)
-				chunk = count - read;
+			if (chunk > count)
+				chunk = count;
 
 			aal_memcpy(buff, block->data + offset, chunk);
 					
@@ -372,7 +367,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 			if ((offset + chunk) % blocksize == 0)
 				blk++;
 
-			read += chunk; buff += chunk;
+			count -= chunk; buff += chunk;
 		}
 	}
 	
@@ -761,7 +756,11 @@ static reiser4_plugin_t extent40_plugin = {
 			.group = EXTENT_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "extent40",
-			.desc = "Extent item for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Extent item for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 		
 #ifndef ENABLE_STAND_ALONE

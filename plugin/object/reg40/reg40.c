@@ -82,6 +82,7 @@ static errno_t reg40_reset(object_entity_t *entity) {
 static int32_t reg40_read(object_entity_t *entity, 
 			  void *buff, uint32_t n)
 {
+	errno_t res;
 	uint64_t size;
 	uint32_t offset;
 	item_entity_t *item;
@@ -94,6 +95,9 @@ static int32_t reg40_read(object_entity_t *entity,
 
 	size = reg40_size(entity);
 
+	if (reg->offset > size)
+		return -EINVAL;
+	
 	/* The file has not data at all */
 	if (size == 0 || !reg->body.node)
 		return 0;
@@ -102,9 +106,6 @@ static int32_t reg40_read(object_entity_t *entity,
 	if (reg->offset == size)
 		return 0;
 
-	if (reg->offset > size)
-		return -EINVAL;
-	
 	if (n > size - reg->offset)
 		n = size - reg->offset;
 
@@ -119,7 +120,7 @@ static int32_t reg40_read(object_entity_t *entity,
 			item->pos.unit = 0;
 			
 		if ((chunk = n - read) == 0)
-			return read;
+			break;
 
 		/* Getting item's key offset */
 		offset = plugin_call(item->key.plugin->key_ops,
@@ -131,16 +132,23 @@ static int32_t reg40_read(object_entity_t *entity,
 		/* Calling body item's "read" method */
 		if ((chunk = plugin_call(item->plugin->item_ops, read,
 					 item, buff, offset, chunk)) <= 0)
-			return read;
+		{
+			aal_exception_error("Can't read %lu bytes from "
+					    "%s item at offset %lu.",
+					    chunk, item->plugin->h.label,
+					    offset);
+			break;
+		}
 		
 		buff += chunk;
 		read += chunk;
 		reg->offset += chunk;
 
 		/* Getting new body item by current file offset */
-		if (reg40_next(reg) != LP_PRESENT)
+		res = reg40_next(reg);
+		
+		if (res != LP_PRESENT)
 			break;
-			
 	}
 
 	return read;
@@ -516,7 +524,11 @@ static reiser4_plugin_t reg40_plugin = {
 			.group = FILE_OBJECT,
 			.type = OBJECT_PLUGIN_TYPE,
 			.label = "reg40",
-			.desc = "Regular file for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Regular file for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 		
 #ifndef ENABLE_STAND_ALONE

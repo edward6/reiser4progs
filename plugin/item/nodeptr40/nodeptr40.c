@@ -151,7 +151,11 @@ static reiser4_plugin_t nodeptr40_plugin = {
 			.group = NODEPTR_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "nodeptr40",
-			.desc = "Node pointer item for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Node pointer item for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 #ifndef ENABLE_STAND_ALONE	    
 		.init		= nodeptr40_init,

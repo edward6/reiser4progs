@@ -90,7 +90,11 @@ static reiser4_plugin_t sdext_lt_plugin = {
 			.group = 0,
 			.type = SDEXT_PLUGIN_TYPE,
 			.label = "sdext_lt",
-			.desc = "Large times stat data extention for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Large times stat data extention for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 		.open	 = sdext_lt_open,
 		

@@ -265,7 +265,7 @@ fi
 AC_SUBST(LIBREISER4_LIBS)
 
 if test x$enable_stand_alone = xyes; then
-    ALONE_CFLAGS="$ALONE_CFLAGS -DENABLE_STAND_ALONE -DENABLE_MONOLITHIC -fno-builtin"
+    ALONE_CFLAGS="$ALONE_CFLAGS -Wl,-N -DENABLE_STAND_ALONE -DENABLE_MONOLITHIC -fno-builtin -malign-jumps=1 -malign-loops=1 -malign-functions=1"
 fi
 
 if test x$enable_debug = xyes; then
@@ -273,7 +273,7 @@ if test x$enable_debug = xyes; then
     ALONE_CFLAGS="$ALONE_CFLAGS -O0 -g"
 else
     GENERIC_CFLAGS="$GENERIC_CFLAGS -O2"
-    ALONE_CFLAGS="$ALONE_CFLAGS -O9"
+    ALONE_CFLAGS="$ALONE_CFLAGS -Os"
 fi
 
 CFLAGS="$CFLAGS -W -Wall -Wno-unused"
@@ -315,7 +315,7 @@ AC_SUBST(PLUGIN_LDFLAGS)
 AC_SUBST(PROGS_LDFLAGS)
 
 AM_CONDITIONAL(ENABLE_DEBUG, test x$enable_debug = xyes)
-AM_CONDITIONAL(ENABLE_STAND_ALONE, test x$enable_alone = xyes)
+AM_CONDITIONAL(ENABLE_STAND_ALONE, test x$enable_stand_alone = xyes)
 
 if test x$enable_debug = xyes; then
     AC_DEFINE(ENABLE_DEBUG)

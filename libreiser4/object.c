@@ -109,14 +109,12 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	
 	/* Symlinks handling. Method "follow" should be implemented */
 	if (plugin->object_ops.follow) {
-
 		if ((res = plugin->object_ops.follow(object->entity,
 						     &object->key)))
 		{
 			aal_exception_error("Can't follow %s.", track);
 			goto error_free_entity;
 		}
-		
 	}
 
 	plugin_call(plugin->object_ops, close, object->entity);

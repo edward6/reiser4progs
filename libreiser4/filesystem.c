@@ -53,8 +53,7 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 		
 	/* Setting actual used block size from master super block */
 	if (aal_device_set_bs(device, blocksize)) {
-		aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
-				    "Invalid block size detected %u.",
+		aal_exception_error("Invalid block size detected %u.",
 				    blocksize);
 		goto error_free_master;
 	}

@@ -473,7 +473,11 @@ static reiser4_plugin_t format40_plugin = {
 			.group = 0,
 			.type = FORMAT_PLUGIN_TYPE,
 			.label = "format40",
-			.desc = "Disk-format for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Disk-format for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 		.open		= format40_open,
 		.valid		= format40_valid,

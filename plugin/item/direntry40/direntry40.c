@@ -13,8 +13,8 @@ static reiser4_core_t *core = NULL;
   Returns pointer to the objectid entry component in passed @direntry at pased
   @pos. It is used in code bellow.
 */
-static inline objid_t *direntry40_objid(direntry40_t *direntry,
-					uint32_t pos)
+static objid_t *direntry40_objid(direntry40_t *direntry,
+				 uint32_t pos)
 {
 	uint32_t offset = direntry->entry[pos].offset;
 	return (objid_t *)((void *)direntry + offset);
@@ -134,8 +134,8 @@ static char *direntry40_get_name(item_entity_t *item,
   Calculates entry length. This function is widely used in shift code and
   modification code.
 */
-static inline uint32_t direntry40_get_len(item_entity_t *item,
-					  uint32_t pos)
+static uint32_t direntry40_get_len(item_entity_t *item,
+				   uint32_t pos)
 {
 	uint32_t len;
 	key_entity_t key;
@@ -1105,8 +1105,8 @@ static errno_t direntry40_utmost_key(item_entity_t *item,
    Helper function that is used by lookup method for comparing given key with
    passed entry hash.
 */
-static inline int callback_comp_entry(void *array, uint32_t pos,
-				      void *key, void *data)
+static int callback_comp_entry(void *array, uint32_t pos,
+			       void *key, void *data)
 {
 	item_entity_t *item;
 	key_entity_t *wanted;
@@ -1204,7 +1204,11 @@ static reiser4_plugin_t direntry40_plugin = {
 			.group = DIRENTRY_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "direntry40",
-			.desc = "Compound direntry for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Compound direntry for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 		
 #ifndef ENABLE_STAND_ALONE	    

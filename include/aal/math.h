@@ -13,8 +13,10 @@
 extern int aal_log2(unsigned long n);
 extern int aal_pow_of_two(unsigned long n);
 
+#ifndef ENABLE_STAND_ALONE
 extern long long int aal_fact(int64_t n);
 extern unsigned int aal_adler32(char *buff, unsigned int n);
+#endif
 
 #endif
 

@@ -27,7 +27,11 @@ static reiser4_plugin_t fnv1_hash_plugin = {
 			.group = 0,
 			.type = HASH_PLUGIN_TYPE,
 			.label = "fnv1_hash",
-			.desc = "Implementation fnv1 hash for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Implementation fnv1 hash for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 		.build = fnv1_hash_build
 	}

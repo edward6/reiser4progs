@@ -940,7 +940,11 @@ static reiser4_plugin_t dir40_plugin = {
 			.group = DIRTORY_OBJECT,
 			.type = OBJECT_PLUGIN_TYPE,
 			.label = "dir40",
-			.desc = "Compound directory for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Compound directory for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 		
 #ifndef ENABLE_STAND_ALONE

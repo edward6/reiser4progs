@@ -267,9 +267,12 @@ errno_t libreiser4_plugin_open(unsigned long *entry,
 	aal_assert("umka-1432", handle != NULL);
 
 	aal_memset(handle, 0, sizeof(*handle));
+
 	
+#ifndef ENABLE_STAND_ALONE
 	aal_snprintf(handle->name, sizeof(handle->name),
 		     "built-in (0x%lx)", *entry);
+#endif
 	
 	handle->init = (reiser4_plugin_init_t)*entry;
 	handle->fini = (reiser4_plugin_fini_t)*(entry + 1);

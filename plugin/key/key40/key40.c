@@ -400,7 +400,11 @@ static reiser4_plugin_t key40_plugin = {
 			.group = 0,
 			.type = KEY_PLUGIN_TYPE,
 			.label = "key40",
-			.desc = "Key for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Key for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 	
 		.confirm	= key40_confirm,

@@ -233,6 +233,8 @@ char *aal_strndup(const char *s, uint32_t n) {
 	return str;
 }
 
+#if 0
+
 /* Converts string denoted as size into digits */
 #define DCONV_RANGE_DEC (1000000000)
 #define DCONV_RANGE_HEX (0x10000000)
@@ -301,3 +303,5 @@ DEFINE_DCONV(lu, unsigned long int)
 
 DEFINE_DCONV(s, int)
 DEFINE_DCONV(ls, long int)
+
+#endif

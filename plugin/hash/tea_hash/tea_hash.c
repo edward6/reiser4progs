@@ -148,7 +148,11 @@ static reiser4_plugin_t tea_hash_plugin = {
 			.group = 0,
 			.type = HASH_PLUGIN_TYPE,
 			.label = "tea_hash",
-			.desc = "Implementation tea hash for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Implementation tea hash for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 		.build = tea_hash_build
 	}

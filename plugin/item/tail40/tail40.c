@@ -409,7 +409,11 @@ static reiser4_plugin_t tail40_plugin = {
 			.group = TAIL_ITEM,
 			.type = ITEM_PLUGIN_TYPE,
 			.label = "tail40",
-			.desc = "Tail item for reiser4, ver. " VERSION,
+#ifndef ENABLE_STAND_ALONE
+			.desc = "Tail item for reiser4, ver. " VERSION
+#else
+			.desc = ""
+#endif
 		},
 		
 #ifndef ENABLE_STAND_ALONE

@@ -568,17 +568,17 @@ static reiser4_plugin_t alloc40_plugin = {
 		.sync		       = alloc40_sync,
 		.print                 = alloc40_print,
 		
-		.related_region        = alloc40_related_region,
-		.occupy_region	       = alloc40_occupy_region,
-		.allocate_region       = alloc40_allocate_region,
-		.release_region	       = alloc40_release_region,
-
 		.used                  = alloc40_used,
 		.unused                = alloc40_unused,
 		.valid                 = alloc40_valid,
 		.layout                = alloc40_layout,
 		.used_region           = alloc40_used_region,
-		.unused_region         = alloc40_unused_region
+		.unused_region         = alloc40_unused_region,
+
+		.related_region        = alloc40_related_region,
+		.occupy_region	       = alloc40_occupy_region,
+		.allocate_region       = alloc40_allocate_region,
+		.release_region	       = alloc40_release_region,
 	}
 };
 

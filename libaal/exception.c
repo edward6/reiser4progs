@@ -6,9 +6,7 @@
   reiser4progs/COPYING.
 */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#ifndef ENABLE_STAND_ALONE
 
 #include <aal/aal.h>
 
@@ -166,3 +164,4 @@ void aal_exception_on(void) {
 		disable_count--;
 }
 
+#endif

@@ -26,6 +26,8 @@ long long int aal_fact(long long int n) {
 	return n ? n * aal_fact(n - 1) : 1;
 }
 
+#ifndef ENABLE_STAND_ALONE
+
 /*
   Calculates the adler32 checksum for the data pointed by "buff" of the
   length "n". This function was originally taken from zlib, version 1.1.3,
@@ -80,3 +82,4 @@ unsigned int aal_adler32(char *buff, unsigned int n) {
 	return (s2 << 16) | s1;
 }
 
+#endif
