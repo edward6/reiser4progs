@@ -37,9 +37,6 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 		/* Data does not found. This may mean, that we have hole in tree
 		   between keys. */
 		if (res == ABSENT) {
-			uint64_t hole_size;
-			uint64_t next_offset;
-			uint64_t look_offset;
 			reiser4_key_t tkey;
 			
 			/* Here we suppose, that @place points to next item,
@@ -54,15 +51,22 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 				      &tkey, &hint->offset))
 			{
 				/* No data found. */
+				read = size;
+			} else {
+				uint64_t next, look, hole;
+				
+				next = reiser4_key_get_offset(&tkey);
+				look = reiser4_key_get_offset(&hint->offset);
+
+				hole = next - look;
+				read = (hole > size ? size : hole);
+			}
+			
+			/* If only hole is found, return 0. */
+			if ((uint64_t)read == hint->count) {
 				read = 0;
 				break;
 			}
-			
-			next_offset = reiser4_key_get_offset(&tkey);
-			look_offset = reiser4_key_get_offset(&hint->offset);
-
-			hole_size = next_offset - look_offset;
-			read = (hole_size > size ? size : hole_size);
 			
 			/* Making holes in buffer */
 			aal_memset(hint->specific, 0, read);
@@ -216,9 +220,6 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 		   hole between keys. We will handle this, as it is needed for
 		   fsck. */
 		if (res == ABSENT) {
-			uint64_t hole_size;
-			uint64_t next_offset;
-			uint64_t look_offset;
 			reiser4_key_t tkey;
 			
 			/* Here we suppose, that @place points to next item,
@@ -233,16 +234,17 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 				      &tkey, &hint->offset))
 			{
 				/* No data found. */
-				trunc = 0;
-				break;
+				trunc = size;
+			} else {			
+				uint64_t hole, next, look;
+
+				next = reiser4_key_get_offset(&tkey);
+				look = reiser4_key_get_offset(&hint->offset);
+
+				hole = next - look;
+				trunc = (hole > size ? size : hole);
 			}
 			
-			next_offset = reiser4_key_get_offset(&tkey);
-			look_offset = reiser4_key_get_offset(&hint->offset);
-
-			hole_size = next_offset - look_offset;
-			trunc = (hole_size > size ? size : hole_size);
-
 			reiser4_key_inc_offset(&hint->offset, trunc);
 			continue;
 		}
@@ -362,14 +364,22 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 		trans.specific = buff;
 
 		/* First stage -- reading data from tree. */
-		if ((conv = reiser4_flow_read(tree, &trans)) <= 0) {
+		if ((conv = reiser4_flow_read(tree, &trans)) < 0) {
 			res = conv;
 			goto error_free_buff;
 		}
 		
 		/* Second statge -- removing data from the tree. */
 		trans.data = tree;
-		trans.count = conv;
+		
+		if (conv == 0) {
+			/* If nothing was read, the hole will be inserted. */
+			trans.specific = NULL;
+		} else {
+			/* Trunc & insert only read @count bytes. */
+			trans.count = conv;
+		}
+		
 
 		if ((conv = reiser4_flow_truncate(tree, &trans)) < 0) {
 			res = conv;

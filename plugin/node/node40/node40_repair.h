@@ -18,15 +18,6 @@ extern reiser4_node_t *node40_unpack(aal_block_t *block,
 				    aal_stream_t *stream,
 				    int mode);
 
-extern void node40_set_flag(reiser4_node_t *entity, 
-			    uint32_t pos, uint16_t flag);
-
-extern void node40_clear_flag(reiser4_node_t *entity, 
-			      uint32_t pos, uint16_t flag);
-
-extern bool_t node40_test_flag(reiser4_node_t *entity, 
-			       uint32_t pos, uint16_t flag);
-
 extern errno_t node40_check_struct(reiser4_node_t *entity,
 				   uint8_t mode);
 

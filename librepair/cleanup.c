@@ -86,8 +86,8 @@ static errno_t callback_node_cleanup(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-1429", !reiser4_item_branch(place->plug));
 
 	/* Clear checked items. */
-	if (repair_item_test_flag(place, OF_CHECKED)) {
-		repair_item_clear_flag(place, MAX_UINT16);
+	if (reiser4_item_test_flag(place, OF_CHECKED)) {
+		reiser4_item_clear_flags(place);
 
 		if (!place->pos.item)
 			goto next;

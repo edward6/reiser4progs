@@ -85,30 +85,6 @@ errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func,
 	return repair_item_check_fini(place, res, length);
 }
 
-void repair_item_set_flag(reiser4_place_t *place, uint16_t flag) {
-	aal_assert("vpf-1041", place != NULL);
-	aal_assert("vpf-1111", place->node != NULL);
-	
-	plug_call(place->node->plug->o.node_ops, set_flag, 
-		  place->node, place->pos.item, flag);
-}
-
-void repair_item_clear_flag(reiser4_place_t *place, uint16_t flag) {
-	aal_assert("vpf-1042", place != NULL);
-	aal_assert("vpf-1112", place->node != NULL);
-	
-	plug_call(place->node->plug->o.node_ops, clear_flag, 
-		  place->node, place->pos.item, flag);
-}
-
-bool_t repair_item_test_flag(reiser4_place_t *place, uint16_t flag) {
-	aal_assert("vpf-1043", place != NULL);
-	aal_assert("vpf-1113", place->node != NULL);
-	
-	return plug_call(place->node->plug->o.node_ops, test_flag, 
-			 place->node, place->pos.item, flag);
-}
-
 /* Prints passed @place into passed @buff */
 void repair_item_print(reiser4_place_t *place, aal_stream_t *stream) {
 	aal_assert("umka-1297", place != NULL);

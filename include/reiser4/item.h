@@ -25,6 +25,14 @@ extern errno_t reiser4_item_update_link(reiser4_place_t *place,
 					blk_t blk);
 
 extern uint16_t reiser4_item_overhead(reiser4_plug_t *plug);
+
+extern void reiser4_item_set_flag(reiser4_place_t *place, uint16_t flag);
+extern void reiser4_item_clear_flag(reiser4_place_t *place, uint16_t flag);
+extern void reiser4_item_clear_flags(reiser4_place_t *place);
+extern bool_t reiser4_item_test_flag(reiser4_place_t *place, uint16_t flag);
+extern void reiser4_item_dup_flags(reiser4_place_t *place, uint16_t flags);
+extern uint16_t reiser4_item_get_flags(reiser4_place_t *place);
+
 #endif
 
 extern uint32_t reiser4_item_units(reiser4_place_t *place);

@@ -103,6 +103,7 @@ static void repair_filter_empty_node(repair_filter_t *fd, blk_t blk,
 				     uint8_t level)
 {
 	fd->flags |= RE_EMPTY;
+	fd->repair->fatal++;
 	repair_filter_node_handle(fd, blk, level, RM_BAD);
 }
 

@@ -402,59 +402,6 @@ int64_t node40_merge(reiser4_node_t *entity, pos_t *pos, trans_hint_t *hint) {
 			     hint->plug->o.item_ops->repair->merge);
 }
 
-void node40_set_flag(reiser4_node_t *entity, uint32_t pos, uint16_t flag) {
-	uint32_t pol;
-	void *ih;
-	
-	aal_assert("vpf-1038", entity != NULL);
-	
-	pol = node40_key_pol(entity);
-	ih = node40_ih_at(entity, pos);
-
-	if (ih_test_flag(ih, flag, pol))
-		return;
-	
-	ih_set_flag(ih, flag, pol);
-	node40_mkdirty(entity);
-}
-
-void node40_clear_flag(reiser4_node_t *entity, uint32_t pos, uint16_t flag) {
-	uint32_t pol;
-	void *ih;
-	
-	aal_assert("vpf-1039", entity != NULL);
-	
-	pol = node40_key_pol(entity);
-	ih = node40_ih_at(entity, pos);
-	
-	if (flag == MAX_UINT16) {
-		if (!ih_get_flags(ih, pol)) 
-		    return;
-
-		ih_set_flags(ih, 0, pol);
-	} else {
-		if (!ih_test_flag(ih, flag, pol))
-			return;
-		
-		ih_clear_flag(ih, flag, pol);
-	}
-	
-	node40_mkdirty(entity);
-}
-
-bool_t node40_test_flag(reiser4_node_t *entity, uint32_t pos, uint16_t flag) {
-	uint32_t pol;
-	void *ih; 
-	
-	aal_assert("vpf-1040", entity != NULL);
-	
-	pol = node40_key_pol(entity);
-	ih = node40_ih_at(entity, pos);
-	
-	return flag == MAX_UINT16 ? ih_get_flags (ih, pol) == 0 : 
-		ih_test_flag(ih, flag, pol);
-}
-
 errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream, int mode) {
 	node40_header_t *head;
 	reiser4_place_t place;

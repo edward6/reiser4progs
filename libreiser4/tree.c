@@ -1140,12 +1140,18 @@ static errno_t reiser4_tree_alloc_nodeptr(reiser4_tree_t *tree,
 	return 0;
 }
 
+static errno_t callback_flags_dup(reiser4_place_t *place, void *data) {
+	reiser4_item_dup_flags(place, *(uint16_t *)data);
+	return 0;
+}
+
 /* Allocates extent item at passed @place. */
 static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 					 reiser4_place_t *place)
 {
 	errno_t res;
 	uint32_t units;
+	uint16_t flags;
 	ptr_hint_t ptr;
 	uint32_t blksize;
 	trans_hint_t hint;
@@ -1156,9 +1162,10 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 	/* Prepare @hint. */
 	hint.count = 1;
 	hint.specific = &ptr;
-	hint.place_func = NULL;
-	hint.region_func = NULL;
 	hint.plug = place->plug;
+	hint.region_func = NULL;
+	hint.place_func = callback_flags_dup;
+	hint.data = &flags;
 
 	/* We force balancing use these flags with disables left shift
 	   in order to not affect to items/units left of insert point,
@@ -1174,6 +1181,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		
 		reiser4_key_t key;
 		int first_time = 1;
+
 
 		if (plug_call(place->plug->o.item_ops->object,
 			      fetch_units, place, &hint) != 1)
@@ -1203,6 +1211,8 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 			}
 
 			if (first_time) {
+				flags = reiser4_item_get_flags(place);
+
 				/* Updating extent unit at @place->pos.unit. */
 				if (plug_call(place->plug->o.item_ops->object,
 					      update_units, place, &hint) != 1)
@@ -1212,9 +1222,9 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 
 				first_time = 0;
 			} else {
-				errno_t res;
 				reiser4_place_t iplace;
 				uint32_t level;
+				errno_t res;
 
 				iplace = *place;
 				iplace.pos.unit++;
@@ -3041,9 +3051,9 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	if ((res = reiser4_place_fetch(place)))
 		return res;
 
-	/* Calling @hint->place_func if any and if there was new item create. */
+	/* Calling @hint->place_func iff a new item was created. */
 	if (hint->place_func && place->pos.unit == MAX_UINT32) {
-		if ((res = hint->place_func(place, hint)))
+		if ((res = hint->place_func(place, hint->data)))
 			return res;
 	}
 

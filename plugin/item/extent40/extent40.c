@@ -192,57 +192,54 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 	
 	blksize = extent40_blksize(place);
 	extent = extent40_body(place) + pos;
+	
+	/* Initializing key before removing attached data */
+	plug_call(hint->offset.plug->o.key_ops,
+		  assign, &key, &hint->offset);
 
 	for (size = count; size > 0; ) {
+		uint32_t i;
 		uint32_t width;
-		uint32_t chunk;
 		uint32_t remove;
 
 		width = et40_get_width(extent);
 
-		/* Calculating chunk to be cut out. */
-		if ((chunk = size) > (width * blksize))
-			chunk = (width * blksize);
-
-		/* Check if we remove whole unit. */
-		if ((remove = (chunk / blksize)) < width) {
-			uint32_t i;
-
-			/* Initializing key before removing attached data */
-			plug_call(hint->offset.plug->o.key_ops,
-				  assign, &key, &hint->offset);
-		
-			/* Removing unit data from the cache */
-			for (i = 0; i < remove; i++) {
-				aal_hash_table_remove(hint->blocks, &key);
+		/* Calculating what is to be cut out. */
+		if ((remove = size / blksize) > width) {
+			remove = width;
+		} else if (remove == 0) {
+			break;
+		}
 			
-				offset = plug_call(key.plug->o.key_ops,
-						   get_offset, &key);
+		/* Removing unit data from the cache */
+		for (i = 0; i < remove; i++) {
+			aal_hash_table_remove(hint->blocks, &key);
 
-				plug_call(key.plug->o.key_ops, set_offset,
-					  &key, (offset * blksize));
-			}
+			offset = plug_call(key.plug->o.key_ops,
+					   get_offset, &key);
 
-			/* Calling region remove notification function. */
-			hint->region_func(place, et40_get_start(extent),
-					  remove, hint->data);
-				
+			plug_call(key.plug->o.key_ops, set_offset,
+				  &key, (offset + blksize));
+		}
+		/* Calling region remove notification function. */
+		hint->region_func(place, et40_get_start(extent),
+				  remove, hint->data);
+
+		hint->bytes += remove * blksize;
+		
+		/* Check if we remove whole unit. */
+		if (remove < width) {
 			/* Making extent unit shorter */
 			et40_inc_start(extent, remove);
 			et40_dec_width(extent, remove);
 			hint->bytes += remove * blksize;
 		} else {
-			/* Calling region remove notification function. */
-			hint->region_func(place, et40_get_start(extent),
-					  width, hint->data);
-			
 			/* Here we remove whole unit. So, we count width blocks
 			   to be released, etc. */
 			hint->len += sizeof(extent40_t);
-			hint->bytes += width * blksize;
 
 			/* Taking care about the rest of extent units if we're
-			   on the last unit. */
+			   bot on the last unit. */
 			if (pos < extent40_units(place) - 1) {
 				
 				uint32_t size = sizeof(extent40_t) *
@@ -252,11 +249,11 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 			}
 		}
 
-		size -= chunk;
+		size -= remove * blksize;
 	}
 
 	/* Updating key if it makes sense. */
-	if (pos == 0 && hint->len) {
+	if (pos == 0 && count) {
 		offset = plug_call(place->key.plug->o.key_ops,
 				   get_offset, &place->key);
 		
@@ -1080,10 +1077,16 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 			width = et40_get_width(extent);
 
 			if (et40_get_start(extent) == EXTENT_HOLE_UNIT) {
-				/* FIXME-UMKA: Handling holes will be here
-				   later. */
+				/* FIXME-UMKA: Handling holes will be here 
+				   later.
+				   
+				   FIXME-VITALY->UMKA: Seems that the only 
+				   possible case when we get here -- is we 
+				   are writing the hole. Is it correct?
+
 				aal_bug("umka-3110", "Holes overwriting is "
 					"not implemented yet!");
+				 */
 			} else {
 				/* Getting data block by offset key. Block
 				   should be get before modifying it. */

@@ -247,8 +247,8 @@ errno_t extent40_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {
 	hint->tail = 0;
 	hint->merge_flags = 0;
 
-	if (place->pos.unit == extent40_units(place) || 
-	    place->pos.unit == MAX_UINT32)
+	if (place->pos.unit == MAX_UINT32 ||
+	    place->pos.unit == extent40_units(place))
 	{
 		/* The whole item to be inserted. */
 		send = extent40_units(src) - 1;

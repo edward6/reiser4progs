@@ -228,7 +228,7 @@ errno_t repair_node_clear_flags(reiser4_node_t *node) {
 		if (reiser4_place_fetch(&place))
 			return -EINVAL;
 		
-		repair_item_clear_flag(&place, MAX_UINT16);
+		reiser4_item_clear_flags(&place);
 	}
 
 	return 0;

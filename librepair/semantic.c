@@ -20,14 +20,14 @@ static void repair_semantic_lost_name(reiser4_object_t *object, char *name) {
 static errno_t callback_register_item(reiser4_place_t *place, void *data) {
         aal_assert("vpf-1115", place != NULL);
          
-        if (repair_item_test_flag(place, OF_CHECKED)) {
+        if (reiser4_item_test_flag(place, OF_CHECKED)) {
                 aal_error("Node (%llu), item (%u): item registering "
 			  "failed, it belongs to another object already.",
 			  place->node->block->nr, place->pos.item);
                 return -EINVAL;
         }
          
-        repair_item_set_flag(place, OF_CHECKED);
+        reiser4_item_set_flag(place, OF_CHECKED);
          
         return 0;
 }
@@ -43,7 +43,7 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 	/* Check struct if not the BUILD mode, if the fake object or 
 	   if has not been checked yet. */
 	if (sem->repair->mode != RM_BUILD || !object_start(object)->node ||
-	    !repair_item_test_flag(object_start(object), OF_CHECKED)) 
+	    !reiser4_item_test_flag(object_start(object), OF_CHECKED)) 
 	{
 		place_func_t place_func = sem->repair->mode == RM_BUILD ?
 			callback_register_item : NULL;
@@ -201,12 +201,12 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	pstart = object_start(parent);
 	
 	/* If ATTACHING -- parent is in the loop, break it here. */
-	if (repair_item_test_flag(pstart, OF_ATTACHING)) {
+	if (reiser4_item_test_flag(pstart, OF_ATTACHING)) {
 		reiser4_object_close(parent);
 		goto error_object_detach;
 	}
 	
-	checked = repair_item_test_flag(pstart, OF_CHECKED);
+	checked = reiser4_item_test_flag(pstart, OF_CHECKED);
 	
 	if (checked) {
 		/* If parent is "lost+found" (already checked), 
@@ -326,8 +326,8 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	}
 	
 	start = object_start(object);
-	checked = repair_item_test_flag(start, OF_CHECKED);
-	attached = repair_item_test_flag(start, OF_ATTACHED);
+	checked = reiser4_item_test_flag(start, OF_CHECKED);
+	attached = reiser4_item_test_flag(start, OF_ATTACHED);
 	
 	res = repair_semantic_check_struct(sem, object);
 
@@ -386,11 +386,11 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	/* If object has been traversed already, close the object here 
 	   to avoid another traversing. */
 	if (sem->repair->mode == RM_BUILD) {
-		if (repair_item_test_flag(start, OF_TRAVERSED)) {
+		if (reiser4_item_test_flag(start, OF_TRAVERSED)) {
 			reiser4_object_close(object);
 			return NULL;
 		} else {
-			repair_item_set_flag(start, OF_TRAVERSED);
+			reiser4_item_set_flag(start, OF_TRAVERSED);
 		}
 	}
 	
@@ -474,7 +474,7 @@ static errno_t callback_tree_scan(reiser4_place_t *place, void *data) {
 		return 0;
 		
 	/* If this item was checked already, skip it. */
-	if (repair_item_test_flag(place, OF_CHECKED))
+	if (reiser4_item_test_flag(place, OF_CHECKED))
 		return 0;
 	
 	/* Try to open the object by its SD. */

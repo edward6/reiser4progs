@@ -90,6 +90,11 @@ extern errno_t node40_copy(reiser4_node_t *dst_entity, pos_t *dst_pos,
 			   reiser4_node_t *src_entity, pos_t *src_pos, 
 			   uint32_t count);
 
+extern void node40_set_flags(reiser4_node_t *entity, 
+			     uint32_t pos, uint16_t flags);
+
+extern uint16_t node40_get_flag(reiser4_node_t *entity, uint32_t pos);
+
 #define	nh(block)                         \
         ((node40_header_t *)block->data)
 
@@ -296,25 +301,5 @@ typedef struct item_header4 item_header4_t;
 #define ih_dec_offset(ih, val, pol)				\
         ih_set_offset((ih), (ih_get_offset((ih), pol) -		\
         (val)), pol)
-
-#define ih_clear_flag(ih, flag, pol)				\
-({								\
-	uint16_t flags = ih_get_flags(ih, pol);			\
-	aal_clear_bit(&flags, flag);				\
-        ih_set_flags(ih, flags, pol);				\
-})
-
-#define ih_set_flag(ih, flag, pol)				\
-({								\
-	uint16_t flags = ih_get_flags(ih, pol);			\
-	aal_set_bit(&flags, flag);				\
-        ih_set_flags(ih, flags, pol);				\
-})
-
-#define ih_test_flag(ih, flag, pol)				\
-({								\
-	uint16_t flags = ih_get_flags(ih, pol);			\
-        aal_test_bit(&flags, flag);				\
-})
 
 #endif

@@ -1594,6 +1594,22 @@ static errno_t node40_shift(reiser4_node_t *src_entity,
 
 	return 0;
 }
+
+void node40_set_flags(reiser4_node_t *entity, uint32_t pos, uint16_t flags) {
+	aal_assert("vpf-1038", entity != NULL);
+	aal_assert("vpf-1535", node40_items(entity) > pos);
+	
+	ih_set_flags(node40_ih_at(entity, pos), flags, node40_key_pol(entity));
+	node40_mkdirty(entity);
+}
+
+uint16_t node40_get_flags(reiser4_node_t *entity, uint32_t pos) {
+	aal_assert("vpf-1039", entity != NULL);
+	aal_assert("vpf-1536", node40_items(entity) > pos);
+	
+	return ih_get_flags(node40_ih_at(entity, pos), node40_key_pol(entity));
+}
+
 #endif
 
 static reiser4_node_ops_t node40_ops = {
@@ -1638,9 +1654,8 @@ static reiser4_node_ops_t node40_ops = {
 	.set_mstamp	= node40_set_mstamp,
 	.set_fstamp     = node40_set_fstamp,
 	
-	.set_flag	= node40_set_flag,
-	.clear_flag	= node40_clear_flag,
-	.test_flag	= node40_test_flag,
+	.set_flags	= node40_set_flags,
+	.get_flags	= node40_get_flags,
 
 	.set_state      = node40_set_state,
 	.get_state      = node40_get_state,

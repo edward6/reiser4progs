@@ -147,6 +147,82 @@ uint16_t reiser4_item_overhead(reiser4_plug_t *plug) {
 	return plug_call(plug->o.item_ops->object, overhead);
 }
 
+void reiser4_item_set_flag(reiser4_place_t *place, uint16_t flag) {
+	uint16_t old;
+	
+	aal_assert("vpf-1041", place != NULL);
+	aal_assert("vpf-1111", place->node != NULL);
+	aal_assert("vpf-1530", flag < sizeof(flag) * 8 - 1);
+	
+	old = plug_call(place->node->plug->o.node_ops, 
+			get_flags, place->node, place->pos.item);
+	
+	if (old & (1 << flag))
+		return;
+	
+	plug_call(place->node->plug->o.node_ops, set_flags,
+		  place->node, place->pos.item, old | (1 << flag));
+}
+
+void reiser4_item_clear_flag(reiser4_place_t *place, uint16_t flag) {
+	uint16_t old;
+	
+	aal_assert("vpf-1531", place != NULL);
+	aal_assert("vpf-1532", place->node != NULL);
+	aal_assert("vpf-1533", flag < sizeof(flag) * 8 - 1);
+	
+	old = plug_call(place->node->plug->o.node_ops, 
+			get_flags, place->node, place->pos.item);
+	
+	if (~old & (1 << flag)) 
+		return;
+	
+	plug_call(place->node->plug->o.node_ops, set_flags, 
+		  place->node, place->pos.item, old & ~(1 << flag));
+}
+
+void reiser4_item_clear_flags(reiser4_place_t *place) {
+	uint16_t old;
+	
+	aal_assert("vpf-1042", place != NULL);
+	aal_assert("vpf-1112", place->node != NULL);
+	
+	old = plug_call(place->node->plug->o.node_ops, 
+			get_flags, place->node, place->pos.item);
+	
+	if (!old) return;
+	
+	plug_call(place->node->plug->o.node_ops, set_flags, 
+		  place->node, place->pos.item, 0);
+}
+
+bool_t reiser4_item_test_flag(reiser4_place_t *place, uint16_t flag) {
+	uint16_t old;
+	
+	aal_assert("vpf-1043", place != NULL);
+	aal_assert("vpf-1113", place->node != NULL);
+	aal_assert("vpf-1534", flag < sizeof(flag) * 8 - 1);
+	
+	old = plug_call(place->node->plug->o.node_ops, 
+			get_flags, place->node, place->pos.item);
+	
+	return old & (1 << flag);
+}
+
+void reiser4_item_dup_flags(reiser4_place_t *place, uint16_t flags) {
+	aal_assert("vpf-1540", place != NULL);
+
+	plug_call(place->node->plug->o.node_ops, set_flags, 
+		  place->node, place->pos.item, flags);
+}
+
+uint16_t reiser4_item_get_flags(reiser4_place_t *place) {
+	aal_assert("vpf-1541", place != NULL);
+
+	return plug_call(place->node->plug->o.node_ops, get_flags, 
+			 place->node, place->pos.item);
+}
+
 #endif
 
 /* Return block number nodeptr item contains. */
