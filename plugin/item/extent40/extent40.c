@@ -36,7 +36,7 @@ uint64_t extent40_offset(place_t *place, uint32_t pos) {
 	for (i = 0; i < pos; i++, extent++)
 		blocks += et40_get_width(extent);
     
-	return blocks * extent40_blksize(place);
+	return (blocks * extent40_blksize(place));
 }
 
 /* Builds the key of the unit at @pos and stores it inside passed @key
@@ -704,10 +704,13 @@ static errno_t extent40_prep_write(place_t *place,
 		uint64_t ins_offset;
 		uint64_t max_offset;
 
-		/* Getting maximal real key */
+		hint->len = 0;
+		hint->merge_units = 1;
+		
+		/* Getting maximal real key. It will be needed to determine if
+		   we insert data inside extent or behinde it. */
 		extent40_maxreal_key(place, &hint->maxkey);
 
-		/* Getting insert pos */
 		ins_offset = plug_call(hint->offset.plug->o.key_ops,
 				       get_offset, &hint->offset);
 
@@ -717,8 +720,6 @@ static errno_t extent40_prep_write(place_t *place,
 		if (max_offset > 0)
 			max_offset++;
 
-		hint->len = 0;
-		
 		/* Checking if insert key lies behind the insert point item
 		   data. If so, we will perform further checks. */
 		if (ins_offset + hint->count > max_offset) {
@@ -729,10 +730,21 @@ static errno_t extent40_prep_write(place_t *place,
 			extent40_t *extent = extent40_body(place) +
 				(extent40_units(place) - 1);
 
-			/* Check if last unit is allocated already */
-			if (et40_get_start(extent) != EXTENT_UNALLOC_UNIT) {
+			/* Check if last unit is allocated already. */
+			if (et40_get_start(extent) == EXTENT_UNALLOC_UNIT) {
+				/* Unit is not allocated yet, so we need only
+				   check for holes. */
+				if (!hint->specific &&
+				    et40_get_start(extent) != EXTENT_HOLE_UNIT)
+				{
+					if (hint->count >= blksize) {
+						hint->merge_units = 0;
+						hint->len = sizeof(extent40_t);
+					}
+				}
+			} else {
 				/* Unit is allocated, so we cannot mix it with
-				   new data and thus reserve one more extent
+				   new data and thus, reserve one more extent
 				   unit for it in the case we write actual data,
 				   not a hole. */
 				if (hint->specific) {
@@ -746,22 +758,12 @@ static errno_t extent40_prep_write(place_t *place,
 					{
 						hint->merge_units = 0;
 						hint->len = sizeof(extent40_t);
-					} else {
-						hint->merge_units = 1;
 					}
 				}
-			} else {
-				/* Unit is not allocated, so we need only check
-				   for holes. */
-				if (!hint->specific && hint->count >= blksize &&
-				    et40_get_start(extent) != EXTENT_HOLE_UNIT)
-				{
-					hint->merge_units = 0;
-					hint->len = sizeof(extent40_t);
-				} else {
-					hint->merge_units = 1;
-				}
 			}
+		} else {
+			/* Here we should take care about the case when we write
+			   data to offset a hole was inserted at before. */
 		}
 	}
 
@@ -853,6 +855,7 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 				if (!(block = aal_block_load(extent40_device(place),
 							     blksize, blk)))
 				{
+					aal_error("Can't read block %llu.", blk);
 					return -EIO;
 				}
 
@@ -937,7 +940,7 @@ static int64_t extent40_write_units(place_t *place, trans_hint_t *hint) {
 			buff += size;
 			block->dirty = 1;
 		} else {
-			/* Writting hole */
+			/* Writting hole. */
 			if (size < blksize) {
 				off = (ins_offset % blksize);
 				aal_memset(block->data + off, 0, size);
