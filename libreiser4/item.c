@@ -170,25 +170,20 @@ int reiser4_item_nodeptr(reiser4_coord_t *coord) {
 }
 
 rpid_t reiser4_item_type(reiser4_coord_t *coord) {
-	if (reiser4_item_statdata(coord))
-		return STATDATA_ITEM;
-
-	if (reiser4_item_nodeptr(coord))
-		return NODEPTR_ITEM;
+	item_entity_t *item;
 	
-	if (reiser4_item_direntry(coord))
-		return DIRENTRY_ITEM;
+	aal_assert("vpf-424", coord != NULL, return 0);
 
-	if (reiser4_item_tail(coord))
-		return TAIL_ITEM;
+	item = &coord->entity;
+	aal_assert("vpf-425", item->plugin != NULL, return 0);
 	
-	if (reiser4_item_extent(coord))
-		return EXTENT_ITEM;
-
-	if (reiser4_item_permissn(coord))
-		return PERMISSN_ITEM;
-
-	return UNKNOWN_ITEM;
+	if (item->plugin->h.sign.type != ITEM_PLUGIN_TYPE)
+		return UNKNOWN_ITEM;
+		
+	return (item->plugin->h.sign.group >= 0 && 
+		item->plugin->h.sign.group < UNKNOWN_ITEM ?
+		item->plugin->h.sign.group :
+		UNKNOWN_ITEM);
 }
 
 uint32_t reiser4_item_len(reiser4_coord_t *coord) {

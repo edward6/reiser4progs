@@ -195,7 +195,7 @@ errno_t repair_filter_setup(reiser4_fs_t *fs, traverse_hint_t *hint) {
 	aal_exception_error("Failed to allocate a bitmap for format layout blocks.");
 	return -1;
     }
-    
+ 
     aal_memset(repair_filter_data(check_data)->format_layout->map, 0xff, 
 	repair_filter_data(check_data)->format_layout->size);
     
