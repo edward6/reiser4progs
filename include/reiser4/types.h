@@ -102,6 +102,8 @@ enum node_flags {
 
 typedef enum node_flags node_flags_t;
 
+#ifndef ENABLE_ALONE
+
 struct lru_link {
 
 	/* Pointers to next and prev items in lru list */
@@ -111,14 +113,18 @@ struct lru_link {
 
 typedef struct lru_link lru_link_t;
 
+#endif
+
 /* Reiser4 in-memory node structure */
 struct reiser4_node {
 	
 	/* Position in parent node */
 	rpos_t pos;
-	
+
+#ifndef ENABLE_ALONE
 	/* Lru related fields */
 	lru_link_t lru_link;
+#endif
 
 	/*
 	  List of children nodes. It is used for constructing part of on-disk
@@ -203,6 +209,8 @@ struct reiser4_file {
 
 typedef struct reiser4_file reiser4_file_t;
 
+#ifndef ENABLE_ALONE
+
 enum reiser4_owner {
 	O_SKIPPED  = 1 << 0,
 	O_FORMAT   = 1 << 1,
@@ -212,6 +220,8 @@ enum reiser4_owner {
 };
 
 typedef enum reiser4_owner reiser4_owner_t;
+
+#endif
 
 /*
   Reiser4 wrappers for all filesystem objects (journal, block allocator,
@@ -228,6 +238,8 @@ struct reiser4_format {
 };
 
 typedef struct reiser4_format reiser4_format_t;
+
+#ifndef ENABLE_ALONE
 
 /* Journal structure */
 struct reiser4_journal {
@@ -256,6 +268,8 @@ struct reiser4_alloc {
 
 typedef struct reiser4_alloc reiser4_alloc_t;
 
+#endif
+
 /* Oid allocator structure */
 struct reiser4_oid {
 	reiser4_fs_t *fs;
@@ -263,6 +277,8 @@ struct reiser4_oid {
 };
 
 typedef struct reiser4_oid reiser4_oid_t;
+
+#ifndef ENABLE_ALONE
 
 /* Tree modification trap typedefs */
 typedef bool_t (*insert_func_t) (reiser4_tree_t *,
@@ -292,6 +308,8 @@ enum tree_flags {
 
 typedef enum tree_flags tree_flags_t;
 
+#endif
+
 /* Tree structure */
 struct reiser4_tree {
 
@@ -308,15 +326,18 @@ struct reiser4_tree {
 	/* Tree root key */
 	reiser4_key_t key;
 
+#ifndef ENABLE_ALONE
 	/*
 	  The list of nodes present in tree cache sorted in recently used
 	  order. Thanks a lot to Nikita for this good idea.
 	*/
 	aal_lru_t *lru;
+#endif
 
 	/* Tree operation control flags */
 	uint32_t flags;
 
+#ifndef ENABLE_ALONE
 	/* Tree modification traps */
 	struct {
 		/* These traps will be called durring insert an item/unit */
@@ -346,7 +367,11 @@ struct reiser4_tree {
 		/* Traps used opaque data  */
 		void *data;
 	} traps;
+#endif
+	
 };
+
+#ifndef ENABLE_ALONE
 
 struct traverse_hint {
 
@@ -371,6 +396,8 @@ typedef errno_t (*traverse_edge_func_t) (reiser4_node_t *, void *);
 /* Callback function type for preparing per-item traverse data. */
 typedef errno_t (*traverse_setup_func_t) (reiser4_place_t *, void *);
 
+#endif
+
 /* Filesystem compound structure */
 struct reiser4_fs {
     
@@ -383,11 +410,13 @@ struct reiser4_fs {
 	/* Pointer to the disk-format instance */
 	reiser4_format_t *format;
 
+#ifndef ENABLE_ALONE
 	/* Pointer to the journal in use */
 	reiser4_journal_t *journal;
 
 	/* Pointer to the block allocator in use */
 	reiser4_alloc_t *alloc;
+#endif
 
 	/* Pointer to the oid allocator in use */
 	reiser4_oid_t *oid;

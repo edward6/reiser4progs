@@ -520,8 +520,8 @@ struct reiser4_item_hint {
 typedef struct reiser4_item_hint reiser4_item_hint_t;
 
 #define PLUGIN_MAX_LABEL	16
-#define PLUGIN_MAX_DESC		256
-#define PLUGIN_MAX_NAME		256
+#define PLUGIN_MAX_NAME		16
+#define PLUGIN_MAX_DESC		100
 
 typedef void (*reiser4_abort_t) (char *);
 typedef struct reiser4_core reiser4_core_t;
@@ -1295,12 +1295,18 @@ struct reiser4_core {
   Macro for calling a plugin function. It checks if function is implemented and
   then calls it. In the case it is not implemented, abort handler will be called
 */
+
+#ifndef ENABLE_ALONE
 #define plugin_call(ops, method, args...) ({                    \
         if (!ops.method && ops.h.handle.abort)                  \
                ops.h.handle.abort("Method \""#method"\" isn't " \
 				  "implemented in "#ops".");    \
         ops.method(args);				        \
 })
+#else
+#define plugin_call(ops, method, args...)                       \
+        ops.method(args)
+#endif
 
 /*
   Macro for registering a plugin in plugin factory. It accepts two pointers to

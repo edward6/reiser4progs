@@ -112,7 +112,9 @@ errno_t libreiser4_plugin_fini(plugin_handle_t *handle) {
 	return ret;
 }
 
+#ifndef ENABLE_ALONE
 extern reiser4_abort_t abort_func;
+#endif
 
 #if !defined(ENABLE_ALONE) && !defined(ENABLE_MONOLITHIC)
 
@@ -169,7 +171,10 @@ errno_t libreiser4_plugin_open(const char *name,
 		goto error_free_handle;
     
 	handle->fini = *((reiser4_plugin_fini_t *)addr);
+
+#ifndef ENABLE_ALONE
 	handle->abort = abort_func;
+#endif
 
 	return 0;
     
@@ -255,7 +260,10 @@ errno_t libreiser4_plugin_open(unsigned long *entry,
 	
 	handle->init = (reiser4_plugin_init_t)*entry;
 	handle->fini = (reiser4_plugin_fini_t)*(entry + 1);
+
+#ifndef ENABLE_ALONE
 	handle->abort = abort_func;
+#endif
 
 	return 0;
 }
@@ -395,7 +403,7 @@ errno_t libreiser4_factory_init(void) {
 }
 
 /* Finalizes plugin factory, by means of unloading the all plugins */
-void libreiser4_factory_done(void) {
+void libreiser4_factory_fini(void) {
 	aal_list_t *walk;
 	plugin_handle_t *handle;
 

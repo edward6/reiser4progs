@@ -17,6 +17,8 @@
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
 
+#ifndef ENABLE_ALONE
+
 static void libreiser4_abort(char *message);
 reiser4_abort_t abort_func = libreiser4_abort;
 
@@ -43,6 +45,8 @@ void libreiser4_set_abort(reiser4_abort_t func) {
 	else
 		abort_func = func;
 }
+
+#endif
 
 /* 
   Initializing the libreiser4 core instance. It will be passed into all plugins
@@ -258,11 +262,13 @@ static errno_t tree_unlock(
 	return reiser4_node_unlock(p->node);
 }
 
+#ifndef ENABLE_ALONE
+
 static uint32_t tree_blockspace(void *tree) {
 	aal_assert("umka-1220", tree != NULL);
 	return ((reiser4_tree_t *)tree)->fs->device->blocksize;
 }
-	
+
 static uint32_t tree_nodespace(void *tree) {
 	reiser4_node_t *root;
     
@@ -273,6 +279,8 @@ static uint32_t tree_nodespace(void *tree) {
 	return reiser4_node_maxspace(root) -
 		reiser4_node_overhead(root);
 }
+
+#endif
 
 static errno_t tree_rootkey(void *tree, key_entity_t *key) {
 	key_entity_t *rootkey = &((reiser4_tree_t *)tree)->key;
@@ -315,13 +323,15 @@ reiser4_core_t core = {
 
 		/* Callback function for removing items from the tree */
 		.remove	    = tree_remove,
+		.nodespace  = tree_nodespace,
+		.blockspace = tree_blockspace,
 #else
 		.insert	    = NULL,
 		.remove	    = NULL,
+		.nodespace  = NULL,
+		.blockspace = NULL,
 #endif
-		.rootkey    = tree_rootkey,
-		.nodespace  = tree_nodespace,
-		.blockspace = tree_blockspace
+		.rootkey    = tree_rootkey
 	}
 };
 
@@ -360,11 +370,11 @@ errno_t libreiser4_init(void) {
 	return 0;
 	
  error_free_factory:
-	libreiser4_factory_done();
+	libreiser4_factory_fini();
 	return -1;
 }
 
 /* Finalizes libreiser4 */
 void libreiser4_fini(void) {
-	libreiser4_factory_done();
+	libreiser4_factory_fini();
 }

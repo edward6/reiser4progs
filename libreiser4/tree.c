@@ -23,10 +23,6 @@ static inline errno_t callback_tree_pack(reiser4_tree_t *tree,
 	return reiser4_tree_shrink(tree, place);
 }
 
-#endif
-
-#ifndef ENABLE_ALONE
-
 static int callback_node_free(void *data) {
 	reiser4_node_t *node = (reiser4_node_t *)data;
 	
@@ -167,7 +163,8 @@ errno_t reiser4_tree_connect(
 #endif
 	
 	reiser4_node_lock(parent);
-	
+
+#ifndef ENABLE_ALONE
 	if (tree->traps.connect) {
 		reiser4_place_t place;
 			
@@ -185,7 +182,8 @@ errno_t reiser4_tree_connect(
 		
 		reiser4_node_unlock(node);
 	}
-
+#endif
+	
 	return res;
 }
 
@@ -203,6 +201,7 @@ errno_t reiser4_tree_disconnect(
 	aal_assert("umka-1858", tree != NULL);
 	aal_assert("umka-563", node != NULL);
 
+#ifndef ENABLE_ALONE
 	if (tree->traps.disconnect) {
 		errno_t res;
 		reiser4_place_t place;
@@ -233,7 +232,8 @@ errno_t reiser4_tree_disconnect(
 			return res;
 
 	}
-
+#endif
+	
 	/* Disconnecting left and right neighbours */
 	if (node->left) {
 		node->left->right = NULL;
@@ -1999,8 +1999,6 @@ errno_t reiser4_tree_remove(
 	return 0;
 }
 
-#endif
-
 errno_t reiser4_tree_dig(
 	reiser4_tree_t *tree,                /* tree for traversing it */
 	reiser4_node_t *node,		     /* node which should be traversed */
@@ -2162,3 +2160,5 @@ errno_t reiser4_tree_traverse(
 				before_func, setup_func, update_func,
 				after_func);
 }
+
+#endif
