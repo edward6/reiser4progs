@@ -394,7 +394,6 @@ errno_t node40_copy(object_entity_t *dst, pos_t *dst_pos,
 
     aal_assert("vpf-965", dst != NULL);
     aal_assert("vpf-966", src != NULL);
-    aal_assert("vpf-912", hint != NULL);
     
     aal_assert("umka-2029", node40_loaded(dst));
     aal_assert("umka-2030", node40_loaded(src));
@@ -402,7 +401,7 @@ errno_t node40_copy(object_entity_t *dst, pos_t *dst_pos,
     dst_node = (node40_t *)dst;
     src_node = (node40_t *)src;
     
-    if (hint->src_count == 0)
+    if (hint && hint->src_count == 0)
 	return 0;
     
     if (node40_item(src, src_pos, &src_item))
@@ -411,14 +410,14 @@ errno_t node40_copy(object_entity_t *dst, pos_t *dst_pos,
     if (node40_item(dst, dst_pos, &dst_item))
 	return -EINVAL;
     
-    if (hint->len_delta > 0) {
+    if (hint && hint->len_delta > 0) {
 	/* Expand the node first. */
 	if (node40_expand(dst, dst_pos, hint->len_delta, 1))
 	    return -EINVAL;
     }
     
     /* If the whole @src item is to be inserted */
-    if (dst_pos->unit == ~0ul)
+    if (!hint)
 	return node40_rep(dst, dst_pos, src, src_pos, 1);
     
     if ((res = plugin_call(src_item.plugin->o.item_ops, copy, &dst_item, 

@@ -185,7 +185,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 /* Copies item's data pointed by @src to @dst, from the key pointed by @src
  * place though the @end one. After the coping @end key points to the data
  * of the @src which has not being copied. */
-errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
+errno_t repair_tree_copy_by_place(reiser4_tree_t *tree, reiser4_place_t *dst,
     reiser4_place_t *src, copy_hint_t *hint)
 {
     reiser4_place_t old;
@@ -195,9 +195,8 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
     aal_assert("vpf-948", tree != NULL); 
     aal_assert("vpf-949", dst != NULL);
     aal_assert("vpf-950", src != NULL);
-    aal_assert("vpf-951", hint != NULL);
     
-    if (hint->src_count == 0)
+    if (hint && hint->src_count == 0)
 	return 0;
     
     if (reiser4_tree_fresh(tree)) {
@@ -207,10 +206,15 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
 
     old = *dst;
 
-    if (hint->len_delta > 0) {
-	needed = hint->len_delta + (dst->pos.unit == ~0ul ? 
+    if (!hint || hint->len_delta > 0) {
+	if (hint)
+	    needed = hint->len_delta;
+	else
+	    needed = src->item.len;
+	
+	needed += (dst->pos.unit == ~0ul ? 
 	    reiser4_node_overhead(dst->node) : 0);
-
+	    
 	if ((res = reiser4_tree_expand(tree, dst, needed, SF_DEFAULT))) {
 	    aal_exception_error("Tree expand for coping failed.");
 	    return res;
@@ -253,7 +257,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
 
 /* Insert the item into the tree overwriting an existent in the tree item 
  * if needed. Does not insert branches. */
-errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
+errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
     reiser4_key_t src_max, start_key;
     reiser4_place_t dst;
     uint32_t src_units;
@@ -279,52 +283,48 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
     while (1) {
 	lookup = reiser4_tree_lookup(tree, &start_key, LEAF_LEVEL, &dst);
 	
-	/* Check if the whole item can be inserted at once. */
-	do {
-	    /* Item was checked once already. */
-	    if (!whole)
-		break;
-	    
+	if ((res = reiser4_item_maxreal_key(src, &src_max)))
+	    return res;
+
+	if (lookup == LP_PRESENT) {
 	    /* If lookup returns PRESENT or unit position is set */
-	    if (lookup == LP_PRESENT) {
-		whole = 0;
-		break;
+	    whole = 0;
+	} else if (dst.pos.item == reiser4_node_items(dst.node)) {
+	    /* If right neighbour is overlapped with src item, move dst there. */
+	    
+	    pos_t rpos = {0, -1};
+	    reiser4_place_t rplace;
+	    reiser4_node_t *rnode;
+	    
+	    if ((rnode = reiser4_tree_nbr(tree, dst.node, D_RIGHT)) != NULL) {
+		if (reiser4_place_open(&rplace, rnode, &rpos))
+		    return -EINVAL;
+		
+		if (reiser4_key_compare(&src_max, &rplace.item.key) >= 0) {		    
+		    whole = 0;
+		    dst = rplace;
+		}
 	    }
-
-	    /* If we are on the last position, insert the whole. */
-	    /* FIXME-VITALY: Lookup does not move to the right neighbour yet
-	     * if it exists. So right neighbour should be checked here. */
-	    if (dst.pos.item == reiser4_node_items(dst.node))
-		break;
-
+	} else {
 	    if ((res = reiser4_place_realize(&dst)))
 		return res;
 	    
-	    /* It is not possible to say here if these items are mergable 
-	     * or not(e.g. tail40 may get a hole here), so just insert a 
-	     * new item. */
 	    if (dst.pos.unit == reiser4_item_units(&dst)) {
+		/* Insert another item as between the last real key in the found 
+		 * item and start_key can be a hole. Items which can be merged will 
+		 * be at semantic pass. */
 		dst.pos.item++;
 		dst.pos.unit = ~0ul;
-		break;
-	    } 
-	    
-	    if ((res = reiser4_item_maxreal_key(src, &src_max)))
-		return res;
-
-	    if (reiser4_key_compare(&src_max, &dst.item.key) >= 0)
+	    } else if (reiser4_key_compare(&src_max, &dst.item.key) >= 0) {
+		/* Items overlapped. */
 		whole = 0;
-	} while (0);
+	    }
+	}
 	
-	aal_memset(&hint, 0, sizeof(hint));
-	reiser4_key_assign(&hint.start, &start_key);
-	
-	if (whole) {
-	    hint.len_delta = src->item.len;
-	    hint.src_count = reiser4_item_units(src);
-	    hint.dst_count = 0;
-	    dst.pos.unit = src->pos.unit = ~0ul;
-	} else {
+	if (!whole) {
+	    aal_memset(&hint, 0, sizeof(hint));
+	    reiser4_key_assign(&hint.start, &start_key);
+
 	    if (dst.pos.unit == ~0ul)
 		dst.pos.unit = 0;
 	    if (src->pos.unit == ~0ul)
@@ -351,12 +351,20 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 		return res;
 	}
 	
-	if ((ret = repair_tree_copy(tree, &dst, src, &hint))) {
-	    aal_exception_error("Tree Copy failed. Source: node (%llu), "
-		"item (%u), unit (%u). Destination: node (%llu), items "
-		"(%u), unit (%u). Key interval %k - %k.", src->node->blk, 
-		src->pos.item, src->pos.unit, dst.node->blk, dst.pos.item,
-		dst.pos.unit, &hint.start, &hint.end);
+	ret = repair_tree_copy_by_place(tree, &dst, src, whole ? NULL : &hint);
+	
+	if (ret) {
+	    if (whole) {
+		aal_exception_error("Tree Copy failed: from the node (%llu), "
+		    "item (%u) to the node (%llu), item (%u). Key interval %k "
+		    "- %k.", src->node->blk, src->pos.item, dst.node->blk, 
+		    dst.pos.item,  &hint.start, &hint.end);
+	    } else {
+		aal_exception_error("Tree Copy failed: from the node (%llu), "
+		    "item (%u) to the node (%llu), item (%u).", src->node->blk, 
+		    src->pos.item, dst.node->blk, dst.pos.item);
+	    }
+	    
 	    return ret;
 	}
 	
