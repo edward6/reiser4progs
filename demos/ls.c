@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
 			char name[256];
 			reiser4_file_t *file;
 	    
-			for (i = 0; i < 90; i++) {
+			for (i = 0; i < 34; i++) {
 				aal_memset(name, 0, sizeof(name));
 				aal_snprintf(name, 256, "testdir%d", i);
 

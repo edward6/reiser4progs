@@ -635,7 +635,7 @@ static errno_t node40_print(object_entity_t *entity, aal_stream_t *stream,
 	
 	for (pos.item = 0; pos.item < node40_count(entity); pos.item++) {
 
-		if (core->item_ops.open(&item, entity, &pos)) {
+		if (node40_item_init(&item, entity, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
 					    pos.item, aal_block_number(node->block));
 			return -1;
@@ -723,6 +723,7 @@ static errno_t node40_shift_init(object_entity_t *entity,
 				 object_entity_t *target, 
 				 shift_hint_t *hint)
 {
+	int mergeable;
 	uint32_t units;
 	node40_t *src, *dst;
 	item40_header_t *cur;
@@ -843,12 +844,17 @@ static errno_t node40_shift_init(object_entity_t *entity,
 				return 0;
 
 			/* Checking if items are mergeable */
-			if (!node40_mergeable(hint->src_item, hint->dst_item))
+			if ((mergeable = node40_mergeable(hint->src_item, hint->dst_item))) {
+				if (hint->src_item->plugin->item_ops.predict(
+					    hint->src_item, hint->dst_item, hint))
+					return -1;
+			} else {
 				hint->part -= sizeof(item40_header_t);
 
-			if (hint->src_item->plugin->item_ops.predict(
-				    hint->src_item, hint->dst_item, hint))
-				return -1;
+				if (hint->src_item->plugin->item_ops.predict(
+					    hint->src_item, NULL, hint))
+					return -1;
+			}
 
 			if (hint->flags & SF_MOVIP)
 				hint->pos.item = 0;
@@ -901,15 +907,20 @@ static errno_t node40_shift_init(object_entity_t *entity,
 			/* Calling predict method from the item plugin */
 			if (!hint->src_item->plugin->item_ops.predict)
 				return 0;
-				
-			/* Checking if items are mergeable */
-			if (!hint->dst_item || !node40_mergeable(hint->src_item,
-								 hint->dst_item))
+
+			if ((mergeable = hint->dst_item != NULL &&
+			     node40_mergeable(hint->src_item, hint->dst_item)))
+			{
+				if (hint->src_item->plugin->item_ops.predict(
+					    hint->src_item, hint->dst_item, hint))
+					return -1;
+			} else {
 				hint->part -= sizeof(item40_header_t);
 
-			if (hint->src_item->plugin->item_ops.predict(
-				    hint->src_item, hint->dst_item, hint))
-				return -1;
+				if (hint->src_item->plugin->item_ops.predict(
+					    hint->src_item, NULL, hint))
+					return -1;
+			}
 
 			if (hint->flags & SF_MOVIP)
 				hint->pos.item = 0;
@@ -1032,8 +1043,7 @@ static errno_t node40_shift(object_entity_t *entity,
 				ih40_dec_offset(ih, hint->bytes);
 		}
 	} else {
-		/* Preparing space for moving item headers in destination
-		 * node */
+		/* Preparing space in dst node */
 		if (dst_items > 0) {
 			src = node40_ih_at(dst_node, dst_items - 1);
 			dst = src - headers_size;
@@ -1157,6 +1167,7 @@ static errno_t node40_shift(object_entity_t *entity,
 		
 		ih = node40_ih_at(dst_node, pos.item);
 		ih40_set_pid(ih, hint->src_item->plugin->h.sign.id);
+		aal_memcpy(&ih->key, hint->src_item->key.body, sizeof(ih->key));
 
 		if (hint->dst_item)
 			node40_item_init(hint->dst_item,

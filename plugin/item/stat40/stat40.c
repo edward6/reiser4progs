@@ -301,6 +301,24 @@ static int stat40_sdext_present(item_entity_t *item,
 
 #ifndef ENABLE_COMPACT
 
+/* Callback for counting the number of stat data extentions in use */
+static int callback_sdexts(uint8_t ext, uint16_t extmask,
+			   reiser4_body_t *extbody, void *data)
+{
+        (*(uint32_t *)data)++;
+        return 1;
+}
+
+/* This function returns stat data extention count */
+static uint32_t stat40_sdexts(item_entity_t *item) {
+        uint32_t count = 0;
+
+        if (stat40_layout(item, callback_sdexts, &count) < 0)
+                return 0;
+
+        return count;
+}
+
 static int callback_print(uint8_t ext, uint16_t extmask,
 			  reiser4_body_t *extbody, void *data)
 {
@@ -331,7 +349,7 @@ static errno_t stat40_print(item_entity_t *item, aal_stream_t *stream,
 	aal_assert("umka-1407", item != NULL, return -1);
 	aal_assert("umka-1408", stream != NULL, return -1);
     
-	aal_stream_format(stream, "count:\t\t%u\n", stat40_count(item));
+	aal_stream_format(stream, "count:\t\t%u\n", stat40_sdexts(item));
 
 	if (stat40_layout(item, callback_print, (void *)stream) < 0)
 		return -1;
