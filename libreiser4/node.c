@@ -38,16 +38,18 @@ errno_t reiser4_node_clone(reiser4_node_t *src,
 			 clone, src->entity, dst->entity);
 }
 
-reiser4_node_t *reiser4_node_create(aal_device_t *device,
-				    uint32_t size, blk_t nr,
-				    reiser4_plug_t *kplug,
-				    rid_t pid, uint8_t level)
+reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
+				    blk_t nr, rid_t pid,
+				    uint8_t level)
 {
+	uint32_t size;
 	aal_block_t *block;
+	reiser4_plug_t *kplg;
 	reiser4_node_t *node;
 	reiser4_plug_t *plug;
+	aal_device_t *device;
 
-	aal_assert("umka-1268", device != NULL);
+	aal_assert("umka-1268", tree != NULL);
     
 	/* Allocating memory for instance of node */
 	if (!(node = aal_calloc(sizeof(*node), 0)))
@@ -60,18 +62,21 @@ reiser4_node_t *reiser4_node_create(aal_device_t *device,
 		goto error_free_node;
 	}
 
+	kplg = tree->key.plug;
+	size = reiser4_tree_get_blksize(tree);
+	device = reiser4_tree_get_device(tree);
+
 	if (!(block = aal_block_alloc(device, size, nr)))
 		goto error_free_node;
 
 	/* Requesting the plugin for initialization of the entity */
 	if (!(node->entity = plug_call(plug->o.node_ops,
-				       init, block, kplug)))
+				       init, block, kplg)))
 	{
 		goto error_free_block;
 	}
 
-	reiser4_place_assign(&node->p, NULL, 0,
-			     MAX_UINT32);
+	reiser4_place_assign(&node->p, NULL, 0, MAX_UINT32);
 
 	if (reiser4_node_fresh(node, level))
 		goto error_free_entity;
@@ -137,7 +142,9 @@ errno_t reiser4_node_print(
 #endif
 
 /* Opens node on specified device and block number. */
-reiser4_node_t *reiser4_node_open(reiser4_fs_t *fs, blk_t nr) {
+reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree,
+				  blk_t nr)
+{
 	uint16_t pid;
 	uint32_t size;
 	aal_block_t *block;
@@ -146,13 +153,12 @@ reiser4_node_t *reiser4_node_open(reiser4_fs_t *fs, blk_t nr) {
 	reiser4_plug_t *plug;
 	reiser4_plug_t *kplg;
  
-        aal_assert("umka-160", fs != NULL);
-	aal_assert("vpf-1315", fs->master != NULL);
-	aal_assert("vpf-1315", fs->device != NULL);
-	
-	device = fs->device;
-	kplg = fs->tree->key.plug;
-	size = reiser4_master_get_blksize(fs->master);
+        aal_assert("umka-160", tree != NULL);
+
+	/* Getting tree characteristics neede for open node. */
+	kplg = tree->key.plug;
+	size = reiser4_tree_get_blksize(tree);
+	device = reiser4_tree_get_device(tree);
 	
         if (!(node = aal_calloc(sizeof(*node), 0)))
                 return NULL;
@@ -166,9 +172,8 @@ reiser4_node_t *reiser4_node_open(reiser4_fs_t *fs, blk_t nr) {
 	pid = *((uint16_t *)block->data);
 
 	/* Finding the node plug by its id */
-	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid))) {
+	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid)))
 		goto error_free_block;
-	}
 
 	/* Requesting the plugin for initialization of the entity */
 	if (!(node->entity = plug_call(plug->o.node_ops, init,

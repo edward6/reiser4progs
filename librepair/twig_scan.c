@@ -180,7 +180,7 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 		if (ts->progress_handler)
 			ts->progress_handler(&progress);	
 		
-		node = reiser4_node_open(ts->repair->fs, blk);
+		node = reiser4_node_open(ts->repair->fs->tree, blk);
 		
 		if (node == NULL) {
 			aal_exception_fatal("Twig scan pass failed to open "

@@ -48,7 +48,6 @@ errno_t debugfs_print_block(
 {
 	errno_t res;
 	count_t blocks;
-	uint32_t blksize;
 	reiser4_node_t *node;
 
 	if (blk >= (blocks = reiser4_format_get_len(fs->format))) {
@@ -94,9 +93,7 @@ errno_t debugfs_print_block(
 		break;
 	}
 	
-	blksize = reiser4_master_get_blksize(fs->master);
-	
-	if (!(node = reiser4_node_open(fs, blk))) {
+	if (!(node = reiser4_node_open(fs->tree, blk))) {
 		fprintf(stdout, "Block %llu is used, but it is not "
 			"a formatted one.\n", blk);
 		return 0;

@@ -109,7 +109,7 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 		
 		ds->stat.read_nodes++;
 		
-		node = repair_node_open(ds->repair->fs, blk, *ds->check_node);
+		node = repair_node_open(ds->repair->fs->tree, blk, *ds->check_node);
 		
 		if (!node) {
 			blk++;

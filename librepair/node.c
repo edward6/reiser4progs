@@ -6,22 +6,16 @@
 #include <repair/librepair.h>
 
 /* Opens the node if it has correct mkid stamp. */
-reiser4_node_t *repair_node_open(reiser4_fs_t *fs, blk_t blk, bool_t check) {
-	uint32_t blocksize;
+reiser4_node_t *repair_node_open(reiser4_tree_t *tree, blk_t blk, bool_t check) {
 	reiser4_node_t *node;
 	
-	aal_assert("vpf-708", fs != NULL);
-	aal_assert("umka-2355", fs->tree != NULL);
+	aal_assert("vpf-708", tree != NULL);
 	
-	blocksize = reiser4_master_get_blksize(fs->master);
-
-	if (!(node = reiser4_node_open(fs, blk)))
+	if (!(node = reiser4_node_open(tree, blk)))
 		return NULL;
 	
-	if (!check) return node;
-
 	/* Extra checks are needed. */
-	if (reiser4_format_get_stamp(fs->format) != 
+	if (check && reiser4_format_get_stamp(tree->fs->format) != 
 	    reiser4_node_get_mstamp(node))
 	{
 		goto error_node_free;

@@ -136,6 +136,9 @@ extern errno_t reiser4_tree_trav_node(reiser4_tree_t *tree,
 
 extern blk_t reiser4_tree_get_root(reiser4_tree_t *tree);
 extern uint8_t reiser4_tree_get_height(reiser4_tree_t *tree);
+extern uint32_t reiser4_tree_get_blksize(reiser4_tree_t *tree);
+extern aal_device_t *reiser4_tree_get_device(reiser4_tree_t *tree);
+
 extern errno_t reiser4_tree_collapse(reiser4_tree_t *tree);
 
 extern lookup_t reiser4_tree_lookup(reiser4_tree_t *tree,

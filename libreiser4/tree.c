@@ -73,6 +73,22 @@ uint8_t reiser4_tree_get_height(reiser4_tree_t *tree) {
 	return reiser4_format_get_height(tree->fs->format);
 }
 
+/* Return current fs blksize, which may be used in tree. */
+uint32_t reiser4_tree_get_blksize(reiser4_tree_t *tree) {
+	aal_assert("umka-2579", tree != NULL);
+	aal_assert("umka-2580", tree->fs != NULL);
+	aal_assert("umka-2581", tree->fs->master != NULL);
+
+	return reiser4_master_get_blksize(tree->fs->master);
+}
+
+aal_device_t *reiser4_tree_get_device(reiser4_tree_t *tree) {
+	aal_assert("umka-2582", tree != NULL);
+	aal_assert("umka-2583", tree->fs != NULL);
+
+	return tree->fs->device;
+}
+
 /* Dealing with loading root node if it is not loaded yet. */
 errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 	blk_t root_blk;
@@ -277,7 +293,7 @@ reiser4_node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 		
 		/* Node is not loaded yet. Loading it and connecting to @parent
 		   node cache. */
-		if (!(node = reiser4_node_open(tree->fs, blk)))	{
+		if (!(node = reiser4_node_open(tree, blk)))	{
 			aal_exception_error("Can't open node %llu.", blk);
 			return NULL;
 		}
@@ -294,7 +310,7 @@ reiser4_node_t *reiser4_tree_load_node(reiser4_tree_t *tree,
 	return NULL;
 }
 
-/* Unloading node from tree cache */
+/* Unloading node from tree cache. */
 errno_t reiser4_tree_unload_node(reiser4_tree_t *tree,
 				 reiser4_node_t *node)
 {
@@ -481,9 +497,8 @@ reiser4_node_t *reiser4_tree_alloc_node(
 	uint8_t level)	 	    /* level of new node */
 {
 	rid_t pid;
-	uint32_t stamp;
 	blk_t fake_blk;
-	uint32_t blksize;
+	uint32_t stamp;
 	uint64_t free_blocks;
 	reiser4_node_t *node;
     
@@ -507,14 +522,10 @@ reiser4_node_t *reiser4_tree_alloc_node(
 	fake_blk = reiser4_fake_get();
 	pid = reiser4_param_value("node");
 
-	blksize = reiser4_master_get_blksize(tree->fs->master);
 	reiser4_format_set_free(tree->fs->format, free_blocks - 1);
 
 	/* Creating new node. */
-	if (!(node = reiser4_node_create(tree->fs->device, blksize,
-					 fake_blk, tree->key.plug,
-					 pid, level)))
-	{
+	if (!(node = reiser4_node_create(tree, fake_blk, pid, level))) {
 		aal_exception_error("Can't initialize new fake node.");
 		return NULL;
 	}
@@ -764,7 +775,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 	units = plug_call(place->plug->o.item_ops,
 			  units, (place_t *)place);
 
-	blksize = reiser4_master_get_blksize(tree->fs->master);
+	blksize = reiser4_tree_get_blksize(tree);
 	
 	for (place->pos.unit = 0; place->pos.unit < units;
 	     place->pos.unit++)
@@ -2294,8 +2305,8 @@ errno_t reiser4_tree_conv_flow(reiser4_tree_t *tree,
 	aal_assert("umka-2407", hint != NULL);
 	aal_assert("umka-2481", hint->plug != NULL);
 
+	blksize = reiser4_tree_get_blksize(tree);
 	reiser4_key_assign(&trans.offset, &hint->offset);
-	blksize = reiser4_master_get_blksize(tree->fs->master);
 
 	for (size = hint->count, hint->bytes = 0;
 	     size > 0; size -= conv)
@@ -2762,22 +2773,15 @@ static reiser4_node_t *reiser4_tree_clone_node(reiser4_tree_t *src_tree,
 					       reiser4_tree_t *dst_tree)
 {
 	rid_t pid;
-	blk_t fake_blk;
-
 	uint32_t level;
-	uint32_t blksize;
-	
+	blk_t fake_blk;
 	reiser4_node_t *dst_node;
-	aal_device_t *dst_device;
 
 	fake_blk = reiser4_fake_get();
-	dst_device = dst_tree->fs->device;
 	pid = src_node->entity->plug->id.id;
-	blksize = src_tree->fs->device->blksize;
 	level = reiser4_node_get_level(src_node);
 	
-	if (!(dst_node = reiser4_node_create(dst_device, blksize,
-					     fake_blk, src_tree->key.plug,
+	if (!(dst_node = reiser4_node_create(dst_tree, fake_blk,
 					     pid, level)))
 	{
 		aal_exception_error("Can't initialize destination "

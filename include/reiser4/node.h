@@ -8,13 +8,13 @@
 
 #include <reiser4/types.h>
 
-extern reiser4_node_t *reiser4_node_open(reiser4_fs_t *fs, blk_t nr);
+extern reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree,
+					 blk_t nr);
 
 #ifndef ENABLE_STAND_ALONE
-extern reiser4_node_t *reiser4_node_create(aal_device_t *device,
-					   uint32_t size, blk_t nr,
-					   reiser4_plug_t *kplug,
-					   rid_t pid, uint8_t level);
+extern reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
+					   blk_t nr, rid_t pid,
+					   uint8_t level);
 
 extern errno_t reiser4_node_sync(reiser4_node_t *node);
 extern errno_t reiser4_node_uptr(reiser4_node_t *node);

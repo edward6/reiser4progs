@@ -203,7 +203,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	
 	if (error) goto error;
 	
-	if (!(node = repair_node_open(fd->repair->fs, ptr.start, 
+	if (!(node = repair_node_open(fd->repair->fs->tree, ptr.start, 
 				      *fd->check_node)))
 	{
 		aal_exception_error("Node (%llu): failed to open the node "
@@ -567,7 +567,7 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 		goto error;
 	
 	/* try to open the root node. */
-	if (!(tree->root = repair_node_open(fd->repair->fs, root, 0))) {
+	if (!(tree->root = repair_node_open(fd->repair->fs->tree, root, 0))) {
 		aal_exception_error("Node (%llu): failed to open the "
 				    "root node. The whole filter pass "
 				    "is skipped.", root);
