@@ -5,15 +5,6 @@
 
 #include <repair/librepair.h>
 
-errno_t repair_coord_open(reiser4_coord_t *coord, reiser4_node_t *node, 
-    reiser4_pos_t *pos)
-{
-    /* FIXME-VITALY: There will be a fix for plugin ids in a future here. */
-    
-    return reiser4_coord_open(coord, node, pos);
-}
-
-
 void repair_coord_left_pos_save(reiser4_coord_t *current, reiser4_pos_t *pos) {
     *pos = current->pos;
     
