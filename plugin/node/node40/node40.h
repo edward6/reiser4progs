@@ -213,19 +213,19 @@ typedef struct item_header4 item_header4_t;
         aal_get_le16((item_header3_t *)(ih), offset)
 
 #define ih_set_offset(ih, val, pol)                         \
-	 aal_set_le16((item_header3_t *)(ih), offset, val)
+	aal_set_le16((item_header3_t *)(ih), offset, val)
 
 #define ih_get_flags(ih, pol)                               \
-         aal_get_le16((item_header3_t *)(ih), flags)
+        aal_get_le16((item_header3_t *)(ih), flags)
 
 #define ih_set_flags(ih, val, pol)                          \
-         aal_set_le16((item_header3_t *)(ih), flags, val)
+        aal_set_le16((item_header3_t *)(ih), flags, val)
 
 #define ih_get_pid(ih, pol)                                 \
-         aal_get_le16((item_header3_t *)(ih), pid)
+        aal_get_le16((item_header3_t *)(ih), pid)
 
 #define ih_set_pid(ih, val, pol)                            \
-         aal_set_le16((item_header3_t *)(ih), pid, val)
+        aal_set_le16((item_header3_t *)(ih), pid, val)
 #else
 #define ih_size(pol)                                        \
         sizeof(item_header4_t)
@@ -237,19 +237,19 @@ typedef struct item_header4 item_header4_t;
         aal_get_le16((item_header4_t *)(ih), offset)
 
 #define ih_set_offset(ih, val, pol)                         \
-	 aal_set_le16((item_header4_t *)(ih), offset, val)
+	aal_set_le16((item_header4_t *)(ih), offset, val)
 
 #define ih_get_flags(ih, pol)                               \
-         aal_get_le16((item_header4_t *)(ih), flags)
+        aal_get_le16((item_header4_t *)(ih), flags)
 
 #define ih_set_flags(ih, val, pol)                          \
-         aal_set_le16((item_header4_t *)(ih), flags, val)
+        aal_set_le16((item_header4_t *)(ih), flags, val)
 
 #define ih_get_pid(ih, pol)                                 \
-         aal_get_le16((item_header4_t *)(ih), pid)
+        aal_get_le16((item_header4_t *)(ih), pid)
 
 #define ih_set_pid(ih, val, pol)                            \
-         aal_set_le16((item_header4_t *)(ih), pid, val)
+        aal_set_le16((item_header4_t *)(ih), pid, val)
 #endif
 #endif
 

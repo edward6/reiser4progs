@@ -70,7 +70,7 @@ errno_t cde40_get_key(place_t *place, uint32_t pos,
 /* Set the key for the entry->offset. It is needed for fixing entry 
    keys if repair code detects it is wrong. */
 errno_t cde40_set_key(place_t *place, uint32_t pos,
-			  key_entity_t *key)
+		      key_entity_t *key)
 {
 	void *hash;
 	uint32_t pol;

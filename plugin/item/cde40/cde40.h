@@ -220,7 +220,7 @@ typedef struct cde404  cde404_t;
         (sizeof(entry3_t))
 
 #define cde_get_entry(pl, pos, pol)                                    \
-	 (&((cde403_t *)pl->body)->entry[pos])
+	 ((void *)(&((cde403_t *)pl->body)->entry[pos]))
 #else
 #define ob_get_locality(ob, pol)                                       \
 	 LE64_TO_CPU(*((d64_t *)((objid4_t *)(ob))->locality))
@@ -274,7 +274,7 @@ typedef struct cde404  cde404_t;
         (sizeof(entry4_t))
 
 #define cde_get_entry(pl, pos, pol)                                    \
-	 (&((cde404_t *)pl->body)->entry[pos])
+	 ((void *)(&((cde404_t *)pl->body)->entry[pos]))
 #endif
 #endif
 
