@@ -701,14 +701,14 @@ errno_t reiser4_tree_mkspace(
 	old = *coord;
 	
 	/* Shifting data into left neighbour if it exists */
-/*	if ((left = reiser4_node_left(coord->node))) {
+	if ((left = reiser4_node_left(coord->node))) {
 	    
 		if (reiser4_tree_shift(tree, coord, left, SF_LEFT))
 			return -1;
 	
 		if ((not_enough = needed - reiser4_node_space(coord->node)) <= 0)
 			return 0;
-	}*/
+	}
 
 	/* Shifting data into right neighbour if it exists */
 	if ((right = reiser4_node_right(coord->node))) {

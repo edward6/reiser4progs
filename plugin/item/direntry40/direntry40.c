@@ -214,13 +214,14 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	hint->flags &= ~SF_MOVIP;
 	
 	while (!(hint->flags & SF_MOVIP) && cur < direntry40_units(src_item)) {
+		int check = (src_item->pos == hint->pos.item &&
+			     hint->pos.unit != ~0ul);
 
 		/*
 		  Check if we should update unit pos. we will update it if we
 		  are at insert point and unit pos is not ~0ul.
 		*/
-		if (src_item->pos == hint->pos.item && hint->pos.unit != ~0ul) {
-			
+		if (check) {
 			if (!(flags & SF_MOVIP)) {
 				if (flags & SF_LEFT) {
 					if (hint->pos.unit == 0)
@@ -230,7 +231,19 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 						break;
 				}
 			}
+		}
 
+		/*
+		  Check is we have enough free space for shifting one more unit
+		  from src item to dst item.
+		*/
+		len = direntry40_unit_len(direntry, cur);
+
+		if (space < len + sizeof(entry40_t))
+			break;
+
+		/* Updating unit pos */
+		if (check) {
 			if (flags & SF_LEFT) {
 				if (hint->pos.unit == 0) {
 					if (flags & SF_MOVIP) {
@@ -259,11 +272,6 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 				}
 			}
 		}
-
-		len = direntry40_unit_len(direntry, cur);
-
-		if (space < len + sizeof(entry40_t))
-			break;
 
 		src_units--;
 		dst_units++;
@@ -345,23 +353,22 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		aal_memcpy(dst, src, headers);
 
 		/* Copyings entry bodies */
-		src = (void *)src_direntry + en40_get_offset((entry40_t *)src);
+		src = (void *)src_direntry +
+			en40_get_offset((entry40_t *)src);
 
 		/* Calculating body length */
-		len = 0;
-		
-		for (i = 0; i < dst_units; i++)
-			len = direntry40_unit_len(dst_direntry, i);
+		len = dst_item->len - hint->part - sizeof(direntry40_t) -
+			(dst_units * sizeof(entry40_t));
 			
 		dst = (void *)dst_direntry + sizeof(direntry40_t) +
-			((dst_units + hint->units) * sizeof(entry40_t)) + len;
+			(dst_units * sizeof(entry40_t)) + headers + len;
 		
 		size = hint->part - headers;
 		aal_memcpy(dst, src, size);
 
 		/* Updating offset of dst direntry */
-		entry = direntry40_entry(dst_direntry, dst_units);
 		offset = dst - (void *)dst_direntry;
+		entry = direntry40_entry(dst_direntry, dst_units);
 			
 		for (i = 0; i < hint->units; i++, entry++) {
 			en40_set_offset(entry, offset);
@@ -381,7 +388,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 
 			/* Moving bodies of the src direntry */
 			src = (void *)src_direntry + sizeof(direntry40_t) +
-				headers + size + (hint->part - headers);
+				(src_units * sizeof(entry40_t)) + (hint->part - headers);
 
 			dst = src - hint->part;
 

@@ -1055,10 +1055,8 @@ errno_t reiser4_node_insert(
 	
 	/* Updating ldkey in parent node */
 	if (pos->item == 0 && (pos->unit == 0 || pos->unit == ~0ul)) {
-		reiser4_node_t *parent = node->parent;
-	
-		if (parent) {
-			if (reiser4_node_ukey(parent, &ppos, &hint->key))
+		if (node->parent) {
+			if (reiser4_node_ukey(node->parent, &ppos, &hint->key))
 				return -1;
 		}
 	}

@@ -13,13 +13,22 @@ static reiser4_core_t *core = NULL;
 
 /* Names of levels nodes lie on. It is used for node40_print function */
 static char *levels[6] = {
-	"LEAF", "LEAF","TWIG", "INTERNAL", "INTERNAL", "INTERNAL"
+	"LEAF",
+	"LEAF",
+	"TWIG",
+	"INTERNAL",
+	"INTERNAL",
+	"INTERNAL"
 };
 
 /* Names of item groups. Used by node40_print too */
 static char *groups[6] = {
-	"STATDATA ITEM", "NODEPTR ITEM", "DIRENTRY ITEM",
-	"TAIL ITEM", "EXTENT ITEM", "PERMISSION ITEM"
+	"STATDATA ITEM",
+	"NODEPTR ITEM",
+	"DIRENTRY ITEM",
+	"TAIL ITEM",
+	"EXTENT ITEM",
+	"PERMISSION ITEM"
 };
 
 /* Returns item header by pos */
@@ -1324,6 +1333,7 @@ static errno_t node40_shift_items(node40_t *src_node,
 	headers = sizeof(item40_header_t) * hint->items;
 
 	if (hint->flags & SF_LEFT) {
+		
 		/* Copying item headers from src node to dst */
 		src = node40_ih_at(src_node, hint->items - 1);
 		dst = node40_ih_at(dst_node, (dst_items + hint->items - 1));
@@ -1349,10 +1359,12 @@ static errno_t node40_shift_items(node40_t *src_node,
 		if (src_items > hint->items) {
 			/* Moving src item headers to right place */
 			src = node40_ih_at(src_node, src_items - 1);
+
 			dst = src + headers;
 
-			aal_memmove(dst, src, (src_items - hint->items) *
-				    sizeof(item40_header_t));
+			size = (src_items - hint->items) * sizeof(item40_header_t);
+
+			aal_memmove(dst, src, size);
 
 			/* Moving src item bodies to right place */
 			src = src_node->block->data + sizeof(node40_header_t) +
@@ -1360,8 +1372,10 @@ static errno_t node40_shift_items(node40_t *src_node,
 			
 			dst = src_node->block->data + sizeof(node40_header_t);
 
-			aal_memmove(dst, src, nh40_get_free_space_start(src_node) -
-				    hint->bytes);
+			size = nh40_get_free_space_start(src_node) -
+				hint->bytes - sizeof(node40_header_t);
+			
+			aal_memmove(dst, src, size);
 
 			/* Updating item headers in src node */
 			ih = node40_ih_at(src_node, src_items - hint->items - 1);

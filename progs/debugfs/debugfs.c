@@ -380,8 +380,6 @@ static errno_t tfrag_process_node(
 
 static errno_t tfrag_setup_node(reiser4_coord_t *coord, void *data) {
 	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
-    
-	aal_assert("vpf-508", frag_hint != NULL, return -1);
 
 	frag_hint->level--;
 	return 0;
@@ -389,8 +387,6 @@ static errno_t tfrag_setup_node(reiser4_coord_t *coord, void *data) {
 
 static errno_t tfrag_update_node(reiser4_coord_t *coord, void *data) {
 	tfrag_hint_t *frag_hint = (tfrag_hint_t *)data;
-    
-	aal_assert("vpf-509", frag_hint != NULL, return -1);
 
 	frag_hint->level++;
 	return 0;
@@ -771,6 +767,7 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs, behav_flags_t flags) {
 	frag_hint.tree = fs->tree;
 	frag_hint.gauge = gauge;
 	frag_hint.flags = flags;
+	frag_hint.level = reiser4_node_level(fs->tree->root);
 
 	aal_memset(&hint, 0, sizeof(hint));
 	
@@ -786,6 +783,9 @@ static errno_t debugfs_data_frag(reiser4_fs_t *fs, behav_flags_t flags) {
 
 	aal_gauge_free(gauge);
 
+	if (frag_hint.flags & BF_SEACH)
+		printf("Data fragmentation is: ");
+	
 	printf("%.5f\n", frag_hint.fs_total > 0 ?
 	       (double)frag_hint.fs_bad / frag_hint.fs_total : 0);
 	
@@ -851,8 +851,8 @@ static errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
-	print_flags_t print_flags = 0;
-	behav_flags_t behav_flags = 0;
+	uint32_t print_flags = 0;
+	uint32_t behav_flags = 0;
     
 	char *host_dev;
 	char *ls_filename = NULL;
@@ -897,7 +897,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVe:qfKstbojTDpSF:c:l:n:",
+	while ((c = getopt_long(argc, argv, "hVe:qfKtbojTDpSF:c:l:n:",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
