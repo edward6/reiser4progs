@@ -626,6 +626,7 @@ static reiser4_plugin_t dir40_plugin = {
 		.layout     = NULL,
 		.metadata   = NULL,
 #endif
+		.follow     = NULL,
 		.truncate   = NULL,
 		.valid	    = NULL,
 		.seek	    = NULL,

@@ -9,6 +9,7 @@
 #define SYMLINK40_H
 
 #include <aal/aal.h>
+#include <aux/aux.h>
 #include <reiser4/plugin.h>
 #include <plugin/file/file40/file40.h>
 

@@ -87,6 +87,14 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 		return -1;
 	}
 
+	/* Symlinks handling. Method "follow" should be implemented */
+	if (plugin->file_ops.follow) {
+		if (plugin->file_ops.follow(entity, &file->key)) {
+			aal_exception_error("Can't follow %s.", track);
+			goto error_free_entity;
+		}
+	}
+	
 	reiser4_key_assign(&file->dir, &file->key);
 
 	/* Looking up for @enrty in current directory */

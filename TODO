@@ -40,5 +40,3 @@ reiser4progs/COPYING.
 * copy methods in node API.
 
 * symlink support in reiser4_file_realize function.
-
-* rename reiser4_file_realize to reiser4_file_lookup

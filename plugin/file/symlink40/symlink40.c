@@ -232,6 +232,15 @@ static errno_t symlink40_layout(object_entity_t *entity,
 
 #endif
 
+static errno_t symlink40_follow(object_entity_t *entity,
+				key_entity_t *key)
+{
+	aal_assert("umka-1774", entity != NULL, return -1);
+	aal_assert("umka-1775", key != NULL, return -1);
+
+	return -1;
+}
+
 static void symlink40_close(object_entity_t *entity) {
 	symlink40_t *symlink = (symlink40_t *)entity;
 		
@@ -291,6 +300,7 @@ static reiser4_plugin_t symlink40_plugin = {
 		.offset	    = NULL,
 		.seek	    = NULL,
 		
+		.follow     = symlink40_follow,
 		.open	    = symlink40_open,
 		.confirm    = symlink40_confirm,
 		.close	    = symlink40_close,

@@ -595,6 +595,9 @@ struct reiser4_file_ops {
 	/* Makes lookup inside dir */
 	int (*lookup) (object_entity_t *, char *, key_entity_t *);
 
+	/* Finds actual file stat data (symlink) */
+	errno_t (*follow) (object_entity_t *, key_entity_t *);
+
 	/* Reads the data from file to passed buffer */
 	int32_t (*read) (object_entity_t *, void *, uint32_t);
     

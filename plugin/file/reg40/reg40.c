@@ -445,6 +445,7 @@ static reiser4_plugin_t reg40_plugin = {
 			.label = "reg40",
 			.desc = "Regular file for reiserfs 4.0, ver. " VERSION,
 		},
+		
 #ifndef ENABLE_COMPACT
 		.create	    = reg40_create,
 		.write	    = reg40_write,
@@ -460,6 +461,7 @@ static reiser4_plugin_t reg40_plugin = {
 #endif
 		.valid	    = NULL,
 		.lookup	    = NULL,
+		.follow     = NULL,
 		
 		.open	    = reg40_open,
 		.confirm    = reg40_confirm,
