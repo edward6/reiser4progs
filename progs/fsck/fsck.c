@@ -314,7 +314,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Reiser4 fs was detected on the %s.\n%s", 
 	aal_device_name(parse_data.host_device), (char *)stream.data);
 
-    if (!(repair.fs->tree = reiser4_tree_init(repair.fs))) {
+    if (!(repair.fs->tree = reiser4_tree_init(repair.fs, progs_mpressure_detect))) {
 	aal_exception_fatal("Cannot open the filesystem on (%s).", 
 	    aal_device_name(parse_data.host_device));
 	exit_code = OPER_ERROR;

@@ -294,8 +294,9 @@ enum tree_flags {
 };
 
 typedef enum tree_flags tree_flags_t;
-
 #endif
+
+typedef bool_t (*mpc_func_t) (void);
 
 /* Tree structure */
 struct reiser4_tree {
@@ -313,6 +314,9 @@ struct reiser4_tree {
 	/* Tree root key */
 	reiser4_key_t key;
 
+	/* Memory pressure check function */
+	mpc_func_t mpc_func;
+
 #ifndef ENABLE_STAND_ALONE
 	/* Tree operation control flags */
 	uint32_t flags;
@@ -329,7 +333,7 @@ struct reiser4_tree {
 		/* These traps will be called durring remove an item/unit */
 		remove_func_t pre_remove;
 		remove_func_t post_remove;
-#endif
+
 		/*
 		  These traps will be called for connect/disconnect nodes in
 		  tree. They may be used for keeping track nodes in tree.
@@ -337,7 +341,6 @@ struct reiser4_tree {
 		attach_func_t connect;
 		detach_func_t disconnect;
 
-#ifndef ENABLE_STAND_ALONE
 		/*
 		  This trap is called by any remove from the tree. It may be
 		  used for implementing an alternative tree packing in remove

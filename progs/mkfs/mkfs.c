@@ -427,7 +427,7 @@ int main(int argc, char *argv[]) {
 			goto error_free_fs;
 
 		/* Creating tree */
-		if (!(fs->tree = reiser4_tree_init(fs)))
+		if (!(fs->tree = reiser4_tree_init(fs, NULL)))
 			goto error_free_journal;
     
 		/* Creating root directory */

@@ -51,12 +51,15 @@ bool_t progs_mpressure_detect(void) {
 	       &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong,
 	       &dlong, &dlong, &dlong, &dlong, &dint, &dint, &dlong, &dlong);
 
-	diff = labs((vms - (rss << 12)) - swapped);
-	swapped = labs(vms - (rss << 12));
-
 	fclose(file);
 	
-	return diff > 4096 && swapped > 0;
+	if (swapped == 0)
+		return 0;
+	
+	diff = labs((vms - (rss << 12)) - swapped);
+	swapped = labs(vms - (rss << 12));
+	
+	return diff > 8192 && swapped > 0;
 #else
 	return 0;
 #endif

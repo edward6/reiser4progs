@@ -53,7 +53,7 @@ errno_t body40_maxposs_key(item_entity_t *item,
 		    key, &item->key);
     
 	maxkey = plugin_call(key->plugin->o.key_ops,
-			     maximal,);
+			     maximal);
     
 	offset = plugin_call(key->plugin->o.key_ops,
 			     get_offset, maxkey);

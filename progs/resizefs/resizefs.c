@@ -228,7 +228,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Initializing tree and tree's traps */
-	if (!(fs->tree = reiser4_tree_init(fs)))
+	if (!(fs->tree = reiser4_tree_init(fs, NULL)))
 		goto error_free_fs;
     
 	fs_len = progs_size2long(argv[optind]);

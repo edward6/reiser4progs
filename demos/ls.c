@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
 		goto error_free_device;
 	}
     
-	if (!(fs->tree = reiser4_tree_init(fs)))
+	if (!(fs->tree = reiser4_tree_init(fs, progs_mpressure_detect)))
 		goto error_free_fs;
     
 	if (!(fs->root = reiser4_object_open(fs, "/", TRUE))) {

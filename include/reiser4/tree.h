@@ -15,7 +15,9 @@
 #include <reiser4/types.h>
 
 extern void reiser4_tree_fini(reiser4_tree_t *tree);
-extern reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs);
+
+extern reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
+					 mpc_func_t mpc_func);
 
 extern errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 				 reiser4_node_t *node,

@@ -118,9 +118,10 @@ errno_t reiser4_tree_connect(
 	if ((res = reiser4_node_connect(parent, node)))
 		return res;
 
-	reiser4_node_lock(parent);
-	
 	node->tree = tree;
+
+#ifndef ENABLE_STAND_ALONE
+	reiser4_node_lock(parent);
 
 	if (tree->traps.connect) {
 		reiser4_place_t place;
@@ -140,6 +141,7 @@ errno_t reiser4_tree_connect(
 		
 		reiser4_node_unlock(node);
 	}
+#endif
 
 	return res;
 }
@@ -227,6 +229,15 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 	if (!parent || !(node = reiser4_node_cbp(parent, blk))) {
 		uint32_t blocksize;
 
+		if (tree->mpc_func && tree->mpc_func()) {
+			if (parent) {
+				reiser4_node_lock(parent);
+				reiser4_tree_adjust(tree);
+				reiser4_node_unlock(parent);
+			} else
+				reiser4_tree_adjust(tree);
+		}
+		
 		blocksize = reiser4_master_blksize(tree->fs->master);
 		
 		/*
@@ -407,6 +418,9 @@ reiser4_node_t *reiser4_tree_alloc(
 	if (!(free = reiser4_alloc_free(tree->fs->alloc)))
 		return NULL;
 	
+	if (tree->mpc_func && tree->mpc_func())
+		reiser4_tree_adjust(tree);
+	
 	reiser4_format_set_free(tree->fs->format, free - 1);
 	blocksize = reiser4_master_blksize(tree->fs->master);
 	
@@ -517,7 +531,9 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 }
 
 /* Opens the tree (that is, the tree cache) on specified filesystem */
-reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
+reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs,
+				  mpc_func_t mpc_func)
+{
 	reiser4_tree_t *tree;
 
 	aal_assert("umka-737", fs != NULL);
@@ -525,9 +541,10 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	/* Allocating memory for the tree instance */
 	if (!(tree = aal_calloc(sizeof(*tree), 0)))
 		return NULL;
-    
+
 	tree->fs = fs;
 	tree->fs->tree = tree;
+	tree->mpc_func = mpc_func;
 
 	/* Building the tree root key */
 	if (reiser4_tree_key(tree)) {
@@ -748,6 +765,9 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
 	
 	aal_assert("umka-2265", tree != NULL);
 
+	if (!tree->root)
+		return 0;
+	
 #ifndef ENABLE_STAND_ALONE
 	/* Preparing tree for flushing */
 	if ((res = reiser4_tree_prepare(tree, tree->root)))

@@ -932,7 +932,7 @@ errno_t direntry40_maxposs_key(item_entity_t *item,
 		    assign, key, &item->key);
 
 	maxkey = plugin_call(key->plugin->o.key_ops,
-			     maximal,);
+			     maximal);
     
     	plugin_call(key->plugin->o.key_ops, set_objectid,
 		    key, plugin_call(key->plugin->o.key_ops,

@@ -588,7 +588,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 	  idea). So, we remove whole directory starting from the last item step
 	  by step.
 	*/
-	maxkey = plugin_call(key.plugin->o.key_ops, maximal,);
+	maxkey = plugin_call(key.plugin->o.key_ops, maximal);
 	offset = plugin_call(key.plugin->o.key_ops, get_offset, maxkey);
 	objectid = plugin_call(key.plugin->o.key_ops, get_objectid, maxkey);
 	

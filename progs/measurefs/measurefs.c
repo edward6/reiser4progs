@@ -73,19 +73,6 @@ static void measurefs_init(void) {
 		progs_exception_set_stream(ex, stderr);
 }
 
-/* Handler for connecting node into tree */
-static errno_t measurefs_connect_handler(reiser4_tree_t *tree,
-					 reiser4_place_t *place,
-					 reiser4_node_t *node,
-					 void *data)
-{
-	/* If memory pressure is detected, running tree_adjust() */
-	if (progs_mpressure_detect())
-		return reiser4_tree_adjust(tree);
-	
-	return 0;
-}
-
 struct tfrag_hint {
 	reiser4_tree_t *tree;
 	aal_gauge_t *gauge;
@@ -909,11 +896,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Initializing tree and tree's traps */
-	if (!(fs->tree = reiser4_tree_init(fs)))
+	if (!(fs->tree = reiser4_tree_init(fs, progs_mpressure_detect)))
 		goto error_free_fs;
     
-	fs->tree->traps.connect = measurefs_connect_handler;
-	
 	/*
 	  Check if specified options are compatible. For instance, --show-each
 	  can be used only if --data-frag was specified.
