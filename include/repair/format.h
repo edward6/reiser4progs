@@ -7,7 +7,6 @@
 #ifndef REPAIR_FORMAT_H
 #define REPAIR_FORMAT_H
 
-#include <stdio.h>
 #include <reiser4/filesystem.h>
 
 extern errno_t repair_format_open(reiser4_fs_t *fs, uint8_t mode);
