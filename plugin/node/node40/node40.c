@@ -1361,7 +1361,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 		/* As item will be removed, we should update item pos in hint
 		   properly. */
-		if (hint->control & SF_UPDATE_POINT &&
+		if (!(hint->result & SF_MOVE_POINT) &&
 		    pos.item < hint->pos.item)
 		{
 			hint->pos.item--;
