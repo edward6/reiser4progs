@@ -728,7 +728,7 @@ errno_t reiser4_tree_mkspace(
 			if (reiser4_node_remove(old->node->parent, &old->node->pos))
 				return -1;
 		}
-		
+
 		reiser4_tree_release(tree, old->node);
 		old->node = NULL;
 	}

@@ -167,22 +167,6 @@ static errno_t node40_get_key(object_entity_t *entity, reiser4_pos_t *pos,
 	return 0;
 }
 
-/* Gets item's body at given pos */
-static void *node40_item_body(object_entity_t *entity, 
-			      reiser4_pos_t *pos)
-{
-	uint32_t items;
-	node40_t *node = (node40_t *)entity;
-    
-	aal_assert("vpf-040", node != NULL, return NULL);
-	aal_assert("umka-940", pos != NULL, return NULL);
-
-	items = nh40_get_num_items(node);
-	aal_assert("umka-814", pos->item < items, return NULL);
-    
-	return node40_ib_at(node, pos->item);
-}
-
 /*
   Retutns items overhead for this node format. Widely used in modification and 
   estimation routines.
@@ -199,6 +183,22 @@ static uint16_t node40_maxspace(object_entity_t *entity) {
 
 	return aal_block_size(node->block) - sizeof(node40_header_t) - 
 		sizeof(item40_header_t);
+}
+
+/* Gets item's body at given pos */
+static void *node40_item_body(object_entity_t *entity, 
+			      reiser4_pos_t *pos)
+{
+	uint32_t items;
+	node40_t *node = (node40_t *)entity;
+    
+	aal_assert("vpf-040", node != NULL, return NULL);
+	aal_assert("umka-940", pos != NULL, return NULL);
+
+	items = nh40_get_num_items(node);
+	aal_assert("umka-814", pos->item < items, return NULL);
+    
+	return node40_ib_at(node, pos->item);
 }
 
 static rpid_t node40_item_pid(object_entity_t *entity, 
@@ -350,7 +350,6 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 			     uint32_t len) 
 {
 	int is_cut;
-	int is_move;
 	int is_range;
     
 	item40_header_t *ih;
@@ -369,9 +368,7 @@ static errno_t node40_shrink(node40_t *node, reiser4_pos_t *pos,
 	offset = ih40_get_offset(ih);
 	ihlen = node40_item_len((object_entity_t *)node, pos);
 
-	is_move = ((offset + ihlen) < nh40_get_free_space_start(node));
-    
-	if (is_move) {
+	if ((offset + ihlen) < nh40_get_free_space_start(node)) {
 		item40_header_t *cur;
 		item40_header_t *end;
 	
@@ -1075,6 +1072,7 @@ static errno_t node40_shift_units(node40_t *src_node,
 		node40_item_init(&dst_item, (object_entity_t *)dst_node, &pos);
 	}
 
+	/* Calling item method shift */
 	if (plugin_call(return -1, src_item.plugin->item_ops, shift,
 			&src_item, &dst_item, hint))
 		return -1;

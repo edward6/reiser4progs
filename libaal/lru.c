@@ -63,13 +63,14 @@ errno_t aal_lru_attach(aal_lru_t *lru, void *data) {
 	lru->ops->set_next(data, lru->list ? lru->list->next : NULL);
 	
 	lru->list = aal_list_append(lru->list, data);
-	lru->adjust++;
 
 	if ((prev = lru->ops->get_prev(data)))
 		lru->ops->set_next(prev->data, lru->list->next);
 
 	if ((next = lru->ops->get_next(data)))
 		lru->ops->set_prev(next->data, lru->list->next);
+
+	lru->adjust++;
 
 	return 0;
 }
@@ -106,28 +107,6 @@ errno_t aal_lru_touch(aal_lru_t *lru, void *data) {
 	aal_assert("umka-1529", lru != NULL, return -1);
 	aal_assert("umka-1530", data != NULL, return -1);
 
-	prev = lru->ops->get_prev(data);
-	next = lru->ops->get_next(data);
-	
-	if (lru->list && prev) {
-		lru->ops->set_next(prev->data, next);
-
-		if (next)
-			lru->ops->set_prev(next->data, prev);
-		
-		aal_list_remove(prev, data);
-
-		lru->ops->set_prev(data, lru->list);
-		lru->ops->set_next(data, lru->list->next);
-
-		aal_list_append(lru->list, data);
-
-		if (prev && (prev = lru->ops->get_prev(data)))
-			lru->ops->set_next(prev->data, lru->list->next);
-
-		if (next && (next = lru->ops->get_next(data)))
-			lru->ops->set_prev(next->data, lru->list->next);
-	}
-
-	return 0;
+	aal_lru_detach(lru, data);
+	return aal_lru_attach(lru, data);
 }

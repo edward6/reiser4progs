@@ -273,7 +273,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	src_units = de40_get_count(src_direntry);
 	dst_units = de40_get_count(dst_direntry);
 	
-	aal_assert("umka-1604", hint->units < src_units, return -1);
+	aal_assert("umka-1604", src_units >= hint->units, return -1);
 
 	if (hint->flags & SF_LEFT) {
 		aal_exception_error("Sorry, left shifting "
@@ -339,26 +339,29 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			en40_set_offset(entry, offset);
 			offset += direntry40_unitlen(dst_direntry, i);
 		}
-			
-		/* Moving headers of src direntry */
-		src = (void *)src_direntry + sizeof(direntry40_t) +
-			(src_units * sizeof(entry40_t));
-			
-		dst = src - (hint->units * sizeof(entry40_t));
 
-		size = src_item->len - sizeof(direntry40_t) -
-			(src_units * sizeof(entry40_t));
+		if (src_units - hint->units > 0) {
 			
-		aal_memmove(dst, src, size);
+			/* Moving bodies of the src direntry */
+			src = (void *)src_direntry + sizeof(direntry40_t) +
+				(src_units * sizeof(entry40_t));
+			
+			dst = src - (hint->units * sizeof(entry40_t));
 
-		/* Updating offsets of src direntry */
-		entry = direntry40_entry(src_direntry, 0);
+			size = src_item->len - sizeof(direntry40_t) -
+				(src_units * sizeof(entry40_t));
 			
-		for (i = 0; i < src_units - hint->units; i++, entry++) {
-			uint32_t offset = hint->units * sizeof(entry40_t);
-			en40_dec_offset(entry, offset);
+			aal_memmove(dst, src, size);
+
+			/* Updating offsets of src direntry */
+			entry = direntry40_entry(src_direntry, 0);
+			
+			for (i = 0; i < src_units - hint->units; i++, entry++) {
+				uint32_t offset = hint->units * sizeof(entry40_t);
+				en40_dec_offset(entry, offset);
+			}
 		}
-
+		
 		/* Updating items key */
 		entry = direntry40_entry(dst_direntry, 0);
 

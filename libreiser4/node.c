@@ -171,8 +171,10 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 		node->children = NULL;
 	}
  
-	if (node->parent)
+	if (node->parent) {
 		reiser4_node_detach(node->parent, node);
+		node->parent = NULL;
+	}
 	
 	/* Uninitializing all fields */
 	if (node->left)
@@ -183,7 +185,6 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
     
 	node->left = NULL;
 	node->right = NULL;
-	node->parent = NULL;
 	
 	plugin_call(return -1, node->entity->plugin->node_ops,
 		    close, node->entity);
