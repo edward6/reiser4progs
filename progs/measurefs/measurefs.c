@@ -100,6 +100,8 @@ static node_t *tree_frag_open_node(reiser4_tree_t *tree,
 	return node == NULL ? INVAL_PTR : node;
 }
 
+/* Handler for region callback for an item. Its objective is to check if region
+   start is not next to current value. If so -- counting bad occurence. */
 static errno_t tree_frag_process_item(void *entity, uint64_t start,
 				      uint64_t count, void *data)
 {
@@ -107,30 +109,34 @@ static errno_t tree_frag_process_item(void *entity, uint64_t start,
 	tree_frag_hint_t *hint;
 	
 	hint = (tree_frag_hint_t *)data;
-	
+
+	/* First time? */
 	if (start == 0)
 		return 0;
 
+	/* Calculating delta with current value region end. */
 	delta = hint->curr - start;
-				
+
+	/* Check if delat is more than one. If so -- bad occurence. */
 	if (labs(delta) > 1)
 		hint->bad++;
-				
+
+	/* Counting total regions and updating current blk, whci hwill be used
+	   for calculating next delta. */
 	hint->total++;
 	hint->curr = start + count - 1;
 
 	return 0;
 }
 
-/* Traverse passed leaf @node and calculate fragmentation for it. The results
-   are stored in frag_hint structure. This function is called from the tree
+/* Traverse passed @node and calculate tree fragmentation for it. The results
+   are stored in @frag_hint structure. This function is called from the tree
    traversal routine for each internal node. See bellow for details. */
 static errno_t tree_frag_process_node(reiser4_tree_t *tree,
 				      node_t *node, void *data)
 {
 	pos_t pos;
 	tree_frag_hint_t *frag_hint;
-
 	frag_hint = (tree_frag_hint_t *)data;
 
 	if (frag_hint->gauge)
@@ -138,7 +144,7 @@ static errno_t tree_frag_process_node(reiser4_tree_t *tree,
 		
 	pos.unit = MAX_UINT32;
 
-	/* Loop though the node items */
+	/* Loop though the node items. */
 	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
 		place_t place;
 
@@ -201,7 +207,8 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 	if (frag_hint.gauge)
 		aal_gauge_start(frag_hint.gauge);
 
-	/* Calling tree traversal */
+	/* Calling tree traversal with callbacks for processing internal nodes
+	   and items in order to calculate tree fragmentation. */
 	if ((res = reiser4_tree_trav(fs->tree, tree_frag_open_node,
 				     tree_frag_process_node,
 				     tree_frag_update_node,
@@ -210,12 +217,12 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 		return res;
 	}
 
+	/* Printing results. */
 	if (frag_hint.gauge)
 		aal_gauge_free(frag_hint.gauge);
 	else
 		printf("Tree fragmentation: ");
 
-	/* Printing the result */
 	printf("%.6f\n", frag_hint.total > 0 ?
 	       (double)frag_hint.bad / frag_hint.total : 0);
 	
@@ -254,13 +261,13 @@ static errno_t stat_process_item(void *entity, uint64_t start,
 	return 0;
 }
 
-/* Processing one formatted node. */
+/* Processing one formatted node and calculate number of internal pointers,
+   extent ones, packing, etc. */
 static errno_t stat_process_node(reiser4_tree_t *tree,
 				 node_t *node, void *data)
 {
 	uint8_t level;
 	uint32_t blksize;
-	aal_device_t *device;
 	uint32_t leaves_used;
 	uint32_t formatted_used;
 	uint32_t internals_used;
@@ -273,7 +280,6 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 	if (stat_hint->gauge && stat_hint->formatted % 128 == 0)
 		aal_gauge_update(stat_hint->gauge, 0);
 
-	device = tree->fs->device;
 	formatted_used = blksize - reiser4_node_space(node);
 
 	stat_hint->formatted_used = formatted_used +
@@ -281,11 +287,12 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 
 	stat_hint->formatted_used /= (stat_hint->formatted + 1);
 
-	/* If we are on the level higher taht leaf level, we traverse extents on
-	   it. Otherwise we just update stat structure. */
+	/* If we are on the level higher than leaf level, we traverse extents on
+	   it. Otherwise we just update @stat_hint. */
 	if (level > LEAF_LEVEL) {
 		pos_t pos = {MAX_UINT32, MAX_UINT32};
-		
+
+		/* Calculating internal nodes packing in percents. */
 		internals_used = blksize - reiser4_node_space(node);
 		
 		stat_hint->internals_used = internals_used +
@@ -293,18 +300,23 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 
 		stat_hint->internals_used /= (stat_hint->internals + 1);
 
+		/* Loop though all node items and calling item->layout() method
+		   in odrer to calculate all blocks item refferences.*/
 		for (pos.item = 0; pos.item < reiser4_node_items(node);
 		     pos.item++)
 		{
 			errno_t res;
 			place_t place;
-			
+
+			/* Fetching item data. */
 			if ((res = reiser4_place_open(&place, node, &pos))) {
 				aal_exception_error("Can't open item %u in node %llu.",
 						    pos.item, node_blocknr(node));
 				return res;
 			}
-			
+
+			/* Calling layout() method with callback for counting
+			   refferenced blocks. */
 			if (!place.plug->o.item_ops->object->layout)
 				continue;
 
@@ -312,6 +324,7 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 				  &place, stat_process_item, data);
 		}
 	} else {
+		/* Calculating leaves packing. */
 		leaves_used = blksize - reiser4_node_space(node);
 
 		stat_hint->leaves_used = leaves_used +
@@ -319,7 +332,9 @@ static errno_t stat_process_node(reiser4_tree_t *tree,
 		
 		stat_hint->leaves_used /= (stat_hint->leaves + 1);
 	}
-	
+
+	/* Updating common counters like nodes traversed at all, formatted ones,
+	   etc. This will be used later. */
 	stat_hint->nodes++;
 	stat_hint->formatted++;
 	
@@ -336,18 +351,19 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	tree_stat_hint_t stat_hint;
 
 	aal_memset(&stat_hint, 0, sizeof(stat_hint));
-	
+
+	/* Creating gauge. */
 	if (!(flags & BF_QUIET)) {
 		if (!(stat_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
 							 NULL)))
 		{
-			aal_exception_fatal("Out of memory!");
 			return -ENOMEM;
 		}
 
 		aal_gauge_rename(stat_hint.gauge, "Tree statistics");
 	}
 
+	/* Traversing tree with callbacks for calculating tree statistics. */
 	if (stat_hint.gauge)
 		aal_gauge_start(stat_hint.gauge);
 	
@@ -362,7 +378,7 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 		misc_wipe_line(stdout);
 	}
 
-	/* Printing results */
+	/* Printing results. */
 	printf("Packing statistics:\n");
 	printf("Formatted packing:%*.2f\n", 10, stat_hint.formatted_used);
 	printf("Internals packing:%*.2f\n", 10, stat_hint.internals_used);
@@ -397,7 +413,7 @@ struct file_frag_hint {
 
 typedef struct file_frag_hint file_frag_hint_t;
 
-/* Callback function for processing one block belong to the fiel we are
+/* Callback function for processing one block belong to the file we are
    traversing. */
 static errno_t file_frag_process_blk(void *entity, blk_t start,
 				     count_t width, void *data)
@@ -421,7 +437,7 @@ static errno_t file_frag_process_blk(void *entity, blk_t start,
 	return 0;
 }
 
-/* Calculates the passed file fragmentation */
+/* Calculates the passed file fragmentation. */
 errno_t measurefs_file_frag(reiser4_fs_t *fs,
 			    char *filename,
 			    uint32_t gauge)
@@ -461,7 +477,7 @@ errno_t measurefs_file_frag(reiser4_fs_t *fs,
 	return res;
 }
 
-/* Processes leaf node in order to find all the stat data items which denote
+/* Processes leaf node in order to find all stat data items which are start of
    corresponding files and calculate file fragmentation for each of them. */
 static errno_t data_frag_process_node(reiser4_tree_t *tree,
 				      node_t *node, void *data)
@@ -549,7 +565,7 @@ static errno_t data_frag_update_node(reiser4_tree_t *tree,
 	return 0;
 }
 
-/* Entry point function for data fragmentation */
+/* Entry point function for data fragmentation. */
 errno_t measurefs_data_frag(reiser4_fs_t *fs,
 			    uint32_t flags)
 {
@@ -557,7 +573,8 @@ errno_t measurefs_data_frag(reiser4_fs_t *fs,
 	file_frag_hint_t frag_hint;
 
 	aal_memset(&frag_hint, 0, sizeof(frag_hint));
-	
+
+	/* Create gauge. */
 	if (!(flags & BF_QUIET)) {
 		if (!(frag_hint.gauge = aal_gauge_create(GAUGE_INDICATOR,
 							 NULL)))
