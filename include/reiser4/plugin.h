@@ -309,9 +309,9 @@ struct shift_hint {
 	  Shift control flags (left shift, move insert point, merge, etc) and
 	  shift result flags. The result flags are needed for determining for
 	  example was insert point moved to the corresponding neighbour or
-	  not. Of course we might use control flags for that, but it would be
-	  led to write a lot of useless stuff for saving control flags before
-	  shift, etc.
+	  not. Of course we might use control flags for that, but it would led
+	  us to write a lot of useless stuff for saving control flags before
+	  modifying it.
 	*/
 	uint32_t control;
 	uint32_t result;

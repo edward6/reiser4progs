@@ -28,7 +28,7 @@ uint32_t reiser4_item_units(reiser4_place_t *place) {
 		units = item->plugin->item_ops.units(item);
 
 		aal_assert("umka-1883", units > 0);
-		return units
+		return units;
 	}
 	
 	return 1;
