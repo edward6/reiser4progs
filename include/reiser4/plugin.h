@@ -8,29 +8,38 @@
 
 #include <aal/aal.h>
 
+/* Leaf and twig levels. */
 #define LEAF_LEVEL	        1
 #define TWIG_LEVEL	        (LEAF_LEVEL + 1)
 
+/* Master related stuff like magic and offset in bytes. These are sued by both
+   plugins and library itself. */
 #define REISER4_MASTER_MAGIC	("R4Sb")
 #define REISER4_MASTER_OFFSET	(65536)
 
+/* The same for fs stat block. */
 #define REISER4_STATUS_BLOCK    (21)
 #define REISER4_STATUS_MAGIC    ("ReiSeR4StATusBl")
 
+/* Root key locality and objectid. This actually is defined by oid plugin, but
+   we hardcoded them her to avoid use oid plugin in stand alone mode. Because in
+   stand alone mode we do not need from it nothing but root key component. */
 #define REISER4_ROOT_LOCALITY   (0x29)
 #define REISER4_ROOT_OBJECTID   (0x2a)
 
+/* Macros for hole and unallocated extents. Used by both plugins (extent40) and
+   library itself. */
 #define EXTENT_SPARSE_UNIT      (0)
 #define EXTENT_UNALLOC_UNIT     (1)
 
 /* Defining the types for disk structures. All types like f32_t are fake ones
-   needed to avoid gcc-2.95.x bug with typedef of aligned types. */
+   and needed to avoid gcc-2.95.x bug with size of typedefined aligned types. */
 typedef uint8_t  f8_t;  typedef f8_t  d8_t  __attribute__((aligned(1)));
 typedef uint16_t f16_t; typedef f16_t d16_t __attribute__((aligned(2)));
 typedef uint32_t f32_t; typedef f32_t d32_t __attribute__((aligned(4)));
 typedef uint64_t f64_t; typedef f64_t d64_t __attribute__((aligned(8)));
 
-/* Basic reiser4 types used in library and plugins */
+/* Basic reiser4 types used by both library and plugins. */
 typedef void body_t;
 typedef uint8_t rid_t;
 typedef uint64_t oid_t;
@@ -42,6 +51,9 @@ struct pos {
 
 typedef struct pos pos_t;
 
+#define POS_INIT(p, i, u) \
+        (p)->item = i, (p)->unit = u
+
 /* Lookup return values */
 enum lookup {
 	PRESENT                 = 1,
@@ -50,7 +62,7 @@ enum lookup {
 
 typedef int32_t lookup_t;
 
-/* Lookup mode */
+/* Lookup bias. */
 enum bias {
 	FIND_EXACT              = 1,
 	FIND_CONV               = 2
@@ -58,9 +70,7 @@ enum bias {
 
 typedef enum bias bias_t;
 
-#define POS_INIT(p, i, u) \
-        (p)->item = i, (p)->unit = u
-
+/* Known by library plugin types. */
 enum reiser4_plug_type {
 	OBJECT_PLUG_TYPE      = 0x0,
 	ITEM_PLUG_TYPE        = 0x2,
@@ -218,7 +228,7 @@ struct generic_entity {
 
 typedef struct generic_entity generic_entity_t;
 
-/* Node plugins entity */
+/* Node plugins entity. */
 struct node_entity {
 	reiser4_plug_t *plug;
 	aal_block_t *block;

@@ -1429,6 +1429,9 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
 	aal_assert("umka-1621", src_entity != NULL);
 	aal_assert("umka-1619", dst_entity != NULL);
 
+	/* Calculating how many items and how many bytes may be moved from
+	   @src_entity to @dst_entity. Calculating result is stored in @hint and
+	   will be used later. */
 	if ((res = node40_predict(src_entity, dst_entity, hint)))
 		return res;
 
@@ -1446,10 +1449,10 @@ static errno_t node40_transfuse(node_entity_t *src_entity,
 		POS_INIT(&src_pos, 0, MAX_UINT32);
 		POS_INIT(&dst_pos, dst_items, MAX_UINT32);
 	} else {
+		uint32_t pos = src_items - hint->items;
+		
 		POS_INIT(&dst_pos, 0, MAX_UINT32);
-
-		POS_INIT(&src_pos, src_items - hint->items,
-			 MAX_UINT32);
+		POS_INIT(&src_pos, pos, MAX_UINT32);
 	}
 	
 	/* Expanding dst node in order to make room for new items and update
@@ -1503,7 +1506,8 @@ static errno_t node40_shift(node_entity_t *src_entity,
 	src_node = (node40_t *)src_entity;
 	dst_node = (node40_t *)dst_entity;
 
-	/* First pass is merge border items. */
+	/* First pass is merge border items. Heer we check is we are allowed to
+	   merge items. */
 	if (hint->control & SF_ALLOW_MERGE) {
 		if ((res = node40_unite(src_entity, dst_entity, hint, 0))) {
 			aal_exception_error("Can't merge two nodes durring "
@@ -1515,13 +1519,15 @@ static errno_t node40_shift(node_entity_t *src_entity,
 		place_t src_place;
 		place_t dst_place;
 		
-		/* Check if border items are mergeable. If so, we can't move at
-		   least one item to @dst_entity, because we have to support all
+		/* merge is not allowed by @hint->control flags. Check if border
+		   items are mergeable. If so, we can't move at least one whole
+		   item to @dst_entity, because we have to support all tree
 		   invariants and namely there should not be mergeable items in
 		   the same node. */
 
 		left_shift = (hint->control & SF_LEFT_SHIFT);
 
+		/* Getting border items and checking if they are mergeable. */
 		if ((res = node40_border(src_entity, left_shift, &src_place)))
 			return res;
 
