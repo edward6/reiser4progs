@@ -88,10 +88,7 @@ reiser4_fs_t *reiser4_fs_open(
 		    "read only opened filesystem.");
 	    }
 	    
-	    trans_nr = reiser4_journal_replay(fs->journal);
-	    aal_exception_info("Replayed %d transactions.", trans_nr);
-	    
-	    if (trans_nr < 0) {
+	    if ((trans_nr = reiser4_journal_replay(fs->journal)) < 0) {
 		aal_exception_error("Can't replay journal.");
 		goto error_free_journal;
 	    }
