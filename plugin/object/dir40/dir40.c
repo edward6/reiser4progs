@@ -169,6 +169,10 @@ lookup_t dir40_next(dir40_t *dir) {
 	
 	aal_memcpy(&dir->body, &place, sizeof(place));
 	
+	/* Correcting unit pos for next body item. */
+	if (dir->body.pos.unit == MAX_UINT32)
+		dir->body.pos.unit = 0;
+
 	return PRESENT;
 }
 
