@@ -31,6 +31,8 @@ static inline void progs_gauge_header(
 	const char *name,       /* gauge name */
 	int silent)             /* gauge type */
 {
+	setlinebuf(stderr);
+    
 	if (name) {
 		fprintf(stderr, "\r%s%s", name,
 			silent ? "..." : ": ");

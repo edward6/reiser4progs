@@ -30,16 +30,32 @@
 #include <stdio.h>
 #include <aal/aal.h>
 
+static aal_gauge_type_t handlers[MAX_GAUGES];
+
+aal_gauge_handler_t aal_gauge_get_handler(uint32_t type) {
+	
+	if (type >= MAX_GAUGES)
+		return NULL;
+	
+	return handlers[type].handler;
+}
+
+void aal_gauge_set_handler(uint32_t type,
+			   aal_gauge_handler_t handler)
+{
+	handlers[type].handler = handler;
+}
+
 /* Gauge creating function */
 aal_gauge_t *aal_gauge_create(
-	aal_gauge_handler_t handler, /* gauge handler */
+	uint32_t type,               /* gauge handler */
 	const char *name,	     /* gauge name */
 	void *data)		     /* user-specific data */
 {
 	aal_gauge_t *gauge;
 	
 	aal_assert("umka-889", name != NULL);
-	aal_assert("umka-889", handler != NULL);
+	aal_assert("umka-889", type < MAX_GAUGES);
     
 	if (!(gauge = aal_calloc(sizeof(*gauge), 0)))
 		return NULL;
@@ -49,11 +65,9 @@ aal_gauge_t *aal_gauge_create(
     
 	gauge->value = 0;
 	gauge->data = data;
-	gauge->handler = handler;
+	gauge->type = type;
 	gauge->state = GAUGE_STARTED;
 
-	setlinebuf(stderr);
-    
 	return gauge;
 }
 
@@ -149,12 +163,14 @@ void aal_gauge_rename(aal_gauge_t *gauge,
 
 /* Calls gauge handler */
 void aal_gauge_touch(aal_gauge_t *gauge) {
+	aal_gauge_handler_t gauge_func;
+
 	aal_assert("umka-891", gauge != NULL);
-    
-	if (!gauge->handler)
+
+	if (!(gauge_func = handlers[gauge->type].handler))
 		return;
-    
-	gauge->handler(gauge);
+
+	gauge_func(gauge);
 }
 
 /* Frees gauge */

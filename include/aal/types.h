@@ -303,14 +303,23 @@ typedef enum aal_gauge_state aal_gauge_state_t;
 
 typedef void (*aal_gauge_handler_t)(aal_gauge_t *);
 
-struct aal_gauge {
-	aal_gauge_state_t state;
+struct aal_gauge_type {
+	uint32_t type;
 	aal_gauge_handler_t handler;
+};
 
+typedef struct aal_gauge_type aal_gauge_type_t;
+
+#define MAX_GAUGES 10
+
+struct aal_gauge {
 	void *data;
     
-	char name[256];
+	uint32_t type;
 	uint32_t value;
+	char name[256];
+
+	aal_gauge_state_t state;
 };
 
 struct aal_stream {

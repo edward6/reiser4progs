@@ -311,7 +311,7 @@ int main(int argc, char *argv[]) {
 		aal_memset(label, 0, sizeof(label));
 	}
     
-	if (!(gauge = aal_gauge_create(progs_gauge_silent_handler, "", NULL)))
+	if (!(gauge = aal_gauge_create(GAUGE_SILENT, "", NULL)))
 		goto error_free_libreiser4;
     
 	/* The loop through all devices */

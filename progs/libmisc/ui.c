@@ -292,4 +292,9 @@ static void _init(void) {
 	aal_exception_set_handler(progs_exception_handler);
 	aal_ui_set_numeric_handler(progs_numeric_handler);
 	aal_ui_set_alpha_handler(progs_alpha_handler);
+
+	/* Setting up the gauges */
+	aal_gauge_set_handler(GAUGE_PERCENTAGE, progs_gauge_percentage_handler);
+	aal_gauge_set_handler(GAUGE_INDICATOR, progs_gauge_indicator_handler);
+	aal_gauge_set_handler(GAUGE_SILENT, progs_gauge_silent_handler);
 }

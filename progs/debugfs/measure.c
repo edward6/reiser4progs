@@ -160,7 +160,7 @@ errno_t debugfs_tree_frag(reiser4_fs_t *fs) {
 	  Initializing gauge, because it is a long process and user should be
 	  informated what the stage of the process is going on in the moment.
 	*/
-	if (!(gauge = aal_gauge_create(progs_gauge_indicator_handler,
+	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR,
 				       "Tree fragmentation", NULL)))
 		return -1;
 	
@@ -323,7 +323,7 @@ errno_t debugfs_tree_stat(reiser4_fs_t *fs) {
 	traverse_hint_t hint;
 	tstat_hint_t stat_hint;
 
-	if (!(gauge = aal_gauge_create(progs_gauge_indicator_handler,
+	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR,
 				       "Tree statistics", NULL)))
 		return -1;
 	
@@ -420,7 +420,7 @@ errno_t debugfs_file_frag(reiser4_fs_t *fs,
 		return -1;
 
 	/* Create a gauge which will show the progress */
-	if (!(gauge = aal_gauge_create(progs_gauge_indicator_handler, "", NULL)))
+	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "", NULL)))
 		goto error_free_object;
 
 	/* Initializing serve structures */
@@ -578,7 +578,7 @@ errno_t debugfs_data_frag(reiser4_fs_t *fs,
 	traverse_hint_t hint;
 	ffrag_hint_t frag_hint;
 
-	if (!(gauge = aal_gauge_create(progs_gauge_indicator_handler,
+	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR,
 				       "Data fragmentation", NULL)))
 		return -1;
 	
