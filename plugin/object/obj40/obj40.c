@@ -52,6 +52,20 @@ errno_t obj40_unlock(obj40_t *obj, place_t *place) {
 	return obj->core->tree_ops.unlock(obj->tree, place);
 }
 
+/* Relocks pased places */
+void obj40_relock(obj40_t *obj, place_t *curr,
+		  place_t *next)
+{
+	aal_assert("umka-2060", obj != NULL);
+	aal_assert("umka-2061", curr != NULL);
+	
+	if (curr->node != NULL)
+		obj40_unlock(obj, curr);
+
+	if (next)
+		obj40_lock(obj, next);
+}
+
 /* Reads light weight stat data extention into passed @lw_hint */
 errno_t obj40_read_lw(item_entity_t *item,
 		      sdext_lw_hint_t *lw_hint)

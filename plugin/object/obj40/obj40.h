@@ -98,6 +98,10 @@ extern errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 #endif
 
 extern uint64_t obj40_get_size(obj40_t *obj);
+
+extern void obj40_relock(obj40_t *obj, place_t *curr,
+			 place_t *next);
+
 extern errno_t obj40_lock(obj40_t *obj, place_t *place);
 extern errno_t obj40_unlock(obj40_t *obj, place_t *place);
 

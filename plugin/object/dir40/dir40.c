@@ -30,21 +30,7 @@ static uint64_t dir40_size(object_entity_t *entity) {
 	return obj40_get_size(&dir->obj);
 }
 
-static void dir40_relock(object_entity_t *entity,
-			 place_t *curr, place_t *next)
-{
-	dir40_t *dir = (dir40_t *)entity;
-	
-	aal_assert("umka-2061", curr != NULL);
-	aal_assert("umka-2062", next != NULL);
-	aal_assert("umka-2060", entity != NULL);
-	
-	if (curr->node != NULL)
-		obj40_unlock(&dir->obj, curr);
-	
-	obj40_lock(&dir->obj, next);
-}
-
+#ifndef ENABLE_STAND_ALONE
 static errno_t dir40_telldir(object_entity_t *entity,
 			     key_entity_t *offset)
 {
@@ -58,6 +44,7 @@ static errno_t dir40_telldir(object_entity_t *entity,
 	
 	return 0;
 }
+#endif
 
 static errno_t dir40_seekdir(object_entity_t *entity,
 			     key_entity_t *offset)
@@ -73,8 +60,10 @@ static errno_t dir40_seekdir(object_entity_t *entity,
 	if (obj40_lookup(&dir->obj, offset, LEAF_LEVEL,
 			 &next) == LP_PRESENT)
 	{
-		dir40_relock(entity, &dir->body, &next);
+		obj40_relock(&dir->obj, &dir->body, &next);
+#ifndef ENABLE_STAND_ALONE
 		aal_memcpy(&dir->offset, offset, sizeof(*offset));
+#endif
 		aal_memcpy(&dir->body, &next, sizeof(dir->body));
 
 		if (dir->body.pos.unit == ~0ul)
@@ -155,11 +144,12 @@ static lookup_t dir40_next(object_entity_t *entity) {
 	if (!dir40_mergeable(&next.item, item))
 		return LP_ABSENT;
 
-	dir40_relock(entity, &dir->body, &next);
+	obj40_relock(&dir->obj, &dir->body, &next);
 
 	aal_memcpy(&dir->body, &next, sizeof(next));
 	dir->body.pos.unit = 0;
 
+#ifndef ENABLE_STAND_ALONE
 	/* Updating current position by entry offset key */
 	if (plugin_call(item->plugin->item_ops, read, item,
 			&entry, dir->body.pos.unit, 1) == 1)
@@ -167,6 +157,7 @@ static lookup_t dir40_next(object_entity_t *entity) {
 		aal_memcpy(&dir->offset, &entry.offset,
 			   sizeof(dir->offset));
 	}
+#endif
 	
 	return LP_PRESENT;
 }
@@ -206,6 +197,7 @@ static errno_t dir40_readdir(object_entity_t *entity,
 		/* Getting next direntry item */
 		if (dir->body.pos.unit >= units)
 			dir40_next(entity);
+#ifndef ENABLE_STAND_ALONE
 		else {
 			entry_hint_t current;
 			
@@ -216,6 +208,7 @@ static errno_t dir40_readdir(object_entity_t *entity,
 			aal_memcpy(&dir->offset, &current.offset,
 				   sizeof(dir->offset));
 		}
+#endif
 	
 		return 0;
 	}
@@ -261,7 +254,7 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 	if (res != LP_PRESENT)
 		return LP_ABSENT;
 
-	dir40_relock(entity, &dir->body, &next);
+	obj40_relock(&dir->obj, &dir->body, &next);
 	aal_memcpy(&dir->body, &next, sizeof(dir->body));
 	
 	if (dir->body.pos.unit == ~0ul)
@@ -286,11 +279,12 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 		return LP_FAILED;
 	}
 
-	aal_memcpy(&dir->offset, &entry->offset, sizeof(dir->offset));
+#ifndef ENABLE_STAND_ALONE
+	plugin_call(wanted.plugin->key_ops, assign, &dir->offset,
+		    &entry->offset);
+#endif
 
-#ifndef ENABLE_COLLISIONS_HANDLING
-	return LP_PRESENT;
-#else
+#ifdef ENABLE_COLLISIONS_HANDLING
 	if (aal_strncmp(entry->name, name, aal_strlen(name)) == 0) {
 		aal_memcpy(&dir->offset, &wanted, sizeof(dir->offset));
 		return LP_PRESENT;
@@ -324,6 +318,8 @@ static lookup_t dir40_lookup(object_entity_t *entity, char *name,
 	}
 				
 	return LP_ABSENT;
+#else
+	return LP_PRESENT;
 #endif
 }
 
@@ -923,12 +919,9 @@ static void dir40_close(object_entity_t *entity) {
 	
 	aal_assert("umka-750", entity != NULL);
 
-	if (dir->obj.statdata.node != NULL)
-		obj40_unlock(&dir->obj, &dir->obj.statdata);
+	obj40_relock(&dir->obj, &dir->obj.statdata, NULL);
+	obj40_relock(&dir->obj, &dir->body, NULL);
 
-	if (dir->body.node != NULL)
-		obj40_unlock(&dir->obj, &dir->body);
-	
 	aal_free(entity);
 }
 
@@ -970,7 +963,12 @@ static reiser4_plugin_t dir40_plugin = {
 		.size	      = dir40_size,
 		.seekdir      = dir40_seekdir,
 		.readdir      = dir40_readdir,
+		
+#ifndef ENABLE_STAND_ALONE
 		.telldir      = dir40_telldir
+#else
+		.telldir      = NULL
+#endif
 	}
 };
 

@@ -47,15 +47,10 @@ static lookup_t reg40_next(reg40_t *reg) {
 	if ((res = obj40_lookup(&reg->obj, &key, LEAF_LEVEL,
 				&place)) == LP_PRESENT)
 	{
-		/* Unlocking old location */
-		if (reg->body.node != NULL)
-			obj40_unlock(&reg->obj, &reg->body);
+		obj40_relock(&reg->obj, &reg->body, &place);
 
-		/* Locking new location */
 		aal_memcpy(&reg->body, &place,
 			   sizeof(reg->body));
-		
-		obj40_lock(&reg->obj, &reg->body);
 
 		if (reg->body.item.pos.unit == ~0ul)
 			reg->body.item.pos.unit = 0;
@@ -483,7 +478,6 @@ static errno_t reg40_seek(object_entity_t *entity,
 
 	return 0;
 }
-
 #endif
 
 static void reg40_close(object_entity_t *entity) {
@@ -492,11 +486,8 @@ static void reg40_close(object_entity_t *entity) {
 	aal_assert("umka-1170", entity != NULL);
 
 	/* Unlocking statdata and body */
-	if (reg->obj.statdata.node != NULL)
-		obj40_unlock(&reg->obj, &reg->obj.statdata);
-
-	if (reg->body.node != NULL)
-		obj40_unlock(&reg->obj, &reg->body);
+	obj40_relock(&reg->obj, &reg->obj.statdata, NULL);
+	obj40_relock(&reg->obj, &reg->body, NULL);
 	
 	aal_free(entity);
 }

@@ -442,10 +442,7 @@ static void sym40_close(object_entity_t *entity) {
 		
 	aal_assert("umka-1170", entity != NULL);
 
-	/* Unlocking statdata and body */
-	if (sym->obj.statdata.node != NULL)
-		obj40_unlock(&sym->obj, &sym->obj.statdata);
-	
+	obj40_relock(&sym->obj, &sym->obj.statdata, NULL);
 	aal_free(entity);
 }
 
