@@ -59,7 +59,7 @@ static void fsck_print_usage(char *name) {
 
 #define CHECK_WARNING \
 "  *************************************************************\n\
-  ** If you are using the latest reiser4progs and  it fails **\n\
+  ** If you are using the latest reiser4progs  and  it fails **\n\
   ** please  email bug reports to reiserfs-list@namesys.com, **\n\
   ** providing  as  much  information  as  possible --  your **\n\
   ** hardware,  kernel,  patches,  settings,  all  reiserfsk **\n\

@@ -34,8 +34,8 @@ typedef struct reg40 reg40_t;
 extern reiser4_plug_t reg40_plug;
 extern reiser4_core_t *reg40_core;
 
-extern int64_t reg40_put(object_entity_t *entity,
-			 void *buff, uint64_t n);
+extern int64_t reg40_put(object_entity_t *entity, void *buff, 
+			 uint64_t n, place_func_t func);
 
 extern errno_t reg40_seek(object_entity_t *entity,
 			  uint64_t offset);

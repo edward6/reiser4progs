@@ -861,7 +861,6 @@ static errno_t node40_fuse(reiser4_node_t *entity,  pos_t *left_pos,
 		return -EINVAL;
 	}
 
-
 	/* First stage. Fusing item bodies: we should call some item 
 	   method, which will take care about item overhead, etc. */
 	if ((res = node40_fetch(entity, left_pos, &left_place))) {
@@ -900,13 +899,10 @@ static errno_t node40_fuse(reiser4_node_t *entity,  pos_t *left_pos,
 	left = node40_ih_at(entity, left_pos->item);
 	right = node40_ih_at(entity, right_pos->item);
 
-	/* First stage. Check if right item is last one. If so, we will not move
-	   item headers at all. */
 	if (right_pos->item < items - 1) {
-
-		/* Eliminating @right_pos item header. */
-		aal_memmove(right, (right - ih_size(pol)),
-			    ih_size(pol));
+		/* Move all headers after right_pos to the right. */
+		delta = (items - right_pos->item - 1) * ih_size(pol);
+		aal_memmove(left - delta, right - delta, delta);
 	}
 
 	nh_dec_num_items(entity, 1);

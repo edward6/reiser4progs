@@ -516,9 +516,9 @@ errno_t reiser4_node_remove(reiser4_node_t *node, pos_t *pos,
 	if ((res = plug_call(node->plug->o.node_ops,
 			     remove, node, pos, hint)))
 	{
-		aal_error("Can't remove %llu items/units "
-			  "from node %llu.", hint->count,
-			  node_blocknr(node));
+		aal_error("Can't remove %llu %s from the node %llu.", 
+			  hint->count, pos->unit == MAX_UINT32 ? 
+			  "items" : "units", node_blocknr(node));
 		return res;
 	}
 

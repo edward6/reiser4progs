@@ -98,22 +98,6 @@ static void reg40_zero_nlink(obj40_t *obj, uint32_t *nlink) {
         *nlink = 0;
 }
 
-static int64_t reg40_create_hole(reg40_t *reg, uint64_t len) {
-	int64_t res;
-
-	if ((res = reg40_put((object_entity_t *)reg, NULL, len)) < 0) {
-		uint64_t offset = reg40_offset((object_entity_t *)reg);
-		object_info_t *info = &reg->obj.info;
-
-		aal_error("The object [%s] failed to create the hole "
-			  "at [%llu-%llu] offsets. Plugin %s.",
-			  print_inode(reg40_core, &info->object),
-			  offset, offset + len, reg->obj.plug->label);
-	}
-
-	return res;
-}
-
 /* Lookup for the end byte and find out the body plug for such a size. */
 static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 	reiser4_key_t key;
@@ -406,12 +390,13 @@ static uint64_t reg40_place_maxreal(reiser4_place_t *place) {
 }
 
 static errno_t reg40_hole_cure(object_entity_t *object, 
-			       reg40_repair_t *repair, 
+			       reg40_repair_t *repair,
+			       place_func_t func,
 			       uint8_t mode) 
 {
 	reg40_t *reg = (reg40_t *)object;
+	uint64_t offset, len;
 	object_info_t *info;
-	uint64_t offset;
 	int64_t res;
 	
 	aal_assert("vpf-1355", reg != NULL);
@@ -419,32 +404,36 @@ static errno_t reg40_hole_cure(object_entity_t *object,
 	offset = plug_call(reg->body.key.plug->o.key_ops, 
 			   get_offset, &reg->body.key);
 
-	if (reg40_offset(object) == offset)
+	if ((len = offset - reg40_offset(object)) == 0)
 		return 0;
 
 	info = &object->info;
 	
-	aal_error("The object [%s] has a break at [%llu-%llu] "
-		  "offsets. Plugin %s.%s", 
-		  print_inode(reg40_core, &info->object), 
-		  reg40_offset(object), offset, 
-		  reg->obj.plug->label,
-		  mode == RM_BUILD ? " Writing a hole there." 
-		  : "");
+	aal_error("The object [%s] has a break at [%llu-%llu] offsets. "
+		  "Plugin %s.%s", print_inode(reg40_core, &info->object),
+		  offset - len, offset, reg->obj.plug->label,
+		  mode == RM_BUILD ? " Writing a hole there." : "");
 
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 
-	if ((res = reg40_create_hole(reg, offset - reg40_offset(object))) < 0)
+	if ((res = reg40_put(object, NULL, len, func)) < 0) {
+		object_info_t *info = &reg->obj.info;
+
+		aal_error("The object [%s] failed to create the hole "
+			  "at [%llu-%llu] offsets. Plugin %s.",
+			  print_inode(reg40_core, &info->object),
+			  offset - len, offset, reg->obj.plug->label);
+
 		return res;
-	
+	}
+
 	repair->bytes += res;
 	
 	return 0;
 }
 
-errno_t reg40_check_struct(object_entity_t *object, 
-			   place_func_t place_func,
+errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 			   void *data, uint8_t mode)
 {
 	reg40_t *reg = (reg40_t *)object;
@@ -467,7 +456,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	}
 
 	/* Try to register SD as an item of this file. */
-	if (place_func && place_func(&info->start, data))
+	if (func && func(&info->start, data))
 		return -EINVAL;
 	
 	/* Fix SD's key if differs. */
@@ -517,7 +506,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		
 	aal_memset(&hint, 0, sizeof(hint));
 
-	hint.place_func = place_func;
+	hint.place_func = func;
 	
 	/* Reg40 object (its SD item) has been openned or created. */
 	while (TRUE) {
@@ -546,6 +535,9 @@ errno_t reg40_check_struct(object_entity_t *object,
 					  offset, mode != RM_CHECK ? " Removed"
 					  : "");
 
+				/* Zero the plugin as there would be no more 
+				   items; there is probably a postponed 
+				   convertion needs to be finished. */
 				reg->body.plug = NULL;
 			} else if (reg->body.pos.unit != MAX_UINT32) {
 				/* If in the middle of the item, go to the 
@@ -587,7 +579,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		/* Try to register this item. Any item has a pointer to 
 		   objectid in the key, if it is shared between 2 objects, 
 		   it should be already solved at relocation  time. */
-		if (place_func && place_func(&reg->body, data))
+		if (func && func(&reg->body, data))
 			return -EINVAL;
 
 		
@@ -598,10 +590,14 @@ errno_t reg40_check_struct(object_entity_t *object,
 		}
 		
 		/* If we found not we looking for, insert the hole. */
-		if ((res |= reg40_hole_cure(object, &repair, mode)) < 0)
+		if ((res |= reg40_hole_cure(object, &repair, func, mode)) < 0)
 			return res;
 
 	next:
+		/* The limit is reached. */
+		if (repair.maxreal == MAX_UINT64)
+			break;
+		
 		/* Find the next after the maxreal key. */
 		reg40_seek(object, repair.maxreal + 1);
 	}
