@@ -526,6 +526,7 @@ errno_t reiser4_tree_attach(
 	reiser4_coord_t coord;
 	reiser4_ptr_hint_t ptr;
 	reiser4_item_hint_t hint;
+	errno_t res;
 
 	aal_assert("umka-913", tree != NULL, return -1);
 	aal_assert("umka-916", node != NULL, return -1);
@@ -577,7 +578,7 @@ errno_t reiser4_tree_attach(
 
 	if (reiser4_tree_insert(tree, &coord, &hint)) {
 		aal_exception_error("Can't insert nodeptr item to the tree.");
-		return -1;
+		return res;
 	}
 
 	/*
@@ -782,10 +783,12 @@ errno_t reiser4_tree_insert(
 	reiser4_coord_t *coord,	    /* coord item or unit inserted at */
 	reiser4_item_hint_t *hint)  /* item hint to be inserted */
 {
-	uint32_t needed;
+	uint32_t needed;	
 	reiser4_key_t *key;
 	reiser4_coord_t old;
 	
+	errno_t res;
+
 	aal_assert("umka-779", tree != NULL, return -1);
 	aal_assert("umka-779", hint != NULL, return -1);
 	
@@ -807,7 +810,6 @@ errno_t reiser4_tree_insert(
 		if (twig_legal) {
 			coord->pos.item = 0;
 			coord->pos.unit = ~0ul;
-		
 			if (!(coord->node = reiser4_tree_allocate(tree, LEAF_LEVEL))) {
 				aal_exception_error("Can't allocate new leaf node.");
 				return -1;
@@ -840,17 +842,15 @@ errno_t reiser4_tree_insert(
 	/* Needed space is estimated space plugs item overhead */
 	needed = hint->len + (coord->pos.unit == ~0ul ? 
 			      reiser4_node_overhead(coord->node) : 0);
-
 	old = *coord;
-	
 	if (reiser4_tree_mkspace(tree, coord, needed)) {
 		aal_exception_error("Can't prepare space for insert "
 				    "one more item/unit.");
 		return -1;
 	}
     
-	if (tree->preinsert) {
-		if (!tree->preinsert(coord, hint))
+	if (tree->traps.preinsert && 
+	    (res = tree->traps.preinsert(coord, hint, tree->traps.data))
 			return -1;
 	}
 
@@ -880,10 +880,9 @@ errno_t reiser4_tree_insert(
 		}
 	}
     
-	if (tree->pstinsert) {
-		if (!tree->pstinsert(coord, hint))
-			return -1;
-	}
+	if (tree->traps.pstinsert && 
+	    (res = tree->traps.pstinsert(coord, hint, tree->traps.data)))
+		return res;	
     
 	return 0;
 }
@@ -893,20 +892,20 @@ errno_t reiser4_tree_remove(
 	reiser4_tree_t *tree,	/* tree item will be removed from */
 	reiser4_coord_t *coord)	/* coord item will be removed at */
 {
+	errno_t res;
+
 	aal_assert("umka-1018", tree != NULL, return -1);
-	aal_assert("umka-1019", coord != NULL, return -1);
-    
-	if (tree->preremove) {
-		if (!tree->preremove(coord))
-			return -1;
+	if (tree->traps.preremove) {
+		if ((res = tree->traps.preremove(coord, tree->traps.data)))
+			return res;
 	}
 	
 	if (reiser4_node_remove(coord->node, &coord->pos))
 		return -1;
 
-	if (tree->pstremove) {
-		if (!tree->pstremove(coord))
-			return -1;
+	if (tree->traps.pstremove) {
+		if ((res = tree->traps.pstremove(coord, tree->traps.data)))
+			return res;
 	}
 	
 	/*
