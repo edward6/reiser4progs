@@ -7,6 +7,7 @@
 
 #include <repair/object.h>
 
+/* Check the semantic structure of the object. Mark all items as CHECKED. */
 errno_t repair_object_check_struct(reiser4_object_t *object, 
     reiser4_plugin_t *plugin, uint8_t mode) 
 {
@@ -25,18 +26,6 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
     reiser4_key_string(&object->info.object, object->name);
 
     return 0;
-}
-
-errno_t repair_object_check_link(reiser4_object_t *object, 
-    reiser4_object_t *parent, uint8_t mode) 
-{
-    aal_assert("vpf-1044", object != NULL);
-    aal_assert("vpf-1098", object->entity != NULL);
-    aal_assert("vpf-1099", parent != NULL);    
-    aal_assert("vpf-1100", parent->entity != NULL);
-    
-    return plugin_call(object->entity->plugin->o.object_ops, check_link, 
-	&object->info, &parent->info, mode);
 }
 
 errno_t repair_object_launch(reiser4_object_t *object) {
@@ -143,56 +132,48 @@ reiser4_plugin_t *repair_object_realize(reiser4_object_t *object) {
     return libreiser4_factory_cfind(callback_object_guess, &object->info);
 }
 
-errno_t repair_object_traverse(reiser4_object_t *object) {
-    reiser4_object_t child;
+errno_t repair_object_traverse(reiser4_object_t *object, traverse_func_t func, 
+    void *data) 
+{
     entry_hint_t entry;
     errno_t res = 0;
 
     aal_assert("vpf-1090", object != NULL);
     aal_assert("vpf-1092", object->info.tree != NULL);
-    
-    repair_object_init(&child, object->info.tree, NULL, &object->info.object, 
-	NULL);
+    aal_assert("vpf-1103", func != NULL);
     
     while (reiser4_object_readdir(object, &entry)) {
-	reiser4_plugin_t *plugin;
+	reiser4_object_t *child;
 	
 	/* Some entry was read. Try to detect the object of the paticular plugin
 	 * pointed by this entry. */
 	
-	child.info.object = entry.object;
-	
-	/* Cannot detect the object plugin, rm the entry. */
-	if ((plugin = repair_object_realize(&child)) == NULL)
-	    goto child_recovery_problem;
-	
-	/* FIXME-VITALY: put mode here somehow. */
-	if ((res = repair_object_check_struct(&child, plugin, 0 /*MODE*/ )) < 0) {
-	    aal_exception_error("Check of the object pointed by %k from the "
-		"%k (%s) failed.", &entry.object, &entry.offset, entry.name);
+	if ((res = func(object, &child, &entry, data)) < 0)
 	    return res;
-	} 
 	
-	/* If unrecoverable corruptions were found, rm the entry. */
-	if (res > 0) 
-	    goto child_recovery_problem;
+	if (res > 0)
+	    continue;
 	
-	if ((res = repair_object_traverse(&child)))
+	if ((res = repair_object_traverse(child, func, data)))
 	    return res;
-
-	plugin_call(child.entity->plugin->o.object_ops, close, child.entity);
 	
-	continue;
-	
-    child_recovery_problem:
-	if ((res = reiser4_object_rem_entry(object, &entry))) {
-	    aal_exception_error("Semantic traverse failed to remove the "
-		"entry %k (%s) pointing to %k.", &entry.offset, entry.name,
-		&entry.object);
-	    return res;
-	}
+	reiser4_object_close(child); 
     }
     
     return 0;
 }
 
+/* Check '..' entry of directories. 
+ * Fix the parent pointer if needed, mark REACHABLE if the parent pointer in 
+ * the object matches the parent pointer, nlink++. */
+errno_t repair_object_check_link(reiser4_object_t *object, 
+    reiser4_object_t *parent, uint8_t mode) 
+{
+    aal_assert("vpf-1044", object != NULL);
+    aal_assert("vpf-1098", object->entity != NULL);
+    aal_assert("vpf-1099", parent != NULL);
+    aal_assert("vpf-1100", parent->entity != NULL);
+    
+    return plugin_call(object->entity->plugin->o.object_ops, check_link, 
+	object->entity, parent->entity, mode);
+}

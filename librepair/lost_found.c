@@ -7,6 +7,57 @@
 
 #include <repair/lost_found.h>
 
+static errno_t callback_object_open(reiser4_object_t *parent, 
+    reiser4_object_t **object, entry_hint_t *entry, void *data)
+{
+    reiser4_plugin_t *plugin;
+    repair_lost_found_t *lf;
+    errno_t res;
+    
+    aal_assert("vpf-1101", parent != NULL);
+    aal_assert("vpf-1102", entry != NULL);
+    aal_assert("vpf-1104", data != NULL);
+    
+    lf = (repair_lost_found_t *)data;
+    
+    if (!(*object = aal_calloc(sizeof(**object), 0)))
+	return -EINVAL;
+    
+    aal_memcpy(&(*object)->info.object, &entry->object, sizeof(entry->object));
+    (*object)->info.tree = parent->info.tree;
+    (*object)->info.parent = parent->info.object;
+    
+    /* Cannot detect the object plugin, rm the entry. */
+    if ((plugin = repair_object_realize(*object)) == NULL) {
+	reiser4_object_close(*object);
+	return -EINVAL;
+    }
+    
+    res = repair_object_check_struct(*object, plugin, lf->repair->mode);
+    
+    if (res > 0) {
+	errno_t result;
+	
+	if ((result = reiser4_object_rem_entry(parent, entry))) {
+	    aal_exception_error("Semantic traverse failed to remove the "
+		"entry %k (%s) pointing to %k.", &entry->offset, entry->name,
+		&entry->object);
+	    return result;
+	}
+    } else if (res < 0) {
+	aal_exception_error("Check of the object pointed by %k from the "
+	    "%k (%s) failed.", &entry->object, &entry->offset, entry->name);
+
+	goto error_close_object;
+    }
+    
+    return 0;
+    
+error_close_object:
+    reiser4_object_close(*object);
+    return res;
+}
+
 static errno_t repair_lost_found_object_check(reiser4_place_t *place, 
     void *data) 
 {
@@ -76,7 +127,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	
 	if (!reiser4_object_stat(&parent) && !reiser4_object_guess(&parent)) {
 	    /* Parent found by parent pointer. */
-	    if (reiser4_object_link(&parent, &object, object.name)) {
+	    if ((res = reiser4_object_link(&parent, &object, object.name))) {
 		aal_exception_error("Node %llu, item %u: failed to link the "
 		    "object pointed by %k to the object pointed by %k.",
 		    place->node->blk, place->pos.item, &place->item.key, 
@@ -85,7 +136,9 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	    }
 	    
 	    /* Check the uplink - '..' in directories. */
-	    if (repair_object_check_link(&object, &parent, lf->repair->mode)) {
+	    if ((res = repair_object_check_link(&object, &parent, 
+		lf->repair->mode))) 
+	    {
 		aal_exception_error("Node %llu, item %u: failed to check the "
 		    "link of the object pointed by %k to the object pointed "
 		    "by %k.", place->node->blk, place->pos.item,
@@ -100,7 +153,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 		parent.entity);
 	} else {
 	    /* No parent found by parent pointer. */
-	    if (reiser4_object_link(lf->lost, &object, object.name)) {
+	    if ((res = reiser4_object_link(lf->lost, &object, object.name))) {
 		aal_exception_error("Node %llu, item %u: failed to link the "
 		    "object pointed by %k to the object pointed by %k.",
 		    place->node->blk, place->pos.item, &place->item.key, 
@@ -108,7 +161,9 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 		goto error_close_object;
 	    }
 
-	    if (repair_object_check_link(&object, lf->lost, lf->repair->mode)) {
+	    if ((res = repair_object_check_link(&object, lf->lost, 
+		lf->repair->mode))) 
+	    {
 		aal_exception_error("Node %llu, item %u: failed to check the "
 		    "link of the object pointed by %k to the object pointed "
 		    "by %k.", place->node->blk, place->pos.item,
@@ -118,7 +173,7 @@ static errno_t repair_lost_found_object_check(reiser4_place_t *place,
 	}
     }
     
-    if ((res = repair_object_traverse(&object)))
+    if ((res = repair_object_traverse(&object, callback_object_open, lf)))
 	goto error_close_object;
     
     /* The whole reachable subtree must be recovered for now and marked as 
