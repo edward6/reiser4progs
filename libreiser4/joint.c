@@ -202,24 +202,14 @@ errno_t reiser4_joint_realize(
     
 	/* Rasing the right neighbour */
 	if (!joint->left) {
-		if (!reiser4_joint_neighbour_key(joint, D_LEFT, &key)) {
-			if (reiser4_tree_lookup(joint->tree, &key, level, NULL) != 1) {
-				aal_exception_error("Can't find left neighbour key when "
-						    "raising left neigbour.");
-				return -1;
-			}
-		}
+		if (reiser4_joint_neighbour_key(joint, D_LEFT, &key) == 0)
+			reiser4_tree_lookup(joint->tree, &key, level, NULL);
 	}
 
 	/* Raising the right neighbour */
 	if (!joint->right) {
-		if (!reiser4_joint_neighbour_key(joint, D_RIGHT, &key)) {
-			if (reiser4_tree_lookup(joint->tree, &key, level, NULL) != 1) {
-				aal_exception_error("Can't find right neighbour key when "
-						    "raising right neigbour.");
-				return -1;
-			}
-		}
+		if (reiser4_joint_neighbour_key(joint, D_RIGHT, &key) == 0)
+			reiser4_tree_lookup(joint->tree, &key, level, NULL);
 	}
     
 	return 0;

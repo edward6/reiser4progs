@@ -114,42 +114,36 @@ static errno_t dir40_realize(dir40_t *dir) {
 	return 0;
 }
 
-static errno_t dir40_next(object_entity_t *entity) {
-	item_entity_t next_item;
-    
+static int dir40_next(object_entity_t *entity) {
 	roid_t curr_locality;
 	roid_t next_locality;
 
+	reiser4_place_t right;
 	dir40_t *dir = (dir40_t *)entity;
-	reiser4_place_t *place = &dir->body;
-	reiser4_place_t save_place = dir->body;
 
 	/* Getting the right neighbour */
-	if (core->tree_ops.right(dir->tree, place))
-		goto error_set_context;
-    
-	if (place->entity.plugin->h.sign.id != dir->body.entity.plugin->h.sign.id)
-		goto error_set_context;
-	
-	/* 
-	   Getting locality of both keys in order to determine is they are 
-	   mergeable.
-	*/
-	curr_locality = plugin_call(goto error_set_context,
-				    dir->key.plugin->key_ops,
-				    get_locality, dir->key.body);
-	
-	next_locality = plugin_call(goto error_set_context, 
-				    dir->key.plugin->key_ops,
-				    get_locality, next_item.key.body);
-	
-	/* Checking if items mergeable */
-	if (curr_locality == next_locality)
+	if (core->tree_ops.right(dir->tree, &dir->body, &right))
+		return -1;
+
+	/* Checking if they have the same plugin id */
+	if (right.entity.plugin->h.sign.id != dir->body.entity.plugin->h.sign.id)
 		return 0;
 
- error_set_context:
-	*place = save_place;
-	return -1;
+	/* Getting locality of the current and right nodes in order yot
+	 * determine are they mergable or not */
+	curr_locality = plugin_call(return -1, dir->key.plugin->key_ops,
+				    get_locality, dir->body.entity.key.body);
+	
+	next_locality = plugin_call(return -1, dir->key.plugin->key_ops,
+				    get_locality, right.entity.key.body);
+	
+	/* Checking if items are mergeable */
+	if (curr_locality == next_locality) {
+		dir->body = right;
+		return 1;
+	}
+	
+	return 0;
 }
 
 /* Reads n entries to passed buffer buff */
@@ -174,7 +168,7 @@ static int32_t dir40_read(object_entity_t *entity,
     
 	for (i = 0; i < n; i++) {
 		/* Check if we should get next item in right neighbour */
-		if (dir->body.pos.unit >= count && dir40_next(entity))
+		if (dir->body.pos.unit >= count && !dir40_next(entity))
 			break;
 
 		item = &dir->body.entity;
@@ -235,7 +229,7 @@ static int dir40_lookup(object_entity_t *entity,
 			return 1;
 		}
 	
-		if (dir40_next(entity))
+		if (!dir40_next(entity))
 			return 0;
 	}
     
@@ -284,12 +278,12 @@ static object_entity_t *dir40_open(const void *tree,
 
 #ifndef ENABLE_COMPACT
 
-static object_entity_t *dir40_create(const void *tree, 
-				      reiser4_key_t *parent, reiser4_key_t *object, 
-				      reiser4_file_hint_t *hint) 
+static object_entity_t *dir40_create(const void *tree, reiser4_key_t *parent,
+				     reiser4_key_t *object, reiser4_file_hint_t *hint) 
 {
 	dir40_t *dir;
     
+	rpid_t body_pid;
 	reiser4_statdata_hint_t stat;
 	reiser4_direntry_hint_t body;
 	reiser4_item_hint_t stat_hint;
@@ -345,22 +339,20 @@ static object_entity_t *dir40_create(const void *tree,
 		goto error_free_dir;
 	}
    
-	{
-		rpid_t body_pid = hint->body.dir.direntry_pid;
+	body_pid = hint->body.dir.direntry_pid;
 
-		if (!(body_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
-							    body_pid)))
-		{
-			aal_exception_error("Can't find direntry item plugin by its id 0x%x.", 
-					    body_pid);
-			goto error_free_dir;
-		}
+	if (!(body_plugin = core->factory_ops.ifind(ITEM_PLUGIN_TYPE, 
+						    body_pid)))
+	{
+		aal_exception_error("Can't find direntry item plugin by its id 0x%x.", 
+				    body_pid);
+		goto error_free_dir;
 	}
     
 	/* 
-	   Initializing direntry item hint. This should be done earlier than 
-	   initializing of the stat data item hint, because we will need size 
-	   of direntry item durring stat data initialization.
+	   Initializing direntry item hint. This should be done earlier than
+	   initializing of the stat data item hint, because we will need size of
+	   direntry item durring stat data initialization.
 	*/
 	aal_memset(&body_hint, 0, sizeof(body_hint));
 
@@ -545,7 +537,7 @@ static errno_t dir40_layout(object_entity_t *entity, file_layout_func_t func,
 		if ((res = func(entity, &dir->body, data)))
 			return res;
 		
-		if (dir40_next(entity))
+		if (!dir40_next(entity))
 			break;
 			
 	} while (1);

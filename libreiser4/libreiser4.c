@@ -78,13 +78,16 @@ static int tree_lookup(
 /* Handler for requests for right neighbor */
 static errno_t tree_right(
 	const void *tree,	    /* opaque pointer to the tree */
-	reiser4_place_t *place)	    /* coord of node right neighbor will be obtained for */
+	reiser4_place_t *place,     /* coord of node */
+	reiser4_place_t *right)	    /* right neighbour will be here */
 {
 	reiser4_joint_t *joint;
 	reiser4_coord_t *coord;
+	reiser4_pos_t pos = {0, 0};
     
 	aal_assert("umka-867", tree != NULL, return -1);
 	aal_assert("umka-868", place != NULL, return -1);
+	aal_assert("umka-1491", right != NULL, return -1);
 
 	coord = (reiser4_coord_t *)place;
 		
@@ -99,19 +102,23 @@ static errno_t tree_right(
 	if (reiser4_joint_realize(joint) || !joint->right)
 		return -1;
 
-	return reiser4_coord_open((reiser4_coord_t *)place, joint->right, CT_JOINT, &coord->pos);
+	return reiser4_coord_open((reiser4_coord_t *)right, joint->right,
+				  CT_JOINT, &pos);
 }
 
 /* Handler for requests for left neighbor */
 static errno_t tree_left(
 	const void *tree,	    /* opaque pointer to the tree */
-	reiser4_place_t *place)	    /* coord of node left neighbor will be obtained for */
+	reiser4_place_t *place,	    /* coord of node */
+	reiser4_place_t *left)	    /* left neighbour will be here */
 {
+	reiser4_pos_t pos;
 	reiser4_joint_t *joint;
 	reiser4_coord_t *coord;
 	
 	aal_assert("umka-867", tree != NULL, return -1);
 	aal_assert("umka-868", place != NULL, return -1);
+	aal_assert("umka-1492", left != NULL, return -1);
 
 	coord = (reiser4_coord_t *)place;
 	
@@ -126,7 +133,11 @@ static errno_t tree_left(
 	if (reiser4_joint_realize(joint) || !joint->left)
 		return -1;
 
-	return reiser4_coord_open((reiser4_coord_t *)place, joint->left, CT_JOINT, &coord->pos);
+	pos.unit = 0;
+	pos.item = reiser4_node_count(joint->left->node) - 1;
+	
+	return reiser4_coord_open((reiser4_coord_t *)left, joint->left,
+				  CT_JOINT, &pos);
 }
 
 static uint32_t tree_blockspace(const void *tree) {

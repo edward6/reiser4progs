@@ -1068,8 +1068,8 @@ struct reiser4_core {
 		errno_t (*remove)(const void *, reiser4_key_t *, uint8_t);
 	
 		/* Returns right and left neighbour respectively */
-		errno_t (*right) (const void *, reiser4_place_t *);
-		errno_t (*left) (const void *, reiser4_place_t *);
+		errno_t (*right) (const void *, reiser4_place_t *, reiser4_place_t *);
+		errno_t (*left) (const void *, reiser4_place_t *, reiser4_place_t *);
 	} tree_ops;
 };
 

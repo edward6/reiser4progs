@@ -334,9 +334,9 @@ int reiser4_tree_lookup(
 	reiser4_coord_init(coord, tree->root, CT_JOINT, &pos);
     
 	/* 
-	   Check for the case when looked key smaller than root key. This is the
-	   case, when somebody is trying to go up of the root by ".." entry of
-	   root directory.
+	  Check for the case when looked key smaller than root key. This is the
+	  case, when somebody is trying to go up of the root by ".." entry of
+	  root directory.
 	*/
 	if (reiser4_key_compare(key, &tree->key) < 0)
 		*key = tree->key;
@@ -346,8 +346,8 @@ int reiser4_tree_lookup(
 		reiser4_node_t *node = coord->u.joint->node;
 	
 		/* 
-		   Looking up for key inside node. Result of lookuping will be
-		   stored in &coord->pos.
+		  Looking up for key inside node. Result of lookuping will be
+		  stored in &coord->pos.
 		*/
 		if ((lookup = reiser4_node_lookup(node, key, &coord->pos)) == -1)
 			return -1;
@@ -370,12 +370,13 @@ int reiser4_tree_lookup(
 			return -1;
 		}
 
-		if (!reiser4_item_nodeptr(coord)) {
-			aal_exception_error("Not internal item was found on the twig level. "
-					    "Sorry, drilling is not supported yet!");
-			return -1;
-		}
-
+		/*
+		  FIXME-UMKA: Not internal item was found on the twig level. Sorry, drilling
+		  is not supported yet!
+		*/
+		if (!reiser4_item_nodeptr(coord))
+			return 0;
+		
 		item = &coord->entity;
 		
 		/* Getting the node pointer from internal item */

@@ -90,8 +90,8 @@ int main(int argc, char *argv[]) {
 				aal_memset(name, 0, sizeof(name));
 				aal_snprintf(name, 256, "testdir%d", i);
 
-				if ((file = reiser4_file_create(fs, &dir_hint, dir, name)))
-					reiser4_file_close(file);
+/*				if ((file = reiser4_file_create(fs, &dir_hint, dir, name)))
+					reiser4_file_close(file);*/
 			}
 		}
 	}

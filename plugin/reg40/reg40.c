@@ -146,44 +146,41 @@ static errno_t reg40_realize(reg40_t *reg) {
 	return 0;
 }
 
-static errno_t reg40_next(object_entity_t *entity) {
+static int reg40_next(object_entity_t *entity) {
 	roid_t curr_objectid;
 	roid_t next_objectid;
 
-	item_entity_t next_item;
-    
+	rpid_t group;
+	reiser4_place_t right;
 	reg40_t *reg = (reg40_t *)entity;
-	reiser4_place_t *place = &reg->body;
-	reiser4_place_t save_place = reg->body;
 
 	/* Getting the right neighbour */
-	if (core->tree_ops.right(reg->tree, place))
-		goto error_set_context;
+	if (core->tree_ops.right(reg->tree, &reg->body, &right))
+		return -1;
 
+	group = right.entity.plugin->h.sign.group;
+	
 	/* Check if next item is extent or tail */
-	if ((reg->body.entity.plugin->h.sign.group != TAIL_ITEM &&
-	     reg->body.entity.plugin->h.sign.group != EXTENT_ITEM))
-	{
-		goto error_set_context;
-	}
+	if (group != TAIL_ITEM && group != EXTENT_ITEM)
+		return 0;
     
 	/* 
 	   Getting objectid of both keys in order to determine are items
 	   mergeable or not.
 	*/
-	curr_objectid = plugin_call(goto error_set_context, reg->key.plugin->key_ops,
+	curr_objectid = plugin_call(return -1, reg->key.plugin->key_ops,
 				    get_objectid, reg->key.body);
 	
-	next_objectid = plugin_call(goto error_set_context, reg->key.plugin->key_ops,
-				    get_objectid, next_item.key.body);
+	next_objectid = plugin_call(return -1, reg->key.plugin->key_ops,
+				    get_objectid, right.entity.key.body);
 	
 	/* Checking if items mergeable */
-	if (curr_objectid == next_objectid)
-		return 0;
-
- error_set_context:
-	*place = save_place;
-	return -1;
+	if (curr_objectid == next_objectid) {
+		reg->body = right;
+		return 1;
+	}
+	
+	return 0;
 }
 
 /* Reads n entries to passed buffer buff */
