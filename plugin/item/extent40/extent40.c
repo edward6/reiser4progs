@@ -109,9 +109,13 @@ static errno_t extent40_remove(place_t *place,
 	return 0;
 }
 
+/* Truncates extent item stating from left by @hint->count bytes */
 static errno_t extent40_truncate(place_t *place, trans_hint_t *hint) {
 	uint32_t pos;
+	uint32_t size;
 	uint64_t offset;
+	uint32_t blksize;
+	
 	key_entity_t key;
 	extent40_t *extent;
 	
@@ -119,50 +123,81 @@ static errno_t extent40_truncate(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-2461", hint != NULL);
 
 	hint->ohd = 0;
+	hint->len = 0;
+	hint->bytes = 0;
+
+	/* Check for unit pos */
 	pos = place->pos.unit;
 	
 	if (pos == MAX_UINT32)
 		pos = 0;
 	
+	blksize = extent40_blksize(place);
 	extent = extent40_body(place) + pos;
 
-	if (et40_get_width(extent) > 1) {
-		uint32_t blksize;
-		uint32_t i, width;
-		
-		blksize = extent40_blksize(place);
-		width = (hint->count / blksize);
+	for (size = hint->count; size > 0; ) {
+		uint32_t width;
+		uint32_t chunk;
+		uint32_t remove;
 
-		plug_call(hint->offset.plug->o.key_ops,
-			  assign, &key, &hint->offset);
+		width = et40_get_width(extent);
+
+		/* Calculating chunk to be cut out */
+		if ((chunk = size) > (width * blksize))
+			chunk = (width * blksize);
+
+		/* Check if we remove whole unit. */
+		if ((remove = (chunk / blksize)) < width) {
+			uint32_t i;
+
+			/* Initializing key before removing attached data */
+			plug_call(hint->offset.plug->o.key_ops,
+				  assign, &key, &hint->offset);
 		
-		/* Removing data from the cache */
-		for (i = 0; i < width; i++) {
-			core->tree_ops.rem_data(hint->tree, &key);
+			/* Removing unit data from the cache */
+			for (i = 0; i < remove; i++) {
+				core->tree_ops.rem_data(hint->tree, &key);
 			
-			offset = plug_call(key.plug->o.key_ops,
-					   get_offset, &key);
+				offset = plug_call(key.plug->o.key_ops,
+						   get_offset, &key);
 
-			plug_call(key.plug->o.key_ops, set_offset,
-				  &key, (offset * blksize));
+				plug_call(key.plug->o.key_ops, set_offset,
+					  &key, (offset * blksize));
+			}
+
+			/* Making extent unit shorter */
+			et40_inc_start(extent, remove);
+			et40_dec_width(extent, remove);
+
+			/* Updating bytes */
+			hint->bytes += remove * blksize;
+		} else {
+			/* Here we remove whole unit. */
+			hint->len += sizeof(extent40_t);
+			hint->bytes += width * blksize;
+
+			/* Taking care about the rest of extent units if we're
+			   on the last unit. */
+			if (pos < extent40_units(place) - 1) {
+				uint32_t size = sizeof(extent40_t) *
+					extent40_units(place) - (pos + 1);
+				
+				aal_memmove(extent, extent + 1, size);
+			}
 		}
 
-		/* Making extent unit shorter */
-		et40_inc_start(extent, width);
-		et40_dec_width(extent, width);
-		
-		hint->len = 0;
-	} else {
-		hint->len = sizeof(extent40_t);
+		size -= chunk;
 	}
 
-	offset = plug_call(place->key.plug->o.key_ops,
-			   get_offset, &place->key);
+	/* Updating key if it makes sence */
+	if (place->len > hint->len) {
+		offset = plug_call(place->key.plug->o.key_ops,
+				   get_offset, &place->key);
 		
-	plug_call(place->key.plug->o.key_ops, set_offset,
-		  &place->key, offset + hint->count);
-
-	hint->bytes = hint->len + hint->ohd;
+		plug_call(place->key.plug->o.key_ops, set_offset,
+			  &place->key, offset + hint->count);
+	}
+	
 	return 0;
 }
 

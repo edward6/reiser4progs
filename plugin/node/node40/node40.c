@@ -314,7 +314,7 @@ static uint32_t node40_size(node40_t *node, pos_t *pos,
 	void *ih;
 	uint32_t len;
 	uint32_t pol;
-	
+
 	pol = node40_key_pol(node);
 	ih = node40_ih_at(node, pos->item);
 	
@@ -684,6 +684,7 @@ static int32_t node40_write(node_entity_t *entity,
 	return node40_mod(entity, pos, hint, 0);
 }
 
+/* Truncates node at @pos. Needed for tail conversion. */
 errno_t node40_truncate(node_entity_t *entity, pos_t *pos,
 			trans_hint_t *hint)
 {
@@ -699,36 +700,45 @@ errno_t node40_truncate(node_entity_t *entity, pos_t *pos,
 
 	node = (node40_t *)entity;
 
+	/* Getting item at @pos */
 	if (node40_fetch(entity, pos, &place))
 		return -EINVAL;
 
+	/* Check if item has truncate() method. */
 	if (place.plug->o.item_ops->truncate) {
+		/* Item has truncate(), so it contains some structure
+		   (extent40), not just stream of bytes (tail40). */
 		if ((res = plug_call(place.plug->o.item_ops,
 				     truncate, &place, hint)))
 		{
 			return res;
 		}
 
-		pol = node40_key_pol(node);
-		ih = node40_ih_at(node, place.pos.item);
-		aal_memcpy(ih, place.key.body, key_size(pol));
+		/* Updating key if it makes sence, that is we has not truncated
+		   whole item. */
+		if (place.len > hint->len) {
+			pol = node40_key_pol(node);
+			ih = node40_ih_at(node, place.pos.item);
+			aal_memcpy(ih, place.key.body, key_size(pol));
+		}
 	} else {
+		/* Item has not truncate(), we suppose, that hint->len*/
 		hint->ohd = 0;
 		hint->len = hint->count;
 	}
-	
+
+	/* Shrinking node */
 	if ((len = hint->ohd + hint->len)) {
-		if ((res = node40_shrink(entity, &place.pos,
-					 len, hint->count)))
-		{
-			return res;
-		}
-		
-		if (node40_size(node, &place.pos, 1) == 0) {
+
+		/* If len to be cut out is the same as item size, we remove
+		   whole item. Shribk item otherwise. */
+		if (len >= place.len) {
 			place.pos.unit = MAX_UINT32;
-			
-			return node40_shrink(entity, &place.pos,
-					     len, 1);
+			return node40_shrink(entity, &place.pos, len, 1);
+		} else {
+			place.pos.unit = 0;
+			return node40_shrink(entity, &place.pos, len,
+					     hint->count);
 		}
 	}
 

@@ -2000,6 +2000,7 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 		return 0;
 
 	reiser4_item_maxreal_key(place, &maxkey);
+	reiser4_key_assign(&hint.offset, &place->key);
 
 	size = reiser4_key_get_offset(&maxkey) + 1 -
 		reiser4_key_get_offset(&place->key);
@@ -2008,7 +2009,6 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 
 	while (size > 0) {
 		int32_t trans;
-		uint64_t offset;
 		
 		/* Preparing buffer to read to it and size to read. */
 		hint.count = blksize;
@@ -2020,7 +2020,6 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 			return -ENOMEM;
 
 		hint.specific = buff;
-		reiser4_key_assign(&hint.offset, &place->key);
 
 		/* Reading data from tree */
 		if ((trans = reiser4_tree_read_flow(tree, &hint)) < 0) {
@@ -2030,12 +2029,12 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 		
 		/* Removing read data from the tree. */
 		hint.plug = plug;
-		hint.count = trans;
 		
 		if ((res = reiser4_tree_truncate(tree, &hint)))
 			goto error_free_buff;
 		
 		hint.plug = plug;
+		hint.count = trans;
 		
 		/* Writing data to the tree */
 		if ((trans = reiser4_tree_write_flow(tree, &hint)) < 0) {
@@ -2043,13 +2042,12 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 			goto error_free_buff;
 		}
 
-		aal_assert("umka-2477", trans != hint.count);
+		aal_assert("umka-2477", (uint32_t)trans != hint.count);
 
 		size -= trans;
 		aal_free(buff);
 
-		offset = reiser4_key_get_offset(&hint.offset);
-		reiser4_key_set_offset(&hint.offset, offset + trans);
+		reiser4_key_inc_offset(&hint.offset, trans);
 	}
 
 	return 0;
@@ -2351,13 +2349,13 @@ errno_t reiser4_tree_truncate(reiser4_tree_t *tree,
 	
 	/* Checking if the node became empty. If so, we release it. */
 	if (reiser4_node_items(place.node) > 0) {
-/*		if ((tree->flags & TF_PACK) && tree->traps.pack) {
+		if ((tree->flags & TF_PACK) && tree->traps.pack) {
 			if ((res = tree->traps.pack(tree, &place,
 						    tree->traps.data)))
 			{
 				return res;
 			}
-		}*/
+		}
 	} else {
 		/* Detaching node from the tree, because it became empty */
 		reiser4_node_mkclean(place.node);

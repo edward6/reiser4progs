@@ -379,6 +379,38 @@ static errno_t tail40_remove(place_t *place, trans_hint_t *hint) {
 	return 0;
 }
 
+static errno_t tail40_truncate(place_t *place,
+			       trans_hint_t *hint)
+{
+	uint32_t pos;
+	uint32_t count;
+
+	aal_assert("umka-2480", hint != NULL);
+	aal_assert("umka-2479", place != NULL);
+
+	/* Correcting position */
+	pos = place->pos.unit;
+
+	if (pos == MAX_UINT32)
+		pos = 0;
+
+	/* Correcting count */
+	count = hint->count;
+	
+	if (pos + count > place->len)
+		count = place->len - pos;
+
+	/* Taking care about rest of tail */
+	if (pos < place->len - 1) {
+		aal_memmove(place->body + pos,
+			    place->body + pos + count,
+			    place->len - (pos + count));
+	}
+
+	hint->len = hint->bytes = count;
+	return 0;
+}
+
 /* Returns item size in bytes */
 static uint64_t tail40_size(place_t *place) {
 	aal_assert("vpf-1210", place != NULL);
@@ -409,6 +441,7 @@ static reiser4_item_ops_t tail40_ops = {
 	.size             = tail40_size,
 	.bytes            = tail40_size,
 
+	.truncate         = tail40_truncate,
 	.maxreal_key      = tail40_maxreal_key,
 	.estimate_merge   = tail40_estimate_merge,
 	.estimate_shift   = tail40_estimate_shift,
@@ -418,7 +451,6 @@ static reiser4_item_ops_t tail40_ops = {
 	.estimate_insert  = NULL,
 	.overhead         = NULL,
 	.insert	          = NULL,
-	.truncate         = NULL,
 	.update           = NULL,
 	.init	          = NULL,
 	.branch           = NULL,
