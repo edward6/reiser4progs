@@ -1,10 +1,8 @@
-/*
-  mpressure.c -- memory pressure detect functions common for all reiser4progs.
-  Probably here should be more reliable method to determine memory pressure.
-    
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   mpressure.c -- memory pressure detect functions common for all reiser4progs.
+   Probably here should be more reliable method to determine memory pressure. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

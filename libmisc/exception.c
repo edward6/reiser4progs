@@ -1,9 +1,8 @@
-/*
-  exception.c -- common for all progs exception handler and related functions.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   exception.c -- common for all progs exception handler and related
+   functions. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -19,7 +18,8 @@
 /* This function returns number of specified turned on options */
 static int misc_exception_option_count(
 	aal_exception_option_t options,	    /* options to be inspected */
-	int start)			    /* options will be inspected started from */
+	int start)			    /* options will be inspected started
+					       from */
 {
 	int i, count = 0;
     
@@ -29,10 +29,8 @@ static int misc_exception_option_count(
 	return count;
 }
 
-/* 
-   This function makes search for option by its name in passed available option
-   set.
-*/
+/* This function makes search for option by its name in passed available option
+   set. */
 static aal_exception_option_t misc_exception_oneof(
 	char *name,			    /* option name to be checked */
 	aal_exception_option_t options)     /* aavilable options */
@@ -81,10 +79,8 @@ static void misc_exception_print_wrap(aal_exception_t *exception,
 	misc_print_wrap(stream, buff);
 }
 
-/* 
-   This function prints exception options awailable to be choosen, takes user
-   enter and converts it into aal_exception_option_t type.
-*/
+/* This function prints exception options awailable to be choosen, takes user
+   enter and converts it into aal_exception_option_t type. */
 static aal_exception_option_t misc_exception_prompt(
 	aal_exception_option_t options,  /* exception options can be selected */
 	void *stream)
@@ -126,11 +122,9 @@ static void *streams[10];
 /* Current misc gauge. Used for correct pausing when exception */
 extern aal_gauge_t *current_gauge;
 
-/* 
-   Common exception handler for all reiser4progs. It implements exception
+/* Common exception handler for all reiser4progs. It implements exception
    handling in "question-answer" maner and used for all communications with
-   user.
-*/
+   user. */
 aal_exception_option_t misc_exception_handler(
 	aal_exception_t *exception)		/* exception to be processed */
 {

@@ -1,9 +1,7 @@
-/*
-  ui.c -- common for all progs function for work with libreadline.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   ui.c -- common for all progs function for work with libreadline. */
 
 #include <pty.h>
 #include <stdio.h>
@@ -234,9 +232,9 @@ static char *misc_alpha_handler(
 /* Common for all misc ui get numeric handler */
 static int64_t misc_numeric_handler(
 	const char *prompt, int64_t defvalue, /* user prompt and default
-					       * value */
+						 value */
 	aal_check_numeric_func_t check_func,  /* user's enter checking
-					       * functions */
+						 functions */
 	void *data)                           /* user specified data */
 {
 	char buff[255];

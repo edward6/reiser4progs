@@ -1,11 +1,9 @@
-/*
-  alloc40.c -- Default block allocator plugin for reiser4. It is bitmap based,
-  and it deals with bitmap blocks. For the all bitmap-related actions, we use
-  aux_bitmap from the libaux.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   alloc40.c -- default block allocator plugin for reiser4. It is bitmap based,
+   and it deals with bitmap blocks. For the all bitmap-related actions, we use
+   aux_bitmap from the libaux. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -20,34 +18,34 @@
 
 extern reiser4_plugin_t alloc40_plugin;
 
-/*
-  Calculates the adler32 checksum for the data pointed by "buff" of the
-  length "n". This function was originally taken from zlib, version 1.1.3,
-  July 9th, 1998.
+/* Calculates the adler32 checksum for the data pointed by "buff" of the length
+   "n". This function was originally taken from zlib, version 1.1.3, July 9th,
+   1998.
 
-  Copyright (C) 1995-1998 Jean-loup Gailly and Mark Adler
+   Copyright (C) 1995-1998 Jean-loup Gailly and Mark Adler
 
-  This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
-  arising from the use of this software.
+   This software is provided 'as-is', without any express or implied warranty.
+   In no event will the authors be held liable for any damages arising from the
+   use of this software.
 
-  Permission is granted to anyone to use this software for any purpose,
-  including commercial applications, and to alter it and redistribute it
-  freely, subject to the following restrictions:
+   Permission is granted to anyone to use this software for any purpose,
+   including commercial applications, and to alter it and redistribute it
+   freely, subject to the following restrictions:
 
-  1. The origin of this software must not be misrepresented; you must not claim
-  that you wrote the original software. If you use this software in a product,
-  an acknowledgment in the product documentation would be appreciated but is not
-  required.
-  2. Altered source versions must be plainly marked as such, and must
-  not be misrepresented as being the original software.
-  3. This notice may not
-  be removed or altered from any source distribution.
+   1. The origin of this software must not be misrepresented; you must not claim
+   that you wrote the original software. If you use this software in a product,
+   an acknowledgment in the product documentation would be appreciated but is
+   not required.
+   
+   2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+   
+   3. This notice may not be removed or altered from any source distribution.
 
-  Jean-loup Gailly        Mark Adler
-  jloup@gzip.org          madler@alumni.caltech.edu
+   Jean-loup Gailly        Mark Adler
+   jloup@gzip.org          madler@alumni.caltech.edu
 
-  The above comment is applyed to the only aal_alder32 function.
+   The above comment is applyed to the only aal_alder32 function.
 */
 
 #define ADLER_BASE (65521l)
@@ -89,12 +87,11 @@ static void alloc40_mkclean(object_entity_t *entity) {
 	((alloc40_t *)entity)->dirty = 0;
 }
 
-/*
-  Call @func for all blocks which belong to the same bitmap block as passed
-  @blk. It is needed for fsck. In the case it detremined that a block is not
-  corresponds to its value in block allocator, it should check all the related
-  (neighbour) blocks which are described by one bitmap block (4096 - CRC_SIZE).
-*/
+/* Call @func for all blocks which belong to the same bitmap block as passed
+   @blk. It is needed for fsck. In the case it detremined that a block is not
+   corresponds to its value in block allocator, it should check all the related
+   (neighbour) blocks which are described by one bitmap block (4096 -
+   CRC_SIZE). */
 errno_t alloc40_related(object_entity_t *entity, blk_t blk, 
 			region_func_t region_func, void *data) 
 {
@@ -112,17 +109,13 @@ errno_t alloc40_related(object_entity_t *entity, blk_t blk,
     
 	size = alloc->blocksize - CRC_SIZE;
     
-	/*
-	  Loop though the all blocks one bitmap block describes and calling
-	  passed @region_func for each of them.
-	*/   
+	/* Loop though the all blocks one bitmap block describes and calling
+	   passed @region_func for each of them. */   
 	return region_func(entity, (blk / size) * size, size, data);
 }
 
-/*
-  Calls func for each block allocator block. This function is used in all block
-  block allocator operations like load, save, etc.
-*/
+/* Calls func for each block allocator block. This function is used in all block
+   block allocator operations like load, save, etc. */
 errno_t alloc40_layout(object_entity_t *entity,
 		       block_func_t block_func,
 		       void *data) 
@@ -138,12 +131,10 @@ errno_t alloc40_layout(object_entity_t *entity,
 	alloc = (alloc40_t *)entity;
 	blocksize = alloc->blocksize;
 
-	/*
-	  Calculating block-per-bitmap value. I mean the number of blocks one
-	  bitmap block describes. It is calulating such maner because we should
-	  count also four bytes for checksum at begibnning og the each bitmap
-	  block.
-	*/
+	/* Calculating block-per-bitmap value. I mean the number of blocks one
+	   bitmap block describes. It is calulating such maner because we should
+	   count also four bytes for checksum at begibnning og the each bitmap
+	   block. */
 	bpb = (blocksize - CRC_SIZE) * 8;
 	start = ALLOC40_START / blocksize;
 
@@ -160,12 +151,10 @@ errno_t alloc40_layout(object_entity_t *entity,
 	return 0;
 }
 
-/*
-  Fetches one bitmap block. Extracts its checksum from teh first 4 bytes and
-  saves it in allocator checksums area. Actually this function is callback one
-  which is called by alloc40_layout function in order to load all bitmap map
-  from the device. See alloc40_open for details.
-*/
+/* Fetches one bitmap block. Extracts its checksum from teh first 4 bytes and
+   saves it in allocator checksums area. Actually this function is callback one
+   which is called by alloc40_layout function in order to load all bitmap map
+   from the device. See alloc40_open for details. */
 static errno_t callback_fetch_bitmap(object_entity_t *entity, 
 				     uint64_t blk, void *data)
 {
@@ -199,10 +188,8 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
 	
 	chunk = free > size ? size : free;
 
-	/*
-	  Copying bitmap data and crc data into corresponding memory areas in
-	  block allocator instance.
-	*/
+	/* Copying bitmap data and crc data into corresponding memory areas in
+	   block allocator instance. */
 	aal_memcpy(current, block->data + CRC_SIZE, chunk);
 
 	aal_memcpy(alloc->crc + (offset * CRC_SIZE),		   
@@ -212,10 +199,9 @@ static errno_t callback_fetch_bitmap(object_entity_t *entity,
 	return 0;
 }
 
-/*
-  Initializing block allocator instance and loads bitmap into it from the passed
-  @device. This functions is implementation of alloc_ops.open plugin method.
-*/
+/* Initializing block allocator instance and loads bitmap into it from the
+   passed @device. This functions is implementation of alloc_ops.open plugin
+   method. */
 static object_entity_t *alloc40_open(aal_device_t *device,
 				     uint64_t len,
 				     uint32_t blocksize)
@@ -230,11 +216,9 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	if (!(alloc = aal_calloc(sizeof(*alloc), 0)))
 		return NULL;
 
-	/*
-	  Creating bitmap with passed @len. Value @len is the number of blocks
-	  filesystem lies in. In other words it is the filesystem size. This
-	  value is the same as partition size sometimes.
-	*/
+	/* Creating bitmap with passed @len. Value @len is the number of blocks
+	   filesystem lies in. In other words it is the filesystem size. This
+	   value is the same as partition size sometimes. */
 	mapsize = blocksize - CRC_SIZE;
     
 	if (!(alloc->bitmap = aux_bitmap_create(len)))
@@ -254,10 +238,8 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	alloc->blocksize = blocksize;
 	alloc->plugin = &alloc40_plugin;
 
-	/*
-	  Calling alloc40_layout method with callback_fetch_bitmap callback for
-	  loading all the bitmap blocks.
-	*/
+	/* Calling alloc40_layout method with callback_fetch_bitmap callback for
+	   loading all the bitmap blocks. */
 	if (alloc40_layout((object_entity_t *)alloc,
 			   callback_fetch_bitmap, alloc))
 	{
@@ -277,12 +259,10 @@ static object_entity_t *alloc40_open(aal_device_t *device,
 	return NULL;
 }
 
-/* 
-   Initializes new alloc40 instance, creates bitmap and return new instance to
+/* Initializes new alloc40 instance, creates bitmap and return new instance to
    caller (block allocator in libreiser4). This function does almost the same as
    alloc40_open. The difference is that it does not load bitmap from the passed
-   device.
-*/
+   device. */
 static object_entity_t *alloc40_create(aal_device_t *device,
 				       uint64_t len,
 				       uint32_t blocksize)
@@ -370,11 +350,9 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 
 	alloc = (alloc40_t *)entity;
 	
-	/*
-	  Allocating new block and filling it by 0xff bytes (all bits are turned
-	  on). This is needed in order to make the rest of last block filled by
-	  0xff istead of 0x00 as it might be by default.
-	*/
+	/* Allocating new block and filling it by 0xff bytes (all bits are
+	   turned on). This is needed in order to make the rest of last block
+	   filled by 0xff istead of 0x00 as it might be by default. */
 	if (!(block = aal_block_create(alloc->device,
 				       alloc->blocksize,
 				       blk, 0xff)))
@@ -396,11 +374,9 @@ static errno_t callback_sync_bitmap(object_entity_t *entity,
 
 	aal_memcpy(block->data + CRC_SIZE, current, chunk);
 
-	/*
-	  Calculating adler crc checksum and updating it in the block to be
-	  saved. For the last block we are calculating it only for significant
-	  patr of bitmap.
-	*/
+	/* Calculating adler crc checksum and updating it in the block to be
+	   saved. For the last block we are calculating it only for significant
+	   patr of bitmap. */
 	if (chunk < size) {
 		void *fake;
 
@@ -441,10 +417,8 @@ static errno_t alloc40_sync(object_entity_t *entity) {
 	aal_assert("umka-366", alloc != NULL);
 	aal_assert("umka-367", alloc->bitmap != NULL);
 
-	/*
-	  Calling "layout" function for saving all bitmap blocks to device
-	  block allocator lies on.
-	*/
+	/* Calling "layout" function for saving all bitmap blocks to device
+	   block allocator lies on. */
 	if ((res = alloc40_layout((object_entity_t *)alloc,
 				  callback_sync_bitmap, alloc)))
 	{
@@ -500,12 +474,10 @@ static errno_t alloc40_release(object_entity_t *entity,
 	return 0;
 }
 
-/*
-  Tries to find specified @count of free blocks in block allocator. The first
-  block of the found free area is stored in @start. Actual found number of
-  blocks is retured to caller. This function is mostly needed for handling
-  extent allocation.
-*/
+/* Tries to find specified @count of free blocks in block allocator. The first
+   block of the found free area is stored in @start. Actual found number of
+   blocks is retured to caller. This function is mostly needed for handling
+   extent allocation. */
 static uint64_t alloc40_allocate(object_entity_t *entity,
 				 uint64_t *start, uint64_t count)
 {
@@ -522,13 +494,11 @@ static uint64_t alloc40_allocate(object_entity_t *entity,
 	found = aux_bitmap_find_region(alloc->bitmap,
 				       start, count, 0);
 
-	/*
-	  Marking the found region as occupied if its length more then zero.
-	  Probably we should implement more flexible behavior here. And probably
-	  we should do not mark found blocks as used in hope the caller will
-	  decide is found area is not enough convenient for him. If so, he will
-	  call marking found area as occupied by himself.
-	*/
+	/* Marking found region as occupied if its length more then zero.
+	   Probably we should implement more flexible behavior here. And
+	   probably we should do not mark found blocks as used in hope the
+	   caller will decide, that found area is not enough convenient for
+	   him. If so, he will call marking found area as occupied by hands. */
 	if (found > 0) {
 		aux_bitmap_mark_region(alloc->bitmap,
 				       *start, found);
@@ -576,10 +546,8 @@ static errno_t alloc40_print(object_entity_t *entity,
 
 	alloc = (alloc40_t *)entity;
 
-	/*
-	  Printing into passed @stream block allocator properties. Here also
-	  will be printing of the bitmap bits here later.
-	*/
+	/* Printing into passed @stream block allocator properties. Here also
+	   will be printing of the bitmap bits here later. */
 	aal_stream_format(stream, "Block allocator:\n");
 	
 	aal_stream_format(stream, "plugin:\t\t%s\n",
@@ -679,10 +647,8 @@ static int alloc40_available(object_entity_t *entity,
 				      start, count, 0);
 }
 
-/*
-  Callback function for checking one bitmap block on validness. Here we just
-  calculate actual checksum and compare it with loaded one.
-*/
+/* Callback function for checking one bitmap block on validness. Here we just
+   calculate actual checksum and compare it with loaded one. */
 errno_t callback_check_bitmap(object_entity_t *entity, 
 			      uint64_t blk, void *data)
 {
@@ -721,10 +687,8 @@ errno_t callback_check_bitmap(object_entity_t *entity,
 	} else
 		cadler = aal_adler32(current, chunk);
 
-	/* 
-	   If loaded checksum and calculated one are not equal, we have
-	   corrupted bitmap.
-	*/
+	/* If loaded checksum and calculated one are not equal, we have
+	   corrupted bitmap. */
 	if (ladler != cadler) {
 		aal_exception_warn("Checksum missmatch in bitmap "
 				   "block %llu. Checksum is 0x%x, "
@@ -734,10 +698,8 @@ errno_t callback_check_bitmap(object_entity_t *entity,
 		return -ESTRUCT;
 	}
 
-	/* 
-	   FIXME-FITALY: Probably the check that the bitmap bit is set should be
-	   here also.
-	*/
+	/* FIXME-FITALY: Probably the check that the bitmap bit is set should be
+	   here also. */
 	return 0;
 }
 
@@ -748,10 +710,8 @@ errno_t alloc40_valid(object_entity_t *entity) {
 	aal_assert("umka-963", alloc != NULL);
 	aal_assert("umka-964", alloc->bitmap != NULL);
 
-	/*
-	  Calling layout function for traversing all the bitmap blocks with
-	  checking callback function.
-	*/
+	/* Calling layout function for traversing all the bitmap blocks with
+	   checking callback function. */
 	return alloc40_layout((object_entity_t *)alloc,
 			      callback_check_bitmap, alloc);
 }

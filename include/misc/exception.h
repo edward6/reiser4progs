@@ -1,9 +1,7 @@
-/*
-  exception.h -- common for all progs exception functions.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   exception.h -- common for all progs exception functions. */
 
 #ifndef MISC_EXCEPTION_H
 #define MISC_EXCEPTION_H

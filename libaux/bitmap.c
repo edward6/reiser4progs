@@ -1,18 +1,14 @@
-/*
-  bitmap.c -- bitmap functions. Bitmap is used by bitmap-based block allocator
-  plugin.
-  
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   bitmap.c -- bitmap functions. Bitmap is used by bitmap-based block allocator
+   plugin. */
 
 #ifndef ENABLE_STAND_ALONE
 #include <aux/bitmap.h>
 
-/* 
-  This macros is used for checking whether given block is inside of allowed
-  range or not. It is used in all bitmap functions.
-*/
+/* This macros is used for checking whether given block is inside of allowed
+   range or not. It is used in all bitmap functions. */
 #define aux_bitmap_bound_check(bitmap, bit, action)		        \
 do {								        \
     if (bit >= bitmap->total) {					        \
@@ -20,12 +16,10 @@ do {								        \
     }									\
 } while (0)
 
-/* 
-  Checks whether passed block is inside of bitmap and marks it. This function
-  also increases marked block counter.
-*/
+/* Checks whether passed block is inside of bitmap and marks it. This function
+   also increases marked block counter. */
 void aux_bitmap_mark(
-	aux_bitmap_t *bitmap,	    /* bitmap instance passed bit will be marked in */
+	aux_bitmap_t *bitmap,	    /* bitmap, bit will be marked in */
 	uint64_t bit)		    /* bit to be marked */
 {
 	aal_assert("umka-336", bitmap != NULL);
@@ -39,10 +33,8 @@ void aux_bitmap_mark(
 	bitmap->marked++;
 }
 
-/* 
-  Checks whether passed block is inside of bitmap and clears it. This function
-  also descreases marked block counter.
-*/
+/* Checks whether passed block is inside of bitmap and clears it. This function
+  also descreases marked block counter. */
 void aux_bitmap_clear(
 	aux_bitmap_t *bitmap,	    /* bitmap, passed blk will be marked in */
 	uint64_t bit)		    /* bit to be cleared */
@@ -57,10 +49,8 @@ void aux_bitmap_clear(
 	bitmap->marked--;
 }
 
-/* 
-  Checks whether passed block is inside of bitmap and test it. Returns TRUE if
-  block is marked, FALSE otherwise.
-*/
+/* Checks whether passed block is inside of bitmap and test it. Returns TRUE if
+   block is marked, FALSE otherwise. */
 int aux_bitmap_test(
 	aux_bitmap_t *bitmap,	    /* bitmap, passed blk will be tested */
 	uint64_t bit)		    /* bit to be tested */
@@ -71,10 +61,8 @@ int aux_bitmap_test(
 	return aal_test_bit(bitmap->map, bit);
 }
 
-/* 
-  Checks whether passed range of blocks is inside of bitmap and marks
-  blocks. This function also increseas marked block counter.
-*/
+/* Checks whether passed range of blocks is inside of bitmap and marks
+   blocks. This function also increseas marked block counter. */
 void aux_bitmap_mark_region(
 	aux_bitmap_t *bitmap,	    /* bitmap for working with */
 	uint64_t start,		    /* start bit of the region */
@@ -89,10 +77,8 @@ void aux_bitmap_mark_region(
 	bitmap->marked += count;
 }
 
-/* 
-  Checks whether passed range of blocks is inside of bitmap and clears
-  blocks. This function also descreases marked block counter.
-*/
+/* Checks whether passed range of blocks is inside of bitmap and clears
+   blocks. This function also descreases marked block counter. */
 void aux_bitmap_clear_region(
 	aux_bitmap_t *bitmap,	    /* bitmap range of blocks will be cleared in */
 	uint64_t start,		    /* start bit of the range */
@@ -144,10 +130,8 @@ uint64_t aux_bitmap_find_marked(
 	return bit;
 }
 
-/*
-  Tests if all bits of the interval [start, count] are cleared in the
-  bitmap.
-*/
+/* Tests if all bits of the interval [start, count] are cleared in the
+   bitmap. */
 bool_t aux_bitmap_test_region(
 	aux_bitmap_t *bitmap,	    /* bitmap for working with */
 	uint64_t start,		    /* start bit of the range */
@@ -192,12 +176,10 @@ uint64_t aux_bitmap_find_region(
 	}
 }
 
-/*
-  Makes loop through bitmap and calculates the number of marked/cleared blocks
-  in it. This function is used for checking the bitmap on validness. Also it is
-  used for calculating marked blocks of bitmap in aux_bitmap_open function. See
-  bellow for details.
-*/
+/* Makes loop through bitmap and calculates the number of marked/cleared blocks
+   in it. This function is used for checking the bitmap on validness. Also it is
+   used for calculating marked blocks of bitmap in aux_bitmap_open function. See
+   bellow for details. */
 static uint64_t aux_bitmap_calc(
 	aux_bitmap_t *bitmap,	   /* bitmap will be used for calculating bits */
 	uint64_t start,		   /* start bit, calculating should be performed from */
@@ -237,7 +219,8 @@ uint64_t aux_bitmap_calc_cleared(
 
 /* Retuns stored value of marked blocks from specified bitmap */
 uint64_t aux_bitmap_marked(
-	aux_bitmap_t *bitmap)	/* bitmap marked block number will be obtained from */
+	aux_bitmap_t *bitmap)	/* bitmap marked block number will be obtained
+				   from */
 {
 	aal_assert("umka-343", bitmap != NULL);
 	return bitmap->marked;
@@ -245,7 +228,8 @@ uint64_t aux_bitmap_marked(
 
 /* Retuns stored value of clear blocks from specified bitmap */
 uint64_t aux_bitmap_cleared(
-	aux_bitmap_t *bitmap)	/* bitmap unsuded blocks will be obtained from */
+	aux_bitmap_t *bitmap)	/* bitmap unsuded blocks will be obtained
+				   from */
 {
 	aal_assert("umka-344", bitmap != NULL);
 	return bitmap->total - bitmap->marked;

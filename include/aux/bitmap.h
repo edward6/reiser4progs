@@ -1,10 +1,8 @@
-/*
-  bitmap.h -- bitmap functions. Bitmap is used by block allocator plugin and
-  fsck program. See libmisc/bitmap.c for more details.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   bitmap.h -- bitmap functions. Bitmap is used by block allocator plugin and
+   fsck program. See libmisc/bitmap.c for more details. */
 
 #ifndef AUX_BITMAP_H
 #define AUX_BITMAP_H
@@ -13,11 +11,9 @@
 
 #include <aal/aal.h>
 
-/* 
-   Bitmap structure. It contains: pointer to device instance bitmap opened on,
+/* Bitmap structure. It contains: pointer to device instance bitmap opened on,
    start on device, total blocks bitmap described, used blocks, pointer to
-   memory chunk bit array placed in and bit array size.
-*/
+   memory chunk bit array placed in and bit array size. */
 struct aux_bitmap {
 	uint64_t marked;
 	uint64_t total;

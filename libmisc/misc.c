@@ -1,9 +1,7 @@
-/*
-  misc.c -- some common tools for all reiser4 utilities.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   misc.c -- some common tools for all reiser4 utilities. */
 
 #include <stdio.h>
 #include <mntent.h>
@@ -24,10 +22,8 @@
 #define MB (KB * KB)
 #define GB (KB * MB)
 
-/*
-  Converts passed @str into long long value. In the case of error, INVAL_DIG
-  will be returned.
-*/
+/* Converts passed @sqtr into long long value. In the case of error, INVAL_DIG
+   will be returned. */
 long long misc_str2long(const char *str, int base) {
 	char *error;
 	long long result = 0;
@@ -44,10 +40,8 @@ long long misc_str2long(const char *str, int base) {
 }
 
 
-/*
-  Converts human readable size string like "256M" into Kb. In the case of error,
-  INVAL_DIG will be returned.
-*/
+/* Converts human readable size string like "256M" into Kb. In the case of
+   error, INVAL_DIG will be returned. */
 long long misc_size2long(const char *str) {
 	int valid;
 	char label;
@@ -82,8 +76,7 @@ long long misc_size2long(const char *str) {
 	return result;
 }
 
-/* 
-   Checking if specified partition is mounted. It is possible devfs is used, and
+/* Checking if specified partition is mounted. It is possible devfs is used, and
    all devices are links like hda1->ide/host0/bus0/target0/lun0/part1. Therefore
    we use stat function, rather than lstat: stat(2) follows links and return
    stat information for link target. In this case it will return stat info for
@@ -97,8 +90,7 @@ long long misc_size2long(const char *str) {
     
    We are using stating of every mount entry instead of just name comparing,
    because file /proc/mounts may contain as devices like /dev/hda1 as
-   ide/host0/bus0/targ...
-*/
+   ide/host0/bus0/targ... */
 errno_t misc_dev_mounted(
 	const char *name,	/* device name to be checked */
 	const char *mode)	/* mount options for check */

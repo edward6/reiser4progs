@@ -1,9 +1,7 @@
-/*
-  gauge.c -- common for all progs gauge fucntions.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   gauge.c -- common for all progs gauge fucntions. */
 
 #include <stdio.h>
 #include <unistd.h>

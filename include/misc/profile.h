@@ -1,9 +1,8 @@
-/*
-  profile.h -- headers of methods for working with profiles in reiser4 programs.
-
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   profile.h -- headers of methods for working with profiles in reiser4
+   programs. */
 
 #ifndef MISC_PROFILE_H
 #define MISC_PROFILE_H

@@ -1,24 +1,21 @@
-/*
-  aux.c -- miscellaneous useful code. 
-    
-  Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
-  reiser4progs/COPYING.
-*/  
+/* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
+   reiser4progs/COPYING.
+   
+   aux.c -- miscellaneous useful code. */  
 
 #include <aux/aux.h>
 
-/* 
-   This implements binary search for "needle" among "count" elements.
+/* This implements binary search for "needle" among "count" elements.
     
    Return values: 
    1 - key on *pos found exact key on *pos position; 
-   0 - exact key has not been found. key of *pos < then wanted.
-*/
+   0 - exact key has not been found. key of *pos < then wanted. */
+
 int aux_bin_search(
-	void *array,		        /* opaque pointer to array item will be searched in */
+	void *array,		        /* pointer to array for search in */
 	uint32_t count,		        /* array length */
 	void *needle,		        /* array item to be found */
-	aux_comp_func_t comp_func,      /* callback function for comparing items from the array */
+	aux_comp_func_t comp_func,      /* function for comparing items */
 	void *data,			/* user-specified data */
 	uint32_t *pos)		        /* pointer result will be saved in */
 {
@@ -115,10 +112,8 @@ errno_t aux_parse_path(char *path, aux_pre_entry_t pre_func,
 	return 0;
 }
 
-/*
-  Packing string into uint64_t value. This is used by key40 plugin for creating
-  entry keys.
-*/
+/* Packing string into uint64_t value. This is used by key40 plugin for creating
+   entry keys. */
 uint64_t aux_pack_string(char *buff, 
 			 uint32_t start)
 {
@@ -135,10 +130,9 @@ uint64_t aux_pack_string(char *buff,
 	return (value <<= (sizeof(value) - i - start) << 3);
 }
 
-/*
-  Extracts the part of string from the 64bits value it was packed to. This
-  function is needed in direntry40 plugin for unpacking keys of short entries.
-*/
+/* Extracts the part of string from the 64bits value it was packed to. This
+   function is needed in direntry40 plugin for unpacking keys of short
+   entries. */
 char *aux_unpack_string(uint64_t value,
 			char *buff)
 {
