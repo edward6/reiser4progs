@@ -104,9 +104,9 @@ errno_t alloc40_layout(generic_entity_t *entity,
 	for (blk = start; blk < start + alloc->bitmap->total;
 	     blk = ((blk / bpb) + 1) * bpb) 
 	{
-		/* FIXME-UMKA->VITALY: Here was construction like res |=
-		   region_func(). Is it corect, that I have removed it? */
-		if ((res = region_func(entity, blk, 1, data)) < 0)
+		res = region_func(entity, blk, 1, data);
+		
+		if (res && res != -ESTRUCT)
 			return res;
 	}
     

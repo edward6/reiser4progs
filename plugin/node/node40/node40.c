@@ -682,17 +682,16 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
 	/* Updating item header if we want to insert new item. */
         if (pos->unit == MAX_UINT32) {
 		ih_set_flags(ih, 0, pol);
-                ih_set_pid(ih, hint->plug->id.id, pol);
+		ih_set_pid(ih, hint->plug->id.id, pol);
                 
-		aal_memcpy(ih, hint->offset.body,
-                           key_size(pol));
+		aal_memcpy(ih, hint->offset.body, key_size(pol));
         }
         
 	/* Preparing place for calling item plugin with them. */
         if (node40_fetch(entity, pos, &place)) {
-                aal_error("Can't fetch item data. Node %llu, "
+		aal_error("Can't fetch item data. Node %llu, "
 			  "item %u.", node->block->nr, pos->item);
-                return -EINVAL;
+		return -EINVAL;
         }
 
 	/* Inserting units into @place. */
@@ -704,9 +703,8 @@ int64_t node40_modify(node_entity_t *entity, pos_t *pos,
         
 	/* Updating item's key if we insert new item or if we insert unit into
            leftmost postion. */
-        if (pos->unit == 0) {
+        if (pos->unit == 0)
                 aal_memcpy(ih, place.key.body, key_size(pol));
-	}
         
 	return write;
 }
