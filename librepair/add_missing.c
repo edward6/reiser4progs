@@ -223,9 +223,11 @@ errno_t repair_add_missing(repair_am_t *am) {
 	if (i == 0) {
 	    am->progress->text = "Inserting unconnected leaves item-by-item: ";
 	    am->progress->u.rate.total = aux_bitmap_marked(am->bm_twig);
+	    am->progress->u.rate.done = 0;
 	} else {
 	    am->progress->text = "Inserting unconnected twigs item-by-item: ";
 	    am->progress->u.rate.total = aux_bitmap_marked(am->bm_leaf);
+	    am->progress->u.rate.done = 0;
 	}
 	
 	am->progress->state = PROGRESS_START;

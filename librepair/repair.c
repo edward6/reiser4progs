@@ -153,6 +153,8 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	    control->bm_leaf->map[i] | control->bm_twig->map[i]);
     }
     
+    aux_bitmap_calc_marked(control->bm_met);
+    
     i = reiser4_format_start(control->repair->fs->format);
     /* Build a bitmap of blocks which are not in the tree yet. */
     for (; i < fs_len; i++) {	    
@@ -170,6 +172,8 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	    !aux_bitmap_test(ds->bm_met, i))
 	    aux_bitmap_mark(ds->bm_scan, i);
     }
+    
+    aux_bitmap_calc_marked(ds->bm_scan);
     
     return 0;
 }
@@ -209,6 +213,8 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts) {
 	}
     }
     
+    aux_bitmap_calc_marked(control->bm_met);
+
     if (!(control->bm_unfm_out = ts->bm_unfm_out = aux_bitmap_create(fs_len))) {
 	aal_exception_error("Failed to allocate a bitmap of unformatted blocks "
 	    "pointed by extents which are not in the tree.");
@@ -258,6 +264,9 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
     aux_bitmap_close(control->bm_met);
     aux_bitmap_close(control->bm_unfm_tree);
     aux_bitmap_close(control->bm_unfm_out);
+    
+    aux_bitmap_calc_marked(control->bm_twig);
+    aux_bitmap_calc_marked(control->bm_leaf);
     
     control->bm_used = control->bm_met = control->bm_unfm_tree = 
 	control->bm_unfm_out = NULL;

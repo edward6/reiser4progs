@@ -53,7 +53,8 @@ int aux_bin_search(
 		}	
 	}
 
-	*pos = left - (left > 0 ? 1 : 0);
+	*pos = left;
+	
 	return 0;
 }
 

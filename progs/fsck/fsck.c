@@ -153,30 +153,30 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	(int *)0)) != EOF) 
     {
 	switch (c) {
-	    case 'l':
-		if ((stream = fopen(optarg, "w")) == NULL)
-		    aal_exception_fatal("Cannot not open the logfile (%s).", 
-			optarg);
-		else 
-		    data->logfile = stream;		
-		break;
-	    case 'n':
-		data->logfile = NULL;
-		break;
-	    case 'U':
-		break;
-	    case 'R':
-		break;
-	    case 'f':
-		aal_set_bit(&data->options, REPAIR_OPT_FORCE);
-		break;
-	    case 'a':
-	    case 'p':
-		aal_set_bit(&data->options, REPAIR_OPT_AUTO);
-		break;
-	    case 'v':
-		aal_set_bit(&data->options, REPAIR_OPT_VERBOSE);
-		break;
+	case 'l':
+	    if ((stream = fopen(optarg, "w")) == NULL)
+		aal_exception_fatal("Cannot not open the logfile (%s).", 
+		    optarg);
+	    else 
+		data->logfile = stream;		
+	    break;
+	case 'n':
+	    data->logfile = NULL;
+	    break;
+	case 'U':
+	    break;
+	case 'R':
+	    break;
+	case 'f':
+	    aal_set_bit(&data->options, REPAIR_OPT_FORCE);
+	    break;
+	case 'a':
+	case 'p':
+	    aal_set_bit(&data->options, REPAIR_OPT_AUTO);
+	    break;
+	case 'v':
+	    aal_set_bit(&data->options, REPAIR_OPT_VERBOSE);
+	    break;
 /*
 	    case 'd':
 		profile_label = optarg;
@@ -186,25 +186,26 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 		return NO_ERROR;
 	    case 'K':
 		progs_profile_list();
-		return NO_ERROR;*/
-	    case 'o':
-		aal_strncat(override, optarg, aal_strlen(optarg));
-		aal_strncat(override, ",", 1);
-		break;
-	    case 'h': 
-	    case '?':
-		fsck_print_usage(argv[0]);
-		return USER_ERROR;	    
-	    case 'V': 
-		progs_print_banner(argv[0]);
-		return USER_ERROR;
-	    case 'q':
-		aal_gauge_set_handler(GAUGE_PERCENTAGE, NULL);
-		aal_gauge_set_handler(GAUGE_INDICATOR, NULL);
-		aal_gauge_set_handler(GAUGE_SILENT, NULL);
-		break;
-	    case 'r':
-		break;
+		return NO_ERROR;
+*/
+	case 'o':
+	    aal_strncat(override, optarg, aal_strlen(optarg));
+	    aal_strncat(override, ",", 1);
+	    break;
+	case 'h': 
+	case '?':
+	    fsck_print_usage(argv[0]);
+	    return USER_ERROR;	    
+	case 'V': 
+	    progs_print_banner(argv[0]);
+	    return USER_ERROR;
+	case 'q':
+	    aal_gauge_set_handler(GAUGE_PERCENTAGE, NULL);
+	    aal_gauge_set_handler(GAUGE_INDICATOR, NULL);
+	    aal_gauge_set_handler(GAUGE_SILENT, NULL);
+	    break;
+	case 'r':
+	    break;
 	}
     }
 
