@@ -392,8 +392,6 @@ static errno_t node40_expand(node40_t *node,
 		
 		/* Setting up node free space start */
 		nh40_dec_free_space(node, sizeof(item40_header_t));
-
-		aal_memset(node->block->data + offset, 0, size);
 	} else {
 
 		/* Increasing item len mfor the case of pasting new units */

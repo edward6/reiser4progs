@@ -1,6 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 AC_INIT(libreiser4/libreiser4.c)
 AC_CANONICAL_HOST
+AC_PREREQ(2.50)
 
 LIBREISER4_MAJOR_VERSION=0
 LIBREISER4_MINOR_VERSION=2

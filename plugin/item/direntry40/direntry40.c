@@ -520,8 +520,8 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 	uint32_t headers;
 	uint32_t i, offset;
 
-	uint32_t len_after = 0;
-	uint32_t len_before = 0;
+	uint32_t after = 0;
+	uint32_t before = 0;
     
 	entry40_t *entry;
 	direntry40_t *direntry;
@@ -557,13 +557,13 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 		offset = sizeof(direntry40_t) + headers;
 
 	/* Calculating length of areas to be moved */
-	len_before = (units - pos) * sizeof(entry40_t);
+	before = (units - pos) * sizeof(entry40_t);
 	
 	for (i = 0; i < pos; i++)
-		len_before += direntry40_unit_len(direntry, i);
+		before += direntry40_unit_len(direntry, i);
 	
 	for (i = pos; i < units; i++)
-		len_after += direntry40_unit_len(direntry, i);
+		after += direntry40_unit_len(direntry, i);
 	
 	/* Updating offsets */
 	for (i = 0; i < pos; i++)
@@ -579,17 +579,17 @@ static errno_t direntry40_insert(item_entity_t *item, uint32_t pos,
 
 		src = (void *)direntry + offset - headers;
 		
-		aal_memmove(dst, src, len_after);
+		aal_memmove(dst, src, after);
 	}
     
 	/* Moving unit headers headers */
-	if (len_before) {
+	if (before) {
 		src = &direntry->entry[pos];
 
 		dst = &direntry->entry[pos] +
 			dehint->count;
 		
-		aal_memmove(dst, src, len_before);
+		aal_memmove(dst, src, before);
 	}
     
 	/* Updating direntry count field */
