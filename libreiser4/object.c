@@ -421,31 +421,12 @@ reiser4_object_t *reiser4_object_create(
 	return NULL;
 }
 
-static errno_t callback_print_place(
-	object_entity_t *entity,   /* object to be inspected */
-	place_t *place,            /* next object block */
-	void *data)                /* user-specified data */
-{
-	errno_t res;
-	aal_stream_t *stream = (aal_stream_t *)data;
-	reiser4_place_t *p = (reiser4_place_t *)place;
-	
-	if ((res = reiser4_item_print(p, stream))) {
-		aal_exception_error("Can't print item %lu in node %llu.",
-				    p->pos.item, p->node->blk);
-		return res;
-	}
-		
-	aal_stream_write(stream, "\n", 1);
-	return 0;
-}
-
 /* Returns @nlink value from the stat data if any */
 uint32_t reiser4_object_links(reiser4_object_t *object) {
 	aal_assert("umka-2293", object != NULL);
 
-	return 0/*plugin_call(object->entity->plugin->o.object_ops,
-			   links)*/;
+	return plugin_call(object->entity->plugin->o.object_ops,
+			   links, object->entity);
 }
 
 /* Links @child to @object if it is a directory */
@@ -543,6 +524,25 @@ errno_t reiser4_object_unlink(reiser4_object_t *object,
 
 	reiser4_object_close(child);
 	return res;
+}
+
+static errno_t callback_print_place(
+	object_entity_t *entity,   /* object to be inspected */
+	place_t *place,            /* next object block */
+	void *data)                /* user-specified data */
+{
+	errno_t res;
+	aal_stream_t *stream = (aal_stream_t *)data;
+	reiser4_place_t *p = (reiser4_place_t *)place;
+	
+	if ((res = reiser4_item_print(p, stream))) {
+		aal_exception_error("Can't print item %lu in node %llu.",
+				    p->pos.item, p->node->blk);
+		return res;
+	}
+		
+	aal_stream_write(stream, "\n", 1);
+	return 0;
 }
 
 /* Prints object items into passed stream */

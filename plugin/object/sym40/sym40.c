@@ -197,6 +197,11 @@ static object_entity_t *sym40_create(object_info_t *info,
 	return NULL;
 }
 
+static uint32_t sym40_links(object_entity_t *entity) {
+	aal_assert("umka-2295", entity != NULL);
+	return obj40_get_nlink(&((sym40_t *)entity)->obj);
+}
+
 static errno_t sym40_link(object_entity_t *entity) {
 	aal_assert("umka-1915", entity != NULL);
 	return obj40_link(&((sym40_t *)entity)->obj, 1);

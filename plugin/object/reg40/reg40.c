@@ -304,6 +304,11 @@ static object_entity_t *reg40_create(object_info_t *info,
 	return NULL;
 }
 
+static uint32_t reg40_links(object_entity_t *entity) {
+	aal_assert("umka-2296", entity != NULL);
+	return obj40_get_nlink(&((reg40_t *)entity)->obj);
+}
+
 static errno_t reg40_link(object_entity_t *entity) {
 	reg40_t *reg;
 	
@@ -746,6 +751,7 @@ static reiser4_object_ops_t reg40_ops = {
 	.metadata       = reg40_metadata,
 	.link           = reg40_link,
 	.unlink         = reg40_unlink,
+	.links          = reg40_links,
 	.realize        = reg40_realize,
 	.check_struct   = reg40_check_struct,
 

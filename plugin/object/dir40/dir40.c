@@ -740,6 +740,11 @@ static errno_t dir40_detach(object_entity_t *entity,
 			   unlink, parent);
 }
 
+static uint32_t dir40_links(object_entity_t *entity) {
+	aal_assert("umka-2294", entity != NULL);
+	return obj40_get_nlink(&((dir40_t *)entity)->obj);
+}
+
 static errno_t dir40_link(object_entity_t *entity) {
 	dir40_t *dir;
 	
@@ -755,39 +760,16 @@ static errno_t dir40_link(object_entity_t *entity) {
 }
 
 static errno_t dir40_unlink(object_entity_t *entity) {
-	errno_t res;
 	dir40_t *dir;
 	
 	aal_assert("umka-1907", entity != NULL);
 
 	dir = (dir40_t *)entity;
 	
-	if ((res = obj40_stat(&dir->obj)))
-		return res;
+	if (obj40_stat(&dir->obj))
+		return -EINVAL;
 	
-	if ((res = obj40_link(&dir->obj, -1)))
-		return res;
-
-	/*
-	  Checking if nlink reached 1. It is right for directory because it has
-	  first entry refferenced to itself.
-	*/
-	if (obj40_get_nlink(&dir->obj) > 1)
-		return 0;
-	
-	/* Removing directory when nlink gets 1 */
-	if ((res = dir40_reset(entity)))
-		return res;
-		
-	if ((res = dir40_truncate(entity, 0)))
-		return res;
-
-	/* FIXME-UMKA: Here should be parent @nlink value decreased */
-
-	if ((res = obj40_stat(&dir->obj)))
-		return res;
-	
-	return obj40_remove(&dir->obj, STAT_KEY(&dir->obj), 1);
+	return obj40_link(&dir->obj, -1);
 }
 
 /* Removing entry from the directory */
@@ -1091,6 +1073,7 @@ static reiser4_object_ops_t dir40_ops = {
 	.metadata     = dir40_metadata,
 	.link         = dir40_link,
 	.unlink       = dir40_unlink,
+	.links        = dir40_links,
 	.truncate     = dir40_truncate,
 	.add_entry    = dir40_add_entry,
 	.rem_entry    = dir40_rem_entry,

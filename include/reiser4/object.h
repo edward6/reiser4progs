@@ -56,6 +56,8 @@ extern reiser4_object_t *reiser4_object_create(reiser4_fs_t *fs,
 extern errno_t reiser4_object_print(reiser4_object_t *object,
 				    aal_stream_t *stream);
 
+extern uint32_t reiser4_object_links(reiser4_object_t *object);
+
 extern errno_t reiser4_object_link(reiser4_object_t *object,
 				   reiser4_object_t *child,
 				   const char *name);
