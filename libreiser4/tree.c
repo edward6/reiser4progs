@@ -2101,9 +2101,6 @@ errno_t reiser4_tree_down(
 			plugin_call(place.item.plugin->item_ops, read,
 				    &place.item, &ptr, pos->unit, 1);
 
-			if (!VALID_BLK(ptr.start))
-				continue;
-			
 			if (setup_func && (res = setup_func(&place, hint->data))) {
 				if (res < 0)
 					goto error_after_func;

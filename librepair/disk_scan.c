@@ -39,22 +39,20 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
     aal_assert("vpf-820", ds->bm_scan != NULL);
     aal_assert("vpf-820", ds->bm_met != NULL);    
 
-    
     if (ds->progress_handler) {
 	aal_memset(&progress, 0, sizeof(repair_progress_t));
-	progress.type = PROGRESS_INDICATOR;
+	progress.type = PROGRESS_RATE;
 	progress.state = PROGRESS_START;
-	progress.total = aux_bitmap_marked(ds->bm_scan);
+	progress.u.rate.total = aux_bitmap_marked(ds->bm_scan);
 	progress.title = "DiskScan Pass: scanning the partition for lost "
 	    "nodes:";
+	progress.header = "";
 	ds->progress_handler(&progress);
 	progress.state = PROGRESS_UPDATE;
-	progress.text = "";
     }
     
     while ((blk = aux_bitmap_find_marked(ds->bm_scan, blk)) != INVAL_BLK) {
 	if (ds->progress_handler) {
-	    progress.done++;
 	    ds->progress_handler(&progress);
 	}
  

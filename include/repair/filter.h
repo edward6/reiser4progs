@@ -29,7 +29,8 @@ typedef struct repair_filter {
     uint8_t level;
     uint8_t flags;
 
-    repair_progress_handler_t *progress_handler;    
+    repair_progress_handler_t *progress_handler;
+    repair_progress_t *progress;
     repair_filter_info_t info;
 } repair_filter_t;
 

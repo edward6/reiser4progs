@@ -246,8 +246,8 @@ static errno_t fsck_init(fsck_parse_t *data, int argc, char *argv[])
 	return OPER_ERROR;
     }
 
-    aal_gauge_set_handler(GAUGE_PERCENTAGE, gauge_percentage);
-    aal_gauge_set_handler(GAUGE_EMBEDDED, gauge_embedded);
+    aal_gauge_set_handler(GAUGE_PERCENTAGE, gauge_rate);
+    aal_gauge_set_handler(GAUGE_TREE, gauge_tree);
     
     return fsck_ask_confirmation(data, argv[optind]);
 }

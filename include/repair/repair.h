@@ -35,8 +35,8 @@ typedef union repair_info {
 
 typedef enum repair_progress_type {
     PROGRESS_SILENT	= 0x1,
-    PROGRESS_INDICATOR	= 0x2,
-    PROGRESS_EMBEDDED	= 0x3
+    PROGRESS_RATE	= 0x2,
+    PROGRESS_TREE	= 0x3
 } repair_progress_type_t;
 
 typedef enum repair_progress_state {
@@ -45,13 +45,29 @@ typedef enum repair_progress_state {
     PROGRESS_END    = 0x3
 } repair_progress_state_t;
 
+typedef struct repair_progress_rate {
+    uint64_t done;  /* current element is been handled */
+    uint64_t total; /* total elements to be handled */
+} repair_progress_rate_t;
+
+typedef struct repair_progress_tree {
+    uint32_t item;   /* current element is been handled */
+    uint32_t unit;   /* current subelement is been handled */
+    uint32_t i_total;   /* total of elements */
+    uint32_t u_total;   /* total of subelements */
+} repair_progress_tree_t;
+
 typedef struct repair_progress {
     uint8_t type;   /* type of the progress - progress_type_t */
     uint8_t state;  /* state of the progress - progress_state_t */
-    uint64_t total; /* count of elements to be handled */
-    uint64_t done;   /* current element is been handled */
-    char *title;    /* The gauge title. */
-    char *text;	    /* text to be printed */
+    char *title;    /* The title of the progress. */
+    char *header;   /* The header of the progress. */
+
+    union {
+	repair_progress_rate_t rate;
+	repair_progress_tree_t tree;
+    } u;
+    
     void *data;	    /* opaque application data */
 } repair_progress_t;
 

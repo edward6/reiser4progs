@@ -55,6 +55,15 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
     aal_assert("vpf-252", data  != NULL);
     aal_assert("vpf-409", node != NULL);
 
+    if (fd->progress_handler && fd->level != LEAF_LEVEL) {
+	fd->progress->state = PROGRESS_START;
+	fd->progress->u.tree.i_total = reiser4_node_items(node);
+	fd->progress->u.tree.u_total = 0;
+	fd->progress->u.tree.item = 0;
+	fd->progress->u.tree.unit = 0;
+	fd->progress_handler(fd->progress);
+    }
+    
     level = reiser4_node_get_level(node); 
     
     /* Initialize the level for the root node before traverse. */
@@ -108,6 +117,15 @@ static errno_t repair_filter_setup_traverse(reiser4_place_t *place, void *data) 
     aal_assert("vpf-255", data != NULL);
     aal_assert("vpf-531", place != NULL);
     aal_assert("vpf-703", reiser4_item_branch(place));
+    
+    if (fd->progress_handler && fd->level != LEAF_LEVEL) {
+	fd->progress->state = PROGRESS_UPDATE;
+	fd->progress->u.tree.i_total = reiser4_node_items(place->node);
+	fd->progress->u.tree.u_total = reiser4_item_units(place);
+	fd->progress->u.tree.item = place->pos.item;
+	fd->progress->u.tree.unit = place->pos.unit;
+	fd->progress_handler(fd->progress);
+    }
     
     if (plugin_call(place->item.plugin->item_ops, read, &place->item, &ptr, 
 	place->pos.unit, 1) != 1) 
@@ -260,6 +278,11 @@ static errno_t repair_filter_after_traverse(reiser4_node_t *node, void *data) {
 	reiser4_node_mkclean(node);
     }
 
+    if (fd->progress_handler && fd->level != LEAF_LEVEL) {
+	fd->progress->state = PROGRESS_END;
+	fd->progress_handler(fd->progress);
+    }
+
     return 0;
 }
 
@@ -282,6 +305,12 @@ static void repair_filter_setup(repair_filter_t *fd) {
 	/* We meet the block for the first time. */
 	aux_bitmap_mark(fd->bm_used, 
 	    reiser4_format_get_root(fd->repair->fs->format));
+    
+    aal_memset(fd->progress, 0, sizeof(*fd->progress));
+    fd->progress->type = PROGRESS_TREE;
+    fd->progress->title = "Tree Traverse Pass: scanning the reiser4 internal "
+	"tree.";
+    fd->progress->header = "";
 }
 
 /* Does some update stuff after traverse through the internal tree - deletes 
@@ -326,6 +355,7 @@ errno_t repair_filter(repair_filter_t *fd) {
     aal_assert("vpf-814", fd->bm_twig != NULL);
     aal_assert("vpf-814", fd->bm_met != NULL);
 
+    fd->progress = &progress;
     repair_filter_setup(fd);
     
     if ((res = repair_filter_node_open(&fd->repair->fs->tree->root, 
@@ -335,28 +365,14 @@ errno_t repair_filter(repair_filter_t *fd) {
     if (res == 0 && fd->repair->fs->tree->root != NULL) {
 	hint.data = fd;
 	hint.cleanup = 1;
-	
-	if (fd->progress_handler) {
-	    aal_memset(&progress, 0, sizeof(repair_progress_t));
-	    progress.type = PROGRESS_EMBEDDED;
-	    progress.state = PROGRESS_START;
-	    progress.total = reiser4_node_items(fd->repair->fs->tree->root);
-	    progress.title = "Tree Traverse: scanning the reiser4 tree:";
-	    progress.text = "";
-	    fd->progress_handler(&progress);
-	    progress.state = PROGRESS_UPDATE;
-	}
+
 	/* Cut the corrupted, unrecoverable parts of the tree off. */ 	
 	res = reiser4_tree_down(fd->repair->fs->tree, 
 	    fd->repair->fs->tree->root, &hint, repair_filter_node_open,
 	    repair_filter_node_check,	    repair_filter_setup_traverse,
 	    repair_filter_update_traverse,  repair_filter_after_traverse);
 
-	if (fd->progress_handler) {
-	    progress.state = PROGRESS_END;
-	    fd->progress_handler(&progress);
-	}
-	 
+		 
 	if (res < 0)
 	    return res;
 	

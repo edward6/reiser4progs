@@ -21,20 +21,28 @@
 
 extern aal_gauge_t *current_gauge;
 
-extern void gauge_embedded(aal_gauge_t *gauge);
-extern void gauge_percentage(aal_gauge_t *gauge);
+extern void gauge_tree(aal_gauge_t *gauge);
+extern void gauge_rate(aal_gauge_t *gauge);
 extern errno_t gauge_handler(repair_progress_t *progress);
 
-typedef struct gauge_percentage_hint {
-    uint64_t displayed, done, total;
+typedef struct gauge_rate_hint {
+    repair_progress_rate_t *rate;
     uint64_t speed;
+} gauge_rate_hint_t;
+
+typedef struct gauge_tree_hint {
+    aal_list_t *tree;
+} gauge_tree_hint_t;
+
+typedef struct gauge_hint {
     time_t start_time, displayed_time;
-} gauge_percentage_hint_t;
+    uint8_t percent;
+    union {
+	gauge_rate_hint_t rate_hint;
+	gauge_tree_hint_t tree_hint;
+    } u;
+} gauge_hint_t;
 
-typedef struct gauge_embedded_hint {
-    uint64_t done, total;
-} gauge_embedded_hint_t;
-
-#define GAUGE_EMBEDDED	GAUGE_LAST
+#define GAUGE_TREE	GAUGE_LAST
 
 #endif
