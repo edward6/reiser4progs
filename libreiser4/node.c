@@ -482,13 +482,15 @@ lookup_t reiser4_node_lookup(
 
 	POS_INIT(pos, 0, ~0ul);
 
-	/* Calling node plugin */
+	/* Calling node plugin lookup() method */
 	switch ((res = plugin_call(node->entity->plugin->o.node_ops,
 				   lookup, node->entity, key, pos)))
 	{
 	case ABSENT:
 		if (pos->item == 0)
 			return ABSENT;
+		
+		break;
 	default:
 		return res;
 	}
