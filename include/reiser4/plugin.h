@@ -567,8 +567,8 @@ struct reiser4_key_ops {
 	reiser4_plugin_header_t h;
 
 	/* 
-	   Cleans key up. Actually it just memsets it by zeros, but more smart
-	   behavior may be implemented.
+	  Cleans key up. Actually it just memsets it by zeros, but more smart
+	  behavior may be implemented.
 	*/
 	void (*clean) (key_entity_t *);
 
@@ -587,6 +587,9 @@ struct reiser4_key_ops {
 	/* Compares two keys by comparing its all components */
 	int (*compare) (key_entity_t *, key_entity_t *);
 
+	/* Functions for determining is key long */
+	int (*tall) (key_entity_t *);
+
 	/* Copyies src key to dst one */
 	errno_t (*assign) (key_entity_t *, key_entity_t *);
 
@@ -594,8 +597,7 @@ struct reiser4_key_ops {
 	  Constructs key by three components without any shifts or something
 	  else. It may be used for building sttadata key by entry.
 	*/
-	errno_t (*construct) (key_entity_t *, uint64_t, uint64_t,
-			      uint64_t);
+	errno_t (*build_short) (key_entity_t *, uint64_t, uint64_t);
 	
 	/* Builds generic key (statdata, file body, etc) */
 	errno_t (*build_generic) (key_entity_t *, key_type_t,

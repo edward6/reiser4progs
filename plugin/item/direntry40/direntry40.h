@@ -30,60 +30,60 @@
 
 */
 
-/* Part of the key, the object, an entry points to. */
-struct objid40 {
-	d8_t locality[sizeof(d64_t)];
-	d8_t objectid[sizeof(d64_t)];
+/* Part of the key, the object, an entry points to */
+struct objid {
+	d8_t locality[8];
+	d8_t objectid[8];
 };
 
-typedef struct objid40 objid40_t;
+typedef struct objid objid_t;
 
-#define oid40_get_locality(oid)		    LE64_TO_CPU(*((d64_t *)(oid)->locality))
-#define oid40_set_locality(oid, val)	    (*(d64_t *)(oid)->locality) = CPU_TO_LE64(val)
+#define ob40_get_locality(oid)		    LE64_TO_CPU(*((d64_t *)(oid)->locality))
+#define ob40_set_locality(oid, val)	    (*(d64_t *)(oid)->locality) = CPU_TO_LE64(val)
 
-#define oid40_get_objectid(oid)		    LE64_TO_CPU(*((d64_t *)(oid)->objectid))
-#define oid40_set_objectid(oid, val)	    (*(d64_t *)(oid)->objectid) = CPU_TO_LE64(val)
+#define ob40_get_objectid(oid)		    LE64_TO_CPU(*((d64_t *)(oid)->objectid))
+#define ob40_set_objectid(oid, val)	    (*(d64_t *)(oid)->objectid) = CPU_TO_LE64(val)
 
 
 /* Part of the key, describing the entry. */
-struct entryid40 {
-	d8_t objectid[sizeof(d64_t)];	    
-	d8_t offset[sizeof(d64_t)];
+struct hash {
+	d8_t objectid[8];
+	d8_t offset[8];
 };
 
-typedef struct entryid40 entryid40_t;
+typedef struct hash hash_t;
 
-#define eid40_get_objectid(eid)		    LE64_TO_CPU(*((d64_t *)(eid)->objectid))
-#define eid40_set_objectid(eid, val)	    (*(d64_t *)(eid)->objectid) = CPU_TO_LE64(val)
+#define ha40_get_objectid(eid)		    LE64_TO_CPU(*((d64_t *)(eid)->objectid))
+#define ha40_set_objectid(eid, val)	    (*(d64_t *)(eid)->objectid) = CPU_TO_LE64(val)
 
-#define eid40_get_offset(eid)		    LE64_TO_CPU(*((d64_t *)(eid)->offset))
-#define eid40_set_offset(eid, val)	    (*(d64_t *)(eid)->offset) = CPU_TO_LE64(val)
+#define ha40_get_offset(eid)		    LE64_TO_CPU(*((d64_t *)(eid)->offset))
+#define ha40_set_offset(eid, val)	    (*(d64_t *)(eid)->offset) = CPU_TO_LE64(val)
 
 struct entry40 {
-	entryid40_t entryid;		    /* unit's part of key - hash for key40 */
-	d16_t offset;			    /* offset within the direntry40 item. */
+	hash_t hash;
+	d16_t offset;
 };
 
 typedef struct entry40 entry40_t;
 
 struct direntry40 {
-	d16_t count;			    /* unit count. */
-	entry40_t entry[0];		    /* unit headers. */
+	d16_t units;
+	entry40_t entry[0];
 };
 
 typedef struct direntry40 direntry40_t;
 
-#define de40_get_count(de)		    aal_get_le16((de), count)
-#define de40_set_count(de, val)		    aal_set_le16((de), count, val)
+#define de40_get_units(de)		    aal_get_le16((de), units)
+#define de40_set_units(de, val)		    aal_set_le16((de), units, val)
+
+#define de40_inc_units(de, val) \
+        de40_set_units(de, (de40_get_units(de) + val))
+
+#define de40_dec_units(de, val) \
+        de40_set_units(de, (de40_get_units(de) - val))
 
 #define en40_get_offset(en)		    aal_get_le16((en), offset)
 #define en40_set_offset(en, val)	    aal_set_le16((en), offset, val)
-
-#define de40_inc_count(de, val) \
-        de40_set_count(de, (de40_get_count(de) + val))
-
-#define de40_dec_count(de, val) \
-        de40_set_count(de, (de40_get_count(de) - val))
 
 #define en40_inc_offset(de, val) \
         en40_set_offset(de, (en40_get_offset(de) + val))

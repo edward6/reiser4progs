@@ -56,8 +56,8 @@ int aux_bin_search(
 }
 
 /* Parse standard unix path function */
-errno_t aux_parse_path(const char *path, aux_pre_parse_t pre_func,
-		       aux_post_parse_t post_func, void *data)
+errno_t aux_parse_path(const char *path, aux_pre_entry_t pre_func,
+		       aux_post_entry_t post_func, void *data)
 {
 	char track[256];
 	char local[256];
@@ -98,3 +98,43 @@ errno_t aux_parse_path(const char *path, aux_pre_parse_t pre_func,
 
 	return 0;
 }
+
+/*
+  Packing string into uint64_t value. This is used by key40 plugin for creating
+  entry keys.
+*/
+uint64_t aux_pack_string(char *buff, 
+			 uint32_t start)
+{
+	unsigned i;
+	uint64_t value = 0;
+
+	for (i = 0; (i < sizeof(value) - start) &&
+		     buff[i]; ++i)
+	{
+		value <<= 8;
+		value |= (unsigned char)buff[i];
+	}
+	
+	return (value <<= (sizeof(value) - i - start) << 3);
+}
+
+/*
+  Extracts the part of string from the 64bits value it was packed to. This
+  function is needed in direntry40 plugin for unpacking keys of short entries.
+*/
+char *aux_unpack_string(uint64_t value,
+			char *buff)
+{
+	do {
+		*buff = value >> (64 - 8);
+		if (*buff)
+			buff++;
+		value <<= 8;
+		
+	} while (value != 0);
+
+	*buff = '\0';
+	return buff; 
+}
+

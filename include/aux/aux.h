@@ -11,17 +11,20 @@
 #include <aal/aal.h>
 
 /* Path parsing stuff */
-typedef errno_t (*aux_pre_parse_t) (char *, char *, void *);
-typedef errno_t (*aux_post_parse_t) (char *, char *, void *);
+typedef errno_t (*aux_pre_entry_t) (char *, char *, void *);
+typedef errno_t (*aux_post_entry_t) (char *, char *, void *);
 
-extern errno_t aux_parse_path(const char *path, aux_pre_parse_t pre_func,
-			      aux_post_parse_t post_func, void *data);
+extern errno_t aux_parse_path(const char *path, aux_pre_entry_t pre_func,
+			      aux_post_entry_t post_func, void *data);
 
 /* Binary search stuff */
 typedef int (*aux_comp_func_t) (void *, uint32_t, void *, void *);
 
 extern int aux_bin_search(void *array, uint32_t count, void *needle,
 			  aux_comp_func_t comp_func, void *, uint64_t *pos);
+
+extern uint64_t aux_pack_string(char *buff, uint32_t start);
+extern char *aux_unpack_string(uint64_t value, char *buff);
 
 #endif
 

@@ -419,8 +419,8 @@ static errno_t callback_process_place(
 
 /* Links @child to @file if it is a directory */
 errno_t reiser4_file_link(reiser4_file_t *file,
-			 reiser4_file_t *child,
-			 const char *name)
+			  reiser4_file_t *child,
+			  const char *name)
 {
 	reiser4_entry_hint_t entry_hint;
 	

@@ -13,158 +13,30 @@ static reiser4_core_t *core = NULL;
   Returns pointer to the objectid entry component in passed @direntry at pased
   @pos. It is used in code bellow.
 */
-static inline objid40_t *direntry40_unit(direntry40_t *direntry, 
-					 uint32_t pos)
+static inline objid_t *direntry40_objid(direntry40_t *direntry,
+					uint32_t pos)
 {
 	uint32_t offset = direntry->entry[pos].offset;
-	return (objid40_t *)((void *)direntry + offset);
+	return (objid_t *)((void *)direntry + offset);
 }
 
 /* Retutns statdata key of the file entry points to */
-static errno_t direntry40_unit_key(item_entity_t *item,
-				   uint32_t pos,
-				   key_entity_t *key)
+static errno_t direntry40_get_obj(item_entity_t *item,
+				  uint32_t pos,
+				  key_entity_t *key)
 {
-	uint64_t locality;
-	uint64_t objectid;
-
-	objid40_t *objid;
+	objid_t *objid;
 	direntry40_t *direntry;
-	reiser4_plugin_t *plugin;
 	
 	direntry = direntry40_body(item);
-	objid = direntry40_unit(direntry, pos);
+	objid = direntry40_objid(direntry, pos);
 	
-	objectid = oid40_get_objectid(objid);
-	locality = oid40_get_locality(objid);
-
 	/* Building key by means of using key plugin */
 	key->plugin = item->key.plugin;
 	
-	return plugin_call(key->plugin->key_ops, construct,
-			   key, locality, objectid, 0);
-}
-
-/* Returns pointer to entry at passed @pos */
-static inline entry40_t *direntry40_entry(direntry40_t *direntry, 
-					  uint32_t pos)
-{
-	return &direntry->entry[pos];
-}
-
-/* Retutns TRUE if passed name is long and can't fit into objectid */
-#define OID_CHARS (sizeof(uint64_t) - 1)
-
-static inline int direntry40_name_long(char *name) {
-	return (aal_strlen(name) > OID_CHARS + sizeof(uint64_t));
-}
-
-/* The same as previous function but works on entry */
-static inline int direntry40_entry_long(direntry40_t *direntry,
-					entry40_t *entry)
-{
-	uint64_t objectid = eid40_get_objectid(&entry->entryid);
-	return (objectid & 0x0100000000000000ull) ? 1 : 0;
-}
-
-#ifndef ENABLE_ALONE
-
-/*
-  Calculates entry length. This function is widely used in shift code and
-  modification code.
-*/
-static inline uint32_t direntry40_entry_len(direntry40_t *direntry,
-					    entry40_t *entry)
-{
-	uint32_t len;
-	objid40_t *objid;
-
-	/* Counting objectid size */
-	len = sizeof(objid40_t);
-
-	/*
-	  If entry contains long name it is stored just after objectid.
-	  Otherwise, entry name is stored in objectid and offset of the
-	  entry. This trick saves a lot of space in directories, because the
-	  average name is shorter than 15 symbols.
-	*/
-	if (direntry40_entry_long(direntry, entry)) {
-
-		/* Counting name length too */
-		objid = (objid40_t *)((void *)direntry +
-				      entry->offset);
-		
-		len += aal_strlen((char *)(objid + 1)) + 1;
-	}
-	
-	return len;
-}
-
-#endif
-
-/* Extracts the part of entry name from the 64bits value it was packed to */
-static char *direntry40_unpack_string(uint64_t value, char *buff) {
-	do {
-		*buff = value >> (64 - 8);
-		if (*buff)
-			buff++;
-		value <<= 8;
-		
-	} while (value != 0);
-
-	*buff = '\0';
-	return buff; 
-}
-
-/* Extracts entry name from the passed @entry to passed @buff */
-static char *direntry40_entry_name(direntry40_t *direntry,
-				   entry40_t *entry, char *buff)
-{
-	char *cont;
-	uint64_t offset;
-	objid40_t *objid;
-	uint64_t objectid;
-
-	objid = (objid40_t *)((void *)direntry +
-			      entry->offset);
-
-	/*
-	  If name is long, we just copy it from the area after
-	  objectid. Otherwise we extract it from the entry hash.
-	*/
-	if (direntry40_entry_long(direntry, entry)) {
-		char *name = (char *)(objid + 1);
-		uint32_t len = aal_strlen(name);
-		
-		aal_strncpy(buff, name, len);
-		*(buff + len) = '\0';
-	} else {
-		objectid = (eid40_get_objectid(&entry->entryid) &
-			    ~0x0100000000000000ull);
-		
-		offset = eid40_get_offset(&entry->entryid);
-
-		/* Special case, handling "." entry */
-		if (objectid == 0ull && offset == 0ull) {
-			*buff = '.';
-			*(buff + 1) = '\0';
-		} else {
-			cont = direntry40_unpack_string(objectid, buff);
-			direntry40_unpack_string(offset, cont);
-		}
-	}
-
-	return buff;
-}
-
-/* Returns the number of usets passed direntry item contains */
-static uint32_t direntry40_units(item_entity_t *item) {
-	direntry40_t *direntry;
-    
-	aal_assert("umka-865", item != NULL);
-
-	direntry = direntry40_body(item);
-	return de40_get_count(direntry);
+	return plugin_call(key->plugin->key_ops, build_short,
+			   key, ob40_get_locality(objid),
+			   ob40_get_objectid(objid));
 }
 
 /*
@@ -175,31 +47,27 @@ static errno_t direntry40_get_key(item_entity_t *item,
 				  uint32_t pos,
 				  key_entity_t *key)
 {
-	uint64_t offset;
 	roid_t locality;
 	roid_t objectid;
+	uint64_t offset;
 
-	uint32_t units;
 	entry40_t *entry;
 	direntry40_t *direntry;
 
 	aal_assert("umka-1606", key != NULL);
 	aal_assert("umka-1607", item != NULL);
 	aal_assert("umka-1605", item->body != NULL);
-
-	direntry = direntry40_body(item);
-	units = direntry40_units(item);
 	
-	aal_assert("umka-1647", pos < units);
-	entry = direntry40_entry(direntry40_body(item), pos);
+	direntry = direntry40_body(item);
+	entry = &direntry->entry[pos];
 
 	/* Getting item key params */
 	locality = plugin_call(item->key.plugin->key_ops,
 			       get_locality, &item->key);
 
 	/* Getting entry key params */
-	objectid = *((uint64_t *)&entry->entryid);
-	offset = *((uint64_t *)&entry->entryid + 1);
+	offset = ha40_get_offset(&entry->hash);
+	objectid = ha40_get_objectid(&entry->hash);
 
 	/* Building the full key */
 	key->plugin = item->key.plugin;
@@ -210,13 +78,111 @@ static errno_t direntry40_get_key(item_entity_t *item,
 	return 0;
 }
 
+/* Extracts entry name from the passed @entry to passed @buff */
+static char *direntry40_get_name(item_entity_t *item,
+				 uint32_t pos, char *buff)
+{
+	char *name;
+	objid_t *objid;
+
+	key_entity_t key;
+	direntry40_t *direntry;
+
+	direntry = direntry40_body(item);
+	
+	objid = direntry40_objid(direntry, pos);
+	direntry40_get_key(item, pos, &key);
+
+	/*
+	  If name is long, we just copy it from the area after
+	  objectid. Otherwise we extract it from the entry hash.
+	*/
+	if (plugin_call(key.plugin->key_ops, tall, &key)) {
+		uint32_t len;
+		
+		name = (char *)(objid + 1);
+		len = aal_strlen(name);
+		
+		aal_strncpy(buff, name, len);
+		*(buff + len) = '\0';
+	} else {
+		uint64_t offset;
+		uint64_t objectid;
+		
+		offset = plugin_call(key.plugin->key_ops,
+				     get_offset, &key);
+		
+		objectid = plugin_call(key.plugin->key_ops,
+				       get_objectid, &key);
+		
+		/* Special case, handling "." entry */
+		if (objectid == 0ull && offset == 0ull) {
+			*buff = '.';
+			*(buff + 1) = '\0';
+		} else {
+			name = aux_unpack_string(objectid, buff);
+			aux_unpack_string(offset, name);
+		}
+	}
+
+	return buff;
+}
+
+#ifndef ENABLE_ALONE
+
+/*
+  Calculates entry length. This function is widely used in shift code and
+  modification code.
+*/
+static inline uint32_t direntry40_get_len(item_entity_t *item,
+					  uint32_t pos)
+{
+	uint32_t len;
+	key_entity_t key;
+
+	/* Counting objid size */
+	len = sizeof(objid_t);
+
+	/* Getting entry key */
+	direntry40_get_key(item, pos, &key);
+	
+	/*
+	  If entry contains long name it is stored just after objectid.
+	  Otherwise, entry name is stored in objectid and offset of the
+	  entry. This trick saves a lot of space in directories, because the
+	  average name is shorter than 15 symbols.
+	*/
+	if (plugin_call(key.plugin->key_ops, tall, &key)) {
+		objid_t *objid;
+		direntry40_t *direntry;
+		
+		/* Counting entry name */
+		direntry = direntry40_body(item);
+		objid = direntry40_objid(direntry, pos);
+		
+		len += aal_strlen((char *)(objid + 1)) + 1;
+	}
+	
+	return len;
+}
+
+#endif
+
+/* Returns the number of usets passed direntry item contains */
+static uint32_t direntry40_units(item_entity_t *item) {
+	direntry40_t *direntry;
+    
+	aal_assert("umka-865", item != NULL);
+
+	direntry = direntry40_body(item);
+	return de40_get_units(direntry);
+}
+
 /* Reads @count of the entries starting from @pos into passed @buff */
 static int32_t direntry40_read(item_entity_t *item, void *buff,
 			       uint32_t pos, uint32_t count)
 {
 	uint32_t i;
-	reiser4_plugin_t *plugin;
-
 	direntry40_t *direntry;
 	reiser4_entry_hint_t *hint;
     
@@ -224,27 +190,24 @@ static int32_t direntry40_read(item_entity_t *item, void *buff,
 	aal_assert("umka-1418", buff != NULL);
     
 	hint = (reiser4_entry_hint_t *)buff;
-	
 	aal_assert("umka-1599", hint != NULL);
 	
 	if (!(direntry = direntry40_body(item)))
 		return -1;
 
 	aal_assert("umka-1608", direntry != NULL);
-	aal_assert("umka-1598", pos < de40_get_count(direntry));
+	aal_assert("umka-1598", pos < de40_get_units(direntry));
 
+	/* Check if count is valid one */
 	if (count > direntry40_units(item) - pos)
 		count = direntry40_units(item) - pos;
 
-	plugin = item->key.plugin;
-		
 	for (i = pos; i < pos + count; i++, hint++) {
-		entry40_t *entry = direntry40_entry(direntry, i);
+		entry40_t *entry = &direntry->entry[i];
 
+		direntry40_get_obj(item, i, &hint->object);
 		direntry40_get_key(item, i, &hint->offset);
-		direntry40_entry_name(direntry, entry, hint->name);
-
-		direntry40_unit_key(item, i, &hint->object);
+		direntry40_get_name(item, i, hint->name);
 	}
     
 	return i - pos;
@@ -274,8 +237,11 @@ static int direntry40_mergeable(item_entity_t *item1,
 	  Items mergeable if they have the same locality, that is oid of the
 	  directory they belong to.
 	*/
-	locality1 = plugin_call(plugin->key_ops, get_locality, &item1->key);
-	locality2 = plugin_call(plugin->key_ops, get_locality, &item2->key);
+	locality1 = plugin_call(plugin->key_ops, get_locality,
+				&item1->key);
+	
+	locality2 = plugin_call(plugin->key_ops, get_locality,
+				&item2->key);
 
 	return (locality1 == locality2);
 }
@@ -301,10 +267,21 @@ static errno_t direntry40_estimate(item_entity_t *item, void *buff,
 	hint->len = count * sizeof(entry40_t);
     
 	for (i = 0; i < count; i++, entry_hint++) {
-		hint->len += sizeof(objid40_t);
+		hint->len += sizeof(objid_t);
 
-		if (direntry40_name_long(entry_hint->name))
+		/*
+		  Calling key plugin for in odrer to find out is passed name is
+		  long one or not.
+		*/
+		if (plugin_call(hint->key.plugin->key_ops,
+				tall, &entry_hint->offset))
+		{
+			/*
+			  Okay, name is long, so we need add its length to
+			  estimated length.
+			*/
 			hint->len += aal_strlen(entry_hint->name) + 1;
+		}
 	}
 
 	/*
@@ -327,18 +304,18 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 				  item_entity_t *dst_item,
 				  shift_hint_t *hint)
 {
-	uint32_t cur;
+	uint32_t curr;
 	uint32_t flags;
 	uint32_t src_units;
 	uint32_t dst_units;
 	uint32_t space, len;
-
-	entry40_t *entry;
 	direntry40_t *direntry;
 	
 	aal_assert("umka-1591", src_item != NULL);
 	aal_assert("umka-1592", hint != NULL);
 
+	direntry = direntry40_body(src_item);
+	
 	src_units = direntry40_units(src_item);
 	dst_units = dst_item ? direntry40_units(dst_item) : 0;
 
@@ -349,21 +326,19 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 	  so we should count its overhead.
 	*/
 	if (hint->create) {
-		
 		if (space < sizeof(direntry40_t))
 			return 0;
 		
 		space -= sizeof(direntry40_t);
 	}
 
-	cur = (hint->control & SF_LEFT ? 0 : src_units - 1);
+	curr = (hint->control & SF_LEFT ? 0 : src_units - 1);
 	
-	if (!(direntry = direntry40_body(src_item)))
-		return -1;
-
 	flags = hint->control;
 	
-	while (!(hint->result & SF_MOVIP) && cur < direntry40_units(src_item)) {
+	while (!(hint->result & SF_MOVIP) &&
+	       curr < direntry40_units(src_item))
+	{
 
 		int check = (src_item->pos.item == hint->pos.item &&
 			     hint->pos.unit != ~0ul);
@@ -385,13 +360,11 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 			}
 		}
 
-		entry = direntry40_entry(direntry, cur);
-			
 		/*
 		  Check is we have enough free space for shifting one more unit
 		  from src item to dst item.
 		*/
-		len = direntry40_entry_len(direntry, entry);
+		len = direntry40_get_len(src_item, curr);
 
 		if (space < len + sizeof(entry40_t))
 			break;
@@ -451,7 +424,7 @@ static errno_t direntry40_predict(item_entity_t *src_item,
 		dst_units++;
 		hint->units++;
 
-		cur += (flags & SF_LEFT ? 1 : -1);
+		curr += (flags & SF_LEFT ? 1 : -1);
 		space -= (len + sizeof(entry40_t));
 	}
 
@@ -491,8 +464,8 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 	if (!(dst_direntry = direntry40_body(dst_item)))
 		return -1;
 
-	src_units = de40_get_count(src_direntry);
-	dst_units = de40_get_count(dst_direntry);
+	src_units = de40_get_units(src_direntry);
+	dst_units = de40_get_units(dst_direntry);
 	
 	aal_assert("umka-1604", src_units >= hint->units);
 
@@ -518,7 +491,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			aal_memmove(dst, src, dst_len);
 
 			/* Updating offsets of dst direntry */
-			entry = direntry40_entry(dst_direntry, 0);
+			entry = &dst_direntry->entry[0];
 
 			for (i = 0; i < dst_units; i++, entry++)
 				en40_inc_offset(entry, headers);
@@ -544,11 +517,14 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 
 		/* Updating offset of dst direntry */
 		offset = dst - (void *)dst_direntry;
-		entry = direntry40_entry(dst_direntry, dst_units);
+
+		entry = &dst_direntry->entry[dst_units];
 			
 		for (i = 0; i < hint->units; i++, entry++) {
 			en40_set_offset(entry, offset);
-			offset += direntry40_entry_len(dst_direntry, entry);
+			
+			offset += direntry40_get_len(dst_item,
+						     dst_units + i);
 		}
 
 		if (src_units > hint->units) {
@@ -574,7 +550,7 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			aal_memmove(dst, src, size);
 			
 			/* Updating offsets of src direntry */
-			entry = direntry40_entry(src_direntry, 0);
+			entry = &src_direntry->entry[0];
 			
 			for (i = 0; i < src_units - hint->units; i++, entry++)
 				en40_dec_offset(entry, hint->rest);
@@ -627,12 +603,12 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 		aal_memcpy(dst, src, size);
 
 		/* Updating offset of dst direntry */
-		entry = direntry40_entry(dst_direntry, 0);
+		entry = &dst_direntry->entry[0];
 		offset = dst - (void *)dst_direntry;
 		
 		for (i = 0; i < hint->units; i++, entry++) {
 			en40_set_offset(entry, offset);
-			offset += direntry40_entry_len(dst_direntry, entry);
+			offset += direntry40_get_len(dst_item, i);
 		}
 
 		if (src_units > hint->units) {
@@ -649,26 +625,22 @@ static errno_t direntry40_shift(item_entity_t *src_item,
 			aal_memmove(dst, src, size);
 
 			/* Updating offsets of src direntry */
-			entry = direntry40_entry(src_direntry, 0);
+			entry = &src_direntry->entry[0];
 			
 			for (i = 0; i < src_units - hint->units; i++, entry++)
 				en40_dec_offset(entry, headers);
 		}
 	}
 
-	de40_inc_count(dst_direntry, hint->units);
-	de40_dec_count(src_direntry, hint->units);
+	de40_inc_units(dst_direntry, hint->units);
+	de40_dec_units(src_direntry, hint->units);
 
 	/* Updating items key */
 	if (hint->control & SF_LEFT) {
-		if (de40_get_count(src_direntry) > 0) {
-			if (direntry40_get_key(src_item, 0, &src_item->key))
-				return -1;
-		}
-	} else {
-		if (direntry40_get_key(dst_item, 0, &dst_item->key))
-			return -1;
-	}
+		if (de40_get_units(src_direntry) > 0)
+			direntry40_get_key(src_item, 0, &src_item->key);
+	} else
+		direntry40_get_key(dst_item, 0, &dst_item->key);
 	
 	return 0;
 }
@@ -684,18 +656,19 @@ static uint32_t direntry40_size(item_entity_t *item,
 		return 0;
 	
 	direntry = direntry40_body(item);
-	entry_start = direntry40_entry(direntry, pos);
+	entry_start = &direntry->entry[pos];
 
-	if (pos + count < de40_get_count(direntry)) {
-		entry_end = direntry40_entry(direntry, pos + count);
+	if (pos + count < de40_get_units(direntry)) {
+		entry_end = &direntry->entry[pos + count];
 
 		return en40_get_offset(entry_end) -
 			en40_get_offset(entry_start);
 	} else {
-		entry_end = direntry40_entry(direntry, pos + count - 1);
+		entry_end = &direntry->entry[pos + count - 1];
 
-		return direntry40_entry_len(direntry, entry_end) +
-			(en40_get_offset(entry_end) - en40_get_offset(entry_start));
+		return direntry40_get_len(item, pos + count - 1) +
+			(en40_get_offset(entry_end) -
+			 en40_get_offset(entry_start));
 	}
 }
 
@@ -715,7 +688,7 @@ static int32_t direntry40_shrink(item_entity_t *item,
 	aal_assert("umka-1959", item != NULL);
 	
 	direntry = direntry40_body(item);
-	units = de40_get_count(direntry);
+	units = de40_get_units(direntry);
 	
 	aal_assert("umka-1681", pos < units);
 
@@ -739,11 +712,11 @@ static int32_t direntry40_shrink(item_entity_t *item,
 	remove = direntry40_size(item, pos, count);
 
 	/* Moving headers and first part of bodies (before passed @pos) */
-	entry = direntry40_entry(direntry, pos);
+	entry = &direntry->entry[pos];
 	aal_memmove(entry, entry + count, first);
 
 	/* Setting up the entry offsets */
-	entry = direntry40_entry(direntry, 0);
+	entry = &direntry->entry[0];
 	
 	for (i = 0; i < pos; i++, entry++)
 		en40_dec_offset(entry, headers);
@@ -755,7 +728,7 @@ static int32_t direntry40_shrink(item_entity_t *item,
 	if (second > 0) {
 		void *src, *dst;
 
-		entry = direntry40_entry(direntry, pos);
+		entry = &direntry->entry[pos];
 
 		src = (void *)direntry +
 			en40_get_offset(entry);
@@ -766,12 +739,12 @@ static int32_t direntry40_shrink(item_entity_t *item,
 
 		/* Setting up entry offsets */
 		for (i = pos; i < units - count; i++) {
-			entry = direntry40_entry(direntry, i);
+			entry = &direntry->entry[i];
 			en40_dec_offset(entry, (headers + remove));
 		}
 	}
 	
-	de40_dec_count(direntry, count);
+	de40_dec_units(direntry, count);
 	return (remove + headers);
 }
 
@@ -795,7 +768,7 @@ static int32_t direntry40_expand(item_entity_t *item, uint32_t pos,
 	aal_assert("umka-1723", item != NULL);
 
 	direntry = direntry40_body(item);
-	units = de40_get_count(direntry);
+	units = de40_get_units(direntry);
 	headers = count * sizeof(entry40_t);
 
 	aal_assert("umka-1722", pos <= units);
@@ -806,12 +779,13 @@ static int32_t direntry40_expand(item_entity_t *item, uint32_t pos,
 	*/
 	if (units > 0) {
 		if (pos < units) {
-			entry = direntry40_entry(direntry, pos);
+			entry = &direntry->entry[pos];
 			offset = en40_get_offset(entry) + headers;
 		} else {
-			entry = direntry40_entry(direntry, units - 1);
+			entry = &direntry->entry[units - 1];
+			
 			offset = en40_get_offset(entry) + sizeof(entry40_t) +
-				direntry40_entry_len(direntry, entry);
+				direntry40_get_len(item, units - 1);
 		}
 	} else
 		offset = sizeof(direntry40_t) + headers;
@@ -824,13 +798,13 @@ static int32_t direntry40_expand(item_entity_t *item, uint32_t pos,
 	second = direntry40_size(item, pos, units - pos);
 	
 	/* Updating offset of entries which lie before insert point */
-	entry = direntry40_entry(direntry, 0);
+	entry = &direntry->entry[0];
 	
 	for (i = 0; i < pos; i++, entry++)
 		en40_inc_offset(entry, headers);
     
 	/* Updating offset of entries which lie after insert point */
-	entry = direntry40_entry(direntry, pos);
+	entry = &direntry->entry[pos];
 	
 	for (i = pos; i < units; i++, entry++)
 		en40_inc_offset(entry, len);
@@ -848,7 +822,7 @@ static int32_t direntry40_expand(item_entity_t *item, uint32_t pos,
     
 	/* Moving unit headers if it is needed */
 	if (first) {
-		src = direntry40_entry(direntry, pos);
+		src = &direntry->entry[pos];
 		dst = src + (count * sizeof(entry40_t));
 		aal_memmove(dst, src, first);
 	}
@@ -888,57 +862,49 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	}
 	
 	/* Creating new entries */
-	entry = direntry40_entry(direntry, pos);
+	entry = &direntry->entry[pos];
 		
 	for (i = 0; i < count; i++, entry++, entry_hint++) {
-		objid40_t *objid;
-		entryid40_t *entid;
-		
-		uint64_t oid, loc, off;
+		hash_t *entid;
+		objid_t *objid;
 
 		key_entity_t *hash;
 		key_entity_t *object;
+		uint64_t oid, loc, off;
 
-		entid = (entryid40_t *)&entry->entryid;
-		objid = (objid40_t *)((void *)direntry + offset);
+		entid = (hash_t *)&entry->hash;
+
+		objid = (objid_t *)((void *)direntry +
+				    offset);
 		
 		/* Setting up the offset of new entry */
 		en40_set_offset(entry, offset);
-
 		hash = &entry_hint->offset;
 		
 		/* Creating proper entry identifier (hash) */
 		oid = plugin_call(hash->plugin->key_ops,
 				  get_objectid, hash);
 		
-		eid40_set_objectid(entid, oid);
+		ha40_set_objectid(entid, oid);
 
 		off = plugin_call(hash->plugin->key_ops,
 				  get_offset, hash);
 
-		eid40_set_offset(entid, off);
-
-		/* Creating stat data key of the object, entry will point to */
-		object = &entry_hint->object;
-
-		loc = plugin_call(object->plugin->key_ops,
-				  get_locality, object);
-
-		oid40_set_locality(objid, loc);
-
-		oid = plugin_call(object->plugin->key_ops,
-				  get_objectid, object);
-		
-		oid40_set_objectid(objid, oid);
-
-		offset += sizeof(objid40_t);
+		ha40_set_offset(entid, off);
 
 		/*
-		  If entry name is lesser than key can hold (15 symbols), then
-		  entry name will be stored separately. If no, then entry name
-		  will be stored in entry key.
+		  FIXME-UMKA: Here should be more convenient way to setup entry
+		  key. This is somehow hardcoded.
 		*/
-		if (direntry40_name_long(entry_hint->name)) {
+		object = &entry_hint->object;
+		aal_memcpy(objid, object->body, sizeof(*objid));
+
+		offset += sizeof(objid_t);
+
+		/* If key is long one we also count name length */
+		if (plugin_call(item->key.plugin->key_ops,
+				tall, &entry_hint->offset))
+		{
 			uint32_t len = aal_strlen(entry_hint->name);
 
 			aal_memcpy((void *)direntry + offset,
@@ -951,16 +917,14 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 	}
 	
 	/* Updating direntry count field */
-	de40_inc_count(direntry, count);
+	de40_inc_units(direntry, count);
 
 	/*
 	  Updating item key by unit key if the first unit was changed. It is
 	  needed for corrent updating left delimiting keys.
 	*/
-	if (pos == 0) {
-		if (direntry40_get_key(item, 0, &item->key))
-			return -1;
-	}
+	if (pos == 0)
+		direntry40_get_key(item, 0, &item->key);
     
 	return count;
 }
@@ -986,10 +950,8 @@ int32_t direntry40_remove(item_entity_t *item,
 	}
 
 	/* Updating item key */
-	if (pos == 0 && de40_get_count(direntry) > 0) {
-		if (direntry40_get_key(item, 0, &item->key))
-			return -1;
-	}
+	if (pos == 0 && de40_get_units(direntry) > 0)
+		direntry40_get_key(item, 0, &item->key);
 
 	return len;
 }
@@ -1007,47 +969,48 @@ static errno_t direntry40_print(item_entity_t *item,
 				aal_stream_t *stream,
 				uint16_t options) 
 {
+	char name[256];
 	uint32_t i, width;
 	direntry40_t *direntry;
-
-	char name[256];
-	uint64_t objid, offset;
 	uint64_t locality, objectid;
 	
 	aal_assert("umka-548", item != NULL);
 	aal_assert("umka-549", stream != NULL);
 
-	if (!(direntry = direntry40_body(item)))
-		return -1;
+	direntry = direntry40_body(item);
 	
-	aal_stream_format(stream, "DIRENTRY: len=%u, KEY: ", item->len);
+	aal_stream_format(stream, "DIRENTRY: len=%u, KEY: ",
+			  item->len);
 		
-	if (plugin_call(item->key.plugin->key_ops, print, &item->key,
-			stream, options))
+	if (plugin_call(item->key.plugin->key_ops, print,
+			&item->key, stream, options))
 		return -1;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
-			  item->plugin->h.id, item->plugin->h.label);
+			  item->plugin->h.id,
+			  item->plugin->h.label);
 	
-	aal_stream_format(stream, "count:\t\t%u\n", de40_get_count(direntry));
+	aal_stream_format(stream, "units:\t\t%u\n",
+			  de40_get_units(direntry));
 
 	/* Loop though the all entries */
-	for (i = 0; i < de40_get_count(direntry); i++) {
+	for (i = 0; i < de40_get_units(direntry); i++) {
 		entry40_t *entry = &direntry->entry[i];
+		objid_t *objid = direntry40_objid(direntry, i);
 
-		objid = eid40_get_objectid(&entry->entryid);
-		offset = eid40_get_offset(&entry->entryid);
+		direntry40_get_name(item, i, name);
 
-		direntry40_entry_name(direntry, entry, name);
-
-		locality = *((uint64_t *)((void *)direntry + entry->offset));
+		locality = ob40_get_locality(objid);
+		objectid = ob40_get_objectid(objid);
 		
-		objectid = *((uint64_t *)((void *)direntry + entry->offset +
-					  sizeof(uint64_t)));
-
-		width = 30 > aal_strlen(name) ? 30 - aal_strlen(name) + 1 : 1;
-		aal_stream_format(stream, "%.7llx:%.7llx\t%s%*s%.16llx:%.16llx\n",
-				  locality, objectid, name, width, " ", objid, offset);
+		width = 30 > aal_strlen(name) ? 30 -
+			aal_strlen(name) + 1 : 1;
+		
+		aal_stream_format(stream, "%.7llx:%.7llx\t%s%*s"
+				  "%.16llx:%.16llx\n", locality,
+				  objectid, name, width, " ",
+				  ha40_get_objectid(&entry->hash),
+				  ha40_get_offset(&entry->hash));
 	}
 
 	return 0;
@@ -1099,7 +1062,7 @@ static errno_t direntry40_utmost_key(item_entity_t *item,
 	aal_assert("umka-1652", item->body != NULL);
 
 	direntry = direntry40_body(item);
-	units = de40_get_count(direntry);
+	units = de40_get_units(direntry);
 	
 	aal_assert("umka-1653", units > 0);
 	return direntry40_get_key(item, units - 1, key);
@@ -1119,10 +1082,10 @@ static inline int callback_comp_entry(void *array, uint32_t pos,
 	item = (item_entity_t *)data;
 	wanted = (key_entity_t *)key;
 	
-	if (direntry40_get_key(item, pos, &current))
-		return -1;
-    
-	return plugin_call(item->key.plugin->key_ops, compare, &current, wanted);
+	direntry40_get_key(item, pos, &current);
+	
+	return plugin_call(item->key.plugin->key_ops, compare,
+			   &current, wanted);
 }
 
 /* Performs lookup inside direntry. Found pos is stored in @pos */

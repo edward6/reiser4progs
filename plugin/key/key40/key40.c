@@ -247,22 +247,9 @@ static void key40_clean(key_entity_t *key) {
 	aal_memset(key->body, 0, sizeof(key40_t));
 }
 
-/* Packing string into uint64_t value */
-static uint64_t key40_pack_string(
-	const char *name, 
-	uint32_t start) 
-{
-	unsigned i;
-	uint64_t str;
-
-	str = 0;
-	for (i = 0; (i < sizeof(str) - start) && name[i]; ++i) {
-		str <<= 8;
-		str |= (unsigned char)name[i];
-	}
-	str <<= (sizeof(str) - i - start) << 3;
-    
-	return str;
+static int key40_tall(key_entity_t *key) {
+	uint64_t objectid = key40_get_objectid(key);
+	return (objectid & 0x0100000000000000ull) ? 1 : 0;
 }
 
 /* Builds hash of the passed @name by means of using a hash plugin */
@@ -283,7 +270,7 @@ static errno_t key40_build_hash(key_entity_t *key,
 		return 0;
     
 	/* Not dot, pack the first part of the name into objectid */
-	objectid = key40_pack_string(name, 1);
+	objectid = aux_pack_string((char *)name, 1);
     
 	if (len <= OID_CHARS + sizeof(uint64_t)) {
 		offset = 0ull;
@@ -293,7 +280,8 @@ static errno_t key40_build_hash(key_entity_t *key,
 			  Does not fit into objectid, pack the second part of
 			  the name into offset.
 			*/
-			offset = key40_pack_string(name + OID_CHARS, 0);
+			offset = aux_pack_string((char *)name +
+						 OID_CHARS, 0);
 		}
 	} else {
 
@@ -365,10 +353,9 @@ static errno_t key40_build_generic(key_entity_t *key,
 	return 0;
 }
 
-static errno_t key40_construct(key_entity_t *key,
-			       uint64_t locality,
-			       uint64_t objectid,
-			       uint64_t offset)
+static errno_t key40_build_short(key_entity_t *key,
+				 uint64_t locality,
+				 uint64_t objectid)
 {
 	key40_t *body;
 
@@ -377,12 +364,14 @@ static errno_t key40_construct(key_entity_t *key,
 	key40_clean(key);
     
 	body = (key40_t *)key->body;
-	
+
 	k40_set_locality(body, (locality & KEY40_LOCALITY_MASK) >>
 			 KEY40_LOCALITY_SHIFT);
-	
+
+	k40_set_minor(body, (locality & KEY40_TYPE_MASK));
+
+	k40_set_offset(body, 0);
 	k40_set_objectid(body, objectid);
-	k40_set_offset(body, offset);
 
 	return 0;
 }
@@ -424,11 +413,14 @@ static reiser4_plugin_t key40_plugin = {
 		.minimal	= key40_minimal,
 		.maximal	= key40_maximal,
 		.clean		= key40_clean,
+
 		.compare	= key40_compare,
+		.tall           = key40_tall,
 		
 #ifndef ENABLE_ALONE
 		.print		= key40_print,
 #endif
+		
 		.set_type	= key40_set_type,
 		.get_type	= key40_get_type,
 
@@ -444,9 +436,9 @@ static reiser4_plugin_t key40_plugin = {
 		.set_hash	= key40_set_hash,
 		.get_hash	= key40_get_hash,
 
-		.construct      = key40_construct,
-		.build_generic  = key40_build_generic,
-		.build_entry    = key40_build_entry
+		.build_short    = key40_build_short,
+		.build_entry    = key40_build_entry,
+		.build_generic  = key40_build_generic
 	}
 };
 

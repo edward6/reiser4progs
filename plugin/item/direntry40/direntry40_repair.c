@@ -43,8 +43,8 @@
 
 /* short name is all in the key, long is 16 + '\0' */
 #define NAME_LEN_MIN(kind)	(kind ? 16 + 1: 0)
-#define ENTRY_LEN_MIN(kind) 	(sizeof(objid40_t) + NAME_LEN_MIN(kind))
-#define UNIT_LEN_MIN(kind)	(sizeof(entry40_t) + ENTRY_LEN_MIN(kind))
+#define ENTRY_LEN_MIN(kind) 	(sizeof(objid_t) + NAME_LEN_MIN(kind))
+#define UNIT_LEN_MIN(kind)	(sizeof(hash_t) + ENTRY_LEN_MIN(kind))
 #define DENTRY_LEN_MIN		(UNIT_LEN_MIN(S_NAME) + sizeof(direntry40_t))
 
 #define de40_len_min(count)	((uint64_t)count * UNIT_LEN_MIN(S_NAME) + \
@@ -75,7 +75,7 @@ static errno_t direntry40_offset_check(item_entity_t *item, uint32_t pos) {
      * of keys of objects entries point to. */
     return pos != 0 ?
 	(offset < sizeof(direntry40_t) + sizeof(entry40_t) * (pos + 1) + 
-	    sizeof(objid40_t) * pos) :
+	    sizeof(objid_t) * pos) :
         (offset - sizeof(direntry40_t)) % (sizeof(entry40_t)) == 0;
 	
     /* If item was shorten, left entries should be recovered also. 
@@ -101,7 +101,7 @@ static uint32_t direntry40_count_estimate(item_entity_t *item, uint32_t pos) {
 
     return pos == 0 ?
 	(offset - sizeof(direntry40_t)) / sizeof(entry40_t) :
-        (offset - pos * sizeof(objid40_t) - sizeof(direntry40_t)) / 
+        (offset - pos * sizeof(objid_t) - sizeof(direntry40_t)) / 
 	    sizeof(entry40_t);
 }
 
@@ -188,7 +188,7 @@ static uint8_t direntry40_long_entry_detect(item_entity_t *item, uint32_t start_
 	
     while (l_limit < r_limit) {
 	offset = direntry40_name_end(item->body, 
-	    l_limit + sizeof(objid40_t), r_limit);
+	    l_limit + sizeof(objid_t), r_limit);
 	
 	if (offset == r_limit)
 	    return 0;
@@ -274,9 +274,9 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
 	/* If there was not any R offset, skip pair comparing. */
 	if (to_compare == ~0ul) {
 	    if ((i == 0) && (direntry40_count_estimate(item, i) == 
-		de40_get_count(de)))
+		de40_get_units(de)))
 	    {
-		count = de40_get_count(de);
+		count = de40_get_units(de);
 		aux_bitmap_mark(flags, R(i));
 	    }
 	    to_compare = i;
@@ -356,7 +356,7 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 	!aux_bitmap_test(flags, R(last)); last--) {}
     
     /* The last offset is correct, but the last entity was not checked yet. */
-    offset = direntry40_name_end(item->body, OFFSET(de, last) + sizeof(objid40_t),
+    offset = direntry40_name_end(item->body, OFFSET(de, last) + sizeof(objid_t),
 	item->len);
 
     /* If the last unit is valid also, count is the last + 1. */
@@ -394,16 +394,16 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 		sizeof(entry40_t) * count);
     }
     
-    if (e_count != de40_get_count(de)) {
+    if (e_count != de40_get_units(de)) {
 	aal_exception_error("Node %llu, item %u: unit count (%u) is not "
 	    "correct. Should be (%u). %s", item->context.blk, item->pos, 
-	    de40_get_count(de), e_count, mode == REPAIR_CHECK ? "" : 
+	    de40_get_units(de), e_count, mode == REPAIR_CHECK ? "" : 
 	    "Fixed.");
 	
 	if (mode == REPAIR_CHECK)
 	    repair_error(res, REPAIR_FIXABLE);
 	else {
-	    de40_set_count(de, count);
+	    de40_set_units(de, count);
 	    repair_error(res, REPAIR_FIXED);
 	}
     }
@@ -444,7 +444,7 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
     /* First and the last units are ok. Remove all not relable units in the 
      * midle of the item. */
     last = ~0ul;
-    for (i = 0; i < de40_get_count(de); i++) {
+    for (i = 0; i < de40_get_units(de); i++) {
 	if (last == ~0ul) {
 	    /* Looking for the problem interval start. */
 	    if (!aux_bitmap_test(flags, R(i))) {
@@ -468,7 +468,7 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 	}
     }
 
-    aal_assert("vpf-766", de40_get_count(de));
+    aal_assert("vpf-766", de40_get_units(de));
 
     return res;
 }
@@ -535,14 +535,14 @@ error:
     if ((res = direntry40_count_check(item)))
 	return res;
     
-    for (i = 1; i <= de40_get_count(de); i++) {
+    for (i = 1; i <= de40_get_units(de); i++) {
 	uint16_t interval = start_pos ? i - start_pos + 1 : 1;
 
-	offset = (i == de40_get_count(de) ? item->len : en40_get_offset(&de->entry[i]));
+	offset = (i == de40_get_units(de) ? item->len : en40_get_offset(&de->entry[i]));
 
 	/* Check the offset. */
 	if ((offset - ENTRY_MIN_LEN * interval < en40_get_offset(&de->entry[i - 1])) || 
-	    (offset + ENTRY_MIN_LEN * (de40_get_count(de) - i) > (int)item->len))
+	    (offset + ENTRY_MIN_LEN * (de40_get_units(de) - i) > (int)item->len))
 	{
 	    if (info->mode == FSCK_CHECK) {
 		aal_exception_error("Node %llu, item %u: wrong offset (%llu).",
@@ -558,7 +558,7 @@ error:
 	} else if (start_pos) {
 	    /* First correct offset after the problem interval. */
 	    direntry40_region_delete(de, start_pos, i);
-	    de40_set_count(de, de40_get_count(de) - interval);
+	    de40_set_count(de, de40_get_units(de) - interval);
 	    start_pos = 0;
 	    i -= interval;
 	}
@@ -584,7 +584,7 @@ static errno_t direntry40_count_check(item_entity_t *item,
     count = count_error ? ~0u : (de->entry[0].offset - sizeof(direntry40_t)) / 
 	sizeof(entry40_t);
     
-    if (de40_min_length(de40_get_count(de)) > item->len) {
+    if (de40_min_length(de40_get_units(de)) > item->len) {
 	if (de40_min_length(count) > item->len) {
 	    info->fatal++;
 	    aal_exception_error("Node %llu, item %u: unit array is not "
@@ -595,34 +595,34 @@ static errno_t direntry40_count_check(item_entity_t *item,
 	if (info->mode == FSCK_CHECK) {
 	    aal_exception_error("Node %llu, item %u: unit count (%u) is "
 		"wrong. Should be (%u).", item->context.blk, item->pos,
-		de40_get_count(de), count);
+		de40_get_units(de), count);
 	    info->fixable++;
 	    return 1;
 	} 
 	
 	aal_exception_error("Node %llu, item %u: unit count (%u) is "
 	    "wrong. Fixed to (%u).", item->context.blk, item->pos,
-	    de40_get_count(de), count);
+	    de40_get_units(de), count);
 	
 	de40_set_count(de, count);
     } else {
-	if ((de40_min_length(count) > item->len) || (count != de40_get_count(de))) 
+	if ((de40_min_length(count) > item->len) || (count != de40_get_units(de))) 
 	{
 	    if (info->mode == FSCK_CHECK) {
 		info->fixable++;
 		aal_exception_error("Node %llu, item %u: wrong offset "
 		    "(%llu). Should be (%llu).", item->context.blk, item->pos,
-		    de->entry[0].offset, de40_get_count(de) * sizeof(entry40_t) + 
+		    de->entry[0].offset, de40_get_units(de) * sizeof(entry40_t) + 
 		    sizeof(direntry40_t));
 		return 1;
 	    }
 	    
 	    aal_exception_error("Node %llu, item %u: wrong offset "
 		"(%llu). Fixed to (%llu).", item->context.blk, item->pos,
-		de->entry[0].offset, de40_get_count(de) * sizeof(entry40_t) + 
+		de->entry[0].offset, de40_get_units(de) * sizeof(entry40_t) + 
 		sizeof(direntry40_t));
 	    
-	    de->entry[0].offset = de40_get_count(de) * sizeof(entry40_t) + 
+	    de->entry[0].offset = de40_get_units(de) * sizeof(entry40_t) + 
 		sizeof(direntry40_t);
 	}
     }
@@ -667,7 +667,7 @@ static errno_t direntry40_bad_range_check(item_entity_t *item, uint32_t start_po
 	bool_t recoverable = 0;
     
     start_again:
-	l_limit = OFFSET(de, start_pos) + sizeof(objid40_t);
+	l_limit = OFFSET(de, start_pos) + sizeof(objid_t);
 	
 	/* Check if it is possible first and if so - fix offsets. */
 	for (i = 1; i < end - start; i++) {
@@ -691,7 +691,7 @@ static errno_t direntry40_bad_range_check(item_entity_t *item, uint32_t start_po
 		    info->fatal++;
 	    }
 	    
-	    l_limit = offset + 1 + sizeof(objid40_t);
+	    l_limit = offset + 1 + sizeof(objid_t);
 	}
 
 	if (offset != r_limit - 1)
