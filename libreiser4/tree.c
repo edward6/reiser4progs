@@ -1053,18 +1053,28 @@ errno_t reiser4_tree_remove(
 				}
 			}
 		} else {
+			coord->node->flags &= ~NF_DIRTY;
 			reiser4_tree_detach(tree, coord->node);
+			reiser4_tree_release(tree, coord->node);
 
+			coord->node = NULL;
+		}
+
+		/* Drying tree up in the case root node has only one item */
+		if (coord->node && coord->node == tree->root) {
+			if (reiser4_node_items(tree->root) == 1)
+				reiser4_tree_dryup(tree);
+		}
+		
+	} else {
+		if (tree->root != coord->node) {
+			/*
+			  If node has became empty, then we shoudl release it
+			  and release block it is occupying in block allocator.
+			*/
 			coord->node->flags &= ~NF_DIRTY;
 			reiser4_tree_release(tree, coord->node);
 		}
-	} else {
-		/*
-		  If node has became empty, then we shoudl release it and
-		  release block it is occupying in block allocator.
-		*/
-		coord->node->flags &= ~NF_DIRTY;
-		reiser4_tree_release(tree, coord->node);
 	}
 
 	if (tree->traps.pstremove) {
