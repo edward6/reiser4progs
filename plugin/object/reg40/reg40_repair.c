@@ -125,100 +125,24 @@ static errno_t reg40_ukey(reg40_t *reg, place_t *place, key_entity_t *key,
 	return res;
 }
 
-static errno_t reg40_check_stat(reg40_t *reg, uint64_t size, 
-				uint64_t bytes, uint8_t mode) 
-{
-	sdext_lw_hint_t lw_hint, lw_new;
-	sdext_unix_hint_t unix_hint;
-	errno_t res = RE_OK;
-	place_t *stat;
-	
-	aal_assert("vpf-1213", reg != NULL);
-	
-	stat = &reg->obj.info.start;
-	
-	/* Update the SD place. */
-	if ((res = obj40_update(&reg->obj, stat)))
-		return res;
-	
-	/* Read LW extention. */
-	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)) < 0)
-		return res;
-	
-	/* Form the correct LW extention. */
-	aal_memset(&lw_new, 0, sizeof(lw_new));
-	lw_new.mode = lw_hint.mode;
-	lw_new.size = size;
-	/* Leave 'nlinks' 0-ed in BUILD mode. */
-	if (mode != RM_BUILD)
-		lw_new.nlink = lw_hint.nlink;
-	
-	/* Check the mode in the LW extention. */
-	if (!S_ISREG(lw_new.mode)) {
-		lw_new.mode &= ~S_IFMT;
-        	lw_new.mode |= S_IFREG;
-		
-		aal_exception_error("Node (%llu), item (%u): StatData of the "
-				    "regular file [%s] has the wrong mode "
-				    "(%u), %s (%u). Plugin (%s).", 
-				    stat->con.blk, stat->pos.item, 
-				    core->key_ops.print(&stat->key, PO_INO),
-				    lw_hint.mode, mode == RM_CHECK ? "Should be" :
-				    "Fixed to", lw_new.mode, stat->plug->label);
-		
-		if (mode == RM_CHECK)
-			res = RE_FIXABLE;
+static void reg40_check_mode(uint16_t *mode) {
+	if (!S_ISREG(*mode)) {
+		*mode &= ~S_IFMT;
+        	*mode |= S_IFREG;
 	}
-	
-	/* Check the size in the LW extention. */
-	if (lw_hint.size < lw_new.size) {
-		/* FIXME-VITALY: This is not correct for extents as the last 
-		   block can be not used completely. Where to take the policy
-		   plugin to figure out if size is correct? */
-		aal_exception_error("Node (%llu), item (%u): StatData of the "
-				    "regular file [%s] has the wrong size "
-				    "(%llu), %s (%llu). Plugin (%s).",
-				    stat->con.blk, stat->pos.item, 
-				    core->key_ops.print(&stat->key, PO_INO),
-				    lw_hint.size, mode == RM_CHECK ? "Should be" :
-				    "Fixed to", lw_new.size, stat->plug->label);
-		
-		if (mode == RM_CHECK)
-			res = RE_FIXABLE;
-	}
-	
-	if ((res |= obj40_read_ext(stat, SDEXT_UNIX_ID, &unix_hint)) < 0)
-		return res;
-	
-	/* Check the mode in the LW extention. */
-	if (unix_hint.bytes != bytes) {
-		aal_exception_error("Node (%llu), item (%u): StatData of the "
-				    "regular file [%s] has the wrong bytes "
-				    "(%llu), %s (%llu). Plugin (%s).", 
-				    stat->con.blk, stat->pos.item, 
-				    core->key_ops.print(&stat->key, PO_INO),
-				    unix_hint.bytes, mode == RM_CHECK ? "Should be" :
-				    "Fixed to", bytes, stat->plug->label);
-		
-		if (mode == RM_CHECK) {
-			unix_hint.bytes = bytes;
-			res = RE_FIXABLE;
-		}
-	}
-	
-	/* Fix r_dev field silently. */
-	if (unix_hint.rdev)
-		unix_hint.rdev = 0;
+}
 
-	if (mode == RM_CHECK)
-		return res;
-	
-	if ((res = obj40_write_ext(stat, SDEXT_LW_ID, &unix_hint)) < 0)
-		return res;
-	
-	res |= obj40_write_ext(stat, SDEXT_LW_ID, &lw_new);
-	
-	return res;
+static void reg40_check_size(uint64_t *sd_size, uint64_t counted_size) {
+	/* FIXME-VITALY: This is not correct for extents as the last 
+	   block can be not used completely. Where to take the policy
+	   plugin to figure out if size is correct? */
+	if (*sd_size < counted_size)
+		*sd_size = counted_size;
+}
+
+/* Zero nlink number for BUILD mode. */
+static void reg40_zero_nlink(uint32_t *nlink) {
+	*nlink = 0;
 }
 
 static errno_t reg40_recreate_stat(reg40_t *reg, uint8_t mode) {
@@ -273,6 +197,7 @@ static errno_t callback_layout(void *p, uint64_t start, uint64_t count,
 	return hint->region_func(hint->entity, start, count, hint->data);
 }
 
+
 errno_t reg40_check_struct(object_entity_t *object, 
 			   place_func_t place_func,
 			   region_func_t region_func,
@@ -301,7 +226,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	if (lookup == ABSENT) {
 		/* If SD is not correct. Create a new one. */
-		if ((res = obj40_check_stat(&reg->obj, reg40_extentions)) < 0)
+		if ((res = obj40_stat(&reg->obj, reg40_extentions)) < 0)
 			return res;
 		
 		if (res && (res = reg40_recreate_stat(reg, mode)))
@@ -451,7 +376,11 @@ errno_t reg40_check_struct(object_entity_t *object,
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	if (!(result & RE_FATAL))
-		result |= reg40_check_stat(reg, size, bytes, mode);
+		result |= obj40_check_stat(&reg->obj, mode == RM_BUILD ?
+					   reg40_zero_nlink : NULL,
+					   reg40_check_mode,
+					   reg40_check_size, 
+					   size, bytes, mode);
 
 	return result;
 }
