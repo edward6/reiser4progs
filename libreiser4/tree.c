@@ -2028,8 +2028,6 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 			goto error_free_buff;
 		}
 		
-		size -= trans;
-
 		/* Removing read data from the tree. */
 		hint.plug = plug;
 		hint.count = trans;
@@ -2045,11 +2043,13 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 			goto error_free_buff;
 		}
 
+		aal_assert("umka-2477", trans != hint.count);
+
+		size -= trans;
 		aal_free(buff);
-		size -= blksize;
 
 		offset = reiser4_key_get_offset(&hint.offset);
-		reiser4_key_set_offset(&hint.offset, offset + offset);
+		reiser4_key_set_offset(&hint.offset, offset + trans);
 	}
 
 	return 0;
