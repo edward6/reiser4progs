@@ -119,6 +119,7 @@ extern errno_t reiser4_tree_unlock_node(reiser4_tree_t *tree,
 
 extern errno_t reiser4_tree_attach_node(reiser4_tree_t *tree,
 					reiser4_node_t *node,
+					reiser4_place_t *place,
 					uint32_t flags);
 
 extern errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
