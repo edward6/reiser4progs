@@ -1149,37 +1149,40 @@ struct reiser4_core {
     
 	struct {
 		/* Returns blocksize in passed tree */
-		uint32_t (*blockspace) (const void *);
+		uint32_t (*blockspace) (void *);
 	
 		/* Returns maximal available space in a node */
-		uint32_t (*nodespace) (const void *);
+		uint32_t (*nodespace) (void *);
 	
 		/*
 		  Makes lookup in the tree in order to know where say stat data
 		  item of a file realy lies. It is used in all object plugins.
 		*/
-		int (*lookup) (const void *, key_entity_t *, uint8_t,
+		int (*lookup) (void *, key_entity_t *, uint8_t,
 			       reiser4_place_t *);
 
+		/* Initializes all item fields in passed place */
+		errno_t (*realize) (void *, reiser4_place_t *);
+		
 		/* 
 		   Inserts item/unit in the tree by calling reiser4_tree_insert
 		   function, used by all object plugins (dir, file, etc)
 		*/
-		errno_t (*insert)(const void *, reiser4_place_t *,
+		errno_t (*insert)(void *, reiser4_place_t *,
 				  reiser4_item_hint_t *);
     
 		/*
 		  Removes item/unit from the tree. It is used in all object
 		  plugins for modification purposes.
 		*/
-		errno_t (*remove)(const void *, reiser4_place_t *);
+		errno_t (*remove)(void *, reiser4_place_t *);
 	
 		/* Returns right and left neighbour respectively */
-		errno_t (*right) (const void *, reiser4_place_t *, reiser4_place_t *);
-		errno_t (*left) (const void *, reiser4_place_t *, reiser4_place_t *);
+		errno_t (*right) (void *, reiser4_place_t *, reiser4_place_t *);
+		errno_t (*left) (void *, reiser4_place_t *, reiser4_place_t *);
 
-		errno_t (*lock) (const void *, reiser4_place_t *);
-		errno_t (*unlock) (const void *, reiser4_place_t *);
+		errno_t (*lock) (void *, reiser4_place_t *);
+		errno_t (*unlock) (void *, reiser4_place_t *);
 	} tree_ops;
 };
 

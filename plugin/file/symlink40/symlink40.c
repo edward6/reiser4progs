@@ -229,31 +229,111 @@ static errno_t symlink40_layout(object_entity_t *entity,
 
 #endif
 
-static errno_t callback_find_statdata(char *track,
-				      char *entry,
+static errno_t callback_find_statdata(char *track, char *entry,
 				      void *data)
 {
-	symlink40_t *synlink = (symlink40_t *)data;
-	return -1;
+	file40_t *file;
+	symlink40_t *symlink = (symlink40_t *)data;
+	key_entity_t *key = &symlink->file.key;
+
+	file = &symlink->file;
+		
+	/* Setting up the file key */
+	plugin_call(return -1, key->plugin->key_ops, set_type,
+		    key, KEY_STATDATA_TYPE);
+	
+	plugin_call(return -1, key->plugin->key_ops, set_offset,
+		    key, 0);
+
+	/* Performing lookup for statdata of current directory */
+	if (file40_lookup(file, key, LEAF_LEVEL, &file->statdata) != PRESENT) {
+		aal_exception_error("Can't find stat data of %s.",
+				    track);
+		return -1;
+	}
+
+	return file->core->tree_ops.realize(file->tree,
+					    &file->statdata);
 }
 
-static errno_t callback_find_entry(char *track,
-				   char *entry,
+static errno_t callback_find_entry(char *track, char *entry,
 				   void *data)
 {
-	symlink40_t *synlink = (symlink40_t *)data;
+	item_entity_t *item;
+	symlink40_t *symlink;
+	reiser4_place_t *place;
+	object_entity_t *entity;
+	reiser4_plugin_t *plugin;
+	
+	symlink = (symlink40_t *)data;
+	place = &symlink->file.statdata;
+	item = &symlink->file.statdata.item;
+
+	/* Getting file plugin */
+	if (!(plugin = item->plugin->item_ops.belongs(item))) {
+		aal_exception_error("Can't find file plugin for %s.",
+				    track);
+		return -1;
+	}
+
+	/* Opening currect diretory */
+	if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
+				   symlink->file.tree, place)))
+	{
+		aal_exception_error("Can't open parent of directory "
+				    "%s.", track);
+		return -1;
+	}
+
+	/* Symlinks handling. Method "follow" should be implemented */
+	if (plugin->file_ops.follow) {
+		if (plugin->file_ops.follow(entity, &symlink->file.key)) {
+			aal_exception_error("Can't follow %s.", track);
+			goto error_free_entity;
+		}
+	}
+
+	/* Updating parent key will be here */
+	
+	/* Looking up for @enrty in current directory */
+	if (plugin_call(goto error_free_entity, plugin->file_ops, lookup,
+			entity, entry, &symlink->file.key) != PRESENT)
+	{
+		aal_exception_error("Can't find %s.", track);
+		goto error_free_entity;
+	}
+
+	plugin_call(return -1, plugin->file_ops, close, entity);
+	return 0;
+	
+ error_free_entity:
+	plugin_call(return -1, plugin->file_ops, close, entity);
 	return -1;
+
 }
 
 static errno_t symlink40_follow(object_entity_t *entity,
 				key_entity_t *key)
 {
+	char path[4096];
+	symlink40_t *symlink;
+	
 	aal_assert("umka-1774", entity != NULL, return -1);
 	aal_assert("umka-1775", key != NULL, return -1);
 
-/*	return aux_parse_path(name, callback_find_statdata,
-			      callback_find_entry, (void *)entity);*/
-	return -1;
+	symlink = (symlink40_t *)entity;
+	
+	if (symlink40_get_data(&symlink->file.statdata, path))
+		return -1;
+
+	/*
+	  Getting the parent or root key will be here. Actually, we should set
+	  up the key to root one if got symlink data is a absolute path and to
+	  parent key otherwise.
+	*/
+	
+	return aux_parse_path(path, callback_find_statdata,
+			      callback_find_entry, (void *)entity);
 }
 
 static void symlink40_close(object_entity_t *entity) {

@@ -38,7 +38,7 @@ static reiser4_plugin_t *factory_nfind(
 
 /* Handler for item insert requests from the all plugins */
 static errno_t tree_insert(
-	const void *tree,	    /* opaque pointer to the tree */
+	void *tree,	            /* opaque pointer to the tree */
 	reiser4_place_t *place,	    /* insertion point will be saved here */
 	reiser4_item_hint_t *item)  /* item hint to be inserted into tree */
 {
@@ -52,7 +52,7 @@ static errno_t tree_insert(
 
 /* Handler for item removing requests from the all plugins */
 static errno_t tree_remove(
-	const void *tree,	    /* opaque pointer to the tree */
+	void *tree,	            /* opaque pointer to the tree */
 	reiser4_place_t *place)	    /* coord of the item to be removerd */
 {
 	aal_assert("umka-848", tree != NULL, return -1);
@@ -66,7 +66,7 @@ static errno_t tree_remove(
 
 /* Handler for lookup reqiests from the all plugin can arrive */
 static int tree_lookup(
-	const void *tree,	    /* opaque pointer to the tree */
+	void *tree,	            /* opaque pointer to the tree */
 	reiser4_key_t *key,	    /* key to be found */
 	uint8_t stop,	            /* stop level */
 	reiser4_place_t *place)	    /* result will be stored in */
@@ -105,9 +105,19 @@ static int tree_lookup(
 	return lookup;
 }
 
+/* Initializes item at passed @place */
+static errno_t tree_realize(void *tree, reiser4_place_t *place) {
+	reiser4_coord_t *coord = (reiser4_coord_t *)place;
+
+	if (reiser4_coord_realize(coord))
+		return -1;
+
+	return reiser4_item_get_key(coord, NULL);
+}
+
 /* Handler for requests for right neighbor */
 static errno_t tree_right(
-	const void *tree,	    /* opaque pointer to the tree */
+	void *tree,	            /* opaque pointer to the tree */
 	reiser4_place_t *place,     /* coord of node */
 	reiser4_place_t *right)	    /* right neighbour will be here */
 {
@@ -135,7 +145,7 @@ static errno_t tree_right(
 
 /* Handler for requests for left neighbor */
 static errno_t tree_left(
-	const void *tree,	    /* opaque pointer to the tree */
+	void *tree,	            /* opaque pointer to the tree */
 	reiser4_place_t *place,	    /* coord of node */
 	reiser4_place_t *left)	    /* left neighbour will be here */
 {
@@ -162,7 +172,7 @@ static errno_t tree_left(
 }
 
 static errno_t tree_lock(
-	const void *tree,         /* tree for working on */
+	void *tree,               /* tree for working on */
 	reiser4_place_t *place)   /* coord to make lock on */
 {
 	reiser4_coord_t *coord;
@@ -175,7 +185,7 @@ static errno_t tree_lock(
 }
 
 static errno_t tree_unlock(
-	const void *tree,         /* tree for working on */
+	void *tree,               /* tree for working on */
 	reiser4_place_t *place)   /* coord to make unlock on */
 {
 	reiser4_coord_t *coord;
@@ -187,12 +197,12 @@ static errno_t tree_unlock(
 	return reiser4_node_unlock(coord->node);
 }
 
-static uint32_t tree_blockspace(const void *tree) {
+static uint32_t tree_blockspace(void *tree) {
 	aal_assert("umka-1220", tree != NULL, return 0);
 	return ((reiser4_tree_t *)tree)->fs->device->blocksize;
 }
 	
-static uint32_t tree_nodespace(const void *tree) {
+static uint32_t tree_nodespace(void *tree) {
 	reiser4_node_t *root;
     
 	aal_assert("umka-1220", tree != NULL, return 0);
@@ -216,6 +226,9 @@ reiser4_core_t core = {
 	
 		/* This one for lookuping the tree */
 		.lookup	    = tree_lookup,
+
+		/* This one for initializing an item at coord */
+		.realize    = tree_realize,
 
 		/* Returns right neighbour of passed coord */
 		.right	    = tree_right,
