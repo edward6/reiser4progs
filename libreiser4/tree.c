@@ -670,6 +670,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 	if (node->children) {
 		aal_list_foreach_forward(node->children, walk) {
 			child = (reiser4_node_t *)walk->data;
+			aal_assert("umka-2384", child->entity != NULL);
 			
 			if ((res = reiser4_tree_adjust(tree, child, check)))
 				return res;
