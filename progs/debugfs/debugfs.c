@@ -295,7 +295,10 @@ static errno_t debugfs_print_journal(reiser4_fs_t *fs) {
 
 struct total_frag_hint {
 	reiser4_tree_t *tree;
-	uint64_t curr, total, bad;
+	aal_gauge_t *gauge;
+
+	blk_t curr;
+	count_t total, bad;
 };
 
 static errno_t debugfs_calc_joint(
@@ -312,13 +315,16 @@ static errno_t debugfs_calc_joint(
 	if (level <= LEAF_LEVEL)
 		return 0;
 	
+	if (hint->curr == 0)
+		hint->curr = aal_block_number(node->block);
+
 	for (i = 0; i < reiser4_node_count(node); i++) {
 		int64_t delta;
 		reiser4_coord_t coord;
 		reiser4_ptr_hint_t ptr;
 		reiser4_pos_t pos = {i, ~0ul};
 
-		aal_gauge_touch();
+		aal_gauge_touch(hint->gauge);
 		
 		if (reiser4_coord_open(&coord, node, CT_NODE, &pos)) {
 			aal_exception_error("Can't open item %u in node %llu.", 
@@ -330,17 +336,15 @@ static errno_t debugfs_calc_joint(
 				fetch, &coord.entity, 0, &ptr, 1))
 			return -1;
 
-		if (hint->curr == 0) {
-			hint->curr = ptr.ptr;
-			continue;
-		}
-
 		if (reiser4_item_nodeptr(&coord)) {
 			delta = hint->curr - ptr.ptr;
 
-			if (labs(delta) > 1)
-				hint->bad++;
-
+			if (labs(delta) > 1) {
+				hint->bad += labs(delta);
+				hint->total += labs(delta);
+			} else
+				hint->total++;
+			
 			hint->curr = ptr.ptr;
 		} else {
 			if (ptr.ptr == 0)
@@ -348,37 +352,42 @@ static errno_t debugfs_calc_joint(
 			
 			delta = hint->curr - ptr.ptr;
 			
-			if (labs(delta) > 1)
-				hint->bad++;
+			if (labs(delta) > 1) {
+				hint->bad += labs(delta);
+				hint->total += labs(delta);
+			} else
+				hint->total++;
 
 			hint->curr = ptr.ptr + ptr.width;
 		}
-		hint->total++;
 	}
 	
 	return 0;
 }
 
 static errno_t debugfs_total_fragmentation(reiser4_fs_t *fs) {
+	aal_gauge_t *gauge;
 	struct total_frag_hint total_frag_hint;
 	traverse_hint_t traverse_hint = {TO_FORWARD, LEAF_LEVEL};
 
 	aal_memset(&total_frag_hint, 0, sizeof(total_frag_hint));
 	
-	if (aal_gauge_create(GAUGE_INDICATOR, "Estimating fragmentation",
-			     progs_gauge_handler, NULL))
+	if (!(gauge = aal_gauge_create(GAUGE_INDICATOR, "Estimating fragmentation",
+				       progs_gauge_handler, NULL)))
 		return -1;
 	
 	total_frag_hint.tree = fs->tree;
+	total_frag_hint.gauge = gauge;
 
-	aal_gauge_start();
+	aal_gauge_start(gauge);
 	
 	reiser4_joint_traverse(fs->tree->root, &traverse_hint, (void *)&total_frag_hint,
 			       debugfs_open_joint, debugfs_calc_joint, NULL, NULL, NULL, NULL);
 
-	aal_gauge_free();
+	aal_gauge_free(gauge);
 
-	printf("%.2f\n", 1 - (double)total_frag_hint.bad / total_frag_hint.total);
+	printf("%.2f\n", total_frag_hint.total > 0 ?
+	       (double)total_frag_hint.bad / total_frag_hint.total : 0);
 	
 	return 0;
 };
@@ -498,9 +507,12 @@ int main(int argc, char *argv[]) {
 
 	host_dev = argv[optind];
     
-	if (stat(host_dev, &st) == -1)
+	if (stat(host_dev, &st) == -1) {
+		char *error = strerror(errno);
+		aal_exception_error("Can't stat %s. %s.", host_dev, error);
 		goto error_free_libreiser4;
-    
+	}
+	
 	/* 
 	   Checking is passed device is a block device. If so, we check also is
 	   it whole drive or just a partition. If the device is not a block
@@ -534,7 +546,7 @@ int main(int argc, char *argv[]) {
 	if (!(device = aal_file_open(host_dev, DEFAULT_BLOCKSIZE, O_RDONLY))) {
 		char *error = strerror(errno);
 	
-		aal_exception_error("Can't open device %s. %s.", host_dev, error);
+		aal_exception_error("Can't open %s. %s.", host_dev, error);
 		goto error_free_libreiser4;
 	}
     

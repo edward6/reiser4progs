@@ -138,8 +138,6 @@ aal_exception_option_t progs_exception_handler(
 	}
 
 	progs_wipe_line(stream);
-
-	aal_gauge_pause();
 	progs_exception_print_wrap(exception);
     
 	if (progs_exception_option_count(exception->options, 0) == 1)

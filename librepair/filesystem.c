@@ -39,11 +39,11 @@ errno_t repair_fs_check(reiser4_fs_t *fs) {
 	return -1;
 
     if (reiser4_format_get_root(fs->format) == FAKE_BLK) {
+	traverse_hint_t hint = {TO_BACKWARD, LEAF_LEVEL};
+	    
 	if (repair_scan_setup(fs, &data))
 	    return -1;
 	
-	traverse_hint_t hint = {TO_BACKWARD, LEAF_LEVEL};
-	    
 	/* Solve overlapped problem within the tree. */
 	if ((res = reiser4_joint_traverse(joint, &hint, &data,
 	    repair_filter_joint_open, repair_scan_node_check,

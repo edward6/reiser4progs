@@ -38,20 +38,20 @@ struct aal_gauge {
 	uint32_t value;
 };
 
-extern errno_t aal_gauge_create(aal_gauge_type_t type, const char *name,
+extern aal_gauge_t *aal_gauge_create(aal_gauge_type_t type, const char *name,
 				aal_gauge_handler_t handler, void *data);
 
-extern void aal_gauge_update(uint32_t value);
+extern void aal_gauge_update(aal_gauge_t *gauge, uint32_t value);
 
-extern void aal_gauge_rename(const char *name, ...)
-__check_format__(printf, 1, 2);
+extern void aal_gauge_rename(aal_gauge_t *gauge, const char *name, ...)
+                             __check_format__(printf, 2, 3);
 
-extern void aal_gauge_reset(void);
-extern void aal_gauge_start(void);
-extern void aal_gauge_done(void);
-extern void aal_gauge_touch(void);
-extern void aal_gauge_free(void);
-extern void aal_gauge_pause(void);
+extern void aal_gauge_reset(aal_gauge_t *gauge);
+extern void aal_gauge_start(aal_gauge_t *gauge);
+extern void aal_gauge_done(aal_gauge_t *gauge);
+extern void aal_gauge_touch(aal_gauge_t *gauge);
+extern void aal_gauge_free(aal_gauge_t *gauge);
+extern void aal_gauge_pause(aal_gauge_t *gauge);
 
 #endif
 

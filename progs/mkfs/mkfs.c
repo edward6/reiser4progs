@@ -102,6 +102,7 @@ int main(int argc, char *argv[]) {
 	aal_device_t *device;
 	reiser4_profile_t *profile;
 
+	aal_gauge_t *gauge;
 	aal_list_t *walk = NULL;
 	aal_list_t *devices = NULL;
     
@@ -237,7 +238,7 @@ int main(int argc, char *argv[]) {
 			} else {
 				aal_exception_error(
 					"Something strange has been detected while parsing "
-					"parameetrs (%s).", argv[optind]);
+					"parameters (%s).", argv[optind]);
 				goto error_free_libreiser4;
 			}
 		} else
@@ -249,7 +250,7 @@ int main(int argc, char *argv[]) {
 		aal_memset(label, 0, sizeof(label));
 	}
     
-	if (aal_gauge_create(GAUGE_SILENT, "", progs_gauge_handler, NULL))
+	if (!(gauge = aal_gauge_create(GAUGE_SILENT, "", progs_gauge_handler, NULL)))
 		goto error_free_libreiser4;
     
 	/* The loop through all devices */
@@ -298,7 +299,7 @@ int main(int argc, char *argv[]) {
 		if (!(device = aal_file_open(host_dev, blocksize, O_RDWR))) {
 			char *error = strerror(errno);
 	
-			aal_exception_error("Can't open device %s. %s.", host_dev, error);
+			aal_exception_error("Can't open %s. %s.", host_dev, error);
 			goto error_free_libreiser4;
 		}
     
@@ -322,9 +323,10 @@ int main(int argc, char *argv[]) {
 				goto error_free_device;
 		}
     
-		aal_gauge_rename("Creating reiser4 on %s with "
+		aal_gauge_rename(gauge, "Creating reiser4 on %s with "
 				 "%s profile", host_dev, profile->label);
-		aal_gauge_start();
+
+		aal_gauge_start(gauge);
 
 		/* Creating filesystem */
 		if (!(fs = reiser4_fs_create(profile, device, blocksize, 
@@ -365,10 +367,10 @@ int main(int argc, char *argv[]) {
 			goto error_free_root;
 		}
 
-		aal_gauge_done();
+		aal_gauge_done(gauge);
 	
-		aal_gauge_rename("Synchronizing %s", host_dev);
-		aal_gauge_start();
+		aal_gauge_rename(gauge, "Synchronizing %s", host_dev);
+		aal_gauge_start(gauge);
 	
 		/* 
 		   Synchronizing device. If device we are using is a file_device 
@@ -392,7 +394,7 @@ int main(int argc, char *argv[]) {
 		*/
 		fs_len = 0;
 	
-		aal_gauge_done();
+		aal_gauge_done(gauge);
 
 		/* Freeing the root directory */
 		reiser4_file_close(fs->root);
@@ -403,7 +405,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Freeing the all used objects */
-	aal_gauge_free();
+	aal_gauge_free(gauge);
 	aal_list_free(devices);
 
 	/* 
