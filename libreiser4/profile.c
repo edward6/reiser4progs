@@ -106,7 +106,7 @@ reiser4_profile_t defprof = {
 		[PROF_FIBRE] = {
 			.name  = "fibration",
 			.type  = FIBRE_PLUG_TYPE,
-			.id = FIBRE_DOT_O_ID,
+			.id = FIBRE_EXT_1_ID,
 		},
 		[PROF_POLICY] = {
 			.name  = "formatting",
