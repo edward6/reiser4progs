@@ -78,7 +78,7 @@ static errno_t cb_mark_block(void *entity, blk_t start,
 {
 	reiser4_fs_t *fs = (reiser4_fs_t *)entity;
 	blk_t *backup = (blk_t *)fs->data;
-	uint64_t free;
+	errno_t res;
 
 	*backup = start;
 	backup++;
@@ -87,12 +87,10 @@ static errno_t cb_mark_block(void *entity, blk_t start,
 	if (reiser4_alloc_occupied((reiser4_alloc_t *)data, start, width))
 		return 0;
 		
-	if (!(free = reiser4_format_get_free(fs->format))) {
+	if ((res = reiser4_format_dec_free(fs->format, 1))) {
 		aal_error("No free blocks on the fs");
 		return -ENOSPC;
 	}
-
-	reiser4_format_set_free(fs->format, free - 1);
 	
 	return reiser4_alloc_occupy((reiser4_alloc_t *)data, start, width);
 }
@@ -101,11 +99,7 @@ static errno_t cb_unmark_block(void *entity, blk_t start,
 			       count_t width, void *data)
 {
 	reiser4_fs_t *fs = (reiser4_fs_t *)entity;
-	uint64_t free;
-
-	free = reiser4_format_get_free(fs->format);
-	reiser4_format_set_free(fs->format, free + 1);
-	
+	reiser4_format_inc_free(fs->format, 1);
 	return reiser4_alloc_release((reiser4_alloc_t *)data, start, width);
 }
 
@@ -154,7 +148,6 @@ static errno_t cb_reloc_node(reiser4_node_t *node, void *data) {
 	debugfs_backup_hint_t *backup;
 	reiser4_tree_t *tree;
 	ptr_hint_t ptr;
-	uint64_t free;
 	uint32_t pos;
 	errno_t res;
 	blk_t blk;
@@ -180,12 +173,12 @@ static errno_t cb_reloc_node(reiser4_node_t *node, void *data) {
 		{
 			aal_mess("Relocating the node %llu.", node->block->nr);
 
-			if (!(free = reiser4_format_get_free(tree->fs->format))) {
+			res = reiser4_format_dec_free(tree->fs->format, 1);
+			
+			if (res) {
 				aal_error("No free blocks on the fs");
 				return -EIO;
 			}
-
-			reiser4_format_set_free(tree->fs->format, free - 1);
 
 			blk = reiser4_fake_get();
 
@@ -212,15 +205,17 @@ static errno_t cb_reloc_node(reiser4_node_t *node, void *data) {
 }
 
 static errno_t cb_reloc_extent(reiser4_place_t *place, void *data) {
-	uint32_t units, blksize, i, pos;
-	uint64_t count, offset, free;
 	debugfs_backup_hint_t *backup;
+	uint64_t count, offset;
+	uint32_t blksize, i;
+	uint32_t units, pos;
 	reiser4_tree_t *tree;
 	reiser4_node_t *node;
 	aal_device_t *device;
 	trans_hint_t trans;
 	ptr_hint_t ptr;
 	int look = 0;
+	errno_t res;
 	blk_t blk;
 	
 	aal_assert("vpf-1691", place != NULL);
@@ -311,12 +306,10 @@ static errno_t cb_reloc_extent(reiser4_place_t *place, void *data) {
 			return -EIO;
 		}
 
-		if (!(free = reiser4_format_get_free(tree->fs->format))) {
+		if ((res = reiser4_format_dec_free(tree->fs->format, 1))) {
 			aal_error("No free blocks on the fs");
 			return -EIO;
 		}
-
-		reiser4_format_set_free(tree->fs->format, free - 1);
 	}
 	
 	/* Flush moved blocks on disk. */

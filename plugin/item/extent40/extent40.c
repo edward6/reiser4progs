@@ -753,27 +753,29 @@ static int64_t extent40_alloc_block(reiser4_place_t *place,
 
 	uint64_t offset, bytes;
 	uint32_t blksize;
-	uint32_t size;
+	errno_t res;
 
 	device = extent40_device(place);
 	blksize = extent40_blksize(place);
 
 	/* Get offset aligned to the blksize. */
 	offset = (ins_offset - (ins_offset & (blksize - 1)));
+	count = (ins_offset + count + blksize - 1) / blksize * blksize - offset;
 
 	/* Prepare the key of the new allocated block. */
 	plug_call(place->key.plug->o.key_ops, assign, &key, &place->key);
 	plug_call(key.plug->o.key_ops, set_offset, &key, offset);
 
-	bytes = 0;
-
-	for (; count > 0; count -= size, ins_offset += size) {
+	bytes = count;
+	
+	if ((res = extent40_core->tree_ops.dec_free(place->node->tree, 
+						    count / blksize)))
+	{
+		return res;
+	}
+	
+	for (; count > 0; count -= blksize, offset += blksize) {
 		/* Calculating size to be written this time. */
-		size = blksize - (ins_offset % blksize);
-
-		if (size > count) 
-			size = count;
-
 		if (!(block = aal_block_alloc(device, blksize, 0)))
 			return -ENOMEM;
 
@@ -784,10 +786,7 @@ static int64_t extent40_alloc_block(reiser4_place_t *place,
 
 		aal_hash_table_insert(blocks, ins_key, block);
 
-		bytes += blksize;
-
 		/* Update @key offset. */
-		offset += blksize;
 		plug_call(key.plug->o.key_ops, set_offset, &key, offset);
 	}
 

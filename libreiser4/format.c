@@ -368,4 +368,36 @@ rid_t reiser4_format_oid_pid(
 	return plug_call(format->ent->plug->o.format_ops, 
 			 oid_pid, format->ent);
 }
+
+errno_t reiser4_format_inc_free(reiser4_format_t *format, uint64_t count) {
+	uint64_t saved;
+	
+	aal_assert("vpf-1722", format != NULL);
+
+	if (count == 0)
+		return 0;
+	
+	saved = reiser4_format_get_free(format);
+	reiser4_format_set_free(format, saved + count);
+
+	return 0;
+}
+
+errno_t reiser4_format_dec_free(reiser4_format_t *format, uint64_t count) {
+	uint64_t saved;
+	
+	aal_assert("vpf-1722", format != NULL);
+
+	if (count == 0)
+		return 0;
+	
+	saved = reiser4_format_get_free(format);
+
+	if (saved < count)
+		return -ENOSPC;
+
+	reiser4_format_set_free(format, saved - count);
+	return 0;
+}
+
 #endif

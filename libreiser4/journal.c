@@ -120,18 +120,23 @@ errno_t reiser4_journal_layout(reiser4_journal_t *journal,
 static errno_t cb_action_mark(void *entity, blk_t start,
 			      count_t width, void *data)
 {
-	return reiser4_alloc_occupy((reiser4_alloc_t *)data,
-				    start, width);
+	reiser4_fs_t *fs = (reiser4_fs_t *)data;
+	errno_t res;
+
+	if ((res = reiser4_format_dec_free(fs->format, width)))
+		return res;
+		
+	return reiser4_alloc_occupy(fs->alloc, start, width);
 }
 
-/* Marks format area as used */
+/* Marks journal area as used */
 errno_t reiser4_journal_mark(reiser4_journal_t *journal) {
 	aal_assert("umka-1855", journal != NULL);
 	aal_assert("umka-1856", journal->fs != NULL);
 	aal_assert("umka-1856", journal->fs->alloc != NULL);
 	
 	return reiser4_journal_layout(journal, cb_action_mark,
-				      journal->fs->alloc);
+				      journal->fs);
 }
 
 /* Creates journal on specified jopurnal. Returns initialized instance */

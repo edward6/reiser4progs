@@ -61,6 +61,12 @@ extern const char *reiser4_format_name(reiser4_format_t *format);
 extern uint32_t reiser4_format_get_stamp(reiser4_format_t *format);
 extern uint16_t reiser4_format_get_policy(reiser4_format_t *format);
 extern blk_t reiser4_format_get_root(reiser4_format_t *format);
+
+extern errno_t reiser4_format_inc_free(reiser4_format_t *format,
+				       count_t count);
+
+extern errno_t reiser4_format_dec_free(reiser4_format_t *format,
+				       count_t count);
 #endif
 
 extern void reiser4_format_close(reiser4_format_t *format);

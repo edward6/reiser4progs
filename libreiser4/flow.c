@@ -133,9 +133,7 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 	buff = hint->specific;
 	reiser4_key_assign(&key, &hint->offset);
 
-#ifndef ENABLE_MINIMAL
 	hint->blocks = tree->blocks;
-#endif
 
 	/* Loop until desired number of bytes is written. */
 	for (total = bytes = 0, size = hint->count; size > 0;) {
@@ -161,6 +159,7 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 
 		/* level new item will be inserted a on. */
 		level = reiser4_tree_target_level(tree, hint->plug);
+		hint->bytes = 0;
 
 		/* Writing data to tree. */
 		if ((write = reiser4_tree_write(tree, &place,
@@ -197,6 +196,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 	errno_t res;
 	int64_t trunc;
 	uint32_t size;
+	uint64_t bytes;
 	uint64_t total;
 	reiser4_key_t key;
 
@@ -208,12 +208,9 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 	/* Setting up region func to release region callback. It is needed for
 	   releasing extent blocks. */
 	hint->region_func = cb_release_region;
-
-#ifndef ENABLE_MINIMAL
 	hint->blocks = tree->blocks;
-#endif
 
-	for (total = 0, size = hint->count; size > 0;
+	for (total = bytes = 0, size = hint->count; size > 0;
 	     size -= trunc, total += trunc)
 	{
 		lookup_hint_t lhint;
@@ -263,6 +260,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 		}
 
 		hint->count = size;
+		hint->bytes = 0;
 
 		/* Calling node truncate method. */
 		if ((trunc = reiser4_node_trunc(place.node, &place.pos,
@@ -270,6 +268,8 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 		{
 			return trunc;
 		}
+		
+		bytes += hint->bytes;
 		
 		/* Updating left delimiting keys in all parent nodes */
 		if (reiser4_place_leftmost(&place) &&
@@ -318,6 +318,8 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 
 		reiser4_key_inc_offset(&hint->offset, trunc);
 	}
+	
+	hint->bytes = bytes;
 
 	reiser4_key_assign(&hint->offset, &key);
 	return total;
@@ -349,8 +351,8 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 	/* Check if number of bytes to be converted is not multiple of block
 	   size and this is tail2extent conversion. If so, have to align
 	   @hint->count byblock size into highest side. */
-	if (hint->plug->id.group == EXTENT_ITEM &&
-	    (hint->count & (blksize - 1)) != 0)
+	if (hint->plug->id.group == EXTENT_ITEM && 
+	    hint->count != MAX_UINT64 && (hint->count & (blksize - 1)) != 0)
 	{
 		hint->count += blksize -
 			(hint->count & (blksize - 1));

@@ -132,6 +132,15 @@ static uint64_t tree_slink_locality(tree_entity_t *tree) {
 	return plug_call(t->fs->oid->ent->plug->o.oid_ops, 
 			 slink_locality);
 }
+
+static errno_t tree_dec_free(tree_entity_t *tree, count_t count) {
+	reiser4_format_t *format;
+
+	aal_assert("vpf-1723", tree != NULL);
+	
+	format = ((reiser4_tree_t *)tree)->fs->format;
+	return reiser4_format_dec_free(format, count);
+}
 #endif
 
 #ifdef ENABLE_SYMLINKS
@@ -195,6 +204,9 @@ reiser4_core_t core = {
 
 		/* Get the safe link locality. */
 		.slink_locality	= tree_slink_locality,
+		
+		/* decriment the free block count in the format. */
+		.dec_free	= tree_dec_free,
 #endif
 		/* Returns next item from the passed place. */
 		.next_item	= tree_next_item
@@ -220,7 +232,7 @@ reiser4_core_t core = {
 	},
 	.item_ops = {
 		.mergeable	= item_mergeable
-	},
+	}
 #endif
 };
 

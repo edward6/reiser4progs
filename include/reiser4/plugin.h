@@ -1696,6 +1696,9 @@ struct tree_ops {
 
 	/* Get the safe link locality. */
 	uint64_t (*slink_locality) (tree_entity_t *);
+
+	/* decriment the free block count in the format. */
+	errno_t (*dec_free) (tree_entity_t *, count_t);
 #endif
 	/* Returns the next item. */
 	errno_t (*next_item) (tree_entity_t *, reiser4_place_t *, 

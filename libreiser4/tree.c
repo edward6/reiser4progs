@@ -839,12 +839,12 @@ static errno_t reiser4_tree_next_key(reiser4_tree_t *tree,
 reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 					uint8_t level)
 {
-	blk_t blk;
-	
 	reiser4_node_t *node;
 	uint32_t stamp;
+	errno_t res;
+	blk_t blk;
 	
-	uint64_t free_blocks;
+	
 	reiser4_format_t *format;
     
 	aal_assert("umka-756", tree != NULL);
@@ -854,10 +854,8 @@ reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	format = tree->fs->format;
 
 	/* Setting up of the free blocks in format. */
-	if (!(free_blocks = reiser4_format_get_free(format)))
+	if ((res = reiser4_format_dec_free(format, 1)))
 		return NULL;
-
-	reiser4_format_set_free(format, free_blocks - 1);
 
 	/* Creating new node. */
 	if (!(node = reiser4_node_create(tree, tree->ent.tpset[TPSET_NODE],
@@ -879,7 +877,6 @@ reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 errno_t reiser4_tree_release_node(reiser4_tree_t *tree,
 				  reiser4_node_t *node)
 {
-	uint64_t free_blocks;
 	reiser4_alloc_t *alloc;
 	reiser4_format_t *format;
 	
@@ -898,8 +895,7 @@ errno_t reiser4_tree_release_node(reiser4_tree_t *tree,
 	}
 
 	/* Setting up of the free blocks in format. */
-	free_blocks = reiser4_format_get_free(format);
-	reiser4_format_set_free(format, free_blocks + 1);
+	reiser4_format_inc_free(format, 1);
 
 	/* Release node itself. */
 	return reiser4_node_close(node);
@@ -1300,15 +1296,6 @@ static errno_t cb_nodeptr_adjust(reiser4_tree_t *tree, reiser4_place_t *place) {
 #endif
 
 static errno_t cb_node_unload(reiser4_tree_t *tree, reiser4_node_t *node) {
-#ifndef ENABLE_MINIMAL
-	count_t free_blocks;
-
-	/* Updating free space counter in format for the case some blocks were 
-	   allocated. */
-	free_blocks = reiser4_alloc_free(tree->fs->alloc);
-	reiser4_format_set_free(tree->fs->format, free_blocks);
-#endif
-
 	/* If node is locked, that is not a leaf or it is used by someone, it
 	   cannot be released, and thus, it does not make the sense to save it
 	   to device too. */
