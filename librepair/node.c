@@ -128,7 +128,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	if (res < 0)
 	    return res;
     
-	if (res | REPAIR_REMOVED) {
+	if (res & REPAIR_REMOVED) {
 	    pos->item--;
 	    count = reiser4_node_items(node);
 	    res &= ~REPAIR_REMOVED;

@@ -73,7 +73,7 @@ errno_t stat40_traverse(item_entity_t *item, stat40_ext_func_t func, void *data)
 		  Okay, extention is present, calling callback fucntion for it
 		  and if result is not good, returning it to teh caller.
 		*/
-		if (!(res = func(&sdext, extmask, data)))
+		if ((res = func(&sdext, extmask, data)))
 			return res;
 
 		/* Calculating the pointer to the next extention body */
@@ -106,7 +106,7 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 			return -1;
 	}
 	
-	return 1;
+	return 0;
 }
 
 /* Fetches whole statdata item with extentions into passed @buff */
@@ -294,13 +294,13 @@ struct body_hint {
 };
 
 /* Callback function for finding stat data extention body by bit */
-static int callback_body_ext(sdext_entity_t *sdext, uint16_t extmask, 
+static errno_t callback_body_ext(sdext_entity_t *sdext, uint16_t extmask, 
 			     void *data)
 {
 	struct body_hint *hint = (struct body_hint *)data;
 
 	hint->body = sdext->body + sdext->pos;
-	return (sdext->plugin->h.id < hint->ext);
+	return -(sdext->plugin->h.id >= hint->ext);
 }
 
 /* Finds extention body by number of bit in 64bits mask */
@@ -328,13 +328,13 @@ struct present_hint {
   Callback for getting presence information for certain stat data
   extention.
 */
-static int callback_present_ext(sdext_entity_t *sdext, uint16_t extmask, 
+static errno_t callback_present_ext(sdext_entity_t *sdext, uint16_t extmask, 
 				void *data)
 {
 	struct present_hint *hint = (struct present_hint *)data;
 	
 	hint->present = (sdext->plugin->h.id == hint->ext);
-	return !hint->present;
+	return hint->present;
 }
 
 /* Determines if passed extention denoted by @bit present in statdata item */
@@ -352,11 +352,11 @@ static int stat40_sdext_present(item_entity_t *item,
 #ifndef ENABLE_ALONE
 
 /* Callback for counting the number of stat data extentions in use */
-static int callback_count_ext(sdext_entity_t *sdext, uint16_t extmask, 
+static errno_t callback_count_ext(sdext_entity_t *sdext, uint16_t extmask, 
 			      void *data)
 {
         (*(uint32_t *)data)++;
-        return 1;
+        return 0;
 }
 
 /* This function returns stat data extention count */
@@ -370,7 +370,7 @@ static uint32_t stat40_sdexts(item_entity_t *item) {
 }
 
 /* Prints extention into @stream */
-static int callback_print_ext(sdext_entity_t *sdext, uint16_t extmask, 
+static errno_t callback_print_ext(sdext_entity_t *sdext, uint16_t extmask, 
 			      void *data)
 {
 	aal_stream_t *stream = (aal_stream_t *)data;
@@ -384,7 +384,7 @@ static int callback_print_ext(sdext_entity_t *sdext, uint16_t extmask,
 	plugin_call(sdext->plugin->sdext_ops, print, sdext->body + sdext->pos, 
 		    stream, 0);
 	
-	return 1;
+	return 0;
 }
 
 /* Prints stat data item into passed @stream */

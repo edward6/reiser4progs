@@ -1,15 +1,15 @@
 /* 
-    librepair/filter.c - methods are needed for the fsck pass1. 
+    librepair/filter.c - Filter pass of file system recovery.
     
     Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
     reiser4progs/COPYING.
 */
 
 /*
-    The first fsck pass - filter - fsck filters corrupted parts of 
-    a reiser4 tree out, repairs all recoverable corruptions, builds
-    a map of all used blocks, but extents (format + formatted nodes). 
-    Extents may still be not correct.    
+    The filter pass filters corrupted parts of a reiser4 tree out, repairs all 
+    recoverable corruptions, builds a map of all used blocks, but extents 
+    (format + formatted nodes). Extents are left not checked as there is no 
+    enough information for their proper check.
 */
 
 #include <repair/librepair.h>
@@ -78,14 +78,14 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
 
     aal_assert("vpf-799", (res & REPAIR_REMOVED) == 0);
     
-    if (res | REPAIR_FATAL) {
+    if (res & REPAIR_FATAL) {
 	fd->flags |= REPAIR_FATAL;
 	return 1;
-    } else if (res | REPAIR_FIXABLE) {
+    } else if (res & REPAIR_FIXABLE) {
 	fd->info.check.fixable++;
 	/* Do not break traverse. */
 	res = 0;
-    } else if (res | REPAIR_FIXED) {
+    } else if (res & REPAIR_FIXED) {
 	reiser4_node_mkdirty(node);
 	res = 0;
     }
@@ -185,13 +185,13 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
     if (fd->flags) {
 	aux_bitmap_clear_region(fd->bm_used, ptr.ptr, ptr.width);
 	
-	if (fd->flags | REPAIR_BAD_PTR) {
+	if (fd->flags & REPAIR_BAD_PTR) {
 	    aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
 		"the invalid node [%llu]. %s", place->node->blk, 
 		place->pos.item, place->pos.unit, ptr.ptr, 
 		fd->mode == REPAIR_REBUILD ? "Removed." : 
 		"The whole subtree is skipped.");
-	} else if (fd->flags | REPAIR_FATAL) {
+	} else if (fd->flags & REPAIR_FATAL) {
 	    aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
 		"the unrecoverable node [%llu]. %s", place->node->blk, 
 		place->pos.item, place->pos.unit, ptr.ptr, 
@@ -200,7 +200,7 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place, void *data)
 	    
 	    /* Extents cannot point to this node. */
 	    aux_bitmap_mark_region(fd->bm_met, ptr.ptr, ptr.width);
-	} else if (fd->flags | REPAIR_BAD_DKEYS) {
+	} else if (fd->flags & REPAIR_BAD_DKEYS) {
 	    aal_exception_error("Node (%llu), item (%u), unit (%u): Points to "
 		"the node [%llu] with wrong delimiting keys. %s", 
 		place->node->blk, place->pos.item, place->pos.unit, ptr.ptr, 

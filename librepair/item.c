@@ -41,7 +41,7 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
 {
     pos_t pos;
     
-    if (place->item.len)
+    if (place->item.len == 0)
 	result = REPAIR_FATAL;
     
     if (old_len != place->item.len && !repair_error_exists(result)) {
@@ -59,7 +59,7 @@ static errno_t repair_item_check_fini(reiser4_place_t *place,
 	result = REPAIR_FIXED;
     } 
     
-    if ((result | REPAIR_FATAL) && mode == REPAIR_REBUILD) {
+    if ((result & REPAIR_FATAL) && mode == REPAIR_REBUILD) {
 	aal_exception_error("Node (%llu), item (%u): unrecoverable corruption "
 	    "found. Remove item.", place->node->blk, place->pos.item);
 		
@@ -98,7 +98,7 @@ errno_t repair_item_check(reiser4_place_t *place, uint8_t mode) {
 	return res;
     
     repair_error_check(res, mode);
-    aal_assert("vpf-789", mode != REPAIR_CHECK	 || length == place->item.len);
+    aal_assert("vpf-789", mode != REPAIR_CHECK || length == place->item.len);
     aal_assert("vpf-767", length == place->item.len || res != REPAIR_OK);
     
     return repair_item_check_fini(place, res, length, mode);

@@ -53,20 +53,20 @@ static reiser4_plugin_t *repair_format_confirm(reiser4_profile_t *profile,
 }
 
 /* Checks the opened format, or build a new one if it was not openned. */
-static errno_t repair_format_check(reiser4_fs_t *fs, reiser4_profile_t *profile) 
+static errno_t repair_format_check(reiser4_fs_t *fs) 
 {
     reiser4_plugin_t *plugin = NULL;
 
     aal_assert("vpf-165", fs != NULL);
     aal_assert("vpf-171", fs->device != NULL);
-    aal_assert("vpf-166", fs->format != NULL || profile != NULL);
+    aal_assert("vpf-166", fs->format != NULL);
 
     if (fs->format == NULL) {
 	/* Format was not opened. */
 	aal_exception_fatal("Cannot open the on-disk format on (%s)", 
 	    aal_device_name(fs->device));
 	
-	if (!(plugin = repair_format_confirm(profile, fs->device)))
+	if (!(plugin = repair_format_confirm(fs->profile, fs->device)))
 	    return -1;
 
 	/* Create the format with fake tail plugin. */
@@ -92,14 +92,14 @@ static errno_t repair_format_check(reiser4_fs_t *fs, reiser4_profile_t *profile)
 }
 
 /* Try to open format and check it. */
-errno_t repair_format_open(reiser4_fs_t *fs, reiser4_profile_t *profile) {
+errno_t repair_format_open(reiser4_fs_t *fs) {
     aal_assert("vpf-398", fs != NULL);
 
     /* Try to open the disk format. */
     fs->format = reiser4_format_open(fs);
 
     /* Check the opened disk format or rebuild it if needed. */
-    if (repair_format_check(fs, profile))
+    if (repair_format_check(fs))
 	goto error_format_close;
 
     return 0;
