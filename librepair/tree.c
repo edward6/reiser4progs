@@ -127,10 +127,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
     
     if (place.node != NULL && reiser4_node_get_level(place.node) <= level) {
 	/* Get the key of the found position or the nearest right key. */
-	if ((place.pos.item == reiser4_node_items(place.node)) || 
-	    (place.pos.item + 1 == reiser4_node_items(place.node) && 
-	     place.pos.unit == reiser4_item_units(&place))) 
-	{
+	if (reiser4_place_rightmost(&place)) {
 	    if ((res = repair_node_rd_key(place.node, &key)))
 		return res;
 	} else if ((res = reiser4_item_get_key(&place, &key)))
@@ -143,7 +140,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	/* If the most right key from the node being inserted is greater then 
 	 * the key found by lookup, it is not possible to insert the node as 
 	 * a whole. */
-	if (reiser4_key_compare(&key, &rkey) >= 0)
+	if (reiser4_key_compare(&rkey, &key) >= 0)
 	    return -ESTRUCT;
 	
 	if ((res = reiser4_tree_split(tree, &place, level)))
@@ -206,10 +203,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *insert) {
 
 	if (l_res == LP_ABSENT) {
 	    /* Start key does not exist in the tree. Prepare the insertion. */
-	    if ((place.pos.item == reiser4_node_items(place.node)) || 
-		(place.pos.item + 1 == reiser4_node_items(place.node) && 
-		place.pos.unit == reiser4_item_units(&place))) 
-	    {
+	    if (reiser4_place_rightmost(&place)) {
 		if ((ret = repair_node_rd_key(place.node, &dst_key)))
 		    return ret;
 	    } else if ((ret = reiser4_item_get_key(&place, &dst_key)))
