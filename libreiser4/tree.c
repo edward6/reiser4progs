@@ -1875,7 +1875,7 @@ errno_t reiser4_tree_update_key(reiser4_tree_t *tree, reiser4_place_t *place,
 /* This function inserts new nodeptr item to the tree and in such way attaches
    passed @node to tree. It also connects passed @node into tree cache. */
 errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
-				 uint32_t flags)
+				 reiser4_place_t *place, uint32_t flags)
 {
 	rid_t pid;
 	errno_t res;
@@ -1883,11 +1883,10 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
 	
 	ptr_hint_t ptr;
 	trans_hint_t thint;
-	lookup_hint_t lhint;
-	reiser4_place_t place;
 
 	aal_assert("umka-913", tree != NULL);
 	aal_assert("umka-916", node != NULL);
+	aal_assert("umka-3104", place != NULL);
     
 	/* Preparing nodeptr item hint. */
 	thint.count = 1;
@@ -1908,25 +1907,14 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
 		return -EINVAL;
 	}
 
-	lhint.level = level;
-	lhint.key = &thint.offset;
-	lhint.correct_func = NULL;
-
-	/* Looking up for the insert point place */
-	if ((res = reiser4_tree_lookup(tree, &lhint, FIND_CONV, &place)) < 0) {
-		aal_error("Lookup is failed during attach node "
-			  "%llu to tree.", node_blocknr(node));
-		return res;
-	}
-
 	/* Inserting node ptr into tree. */
-	if ((res = reiser4_tree_insert(tree, &place, &thint, level)) < 0) {
+	if ((res = reiser4_tree_insert(tree, place, &thint, level)) < 0) {
 		aal_error("Can't insert nodeptr item to the tree.");
 		return res;
 	}
 
 	/* Connecting node to tree cache. */
-	if ((res = reiser4_tree_connect_node(tree, place.node, node))) {
+	if ((res = reiser4_tree_connect_node(tree, place->node, node))) {
 		aal_error("Can't connect node %llu to tree cache.",
 			  node_blocknr(node));
 		return res;
@@ -1993,6 +1981,7 @@ errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 errno_t reiser4_tree_growup(reiser4_tree_t *tree) {
 	errno_t res;
 	uint32_t height;
+	reiser4_place_t place;
 	reiser4_node_t *new_root;
 	reiser4_node_t *old_root;
 
@@ -2032,7 +2021,12 @@ errno_t reiser4_tree_growup(reiser4_tree_t *tree) {
 	   root node, not to virtual super block. */
 	reiser4_node_lock(new_root);
 
-	if ((res = reiser4_tree_attach_node(tree, old_root, SF_DEFAULT))) {
+	/* Place old root will be attached. */
+	reiser4_place_assign(&place, new_root, 0, MAX_UINT32);
+
+	if ((res = reiser4_tree_attach_node(tree, old_root,
+					    &place, SF_DEFAULT)))
+	{
 		aal_error("Can't attach node %llu to tree during"
 			  "tree growing up.", node_blocknr(old_root));
 		reiser4_node_unlock(new_root);
@@ -2333,6 +2327,7 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		reiser4_place_t save;
 		reiser4_node_t *node;
 		uint32_t shift_flags;
+		reiser4_place_t aplace;
 
 		/* Saving place as it will be usefull for us later */
 		save = *place;
@@ -2349,9 +2344,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		if (SF_ALLOW_MERGE & flags)
 			shift_flags |= SF_ALLOW_MERGE;
 		
-		/* We will allow to move insert point to neighbour node if we
-		   are at first iteration in this loop or if place points behind
-		   the last unit of last item in current node. */
+		/* We will allow to move insert point to neighbour node if we at
+		   first iteration in this loop or if place points behind the
+		   last unit of last item in current node. */
 		if (alloc > 0 || reiser4_place_rightmost(place))
 			shift_flags |= SF_MOVE_POINT;
 
@@ -2360,6 +2355,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 		if ((res = reiser4_tree_shift(tree, place, node, shift_flags)))
 			return res;
 
+		/* Preparing new @node parent place. */
+		reiser4_place_dup(&aplace, &save.node->p);
+			
 		if (reiser4_node_items(save.node) == 0) {
 			reiser4_node_lock(place->node);
 			
@@ -2371,6 +2369,8 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 			}
 
 			reiser4_node_unlock(place->node);
+		} else {
+			aplace.pos.item++;
 		}
 		
 		if (reiser4_node_items(node) > 0) {
@@ -2383,12 +2383,17 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, reiser4_place_t *place,
 					reiser4_node_unlock(place->node);
 					return res;
 				}
+				
+				/* Updating new root parent after tree grow. */
+				reiser4_place_dup(&aplace, &save.node->p);
+				aplace.pos.item++;
 			}
 
 			reiser4_node_lock(save.node);
-			
+
 			/* Attach new node to tree if it is not empty. */
 			if ((res = reiser4_tree_attach_node(tree, node,
+							    &aplace,
 							    SF_DEFAULT)))
 			{
 				reiser4_node_unlock(save.node);
@@ -2537,6 +2542,7 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 		if (!reiser4_place_leftmost(place) &&
 		    !reiser4_place_rightmost(place))
 		{
+			reiser4_place_t aplace;
 			reiser4_node_t *old_node;
 			
 			/* We are not on the border, split @place->node. That is
@@ -2553,6 +2559,8 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 				 SF_ALLOW_MERGE);
 
 			old_node = place->node;
+			
+			reiser4_place_dup(&aplace, &old_node->p);
 			
 			/* Perform shift from @place->node to @node. */
 			if ((res = reiser4_tree_shift(tree, place, node,
@@ -2573,10 +2581,14 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 					reiser4_node_unlock(old_node);
 					goto error_free_node;
 				}
+				reiser4_place_dup(&aplace, &old_node->p);
 			}
 
+			aplace.pos.item++;
+		
 			/* Attach new node to tree. */
 			if ((res = reiser4_tree_attach_node(tree, node,
+							    &aplace,
 							    SF_DEFAULT)))
 			{
 				aal_error("Tree is failed to attach "
@@ -2864,10 +2876,21 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 			return res;
 	}
 
-	/* If make space function allocates new node, we should attach it to the
+        /* If make space function allocates new node, we should attach it to the
 	   tree. Also, here we should handle the special case, when tree root
 	   should be changed. */
 	if (place->node != tree->root && !place->node->p.node) {
+		reiser4_place_t aplace;
+
+		/* Prepare parent place for new created node. */
+		if (old.node) {
+			reiser4_place_dup(&aplace, &old.node->p);
+			aplace.pos.item++;
+		} else {
+			reiser4_place_assign(&aplace, tree->root,
+					     0, MAX_UINT32);
+		}
+
 		if (old.node && reiser4_tree_root_node(tree, old.node)) {
 			reiser4_node_lock(place->node);
 
@@ -2879,10 +2902,15 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 			}
 			
 			reiser4_node_unlock(place->node);
+
+			reiser4_place_dup(&aplace,
+					  &old.node->p);
+			
+			aplace.pos.item++;
 		}
-		
+
 		/* Attaching new node to the tree. */
-		if ((res = reiser4_tree_attach_node(tree, place->node,
+		if ((res = reiser4_tree_attach_node(tree, place->node, &aplace,
 						    hint->shift_flags)))
 		{
 			aal_error("Can't attach node %llu to tree.",
@@ -2895,7 +2923,7 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	if ((res = reiser4_place_fetch(place)))
 		return res;
 
-	/* Calling @hint->place_func if any andif there was new item create. */
+	/* Calling @hint->place_func if any and if there was new item create. */
 	if (hint->place_func && place->pos.unit == MAX_UINT32) {
 		if ((res = hint->place_func(place, hint)))
 			return res;
