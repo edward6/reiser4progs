@@ -12,7 +12,7 @@
 #include <reiser4/reiser4.h>
 
 /* Handler for plugin lookup requests from all plugins */
-static reiser4_plugin_t *factory_ifind(
+static reiser4_plug_t *factory_ifind(
 	rid_t type,		    /* needed type of plugin*/
 	rid_t id)		    /* needed plugin id */
 {
@@ -20,7 +20,7 @@ static reiser4_plugin_t *factory_ifind(
 }
 
 /* Handler for plugin lookup requests from all plugins */
-static reiser4_plugin_t *factory_pfind(
+static reiser4_plug_t *factory_pfind(
 	rid_t type,		    /* needed type of plugin*/
 	rid_t id,                   /* needed id of plugin */
 	key_policy_t policy)        /* needed key policy */
@@ -30,7 +30,7 @@ static reiser4_plugin_t *factory_pfind(
 
 #ifndef ENABLE_STAND_ALONE
 /* Handler for plugin finding requests from all plugins */
-static reiser4_plugin_t *factory_nfind(char *name) {
+static reiser4_plug_t *factory_nfind(char *name) {
 	return libreiser4_factory_nfind(name);
 }
 

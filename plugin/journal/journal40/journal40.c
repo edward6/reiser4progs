@@ -10,7 +10,7 @@
 #define JOURNAL40_HEADER (4096 * 19)
 #define JOURNAL40_FOOTER (4096 * 20)
 
-extern reiser4_plugin_t journal40_plugin;
+extern reiser4_plug_t journal40_plug;
 
 static int journal40_isdirty(object_entity_t *entity) {
 	aal_assert("umka-2081", entity != NULL);
@@ -116,7 +116,7 @@ static object_entity_t *journal40_open(object_entity_t *format,
 	journal->device = device;
 	journal->format = format;
 	journal->blocksize = blocksize;
-	journal->plugin = &journal40_plugin;
+	journal->plug = &journal40_plug;
 
 	journal->area.start = start;
 	journal->area.len = len;
@@ -199,7 +199,7 @@ static object_entity_t *journal40_create(object_entity_t *format,
 	journal->device = device;
 	journal->format = format;
 	journal->blocksize = blocksize;
-	journal->plugin = &journal40_plugin;
+	journal->plug = &journal40_plug;
 
 	journal->area.start = start;
 	journal->area.len = len;
@@ -699,10 +699,10 @@ static errno_t journal40_print(object_entity_t *entity,
 	aal_stream_format(stream, "Journal:\n");
 	
 	aal_stream_format(stream, "plugin: \t%s\n",
-			  entity->plugin->label);
+			  entity->plug->label);
 
 	aal_stream_format(stream, "description:\t%s\n\n",
-			  entity->plugin->desc);
+			  entity->plug->desc);
 	
 	aal_stream_format(stream, "Journal header:\n");
 
@@ -761,9 +761,9 @@ static reiser4_journal_ops_t journal40_ops = {
 	.device   	= journal40_device
 };
 
-static reiser4_plugin_t journal40_plugin = {
+static reiser4_plug_t journal40_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {JOURNAL_REISER40_ID, 0, JOURNAL_PLUGIN_TYPE},
+	.id    = {JOURNAL_REISER40_ID, 0, JOURNAL_PLUG_TYPE},
 	.label = "journal40",
 	.desc  = "Journal for reiser4, ver. " VERSION,
 	.o = {
@@ -771,9 +771,9 @@ static reiser4_plugin_t journal40_plugin = {
 	}
 };
 
-static reiser4_plugin_t *journal40_start(reiser4_core_t *c) {
-	return &journal40_plugin;
+static reiser4_plug_t *journal40_start(reiser4_core_t *c) {
+	return &journal40_plug;
 }
 
-plugin_register(journal40, journal40_start, NULL);
+plug_register(journal40, journal40_start, NULL);
 #endif

@@ -8,100 +8,100 @@
 
 static reiser4_profile_t profile = {
 	.name = "default",
-	.plugin = {
+	.pid  = {
 		[0] = {
 			.name  = "node",
-			.type  = NODE_PLUGIN_TYPE,
+			.type  = NODE_PLUG_TYPE,
 			.value = NODE_LARGE_ID
 		},
 		[1] = {
 			.name  = "nodeptr",
-			.type  = ITEM_PLUGIN_TYPE,
+			.type  = ITEM_PLUG_TYPE,
 			.value = ITEM_NODEPTR40_ID
 		},
 		[2] = {
 			.name  = "statdata",
-			.type  = ITEM_PLUGIN_TYPE,
+			.type  = ITEM_PLUG_TYPE,
 			.value = ITEM_STATDATA40_ID
 		},
 		[3] = {
 			.name  = "tail",
-			.type  = ITEM_PLUGIN_TYPE,
+			.type  = ITEM_PLUG_TYPE,
 			.value = ITEM_TAIL40_ID
 		},
 		[4] = {
 			.name  = "extent",
-			.type  = ITEM_PLUGIN_TYPE,
+			.type  = ITEM_PLUG_TYPE,
 			.value = ITEM_EXTENT40_ID
 		},
 		[5] = {
 			.name  = "cde",
-			.type  = ITEM_PLUGIN_TYPE,
+			.type  = ITEM_PLUG_TYPE,
 			.value = ITEM_CDE_LARGE_ID
 		},
 		[6] = {
 			.name  = "acl",
-			.type  = ITEM_PLUGIN_TYPE,
+			.type  = ITEM_PLUG_TYPE,
 			.value = ITEM_ACL40_ID
 		},
 		[7] = {
 			.name  = "hash",
-			.type  = HASH_PLUGIN_TYPE,
+			.type  = HASH_PLUG_TYPE,
 			.value = HASH_R5_ID
 		},
 		[8] = {
 			.name  = "policy",
-			.type  = POLICY_PLUGIN_TYPE,
+			.type  = POLICY_PLUG_TYPE,
 			.value = TAIL_SMART_ID
 		},
 		[9] = {
 			.name  = "perm",
-			.type  = PERM_PLUGIN_TYPE,
+			.type  = PERM_PLUG_TYPE,
 			.value = PERM_RWX_ID
 		},
 		[10] = {
 			.name  = "regular",
-			.type  = OBJECT_PLUGIN_TYPE,
+			.type  = OBJECT_PLUG_TYPE,
 			.value = OBJECT_FILE40_ID
 		},
 		[11] = {
 			.name  = "directory",
-			.type  = OBJECT_PLUGIN_TYPE,
+			.type  = OBJECT_PLUG_TYPE,
 			.value = OBJECT_DIRTORY40_ID
 		},
 		[12] = {
 			.name  = "symlink",
-			.type  = OBJECT_PLUGIN_TYPE,
+			.type  = OBJECT_PLUG_TYPE,
 			.value = OBJECT_SYMLINK40_ID
 		},
 		[13] = {
 			.name  = "special",
-			.type  = OBJECT_PLUGIN_TYPE,
+			.type  = OBJECT_PLUG_TYPE,
 			.value = OBJECT_SPECIAL40_ID
 		},
 		[14] = {
 			.name  = "format",
-			.type  = FORMAT_PLUGIN_TYPE,
+			.type  = FORMAT_PLUG_TYPE,
 			.value = FORMAT_REISER40_ID
 		},
 		[15] = {
 			.name  = "oid",
-			.type  = OID_PLUGIN_TYPE,
+			.type  = OID_PLUG_TYPE,
 			.value = OID_REISER40_ID
 		},
 		[16] = {
 			.name  = "alloc",
-			.type  = ALLOC_PLUGIN_TYPE,
+			.type  = ALLOC_PLUG_TYPE,
 			.value = ALLOC_REISER40_ID
 		},
 		[17] = {
 			.name  = "journal",
-			.type  = JOURNAL_PLUGIN_TYPE,
+			.type  = JOURNAL_PLUG_TYPE,
 			.value = JOURNAL_REISER40_ID
 		},
 		[18] = {
 			.name  = "key",
-			.type  = KEY_PLUGIN_TYPE,
+			.type  = KEY_PLUG_TYPE,
 			.value = KEY_LARGE_ID
 		}
 	}
@@ -157,26 +157,27 @@ errno_t misc_profile_override(char *override)
 
 void misc_profile_print(void) {
 	uint32_t i;
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 
 	printf("Profile %s:\n", profile.name);
 	
 	for (i = 0; i < PROFILE_SIZE; i++) {
 		uint32_t width;
-		reiser4_pid_t *pid = &profile.plugin[i];
+		reiser4_pid_t *pid = &profile.pid[i];
 
-		plugin = libreiser4_factory_ifind(pid->type,
-						  pid->value);
+		plug = libreiser4_factory_ifind(pid->type,
+						pid->value);
 
 		width = 12 - aal_strlen(pid->name);
 
-		if (plugin) {
+		if (plug) {
 			printf("%s:%*s%s (%s).\n", pid->name, width - 1, " ",
-			       plugin->label, plugin->desc);
+			       plug->label, plug->desc);
 		} else {
 			printf("%s:%*s0x%llx.\n", pid->name, width - 1, " ",
 			       pid->value);
 		}
 	}
+	
 	printf("\n");
 }

@@ -3,13 +3,11 @@
    
    body40.c -- file body item plugins common code. */
 
-#include <reiser4/plugin.h>
 #include "body40.h"
 
 /* Builds the key of the unit at @pos and stores it inside passed @key
    variable. It is needed for updating item key after shifting, etc. */
-errno_t body40_get_key(item_entity_t *item,
-		       uint32_t pos,
+errno_t body40_get_key(place_t *place, uint32_t pos,
 		       key_entity_t *key,
 		       trans_func_t trans_func)
 {
@@ -19,24 +17,22 @@ errno_t body40_get_key(item_entity_t *item,
 	uint32_t offset;
 #endif
 
-	plugin_call(item->key.plugin->o.key_ops, assign,
-		    key, &item->key);
+	plug_call(place->key.plug->o.key_ops, assign,
+		  key, &place->key);
 		
-	offset = plugin_call(key->plugin->o.key_ops,
-			     get_offset, key);
+	offset = plug_call(key->plug->o.key_ops,
+			   get_offset, key);
 
-	offset += (trans_func ? trans_func(item, pos) : pos);
+	offset += (trans_func ? trans_func(place, pos) : pos);
 
-	plugin_call(key->plugin->o.key_ops, set_offset,
-		    key, offset);
+	plug_call(key->plug->o.key_ops, set_offset,
+		  key, offset);
 	
 	return 0;
 }
 
 /* Returns maximal possible key from file body items */
-errno_t body40_maxposs_key(item_entity_t *item,
-			   key_entity_t *key) 
-{
+errno_t body40_maxposs_key(place_t *place, key_entity_t *key) {
 #ifndef ENABLE_STAND_ALONE
 	uint64_t offset;
 #else
@@ -45,73 +41,69 @@ errno_t body40_maxposs_key(item_entity_t *item,
 	
 	key_entity_t *maxkey;
     
-	plugin_call(item->key.plugin->o.key_ops, assign,
-		    key, &item->key);
+	plug_call(place->key.plug->o.key_ops, assign,
+		  key, &place->key);
     
-	maxkey = plugin_call(key->plugin->o.key_ops,
-			     maximal);
+	maxkey = plug_call(key->plug->o.key_ops,
+			   maximal);
     
-	offset = plugin_call(key->plugin->o.key_ops,
-			     get_offset, maxkey);
+	offset = plug_call(key->plug->o.key_ops,
+			   get_offset, maxkey);
 	
-    	plugin_call(key->plugin->o.key_ops, set_offset,
-		    key, offset);
+    	plug_call(key->plug->o.key_ops, set_offset,
+		  key, offset);
 
 	return 0;
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Returns max real key inside passed @item */
-errno_t body40_maxreal_key(item_entity_t *item,
+/* Returns max real key inside passed @place */
+errno_t body40_maxreal_key(place_t *place,
 			   key_entity_t *key,
 			   trans_func_t trans_func) 
 {
 	uint64_t units;
 	uint64_t offset;
 
-	units = plugin_call(item->plugin->o.item_ops,
-			    units, item);
+	units = plug_call(place->plug->o.item_ops,
+			  units, place);
 	
-	plugin_call(item->key.plugin->o.key_ops,
-		    assign, key, &item->key);
+	plug_call(place->key.plug->o.key_ops,
+		  assign, key, &place->key);
 
-	offset = plugin_call(key->plugin->o.key_ops,
-			     get_offset, key);
+	offset = plug_call(key->plug->o.key_ops,
+			   get_offset, key);
 
-	offset += (trans_func ? trans_func(item, units) :
+	offset += (trans_func ? trans_func(place, units) :
 		   units);
 	
-	plugin_call(key->plugin->o.key_ops, set_offset,
-		    key, offset - 1);
+	plug_call(key->plug->o.key_ops, set_offset,
+		  key, offset - 1);
 	
 	return 0;
 }
 
 /* Checks if two items are mergeable */
-int body40_mergeable(item_entity_t *item1,
-		     item_entity_t *item2)
-{
+int body40_mergeable(place_t *place1, place_t *place2) {
 	uint64_t offset;
 	key_entity_t maxreal_key;
 
-	plugin_call(item1->plugin->o.item_ops, maxreal_key,
-		    item1, &maxreal_key);
+	plug_call(place1->plug->o.item_ops, maxreal_key,
+		  place1, &maxreal_key);
 
-	offset = plugin_call(maxreal_key.plugin->o.key_ops,
-			     get_offset, &maxreal_key);
+	offset = plug_call(maxreal_key.plug->o.key_ops,
+			   get_offset, &maxreal_key);
 
-	plugin_call(maxreal_key.plugin->o.key_ops,
-		    set_offset, &maxreal_key, offset + 1);
+	plug_call(maxreal_key.plug->o.key_ops,
+		  set_offset, &maxreal_key, offset + 1);
 	
-	return !plugin_call(item1->key.plugin->o.key_ops,
-			    compfull, &maxreal_key, &item2->key);
+	return !plug_call(place1->key.plug->o.key_ops,
+			  compfull, &maxreal_key, &place2->key);
 }
 #endif
 
-lookup_t body40_lookup(item_entity_t *item,
-		       key_entity_t *key,
-		       uint64_t *pos,
-		       trans_func_t trans_func)
+lookup_t body40_lookup(place_t *place, key_entity_t *key,
+		       uint64_t *pos, trans_func_t trans_func)
 {
 #ifndef ENABLE_STAND_ALONE
 	uint64_t size;
@@ -126,28 +118,28 @@ lookup_t body40_lookup(item_entity_t *item,
 	uint32_t units;
 	key_entity_t maxkey;
 
-	body40_maxposs_key(item, &maxkey);
+	body40_maxposs_key(place, &maxkey);
 
-	if (!(units = plugin_call(item->plugin->o.item_ops,
-				  units, item)))
+	if (!(units = plug_call(place->plug->o.item_ops,
+				units, place)))
 	{
 		return ABSENT;
 	}
 
-	size = trans_func ? trans_func(item, units) : units;
+	size = trans_func ? trans_func(place, units) : units;
 	
-	if (plugin_call(key->plugin->o.key_ops,
-			compfull, key, &maxkey) > 0)
+	if (plug_call(key->plug->o.key_ops,
+		      compfull, key, &maxkey) > 0)
 	{
 		*pos = size;
 		return ABSENT;
 	}
 
-	offset = plugin_call(key->plugin->o.key_ops,
-			     get_offset, &item->key);
+	offset = plug_call(key->plug->o.key_ops,
+			   get_offset, &place->key);
 
-	wanted = plugin_call(key->plugin->o.key_ops,
-			     get_offset, key);
+	wanted = plug_call(key->plug->o.key_ops,
+			   get_offset, key);
 
 	if (wanted >= offset &&
 	    wanted < offset + size)

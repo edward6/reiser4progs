@@ -98,18 +98,18 @@ reiser4_master_t *reiser4_master_create(
 
 /* Callback function for comparing plugins */
 static errno_t callback_guess_format(
-	reiser4_plugin_t *plugin,    /* plugin to be checked */
+	reiser4_plug_t *plug,        /* plugin to be checked */
 	void *data)		     /* needed plugin type */
 {
-	if (plugin->id.type == FORMAT_PLUGIN_TYPE) {
+	if (plug->id.type == FORMAT_PLUG_TYPE) {
 		aal_device_t *device = (aal_device_t *)data;
-		return plugin_call(plugin->o.format_ops, confirm, device);
+		return plug_call(plug->o.format_ops, confirm, device);
 	}
     
 	return 0;
 }
 
-reiser4_plugin_t *reiser4_master_guess(aal_device_t *device) {
+reiser4_plug_t *reiser4_master_guess(aal_device_t *device) {
 	return libreiser4_factory_cfind(callback_guess_format, device, TRUE);
 }
 
@@ -217,13 +217,13 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 		/* Reiser4 was not found on the device. At this point we should
 		   call the function which detects used format on the device. */
 #ifndef ENABLE_STAND_ALONE
-		reiser4_plugin_t *plugin;
+		reiser4_plug_t *plug;
 	    
-		if (!(plugin = reiser4_master_guess(device)))
+		if (!(plug = reiser4_master_guess(device)))
 			goto error_free_master;
 	    
 		/* Creating in-memory master super block */
-		if (!(master = reiser4_master_create(device, plugin->id.id, 
+		if (!(master = reiser4_master_create(device, plug->id.id, 
 						     REISER4_BLKSIZE, NULL,
 						     NULL)))
 		{

@@ -12,21 +12,21 @@
 #include <reiser4/plugin.h>
 #include <repair/plugin.h>
 
-#define tail40_body(item) (item->body)
+#define tail40_body(place) (place->body)
 
-extern errno_t tail40_get_key(item_entity_t *item, uint32_t pos, 
+extern errno_t tail40_get_key(place_t *place, uint32_t pos, 
 			      key_entity_t *key);
 
-extern errno_t tail40_maxreal_key(item_entity_t *item, key_entity_t *key);
+extern errno_t tail40_maxreal_key(place_t *place, key_entity_t *key);
 
-extern errno_t tail40_rep(item_entity_t *dst_item, uint32_t dst_pos,
-			  item_entity_t *src_item, uint32_t src_pos,
+extern errno_t tail40_rep(place_t *dst_place, uint32_t dst_pos,
+			  place_t *src_place, uint32_t src_pos,
 			  uint32_t count);
 
-extern uint32_t tail40_units(item_entity_t *item);
+extern uint32_t tail40_units(place_t *place);
 
-errno_t tail40_copy(item_entity_t *dst, uint32_t dst_pos, 
-		    item_entity_t *src, uint32_t src_pos, 
+errno_t tail40_copy(place_t *dst, uint32_t dst_pos, 
+		    place_t *src, uint32_t src_pos, 
 		    copy_hint_t *hint)
 {
 	aal_assert("vpf-987", dst  != NULL);
@@ -39,8 +39,8 @@ errno_t tail40_copy(item_entity_t *dst, uint32_t dst_pos,
 	return tail40_rep(dst, dst_pos, src, src_pos, hint->src_count);
 }
 
-errno_t tail40_estimate_copy(item_entity_t *dst, uint32_t dst_pos, 
-			     item_entity_t *src, uint32_t src_pos, 
+errno_t tail40_estimate_copy(place_t *dst, uint32_t dst_pos, 
+			     place_t *src, uint32_t src_pos, 
 			     copy_hint_t *hint)
 {
 	uint64_t src_offset, dst_max, src_max, src_end;
@@ -55,19 +55,19 @@ errno_t tail40_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
 	if ((res = tail40_maxreal_key(dst, &key)))
 		return res;
 	
-	dst_max = plugin_call(key.plugin->o.key_ops, get_offset, &key);
+	dst_max = plug_call(key.plug->o.key_ops, get_offset, &key);
 	
-	src_end = plugin_call(hint->end.plugin->o.key_ops, get_offset, &hint->end);
+	src_end = plug_call(hint->end.plug->o.key_ops, get_offset, &hint->end);
 	
 	if ((res = tail40_maxreal_key(src, &key)))
 		return res;
 	
-	src_max = plugin_call(key.plugin->o.key_ops, get_offset, &key);
+	src_max = plug_call(key.plug->o.key_ops, get_offset, &key);
 	
 	if (src_max > src_end)
 		src_max = src_end;
 	
-	src_offset = plugin_call(hint->start.plugin->o.key_ops, get_offset, 
+	src_offset = plug_call(hint->start.plug->o.key_ops, get_offset, 
 				 &hint->start);
 	
 	if (src_offset <= dst_max) {
@@ -78,7 +78,7 @@ errno_t tail40_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
 		if (tail40_get_key(dst, dst_pos, &key))
 			return -EINVAL;
 		
-		dst_offset = plugin_call(key.plugin->o.key_ops, get_offset, &key);
+		dst_offset = plug_call(key.plug->o.key_ops, get_offset, &key);
 		
 		aal_assert("vpf-985", dst_offset < src_max);
 		
@@ -92,7 +92,7 @@ errno_t tail40_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
 		hint->src_count = hint->len_delta = src_max - src_offset + 1;
 	}
 	
-	plugin_call(hint->end.plugin->o.key_ops, set_offset, &hint->end, 
+	plug_call(hint->end.plug->o.key_ops, set_offset, &hint->end, 
 		    src_offset + hint->src_count);
 	
 	return 0;

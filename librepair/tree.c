@@ -23,18 +23,18 @@ bool_t repair_tree_legal_level(reiser4_item_group_t group,
 	return TRUE;
 }
 
-static errno_t callback_data_level(reiser4_plugin_t *plugin, void *data) {
+static errno_t callback_data_level(reiser4_plug_t *plug, void *data) {
 	uint8_t *level = (uint8_t *)data;
 	
 	aal_assert("vpf-746", data != NULL);
 	
-	if (plugin->id.type != ITEM_PLUGIN_TYPE)
+	if (plug->id.type != ITEM_PLUG_TYPE)
 		return 0;
 	
-	if (!repair_tree_legal_level(plugin->id.group, *level))
+	if (!repair_tree_legal_level(plug->id.group, *level))
 		return 0;
 	
-	return reiser4_item_data(plugin);
+	return reiser4_item_data(plug);
 }
 
 bool_t repair_tree_data_level(uint8_t level) {
@@ -71,13 +71,11 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 	if (reiser4_item_branch(&place)) {
 		ptr_hint_t ptr;
 		uint32_t blksize;
-		item_entity_t *item = &place.item;
 		
 		place.pos.unit = reiser4_item_units(&place) - 1;
 		
-		if (plugin_call(item->plugin->o.item_ops, read, item,
-				&ptr, place.pos.unit, 1) != 1 || 
-		    ptr.start == INVAL_BLK)
+		if (plug_call(place.plug->o.item_ops, read, (place_t *)&place,
+			      &ptr, place.pos.unit, 1) != 1 || ptr.start == INVAL_BLK)
 		{
 			return -EINVAL;
 		}
@@ -86,7 +84,7 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 		
 		child = reiser4_node_open(place.node->device, 
 					  blksize, ptr.start,
-					  node->entity->plugin->id.id);
+					  node->entity->plug->id.id);
 		
 		if (!child)
 			return -EINVAL;
@@ -142,7 +140,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 			if ((res = reiser4_place_realize(&place)))
 				return res;
 
-			reiser4_key_assign(&key, &place.item.key);
+			reiser4_key_assign(&key, &place.key);
 		}
 		
 		/* Get the maximum key existing in the node being inserted. */
@@ -164,7 +162,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 	
 	pid = reiser4_profile_value(tree->fs->profile, "nodeptr");
 	
-	if (!(hint.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) {
+	if (!(hint.plug = libreiser4_factory_ifind(ITEM_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find item plugin by its id 0x%x.", 
 				    pid);
 		return -EINVAL;
@@ -216,7 +214,7 @@ errno_t repair_tree_copy_by_place(reiser4_tree_t *tree, reiser4_place_t *dst,
 		if (hint)
 			needed = hint->len_delta;
 		else
-			needed = src->item.len;
+			needed = src->len;
 		
 		needed += (dst->pos.unit == MAX_UINT32 ? 
 			   reiser4_node_overhead(dst->node) : 0);
@@ -245,7 +243,7 @@ errno_t repair_tree_copy_by_place(reiser4_tree_t *tree, reiser4_place_t *dst,
 		reiser4_place_init(&p, tree, dst->node->p.node, 
 				   &dst->node->p.pos);
 		
-		if ((res = reiser4_tree_ukey(tree, &p, &src->item.key)))
+		if ((res = reiser4_tree_ukey(tree, &p, &src->key)))
 			return res;
 	}
 	
@@ -286,7 +284,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 		return -EINVAL;
 	
 	src_units = reiser4_item_units(src);
-	reiser4_key_assign(&start_key, &src->item.key);
+	reiser4_key_assign(&start_key, &src->key);
 	
 	src_pos = src->pos;
 	
@@ -315,7 +313,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 					return -EINVAL;
 				
 				res = reiser4_key_compare(&src_max, 
-							  &rplace.item.key);
+							  &rplace.key);
 				
 				if (res >= 0) {
 					whole = 0;
@@ -338,7 +336,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 					return res;
 				
 				res = reiser4_key_compare(&src_max, 
-							  &dst.item.key);
+							  &dst.key);
 				
 				if (res >= 0) {
 					/* Items overlapped. */
@@ -359,7 +357,7 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 			if ((res = reiser4_place_realize(&dst)))
 				return res;
 			
-			if (dst.item.plugin->id.id != src->item.plugin->id.id) {
+			if (dst.plug->id.id != src->plug->id.id) {
 				/* FIXME: relocation code should be here. */		
 				aal_exception_error("Tree Overwrite failed to "
 						    "overwrite items of different "
@@ -404,13 +402,13 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *src) {
 			return ret;
 		}
 		
-		if (whole || !src->item.plugin->o.item_ops->lookup)
+		if (whole || !src->plug->o.item_ops->lookup)
 			break;
 		
 		/* Lookup by end_key. */
-		res = src->item.plugin->o.item_ops->lookup(&src->item, 
-							   &hint.end, 
-							   &src->pos.unit);
+		res = src->plug->o.item_ops->lookup((place_t *)src, 
+							 &hint.end, 
+							 &src->pos.unit);
 		
 		if (src->pos.unit >= reiser4_item_units(src))
 			break;

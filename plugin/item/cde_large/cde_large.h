@@ -10,7 +10,7 @@
 #include <aux/aux.h>
 #include <reiser4/plugin.h>
 
-#define cde_large_body(item) ((cde_large_t *)item->body)
+#define cde_large_body(place) ((cde_large_t *)place->body)
 
 /* The cde_large structure is as the following:
    +-------------------------------+-------------------------------------------------+

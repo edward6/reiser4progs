@@ -105,8 +105,8 @@ errno_t reiser4_place_realize(reiser4_place_t *place) {
 
 	entity = place->node->entity;
 
-	return plugin_call(entity->plugin->o.node_ops, get_item,
-			   entity, &place->pos, &place->item);
+	return plug_call(entity->plug->o.node_ops, get_item,
+			 entity, &place->pos, (place_t *)place);
 }
 
 /* This function initializes passed @place by specified params */

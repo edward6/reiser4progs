@@ -22,9 +22,9 @@ static reiser4_hash_ops_t fnv1_hash_ops = {
 	.build = fnv1_hash_build
 };
 
-static reiser4_plugin_t fnv1_hash_plugin = {
+static reiser4_plug_t fnv1_hash_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {HASH_FNV1_ID, 0, HASH_PLUGIN_TYPE},
+	.id    = {HASH_FNV1_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "fnv1_hash",
 	.desc  = "Fnv1 hash for reiser4, ver. " VERSION,
@@ -34,9 +34,9 @@ static reiser4_plugin_t fnv1_hash_plugin = {
 	}
 };
 
-static reiser4_plugin_t *fnv1_hash_start(reiser4_core_t *c) {
-	return &fnv1_hash_plugin;
+static reiser4_plug_t *fnv1_hash_start(reiser4_core_t *c) {
+	return &fnv1_hash_plug;
 }
 
-plugin_register(fnv1_hash, fnv1_hash_start, NULL);
+plug_register(fnv1_hash, fnv1_hash_start, NULL);
 #endif

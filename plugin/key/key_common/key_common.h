@@ -31,8 +31,7 @@ typedef enum {
 extern key_minor_t key_common_type2minor(key_type_t type);
 extern key_type_t key_common_minor2type(key_minor_t minor);
 extern const char *key_common_minor2name(key_minor_t type);
-
-extern key_entity_t *key_common_minimal(reiser4_plugin_t *plugin);
-extern key_entity_t *key_common_maximal(reiser4_plugin_t *plugin);
+extern key_entity_t *key_common_minimal(reiser4_plug_t *plug);
+extern key_entity_t *key_common_maximal(reiser4_plug_t *plug);
 
 #endif

@@ -21,7 +21,7 @@ struct reg40 {
 	place_t body;
 
 	/* Current body plugin (tail40, extent40, etc) */
-	reiser4_plugin_t *bplug;
+	reiser4_plug_t *bplug;
 
 	/* Current position in the directory */
 #ifndef ENABLE_STAND_ALONE

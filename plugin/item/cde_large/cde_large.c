@@ -1,76 +1,72 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   cde_large.c -- reiser4 direntry with large keys. */
+   cde_large.c -- reiser4 cde with large keys. */
 
 #ifdef ENABLE_LARGE_KEYS
 #include "cde_large.h"
 
-/* Returns pointer to the objectid entry component in passed @direntry at pased
+/* Returns pointer to the objectid entry component in passed @cde at pased
    @pos. It is used in code bellow. */
-static objid_t *cde_large_objid(item_entity_t *item,
-				uint32_t pos)
-{
-	uint32_t offset = cde_large_body(item)->entry[pos].offset;
-	return (objid_t *)(item->body + offset);
+static objid_t *cde_large_objid(place_t *place,	uint32_t pos) {
+	uint32_t offset = cde_large_body(place)->entry[pos].offset;
+	return (objid_t *)(place->body + offset);
 }
 
 /* Returns statdata key of the object entry points to */
-static void cde_large_get_obj(item_entity_t *item,
+static void cde_large_get_obj(place_t *place,
 			      uint32_t pos,
 			      key_entity_t *key)
 {
-	objid_t *objid = cde_large_objid(item, pos);
+	objid_t *objid = cde_large_objid(place, pos);
 	
-	key->plugin = item->key.plugin;
-	plugin_call(key->plugin->o.key_ops, clean, key);
+	key->plug = place->key.plug;
+	plug_call(key->plug->o.key_ops, clean, key);
 	aal_memcpy(key->body, objid, sizeof(*objid));
 }
 
 /* Builds full key by entry components. It is needed for updating keys after
    shift, insert, etc. Also library requires unit keys sometims. */
-errno_t cde_large_get_key(item_entity_t *item,
-			  uint32_t pos,
+errno_t cde_large_get_key(place_t *place, uint32_t pos,
 			  key_entity_t *key)
 {
 	oid_t locality;
 	entry_t *entry;
 
 	aal_assert("umka-1606", key != NULL);
-	aal_assert("umka-1607", item != NULL);
-	aal_assert("umka-1605", item->body != NULL);
+	aal_assert("umka-1607", place != NULL);
+	aal_assert("umka-1605", place->body != NULL);
 	
-	entry = &cde_large_body(item)->entry[pos];
+	entry = &cde_large_body(place)->entry[pos];
 
 	/* Getting item key params */
-	locality = plugin_call(item->key.plugin->o.key_ops,
-			       get_locality, &item->key);
+	locality = plug_call(place->key.plug->o.key_ops,
+			     get_locality, &place->key);
 
 	/* Building the full key from entry at @pos */
-	plugin_call(item->key.plugin->o.key_ops, build_gener,
-		    key, KEY_FILENAME_TYPE, locality,
-		    ha_get_ordering(&entry->hash),
-		    ha_get_objectid(&entry->hash),
-		    ha_get_offset(&entry->hash));
+	plug_call(place->key.plug->o.key_ops, build_gener,
+		  key, KEY_FILENAME_TYPE, locality,
+		  ha_get_ordering(&entry->hash),
+		  ha_get_objectid(&entry->hash),
+		  ha_get_offset(&entry->hash));
 
 	return 0;
 }
 
 /* Extracts entry name from the passed @entry to passed @buff */
-static char *cde_large_get_name(item_entity_t *item,
-				uint32_t pos, char *buff,
-				uint32_t len)
+static char *cde_large_get_name(place_t *place, uint32_t pos,
+				char *buff, uint32_t len)
 {
 	key_entity_t key;
 
-	cde_large_get_key(item, pos, &key);
+	cde_large_get_key(place, pos, &key);
 
-	if (plugin_call(key.plugin->o.key_ops, tall, &key)) {
-		char *ptr = (char *)((cde_large_objid(item, pos)) + 1);
+	if (plug_call(key.plug->o.key_ops, tall, &key)) {
+		char *ptr = (char *)((cde_large_objid(place, pos)) + 1);
 		aal_strncpy(buff, ptr, len);
 	} else {
-		plugin_call(key.plugin->o.key_ops, get_name,
-			    &key, buff);
+		plug_call(key.plug->o.key_ops, get_name,
+			  &key, buff);
 	}
 
 	return buff;
@@ -79,9 +75,7 @@ static char *cde_large_get_name(item_entity_t *item,
 #ifndef ENABLE_STAND_ALONE
 /* Calculates entry length. This function is widely used in shift code and
    modification code. */
-static uint32_t cde_large_get_len(item_entity_t *item,
-				  uint32_t pos)
-{
+static uint32_t cde_large_get_len(place_t *place, uint32_t pos) {
 	uint32_t len;
 	key_entity_t key;
 
@@ -89,14 +83,14 @@ static uint32_t cde_large_get_len(item_entity_t *item,
 	len = sizeof(objid_t);
 
 	/* Getting entry key */
-	cde_large_get_key(item, pos, &key);
+	cde_large_get_key(place, pos, &key);
 	
 	/* If entry contains long name it is stored just after objectid.
 	   Otherwise, entry name is stored in objectid and offset of the
 	   entry. This trick saves a lot of space in directories, because the
 	   average name is shorter than 15 symbols. */
-	if (plugin_call(key.plugin->o.key_ops, tall, &key)) {
-		objid_t *objid = cde_large_objid(item, pos);
+	if (plug_call(key.plug->o.key_ops, tall, &key)) {
+		objid_t *objid = cde_large_objid(place, pos);
 		len += aal_strlen((char *)(objid + 1)) + 1;
 	}
 	
@@ -104,29 +98,27 @@ static uint32_t cde_large_get_len(item_entity_t *item,
 }
 #endif
 
-/* Returns the number of usets passed direntry item contains */
-uint32_t cde_large_units(item_entity_t *item) {
-	aal_assert("umka-865", item != NULL);
-	return de_get_units(cde_large_body(item));
+/* Returns the number of usets passed cde item contains */
+uint32_t cde_large_units(place_t *place) {
+	aal_assert("umka-865", place != NULL);
+	return de_get_units(cde_large_body(place));
 }
 
 /* Reads @count of the entries starting from @pos into passed @buff */
-static int32_t cde_large_read(item_entity_t *item, void *buff,
+static int32_t cde_large_read(place_t *place, void *buff,
 			      uint32_t pos, uint32_t count)
 {
 	uint32_t i, units;
 	entry_hint_t *hint;
     
-	aal_assert("umka-866", item != NULL);
+	aal_assert("umka-866", place != NULL);
 	aal_assert("umka-1418", buff != NULL);
-
-	aal_assert("umka-1598",
-		   pos < cde_large_units(item));
+	aal_assert("umka-1598", pos < cde_large_units(place));
     
 	hint = (entry_hint_t *)buff;
 
 #ifndef ENABLE_STAND_ALONE
-	units = cde_large_units(item);
+	units = cde_large_units(place);
 	
 	/* Check if count is valid one */
 	if (count > units - pos)
@@ -134,10 +126,10 @@ static int32_t cde_large_read(item_entity_t *item, void *buff,
 #endif
 
 	for (i = pos; i < pos + count; i++, hint++) {
-		cde_large_get_obj(item, i, &hint->object);
-		cde_large_get_key(item, i, &hint->offset);
+		cde_large_get_obj(place, i, &hint->object);
+		cde_large_get_key(place, i, &hint->offset);
 
-		cde_large_get_name(item, i, hint->name,
+		cde_large_get_name(place, i, hint->name,
 				   sizeof(hint->name));
 	}
     
@@ -151,28 +143,26 @@ static int cde_large_data(void) {
 /* Returns TRUE if items are mergeable. That is if they belong to the same
    directory. This function is used in shift code from the node plugin in order
    to determine are two items may be merged or not. */
-static int cde_large_mergeable(item_entity_t *item1,
-			       item_entity_t *item2)
-{
-	aal_assert("umka-1581", item1 != NULL);
-	aal_assert("umka-1582", item2 != NULL);
+static int cde_large_mergeable(place_t *place1, place_t *place2) {
+	aal_assert("umka-1581", place1 != NULL);
+	aal_assert("umka-1582", place2 != NULL);
 
 	/* Items mergeable if they have the same locality, that is oid of the
 	   directory they belong to. */
-	return (plugin_call(item1->key.plugin->o.key_ops,
-			    get_locality, &item1->key) ==
-		plugin_call(item1->key.plugin->o.key_ops,
-			    get_locality, &item2->key));
+	return (plug_call(place1->key.plug->o.key_ops,
+			  get_locality, &place1->key) ==
+		plug_call(place1->key.plug->o.key_ops,
+			  get_locality, &place2->key));
 }
 
 #ifndef ENABLE_STAND_ALONE
-static uint16_t cde_large_overhead(item_entity_t *item) {
+static uint16_t cde_large_overhead(place_t *place) {
 	return sizeof(cde_large_t);
 }
 
 /* Estimates how much bytes will be needed to prepare in node in odrer to make
    room for inserting new entries. */
-static errno_t cde_large_estimate_insert(item_entity_t *item,
+static errno_t cde_large_estimate_insert(place_t *place,
 					 create_hint_t *hint,
 					 uint32_t pos)
 {
@@ -190,8 +180,8 @@ static errno_t cde_large_estimate_insert(item_entity_t *item,
 
 		/* Calling key plugin for in odrer to find out is passed name is
 		   long one or not. */
-		if (plugin_call(hint->key.plugin->o.key_ops,
-				tall, &entry->offset))
+		if (plug_call(hint->key.plug->o.key_ops,
+			      tall, &entry->offset))
 		{
 			/* Okay, name is long, so we need add its length to
 			   estimated length. */
@@ -204,31 +194,31 @@ static errno_t cde_large_estimate_insert(item_entity_t *item,
 	   should also count item overhead, that is cde_large header which
 	   contains the number of entries in item. */
 	if (pos == MAX_UINT32)
-		hint->len += cde_large_overhead(item);
+		hint->len += cde_large_overhead(place);
     
 	return 0;
 }
 
-/* Calculates the size of @count units in passed @item at passed @pos */
-uint32_t cde_large_size(item_entity_t *item,
-			uint32_t pos, uint32_t count)
+/* Calculates the size of @count units in passed @place at passed @pos */
+uint32_t cde_large_size(place_t *place, uint32_t pos,
+			uint32_t count)
 {
 	uint32_t size = 0;
-	cde_large_t *direntry;
+	cde_large_t *cde;
 	entry_t *entry_end;
 	entry_t *entry_start;
 
 	if (count == 0)
 		return 0;
 	
-	direntry = cde_large_body(item);
-	entry_start = &direntry->entry[pos];
+	cde = cde_large_body(place);
+	entry_start = &cde->entry[pos];
 
-	if (pos + count < de_get_units(direntry)) {
-		entry_end = &direntry->entry[pos + count];
+	if (pos + count < de_get_units(cde)) {
+		entry_end = &cde->entry[pos + count];
 	} else {
-		entry_end = &direntry->entry[pos + count - 1];
-		size = cde_large_get_len(item, pos + count - 1);
+		entry_end = &cde->entry[pos + count - 1];
+		size = cde_large_get_len(place, pos + count - 1);
 
 	}
 	
@@ -238,9 +228,9 @@ uint32_t cde_large_size(item_entity_t *item,
 	return size;
 }
 
-/* Makes copy of @count amount of units from @src_item to @dst_one */
-errno_t cde_large_rep(item_entity_t *dst_item, uint32_t dst_pos,
-		      item_entity_t *src_item, uint32_t src_pos,
+/* Makes copy of @count amount of units from @src_place to @dst_place */
+errno_t cde_large_rep(place_t *dst_place, uint32_t dst_pos,
+		      place_t *src_place, uint32_t src_pos,
 		      uint32_t count)
 {
 	uint32_t i;
@@ -251,26 +241,26 @@ errno_t cde_large_rep(item_entity_t *dst_item, uint32_t dst_pos,
 	uint32_t dst_units;
 
 	entry_t *entry;
-	cde_large_t *dst_direntry;
-	cde_large_t *src_direntry;
+	cde_large_t *dst_cde;
+	cde_large_t *src_cde;
 	
-	aal_assert("umka-2069", dst_item != NULL);
-	aal_assert("umka-2070", src_item != NULL);
+	aal_assert("umka-2069", dst_place != NULL);
+	aal_assert("umka-2070", src_place != NULL);
 
-	dst_direntry = cde_large_body(dst_item);
-	src_direntry = cde_large_body(src_item);
+	dst_cde = cde_large_body(dst_place);
+	src_cde = cde_large_body(src_place);
 
-	dst_units = cde_large_units(dst_item);
+	dst_units = cde_large_units(dst_place);
 	aal_assert("umka-2077", dst_pos <= dst_units);
 	
-	/* Getting offset of body in dst item */
-	offset = cde_large_size(dst_item, 0, dst_pos);
+	/* Getting offset of body in dst place */
+	offset = cde_large_size(dst_place, 0, dst_pos);
 	
 	/* Copying entry headers */
-	src = (void *)src_direntry + sizeof(cde_large_t) +
+	src = (void *)src_cde + sizeof(cde_large_t) +
 		(src_pos * sizeof(entry_t));
 
-	dst = (void *)dst_direntry + sizeof(cde_large_t) +
+	dst = (void *)dst_cde + sizeof(cde_large_t) +
 		(dst_pos * sizeof(entry_t));
 
 	headers = count * sizeof(entry_t);
@@ -278,42 +268,40 @@ errno_t cde_large_rep(item_entity_t *dst_item, uint32_t dst_pos,
 	aal_memcpy(dst, src, headers);
 
 	/* Copying entry bodies */
-	src = (void *)src_direntry +
+	src = (void *)src_cde +
 		en_get_offset((entry_t *)src);
 
-	dst = (void *)dst_direntry + sizeof(cde_large_t) +
+	dst = (void *)dst_cde + sizeof(cde_large_t) +
 		(dst_units * sizeof(entry_t)) + headers + offset;
 
-	size = cde_large_size(src_item, src_pos, count);
+	size = cde_large_size(src_place, src_pos, count);
 	
 	aal_memcpy(dst, src, size);
 
-	/* Updating offset of dst direntry */
-	entry = &dst_direntry->entry[dst_pos];
+	/* Updating offset of dst cde */
+	entry = &dst_cde->entry[dst_pos];
 
 	offset += sizeof(cde_large_t) +
 		(dst_units * sizeof(entry_t)) + headers;
 
 	for (i = 0; i < count; i++, entry++) {
 		en_set_offset(entry, offset);
-			
-		offset += cde_large_get_len(src_item,
-					     src_pos + i);
+		offset += cde_large_get_len(src_place, src_pos + i);
 	}
 		
-	/* Updating direntry count field */
-	de_inc_units(dst_direntry, count);
+	/* Updating cde count field */
+	de_inc_units(dst_cde, count);
 
 	/* Updating item key by unit key if the first unit was changed. It is
 	   needed for correct updating left delimiting keys. */
 	if (dst_pos == 0)
-		cde_large_get_key(dst_item, 0, &dst_item->key);
+		cde_large_get_key(dst_place, 0, &dst_place->key);
 	
 	return 0;
 }
 
-/* Shrinks direntry item in order to delete some entries */
-static uint32_t cde_large_shrink(item_entity_t *item, uint32_t pos,
+/* Shrinks cde item in order to delete some entries */
+static uint32_t cde_large_shrink(place_t *place, uint32_t pos,
 				 uint32_t count, uint32_t len)
 {
 	uint32_t first;
@@ -323,12 +311,12 @@ static uint32_t cde_large_shrink(item_entity_t *item, uint32_t pos,
 	uint32_t i, units;
 
 	entry_t *entry;
-	cde_large_t *direntry;
+	cde_large_t *cde;
 
-	aal_assert("umka-1959", item != NULL);
+	aal_assert("umka-1959", place != NULL);
 	
-	direntry = cde_large_body(item);
-	units = de_get_units(direntry);
+	cde = cde_large_body(place);
+	units = de_get_units(cde);
 	
 	aal_assert("umka-1681", pos < units);
 
@@ -344,21 +332,21 @@ static uint32_t cde_large_shrink(item_entity_t *item, uint32_t pos,
 	first = (units - (pos + count)) *
 		sizeof(entry_t);
 	
-	first += cde_large_size(item, 0, pos);
+	first += cde_large_size(place, 0, pos);
 
 	/* Getting how many bytes should be moved after passed @pos */
-	second = cde_large_size(item, pos + count,
-				 units - (pos + count));
+	second = cde_large_size(place, pos + count,
+				units - (pos + count));
 
 	/* Calculating how many bytes will be moved out */
-	remove = cde_large_size(item, pos, count);
+	remove = cde_large_size(place, pos, count);
 
 	/* Moving headers and first part of bodies (before passed @pos) */
-	entry = &direntry->entry[pos];
+	entry = &cde->entry[pos];
 	aal_memmove(entry, entry + count, first);
 
 	/* Setting up the entry offsets */
-	entry = &direntry->entry[0];
+	entry = &cde->entry[0];
 	
 	for (i = 0; i < pos; i++, entry++)
 		en_dec_offset(entry, headers);
@@ -367,9 +355,9 @@ static uint32_t cde_large_shrink(item_entity_t *item, uint32_t pos,
 	if (second > 0) {
 		void *src, *dst;
 
-		entry = &direntry->entry[pos];
+		entry = &cde->entry[pos];
 
-		src = (void *)direntry +
+		src = (void *)cde +
 			en_get_offset(entry);
 		
 		dst = src - (headers + remove);
@@ -378,17 +366,17 @@ static uint32_t cde_large_shrink(item_entity_t *item, uint32_t pos,
 
 		/* Setting up entry offsets */
 		for (i = pos; i < units - count; i++) {
-			entry = &direntry->entry[i];
+			entry = &cde->entry[i];
 			en_dec_offset(entry, (headers + remove));
 		}
 	}
 
-	de_dec_units(direntry, count);
+	de_dec_units(cde, count);
 	return 0;
 }
 
 /* Prepares cde_large for insert new entries */
-uint32_t cde_large_expand(item_entity_t *item, uint32_t pos,
+uint32_t cde_large_expand(place_t *place, uint32_t pos,
 			  uint32_t count, uint32_t len)
 {
 	void *src, *dst;
@@ -400,14 +388,14 @@ uint32_t cde_large_expand(item_entity_t *item, uint32_t pos,
 	uint32_t headers;
 	uint32_t i, units;
 
-	cde_large_t *direntry;
+	cde_large_t *cde;
 
 	aal_assert("umka-1724", len > 0);
 	aal_assert("umka-1724", count > 0);
-	aal_assert("umka-1723", item != NULL);
+	aal_assert("umka-1723", place != NULL);
 
-	direntry = cde_large_body(item);
-	units = de_get_units(direntry);
+	cde = cde_large_body(place);
+	units = de_get_units(cde);
 	headers = count * sizeof(entry_t);
 
 	aal_assert("umka-1722", pos <= units);
@@ -416,42 +404,42 @@ uint32_t cde_large_expand(item_entity_t *item, uint32_t pos,
 	   will be used later in this function. */
 	if (units > 0) {
 		if (pos < units) {
-			entry = &direntry->entry[pos];
+			entry = &cde->entry[pos];
 			offset = en_get_offset(entry) + headers;
 		} else {
-			entry = &direntry->entry[units - 1];
+			entry = &cde->entry[units - 1];
 			
 			offset = en_get_offset(entry) + sizeof(entry_t) +
-				cde_large_get_len(item, units - 1);
+				cde_large_get_len(place, units - 1);
 		}
 	} else
 		offset = sizeof(cde_large_t) + headers;
 
 	/* Calculating length bytes to be moved before insert point */
 	first = (units - pos) * sizeof(entry_t);
-	first += cde_large_size(item, 0, pos);
+	first += cde_large_size(place, 0, pos);
 	
 	/* Calculating length bytes to be moved after insert point */
-	second = cde_large_size(item, pos, units - pos);
+	second = cde_large_size(place, pos, units - pos);
 	
 	/* Updating offset of entries which lie before insert point */
-	entry = &direntry->entry[0];
+	entry = &cde->entry[0];
 	
 	for (i = 0; i < pos; i++, entry++)
 		en_inc_offset(entry, headers);
     
 	/* Updating offset of entries which lie after insert point */
-	entry = &direntry->entry[pos];
+	entry = &cde->entry[pos];
 	
 	for (i = pos; i < units; i++, entry++)
 		en_inc_offset(entry, len);
     
 	/* Moving entry bodies if it is needed */
 	if (pos < units) {
-		src = (void *)direntry + offset -
+		src = (void *)cde + offset -
 			headers;
 		
-		dst = (void *)direntry + offset +
+		dst = (void *)cde + offset +
 			len - headers;
 		
 		aal_memmove(dst, src, second);
@@ -459,7 +447,7 @@ uint32_t cde_large_expand(item_entity_t *item, uint32_t pos,
     
 	/* Moving unit headers if it is needed */
 	if (first) {
-		src = &direntry->entry[pos];
+		src = &cde->entry[pos];
 		dst = src + headers;
 		aal_memmove(dst, src, first);
 	}
@@ -467,10 +455,10 @@ uint32_t cde_large_expand(item_entity_t *item, uint32_t pos,
 	return offset;
 }
 
-/* Predicts how many entries and bytes can be shifted from the @src_item to
-   @dst_item. The behavior of the function depends on the passed @hint. */
-static errno_t cde_large_estimate_shift(item_entity_t *src_item,
-					item_entity_t *dst_item,
+/* Predicts how many entries and bytes can be shifted from the @src_place to
+   @dst_place. The behavior of the function depends on the passed @hint. */
+static errno_t cde_large_estimate_shift(place_t *src_place,
+					place_t *dst_place,
 					shift_hint_t *hint)
 {
 	int check;
@@ -480,15 +468,15 @@ static errno_t cde_large_estimate_shift(item_entity_t *src_item,
 	uint32_t dst_units;
 	uint32_t space, len;
 	
-	aal_assert("umka-1591", src_item != NULL);
 	aal_assert("umka-1592", hint != NULL);
+	aal_assert("umka-1591", src_place != NULL);
 
-	src_units = cde_large_units(src_item);
-	dst_units = dst_item ? cde_large_units(dst_item) : 0;
+	src_units = cde_large_units(src_place);
+	dst_units = dst_place ? cde_large_units(dst_place) : 0;
 
 	space = hint->rest;
 
-	/* If hint's create flag is present, we need to create new direntry
+	/* If hint's create flag is present, we need to create new cde
 	   item, so we should count its overhead. */
 	if (hint->create) {
 		if (space < sizeof(cde_large_t))
@@ -501,11 +489,11 @@ static errno_t cde_large_estimate_shift(item_entity_t *src_item,
 	
 	curr = (hint->control & SF_LEFT ? 0 : src_units - 1);
 	
-	check = (src_item->pos.item == hint->pos.item &&
+	check = (src_place->pos.item == hint->pos.item &&
 		 hint->pos.unit != MAX_UINT32);
 
 	while (!(hint->result & SF_MOVIP) &&
-	       curr < cde_large_units(src_item))
+	       curr < cde_large_units(src_place))
 	{
 
 		/* Check if we should update unit pos. we will update it if we
@@ -525,7 +513,7 @@ static errno_t cde_large_estimate_shift(item_entity_t *src_item,
 
 		/* Check is we have enough free space for shifting one more unit
 		   from src item to dst item. */
-		len = cde_large_get_len(src_item, curr);
+		len = cde_large_get_len(src_place, curr);
 
 		if (space < len + sizeof(entry_t))
 			break;
@@ -582,32 +570,32 @@ static errno_t cde_large_estimate_shift(item_entity_t *src_item,
 	}
 
 	/* Updating @hint->rest. It is needed for unit shifting. This value is
-	   number of bytes to be moved from @src_item to @dst_item. */
+	   number of bytes to be moved from @src_place to @dst_place. */
 	if (hint->units > 0)
 		hint->rest -= space;
 	
 	return 0;
 }
 
-/* Makes shift of the entries from the @src_item to the @dst_item */
-static errno_t cde_large_shift(item_entity_t *src_item,
-			       item_entity_t *dst_item,
+/* Makes shift of the entries from the @src_place to the @dst_place */
+static errno_t cde_large_shift(place_t *src_place,
+			       place_t *dst_place,
 			       shift_hint_t *hint)
 {
 	uint32_t src_pos, dst_pos;
-	cde_large_t *src_direntry;
-	cde_large_t *dst_direntry;
+	cde_large_t *src_cde;
+	cde_large_t *dst_cde;
 	uint32_t src_units, dst_units;
 	
 	aal_assert("umka-1589", hint != NULL);
-	aal_assert("umka-1586", src_item != NULL);
-	aal_assert("umka-1587", dst_item != NULL);
+	aal_assert("umka-1586", src_place != NULL);
+	aal_assert("umka-1587", dst_place != NULL);
 
-	src_direntry = cde_large_body(src_item);
-	dst_direntry = cde_large_body(dst_item);
+	src_cde = cde_large_body(src_place);
+	dst_cde = cde_large_body(dst_place);
 
-	src_units = de_get_units(src_direntry);
-	dst_units = de_get_units(dst_direntry);
+	src_units = de_get_units(src_cde);
+	dst_units = de_get_units(dst_cde);
 
 	if (hint->control & SF_LEFT) {
 		src_pos = 0;
@@ -618,52 +606,53 @@ static errno_t cde_large_shift(item_entity_t *src_item,
 	}
 
 	/* Preparing root for copying units into it */
-	cde_large_expand(dst_item, dst_pos,
+	cde_large_expand(dst_place, dst_pos,
 			  hint->units, hint->rest);
 
 	/* Copying units from @src item to @dst one */
-	cde_large_rep(dst_item, dst_pos, src_item,
-		       src_pos, hint->units);
+	cde_large_rep(dst_place, dst_pos, src_place,
+		      src_pos, hint->units);
 
-	cde_large_shrink(src_item, src_pos,
-			  hint->units, 0);
+	cde_large_shrink(src_place, src_pos,
+			 hint->units, 0);
 
-	/* Updating item key by first direntry key */
-	if (de_get_units(src_direntry) > 0 &&
+	/* Updating item key by first cde key */
+	if (de_get_units(src_cde) > 0 &&
 	    hint->control & SF_LEFT)
 	{
-		cde_large_get_key(src_item, 0,
-				   &src_item->key);
+		cde_large_get_key(src_place, 0,
+				  &src_place->key);
 	}
 
 	return 0;
 }
 
-/* Inserts new entries to direntry item */
-static errno_t cde_large_insert(item_entity_t *item,
+/* Inserts new entries to cde item */
+static errno_t cde_large_insert(place_t *place,
 				create_hint_t *hint,
 				uint32_t pos)
 {
 	entry_t *entry;
 	uint32_t i, offset;
 
-	cde_large_t *direntry;
+	cde_large_t *cde;
 	entry_hint_t *entry_hint;
     
-	aal_assert("umka-791", item != NULL);
 	aal_assert("umka-792", hint != NULL);
+	aal_assert("umka-791", place != NULL);
 	aal_assert("umka-897", pos != MAX_UINT32);
 
-	direntry = cde_large_body(item);
+	cde = cde_large_body(place);
 	entry_hint = (entry_hint_t *)hint->type_specific;
 
-	/* Expanding direntry in order to prepare the room for new entries. The
+	/* Expanding cde in order to prepare the room for new entries. The
 	   function cde_large_expand returns the offset of where new unit will
 	   be inserted at. */
-	offset = cde_large_expand(item, pos, hint->count, hint->len);
+	offset = cde_large_expand(place, pos, hint->count,
+				  hint->len);
 	
 	/* Creating new entries */
-	for (i = 0, entry = &direntry->entry[pos];
+	for (i = 0, entry = &cde->entry[pos];
 	     i < hint->count; i++, entry++, entry_hint++)
 	{
 		hash_t *entid;
@@ -676,7 +665,7 @@ static errno_t cde_large_insert(item_entity_t *item,
 
 		entid = (hash_t *)&entry->hash;
 
-		objid = (objid_t *)((void *)direntry +
+		objid = (objid_t *)((void *)cde +
 				    offset);
 		
 		/* Setting up the offset of new entry */
@@ -686,20 +675,20 @@ static errno_t cde_large_insert(item_entity_t *item,
 		hash = &entry_hint->offset;
 		
 		/* Creating proper entry ordering */
-		ord = plugin_call(hash->plugin->o.key_ops,
-				  get_ordering, hash);
+		ord = plug_call(hash->plug->o.key_ops,
+				get_ordering, hash);
 		
 		ha_set_ordering(entid, ord);
 		
 		/* Creating proper entry hash */
-		oid = plugin_call(hash->plugin->o.key_ops,
-				  get_fobjectid, hash);
+		oid = plug_call(hash->plug->o.key_ops,
+				get_fobjectid, hash);
 		
 		ha_set_objectid(entid, oid);
 
 		/* Setting up offset component */
-		off = plugin_call(hash->plugin->o.key_ops,
-				  get_offset, hash);
+		off = plug_call(hash->plug->o.key_ops,
+				get_offset, hash);
 
 		ha_set_offset(entid, off);
 
@@ -712,87 +701,87 @@ static errno_t cde_large_insert(item_entity_t *item,
 		offset += sizeof(objid_t);
 
 		/* If key is long one we also count name length */
-		if (plugin_call(item->key.plugin->o.key_ops,
-				tall, &entry_hint->offset))
+		if (plug_call(place->key.plug->o.key_ops,
+			      tall, &entry_hint->offset))
 		{
 			uint32_t len = aal_strlen(entry_hint->name);
 
-			aal_memcpy((void *)direntry + offset,
+			aal_memcpy((void *)cde + offset,
 				   entry_hint->name, len);
 
 			offset += len;
-			*((char *)direntry + offset) = '\0';
+			*((char *)cde + offset) = '\0';
 			offset++;
 		}
 	}
 	
-	de_inc_units(direntry, hint->count);
+	de_inc_units(cde, hint->count);
 	
 	/* Updating item key by unit key if the first unit was changed. It is
 	   needed for correct updating left delimiting keys. */
 	if (pos == 0)
-		cde_large_get_key(item, 0, &item->key);
+		cde_large_get_key(place, 0, &place->key);
     
 	return 0;
 }
 
-/* Removes @count entries at @pos from passed @item */
-int32_t cde_large_remove(item_entity_t *item,
-			 uint32_t pos, uint32_t count)
+/* Removes @count entries at @pos from passed @place */
+int32_t cde_large_remove(place_t *place, uint32_t pos,
+			 uint32_t count)
 {
 	uint32_t len;
 
-	aal_assert("umka-934", item != NULL);
+	aal_assert("umka-934", place != NULL);
 
 	len = count * sizeof(entry_t);
-	len += cde_large_size(item, pos, count);
+	len += cde_large_size(place, pos, count);
 	
-	/* Shrinking direntry */
-	cde_large_shrink(item, pos, count, 0);
+	/* Shrinking cde */
+	cde_large_shrink(place, pos, count, 0);
 	
 	/* Updating item key */
-	if (pos == 0 && cde_large_units(item) > 0)
-		cde_large_get_key(item, 0, &item->key);
+	if (pos == 0 && cde_large_units(place) > 0)
+		cde_large_get_key(place, 0, &place->key);
 
 	return len;
 }
 
 /* Prepares area new item will be created at */
-static errno_t cde_large_init(item_entity_t *item) {
-	aal_assert("umka-1010", item != NULL);
-	aal_assert("umka-2215", item->body != NULL);
+static errno_t cde_large_init(place_t *place) {
+	aal_assert("umka-1010", place != NULL);
+	aal_assert("umka-2215", place->body != NULL);
 	
-	((cde_large_t *)item->body)->units = 0;
+	((cde_large_t *)place->body)->units = 0;
 	return 0;
 }
 
-/* Prints direntry item into passed @stream */
-static errno_t cde_large_print(item_entity_t *item,
+/* Prints cde item into passed @stream */
+static errno_t cde_large_print(place_t *place,
 			       aal_stream_t *stream,
 			       uint16_t options) 
 {
 	uint32_t i, j;
 	char name[256];
 	uint32_t namewidth;
-	cde_large_t *direntry;
+	cde_large_t *cde;
 	uint64_t locality, objectid;
 	
-	aal_assert("umka-548", item != NULL);
+	aal_assert("umka-548", place != NULL);
 	aal_assert("umka-549", stream != NULL);
 
-	direntry = cde_large_body(item);
+	cde = cde_large_body(place);
 	
-	aal_stream_format(stream, "DIRENTRY PLUGIN=%s LEN=%u, KEY=",
-			  item->plugin->label, item->len);
+	aal_stream_format(stream, "CDE PLUGIN=%s LEN=%u, KEY=",
+			  place->plug->label, place->len);
 		
-	if (plugin_call(item->key.plugin->o.key_ops, print,
-			&item->key, stream, options))
+	if (plug_call(place->key.plug->o.key_ops, print,
+		      &place->key, stream, options))
 	{
 		return -EINVAL;
 	}
 	
 	aal_stream_format(stream, " UNITS=%u\n",
-			  de_get_units(direntry));
+			  de_get_units(cde));
 
 	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "
 			  "SDKEY%*s\n", 13, " ", 29, " ", 13, " ");
@@ -802,12 +791,12 @@ static errno_t cde_large_print(item_entity_t *item,
 			  "--------------\n");
 	
 	/* Loop though the all entries */
-	for (i = 0; i < de_get_units(direntry); i++) {
+	for (i = 0; i < de_get_units(cde); i++) {
 		uint64_t offset, haobjectid;
-		entry_t *entry = &direntry->entry[i];
-		objid_t *objid = cde_large_objid(item, i);
+		entry_t *entry = &cde->entry[i];
+		objid_t *objid = cde_large_objid(place, i);
 
-		cde_large_get_name(item, i, name,
+		cde_large_get_name(place, i, name,
 				   sizeof(name));
 
 		/* Cutting name by 16 symbols */
@@ -836,62 +825,62 @@ static errno_t cde_large_print(item_entity_t *item,
 	return 0;
 }
 
-/* Returns real maximal key in direntry item */
-static errno_t cde_large_maxreal_key(item_entity_t *item, 
+/* Returns real maximal key in cde item */
+static errno_t cde_large_maxreal_key(place_t *place, 
 				     key_entity_t *key) 
 {
 	uint32_t units;
 	
 	aal_assert("umka-1651", key != NULL);
-	aal_assert("umka-1650", item != NULL);
+	aal_assert("umka-1650", place != NULL);
 
-	units = cde_large_units(item);
-	return cde_large_get_key(item, units - 1, key);
+	units = cde_large_units(place);
+	return cde_large_get_key(place, units - 1, key);
 }
 
-extern errno_t cde_large_copy(item_entity_t *dst,
+extern errno_t cde_large_copy(place_t *dst,
 			      uint32_t dst_pos, 
-			      item_entity_t *src,
+			      place_t *src,
 			      uint32_t src_pos, 
 			      copy_hint_t *hint);
 
-extern errno_t cde_large_check_struct(item_entity_t *item,
+extern errno_t cde_large_check_struct(place_t *place,
 				      uint8_t mode);
 
-extern errno_t cde_large_estimate_copy(item_entity_t *dst,
+extern errno_t cde_large_estimate_copy(place_t *dst,
 				       uint32_t dst_pos,
-				       item_entity_t *src,
+				       place_t *src,
 				       uint32_t src_pos,
 				       copy_hint_t *hint);
 #endif
 
-/* Returns maximal possible key in direntry item. It is needed for lookuping
+/* Returns maximal possible key in cde item. It is needed for lookuping
    needed entry by entry key. */
-errno_t cde_large_maxposs_key(item_entity_t *item, 
+errno_t cde_large_maxposs_key(place_t *place, 
 			      key_entity_t *key) 
 {
 	key_entity_t *maxkey;
 
 	aal_assert("umka-1649", key != NULL);
-	aal_assert("umka-1648", item != NULL);
+	aal_assert("umka-1648", place != NULL);
 
-	plugin_call(item->key.plugin->o.key_ops,
-		    assign, key, &item->key);
+	plug_call(place->key.plug->o.key_ops,
+		  assign, key, &place->key);
 
-	maxkey = plugin_call(key->plugin->o.key_ops,
-			     maximal);
+	maxkey = plug_call(key->plug->o.key_ops,
+			   maximal);
     
-    	plugin_call(key->plugin->o.key_ops, set_ordering,
-		    key, plugin_call(key->plugin->o.key_ops,
-				     get_ordering, maxkey));
+    	plug_call(key->plug->o.key_ops, set_ordering,
+		  key, plug_call(key->plug->o.key_ops,
+				 get_ordering, maxkey));
 	
-    	plugin_call(key->plugin->o.key_ops, set_objectid,
-		    key, plugin_call(key->plugin->o.key_ops,
-				     get_objectid, maxkey));
+    	plug_call(key->plug->o.key_ops, set_objectid,
+		  key, plug_call(key->plug->o.key_ops,
+				 get_objectid, maxkey));
 	
-	plugin_call(key->plugin->o.key_ops, set_offset,
-		    key, plugin_call(key->plugin->o.key_ops,
-				     get_offset, maxkey));
+	plug_call(key->plug->o.key_ops, set_offset,
+		  key, plug_call(key->plug->o.key_ops,
+				 get_offset, maxkey));
 	
 	return 0;
 }
@@ -903,14 +892,14 @@ static int callback_comp_entry(void *array, uint32_t pos,
 {
 	key_entity_t curr;
 
-	cde_large_get_key((item_entity_t *)data, pos, &curr);
+	cde_large_get_key((place_t *)data, pos, &curr);
 
-	return plugin_call(((item_entity_t *)data)->key.plugin->o.key_ops,
-			   compfull, &curr, (key_entity_t *)key);
+	return plug_call(((place_t *)data)->key.plug->o.key_ops,
+			 compfull, &curr, (key_entity_t *)key);
 }
 
-/* Performs lookup inside direntry. Found pos is stored in @pos */
-lookup_t cde_large_lookup(item_entity_t *item,
+/* Performs lookup inside cde. Found pos is stored in @pos */
+lookup_t cde_large_lookup(place_t *place,
 			   key_entity_t *key,
 			   uint32_t *pos)
 {
@@ -918,35 +907,35 @@ lookup_t cde_large_lookup(item_entity_t *item,
 	key_entity_t maxkey;
 
 	aal_assert("umka-610", key != NULL);
-	aal_assert("umka-717", key->plugin != NULL);
+	aal_assert("umka-717", key->plug != NULL);
     
-	aal_assert("umka-609", item != NULL);
+	aal_assert("umka-609", place != NULL);
 	aal_assert("umka-629", pos != NULL);
     
 	/* Getting maximal possible key */
-	cde_large_maxposs_key(item, &maxkey);
+	cde_large_maxposs_key(place, &maxkey);
 
 	/* If looked key is greater that maximal possible one then we going out
 	   and return FALSE, that is the key not found. */
-	if (plugin_call(key->plugin->o.key_ops, compfull,
-			key, &maxkey) > 0)
+	if (plug_call(key->plug->o.key_ops, compfull,
+		      key, &maxkey) > 0)
 	{
-		*pos = cde_large_units(item);
+		*pos = cde_large_units(place);
 		return ABSENT;
 	}
 
 	/* Comparing looked key with minimal one (that is with item key) */
-	if (plugin_call(key->plugin->o.key_ops, compfull,
-			&item->key, key) > 0)
+	if (plug_call(key->plug->o.key_ops, compfull,
+		      &place->key, key) > 0)
 	{
 		*pos = 0;
 		return ABSENT;
 	}
 
-	/* Performing binary search inside the direntry in order to find
+	/* Performing binary search inside the cde in order to find
 	   position of the looked key. */
-	switch (aux_bin_search(item->body, cde_large_units(item), key,
-			       callback_comp_entry, (void *)item, pos))
+	switch (aux_bin_search(place->body, cde_large_units(place), key,
+			       callback_comp_entry, (void *)place, pos))
 	{
 	case 1:
 		return PRESENT;
@@ -992,9 +981,9 @@ static reiser4_item_ops_t cde_large_ops = {
 	.maxposs_key	   = cde_large_maxposs_key
 };
 
-static reiser4_plugin_t cde_large_plugin = {
+static reiser4_plug_t cde_large_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {ITEM_CDE_LARGE_ID, DIRENTRY_ITEM, ITEM_PLUGIN_TYPE},
+	.id    = {ITEM_CDE_LARGE_ID, DIRENTRY_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "cde_large",
 	.desc  = "Compound direntry for reiser4, ver. " VERSION,
@@ -1004,9 +993,9 @@ static reiser4_plugin_t cde_large_plugin = {
 	}
 };
 
-static reiser4_plugin_t *cde_large_start(reiser4_core_t *c) {
-	return &cde_large_plugin;
+static reiser4_plug_t *cde_large_start(reiser4_core_t *c) {
+	return &cde_large_plug;
 }
 
-plugin_register(cde_large, cde_large_start, NULL);
+plug_register(cde_large, cde_large_start, NULL);
 #endif

@@ -77,9 +77,9 @@ static reiser4_sdext_ops_t sdext_symlink_ops = {
 	.length	 = sdext_symlink_length
 };
 
-static reiser4_plugin_t sdext_symlink_plugin = {
+static reiser4_plug_t sdext_symlink_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {SDEXT_SYMLINK_ID, 0, SDEXT_PLUGIN_TYPE},
+	.id    = {SDEXT_SYMLINK_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "sdext_symlink",
 	.desc  = "Symlink stat data extention for reiser4, ver. " VERSION,
@@ -89,9 +89,9 @@ static reiser4_plugin_t sdext_symlink_plugin = {
 	}
 };
 
-static reiser4_plugin_t *sdext_symlink_start(reiser4_core_t *c) {
-	return &sdext_symlink_plugin;
+static reiser4_plug_t *sdext_symlink_start(reiser4_core_t *c) {
+	return &sdext_symlink_plug;
 }
 
-plugin_register(sdext_symlink, sdext_symlink_start, NULL);
+plug_register(sdext_symlink, sdext_symlink_start, NULL);
 #endif

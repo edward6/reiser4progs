@@ -13,7 +13,7 @@
 static errno_t callback_item_region_check(void *object, blk_t start, 
 					  uint64_t count, void *data) 
 {
-	item_entity_t *item = (item_entity_t *)object;
+	reiser4_place_t *place = (reiser4_place_t *)object;
 	repair_ts_t *ts = (repair_ts_t *)data;
 	int res;
 	
@@ -26,7 +26,7 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 	{
 		aal_exception_error("Node (%llu), item (%u): Pointed region "
 				    "[%llu..%llu] is invalid.", 
-				    item->context.blk, item->pos.item, start,
+				    place->con.blk, place->pos.item, start,
 				    start + count - 1);
 		ts->stat.bad_unfm_ptrs++;
 		return 1;
@@ -41,13 +41,13 @@ static errno_t callback_item_region_check(void *object, blk_t start,
 	if (res == 0) {
 		aal_exception_error("Node (%llu), item (%u): pointed region "
 				    "[%llu..%llu] is used already or contains "
-				    "a formatted block.", item->context.blk, 
-				    item->pos.item, start, start + count - 1);
+				    "a formatted block.", place->con.blk, 
+				    place->pos.item, start, start + count - 1);
 		ts->stat.bad_unfm_ptrs++;
 		return 1;
 	}
 	
-	if (aux_bitmap_test(ts->bm_used, item->context.blk))
+	if (aux_bitmap_test(ts->bm_used, place->con.blk))
 		aux_bitmap_mark_region(ts->bm_unfm_tree, start, count);
 	else
 		aux_bitmap_mark_region(ts->bm_unfm_out, start, count);
@@ -69,7 +69,7 @@ static errno_t callback_item_check_layout(reiser4_place_t *place, void *data) {
 	
 	node = place->node;
 	
-	if (!reiser4_item_data(place->item.plugin))
+	if (!reiser4_item_data(place->plug))
 		return 0;
 	
 	res = repair_item_check_layout(place, callback_item_region_check, 
@@ -260,8 +260,8 @@ static errno_t repair_ts_ovrl_add(reiser4_place_t *place, repair_data_t *rd) {
 
 	ovrl = aal_malloc(sizeof(*ovrl));
     
-	if (plugin_call(place->item.plugin->item_ops, fetch, 
-			&place->item, place->pos.unit, &ovrl->ptr, 1) != 1)
+	if (plug_call(place->item.plug->item_ops, fetch, 
+		      &place->item, place->pos.unit, &ovrl->ptr, 1) != 1)
 		goto error_free_ovrl;
 
 	ovrl->node = place->node;

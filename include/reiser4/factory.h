@@ -15,41 +15,40 @@
 extern void libreiser4_factory_fini(void);
 extern errno_t libreiser4_factory_init(void);
 
-extern void libreiser4_plugin_close(plugin_class_t *class);
-extern errno_t libreiser4_plugin_fini(plugin_class_t *class);
-extern errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin);
-extern reiser4_plugin_t *libreiser4_plugin_init(plugin_class_t *class);
+extern void libreiser4_plug_close(plug_class_t *class);
+extern errno_t libreiser4_plug_fini(plug_class_t *class);
+extern errno_t libreiser4_factory_unload(reiser4_plug_t *plug);
+extern reiser4_plug_t *libreiser4_plug_init(plug_class_t *class);
 
 #ifndef ENABLE_STAND_ALONE
-extern reiser4_plugin_t *libreiser4_factory_nfind(char *name);
+extern reiser4_plug_t *libreiser4_factory_nfind(char *name);
 #endif
 
-extern reiser4_plugin_t *libreiser4_factory_ifind(rid_t type, rid_t id);
+extern reiser4_plug_t *libreiser4_factory_ifind(rid_t type, rid_t id);
 
-extern reiser4_plugin_t *libreiser4_factory_pfind(rid_t type, rid_t id,
-						  key_policy_t policy);
+extern reiser4_plug_t *libreiser4_factory_pfind(rid_t type, rid_t id,
+						key_policy_t policy);
 
-extern reiser4_plugin_t *libreiser4_factory_cfind(plugin_func_t plugin_func,
-						  void *data, bool_t only);
+extern reiser4_plug_t *libreiser4_factory_cfind(plug_func_t plug_func,
+						void *data, bool_t only);
 
 #if !defined(ENABLE_STAND_ALONE) || defined(ENABLE_PLUGINS_CHECK)
-extern errno_t libreiser4_factory_foreach(plugin_func_t plugin_func,
+extern errno_t libreiser4_factory_foreach(plug_func_t plug_func,
 					  void *data);
 #endif
 
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 extern errno_t libreiser4_factory_load(char *name);
 
-errno_t libreiser4_plugin_open(char *name,
-			       plugin_class_t *class);
+errno_t libreiser4_plug_open(char *name, plug_class_t *class);
 
 #else
-extern errno_t libreiser4_plugin_open(plugin_init_t init,
-				      plugin_fini_t fini,
-				      plugin_class_t *class);
+extern errno_t libreiser4_plug_open(plug_init_t init,
+				    plug_fini_t fini,
+				    plug_class_t *class);
 
-extern errno_t libreiser4_factory_load(plugin_init_t init,
-				       plugin_fini_t fini);
+extern errno_t libreiser4_factory_load(plug_init_t init,
+				       plug_fini_t fini);
 #endif
 
 #endif

@@ -14,9 +14,9 @@ reiser4_policy_ops_t extents_ops = {
 	.tails = extents_tails
 };
 
-static reiser4_plugin_t extents_plugin = {
+static reiser4_plug_t extents_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {TAIL_NEVER_ID, 0, POLICY_PLUGIN_TYPE},
+	.id    = {TAIL_NEVER_ID, 0, POLICY_PLUG_TYPE},
 	.label = "extents",
 	.desc  = "Tail policy for extents only for reiser4, ver. " VERSION,
 	.o = {
@@ -24,9 +24,9 @@ static reiser4_plugin_t extents_plugin = {
 	}
 };
 
-static reiser4_plugin_t *extents_start(reiser4_core_t *c) {
-	return &extents_plugin;
+static reiser4_plug_t *extents_start(reiser4_core_t *c) {
+	return &extents_plug;
 }
 
-plugin_register(extents, extents_start, NULL);
+plug_register(extents, extents_start, NULL);
 #endif

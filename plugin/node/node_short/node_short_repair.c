@@ -15,7 +15,7 @@ extern errno_t node_short_remove(object_entity_t *entity, pos_t *pos,
 				 uint32_t count);
 
 extern errno_t node_short_get_item(object_entity_t *entity, pos_t *pos, 
-				   item_entity_t *item);
+				   place_t *place);
 
 extern errno_t node_short_expand(object_entity_t *entity, pos_t *pos,
 				 uint32_t len, uint32_t count);
@@ -400,9 +400,9 @@ errno_t node_short_copy(object_entity_t *dst, pos_t *dst_pos,
 		    object_entity_t *src, pos_t *src_pos, 
 		    copy_hint_t *hint) 
 {
-	item_entity_t dst_item, src_item;
+	place_t dst_place, src_place;
 	node_t *dst_node, *src_node;
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 	item_header_t *ih;
 	errno_t res;
 	
@@ -418,12 +418,12 @@ errno_t node_short_copy(object_entity_t *dst, pos_t *dst_pos,
 		return 0;
 	
 	/* Just a part of src item being copied, gets merged with dst item. */
-	if (node_short_get_item(src, src_pos, &src_item))
+	if (node_short_get_item(src, src_pos, &src_place))
 		return -EINVAL;
 	
 	/* Expand the node if needed. */
 	if (!hint) {
-		if (node_short_expand(dst, dst_pos, src_item.len, 1))
+		if (node_short_expand(dst, dst_pos, src_place.len, 1))
 			return -EINVAL;
 	} else if (hint->len_delta > 0) {
 		if (node_short_expand(dst, dst_pos, hint->len_delta, 1))
@@ -435,15 +435,15 @@ errno_t node_short_copy(object_entity_t *dst, pos_t *dst_pos,
 		return node_short_rep(dst, dst_pos, src, src_pos, 1);
 	
 	/* Just a part of src item being copied, gets merged with dst item. */
-	if (node_short_get_item(src, src_pos, &src_item))
+	if (node_short_get_item(src, src_pos, &src_place))
 		return -EINVAL;
 	
 	/* If not the whole item, realize the dst item. */
-	if (node_short_get_item(dst, dst_pos, &dst_item))
+	if (node_short_get_item(dst, dst_pos, &dst_place))
 		return -EINVAL;
 	
-	if ((res = plugin_call(src_item.plugin->o.item_ops, copy, &dst_item, 
-			       dst_pos->unit, &src_item, src_pos->unit, hint)))
+	if ((res = plug_call(src_place.plug->o.item_ops, copy, &dst_place, 
+			     dst_pos->unit, &src_place, src_pos->unit, hint)))
 	{
 		aal_exception_error("Can't copy units from node %llu to node %llu.",
 				    aal_block_number(src_node->block), 
@@ -462,7 +462,7 @@ errno_t node_short_copy(object_entity_t *dst, pos_t *dst_pos,
 	if (dst_pos->unit == 0) {
 		ih = node_short_ih_at(dst_node, dst_pos->item);
 		
-		aal_memcpy(&ih->key, dst_item.key.body, sizeof(ih->key));
+		aal_memcpy(&ih->key, dst_place.key.body, sizeof(ih->key));
 	}
 	
 	dst_node->dirty = 1;

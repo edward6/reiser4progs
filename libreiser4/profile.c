@@ -27,8 +27,8 @@ reiser4_pid_t *reiser4_profile_pid(reiser4_profile_t *profile,
 	aal_assert("umka-1876", profile != NULL);
 	aal_assert("umka-1877", name != NULL);
 	
-	for (i = 0; i < (sizeof(profile->plugin) / sizeof(reiser4_pid_t)); i++) {
-		reiser4_pid_t *pid = &profile->plugin[i];
+	for (i = 0; i < (sizeof(profile->pid) / sizeof(reiser4_pid_t)); i++) {
+		reiser4_pid_t *pid = &profile->pid[i];
 
 		if (!aal_strncmp(pid->name, name, aal_strlen(name)))
 			return pid;
@@ -42,7 +42,7 @@ errno_t reiser4_profile_override(reiser4_profile_t *profile,
 				 const char *type, const char *name) 
 {
 	reiser4_pid_t *pid;
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 
 	aal_assert("umka-923", type != NULL);
 	aal_assert("umka-924", name != NULL);
@@ -51,19 +51,19 @@ errno_t reiser4_profile_override(reiser4_profile_t *profile,
 	if (!(pid = reiser4_profile_pid(profile, type)))
 		return -EINVAL;
 
-	if (!(plugin = libreiser4_factory_nfind((char *)name))) {
+	if (!(plug = libreiser4_factory_nfind((char *)name))) {
 		aal_exception_error("Can't find plugin by name \"%s\".",
 				    name);
 		return -EINVAL;
 	}
 
-	if (pid->type != plugin->id.type) {
+	if (pid->type != plug->id.type) {
 		aal_exception_error("Can't override plugins of "
 				    "different types.");
 		return -EINVAL;
 	}
 
-	pid->value = plugin->id.id;
+	pid->value = plug->id.id;
 	return 0;
 }
 #endif

@@ -12,7 +12,7 @@
 #include "stat40.h"
 #include <repair/plugin.h>
 
-extern errno_t stat40_traverse(item_entity_t *, stat40_ext_func_t, void *);
+extern errno_t stat40_traverse(place_t *, stat40_ext_func_t, void *);
 
 struct pos_hint {
 	sdext_entity_t sdext;
@@ -26,47 +26,47 @@ static errno_t callback_check_ext(sdext_entity_t *sdext, uint16_t extmask,
 	
 	hint->sdext = *sdext;
 	
-	return sdext->plugin->o.sdext_ops->check_struct ? 
-		sdext->plugin->o.sdext_ops->check_struct(sdext, hint->mode) : 
+	return sdext->plug->o.sdext_ops->check_struct ? 
+		sdext->plug->o.sdext_ops->check_struct(sdext, hint->mode) : 
 		REPAIR_OK;
 }
 
-errno_t stat40_check_struct(item_entity_t *item, uint8_t mode) {
+errno_t stat40_check_struct(place_t *place, uint8_t mode) {
 	struct pos_hint hint;
 	errno_t res;
 	
-	aal_assert("vpf-775", item != NULL);
+	aal_assert("vpf-775", place != NULL);
 	
 	aal_memset(&hint, 0, sizeof(struct pos_hint));
 	
-	res = stat40_traverse(item, callback_check_ext, &hint);
+	res = stat40_traverse(place, callback_check_ext, &hint);
 	
 	if (res < 0) 
 		return res;
-	else if (res > 0 || !hint.sdext.plugin) {
+	else if (res > 0 || !hint.sdext.plug) {
 		aal_exception_error("Node (%llu), item (%u): does not look like a "
-				    "valid stat data.", item->context.blk, 
-				    item->pos.item);
+				    "valid stat data.", place->con.blk, 
+				    place->pos.item);
 		
 		return REPAIR_FATAL;
 	}
 	
 	/* Hint is set up by callback, so the last extention lenght has not been 
 	   added yet. */
-	hint.sdext.offset += plugin_call(hint.sdext.plugin->o.sdext_ops, length, 
-					 hint.sdext.body);
+	hint.sdext.offset += plug_call(hint.sdext.plug->o.sdext_ops, length, 
+				       hint.sdext.body);
 	
-	aal_assert("vpf-784", hint.sdext.offset <= item->len);
+	aal_assert("vpf-784", hint.sdext.offset <= place->len);
 	
-	if (hint.sdext.offset < item->len) {
+	if (hint.sdext.offset < place->len) {
 		aal_exception_error("Node (%llu), item (%u): item has a wrong "
 				    "length (%u). Should be (%u). %s", 
-				    item->context.blk, item->pos.item, 
-				    item->len, hint.sdext.offset, 
+				    place->con.blk, place->pos.item, 
+				    place->len, hint.sdext.offset, 
 				    mode == REPAIR_REBUILD ? "Fixed." : "");
 		
 		if (mode == REPAIR_REBUILD)
-			item->len = hint.sdext.offset;
+			place->len = hint.sdext.offset;
 		
 		return mode == REPAIR_REBUILD ? REPAIR_FIXED : REPAIR_FATAL;
 	}
@@ -74,8 +74,8 @@ errno_t stat40_check_struct(item_entity_t *item, uint8_t mode) {
 	return REPAIR_OK;
 }
 
-errno_t stat40_copy(item_entity_t *dst, uint32_t dst_pos, 
-		    item_entity_t *src, uint32_t src_pos, 
+errno_t stat40_copy(place_t *dst, uint32_t dst_pos, 
+		    place_t *src, uint32_t src_pos, 
 		    copy_hint_t *hint) 
 {
 	aal_assert("vpf-979", dst  != NULL);
@@ -87,8 +87,8 @@ errno_t stat40_copy(item_entity_t *dst, uint32_t dst_pos,
 	return 0;
 }
 
-errno_t stat40_estimate_copy(item_entity_t *dst, uint32_t dst_pos, 
-			     item_entity_t *src, uint32_t src_pos, 
+errno_t stat40_estimate_copy(place_t *dst, uint32_t dst_pos, 
+			     place_t *src, uint32_t src_pos, 
 			     copy_hint_t *hint)
 {
 	key_entity_t *key;
@@ -101,9 +101,9 @@ errno_t stat40_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
 	hint->dst_count = 0;
 	hint->len_delta = src->len - dst->len;
 	
-	key = plugin_call(hint->end.plugin->o.key_ops, maximal);
+	key = plug_call(hint->end.plug->o.key_ops, maximal);
 	
-	plugin_call(hint->end.plugin->o.key_ops, assign, &hint->end, key);
+	plug_call(hint->end.plug->o.key_ops, assign, &hint->end, key);
 	
 	return 0;
 }

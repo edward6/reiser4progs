@@ -11,7 +11,7 @@
 static errno_t callback_item_mark_region(void *object, uint64_t start, 
 					 uint64_t count, void *data)
 {
-	item_entity_t *item = (item_entity_t *)object;
+	reiser4_place_t *place = (reiser4_place_t *)object;
 	reiser4_alloc_t *alloc = (reiser4_alloc_t *)data;
 	
 	aal_assert("vpf-735", data != NULL);
@@ -29,15 +29,15 @@ static errno_t callback_item_mark_region(void *object, uint64_t start,
    to some blocks. */
 static errno_t callback_layout(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-649", place != NULL);
-	aal_assert("vpf-748", reiser4_item_data(place->item.plugin));
+	aal_assert("vpf-748", reiser4_item_data(place->plug));
 
-	if (!place->item.plugin->o.item_ops->layout)
+	if (!place->plug->o.item_ops->layout)
 		return 0;
 	
 	/* All these blocks should not be used in the allocator and should be 
 	   forbidden for allocation. Check it somehow first. */
-	return place->item.plugin->o.item_ops->layout(&place->item, 
-		callback_item_mark_region, data);
+	return place->plug->o.item_ops->layout((place_t *)place, 
+		       callback_item_mark_region, data);
 }
 
 static void repair_add_missing_setup(repair_am_t *am) {
@@ -194,7 +194,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 				   metadata info from items, only user data should be 
 				   left. For now, items contain data xor metadata, not 
 				   both. */
-				if (!reiser4_item_data(place.item.plugin)) {
+				if (!reiser4_item_data(place.plug)) {
 					res = reiser4_node_remove(place.node, pos, 1);
 					
 					if (res) {

@@ -53,9 +53,9 @@ static reiser4_hash_ops_t rupasov_hash_ops = {
 	.build = rupasov_hash_build
 };
 
-static reiser4_plugin_t rupasov_hash_plugin = {
+static reiser4_plug_t rupasov_hash_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {HASH_RUPASOV_ID, 0, HASH_PLUGIN_TYPE},
+	.id    = {HASH_RUPASOV_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "rupasov_hash",
 	.desc  = "Rupasov hash for reiser4, ver. " VERSION,
@@ -65,9 +65,9 @@ static reiser4_plugin_t rupasov_hash_plugin = {
 	}
 };
 
-static reiser4_plugin_t *rupasov_hash_start(reiser4_core_t *c) {
-	return &rupasov_hash_plugin;
+static reiser4_plug_t *rupasov_hash_start(reiser4_core_t *c) {
+	return &rupasov_hash_plug;
 }
 
-plugin_register(rupasov_hash, rupasov_hash_start, NULL);
+plug_register(rupasov_hash, rupasov_hash_start, NULL);
 #endif

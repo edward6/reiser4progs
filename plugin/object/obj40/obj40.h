@@ -12,16 +12,16 @@
 static reiser4_core_t *core = NULL;
 
 #define STAT_KEY(o) \
-        (&((o)->statdata.item.key))
+        (&((o)->statdata.key))
 
 #define STAT_ITEM(o) \
-        (&((o)->statdata.item))
+        (&((o)->statdata))
 
 struct obj40 {
 
 	/* File plugin refference. Should be first field due to be castable to
 	   object_entity_t */
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
     
 	/* Stat data coord stored here */
 	place_t statdata;
@@ -42,9 +42,9 @@ extern oid_t obj40_locality(obj40_t *obj);
 extern uint64_t obj40_ordering(obj40_t *obj);
 
 extern errno_t obj40_stat(obj40_t *obj);
-extern rid_t obj40_pid(item_entity_t *item);
+extern rid_t obj40_pid(place_t *place);
 
-extern errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,
+extern errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
 			  key_entity_t *key, reiser4_core_t *core,
 			  void *tree);
 
@@ -53,7 +53,7 @@ extern lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 
 extern errno_t obj40_fini(obj40_t *obj);
 
-extern errno_t obj40_read_lw(item_entity_t *item,
+extern errno_t obj40_read_lw(place_t *place,
 			     sdext_lw_hint_t *lw_hint);
 
 #ifdef ENABLE_SYMLINKS
@@ -61,13 +61,13 @@ extern errno_t obj40_get_sym(obj40_t *obj, char *data);
 #endif
 
 #ifndef ENABLE_STAND_ALONE
-extern errno_t obj40_write_lw(item_entity_t *item,
+extern errno_t obj40_write_lw(place_t *place,
 			      sdext_lw_hint_t *lw_hint);
 
-extern errno_t obj40_read_unix(item_entity_t *item,
+extern errno_t obj40_read_unix(place_t *place,
 			       sdext_unix_hint_t *unix_hint);
 
-extern errno_t obj40_write_unix(item_entity_t *item,
+extern errno_t obj40_write_unix(place_t *place,
 				sdext_unix_hint_t *unix_hint);
 
 extern uint16_t obj40_get_mode(obj40_t *obj);

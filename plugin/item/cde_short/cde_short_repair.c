@@ -60,35 +60,42 @@ struct entry_flags {
 /* Extention for repair_flag_t */
 #define REPAIR_SKIP	0
     
-extern int32_t cde_short_remove(item_entity_t *item, uint32_t pos, 
-				 uint32_t count);
-extern errno_t cde_short_get_key(item_entity_t *item, uint32_t pos, 
-				  key_entity_t *key);
-extern lookup_t cde_short_lookup(item_entity_t *item, key_entity_t *key,
-				  uint32_t *pos);
-extern uint32_t cde_short_size(item_entity_t *item, uint32_t pos, 
+extern int32_t cde_short_remove(place_t *place, uint32_t pos, 
 				uint32_t count);
-extern uint32_t cde_short_units(item_entity_t *item);
-extern errno_t cde_short_maxposs_key(item_entity_t *item, key_entity_t *key);
-extern errno_t cde_short_rep(item_entity_t *dst_item, uint32_t dst_pos,
-			      item_entity_t *src_item, uint32_t src_pos, uint32_t count);
-extern int32_t cde_short_expand(item_entity_t *item, uint32_t pos,
-				 uint32_t count, uint32_t len);
+
+extern errno_t cde_short_get_key(place_t *place, uint32_t pos, 
+				 key_entity_t *key);
+
+extern lookup_t cde_short_lookup(place_t *place, key_entity_t *key,
+				 uint32_t *pos);
+
+extern uint32_t cde_short_size(place_t *place, uint32_t pos, 
+			       uint32_t count);
+
+extern uint32_t cde_short_units(place_t *place);
+extern errno_t cde_short_maxposs_key(place_t *place, key_entity_t *key);
+
+extern errno_t cde_short_rep(place_t *dst_place, uint32_t dst_pos,
+			     place_t *src_place, uint32_t src_pos,
+			     uint32_t count);
+
+extern int32_t cde_short_expand(place_t *place, uint32_t pos,
+				uint32_t count, uint32_t len);
 
 /* Check the i-th offset of the unit body within the item. */
-static errno_t cde_short_offset_check(item_entity_t *item, uint32_t pos) {
-	cde_short_t *de = cde_short_body(item);
+static errno_t cde_short_offset_check(place_t *place, uint32_t pos) {
+	cde_short_t *de = cde_short_body(place);
 	uint32_t offset, limit;
     
-	if (item->len < en_len_min(pos + 1))
+	if (place->len < en_len_min(pos + 1))
 		return 1;
     
 	offset = OFFSET(de, pos);
     
 	/* There must be enough space for the entry in the item. */
-	if (offset != item->len - ENTRY_LEN_MIN(S_NAME) && 
-	    offset != item->len - 2 * ENTRY_LEN_MIN(S_NAME) && 
-	    offset > item->len - ENTRY_LEN_MIN(L_NAME))
+	if (offset != place->len - ENTRY_LEN_MIN(S_NAME) && 
+	    offset != place->len - 2 * ENTRY_LEN_MIN(S_NAME) && 
+	    offset > place->len - ENTRY_LEN_MIN(L_NAME))
 		return 1;
 	
 	/* There must be enough space for item header, set of unit headers and 
@@ -106,18 +113,18 @@ static errno_t cde_short_offset_check(item_entity_t *item, uint32_t pos) {
 	
 	 count = (offset - sizeof(cde_short_t)) / sizeof(entry_t);
 		
-	 if (offset + count * ENTRY_LEN_MIN(S_NAME) > item->len)
+	 if (offset + count * ENTRY_LEN_MIN(S_NAME) > place->len)
 	 return 1;
 	
 	 }
 	*/
 }
 
-static uint32_t cde_short_count_estimate(item_entity_t *item, uint32_t pos) {
-	cde_short_t *de = cde_short_body(item);
+static uint32_t cde_short_count_estimate(place_t *place, uint32_t pos) {
+	cde_short_t *de = cde_short_body(place);
 	uint32_t offset = OFFSET(de, pos);
 	
-	aal_assert("vpf-761", item->len >= en_len_min(pos + 1));
+	aal_assert("vpf-761", place->len >= en_len_min(pos + 1));
 	
 	return pos == 0 ?
 		(offset - sizeof(cde_short_t)) / sizeof(entry_t) :
@@ -126,16 +133,16 @@ static uint32_t cde_short_count_estimate(item_entity_t *item, uint32_t pos) {
 }
 
 /* Check that 2 neighbour offsets look coorect. */
-static errno_t cde_short_pair_offsets_check(item_entity_t *item, 
-					     uint32_t start_pos, 
-					     uint32_t end_pos) 
+static errno_t cde_short_pair_offsets_check(place_t *place, 
+					    uint32_t start_pos, 
+					    uint32_t end_pos) 
 {    
-	cde_short_t *de = cde_short_body(item);
+	cde_short_t *de = cde_short_body(place);
 	uint32_t offset, end_offset;
 	uint32_t count = end_pos - start_pos;
 	
 	aal_assert("vpf-753", start_pos < end_pos);
-	aal_assert("vpf-752", item->len >= en_len_min(end_pos + 1));
+	aal_assert("vpf-752", place->len >= en_len_min(end_pos + 1));
 	
 	end_offset = OFFSET(de, end_pos);
 	
@@ -161,18 +168,18 @@ static uint32_t cde_short_name_end(char *body, uint32_t start, uint32_t end) {
 }
 
 /* Returns amount of entries detected. */
-static uint8_t cde_short_short_entry_detect(item_entity_t *item, 
-					     uint32_t start_pos, 
-					     uint32_t length, 
-					     uint8_t mode)
+static uint8_t cde_short_short_entry_detect(place_t *place, 
+					    uint32_t start_pos, 
+					    uint32_t length, 
+					    uint8_t mode)
 {
-	cde_short_t *de = cde_short_body(item);
+	cde_short_t *de = cde_short_body(place);
 	uint32_t offset, limit;
 	
 	limit = OFFSET(de, start_pos);
 	
-	aal_assert("vpf-770", length < item->len);
-	aal_assert("vpf-769", limit <= item->len - length);
+	aal_assert("vpf-770", length < place->len);
+	aal_assert("vpf-769", limit <= place->len - length);
 	
 	if (length % ENTRY_LEN_MIN(S_NAME))
 		return 0;
@@ -185,7 +192,7 @@ static uint8_t cde_short_short_entry_detect(item_entity_t *item,
 	{
 		aal_exception_error("Node (%llu), item (%u), unit (%u): unit "
 				    "offset (%u) is wrong, should be (%u). %s", 
-				    item->context.blk, item->pos.item, start_pos, 
+				    place->con.blk, place->pos.item, start_pos, 
 				    OFFSET(de, start_pos), limit + offset, 
 				    mode == REPAIR_REBUILD ? "Fixed." : "");
 		
@@ -197,25 +204,25 @@ static uint8_t cde_short_short_entry_detect(item_entity_t *item,
 }
 
 /* Returns amount of entries detected. */
-static uint8_t cde_short_long_entry_detect(item_entity_t *item, 
-					    uint32_t start_pos, 
-					    uint32_t length, 
-					    uint8_t mode)
+static uint8_t cde_short_long_entry_detect(place_t *place, 
+					   uint32_t start_pos, 
+					   uint32_t length, 
+					   uint8_t mode)
 {
-	cde_short_t *de = cde_short_body(item);
+	cde_short_t *de = cde_short_body(place);
 	uint32_t offset, l_limit, r_limit;
 	int count = 0;
 	
-	aal_assert("vpf-771", length < item->len);
-	aal_assert("vpf-772", OFFSET(de, start_pos) <= item->len - length);
+	aal_assert("vpf-771", length < place->len);
+	aal_assert("vpf-772", OFFSET(de, start_pos) <= place->len - length);
 	
 	l_limit = OFFSET(de, start_pos);
 	r_limit = l_limit + length;
 	
 	while (l_limit < r_limit) {
-		offset = cde_short_name_end(item->body, 
-					     l_limit + sizeof(objid_t), 
-					     r_limit);
+		offset = cde_short_name_end(place->body, 
+					    l_limit + sizeof(objid_t), 
+					    r_limit);
 		
 		if (offset == r_limit)
 			return 0;
@@ -233,7 +240,7 @@ static uint8_t cde_short_long_entry_detect(item_entity_t *item,
 		{
 			aal_exception_error("Node %llu, item %u, unit (%u): unit "
 					    "offset (%u) is wrong, should be (%u). "
-					    "%s", item->context.blk, item->pos.item, 
+					    "%s", place->con.blk, place->pos.item, 
 					    start_pos + count, 
 					    OFFSET(de, start_pos+count), l_limit, 
 					    mode == REPAIR_REBUILD ? "Fixed." : "");
@@ -247,32 +254,32 @@ static uint8_t cde_short_long_entry_detect(item_entity_t *item,
 	return l_limit == r_limit ? count : 0;
 }
 
-static inline uint8_t cde_short_entry_detect(item_entity_t *item, uint32_t start_pos,
-					      uint32_t end_pos, uint8_t mode)
+static inline uint8_t cde_short_entry_detect(place_t *place, uint32_t start_pos,
+					     uint32_t end_pos, uint8_t mode)
 {	
-	cde_short_t *de = cde_short_body(item);
+	cde_short_t *de = cde_short_body(place);
 	uint8_t count;
 	
-	count = cde_short_short_entry_detect(item, start_pos,
-					      OFFSET(de, end_pos) - 
-					      OFFSET(de, start_pos), 0);
+	count = cde_short_short_entry_detect(place, start_pos,
+					     OFFSET(de, end_pos) - 
+					     OFFSET(de, start_pos), 0);
     
 	if (count == end_pos - start_pos) {
-		cde_short_short_entry_detect(item, start_pos, 
-					      OFFSET(de, end_pos) - 
-					      OFFSET(de, start_pos), mode);
+		cde_short_short_entry_detect(place, start_pos, 
+					     OFFSET(de, end_pos) - 
+					     OFFSET(de, start_pos), mode);
 		
 		return count;
 	}
 	
-	count = cde_short_long_entry_detect(item, start_pos, 
-					     OFFSET(de, end_pos) - 
-					     OFFSET(de, start_pos), 0);
+	count = cde_short_long_entry_detect(place, start_pos, 
+					    OFFSET(de, end_pos) - 
+					    OFFSET(de, start_pos), 0);
 	
 	if (count == end_pos - start_pos) {
-		cde_short_long_entry_detect(item, start_pos, 
-					     OFFSET(de, end_pos) - 
-					     OFFSET(de, start_pos), mode);
+		cde_short_long_entry_detect(place, start_pos, 
+					    OFFSET(de, end_pos) - 
+					    OFFSET(de, start_pos), mode);
 		
 		return count;
 	}
@@ -281,11 +288,11 @@ static inline uint8_t cde_short_entry_detect(item_entity_t *item, uint32_t start
 }
 
 /* Build a bitmap of not R offstes. */
-static errno_t cde_short_offsets_range_check(item_entity_t *item, 
-					      struct entry_flags *flags, 
-					      uint8_t mode) 
+static errno_t cde_short_offsets_range_check(place_t *place, 
+					     struct entry_flags *flags, 
+					     uint8_t mode) 
 {
-	cde_short_t *de = cde_short_body(item);
+	cde_short_t *de = cde_short_body(place);
 	uint32_t i, j, to_compare;
 	errno_t res = REPAIR_OK;
 	
@@ -295,10 +302,10 @@ static errno_t cde_short_offsets_range_check(item_entity_t *item,
 	
 	for (i = 0; i < flags->count; i++) {
 		/* Check if the offset is valid. */
-		if (cde_short_offset_check(item, i)) {
+		if (cde_short_offset_check(place, i)) {
 			aal_exception_error("Node %llu, item %u, unit %u: unit "
 					    "offset (%u) is wrong.", 
-					    item->context.blk, item->pos.item, 
+					    place->con.blk, place->pos.item, 
 					    i, OFFSET(de, i));
 			
 			/* mark offset wrong. */	    
@@ -308,7 +315,7 @@ static errno_t cde_short_offsets_range_check(item_entity_t *item,
 		
 		/* If there was not any R offset, skip pair comparing. */
 		if (to_compare == MAX_UINT32) {
-			if ((i == 0) && (cde_short_count_estimate(item, i) == 
+			if ((i == 0) && (cde_short_count_estimate(place, i) == 
 					 de_get_units(de)))
 			{
 				flags->count = de_get_units(de);
@@ -326,9 +333,9 @@ static errno_t cde_short_offsets_range_check(item_entity_t *item,
 				continue;
 			
 			/* Check that a pair of offsets is valid. */
-			if (!cde_short_pair_offsets_check(item, j, i)) {
+			if (!cde_short_pair_offsets_check(place, j, i)) {
 				/* Pair looks ok. Try to recover it. */
-				if (cde_short_entry_detect(item, j, i, mode)) {
+				if (cde_short_entry_detect(place, j, i, mode)) {
 					uint32_t limit;
 					
 					/* Do not compair with elements before 
@@ -337,7 +344,7 @@ static errno_t cde_short_offsets_range_check(item_entity_t *item,
 					
 					/* It's possible to decrease the count 
 					   when first R found. */
-					limit = cde_short_count_estimate(item, j);
+					limit = cde_short_count_estimate(place, j);
 					
 					if (flags->count > limit)
 						flags->count = limit;
@@ -374,10 +381,10 @@ static errno_t cde_short_offsets_range_check(item_entity_t *item,
 	return res;
 }
 
-static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
+static errno_t cde_short_filter(place_t *place, struct entry_flags *flags,
 				 uint8_t mode)
 {
-	cde_short_t *de = cde_short_body(item);
+	cde_short_t *de = cde_short_body(place);
 	uint32_t e_count, i, last;
 	errno_t res = REPAIR_OK;
 	
@@ -391,8 +398,8 @@ static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
 		/* No one R unit was found */
 		aal_exception_error("Node %llu, item %u: no one valid unit has "
 				    "been found. Does not look like a valid `%s` "
-				    "item.", item->context.blk, item->pos.item, 
-				    item->plugin->label);
+				    "item.", place->con.blk, place->pos.item, 
+				    place->plug->label);
 		
 		return REPAIR_FATAL;
 	}
@@ -401,15 +408,15 @@ static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
 	
 	/* Last is the last valid offset. If the last unit is valid also, count 
 	   is the last + 1. */
-	if (OFFSET(de, last) + sizeof(objid_t) == item->len) {
+	if (OFFSET(de, last) + sizeof(objid_t) == place->len) {
 		flags->count++;
-	} else if (OFFSET(de, last) + sizeof(objid_t) < item->len) {
+	} else if (OFFSET(de, last) + sizeof(objid_t) < place->len) {
 		uint32_t offset;
 		
 		/* The last offset is correct,but the last entity is not checked yet. */
-		offset = cde_short_name_end(item->body, OFFSET(de, last) + 
-					     sizeof(objid_t), item->len);
-		if (offset == item->len - 1)
+		offset = cde_short_name_end(place->body, OFFSET(de, last) + 
+					     sizeof(objid_t), place->len);
+		if (offset == place->len - 1)
 			flags->count++;
 	}
 	
@@ -419,7 +426,7 @@ static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
 	for (i = 0; i < flags->count && !aal_test_bit(flags->elem + i, R); i++) {}
 	
 	/* Estimate the amount of units on the base of the first R element. */
-	e_count = cde_short_count_estimate(item, i);
+	e_count = cde_short_count_estimate(place, i);
 	
 	/* Estimated count must be less then count found on the base of the last 
 	 * valid offset. */
@@ -429,7 +436,7 @@ static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
 	   is valid also, set @count unit offset to the item length. */
 	if (e_count > flags->count && last != flags->count) {
 		if (mode == REPAIR_REBUILD) {
-			en_set_offset(&de->entry[flags->count], item->len);
+			en_set_offset(&de->entry[flags->count], place->len);
 			res |= REPAIR_FIXED;
 		} else {
 			res |= REPAIR_FATAL;
@@ -439,7 +446,7 @@ static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
 	if (flags->count == last && mode == REPAIR_REBUILD) {
 		/* Last unit is not valid. */
 		if (mode == REPAIR_REBUILD) {
-			item->len = OFFSET(de, last);
+			place->len = OFFSET(de, last);
 			res |= REPAIR_FIXED;
 		} else {
 			res |= REPAIR_FATAL;
@@ -461,8 +468,8 @@ static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
 	
 	if (e_count != de_get_units(de)) {
 		aal_exception_error("Node %llu, item %u: unit count (%u) is not "
-				    "correct. Should be (%u). %s", item->context.blk, 
-				    item->pos.item, de_get_units(de), e_count, 
+				    "correct. Should be (%u). %s", place->con.blk, 
+				    place->pos.item, de_get_units(de), e_count, 
 				    mode == REPAIR_CHECK ? "" : "Fixed.");
 		
 		if (mode == REPAIR_CHECK) {
@@ -477,18 +484,18 @@ static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
 		/* Estimated count is greater then the recovered count, in other 
 		   words there are some last unit headers should be removed. */
 		aal_exception_error("Node %llu, item %u: entries [%lu..%lu] look "
-				    "corrupted. %s", item->context.blk, item->pos.item, 
+				    "corrupted. %s", place->con.blk, place->pos.item, 
 				    flags->count, e_count - 1, 
 				    mode == REPAIR_REBUILD ? "Removed." : "");
 		
 		if (mode == REPAIR_REBUILD) {
-			if (cde_short_remove(item, flags->count, 
-					      e_count - flags->count) < 0) 
+			if (cde_short_remove(place, flags->count, 
+					     e_count - flags->count) < 0) 
 			{
 				aal_exception_error("Node %llu, item %u: remove "
 						    "of the unit (%u), count (%u) "
-						    "failed.", item->context.blk, 
-						    item->pos.item, flags->count, 
+						    "failed.", place->con.blk, 
+						    place->pos.item, flags->count, 
 						    e_count - flags->count);
 				return -EINVAL;
 			}
@@ -502,16 +509,16 @@ static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
 	if (i) {
 		/* Some first units should be removed. */
 		aal_exception_error("Node %llu, item %u: entries [%lu..%lu] look "
-				    " corrupted. %s", item->context.blk, 
-				    item->pos.item, 0, i - 1, 
+				    " corrupted. %s", place->con.blk, 
+				    place->pos.item, 0, i - 1, 
 				    mode == REPAIR_REBUILD ? "Removed." : "");
 		
 		if (mode == REPAIR_REBUILD) {
-			if (cde_short_remove(item, 0, i) < 0) {
+			if (cde_short_remove(place, 0, i) < 0) {
 				aal_exception_error("Node %llu, item %u: remove of "
 						    "the unit (%u), count (%u) "
-						    "failed.", item->context.blk,
-						    item->pos.item, 0, i);
+						    "failed.", place->con.blk,
+						    place->pos.item, 0, i);
 				return -EINVAL;
 			}
 			
@@ -539,15 +546,15 @@ static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
 			if (aal_test_bit(flags->elem + i, R)) {
 				aal_exception_error("Node %llu, item %u: entries "
 						    "[%lu..%lu] look corrupted. %s", 
-						    item->context.blk, 
-						    item->pos.item,
+						    place->con.blk, 
+						    place->pos.item,
 						    last, i - 1, 
 						    mode == REPAIR_REBUILD ? 
 						    "Removed." : "");
 				
 				if (mode == REPAIR_REBUILD) {
-					if (cde_short_remove(item, last, 
-							      i - last) < 0) 
+					if (cde_short_remove(place, last, 
+							     i - last) < 0) 
 					{
 						aal_exception_error("Node %llu, "
 								    "item %u: "
@@ -555,8 +562,8 @@ static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
 								    "the unit "
 								    "(%u), count "
 								    "(%u) failed.", 
-								    item->context.blk, 
-								    item->pos.item, 
+								    place->con.blk, 
+								    place->pos.item, 
 								    last, i - last);
 						return -EINVAL;
 					}
@@ -584,36 +591,36 @@ static errno_t cde_short_filter(item_entity_t *item, struct entry_flags *flags,
 	return res;
 }
 
-errno_t cde_short_check_struct(item_entity_t *item, uint8_t mode) {
+errno_t cde_short_check_struct(place_t *place, uint8_t mode) {
 	struct entry_flags flags;
 	cde_short_t *de;
 	errno_t res = REPAIR_OK;
 	int i, j;
 	
-	aal_assert("vpf-267", item != NULL);
+	aal_assert("vpf-267", place != NULL);
 	
-	if (item->len < en_len_min(1)) {
+	if (place->len < en_len_min(1)) {
 		aal_exception_error("Node %llu, item %u: item length (%u) is too "
 				    "small to contain a valid item.", 
-				    item->context.blk, item->pos.item, item->len);
+				    place->con.blk, place->pos.item, place->len);
 		return REPAIR_FATAL;
 	}
 	
-	de = cde_short_body(item);
+	de = cde_short_body(place);
 	
 	/* Try to recover even if item was shorten and not all entries exist. */
-	flags.count = (item->len - sizeof(cde_short_t)) / (sizeof(entry_t));
+	flags.count = (place->len - sizeof(cde_short_t)) / (sizeof(entry_t));
 	
 	/* map consists of bit pairs - [not relable -R, relable - R] */
 	flags.elem = aal_calloc(flags.count, 0);
 	
-	res |= cde_short_offsets_range_check(item, &flags, mode);
+	res |= cde_short_offsets_range_check(place, &flags, mode);
 	
 	if (repair_error_exists(res))
 		goto error;
 	
 	/* Filter units with relable offsets from others. */
-	res |= cde_short_filter(item, &flags, mode);
+	res |= cde_short_filter(place, &flags, mode);
 	
  error:
 	aal_free(flags.elem);
@@ -621,8 +628,8 @@ errno_t cde_short_check_struct(item_entity_t *item, uint8_t mode) {
 	return res;
 }
 
-errno_t cde_short_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
-				 item_entity_t *src, uint32_t src_pos, 
+errno_t cde_short_estimate_copy(place_t *dst, uint32_t dst_pos,
+				 place_t *src, uint32_t src_pos, 
 				 copy_hint_t *hint)
 {
 	uint32_t units, next_pos, pos;
@@ -672,8 +679,8 @@ errno_t cde_short_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
 	return 0;
 }
 
-errno_t cde_short_copy(item_entity_t *dst, uint32_t dst_pos, 
-			item_entity_t *src, uint32_t src_pos, 
+errno_t cde_short_copy(place_t *dst, uint32_t dst_pos, 
+			place_t *src, uint32_t src_pos, 
 			copy_hint_t *hint)
 {
 	aal_assert("vpf-1014", dst != NULL);
@@ -689,33 +696,33 @@ errno_t cde_short_copy(item_entity_t *dst, uint32_t dst_pos,
 
 #if 0
 {
-	if ((res = cde_short_count_check(item)))
+	if ((res = cde_short_count_check(place)))
 		return res;
     
 	for (i = 1; i <= de_get_units(de); i++) {
 		uint16_t interval = start_pos ? i - start_pos + 1 : 1;
 
-		offset = (i == de_get_units(de) ? item->len : 
+		offset = (i == de_get_units(de) ? place->len : 
 			  en_get_offset(&de->entry[i]));
 
 		/* Check the offset. */
 		if ((offset - ENTRY_MIN_LEN * interval < 
 		     en_get_offset(&de->entry[i - 1])) || 
 		    (offset + ENTRY_MIN_LEN * (de_get_units(de) - i) > 
-		     (int)item->len))
+		     (int)place->len))
 			{
 				if (info->mode == FSCK_CHECK) {
 					aal_exception_error("Node %llu, item %u: "
 							    "wrong offset (%llu).",
-							    item->context.blk, 
-							    item->pos, offset);
+							    place->con.blk, 
+							    place->pos.item, offset);
 
 				}
 	    
 				/* Wrong offset occured. */
 				aal_exception_error("Node %llu, item %u: wrong offset "
-						    "(%llu).", item->context.blk, 
-						    item->pos, offset);
+						    "(%llu).", place->con.blk, 
+						    place->pos.item, offset);
 				if (!start_pos)
 					start_pos = i;
 			} else if (start_pos) {
@@ -730,16 +737,16 @@ errno_t cde_short_copy(item_entity_t *dst, uint32_t dst_pos,
 	return 0;
 }
 
-static errno_t cde_short_count_check(item_entity_t *item, 
-				      repair_plugin_info_t *info) 
+static errno_t cde_short_count_check(place_t *place, 
+				     repair_plugin_info_t *info) 
 {
 	cde_short_t *de;
 	uint16_t count_error, count;
 
-	aal_assert("vpf-268", item != NULL);
-	aal_assert("vpf-495", item->body != NULL);
+	aal_assert("vpf-268", place != NULL);
+	aal_assert("vpf-495", place->body != NULL);
     
-	de = cde_short_body(item);
+	de = cde_short_body(place);
     
 	count_error = (de->entry[0].offset - sizeof(cde_short_t)) % 
 		sizeof(entry_t);
@@ -747,38 +754,38 @@ static errno_t cde_short_count_check(item_entity_t *item,
 	count = count_error ? MAX_UINT16 : (de->entry[0].offset - sizeof(cde_short_t)) / 
 		sizeof(entry_t);
     
-	if (en_min_length(de_get_units(de)) > item->len) {
-		if (en_min_length(count) > item->len) {
+	if (en_min_length(de_get_units(de)) > place->len) {
+		if (en_min_length(count) > place->len) {
 			info->fatal++;
 			aal_exception_error("Node %llu, item %u: unit array is "
-					    "not recognized.", item->context.blk, 
-					    item->pos);
+					    "not recognized.", place->con.blk, 
+					    place->pos.item);
 			return 1;
 		}
 
 		if (info->mode == FSCK_CHECK) {
 			aal_exception_error("Node %llu, item %u: unit count (%u) "
 					    "is wrong. Should be (%u).", 
-					    item->context.blk, item->pos,
+					    place->context.blk, place->pos.item,
 					    de_get_units(de), count);
 			info->fixable++;
 			return 1;
 		}
 		
 		aal_exception_error("Node %llu, item %u: unit count (%u) is "
-				    "wrong. Fixed to (%u).", item->context.blk, 
-				    item->pos, de_get_units(de), count);
+				    "wrong. Fixed to (%u).", place->con.blk, 
+				    place->pos.item, de_get_units(de), count);
 		
 		en_set_count(de, count);
 	} else {
-		if ((en_min_length(count) > item->len) || 
+		if ((en_min_length(count) > place->len) || 
 		    (count != de_get_units(de))) 
 		{
 			if (info->mode == FSCK_CHECK) {
 				info->fixable++;
 				aal_exception_error("Node %llu, item %u: wrong offset "
 						    "(%llu). Should be (%llu).", 
-						    item->context.blk, item->pos,
+						    place->context.blk, place->pos.item,
 						    de->entry[0].offset, 
 						    de_get_units(de) * 
 						    sizeof(entry_t) + 
@@ -788,7 +795,7 @@ static errno_t cde_short_count_check(item_entity_t *item,
 			
 			aal_exception_error("Node %llu, item %u: wrong offset "
 					    "(%llu). Fixed to (%llu).", 
-					    item->context.blk, item->pos,
+					    place->context.blk, place->pos.item,
 					    de->entry[0].offset, 
 					    de_get_units(de) * sizeof(entry_t) + 
 					    sizeof(cde_short_t));
@@ -801,16 +808,16 @@ static errno_t cde_short_count_check(item_entity_t *item,
 	return 0;
 }
 
-static errno_t cde_short_bad_range_check(item_entity_t *item, 
-					  uint32_t start_pos, 
-					  uint32_t end_pos, 
-					  repair_plugin_info_t *info) 
+static errno_t cde_short_bad_range_check(place_t *place, 
+					 uint32_t start_pos, 
+					 uint32_t end_pos, 
+					 repair_plugin_info_t *info) 
 {
-	cde_short_t *de = cde_short_body(item);
+	cde_short_t *de = cde_short_body(place);
 	uint32_t offset, l_limit, r_limit, i;
 	
 	aal_assert("vpf-756", end > start_pos + 1);
-	aal_assert("vpf-760", item->len >= en_len_min(end_pos + 1));
+	aal_assert("vpf-760", place->len >= en_len_min(end_pos + 1));
 	
 	r_limit = OFFSET(de, end);
 	
@@ -821,7 +828,7 @@ static errno_t cde_short_bad_range_check(item_entity_t *item,
 	    
 			aal_exception_error("Node (%llu), item (%u), unit (%u): "
 					    "unit offset (%u) is wrong, should be "
-					    "(%u). %s", item->context.blk, item->pos,
+					    "(%u). %s", place->context.blk, place->pos.item,
 					    i, OFFSET(de, start_pos + i), offset, 
 					    info->mode == REPAIR_REBUILD ? 
 					    "Fixed." : "");
@@ -846,7 +853,7 @@ static errno_t cde_short_bad_range_check(item_entity_t *item,
 		
 		/* Check if it is possible first and if so - fix offsets. */
 		for (i = 1; i < end - start; i++) {
-			offset = cde_short_name_end(item->body, l_limit, r_limit);
+			offset = cde_short_name_end(place->body, l_limit, r_limit);
 			
 			if (offset == r_limit)
 				break;
@@ -858,8 +865,8 @@ static errno_t cde_short_bad_range_check(item_entity_t *item,
 				aal_exception_error("Node %llu, item %u, unit (%u): "
 						    "unit offset (%u) is wrong, "
 						    "should be (%u). %s", 
-						    item->context.blk, 
-						    item->pos, i, 
+						    place->context.blk, 
+						    place->pos.item, i, 
 						    OFFSET(de, start + i), 
 						    offset, 
 						    info->mode == REPAIR_REBUILD ? 

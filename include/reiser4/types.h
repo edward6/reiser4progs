@@ -64,7 +64,7 @@ typedef struct reiser4_pid reiser4_pid_t;
    the filesystem. */
 struct reiser4_profile {
 	char name[10];
-	reiser4_pid_t plugin[20];
+	reiser4_pid_t pid[20];
 };
 
 typedef struct reiser4_profile reiser4_profile_t;
@@ -74,11 +74,15 @@ typedef struct reiser4_node reiser4_node_t;
 typedef struct reiser4_place reiser4_place_t;
 
 struct reiser4_place {
-	reiser4_tree_t *tree;
 	reiser4_node_t *node;
+	reiser4_plug_t *plug;
+	reiser4_tree_t *tree;
+
 	pos_t pos;
-	
-	item_entity_t item;
+	body_t *body;
+	uint32_t len;
+	key_entity_t key;
+	place_context_t con;
 };
 
 enum node_flags {
@@ -89,7 +93,11 @@ typedef enum node_flags node_flags_t;
 
 /* Reiser4 in-memory node structure */
 struct reiser4_node {
-	
+	/* Node entity. Node plugin initializes this value and return it back in
+	   node initializing time. This node entity is used for performing all
+	   on-node actions. */
+	object_entity_t *entity;
+
 	/* Place in parent node */
 	reiser4_place_t p;
 
@@ -109,11 +117,6 @@ struct reiser4_node {
 	   tree in the memory. */
 	aal_list_t *children;
 	
-	/* Node entity. Node plugin initializes this value and return it back in
-	   node initializing time. This node entity is used for performing all
-	   on-node actions. */
-	object_entity_t *entity;
-
 	/* Device node lies on */
 	aal_device_t *device;
 

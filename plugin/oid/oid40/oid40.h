@@ -15,7 +15,7 @@
 #define OID40_RESERVED                  (1 << 16)
 
 struct oid40 {
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 
 	void *start;
 	uint32_t len;

@@ -15,14 +15,14 @@
 #define CRC_SIZE (4)
 
 struct alloc40 {
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 	
-	int dirty;
-	char *crc;
-
 	uint32_t blocksize;
 	aal_device_t *device;
 	aux_bitmap_t *bitmap;
+
+	char *crc;
+	int dirty;
 };
 
 typedef struct alloc40 alloc40_t;

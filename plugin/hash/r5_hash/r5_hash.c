@@ -23,9 +23,9 @@ reiser4_hash_ops_t r5_hash_ops = {
 	.build = r5_hash_build
 };
 
-static reiser4_plugin_t r5_hash_plugin = {
+static reiser4_plug_t r5_hash_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {HASH_R5_ID, 0, HASH_PLUGIN_TYPE},
+	.id    = {HASH_R5_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "r5_hash",
 	.desc  = "Implementation r5 hash for reiser4, ver. " VERSION,
@@ -35,9 +35,9 @@ static reiser4_plugin_t r5_hash_plugin = {
 	}
 };
 
-static reiser4_plugin_t *r5_hash_start(reiser4_core_t *c) {
-	return &r5_hash_plugin;
+static reiser4_plug_t *r5_hash_start(reiser4_core_t *c) {
+	return &r5_hash_plug;
 }
 
-plugin_register(r5_hash, r5_hash_start, NULL);
+plug_register(r5_hash, r5_hash_start, NULL);
 #endif

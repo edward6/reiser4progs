@@ -5,50 +5,41 @@
 
 #include "extent40.h"
 
-#define extent40_size(item) \
-        (extent40_offset(item, extent40_units(item)))
-
-/* Returns blocksize of the device passed extent @item lies on */
-uint32_t extent40_blksize(item_entity_t *item) {
-	aal_assert("umka-2058", item != NULL);
-	return item->context.blksize;
-}
-
-/* Returns number of units in passed extent @item */
-uint32_t extent40_units(item_entity_t *item) {
-	aal_assert("umka-1446", item != NULL);
+/* Returns number of units in passed extent @place */
+uint32_t extent40_units(place_t *place) {
+	aal_assert("umka-1446", place != NULL);
 
 #ifndef ENABLE_STAND_ALONE
-	if (item->len % sizeof(extent40_t) != 0) {
-		aal_exception_error("Invalid item size detected. "
-				    "Node %llu, item %u.",
-				    item->context.blk, item->pos);
+	if (place->len % sizeof(extent40_t) != 0) {
+		aal_exception_error("Invalid item size detected. Node "
+				    "%llu, item %u.", place->con.blk,
+				    place->pos);
 		return 0;
 	}
 #endif
 	
-	return item->len / sizeof(extent40_t);
+	return place->len / sizeof(extent40_t);
 }
 
 /* Calculates extent size */
-uint64_t extent40_offset(item_entity_t *item,
+uint64_t extent40_offset(place_t *place,
 			 uint32_t pos)
 {
 	extent40_t *extent;
 	uint32_t i, blocks = 0;
     
-	aal_assert("umka-2204", item != NULL);
+	aal_assert("umka-2204", place != NULL);
 	
-	extent = extent40_body(item);
+	extent = extent40_body(place);
 	
 	for (i = 0; i < pos; i++, extent++)
 		blocks += et40_get_width(extent);
     
-	return blocks * extent40_blksize(item);
+	return blocks * extent40_blksize(place);
 }
 
 /* Gets the number of unit specified offset lies in */
-uint32_t extent40_unit(item_entity_t *item,
+uint32_t extent40_unit(place_t *place,
 		       uint64_t offset)
 {
 	uint32_t i;
@@ -57,21 +48,21 @@ uint32_t extent40_unit(item_entity_t *item,
         uint32_t width = 0;
         extent40_t *extent;
                                                                                          
-        extent = extent40_body(item);
+        extent = extent40_body(place);
                                                                                          
-        for (i = 0; i < extent40_units(item);
+        for (i = 0; i < extent40_units(place);
              i++, extent++)
         {
                                                                                          
                 width += et40_get_width(extent) *
-                        extent40_blksize(item);
+                        extent40_blksize(place);
                                                                                          
                 if (offset < width)
                         return i;
         }
 #else
-	for (i = 0; i < extent40_units(item); i++) {
-		if (offset < extent40_offset(item, i + 1))
+	for (i = 0; i < extent40_units(place); i++) {
+		if (offset < extent40_offset(place, i + 1))
 			return i;
 	}
 #endif
@@ -81,14 +72,13 @@ uint32_t extent40_unit(item_entity_t *item,
 
 /* Builds the key of the unit at @pos and stores it inside passed @key
    variable. It is needed for updating item key after shifting, etc. */
-static errno_t extent40_get_key(item_entity_t *item,
-				uint32_t pos, 
+static errno_t extent40_get_key(place_t *place, uint32_t pos, 
 				key_entity_t *key)
 {
-	aal_assert("vpf-622", item != NULL);
+	aal_assert("vpf-622", place != NULL);
 	aal_assert("vpf-623", key != NULL);
 
-	return body40_get_key(item, pos, key,
+	return body40_get_key(place, pos, key,
 			      (trans_func_t)extent40_offset);
 }
 
@@ -97,22 +87,22 @@ static int extent40_data(void) {
 }
 
 #ifndef ENABLE_STAND_ALONE
-/* Removes @count byte from passed @item at @pos */
-static int32_t extent40_remove(item_entity_t *item,
+/* Removes @count byte from passed @place at @pos */
+static int32_t extent40_remove(place_t *place,
 			       uint32_t pos,
 			       uint32_t count)
 {
 	uint32_t len;
 	void *src, *dst;
 	
-	aal_assert("vpf-941", item != NULL);
-	aal_assert("vpf-940", pos < extent40_units(item));
+	aal_assert("vpf-941", place != NULL);
+	aal_assert("vpf-940", pos < extent40_units(place));
 
-	if (pos + count < extent40_units(item)) {
-		dst = extent40_body(item) + pos;
-		src = extent40_body(item) + pos + count;
+	if (pos + count < extent40_units(place)) {
+		dst = extent40_body(place) + pos;
+		src = extent40_body(place) + pos + count;
 
-		len = item->len - (pos + count) *
+		len = place->len - (pos + count) *
 			sizeof(extent40_t);
 			
 		aal_memmove(dst, src, len);
@@ -120,7 +110,7 @@ static int32_t extent40_remove(item_entity_t *item,
 		
 	/* Updating item's key by zero's unit one */
 	if (pos == 0) {
-		if (extent40_get_key(item, 0, &item->key))
+		if (extent40_get_key(place, 0, &place->key))
 			return -EINVAL;
 	}
 	
@@ -128,24 +118,24 @@ static int32_t extent40_remove(item_entity_t *item,
 }
 
 /* Prints extent item into specified @stream */
-static errno_t extent40_print(item_entity_t *item,
+static errno_t extent40_print(place_t *place,
 			      aal_stream_t *stream,
 			      uint16_t options) 
 {
 	uint32_t i, count;
 	extent40_t *extent;
     
-	aal_assert("umka-1205", item != NULL);
+	aal_assert("umka-1205", place != NULL);
 	aal_assert("umka-1206", stream != NULL);
 
-	extent = extent40_body(item);
-	count = extent40_units(item);
+	extent = extent40_body(place);
+	count = extent40_units(place);
 
 	aal_stream_format(stream, "EXTENT PLUGIN=%s LEN=%u, KEY=",
-			  item->plugin->label, item->len);
+			  place->plug->label, place->len);
 		
-	if (plugin_call(item->key.plugin->o.key_ops, print,
-			&item->key, stream, options))
+	if (plug_call(place->key.plug->o.key_ops, print,
+		      &place->key, stream, options))
 	{
 		return -EINVAL;
 	}
@@ -166,53 +156,52 @@ static errno_t extent40_print(item_entity_t *item,
 	return 0;
 }
 
-/* Builds maximal real key in use for specified @item */
-errno_t extent40_maxreal_key(item_entity_t *item,
+/* Builds maximal real key in use for specified @place */
+errno_t extent40_maxreal_key(place_t *place,
 			     key_entity_t *key) 
 {
-	aal_assert("vpf-437", item != NULL);
+	aal_assert("vpf-437", place != NULL);
 	aal_assert("vpf-438", key  != NULL);
 
-	return body40_maxreal_key(item, key, extent40_offset);
+	return body40_maxreal_key(place, key, extent40_offset);
 }
 #endif
 
 /* Builds maximal possible key for the extent item */
-errno_t extent40_maxposs_key(item_entity_t *item,
+errno_t extent40_maxposs_key(place_t *place,
 			     key_entity_t *key) 
 {
-	aal_assert("umka-1211", item != NULL);
+	aal_assert("umka-1211", place != NULL);
 	aal_assert("umka-1212", key != NULL);
 
-	return body40_maxposs_key(item, key);
+	return body40_maxposs_key(place, key);
 }
 
-/* Performs lookup for specified @key inside the passed @item. Result of lookup
+/* Performs lookup for specified @key inside the passed @place. Result of lookup
    will be stored in @pos. */
-lookup_t extent40_lookup(item_entity_t *item,
+lookup_t extent40_lookup(place_t *place,
 			 key_entity_t *key,
 			 uint32_t *pos)
 {
 	lookup_t res;
 	uint64_t offset;
 
-	aal_assert("umka-1500", item != NULL);
+	aal_assert("umka-1500", place != NULL);
 	aal_assert("umka-1501", key  != NULL);
 	aal_assert("umka-1502", pos != NULL);
 	
 	/* Using body40_lookup() getting position by key */
-	res = body40_lookup(item, key, &offset,
-			      (trans_func_t)extent40_offset);
+	res = body40_lookup(place, key, &offset,
+			    (trans_func_t)extent40_offset);
 
 	/* Transforming from the offset ot unit */
-	*pos = extent40_unit(item, offset);
-	
+	*pos = extent40_unit(place, offset);
 	return res;
 }
 
 /* Reads @count bytes of extent data from the extent item at passed @pos into
    specified @buff. */
-static int32_t extent40_read(item_entity_t *item, void *buff,
+static int32_t extent40_read(place_t *place, void *buff,
 			     uint32_t pos, uint32_t count)
 {
 	key_entity_t key;
@@ -220,15 +209,15 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	uint32_t blksize;
 	uint32_t sectorsize;
 
-	aal_assert("umka-1421", item != NULL);
+	aal_assert("umka-1421", place != NULL);
 	aal_assert("umka-1422", buff != NULL);
 	aal_assert("umka-1672", pos != MAX_UINT32);
 
-	blksize = extent40_blksize(item);
-	sectorsize = item->context.device->blksize;
+	blksize = extent40_blksize(place);
+	sectorsize = place->con.device->blksize;
 
-	for (read = count, i = item->pos.unit;
-	     i < extent40_units(item) && count > 0; i++)
+	for (read = count, i = place->pos.unit;
+	     i < extent40_units(place) && count > 0; i++)
 	{
 		uint32_t blkchunk;
 		
@@ -243,15 +232,15 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 #else
 		uint32_t blk, start;
 #endif
-		extent40_get_key(item, i, &key);
+		extent40_get_key(place, i, &key);
 
 		/* Calculating start block for read */
-		start = blk = et40_get_start(extent40_body(item) + i) +
-			((pos - (uint32_t)extent40_offset(item, i)) /
+		start = blk = et40_get_start(extent40_body(place) + i) +
+			((pos - (uint32_t)extent40_offset(place, i)) /
 			 blksize);
 
 		/* Loop though the extent blocks */
-		while (blk < start + et40_get_width(extent40_body(item) + i) &&
+		while (blk < start + et40_get_width(extent40_body(place) + i) &&
 		       count > 0)
 		{
 			blk_t sec;
@@ -272,7 +261,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 				uint32_t seclocal;
 
 				/* Reading one device block (sector) */
-				if (!(block = aal_block_read(item->context.device,
+				if (!(block = aal_block_read(place->con.device,
 							     sectorsize, sec)))
 				{
 					aal_exception_error("Can't read device "
@@ -311,16 +300,14 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 
 #ifndef ENABLE_STAND_ALONE
 /* Checks if two extent items are mergeable */
-static int extent40_mergeable(item_entity_t *item1,
-			      item_entity_t *item2)
-{
-	aal_assert("umka-2199", item1 != NULL);
-	aal_assert("umka-2200", item2 != NULL);
+static int extent40_mergeable(place_t *place1, place_t *place2) {
+	aal_assert("umka-2199", place1 != NULL);
+	aal_assert("umka-2200", place2 != NULL);
 
-	return body40_mergeable(item1, item2);
+	return body40_mergeable(place1, place2);
 }
 
-static errno_t extent40_estimate_insert(item_entity_t *item,
+static errno_t extent40_estimate_insert(place_t *place,
 					create_hint_t *hint,
 					uint32_t pos)
 {
@@ -330,7 +317,7 @@ static errno_t extent40_estimate_insert(item_entity_t *item,
 	return 0;
 }
 
-static errno_t extent40_insert(item_entity_t *item,
+static errno_t extent40_insert(place_t *place,
 			       create_hint_t *hint,
 			       uint32_t pos)
 {
@@ -339,7 +326,7 @@ static errno_t extent40_insert(item_entity_t *item,
 
 /* Calls @func for each block number extent points to. It is needed for
    calculating fragmentation, etc. */
-static errno_t extent40_layout(item_entity_t *item,
+static errno_t extent40_layout(place_t *place,
 			       region_func_t region_func,
 			       void *data)
 {
@@ -347,11 +334,11 @@ static errno_t extent40_layout(item_entity_t *item,
 	uint32_t i, units;
 	extent40_t *extent;
 	
-	aal_assert("umka-1747", item != NULL);
+	aal_assert("umka-1747", place != NULL);
 	aal_assert("umka-1748", region_func != NULL);
 
-	extent = extent40_body(item);
-	units = extent40_units(item);
+	extent = extent40_body(place);
+	units = extent40_units(place);
 
 	for (i = 0; i < units; i++, extent++) {
 		uint64_t start;
@@ -362,7 +349,7 @@ static errno_t extent40_layout(item_entity_t *item,
 		
 		width = et40_get_width(extent);
 		
-		if ((res = region_func(item, start, width, data)))
+		if ((res = region_func(place, start, width, data)))
 			return res;
 	}
 			
@@ -370,14 +357,14 @@ static errno_t extent40_layout(item_entity_t *item,
 }
 
 /* Estimates how many bytes may be shifted into neighbour item */
-static errno_t extent40_estimate_shift(item_entity_t *src_item,
-				       item_entity_t *dst_item,
+static errno_t extent40_estimate_shift(place_t *src_place,
+				       place_t *dst_place,
 				       shift_hint_t *hint)
 {
 	aal_assert("umka-1705", hint != NULL);
-	aal_assert("umka-1704", src_item != NULL);
+	aal_assert("umka-1704", src_place != NULL);
 
-	if (!(src_item->pos.item == hint->pos.item &&
+	if (!(src_place->pos.item == hint->pos.item &&
 	      hint->pos.unit != MAX_UINT32))
 	{
 		goto out_update_hint;
@@ -401,8 +388,8 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 			if (hint->pos.unit == 0 && hint->control & SF_MOVIP) {
 				hint->result |= SF_MOVIP;
 
-				if (dst_item) {
-					hint->pos.unit = (dst_item->len + hint->rest) /
+				if (dst_place) {
+					hint->pos.unit = (dst_place->len + hint->rest) /
 						sizeof(extent40_t);
 				} else {
 					hint->pos.unit = hint->rest / sizeof(extent40_t);
@@ -417,15 +404,15 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 
 			/* Check is it is possible to move something into right
 			   neighbour item. */
-			if (hint->pos.unit * sizeof(extent40_t) < src_item->len) {
-				right = src_item->len -
+			if (hint->pos.unit * sizeof(extent40_t) < src_place->len) {
+				right = src_place->len -
 					(hint->pos.unit * sizeof(extent40_t));
 		
 				if (hint->rest > right)
 					hint->rest = right;
 
 				if (hint->control & SF_MOVIP &&
-				    hint->pos.unit == ((src_item->len - hint->rest) /
+				    hint->pos.unit == ((src_place->len - hint->rest) /
 						       sizeof(extent40_t)))
 				{
 					hint->result |= SF_MOVIP;
@@ -449,18 +436,18 @@ static errno_t extent40_estimate_shift(item_entity_t *src_item,
 	return 0;
 }
 
-static uint32_t extent40_expand(item_entity_t *item, uint32_t pos,
+static uint32_t extent40_expand(place_t *place, uint32_t pos,
 				uint32_t count, uint32_t len)
 {
-	/* Preparing space in @dst_item */
-	if (pos < extent40_units(item)) {
+	/* Preparing space in @dst_place */
+	if (pos < extent40_units(place)) {
 		uint32_t len;
 		void *src, *dst;
 
-		src = (extent40_t *)item->body + pos;
+		src = (extent40_t *)place->body + pos;
 		dst = src + (count * sizeof(extent40_t));
 
-		len = (extent40_units(item) - pos) *
+		len = (extent40_units(place) - pos) *
 			sizeof(extent40_t);
 
 		aal_memmove(dst, src, len);
@@ -469,18 +456,18 @@ static uint32_t extent40_expand(item_entity_t *item, uint32_t pos,
 	return 0;
 }
 
-static uint32_t extent40_shrink(item_entity_t *item, uint32_t pos,
+static uint32_t extent40_shrink(place_t *place, uint32_t pos,
 			       uint32_t count, uint32_t len)
 {
-	/* Srinking @dst_item */
-	if (pos < extent40_units(item)) {
+	/* Srinking @dst_place */
+	if (pos < extent40_units(place)) {
 		uint32_t len;
 		void *src, *dst;
 
-		dst = (extent40_t *)item->body + pos;
+		dst = (extent40_t *)place->body + pos;
 		src = dst + (count * sizeof(extent40_t));
 
-		len = (extent40_units(item) - pos) *
+		len = (extent40_units(place) - pos) *
 			sizeof(extent40_t);
 
 		aal_memmove(dst, src, len);
@@ -489,93 +476,91 @@ static uint32_t extent40_shrink(item_entity_t *item, uint32_t pos,
 	return 0;
 }
 
-/* Makes copy of units from @src_item to @dst_item */
-static errno_t extent40_rep(item_entity_t *dst_item,
-			    uint32_t dst_pos,
-			    item_entity_t *src_item,
-			    uint32_t src_pos,
+/* Makes copy of units from @src_place to @dst_place */
+static errno_t extent40_rep(place_t *dst_place, uint32_t dst_pos,
+			    place_t *src_place, uint32_t src_pos,
 			    uint32_t count)
 {
-	/* Copying units from @src_item to @dst_item */
+	/* Copying units from @src_place to @dst_place */
 	if (count > 0) {
 		void *src, *dst;
 
-		src = (extent40_t *)src_item->body + src_pos;
-		dst = (extent40_t *)dst_item->body + dst_pos;
+		src = (extent40_t *)src_place->body + src_pos;
+		dst = (extent40_t *)dst_place->body + dst_pos;
 		aal_memmove(dst, src, count * sizeof(extent40_t));
 	}
 	
 	return 0;
 }
 
-static errno_t extent40_shift(item_entity_t *src_item,
-			      item_entity_t *dst_item,
+static errno_t extent40_shift(place_t *src_place, place_t *dst_place,
 			      shift_hint_t *hint)
 {
 	aal_assert("umka-1708", hint != NULL);
-	aal_assert("umka-1706", src_item != NULL);
-	aal_assert("umka-1707", dst_item != NULL);
+	aal_assert("umka-1706", src_place != NULL);
+	aal_assert("umka-1707", dst_place != NULL);
 
 	if (hint->control & SF_LEFT) {
 		
-		/* Preparing space in @dst_item */
-		extent40_expand(dst_item, extent40_units(dst_item),
+		/* Preparing space in @dst_place */
+		extent40_expand(dst_place, extent40_units(dst_place),
 				hint->units, 0);
 
-		/* Copying data from the @src_item to @dst_item */
-		extent40_rep(dst_item, extent40_units(dst_item),
-			     src_item, 0, hint->units);
+		/* Copying data from the @src_place to @dst_place */
+		extent40_rep(dst_place, extent40_units(dst_place),
+			     src_place, 0, hint->units);
 
-		/* Removing units in @src_item */
-		extent40_shrink(src_item, 0, hint->units, 0);
+		/* Removing units in @src_place */
+		extent40_shrink(src_place, 0, hint->units, 0);
 
 		/* Updating item's key by the first unit key */
-		extent40_get_key(src_item, hint->units, &src_item->key);
+		extent40_get_key(src_place, hint->units, &src_place->key);
 	} else {
 		uint32_t pos;
 		uint64_t offset;
 
-		/* Preparing space in @dst_item */
-		extent40_expand(dst_item, 0, hint->units, 0);
+		/* Preparing space in @dst_place */
+		extent40_expand(dst_place, 0, hint->units, 0);
 
-		/* Copying data from the @src_item to @dst_item */
-		pos = extent40_units(src_item) - hint->units;
+		/* Copying data from the @src_place to @dst_place */
+		pos = extent40_units(src_place) - hint->units;
 		
-		extent40_rep(dst_item, 0, src_item, pos,
+		extent40_rep(dst_place, 0, src_place, pos,
 			     hint->units);
 
-		/* Removing units in @src_item */
-		extent40_shrink(src_item, pos, hint->units, 0);
+		/* Removing units in @src_place */
+		extent40_shrink(src_place, pos, hint->units, 0);
 
 		/* Updating item's key by the first unit key */
-		extent40_get_key(dst_item, 0, &dst_item->key);
+		extent40_get_key(dst_place, 0, &dst_place->key);
 
-		offset = plugin_call(dst_item->key.plugin->o.key_ops,
-				     get_offset, &dst_item->key);
+		offset = plug_call(dst_place->key.plug->o.key_ops,
+				   get_offset, &dst_place->key);
 
-		offset -= extent40_offset(dst_item, hint->units);
+		offset -= extent40_offset(dst_place, hint->units);
 
-		plugin_call(dst_item->key.plugin->o.key_ops,
-			    set_offset, &dst_item->key, offset);
+		plug_call(dst_place->key.plug->o.key_ops,
+			  set_offset, &dst_place->key, offset);
 	}
 	
 	return 0;
 }
 
-extern errno_t extent40_check_struct(item_entity_t *item, uint8_t mode);
+extern errno_t extent40_check_struct(place_t *place,
+				     uint8_t mode);
 
-extern errno_t extent40_check_layout(item_entity_t *item,
+extern errno_t extent40_check_layout(place_t *place,
 				     region_func_t func, 
 				     void *data, uint8_t mode);
 
-extern errno_t extent40_estimate_copy(item_entity_t *dst,
+extern errno_t extent40_estimate_copy(place_t *dst,
 				      uint32_t dst_pos,
-				      item_entity_t *src,
+				      place_t *src,
 				      uint32_t src_pos,
 				      copy_hint_t *hint);
 
-extern errno_t extent40_copy(item_entity_t *dst, uint32_t dst_pos, 
-			     item_entity_t *src, uint32_t src_pos, 
+extern errno_t extent40_copy(place_t *dst, uint32_t dst_pos, 
+			     place_t *src, uint32_t src_pos, 
 			     copy_hint_t *hint);
 #endif
 
@@ -620,9 +605,9 @@ static reiser4_item_ops_t extent40_ops = {
 	.maxposs_key      = extent40_maxposs_key
 };
 
-static reiser4_plugin_t extent40_plugin = {
+static reiser4_plug_t extent40_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {ITEM_EXTENT40_ID, EXTENT_ITEM, ITEM_PLUGIN_TYPE},
+	.id    = {ITEM_EXTENT40_ID, EXTENT_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "extent40",
 	.desc  = "Extent item for reiser4, ver. " VERSION,
@@ -632,8 +617,8 @@ static reiser4_plugin_t extent40_plugin = {
 	}
 };
 
-static reiser4_plugin_t *extent40_start(reiser4_core_t *c) {
-	return &extent40_plugin;
+static reiser4_plug_t *extent40_start(reiser4_core_t *c) {
+	return &extent40_plug;
 }
 
-plugin_register(extent40, extent40_start, NULL);
+plug_register(extent40, extent40_start, NULL);

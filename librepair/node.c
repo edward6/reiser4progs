@@ -44,7 +44,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 	
 	aal_assert("vpf-229", node != NULL);
 	aal_assert("vpf-230", node->entity != NULL);
-	aal_assert("vpf-231", node->entity->plugin != NULL);
+	aal_assert("vpf-231", node->entity->plug != NULL);
 	
 	place.node = node;
 	count = reiser4_node_items(node);
@@ -79,14 +79,14 @@ static errno_t repair_node_items_check(reiser4_node_t *node, uint8_t mode) {
 		
 		/* Check that the item is legal for this node. If not, it 
 		   will be deleted in update traverse callback method. */
-		if (!repair_tree_legal_level(place.item.plugin->id.group, 
+		if (!repair_tree_legal_level(place.plug->id.group, 
 					     reiser4_node_get_level(node)))
 		{
 			aal_exception_error("Node (%llu): Node level (%u) does "
 					    "not match to the item type (%s).",
 					    node->number, 
 					    reiser4_node_get_level(node),
-					    place.item.plugin->label);
+					    place.plug->label);
 			
 			/* FIXME-VITALY: smth should be done here later. */
 			res |= REPAIR_FATAL;
@@ -122,7 +122,7 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
 		if ((res = reiser4_place_realize(&node->p)))
 			return res;
 		
-		if ((res = reiser4_key_assign(ld_key, &node->p.item.key)))
+		if ((res = reiser4_key_assign(ld_key, &node->p.key)))
 			return res;
 	} else {
 		/* FIXME-UMKA->VITALY: This function no longer exists. */
@@ -142,7 +142,7 @@ static errno_t repair_node_ld_key_update(reiser4_node_t *node,
 {
 	aal_assert("vpf-467", node != NULL);
 	aal_assert("vpf-468", ld_key != NULL);
-	aal_assert("vpf-469", ld_key->plugin != NULL);
+	aal_assert("vpf-469", ld_key->plug != NULL);
 	
 	if (node->p.node == NULL)
 		return 0;
@@ -182,7 +182,7 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 			if ((ret = reiser4_place_realize(&place)))
 				return ret;
 			
-			if ((ret = reiser4_key_assign(rd_key, &place.item.key)))
+			if ((ret = reiser4_key_assign(rd_key, &place.key)))
 				return ret;
 		}
 	} else {
@@ -205,7 +205,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 	
 	aal_assert("vpf-248", node != NULL);
 	aal_assert("vpf-249", node->entity != NULL);
-	aal_assert("vpf-250", node->entity->plugin != NULL);
+	aal_assert("vpf-250", node->entity->plug != NULL);
 	
 	if ((res = repair_node_ld_key_fetch(node, &d_key))) {
 		aal_exception_error("Node (%llu): Failed to get the left "
@@ -220,7 +220,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 	if ((res = reiser4_place_realize(&place)))
 		return res;
 	
-	res = reiser4_key_compare(&d_key, &place.item.key);
+	res = reiser4_key_compare(&d_key, &place.key);
 	
 	/* Left delimiting key should match the left key in the node. */
 	if (res > 0) {
@@ -228,7 +228,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 		   node - not legal */
 		aal_exception_error("Node (%llu): The first key %k is not "
 				    "equal to the left delimiting key %k.",
-				    node->number, &place.item.key, &d_key);
+				    node->number, &place.key, &d_key);
 		return -ESTRUCT;
 	} else if (res < 0) {
 		/* It is legal to have the left key in the node much then 
@@ -240,7 +240,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 					    "key %k in the parent node (%llu), "
 					    "pos (%u/%u) mismatch the first key "
 					    "%k in the node. %s", node->number,
-					    &place.item.key, node->p.node->number,
+					    &place.key, node->p.node->number,
 					    place.pos.item, place.pos.unit, 
 					    &d_key, mode == REPAIR_REBUILD ? 
 					    "Left delimiting key is fixed." : 
@@ -304,7 +304,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 		if ((res = reiser4_place_realize(&place)))
 			return res;
 		
-		if ((res = reiser4_key_assign(&key, &place.item.key))) {
+		if ((res = reiser4_key_assign(&key, &place.key))) {
 			aal_exception_error("Node (%llu): Failed to get the "
 					    "key of the item (%u).",
 					    node->number, pos->item);
@@ -362,10 +362,10 @@ errno_t repair_node_check_struct(reiser4_node_t *node, uint8_t mode) {
 	
 	aal_assert("vpf-494", node != NULL);
 	aal_assert("vpf-193", node->entity != NULL);    
-	aal_assert("vpf-220", node->entity->plugin != NULL);
+	aal_assert("vpf-220", node->entity->plug != NULL);
 	
-	res |= plugin_call(node->entity->plugin->o.node_ops, check_struct, 
-			   node->entity, mode);
+	res |= plug_call(node->entity->plug->o.node_ops, check_struct, 
+			 node->entity, mode);
 	
 	if (repair_error_fatal(res))
 		return res;
@@ -426,8 +426,8 @@ void repair_node_print(reiser4_node_t *node, uint32_t start, uint32_t count,
 	
 	aal_stream_init(&stream);
 	
-	plugin_call(node->entity->plugin->o.node_ops, print, node->entity, 
-		    &stream, start, count, options);
+	plug_call(node->entity->plug->o.node_ops, print, node->entity, 
+		  &stream, start, count, options);
 	
 	printf(stream.data);
 	fflush(stdout);
@@ -440,12 +440,12 @@ errno_t repair_node_copy(reiser4_node_t *dst, pos_t *dst_pos,
 {
 	aal_assert("vpf-961", dst != NULL);
 	aal_assert("vpf-962", src != NULL);
-	aal_assert("vpf-964", dst->entity->plugin->id.id == 
-		   src->entity->plugin->id.id);
+	aal_assert("vpf-964", dst->entity->plug->id.id == 
+		   src->entity->plug->id.id);
 	aal_assert("vpf-967", dst_pos != NULL);
 	aal_assert("vpf-968", src_pos != NULL);
     
-	return plugin_call(dst->entity->plugin->o.node_ops, copy, dst->entity,
-			   dst_pos, src->entity, src_pos, hint);
+	return plug_call(dst->entity->plug->o.node_ops, copy, dst->entity,
+			 dst_pos, src->entity, src_pos, hint);
 }
 

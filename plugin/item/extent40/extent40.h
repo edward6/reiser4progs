@@ -17,7 +17,14 @@ struct extent40 {
 
 typedef struct extent40 extent40_t;
 
-#define extent40_body(item)	    ((extent40_t *)item->body)
+#define extent40_blksize(place) \
+        (place->con.blksize)
+
+#define extent40_body(place)	\
+        ((extent40_t *)place->body)
+
+#define extent40_size(place)    \
+        (extent40_offset(place, extent40_units(place)))
 
 #define et40_get_start(et)	    aal_get_le64((et), start)
 #define et40_set_start(et, val)	    aal_set_le64((et), start, val)

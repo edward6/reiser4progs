@@ -7,7 +7,7 @@
 #ifndef ENABLE_STAND_ALONE
 #include "oid40.h"
 
-extern reiser4_plugin_t oid40_plugin;
+extern reiser4_plug_t oid40_plug;
 
 static int oid40_isdirty(object_entity_t *entity) {
 	aal_assert("umka-2088", entity != NULL);
@@ -39,7 +39,7 @@ static object_entity_t *oid40_open(void *start,
 	oid->len = len;
 	oid->start = start;
     
-	oid->plugin = &oid40_plugin;
+	oid->plug = &oid40_plug;
 	oid->next = oid40_get_next(start);
 	oid->used = oid40_get_used(start);
     
@@ -69,7 +69,7 @@ static object_entity_t *oid40_create(void *start,
 	oid->next = OID40_RESERVED;
 	oid->used = 0;
     
-	oid->plugin = &oid40_plugin;
+	oid->plug = &oid40_plug;
 	oid40_set_next(start, oid->next);
 	oid40_set_used(start, oid->used);
     
@@ -127,7 +127,7 @@ static errno_t oid40_print(object_entity_t *entity,
 	aal_stream_format(stream, "Oid allocator:\n");
 	
 	aal_stream_format(stream, "plugin:\t\t%s\n",
-			  entity->plugin->label);
+			  entity->plug->label);
 
 	aal_stream_format(stream, "next oid:\t0x%llx\n",
 			  ((oid40_t *)entity)->next);
@@ -191,9 +191,9 @@ reiser4_oid_ops_t oid40_ops = {
 	.root_objectid	= oid40_root_objectid
 };
 
-static reiser4_plugin_t oid40_plugin = {
+static reiser4_plug_t oid40_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {OID_REISER40_ID, 0, OID_PLUGIN_TYPE},
+	.id    = {OID_REISER40_ID, 0, OID_PLUG_TYPE},
 	.label = "oid40",
 	.desc  = "Inode allocator for reiser4, ver. " VERSION,
 	.o = {
@@ -201,9 +201,9 @@ static reiser4_plugin_t oid40_plugin = {
 	}
 };
 
-static reiser4_plugin_t *oid40_start(reiser4_core_t *c) {
-	return &oid40_plugin;
+static reiser4_plug_t *oid40_start(reiser4_core_t *c) {
+	return &oid40_plug;
 }
 
-plugin_register(oid40, oid40_start, NULL);
+plug_register(oid40, oid40_start, NULL);
 #endif

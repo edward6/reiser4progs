@@ -20,7 +20,7 @@ static int callback_bs_check (int64_t val, void * data) {
 /* Checks the opened master, builds a new one on the base of user profile if no 
    one was opened. */
 static errno_t repair_master_check(reiser4_fs_t *fs, uint8_t mode) {
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 	errno_t error = REPAIR_OK;
 	uint16_t blocksize = 0;
 	

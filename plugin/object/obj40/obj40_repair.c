@@ -25,9 +25,9 @@ errno_t obj40_realize(object_info_t *info,
 
 	aal_assert("vpf-1121", info != NULL);
 	aal_assert("vpf-1121", info->tree != NULL);
-	aal_assert("vpf-1127", info->object.plugin || info->start.item.plugin);
+	aal_assert("vpf-1127", info->object.plug || info->start.plug);
 	
-	if (info->object.plugin) {
+	if (info->object.plug) {
 		/* If the start key is specified it must be the key of
 		   StatData. If the item pointed by this key was found it must
 		   SD, check its mode with mode_func. If item was not found,
@@ -35,29 +35,29 @@ errno_t obj40_realize(object_info_t *info,
 		
 		uint64_t locality, objectid;
 		
-		locality = plugin_call(info->object.plugin->o.key_ops,
-				       get_locality, &info->object);
+		locality = plug_call(info->object.plug->o.key_ops,
+				     get_locality, &info->object);
 		
-		objectid = plugin_call(info->object.plugin->o.key_ops,
-				       get_objectid, &info->object);
+		objectid = plug_call(info->object.plug->o.key_ops,
+				     get_objectid, &info->object);
 
 		/* FIXME-UMKA->VITALY: Here also should be sued right ordering
 		   if we're using large keys. */
-		plugin_call(info->object.plugin->o.key_ops, build_gener, &key,
-			    KEY_STATDATA_TYPE, locality, 0, objectid, 0);
+		plug_call(info->object.plug->o.key_ops, build_gener, &key,
+			  KEY_STATDATA_TYPE, locality, 0, objectid, 0);
 		
 		/* Object key must be a key of SD. */
-		if (plugin_call(info->object.plugin->o.key_ops, compfull, &key, 
-				&info->object))
+		if (plug_call(info->object.plug->o.key_ops, compfull, &key, 
+			      &info->object))
 			return -EINVAL;
 		
 		/* If item was realized - the pointed item was found. */
-		if (info->start.item.plugin) {
-			if (info->start.item.plugin->id.group != STATDATA_ITEM)
+		if (info->start.plug) {
+			if (info->start.plug->id.group != STATDATA_ITEM)
 				return -EINVAL;
 
 			/* This is a SD item. It must be a reg SD. */
-			if ((res = obj40_read_lw(&info->start.item, &lw_hint)))
+			if ((res = obj40_read_lw(&info->start, &lw_hint)))
 				return res;
 			
 			return mode_func(lw_hint.mode) ? 0 : -EINVAL;
@@ -67,8 +67,8 @@ errno_t obj40_realize(object_info_t *info,
 		   try to find other reg40 items. */
 		/* FIXME-UMKA->VITALY: Here also should be sued right ordering
 		   if we're using large keys. */
-		plugin_call(info->object.plugin->o.key_ops, build_gener, &key,
-			    type, locality, 0, objectid, 0);
+		plug_call(info->object.plug->o.key_ops, build_gener, &key,
+			  type, locality, 0, objectid, 0);
 		
 		lookup = core->tree_ops.lookup(info->tree, &key, 
 					       LEAF_LEVEL, &place);
@@ -87,24 +87,24 @@ errno_t obj40_realize(object_info_t *info,
 		if ((res = core->tree_ops.realize(info->tree, &place)))
 			return res;
 
-		return plugin_call(info->object.plugin->o.key_ops, compshort, 
-				   &info->object, &key) ? -EINVAL : 0;
+		return plug_call(info->object.plug->o.key_ops, compshort, 
+				 &info->object, &key) ? -EINVAL : 0;
 	} else {
 		/* Realizing by place, If it is a SD - check its mode with mode_func,
 		   othewise check the type of the specified item. */
 		
-		aal_assert("vpf-1122", info->start.item.plugin != NULL);
+		aal_assert("vpf-1122", info->start.plug != NULL);
 		
-		if (info->start.item.plugin->id.group == STATDATA_ITEM) {
+		if (info->start.plug->id.group == STATDATA_ITEM) {
 			/* This is a SD item. It must be a reg SD. */
-			if ((res = obj40_read_lw(&info->start.item, &lw_hint)))
+			if ((res = obj40_read_lw(&info->start, &lw_hint)))
 				return res;
 			
 			return mode_func(lw_hint.mode) ? 0 : -EINVAL;
 		}
 		
-		type = plugin_call(info->object.plugin->o.key_ops, get_type, 
-				   &info->start.item.key);
+		type = plug_call(info->object.plug->o.key_ops, get_type, 
+				 &info->start.key);
 		
 		return type_func(type);
 	}

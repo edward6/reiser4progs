@@ -27,7 +27,7 @@ struct dir40 {
 	key_entity_t offset;
 
 	/* Hash plugin in use */
-	reiser4_plugin_t *hash;
+	reiser4_plug_t *hash;
 };
 
 typedef struct dir40 dir40_t;

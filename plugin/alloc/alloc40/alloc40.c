@@ -16,7 +16,7 @@
 #define ALLOC40_START \
         (REISER4_MASTER_OFFSET + (REISER4_BLKSIZE * 2))
 
-extern reiser4_plugin_t alloc40_plugin;
+extern reiser4_plug_t alloc40_plug;
 
 /* Calculates the adler32 checksum for the data pointed by "buff" of the length
    "n". This function was originally taken from zlib, version 1.1.3, July 9th,
@@ -236,7 +236,7 @@ static object_entity_t *alloc40_open(aal_device_t *device,
     
 	alloc->device = device;
 	alloc->blocksize = blocksize;
-	alloc->plugin = &alloc40_plugin;
+	alloc->plug = &alloc40_plug;
 
 	/* Calling alloc40_layout method with callback_fetch_bitmap callback for
 	   loading all the bitmap blocks. */
@@ -290,7 +290,7 @@ static object_entity_t *alloc40_create(aal_device_t *device,
 	alloc->dirty = 1;
 	alloc->device = device;
 	alloc->blocksize = blocksize;
-	alloc->plugin = &alloc40_plugin;
+	alloc->plug = &alloc40_plug;
     
 	return (object_entity_t *)alloc;
 
@@ -551,7 +551,7 @@ static errno_t alloc40_print(object_entity_t *entity,
 	aal_stream_format(stream, "Block allocator:\n");
 	
 	aal_stream_format(stream, "plugin:\t\t%s\n",
-			  alloc->plugin->label);
+			  alloc->plug->label);
 
 	aal_stream_format(stream, "total blocks:\t%llu\n",
 			  alloc->bitmap->total);
@@ -745,9 +745,9 @@ static reiser4_alloc_ops_t alloc40_ops = {
 	.release        = alloc40_release
 };
 
-static reiser4_plugin_t alloc40_plugin = {
+static reiser4_plug_t alloc40_plug = {
 	.cl = CLASS_INIT,
-	.id = {ALLOC_REISER40_ID, 0, ALLOC_PLUGIN_TYPE},
+	.id = {ALLOC_REISER40_ID, 0, ALLOC_PLUG_TYPE},
 	.label = "alloc40",
 	.desc = "Space allocator for reiser4, ver. " VERSION,
 	.o = {
@@ -755,9 +755,9 @@ static reiser4_plugin_t alloc40_plugin = {
 	}
 };
 
-static reiser4_plugin_t *alloc40_start(reiser4_core_t *c) {
-	return &alloc40_plugin;
+static reiser4_plug_t *alloc40_start(reiser4_core_t *c) {
+	return &alloc40_plug;
 }
 
-plugin_register(alloc40, alloc40_start, NULL);
+plug_register(alloc40, alloc40_start, NULL);
 #endif

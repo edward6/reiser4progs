@@ -10,7 +10,7 @@
 #include <aux/aux.h>
 #include <reiser4/plugin.h>
 
-#define cde_short_body(item) ((cde_short_t *)item->body)
+#define cde_short_body(place) ((cde_short_t *)place->body)
 
 /* The cde_short structure is as the following:
    +-------------------------------+-------------------------------------------------+

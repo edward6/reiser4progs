@@ -12,28 +12,27 @@
 #include "nodeptr40.h"
 #include <repair/plugin.h>
 
-errno_t nodeptr40_check_layout(item_entity_t *item, region_func_t region_func, 
+errno_t nodeptr40_check_layout(place_t *place, region_func_t region_func, 
 			       void *data, uint8_t mode) 
 {
 	nodeptr40_t *nodeptr;
 	blk_t blk;
 	errno_t res;
 	
-	aal_assert("vpf-721", item != NULL);
+	aal_assert("vpf-721", place != NULL);
 	
-	nodeptr = nodeptr40_body(item);
+	nodeptr = nodeptr40_body(place);
 	
 	blk = np40_get_ptr(nodeptr);
 	
-	res = region_func(item, blk, 1, data);
+	res = region_func(place, blk, 1, data);
 	
 	if (res > 0) {
 		if (mode == REPAIR_REBUILD) {
 			aal_exception_error("Node (%llu), item (%u): a pointer to "
 					    "the region [%llu..%llu] is removed.", 
-					    item->context.blk, blk, blk);
-			item->len = 0;
-			
+					    place->con.blk, blk, blk);
+			place->len = 0;
 			return REPAIR_FIXED;
 		}
 		
@@ -45,9 +44,9 @@ errno_t nodeptr40_check_layout(item_entity_t *item, region_func_t region_func,
 	return REPAIR_OK;
 }
 
-errno_t nodeptr40_check_struct(item_entity_t *item, uint8_t mode) {
-	aal_assert("vpf-751", item != NULL);
-	return item->len != sizeof(nodeptr40_t) ? REPAIR_FATAL : REPAIR_OK;
+errno_t nodeptr40_check_struct(place_t *place, uint8_t mode) {
+	aal_assert("vpf-751", place != NULL);
+	return place->len != sizeof(nodeptr40_t) ? REPAIR_FATAL : REPAIR_OK;
 }
 
 #endif

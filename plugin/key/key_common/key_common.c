@@ -7,14 +7,14 @@
 
 /* Minimal possible key */
 static key_entity_t minimal_key = {
-	.plugin = NULL,
-	.body   = {0ull, 0ull, 0ull, 0ull}
+	.plug = NULL,
+	.body = {0ull, 0ull, 0ull, 0ull}
 };
 
 /* Maximal possible key */
 static key_entity_t maximal_key = {
-	.plugin = NULL,
-	.body   = {MAX_UINT64, MAX_UINT64, MAX_UINT64, MAX_UINT64}
+	.plug = NULL,
+	.body = {MAX_UINT64, MAX_UINT64, MAX_UINT64, MAX_UINT64}
 };
 
 /* Translates key type from libreiser4 type to key_common one */
@@ -31,7 +31,7 @@ key_minor_t key_common_type2minor(key_type_t type) {
 	case KEY_FILEBODY_TYPE:
 		return KEY_FILEBODY_MINOR;
 	default:
-		return 0xff;
+		return MAX_UINT8;
 	}
 }
 
@@ -49,7 +49,7 @@ key_type_t key_common_minor2type(key_minor_t minor) {
 	case KEY_FILEBODY_MINOR:
 		return KEY_FILEBODY_TYPE;
 	default:
-		return 0xff;
+		return MAX_UINT8;
 	}
 }
 
@@ -67,14 +67,14 @@ const char *key_common_minor2name(key_minor_t type) {
 }
 
 /* Returns minimal key */
-key_entity_t *key_common_minimal(reiser4_plugin_t *plugin) {
-	minimal_key.plugin = plugin;
+key_entity_t *key_common_minimal(reiser4_plug_t *plug) {
+	minimal_key.plug = plug;
 	return &minimal_key;
 }
 
 /* Returns maximal key */
-key_entity_t *key_common_maximal(reiser4_plugin_t *plugin) {
-	maximal_key.plugin = plugin;
+key_entity_t *key_common_maximal(reiser4_plug_t *plug) {
+	maximal_key.plug = plug;
 	return &maximal_key;
 }
 

@@ -11,14 +11,14 @@ errno_t repair_alloc_related_region(reiser4_alloc_t *alloc, blk_t blk,
 	aal_assert("vpf-557", alloc != NULL);
 	aal_assert("umka-1685", func != NULL);
 	
-	return plugin_call(alloc->entity->plugin->o.alloc_ops, related, 
-			   alloc->entity, blk, func, data);
+	return plug_call(alloc->entity->plug->o.alloc_ops, related, 
+			 alloc->entity, blk, func, data);
 }
 
 errno_t repair_alloc_check_struct(reiser4_alloc_t *alloc, uint8_t mode) {
 	aal_assert("vpf-867", alloc != NULL);
 	
-	return plugin_call(alloc->entity->plugin->o.alloc_ops, check_struct, 
-			   alloc->entity, mode);
+	return plug_call(alloc->entity->plug->o.alloc_ops, check_struct, 
+			 alloc->entity, mode);
 }
 

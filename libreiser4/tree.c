@@ -286,8 +286,8 @@ reiser4_node_t *reiser4_tree_child(reiser4_tree_t *tree,
 	if (!reiser4_item_branch(place))
 		return NULL;
 			
-	plugin_call(place->item.plugin->o.item_ops,
-		    read, &place->item, &ptr, 0, 1);
+	plug_call(place->plug->o.item_ops, read,
+		  (place_t *)place, &ptr, 0, 1);
 
 	return reiser4_tree_load(tree, place->node,
 				 ptr.start);
@@ -482,11 +482,11 @@ static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 #endif
 
 	/* Finding needed key plugin by its identifier */
-	if (!(tree->key.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE,
-							  pid)))
+	if (!(tree->key.plug = libreiser4_factory_ifind(KEY_PLUG_TYPE,
+							pid)))
 	{
-		aal_exception_error("Can't find key plugin by its id 0x%x.",
-				    pid);
+		aal_exception_error("Can't find key plugin by its id "
+				    "0x%x.", pid);
 		return -EINVAL;
 	}
 	
@@ -955,8 +955,8 @@ errno_t reiser4_tree_attach(
 	reiser4_node_lkey(node, &hint.key);
 	pid = reiser4_profile_value(tree->fs->profile, "nodeptr");
 
-	if (!(hint.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE,
-						     pid)))
+	if (!(hint.plug = libreiser4_factory_ifind(ITEM_PLUG_TYPE,
+						   pid)))
 	{
 		aal_exception_error("Can't find item plugin by "
 				    "its id 0x%x.", pid);
@@ -1475,7 +1475,7 @@ errno_t reiser4_tree_insert(
 	aal_assert("umka-779", hint != NULL);
 	
 	aal_assert("umka-1644", place != NULL);
-	aal_assert("umka-1645", hint->plugin != NULL);
+	aal_assert("umka-1645", hint->plug != NULL);
 
 	/* Checking if tree is fresh one, thus, it does not have the root
 	   node. If so, we allocate new node of the requested level, insert
@@ -2055,7 +2055,7 @@ reiser4_node_t *reiser4_tree_clone(reiser4_tree_t *src_tree,
 	aal_device_t *dst_device;
 	
 	dst_device = dst_tree->fs->device;
-	pid = src_node->entity->plugin->id.id;
+	pid = src_node->entity->plug->id.id;
 	
 	if (!(dst_node = reiser4_node_init(dst_device, src_node->size,
 					   reiser4_fake_get(), pid)))

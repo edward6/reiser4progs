@@ -24,14 +24,14 @@ static errno_t repair_journal_check_struct(reiser4_journal_t *journal) {
 	aal_assert("vpf-460", journal != NULL);
 	aal_assert("vpf-736", journal->fs != NULL);
 	
-	return plugin_call(journal->entity->plugin->o.journal_ops, check_struct,
-			   journal->entity, callback_fs_check, journal->fs);
+	return plug_call(journal->entity->plug->o.journal_ops, check_struct,
+			 journal->entity, callback_fs_check, journal->fs);
 }
 /* Open the journal and check it. */
 errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 			    uint8_t mode) 
 {
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 	errno_t ret = REPAIR_OK;
 	rid_t pid;
 	
@@ -53,7 +53,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 			return -EINVAL;
 		}
 		
-		if (!(plugin = libreiser4_factory_ifind(JOURNAL_PLUGIN_TYPE, pid)))  {
+		if (!(plug = libreiser4_factory_ifind(JOURNAL_PLUG_TYPE, pid)))  {
 			aal_exception_error("Cannot find journal plugin by its id 0x%x.",
 					    pid);
 			return -EINVAL;
@@ -61,7 +61,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,
 		
 		if (aal_exception_throw(EXCEPTION_ERROR, EXCEPTION_YESNO, 
 					"Do you want to create a new journal (%s)?",
-					plugin->label) == EXCEPTION_NO)
+					plug->label) == EXCEPTION_NO)
 			return -EINVAL;
 	    
 		if (!(fs->journal = reiser4_journal_create(fs, journal_device, NULL))) {

@@ -7,22 +7,22 @@
 
 /* Returns the number of units in nodeptr. As nodeptr40 has not units and thus
    cannot be splitted by balancing, it has one unit. */
-static uint32_t nodeptr40_units(item_entity_t *item) {
+static uint32_t nodeptr40_units(place_t *place) {
 	return 1;
 }
 
 /* Reads nodeptr into passed buff */
-static int32_t nodeptr40_read(item_entity_t *item, void *buff,
+static int32_t nodeptr40_read(place_t *place, void *buff,
 			      uint32_t pos, uint32_t count)
 {
 	nodeptr40_t *nodeptr;
 	ptr_hint_t *ptr_hint;
 		
-	aal_assert("umka-1419", item != NULL);
+	aal_assert("umka-1419", place != NULL);
 	aal_assert("umka-1420", buff != NULL);
 
 	ptr_hint = (ptr_hint_t *)buff;
-	nodeptr = nodeptr40_body(item);
+	nodeptr = nodeptr40_body(place);
 	
 	ptr_hint->width = 1;
 	ptr_hint->start = np40_get_ptr(nodeptr);
@@ -37,32 +37,32 @@ static int nodeptr40_branch(void) {
 #ifndef ENABLE_STAND_ALONE
 /* Layout implementation for nodeptr40. It calls @geion_func for each block
    nodeptr points to. */
-static errno_t nodeptr40_layout(item_entity_t *item,
+static errno_t nodeptr40_layout(place_t *place,
 				region_func_t region_func,
 				void *data)
 {
 	nodeptr40_t *nodeptr;
 	
-	aal_assert("umka-1749", item != NULL);
-	aal_assert("vpf-718",   item->body != NULL);
+	aal_assert("umka-1749", place != NULL);
+	aal_assert("umka-2354", place->body != NULL);
 	aal_assert("umka-1750", region_func != NULL);
 
-	nodeptr = nodeptr40_body(item);
-	return region_func(item, np40_get_ptr(nodeptr), 1, data);
+	nodeptr = nodeptr40_body(place);
+	return region_func(place, np40_get_ptr(nodeptr), 1, data);
 }
 
-/* Writes of the specified nodeptr into passed @item*/
-static errno_t nodeptr40_insert(item_entity_t *item,
+/* Writes of the specified nodeptr into passed @place */
+static errno_t nodeptr40_insert(place_t *place,
 				create_hint_t *hint,
 				uint32_t pos)
 {
 	nodeptr40_t *nodeptr;
 	ptr_hint_t *ptr_hint;
 		
-	aal_assert("umka-1423", item != NULL);
+	aal_assert("umka-1423", place != NULL);
 	aal_assert("umka-1424", hint != NULL);
 
-	nodeptr = nodeptr40_body(item);
+	nodeptr = nodeptr40_body(place);
 	
 	ptr_hint = (ptr_hint_t *)hint->type_specific;
 	np40_set_ptr(nodeptr, ptr_hint->start);
@@ -71,7 +71,7 @@ static errno_t nodeptr40_insert(item_entity_t *item,
 }
 
 /* Estimates how many bytes is needed for creating new nodeptr */
-static errno_t nodeptr40_estimate_insert(item_entity_t *item,
+static errno_t nodeptr40_estimate_insert(place_t *place,
 					 create_hint_t *hint,
 					 uint32_t pos)
 {
@@ -82,22 +82,22 @@ static errno_t nodeptr40_estimate_insert(item_entity_t *item,
 }
 
 /* Prints passed nodeptr into @stream */
-static errno_t nodeptr40_print(item_entity_t *item,
+static errno_t nodeptr40_print(place_t *place,
 			       aal_stream_t *stream,
 			       uint16_t options) 
 {
 	nodeptr40_t *nodeptr;
 	
-	aal_assert("umka-544", item != NULL);
+	aal_assert("umka-544", place != NULL);
 	aal_assert("umka-545", stream != NULL);
     
-	nodeptr = nodeptr40_body(item);
+	nodeptr = nodeptr40_body(place);
 
 	aal_stream_format(stream, "NODEPTR PLUGIN=%s LEN=%u, KEY=",
-			  item->plugin->label, item->len);
+			  place->plug->label, place->len);
 		
-	if (plugin_call(item->key.plugin->o.key_ops, print,
-			&item->key, stream, options))
+	if (plug_call(place->key.plug->o.key_ops, print,
+		      &place->key, stream, options))
 	{
 		return -EINVAL;
 	}
@@ -110,10 +110,10 @@ static errno_t nodeptr40_print(item_entity_t *item,
 	return 0;
 }
 
-extern errno_t nodeptr40_check_struct(item_entity_t *item,
+extern errno_t nodeptr40_check_struct(place_t *place,
 				      uint8_t mode);
 
-extern errno_t nodeptr40_check_layout(item_entity_t *item,
+extern errno_t nodeptr40_check_layout(place_t *place,
 				      region_func_t func, 
 				      void *data, uint8_t mode);
 
@@ -156,9 +156,9 @@ static reiser4_item_ops_t nodeptr40_ops = {
 	.get_key	  = NULL
 };
 
-static reiser4_plugin_t nodeptr40_plugin = {
+static reiser4_plug_t nodeptr40_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {ITEM_NODEPTR40_ID, NODEPTR_ITEM, ITEM_PLUGIN_TYPE},
+	.id    = {ITEM_NODEPTR40_ID, NODEPTR_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "nodeptr40",
 	.desc  = "Node pointer item for reiser4, ver. " VERSION,
@@ -168,8 +168,8 @@ static reiser4_plugin_t nodeptr40_plugin = {
 	}
 };
 
-static reiser4_plugin_t *nodeptr40_start(reiser4_core_t *c) {
-	return &nodeptr40_plugin;
+static reiser4_plug_t *nodeptr40_start(reiser4_core_t *c) {
+	return &nodeptr40_plug;
 }
 
-plugin_register(nodeptr40, nodeptr40_start, NULL);
+plug_register(nodeptr40, nodeptr40_start, NULL);

@@ -12,7 +12,7 @@
 #include "dir40.h"
 #include "repair/plugin.h"
 
-extern reiser4_plugin_t dir40_plugin;
+extern reiser4_plug_t dir40_plug;
 extern lookup_t dir40_lookup(object_entity_t *entity, char *name, 
 			     entry_hint_t *entry);
 
@@ -34,7 +34,7 @@ object_entity_t *dir40_realize(object_info_t *info) {
 		return NULL;
 	
 	/* Initializing file handle */
-	obj40_init(&dir->obj, &dir40_plugin, NULL, core, info->tree);
+	obj40_init(&dir->obj, &dir40_plug, NULL, core, info->tree);
 	
 	return (object_entity_t *)dir;
 }
@@ -63,7 +63,7 @@ errno_t dir40_check_backlink(object_entity_t *object, object_entity_t *parent,
 		switch(lookup) {
 		case PRESENT:
 			/* If the key matches the parent -- ok. */
-/*			if (!plugin_call(entry.object.plugin->o.key_ops, 
+/*			if (!plug_call(entry.object.plug->o.key_ops, 
 					 compare, &entry.object, 
 					 STAT_KEY(&parent->obj)))
 				return REPAIR_OK;*/
@@ -85,11 +85,11 @@ errno_t dir40_check_backlink(object_entity_t *object, object_entity_t *parent,
 			
 		case ABSENT:
 			/* Adding ".." to object. */
-/*			plugin_call(STAT_KEY(&dir->obj)->plugin->o.key_ops,
+/*			plug_call(STAT_KEY(&dir->obj)->plug->o.key_ops,
 				    assign, &entry.object, STAT_KEY(&parent->obj));*/
 			
-			if ((res = plugin_call(object->plugin->o.object_ops,
-					       add_entry, object, &entry)))
+			if ((res = plug_call(object->plug->o.object_ops,
+					     add_entry, object, &entry)))
 			{
 				return res;
 			}
@@ -102,8 +102,8 @@ errno_t dir40_check_backlink(object_entity_t *object, object_entity_t *parent,
 		/* Find the pointer to the @parent in the @object. */
 		/* @object was reached by '..' from @parent. Recover its name. */
 	
-		aal_assert("vpf-1154", parent->plugin->o.object_ops->lookup != NULL);
-		parent->plugin->o.object_ops->lookup(parent, entry.name, &entry);
+		aal_assert("vpf-1154", parent->plug->o.object_ops->lookup != NULL);
+		parent->plug->o.object_ops->lookup(parent, entry.name, &entry);
 	default:
 		break;
 	}

@@ -39,7 +39,7 @@ extern errno_t reiser4_key_build_gener(reiser4_key_t *key,
 				       uint64_t offset);
 
 extern errno_t reiser4_key_build_entry(reiser4_key_t *key,
-				       reiser4_plugin_t *plugin,
+				       reiser4_plug_t *plug,
 				       oid_t locality,
 				       oid_t objectid,
 				       char *name);

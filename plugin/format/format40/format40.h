@@ -68,7 +68,7 @@ typedef struct format40_super format40_super_t;
 #define set_sb_flags(sb, val)		        aal_set_le64(sb, sb_flags, val)
 
 struct format40 {
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 
 #ifndef ENABLE_STAND_ALONE
 	int dirty;

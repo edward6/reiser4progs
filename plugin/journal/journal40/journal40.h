@@ -19,7 +19,7 @@ struct journal40_area {
 typedef struct journal40_area journal40_area_t;
 
 struct journal40 {
-	reiser4_plugin_t *plugin;
+	reiser4_plug_t *plug;
 
 	/* Joirnal device */
 	aal_device_t *device;

@@ -16,22 +16,22 @@
 bool_t reiser4_format_isdirty(reiser4_format_t *format) {
 	aal_assert("umka-2106", format != NULL);
 
-	return plugin_call(format->entity->plugin->o.format_ops,
-			   isdirty, format->entity);
+	return plug_call(format->entity->plug->o.format_ops,
+			 isdirty, format->entity);
 }
 
 void reiser4_format_mkdirty(reiser4_format_t *format) {
 	aal_assert("umka-2107", format != NULL);
 
-	plugin_call(format->entity->plugin->o.format_ops,
-		    mkdirty, format->entity);
+	plug_call(format->entity->plug->o.format_ops,
+		  mkdirty, format->entity);
 }
 
 void reiser4_format_mkclean(reiser4_format_t *format) {
 	aal_assert("umka-2108", format != NULL);
 
-	plugin_call(format->entity->plugin->o.format_ops,
-		    mkclean, format->entity);
+	plug_call(format->entity->plug->o.format_ops,
+		  mkclean, format->entity);
 }
 #endif
 
@@ -42,8 +42,8 @@ reiser4_format_t *reiser4_format_open(
 {
 	rid_t pid;
 	uint32_t blocksize;
+	reiser4_plug_t *plug;
 	reiser4_format_t *format;
-	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-104", fs != NULL);
 	aal_assert("umka-1700", fs->master != NULL);
@@ -59,18 +59,18 @@ reiser4_format_t *reiser4_format_open(
 	blocksize = reiser4_master_blksize(fs->master);
     
 	/* Finding needed disk-format plugin by its plugin id */
-	if (!(plugin = libreiser4_factory_ifind(FORMAT_PLUGIN_TYPE, pid))) {
+	if (!(plug = libreiser4_factory_ifind(FORMAT_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find disk-format plugin by "
 				    "its id 0x%x.", pid);
 		goto error_free_format;
 	}
     
 	/* Initializing disk-format entity by calling plugin */
-	if (!(format->entity = plugin_call(plugin->o.format_ops, open,
+	if (!(format->entity = plug_call(plug->o.format_ops, open,
 					   fs->device, blocksize)))
 	{
 		aal_exception_fatal("Can't open disk-format %s.",
-				    plugin->label);
+				    plug->label);
 		goto error_free_format;
 	}
 
@@ -89,14 +89,14 @@ reiser4_format_t *reiser4_format_create(
 	uint16_t tail,		/* tail policy to be used */
 	rid_t pid)		/* disk-format plugin id to be used */
 {
-	uint32_t blocksize;
+	uint32_t blksize;
+	reiser4_plug_t *plug;
 	reiser4_format_t *format;
-	reiser4_plugin_t *plugin;
 		
 	aal_assert("umka-105", fs != NULL);
 
 	/* Getting needed plugin from plugin factory */
-	if (!(plugin = libreiser4_factory_ifind(FORMAT_PLUGIN_TYPE, pid)))  {
+	if (!(plug = libreiser4_factory_ifind(FORMAT_PLUG_TYPE, pid)))  {
 		aal_exception_error("Can't find disk-format plugin by "
 				    "its id 0x%x.", pid);
 		return NULL;
@@ -109,16 +109,16 @@ reiser4_format_t *reiser4_format_create(
 	format->fs = fs;
 	format->fs->format = format;
 	
-	blocksize = reiser4_master_blksize(fs->master);
+	blksize = reiser4_master_blksize(fs->master);
 	
 	/* Initializing entity of disk-format by means of calling "create"
 	   method from found plugin. Plugin "create" method will be creating all
 	   disk structures, namely, format-specific super block. */
-	if (!(format->entity = plugin_call(plugin->o.format_ops, create,
-					   fs->device, len, blocksize, tail))) 
+	if (!(format->entity = plug_call(plug->o.format_ops, create,
+					 fs->device, len, blksize, tail))) 
 	{
 		aal_exception_error("Can't create disk-format %s on %s.", 
-				    plugin->label, aal_device_name(fs->device));
+				    plug->label, aal_device_name(fs->device));
     
 		goto error_free_format;
 	}
@@ -136,8 +136,8 @@ errno_t reiser4_format_sync(
 {
 	aal_assert("umka-107", format != NULL);
 	
-	return plugin_call(format->entity->plugin->o.format_ops,
-			   sync, format->entity);
+	return plug_call(format->entity->plug->o.format_ops,
+			 sync, format->entity);
 }
 
 /* Confirms disk-format (simple check) */
@@ -146,8 +146,8 @@ int reiser4_format_confirm(
 {
 	aal_assert("umka-832", format != NULL);
 
-	return plugin_call(format->entity->plugin->o.format_ops, 
-			   confirm, format->fs->device);
+	return plug_call(format->entity->plug->o.format_ops, 
+			 confirm, format->fs->device);
 }
 
 /* Prints @format to passed @stream */
@@ -157,8 +157,8 @@ errno_t reiser4_format_print(reiser4_format_t *format,
 	aal_assert("umka-1560", format != NULL);
 	aal_assert("umka-1561", stream != NULL);
 
-	return plugin_call(format->entity->plugin->o.format_ops,
-			   print, format->entity, stream, 0);
+	return plug_call(format->entity->plug->o.format_ops,
+			 print, format->entity, stream, 0);
 }
 
 /* Checks passed disk-format for validness */
@@ -167,29 +167,29 @@ errno_t reiser4_format_valid(
 {
 	aal_assert("umka-829", format != NULL);
 
-	return plugin_call(format->entity->plugin->o.format_ops, 
-			   valid, format->entity);
+	return plug_call(format->entity->plug->o.format_ops, 
+			 valid, format->entity);
 }
 
 /* Reopens disk-format on specified device */
 errno_t reiser4_format_reopen(
 	reiser4_format_t *format)	/* format to be reopened */
 {
-	uint32_t blocksize;
-	reiser4_plugin_t *plugin;
+	uint32_t blksize;
+	reiser4_plug_t *plug;
 	
 	aal_assert("umka-428", format != NULL);
 
-	plugin = format->entity->plugin;
-	plugin_call(plugin->o.format_ops, close, format->entity);
+	plug = format->entity->plug;
+	plug_call(plug->o.format_ops, close, format->entity);
 	
-	blocksize = reiser4_master_blksize(format->fs->master);
+	blksize = reiser4_master_blksize(format->fs->master);
 	
-	if (!(format->entity = plugin_call(plugin->o.format_ops, open,
-					   format->fs->device, blocksize)))
+	if (!(format->entity = plug_call(plug->o.format_ops, open,
+					 format->fs->device, blksize)))
 	{
 		aal_exception_fatal("Can't open disk-format %s.",
-				    plugin->label);
+				    plug->label);
 		return -EINVAL;
 	}
 	
@@ -206,8 +206,8 @@ void reiser4_format_close(
 
 	format->fs->format = NULL;
 	
-	plugin_call(format->entity->plugin->o.format_ops,
-		    close, format->entity);
+	plug_call(format->entity->plug->o.format_ops,
+		  close, format->entity);
 
 	aal_free(format);
 }
@@ -218,8 +218,8 @@ blk_t reiser4_format_get_root(
 {
 	aal_assert("umka-113", format != NULL);
 
-	return plugin_call(format->entity->plugin->o.format_ops, 
-			   get_root, format->entity);
+	return plug_call(format->entity->plug->o.format_ops, 
+			 get_root, format->entity);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -229,15 +229,15 @@ const char *reiser4_format_name(
 {
 	aal_assert("umka-111", format != NULL);
 	
-	return plugin_call(format->entity->plugin->o.format_ops,
-			   name, format->entity);
+	return plug_call(format->entity->plug->o.format_ops,
+			 name, format->entity);
 }
 
 blk_t reiser4_format_start(reiser4_format_t *format) {
 	aal_assert("umka-1693", format != NULL);
 	
-	return plugin_call(format->entity->plugin->o.format_ops, 
-			   start, format->entity);
+	return plug_call(format->entity->plug->o.format_ops, 
+			 start, format->entity);
 }
 
 /* Returns filesystem length in blocks from passed disk-format */
@@ -246,8 +246,8 @@ count_t reiser4_format_get_len(
 {
 	aal_assert("umka-360", format != NULL);
     
-	return plugin_call(format->entity->plugin->o.format_ops, 
-			   get_len, format->entity);
+	return plug_call(format->entity->plug->o.format_ops, 
+			 get_len, format->entity);
 }
 
 /* Returns number of free blocks */
@@ -256,8 +256,8 @@ count_t reiser4_format_get_free(
 {
 	aal_assert("umka-426", format != NULL);
     
-	return plugin_call(format->entity->plugin->o.format_ops, 
-			   get_free, format->entity);
+	return plug_call(format->entity->plug->o.format_ops, 
+			 get_free, format->entity);
 }
 #endif
 
@@ -267,8 +267,8 @@ uint16_t reiser4_format_get_height(
 {
 	aal_assert("umka-557", format != NULL);
     
-	return plugin_call(format->entity->plugin->o.format_ops, 
-			   get_height, format->entity);
+	return plug_call(format->entity->plug->o.format_ops, 
+			 get_height, format->entity);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -278,8 +278,8 @@ uint32_t reiser4_format_get_stamp(
 {
 	aal_assert("umka-1124", format != NULL);
     
-	return plugin_call(format->entity->plugin->o.format_ops, 
-			   get_stamp, format->entity);
+	return plug_call(format->entity->plug->o.format_ops, 
+			 get_stamp, format->entity);
 }
 
 /* Returns current tail policy id from the format-specific super-block */
@@ -288,8 +288,8 @@ uint16_t reiser4_format_get_policy(
 {
 	aal_assert("vpf-836", format != NULL);
     
-	return plugin_call(format->entity->plugin->o.format_ops, 
-			   get_policy, format->entity);
+	return plug_call(format->entity->plug->o.format_ops, 
+			 get_policy, format->entity);
 }
 
 /* Sets new root block */
@@ -299,8 +299,8 @@ void reiser4_format_set_root(
 {
 	aal_assert("umka-420", format != NULL);
 
-	plugin_call(format->entity->plugin->o.format_ops, 
-		    set_root, format->entity, root);
+	plug_call(format->entity->plug->o.format_ops, 
+		  set_root, format->entity, root);
 }
 
 /* Sets new filesystem length */
@@ -310,8 +310,8 @@ void reiser4_format_set_len(
 {
 	aal_assert("umka-422", format != NULL);
     
-	plugin_call(format->entity->plugin->o.format_ops, 
-		    set_len, format->entity, blocks);
+	plug_call(format->entity->plug->o.format_ops, 
+		  set_len, format->entity, blocks);
 }
 
 /* Sets free block count */
@@ -321,8 +321,8 @@ void reiser4_format_set_free(
 {
 	aal_assert("umka-424", format != NULL);
     
-	plugin_call(format->entity->plugin->o.format_ops, 
-		    set_free, format->entity, blocks);
+	plug_call(format->entity->plug->o.format_ops, 
+		  set_free, format->entity, blocks);
 }
 
 /* Sets new tree height */
@@ -332,8 +332,8 @@ void reiser4_format_set_height(
 {
 	aal_assert("umka-559", format != NULL);
     
-	plugin_call(format->entity->plugin->o.format_ops, 
-		    set_height, format->entity, height);
+	plug_call(format->entity->plug->o.format_ops, 
+		  set_height, format->entity, height);
 }
 
 /* Updates mkfsid in super block */
@@ -343,8 +343,8 @@ void reiser4_format_set_stamp(
 {
 	aal_assert("umka-1125", format != NULL);
     
-	plugin_call(format->entity->plugin->o.format_ops, 
-		    set_stamp, format->entity, stamp);
+	plug_call(format->entity->plug->o.format_ops, 
+		  set_stamp, format->entity, stamp);
 }
 
 /* Sets tail policy in the super block */
@@ -354,8 +354,8 @@ void reiser4_format_set_policy(
 {
 	aal_assert("vpf-835", format != NULL);
     
-	plugin_call(format->entity->plugin->o.format_ops, 
-		    set_policy, format->entity, policy);
+	plug_call(format->entity->plug->o.format_ops, 
+		  set_policy, format->entity, policy);
 }
 
 /* Returns journal plugin id in use */
@@ -365,8 +365,8 @@ rid_t reiser4_format_journal_pid(
 {
 	aal_assert("umka-115", format != NULL);
 	
-	return plugin_call(format->entity->plugin->o.format_ops, 
-			   journal_pid, format->entity);
+	return plug_call(format->entity->plug->o.format_ops, 
+			 journal_pid, format->entity);
 }
 
 /* Returns block allocator plugin id in use */
@@ -376,8 +376,8 @@ rid_t reiser4_format_alloc_pid(
 {
 	aal_assert("umka-117", format != NULL);
 	
-	return plugin_call(format->entity->plugin->o.format_ops, 
-			   alloc_pid, format->entity);
+	return plug_call(format->entity->plug->o.format_ops, 
+			 alloc_pid, format->entity);
 }
 
 errno_t reiser4_format_skipped(reiser4_format_t *format, 
@@ -387,8 +387,8 @@ errno_t reiser4_format_skipped(reiser4_format_t *format,
 	aal_assert("umka-1083", format != NULL);
 	aal_assert("umka-1084", func != NULL);
 
-	return plugin_call(format->entity->plugin->o.format_ops,
-			   skipped, format->entity, func, data);
+	return plug_call(format->entity->plug->o.format_ops,
+			 skipped, format->entity, func, data);
 }
 
 errno_t reiser4_format_layout(reiser4_format_t *format, 
@@ -398,8 +398,8 @@ errno_t reiser4_format_layout(reiser4_format_t *format,
 	aal_assert("umka-1076", format != NULL);
 	aal_assert("umka-1077", func != NULL);
 
-	return plugin_call(format->entity->plugin->o.format_ops,
-			   layout, format->entity, func, data);
+	return plug_call(format->entity->plug->o.format_ops,
+			 layout, format->entity, func, data);
 }
 
 /* Returns oid allocator plugin id in use */
@@ -409,8 +409,8 @@ rid_t reiser4_format_oid_pid(
 {
 	aal_assert("umka-491", format != NULL);
 	
-	return plugin_call(format->entity->plugin->o.format_ops, 
-			   oid_pid, format->entity);
+	return plug_call(format->entity->plug->o.format_ops, 
+			 oid_pid, format->entity);
 }
 #endif
 
@@ -418,8 +418,8 @@ rid_t reiser4_format_oid_pid(
 rid_t reiser4_format_key_pid(reiser4_format_t *format) {
 	aal_assert("umka-2347", format != NULL);
 	
-	if (plugin_call(format->entity->plugin->o.format_ops,
-			tst_flag, format->entity, 0))
+	if (plug_call(format->entity->plug->o.format_ops,
+		      tst_flag, format->entity, 0))
 	{
 		return KEY_LARGE_ID;
 	}
@@ -431,8 +431,8 @@ rid_t reiser4_format_key_pid(reiser4_format_t *format) {
 rid_t reiser4_format_node_pid(reiser4_format_t *format) {
 	aal_assert("umka-2350", format != NULL);
 	
-	if (plugin_call(format->entity->plugin->o.format_ops,
-			tst_flag, format->entity, 0))
+	if (plug_call(format->entity->plug->o.format_ops,
+		      tst_flag, format->entity, 0))
 	{
 		return NODE_LARGE_ID;
 	}

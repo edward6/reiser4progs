@@ -19,7 +19,7 @@ struct nodeptr40 {
 
 typedef struct nodeptr40 nodeptr40_t;
 
-#define nodeptr40_body(item) ((nodeptr40_t *)item->body)
+#define nodeptr40_body(place) ((nodeptr40_t *)place->body)
 
 #define np40_get_ptr(np)	aal_get_le64(np, ptr)
 #define np40_set_ptr(np, val)	aal_set_le64(np, ptr, val)

@@ -14,22 +14,22 @@
 bool_t reiser4_alloc_isdirty(reiser4_alloc_t *alloc) {
 	aal_assert("umka-2097", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->o.alloc_ops,
-			   isdirty, alloc->entity);
+	return plug_call(alloc->entity->plug->o.alloc_ops,
+			 isdirty, alloc->entity);
 }
 
 void reiser4_alloc_mkdirty(reiser4_alloc_t *alloc) {
 	aal_assert("umka-2098", alloc != NULL);
 
-	plugin_call(alloc->entity->plugin->o.alloc_ops,
-		    mkdirty, alloc->entity);
+	plug_call(alloc->entity->plug->o.alloc_ops,
+		  mkdirty, alloc->entity);
 }
 
 void reiser4_alloc_mkclean(reiser4_alloc_t *alloc) {
 	aal_assert("umka-2099", alloc != NULL);
 
-	plugin_call(alloc->entity->plugin->o.alloc_ops,
-		    mkclean, alloc->entity);
+	plug_call(alloc->entity->plug->o.alloc_ops,
+		  mkclean, alloc->entity);
 }
 
 /* Initializes block allocator structures and make request to block allocator
@@ -40,9 +40,9 @@ reiser4_alloc_t *reiser4_alloc_open(
 	count_t count)		/* filesystem size in blocks */
 {
 	rid_t pid;
-	uint32_t blocksize;
+	uint32_t blksize;
+	reiser4_plug_t *plug;
 	reiser4_alloc_t *alloc;
-	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-135", fs != NULL);
 	aal_assert("umka-135", fs->format != NULL);
@@ -61,17 +61,17 @@ reiser4_alloc_t *reiser4_alloc_open(
 	}
     
 	/* Finding block allocator plugin */
-	if (!(plugin = libreiser4_factory_ifind(ALLOC_PLUGIN_TYPE, pid))) {
+	if (!(plug = libreiser4_factory_ifind(ALLOC_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find block allocator plugin by "
 				    "its id 0x%x.", pid);
 		goto error_free_alloc;
 	}
     
-	blocksize = reiser4_master_blksize(fs->master);
+	blksize = reiser4_master_blksize(fs->master);
 	
 	/* Calling "open" method from block allocator plugin */
-	if (!(alloc->entity = plugin_call(plugin->o.alloc_ops, open,
-					  fs->device, count, blocksize)))
+	if (!(alloc->entity = plug_call(plug->o.alloc_ops, open,
+					fs->device, count, blksize)))
 	{
 		aal_exception_error("Can't initialize block allocator.");
 		goto error_free_alloc;
@@ -92,9 +92,9 @@ reiser4_alloc_t *reiser4_alloc_create(
 	count_t count)	     /* filesystem size in blocks */
 {
 	rid_t pid;
-	uint32_t blocksize;
+	uint32_t blksize;
+	reiser4_plug_t *plug;
 	reiser4_alloc_t *alloc;
-	reiser4_plugin_t *plugin;
 	
 	aal_assert("umka-726", fs != NULL);
 	aal_assert("umka-1694", fs->format != NULL);
@@ -113,17 +113,17 @@ reiser4_alloc_t *reiser4_alloc_create(
 	}
     
 	/* Getting needed plugin from plugin factory by its id */
-	if (!(plugin = libreiser4_factory_ifind(ALLOC_PLUGIN_TYPE, pid))) {
+	if (!(plug = libreiser4_factory_ifind(ALLOC_PLUG_TYPE, pid))) {
 		aal_exception_error("Can't find block allocator plugin by "
 				    "its id 0x%x.", pid);
 		goto error_free_alloc;
 	}
     
-	blocksize = reiser4_master_blksize(fs->master);
+	blksize = reiser4_master_blksize(fs->master);
 	
 	/* Query the block allocator plugin for creating allocator entity */
-	if (!(alloc->entity = plugin_call(plugin->o.alloc_ops, create,
-					  fs->device, count, blocksize)))
+	if (!(alloc->entity = plug_call(plug->o.alloc_ops, create,
+					fs->device, count, blksize)))
 	{
 		aal_exception_error("Can't create block allocator.");
 		goto error_free_alloc;
@@ -142,8 +142,8 @@ errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc,
 	aal_assert("vpf-582", alloc != NULL);
 	aal_assert("umka-1848", bitmap != NULL);
 
-	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
-			   assign, alloc->entity, bitmap);
+	return plug_call(alloc->entity->plug->o.alloc_ops, 
+			 assign, alloc->entity, bitmap);
 }
 
 errno_t reiser4_alloc_extract(reiser4_alloc_t *alloc,
@@ -152,8 +152,8 @@ errno_t reiser4_alloc_extract(reiser4_alloc_t *alloc,
 	aal_assert("umka-2191", alloc != NULL);
 	aal_assert("umka-2192", bitmap != NULL);
 
-	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
-			   extract, alloc->entity, bitmap);
+	return plug_call(alloc->entity->plug->o.alloc_ops, 
+			 extract, alloc->entity, bitmap);
 }
 
 /* Make request to allocator plugin in order to save its data to device */
@@ -166,8 +166,8 @@ errno_t reiser4_alloc_sync(
 	if (!reiser4_alloc_isdirty(alloc))
 		return 0;
 	
-	return plugin_call(alloc->entity->plugin->o.alloc_ops,
-			   sync, alloc->entity);
+	return plug_call(alloc->entity->plug->o.alloc_ops,
+			 sync, alloc->entity);
 }
 
 errno_t reiser4_alloc_print(reiser4_alloc_t *alloc,
@@ -176,8 +176,8 @@ errno_t reiser4_alloc_print(reiser4_alloc_t *alloc,
 	aal_assert("umka-1566", alloc != NULL);
 	aal_assert("umka-1567", stream != NULL);
 
-	return plugin_call(alloc->entity->plugin->o.alloc_ops,
-			   print, alloc->entity, stream, 0);
+	return plug_call(alloc->entity->plug->o.alloc_ops,
+			 print, alloc->entity, stream, 0);
 }
 
 /* Close passed allocator instance */
@@ -189,8 +189,8 @@ void reiser4_alloc_close(
 	alloc->fs->alloc = NULL;
 	
 	/* Calling the plugin for close its internal instance properly */
-	plugin_call(alloc->entity->plugin->o.alloc_ops, 
-		    close, alloc->entity);
+	plug_call(alloc->entity->plug->o.alloc_ops, 
+		  close, alloc->entity);
     
 	if (alloc->forbid)
 		aux_bitmap_close(alloc->forbid);
@@ -204,8 +204,8 @@ count_t reiser4_alloc_free(
 {
 	aal_assert("umka-362", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
-			   free, alloc->entity);
+	return plug_call(alloc->entity->plug->o.alloc_ops, 
+			 free, alloc->entity);
 }
 
 /* Returns the number of used blocks in allocator */
@@ -215,8 +215,8 @@ count_t reiser4_alloc_used(
 {
 	aal_assert("umka-499", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
-			   used, alloc->entity);
+	return plug_call(alloc->entity->plug->o.alloc_ops, 
+			 used, alloc->entity);
 }
 
 /* Marks specified blocks as used */
@@ -227,8 +227,8 @@ errno_t reiser4_alloc_occupy(
 {
 	aal_assert("umka-501", alloc != NULL);
 
-	plugin_call(alloc->entity->plugin->o.alloc_ops, 
-		    occupy, alloc->entity, start, count);
+	plug_call(alloc->entity->plug->o.alloc_ops, 
+		  occupy, alloc->entity, start, count);
 
 	return 0;
 }
@@ -241,8 +241,8 @@ errno_t reiser4_alloc_release(
 {
 	aal_assert("umka-503", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
-			   release, alloc->entity, start, count);
+	return plug_call(alloc->entity->plug->o.alloc_ops, 
+			 release, alloc->entity, start, count);
 }
 
 /* Makes request to plugin for allocating block */
@@ -255,8 +255,8 @@ count_t reiser4_alloc_allocate(
 
 	*start = 0;
 	
-	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
-			   allocate, alloc->entity, start, count);
+	return plug_call(alloc->entity->plug->o.alloc_ops, 
+			 allocate, alloc->entity, start, count);
 }
 
 errno_t reiser4_alloc_valid(
@@ -264,8 +264,8 @@ errno_t reiser4_alloc_valid(
 {
 	aal_assert("umka-833", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
-			   valid, alloc->entity);
+	return plug_call(alloc->entity->plug->o.alloc_ops, 
+			 valid, alloc->entity);
 }
 
 /* Returns TRUE if specified blocks are used. */
@@ -276,8 +276,8 @@ bool_t reiser4_alloc_occupied(
 {
 	aal_assert("umka-662", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
-			   occupied, alloc->entity, start, count);
+	return plug_call(alloc->entity->plug->o.alloc_ops, 
+			 occupied, alloc->entity, start, count);
 }
 
 /* Returns TRUE if specified blocks are unused. */
@@ -288,8 +288,8 @@ bool_t reiser4_alloc_available(
 {
 	aal_assert("umka-662", alloc != NULL);
 
-	return plugin_call(alloc->entity->plugin->o.alloc_ops, 
-			   available, alloc->entity, start, count);
+	return plug_call(alloc->entity->plug->o.alloc_ops, 
+			 available, alloc->entity, start, count);
 }
 
 errno_t reiser4_alloc_layout(reiser4_alloc_t *alloc, 
@@ -299,8 +299,8 @@ errno_t reiser4_alloc_layout(reiser4_alloc_t *alloc,
 	aal_assert("umka-1080", alloc != NULL);
 	aal_assert("umka-1081", func != NULL);
 
-	return plugin_call(alloc->entity->plugin->o.alloc_ops,
-			   layout, alloc->entity, func, data);
+	return plug_call(alloc->entity->plug->o.alloc_ops,
+			 layout, alloc->entity, func, data);
 }
 
 errno_t reiser4_alloc_forbid(reiser4_alloc_t *alloc,

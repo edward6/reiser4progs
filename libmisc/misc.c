@@ -154,12 +154,12 @@ void misc_upper_case(char *dst, const char *src) {
 	dst[i] = '\0';
 }
 
-static errno_t callback_print_plugin(reiser4_plugin_t *plugin, void *data) {
-	printf("%s:  \t%s.\n", plugin->label, plugin->desc);
+static errno_t callback_print_plug(reiser4_plug_t *plug, void *data) {
+	printf("%s:  \t%s.\n", plug->label, plug->desc);
 	return 0;
 }
 
-void misc_plugin_list(void) {
-	libreiser4_factory_foreach(callback_print_plugin, NULL);
+void misc_plug_list(void) {
+	libreiser4_factory_foreach(callback_print_plug, NULL);
 	printf("\n");
 }

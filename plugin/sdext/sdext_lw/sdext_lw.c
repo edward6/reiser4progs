@@ -133,9 +133,9 @@ static reiser4_sdext_ops_t sdext_lw_ops = {
 	.length	 	= sdext_lw_length
 };
 
-static reiser4_plugin_t sdext_lw_plugin = {
+static reiser4_plug_t sdext_lw_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {SDEXT_LW_ID, 0, SDEXT_PLUGIN_TYPE},
+	.id    = {SDEXT_LW_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "sdext_lw",
 	.desc  = "Light stat data extention for reiser4, ver. " VERSION,
@@ -145,9 +145,9 @@ static reiser4_plugin_t sdext_lw_plugin = {
 	}
 };
 
-static reiser4_plugin_t *sdext_lw_start(reiser4_core_t *c) {
-	return &sdext_lw_plugin;
+static reiser4_plug_t *sdext_lw_start(reiser4_core_t *c) {
+	return &sdext_lw_plug;
 }
 
-plugin_register(sdext_lw, sdext_lw_start, NULL);
+plug_register(sdext_lw, sdext_lw_start, NULL);
 

@@ -30,17 +30,17 @@ unsigned int registered = 0;
 #endif
 
 /* Builtin plugin representative struct */
-struct plugin_builtin {
-	plugin_init_t init;
+struct plug_builtin {
+	plug_init_t init;
 #ifndef ENABLE_STAND_ALONE
-	plugin_fini_t fini;
+	plug_fini_t fini;
 #endif
 };
 
-typedef struct plugin_builtin plugin_builtin_t;
+typedef struct plug_builtin plug_builtin_t;
 
 /* The array of entry points of the all builtin plugins */
-static plugin_builtin_t __builtins[MAX_BUILTINS];
+static plug_builtin_t __builtins[MAX_BUILTINS];
 #endif
 
 /* The struct which contains libreiser4 functions, they may be used by all
@@ -59,22 +59,22 @@ typedef struct walk_desc walk_desc_t;
 
 #ifdef ENABLE_PLUGINS_CHECK
 /* Helper callback for checking plugin validness */
-static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
-				     void *data)
+static errno_t callback_check_plug(reiser4_plug_t *plug,
+				   void *data)
 {
-	reiser4_plugin_t *examined = (reiser4_plugin_t *)data;
+	reiser4_plug_t *examined = (reiser4_plug_t *)data;
 
-	if (examined == plugin)
+	if (examined == plug)
 		return 0;
 
 #ifndef ENABLE_STAND_ALONE
 	/* Check plugins labels */
-	if (!aal_strncmp(examined->label, plugin->label,
-			 PLUGIN_MAX_LABEL))
+	if (!aal_strncmp(examined->label, plug->label,
+			 PLUG_MAX_LABEL))
 	{
 		aal_exception_error("Plugin %s has the same label "
 				    "as %s.", examined->cl.location,
-				    plugin->cl.location);
+				    plug->cl.location);
 		return -EINVAL;
 	}
 #endif
@@ -88,13 +88,13 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 	}
 
 	/* Check plugin place */
-	if (examined->id.group == plugin->id.group &&
-	    examined->id.id == plugin->id.id &&
-	    examined->id.type == plugin->id.type)
+	if (examined->id.group == plug->id.group &&
+	    examined->id.id == plug->id.id &&
+	    examined->id.type == plug->id.type)
 	{
 		aal_exception_error("Plugin %s has the same id as "
 				    "%s.", examined->cl.location,
-				    plugin->cl.location);
+				    plug->cl.location);
 		return -EINVAL;
 	}
 
@@ -105,7 +105,7 @@ static errno_t callback_check_plugin(reiser4_plugin_t *plugin,
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
 /* Helper function for searching for the needed symbol inside loaded dynamic
    library. */
-static void *find_symbol(void *handle, char *name, char *plugin) {
+static void *find_symbol(void *handle, char *name, char *plug) {
 	void *addr;
 	
 	if (!name || !handle)
@@ -116,7 +116,7 @@ static void *find_symbol(void *handle, char *name, char *plugin) {
 	
 	if (dlerror() != NULL || addr == NULL) {
 		aal_exception_error("Can't find symbol %s in plugin "
-				    "%s. %s.", name, plugin, dlerror());
+				    "%s. %s.", name, plug, dlerror());
 		return NULL;
 	}
 	
@@ -124,9 +124,7 @@ static void *find_symbol(void *handle, char *name, char *plugin) {
 }
 
 /* Loads plugin (*.so file) by its filename */
-errno_t libreiser4_plugin_open(char *name,
-			       plugin_class_t *class)
-{
+errno_t libreiser4_plug_open(char *name, plug_class_t *class) {
 	void *addr;
 	
 	aal_assert("umka-260", name != NULL);
@@ -145,13 +143,13 @@ errno_t libreiser4_plugin_open(char *name,
 	if (!(addr = find_symbol(class->data, "__plugin_init", (char *)name)))
 		goto error_free_data;
     
-	class->init = *((plugin_init_t *)addr);
+	class->init = *((plug_init_t *)addr);
 
 	/* Getting plugin fini function */
 	if (!(addr = find_symbol(class->data, "__plugin_fini", (char *)name)))
 		goto error_free_data;
     
-	class->fini = *((plugin_fini_t *)addr);
+	class->fini = *((plug_fini_t *)addr);
 	return 0;
     
  error_free_data:
@@ -159,7 +157,7 @@ errno_t libreiser4_plugin_open(char *name,
 	return -EINVAL;
 }
 
-void libreiser4_plugin_close(plugin_class_t *class) {
+void libreiser4_plug_close(plug_class_t *class) {
 	void *data;
 	
 	aal_assert("umka-158", class != NULL);
@@ -178,49 +176,49 @@ void libreiser4_plugin_close(plugin_class_t *class) {
 errno_t libreiser4_factory_load(char *name) {
 	errno_t res;
 
-	plugin_class_t class;
-	reiser4_plugin_t *plugin;
+	plug_class_t class;
+	reiser4_plug_t *plug;
 	
 	aal_assert("umka-1495", name != NULL);
 
 	/* Open plugin and prepare its class */
-	if ((res = libreiser4_plugin_open(name, &class)))
+	if ((res = libreiser4_plug_open(name, &class)))
 		return res;
 
 	/* Init plugin (in this point all plugin's global variables are
 	   initializing too). */
-	if (!(plugin = class.init(&core)))
+	if (!(plug = class.init(&core)))
 		return -EINVAL;
 
 	/* Checking plugin for validness (the same ids, etc) */
-	plugin->h.class = class;
+	plug->h.class = class;
 
 #ifdef ENABLE_PLUGINS_CHECK
-	if ((res = libreiser4_factory_foreach(callback_check_plugin,
-					      (void *)plugin)))
+	if ((res = libreiser4_factory_foreach(callback_check_plug,
+					      (void *)plug)))
 	{
 		aal_exception_warn("Plugin %s will not be registereg in "
-				   "plugin factory.", plugin->h.class.name);
-		goto error_free_plugin;
+				   "plugin factory.", plug->h.class.name);
+		goto error_free_plug;
 	}
 #endif
 
 	/* Registering plugin in plugins list */
-	plugins = aal_list_append(plugins, plugin);
+	plugins = aal_list_append(plugins, plug);
 
 	return 0;
 
- error_free_plugin:
-	libreiser4_factory_unload(plugin);
+ error_free_plug:
+	libreiser4_factory_unload(plug);
 	return res;
 }
 
 #else
 
 /* Loads built-in plugin by its entry address */
-errno_t libreiser4_plugin_open(plugin_init_t init,
-			       plugin_fini_t fini,
-			       plugin_class_t *class)
+errno_t libreiser4_plug_open(plug_init_t init,
+			     plug_fini_t fini,
+			     plug_class_t *class)
 {
 
 	aal_assert("umka-1431", init != NULL);
@@ -238,7 +236,7 @@ errno_t libreiser4_plugin_open(plugin_init_t init,
 }
 
 /* Closes built-in plugins */
-void libreiser4_plugin_close(plugin_class_t *class) {
+void libreiser4_plug_close(plug_class_t *class) {
 	aal_assert("umka-1433", class != NULL);
 
 	class->init = 0;
@@ -249,71 +247,71 @@ void libreiser4_plugin_close(plugin_class_t *class) {
 
 /* Loads and initializes plugin by its entry. Also this function makes register
    the plugin in plugins list. */
-errno_t libreiser4_factory_load(plugin_init_t init,
-				plugin_fini_t fini)
+errno_t libreiser4_factory_load(plug_init_t init,
+				plug_fini_t fini)
 {
 	errno_t res;
 
-	plugin_class_t class;
-	reiser4_plugin_t *plugin;
+	plug_class_t class;
+	reiser4_plug_t *plug;
 	
-	if ((res = libreiser4_plugin_open(init, fini, &class)))
+	if ((res = libreiser4_plug_open(init, fini, &class)))
 		return res;
 
-	if (!(plugin = class.init(&core)))
+	if (!(plug = class.init(&core)))
 		return -EINVAL;
 
-	plugin->cl = class;
+	plug->cl = class;
 	
 #ifdef ENABLE_PLUGINS_CHECK
-	if ((res = libreiser4_factory_foreach(callback_check_plugin,
-					      (void *)plugin)))
+	if ((res = libreiser4_factory_foreach(callback_check_plug,
+					      (void *)plug)))
 	{
 		aal_exception_warn("Plugin %s will not be attached to "
-				   "plugin factory.", plugin->cl.location);
-		goto error_free_plugin;
+				   "plugin factory.", plug->cl.location);
+		goto error_free_plug;
 	}
 #endif
 	
-	plugins = aal_list_append(plugins, plugin);
+	plugins = aal_list_append(plugins, plug);
 	return 0;
 	
- error_free_plugin:
-	libreiser4_factory_unload(plugin);
+ error_free_plug:
+	libreiser4_factory_unload(plug);
 	return res;
 }
 
 #endif
 
 /* Finalizing the plugin */
-errno_t libreiser4_factory_unload(reiser4_plugin_t *plugin) {
-	plugin_class_t *class;
+errno_t libreiser4_factory_unload(reiser4_plug_t *plug) {
+	plug_class_t *class;
 	
-	aal_assert("umka-1496", plugin != NULL);
+	aal_assert("umka-1496", plug != NULL);
 	
-	class = &plugin->cl;
+	class = &plug->cl;
 
 #ifndef ENABLE_STAND_ALONE
 	if (class->fini)
 		class->fini(&core);
 #endif
 	
-	libreiser4_plugin_close(class);
-	plugins = aal_list_remove(plugins, plugin);
+	libreiser4_plug_close(class);
+	plugins = aal_list_remove(plugins, plug);
 
 	return 0;
 }
 
 /* Initializes plugin factory by means of loading all available plugins */
 errno_t libreiser4_factory_init(void) {
-        reiser4_plugin_t *plugin;
+        reiser4_plug_t *plug;
                                                                                                 
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
         DIR *dir;
         struct dirent *ent;
 #else
 	uint32_t i;
-        plugin_builtin_t *builtin;
+        plug_builtin_t *builtin;
 #endif
                                                                                                 
         aal_assert("umka-159", plugins == NULL);
@@ -321,7 +319,8 @@ errno_t libreiser4_factory_init(void) {
 #if !defined(ENABLE_STAND_ALONE) && !defined(ENABLE_MONOLITHIC)
         if (!(dir = opendir(PLUGIN_DIR))) {
                 aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_OK,
-                                    "Can't open directory %s.", PLUGIN_DIR);
+                                    "Can't open directory %s.",
+				    PLUGIN_DIR);
                 return -EINVAL;
         }
                                                                                                 
@@ -400,7 +399,7 @@ void libreiser4_factory_fini(void) {
 	/* Unloading all registered plugins */
 	for (walk = plugins; walk; walk = next) {
 		next = walk->next;
-		libreiser4_factory_unload((reiser4_plugin_t *)walk->data);
+		libreiser4_factory_unload((reiser4_plug_t *)walk->data);
 	}
 	
 	registered = 0;
@@ -408,15 +407,15 @@ void libreiser4_factory_fini(void) {
 }
 
 /* Helper callback function for matching plugin by type and id */
-static int callback_match_id(reiser4_plugin_t *plugin,
+static int callback_match_id(reiser4_plug_t *plug,
 			     walk_desc_t *desc, void *data)
 {
-	return !(plugin->id.type == desc->type 
-		 && plugin->id.id == desc->id);
+	return !(plug->id.type == desc->type 
+		 && plug->id.id == desc->id);
 }
 
 /* Finds plugins by its type and id */
-reiser4_plugin_t *libreiser4_factory_ifind(
+reiser4_plug_t *libreiser4_factory_ifind(
 	rid_t type,			         /* requested plugin type */
 	rid_t id)				 /* requested plugin id */
 {
@@ -431,17 +430,17 @@ reiser4_plugin_t *libreiser4_factory_ifind(
 	found = aal_list_find_custom(aal_list_first(plugins), (void *)&desc, 
 				     (comp_func_t)callback_match_id, NULL);
 
-	return found ? (reiser4_plugin_t *)found->data : NULL;
+	return found ? (reiser4_plug_t *)found->data : NULL;
 }
 
 /* Helper callback function for matching plugin by type and id */
-static int callback_match_policy(reiser4_plugin_t *plugin,
+static int callback_match_policy(reiser4_plug_t *plug,
 				 walk_desc_t *desc, void *data)
 {
-	if (plugin->id.type == desc->type 
-	    && plugin->id.id == desc->id)
+	if (plug->id.type == desc->type 
+	    && plug->id.id == desc->id)
 	{
-		if (plugin->id.group == DIRENTRY_ITEM) {
+		if (plug->id.group == DIRENTRY_ITEM) {
 			if ((desc->policy == LARGE &&
 			     desc->id == ITEM_CDE_LARGE_ID) ||
 			    (desc->policy == SHORT &&
@@ -459,7 +458,7 @@ static int callback_match_policy(reiser4_plugin_t *plugin,
 }
 
 /* Finds plugins by its type and id */
-reiser4_plugin_t *libreiser4_factory_pfind(
+reiser4_plug_t *libreiser4_factory_pfind(
 	rid_t type,			         /* requested plugin type */
 	rid_t id,				 /* requested plugin id */
 	key_policy_t policy)
@@ -476,41 +475,41 @@ reiser4_plugin_t *libreiser4_factory_pfind(
 	found = aal_list_find_custom(aal_list_first(plugins), (void *)&desc, 
 				     (comp_func_t)callback_match_policy, NULL);
 
-	return found ? (reiser4_plugin_t *)found->data : NULL;
+	return found ? (reiser4_plug_t *)found->data : NULL;
 }
 
 /* Finds first matches plugin */
-reiser4_plugin_t *libreiser4_factory_cfind(
-	plugin_func_t plugin_func,               /* per plugin function */
+reiser4_plug_t *libreiser4_factory_cfind(
+	plug_func_t plug_func,                   /* per plugin function */
 	void *data,                              /* user-specified data */
 	bool_t only)
 {
 	aal_list_t *walk;
 
 #ifndef ENABLE_STAND_ALONE
-	reiser4_plugin_t *found;
+	reiser4_plug_t *found;
 #endif
 
 	aal_assert("umka-155", plugins != NULL);    
-	aal_assert("umka-899", plugin_func != NULL);    
+	aal_assert("umka-899", plug_func != NULL);    
 
 #ifndef ENABLE_STAND_ALONE
 	found = NULL;
 #endif
 	
 	aal_list_foreach_forward(plugins, walk) {
-		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
+		reiser4_plug_t *plug = (reiser4_plug_t *)walk->data;
 
-		if (plugin_func(plugin, data)) {
+		if (plug_func(plug, data)) {
 #ifndef ENABLE_STAND_ALONE
 			if (only) {
 				if (found)
 					return NULL;
 				else
-					found = plugin;
+					found = plug;
 			} else
 #endif
-				return plugin;
+				return plug;
 		}
 	}
     
@@ -524,15 +523,15 @@ reiser4_plugin_t *libreiser4_factory_cfind(
 
 #ifndef ENABLE_STAND_ALONE
 /* Helper callback for matching plugin by its name */
-static int callback_match_name(reiser4_plugin_t *plugin,
+static int callback_match_name(reiser4_plug_t *plug,
 			       char *label, void *data)
 {
-	return aal_strncmp(plugin->label, label,
-			   sizeof(plugin->label));
+	return aal_strncmp(plug->label, label,
+			   sizeof(plug->label));
 }
 
 /* Makes search for plugin by name */
-reiser4_plugin_t *libreiser4_factory_nfind(
+reiser4_plug_t *libreiser4_factory_nfind(
 	char *name)			        /* needed plugin name */
 {
 	aal_list_t *found;
@@ -543,7 +542,7 @@ reiser4_plugin_t *libreiser4_factory_nfind(
 				     (comp_func_t)callback_match_name,
 				     NULL);
 
-	return found ? (reiser4_plugin_t *)found->data : NULL;
+	return found ? (reiser4_plug_t *)found->data : NULL;
 }
 #endif
 
@@ -551,18 +550,18 @@ reiser4_plugin_t *libreiser4_factory_nfind(
 /* Calls specified function for every plugin from plugin list. This functions is
    used for getting any plugins information. */
 errno_t libreiser4_factory_foreach(
-	plugin_func_t plugin_func,               /* per plugin function */
+	plug_func_t plug_func,                   /* per plugin function */
 	void *data)                              /* user-specified data */
 {
 	errno_t res = 0;
 	aal_list_t *walk;
     
-	aal_assert("umka-479", plugin_func != NULL);
+	aal_assert("umka-479", plug_func != NULL);
 
 	aal_list_foreach_forward(plugins, walk) {
-		reiser4_plugin_t *plugin = (reiser4_plugin_t *)walk->data;
+		reiser4_plug_t *plug = (reiser4_plug_t *)walk->data;
 	
-		if ((res = plugin_func(plugin, data)))
+		if ((res = plug_func(plug, data)))
 			return res;
 	}
 	
@@ -572,7 +571,7 @@ errno_t libreiser4_factory_foreach(
 
 #if defined(ENABLE_STAND_ALONE) || defined(ENABLE_MONOLITHIC)
 /* This function registers builtin plugin entry points */
-void register_builtin(plugin_init_t init, plugin_fini_t fini) {
+void register_builtin(plug_init_t init, plug_fini_t fini) {
 
 	if (registered >= MAX_BUILTINS)
 		registered = 0;

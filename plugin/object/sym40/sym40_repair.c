@@ -20,15 +20,15 @@ object_entity_t *sym40_realize(object_info_t *info) {
 	
 	/* Symlink is kept in the SD, if SD was not found (and realized) nothing 
 	   to looking for anymore. */
-	if (!info->start.item.plugin)
+	if (!info->start.plug)
 		return NULL;
 	
 	/* Double check that this is SD item. */
-	if (info->start.item.plugin->id.group != STATDATA_ITEM)
+	if (info->start.plug->id.group != STATDATA_ITEM)
 		return NULL;
 	
 	/* This is a SD item. It must be the sym SD. */
-	if (obj40_read_lw(&info->start.item, &lw_hint))
+	if (obj40_read_lw(&info->start, &lw_hint))
 		return NULL;
 	
 	if (!S_ISLNK(lw_hint.mode))

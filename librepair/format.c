@@ -7,7 +7,7 @@
 
 /* Checks the opened format, or build a new one if it was not openned. */
 static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
-	reiser4_plugin_t *plugin = NULL;
+	reiser4_plug_t *plug = NULL;
 	errno_t ret = REPAIR_OK;
 	count_t count;
 	rid_t policy, pid;
@@ -38,14 +38,14 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		pid = reiser4_profile_value(fs->profile, "format");
 		
 		/* Try to detect a format on the device. */
-		if (!(plugin = reiser4_master_guess(fs->device))) {
+		if (!(plug = reiser4_master_guess(fs->device))) {
 			/* Format was not detected on the device. */
 			aal_exception_fatal("Cannot detect an on-disk format on (%s).",
 					    aal_device_name(fs->device));
 			
-			plugin = libreiser4_factory_ifind(FORMAT_PLUGIN_TYPE, pid);
+			plug = libreiser4_factory_ifind(FORMAT_PLUG_TYPE, pid);
 			
-			if (!plugin) {
+			if (!plug) {
 				aal_exception_fatal("Cannot find the format plugin "
 						    "(0x%x) specified in the profile.", 
 						    pid);
@@ -55,7 +55,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			if (aal_exception_throw(EXCEPTION_FATAL, EXCEPTION_YESNO,
 						"Do you want to build the on-disk "
 						"format (%s) specified in the profile?",
-						plugin->label) == EXCEPTION_NO)
+						plug->label) == EXCEPTION_NO)
 				return -EINVAL;
 			
 			count = aal_device_len(fs->device);
@@ -65,13 +65,13 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 			
 			if (!fs->format) {
 				aal_exception_fatal("Cannot create a filesystem of the "
-						    "format (%s).", plugin->label);
+						    "format (%s).", plug->label);
 				return -EINVAL;
 			} else {
 				aal_exception_fatal("The format (%s) with tail policy "
 						    "(%u) was created on the partition "
 						    "(%s) of (%llu) block length.", 
-						    plugin->label, policy, 
+						    plug->label, policy, 
 						    aal_device_name(fs->device), 
 						    count);
 			}
@@ -84,20 +84,20 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 		} else {
 			/* Format was detected on the device. */
 			aal_exception_fatal("The on-disk format (%s) was detected on "
-					    "(%s). %s", plugin->label, 
+					    "(%s). %s", plug->label, 
 					    aal_device_name(fs->device), 
-					    pid != plugin->id.id ? "It differs from "
+					    pid != plug->id.id ? "It differs from "
 					    "the one specified in the profile. Do not "
 					    "forget to fix the profile." : "");
 			
-			if (pid != plugin->id.id) {
-				set_ms_format(SUPER(fs->master), plugin->id.id);
+			if (pid != plug->id.id) {
+				set_ms_format(SUPER(fs->master), plug->id.id);
 				reiser4_master_mkdirty(fs->master);
 			}
 			
 			if (!(fs->format = reiser4_format_open(fs))) {
 				aal_exception_fatal("Failed to open the format (%s) "
-						    "on the (%s).", plugin->label, 
+						    "on the (%s).", plug->label, 
 						    aal_device_name(fs->device));
 				return -EINVAL;
 			}
@@ -105,8 +105,8 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	}
 	
 	/* Format was opened or detected. Check it and fix it. */
-	ret = plugin_call(fs->format->entity->plugin->o.format_ops, check_struct,
-			  fs->format->entity, mode);
+	ret = plug_call(fs->format->entity->plug->o.format_ops, check_struct,
+			fs->format->entity, mode);
 	
 	if (repair_error_fatal(ret))
 		return ret;
@@ -172,10 +172,10 @@ errno_t repair_format_open(reiser4_fs_t *fs, uint8_t mode) {
 errno_t repair_format_update(reiser4_format_t *format) {
 	aal_assert("vpf-829", format != NULL);
 
-	if (format->entity->plugin->o.format_ops->update == NULL)
+	if (format->entity->plug->o.format_ops->update == NULL)
 		return 0;
     
-	return format->entity->plugin->o.format_ops->update(format->entity);
+	return format->entity->plug->o.format_ops->update(format->entity);
 }
 
 /* Prints the opened format. */
@@ -190,8 +190,8 @@ void repair_format_print(reiser4_fs_t *fs, FILE *file, uint16_t options) {
 
 	aal_stream_init(&stream);
 
-	plugin_call(fs->format->entity->plugin->o.format_ops, print, 
-		    fs->format->entity, &stream, options);
+	plug_call(fs->format->entity->plug->o.format_ops, print, 
+		  fs->format->entity, &stream, options);
     
 	fprintf(file, (char *)stream.data);
     

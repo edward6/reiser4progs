@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
 /*	{
 		object_hint_t dir_hint;
 	
-		dir_hint.plugin = fs->root->entity->plugin;
+		dir_hint.plug = fs->root->entity->plug;
 		dir_hint.statdata = ITEM_STATDATA40_ID;
 	
 		dir_hint.body.dir.hash = HASH_R5_ID;
@@ -105,8 +105,8 @@ int main(int argc, char *argv[]) {
 	{
 		object_hint_t reg_hint;
 	
-		reg_hint.plugin = libreiser4_factory_ifind(OBJECT_PLUGIN_TYPE,
-							   OBJECT_FILE40_ID);
+		reg_hint.plug = libreiser4_factory_ifind(OBJECT_PLUG_TYPE,
+							 OBJECT_FILE40_ID);
 		
 		reg_hint.statdata = ITEM_STATDATA40_ID;
 

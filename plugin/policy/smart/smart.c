@@ -17,9 +17,9 @@ reiser4_policy_ops_t smart_ops = {
 	.tails = smart_tails
 };
 
-static reiser4_plugin_t smart_plugin = {
+static reiser4_plug_t smart_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {TAIL_SMART_ID, 0, POLICY_PLUGIN_TYPE},
+	.id    = {TAIL_SMART_ID, 0, POLICY_PLUG_TYPE},
 	.label = "smart",
 	.desc  = "Smart tail policy for reiser4, ver. " VERSION,
 	.o = {
@@ -27,9 +27,9 @@ static reiser4_plugin_t smart_plugin = {
 	}
 };
 
-static reiser4_plugin_t *smart_start(reiser4_core_t *c) {
-	return &smart_plugin;
+static reiser4_plug_t *smart_start(reiser4_core_t *c) {
+	return &smart_plug;
 }
 
-plugin_register(smart, smart_start, NULL);
+plug_register(smart, smart_start, NULL);
 #endif

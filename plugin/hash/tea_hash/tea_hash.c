@@ -145,9 +145,9 @@ static reiser4_hash_ops_t tea_hash_ops = {
 	.build = tea_hash_build
 };
 
-static reiser4_plugin_t tea_hash_plugin = {
+static reiser4_plug_t tea_hash_plug = {
 	.cl = CLASS_INIT,
-	.id = {HASH_TEA_ID, 0, HASH_PLUGIN_TYPE},
+	.id = {HASH_TEA_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "tea_hash",
 	.desc = "Tea hash for reiser4, ver. " VERSION,
@@ -157,10 +157,9 @@ static reiser4_plugin_t tea_hash_plugin = {
 	}
 };
 
-static reiser4_plugin_t *tea_hash_start(reiser4_core_t *c) {
-	return &tea_hash_plugin;
+static reiser4_plug_t *tea_hash_start(reiser4_core_t *c) {
+	return &tea_hash_plug;
 }
 
-plugin_register(tea_hash, tea_hash_start, NULL);
-
+plug_register(tea_hash, tea_hash_start, NULL);
 #endif

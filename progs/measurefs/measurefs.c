@@ -106,10 +106,8 @@ static errno_t tfrag_process_item(
 {
 	int64_t delta;
 	tfrag_hint_t *hint;
-	item_entity_t *item;
 	
 	hint = (tfrag_hint_t *)data;
-	item = (item_entity_t *)entity;
 	
 	if (start == 0)
 		return 0;
@@ -145,7 +143,6 @@ static errno_t tfrag_process_node(
 
 	/* Loop though the node items */
 	for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
-		item_entity_t *item;
 		reiser4_place_t place;
 
 		/* Initializing item at @place */
@@ -155,12 +152,10 @@ static errno_t tfrag_process_node(
 			return -EINVAL;
 		}
 
-		item = &place.item;
-		
 		/* Checking and calling item's layout method with function
 		   tfrag_process_item() as a function for handling one block the
 		   item points to. */
-		if (!item->plugin->o.item_ops->layout) {
+		if (!place.plug->o.item_ops->layout) {
 			aal_exception_warn("Item %u in node %llu has not "
 					   "\"layout\" method implemented. "
 					   "The result will not be releable.",
@@ -168,7 +163,8 @@ static errno_t tfrag_process_node(
 			continue;
 		}
 
-		item->plugin->o.item_ops->layout(item, tfrag_process_item, data);
+		plug_call(place.plug->o.item_ops, layout, (place_t *)&place,
+			  tfrag_process_item, data);
 	}
 	
 	frag_hint->level--;
@@ -308,7 +304,6 @@ static errno_t stat_process_node(
 
 		for (pos.item = 0; pos.item < reiser4_node_items(node); pos.item++) {
 			errno_t res;
-			item_entity_t *item;
 			reiser4_place_t place;
 			
 			if ((res = reiser4_place_open(&place, tree, node, &pos))) {
@@ -316,13 +311,12 @@ static errno_t stat_process_node(
 						    pos.item, node->number);
 				return res;
 			}
-
-			item = &place.item;
 			
-			if (!item->plugin->o.item_ops->layout)
+			if (!place.plug->o.item_ops->layout)
 				continue;
 
-			item->plugin->o.item_ops->layout(item, stat_process_item, data);
+			plug_call(place.plug->o.item_ops, layout, (place_t *)&place,
+				  stat_process_item, data);
 		}
 	} else {
 		leaves_used = aal_device_get_bs(device) -

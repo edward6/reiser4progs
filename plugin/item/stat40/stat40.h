@@ -14,7 +14,7 @@
 #include <reiser4/plugin.h>
 
 /* Macro for getting stat data body from item */
-#define stat40_body(item) ((stat40_t *)item->body)
+#define stat40_body(place) ((stat40_t *)place->body)
 
 /* Type for stat40 layout callback function */
 typedef int (*stat40_ext_func_t) (sdext_entity_t *,

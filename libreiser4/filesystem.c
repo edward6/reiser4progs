@@ -47,8 +47,8 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 		goto error_free_master;
 
 #ifndef ENABLE_STAND_ALONE
-	if (plugin_call(fs->format->entity->plugin->o.format_ops,
-			tst_flag, fs->format->entity, 0))
+	if (plug_call(fs->format->entity->plug->o.format_ops,
+		      tst_flag, fs->format->entity, 0))
 	{
 		reiser4_profile_override(fs->profile, "key", "key_large");
 		reiser4_profile_override(fs->profile, "cde", "cde_large");
@@ -295,15 +295,15 @@ reiser4_fs_t *reiser4_fs_create(
 
 	/* Taking care about key flags in format super block */
 	if (hint->key == LARGE) {
-		plugin_call(fs->format->entity->plugin->o.format_ops,
-			    set_flag, fs->format->entity, 0);
+		plug_call(fs->format->entity->plug->o.format_ops,
+			  set_flag, fs->format->entity, 0);
 
 		reiser4_profile_override(fs->profile, "key", "key_large");
 		reiser4_profile_override(fs->profile, "cde", "cde_large");
 		reiser4_profile_override(fs->profile, "node", "node_large");
 	} else {
-		plugin_call(fs->format->entity->plugin->o.format_ops,
-			    clr_flag, fs->format->entity, 0);
+		plug_call(fs->format->entity->plug->o.format_ops,
+			  clr_flag, fs->format->entity, 0);
 
 		reiser4_profile_override(fs->profile, "key", "key_short");
 		reiser4_profile_override(fs->profile, "cde", "cde_short");
@@ -396,7 +396,7 @@ errno_t reiser4_fs_root_key(reiser4_fs_t *fs,
 	
 	aal_assert("umka-1949", fs != NULL);
 	aal_assert("umka-1950", key != NULL);
-	aal_assert("umka-1951", key->plugin != NULL);
+	aal_assert("umka-1951", key->plug != NULL);
 
 #ifndef ENABLE_STAND_ALONE
 	locality = reiser4_oid_root_locality(fs->oid);

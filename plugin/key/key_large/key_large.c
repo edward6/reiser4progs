@@ -6,16 +6,16 @@
 #ifdef ENABLE_LARGE_KEYS
 #include "key_large.h"
 
-extern reiser4_plugin_t key_large_plugin;
+extern reiser4_plug_t key_large_plug;
 
 /* Returns minimal key */
 static key_entity_t *key_large_minimal(void) {
-	return key_common_minimal(&key_large_plugin);
+	return key_common_minimal(&key_large_plug);
 }
 
 /* Returns maximal key */
 static key_entity_t *key_large_maximal(void) {
-	return key_common_maximal(&key_large_plugin);
+	return key_common_maximal(&key_large_plug);
 }
 
 /* Assigns src key to dst one  */
@@ -25,7 +25,7 @@ static errno_t key_large_assign(key_entity_t *dst,
 	aal_assert("umka-1110", dst != NULL);
 	aal_assert("umka-1111", src != NULL);
 
-	dst->plugin = src->plugin;
+	dst->plug = src->plug;
 
 	aal_memcpy(dst->body, src->body,
 		   sizeof(key_large_t));
@@ -260,7 +260,7 @@ static int key_large_compfull(key_entity_t *key1,
 
 /* Builds hash of the passed @name by means of using a hash plugin */
 static errno_t key_large_build_hash(key_entity_t *key,
-				    reiser4_plugin_t *hash,
+				    reiser4_plug_t *hash,
 				    char *name) 
 {
 	uint16_t len;
@@ -290,9 +290,9 @@ static errno_t key_large_build_hash(key_entity_t *key,
 	} else {
 		ordering |= 0x0100000000000000ull;
 
-		offset = plugin_call(hash->o.hash_ops, build,
-				     name + INLINE_CHARS,
-				     len - INLINE_CHARS);
+		offset = plug_call(hash->o.hash_ops, build,
+				   name + INLINE_CHARS,
+				   len - INLINE_CHARS);
 	}
 
 	/* Setting up objectid and offset */
@@ -306,7 +306,7 @@ static errno_t key_large_build_hash(key_entity_t *key,
 /* Builds key by passed locality, objectid, and name. It is suitable for
    creating entry keys. */
 static errno_t key_large_build_entry(key_entity_t *key,
-				     reiser4_plugin_t *hash,
+				     reiser4_plug_t *hash,
 				     uint64_t ordering,
 				     uint64_t objectid,
 				     char *name) 
@@ -320,7 +320,7 @@ static errno_t key_large_build_entry(key_entity_t *key,
 	key_large_clean(key);
 	type = key_common_minor2type(KEY_FILENAME_MINOR);
 	
-	key->plugin = &key_large_plugin;
+	key->plug = &key_large_plug;
 	key_large_set_locality(key, objectid);
 	key_large_set_type(key, type);
     
@@ -338,7 +338,7 @@ static errno_t key_large_build_gener(key_entity_t *key,
 	aal_assert("vpf-141", key != NULL);
 
 	key_large_clean(key);
-	key->plugin = &key_large_plugin;
+	key->plug = &key_large_plug;
 	
 	kl_set_locality((key_large_t *)key->body,
 			locality);
@@ -447,9 +447,9 @@ static reiser4_key_ops_t key_large_ops = {
 	.get_name          = key_large_get_name
 };
 
-static reiser4_plugin_t key_large_plugin = {
+static reiser4_plug_t key_large_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {KEY_LARGE_ID, 0, KEY_PLUGIN_TYPE},
+	.id    = {KEY_LARGE_ID, 0, KEY_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "key_large",
 	.desc  = "Large key for reiser4, ver. " VERSION,
@@ -459,9 +459,9 @@ static reiser4_plugin_t key_large_plugin = {
 	}
 };
 
-static reiser4_plugin_t *key_large_start(reiser4_core_t *c) {
-	return &key_large_plugin;
+static reiser4_plug_t *key_large_start(reiser4_core_t *c) {
+	return &key_large_plug;
 }
 
-plugin_register(key_large, key_large_start, NULL);
+plug_register(key_large, key_large_start, NULL);
 #endif

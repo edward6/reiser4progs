@@ -6,16 +6,16 @@
 #ifdef ENABLE_SHORT_KEYS
 #include "key_short.h"
 
-extern reiser4_plugin_t key_short_plugin;
+extern reiser4_plug_t key_short_plug;
 
 /* Returns minimal key */
 static key_entity_t *key_short_minimal(void) {
-	return key_common_minimal(&key_short_plugin);
+	return key_common_minimal(&key_short_plug);
 }
 
 /* Returns maximal key */
 static key_entity_t *key_short_maximal(void) {
-	return key_common_maximal(&key_short_plugin);
+	return key_common_maximal(&key_short_plug);
 }
 
 /* Assigns src key to dst one  */
@@ -25,7 +25,7 @@ static errno_t key_short_assign(key_entity_t *dst,
 	aal_assert("umka-1110", dst != NULL);
 	aal_assert("umka-1111", src != NULL);
 
-	dst->plugin = src->plugin;
+	dst->plug = src->plug;
 
 	aal_memcpy(dst->body, src->body,
 		   sizeof(key_short_t));
@@ -245,7 +245,7 @@ static int key_short_compfull(key_entity_t *key1,
 
 /* Builds hash of the passed @name by means of using a hash plugin */
 static errno_t key_short_build_hash(key_entity_t *key,
-				    reiser4_plugin_t *hash,
+				    reiser4_plug_t *hash,
 				    char *name) 
 {
 	uint16_t len;
@@ -274,9 +274,9 @@ static errno_t key_short_build_hash(key_entity_t *key,
 		/* Build hash by means of using hash plugin */
 		objectid |= 0x0100000000000000ull;
 		
-		offset = plugin_call(hash->o.hash_ops, build,
-				     name + OBJECTID_CHARS,
-				     len - OBJECTID_CHARS);
+		offset = plug_call(hash->o.hash_ops, build,
+				   name + OBJECTID_CHARS,
+				   len - OBJECTID_CHARS);
 	}
 
 	/* Objectid must occupie 60 bits. If it takes more, then we have broken
@@ -294,7 +294,7 @@ static errno_t key_short_build_hash(key_entity_t *key,
 /* Builds key by passed locality, objectid, and name. It is suitable for
    creating entry keys. */
 static errno_t key_short_build_entry(key_entity_t *key,
-				     reiser4_plugin_t *hash,
+				     reiser4_plug_t *hash,
 				     uint64_t ordering,
 				     uint64_t objectid,
 				     char *name) 
@@ -308,7 +308,7 @@ static errno_t key_short_build_entry(key_entity_t *key,
 	key_short_clean(key);
 	type = key_common_minor2type(KEY_FILENAME_MINOR);
 	
-	key->plugin = &key_short_plugin;
+	key->plug = &key_short_plug;
 	key_short_set_locality(key, objectid);
 	key_short_set_type(key, type);
     
@@ -326,7 +326,7 @@ static errno_t key_short_build_gener(key_entity_t *key,
 	aal_assert("vpf-141", key != NULL);
 
 	key_short_clean(key);
-	key->plugin = &key_short_plugin;
+	key->plug = &key_short_plug;
 	
 	ks_set_locality((key_short_t *)key->body,
 			locality);
@@ -429,9 +429,9 @@ static reiser4_key_ops_t key_short_ops = {
 	.get_name          = key_short_get_name
 };
 
-static reiser4_plugin_t key_short_plugin = {
+static reiser4_plug_t key_short_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {KEY_SHORT_ID, 0, KEY_PLUGIN_TYPE},
+	.id    = {KEY_SHORT_ID, 0, KEY_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "key_short",
 	.desc  = "Short key for reiser4, ver. " VERSION,
@@ -441,9 +441,9 @@ static reiser4_plugin_t key_short_plugin = {
 	}
 };
 
-static reiser4_plugin_t *key_short_start(reiser4_core_t *c) {
-	return &key_short_plugin;
+static reiser4_plug_t *key_short_start(reiser4_core_t *c) {
+	return &key_short_plug;
 }
 
-plugin_register(key_short, key_short_start, NULL);
+plug_register(key_short, key_short_start, NULL);
 #endif

@@ -7,7 +7,7 @@
 #include "node_short.h"
 
 static reiser4_core_t *core = NULL;
-extern reiser4_plugin_t node_short_plugin;
+extern reiser4_plug_t node_short_plug;
 
 /* Returns item header by pos */
 item_header_t *node_short_ih_at(node_t *node,
@@ -42,7 +42,7 @@ static object_entity_t *node_short_init(aal_device_t *device,
 	if (!(entity = node_common_init(device, size, blk)))
 		return NULL;
 	
-	entity->plugin = &node_short_plugin;
+	entity->plug = &node_short_plug;
 
 	return entity;
 }
@@ -98,13 +98,13 @@ static errno_t node_short_get_key(object_entity_t *entity,
    unit component of pos is set up the function will initialize item's key from
    the unit one. */
 errno_t node_short_get_item(object_entity_t *entity,
-			    pos_t *pos, item_entity_t *item)
+			    pos_t *pos, place_t *place)
 {
 	rid_t pid;
 	node_t *node;
 	
 	aal_assert("umka-1813", pos != NULL);
-	aal_assert("umka-1602", item != NULL);
+	aal_assert("umka-1602", place != NULL);
 	aal_assert("umka-1631", entity != NULL);
 
 	aal_assert("umka-2351", pos->item <
@@ -112,29 +112,30 @@ errno_t node_short_get_item(object_entity_t *entity,
 	
 	node = (node_t *)entity;
 	
-	/* Initializes item's context (device, block number, etc) */
-	item->context.blksize = node->size;
-	item->context.device = node->block->device;
-	item->context.blk = aal_block_number(node->block);
+	/* Initialize context (device, block number, etc) */
+	place->con.blksize = node->size;
+	place->con.blk = node->block->number;
+	place->con.device = node->block->device;
 
 	/* Initializing item's plugin */
 	pid = ih_get_pid(node_short_ih_at(node, pos->item));
 	
-	if (!(item->plugin = core->factory_ops.pfind(ITEM_PLUGIN_TYPE,
-						     pid, SHORT)))
+	if (!(place->plug = core->factory_ops.pfind(ITEM_PLUG_TYPE,
+						    pid, SHORT)))
 	{
 		aal_exception_error("Can't find item plugin by its id "
 				    "0x%x.", pid);
 		return -EINVAL;
 	}
 
-	/* Initializing item's pos, body pointer and length */
-	item->len = node_short_len(entity, pos);
-	aal_memcpy(&item->pos, pos, sizeof(pos_t));
-	item->body = node_short_ib_at(node, pos->item);
+	/* Initializing other fields */
+	place->len = node_short_len(entity, pos);
+	aal_memcpy(&place->pos, pos, sizeof(pos_t));
+	place->body = node_short_ib_at(node, pos->item);
 
-	if (!(item->key.plugin = core->factory_ops.ifind(KEY_PLUGIN_TYPE,
-							 KEY_SHORT_ID)))
+	/* FIXME-UMKA: Here should be not hardcoded key */
+	if (!(place->key.plug = core->factory_ops.ifind(KEY_PLUG_TYPE,
+							KEY_SHORT_ID)))
 	{
 		aal_exception_error("Can't find key plugin by its id "
 				    "0x%x", KEY_SHORT_ID);
@@ -142,7 +143,7 @@ errno_t node_short_get_item(object_entity_t *entity,
 	}
 
 	/* Getting item key */
-	return node_short_get_key(entity, pos, &item->key);
+	return node_short_get_key(entity, pos, &place->key);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -451,14 +452,14 @@ errno_t node_short_rep(object_entity_t *dst_entity, pos_t *dst_pos,
 }
 
 /* Inserts item described by hint structure into node */
-static errno_t node_short_insert(object_entity_t *entity, pos_t *pos,
-				 create_hint_t *hint)
+static errno_t node_short_insert(object_entity_t *entity,
+				 pos_t *pos, create_hint_t *hint)
 {
 	errno_t res;
 	node_t *node;
 
+	place_t place;
 	item_header_t *ih;
-	item_entity_t item;
     
 	aal_assert("vpf-119", pos != NULL);
 	aal_assert("umka-1814", hint != NULL);
@@ -478,22 +479,21 @@ static errno_t node_short_insert(object_entity_t *entity, pos_t *pos,
 
 	/* Updating item header if we want insert new item */
 	if (pos->unit == MAX_UINT32) {
-		ih_set_pid(ih, hint->plugin->id.id);
+		ih_set_pid(ih, hint->plug->id.id);
 
 		aal_memcpy(&ih->key, hint->key.body,
 			   sizeof(ih->key));
 	}
 	
-	/* Preparing item for calling item plugin with them */
-	if (node_short_get_item(entity, pos, &item)) {
-		aal_exception_error("Can't prepare item entity.");
+	/* Preparing place for calling item plugin with them */
+	if (node_short_get_item(entity, pos, &place)) {
+		aal_exception_error("Can't fetch item data.");
 		return -EINVAL;
 	}
 
-	/* Updating item header plugin id if we insert new item */
 	if (pos->unit == MAX_UINT32) {
 		if (hint->flags == HF_RAWDATA) {
-			aal_memcpy(item.body, hint->type_specific,
+			aal_memcpy(place.body, hint->type_specific,
 				   hint->len);
 
 			node->dirty = 1;
@@ -501,12 +501,12 @@ static errno_t node_short_insert(object_entity_t *entity, pos_t *pos,
 		}
 
 		/* Calling item plugin to perform initializing the item */
-		if (hint->plugin->o.item_ops->init)
-			hint->plugin->o.item_ops->init(&item);
+		if (hint->plug->o.item_ops->init)
+			hint->plug->o.item_ops->init(&place);
 
-		/* Inserting units into @item */
-		if ((res = plugin_call(hint->plugin->o.item_ops,
-				       insert, &item, hint, 0)))
+		/* Inserting units into @place */
+		if ((res = plug_call(hint->plug->o.item_ops,
+				     insert, &place, hint, 0)))
 		{
 			aal_exception_error("Can't create new item in "
 					    "node %llu.", node->number);
@@ -514,8 +514,8 @@ static errno_t node_short_insert(object_entity_t *entity, pos_t *pos,
 		}
 	} else {
 		/* Inserting units into @item */
-		if ((res = plugin_call(hint->plugin->o.item_ops,
-				       insert, &item, hint, pos->unit)))
+		if ((res = plug_call(hint->plug->o.item_ops,
+				     insert, &place, hint, pos->unit)))
 		{
 			aal_exception_error("Can't insert unit to "
 					    "node %llu.", node->number);
@@ -526,8 +526,7 @@ static errno_t node_short_insert(object_entity_t *entity, pos_t *pos,
 	/* Updating item's key if we insert new item or if we insert unit into
 	   leftmost postion. */
 	if (pos->unit == 0) {
-		aal_memcpy(&ih->key, item.key.body,
-			   sizeof(ih->key));
+		aal_memcpy(&ih->key, place.key.body, sizeof(ih->key));
 	}
 
 	return 0;
@@ -540,7 +539,7 @@ errno_t node_short_remove(object_entity_t *entity,
 	pos_t rpos;
 	uint32_t len;
 	node_t *node;
-	item_entity_t item;
+	place_t place;
 	
 	aal_assert("umka-987", pos != NULL);
 	aal_assert("umka-986", entity != NULL);
@@ -548,13 +547,13 @@ errno_t node_short_remove(object_entity_t *entity,
 
 	node = (node_t *)entity;
 
-	if (node_short_get_item(entity, pos, &item))
+	if (node_short_get_item(entity, pos, &place))
 		return -EINVAL;
 
 	rpos = *pos;
 
 	/* Checking if we need remove whole item if it has not units anymore */
-	if (plugin_call(item.plugin->o.item_ops, units, &item) == 1)
+	if (plug_call(place.plug->o.item_ops, units, &place) == 1)
 		rpos.unit = MAX_UINT32;
 	
 	if (rpos.unit == MAX_UINT32) {
@@ -562,13 +561,13 @@ errno_t node_short_remove(object_entity_t *entity,
 			return -EINVAL;
 	} else {
 		/* Removing units from the item pointed by @pos */
-		len = plugin_call(item.plugin->o.item_ops, remove, &item,
-				  rpos.unit, count);
+		len = plug_call(place.plug->o.item_ops, remove, &place,
+				rpos.unit, count);
 
                 /* Updating items key if leftmost unit was changed */
 		if (rpos.unit == 0) {
 			item_header_t *ih = node_short_ih_at(node, rpos.item);
-			aal_memcpy(&ih->key, item.key.body, sizeof(ih->key));
+			aal_memcpy(&ih->key, place.key.body, sizeof(ih->key));
 		}
 	}
 	
@@ -582,12 +581,11 @@ static errno_t node_short_cut(object_entity_t *entity,
 	pos_t pos;
 
 	node_t *node;
+	place_t place;
+
 	uint32_t units;
-	
 	uint32_t begin;
 	uint32_t count;
-	
-	item_entity_t item;
 	
 	aal_assert("umka-1790", end != NULL);
 	aal_assert("umka-1789", start != NULL);
@@ -606,11 +604,11 @@ static errno_t node_short_cut(object_entity_t *entity,
 		if (start->unit != MAX_UINT32) {
 			pos = *start;
 			
-			if (node_short_get_item(entity, &pos, &item))
+			if (node_short_get_item(entity, &pos, &place))
 				return -EINVAL;
 				
-			units = plugin_call(item.plugin->o.item_ops,
-					    units, &item);
+			units = plug_call(place.plug->o.item_ops,
+					  units, &place);
 
 			if (node_short_remove(entity, &pos, units - start->unit))
 				return -EINVAL;
@@ -623,11 +621,11 @@ static errno_t node_short_cut(object_entity_t *entity,
 		if (end->unit != MAX_UINT32) {
 			pos = *end;
 			
-			if (node_short_get_item(entity, &pos, &item))
+			if (node_short_get_item(entity, &pos, &place))
 				return -EINVAL;
 				
-			units = plugin_call(item.plugin->o.item_ops,
-					    units, &item);
+			units = plug_call(place.plug->o.item_ops,
+					  units, &place);
 
 			if (node_short_remove(entity, &pos, end->unit))
 				return -EINVAL;
@@ -655,16 +653,16 @@ static errno_t node_short_cut(object_entity_t *entity,
 		if (node_short_remove(entity, &pos, count))
 			return -EINVAL;
 
-		if (node_short_get_item(entity, &pos, &item))
+		if (node_short_get_item(entity, &pos, &place))
 			return -EINVAL;
 
 		/* Remove empty item */
-		if (!(units = plugin_call(item.plugin->o.item_ops,
-					  units, &item)))
+		if (!(units = plug_call(place.plug->o.item_ops,
+					units, &place)))
 		{
 			pos.unit = MAX_UINT32;
 
-			if (node_short_shrink(entity, &pos, item.len, 1))
+			if (node_short_shrink(entity, &pos, place.len, 1))
 				return -EINVAL;
 		}
 	}
@@ -706,9 +704,10 @@ static errno_t node_short_print(object_entity_t *entity,
 {
 	pos_t pos;
 	node_t *node;
+	place_t place;
+
 	uint8_t level;
 	uint32_t last;
-	item_entity_t item;
 
 	aal_assert("vpf-023", entity != NULL);
 	aal_assert("umka-457", stream != NULL);
@@ -738,22 +737,22 @@ static errno_t node_short_print(object_entity_t *entity,
 	/* Loop through the all items */
 	for (pos.item = start; pos.item < last; pos.item++) {
 
-		if (node_short_get_item(entity, &pos, &item))
+		if (node_short_get_item(entity, &pos, &place))
 			return -EINVAL;
 
 		aal_stream_format(stream, "(%u) ", pos.item);
 		
 		/* Printing item by means of calling item print method */
-		if (item.plugin->o.item_ops->print) {
-			if (item.plugin->o.item_ops->print(&item, stream,
-							   options))
+		if (place.plug->o.item_ops->print) {
+			if (place.plug->o.item_ops->print(&place, stream,
+							  options))
 			{
 				return -EINVAL;
 			}
 		} else {
 			aal_stream_format(stream, "Method \"print\" is "
 					  "not implemented for \"%s\".",
-					  item.plugin->label);
+					  place.plug->label);
 		}
 
 	}
@@ -775,8 +774,8 @@ static int callback_comp_key(void *node, uint32_t pos,
 
 	key1 = &node_short_ih_at((node_t *)node, pos)->key;
 
-	return plugin_call(((reiser4_plugin_t *)data)->o.key_ops,
-			   compraw, key1, key2);
+	return plug_call(((reiser4_plug_t *)data)->o.key_ops,
+			 compraw, key1, key2);
 }
 
 /* Makes search inside the specified node @entity for @key and stores the result
@@ -788,11 +787,11 @@ static lookup_t node_short_lookup(object_entity_t *entity,
 	aal_assert("umka-478", pos != NULL);
 	aal_assert("umka-470", entity != NULL);
 	aal_assert("umka-2046", loaded(entity));
-	aal_assert("umka-714", key->plugin != NULL);
+	aal_assert("umka-714", key->plug != NULL);
 
 	switch (aux_bin_search(entity, node_common_items(entity),
 			       key->body, callback_comp_key,
-			       key->plugin, &pos->item))
+			       key->plug, &pos->item))
 	{
 	case 1:
 		return PRESENT;
@@ -805,31 +804,29 @@ static lookup_t node_short_lookup(object_entity_t *entity,
 
 #ifndef ENABLE_STAND_ALONE
 /* Checks if two item entities are mergeable */
-static bool_t node_short_mergeable(item_entity_t *src,
-				   item_entity_t *dst)
-{
-	if (!plugin_equal(src->plugin, dst->plugin))
+static bool_t node_short_mergeable(place_t *src, place_t *dst) {
+	if (!plug_equal(src->plug, dst->plug))
 		return FALSE;
 
-	if (!src->plugin->o.item_ops->mergeable)
+	if (!src->plug->o.item_ops->mergeable)
 		return FALSE;
 	
-	return src->plugin->o.item_ops->mergeable(src, dst);
+	return src->plug->o.item_ops->mergeable(src, dst);
 }
 
-static bool_t node_short_splitable(item_entity_t *item) {
-	if (!item->plugin->o.item_ops->shift)
+static bool_t node_short_splitable(place_t *place) {
+	if (!place->plug->o.item_ops->shift)
 		return FALSE;
 	
-	if (!item->plugin->o.item_ops->estimate_shift)
+	if (!place->plug->o.item_ops->estimate_shift)
 		return FALSE;
 	
 	/* We can't shift units from items with one unit */
-	if (!item->plugin->o.item_ops->units)
+	if (!place->plug->o.item_ops->units)
 		return FALSE;
 
 	/* Items that consist of one unit cannot be splitted */
-	if (item->plugin->o.item_ops->units(item) <= 1)
+	if (place->plug->o.item_ops->units(place) <= 1)
 		return FALSE;
 	
 	return TRUE;
@@ -846,12 +843,12 @@ static errno_t node_short_fuse(object_entity_t *src_entity,
 	errno_t res;
 	uint32_t len;
 
+	place_t src_place;
+	place_t dst_place;
+
 	uint32_t src_units;
 	uint32_t dst_units;
 	
-	item_entity_t src_item;
-	item_entity_t dst_item;
-
 	aal_assert("umka-2227", src_pos != NULL);
 	aal_assert("umka-2228", src_pos != NULL);
 	aal_assert("umka-2225", src_entity != NULL);
@@ -861,33 +858,33 @@ static errno_t node_short_fuse(object_entity_t *src_entity,
 		return -EINVAL;
 	
 	/* Initializing items */
-	if (node_short_get_item(src_entity, src_pos, &src_item))
+	if (node_short_get_item(src_entity, src_pos, &src_place))
 		return -EINVAL;
 	
-	if (node_short_get_item(dst_entity, dst_pos, &dst_item))
+	if (node_short_get_item(dst_entity, dst_pos, &dst_place))
 		return -EINVAL;
 
 	/* Making copy of the src_item */
-	if (!(body = aal_calloc(sizeof(src_item.len), 0)))
+	if (!(body = aal_calloc(sizeof(src_place.len), 0)))
 		return -ENOMEM;
 
-	aal_memcpy(body, src_item.body, src_item.len);
+	aal_memcpy(body, src_place.body, src_place.len);
 	
-	src_item.body = body;
+	src_place.body = body;
 	
 	/* Removing src item from the node */
 	if ((res = node_short_shrink(src_entity, src_pos,
-				     src_item.len, 1)))
+				     src_place.len, 1)))
 	{
 		goto error_free_body;
 	}
 
 	/* Expanding node in order to prepare room for new units */
-	len = src_item.len;
+	len = src_place.len;
 
-	if (src_item.plugin->o.item_ops->overhead) {
-		len -= plugin_call(src_item.plugin->o.item_ops,
-				   overhead, &src_item);
+	if (src_place.plug->o.item_ops->overhead) {
+		len -= plug_call(src_place.plug->o.item_ops,
+				 overhead, &src_place);
 	}
 	
 	POS_INIT(&pos, dst_pos->item, 0);
@@ -896,7 +893,7 @@ static errno_t node_short_fuse(object_entity_t *src_entity,
 		pos.item--;
 
 	/* Reinitializing @dst_item after shrink and pos correcting */
-	if ((res = node_short_get_item(dst_entity, &pos, &dst_item)))
+	if ((res = node_short_get_item(dst_entity, &pos, &dst_place)))
 		goto error_free_body;
 	
 	if ((res = node_short_expand(dst_entity, &pos, len, 1))) {
@@ -906,24 +903,24 @@ static errno_t node_short_fuse(object_entity_t *src_entity,
 	}
 
 	/* Copying units @src_item to @dst_item */
-	src_units = plugin_call(src_item.plugin->o.item_ops,
-				units, &src_item);
+	src_units = plug_call(src_place.plug->o.item_ops,
+			      units, &src_place);
 
 	if (src_pos->item < dst_pos->item) {
-		res = plugin_call(src_item.plugin->o.item_ops,
-				  rep, &dst_item, 0, &src_item,
-				  0, src_units);
+		res = plug_call(src_place.plug->o.item_ops,
+				rep, &dst_place, 0, &src_place,
+				0, src_units);
 	} else {
-		dst_units = plugin_call(dst_item.plugin->o.item_ops,
-					units, &dst_item);
+		dst_units = plug_call(dst_place.plug->o.item_ops,
+				      units, &dst_place);
 		
-		res = plugin_call(src_item.plugin->o.item_ops,
-				  rep, &dst_item, dst_units,
-				  &src_item, 0, src_units);
+		res = plug_call(src_place.plug->o.item_ops,
+				rep, &dst_place, dst_units,
+				&src_place, 0, src_units);
 	}
 
  error_free_body:
-	aal_free(src_item.body);
+	aal_free(src_place.body);
 	return res;
 }
 
@@ -944,11 +941,11 @@ static errno_t node_short_merge(object_entity_t *src_entity,
 	node_t *src_node;
 	node_t *dst_node;
 
+	place_t src_place;
+	place_t dst_place;
+
 	item_header_t *ih;
 	
-	item_entity_t src_item;
-	item_entity_t dst_item;
-
 	aal_assert("umka-1624", hint != NULL);
 	aal_assert("umka-1622", src_entity != NULL);
 	aal_assert("umka-1623", dst_entity != NULL);
@@ -983,12 +980,12 @@ static errno_t node_short_merge(object_entity_t *src_entity,
 	POS_INIT(&pos, (hint->control & SF_LEFT ? 0 :
 			src_items - 1), MAX_UINT32);
 	
-	if (node_short_get_item(src_entity, &pos, &src_item))
+	if (node_short_get_item(src_entity, &pos, &src_place))
 		return -EINVAL;
 
 	/* Items that do not implement predict and shift methods cannot be
 	   splitted. */
-	if (!node_short_splitable(&src_item))
+	if (!node_short_splitable(&src_place))
 		return 0;
 	
 	/* Checking if items are mergeable */
@@ -996,13 +993,13 @@ static errno_t node_short_merge(object_entity_t *src_entity,
 		POS_INIT(&pos, (hint->control & SF_LEFT ?
 				dst_items - 1 : 0), MAX_UINT32);
 		
-		if (node_short_get_item(dst_entity, &pos, &dst_item))
+		if (node_short_get_item(dst_entity, &pos, &dst_place))
 			return -EINVAL;
 
 		if (hint->control & SF_LEFT)
-			hint->create = !node_short_mergeable(&dst_item, &src_item);
+			hint->create = !node_short_mergeable(&dst_place, &src_place);
 		else
-			hint->create = !node_short_mergeable(&src_item, &dst_item);
+			hint->create = !node_short_mergeable(&src_place, &dst_place);
 	} else
 		hint->create = 1;
 
@@ -1028,9 +1025,8 @@ static errno_t node_short_merge(object_entity_t *src_entity,
 
 		hint->rest -= overhead;
 
-		if (plugin_call(src_item.plugin->o.item_ops,
-				estimate_shift, &src_item,
-				NULL, hint))
+		if (plug_call(src_place.plug->o.item_ops, estimate_shift,
+			      &src_place, NULL, hint))
 		{
 			return -EINVAL;
 		}
@@ -1043,9 +1039,9 @@ static errno_t node_short_merge(object_entity_t *src_entity,
 					  dst_items : 0);
 		}
 	} else {
-		if (plugin_call(src_item.plugin->o.item_ops,
-				estimate_shift, &src_item,
-				&dst_item, hint))
+		if (plug_call(src_place.plug->o.item_ops,
+			      estimate_shift, &src_place,
+			      &dst_place, hint))
 		{
 			return -EINVAL;
 		}
@@ -1076,25 +1072,25 @@ static errno_t node_short_merge(object_entity_t *src_entity,
 		
 		/* Setting up new item fields */
 		ih = node_short_ih_at(dst_node, pos.item);
-		ih_set_pid(ih, src_item.plugin->id.id);
+		ih_set_pid(ih, src_place.plug->id.id);
 
-		aal_memcpy(&ih->key, src_item.key.body,
+		aal_memcpy(&ih->key, src_place.key.body,
 			   sizeof(ih->key));
 
 		/* Initializing dst item after it was created by node_short_expand()
 		   function. */
-		if (node_short_get_item(dst_entity, &pos, &dst_item))
+		if (node_short_get_item(dst_entity, &pos, &dst_place))
 			return -EINVAL;
 
-		if (dst_item.plugin->o.item_ops->init)
-			dst_item.plugin->o.item_ops->init(&dst_item);
+		if (dst_place.plug->o.item_ops->init)
+			dst_place.plug->o.item_ops->init(&dst_place);
 
 		/* Setting item len to old len, that is zero, as it was just
 		   created. This is needed for correct work of shift() method of
 		   some items, which do not have "units" field and calculate the
 		   number of units by own len, like extent40 does. This is
 		   because, extent40 has all units of the same length. */
-		dst_item.len = 0;
+		dst_place.len = 0;
 	} else {
 		/* Items are mergeable, so we do not need to create new item in
 		   the dst node. We just need to expand existent dst item by
@@ -1112,9 +1108,9 @@ static errno_t node_short_merge(object_entity_t *src_entity,
 
 	overhead = 0;
 
-	if (src_item.plugin->o.item_ops->overhead) {
-		overhead = plugin_call(src_item.plugin->o.item_ops,
-				       overhead, &src_item);
+	if (src_place.plug->o.item_ops->overhead) {
+		overhead = plug_call(src_place.plug->o.item_ops,
+				     overhead, &src_place);
 	}
 
 	/* As @hint->rest is number of bytes units occupy, we decrease it by
@@ -1123,18 +1119,18 @@ static errno_t node_short_merge(object_entity_t *src_entity,
 		hint->rest -= overhead;
 	
 	/* Shift units from @src_item to @dst_item */
-	if (plugin_call(src_item.plugin->o.item_ops, shift,
-			&src_item, &dst_item, hint))
+	if (plug_call(src_place.plug->o.item_ops, shift,
+		      &src_place, &dst_place, hint))
 	{
 		return -EINVAL;
 	}
 
 	/* Updating source node fields */
-	pos.item = src_item.pos.item;
+	pos.item = src_place.pos.item;
 
 	/* We will remove src_item if it has became empty and insert point is
 	   not points it. */
-	remove = (hint->rest == (src_item.len - overhead) &&
+	remove = (hint->rest == (src_place.len - overhead) &&
 		  (hint->result & SF_MOVIP || pos.item != hint->pos.item));
 	
 	/* Updating item's keys */
@@ -1142,15 +1138,15 @@ static errno_t node_short_merge(object_entity_t *src_entity,
 		/* We do not need update key of the src item which is going to
 		   be removed. */
 		if (!remove) {
-			ih = node_short_ih_at(src_node, src_item.pos.item);
+			ih = node_short_ih_at(src_node, src_place.pos.item);
 
-			aal_memcpy(&ih->key, src_item.key.body,
+			aal_memcpy(&ih->key, src_place.key.body,
 				   sizeof(ih->key));
 		}
 	} else {
-		ih = node_short_ih_at(dst_node, dst_item.pos.item);
+		ih = node_short_ih_at(dst_node, dst_place.pos.item);
 
-		aal_memcpy(&ih->key, dst_item.key.body,
+		aal_memcpy(&ih->key, dst_place.key.body,
 			   sizeof(ih->key));
 	}
 	
@@ -1159,7 +1155,7 @@ static errno_t node_short_merge(object_entity_t *src_entity,
 		   pointed item if unit component is MAX_UINT32 and shrink the item
 		   pointed by pos if unit component is not MAX_UINT32. */
 		pos.unit = MAX_UINT32;
-		len = src_item.len;
+		len = src_place.len;
 
 		/* As item will be removed, we should update item pos in hint
 		   properly. */
@@ -1200,9 +1196,7 @@ static errno_t node_short_predict(object_entity_t *src_entity,
 		return 0;
 
 	space = node_common_space(dst_entity);
-
-	end = node_short_ih_at(src_node,
-			   src_items - 1);
+	end = node_short_ih_at(src_node, src_items - 1);
 	
 	cur = (hint->control & SF_LEFT ?
 	       node_short_ih_at(src_node, 0) : end);
@@ -1234,20 +1228,20 @@ static errno_t node_short_predict(object_entity_t *src_entity,
 			if (flags & SF_LEFT) {
 				if (hint->pos.item == 0) {
 					pos_t pos;
+					place_t place;
 					uint32_t units;
-					item_entity_t item;
 
 					/* If unit component if zero, we can
 					   shift whole item pointed by pos. */
 					POS_INIT(&pos, 0, MAX_UINT32);
 					
-					if (node_short_get_item(src_entity, &pos, &item))
+					if (node_short_get_item(src_entity, &pos, &place))
 						return -EINVAL;
 
-					if (!item.plugin->o.item_ops->units)
+					if (!place.plug->o.item_ops->units)
 						return -EINVAL;
 				
-					units = item.plugin->o.item_ops->units(&item);
+					units = place.plug->o.item_ops->units(&place);
 
 					/* Breaking if insert point reach the
 					   end of node. */
@@ -1309,7 +1303,6 @@ static errno_t node_short_predict(object_entity_t *src_entity,
 	/* After number of whole items was estimated, all free space will be
 	   used for estimating how many units may be shifted. */
 	hint->rest = space;
-
 	return 0;
 }
 
@@ -1352,21 +1345,21 @@ static errno_t node_short_transfuse(object_entity_t *src_entity,
 	/* Expanding dst node in order to making room for new items and update
 	   node header. */
 	if (node_short_expand(dst_entity, &dst_pos, hint->bytes,
-			  hint->items))
+			      hint->items))
 	{
 		return -EINVAL;
 	}
 		
 	/* Copying items from src node to dst one */
-	if (node_short_rep(dst_entity, &dst_pos, src_entity, &src_pos,
-		       hint->items))
+	if (node_short_rep(dst_entity, &dst_pos, src_entity,
+			   &src_pos, hint->items))
 	{
 		return -EINVAL;
 	}
 
 	/* Shrinking source node after items are copied from it to dst node. */
 	if (node_short_shrink(src_entity, &src_pos, hint->bytes,
-			  hint->items))
+			      hint->items))
 	{
 		return -EINVAL;
 	}
@@ -1535,9 +1528,9 @@ static reiser4_node_ops_t node_short_ops = {
 #endif
 };
 
-static reiser4_plugin_t node_short_plugin = {
+static reiser4_plug_t node_short_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {NODE_SHORT_ID, 0, NODE_PLUGIN_TYPE},
+	.id    = {NODE_SHORT_ID, 0, NODE_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "node_short",
 	.desc  = "Node plugin for reiser4, ver. " VERSION,
@@ -1547,10 +1540,10 @@ static reiser4_plugin_t node_short_plugin = {
 	}
 };
 
-static reiser4_plugin_t *node_short_start(reiser4_core_t *c) {
+static reiser4_plug_t *node_short_start(reiser4_core_t *c) {
 	core = c;
-	return &node_short_plugin;
+	return &node_short_plug;
 }
 
-plugin_register(node_short, node_short_start, NULL);
+plug_register(node_short, node_short_start, NULL);
 #endif

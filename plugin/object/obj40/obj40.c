@@ -20,24 +20,24 @@
 oid_t obj40_objectid(obj40_t *obj) {
 	aal_assert("umka-1899", obj != NULL);
 
-	return plugin_call(STAT_KEY(obj)->plugin->o.key_ops, 
-			   get_objectid, STAT_KEY(obj));
+	return plug_call(STAT_KEY(obj)->plug->o.key_ops, 
+			 get_objectid, STAT_KEY(obj));
 }
 
 /* Returns file's locality  */
 oid_t obj40_locality(obj40_t *obj) {
 	aal_assert("umka-1900", obj != NULL);
     
-	return plugin_call(STAT_KEY(obj)->plugin->o.key_ops, 
-			   get_locality, STAT_KEY(obj));
+	return plug_call(STAT_KEY(obj)->plug->o.key_ops, 
+			 get_locality, STAT_KEY(obj));
 }
 
 /* Returns file's ordering  */
 uint64_t obj40_ordering(obj40_t *obj) {
 	aal_assert("umka-2334", obj != NULL);
 
-	return plugin_call(STAT_KEY(obj)->plugin->o.key_ops, 
-			   get_ordering, STAT_KEY(obj));
+	return plug_call(STAT_KEY(obj)->plug->o.key_ops, 
+			 get_ordering, STAT_KEY(obj));
 }
 
 /* Locks the node place points to */
@@ -73,7 +73,7 @@ void obj40_relock(obj40_t *obj, place_t *curr,
 }
 
 /* Reads light weight stat data extention into passed @lw_hint */
-errno_t obj40_read_lw(item_entity_t *item,
+errno_t obj40_read_lw(place_t *place,
 		      sdext_lw_hint_t *lw_hint)
 {
 	create_hint_t hint;
@@ -86,8 +86,8 @@ errno_t obj40_read_lw(item_entity_t *item,
 	stat.ext[SDEXT_LW_ID] = lw_hint;
 
 	/* Calling statdata open method if any */
-	if (plugin_call(item->plugin->o.item_ops, read,
-			item, &hint, 0, 1) != 1)
+	if (plug_call(place->plug->o.item_ops, read,
+		      place, &hint, 0, 1) != 1)
 	{
 		return -EINVAL;
 	}
@@ -99,7 +99,7 @@ errno_t obj40_read_lw(item_entity_t *item,
 uint64_t obj40_get_size(obj40_t *obj) {
 	sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_lw(&obj->statdata.item, &lw_hint))
+	if (obj40_read_lw(&obj->statdata, &lw_hint))
 		return 0;
 	
 	return lw_hint.size;
@@ -108,7 +108,7 @@ uint64_t obj40_get_size(obj40_t *obj) {
 #ifndef ENABLE_STAND_ALONE
 /* Writes light weight stat data extention from passed @lw_hint into @obj stat
   data item. */
-errno_t obj40_write_lw(item_entity_t *item,
+errno_t obj40_write_lw(place_t *place,
 		       sdext_lw_hint_t *lw_hint)
 {
 	create_hint_t hint;
@@ -118,20 +118,20 @@ errno_t obj40_write_lw(item_entity_t *item,
 	
 	hint.type_specific = &stat;
 
-	if (plugin_call(item->plugin->o.item_ops, read,
-			item, &hint, 0, 1) != 1)
+	if (plug_call(place->plug->o.item_ops, read,
+		      place, &hint, 0, 1) != 1)
 	{
 		return -EINVAL;
 	}
 
 	stat.ext[SDEXT_LW_ID] = lw_hint;
 
-	return plugin_call(item->plugin->o.item_ops,
-			   insert, item, &hint, 0);
+	return plug_call(place->plug->o.item_ops,
+			 insert, place, &hint, 0);
 }
 
 /* Reads unix stat data extention into passed @unix_hint */
-errno_t obj40_read_unix(item_entity_t *item,
+errno_t obj40_read_unix(place_t *place,
 			sdext_unix_hint_t *unix_hint)
 {
 	create_hint_t hint;
@@ -144,8 +144,8 @@ errno_t obj40_read_unix(item_entity_t *item,
 	stat.ext[SDEXT_UNIX_ID] = unix_hint;
 
 	/* Calling statdata open method if it exists */
-	if (plugin_call(item->plugin->o.item_ops, read,
-			item, &hint, 0, 1) != 1)
+	if (plug_call(place->plug->o.item_ops, read,
+		      place, &hint, 0, 1) != 1)
 	{
 		return -EINVAL;
 	}
@@ -154,7 +154,7 @@ errno_t obj40_read_unix(item_entity_t *item,
 }
 
 /* Writes unix stat data extention into @obj stat data item */
-errno_t obj40_write_unix(item_entity_t *item,
+errno_t obj40_write_unix(place_t *place,
 			 sdext_unix_hint_t *unix_hint)
 {
 	create_hint_t hint;
@@ -164,23 +164,23 @@ errno_t obj40_write_unix(item_entity_t *item,
 	
 	hint.type_specific = &stat;
 
-	if (plugin_call(item->plugin->o.item_ops, read,
-			item, &hint, 0, 1) != 1)
+	if (plug_call(place->plug->o.item_ops, read,
+		      place, &hint, 0, 1) != 1)
 	{
 		return -EINVAL;
 	}
 
 	stat.ext[SDEXT_UNIX_ID] = unix_hint;
 
-	return plugin_call(item->plugin->o.item_ops,
-			   insert, item, &hint, 0);
+	return plug_call(place->plug->o.item_ops,
+			 insert, place, &hint, 0);
 }
 
 /* Gets mode field from the stat data */
 uint16_t obj40_get_mode(obj40_t *obj) {
 	sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_lw(&obj->statdata.item, &lw_hint))
+	if (obj40_read_lw(&obj->statdata, &lw_hint))
 		return 0;
 	
 	return lw_hint.mode;
@@ -191,12 +191,12 @@ errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
 	errno_t res;
 	sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_lw(&obj->statdata.item, &lw_hint)))
+	if ((res = obj40_read_lw(&obj->statdata, &lw_hint)))
 		return res;
 
 	lw_hint.mode = mode;
 	
-	return obj40_write_lw(&obj->statdata.item, &lw_hint);
+	return obj40_write_lw(&obj->statdata, &lw_hint);
 }
 
 /* Updates size field in the stat data */
@@ -204,19 +204,19 @@ errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 	errno_t res;
 	sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_lw(&obj->statdata.item, &lw_hint)))
+	if ((res = obj40_read_lw(&obj->statdata, &lw_hint)))
 		return res;
 
 	lw_hint.size = size;
 	
-	return obj40_write_lw(&obj->statdata.item, &lw_hint);
+	return obj40_write_lw(&obj->statdata, &lw_hint);
 }
 
 /* Gets nlink field from the stat data */
 uint32_t obj40_get_nlink(obj40_t *obj) {
 	sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_lw(&obj->statdata.item, &lw_hint))
+	if (obj40_read_lw(&obj->statdata, &lw_hint))
 		return 0;
 	
 	return lw_hint.nlink;
@@ -227,19 +227,19 @@ errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 	errno_t res;
 	sdext_lw_hint_t lw_hint;
 
-	if ((res = obj40_read_lw(&obj->statdata.item, &lw_hint)))
+	if ((res = obj40_read_lw(&obj->statdata, &lw_hint)))
 		return res;
 
 	lw_hint.nlink = nlink;
 	
-	return obj40_write_lw(&obj->statdata.item, &lw_hint);
+	return obj40_write_lw(&obj->statdata, &lw_hint);
 }
 
 /* Gets atime field from the stat data */
 uint32_t obj40_get_atime(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_unix(&obj->statdata.item, &unix_hint))
+	if (obj40_read_unix(&obj->statdata, &unix_hint))
 		return 0;
 	
 	return unix_hint.atime;
@@ -250,19 +250,19 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_unix(&obj->statdata.item, &unix_hint)))
+	if ((res = obj40_read_unix(&obj->statdata, &unix_hint)))
 		return res;
 
 	unix_hint.atime = atime;
 	
-	return obj40_write_unix(&obj->statdata.item, &unix_hint);
+	return obj40_write_unix(&obj->statdata, &unix_hint);
 }
 
 /* Gets mtime field from the stat data */
 uint32_t obj40_get_mtime(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_unix(&obj->statdata.item, &unix_hint))
+	if (obj40_read_unix(&obj->statdata, &unix_hint))
 		return 0;
 	
 	return unix_hint.mtime;
@@ -273,19 +273,19 @@ errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_unix(&obj->statdata.item, &unix_hint)))
+	if ((res = obj40_read_unix(&obj->statdata, &unix_hint)))
 		return res;
 
 	unix_hint.mtime = mtime;
 	
-	return obj40_write_unix(&obj->statdata.item, &unix_hint);
+	return obj40_write_unix(&obj->statdata, &unix_hint);
 }
 
 /* Gets bytes field from the stat data */
 uint64_t obj40_get_bytes(obj40_t *obj) {
 	sdext_unix_hint_t unix_hint;
 
-	if (obj40_read_unix(&obj->statdata.item, &unix_hint))
+	if (obj40_read_unix(&obj->statdata, &unix_hint))
 		return 0;
 	
 	return unix_hint.bytes;
@@ -296,20 +296,20 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 	errno_t res;
 	sdext_unix_hint_t unix_hint;
 
-	if ((res = obj40_read_unix(&obj->statdata.item, &unix_hint)))
+	if ((res = obj40_read_unix(&obj->statdata, &unix_hint)))
 		return res;
 
 	unix_hint.bytes = bytes;
 	
-	return obj40_write_unix(&obj->statdata.item, &unix_hint);
+	return obj40_write_unix(&obj->statdata, &unix_hint);
 }
 #endif
 
 #ifdef ENABLE_SYMLINKS
 /* Gets symlink from the stat data */
 errno_t obj40_get_sym(obj40_t *obj, char *data) {
+	place_t *place;
 	create_hint_t hint;
-	item_entity_t *item;
 	statdata_hint_t stat;
 
 	aal_memset(&stat, 0, sizeof(stat));
@@ -317,12 +317,12 @@ errno_t obj40_get_sym(obj40_t *obj, char *data) {
 	hint.type_specific = &stat;
 	stat.ext[SDEXT_SYMLINK_ID] = data;
 
-	item = &obj->statdata.item;
+	place = &obj->statdata;
 
-	if (!item->plugin->o.item_ops->read)
+	if (!place->plug->o.item_ops->read)
 		return -EINVAL;
 
-	if (item->plugin->o.item_ops->read(item, &hint, 0, 1) != 1)
+	if (place->plug->o.item_ops->read(place, &hint, 0, 1) != 1)
 		return -EINVAL;
 
 	return 0;
@@ -337,10 +337,10 @@ errno_t obj40_link(obj40_t *obj, uint32_t value) {
 }
 #endif
 
-rid_t obj40_pid(item_entity_t *item) {
+rid_t obj40_pid(place_t *place) {
 	sdext_lw_hint_t lw_hint;
 
-	if (obj40_read_lw(item, &lw_hint))
+	if (obj40_read_lw(place, &lw_hint))
 		return INVAL_PID;
 
 	/* FIXME-UMKA: Here also should be discovering the stat data extentions
@@ -371,21 +371,21 @@ rid_t obj40_pid(item_entity_t *item) {
   Initializes object handle by plugin, key, core operations and opaque pointer
   to tree file is going to be opened/created in.
 */
-errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,
+errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
 		   key_entity_t *key, reiser4_core_t *core,
 		   void *tree)
 {
 	aal_assert("umka-1574", obj != NULL);
-	aal_assert("umka-1756", plugin != NULL);
+	aal_assert("umka-1756", plug != NULL);
 	aal_assert("umka-1757", tree != NULL);
 
 	obj->tree = tree;
 	obj->core = core;
-	obj->plugin = plugin;
+	obj->plug = plug;
 
 	/* Initializing stat data key */
 	if (key) {
-		plugin_call(key->plugin->o.key_ops, assign,
+		plug_call(key->plug->o.key_ops, assign,
 			    STAT_KEY(obj), key);
 	}
 	

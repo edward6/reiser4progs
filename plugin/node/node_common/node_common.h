@@ -13,16 +13,16 @@
 #define NODE_MAGIC 0x52344653
 
 struct node {
-	reiser4_plugin_t *plugin;
-
-#ifndef ENABLE_STAND_ALONE
-	int dirty;
-#endif
+	reiser4_plug_t *plug;
 
 	blk_t number;
 	uint32_t size;
 	aal_block_t *block;
 	aal_device_t *device;
+
+#ifndef ENABLE_STAND_ALONE
+	int dirty;
+#endif
 };
 
 typedef struct node node_t;

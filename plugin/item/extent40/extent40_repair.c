@@ -12,26 +12,30 @@
 #include "extent40.h"
 #include <repair/plugin.h>
 
-extern uint32_t extent40_units(item_entity_t *item);
-extern errno_t extent40_maxreal_key(item_entity_t *item, key_entity_t *key);
-extern uint32_t extent40_blksize(item_entity_t *item);
-extern uint64_t extent40_offset(item_entity_t *item, uint64_t pos);
-extern uint32_t extent40_unit(item_entity_t *item, uint64_t offset);
-extern lookup_t extent40_lookup(item_entity_t *item, key_entity_t *key, 
+extern uint32_t extent40_units(place_t *place);
+
+extern errno_t extent40_maxreal_key(place_t *place,
+				    key_entity_t *key);
+
+extern uint64_t extent40_offset(place_t *place, uint64_t pos);
+
+extern uint32_t extent40_unit(place_t *place, uint64_t offset);
+
+extern lookup_t extent40_lookup(place_t *place, key_entity_t *key, 
 				uint32_t *pos);
 
-errno_t extent40_check_layout(item_entity_t *item, region_func_t func, 
+errno_t extent40_check_layout(place_t *place, region_func_t func, 
 			      void *data, uint8_t mode) 
 {
 	uint32_t i, units;
 	extent40_t *extent;
 	errno_t res, result = REPAIR_OK;
 	
-	aal_assert("vpf-724", item != NULL);
+	aal_assert("vpf-724", place != NULL);
 	aal_assert("vpf-725", func != NULL);
 
-	extent = extent40_body(item);
-	units = extent40_units(item);
+	extent = extent40_body(place);
+	units = extent40_units(place);
 			
 	for (i = 0; i < units; i++, extent++) {
 		uint64_t start, width;
@@ -40,7 +44,7 @@ errno_t extent40_check_layout(item_entity_t *item, region_func_t func,
 		width = et40_get_width(extent);
 
 		if (start) {
-			res = func(item, start, width, data);
+			res = func(place, start, width, data);
 
 			if (res > 0) {
 				if (mode == REPAIR_CHECK) {
@@ -50,8 +54,8 @@ errno_t extent40_check_layout(item_entity_t *item, region_func_t func,
 					aal_exception_error("Node (%llu), item "
 							    "(%u): pointed region "
 							    "[%llu..%llu] is zeroed.", 
-							    item->context.blk, 
-							    item->pos.item, start, 
+							    place->con.blk, 
+							    place->pos.item, start, 
 							    start + width - 1);
 					
 					et40_set_start(extent, 0);
@@ -66,13 +70,13 @@ errno_t extent40_check_layout(item_entity_t *item, region_func_t func,
 	return result;
 }
 
-errno_t extent40_check_struct(item_entity_t *item, uint8_t mode) {
-	aal_assert("vpf-750", item != NULL);
-	return item->len % sizeof(extent40_t) ? REPAIR_FATAL : REPAIR_OK;
+errno_t extent40_check_struct(place_t *place, uint8_t mode) {
+	aal_assert("vpf-750", place != NULL);
+	return place->len % sizeof(extent40_t) ? REPAIR_FATAL : REPAIR_OK;
 }
 
-errno_t extent40_copy(item_entity_t *dst, uint32_t dst_pos, 
-		      item_entity_t *src, uint32_t src_pos, 
+errno_t extent40_copy(place_t *dst, uint32_t dst_pos, 
+		      place_t *src, uint32_t src_pos, 
 		      copy_hint_t *hint)
 {
 	extent40_t *dst_body, *src_body;
@@ -148,8 +152,8 @@ errno_t extent40_copy(item_entity_t *dst, uint32_t dst_pos,
 }
 
 /* FIXME-VITALY: Do not forget to handle the case with unit's @start == 0. */
-errno_t extent40_estimate_copy(item_entity_t *dst, uint32_t dst_pos, 
-			       item_entity_t *src, uint32_t src_pos, 
+errno_t extent40_estimate_copy(place_t *dst, uint32_t dst_pos, 
+			       place_t *src, uint32_t src_pos, 
 			       copy_hint_t *hint)
 {
 	uint64_t dst_max, src_min, src_max, src_end;
@@ -171,19 +175,19 @@ errno_t extent40_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
 	src_body = extent40_body(src);
 	
 	/* Getting src_start, dst_start, src_max, dst_max, dst_min and src_min. */
-	src_end = plugin_call(hint->end.plugin->o.key_ops, get_offset, 
-			      &hint->end) + 1;
+	src_end = plug_call(hint->end.plug->o.key_ops, get_offset, 
+			    &hint->end) + 1;
 	
-	src_start = plugin_call(hint->start.plugin->o.key_ops, get_offset, 
-				&hint->start);
+	src_start = plug_call(hint->start.plug->o.key_ops, get_offset, 
+			      &hint->start);
 	
-	src_min = plugin_call(src->key.plugin->o.key_ops, get_offset, 
-			      &src->key);
+	src_min = plug_call(src->key.plug->o.key_ops, get_offset, 
+			    &src->key);
 	
 	if ((res = extent40_maxreal_key(src, &key)))
 		return res;
 	
-	src_max = plugin_call(key.plugin->o.key_ops, get_offset, &key) + 1;
+	src_max = plug_call(key.plug->o.key_ops, get_offset, &key) + 1;
 	
 	/* Copy through src_end only. */
 	if (src_max > src_end)
@@ -199,7 +203,7 @@ errno_t extent40_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
 	if ((res = extent40_maxreal_key(dst, &key)))
 		return res;
 	
-	dst_max = plugin_call(key.plugin->o.key_ops, get_offset, &key) + 1;
+	dst_max = plug_call(key.plug->o.key_ops, get_offset, &key) + 1;
 	
 	aal_assert("vpf-996", src_start % b_size == 0);
 	aal_assert("vpf-998", src_max % b_size == 0);
@@ -217,13 +221,13 @@ errno_t extent40_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
 		
 		hint->dst_head = hint->dst_tail = 0;
 		
-		plugin_call(hint->end.plugin->o.key_ops, set_offset, 
+		plug_call(hint->end.plug->o.key_ops, set_offset, 
 			    &hint->end, src_max);
 		
 		return 0;
 	}
 	
-	dst_min = plugin_call(dst->key.plugin->o.key_ops, get_offset, &dst->key);
+	dst_min = plug_call(dst->key.plug->o.key_ops, get_offset, &dst->key);
 	dst_start = extent40_offset(dst, dst_pos) + dst_min;    
 	
 	aal_assert("vpf-997", dst_start % b_size == 0);
@@ -254,8 +258,8 @@ errno_t extent40_estimate_copy(item_entity_t *dst, uint32_t dst_pos,
 	if (dst_max < src_max)
 		src_max = dst_max;
 	
-	plugin_call(key.plugin->o.key_ops, set_offset, &key, src_max - 1);    
-	plugin_call(hint->end.plugin->o.key_ops, set_offset, &hint->end, src_max);
+	plug_call(key.plug->o.key_ops, set_offset, &key, src_max - 1);    
+	plug_call(hint->end.plug->o.key_ops, set_offset, &hint->end, src_max);
 	
 	lookup = extent40_lookup(dst, &key, &pos);
 	aal_assert("vpf-1001", lookup == PRESENT);

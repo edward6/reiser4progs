@@ -14,7 +14,7 @@
 #  include <stdlib.h>
 #endif
 
-extern reiser4_plugin_t format40_plugin;
+extern reiser4_plug_t format40_plug;
 
 #define SUPER(entity) (&((format40_t *)entity)->super)
 
@@ -208,7 +208,7 @@ static object_entity_t *format40_open(aal_device_t *device,
 
 	format->device = device;
 	format->blocksize = blocksize;
-	format->plugin = &format40_plugin;
+	format->plug = &format40_plug;
     
 	if (format40_super_open(format))
 		goto error_free_format;
@@ -269,7 +269,7 @@ static object_entity_t *format40_create(aal_device_t *device,
 	format->dirty = 1;
 	format->device = device;
 	format->blocksize = blocksize;
-	format->plugin = &format40_plugin;
+	format->plug = &format40_plug;
 
 	super = (format40_super_t *)&format->super;
     
@@ -495,10 +495,10 @@ errno_t format40_print(object_entity_t *entity,
 	aal_stream_format(stream, "Format super block:\n");
 	
 	aal_stream_format(stream, "plugin:\t\t%s\n",
-			  entity->plugin->label);
+			  entity->plug->label);
 	
 	aal_stream_format(stream, "description:\t%s\n",
-			  entity->plugin->desc);
+			  entity->plug->desc);
 
 	offset = (FORMAT40_OFFSET / format->blocksize);
 	
@@ -596,9 +596,9 @@ static reiser4_format_ops_t format40_ops = {
 	.oid_pid	= format40_oid_pid
 };
 
-static reiser4_plugin_t format40_plugin = {
+static reiser4_plug_t format40_plug = {
 	.cl    = CLASS_INIT,
-	.id    = {FORMAT_REISER40_ID, 0, FORMAT_PLUGIN_TYPE},
+	.id    = {FORMAT_REISER40_ID, 0, FORMAT_PLUG_TYPE},
 #ifndef ENABLE_STAND_ALONE
 	.label = "format40",
 	.desc  = "Disk-format for reiser4, ver. " VERSION,
@@ -608,9 +608,9 @@ static reiser4_plugin_t format40_plugin = {
 	}
 };
 
-static reiser4_plugin_t *format40_start(reiser4_core_t *core) {
-	return &format40_plugin;
+static reiser4_plug_t *format40_start(reiser4_core_t *core) {
+	return &format40_plug;
 }
 
-plugin_register(format40, format40_start, NULL);
+plug_register(format40, format40_start, NULL);
 
