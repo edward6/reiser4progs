@@ -32,30 +32,27 @@
 
 /* Gauge creating function */
 aal_gauge_t *aal_gauge_create(
-	aal_gauge_type_t type,	     /* gauge type */
-	const char *name,	     /* gauge name */
 	aal_gauge_handler_t handler, /* gauge handler */
+	const char *name,	     /* gauge name */
 	void *data)		     /* user-specific data */
 {
 	aal_gauge_t *gauge;
 	
 	aal_assert("umka-889", name != NULL);
 	aal_assert("umka-889", handler != NULL);
-	aal_assert("umka-889", type <= GAUGE_SILENT);
     
 	if (!(gauge = aal_calloc(sizeof(*gauge), 0)))
 		return NULL;
     
-	aal_strncpy(gauge->name, name, sizeof(gauge->name));
+	aal_strncpy(gauge->name, name,
+		    sizeof(gauge->name));
     
 	gauge->value = 0;
-	gauge->type = type;
 	gauge->data = data;
 	gauge->handler = handler;
 	gauge->state = GAUGE_STARTED;
 
-	if (type == GAUGE_INDICATOR)
-		setlinebuf(stderr);
+	setlinebuf(stderr);
     
 	return gauge;
 }

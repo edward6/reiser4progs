@@ -10,6 +10,8 @@
 
 #include <aal/gauge.h>
 
-extern void progs_gauge_handler(aal_gauge_t *gauge);
+extern void progs_gauge_percentage_handler(aal_gauge_t *gauge);
+extern void progs_gauge_indicator_handler(aal_gauge_t *gauge);
+extern void progs_gauge_silent_handler(aal_gauge_t *gauge);
 
 #endif
