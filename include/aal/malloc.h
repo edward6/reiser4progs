@@ -12,7 +12,22 @@
 #ifndef AAL_MALLOC_H
 #define AAL_MALLOC_H
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <aal/types.h>
+
+#ifndef ENABLE_MEMORY_MANAGER
+
+extern void aal_mem_fini(void);
+
+extern void aal_mem_init(void *start,
+			 unsigned int len);
+
+extern unsigned int aal_mem_free(void);
+
+#endif
 
 typedef void *(*aal_malloc_handler_t) (unsigned int);
 typedef void *(*aal_realloc_handler_t) (void *, unsigned int);

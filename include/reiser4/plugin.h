@@ -286,6 +286,8 @@ enum shift_flags {
 
 typedef enum shift_flags shift_flags_t;
 
+#define SF_DEFAULT (SF_LEFT | SF_RIGHT | SF_ALLOC)
+
 struct shift_hint {
 	/*
 	  Flag which shows that we need create an item before we will move units

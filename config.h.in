@@ -1,9 +1,12 @@
 /* config.h.in.  Generated automatically from configure.in by autoheader.  */
 
-/* */
+/* Define for enable debug info. */
 #undef ENABLE_DEBUG
 
-/* */
+/* Define for enable simple memory manager in libaal. */
+#undef ENABLE_MANAGER
+
+/* Define for enable monolotic build. */
 #undef ENABLE_MONOLITHIC
 
 /* Define if you have the <dirent.h> header file, and it defines `DIR'. */
@@ -121,10 +124,10 @@
 /* Define if you have the <uuid/uuid.h> header file. */
 #undef HAVE_UUID_UUID_H
 
-/* */
+/* Define to the max interface version. */
 #undef LIBREISER4_MAX_INTERFACE_VERSION
 
-/* */
+/* Define to the min interface version. */
 #undef LIBREISER4_MIN_INTERFACE_VERSION
 
 /* Define if `lstat' dereferences a symlink specified with a trailing slash.
@@ -160,7 +163,7 @@
    if it is not supported. */
 #undef inline
 
-/* */
+/* Define to loff_t */
 #undef loff_t
 
 /* Define to `unsigned' if <sys/types.h> does not define. */

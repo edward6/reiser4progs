@@ -1597,9 +1597,7 @@ errno_t reiser4_tree_insert(
 	mode = (place->pos.unit == ~0ul);
 
 	/* Making space in tree in order to insert new item/unit into it */
-	if ((res = reiser4_tree_expand(tree, place, needed,
-				       SF_LEFT | SF_RIGHT | SF_ALLOC)))
-	{
+	if ((res = reiser4_tree_expand(tree, place, needed, SF_DEFAULT))) {
 		aal_exception_error("Can't prepare space for insert "
 				    "one more item/unit.");
 		return res;
@@ -1687,6 +1685,7 @@ errno_t reiser4_tree_write(
 {
 	errno_t res;
 	uint32_t units;
+	uint32_t needed;
 	write_hint_t hint;
 	
 	aal_assert("vpf-683", tree != NULL);
@@ -1719,6 +1718,18 @@ errno_t reiser4_tree_write(
 		return res;
 	}
 
+	/*
+	  FIXME-UMKA: Here should be smart calculating how many byte we need to
+	  prepare in write point. We will solve this when Vitaly is arrive.
+	*/
+	needed = hint.header_len + hint.body_len;
+	
+	if ((res = reiser4_tree_expand(tree, dst, needed, SF_DEFAULT))) {
+		aal_exception_error("Can't prepare space for insert "
+				    "one more item/unit.");
+		return res;
+	}
+	
 	if ((res = reiser4_node_write(dst->node, &dst->pos,
 				      src->node, &src->pos,
 				      count, &hint)))
