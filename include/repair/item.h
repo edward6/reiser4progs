@@ -17,5 +17,7 @@
 extern uint32_t repair_item_split(reiser4_place_t *place, 
     reiser4_key_t *rd_key);
 
+extern errno_t repair_item_check(reiser4_place_t *place, uint8_t mode);
+
 #endif
 
