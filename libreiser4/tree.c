@@ -1167,7 +1167,7 @@ errno_t reiser4_tree_insert(
 
 		/*
 		  Checking if we are trying to insert an item to illegal level.
-		  If soo, we're considering that this is the special case when
+		  If so, we're considering that this is the special case when
 		  only empty root exists.
 		*/
 		if (twig_legal) {
