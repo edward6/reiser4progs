@@ -23,11 +23,11 @@ static errno_t callback_ptr_handler(reiser4_coord_t *coord, void *data) {
 
     if (!reiser4_item_extent(coord))
 	return 0;
-    
+ 
     ts = repair_ts(rd);
 
     aal_assert("vpf-567", ts->bm_met != NULL, return -1);
-    
+ 
     if (plugin_call(return -1, coord->entity.plugin->item_ops,
 	fetch, &coord->entity, coord->pos.unit, &ptr, 1))
 	return -1;
@@ -39,15 +39,17 @@ static errno_t callback_ptr_handler(reiser4_coord_t *coord, void *data) {
 
     /* If extent item points to a leaf, to format area or out of format area. */
     res = repair_item_ptr_unused(coord, ts->bm_met);
-    
+ 
     if (res < 0)
 	/* Fatal error. */
 	return res;
     else if ((res > 0) && repair_item_handle_ptr(coord)) 
 	return -1;
-    else 
-	aux_bitmap_mark_range(ts->bm_unfm, ptr.ptr, ptr.ptr + ptr.width);
-
+    else if (aux_bitmap_test(ts->bm_used, coord->node->blk))
+	aux_bitmap_mark_range(ts->bm_unfm_tree, ptr.ptr, ptr.ptr + ptr.width);
+    else
+	aux_bitmap_mark_range(ts->bm_unfm_out, ptr.ptr, ptr.ptr + ptr.width);
+	
     return 0;
 }
 
@@ -64,7 +66,8 @@ static errno_t repair_ts_setup(traverse_hint_t *hint, repair_data_t *rd) {
     aal_assert("vpf-568", ts->bm_twig != NULL, return -1);
     aal_assert("vpf-569", ts->bm_leaf != NULL, return -1);
     aal_assert("vpf-570", ts->bm_met != NULL, return -1);
-    aal_assert("vpf-571", ts->bm_unfm != NULL, return -1);
+    aal_assert("vpf-571", ts->bm_unfm_tree != NULL, return -1);
+    aal_assert("vpf-571", ts->bm_unfm_out != NULL, return -1);
 
     hint->data = rd;
     hint->objects = 1 << EXTENT_ITEM;
@@ -72,30 +75,55 @@ static errno_t repair_ts_setup(traverse_hint_t *hint, repair_data_t *rd) {
  
     /* Build the map of blocks which cannot be pointed by extent. */
     for (i = 0; i < ts->bm_met->size; i++) {
+	/* bm_met is bm_frmt | bm_used | bm_leaf | bm_twig */
 	ts->bm_met->map[i] |= (ts->bm_used->map[i] | ts->bm_twig->map[i] | 
 	    ts->bm_leaf->map[i]);
     }
+ 
+    aux_bitmap_clear_all(ts->bm_unfm_tree);
+ 
+    if (!(ts->bm_unfm_out = 
+	aux_bitmap_create(reiser4_format_get_len(rd->fs->format)))) 
+    {
+	aal_exception_error("Failed to allocate a bitmap for extents of "
+	    "unconnected twigs.");
+	return -1;
+    }
 
-    aux_bitmap_clear_all(ts->bm_unfm);
-    
     return 0;
 }
 
 static errno_t repair_ts_update(repair_data_t *rd) {
     repair_ts_t *ts;
+    repair_am_t *am;
     uint32_t i;
-    
-    aal_assert("vpf-574", rd != NULL, return -1);
+ 
+    aal_assert("vpf-577", rd != NULL, return -1);
+    aal_assert("vpf-593", rd->fs != NULL, return -1);
 
     ts = repair_ts(rd);
-    
-    aal_assert("vpf-575", ts->bm_unfm != NULL, return -1);
-    
-    for (i = 0; i < ts->bm_met->size; i++) {
-	aal_assert("vpf-576", (ts->bm_unfm->map[i] & ts->bm_met->map[i]) == 0, 
+    am = repair_am(rd);
+ 
+    for (i = 0; i < am->bm_insert->size; i++) {
+	aal_assert("vpf-576", (ts->bm_met->map[i] & 
+	    (ts->bm_unfm_tree->map[i] | ts->bm_unfm_out->map[i])) == 0, 
 	    return -1);
+
+	am->bm_insert->map[i] = ts->bm_leaf->map[i] & ts->bm_twig->map[i];
+
+	ts->bm_met->map[i] |= ts->bm_unfm_tree->map[i] | ts->bm_unfm_out->map[i];
+	ts->bm_used->map[i] |= ts->bm_unfm_tree->map[i];
     }
 
+    /* Assign the bm_met bitmap to the block allocator. */
+    reiser4_alloc_assign(rd->fs->alloc, ts->bm_used);
+    reiser4_alloc_assign_forb(rd->fs->alloc, ts->bm_met);
+
+    aux_bitmap_close(ts->bm_leaf);
+    aux_bitmap_close(ts->bm_met);
+    aux_bitmap_close(ts->bm_unfm_tree);
+    aux_bitmap_close(ts->bm_unfm_out);
+    
     return 0;
 }
 
@@ -108,20 +136,19 @@ errno_t repair_ts_pass(repair_data_t *rd) {
     blk_t blk = 0;
 
     aal_assert("vpf-533", rd != NULL, return -1);
-    aal_assert("vpf-534", rd->format != NULL, return -1);
-    aal_assert("vpf-535", rd->format->device != NULL, return -1);
+    aal_assert("vpf-534", rd->fs != NULL, return -1);
     
     ts = repair_ts(rd);
     
-    if ((res = repair_ts_setup(&hint, rd)))
-	return res;
+    if (repair_ts_setup(&hint, rd))
+	return -1;
 
     /* There were found overlapped extents. Look through twigs, build list of
      * extents for each problem region. */ 
     while ((blk = aux_bitmap_find_marked(ts->bm_twig, blk)) != INVAL_BLK) {
 	aal_assert("vpf-426", aux_bitmap_test(ts->bm_used, blk), return -1);
 	
-	if ((node = repair_joint_open(rd->format, blk)) == NULL) {
+	if ((node = repair_node_open(rd->fs->format, blk)) == NULL) {
 	    aal_exception_fatal("Twig scan pass failed to open the twig (%llu)",
 		blk);
 	    return -1;
@@ -289,11 +316,11 @@ static errno_t handle_ovrl_extents(aal_list_t **ovrl_list) {
     while (max_conflict && max_conflict->conflicts) {
 	reiser4_coord_t coord;
 	
-	if (reiser4_coord_open(&coord, max_conflict->joint, CT_JOINT, 
+	if (reiser4_coord_open(&coord, max_conflict->node, CT_JOINT, 
 	    &max_conflict->pos)) 
 	{
 	    aal_exception_error("Can't open item by coord. Node %llu, item %u.",
-		max_conflict->joint->node->blk, max_conflict->pos.item);
+		max_conflict->node->node->blk, max_conflict->pos.item);
 	    return -1;
 	}
 	
@@ -310,8 +337,8 @@ static errno_t handle_ovrl_extents(aal_list_t **ovrl_list) {
 	
 	*ovrl_list = aal_list_remove(*ovrl_list, r_ovrl);
 	
-	r_ovrl->joint->counter--;
-	reiser4_joint_close(r_ovrl->joint);
+	r_ovrl->node->counter--;
+	reiser4_node_close(r_ovrl->node);
 	aal_free(r_ovrl);
 
 	/* Descrement conflict counters of all coords around max_conflict, 
@@ -351,7 +378,7 @@ static errno_t repair_ts_ovrl_list_free(aal_list_t **ovrl_list,
 	    region->extents = aal_list_remove(region->extents, oc);
 	    
 	    // FIXME-VITALY: close the node, sync it if needed. 
-	    reiser4_joint_close(reiser4_coord_joint(oc->coord));
+	    reiser4_node_close(reiser4_coord_node(oc->coord));
 	    
 	    aal_free(oc->coord);
 	    aal_free(oc);
