@@ -1512,14 +1512,95 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	
 	return res;
 }
-
-errno_t reiser4_collisions_handle(reiser4_place_t *place,
-				  lookup_hint_t *hint,
-				  lookup_bias_t bias)
-{
-	return 0;
-}
 #endif
+
+errno_t reiser4_collision_handler(reiser4_place_t *place,
+				  lookup_hint_t *hint,
+				  lookup_bias_t bias,
+				  lookup_t lookup)
+{
+	char *name;
+
+#ifndef ENABLE_STAND_ALONE
+	entry_hint_t entry;
+	trans_hint_t trans;
+	reiser4_tree_t *tree;
+#endif
+
+	aal_assert("vpf-1522", place != NULL);
+	aal_assert("vpf-1523", hint != NULL);
+	aal_assert("vpf-1524", hint->data != NULL);
+	
+	if (lookup != PRESENT)
+		return lookup;
+	
+	if (place->pos.unit == MAX_UINT32)
+		place->pos.unit = 0;
+
+	/* Only direntry items have collisions. */
+	if (place->plug->id.group != DIRENTRY_ITEM)
+		return PRESENT;
+
+#ifndef ENABLE_STAND_ALONE
+	/* Key collisions handling. Sequentional search by name. */
+	place->key.adjust = 0;
+	
+	trans.count = 1;
+	trans.specific = &entry;
+	trans.place_func = NULL;
+	trans.region_func = NULL;
+	trans.shift_flags = SF_DEFAULT;
+	
+	name = hint->data;
+	tree = (reiser4_tree_t *)place->node->tree;
+	
+	while (1) {
+		int32_t comp;
+		uint32_t units;
+		reiser4_place_t temp;
+
+		/* Check if item is over. */
+		units = plug_call(place->plug->o.item_ops->balance,
+				  units, place);
+
+		if (place->pos.unit >= units) {
+			/* Getting next item. */
+			if ((reiser4_tree_next_node(tree, place, &temp)))
+				return -EIO;
+			
+			/* Directory is over? */
+			if (!temp.node || !plug_equal(place->plug, temp.plug))
+				return ABSENT;
+
+			aal_memcpy(place, &temp, sizeof(*place));
+		}
+
+		/* Fetching current unit (entry) into @temp entry hint.*/
+		aal_memcpy(&entry.place, place, sizeof(*place));
+
+		if (reiser4_tree_fetch(tree, place, &trans) < 0)
+			return -EIO;
+
+		/* Checking if we found needed name. */
+		comp = aal_strcmp(entry.name, name);
+
+		/* If current name is less then we need, we increase collisions
+		   counter -- @adjust. */
+		if (comp < 0) {
+			place->pos.unit++;
+			place->key.adjust++;
+		} else if (comp > 0) {
+			/* The current name is greather then the given one. */
+			return ABSENT;
+		} else {
+			/* We have found entry we need. */
+			break;
+		}
+	}
+#endif
+	return PRESENT;
+}
+
 
 /* Makes search in the tree by specified @key. Fills passed place by data of
    found item. That is body pointer, plugin, etc. */
@@ -1612,8 +1693,9 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
  correct:
 #ifndef ENABLE_STAND_ALONE
 	/* Correcting found pos if the corresponding callback is specified. */
-	if (hint->correct_func && hint->correct_func(place, hint, bias, res))
-		return -EINVAL;
+	if (hint->correct_func) {
+		return hint->correct_func(place, hint, bias, res);
+	}
 #endif
 
 	return res;

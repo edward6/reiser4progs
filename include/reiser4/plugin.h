@@ -672,10 +672,10 @@ typedef enum lookup_bias lookup_bias_t;
 
 typedef struct lookup_hint lookup_hint_t;
 
-typedef errno_t (*correct_func_t) (reiser4_place_t *,
-				   lookup_hint_t *,
-				   lookup_bias_t,
-				   lookup_t);
+typedef lookup_t (*correct_func_t) (reiser4_place_t *,
+				    lookup_hint_t *,
+				    lookup_bias_t,
+				    lookup_t);
 
 /* Hint to be used when looking for data in tree. */
 struct lookup_hint {
@@ -1571,6 +1571,8 @@ struct tree_ops {
 	lookup_t (*lookup) (void *, lookup_hint_t *, lookup_bias_t,
 			    reiser4_place_t *);
 
+	lookup_t (*collision) (reiser4_place_t *, lookup_hint_t *hint,
+			       lookup_bias_t bias, lookup_t lookup);
 #ifndef ENABLE_STAND_ALONE
 	/* Inserts item/unit in the tree by calling tree_insert() function, used
 	   by all object plugins (dir, file, etc). */

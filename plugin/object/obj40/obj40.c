@@ -186,8 +186,8 @@ errno_t obj40_create_stat(obj40_t *obj, rid_t pid, uint64_t mask,
 	hint.specific = &stat;
 
 	/* Lookup place new item to be insert at and insert it to tree */
-	switch ((lookup = obj40_lookup(obj, &hint.offset, LEAF_LEVEL,
-				       FIND_CONV, STAT_PLACE(obj))))
+	switch ((lookup = obj40_lookup(obj, &hint.offset, LEAF_LEVEL, FIND_CONV, 
+				       NULL, NULL, STAT_PLACE(obj))))
 	{
 	case ABSENT:
 		break;
@@ -604,9 +604,8 @@ errno_t obj40_update(obj40_t *obj) {
 	aal_assert("umka-1905", obj != NULL);
 		
 	/* Looking for stat data place by */
-	switch ((res = obj40_lookup(obj, &STAT_PLACE(obj)->key,
-				    LEAF_LEVEL, FIND_EXACT,
-				    STAT_PLACE(obj))))
+	switch ((res = obj40_lookup(obj, &STAT_PLACE(obj)->key, LEAF_LEVEL, 
+				    FIND_EXACT, NULL, NULL, STAT_PLACE(obj))))
 	{
 	case PRESENT:
 		return 0;
@@ -618,6 +617,7 @@ errno_t obj40_update(obj40_t *obj) {
 /* Performs lookup and returns result to caller */
 lookup_t obj40_lookup(obj40_t *obj, reiser4_key_t *key,
 		      uint8_t level, lookup_bias_t bias,
+		      correct_func_t func, void *data,
 		      reiser4_place_t *place)
 {
 	lookup_hint_t hint;
@@ -626,7 +626,8 @@ lookup_t obj40_lookup(obj40_t *obj, reiser4_key_t *key,
 
 	hint.key = key;
 	hint.level = level;
-	hint.correct_func = NULL;
+	hint.correct_func = func;
+	hint.data = data;
 	
 	return obj->core->tree_ops.lookup(obj->info.tree,
 					  &hint, bias, place);

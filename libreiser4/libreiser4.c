@@ -68,6 +68,12 @@ static lookup_t tree_lookup(void *tree, lookup_hint_t *hint,
 				   hint, bias, place);
 }
 
+static lookup_t tree_collision(reiser4_place_t *place, lookup_hint_t *hint,
+			       lookup_bias_t bias, lookup_t lookup)
+{
+	return reiser4_collision_handler(place, hint, bias, lookup);
+}
+
 static int64_t tree_read(void *tree, trans_hint_t *hint) {
 	reiser4_tree_t *t = (reiser4_tree_t *)tree;
 	return reiser4_flow_read(t, hint);
@@ -191,6 +197,8 @@ reiser4_core_t core = {
 		/* This one for lookuping the tree */
 		.lookup	    = tree_lookup,
 
+		/* Correct the position if collision exists. */
+		.collision  = tree_collision,
 #ifndef ENABLE_STAND_ALONE
 		/* Callback function for inserting items into the tree */
 		.insert	    = tree_insert,

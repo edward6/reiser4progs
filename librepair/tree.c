@@ -487,10 +487,10 @@ errno_t repair_tree_copy(reiser4_tree_t *tree, reiser4_place_t *dst,
 	return 0;
 }
 
-static errno_t callback_lookup(reiser4_place_t *place, 
-			       lookup_hint_t *hint,
-			       lookup_bias_t bias,
-			       lookup_t lookup)
+static lookup_t callback_lookup(reiser4_place_t *place, 
+				lookup_hint_t *hint,
+				lookup_bias_t bias,
+				lookup_t lookup)
 {
 	reiser4_key_t dkey, end;
 	reiser4_place_t prev;
@@ -505,7 +505,7 @@ static errno_t callback_lookup(reiser4_place_t *place,
 		if (place->pos.unit == MAX_UINT32)
 			place->pos.unit = 0;
 
-		return 0;
+		return PRESENT;
 	}
 
 	if (lookup < 0) 
@@ -536,7 +536,7 @@ static errno_t callback_lookup(reiser4_place_t *place,
 		/* No right node. */
 		if (!place->node) {
 			*place = prev;
-			return 0;
+			return ABSENT;
 		}
 	} else 
 		aal_memset(&prev, 0, sizeof(prev));
@@ -562,7 +562,7 @@ static errno_t callback_lookup(reiser4_place_t *place,
 		*place = prev;
 	}
 
-	return 0;
+	return ABSENT;
 }
 
 static errno_t callback_prep_merge(reiser4_place_t *place, trans_hint_t *hint) {

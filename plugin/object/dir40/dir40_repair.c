@@ -92,7 +92,7 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 		return res;
 	
 	if ((res = obj40_lookup(&dir->obj, &dir->position, LEAF_LEVEL, 
-				FIND_EXACT, &dir->body)) < 0)
+				FIND_EXACT, NULL, NULL, &dir->body)) < 0)
 	{
 		return res;
 	}
@@ -163,10 +163,8 @@ static lookup_t dir40_search(dir40_t *dir) {
 	
 	/* Making tree_lookup() to find entry by key */
 	if ((res = obj40_lookup(&dir->obj, &dir->position, LEAF_LEVEL, 
-				FIND_EXACT, &dir->body)) < 0)
-	{
+				FIND_EXACT, NULL, NULL, &dir->body)) < 0)
 		return res;
-	}
 	
 	/* No adjusting for the ABSENT result. */
 	if (res == ABSENT) adjust = 0;

@@ -181,9 +181,8 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 	dir = (dir40_t *)entity;
 
 	/* Making lookup by current dir key. */
-	if ((res = obj40_lookup(&dir->obj, &dir->position,
-				LEAF_LEVEL, FIND_EXACT,
-				&dir->body)) < 0)
+	if ((res = obj40_lookup(&dir->obj, &dir->position, LEAF_LEVEL, 
+				FIND_EXACT, NULL, NULL, &dir->body)) < 0)
 	{
 		return res;
 	}
@@ -315,24 +314,6 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	return 1;
 }
 
-#ifndef ENABLE_STAND_ALONE
-/* Helper function for comparing two strings. Needed for the case we detected
-   key collision and need to find right position inside the directory by name of
-   entry. */
-static int32_t dir40_compent(char *entry1, char *entry2) {
-	uint32_t len1 = aal_strlen(entry1);
-	uint32_t len2 = aal_strlen(entry2);
-                                                                                    
-        if (len1 > len2)
-                return 1;
-
-	if (len1 < len2)
-                return -1;
-
-	return aal_strncmp(entry1, entry2, len1);
-}
-#endif
-
 /* Makes lookup inside directory. This is needed to be used in add_entry() for
    two reasons: for make sure, that passed entry does not exists and to use
    lookup result for consequent insert. */
@@ -353,93 +334,25 @@ static lookup_t dir40_search(object_entity_t *entity, char *name,
 		  &dir->body.key, dir->hash, obj40_locality(&dir->obj),
 		  obj40_objectid(&dir->obj), name);
 
-	/* Making tree_lookup() to find entry by key */
-	switch ((res = obj40_lookup(&dir->obj, &dir->body.key,
-				    LEAF_LEVEL, bias, &dir->body)))
+	if ((res = obj40_lookup(&dir->obj, &dir->body.key, LEAF_LEVEL, 
+				bias, dir40_core->tree_ops.collision, 
+				name, &dir->body)) < 0)
 	{
-	case PRESENT:
-		/* Correcting unit pos */
-		if (dir->body.pos.unit == MAX_UINT32)
-			dir->body.pos.unit = 0;
-
-		break;
-	default:
-		if (entry) {
-			aal_memcpy(&entry->place, &dir->body,
-				   sizeof(reiser4_place_t));
-		}
-		
 		return res;
 	}
 
-#ifndef ENABLE_STAND_ALONE
-	/* Key collisions handling. Sequentional search by name. */
-	entry->offset.adjust = 0;
-		
-	while (1) {
-		int32_t comp;
-		uint32_t units;
-		entry_hint_t temp;
+	if (entry) {
+		aal_memset(entry, 0, sizeof(*entry));
+		aal_memcpy(&entry->place, &dir->body,
+				   sizeof(reiser4_place_t));
 
-		/* Check if item is over. */
-		units = plug_call(dir->body.plug->o.item_ops->balance,
-				  units, &dir->body);
-
-		if (dir->body.pos.unit >= units) {
-			/* Getting next item. */
-			if ((res = dir40_next(dir)) < 0)
-				return res;
-
-			/* Directory is over? */
-			if (res == ABSENT)
-				return res;
-		}
-
-		/* Fetching current unit (entry) into @temp entry hint.*/
-		if (dir40_fetch(dir, &temp))
-			return -EIO;
-
-		/* Save its place to result entry @place field. It may be used
-		   for inserting new entry in this place. */
-		if (entry) {
-			aal_memcpy(&entry->place, &temp.place,
-				   sizeof(temp.place));
-		}
-
-		/* Checking if we found needed name. */
-		comp = dir40_compent(temp.name, name);
-
-		/* If current name is less then we need, we increase collisions
-		   counter -- @adjust. */
-		if (comp < 0) {
-			dir->body.pos.unit++;
-
-			if (entry) {
-				entry->offset.adjust++;
-				entry->place.pos.unit++;
-			}
-				
-		} else if (comp > 0) {
-			/* Entry is not found, because current name is bigger
-			   then needed. */
-			return ABSENT;
-		} else {
-			/* We have found entry we need. */
-			if (entry) {
-				aal_memcpy(entry, &temp,
-					   sizeof(temp));
-			}
-				
-			return PRESENT;
+		if (res == PRESENT) {
+			if (dir40_fetch(dir, entry))
+				return -EIO;
 		}
 	}
-#else
-	/* Fetching found entry to passed @entry */
-	if (entry && dir40_fetch(dir, entry))
-		return -EIO;
 
-	return PRESENT;
-#endif
+	return res;
 }
 
 /* Makes lookup inside @entity by passed @name. Saves found entry in passed
@@ -591,8 +504,8 @@ static object_entity_t *dir40_create(object_info_t *info,
 	dir40_reset((object_entity_t *)dir);
 	
         /* Looking for place to insert directory body */
-	switch (obj40_lookup(&dir->obj, &body_hint.offset,
-			     LEAF_LEVEL, FIND_CONV, &dir->body))
+	switch (obj40_lookup(&dir->obj, &body_hint.offset, LEAF_LEVEL, 
+			     FIND_CONV, NULL, NULL, &dir->body))
 	{
 	case ABSENT:
 		/* Inserting the direntry body item into the tree. */
@@ -664,7 +577,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 
 		/* Looking for the last directory item */
 		if ((res = obj40_lookup(&dir->obj, &key, LEAF_LEVEL,
-				  FIND_EXACT, &place)) < 0)
+				  FIND_EXACT, NULL, NULL, &place)) < 0)
 		{
 			return res;
 		}

@@ -61,9 +61,8 @@ lookup_t reg40_update_body(object_entity_t *entity) {
 	aal_assert("umka-1161", entity != NULL);
 	
 	/* Getting the next body item from the tree */
-	return obj40_lookup(&reg->obj, &reg->position,
-			    LEAF_LEVEL, FIND_EXACT,
-			    &reg->body);
+	return obj40_lookup(&reg->obj, &reg->position, LEAF_LEVEL, 
+			    FIND_EXACT, NULL, NULL, &reg->body);
 }
 
 /* Resets file position. As fire position is stored inside @reg->position, it
