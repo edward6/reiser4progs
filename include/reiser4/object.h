@@ -99,6 +99,14 @@ extern reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 
 extern bool_t reiser4_object_begin(reiser4_place_t *place);
 extern errno_t reiser4_object_guess(reiser4_object_t *object);
+
+typedef reiser4_object_t *(*object_open_func_t) (reiser4_object_t *parent, 
+						 entry_hint_t *entry, 
+						 void *data);
+
+extern errno_t reiser4_object_traverse(reiser4_object_t *object, 
+				       object_open_func_t open_func,
+				       void *data);
 #endif
 
 extern errno_t reiser4_object_reset(reiser4_object_t *object);

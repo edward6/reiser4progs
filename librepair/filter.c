@@ -38,7 +38,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	aal_assert("vpf-842", fd->repair->fs != NULL);
 	aal_assert("vpf-591", fd->repair->fs->format != NULL);
 	aal_assert("vpf-1118", tree != NULL);
-	aal_assert("vpf-1118", place != NULL);
+	aal_assert("vpf-1187", place != NULL);
 	
 	/* Fetching node ptr */
 	plugin_call(place->item.plugin->o.item_ops, read, &place->item,

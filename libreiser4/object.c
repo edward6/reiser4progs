@@ -287,7 +287,7 @@ reiser4_object_t *reiser4_object_launch(reiser4_tree_t *tree,
 	lookup_t lookup;
 	
 	aal_assert("vpf-1136", tree != NULL);
-	aal_assert("vpf-1136", key != NULL);
+	aal_assert("vpf-1185", key != NULL);
 	
 	if (reiser4_tree_lookup(tree, key, LEAF_LEVEL, &place) != PRESENT)
 		return NULL;
@@ -842,7 +842,7 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	object_hint_t hint;
 	reiser4_object_t *object;
 	
-	aal_assert("vpf-1054", fs != NULL);
+	aal_assert("vpf-1186", fs != NULL);
 	aal_assert("vpf-1057", target != NULL);
 	
 	symlink = reiser4_profile_value(fs->profile, "symlink");
@@ -883,4 +883,35 @@ bool_t reiser4_object_begin(reiser4_place_t *place) {
 	   and not the second item of the default one? */
 	return reiser4_item_statdata(place);
 }
+
+errno_t reiser4_object_traverse(reiser4_object_t *object,
+				object_open_func_t func,
+				void *data)
+{
+	entry_hint_t entry;
+	errno_t res = 0;
+	
+	aal_assert("vpf-1090", object != NULL);
+	aal_assert("vpf-1103", func != NULL);
+	
+	while (!reiser4_object_readdir(object, &entry)) {
+		reiser4_object_t *child = NULL;
+		
+		if ((child = func(object, &entry, data)) == INVAL_PTR)
+			return -EINVAL;
+		
+		if (child == NULL)
+			continue;
+
+		res = reiser4_object_traverse(child, func, data);
+		
+		reiser4_object_close(child);
+		
+		if (res)
+			return res;
+	}
+	
+	return 0;
+}
+
 #endif

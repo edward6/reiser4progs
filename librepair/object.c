@@ -121,7 +121,7 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 	
 	aal_assert("vpf-1131", tree != NULL);
 	aal_assert("vpf-1130", place != NULL);
-	aal_assert("vpf-1130", place->item.plugin != NULL);
+	aal_assert("vpf-1189", place->item.plugin != NULL);
 	
 	if (reiser4_item_statdata(place))
 		return reiser4_object_realize(tree, place);
@@ -151,36 +151,6 @@ reiser4_object_t *repair_object_realize(reiser4_tree_t *tree,
 	return NULL;
 }
 
-errno_t repair_object_traverse(reiser4_object_t *object,
-			       object_open_func_t func,
-			       void *data)
-{
-	entry_hint_t entry;
-	errno_t res = 0;
-	
-	aal_assert("vpf-1090", object != NULL);
-	aal_assert("vpf-1103", func != NULL);
-	
-	while (!reiser4_object_readdir(object, &entry)) {
-		reiser4_object_t *child = NULL;
-		
-		if ((child = func(object, &entry, data)) == INVAL_PTR)
-			return -EINVAL;
-		
-		if (child == NULL)
-			continue;
-
-		res = repair_object_traverse(child, func, data);
-		
-		reiser4_object_close(child);
-		
-		if (res)
-			return res;
-	}
-	
-	return 0;
-}
-
 /* Checks the attach between @parent and @object */
 errno_t repair_object_check_attach(reiser4_object_t *parent, 
 				   reiser4_object_t *object, 
@@ -188,7 +158,7 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 {
 	reiser4_plugin_t *plugin;
 	
-	aal_assert("vpf-1044", object != NULL);
+	aal_assert("vpf-1188", object != NULL);
 	aal_assert("vpf-1098", object->entity != NULL);
 	aal_assert("vpf-1099", parent != NULL);
 	

@@ -46,7 +46,7 @@ errno_t reg40_check_struct(object_entity_t *object, object_info_t *info,
 	errno_t res = 0;
 #if 0
 	aal_assert("vpf-1126", info != NULL);
-	aal_assert("vpf-1126", info->tree != NULL);
+	aal_assert("vpf-1190", info->tree != NULL);
 	
 	/* Recovery on the base of an item. */
 	if (info->start.item.plugin) {
