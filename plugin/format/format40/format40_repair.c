@@ -46,7 +46,7 @@ errno_t format40_check(object_entity_t *entity, uint8_t mode) {
 		count);
 	    return REPAIR_FATAL;
 	}
-    } else {
+    } else if (count > get_sb_block_count(super)) {
 	/* Device is larger then fs size. */	    
 	aal_exception_fatal("Number of blocks found in the superblock (%llu) "
 	    "is not equal to the size of the partition (%llu). %s", 
@@ -84,7 +84,7 @@ errno_t format40_check(object_entity_t *entity, uint8_t mode) {
 	    set_sb_root_block(super, INVAL_BLK);
     }
     
-    return 0;
+    return result;
 }
 
 /* Update from the device only those fields which can be changed. */
