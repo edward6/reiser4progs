@@ -340,8 +340,10 @@ errno_t reiser4_joint_attach(
 
 	joint->children = aal_list_first(joint->children);
 
-	if (reiser4_lru_attach(&joint->tree->lru, child))
-		aal_exception_warn("Can't attach node to tree lru.");
+	if (joint->tree) {
+		if (reiser4_lru_attach(&joint->tree->lru, child))
+			aal_exception_warn("Can't attach node to tree lru.");
+	}
 	
 	return 0;
 }
@@ -376,8 +378,10 @@ void reiser4_joint_detach(
 	/* Updating joint children list */
 	joint->children = aal_list_remove(joint->children, child);
 
-	if (reiser4_lru_detach(&joint->tree->lru, child))
-		aal_exception_warn("Can't detach node from tree lru.");
+	if (joint->tree) {
+		if (reiser4_lru_detach(&joint->tree->lru, child))
+			aal_exception_warn("Can't detach node from tree lru.");
+	}
 }
 
 #ifndef ENABLE_COMPACT
