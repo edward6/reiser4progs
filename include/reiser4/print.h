@@ -15,11 +15,10 @@ extern aal_stream_t print_stream;
 extern char *reiser4_print_key(reiser4_key_t *key,
 			       uint16_t options);
 
-extern char *reiser4_print_format(reiser4_format_t *format,
-				  uint16_t options);
+extern void reiser4_print_format(reiser4_format_t *format, uint16_t options);
 
-extern char *reiser4_print_node(node_t *node, uint32_t start, 
-				uint32_t count, uint16_t options);
+extern void reiser4_print_node(node_t *node, uint32_t start, 
+			       uint32_t count, uint16_t options);
 
 #endif
 

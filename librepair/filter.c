@@ -340,6 +340,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 					     void *data) 
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
+	node_t *node;
 	blk_t blk;
     
 	aal_assert("vpf-257", fd != NULL);
@@ -387,6 +388,12 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 		repair_place_get_lpos(place, prev);
 
 		hint.count = 1;
+		
+		if ((node = reiser4_tree_lookup_node(tree, blk)) && 
+		    reiser4_tree_disconnect_node(tree, node)) 
+		{
+			return -EINVAL;
+		}
 
 		if (reiser4_node_remove(place->node, &place->pos, &hint))
 			return -EINVAL;

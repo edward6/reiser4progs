@@ -77,8 +77,11 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 		if (!(child = reiser4_node_open(tree, blk)))
 			return -EINVAL;
 		
+		reiser4_node_lock(child);
+		
 		res = repair_tree_maxreal_key(tree, child, key);
 		
+		reiser4_node_unlock(child);
 		if (reiser4_node_close(child))
 			return -EINVAL;
 	} else 
@@ -221,6 +224,11 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 				    "delimiting key.", node_blocknr(node));
 		return res;
 	}
+	
+	place.pos.item = reiser4_node_items(node) - 1;
+	
+	if ((res |= reiser4_place_fetch(&place)) < 0) 
+		return res;
 	
 	if ((res |= reiser4_item_maxreal_key(&place, &key_max)) < 0) {
 		aal_exception_error("Node (%llu): Failed to get the max real "

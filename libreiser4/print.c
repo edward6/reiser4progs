@@ -20,28 +20,28 @@ char *reiser4_print_key(reiser4_key_t *key,
 	return (char *)print_stream.entity;
 }
 
-char *reiser4_print_node(node_t *node, uint32_t start, 
-			 uint32_t count, uint16_t options) 
+void reiser4_print_node(node_t *node, uint32_t start, 
+			uint32_t count, uint16_t options) 
 {
+	aal_stream_t stream;
+	
 	aal_assert("umka-2642", node != NULL);
 	
-	aal_stream_reset(&print_stream);
+	aal_stream_init(&stream, NULL, &file_stream);
 
 	plug_call(node->entity->plug->o.node_ops, print,
-		  node->entity, &print_stream, start,
-		  count, options);
+		  node->entity, &stream, start,  count, options);
 	
-	return (char *)print_stream.entity;
+	aal_stream_fini(&stream);
 }
 
-char *reiser4_print_format(reiser4_format_t *format,
-			   uint16_t options)
-{
+void reiser4_print_format(reiser4_format_t *format, uint16_t options) {
+	aal_stream_t stream;
+
 	aal_assert("vpf-175", format != NULL);
 
-	aal_stream_reset(&print_stream);
+	aal_stream_init(&stream, NULL, &file_stream);
 	reiser4_format_print(format, &print_stream);
-	
-	return (char *)print_stream.entity;
+	aal_stream_fini(&stream);
 }
 #endif

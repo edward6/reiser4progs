@@ -233,8 +233,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Opening device with file_ops and default blocksize */
-	if (!(device = aal_device_open(&file_ops, host_dev,
-				       512, O_RDWR)))
+	if (!(device = aal_device_open(&file_ops, host_dev, 512,
+				       (behav_flags & BF_UNPACK_META ) ?
+				       O_RDWR : O_RDONLY)))
 	{
 		aal_exception_error("Can't open %s. %s.", host_dev,
 				    strerror(errno));

@@ -2480,11 +2480,8 @@ errno_t reiser4_tree_remove(reiser4_tree_t *tree, place_t *place,
 		return -EINVAL;
 	
 	/* Removing iten/unit from the node. */
-	if ((res = reiser4_node_remove(place->node,
-				       &place->pos, hint)))
-	{
+	if ((res = reiser4_node_remove(place->node, &place->pos, hint)))
 		return res;
-	}
 
 	if (reiser4_node_get_level(place->node) > LEAF_LEVEL) {
 		if ((res = reiser4_tree_update_node(tree, place->node)))
