@@ -31,15 +31,18 @@ typedef struct reiser4_master_sb reiser4_master_sb_t;
 #define get_ms_blksize(ms)       aal_get_le16(ms, ms_blksize)
 #define set_ms_blksize(ms, val)  aal_set_le16(ms, ms_blksize, val)
 
+#define SS_STACK_SIZE	10
+#define SS_MESSAGE_SIZE 256
+
 struct reiser4_status_sb {
-        char ss_magic[16];
-        d64_t ss_status;         /* current filesystem state */
-        d64_t ss_extended;       /* any additional info that might have sense in
-				    addition to "status". */
-        d64_t ss_stack[10];      /* last ten functional calls made
-				    (addresses). */
-        char ss_message[256];    /* any error message if appropriate, otherwise
-				    filled with zeroes. */
+	char ss_magic[16];
+	d64_t ss_status;		    /* current filesystem state */
+	d64_t ss_extended;		    /* any additional info that might have 
+					       sense in addition to "status". */
+	d64_t ss_stack[SS_STACK_SIZE];      /* last ten functional calls made
+					       (addresses). */
+	char ss_message[SS_MESSAGE_SIZE];   /* any error message if appropriate, 
+					       otherwise filled with zeroes. */
 };
 
 typedef struct reiser4_status_sb reiser4_status_sb_t;

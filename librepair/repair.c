@@ -580,6 +580,10 @@ static errno_t debug_am_prepare(repair_control_t *control, repair_am_t *am) {
 	return 0;
 }
 
+static errno_t repair_update(repair_control_t *control) {
+	return repair_status_clear(control->repair->fs->status);
+}
+
 static void repair_control_release(repair_control_t *control) {
 	aal_assert("vpf-738", control != NULL);
 
@@ -682,6 +686,9 @@ errno_t repair_check(repair_data_t *repair) {
 		if ((res = repair_cleanup(&cleanup)))
 			goto error;
 	}
+	
+	if ((res = repair_update(&control))) 
+		goto error;
 	
  error:
 	repair_control_release(&control);

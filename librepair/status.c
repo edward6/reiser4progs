@@ -30,3 +30,14 @@ errno_t repair_status_open(reiser4_fs_t *fs, uint8_t mode) {
 	return 0;
 }
 
+errno_t repair_status_clear(reiser4_status_t *status) {
+	set_ss_status(STATUS(status), 0);
+	set_ss_extended(STATUS(status), 0);
+	aal_memset(STATUS(status)->ss_stack, 0, sizeof(d64_t) * SS_STACK_SIZE);
+	aal_memset(STATUS(status)->ss_message, 0, SS_MESSAGE_SIZE);
+	
+	status->dirty = TRUE;
+	
+	return 0;
+}
+
