@@ -41,9 +41,8 @@ static errno_t direntry40_unit_key(item_entity_t *item,
 	/* Building key by means of using key plugin */
 	key->plugin = item->key.plugin;
 	
-	return plugin_call(key->plugin->key_ops, build_generic,
-			   key, KEY_STATDATA_TYPE, locality,
-			   objectid, 0);
+	return plugin_call(key->plugin->key_ops, construct,
+			   key, locality, objectid, 0);
 }
 
 /* Returns pointer to entry at passed @pos */
