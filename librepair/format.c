@@ -8,9 +8,9 @@
 /* Checks the opened format, or build a new one if it was not openned. */
 static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	reiser4_plug_t *plug = NULL;
-	errno_t ret = REPAIR_OK;
-	count_t count;
+	errno_t res = REPAIR_OK;
 	rid_t policy, pid;
+	count_t count;
 	
 	aal_assert("vpf-165", fs != NULL);
 	aal_assert("vpf-833", fs->profile != NULL);
@@ -105,11 +105,14 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 	}
 	
 	/* Format was opened or detected. Check it and fix it. */
-	ret = plug_call(fs->format->entity->plug->o.format_ops, check_struct,
-			fs->format->entity, mode);
+	if ((res = plug_call(fs->format->entity->plug->o.format_ops, 
+			     check_struct, fs->format->entity, mode)) < 0)
+		return res;
 	
-	if (repair_error_fatal(ret))
-		return ret;
+	repair_error_check(res, mode);
+	
+	if (repair_error_fatal(res))
+		return res;
 	
 	pid = reiser4_format_get_policy(fs->format);
 	
@@ -123,9 +126,9 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 					    policy);
 			
 			reiser4_format_set_policy(fs->format, policy);
-			ret |= REPAIR_FIXED;    
+			res |= REPAIR_FIXED;    
 		} else {
-			ret |= REPAIR_FIXABLE;
+			res |= REPAIR_FIXABLE;
 		}
 	}
 	
@@ -136,7 +139,7 @@ static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
 				    aal_device_name(fs->device), policy);
 	}
 	
-	return ret;
+	return res;
 }
 
 /* Try to open format and check it. */

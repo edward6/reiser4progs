@@ -84,6 +84,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	
 	if ((node = repair_node_open(fd->repair->fs, ptr.start)) == NULL) {
 		fd->flags |= REPAIR_BAD_PTR;
+		fd->repair->fatal++;
 		return NULL;
 	}
 	
@@ -143,6 +144,7 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 		/* Should not be check for now as it may lie in unused space.
 		   It is just a wrong pointer. Skip it. */
 		fd->flags |= REPAIR_BAD_PTR;
+		fd->repair->fatal++;
 		return 1;
 	} else 
 		fd->level--;
@@ -150,16 +152,17 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	if ((res = repair_node_check_struct(node, fd->repair->mode)) < 0)
 		return res;
 	
+	repair_error_check(res, fd->repair->mode);
+	
 	if (reiser4_node_items(node) == 0)
 		res |= REPAIR_FATAL;
 	
 	if (res & REPAIR_FATAL) {
 		fd->flags |= REPAIR_FATAL;
+		fd->repair->fatal++;
 		return 1;
 	} else if (res & REPAIR_FIXABLE) {
 		fd->repair->fixable++;
-		/* Do not break traverse. */
-		res = 0;
 	} else {
 		aal_assert("vpf-799", res == 0);
 		
@@ -174,13 +177,13 @@ static errno_t repair_filter_node_check(reiser4_tree_t *tree,
 	}
 	
 	/* There are no fatal errors, check delimiting keys. */
-	if ((res = repair_node_dkeys_check(node, fd->repair->mode)) < 0 &&
-	    (res != -ESTRUCT))
+	if ((res = repair_node_dkeys_check(node, fd->repair->mode)) < 0)
 		return res;
 	
 	if (res) {
 		fd->flags |= REPAIR_BAD_DKEYS;
-		return 1;
+		fd->repair->fatal++;
+		return res;
 	}
 	
 	return 0;
@@ -349,6 +352,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 		if (fd->repair->mode == REPAIR_REBUILD) {
 			pos_t prev;
 			
+			fd->repair->fatal--;
 			/* The node corruption was not fixed - delete the 
 			   internal item. */
 			repair_place_get_lpos(place, prev);
@@ -361,8 +365,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 			}
 			
 			place->pos = prev;
-		} else
-			fd->repair->fatal++;
+		} 
 		
 		fd->flags = 0;
 	} else {
@@ -420,11 +423,13 @@ static void repair_filter_setup(repair_filter_t *fd) {
 	{
 		/* Wrong pointer. */
 		fd->flags |= REPAIR_BAD_PTR;
+		fd->repair->fatal++;
 	} else if (aux_bitmap_test(fd->bm_used, 
 				   reiser4_format_get_root(format)))
 	{
 		/* This block is from format area. */
 		fd->flags |= REPAIR_BAD_PTR;
+		fd->repair->fatal++;
 	} else	{
 		/* We meet the block for the first time. */
 		aux_bitmap_mark(fd->bm_used, 
@@ -457,15 +462,21 @@ static void repair_filter_update(repair_filter_t *fd,
 	
 	if (fd->flags & (REPAIR_BAD_PTR | REPAIR_FATAL)) {
 		aux_bitmap_clear(fd->bm_used, root->number);
-		reiser4_format_set_root(fd->repair->fs->format, INVAL_BLK);
-		/* FIXME: sync it to disk. */
+
 		fd->flags = 0;
 		if (fd->flags & REPAIR_BAD_PTR)
 			stat->bad_ptrs++;
 		else
 			stat->bad_nodes++;
+
+		if (fd->repair->mode == REPAIR_REBUILD) {
+			reiser4_format_set_root(fd->repair->fs->format, 
+						INVAL_BLK);
+			/* FIXME: sync it to disk. */
+		}
 	} else {
 		aal_assert("vpf-862", fd->flags == 0);
+		
 		/* FIXME-VITALY: hardcoded level, should be changed. */
 		if (reiser4_node_get_level(root) == TWIG_LEVEL) {
 			aux_bitmap_mark(fd->bm_twig, root->number);

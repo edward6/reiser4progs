@@ -81,7 +81,6 @@ errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
 	
 	repair_error_check(res, mode);
 	
-	
 	aal_assert("vpf-789", mode != REPAIR_CHECK || 
 			      length == place->len);
 	

@@ -18,6 +18,8 @@ errno_t repair_alloc_related_region(reiser4_alloc_t *alloc, blk_t blk,
 errno_t repair_alloc_check_struct(reiser4_alloc_t *alloc, uint8_t mode) {
 	aal_assert("vpf-867", alloc != NULL);
 	
+	/* FIXME-VITALY: repair_error_check? */
+	
 	return plug_call(alloc->entity->plug->o.alloc_ops, check_struct, 
 			 alloc->entity, mode);
 }

@@ -69,6 +69,7 @@ errno_t repair_fs_open(repair_data_t *repair,
 	}
 	
 	error = repair_alloc_check_struct(repair->fs->alloc, repair->mode);
+	
 	if (error)
 		goto error_alloc_close;
 	

@@ -18,15 +18,18 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	if ((res = plug_call(object->entity->plug->o.object_ops, 
 			     check_struct, object->entity, &object->info,
-			     place_func, mode, data)))
-		return res;
+			     place_func, mode, data)) < 0)
+	
+	repair_error_check(res, mode);
+	aal_assert("vpf-1195", mode != REPAIR_REBUILD ||
+			      !(res & REPAIR_FATAL));
 	
 	/* FIXME-VITALY: this is probably should be set by plugin. Together 
 	   with object->info.parent key. */
 	reiser4_key_assign(&object->info.object, &object->info.start.key);
 	reiser4_key_string(&object->info.object, object->name);
 	
-	return 0;
+	return res;
 }
 
 /* Helper callback for probing passed @plugin. 
@@ -160,6 +163,7 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 				   uint8_t mode)
 {
 	reiser4_plug_t *plug;
+	errno_t res;
 	
 	aal_assert("vpf-1188", object != NULL);
 	aal_assert("vpf-1098", object->entity != NULL);
@@ -171,6 +175,10 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 	if (!object->entity->plug->o.object_ops->check_attach)
 		return 0;
 	
-	return plug_call(object->entity->plug->o.object_ops, check_attach,
-			 object->entity, parent->entity, mode);
+	if ((res = plug_call(object->entity->plug->o.object_ops, check_attach,
+			     object->entity, parent->entity, mode)) < 0)
+	
+	repair_error_check(res, mode);
+	
+	return res;
 }

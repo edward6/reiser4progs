@@ -230,7 +230,7 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 		aal_exception_error("Node (%llu): The first key %k is not "
 				    "equal to the left delimiting key %k.",
 				    node->number, &place.key, &d_key);
-		return -ESTRUCT;
+		return REPAIR_FATAL;
 	} else if (res < 0) {
 		/* It is legal to have the left key in the node much then 
 		   its left delimiting key - due to removing some items 

@@ -21,11 +21,20 @@ static errno_t callback_fs_check(void *layout, block_func_t func, void *data) {
 
 /* Checks the opened journal. */
 static errno_t repair_journal_check_struct(reiser4_journal_t *journal) {
+	errno_t res;
+	
 	aal_assert("vpf-460", journal != NULL);
 	aal_assert("vpf-736", journal->fs != NULL);
 	
-	return plug_call(journal->entity->plug->o.journal_ops, check_struct,
-			 journal->entity, callback_fs_check, journal->fs);
+	if ((res = plug_call(journal->entity->plug->o.journal_ops, 
+			     check_struct, journal->entity, 
+			     callback_fs_check, journal->fs)) < 0)
+		return res;
+
+	/* All journal corruption must be fixed at once they are detected. */
+	repair_error_check(res, REPAIR_REBUILD);
+	
+	return res;
 }
 /* Open the journal and check it. */
 errno_t repair_journal_open(reiser4_fs_t *fs, aal_device_t *journal_device,

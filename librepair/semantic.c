@@ -41,17 +41,12 @@ static errno_t repair_semantic_check_struct(repair_semantic_t *sem,
 		return 0;
 	
 	if ((res = repair_object_check_struct(object, callback_check_struct,
-					      sem->repair->mode, NULL)))
-	{
-		aal_exception_error("Node (%llu), item (%u): check of "
-				    "the object pointed by %s failed. "
-				    "Plugin %s.", start->node->number,
-				    start->pos.item, object->name,
-				    object->entity->plug->label);
-	} else if (res & REPAIR_FATAL) {
-		if (sem->repair->mode != REPAIR_REBUILD)
-			sem->repair->fatal++;
-	} else if (res & REPAIR_FIXABLE)
+					      sem->repair->mode, NULL)) < 0)
+		return res;
+	
+	if (res & REPAIR_FATAL)
+		sem->repair->fatal++;
+	else if (res & REPAIR_FIXABLE)
 		sem->repair->fixable++;
 	
 	return res;
@@ -183,16 +178,10 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	
 	/* Some parent was found, check it and attach to it. */
 	res = repair_semantic_check_struct(sem, parent);
-
-	if (res < 0)
+	
+	if (repair_error_fatal(res))
 		goto error_parent_close;
-	else if (res & REPAIR_FATAL) {
-		if (sem->repair->mode == REPAIR_REBUILD)
-			goto error_object_detach;
-		else
-			goto error_parent_close;
-	}
-
+	
 	/* Check that parent has a link to the object. */
 	while (!(res = reiser4_object_readdir(parent, &entry))) {
 		if (reiser4_key_compare(&object->info.object,
@@ -285,11 +274,9 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 	
 	res = repair_semantic_check_struct(sem, object);
 	
-	if (res > 0 && res & REPAIR_FATAL && 
-	    sem->repair->mode == REPAIR_REBUILD)
-		goto error_rem_entry;
-	else if (repair_error_fatal(res))
+	if (repair_error_fatal(res))
 		goto error_close_object;
+	
 	/* If object knows about the object it was attached to, check_struct 
 	   has saved it into the info->parent key. Check that this parent 
 	   matches the given @parent, otherwise try to get the pointed parent
@@ -390,8 +377,8 @@ static errno_t callback_node_traverse(reiser4_place_t *place, void *data) {
 		return 0;
 	
 	res = repair_semantic_check_struct(sem, object);
-	
-	if (res)
+
+	if (repair_error_fatal(res))
 		goto error_close_object;
 	
 	/* Try to attach it somewhere -- at least to lost+found -- and 
@@ -468,13 +455,10 @@ static reiser4_object_t *repair_semantic_open_lost_found(repair_semantic_t *sem,
 	if (object == NULL)
 		return NULL;
 	
-	if ((res = repair_semantic_check_struct(sem, object)) < 0)
+	res = repair_semantic_check_struct(sem, object);
+
+	if (repair_error_fatal(res))
 		goto error_close_object;
-	
-	if (repair_error_fatal(res)) {
-		reiser4_object_close(object);
-		return NULL;
-	}
 	
 	while ((res = reiser4_object_readdir(object, &entry))) {
 		if (!aal_memcmp(entry.name, LOST_PREFIX, len)) {
@@ -487,7 +471,7 @@ static reiser4_object_t *repair_semantic_open_lost_found(repair_semantic_t *sem,
 	
  error_close_object:
 	reiser4_object_close(object);
-	return INVAL_PTR;
+	return res < 0 ? INVAL_PTR : NULL;
 }
 
 errno_t repair_semantic(repair_semantic_t *sem) {
