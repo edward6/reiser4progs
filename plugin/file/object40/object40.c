@@ -299,19 +299,19 @@ errno_t object40_insert(object40_t *file, reiser4_item_hint_t *hint,
 	  exception and return the error code.
 	*/
 	switch (object40_lookup(file, &hint->key, stop, place)) {
+	case LP_ABSENT:
+		if (file->core->tree_ops.insert(file->tree, place, hint)) {
+			aal_exception_error("Can't insert new item of file "
+					    "0x%llx into the tree.", objectid);
+			return -1;
+		}
+		break;
 	case LP_PRESENT:
 		aal_exception_error("Key already exists in the tree.");
 		return -1;
 	case LP_FAILED:
 		aal_exception_error("Lookup is failed while trying to insert "
 				    "new item into file 0x%llx.", objectid);
-		return -1;
-	}
-
-	/* Inserting new item/unit into the tree */
-	if (file->core->tree_ops.insert(file->tree, place, hint)) {
-		aal_exception_error("Can't insert new item of file "
-				    "0x%llx into the tree.", objectid);
 		return -1;
 	}
 

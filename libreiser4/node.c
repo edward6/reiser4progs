@@ -686,20 +686,25 @@ errno_t reiser4_node_shift(
 		POS_INIT(&pos, reiser4_node_items(neig) -
 			 hint->items - 1, ~0ul);
 
-		reiser4_node_uchildren(neig, &pos);
+		if (reiser4_node_uchildren(neig, &pos))
+			return -1;
 
 		/* Updating @node starting from the first item */
 		POS_INIT(&pos, 0, ~0ul);
 		
-		reiser4_node_uchildren(node, &pos);
+		if (reiser4_node_uchildren(node, &pos))
+			return -1;
 	} else {
 		rpos_t pos;
 
 		/* Updating neighbour starting from the first item */
 		POS_INIT(&pos, 0, ~0ul);
 
-		reiser4_node_uchildren(neig, &pos);
+		if (reiser4_node_uchildren(neig, &pos))
+			return -1;
 	}
+
+	return 0;
 }
 
 /*
