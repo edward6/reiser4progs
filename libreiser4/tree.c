@@ -2905,7 +2905,9 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 			reiser4_place_dup(&aplace, place);
 		} else {
 			reiser4_place_dup(&aplace, &place->node->p);
-			aplace.pos.item++;
+			
+			if (level == reiser4_node_get_level(place->node))
+				aplace.pos.item++;
 		}
 	} else {
 		reiser4_place_assign(&aplace, NULL, 0, MAX_UINT32);
