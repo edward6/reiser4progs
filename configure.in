@@ -347,6 +347,20 @@ AC_CACHE_CHECK([whether -Wuninitialized and friends work], [uninitialized], [
   CPPFLAGS="$saved_CPPFLAGS"
 ])
  
+AC_CACHE_CHECK([whether -Wno-unused-parameter works], [no_unused_parameter], [
+  saved_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="-Wno-unused-parameter"
+  AC_TRY_COMPILE(, , [no_unused_parameter=yes], [no_unused_parameter=no])
+  CPPFLAGS="$saved_CPPFLAGS"
+])
+ 
+AC_CACHE_CHECK([whether -Wredundant-decls works], [redundant_decls], [
+  saved_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="-Wredundant-decls"
+  AC_TRY_COMPILE(, , [redundant_decls=yes], [redundant_decls=no])
+  CPPFLAGS="$saved_CPPFLAGS"
+])
+ 
 # Force no alignment to save space.
 if test "x$falign_loop_flag" = xyes; then
   ALIGN_FLAGS="-falign-jumps=1 -falign-loops=1 -falign-functions=1 \
@@ -453,7 +467,13 @@ else
     fi
 fi
 
-CFLAGS="$CFLAGS -Wno-unused-parameter -Wredundant-decls"
+if test "x$no_unused_parameter" = xyes; then
+    CFLAGS="$CFLAGS -Wno-unused-parameter"
+fi
+
+if test "x$redundant_decls" = xyes; then
+    CFLAGS="$CFLAGS -Wredundant-decls"
+fi
 
 if test x$enable_Werror = xyes; then
     CFLAGS="$CFLAGS -Werror"
