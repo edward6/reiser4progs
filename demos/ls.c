@@ -1,7 +1,8 @@
 /* Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   ls.c -- a demo program which works like standard ls utility. */
+   ls.c -- a demo program which works like simple variant of standard ls
+   utility. */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -45,9 +46,6 @@ int main(int argc, char *argv[]) {
 		return 0xff;
 	}
 
-//	misc_param_override("hash=deg_hash");
-	misc_param_override("policy=tails");
-		
 	if (!(device = aal_device_open(&file_ops, argv[1], 
 				       512, O_RDWR))) 
 	{
@@ -73,39 +71,6 @@ int main(int argc, char *argv[]) {
 		goto error_free_root;
 	}
 
-	{
-		int i;
-		char name[256];
-		reiser4_object_t *object;
-	    
-		for (i = 0; i < 100000; i++) {
-			int j, count;
-			
-			aal_snprintf(name, 256, "file name%d", i);
-
-			if (!(object = reiser4_reg_create(fs, dir, name)))
-				goto error_free_dir;
-
-			count = 1;
-			
-			for (j = 0; j < count; j++) {
-				if (reiser4_object_write(object, name,
-							 aal_strlen(name)) < 0)
-				{
-					aal_error("Can't write data "
-						  "to file %s.", name);
-				}
-			}
-				
-			reiser4_object_close(object);
-		}
-	}
-	
-	if (reiser4_object_reset(dir)) {
-		aal_error("Can't reset directory %s.", argv[2]);
-		goto error_free_dir;
-	}
-
 	while (reiser4_object_readdir(dir, &entry) > 0) {
 		aal_snprintf(buff, sizeof(buff), "[%s] %s\n",
 			     reiser4_print_key(&entry.object, PO_DEFAULT),
@@ -123,8 +88,6 @@ int main(int argc, char *argv[]) {
     
 	return 0;
 
- error_free_dir:
-	reiser4_object_close(dir);
  error_free_root:
 	reiser4_object_close(fs->root);
  error_free_fs:

@@ -14,8 +14,8 @@ reiser4progs/COPYING.
 
 * check all place_fetch() occurences and remove redundant ones.
 
-* improve tree drying out and growing up in the sence of doing this
-  automaticaly. For instance, if tree_remove() removes lat item from
+* improve tree drying out and growing up in the sense of doing this
+  automaticaly. For instance, if tree_remove() removes last item from
   root node and releases it, tree should be dried out automatically in
   this moment. It would let us to call tree_remove() and tree_detach()
   from tree_dryout().
