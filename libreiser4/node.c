@@ -45,7 +45,7 @@ reiser4_node_t *reiser4_node_create(
 	node->device = device;
 
 	reiser4_node_mkclean(node);
-	POS_INIT(&node->pos, 0, ~0ul);
+	reiser4_place_assign(&node->parent, NULL, 0, ~0ul);
 	
 	return node;
 
@@ -64,39 +64,6 @@ errno_t reiser4_node_print(
 	
 	return plugin_call(node->entity->plugin->node_ops,
 			   print, node->entity, stream, 0);
-}
-
-/*
-  Returns TRUE if node->pos points to the the right nodeptr in parent node and
-  FALSE otherwise.
-*/
-bool_t reiser4_node_actual(reiser4_node_t *node) {
-	reiser4_key_t lkey;
-	reiser4_place_t place;
-
-	aal_assert("umka-1942", node != NULL);
-	aal_assert("umka-1943", node->parent != NULL);
-
-	if (node->pos.item >= reiser4_node_items(node->parent))
-		return FALSE;
-	
-	/* Initializing item in parent node node->pos points to */
-	if (reiser4_place_open(&place, node->parent, &node->pos))
-		return FALSE;
-
-	if (reiser4_item_realize(&place))
-		return FALSE;
-
-	if (node->pos.unit >= reiser4_item_units(&place))
-		return FALSE;
-
-	/*
-	  If node->pos points to correct key, we will not do anything and just
-	  return. Node lookup will be called otherwise.
-	*/
-	reiser4_node_lkey(node, &lkey);
-	
-	return (reiser4_key_compare(&place.item.key, &lkey) == 0);
 }
 
 #endif
@@ -176,9 +143,8 @@ reiser4_node_t *reiser4_node_open(
 #ifndef ENABLE_ALONE
 	reiser4_node_mkclean(node);
 #endif
-	
-	POS_INIT(&node->pos, 0, ~0ul);
-	
+
+	reiser4_place_assign(&node->parent, NULL, 0, ~0ul);
 	return node;
     
  error_free_node:
@@ -236,15 +202,15 @@ errno_t reiser4_node_pos(
 	reiser4_key_t lkey;
     
 	aal_assert("umka-869", node != NULL);
-	aal_assert("umka-1941", node->parent != NULL);
+	aal_assert("umka-1941", node->parent.node != NULL);
 
 	reiser4_node_lkey(node, &lkey);
 
-	res = reiser4_node_lookup(node->parent, &lkey,
-				  &node->pos);
+	res = reiser4_node_lookup(node->parent.node, &lkey,
+				  &node->parent.pos);
 
 	if (pos)
-		*pos = node->pos;
+		*pos = node->parent.pos;
     
 	return res == LP_PRESENT ? 0 : -1;
 }
@@ -325,10 +291,10 @@ errno_t reiser4_node_connect(reiser4_node_t *node,
 	current = aal_list_insert_sorted(node->children, child,
 					 callback_comp_node, NULL);
 	
-	child->parent = node;
+	child->parent.node = node;
 	
 	/* Updating node pos in parent node */
-	if ((res = reiser4_node_pos(child, &child->pos))) {
+	if ((res = reiser4_node_pos(child, &child->parent.pos))) {
 		aal_exception_error("Can't find child %llu in "
 				    "parent node %llu.",
 				    child->blk, node->blk);
@@ -351,7 +317,7 @@ errno_t reiser4_node_disconnect(
 	if (!node->children)
 		return -1;
     
-	child->parent = NULL;
+	child->parent.node = NULL;
     
 	/* Updating node children list */
 	next = aal_list_remove(node->children, child);
@@ -764,9 +730,9 @@ errno_t reiser4_node_uchildren(reiser4_node_t *node,
 	aal_list_foreach_forward(list, walk) {
 		reiser4_node_t *child = (reiser4_node_t *)walk->data;
 
-		aal_assert("umka-1886", child->parent == node);
+		aal_assert("umka-1886", child->parent.node == node);
 
-		if ((res = reiser4_node_pos(child, &child->pos)))
+		if ((res = reiser4_node_pos(child, &child->parent.pos)))
 			return res;
 	}
 	

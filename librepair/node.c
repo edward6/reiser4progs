@@ -179,8 +179,9 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
     aal_assert("vpf-344", ld_key != NULL);
     aal_assert("vpf-407", ld_key->plugin != NULL);
 
-    if (node->parent != NULL) {
-        if ((res = reiser4_place_open(&place, node->parent, &node->pos)))
+    if (node->parent.node != NULL) {
+        if ((res = reiser4_place_open(&place, node->parent.node,
+				      &node->parent.pos)))
 	    return res;
 	
 	if (reiser4_item_get_key(&place, ld_key))
@@ -202,10 +203,11 @@ static errno_t repair_node_ld_key_update(reiser4_node_t *node,
     aal_assert("vpf-468", ld_key != NULL);
     aal_assert("vpf-469", ld_key->plugin != NULL);
 
-    if (node->parent == NULL)
+    if (node->parent.node == NULL)
 	return 0;
 
-    if ((res = reiser4_place_open(&place, node->parent, &node->pos)))
+    if ((res = reiser4_place_open(&place, node->parent.node,
+				  &node->parent.pos)))
 	return res;
 
     return reiser4_item_set_key(&place, ld_key);
@@ -220,25 +222,26 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
     aal_assert("vpf-347", rd_key != NULL);
     aal_assert("vpf-408", rd_key->plugin != NULL);
 
-    if (node->parent != NULL) {
+    if (node->parent.node != NULL) {
 	/* Take the right delimiting key from the parent. */
 	
 	if (reiser4_node_pos(node, NULL))
 	    return -1;
 	
 	/* Open place in the parent at the correct position. */
-        if ((res = reiser4_place_open(&place, node->parent, &node->pos)))
+        if ((res = reiser4_place_open(&place, node->parent.node,
+				      &node->parent.pos)))
 	    return res;
 	
 	/* If this is the last position in the parent, call the method 
 	 * recursevely for the parent. Get the right delimiting key 
 	 * otherwise. */
 	
-	if ((reiser4_node_items(node->parent) == place.pos.item + 1) && 
+	if ((reiser4_node_items(node->parent.node) == place.pos.item + 1) && 
 	    (reiser4_item_units(&place) == place.pos.unit + 1 || 
 	     place.pos.unit == ~0ul)) 
 	{
-	    if (repair_node_rd_key(node->parent, rd_key))
+	    if (repair_node_rd_key(node->parent.node, rd_key))
 		return -1;
 	} else {
 	    place.pos.item++;
@@ -313,11 +316,11 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node) {
    	/* It is legal to have the left key in the node much then its left 
 	 * delimiting key - due to removing some items from the node, for 
 	 * example. Fix the delemiting key if we have parent. */
-	if (node->parent != NULL) {
+	if (node->parent.node != NULL) {
 	    aal_exception_error("Node (%llu): The left delimiting key %k in "
 		"the node (%llu), pos (%u/%u) mismatch the first key %k in the "
 		"node. Left delimiting key is fixed.", 
-		node->blk, &place.item.key, node->parent->blk, place.pos.item, 
+		node->blk, &place.item.key, node->parent.node->blk, place.pos.item, 
 		place.pos.unit, &d_key);
 	    if (repair_node_ld_key_update(node, &d_key)) 
 		return -1;

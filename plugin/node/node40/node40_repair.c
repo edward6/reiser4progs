@@ -119,6 +119,7 @@ static errno_t node40_item_array_check(node40_t *node, uint8_t mode) {
     aal_assert("vpf-208", node != NULL);
     aal_assert("vpf-209", node->block != NULL);
 
+    offset = 0;
     blk = aal_block_number(node->block);
     
     /* Free space fields cossider as valid if count calculated on the base of 
