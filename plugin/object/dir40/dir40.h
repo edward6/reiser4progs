@@ -35,14 +35,13 @@ typedef struct dir40 dir40_t;
 extern reiser4_plug_t dir40_plug;
 extern reiser4_core_t *dir40_core;
 
-extern lookup_t dir40_next(dir40_t *dir);
+extern lookup_t dir40_next(dir40_t *dir, int first);
 extern errno_t dir40_reset(object_entity_t *entity);
 
 extern lookup_t dir40_lookup(object_entity_t *entity,
 			     char *name, entry_hint_t *entry);
 
 extern errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry);
-extern int32_t dir40_belong(dir40_t *dir, reiser4_place_t *place);
 
 extern lookup_t dir40_update_body(object_entity_t *entity, int check_group);
 

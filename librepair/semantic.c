@@ -32,13 +32,22 @@ static errno_t callback_register_item(reiser4_place_t *place, void *data) {
         return 0;
 }
 
+static void repair_semantic_register_oid(repair_semantic_t *sem, oid_t oid) {
+	if (sem->stat.oid < oid)
+		sem->stat.oid = oid;
+}
+
 static errno_t repair_semantic_check_struct(repair_semantic_t *sem, 
 					    reiser4_object_t *object) 
 {
 	errno_t res = 0;
+	oid_t oid;
 	
 	aal_assert("vpf-1169", sem != NULL);
 	aal_assert("vpf-1170", object != NULL);
+	
+	oid = reiser4_key_get_objectid(&object->info->object);
+	repair_semantic_register_oid(sem, oid);
 	
 	/* Check struct if not the BUILD mode, if the fake object or 
 	   if has not been checked yet. */

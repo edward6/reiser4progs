@@ -221,6 +221,14 @@ uint64_t reiser4_oid_free(reiser4_oid_t *oid) {
 			 free, oid->entity);
 }
 
+/* Returns the first not used oid from passed oid allocator */
+uint64_t reiser4_oid_next(reiser4_oid_t *oid) {
+	aal_assert("umka-527", oid != NULL);
+    
+	return plug_call(oid->entity->plug->o.oid_ops, 
+			 get_next, oid->entity);
+}
+
 /* Checks specified oid allocator for validness */
 errno_t reiser4_oid_valid(reiser4_oid_t *oid) {
 	aal_assert("umka-962", oid != NULL);

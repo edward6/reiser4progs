@@ -584,6 +584,8 @@ static errno_t journal40_replay(generic_entity_t *entity) {
 
 	journal = (journal40_t *)entity;
 	
+	aal_memset(&count, 0, sizeof(count));
+	
 	/* Traverse the journal and replay all transactions. */
 	if ((res = journal40_traverse(journal, NULL, callback_replay, 
 				      callback_print_replay, &count)))

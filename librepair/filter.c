@@ -459,6 +459,7 @@ static void repair_filter_update(repair_filter_t *fd) {
 	reiser4_format_t *format;
 	aal_stream_t stream;
 	char *time_str;
+	uint8_t height;
 	
 	aal_assert("vpf-421", fd != NULL);
 	
@@ -495,6 +496,22 @@ static void repair_filter_update(repair_filter_t *fd) {
 		}
 	}
 
+	/* Check the tree height. */
+	height = reiser4_format_get_height(fd->repair->fs->format);
+	fd->level--;
+	if (height != fd->level) {
+		aal_mess("The tree height %u found in the format is wrong. "
+			 "%s %u.", height, fd->repair->mode == RM_CHECK ? 
+			 "Should be" : "Fixed to", fd->level);
+
+		if (fd->repair->mode == RM_CHECK) {
+			fd->repair->fixable++;
+		} else {
+			reiser4_format_set_height(fd->repair->fs->format, 
+						  fd->level);
+		}
+	}
+	
 	if (!fd->progress_handler)
 		return;
 

@@ -34,33 +34,6 @@ static errno_t dir40_telldir(object_entity_t *entity,
 }
 #endif
 
-/* This fucntion checks if passed @place points to item related to @entity, that
-   is belong to this directory. */
-int32_t dir40_belong(dir40_t *dir, reiser4_place_t *place) {
-	/* Checking if item component in @place->pos is valid one. This is
-	   needed because tree_lookup() does not fetch item data at place if it
-	   was not found. So, it may point to unexistent item and we should
-	   check this here. */
-	if (!obj40_valid_item(place))
-		return 0;
-
-	/* Fetching item info at @place. This is needed to make sue, that all
-	   @place fields are initialized rigth. Normally it is doing by
-	   tree_lookup(), if it is sure, that place points to valid postion in
-	   node. This happen if lookup found a key. Otherwise it leaves place
-	   not initialized and caller is supoposed to take care about. */
-	if (obj40_fetch_item(place))
-		return 0;
-	
-	/* Must be the same plugin. */
-	if (!plug_equal(dir->body.plug, place->plug))
-		return 0;
-	
-	/* Is the place of the same object? */
-	return plug_call(dir->position.plug->o.key_ops, compshort,
-			 &dir->position, &place->key) ? 0 : 1;
-}
-
 /* Close directiry instance. */
 static void dir40_close(object_entity_t *entity) {
 	aal_assert("umka-750", entity != NULL);
@@ -139,9 +112,10 @@ errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry) {
 	return 0;
 }
 
-/* Switches current dir body item onto next one. Returns PRESENT on success,
-   ABSENT in the case of directory is over and values < 0 on error. */
-lookup_t dir40_next(dir40_t *dir) {
+/* Switches current dir body item onto next one (if no one has found yet, 
+   @first == 1). Returns PRESENT on success, ABSENT in the case of directory 
+   is over and values < 0 on error. */
+lookup_t dir40_next(dir40_t *dir, int first) {
 	lookup_t res;
 	reiser4_place_t place;
 
@@ -155,7 +129,9 @@ lookup_t dir40_next(dir40_t *dir) {
 	}
 
 	/* Check if this item owned by this directory. */
-	if (!place.node || !dir40_belong(dir, &place)) {
+	if (!place.node || !obj40_belong(&place, first ? NULL : dir->body.plug,
+					 &dir->position))
+	{
 		uint64_t offset;
 		
 		/* Set offset to non-existent value as the end is reached. */
@@ -177,6 +153,21 @@ lookup_t dir40_next(dir40_t *dir) {
 	return PRESENT;
 }
 
+#define dir40_update_next(dir, first)			\
+{							\
+	/* Getting next directory item */		\
+	if ((res = dir40_next(dir, first)) < 0)		\
+		return res;				\
+							\
+	/* No more items in the tree. */		\
+	if (res == ABSENT)				\
+		return ABSENT;				\
+							\
+	/* Some item of the dir was found. */		\
+	if (adjust == 0)				\
+		return PRESENT;				\
+}
+
 /* Updates current body place by place found by @dir->position and
    @dir->adjust. */
 lookup_t dir40_update_body(object_entity_t *entity, int check_group) {
@@ -196,7 +187,9 @@ lookup_t dir40_update_body(object_entity_t *entity, int check_group) {
 
 	if (res == ABSENT) {
 		/* Directory is over. */
-		if (!dir40_belong(dir, &dir->body))
+		if (!obj40_valid_item(&dir->body)) {
+			dir40_update_next(dir, 1);
+		} else if (!obj40_belong(&dir->body, NULL, &dir->position))
 			return ABSENT;
 		
 		/* If ABSENT means there is no any dir item, check this again
@@ -225,18 +218,8 @@ lookup_t dir40_update_body(object_entity_t *entity, int check_group) {
 		entry_hint_t temp;
 
 		if (dir->body.pos.unit >= units) {
-			/* Getting next directory item */
-			if ((res = dir40_next(dir)) < 0)
-				return res;
+			dir40_update_next(dir, 0);
 			
-			/* No more items in the tree. */
-			if (res == ABSENT)
-				return ABSENT;
-			
-			/* Some item of the dir was found. */
-			if (adjust == 0) 
-				return PRESENT;
-
 			units = plug_call(dir->body.plug->o.item_ops->balance,
 					  units, &dir->body);
 		}
@@ -313,7 +296,7 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	/* Getting next entry in odrer to set up @dir->position correctly. */
 	if (++dir->body.pos.unit >= units) {
 		/* Switching to the next directory item */
-		if ((res = dir40_next(dir)) < 0)
+		if ((res = dir40_next(dir, 0)) < 0)
 			return res;
 	} else {
 		/* There is no needs to switch */
@@ -635,7 +618,7 @@ static errno_t dir40_truncate(object_entity_t *entity,
 		}
 
 		/* Checking if found item belongs this directory */
-		if (!dir40_belong(dir, &place))
+		if (!obj40_belong(&place, dir->body.plug, &dir->position))
 			return 0;
 
 		hint.count = 1;
@@ -968,7 +951,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 		}
 
 		/* Getting next directory item. */
-		if ((res = dir40_next(dir)) < 0)
+		if ((res = dir40_next(dir, 0)) < 0)
 			return res;
 
 		/* Directory is over? */
@@ -1011,7 +994,7 @@ static errno_t dir40_metadata(object_entity_t *entity,
 			return res;
 
 		/* Getting next item. */
-		if ((res = dir40_next(dir)) < 0)
+		if ((res = dir40_next(dir, 0)) < 0)
 			return res;
 		
 		if (res == ABSENT)

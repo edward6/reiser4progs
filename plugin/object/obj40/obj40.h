@@ -43,6 +43,10 @@ extern uint64_t obj40_get_size(obj40_t *obj);
 extern bool_t obj40_valid_item(reiser4_place_t *place);
 extern errno_t obj40_fetch_item(reiser4_place_t *place);
 
+extern int32_t obj40_belong(reiser4_place_t *place, 
+			    reiser4_plug_t *plug, 
+			    reiser4_key_t *key);
+
 extern lookup_t obj40_find_item(obj40_t *obj, reiser4_key_t *key,
 				lookup_bias_t bias, coll_func_t func,
 				coll_hint_t *hint, reiser4_place_t *place);

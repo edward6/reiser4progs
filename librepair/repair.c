@@ -24,7 +24,7 @@ typedef struct repair_control {
 	aux_bitmap_t *bm_alloc;
 
 	bool_t check_node;
-	uint64_t oid;
+	uint64_t oid, files;
 } repair_control_t;
 
 static errno_t repair_bitmap_compare(aux_bitmap_t *bm1, aux_bitmap_t *bm2, 
@@ -491,29 +491,25 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 	return 0;
 }
 
-static errno_t repair_sem_fini(repair_control_t *control) {
+static errno_t repair_sem_fini(repair_control_t *control, 
+			       repair_semantic_t *sem) {
 	uint64_t fs_len;
 
-	/* Build alloc on the base of bm_used, deallocate all bitmaps, 
-	   clear forbidden blocks in alloc. 
-	   In CHECK mode -- compare alloc bitmap and bm_used, sware, 
-	   error++ 
-	   In fixable mode == CHECK, but fix bitmaps if no fatal errors.
-	 */
+	control->oid = sem->stat.oid + 1;
 	
+	/* In the BUILD mode alloc was built on bm_used, nothing to do. */
 	if (control->repair->mode == RM_BUILD)
 		return 0;
 	
 	fs_len = reiser4_format_get_len(control->repair->fs->format);
 	
 	if (repair_bitmap_compare(control->bm_alloc, control->bm_used, 0)) {
-		aal_error("On-disk used blocks and really used "
-			  "blocks differ.%s", 
-			  control->repair->mode == RM_FIX && 
-			  !control->repair->fatal ? " Fixed." 
-			  : "");
+		aal_error("On-disk used blocks and really used blocks "
+			  "differ.%s", control->repair->mode == RM_FIX &&
+			  !control->repair->fatal ? " Fixed." : "");
 
-		if (control->repair->mode == RM_FIX && !control->repair->fatal)
+		if (control->repair->mode == RM_FIX && 
+		    !control->repair->fatal)
 		{
 			/* Assign the bm_used bitmap to the block allocator. */
 			reiser4_alloc_assign(control->repair->fs->alloc, 
@@ -524,10 +520,11 @@ static errno_t repair_sem_fini(repair_control_t *control) {
 			control->repair->fixable++;
 	}
 
-	aux_bitmap_close(control->bm_used);
 	aux_bitmap_close(control->bm_alloc);
-	control->bm_used = control->bm_alloc = NULL;
+	control->bm_alloc = NULL;
 	
+	/* Do not close bm_used here to get the free blocks count in update. */
+
 	control->repair->fs->alloc->hook.alloc = NULL;
 	control->repair->fs->alloc->hook.release = NULL;
 	control->repair->fs->alloc->hook.data = NULL;
@@ -588,15 +585,51 @@ static errno_t debug_am_prepare(repair_control_t *control, repair_am_t *am) {
 }
 
 static errno_t repair_update(repair_control_t *control) {
-	if (control->repair->mode == RM_CHECK)
-		return 0;
+	uint64_t correct, val;
+	reiser4_fs_t *fs;
+	uint8_t mode;
+
+	fs = control->repair->fs;
+	mode = control->repair->mode;
 	
-	/* FIXME: */
-	/* Check free blocks. */
-	/* Check oid. */
-	/* File count? */
-	/* Check flushes, mkfs_id ? */
-	/* Check tree height. */
+	/* Get the correct free blocks count from the block allocator if BUILD
+	   mode, otherwise from the used bitmap. */
+	correct = mode == RM_BUILD ? reiser4_alloc_free(fs->alloc) :
+		aux_bitmap_cleared(control->bm_used);
+	
+	val = reiser4_format_get_free(fs->format);
+	
+	if (correct != val) {
+		if (mode != RM_BUILD) {
+			aal_mess("Free block count %llu found in the format is "
+				 "wrong. %s %llu.", correct, mode == RM_CHECK ? 
+				 "Sould be" : "Fixed to", val);
+		}
+
+		if (mode != RM_CHECK)
+			reiser4_format_set_free(fs->format, correct);
+	}
+	
+	/* Check the next free oid. */
+	val = reiser4_oid_next(fs->oid);
+	
+	/* FIXME: This is oid40 specific fix, not correct. To be rewritten when
+	   shared oid handling will be realy. */
+	if (control->oid && control->oid != val) {
+		if (mode != RM_BUILD) {
+			aal_mess("First not used oid %llu is wrong. %s %llu.",
+				 control->oid, mode == RM_CHECK ? "Sould be" :
+				 "Fixed to", val);
+		}
+
+		if (mode != RM_CHECK) {
+			plug_call(fs->oid->entity->plug->o.oid_ops, set_next,
+				  fs->oid->entity, control->oid);
+		}
+	}
+	
+	/* The tree height should be set correctly at the filter pass. */
+	/* FIXME: File count is not ready. What about flushes, mkfs_id? */
 	
 	return 0;
 }
@@ -703,7 +736,7 @@ errno_t repair_check(repair_data_t *repair) {
 		if ((res = repair_semantic(&sem)))
 			goto error;
 
-		if ((res = repair_sem_fini(&control)))
+		if ((res = repair_sem_fini(&control, &sem)))
 			goto error;
 	}
 		

@@ -50,6 +50,36 @@ bool_t obj40_valid_item(reiser4_place_t *place) {
 	return (place->pos.item < items);
 }
 
+/* This fucntion checks if passed @place belongs to some object with the short 
+   @key and of the @plug. */
+int32_t obj40_belong(reiser4_place_t *place, 
+		     reiser4_plug_t *plug, 
+		     reiser4_key_t *key) 
+{
+	/* Checking if item component in @place->pos is valid one. This is
+	   needed because tree_lookup() does not fetch item data at place if it
+	   was not found. So, it may point to unexistent item and we should
+	   check this here. */
+	if (!obj40_valid_item(place))
+		return 0;
+
+	/* Fetching item info at @place. This is needed to make sue, that all
+	   @place fields are initialized rigth. Normally it is doing by
+	   tree_lookup(), if it is sure, that place points to valid postion in
+	   node. This happen if lookup found a key. Otherwise it leaves place
+	   not initialized and caller is supoposed to take care about. */
+	if (obj40_fetch_item(place))
+		return 0;
+	
+	/* Must be the same plugin. */
+	if (plug && !plug_equal(plug, place->plug))
+		return 0;
+	
+	/* Is the place of the same object? */
+	return plug_call(key->plug->o.key_ops, compshort, 
+			 key, &place->key) ? 0 : 1;
+}
+
 /* Performs lookup and returns result to caller */
 lookup_t obj40_find_item(obj40_t *obj, reiser4_key_t *key, 
 			 lookup_bias_t bias, coll_func_t func, 
