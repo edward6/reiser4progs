@@ -168,6 +168,8 @@ errno_t libreiser4_plugin_open(const char *name,
     
 	handle->fini = *((reiser4_plugin_fini_t *)addr);
 
+	handle->abort = libreiser4_abort;
+
 	return 0;
     
  error_free_handle:

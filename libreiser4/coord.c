@@ -31,22 +31,24 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 
 	entity = coord->node->entity;
 	
-	if ((pid = plugin_call(return -1, entity->plugin->node_ops,
-			       item_pid, entity, &coord->pos)) == INVAL_PID)
+	if ((pid = plugin_call(entity->plugin->node_ops, item_pid,
+			       entity, &coord->pos)) == INVAL_PID)
 	{
-		aal_exception_error("Invalid item plugin id has been detected.");
+		aal_exception_error("Invalid item plugin id has been "
+				    "detected.");
 		return -1;
 	}
 
 	item = &coord->item;
 	
 	if (!(item->plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, pid))) {
-		aal_exception_error("Can't find item plugin by its id 0x%x.", pid);
+		aal_exception_error("Can't find item plugin by its id "
+				    "0x%x.", pid);
 		return -1;
 	}
 
-	if (!(item->body = plugin_call(return -1, entity->plugin->node_ops,
-				       item_body, entity, &coord->pos)))
+	if (!(item->body = plugin_call(entity->plugin->node_ops, item_body,
+				       entity, &coord->pos)))
 	{
 		aal_exception_error("Can't get item body.");
 		return -1;
@@ -54,8 +56,8 @@ errno_t reiser4_coord_realize(reiser4_coord_t *coord) {
 
 	item->pos = coord->pos;
 	
-	item->len = plugin_call(return -1, entity->plugin->node_ops,
-				item_len, entity, &coord->pos);
+	item->len = plugin_call(entity->plugin->node_ops, item_len,
+				entity, &coord->pos);
 
 	item->con.blk = reiser4_coord_block(coord);
 	item->con.device = reiser4_coord_device(coord);

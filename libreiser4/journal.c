@@ -54,8 +54,7 @@ reiser4_journal_t *reiser4_journal_open(
 	   Initializing journal entity by means of calling "open" method from
 	   found journal plugin.
 	*/
-	if (!(journal->entity = plugin_call(goto error_free_journal, 
-					    plugin->journal_ops, open,
+	if (!(journal->entity = plugin_call(plugin->journal_ops, open,
 					    fs->format->entity, device,
 					    start, len))) 
 	{
@@ -111,8 +110,7 @@ reiser4_journal_t *reiser4_journal_create(
 	len = reiser4_format_get_len(fs->format);
 	
 	/* Initializing journal entity */
-	if (!(journal->entity = plugin_call(goto error_free_journal, 
-					    plugin->journal_ops, create,
+	if (!(journal->entity = plugin_call(plugin->journal_ops, create,
 					    fs->format->entity, device, start,
 					    len, hint))) 
 	{
@@ -136,7 +134,7 @@ errno_t reiser4_journal_layout(reiser4_journal_t *journal,
 	aal_assert("umka-1078", journal != NULL, return -1);
 	aal_assert("umka-1079", func != NULL, return -1);
 
-	return plugin_call(return -1, journal->entity->plugin->journal_ops,
+	return plugin_call(journal->entity->plugin->journal_ops,
 			   layout, journal->entity, func, data);
 }
 
@@ -153,7 +151,7 @@ errno_t reiser4_journal_replay(
 	}
 	
 	/* Calling plugin for actual replaying */
-	return plugin_call(return -1, journal->entity->plugin->journal_ops, 
+	return plugin_call(journal->entity->plugin->journal_ops, 
 			   replay, journal->entity);
 }
 
@@ -163,7 +161,7 @@ errno_t reiser4_journal_sync(
 {
 	aal_assert("umka-100", journal != NULL, return -1);
 
-	return plugin_call(return -1, journal->entity->plugin->journal_ops, 
+	return plugin_call(journal->entity->plugin->journal_ops, 
 			   sync, journal->entity);
 }
 
@@ -173,7 +171,7 @@ errno_t reiser4_journal_valid(
 {
 	aal_assert("umka-830", journal != NULL, return -1);
 
-	return plugin_call(return -1, journal->entity->plugin->journal_ops, 
+	return plugin_call(journal->entity->plugin->journal_ops, 
 			   valid, journal->entity);
 }
 
@@ -181,7 +179,7 @@ errno_t reiser4_journal_print(reiser4_journal_t *journal, aal_stream_t *stream) 
 	aal_assert("umka-1564", journal != NULL, return -1);
 	aal_assert("umka-1565", stream != NULL, return -1);
 
-	return plugin_call(return -1, journal->entity->plugin->journal_ops,
+	return plugin_call(journal->entity->plugin->journal_ops,
 			   print, journal->entity, stream, 0);
 }
 
@@ -193,7 +191,7 @@ void reiser4_journal_close(
 {
 	aal_assert("umka-102", journal != NULL, return);
     
-	plugin_call(return, journal->entity->plugin->journal_ops, 
+	plugin_call(journal->entity->plugin->journal_ops, 
 		    close, journal->entity);
     
 	aal_free(journal);

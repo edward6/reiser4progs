@@ -32,11 +32,8 @@ static errno_t tail40_get_key(item_entity_t *item,
 	
 	aal_memcpy(key, &item->key, sizeof(*key));
 
-	offset += plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, key);
-
-	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		    key, offset);
+	offset += plugin_call(key->plugin->key_ops, get_offset, key);
+	plugin_call(key->plugin->key_ops, set_offset, key, offset);
 
 	return 0;
 }
@@ -156,8 +153,8 @@ static errno_t tail40_print(item_entity_t *item, aal_stream_t *stream,
 
 	aal_stream_format(stream, "TAIL: len=%u, KEY: ", item->len);
 		
-	if (plugin_call(return -1, item->key.plugin->key_ops, print,
-			&item->key, stream, options))
+	if (plugin_call(item->key.plugin->key_ops, print, &item->key,
+			stream, options))
 		return -1;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
@@ -181,18 +178,13 @@ static errno_t tail40_max_poss_key(item_entity_t *item,
 
 	key->plugin = item->key.plugin;
 		
-	if (plugin_call(return -1, key->plugin->key_ops,
-			assign, key, &item->key))
+	if (plugin_call(key->plugin->key_ops, assign, key, &item->key))
 		return -1;
 	
-	maxkey = plugin_call(return -1, key->plugin->key_ops,
-			     maximal,);
+	maxkey = plugin_call(key->plugin->key_ops, maximal,);
+	offset = plugin_call(key->plugin->key_ops, get_offset, maxkey);
     
-	offset = plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, maxkey);
-    
-	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		    key, offset);
+	plugin_call(key->plugin->key_ops, set_offset, key, offset);
 
 	return 0;
 }
@@ -207,15 +199,13 @@ static errno_t tail40_max_real_key(item_entity_t *item,
 
 	key->plugin = item->key.plugin;
 	
-	if (plugin_call(return -1, key->plugin->key_ops,
-			assign, key, &item->key))
+	if (plugin_call(key->plugin->key_ops, assign, key, &item->key))
 		return -1;
 
-	offset = plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, key);
+	offset = plugin_call(key->plugin->key_ops, get_offset, key);
 	
-	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		key, offset + item->len - 1);
+	plugin_call(key->plugin->key_ops, set_offset, key,
+		    offset + item->len - 1);
 	
 	return 0;
 }
@@ -253,24 +243,18 @@ static int tail40_lookup(item_entity_t *item,
 	
 	tail40_max_poss_key(item, &maxkey);
 
-	if (plugin_call(return -1, key->plugin->key_ops,
-			compare, key, &maxkey) > 0)
-	{
+	if (plugin_call(key->plugin->key_ops, compare, key, &maxkey) > 0) {
 		*pos = item->len;
 		return 0;
 	}
 
 	curkey.plugin = key->plugin;
 	
-	if (plugin_call(return -1, curkey.plugin->key_ops,
-			assign, &curkey, &item->key))
+	if (plugin_call(curkey.plugin->key_ops, assign, &curkey, &item->key))
 		return -1;
 
-	current = plugin_call(return -1, key->plugin->key_ops,
-			      get_offset, &curkey);
-    
-	wanted = plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, key);
+	current = plugin_call(key->plugin->key_ops, get_offset, &curkey);
+    	wanted = plugin_call(key->plugin->key_ops, get_offset, key);
     
 	if (wanted >= current && wanted < current + item->len) {
 		*pos = wanted - current;
@@ -296,29 +280,20 @@ static int tail40_mergeable(item_entity_t *item1,
 
 	plugin = item1->key.plugin;
 		
-	locality1 = plugin_call(return -1, plugin->key_ops,
-				get_locality, &item1->key);
-
-	locality2 = plugin_call(return -1, plugin->key_ops,
-				get_locality, &item2->key);
+	locality1 = plugin_call(plugin->key_ops, get_locality, &item1->key);
+	locality2 = plugin_call(plugin->key_ops, get_locality, &item2->key);
 
 	if (locality1 != locality2)
 		return 0;
 	
-	objectid1 = plugin_call(return -1, plugin->key_ops,
-				get_objectid, &item1->key);
-	
-	objectid2 = plugin_call(return -1, plugin->key_ops,
-				get_objectid, &item2->key);
+	objectid1 = plugin_call(plugin->key_ops, get_objectid, &item1->key);
+	objectid2 = plugin_call(plugin->key_ops, get_objectid, &item2->key);
 
 	if (objectid1 != objectid1)
 		return 0;
 
-	offset1 = plugin_call(return -1, plugin->key_ops,
-			      get_offset, &item1->key);
-	
-	offset2 = plugin_call(return -1, plugin->key_ops,
-			      get_offset, &item2->key);
+	offset1 = plugin_call(plugin->key_ops, get_offset, &item1->key);
+	offset2 = plugin_call(plugin->key_ops, get_offset, &item2->key);
 
 	if (offset1 + item1->len != offset2)
 		return 0;
@@ -427,7 +402,7 @@ static errno_t tail40_shift(item_entity_t *src_item,
 static reiser4_plugin_t tail40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = ITEM_TAIL40_ID,
 			.group = TAIL_ITEM,
 			.type = ITEM_PLUGIN_TYPE,

@@ -114,14 +114,13 @@ static object_entity_t *symlink40_create(void *tree,
 		    core, tree);
 
 	/* Initializing parent key from the parent field of passed @hint */
-	plugin_call(goto error_free_symlink, hint->object.plugin->key_ops,
-		    assign, &symlink->parent, &hint->parent);
+	plugin_call(hint->object.plugin->key_ops, assign,
+		    &symlink->parent, &hint->parent);
 	
 	locality = file40_locality(&symlink->file);
 	objectid = file40_objectid(&symlink->file);
 
-	parent_locality = plugin_call(goto error_free_symlink,
-				      hint->object.plugin->key_ops, 
+	parent_locality = plugin_call(hint->object.plugin->key_ops, 
 				      get_locality, &hint->parent);
 
 	/* Getting statdata plugin */
@@ -139,8 +138,8 @@ static object_entity_t *symlink40_create(void *tree,
     
 	stat_hint.key.plugin = hint->object.plugin;
 	
-	plugin_call(goto error_free_symlink, hint->object.plugin->key_ops,
-		    assign, &stat_hint.key, &hint->object);
+	plugin_call(hint->object.plugin->key_ops, assign,
+		    &stat_hint.key, &hint->object);
     
 	/*
 	  Initializing stat data item hint. Here we set up the extentions mask
@@ -258,11 +257,8 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	item = &symlink->file.statdata.item;
 		
 	/* Setting up the file key */
-	plugin_call(return -1, key->plugin->key_ops, set_type,
-		    key, KEY_STATDATA_TYPE);
-	
-	plugin_call(return -1, key->plugin->key_ops, set_offset,
-		    key, 0);
+	plugin_call(key->plugin->key_ops, set_type, key, KEY_STATDATA_TYPE);
+	plugin_call(key->plugin->key_ops, set_offset, key, 0);
 
 	/* Performing lookup for statdata of current directory */
 	if (file40_lookup(file, key, LEAF_LEVEL, &file->statdata) != PRESENT) {
@@ -285,7 +281,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	/* Symlinks handling. Method "follow" should be implemented */
 	if (plugin->file_ops.follow) {
 		
-		if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
+		if (!(entity = plugin_call(plugin->file_ops, open, 
 					   symlink->file.tree, place)))
 		{
 			aal_exception_error("Can't open parent of directory "
@@ -298,16 +294,16 @@ static errno_t callback_find_statdata(char *track, char *entry,
 			goto error_free_entity;
 		}
 
-		plugin_call(return -1, plugin->file_ops, close, entity);
+		plugin_call(plugin->file_ops, close, entity);
 	}
 	
-	plugin_call(return -1, symlink->file.key.plugin->key_ops,
+	plugin_call(symlink->file.key.plugin->key_ops,
 		    assign, &symlink->parent, &symlink->file.key);
 
 	return 0;
 
  error_free_entity:
-	plugin_call(return -1, plugin->file_ops, close, entity);
+	plugin_call(plugin->file_ops, close, entity);
 	return -1;
 }
 
@@ -333,7 +329,7 @@ static errno_t callback_find_entry(char *track, char *entry,
 	}
 
 	/* Opening currect diretory */
-	if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
+	if (!(entity = plugin_call(plugin->file_ops, open, 
 				   symlink->file.tree, place)))
 	{
 		aal_exception_error("Can't open parent of directory "
@@ -342,18 +338,18 @@ static errno_t callback_find_entry(char *track, char *entry,
 	}
 
 	/* Looking up for @enrty in current directory */
-	if (plugin_call(goto error_free_entity, plugin->file_ops, lookup,
-			entity, entry, &symlink->file.key) != PRESENT)
+	if (plugin_call(plugin->file_ops, lookup, entity, entry,
+			&symlink->file.key) != PRESENT)
 	{
 		aal_exception_error("Can't find %s.", track);
 		goto error_free_entity;
 	}
 
-	plugin_call(return -1, plugin->file_ops, close, entity);
+	plugin_call(plugin->file_ops, close, entity);
 	return 0;
 	
  error_free_entity:
-	plugin_call(return -1, plugin->file_ops, close, entity);
+	plugin_call(plugin->file_ops, close, entity);
 	return -1;
 
 }
@@ -391,7 +387,7 @@ static errno_t symlink40_follow(object_entity_t *entity,
 		symlink->file.core->tree_ops.rootkey(symlink->file.tree,
 						     &symlink->file.key);
 	} else {
-		plugin_call(return -1, plugin->key_ops, assign,
+		plugin_call(plugin->key_ops, assign,
 			    &symlink->file.key, &symlink->parent);
 	}
 
@@ -400,8 +396,7 @@ static errno_t symlink40_follow(object_entity_t *entity,
 
 	/* If there is no errors, we assign result ot passed @key */
 	if (res == 0) {
-		plugin_call(return -1, plugin->key_ops, assign,
-			    key, &symlink->file.key);
+		plugin_call(plugin->key_ops, assign, key, &symlink->file.key);
 	}
 
 	return res;
@@ -422,7 +417,7 @@ static void symlink40_close(object_entity_t *entity) {
 static reiser4_plugin_t symlink40_plugin = {
 	.file_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = FILE_SYMLINK40_ID,
 			.group = SYMLINK_FILE,
 			.type = FILE_PLUGIN_TYPE,

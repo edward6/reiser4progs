@@ -76,7 +76,7 @@ static errno_t callback_find_statdata(char *track, char *entry, void *data) {
 		/* Opening file */
 		place = (reiser4_place_t *)&file->coord;
 		
-		if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
+		if (!(entity = plugin_call(plugin->file_ops, open, 
 					   file->fs->tree, place)))
 		{
 			aal_exception_error("Can't open parent of %s.", track);
@@ -88,14 +88,14 @@ static errno_t callback_find_statdata(char *track, char *entry, void *data) {
 			goto error_free_entity;
 		}
 		
-		plugin_call(return -1, plugin->file_ops, close, entity);
+		plugin_call(plugin->file_ops, close, entity);
 	}
 	
 	reiser4_key_assign(&file->dir, &file->key);
 	return 0;
 
  error_free_entity:
-	plugin_call(return -1, plugin->file_ops, close, entity);
+	plugin_call(plugin->file_ops, close, entity);
 	return -1;
 }
 
@@ -118,7 +118,7 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	/* Opening currect diretory */
 	place = (reiser4_place_t *)&file->coord;
 		
-	if (!(entity = plugin_call(return -1, plugin->file_ops, open, 
+	if (!(entity = plugin_call(plugin->file_ops, open, 
 				   file->fs->tree, place)))
 	{
 		aal_exception_error("Can't open parent of directory "
@@ -127,18 +127,18 @@ static errno_t callback_find_entry(char *track, char *entry, void *data) {
 	}
 
 	/* Looking up for @enrty in current directory */
-	if (plugin_call(goto error_free_entity, plugin->file_ops, lookup,
-			entity, entry, &file->key) != PRESENT)
+	if (plugin_call(plugin->file_ops, lookup, entity,
+			entry, &file->key) != PRESENT)
 	{
 		aal_exception_error("Can't find %s.", track);
 		goto error_free_entity;
 	}
 
-	plugin_call(return -1, plugin->file_ops, close, entity);
+	plugin_call(plugin->file_ops, close, entity);
 	return 0;
 	
  error_free_entity:
-	plugin_call(return -1, plugin->file_ops, close, entity);
+	plugin_call(plugin->file_ops, close, entity);
 	return -1;
 }
 
@@ -206,8 +206,8 @@ reiser4_file_t *reiser4_file_begin(
 
 	place = (reiser4_place_t *)&file->coord;
 		
-	if (!(file->entity = plugin_call(goto error_free_file, plugin->file_ops,
-					 open, fs->tree, place)))
+	if (!(file->entity = plugin_call(plugin->file_ops, open,
+					 fs->tree, place)))
 	{
 		aal_exception_error("Can't open %s.", file->name);
 		goto error_free_file;
@@ -263,7 +263,7 @@ reiser4_file_t *reiser4_file_open(
     
 	place = (reiser4_place_t *)&file->coord;
 	
-	if (!(file->entity = plugin_call(goto error_free_file, plugin->file_ops,
+	if (!(file->entity = plugin_call(plugin->file_ops,
 					 open, fs->tree, place)))
 	{
 		aal_exception_error("Can't open %s.", name);
@@ -286,7 +286,7 @@ errno_t reiser4_file_truncate(
 	aal_assert("umka-1154", file != NULL, return -1);
 	aal_assert("umka-1155", file->entity != NULL, return -1);
     
-	return plugin_call(return -1, file->entity->plugin->file_ops, 
+	return plugin_call(file->entity->plugin->file_ops, 
 			   truncate, file->entity, n);
 }
 
@@ -299,7 +299,7 @@ errno_t reiser4_file_write(
 	aal_assert("umka-862", file != NULL, return -1);
 	aal_assert("umka-863", file->entity != NULL, return -1);
     
-	return plugin_call(return -1, file->entity->plugin->file_ops, 
+	return plugin_call(file->entity->plugin->file_ops, 
 			   write, file->entity, buff, n);
 }
 
@@ -394,7 +394,7 @@ reiser4_file_t *reiser4_file_create(
 		}
 	}
 
-	if (!(file->entity = plugin_call(goto error_free_file, plugin->file_ops,
+	if (!(file->entity = plugin_call(plugin->file_ops,
 					 create, fs->tree, hint)))
 	{
 		aal_exception_error("Can't create file with oid 0x%llx.", 
@@ -443,7 +443,7 @@ void reiser4_file_close(
 	aal_assert("umka-680", file != NULL, return);
 	aal_assert("umka-1149", file->entity != NULL, return);
 
-	plugin_call(goto error_free_file, file->entity->plugin->file_ops,
+	plugin_call(file->entity->plugin->file_ops,
 		    close, file->entity);
     
  error_free_file:
@@ -457,7 +457,7 @@ errno_t reiser4_file_reset(
 	aal_assert("umka-842", file != NULL, return -1);
 	aal_assert("umka-843", file->entity != NULL, return -1);
 
-	return plugin_call(return -1, file->entity->plugin->file_ops, 
+	return plugin_call(file->entity->plugin->file_ops, 
 			   reset, file->entity);
 }
 
@@ -469,7 +469,7 @@ int32_t reiser4_file_read(
 	aal_assert("umka-860", file != NULL, return -1);
 	aal_assert("umka-861", file->entity != NULL, return -1);
 
-	return plugin_call(return -1, file->entity->plugin->file_ops, 
+	return plugin_call(file->entity->plugin->file_ops, 
 			   read, file->entity, buff, n);
 }
 
@@ -480,7 +480,7 @@ uint32_t reiser4_file_offset(
 	aal_assert("umka-875", file != NULL, return -1);
 	aal_assert("umka-876", file->entity != NULL, return -1);
 
-	return plugin_call(return -1, file->entity->plugin->file_ops, 
+	return plugin_call(file->entity->plugin->file_ops, 
 			   offset, file->entity);
 }
 
@@ -492,7 +492,7 @@ errno_t reiser4_file_seek(
 	aal_assert("umka-1129", file != NULL, return -1);
 	aal_assert("umka-1153", file->entity != NULL, return -1);
     
-	return plugin_call(return -1, file->entity->plugin->file_ops, 
+	return plugin_call(file->entity->plugin->file_ops, 
 			   seek, file->entity, offset);
 }
 

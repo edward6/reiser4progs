@@ -18,7 +18,7 @@ errno_t repair_node_child_max_real_key(reiser4_coord_t *parent, reiser4_key_t *k
 	item_entity_t *item = &parent->item;
 	reiser4_ptr_hint_t ptr;
 
-	if (plugin_call(return -1, item->plugin->item_ops, fetch, item, 
+	if (plugin_call(item->plugin->item_ops, fetch, item, 
 	    &ptr, parent->pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
 	    return -1;
 
@@ -109,7 +109,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 
 	/* Check that the item is legal for this node. If not, it will be 
 	 * deleted in update traverse callback method. */
-	if ((res = plugin_call(return -1, node->entity->plugin->node_ops, 
+	if ((res = plugin_call(node->entity->plugin->node_ops, 
 	    item_legal, node->entity, coord.item.plugin)))
 	    return res;
 
@@ -385,7 +385,7 @@ errno_t repair_node_check(reiser4_node_t *node, aux_bitmap_t *bm_used) {
     aal_assert("vpf-193", node->entity != NULL, return -1);    
     aal_assert("vpf-220", node->entity->plugin != NULL, return -1);
 
-    if ((res = plugin_call(return -1, node->entity->plugin->node_ops, 
+    if ((res = plugin_call(node->entity->plugin->node_ops, 
 	check, node->entity)))
 	return res;
 

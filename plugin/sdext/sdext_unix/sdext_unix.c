@@ -111,7 +111,7 @@ static errno_t sdext_unix_print(reiser4_body_t *body, aal_stream_t *stream,
 static reiser4_plugin_t sdext_unix_plugin = {
 	.sdext_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = SDEXT_UNIX_ID,
 			.group = 0,
 			.type = SDEXT_PLUGIN_TYPE,

@@ -28,13 +28,14 @@ reiser4_node_t *reiser4_node_create(
 
 	/* Finding the node plugin by its id */
 	if (!(plugin = libreiser4_factory_ifind(NODE_PLUGIN_TYPE, pid))) {
-		aal_exception_error("Can't find node plugin by its id 0x%x.", pid);
+		aal_exception_error("Can't find node plugin by its id "
+				    "0x%x.", pid);
 		goto error_free_node;
 	}
     
 	/* Requesting the plugin for initialization of the entity */
-	if (!(node->entity = plugin_call(goto error_free_node, plugin->node_ops,
-					 create, device, blk, level))) 
+	if (!(node->entity = plugin_call(plugin->node_ops, create, device,
+					 blk, level))) 
 	{
 		aal_exception_error("Can't create node entity.");
 		goto error_free_node;
@@ -57,7 +58,7 @@ errno_t reiser4_node_print(
 	aal_assert("umka-1537", node != NULL, return -1);
 	aal_assert("umka-1538", stream != NULL, return -1);
 	
-	return plugin_call(return -1, node->entity->plugin->node_ops,
+	return plugin_call(node->entity->plugin->node_ops,
 			   print, node->entity, stream, 0);
 }
 
@@ -81,11 +82,11 @@ static errno_t callback_guess_node(reiser4_plugin_t *plugin, void *data) {
 		  Requesting block supposed to be a correct node to be opened
 		  and confirmed about its format.
 		*/
-		if (!(guess->entity = plugin_call(return -1, plugin->node_ops,
-						  open, guess->device, guess->blk)))
+		if (!(guess->entity = plugin_call(plugin->node_ops, open,
+						  guess->device, guess->blk)))
 			return -1;
 
-		if (plugin_call(return -1, plugin->node_ops, confirm, guess->entity))
+		if (plugin_call(plugin->node_ops, confirm, guess->entity))
 			return 1;
 
 	}
@@ -190,8 +191,7 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 	  Calling close method from the plugin in odrder to finilize own
 	  entity.
 	*/
-	plugin_call(return -1, node->entity->plugin->node_ops,
-		    close, node->entity);
+	plugin_call(node->entity->plugin->node_ops, close, node->entity);
 	    
 	aal_free(node);
 
@@ -246,7 +246,7 @@ errno_t reiser4_node_release(reiser4_node_t *node) {
 	  Calling close method from the plugin in odrder to finilize own
 	  entity.
 	*/
-	plugin_call(return -1, node->entity->plugin->node_ops,
+	plugin_call(node->entity->plugin->node_ops,
 		    close, node->entity);
 	    
 	aal_free(node);
@@ -483,8 +483,8 @@ reiser4_node_t *reiser4_node_neighbour(reiser4_node_t *node,
 		if (!reiser4_item_nodeptr(&coord))
 			return node;
 			
-		plugin_call(return NULL, coord.item.plugin->item_ops,
-			    fetch, &coord.item, &ptr, 0, 1);
+		plugin_call(coord.item.plugin->item_ops, fetch,
+			    &coord.item, &ptr, 0, 1);
 
 		if (!(child = reiser4_node_cbp(node, ptr.ptr))) {
 			aal_device_t *device = node->tree->fs->device;
@@ -653,7 +653,7 @@ void reiser4_node_detach(
 int reiser4_node_confirm(reiser4_node_t *node) {
 	aal_assert("umka-123", node != NULL, return 0);
     
-	return plugin_call(return 0, node->entity->plugin->node_ops, 
+	return plugin_call(node->entity->plugin->node_ops, 
 			   confirm, node->entity);
 }
 
@@ -683,7 +683,7 @@ int reiser4_node_lookup(
 		return 0;
    
 	/* Calling node plugin */
-	if ((result = plugin_call(return -1, node->entity->plugin->node_ops,
+	if ((result = plugin_call(node->entity->plugin->node_ops,
 				  lookup, node->entity, key, pos)) == -1) 
 	{
 		aal_exception_error("Lookup in the node %llu failed.",
@@ -733,14 +733,14 @@ int reiser4_node_lookup(
 uint32_t reiser4_node_items(reiser4_node_t *node) {
 	aal_assert("umka-453", node != NULL, return 0);
     
-	return plugin_call(return 0, node->entity->plugin->node_ops, 
+	return plugin_call(node->entity->plugin->node_ops, 
 			   items, node->entity);
 }
 /* Returns free space of specified node */
 uint16_t reiser4_node_space(reiser4_node_t *node) {
 	aal_assert("umka-455", node != NULL, return 0);
     
-	return plugin_call(return 0, node->entity->plugin->node_ops, 
+	return plugin_call(node->entity->plugin->node_ops, 
 			   space, node->entity);
 }
 
@@ -748,7 +748,7 @@ uint16_t reiser4_node_space(reiser4_node_t *node) {
 uint16_t reiser4_node_overhead(reiser4_node_t *node) {
 	aal_assert("vpf-066", node != NULL, return 0);
 
-	return plugin_call(return 0, node->entity->plugin->node_ops, 
+	return plugin_call(node->entity->plugin->node_ops, 
 			   overhead, node->entity);
 }
 
@@ -756,7 +756,7 @@ uint16_t reiser4_node_overhead(reiser4_node_t *node) {
 uint16_t reiser4_node_maxspace(reiser4_node_t *node) {
 	aal_assert("umka-125", node != NULL, return 0);
     
-	return plugin_call(return 0, node->entity->plugin->node_ops, 
+	return plugin_call(node->entity->plugin->node_ops, 
 			   maxspace, node->entity);
 }
 
@@ -766,7 +766,7 @@ errno_t reiser4_node_valid(
 {
 	aal_assert("umka-123", node != NULL, return -1);
     
-	return plugin_call(return -1, node->entity->plugin->node_ops, 
+	return plugin_call(node->entity->plugin->node_ops, 
 			   valid, node->entity);
 }
 
@@ -775,7 +775,7 @@ uint8_t reiser4_node_level(
 {
 	aal_assert("umka-1642", node != NULL, return -1);
     
-	return plugin_call(return -1, node->entity->plugin->node_ops, 
+	return plugin_call(node->entity->plugin->node_ops, 
 			   level, node->entity);
 }
 
@@ -833,7 +833,7 @@ errno_t reiser4_node_shift(
 	*/
 	plugin = node->entity->plugin;
 	
-	retval = plugin_call(return -1, plugin->node_ops, shift,
+	retval = plugin_call(plugin->node_ops, shift,
 			     node->entity, neig->entity, hint);
 
 	if (retval < 0)
@@ -896,7 +896,7 @@ errno_t reiser4_node_shift(
 
 		for (ppos.unit = 0; ppos.unit < units; ppos.unit++) {
 			
-			plugin_call(return -1, coord.item.plugin->item_ops,
+			plugin_call(coord.item.plugin->item_ops,
 				    fetch, &coord.item, &ptr, ppos.unit, 1);
 			
 			if (!(child = reiser4_node_cbp(node, ptr.ptr)))
@@ -928,12 +928,12 @@ errno_t reiser4_node_sync(
 	/* Synchronizing passed @node */
 	if (reiser4_node_isdirty(node)) {
 
-		if (plugin_call(return -1, node->entity->plugin->node_ops,
+		if (plugin_call(node->entity->plugin->node_ops,
 				sync, node->entity))
 		{
 			aal_device_t *device = node->device;
-			aal_exception_error("Can't synchronize node %llu to device. %s.", 
-					    node->blk, device->error);
+			aal_exception_error("Can't synchronize node %llu to "
+					    "device. %s.", node->blk, device->error);
 
 			return -1;
 		}
@@ -1058,11 +1058,11 @@ errno_t reiser4_node_insert(
 	   pos->item.
 	*/
 	if (pos->unit == ~0ul) {
-		if ((ret = plugin_call(return -1, node->entity->plugin->node_ops, 
+		if ((ret = plugin_call(node->entity->plugin->node_ops, 
 				       insert, node->entity, pos, hint)) != 0)
 			return ret;
 	} else {
-		if ((ret = plugin_call(return -1, node->entity->plugin->node_ops, 
+		if ((ret = plugin_call(node->entity->plugin->node_ops, 
 				       paste, node->entity, pos, hint)) != 0)
 			return ret;
 	}
@@ -1130,7 +1130,7 @@ errno_t reiser4_node_remove(
 	  unit component is setted up.
 	*/
 	if (pos->unit == ~0ul) {
-		return plugin_call(return -1, node->entity->plugin->node_ops, 
+		return plugin_call(node->entity->plugin->node_ops, 
 				   remove, node->entity, pos);
 	} else {
 
@@ -1139,10 +1139,10 @@ errno_t reiser4_node_remove(
 		  also remove item itself.
 		*/
 		if (reiser4_item_units(&coord) > 1) {
-			return plugin_call(return -1, node->entity->plugin->node_ops, 
+			return plugin_call(node->entity->plugin->node_ops, 
 					   cut, node->entity, pos);
 		} else {
-			return plugin_call(return -1, node->entity->plugin->node_ops, 
+			return plugin_call(node->entity->plugin->node_ops, 
 					   remove, node->entity, pos);
 		}
 	}
@@ -1215,8 +1215,8 @@ errno_t reiser4_node_traverse(
 			reiser4_ptr_hint_t ptr;
 
 			/* Fetching node ptr */
-			plugin_call(continue, coord.item.plugin->item_ops,
-				    fetch, &coord.item, &ptr, pos->unit, 1);
+			plugin_call(coord.item.plugin->item_ops, fetch,
+				    &coord.item, &ptr, pos->unit, 1);
 		
 			if (ptr.ptr != INVAL_BLK && ptr.ptr != 0) {
 				child = NULL;

@@ -50,7 +50,7 @@ static uint64_t extent40_size(item_entity_t *item) {
 }
 
 /*
-  Builds the ley of an unit ar @pos and stores it inside passed @key
+  Builds the key of the unit at @pos and stores it inside passed @key
   variable. It is needed for updating item key after shifting, etc.
 */
 static errno_t extent40_unit_key(item_entity_t *item,
@@ -69,8 +69,7 @@ static errno_t extent40_unit_key(item_entity_t *item,
 	
 	aal_memcpy(key, &item->key, sizeof(*key));
 		
-	offset = plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, key);
+	offset = plugin_call(key->plugin->key_ops, get_offset, key);
 
 	extent = extent40_body(item);
 	blocksize = extent40_blocksize(item);
@@ -79,8 +78,7 @@ static errno_t extent40_unit_key(item_entity_t *item,
 	for (i = 0; i < pos; i++, extent++)
 		offset += et40_get_width(extent) * blocksize;
 
-	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		    key, offset);
+	plugin_call(key->plugin->key_ops, set_offset, key, offset);
 	
 	return 0;
 }
@@ -102,11 +100,8 @@ static errno_t extent40_get_key(item_entity_t *item,
 	
 	aal_memcpy(key, &item->key, sizeof(*key));
 		
-	offset += plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, key);
-
-	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		    key, offset);
+	offset += plugin_call(key->plugin->key_ops, get_offset, key);
+	plugin_call(key->plugin->key_ops, set_offset, key, offset);
 	
 	return 0;
 }
@@ -251,8 +246,8 @@ static errno_t extent40_print(item_entity_t *item,
 
 	aal_stream_format(stream, "EXTENT: len=%u, KEY: ", item->len);
 		
-	if (plugin_call(return -1, item->key.plugin->key_ops, print,
-			&item->key, stream, options))
+	if (plugin_call(item->key.plugin->key_ops, print, &item->key,
+			stream, options))
 		return -1;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
@@ -286,18 +281,13 @@ static errno_t extent40_max_poss_key(item_entity_t *item,
 
 	key->plugin = item->key.plugin;
 	
-	if (plugin_call(return -1, key->plugin->key_ops,
-			assign, key, &item->key))
+	if (plugin_call(key->plugin->key_ops, assign, key, &item->key))
 		return -1;
     
-	maxkey = plugin_call(return -1, key->plugin->key_ops,
-			     maximal,);
+	maxkey = plugin_call(key->plugin->key_ops, maximal,);
     
-	offset = plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, maxkey);
-    
-	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		    key, offset);
+	offset = plugin_call(key->plugin->key_ops, get_offset, maxkey);
+    	plugin_call(key->plugin->key_ops, set_offset, key, offset);
 
 	return 0;
 }
@@ -314,12 +304,10 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 
 	key->plugin = item->key.plugin;
 	
-	if (plugin_call(return -1, key->plugin->key_ops,
-			assign, key, &item->key))
+	if (plugin_call(key->plugin->key_ops, assign, key, &item->key))
 		return -1;
 			
-	if ((offset = plugin_call(return -1, key->plugin->key_ops,
-				  get_offset, key)))
+	if ((offset = plugin_call(key->plugin->key_ops, get_offset, key)))
 		return -1;
 	
 	blocksize = extent40_blocksize(item);
@@ -339,8 +327,7 @@ static errno_t extent40_max_real_key(item_entity_t *item,
 		offset += delta;
 	}
 
-	plugin_call(return -1, key->plugin->key_ops, set_offset,
-		    key, offset - 1);
+	plugin_call(key->plugin->key_ops, set_offset, key, offset - 1);
 	
 	return 0;	
 }
@@ -373,18 +360,13 @@ static int extent40_lookup(item_entity_t *item,
 	if (!(units = extent40_units(item)))
 		return -1;
 
-	if (plugin_call(return -1, key->plugin->key_ops,
-			compare, key, &maxkey) > 0)
-	{
+	if (plugin_call(key->plugin->key_ops, compare, key, &maxkey) > 0) {
 		*pos = extent40_size(item);
 		return 0;
 	}
 
-	lookuped = plugin_call(return -1, key->plugin->key_ops,
-			       get_offset, key);
-
-	offset = plugin_call(return -1, key->plugin->key_ops,
-			     get_offset, &item->key);
+	lookuped = plugin_call(key->plugin->key_ops, get_offset, key);
+	offset = plugin_call(key->plugin->key_ops, get_offset, &item->key);
 
 	blocksize = item->con.device->blocksize;
 		
@@ -466,10 +448,10 @@ static int32_t extent40_fetch(item_entity_t *item, void *buff,
 			return -1;
 		
 		/* Calculating in-unit local offset */
-		offset = plugin_call(return -1, item->key.plugin->key_ops,
+		offset = plugin_call(item->key.plugin->key_ops,
 				     get_offset, &key);
 
-		offset -= plugin_call(return -1, item->key.plugin->key_ops,
+		offset -= plugin_call(item->key.plugin->key_ops,
 				      get_offset, &item->key);
 
 		start += ((pos - offset) / blocksize);
@@ -585,29 +567,20 @@ static int extent40_mergeable(item_entity_t *item1, item_entity_t *item2) {
 
 	plugin = item1->key.plugin;
 	
-	locality1 = plugin_call(return -1, plugin->key_ops,
-				get_locality, &item1->key);
-
-	locality2 = plugin_call(return -1, plugin->key_ops,
-				get_locality, &item2->key);
+	locality1 = plugin_call(plugin->key_ops, get_locality, &item1->key);
+	locality2 = plugin_call(plugin->key_ops, get_locality, &item2->key);
 
 	if (locality1 != locality2)
 		return 0;
 	
-	objectid1 = plugin_call(return -1, plugin->key_ops,
-				get_objectid, &item1->key);
-	
-	objectid2 = plugin_call(return -1, plugin->key_ops,
-				get_objectid, &item2->key);
+	objectid1 = plugin_call(plugin->key_ops, get_objectid, &item1->key);
+	objectid2 = plugin_call(plugin->key_ops, get_objectid, &item2->key);
 
 	if (objectid1 != objectid1)
 		return 0;
 
-	offset1 = plugin_call(return -1, plugin->key_ops,
-			      get_offset, &item1->key);
-	
-	offset2 = plugin_call(return -1, plugin->key_ops,
-			      get_offset, &item2->key);
+	offset1 = plugin_call(plugin->key_ops, get_offset, &item1->key);
+	offset2 = plugin_call(plugin->key_ops, get_offset, &item2->key);
 
 	if (offset1 + extent40_size(item1) != offset2)
 		return 0;
@@ -721,7 +694,7 @@ static errno_t extent40_shift(item_entity_t *src_item,
 static reiser4_plugin_t extent40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = ITEM_EXTENT40_ID,
 			.group = EXTENT_ITEM,
 			.type = ITEM_PLUGIN_TYPE,

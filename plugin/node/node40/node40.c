@@ -504,11 +504,10 @@ static errno_t node40_insert(object_entity_t *entity, reiser4_pos_t *pos,
 		return -1;
 
 	/* Calling item plugin to perform initializing the item. */
-	if (plugin_call(return -1, hint->plugin->item_ops, init, &item))
+	if (plugin_call(hint->plugin->item_ops, init, &item))
 		return -1;
 
-	return plugin_call(return -1, hint->plugin->item_ops,
-			   insert, &item, hint, 0);
+	return plugin_call(hint->plugin->item_ops, insert, &item, hint, 0);
 }
 
 /* Inserts a unit into item described by hint structure. */
@@ -532,8 +531,7 @@ static errno_t node40_paste(object_entity_t *entity, reiser4_pos_t *pos,
 		return -1;
 
 	/* Calling insert method of the item plugin */
-	if (plugin_call(return -1, hint->plugin->item_ops, 
-			insert, &item, hint, pos->unit))
+	if (plugin_call(hint->plugin->item_ops, insert, &item, hint, pos->unit))
 		return 0;
 
 	/* Updating left delimiting key */
@@ -588,8 +586,8 @@ static errno_t node40_cut(object_entity_t *entity,
 	  released by removing. It is needed for correct shrinking the node
 	  after operation complete.
 	*/
-	if (!(len = plugin_call(return -1, item.plugin->item_ops,
-				remove, &item, pos->unit, 1)))
+	if (!(len = plugin_call(item.plugin->item_ops, remove, &item,
+				pos->unit, 1)))
 		return -1;
 
 	/* Shrinking node by @len */
@@ -729,8 +727,7 @@ static errno_t node40_print(object_entity_t *entity,
 		aal_stream_format(stream, "(%u) ", pos.item);
 		
 		/* Printing item by means of calling item print method */
-		if (plugin_call(return -1, item.plugin->item_ops, print,
-				&item, stream, options))
+		if (plugin_call(item.plugin->item_ops, print, &item, stream, options))
 			return -1;
 
 		aal_stream_format(stream, "\n");
@@ -789,7 +786,7 @@ static inline int callback_comp_key(void *node, uint32_t pos,
 	body = &node40_ih_at((node40_t *)node, pos)->key;
 	aal_memcpy(key1.body, body, sizeof(key1.body));
 	
-	return plugin_call(return -1, plugin->key_ops, compare, &key1, key2);
+	return plugin_call(plugin->key_ops, compare, &key1, key2);
 }
 
 /*
@@ -991,7 +988,7 @@ static errno_t node40_merge(node40_t *src_node,
 		*/
 		node40_item(&dst_item, dst_node, pos.item);
 
-		plugin_call(return -1, dst_item.plugin->item_ops, init, &dst_item);
+		plugin_call(dst_item.plugin->item_ops, init, &dst_item);
 	} else {
 		/*
 		  Items are mergeable, so we do not need to create new item in
@@ -1016,8 +1013,7 @@ static errno_t node40_merge(node40_t *src_node,
 	}
 	
 	/* Calling item method shift */
-	if (plugin_call(return -1, src_item.plugin->item_ops,
-			shift, &src_item, &dst_item, hint))
+	if (plugin_call(src_item.plugin->item_ops, shift, &src_item, &dst_item, hint))
 		return -1;
 
 	/* Updating source node fields */
@@ -1463,7 +1459,7 @@ static errno_t node40_shift(object_entity_t *entity,
 static reiser4_plugin_t node40_plugin = {
 	.node_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = NODE_REISER40_ID,
 			.group = 0,
 			.type = NODE_PLUGIN_TYPE,

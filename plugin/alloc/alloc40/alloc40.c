@@ -597,7 +597,7 @@ errno_t alloc40_valid(object_entity_t *entity) {
 static reiser4_plugin_t alloc40_plugin = {
 	.alloc_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = ALLOC_REISER40_ID,
 			.group = 0,
 			.type = ALLOC_PLUGIN_TYPE,

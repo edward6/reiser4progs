@@ -170,16 +170,14 @@ static errno_t reiser4_tree_key(
     
 	/* Finding needed key plugin by its identifier */
 	if (!(plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE, pid))) {
-		aal_exception_error("Can't find key plugin by its id 0x%x.", pid);
+		aal_exception_error("Can't find key plugin by its "
+				    "id 0x%x.", pid);
 		return -1;
 	}
     
 	/* Getting root directory attributes from oid allocator */
-	locality = plugin_call(return -1,
-			       oid->entity->plugin->oid_ops, root_locality,);
-
-	objectid = plugin_call(return -1,
-			       oid->entity->plugin->oid_ops, root_objectid,);
+	locality = plugin_call(oid->entity->plugin->oid_ops, root_locality,);
+	objectid = plugin_call(oid->entity->plugin->oid_ops, root_objectid,);
 
 	/* Initializing the key by found plugin */
 	tree->key.plugin = plugin;
@@ -475,8 +473,8 @@ int reiser4_tree_lookup(
 		item = &coord->item;
 		
 		/* Getting the node pointer from internal item */
-		plugin_call(return -1, item->plugin->item_ops, fetch, item, 
-			    &ptr, coord->pos.unit, 1);
+		plugin_call(item->plugin->item_ops, fetch, item, &ptr,
+			    coord->pos.unit, 1);
 		
 		if (ptr.ptr == INVAL_BLK) {
 			aal_exception_error("Can't get pointer from nodeptr item %u, "
@@ -951,7 +949,7 @@ errno_t reiser4_tree_insert(
 	if (reiser4_node_items(tree->root) == 0) {
 		int twig_legal;
 
-		twig_legal = plugin_call(return -1, tree->root->entity->plugin->node_ops,
+		twig_legal = plugin_call(tree->root->entity->plugin->node_ops,
 					 item_legal, tree->root->entity, hint->plugin);
 
 		/*

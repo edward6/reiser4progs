@@ -56,8 +56,6 @@ int aux_bin_search(
 	return 0;
 }
 
-#ifndef ENABLE_COMPACT
-
 long int aux_strtol(
 	const char *str,	        /* string to be converted */
 	int *error)		        /* error will be stored here */
@@ -124,5 +122,3 @@ errno_t aux_parse_path(char *path, aux_pre_parse_t pre_func,
 
 	return 0;
 }
-
-#endif

@@ -467,6 +467,7 @@ typedef struct reiser4_item_hint reiser4_item_hint_t;
 #define PLUGIN_MAX_DESC		256
 #define PLUGIN_MAX_NAME		256
 
+typedef void (*reiser4_abort_t) (char *);
 typedef struct reiser4_core reiser4_core_t;
 
 typedef errno_t (*reiser4_plugin_fini_t) (reiser4_core_t *);
@@ -474,11 +475,16 @@ typedef reiser4_plugin_t *(*reiser4_plugin_init_t) (reiser4_core_t *);
 
 typedef errno_t (*reiser4_plugin_func_t) (reiser4_plugin_t *, void *);
 
+#define empty_handle { "", NULL, NULL, NULL, NULL }
+
 struct plugin_handle {
 	char name[PLUGIN_MAX_NAME];
+	void *data;
+	
 	reiser4_plugin_init_t init;
 	reiser4_plugin_fini_t fini;
-	void *data;
+	
+	reiser4_abort_t abort;
 };
 
 typedef struct plugin_handle plugin_handle_t;
@@ -1184,37 +1190,21 @@ struct reiser4_core {
 	} tree_ops;
 };
 
-#define plugin_equal(plugin1, plugin2)                        \
-        (plugin1->h.group == plugin2->h.group &&              \
+#define plugin_equal(plugin1, plugin2)                         \
+        (plugin1->h.group == plugin2->h.group &&               \
 	 plugin1->h.id == plugin2->h.id)
 
-/* Plugin functions and macros */
-#ifndef ENABLE_COMPACT
 
 /*
   Macro for calling a plugin function. It checks if function is implemented and
-  then calls it. In the case it is not implemented, the exception will be thown
-  out and @action will be performed.
+  then calls it. In the case it is not implemented, abort handler will be called
 */
-#define plugin_call(action, ops, method, args...) ({           \
-        if (!ops.method) {				       \
-                aal_exception_error("Method \"" #method "\" "  \
-				    "isn't implemented "       \
-				    "in %s.", #ops);	       \
-                action;					       \
-        }						       \
-        ops.method(args);				       \
+#define plugin_call(ops, method, args...) ({                    \
+        if (!ops.method && ops.h.handle.abort)                  \
+               ops.h.handle.abort("Method \""#method"\" isn't " \
+				  "implemented in "#ops".");    \
+        ops.method(args);				        \
 })
-
-#else
-
-#define plugin_call(action, ops, method, args...) ({           \
-        if (!ops.method)                                       \
-	        action;                                        \
-	ops.method(args);                                      \
-})
-    
-#endif
 
 /*
   Macro for registering a plugin in plugin factory. It accepts two pointers to

@@ -80,7 +80,7 @@ static errno_t repair_filter_setup_traverse(reiser4_coord_t *coord, void *data) 
     aal_assert("vpf-531", coord != NULL, return -1);
 
     fd = repair_filter((repair_data_t *)data);
-    if (plugin_call(return -1, coord->item.plugin->item_ops, fetch, 
+    if (plugin_call(coord->item.plugin->item_ops, fetch, 
 	&coord->item, &ptr, coord->pos.unit, 1) != 1) 
     {
 	aal_exception_fatal("Failed to fetch the item pointer.");
@@ -110,7 +110,7 @@ static errno_t repair_filter_update_traverse(reiser4_coord_t *coord, void *data)
 	reiser4_ptr_hint_t ptr;
 	
 	/* Clear pointed block in the formatted bitmap. */
-	if (plugin_call(return -1, coord->item.plugin->item_ops,
+	if (plugin_call(coord->item.plugin->item_ops,
 	    fetch, &coord->item, &ptr, coord->pos.unit, 1) != 1)
 	    return -1;
 	

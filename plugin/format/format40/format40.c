@@ -449,7 +449,7 @@ extern errno_t format40_check(object_entity_t *entity);
 static reiser4_plugin_t format40_plugin = {
 	.format_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = FORMAT_REISER40_ID,
 			.group = 0,
 			.type = FORMAT_PLUGIN_TYPE,

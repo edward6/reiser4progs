@@ -79,8 +79,8 @@ static errno_t nodeptr40_print(item_entity_t *item,
 
 	aal_stream_format(stream, "NODEPTR: len=%u, KEY: ", item->len);
 		
-	if (plugin_call(return -1, item->key.plugin->key_ops, print,
-			&item->key, stream, options))
+	if (plugin_call(item->key.plugin->key_ops, print, &item->key,
+			stream, options))
 		return -1;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
@@ -158,7 +158,7 @@ static int32_t nodeptr40_update(item_entity_t *item, void *buff,
 static reiser4_plugin_t nodeptr40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = ITEM_NODEPTR40_ID,
 			.group = NODEPTR_ITEM,
 			.type = ITEM_PLUGIN_TYPE,

@@ -44,10 +44,13 @@ extern "C" {
 
 extern void libreiser4_done(void);
 extern errno_t libreiser4_init(void);
-extern const char *libreiser4_version(void);
 
+extern const char *libreiser4_version(void);
 extern int libreiser4_max_interface_version(void);
 extern int libreiser4_min_interface_version(void);
+
+extern reiser4_abort_t libreiser4_get_abort(void);
+extern void libreiser4_set_abort(reiser4_abort_t func);
 
 #ifdef __cplusplus
 }

@@ -38,7 +38,7 @@ static errno_t reg40_reset(object_entity_t *entity) {
 	/* Building body key to be found */
 	key.plugin = reg->file.key.plugin;
 	
-	plugin_call(return -1, key.plugin->key_ops, build_generic, &key,
+	plugin_call(key.plugin->key_ops, build_generic, &key,
 		    KEY_FILEBODY_TYPE, file40_locality(&reg->file),
 		    file40_objectid(&reg->file), 0);
     
@@ -76,7 +76,7 @@ static errno_t reg40_next(reg40_t *reg) {
 	/* Building key to be searched by current offset */
 	key.plugin = reg->file.key.plugin;
 	
-	plugin_call(return -1, key.plugin->key_ops, build_generic, &key,
+	plugin_call(key.plugin->key_ops, build_generic, &key,
 		    KEY_FILEBODY_TYPE, file40_locality(&reg->file), 
 		    file40_objectid(&reg->file), reg->offset);
 
@@ -140,14 +140,14 @@ static int32_t reg40_read(object_entity_t *entity,
 			return read;
 
 		/* Getting item's key offset */
-		offset = plugin_call(return -1, item->key.plugin->key_ops,
+		offset = plugin_call(item->key.plugin->key_ops,
 				     get_offset, &item->key);
 
 		/* Calculating in-item local offset */
 		offset = reg->offset - offset;
 
 		/* Calling body item's "fetch" method */
-		chunk = plugin_call(return -1, item->plugin->item_ops,
+		chunk = plugin_call(item->plugin->item_ops,
 				    fetch, item, buff, offset, chunk);
 
 		if (chunk == 0)
@@ -235,7 +235,7 @@ static object_entity_t *reg40_create(void *tree,
 	locality = file40_locality(&reg->file);
     	objectid = file40_objectid(&reg->file);
 
-	parent_locality = plugin_call(return NULL, hint->object.plugin->key_ops, 
+	parent_locality = plugin_call(hint->object.plugin->key_ops, 
 				      get_locality, &hint->parent);
 
 	/* Getting statdata plugin */
@@ -253,7 +253,7 @@ static object_entity_t *reg40_create(void *tree,
     
 	stat_hint.key.plugin = hint->object.plugin;
 	
-	plugin_call(goto error_free_reg, hint->object.plugin->key_ops, assign, 
+	plugin_call(hint->object.plugin->key_ops, assign, 
 		    &stat_hint.key, &hint->object);
     
 	/* Initializing stat data item hint. */
@@ -362,14 +362,14 @@ static errno_t reg40_layout(object_entity_t *entity,
 		  Calling item layout function for the each item belong to the
 		  file.
 		*/
-		if ((res = plugin_call(return -1, item->plugin->item_ops,
+		if ((res = plugin_call(item->plugin->item_ops,
 				       layout, item, callback_item_data, &hint)))
 			return res;
 
-		plugin_call(return -1, item->plugin->item_ops, max_real_key,
+		plugin_call(item->plugin->item_ops, max_real_key,
 			    item, &key);
 		
-		reg->offset = plugin_call(return -1, key.plugin->key_ops,
+		reg->offset = plugin_call(key.plugin->key_ops,
 					  get_offset, &key) + 1;
 		
 		reg40_next(reg);
@@ -407,10 +407,10 @@ static errno_t reg40_metadata(object_entity_t *entity,
 		if ((res = func(entity, &reg->body, data)))
 			return res;
 
-		plugin_call(return -1, item->plugin->item_ops, max_real_key,
+		plugin_call(item->plugin->item_ops, max_real_key,
 			    item, &key);
 
-		reg->offset = plugin_call(return -1, key.plugin->key_ops,
+		reg->offset = plugin_call(key.plugin->key_ops,
 					  get_offset, &key) + 1;
 
 		reg40_next(reg);
@@ -447,7 +447,7 @@ static errno_t reg40_seek(object_entity_t *entity,
 static reiser4_plugin_t reg40_plugin = {
 	.file_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = FILE_REGULAR40_ID,
 			.group = REGULAR_FILE,
 			.type = FILE_PLUGIN_TYPE,

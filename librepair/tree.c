@@ -35,7 +35,7 @@ static errno_t repair_tree_max_real_key(reiser4_node_t *node,
 
 	coord.pos.unit = reiser4_item_units(&coord);
 	
-	if (plugin_call(return -1, item->plugin->item_ops, fetch, item, 
+	if (plugin_call(item->plugin->item_ops, fetch, item, 
 	    &ptr, coord.pos.unit, 1) != 1 || ptr.ptr == INVAL_BLK)
 	    return -1;
 

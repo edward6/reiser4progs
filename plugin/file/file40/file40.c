@@ -22,7 +22,7 @@
 roid_t file40_objectid(file40_t *file) {
 	aal_assert("umka-839", file != NULL, return 0);
     
-	return plugin_call(return 0, file->key.plugin->key_ops, 
+	return plugin_call(file->key.plugin->key_ops, 
 			   get_objectid, &file->key);
 }
 
@@ -30,7 +30,7 @@ roid_t file40_objectid(file40_t *file) {
 roid_t file40_locality(file40_t *file) {
 	aal_assert("umka-839", file != NULL, return 0);
     
-	return plugin_call(return 0, file->key.plugin->key_ops, 
+	return plugin_call(file->key.plugin->key_ops, 
 			   get_locality, &file->key);
 }
 
@@ -239,7 +239,7 @@ errno_t file40_init(file40_t *file, reiser4_plugin_t *plugin,
 
 	file->key.plugin = key->plugin;
 	
-	return plugin_call(return -1, key->plugin->key_ops, assign,
+	return plugin_call(key->plugin->key_ops, assign,
 			   &file->key, key);
 }
 
@@ -247,8 +247,8 @@ errno_t file40_init(file40_t *file, reiser4_plugin_t *plugin,
 errno_t file40_stat(file40_t *file) {
 	aal_assert("umka-857", file != NULL, return -1);	
 
-	plugin_call(return -1, file->key.plugin->key_ops, build_generic, 
-		    &file->key, KEY_STATDATA_TYPE, file40_locality(file), 
+	plugin_call(file->key.plugin->key_ops, build_generic,
+		    &file->key, KEY_STATDATA_TYPE, file40_locality(file),
 		    file40_objectid(file), 0);
 
 	/* Unlocking old node */

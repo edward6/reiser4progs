@@ -46,7 +46,7 @@ static errno_t direntry40_unit_key(item_entity_t *item,
 	/* Building key by means of using key plugin */
 	key->plugin = item->key.plugin;
 	
-	return plugin_call(return -1, key->plugin->key_ops, build_generic,
+	return plugin_call(key->plugin->key_ops, build_generic,
 			   key, KEY_FILENAME_TYPE, locality, objectid, 0);
 }
 
@@ -195,7 +195,7 @@ static errno_t direntry40_get_key(item_entity_t *item,
 	entry = direntry40_entry(direntry40_body(item), pos);
 
 	/* Getting item key params */
-	locality = plugin_call(return -1, item->key.plugin->key_ops,
+	locality = plugin_call(item->key.plugin->key_ops,
 			       get_locality, &item->key);
 
 	/* Getting entry key params */
@@ -205,8 +205,8 @@ static errno_t direntry40_get_key(item_entity_t *item,
 	/* Building the full key */
 	key->plugin = item->key.plugin;
 	
-	plugin_call(return -1, item->key.plugin->key_ops, build_generic,
-		    key, KEY_FILENAME_TYPE, locality, objectid, offset);
+	plugin_call(item->key.plugin->key_ops, build_generic, key,
+		    KEY_FILENAME_TYPE, locality, objectid, offset);
 
 	return 0;
 }
@@ -292,11 +292,8 @@ static int direntry40_mergeable(item_entity_t *item1,
 	  Items mergeable if they have the same locality, that is oid of the
 	  directory they belong to.
 	*/
-	locality1 = plugin_call(return -1, plugin->key_ops,
-				get_locality, &item1->key);
-
-	locality2 = plugin_call(return -1, plugin->key_ops,
-				get_locality, &item2->key);
+	locality1 = plugin_call(plugin->key_ops, get_locality, &item1->key);
+	locality2 = plugin_call(plugin->key_ops, get_locality, &item2->key);
 
 	return (locality1 == locality2);
 }
@@ -943,26 +940,22 @@ static errno_t direntry40_insert(item_entity_t *item,
 		hash = &direntry_hint->unit[i].offset;
 		
 		/* Creating proper entry identifier (hash) */
-		oid = plugin_call(return -1, hash->plugin->key_ops,
-				  get_objectid, hash);
+		oid = plugin_call(hash->plugin->key_ops, get_objectid, hash);
 		
 		eid40_set_objectid(entryid, oid);
 
-		off = plugin_call(return -1, hash->plugin->key_ops,
-				  get_offset, hash);
+		off = plugin_call(hash->plugin->key_ops, get_offset, hash);
 
 		eid40_set_offset(entryid, off);
 
 		/* Creating stat data key ,entry points to */
 		object = &direntry_hint->unit[i].object;
 
-		loc = plugin_call(return -1, object->plugin->key_ops,
-				  get_locality, object);
+		loc = plugin_call(object->plugin->key_ops, get_locality, object);
 
 		oid40_set_locality(objid, loc);
 
-		oid = plugin_call(return -1, object->plugin->key_ops,
-				  get_objectid, object);
+		oid = plugin_call(object->plugin->key_ops, get_objectid, object);
 		
 		oid40_set_objectid(objid, oid);
 
@@ -1028,8 +1021,8 @@ static errno_t direntry40_print(item_entity_t *item,
 	
 	aal_stream_format(stream, "DIRENTRY: len=%u, KEY: ", item->len);
 		
-	if (plugin_call(return -1, item->key.plugin->key_ops, print,
-			&item->key, stream, options))
+	if (plugin_call(item->key.plugin->key_ops, print, &item->key,
+			stream, options))
 		return -1;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
@@ -1079,23 +1072,15 @@ static errno_t direntry40_max_poss_key(item_entity_t *item,
 	aal_assert("umka-1649", key != NULL, return -1);
 	aal_assert("umka-716", key->plugin != NULL, return -1);
 
-	plugin_call(return -1, key->plugin->key_ops, assign,
-		    key, &item->key);
+	plugin_call(key->plugin->key_ops, assign, key, &item->key);
 
-	maxkey = plugin_call(return -1, key->plugin->key_ops,
-			     maximal,);
+	maxkey = plugin_call(key->plugin->key_ops, maximal,);
     
-	objectid = plugin_call(return -1, key->plugin->key_ops,
-			       get_objectid, maxkey);
-    
-	offset = plugin_call(return -1, key->plugin->key_ops, 
-			     get_offset, maxkey);
-    
-	plugin_call(return -1, key->plugin->key_ops, set_objectid, 
-		    key, objectid);
-    
-	plugin_call(return -1, key->plugin->key_ops, set_offset, 
-		    key, offset);
+	objectid = plugin_call(key->plugin->key_ops, get_objectid, maxkey);
+    	offset = plugin_call(key->plugin->key_ops, get_offset, maxkey);
+
+    	plugin_call(key->plugin->key_ops, set_objectid, key, objectid);
+	plugin_call(key->plugin->key_ops, set_offset, key, offset);
     
 	return 0;
 }
@@ -1136,8 +1121,7 @@ static inline int callback_comp_entry(void *array, uint32_t pos,
 	if (direntry40_get_key(item, pos, &current))
 		return -1;
     
-	return plugin_call(return -1, item->key.plugin->key_ops,
-			   compare, &current, wanted);
+	return plugin_call(item->key.plugin->key_ops, compare, &current, wanted);
 }
 
 /* Performs lookup inside direntry. Found pos is stored in @pos */
@@ -1164,8 +1148,7 @@ static int direntry40_lookup(item_entity_t *item,
 	/* Getting maximal possible key */
 	maxkey.plugin = key->plugin;
 
-	plugin_call(return -1, maxkey.plugin->key_ops,
-		    assign, &maxkey, &item->key);
+	plugin_call(maxkey.plugin->key_ops, assign, &maxkey, &item->key);
 	
 	if (direntry40_max_poss_key(item, &maxkey))
 		return -1;
@@ -1176,9 +1159,7 @@ static int direntry40_lookup(item_entity_t *item,
 	*/
 	units = direntry40_units(item);
 	
-	if (plugin_call(return -1, key->plugin->key_ops,
-			compare, key, &maxkey) > 0)
-	{
+	if (plugin_call(key->plugin->key_ops, compare, key, &maxkey) > 0) {
 		*pos = units;
 		return 0;
 	}
@@ -1186,12 +1167,9 @@ static int direntry40_lookup(item_entity_t *item,
 	/* Comparing looked key with minimal one */
 	minkey.plugin = key->plugin;
 	
-	plugin_call(return -1, minkey.plugin->key_ops,
-		    assign, &minkey, &item->key);
+	plugin_call(minkey.plugin->key_ops, assign, &minkey, &item->key);
 
-	if (plugin_call(return -1, key->plugin->key_ops,
-			compare, &minkey, key) > 0)
-	{
+	if (plugin_call(key->plugin->key_ops, compare, &minkey, key) > 0) {
 		*pos = 0;
 		return 0;
 	}
@@ -1223,7 +1201,7 @@ static int direntry40_lookup(item_entity_t *item,
 static reiser4_plugin_t direntry40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = ITEM_CDE40_ID,
 			.group = DIRENTRY_ITEM,
 			.type = ITEM_PLUGIN_TYPE,

@@ -1,16 +1,49 @@
 /*
-  libreiser4.c -- version control functions and library initialization code.
+  libreiser4.c -- version control functions, library initialization code and
+  plugin-accessible library functions implemetation.
   
   Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #ifndef ENABLE_COMPACT
 #  include <printf.h>
+#  include <stdlib.h>
 #endif
 
 #include <aal/aal.h>
 #include <reiser4/reiser4.h>
+
+static void libreiser4_abort(char *message);
+reiser4_abort_t abort_func = libreiser4_abort;
+
+/*
+  Default shutdown handler. It will be called when libreiser4 is determined that
+  some function in a plugin is not implemented.
+*/
+static void libreiser4_abort(char *message) {
+	aal_exception_fatal(message);
+	
+#ifndef ENABLE_COMPACT
+	exit(-1);
+#endif
+}
+
+/* Sets/gets shutdown handler function */
+reiser4_abort_t libreiser4_get_abort(void) {
+	return abort_func;
+}
+
+void libreiser4_set_abort(reiser4_abort_t func) {
+	if (!func)
+		abort_func = libreiser4_abort;
+	else
+		abort_func = func;
+}
 
 /* 
    Initializing the libreiser4 core instance. It will be passed into all plugins
@@ -89,8 +122,8 @@ static int tree_lookup(
 		item_entity_t *item = &coord->item;
 		object_entity_t *entity = coord->node->entity;
 		
-		if (plugin_call(return -1, entity->plugin->node_ops, 
-				get_key, entity, &coord->pos, &item->key))
+		if (plugin_call(entity->plugin->node_ops, get_key,
+				entity, &coord->pos, &item->key))
 		{
 			aal_exception_error("Can't get item key.");
 			return -1;

@@ -18,7 +18,7 @@ static errno_t callback_guess_key(
 	if (plugin->h.type != KEY_PLUGIN_TYPE)
 		return 0;
 	
-	return plugin_call(return 0, plugin->key_ops, confirm,
+	return plugin_call(plugin->key_ops, confirm,
 			   (key_entity_t *)data);
 }
 
@@ -45,8 +45,7 @@ int reiser4_key_compare(
 	aal_assert("umka-906", key1->plugin != NULL, return -1);
 	aal_assert("umka-906", key2->plugin != NULL, return -1);
 
-	return plugin_call(return -1, key1->plugin->key_ops, 
-			   compare, key1, key2);
+	return plugin_call(key1->plugin->key_ops, compare, key1, key2);
 }
 
 /* Makes copy src key to dst one */
@@ -60,8 +59,7 @@ errno_t reiser4_key_assign(
 
 	dst->plugin = src->plugin;
 	
-	return plugin_call(return -1, src->plugin->key_ops, 
-			   assign, dst, src);
+	return plugin_call(src->plugin->key_ops, assign, dst, src);
 }
 
 /* Cleans specified key */
@@ -71,7 +69,7 @@ void reiser4_key_clean(
 	aal_assert("umka-675", key != NULL, return);
 	aal_assert("umka-676", key->plugin != NULL, return);
     
-	plugin_call(return, key->plugin->key_ops, clean, key);
+	plugin_call(key->plugin->key_ops, clean, key);
 } 
 
 /* Builds full non-directory key */
@@ -85,9 +83,8 @@ errno_t reiser4_key_build_generic(
 	aal_assert("umka-665", key != NULL, return -1);
 	aal_assert("umka-666", key->plugin != NULL, return -1);
 
-	return plugin_call(return -1, key->plugin->key_ops, 
-			   build_generic, key, type, locality,
-			   objectid, offset);
+	return plugin_call(key->plugin->key_ops, build_generic,
+			   key, type, locality, objectid, offset);
 }
 
 /* Builds full directory key */
@@ -102,9 +99,8 @@ errno_t reiser4_key_build_entry(
 	aal_assert("umka-669", key->plugin != NULL, return -1);
 	aal_assert("umka-670", name != NULL, return -1);
     
-	return plugin_call(return -1, key->plugin->key_ops, 
-			   build_entry, key, plugin,
-			   locality, objectid, name);
+	return plugin_call(key->plugin->key_ops, build_entry, key,
+			   plugin, locality, objectid, name);
 }
 
 /* Sets key type */
@@ -115,8 +111,7 @@ errno_t reiser4_key_set_type(
 	aal_assert("umka-686", key != NULL, return -1);
 	aal_assert("umka-687", key->plugin != NULL, return -1);
 
-	plugin_call(return -1, key->plugin->key_ops, 
-		    set_type, key, type);
+	plugin_call(key->plugin->key_ops, set_type, key, type);
     
 	return 0;
 }
@@ -129,8 +124,7 @@ errno_t reiser4_key_set_offset(
 	aal_assert("umka-688", key != NULL, return -1);
 	aal_assert("umka-689", key->plugin != NULL, return -1);
     
-	plugin_call(return -1, key->plugin->key_ops, 
-		    set_offset, key, offset);
+	plugin_call(key->plugin->key_ops, set_offset, key, offset);
     
 	return 0;
 }
@@ -143,8 +137,7 @@ errno_t reiser4_key_set_hash(
 	aal_assert("umka-706", key != NULL, return -1);
 	aal_assert("umka-707", key->plugin != NULL, return -1);
     
-	plugin_call(return -1, key->plugin->key_ops, 
-		    set_hash, key, hash);
+	plugin_call(key->plugin->key_ops, set_hash, key, hash);
     
 	return 0;
 }
@@ -157,8 +150,7 @@ errno_t reiser4_key_set_objectid(
 	aal_assert("umka-694", key != NULL, return -1);
 	aal_assert("umka-695", key->plugin != NULL, return -1);
     
-	plugin_call(return -1, key->plugin->key_ops, 
-		    set_objectid, key, objectid);
+	plugin_call(key->plugin->key_ops, set_objectid, key, objectid);
 
 	return 0;
 }
@@ -171,8 +163,7 @@ errno_t reiser4_key_set_locality(
 	aal_assert("umka-696", key != NULL, return -1);
 	aal_assert("umka-697", key->plugin != NULL, return -1);
     
-	plugin_call(return -1, key->plugin->key_ops, 
-		    set_locality, key, locality);
+	plugin_call(key->plugin->key_ops, set_locality, key, locality);
 
 	return 0;
 }
@@ -182,8 +173,7 @@ uint32_t reiser4_key_get_type(reiser4_key_t *key) {
 	aal_assert("umka-698", key != NULL, return -1);
 	aal_assert("umka-699", key->plugin != NULL, return -1);
 
-	return plugin_call(return 0, key->plugin->key_ops, 
-			   get_type, key);
+	return plugin_call(key->plugin->key_ops, get_type, key);
 }
 
 /* Returns key offset */
@@ -191,8 +181,7 @@ uint64_t reiser4_key_get_offset(reiser4_key_t *key) {
 	aal_assert("umka-700", key != NULL, return -1);
 	aal_assert("umka-701", key->plugin != NULL, return -1);
 
-	return plugin_call(return 0, key->plugin->key_ops, 
-			   get_offset, key);
+	return plugin_call(key->plugin->key_ops, get_offset, key);
 }
 
 /* Returns key hash */
@@ -200,8 +189,7 @@ uint64_t reiser4_key_get_hash(reiser4_key_t *key) {
 	aal_assert("umka-708", key != NULL, return -1);
 	aal_assert("umka-709", key->plugin != NULL, return -1);
 
-	return plugin_call(return 0, key->plugin->key_ops, 
-			   get_hash, key);
+	return plugin_call(key->plugin->key_ops, get_hash, key);
 }
 
 /* Returns key objectid */
@@ -209,8 +197,7 @@ roid_t reiser4_key_get_objectid(reiser4_key_t *key) {
 	aal_assert("umka-702", key != NULL, return -1);
 	aal_assert("umka-703", key->plugin != NULL, return -1);
 
-	return plugin_call(return 0, key->plugin->key_ops, 
-			   get_objectid, key);
+	return plugin_call(key->plugin->key_ops, get_objectid, key);
 }
 
 /* Returns key locality */
@@ -218,8 +205,7 @@ roid_t reiser4_key_get_locality(reiser4_key_t *key) {
 	aal_assert("umka-704", key != NULL, return -1);
 	aal_assert("umka-705", key->plugin != NULL, return -1);
 
-	return plugin_call(return 0, key->plugin->key_ops, 
-			   get_locality, key);
+	return plugin_call(key->plugin->key_ops, get_locality, key);
 }
 
 /* Returns the maximal possible key  */
@@ -229,7 +215,7 @@ void reiser4_key_maximal(reiser4_key_t *key) {
 	aal_assert("vpf-185", key != NULL, return);
 	aal_assert("vpf-186", key->plugin != NULL, return);
 
-	entity = plugin_call(return, key->plugin->key_ops, maximal,);
+	entity = plugin_call(key->plugin->key_ops, maximal,);
 	aal_memcpy(key->body, entity->body, sizeof(key->body));
 }
 
@@ -240,7 +226,7 @@ void reiser4_key_minimal(reiser4_key_t *key) {
 	aal_assert("vpf-187", key != NULL, return);
 	aal_assert("vpf-188", key->plugin != NULL, return);
 
-	entity = plugin_call(return, key->plugin->key_ops, minimal,);
+	entity = plugin_call(key->plugin->key_ops, minimal,);
 	aal_memcpy(key->body, entity->body, sizeof(key->body));
 }
 
@@ -250,8 +236,7 @@ errno_t reiser4_key_print(reiser4_key_t *key, aal_stream_t *stream) {
 	aal_assert("vpf-189", key != NULL, return -1);
 	aal_assert("vpf-190", key->plugin != NULL, return -1);
 
-	return plugin_call(return -1, key->plugin->key_ops, 
-			   print, key, stream, 0); 
+	return plugin_call(key->plugin->key_ops, print, key, stream, 0); 
 }
 
 #endif
@@ -260,6 +245,5 @@ errno_t reiser4_key_valid(reiser4_key_t *key) {
 	aal_assert("vpf-259", key != NULL, return -1);
 	aal_assert("vpf-260", key->plugin != NULL, return -1);
 
-	return plugin_call(return -1, key->plugin->key_ops, 
-			   valid, key);
+	return plugin_call(key->plugin->key_ops, valid, key);
 }

@@ -545,7 +545,7 @@ extern errno_t journal40_check(object_entity_t *, layout_func_t);
 static reiser4_plugin_t journal40_plugin = {
 	.journal_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = JOURNAL_REISER40_ID,
 			.group = 0,
 			.type = JOURNAL_PLUGIN_TYPE,

@@ -86,7 +86,7 @@ static errno_t repair_format_check(reiser4_format_t **format,
     } 
     
     /* Format was either opened or created. Check it and fix it. */
-    if (plugin_call(return -1, (*format)->entity->plugin->format_ops, check, 
+    if (plugin_call((*format)->entity->plugin->format_ops, check, 
 	(*format)->entity)) 
     {
 	aal_exception_error("Failed to recover the on-disk format (%s) on "
@@ -141,7 +141,7 @@ void repair_format_print(reiser4_fs_t *fs, FILE *file, uint16_t options) {
 
     aal_stream_init(&stream);
 
-    plugin_call(return, fs->format->entity->plugin->format_ops, print, 
+    plugin_call(fs->format->entity->plugin->format_ops, print, 
 	fs->format->entity, &stream, options);
     
     fprintf(file, (char *)stream.data);

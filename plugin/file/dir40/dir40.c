@@ -31,9 +31,8 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	/* Preparing key of the first entry in directory */
 	key.plugin = dir->file.key.plugin;
 	
-	plugin_call(return -1, key.plugin->key_ops, build_entry,
-		    &key, dir->hash, file40_locality(&dir->file),
-		    file40_objectid(&dir->file), ".");
+	plugin_call(key.plugin->key_ops, build_entry, &key, dir->hash,
+		    file40_locality(&dir->file), file40_objectid(&dir->file), ".");
 
 	file40_unlock(&dir->file, &dir->body);
 	
@@ -55,7 +54,7 @@ static errno_t dir40_reset(object_entity_t *entity) {
 	return 0;
 }
 
-/* Trying to guess hash in use by stat  dfata extention */
+/* Trying to guess hash in use by stat data extention */
 static reiser4_plugin_t *dir40_guess(dir40_t *dir) {
 	/* 
 	   FIXME-UMKA: This function should inspect stat data extentions
@@ -76,8 +75,7 @@ static int dir40_next(dir40_t *dir) {
 
 	item = &dir->body.item;
 	
-	units = plugin_call(return -1, item->plugin->item_ops,
-			    units, item);
+	units = plugin_call(item->plugin->item_ops, units, item);
 	
 	if (dir->body.pos.unit < units)
 		return 0;
@@ -99,8 +97,8 @@ static int dir40_next(dir40_t *dir) {
 	if (!plugin_equal(this_plugin, right_plugin))
 		return 0;
 	
-	if (!plugin_call(return 0, this_plugin->item_ops, mergeable,
-			 &right.item, &dir->body.item))
+	if (!plugin_call(this_plugin->item_ops, mergeable, &right.item,
+			 &dir->body.item))
 		return 0;
 	
 	file40_unlock(&dir->file, &dir->body);
@@ -151,7 +149,7 @@ static int32_t dir40_read(object_entity_t *entity,
 			return read;
 
 		/* Reading piece of data */
-		chunk = plugin_call(return -1, item->plugin->item_ops, fetch,
+		chunk = plugin_call(item->plugin->item_ops, fetch,
 				    item, entry, dir->body.pos.unit, chunk);
 
 		/* If actual read data is zero, we going out */
@@ -191,9 +189,8 @@ static int dir40_lookup(object_entity_t *entity,
 	*/
 	wanted.plugin = dir->file.key.plugin;
 	
-	plugin_call(return -1, wanted.plugin->key_ops, build_entry,
-		    &wanted, dir->hash, file40_locality(&dir->file),
-		    file40_objectid(&dir->file), name);
+	plugin_call(wanted.plugin->key_ops, build_entry, &wanted, dir->hash,
+		    file40_locality(&dir->file), file40_objectid(&dir->file), name);
 
 	/* Lookp until needed entry will be found */
 	while (1) {
@@ -205,17 +202,17 @@ static int dir40_lookup(object_entity_t *entity,
 		  will be used for searching next entry in passed path and so
 		  on.
 		*/
-		if (plugin_call(return -1, item->plugin->item_ops, lookup, 
-				item, &wanted, &dir->body.pos.unit) == PRESENT) 
+		if (plugin_call(item->plugin->item_ops, lookup, item, &wanted,
+				&dir->body.pos.unit) == PRESENT) 
 		{
 			reiser4_entry_hint_t entry;
 
-			if (plugin_call(return -1, item->plugin->item_ops, fetch,
-					item, &entry, dir->body.pos.unit, 1) != 1)
+			if (plugin_call(item->plugin->item_ops, fetch, item,
+					&entry, dir->body.pos.unit, 1) != 1)
 				return -1;
 
-			plugin_call(return -1, key->plugin->key_ops, assign,
-				    key, &entry.object);
+			plugin_call(key->plugin->key_ops, assign, key,
+				    &entry.object);
 	    
 			return 1;
 		}
@@ -326,7 +323,7 @@ static object_entity_t *dir40_create(void *tree,
 	locality = file40_locality(&dir->file);
 	objectid = file40_objectid(&dir->file);
 
-	parent_locality = plugin_call(return NULL, hint->object.plugin->key_ops,
+	parent_locality = plugin_call(hint->object.plugin->key_ops,
 				      get_locality, &hint->parent);
 
 	/* Getting item plugins for statdata and body */
@@ -360,9 +357,8 @@ static object_entity_t *dir40_create(void *tree,
    
 	body.count = sizeof(dir40_empty_dir) / sizeof(char *);
 	
-	plugin_call(goto error_free_dir, hint->object.plugin->key_ops,
-		    build_entry, &body_hint.key, dir->hash, locality,
-		    objectid, ".");
+	plugin_call(hint->object.plugin->key_ops, build_entry, &body_hint.key,
+		    dir->hash, locality, objectid, ".");
 
 	if (!(body.unit = aal_calloc(body.count * sizeof(*body.unit), 0)))
 		goto error_free_dir;
@@ -394,17 +390,16 @@ static object_entity_t *dir40_create(void *tree,
 		*/
 		body.unit[i].object.plugin = hint->object.plugin;
 
-		plugin_call(goto error_free_body, hint->object.plugin->key_ops,
-			    build_generic, &body.unit[i].object, KEY_STATDATA_TYPE,
+		plugin_call(hint->object.plugin->key_ops, build_generic,
+			    &body.unit[i].object, KEY_STATDATA_TYPE,
 			    loc, oid, 0);
 
 		/* Building key for the hash new entry will have */
 		body.unit[i].offset.plugin = hint->object.plugin;
 		
-		plugin_call(goto error_free_body, hint->object.plugin->key_ops,
-			    build_entry, &body.unit[i].offset, dir->hash,
-			    file40_locality(&dir->file), file40_objectid(&dir->file),
-			    body.unit[i].name);
+		plugin_call(hint->object.plugin->key_ops, build_entry,
+			    &body.unit[i].offset, dir->hash, file40_locality(&dir->file),
+			    file40_objectid(&dir->file), body.unit[i].name);
 	}
 	
 	body_hint.hint = &body;
@@ -413,8 +408,8 @@ static object_entity_t *dir40_create(void *tree,
 	stat_hint.plugin = stat_plugin;
 	stat_hint.key.plugin = hint->object.plugin;
     
-	plugin_call(goto error_free_body, hint->object.plugin->key_ops,
-		    assign, &stat_hint.key, &hint->object);
+	plugin_call(hint->object.plugin->key_ops, assign, &stat_hint.key,
+		    &hint->object);
     
 	/*
 	  Initializing stat data item hint. It uses unix extention and light
@@ -443,9 +438,7 @@ static object_entity_t *dir40_create(void *tree,
 	  Estimating body item and setting up "bytes" field from the unix
 	  extetion.
 	*/
-	if (plugin_call(goto error_free_body, body_plugin->item_ops,
-			estimate, NULL, &body_hint, ~0ul))
-	{
+	if (plugin_call(body_plugin->item_ops, estimate, NULL, &body_hint, ~0ul)) {
 		aal_exception_error("Can't estimate directory item.");
 		goto error_free_body;
 	}
@@ -524,13 +517,13 @@ static int32_t dir40_write(object_entity_t *entity,
 		aal_memcpy(&body_hint.unit[0], entry, sizeof(*entry));
 
 		/* Building key of the new entry */
-		plugin_call(return -1, key->plugin->key_ops, build_entry,
-			    &hint.key, dir->hash, file40_locality(&dir->file),
+		plugin_call(key->plugin->key_ops, build_entry, &hint.key,
+			    dir->hash, file40_locality(&dir->file),
 			    file40_objectid(&dir->file), entry->name);
 
 		body_hint.unit[0].offset.plugin = key->plugin;
 			
-		plugin_call(return -1, key->plugin->key_ops, assign,
+		plugin_call(key->plugin->key_ops, assign,
 			    &body_hint.unit[0].offset, &hint.key);
 
 		/* Inserting it into tree */
@@ -595,7 +588,7 @@ static errno_t dir40_layout(object_entity_t *entity,
 	while (1) {
 		item_entity_t *item = &dir->body.item;
 		
-		if ((res = plugin_call(return -1, item->plugin->item_ops, layout,
+		if ((res = plugin_call(item->plugin->item_ops, layout,
 				       item, callback_item_data, &hint)))
 			return res;
 		
@@ -661,7 +654,7 @@ static uint64_t dir40_offset(object_entity_t *entity) {
 static reiser4_plugin_t dir40_plugin = {
 	.file_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = FILE_DIRTORY40_ID,
 			.group = DIRTORY_FILE,
 			.type = FILE_PLUGIN_TYPE,

@@ -53,7 +53,7 @@ uint64_t rupasov_hash_build(const unsigned char *name, uint32_t len) {
 static reiser4_plugin_t rupasov_hash_plugin = {
 	.hash_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = HASH_RUPASOV_ID,
 			.group = 0,
 			.type = HASH_PLUGIN_TYPE,

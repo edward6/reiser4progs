@@ -13,7 +13,7 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
     aal_assert("vpf-417", coord->node != NULL, return -1);
     
     /* Fetch the pointer from the coord. */
-    if (plugin_call(return -1, coord->item.plugin->item_ops,
+    if (plugin_call(coord->item.plugin->item_ops,
 	fetch, &coord->item, &hint, coord->pos.unit, 1) != 1)
 	return -1;
     if (hint.width == 1 && reiser4_item_extent(coord)) {
@@ -26,7 +26,7 @@ errno_t repair_item_handle_ptr(reiser4_coord_t *coord) {
 
 	hint.ptr = 0;
 
-	if (plugin_call(return -1, coord->item.plugin->item_ops,
+	if (plugin_call(coord->item.plugin->item_ops,
 	    update, &coord->item, &hint, coord->pos.unit, 1))
 	    return -1;	    
     } else {
@@ -66,7 +66,7 @@ errno_t repair_item_ptr_unused(reiser4_coord_t *coord, aux_bitmap_t *bitmap) {
     aal_assert("vpf-497", reiser4_item_nodeptr(coord) || 
 	reiser4_item_extent(coord), return -1);
 
-    if ((res = plugin_call(return -1, coord->item.plugin->item_ops, fetch, 
+    if ((res = plugin_call(coord->item.plugin->item_ops, fetch, 
 	&coord->item, &ptr, coord->pos.unit, 1)) != 1)
 	return res;
 
@@ -114,7 +114,7 @@ uint32_t repair_item_split(
 	return reiser4_item_units(coord);
  
     /* Split. Lookup method must be implemented in this case. */
-    if (plugin_call(return -1, coord->item.plugin->item_ops, lookup, 
+    if (plugin_call(coord->item.plugin->item_ops, lookup, 
 	&coord->item, rd_key, &unit) == -1) 
     {
 	aal_exception_error("Lookup in the item %d in the node %llu failed.", 
@@ -141,7 +141,7 @@ errno_t repair_item_ptr_used_in_format(reiser4_coord_t *coord,
     aal_assert("vpf-496", reiser4_item_nodeptr(coord) || reiser4_item_extent(coord), 
 	return -1);
 
-    if (plugin_call(return -1, coord->item.plugin->item_ops, fetch,
+    if (plugin_call(coord->item.plugin->item_ops, fetch,
 	&coord->item, coord->pos.unit, &ptr, 1))
 	return -1;
 	

@@ -51,4 +51,5 @@ reiser4progs/COPYING.
   not allow write symlinks? Write method may just remove old stat
   data and insert new one.
 
-* repacking is needed after tree is created by reiser4progs.
+* repacking is needed after tree is created by reiser4progs. Or we
+  should produce the tree in the right order.

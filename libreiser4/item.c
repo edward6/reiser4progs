@@ -71,8 +71,8 @@ errno_t reiser4_item_estimate(
 		return 0;
     
 	/* Estimate for the 2nd and for the 4th cases */
-	return plugin_call(return -1, hint->plugin->item_ops, 
-			   estimate, NULL, hint, coord->pos.unit);
+	return plugin_call(hint->plugin->item_ops, estimate, NULL,
+			   hint, coord->pos.unit);
 }
 
 /* Prints passed @coord into passed @buff */
@@ -228,8 +228,8 @@ errno_t reiser4_item_get_key(reiser4_coord_t *coord,
 
 	aal_assert("umka-1462", item->plugin != NULL, return -1);
 
-	if (plugin_call(return -1, entity->plugin->node_ops, 
-			get_key, entity, &coord->pos, &item->key))
+	if (plugin_call(entity->plugin->node_ops, get_key, entity,
+			&coord->pos, &item->key))
 	{
 		aal_exception_error("Can't get item key.");
 		return -1;
@@ -268,10 +268,10 @@ errno_t reiser4_item_set_key(reiser4_coord_t *coord, reiser4_key_t *key) {
 	aal_memcpy(&item->key, key, sizeof(*key));
 	
 	if (coord->pos.unit != ~0ul) {
-		return plugin_call(return -1, item->plugin->item_ops, set_key,
+		return plugin_call(item->plugin->item_ops, set_key,
 				   item, coord->pos.unit, key);
 	} else {
-		return plugin_call(return -1, entity->plugin->node_ops, 
+		return plugin_call(entity->plugin->node_ops, 
 				   set_key, entity, &coord->pos, key);
 	}
 }

@@ -82,7 +82,7 @@ static errno_t stat40_traverse(item_entity_t *item,
 			return res;
 
 		/* Calculating the pointer to the next extention body */
-		extbody = (void *)extbody + plugin_call(return 0, plugin->sdext_ops,
+		extbody = (void *)extbody + plugin_call(plugin->sdext_ops,
 							length, extbody);
 	}
     
@@ -108,8 +108,7 @@ static errno_t callback_open_ext(uint8_t ext, reiser4_plugin_t *plugin,
 	if (hint->ext[ext]) {
 
 		/* Calling loading the corresponding statdata extention */
-		if (plugin_call(return -1, plugin->sdext_ops, open,
-				extbody, hint->ext[ext]))
+		if (plugin_call(plugin->sdext_ops, open, extbody, hint->ext[ext]))
 			return -1;
 	}
 	
@@ -191,8 +190,8 @@ static errno_t stat40_estimate(item_entity_t *item,
 		  Calculating length of the corresponding extention and add it
 		  to the estimated value.
 		*/
-		hint->len += plugin_call(return -1, plugin->sdext_ops, 
-					 length, stat_hint->ext[i]);
+		hint->len += plugin_call(plugin->sdext_ops, length,
+					 stat_hint->ext[i]);
 	}
 	
 	return 0;
@@ -255,15 +254,13 @@ static errno_t stat40_insert(item_entity_t *item,
 		}
 
 		/* Initializing extention data at passed area */
-		plugin_call(return -1, plugin->sdext_ops, init, extbody, 
-			    stat_hint->ext[i]);
+		plugin_call(plugin->sdext_ops, init, extbody, stat_hint->ext[i]);
 	
 		/* 
 		   Getting pointer to the next extention. It is evaluating as
 		   the previous pointer plus its size.
 		*/
-		extbody += plugin_call(return -1, plugin->sdext_ops,
-				       length, extbody);
+		extbody += plugin_call(plugin->sdext_ops, length, extbody);
 	}
     
 	return 0;
@@ -399,8 +396,7 @@ static int callback_print_ext(uint8_t ext, reiser4_plugin_t *plugin,
 	aal_stream_format(stream, "label:\t\t%s\n", plugin->h.label);
 	aal_stream_format(stream, "plugin:\t\t%s\n", plugin->h.desc);
 	
-	plugin_call(return 1, plugin->sdext_ops, print, extbody,
-		    stream, 0);
+	plugin_call(plugin->sdext_ops, print, extbody, stream, 0);
 	
 	return 1;
 }
@@ -415,8 +411,8 @@ static errno_t stat40_print(item_entity_t *item,
     
 	aal_stream_format(stream, "STATDATA: len=%u, KEY: ", item->len);
 		
-	if (plugin_call(return -1, item->key.plugin->key_ops, print,
-			&item->key, stream, options))
+	if (plugin_call(item->key.plugin->key_ops, print, &item->key,
+			stream, options))
 		return -1;
 	
 	aal_stream_format(stream, " PLUGIN: 0x%x (%s)\n",
@@ -486,7 +482,7 @@ static reiser4_plugin_t *stat40_belongs(item_entity_t *item) {
 static reiser4_plugin_t stat40_plugin = {
 	.item_ops = {
 		.h = {
-			.handle = { "", NULL, NULL, NULL },
+			.handle = empty_handle,
 			.id = ITEM_STATDATA40_ID,
 			.group = STATDATA_ITEM,
 			.type = ITEM_PLUGIN_TYPE,

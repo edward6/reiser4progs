@@ -10,7 +10,7 @@ static errno_t repair_journal_check(reiser4_journal_t *journal) {
 
     /* FIXME-UMKA->VITALY: Where we should get filesystem layout function?
      * Actually we have one in fs API. But we have not fs access here. */
-    if (plugin_call(return -1, journal->entity->plugin->journal_ops, check, 
+    if (plugin_call(journal->entity->plugin->journal_ops, check, 
 	journal->entity, NULL))
     {
 	aal_exception_error("Failed to recover the journal (%s) on (%s).", 
