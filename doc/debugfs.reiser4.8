@@ -63,7 +63,7 @@ prints all items that the passed file consists of.
 prints the both super blocks: master super block and format specific one.
 .TP
 .B -j, --print-journal
-prints the journal with un-commited transaction (if any).
+prints the journal with not yet commited transactions (if any).
 .TP
 .B -a, --print-alloc
 prints the block allocator data.
@@ -76,7 +76,10 @@ prints the oid allocator data.
 fetches filesystem metadata and writes them to the standard output.
 .TP
 .B -U, --unpack-metadata
-uses metadata stream from the stdandard input to construct filesystem on them.
+reads filesystem metadata stream from the stdandard input and constructs 
+a new filesystem based on the metadata. debugfs.reiser4 --pack-metadata <FS1> | 
+debugfs.reiser4 --unpack-metadata <FS2> and then debugfs.reiser4 --pack-metadata 
+<FS2> produces a stream equivalent to the first one.
 .SH PLUGIN OPTIONS
 .TP
 .B -p, --print-profile
