@@ -7,8 +7,11 @@ aclocaldir 	= $(datadir)/aclocal
 aclocal_DATA	= libreiser4.m4
 
 define all-sources
-	( find ./ -name '*.[ch]' -print | grep -v SCCS )
+	( find ./ -name '*.[ch]' -print | grep -v SCCS | grep -v "Attic" | grep -v "reiser4progs" )
 endef
 
-TAGS:
+ETAGS:
 	$(all-sources) | etags -
+
+CTAGS:
+	$(all-sources) | xargs -- ctags -w -o TAGS
