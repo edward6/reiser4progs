@@ -627,13 +627,13 @@ static errno_t dir40_clobber(object_entity_t *entity) {
 }
 
 /* Return number of hard links. */
-static uint32_t dir40_links(object_entity_t *entity) {
+static bool_t dir40_linked(object_entity_t *entity) {
 	dir40_t *dir;
 	
 	aal_assert("umka-2294", entity != NULL);
 
 	dir = (dir40_t *)entity;
-	return obj40_links(&dir->obj);
+	return obj40_links(&dir->obj) != 1;
 }
 
 /* Addes one had link. */
@@ -839,8 +839,9 @@ static errno_t dir40_attach(object_entity_t *entity,
 static errno_t dir40_detach(object_entity_t *entity,
 			    object_entity_t *parent)
 {
-	reiser4_plug_t *pplug;
+	reiser4_plug_t *plug;
 	entry_hint_t entry;
+	uint32_t nlink;
 	dir40_t *dir;
 	errno_t res;
 
@@ -848,7 +849,19 @@ static errno_t dir40_detach(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
-	pplug = parent->opset.plug[OPSET_OBJ];
+	if (parent) {
+		/* If @parent is given, check first that detaching is allowed
+		 -- i.e. nlink == 2. */
+
+		if ((res = obj40_update(&dir->obj)))
+			return res;
+		
+		if ((nlink = obj40_get_nlink(&dir->obj)) != 2) {
+			aal_error("Can't detach the object "
+				  "with nlink (%d).", nlink);
+			return -EINVAL;
+		}
+	}
 	
 	/* Removing ".." from child if it is found */
 	if (dir40_lookup(entity, "..", &entry) == PRESENT) {
@@ -858,9 +871,11 @@ static errno_t dir40_detach(object_entity_t *entity,
 	
 	if (!parent) 
 		return 0;
-		
+	
+	plug = parent->opset.plug[OPSET_OBJ];
+	
 	/* Decreasing parent's @nlink by one */
-	return plug_call(pplug->o.object_ops, unlink, parent);
+	return plug_call(plug->o.object_ops, unlink, parent);
 }
 
 /* Directory enumerating related stuff.*/
@@ -1005,7 +1020,7 @@ static reiser4_object_ops_t dir40_ops = {
 	.metadata	= dir40_metadata,
 	.link		= dir40_link,
 	.unlink		= dir40_unlink,
-	.links		= dir40_links,
+	.linked		= dir40_linked,
 	.update         = dir40_update,
 	.truncate	= dir40_truncate,
 	.add_entry	= dir40_add_entry,

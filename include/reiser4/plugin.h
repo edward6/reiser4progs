@@ -900,7 +900,7 @@ struct reiser4_object_ops {
 	/* These methods change @nlink value of passed @entity. */
 	errno_t (*link) (object_entity_t *);
 	errno_t (*unlink) (object_entity_t *);
-	uint32_t (*links) (object_entity_t *);
+	bool_t (*linked) (object_entity_t *);
 
 	/* Establish parent child relationship. */
 	errno_t (*attach) (object_entity_t *, object_entity_t *);

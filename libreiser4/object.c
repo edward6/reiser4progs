@@ -376,6 +376,8 @@ errno_t reiser4_object_attach(reiser4_object_t *object,
 	return res;
 }
 
+/* Detach the object from the parent. If parent is NULL, there is no checks 
+   it detaching is allowed or not. */
 errno_t reiser4_object_detach(reiser4_object_t *object, 
 			      reiser4_object_t *parent) 
 {

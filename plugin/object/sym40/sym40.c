@@ -108,13 +108,13 @@ static errno_t sym40_clobber(object_entity_t *entity) {
 }
 
 /* Return number of hard links. */
-static uint32_t sym40_links(object_entity_t *entity) {
+static bool_t sym40_linked(object_entity_t *entity) {
 	sym40_t *sym;
 	
 	aal_assert("umka-2295", entity != NULL);
 
 	sym = (sym40_t *)entity;
-	return obj40_links(&sym->obj);
+	return obj40_links(&sym->obj) != 0;
 }
 
 /* Add one hard link. */
@@ -217,7 +217,7 @@ static reiser4_object_ops_t sym40_ops = {
 	.metadata       = sym40_metadata,
 	.link           = sym40_link,
 	.unlink         = sym40_unlink,
-	.links          = sym40_links,
+	.linked         = sym40_linked,
 	.update         = sym40_update,
 	.clobber        = sym40_clobber,
 	.recognize	= sym40_recognize,

@@ -39,9 +39,12 @@ errno_t rm_cmd(busy_ctx_t *ctx) {
 		goto error_close_object;
 	}
 	
-	if (reiser4_object_clobber(object)) {
-		aal_error("Can't to erase the object %s.", ctx->in.path);
-		goto error_close_object;
+	if (!plug_call(objplug(object)->o.object_ops, linked, object->ent)) {
+		if (reiser4_object_clobber(object)) {
+			aal_error("Can't to erase the object %s.", 
+				  ctx->in.path);
+			goto error_close_object;
+		}
 	}
 	
 	reiser4_object_close(object);

@@ -77,13 +77,13 @@ static errno_t spl40_clobber(object_entity_t *entity) {
 }
 
 /* Return number of hard links. */
-static uint32_t spl40_links(object_entity_t *entity) {
+static bool_t spl40_linked(object_entity_t *entity) {
 	spl40_t *spl;
 	
 	aal_assert("umka-2537", entity != NULL);
 
 	spl = (spl40_t *)entity;
-	return obj40_links(&spl->obj);
+	return obj40_links(&spl->obj) != 0;
 }
 
 /* Adds one more hardlink */
@@ -144,7 +144,7 @@ static reiser4_object_ops_t spl40_ops = {
 	.metadata       = spl40_metadata,
 	.link           = spl40_link,
 	.unlink         = spl40_unlink,
-	.links          = spl40_links,
+	.linked         = spl40_linked,
 	.clobber        = spl40_clobber,
 	.update         = spl40_update,
 	.check_struct	= spl40_check_struct,

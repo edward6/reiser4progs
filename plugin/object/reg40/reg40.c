@@ -212,13 +212,13 @@ static object_entity_t *reg40_create(object_hint_t *hint) {
 
 /* Returns number of links. Needed to let higher API levels know, that file has
    zero links and may be clobbered. */
-static uint32_t reg40_links(object_entity_t *entity) {
+static bool_t reg40_linked(object_entity_t *entity) {
 	reg40_t *reg;
 	
 	aal_assert("umka-2296", entity != NULL);
 
 	reg = (reg40_t *)entity;
-	return obj40_links(&reg->obj);
+	return obj40_links(&reg->obj) != 0;
 }
 
 /* Increments link number in stat data. */
@@ -694,7 +694,7 @@ static reiser4_object_ops_t reg40_ops = {
 	.update         = reg40_update,
 	.link           = reg40_link,
 	.unlink         = reg40_unlink,
-	.links          = reg40_links,
+	.linked         = reg40_linked,
 	.clobber        = reg40_clobber,
 	.recognize	= reg40_recognize,
 	.check_struct   = reg40_check_struct,
