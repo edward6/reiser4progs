@@ -99,11 +99,16 @@ static void reg40_check_mode(uint16_t *mode) {
 }
                                                                                            
 static void reg40_check_size(uint64_t *sd_size, uint64_t counted_size) {
+	reiser4_plug_t *plug;
+	
         /* FIXME-VITALY: This is not correct for extents as the last
            block can be not used completely. Where to take the policy
            plugin to figure out if the size is correct? */
+	plug = reg40_bplug((object_entity_t *)reg, offset);
+	
         if (*sd_size < counted_size)
                 *sd_size = counted_size;
+	
 }
                                                                                            
 /* Zero nlink number for BUILD mode. */
@@ -232,7 +237,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	}
 	
-	/* Get the reg file tail policy. */
+	/* Get the extent item plugin. */
 	if (!(eplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "extent")))	{
 		aal_exception_error("The object [%s] failed to detect the "
 				    "extent plugin to use.", 
@@ -240,7 +245,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 		return -EINVAL;
 	}
 
-	/* Get the reg file tail policy. */
+	/* Get the tail item plugin. */
 	if (!(tplug = obj40_plug(&reg->obj, ITEM_PLUG_TYPE, "tail"))) {
 		aal_exception_error("The object [%s] failed to detect the "
 				    "tail plugin to use.", 

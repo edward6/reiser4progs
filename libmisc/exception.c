@@ -130,7 +130,10 @@ extern aal_gauge_t *current_gauge;
 aal_exception_option_t misc_exception_handler(
 	aal_exception_t *exception)		/* exception to be processed */
 {
-	int i, tty;
+#if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
+	int i;
+#endif
+	int tty;
 	void *stream = stderr;
 	aal_list_t *variant = NULL;
 	aal_exception_option_t opt = EXCEPTION_UNHANDLED;
