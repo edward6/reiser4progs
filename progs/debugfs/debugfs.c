@@ -938,7 +938,7 @@ static errno_t fprint_process_blk(
 			return -1;
 		}
 		
-		aal_stream_write(&stream, "\n", 1);
+		aal_stream_write(&stream, "\n\n", 2);
 		debugfs_print_stream(&stream);
 		aal_stream_fini(&stream);
 	}
