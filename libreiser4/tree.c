@@ -405,7 +405,7 @@ reiser4_node_t *reiser4_tree_alloc(
 	aal_assert("umka-756", tree != NULL);
     
 	/* Setting up of the free blocks in format */
-	if (!(free = reiser4_alloc_free(tree->fs->alloc)))
+	if (!(free = reiser4_format_get_free(tree->fs->format)))
 		return NULL;
 	
 	if (tree->mpc_func && tree->mpc_func())
@@ -1035,6 +1035,8 @@ errno_t reiser4_tree_attach(
 	if ((res = reiser4_tree_lookup(tree, &hint.key, level,
 				       &place)) != ABSENT)
 	{
+		aal_exception_error("Can't attach node. Key already "
+				    "exists in tree.");
 		return -EINVAL;
 	}
 
@@ -1281,7 +1283,6 @@ errno_t reiser4_tree_expand(
 	int alloc;
 	errno_t res;
 	bool_t enough;
-	uint32_t max_space;
 
 	reiser4_place_t old;
 	reiser4_node_t *left;
@@ -1289,21 +1290,6 @@ errno_t reiser4_tree_expand(
 
 	aal_assert("umka-766", place != NULL);
 	aal_assert("umka-929", tree != NULL);
-
-	if (needed == 0)
-		return 0;
-    
-	max_space = reiser4_node_maxspace(place->node);
-	
-	/* 
-	  Checking if item hint to be inserted to tree has length more than max
-	  possible space in a node.
-	*/
-	if (needed > max_space) {
-		aal_exception_error("Item size is too big. Maximal possible "
-				    "item can be %u bytes long.", max_space);
-		return -EINVAL;
-	}
 
 	if ((enough = enough_by_space(tree, place, needed)))
 		return 0;
@@ -1351,8 +1337,11 @@ errno_t reiser4_tree_expand(
 
 		level = reiser4_node_get_level(place->node);
 	
-		if (!(node = reiser4_tree_alloc(tree, level)))
+		if (!(node = reiser4_tree_alloc(tree, level))) {
+			aal_exception_error("Can't allocate new node. "
+					    "No space left?");
 			return -ENOSPC;
+		}
 		
 		flags = SF_RIGHT | SF_UPTIP;
 
@@ -1553,6 +1542,7 @@ errno_t reiser4_tree_insert(
 	int mode;
 	errno_t res;
 	uint32_t needed;
+	uint32_t maxspace;
 	
 	reiser4_key_t *key;
 	reiser4_place_t old;
@@ -1656,6 +1646,19 @@ errno_t reiser4_tree_insert(
 			return res;
 	}
 
+	maxspace = reiser4_node_maxspace(place->node);
+	
+	/* 
+	  Checking if item hint to be inserted to tree has length more than max
+	  possible space in a node.
+	*/
+	if (hint->len > maxspace) {
+		aal_exception_error("Item size %u is too big. Maximal possible "
+				    "item can be %u bytes long.", hint->len,
+				    maxspace);
+		return -EINVAL;
+	}
+
 	/*
 	  Saving mode of insert (insert new item, paste units to the existent
 	  one) before making space for new inset/unit.
@@ -1666,7 +1669,7 @@ errno_t reiser4_tree_insert(
 		reiser4_node_overhead(place->node) : 0);
 	    
 	if ((res = reiser4_tree_expand(tree, place, needed, SF_DEFAULT))) {
-		aal_exception_error("Can't expand the space for insertion.");
+		aal_exception_error("Can't expand the tree for insertion.");
 		return res;
 	}
 	

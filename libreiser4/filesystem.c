@@ -224,6 +224,7 @@ reiser4_fs_t *reiser4_fs_create(
 	rid_t policy;
 	rid_t format;
 
+	count_t free;
 	count_t dev_len;
 	reiser4_fs_t *fs;
 
@@ -266,8 +267,7 @@ reiser4_fs_t *reiser4_fs_create(
 	fs->profile = profile;
 	
 	/* Creates master super block */
-	if ((format = reiser4_profile_value(profile, "format")) == INVAL_PID)
-		return NULL;
+	format = reiser4_profile_value(profile, "format");
 		
 	if (!(fs->master = reiser4_master_create(device, format,
 						 blocksize,
@@ -277,12 +277,14 @@ reiser4_fs_t *reiser4_fs_create(
 	}
 
 	/* Getting tail policy from the passed profile */
-	if ((policy = reiser4_profile_value(profile, "policy")) == INVAL_PID)
-		goto error_free_master;
+	policy = reiser4_profile_value(profile, "policy");
 	
 	/* Creates disk format */
-	if (!(fs->format = reiser4_format_create(fs, blocks, policy, format)))
+	if (!(fs->format = reiser4_format_create(fs, blocks, policy,
+						 format)))
+	{
 		goto error_free_master;
+	}
 
 	/* Creates block allocator */
 	if (!(fs->alloc = reiser4_alloc_create(fs, blocks)))
@@ -293,9 +295,13 @@ reiser4_fs_t *reiser4_fs_create(
 		goto error_free_alloc;
 	
 	if (reiser4_fs_mark(fs)) {
-		aal_exception_error("Can't mark filesystem used blocks.");
+		aal_exception_error("Can't mark filesystem used "
+				    "blocks.");
 		goto error_free_oid;
 	}
+
+	free = reiser4_alloc_free(fs->alloc);
+	reiser4_format_set_free(fs->format, free);
 
 	return fs;
 

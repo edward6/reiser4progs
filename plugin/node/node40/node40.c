@@ -707,7 +707,6 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 
 	/* Updating item header plugin id if we insert new item */
 	if (pos->unit == ~0ul) {
-
 		if (hint->flags == HF_RAWDATA) {
 			aal_memcpy(item.body, hint->type_specific,
 				   hint->len);
@@ -718,15 +717,17 @@ static errno_t node40_insert(object_entity_t *entity, pos_t *pos,
 		if (hint->plugin->o.item_ops->init)
 			hint->plugin->o.item_ops->init(&item);
 
+		/* Inserting units into @item */
 		if ((res = plugin_call(hint->plugin->o.item_ops,
 				       insert, &item, hint, 0)))
 			return res;
 	} else {
+		/* Inserting units into @item */
 		if ((res = plugin_call(hint->plugin->o.item_ops,
 				       insert, &item, hint, pos->unit)))
 			return res;
 	}
-
+	
 	/*
 	  Updating item's key if we insert new item or if we insert unit
 	  into leftmost postion.
@@ -1269,17 +1270,19 @@ static errno_t node40_merge(object_entity_t *src_entity,
 		return 0;
 	
 	/* Checking if items are mergeable */
-	hint->create = (dst_items == 0);
-
 	if (dst_items > 0) {
 		POS_INIT(&pos, (hint->control & SF_LEFT ?
 				dst_items - 1 : 0), ~0ul);
 		
 		if (node40_item(dst_entity, &pos, &dst_item))
 			return -EINVAL;
-		
-		hint->create = !node40_mergeable(&src_item, &dst_item);
-	}
+
+		if (hint->control & SF_LEFT)
+			hint->create = !node40_mergeable(&dst_item, &src_item);
+		else
+			hint->create = !node40_mergeable(&src_item, &dst_item);
+	} else
+		hint->create = 1;
 
 	/*
 	  Calling item's "predict" method in order to estimate how many units

@@ -23,8 +23,6 @@ errno_t tail40_get_key(item_entity_t *item,
 {
 	aal_assert("vpf-626", item != NULL);
 	aal_assert("vpf-627", key != NULL);
-	aal_assert("vpf-628", pos < tail40_units(item));
-
 	return body40_get_key(item, pos, key, NULL);
 }
 
@@ -275,7 +273,7 @@ static uint32_t tail40_expand(item_entity_t *item, uint32_t pos,
 {
 	if (pos < item->len) {
 		aal_memmove(item->body + pos + count,
-			    item->body + pos, item->len);
+			    item->body + pos, item->len - pos);
 	}
 
 	return 0;
@@ -286,7 +284,8 @@ static uint32_t tail40_shrink(item_entity_t *item, uint32_t pos,
 {
 	if (pos < item->len) {
 		aal_memmove(item->body + pos,
-			    item->body + pos + count, item->len);
+			    item->body + pos + count,
+			    item->len - (pos + count));
 	}
 
 	return 0;
@@ -313,10 +312,10 @@ static errno_t tail40_shift(item_entity_t *src_item,
 			      hint->rest);
 
 		/* Updating item's key by the first unit key */
-		if (tail40_get_key(src_item, 0, &src_item->key))
-			return -EINVAL;
+		tail40_get_key(src_item, hint->rest, &src_item->key);
 	} else {
 		uint32_t pos;
+		uint64_t offset;
 		
 		tail40_expand(dst_item, 0, hint->units,
 			      hint->rest);
@@ -327,8 +326,17 @@ static errno_t tail40_shift(item_entity_t *src_item,
 		tail40_shrink(src_item, pos, hint->units, hint->rest);
 
 		/* Updating item's key by the first unit key */
-		if (tail40_get_key(dst_item, 0, &dst_item->key))
-			return -EINVAL;
+		tail40_get_key(dst_item, 0, &dst_item->key);
+
+		offset = plugin_call(dst_item->key.plugin->o.key_ops,
+				     get_offset, &dst_item->key);
+
+		aal_assert("umka-2282", offset >= hint->rest);
+		
+		offset -= hint->rest;
+
+		plugin_call(dst_item->key.plugin->o.key_ops,
+			    set_offset, &dst_item->key, offset);
 	}
 	
 	return 0;

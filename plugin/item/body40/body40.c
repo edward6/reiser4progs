@@ -13,9 +13,9 @@
   variable. It is needed for updating item key after shifting, etc.
 */
 errno_t body40_get_key(item_entity_t *item,
-			 uint32_t pos,
-			 key_entity_t *key,
-			 trans_func_t trans_func)
+		       uint32_t pos,
+		       key_entity_t *key,
+		       trans_func_t trans_func)
 {
 #ifndef ENABLE_STAND_ALONE
 	uint64_t offset;
@@ -39,7 +39,7 @@ errno_t body40_get_key(item_entity_t *item,
 
 /* Returns maximal possible key from file body items */
 errno_t body40_maxposs_key(item_entity_t *item,
-			     key_entity_t *key) 
+			   key_entity_t *key) 
 {
 #ifndef ENABLE_STAND_ALONE
 	uint64_t offset;
@@ -67,8 +67,8 @@ errno_t body40_maxposs_key(item_entity_t *item,
 #ifndef ENABLE_STAND_ALONE
 /* Returns max real key inside passed @item */
 errno_t body40_maxreal_key(item_entity_t *item,
-			     key_entity_t *key,
-			     trans_func_t trans_func) 
+			   key_entity_t *key,
+			   trans_func_t trans_func) 
 {
 	uint64_t units;
 	uint64_t offset;
@@ -82,33 +82,40 @@ errno_t body40_maxreal_key(item_entity_t *item,
 	offset = plugin_call(key->plugin->o.key_ops,
 			     get_offset, key);
 
-	if (trans_func)
-		units = trans_func(item, units);
+	offset += trans_func ? trans_func(item, units) :
+		units;
 	
 	plugin_call(key->plugin->o.key_ops, set_offset,
-		    key, offset + units - 1);
+		    key, offset - 1);
 	
 	return 0;
 }
 
 /* Checks if two items are mergeable */
 int body40_mergeable(item_entity_t *item1,
-		       item_entity_t *item2)
+		     item_entity_t *item2)
 {
+	uint64_t offset;
 	key_entity_t maxreal_key;
 
 	plugin_call(item1->plugin->o.item_ops, maxreal_key,
 		    item1, &maxreal_key);
 
+	offset = plugin_call(maxreal_key.plugin->o.key_ops,
+			     get_offset, &maxreal_key);
+
+	plugin_call(maxreal_key.plugin->o.key_ops,
+		    set_offset, &maxreal_key, offset + 1);
+	
 	return !plugin_call(item1->key.plugin->o.key_ops,
 			    compare, &maxreal_key, &item2->key);
 }
 #endif
 
 lookup_t body40_lookup(item_entity_t *item,
-			 key_entity_t *key,
-			 uint64_t *pos,
-			 trans_func_t trans_func)
+		       key_entity_t *key,
+		       uint64_t *pos,
+		       trans_func_t trans_func)
 {
 #ifndef ENABLE_STAND_ALONE
 	uint64_t size;

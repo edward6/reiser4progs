@@ -329,9 +329,9 @@ static uint32_t reg40_chunk(reg40_t *reg) {
 	return core->tree_ops.maxspace(reg->obj.tree);
 }
 
-/* Writes "n" bytes from "buff" to passed file. */
-static int32_t reg40_write(object_entity_t *entity, 
-			   void *buff, uint32_t n) 
+/* Writes passed data to the file */
+static int32_t reg40_put(object_entity_t *entity, 
+			 void *buff, uint32_t n)
 {
 	errno_t res;
 	reg40_t *reg;
@@ -344,6 +344,7 @@ static int32_t reg40_write(object_entity_t *entity,
 
 	create_hint_t hint;
 	item_entity_t *item;
+	
 	reiser4_plugin_t *plugin;
 	sdext_unix_hint_t unix_hint;
 
@@ -354,8 +355,13 @@ static int32_t reg40_write(object_entity_t *entity,
 	
 	for (written = 0; written < n; ) {
 		errno_t res;
+		place_t place;
+		oid_t locality;
+		oid_t objectid;
+
+		hint.len = n - written;
 		
-		if ((hint.len = n - written) > maxspace)
+		if (hint.len > maxspace)
 			hint.len = maxspace;
 		
 		hint.count = hint.len;
@@ -364,14 +370,23 @@ static int32_t reg40_write(object_entity_t *entity,
 		hint.flags = HF_FORMATD;
 		hint.type_specific = buff;
 
+		locality = obj40_locality(&reg->obj);
+		objectid = obj40_objectid(&reg->obj);
+
 		plugin_call(STAT_KEY(&reg->obj)->plugin->o.key_ops,
 			    build_generic, &hint.key, KEY_FILEBODY_TYPE,
-			    obj40_locality(&reg->obj), obj40_objectid(&reg->obj),
-			    reg->offset);
+			    locality, objectid, reg->offset);
 	
-		if ((res = obj40_insert(&reg->obj, &hint, LEAF_LEVEL, &reg->body)))
+		if ((res = obj40_insert(&reg->obj, &hint, LEAF_LEVEL,
+					&place)))
+		{
 			return res;
+		}
 
+		obj40_relock(&reg->obj, &reg->body, &place);
+		aal_memcpy(&reg->body, &place, sizeof(reg->body));
+
+		buff += hint.len;
 		written += hint.len;
 		reg->offset += hint.len;
 	}
@@ -401,6 +416,71 @@ static int32_t reg40_write(object_entity_t *entity,
 		return res;
 	
 	return written;
+}
+
+/* Takes care about holes */
+static errno_t reg40_holes(object_entity_t *entity) {
+	errno_t res;
+	reg40_t *reg;
+	uint32_t size;
+
+	reg = (reg40_t *)entity;
+
+	/* Updating stat data place */
+	if ((res = obj40_stat(&reg->obj)))
+		return res;
+	
+	size = obj40_get_size(&reg->obj);
+
+	/* Writing holes */
+	if (reg->offset > size) {
+		void *holes;
+		int32_t hole;
+		int32_t written;
+
+		hole = reg->offset - size;
+		reg->offset -= hole;
+
+		for (written = 0; written < hole; ) {
+			uint32_t chunk;
+
+			chunk = hole - written;
+
+			if (chunk > reg40_chunk(reg))
+				chunk = reg40_chunk(reg);
+			
+			if (!(holes = aal_calloc(chunk, 0)))
+				return -ENOMEM;
+
+			if (reg40_put(entity, holes, chunk) < 0) {
+				aal_free(holes);
+				return -EIO;
+			}
+
+			aal_free(holes);
+			written += chunk;
+		}
+	}
+
+	return 0;
+}
+
+/* Writes "n" bytes from "buff" to passed file. */
+static int32_t reg40_write(object_entity_t *entity, 
+			   void *buff, uint32_t n) 
+{
+	int32_t res;
+	
+	aal_assert("umka-2280", buff != NULL);
+	aal_assert("umka-2281", entity != NULL);
+
+	if ((res = reg40_holes(entity)))
+		return res;
+	
+	if ((res = reg40_put(entity, buff, n)) < 0)
+		return res;
+	
+	return res;
 }
 
 struct layout_hint {
@@ -543,9 +623,15 @@ static void reg40_close(object_entity_t *entity) {
 		
 	aal_assert("umka-1170", entity != NULL);
 
+#ifndef ENABLE_STAND_ALONE
+	reg40_holes(entity);
+#endif
+	
 	/* Unlocking statdata and body */
 	obj40_relock(&reg->obj, &reg->obj.statdata, NULL);
-	obj40_relock(&reg->obj, &reg->body, NULL);
+
+	if (reg->body.node != NULL)
+		obj40_relock(&reg->obj, &reg->body, NULL);
 	
 	aal_free(entity);
 }

@@ -93,7 +93,7 @@ static errno_t extent40_get_key(item_entity_t *item,
 	aal_assert("vpf-623", key != NULL);
 
 	return body40_get_key(item, pos, key,
-				(trans_func_t)extent40_offset);
+			      (trans_func_t)extent40_offset);
 }
 
 static int extent40_data(void) {
@@ -542,10 +542,10 @@ static errno_t extent40_shift(item_entity_t *src_item,
 		extent40_shrink(src_item, 0, hint->units, 0);
 
 		/* Updating item's key by the first unit key */
-		if (extent40_get_key(src_item, 0, &src_item->key))
-			return -EINVAL;
+		extent40_get_key(src_item, hint->units, &src_item->key);
 	} else {
 		uint32_t pos;
+		uint64_t offset;
 
 		/* Preparing space in @dst_item */
 		extent40_expand(dst_item, 0, hint->units, 0);
@@ -560,8 +560,15 @@ static errno_t extent40_shift(item_entity_t *src_item,
 		extent40_shrink(src_item, pos, hint->units, 0);
 
 		/* Updating item's key by the first unit key */
-		if (extent40_get_key(dst_item, 0, &dst_item->key))
-			return -EINVAL;
+		extent40_get_key(dst_item, 0, &dst_item->key);
+
+		offset = plugin_call(dst_item->key.plugin->o.key_ops,
+				     get_offset, &dst_item->key);
+
+		offset -= extent40_offset(dst_item, hint->units);
+
+		plugin_call(dst_item->key.plugin->o.key_ops,
+			    set_offset, &dst_item->key, offset);
 	}
 	
 	return 0;
