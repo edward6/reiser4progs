@@ -1007,7 +1007,7 @@ static reiser4_item_ops_t cde40_ops = {
 
 	.update            = NULL,
 	.write             = NULL,
-	.cutout            = NULL,
+	.truncate          = NULL,
 	.layout		   = NULL,
 	.check_layout	   = NULL,
 	.estimate_write    = NULL,

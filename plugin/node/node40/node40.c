@@ -684,8 +684,8 @@ static int32_t node40_write(node_entity_t *entity,
 	return node40_mod(entity, pos, hint, 0);
 }
 
-errno_t node40_cutout(node_entity_t *entity, pos_t *pos,
-		      trans_hint_t *hint)
+errno_t node40_truncate(node_entity_t *entity, pos_t *pos,
+			trans_hint_t *hint)
 {
 	void *ih;
 	errno_t res;
@@ -702,9 +702,9 @@ errno_t node40_cutout(node_entity_t *entity, pos_t *pos,
 	if (node40_fetch(entity, pos, &place))
 		return -EINVAL;
 
-	if (place.plug->o.item_ops->cutout) {
+	if (place.plug->o.item_ops->truncate) {
 		if ((res = plug_call(place.plug->o.item_ops,
-				     cutout, &place, hint)))
+				     truncate, &place, hint)))
 		{
 			return res;
 		}
@@ -717,17 +717,22 @@ errno_t node40_cutout(node_entity_t *entity, pos_t *pos,
 		hint->len = hint->count;
 	}
 	
-	len = hint->ohd + hint->len;
-
-	if (len >= node40_size(node, &place.pos, 1)) {
-		place.pos.unit = MAX_UINT32;
+	if ((len = hint->ohd + hint->len)) {
+		if ((res = node40_shrink(entity, &place.pos,
+					 len, hint->count)))
+		{
+			return res;
+		}
 		
-		return node40_shrink(entity, &place.pos,
-				     0, 1);
-	} else {
-		return node40_shrink(entity, &place.pos,
-				     len, hint->count);
+		if (node40_size(node, &place.pos, 1) == 0) {
+			place.pos.unit = MAX_UINT32;
+			
+			return node40_shrink(entity, &place.pos,
+					     len, 1);
+		}
 	}
+
+	return 0;
 }
 
 /* This function removes item/unit from the node at specified @pos */
@@ -1545,7 +1550,7 @@ static reiser4_node_ops_t node40_ops = {
 	
 	.insert		= node40_insert,
 	.write		= node40_write,
-	.cutout         = node40_cutout,
+	.truncate       = node40_truncate,
 	.remove		= node40_remove,
 	.print		= node40_print,
 	.shift		= node40_shift,

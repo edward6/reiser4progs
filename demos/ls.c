@@ -116,8 +116,8 @@ int main(int argc, char *argv[]) {
 
 		reg_hint.body.reg.tail = ITEM_TAIL40_ID;
 		reg_hint.body.reg.extent = ITEM_EXTENT40_ID;
-//		reg_hint.body.reg.policy = TAIL_NEVER_ID;
-		reg_hint.body.reg.policy = TAIL_ALWAYS_ID;
+		reg_hint.body.reg.policy = TAIL_NEVER_ID;
+//		reg_hint.body.reg.policy = TAIL_ALWAYS_ID;
 
 		{
 			int i, j;

@@ -109,7 +109,7 @@ static errno_t extent40_remove(place_t *place,
 	return 0;
 }
 
-static errno_t extent40_cutout(place_t *place, trans_hint_t *hint) {
+static errno_t extent40_truncate(place_t *place, trans_hint_t *hint) {
 	uint32_t pos;
 	uint64_t offset;
 	key_entity_t key;
@@ -120,6 +120,10 @@ static errno_t extent40_cutout(place_t *place, trans_hint_t *hint) {
 
 	hint->ohd = 0;
 	pos = place->pos.unit;
+	
+	if (pos == MAX_UINT32)
+		pos = 0;
+	
 	extent = extent40_body(place) + pos;
 
 	if (et40_get_width(extent) > 1) {
@@ -637,6 +641,9 @@ static errno_t extent40_estimate_write(place_t *place,
 
 		max_offset = plug_call(hint->maxkey.plug->o.key_ops,
 				       get_offset, &hint->maxkey);
+
+		if (max_offset > 0)
+			max_offset++;
 		
 		/* Checking if insert key lies behind the insert point item
 		   data. If so, we will perform further checks. */
@@ -731,6 +738,9 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 		max_offset = plug_call(hint->maxkey.plug->o.key_ops,
 				       get_offset, &hint->maxkey);
 
+		if (max_offset > 0)
+			max_offset++;
+		
 		/* Checking if we write data inside item */
 		if (block_offset < max_offset) {
 			blk_t blk;
@@ -766,7 +776,9 @@ static int32_t extent40_write(place_t *place, trans_hint_t *hint) {
 
 			/* Attaching new block to data cache. */
 			core->tree_ops.put_data(hint->tree, &key, block);
-			extent = extent40_body(place) + place->pos.unit;
+			
+			extent = extent40_body(place) +
+				extent40_units(place) - 1;
 
 			/* Checking if we write data or holes */
 			if (hint->specific && max_offset) {
@@ -1023,11 +1035,13 @@ static errno_t extent40_shift(place_t *src_place, place_t *dst_place,
 	return 0;
 }
 
+/* Returns item size in bytes */
 static uint64_t extent40_size(place_t *place) {
 	uint32_t units = extent40_units(place);
 	return extent40_offset(place, units);
 }
 
+/* Returns actual item size on disk */
 static uint64_t extent40_bytes(place_t *place) {
 	extent40_t *extent;
 	uint32_t i, blocks;
@@ -1044,7 +1058,7 @@ static uint64_t extent40_bytes(place_t *place) {
 			blocks += et40_get_width(extent);
 	}
     
-	return blocks * extent40_blksize(place);
+	return (blocks * extent40_blksize(place));
 
 }
 
@@ -1069,7 +1083,7 @@ static reiser4_item_ops_t extent40_ops = {
 	.update           = extent40_update,
 	.insert           = extent40_insert,
 	.write            = extent40_write,
-	.cutout           = extent40_cutout,
+	.truncate         = extent40_truncate,
 	.print	          = extent40_print,
 	.shift            = extent40_shift,
 	.layout           = extent40_layout,

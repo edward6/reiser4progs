@@ -379,6 +379,7 @@ static errno_t tail40_remove(place_t *place, trans_hint_t *hint) {
 	return 0;
 }
 
+/* Returns item size in bytes */
 static uint64_t tail40_size(place_t *place) {
 	aal_assert("vpf-1210", place != NULL);
 	return place->len;
@@ -417,7 +418,7 @@ static reiser4_item_ops_t tail40_ops = {
 	.estimate_insert  = NULL,
 	.overhead         = NULL,
 	.insert	          = NULL,
-	.cutout           = NULL,
+	.truncate         = NULL,
 	.update           = NULL,
 	.init	          = NULL,
 	.branch           = NULL,

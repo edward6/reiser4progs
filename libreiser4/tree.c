@@ -1835,49 +1835,43 @@ void reiser4_tree_pack_off(reiser4_tree_t *tree) {
 	tree->flags &= ~TF_PACK;
 }
 
-errno_t reiser4_tree_write_flow(reiser4_tree_t *tree,
+int32_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 				trans_hint_t *hint)
 {
-	uint32_t size, chunk;
-	reiser4_place_t place;
+	errno_t res;
+	uint32_t size;
+	uint32_t total;
 
-	chunk = reiser4_master_blksize(tree->fs->master);
-	
-	if (hint->plug->id.group == TAIL_ITEM) {
-		chunk = reiser4_node_maxspace(tree->root);
-	}
-	
-	for (size = hint->count; size > 0;) {
+	for (total = 0, size = hint->count; size > 0;) {
 		int32_t write;
 		uint32_t level;
 		uint64_t offset;
+		reiser4_place_t place;
 
-		hint->count = chunk;
+		hint->count = size;
 
-		if (hint->count > size)
-			hint->count = size;
-			
 		/* Looking for place to write */
-		switch (reiser4_tree_lookup(tree, &hint->offset,
-					    LEAF_LEVEL, FIND_CONV, &place))
+		if ((res = reiser4_tree_lookup(tree, &hint->offset,
+					       LEAF_LEVEL, FIND_CONV,
+					       &place)) < 0)
 		{
-		case FAILED:
-			return -EIO;
-		default:
-			break;
+			return res;
 		}
 
 		level = reiser4_node_get_level(place.node);
 		
-		/* Writing one chunk of data @hint->count bytes of length to the
-		   tree. */
-		if ((write = reiser4_tree_write(tree, &place, hint, level)) < 0) {
-			aal_exception_error("Can't write data to tree.");
+		if ((write = reiser4_tree_write(tree, &place,
+						hint, level)) < 0)
+		{
 			return write;
+		} else {
+			if (write == 0)
+				break;
 		}
 
 		/* Updating counters */
 		size -= write;
+		total += write;
 		hint->specific += write;
 		
 		/* Updating key */
@@ -1885,7 +1879,51 @@ errno_t reiser4_tree_write_flow(reiser4_tree_t *tree,
 		reiser4_key_set_offset(&hint->offset, offset + write);
 	}
 
-	return 0;
+	return total;
+}
+
+/* Reads one convert chunk from src item */
+int32_t reiser4_tree_read_flow(reiser4_tree_t *tree,
+			       trans_hint_t *hint)
+{
+	errno_t res;
+	uint32_t size;
+	uint32_t total;
+
+	for (total = 0, size = hint->count; size > 0; ) {
+		int32_t read;
+		uint64_t offset;
+		reiser4_place_t place;
+
+		/* Looking for the place to read */
+		if ((res = reiser4_tree_lookup(tree, &hint->offset,
+					       LEAF_LEVEL, FIND_EXACT,
+					       &place)) != PRESENT)
+		{
+			return res;
+		}
+
+		/* Prepare hint for read */
+		hint->tree = tree;
+		hint->count = size;
+		
+		/* Read data from the tree */
+		if ((read = reiser4_tree_read(tree, &place, hint)) < 0) {
+			return read;
+		} else {
+			if (read == 0)
+				break;
+		}
+
+		size -= read;
+		total += read;
+		hint->specific += read;
+
+		offset = reiser4_key_get_offset(&hint->offset);
+		reiser4_key_set_offset(&hint->offset, offset + read);
+	}
+
+	return total;
 }
 
 /* Converts item at passed @place from tail to extent and back from extent to
@@ -1896,10 +1934,7 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 {
 	char *buff;
 	errno_t res;
-	int32_t read;
 	uint32_t size;
-	uint32_t chunk;
-	uint64_t offset;
 	uint32_t blksize;
 
 	trans_hint_t hint;
@@ -1921,63 +1956,46 @@ errno_t reiser4_tree_conv(reiser4_tree_t *tree,
 		reiser4_key_get_offset(&place->key);
 
 	blksize = reiser4_master_blksize(tree->fs->master);
-		
-	for (offset = 0; size > 0; size -= read,
-		     offset += chunk)
-	{
-		chunk = blksize;
-		
-		if (size % blksize != 0) {
-			chunk = (size % blksize);
-		}
-		
-		if (chunk > size)
-			chunk = size;
-	
-		/* Prepare key in order to find place to read from. This is key
-		   of the last byte of item minus maximal possible space in
-		   node. */
-		reiser4_key_assign(&hint.offset, &place->key);
-		reiser4_key_set_offset(&hint.offset, offset);
 
-		/* Looking for the place to read */
-		switch (reiser4_tree_lookup(tree, &hint.offset, LEAF_LEVEL,
-					    FIND_EXACT, place))
-		{
-		case ABSENT:
-			return -EIO;
-		default:
-			break;
-		}
-
-		/* Prepare hint for read */
-		hint.tree = tree;
-		hint.count = chunk;
+	while (size > 0) {
+		int32_t trans;
 		
-		if (!(buff = aal_calloc(chunk, 0)))
+		/* Preparing buffer to read to it and size to read. */
+		hint.count = blksize;
+
+		if (hint.count > size)
+			hint.count = size;
+
+		if (!(buff = aal_calloc(hint.count, 0)))
 			return -ENOMEM;
 
 		hint.specific = buff;
+		
+		reiser4_key_assign(&hint.offset, &place->key);
 
-		/* Read data from the tree */
-		if (!(read = reiser4_tree_read(tree, place, &hint))) {
-			res = -EIO;
+		/* Reading data from tree */
+		if ((trans = reiser4_tree_read_flow(tree, &hint)) < 0) {
+			res = trans;
 			goto error_free_buff;
 		}
 
-		/* Remove data from the tree */
-		if (reiser4_tree_cutout(tree, place, &hint)) {
-			res = -EIO;
-			goto error_free_buff;
-		}
+		size -= trans;
 
+		/* Removing read data from the tree. */
 		hint.plug = plug;
+		hint.count = trans;
+		
+		if ((res = reiser4_tree_truncate(tree, place, &hint)))
+			goto error_free_buff;
 		
 		/* Writing data to the tree */
-		if ((res = reiser4_tree_write_flow(tree, &hint)))
+		if ((res = reiser4_tree_write_flow(tree, &hint)) < 0) {
+			res = trans;
 			goto error_free_buff;
-		
+		}
+
 		aal_free(buff);
+		size -= blksize;
 	}
 
 	return 0;
@@ -2211,14 +2229,14 @@ int32_t reiser4_tree_write(reiser4_tree_t *tree,
 	return reiser4_tree_mod(tree, place, hint, level, 0);
 }
 
-errno_t reiser4_tree_cutout(reiser4_tree_t *tree,
-			    reiser4_place_t *place,
-			    trans_hint_t *hint)
+errno_t reiser4_tree_truncate(reiser4_tree_t *tree,
+			      reiser4_place_t *place,
+			      trans_hint_t *hint)
 {
 	errno_t res;
 	
 	if (plug_call(place->node->entity->plug->o.node_ops,
-		      cutout, place->node->entity, &place->pos,
+		      truncate, place->node->entity, &place->pos,
 		      hint))
 	{
 		return -EIO;
@@ -2248,7 +2266,7 @@ errno_t reiser4_tree_cutout(reiser4_tree_t *tree,
 	}
 	
 	/* Checking if the node became empty. If so, we release it. */
-	if (reiser4_node_items(place->node) > 0) {
+	if (reiser4_node_items(place->node) == 0) {
 		/* Detaching node from the tree, because it became empty */
 		reiser4_node_mkclean(place->node);
 		reiser4_tree_detach(tree, place->node);
@@ -2260,7 +2278,9 @@ errno_t reiser4_tree_cutout(reiser4_tree_t *tree,
 	}
 
 	/* Drying tree up in the case root node has only one item */
-	if (reiser4_node_items(tree->root) == 1 && !reiser4_tree_minimal(tree)) {
+	if (reiser4_node_items(tree->root) == 1 &&
+	    !reiser4_tree_minimal(tree))
+	{
 		if ((res = reiser4_tree_dryout(tree)))
 			return res;
 	}
