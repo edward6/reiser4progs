@@ -1,6 +1,6 @@
 This file is part of reiser4progs package
 
-Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
 * all functions which return errno_t should return real errno, not just -1.
@@ -18,3 +18,9 @@ reiser4progs/COPYING.
   header structure.
 
 * should we use node print method for printing the all node items?
+
+* finish balancing code in node40 plugin.
+
+* reg40_layout, which will allow us to measure the fragmentation of the regular files
+
+* --print-journal and --print-alloc options in debugfs.

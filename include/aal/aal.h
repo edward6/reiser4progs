@@ -5,7 +5,7 @@
   called allone mode - the mode, all bootloaders work in (real mode of
   processor, no libc).
     
-  Copyright (C) 2001, 2002 by Hans Reiser, licencing governed by
+  Copyright (C) 2001, 2002 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
 */
 
