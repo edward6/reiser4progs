@@ -13,7 +13,7 @@
 
 #include "stat40.h"
 
-errno_t stat40_check(item_entity_t *item) {
+errno_t stat40_check(item_entity_t *item, uint8_t mode) {
     return 0;
 }
 

@@ -962,9 +962,9 @@ static int32_t direntry40_write(item_entity_t *item, void *buff,
 }
 
 /* Removes @count entries at @pos from passed @item */
-static int32_t direntry40_remove(item_entity_t *item,
-				 uint32_t pos,
-				 uint32_t count)
+int32_t direntry40_remove(item_entity_t *item,
+			  uint32_t pos,
+			  uint32_t count)
 {
 	uint32_t len;
 	direntry40_t *direntry;
@@ -1049,7 +1049,7 @@ static errno_t direntry40_print(item_entity_t *item,
 	return 0;
 }
 
-extern errno_t direntry40_check(item_entity_t *item);
+extern errno_t direntry40_check(item_entity_t *item, uint8_t mode);
 
 #endif
 

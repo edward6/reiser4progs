@@ -137,6 +137,8 @@ extern errno_t nodeptr40_layout_check(item_entity_t *item,
 				      region_func_t func, 
 				      void *data);
 
+extern errno_t nodeptr40_check(item_entity_t *item, uint8_t mode);
+
 #endif
 
 static reiser4_plugin_t nodeptr40_plugin = {
@@ -149,20 +151,20 @@ static reiser4_plugin_t nodeptr40_plugin = {
 			.label = "nodeptr40",
 			.desc = "Node pointer item for reiserfs 4.0, ver. " VERSION,
 		},
-		.check = NULL,
-		
 #ifndef ENABLE_ALONE	    
 		.init		= nodeptr40_init,
 		.write          = nodeptr40_write,
 		.estimate	= nodeptr40_estimate,
 		.print		= nodeptr40_print,
 		.layout_check	= nodeptr40_layout_check,
+		.check		= nodeptr40_check,
 #else
 		.init		= NULL,
 		.write          = NULL,
 		.estimate	= NULL,
 		.print		= NULL,
 		.layout_check   = NULL,
+		.check = NULL,
 #endif
 		.units		= nodeptr40_units,
 		.read           = nodeptr40_read,
