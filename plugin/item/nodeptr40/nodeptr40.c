@@ -180,8 +180,11 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.update         = NULL,
 		.estimate	= NULL,
 		.print		= NULL,
-		.fix_region	= NULL,
+		.layout_check   = NULL,
 #endif
+		.units		= nodeptr40_units,
+		.fetch          = nodeptr40_fetch,
+	
 		.layout         = NULL,
 		.belongs        = NULL,
 		.lookup		= NULL,
@@ -192,9 +195,6 @@ static reiser4_plugin_t nodeptr40_plugin = {
 		.shift          = NULL,
 		.predict        = NULL,
 
-		.units		= nodeptr40_units,
-		.fetch          = nodeptr40_fetch,
-	
 		.get_key	= NULL,
 		.set_key	= NULL,
 		

@@ -160,48 +160,6 @@ void progs_upper_case(char *dst, const char *src) {
 	dst[i] = '\0';
 }
 
-static uint32_t swapped = 0;
-
-static int progs_mpressure_detect(void) {
-	FILE *f;
-	
-	int dint, res;
-	long rss, vmsize;
-
-	long dlong;
-	char cmd[256], dchar;
-
-	long diff;
-
-	if (!(f = fopen("/proc/self/stat", "r"))) {
-		aal_exception_error("Can't open /proc/self/stat.");
-		return 0;
-	}
-
-	fscanf(f, "%d %s %c %d %d %d %d %d %lu %lu %lu %lu %lu %lu %lu "
-	       "%ld %ld %ld %ld %ld %ld %lu %lu %ld %lu %lu %lu %lu %lu "
-	       "%lu %lu %lu %lu %lu %lu %lu %lu %d %d %lu %lu\n",
-	       &dint, cmd, &dchar, &dint, &dint, &dint, &dint, &dint, &dlong,
-	       &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong,
-	       &dlong, &dlong, &dlong, &dlong, &dlong, &vmsize, &rss, &dlong,
-	       &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong,
-	       &dlong, &dlong, &dlong, &dlong, &dint, &dint, &dlong, &dlong);
-
-	/* FIXME-UMKA: Here should not be hardcoded dependence to 12 bits */
-	diff = labs((vmsize - (rss << 12)) - swapped);
-	swapped = labs(vmsize - (rss << 12));
-	
-	res = diff > 4096;
-
-	fclose(f);
-	
-	return res;
-}
-
-void progs_mpressure_init(void) {
-	aal_mpressure_init(progs_mpressure_detect);
-}
-
 static errno_t callback_print_plugin(reiser4_plugin_t *plugin, void *data) {
 	printf("%s:  \t%s.\n", plugin->h.label, plugin->h.desc);
 	return 0;

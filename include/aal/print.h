@@ -14,11 +14,11 @@
 
 #ifdef ENABLE_COMPACT
 
-extern int aal_vsnprintf(char *buff, size_t n, const char *format, 
+extern int aal_vsnprintf(char *buff, unsigned int n, const char *format, 
 			 va_list arg_list);
 
-extern int aal_snprintf(char *buff, size_t n, const char *format, 
-			...) __check_format__(printf, 3, 4);
+extern int aal_snprintf(char *buff, unsigned int n, const char *format, 
+			...) __aal_check_format__(printf, 3, 4);
 
 #else
 

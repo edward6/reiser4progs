@@ -99,9 +99,6 @@ static void debugfs_print_usage(char *name) {
 static void debugfs_init(void) {
 	int ex;
 
-	/* Initializing memory pressure hooks */
-	progs_mpressure_init();
-	
 	/* Setting up exception streams */
 	for (ex = 0; ex < aal_log2(EXCEPTION_LAST); ex++)
 		progs_exception_set_stream(ex, stderr);

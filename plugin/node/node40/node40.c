@@ -540,6 +540,11 @@ static uint32_t node40_size(node40_t *node, rpos_t *pos, uint32_t count) {
 	return len;
 }
 
+/* Calculates how many items starting from @pos may fit into passed @len */
+static uint32_t node40_count(node40_t *node, rpos_t *pos, uint32_t len) {
+	return 0;
+}
+
 /* Makes copy of @count items from @src_node to @dst_node */
 static errno_t node40_copy(node40_t *src_node, rpos_t *src_pos,
 			   node40_t *dst_node, rpos_t *dst_pos,
@@ -795,6 +800,12 @@ static errno_t node40_cut(object_entity_t *entity,
 static errno_t node40_expand(object_entity_t *entity,
 			     rpos_t *pos, uint32_t len)
 {
+	uint32_t count;
+	node40_t *node = (node40_t *)entity;
+	
+	if (pos->unit != ~0ul)
+		return node40_cutdown(node, pos, len, 0);
+
 	return -1;
 }
 
@@ -1634,13 +1645,13 @@ static reiser4_plugin_t node40_plugin = {
 		.check		 = node40_check,
 		.print		 = node40_print,
 		.shift		 = node40_shift,
+		.shrink		 = node40_shrink,
 		.expand		 = node40_expand,
 
 		.set_key	 = node40_set_key,
 		.set_make_stamp	 = node40_set_make_stamp,
 		.set_flush_stamp = node40_set_flush_stamp,
 	
-		.shrink		 = node40_shrink,
 		.item_legal	 = node40_item_legal,
 #else
 		.create		 = NULL,
@@ -1655,7 +1666,8 @@ static reiser4_plugin_t node40_plugin = {
 		.expand		 = NULL,
 	
 		.set_key	 = NULL,
-		.set_stamp	 = NULL,
+		.set_make_stamp  = NULL,
+		.set_flush_stamp = NULL,
 	
 		.item_legal	 = NULL,
 #endif

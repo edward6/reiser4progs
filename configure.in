@@ -221,7 +221,7 @@ AC_CHECK_MEMBERS([struct stat.st_rdev])
 # Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
 AC_FUNC_STAT
-AC_CHECK_FUNCS([alarm getmntent hasmntopt memset strerror strtol])
+AC_CHECK_FUNCS([statfs getmntent hasmntopt memset strerror strtol])
 
 dnl Check for libdl, if we are doing dynamic loading
 LIBREISER4_LIBS=""

@@ -806,9 +806,10 @@ errno_t reiser4_node_shift(
 	reiser4_node_t *neig,
 	shift_hint_t *hint)
 {
-	int retval;
-	uint32_t i, items;
+	errno_t res;
 	rpos_t ppos;
+	
+	uint32_t items, i;
 	reiser4_key_t lkey;
 	reiser4_plugin_t *plugin;
     
@@ -855,11 +856,9 @@ errno_t reiser4_node_shift(
 	*/
 	plugin = node->entity->plugin;
 	
-	retval = plugin_call(plugin->node_ops, shift, node->entity,
-			     neig->entity, hint);
-
-	if (retval < 0)
-		return retval;
+	if ((res = plugin_call(plugin->node_ops, shift, node->entity,
+			       neig->entity, hint)) < 0)
+		return res;
 
 	/* Updating left delimiting keys in the tree */
 	if (hint->control & SF_LEFT) {
@@ -938,10 +937,10 @@ errno_t reiser4_node_shift(
 }
 
 /*
-  Synchronizes passed @node by means of using resursive walk though the all
-  children. There is possible to pass as parameter of this function the root
-  node pointer. In this case the whole tree will be flushed onto device, tree
-  lies on.
+  Saves passed @node by means of using resursive walk though the all children.
+  There is possible to pass as parameter of this function the root node
+  pointer. In this case the whole tree will be flushed onto device, tree lies
+  on.
 */
 errno_t reiser4_node_sync(
 	reiser4_node_t *node)	/* node to be synchronized */

@@ -20,30 +20,39 @@ static int callback_node_free(void *data) {
 	return reiser4_node_close(node) == 0;
 }
 
+#ifndef ENABLE_COMPACT
+
 static int callback_node_sync(void *data) {
 	reiser4_node_t *node = (reiser4_node_t *)data;
 	return reiser4_node_sync(node) == 0;
 }
 
+#endif
+
 static aal_list_t *callback_get_next(void *data) {
-	return ((reiser4_node_t *)data)->lru.next;
+	return ((reiser4_node_t *)data)->lru_link.next;
 }
 
 static void callback_set_next(void *data, aal_list_t *next) {
-	((reiser4_node_t *)data)->lru.next = next;
+	((reiser4_node_t *)data)->lru_link.next = next;
 }
 
 static aal_list_t *callback_get_prev(void *data) {
-	return ((reiser4_node_t *)data)->lru.prev;
+	return ((reiser4_node_t *)data)->lru_link.prev;
 }
 
 static void callback_set_prev(void *data, aal_list_t *prev) {
-	((reiser4_node_t *)data)->lru.prev = prev;
+	((reiser4_node_t *)data)->lru_link.prev = prev;
 }
 		
 static lru_ops_t lru_ops = {
 	.free     = callback_node_free,
+	
+#ifndef ENABLE_COMPACT
 	.sync     = callback_node_sync,
+#else
+	.sync     = NULL,
+#endif
 
 	.get_next = callback_get_next,
 	.set_next = callback_set_next,
@@ -195,26 +204,6 @@ blk_t reiser4_tree_root(reiser4_tree_t *tree) {
 	return tree->root->blk;
 }
 
-#ifndef ENABLE_COMPACT
-
-static errno_t callback_tree_mpressure(void *data, unsigned int result) {
-	reiser4_tree_t *tree = (reiser4_tree_t *)data;
-	
-	if (!result)
-		return 0;
-
-	aal_mpressure_disable(tree->mpressure);
-
-	if (aal_lru_adjust(tree->lru))
-		return -1;
-	
-	aal_mpressure_enable(tree->mpressure);
-	
-	return 0;
-}
-
-#endif
-
 static errno_t reiser4_tree_init(reiser4_tree_t *tree) {
 
 	if (!(tree->lru = aal_lru_create(&lru_ops))) {
@@ -222,13 +211,6 @@ static errno_t reiser4_tree_init(reiser4_tree_t *tree) {
 		return -1;
 	}
 	
-#ifndef ENABLE_COMPACT
-	tree->mpressure = aal_mpressure_handler_create(callback_tree_mpressure,
-						      "tree cache", (void *)tree);
-#else
-	tree->mpressure = NULL;
-#endif
-
 	/*
 	  FIXME-UMKA: here should not be hardcoded plugin ids. Probably we
 	  should get the mfrom the fs instance.
@@ -241,10 +223,6 @@ static errno_t reiser4_tree_init(reiser4_tree_t *tree) {
 
 void reiser4_tree_fini(reiser4_tree_t *tree) {
 	aal_assert("umka-1531", tree != NULL, return);
-
-	if (tree->mpressure)
-		aal_mpressure_handler_free(tree->mpressure);
-
 	aal_lru_free(tree->lru);
 }
 
@@ -516,8 +494,6 @@ errno_t reiser4_tree_attach(
 	reiser4_tree_t *tree,	    /* tree we will attach node to */
 	reiser4_node_t *node)       /* child to attached */
 {
-	int result;
-
 	errno_t res;
 	uint8_t stop;
 	reiser4_coord_t coord;
@@ -559,9 +535,9 @@ errno_t reiser4_tree_attach(
 		reiser4_tree_grow(tree);
 		
 	/* Looking up for the insert coord */
-	if ((result = reiser4_tree_lookup(tree, &hint.key, stop, &coord))) {
+	if ((res = reiser4_tree_lookup(tree, &hint.key, stop, &coord))) {
 
-		if (result == FAILED) {
+		if (res == FAILED) {
 			aal_stream_t stream = EMPTY_STREAM;
 			reiser4_key_print(&hint.key, &stream);
 
@@ -571,7 +547,7 @@ errno_t reiser4_tree_attach(
 			aal_stream_fini(&stream);
 		}
 
-		return result;
+		return res;
 	}
 
 	/* Inserting node pointer into tree */
@@ -590,12 +566,19 @@ errno_t reiser4_tree_attach(
 		return -1;
 	}
 
+	if (tree->traps.attach) {
+		if ((res = tree->traps.attach(&coord, node, tree->traps.data)))
+			return res;
+	}
+		
+
 	return 0;
 }
 
 errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 			    reiser4_node_t *node)
 {
+	errno_t res;
 	reiser4_coord_t coord;
 	reiser4_node_t *parent;
 	
@@ -606,6 +589,11 @@ errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 		return 0;
 
 	reiser4_coord_init(&coord, parent, &node->pos);
+	
+	if (tree->traps.detach) {
+		if ((res = tree->traps.detach(&coord, node, tree->traps.data)))
+			return res;
+	}
 	
 	/* Removing item/unit from the parent node */
 	if (reiser4_tree_remove(tree, &coord, 1))

@@ -565,6 +565,7 @@ static reiser4_plugin_t journal40_plugin = {
 		.sync	= NULL,
 		.replay = NULL,
 		.print  = NULL,
+		.check  = NULL,
 #endif
 		.layout = journal40_layout,
 		.valid	= journal40_valid,

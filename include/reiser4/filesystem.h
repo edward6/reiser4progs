@@ -131,7 +131,7 @@ struct reiser4_node {
 	rpos_t pos;
 	
 	/* Lru related fields */
-	lru_link_t lru;
+	lru_link_t lru_link;
 
 	/* List of children */
 	aal_list_t *children;
@@ -253,19 +253,18 @@ struct reiser4_oid {
 typedef struct reiser4_oid reiser4_oid_t;
 
 /* Tree modification trap typedefs */
-typedef bool_t (*pre_insert_func_t) (reiser4_coord_t *,
-				     reiser4_item_hint_t *, 
-				     void *);
+typedef bool_t (*insert_func_t) (reiser4_coord_t *,
+				 reiser4_item_hint_t *, 
+				 void *);
 
-typedef bool_t (*post_insert_func_t) (reiser4_coord_t *,
-				      reiser4_item_hint_t *, 
-				      void *);
+typedef bool_t (*remove_func_t) (reiser4_coord_t *,
+				 void *);
 
-typedef bool_t (*pre_remove_func_t) (reiser4_coord_t *,
-				     void *);
+typedef errno_t (*attach_func_t) (reiser4_coord_t *,
+				  reiser4_node_t *, void *);
 
-typedef bool_t (*post_remove_func_t) (reiser4_coord_t *,
-				      void *);
+typedef errno_t (*detach_func_t) (reiser4_coord_t *,
+				  reiser4_node_t *, void *);
 
 /* Tree structure */
 struct reiser4_tree {
@@ -289,16 +288,16 @@ struct reiser4_tree {
 	*/
 	aal_lru_t *lru;
 
-	/* Memory pressure handler */
-	void *mpressure;
-
 	/* Tree modification traps */
 	struct {
-		pre_insert_func_t pre_insert;
-		post_insert_func_t post_insert;
+		insert_func_t pre_insert;
+		insert_func_t post_insert;
 
-		pre_remove_func_t pre_remove;
-		post_remove_func_t post_remove;
+		remove_func_t pre_remove;
+		remove_func_t post_remove;
+
+		attach_func_t attach;
+		detach_func_t detach;
 		
 		void *data;
 	} traps;

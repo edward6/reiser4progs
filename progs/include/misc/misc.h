@@ -64,7 +64,6 @@ extern void progs_upper_case(char *dst, const char *src);
 extern int progs_dev_mounted(const char *name, const char *ops);
 
 extern void progs_plugin_list(void);
-extern void progs_mpressure_init(void);
 
 #endif
 
