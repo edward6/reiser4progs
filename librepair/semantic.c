@@ -163,7 +163,7 @@ static errno_t repair_semantic_link_lost(repair_semantic_t *sem,
 					 reiser4_object_t *object)
 {
 	errno_t res;
-	char buff[4096];
+	char buff[REISER4_MAX_BLKSIZE];
 
 	aal_assert("vpf-1178", sem != NULL);
 	aal_assert("vpf-1179", parent != NULL);
@@ -261,7 +261,7 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	}
 	
 	if (!res) {
-		char buff[4096];
+		char buff[REISER4_MAX_BLKSIZE];
 		
 		/* EOF was reached. Add entry to the parent. */
 		repair_semantic_lost_name(object, buff);
@@ -379,7 +379,7 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		} else {
 			/* If @object is checked and not attached, detach from
 			   the parent, if parent is "lost+found" -- unlink. */
-			char buff[4096];
+			char buff[REISER4_MAX_BLKSIZE];
 			int lost;
 
 			lost = !reiser4_key_compfull(&object->ent->parent,

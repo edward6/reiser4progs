@@ -290,6 +290,12 @@ int main(int argc, char *argv[]) {
 	}
 #endif
 	
+	if (hint.blksize > REISER4_MAX_BLKSIZE) {
+		aal_error("Invalid blocksize (%u). It must not be greater then "
+			  "%u.", hint.blksize, REISER4_MAX_BLKSIZE);
+		return USER_ERROR;	
+	}
+	
 #ifdef HAVE_UNAME
 	/* Guessing system type */
 	if (uname(&sysinfo) == -1) {

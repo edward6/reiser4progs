@@ -14,6 +14,9 @@ static int callback_bs_check (int64_t val, void * data) {
 	if (val < 512)
 		return 0;
 
+	if (val > REISER4_MAX_BLKSIZE)
+		return 0;
+
 	return 1;
 }
 

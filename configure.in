@@ -329,6 +329,27 @@ AC_ARG_ENABLE(large_keys,
         	enable_large_keys=yes
 )
 
+AC_ARG_ENABLE(dot_o_fibre,
+	      [  --disable-dot_o_fibre     disable dot_o_fibre plugin in stand alone library ], ,
+        	enable_dot_o_fibre=yes
+)
+
+AC_ARG_ENABLE(ext_1_fibre,
+	      [  --disable-ext_1_fibre     disable ext_1_fibre plugin in stand alone library ], ,
+        	enable_ext_1_fibre=yes
+)
+
+AC_ARG_ENABLE(ext_3_fibre,
+	      [  --disable-ext_3_fibre     disable ext_3_fibre plugin in stand alone library ], ,
+        	enable_ext_3_fibre=yes
+)
+
+AC_ARG_ENABLE(lexic_fibre,
+	      [  --disable-lexic_fibre     disable lexic_fibre plugin in stand alone library ], ,
+        	enable_lexic_fibre=yes
+)
+
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
@@ -521,14 +542,38 @@ if test x$enable_stand_alone = xyes; then
 		exit 1;
 	fi
 	
+	if test x$enable_dot_o_fibre = xyes; then
+		FIBRE_FLAGS="$FIBRE_FLAGS -DENABLE_DOT_O_FIBRE"
+   	fi
+	
+	if test x$enable_ext_1_fibre = xyes; then
+		FIBRE_FLAGS="$FIBRE_FLAGS -DENABLE_EXT_1_FIBRE"
+   	fi
+	
+	if test x$enable_ext_3_fibre = xyes; then
+		FIBRE_FLAGS="$FIBRE_FLAGS -DENABLE_EXT_3_FIBRE"
+   	fi
+	
+	if test x$enable_lexic_fibre = xyes; then
+		FIBRE_FLAGS="$FIBRE_FLAGS -DENABLE_LEXIC_FIBRE"
+   	fi
+
+#	if test x$enable_dot_o_fibre != xyes -a x$enable_ext_1_fibre != xyes -a \
+#		x$enable_ext_3_fibre != xyes -a x$enable_lexic_fibre; then
+#		echo
+#		echo All fibre plugins cannot be disabled at the same time.
+#		exit 1;
+#	fi
+
     	ALONE_CFLAGS="$ALONE_CFLAGS -DENABLE_STAND_ALONE $SYMLINKS_CFLAGS $SPECIAL_CFLAGS \
 $R5_HASH_CFLAGS $FNV1_HASH_CFLAGS $RUPASOV_HASH_CFLAGS $TEA_HASH_CFLAGS $DEG_HASH_CFLAGS \
-$ALIGN_FLAGS $LARGE_KEYS_CFLAGS $SHORT_KEYS_CFLAGS"
+$ALIGN_FLAGS $LARGE_KEYS_CFLAGS $SHORT_KEYS_CFLAGS $FIBRE_FLAGS"
 fi
 
 GENERIC_CFLAGS="$GENERIC_CFLAGS -DENABLE_SYMLINKS -DENABLE_SPECIAL -DENABLE_R5_HASH \
 -DENABLE_FNV1_HASH -DENABLE_RUPASOV_HASH -DENABLE_TEA_HASH -DENABLE_DEG_HASH \
--DENABLE_LARGE_KEYS -DENABLE_SHORT_KEYS"
+-DENABLE_LARGE_KEYS -DENABLE_SHORT_KEYS -DENABLE_DOT_O_FIBRE -DENABLE_EXT_1_FIBRE \
+-DENABLE_EXT_3_FIBRE -DENABLE_LEXIC_FIBRE"
 
 CFLAGS="$CFLAGS -W -Wall"
 

@@ -3,6 +3,7 @@
    
    dot_o.c -- ".o" fibration code. */
 
+#ifdef ENABLE_DOT_O_FIBRE
 #include <reiser4/plugin.h>
 
 static uint8_t fibre_dot_o_build(char *name, uint32_t len) {
@@ -35,3 +36,4 @@ static reiser4_plug_t *fibre_dot_o_start(reiser4_core_t *c) {
 }
 
 plug_register(fibre_dot_o, fibre_dot_o_start, NULL);
+#endif

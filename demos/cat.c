@@ -73,10 +73,7 @@ int main(int argc, char *argv[]) {
 		int32_t read;
 		
 		aal_memset(buff, 0, sizeof(buff));
-
-		read = reiser4_object_read(reg, buff, 
-					   sizeof(buff));
-		
+		read = reiser4_object_read(reg, buff, sizeof(buff));
 		if (read <= 0)
 			break;
 		

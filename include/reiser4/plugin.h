@@ -612,6 +612,8 @@ typedef errno_t (*place_func_t) (reiser4_place_t *, void *);
 typedef errno_t (*layout_func_t) (void *, region_func_t, void *);
 typedef errno_t (*metadata_func_t) (void *, place_func_t, void *);
 
+#define REISER4_MAX_BLKSIZE (8192)
+
 struct entry_hint {
 	/* Entry metadata size. Filled by rem_entry and add_entry. */
 	uint16_t len;
@@ -629,7 +631,7 @@ struct entry_hint {
 	uint8_t type;
 
 	/* Name of entry */
-	char name[256];
+	char name[REISER4_MAX_BLKSIZE];
 
 #ifndef ENABLE_STAND_ALONE
 	/* Hook called onto each create item during write flow. */

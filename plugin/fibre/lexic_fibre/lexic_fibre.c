@@ -3,6 +3,7 @@
    
    lexic.c -- lexicographic fibration code. */
 
+#ifdef ENABLE_LEXIC_FIBRE
 #include <reiser4/plugin.h>
 
 static uint8_t fibre_lexic_build(char *name, uint32_t len) {
@@ -30,3 +31,4 @@ static reiser4_plug_t *fibre_lexic_start(reiser4_core_t *c) {
 }
 
 plug_register(fibre_lexic, fibre_lexic_start, NULL);
+#endif

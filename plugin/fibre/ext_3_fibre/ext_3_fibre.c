@@ -3,6 +3,7 @@
    
    ext_3.c -- 3-symbol extention fibration code. */
 
+#ifdef ENABLE_EXT_3_FIBRE
 #include <reiser4/plugin.h>
 
 static uint8_t fibre_ext_3_build(char *name, uint32_t len) {
@@ -35,3 +36,4 @@ static reiser4_plug_t *fibre_ext_3_start(reiser4_core_t *c) {
 }
 
 plug_register(fibre_ext_3, fibre_ext_3_start, NULL);
+#endif

@@ -201,10 +201,21 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(rupasov_hash);
 #endif
 
+#ifdef ENABLE_LEXIC_FIBRE
 	__load_plug(fibre_lexic);
+#endif
+	
+#ifdef ENABLE_DOT_O_FIBRE
 	__load_plug(fibre_dot_o);
+#endif
+	
+#ifdef ENABLE_EXT_1_FIBRE
 	__load_plug(fibre_ext_1);
+#endif
+	
+#ifdef ENABLE_EXT_3_FIBRE
 	__load_plug(fibre_ext_3);
+#endif
 	
 	__load_plug(sdext_lw);
 	__load_plug(sdext_lt);
