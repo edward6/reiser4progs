@@ -324,18 +324,30 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 	errno_t res;
 	int64_t conv;
 	uint64_t size;
+	uint32_t blksize;
 	trans_hint_t trans;
 	
 	aal_assert("umka-2406", tree != NULL);
 	aal_assert("umka-2407", hint != NULL);
 	aal_assert("umka-2481", hint->plug != NULL);
 
+	blksize = reiser4_tree_get_blksize(tree);
 	reiser4_key_assign(&trans.offset, &hint->offset);
 
 	/* Check if convertion chunk is zero. If so -- use filesystem block
 	   size. */
 	if (hint->chunk == 0)
-		hint->chunk = reiser4_tree_get_blksize(tree);
+		hint->chunk = blksize;
+
+	/* Check if number of bytes to be converted is not multiple of block
+	   size and this is tail2extent conversion. If so, have to align
+	   @hint->count byblock size into highest side. */
+	if (hint->plug->id.group == EXTENT_ITEM &&
+	    (hint->count & (blksize - 1)) != 0)
+	{
+		hint->count += blksize -
+			(hint->count & (blksize - 1));
+	}
 	
 	/* Loop until @size bytes is converted. */
 	for (size = hint->count, hint->bytes = 0;
@@ -381,7 +393,6 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 			/* Trunc & insert only read @count bytes. */
 			trans.count = conv;
 		}
-		
 
 		if ((conv = reiser4_flow_truncate(tree, &trans)) < 0) {
 			res = conv;
