@@ -3,6 +3,7 @@
    
    key_short.c -- reiser4 short key plugin. */
 
+#ifdef ENABLE_SHORT_KEYS
 #include "key_short.h"
 
 extern reiser4_plugin_t key_short_plugin;
@@ -347,8 +348,11 @@ static reiser4_key_ops_t key_short_ops = {
 	.minimal           = key_short_minimal,
 	.maximal           = key_short_maximal,
 	.compfull	   = key_short_compfull,
-	.compshort	   = key_short_compshort,
 	.compraw           = key_short_compraw,
+
+#ifndef ENABLE_STAND_ALONE
+	.compshort	   = key_short_compshort,
+#endif
 		
 	.build_entry       = key_short_build_entry,
 	.build_gener       = key_short_build_gener,
@@ -397,3 +401,4 @@ static reiser4_plugin_t *key_short_start(reiser4_core_t *c) {
 }
 
 plugin_register(key_short, key_short_start, NULL);
+#endif

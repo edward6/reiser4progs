@@ -3,7 +3,7 @@
    
    sdext_symlink.c -- symlink stat data extention plugin. */
 
-#ifdef ENABLE_SYMLINKS_SUPPORT
+#ifdef ENABLE_SYMLINKS
 #include <reiser4/plugin.h>
 
 static errno_t sdext_symlink_open(body_t *body, 

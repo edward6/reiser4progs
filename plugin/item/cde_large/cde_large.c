@@ -3,6 +3,7 @@
    
    cde_large.c -- reiser4 direntry with large keys. */
 
+#ifdef ENABLE_LARGE_KEYS
 #include "cde_large.h"
 
 /* Returns pointer to the objectid entry component in passed @direntry at pased
@@ -1028,4 +1029,4 @@ static reiser4_plugin_t *cde_large_start(reiser4_core_t *c) {
 }
 
 plugin_register(cde_large, cde_large_start, NULL);
-
+#endif

@@ -305,7 +305,7 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 }
 #endif
 
-#ifdef ENABLE_SYMLINKS_SUPPORT
+#ifdef ENABLE_SYMLINKS
 /* Gets symlink from the stat data */
 errno_t obj40_get_sym(obj40_t *obj, char *data) {
 	create_hint_t hint;

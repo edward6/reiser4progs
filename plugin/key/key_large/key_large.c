@@ -3,6 +3,7 @@
    
    key_large.c -- reiser4 large key plugin. */
 
+#ifdef ENABLE_LARGE_KEYS
 #include "key_large.h"
 
 extern reiser4_plugin_t key_large_plugin;
@@ -374,7 +375,10 @@ static reiser4_key_ops_t key_large_ops = {
 	.maximal           = key_large_maximal,
 	.compraw	   = key_large_compraw,
 	.compfull	   = key_large_compfull,
+
+#ifndef ENABLE_STAND_ALONE
 	.compshort	   = key_large_compshort,
+#endif
 		
 	.build_entry       = key_large_build_entry,
 	.build_gener       = key_large_build_gener,
@@ -423,3 +427,4 @@ static reiser4_plugin_t *key_large_start(reiser4_core_t *c) {
 }
 
 plugin_register(key_large, key_large_start, NULL);
+#endif

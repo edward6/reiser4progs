@@ -3,7 +3,7 @@
    
    sym40.c -- reiser4 symlink file plugin. */
 
-#ifdef ENABLE_SYMLINKS_SUPPORT
+#ifdef ENABLE_SYMLINKS
 
 #ifndef ENABLE_STAND_ALONE
 #  include <time.h>

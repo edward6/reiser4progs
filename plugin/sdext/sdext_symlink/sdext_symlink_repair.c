@@ -2,7 +2,7 @@
    
    sdext_symlink.c -- symlink stat data extention plugin. */
 
-#ifdef ENABLE_SYMLINKS_SUPPORT
+#ifdef ENABLE_SYMLINKS
 #ifndef ENABLE_STAND_ALONE
 
 #include <reiser4/plugin.h>

@@ -217,7 +217,7 @@ static uint32_t tree_maxspace(void *tree) {
 }
 #endif
 
-#ifdef ENABLE_SYMLINKS_SUPPORT
+#ifdef ENABLE_SYMLINKS
 static errno_t object_resolve(void *tree, place_t *place, char *filename,
 			      key_entity_t *from, key_entity_t *key)
 {
@@ -301,7 +301,7 @@ reiser4_core_t core = {
 		.nfind = factory_nfind
 #endif
 	},
-#ifdef ENABLE_SYMLINKS_SUPPORT
+#ifdef ENABLE_SYMLINKS
 	.object_ops = {
 		.resolve = object_resolve
 	}

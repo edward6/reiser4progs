@@ -94,7 +94,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 	errno_t res;
 	reiser4_object_t *object;
 
-#ifdef ENABLE_SYMLINKS_SUPPORT
+#ifdef ENABLE_SYMLINKS
 	reiser4_plugin_t *plugin;
 #endif
 
@@ -113,7 +113,7 @@ static errno_t callback_find_statdata(char *track, char *entry,
 		return res;
 	}
 	
-#ifdef ENABLE_SYMLINKS_SUPPORT
+#ifdef ENABLE_SYMLINKS
 	plugin = object->entity->plugin;
 
 	/* Symlinks handling. Method follow() should be implemented */
@@ -220,7 +220,7 @@ reiser4_object_t *reiser4_object_open(
 		    sizeof(object->name));
 #endif
 
-#ifdef ENABLE_SYMLINKS_SUPPORT
+#ifdef ENABLE_SYMLINKS
 	reiser4_key_assign(&object->info.parent, &tree->key);
 #endif
 

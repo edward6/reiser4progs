@@ -356,7 +356,7 @@ lookup_t dir40_lookup(object_entity_t *entity,
 		return FAILED;
 	}
 
-#ifdef ENABLE_COLLISIONS_HANDLING
+#ifdef ENABLE_COLLISIONS
 	if (aal_strncmp(entry->name, name, aal_strlen(name)) == 0) {
 		aal_memcpy(&dir->offset, &key, sizeof(dir->offset));
 		return PRESENT;

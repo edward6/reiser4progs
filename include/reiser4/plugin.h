@@ -955,6 +955,11 @@ typedef struct reiser4_hash_ops reiser4_hash_ops_t;
 
 /* Disk-format plugin */
 struct reiser4_format_ops {
+	/* Functions for getting flags from format */
+	int (*tst_flag) (object_entity_t *, uint8_t);
+	void (*set_flag) (object_entity_t *, uint8_t);
+	void (*clr_flag) (object_entity_t *, uint8_t);
+	
 #ifndef ENABLE_STAND_ALONE
 	/* Called during filesystem creating. It forms format-specific super
 	   block, initializes plugins and calls their create method. */
@@ -981,10 +986,6 @@ struct reiser4_format_ops {
 	   "true" if so and "false" otherwise. */
 	int (*confirm) (aal_device_t *device);
 
-	int (*tst_flag) (object_entity_t *, uint8_t);
-	void (*set_flag) (object_entity_t *, uint8_t);
-	void (*clr_flag) (object_entity_t *, uint8_t);
-	
 	void (*set_root) (object_entity_t *, uint64_t);
 	void (*set_len) (object_entity_t *, uint64_t);
 	void (*set_height) (object_entity_t *, uint16_t);

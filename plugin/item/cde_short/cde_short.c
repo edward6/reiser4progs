@@ -3,6 +3,7 @@
    
    cde_short.c -- reiser4 directory entry with short keys. */
 
+#ifdef ENABLE_SHORT_KEYS
 #include "cde_short.h"
 
 /* Returns pointer to the objectid entry component in passed @direntry at pased
@@ -1009,4 +1010,4 @@ static reiser4_plugin_t *cde_short_start(reiser4_core_t *c) {
 }
 
 plugin_register(cde_short, cde_short_start, NULL);
-
+#endif
