@@ -522,11 +522,11 @@ errno_t reiser4_tree_attach(
 {
 	int lookup;
 
+	errno_t res;
 	reiser4_level_t stop;
 	reiser4_coord_t coord;
 	reiser4_ptr_hint_t ptr;
 	reiser4_item_hint_t hint;
-	errno_t res;
 
 	aal_assert("umka-913", tree != NULL, return -1);
 	aal_assert("umka-916", node != NULL, return -1);
@@ -612,10 +612,9 @@ errno_t reiser4_tree_attach(
 }
 
 /* This function grows and sets up tree after the growing */
-static errno_t reiser4_tree_grow(
+errno_t reiser4_tree_grow(
 	reiser4_tree_t *tree)	/* tree to be growed up */
 {
-	blk_t blk;
 	uint8_t tree_height;
 	reiser4_node_t *old_root = tree->root;
 
@@ -631,7 +630,9 @@ static errno_t reiser4_tree_grow(
 	}
 
 	tree->root->tree = tree;
-    	reiser4_format_set_root(tree->fs->format, blk);
+	
+    	reiser4_format_set_root(tree->fs->format,
+				tree->root->blk);
 
 	reiser4_format_set_height(tree->fs->format,
 				  tree_height + 1);
@@ -641,8 +642,6 @@ static errno_t reiser4_tree_grow(
 		goto error_free_root;
 	}
 
-	blk = tree->root->blk;
-	
 	return 0;
 
  error_free_root:

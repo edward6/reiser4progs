@@ -872,7 +872,7 @@ static errno_t node40_predict_units(node40_t *src_node,
 	dst_items = nh40_get_num_items(dst_node);
 	
 	if (src_items == 0 || hint->rest == 0)
-		return 0;
+		goto out;
 	
 	/*
 	  We can't splitt item the first and last items if they lie in position
@@ -880,12 +880,12 @@ static errno_t node40_predict_units(node40_t *src_node,
 	*/
 	if (hint->flags & SF_LEFT) {
  		if (hint->pos.item == 0 && hint->pos.unit == ~0ul)
-			return 0;
+			goto out;
 	} else {
 		uint32_t items = nh40_get_num_items(src_node);
 		
 		if (hint->pos.item == items && hint->pos.unit == ~0ul)
-			return 0;
+			goto out;
 	}
 
 	aal_memset(&src_item, 0, sizeof(src_item));
@@ -903,18 +903,18 @@ static errno_t node40_predict_units(node40_t *src_node,
 	  splitted.
 	*/
 	if (!src_item.plugin->item_ops.predict)
-		return 0;
+		goto out;
 
 	if (!src_item.plugin->item_ops.shift)
-		return 0;
+		goto out;
 	
 	/* We can't shift units from items with one unit */
 	if (!src_item.plugin->item_ops.units)
-		return 0;
+		goto out;
 
 	/* Items that consist of one unit cannot be splitted */
 	if (src_item.plugin->item_ops.units(&src_item) <= 1)
-		return 0;
+		goto out;
 	
 	/* Checking if items are mergeable */
 	hint->create = (dst_items == 0);
@@ -935,7 +935,7 @@ static errno_t node40_predict_units(node40_t *src_node,
 		  for mergeing mergeable items when they lie in the same node.
 		*/
 		if (hint->flags & SF_MERGE)
-			return 0;
+			goto out;
 		
 		overhead = node40_overhead((object_entity_t *)dst_node);
 		
@@ -944,7 +944,7 @@ static errno_t node40_predict_units(node40_t *src_node,
 		  overhead, because new item will be created.
 		*/
 		if (hint->rest < overhead)
-			return 0;
+			goto out;
 		
 		hint->rest -= overhead;
 	}
@@ -967,9 +967,15 @@ static errno_t node40_predict_units(node40_t *src_node,
 	  Updating item componet of the insert point if it was moved into
 	  neighbour item.
 	*/
-	if (hint->flags & SF_MOVIP)
-		hint->pos.item = (hint->flags & SF_LEFT ? dst_items - 1 : 0);
+	if (hint->flags & SF_MOVIP) {
+		hint->pos.item = hint->flags & SF_LEFT ?
+			dst_items - 1 : 0;
+	}
 		
+	return 0;
+
+ out:
+	hint->flags &= ~SF_MOVIP;
 	return 0;
 }
 
@@ -1139,7 +1145,7 @@ static errno_t node40_predict_items(node40_t *src_node,
 	aal_assert("umka-1619", dst_node != NULL, return -1);
 	
 	if (!(src_items = nh40_get_num_items(src_node)))
-		return 0;
+		goto out;
 
 	dst_items = nh40_get_num_items(dst_node);
 	
@@ -1262,6 +1268,10 @@ static errno_t node40_predict_items(node40_t *src_node,
 	*/
 	hint->rest = space;
 
+	return 0;
+
+ out:
+	hint->flags &= ~SF_MOVIP;
 	return 0;
 }
 
