@@ -19,8 +19,8 @@ static char *levels[6] = {
 inline item40_header_t *node40_ih_at(node40_t *node, uint32_t pos) {
 	aal_block_t *block = node->block;
 
-	item40_header_t *ih =
-		(item40_header_t *)(block->data + aal_block_size(block));
+	item40_header_t *ih = (item40_header_t *)(block->data +
+						  aal_block_size(block));
 	
 	return ih - pos - 1;
 }
@@ -536,39 +536,57 @@ static errno_t node40_copy(node40_t *src_node, rpos_t *src_pos,
 			   node40_t *dst_node, rpos_t *dst_pos,
 			   uint32_t count)
 {
-	uint32_t i;
 	uint32_t size;
 	uint32_t items;
+	uint32_t fss, i;
 	uint32_t offset;
+	uint32_t headers;
 
 	void *src, *dst;
 	item40_header_t *ih;
+	item40_header_t *end;
 
-	items = nh40_get_num_items(src_node);
+	items = nh40_get_num_items(dst_node);
+	headers = count * sizeof(item40_header_t);
+	fss = nh40_get_free_space_start(dst_node);
 	
-	/* Copying item headers from src node to dst one */
-	src = node40_ih_at(src_node, src_pos->item);
-	dst = node40_ih_at(dst_node, dst_pos->item);
-	size = count * sizeof(item40_header_t);
-			
-	aal_memcpy(dst, src, size);
-
-	/* Copying item bodies from src node to dst one */
-	src = node40_ib_at(src_node, src_pos->item);
-	dst = node40_ib_at(dst_node, dst_pos->item);
-
 	if (!(size = node40_size(src_node, src_pos, count)))
 		return -1;
 	
+	/* Copying item bodies from src node to dst one */
+	src = node40_ib_at(src_node, src_pos->item);
+
+	if (dst_pos->item < items - count)
+		dst = node40_ib_at(dst_node, dst_pos->item);
+	else
+		dst = dst_node->block->data + fss - size;
+		
 	aal_memcpy(dst, src, size);
 
-	ih = node40_ih_at(dst_node, dst_pos->item);
-	offset = nh40_get_free_space_start(dst_node);
-		
-	/* Updating item headers in dst node */
-	for (i = 0; i < count; i++, ih++)
-		ih40_inc_offset(ih, (offset - sizeof(node40_header_t)));
+	/* Copying item headers from src node to dst one */
+	src = node40_ih_at(src_node, src_pos->item +
+			   count - 1);
 
+	dst = node40_ih_at(dst_node, dst_pos->item +
+			   count - 1);
+			
+	aal_memcpy(dst, src, headers);
+
+	ih = (item40_header_t *)dst;
+	end = node40_ib_at(dst_node, items - 1);
+
+	/* Updating item headers in dst node */
+	offset = (dst - dst_node->block->data) + size;
+	
+	for (i = 0; i < count; i++, ih++) {
+		ih40_set_offset(ih, offset);
+		
+		if (ih == end)
+			offset -= fss - ih40_get_offset(ih);
+		else
+			offset -= ih40_get_offset(ih - 1) - ih40_get_offset(ih);
+	}
+	
 	return 0;
 }
 
@@ -1458,6 +1476,9 @@ static errno_t node40_shift_items(node40_t *src_node,
 	uint32_t i, size;
 	uint32_t headers;
 	
+	rpos_t src_pos;
+	rpos_t dst_pos;
+	
 	uint32_t src_items;
 	uint32_t dst_items;
 
@@ -1477,28 +1498,49 @@ static errno_t node40_shift_items(node40_t *src_node,
 	headers = sizeof(item40_header_t) * hint->items;
 
 	if (hint->flags & SF_LEFT) {
+
+		/* Expand will be called here */
+		nh40_dec_free_space(dst_node, (hint->bytes + headers));
+		nh40_inc_free_space_start(dst_node, hint->bytes);
+		nh40_inc_num_items(dst_node, hint->items);
 		
+		src_pos.unit = ~0ul;
+		src_pos.item = 0;
+		
+		dst_pos.unit = ~0ul;
+		dst_pos.item = dst_items;
+		
+		if (node40_copy(src_node, &src_pos, dst_node, &dst_pos,
+				hint->items))
+		{
+			aal_exception_error("Can't copy items from node "
+					    "%llu to node %llu, durring "
+					    "shift", src_node->block->blk,
+					    dst_node->block->blk);
+			return -1;
+		}
+
 		/* Copying item headers from src node to dst one */
-		src = node40_ih_at(src_node, hint->items - 1);
+/*		src = node40_ih_at(src_node, hint->items - 1);
 		dst = node40_ih_at(dst_node, (dst_items + hint->items - 1));
 			
 		aal_memcpy(dst, src, headers);
 
-		ih = (item40_header_t *)dst;
+		ih = (item40_header_t *)dst;*/
 		
 		/* Copying item bodies from src node to dst */
-		src = node40_ib_at(src_node, 0);
+/*		src = node40_ib_at(src_node, 0);
 
 		dst = dst_node->block->data +
 			nh40_get_free_space_start(dst_node);
 
 		aal_memcpy(dst, src, hint->bytes);
 
-		offset = nh40_get_free_space_start(dst_node);
+		offset = nh40_get_free_space_start(dst_node);*/
 		
 		/* Updating item headers in dst node */
-		for (i = 0; i < hint->items; i++, ih++)
-			ih40_inc_offset(ih, (offset - sizeof(node40_header_t)));
+/*		for (i = 0; i < hint->items; i++, ih++)
+			ih40_inc_offset(ih, (offset - sizeof(node40_header_t)));*/
 
 		/*
 		  Shrinking source node after items are copied from it to dst
@@ -1516,6 +1558,7 @@ static errno_t node40_shift_items(node40_t *src_node,
 				return -1;
 			}
 		}
+
 	} else {
 		rpos_t pos = {src_items - hint->items, ~0ul};
 		
@@ -1542,22 +1585,40 @@ static errno_t node40_shift_items(node40_t *src_node,
 				sizeof(node40_header_t);
 			
 			aal_memmove(dst, src, size);
+
+/*			nh40_inc_free_space_start(dst_node, hint->bytes);
+			nh40_dec_free_space(dst_node, (hint->bytes + headers));
+			nh40_inc_num_items(dst_node, hint->items);*/
 		}
 
+/*		dst_pos.unit = ~0ul;
+		dst_pos.item = 0;
+		
+		src_pos.unit = ~0ul;
+		src_pos.item = src_items - hint->items;
+		
+		if (node40_copy(src_node, &src_pos, dst_node, &dst_pos,
+				hint->items))
+		{
+			aal_exception_error("Can't copy items from node "
+					    "%llu to node %llu, durring "
+					    "shift", src_node->block->blk,
+					    dst_node->block->blk);
+			return -1;
+		}*/
+		
 		/* Copying item headers from src node to dst */
 		src = node40_ih_at(src_node, src_items - 1);
 		dst = node40_ih_at(dst_node, hint->items - 1);
 
 		aal_memcpy(dst, src, headers);
 
-		/* Updating item headers in dst node */
 		ih = node40_ih_at(dst_node, 0);
 		offset = nh40_get_free_space_start(src_node) - hint->bytes;
 
 		for (i = 0; i < hint->items; i++, ih--)
 			ih40_dec_offset(ih, (offset - sizeof(node40_header_t)));
 
-		/* Copying item bodies from src node to dst */
 		ih = node40_ih_at(src_node, src_items - 1) +
 			(hint->items - 1);
 		
@@ -1566,6 +1627,10 @@ static errno_t node40_shift_items(node40_t *src_node,
 
 		aal_memcpy(dst, src, hint->bytes);
 
+		nh40_inc_free_space_start(dst_node, hint->bytes);
+		nh40_dec_free_space(dst_node, (hint->bytes + headers));
+		nh40_inc_num_items(dst_node, hint->items);
+		
 		/*
 		  Shrinking source node after items are copied from it to dst
 		  node. Actually here will be only src node header updating
@@ -1580,11 +1645,6 @@ static errno_t node40_shift_items(node40_t *src_node,
 			return -1;
 		}
 	}
-	
-	/* Updating destination node fields */
-	nh40_dec_free_space(dst_node, (hint->bytes + headers));
-	nh40_inc_num_items(dst_node, hint->items);
-	nh40_inc_free_space_start(dst_node, hint->bytes);
 	
 	return 0;
 }
