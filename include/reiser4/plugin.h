@@ -682,6 +682,10 @@ struct reiser4_item_ops {
  
 	/* Get the max real key which is stored in the item */
 	errno_t (*max_real_key) (item_entity_t *, key_entity_t *);
+
+	/* Get the max real key stored continously from the key specified 
+	 * in the item_entity */
+	errno_t (*gap_key) (item_entity_t *, key_entity_t *);
 };
 
 typedef struct reiser4_item_ops reiser4_item_ops_t;
