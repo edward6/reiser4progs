@@ -639,19 +639,6 @@ int64_t node40_modify(reiser4_node_t *entity, pos_t *pos,
         if (pos->unit == 0)
                 aal_memcpy(ih, place.key.body, key_size(pol));
         	
-	/* If some space got free, shrink the node. */
-	if (hint->len) {
-		/* Nothing can be left after modifying -- it should be foreseen 
-		   at modify prepare -- set unit == 0 to shrink units. */
-		pos->unit = 0;
-		
-		if (node40_shrink(entity, pos, hint->len, 1)) {
-			aal_error("Node %llu, item %u: shrink failed.",
-				  entity->block->nr, pos->item);
-			return -EINVAL;
-		}
-	}
-
 	return write;
 }
 

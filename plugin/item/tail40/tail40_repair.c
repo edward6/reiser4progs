@@ -96,7 +96,6 @@ errno_t tail40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 			  &place->key, &hint->offset);
 	}
 	
-	hint->len = 0;
 	return 0;
 }
 

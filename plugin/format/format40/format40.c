@@ -470,7 +470,7 @@ static reiser4_format_ops_t format40_ops = {
 	.oid_area       = format40_oid_area,
 	.journal_pid	= format40_journal_pid,
 	.alloc_pid	= format40_alloc_pid,
-	.check_struct	= format40_check_struct,
+	.check_struct	= NULL,
 #endif
 	.open		= format40_open,
 	.close		= format40_close,

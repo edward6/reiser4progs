@@ -123,10 +123,16 @@ struct reiser4_status {
 
 typedef struct reiser4_status reiser4_status_t;
 
+enum reiser4_pid_flags {
+	PF_OVERRIDDEN = 0x0,
+	PF_READ       = 0x1
+};
+
 struct reiser4_pid {
 	char name[255];
 	uint32_t type;
 	uint64_t value;
+	uint8_t flags;
 };
 
 typedef struct reiser4_pid reiser4_pid_t;

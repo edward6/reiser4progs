@@ -42,6 +42,8 @@ errno_t misc_param_override(char *override) {
 	
 		if (reiser4_param_override(name, value))
 			return -EINVAL;
+
+		reiser4_param_set_flag(name, PF_OVERRIDDEN);
 	}
 
 	return 0;

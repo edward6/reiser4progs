@@ -219,6 +219,33 @@ static errno_t callback_mark_block(void *entity, blk_t start,
 				    start, width);
 }
 
+errno_t reiser4_fs_check_len(reiser4_fs_t *fs, count_t blocks) {
+	uint32_t blksize;
+	count_t dev_len;
+
+	aal_assert("vpf-1564", fs != NULL);
+	
+	blksize = reiser4_master_get_blksize(fs->master);
+
+	dev_len = aal_device_len(fs->device) / 
+		(blksize / fs->device->blksize);
+	
+	if (blocks > dev_len) {
+		aal_error("Device %s is too small (%llu) for filesystem %llu "
+			  "blocks long.", fs->device->name, dev_len, blocks);
+		return -EINVAL;
+	}
+
+	if (blocks < REISER4_FS_MIN_SIZE(blksize)) {
+		aal_error("Requested filesystem size (%llu) is too small. "
+			  "Reiser4 required minimal size %u blocks long.",
+			  blocks, REISER4_FS_MIN_SIZE(blksize));
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 /* Create filesystem on specified host device and with passed params */
 reiser4_fs_t *reiser4_fs_create(
 	aal_device_t *device,           /* device filesystem will be lie on */
@@ -228,7 +255,6 @@ reiser4_fs_t *reiser4_fs_create(
 	rid_t format;
 
 	count_t free;
-	count_t dev_len;
 	reiser4_fs_t *fs;
 
 	aal_assert("vpf-113", hint != NULL);
@@ -240,37 +266,21 @@ reiser4_fs_t *reiser4_fs_create(
 			  "be power of two.", hint->blksize);
 		return NULL;
 	}
-
-	dev_len = aal_device_len(device) /
-		(hint->blksize / device->blksize);
 	
-	if (hint->blocks > dev_len) {
-		aal_error("Device %s is too small (%llu) "
-			  "for filesystem %llu blocks long.",
-			  device->name, dev_len, hint->blocks);
-		return NULL;
-	}
-	
-	/* Checks whether filesystem size is enough big. */
-	if (hint->blocks < REISER4_FS_MIN_SIZE(hint->blksize)) {
-		aal_error("Requested filesystem size (%llu) is"
-			  "too small. Reiser4 required minimal "
-			  "size %u blocks long.", hint->blocks,
-			  REISER4_FS_MIN_SIZE(hint->blksize));
-		return NULL;
-	}
-    
 	/* Allocating memory and initializing fileds. */
 	if (!(fs = aal_calloc(sizeof(*fs), 0)))
 		return NULL;
 	
 	fs->device = device;
-	
+		
 	/* Create master super block. */
 	format = reiser4_param_value("format");
 		
 	if (!(fs->master = reiser4_master_create(device, hint->blksize)))
 		goto error_free_fs;
+	
+	if (reiser4_fs_check_len(fs, hint->blocks))
+		goto error_free_master;
 
 	/* Setting up master super block. */
 	reiser4_master_set_format(fs->master, format);
@@ -404,23 +414,38 @@ errno_t reiser4_fs_sync(
 	return reiser4_status_sync(fs->status);
 }
 
-/* Set all params default for the fs into profile. */
+/* Set default fs params into the profile unless they are overridden 
+   (like a user specified they by hands). */
 errno_t reiser4_fs_init_params(reiser4_fs_t *fs) {
 	uint16_t flags, pid;
 	
-	flags = plug_call(fs->format->entity->plug->o.format_ops,
-			  get_flags, fs->format->entity);
+	if (!reiser4_param_get_flag("format", PF_OVERRIDDEN)) {
+		pid = reiser4_master_get_format(fs->master);
+		reiser4_param_set("format", pid);
+		reiser4_param_set_flag("format", PF_READ);
+	}
+	
+	if (!reiser4_param_get_flag("key", PF_OVERRIDDEN)) {
+		flags = plug_call(fs->format->entity->plug->o.format_ops,
+				  get_flags, fs->format->entity);
 
-	/* Set the default fs key plugin in the profile. */
-	if ((1 << REISER4_LARGE_KEYS) & flags) {
-		reiser4_param_override("key", "key_large");
-	} else {
-		reiser4_param_override("key", "key_short");
+		/* Set the default fs key plugin in the profile. */
+		if ((1 << REISER4_LARGE_KEYS) & flags) {
+			reiser4_param_override("key", "key_large");
+		} else {
+			reiser4_param_override("key", "key_short");
+		}
+
+		reiser4_param_set_flag("key", PF_READ);
 	}
 
-	pid = reiser4_format_get_policy(fs->format);
+	if (!reiser4_param_get_flag("policy", PF_OVERRIDDEN)) {
+		pid = reiser4_format_get_policy(fs->format);
+		reiser4_param_set("policy", pid);
+		reiser4_param_set_flag("policy", PF_READ);
+	}
 	
-	return reiser4_param_set("policy", pid);
+	return 0;
 }
 
 #endif

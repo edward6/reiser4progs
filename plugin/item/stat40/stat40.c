@@ -265,7 +265,6 @@ static int64_t stat40_insert_units(reiser4_place_t *place, trans_hint_t *hint) {
 	aal_assert("vpf-076", place != NULL); 
 	aal_assert("vpf-075", hint != NULL);
 
-	hint->len = 0;
 	return stat40_modify(place, hint, 1);
 }
 

@@ -836,8 +836,6 @@ int64_t cde40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 			  &place->key, &hint->offset);
 	}
 	
-	hint->len = 0;
-
 	if (spos == sunits)
 		return cde40_maxposs_key(src, &hint->maxkey);
 	

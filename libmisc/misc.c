@@ -75,6 +75,7 @@ long long misc_size2long(const char *str) {
 		if (toupper(label) == toupper('G'))
 			return result * MB;
 
+		return result;
 	}
 	
 	return INVAL_DIG;

@@ -476,9 +476,6 @@ int64_t extent40_merge(reiser4_place_t *place, trans_hint_t *hint) {
 			  &place->key, &hint->offset);
 	}
 		
-	/* Join mergable units within the @place. */
-	hint->len = extent40_join_units(place, 1) * sizeof(extent40_t);
-	
 	place_mkdirty(place);
 	
 	return 0;

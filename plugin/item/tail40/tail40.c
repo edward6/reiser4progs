@@ -171,7 +171,6 @@ static int64_t tail40_write_units(reiser4_place_t *place,
 	if (ins_offset + count > max_offset)
 		hint->bytes = ins_offset + count - max_offset;
 	
-	hint->len = 0;
 	place_mkdirty(place);
 	return count;
 }

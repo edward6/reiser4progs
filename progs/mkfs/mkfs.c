@@ -301,7 +301,7 @@ int main(int argc, char *argv[]) {
 			if (misc_size2long(argv[optind]) != INVAL_DIG &&
 			    hint.blocks != 0)
 			{
-				aal_error("Filesystem length already "
+				aal_error("Filesystem length is already "
 					  "set to %llu.", hint.blocks);
 				continue;
 			}
@@ -312,6 +312,9 @@ int main(int argc, char *argv[]) {
 			if (hint.blocks != INVAL_DIG) {
 				/* Converting into fs blocksize blocks */
 				hint.blocks /= (hint.blksize / 1024);
+				/* Just to know that blocks was given. 0 
+				   means nothing was specified by user. */
+				if (!hint.blocks) hint.blocks = 1;
 			} else {
 				aal_error("%s is not a valid size nor an "
 					  "existent file.", argv[optind]);

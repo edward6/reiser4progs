@@ -5,123 +5,238 @@
 
 #include <repair/librepair.h>
 
-/* Checks the opened format, or build a new one if it was not openned. */
+static int callback_check_count(int64_t val, void *data) {
+	reiser4_fs_t *fs = (reiser4_fs_t *)data;
+	
+	if (val < 0) 
+		return 0;
+	
+	return reiser4_fs_check_len(fs, val) ? 0 : 1;
+}
+
 static errno_t repair_format_check_struct(reiser4_fs_t *fs, uint8_t mode) {
-	reiser4_plug_t *plug = NULL;
+	count_t dev_len, fs_len;
+	reiser4_plug_t *plug;
 	rid_t policy, pid;
 	errno_t res = 0;
+
+	/* Format was opened or detected. Check it and fix it. */
+	if (fs->format->entity->plug->o.format_ops->check_struct) {
+		res = plug_call(fs->format->entity->plug->o.format_ops,
+				check_struct, fs->format->entity, 
+				mode);
+
+		if (repair_error_fatal(res))
+			return res;
+	}
+		
+	fs_len = reiser4_format_get_len(fs->format);
+	
+	/* Check that fs length is equal to device length. */
+	dev_len = aal_device_len(fs->device) / 
+		(reiser4_master_get_blksize(fs->master) / fs->device->blksize);
+	
+	if (dev_len != fs_len) {
+		if (reiser4_fs_check_len(fs, fs_len)) {
+			/* FS length is not valid. */
+			if (mode != RM_BUILD)
+				return RE_FATAL;
+		} else {
+			aal_fatal("Number of blocks found in the superblock "
+				  "(%llu) is not equal to the size of the "
+				  "partition (%llu).%s", fs_len, dev_len, 
+				  mode != RM_BUILD ? " Assuming this is "
+				  "correct.": "");
+		}
+		
+		if (mode == RM_BUILD) {
+			/* Confirm that size is correct. */
+			fs_len = aal_ui_get_numeric(dev_len, 
+						   callback_check_count,
+						   fs, "Enter the correct "
+						   "block count please");
+			
+			reiser4_format_set_len(fs->format, fs_len);
+			reiser4_format_mkdirty(fs->format);
+		}
+	}
+
+	policy = reiser4_param_value("policy");
+	pid = reiser4_format_get_policy(fs->format);
+	plug = NULL;
+
+	if (pid != policy) {
+		bool_t over;
+		
+		over = reiser4_param_get_flag("policy", PF_OVERRIDDEN);
+		
+		if (!over) {
+			if (!(plug = reiser4_factory_ifind(POLICY_PLUG_TYPE,
+							   pid)))
+			{
+				aal_error("Can't find the tail policy "
+					  "plugin by its id 0x%x.", pid);
+
+				if (mode != RM_BUILD)
+					return RE_FATAL;
+			}
+		}
+
+		if (!plug) {
+			/* The policy was overridden or the on-disk one was 
+			   not found. Find the one from the profile. */
+
+			if (!(plug = reiser4_factory_ifind(POLICY_PLUG_TYPE,
+							   policy))) 
+			{
+				aal_error("Can't find the tail policy plugin "
+					  "by its id 0x%x.", policy);
+				return -EINVAL;
+			}
+
+			if (over) {
+				/* This is overridden not in BUILD mode. */
+				aal_error("The specified reiser4 tail policy "
+					  "is '%s'. Its id (0x%x) does not "
+					  "match the on-disk id (0x%x).%s", 
+					  plug->label, policy, pid, 
+					  mode == RM_BUILD ? " Fixed." : 
+					  " Has effect in BUILD mode only.");
+
+				if (mode != RM_BUILD)
+					return RE_FATAL;
+			} else {
+				/* This is not overridden in BUILD mode. */
+				aal_error("Using the default tail policy '%s'.",
+					  plug->label);
+			}
+		}
+	}
+	
+	if (reiser4_param_get_flag("key", PF_OVERRIDDEN)) {
+		uint16_t flags;
+		bool_t large;
+		
+		pid = reiser4_param_value("key");
+		flags = plug_call(fs->format->entity->plug->o.format_ops,
+				  get_flags, fs->format->entity);
+		
+		large = flags & (1 << REISER4_LARGE_KEYS);
+		
+		if (large && (pid != KEY_LARGE_ID) || 
+		    !large && (pid != KEY_SHORT_ID))
+		{
+			/* Wrong key plugin is specified. Fix it. */
+			
+			if (!(plug = reiser4_factory_ifind(KEY_PLUG_TYPE, pid)))
+			{
+				aal_error("Can't find the key plugin "
+					  "by its id 0x%x.", pid);
+				return -EINVAL;
+			}
+			
+			aal_error("The specified key plugin '%s' does not "
+				  "match '%s' specified in the format.%s",
+				  plug->label, large ? "LARGE" : "SHORT",
+				  mode == RM_BUILD ? " Fixed." : "");
+
+			if (mode != RM_BUILD)
+				return RE_FATAL;
+
+			large = large ? 0 : (1 << REISER4_LARGE_KEYS);
+			
+			plug_call(fs->format->entity->plug->o.format_ops, 
+				  set_flags, fs->format->entity, large);
+		}
+	}
+	
+	return res;
+}
+
+/* Checks the opened format, or build a new one if it was not openned. */
+static errno_t repair_format_open_check(reiser4_fs_t *fs, uint8_t mode) {
+	reiser4_plug_t *plug;
+	rid_t policy, pid;
 	count_t count;
+	bool_t over;
 	
 	aal_assert("vpf-165", fs != NULL);
 	aal_assert("vpf-171", fs->device != NULL);
 	aal_assert("vpf-834", fs->master != NULL);
-	
-	policy = reiser4_param_value("policy");
 	
 	if (fs->format == NULL) {
 		/* Format was not opened. */
 		aal_fatal("Cannot open the on-disk format on (%s)",
 			  fs->device->name);
 		
+		over = reiser4_param_get_flag("format", PF_OVERRIDDEN);
+		plug = NULL;
+		
+		if (!over) {
+			/* Format was not overridden, try to detect it. */
+			if ((plug = reiser4_master_guess(fs->device))) {
+				aal_info("The format '%s' is detected on '%s'."
+					 "%s", plug->label, fs->device->name, 
+					 mode == RM_BUILD ? " Rebuilding with "
+					 "it." : "");
+			}
+		}
+		
 		if (mode != RM_BUILD)
-			/* Fatal error in the format structure. */
 			return RE_FATAL;
-		
-		pid = reiser4_param_value("format");
-		
-		/* Try to detect a format on the device. */
-		if (!(plug = reiser4_master_guess(fs->device))) {
-			/* Format was not detected on the device. */
-			aal_fatal("Cannot detect an on-disk format on (%s).",
-				  fs->device->name);
-			
-			plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid);
-			
-			if (!plug) {
-				aal_fatal("Cannot find the format plugin "
-					  "(0x%x) specified in the profile.", 
-					  pid);
-				return -EINVAL;
-			}
 
-			if (aal_yesno("Do you want to build the on-disk "
-				      "format (%s) specified in the profile?",
-				      plug->label) == EXCEPTION_OPT_NO)
-				return -EINVAL;
-			
-			count = aal_device_len(fs->device);
-			
-			/* Create the format from the scratch. */
-			fs->format = reiser4_format_create(fs, count, policy, pid);
-			
-			if (!fs->format) {
-				aal_fatal("Cannot create a filesystem of the "
-					  "format (%s).", plug->label);
-				return -EINVAL;
-			} else {
-				aal_fatal("The format (%s) with tail policy "
-					  "(%u) was created on the partition "
-					  "(%s) of (%llu) block length.",
-					  plug->label, policy, 
-					  fs->device->name, count);
-			}
-			
-			reiser4_format_set_stamp(fs->format, 0);
-			set_ms_format(SUPER(fs->master), pid);
+		if (plug) {
+			reiser4_master_set_format(fs->master, plug->id.id);
 			reiser4_master_mkdirty(fs->master);
-			reiser4_format_mkdirty(fs->format);
-			
-			return 0;
-		} else {
-			/* Format was detected on the device. */
-			aal_fatal("The on-disk format (%s) was detected on "
-				  "(%s). %s", plug->label, fs->device->name, 
-				  pid != plug->id.id ? "It differs from "
-				  "the one specified in the profile. Do not "
-				  "forget to fix the profile." : "");
-			
-			set_ms_format(SUPER(fs->master), plug->id.id);
-			reiser4_master_mkdirty(fs->master);
-			
+
 			if (!(fs->format = reiser4_format_open(fs))) {
-				aal_fatal("Failed to open the format (%s) "
-					  "on the (%s).", plug->label, 
+				aal_fatal("Can't open the format '%s' "
+					  "on the '%s'.", plug->label, 
 					  fs->device->name);
 				return -EINVAL;
 			}
 		}
-	}
-	
-	/* Format was opened or detected. Check it and fix it. */
-	if ((res = plug_call(fs->format->entity->plug->o.format_ops, 
-			     check_struct, fs->format->entity, mode)) < 0)
-		return res;
-	
-	if (repair_error_fatal(res))
-		return res;
-	
-	pid = reiser4_format_get_policy(fs->format);
-	
-	if (pid >= TAIL_LAST_ID) {
-		/* Tail id from the profile is wrong. */
-		aal_error("Invalid tail policy (%u) detected in the format "
-			  "on (%s). %s (%u) -- from the profile.", pid, 
-			  fs->device->name, mode == RM_CHECK ? "Should be" :
-			  "Fixed to", policy);
 		
-		reiser4_format_set_policy(fs->format, policy);
+		if (!fs->format) {
+			/* If @format is still NULL, its id was overridden or 
+			   the format cannot be detected on the device. Build 
+			   a new one. */
 
-		if (mode != RM_CHECK)
+			pid = reiser4_param_value("format");
+			plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid);
+			
+			if (!plug) {
+				aal_fatal("Can't find the %s format plugin by "
+					  "its id (0x%x).", over ? "specified" :
+					  "default", pid);
+				return -EINVAL;
+			}
+
+			count = aal_device_len(fs->device);
+			
+			policy = reiser4_param_value("policy");
+			
+			/* Create the format from the scratch. */
+			fs->format = reiser4_format_create(fs, 0, policy, pid);
+			
+			if (!fs->format) {
+				aal_fatal("Failed to create a filesystem "
+					  "of the format '%s' on '%s'.", 
+					  plug->label, fs->device->name);
+				return -EINVAL;
+			} else {
+				aal_fatal("The format '%s' was created on '%s'.",
+					  plug->label, fs->device->name);
+			}
+			
+			reiser4_format_set_stamp(fs->format, 0);
+			reiser4_master_set_format(fs->master, pid);
+			reiser4_master_mkdirty(fs->master);
 			reiser4_format_mkdirty(fs->format);
-		else
-			res |= RE_FIXABLE;
-	} else if (pid != policy) {
-		aal_fatal("The tail policy (%u) detected on (%s) differs from "
-			  "the specified in the profile (%u). Do not forget "
-			  "to fix the profile.", pid, fs->device->name, policy);
+		}
 	}
-	
-	return res;
+
+	return 0;
 }
 
 /* Try to open format and check it. */
@@ -134,8 +249,13 @@ errno_t repair_format_open(reiser4_fs_t *fs, uint8_t mode) {
 	fs->format = reiser4_format_open(fs);
 	
 	/* Check the opened disk format or rebuild it if needed. */
-	res = repair_format_check_struct(fs, mode);
+	res = repair_format_open_check(fs, mode);
 	
+	if (repair_error_fatal(res))
+		goto error_format_close;
+	
+	res |= repair_format_check_struct(fs, mode);
+
 	if (repair_error_fatal(res))
 		goto error_format_close;
 	

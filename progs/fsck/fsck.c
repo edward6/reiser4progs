@@ -95,6 +95,7 @@ static void fsck_init_streams(fsck_parse_t *data) {
 	misc_exception_set_stream(EXCEPTION_TYPE_MESSAGE, stdout);
 	misc_exception_set_stream(EXCEPTION_TYPE_FATAL, stderr);
 	misc_exception_set_stream(EXCEPTION_TYPE_BUG, stderr);
+	misc_exception_set_stream(EXCEPTION_TYPE_INFO, stdout);
 }
 
 static errno_t fsck_init(fsck_parse_t *data, 

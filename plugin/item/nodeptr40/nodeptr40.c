@@ -92,7 +92,6 @@ static int64_t nodeptr40_insert_units(reiser4_place_t *place,
 	ptr_hint = (ptr_hint_t *)hint->specific;
 	np40_set_ptr(nodeptr, ptr_hint->start);
 
-	hint->len = 0;
 	place_mkdirty(place);
 	return 1;
 }

@@ -65,6 +65,9 @@ errno_t repair_fs_open(repair_data_t *repair,
 		goto error_alloc_close;
 	}
 
+	if ((res = reiser4_fs_init_params(repair->fs)))
+		goto error_alloc_close;
+	
 	res |= repair_journal_open(repair->fs, jdevice, repair->mode);
 	
 	if (repair_error_fatal(res)) {

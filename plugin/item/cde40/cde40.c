@@ -812,8 +812,6 @@ static int64_t cde40_insert_units(reiser4_place_t *place, trans_hint_t *hint) {
 		cde40_get_hash(place, 0, &place->key);
 
 	place_mkdirty(place);
-	hint->len = 0;
-	
 	return hint->count;
 }
 

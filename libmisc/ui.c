@@ -204,11 +204,10 @@ static char *misc_alpha_handler(
 
 /* Common for all misc ui get numeric handler */
 static int64_t misc_numeric_handler(
-	const char *prompt, int64_t defvalue, /* user prompt and default
-						 value */
-	aal_check_numeric_func_t check_func,  /* user's enter checking
-						 functions */
-	void *data)                           /* user specified data */
+	const char *prompt,			/* prompt message */
+	int64_t defvalue,			/* default value */
+	aal_check_numeric_func_t check_func,	/* user's check method */
+	void *data)				/* opaque data for check_func */
 {
 	char buff[255];
 	int64_t value = 0;

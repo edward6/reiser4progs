@@ -17,6 +17,8 @@ extern errno_t reiser4_param_override(const char *name,
 extern uint64_t reiser4_param_value(const char *name); 
 extern reiser4_pid_t *reiser4_param_pid(const char *name);
 extern errno_t reiser4_param_set(const char *name, rid_t id);
+extern void reiser4_param_set_flag(const char *name, uint8_t flag);
+extern bool_t reiser4_param_get_flag(const char *name, uint8_t flag);
 
 #endif
 #endif

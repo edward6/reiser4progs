@@ -105,7 +105,7 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	
 	aal_error("Directory [%s]: The entry \".\" is not found.%s "
 		  "Plugin (%s).", print_inode(dir40_core, &info->object), 
-		  mode != RM_CHECK ? " Inserts a new one." : "", 
+		  mode != RM_CHECK ? " Insert a new one." : "", 
 		  dir->obj.plug->label);
 	
 	if (mode == RM_CHECK)
