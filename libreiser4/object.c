@@ -79,7 +79,7 @@ errno_t reiser4_object_stat(reiser4_object_t *object) {
 	if ((res = reiser4_place_realize(&object->place)))
 		return res;
 
-	return reiser4_item_get_key(&object->place, &object->key);
+	return reiser4_key_assign(&object->key, &object->place.item.key);
 }
 
 /* Callback function for finding statdata of the current directory */
@@ -265,7 +265,7 @@ reiser4_object_t *reiser4_object_begin(
 	
 	aal_memcpy(&object->place, place, sizeof(*place));
 	
-	if (reiser4_item_get_key(&object->place, &object->key))
+	if (reiser4_key_assign(&object->key, &object->place.item.key))
 		goto error_free_object;
 
 	reiser4_key_string(&object->key, object->name);

@@ -70,7 +70,6 @@ static lookup_t tree_lookup(
 	uint8_t stop,	            /* stop level */
 	place_t *place)             /* result will be stored in */
 {
-	lookup_t res;
 	reiser4_place_t *p;
 	
 	aal_assert("umka-851", key != NULL);
@@ -79,36 +78,15 @@ static lookup_t tree_lookup(
 
 	p = (reiser4_place_t *)place;
 	
-	if ((res = reiser4_tree_lookup((reiser4_tree_t *)tree,
-				       key, stop, p)) == LP_FAILED)
-		return res;
-	
-	if (res == LP_PRESENT) {
-		item_entity_t *item = &p->item;
-		object_entity_t *entity = p->node->entity;
-		
-		if (plugin_call(entity->plugin->o.node_ops, get_key,
-				entity, &p->pos, &item->key))
-		{
-			aal_exception_error("Can't get item key.");
-			return LP_FAILED;
-		}
-
-		if (reiser4_key_guess(&item->key))
-			return LP_FAILED;
-	}
-
-	return res;
+	return reiser4_tree_lookup((reiser4_tree_t *)tree,
+				   key, stop, p);
 }
 
 /* Initializes item at passed @place */
 static errno_t tree_realize(void *tree, place_t *place) {
 	reiser4_place_t *p = (reiser4_place_t *)place;
 	
-	if (reiser4_place_realize(p))
-		return -EINVAL;
-
-	return reiser4_item_realize(p);
+	return reiser4_place_realize(p);
 }
 
 /* Handler for requests for next item */
@@ -139,10 +117,7 @@ static errno_t tree_next(
 		reiser4_place_first((reiser4_place_t *)next);
 	}
 
-	if (reiser4_place_realize((reiser4_place_t *)next))
-		return -EINVAL;
-
-	return reiser4_item_realize((reiser4_place_t *)next);
+	return reiser4_place_realize((reiser4_place_t *)next);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -174,10 +149,7 @@ static errno_t tree_prev(
 		reiser4_place_last((reiser4_place_t *)prev);
 	}
 
-	if (reiser4_place_realize((reiser4_place_t *)prev))
-		return -EINVAL;
-	
-	return reiser4_item_realize((reiser4_place_t *)prev);
+	return reiser4_place_realize((reiser4_place_t *)prev);
 }
 #endif
 

@@ -402,7 +402,7 @@ errno_t obj40_init(obj40_t *obj, reiser4_plugin_t *plugin,
 /* Performs lookup for the object's stat data */
 errno_t obj40_stat(obj40_t *obj) {
 	lookup_t res;
-	key_entity_t *key;
+	key_entity_t key;
 	uint64_t objectid, locality;
 	
 	aal_assert("umka-1905", obj != NULL);
@@ -410,9 +410,9 @@ errno_t obj40_stat(obj40_t *obj) {
 	objectid = obj40_objectid(obj);
 	locality = obj40_locality(obj);
 	
-	key = STAT_KEY(obj);
-	
-	plugin_call(key->plugin->o.key_ops, build_generic, key,
+	key.plugin = obj->statdata.item.key.plugin;
+
+	plugin_call(key.plugin->o.key_ops, build_generic, &key,
 		    KEY_STATDATA_TYPE, locality, objectid, 0);
 
 	/* Unlocking old node if it exists */
@@ -423,7 +423,7 @@ errno_t obj40_stat(obj40_t *obj) {
 	  Requesting libreiser4 lookup in order to find stat data place in the
 	  tree.
 	*/
-	res = obj->core->tree_ops.lookup(obj->tree, key,
+	res = obj->core->tree_ops.lookup(obj->tree, &key,
 					 LEAF_LEVEL,
 					 &obj->statdata);
 

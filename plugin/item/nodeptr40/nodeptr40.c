@@ -165,7 +165,6 @@ static reiser4_item_ops_t nodeptr40_ops = {
 	.predict        = NULL,
 
 	.set_key	= NULL,
-	.gap_key	= NULL,
 	.maxreal_key    = NULL,
 #endif
 	.units		= nodeptr40_units,

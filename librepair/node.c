@@ -127,9 +127,6 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	    res |= REPAIR_FATAL;
 	}
 
-	if ((ret = reiser4_item_realize(&place)))
-	    return ret;
-
 	/* Check the item structure. */
 	if ((ret = repair_item_check(&place, mode)) < 0)
 	    return ret;
@@ -151,17 +148,17 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 static errno_t repair_node_ld_key_fetch(reiser4_node_t *node, 
     reiser4_key_t *ld_key) 
 {
-    errno_t ret;
+    errno_t res;
     
     aal_assert("vpf-501", node != NULL);
     aal_assert("vpf-344", ld_key != NULL);
 
     if (node->parent.node != NULL) {
-	if ((ret = reiser4_place_realize(&node->parent)))
-	    return ret;
-
-	if ((ret = reiser4_item_get_key(&node->parent, ld_key)))
-	    return ret;
+	if ((res = reiser4_place_realize(&node->parent)))
+	    return res;
+	
+	if ((res = reiser4_key_assign(ld_key, &node->parent.item.key)))
+	    return res;
     } else {
 	reiser4_key_guess(ld_key);
 	reiser4_key_minimal(ld_key);
@@ -171,6 +168,7 @@ static errno_t repair_node_ld_key_fetch(reiser4_node_t *node,
 }
 
 /* Updates the left delimiting key of the node kept in the parent. */
+/* FIXME-VITALY: This must be recursive method. */
 static errno_t repair_node_ld_key_update(reiser4_node_t *node, 
     reiser4_key_t *ld_key) 
 {
@@ -180,7 +178,9 @@ static errno_t repair_node_ld_key_update(reiser4_node_t *node,
 
     if (node->parent.node == NULL)
 	return 0;
-
+    
+    /* FIXME_VITALY: this should be done not here, on the above level? */
+    reiser4_node_mkdirty(node->parent.node);
     return reiser4_item_set_key(&node->parent, ld_key);
 }
 
@@ -216,8 +216,8 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
 	    
 	    if ((ret = reiser4_place_realize(&place)))
 		return ret;
-
-	    if ((ret = reiser4_item_get_key(&place, rd_key)))
+	    
+	    if ((ret = reiser4_key_assign(rd_key, &place.item.key)))
 		return ret;
 	}
     } else {
@@ -228,10 +228,6 @@ errno_t repair_node_rd_key(reiser4_node_t *node, reiser4_key_t *rd_key) {
     return 0;
 }
 
-/* 
-    FIXME-VITALY: Should this stuff be moved to plugin (tree plugin?) and how 
-    will 3.6 format be supported?
-*/
 /* Checks the delimiting keys of the node kept in the parent. */
 errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
     reiser4_place_t place;
@@ -255,12 +251,6 @@ errno_t repair_node_dkeys_check(reiser4_node_t *node, uint8_t mode) {
 
     if ((res = reiser4_place_realize(&place)))
 	return res;
-
-    if ((res = reiser4_item_get_key(&place, NULL))) {
-	aal_exception_error("Node (%llu): Failed to get the left key.",
-	    node->blk);
-	return res;
-    }
 
     res = reiser4_key_compare(&d_key, &place.item.key);
     
@@ -340,7 +330,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 	if ((res = reiser4_place_realize(&place)))
 	    return res;
 	
-	if ((res = reiser4_item_get_key(&place, &key))) {
+	if ((res = reiser4_key_assign(&key, &place.item.key))) {
 	    aal_exception_error("Node (%llu): Failed to get the key of the "
 		"item (%u).", node->blk, pos->item);
 	    return res;

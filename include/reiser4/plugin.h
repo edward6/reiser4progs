@@ -817,7 +817,6 @@ struct reiser4_item_ops {
 	  Get the max real key stored continously from the key specified in the
 	  item entity.
 	*/
-	errno_t (*gap_key) (item_entity_t *, key_entity_t *);
 #endif
 };
 

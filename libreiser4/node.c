@@ -220,7 +220,7 @@ errno_t reiser4_node_lkey(
 	if ((res = reiser4_place_open(&place, node, &pos)))
 		return res;
 
-	return reiser4_item_get_key(&place, key);
+	return reiser4_key_assign(key, &place.item.key);
 }
 
 #ifndef ENABLE_STAND_ALONE
@@ -296,9 +296,6 @@ errno_t reiser4_node_pbc(
 		if (!reiser4_item_branch(place))
 			continue;
 
-		if ((res = reiser4_item_realize(place)))
-			return res;
-		    
 		for (j = 0; j < reiser4_item_units(place); j++) {
 			place->pos.unit = j;
 			

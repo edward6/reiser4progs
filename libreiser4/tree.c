@@ -1618,9 +1618,6 @@ errno_t reiser4_tree_insert(
 	if ((res = reiser4_place_realize(place)))
 		return res;
 
-	if ((res = reiser4_item_realize(place)))
-		return res;
-
 	/* Calling post_insert hook installed in tree */
 	if (tree->traps.post_insert) {
 		if ((res = tree->traps.post_insert(tree, place, hint,

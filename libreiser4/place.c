@@ -102,13 +102,27 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 /* Initializes all item-related fields */
 errno_t reiser4_place_realize(reiser4_place_t *place) {
 	object_entity_t *entity;
+	errno_t res;
 	
 	aal_assert("umka-1459", place != NULL);
 
 	entity = place->node->entity;
 
-	return plugin_call(entity->plugin->o.node_ops, get_item,
-			   entity, &place->pos, &place->item);
+	if ((res = plugin_call(entity->plugin->o.node_ops, get_item,
+			       entity, &place->pos, &place->item)))
+		return res;
+
+	if ((res = plugin_call(entity->plugin->o.node_ops, get_key,
+			       entity, &place->pos, &place->item.key)))
+	{
+		aal_exception_error("Can't get item key.");
+		return res;
+	}
+	
+	if ((res = reiser4_key_guess(&place->item.key)))
+		return res;
+
+	return 0;
 }
 
 /* This function initializes passed @place by specified params */
