@@ -1056,7 +1056,9 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		uint64_t width;
 		uint64_t blocks;
 		uint64_t offset;
+		
 		key_entity_t key;
+		int first_time = 1;
 
 		/* Fetching extent infomation. */
 		hint.count = 1;
@@ -1091,12 +1093,9 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		}
 
 		/* Loop until all units get allocated */
-		for (blocks = 0, width = ptr.width;
-		     width > 0; width -= ptr.width)
-		{
+		for (blocks = 0, width = ptr.width; width > 0; width -= ptr.width) {
 			blk_t blk;
 			uint32_t i;
-			int first_time = 1;
 			aal_block_t *block;
 			
 			/* Trying to allocate @ptr.width blocks. */
@@ -1121,7 +1120,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 				iplace = *place;
 				iplace.pos.unit++;
 
-				/* Insert new extent units */
+				/* Insert new extent units. */
 				level = reiser4_node_get_level(iplace.node);
 				
 				if ((res = reiser4_tree_insert(tree, &iplace,
