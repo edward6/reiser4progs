@@ -344,13 +344,13 @@ errno_t node40_fetch(node_entity_t *entity,
 		return -EINVAL;
 	}
 
-	/* Initializing other fields */
+	/* Initializing other fields. */
 	place->pos = *pos;
 	place->block = node->block;
 	place->len = node40_len(entity, pos);
 	place->body = node40_ib_at(node, pos->item);
 
-	/* Getting item key */
+	/* Getting item key. */
 	return node40_get_key(entity, pos, &place->key);
 }
 
@@ -1217,7 +1217,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 
 		/* There is not of enough free space in @dst_entity even to
 		   create an empty item in it. Getting out. */
-		if (hint->units_bytes < overhead)
+		if (hint->units_bytes <= overhead)
 			return 0;
 
 		/* Substract node overhead, that is item header. */

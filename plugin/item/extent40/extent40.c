@@ -1157,7 +1157,9 @@ static errno_t extent40_prep_shift(place_t *src_place,
 			hint->pos.unit -= hint->units_bytes /
 				sizeof(extent40_t);
 
-			if (hint->pos.unit == 0 && hint->control & SF_MOVE_POINT) {
+			if (hint->pos.unit == 0 &&
+			    (hint->control & SF_MOVE_POINT))
+			{
 				hint->result |= SF_MOVE_POINT;
 
 				if (dst_place) {
@@ -1179,21 +1181,27 @@ static errno_t extent40_prep_shift(place_t *src_place,
 
 		/* The same check as abowe, but for right shift */
 		if (hint->control & SF_UPDATE_POINT && check_point) {
+			uint32_t units;
+
+			units = extent40_units(src_place);
+			
 			/* Check is it is possible to move something into right
 			   neighbour item. */
-			if (hint->pos.unit * sizeof(extent40_t) < src_place->len) {
-				right = src_place->len -
-					(hint->pos.unit * sizeof(extent40_t));
+			if (hint->pos.unit < units) {
+				right = (units - hint->pos.unit) *
+					sizeof(extent40_t);
 		
 				if (hint->units_bytes > right)
 					hint->units_bytes = right;
 
-				if (hint->control & SF_MOVE_POINT &&
-				    hint->pos.unit == ((src_place->len - hint->units_bytes) /
-						       sizeof(extent40_t)))
+				if ((hint->control & SF_MOVE_POINT) &&
+				    hint->units_bytes == right)
 				{
 					hint->result |= SF_MOVE_POINT;
 					hint->pos.unit = 0;
+				} else {
+					hint->units_bytes = right -
+						hint->units_bytes;
 				}
 			} else {
 				/* There is noning to move, update insert point,
@@ -1221,53 +1229,43 @@ static errno_t extent40_shift_units(place_t *src_place, place_t *dst_place,
 				    shift_hint_t *hint)
 {
 	uint32_t pos;
-	uint64_t offset;
 	
 	aal_assert("umka-1708", hint != NULL);
 	aal_assert("umka-1706", src_place != NULL);
 	aal_assert("umka-1707", dst_place != NULL);
 
 	if (hint->control & SF_ALLOW_LEFT) {
-		pos = extent40_units(dst_place) -
-			hint->units_number;
+		pos = extent40_units(dst_place) - hint->units_number;
 			
-		/* Preparing space in @dst_place */
+		/* Preparing space in @dst_place. */
 		extent40_expand(dst_place, pos, hint->units_number);
 
-		/* Copying data from the @src_place to @dst_place */
+		/* Copying data from the @src_place to @dst_place. */
 		extent40_copy(dst_place, pos, src_place, 0,
 			      hint->units_number);
 
-		/* Removing units in @src_place */
+		/* Removing units in @src_place. */
 		extent40_shrink(src_place, 0, hint->units_number);
 
-		/* Updating item's key by the first unit key */
+		/* Updating item's key by the first unit key. */
 		body40_get_key(src_place, hint->units_number,
 			       &src_place->key, extent40_offset);
 	} else {
 		/* Preparing space in @dst_place */
 		extent40_expand(dst_place, 0, hint->units_number);
 
-		/* Copying data from the @src_place to @dst_place */
+		/* Copying data from the @src_place to @dst_place. */
 		pos = extent40_units(src_place) - hint->units_number;
 		
 		extent40_copy(dst_place, 0, src_place, pos,
 			      hint->units_number);
 
-		/* Removing units in @src_place */
+		/* Removing units in @src_place. */
 		extent40_shrink(src_place, pos, hint->units_number);
 
-		/* Updating item's key by the first unit key */
-		body40_get_key(dst_place, 0, &dst_place->key,
+		/* Updating item's key by the first unit key. */
+		body40_get_key(src_place, pos, &dst_place->key,
 			       extent40_offset);
-
-		offset = plug_call(dst_place->key.plug->o.key_ops,
-				   get_offset, &dst_place->key);
-
-		offset -= extent40_offset(dst_place, hint->units_number);
-
-		plug_call(dst_place->key.plug->o.key_ops,
-			  set_offset, &dst_place->key, offset);
 	}
 	
 	return 0;
