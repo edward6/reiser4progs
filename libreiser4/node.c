@@ -714,7 +714,7 @@ errno_t reiser4_node_sync(
 }
 
 /* Updates nodeptr item in parent node */
-errno_t reiser4_node_upos(reiser4_node_t *node) {
+errno_t reiser4_node_uptr(reiser4_node_t *node) {
 	errno_t res;
 	trans_hint_t hint;
 	ptr_hint_t nodeptr_hint;
@@ -727,15 +727,21 @@ errno_t reiser4_node_upos(reiser4_node_t *node) {
 	aal_memset(&hint, 0, sizeof(hint));
 
         /* Preparing node pointer hint to be used */
-	hint.specific = &nodeptr_hint;
-	nodeptr_hint.start = node_blocknr(node);
 	nodeptr_hint.width = 1;
+	nodeptr_hint.start = node_blocknr(node);
+
+	hint.specific = &nodeptr_hint;
 
 	if ((res = reiser4_place_fetch(&node->p)))
 		return res;
 
-	return plug_call(node->p.plug->o.item_ops, update,
-			 (place_t *)&node->p, &hint);
+	if (plug_call(node->p.plug->o.item_ops, update,
+		      (place_t *)&node->p, &hint) != 1)
+	{
+		return -EIO;
+	}
+
+	return 0;
 }
 
 /* Updates node keys in recursive maner (needed for updating ldkeys on the all

@@ -19,7 +19,7 @@ extern reiser4_node_t *reiser4_node_create(aal_device_t *device,
 					   rid_t pid, uint8_t level);
 
 extern errno_t reiser4_node_sync(reiser4_node_t *node);
-extern errno_t reiser4_node_upos(reiser4_node_t *node);
+extern errno_t reiser4_node_uptr(reiser4_node_t *node);
 
 extern errno_t reiser4_node_clone(reiser4_node_t *src,
 				  reiser4_node_t *dst);

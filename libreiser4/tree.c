@@ -806,10 +806,59 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 			}
 
 			if (reiser4_tree_get_root(tree) == node_blocknr(node)) {
+				/* Setting up root node */
 				reiser4_tree_set_root(tree, allocnr);
 			} else {
 				/* Assigning new block number to @node */
 				reiser4_node_move(node, allocnr);
+				
+				if ((res = reiser4_node_uptr(node)))
+					return res;
+			}
+		}
+	}
+#endif
+	
+	/* Walking through the list of children and calling tree_adjust()
+	   function for next level nodes if memory pressure event is still
+	   actual. */
+	if (node->children) {
+		aal_list_t *next;
+
+		/* Here should be construction like this (with @next used),
+		   because current item may be removed by tree_adjust()
+		   function. */
+		for (walk = node->children; walk; walk = next) {
+			next = walk->next;
+			child = (reiser4_node_t *)walk->data;
+			
+			if ((res = reiser4_tree_adjust(tree, child, check)))
+				return res;
+		}
+	}
+
+#ifndef ENABLE_STAND_ALONE
+	/* We are dealing only with dirty nodes */
+	if (reiser4_node_isdirty(node)) {
+		blk_t allocnr;
+
+		/* Requesting block allocator to allocate the real block number
+		   for fake allocated node. */
+		if (reiser4_fake_ack(node_blocknr(node))) {
+			if (!reiser4_alloc_allocate(tree->fs->alloc,
+						    &allocnr, 1))
+			{
+				return -ENOSPC;
+			}
+
+			if (reiser4_tree_get_root(tree) == node_blocknr(node)) {
+				reiser4_tree_set_root(tree, allocnr);
+			} else {
+				/* Assigning new block number to @node */
+				reiser4_node_move(node, allocnr);
+				
+				if ((res = reiser4_node_uptr(node)))
+					return res;
 			}
 		}
 
@@ -837,28 +886,8 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 			}
 		}
 	}
-#endif
 
-	/* Walking through the list of children and calling tree_adjust()
-	   function for next level nodes if memory pressure event is still
-	   actual. */
-	if (node->children) {
-		aal_list_t *next;
-
-		/* Here should be construction like this (with @next used),
-		   because current item may be removed by tree_adjust()
-		   function. */
-		for (walk = node->children; walk; walk = next) {
-			next = walk->next;
-			child = (reiser4_node_t *)walk->data;
-			
-			if ((res = reiser4_tree_adjust(tree, child, check)))
-				return res;
-		}
-	}
-
-	/* Updating free space in super block */
-#ifndef ENABLE_STAND_ALONE
+        /* Updating free space in super block */
 	{
 		count_t free;
 			
@@ -866,7 +895,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 		reiser4_format_set_free(tree->fs->format, free);
 	}
 #endif
-	
+		
 	/* Checking if we should try to release some nodes.*/
 	if (check) {
 		/* Checking if memory pressure is still exist */
@@ -880,8 +909,8 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree,
 #ifndef ENABLE_STAND_ALONE
 		/* Okay, node is allocated and ready to be saved to device */
 		if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
-			aal_exception_error("Can't write node %llu. %s.",
-					    node_blocknr(node),
+			aal_exception_error("Can't write node %llu."
+					    " %s.", node_blocknr(node),
 					    tree->fs->device->error);
 			return -EIO;
 		}
@@ -929,13 +958,21 @@ errno_t reiser4_tree_walk(reiser4_tree_t *tree,
 #ifndef ENABLE_STAND_ALONE
 /* Syncs whole tree cache */
 errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
+	errno_t res;
+	
 	aal_assert("umka-2259", tree != NULL);
 
 	if (!tree->root)
 		return 0;
 
         /* Flushing whole tree. */
-	return reiser4_tree_adjust(tree, tree->root, 0);
+	if ((res = reiser4_tree_adjust(tree, tree->root, 0))) {
+		aal_exception_error("Can't sync tree cache "
+				    "properly.");
+		return res;
+	}
+	
+	return res;
 }
 
 /* Returns TRUE if tree has not root node allocated */
@@ -2217,7 +2254,7 @@ static errno_t copy_down(reiser4_tree_t *src_tree,
 		goto error_free_dst_node;
 	}
 
-	if ((res = reiser4_node_upos(dst_node)))
+	if ((res = reiser4_node_uptr(dst_node)))
 		return res;
 	
 	/* FIXME-UMKA: Here also should be extents handling */
