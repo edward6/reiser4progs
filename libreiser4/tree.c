@@ -195,7 +195,6 @@ errno_t reiser4_tree_disconnect(
 		/* Disconnecting generic node */
 		reiser4_node_disconnect(parent, node);
 	}
-	
 
 	return 0;
 }
@@ -968,13 +967,9 @@ errno_t reiser4_tree_attach(
 	switch ((res = reiser4_tree_lookup(tree, &hint.key,
 					   level, &place)))
 	{
-	case PRESENT:
-		aal_exception_error("Can't attach node. Key already "
-				    "exists in tree.");
-		return -EINVAL;
 	case FAILED:
-		aal_exception_error("Lookup is failed durring attach "
-				    "new node.");
+		aal_exception_error("Lookup is failed durring "
+				    "attach.");
 		return -EINVAL;
 	default:
 		break;
@@ -1004,13 +999,20 @@ errno_t reiser4_tree_attach(
 errno_t reiser4_tree_detach(reiser4_tree_t *tree,
 			    reiser4_node_t *node)
 {
+	reiser4_place_t parent;
+	
 	aal_assert("umka-1726", tree != NULL);
 	aal_assert("umka-1727", node != NULL);
 
-	reiser4_tree_disconnect(tree, node->p.node, node);
+	/* Save node's parent place in order to use it later in calling
+	   tree_remove() function. */
+	parent = node->p;
+
+        /* Disconnecting node from tree cache */
+	reiser4_tree_disconnect(tree, parent.node, node);
 	
 	/* Removing item/unit from the parent node */
-	return reiser4_tree_remove(tree, &node->p, 1);
+	return reiser4_tree_remove(tree, &parent, 1);
 }
 
 /* This function forces tree to grow by one level and sets it up after the
@@ -1029,10 +1031,10 @@ errno_t reiser4_tree_growup(
 		return res;
 	
 	old_root = tree->root;
-	height = reiser4_tree_height(tree);
+	height = reiser4_tree_height(tree) + 1;
     
 	/* Allocating new root node */
-	if (!(tree->root = reiser4_tree_alloc(tree, height + 1))) {
+	if (!(tree->root = reiser4_tree_alloc(tree, height))) {
 		res = -ENOSPC;
 		goto error_back_root;
 	}
@@ -1044,7 +1046,7 @@ errno_t reiser4_tree_growup(
 				node_blocknr(tree->root));
 
 	reiser4_format_set_height(tree->fs->format,
-				  height + 1);
+				  height);
 	
 	if ((res = reiser4_tree_attach(tree, old_root)))
 		goto error_free_root;
@@ -1178,17 +1180,6 @@ errno_t reiser4_tree_shift(
 	return 0;
 }
 
-/* Default enough space condition check function */
-static bool_t enough_by_space(reiser4_tree_t *tree,
-			      reiser4_place_t *place,
-			      uint32_t needed)
-{
-	if (needed <= reiser4_node_space(place->node))
-		return TRUE;
-
-	return FALSE;
-}
-
 /* Makes space in tree to insert @needed bytes of data (item/unit) */
 errno_t reiser4_tree_expand(
 	reiser4_tree_t *tree,	    /* tree pointer function operates on */
@@ -1207,7 +1198,7 @@ errno_t reiser4_tree_expand(
 	aal_assert("umka-766", place != NULL);
 	aal_assert("umka-929", tree != NULL);
 
-	if ((enough = enough_by_space(tree, place, needed)))
+	if ((enough = (needed <= reiser4_node_space(place->node))))
 		return 0;
 
 	old = *place;
@@ -1223,7 +1214,7 @@ errno_t reiser4_tree_expand(
 			return res;
 		}
 	
-		if ((enough = enough_by_space(tree, place, needed)))
+		if ((enough = (needed <= reiser4_node_space(place->node))))
 			return 0;
 	}
 
@@ -1238,7 +1229,7 @@ errno_t reiser4_tree_expand(
 			return res;
 		}
 	
-		if ((enough = enough_by_space(tree, place, needed)))
+		if ((enough = (needed <= reiser4_node_space(place->node))))
 			return 0;
 	}
 
@@ -1273,10 +1264,25 @@ errno_t reiser4_tree_expand(
 		if ((res = reiser4_tree_shift(tree, place, node, flags)))
 			return res;
 
-		/* Releasing old node, because it has become empty as result of
-		   data shifting. */
-		if (reiser4_node_items(save.node) == 0) {
+		/* Attaching new allocated node into the tree, if it is not
+		   empty */
+		if (reiser4_node_items(node) > 0) {
 
+			/* Growing the tree in the case we splitted the root
+			   node. Root node has not parent. */
+			if (reiser4_tree_root(tree) == node_blocknr(old.node))
+				reiser4_tree_growup(tree);
+			
+			/* Attaching new node to the tree */
+			if ((res = reiser4_tree_attach(tree, node))) {
+				reiser4_tree_release(tree, node);
+				return res;
+			}
+		}
+		
+		/* Releasing old node, because it got empty as result of data
+		   shifting. */
+		if (reiser4_node_items(save.node) == 0)	{
 			if ((res = reiser4_tree_detach(tree, save.node)))
 				return res;
 			
@@ -1284,26 +1290,7 @@ errno_t reiser4_tree_expand(
 			reiser4_tree_release(tree, save.node);
 		}
 
-		/* Attaching new allocated node into the tree, if it is not
-		   empty */
-		if (reiser4_node_items(node) > 0) {
-
-			/* Growing the tree in the case we splitted the root
-			   node. Root node has not parent. */
-			if (!old.node->p.node)
-				reiser4_tree_growup(tree);
-			
-			/* Attaching new node to the tree */
-			if ((res = reiser4_tree_attach(tree, node))) {
-				aal_exception_error("Can't attach new node to the "
-						    "tree while making space.");
-				
-				reiser4_tree_release(tree, node);
-				return res;
-			}
-		}
-		
-		enough = enough_by_space(tree, place, needed);
+		enough = (needed <= reiser4_node_space(place->node));
 	}
 
 	return enough ? 0 : -ENOSPC;
@@ -1413,7 +1400,8 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 				goto error_free_node;
 			}
 
-			if (!place->node->p.node)
+			/* Check if we should growup the tree */
+			if (reiser4_tree_root(tree) == node_blocknr(place->node))
 				reiser4_tree_growup(tree);
 			
 			if ((res = reiser4_tree_attach(tree, node))) {
@@ -1609,7 +1597,7 @@ errno_t reiser4_tree_insert(
 		aal_assert("vpf-889", old.node != NULL);
 		
 		/* Growing the tree */
-		if (!old.node->p.node)
+		if (reiser4_tree_root(tree) == node_blocknr(old.node))
 			reiser4_tree_growup(tree);
 	
 		/* Attaching new node to the tree */

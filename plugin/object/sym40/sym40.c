@@ -62,7 +62,7 @@ static int32_t sym40_read(object_entity_t *entity,
 
 	sym = (sym40_t *)entity;
 
-	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
+	if (obj40_update(&sym->obj))
 		return -EINVAL;
 
 	aal_memset(&hint, 0, sizeof(hint));
@@ -205,7 +205,7 @@ static errno_t sym40_clobber(object_entity_t *entity) {
 
 	sym = (sym40_t *)entity;
 	
-	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
+	if (obj40_update(&sym->obj))
 		return -EINVAL;
 
 	return obj40_remove(&sym->obj, STAT_PLACE(&sym->obj), 1);
@@ -218,7 +218,7 @@ static uint32_t sym40_links(object_entity_t *entity) {
 
 	sym = (sym40_t *)entity;
 	
-	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
+	if (obj40_update(&sym->obj))
 		return -EINVAL;
 
 	return obj40_get_nlink(&sym->obj);
@@ -231,7 +231,7 @@ static errno_t sym40_link(object_entity_t *entity) {
 
 	sym = (sym40_t *)entity;
 	
-	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
+	if (obj40_update(&sym->obj))
 		return -EINVAL;
 	
 	return obj40_link(&sym->obj, 1);
@@ -244,7 +244,7 @@ static errno_t sym40_unlink(object_entity_t *entity) {
 
 	sym = (sym40_t *)entity;
 	
-	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
+	if (obj40_update(&sym->obj))
 		return -EINVAL;
 
 	return obj40_link(&sym->obj, -1);
@@ -262,7 +262,7 @@ static errno_t sym40_metadata(object_entity_t *entity,
 
 	sym = (sym40_t *)entity;
 
-	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
+	if (obj40_update(&sym->obj))
 		return -EINVAL;
 
 	return place_func(entity, STAT_PLACE(&sym->obj), data);
@@ -281,7 +281,7 @@ static errno_t sym40_layout(object_entity_t *entity,
 
 	sym = (sym40_t *)entity;
 
-	if (obj40_update(&sym->obj, STAT_PLACE(&sym->obj)))
+	if (obj40_update(&sym->obj))
 		return -EINVAL;
 	
 	blk = STAT_PLACE(&sym->obj)->block->nr;
@@ -329,10 +329,6 @@ static void sym40_close(object_entity_t *entity) {
 	aal_free(entity);
 }
 
-static key_entity_t *sym40_origin(object_entity_t *entity) {
-	return STAT_KEY(&((sym40_t *)entity)->obj);
-}
-
 static reiser4_object_ops_t sym40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.create	        = sym40_create,
@@ -342,7 +338,6 @@ static reiser4_object_ops_t sym40_ops = {
 	.unlink         = sym40_unlink,
 	.links          = sym40_links,
 	.clobber        = sym40_clobber,
-	.origin         = sym40_origin,
 	.realize        = sym40_realize,
 		
 	.seek	        = NULL,

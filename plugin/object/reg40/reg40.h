@@ -22,15 +22,11 @@ struct reg40 {
 	/* Current body item coord stored here */
 	place_t body;
 
-	/* Current body plugin (tail40, extent40, etc) */
-	reiser4_plug_t *bplug;
-
 	/* Current position in the directory */
-#ifndef ENABLE_STAND_ALONE
-	uint64_t offset;
-#else
-	uint32_t offset;
-#endif
+	key_entity_t offset;
+
+	/* Tail policy plugin */
+	reiser4_plug_t *policy;
 };
 
 typedef struct reg40 reg40_t;

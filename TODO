@@ -3,6 +3,10 @@ This file is part of reiser4progs package
 Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
 reiser4progs/COPYING.
 
+* fix possible key collition handling in dir40_readdir()
+
+* update bytes in object plugins right.
+
 * cleanup in node plugins and cde plugins.
 
 * stat data key's odrering should be the same as in entry key, 

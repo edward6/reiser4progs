@@ -101,11 +101,11 @@ errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 	
 	aal_assert("vpf-1213", obj != NULL);
 	
-	stat = &obj->info.start;
-	
 	/* Update the SD place. */
-	if ((res = obj40_update(obj, stat)))
+	if ((res = obj40_update(obj)))
 		return res;
+	
+	stat = &obj->info.start;
 	
 	/* Read LW extention. */
 	if ((res = obj40_read_ext(stat, SDEXT_LW_ID, &lw_hint)) < 0)

@@ -643,9 +643,6 @@ struct reiser4_object_ops {
 	/* Realizes if the object can be of this plugin and can be 
 	   recovered as a such. */
 	object_entity_t *(*realize) (object_info_t *);
-
-	/* Returns first item key */
-	key_entity_t *(*origin) (object_entity_t *);
 #endif
 	
 	/* Change current position to passed value */
@@ -1331,9 +1328,8 @@ struct tree_ops {
 	/* Update the key in the place and the node itsef. */
 	errno_t (*ukey) (void *, place_t *, key_entity_t *);
 #endif
-	/* Returns next and prev items respectively */
+	/* Returns next items respectively. */
 	errno_t (*next) (void *, place_t *, place_t *);
-	errno_t (*prev) (void *, place_t *, place_t *);
 };
 
 typedef struct tree_ops tree_ops_t;

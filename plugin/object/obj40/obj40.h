@@ -20,28 +20,30 @@ struct obj40 {
 	   object_entity_t */
 	reiser4_plug_t *plug;
     
-	/* Info about the object, SD place, object and parent keys and pointer
-	   to the instance of internal libreiser4 tree also for modiying
+	/* Info about the object, stat data place, object and parent keys and
+	   pointer to the instance of internal libreiser4 tree for modiying
 	   purposes. It is passed by reiser4 library durring initialization of
 	   the file instance. */
 	object_info_t info;
 
-	/* Core operations pointer */
+	/* Core operations pointer. */
 	reiser4_core_t *core;
 };
 
 typedef struct obj40 obj40_t;
 
+extern errno_t obj40_fini(obj40_t *obj);
+extern errno_t obj40_update(obj40_t *obj);
+
 extern oid_t obj40_objectid(obj40_t *obj);
 extern oid_t obj40_locality(obj40_t *obj);
 extern uint64_t obj40_ordering(obj40_t *obj);
-
-extern errno_t obj40_update(obj40_t *obj,
-			    place_t *place);
+extern uint64_t obj40_get_size(obj40_t *obj);
 
 extern rid_t obj40_pid(obj40_t *obj, rid_t type, char *name);
-extern reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type, char *name);
-extern errno_t obj40_fini(obj40_t *obj);
+
+extern reiser4_plug_t *obj40_plug(obj40_t *obj, rid_t type,
+				  char *name);
 
 extern lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 			     uint8_t level, place_t *place);
@@ -49,10 +51,16 @@ extern lookup_t obj40_lookup(obj40_t *obj, key_entity_t *key,
 extern errno_t obj40_init(obj40_t *obj, reiser4_plug_t *plug,
 			  reiser4_core_t *core, object_info_t *info);
 
-extern errno_t obj40_read_ext(place_t *place,
-			      rid_t id, void *data);
+extern errno_t obj40_read_ext(place_t *place, rid_t id, void *data);
 
 #ifndef ENABLE_STAND_ALONE
+typedef errno_t (*key_func_t) (obj40_t *);
+typedef errno_t (*stat_func_t) (place_t *);
+
+typedef void (*mode_func_t) (uint16_t *);
+typedef void (*nlink_func_t) (uint32_t *);
+typedef void (*size_func_t) (uint64_t *, uint64_t);
+
 extern errno_t obj40_touch(obj40_t *obj, uint64_t size,
 			   uint64_t bytes, uint32_t atime);
 
@@ -70,6 +78,9 @@ extern uint32_t obj40_get_nlink(obj40_t *obj);
 extern uint32_t obj40_get_atime(obj40_t *obj);
 extern uint32_t obj40_get_mtime(obj40_t *obj);
 extern uint64_t obj40_get_bytes(obj40_t *obj);
+
+extern errno_t obj40_link(obj40_t *obj,
+			  uint32_t value);
 
 extern errno_t obj40_set_mode(obj40_t *obj,
 			      uint16_t mode);
@@ -89,7 +100,9 @@ extern errno_t obj40_set_mtime(obj40_t *obj,
 extern errno_t obj40_set_bytes(obj40_t *obj,
 			       uint64_t bytes);
 
-extern errno_t obj40_link(obj40_t *obj, uint32_t value);
+extern errno_t obj40_realize(obj40_t *obj,
+			     stat_func_t stat_func,
+			     key_func_t key_func);
 
 extern errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 			    uint8_t level, place_t *place);
@@ -97,30 +110,16 @@ extern errno_t obj40_insert(obj40_t *obj, create_hint_t *hint,
 extern errno_t obj40_remove(obj40_t *obj, place_t *place,
 			    uint32_t count);
 
-typedef errno_t (*key_func_t) (obj40_t *);
-typedef errno_t (*stat_func_t) (place_t *);
-
-extern errno_t obj40_realize(obj40_t *obj,
-			     stat_func_t stat_func,
-			     key_func_t key_func);
-
-extern errno_t obj40_stat(obj40_t *obj,	stat_func_t stat_func);
-
-typedef void (*mode_func_t) (uint16_t *mode);
-typedef void (*nlink_func_t) (uint32_t *nlink);
-typedef void (*size_func_t) (uint64_t *sd_size, uint64_t counted_size);
+extern errno_t obj40_ukey(obj40_t *obj, place_t *place, 
+			  key_entity_t *key, uint8_t mode);
 
 extern errno_t obj40_check_stat(obj40_t *obj, nlink_func_t nlink_func,
 				mode_func_t mode_func, size_func_t size_func,
 				uint64_t size, uint64_t bytes, uint8_t mode);
-
-extern errno_t obj40_ukey(obj40_t *obj, place_t *place, 
-			  key_entity_t *key, uint8_t mode);
 
 extern errno_t obj40_stat_launch(obj40_t *obj, stat_func_t stat_func, 
 				 uint32_t nlink, uint16_t fmode, 
 				 uint8_t mode);
 
 #endif
-extern uint64_t obj40_get_size(obj40_t *obj);
 #endif
