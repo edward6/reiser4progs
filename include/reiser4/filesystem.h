@@ -71,7 +71,7 @@ struct reiser4_profile {
     
     struct {	    
 	rpid_t statdata;
-	rpid_t internal;
+	rpid_t nodeptr;
 	
 	struct {
 	    rpid_t tail;

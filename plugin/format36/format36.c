@@ -268,6 +268,7 @@ static reiser4_plugin_t format36_plugin = {
 	.h = {
 	    .handle = NULL,
 	    .id = FORMAT_REISER40_ID,
+	    .group = 0,
 	    .type = FORMAT_PLUGIN_TYPE,
 	    .label = "format36",
 	    .desc = "Disk-format for reiserfs 3.6.x, ver. " VERSION,

@@ -45,6 +45,7 @@ static reiser4_plugin_t journal36_plugin = {
 	.h = {
 	    .handle = NULL,
 	    .id = JOURNAL_REISER36_ID,
+	    .group = 0,
 	    .type = JOURNAL_PLUGIN_TYPE,
 	    .label = "journal36",
 	    .desc = "Default journal for reiserfs 3.6.x, ver. " VERSION,

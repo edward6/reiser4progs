@@ -339,6 +339,7 @@ static reiser4_plugin_t key40_plugin = {
 	.h = {
 	    .handle = NULL,
 	    .id = KEY_REISER40_ID,
+	    .group = 0,
 	    .type = KEY_PLUGIN_TYPE,
 	    .label = "key40",
 	    .desc = "Key for reiserfs 4.0, ver. " VERSION,

@@ -432,12 +432,11 @@ static reiser4_plugin_t direntry40_plugin = {
 	.h = {
 	    .handle = NULL,
 	    .id = ITEM_CDE40_ID,
+	    .group = DIRENTRY_ITEM,
 	    .type = ITEM_PLUGIN_TYPE,
 	    .label = "direntry40",
 	    .desc = "Compound direntry for reiserfs 4.0, ver. " VERSION,
 	},
-	.type = DIRENTRY_ITEM_TYPE,
-	
 #ifndef ENABLE_COMPACT	    
         .init		= direntry40_init,
         .insert		= direntry40_insert,

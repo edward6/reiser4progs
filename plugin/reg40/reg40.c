@@ -113,8 +113,8 @@ static errno_t reg40_next(reiser4_entity_t *entity) {
     if (core->item_ops.open(&next_item, place))
 	goto error_set_context;
     
-    if ((reg->body.plugin->item_ops.type != TAIL_ITEM_TYPE &&
-	reg->body.plugin->item_ops.type != EXTENT_ITEM_TYPE))
+    if ((reg->body.plugin->h.group != TAIL_ITEM &&
+	reg->body.plugin->h.group != EXTENT_ITEM))
     {
 	/* Next item is nor tail neither extent */
 	goto error_set_context;
@@ -180,7 +180,7 @@ static int32_t reg40_read(reiser4_entity_t *entity,
 
 	if (!chunk) break;
 	
-	if (reg->body.plugin->item_ops.type == TAIL_ITEM_TYPE) {
+	if (reg->body.plugin->h.group == TAIL_ITEM) {
 	    if (!(body = core->item_ops.body(&reg->body)))
 		break;
 		
@@ -391,7 +391,7 @@ static int32_t reg40_write(reiser4_entity_t *entity,
     
     plugin = reg40_policy(reg, n);
     
-    is_extent = (plugin->item_ops.type == EXTENT_ITEM_TYPE);
+    is_extent = (plugin->h.group == EXTENT_ITEM);
     
     maxspace = is_extent ? core->tree_ops.blockspace(reg->tree) : 
 	core->tree_ops.nodespace(reg->tree);
@@ -418,8 +418,7 @@ static int32_t reg40_write(reiser4_entity_t *entity,
 	    reg40_objectid(reg), reg->offset);
     
 	/* Inserting the entry to the tree */
-	level = LEAF_LEVEL + (hint.plugin->item_ops.type == 
-	    EXTENT_ITEM_TYPE ? 1 : 0);
+	level = LEAF_LEVEL + (hint.plugin->h.group == EXTENT_ITEM);
 	
 	if (core->tree_ops.insert(reg->tree, &hint, level, &place)) {
 	    aal_exception_error("Can't insert body item to the tree. "
@@ -473,6 +472,7 @@ static reiser4_plugin_t reg40_plugin = {
 	.h = {
 	    .handle = NULL,
 	    .id = FILE_REGULAR40_ID,
+	    .group = REGULAR_FILE,
 	    .type = FILE_PLUGIN_TYPE,
 	    .label = "reg40",
 	    .desc = "Regular file for reiserfs 4.0, ver. " VERSION,

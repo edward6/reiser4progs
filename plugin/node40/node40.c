@@ -584,6 +584,7 @@ static reiser4_plugin_t node40_plugin = {
 	.h = {
 	    .handle = NULL,
 	    .id = NODE_REISER40_ID,
+	    .group = 0,
 	    .type = NODE_PLUGIN_TYPE,
 	    .label = "node40",
 	    .desc = "Node for reiserfs 4.0, ver. " VERSION,

@@ -406,12 +406,11 @@ static reiser4_plugin_t stat40_plugin = {
 	.h = {
 	    .handle = NULL,
 	    .id = ITEM_STATDATA40_ID,
+	    .group = STATDATA_ITEM,
 	    .type = ITEM_PLUGIN_TYPE,
 	    .label = "stat40",
 	    .desc = "Stat data for reiserfs 4.0, ver. " VERSION,
 	},
-	.type = STATDATA_ITEM_TYPE,
-	
 #ifndef ENABLE_COMPACT
         .init		= stat40_init,
         .estimate	= stat40_estimate,

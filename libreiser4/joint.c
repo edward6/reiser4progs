@@ -645,7 +645,7 @@ errno_t reiser4_joint_traverse(
 		goto error_after_func;
 	    }
 	    
-	    if (!reiser4_item_internal(&item))
+	    if (!reiser4_item_nodeptr(&item))
 		continue;
 	    
 	    pos.unit = reiser4_item_count(&item) - 1;

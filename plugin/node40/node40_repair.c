@@ -426,10 +426,10 @@ errno_t node40_item_legal(reiser4_entity_t *entity, reiser4_plugin_t *plugin) {
     
     level = node40_get_level(entity);
     
-    if (plugin->item_ops.type == INTERNAL_ITEM_TYPE) {
+    if (plugin->h.group == NODEPTR_ITEM) {
 	if (level == NODE40_LEAF)
 	    return 0;
-    } else if (plugin->item_ops.type == EXTENT_ITEM_TYPE) {
+    } else if (plugin->h.group == EXTENT_ITEM) {
 	if (level != NODE40_TWIG)
 	    return 0;
     } else if (level != NODE40_LEAF) 

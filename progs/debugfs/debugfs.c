@@ -99,7 +99,7 @@ static errno_t debugfs_print_joint(
 		return -1;
 	    }
 
-	    if (reiser4_item_internal(&item))
+	    if (reiser4_item_nodeptr(&item))
 		printf("(%u) NODEPTR: len=%u, ", i, reiser4_item_len(&item));
 	    else
 		printf("(%u) EXTENT: len=%u, ", i, reiser4_item_len(&item));

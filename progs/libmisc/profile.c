@@ -17,7 +17,7 @@ static reiser4_profile_t profiles[] = {
 	    .special	= FILE_SPECIAL40_ID,
 	},
 	.item = {
-	    .internal	= ITEM_INTERNAL40_ID,
+	    .nodeptr	= ITEM_NODEPTR40_ID,
 	    .statdata	= ITEM_STATDATA40_ID,
 	    
 	    .file_body	= {
@@ -49,7 +49,7 @@ static reiser4_profile_t profiles[] = {
 	    .special	= FILE_SPECIAL40_ID,
 	},
 	.item = {
-	    .internal	= ITEM_INTERNAL40_ID,
+	    .nodeptr	= ITEM_NODEPTR40_ID,
 	    .statdata	= ITEM_STATDATA40_ID,
 	    
 	    .file_body	= {
@@ -81,7 +81,7 @@ static reiser4_profile_t profiles[] = {
 	    .special	= FILE_SPECIAL40_ID,
 	},
 	.item = {
-	    .internal	= ITEM_INTERNAL40_ID,
+	    .nodeptr	= ITEM_NODEPTR40_ID,
 	    .statdata	= ITEM_STATDATA40_ID,
 	    
 	    .file_body	= {
@@ -142,7 +142,7 @@ enum progs_plugin_type {
     PROGS_DIRTORY_PLUGIN,
     PROGS_SYMLINK_PLUGIN,
     PROGS_SPECIAL_PLUGIN,
-    PROGS_INTERNAL_PLUGIN, 
+    PROGS_NODEPTR_PLUGIN, 
     PROGS_STATDATA_PLUGIN, 
     PROGS_DIRENTRY_PLUGIN,
     PROGS_TAIL_PLUGIN,
@@ -167,7 +167,7 @@ static char *progs_plugin_name[] = {
     "DIRECTORY",
     "SYMLINK",
     "SPECIAL",
-    "INTERNAL",
+    "NODEPTR",
     "STATDATA",
     "DIRENTRY",
     "TAIL",
@@ -202,8 +202,8 @@ static rpid_t *progs_profile_field(reiser4_profile_t *profile,
 	    return &profile->file.symlink;
 	case PROGS_SPECIAL_PLUGIN:
 	    return &profile->file.special;
-	case PROGS_INTERNAL_PLUGIN:
-	    return &profile->item.internal;
+	case PROGS_NODEPTR_PLUGIN:
+	    return &profile->item.nodeptr;
 	case PROGS_STATDATA_PLUGIN:
 	    return &profile->item.statdata;
 	case PROGS_DIRENTRY_PLUGIN:
@@ -251,7 +251,7 @@ static reiser4_plugin_type_t progs_profile_it2pt(progs_plugin_type_t type) {
 	    return FILE_PLUGIN_TYPE;
 	case PROGS_SPECIAL_PLUGIN:
 	    return FILE_PLUGIN_TYPE;
-	case PROGS_INTERNAL_PLUGIN:
+	case PROGS_NODEPTR_PLUGIN:
 	    return ITEM_PLUGIN_TYPE;
 	case PROGS_STATDATA_PLUGIN:
 	    return ITEM_PLUGIN_TYPE;
@@ -298,8 +298,8 @@ static progs_plugin_type_t progs_profile_name2it(const char *name) {
 	return PROGS_SYMLINK_PLUGIN;
     else if (!aal_strncmp(name, "SPECIAL", 7))
 	return PROGS_SPECIAL_PLUGIN;
-    else if (!aal_strncmp(name, "INTERNAL", 8))
-	return PROGS_INTERNAL_PLUGIN;
+    else if (!aal_strncmp(name, "NODEPTR", 7))
+	return PROGS_NODEPTR_PLUGIN;
     else if (!aal_strncmp(name, "STATDATA", 8))
 	return PROGS_STATDATA_PLUGIN;
     else if (!aal_strncmp(name, "DIRENTRY", 8))

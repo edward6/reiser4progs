@@ -72,8 +72,9 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 	    &item, data->options))) 
 	    return res;
 
-	if (!reiser4_item_extent(&item) && !reiser4_item_internal(&item))
+	if (!reiser4_item_extent(&item) && !reiser4_item_nodeptr(&item))
 	    continue;
+	
 	pos.unit = reiser4_item_count(&item) - 1;
 	
 	do {
@@ -88,7 +89,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node,
 		    item.plugin->item_ops.specific.ptr,
 		    get_width, &item);
 		    
-		if (reiser4_item_internal(&item)) {
+		if (reiser4_item_nodeptr(&item)) {
 		    aal_exception_error("Node (%llu), item (%u), unit (%u): "
 			"bad internal pointer (%llu/%llu). Removed.", 
 			aal_block_number(node->block), pos.item, pos.unit, 
@@ -126,7 +127,7 @@ errno_t repair_node_ld_key(reiser4_key_t *ld_key, repair_check_t *data,
     item = repair_cut_item_at(data, path_length);
     
     aal_assert("vpf-346", item != NULL, return -1);
-    aal_assert("vpf-346", reiser4_item_internal(item), return -1);
+    aal_assert("vpf-346", reiser4_item_nodeptr(item), return -1);
     /* 
 	FIXME-VITALY: This needs to be changed when we will work with multy units 
 	internal pointers.
@@ -152,7 +153,7 @@ errno_t repair_node_rd_key(reiser4_key_t *rd_key, repair_check_t *data,
     item = repair_cut_item_at(data, path_length);
     
     aal_assert("vpf-349", item != NULL, return -1);
-    aal_assert("vpf-350", reiser4_item_internal(item), return -1);
+    aal_assert("vpf-350", reiser4_item_nodeptr(item), return -1);
     /* 
 	FIXME-VITALY: This needs to be changed when we will work with multy units 
 	internal pointers.
@@ -381,7 +382,7 @@ errno_t repair_node_handle_pointers(reiser4_node_t *node, repair_check_t *data)
 	    return -1;
 	}	    
 
-	if (!reiser4_item_extent(&item) && !reiser4_item_internal(&item))
+	if (!reiser4_item_extent(&item) && !reiser4_item_nodeptr(&item))
 	    continue;
 
 	for (pos.unit = 0; pos.unit < reiser4_item_count(&item); pos.unit++) {

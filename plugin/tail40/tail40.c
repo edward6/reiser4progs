@@ -116,12 +116,11 @@ static reiser4_plugin_t tail40_plugin = {
 	.h = {
 	    .handle = NULL,
 	    .id = ITEM_TAIL40_ID,
+	    .group = TAIL_ITEM,
 	    .type = ITEM_PLUGIN_TYPE,
 	    .label = "tail40",
 	    .desc = "Tail item for reiserfs 4.0, ver. " VERSION,
 	},
-	.type = TAIL_ITEM_TYPE,
-	
 #ifndef ENABLE_COMPACT
         .init		= tail40_init,
         .insert		= tail40_insert,

@@ -143,6 +143,7 @@ static reiser4_plugin_t tea_hash_plugin = {
 	.h = {
 	    .handle = NULL,
 	    .id = HASH_TEA_ID,
+	    .group = 0,
 	    .type = HASH_PLUGIN_TYPE,
 	    .label = "tea_hash",
 	    .desc = "Implementation of tea hash for reiserfs 4.0, ver. " VERSION,

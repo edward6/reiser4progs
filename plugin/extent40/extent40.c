@@ -154,12 +154,11 @@ static reiser4_plugin_t extent40_plugin = {
 	.h = {
 	    .handle = NULL,
 	    .id = ITEM_EXTENT40_ID,
+	    .group = EXTENT_ITEM,
 	    .type = ITEM_PLUGIN_TYPE,
 	    .label = "extent40",
 	    .desc = "Extent item for reiserfs 4.0, ver. " VERSION,
 	},
-	.type = EXTENT_ITEM_TYPE,
-	
 #ifndef ENABLE_COMPACT
         .init		= extent40_init,
         .insert		= extent40_insert,

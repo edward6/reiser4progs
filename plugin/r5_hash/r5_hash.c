@@ -23,6 +23,7 @@ static reiser4_plugin_t r5_hash_plugin = {
 	.h = {
 	    .handle = NULL,
 	    .id = HASH_R5_ID,
+	    .group = 0,
 	    .type = HASH_PLUGIN_TYPE,
 	    .label = "r5_hash",
 	    .desc = "Implementation of r5 hash for reiserfs 4.0, ver. " VERSION,

@@ -98,13 +98,12 @@ static reiser4_plugin_t nodeptr40_plugin = {
     .item_ops = {
 	.h = {
     	    .handle = NULL,
-	    .id = ITEM_INTERNAL40_ID,
+	    .id = ITEM_NODEPTR40_ID,
+	    .group = NODEPTR_ITEM,
 	    .type = ITEM_PLUGIN_TYPE,
 	    .label = "nodeptr40",
 	    .desc = "Internal item for reiserfs 4.0, ver. " VERSION,
 	},
-	.type = INTERNAL_ITEM_TYPE,
-	
 #ifndef ENABLE_COMPACT	    
         .init		= nodeptr40_init,
         .estimate	= nodeptr40_estimate,

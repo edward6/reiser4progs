@@ -68,26 +68,35 @@ enum reiser4_file_plugin_id {
     FILE_SPECIAL40_ID		= 0x3
 };
 
+enum reiser4_file_group {
+    REGULAR_FILE		= 0x0,
+    DIRTORY_FILE		= 0x1,
+    SYMLINK_FILE		= 0x2,
+    SPECIAL_FILE		= 0x3
+};
+
+typedef enum reiser4_file_group reiser4_file_group_t;
+
 enum reiser4_item_plugin_id {
     ITEM_STATDATA40_ID		= 0x0,
     ITEM_SDE40_ID		= 0x1,
     ITEM_CDE40_ID		= 0x2,
-    ITEM_INTERNAL40_ID		= 0x3,
+    ITEM_NODEPTR40_ID		= 0x3,
     ITEM_ACL40_ID		= 0x4,
     ITEM_EXTENT40_ID		= 0x5,
     ITEM_TAIL40_ID		= 0x6
 };
 
-enum reiser4_item_type {
-    STATDATA_ITEM_TYPE		= 0x0,
-    INTERNAL_ITEM_TYPE		= 0x1,
-    DIRENTRY_ITEM_TYPE		= 0x2,
-    TAIL_ITEM_TYPE		= 0x3,
-    EXTENT_ITEM_TYPE		= 0x4,
-    PERMISSN_ITEM_TYPE		= 0x5
+enum reiser4_item_group {
+    STATDATA_ITEM		= 0x0,
+    NODEPTR_ITEM		= 0x1,
+    DIRENTRY_ITEM		= 0x2,
+    TAIL_ITEM			= 0x3,
+    EXTENT_ITEM			= 0x4,
+    PERMISSN_ITEM		= 0x5
 };
 
-typedef enum reiser4_item_type reiser4_item_type_t;
+typedef enum reiser4_item_group reiser4_item_group_t;
 
 enum reiser4_node_plugin_id {
     NODE_REISER40_ID		= 0x0,
@@ -358,9 +367,20 @@ typedef struct reiser4_item_hint reiser4_item_hint_t;
 
 /* Common plugin header */
 struct reiser4_plugin_header {
+
+    /* Plugin handle used in the case plugins are dynamic loadable libraries */
     void *handle;
+
+    /* Plugin identifier */
     rpid_t id;
-    reiser4_plugin_type_t type;
+
+    /* Plugin type */
+    rpid_t type;
+
+    /* Plugin group. Used for distinguish the plugins with the same type */
+    rpid_t group;
+
+    /* Label and description */
     const char label[PLUGIN_MAX_LABEL];
     const char desc[PLUGIN_MAX_DESC];
 };
@@ -503,9 +523,6 @@ typedef struct reiser4_ptr_ops reiser4_ptr_ops_t;
 struct reiser4_item_ops {
     reiser4_plugin_header_t h;
 
-    /* Item group (stat data, internal, file body, etc) */
-    reiser4_item_type_t type;
-
     /* Forms item structures based on passed hint in passed memory area */
     errno_t (*init) (reiser4_item_t *, reiser4_item_hint_t *);
 
@@ -551,9 +568,6 @@ struct reiser4_item_ops {
 	reiser4_ptr_ops_t ptr;
 	reiser4_statdata_ops_t statdata;
 	reiser4_direntry_ops_t direntry;
-
-	/* Here shall be filebody item (extent, tail) */
-
     } specific;
 };
 

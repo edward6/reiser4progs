@@ -386,7 +386,7 @@ int reiser4_tree_lookup(
 	    return -1;
 	}
 	    
-	if (!reiser4_item_internal(&item)) {
+	if (!reiser4_item_nodeptr(&item)) {
 	    aal_exception_error("Not internal item was found on the twig level. "
 	        "Sorry, drilling is not supported yet!");
 	    return -1;
@@ -462,7 +462,7 @@ static errno_t reiser4_tree_attach(
 	item plugin id from parent. In the case parent doesn't exist, it should
 	be got from filesystem default profile.
     */
-    id = ITEM_INTERNAL40_ID;
+    id = ITEM_NODEPTR40_ID;
 
     if (!(hint.plugin = libreiser4_factory_ifind(ITEM_PLUGIN_TYPE, id))) {
 	aal_exception_error("Can't find internal item plugin "
