@@ -88,8 +88,11 @@ errno_t reiser4_tree_unlock_node(reiser4_tree_t *tree, node_t *node) {
 		if (reiser4_tree_root_node(tree, node) ||
 		    node->p.node != NULL)
 		{
-			if ((res = reiser4_tree_detach_node(tree, node)))
+			if ((res = reiser4_tree_detach_node(tree, node,
+							    SF_DEFAULT)))
+			{
 				return res;
+			}
 		}
 
 		return reiser4_tree_release_node(tree, node);
@@ -795,7 +798,9 @@ errno_t reiser4_tree_discard_node(reiser4_tree_t *tree,
 {
 	errno_t res;
 
-	if ((res = reiser4_tree_detach_node(tree, node))) {
+	if ((res = reiser4_tree_detach_node(tree, node,
+					    SF_DEFAULT)))
+	{
 		aal_error("Can't detach node %llu from "
 			  "tree.", node_blocknr(node));
 		return res;
@@ -1752,7 +1757,9 @@ errno_t reiser4_tree_update_key(reiser4_tree_t *tree, place_t *place,
 
 /* This function inserts new nodeptr item to the tree and in such way attaches
    passed @node to tree. It also connects passed @node into tree cache. */
-errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node) {
+errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node,
+				 uint32_t flags)
+{
 	rid_t pid;
 	errno_t res;
 	uint8_t level;
@@ -1769,7 +1776,7 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node) {
 	hint.specific = &ptr;
 	hint.place_func = NULL;
 	hint.region_func = NULL;
-	hint.shift_flags = SF_DEFAULT;
+	hint.shift_flags = flags;
 
 	ptr.width = 1;
 	ptr.start = node_blocknr(node);
@@ -1817,7 +1824,7 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, node_t *node) {
    removes nodeptr item from the tree and node instance itself from its parent
    children list. */
 errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
-				 node_t *node)
+				 node_t *node, uint32_t flags)
 {
 	errno_t res;
 	place_t parent;
@@ -1846,7 +1853,7 @@ errno_t reiser4_tree_detach_node(reiser4_tree_t *tree,
 		hint.count = 1;
 		hint.place_func = NULL;
 		hint.region_func = NULL;
-		hint.shift_flags = SF_DEFAULT;
+		hint.shift_flags = flags;
 
 		/* Removing nodeptr item/unit at @parent. */
 		return reiser4_tree_remove(tree, &parent, &hint);
@@ -1883,7 +1890,9 @@ errno_t reiser4_tree_growup(reiser4_tree_t *tree) {
 	old_root = tree->root;
 
 	/* Detaching old root from tree first. */
-	if ((res = reiser4_tree_detach_node(tree, old_root))) {
+	if ((res = reiser4_tree_detach_node(tree, old_root,
+					    SF_DEFAULT)))
+	{
 		aal_error("Can't detach old root node %llu from "
 			  "tree during tree growing up.",
 			  node_blocknr(old_root));
@@ -1902,7 +1911,7 @@ errno_t reiser4_tree_growup(reiser4_tree_t *tree) {
 	   root node, not to virtual super block. */
 	reiser4_node_lock(new_root);
 
-	if ((res = reiser4_tree_attach_node(tree, old_root))) {
+	if ((res = reiser4_tree_attach_node(tree, old_root, SF_DEFAULT))) {
 		aal_error("Can't attach node %llu to tree during"
 			  "tree growing up.", node_blocknr(old_root));
 		reiser4_node_unlock(new_root);
@@ -1951,7 +1960,9 @@ errno_t reiser4_tree_dryout(reiser4_tree_t *tree) {
 
 	/* Detaching new root from its parent (old_root). This will also release
 	   parent node from tree, as it will be empty. */
-	if ((res = reiser4_tree_detach_node(tree, new_root))) {
+	if ((res = reiser4_tree_detach_node(tree, new_root,
+					    SF_DEFAULT)))
+	{
 		aal_error("Can't detach new root from "
 			  "tree during tree drying out.");
 		return res;
@@ -2242,7 +2253,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 		if (reiser4_node_items(save.node) == 0) {
 			reiser4_node_lock(place->node);
 			
-			if ((res = reiser4_tree_detach_node(tree, save.node))) {
+			if ((res = reiser4_tree_detach_node(tree, save.node,
+							    SF_DEFAULT)))
+			{
 				reiser4_node_unlock(place->node);
 				return res;
 			}
@@ -2265,7 +2278,9 @@ int32_t reiser4_tree_expand(reiser4_tree_t *tree, place_t *place,
 			reiser4_node_lock(save.node);
 			
 			/* Attach new node to tree if it is not empty. */
-			if ((res = reiser4_tree_attach_node(tree, node))) {
+			if ((res = reiser4_tree_attach_node(tree, node,
+							    SF_DEFAULT)))
+			{
 				reiser4_node_unlock(save.node);
 				reiser4_node_unlock(place->node);
 				return res;
@@ -2450,7 +2465,9 @@ static errno_t reiser4_tree_split(reiser4_tree_t *tree,
 			}
 
 			/* Attach new node to tree. */
-			if ((res = reiser4_tree_attach_node(tree, node))) {
+			if ((res = reiser4_tree_attach_node(tree, node,
+							    SF_DEFAULT)))
+			{
 				aal_error("Tree is failed to attach "
 					  "node during split opeartion.");
 				reiser4_node_unlock(old_node);
@@ -2760,8 +2777,11 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, place_t *place,
 		}
 		
 		/* Attaching new node to the tree. */
-		if ((res = reiser4_tree_attach_node(tree, place->node)))
+		if ((res = reiser4_tree_attach_node(tree, place->node,
+						    hint->shift_flags)))
+		{
 			return res;
+		}
 	}
 	
 	/* Initializing insert point place. */
