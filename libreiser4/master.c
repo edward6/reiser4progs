@@ -139,10 +139,8 @@ int reiser4_master_confirm(aal_device_t *device) {
 		uint32_t blocksize = get_ms_blocksize(super);
 			
 		if (aal_device_set_bs(device, blocksize)) {
-#ifndef ENABLE_STAND_ALONE
 			aal_exception_fatal("Invalid block size detected %u.",
 					    blocksize);
-#endif
 			goto error_free_block;
 		}
 	
