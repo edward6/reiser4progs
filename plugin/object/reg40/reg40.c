@@ -330,6 +330,7 @@ static errno_t reg40_convert(object_entity_t *entity,
 		  &hint.offset, 0);
 	
 	/* Prepare convert hint. */
+	hint.chunk = 0;
 	hint.bytes = 0;
 	hint.plug = plug;
 	hint.count = fsize;

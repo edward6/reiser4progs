@@ -5,14 +5,14 @@ reiser4progs/COPYING.
 
 * implement key collisions working code in tree_lookup().
 
-* remove reiser4_key_t and key_entity_t. Add just key_t.
+* remove one of reiser4_key_t and key_entity_t.
 
 * move plugin directory to libreiser4 directory. Maintain own plugin
   directory in librepair. Move all repair code from libreiser4/plugin/*
   to librepair/plugin/*.
 
-* probably we should perform tail convertion by chunks of more than
-  4096 bytes long? Then what chunk size should be used?
+* make reg40 plugin to use the ability to make tail convertion with
+  chunks different than default ones.
 
 * should we introduce two stat data related methods 
   something like load_sd() and save_sd() like kernel does?

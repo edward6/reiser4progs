@@ -608,6 +608,9 @@ typedef struct trans_hint trans_hint_t;
 
 /* This structure contains related to tail conversion. */
 struct conv_hint {
+	/* Chuck size to be used for tail convertion. */
+	uint32_t chunk;
+	
 	/* New bytes value */
 	uint64_t bytes;
 
