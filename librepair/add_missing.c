@@ -314,7 +314,7 @@ errno_t repair_add_missing(repair_am_t *am) {
 		}
 		
 		/* Debugging of item coping. */
-		if (am->repair->debug_flag) 
+		if (am->repair->flags & (1 << REPAIR_DEBUG)) 
 			goto debug;
 		
 		aal_memset(&stat, 0, sizeof(stat));

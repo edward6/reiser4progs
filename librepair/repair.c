@@ -269,23 +269,29 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 			ds->bm_scan->map[i] &= ~control->bm_met->map[i];
 		
 		goto fini;
-	}
-	
-	/* Allocate a bitmap of blocks to be scanned on this pass. */ 
-	if (!(ds->bm_scan = control->bm_scan = aux_bitmap_create(fs_len))) {
-		aal_error("Failed to allocate a bitmap of blocks "
-			  "unconnected from the tree.");
-		return -EINVAL;
+	} else {
+		/* Allocate a bitmap of blocks to be scanned on this pass. */ 
+		if (!(ds->bm_scan = control->bm_scan = aux_bitmap_create(fs_len))) {
+			aal_error("Failed to allocate a bitmap of blocks "
+				  "unconnected from the tree.");
+			return -EINVAL;
+		}
 	}
 
 	if (!(control->bm_alloc = aux_bitmap_create(fs_len))) {
-		aal_error("Failed to allocate a bitmap of allocated "
-			  "blocks.");
+		aal_error("Failed to allocate a bitmap of allocated blocks.");
 		return -EINVAL;
 	}
 
-	if ((res = reiser4_alloc_extract(repair->fs->alloc, control->bm_alloc)))
-		return res;
+	if (control->repair->flags & (1 << REPAIR_WHOLE)) {
+		aux_bitmap_invert(control->bm_alloc);
+	} else {
+		if ((res = reiser4_alloc_extract(repair->fs->alloc, 
+						 control->bm_alloc)))
+		{
+			return res;
+		}
+	}
 	
 	/* Mark all broken regions of allocator as to be scanned. */
 	if ((res = repair_alloc_layout_bad(repair->fs->alloc,
@@ -674,7 +680,7 @@ errno_t repair_check(repair_data_t *repair) {
 	
 	control.repair = repair;
 	
-	if (repair->debug_flag) {
+	if (repair->flags & (1 << REPAIR_DEBUG)) {
 		/* Debugging */
 		if ((res = debug_am_prepare(&control, &am)))
 			goto error;

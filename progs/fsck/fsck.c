@@ -142,6 +142,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 		{"passes-dump", required_argument, 0, 'U'},
 		{"backup", required_argument, 0, 'b'},
 		{"bitmap", required_argument, 0, 'B'},
+		{"unused", no_argument, NULL, 'u'},
 		{0, 0, 0, 0}
 	};
 
@@ -155,7 +156,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 		return USER_ERROR;
 	}
 
-	while ((c = getopt_long(argc, argv, "L:VhnqafvU:b:r?dB:plo:c:", 
+	while ((c = getopt_long(argc, argv, "L:VhnqafvU:b:r?dB:plo:c:u", 
 				options, &option_index)) >= 0) 
 	{
 		switch (c) {
@@ -225,6 +226,9 @@ static errno_t fsck_init(fsck_parse_t *data,
 		case 'o':
 			aal_strncat(override, optarg, aal_strlen(optarg));
 			aal_strncat(override, ",", 1);
+			break;
+		case 'u':
+			aal_set_bit(&data->options, FSCK_OPT_WHOLE);
 			break;
 		}
 	}
@@ -470,6 +474,8 @@ static errno_t fsck_check_fini(repair_data_t *repair) {
 	return 0;
 }
 
+#define fsck_opt(parse, flag) aal_test_bit(&(parse)->options, flag)
+
 int main(int argc, char *argv[]) {
 	struct aal_device_ops fsck_ops = file_ops;
 	aal_device_t *device;
@@ -503,7 +509,10 @@ int main(int argc, char *argv[]) {
 	fsck_time("fsck.reiser4 started at");
 	
 	/* SB_mode is specified, otherwise  */
-	repair.debug_flag = aal_test_bit(&parse_data.options, FSCK_OPT_DEBUG);
+	repair.flags = 
+		fsck_opt(&parse_data, FSCK_OPT_DEBUG) << REPAIR_DEBUG |
+		fsck_opt(&parse_data, FSCK_OPT_WHOLE) << REPAIR_WHOLE;
+		
 	repair.bitmap_file = parse_data.bitmap_file;
 	
 	res = fsck_check_init(&repair, device, parse_data.backup, 

@@ -48,6 +48,12 @@ typedef struct repair_progress {
 typedef errno_t (repair_progress_handler_t) (repair_progress_t *);
 #endif
 
+enum {
+	REPAIR_DEBUG	= 0x0,
+	REPAIR_WHOLE	= 0x1,
+	REPAIR_LAST
+};
+
 typedef struct repair_data {
 	reiser4_fs_t *fs;
     
@@ -56,9 +62,9 @@ typedef struct repair_data {
 	uint64_t sb_fixable;
 
 	uint8_t mode;
-	uint8_t debug_flag;
-
 	char *bitmap_file;
+	
+	uint32_t flags;
 } repair_data_t;
 
 extern errno_t repair_check(repair_data_t *repair);

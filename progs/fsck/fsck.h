@@ -38,7 +38,8 @@ typedef enum fsck_options {
     FSCK_OPT_FORCE	= 0x2,
     FSCK_OPT_VERBOSE	= 0x3,
     FSCK_OPT_RO		= 0x4,
-    FSCK_OPT_DEBUG	= 0x5
+    FSCK_OPT_DEBUG	= 0x5,
+    FSCK_OPT_WHOLE	= 0x6
 } fsck_options_t;
 
 typedef struct fsck_parse {
