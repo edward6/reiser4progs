@@ -722,11 +722,12 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Parsing parameters */
-	while ((c = getopt_long(argc, argv, "hVqfKTDESF:o:plc:",
+	while ((c = getopt_long(argc, argv, "hVqfKTDESF:o:plc:?",
 				long_options, (int *)0)) != EOF)
 	{
 		switch (c) {
 		case 'h':
+		case '?':
 			measurefs_print_usage(argv[0]);
 			return NO_ERROR;
 		case 'V':
@@ -775,9 +776,6 @@ int main(int argc, char *argv[]) {
 
 			misc_mpressure_setup(cache);
 			break;
-		case '?':
-			measurefs_print_usage(argv[0]);
-			return NO_ERROR;
 		}
 	}
 

@@ -93,11 +93,12 @@ int main(int argc, char *argv[]) {
 	memset(override, 0, sizeof(override));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqfplo:c:", long_options, 
+	while ((c = getopt_long(argc, argv, "hVqfplo:c:?", long_options, 
 				(int *)0)) != EOF) 
 	{
 		switch (c) {
 		case 'h':
+		case '?':
 			cpfs_print_usage(argv[0]);
 			return NO_ERROR;
 		case 'V':
@@ -130,9 +131,6 @@ int main(int argc, char *argv[]) {
 			
 			aal_strncat(override, ",", 1);
 			break;
-		case '?':
-			cpfs_print_usage(argv[0]);
-			return NO_ERROR;
 		}
 	}
     

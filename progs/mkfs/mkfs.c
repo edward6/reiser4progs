@@ -151,11 +151,12 @@ int main(int argc, char *argv[]) {
 	memset(hint.label, 0, sizeof(hint.label));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqfb:U:L:splo:",
+	while ((c = getopt_long(argc, argv, "hVqfb:U:L:splo:?",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
 		case 'h':
+		case '?':
 			mkfs_print_usage(argv[0]);
 			return NO_ERROR;
 		case 'V':
@@ -217,9 +218,6 @@ int main(int argc, char *argv[]) {
 			aal_strncpy(hint.label, optarg,
 				    sizeof(hint.label));
 			break;
-		case '?':
-			mkfs_print_usage(argv[0]);
-			return NO_ERROR;
 		}
 	}
 

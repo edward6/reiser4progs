@@ -392,11 +392,12 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVqftb:djk:n:i:o:plsaPUOFWB:c:C",
+	while ((c = getopt_long(argc, argv, "hVqftb:djk:n:i:o:plsaPUOFWB:c:C?",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
 		case 'h':
+		case '?':
 			debugfs_print_usage(argv[0]);
 			return NO_ERROR;
 		case 'V':
@@ -471,9 +472,6 @@ int main(int argc, char *argv[]) {
 			aal_strncat(override, optarg, aal_strlen(optarg));
 			aal_strncat(override, ",", 1);
 			break;
-		case '?':
-			debugfs_print_usage(argv[0]);
-			return NO_ERROR;
 		case 'O':
 			space_flags = 0;
 			break;
