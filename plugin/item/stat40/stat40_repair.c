@@ -46,7 +46,7 @@ errno_t stat40_check(item_entity_t *item, uint8_t mode) {
 	return res;
     else if (res > 0 || !hint.sdext.plugin) {
 	aal_exception_error("Node (%llu), item (%u): does not look like a "
-	    "valid stat data.", item->con.blk, item->pos.item);
+	    "valid stat data.", item->context.blk, item->pos.item);
 	
 	return REPAIR_FATAL;
     }
@@ -58,7 +58,7 @@ errno_t stat40_check(item_entity_t *item, uint8_t mode) {
     
     if (hint.sdext.pos < item->len) {
 	aal_exception_error("Node (%llu), item (%u): item has a wrong length "
-	    "(%u). Should be (%u). %s", item->con.blk, item->pos.item, 
+	    "(%u). Should be (%u). %s", item->context.blk, item->pos.item, 
 	     item->len, hint.sdext.pos, mode == REPAIR_REBUILD ? 
 	     "Fixed." : "");
 	

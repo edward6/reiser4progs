@@ -80,22 +80,22 @@ static reiser4_file_t *mkfs_create_dir(reiser4_fs_t *fs,
 				       reiser4_profile_t *profile)
 {
 	rpid_t hash;
-	rpid_t dirtory;
 	rpid_t statdata;
 	rpid_t direntry;
+	rpid_t directory;
 
 	reiser4_file_t *file;
 	reiser4_file_hint_t hint;
 
-	dirtory = reiser4_profile_value(profile, "directory");
+	directory = reiser4_profile_value(profile, "directory");
 	
 	/* Preparing object hint */
 	hint.plugin = libreiser4_factory_ifind(FILE_PLUGIN_TYPE, 
-					       dirtory);
+					       directory);
 
 	if (!hint.plugin) {
 		aal_exception_error("Can't find dir plugin by its id 0x%x.", 
-				    dirtory);
+				    directory);
 		return NULL;
 	}
     

@@ -39,9 +39,9 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
     if (res == 0) {
 	aal_exception_error("Node (%llu), item (%u), unit (%u): pointer "
 	    "(start %llu, count %llu) points to some already used blocks.", 
-	    item->con.blk, item->pos.item, item->pos.unit, start, count);
+	    item->context.blk, item->pos.item, item->pos.unit, start, count);
 	return 1;
-    } else if (aux_bitmap_test(ts->bm_used, item->con.blk))
+    } else if (aux_bitmap_test(ts->bm_used, item->context.blk))
 	aux_bitmap_mark_region(ts->bm_unfm_tree, start, count);
     else
 	aux_bitmap_mark_region(ts->bm_unfm_out, start, count);

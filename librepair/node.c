@@ -21,7 +21,7 @@ static errno_t callback_item_region_check(item_entity_t *item, blk_t start,
     
     if (!aux_bitmap_test_region_cleared(bitmap, start, count)) {
 	aal_exception_error("Node (%llu), item (%u), unit (%u): points to some "
-	    "already used block within (%llu - %llu).", item->con.blk, 
+	    "already used block within (%llu - %llu).", item->context.blk, 
 	    item->pos.item, item->pos.unit, start, start + count - 1);
 	return 1;
     }

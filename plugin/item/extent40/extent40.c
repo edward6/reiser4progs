@@ -13,7 +13,7 @@ static reiser4_core_t *core = NULL;
 static uint32_t extent40_blocksize(item_entity_t *item) {
 	aal_device_t *device;
 
-	device = item->con.device;
+	device = item->context.device;
 	return aal_device_get_bs(device);
 }
 
@@ -23,7 +23,7 @@ uint32_t extent40_units(item_entity_t *item) {
 
 	if (item->len % sizeof(extent40_t) != 0) {
 		aal_exception_error("Invalid item size detected. Node %llu, "
-				    "item %u.", item->con.blk, item->pos);
+				    "item %u.", item->context.blk, item->pos);
 		return 0;
 	}
 		
@@ -42,7 +42,7 @@ static uint64_t extent40_size(item_entity_t *item) {
 	for (i = 0; i < extent40_units(item); i++)
 		blocks += et40_get_width(extent + i);
     
-	return (blocks * aal_device_get_bs(item->con.device));
+	return (blocks * aal_device_get_bs(item->context.device));
 }
 
 /*
@@ -268,7 +268,7 @@ static lookup_t extent40_lookup(item_entity_t *item,
 	lookuped = plugin_call(key->plugin->key_ops, get_offset, key);
 	offset = plugin_call(key->plugin->key_ops, get_offset, &item->key);
 
-	blocksize = item->con.device->blocksize;
+	blocksize = extent40_blocksize(item);
 		
 	for (i = 0; i < units; i++, extent++) {
 		offset += (blocksize * et40_get_width(extent));
@@ -329,7 +329,7 @@ static int32_t extent40_read(item_entity_t *item, void *buff,
 	extent = extent40_body(item);
 	units = extent40_units(item);
 
-	device = item->con.device;
+	device = item->context.device;
 	blocksize = extent40_blocksize(item);
 
 	i = extent40_unit(item, pos);
@@ -398,20 +398,29 @@ static int extent40_mergeable(item_entity_t *item1, item_entity_t *item2) {
 
 	plugin = item1->key.plugin;
 	
-	locality1 = plugin_call(plugin->key_ops, get_locality, &item1->key);
-	locality2 = plugin_call(plugin->key_ops, get_locality, &item2->key);
+	locality1 = plugin_call(plugin->key_ops, get_locality,
+				&item1->key);
+	
+	locality2 = plugin_call(plugin->key_ops, get_locality,
+				&item2->key);
 
 	if (locality1 != locality2)
 		return 0;
 	
-	objectid1 = plugin_call(plugin->key_ops, get_objectid, &item1->key);
-	objectid2 = plugin_call(plugin->key_ops, get_objectid, &item2->key);
+	objectid1 = plugin_call(plugin->key_ops, get_objectid,
+				&item1->key);
+	
+	objectid2 = plugin_call(plugin->key_ops, get_objectid,
+				&item2->key);
 
 	if (objectid1 != objectid1)
 		return 0;
 
-	offset1 = plugin_call(plugin->key_ops, get_offset, &item1->key);
-	offset2 = plugin_call(plugin->key_ops, get_offset, &item2->key);
+	offset1 = plugin_call(plugin->key_ops, get_offset,
+			      &item1->key);
+	
+	offset2 = plugin_call(plugin->key_ops, get_offset,
+			      &item2->key);
 
 	if (offset1 + extent40_size(item1) != offset2)
 		return 0;
@@ -428,7 +437,7 @@ static errno_t extent40_deallocate(item_entity_t *item,
 	aal_list_t *walk;
 	object_entity_t *alloc;
 
-	alloc = item->env.alloc;
+	alloc = item->alloc;
 	list = aal_list_first(list);
 	
 	for (walk = aal_list_last(list); walk; ) {
@@ -455,7 +464,7 @@ static aal_list_t *extent40_allocate(item_entity_t *item,
 	object_entity_t *alloc;
 	aal_list_t *list = NULL;
 
-	alloc = item->env.alloc;
+	alloc = item->alloc;
 	
 	/*
 	  Calling block allocator in order to allocate blocks needed for storing
@@ -512,10 +521,10 @@ static errno_t extent40_estimate(item_entity_t *item, void *buff,
 	aal_assert("umka-1836", buff != NULL);
 	
 	hint = (reiser4_item_hint_t *)buff;
-	aal_assert("umka-1838", hint->env.alloc != NULL);
+	aal_assert("umka-1838", hint->alloc != NULL);
 	
 	size = extent40_size(item);
-	blocksize = item->con.device->blocksize;
+	blocksize = extent40_blocksize(item);
 
 	/* Getting block number needed for allocating if any */
 	if (pos >= size && pos - size >= blocksize) {
@@ -564,9 +573,10 @@ static int32_t extent40_write(item_entity_t *item, void *buff,
 	aal_assert("umka-1833", buff != NULL);
 
 	hint = (reiser4_item_hint_t *)buff;
-	aal_assert("umka-1838", hint->env.alloc != NULL);
+	aal_assert("umka-1838", hint->alloc != NULL);
 	
-	device = item->con.device;
+	device = item->context.device;
+	
 	extent = extent40_body(item);
 	blocksize = device->blocksize;
 	

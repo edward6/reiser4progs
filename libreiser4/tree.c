@@ -163,7 +163,7 @@ errno_t reiser4_tree_connect(
 			
 		/*
 		  Placing the callback calling into lock/unlock braces for
-		  preventing it freeing by handler.
+		  preventing its freeing by handler.
 		*/
 		reiser4_node_lock(node);
 		
@@ -497,6 +497,8 @@ reiser4_node_t *reiser4_tree_alloc(
 	}
 
 	device = tree->fs->device;
+
+	/* Getting node plugin id from the profile */
 	pid = reiser4_profile_value(tree->fs->profile, "node");
     
 	/* Creating new node */
@@ -1485,20 +1487,6 @@ errno_t reiser4_tree_insert(
 	aal_assert("umka-1645", hint->plugin != NULL);
 
 	/*
-	  Initializing hint context and enviromnent fields. This should be done
-	  before estimate is called, because it may use these fields.
-	*/
-	if (place->node)
-		hint->con.blk = place->node->blk;
-	
-	hint->con.device = tree->fs->device;
-	hint->env.alloc = tree->fs->alloc->entity;
-	
-	/* Estimating item in order to insert it into found node */
-	if (reiser4_item_estimate(place, hint))
-		return -1;
-
-	/*
 	  Checking if tree is fresh one, thus, it does not have the root
 	  node. If so, we allocate new node of the requested level, insert
 	  item/unit into it and then attach it into the empty tree by means of
@@ -1509,10 +1497,8 @@ errno_t reiser4_tree_insert(
 	if (reiser4_tree_fresh(tree)) {
 
 		if (level == LEAF_LEVEL) {
-			
 			if (reiser4_tree_alloc_root(tree))
 				return -1;
-			
 		}
 		
 		if (!(place->node = reiser4_tree_alloc(tree, level)))
@@ -1541,7 +1527,7 @@ errno_t reiser4_tree_insert(
 		  requested level.
 		*/
 		if (level > reiser4_tree_height(tree)) {
-			
+
 			while (level > reiser4_tree_height(tree))
 				reiser4_tree_growup(tree);
 
@@ -1561,7 +1547,26 @@ errno_t reiser4_tree_insert(
 				return -1;
 			}
 		}
+
+		if (level < reiser4_node_get_level(place->node)) {
+			if (!(place->node = reiser4_tree_alloc(tree, level)))
+				return -1;
+
+			POS_INIT(&place->pos, 0, ~0ul);
+		}
 	}
+
+	/*
+	  Initializing hint context and enviromnent fields. This should be done
+	  before estimate is called, because it may use these fields.
+	*/
+	hint->context.blk = place->node->blk;
+	hint->context.device = tree->fs->device;
+	hint->alloc = tree->fs->alloc->entity;
+	
+	/* Estimating item in order to insert it into found node */
+	if (reiser4_item_estimate(place, hint))
+		return -1;
 
 	/* Needed space is estimated space plugs item overhead */
 	needed = hint->len + (place->pos.unit == ~0ul ? 

@@ -211,7 +211,7 @@ static errno_t callback_action_mark(
 	return reiser4_alloc_occupy_region(alloc, blk, 1);
 }
 
-/* Marks format area as used */
+/* Marks filesystem area as used */
 errno_t reiser4_fs_mark(reiser4_fs_t *fs) {
 	aal_assert("umka-1139", fs != NULL);
 	aal_assert("umka-1684", fs->alloc != NULL);
@@ -228,8 +228,9 @@ reiser4_fs_t *reiser4_fs_create(
 	reiser4_profile_t *profile,	/* profile to be used for new filesystem */
 	count_t blocks)		        /* filesystem length in blocks */
 {
-	rpid_t tail;
+	rpid_t policy;
 	rpid_t format;
+	
 	reiser4_fs_t *fs;
 	uint32_t blocksize;
 
@@ -247,18 +248,18 @@ reiser4_fs_t *reiser4_fs_create(
 	}
 
 	if (blocks > aal_device_len(device)) {
-		aal_exception_error(
-			"Device %s is too small (%llu) for filesystem %u "
-			"blocks long.", aal_device_name(device),
-			aal_device_len(device), blocks);
+		aal_exception_error("Device %s is too small (%llu) for "
+				    "filesystem %u blocks long.",
+				    aal_device_name(device),
+				    aal_device_len(device), blocks);
 		return NULL;
 	}
     
 	/* Checks whether filesystem size is enough big */
 	if (blocks < REISER4_MIN_SIZE) {
-		aal_exception_error("Requested filesytem size (%llu) too small. "
-				    "ReiserFS required minimal size %u blocks long.", 
-				    blocks, REISER4_MIN_SIZE);
+		aal_exception_error("Requested filesytem size (%llu) too "
+				    "small. ReiserFS required minimal size "
+				    "%u blocks long.", blocks, REISER4_MIN_SIZE);
 		return NULL;
 	}
     
@@ -273,25 +274,26 @@ reiser4_fs_t *reiser4_fs_create(
 	if ((format = reiser4_profile_value(profile, "format")) == INVAL_PID)
 		return NULL;
 		
-	if (!(fs->master = reiser4_master_create(device, format,
-						 blocksize,
+	if (!(fs->master = reiser4_master_create(device, format, blocksize,
 						 uuid, label)))
 		goto error_free_fs;
 
-	/* Creates disk format */
-	if ((tail = reiser4_profile_value(profile, "policy")) == INVAL_PID)
+	/* Getting tail polity from the passed profile */
+	if ((policy = reiser4_profile_value(profile, "policy")) == INVAL_PID)
 		goto error_free_master;
 	
-	if (!(fs->format = reiser4_format_create(fs, blocks,
-						 tail, format)))
+	/* Creates disk format */
+	if (!(fs->format = reiser4_format_create(fs, blocks, policy, format)))
 		goto error_free_master;
 
 	/* Creates block allocator */
 	if (!(fs->alloc = reiser4_alloc_create(fs, blocks)))
 		goto error_free_format;
 
-	if (reiser4_fs_mark(fs))
+	if (reiser4_fs_mark(fs)) {
+		aal_exception_error("Can't mark filesystem used blocks.");
 		goto error_free_alloc;
+	}
     
 	/* Initializes oid allocator */
 	if (!(fs->oid = reiser4_oid_create(fs)))

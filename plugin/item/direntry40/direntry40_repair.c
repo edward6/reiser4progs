@@ -161,7 +161,7 @@ static uint8_t direntry40_short_entry_detect(item_entity_t *item, uint32_t start
 	offset += ENTRY_LEN_MIN(S_NAME), start_pos++) 
     {
 	aal_exception_error("Node (%llu), item (%u), unit (%u): unit offset "
-	    "(%u) is wrong, should be (%u). %s", item->con.blk, item->pos,
+	    "(%u) is wrong, should be (%u). %s", item->context.blk, item->pos,
 	    start_pos, OFFSET(de, start_pos), limit + offset, 
 	    mode == REPAIR_REBUILD ? "Fixed." : "");
 
@@ -203,7 +203,7 @@ static uint8_t direntry40_long_entry_detect(item_entity_t *item, uint32_t start_
 	
 	if (mode) {
 	    aal_exception_error("Node %llu, item %u, unit (%u): unit "
-		"offset (%u) is wrong, should be (%u). %s", item->con.blk, 
+		"offset (%u) is wrong, should be (%u). %s", item->context.blk, 
 		item->pos, start_pos + count, OFFSET(de, start_pos + count), 
 		l_limit, mode == REPAIR_REBUILD ? "Fixed." : "");
 	    
@@ -264,7 +264,7 @@ static errno_t direntry40_offsets_range_check(item_entity_t *item,
 	/* Check if the offset is valid. */
 	if (direntry40_offset_check(item, i)) {
 	    aal_exception_error("node %llu, item %u, unit %d: unit offset "
-		"(%u) is wrong.", item->con.blk, item->pos, i, OFFSET(de, i));
+		"(%u) is wrong.", item->context.blk, item->pos, i, OFFSET(de, i));
 
 	    /* mark offset wrong. */
 	    aux_bitmap_mark(flags, NR(i));
@@ -396,7 +396,7 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
     
     if (e_count != de40_get_count(de)) {
 	aal_exception_error("Node %llu, item %u: unit count (%u) is not "
-	    "correct. Should be (%u). %s", item->con.blk, item->pos, 
+	    "correct. Should be (%u). %s", item->context.blk, item->pos, 
 	    de40_get_count(de), e_count, mode == REPAIR_CHECK ? "" : 
 	    "Fixed.");
 	
@@ -411,13 +411,13 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
     if (i) {
 	/* Some first units should be removed. */
 	aal_exception_error("Node %llu, item %u: units [%u..%u] do not seem "
-	    " to be a valid entries. %s", item->con.blk, item->pos, 0, i - 1, 
+	    " to be a valid entries. %s", item->context.blk, item->pos, 0, i - 1, 
 	    mode == REPAIR_REBUILD ? "Removed." : "");
 	
 	if (mode == REPAIR_REBUILD) {
 	    if (direntry40_remove(item, 0, i) < 0) {
 		aal_exception_error("Node %llu, item %u: remove of the unit "
-		    "(%u), count (%u) failed.", item->con.blk, item->pos, 0, i);
+		    "(%u), count (%u) failed.", item->context.blk, item->pos, 0, i);
 		return -1;
 	    }
 	    repair_error(res, REPAIR_FIXED);
@@ -426,13 +426,13 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
     } else if (e_count != count) {
 	/* Some last units should be removed. */
 	aal_exception_error("Node %llu, item %u: units [%u..%u] do not seem "
-	    " to be a valid entries. %s", item->con.blk, item->pos, count, 
+	    " to be a valid entries. %s", item->context.blk, item->pos, count, 
 	    e_count - 1, mode == REPAIR_REBUILD ? "Removed." : "");
 	
 	if (mode == REPAIR_REBUILD) {
 	    if (direntry40_remove(item, count, e_count - count) < 0) {
 		aal_exception_error("Node %llu, item %u: remove of the unit "
-		    "(%u), count (%u) failed.", item->con.blk, item->pos, count, 
+		    "(%u), count (%u) failed.", item->context.blk, item->pos, count, 
 		    e_count - count);
 		return -1;
 	    }
@@ -457,7 +457,7 @@ static errno_t direntry40_filter(item_entity_t *item, aux_bitmap_t *flags,
 	    if (aux_bitmap_test(flags, R(i))) {
 		if (direntry40_remove(item, last, i - last) < 0) {
 		    aal_exception_error("Node %llu, item %u: remove of the "
-			"unit (%u), count (%u) failed.", item->con.blk, 
+			"unit (%u), count (%u) failed.", item->context.blk, 
 			item->pos, last, i - last);
 		    return -1;
 		}
@@ -484,7 +484,7 @@ errno_t direntry40_check(item_entity_t *item, uint8_t mode) {
 
     if (item->len < de40_len_min(1)) {
 	aal_exception_error("Node %llu, item %u: item length (%u) is too "
-	    "small to contain a valid item.", item->con.blk, item->pos, 
+	    "small to contain a valid item.", item->context.blk, item->pos, 
 	    item->len);
 	return REPAIR_FATAL;
     }
@@ -510,7 +510,7 @@ errno_t direntry40_check(item_entity_t *item, uint8_t mode) {
     if (++count == 0) {
 	/* No one R unit was found */
 	aal_exception_error("Node %llu, item %u: no one valid unit has been "
-	    "found. Does not look like a valid `%s` item.", item->con.blk, 
+	    "found. Does not look like a valid `%s` item.", item->context.blk, 
 	    item->pos, item->plugin->item_ops.h.label);
 
 	aux_bitmap_close(flags);
@@ -546,13 +546,13 @@ error:
 	{
 	    if (info->mode == FSCK_CHECK) {
 		aal_exception_error("Node %llu, item %u: wrong offset (%llu).",
-		    item->con.blk, item->pos, offset);
+		    item->context.blk, item->pos, offset);
 
 	    }
 	    
 	    /* Wrong offset occured. */
 	    aal_exception_error("Node %llu, item %u: wrong offset (%llu).",
-		item->con.blk, item->pos, offset);
+		item->context.blk, item->pos, offset);
 	    if (!start_pos)
 		start_pos = i;
 	} else if (start_pos) {
@@ -588,20 +588,20 @@ static errno_t direntry40_count_check(item_entity_t *item,
 	if (de40_min_length(count) > item->len) {
 	    info->fatal++;
 	    aal_exception_error("Node %llu, item %u: unit array is not "
-		"recognized.", item->con.blk, item->pos);
+		"recognized.", item->context.blk, item->pos);
 	    return 1;
 	} 
 
 	if (info->mode == FSCK_CHECK) {
 	    aal_exception_error("Node %llu, item %u: unit count (%u) is "
-		"wrong. Should be (%u).", item->con.blk, item->pos,
+		"wrong. Should be (%u).", item->context.blk, item->pos,
 		de40_get_count(de), count);
 	    info->fixable++;
 	    return 1;
 	} 
 	
 	aal_exception_error("Node %llu, item %u: unit count (%u) is "
-	    "wrong. Fixed to (%u).", item->con.blk, item->pos,
+	    "wrong. Fixed to (%u).", item->context.blk, item->pos,
 	    de40_get_count(de), count);
 	
 	de40_set_count(de, count);
@@ -611,14 +611,14 @@ static errno_t direntry40_count_check(item_entity_t *item,
 	    if (info->mode == FSCK_CHECK) {
 		info->fixable++;
 		aal_exception_error("Node %llu, item %u: wrong offset "
-		    "(%llu). Should be (%llu).", item->con.blk, item->pos,
+		    "(%llu). Should be (%llu).", item->context.blk, item->pos,
 		    de->entry[0].offset, de40_get_count(de) * sizeof(entry40_t) + 
 		    sizeof(direntry40_t));
 		return 1;
 	    }
 	    
 	    aal_exception_error("Node %llu, item %u: wrong offset "
-		"(%llu). Fixed to (%llu).", item->con.blk, item->pos,
+		"(%llu). Fixed to (%llu).", item->context.blk, item->pos,
 		de->entry[0].offset, de40_get_count(de) * sizeof(entry40_t) + 
 		sizeof(direntry40_t));
 	    
@@ -647,7 +647,7 @@ static errno_t direntry40_bad_range_check(item_entity_t *item, uint32_t start_po
 	    offset = OFFSET(de, start_pos) + ENTRY_LEN_MIN(S_NAME) * i;
 	    
 	    aal_exception_error("Node (%llu), item (%u), unit (%u): unit offset "
-		"(%u) is wrong, should be (%u). %s", item->con.blk, item->pos,
+		"(%u) is wrong, should be (%u). %s", item->context.blk, item->pos,
 		i, OFFSET(de, start_pos + i), offset, info->mode == REPAIR_REBUILD ? 
 		"Fixed." : "");
 	    
@@ -680,7 +680,7 @@ static errno_t direntry40_bad_range_check(item_entity_t *item, uint32_t start_po
 		
 	    if (recoverable) {
 		aal_exception_error("Node %llu, item %u, unit (%u): unit "
-		    "offset (%u) is wrong, should be (%u). %s", item->con.blk, 
+		    "offset (%u) is wrong, should be (%u). %s", item->context.blk, 
 		    item->pos, i, OFFSET(de, start + i), offset, 
 		    info->mode == REPAIR_REBUILD ? "Fixed." : "");
 	    

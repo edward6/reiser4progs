@@ -1,6 +1,6 @@
 /*
-  file.c -- common code for all the files (regular ones, directories, symlinks,
-  etc).
+  file.c -- common code for all reiser4 files (regular ones, directories,
+  symlinks, etc).
   
   Copyright (C) 2001, 2002, 2003 by Hans Reiser, licensing governed by
   reiser4progs/COPYING.
@@ -221,9 +221,9 @@ reiser4_file_t *reiser4_file_open(
 	reiser4_key_assign(&file->dir, &fs->tree->key);
     
 	/* 
-	  Getting the file's stat data key by means of parsing its path. I
-	  assume, that name is absolute one. So, user, who will call this method
-	  should convert name previously into absolute one by getcwd function.
+	  Parsing path and looking for file's stat data. We assume, that name is
+	  absolute one. So, user, who calls this method should convert name
+	  previously into absolute one by means of using getcwd function.
 	*/
 	if (reiser4_file_search(file, name))
 		goto error_free_file;

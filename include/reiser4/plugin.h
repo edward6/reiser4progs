@@ -227,16 +227,6 @@ struct item_context {
 typedef struct item_context item_context_t;
 
 /*
-  Item enviromnent which contains referrences to block allocator and oid
-  allocator.
-*/
-struct item_envirom {
-	object_entity_t *alloc;
-};
-
-typedef struct item_envirom item_envirom_t;
-
-/*
   Type for describing an item. The pointer of this type will be passed to the
   all item plugins.
 */
@@ -249,9 +239,9 @@ struct item_entity {
 	rbody_t *body;
 	
 	key_entity_t key;
-
-	item_context_t con;
-	item_envirom_t env;
+	
+	item_context_t context;
+	object_entity_t *alloc;
 };
 
 typedef struct item_entity item_entity_t;
@@ -515,11 +505,10 @@ struct reiser4_item_hint {
 
 	/*
 	  Item context and item enviromnent. They are used for access some
-	  filesystem wide entities like block allocator durring item
-	  estimating.
+	  filesystem wide entities like block allocator durring item estimating.
 	*/
-	item_context_t con;
-	item_envirom_t env;
+	item_context_t context;
+	object_entity_t *alloc;
 	
 	/* Plugin to be used for working with item */
 	reiser4_plugin_t *plugin;

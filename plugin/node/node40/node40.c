@@ -243,8 +243,7 @@ static uint16_t node40_item_len(object_entity_t *entity,
   unit one.
 */
 static errno_t node40_item(item_entity_t *item,
-			   node40_t *node,
-			   rpos_t *pos)
+			   node40_t *node, rpos_t *pos)
 {
 	rpid_t pid;
 	int is_range;
@@ -257,8 +256,8 @@ static errno_t node40_item(item_entity_t *item,
 	aal_assert("umka-1812", is_range);
 	
 	/* Initializes item's context (device, block number, etc) */
-	item->con.device = node->block->device;
-	item->con.blk = aal_block_number(node->block);
+	item->context.device = node->block->device;
+	item->context.blk = aal_block_number(node->block);
 
 	/* Initializing item's plugin */
 	pid = node40_item_pid((object_entity_t *)node, pos);

@@ -102,8 +102,8 @@ static int32_t reg40_read(object_entity_t *entity,
 		n = size - reg->offset;
 
 	/*
-	  Reading data from the file. As we do not know item types, we just
-	  call item's read method.
+	  Reading data from the file. As we do not know item types, we just call
+	  item's read method.
 	*/
 	for (read = 0; read < n; ) {
 		item = &reg->body.item;
@@ -142,9 +142,7 @@ static int32_t reg40_read(object_entity_t *entity,
 }
 
 /* Opening reg40 by statdata place passed in @place */
-static object_entity_t *reg40_open(void *tree, 
-				   place_t *place) 
-{
+static object_entity_t *reg40_open(void *tree, place_t *place) {
 	reg40_t *reg;
 	key_entity_t *key;
 
@@ -160,7 +158,7 @@ static object_entity_t *reg40_open(void *tree,
 	if (object40_init(&reg->obj, &reg40_plugin, key, core, tree))
 		goto error_free_reg;
 
-	/* saving statdata place and looking the code it lies in */
+	/* Saving statdata place and looking the code it lies in */
 	aal_memcpy(&reg->obj.statdata, place, sizeof(*place));
 	object40_lock(&reg->obj, &reg->obj.statdata);
 
@@ -370,7 +368,7 @@ static errno_t callback_item_data(item_entity_t *item, uint64_t start,
   and needed for calculating fragmentation, printing, etc.
 */
 static errno_t reg40_layout(object_entity_t *entity,
-			    block_func_t func,
+			    block_func_t block_func,
 			    void *data)
 {
 	errno_t res;
@@ -380,28 +378,30 @@ static errno_t reg40_layout(object_entity_t *entity,
 	layout_hint_t hint;
 	
 	aal_assert("umka-1471", entity != NULL);
-	aal_assert("umka-1472", func != NULL);
+	aal_assert("umka-1472", block_func != NULL);
 
 	reg = (reg40_t *)entity;
 	
 	if ((size = reg40_size(entity)) == 0)
 		return 0;
 
-	hint.func = func;
 	hint.data = data;
 	hint.entity = entity;
+	hint.func = block_func;
 		
 	while (reg->offset < size) {
 		item_entity_t *item = &reg->body.item;
 		
 		if (item->plugin->item_ops.layout) {
-
-			if ((res = item->plugin->item_ops.layout(item, 
-								 callback_item_data, 
-								 &hint)))
+			res = plugin_call(item->plugin->item_ops, layout,
+					  item, callback_item_data, &hint);
+			
+			if (res != 0)
 				return res;
+			
 		} else {
-			if ((res = callback_item_data(item, item->con.blk, 1, &hint)))
+			if ((res = callback_item_data(item, item->context.blk,
+						      1, &hint)))
 				return res;
 		}
 		
@@ -410,7 +410,8 @@ static errno_t reg40_layout(object_entity_t *entity,
 		reg->offset = plugin_call(key.plugin->key_ops,
 					  get_offset, &key) + 1;
 		
-		reg40_next(reg);
+		if (reg40_next(reg) != LP_PRESENT)
+			break;
 	}
 	
 	return 0;

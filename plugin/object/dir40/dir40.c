@@ -46,7 +46,7 @@ static errno_t dir40_reset(object_entity_t *entity) {
 		    dir->hash, object40_locality(&dir->obj),
 		    object40_objectid(&dir->obj), ".");
 
-	if (dir->body.node)
+	if (dir->body.node != NULL)
 		object40_unlock(&dir->obj, &dir->body);
 	
 	/* Lookup for the first direntry item */
@@ -783,7 +783,7 @@ static errno_t callback_item_data(item_entity_t *item, uint64_t start,
   calculating, etc.
 */
 static errno_t dir40_layout(object_entity_t *entity,
-			    block_func_t func,
+			    block_func_t block_func,
 			    void *data)
 {
 	errno_t res;
@@ -791,11 +791,11 @@ static errno_t dir40_layout(object_entity_t *entity,
 	layout_hint_t hint;
 
 	aal_assert("umka-1473", entity != NULL);
-	aal_assert("umka-1474", func != NULL);
+	aal_assert("umka-1474", block_func != NULL);
 
-	hint.func = func;
 	hint.data = data;
 	hint.entity = entity;
+	hint.func = block_func;
 
 	dir = (dir40_t *)entity;
 	
@@ -803,12 +803,16 @@ static errno_t dir40_layout(object_entity_t *entity,
 		item_entity_t *item = &dir->body.item;
 		
 		if (item->plugin->item_ops.layout) {
-			if ((res = item->plugin->item_ops.layout(item, 
-								 callback_item_data, 
-								 &hint)))
+			
+			/* Calling item's layout method */
+			res = plugin_call(item->plugin->item_ops, layout,
+					  item, callback_item_data, &hint);
+
+			if (res != 0)
 				return res;
 		} else {
-			if ((res = callback_item_data(item, item->con.blk, 1, &hint)))
+			if ((res = callback_item_data(item, item->context.blk,
+						      1, &hint)))
 				return res;
 		}
 		
