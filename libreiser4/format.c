@@ -412,7 +412,6 @@ rid_t reiser4_format_oid_pid(
 	return plugin_call(format->entity->plugin->o.format_ops, 
 			   oid_pid, format->entity);
 }
-
 #endif
 
 /* Returns key plugin id */
@@ -428,7 +427,7 @@ rid_t reiser4_format_key_pid(reiser4_format_t *format) {
 	return KEY_SHORT_ID;
 }
 
-/* Returns key plugin id */
+/* Returns node plugin id */
 rid_t reiser4_format_node_pid(reiser4_format_t *format) {
 	aal_assert("umka-2350", format != NULL);
 	

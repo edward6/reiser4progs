@@ -46,15 +46,19 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device,
 	if (!(fs->format = reiser4_format_open(fs)))
 		goto error_free_master;
 
+#ifndef ENABLE_STAND_ALONE
 	if (plugin_call(fs->format->entity->plugin->o.format_ops,
 			tst_flag, fs->format->entity, 0))
 	{
-		fs->key = LARGE;
+		reiser4_profile_override(fs->profile, "key", "key_large");
+		reiser4_profile_override(fs->profile, "cde", "cde_large");
+		reiser4_profile_override(fs->profile, "node", "node_large");
 	} else {
-		fs->key = SHORT;
+		reiser4_profile_override(fs->profile, "key", "key_short");
+		reiser4_profile_override(fs->profile, "cde", "cde_short");
+		reiser4_profile_override(fs->profile, "node", "node_short");
 	}
 	
-#ifndef ENABLE_STAND_ALONE
 	if (reiser4_format_valid(fs->format))
 		goto error_free_format;
 	
@@ -289,15 +293,21 @@ reiser4_fs_t *reiser4_fs_create(
 		goto error_free_master;
 	}
 
-	fs->key = hint->key;
-	
 	/* Taking care about key flags in format super block */
-	if (hint->key == SHORT) {
-		plugin_call(fs->format->entity->plugin->o.format_ops,
-			    clr_flag, fs->format->entity, 0);
-	} else {
+	if (hint->key == LARGE) {
 		plugin_call(fs->format->entity->plugin->o.format_ops,
 			    set_flag, fs->format->entity, 0);
+
+		reiser4_profile_override(fs->profile, "key", "key_large");
+		reiser4_profile_override(fs->profile, "cde", "cde_large");
+		reiser4_profile_override(fs->profile, "node", "node_large");
+	} else {
+		plugin_call(fs->format->entity->plugin->o.format_ops,
+			    clr_flag, fs->format->entity, 0);
+
+		reiser4_profile_override(fs->profile, "key", "key_short");
+		reiser4_profile_override(fs->profile, "cde", "cde_short");
+		reiser4_profile_override(fs->profile, "node", "node_short");
 	}
 
 	/* Creates block allocator */

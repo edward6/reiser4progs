@@ -368,9 +368,6 @@ struct reiser4_fs {
 	   into the objects of our library for their own use. */
 	void *data;
 #endif
-
-	/* Key policy (short, large) */
-	key_policy_t key;
 };
 
 struct fs_hint {

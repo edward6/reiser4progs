@@ -89,17 +89,10 @@ errno_t debugfs_print_block(
 	}
 	
 	device = fs->device;
-	blksize = reiser4_master_blksize(fs->master);
 
-	if (!fs->tree->root) {
-		pid = fs->tree->fs->key == LARGE ? NODE_LARGE_ID :
-			NODE_SHORT_ID;
-	} else {
-		pid = fs->tree->root->entity->plugin->id.id;
-	}
+	blksize = reiser4_master_blksize(fs->master);
+	pid = reiser4_profile_value(fs->profile, "node");
 	
-	/* If passed @blk points to a formatted node then open it and print
-	   using print_process_node listed abowe. */
 	if (!(node = reiser4_node_open(device, blksize, blk, pid))) {
 		fprintf(stdout, "Block %llu is used, but it is not "
 			"a formatted one.\n", blk);

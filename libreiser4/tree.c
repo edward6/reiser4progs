@@ -229,12 +229,12 @@ reiser4_node_t *reiser4_tree_load(reiser4_tree_t *tree,
 		
 		blksize = reiser4_master_blksize(tree->fs->master);
 
-		if (parent) {
-			pid = parent->entity->plugin->id.id;
-		} else {
-			pid = reiser4_format_node_pid(tree->fs->format);
-		}
-		
+#ifndef ENABLE_STAND_ALONE
+		pid = reiser4_format_node_pid(tree->fs->format);
+#else
+		pid = reiser4_profile_value(tree->fs->profile, "node");
+#endif
+
 		/* Node is not loaded yet. Loading it and connecting to @parent
 		   node cache. */
 		if (!(node = reiser4_node_open(tree->fs->device,
@@ -406,13 +406,8 @@ reiser4_node_t *reiser4_tree_alloc(
 	reiser4_format_set_free(tree->fs->format, free - 1);
 
 	blocksize = reiser4_master_blksize(tree->fs->master);
-//	pid = reiser4_profile_value(tree->fs->profile, "node");
+	pid = reiser4_profile_value(tree->fs->profile, "node");
 
-	if (tree->fs->key == LARGE)
-		pid = NODE_LARGE_ID;
-	else
-		pid = NODE_SHORT_ID;
-    
 	/* Creating new node */
 	if (!(node = reiser4_node_init(tree->fs->device, blocksize,
 				       reiser4_fake_get(), pid)))
@@ -473,13 +468,18 @@ errno_t reiser4_tree_release(reiser4_tree_t *tree,
 /* Builds root key and stores it in passed @tree instance */
 static errno_t reiser4_tree_key(reiser4_tree_t *tree) {
 	rid_t pid;
-	oid_t locality, objectid;
+	oid_t locality;
+	oid_t objectid;
     
 	aal_assert("umka-1090", tree != NULL);
 	aal_assert("umka-1091", tree->fs != NULL);
 	aal_assert("umka-1092", tree->fs->oid != NULL);
 
+#ifndef ENABLE_STAND_ALONE
+	pid = reiser4_profile_value(tree->fs->profile, "key");
+#else
 	pid = reiser4_format_key_pid(tree->fs->format);
+#endif
 
 	/* Finding needed key plugin by its identifier */
 	if (!(tree->key.plugin = libreiser4_factory_ifind(KEY_PLUGIN_TYPE,
