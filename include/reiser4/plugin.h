@@ -1031,8 +1031,14 @@ struct reiser4_format_ops {
 	*/
 	errno_t (*sync) (object_entity_t *);
 	
+	/* 
+	   Update only fields which can be changed after journal replay in 
+	   memory to avoid second checking.
+	*/
+	errno_t (*update) (object_entity_t *);
+	    
 	/* Checks thoroughly the format structure and fixes what needed. */
-	errno_t (*check) (object_entity_t *);
+	errno_t (*check) (object_entity_t *, uint8_t);
 
 	/* Prints all useful information about the format */
 	errno_t (*print) (object_entity_t *, aal_stream_t *, uint16_t);
@@ -1048,7 +1054,8 @@ struct reiser4_format_ops {
 	void (*set_height) (object_entity_t *, uint16_t);
 	void (*set_free) (object_entity_t *, uint64_t);
 	void (*set_stamp) (object_entity_t *, uint32_t);
-
+	void (*set_policy) (object_entity_t *, uint16_t);
+	    
 	rid_t (*journal_pid) (object_entity_t *);
 	rid_t (*alloc_pid) (object_entity_t *);
 
@@ -1094,7 +1101,8 @@ struct reiser4_format_ops {
 	uint64_t (*get_free) (object_entity_t *);
     
 	uint32_t (*get_stamp) (object_entity_t *);
-    
+	uint16_t (*get_policy) (object_entity_t *);
+	    
 	rid_t (*oid_pid) (object_entity_t *);
 
 	/* Returns area where oid data lies */
