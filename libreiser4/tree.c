@@ -625,17 +625,23 @@ errno_t reiser4_tree_grow(
 	reiser4_tree_t *tree)	/* tree to be growed up */
 {
 	uint8_t tree_height;
-	reiser4_node_t *old_root = tree->root;
+	reiser4_node_t *old_root;
 
 	aal_assert("umka-1701", tree != NULL, return -1);
-	aal_assert("umka-1702", reiser4_node_items(old_root) > 0, return -1);
+	aal_assert("umka-1736", tree->root != NULL, return -1);
+	
+	if (!(old_root = tree->root))
+		return -1;
+	
+	aal_assert("umka-1702", reiser4_node_items(old_root) > 0,
+		   return -1);
 	
 	tree_height = reiser4_tree_height(tree);
     
 	/* Allocating new root node */
 	if (!(tree->root = reiser4_tree_allocate(tree, tree_height + 1))) {
 		aal_exception_error("Can't allocate new root node.");
-		return -1;
+		goto error_return_root;
 	}
 
 	tree->root->tree = tree;
@@ -655,8 +661,52 @@ errno_t reiser4_tree_grow(
 
  error_free_root:
 	reiser4_tree_release(tree, tree->root);
+
+ error_return_root:
 	tree->root = old_root;
 	return -1;
+}
+
+/* Drys up the try by one level */
+errno_t reiser4_tree_dryup(reiser4_tree_t *tree) {
+	aal_list_t *children;
+	uint32_t tree_height;
+	reiser4_node_t *old_root;
+
+	aal_assert("umka-1731", tree != NULL, return -1);
+	aal_assert("umka-1737", tree->root != NULL, return -1);
+
+	tree_height = reiser4_tree_height(tree);
+
+	if (tree_height - 1 == LEAF_LEVEL)
+		return -1;
+
+	/* Replacing old root ndoe by new root */
+	if (!(old_root = tree->root))
+		return -1;
+
+	children = old_root->children;
+	
+	aal_assert("umka-1735", children != NULL, return -1);
+	
+	if (reiser4_node_items(old_root) > 1)
+		return -1;
+
+	tree->root = (reiser4_node_t *)children->data;
+	reiser4_node_detach(old_root, tree->root);
+
+	/* Releasing old root */
+	old_root->flags &= ~NF_DIRTY;
+	reiser4_tree_release(tree, old_root);
+
+	/* Setting up format tree-related fields */
+    	reiser4_format_set_root(tree->fs->format,
+				tree->root->blk);
+
+	reiser4_format_set_height(tree->fs->format,
+				  tree_height - 1);
+
+	return 0;
 }
 
 errno_t reiser4_tree_shift(
@@ -956,7 +1006,7 @@ errno_t reiser4_tree_remove(
 		if ((res = tree->traps.preremove(coord, tree->traps.data)))
 			return res;
 	}
-	
+
 	if (reiser4_node_remove(coord->node, &coord->pos))
 		return -1;
 
@@ -975,12 +1025,15 @@ errno_t reiser4_tree_remove(
 						    coord->node->blk);
 				return -1;
 			}
-			
+		}
+		
+		if (reiser4_node_items(coord->node) > 0) {
 			/*
 			  Shifting the data from the right neigbour node into
 			  the target node.
 			*/
 			if ((right = reiser4_node_right(coord->node))) {
+				
 				reiser4_coord_t bogus;
 				reiser4_coord_assign(&bogus, right);
 	    
@@ -990,34 +1043,20 @@ errno_t reiser4_tree_remove(
 					aal_exception_error("Can't pack node %llu "
 							    "into left.", right->blk);
 					return -1;
+				}
+
+				if (reiser4_node_items(right) == 0) {
+					reiser4_tree_detach(tree, right);
+
+					right->flags &= ~NF_DIRTY;
+					reiser4_tree_release(tree, right);
 				}
 			}
 		} else {
-			int shift;
+			reiser4_tree_detach(tree, coord->node);
 
-			/*
-			  This is a case when target node has not left
-			  neighbour. And we try to shift right neighbour into
-			  target node and then right neighbour of the right
-			  neigbour node into its right rightbour.
-			*/
-			right = reiser4_node_right(coord->node);
-
-			for (shift = 0; shift < 2 && right; shift++) {
-				reiser4_coord_t bogus;
-				reiser4_coord_assign(&bogus, right);
-	    
-				if (reiser4_tree_shift(tree, &bogus,
-						       coord->node, SF_LEFT))
-				{
-					aal_exception_error("Can't pack node %llu "
-							    "into left.", right->blk);
-					return -1;
-				}
-
-				reiser4_coord_assign(coord, right);
-				right = reiser4_node_right(coord->node);
-			}
+			coord->node->flags &= ~NF_DIRTY;
+			reiser4_tree_release(tree, coord->node);
 		}
 	} else {
 		/*
@@ -1027,7 +1066,7 @@ errno_t reiser4_tree_remove(
 		coord->node->flags &= ~NF_DIRTY;
 		reiser4_tree_release(tree, coord->node);
 	}
-	
+
 	if (tree->traps.pstremove) {
 		if ((res = tree->traps.pstremove(coord, tree->traps.data)))
 			return res;
