@@ -413,7 +413,7 @@ reiser4_node_t *reiser4_tree_alloc(
 					 fake_blk, tree->key.plug,
 					 pid, level)))
 	{
-		aal_exception_error("Can't initialize node.");
+		aal_exception_error("Can't initialize new fake node.");
 		return NULL;
 	}
 

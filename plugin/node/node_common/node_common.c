@@ -108,7 +108,7 @@ node_entity_t *node_common_init(aal_block_t *block,
 	
 	aal_assert("umka-2376", kplug != NULL);
 	aal_assert("umka-2375", block != NULL);
-	
+
 	if (!(node = aal_calloc(sizeof(*node), 0)))
 		return NULL;
 
@@ -126,12 +126,6 @@ errno_t node_common_fini(node_entity_t *entity) {
 	aal_block_free(((node_t *)entity)->block);
 	aal_free(entity);
 	return 0;
-}
-
-/* Confirms that passed node corresponds current plugin */
-int node_common_confirm(node_entity_t *entity) {
-	aal_assert("vpf-014", entity != NULL);
-	return (nh_get_magic((node_t *)entity) == NODE_MAGIC);
 }
 
 /* Returns item number in passed node entity. Used for any loops through the all

@@ -188,24 +188,24 @@ errno_t reiser4_fs_layout(
 	return reiser4_alloc_layout(fs->alloc, block_func, data);
 }
 
-/* Destroys reiser4 master super block */
-errno_t reiser4_fs_clobber(aal_device_t *device) {
-	aal_assert("umka-2224", device != NULL);
-	return reiser4_master_clobber(device);
-}
-
-static errno_t callback_action_mark(void *entity, blk_t blk,
-				    void *data)
-{
+static errno_t callback_mark_block(void *entity, blk_t blk, void *data) {
 	return reiser4_alloc_occupy((reiser4_alloc_t *)data, blk, 1);
 }
 
 /* Marks filesystem area as used */
 errno_t reiser4_fs_mark(reiser4_fs_t *fs) {
+	blk_t blk;
+	
 	aal_assert("umka-1139", fs != NULL);
 	aal_assert("umka-1684", fs->alloc != NULL);
+
+        /* Marking master super block */
+	blk = REISER4_MASTER_OFFSET /
+		reiser4_master_blksize(fs->master);
 	
-	return reiser4_fs_layout(fs, callback_action_mark,
+	reiser4_alloc_occupy(fs->alloc, blk, 1);
+	
+	return reiser4_fs_layout(fs, callback_mark_block,
 				 fs->alloc);
 }
 

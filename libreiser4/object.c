@@ -446,7 +446,6 @@ reiser4_object_t *reiser4_object_create(
 	if (!(object->entity = plug_call(hint->plug->o.object_ops,
 					 create, &info, hint)))
 	{
-		aal_exception_error("Can't create object.");
 		goto error_free_object;
 	}
 

@@ -41,7 +41,7 @@ reiser4_format_t *reiser4_format_open(
 	reiser4_fs_t *fs)	/* fs the format will be opened on */
 {
 	rid_t pid;
-	uint32_t blocksize;
+	uint32_t blksize;
 	reiser4_plug_t *plug;
 	reiser4_format_t *format;
 	
@@ -56,7 +56,7 @@ reiser4_format_t *reiser4_format_open(
 	format->fs->format = format;
 
 	pid = reiser4_master_format(fs->master);
-	blocksize = reiser4_master_blksize(fs->master);
+	blksize = reiser4_master_blksize(fs->master);
     
 	/* Finding needed disk-format plugin by its plugin id */
 	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid))) {
@@ -67,7 +67,7 @@ reiser4_format_t *reiser4_format_open(
     
 	/* Initializing disk-format entity by calling plugin */
 	if (!(format->entity = plug_call(plug->o.format_ops, open,
-					   fs->device, blocksize)))
+					 fs->device, blksize)))
 	{
 		aal_exception_fatal("Can't open disk-format %s.",
 				    plug->label);
@@ -138,16 +138,6 @@ errno_t reiser4_format_sync(
 	
 	return plug_call(format->entity->plug->o.format_ops,
 			 sync, format->entity);
-}
-
-/* Confirms disk-format (simple check) */
-int reiser4_format_confirm(
-	reiser4_format_t *format)	/* format to be checked */
-{
-	aal_assert("umka-832", format != NULL);
-
-	return plug_call(format->entity->plug->o.format_ops, 
-			 confirm, format->fs->device);
 }
 
 /* Prints @format to passed @stream */

@@ -422,7 +422,6 @@ errno_t key_large_print(key_entity_t *key,
 
 static reiser4_key_ops_t key_large_ops = {
 	.tall              = key_large_tall,
-	.confirm           = key_large_confirm,
 	.assign            = key_large_assign,
 	.clean             = key_large_clean,
 	.minimal           = key_large_minimal,

@@ -43,7 +43,7 @@ static errno_t callback_check_layout(void *entity, uint64_t blk,
 		   to be fixed later. */
 		if (hint->mode == RM_BUILD) {
 			/* Data are corrupted. */
-			size = aal_device_get_bs(alloc->device) - CRC_SIZE;
+			size = alloc->blksize - CRC_SIZE;
 			offset = (blk / size / 8) * size;
 			aux_bitmap_mark_region(alloc->bitmap, offset, size);
 		} else {

@@ -66,7 +66,7 @@ static uint64_t format40_begin(generic_entity_t *entity) {
 	aal_assert("vpf-462", format != NULL);
 	aal_assert("vpf-463", format->device != NULL);
 	
-	return FORMAT40_OFFSET / format->blksize;
+	return FORMAT40_BLOCKNR(format->blksize);
 }
 
 static int format40_isdirty(generic_entity_t *entity) {
@@ -88,18 +88,17 @@ static errno_t format40_skipped(generic_entity_t *entity,
 				block_func_t block_func,
 				void *data) 
 {
+	errno_t res;
 	blk_t blk, offset;
 	format40_t *format;
         
 	aal_assert("umka-1085", entity != NULL);
 	aal_assert("umka-1086", block_func != NULL);
-    
+
 	format = (format40_t *)entity;
-	offset = REISER4_MASTER_OFFSET / format->blksize;
+	offset = MASTER_BLOCKNR(format->blksize);
     
 	for (blk = 0; blk < offset; blk++) {
-		errno_t res;
-		
 		if ((res = block_func(entity, blk, data)))
 			return res;
 	}
@@ -111,50 +110,48 @@ static errno_t format40_layout(generic_entity_t *entity,
 			       block_func_t block_func,
 			       void *data) 
 {
+	blk_t blk;
 	errno_t res;
-	blk_t blk, offset;
 	format40_t *format;
         
 	aal_assert("umka-1042", entity != NULL);
 	aal_assert("umka-1043", block_func != NULL);
     
 	format = (format40_t *)entity;
-	offset = FORMAT40_OFFSET / format->blksize;
-	blk = REISER4_MASTER_OFFSET / format->blksize;
+	blk = FORMAT40_BLOCKNR(format->blksize);
     
-	for (; blk <= offset; blk++) {
-		if ((res = block_func(entity, blk, data)))
-			return res;
-	}
+	if ((res = block_func(entity, blk, data)))
+		return res;
     
 	return 0;
 }
 
-static errno_t format40_super_check(format40_t *format,
-				    format40_super_t *super)
+static errno_t format40_check(generic_entity_t *entity,
+			      format40_super_t *super)
 {
-	blk_t offset;
-	blk_t dev_len;
+	format40_t *format;
+	blk_t max_format_len;
+
+	format = (format40_t *)entity;
     
-	dev_len = aal_device_len(format->device) /
+	max_format_len = aal_device_len(format->device) /
 		(format->blksize / format->device->blksize);
 	
-	if (get_sb_block_count(super) > dev_len) {
+	if (get_sb_block_count(super) > max_format_len) {
 		aal_exception_error("Superblock has an invalid block "
-				    "count %llu for device length %llu "
-				    "blocks.", get_sb_block_count(super),
-				    dev_len);
+				    "count %llu for max possible length "
+				    "%llu blocks.", get_sb_block_count(super),
+				    max_format_len);
 		return -EINVAL;
 	}
     
-	offset = FORMAT40_OFFSET / format->blksize;
-
-	if (get_sb_root_block(super) <= offset ||
-	    get_sb_root_block(super) >= dev_len)
+	if (get_sb_root_block(super) <= format40_begin(entity) ||
+	    get_sb_root_block(super) >= max_format_len)
 	{
 		aal_exception_error("Superblock has an invalid root block "
-				    "%llu for device length %llu blocks.",
-				    get_sb_root_block(super), dev_len);
+				    "%llu. It must lie between %llu and %llu "
+				    "blocks.", get_sb_root_block(super),
+				    format40_begin(entity), max_format_len);
 		return -EINVAL;
 	}
 	
@@ -168,7 +165,7 @@ static aal_device_t *format40_device(generic_entity_t *entity) {
 
 static int format40_magic(format40_super_t *super) {
 	return aal_strncmp(super->sb_magic, FORMAT40_MAGIC, 
-			   aal_strlen(FORMAT40_MAGIC)) == 0;
+			   aal_strlen(super->sb_magic)) == 0;
 }
 
 static errno_t format40_super_open(format40_t *format) {
@@ -176,7 +173,7 @@ static errno_t format40_super_open(format40_t *format) {
 	blk_t offset;
 	aal_block_t block;
 
-	offset = FORMAT40_OFFSET / format->blksize;
+	offset = FORMAT40_BLOCKNR(format->blksize);
 		
 	aal_block_init(&block, format->device,
 		       format->blksize, offset);
@@ -201,7 +198,7 @@ static errno_t format40_super_open(format40_t *format) {
 }
 
 static generic_entity_t *format40_open(aal_device_t *device,
-				      uint32_t blksize)
+				       uint32_t blksize)
 {
 	format40_t *format;
 
@@ -308,13 +305,14 @@ static generic_entity_t *format40_create(aal_device_t *device,
 static errno_t format40_sync(generic_entity_t *entity) {
 	errno_t res;
 	blk_t offset;
+
 	aal_block_t block;
 	format40_t *format;
     
 	aal_assert("umka-394", entity != NULL);
    
 	format = (format40_t *)entity;
-	offset = FORMAT40_OFFSET / format->blksize;
+	offset = FORMAT40_BLOCKNR(format->blksize);
 
 	if ((res = aal_block_init(&block, format->device,
 				  format->blksize, offset)))
@@ -332,27 +330,10 @@ static errno_t format40_sync(generic_entity_t *entity) {
 	return res;
 }
 
-static int format40_confirm(aal_device_t *device) {
-	generic_entity_t *entity;
-
-	aal_assert("umka-733", device != NULL);
-
-	if (!(entity = format40_open(device, REISER4_BLKSIZE)))
-		return 0;
-		
-	format40_close(entity);
-	return 0;
-}
-
 static errno_t format40_valid(generic_entity_t *entity) {
-	format40_t *format;
-    
 	aal_assert("umka-397", entity != NULL);
-    
-	format = (format40_t *)entity;
-	return format40_super_check(format, SUPER(entity));
+	return format40_check(entity, SUPER(entity));
 }
-
 #endif
 
 static void format40_oid(generic_entity_t *entity, 
@@ -479,7 +460,6 @@ errno_t format40_print(generic_entity_t *entity,
 		       aal_stream_t *stream,
 		       uint16_t options) 
 {
-	blk_t offset;
 	format40_t *format;
 	format40_super_t *super;
     
@@ -497,10 +477,8 @@ errno_t format40_print(generic_entity_t *entity,
 	aal_stream_format(stream, "description:\t%s\n",
 			  entity->plug->desc);
 
-	offset = (FORMAT40_OFFSET / format->blksize);
-	
 	aal_stream_format(stream, "offset:\t\t%lu\n",
-			  offset);
+			  FORMAT40_BLOCKNR(format->blksize));
     
 	aal_stream_format(stream, "magic:\t\t%s\n",
 			  super->sb_magic);
@@ -550,7 +528,6 @@ static reiser4_format_ops_t format40_ops = {
 #ifndef ENABLE_STAND_ALONE
 	.device		= format40_device,
 	.valid		= format40_valid,
-	.check_struct	= format40_check_struct,
 	.sync		= format40_sync,
 	.isdirty        = format40_isdirty,
 	.mkdirty        = format40_mkdirty,
@@ -559,7 +536,6 @@ static reiser4_format_ops_t format40_ops = {
 	.print		= format40_print,
 	.layout	        = format40_layout,
 	.skipped        = format40_skipped,
-	.confirm	= format40_confirm,
 	.update		= format40_update,
 	.start		= format40_begin,
 	.name		= format40_name,
@@ -590,6 +566,7 @@ static reiser4_format_ops_t format40_ops = {
 	.set_policy	= format40_set_policy,
 	.journal_pid	= format40_journal_pid,
 	.alloc_pid	= format40_alloc_pid,
+	.check_struct	= format40_check_struct,
 #endif
 	.oid_pid	= format40_oid_pid
 };

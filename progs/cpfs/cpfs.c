@@ -243,7 +243,7 @@ int main(int argc, char *argv[]) {
 	
 	/* Opening @src_device */
 	if (!(src_device = aal_device_open(&file_ops, src_dev, 
-					   REISER4_SECSIZE, O_RDONLY))) 
+					   512, O_RDONLY))) 
 	{
 		aal_exception_error("Can't open %s. %s.", src_dev,
 				    strerror(errno));
@@ -252,8 +252,7 @@ int main(int argc, char *argv[]) {
     
 	/* Opening @dst_device */
 	if (!(dst_device = aal_device_open(&file_ops, dst_dev, 
-					   REISER4_SECSIZE,
-					   O_RDWR))) 
+					   512, O_RDWR))) 
 	{
 		aal_exception_error("Can't open %s. %s.", dst_dev,
 				    strerror(errno));

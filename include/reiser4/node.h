@@ -72,7 +72,6 @@ extern errno_t reiser4_node_shift(reiser4_node_t *node,
 				  reiser4_node_t *neig,
 				  shift_hint_t *hint);
 
-extern bool_t reiser4_node_confirm(reiser4_node_t *node);
 extern uint16_t reiser4_node_space(reiser4_node_t *node);
 extern uint16_t reiser4_node_overhead(reiser4_node_t *node);
 extern uint16_t reiser4_node_maxspace(reiser4_node_t *node);

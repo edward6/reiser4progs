@@ -6,6 +6,8 @@
 #include <reiser4/reiser4.h>
 
 #ifndef ENABLE_STAND_ALONE
+#include <unistd.h>
+
 bool_t reiser4_master_isdirty(reiser4_master_t *master) {
 	aal_assert("umka-2109", master != NULL);
 	return master->dirty;
@@ -29,37 +31,6 @@ errno_t reiser4_master_valid(reiser4_master_t *master) {
 		return -EINVAL;
 
 	return 0;
-}
-
-/* Destroys master super block */
-errno_t reiser4_master_clobber(aal_device_t *device) {
-	blk_t blk;
-	errno_t res;
-	uint32_t blksize;
-	aal_block_t *block;
-    
-	aal_assert("umka-1273", device != NULL);
-
-	blksize = REISER4_BLKSIZE;
-	blk = (REISER4_MASTER_OFFSET / blksize);
-		
-	if (!(block = aal_block_alloc(device,
-				      blksize,
-				      blk)))
-	{
-		return -ENOMEM;
-	}
-
-	aal_block_fill(block, 0);
-	
-	if ((res = aal_block_write(block))) {
-		aal_exception_error("Can't write block %llu. "
-				    "%s.", blk, device->error);
-	}
-		
-	aal_block_free(block);
-	
-	return res;	
 }
 
 /* Forms master super block disk structure */
@@ -106,23 +77,6 @@ reiser4_master_t *reiser4_master_create(
 	return master;
 }
 
-/* Callback function for comparing plugins */
-static errno_t callback_guess_format(
-	reiser4_plug_t *plug,        /* plugin to be checked */
-	void *data)		     /* needed plugin type */
-{
-	if (plug->id.type == FORMAT_PLUG_TYPE) {
-		aal_device_t *device = (aal_device_t *)data;
-		return plug_call(plug->o.format_ops, confirm, device);
-	}
-    
-	return 0;
-}
-
-reiser4_plug_t *reiser4_master_guess(aal_device_t *device) {
-	return reiser4_factory_cfind(callback_guess_format, device);
-}
-
 errno_t reiser4_master_print(reiser4_master_t *master,
 			     aal_stream_t *stream)
 {
@@ -157,36 +111,32 @@ errno_t reiser4_master_print(reiser4_master_t *master,
 	return 0;
 }
 
-/* Checks for reiser4 master super block on given device */
-int reiser4_master_confirm(aal_device_t *device) {
-	blk_t offset;
-	uint32_t blksize;
-	aal_block_t *block;
-	reiser4_master_sb_t *super;
-    
-	aal_assert("umka-901", device != NULL);
-
-	blksize = device->blksize;
-	offset = (blk_t)(REISER4_MASTER_OFFSET / blksize);
-    
-	/* Reading the block where master super block lies */
-	if (!(block = aal_block_load(device, blksize, offset))) {
-		aal_exception_fatal("Can't read master super block "
-				    "at %llu.", offset);
-		return 0;
+/* Callback function for comparing plugins */
+static errno_t callback_guess_format(
+	reiser4_plug_t *plug,        /* plugin to be checked */
+	void *data)		     /* needed plugin type */
+{
+	if (plug->id.type == FORMAT_PLUG_TYPE) {
+		generic_entity_t *entity;
+		
+		if ((entity = plug_call(plug->o.format_ops,
+					open, (aal_device_t *)data,
+					sysconf(_SC_PAGESIZE))))
+		{
+			plug_call(plug->o.format_ops, close,
+				  entity);
+			
+			return 1;
+		}
 	}
     
-	super = (reiser4_master_sb_t *)block->data;
-
-	if (aal_strncmp(super->ms_magic, REISER4_MASTER_MAGIC,
-			sizeof(super->ms_magic)) == 0)
-	{
-		aal_block_free(block);
-		return 1;
-	}
-    
-	aal_block_free(block);
 	return 0;
+}
+
+reiser4_plug_t *reiser4_master_guess(aal_device_t *device) {
+	/* Calls factory_cfind() (custom find) method in order to find
+	   convenient plugin with guess_format() callback function. */
+	return reiser4_factory_cfind(callback_guess_format, device);
 }
 #endif
 
@@ -234,8 +184,8 @@ reiser4_master_t *reiser4_master_open(aal_device_t *device) {
 	    
 		/* Creating in-memory master super block */
 		if (!(master = reiser4_master_create(device, plug->id.id, 
-						     REISER4_BLKSIZE, NULL,
-						     NULL)))
+						     sysconf(_SC_PAGESIZE),
+						     NULL, NULL)))
 		{
 			goto error_free_master;
 		}

@@ -19,8 +19,6 @@
 extern errno_t reiser4_master_print(reiser4_master_t *master,
 				    aal_stream_t *stream);
 
-extern errno_t reiser4_master_clobber(aal_device_t *device);
-
 extern reiser4_master_t *reiser4_master_create(aal_device_t *device, 
 					       rid_t format_pid,
 					       uint32_t blocksize,

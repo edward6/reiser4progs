@@ -13,7 +13,7 @@
 #include "format40.h"
 #include <repair/plugin.h>
 
-errno_t format40_check_struct(object_entity_t *entity, uint8_t mode) {
+errno_t format40_check_struct(generic_entity_t *entity, uint8_t mode) {
 	format40_t *format = (format40_t *)entity;
 	format40_super_t *super;
 	count_t count;
@@ -22,7 +22,9 @@ errno_t format40_check_struct(object_entity_t *entity, uint8_t mode) {
 	aal_assert("vpf-160", entity != NULL);
 	
 	super = &format->super;
-	count = aal_device_len(format->device);
+	
+	count = aal_device_len(format->device) /
+		(format->blksize / format->device->blksize);
 	
 	/* Check the fs size. */
 	if (count < get_sb_block_count(super)) {
@@ -76,11 +78,9 @@ errno_t format40_check_struct(object_entity_t *entity, uint8_t mode) {
 			result |= RE_FIXABLE;
 	}
 	
-	count = (FORMAT40_OFFSET / aal_device_get_bs(format->device));
-	
 	/* Check the root block number. */
 	if (get_sb_root_block(super) >= get_sb_block_count(super) || 
-	    get_sb_root_block(super) <= count)
+	    get_sb_root_block(super) <= FORMAT40_BLOCKNR(format->blksize))
 	{
 		aal_exception_error("Invalid root block number (%llu) found in "
 				    "the superblock.", get_sb_root_block(super));
@@ -96,7 +96,7 @@ errno_t format40_check_struct(object_entity_t *entity, uint8_t mode) {
 
 /* Update from the device only those fields which can be changed while 
  * replaying. */
-errno_t format40_update(object_entity_t *entity) {
+errno_t format40_update(generic_entity_t *entity) {
 	format40_t *format = (format40_t *)entity;
 	format40_super_t *super;
 	aal_block_t block;
@@ -106,7 +106,7 @@ errno_t format40_update(object_entity_t *entity) {
 	aal_assert("vpf-828", format != NULL);
 	aal_assert("vpf-828", format->device != NULL);
 	
-	blk = (FORMAT40_OFFSET / format->blksize);
+	blk = FORMAT40_BLOCKNR(format->blksize);
 
 	if ((res = aal_block_init(&block, format->device,
 				  format->blksize, blk)))
@@ -133,6 +133,5 @@ errno_t format40_update(object_entity_t *entity) {
 	aal_block_fini(&block);
 	return res;
 }
-
 #endif
 

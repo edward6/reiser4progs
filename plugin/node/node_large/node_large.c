@@ -1455,7 +1455,6 @@ extern errno_t node_large_check_struct(node_entity_t *entity,
 static reiser4_node_ops_t node_large_ops = {
 	.init		= node_large_init,
 	.fini		= node_common_fini,
-	.confirm	= node_common_confirm,
 	.items		= node_common_items,
 	.lookup		= node_large_lookup,
 	.fetch          = node_large_fetch,

@@ -15,9 +15,6 @@
 #define LEAF_LEVEL	        1
 #define TWIG_LEVEL	        (LEAF_LEVEL + 1)
 
-#define REISER4_SECSIZE         (512)
-#define REISER4_BLKSIZE         (4096)
-
 #define REISER4_MASTER_MAGIC	("R4Sb")
 #define REISER4_MASTER_OFFSET	(65536)
 
@@ -525,9 +522,6 @@ struct reiser4_key_ops {
 	   behavior may be implemented. */
 	void (*clean) (key_entity_t *);
 
-	/* Confirms key format */
-	int (*confirm) (key_entity_t *);
-
 	/* Functions for determining is key long */
 	int (*tall) (key_entity_t *);
 
@@ -925,9 +919,6 @@ struct reiser4_node_ops {
 	errno_t (*fetch) (node_entity_t *, pos_t *,
 			  place_t *);
 	
-	/* Confirms that given block contains valid node */
-	int (*confirm) (node_entity_t *);
-
 	/* Returns item count */
 	uint16_t (*items) (node_entity_t *);
     
@@ -979,10 +970,6 @@ struct reiser4_format_ops {
 	/* Prints all useful information about the format */
 	errno_t (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
     
-	/* Probes whether filesystem on given device has this format. Returns
-	   "true" if so and "false" otherwise. */
-	int (*confirm) (aal_device_t *device);
-
 	void (*set_root) (generic_entity_t *, uint64_t);
 	void (*set_len) (generic_entity_t *, uint64_t);
 	void (*set_height) (generic_entity_t *, uint16_t);

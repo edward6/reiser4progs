@@ -15,7 +15,12 @@
 #include <reiser4/plugin.h>
 
 #define FORMAT40_MAGIC	    "R4Sb-Default"
-#define FORMAT40_OFFSET	    (REISER4_MASTER_OFFSET + REISER4_BLKSIZE)
+
+#define FORMAT40_BLOCKNR(blksize) \
+        ((REISER4_MASTER_OFFSET / blksize) + 1)
+
+#define MASTER_BLOCKNR(blksize) \
+        (REISER4_MASTER_OFFSET / blksize)
 
 struct format40_super {
 	d64_t sb_block_count;
@@ -32,7 +37,7 @@ struct format40_super {
 	d16_t sb_tail_policy;
 	d64_t sb_flags;
 	
-	char sb_unused[432];
+	char sb_unused[430];
 };
 
 typedef struct format40_super format40_super_t;

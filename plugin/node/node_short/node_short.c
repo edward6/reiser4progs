@@ -1431,7 +1431,6 @@ extern errno_t node_short_check_struct(node_entity_t *entity,
 static reiser4_node_ops_t node_short_ops = {
 	.init		= node_short_init,
 	.fini		= node_common_fini,
-	.confirm	= node_common_confirm,
 	.lookup		= node_short_lookup,
 	.fetch          = node_short_fetch,
 	.items		= node_common_items,

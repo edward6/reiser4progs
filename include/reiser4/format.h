@@ -15,7 +15,6 @@
 extern reiser4_format_t *reiser4_format_open(reiser4_fs_t *fs);
 
 #ifndef ENABLE_STAND_ALONE
-extern int reiser4_format_confirm(reiser4_format_t *format);
 extern errno_t reiser4_format_sync(reiser4_format_t *format);
 extern errno_t reiser4_format_reopen(reiser4_format_t *format);
 

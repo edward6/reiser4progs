@@ -230,7 +230,7 @@ int main(int argc, char *argv[]) {
 
 	/* Guessing block size by getting page size */
 	if (!hint.blksize)
-		hint.blksize = getpagesize();
+		hint.blksize = sysconf(_SC_PAGESIZE);
 	
 	/* Building list of devices the filesystem will be created on */
 	for (; optind < argc; optind++) {
@@ -281,17 +281,21 @@ int main(int argc, char *argv[]) {
 		   to use -f flag to force. */
 		if (!S_ISBLK(st.st_mode)) {
 			if (!(flags & BF_FORCE)) {
-				aal_exception_error("Device %s is not block device. "
-						    "Use -f to force over.", host_dev);
+				aal_exception_error("Device %s is not block "
+						    "device. Use -f to force "
+						    "over.", host_dev);
 				goto error_free_libreiser4;
 			}
 		} else {
-			if (((IDE_DISK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 64 == 0) ||
-			     (SCSI_BLK_MAJOR(MAJOR(st.st_rdev)) && MINOR(st.st_rdev) % 16 == 0)) &&
+			if (((IDE_DISK_MAJOR(MAJOR(st.st_rdev)) &&
+			      MINOR(st.st_rdev) % 64 == 0) ||
+			     (SCSI_BLK_MAJOR(MAJOR(st.st_rdev)) &&
+			      MINOR(st.st_rdev) % 16 == 0)) &&
 			    !(flags & BF_FORCE))
 			{
-				aal_exception_error("Device %s is an entire harddrive, not "
-						    "just one partition.", host_dev);
+				aal_exception_error("Device %s is an entire "
+						    "harddrive, not just one "
+						    "partition.", host_dev);
 				goto error_free_libreiser4;
 			}
 		}
@@ -310,7 +314,7 @@ int main(int argc, char *argv[]) {
 #endif
 		/* Opening device */
 		if (!(device = aal_device_open(&file_ops, host_dev, 
-					       REISER4_SECSIZE, O_RDWR))) 
+					       512, O_RDWR))) 
 		{
 			aal_exception_error("Can't open %s. %s.",
 					    host_dev, strerror(errno));
@@ -325,16 +329,17 @@ int main(int argc, char *argv[]) {
 			hint.blocks = dev_len;
 	
 		if (hint.blocks > dev_len) {
-			aal_exception_error("Filesystem wouldn't fit into device "
-					    "%llu blocks long, %llu blocks required.",
+			aal_exception_error("Filesystem wouldn't fit "
+					    "into device %llu blocks "
+					    "long, %llu blocks required.",
 					    dev_len, hint.blocks);
 			goto error_free_device;
 		}
 
 		/* Checking for "quiet" mode */
 		if (!(flags & BF_QUIET)) {
-			if (aal_exception_yesno("Reiser4 with block size %u is going "
-						"to be created on %s.", hint.blksize,
+			if (aal_exception_yesno("Reiser4 going to be "
+						"created on %s.",
 						host_dev) == EXCEPTION_NO)
 			{
 				goto error_free_device;

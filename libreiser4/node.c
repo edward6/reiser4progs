@@ -173,12 +173,7 @@ reiser4_node_t *reiser4_node_open(aal_device_t *device,
 		goto error_free_node;
 	}
 	
-	if (!plug_call(plug->o.node_ops, confirm, node->entity))
-		goto error_free_entity;
-	
-        reiser4_place_assign(&node->p, NULL, 0,
-			     MAX_UINT32);
-
+        reiser4_place_assign(&node->p, NULL, 0, MAX_UINT32);
 	return node;
 	
  error_free_entity:
@@ -426,15 +421,6 @@ errno_t reiser4_node_disconnect(
 	reiser4_node_unlock(node);
 	return 0;
 }
-
-#ifndef ENABLE_STAND_ALONE
-bool_t reiser4_node_confirm(reiser4_node_t *node) {
-	aal_assert("umka-123", node != NULL);
-    
-	return plug_call(node->entity->plug->o.node_ops, 
-			 confirm, node->entity);
-}
-#endif
 
 /* This function makes search inside of specified node for passed key. Position
    will be stored in passed @pos. */

@@ -127,7 +127,6 @@ extern node_entity_t *node_common_init(aal_block_t *block,
 				       reiser4_plug_t *plug,
 				       reiser4_plug_t *kplug);
 
-extern int node_common_confirm(node_entity_t *entity);
 extern errno_t node_common_fini(node_entity_t *entity);
 extern uint16_t node_common_items(node_entity_t *entity);
 extern uint8_t node_common_get_level(node_entity_t *entity);

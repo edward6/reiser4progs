@@ -400,7 +400,6 @@ errno_t key_short_print(key_entity_t *key,
 
 static reiser4_key_ops_t key_short_ops = {
 	.tall              = key_short_tall,
-	.confirm           = key_short_confirm,
 	.assign            = key_short_assign,
 	.clean             = key_short_clean,
 	.minimal           = key_short_minimal,

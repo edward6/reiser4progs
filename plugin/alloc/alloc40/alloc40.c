@@ -5,16 +5,11 @@
    and it deals with bitmap blocks. For the all bitmap-related actions, we use
    aux_bitmap from the libaux. */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #ifndef ENABLE_STAND_ALONE
-
 #include "alloc40.h"
 
-#define ALLOC40_START \
-        (REISER4_MASTER_OFFSET + (REISER4_BLKSIZE * 2))
+#define ALLOC40_BLOCKNR(blksize) \
+        ((REISER4_MASTER_OFFSET / blksize) + 2)
 
 extern reiser4_plug_t alloc40_plug;
 
@@ -122,20 +117,18 @@ errno_t alloc40_layout(generic_entity_t *entity,
 	count_t bpb;
 	alloc40_t *alloc;
 	blk_t blk, start;
-	uint32_t blksize;
 	
 	aal_assert("umka-347", entity != NULL);
 	aal_assert("umka-348", block_func != NULL);
 
 	alloc = (alloc40_t *)entity;
-	blksize = alloc->blksize;
 
 	/* Calculating block-per-bitmap value. I mean the number of blocks one
 	   bitmap block describes. It is calulating such maner because we should
 	   count also four bytes for checksum at begibnning og the each bitmap
 	   block. */
-	bpb = (blksize - CRC_SIZE) * 8;
-	start = ALLOC40_START / blksize;
+	bpb = (alloc->blksize - CRC_SIZE) * 8;
+	start = ALLOC40_BLOCKNR(alloc->blksize);
 
 	/* Loop though the all bitmap blocks */
 	for (blk = start; blk < start + alloc->bitmap->total;
@@ -355,7 +348,6 @@ static errno_t callback_sync_bitmap(void *entity, uint64_t blk,
 	/* Allocating new block and filling it by 0xff bytes (all bits are
 	   turned on). This is needed in order to make the rest of last block
 	   filled by 0xff istead of 0x00 as it might be by default. */
-
 	if ((res = aal_block_init(&block, alloc->device,
 				  alloc->blksize, blk)))
 	{
@@ -451,7 +443,8 @@ static errno_t alloc40_occupy(generic_entity_t *entity,
 	aal_assert("umka-370", alloc != NULL);
 	aal_assert("umka-371", alloc->bitmap != NULL);
     
-	aux_bitmap_mark_region(alloc->bitmap, start, count);
+	aux_bitmap_mark_region(alloc->bitmap,
+			       start, count);
 	alloc->dirty = 1;
 	
 	return 0;
@@ -466,7 +459,8 @@ static errno_t alloc40_release(generic_entity_t *entity,
 	aal_assert("umka-372", alloc != NULL);
 	aal_assert("umka-373", alloc->bitmap != NULL);
     
-	aux_bitmap_clear_region(alloc->bitmap, start, count);
+	aux_bitmap_clear_region(alloc->bitmap,
+				start, count);
 	alloc->dirty = 1;
 	
 	return 0;
