@@ -33,8 +33,10 @@ static int reiser4_lru_nomem(reiser4_lru_t *lru) {
 	int dint, res;
 	long rss, vmsize;
 
-	long dlong, diff;
+	long dlong;
 	char cmd[256], dchar;
+
+	uint32_t diff;
 
 	aal_assert("umka-1524", lru != NULL, return -1);
 	
@@ -52,11 +54,11 @@ static int reiser4_lru_nomem(reiser4_lru_t *lru) {
 	       &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong, &dlong,
 	       &dlong, &dlong, &dlong, &dlong, &dint, &dint, &dlong, &dlong);
 	
-	diff = (vmsize - (rss << 12)) - lru->swaped;
+	diff = labs((vmsize - (rss << 12)) - lru->swaped);
 
-	if (!(res = labs(diff) > 4096))
+	if (!(res = diff > 4096))
 		lru->adjust = 0;
-		
+
 	lru->swaped = vmsize - (rss << 12);
 
 	fclose(f);
@@ -113,6 +115,8 @@ errno_t reiser4_lru_init(reiser4_lru_t *lru) {
 #ifndef ENABLE_COMPACT
 	lru->adjustable = statfs("/proc", &fs_st) != -1 &&
 		fs_st.f_type == 0x9fa0;
+
+	reiser4_lru_nomem(lru);
 
 	if (lru->adjustable) {
 		new.sa_flags = 0;
