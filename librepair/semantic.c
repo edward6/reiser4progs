@@ -26,8 +26,8 @@ static errno_t callback_check_struct(void *object, place_t *place,
 	if (repair_item_test_flag((reiser4_place_t *)place, OF_CHECKED)) {
 		aal_exception_error("Node (%llu), item (%u): item registering "
 				    "failed--it belongs to another object "
-				    "already. Plugin (%s).", place->con.blk,
-				    place->pos.unit,
+				    "already. Plugin (%s).",
+				    place->block->nr, place->pos.unit,
 				    ((object_entity_t *)object)->plug->label);
 		return 1;
 	}
@@ -47,8 +47,8 @@ static errno_t callback_register_item(void *object,
         if (repair_item_test_flag((reiser4_place_t *)place, OF_CHECKED)) {
                 aal_exception_error("Node (%llu), item (%u): item registering "
                                     "failed--it belongs to another object "
-                                    "already. Plugin (%s).", place->con.blk,
-                                    place->pos.unit,
+                                    "already. Plugin (%s).",
+				    place->block->nr, place->pos.unit,
 				    ((object_entity_t *)object)->plug->label);
                 return 1;
         }
@@ -210,9 +210,9 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	
 	/* Must be point exact matched plugin. Ambigious plugins will 
 	   be recovered later on CLEANUP pass. */
-	if ((parent = repair_object_launch(object->info->tree, NULL, 
-					   &object->info->parent, 
-					   TRUE)) == INVAL_PTR)
+	parent = repair_object_launch(object->info->tree, NULL, 
+				      &object->info->parent);
+	if (parent == INVAL_PTR)
 		return INVAL_PTR;
 	
 	if (parent == NULL)
@@ -330,9 +330,10 @@ static reiser4_object_t *callback_object_traverse(reiser4_object_t *parent,
 		return NULL;
 
 	/* Try to realize unambiguously the object by the key. */
-	if ((object = repair_object_launch(parent->info->tree, 
-					   parent, &entry->object,
-					   TRUE)) == INVAL_PTR)
+	object = repair_object_launch(parent->info->tree, 
+				      parent, &entry->object);
+	
+	if (object == INVAL_PTR)
 		return INVAL_PTR;
 	
 	if (object == NULL) {
@@ -530,9 +531,10 @@ static reiser4_object_t *repair_semantic_open_lost_found(repair_semantic_t *sem,
 		return NULL;
 
 	/* Must be recovered with the most appropriate plugin. */
-	if ((object = repair_object_launch(sem->repair->fs->tree, 
-					   root, &entry.object, 
-					   FALSE)) == INVAL_PTR)
+	object = repair_object_launch(sem->repair->fs->tree, 
+				      root, &entry.object);
+
+	if (object == INVAL_PTR)
 		return INVAL_PTR;
 	
 	if (object == NULL) {
@@ -601,9 +603,10 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 		return -EINVAL;
 	
 	/* Root dir must be recovered with the most appropriate plugin. */
-	if ((root = repair_object_launch(sem->repair->fs->tree, 
-					 NULL, &fs->tree->key, 
-					 FALSE)) == INVAL_PTR)
+	root = repair_object_launch(sem->repair->fs->tree, 
+				    NULL, &fs->tree->key);
+
+	if (root == INVAL_PTR)
 		return -EINVAL;
 	
 	if (root) {
