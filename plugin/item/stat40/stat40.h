@@ -13,7 +13,12 @@
 #define stat40_body(place) ((stat40_t *)place->body)
 
 /* Type for stat40 layout callback function */
-typedef errno_t (*ext_func_t) (sdext_entity_t *, uint16_t, void *);
+typedef errno_t (*ext_func_t) (sdext_entity_t *,
+			       uint16_t, void *);
+
+extern errno_t stat40_traverse(place_t *place,
+			       ext_func_t ext_func,
+			       void *data);
 
 struct stat40 {
 	d16_t extmask;
@@ -26,5 +31,4 @@ typedef struct stat40 stat40_t;
 #define st40_get_extmask(stat)		aal_get_le16(stat, extmask)
 #define st40_set_extmask(stat, val)	aal_set_le16(stat, extmask, val)
 
-extern errno_t stat40_traverse(place_t *place, ext_func_t ext_func, void *data);
 #endif

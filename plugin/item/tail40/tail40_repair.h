@@ -9,9 +9,10 @@
 #include <aal/aal.h>
 #include <reiser4/plugin.h>
 
-extern errno_t tail40_merge(place_t *dst, place_t *src, 
-			    merge_hint_t *hint);
+extern errno_t tail40_prep_merge(place_t *dst, place_t *src,
+				 merge_hint_t *hint);
 
-extern errno_t tail40_estimate_merge(place_t *dst, place_t *src,
-				     merge_hint_t *hint);
+extern errno_t tail40_merge_units(place_t *dst, place_t *src, 
+				  merge_hint_t *hint);
+
 #endif

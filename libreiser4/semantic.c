@@ -154,12 +154,12 @@ reiser4_plug_t *reiser4_semantic_plug(reiser4_tree_t *tree,
 	aal_assert("umka-2576", tree != NULL);
 	aal_assert("umka-2577", place != NULL);
 	
-	if (!place->plug->o.item_ops->plugid) {
+	if (!place->plug->o.item_ops->object->object_plug) {
 		/* FIXME-UMKA: Here we should try to understand what object
 		   plugin is by means of asking object parent or root. */
 		pid = INVAL_PID;
 	} else {
-		pid = plug_call(place->plug->o.item_ops, plugid, 
+		pid = plug_call(place->plug->o.item_ops->object, object_plug, 
 				(place_t *)place, OBJECT_PLUG_TYPE);
 		
 		if (pid == INVAL_PID)

@@ -156,13 +156,13 @@ static errno_t tfrag_process_node(
 		/* Checking and calling item's layout method with function
 		   tfrag_process_item() as a function for handling one block the
 		   item points to. */
-		if (!place.plug->o.item_ops->layout)
+		if (!place.plug->o.item_ops->object->layout)
 			continue;
 
 		p = &place;
 		
-		plug_call(place.plug->o.item_ops, layout, (place_t *)p,
-			  tfrag_process_item, data);
+		plug_call(place.plug->o.item_ops->object, layout,
+			  (place_t *)p, tfrag_process_item, data);
 	}
 	
 	frag_hint->level--;
@@ -320,12 +320,12 @@ static errno_t stat_process_node(
 				return res;
 			}
 			
-			if (!place.plug->o.item_ops->layout)
+			if (!place.plug->o.item_ops->object->layout)
 				continue;
 
 			p = &place;
 			
-			plug_call(place.plug->o.item_ops, layout,
+			plug_call(place.plug->o.item_ops->object, layout,
 				  (place_t *)p, stat_process_item, data);
 		}
 	} else {

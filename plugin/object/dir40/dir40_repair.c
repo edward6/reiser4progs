@@ -166,7 +166,8 @@ static lookup_t dir40_search(dir40_t *dir) {
 	/* No adjusting for the ABSENT result. */
 	if (res == ABSENT) adjust = 0;
 	
-	units = plug_call(dir->body.plug->o.item_ops, units, &dir->body);
+	units = plug_call(dir->body.plug->o.item_ops->balance,
+			  number_units, &dir->body);
 
 	if (dir->body.pos.unit == MAX_UINT32)
 		dir->body.pos.unit = 0;
@@ -185,8 +186,8 @@ static lookup_t dir40_search(dir40_t *dir) {
 			/* Some item of the dir was found. */
 			if (!adjust) return PRESENT;
 				
-			units = plug_call(dir->body.plug->o.item_ops,
-				  units, &dir->body);
+			units = plug_call(dir->body.plug->o.item_ops->balance,
+					  number_units, &dir->body);
 
 		} else if (!adjust)
 			/* We get here from above with PRESENT only. */
@@ -334,14 +335,14 @@ errno_t dir40_check_struct(object_entity_t *object,
 			return -EINVAL;
 		
 		/* Count size and bytes. */
-		size += plug_call(dir->body.plug->o.item_ops, 
+		size += plug_call(dir->body.plug->o.item_ops->object, 
 				  size, &dir->body);
 
-		bytes += plug_call(dir->body.plug->o.item_ops, 
+		bytes += plug_call(dir->body.plug->o.item_ops->object, 
 				   bytes, &dir->body);
 
-		units = plug_call(dir->body.plug->o.item_ops, 
-				  units, &dir->body);
+		units = plug_call(dir->body.plug->o.item_ops->balance, 
+				  number_units, &dir->body);
 		
 		for (; pos->unit < units; pos->unit++) {
 			if ((res |= dir40_fetch(dir, &entry)) < 0)

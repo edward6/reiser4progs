@@ -119,15 +119,14 @@ errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry) {
 	hint.specific = entry;
 
 	/* Reading entry to passed @entry */
-	if (plug_call(dir->body.plug->o.item_ops,
-		      fetch, &dir->body, &hint) != 1)
+	if (plug_call(dir->body.plug->o.item_ops->object,
+		      fetch_units, &dir->body, &hint) != 1)
 	{
 		return -EIO;
 	}
 
 	/* Copying entry place */
-	aal_memcpy(&entry->place, &dir->body,
-		   sizeof(place_t));
+	aal_memcpy(&entry->place, &dir->body, sizeof(place_t));
 
 	return 0;
 }
@@ -197,8 +196,8 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 			return ABSENT;
 
 		/* Checking if directory is over */
-		units = plug_call(dir->body.plug->o.item_ops,
-				  units, &dir->body);
+		units = plug_call(dir->body.plug->o.item_ops->balance,
+				  number_units, &dir->body);
 			
 		if (dir->body.pos.unit >= units)
 			return ABSENT;
@@ -210,8 +209,8 @@ static lookup_t dir40_update_body(object_entity_t *entity) {
 	for (adjust = dir->adjust; adjust;) {
 		uint32_t off = adjust;
 
-		units = plug_call(dir->body.plug->o.item_ops,
-				  units, &dir->body);
+		units = plug_call(dir->body.plug->o.item_ops->balance,
+				  number_units, &dir->body);
 			
 		if (off > units - 1 - dir->body.pos.unit)
 			off = units - dir->body.pos.unit;
@@ -278,8 +277,8 @@ static int32_t dir40_readdir(object_entity_t *entity,
 	}
 #endif
 
-	units = plug_call(dir->body.plug->o.item_ops,
-			  units, &dir->body);
+	units = plug_call(dir->body.plug->o.item_ops->balance,
+			  number_units, &dir->body);
 
 	/* Getting next entry in odrer to set up @dir->offset correctly */
 	if (++dir->body.pos.unit >= units) {
@@ -381,8 +380,8 @@ static lookup_t dir40_search(object_entity_t *entity,
 		entry_hint_t temp;
 
 		/* Check if item is over. */
-		units = plug_call(dir->body.plug->o.item_ops,
-				  units, &dir->body);
+		units = plug_call(dir->body.plug->o.item_ops->balance,
+				  number_units, &dir->body);
 
 		if (dir->body.pos.unit >= units) {
 			/* Getting next item. */
@@ -940,11 +939,11 @@ static errno_t dir40_layout(object_entity_t *entity,
 	while (1) {
 		place_t *place = &dir->body;
 		
-		if (dir->body.plug->o.item_ops->layout) {
+		if (dir->body.plug->o.item_ops->object->layout) {
 			
 			/* Calling item's layout method */
-			if ((res = plug_call(place->plug->o.item_ops, layout,
-					     place, callback_item_layout,
+			if ((res = plug_call(place->plug->o.item_ops->object,
+					     layout, place, callback_item_layout,
 					     &hint)))
 			{
 				return res;

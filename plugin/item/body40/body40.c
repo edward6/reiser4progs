@@ -57,14 +57,14 @@ errno_t body40_maxreal_key(place_t *place,
 	uint64_t units;
 	uint64_t offset;
 
-	units = plug_call(place->plug->o.item_ops,
-			  units, place);
+	units = plug_call(place->plug->o.item_ops->balance,
+			  number_units, place);
 	
-	plug_call(place->key.plug->o.key_ops,
-		  assign, key, &place->key);
+	plug_call(place->key.plug->o.key_ops, assign, key,
+		  &place->key);
 
-	offset = plug_call(key->plug->o.key_ops,
-			   get_offset, key);
+	offset = plug_call(key->plug->o.key_ops, get_offset,
+			   key);
 
 	offset += (trans_func ? trans_func(place, units) :
 		   units);
@@ -80,8 +80,8 @@ int body40_mergeable(place_t *place1, place_t *place2) {
 	uint64_t offset;
 	key_entity_t maxkey;
 
-	plug_call(place1->plug->o.item_ops, maxreal_key,
-		  place1, &maxkey);
+	plug_call(place1->plug->o.item_ops->balance,
+		  maxreal_key, place1, &maxkey);
 
 	offset = plug_call(maxkey.plug->o.key_ops,
 			   get_offset, &maxkey);

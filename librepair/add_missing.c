@@ -32,13 +32,13 @@ static errno_t callback_layout(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-649", place != NULL);
 	aal_assert("vpf-748", !reiser4_item_branch(place->plug));
 
-	if (!place->plug->o.item_ops->layout)
+	if (!place->plug->o.item_ops->object->layout)
 		return 0;
 	
 	/* All these blocks should not be used in the allocator and should be 
 	   forbidden for allocation. Check it somehow first. */
-	return place->plug->o.item_ops->layout((place_t *)place, 
-		       callback_item_mark_region, data);
+	return plug_call(place->plug->o.item_ops->object, layout,
+			 (place_t *)place, callback_item_mark_region, data);
 }
 
 static void repair_add_missing_setup(repair_am_t *am) {

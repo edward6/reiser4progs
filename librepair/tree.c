@@ -65,29 +65,17 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 	}
 	
 	if (reiser4_item_branch(place.plug)) {
-		ptr_hint_t ptr;
+		blk_t blk;
 		uint32_t blksize;
-		trans_hint_t hint;
-		reiser4_place_t *p;
 		
 		place.pos.unit = reiser4_item_units(&place) - 1;
 
-		p = &place;
-		hint.count = 1;
-		hint.specific = &ptr;
-		
-		if (plug_call(place.plug->o.item_ops, fetch,
-			      (place_t *)p, &hint) != 1)
-		{
-			return -EIO;
-		}
-		
-		if (ptr.start == INVAL_BLK)
+		if ((blk = reiser4_item_down_link(&place)) == INVAL_BLK)
 			return -EINVAL;
 			
 		blksize = reiser4_master_get_blksize(tree->fs->master);
 		
-		if (!(child = reiser4_node_open(tree, ptr.start)))
+		if (!(child = reiser4_node_open(tree, blk)))
 			return -EINVAL;
 		
 		res = repair_tree_maxreal_key(tree, child, key);
@@ -220,7 +208,7 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 		if (mode != RM_BUILD) 
 			break;
 		
-		if ((res = reiser4_tree_ukey(tree, &place, &dkey)))
+		if ((res = reiser4_tree_update_key(tree, &place, &dkey)))
 			return res;
 
 		break;
@@ -302,7 +290,7 @@ errno_t repair_tree_attach(reiser4_tree_t *tree, reiser4_node_t *node) {
 			if ((res = reiser4_place_fetch(&place)))
 				return res;
 			
-			if ((res = reiser4_item_key(&place, &key)))
+			if ((res = reiser4_item_get_key(&place, &key)))
 				return res;
 		}
 		
@@ -417,7 +405,7 @@ static errno_t repair_tree_merge(reiser4_tree_t *tree, reiser4_place_t *dst,
 		reiser4_place_init(&p, dst->node->p.node, 
 				   &dst->node->p.pos);
 		
-		if ((res = reiser4_tree_ukey(tree, &p, &src->key)))
+		if ((res = reiser4_tree_update_key(tree, &p, &src->key)))
 			return res;
 	}
 	
@@ -482,7 +470,8 @@ static errno_t repair_tree_conv(reiser4_tree_t *tree,
 
 	/* FIXME-UMKA->VITALY: This should be fixed to right item size, which 
 	   depends on size stat data field for the last item in file. */
-	hint.count = plug_call(place->plug->o.item_ops, size, (place_t *)place);
+	hint.count = plug_call(place->plug->o.item_ops->object,
+			       size, (place_t *)place);
 
 	return reiser4_tree_conv_flow(tree, &hint);
 }
@@ -570,7 +559,7 @@ static errno_t repair_tree_insert_lookup(reiser4_tree_t *tree,
 	if ((res = reiser4_place_fetch(dst)))
 		return res;
 
-	if ((res = reiser4_item_key(dst, &dkey)))
+	if ((res = reiser4_item_get_key(dst, &dkey)))
 		return res;
 
 	/* If @end key is not less than the lookuped, items are overlapped. 
@@ -701,14 +690,16 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src) {
 			return 0;
 		}
 
-		if (!src->plug->o.item_ops->lookup)
+		if (!src->plug->o.item_ops->balance->lookup)
 			break;
 		
 		/* Lookup by end_key. */
-		if ((res = src->plug->o.item_ops->lookup((place_t *)src, 
-							 &hint.maxkey, 
-							 FIND_EXACT)) < 0)
+		if ((res = src->plug->o.item_ops->balance->lookup((place_t *)src, 
+								  &hint.maxkey, 
+								  FIND_EXACT)) < 0)
+		{
 			return res;
+		}
 		
 		if (src->pos.unit >= scount)
 			break;

@@ -773,50 +773,93 @@ struct reiser4_object_ops {
 
 typedef struct reiser4_object_ops reiser4_object_ops_t;
 
-struct reiser4_item_ops {
+struct item_balance_ops {
+	/* Makes lookup for passed key. */
+	lookup_t (*lookup) (place_t *, key_entity_t *, bias_t);
+	
 #ifndef ENABLE_STAND_ALONE
-	/* Prepares item body for working with it */
-	errno_t (*init) (place_t *);
+	/* Checks if items mergeable, that is if unit of one item can belong to
+	   another one. Returns 1 if so, 0 otherwise. */
+	int (*mergeable) (place_t *, place_t *);
 
-	/* Returns overhead */
-	uint16_t (*overhead) (place_t *);
+	/* Estimates shift operation. */
+	errno_t (*prep_shift) (place_t *, place_t *, shift_hint_t *);
 	
-	/* Estimates insert operation */
-	errno_t (*estimate_insert) (place_t *, trans_hint_t *);
+	/* Performs shift of units from passed @src item to @dst item */
+	errno_t (*shift_units) (place_t *, place_t *, shift_hint_t *);
 
-	/* Estimates insert operation */
-	errno_t (*estimate_write) (place_t *, trans_hint_t *);
+	/* Set the key of a particular unit of the item. */
+	errno_t (*update_key) (place_t *, key_entity_t *);
+		
+	/* Get the max real key which is stored in the item. */
+	errno_t (*maxreal_key) (place_t *, key_entity_t *);
+#endif
+	/* Returns unit count in item passed place point to. */
+	uint32_t (*number_units) (place_t *);
+		
+	/* Get the key of a particular unit of the item. */
+	errno_t (*fetch_key) (place_t *, key_entity_t *);
 
-	/* Estimate the merge operation */
-	errno_t (*estimate_merge) (place_t *, place_t *, 
-				   merge_hint_t *);
+	/* Get the max key which could be stored in the item of this type. */
+	errno_t (*maxposs_key) (place_t *, key_entity_t *);
+};
 
-	/* Predicts the shift parameters (units, bytes, etc) */
-	errno_t (*estimate_shift) (place_t *, place_t *,
-				   shift_hint_t *);
-	
+typedef struct item_balance_ops item_balance_ops_t;
+
+struct item_object_ops {
+	/* Get plugin id of specified type if stored in stat data item. */
+	rid_t (*object_plug) (place_t *, rid_t);
+		
+	/* Reads passed amount of bytes from the item. */
+	int64_t (*read_units) (place_t *, trans_hint_t *);
+		
+	/* Fetches one or more units at passed @place to passed hint. */
+	int64_t (*fetch_units) (place_t *, trans_hint_t *);
+
+#ifndef ENABLE_STAND_ALONE
+	/* Estimates write operation. */
+	errno_t (*prep_write) (place_t *, trans_hint_t *);
+
+	/* Writes data to item. */
+	int64_t (*write_units) (place_t *, trans_hint_t *);
+
+	/* Estimates insert operation. */
+	errno_t (*prep_insert) (place_t *, trans_hint_t *);
+
 	/* Inserts some amount of units described by passed hint into passed
 	   item denoted by place. */
-	int64_t (*insert) (place_t *, trans_hint_t *);
-
-	/* Writes data to item */
-	int64_t (*write) (place_t *, trans_hint_t *);
-
-	/* Cuts out some amount of data */
-	int64_t (*truncate) (place_t *, trans_hint_t *);
+	int64_t (*insert_units) (place_t *, trans_hint_t *);
 
 	/* Removes specified unit from the item. */
-	errno_t (*remove) (place_t *, trans_hint_t *);
+	errno_t (*remove_units) (place_t *, trans_hint_t *);
 
-	/* Updates unit at passed place by data from passed hint */
-	int64_t (*update) (place_t *, trans_hint_t *);
+	/* Updates unit at passed place by data from passed hint. */
+	int64_t (*update_units) (place_t *, trans_hint_t *);
 
-	/* Performs shift of units from passed @src item to @dst item */
-	errno_t (*shift) (place_t *, place_t *, shift_hint_t *);
+	/* Cuts out some amount of data */
+	int64_t (*trunc_units) (place_t *, trans_hint_t *);
 
-	/* Copies some amount of units from @src_item to @dst_item with partial
+	/* Goes through all blocks item points to. */
+	errno_t (*layout) (place_t *, region_func_t, void *);
+		
+	/* Gets the size of the data item keeps. */
+	uint64_t (*size) (place_t *);
+	
+	/* Gets the amount of bytes data item keeps takes on the disk. */
+	uint64_t (*bytes) (place_t *);
+#endif
+};
+
+typedef struct item_object_ops item_object_ops_t;
+
+struct item_repair_ops {
+#ifndef ENABLE_STAND_ALONE
+	/* Estimate merge operation. */
+	errno_t (*prep_merge) (place_t *, place_t *, merge_hint_t *);
+
+	/* Copies some amount of units from @src to @dst with partial
 	   overwritting. */
-	errno_t (*merge) (place_t *, place_t *, merge_hint_t *);
+	errno_t (*merge_units) (place_t *, place_t *, merge_hint_t *);
 
 	/* Checks the item structure. */
 	errno_t (*check_struct) (place_t *, uint8_t);
@@ -824,59 +867,38 @@ struct reiser4_item_ops {
 	/* Does some specific actions if a block the item points to is wrong. */
 	errno_t (*check_layout) (place_t *, region_func_t,
 				 void *, uint8_t);
-
-	/* Prints item into specified buffer */
-	errno_t (*print) (place_t *, aal_stream_t *, uint16_t);
-
-	/* Goes through all blocks item points to. */
-	errno_t (*layout) (place_t *, region_func_t, void *);
-
-	/* Set the key of a particular unit of the item. */
-	errno_t (*set_key) (place_t *, key_entity_t *);
-
-	/* Gets the size of the data item keeps. */
-	uint64_t (*size) (place_t *);
-	
-	/* Gets the amount of bytes data item keeps takes on the disk. */
-	uint64_t (*bytes) (place_t *);
 #endif
-	
-	/* Returns TRUE is specified item is a nodeptr one. That is, it points
-	   to formatted node in the tree. If this method if not implemented,
-	   then item is assumed as not nodeptr one. All tree running operations
-	   like going from the root to leaves will use this function. */
-	int (*branch) (void);
-	
-	/* Checks if items mergeable. Returns 1 if so, 0 otherwise */
-	int (*mergeable) (place_t *, place_t *);
+};
 
-	/* Reads passed amount of bytes from the item. */
-	int64_t (*read) (place_t *, trans_hint_t *);
+typedef struct item_repair_ops item_repair_ops_t;
 
-	/* Fetches one or more units at passed @place to passed hint */
-	int64_t (*fetch) (place_t *, trans_hint_t *);
+struct item_debug_ops {
+#ifndef ENABLE_STAND_ALONE
+	/* Prints item into specified buffer. */
+	errno_t (*print) (place_t *, aal_stream_t *, uint16_t);
+#endif
+};
 
-	/* Returns unit count */
-	uint32_t (*units) (place_t *);
+typedef struct item_debug_ops item_debug_ops_t;
 
-	/* Makes lookup for passed key */
-	lookup_t (*lookup) (place_t *, key_entity_t *,
-			    bias_t);
-
-	/* Get the key of a particular unit of the item. */
-	errno_t (*get_key) (place_t *, key_entity_t *);
-
-	/* Get the max key which could be stored in the item of this type */
-	errno_t (*maxposs_key) (place_t *, key_entity_t *);
+struct item_tree_ops {
+	/* Return block number from passed place. Place is nodeptr item. */
+	blk_t (*down_link) (place_t *);
 
 #ifndef ENABLE_STAND_ALONE
-	/* Get the max real key which is stored in the item */
-	errno_t (*maxreal_key) (place_t *, key_entity_t *);
+	/* Update link block number. */
+	errno_t (*update_link) (place_t *, blk_t);
 #endif
-	
-	/* Get the plugin id of the specified type if stored in SD. */
-	rid_t (*plugid) (place_t *, rid_t);
-	
+};
+
+typedef struct item_tree_ops item_tree_ops_t;
+
+struct reiser4_item_ops {
+	item_tree_ops_t *tree;
+	item_debug_ops_t *debug;
+	item_object_ops_t *object;
+	item_repair_ops_t *repair;
+	item_balance_ops_t *balance;
 };
 
 typedef struct reiser4_item_ops reiser4_item_ops_t;
@@ -949,8 +971,8 @@ struct reiser4_node_ops {
 	int64_t (*write) (node_entity_t *, pos_t *,
 			  trans_hint_t *);
 
-	int64_t (*truncate) (node_entity_t *, pos_t *,
-			     trans_hint_t *);
+	int64_t (*trunc) (node_entity_t *, pos_t *,
+			  trans_hint_t *);
 
 	/* Removes item/unit at specified pos */
 	errno_t (*remove) (node_entity_t *, pos_t *,
@@ -1027,7 +1049,8 @@ struct reiser4_node_ops {
 	/* Gets/sets key at pos */
 	errno_t (*get_key) (node_entity_t *, pos_t *,
 			    key_entity_t *);
-    
+
+	/* Return node level. */
 	uint8_t (*get_level) (node_entity_t *);
 };
 
@@ -1440,7 +1463,7 @@ struct tree_ops {
 	errno_t (*rem_data) (void *, key_entity_t *);
 	
 	/* Update the key in the place and the node itsef. */
-	errno_t (*ukey) (void *, place_t *, key_entity_t *);
+	errno_t (*update_key) (void *, place_t *, key_entity_t *);
 #endif
 	/* Returns next items respectively. */
 	errno_t (*next) (void *, place_t *, place_t *);

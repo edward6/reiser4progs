@@ -631,9 +631,9 @@ static errno_t reg40_layout(object_entity_t *entity,
 			return 0;
 
 		/* Calling item enumerator funtion for current body item. */
-		if (place->plug->o.item_ops->layout) {
-			if ((res = plug_call(place->plug->o.item_ops, layout,
-					     place, callback_item_layout,
+		if (place->plug->o.item_ops->object->layout) {
+			if ((res = plug_call(place->plug->o.item_ops->object,
+					     layout, place, callback_item_layout,
 					     &hint)))
 			{
 				return res;
@@ -647,15 +647,12 @@ static errno_t reg40_layout(object_entity_t *entity,
 
 		/* Getting current item max real key inside, in order to know
 		   how much to increase file offset. */
-		plug_call(reg->body.plug->o.item_ops, maxreal_key,
+		plug_call(reg->body.plug->o.item_ops->balance, maxreal_key,
 			  &reg->body, &maxkey);
 
 		/* Updating file offset. */
-		offset = plug_call(maxkey.plug->o.key_ops,
-				   get_offset, &maxkey);
-
-		reg40_seek(entity, reg40_offset(entity) +
-			   offset + 1);
+		offset = plug_call(maxkey.plug->o.key_ops, get_offset, &maxkey);
+		reg40_seek(entity, reg40_offset(entity) + offset + 1);
 	}
 	
 	return 0;
@@ -702,15 +699,12 @@ static errno_t reg40_metadata(object_entity_t *entity,
 
 		/* Getting current item max real key inside, in order to know
 		   how much increase file offset. */
-		plug_call(reg->body.plug->o.item_ops, maxreal_key,
+		plug_call(reg->body.plug->o.item_ops->balance, maxreal_key,
 			  &reg->body, &maxkey);
 
 		/* Updating file offset */
-		offset = plug_call(maxkey.plug->o.key_ops,
-				   get_offset, &maxkey);
-
-		reg40_seek(entity, reg40_offset(entity) +
-			   offset + 1);
+		offset = plug_call(maxkey.plug->o.key_ops, get_offset, &maxkey);
+		reg40_seek(entity, reg40_offset(entity) + offset + 1);
 	}
 	
 	return 0;

@@ -88,7 +88,8 @@ typedef struct cde404  cde404_t;
 #endif
 
 extern reiser4_core_t *cde40_core;
-extern uint32_t cde40_units(place_t *place);
+
+extern uint32_t cde40_number_units(place_t *place);
 extern inline uint32_t cde40_key_pol(place_t *place);
 
 extern errno_t cde40_maxposs_key(place_t *place,
@@ -100,18 +101,18 @@ extern errno_t cde40_delete(place_t *place, uint32_t pos,
 extern errno_t cde40_get_hash(place_t *place, uint32_t pos, 
 			      key_entity_t *key);
 
-extern lookup_t cde40_lookup(place_t *place, key_entity_t *key,
-			     bias_t bias);
-
-extern uint32_t cde40_regsize(place_t *place, uint32_t pos, 
-			      uint32_t count);
-
 extern errno_t cde40_copy(place_t *dst_place, uint32_t dst_pos,
 			  place_t *src_place, uint32_t src_pos,
 			  uint32_t count);
 
 extern uint32_t cde40_expand(place_t *place, uint32_t pos,
 			     uint32_t count, uint32_t len);
+
+extern uint32_t cde40_regsize(place_t *place, uint32_t pos, 
+			      uint32_t count);
+
+extern lookup_t cde40_lookup(place_t *place, key_entity_t *key,
+			     bias_t bias);
 
 #if defined(ENABLE_SHORT_KEYS) && defined(ENABLE_LARGE_KEYS)
 #define ob_get_locality(ob, pol)                                       \

@@ -142,16 +142,16 @@ static aal_block_t *tree_get_data(void *tree, key_entity_t *key) {
 	return aal_hash_table_lookup(t->data, key);
 }
 
-static errno_t tree_ukey(void *tree, place_t *place,
-			 key_entity_t *key)
+static errno_t tree_update_key(void *tree, place_t *place,
+			       key_entity_t *key)
 {
 	aal_assert("vpf-1219", tree != NULL);
 	aal_assert("vpf-1206", place != NULL);
 	aal_assert("vpf-1207", key != NULL);
 
-	return reiser4_tree_ukey((reiser4_tree_t *)tree,
-				 (reiser4_place_t *)place,
-				 (reiser4_key_t *)key);
+	return reiser4_tree_update_key((reiser4_tree_t *)tree,
+				       (reiser4_place_t *)place,
+				       (reiser4_key_t *)key);
 }
 
 static char *key_print(key_entity_t *key, uint16_t options) {
@@ -227,7 +227,7 @@ reiser4_core_t core = {
 		.remove	    = tree_remove,
 
 		/* Update the key in the place and the node itself. */
-		.ukey       = tree_ukey,
+		.update_key = tree_update_key,
 
 		/* Data related functions */
 		.get_data   = tree_get_data,

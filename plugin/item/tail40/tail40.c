@@ -13,13 +13,13 @@
 static reiser4_core_t *core = NULL;
 
 /* Returns tail length */
-uint32_t tail40_units(place_t *place) {
+uint32_t tail40_number_units(place_t *place) {
 	return place->len;
 }
 
 /* Returns the key of the specified unit */
-errno_t tail40_get_key(place_t *place, 
-		       key_entity_t *key) 
+errno_t tail40_fetch_key(place_t *place, 
+			 key_entity_t *key) 
 {
 	uint32_t pos;
 	
@@ -30,7 +30,9 @@ errno_t tail40_get_key(place_t *place,
 	return body40_get_key(place, pos, key, NULL);
 }
 
-static int64_t tail40_read(place_t *place, trans_hint_t *hint) {
+static int64_t tail40_read_units(place_t *place,
+				 trans_hint_t *hint)
+{
 	uint32_t count;
 	
 	aal_assert("umka-1674", hint != NULL);
@@ -55,8 +57,8 @@ static int64_t tail40_read(place_t *place, trans_hint_t *hint) {
    function considers also, that tail item is not expandable one. That is, if
    insert pos point inside the item body, it will not be splitted, but rewritten
    instead. */
-static errno_t tail40_estimate_write(place_t *place,
-				     trans_hint_t *hint)
+static errno_t tail40_prep_write(place_t *place,
+				 trans_hint_t *hint)
 {
 	aal_assert("umka-1836", hint != NULL);
 	aal_assert("umka-2437", place != NULL);
@@ -78,8 +80,8 @@ static errno_t tail40_estimate_write(place_t *place,
 }
 
 /* Rewrites tail from passed @pos by data from hint */
-static int64_t tail40_write(place_t *place,
-			    trans_hint_t *hint)
+static int64_t tail40_write_units(place_t *place,
+				  trans_hint_t *hint)
 {
 	uint32_t count, pos;
 	
@@ -148,7 +150,8 @@ static errno_t tail40_maxposs_key(place_t *place,
 	return body40_maxposs_key(place, key);
 }
 
-static lookup_t tail40_lookup(place_t *place, key_entity_t *key, 
+static lookup_t tail40_lookup(place_t *place,
+			      key_entity_t *key, 
 			      bias_t bias)
 {
 	uint32_t units;
@@ -158,7 +161,7 @@ static lookup_t tail40_lookup(place_t *place, key_entity_t *key,
 	aal_assert("umka-1229", key != NULL);
 	aal_assert("umka-1228", place != NULL);
 
-	units = tail40_units(place);
+	units = tail40_number_units(place);
 	
 	offset = plug_call(key->plug->o.key_ops,
 			   get_offset, &place->key);
@@ -186,9 +189,9 @@ static int tail40_mergeable(place_t *place1, place_t *place2) {
 }
 
 /* Estimates how many bytes may be shifted into neighbour item */
-static errno_t tail40_estimate_shift(place_t *src_place,
-				     place_t *dst_place,
-				     shift_hint_t *hint)
+static errno_t tail40_prep_shift(place_t *src_place,
+				 place_t *dst_place,
+				 shift_hint_t *hint)
 {
 	aal_assert("umka-2279", hint != NULL);
 	aal_assert("umka-1664", src_place != NULL);
@@ -311,9 +314,9 @@ static uint32_t tail40_shrink(place_t *place, uint32_t pos,
 	return 0;
 }
 
-static errno_t tail40_shift(place_t *src_place,
-			    place_t *dst_place,
-			    shift_hint_t *hint)
+static errno_t tail40_shift_units(place_t *src_place,
+				  place_t *dst_place,
+				  shift_hint_t *hint)
 {
 	uint64_t offset;
 	
@@ -360,27 +363,8 @@ static errno_t tail40_shift(place_t *src_place,
 	return 0;
 }
 
-static errno_t tail40_remove(place_t *place, trans_hint_t *hint) {
-	aal_assert("umka-2453", place != NULL);
-	aal_assert("umka-2454", hint != NULL);
-
-	if (tail40_shrink(place, place->pos.unit,
-			  hint->count, hint->count))
-	{
-		return -EINVAL;
-	}
-
-	if (place->pos.unit == 0)
-		tail40_get_key(place, &place->key);
-
-	hint->ohd = 0;
-	hint->len = hint->count;
-
-	return 0;
-}
-
-static int64_t tail40_truncate(place_t *place,
-			       trans_hint_t *hint)
+static int64_t tail40_trunc_units(place_t *place,
+				  trans_hint_t *hint)
 {
 	uint32_t pos;
 	uint64_t count;
@@ -427,44 +411,70 @@ static uint64_t tail40_size(place_t *place) {
 }
 #endif
 
-static reiser4_item_ops_t tail40_ops = {
-	.read	          = tail40_read,
-	.units	          = tail40_units,
-	.lookup	          = tail40_lookup,
-	.get_key          = tail40_get_key,
-	.maxposs_key      = tail40_maxposs_key,
-	
+static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_STAND_ALONE
-	.merge	          = tail40_merge,
-	.write	          = tail40_write,
-	.remove	          = tail40_remove,
+	.update_key       = NULL,
+	
 	.mergeable        = tail40_mergeable,
-	.print	          = tail40_print,
-	.shift	          = tail40_shift,
+	.maxreal_key      = tail40_maxreal_key,
+	.prep_shift       = tail40_prep_shift,
+	.shift_units      = tail40_shift_units,
+#endif
+	.lookup           = tail40_lookup,
+	.fetch_key        = tail40_fetch_key,
+	.number_units     = tail40_number_units,
+	.maxposs_key      = tail40_maxposs_key
+};
+
+static item_object_ops_t object_ops = {
+#ifndef ENABLE_STAND_ALONE
 	.size             = tail40_size,
 	.bytes            = tail40_size,
+	.prep_write       = tail40_prep_write,
+	.write_units      = tail40_write_units,
+	.trunc_units      = tail40_trunc_units,
+	
+	.prep_insert      = NULL,
+	.insert_units     = NULL,
+	.remove_units     = NULL,
+	.update_units     = NULL,
+	.layout	          = NULL,
+#endif
+	.fetch_units      = NULL,
+	.object_plug      = NULL,
+	
+	.read_units       = tail40_read_units
+};
 
-	.truncate         = tail40_truncate,
-	.maxreal_key      = tail40_maxreal_key,
-	.estimate_merge   = tail40_estimate_merge,
-	.estimate_shift   = tail40_estimate_shift,
-	.estimate_write   = tail40_estimate_write,
+static item_repair_ops_t repair_ops = {
+#ifndef ENABLE_STAND_ALONE
+	.prep_merge       = tail40_prep_merge,
+	.merge_units      = tail40_merge_units,
 	
 	.check_struct	  = NULL,
-	.estimate_insert  = NULL,
-	.overhead         = NULL,
-	.insert	          = NULL,
-	.update           = NULL,
-	.init	          = NULL,
-	.branch           = NULL,
-	.layout	          = NULL,
-	.set_key          = NULL,
-	.check_layout     = NULL,
-#else
-	.mergeable        = NULL,
+	.check_layout     = NULL
 #endif
-	.fetch            = NULL,
-	.plugid		  = NULL
+};
+
+static item_debug_ops_t debug_ops = {
+#ifndef ENABLE_STAND_ALONE
+	.print	          = tail40_print
+#endif
+};
+
+static item_tree_ops_t tree_ops = {
+	.down_link        = NULL,
+#ifndef ENABLE_STAND_ALONE
+	.update_link      = NULL
+#endif
+};
+
+static reiser4_item_ops_t tail40_ops = {
+	.tree             = &tree_ops,
+	.debug            = &debug_ops,
+	.object           = &object_ops,
+	.repair           = &repair_ops,
+	.balance          = &balance_ops
 };
 
 static reiser4_plug_t tail40_plug = {

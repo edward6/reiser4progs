@@ -110,7 +110,7 @@ static errno_t callback_open_ext(sdext_entity_t *sdext,
 }
 
 /* Fetches whole statdata item with extentions into passed @buff */
-static int64_t stat40_fetch(place_t *place, trans_hint_t *hint) {
+static int64_t stat40_fetch_units(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-1415", hint != NULL);
 	aal_assert("umka-1414", place != NULL);
 
@@ -134,27 +134,14 @@ static errno_t stat40_maxposs_key(place_t *place,
    units. It is because balancing code assumes that if item has more than one
    unit the it may be shifted out. That is because w ecan't return the number of
    extentions here. Extentions are the statdata private bussiness. */
-static uint32_t stat40_units(place_t *place) {
+static uint32_t stat40_number_units(place_t *place) {
 	return 1;
 }
 
 #ifndef ENABLE_STAND_ALONE
-
-static errno_t stat40_init(place_t *place) {
-	aal_assert("umka-2397", place != NULL);
-	aal_assert("umka-2398", place->body != NULL);
-	
-	((stat40_t *)place->body)->extmask = 0;
-	place_mkdirty(place);
-	
-	return 0;
-}
-
 /* Estimates how many bytes will be needed for creating statdata item described
    by passed @hint at passed @pos. */
-static errno_t stat40_estimate_insert(place_t *place,
-				      trans_hint_t *hint)
-{
+static errno_t stat40_prep_insert(place_t *place, trans_hint_t *hint) {
 	uint16_t i;
 	statdata_hint_t *stat_hint;
     
@@ -204,17 +191,17 @@ static errno_t stat40_estimate_insert(place_t *place,
 }
 
 /* Function for modifying stat40. */
-static int64_t stat40_mod(place_t *place,
-			  trans_hint_t *hint,
-			  int insert)
-{
+static int64_t stat40_modify(place_t *place, trans_hint_t *hint, int insert) {
 	uint16_t i;
 	body_t *extbody;
 	statdata_hint_t *stat_hint;
     
 	extbody = (body_t *)place->body;
 	stat_hint = (statdata_hint_t *)hint->specific;
-    
+
+	if (place->pos.unit == MAX_UINT32 && insert)
+		((stat40_t *)extbody)->extmask = 0;
+	
 	if (!stat_hint->extmask)
 		return 0;
     
@@ -270,28 +257,24 @@ static int64_t stat40_mod(place_t *place,
 }
 
 /* This method is for insert stat data extentions. */
-static int64_t stat40_insert(place_t *place,
-			     trans_hint_t *hint)
-{
+static int64_t stat40_insert_units(place_t *place, trans_hint_t *hint) {
 	aal_assert("vpf-076", place != NULL); 
 	aal_assert("vpf-075", hint != NULL);
 
-	return stat40_mod(place, hint, 1);
+	return stat40_modify(place, hint, 1);
 }
 
 /* This method is for update stat data extentions. */
-static int64_t stat40_update(place_t *place,
-			     trans_hint_t *hint)
-{
+static int64_t stat40_update_units(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-2588", place != NULL); 
 	aal_assert("umka-2589", hint != NULL);
 
-	return stat40_mod(place, hint, 0);
+	return stat40_modify(place, hint, 0);
 }
 
 /* Removes stat data extentions marked in passed hint stat data extentions
    mask. Needed for fsck. */
-static errno_t stat40_remove(place_t *place, trans_hint_t *hint) {
+static errno_t stat40_remove_units(place_t *place, trans_hint_t *hint) {
 	uint16_t i;
 	body_t *extbody;
 	uint16_t chunks = 0;
@@ -498,7 +481,7 @@ static errno_t stat40_print(place_t *place,
 #endif
 
 /* Get the plugin id of the type @type if stored in SD. */
-static rid_t stat40_plugid(place_t *place, rid_t type) {
+static rid_t stat40_object_plug(place_t *place, rid_t type) {
 	trans_hint_t hint;
 	statdata_hint_t stat;
 	sdext_lw_hint_t lw_hint;
@@ -514,7 +497,7 @@ static rid_t stat40_plugid(place_t *place, rid_t type) {
 		hint.specific = &stat;
 		stat.ext[SDEXT_LW_ID] = &lw_hint;
 
-		if (stat40_fetch(place, &hint) != 1)
+		if (stat40_fetch_units(place, &hint) != 1)
 			return INVAL_PID;
 
 #ifndef ENABLE_STAND_ALONE	
@@ -545,43 +528,70 @@ static rid_t stat40_plugid(place_t *place, rid_t type) {
 	return INVAL_PID;
 }
 
-static reiser4_item_ops_t stat40_ops = {
-	.fetch            = stat40_fetch,
-	.units		  = stat40_units,
-	.plugid	          = stat40_plugid,
+static item_balance_ops_t balance_ops = {
+#ifndef ENABLE_STAND_ALONE
+	.prep_shift       = NULL,
+	.shift_units      = NULL,
+	.update_key       = NULL,
+	.maxreal_key      = NULL,
+	.mergeable        = NULL,
+#endif
+	.lookup           = NULL,
+	.fetch_key	  = NULL,
+	
+	.number_units     = stat40_number_units,
 	.maxposs_key	  = stat40_maxposs_key,
+};
+
+static item_object_ops_t object_ops = {
+	.read_units       = NULL,
 	
 #ifndef ENABLE_STAND_ALONE
-	.init             = stat40_init,
-	.merge		  = stat40_merge,
-	.insert		  = stat40_insert,
-	.update		  = stat40_update,
-	.remove		  = stat40_remove,
-	.print		  = stat40_print,
-	
-	.check_struct     = stat40_check_struct,
-	.estimate_merge   = stat40_estimate_merge,
-	.estimate_insert  = stat40_estimate_insert,
+	.prep_write       = NULL,
+	.write_units      = NULL,
 
-	.estimate_shift   = NULL,
-	.estimate_write   = NULL,
+	.prep_insert      = stat40_prep_insert,
+	.insert_units     = stat40_insert_units,
+	.update_units     = stat40_update_units,
+	.remove_units     = stat40_remove_units,
 	
-	.overhead         = NULL,
+	.trunc_units      = NULL,
 	.layout           = NULL,
-	.shift            = NULL,
-	.write            = NULL,
-	.truncate         = NULL,
 	.size		  = NULL,
 	.bytes		  = NULL,
-	.set_key	  = NULL,
-	.check_layout	  = NULL,
-	.maxreal_key      = NULL,
 #endif
-	.read             = NULL,
-	.lookup		  = NULL,
-	.branch           = NULL,
-	.get_key	  = NULL,
-	.mergeable        = NULL
+	.fetch_units      = stat40_fetch_units,
+	.object_plug      = stat40_object_plug
+};
+
+static item_repair_ops_t repair_ops = {
+#ifndef ENABLE_STAND_ALONE	
+	.prep_merge       = stat40_prep_merge,
+	.merge_units      = stat40_merge_units,
+	.check_struct     = stat40_check_struct,
+	.check_layout	  = NULL
+#endif
+};
+
+static item_debug_ops_t debug_ops = {
+#ifndef ENABLE_STAND_ALONE	
+	.print		  = stat40_print,
+#endif
+};
+
+static item_tree_ops_t tree_ops = {
+	.down_link        = NULL,
+#ifndef ENABLE_STAND_ALONE
+	.update_link      = NULL
+#endif
+};
+
+static reiser4_item_ops_t stat40_ops = {
+	.tree             = &tree_ops,
+	.debug            = &debug_ops,
+	.object           = &object_ops,
+	.repair           = &repair_ops,
+	.balance          = &balance_ops
 };
 
 static reiser4_plug_t stat40_plug = {

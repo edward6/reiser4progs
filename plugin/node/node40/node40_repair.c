@@ -444,8 +444,8 @@ errno_t node40_merge(node_entity_t *dst, pos_t *dst_pos,
 	if (node40_fetch(dst, dst_pos, &dst_place))
 		return -EINVAL;
 	
-	if ((res = plug_call(src_place.plug->o.item_ops, merge,
-			     &dst_place, &src_place, hint)))
+	if ((res = plug_call(src_place.plug->o.item_ops->repair,
+			     merge_units, &dst_place, &src_place, hint)))
 	{
 		aal_exception_error("Can't merge units from node %llu to node %llu.",
 				    src_node->block->nr, dst_node->block->nr);

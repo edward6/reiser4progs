@@ -595,8 +595,8 @@ errno_t node40_copy(node_entity_t *dst_entity, pos_t *dst_pos,
 }
 
 /* Mode modifying fucntion. */
-static int64_t node40_mod(node_entity_t *entity, pos_t *pos,
-			  trans_hint_t *hint, bool_t insert)
+static int64_t node40_modify(node_entity_t *entity, pos_t *pos,
+			     trans_hint_t *hint, bool_t insert)
 {
 	void *ih;
 	uint32_t pol;
@@ -633,16 +633,10 @@ static int64_t node40_mod(node_entity_t *entity, pos_t *pos,
 		return -EINVAL;
 	}
 
-	if (pos->unit == MAX_UINT32) {
-		/* Calling item plugin to perform initializing the item */
-		if (hint->plug->o.item_ops->init)
-			hint->plug->o.item_ops->init(&place);
-	}
-
 	if (insert) {
 		/* Inserting units into @place */
-		if (!(write = plug_call(hint->plug->o.item_ops,
-					insert, &place, hint)) < 0)
+		if (!(write = plug_call(hint->plug->o.item_ops->object,
+					insert_units, &place, hint)) < 0)
 		{
 			aal_exception_error("Can't insert unit to "
 					    "node %llu.", node->block->nr);
@@ -650,8 +644,8 @@ static int64_t node40_mod(node_entity_t *entity, pos_t *pos,
 		}
 	} else {
 		/* Writes data into @place */
-		if (!(write = plug_call(hint->plug->o.item_ops,
-					write, &place, hint)) < 0)
+		if (!(write = plug_call(hint->plug->o.item_ops->object,
+					write_units, &place, hint)) < 0)
 		{
 			aal_exception_error("Can't write data to "
 					    "node %llu.", node->block->nr);
@@ -661,10 +655,8 @@ static int64_t node40_mod(node_entity_t *entity, pos_t *pos,
 	
 	/* Updating item's key if we insert new item or if we insert unit into
 	   leftmost postion. */
-	if (pos->unit == 0) {
-		aal_memcpy(ih, place.key.body,
-			   key_size(pol));
-	}
+	if (pos->unit == 0)
+		aal_memcpy(ih, place.key.body, key_size(pol));
 
 	return write;
 }
@@ -676,7 +668,7 @@ static errno_t node40_insert(node_entity_t *entity,
 	aal_assert("umka-1814", hint != NULL);
 	aal_assert("umka-818", entity != NULL);
 
-	return node40_mod(entity, pos, hint, 1);
+	return node40_modify(entity, pos, hint, 1);
 }
 
 static int64_t node40_write(node_entity_t *entity,
@@ -686,12 +678,12 @@ static int64_t node40_write(node_entity_t *entity,
 	aal_assert("umka-2450", hint != NULL);
 	aal_assert("umka-2451", entity != NULL);
 
-	return node40_mod(entity, pos, hint, 0);
+	return node40_modify(entity, pos, hint, 0);
 }
 
 /* Truncates node at @pos. Needed for tail conversion. */
-static int64_t node40_truncate(node_entity_t *entity, pos_t *pos,
-			       trans_hint_t *hint)
+static int64_t node40_trunc(node_entity_t *entity, pos_t *pos,
+			    trans_hint_t *hint)
 {
 	void *ih;
 	uint32_t pol;
@@ -710,9 +702,9 @@ static int64_t node40_truncate(node_entity_t *entity, pos_t *pos,
 	if (node40_fetch(entity, pos, &place))
 		return -EINVAL;
 
-	/* Truncating item by its method truncate(). */
-	if ((count = plug_call(place.plug->o.item_ops,
-			       truncate, &place, hint)) < 0)
+	/* Truncating item. */
+	if ((count = plug_call(place.plug->o.item_ops->object,
+			       trunc_units, &place, hint)) < 0)
 	{
 		return count;
 	}
@@ -772,8 +764,8 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 
 	/* Checking if we have to remove whole item as it will has not units
 	   after removing. */
-	units = plug_call(place.plug->o.item_ops,
-			  units, &place);
+	units = plug_call(place.plug->o.item_ops->balance,
+			  number_units, &place);
 	
 	if (units == hint->count) {
 		place.pos.unit = MAX_UINT32;
@@ -788,10 +780,10 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 			return -EINVAL;
 		}
 	} else {
-		if (place.plug->o.item_ops->remove) {
+		if (place.plug->o.item_ops->object->remove_units) {
 			/* Removing units from the item pointed by @pos */
-			if ((res = plug_call(place.plug->o.item_ops,
-					     remove, &place, hint)))
+			if ((res = plug_call(place.plug->o.item_ops->object,
+					     remove_units, &place, hint)))
 			{
 				return res;
 			}
@@ -806,7 +798,9 @@ errno_t node40_remove(node_entity_t *entity, pos_t *pos,
 
 	/* Shrinking node by @len. */
 	len = hint->len + hint->ohd;
-	return node40_shrink(entity, &place.pos, len, hint->count);
+	
+	return node40_shrink(entity, &place.pos,
+			     len, hint->count);
 }
 
 /* Updates key at @pos by specified @key */
@@ -890,9 +884,9 @@ static errno_t node40_print(node_entity_t *entity, aal_stream_t *stream,
 				  ih_get_offset(ih, pol));
 		
 		/* Printing item by means of calling item print method */
-		if (place.plug->o.item_ops->print) {
-			if (place.plug->o.item_ops->print(&place, stream,
-							  options))
+		if (place.plug->o.item_ops->debug->print) {
+			if (plug_call(place.plug->o.item_ops->debug,
+				      print, &place, stream, options))
 			{
 				return -EINVAL;
 			}
@@ -953,39 +947,40 @@ static lookup_t node40_lookup(node_entity_t *entity,
 
 #ifndef ENABLE_STAND_ALONE
 /* Checks if two item entities are mergeable */
-static bool_t node40_mergeable(place_t *src, place_t *dst) {
+static int node40_mergeable(place_t *src, place_t *dst) {
 	/* Check if plugins are equal */
 	if (!plug_equal(src->plug, dst->plug))
-		return FALSE;
+		return 0;
 
 	/* Check if mergeable is implemented and calling it if it is. */
-	return src->plug->o.item_ops->mergeable &&
-		src->plug->o.item_ops->mergeable(src, dst);
+	return src->plug->o.item_ops->balance->mergeable &&
+		src->plug->o.item_ops->balance->mergeable(src, dst);
 }
 
-static bool_t node40_splitable(place_t *place) {
+static int node40_splitable(place_t *place) {
 	uint32_t units;
 	
 	/* Check if item has shift() and estimate_shift() method are
 	   implemented. */
-	if (!place->plug->o.item_ops->shift)
-		return FALSE;
-	
-	if (!place->plug->o.item_ops->estimate_shift)
-		return FALSE;
+	if (!place->plug->o.item_ops->balance->shift_units ||
+	    !place->plug->o.item_ops->balance->prep_shift)
+	{
+		return 0;
+	}
 	
 	/* We can't shift units from items with one unit */
-	if (!place->plug->o.item_ops->units)
-		return FALSE;
+	if (!place->plug->o.item_ops->balance->number_units)
+		return 0;
 
-	units = place->plug->o.item_ops->units(place);
+	units = plug_call(place->plug->o.item_ops->balance,
+			  number_units, place);
 
 	/* Those item can be splitted that contains more than 1 unit or insert
 	   point lies behind the last unit. */
 	if (units > 1 || place->pos.unit >= units)
-		return TRUE;
+		return 1;
 	
-	return FALSE;
+	return 0;
 }
 
 /* Merges border items of the src and dst nodes. The behavior depends on the
@@ -996,11 +991,11 @@ static errno_t node40_unite(node_entity_t *src_entity,
 {
 	pos_t pos;
 	int remove;
-	
+
 	uint32_t pol;
 	uint32_t len;
+	uint32_t units;
 
-	uint32_t overhead;
 	place_t src_place;
 	place_t dst_place;
 	
@@ -1082,60 +1077,56 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		hint->create = 1;
 	}
 
-	/* Calling item's predict() method in order to estimate how many units
+	/* Calling item's pre_shift() method in order to estimate how many units
 	   may be shifted out. This method also updates unit component of insert
 	   point position. After this function is finish @hint->rest will
 	   contain real number of bytes to be shifted into neighbour item. */
 	if (hint->create) {
-		uint32_t overhead;
-
 		/* If items are not mergeable and we are in merge mode, we
 		   will not create new item in dst node. This mode is needed for
 		   mergeing mergeable items when they lie in the same node. */
 		if (hint->control & MSF_MERGE)
 			return 0;
-		
-		overhead = node40_overhead(dst_entity);
-		
-		/* In the case items are not mergeable, we need count also item
-		   overhead, because new item will be created. */
-		if (hint->rest < overhead)
-			return 0;
 
-		hint->rest -= overhead;
-
-		if (plug_call(src_place.plug->o.item_ops, estimate_shift,
-			      &src_place, NULL, hint))
+		if (plug_call(src_place.plug->o.item_ops->balance,
+			      prep_shift, &src_place, NULL, hint))
 		{
 			return -EINVAL;
 		}
 
-		/* Updating item component of the insert point if it was moved
-		   into neighbour item. In the case of creating new item and
-		   left merge item pos will be equal to dst_items. */
+		/* Updating item component of insert point if it was moved into
+		   neighbour item. */
 		if (hint->control & MSF_IPUPDT && hint->result & MSF_IPMOVE) {
-			hint->pos.item = (hint->control & MSF_LEFT ?
-					  dst_items : 0);
+			hint->pos.item = 0;
+			
+			if (hint->control & MSF_LEFT)
+				hint->pos.item = dst_items;
 		}
 	} else {
-		if (plug_call(src_place.plug->o.item_ops, estimate_shift,
-			      &src_place, &dst_place, hint))
+		/* The same for case when we will not create new item, but will
+		   shift units into existent one in neighbour node. */
+		if (plug_call(src_place.plug->o.item_ops->balance,
+			      prep_shift, &src_place, &dst_place, hint))
 		{
 			return -EINVAL;
 		}
 
 		if (hint->control & MSF_IPUPDT && hint->result & MSF_IPMOVE) {
-			hint->pos.item = (hint->control & MSF_LEFT ?
-					  dst_items - 1 : 0);
+			hint->pos.item = 0;
+
+			if (hint->control & MSF_LEFT)
+				hint->pos.item = dst_items - 1;
 		}
 	}
 
-	/* Units shift code starting here */
+	/* Check if shift_units() may shift something at all. If no --
+	   getting out of here. */
 	if (hint->units == 0)
 		return 0;
-	
+		
 	if (hint->create) {
-		/* Expanding dst node with creating new item */
+		/* Expanding dst node with creating new item we will shift units
+		   to it. */
 		POS_INIT(&pos, (hint->control & MSF_LEFT ?
 				dst_items : 0), MAX_UINT32);
 		
@@ -1145,6 +1136,7 @@ static errno_t node40_unite(node_entity_t *src_entity,
 			return -EINVAL;
 		}
 
+		/* Increasing number of shifted whole items. */
 		hint->items++;
 		
 		/* Setting up new item fields */
@@ -1158,25 +1150,22 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		src_ih = node40_ih_at(src_node, src_place.pos.item);
 		ih_set_flags(dst_ih, ih_get_flags(src_ih, pol), pol); 
 
-		/* Initializing dst item after it was created by node40_expand()
+		/* Initializing dst item after it was created by expand()
 		   function. */
 		if (node40_fetch(dst_entity, &pos, &dst_place))
 			return -EINVAL;
 
-		if (dst_place.plug->o.item_ops->init)
-			dst_place.plug->o.item_ops->init(&dst_place);
-
 		/* Setting item len to old len, that is zero, as it was just
-		   created. This is needed for correct work of shift() method of
-		   some items, which do not have "units" field and calculate the
-		   number of units by own len, like extent40 does. This is
-		   because, extent40 has all units of the same length. */
+		   created. This is needed for correct work of shift_units()
+		   method of some items, which do not have "units" field and
+		   calculate the number of units by own len, like extent40
+		   does.q */
 		dst_place.len = 0;
 	} else {
 		/* Items are mergeable, so we do not need to create new item in
 		   the dst node. We just need to expand existent dst item by
-		   hint->rest. So, we will call node40_expand() with unit
-		   component not equal MAX_UINT32. */
+		   hint->rest. So, we will call expand() with unit component not
+		   equal MAX_UINT32. */
 		POS_INIT(&pos, (hint->control & MSF_LEFT ?
 				dst_items - 1 : 0), 0);
 
@@ -1187,37 +1176,30 @@ static errno_t node40_unite(node_entity_t *src_entity,
 		}
 	}
 
-	overhead = 0;
-
-	if (src_place.plug->o.item_ops->overhead) {
-		overhead = plug_call(src_place.plug->o.item_ops,
-				     overhead, &src_place);
-	}
-
-	/* As @hint->rest is number of bytes units occupy, we decrease it by
-	   item overhead. */
-	if (hint->create)
-		hint->rest -= overhead;
-	
-	/* Shift units from @src_item to @dst_item */
-	if (plug_call(src_place.plug->o.item_ops, shift,
-		      &src_place, &dst_place, hint))
+	/* Shift units from @src_place to @dst_place. */
+	if (plug_call(src_place.plug->o.item_ops->balance,
+		      shift_units, &src_place, &dst_place, hint))
 	{
+		aal_exception_error("Can't shift units.");
 		return -EINVAL;
 	}
 
-	/* Updating source node fields */
 	pos.item = src_place.pos.item;
 
-	/* We will remove src_item if it has became empty and insert point is
-	   not points it. */
-	remove = (hint->rest == (src_place.len - overhead) &&
+	/* Getting units number after shift. This is needed to detect correctly,
+	   that src item is empty after shift and may be removed. */
+	units = plug_call(src_place.plug->o.item_ops->balance,
+			  number_units, &src_place);
+	
+	/* We will remove src item if it has became empty and insert point is
+	   not points it, that is next insert will not be dealing with it. */
+	remove = ((hint->rest == src_place.len || units == 0) &&
 		  (hint->result & MSF_IPMOVE || pos.item != hint->pos.item));
 	
-	/* Updating item's keys */
+	/* Updating item's keys. */
 	if (hint->control & MSF_LEFT) {
-		/* We do not need update key of the src item which is going to
-		   be removed. */
+		/* We do not need to update key of the src item which is going
+		   to be removed. */
 		if (!remove) {
 			src_ih = node40_ih_at(src_node, src_place.pos.item);
 			aal_memcpy(src_ih, src_place.key.body, key_size(pol));
@@ -1228,11 +1210,11 @@ static errno_t node40_unite(node_entity_t *src_entity,
 	}
 	
 	if (remove) {
-		/* Like node40_expand() does, node40_shrink() will remove
-		   pointed item if unit component is MAX_UINT32 and shrink the item
-		   pointed by pos if unit component is not MAX_UINT32. */
-		pos.unit = MAX_UINT32;
+		/* Like expand() does, shrink() will remove pointed item if unit
+		   component is MAX_UINT32 and shrink the item pointed by pos if
+		   unit component is not MAX_UINT32. */
 		len = src_place.len;
+		pos.unit = MAX_UINT32;
 
 		/* As item will be removed, we should update item pos in hint
 		   properly. */
@@ -1323,10 +1305,11 @@ static errno_t node40_predict(node_entity_t *src_entity,
 					if (node40_fetch(src_entity, &pos, &place))
 						return -EINVAL;
 
-					if (!place.plug->o.item_ops->units)
+					if (!place.plug->o.item_ops->balance->number_units)
 						return -EINVAL;
 				
-					units = place.plug->o.item_ops->units(&place);
+					units = plug_call(place.plug->o.item_ops->balance,
+							  number_units, &place);
 
 					/* Breaking if insert point reach the
 					   end of node. */
@@ -1557,7 +1540,7 @@ static reiser4_node_ops_t node40_ops = {
 	
 	.insert		= node40_insert,
 	.write		= node40_write,
-	.truncate       = node40_truncate,
+	.trunc          = node40_trunc,
 	.remove		= node40_remove,
 	.print		= node40_print,
 	.shift		= node40_shift,

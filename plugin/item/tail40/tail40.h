@@ -10,7 +10,8 @@
 #include <reiser4/plugin.h>
 
 #define tail40_body(place) (place->body)
-extern uint32_t tail40_units(place_t *place);
+
+extern uint32_t tail40_number_units(place_t *place);
 
 extern errno_t tail40_maxreal_key(place_t *place,
 				  key_entity_t *key);

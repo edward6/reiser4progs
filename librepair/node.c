@@ -176,7 +176,7 @@ static errno_t repair_node_keys_check(reiser4_node_t *node, uint8_t mode) {
 			if (mode == RM_CHECK)
 				result = RE_FIXABLE;
 			else {
-				reiser4_node_ukey(node, pos, &key);
+				reiser4_node_update_key(node, pos, &key);
 				reiser4_node_mkdirty(node);
 			}
 		}

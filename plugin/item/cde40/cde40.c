@@ -144,7 +144,7 @@ static uint32_t cde40_get_len(place_t *place, uint32_t pos) {
 
 /* Builds full key by entry components. It is needed for updating keys after
    shift, insert, etc. Also library requires unit keys sometims. */
-errno_t cde40_get_key(place_t *place, key_entity_t *key) {
+errno_t cde40_fetch_key(place_t *place, key_entity_t *key) {
 	aal_assert("umka-1606", key != NULL);
 	aal_assert("umka-1607", place != NULL);
 	aal_assert("umka-1605", place->body != NULL);
@@ -154,7 +154,7 @@ errno_t cde40_get_key(place_t *place, key_entity_t *key) {
 
 /* Updates entry offset. It is needed for fixing entry keys if repair code
    detects it is wrong. */
-errno_t cde40_set_key(place_t *place, key_entity_t *key) {
+errno_t cde40_update_key(place_t *place, key_entity_t *key) {
 	aal_assert("vpf-1228", key != NULL);
 	aal_assert("vpf-1229", place != NULL);
 	aal_assert("vpf-1230", place->body != NULL);
@@ -163,12 +163,12 @@ errno_t cde40_set_key(place_t *place, key_entity_t *key) {
 }
 
 /* Returns the number of units. */
-uint32_t cde40_units(place_t *place) {
+uint32_t cde40_number_units(place_t *place) {
 	aal_assert("umka-865", place != NULL);
 	return cde_get_units(place);
 }
 
-static int64_t cde40_fetch(place_t *place, trans_hint_t *hint) {
+static int64_t cde40_fetch_units(place_t *place, trans_hint_t *hint) {
 	uint32_t i, pos;
 	entry_hint_t *entry;
     
@@ -189,6 +189,7 @@ static int64_t cde40_fetch(place_t *place, trans_hint_t *hint) {
 	return hint->count;
 }
 
+#ifndef ENABLE_STAND_ALONE
 /* Returns 1 if items are mergeable, 0 -- otherwise. That is if they belong to
    the same directory. This function is used in shift code from the node plugin
    in order to determine are two items may be merged or not. */
@@ -204,7 +205,6 @@ static int cde40_mergeable(place_t *place1, place_t *place2) {
 			  get_locality, &place2->key));
 }
 
-#ifndef ENABLE_STAND_ALONE
 static uint16_t cde40_overhead(place_t *place) {
 	return sizeof(cde40_t);
 }
@@ -255,7 +255,7 @@ errno_t cde40_copy(place_t *dst, uint32_t dst_pos,
         aal_assert("umka-2070", src != NULL);
 
         pol = cde40_key_pol(dst);
-        dst_units = cde40_units(dst);
+        dst_units = cde40_number_units(dst);
 
         aal_assert("umka-2077", dst_pos <= dst_units);
 
@@ -464,9 +464,8 @@ uint32_t cde40_expand(place_t *place, uint32_t pos,
 
 /* Predicts how many entries and bytes can be shifted from the @src_item to
    @dst_item. The behavior of the function depends on the passed @hint. */
-static errno_t cde40_estimate_shift(place_t *src_place,
-				    place_t *dst_place,
-				    shift_hint_t *hint)
+static errno_t cde40_prep_shift(place_t *src_place, place_t *dst_place,
+				shift_hint_t *hint)
 {
 	int check;
 	uint32_t pol;
@@ -480,9 +479,14 @@ static errno_t cde40_estimate_shift(place_t *src_place,
 	aal_assert("umka-1591", src_place != NULL);
 
 	pol = cde40_key_pol(src_place);
-	src_units = cde40_units(src_place);
-	dst_units = dst_place ? cde40_units(dst_place) : 0;
+	src_units = cde40_number_units(src_place);
+	dst_units = dst_place ? cde40_number_units(dst_place) : 0;
 
+	/* Substracting cde item overhead in the case of shift to new create cde
+	   item, whcih needs to have own cde40 header. */
+	if (!dst_place || dst_place->pos.unit == MAX_UINT32)
+		hint->rest -= cde40_overhead(src_place);
+	
 	space = hint->rest;
 
 	/* If hint's create flag is present, we need to create new cde item, so
@@ -502,7 +506,7 @@ static errno_t cde40_estimate_shift(place_t *src_place,
 		 hint->pos.unit != MAX_UINT32);
 
 	while (!(hint->result & MSF_IPMOVE) &&
-	       curr < cde40_units(src_place))
+	       curr < cde40_number_units(src_place))
 	{
 
 		/* Check if we should update unit pos. we will update it if we
@@ -589,9 +593,8 @@ static errno_t cde40_estimate_shift(place_t *src_place,
 }
 
 /* Makes shift of the entries from the @src_place to the @dst_place */
-static errno_t cde40_shift(place_t *src_place,
-			   place_t *dst_place,
-			   shift_hint_t *hint)
+static errno_t cde40_shift_units(place_t *src_place, place_t *dst_place,
+				 shift_hint_t *hint)
 {
 	uint32_t src_pos, dst_pos;
 	
@@ -599,6 +602,11 @@ static errno_t cde40_shift(place_t *src_place,
 	aal_assert("umka-1586", src_place != NULL);
 	aal_assert("umka-1587", dst_place != NULL);
 
+	/* Substracting cde item overhead in the case of shift to new create cde
+	   item, whcih needs to have own cde40 header. */
+	if (dst_place->pos.unit == MAX_UINT32)
+		hint->rest -= cde40_overhead(src_place);
+	
 	if (hint->control & MSF_LEFT) {
 		src_pos = 0;
 		dst_pos = cde_get_units(dst_place);
@@ -632,9 +640,7 @@ static errno_t cde40_shift(place_t *src_place,
 
 /* Estimates how much bytes will be needed to prepare in node in odrer to make
    room for inserting new entries. */
-static errno_t cde40_estimate_insert(place_t *place,
-				     trans_hint_t *hint)
-{
+static errno_t cde40_prep_insert(place_t *place, trans_hint_t *hint) {
 	uint32_t i, pol;
 	entry_hint_t *entry;
 	    
@@ -676,9 +682,7 @@ static errno_t cde40_estimate_insert(place_t *place,
 }
 
 /* Inserts new entries to cde item */
-static int64_t cde40_insert(place_t *place,
-			    trans_hint_t *hint)
-{
+static int64_t cde40_insert_units(place_t *place, trans_hint_t *hint) {
 	void *entry;
 	uint32_t pol, i, offset;
 	entry_hint_t *entry_hint;
@@ -689,8 +693,12 @@ static int64_t cde40_insert(place_t *place,
 	pol = cde40_key_pol(place);
 	entry_hint = (entry_hint_t *)hint->specific;
 
-	if (place->pos.unit == MAX_UINT32)
+	/* Initialize body and normalize unit pos in the case of insert new
+	   item. */
+	if (place->pos.unit == MAX_UINT32) {
+		((cde40_t *)place->body)->units = 0;
 		place->pos.unit = 0;
+	}
 	
 	/* Expanding direntry in order to prepare the room for new entries. The
 	   function cde40_expand() returns the offset of where new unit will be
@@ -763,9 +771,8 @@ static int64_t cde40_insert(place_t *place,
 	
 	/* Updating item key by unit key if the first unit was changed. It is
 	   needed for correct updating left delimiting keys. */
-	if (place->pos.unit == 0) {
+	if (place->pos.unit == 0)
 		cde40_get_hash(place, 0, &place->key);
-	}
 
 	place_mkdirty(place);
 	return hint->count;
@@ -784,7 +791,7 @@ errno_t cde40_delete(place_t *place, uint32_t pos,
 	bytes += cde40_shrink(place, pos, hint->count, 0);
 	
 	/* Updating item key */
-	if (pos == 0 && cde40_units(place) > 0) {
+	if (pos == 0 && cde40_number_units(place) > 0) {
 		cde40_get_hash(place, 0, &place->key);
 	}
 
@@ -797,22 +804,10 @@ errno_t cde40_delete(place_t *place, uint32_t pos,
 }
 
 /* Removes @count entries at @pos from passed @place */
-static errno_t cde40_remove(place_t *place, trans_hint_t *hint) {
+static errno_t cde40_remove_units(place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-934", place != NULL);
 	aal_assert("umka-2400", hint != NULL);
-
 	return cde40_delete(place, place->pos.unit, hint);
-}
-
-/* Prepares area new item will be created at */
-static errno_t cde40_init(place_t *place) {
-	aal_assert("umka-1010", place != NULL);
-	aal_assert("umka-2215", place->body != NULL);
-	
-	((cde40_t *)place->body)->units = 0;
-	place_mkdirty(place);
-	
-	return 0;
 }
 
 /* Prints cde item into passed @stream */
@@ -873,16 +868,19 @@ static errno_t cde40_print(place_t *place, aal_stream_t *stream,
 
 /* Returns real maximal key in cde item */
 static errno_t cde40_maxreal_key(place_t *place, 
-				     key_entity_t *key) 
+				 key_entity_t *key) 
 {
+	uint32_t units;
+	
 	aal_assert("umka-1651", key != NULL);
 	aal_assert("umka-1650", place != NULL);
-	
-	return cde40_get_hash(place, cde40_units(place) - 1, key);
+
+	units = cde40_number_units(place);
+	return cde40_get_hash(place, units - 1, key);
 }
 
 static uint64_t cde40_size(place_t *place) {
-	return cde40_units(place);
+	return cde40_number_units(place);
 }
 
 static uint64_t cde40_bytes(place_t *place) {
@@ -949,7 +947,7 @@ lookup_t cde40_lookup(place_t *place, key_entity_t *key,
     
 	/* Bin search within the cde item to get the position of 
 	   the wanted key. */
-	switch (aux_bin_search(place->body, cde40_units(place),
+	switch (aux_bin_search(place->body, cde40_number_units(place),
 			       key, callback_comp_entry, place,
 			       &place->pos.unit))
 	{
@@ -983,42 +981,69 @@ lookup_t cde40_lookup(place_t *place, key_entity_t *key,
 	}
 }
 
-static reiser4_item_ops_t cde40_ops = {
+static item_balance_ops_t balance_ops = {
 #ifndef ENABLE_STAND_ALONE	    
-	.init		   = cde40_init,
-	.merge		   = cde40_merge,
-	.insert		   = cde40_insert,
-	.remove		   = cde40_remove,
-	.overhead          = cde40_overhead,
-	.check_struct	   = cde40_check_struct,
-	.print		   = cde40_print,
-	.shift             = cde40_shift,
-	.size		   = cde40_size,
-	.bytes		   = cde40_bytes,
-	
-	.set_key	   = cde40_set_key,
-	.maxreal_key       = cde40_maxreal_key,
-	.estimate_merge	   = cde40_estimate_merge,
-	.estimate_shift    = cde40_estimate_shift,
-	.estimate_insert   = cde40_estimate_insert,
-
-	.update            = NULL,
-	.write             = NULL,
-	.truncate          = NULL,
-	.layout		   = NULL,
-	.check_layout	   = NULL,
-	.estimate_write    = NULL,
+	.mergeable     = cde40_mergeable,
+	.prep_shift    = cde40_prep_shift,
+	.shift_units   = cde40_shift_units,
+        .maxreal_key   = cde40_maxreal_key,
+	.update_key    = cde40_update_key,
 #endif
-	.read              = NULL,
-	.branch            = NULL,
-	.plugid		   = NULL,
+	.lookup        = cde40_lookup,
+	.fetch_key     = cde40_fetch_key,
+	.maxposs_key   = cde40_maxposs_key,
+	.number_units  = cde40_number_units
+};
 
-	.lookup		   = cde40_lookup,
-	.units		   = cde40_units,
-	.fetch             = cde40_fetch,
-	.get_key	   = cde40_get_key,
-	.mergeable         = cde40_mergeable,
-	.maxposs_key	   = cde40_maxposs_key
+static item_object_ops_t object_ops = {
+	.fetch_units   = cde40_fetch_units,
+	
+#ifndef ENABLE_STAND_ALONE
+	.prep_insert   = cde40_prep_insert,
+	.insert_units  = cde40_insert_units,
+	.remove_units  = cde40_remove_units,
+		 
+	.size          = cde40_size,
+	.bytes         = cde40_bytes,
+		 
+	.update_units  = NULL,
+	.prep_write    = NULL,
+	.write_units   = NULL,
+	.trunc_units   = NULL,
+	.layout        = NULL,
+#endif
+	.read_units    = NULL,
+	.object_plug   = NULL
+};
+
+static item_debug_ops_t debug_ops = {
+#ifndef ENABLE_STAND_ALONE
+	.print         = cde40_print
+#endif
+};
+
+static item_repair_ops_t repair_ops = {
+#ifndef ENABLE_STAND_ALONE
+	.prep_merge    = cde40_prep_merge,
+	.merge_units   = cde40_merge_units,
+	.check_struct  = cde40_check_struct,
+	.check_layout  = NULL
+#endif
+};
+
+static item_tree_ops_t tree_ops = {
+	.down_link     = NULL,
+#ifndef ENABLE_STAND_ALONE
+	.update_link     = NULL
+#endif
+};
+
+static reiser4_item_ops_t cde40_ops = {
+	.tree          = &tree_ops,
+	.debug         = &debug_ops,
+	.object        = &object_ops,
+	.repair        = &repair_ops,
+	.balance       = &balance_ops
 };
 
 static reiser4_plug_t cde40_plug = {

@@ -111,9 +111,9 @@ extern int32_t reiser4_tree_expand(reiser4_tree_t *tree,
 				 uint32_t needed,
 				 uint32_t flags);
 
-extern errno_t reiser4_tree_ukey(reiser4_tree_t *tree,
-				 reiser4_place_t *place,
-				 reiser4_key_t *key);
+extern errno_t reiser4_tree_update_key(reiser4_tree_t *tree,
+				       reiser4_place_t *place,
+				       reiser4_key_t *key);
 
 extern errno_t reiser4_tree_load_root(reiser4_tree_t *tree);
 

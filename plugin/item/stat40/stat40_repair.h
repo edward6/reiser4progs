@@ -12,9 +12,9 @@
 extern errno_t stat40_check_struct(place_t *place,
 				   uint8_t mode);
 
-extern errno_t stat40_merge(place_t *dst, place_t *src, 
-			    merge_hint_t *hint);
+extern errno_t stat40_merge_units(place_t *dst, place_t *src, 
+				  merge_hint_t *hint);
 
-extern errno_t stat40_estimate_merge(place_t *dst, place_t *src, 
-				     merge_hint_t *hint);
+extern errno_t stat40_prep_merge(place_t *dst, place_t *src, 
+				 merge_hint_t *hint);
 #endif

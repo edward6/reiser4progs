@@ -142,9 +142,11 @@ static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
 		return NULL;
 
 	/* Get the maxreal key of the found item and find next. */
-	if ((res = plug_call(place.plug->o.item_ops, maxreal_key, 
-			     &place, &key)))
+	if ((res = plug_call(place.plug->o.item_ops->balance,
+			     maxreal_key, &place, &key)))
+	{
 		return NULL;
+	}
 
 	offset = plug_call(key.plug->o.key_ops, get_offset, &key);
 	return reg40_policy_plug(reg, offset);
@@ -210,15 +212,17 @@ static errno_t reg40_next(object_entity_t *object,
 				goto end;
 
 			/* If non-existent position in the item, move next. */
-			if (plug_call(reg->body.plug->o.item_ops, units, 
-				      &reg->body) == reg->body.pos.unit)
+			if (plug_call(reg->body.plug->o.item_ops->balance,
+				      number_units, &reg->body) == reg->body.pos.unit)
 			{
 				place_t next;
 
 				if ((res = reg40_core->tree_ops.next(info->tree, 
 								&reg->body,
-								&next)))
+								     &next)))
+				{
 					return res;
+				}
 
 				/* If this was the last item in the tree, 
 				   evth is handled. */
@@ -231,7 +235,9 @@ static errno_t reg40_next(object_entity_t *object,
 				if (plug_call(reg->offset.plug->o.key_ops, 
 					      compshort, &reg->offset, 
 					      &reg->body.key))
+				{
 					break;
+				}
 			}
 		}
 
@@ -363,9 +369,11 @@ static uint64_t reg40_place_maxreal(place_t *place) {
 		return 0;
 
 	/* Get the maxreal key of the found item. */
-	if ((res = plug_call(place->plug->o.item_ops, 
+	if ((res = plug_call(place->plug->o.item_ops->balance, 
 			     maxreal_key, place, &key)))
+	{
 		return MAX_UINT64;
+	}
 
 	return plug_call(key.plug->o.key_ops, get_offset, &key);
 }
@@ -550,7 +558,7 @@ errno_t reg40_check_struct(object_entity_t *object,
 			return res;
 
 		/* Count bytes. */
-		repair.bytes += plug_call(reg->body.plug->o.item_ops,
+		repair.bytes += plug_call(reg->body.plug->o.item_ops->object,
 					  bytes, &reg->body);
 		
 

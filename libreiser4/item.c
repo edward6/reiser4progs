@@ -11,9 +11,9 @@ uint32_t reiser4_item_units(reiser4_place_t *place) {
 	aal_assert("umka-1030", place != NULL);
 	aal_assert("umka-1448", place->plug != NULL);
 
-	if (place->plug->o.item_ops->units) {
-		return plug_call(place->plug->o.item_ops, units,
-				 (place_t *)place);
+	if (place->plug->o.item_ops->balance->number_units) {
+		return plug_call(place->plug->o.item_ops->balance,
+				 number_units, (place_t *)place);
 	}
 	
 	return 1;
@@ -29,11 +29,11 @@ errno_t reiser4_item_print(
 	aal_assert("umka-1550", stream != NULL);
 	aal_assert("umka-1449", place->plug != NULL);
 
-	if (!place->plug->o.item_ops->print)
+	if (!place->plug->o.item_ops->debug->print)
 		return -EINVAL;
 	
-	return place->plug->o.item_ops->print((place_t *)place,
-					      stream, 0);
+	return plug_call(place->plug->o.item_ops->debug,
+			 print, (place_t *)place, stream, 0);
 }
 
 bool_t reiser4_item_statdata(reiser4_place_t *place) {
@@ -56,18 +56,13 @@ rid_t reiser4_item_type(reiser4_place_t *place) {
 }
 #endif
 
-/* Returns TRUE if @place points to an internal item */
+/* Returns 1 if @place points to an nodeptr item. */
 bool_t reiser4_item_branch(reiser4_plug_t *plug) {
 	aal_assert("umka-1829", plug != NULL);
-
-	if (!plug->o.item_ops->branch)
-		return FALSE;
-
-	return plug->o.item_ops->branch();
+	return (plug->o.item_ops->tree->down_link != NULL);
 }
 
-/* Returns maximal possible key may exist in item at @place. If item's "get_key"
-   method is not implemented, it returns item key. */
+/* Returns maximal possible key may exist in item at @place. */
 errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 				 reiser4_key_t *key)
 {
@@ -77,10 +72,10 @@ errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 	
 	aal_memcpy(key, &place->key, sizeof(*key));
 
-	if (place->plug->o.item_ops->maxposs_key == NULL)
+	if (!place->plug->o.item_ops->balance->maxposs_key)
 		return 0;
 	
-	return plug_call(place->plug->o.item_ops,
+	return plug_call(place->plug->o.item_ops->balance,
 			 maxposs_key, (place_t *)place, key);
 }
 
@@ -95,32 +90,58 @@ errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 
 	aal_memcpy(key, &place->key, sizeof(*key));
 
-	if (place->plug->o.item_ops->maxreal_key == NULL)
+	if (!place->plug->o.item_ops->balance->maxreal_key)
 		return 0;
 
-	return plug_call(place->plug->o.item_ops,
+	return plug_call(place->plug->o.item_ops->balance,
 			 maxreal_key, (place_t *)place, key);
 }
 
-errno_t reiser4_item_ukey(reiser4_place_t *place, reiser4_key_t *key) {
+errno_t reiser4_item_update_key(reiser4_place_t *place,
+				reiser4_key_t *key)
+{
 	aal_assert("vpf-1205", key != NULL);
 	aal_assert("vpf-1205", place != NULL);
 	
 	reiser4_key_assign(&place->key, key);
 	
-	return reiser4_node_ukey(place->node, &place->pos, &place->key);
+	return reiser4_node_update_key(place->node,
+				       &place->pos,
+				       &place->key);
 }
 
-errno_t reiser4_item_key(reiser4_place_t *place, reiser4_key_t *key) {
+errno_t reiser4_item_get_key(reiser4_place_t *place,
+			     reiser4_key_t *key)
+{
 	aal_assert("vpf-1290", place != NULL);
 	aal_assert("vpf-1291", key != NULL);
 
 	aal_memcpy(key, &place->key, sizeof(*key));
 	
-	if (!place->pos.unit || !place->plug->o.item_ops->get_key)
+	if (!place->plug->o.item_ops->balance->fetch_key ||
+	    !place->pos.unit)
+	{
 		return 0;
+	}
 	
-	return plug_call(place->plug->o.item_ops, get_key,
-			 (place_t *)place, key);
+	return plug_call(place->plug->o.item_ops->balance,
+			 fetch_key, (place_t *)place, key);
+}
+
+errno_t reiser4_item_update_link(reiser4_place_t *place,
+				 blk_t blk)
+{
+	aal_assert("umka-2668", place != NULL);
+	
+	return plug_call(place->plug->o.item_ops->tree,
+			 update_link, (place_t *)place, blk);
 }
 #endif
+
+/* Return block number nodeptr item contains. */
+blk_t reiser4_item_down_link(reiser4_place_t *place) {
+	aal_assert("umka-2666", place != NULL);
+	
+	return plug_call(place->plug->o.item_ops->tree,
+			 down_link, (place_t *)place);
+}

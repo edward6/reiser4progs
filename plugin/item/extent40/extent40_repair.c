@@ -18,7 +18,7 @@ errno_t extent40_check_layout(place_t *place, region_func_t func,
 	aal_assert("vpf-725", func != NULL);
 
 	extent = extent40_body(place);
-	units = extent40_units(place);
+	units = extent40_number_units(place);
 			
 	for (i = 0; i < units; i++, extent++) {
 		uint64_t start, width;
@@ -65,7 +65,7 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 		return RE_FATAL;
 	
 	extent = extent40_body(place);
-	units = extent40_units(place);
+	units = extent40_number_units(place);
 	
 	for (i = 0; i < units; i++, extent++) {
 		uint64_t start;
@@ -90,87 +90,9 @@ errno_t extent40_check_struct(place_t *place, uint8_t mode) {
 	return res;
 }
 
-errno_t extent40_merge(place_t *dst, place_t *src, 
-		       merge_hint_t *hint)
-{
-	extent40_t *dst_body, *src_body;
-	uint32_t dst_units, src_units;
-	uint64_t dst_head, dst_tail;
-	uint32_t dst_pos, src_pos;
-	int32_t  move;
-    
-	aal_assert("vpf-993", hint != NULL);
-	aal_assert("vpf-994", dst  != NULL);
-	aal_assert("vpf-995", src  != NULL);
-	
-	dst_body = extent40_body(dst);
-	src_body = extent40_body(src);
-	
-	/* Amount of units to be added. */
-	move = hint->len_delta / sizeof(extent40_t);
-
-	dst_pos = dst->pos.unit;
-	src_pos = src->pos.unit;
-	
-	dst_units = extent40_units(dst);
-	src_units = extent40_units(src);
-	
-	aal_assert("vpf-1017", dst_pos + hint->dst_count <= dst_units);
-	aal_assert("vpf-1017", src_pos + hint->src_count <= src_units);
-	
-	dst_body += dst_pos;
-	src_body += src_pos;
-	
-	aal_assert("vpf-1018", et40_get_width(dst_body) > hint->dst_head);
-	aal_assert("vpf-1019", et40_get_width(src_body) > hint->src_head);
-	aal_assert("vpf-1020", et40_get_width(dst_body + hint->dst_count - 1) > 
-		   hint->dst_tail);
-	aal_assert("vpf-1021", et40_get_width(src_body + hint->src_count - 1) > 
-		   hint->src_tail);
-	
-	/* Result width in the first dst unit. */
-	dst_head = hint->dst_head + 
-		(hint->head ? 0 : et40_get_width(src_body) - hint->src_head);
-	
-	et40_set_width(dst_body, dst_head);
-	
-	/* If the first dst unit is merged with the first src one. */
-	if (!hint->head) {
-		dst_body++;
-		src_body++;
-		dst_pos++;
-		src_pos++;
-		hint->src_count--;
-		hint->dst_count--;
-	}
-	
-	/* Result width in the last dst unit. */
-	dst_tail = et40_get_width(dst_body + hint->dst_count - 1) - hint->dst_tail;
-	
-	if (!hint->tail)
-		dst_tail += hint->src_tail;
-	
-	aal_memcpy(dst_body + move, dst_body, 
-		   (dst_units - dst_pos) * sizeof(extent40_t));
-	
-	et40_set_width(dst_body + hint->dst_count - 1 + move, dst_tail);
-	
-	if (!hint->tail) {
-		hint->src_count--;
-		hint->dst_count--;
-	}
-	
-	if (!hint->src_count)
-		return 0;
-	
-	aal_memcpy(dst_body, src_body, hint->src_count * sizeof(extent40_t));
-	
-	return 0;
-}
-
 /* FIXME-VITALY: Do not forget to handle the case with unit's @start == 0. */
-errno_t extent40_estimate_merge(place_t *dst, place_t *src, 
-				merge_hint_t *hint)
+errno_t extent40_prep_merge(place_t *dst, place_t *src, 
+			    merge_hint_t *hint)
 {
 	uint64_t dst_max, src_min, src_max, src_end;
 	uint64_t src_start, dst_start, dst_min;
@@ -230,7 +152,7 @@ errno_t extent40_estimate_merge(place_t *dst, place_t *src,
 	aal_assert("vpf-999", dst_max % b_size == 0);
 	aal_assert("vpf-1009", src_start < src_max);
 	
-	if (dst_pos >= extent40_units(dst)) {
+	if (dst_pos >= extent40_number_units(dst)) {
 		aal_assert("vpf-1007", src_start == dst_max);
 		
 		hint->dst_count = 0;
@@ -272,7 +194,7 @@ errno_t extent40_estimate_merge(place_t *dst, place_t *src,
 			hint->head = 1;
 	} else {
 		aal_assert("vpf-1008: Must be handled already.", 
-			   dst_pos >= extent40_units(dst));
+			   dst_pos >= extent40_number_units(dst));
 	}
 	
 	if (dst_max < src_max)
@@ -303,6 +225,84 @@ errno_t extent40_estimate_merge(place_t *dst, place_t *src,
 	
 	hint->len_delta = (hint->src_count - hint->dst_count + 
 			   hint->head + hint->tail) * sizeof(extent40_t);
+	
+	return 0;
+}
+
+errno_t extent40_merge_units(place_t *dst, place_t *src, 
+			     merge_hint_t *hint)
+{
+	extent40_t *dst_body, *src_body;
+	uint32_t dst_units, src_units;
+	uint64_t dst_head, dst_tail;
+	uint32_t dst_pos, src_pos;
+	int32_t  move;
+    
+	aal_assert("vpf-993", hint != NULL);
+	aal_assert("vpf-994", dst  != NULL);
+	aal_assert("vpf-995", src  != NULL);
+	
+	dst_body = extent40_body(dst);
+	src_body = extent40_body(src);
+	
+	/* Amount of units to be added. */
+	move = hint->len_delta / sizeof(extent40_t);
+
+	dst_pos = dst->pos.unit;
+	src_pos = src->pos.unit;
+	
+	dst_units = extent40_number_units(dst);
+	src_units = extent40_number_units(src);
+	
+	aal_assert("vpf-1017", dst_pos + hint->dst_count <= dst_units);
+	aal_assert("vpf-1017", src_pos + hint->src_count <= src_units);
+	
+	dst_body += dst_pos;
+	src_body += src_pos;
+	
+	aal_assert("vpf-1018", et40_get_width(dst_body) > hint->dst_head);
+	aal_assert("vpf-1019", et40_get_width(src_body) > hint->src_head);
+	aal_assert("vpf-1020", et40_get_width(dst_body + hint->dst_count - 1) > 
+		   hint->dst_tail);
+	aal_assert("vpf-1021", et40_get_width(src_body + hint->src_count - 1) > 
+		   hint->src_tail);
+	
+	/* Result width in the first dst unit. */
+	dst_head = hint->dst_head + 
+		(hint->head ? 0 : et40_get_width(src_body) - hint->src_head);
+	
+	et40_set_width(dst_body, dst_head);
+	
+	/* If the first dst unit is merged with the first src one. */
+	if (!hint->head) {
+		dst_body++;
+		src_body++;
+		dst_pos++;
+		src_pos++;
+		hint->src_count--;
+		hint->dst_count--;
+	}
+	
+	/* Result width in the last dst unit. */
+	dst_tail = et40_get_width(dst_body + hint->dst_count - 1) - hint->dst_tail;
+	
+	if (!hint->tail)
+		dst_tail += hint->src_tail;
+	
+	aal_memcpy(dst_body + move, dst_body, 
+		   (dst_units - dst_pos) * sizeof(extent40_t));
+	
+	et40_set_width(dst_body + hint->dst_count - 1 + move, dst_tail);
+	
+	if (!hint->tail) {
+		hint->src_count--;
+		hint->dst_count--;
+	}
+	
+	if (!hint->src_count)
+		return 0;
+	
+	aal_memcpy(dst_body, src_body, hint->src_count * sizeof(extent40_t));
 	
 	return 0;
 }

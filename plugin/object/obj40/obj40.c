@@ -51,8 +51,8 @@ errno_t obj40_read_ext(place_t *place, rid_t id, void *data) {
 	}
 	
 	/* Calling statdata open method. */
-	if (plug_call(place->plug->o.item_ops,
-		      fetch, place, &trans) != 1)
+	if (plug_call(place->plug->o.item_ops->object,
+		      fetch_units, place, &trans) != 1)
 	{
 		return -EIO;
 	}
@@ -80,8 +80,8 @@ errno_t obj40_load_stat(obj40_t *obj, statdata_hint_t *hint) {
 	trans.specific = hint;
 	
 	/* Calling statdata fetch method. */
-	if (plug_call(STAT_PLACE(obj)->plug->o.item_ops,
-		      fetch, STAT_PLACE(obj), &trans) != 1)
+	if (plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
+		      fetch_units, STAT_PLACE(obj), &trans) != 1)
 	{
 		return -EIO;
 	}
@@ -100,8 +100,8 @@ errno_t obj40_save_stat(obj40_t *obj, statdata_hint_t *hint) {
 	trans.specific = hint;
 
 	/* Updating stat data. */
-	if (plug_call(STAT_PLACE(obj)->plug->o.item_ops,
-		      update, STAT_PLACE(obj), &trans) <= 0)
+	if (plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
+		      update_units, STAT_PLACE(obj), &trans) <= 0)
 	{
 		return -EIO;
 	}
@@ -237,16 +237,16 @@ errno_t obj40_write_ext(place_t *place, rid_t id,
 
 	hint.specific = &stat;
 
-	if (plug_call(place->plug->o.item_ops,
-		      fetch, place, &hint) != 1)
+	if (plug_call(place->plug->o.item_ops->object,
+		      fetch_units, place, &hint) != 1)
 	{
 		return -EIO;
 	}
 
 	stat.ext[id] = data;
 
-	if (plug_call(place->plug->o.item_ops,
-		      update, place, &hint) <= 0)
+	if (plug_call(place->plug->o.item_ops->object,
+		      update_units, place, &hint) <= 0)
 	{
 		return -EIO;
 	}
@@ -265,8 +265,8 @@ uint64_t obj40_extmask(place_t *place) {
 	hint.specific = &stat;
 	
 	/* Calling statdata open method if any */
-	if (plug_call(place->plug->o.item_ops,
-		      fetch, place, &hint) != 1)
+	if (plug_call(place->plug->o.item_ops->object,
+		      fetch_units, place, &hint) != 1)
 	{
 		return MAX_UINT64;
 	}
@@ -553,8 +553,8 @@ rid_t obj40_pid(obj40_t *obj, rid_t type, char *name) {
 	aal_assert("vpf-1235", obj != NULL);
 	aal_assert("vpf-1236", STAT_PLACE(obj)->plug != NULL);
 	
-	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops,
-			plugid, STAT_PLACE(obj), type);
+	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
+			object_plug, STAT_PLACE(obj), type);
 
 	/* If nothing found in SD, obtain the default one. */
 	if (pid == INVAL_PID) {

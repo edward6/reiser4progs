@@ -17,8 +17,8 @@ reiser4_plug_t *obj40_plug_recognize(obj40_t *obj, rid_t type, char *name) {
 	aal_assert("vpf-1237", obj != NULL);
 	aal_assert("vpf-1238", STAT_PLACE(obj)->plug != NULL);
 	
-	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops,
-			plugid, STAT_PLACE(obj), type);
+	pid = plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
+			object_plug, STAT_PLACE(obj), type);
 	
 	/* If id found, try to find the plugin. */
 	if (pid != INVAL_PID) {
@@ -63,7 +63,9 @@ errno_t obj40_stat(obj40_t *obj, stat_func_t stat_func) {
 	   like offset != 0, fix it at check_struct time. */
 	if (info->object.plug->o.key_ops->compshort(&info->object, 
 						    &info->start.key))
+	{
 		return RE_FATAL;
+	}
 	
 	/* Some SD is recognized. Check that this is our SD. */
 	return stat_func ? stat_func(&info->start) : 0;
@@ -246,7 +248,9 @@ errno_t obj40_fix_key(obj40_t *obj, place_t *place,
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
 	
-	if ((res = obj->core->tree_ops.ukey(obj->info.tree, place, key))) {
+	if ((res = obj->core->tree_ops.update_key(obj->info.tree,
+						  place, key)))
+	{
 		aal_exception_error("Node (%llu), item(%u): update of the "
 				    "item key failed.", place->block->nr,
 				    place->pos.unit);

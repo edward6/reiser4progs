@@ -222,7 +222,7 @@ AC_ARG_ENABLE(Werror,
 
 AC_ARG_ENABLE(debug, 
     [  --disable-debug          disable asserts and debug information ], , 
-	enable_debug=no
+	enable_debug=yes
 )
 
 AC_ARG_ENABLE(stand_alone,

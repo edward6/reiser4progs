@@ -161,9 +161,8 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
 	reiser4_node_t *node = NULL;
-	trans_hint_t hint;
-	ptr_hint_t ptr;
 	int error = 0;
+	blk_t blk;
 	
 	aal_assert("vpf-379", fd != NULL);
 	aal_assert("vpf-433", fd->repair != NULL);
@@ -171,31 +170,26 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	aal_assert("vpf-591", fd->repair->fs->format != NULL);
 	aal_assert("vpf-1118", tree != NULL);
 	aal_assert("vpf-1187", place != NULL);
-	
-	/* Fetching node ptr */
-	hint.count = 1;
-	hint.specific = &ptr;
-	
-	if (plug_call(place->plug->o.item_ops, fetch,
-		      (place_t *)place, &hint) != 1)
+
+	if ((blk = reiser4_item_down_link(place)) == INVAL_BLK)
 		return INVAL_PTR;
 	
-	if (ptr.start >= fd->bm_used->total) {
+	if (blk >= fd->bm_used->total) {
 		aal_exception_error("Node (%llu), item (%u), unit (%u): "
 				    "Points to the invalid block (%llu).%s",
 				    node_blocknr(place->node), place->pos.item,
-				    place->pos.unit, ptr.start,
+				    place->pos.unit, blk,
 				    fd->repair->mode == RM_BUILD ? " Removed." :
 				    " The whole subtree is skipped.");
 		error = 1;
 	}
 	
-	if (aux_bitmap_test_region(fd->bm_used, ptr.start, 1, 1)) {
+	if (aux_bitmap_test_region(fd->bm_used, blk, 1, 1)) {
 		/* Bad pointer detected. Remove if possible. */
 		aal_exception_error("Node (%llu), item (%u), unit (%u): Points "
 				    "to the block (%llu) which is in the tree "
 				    "already.%s", node_blocknr(place->node), 
-				    place->pos.item, place->pos.unit, ptr.start,
+				    place->pos.item, place->pos.unit, blk,
 				    fd->repair->mode == RM_BUILD ? "Removed." : 
 				    "The whole subtree is skipped.");
 		error = 1;
@@ -203,14 +197,14 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	
 	if (error) goto error;
 	
-	if (!(node = repair_node_open(fd->repair->fs->tree, ptr.start, 
+	if (!(node = repair_node_open(fd->repair->fs->tree, blk, 
 				      *fd->check_node)))
 	{
 		aal_exception_error("Node (%llu): failed to open the node "
 				    "pointed by the node (%llu), item (%u), "
 				    "unit (%u) on the level (%u). The whole "
 				    "subtree is skipped.", 
-				    ptr.start, node_blocknr(place->node), 
+				    blk, node_blocknr(place->node), 
 				    place->pos.item, place->pos.unit,
 				    reiser4_node_get_level(place->node));
 		goto error;
@@ -228,7 +222,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 		fd->progress_handler(fd->progress);
 	}
 	
-	repair_filter_read_node(fd, ptr.start, reiser4_node_get_level(node));
+	repair_filter_read_node(fd, blk, reiser4_node_get_level(node));
 
 	return node;
 	
@@ -337,18 +331,12 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 					     void *data) 
 {
 	repair_filter_t *fd = (repair_filter_t *)data;
-	ptr_hint_t ptr;
-	trans_hint_t hint;
+	blk_t blk;
     
 	aal_assert("vpf-257", fd != NULL);
 	aal_assert("vpf-434", place != NULL);
 
-	hint.count = 1;
-	hint.specific = &ptr;
-	
-	if (plug_call(place->plug->o.item_ops, fetch,
-		      (place_t *)place, &hint) != 1)
-	{
+	if ((blk = reiser4_item_down_link(place)) == INVAL_BLK) {
 		aal_exception_fatal("Node (%llu), item (%u), unit(%u): Failed "
 				    "to fetch the node pointer.",
 				    node_blocknr(place->node),
@@ -362,7 +350,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 	if ((fd->flags & RE_FATAL) || (fd->flags & RE_EMPTY)) {
 		aal_exception_error("Node (%llu): the node is %s. Pointed from "
 				    "the node(%llu), item (%u), unit (%u).%s",
-				    ptr.start, fd->flags & RE_EMPTY ? "empty" :
+				    blk, fd->flags & RE_EMPTY ? "empty" :
 				    fd->repair->mode == RM_BUILD ? 
 				    "unrecoverable" : "broken", 
 				    node_blocknr(place->node), 
@@ -374,7 +362,7 @@ static errno_t repair_filter_update_traverse(reiser4_tree_t *tree,
 				    "to the node [%llu] with wrong delimiting "
 				    "keys. %s", node_blocknr(place->node), 
 				    place->pos.item, place->pos.unit, 
-				    ptr.start, fd->repair->mode == RM_BUILD ?
+				    blk, fd->repair->mode == RM_BUILD ?
 				    "Removed, content will be inserted later "
 				    "item-by-item." : "The whole subtree is "
 				    "skipped.");
@@ -559,11 +547,13 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 	/* Check the root pointer to be valid block. */
 	if (root < reiser4_format_start(format) || 
 	    root > reiser4_format_get_len(format))
+	{
 		/* Wrong pointer. */
 		goto error;
-	else if (aux_bitmap_test(fd->bm_used, root))
+	} else if (aux_bitmap_test(fd->bm_used, root)) {
 		/* This block is from format area. */
 		goto error;
+	}
 	
 	/* try to open the root node. */
 	if (!(tree->root = repair_node_open(fd->repair->fs->tree, root, 0))) {

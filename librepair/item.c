@@ -41,12 +41,13 @@ errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
 	aal_assert("vpf-791", place != NULL);
 	aal_assert("vpf-792", place->node != NULL);
 	
-	if (!place->plug->o.item_ops->check_struct)
+	if (!place->plug->o.item_ops->repair->check_struct)
 		return 0;
 	
 	length = place->len;
 	
-	res = place->plug->o.item_ops->check_struct((place_t *)place, mode);
+	res = plug_call(place->plug->o.item_ops->repair,
+			check_struct, (place_t *)place, mode);
 	
 	if (res < 0)
 		return res;
@@ -71,13 +72,14 @@ errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func,
 	aal_assert("vpf-793", place != NULL);
 	aal_assert("vpf-794", place->node != NULL);
 	
-	if (!place->plug->o.item_ops->check_layout)
+	if (!place->plug->o.item_ops->repair->check_layout)
 		return 0;
 	
 	length = place->len;
 	
-	res = place->plug->o.item_ops->check_layout((place_t *)place, func,
-						    data, mode);
+	res = plug_call(place->plug->o.item_ops->repair,
+			check_layout, (place_t *)place, func,
+			data, mode);
 	
 	aal_assert("vpf-795", mode != RM_CHECK || 
 			      length == place->len);
@@ -96,7 +98,7 @@ errno_t repair_item_estimate_merge(reiser4_place_t *dst,
 	aal_assert("vpf-955", dst->plug != NULL);
 	aal_assert("vpf-956", src->plug != NULL);
 	
-	return plug_call(src->plug->o.item_ops, estimate_merge,
+	return plug_call(src->plug->o.item_ops->repair, prep_merge,
 			 (place_t *)dst, (place_t *)src, hint);
 }
 
