@@ -733,8 +733,7 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 	void *dst, *src;
 	uint32_t src_items;
 	uint32_t dst_items;
-	item40_header_t *bih;
-	item40_header_t *nih;
+	item40_header_t *ih;
 	uint32_t headers_size;
 
 	item40_header_t *end;
@@ -771,7 +770,7 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 	cur = (estimate.flags & SF_LEFT ? start : end);
 
 	if (estimate.flags & SF_LEFT) {
-		bih = start - (estimate.items - 1);
+		ih = start - (estimate.items - 1);
 		
 		/* Copying item headers */
 		dst = node40_ih_at(estimate.dst, dst_items - 1);
@@ -779,20 +778,20 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 		headers_size = sizeof(item40_header_t) * estimate.items;
 		dst -= headers_size;
 			
-		aal_memcpy(dst, bih, headers_size);
+		aal_memcpy(dst, ih, headers_size);
 
 		/* Copying data */
-		src = ih40_get_offset(bih) + estimate.src->block->data;
+		src = ih40_get_offset(ih) + estimate.src->block->data;
 		dst = estimate.dst->block->data + nh40_get_free_space_start(estimate.dst);
 
 		aal_memcpy(dst, src, estimate.bytes);
 
 		/* Updating item headers and destination node fields */
-		nih = (item40_header_t *)dst;
+		ih = (item40_header_t *)dst;
 		
-		for (i = 0; i < estimate.items; i++, nih++) {
+		for (i = 0; i < estimate.items; i++, ih++) {
 			uint32_t offset = nh40_get_free_space_start(estimate.dst);
-			ih40_set_offset(nih, (uint32_t)(offset - ih40_get_offset(nih)));
+			ih40_set_offset(ih, (uint32_t)(offset - ih40_get_offset(ih)));
 		}
 
 		nh40_set_free_space(estimate.dst, nh40_get_free_space(estimate.dst) -
@@ -817,19 +816,17 @@ static int node40_shift(object_entity_t *entity, object_entity_t *target,
 
 		/* Preparing space for moving item bodies in destination
 		 * node */
-		bih = ((item40_header_t *)dst) + dst_items - 1;
+		ih = ((item40_header_t *)dst) + dst_items - 1;
 		
-		src = estimate.dst->block->data + ih40_get_offset(bih);
+		src = estimate.dst->block->data + ih40_get_offset(ih);
 		dst = src + estimate.bytes;
 
 		aal_memmove(dst, src, estimate.bytes);
 
-		nih = bih;
-		
 		/* Updating item headers */
-		for (i = 0; i < dst_items; i++, nih++) {
-			uint32_t offset = ih40_get_offset(nih);
-			ih40_set_offset(nih, offset + estimate.bytes);
+		for (i = 0; i < dst_items; i++, ih++) {
+			uint32_t offset = ih40_get_offset(ih);
+			ih40_set_offset(ih, offset + estimate.bytes);
 		}
 
 		/* Copying item headers */
