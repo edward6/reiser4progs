@@ -381,9 +381,9 @@ int reiser4_node_lookup(
 	}
 
 	item = &coord.entity;
-		
+
 	/*
-	  We are on the position where key is less then wanted. Key could lies 
+	  We are on the position where key is less then wanted. Key could lies
 	  within the item or after the item.
 	*/
 	if (item->plugin->item_ops.max_poss_key) {
@@ -403,8 +403,9 @@ int reiser4_node_lookup(
 			pos->item++;
 			return 0;
 		}
+	
 	}
-
+	
 	/* Calling lookup method of found item (most probably direntry item) */
 	if (!item->plugin->item_ops.lookup)
 		return 0;

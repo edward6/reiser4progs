@@ -371,8 +371,8 @@ int reiser4_tree_lookup(
 		}
 
 		/*
-		  FIXME-UMKA: Not internal item was found on the twig level. Sorry, drilling
-		  is not supported yet!
+		  FIXME-UMKA: Not internal item was found on the twig
+		  level. Sorry, drilling is not supported yet!
 		*/
 		if (!reiser4_item_nodeptr(coord))
 			return 0;
@@ -395,13 +395,13 @@ int reiser4_tree_lookup(
 		parent = coord->u.joint;
 	
 		/* 
-		   Check whether specified node already in cache. If so, we use node
-		   from the cache.
+		   Check whether specified node already in cache. If so, we use
+		   node from the cache.
 		*/
 		if (!(coord->u.joint = reiser4_joint_find(parent, &item->key))) {
 			/* 
-			   Node was not found in the cache, we open it and attach to the 
-			   cache.
+			   Node was not found in the cache, we open it and
+			   attach to the cache.
 			*/
 			if (!(coord->u.joint = reiser4_tree_load(tree, ptr.ptr))) {
 				aal_exception_error("Can't load node %llu durring lookup.", ptr.ptr);
