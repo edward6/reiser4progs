@@ -610,23 +610,9 @@ static errno_t dir40_truncate(object_entity_t *entity, uint64_t n) {
 
 /* Removes directory body and stat data from the tree. */
 static errno_t dir40_clobber(object_entity_t *entity) {
-	uint32_t nlink;
-	dir40_t *dir;
 	errno_t res;
 		
 	aal_assert("umka-2298", entity != NULL);
-	
-	dir = (dir40_t *)entity;
-
-	/* Check that truncate is allowed -- i.e. nlink == 2. */
-	if ((res = obj40_update(&dir->obj)))
-		return res;
-
-	if ((nlink = obj40_get_nlink(&dir->obj)) != 2) {
-		aal_error("Can't detach the object "
-			  "with nlink (%d).", nlink);
-		return -EINVAL;
-	}
 
 	/* Truncates directory body. */
 	if ((res = dir40_truncate(entity, 0)))
@@ -849,12 +835,27 @@ static errno_t dir40_detach(object_entity_t *entity,
 {
 	reiser4_plug_t *plug;
 	entry_hint_t entry;
+	uint32_t nlink;
 	dir40_t *dir;
 	errno_t res;
 
 	aal_assert("umka-2291", entity != NULL);
 
 	dir = (dir40_t *)entity;
+
+	if (parent) {
+		/* If @parent is given, check first that detaching is allowed
+		 -- i.e. nlink == 2. */
+
+		if ((res = obj40_update(&dir->obj)))
+			return res;
+		
+		if ((nlink = obj40_get_nlink(&dir->obj)) != 2) {
+			aal_error("Can't detach the object "
+				  "with nlink (%d).", nlink);
+			return -EINVAL;
+		}
+	}
 	
 	/* Removing ".." from child if it is found */
 	if (dir40_lookup(entity, "..", &entry) == PRESENT) {

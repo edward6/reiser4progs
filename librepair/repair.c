@@ -279,70 +279,68 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 		/* Do not scan those blocks which are in the tree already. */
 		for (i = 0; i < control->bm_met->size; i++)
 			ds->bm_scan->map[i] &= ~control->bm_met->map[i];
+		
+		goto fini;
 	} else {
 		/* Allocate a bitmap of blocks to be scanned on this pass. */ 
-		if (!(ds->bm_scan = control->bm_scan = 
-		      aux_bitmap_create(fs_len))) 
-		{
+		if (!(ds->bm_scan = control->bm_scan = aux_bitmap_create(fs_len))) {
 			aal_error("Failed to allocate a bitmap of blocks "
 				  "unconnected from the tree.");
 			return -EINVAL;
 		}
+	}
 
-		if (!(control->bm_alloc = aux_bitmap_create(fs_len))) {
-			aal_error("Failed to allocate a bitmap "
-				  "of allocated blocks.");
-			return -EINVAL;
-		}
+	if (!(control->bm_alloc = aux_bitmap_create(fs_len))) {
+		aal_error("Failed to allocate a bitmap of allocated blocks.");
+		return -EINVAL;
+	}
 
-		if (control->repair->flags & (1 << REPAIR_WHOLE)) {
-			aux_bitmap_invert(control->bm_alloc);
-		} else {
-			if ((res = reiser4_alloc_extract(repair->fs->alloc, 
-							 control->bm_alloc)))
-			{
-				return res;
-			}
-		}
-
-		/* Mark all broken regions of allocator as to be scanned. */
-		if ((res = repair_alloc_layout_bad(repair->fs->alloc,
-						   cb_region_mark, control)))
+	if (control->repair->flags & (1 << REPAIR_WHOLE)) {
+		aux_bitmap_invert(control->bm_alloc);
+	} else {
+		if ((res = reiser4_alloc_extract(repair->fs->alloc, 
+						 control->bm_alloc)))
+		{
 			return res;
-
-		/* Build a bitmap of what was met already. */
-		for (i = 0; i < control->bm_met->size; i++) {
-			/* All used blocks are met also. */
-			aal_assert("vpf-817",  (control->bm_used->map[i] & 
-						~control->bm_met->map[i]) == 0);
-
-			/* All twig blocks are met also. */
-			aal_assert("vpf-1326", (control->bm_twig->map[i] & 
-						~control->bm_met->map[i]) == 0);
-
-			/* All leaf blocks are met also. */
-			aal_assert("vpf-1329", (control->bm_leaf->map[i] & 
-						~control->bm_met->map[i]) == 0);
-
-			/* Build a bitmap of blocks which are not in the tree yet.
-			   Block was met as formatted, but unused in on-disk block
-			   allocator. Looks like the bitmap block of the allocator 
-			   has not been synced on disk. Scan through all its blocks.
-			 */
-			if (~control->bm_alloc->map[i] & control->bm_met->map[i])
-			{
-				reiser4_alloc_region(repair->fs->alloc, i * 8,
-						     cb_region_mark, control);
-			} else {
-				control->bm_scan->map[i] |= 
-					(control->bm_alloc->map[i] & 
-					 ~control->bm_met->map[i]);
-			}
 		}
-
-		aux_bitmap_close(control->bm_alloc);
 	}
 	
+	/* Mark all broken regions of allocator as to be scanned. */
+	if ((res = repair_alloc_layout_bad(repair->fs->alloc,
+					   cb_region_mark, control)))
+		return res;
+
+	/* Build a bitmap of what was met already. */
+	for (i = 0; i < control->bm_met->size; i++) {
+		/* All used blocks are met also. */
+		aal_assert("vpf-817",  (control->bm_used->map[i] & 
+					~control->bm_met->map[i]) == 0);
+		
+		/* All twig blocks are met also. */
+		aal_assert("vpf-1326", (control->bm_twig->map[i] & 
+					~control->bm_met->map[i]) == 0);
+
+		/* All leaf blocks are met also. */
+		aal_assert("vpf-1329", (control->bm_leaf->map[i] & 
+					~control->bm_met->map[i]) == 0);
+		
+		/* Build a bitmap of blocks which are not in the tree yet.
+		   Block was met as formatted, but unused in on-disk block
+		   allocator. Looks like the bitmap block of the allocator 
+		   has not been synced on disk. Scan through all its blocks. */
+		if (~control->bm_alloc->map[i] & control->bm_met->map[i]) {
+			reiser4_alloc_region(repair->fs->alloc, i * 8,
+					     cb_region_mark, control);
+		} else {
+			control->bm_scan->map[i] |= 
+				(control->bm_alloc->map[i] & 
+				 ~control->bm_met->map[i]);
+		}
+	}
+	
+	aux_bitmap_close(control->bm_alloc);
+	
+ fini:
 	aux_bitmap_calc_marked(control->bm_scan);
 	
 	/* Zeroing leaf & twig bitmaps of ndoes that are in the tree. */
