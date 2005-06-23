@@ -43,8 +43,6 @@ union key_large {
 
 typedef union key_large key_large_t;
 
-extern reiser4_plug_t key_large_plug;
-
 typedef enum {
 	/* Major locality occupies higher 60 bits of the first element */
 	KEY_LARGE_LOCALITY_MASK		= 0xfffffffffffffff0ull,

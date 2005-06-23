@@ -6,6 +6,8 @@
 #ifdef ENABLE_SHORT_KEYS
 #include "key_short.h"
 
+extern reiser4_plug_t key_short_plug;
+
 /* Returns minimal key */
 static reiser4_key_t *key_short_minimal(void) {
 	return key_common_minimal(&key_short_plug);
@@ -367,7 +369,7 @@ static reiser4_key_ops_t key_short_ops = {
 	.get_name       = key_short_get_name
 };
 
-static reiser4_plug_t key_short_plug = {
+reiser4_plug_t key_short_plug = {
 	.cl    = class_init,
 	.id    = {KEY_SHORT_ID, 0, KEY_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL

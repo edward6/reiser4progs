@@ -6,6 +6,8 @@
 #ifdef ENABLE_LARGE_KEYS
 #include "key_large.h"
 
+extern reiser4_plug_t key_large_plug;
+
 /* Returns minimal key */
 static reiser4_key_t *key_large_minimal(void) {
 	return key_common_minimal(&key_large_plug);
@@ -382,7 +384,7 @@ static reiser4_key_ops_t key_large_ops = {
 	.get_name	= key_large_get_name
 };
 
-static reiser4_plug_t key_large_plug = {
+reiser4_plug_t key_large_plug = {
 	.cl    = class_init,
 	.id    = {KEY_LARGE_ID, 0, KEY_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL

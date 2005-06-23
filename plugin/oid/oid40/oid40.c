@@ -8,6 +8,8 @@
 #include "oid40.h"
 #include "oid40_repair.h"
 
+extern reiser4_plug_t oid40_plug;
+
 static uint32_t oid40_get_state(generic_entity_t *entity) {
 	aal_assert("umka-2088", entity != NULL);
 	return ((oid40_t *)entity)->state;
@@ -201,7 +203,7 @@ reiser4_oid_ops_t oid40_ops = {
 	.slink_locality = oid40_slink_locality
 };
 
-static reiser4_plug_t oid40_plug = {
+reiser4_plug_t oid40_plug = {
 	.cl    = class_init,
 	.id    = {OID_REISER40_ID, 0, OID_PLUG_TYPE},
 	.label = "oid40",

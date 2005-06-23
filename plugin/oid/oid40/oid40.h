@@ -30,8 +30,6 @@ struct oid40 {
 
 typedef struct oid40 oid40_t;
 
-extern reiser4_plug_t oid40_plug;
-
 #define oid40_get_next(area)            LE64_TO_CPU(*((d64_t *)area))
 #define oid40_set_next(area, val)       (*((d64_t *)area) = CPU_TO_LE64(val))
 
