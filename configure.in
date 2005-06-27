@@ -70,6 +70,9 @@ libaal_config_minor_version=`echo $2 | \
 libaal_config_micro_version=`echo $2 | \
     sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\3/'`
 
+OLD_CFLAGS=$CFLAGS
+CFLAGS="$CFLAGS -static"
+    
 # Compare MINIMUM-VERSION with libaal version
 AC_TRY_RUN([
 #include <stdio.h>
@@ -112,6 +115,8 @@ int main() {
     	AC_MSG_RESULT(yes),
     	AC_MSG_RESULT(no) ; $4,
     	[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+
+CFLAGS=$OLD_CFLAGS
 
 # Execute ACTION-IF-FOUND
 $3])
