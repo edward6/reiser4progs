@@ -22,7 +22,10 @@ char *opset_name[OPSET_STORE_LAST] = {
 	[OPSET_DIRITEM] = "diritem",
 	[OPSET_CRYPTO] =  "crypto",
 	[OPSET_DIGEST] =  "digest",
-	[OPSET_COMPRES] = "compress"
+	[OPSET_CPRESS] =  "compress",
+	[OPSET_CPRESS_MODE] = "compress mode",
+	[OPSET_CLUSTER] = "cluster",
+	[OPSET_REGULAR] =  "regular"
 };
 
 errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
@@ -39,7 +42,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	count = sdext_plug_get_count(ext);
 	place = stat->place;
 	
-	if (count > SDEXT_LAST_ID) {
+	if (count > OPSET_STORE_LAST) {
 		fsck_mess("Node (%llu), item (%u), [%s]: does not look "
 			  "like a valid SD plugin set extention: wrong "
 			  "pset member count detected (%u).", 

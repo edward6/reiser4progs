@@ -111,7 +111,7 @@ opset_member_t opset_prof[OPSET_LAST] = {
 		.ess = 1,
 #endif
 	},
-	[OPSET_COMPRES] = {
+	[OPSET_CPRESS] = {
 		.type = INVAL_TYPE,
 #ifndef ENABLE_MINIMAL
 		.group = INVAL_PID,
@@ -119,7 +119,31 @@ opset_member_t opset_prof[OPSET_LAST] = {
 		.ess = 1,
 #endif
 	},
-	
+	[OPSET_CPRESS_MODE] = {
+		.type = INVAL_TYPE,
+#ifndef ENABLE_MINIMAL
+		.group = INVAL_PID,
+		.prof = INVAL_PID,
+		.ess = 1,
+#endif
+	},
+	[OPSET_CLUSTER] = {
+		.type = INVAL_TYPE,
+#ifndef ENABLE_MINIMAL
+		.group = INVAL_PID,
+		.prof = INVAL_PID,
+		.ess = 1,
+#endif
+	},
+	[OPSET_REGULAR] = {
+		.type = INVAL_TYPE,
+#ifndef ENABLE_MINIMAL
+		.group = INVAL_PID,
+		.prof = INVAL_PID,
+		.ess = 1,
+#endif
+	},
+
 	/* Note, plugins below are not stored on-disk. */
 
 	/* The 4 plugins below needs to be splited -- for now they are used for
