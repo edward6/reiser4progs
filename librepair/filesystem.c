@@ -379,7 +379,7 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 		goto error_free_backup;
 	}
 
-	if (repair_journal_unpack(fs, stream))
+	if (!(fs->journal = repair_journal_unpack(fs, stream)))
 		goto error_free_backup;
 	
 	/* If @bitmap is given, save there unpacked blocks of the fs. */
@@ -450,7 +450,7 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
  error_free_journal:
 	reiser4_journal_close(fs->journal);
  error_free_backup:
-	reiser4_backup_close(fs->backup);
+	/* Backup is not openned, just raw blocks are copied. */
  error_free_status:
 	reiser4_status_close(fs->status);
  error_free_alloc:
