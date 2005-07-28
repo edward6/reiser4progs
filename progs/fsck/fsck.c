@@ -451,7 +451,11 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	return res;
 }
 
-static errno_t fsck_check_fini(repair_data_t *repair) {
+static errno_t fsck_check_fini(repair_data_t *repair, 
+			       uint8_t sb_mode, 
+			       uint8_t fs_mode, 
+			       errno_t result)
+{
 	reiser4_status_t *status;
 	aal_device_t *device;
 	uint64_t state;
@@ -467,33 +471,35 @@ static errno_t fsck_check_fini(repair_data_t *repair) {
 	if (aal_device_reopen(device, device->blksize, O_RDWR))
 		return -EIO;
 	
-	if (repair->mode == RM_CHECK) {
-		/* Fix the status block. */
-		status = repair->fs->status;
-		
-		if (repair->fatal)
-			state = FS_DAMAGED;
-		else if (repair->fixable)
-			state = FS_CORRUPTED;
-		else
-			state = 0;
+	/* Fix the status block. */
+	status = repair->fs->status;
 
-		repair_status_state(status, state);
-	
-		if (reiser4_status_sync(repair->fs->status))
+	if (repair->fatal) {
+		state = FS_DAMAGED;
+	} else if (repair->fixable || repair->sb_fixable) {
+		state = FS_CORRUPTED;
+	} else {
+		state = 0;
+	}
+
+	repair_status_state(status, state);
+
+	if (reiser4_status_sync(repair->fs->status))
+		return -EIO;
+
+	if (!result && (sb_mode != RM_CHECK || fs_mode != RM_CHECK)) {
+		/* If there was no backup openned or some fields have 
+		   been changed, reopen the backup. */
+		if (!(repair->fs->backup = repair_backup_reopen(repair->fs))) {
+			aal_fatal("Failed to reopen backup.");
 			return -EIO;
+		}
+
+		if (reiser4_backup_sync(repair->fs->backup))
+			return -EIO;
+
 	}
 
-	/* If there was no backup openned or some fields have been changed, 
-	   reopen the backup. */
-	if (!(repair->fs->backup = repair_backup_reopen(repair->fs))) {
-		aal_fatal("Failed to reopen backup.");
-		return -EIO;
-	}
-
-	if (reiser4_backup_sync(repair->fs->backup))
-		return -EIO;
-	
 	if (aal_device_reopen(device, device->blksize, flags))
 		return -EIO;
 
@@ -554,7 +560,8 @@ int main(int argc, char *argv[]) {
 	res = repair_check(&repair);
 
 	/* Even if there was some problems on fs check, fini must be done. */
-	res |= fsck_check_fini(&repair);
+	res |= fsck_check_fini(&repair, parse_data.sb_mode, 
+			       parse_data.fs_mode, res);
 	
 	fsck_time("fsck.reiser4 finished at");
     
