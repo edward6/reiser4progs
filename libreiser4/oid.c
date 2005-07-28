@@ -204,12 +204,21 @@ errno_t reiser4_oid_sync(reiser4_oid_t *oid) {
 }
 
 /* Returns number of used oids from passed oid allocator */
-uint64_t reiser4_oid_used(reiser4_oid_t *oid) {
+uint64_t reiser4_oid_get_used(reiser4_oid_t *oid) {
 	aal_assert("umka-527", oid != NULL);
     
 	return plug_call(oid->ent->plug->o.oid_ops, 
 			 get_used, oid->ent);
 }
+
+/* Returns number of used oids from passed oid allocator */
+void reiser4_oid_set_used(reiser4_oid_t *oid, uint64_t used) {
+	aal_assert("vpf-1798", oid != NULL);
+    
+	plug_call(oid->ent->plug->o.oid_ops, 
+		  set_used, oid->ent, used);
+}
+
 
 /* Returns number of free oids from passed oid allocator */
 uint64_t reiser4_oid_free(reiser4_oid_t *oid) {

@@ -14,10 +14,6 @@ struct opset_member {
 	uint8_t type;
 	
 #ifndef ENABLE_MINIMAL
-	/* To be sure that a plugin found by type,id pair is valid, add the
-	   group here. */
-	rid_t group;
-	
 	/* Opset type -> profile type. INVAL_PID means that there is no such 
 	   a profile slot or it is invalid (there is no such plugins written 
 	   in the libreiser4).*/
@@ -34,7 +30,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_OBJ] = {
 		.type = OBJECT_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = 0,
 		.prof = INVAL_PID,
 		.ess = 0,
 #endif
@@ -42,7 +37,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_DIR] = {
 		.type = INVAL_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = 0,
 		.prof = INVAL_PID,
 		.ess = 0,
 #endif
@@ -50,7 +44,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_PERM] = {
 		.type = INVAL_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 1,
 #endif
@@ -58,7 +51,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_POLICY] = {
 		.type = POLICY_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = 0,
 		.prof = PROF_POLICY,
 		.ess = 0,
 #endif
@@ -66,7 +58,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_HASH] = {
 		.type = HASH_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = 0,
 		.prof = PROF_HASH,
 		.ess = 1,
 #endif
@@ -74,7 +65,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_FIBRE] = {
 		.type = FIBRE_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = 0,
 		.prof = PROF_FIBRE,
 		.ess = 1,
 #endif
@@ -82,7 +72,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_STAT] = {
 		.type = ITEM_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = STAT_ITEM,
 		.prof = PROF_STAT,
 		.ess = 0,
 #endif
@@ -90,7 +79,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_DIRITEM] = {
 		.type = ITEM_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = DIR_ITEM,
 		.prof = PROF_DIRITEM,
 		.ess = 1,
 #endif
@@ -98,7 +86,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_CRYPTO] = {
 		.type = INVAL_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 1,
 #endif
@@ -106,7 +93,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_DIGEST] = {
 		.type = INVAL_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 1,
 #endif
@@ -114,7 +100,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_CPRESS] = {
 		.type = INVAL_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 1,
 #endif
@@ -122,15 +107,13 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_CPRESS_MODE] = {
 		.type = INVAL_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 1,
 #endif
 	},
 	[OPSET_CLUSTER] = {
-		.type = INVAL_TYPE,
+		.type = PARAM_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 1,
 #endif
@@ -138,7 +121,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_REGULAR] = {
 		.type = INVAL_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 1,
 #endif
@@ -152,7 +134,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_CREATE] = {
 		.type = OBJECT_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = REG_OBJECT,
 		.prof = PROF_REG,
 		.ess = 1,
 #endif
@@ -160,7 +141,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_MKDIR] = {
 		.type = OBJECT_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = DIR_OBJECT,
 		.prof = PROF_DIR,
 		.ess = 1,
 #endif
@@ -168,7 +148,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_SYMLINK] = {
 		.type = OBJECT_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = SYM_OBJECT,
 		.prof = PROF_SYM,
 		.ess = 1,
 #endif
@@ -176,7 +155,6 @@ opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_MKNODE] = {
 		.type = OBJECT_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.group = SPL_OBJECT,
 		.prof = PROF_SPL,
 		.ess = 1,
 #endif
@@ -184,19 +162,16 @@ opset_member_t opset_prof[OPSET_LAST] = {
 #ifndef ENABLE_MINIMAL
 	[OPSET_TAIL] = {
 		.type = ITEM_PLUG_TYPE,
-		.group = TAIL_ITEM,
 		.prof = PROF_TAIL,
 		.ess = 1,
 	},
 	[OPSET_EXTENT] = {
 		.type = ITEM_PLUG_TYPE,
-		.group = EXTENT_ITEM,
 		.prof = PROF_EXTENT,
 		.ess = 1,
 	},
 	[OPSET_ACL] = {
 		.type = INVAL_TYPE,
-		.group = INVAL_PID,
 		.prof = INVAL_PID,
 		.ess = 0,
 	}
@@ -214,14 +189,12 @@ reiser4_plug_t *reiser4_opset_plug(rid_t member, rid_t id) {
 	if (opset_prof[member].type == INVAL_TYPE && id == 0)
 		return NULL;
 	
+	if (opset_prof[member].type == PARAM_PLUG_TYPE)
+		return NULL;
+	
 	if (!(plug = reiser4_factory_ifind(opset_prof[member].type, id)))
 		return INVAL_PTR;
 	
-#ifndef ENABLE_MINIMAL
-	if (plug->id.group != opset_prof[member].group)
-		return INVAL_PTR;
-#endif
-
 	return plug;
 }
 
@@ -392,7 +365,10 @@ errno_t reiser4_opset_init(reiser4_tree_t *tree) {
 		if (!check)
 			break;
 
-		if (!tree->ent.opset[i] && opset_prof[i].type != INVAL_TYPE) {
+		if (!tree->ent.opset[i] && 
+		    opset_prof[i].type != INVAL_TYPE &&
+		    opset_prof[i].type != PARAM_PLUG_TYPE) 
+		{
 			aal_error("The slot %u in the fs-global object "
 				  "plugin set is not initialized.", i);
 			return -EINVAL;

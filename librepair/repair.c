@@ -654,17 +654,15 @@ static errno_t repair_update(repair_control_t *control) {
 	if (mode == RM_BUILD) {
 		/* Check the file count. Some files could be accounted more than
 		   once not in the BUILD mode. */
-		val = reiser4_oid_used(fs->oid);
+		val = reiser4_oid_get_used(fs->oid);
 
 		if (control->files && control->files != val) {
 			fsck_mess("File count %llu is wrong. %s %llu.",
 				  val, mode != RM_BUILD ? "Should be" : 
 				  "Fixed to", control->files);
 
-			if (mode == RM_BUILD) {
-				plug_call(fs->oid->ent->plug->o.oid_ops, set_used,
-					  fs->oid->ent, control->files);
-			}
+			if (mode == RM_BUILD)
+				reiser4_oid_set_used(fs->oid, control->files);
 
 			/* This is not a problem to live with wrong file count.
 			   

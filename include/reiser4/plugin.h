@@ -87,6 +87,7 @@ enum reiser4_plug_type {
 	ALLOC_PLUG_TYPE         = 0xe,
 	JOURNAL_PLUG_TYPE       = 0xf,
 	KEY_PLUG_TYPE           = 0x10,
+	PARAM_PLUG_TYPE		= 0x11,
 	LAST_PLUG_TYPE
 };
 

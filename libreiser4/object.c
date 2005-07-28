@@ -341,6 +341,8 @@ static void reiser4_object_maintain(entry_hint_t *entry,
 		aal_memcpy(&hint->info.parent, &tree->key, sizeof(tree->key));
 		locality = reiser4_key_get_locality(&tree->key);
 		objectid = reiser4_key_get_objectid(&tree->key);
+		reiser4_oid_set_used(tree->fs->oid, 
+			reiser4_oid_get_used(tree->fs->oid) + 1);
 	}
 	
 	/* New object is identified by its locality and objectid. Set them to

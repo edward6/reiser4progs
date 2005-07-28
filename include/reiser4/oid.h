@@ -26,7 +26,8 @@ extern oid_t reiser4_oid_allocate(reiser4_oid_t *oid);
 extern void reiser4_oid_release(reiser4_oid_t *oid, oid_t id);
 
 extern uint64_t reiser4_oid_free(reiser4_oid_t *oid);
-extern uint64_t reiser4_oid_used(reiser4_oid_t *oid);
+extern uint64_t reiser4_oid_get_used(reiser4_oid_t *oid);
+extern void reiser4_oid_set_used(reiser4_oid_t *oid, uint64_t used);
 
 extern bool_t reiser4_oid_isdirty(reiser4_oid_t *oid);
 extern void reiser4_oid_mkdirty(reiser4_oid_t *oid);
