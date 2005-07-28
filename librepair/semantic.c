@@ -662,7 +662,8 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 			sem->root->ent->opset.plug[OPSET_MKDIR];
 	}
 	
-	if ((res = repair_semantic_object_check(sem, sem->root, sem->root, 0)))
+	if ((res = repair_semantic_object_check(sem, sem->root, 
+						sem->root, 0)))
 	{
 		reiser4_object_close(sem->root);
 		sem->root = NULL;
@@ -806,7 +807,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	}
 	
 	if ((res = reiser4_tree_load_root(tree)))
-		return res;
+		goto error;
 
 	aal_mess("CHECKING SEMANTIC TREE");
 	sem->gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS], 
@@ -865,7 +866,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	repair_semantic_update(sem);	
 	
  error:
-	if (sem->repair->mode != RM_CHECK)
+	if ((res >= 0) && sem->repair->mode != RM_CHECK)
 		reiser4_fs_sync(sem->repair->fs);
 	
 	return res < 0 ? res : 0;

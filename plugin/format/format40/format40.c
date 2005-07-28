@@ -280,10 +280,11 @@ static generic_entity_t *format40_create(aal_device_t *device,
 	set_sb_mkfs_id(super, random());
 
 	/* Clobbering format skipped area in order to let mount to detect
-	   reiser4 correctly without specifying exact filesystem type. Skipped
-	   area is [0-15] blocks. */
-	start = REISER4_MASTER_BLOCKNR(format->blksize);
-	
+	   reiser4 correctly without specifying exact filesystem type. 
+	   Skipped area is [0-15] blocks. Clobber the master block also to 
+	   avoid mounting of the previous reiser4 if this mkfs attempt fails. */
+	start = FORMAT40_BLOCKNR(format->blksize);
+	   
 	if (format40_clobber_block((generic_entity_t *)format,
 				   0, start, NULL))
 	{

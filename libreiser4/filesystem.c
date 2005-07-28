@@ -408,10 +408,10 @@ errno_t reiser4_fs_sync(reiser4_fs_t *fs) {
 	if ((res = reiser4_format_sync(fs->format)))
 		return res;
 
-	if ((res = reiser4_master_sync(fs->master)))
+	if ((res = reiser4_status_sync(fs->status)))
 		return res;
 
-	return reiser4_status_sync(fs->status);
+	return reiser4_master_sync(fs->master);
 }
 
 #endif

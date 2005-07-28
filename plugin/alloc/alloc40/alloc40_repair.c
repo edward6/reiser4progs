@@ -328,6 +328,7 @@ errno_t alloc40_check_struct(generic_entity_t *entity, uint8_t mode) {
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
 
+	alloc->state = (1 << ENTITY_DIRTY);
 	fsck_mess("Checksums will be fixed later.");
 	return 0;
 }

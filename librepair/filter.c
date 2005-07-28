@@ -666,7 +666,7 @@ errno_t repair_filter(repair_filter_t *fd) {
 	aal_gauge_free(fd->gauge);
 	repair_filter_update(fd);
 	
-	if (fd->repair->mode != RM_CHECK)
+	if (!res && fd->repair->mode != RM_CHECK)
 		reiser4_fs_sync(fd->repair->fs);
 	
 	return res;
