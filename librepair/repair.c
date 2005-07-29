@@ -26,6 +26,7 @@ typedef struct repair_control {
 	bool_t mkidok;
 	uint32_t mkid;
 	uint64_t oid, files;
+	uint64_t sysblk;
 } repair_control_t;
 
 static errno_t repair_bitmap_compare(aux_bitmap_t *bm1, aux_bitmap_t *bm2, 
@@ -194,6 +195,7 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 		return -EINVAL;
 	}
 	
+	control->sysblk = filter->bm_used->marked;
 	return 0; 
 }
 
@@ -412,13 +414,17 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 	
 	/* Assign the met bitmap to the block allocator. */
 	aux_bitmap_calc_marked(control->bm_met);
-	reiser4_alloc_assign(control->repair->fs->alloc, control->bm_met);
+	
+	if (control->bm_met->marked != control->sysblk) {
+		reiser4_alloc_assign(control->repair->fs->alloc, 
+				     control->bm_met);
 
-	/* Set the amount of used blocks, allow to allocate blocks on the 
-	   add missing pass. */
-	reiser4_format_set_free(control->repair->fs->format, 
-				control->bm_met->total - 
-				control->bm_met->marked);
+		/* Set the amount of used blocks, allow to allocate 
+		   blocks on the add missing pass. */
+		reiser4_format_set_free(control->repair->fs->format, 
+					control->bm_met->total - 
+					control->bm_met->marked);
+	}
 	
 	aux_bitmap_close(control->bm_met);
 	
@@ -457,15 +463,17 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 		control->bm_leaf = NULL;
 
 		/* Assign the used bitmap to the block allocator. */
-		reiser4_alloc_assign(control->repair->fs->alloc, control->bm_used);
-		reiser4_alloc_sync(control->repair->fs->alloc);
-	
-		/* Set the amount of used blocks, allow to allocate blocks on 
-		   the semantic pass */
-		reiser4_format_set_free(control->repair->fs->format,
-					control->bm_used->total - 
-					control->bm_used->marked);
+		if (control->bm_used->marked != control->sysblk) {
+			reiser4_alloc_assign(control->repair->fs->alloc, 
+					     control->bm_used);
 
+			/* Set the amount of used blocks, allow to allocate 
+			   blocks on the semantic pass */
+			reiser4_format_set_free(control->repair->fs->format,
+						control->bm_used->total - 
+						control->bm_used->marked);
+		}
+	
 		aux_bitmap_close(control->bm_used);
 		control->bm_used = NULL;
 		
