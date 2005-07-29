@@ -158,7 +158,7 @@ errno_t reiser4_format_sync(
 
 count_t reiser4_format_len(aal_device_t *device, uint32_t blksize) {
 	return (aal_device_len(device) * device->blksize / 
-		FS_LEN_ADJAST * FS_LEN_ADJAST / blksize);
+		FS_LEN_ADJUST * FS_LEN_ADJUST / blksize);
 }
 
 errno_t reiser4_format_check_len(aal_device_t *device, 

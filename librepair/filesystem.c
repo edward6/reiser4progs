@@ -20,8 +20,8 @@ errno_t repair_fs_open(repair_data_t *repair,
 	aal_assert("vpf-159",  hdevice != NULL);
 	aal_assert("vpf-1556", jdevice != NULL);
 
-	len = reiser4_format_len(hdevice, 512);
-	if (reiser4_format_check_len(hdevice, 512, len)) {
+	len = repair_format_len_old(hdevice, 512);
+	if (repair_format_check_len_old(hdevice, 512, len)) {
 		repair_error_count(repair, RE_FATAL);
 		return 0;
 	}

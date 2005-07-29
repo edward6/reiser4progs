@@ -26,4 +26,11 @@ extern void repair_format_print(reiser4_format_t *format,
 extern errno_t repair_format_check_backup(aal_device_t *device, 
 					  backup_hint_t *hint);
 
+extern count_t repair_format_len_old(aal_device_t *device, 
+				     uint32_t blksize);
+
+extern errno_t repair_format_check_len_old(aal_device_t *device, 
+					   uint32_t blksize, 
+					   count_t blocks);
+
 #endif

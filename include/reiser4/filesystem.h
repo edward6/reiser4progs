@@ -18,7 +18,7 @@ extern reiser4_fs_t *reiser4_fs_open(aal_device_t *device);
 
 #ifndef ENABLE_MINIMAL
 
-#define FS_LEN_ADJAST (64 * 1024)
+#define FS_LEN_ADJUST (64 * 1024)
 
 extern errno_t reiser4_fs_sync(reiser4_fs_t *fs);
 

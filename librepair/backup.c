@@ -304,7 +304,7 @@ reiser4_backup_t *repair_backup_open(reiser4_fs_t *fs, uint8_t mode) {
 		
 		aal_block_fill(&backup->hint.block, 0);
 		
-		blocks = reiser4_format_len(fs->device, blksize);
+		blocks = repair_format_len_old(fs->device, blksize);
 		
 		for (id = 0; id < ALLOC_LAST_ID; id++) {
 			plug = reiser4_factory_ifind(ALLOC_PLUG_TYPE, id);
@@ -316,7 +316,7 @@ reiser4_backup_t *repair_backup_open(reiser4_fs_t *fs, uint8_t mode) {
 				goto error_fini_backup;
 			}
 			
-			/* Allocathe a block alloc entity. */
+			/* Allocate a block alloc entity. */
 			if (!(alloc.ent = plug_call(plug->o.alloc_ops, 
 						    create, fs->device, 
 						    blksize, blocks)))

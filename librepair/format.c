@@ -17,6 +17,40 @@ static int cb_check_plugname(char *name, void *data) {
 	return *plug ? 1 : 0;
 }
 
+count_t repair_format_len_old(aal_device_t *device, uint32_t blksize) {
+	return (aal_device_len(device) * device->blksize / blksize);
+}
+
+/* This is the copy of the repair_formaat_check_len, however it calculates
+   the amount of allowable blocks differently, actually not correctly, but
+   how it was created in old progs versions, to not force users to build-sb
+   and ossibly lost thier data. */
+errno_t repair_format_check_len_old(aal_device_t *device, 
+				    uint32_t blksize, 
+				    count_t blocks) 
+{
+	count_t dev_len;
+
+	aal_assert("vpf-1564", device != NULL);
+	
+	dev_len = repair_format_len_old(device, blksize);
+	
+	if (blocks > dev_len) {
+		aal_error("Device %s is too small (%llu) for filesystem %llu "
+			  "blocks long.", device->name, dev_len, blocks);
+		return -EINVAL;
+	}
+
+	if (blocks < REISER4_FS_MIN_SIZE(blksize)) {
+		aal_error("Requested filesystem size (%llu) is too small. "
+			  "Reiser4 required minimal size %u blocks long.",
+			  blocks, REISER4_FS_MIN_SIZE(blksize));
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static int cb_check_count(int64_t val, void *data) {
 	reiser4_fs_t *fs = (reiser4_fs_t *)data;
 	uint32_t blksize;
@@ -95,22 +129,31 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 	hint.key = plug->id.id;
 	
 	hint.blksize = reiser4_master_get_blksize(fs->master);
-	hint.blocks = reiser4_format_len(fs->device, hint.blksize);
+	hint.blocks = repair_format_len_old(fs->device, hint.blksize);
 
 	/* Check the block count if the backup is not opened. */
 	if (!fs->backup) {
 		if (fs->format) {
 			blocks = reiser4_format_get_len(fs->format);
 
-			if (reiser4_format_check_len(fs->device, 
-						     hint.blksize, blocks))
+			if (repair_format_check_len_old(fs->device, 
+							hint.blksize, blocks))
 			{
 				/* FS length is not valid. */
 				if (mode != RM_BUILD)
 					return RE_FATAL;
 
 				blocks = MAX_UINT64;
-			} else if (blocks != hint.blocks) {
+			} 
+			
+			if (blocks == reiser4_format_len(fs->device, 
+							 hint.blksize)) 
+			{
+				hint.blocks = reiser4_format_len(fs->device, 
+								 hint.blksize);
+			}
+			
+			if (blocks != MAX_UINT64 && blocks != hint.blocks) {
 				aal_warn("Number of blocks found in the super "
 					 "block (%llu) is not equal to the size"
 					 " of the partition (%llu).%s", blocks,
@@ -123,7 +166,8 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 
 		if (blocks != hint.blocks && mode == RM_BUILD) {
 			/* Confirm that size is correct. */
-			blocks = blocks == MAX_UINT64 ? hint.blocks : blocks;
+			blocks = blocks != MAX_UINT64 ? blocks :
+				reiser4_format_len(fs->device, hint.blksize);
 			
 			if (!(options & (1 << REPAIR_YES))) {
 				blocks = aal_ui_get_numeric(blocks, 
@@ -281,7 +325,7 @@ errno_t repair_format_check_backup(aal_device_t *device, backup_hint_t *hint) {
 	if ((res = plug_call(plug->o.format_ops, check_backup, hint)))
 		return res;
 
-	return (reiser4_format_check_len(device, get_ms_blksize(master), 
-					 hint->blocks)) ? RE_FATAL : 0;
+	return (repair_format_check_len_old(device, get_ms_blksize(master), 
+					    hint->blocks)) ? RE_FATAL : 0;
 }
 
