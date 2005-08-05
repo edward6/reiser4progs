@@ -6,6 +6,27 @@ reiser4progs/COPYING.
 This file may be modified and/or distributed without restriction. This is
 not an invitation to misrepresent the history of reiser4progs.
 
+2005-08-05
+	1.0.5 version.
+2005-06-28
+	Ability to link against libaal placed at arbitrary location is fixed.
+	Unlink dir fix.
+	Stat40 check_struct fix.
+	Man pages for not ready utils are removed.
+	Handle new (crc related) fields in plugin set correctly.
+	Flush fs metadata fix (interrupt related).
+	Do not flush dirty nodes if fsck fails.
+	Recalculate bitmap checksums at the end of fsck if they are wrong.
+	Do not update bitmps after every fsck pass if no metadata found.
+2005-03-23
+	nomkid option to fsck -- ability to recover reiser4 existed
+	before mkfs on this device.
+2005-03-21
+	Large file handling fixes.
+2005-03-16
+	Some casting fixes.
+2005-02-21
+	Reg40 file body convertion fixes.
 2005-02-20
 	The 1.0.4 version.
 2005-02-19
