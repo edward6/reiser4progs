@@ -85,9 +85,11 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 	aal_gauge_touch(gauge);
 	time(&ds->stat.time);
 
-	total = aux_bitmap_marked(ds->bm_scan);
+	total = reiser4_bitmap_marked(ds->bm_scan);
 	
-	while ((blk = aux_bitmap_find_marked(ds->bm_scan, blk)) != INVAL_BLK) {
+	while ((blk = reiser4_bitmap_find_marked(ds->bm_scan, blk)) 
+	       != INVAL_BLK) 
+	{
 		ds->stat.read_nodes++;
 		aal_gauge_set_value(gauge, ds->stat.read_nodes * 100 / total);
 		aal_gauge_touch(gauge);
@@ -99,7 +101,7 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 			continue;
 		}
 		
-		aux_bitmap_mark(ds->bm_met, blk);
+		reiser4_bitmap_mark(ds->bm_met, blk);
 		
 		level = reiser4_node_get_level(node);
 		
@@ -132,13 +134,13 @@ errno_t repair_disk_scan(repair_ds_t *ds) {
 		
 		ds->stat.good_nodes++;
 		if (level == TWIG_LEVEL) {
-			aux_bitmap_mark(ds->bm_twig, blk);
+			reiser4_bitmap_mark(ds->bm_twig, blk);
 			ds->stat.good_twigs++;
 			
 			if (reiser4_node_isdirty(node))
 				ds->stat.fixed_twigs++;
 		} else {
-			aux_bitmap_mark(ds->bm_leaf, blk);
+			reiser4_bitmap_mark(ds->bm_leaf, blk);
 			ds->stat.good_leaves++;
 			
 			if (reiser4_node_isdirty(node))

@@ -7,7 +7,7 @@
 #define REISER4_TYPES_H
 
 #include <aal/libaal.h>
-#include <aux/bitmap.h>
+#include <reiser4/bitmap.h>
 #include <reiser4/plugin.h>
 
 /* Minimal block number needed for a reiser4 filesystem: Master, Format40,

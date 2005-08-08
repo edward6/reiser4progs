@@ -17,7 +17,7 @@ static errno_t cb_item_mark_region(uint64_t start, uint64_t count, void *data) {
 		/* These blocks are marked in allocator as it already has all 
 		   blocks forbidden for allocation marked. Just mark them as 
 		   used now. */
-		aux_bitmap_mark_region(am->bm_used, start, count);
+		reiser4_bitmap_mark_region(am->bm_used, start, count);
 	}
 	
 	return 0;
@@ -119,7 +119,7 @@ static errno_t repair_am_blk_used(repair_am_t *am, blk_t blk) {
 
 	/* These blocks are marked in allocator as it already has all blocks 
 	   forbidden for allocation marked. Just mark them as used now. */
-	aux_bitmap_mark_region(am->bm_used, blk, 1);
+	reiser4_bitmap_mark_region(am->bm_used, blk, 1);
 
 	return 0;
 }
@@ -129,7 +129,7 @@ typedef struct stat_bitmap {
 } stat_bitmap_t;
 
 static errno_t repair_am_nodes_insert(repair_am_t *am, 
-				      aux_bitmap_t *bitmap,
+				      reiser4_bitmap_t *bitmap,
 				      stat_bitmap_t *stat)
 {
 	reiser4_node_t *node;
@@ -141,14 +141,14 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 	aal_assert("vpf-1283", bitmap != NULL);
 	aal_assert("vpf-1284", stat != NULL);
 	
-	total = aux_bitmap_marked(bitmap);
+	total = reiser4_bitmap_marked(bitmap);
 	
 	blk = 0;
 	/* Try to insert the whole twig/leaf at once. If it can be 
 	   inserted only after splitting the node found by lookup 
 	   into 2 nodes -- it will be done instead of following item
 	   by item insertion. */
-	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
+	while ((blk = reiser4_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
 		node = reiser4_node_open(am->repair->fs->tree, blk);
 		stat->read++;
 		aal_gauge_set_value(am->gauge, stat->read * 100 / total);
@@ -166,7 +166,7 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 			goto error_close_node;
 
 		if (reiser4_node_items(node) == 0) {
-			aux_bitmap_clear(bitmap, node->block->nr);
+			reiser4_bitmap_clear(bitmap, node->block->nr);
 			repair_am_blk_free(am, node->block->nr);
 			reiser4_node_close(node);
 			stat->empty++;
@@ -183,7 +183,7 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 			goto error_close_node;
 		} else if (res == 0) {
 			/* Has been inserted. */
-			aux_bitmap_clear(bitmap, node->block->nr);
+			reiser4_bitmap_clear(bitmap, node->block->nr);
 			repair_am_blk_used(am, node->block->nr);
 
 			stat->by_node++;
@@ -207,7 +207,7 @@ static errno_t repair_am_nodes_insert(repair_am_t *am,
 }
 
 static errno_t repair_am_items_insert(repair_am_t *am, 
-				      aux_bitmap_t *bitmap, 
+				      reiser4_bitmap_t *bitmap, 
 				      stat_bitmap_t *stat)
 {
 	uint32_t count;
@@ -220,17 +220,17 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 	aal_assert("vpf-1286", bitmap != NULL);
 	aal_assert("vpf-1287", stat != NULL);
 	
-	total = aux_bitmap_marked(bitmap);
+	total = reiser4_bitmap_marked(bitmap);
 	blk = 0;
 	/* Insert extents from the twigs/all items from leaves which 
 	   are not in the tree yet item-by-item into the tree, overwrite
 	   existent data which is in the tree already if needed. 
 	   FIXME: overwriting should be done on the base of flush_id. */
-	while ((blk = aux_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
+	while ((blk = reiser4_bitmap_find_marked(bitmap, blk)) != INVAL_BLK) {
 		reiser4_place_t place;
 		pos_t *pos = &place.pos;
 
-		aal_assert("vpf-897", !aux_bitmap_test(am->bm_used, blk));
+		aal_assert("vpf-897", !reiser4_bitmap_test(am->bm_used, blk));
 
 		node = reiser4_node_open(am->repair->fs->tree, blk);
 		
@@ -271,7 +271,7 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 			}
 		}
 
-		aux_bitmap_clear(bitmap, node->block->nr);
+		reiser4_bitmap_clear(bitmap, node->block->nr);
 		repair_am_blk_free(am, node->block->nr);
 		reiser4_node_close(node);
 		blk++;
@@ -287,7 +287,7 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 /* The pass inself, adds all the data which are not in the tree yet and which 
    were found on the partition during the previous passes. */
 errno_t repair_add_missing(repair_am_t *am) {
-	aux_bitmap_t *bitmap;
+	reiser4_bitmap_t *bitmap;
 	stat_bitmap_t stat;
 	uint32_t bnum;
 	errno_t res;

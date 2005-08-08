@@ -26,15 +26,15 @@ static errno_t cb_item_region_check(blk_t start, uint64_t count, void *data) {
 	}
 	
 	/* Check that the pointed region is free. */
-	if (aux_bitmap_test_region(ts->bm_met, start, count, 0) == 0) {
+	if (reiser4_bitmap_test_region(ts->bm_met, start, count, 0) == 0) {
 		ts->stat.bad_unfm_ptrs++;
 		return RE_FIXABLE;
 	}
 	
 	if (ts->bm_used)
-		aux_bitmap_mark_region(ts->bm_used, start, count);
+		reiser4_bitmap_mark_region(ts->bm_used, start, count);
 	
-	aux_bitmap_mark_region(ts->bm_met, start, count);
+	reiser4_bitmap_mark_region(ts->bm_met, start, count);
 	
 	return 0;
 }
@@ -142,9 +142,11 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 	aal_gauge_touch(gauge);
 	time(&ts->stat.time);
 	
-	total = aux_bitmap_marked(ts->bm_twig);
+	total = reiser4_bitmap_marked(ts->bm_twig);
 	
-	while ((blk = aux_bitmap_find_marked(ts->bm_twig, blk)) != INVAL_BLK) {
+	while ((blk = reiser4_bitmap_find_marked(ts->bm_twig, blk)) 
+	       != INVAL_BLK) 
+	{
 		ts->stat.read_twigs++;
 		aal_gauge_set_value(gauge, ts->stat.read_twigs * 100 / total);
 		aal_gauge_touch(gauge);

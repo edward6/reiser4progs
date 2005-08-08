@@ -136,7 +136,7 @@ reiser4_alloc_t *reiser4_alloc_create(
 
 
 errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc,
-			     aux_bitmap_t *bitmap)
+			     reiser4_bitmap_t *bitmap)
 {
 	aal_assert("vpf-582", alloc != NULL);
 	aal_assert("umka-1848", bitmap != NULL);
@@ -146,7 +146,7 @@ errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc,
 }
 
 errno_t reiser4_alloc_extract(reiser4_alloc_t *alloc,
-			      aux_bitmap_t *bitmap)
+			      reiser4_bitmap_t *bitmap)
 {
 	aal_assert("umka-2191", alloc != NULL);
 	aal_assert("umka-2192", bitmap != NULL);

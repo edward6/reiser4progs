@@ -16,10 +16,10 @@ extern reiser4_alloc_t *reiser4_alloc_create(reiser4_fs_t *fs,
 					     count_t blocks);
 
 extern errno_t reiser4_alloc_extract(reiser4_alloc_t *alloc,
-				     aux_bitmap_t *bitmap);
+				     reiser4_bitmap_t *bitmap);
 
 extern errno_t reiser4_alloc_assign(reiser4_alloc_t *alloc, 
-				    aux_bitmap_t *bitmap);
+				    reiser4_bitmap_t *bitmap);
 
 extern errno_t reiser4_alloc_sync(reiser4_alloc_t *alloc);
 

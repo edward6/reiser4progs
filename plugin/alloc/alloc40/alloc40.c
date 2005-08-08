@@ -3,7 +3,7 @@
    
    alloc40.c -- default block allocator plugin for reiser4. It is bitmap based,
    and it deals with bitmap blocks. For the all bitmap-related actions, we use
-   aux_bitmap from the libaux. */
+   reiser4_bitmap from the libaux. */
 
 #ifndef ENABLE_MINIMAL
 #include "alloc40.h"
@@ -183,7 +183,7 @@ static generic_entity_t *alloc40_open(aal_device_t *device,
 	   value is the same as partition size sometimes. */
 	mapsize = blksize - CRC_SIZE;
     
-	if (!(alloc->bitmap = aux_bitmap_create(blocks)))
+	if (!(alloc->bitmap = reiser4_bitmap_create(blocks)))
 		goto error_free_alloc;
 
 	/* Initializing alloc instance. */
@@ -208,11 +208,11 @@ static generic_entity_t *alloc40_open(aal_device_t *device,
 	}
 
 	/* Updating bitmap counters (free blocks, etc) */
-	aux_bitmap_calc_marked(alloc->bitmap);
+	reiser4_bitmap_calc_marked(alloc->bitmap);
 	return (generic_entity_t *)alloc;
 
  error_free_bitmap:
-	aux_bitmap_close(alloc->bitmap);
+	reiser4_bitmap_close(alloc->bitmap);
  error_free_alloc:
 	aal_free(alloc);
 	return NULL;
@@ -238,7 +238,7 @@ static generic_entity_t *alloc40_create(aal_device_t *device,
 
 	mapsize = blksize - CRC_SIZE;
     
-	if (!(alloc->bitmap = aux_bitmap_create(blocks)))
+	if (!(alloc->bitmap = reiser4_bitmap_create(blocks)))
 		goto error_free_alloc;
   
 	crcsize = (alloc->bitmap->size / mapsize) * CRC_SIZE;
@@ -255,7 +255,7 @@ static generic_entity_t *alloc40_create(aal_device_t *device,
 	return (generic_entity_t *)alloc;
 
  error_free_bitmap:
-	aux_bitmap_close(alloc->bitmap);
+	reiser4_bitmap_close(alloc->bitmap);
  error_free_alloc:
 	aal_free(alloc);
 	return NULL;
@@ -264,7 +264,7 @@ static generic_entity_t *alloc40_create(aal_device_t *device,
 /* Assignes passed bitmap pointed by @data to block allocator bitmap */
 static errno_t alloc40_assign(generic_entity_t *entity, void *data) {
 	alloc40_t *alloc = (alloc40_t *)entity;
-	aux_bitmap_t *bitmap = (aux_bitmap_t *)data;
+	reiser4_bitmap_t *bitmap = (reiser4_bitmap_t *)data;
 
 	aal_assert("vpf-580", alloc != NULL);
 	aal_assert("vpf-579", bitmap != NULL);
@@ -282,7 +282,7 @@ static errno_t alloc40_assign(generic_entity_t *entity, void *data) {
 
 static errno_t alloc40_extract(generic_entity_t *entity, void *data) {
 	alloc40_t *alloc = (alloc40_t *)entity;
-	aux_bitmap_t *bitmap = (aux_bitmap_t *)data;
+	reiser4_bitmap_t *bitmap = (reiser4_bitmap_t *)data;
 
 	aal_assert("umka-2156", alloc != NULL);
 	aal_assert("umka-2157", bitmap != NULL);
@@ -388,7 +388,7 @@ static void alloc40_close(generic_entity_t *entity) {
 	aal_assert("umka-368", alloc != NULL);
 	aal_assert("umka-369", alloc->bitmap != NULL);
 
-	aux_bitmap_close(alloc->bitmap);
+	reiser4_bitmap_close(alloc->bitmap);
 
 	aal_free(alloc->crc);
 	aal_free(alloc);
@@ -403,7 +403,7 @@ static errno_t alloc40_occupy(generic_entity_t *entity,
 	aal_assert("umka-370", alloc != NULL);
 	aal_assert("umka-371", alloc->bitmap != NULL);
     
-	aux_bitmap_mark_region(alloc->bitmap,
+	reiser4_bitmap_mark_region(alloc->bitmap,
 			       start, count);
 
 	alloc->state |= (1 << ENTITY_DIRTY);
@@ -419,7 +419,7 @@ static errno_t alloc40_release(generic_entity_t *entity,
 	aal_assert("umka-372", alloc != NULL);
 	aal_assert("umka-373", alloc->bitmap != NULL);
     
-	aux_bitmap_clear_region(alloc->bitmap,
+	reiser4_bitmap_clear_region(alloc->bitmap,
 				start, count);
 
 	alloc->state |= (1 << ENTITY_DIRTY);
@@ -443,7 +443,7 @@ static uint64_t alloc40_allocate(generic_entity_t *entity,
 	aal_assert("umka-375", alloc->bitmap != NULL);
 
 	/* Calling bitmap for gettign free area from it */
-	found = aux_bitmap_find_region(alloc->bitmap,
+	found = reiser4_bitmap_find_region(alloc->bitmap,
 				       start, count, 0);
 
 	/* Marking found region as occupied if its length more then zero.
@@ -452,7 +452,7 @@ static uint64_t alloc40_allocate(generic_entity_t *entity,
 	   caller will decide, that found area is not enough convenient for
 	   him. If so, he will call marking found area as occupied by hands. */
 	if (found > 0) {
-		aux_bitmap_mark_region(alloc->bitmap,
+		reiser4_bitmap_mark_region(alloc->bitmap,
 				       *start, found);
 		alloc->state |= (1 << ENTITY_DIRTY);
 	}
@@ -467,7 +467,7 @@ static uint64_t alloc40_free(generic_entity_t *entity) {
 	aal_assert("umka-376", alloc != NULL);
 	aal_assert("umka-377", alloc->bitmap != NULL);
     
-	return aux_bitmap_cleared(alloc->bitmap);
+	return reiser4_bitmap_cleared(alloc->bitmap);
 }
 
 /* Returns used blocks count */
@@ -477,7 +477,7 @@ static uint64_t alloc40_used(generic_entity_t *entity) {
 	aal_assert("umka-378", alloc != NULL);
 	aal_assert("umka-379", alloc->bitmap != NULL);
 
-	return aux_bitmap_marked(alloc->bitmap);
+	return reiser4_bitmap_marked(alloc->bitmap);
 }
 
 /* Checks whether specified blocks are used */
@@ -487,7 +487,7 @@ int alloc40_occupied(generic_entity_t *entity, uint64_t start, uint64_t count) {
 	aal_assert("umka-663", alloc != NULL);
 	aal_assert("umka-664", alloc->bitmap != NULL);
 
-	return aux_bitmap_test_region(alloc->bitmap,
+	return reiser4_bitmap_test_region(alloc->bitmap,
 				      start, count, 1);
 }
 
@@ -501,7 +501,7 @@ static int alloc40_available(generic_entity_t *entity,
 	aal_assert("vpf-700", alloc != NULL);
 	aal_assert("vpf-701", alloc->bitmap != NULL);
 
-	return aux_bitmap_test_region(alloc->bitmap,
+	return reiser4_bitmap_test_region(alloc->bitmap,
 				      start, count, 0);
 }
 

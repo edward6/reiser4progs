@@ -17,11 +17,11 @@ extern errno_t repair_fs_open(repair_data_t *repair,
 extern errno_t repair_fs_replay(reiser4_fs_t *fs);
 
 extern errno_t repair_fs_pack(reiser4_fs_t *fs, 
-			      aux_bitmap_t *bitmap, 
+			      reiser4_bitmap_t *bitmap, 
 			      aal_stream_t *stream);
 
 extern reiser4_fs_t *repair_fs_unpack(aal_device_t *device, 
-				      aux_bitmap_t *bitmap,
+				      reiser4_bitmap_t *bitmap,
 				      aal_stream_t *stream);
 
 extern errno_t repair_fs_lost_key(reiser4_fs_t *fs, 

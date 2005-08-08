@@ -336,7 +336,7 @@ int main(int argc, char *argv[]) {
 
 	FILE *file = NULL;
 	char *bm_file = NULL;
-	aux_bitmap_t *bitmap = NULL;
+	reiser4_bitmap_t *bitmap = NULL;
 	
 	static struct option long_options[] = {
 		{"version", no_argument, NULL, 'V'},
@@ -541,7 +541,7 @@ int main(int argc, char *argv[]) {
 				goto error_free_device;
 			}
 
-			if (!(bitmap = aux_bitmap_create(0))) {
+			if (!(bitmap = reiser4_bitmap_create(0))) {
 				aal_error("Can't allocate a bitmap.");
 				goto error_close_file;
 			}
@@ -593,14 +593,14 @@ int main(int argc, char *argv[]) {
 		if (bitmap) {
 			aal_stream_init(&stream, file, &file_stream);
 
-			if (aux_bitmap_pack(bitmap, &stream)) {
+			if (reiser4_bitmap_pack(bitmap, &stream)) {
 				aal_error("Can't pack the bitmap of "
 					  "unpacked blocks.");
 				goto error_free_bitmap;
 			}
 
 			aal_stream_fini(&stream);
-			aux_bitmap_close(bitmap);
+			reiser4_bitmap_close(bitmap);
 			fclose(file);
 			bitmap = NULL;
 			file = NULL;
@@ -637,7 +637,7 @@ int main(int argc, char *argv[]) {
 		
 			aal_stream_init(&stream, file, &file_stream);
 
-			if (!(bitmap = aux_bitmap_unpack(&stream))) {
+			if (!(bitmap = reiser4_bitmap_unpack(&stream))) {
 				aal_error("Can't unpack the bitmap of "
 					  "packed blocks.");
 				goto error_close_file;
@@ -647,7 +647,7 @@ int main(int argc, char *argv[]) {
 			fclose(file);
 			file = NULL;
 		} else {
-			if (!(bitmap = aux_bitmap_create(len))) {
+			if (!(bitmap = reiser4_bitmap_create(len))) {
 				aal_error("Can't allocate a bitmap.");
 				goto error_free_fs;
 			}
@@ -663,7 +663,7 @@ int main(int argc, char *argv[]) {
 
 			/* Whole partition || free blocks - invert bitmap. */
 			if (space_flags & SF_WHOLE || space_flags & SF_FREE) {
-				aux_bitmap_invert(bitmap);
+				reiser4_bitmap_invert(bitmap);
 			}
 		}
 	}
@@ -720,7 +720,7 @@ int main(int argc, char *argv[]) {
 		}
 		
 		aal_stream_fini(&stream);
-		aux_bitmap_close(bitmap);
+		reiser4_bitmap_close(bitmap);
 		bitmap = NULL;
 	}
 	
@@ -783,7 +783,7 @@ int main(int argc, char *argv[]) {
 
  error_free_bitmap:
 	if (bitmap) {
-		aux_bitmap_close(bitmap);
+		reiser4_bitmap_close(bitmap);
 	}
  error_close_file:
 	if(file) {

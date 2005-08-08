@@ -12,6 +12,7 @@ extern "C" {
 
 #include <aal/libaal.h>
 #include <reiser4/types.h>
+#include <reiser4/bitmap.h>
 #include <reiser4/filesystem.h>
 #include <reiser4/format.h>
 #include <reiser4/journal.h>

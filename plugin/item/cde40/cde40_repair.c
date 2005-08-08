@@ -27,7 +27,7 @@
 #ifndef ENABLE_MINIMAL
 
 #include "cde40.h"
-#include <aux/bitmap.h>
+#include <reiser4/bitmap.h>
 #include <repair/plugin.h>
 
 #define S_NAME	0

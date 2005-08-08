@@ -22,11 +22,11 @@ static errno_t backup_write(
 	end = block + count;
 	for (blk = block; blk < end; blk++) {
 		/* Check if the block is written already. */
-		if (aux_bitmap_test(backup.bitmap, blk))
+		if (reiser4_bitmap_test(backup.bitmap, blk))
 			continue;
 		
 		/* Mark it in the bitmap. */
-		aux_bitmap_mark(backup.bitmap, blk);
+		reiser4_bitmap_mark(backup.bitmap, blk);
 		
 		/* Write block number and data into the backup stream. */
 		fwrite(&blk, sizeof(blk), 1, backup.file);
@@ -45,7 +45,7 @@ errno_t backup_init(FILE *file, aal_device_t *device, count_t len) {
 	
 	backup.file = file;
 	
-	if (!(backup.bitmap = aux_bitmap_create(len))) {
+	if (!(backup.bitmap = reiser4_bitmap_create(len))) {
 		aal_error("Failed to allocate a bitmap for the backup.");
 		return -ENOMEM;
 	}
@@ -64,7 +64,7 @@ void backup_fini() {
 	if (!backup.file) return;
 
 	fclose(backup.file);
-	aux_bitmap_close(backup.bitmap);
+	reiser4_bitmap_close(backup.bitmap);
 }
 
 errno_t backup_rollback(FILE *file, aal_device_t *device) {

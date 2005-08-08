@@ -24,11 +24,11 @@ typedef struct repair_ds_stat {
 typedef struct repair_ds {
 	repair_data_t *repair;
     
-	aux_bitmap_t *bm_scan;	/* Blocks to be scanned on the pass. */
-	aux_bitmap_t *bm_met;	/* Blocks met already + all formatted . */
+	reiser4_bitmap_t *bm_scan;	/* Blocks to be scanned on the pass. */
+	reiser4_bitmap_t *bm_met;	/* Blocks met already + all formatted . */
 	/* Results of the work. */
-	aux_bitmap_t *bm_leaf;	/* Found leaves. */
-	aux_bitmap_t *bm_twig;	/* Fount twigs. */
+	reiser4_bitmap_t *bm_leaf;	/* Found leaves. */
+	reiser4_bitmap_t *bm_twig;	/* Fount twigs. */
 
 	repair_ds_stat_t stat;
 	bool_t mkidok;

@@ -22,10 +22,10 @@ typedef struct repair_ts_stat {
 typedef struct repair_ts {
 	repair_data_t *repair;
 
-	aux_bitmap_t *bm_used;		/* In the tree blocks .		     */
-	aux_bitmap_t *bm_twig;		/* To be scanned blocks.	     */
-	aux_bitmap_t *bm_met;		/* Met blocks, cannot be pointed by 
-					   extents.			     */
+	reiser4_bitmap_t *bm_used;		/* In the tree blocks .		     */
+	reiser4_bitmap_t *bm_twig;		/* To be scanned blocks.	     */
+	reiser4_bitmap_t *bm_met;		/* Met blocks, cannot be pointed by 
+						   extents.			     */
 	repair_ts_stat_t stat;
 } repair_ts_t;
 

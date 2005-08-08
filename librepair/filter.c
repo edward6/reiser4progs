@@ -65,10 +65,10 @@ static void repair_filter_node_handle(repair_filter_t *fd, blk_t blk,
 				      uint8_t level, repair_mark_t mark)
 {
 	if (mark == RM_MARK) {
-		aux_bitmap_mark_region(fd->bm_used, blk, 1);
+		reiser4_bitmap_mark_region(fd->bm_used, blk, 1);
 		fd->stat.good_nodes++;
 	} else {
-		aux_bitmap_clear_region(fd->bm_used, blk, 1);
+		reiser4_bitmap_clear_region(fd->bm_used, blk, 1);
 		fd->stat.good_nodes--;
 	}
 
@@ -76,11 +76,11 @@ static void repair_filter_node_handle(repair_filter_t *fd, blk_t blk,
 	case LEAF_LEVEL:
 		if (mark == RM_MARK) {
 			if (fd->bm_leaf)
-				aux_bitmap_mark_region(fd->bm_leaf, blk, 1);
+				reiser4_bitmap_mark_region(fd->bm_leaf, blk, 1);
 			fd->stat.good_leaves++;
 		} else {
 			if (fd->bm_leaf)
-				aux_bitmap_clear_region(fd->bm_leaf, blk, 1);
+				reiser4_bitmap_clear_region(fd->bm_leaf, blk, 1);
 			fd->stat.good_leaves--;
 			if (mark == RM_BAD)
 				fd->stat.bad_leaves++;
@@ -90,11 +90,11 @@ static void repair_filter_node_handle(repair_filter_t *fd, blk_t blk,
 	case TWIG_LEVEL:
 		if (mark == RM_MARK) {
 			if (fd->bm_twig)
-				aux_bitmap_mark_region(fd->bm_twig, blk, 1);
+				reiser4_bitmap_mark_region(fd->bm_twig, blk, 1);
 			fd->stat.good_twigs++;
 		} else {
 			if (fd->bm_twig)
-				aux_bitmap_clear_region(fd->bm_twig, blk, 1);
+				reiser4_bitmap_clear_region(fd->bm_twig, blk, 1);
 			fd->stat.good_twigs--;
 			if (mark == RM_BAD)
 				fd->stat.bad_twigs++;
@@ -107,9 +107,9 @@ static void repair_filter_node_handle(repair_filter_t *fd, blk_t blk,
 	
 	if (fd->bm_met) {
 		if (mark == RM_MARK)
-			aux_bitmap_mark_region(fd->bm_met, blk, 1);
+			reiser4_bitmap_mark_region(fd->bm_met, blk, 1);
 		else if (mark == RM_CLEAR)
-			aux_bitmap_clear_region(fd->bm_met, blk, 1);
+			reiser4_bitmap_clear_region(fd->bm_met, blk, 1);
 	}
 
 	return;
@@ -220,7 +220,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 		error = 1;
 	}
 	
-	if (aux_bitmap_test_region(fd->bm_used, blk, 1, 1)) {
+	if (reiser4_bitmap_test_region(fd->bm_used, blk, 1, 1)) {
 		/* Bad pointer detected. Remove if possible. */
 		fsck_mess("Node (%llu), item (%u), unit (%u): Points to the "
 			  "block (%llu) which is in the tree already.%s", 
@@ -609,7 +609,7 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 	    root > reiser4_format_get_len(format))
 	{
 		goto error;
-	} else if (aux_bitmap_test(fd->bm_used, root)) {
+	} else if (reiser4_bitmap_test(fd->bm_used, root)) {
 		/* This block is from format area. */
 		goto error;
 	}

@@ -9,13 +9,13 @@
 #include <stdio.h>
 
 #include <aal/libaal.h>
-#include <aux/bitmap.h>
+#include <reiser4/bitmap.h>
 
 #define BACKUP_MAGIC "_RollBackFileForReiser4FSCK"
 
 typedef struct backup {
 	errno_t (*write) (aal_device_t *, void *, blk_t, count_t);
-	aux_bitmap_t *bitmap;
+	reiser4_bitmap_t *bitmap;
 	FILE *file;
 } backup_t;
 

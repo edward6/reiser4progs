@@ -15,13 +15,13 @@
 typedef struct repair_control {
 	repair_data_t *repair;
 	
-	aux_bitmap_t *bm_used;		/* Formatted area + formatted nodes. */
-	aux_bitmap_t *bm_leaf;		/* Leaf bitmap not in the tree yet.  */
-	aux_bitmap_t *bm_twig;		/* Twig nodes 			     */
-	aux_bitmap_t *bm_met;		/* frmt | used | leaf | twig. 	     */
-	aux_bitmap_t *bm_scan;
+	reiser4_bitmap_t *bm_used;		/* Formatted area + formatted nodes. */
+	reiser4_bitmap_t *bm_leaf;		/* Leaf bitmap not in the tree yet.  */
+	reiser4_bitmap_t *bm_twig;		/* Twig nodes 			     */
+	reiser4_bitmap_t *bm_met;		/* frmt | used | leaf | twig. 	     */
+	reiser4_bitmap_t *bm_scan;
 	
-	aux_bitmap_t *bm_alloc;
+	reiser4_bitmap_t *bm_alloc;
 
 	bool_t mkidok;
 	uint32_t mkid;
@@ -29,7 +29,8 @@ typedef struct repair_control {
 	uint64_t sysblk;
 } repair_control_t;
 
-static errno_t repair_bitmap_compare(aux_bitmap_t *bm1, aux_bitmap_t *bm2, 
+static errno_t repair_bitmap_compare(reiser4_bitmap_t *bm1, 
+				     reiser4_bitmap_t *bm2, 
 				     int verbose) 
 {
 	uint64_t j, i, diff, bytes, bits;
@@ -50,8 +51,8 @@ static errno_t repair_bitmap_compare(aux_bitmap_t *bm1, aux_bitmap_t *bm2,
 				continue;
 
 			for (i = j * 8; i < (j + 1) * 8; i ++) {
-				if (aux_bitmap_test(bm1, i) != 
-				    aux_bitmap_test(bm2, i))
+				if (reiser4_bitmap_test(bm1, i) != 
+				    reiser4_bitmap_test(bm2, i))
 				{
 					diff ++;
 
@@ -61,7 +62,7 @@ static errno_t repair_bitmap_compare(aux_bitmap_t *bm1, aux_bitmap_t *bm2,
 					fprintf(stderr, "Block (%llu) is %s "
 						"in on-disk bitmap, should "
 						"be not.\n", i, 
-						aux_bitmap_test(bm1, i) ? 
+						reiser4_bitmap_test(bm1, i) ? 
 						"marked" : "free");
 				}
 			}
@@ -72,14 +73,17 @@ static errno_t repair_bitmap_compare(aux_bitmap_t *bm1, aux_bitmap_t *bm2,
 	bits = bm1->total % 8;
 	
 	for (i = bm1->size; i < bm1->size + bits; i ++) {
-		if (aux_bitmap_test(bm1, i) != aux_bitmap_test(bm2, i)) {
+		if (reiser4_bitmap_test(bm1, i) != 
+		    reiser4_bitmap_test(bm2, i)) 
+		{
 			diff ++;
 
 			if (!verbose)
 				continue;
 
-			fprintf(stderr, "Block (%llu) is %s in on-disk bitmap, "
-				"should be not.\n", i, aux_bitmap_test(bm1, i) ?
+			fprintf(stderr, "Block (%llu) is %s in on-disk "
+				"bitmap, should be not.\n", i, 
+				reiser4_bitmap_test(bm1, i) ?
 				"marked" : "free");
 		}
 	}
@@ -90,8 +94,8 @@ static errno_t repair_bitmap_compare(aux_bitmap_t *bm1, aux_bitmap_t *bm2,
 
 /* Callback for the format_ops.layout method - mark all blocks in the bitmap. */
 static errno_t cb_format_mark(blk_t start, count_t width, void *data) {
-	aux_bitmap_t *format_layout = (aux_bitmap_t *)data;
-	aux_bitmap_mark_region(format_layout, start, width);
+	reiser4_bitmap_t *format_layout = (reiser4_bitmap_t *)data;
+	reiser4_bitmap_mark_region(format_layout, start, width);
 	return 0;
 }
 
@@ -103,7 +107,7 @@ static errno_t cb_alloc(reiser4_alloc_t *alloc, uint64_t start,
 	
 	aal_assert("vpf-1332", data != NULL);
 
-	aux_bitmap_mark_region(control->bm_used, start, count);
+	reiser4_bitmap_mark_region(control->bm_used, start, count);
 
 	return 0;
 }
@@ -115,7 +119,7 @@ static errno_t cb_release(reiser4_alloc_t *alloc, uint64_t start,
 	
 	aal_assert("vpf-1333", data != NULL);
 
-	aux_bitmap_clear_region(control->bm_used, start, count);
+	reiser4_bitmap_clear_region(control->bm_used, start, count);
 
 	return 0;
 }
@@ -151,7 +155,8 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	
 	/* Allocate a bitmap of blocks belong to the format area - skipped, 
 	   super block, journal, bitmaps. */
-	if (!(control->bm_used = filter->bm_used = aux_bitmap_create(fs_len))) 
+	if (!(control->bm_used = filter->bm_used = 
+	      reiser4_bitmap_create(fs_len)))
 	{
 		aal_error("Failed to allocate a bitmap of format layout.");
 		return -EINVAL;
@@ -169,7 +174,9 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	fs->alloc->hook.data = control;
 	
 	/* Allocate a bitmap of twig blocks in the tree. */
-	if (!(control->bm_twig = filter->bm_twig = aux_bitmap_create(fs_len))) {
+	if (!(control->bm_twig = filter->bm_twig = 
+	      reiser4_bitmap_create(fs_len))) 
+	{
 		aal_error("Failed to allocate a bitmap of twig blocks.");
 		return -EINVAL;
 	}
@@ -178,7 +185,7 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 		return 0;
 	
 	/* A bitmap of leaves removed from the tree and to be inserted back. */
-	control->bm_leaf = filter->bm_leaf = aux_bitmap_create(fs_len);
+	control->bm_leaf = filter->bm_leaf = reiser4_bitmap_create(fs_len);
 	if (!control->bm_leaf) {
 		aal_error("Failed to allocate a bitmap of leaves "
 			  "unconnected from the tree.");
@@ -188,7 +195,7 @@ static errno_t repair_filter_prepare(repair_control_t *control,
 	/* Allocate a bitmap of formatted blocks which cannot be pointed by 
 	   extents, which are not in the used nor twig not leaf bitmaps. */
 	if (!(control->bm_met = filter->bm_met = 
-	      aux_bitmap_clone(filter->bm_used))) 
+	      reiser4_bitmap_clone(filter->bm_used))) 
 	{
 		aal_error("Failed to allocate a bitmap of blocks "
 			  "that are met on the filesystem.");
@@ -207,11 +214,11 @@ static errno_t cb_region_mark(blk_t blk, uint64_t count, void *data) {
 	
 	aal_assert("vpf-561", control != NULL);
 	
-	aux_bitmap_mark_region(control->bm_alloc, blk, count);
+	reiser4_bitmap_mark_region(control->bm_alloc, blk, count);
 	
 	for (i = blk; i < blk + count; i++) {
-		if (!aux_bitmap_test(control->bm_met, i))
-			aux_bitmap_mark(control->bm_scan, i);
+		if (!reiser4_bitmap_test(control->bm_met, i))
+			reiser4_bitmap_mark(control->bm_scan, i);
 	}
 	
 	return 0;
@@ -258,7 +265,7 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 
 		aal_stream_init(&stream, file, &file_stream);
 
-		if (!(ds->bm_scan = aux_bitmap_unpack(&stream))) {
+		if (!(ds->bm_scan = reiser4_bitmap_unpack(&stream))) {
 			aal_error("Can't unpack the bitmap of "
 				  "packed blocks.");
 			
@@ -284,21 +291,21 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 	} else {
 		/* Allocate a bitmap of blocks to be scanned on this pass. */ 
 		if (!(ds->bm_scan = control->bm_scan = 
-		      aux_bitmap_create(fs_len))) 
+		      reiser4_bitmap_create(fs_len))) 
 		{
 			aal_error("Failed to allocate a bitmap of blocks "
 				  "unconnected from the tree.");
 			return -EINVAL;
 		}
 
-		if (!(control->bm_alloc = aux_bitmap_create(fs_len))) {
+		if (!(control->bm_alloc = reiser4_bitmap_create(fs_len))) {
 			aal_error("Failed to allocate a bitmap "
 				  "of allocated blocks.");
 			return -EINVAL;
 		}
 
 		if (control->repair->flags & (1 << REPAIR_WHOLE)) {
-			aux_bitmap_invert(control->bm_alloc);
+			reiser4_bitmap_invert(control->bm_alloc);
 		} else {
 			if ((res = reiser4_alloc_extract(repair->fs->alloc, 
 							 control->bm_alloc)))
@@ -342,14 +349,17 @@ static errno_t repair_ds_prepare(repair_control_t *control, repair_ds_t *ds) {
 			}
 		}
 
-		aux_bitmap_close(control->bm_alloc);
+		reiser4_bitmap_close(control->bm_alloc);
 	}
 	
-	aux_bitmap_calc_marked(control->bm_scan);
+	reiser4_bitmap_calc_marked(control->bm_scan);
 	
 	/* Zeroing leaf & twig bitmaps of ndoes that are in the tree. */
-	aux_bitmap_clear_region(control->bm_leaf, 0, control->bm_leaf->total);
-	aux_bitmap_clear_region(control->bm_twig, 0, control->bm_twig->total);
+	reiser4_bitmap_clear_region(control->bm_leaf, 0, 
+				    control->bm_leaf->total);
+	
+	reiser4_bitmap_clear_region(control->bm_twig, 0, 
+				    control->bm_twig->total);
 	
 	return 0;
 }
@@ -379,7 +389,7 @@ static errno_t repair_ts_prepare(repair_control_t *control, repair_ts_t *ts,
 	if (control->bm_scan) {
 		/* If this is the twig scan that goes after disk_scan, 
 		   close scan bitmap. */
-		aux_bitmap_close(control->bm_scan);
+		reiser4_bitmap_close(control->bm_scan);
 		control->bm_scan = NULL;
 	}
 	
@@ -413,7 +423,7 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 	}
 	
 	/* Assign the met bitmap to the block allocator. */
-	aux_bitmap_calc_marked(control->bm_met);
+	reiser4_bitmap_calc_marked(control->bm_met);
 	
 	if (control->bm_met->marked != control->sysblk) {
 		reiser4_alloc_assign(control->repair->fs->alloc, 
@@ -426,12 +436,12 @@ static errno_t repair_am_prepare(repair_control_t *control, repair_am_t *am) {
 					control->bm_met->marked);
 	}
 	
-	aux_bitmap_close(control->bm_met);
+	reiser4_bitmap_close(control->bm_met);
 	
 	control->bm_met = NULL;
 	
-	aux_bitmap_calc_marked(control->bm_twig);
-	aux_bitmap_calc_marked(control->bm_leaf);
+	reiser4_bitmap_calc_marked(control->bm_twig);
+	reiser4_bitmap_calc_marked(control->bm_leaf);
 	
 	return 0;
 }
@@ -449,17 +459,17 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 	sem->repair = control->repair;
 	
 	aal_assert("vpf-1335", control->repair->mode != RM_BUILD ||
-		   !aux_bitmap_marked(control->bm_twig));
+		   !reiser4_bitmap_marked(control->bm_twig));
 
-	aux_bitmap_close(control->bm_twig);
+	reiser4_bitmap_close(control->bm_twig);
 	control->bm_twig = NULL;
 	sem->stat.files = control->files;
 	
 	if (control->repair->mode == RM_BUILD) {
 		aal_assert("vpf-1335", control->repair->mode != RM_BUILD || 
-			   !aux_bitmap_marked(control->bm_leaf));
+			   !reiser4_bitmap_marked(control->bm_leaf));
 		
-		aux_bitmap_close(control->bm_leaf);
+		reiser4_bitmap_close(control->bm_leaf);
 		control->bm_leaf = NULL;
 
 		/* Assign the used bitmap to the block allocator. */
@@ -474,20 +484,20 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 						control->bm_used->marked);
 		}
 	
-		aux_bitmap_close(control->bm_used);
+		reiser4_bitmap_close(control->bm_used);
 		control->bm_used = NULL;
 		
 		control->repair->fs->alloc->hook.alloc = NULL;
 		control->repair->fs->alloc->hook.release = NULL;
 		control->repair->fs->alloc->hook.data = NULL;
 	} else {
-		aux_bitmap_t *bm_temp;
+		reiser4_bitmap_t *bm_temp;
 		uint64_t fs_len, i;
 		errno_t res;
 		
 		fs_len = reiser4_format_get_len(control->repair->fs->format);
 
-		if (!(control->bm_alloc = aux_bitmap_create(fs_len))) {
+		if (!(control->bm_alloc = reiser4_bitmap_create(fs_len))) {
 			aal_error("Failed to allocate a bitmap of "
 				  "allocated blocks.");
 			return -EINVAL;
@@ -500,7 +510,7 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 		if (control->repair->mode == RM_CHECK)
 			return 0;
 	
-		if (!(bm_temp = aux_bitmap_clone(control->bm_alloc))) {
+		if (!(bm_temp = reiser4_bitmap_clone(control->bm_alloc))) {
 			aal_error("Failed to allocate a bitmap "
 				  "for allocated blocks.");
 			return -EINVAL;
@@ -515,7 +525,7 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 		/* All blocks that are met are forbidden for allocation. */
 		reiser4_alloc_assign(control->repair->fs->alloc, bm_temp);
 
-		aux_bitmap_close(bm_temp);
+		reiser4_bitmap_close(bm_temp);
 	}
 
 	return 0;
@@ -551,7 +561,7 @@ static errno_t repair_sem_fini(repair_control_t *control,
 			control->repair->fixable++;
 	}
 
-	aux_bitmap_close(control->bm_alloc);
+	reiser4_bitmap_close(control->bm_alloc);
 	control->bm_alloc = NULL;
 	
 	/* Do not close bm_used here to get the free blocks count in update. */
@@ -592,21 +602,21 @@ static errno_t debug_am_prepare(repair_control_t *control, repair_am_t *am) {
 	
 	fs_len = reiser4_format_get_len(control->repair->fs->format);
 	
-	if (!(am->bm_leaf = aux_bitmap_create(fs_len))) {
+	if (!(am->bm_leaf = reiser4_bitmap_create(fs_len))) {
 		aal_error("Failed to allocate a bitmap of leaves "
 			  "removed from the tree and to be inserted "
 			  "later back item-by-item.");
 		return -EINVAL;
 	}
 	
-	if (!(am->bm_twig = aux_bitmap_create(fs_len))) {
+	if (!(am->bm_twig = reiser4_bitmap_create(fs_len))) {
 		aal_error("Failed to allocate a bitmap of twig "
 			  "blocks.");
 		return -EINVAL;
 	}
 	
-	aux_bitmap_calc_marked(am->bm_twig);
-	aux_bitmap_calc_marked(am->bm_leaf);
+	reiser4_bitmap_calc_marked(am->bm_twig);
+	reiser4_bitmap_calc_marked(am->bm_leaf);
 	
 	return 0;
 }
@@ -622,7 +632,7 @@ static errno_t repair_update(repair_control_t *control) {
 	/* Get the correct free blocks count from the block allocator if BUILD
 	   mode, otherwise from the used bitmap. */
 	correct = mode == RM_BUILD ? reiser4_alloc_free(fs->alloc) :
-		aux_bitmap_cleared(control->bm_used);
+		reiser4_bitmap_cleared(control->bm_used);
 	
 	val = reiser4_format_get_free(fs->format);
 	
@@ -692,18 +702,18 @@ static void repair_control_release(repair_control_t *control) {
 	aal_assert("vpf-738", control != NULL);
 
 	if (control->bm_used) {
-		aux_bitmap_close(control->bm_used);
+		reiser4_bitmap_close(control->bm_used);
 		
 		control->repair->fs->alloc->hook.alloc = NULL;
 		control->repair->fs->alloc->hook.release = NULL;
 		control->repair->fs->alloc->hook.data = NULL;
 	}
 	if (control->bm_leaf)
-		aux_bitmap_close(control->bm_leaf);
+		reiser4_bitmap_close(control->bm_leaf);
 	if (control->bm_twig)
-		aux_bitmap_close(control->bm_twig);
+		reiser4_bitmap_close(control->bm_twig);
 	if (control->bm_met)
-		aux_bitmap_close(control->bm_met);
+		reiser4_bitmap_close(control->bm_met);
 
 	control->bm_used = control->bm_leaf = control->bm_twig = 
 		control->bm_met = NULL;

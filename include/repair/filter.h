@@ -26,14 +26,14 @@ typedef struct repair_filter_stat {
 typedef struct repair_filter {
 	repair_data_t *repair;
     
-	aux_bitmap_t *bm_used;	/* FS system area + formatted nodes. */
+	reiser4_bitmap_t *bm_used;	/* FS system area + formatted nodes. */
 	
 	/* Results of the work. */
-	aux_bitmap_t *bm_leaf;	/* Bitmap of found leaves. */
-	aux_bitmap_t *bm_twig;	/* Bitmap of found twigs. */
-	aux_bitmap_t *bm_met;	/* Bitmap of formatted nodes which does not get
-				   to neither other bitmap due to corruption or
-				   just an internal one. */
+	reiser4_bitmap_t *bm_leaf;	/* Bitmap of found leaves. */
+	reiser4_bitmap_t *bm_twig;	/* Bitmap of found twigs. */
+	reiser4_bitmap_t *bm_met;	/* Bitmap of formatted nodes which does not get
+				           to neither other bitmap due to corruption or
+				           just an internal one. */
 	repair_filter_stat_t stat;
 	bool_t mkidok;
 	uint32_t mkid;

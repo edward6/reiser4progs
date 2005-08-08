@@ -6,7 +6,6 @@
 #ifndef REPAIR_H
 #define REPAIR_H
 
-#include <aux/bitmap.h>
 #include <reiser4/libreiser4.h>
 #include <repair/plugin.h>
 #include <misc/gauge.h>

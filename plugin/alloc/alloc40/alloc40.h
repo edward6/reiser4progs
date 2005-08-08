@@ -8,7 +8,7 @@
 #ifndef ENABLE_MINIMAL
 
 #include <aal/libaal.h>
-#include <aux/bitmap.h>
+#include <reiser4/bitmap.h>
 #include <reiser4/plugin.h>
 
 #define CRC_SIZE (4)
@@ -20,7 +20,7 @@ struct alloc40 {
 	uint32_t blksize;
 	
 	aal_device_t *device;
-	aux_bitmap_t *bitmap;
+	reiser4_bitmap_t *bitmap;
 
 	char *crc;
 

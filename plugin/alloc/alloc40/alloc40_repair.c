@@ -180,7 +180,7 @@ generic_entity_t *alloc40_unpack(aal_device_t *device,
 		goto error_free_alloc;
 	}
 
-	if (!(alloc->bitmap = aux_bitmap_create(blocks)))
+	if (!(alloc->bitmap = reiser4_bitmap_create(blocks)))
 		goto error_free_alloc;
 
 	/* Initializing adler checksums. */
@@ -203,14 +203,14 @@ generic_entity_t *alloc40_unpack(aal_device_t *device,
 	}
 
 	alloc->state = (1 << ENTITY_DIRTY);
-	aux_bitmap_calc_marked(alloc->bitmap);
+	reiser4_bitmap_calc_marked(alloc->bitmap);
 	
 	return (generic_entity_t *)alloc;
 
  error_free_crc:
 	aal_free(alloc->crc);
  error_free_bitmap:
-	aux_bitmap_close(alloc->bitmap);
+	reiser4_bitmap_close(alloc->bitmap);
  error_free_alloc:
 	aal_free(alloc);
 	return NULL;
@@ -290,8 +290,9 @@ void alloc40_print(generic_entity_t *entity,
 	aal_stream_format(stream, "[ ");
 
 	while (start < total) {
-		if (!(blocks = aux_bitmap_find_region(alloc->bitmap, &start,
-						      total - start, 1)))
+		blocks = reiser4_bitmap_find_region(alloc->bitmap, &start,  
+						    total - start, 1);
+		if (!blocks) 
 			break;
 
 		aal_stream_format(stream, "%llu(%llu) ", start, blocks);

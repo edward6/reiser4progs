@@ -53,7 +53,7 @@
 #include "journal40.h"
 #include "journal40_repair.h"
 
-#include <aux/bitmap.h>
+#include <reiser4/bitmap.h>
 #include <repair/plugin.h>
 
 /* Traverse flags. */
@@ -62,14 +62,14 @@
 				   data and format area. */
 
 typedef struct journal40_check {
-	aux_bitmap_t *journal_layout;   /* All blocks are pointed by journal. */
-	aux_bitmap_t *current_layout;   /* Blocks of current trans only. */
-	blk_t cur_txh;			/* TxH block of the current trans at
-					   traverse time. And the oldest problem 
-					   trans at traverse return time if return 1. */
-	blk_t wanted_blk;		/* Nested traverses look for this block and 
-					   put the TxH block of the found trans here. */
-	journal40_block_t found_type;	/* Put the type of the found block here. */
+	reiser4_bitmap_t *journal_layout;   /* All blocks are pointed by journal. */
+	reiser4_bitmap_t *current_layout;   /* Blocks of current trans only. */
+	blk_t cur_txh;			    /* TxH block of the current trans at
+					       traverse time. And the oldest problem 
+					       trans at traverse return time if return 1. */
+	blk_t wanted_blk;		    /* Nested traverses look for this block and 
+					       put the TxH block of the found trans here. */
+	journal40_block_t found_type;	    /* Put the type of the found block here. */
 	int flags;
 	
 	layout_func_t layout_func;
@@ -181,14 +181,14 @@ static errno_t cb_journal_txh_check(generic_entity_t *entity,
 		return -ESTRUCT;
 	}
 	
-	if (aux_bitmap_test(check_data->journal_layout, blk)) {
+	if (reiser4_bitmap_test(check_data->journal_layout, blk)) {
 		/* TxH block is met not for the 1 time. Kill the journal. */
 		fsck_mess("Transaction header in the block (%llu) was "
 			  "met already.", blk);
 		return -ESTRUCT;
 	}
 	
-	aux_bitmap_mark(check_data->journal_layout, blk);
+	reiser4_bitmap_mark(check_data->journal_layout, blk);
 	
 	return 0;
 }
@@ -253,9 +253,9 @@ static errno_t cb_journal_sec_check(generic_entity_t *entity,
 		aal_block_free(log_block);
 	}
 	
-	if (aux_bitmap_test(check_data->journal_layout, blk)) {
+	if (reiser4_bitmap_test(check_data->journal_layout, blk)) {
 		/* blk was met in the current trans more then once. */
-		if (aux_bitmap_test(check_data->current_layout, blk)) {
+		if (reiser4_bitmap_test(check_data->current_layout, blk)) {
 			fsck_mess("Transaction Header (%llu): %s block "
 				  "(%llu) was met in the transaction "
 				  "more then once.", check_data->cur_txh, 
@@ -379,8 +379,8 @@ static errno_t cb_journal_sec_check(generic_entity_t *entity,
 		}
 	}
 	
-	aux_bitmap_mark(check_data->journal_layout, blk);
-	aux_bitmap_mark(check_data->current_layout, blk);
+	reiser4_bitmap_mark(check_data->journal_layout, blk);
+	reiser4_bitmap_mark(check_data->current_layout, blk);
 	
 	return 0;
 }
@@ -402,13 +402,17 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 	jdata.layout_func = func;
 	jdata.layout_data = data;
 
-	if (!(jdata.journal_layout = aux_bitmap_create(journal->area.len))) {
+	if (!(jdata.journal_layout = 
+	      reiser4_bitmap_create(journal->area.len))) 
+	{
 		aal_error("Failed to allocate a control bitmap for "
 			  "journal layout.");
 		return -ENOMEM;
 	}
 
-	if (!(jdata.current_layout = aux_bitmap_create(journal->area.len))) {
+	if (!(jdata.current_layout = 
+	      reiser4_bitmap_create(journal->area.len))) 
+	{
 		aal_error("Failed to allocate a control bitmap of the "
 			  "current transaction blocks.");
 		
@@ -473,15 +477,15 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 		journal40_mkdirty(journal);
 	}
 	
-	aux_bitmap_close(jdata.current_layout);
-	aux_bitmap_close(jdata.journal_layout);
+	reiser4_bitmap_close(jdata.current_layout);
+	reiser4_bitmap_close(jdata.journal_layout);
 
 	return 0;
 	
  error_free_current:
-	aux_bitmap_close(jdata.current_layout);
+	reiser4_bitmap_close(jdata.current_layout);
  error_free_layout:
-	aux_bitmap_close(jdata.journal_layout);
+	reiser4_bitmap_close(jdata.journal_layout);
 	return ret;
 }
 
@@ -676,7 +680,7 @@ void journal40_print(generic_entity_t *entity,
 }
 
 static errno_t journal40_block_pack(journal40_t *journal, aal_stream_t *stream,
-				    aux_bitmap_t *layout, uint64_t blk) 
+				    reiser4_bitmap_t *layout, uint64_t blk) 
 {
 	journal40_tx_header_t *txh;
 	journal40_lr_header_t *lrh;
@@ -688,10 +692,10 @@ static errno_t journal40_block_pack(journal40_t *journal, aal_stream_t *stream,
 	if (blk < journal->area.start || blk >= journal->area.len)
 		return 0;
 	
-	if (aux_bitmap_test(layout, blk))
+	if (reiser4_bitmap_test(layout, blk))
 		return 0;
 
-	aux_bitmap_mark(layout, blk);
+	reiser4_bitmap_mark(layout, blk);
 
 	if (!(block = aal_block_load(journal->device, journal->blksize, blk))) {
 		aal_error("Can't read block %llu while traversing the journal."
@@ -746,7 +750,7 @@ static errno_t journal40_block_pack(journal40_t *journal, aal_stream_t *stream,
 errno_t journal40_pack(generic_entity_t *entity, aal_stream_t *stream) {
 	journal40_header_t *jheader;
 	journal40_t *journal;
-	aux_bitmap_t *layout;
+	reiser4_bitmap_t *layout;
 	uint64_t blk;
 	errno_t res;
 	
@@ -755,7 +759,7 @@ errno_t journal40_pack(generic_entity_t *entity, aal_stream_t *stream) {
 
 	journal = (journal40_t *)entity;
 	
-	if (!(layout = aux_bitmap_create(journal->area.len))) {
+	if (!(layout = reiser4_bitmap_create(journal->area.len))) {
 		aal_error("Failed to allocate a control bitmap for "
 			  "journal layout.");
 		return -ENOMEM;
@@ -771,7 +775,7 @@ errno_t journal40_pack(generic_entity_t *entity, aal_stream_t *stream) {
 	   the journal structure. */
 	res = journal40_block_pack(journal, stream, layout, blk);
 
-	aux_bitmap_close(layout);
+	reiser4_bitmap_close(layout);
 	return res;
 }
 

@@ -23,9 +23,9 @@ typedef struct repair_am_stat {
 typedef struct repair_am {
 	repair_data_t *repair;
 	
-	aux_bitmap_t *bm_used;
-	aux_bitmap_t *bm_twig;
-	aux_bitmap_t *bm_leaf;
+	reiser4_bitmap_t *bm_used;
+	reiser4_bitmap_t *bm_twig;
+	reiser4_bitmap_t *bm_leaf;
 	
 	repair_am_stat_t stat;
 	aal_gauge_t *gauge;
