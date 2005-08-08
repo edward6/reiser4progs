@@ -19,8 +19,7 @@ not an invitation to misrepresent the history of reiser4progs.
 	Recalculate bitmap checksums at the end of fsck if they are wrong.
 	Do not update bitmps after every fsck pass if no metadata found.
 2005-03-23
-	nomkid option to fsck -- ability to recover reiser4 existed
-	before mkfs on this device.
+	nomkid option to fsck -- ability to recover reiser4 w/out mkid check.
 2005-03-21
 	Large file handling fixes.
 2005-03-16

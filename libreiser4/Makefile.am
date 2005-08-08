@@ -1,9 +1,9 @@
 includedir		     = -I$(top_srcdir)/include
 
-libreiser4_sources	     = libreiser4.c filesystem.c format.c journal.c alloc.c \
-			       oid.c factory.c node.c tree.c key.c object.c place.c \
-			       master.c status.c backup.c item.c profile.c pset.c \
-			       fake.c print.c semantic.c flow.c
+libreiser4_sources	     = bitmap.c libreiser4.c filesystem.c format.c journal.c \
+			       alloc.c oid.c factory.c node.c tree.c key.c object.c \
+			       place.c master.c status.c backup.c item.c profile.c \
+			       pset.c fake.c print.c semantic.c flow.c
 
 if ENABLE_MINIMAL
 MINIMAL_LIBS                   = libreiser4-minimal.la
