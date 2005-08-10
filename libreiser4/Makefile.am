@@ -6,9 +6,9 @@ libreiser4_sources	     = bitmap.c libreiser4.c filesystem.c format.c journal.c 
 			       pset.c fake.c print.c semantic.c flow.c
 
 if ENABLE_MINIMAL
-MINIMAL_LIBS                   = libreiser4-minimal.la
+MINIMAL_LIBS		     = libreiser4-minimal.la
 else
-MINIMAL_LIBS                   =
+MINIMAL_LIBS		     =
 endif
 
 lib_LTLIBRARIES		     = libreiser4.la $(MINIMAL_LIBS)
