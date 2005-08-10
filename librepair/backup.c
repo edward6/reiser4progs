@@ -352,6 +352,12 @@ reiser4_backup_t *repair_backup_open(reiser4_fs_t *fs, uint8_t mode) {
 				{
 					goto error_free_alloc;
 				}
+
+				/* If we found more backup blocks than the max 
+				   possible count of such blocks, descrease 
+				   @count to the max value. */
+				if (hint->count > hint->total)
+					hint->count = hint->total;
 			}
 			
 			/* Close alloc entity. */

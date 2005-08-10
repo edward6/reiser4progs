@@ -65,12 +65,14 @@ errno_t reiser4_master_backup(reiser4_master_t *master,
 	aal_assert("vpf-1388", master != NULL);
 	aal_assert("vpf-1389", hint != NULL);
 	
-	aal_memcpy(hint->el[BK_MASTER], &master->ent, sizeof(master->ent));
-	hint->el[BK_MASTER + 1] = hint->el[BK_MASTER] + sizeof(master->ent);
+	aal_memcpy(hint->block.data + hint->off[BK_MASTER], 
+		   &master->ent, sizeof(master->ent));
+	
+	hint->off[BK_MASTER + 1] = hint->off[BK_MASTER] + sizeof(master->ent);
 	
 	/* Reserve 8 bytes. */
-	aal_memset(hint->el[BK_MASTER + 1], 0, 8);
-	hint->el[BK_MASTER + 1] += 8;
+	aal_memset(hint->block.data + hint->off[BK_MASTER + 1], 0, 8);
+	hint->off[BK_MASTER + 1] += 8;
 	
 	return 0;
 }

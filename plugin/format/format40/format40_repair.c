@@ -62,7 +62,8 @@ errno_t format40_check_struct(generic_entity_t *entity,
 	
 	format = (format40_t *)entity;
 	super = (format40_super_t *)&format->super;
-	backup = hint ? (format40_backup_t *)hint->el[BK_FORMAT] : NULL;
+	backup = hint ? (format40_backup_t *)
+		(hint->block.data + hint->off[BK_FORMAT]) : NULL;
 	
 	if (backup) {
 		aal_assert("vpf-1741", format->blksize == hint->block.size);
@@ -370,8 +371,10 @@ errno_t format40_check_backup(backup_hint_t *hint) {
 	
 	aal_assert("vpf-1733", hint != NULL);
 
-	backup = (format40_backup_t *)hint->el[BK_FORMAT];
-	hint->el[BK_FORMAT + 1] = hint->el[BK_FORMAT] + sizeof(*backup);
+	backup = (format40_backup_t *)
+		(hint->block.data + hint->off[BK_FORMAT]);
+	
+	hint->off[BK_FORMAT + 1] = hint->off[BK_FORMAT] + sizeof(*backup);
 	
 	/* Check the MAGIC. */
 	if (aal_memcmp(backup->sb_magic, FORMAT40_MAGIC, 
@@ -415,7 +418,8 @@ generic_entity_t *format40_regenerate(aal_device_t *device,
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
 
-	backup = (format40_backup_t *)hint->el[BK_FORMAT];
+	backup = (format40_backup_t *)
+		(hint->block.data + hint->off[BK_FORMAT]);
 	
 	format->plug = &format40_plug;
 	format->device = device;

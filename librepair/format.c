@@ -314,7 +314,8 @@ errno_t repair_format_check_backup(aal_device_t *device, backup_hint_t *hint) {
 
 	aal_assert("vpf-1732", hint != NULL);
 	
-	master = (reiser4_master_sb_t *)hint->el[BK_MASTER];
+	master = (reiser4_master_sb_t *)
+		(hint->block.data + hint->off[BK_MASTER]);
 	
 	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, 
 					   get_ms_format(master))))

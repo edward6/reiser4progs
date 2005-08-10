@@ -41,9 +41,15 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 	over = reiser4_profile_overridden(PROF_FORMAT);
 	format = reiser4_profile_plug(PROF_FORMAT);
 
-	ms = fs->backup ? 
-		(reiser4_master_sb_t *)fs->backup->hint.el[BK_MASTER] : NULL;
+	if (fs->backup) {
+		backup_hint_t *bk_hint = &fs->backup->hint;
 		
+		ms = (reiser4_master_sb_t *)
+			(bk_hint->block.data + bk_hint->off[BK_MASTER]);
+	} else {
+		ms = NULL;
+	}
+	
 	if (fs->master == NULL) {
 		if (mode != RM_BUILD)
 			return RE_FATAL;
@@ -368,7 +374,8 @@ errno_t repair_master_check_backup(backup_hint_t *hint) {
 	
 	aal_assert("vpf-1731", hint != NULL);
 
-	master = (reiser4_master_sb_t *)hint->el[BK_MASTER];
+	master = (reiser4_master_sb_t *)
+		(hint->block.data + hint->off[BK_MASTER]);
 	
 	/* Check the MAGIC. */
 	if (aal_strncmp(master->ms_magic, REISER4_MASTER_MAGIC,
@@ -381,7 +388,7 @@ errno_t repair_master_check_backup(backup_hint_t *hint) {
 	if (get_ms_blksize(master) != hint->block.size)
 		return RE_FATAL;
 	
-	hint->el[BK_MASTER + 1] = hint->el[BK_MASTER] + 
+	hint->off[BK_MASTER + 1] = hint->off[BK_MASTER] + 
 		sizeof(reiser4_master_sb_t) + 8 /* reserved */;
 	
 	return 0;

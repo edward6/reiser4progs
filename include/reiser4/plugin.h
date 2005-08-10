@@ -822,7 +822,7 @@ enum reiser4_backuper {
 
 struct backup_hint {
 	aal_block_t block;
-	char *el[BK_LAST + 1];
+	uint16_t off[BK_LAST + 1];
 
 	/* Fields below are used by check_backup. */
 	

@@ -304,8 +304,10 @@ static errno_t format40_backup(generic_entity_t *entity, backup_hint_t *hint) {
 	aal_assert("vpf-1396", entity != NULL);
 	aal_assert("vpf-1397", hint != NULL);
 	
-	backup = (format40_backup_t *)hint->el[BK_FORMAT];
-	hint->el[BK_FORMAT + 1] = hint->el[BK_FORMAT] + sizeof(*backup);
+	backup = (format40_backup_t *)
+		(hint->block.data + hint->off[BK_FORMAT]);
+	
+	hint->off[BK_FORMAT + 1] = hint->off[BK_FORMAT] + sizeof(*backup);
 	
 	aal_memcpy(backup->sb_magic, SUPER(entity)->sb_magic, 
 		   sizeof(SUPER(entity)->sb_magic));

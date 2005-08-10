@@ -502,8 +502,8 @@ errno_t repair_fs_check_backup(aal_device_t *device, backup_hint_t *hint) {
 		return RE_FATAL;
 
 	/* Master backup starts on 1st byte. Note: Every backuper must set 
-	   hint->el[next index] correctly. */
-	hint->el[BK_MASTER] = hint->block.data + 1;
+	   hint->off[next index] correctly. */
+	hint->off[BK_MASTER] = 1;
 
 	/* Check the master backup structure. */
 	if ((res = repair_master_check_backup(hint)))

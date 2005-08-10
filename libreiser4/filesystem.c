@@ -351,8 +351,8 @@ errno_t reiser4_fs_backup(reiser4_fs_t *fs, backup_hint_t *hint) {
 	((char *)hint->block.data)[0] = 0;
 
 	/* Master backup starts on 1st byte. Note: Every backuper must set 
-	   hint->el[next index] correctly. */
-	hint->el[BK_MASTER] = hint->block.data + 1;
+	   hint->off[next index] correctly. */
+	hint->off[BK_MASTER] = 1;
 	
 	/* Backup the master. */
 	if ((res = reiser4_master_backup(fs->master, hint)))
