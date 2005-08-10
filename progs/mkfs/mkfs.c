@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (optind >= argc + 1) {
+	if (optind >= argc) {
 		mkfs_print_usage(argv[0]);
 		return USER_ERROR;
 	}
