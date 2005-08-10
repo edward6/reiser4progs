@@ -26,7 +26,7 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 				   uint8_t mode, 
 				   uint32_t options) 
 {
-	reiser4_master_sb_t *master;
+	reiser4_master_sb_t *ms;
 	reiser4_plug_t *format;
 	fs_hint_t hint;
 	uint16_t size;
@@ -41,17 +41,17 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 	over = reiser4_profile_overridden(PROF_FORMAT);
 	format = reiser4_profile_plug(PROF_FORMAT);
 
-	master = fs->backup ? 
+	ms = fs->backup ? 
 		(reiser4_master_sb_t *)fs->backup->hint.el[BK_MASTER] : NULL;
 		
 	if (fs->master == NULL) {
 		if (mode != RM_BUILD)
 			return RE_FATAL;
 		
-		if (master) {
+		if (ms) {
 			fsck_mess("Master super block cannot be found on '%s'.",
 				 fs->device->name);
-			size = get_ms_blksize(master);
+			size = get_ms_blksize(ms);
 		} else {
 			/* Master SB was not opened. Create a new one. */
 			size = 4096;
@@ -83,85 +83,85 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 		}
 
 		aal_warn("A new master superblock is %s on '%s'.", 
-			 master ? "regenerated from backup" : "created", 
+			 ms ? "regenerated from backup" : "created", 
 			 fs->device->name);
 		
 		reiser4_master_set_uuid(fs->master, 
-					master ? master->ms_uuid : NULL);
-		reiser4_master_set_label(fs->master, master ? 
-					 master->ms_label : NULL);
+					ms ? ms->ms_uuid : NULL);
+		reiser4_master_set_label(fs->master, ms ? 
+					 ms->ms_label : NULL);
 
-		pid = master ? get_ms_format(master) : INVAL_PID;
+		pid = ms ? get_ms_format(ms) : INVAL_PID;
 		reiser4_master_set_format(fs->master, pid);
 		new = 1;
-	} else if (master) {
+	} else if (ms) {
 		/* Master SB & backup are opened. Fix accoring to backup. */
 		size = reiser4_master_get_blksize(fs->master);
 		
-		if (size != get_ms_blksize(master)) {
+		if (size != get_ms_blksize(ms)) {
 			fsck_mess("Blocksize (%u) found in the master "
 				  "super block does not match the one "
 				  "found in the backup (%u).%s", size,
-				  get_ms_blksize(master), mode == RM_BUILD ?
+				  get_ms_blksize(ms), mode == RM_BUILD ?
 				  " Fixed." : "");
 
 			if (mode != RM_BUILD)
 				return RE_FATAL;
 
-			size = get_ms_blksize(master);
+			size = get_ms_blksize(ms);
 			reiser4_master_set_blksize(fs->master, size);
 		}
 
 		if (!over) {
 			pid = reiser4_master_get_format(fs->master);
 
-			if (pid != get_ms_format(master)) {
+			if (pid != get_ms_format(ms)) {
 				/* The @plug is the correct one. */
 				fsck_mess("The reiser4 format plugin id (%u) "
 					  "found in the master super block on "
 					  "'%s' does not match the one from "
 					  "the backup (%u).%s.", pid, 
 					  fs->device->name, 
-					  get_ms_format(master),
+					  get_ms_format(ms),
 					  mode == RM_BUILD ? 
 					  " Fixed." : "");
 
 				if (mode != RM_BUILD)
 					return RE_FATAL;
 
-				pid = get_ms_format(master);
+				pid = get_ms_format(ms);
 				reiser4_master_set_format(fs->master, pid);
 			}
 		}
 		
 		s = reiser4_master_get_uuid(fs->master);
-		if (aal_strncmp(s, master->ms_uuid, sizeof(master->ms_uuid))) {
+		if (aal_strncmp(s, ms->ms_uuid, sizeof(ms->ms_uuid))) {
 			fsck_mess("UUID (0x%llx%llx) found in the master super "
 				  "block does not match the one found in the "
 				  "backup (0x%llx%llx).%s", ((uint64_t *)s)[0],
 				  ((uint64_t *)s)[1], 
-				  ((uint64_t *)master->ms_uuid)[0],
-				  ((uint64_t *)master->ms_uuid)[1],
+				  ((uint64_t *)ms->ms_uuid)[0],
+				  ((uint64_t *)ms->ms_uuid)[1],
 				  mode != RM_CHECK ? " Fixed." : "");
 
 			if (mode == RM_CHECK)
 				return RE_FIXABLE;
 
-			reiser4_master_set_uuid(fs->master, master->ms_uuid);
+			reiser4_master_set_uuid(fs->master, ms->ms_uuid);
 		}
 		
 		s = reiser4_master_get_label(fs->master);
-		if (aal_strncmp(s, master->ms_label, sizeof(master->ms_label)))
+		if (aal_strncmp(s, ms->ms_label, sizeof(ms->ms_label)))
 		{
 			fsck_mess("LABEL (%s) found in the master super block "
 				  "does not match the one found in the backup "
-				  "(%s).%s", s, master->ms_label, 
+				  "(%s).%s", s, ms->ms_label, 
 				  mode != RM_CHECK ? " Fixed." : "");
 
 			if (mode == RM_CHECK)
 				return RE_FIXABLE;
 
-			reiser4_master_set_label(fs->master, master->ms_label);
+			reiser4_master_set_label(fs->master, ms->ms_label);
 		}
 	} else {
 		/* Master SB was opened. Check it for validness. */
@@ -201,7 +201,7 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 	
 	/* If the format is overridden, fix master according to the profile. */
 	if (over && pid != format->id.id) {
-		if (!new || master) {
+		if (!new || ms) {
 			/* Do not swear if the master has been just created. */
 			fsck_mess("The specified disk format on '%s' is '%s'. "
 				  "Its id (0x%x) does not match the on-disk id "
@@ -224,7 +224,7 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 		fs->format = NULL;
 	}
 
-	if (!over && !master && !fs->format && mode == RM_BUILD) {
+	if (!over && !ms && !fs->format && mode == RM_BUILD) {
 		/* If there is no backup and format plug id is not overridden
 		   in the profile, format plug id has not been changed in the 
 		   master! 

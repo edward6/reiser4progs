@@ -49,6 +49,12 @@ errno_t repair_fs_open(repair_data_t *repair,
 	
 	res |= repair_master_check_struct(fs, repair->mode, repair->flags);
 	
+	if (fs->format) {
+		/* Mater could be changed, reopen the format after that. */
+		reiser4_format_close(fs->format);
+		fs->format = reiser4_format_open(fs);
+	}
+	
 	if (repair_error_fatal(res)) {
 		aal_fatal("Failed to open the master super block.");
 		goto error_fs_close;
