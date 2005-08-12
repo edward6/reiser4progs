@@ -6,8 +6,12 @@ reiser4progs/COPYING.
 This file may be modified and/or distributed without restriction. This is
 not an invitation to misrepresent the history of reiser4progs.
 
-2005-08-05
+2005-08-12
 	1.0.5 version.
+2005-08-10
+	Installation fix.
+	Return value fixes.
+	Backup block handling fixes.
 2005-06-28
 	Ability to link against libaal placed at arbitrary location is fixed.
 	Unlink dir fix.
@@ -17,7 +21,7 @@ not an invitation to misrepresent the history of reiser4progs.
 	Flush fs metadata fix (interrupt related).
 	Do not flush dirty nodes if fsck fails.
 	Recalculate bitmap checksums at the end of fsck if they are wrong.
-	Do not update bitmps after every fsck pass if no metadata found.
+	Do not update bitmaps after every fsck pass if no metadata found.
 2005-03-23
 	nomkid option to fsck -- ability to recover reiser4 w/out mkid check.
 2005-03-21
