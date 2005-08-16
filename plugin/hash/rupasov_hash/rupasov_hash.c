@@ -58,7 +58,7 @@ static reiser4_plug_t rupasov_hash_plug = {
 	.id    = {HASH_RUPASOV_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "rupasov_hash",
-	.desc  = "Rupasov hash for reiser4. ",
+	.desc  = "Rupasov hash plugin.",
 #endif
 	.o = {
 		.hash_ops = &rupasov_hash_ops

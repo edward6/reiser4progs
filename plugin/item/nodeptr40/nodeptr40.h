@@ -9,12 +9,11 @@
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
-struct nodeptr40 {
+typedef struct nodeptr40 {
 	d64_t ptr;
-};
+} nodeptr40_t;
 
 extern reiser4_core_t *nodeptr40_core;
-typedef struct nodeptr40 nodeptr40_t;
 
 #define nodeptr40_body(place) ((nodeptr40_t *)place->body)
 

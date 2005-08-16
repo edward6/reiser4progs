@@ -577,7 +577,7 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 	if (sem->repair->mode != RM_BUILD)
 		return NULL;
 
-	plug = reiser4_profile_plug(PROF_DIR);
+	plug = reiser4_profile_plug(PROF_MKDIR);
 	fsck_mess("Trying to recover the directory [%s] with the default "
 		  "plugin--%s.", reiser4_print_inode(key), plug->label);
 

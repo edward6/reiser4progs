@@ -13,7 +13,7 @@
 
 #define CRC_SIZE (4)
 
-struct alloc40 {
+typedef struct alloc40 {
 	reiser4_plug_t *plug;
 	
 	uint32_t state;
@@ -25,9 +25,7 @@ struct alloc40 {
 	char *crc;
 
 	void *data;
-};
-
-typedef struct alloc40 alloc40_t;
+} alloc40_t;
 
 extern reiser4_plug_t alloc40_plug;
 

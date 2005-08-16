@@ -18,7 +18,7 @@ static reiser4_plug_t tails_plug = {
 	.cl    = class_init,
 	.id    = {TAIL_ALWAYS_ID, 0, POLICY_PLUG_TYPE},
 	.label = "tails",
-	.desc  = "Tail policy \"tails only\" for reiser4. ",
+	.desc  = "'Tails only' tail policy plugin.",
 	.o = {
 		.policy_ops = &tails_ops
 	}

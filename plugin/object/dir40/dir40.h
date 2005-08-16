@@ -10,7 +10,7 @@
 #include "plugin/object/obj40/obj40.h"
 
 /* Compaund directory structure */
-struct dir40 {
+typedef struct dir40 {
 	/* Common fields for all files (statdata, etc) */
 	obj40_t obj;
 
@@ -19,9 +19,7 @@ struct dir40 {
 
 	/* Current directory offset. */
 	reiser4_key_t position;
-};
-
-typedef struct dir40 dir40_t;
+} dir40_t;
 
 extern reiser4_plug_t dir40_plug;
 

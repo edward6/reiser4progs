@@ -183,7 +183,7 @@ reiser4_plug_t spl40_plug = {
 	.id    = {OBJECT_SPL40_ID, SPL_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "spl40",
-	.desc  = "Special file plugin for reiser4. ",
+	.desc  = "Special file plugin.",
 #endif
 	.o = {
 		.object_ops = &spl40_ops

@@ -10,7 +10,7 @@
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
-struct sdext_unix {
+typedef struct sdext_unix {
 	d32_t uid;
 	d32_t gid;
 	d32_t atime;
@@ -20,9 +20,7 @@ struct sdext_unix {
 		d64_t rdev;
 		d64_t bytes;
 	} u;
-} __attribute__((packed));
-
-typedef struct sdext_unix sdext_unix_t;
+} __attribute__((packed)) sdext_unix_t;
 
 extern reiser4_core_t *sdext_unix_core;
 

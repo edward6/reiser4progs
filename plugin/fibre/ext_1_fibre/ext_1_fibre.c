@@ -24,7 +24,7 @@ static reiser4_plug_t fibre_ext_1_plug = {
 	.id    = {FIBRE_EXT_1_ID, 0, FIBRE_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "ext_1_fibre",
-	.desc  = "1-symbol extention fibration plugin for reiser4. ",
+	.desc  = "1-symbol extention fibration plugin.",
 #endif
 	.o = {
 		.fibre_ops = &fibre_ext_1_ops

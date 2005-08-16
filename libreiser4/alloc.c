@@ -6,12 +6,10 @@
 #ifndef ENABLE_MINIMAL
 #include <reiser4/libreiser4.h>
 
-enum alloc_init {
+typedef enum alloc_init {
 	ALLOC_OPEN,
 	ALLOC_CREATE
-};
-
-typedef enum alloc_init alloc_init_t;
+} alloc_init_t;
 
 bool_t reiser4_alloc_isdirty(reiser4_alloc_t *alloc) {
 	uint32_t state;

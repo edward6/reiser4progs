@@ -9,11 +9,9 @@
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
-struct sdext_flags {
+typedef struct sdext_flags {
 	d32_t flags;
-} __attribute__((packed));
-
-typedef struct sdext_flags sdext_flags_t;
+} __attribute__((packed)) sdext_flags_t;
 
 extern reiser4_core_t *sdext_flags_core;
 

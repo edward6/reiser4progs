@@ -496,7 +496,7 @@ reiser4_plug_t format40_plug = {
 	.id    = {FORMAT_REISER40_ID, 0, FORMAT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "format40",
-	.desc  = "Disk-format for reiser4. ",
+	.desc  = "Disk-format plugin.",
 #endif
 	.o = {
 		.format_ops = &format40_ops

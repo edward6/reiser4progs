@@ -9,13 +9,11 @@
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
-struct sdext_lt {
+typedef struct sdext_lt {
 	d32_t atime;
 	d32_t mtime;
 	d32_t ctime;
-} __attribute__((packed));
-
-typedef struct sdext_lt sdext_lt_t;
+} __attribute__((packed)) sdext_lt_t;
 
 extern reiser4_core_t *sdext_lt_core;
 

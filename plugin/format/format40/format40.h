@@ -18,7 +18,7 @@
 
 #define MAGIC_SIZE 16
 	
-struct format40_super {
+typedef struct format40_super {
 	d64_t sb_block_count;
 	d64_t sb_free_blocks;
 	d64_t sb_root_block;
@@ -36,11 +36,9 @@ struct format40_super {
 	d64_t sb_flags;
 	
 	char sb_unused[432];
-} __attribute__((packed));
+} __attribute__((packed)) format40_super_t;
 
-typedef struct format40_super format40_super_t;
-
-struct format40 {
+typedef struct format40 {
 	reiser4_plug_t *plug;
 
 	uint32_t state;
@@ -48,21 +46,17 @@ struct format40 {
 	
 	aal_device_t *device;
 	format40_super_t super;
-};
-
-typedef struct format40 format40_t;
+} format40_t;
 
 #ifndef ENABLE_MINIMAL
-struct format40_backup {
+typedef struct format40_backup {
 	char sb_magic[MAGIC_SIZE];
 	d64_t sb_block_count;
 	d32_t sb_mkfs_id;
 	d16_t sb_policy;
 	d64_t sb_flags;
 	d64_t sb_reserved;
-} __attribute__((packed));
-
-typedef struct format40_backup format40_backup_t;
+} __attribute__((packed)) format40_backup_t;
 #endif
 
 

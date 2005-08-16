@@ -29,15 +29,13 @@
 #include <aux/aux.h>
 #include <misc/misc.h>
 
-enum mkfs_behav_flags {
+typedef enum mkfs_behav_flags {
 	BF_FORCE      = 1 << 0,
 	BF_YES        = 1 << 1,
 	BF_LOST       = 1 << 2,
 	BF_SHOW_PARM  = 1 << 3,
 	BF_SHOW_PLUG  = 1 << 4
-};
-
-typedef enum mkfs_behav_flags mkfs_behav_flags_t;
+} mkfs_behav_flags_t;
 
 /* Prints mkfs options */
 static void mkfs_print_usage(char *name) {

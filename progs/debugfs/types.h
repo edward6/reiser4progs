@@ -6,7 +6,7 @@
 #ifndef DEBUGFS_TYPE_H
 #define DEBUGFS_TYPE_H
 
-enum print_flags {
+typedef enum print_flags {
 	PF_SUPER    = 1 << 0,
 	PF_JOURNAL  = 1 << 1,
 	PF_ALLOC    = 1 << 2,
@@ -15,11 +15,9 @@ enum print_flags {
 	PF_BLOCK    = 1 << 5,
 	PF_NODES    = 1 << 6,
 	PF_ITEMS    = 1 << 7
-};
+} print_flags_t;
 
-typedef enum print_flags print_flags_t;
-
-enum behav_flags {
+typedef enum behav_flags {
 	BF_FORCE		= 1 << 0,
 	BF_YES			= 1 << 1,
 	BF_CAT			= 1 << 2,
@@ -28,15 +26,11 @@ enum behav_flags {
 	BF_PACK_META		= 1 << 5,
 	BF_UNPACK_META		= 1 << 6,
 	BF_FREE_NEW_BACKUP	= 1 << 7
-};
+} behav_flags_t;
 
-typedef enum behav_flags behav_flags_t;
-
-enum space_flags {
+typedef enum space_flags {
 	SF_WHOLE	= 1 << 0,
 	SF_FREE		= 1 << 1
-};
-
-typedef enum space_flags space_flags_t;
+} space_flags_t;
 
 #endif

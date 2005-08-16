@@ -22,17 +22,20 @@ enum reiser4_profile_index {
 	PROF_DIRITEM	= 0x8,
 	PROF_TAIL	= 0x9,
 	PROF_EXTENT	= 0xa,
-	PROF_ACL	= 0xb,
-	PROF_PERM	= 0xc,
+	PROF_CTAIL	= 0xb,
 	
-	PROF_REG	= 0xd,
-	PROF_DIR	= 0xe,
-	PROF_SYM	= 0xf,
-	PROF_SPL	= 0x10,
+	PROF_CREATE	= 0xc,
+	PROF_MKDIR	= 0xd,
+	PROF_SYMLINK	= 0xe,
+	PROF_MKNODE	= 0xf,
 	
-	PROF_HASH	= 0x11,
-	PROF_FIBRE	= 0x12,
-	PROF_POLICY	= 0x13,
+	PROF_COMPRESS   = 0x10,
+	PROF_CRYPTO     = 0x11,
+	
+	PROF_HASH	= 0x12,
+	PROF_FIBRE	= 0x13,
+	PROF_POLICY	= 0x14,
+	PROF_CLUSTER    = 0x15,
 	PROF_LAST
 };
 
@@ -42,18 +45,17 @@ extern bool_t reiser4_profile_overridden(rid_t id);
 extern inline reiser4_plug_t *reiser4_profile_plug(rid_t index);
 extern void reiser4_profile_print(aal_stream_t *stream);
 
-struct reiser4_profile {
+typedef struct reiser4_profile {
 	struct {
 		char *name;
-		rid_t type;
-		rid_t id;
+		plug_ident_t id;
+		/* Do not show those parameters where is no alternatives. */
+		uint8_t hidden;
 	} pid[PROF_LAST];
 
 	/* Overriden mask. */
 	uint64_t mask;
-};
-
-typedef struct reiser4_profile reiser4_profile_t;
+} reiser4_profile_t;
 
 #endif
 #endif

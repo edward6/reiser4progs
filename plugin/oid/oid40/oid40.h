@@ -16,7 +16,7 @@
 
 #define OID40_LOST_OBJECTID	(OID40_RESERVED - 1)
 
-struct oid40 {
+typedef struct oid40 {
 	reiser4_plug_t *plug;
 	generic_entity_t *format;
 
@@ -26,9 +26,7 @@ struct oid40 {
 	uint64_t next;
 	uint64_t used;
 	uint32_t state;
-};
-
-typedef struct oid40 oid40_t;
+} oid40_t;
 
 #define oid40_get_next(area)            LE64_TO_CPU(*((d64_t *)area))
 #define oid40_set_next(area, val)       (*((d64_t *)area) = CPU_TO_LE64(val))

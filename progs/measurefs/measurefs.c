@@ -19,7 +19,7 @@
 #include <reiser4/libreiser4.h>
 
 /* Known measurefs behavior flags. */
-enum behav_flags {
+typedef enum behav_flags {
 	BF_FORCE      = 1 << 0,
 	BF_YES        = 1 << 1,
 	BF_TREE_FRAG  = 1 << 2,
@@ -29,9 +29,7 @@ enum behav_flags {
 	BF_SHOW_FILE  = 1 << 6,
 	BF_SHOW_PLUG  = 1 << 7,
 	BF_SHOW_PARM  = 1 << 8
-};
-
-typedef enum behav_flags behav_flags_t;
+} behav_flags_t;
 
 /* Prints measurefs options */
 static void measurefs_print_usage(char *name) {
@@ -72,15 +70,13 @@ static void measurefs_init(void) {
 		misc_exception_set_stream(ex, stderr);
 }
 
-struct tree_frag_hint {
+typedef struct tree_frag_hint {
 	aal_gauge_t *gauge;
 
 	blk_t curr;
 	uint16_t level;
 	count_t total, bad;
-};
-
-typedef struct tree_frag_hint tree_frag_hint_t;
+} tree_frag_hint_t;
 
 /* Open node callback for calculating the tree fragmentation */
 static reiser4_node_t *tree_frag_open_node(reiser4_tree_t *tree,
@@ -230,7 +226,7 @@ errno_t measurefs_tree_frag(reiser4_fs_t *fs, uint32_t flags) {
 	return 0;
 };
 
-struct tree_stat_hint {
+typedef struct tree_stat_hint {
 	aal_gauge_t *gauge;
 	reiser4_tree_t *tree;
 
@@ -253,9 +249,7 @@ struct tree_stat_hint {
 	double formatted_used;
 
 	reiser4_place_t *place;
-};
-
-typedef struct tree_stat_hint tree_stat_hint_t;
+} tree_stat_hint_t;
 
 /* Process one item on level > LEAF_LEVEL. */
 static errno_t stat_item_layout(uint64_t start, uint64_t width, void *data) {
@@ -478,7 +472,7 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	return 0;
 }
 
-struct file_frag_hint {
+typedef struct file_frag_hint {
 	aal_gauge_t *gauge;
 
 	count_t bad;
@@ -490,9 +484,7 @@ struct file_frag_hint {
 	double current;
 	uint32_t flags;
 	uint16_t level;
-};
-
-typedef struct file_frag_hint file_frag_hint_t;
+} file_frag_hint_t;
 
 /* Callback function for processing one block belong to the file we are
    traversing. */

@@ -131,7 +131,7 @@ static reiser4_plug_t ctail40_plug = {
 	.id    = {ITEM_CTAIL40_ID, CTAIL_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "ctail40",
-	.desc  = "Compressed file body item for reiser4. ",
+	.desc  = "Compressed file body item plugin.",
 #endif
 	.o = {
 		.item_ops = &ctail40_ops

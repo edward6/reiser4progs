@@ -28,7 +28,7 @@ static reiser4_plug_t r5_hash_plug = {
 	.id    = {HASH_R5_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "r5_hash",
-	.desc  = "R5 hash for reiser4. ",
+	.desc  = "R5 hash plugin.",
 #endif
 	.o = {
 		.hash_ops = &r5_hash_ops

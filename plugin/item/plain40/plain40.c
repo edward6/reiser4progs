@@ -118,7 +118,7 @@ static reiser4_plug_t plain40_plug = {
 	.id    = {ITEM_PLAIN40_ID, TAIL_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "plain40",
-	.desc  = "Plain tail item for reiser4. ",
+	.desc  = "Plain file body item plugin.",
 #endif
 	.o = {
 		.item_ops = &plain40_ops

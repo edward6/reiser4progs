@@ -257,7 +257,7 @@ reiser4_plug_t sym40_plug = {
 	.id    = {OBJECT_SYM40_ID, SYM_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "sym40",
-	.desc  = "Symlink plugin for reiser4. ",
+	.desc  = "Symlink file plugin.",
 #endif
 	.o = {
 		.object_ops = &sym40_ops

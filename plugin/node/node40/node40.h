@@ -15,7 +15,7 @@
 extern reiser4_plug_t node40_plug;
 
 /* Format of node header for node_common */
-struct node40_header {
+typedef struct node40_header {
 
 	/* Plugin id */
 	d16_t pid;
@@ -45,9 +45,7 @@ struct node40_header {
 	d8_t level;
 	
 	d8_t pad;
-}  __attribute__((packed));
-
-typedef struct node40_header node40_header_t;  
+}  __attribute__((packed)) node40_header_t;  
 
 extern reiser4_core_t *node40_core;
 
@@ -163,41 +161,33 @@ extern uint16_t node40_get_flag(reiser4_node_t *entity, uint32_t pos);
 	nh_set_num_items(node, (nh_get_num_items(node) - (val)));
 
 #ifdef ENABLE_SHORT_KEYS
-union key3 {
+typedef union key3 {
 	d64_t el[3];
 	int pad;
-};
+} key3_t;
 
-typedef union key3 key3_t;
-
-struct item_header3 {
+typedef struct item_header3 {
 	key3_t key3;
     
 	d16_t offset;
 	d16_t flags;
 	d16_t pid;
-} __attribute__((packed));
-
-typedef struct item_header3 item_header3_t;
+} __attribute__((packed)) item_header3_t;
 #endif
 
 #ifdef ENABLE_LARGE_KEYS
-union key4 {
+typedef union key4 {
 	d64_t el[4];
 	int pad;
-};
+} key4_t;
 
-typedef union key4 key4_t;
-
-struct item_header4 {
+typedef struct item_header4 {
 	key4_t key4;
     
 	d16_t offset;
 	d16_t flags;
 	d16_t pid;
-} __attribute__((packed));
-
-typedef struct item_header4 item_header4_t;
+} __attribute__((packed)) item_header4_t;
 #endif
 
 #if defined(ENABLE_SHORT_KEYS) && defined(ENABLE_LARGE_KEYS)

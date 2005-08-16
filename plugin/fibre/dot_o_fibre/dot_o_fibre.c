@@ -24,7 +24,7 @@ static reiser4_plug_t fibre_dot_o_plug = {
 	.id    = {FIBRE_DOT_O_ID, 0, FIBRE_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "dot_o_fibre",
-	.desc  = "'.o' fibration plugin for reiser4. ",
+	.desc  = "'.o' fibration plugin.",
 #endif
 	.o = {
 		.fibre_ops = &fibre_dot_o_ops

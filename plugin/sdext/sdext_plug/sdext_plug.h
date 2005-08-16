@@ -11,19 +11,15 @@
 #include <reiser4/plugin.h>
 
 /* stat-data extension for files with non-standard plugin. */
-struct sdext_plug_slot {
+typedef struct sdext_plug_slot {
         d16_t member;
         d16_t plug;
-} __attribute__((packed));
+} __attribute__((packed)) sdext_plug_slot_t;
 
-typedef struct sdext_plug_slot sdext_plug_slot_t;
-
-struct sdext_plug {
+typedef struct sdext_plug {
         d16_t count;
         sdext_plug_slot_t slot[0];
-}  __attribute__((packed));
-
-typedef struct sdext_plug sdext_plug_t;
+}  __attribute__((packed)) sdext_plug_t;
 
 extern reiser4_core_t *sdext_plug_core;
 

@@ -199,13 +199,11 @@ void debugfs_print_journal(reiser4_fs_t *fs) {
 	aal_stream_fini(&stream);
 }
 
-struct fprint_hint {
+typedef struct fprint_hint {
 	blk_t old;
 	void *data;
 	uint32_t flags;
-};
-
-typedef struct fprint_hint fprint_hint_t;
+} fprint_hint_t;
 
 /* Prints item at passed @place */
 static errno_t fprint_process_place(

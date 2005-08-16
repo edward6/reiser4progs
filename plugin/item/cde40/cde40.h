@@ -19,73 +19,55 @@
    |                             |                     |   |                     |
    +-----------------------------+-----------------------------------------------+ */
 
-struct cde40 {
+typedef struct cde40 {
 	d16_t units;
-};
-
-typedef struct cde40 cde40_t;
+} cde40_t;
 
 #ifdef ENABLE_SHORT_KEYS
-struct objid3 {
+typedef struct objid3 {
 	d8_t locality[8];
 	d8_t objectid[8];
-};
-
-typedef struct objid3 objid3_t;
+} objid3_t;
 
 
-struct hash3 {
+typedef struct hash3 {
 	d8_t objectid[8];
 	d8_t offset[8];
-};
+} hash3_t;
 
-typedef struct hash3 hash3_t;
-
-struct entry3 {
+typedef struct entry3 {
 	hash3_t hash;
 	d16_t offset;
-};
+} entry3_t;
 
-typedef struct entry3 entry3_t;
-
-struct cde403 {
+typedef struct cde403 {
 	d16_t units;
 	entry3_t entry[0];
-};
-
-typedef struct cde403  cde403_t;
+} cde403_t;
 #endif
 
 #ifdef ENABLE_LARGE_KEYS
-struct objid4 {
+typedef struct objid4 {
 	d8_t locality[8];
 	d8_t ordering[8];
 	d8_t objectid[8];
-};
+} objid4_t;
 
-typedef struct objid4 objid4_t;
-
-struct hash4 {
+typedef struct hash4 {
 	d8_t ordering[8];
 	d8_t objectid[8];
 	d8_t offset[8];
-};
+} hash4_t;
 
-typedef struct hash4 hash4_t;
-
-struct entry4 {
+typedef struct entry4 {
 	hash4_t hash;
 	d16_t offset;
-};
+} entry4_t;
 
-typedef struct entry4 entry4_t;
-
-struct cde404 {
+typedef struct cde404 {
 	d16_t units;
 	entry4_t entry[0];
-};
-
-typedef struct cde404  cde404_t;
+} cde404_t;
 #endif
 
 extern reiser4_core_t *cde40_core;

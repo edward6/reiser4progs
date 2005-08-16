@@ -35,12 +35,10 @@ typedef enum {
     
 } key_short_field_t;
 
-union key_short {
+typedef union key_short {
 	d64_t el[KEY_SHORT_LAST_INDEX];
 	int pad;
-};
-
-typedef union key_short key_short_t;
+} key_short_t;
 
 typedef enum {
 	/* Major locality occupies higher 60 bits of the first element */

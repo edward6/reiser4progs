@@ -8,13 +8,11 @@
 #include "alloc40.h"
 #include <repair/plugin.h>
 
-struct alloc40_hint {
+typedef struct alloc40_hint {
 	alloc40_t *alloc;
 	region_func_t func;
 	void *data;
-};
-
-typedef struct alloc40_hint alloc40_hint_t;
+} alloc40_hint_t;
 
 extern errno_t cb_valid_block(blk_t start, count_t width, void *data);
 

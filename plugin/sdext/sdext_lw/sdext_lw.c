@@ -75,7 +75,7 @@ static reiser4_plug_t sdext_lw_plug = {
 	.id    = {SDEXT_LW_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "sdext_lw",
-	.desc  = "Light stat data extension for reiser4. ",
+	.desc  = "Light stat data extension plugin.",
 #endif
 	.o = {
 		.sdext_ops = &sdext_lw_ops

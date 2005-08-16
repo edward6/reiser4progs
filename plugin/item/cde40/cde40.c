@@ -1138,7 +1138,7 @@ static reiser4_plug_t cde40_plug = {
 	.id    = {ITEM_CDE40_ID, DIR_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "cde40",
-	.desc  = "Compound direntry for reiser4. ",
+	.desc  = "Compound directory entry item plugin.",
 #endif
 	.o = {
 		.item_ops = &cde40_ops

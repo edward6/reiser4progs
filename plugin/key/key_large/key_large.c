@@ -389,7 +389,7 @@ reiser4_plug_t key_large_plug = {
 	.id    = {KEY_LARGE_ID, 0, KEY_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "key_large",
-	.desc  = "Large key for reiser4. ",
+	.desc  = "Large key plugin.",
 #endif
 	.o = {
 		.key_ops = &key_large_ops

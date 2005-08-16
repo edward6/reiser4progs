@@ -15,103 +15,113 @@ reiser4_profile_t defprof = {
 	.pid = {
 		[PROF_FORMAT] = {
 			.name  = "format",
-			.type  = FORMAT_PLUG_TYPE,
-			.id = FORMAT_REISER40_ID,
+			.id = {FORMAT_REISER40_ID, 0, FORMAT_PLUG_TYPE},
+			.hidden = 1,
 		},
 		[PROF_JOURNAL] = {
 			.name  = "journal",
-			.type  = JOURNAL_PLUG_TYPE,
-			.id = JOURNAL_REISER40_ID,
+			.id = {JOURNAL_REISER40_ID, 0, JOURNAL_PLUG_TYPE},
+			.hidden = 1,
 		},
 		[PROF_OID] = {
 			.name  = "oid",
-			.type  = OID_PLUG_TYPE,
-			.id = OID_REISER40_ID,
+			.id = {OID_REISER40_ID, 0, OID_PLUG_TYPE},
+			.hidden = 1,
 		},
 		[PROF_ALLOC] = {
 			.name  = "alloc",
-			.type  = ALLOC_PLUG_TYPE,
-			.id = ALLOC_REISER40_ID,
+			.id = {ALLOC_REISER40_ID, 0, ALLOC_PLUG_TYPE},
+			.hidden = 1,
 		},
 		[PROF_KEY] = {
 			.name  = "key",
-			.type  = KEY_PLUG_TYPE,
-			.id = KEY_LARGE_ID,
+			.id = {KEY_LARGE_ID, 0, KEY_PLUG_TYPE},
+			.hidden = 0,
 		},
 		[PROF_NODE] = {
 			.name  = "node",
-			.type  = NODE_PLUG_TYPE,
-			.id = NODE_REISER40_ID,
+			.id = {NODE_REISER40_ID, 0, NODE_PLUG_TYPE},
+			.hidden = 1,
 		},
 		[PROF_STAT] = {
 			.name  = "statdata",
-			.type  = ITEM_PLUG_TYPE,
-			.id = ITEM_STAT40_ID,
+			.id = {ITEM_STAT40_ID, STAT_ITEM, ITEM_PLUG_TYPE},
+			.hidden = 1,
 		},
 		[PROF_NODEPTR] = {
 			.name  = "nodeptr",
-			.type  = ITEM_PLUG_TYPE,
-			.id = ITEM_NODEPTR40_ID,
+			.id = {ITEM_NODEPTR40_ID, PTR_ITEM, ITEM_PLUG_TYPE},
+			.hidden = 1,
 		},
 		[PROF_DIRITEM] = {
 			.name  = "direntry",
-			.type  = ITEM_PLUG_TYPE,
-			.id = ITEM_CDE40_ID,
+			.id = {ITEM_CDE40_ID, DIR_ITEM, ITEM_PLUG_TYPE},
+			.hidden = 1,
 		},
 		[PROF_TAIL] = {
 			.name  = "tail",
-			.type  = ITEM_PLUG_TYPE,
-			.id = ITEM_PLAIN40_ID,
+			.id = {ITEM_PLAIN40_ID, TAIL_ITEM, ITEM_PLUG_TYPE},
+			.hidden = 1,
 		},
 		[PROF_EXTENT] = {
 			.name  = "extent",
-			.type  = ITEM_PLUG_TYPE,
-			.id = ITEM_EXTENT40_ID,
+			.id = {ITEM_EXTENT40_ID, EXTENT_ITEM, ITEM_PLUG_TYPE},
+			.hidden = 1,
 		},
-		[PROF_ACL] = {
-			.name  = "acl",
-			.type  = ITEM_PLUG_TYPE,
-			.id = ITEM_ACL40_ID,
+		[PROF_CTAIL] = {
+			.name = "compression tail",
+			.id = {ITEM_CTAIL40_ID, CTAIL_ITEM, ITEM_PLUG_TYPE},
+			.hidden = 1,
 		},
-		[PROF_PERM] = {
-			.name  = "permission",
-			.type  = PERM_PLUG_TYPE,
-			.id = PERM_RWX_ID,
+		[PROF_CREATE] = {
+			.name  = "create",
+			.id = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
+			.hidden = 0,
 		},
-		[PROF_REG] = {
-			.name  = "regular",
-			.type  = OBJECT_PLUG_TYPE,
-			.id = OBJECT_REG40_ID,
+		[PROF_MKDIR] = {
+			.name  = "mkdir",
+			.id = {OBJECT_DIR40_ID, DIR_OBJECT, OBJECT_PLUG_TYPE},
+			.hidden = 1,
 		},
-		[PROF_DIR] = {
-			.name  = "directory",
-			.type  = OBJECT_PLUG_TYPE,
-			.id = OBJECT_DIR40_ID,
+		[PROF_SYMLINK] = {
+			.name  = "mksym",
+			.id = {OBJECT_SYM40_ID, SYM_OBJECT, OBJECT_PLUG_TYPE},
+			.hidden = 1,
 		},
-		[PROF_SYM] = {
-			.name  = "symlink",
-			.type  = OBJECT_PLUG_TYPE,
-			.id = OBJECT_SYM40_ID,
+		[PROF_MKNODE] = {
+			.name  = "mknode",
+			.id = {OBJECT_SPL40_ID, SPL_OBJECT, OBJECT_PLUG_TYPE},
+			.hidden = 1,
 		},
-		[PROF_SPL] = {
-			.name  = "special",
-			.type  = OBJECT_PLUG_TYPE,
-			.id = OBJECT_SPL40_ID,
+		[PROF_COMPRESS] = {
+			.name = "compression",
+			.id = {COMPRESS_NONE_ID, 0, COMPRESS_PLUG_TYPE},
+			.hidden = 0,
+		},
+		[PROF_CRYPTO] = {
+			.name = "crypto",
+			.id = {CRYPTO_NONE_ID, 0, CRYPTO_PLUG_TYPE},
+			.hidden = 0,
 		},
 		[PROF_HASH] = {
 			.name  = "hash",
-			.type  = HASH_PLUG_TYPE,
-			.id = HASH_R5_ID,
+			.id = {HASH_R5_ID, 0, HASH_PLUG_TYPE},
+			.hidden = 0,
 		},
 		[PROF_FIBRE] = {
 			.name  = "fibration",
-			.type  = FIBRE_PLUG_TYPE,
-			.id = FIBRE_EXT_1_ID,
+			.id = {FIBRE_EXT_1_ID, 0, FIBRE_PLUG_TYPE},
+			.hidden = 0,
 		},
 		[PROF_POLICY] = {
 			.name  = "formatting",
-			.type  = POLICY_PLUG_TYPE,
-			.id = TAIL_SMART_ID,
+			.id = {TAIL_SMART_ID, 0, POLICY_PLUG_TYPE},
+			.hidden = 0,
+		},
+		[PROF_CLUSTER] = {
+			.name = "cluster",
+			.id = {CLUSTER_64K_ID, CLUSTER_PLUG_TYPE, PARAM_PLUG_TYPE},
+			.hidden = 0,
 		}
 	},
 	.mask = 0
@@ -124,10 +134,14 @@ void reiser4_profile_print(aal_stream_t *stream) {
 		reiser4_plug_t *plug;
 		uint32_t width;
 
+		/* skip hidden ones. */
+		if (defprof.pid[i].hidden)
+			continue;
+		
 		width = 12 - aal_strlen(defprof.pid[i].name);
 
-		plug = reiser4_factory_ifind(defprof.pid[i].type, 
-					     defprof.pid[i].id);
+		plug = reiser4_factory_ifind(defprof.pid[i].id.type, 
+					     defprof.pid[i].id.id);
 		
 		if (plug) {
 			aal_stream_format(stream, "%s:%*s\"%s\" (id:0x%x "
@@ -137,8 +151,8 @@ void reiser4_profile_print(aal_stream_t *stream) {
 		} else {
 			aal_stream_format(stream, "%s:%*s\"absent (id:0x%x "
 					  "type:0x%x)\"\n", defprof.pid[i].name,
-					  width - 1, " ", defprof.pid[i].id,
-					  defprof.pid[i].type);
+					  width - 1, " ", defprof.pid[i].id.id,
+					  defprof.pid[i].id.type);
 		}
 	}
 }
@@ -152,6 +166,10 @@ errno_t reiser4_profile_override(const char *slot, const char *name) {
 	aal_assert("umka-923", name != NULL);
 
 	for (i = 0; i < PROF_LAST; i++) {
+		/* skip hidden ones. */
+		if (defprof.pid[i].hidden)
+			continue;
+		
 		if (aal_strlen(defprof.pid[i].name) != aal_strlen(slot))
 			continue;
 
@@ -169,14 +187,21 @@ errno_t reiser4_profile_override(const char *slot, const char *name) {
 		return -EINVAL;
 	}
 
-	if (defprof.pid[i].type != plug->id.type) {
+	if (defprof.pid[i].id.type != plug->id.type) {
 		aal_error("Can't override profile slot \"%s\" by the found "
 			  "plugin \"%s\": a plugin of another type is found.",
 			  slot, name);
 		return -EINVAL;
 	}
 
-	defprof.pid[i].id = plug->id.id;
+	if (defprof.pid[i].id.group != plug->id.group) {
+		aal_error("Can't override profile slot \"%s\" by the found "
+			  "plugin \"%s\": a plugin of the same type but of "
+			  "another group is found.", slot, name);
+		return -EINVAL;
+	}
+
+	defprof.pid[i].id.id = plug->id.id;
 	aal_set_bit(&defprof.mask, i);
 	
 	return 0;
@@ -193,12 +218,12 @@ inline reiser4_plug_t *reiser4_profile_plug(rid_t id) {
 	
 	aal_assert("vpf-1591", id < PROF_LAST);
 	
-	if (!(plug = reiser4_factory_ifind(defprof.pid[id].type, 
-					   defprof.pid[id].id)))
+	if (!(plug = reiser4_factory_ifind(defprof.pid[id].id.type, 
+					   defprof.pid[id].id.id)))
 	{
 		aal_bug("vpf-1607", "Failed to find a plugin from the "
 			"reiser4porgs profile, type (%s), id(%u)",
-			defprof.pid[id].name, defprof.pid[id].id);
+			defprof.pid[id].name, defprof.pid[id].id.id);
 	}
 	
 	return plug;

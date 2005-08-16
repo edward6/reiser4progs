@@ -13,25 +13,21 @@ typedef errno_t (*stat_func_t) (reiser4_place_t *);
 
 #define SKIP_METHOD	((void *)-1)
 
-struct obj40_stat_ops {
+typedef struct obj40_stat_ops {
 	int (*check_mode) (obj40_t *obj, uint16_t *, uint16_t);
 	int (*check_nlink) (obj40_t *obj, uint32_t *, uint32_t);
 	int (*check_size) (obj40_t *obj, uint64_t *, uint64_t);
 	int (*check_bytes) (obj40_t *obj, uint64_t *, uint64_t);
-};
+} obj40_stat_ops_t;
 
-typedef struct obj40_stat_ops obj40_stat_ops_t;
-
-struct obj40_stat_hint {
+typedef struct obj40_stat_hint {
 	uint64_t size;
 	uint64_t bytes;
 	uint32_t nlink;
 	uint16_t mode;
 	uint64_t must_exts;
 	uint64_t unkn_exts;
-};
-
-typedef struct obj40_stat_hint obj40_stat_hint_t;
+} obj40_stat_hint_t;
 
 extern errno_t obj40_objkey_check(obj40_t *obj);
 

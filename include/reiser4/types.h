@@ -18,7 +18,7 @@
 /* Master super block structure. It is the same for all reiser4 filesystems,
    so, we can declare it here. It contains common for all format fields like
    block size etc. */
-struct reiser4_master_sb {
+typedef struct reiser4_master_sb {
 	/* Master super block magic. */
 	char ms_magic[16];
 
@@ -33,9 +33,7 @@ struct reiser4_master_sb {
 
 	/* Filesystem label in use. */
 	char ms_label[16];
-};
-
-typedef struct reiser4_master_sb reiser4_master_sb_t;
+} reiser4_master_sb_t;
 
 #define get_ms_format(ms)        aal_get_le16(ms, ms_format)
 #define set_ms_format(ms, val)   aal_set_le16(ms, ms_format, val)
@@ -47,7 +45,7 @@ typedef struct reiser4_master_sb reiser4_master_sb_t;
 #define SS_STACK_SIZE	10
 #define SS_MESSAGE_SIZE 256
 
-struct reiser4_status_sb {
+typedef struct reiser4_status_sb {
 	/* Status block magic string. */
 	char ss_magic[16];
 
@@ -63,9 +61,7 @@ struct reiser4_status_sb {
 
 	/* Error message related to saved status and stack trace. */
 	char ss_message[SS_MESSAGE_SIZE];
-};
-
-typedef struct reiser4_status_sb reiser4_status_sb_t;
+} reiser4_status_sb_t;
 
 #define get_ss_status(ss)		aal_get_le64(ss, ss_status)
 #define set_ss_status(ss, val)		aal_set_le64(ss, ss_status, val)
@@ -78,7 +74,7 @@ typedef struct reiser4_status_sb reiser4_status_sb_t;
 typedef struct reiser4_fs reiser4_fs_t;
 
 #ifndef ENABLE_MINIMAL
-struct reiser4_backup {
+typedef struct reiser4_backup {
 	reiser4_fs_t *fs;
 
 	/* The backup data are stored here. */
@@ -86,9 +82,7 @@ struct reiser4_backup {
 
 	bool_t dirty;
 	void *data;
-};
-
-typedef struct reiser4_backup reiser4_backup_t;
+} reiser4_backup_t;
 #endif
 
 enum reiser4_state {
@@ -99,9 +93,7 @@ enum reiser4_state {
 	FS_IO		= 1 << 3
 };
 
-typedef enum reiser4_state reiser4_state_t;
-
-struct reiser4_master {
+typedef struct reiser4_master {
 	/* Flag for marking master dirty */
 	bool_t dirty;
 
@@ -110,11 +102,9 @@ struct reiser4_master {
 
 	/* Loaded master data */
 	reiser4_master_sb_t ent;
-};
+} reiser4_master_t;
 
-typedef struct reiser4_master reiser4_master_t;
-
-struct reiser4_status {
+typedef struct reiser4_status {
 	/* Flag for marking status block dirty */
 	bool_t dirty;
 
@@ -126,14 +116,12 @@ struct reiser4_status {
 
 	/* Loaded status data */
 	reiser4_status_sb_t ent;
-};
-
-typedef struct reiser4_status reiser4_status_t;
+} reiser4_status_t;
 
 typedef struct reiser4_tree reiser4_tree_t;
 
 /* Reiser4 file structure (regular file, directory, symlinks, etc) */
-struct reiser4_object {
+typedef struct reiser4_object {
 	/* Object entity. It is initialized by object plugin */
 	object_entity_t *ent;
 
@@ -142,9 +130,7 @@ struct reiser4_object {
 	   into the objects of our library for their own use. */
 	void *data;
 #endif
-};
-
-typedef struct reiser4_object reiser4_object_t;
+} reiser4_object_t;
 
 #define objplug(object) (object->ent->opset.plug[OPSET_OBJ])
 
@@ -155,7 +141,7 @@ typedef reiser4_object_t *(*object_open_func_t) (reiser4_object_t *,
 						 entry_hint_t *, void *);
 
 #ifndef ENABLE_MINIMAL
-enum reiser4_owner {
+typedef enum reiser4_owner {
 	O_MASTER   = 1 << 0,
 	O_FORMAT   = 1 << 1,
 	O_JOURNAL  = 1 << 2,
@@ -164,27 +150,23 @@ enum reiser4_owner {
 	O_STATUS   = 1 << 5,
 	O_BACKUP   = 1 << 6,
 	O_UNKNOWN  = 1 << 7
-};
-
-typedef enum reiser4_owner reiser4_owner_t;
+} reiser4_owner_t;
 #endif
 
 /* Reiser4 wrappers for all filesystem objects (journal, block allocator,
    etc.). They are used for make its plugins access simple. */
-struct reiser4_format {
+typedef struct reiser4_format {
 	reiser4_fs_t *fs;
 	
 	/* Disk-format entity. It is initialized by disk-format plugin during
 	   initialization. */
 	generic_entity_t *ent;
-};
-
-typedef struct reiser4_format reiser4_format_t;
+} reiser4_format_t;
 
 #ifndef ENABLE_MINIMAL
 
 /* Journal structure */
-struct reiser4_journal {
+typedef struct reiser4_journal {
 	reiser4_fs_t *fs;
     
 	/* Device journal will be opened on. In the case journal lie on the same
@@ -194,9 +176,7 @@ struct reiser4_journal {
 
 	/* Journal entity. Initializied by plugin */
 	generic_entity_t *ent;
-};
-
-typedef struct reiser4_journal reiser4_journal_t;
+} reiser4_journal_t;
 
 typedef struct reiser4_alloc reiser4_alloc_t;
 
@@ -218,12 +198,10 @@ struct reiser4_alloc {
 #endif
 
 /* Oid allocator structure */
-struct reiser4_oid {
+typedef struct reiser4_oid {
 	reiser4_fs_t *fs;
 	generic_entity_t *ent;
-};
-
-typedef struct reiser4_oid reiser4_oid_t;
+} reiser4_oid_t;
 
 #ifndef ENABLE_MINIMAL
 typedef errno_t (*estimate_func_t) (reiser4_place_t *place, 
@@ -315,14 +293,12 @@ struct reiser4_fs {
 #endif
 };
 
-struct fs_hint {
+typedef struct fs_hint {
 	count_t blocks;
 	uint32_t blksize;
 	char uuid[17];
 	char label[17];
-};
-
-typedef struct fs_hint fs_hint_t;
+} fs_hint_t;
 
 typedef void (*uuid_unparse_t) (char *uuid, char *string);
 typedef errno_t (*walk_func_t) (reiser4_tree_t *, reiser4_node_t *);

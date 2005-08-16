@@ -18,7 +18,7 @@ static reiser4_plug_t extents_plug = {
 	.cl    = class_init,
 	.id    = {TAIL_NEVER_ID, 0, POLICY_PLUG_TYPE},
 	.label = "extents",
-	.desc  = "Tail policy \"extents only\" for reiser4. ",
+	.desc  = "'Extents only' tail policy plugin.",
 	.o = {
 		.policy_ops = &extents_ops
 	}

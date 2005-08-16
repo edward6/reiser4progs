@@ -186,7 +186,7 @@ static reiser4_plug_t bbox40_plug = {
 	.id    = {ITEM_BLACKBOX40_ID, BLACK_BOX_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "bbox40",
-	.desc  = "Safe link item plugin for reiser4. ",
+	.desc  = "Safe link item plugin.",
 #endif
 	.o = {
 		.item_ops = &bbox40_ops

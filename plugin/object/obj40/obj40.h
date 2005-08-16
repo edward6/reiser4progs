@@ -21,7 +21,7 @@
 #define STAT_PLACE(o) \
         (&((o)->info.start))
 
-struct obj40 {
+typedef struct obj40 {
 	/* Info about the object, stat data place, object and parent keys and
 	   pointer to the instance of internal libreiser4 tree for modiying
 	   purposes. It is passed by reiser4 library during initialization of
@@ -31,9 +31,7 @@ struct obj40 {
 
 	/* Core operations pointer. */
 	reiser4_core_t *core;
-};
-
-typedef struct obj40 obj40_t;
+} obj40_t;
 
 extern errno_t obj40_fini(obj40_t *obj);
 extern errno_t obj40_update(obj40_t *obj);

@@ -7,7 +7,7 @@
 
 #define INVAL_TYPE		((uint8_t)~0)
 
-struct opset_member {
+typedef struct opset_member {
 	/* Opset type -> Plugin type. INVAL_PID means that the slot is valid,
 	   but the library does not have any plugin written for it yet. See
 	   reiser4_opset_plug. */
@@ -18,162 +18,127 @@ struct opset_member {
 	   a profile slot or it is invalid (there is no such plugins written 
 	   in the libreiser4).*/
 	rid_t prof;
-
-	/* If a plugin is essential or not. */
-	bool_t ess;
 #endif
-};
-
-typedef struct opset_member opset_member_t;
+} opset_member_t;
 
 opset_member_t opset_prof[OPSET_LAST] = {
 	[OPSET_OBJ] = {
 		.type = OBJECT_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
 		.prof = INVAL_PID,
-		.ess = 0,
 #endif
 	},
 	[OPSET_DIR] = {
 		.type = INVAL_TYPE,
 #ifndef ENABLE_MINIMAL
 		.prof = INVAL_PID,
-		.ess = 0,
 #endif
 	},
 	[OPSET_PERM] = {
 		.type = INVAL_TYPE,
 #ifndef ENABLE_MINIMAL
 		.prof = INVAL_PID,
-		.ess = 1,
 #endif
 	},
 	[OPSET_POLICY] = {
 		.type = POLICY_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
 		.prof = PROF_POLICY,
-		.ess = 0,
 #endif
 	},
 	[OPSET_HASH] = {
 		.type = HASH_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
 		.prof = PROF_HASH,
-		.ess = 1,
 #endif
 	},
 	[OPSET_FIBRE] = {
 		.type = FIBRE_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
 		.prof = PROF_FIBRE,
-		.ess = 1,
 #endif
 	},
 	[OPSET_STAT] = {
 		.type = ITEM_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
 		.prof = PROF_STAT,
-		.ess = 0,
 #endif
 	},
 	[OPSET_DIRITEM] = {
 		.type = ITEM_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
 		.prof = PROF_DIRITEM,
-		.ess = 1,
 #endif
 	},
 	[OPSET_CRYPTO] = {
-		.type = INVAL_TYPE,
+		.type = CRYPTO_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.prof = INVAL_PID,
-		.ess = 1,
+		.prof = PROF_CRYPTO,
 #endif
 	},
 	[OPSET_DIGEST] = {
-		.type = INVAL_TYPE,
+		.type = PARAM_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
 		.prof = INVAL_PID,
-		.ess = 1,
 #endif
 	},
-	[OPSET_CPRESS] = {
-		.type = INVAL_TYPE,
+	[OPSET_COMPRESS] = {
+		.type = COMPRESS_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.prof = INVAL_PID,
-		.ess = 1,
+		.prof = PROF_COMPRESS,
 #endif
 	},
-	[OPSET_CPRESS_MODE] = {
+	[OPSET_COMPRESS_MODE] = {
 		.type = INVAL_TYPE,
 #ifndef ENABLE_MINIMAL
 		.prof = INVAL_PID,
-		.ess = 1,
 #endif
 	},
 	[OPSET_CLUSTER] = {
 		.type = PARAM_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
 		.prof = INVAL_PID,
-		.ess = 1,
 #endif
 	},
-	[OPSET_REGULAR] = {
-		.type = INVAL_TYPE,
+
+	/* The 4 plugins below are non-essential ones. They are used to understand
+	   what object plugin should be used for create/mkdir/monode/symlink syscalls
+	   for children whithin the object. */
+	[OPSET_CREATE] = {
+		.type = OBJECT_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.prof = INVAL_PID,
-		.ess = 1,
+		.prof = PROF_CREATE,
 #endif
 	},
 
 	/* Note, plugins below are not stored on-disk. */
-
-	/* The 4 plugins below needs to be splited -- for now they are used for
-	   new created objects and for already created Reg/Dir/Sym/Spc files. 
-	   If the former ones are non-essential, the other 4 are essential. */
-	[OPSET_CREATE] = {
-		.type = OBJECT_PLUG_TYPE,
-#ifndef ENABLE_MINIMAL
-		.prof = PROF_REG,
-		.ess = 1,
-#endif
-	},
+	
 	[OPSET_MKDIR] = {
 		.type = OBJECT_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.prof = PROF_DIR,
-		.ess = 1,
+		.prof = PROF_MKDIR,
 #endif
 	},
 	[OPSET_SYMLINK] = {
 		.type = OBJECT_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.prof = PROF_SYM,
-		.ess = 1,
+		.prof = PROF_SYMLINK,
 #endif
 	},
 	[OPSET_MKNODE] = {
 		.type = OBJECT_PLUG_TYPE,
 #ifndef ENABLE_MINIMAL
-		.prof = PROF_SPL,
-		.ess = 1,
+		.prof = PROF_MKNODE,
 #endif
 	},
 #ifndef ENABLE_MINIMAL
 	[OPSET_TAIL] = {
 		.type = ITEM_PLUG_TYPE,
 		.prof = PROF_TAIL,
-		.ess = 1,
 	},
 	[OPSET_EXTENT] = {
 		.type = ITEM_PLUG_TYPE,
 		.prof = PROF_EXTENT,
-		.ess = 1,
-	},
-	[OPSET_ACL] = {
-		.type = INVAL_TYPE,
-		.prof = INVAL_PID,
-		.ess = 0,
 	}
 #endif
 };
@@ -231,11 +196,7 @@ void reiser4_opset_diff(reiser4_tree_t *tree, reiser4_opset_t *opset) {
 		return;
 	}
 	
-	for (i= 0; i < OPSET_LAST; i++) {
-		/* Leave non-essential members as is. */
-		if (!opset_prof[i].ess)
-			continue;
-
+	for (i = OPSET_DIR + 1; i < OPSET_LAST; i++) {
 		/* Only not fs-default essential plugins are stored. */
 		if (tree->ent.opset[i] != opset->plug[i]) {
 			opset->mask |= (1 << i);
@@ -244,7 +205,7 @@ void reiser4_opset_diff(reiser4_tree_t *tree, reiser4_opset_t *opset) {
 
 
 		/* Remove from SD existent essential plugins that match 
-		   the fs-defaul ones. */
+		   the fs-default ones. */
 		if (opset->mask & (1 << i)) {
 			opset->mask &= ~(1 << i);
 			opset->plug[i] = INVAL_PTR;
@@ -285,51 +246,51 @@ errno_t reiser4_pset_init(reiser4_tree_t *tree) {
 	
 	/* These plugins should be initialized at the tree init. Later they can 
 	   be reinitialized with the root directory pset or anything else. */
-	tree->ent.opset[OPSET_CREATE] = reiser4_profile_plug(PROF_REG);
-	tree->ent.opset[OPSET_MKDIR] = reiser4_profile_plug(PROF_DIR);
-	tree->ent.opset[OPSET_SYMLINK] = reiser4_profile_plug(PROF_SYM);
-	tree->ent.opset[OPSET_MKNODE] = reiser4_profile_plug(PROF_SPL);
+	tree->ent.opset[OPSET_CREATE] = reiser4_profile_plug(PROF_CREATE);
+	tree->ent.opset[OPSET_MKDIR] = reiser4_profile_plug(PROF_MKDIR);
+	tree->ent.opset[OPSET_SYMLINK] = reiser4_profile_plug(PROF_SYMLINK);
+	tree->ent.opset[OPSET_MKNODE] = reiser4_profile_plug(PROF_MKNODE);
 #else
 	if (!(tree->ent.tpset[TPSET_NODE] =
 	      reiser4_factory_ifind(NODE_PLUG_TYPE, NODE_REISER40_ID)))
 	{
-		aal_bug("vpf-1651", "Failed to find a plugin type (%u), id(%u)",
+		aal_bug("vpf-1805", "Failed to find a plugin type (%u), id(%u)",
 			NODE_PLUG_TYPE, NODE_REISER40_ID);
 	}
 		
 	if (!(tree->ent.tpset[TPSET_NODEPTR] =
 	      reiser4_factory_ifind(ITEM_PLUG_TYPE, ITEM_NODEPTR40_ID)))
 	{
-		aal_bug("vpf-1651", "Failed to find a plugin type (%s), id(%u)",
+		aal_bug("vpf-1806", "Failed to find a plugin type (%s), id(%u)",
 			ITEM_PLUG_TYPE, ITEM_NODEPTR40_ID);
 	}
 
 	if (!(tree->ent.opset[OPSET_CREATE] =
 	      reiser4_factory_ifind(OBJECT_PLUG_TYPE, OBJECT_REG40_ID)))
 	{
-		aal_bug("vpf-1651", "Failed to find a plugin type (%s), id(%u)",
+		aal_bug("vpf-1801", "Failed to find a plugin type (%s), id(%u)",
 			OBJECT_PLUG_TYPE, OBJECT_REG40_ID);
 	}
 
 	if (!(tree->ent.opset[OPSET_MKDIR] =
 	      reiser4_factory_ifind(OBJECT_PLUG_TYPE, OBJECT_DIR40_ID)))
 	{
-		aal_bug("vpf-1651", "Failed to find a plugin type (%s), id(%u)",
-			OBJECT_PLUG_TYPE, OBJECT_REG40_ID);
+		aal_bug("vpf-1802", "Failed to find a plugin type (%s), id(%u)",
+			OBJECT_PLUG_TYPE, OBJECT_DIR40_ID);
 	}
 	
 	if (!(tree->ent.opset[OPSET_SYMLINK] =
 	      reiser4_factory_ifind(OBJECT_PLUG_TYPE, OBJECT_SYM40_ID)))
 	{
-		aal_bug("vpf-1651", "Failed to find a plugin type (%s), id(%u)",
-			OBJECT_PLUG_TYPE, OBJECT_REG40_ID);
+		aal_bug("vpf-1803", "Failed to find a plugin type (%s), id(%u)",
+			OBJECT_PLUG_TYPE, OBJECT_SYM40_ID);
 	}
 	
 	if (!(tree->ent.opset[OPSET_MKNODE] =
 	      reiser4_factory_ifind(OBJECT_PLUG_TYPE, OBJECT_SPL40_ID)))
 	{
-		aal_bug("vpf-1651", "Failed to find a plugin type (%s), id(%u)",
-			OBJECT_PLUG_TYPE, OBJECT_REG40_ID);
+		aal_bug("vpf-1804", "Failed to find a plugin type (%s), id(%u)",
+			OBJECT_PLUG_TYPE, OBJECT_SPL40_ID);
 	}
 #endif
 

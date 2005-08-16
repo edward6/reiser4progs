@@ -872,13 +872,11 @@ static errno_t dir40_detach(object_entity_t *entity,
 }
 
 /* Directory enumerating related stuff.*/
-struct layout_hint {
+typedef struct layout_hint {
 	void *data;
 	object_entity_t *entity;
 	region_func_t region_func;
-};
-
-typedef struct layout_hint layout_hint_t;
+} layout_hint_t;
 
 static errno_t cb_item_layout(blk_t start, count_t width, void *data) {
 	layout_hint_t *hint = (layout_hint_t *)data;
@@ -1047,7 +1045,7 @@ reiser4_plug_t dir40_plug = {
 	.id    = {OBJECT_DIR40_ID, DIR_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "dir40",
-	.desc  = "Compound directory for reiser4. ",
+	.desc  = "Directory file plugin.",
 #endif
 	.o = {
 		.object_ops = &dir40_ops

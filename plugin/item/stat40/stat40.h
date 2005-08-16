@@ -20,11 +20,10 @@ extern errno_t stat40_traverse(reiser4_place_t *place,
 			       ext_func_t ext_func,
 			       void *data);
 
-struct stat40 {
+typedef struct stat40 {
 	d16_t extmask;
-};
+} stat40_t;
 
-typedef struct stat40 stat40_t;
 extern reiser4_core_t *stat40_core;
 
 #define STAT40_EXTNR (64)

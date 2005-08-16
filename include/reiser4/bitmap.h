@@ -15,15 +15,13 @@
 /* Bitmap structure. It contains: pointer to device instance bitmap opened on,
    start on device, total blocks bitmap described, used blocks, pointer to
    memory chunk bit array placed in and bit array size. */
-struct reiser4_bitmap {
+typedef struct reiser4_bitmap {
 	uint64_t marked;
 	uint64_t total;
 	uint32_t size;
     
 	char *map;
-};
-
-typedef struct reiser4_bitmap reiser4_bitmap_t;
+} reiser4_bitmap_t;
 
 extern void reiser4_bitmap_mark(reiser4_bitmap_t *bitmap, uint64_t bit);
 extern void reiser4_bitmap_clear(reiser4_bitmap_t *bitmap, uint64_t bit);

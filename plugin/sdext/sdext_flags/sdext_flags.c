@@ -68,7 +68,7 @@ static reiser4_plug_t sdext_flags_plug = {
 	.id    = {SDEXT_FLAGS_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "sdext_flags",
-	.desc  = "Inode flags stat data extension for reiser4. ",
+	.desc  = "Inode flags stat data extension plugin.",
 #endif
 	.o = {
 		.sdext_ops = &sdext_flags_ops

@@ -71,7 +71,7 @@ static reiser4_plug_t sdext_symlink_plug = {
 	.id    = {SDEXT_SYMLINK_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "sdext_symlink",
-	.desc  = "Symlink stat data extension for reiser4. ",
+	.desc  = "Symlink stat data extension plugin.",
 #endif
 	.o = {
 		.sdext_ops = &sdext_symlink_ops

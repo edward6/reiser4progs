@@ -18,14 +18,12 @@
 #include <misc/misc.h>
 #include <reiser4/libreiser4.h>
 
-enum behav_flags {
+typedef enum behav_flags {
 	BF_FORCE      = 1 << 0,
 	BF_YES        = 1 << 1,
 	BF_SHOW_PARM  = 1 << 2,
 	BF_SHOW_PLUG  = 1 << 3
-};
-
-typedef enum behav_flags behav_flags_t;
+} behav_flags_t;
 
 /* Prints resizefs options */
 static void resizefs_print_usage(char *name) {

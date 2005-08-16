@@ -283,13 +283,11 @@ void reiser4_factory_fini(void) {
 
 
 /* Plugin hash table enumeration stuff. */
-struct enum_hint {
+typedef struct enum_hint {
 	void *data;
 	reiser4_plug_t *plug;
 	plug_func_t plug_func;
-};
-
-typedef struct enum_hint enum_hint_t;
+} enum_hint_t;
 
 /* Helper function for calling passed plug_func() for each plugin from passed
    plugin hash table. */

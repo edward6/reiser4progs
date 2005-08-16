@@ -48,12 +48,10 @@ typedef uint32_t rid_t;
 typedef uint64_t oid_t;
 
 /* Type for position in node (item and unit component). */
-struct pos {
+typedef struct pos {
 	uint32_t item;
 	uint32_t unit;
-};
-
-typedef struct pos pos_t;
+} pos_t;
 
 #define POS_INIT(p, i, u) \
         (p)->item = i, (p)->unit = u
@@ -67,7 +65,7 @@ enum lookup {
 typedef int64_t lookup_t;
 
 /* Known by library plugin types. */
-enum reiser4_plug_type {
+typedef enum reiser4_plug_type {
 	OBJECT_PLUG_TYPE        = 0x0,
 	ITEM_PLUG_TYPE          = 0x1,
 	NODE_PLUG_TYPE          = 0x2,
@@ -77,21 +75,18 @@ enum reiser4_plug_type {
 	PERM_PLUG_TYPE          = 0x6,
 	SDEXT_PLUG_TYPE         = 0x7,
 	FORMAT_PLUG_TYPE        = 0x8,
-	OID_PLUG_TYPE           = 0x9,
-	JNODE_PLUG_TYPE         = 0xa,
-	CRYPTO_PLUG_TYPE	= 0xb,
-	DIGEST_PLUG_TYPE	= 0xc,
-	COMPRESS_PLUG_TYPE	= 0xd,
+	CRYPTO_PLUG_TYPE	= 0x9,
+	COMPRESS_PLUG_TYPE	= 0xb,
+	CLUSTER_PLUG_TYPE	= 0xd,
 	
 	/* These are not plugins in the kernel. */
-	ALLOC_PLUG_TYPE         = 0xe,
-	JOURNAL_PLUG_TYPE       = 0xf,
-	KEY_PLUG_TYPE           = 0x10,
-	PARAM_PLUG_TYPE		= 0x11,
+	OID_PLUG_TYPE           = 0xe,
+	ALLOC_PLUG_TYPE         = 0xf,
+	JOURNAL_PLUG_TYPE       = 0x10,
+	KEY_PLUG_TYPE           = 0x11,
+	PARAM_PLUG_TYPE		= 0x12,
 	LAST_PLUG_TYPE
-};
-
-typedef enum reiser4_plug_type reiser4_plug_type_t;
+} reiser4_plug_type_t;
 
 /* Known object plugin ids. */
 enum reiser4_object_plug_id {
@@ -99,6 +94,7 @@ enum reiser4_object_plug_id {
 	OBJECT_DIR40_ID		= 0x1,
 	OBJECT_SYM40_ID		= 0x2,
 	OBJECT_SPL40_ID	        = 0x3,
+	OBJECT_CRC40_ID	        = 0x4,
 	OBJECT_LAST_ID
 };
 
@@ -110,8 +106,6 @@ enum reiser4_object_group {
 	SPL_OBJECT		= 0x3,
 	LAST_OBJECT
 };
-
-typedef enum reiser4_object_group reiser4_object_group_t;
 
 /* Known item plugin ids. */
 enum reiser4_item_plug_id {
@@ -134,14 +128,11 @@ enum reiser4_item_group {
 	DIR_ITEM		= 0x2,
 	TAIL_ITEM		= 0x3,
 	EXTENT_ITEM		= 0x4,
-	PERMISSION_ITEM		= 0x5, /* not used yet */
-	SAFE_LINK_ITEM		= 0x6,
-	CTAIL_ITEM		= 0x7,
-	BLACK_BOX_ITEM		= 0x8,
+	SAFE_LINK_ITEM		= 0x5,
+	CTAIL_ITEM		= 0x6,
+	BLACK_BOX_ITEM		= 0x7,
 	LAST_ITEM
 };
-
-typedef enum reiser4_item_group reiser4_item_group_t;
 
 extern const char *reiser4_igname[];
 extern const char *reiser4_slink_name[];
@@ -161,8 +152,6 @@ enum reiser4_hash_plug_id {
 	HASH_DEG_ID             = 0x4,
 	HASH_LAST_ID
 };
-
-typedef enum reiser4_hash_plug_id reiser4_hash_plug_id_t;
 
 /* Know tail policy plugin ids. */
 enum reiser4_tail_plug_id {
@@ -191,8 +180,6 @@ enum reiser4_sdext_plug_id {
 	SDEXT_CRYPTO_ID		= 0x8,
 	SDEXT_LAST_ID
 };
-
-typedef enum reiser4_sdext_plug_id reiser4_sdext_plug_id_t;
 
 /* Known format plugin ids. */
 enum reiser4_format_plug_id {
@@ -237,7 +224,36 @@ enum reiser4_fibre_plug_id {
 	FIBRE_LAST_ID
 };
 
-typedef enum reiser4_fibre_plug_id reiser4_fibre_plug_id_t;
+enum reiser4_compress_plug_id {
+	COMPRESS_LZO1_ID	= 0x0,
+	COMPRESS_NOLZO1_ID	= 0x1,
+	COMPRESS_GZIP1_ID	= 0x2,
+	COMPRESS_NOGZIP1_ID	= 0x3,
+	COMPRESS_NONE_ID	= 0x4,
+	COMPRESS_LAST_ID
+};
+
+enum reiser4_crypto_id {
+	CRYPTO_NONE_ID = 0x0,
+	CRYPTO_LAST_ID
+};
+
+enum reiser4_compression_mode_id {
+        CMODE_SMART_ID	= 0x0,
+        CMODE_LAZY_ID	= 0x1,
+        CMODE_FORCE_ID	= 0x2,
+        CMODE_TEST_ID	= 0x3,
+        CMODE_LAST_ID
+};
+
+enum reiser4_cluster_id {
+	CLUSTER_4K_ID  = 0x0,
+	CLUSTER_8K_ID  = 0x1,
+	CLUSTER_16K_ID = 0x2,
+	CLUSTER_32K_ID = 0x3,
+	CLUSTER_64K_ID = 0x4,
+	CLUSTER_LAST_ID
+};
 
 #define INVAL_PTR	        ((void *)-1)
 #define INVAL_PID	        ((rid_t)~0)
@@ -254,16 +270,14 @@ struct reiser4_key {
 typedef struct reiser4_key reiser4_key_t;
 
 /* Known key types. */
-enum key_type {
+typedef enum key_type {
 	KEY_FILENAME_TYPE       = 0x0,
 	KEY_STATDATA_TYPE       = 0x1,
 	KEY_ATTRNAME_TYPE       = 0x2,
 	KEY_ATTRBODY_TYPE       = 0x3,
 	KEY_FILEBODY_TYPE       = 0x4,
 	KEY_LAST_TYPE
-};
-
-typedef enum key_type key_type_t;
+} key_type_t;
 
 /* Tree Plugin SET index. */
 enum reiser4_tpset_id {
@@ -286,23 +300,21 @@ enum reiser4_opset_id {
 	OPSET_DIRITEM		= 0x7,
 	OPSET_CRYPTO		= 0x8,
 	OPSET_DIGEST		= 0x9,
-	OPSET_CPRESS		= 0xa,
-	OPSET_CPRESS_MODE	= 0xb,
+	OPSET_COMPRESS		= 0xa,
+	OPSET_COMPRESS_MODE	= 0xb,
 	OPSET_CLUSTER		= 0xc,
-	OPSET_REGULAR		= 0xd,
+	OPSET_CREATE		= 0xd,
 	
 	OPSET_STORE_LAST,
 	
 	/* These are not stored on disk in the current implementation. */
-	OPSET_CREATE		= OPSET_STORE_LAST + 1,
-	OPSET_MKDIR		= OPSET_STORE_LAST + 2,
-	OPSET_SYMLINK		= OPSET_STORE_LAST + 3,
-	OPSET_MKNODE		= OPSET_STORE_LAST + 4,
+	OPSET_MKDIR		= OPSET_STORE_LAST,
+	OPSET_SYMLINK		= OPSET_STORE_LAST + 1,
+	OPSET_MKNODE		= OPSET_STORE_LAST + 2,
 	
 #ifndef ENABLE_MINIMAL
-	OPSET_TAIL		= OPSET_STORE_LAST + 5,
-	OPSET_EXTENT		= OPSET_STORE_LAST + 6,
-	OPSET_ACL		= OPSET_STORE_LAST + 7,
+	OPSET_TAIL		= OPSET_STORE_LAST + 3,
+	OPSET_EXTENT		= OPSET_STORE_LAST + 4,
 #endif
 	OPSET_LAST
 };
@@ -314,24 +326,18 @@ enum print_options {
 	PO_UNIT_OFFSETS         = 0x2
 };
 
-typedef enum print_options print_options_t;
-
 /* Type for describing reiser4 objects (like format, block allocator, etc)
    inside the library, created by plugins themselves. */
-struct generic_entity {
+typedef struct generic_entity {
 	reiser4_plug_t *plug;
-};
+} generic_entity_t;
 
-typedef struct generic_entity generic_entity_t;
-
-struct tree_entity {
+typedef struct tree_entity {
 	/* Plugin SET. Set of plugins needed for the reiser4progs work.
 	   Consists of tree-specific plugins and object-specific plugins. */
 	reiser4_plug_t *tpset[TPSET_LAST];
 	reiser4_plug_t *opset[OPSET_LAST];
-};
-
-typedef struct tree_entity tree_entity_t;
+} tree_entity_t;
 
 typedef struct reiser4_node reiser4_node_t;
 typedef struct reiser4_place reiser4_place_t;
@@ -364,8 +370,6 @@ enum node_flags {
 	NF_HEARD_BANSHEE  = 1 << 0,
 	NF_LAST
 };
-
-typedef enum node_flags node_flags_t;
 
 /* Reiser4 in-memory node structure. */
 struct reiser4_node {
@@ -413,13 +417,11 @@ struct reiser4_node {
 };
 
 /* Stat data extension entity. */
-struct stat_entity {
+typedef struct stat_entity {
 	reiser4_place_t *place;
 	reiser4_plug_t *ext_plug;
 	uint32_t offset;
-};
-
-typedef struct stat_entity stat_entity_t;
+} stat_entity_t;
 
 #define stat_body(stat) ((char *)(stat)->place->body + (stat)->offset)
 
@@ -457,13 +459,11 @@ enum shift_flags {
 	SF_HOLD_POS      = 1 << 7
 };
 
-typedef enum shift_flags shift_flags_t;
-
 #define SF_DEFAULT					   \
 	(SF_ALLOW_LEFT | SF_ALLOW_RIGHT | SF_ALLOW_ALLOC | \
 	 SF_ALLOW_MERGE | SF_MOVE_POINT | SF_ALLOW_PACK)
 
-struct shift_hint {
+typedef struct shift_hint {
 	/* Flag which shows that we need create an item before we will move
 	   units into it. That is because node does not contain any items at all
 	   or border items are not mergeable. Set and used by shift code. */
@@ -492,19 +492,15 @@ struct shift_hint {
 
 	/* Insert point. It will be modified during shift. */
 	pos_t pos;
-};
-
-typedef struct shift_hint shift_hint_t;
+} shift_hint_t;
 
 /* Different hints used for getting data to/from corresponding objects. */
-struct ptr_hint {    
+typedef struct ptr_hint {    
 	uint64_t start;
 	uint64_t width;
-};
+} ptr_hint_t;
 
-typedef struct ptr_hint ptr_hint_t;
-
-struct sdhint_unix {
+typedef struct sdhint_unix {
 	uint32_t uid;
 	uint32_t gid;
 	uint32_t atime;
@@ -512,78 +508,63 @@ struct sdhint_unix {
 	uint32_t ctime;
 	uint32_t rdev;
 	uint64_t bytes;
-};
+} sdhint_unix_t;
 
-typedef struct sdhint_unix sdhint_unix_t;
-
-struct sdhint_lw {
+typedef struct sdhint_lw {
 	uint16_t mode;
 	uint32_t nlink;
 	uint64_t size;
-};
+} sdhint_lw_t;
 
-typedef struct sdhint_lw sdhint_lw_t;
-
-struct sdhint_lt {
+typedef struct sdhint_lt {
 	uint32_t atime;
 	uint32_t mtime;
 	uint32_t ctime;
-};
+} sdhint_lt_t;
 
-typedef struct sdhint_lt sdhint_lt_t;
-
-struct sdhint_flags {
+typedef struct sdhint_flags {
 	uint32_t flags;
-};
+} sdhint_flags_t;
 
-typedef struct sdhint_flags sdhint_flags_t;
-
-struct sdhint_plug {
+typedef struct sdhint_plug {
 	reiser4_plug_t *plug[OPSET_LAST];
 	uint64_t mask;
-};
-
-typedef struct sdhint_plug sdhint_plug_t;
+} sdhint_plug_t;
 
 typedef sdhint_plug_t reiser4_opset_t;
 
 /* These fields should be changed to what proper description of needed
    extensions. */
-struct stat_hint {
+typedef struct stat_hint {
 	/* Extensions mask */
 	uint64_t extmask;
     
 	/* Stat data extensions */
 	void *ext[SDEXT_LAST_ID];
-};
+} stat_hint_t;
 
-typedef struct stat_hint stat_hint_t;
-
-enum entry_type {
+typedef enum entry_type {
 	ET_NAME	= 0,
-	ET_SPCL	= 1
-};
-
-typedef enum entry_type entry_type_t;
+	ET_SPCL	= 1,
+	ET_LAST
+} entry_type_t;
 
 /* Object info struct contains the main information about a reiser4
    object. These are: its key, parent key and coord of first item. */
-struct object_info {
+typedef struct object_info {
 	reiser4_opset_t opset;
 	
 	tree_entity_t *tree;
 	reiser4_place_t start;
 	reiser4_key_t object;
 	reiser4_key_t parent;
-};
+} object_info_t;
 
-typedef struct object_info object_info_t;
 typedef object_info_t object_entity_t;
-
 
 /* Object hint. It is used to bring all about object information to object
    plugin to create appropriate object by it. */
-struct object_hint {
+typedef struct object_hint {
 	/* Object info. */
 	object_info_t info;
 	
@@ -598,17 +579,13 @@ struct object_hint {
 	
 	/* SymLink name. */
 	char *name;
-};
-
-typedef struct object_hint object_hint_t;
+} object_hint_t;
 
 /* Bits for entity state field. For now here is only "dirty" bit, but possible
    and other ones. */
 enum entity_state {
 	ENTITY_DIRTY = 0
 };
-
-typedef enum entity_state entity_state_t;
 
 /* Type for region enumerating callback functions. */
 typedef errno_t (*region_func_t) (uint64_t, uint64_t, void *);
@@ -625,7 +602,7 @@ typedef errno_t (*layout_func_t) (void *, region_func_t, void *);
 #define REISER4_MIN_BLKSIZE (512)
 #define REISER4_MAX_BLKSIZE (8192)
 
-struct entry_hint {
+typedef struct entry_hint {
 	/* Entry metadata size. Filled by rem_entry and add_entry. */
 	uint16_t len;
 	
@@ -652,22 +629,18 @@ struct entry_hint {
 	   region_func() and place_func(). */
 	void *data;
 #endif
-};
-
-typedef struct entry_hint entry_hint_t;
+} entry_hint_t;
 
 #ifndef ENABLE_MINIMAL
-enum slink_type {
+typedef enum slink_type {
 	SL_UNLINK,   /* safe-link for unlink */
 	SL_TRUNCATE, /* safe-link for truncate */
 	SL_E2T,      /* safe-link for extent->tail conversion */
 	SL_T2E,      /* safe-link for tail->extent conversion */
 	SL_LAST
-};
+} slink_type_t;
 
-typedef enum slink_type slink_type_t;
-
-struct slink_hint {
+typedef struct slink_hint {
 	/* Key of StatData the link points to. */
 	reiser4_key_t key;
 	
@@ -675,15 +648,13 @@ struct slink_hint {
 	uint64_t size;
 
 	slink_type_t type;
-};
-
-typedef struct slink_hint slink_hint_t;
+} slink_hint_t;
 #endif
 
 /* This structure contains fields which describe an item or unit to be inserted
    into the tree. This is used for all tree modification purposes like
    insertitem, or write some file data. */ 
-struct trans_hint {
+typedef struct trans_hint {
 	/* Overhead of data to be inserted. This is needed for the case when we
 	   insert directory item and tree should know how much space should be
 	   prepared in the tree (ohd + len), but we don't need overhead for
@@ -735,12 +706,10 @@ struct trans_hint {
 	/* Related opaque data. May be used for passing something to
 	   region_func() and place_func(). */
 	void *data;
-};
-
-typedef struct trans_hint trans_hint_t;
+} trans_hint_t;
 
 /* This structure contains related to tail conversion. */
-struct conv_hint {
+typedef struct conv_hint {
 	/* New bytes value */
 	uint64_t bytes;
 
@@ -761,35 +730,27 @@ struct conv_hint {
 	   to read. Could be useful for recovery when there could be a 
 	   gap between 2 items. */
 	bool_t ins_hole;
-};
+} conv_hint_t;
 
-typedef struct conv_hint conv_hint_t;
-
-struct coll_hint {
+typedef struct coll_hint {
 	uint8_t type;
 	void *specific;
-};
-
-typedef struct coll_hint coll_hint_t;
+} coll_hint_t;
 
 /* Lookup bias. */
-enum lookup_bias {
+typedef enum lookup_bias {
 	/* Find for read, the match should be exact. */
 	FIND_EXACT              = 1,
 	/* Find for insert, the match should not be exaact. */
 	FIND_CONV               = 2
-};
-
-typedef enum lookup_bias lookup_bias_t;
-
-typedef struct lookup_hint lookup_hint_t;
+} lookup_bias_t;
 
 typedef lookup_t (*coll_func_t) (tree_entity_t *, 
 				 reiser4_place_t *, 
 				 coll_hint_t *);
 
 /* Hint to be used when looking for data in tree. */
-struct lookup_hint {
+typedef struct lookup_hint {
 	/* Key to be found. */
 	reiser4_key_t *key;
 
@@ -804,15 +765,13 @@ struct lookup_hint {
 	/* Data needed by @lookup_func. */
 	coll_hint_t *hint;
 #endif
-};
+} lookup_hint_t;
 
 #ifndef ENABLE_MINIMAL
-struct repair_hint {
+typedef struct repair_hint {
 	int64_t len;
 	uint8_t mode;
-};
-
-typedef struct repair_hint repair_hint_t;
+} repair_hint_t;
 
 enum reiser4_backuper {
 	BK_MASTER	= 0x0,
@@ -820,7 +779,7 @@ enum reiser4_backuper {
 	BK_LAST		= 0x2
 };
 
-struct backup_hint {
+typedef struct backup_hint {
 	aal_block_t block;
 	uint16_t off[BK_LAST + 1];
 
@@ -832,9 +791,8 @@ struct backup_hint {
 	/* Matched block count. */
 	uint64_t count;
 	uint64_t total;
-};
+} backup_hint_t;
 
-typedef struct backup_hint backup_hint_t;
 #endif
 
 enum format_hint_mask {
@@ -842,7 +800,7 @@ enum format_hint_mask {
 	PM_KEY		= 0x1
 };
 
-struct format_hint {
+typedef struct format_hint {
 	uint64_t blocks;
 	uint32_t blksize;
 	rid_t policy;
@@ -853,11 +811,9 @@ struct format_hint {
 	   check_struct. If bit is not set, plugins given with the above 
 	   hints are merely hints. */
 	uint64_t mask;
-};
+} format_hint_t;
 
-typedef struct format_hint format_hint_t;
-
-struct reiser4_key_ops {
+typedef struct reiser4_key_ops {
 	/* Function for dermining is key contains direntry name hashed or
 	   not? */
 	int (*hashed) (reiser4_key_t *);
@@ -936,12 +892,10 @@ struct reiser4_key_ops {
 	/* Check key body for validness. */
 	errno_t (*check_struct) (reiser4_key_t *);
 #endif
-};
-
-typedef struct reiser4_key_ops reiser4_key_ops_t;
+} reiser4_key_ops_t;
 
 
-struct reiser4_object_ops {
+typedef struct reiser4_object_ops {
 	/* Loads object stat data to passed hint. */
 	errno_t (*stat) (object_entity_t *, stat_hint_t *);
 
@@ -1037,11 +991,9 @@ struct reiser4_object_ops {
 
 	/* Change current position in directory. */
 	errno_t (*seekdir) (object_entity_t *, reiser4_key_t *);
-};
+} reiser4_object_ops_t;
 
-typedef struct reiser4_object_ops reiser4_object_ops_t;
-
-struct item_balance_ops {
+typedef struct item_balance_ops {
 	/* Returns unit count in item passed place point to. */
 	uint32_t (*units) (reiser4_place_t *);
 	
@@ -1079,11 +1031,9 @@ struct item_balance_ops {
 
 	/* Get the max key which could be stored in the item of this type. */
 	errno_t (*maxposs_key) (reiser4_place_t *, reiser4_key_t *);
-};
+} item_balance_ops_t;
 
-typedef struct item_balance_ops item_balance_ops_t;
-
-struct item_object_ops {
+typedef struct item_object_ops {
 	/* Reads passed amount of bytes from the item. */
 	int64_t (*read_units) (reiser4_place_t *, trans_hint_t *);
 		
@@ -1125,12 +1075,10 @@ struct item_object_ops {
 	/* Gets the overhead for the item creation. */
 	uint16_t (*overhead) ();
 #endif
-};
-
-typedef struct item_object_ops item_object_ops_t;
+} item_object_ops_t;
 
 #ifndef ENABLE_MINIMAL
-struct item_repair_ops {
+typedef struct item_repair_ops {
 	/* Estimate merge operation. */
 	errno_t (*prep_insert_raw) (reiser4_place_t *, trans_hint_t *);
 
@@ -1147,21 +1095,15 @@ struct item_repair_ops {
 
 	errno_t (*pack) (reiser4_place_t *, aal_stream_t *);
 	errno_t (*unpack) (reiser4_place_t *, aal_stream_t *);
-};
-#endif
+} item_repair_ops_t;
 
-typedef struct item_repair_ops item_repair_ops_t;
-
-#ifndef ENABLE_MINIMAL
-struct item_debug_ops {
+typedef struct item_debug_ops {
 	/* Prints item into specified buffer. */
 	void (*print) (reiser4_place_t *, aal_stream_t *, uint16_t);
-};
+} item_debug_ops_t;
 #endif
 
-typedef struct item_debug_ops item_debug_ops_t;
-
-struct item_tree_ops {
+typedef struct item_tree_ops {
 	/* Initialize the item-specific place info. */
 	void (*init) (reiser4_place_t *);
 	
@@ -1172,11 +1114,9 @@ struct item_tree_ops {
 	/* Update link block number. */
 	errno_t (*update_link) (reiser4_place_t *, blk_t);
 #endif
-};
+} item_tree_ops_t;
 
-typedef struct item_tree_ops item_tree_ops_t;
-
-struct reiser4_item_ops {
+typedef struct reiser4_item_ops {
 	item_tree_ops_t *tree;
 	item_object_ops_t *object;
 	item_balance_ops_t *balance;
@@ -1184,12 +1124,10 @@ struct reiser4_item_ops {
 	item_debug_ops_t *debug;
 	item_repair_ops_t *repair;
 #endif
-};
-
-typedef struct reiser4_item_ops reiser4_item_ops_t;
+} reiser4_item_ops_t;
 
 /* Stat data extension plugin */
-struct reiser4_sdext_ops {
+typedef struct reiser4_sdext_ops {
 #ifndef ENABLE_MINIMAL
 	/* Initialize stat data extension data at passed pointer. */
 	errno_t (*init) (stat_entity_t *, void *);
@@ -1205,14 +1143,12 @@ struct reiser4_sdext_ops {
 
 	/* Returns length of the extension. */
 	uint32_t (*length) (stat_entity_t *, void *);
-};
-
-typedef struct reiser4_sdext_ops reiser4_sdext_ops_t;
+} reiser4_sdext_ops_t;
 
 /* Node plugin operates on passed block. It doesn't any initialization, so it
    hasn't close method and all its methods accepts first argument aal_block_t,
    not initialized previously hypothetic instance of node. */
-struct reiser4_node_ops {
+typedef struct reiser4_node_ops {
 #ifndef ENABLE_MINIMAL
 	/* Get node state flags and set them back. */
 	uint32_t (*get_state) (reiser4_node_t *);
@@ -1328,25 +1264,19 @@ struct reiser4_node_ops {
 
 	/* Return node level. */
 	uint8_t (*get_level) (reiser4_node_t *);
-};
-
-typedef struct reiser4_node_ops reiser4_node_ops_t;
+} reiser4_node_ops_t;
 
 /* Hash plugin operations. */
-struct reiser4_hash_ops {
+typedef struct reiser4_hash_ops {
 	uint64_t (*build) (unsigned char *, uint32_t);
-};
+} reiser4_hash_ops_t;
 
-typedef struct reiser4_hash_ops reiser4_hash_ops_t;
-
-struct reiser4_fibre_ops {
+typedef struct reiser4_fibre_ops {
 	uint8_t (*build) (char *, uint32_t);
-};
-
-typedef struct reiser4_fibre_ops reiser4_fibre_ops_t;
+} reiser4_fibre_ops_t;
 
 /* Disk-format plugin */
-struct reiser4_format_ops {
+typedef struct reiser4_format_ops {
 #ifndef ENABLE_MINIMAL
 	/* Called during filesystem creating. It forms format-specific super
 	   block, initializes plugins and calls their create method. */
@@ -1437,12 +1367,10 @@ struct reiser4_format_ops {
 	/* Returns area where oid data lies in */
 	void (*oid_area) (generic_entity_t *, void **, uint32_t *);
 #endif
-};
-
-typedef struct reiser4_format_ops reiser4_format_ops_t;
+} reiser4_format_ops_t;
 
 #ifndef ENABLE_MINIMAL
-struct reiser4_oid_ops {
+typedef struct reiser4_oid_ops {
 	/* Opens oid allocator on passed format entity. */
 	generic_entity_t *(*open) (generic_entity_t *);
 
@@ -1490,11 +1418,9 @@ struct reiser4_oid_ops {
 	oid_t (*root_objectid) ();
 	oid_t (*lost_objectid) ();
 	oid_t (*slink_locality) ();
-};
+} reiser4_oid_ops_t;
 
-typedef struct reiser4_oid_ops reiser4_oid_ops_t;
-
-struct reiser4_alloc_ops {
+typedef struct reiser4_alloc_ops {
 	/* Functions for create and open block allocator. */
 	generic_entity_t *(*open) (aal_device_t *, uint32_t, uint64_t);
 	generic_entity_t *(*create) (aal_device_t *, uint32_t, uint64_t);
@@ -1565,11 +1491,9 @@ struct reiser4_alloc_ops {
 	/* Calls func for the region the blk lies in. */
 	errno_t (*region) (generic_entity_t *, blk_t,
 			   region_func_t, void *);
-};
+} reiser4_alloc_ops_t;
 
-typedef struct reiser4_alloc_ops reiser4_alloc_ops_t;
-
-struct reiser4_journal_ops {
+typedef struct reiser4_journal_ops {
 	/* Opens journal on specified device. */
 	generic_entity_t *(*open) (aal_device_t *, uint32_t, 
 				   generic_entity_t *, generic_entity_t *,
@@ -1618,16 +1542,13 @@ struct reiser4_journal_ops {
 				     generic_entity_t *, 
 				     uint64_t, uint64_t, 
 				     aal_stream_t *);
-};
-
-typedef struct reiser4_journal_ops reiser4_journal_ops_t;
+} reiser4_journal_ops_t;
 
 /* Tail policy plugin operations. */
-struct reiser4_policy_ops {
+typedef struct reiser4_policy_ops {
 	int (*tails) (uint64_t);
-};
+} reiser4_policy_ops_t;
 
-typedef struct reiser4_policy_ops reiser4_policy_ops_t;
 #endif
 
 #define PLUG_MAX_DESC	64
@@ -1642,24 +1563,20 @@ typedef errno_t (*plug_func_t) (reiser4_plug_t *, void *);
 typedef reiser4_plug_t *(*plug_init_t) (reiser4_core_t *);
 
 /* Plugin class descriptor. Used for loading plugins. */
-struct plug_class {
+typedef struct plug_class {
 	/* Plugin initialization routine. */
 	plug_init_t init;
 	
 	/* Plugin finalization routine. */
 	plug_fini_t fini;
-};
+} plug_class_t;
 
-typedef struct plug_class plug_class_t;
-
-struct plug_ident {
+typedef struct plug_ident {
 	/* Plugin id, type and group. */
 	rid_t id;
 	uint8_t group;
 	uint8_t type;
-};
-
-typedef struct plug_ident plug_ident_t;
+} plug_ident_t;
 
 #define class_init {NULL, NULL}
 
@@ -1709,7 +1626,7 @@ struct reiser4_plug {
 #define place_isdirty(place) \
         ((place)->node->block->dirty)
 
-struct flow_ops {
+typedef struct flow_ops {
 	/* Reads data from the tree. */
 	int64_t (*read) (tree_entity_t *, trans_hint_t *);
 
@@ -1723,11 +1640,9 @@ struct flow_ops {
 	/* Convert some particular place to another plugin. */
 	errno_t (*convert) (tree_entity_t *, conv_hint_t *);
 #endif
-};
+} flow_ops_t;
 
-typedef struct flow_ops flow_ops_t;
-
-struct tree_ops {
+typedef struct tree_ops {
 	/* Makes lookup in the tree in order to know where say stat data item of
 	   a file realy lies. It is used in all object plugins. */
 	lookup_t (*lookup) (tree_entity_t *, lookup_hint_t *, 
@@ -1761,49 +1676,37 @@ struct tree_ops {
 	/* Returns the next item. */
 	errno_t (*next_item) (tree_entity_t *, reiser4_place_t *, 
 			      reiser4_place_t *);
-};
+} tree_ops_t;
 
-typedef struct tree_ops tree_ops_t;
-
-struct factory_ops {
+typedef struct factory_ops {
 	/* Finds plugin by its attributes (type and id). */
 	reiser4_plug_t *(*ifind) (rid_t, rid_t);
-};
-
-typedef struct factory_ops factory_ops_t;
+} factory_ops_t;
 
 #ifdef ENABLE_SYMLINKS
-struct object_ops {
+typedef struct object_ops {
 	errno_t (*resolve) (tree_entity_t *, char *, 
 			    reiser4_key_t *, reiser4_key_t *);
-};
-
-typedef struct object_ops object_ops_t;
+} object_ops_t;
 #endif
 
-struct pset_ops {
+typedef struct pset_ops {
 	/* Obtains the plugin from the profile by its profile index. */
 	reiser4_plug_t *(*find) (rid_t, rid_t);
 #ifndef ENABLE_MINIMAL
 	void (*diff) (tree_entity_t *, reiser4_opset_t *);
 #endif
-};
-
-typedef struct pset_ops pset_ops_t;
+} pset_ops_t;
 
 #ifndef ENABLE_MINIMAL
-struct key_ops {
+typedef struct key_ops {
 	char *(*print) (reiser4_key_t *, uint16_t);
-};
+} key_ops_t;
 
-typedef struct key_ops key_ops_t;
-
-struct item_ops {
+typedef struct item_ops {
 	/* Checks if items mergeable. */
 	int (*mergeable) (reiser4_place_t *, reiser4_place_t *);
-};
-
-typedef struct item_ops item_ops_t;
+} item_ops_t;
 #endif
 
 /* This structure is passed to all plugins in initialization time and used for

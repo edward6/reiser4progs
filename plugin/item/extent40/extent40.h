@@ -21,12 +21,10 @@ typedef enum insert_flag {
 	ET40_JOIN	= 1 << 3
 } insert_flag_t;
 
-struct extent40 {
+typedef struct extent40 {
 	d64_t start;
 	d64_t width;
-};
-
-typedef struct extent40 extent40_t;
+} extent40_t;
 
 extern reiser4_core_t *extent40_core;
 

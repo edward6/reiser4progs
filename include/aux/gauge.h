@@ -9,12 +9,10 @@
 #ifndef ENABLE_MINIMAL
 #include <aal/gauge.h>
 
-enum aux_gauge_type {
+typedef enum aux_gauge_type {
 	GT_PROGRESS  = 0x0,
 	GT_LAST
-};
-
-typedef enum aux_gauge_type aux_gauge_type_t;
+} aux_gauge_type_t;
 
 extern aal_gauge_handler_t aux_gauge_handlers[GT_LAST];
 

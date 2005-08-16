@@ -1544,7 +1544,7 @@ static reiser4_plug_t extent40_plug = {
 	.id    = {ITEM_EXTENT40_ID, EXTENT_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "extent40",
-	.desc  = "Extent item for reiser4. ",
+	.desc  = "Extent file body item plugin.",
 #endif
 	.o = {
 		.item_ops = &extent40_ops

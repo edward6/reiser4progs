@@ -540,12 +540,10 @@ static errno_t cb_replay(generic_entity_t *entity,
 	return res;
 }
 
-struct replay_count {
+typedef struct replay_count {
 	uint64_t tx_count;
 	uint64_t blk_count;
-};
-
-typedef struct replay_count replay_count_t;
+} replay_count_t;
 
 static errno_t cb_print_replay(generic_entity_t *entity,
 			       aal_block_t *block, blk_t orig,
@@ -647,7 +645,7 @@ reiser4_plug_t journal40_plug = {
 	.cl    = class_init,
 	.id    = {JOURNAL_REISER40_ID, 0, JOURNAL_PLUG_TYPE},
 	.label = "journal40",
-	.desc  = "Journal for reiser4. ",
+	.desc  = "Journal plugin.",
 	.o = {
 		.journal_ops = &journal40_ops
 	}

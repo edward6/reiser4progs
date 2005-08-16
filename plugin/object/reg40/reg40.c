@@ -538,13 +538,11 @@ static errno_t reg40_clobber(object_entity_t *entity) {
 }
 
 /* File data enumeration related stuff. */
-struct layout_hint {
+typedef struct layout_hint {
 	void *data;
 	object_entity_t *entity;
 	region_func_t region_func;
-};
-
-typedef struct layout_hint layout_hint_t;
+} layout_hint_t;
 
 static errno_t cb_item_layout(blk_t start, count_t width, void *data) {
 	layout_hint_t *hint = (layout_hint_t *)data;
@@ -727,7 +725,7 @@ reiser4_plug_t reg40_plug = {
 	.id    = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "reg40",
-	.desc  = "Regular file for reiser4. ",
+	.desc  = "Regular file plugin.",
 #endif
 	.o = {
 		.object_ops = &reg40_ops

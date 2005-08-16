@@ -19,14 +19,12 @@
 #include <misc/misc.h>
 #include <reiser4/libreiser4.h>
 
-enum cpfs_behav_flags {
+typedef enum cpfs_behav_flags {
 	BF_FORCE      = 1 << 0,
 	BF_YES        = 1 << 1,
 	BF_SHOW_PARM  = 1 << 2,
 	BF_SHOW_PLUG  = 1 << 3
-};
-
-typedef enum cpfs_behav_flags cpfs_behav_flags_t;
+} cpfs_behav_flags_t;
 
 /* Prints cpfs options */
 static void cpfs_print_usage(char *name) {

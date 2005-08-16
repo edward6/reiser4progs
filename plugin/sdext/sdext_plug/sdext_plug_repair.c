@@ -22,10 +22,10 @@ char *opset_name[OPSET_STORE_LAST] = {
 	[OPSET_DIRITEM] = "diritem",
 	[OPSET_CRYPTO] =  "crypto",
 	[OPSET_DIGEST] =  "digest",
-	[OPSET_CPRESS] =  "compress",
-	[OPSET_CPRESS_MODE] = "compress mode",
+	[OPSET_COMPRESS] =  "compress",
+	[OPSET_COMPRESS_MODE] = "compress mode",
 	[OPSET_CLUSTER] = "cluster",
-	[OPSET_REGULAR] =  "regular"
+	[OPSET_CREATE] =  "regular"
 };
 
 errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {

@@ -6,16 +6,14 @@
 #include <aux/aux.h>
 #include <reiser4/libreiser4.h>
 
-struct resolve {
+typedef struct resolve {
 	bool_t follow;
 	bool_t present;
 	reiser4_object_t *parent;
 	reiser4_object_t *object;
 	reiser4_tree_t *tree;
 	reiser4_key_t key;
-};
-
-typedef struct resolve resolve_t;
+} resolve_t;
 
 /* Callback function for finding statdata of the current directory */
 static errno_t cb_find_statdata(char *path, char *entry, void *data) {

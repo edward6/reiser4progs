@@ -282,7 +282,8 @@ void misc_upper_case(char *dst, const char *src) {
 }
 
 static errno_t cb_print_plug(reiser4_plug_t *plug, void *data) {
-	printf("\"%s\": %s\n", plug->label, plug->desc);
+	printf("\"%s\" (id:0x%x type:0x%x): %s\n", plug->label, 
+	       plug->id.id, plug->id.type, plug->desc);
 	return 0;
 }
 
