@@ -1,4 +1,4 @@
-/* Copyright (C) 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by
+/* Copyright (C) 2001-2005 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
    ext_t.c -- 1 symbol extention fibration code. */

@@ -1,4 +1,4 @@
-/* Copyright (C) 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by
+/* Copyright (C) 2001-2005 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
    bbox40_repair.h -- black box, reiser4 default safe link plugin repair method

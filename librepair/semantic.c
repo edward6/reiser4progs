@@ -1,4 +1,4 @@
-/* Copyright 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by 
+/* Copyright 2001-2005 by Hans Reiser, licensing governed by 
    reiser4progs/COPYING.
    
    repair/semantic.c -- semantic pass recovery code. */

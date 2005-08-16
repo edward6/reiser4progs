@@ -1,4 +1,4 @@
-/* Copyright 2001, 2002, 2003, 2004 by Hans Reiser, licensing governed by
+/* Copyright 2001-2005 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
    format40_repair.c -- repair methods for the default disk-layout plugin for 
