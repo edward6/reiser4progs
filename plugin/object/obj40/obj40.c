@@ -178,6 +178,91 @@ errno_t obj40_save_stat(obj40_t *obj, stat_hint_t *hint) {
 	return 0;
 }
 
+/* Prepapre unix hint in StatData */
+errno_t obj40_stat_unix_init(stat_hint_t *stat, sdhint_unix_t *unixh, 
+			     uint64_t bytes, uint64_t rdev) 
+{
+	aal_assert("vpf-1772", stat != NULL);
+	aal_assert("vpf-1773", unixh != NULL);
+
+	/* Unix extension hint initializing */
+	if (rdev && bytes) {
+		aal_error("Invalid stat data params (rdev or bytes).");
+		return -EINVAL;
+	} else {
+		unixh->rdev = rdev;
+		unixh->bytes = bytes;
+	}
+
+	unixh->uid = getuid();
+	unixh->gid = getgid();
+	
+	unixh->atime = time(NULL);
+	unixh->mtime = unixh->atime;
+	unixh->ctime = unixh->atime;
+
+	stat->extmask |= (1 << SDEXT_UNIX_ID);
+	stat->ext[SDEXT_UNIX_ID] = unixh;
+	
+	return 0;
+}
+
+errno_t obj40_stat_lw_init(stat_hint_t *stat, sdhint_lw_t *lwh, 
+			   uint64_t size,  uint32_t nlink, uint16_t mode) 
+{
+	aal_assert("vpf-1774", stat != NULL);
+	aal_assert("vpf-1775", lwh != NULL);
+
+	/* Light weight hint initializing. */
+	lwh->size = size;
+	lwh->nlink = nlink;
+	lwh->mode = mode | 0755;
+	
+	stat->extmask |= (1 << SDEXT_LW_ID);
+	stat->ext[SDEXT_LW_ID] = lwh;
+
+	return 0;
+}
+
+errno_t obj40_stat_plug_init(obj40_t *obj, 
+			     stat_hint_t *stat, 
+			     sdhint_plug_t *plugh) 
+{
+	aal_assert("vpf-1777", stat != NULL);
+	aal_assert("vpf-1776", plugh != NULL);
+	aal_assert("vpf-1778", obj != NULL);
+
+	aal_memcpy(plugh, &obj->info, sizeof(*plugh));
+
+	/* Get plugins that must exists in the PLUGID extention. */
+	obj->core->pset_ops.diff(obj->info.tree, plugh);
+	
+	if (plugh->mask) {
+		stat->extmask |= (1 << SDEXT_PLUG_ID);
+		stat->ext[SDEXT_PLUG_ID] = plugh;
+		obj->info.opset.mask = plugh->mask;
+	}
+
+	return 0;
+}
+
+errno_t obj40_stat_sym_init(stat_hint_t *stat, char *path) {
+	aal_assert("vpf-1779", stat != NULL);
+	
+	if (path) {
+		stat->extmask |= (1 << SDEXT_SYMLINK_ID);
+		stat->ext[SDEXT_SYMLINK_ID] = path;
+	}
+	
+	return 0;
+}
+
+errno_t obj40_stat_comp_init(stat_hint_t *stat) {
+	aal_assert("vpf-1780", stat != NULL);
+
+	return 0;
+}
+
 /* Create stat data item basing on passed extensions @mask, @size, @bytes,
    @nlinks, @mode and @path for symlinks. Returns error or zero for success. */
 errno_t obj40_create_stat(obj40_t *obj, uint64_t size, uint64_t bytes, 
@@ -204,62 +289,24 @@ errno_t obj40_create_stat(obj40_t *obj, uint64_t size, uint64_t bytes,
 	hint.shift_flags = SF_DEFAULT;
 	
 	aal_memcpy(&hint.offset, &obj->info.object, sizeof(hint.offset));
-    
-	/* Initializing stat data item hint. */
-	stat.extmask = (1 << SDEXT_UNIX_ID | 1 << SDEXT_LW_ID);
-    	
-	/* Light weight hint initializing. */
-	lwh.size = size;
-	lwh.nlink = nlink;
-	lwh.mode = mode | 0755;
+   
+	/* Prepapre the StatData hint. */
+	aal_memset(&stat, 0, sizeof(stat));
 	
-	/* Unix extension hint initializing */
-	if (rdev && bytes) {
-		aal_error("Invalid stat data params (rdev or bytes).");
-		return -EINVAL;
-	} else {
-		unixh.rdev = rdev;
-		unixh.bytes = bytes;
-	}
+	if ((res = obj40_stat_unix_init(&stat, &unixh, bytes, rdev)))
+		return res;
 	
-	unixh.uid = getuid();
-	unixh.gid = getgid();
+	if ((res = obj40_stat_lw_init(&stat, &lwh, size, nlink, mode)))
+		return res;
 	
-	unixh.atime = time(NULL);
-	unixh.mtime = unixh.atime;
-	unixh.ctime = unixh.atime;
-
-	aal_memcpy(&plugh, &obj->info, sizeof(plugh));
-#if 0
-	for (i = 0, plcount = 0; i < OPSET_LAST; i++) {
-		plugs.pset[i] = (obj->info.opmask & (1 << i)) ? 
-			obj->info.opset.plug[i] : NULL;
-
-		/* Smth to be stored. */
-		if (plugs.pset[i])
-			plcount++;
-	}
-#endif
+	if ((res = obj40_stat_sym_init(&stat, path)))
+		return res;
 	
-	aal_memset(&stat.ext, 0, sizeof(stat.ext));
-
-	/* Initializing extensions array */
-	stat.ext[SDEXT_LW_ID] = &lwh;
-	stat.ext[SDEXT_UNIX_ID] = &unixh;
-
-	/* Get plugins that must exists in the PLUGID extention. */
-	obj->core->pset_ops.diff(obj->info.tree, &plugh);
+	if ((res = obj40_stat_comp_init(&stat)))
+		return res;
 	
-	if (plugh.mask) {
-		stat.extmask |= (1 << SDEXT_PLUG_ID);
-		stat.ext[SDEXT_PLUG_ID] = &plugh;
-		obj->info.opset.mask = plugh.mask;
-	}
-
-	if (path) {
-		stat.extmask |= (1 << SDEXT_SYMLINK_ID);
-		stat.ext[SDEXT_SYMLINK_ID] = path;
-	}
+	if ((res = obj40_stat_plug_init(obj, &stat, &plugh)))
+		return res;
 	
 	hint.specific = &stat;
 
@@ -322,12 +369,7 @@ errno_t obj40_write_ext(reiser4_place_t *place, rid_t id, void *data) {
 	hint.region_func = NULL;
 	hint.shift_flags = SF_DEFAULT;
 
-	if (plug_call(place->plug->o.item_ops->object,
-		      fetch_units, place, &hint) != 1)
-	{
-		return -EIO;
-	}
-
+	stat.extmask |= (1 << id);
 	stat.ext[id] = data;
 
 	if (plug_call(place->plug->o.item_ops->object,
