@@ -897,6 +897,8 @@ static errno_t dir40_layout(object_entity_t *entity,
 
 	dir = (dir40_t *)entity;
 
+	dir40_reset((object_entity_t *)dir);
+	
 	/* Update current body item coord. */
 	if ((res = dir40_update_body(entity, 1)) < 0)
 		return res;

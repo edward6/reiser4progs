@@ -56,11 +56,11 @@ int32_t obj40_belong(reiser4_place_t *place,
 	if (!obj40_valid_item(place))
 		return 0;
 
-	/* Fetching item info at @place. This is needed to make sue, that all
-	   @place fields are initialized rigth. Normally it is doing by
-	   tree_lookup(), if it is sure, that place points to valid postion in
-	   node. This happen if lookup found a key. Otherwise it leaves place
-	   not initialized and caller is supoposed to take care about. */
+	/* Fetching item info at @place. This is needed to make sue, that 
+	   all @place fields are initialized rigth. Normally it is done by
+	   tree_lookup(), if it is sure, that place points to valid postion 
+	   in node. This happen if lookup found a key. Otherwise it leaves 
+	   place not initialized and caller has to care about it. */
 	if (obj40_fetch_item(place))
 		return 0;
 	

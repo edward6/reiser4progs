@@ -143,7 +143,6 @@ static void stat40_decode_opset(tree_entity_t *tree,
 
 	plugh->plug[OPSET_OBJ] = stat40_modeplug(tree, lwh->mode);
 	plugh->plug_mask |= (1 << OPSET_OBJ);
-	plugh->plug_mask |= (1 << OPSET_DIR);
 }
 
 /* Fetches whole statdata item with extensions into passed @buff */
@@ -236,12 +235,8 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 	
 	tree = place->node->tree;
 	
-	if (plugh->plug[OPSET_OBJ] == stat40_modeplug(tree, mode)) {
-		plugh->plug[OPSET_OBJ] = NULL;
+	if (plugh->plug[OPSET_OBJ] == stat40_modeplug(tree, mode))
 		plugh->plug_mask &= ~(1 << OPSET_OBJ);
-	}
-	
-	plugh->plug_mask &= ~(1 << OPSET_DIR);
 	
 	/* Throw away the SD_PLUG if mask is empty. */
 	if (!plugh->plug_mask)

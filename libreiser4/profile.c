@@ -28,7 +28,7 @@ reiser4_profile_t defprof = {
 			.hidden = 1,
 			.max = 1,
 #endif
-			.id = {0, 0, PARAM_PLUG_TYPE},
+			.id = {INVAL_PID, 0, PARAM_PLUG_TYPE},
 		},
 		[PROF_REGFILE] = {
 #ifndef ENABLE_MINIMAL

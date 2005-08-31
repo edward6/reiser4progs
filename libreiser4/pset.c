@@ -78,29 +78,24 @@ void reiser4_opset_root(reiser4_opset_t *opset) {
 		if (opset->plug_mask & (1 << i))
 			continue;
 		
-		if (defprof.pid[opset_prof[i]].id.type == PARAM_PLUG_TYPE) {
-			
+		if (defprof.pid[opset_prof[i]].id.id == INVAL_PID) {
+			if (i == OPSET_OBJ) {
+				/* Special case: root file plug. */
+				opset->plug[i] = 
+					reiser4_profile_plug(PROF_DIRFILE);
+			} else {			
+				/* Skip root dir plug & others with INVAL id. */
+				continue;
+			}
+		} else if (defprof.pid[opset_prof[i]].id.type == 
+			   PARAM_PLUG_TYPE) 
+		{
 			opset->plug[i] = 
 				(void *)defprof.pid[opset_prof[i]].id.id;
 			
-		} else if (defprof.pid[opset_prof[i]].id.id != INVAL_PID) {
-			
+		} else {
 			opset->plug[i] = reiser4_profile_plug(opset_prof[i]);
-			
-		} else if (defprof.pid[opset_prof[i]].id.id == INVAL_PID) {
-			
-			if (i == OPSET_OBJ) {
-				/* Special case: root dir file plug. */
-				opset->plug[i] = 
-					reiser4_profile_plug(PROF_DIRFILE);
-			} else {
-				aal_bug("vpf-1811", "Not expected uninitialized"
-					" slot (%u) in the plugin set.");
-			}
 		}
-
-		if (i < OPSET_STORE_LAST)
-			opset->plug_mask |= (1 << i);
 	}
 }
 
@@ -122,6 +117,9 @@ uint64_t reiser4_opset_build_mask(reiser4_tree_t *tree,
 		   The special case for the root directory. All opset 
 		   members must be stored. */
 		mask = (1 << OPSET_STORE_LAST) - 1;
+
+		/* Skip the DIR flag. */
+		mask &= ~(1 << OPSET_DIR);
 		return mask;
 	}
 	
