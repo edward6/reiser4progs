@@ -86,8 +86,8 @@ static reiser4_object_t *reiser4_root_create(reiser4_fs_t *fs) {
 	/* Preparing object hint. INVAL_PTR means that this kind of plugin 
 	   is not ready yet but needs to be stored, */
 	hint.mode = 0;
-	reiser4_opset_profile(hint.info.opset.plug);
-	hint.info.opset.plug[OPSET_OBJ] = hint.info.opset.plug[OPSET_MKDIR];
+	
+	reiser4_opset_root(&hint.info.opset);
 	hint.info.tree = (tree_entity_t *)fs->tree;
 
 	/* Preparing entry hint. */
@@ -219,11 +219,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (optind >= argc) {
-		mkfs_print_usage(argv[0]);
-		return USER_ERROR;
-	}
-    
 	if (!(flags & BF_YES))
 		misc_print_banner(argv[0]);
 
@@ -256,7 +251,13 @@ int main(int argc, char *argv[]) {
 
 	if (optind >= argc)
 		goto error_free_libreiser4;
-		
+	
+	if (optind >= argc) {
+		mkfs_print_usage(argv[0]);
+		return USER_ERROR;
+	}
+    
+
 #ifdef HAVE_SYSCONF
 	/* Guessing block size by getting page size */
 	if (!hint.blksize) {
@@ -474,7 +475,7 @@ int main(int argc, char *argv[]) {
 			goto error_free_fs;
 		}
 	
-		if (reiser4_opset_init(fs->tree, 1)) {
+		if (reiser4_opset_tree(fs->tree, 1)) {
 			aal_error("Can't initialize the fs-global "
 				  "object plugin set.");
 			goto error_free_fs;

@@ -97,37 +97,21 @@ lookup_t obj40_find_item(obj40_t *obj, reiser4_key_t *key,
 }
 
 /* Reads one stat data extension to @data. */
-errno_t obj40_read_ext(reiser4_place_t *place, rid_t id, void *data) {
-	trans_hint_t trans;
+errno_t obj40_read_ext(obj40_t *obj, rid_t id, void *data) {
 	stat_hint_t stat;
 
 	aal_memset(&stat, 0, sizeof(stat));
 
-	/* Preparing hint and mask */
-	trans.specific = &stat;
-	trans.place_func = NULL;
-	trans.region_func = NULL;
-	trans.shift_flags = SF_DEFAULT;
+	if (data) stat.ext[id] = data;
 	
-	if (data) {
-		stat.ext[id] = data;
-	}
-	
-	/* Calling statdata open method. */
-	if (plug_call(place->plug->o.item_ops->object,
-		      fetch_units, place, &trans) != 1)
-	{
-		return -EIO;
-	}
-	
-	return 0;
+	return obj40_load_stat(obj, &stat);
 }
 
 /* Gets size field from the stat data */
 uint64_t obj40_get_size(obj40_t *obj) {
 	sdhint_lw_t lwh;
 
-	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lwh))
+	if (obj40_read_ext(obj, SDEXT_LW_ID, &lwh))
 		return 0;
 	
 	return lwh.size;
@@ -179,8 +163,8 @@ errno_t obj40_save_stat(obj40_t *obj, stat_hint_t *hint) {
 }
 
 /* Prepapre unix hint in StatData */
-errno_t obj40_stat_unix_init(stat_hint_t *stat, sdhint_unix_t *unixh, 
-			     uint64_t bytes, uint64_t rdev) 
+static errno_t obj40_stat_unix_init(stat_hint_t *stat, sdhint_unix_t *unixh, 
+				    uint64_t bytes, uint64_t rdev) 
 {
 	aal_assert("vpf-1772", stat != NULL);
 	aal_assert("vpf-1773", unixh != NULL);
@@ -207,8 +191,8 @@ errno_t obj40_stat_unix_init(stat_hint_t *stat, sdhint_unix_t *unixh,
 	return 0;
 }
 
-errno_t obj40_stat_lw_init(stat_hint_t *stat, sdhint_lw_t *lwh, 
-			   uint64_t size,  uint32_t nlink, uint16_t mode) 
+static errno_t obj40_stat_lw_init(stat_hint_t *stat, sdhint_lw_t *lwh, 
+				  uint64_t size,  uint32_t nlink, uint16_t mode) 
 {
 	aal_assert("vpf-1774", stat != NULL);
 	aal_assert("vpf-1775", lwh != NULL);
@@ -224,29 +208,30 @@ errno_t obj40_stat_lw_init(stat_hint_t *stat, sdhint_lw_t *lwh,
 	return 0;
 }
 
-errno_t obj40_stat_plug_init(obj40_t *obj, 
-			     stat_hint_t *stat, 
-			     sdhint_plug_t *plugh) 
+static errno_t obj40_stat_plug_init(obj40_t *obj, 
+				    stat_hint_t *stat, 
+				    sdhint_plug_t *plugh) 
 {
 	aal_assert("vpf-1777", stat != NULL);
 	aal_assert("vpf-1776", plugh != NULL);
 	aal_assert("vpf-1778", obj != NULL);
 
-	aal_memcpy(plugh, &obj->info, sizeof(*plugh));
+	aal_memcpy(plugh, &obj->info.opset, sizeof(*plugh));
 
 	/* Get plugins that must exists in the PLUGID extention. */
-	obj->core->pset_ops.diff(obj->info.tree, plugh);
+	obj->info.opset.plug_mask = 
+		obj->core->pset_ops.build_mask(obj->info.tree,
+					       &obj->info.opset);
 	
-	if (plugh->mask) {
+	if (obj->info.opset.plug_mask) {
 		stat->extmask |= (1 << SDEXT_PLUG_ID);
 		stat->ext[SDEXT_PLUG_ID] = plugh;
-		obj->info.opset.mask = plugh->mask;
 	}
 
 	return 0;
 }
 
-errno_t obj40_stat_sym_init(stat_hint_t *stat, char *path) {
+static errno_t obj40_stat_sym_init(stat_hint_t *stat, char *path) {
 	aal_assert("vpf-1779", stat != NULL);
 	
 	if (path) {
@@ -257,7 +242,7 @@ errno_t obj40_stat_sym_init(stat_hint_t *stat, char *path) {
 	return 0;
 }
 
-errno_t obj40_stat_comp_init(stat_hint_t *stat) {
+static errno_t obj40_stat_comp_init(stat_hint_t *stat) {
 	aal_assert("vpf-1780", stat != NULL);
 
 	return 0;
@@ -347,7 +332,7 @@ errno_t obj40_touch(obj40_t *obj, uint64_t size, uint64_t bytes) {
 		return 0;
 	
 	/* Updating bytes */
-	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unixh)))
+	if ((res = obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh)))
 		return res;
 
 	/* Updating values and write unix extension back. */
@@ -408,7 +393,7 @@ uint64_t obj40_extmask(reiser4_place_t *place) {
 uint16_t obj40_get_mode(obj40_t *obj) {
 	sdhint_lw_t lwh;
 
-	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lwh))
+	if (obj40_read_ext(obj, SDEXT_LW_ID, &lwh))
 		return 0;
 	
 	return lwh.mode;
@@ -419,7 +404,7 @@ errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
 	sdhint_lw_t lwh;
 	errno_t res;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lwh)))
+	if ((res = obj40_read_ext(obj, SDEXT_LW_ID, &lwh)))
 		return res;
 
 	lwh.mode = mode;
@@ -432,7 +417,7 @@ errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 	sdhint_lw_t lwh;
 	errno_t res;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lwh)))
+	if ((res = obj40_read_ext(obj, SDEXT_LW_ID, &lwh)))
 		return res;
 
 	lwh.size = size;
@@ -444,7 +429,7 @@ errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 uint32_t obj40_get_nlink(obj40_t *obj) {
 	sdhint_lw_t lwh;
 
-	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lwh))
+	if (obj40_read_ext(obj, SDEXT_LW_ID, &lwh))
 		return 0;
 	
 	return lwh.nlink;
@@ -455,7 +440,7 @@ errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 	sdhint_lw_t lwh;
 	errno_t res;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lwh)))
+	if ((res = obj40_read_ext(obj, SDEXT_LW_ID, &lwh)))
 		return res;
 
 	lwh.nlink = nlink;
@@ -467,7 +452,7 @@ errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 uint32_t obj40_get_atime(obj40_t *obj) {
 	sdhint_unix_t unixh;
 
-	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unixh))
+	if (obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh))
 		return 0;
 	
 	return unixh.atime;
@@ -478,7 +463,7 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 	sdhint_unix_t unixh;
 	errno_t res;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unixh)))
+	if ((res = obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh)))
 		return res;
 
 	unixh.atime = atime;
@@ -490,7 +475,7 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 uint32_t obj40_get_mtime(obj40_t *obj) {
 	sdhint_unix_t unixh;
 
-	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unixh))
+	if (obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh))
 		return 0;
 	
 	return unixh.mtime;
@@ -501,7 +486,7 @@ errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 	sdhint_unix_t unixh;
 	errno_t res;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unixh)))
+	if ((res = obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh)))
 		return res;
 
 	unixh.mtime = mtime;
@@ -513,7 +498,7 @@ errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 uint64_t obj40_get_bytes(obj40_t *obj) {
 	sdhint_unix_t unixh;
 
-	if (obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unixh))
+	if (obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh))
 		return 0;
 	
 	return unixh.bytes;
@@ -524,7 +509,7 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 	sdhint_unix_t unixh;
 	errno_t res;
 
-	if ((res = obj40_read_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unixh)))
+	if ((res = obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh)))
 		return res;
 
 	unixh.rdev = 0;
@@ -622,8 +607,6 @@ errno_t obj40_unlink(obj40_t *obj) {
 /* Initializes object handle by plugin, key, core operations and opaque pointer
    to tree file is going to be opened/created in. */
 errno_t obj40_init(obj40_t *obj, object_info_t *info, reiser4_core_t *core) {
-	uint8_t i;
-	
 	aal_assert("umka-1574", obj != NULL);
 	aal_assert("umka-1757", info != NULL);
 	aal_assert("umka-1757", info->tree != NULL);
@@ -633,15 +616,6 @@ errno_t obj40_init(obj40_t *obj, object_info_t *info, reiser4_core_t *core) {
 	
 	if (!info->start.plug)
 		aal_memcpy(STAT_KEY(obj), &info->object, sizeof(info->object));
-
-	/* Set missed plugins to opset from the fs global opset and build
-	   the mask of the specific plugins. */
-	for (i = 0; i < OPSET_LAST; i++) {
-		aal_assert("vpf-1647", info->opset.plug[i] != INVAL_PTR);
-		
-		if (info->opset.plug[i] == NULL)
-			obj->info.opset.plug[i] = info->tree->opset[i];
-	}
 	
 	return 0;
 }

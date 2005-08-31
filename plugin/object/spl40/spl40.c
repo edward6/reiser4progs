@@ -40,7 +40,6 @@ static errno_t spl40_stat(object_entity_t *entity, stat_hint_t *hint) {
 	spl40_t *spl;
 	
 	aal_assert("umka-2551", entity != NULL);
-	aal_assert("umka-2552", hint != NULL);
 
 	spl = (spl40_t *)entity;
 	return obj40_load_stat(&spl->obj, hint);

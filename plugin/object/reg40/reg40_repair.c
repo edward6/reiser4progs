@@ -67,52 +67,6 @@ static int reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 	return 1;
 }
 
-#if 0
-/* Lookup for the end byte and find out the body plug for such a size. */
-static reiser4_plug_t *reg40_body_plug(reg40_t *reg) {
-	reiser4_place_t place;
-	reiser4_key_t key;
-	errno_t res;
-	
-	aal_assert("vpf-1305", reg != NULL);
-	aal_assert("vpf-1305", reg->position.plug != NULL);
-
-	aal_memcpy(&key, &reg->position, sizeof (key));
-	plug_call(key.plug->o.key_ops, set_offset, &key, MAX_UINT64);
-	
-	if ((obj40_find_item(&reg->obj, &key, FIND_EXACT,
-			     NULL, NULL, &place)) < 0)
-	{
-		return NULL;
-	}
-
-	/* If place is invalid, there is no items of the file. */
-	if (!obj40_valid_item(&place))
-		return reg40_policy_plug(reg, 0);
-
-	/* Initializing item entity. */
-	if ((res = obj40_fetch_item(&place)))
-		return NULL;
-
-	/* Check if this is an item of another object. */
-	if (plug_call(reg->position.plug->o.key_ops, compshort,
-		      &reg->position, &place.key))
-	{
-		return reg40_policy_plug(reg, 0);
-	}
-
-	/* Get the maxreal key of the found item and find next. */
-	if ((res = plug_call(place.plug->o.item_ops->balance,
-			     maxreal_key, &place, &key)))
-	{
-		return NULL;
-	}
-
-	return reg40_policy_plug(reg, plug_call(key.plug->o.key_ops,
-						get_offset, &key));
-}
-#endif
-
 static errno_t reg40_check_ikey(reg40_t *reg) {	
 	uint64_t offset;
 	

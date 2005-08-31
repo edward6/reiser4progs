@@ -112,8 +112,8 @@ static errno_t tree_convert(tree_entity_t *tree, conv_hint_t *hint) {
 	return reiser4_flow_convert((reiser4_tree_t *)tree, hint);
 }
 
-static void pset_diff(tree_entity_t *tree, reiser4_opset_t *opset) {
-	reiser4_opset_diff((reiser4_tree_t *)tree, opset);
+static uint64_t pset_build_mask(tree_entity_t *tree, reiser4_opset_t *opset) {
+	return reiser4_opset_build_mask((reiser4_tree_t *)tree, opset);
 }
 
 static int item_mergeable(reiser4_place_t *place1,
@@ -228,7 +228,7 @@ reiser4_core_t core = {
 	.pset_ops = {
 		.find		= pset_find,
 #ifndef ENABLE_MINIMAL
-		.diff		= pset_diff,
+		.build_mask	= pset_build_mask,
 #endif
 	},
 #ifdef ENABLE_SYMLINKS

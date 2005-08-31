@@ -51,14 +51,19 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	/* Initializing info */
 	aal_memset(&info, 0, sizeof(info));
 
-	info.tree = (tree_entity_t *)tree;
 	aal_memcpy(&info.object, key, sizeof(*key));
+	
+	info.tree = (tree_entity_t *)tree;
+	info.opset.plug[OPSET_OBJ] = plug;
+	info.opset.plug_mask |= (1 << OPSET_OBJ);
 
 	if (parent) {
 		aal_memcpy(&info.parent, 
 			   &parent->ent->object, 
 			   sizeof(info.parent));
 	}
+	
+	reiser4_opset_complete((reiser4_tree_t *)info.tree, &info.opset);
 	
 	/* Create the fake object. */
 	if (!(object->ent = plug_call(plug->o.object_ops, fake, &info)))
@@ -71,23 +76,32 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	return NULL;
 }
 
-static object_entity_t *cb_object_open(object_info_t *info) {
-	/* Try to init on the StatData. */
-	if (reiser4_object_init(info))
-		return INVAL_PTR;
-
-	return plug_call(info->opset.plug[OPSET_OBJ]->o.object_ops,
-			 recognize, info);
-}
-
 reiser4_object_t *repair_object_open(reiser4_tree_t *tree, 
 				     reiser4_object_t *parent,
 				     reiser4_place_t *place) 
 {
+	reiser4_object_t *object;
+	object_info_t info;
+	void *ent;
+	
 	aal_assert("vpf-1622", place != NULL);
 	
-	return reiser4_object_form(tree, parent, &place->key, 
-				   place, cb_object_open);
+	if (!(object = reiser4_object_prep(tree, parent, &place->key,
+					   place, &info)))
+	{
+		return INVAL_PTR;
+	}
+	
+	ent = plug_call(info.opset.plug[OPSET_OBJ]->o.object_ops,
+			recognize, &info);
+
+	if (!ent || ent == INVAL_PTR) {
+		aal_free(object);
+		return ent;
+	}
+	
+	object->ent = ent;
+	return object;
 }
 
 /* Open the object on the base of given start @key */
@@ -95,8 +109,11 @@ reiser4_object_t *repair_object_obtain(reiser4_tree_t *tree,
 				       reiser4_object_t *parent,
 				       reiser4_key_t *key)
 {
-	lookup_hint_t hint;
+	reiser4_object_t *object;
 	reiser4_place_t place;
+	object_info_t info;
+	lookup_hint_t hint;
+	void *ent;
 
 	aal_assert("vpf-1132", tree != NULL);
 	aal_assert("vpf-1134", key != NULL);
@@ -110,7 +127,24 @@ reiser4_object_t *repair_object_obtain(reiser4_tree_t *tree,
 	
 	/* Even if ABSENT, pass the found place through object recognize 
 	   method to check all possible corruptions. */
-	return reiser4_object_form(tree, parent, key, &place, cb_object_open);
+	if (!(object = reiser4_object_prep(tree, parent, key, 
+					   &place, &info)))
+	{
+		/* FIXME: object_init fails to initialize if found item 
+		   is not SD, but this is not fatal error. */
+		return NULL;
+	}
+	
+	ent = plug_call(info.opset.plug[OPSET_OBJ]->o.object_ops,
+			recognize, &info);
+	
+	if (!ent || ent == INVAL_PTR) {
+		aal_free(object);
+		return ent;
+	}
+	
+	object->ent = ent;
+	return object;
 }
 
 /* Checks the attach between @parent and @object */

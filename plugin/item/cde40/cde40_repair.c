@@ -910,9 +910,9 @@ void cde40_print(reiser4_place_t *place, aal_stream_t *stream, uint16_t options)
 	aal_assert("umka-548", place != NULL);
 	aal_assert("umka-549", stream != NULL);
 
-	aal_stream_format(stream, "NR  NAME%*s OFFSET HASH%*s "
-			  "SDKEY%*s\n", PRINT_NAME_LIMIT - 5, " ", 29, 
-			  " ", 13, " ");
+	aal_stream_format(stream, "NR(%u)  NAME%*s OFFSET HASH%*s "
+			  "SDKEY%*s\n", cde_get_units(place), 
+			  PRINT_NAME_LIMIT - 5, " ", 29, " ", 13, " ");
 	
 	pol = cde40_key_pol(place);
 	count = (place->len - sizeof(cde40_t)) / (en_size(pol));

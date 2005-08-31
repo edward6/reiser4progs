@@ -173,8 +173,7 @@ static errno_t reg40_stat(object_entity_t *entity, stat_hint_t *hint) {
 	reg40_t *reg;
 	
 	aal_assert("umka-2561", entity != NULL);
-	aal_assert("umka-2562", hint != NULL);
-
+	
 	reg = (reg40_t *)entity;
 	return obj40_load_stat(&reg->obj, hint);
 }

@@ -57,7 +57,7 @@ extern int64_t obj40_read(obj40_t *obj, trans_hint_t *hint);
 extern errno_t obj40_init(obj40_t *obj, object_info_t *info, 
 				 reiser4_core_t *core);
 
-extern errno_t obj40_read_ext(reiser4_place_t *place, rid_t id, void *data);
+extern errno_t obj40_read_ext(obj40_t *obj, rid_t id, void *data);
 
 extern errno_t obj40_load_stat(obj40_t *obj, stat_hint_t *hint);
 

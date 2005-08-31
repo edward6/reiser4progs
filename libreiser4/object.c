@@ -8,7 +8,7 @@
 #include <reiser4/libreiser4.h>
 
 /* Init object pset by its SD. */
-errno_t reiser4_object_init(object_info_t *info) {
+static errno_t reiser4_object_init(object_info_t *info) {
 	sdhint_plug_t plugh;
 	trans_hint_t trans;
 	stat_hint_t stat;
@@ -41,22 +41,16 @@ errno_t reiser4_object_init(object_info_t *info) {
 	/* Getting object plugin by first item coord. */
 	if ((res = plug_call(info->start.plug->o.item_ops->object,
 			     fetch_units, &info->start, &trans)) != 1)
+	{
 		return res;
+	}
 	
-	aal_memcpy(&info->opset.plug, &plugh, sizeof(plugh));
+	aal_memcpy(&info->opset, &plugh, sizeof(plugh));
+	
+	reiser4_opset_complete((reiser4_tree_t *)info->tree, &info->opset);
 	
 	/* Object plugin must be detected. */
 	return info->opset.plug[OPSET_OBJ] ? 0 : -EINVAL;
-}
-
-/* Helper funtion, which initializes @object->ent by @object->info. */
-object_entity_t *reiser4_object_recognize(object_info_t *info) {
-	if (reiser4_object_init(info))
-		return INVAL_PTR;
-
-	/* Requesting object plugin to open the object on passed @tree and
-	   @place. If it fails, we will continue lookup. */
-	return plug_call(info->opset.plug[OPSET_OBJ]->o.object_ops, open, info);
 }
 
 /* Tries to open object at @place. Uses @init_func for initializing object
@@ -64,50 +58,47 @@ object_entity_t *reiser4_object_recognize(object_info_t *info) {
    entity initializing and librepair another one, but both they use some amount
    of common code, which was moved to this function and used by both in such a
    manner. */
-reiser4_object_t *reiser4_object_form(reiser4_tree_t *tree,
+reiser4_object_t *reiser4_object_prep(reiser4_tree_t *tree,
 				      reiser4_object_t *parent,
 				      reiser4_key_t *okey,
 				      reiser4_place_t *place,
-				      object_init_t init_func)
+				      object_info_t *info)
 {
 	reiser4_object_t *object;
-	object_info_t info;
 	
 	aal_assert("umka-1508", tree != NULL);
 	aal_assert("umka-1509", place != NULL);
 	aal_assert("vpf-1409",  okey != NULL);
-	aal_assert("vpf-1221",  init_func != NULL);
+	aal_assert("vpf-1221",  info != NULL);
 
-	aal_memset(&info, 0, sizeof(info));
+	aal_memset(info, 0, sizeof(*info));
 	
 	if (!(object = aal_calloc(sizeof(*object), 0)))
-		return INVAL_PTR;
+		return NULL;
 
 	/* Initializing object info. */
-	info.tree = (tree_entity_t *)tree;
+	info->tree = (tree_entity_t *)tree;
 
 	/* Putting object key to info struct. We may want to open and fix 
 	   the object even if @place->key does not match @okey. */
-	aal_memcpy(&info.object, okey, sizeof(*okey));
+	aal_memcpy(&info->object, okey, sizeof(*okey));
 
 	/* Copying item coord. */
-	aal_memcpy(&info.start, place, sizeof(*place));
+	aal_memcpy(&info->start, place, sizeof(*place));
 
 	/* Parent is not passed. Using object's key as parent's one. */
 	if (parent) {
-		aal_memcpy(&info.parent, &parent->ent->object, 
-			   sizeof(info.parent));
+		aal_memcpy(&info->parent, &parent->ent->object, 
+			   sizeof(info->parent));
 	}
 
-	/* Calling @init_func. It returns zero for success. */
-	if (!(object->ent = init_func(&info)) || object->ent == INVAL_PTR)
-		goto error_free_object;
+	/* Try to init on the StatData. */
+	if (reiser4_object_init(info)) {
+		aal_free(object);
+		return NULL;
+	}
 	
 	return object;
-
- error_free_object:
-	aal_free(object);
-	return NULL;
 }
 
 /* This function opens object by its @place. */
@@ -116,13 +107,24 @@ reiser4_object_t *reiser4_object_open(reiser4_tree_t *tree,
 				      reiser4_place_t *place)
 {
 	reiser4_object_t *object;
+	object_info_t info;
 	
 	aal_assert("vpf-1223", place != NULL);
 
-	object = reiser4_object_form(tree, parent, &place->key, place, 
-				     reiser4_object_recognize);
+	if (!(object = reiser4_object_prep(tree, parent, &place->key, 
+					   place, &info)))
+	{
+		return NULL;
+	}
+	
+	if (!(object->ent = plug_call(info.opset.plug[OPSET_OBJ]->o.object_ops,
+				      open, &info)))
+	{
+		aal_free(object);
+		return NULL;
+	}
 
-	return (object == INVAL_PTR ? NULL : object);
+	return object;
 }
 
 /* Try to open the object on the base of the given key. 
@@ -356,6 +358,9 @@ static void reiser4_object_maintain(entry_hint_t *entry,
 	/* Building object stat data key. */
 	reiser4_key_build_generic(&hint->info.object, KEY_STATDATA_TYPE,
 				  locality, ordering, objectid, 0);
+
+	/* Complete the opset in @hint. */
+	reiser4_opset_complete(tree, &hint->info.opset);
 }
 
 errno_t reiser4_object_attach(reiser4_object_t *object, 
@@ -822,9 +827,8 @@ reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
 	tent = &fs->tree->ent;
 	
 	/* Preparing object hint */
-	aal_memcpy(hint.info.opset.plug, tent->opset, 
-		   OPSET_LAST * sizeof(reiser4_plug_t *));
-	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_MKDIR];
+	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_DIRFILE];
+	hint.info.opset.plug_mask |= (1 << OPSET_OBJ);
 	hint.info.tree = (tree_entity_t *)fs->tree;
 	hint.mode = 0;
 	
@@ -853,9 +857,8 @@ reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
 	tent = &fs->tree->ent;
 	
 	/* Preparing object hint */
-	aal_memcpy(hint.info.opset.plug, tent->opset, 
-		   OPSET_LAST * sizeof(reiser4_plug_t *));
-	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_CREATE];
+	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_REGFILE];
+	hint.info.opset.plug_mask |= (1 << OPSET_OBJ);
 	hint.info.tree = (tree_entity_t *)fs->tree;
 	hint.mode = 0;
 
@@ -883,9 +886,8 @@ reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
 	tent = &fs->tree->ent;
 	
 	/* Preparing object hint */
-	aal_memcpy(hint.info.opset.plug, tent->opset, 
-		   OPSET_LAST * sizeof(reiser4_plug_t *));
-	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_SYMLINK];
+	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_SYMFILE];
+	hint.info.opset.plug_mask |= (1 << OPSET_OBJ);
 	hint.info.tree = (tree_entity_t *)fs->tree;
 	hint.mode = 0;
 	hint.name = (char *)target;
@@ -915,9 +917,8 @@ reiser4_object_t *reiser4_spl_create(reiser4_fs_t *fs,
 	tent = &fs->tree->ent;
 	
 	/* Preparing object hint. */
-	aal_memcpy(hint.info.opset.plug, tent->opset, 
-		   OPSET_LAST * sizeof(reiser4_plug_t *));
-	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_MKNODE];
+	hint.info.opset.plug[OPSET_OBJ] = tent->opset[OPSET_SPLFILE];
+	hint.info.opset.plug_mask |= (1 << OPSET_OBJ);
 	hint.info.tree = (tree_entity_t *)fs->tree;
 	hint.mode = mode;
 	hint.rdev = rdev;

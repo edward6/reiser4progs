@@ -53,11 +53,8 @@ static int64_t sym40_read(object_entity_t *entity,
 		return res;
 
 	/* Reading symlink extension data. */
-	if ((res = obj40_read_ext(STAT_PLACE(&sym->obj),
-				  SDEXT_SYMLINK_ID, buff)))
-	{
+	if ((res = obj40_read_ext(&sym->obj, SDEXT_SYMLINK_ID, buff)))
 		return res;
-	}
 
 	return aal_strlen(buff);
 }
@@ -67,7 +64,6 @@ static errno_t sym40_stat(object_entity_t *entity, stat_hint_t *hint) {
 	sym40_t *sym;
 	
 	aal_assert("umka-2557", entity != NULL);
-	aal_assert("umka-2558", hint != NULL);
 
 	sym = (sym40_t *)entity;
 	return obj40_load_stat(&sym->obj, hint);

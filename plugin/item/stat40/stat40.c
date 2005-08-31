@@ -111,27 +111,27 @@ static inline reiser4_plug_t *stat40_modeplug(tree_entity_t *tree,
 					      uint16_t mode) 
 {
 	if (S_ISLNK(mode))
-		return tree->opset[OPSET_SYMLINK];
+		return tree->opset[OPSET_SYMFILE];
 	else if (S_ISREG(mode))
-		return tree->opset[OPSET_CREATE];
+		return tree->opset[OPSET_REGFILE];
 	else if (S_ISDIR(mode))
-		return tree->opset[OPSET_MKDIR];
+		return tree->opset[OPSET_DIRFILE];
 	else if (S_ISCHR(mode))
-		return tree->opset[OPSET_MKNODE];
+		return tree->opset[OPSET_SPLFILE];
 	else if (S_ISBLK(mode))
-		return tree->opset[OPSET_MKNODE];
+		return tree->opset[OPSET_SPLFILE];
 	else if (S_ISFIFO(mode))
-		return tree->opset[OPSET_MKNODE];
+		return tree->opset[OPSET_SPLFILE];
 	else if (S_ISSOCK(mode))
-		return tree->opset[OPSET_MKNODE];
+		return tree->opset[OPSET_SPLFILE];
 
 	return NULL;
 }
 
 /* Decodes the object plug from the mode if needed. */
 static void stat40_decode_opset(tree_entity_t *tree,
-				sdhint_plug_t *plugh, 
-				sdhint_lw_t *lwh) 
+				sdhint_plug_t *plugh,
+				sdhint_lw_t *lwh)
 {
 	aal_assert("vpf-1630", tree != NULL);
 	aal_assert("vpf-1631", plugh != NULL);
@@ -142,7 +142,7 @@ static void stat40_decode_opset(tree_entity_t *tree,
 		return;
 
 	plugh->plug[OPSET_OBJ] = stat40_modeplug(tree, lwh->mode);
-	plugh->mask |= (1 << OPSET_OBJ);
+	plugh->plug_mask |= (1 << OPSET_OBJ);
 }
 
 /* Fetches whole statdata item with extensions into passed @buff */
@@ -154,7 +154,7 @@ static int64_t stat40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-1415", hint != NULL);
 	aal_assert("umka-1414", place != NULL);
 	aal_assert("vpf-1633", place->node != NULL);
-
+	
 	exts = ((stat_hint_t *)hint->specific)->ext;
 	
 	/* If plug_hint is fetched, lw is needed also to adjust OPSET_OBJ. */
@@ -167,18 +167,16 @@ static int64_t stat40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
 	
 	if (stat40_traverse(place, cb_open_ext, hint))
 		return -EINVAL;
-
+	
 	/* Adjust OPSET_OBJ. */
 	if (exts[SDEXT_PLUG_ID]) {
 		stat40_decode_opset(place->node->tree,
 				    (sdhint_plug_t *)exts[SDEXT_PLUG_ID],
 				    (sdhint_lw_t *)exts[SDEXT_LW_ID]);
+		if (lw_local)
+			exts[SDEXT_LW_ID] = NULL;
 	}
-	
-	if (lw_local) {
-		exts[SDEXT_LW_ID] = NULL;
-	}
-	
+
 	return 1;
 }
 
@@ -193,10 +191,10 @@ static uint32_t stat40_units(reiser4_place_t *place) {
 #ifndef ENABLE_MINIMAL
 
 static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
+	stat_hint_t *sd_hint;
 	sdhint_plug_t *plugh;
 	tree_entity_t *tree;
 	uint16_t mode;
-	void **exts;
 	errno_t res;
 	
 	aal_assert("vpf-1634", hint != NULL);
@@ -206,14 +204,14 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 	if (!hint->specific || !((stat_hint_t *)hint->specific)->ext)
 		return 0;
 	
-	exts = ((stat_hint_t *)hint->specific)->ext;
-	plugh = ((sdhint_plug_t *)exts[SDEXT_PLUG_ID]);
+	sd_hint = (stat_hint_t *)hint->specific;
+	plugh = ((sdhint_plug_t *)sd_hint->ext[SDEXT_PLUG_ID]);
 	
 	if (!plugh || !plugh->plug[OPSET_OBJ])
 		return 0;
 	
 	/* If LW hint is not present, fetch it from disk. */
-	if (!exts[SDEXT_LW_ID]) {
+	if (!sd_hint->ext[SDEXT_LW_ID]) {
 		trans_hint_t trans;
 		stat_hint_t stat;
 		sdhint_lw_t lwh;
@@ -229,19 +227,23 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 		/* If there is no LW extention at all, nothing to encode. */
 		if (!(stat.extmask & (1 << SDEXT_LW_ID)))
 			return 0;
-			
+		
 		mode = lwh.mode;
 	} else {
-		mode = ((sdhint_lw_t *)exts[SDEXT_LW_ID])->mode;
+		mode = ((sdhint_lw_t *)sd_hint->ext[SDEXT_LW_ID])->mode;
 	}
-
+	
 	tree = place->node->tree;
 	
 	if (plugh->plug[OPSET_OBJ] == stat40_modeplug(tree, mode)) {
 		plugh->plug[OPSET_OBJ] = NULL;
-		plugh->mask &= ~(1 << OPSET_OBJ);
+		plugh->plug_mask &= ~(1 << OPSET_OBJ);
 	}
-
+	
+	/* Throw away the SD_PLUG if mask is empty. */
+	if (!plugh->plug_mask)
+		sd_hint->extmask &= ~(1 << SDEXT_PLUG_ID);
+	
 	return 0;
 }
 

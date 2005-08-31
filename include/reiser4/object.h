@@ -9,15 +9,11 @@
 
 #include <reiser4/types.h>
 
-extern errno_t reiser4_object_init(object_info_t *info);
-
-extern object_entity_t *reiser4_object_recognize(object_info_t *info);
-
-extern reiser4_object_t *reiser4_object_form(reiser4_tree_t *tree,
+extern reiser4_object_t *reiser4_object_prep(reiser4_tree_t *tree,
 					     reiser4_object_t *parent,
 					     reiser4_key_t *object,
 					     reiser4_place_t *place,
-					     object_init_t init_func);
+					     object_info_t *info);
 
 extern reiser4_object_t *reiser4_object_obtain(reiser4_tree_t *tree,
 					       reiser4_object_t *parent,

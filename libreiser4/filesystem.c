@@ -92,11 +92,11 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 			goto error_free_backup;
 		}
 		
-		if (reiser4_opset_init(fs->tree, check))
+		if (reiser4_opset_tree(fs->tree, check))
 			goto error_free_backup;
 	}
 #else
-	if (reiser4_opset_init(fs->tree))
+	if (reiser4_opset_tree(fs->tree))
 		goto error_free_tree;
 #endif
 	

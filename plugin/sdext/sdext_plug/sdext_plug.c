@@ -16,7 +16,7 @@ uint32_t sdext_plug_length(stat_entity_t *stat, void *hint) {
 		uint16_t i;
 
 		for (i = 0; i < OPSET_STORE_LAST; i++) {
-			if (h->mask & (1 << i))
+			if (h->plug_mask & (1 << i))
 				count++;
 		}
 	} else {
@@ -54,7 +54,7 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 			return -EIO;
 		
 		/* Check if we met this member already. */
-		if (plugh->plug[mem])
+		if (plugh->plug_mask & (1 << mem))
 			return -EIO;
 
 		/* Obtain the plugin by the id. */
@@ -71,15 +71,13 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 			plugh->plug[mem] = NULL;
 #endif
 		}
-#if 0		
-		/* If the plug is valid but cannot be found (not implemented 
-		   yet), set INVAL_PTR into the opset (to let upper levels to 
-		   know that smth is stored here, but there is no such plugin). 
-		 */
-		if (!h->plug[mem])
-			h->plug[mem] = INVAL_PTR;
-#endif
-		plugh->mask |= (1 << mem);
+		
+		/* For those where no plugin is found but the id is correct, 
+		   keep the id in plug set, remember it is a parameter. */
+		if (plugh->plug[mem] == NULL)
+			plugh->plug[mem] = (void *)id;
+		
+		plugh->plug_mask |= (1 << mem);
 	}
 
 	return 0;
@@ -88,8 +86,10 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 #ifndef ENABLE_MINIMAL
 static errno_t sdext_plug_init(stat_entity_t *stat, void *hint) {
 	sdhint_plug_t *plugh;
+	tree_entity_t *tree;
 	sdext_plug_t *ext;
 	uint16_t count = 0;
+	uint16_t id;
 	rid_t mem;
 	
 	aal_assert("vpf-1600", stat != NULL);
@@ -97,21 +97,25 @@ static errno_t sdext_plug_init(stat_entity_t *stat, void *hint) {
 	
 	plugh = (sdhint_plug_t *)hint;
 	ext = (sdext_plug_t *)stat_body(stat);
-	
+	tree = stat->place->node->tree;
+		
 	for (mem = 0; mem < OPSET_STORE_LAST; mem++) {
 		/* Find the plugin to be stored. */
-		if (!(plugh->mask & (1 << mem)))
+		if (!(plugh->plug_mask & (1 << mem)))
 			continue;
 
 		sdext_plug_set_member(ext, count, mem);
-		sdext_plug_set_pid(ext, count, plugh->plug[mem] ? 
-				   plugh->plug[mem]->id.id : 0);
 
+		id = (tree->param_mask & (1 << mem)) ? 
+			((uint32_t)plugh->plug[mem]) : 
+			plugh->plug[mem]->id.id;
+		
+		sdext_plug_set_pid(ext, count, id);
 		count++;
 	}
 	
 	sdext_plug_set_count(ext, count);
-
+	
 	return 0;
 }
 

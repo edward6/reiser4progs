@@ -12,28 +12,29 @@
 #define PSET_MEMBER_LEN 10
 
 char *opset_name[OPSET_STORE_LAST] = {
-	[OPSET_OBJ] =	  "object",
-	[OPSET_DIR] =	  "directory",
-	[OPSET_PERM] =	  "permission",
-	[OPSET_POLICY] =  "formatting",
-	[OPSET_HASH] =	  "hash",
-	[OPSET_FIBRE] =   "fibration",
-	[OPSET_STAT] =	  "statdata",
+	[OPSET_OBJ]	= "object",
+	[OPSET_DIR]	= "directory",
+	[OPSET_PERM]	= "permission",
+	[OPSET_POLICY]	= "formatting",
+	[OPSET_HASH]	= "hash",
+	[OPSET_FIBRE]	= "fibration",
+	[OPSET_STAT]	= "statdata",
 	[OPSET_DIRITEM] = "diritem",
-	[OPSET_CRYPTO] =  "crypto",
-	[OPSET_DIGEST] =  "digest",
-	[OPSET_COMPRESS] =  "compress",
-	[OPSET_COMPRESS_MODE] = "compress mode",
+	[OPSET_CRYPTO]	= "crypto",
+	[OPSET_DIGEST]	= "digest",
+	[OPSET_COMPRESS]= "compress",
+	[OPSET_CMODE]	= "compressMode",
 	[OPSET_CLUSTER] = "cluster",
-	[OPSET_CREATE] =  "regular"
+	[OPSET_CREATE]	= "create"
 };
 
 errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	reiser4_place_t *place;
+	uint64_t metmask = 0;
+	uint64_t rmmask = 0;
 	sdhint_plug_t plugh;
-	uint16_t count, i;
 	sdext_plug_t *ext;
-	uint64_t mask = 0;
+	uint16_t count, i;
 	int32_t remove;
 	uint32_t len;
 	void *dst;
@@ -82,9 +83,9 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 				  print_key(sdext_plug_core, &place->key),
 				  i, mem);
 
-			mask |= (1 << i);
+			rmmask |= (1 << i);
 			remove++;
-		} else if (plugh.plug[mem]) {
+		} else if (metmask & (1 << mem)) {
 			/* Was met already. */
 			fsck_mess("Node (%llu), item (%u), [%s]: the slot (%u) "
 				  "contains the opset member (%s) that was met "
@@ -92,9 +93,11 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 				  print_key(sdext_plug_core, &place->key),
 				  i, opset_name[mem]);
 
-			mask |= (1 << i);
+			rmmask |= (1 << i);
 			remove++;
 		} else {
+			metmask |= (1 << i);
+			
 			/* Obtain the plugin. */
 			plugh.plug[mem] = 
 				sdext_plug_core->pset_ops.find(mem, id);
@@ -108,18 +111,13 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 					  print_key(sdext_plug_core, &place->key),
 					  i, opset_name[mem], id);
 				
-				mask |= (1 << i);
+				rmmask |= (1 << i);
 				remove++;
-			} else if (!plugh.plug[mem]) {
-				/* For those members where no one plugin is 
-				   written, set INVAL_PTR to avoid meeting it 
-				   another time. */
-				plugh.plug[mem] = INVAL_PTR;
 			}
 		}
 	}
 
-	if (!mask) 
+	if (!rmmask) 
 		return 0;
 	
 	/* Some broken slots are found. */
@@ -146,10 +144,11 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	for (i = 0; i < count; i++, dst += sizeof(sdext_plug_slot_t)) {
 		len -= sizeof(sdext_plug_slot_t);
 		
-		if (!(mask & (1 << i)))
+		if (!(rmmask & (1 << i)))
 			continue;
 
 		aal_memmove(dst, dst + sizeof(sdext_plug_slot_t), len);
+		dst -=  sizeof(sdext_plug_slot_t);
 	}
 	
 	sdext_plug_set_count(ext, count - remove);

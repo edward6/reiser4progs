@@ -72,18 +72,17 @@ typedef enum reiser4_plug_type {
 	HASH_PLUG_TYPE          = 0x3,
 	FIBRE_PLUG_TYPE		= 0x4,
 	POLICY_PLUG_TYPE        = 0x5,
-	PERM_PLUG_TYPE          = 0x6,
 	SDEXT_PLUG_TYPE         = 0x7,
 	FORMAT_PLUG_TYPE        = 0x8,
-	CRYPTO_PLUG_TYPE	= 0x9,
-	COMPRESS_PLUG_TYPE	= 0xb,
-	CLUSTER_PLUG_TYPE	= 0xd,
-	
+
 	/* These are not plugins in the kernel. */
 	OID_PLUG_TYPE           = 0xe,
 	ALLOC_PLUG_TYPE         = 0xf,
 	JOURNAL_PLUG_TYPE       = 0x10,
 	KEY_PLUG_TYPE           = 0x11,
+	
+	/* Not really a plugin, at least in progs, but a value that 
+	   needs to be checked only. */
 	PARAM_PLUG_TYPE		= 0x12,
 	LAST_PLUG_TYPE
 } reiser4_plug_type_t;
@@ -161,12 +160,6 @@ enum reiser4_tail_plug_id {
 	TAIL_LAST_ID
 };
 
-/* Known permission plugin ids. */
-enum reiser4_perm_plug_id {
-	PERM_RWX_ID		= 0x0,
-	PERM_LAST_ID
-};
-
 /* Known stat data extension plugin ids. */
 enum reiser4_sdext_plug_id {
 	SDEXT_LW_ID	        = 0x0,
@@ -224,6 +217,23 @@ enum reiser4_fibre_plug_id {
 	FIBRE_LAST_ID
 };
 
+enum reiser4_param_group {
+	PERM_PARAM	= 0x0,
+	CRYPTO_PARAM	= 0x1,
+	DIGEST_PARAM	= 0x2,
+	COMPRESS_PARAM	= 0x3,
+	CMODE_PARAM	= 0x4,
+	CLUSTER_PARAM	= 0x5,
+	LAST_PARAM
+};
+
+/* Known permission plugin ids. */
+enum reiser4_perm_plug_id {
+	PERM_RWX_ID		= 0x0,
+	PERM_LAST_ID
+};
+
+
 enum reiser4_compress_plug_id {
 	COMPRESS_LZO1_ID	= 0x0,
 	COMPRESS_NOLZO1_ID	= 0x1,
@@ -238,7 +248,7 @@ enum reiser4_crypto_id {
 	CRYPTO_LAST_ID
 };
 
-enum reiser4_compression_mode_id {
+enum reiser4_compress_mode_id {
         CMODE_SMART_ID	= 0x0,
         CMODE_LAZY_ID	= 0x1,
         CMODE_FORCE_ID	= 0x2,
@@ -253,6 +263,11 @@ enum reiser4_cluster_id {
 	CLUSTER_32K_ID = 0x3,
 	CLUSTER_64K_ID = 0x4,
 	CLUSTER_LAST_ID
+};
+
+enum reiser4_digest_id {
+	DIGEST_NONE_ID = 0x0,
+	DIGEST_LAST_ID
 };
 
 #define INVAL_PTR	        ((void *)-1)
@@ -282,39 +297,41 @@ typedef enum key_type {
 /* Tree Plugin SET index. */
 enum reiser4_tpset_id {
 	TPSET_KEY		= 0x0,
+#ifndef ENABLE_MINIMAL
 	TPSET_NODE		= 0x1,
 	TPSET_NODEPTR		= 0x2,
-
+#endif
 	TPSET_LAST
 };
 
 /* Object Plugin SET index. */
 enum reiser4_opset_id {
-	OPSET_OBJ		= 0x0,
-	OPSET_DIR		= 0x1,
-	OPSET_PERM		= 0x2,
-	OPSET_POLICY		= 0x3,
-	OPSET_HASH		= 0x4,
-	OPSET_FIBRE		= 0x5,
-	OPSET_STAT		= 0x6,
-	OPSET_DIRITEM		= 0x7,
-	OPSET_CRYPTO		= 0x8,
-	OPSET_DIGEST		= 0x9,
-	OPSET_COMPRESS		= 0xa,
-	OPSET_COMPRESS_MODE	= 0xb,
-	OPSET_CLUSTER		= 0xc,
-	OPSET_CREATE		= 0xd,
+	OPSET_OBJ	= 0x0,
+	OPSET_DIR	= 0x1,
+	OPSET_PERM	= 0x2,
+	OPSET_POLICY	= 0x3,
+	OPSET_HASH	= 0x4,
+	OPSET_FIBRE	= 0x5,
+	OPSET_STAT	= 0x6,
+	OPSET_DIRITEM	= 0x7,
+	OPSET_CRYPTO	= 0x8,
+	OPSET_DIGEST	= 0x9,
+	OPSET_COMPRESS	= 0xa,
+	OPSET_CMODE	= 0xb,
+	OPSET_CLUSTER	= 0xc,
+	OPSET_CREATE	= 0xd,
 	
 	OPSET_STORE_LAST,
 	
 	/* These are not stored on disk in the current implementation. */
-	OPSET_MKDIR		= OPSET_STORE_LAST,
-	OPSET_SYMLINK		= OPSET_STORE_LAST + 1,
-	OPSET_MKNODE		= OPSET_STORE_LAST + 2,
+	OPSET_REGFILE	= OPSET_STORE_LAST,
+	OPSET_DIRFILE	= OPSET_STORE_LAST + 1,
+	OPSET_SYMFILE	= OPSET_STORE_LAST + 2,
+	OPSET_SPLFILE	= OPSET_STORE_LAST + 3,
 	
 #ifndef ENABLE_MINIMAL
-	OPSET_TAIL		= OPSET_STORE_LAST + 3,
-	OPSET_EXTENT		= OPSET_STORE_LAST + 4,
+	OPSET_TAIL	= OPSET_STORE_LAST + 4,
+	OPSET_EXTENT	= OPSET_STORE_LAST + 5,
 #endif
 	OPSET_LAST
 };
@@ -337,6 +354,7 @@ typedef struct tree_entity {
 	   Consists of tree-specific plugins and object-specific plugins. */
 	reiser4_plug_t *tpset[TPSET_LAST];
 	reiser4_plug_t *opset[OPSET_LAST];
+	uint64_t param_mask;
 } tree_entity_t;
 
 typedef struct reiser4_node reiser4_node_t;
@@ -527,8 +545,9 @@ typedef struct sdhint_flags {
 } sdhint_flags_t;
 
 typedef struct sdhint_plug {
+	/* Set of initialized fields. */
+	uint64_t plug_mask;
 	reiser4_plug_t *plug[OPSET_LAST];
-	uint64_t mask;
 } sdhint_plug_t;
 
 typedef sdhint_plug_t reiser4_opset_t;
@@ -1571,8 +1590,8 @@ typedef struct plug_class {
 	plug_fini_t fini;
 } plug_class_t;
 
+/* Plugin id, type and group. */
 typedef struct plug_ident {
-	/* Plugin id, type and group. */
 	rid_t id;
 	uint8_t group;
 	uint8_t type;
@@ -1694,7 +1713,8 @@ typedef struct pset_ops {
 	/* Obtains the plugin from the profile by its profile index. */
 	reiser4_plug_t *(*find) (rid_t, rid_t);
 #ifndef ENABLE_MINIMAL
-	void (*diff) (tree_entity_t *, reiser4_opset_t *);
+	/* Diffs 2 psets & returns what needs to be stored on disk. */
+	uint64_t (*build_mask) (tree_entity_t *, reiser4_opset_t *);
 #endif
 } pset_ops_t;
 

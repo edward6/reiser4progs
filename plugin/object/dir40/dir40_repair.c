@@ -30,7 +30,9 @@ object_entity_t *dir40_recognize(object_info_t *info) {
 
 	if ((res = obj40_check_stat(&dir->obj, DIR40_EXTS_MUST,
 				    DIR40_EXTS_UNKN)))
+	{
 		goto error;
+	}
 	
 	/* Positioning to the first directory unit */
 	dir40_reset((object_entity_t *)dir);

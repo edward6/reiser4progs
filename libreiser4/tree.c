@@ -303,6 +303,7 @@ errno_t reiser4_tree_load_root(reiser4_tree_t *tree) {
 }
 
 #if 0
+/* DEBUGGING */
 static errno_t cb_count_children(reiser4_place_t *place, void *data) {
 	uint32_t *count = (uint32_t *)data;
 	blk_t blk;
@@ -1053,7 +1054,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 
 #endif
 	/* Initializing the tpset. */
-	if (reiser4_pset_init(tree))
+	if (reiser4_pset_tree(tree))
 		goto error_free_data;
 
 	/* Building tree root key. It is used in tree lookup, etc. */
@@ -1067,7 +1068,7 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
  error_free_data:
 #ifndef ENABLE_MINIMAL
 	aal_hash_table_free(tree->blocks);
-error_free_nodes:
+ error_free_nodes:
 #endif
 	aal_hash_table_free(tree->nodes);
  error_free_tree:

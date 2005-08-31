@@ -614,8 +614,6 @@ int main(int argc, char *argv[]) {
 			goto error_free_device;
 		}
 
-		reiser4_opset_profile(fs->tree->ent.opset);
-
 		/* Opening the journal */
 		if (!(fs->journal = reiser4_journal_open(fs, device))) {
 			aal_error("Can't open journal on %s", host_dev);

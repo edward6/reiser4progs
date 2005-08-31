@@ -29,7 +29,7 @@ static errno_t cb_find_statdata(char *path, char *entry, void *data) {
 						    resol->parent,
 						    &resol->key)))
 	{
-		aal_error("Can't open object %s in %s.", entry, path);
+		aal_error("Can't open object %s given in %s.", entry, path);
 		return -EINVAL;
 	}
 	

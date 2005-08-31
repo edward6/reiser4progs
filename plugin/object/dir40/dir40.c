@@ -444,7 +444,6 @@ static errno_t dir40_stat(object_entity_t *entity, stat_hint_t *hint) {
 	dir40_t *dir;
 	
 	aal_assert("umka-2563", entity != NULL);
-	aal_assert("umka-2564", hint != NULL);
 
 	dir = (dir40_t *)entity;
 	return obj40_load_stat(&dir->obj, hint);

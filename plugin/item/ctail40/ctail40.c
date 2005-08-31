@@ -6,8 +6,7 @@
 #include "ctail40.h"
 #include "ctail40_repair.h"
 
-#include <aux/aux.h>
-#include <reiser4/plugin.h>
+#include <plugin/item/body40/body40.h>
 #include <plugin/item/tail40/tail40.h>
 #include <plugin/item/tail40/tail40_repair.h>
 
@@ -26,16 +25,20 @@ static int ctail40_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
 	uint8_t shift;
 
 	aal_assert("vpf-1765", place1 != NULL);
-	aal_assert("vpf-1766", place2 != NULL);
-	aal_assert("vpf-1766", place1->plug == place2->plug);
-	aal_assert("vpf-1766", ct40_get_shift(place1->body) == 
+	aal_assert("vpf-1807", place2 != NULL);
+	aal_assert("vpf-1808", place1->plug == place2->plug);
+	aal_assert("vpf-1809", ct40_get_shift(place1->body) == 
 			       ct40_get_shift(place2->body));
 	
 	shift = ct40_get_shift(place1->body);
 	off1 = plug_call(place1->key.plug->o.key_ops, get_offset, &place1->key);
 	off2 = plug_call(place2->key.plug->o.key_ops, get_offset, &place2->key);
 	
-	return ((off1 >> shift) == (off2 >> shift));
+	/* If they are of different clusters, not mergeable. */
+	if (off1 + (1 << shift) >= off2)
+		return 0;
+	
+	return body40_mergeable(place1, place2);
 }
 
 static errno_t ctail40_prep_shift(reiser4_place_t *src_place,

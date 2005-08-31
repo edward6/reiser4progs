@@ -73,6 +73,8 @@ errno_t tail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 	   amount of data which may fit into node at passed @place. */
 	if (place->pos.unit == MAX_UINT32) {
 		hint->len = hint->count;
+		hint->overhead = place->off;
+
 		aal_memcpy(&hint->maxkey, &hint->offset, sizeof(hint->maxkey));
 	} else {
 		uint32_t right;
@@ -102,11 +104,9 @@ errno_t tail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 	space = plug_call(place->node->plug->o.node_ops,
 			  maxspace, place->node);
 	
-	hint->overhead = place->off;
-
 	if (hint->len > space)
 		hint->len = space - hint->overhead;
-		
+	
 	return 0;
 }
 

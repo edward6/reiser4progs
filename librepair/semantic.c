@@ -577,7 +577,7 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 	if (sem->repair->mode != RM_BUILD)
 		return NULL;
 
-	plug = reiser4_profile_plug(PROF_MKDIR);
+	plug = reiser4_profile_plug(PROF_DIRFILE);
 	fsck_mess("Trying to recover the directory [%s] with the default "
 		  "plugin--%s.", reiser4_print_inode(key), plug->label);
 
@@ -656,12 +656,7 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 		return -EINVAL;
 	}
 	
-	reiser4_opset_profile(sem->root->ent->opset.plug);
-	if (!sem->root->ent->opset.plug[OPSET_OBJ]) {
-		sem->root->ent->opset.plug[OPSET_OBJ] = 
-			sem->root->ent->opset.plug[OPSET_MKDIR];
-	}
-	
+	reiser4_opset_root(&sem->root->ent->opset);
 	if ((res = repair_semantic_object_check(sem, sem->root, 
 						sem->root, 0)))
 	{
@@ -825,7 +820,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	if ((res = repair_semantic_root_prepare(sem)))
 		goto error_update;
 	
-	if ((res = reiser4_opset_init(tree, 0)))
+	if ((res = reiser4_opset_tree(tree, 0)))
 		goto error_close_root;
 	
 	/* Open "lost+found" directory in BUILD mode. */

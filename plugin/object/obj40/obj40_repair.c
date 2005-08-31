@@ -48,7 +48,9 @@ errno_t obj40_check_stat(obj40_t *obj, uint64_t exts_must, uint64_t exts_unkn) {
 	/* Compare the correct key with the place key. */
 	if (plug_call(info->object.plug->o.key_ops, compfull,
 		      &info->object, &info->start.key))
+	{
 		return RE_FATAL;
+	}
 	
 	/* Some SD is recognized. Check that this is our SD. */
 	return obj40_exts_check(&info->start, exts_must, exts_unkn);
@@ -172,7 +174,7 @@ static inline errno_t obj40_check_lw(obj40_t *obj,
 	}
 	
 	/* Read LW extension. */
-	if ((res = obj40_read_ext(start, SDEXT_LW_ID, &lwh)))
+	if ((res = obj40_read_ext(obj, SDEXT_LW_ID, &lwh)))
 		return res;
 
 	/* Form the correct LW extension. */
@@ -299,7 +301,7 @@ static inline errno_t obj40_check_unix(obj40_t *obj,
 		   given set of methods instead. */
 	}
 
-	if ((res = obj40_read_ext(start, SDEXT_UNIX_ID, &unixh)) < 0)
+	if ((res = obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh)) < 0)
 		return res;
 	
 	correct = unixh;
@@ -338,85 +340,36 @@ static inline errno_t obj40_check_unix(obj40_t *obj,
    This is not yet clear how to detect the correct plugin, e.g. formatting,
    and figure out if it is essential or not and leave detected or fix evth 
    to the one from SD. So evth is recovered according to SD plugins, except 
-   essential ones. Understanding that this pset member is non-essensial is 
-   hardcoded yet. 
+   essential ones. The knowledge if a pset member is essensial is hardcoded 
+   yet. 
    
    obj40_check_plug is used to form the on-disk opset according to already
    existent SD opset and tree->opset. Actually used for the root only. */
 
 static inline errno_t obj40_check_plug(obj40_t *obj, uint8_t mode) {
 	reiser4_place_t *start;
-	sdhint_plug_t plugh;
 	trans_hint_t trans;
 	stat_hint_t stat;
-	uint8_t i, diff;
+	uint64_t diff;
+	uint64_t mask;
 	errno_t res;
 
 	aal_assert("vpf-1650", obj != NULL);
 	
 	start = &obj->info.start;
-	aal_memcpy(&plugh, &obj->info.opset, sizeof(plugh));
 	
 	/* Get plugins that must exists in the PLUGID extention. */
-	obj->core->pset_ops.diff(obj->info.tree, &plugh);
+	mask = obj->core->pset_ops.build_mask(obj->info.tree, &obj->info.opset);
+	mask &= ((1 << OPSET_STORE_LAST) - 1);
 	
-	for (i = 0, diff = 0; i < OPSET_STORE_LAST; i++) {
-		if (!plugh.plug[i]) {
-			/* Leave all present on-disk pset members. */
-			if (obj->info.opset.mask & (1 << i)) {
-				plugh.plug[i] = obj->info.opset.plug[i];
-				plugh.mask |= (1 << i);
-			}
-
-			continue;
-		} 
-		
-		if (plugh.plug[i] == INVAL_PTR) {
-			/* Remove all wrongly present on-disk pset members. */
-			fsck_mess("Node (%llu), item (%u), [%s] (%s): "
-				  "essential pset member (%u) matches "
-				  "the fs-default one (%s).%s Removed.",
-				  place_blknr(start), start->pos.item, 
-				  print_inode(obj->core, &start->key),
-				  start->plug->label, i, 
-				  obj->info.opset.plug[i]->label,
-				  mode == RM_CHECK ? " Should be" : "");
-
-			plugh.plug[i] = 0;
-			diff++;
-			continue;
-		} 
-		
-		if (plugh.plug[i] != obj->info.opset.plug[i]) {
-			/* Fix wrong plugins in pset members. */
-			fsck_mess("Node (%llu), item (%u), [%s] (%s): "
-				  "essential pset member (%u) is (%s), "
-				  "%s (%s).", 
-				  place_blknr(start), start->pos.item,
-				  print_inode(obj->core, &start->key),
-				  start->plug->label, i, 
-				  obj->info.opset.plug[i]->label,
-				  mode == RM_CHECK ? " Should be" : 
-				  "Fixed to", plugh.plug[i]->label);
-
-			diff++;
-			continue;
-		} 
-		
-		if (!(obj->info.opset.mask & (1 << i)) && 
-		    (plugh.mask & (1 << i))) 
-		{
-			fsck_mess("Node (%llu), item (%u), [%s] (%s): needs "
-				  "pset member (%u) set to (%s).%s", 
-				  place_blknr(start), start->pos.item, 
-				  print_inode(obj->core, &start->key),
-				  start->plug->label, i, 
-				  obj->info.opset.plug[i]->label,
-				  mode == RM_CHECK ? "" : " Added.");
-
-			diff++;
-			continue;
-		}
+	if ((diff = (mask != obj->info.opset.plug_mask))) {
+		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong plugin "
+			  "set is stored on disk (0x%llx). %s (0x%llx).",
+			  place_blknr(start), start->pos.item,
+			  print_inode(obj->core, &start->key),
+			  start->plug->label, obj->info.opset.plug_mask,
+			  mode == RM_CHECK ? "Should be" : "Fixed to",
+			  mask);
 	}
 	
 	if (!diff || mode == RM_CHECK) 
@@ -433,7 +386,7 @@ static inline errno_t obj40_check_plug(obj40_t *obj, uint8_t mode) {
 
 	stat.extmask = (1 << SDEXT_PLUG_ID);
 
-	if (obj->info.opset.mask) {
+	if (obj->info.opset.plug_mask) {
 		/* Plug extention is the SD is wrong. Remove it first. */
 		
 		if ((res = obj40_remove(obj, start, &trans)))
@@ -446,14 +399,13 @@ static inline errno_t obj40_check_plug(obj40_t *obj, uint8_t mode) {
 			return res;
 	}
 	
-	stat.ext[SDEXT_PLUG_ID] = &plugh;
+	obj->info.opset.plug_mask = mask;
+	stat.ext[SDEXT_PLUG_ID] = &obj->info.opset;
 	start->pos.unit = 0;
 	
 	if ((res = obj40_insert(obj, start, &trans, LEAF_LEVEL)))
 		return res;
 
-	aal_memcpy(&obj->info.opset, &plugh, sizeof(plugh));
-	
 	return obj40_update(obj);
 }
 

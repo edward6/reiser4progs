@@ -63,8 +63,8 @@ errno_t sym40_check_struct(object_entity_t *object,
 	
 	if (!(path = aal_calloc(place_blksize(place), 0)))
 		return -ENOMEM;
-		
-	if ((res = obj40_read_ext(place, SDEXT_SYMLINK_ID, path)))
+	
+	if ((res = obj40_read_ext(&sym->obj, SDEXT_SYMLINK_ID, path)))
 		goto error;
 	
 	/* Fix the SD, if no fatal corruptions were found. */

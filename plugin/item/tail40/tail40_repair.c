@@ -52,7 +52,7 @@ errno_t tail40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 			hint->count = 0;
 	}
 
-	hint->overhead = place->off;
+	hint->overhead = (place->pos.unit == MAX_UINT32) ? place->off : 0;
 	hint->bytes = 0;
 	hint->len = hint->count;
 
