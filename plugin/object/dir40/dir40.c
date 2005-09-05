@@ -389,36 +389,7 @@ lookup_t dir40_lookup(reiser4_object_t *dir,
 	return dir40_search(dir, name, FIND_EXACT, entry);
 }
 
-/* Initializing dir40 instance, resetring directory be means of using reset()
-   function and return instance to caller. */
-static errno_t dir40_open(reiser4_object_t *dir) {
-	aal_assert("umka-836", dir != NULL);
-	aal_assert("umka-837", dir->info.tree != NULL);
-	
-	if (dir->info.start.plug->id.group != STAT_ITEM)
-		return -EIO;
-	
-	/* Initializing obj handle for the directory */
-	obj40_init(dir);
-	
-	/* Positioning to the first directory unit. */
-	dir40_reset(dir);
-	
-	return 0;
-}
-
 #ifndef ENABLE_MINIMAL
-/* Gets size from the object stat data */
-static uint64_t dir40_size(reiser4_object_t *dir) {
-	aal_assert("umka-2277", dir != NULL);
-	
-	/* Updating stat data place. */
-	if (obj40_update(dir))
-		return 0;
-
-	return obj40_get_size(dir);
-}
-
 /* Creates dir40 instance. Creates its stat data item, and body item with one
    "." unit. Yet another unit ".." will be inserted latter, then directiry will
    be attached to a parent object. */
@@ -668,7 +639,7 @@ static errno_t dir40_add_entry(reiser4_object_t *dir,
 		return res;
 	
 	entry->len = hint.len;
-	size = dir40_size(dir) + 1;
+	size = obj40_size(dir) + 1;
 	bytes = obj40_get_bytes(dir) + hint.bytes;
 	
 	return obj40_touch(dir, size, bytes);
@@ -718,7 +689,7 @@ static errno_t dir40_rem_entry(reiser4_object_t *dir,
 		return res;
 
 	entry->len = hint.len;
-	size = dir40_size(dir) - 1;
+	size = obj40_size(dir) - 1;
 	bytes = obj40_get_bytes(dir) - hint.bytes;
 	
 	return obj40_touch(dir, size, bytes);
@@ -745,7 +716,7 @@ static errno_t dir40_attach(reiser4_object_t *dir,
 		return res;
 
 	/* Increasing parent's @nlink by one */
-	return plug_call(parent->info.opset.plug[OPSET_OBJ]->o.object_ops,
+	return plug_call(reiser4_oplug(parent)->o.object_ops,
 			 link, parent);
 }
 
@@ -768,7 +739,7 @@ static errno_t dir40_detach(reiser4_object_t *dir,
 	if (!parent) 
 		return 0;
 	
-	plug = parent->info.opset.plug[OPSET_OBJ];
+	plug = reiser4_oplug(parent);
 	
 	/* Decreasing parent's @nlink by one */
 	return plug_call(plug->o.object_ops, unlink, parent);
@@ -903,7 +874,7 @@ static reiser4_object_ops_t dir40_ops = {
 	.attach		= dir40_attach,
 	.detach		= dir40_detach,
 	.clobber	= dir40_clobber,
-	.recognize	= dir40_recognize,
+	.recognize	= obj40_recognize,
 	.fake		= dir40_fake,
 	.check_struct	= dir40_check_struct,
 	.check_attach	= dir40_check_attach,
@@ -917,13 +888,18 @@ static reiser4_object_ops_t dir40_ops = {
 	.offset		= NULL,
 	
 	.stat           = obj40_load_stat,
-	.open		= dir40_open,
+	.open		= obj40_open,
 	.close		= NULL,
 	.reset		= dir40_reset,
 	.lookup		= dir40_lookup,
 	.seekdir	= dir40_seekdir,
 	.readdir	= dir40_readdir,
 	.telldir	= dir40_telldir,
+
+#ifndef ENABLE_MINIMAL
+	.sdext_mandatory = (1 << SDEXT_LW_ID),
+	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID)
+#endif
 };
 
 reiser4_plug_t dir40_plug = {

@@ -120,8 +120,6 @@ typedef struct reiser4_status {
 
 typedef struct reiser4_tree reiser4_tree_t;
 
-#define objplug(object) (object->info.opset.plug[OPSET_OBJ])
-
 /* Calback types used in object code. */
 typedef reiser4_object_t *(*object_open_func_t) (reiser4_object_t *, 
 						 entry_hint_t *, void *);

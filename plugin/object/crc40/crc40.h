@@ -6,5 +6,6 @@
 #ifndef CRC40_H
 #define CRC40_H
 #include <plugin/object/obj40/obj40.h>
+#include <plugin/object/reg40/reg40_repair.h>
 
 #endif

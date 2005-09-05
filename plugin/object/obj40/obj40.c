@@ -7,6 +7,66 @@
 
 reiser4_core_t *obj40_core = NULL;
 
+/* Initializing instance in the common way, reseting directory. */
+errno_t obj40_open(reiser4_object_t *obj) {
+	aal_assert("vpf-1827", obj != NULL);
+	aal_assert("vpf-1826", obj->info.tree != NULL);
+	aal_assert("vpf-1828", reiser4_oplug(obj)->id.type == OBJECT_PLUG_TYPE);
+	
+	if (obj->info.start.plug->id.group != STAT_ITEM)
+		return -EIO;
+	
+	/* Initializing obj handle for the directory */
+	obj40_init(obj);
+	
+	/* Positioning to the first directory unit. */
+	if (reiser4_oplug(obj)->o.object_ops->reset)
+		reiser4_oplug(obj)->o.object_ops->reset(obj);
+	
+	return 0;
+}
+
+/* Position regular file to passed @offset. */
+errno_t obj40_seek(reiser4_object_t *obj, uint64_t offset) {
+	aal_assert("umka-1968", obj != NULL);
+
+	plug_call(obj->position.plug->o.key_ops,
+		  set_offset, &obj->position, offset);
+
+	return 0;
+}
+
+/* Returns regular file size. */
+uint64_t obj40_size(reiser4_object_t *obj) {
+	aal_assert("umka-2278", obj != NULL);
+	
+	if (obj40_update(obj))
+		return -EINVAL;
+
+	return obj40_get_size(obj);
+}
+
+/* Resets file position. The file position is stored inside @obj->position,
+   so it just builds new zero offset key.*/
+errno_t obj40_reset(reiser4_object_t *obj) {
+	aal_assert("umka-1963", obj != NULL);
+	
+	plug_call(STAT_KEY(obj)->plug->o.key_ops, build_generic,
+		  &obj->position, KEY_FILEBODY_TYPE, obj40_locality(obj),
+		  obj40_ordering(obj), obj40_objectid(obj), 0);
+
+	return 0;
+}
+
+/* Returns regular file current offset. */
+uint64_t obj40_offset(reiser4_object_t *obj) {
+	aal_assert("umka-1159", obj != NULL);
+
+	return plug_call(obj->position.plug->o.key_ops,
+			 get_offset, &obj->position);
+}
+
+
 /* Returns file's oid */
 oid_t obj40_objectid(reiser4_object_t *obj) {
 	aal_assert("umka-1899", obj != NULL);
@@ -312,6 +372,41 @@ errno_t obj40_create_stat(reiser4_object_t *obj, uint64_t size, uint64_t bytes,
 	res = obj40_insert(obj, STAT_PLACE(obj), &hint, LEAF_LEVEL);
 
 	return res < 0 ? res : 0;
+}
+
+errno_t obj40_create(reiser4_object_t *obj, object_hint_t *hint) {
+	uint32_t mode;
+	errno_t res;
+	
+	aal_assert("vpf-1817", obj != NULL);
+	aal_assert("vpf-1093", obj->info.tree != NULL);
+
+	/* Initializing file handle. */
+	obj40_init(obj);
+	
+	/* mode is the bitwise OR between the given mode, the file type mode 
+	   and the defaul rwx permissions. The later is 0755 for directories 
+	   and 0644 for others. */
+	mode = (hint ? hint->mode : 0);
+	mode |= reiser4_oplug(obj)->id.group == REG_OBJECT ? S_IFREG : 
+		reiser4_oplug(obj)->id.group == DIR_OBJECT ? S_IFDIR : 
+		reiser4_oplug(obj)->id.group == SYM_OBJECT ? S_IFLNK :
+		0;
+	
+	if (reiser4_oplug(obj)->id.group == DIR_OBJECT)
+		mode |= 0755;
+	else
+		mode |= 0644;
+	
+	/* Create stat data item with size, bytes, nlinks equal to zero. */
+	if ((res = obj40_create_stat(obj, 0, 0, 0, 0, mode, NULL)))
+		return res;
+
+	/* Reset file. */
+	if (reiser4_oplug(obj)->o.object_ops->reset)
+		reiser4_oplug(obj)->o.object_ops->reset(obj);
+	
+	return 0;
 }
 
 /* Updates size and bytes fielsds */

@@ -34,7 +34,7 @@ static errno_t cb_find_statdata(char *path, char *entry, void *data) {
 	}
 	
 #ifdef ENABLE_SYMLINKS
-	plug = resol->object->info.opset.plug[OPSET_OBJ];
+	plug = reiser4_oplug(resol->object);
 	
 	/* Symlinks handling. Method follow() should be implemented if object
 	   wants to be resolved (symlink). */
@@ -85,7 +85,7 @@ static errno_t cb_find_entry(char *path, char *name, void *data) {
 		return 0;
 	}
 	
-	plug = resol->object->info.opset.plug[OPSET_OBJ];
+	plug = reiser4_oplug(resol->object);
 	
 	/* Looking up for @entry in current directory */
 	if ((res = plug_call(plug->o.object_ops, lookup, 

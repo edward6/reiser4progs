@@ -16,7 +16,7 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	aal_assert("vpf-1044", object != NULL);
 	
-	if ((res = plug_call(object->info.opset.plug[OPSET_OBJ]->o.object_ops,
+	if ((res = plug_call(reiser4_oplug(object)->o.object_ops,
 			     check_struct, object, place_func, 
 			     data, mode)) < 0)
 		return res;
@@ -51,7 +51,7 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	aal_memcpy(&object->info.object, key, sizeof(*key));
 	
 	object->info.tree = (tree_entity_t *)tree;
-	object->info.opset.plug[OPSET_OBJ] = plug;
+	reiser4_oplug(object) = plug;
 	object->info.opset.plug_mask |= (1 << OPSET_OBJ);
 
 	if (parent) {
@@ -86,7 +86,7 @@ reiser4_object_t *repair_object_open(reiser4_tree_t *tree,
 		return INVAL_PTR;
 	}
 	
-	if ((res = plug_call(object->info.opset.plug[OPSET_OBJ]->o.object_ops,
+	if ((res = plug_call(reiser4_oplug(object)->o.object_ops,
 			     recognize, object)))
 	{
 		aal_free(object);
@@ -124,7 +124,7 @@ reiser4_object_t *repair_object_obtain(reiser4_tree_t *tree,
 		return NULL;
 	}
 	
-	if ((res = plug_call(objplug(object)->o.object_ops, 
+	if ((res = plug_call(reiser4_oplug(object)->o.object_ops, 
 			     recognize, object)))
 	{
 		aal_free(object);
@@ -143,10 +143,10 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 	aal_assert("vpf-1188", object != NULL);
 	aal_assert("vpf-1099", parent != NULL);
 	
-	if (!objplug(object)->o.object_ops->check_attach)
+	if (!reiser4_oplug(object)->o.object_ops->check_attach)
 		return 0;
 	
-	return plug_call(objplug(object)->o.object_ops, check_attach, 
+	return plug_call(reiser4_oplug(object)->o.object_ops, check_attach, 
 			 object, parent, place_func, data, mode);
 }
 
@@ -207,10 +207,10 @@ errno_t repair_object_refresh(reiser4_object_t *object) {
 	
 	aal_assert("vpf-1271", object != NULL);
 
-	if (!objplug(object)->o.object_ops->lookup)
+	if (!reiser4_oplug(object)->o.object_ops->lookup)
 		return 0;
 
-	switch (plug_call(objplug(object)->o.object_ops, 
+	switch (plug_call(reiser4_oplug(object)->o.object_ops, 
 			  lookup, object, "..", &entry)) 
 	{
 	case ABSENT:

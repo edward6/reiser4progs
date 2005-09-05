@@ -54,6 +54,13 @@ extern errno_t obj40_read_ext(reiser4_object_t *obj, rid_t id, void *data);
 extern errno_t obj40_load_stat(reiser4_object_t *obj, stat_hint_t *hint);
 extern errno_t obj40_save_stat(reiser4_object_t *obj, stat_hint_t *hint);
 
+extern errno_t obj40_open(reiser4_object_t *obj);
+extern errno_t obj40_seek(reiser4_object_t *obj, uint64_t offset);
+extern uint64_t obj40_size(reiser4_object_t *obj);
+extern errno_t obj40_reset(reiser4_object_t *obj);
+extern uint64_t obj40_offset(reiser4_object_t *obj);
+extern errno_t obj40_create(reiser4_object_t *obj, object_hint_t *hint);
+
 #ifndef ENABLE_MINIMAL
 extern errno_t obj40_write_ext(reiser4_place_t *place, rid_t id, void *data);
 

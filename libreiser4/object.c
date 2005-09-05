@@ -113,7 +113,7 @@ reiser4_object_t *reiser4_object_open(reiser4_tree_t *tree,
 		return NULL;
 	}
 	
-	if (plug_call(objplug(object)->o.object_ops, open, object)) {
+	if (plug_call(reiser4_oplug(object)->o.object_ops, open, object)) {
 		aal_free(object);
 		return NULL;
 	}
@@ -171,7 +171,7 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 	hint.ext[SDEXT_LW_ID] = &lwh;
 
 	/* Calling objects stat() method. */
-	if (plug_call(objplug(object)->o.object_ops,
+	if (plug_call(reiser4_oplug(object)->o.object_ops,
 		      stat, object, &hint))
 	{
 		return 0;
@@ -184,8 +184,8 @@ uint64_t reiser4_object_size(reiser4_object_t *object) {
 void reiser4_object_close(reiser4_object_t *object) {
 	aal_assert("umka-680", object != NULL);
 
-	if (objplug(object)->o.object_ops->close)
-		objplug(object)->o.object_ops->close(object);
+	if (reiser4_oplug(object)->o.object_ops->close)
+		reiser4_oplug(object)->o.object_ops->close(object);
 	
 	aal_free(object);
 }
@@ -198,10 +198,10 @@ errno_t reiser4_object_add_entry(
 {
 	aal_assert("umka-1975", object != NULL);
 
-	if (!objplug(object)->o.object_ops->add_entry)
+	if (!reiser4_oplug(object)->o.object_ops->add_entry)
 		return -EINVAL;
 	
-	return plug_call(objplug(object)->o.object_ops,
+	return plug_call(reiser4_oplug(object)->o.object_ops,
 			 add_entry, object, entry);
 }
 
@@ -212,10 +212,10 @@ errno_t reiser4_object_rem_entry(
 {
 	aal_assert("umka-1977", object != NULL);
     
-	if (!objplug(object)->o.object_ops->rem_entry)
+	if (!reiser4_oplug(object)->o.object_ops->rem_entry)
 		return -EINVAL;
 	
-	return plug_call(objplug(object)->o.object_ops,
+	return plug_call(reiser4_oplug(object)->o.object_ops,
 			 rem_entry, object, entry);
 }
 
@@ -225,7 +225,7 @@ errno_t reiser4_object_truncate(
 {
 	aal_assert("umka-1154", object != NULL);
     
-	return plug_call(objplug(object)->o.object_ops,
+	return plug_call(reiser4_oplug(object)->o.object_ops,
 			 truncate, object, n);
 }
 
@@ -238,10 +238,10 @@ int64_t reiser4_object_write(
 {
 	aal_assert("umka-862", object != NULL);
     
-	if (!objplug(object)->o.object_ops->write)
+	if (!reiser4_oplug(object)->o.object_ops->write)
 		return -EINVAL;
 	
-	return plug_call(objplug(object)->o.object_ops,
+	return plug_call(reiser4_oplug(object)->o.object_ops,
 			 write, object, buff, n);
 }
 
@@ -271,7 +271,7 @@ errno_t reiser4_object_refresh(reiser4_object_t *object) {
 errno_t reiser4_object_update(reiser4_object_t *object, stat_hint_t *hint) {
 	aal_assert("umka-2572", object != NULL);
 
-	return plug_call(objplug(object)->o.object_ops,
+	return plug_call(reiser4_oplug(object)->o.object_ops,
 			 update, object, hint);
 }
 
@@ -292,14 +292,14 @@ errno_t reiser4_object_entry_prep(reiser4_tree_t *tree,
 	/* Preparing @entry to be used for object creating and linking to parent
 	   object. This is name and offset key. */
 	if (parent) {
-		if (!objplug(parent)->o.object_ops->build_entry) {
+		if (!reiser4_oplug(parent)->o.object_ops->build_entry) {
 			aal_error("Object %s has not build_entry() method "
 				  "implemented. Is it dir object at all?", 
 				  reiser4_print_inode(&parent->info.object));
 			return -EINVAL;
 		}
 		
-		plug_call(objplug(parent)->o.object_ops, 
+		plug_call(reiser4_oplug(parent)->o.object_ops, 
 			  build_entry, parent, entry);
 	} else {
 		aal_memcpy(&entry->offset, &tree->key, sizeof(tree->key));
@@ -360,10 +360,10 @@ errno_t reiser4_object_attach(reiser4_object_t *object,
 
 	aal_assert("vpf-1720", object != NULL);
 	
-	if (!objplug(object)->o.object_ops->attach) 
+	if (!reiser4_oplug(object)->o.object_ops->attach) 
 		return 0;
 	
-	if ((res = plug_call(objplug(object)->o.object_ops, attach, 
+	if ((res = plug_call(reiser4_oplug(object)->o.object_ops, attach, 
 			     object, parent ? parent : NULL)))
 	{
 		aal_error("Can't attach %s to %s.",
@@ -384,10 +384,10 @@ errno_t reiser4_object_detach(reiser4_object_t *object,
 
 	aal_assert("vpf-1721", object != NULL);
 
-	if (!objplug(object)->o.object_ops->detach) 
+	if (!reiser4_oplug(object)->o.object_ops->detach) 
 		return 0;
 	
-	if ((res = plug_call(objplug(object)->o.object_ops, detach,
+	if ((res = plug_call(reiser4_oplug(object)->o.object_ops, detach,
 			     object, parent ? parent : NULL))) 
 	{
 		aal_error("Can't detach %s from %s.",
@@ -418,10 +418,10 @@ reiser4_object_t *reiser4_object_create(
 	/* Preparing object info. */
 	reiser4_object_maintain(object, entry);
 	
-	aal_assert("vpf-1823", objplug(object) != NULL);
+	aal_assert("vpf-1823", reiser4_oplug(object) != NULL);
 	
 	/* Calling object plugin to create its body in the tree */
-	if (plug_call(objplug(object)->o.object_ops, create, object, hint)) {
+	if (plug_call(reiser4_oplug(object)->o.object_ops, create, object, hint)) {
 		aal_free(object);
 		return NULL;
 	}
@@ -433,7 +433,7 @@ reiser4_object_t *reiser4_object_create(
 errno_t reiser4_object_clobber(reiser4_object_t *object) {
 	aal_assert("umka-2297", object != NULL);
 
-	return plug_call(objplug(object)->o.object_ops,
+	return plug_call(reiser4_oplug(object)->o.object_ops,
 			 clobber, object);
 }
 
@@ -460,8 +460,8 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 	}
 
 	/* Add one hard link to @child. */
-	if (objplug(child)->o.object_ops->link) {
-		res = plug_call(objplug(child)->o.object_ops, link, child);
+	if (reiser4_oplug(child)->o.object_ops->link) {
+		res = plug_call(reiser4_oplug(child)->o.object_ops, link, child);
 		
 		if (res) {
 			aal_error("Can't link the object %s. ",
@@ -478,8 +478,8 @@ errno_t reiser4_object_link(reiser4_object_t *object,
 	return 0;
 
  error_unlink_child:
-	if (objplug(child)->o.object_ops->unlink) {
-		if (plug_call(objplug(child)->o.object_ops, unlink, child))
+	if (reiser4_oplug(child)->o.object_ops->unlink) {
+		if (plug_call(reiser4_oplug(child)->o.object_ops, unlink, child))
 		{
 			aal_error("Can't unlink the object %s.",
 				  reiser4_print_inode(&child->info.object));
@@ -547,8 +547,8 @@ errno_t reiser4_object_unlink(reiser4_object_t *object, char *name) {
 		return res;
 
 	/* Remove one hard link from child. */
-	if (objplug(child)->o.object_ops->unlink) {
-		if ((res = plug_call(objplug(child)->o.object_ops,
+	if (reiser4_oplug(child)->o.object_ops->unlink) {
+		if ((res = plug_call(reiser4_oplug(child)->o.object_ops,
 				     unlink, child)))
 			goto error_attach_child;
 	}
@@ -565,8 +565,8 @@ errno_t reiser4_object_unlink(reiser4_object_t *object, char *name) {
 	return 0;
 
  error_link_child:
-	if (objplug(child)->o.object_ops->link) {
-		if (plug_call(objplug(child)->o.object_ops, link, child)) {
+	if (reiser4_oplug(child)->o.object_ops->link) {
+		if (plug_call(reiser4_oplug(child)->o.object_ops, link, child)) {
 			aal_error("Can't link the object %s.",
 				  reiser4_print_inode(&child->info.object));
 		}
@@ -586,10 +586,10 @@ errno_t reiser4_object_layout(
 	aal_assert("umka-1469", object != NULL);
 	aal_assert("umka-1470", region_func != NULL);
 
-	if (!objplug(object)->o.object_ops->layout)
+	if (!reiser4_oplug(object)->o.object_ops->layout)
 		return 0;
 	
-	return plug_call(objplug(object)->o.object_ops, layout, 
+	return plug_call(reiser4_oplug(object)->o.object_ops, layout, 
 			 object, region_func, data);
 }
 
@@ -602,10 +602,10 @@ errno_t reiser4_object_metadata(
 	aal_assert("umka-1714", object != NULL);
 	aal_assert("umka-1715", place_func != NULL);
 
-	if (!objplug(object)->o.object_ops->metadata)
+	if (!reiser4_oplug(object)->o.object_ops->metadata)
 		return 0;
 	
-	return plug_call(objplug(object)->o.object_ops, metadata, 
+	return plug_call(reiser4_oplug(object)->o.object_ops, metadata, 
 			 object, place_func, data);
 }
 
@@ -616,10 +616,10 @@ lookup_t reiser4_object_lookup(reiser4_object_t *object,
 	aal_assert("umka-1919", object != NULL);
 	aal_assert("umka-1920", name != NULL);
 
-	if (!objplug(object)->o.object_ops->lookup)
+	if (!reiser4_oplug(object)->o.object_ops->lookup)
 		return -EINVAL;
 	
-	return plug_call(objplug(object)->o.object_ops, lookup, 
+	return plug_call(reiser4_oplug(object)->o.object_ops, lookup, 
 			 object, (char *)name, (void *)entry);
 }
 
@@ -627,7 +627,7 @@ lookup_t reiser4_object_lookup(reiser4_object_t *object,
 errno_t reiser4_object_stat(reiser4_object_t *object, stat_hint_t *hint) {
 	aal_assert("umka-2570", object != NULL);
 
-	return plug_call(objplug(object)->o.object_ops,
+	return plug_call(reiser4_oplug(object)->o.object_ops,
 			 stat, object, hint);
 }
 
@@ -638,7 +638,7 @@ errno_t reiser4_object_reset(
 	aal_assert("umka-842", object != NULL);
 	aal_assert("umka-843", object != NULL);
 
-	return plug_call(objplug(object)->o.object_ops, reset, object);
+	return plug_call(reiser4_oplug(object)->o.object_ops, reset, object);
 }
 
 /* Sets directory current position to passed pos */
@@ -648,10 +648,10 @@ errno_t reiser4_object_seek(
 {
 	aal_assert("umka-1129", object != NULL);
     
-	if (!objplug(object)->o.object_ops->seek)
+	if (!reiser4_oplug(object)->o.object_ops->seek)
 		return -EINVAL;
 	
-	return plug_call(objplug(object)->o.object_ops,
+	return plug_call(reiser4_oplug(object)->o.object_ops,
 			 seek, object, offset);
 }
 
@@ -662,10 +662,10 @@ errno_t reiser4_object_seekdir(reiser4_object_t *object,
 	aal_assert("umka-1979", object != NULL);
 	aal_assert("umka-1980", offset != NULL);
 
-	if (!objplug(object)->o.object_ops->seekdir)
+	if (!reiser4_oplug(object)->o.object_ops->seekdir)
 		return -EINVAL;
 
-	return plug_call(objplug(object)->o.object_ops,
+	return plug_call(reiser4_oplug(object)->o.object_ops,
 			 seekdir, object, offset);
 }
 
@@ -675,7 +675,7 @@ uint32_t reiser4_object_offset(
 {
 	aal_assert("umka-875", object != NULL);
 
-	return plug_call(objplug(object)->o.object_ops, offset, object);
+	return plug_call(reiser4_oplug(object)->o.object_ops, offset, object);
 }
 
 /* Return current position in passed @object if it is a directory */
@@ -685,10 +685,10 @@ errno_t reiser4_object_telldir(reiser4_object_t *object,
 	aal_assert("umka-1981", object != NULL);
 	aal_assert("umka-1982", offset != NULL);
 
-	if (!objplug(object)->o.object_ops->telldir)
+	if (!reiser4_oplug(object)->o.object_ops->telldir)
 		return -EINVAL;
 
-	return plug_call(objplug(object)->o.object_ops,
+	return plug_call(reiser4_oplug(object)->o.object_ops,
 			 telldir, object, offset);
 }
 
@@ -701,10 +701,10 @@ int64_t reiser4_object_read(
 {
 	aal_assert("umka-860", object != NULL);
 
-	if (!objplug(object)->o.object_ops->read)
+	if (!reiser4_oplug(object)->o.object_ops->read)
 		return -EINVAL;
 	
-	return plug_call(objplug(object)->o.object_ops, 
+	return plug_call(reiser4_oplug(object)->o.object_ops, 
 			 read, object, buff, n);
 }
 
@@ -715,10 +715,10 @@ errno_t reiser4_object_readdir(reiser4_object_t *object,
 	aal_assert("umka-1973", object != NULL);
 	aal_assert("umka-1974", entry != NULL);
 
-	if (!objplug(object)->o.object_ops->readdir)
+	if (!reiser4_oplug(object)->o.object_ops->readdir)
 		return -EINVAL;
 	
-	return plug_call(objplug(object)->o.object_ops, 
+	return plug_call(reiser4_oplug(object)->o.object_ops, 
 			 readdir, object, entry);
 }
 
@@ -767,7 +767,7 @@ errno_t reiser4_object_traverse(reiser4_object_t *object,
 	aal_assert("vpf-1103", open_func != NULL);
 
 	/* Check if object has readdir() method implemented. */
-	if (!objplug(object)->o.object_ops->readdir)
+	if (!reiser4_oplug(object)->o.object_ops->readdir)
 		return 0;
 
 	/* Main loop until all entries enumerated. */

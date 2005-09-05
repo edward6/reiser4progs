@@ -8,24 +8,6 @@
 
 #ifdef ENABLE_SYMLINKS
 
-/* Opens symlink and returns initialized instance to caller. */
-errno_t sym40_open(reiser4_object_t *sym) {
-	aal_assert("vpf-1818", sym != NULL);
-	aal_assert("umka-1164", sym->info.tree != NULL);
- 	
-	if (sym->info.start.plug->id.group != STAT_ITEM)
-		return -EIO;
-   
-	/* Initalizing file handle */
-	obj40_init(sym);
-	
-	/* Initializing statdata place */
-	aal_memcpy(STAT_PLACE(sym), &sym->info.start,
-		   sizeof(sym->info.start));
-	
-	return 0;
-}
-
 /* Reads whole symlink data to passed @buff. */
 static int64_t sym40_read(reiser4_object_t *sym, 
 			  void *buff, uint64_t n)
@@ -133,7 +115,7 @@ static reiser4_object_ops_t sym40_ops = {
 	.linked         = obj40_linked,
 	.update         = obj40_save_stat,
 	.clobber        = sym40_clobber,
-	.recognize	= sym40_recognize,
+	.recognize	= obj40_recognize,
 	.check_struct   = sym40_check_struct,
 
 	.layout         = NULL,
@@ -159,9 +141,14 @@ static reiser4_object_ops_t sym40_ops = {
 
 	.stat           = obj40_load_stat,
 	.read	        = sym40_read,
-	.open	        = sym40_open,
+	.open	        = obj40_open,
 	.close	        = NULL,
-	.follow         = sym40_follow
+	.follow         = sym40_follow,
+
+#ifndef ENABLE_MINIMAL
+	.sdext_mandatory = (1 << SDEXT_LW_ID | 1 << SDEXT_SYMLINK_ID),
+	.sdext_unknown   = 0
+#endif
 };
 
 /* Symlink plugin itself. */

@@ -10,34 +10,6 @@
 #include "reg40.h"
 #include "reg40_repair.h"
 
-/* Returns regular file current offset. */
-uint64_t reg40_offset(reiser4_object_t *reg) {
-	aal_assert("umka-1159", reg != NULL);
-
-	return plug_call(reg->position.plug->o.key_ops,
-			 get_offset, &reg->position);
-}
-
-/* Returns regular file size. */
-static uint64_t reg40_size(reiser4_object_t *reg) {
-	aal_assert("umka-2278", reg != NULL);
-	
-	if (obj40_update(reg))
-		return -EINVAL;
-
-	return obj40_get_size(reg);
-}
-
-/* Position regular file to passed @offset. */
-errno_t reg40_seek(reiser4_object_t *reg, uint64_t offset) {
-	aal_assert("umka-1968", reg != NULL);
-
-	plug_call(reg->position.plug->o.key_ops,
-		  set_offset, &reg->position, offset);
-
-	return 0;
-}
-
 /* Updates body place in correspond to file offset. */
 lookup_t reg40_update_body(reiser4_object_t *reg) {
 	aal_assert("umka-1161", reg != NULL);
@@ -45,18 +17,6 @@ lookup_t reg40_update_body(reiser4_object_t *reg) {
 	/* Getting the next body item from the tree */
 	return obj40_find_item(reg, &reg->position, FIND_EXACT, 
 			       NULL, NULL, &reg->body);
-}
-
-/* Resets file position. As fire position is stored inside @reg->position, it
-   just builds new zero offset key.*/
-errno_t reg40_reset(reiser4_object_t *reg) {
-	aal_assert("umka-1963", reg != NULL);
-	
-	plug_call(STAT_KEY(reg)->plug->o.key_ops, build_generic,
-		  &reg->position, KEY_FILEBODY_TYPE, obj40_locality(reg),
-		  obj40_ordering(reg), obj40_objectid(reg), 0);
-
-	return 0;
 }
 
 /* Reads @n bytes to passed buffer @buff. Negative values are returned on
@@ -71,7 +31,7 @@ static int64_t reg40_read(reiser4_object_t *reg,
 	aal_assert("umka-2511", buff != NULL);
 	aal_assert("umka-2512", reg != NULL);
 	
-	fsize = reg40_size(reg);
+	fsize = obj40_size(reg);
 
 	/* Preparing hint to be used for calling read with it. Here we
 	   initialize @count -- number of bytes to read, @specific -- pointer to
@@ -88,8 +48,8 @@ static int64_t reg40_read(reiser4_object_t *reg,
 	/* Correcting number of bytes to be read. It cannot be more then file
 	   size value from stat data. That is because, body item itself does not
 	   know reliably how long it is. For instnace, extent40. */
-	if (reg40_offset(reg) + hint.count > fsize)
-		hint.count = fsize - reg40_offset(reg);
+	if (obj40_offset(reg) + hint.count > fsize)
+		hint.count = fsize - obj40_offset(reg);
 
 	/* Reading data. */
 	if ((read = obj40_read(reg, &hint)) < 0)
@@ -97,7 +57,7 @@ static int64_t reg40_read(reiser4_object_t *reg,
 
 	/* Updating file offset if needed. */
 	if (read > 0)
-		reg40_seek(reg, reg40_offset(reg) + read);
+		obj40_seek(reg, obj40_offset(reg) + read);
 	
 	return read;
 }
@@ -106,17 +66,7 @@ static int64_t reg40_read(reiser4_object_t *reg,
    instance. This @info struct contains information about the obejct, like its
    statdata coord, etc. */
 static errno_t reg40_open(reiser4_object_t *reg) {
-	aal_assert("umka-1163", reg != NULL);
-	aal_assert("umka-1164", reg->info.tree != NULL);
-
-	if (reg->info.start.plug->id.group != STAT_ITEM)
-		return -EIO;
-
-	/* Initializing file handle. */
-	obj40_init(reg);
-
-	/* Reseting file (setting offset to 0) */
-	reg40_reset(reg);
+	obj40_open(reg);
 
 #ifndef ENABLE_MINIMAL
 	{
@@ -134,31 +84,6 @@ static errno_t reg40_open(reiser4_object_t *reg) {
 }
 
 #ifndef ENABLE_MINIMAL
-/* Create the file described by pased @hint. That is create files stat data
-   item. */
-static errno_t reg40_create(reiser4_object_t *reg, object_hint_t *hint) {
-	uint32_t mode;
-	errno_t res;
-	
-	aal_assert("vpf-1817",  reg != NULL);
-	aal_assert("umka-1738", hint != NULL);
-	aal_assert("vpf-1093",  reg->info.tree != NULL);
-
-	/* Initializing file handle. */
-	obj40_init(reg);
-	
-	mode = (hint ? hint->mode : 0) | S_IFREG | 0644;
-
-	/* Create stat data item with size, bytes, nlinks equal to zero. */
-	if ((res = obj40_create_stat(reg, 0, 0, 0, 0, mode, NULL)))
-		return res;
-
-	/* Reset file. */
-	reg40_reset(reg);
-
-	return 0;
-}
-
 /* Returns plugin (tail or extent) for next write operation basing on passed
    @size -- new file size. This function will use tail policy plugin to find
    what kind of next body item should be writen. */
@@ -204,7 +129,7 @@ static errno_t reg40_convert(reiser4_object_t *reg,
 	/* Prepare convert hint. */
 	hint.plug = plug;
 
-	hint.count = reg40_size(reg);
+	hint.count = obj40_size(reg);
 	hint.place_func = NULL;
 
 	/* Converting file data. */
@@ -278,7 +203,7 @@ int64_t reg40_put(reiser4_object_t *reg, void *buff,
 		return written;
 
 	/* Updating file offset. */
-	reg40_seek(reg, reg40_offset(reg) + written);
+	obj40_seek(reg, obj40_offset(reg) + written);
 	
 	return hint.bytes;
 }
@@ -289,7 +214,7 @@ static int64_t reg40_cut(reiser4_object_t *reg, uint64_t offset) {
 	uint64_t size;
 	trans_hint_t hint;
 	
-	size = reg40_size(reg);
+	size = obj40_size(reg);
 
 	aal_assert("umka-3076", size > offset);
 
@@ -326,8 +251,8 @@ static int64_t reg40_write(reiser4_object_t *reg,
 
 	aal_assert("umka-2281", reg != NULL);
 
-	size = reg40_size(reg);
-	offset = reg40_offset(reg);
+	size = obj40_size(reg);
+	offset = obj40_offset(reg);
 	new_size = offset + n > size ? offset + n : size;
 	
 	/* Convert body items if needed. */
@@ -342,7 +267,7 @@ static int64_t reg40_write(reiser4_object_t *reg,
 
 		/* Seek back to size of hole, as reg40_put() uses 
 		   @reg->position as data write offset. */
-		reg40_seek(reg, size);
+		obj40_seek(reg, size);
 
 		/* Put a hole of size @hole. */
 		if ((bytes = reg40_put(reg, NULL, hole, NULL)) < 0)
@@ -375,7 +300,7 @@ static errno_t reg40_truncate(reiser4_object_t *reg, uint64_t n) {
 	int64_t bytes;
 	uint64_t size;
 
-	size = reg40_size(reg);
+	size = obj40_size(reg);
 
 	if (size == n)
 		return 0;
@@ -387,7 +312,7 @@ static errno_t reg40_truncate(reiser4_object_t *reg, uint64_t n) {
 			return res;
 		}
 
-		reg40_seek(reg, size);
+		obj40_seek(reg, size);
 		if ((bytes = reg40_put(reg, NULL, n - size, NULL)) < 0)
 			return bytes;
 		
@@ -469,7 +394,7 @@ static errno_t reg40_layout(reiser4_object_t *reg,
 	aal_assert("umka-1471", reg != NULL);
 	aal_assert("umka-1472", region_func != NULL);
 
-	if (!(size = reg40_size(reg)))
+	if (!(size = obj40_size(reg)))
 		return 0;
 
 	/* Initializing layout_hint. */
@@ -478,7 +403,7 @@ static errno_t reg40_layout(reiser4_object_t *reg,
 	hint.region_func = region_func;
 
 	/* Loop though the all file items. */
-	while (reg40_offset(reg) < size) {
+	while (obj40_offset(reg) < size) {
 		reiser4_place_t *place = &reg->body;
 		
 		/* Update current body coord. */
@@ -510,8 +435,8 @@ static errno_t reg40_layout(reiser4_object_t *reg,
 			  place, &maxkey);
 
 		/* Updating file offset. */
-		reg40_seek(reg, plug_call(maxkey.plug->o.key_ops,
-					     get_offset, &maxkey) + 1);
+		obj40_seek(reg, plug_call(maxkey.plug->o.key_ops,
+					  get_offset, &maxkey) + 1);
 	}
 	
 	return 0;
@@ -534,10 +459,10 @@ static errno_t reg40_metadata(reiser4_object_t *reg,
 		return res;
 
 	/* Loop thougj the all file items. */
-	if (!(size = reg40_size(reg)))
+	if (!(size = obj40_size(reg)))
 		return 0;
 
-	while (reg40_offset(reg) < size) {
+	while (obj40_offset(reg) < size) {
 		reiser4_key_t maxkey;
 		
 		/* Update body place. */
@@ -558,7 +483,7 @@ static errno_t reg40_metadata(reiser4_object_t *reg,
 			  &reg->body, &maxkey);
 
 		/* Updating file offset */
-		reg40_seek(reg, plug_call(maxkey.plug->o.key_ops,
+		obj40_seek(reg, plug_call(maxkey.plug->o.key_ops,
 					  get_offset, &maxkey) + 1);
 	}
 	
@@ -569,7 +494,7 @@ static errno_t reg40_metadata(reiser4_object_t *reg,
 /* Regular file operations. */
 static reiser4_object_ops_t reg40_ops = {
 #ifndef ENABLE_MINIMAL
-	.create	        = reg40_create,
+	.create	        = obj40_create,
 	.write	        = reg40_write,
 	.truncate       = reg40_truncate,
 	.layout         = reg40_layout,
@@ -580,7 +505,7 @@ static reiser4_object_ops_t reg40_ops = {
 	.unlink         = obj40_unlink,
 	.linked         = obj40_linked,
 	.clobber        = reg40_clobber,
-	.recognize	= reg40_recognize,
+	.recognize	= obj40_recognize,
 	.check_struct   = reg40_check_struct,
 	
 	.add_entry      = NULL,
@@ -601,10 +526,15 @@ static reiser4_object_ops_t reg40_ops = {
 	.stat           = obj40_load_stat,
 	.open	        = reg40_open,
 	.close	        = NULL,
-	.reset	        = reg40_reset,
-	.seek	        = reg40_seek,
-	.offset	        = reg40_offset,
+	.reset	        = obj40_reset,
+	.seek	        = obj40_seek,
+	.offset	        = obj40_offset,
 	.read	        = reg40_read,
+
+#ifndef ENABLE_MINIMAL
+	.sdext_mandatory = (1 << SDEXT_LW_ID),
+	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID)
+#endif
 };
 
 /* Regular file plugin. */

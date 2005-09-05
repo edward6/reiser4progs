@@ -7,35 +7,6 @@
 
 #include "dir40_repair.h"
 
-/* Set of extentions that must present. */
-#define DIR40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID)
-
-/* Set of unknown extentions. */
-#define DIR40_EXTS_UNKN ((uint64_t)1 << SDEXT_SYMLINK_ID)
-
-errno_t dir40_recognize(reiser4_object_t *dir) {
-	errno_t res;
-	
-	aal_assert("vpf-1231", dir != NULL);
-	
-	/* Initializing file handle */
-	obj40_init(dir);
-	
-	if ((res = obj40_objkey_check(dir)))
-		return res;
-
-	if ((res = obj40_check_stat(dir, DIR40_EXTS_MUST,
-				    DIR40_EXTS_UNKN)))
-	{
-		return res;
-	}
-	
-	/* Positioning to the first directory unit */
-	dir40_reset(dir);
-	
-	return 0;
-}
-
 static errno_t dir40_dot(reiser4_object_t *dir, 
 			 reiser4_plug_t *bplug, 
 			 uint8_t mode) 
@@ -64,7 +35,7 @@ static errno_t dir40_dot(reiser4_object_t *dir,
 	fsck_mess("Directory [%s]: The entry \".\" is not found.%s "
 		  "Plugin (%s).", print_inode(obj40_core, &info->object), 
 		  mode != RM_CHECK ? " Insert a new one." : "", 
-		  dir->info.opset.plug[OPSET_OBJ]->label);
+		  reiser4_oplug(dir)->label);
 	
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
@@ -151,7 +122,7 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 				  "item [%u]: item of the illegal plugin (%s) "
 				  "with the key of this object found.%s",
 				  print_inode(obj40_core, &info->object),
-				  info->opset.plug[OPSET_OBJ]->label, 
+				  reiser4_oplug(dir)->label, 
 				  place_blknr(&dir->body), dir->body.pos.item,
 				  dir->body.plug->label, mode == RM_BUILD ? 
 				  " Removed." : "");
@@ -220,7 +191,7 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 				  "item [%u], unit [%u]: entry has wrong "
 				  "offset [%s]. Should be [%s].%s", 
 				  print_inode(obj40_core, &info->object),
-				  info->opset.plug[OPSET_OBJ]->label, 
+				  reiser4_oplug(dir)->label, 
 				  place_blknr(&dir->body), 
 				  dir->body.pos.item, dir->body.pos.unit,
 				  print_key(obj40_core, &entry.offset),
@@ -277,8 +248,6 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 	if (!(res & RE_FATAL)) {
 		hint.mode = S_IFDIR;
 		hint.nlink = 1;
-		hint.must_exts = DIR40_EXTS_MUST;
-		hint.unkn_exts = DIR40_EXTS_UNKN;
 		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 
 		res |= obj40_update_stat(dir, &ops, &hint, mode);
@@ -317,7 +286,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 			  "is attached already to [%s] and cannot "
 			  "be attached to [%s].", 
 			  print_inode(obj40_core, &object->info.object),
-			  object->info.opset.plug[OPSET_OBJ]->label, 
+			  reiser4_oplug(object)->label, 
 			  print_key(obj40_core, &entry.object),
 			  print_inode(obj40_core, &parent->info.object));
 
@@ -331,7 +300,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 			fsck_mess("Directory [%s] (%s): the "
 			"object is not attached. %s [%s].",
 			print_inode(obj40_core, &object->info.object),
-			object->info.opset.plug[OPSET_OBJ]->label, mode == RM_CHECK ? 
+			reiser4_oplug(object)->label, mode == RM_CHECK ? 
 			"Reached from" : "Attaching to",
 			print_inode(obj40_core, &parent->info.object));
 		}
@@ -340,7 +309,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 			fsck_mess("Directory [%s] (%s): the object "
 				  "is not attached. Reached from [%s].",
 				  print_inode(obj40_core, &object->info.object),
-				  object->info.opset.plug[OPSET_OBJ]->label,
+				  reiser4_oplug(object)->label,
 				  print_inode(obj40_core, &parent->info.object));
 			return RE_FIXABLE;
 		}
@@ -351,7 +320,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 
 		aal_strncpy(entry.name, "..", sizeof(entry.name));
 		
-		if ((res = plug_call(object->info.opset.plug[OPSET_OBJ]->o.object_ops,
+		if ((res = plug_call(reiser4_oplug(object)->o.object_ops,
 				     add_entry, object, &entry)))
 		{
 			return res;
@@ -366,8 +335,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 	if (mode != RM_BUILD)
 		return 0;
 	
-	return plug_call(parent->info.opset.plug[OPSET_OBJ]->o.object_ops, 
-			 link, parent);
+	return plug_call(reiser4_oplug(parent)->o.object_ops, link, parent);
 }
 
 

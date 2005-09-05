@@ -7,34 +7,6 @@
 
 #include "reg40_repair.h"
 
-/* Set of extentions that must present. */
-#define REG40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID)
-
-/* Set of unknown extentions. */
-#define REG40_EXTS_UNKN ((uint64_t)1 << SDEXT_SYMLINK_ID)
-
-errno_t reg40_recognize(reiser4_object_t *reg) {
-	errno_t res;
-	
-	/* Initializing file handle */
-	obj40_init(reg);
-	
-	if ((res = obj40_objkey_check(reg)))
-		return res;
-
-	if ((res = obj40_check_stat(reg, 
-				    REG40_EXTS_MUST,
-				    REG40_EXTS_UNKN)))
-	{
-		return res;
-	}
-	
-	/* Reseting file (setting offset to 0) */
-	reg40_reset(reg);
-
-	return 0;
-}
-
 static int reg40_check_size(reiser4_object_t *reg, 
 			    uint64_t *sd_size, 
 			    uint64_t counted_size) 
@@ -142,17 +114,17 @@ static errno_t reg40_next(reiser4_object_t *reg, uint8_t mode) {
 			  "item (%u): the item [%s] of the "
 			  "invalid plugin (%s) found.%s",
 			  print_inode(obj40_core, &info->object),
-			  info->opset.plug[OPSET_OBJ]->label, 
+			  reiser4_oplug(reg)->label, 
 			  place_blknr(&reg->body), reg->body.pos.item,
 			  print_key(obj40_core, &reg->body.key),
-			  info->opset.plug[OPSET_OBJ]->label, 
+			  reg->body.plug->label, 
 			  mode == RM_BUILD ? " Removed." : "");
 	} else if (reg40_check_ikey(reg)) {
 		fsck_mess("The object [%s] (%s), node (%llu),"
 			  "item (%u): the item [%s] has the "
 			  "wrong offset.%s",
 			  print_inode(obj40_core, &info->object),
-			  info->opset.plug[OPSET_OBJ]->label, 
+			  reiser4_oplug(reg)->label, 
 			  place_blknr(&reg->body), reg->body.pos.item,
 			  print_key(obj40_core, &reg->body.key),
 			  mode == RM_BUILD ? " Removed." : "");
@@ -268,12 +240,12 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 	offset = plug_call(reg->body.key.plug->o.key_ops, 
 			   get_offset, &reg->body.key);
 
-	if ((len = offset - reg40_offset(reg)) == 0)
+	if ((len = offset - obj40_offset(reg)) == 0)
 		return 0;
 
 	fsck_mess("The object [%s] has a break at [%llu-%llu] offsets. "
 		  "Plugin %s.%s", print_inode(obj40_core, &reg->info.object),
-		  offset - len, offset, reg->info.opset.plug[OPSET_OBJ]->label,
+		  offset - len, offset, reiser4_oplug(reg)->label,
 		  mode == RM_BUILD ? " Writing a hole there." : "");
 
 	if (mode != RM_BUILD)
@@ -283,8 +255,7 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 		aal_error("The object [%s] failed to create the hole "
 			  "at [%llu-%llu] offsets. Plugin %s.",
 			  print_inode(obj40_core, &reg->info.object),
-			  offset - len, offset, 
-			  reg->info.opset.plug[OPSET_OBJ]->label);
+			  offset - len, offset, reiser4_oplug(reg)->label);
 
 		return res;
 	}
@@ -390,7 +361,7 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 				  "[%llu..%llu] does not not match the "
 				  "detected tail policy (%s).%s",
 				  print_inode(obj40_core, &info->object),
-				  info->opset.plug[OPSET_OBJ]->label, 
+				  reiser4_oplug(reg)->label, 
 				  offset, offset + conv.count -1, 
 				  info->opset.plug[OPSET_POLICY]->label,
 				  mode == RM_BUILD ? " Converted." : "");
@@ -435,7 +406,7 @@ next:
 			break;
 		
 		/* Find the next after the maxreal key. */
-		reg40_seek(reg, maxreal + 1);
+		obj40_seek(reg, maxreal + 1);
 	}
 	
 	
@@ -445,15 +416,13 @@ next:
 				      get_offset, &reg->position);
 		
 		hint.mode = S_IFREG;
-		hint.must_exts = REG40_EXTS_MUST;
-		hint.unkn_exts = REG40_EXTS_UNKN;
 		ops.check_size = reg40_check_size;
 		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 
 		res |= obj40_update_stat(reg, &ops, &hint, mode);
 	}
 
-	reg40_reset(reg);
+	obj40_reset(reg);
 
 	return res;
 }

@@ -615,6 +615,8 @@ typedef struct reiser4_object {
 #endif
 } reiser4_object_t;
 
+#define reiser4_oplug(object) (object->info.opset.plug[OPSET_OBJ])
+
 /* Bits for entity state field. For now here is only "dirty" bit, but possible
    and other ones. */
 enum entity_state {
@@ -1025,6 +1027,11 @@ typedef struct reiser4_object_ops {
 
 	/* Change current position in directory. */
 	errno_t (*seekdir) (reiser4_object_t *, reiser4_key_t *);
+
+#ifndef ENABLE_MINIMAL
+	uint64_t sdext_mandatory;
+	uint64_t sdext_unknown;
+#endif
 } reiser4_object_ops_t;
 
 typedef struct item_balance_ops {

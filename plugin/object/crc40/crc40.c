@@ -6,32 +6,30 @@
 #ifndef ENABLE_MINIMAL
 #include "crc40.h"
 
-#include <plugin/object/reg40/reg40.h>
+#include <crc40.h>
 
-static errno_t crc40_create(reiser4_object_t *crc, object_hint_t *hint) {
-	uint32_t mode;
-	errno_t res;
-	
-	aal_assert("vpf-1820", crc != NULL);
-	aal_assert("vpf-1815", crc->info.tree != NULL);
+static int64_t crc40_read(reiser4_object_t *crc, 
+			  void *buff, uint64_t n)
+{
+	aal_error("Plugin \"%s\": The method ->read is not "
+		  "implemented yet.", reiser4_oplug(crc)->label);
 
-	obj40_init(crc);
-	
-	mode = (hint ? hint->mode : 0) | S_IFREG | 0644;
-	
-	/* Create stat data item with size, bytes, nlinks equal to zero. */
-	if ((res = obj40_create_stat(crc, 0, 0, 0, 0, mode, NULL)))
-		return res;
-	
-	reg40_reset(crc);
-	
-	return 0;
+	return -EIO;
+}
+
+static int64_t crc40_write(reiser4_object_t *crc, 
+			   void *buff, uint64_t n)
+{
+	aal_error("Plugin \"%s\": The method ->write is not "
+		  "implemented yet.", reiser4_oplug(crc)->label);
+
+	return -EIO;
 }
 
 /* CRC regular file operations. */
 static reiser4_object_ops_t crc40_ops = {
-	.create	        = crc40_create,
-	.write	        = NULL,
+	.create	        = obj40_create,
+	.write	        = crc40_write,
 	.truncate       = NULL,
 	.layout         = NULL,
 	.metadata       = NULL,
@@ -41,7 +39,7 @@ static reiser4_object_ops_t crc40_ops = {
 	.unlink         = obj40_unlink,
 	.linked         = obj40_linked,
 	.clobber        = NULL,
-	.recognize	= NULL,
+	.recognize	= obj40_recognize,
 	.check_struct   = NULL,
 	
 	.add_entry      = NULL,
@@ -59,12 +57,17 @@ static reiser4_object_ops_t crc40_ops = {
 	.seekdir        = NULL,
 		
 	.stat           = obj40_load_stat,
-	.open	        = NULL,
+	.open	        = obj40_open,
 	.close	        = NULL,
-	.reset	        = reg40_reset,
-	.seek	        = reg40_seek,
-	.offset	        = reg40_offset,
-	.read	        = NULL,
+	.reset	        = obj40_reset,
+	.seek	        = obj40_seek,
+	.offset	        = obj40_offset,
+	.read	        = crc40_read,
+
+#ifndef ENABLE_MINIMAL
+	.sdext_mandatory = (1 << SDEXT_LW_ID),
+	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID)
+#endif
 };
 
 /* CRC regular file plugin. */

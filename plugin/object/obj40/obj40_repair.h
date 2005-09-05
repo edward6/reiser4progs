@@ -25,8 +25,6 @@ typedef struct obj40_stat_hint {
 	uint64_t bytes;
 	uint32_t nlink;
 	uint16_t mode;
-	uint64_t must_exts;
-	uint64_t unkn_exts;
 } obj40_stat_hint_t;
 
 extern errno_t obj40_objkey_check(reiser4_object_t *obj);
@@ -48,5 +46,7 @@ extern errno_t obj40_fix_key(reiser4_object_t *obj,
 extern errno_t obj40_prepare_stat(reiser4_object_t *obj, 
 				  uint16_t objmode, 
 				  uint8_t mode);
+
+extern errno_t obj40_recognize(reiser4_object_t *obj);
 
 #endif

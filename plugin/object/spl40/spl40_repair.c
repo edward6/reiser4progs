@@ -8,32 +8,6 @@
 
 #include "spl40_repair.h"
 
-/* Set of extentions that must present. */
-#define SPL40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID)
-
-/* Set of unknown extentions. */
-#define SPL40_EXTS_UNKN ((uint64_t)1 << SDEXT_SYMLINK_ID)
-
-errno_t spl40_recognize(reiser4_object_t *spl) {
-	errno_t res;
-	
-	aal_assert("vpf-1356", spl != NULL);
-	
-	/* Initializing file handle */
-	obj40_init(spl);
-	
-	if ((res = obj40_objkey_check(spl)))
-		return res;
-
-	if ((res = obj40_check_stat(spl, SPL40_EXTS_MUST,
-				    SPL40_EXTS_UNKN)))
-	{
-		return res;
-	}
-
-	return 0;
-}
-
 static int spl40_check_mode(reiser4_object_t *spl, 
 			    uint16_t *mode, 
 			    uint16_t correct) 
@@ -70,9 +44,6 @@ errno_t spl40_check_struct(reiser4_object_t *spl,
 	/* Try to register SD as an item of this file. */
 	if (place_func && place_func(&spl->info.start, data))
 		return -EINVAL;
-	
-	hint.must_exts = SPL40_EXTS_MUST;
-	hint.unkn_exts = SPL40_EXTS_UNKN;
 	
 	ops.check_mode = spl40_check_mode;
 	ops.check_bytes = SKIP_METHOD;

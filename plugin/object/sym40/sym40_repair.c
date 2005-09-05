@@ -8,25 +8,6 @@
 #ifndef ENABLE_MINIMAL
 #ifdef ENABLE_SYMLINKS
 
-#define SYM40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID | 1 << SDEXT_SYMLINK_ID)
-
-errno_t sym40_recognize(reiser4_object_t *sym) {
-	errno_t res;
-	
-	aal_assert("vpf-1124", sym != NULL);
-	
-	/* Initializing file handle */
-	obj40_init(sym);
-	
-	if ((res = obj40_objkey_check(sym)))
-		return res;
-
-	if ((res = obj40_check_stat(sym, SYM40_EXTS_MUST, 0)))
-		return res;
-
-	return 0;
-}
-
 errno_t sym40_check_struct(reiser4_object_t *sym,
 			   place_func_t place_func,
 			   void *data, uint8_t mode)
@@ -62,7 +43,6 @@ errno_t sym40_check_struct(reiser4_object_t *sym,
 	/* Fix the SD, if no fatal corruptions were found. */
 	hint.mode = S_IFLNK;
 	hint.size = aal_strlen(path);
-	hint.must_exts = SYM40_EXTS_MUST;
 	ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 	
 	if ((res = obj40_update_stat(sym, &ops, &hint, mode)))
