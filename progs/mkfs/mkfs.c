@@ -76,13 +76,11 @@ static void mkfs_init(void) {
 
 static reiser4_object_t *reiser4_root_create(reiser4_fs_t *fs) {
 	entry_hint_t entry;
-	object_hint_t hint;
 	object_info_t info;
 	
 	aal_assert("vpf-1625", fs != NULL);
 	aal_assert("vpf-1626", fs->tree != NULL);
 	
-	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&info, 0, sizeof(info));
 
 	info.tree = (tree_entity_t *)fs->tree;
@@ -91,7 +89,7 @@ static reiser4_object_t *reiser4_root_create(reiser4_fs_t *fs) {
 	entry.name[0] = '\0';
 	aal_memcpy(&entry.offset, &fs->tree->key, sizeof(entry.offset));
 
-	return reiser4_object_create(&entry, &info, &hint);
+	return reiser4_object_create(&entry, &info, NULL);
 }
 
 int main(int argc, char *argv[]) {

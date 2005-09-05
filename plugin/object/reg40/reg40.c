@@ -137,6 +137,7 @@ static errno_t reg40_open(reiser4_object_t *reg) {
 /* Create the file described by pased @hint. That is create files stat data
    item. */
 static errno_t reg40_create(reiser4_object_t *reg, object_hint_t *hint) {
+	uint32_t mode;
 	errno_t res;
 	
 	aal_assert("vpf-1817",  reg != NULL);
@@ -145,13 +146,12 @@ static errno_t reg40_create(reiser4_object_t *reg, object_hint_t *hint) {
 
 	/* Initializing file handle. */
 	obj40_init(reg);
+	
+	mode = (hint ? hint->mode : 0) | S_IFREG | 0644;
 
 	/* Create stat data item with size, bytes, nlinks equal to zero. */
-	if ((res = obj40_create_stat(reg, 0, 0, 0, 0, 
-				     hint->mode | S_IFREG | 0644, NULL)))
-	{
+	if ((res = obj40_create_stat(reg, 0, 0, 0, 0, mode, NULL)))
 		return res;
-	}
 
 	/* Reset file. */
 	reg40_reset(reg);

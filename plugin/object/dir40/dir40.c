@@ -426,9 +426,9 @@ static errno_t dir40_create(reiser4_object_t *dir, object_hint_t *hint) {
 	trans_hint_t body_hint;
 	entry_hint_t entry;
 	reiser4_key_t *key;
+	uint32_t mode;
 	errno_t res;
     
-	aal_assert("umka-1739", hint != NULL);
 	aal_assert("vpf-1816",  dir != NULL);
 	aal_assert("vpf-1095",  dir->info.tree != NULL);
 
@@ -482,9 +482,11 @@ static errno_t dir40_create(reiser4_object_t *dir, object_hint_t *hint) {
 		return -EIO;
 	}
 	
+	mode = (hint ? hint->mode : 0) | S_IFDIR | 0755;
+	
 	/* Create stat data item. */
-	if ((res = obj40_create_stat(dir, 1, body_hint.len, 0, 1, 
-				     hint->mode | S_IFDIR | 0755, NULL)))
+	if ((res = obj40_create_stat(dir, 1, body_hint.len, 
+				     0, 1, mode, NULL))) 
 	{
 	
 		/* Removing body item. */	

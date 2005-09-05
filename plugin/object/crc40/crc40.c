@@ -9,20 +9,19 @@
 #include <plugin/object/reg40/reg40.h>
 
 static errno_t crc40_create(reiser4_object_t *crc, object_hint_t *hint) {
+	uint32_t mode;
 	errno_t res;
 	
 	aal_assert("vpf-1820", crc != NULL);
-	aal_assert("vpf-1814", hint != NULL);
 	aal_assert("vpf-1815", crc->info.tree != NULL);
 
 	obj40_init(crc);
 	
+	mode = (hint ? hint->mode : 0) | S_IFREG | 0644;
+	
 	/* Create stat data item with size, bytes, nlinks equal to zero. */
-	if ((res = obj40_create_stat(crc, 0, 0, 0, 0, 
-				     hint->mode | S_IFREG, NULL)))
-	{
+	if ((res = obj40_create_stat(crc, 0, 0, 0, 0, mode, NULL)))
 		return res;
-	}
 	
 	reg40_reset(crc);
 	
