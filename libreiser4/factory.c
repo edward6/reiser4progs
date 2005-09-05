@@ -221,7 +221,9 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(cde40);
 	__load_plug(stat40);
 	__load_plug(plain40);
+#ifndef ENABLE_MINIMAL
 	__load_plug(ctail40);
+#endif
 	__load_plug(extent40);
 	__load_plug(nodeptr40);
 	__load_plug(bbox40);
@@ -240,6 +242,10 @@ errno_t reiser4_factory_init(void) {
 	
 #ifdef ENABLE_SPECIAL
 	__load_plug(spl40);
+#endif
+
+#ifndef ENABLE_MINIMAL
+	__load_plug(crc40);
 #endif
 
 #ifdef ENABLE_SYMLINKS

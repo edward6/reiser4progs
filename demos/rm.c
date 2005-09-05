@@ -39,7 +39,7 @@ errno_t rm_cmd(busy_ctx_t *ctx) {
 		goto error_close_object;
 	}
 	
-	if (!plug_call(objplug(object)->o.object_ops, linked, object->ent)) {
+	if (!plug_call(objplug(object)->o.object_ops, linked, object)) {
 		/* There are no other link to this object, destroy it. */
 		if (reiser4_object_clobber(object)) {
 			aal_error("Can't to erase the object %s.", 

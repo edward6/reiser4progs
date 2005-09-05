@@ -10,35 +10,27 @@
 
 #define SYM40_EXTS_MUST ((uint64_t)1 << SDEXT_LW_ID | 1 << SDEXT_SYMLINK_ID)
 
-object_entity_t *sym40_recognize(object_info_t *info) {
-	sym40_t *sym;
+errno_t sym40_recognize(reiser4_object_t *sym) {
 	errno_t res;
 	
-	aal_assert("vpf-1124", info != NULL);
-	
-	if (!(sym = aal_calloc(sizeof(*sym), 0)))
-		return INVAL_PTR;
+	aal_assert("vpf-1124", sym != NULL);
 	
 	/* Initializing file handle */
-	obj40_init(&sym->obj, info, sym40_core);
+	obj40_init(sym);
 	
-	if ((res = obj40_objkey_check(&sym->obj)))
-		goto error;
+	if ((res = obj40_objkey_check(sym)))
+		return res;
 
-	if ((res = obj40_check_stat(&sym->obj, SYM40_EXTS_MUST, 0)))
-		goto error;
+	if ((res = obj40_check_stat(sym, SYM40_EXTS_MUST, 0)))
+		return res;
 
-	return (object_entity_t *)sym;
- error:
-	aal_free(sym);
-	return res < 0 ? INVAL_PTR : NULL;
+	return 0;
 }
 
-errno_t sym40_check_struct(object_entity_t *object,
+errno_t sym40_check_struct(reiser4_object_t *sym,
 			   place_func_t place_func,
 			   void *data, uint8_t mode)
 {
-	sym40_t *sym = (sym40_t *)object;
 	reiser4_place_t *place;
 	obj40_stat_hint_t hint;
 	obj40_stat_ops_t ops;
@@ -46,15 +38,15 @@ errno_t sym40_check_struct(object_entity_t *object,
 	char *path;
 	
 	aal_assert("vpf-1232", sym != NULL);
-	aal_assert("vpf-1233", sym->obj.info.tree != NULL);
-	aal_assert("vpf-1234", sym->obj.info.object.plug != NULL);
+	aal_assert("vpf-1233", sym->info.tree != NULL);
+	aal_assert("vpf-1234", sym->info.object.plug != NULL);
 
-	place = STAT_PLACE(&sym->obj);
+	place = STAT_PLACE(sym);
 	
 	aal_memset(&ops, 0, sizeof(ops));
 	aal_memset(&hint, 0, sizeof(hint));
 	
-	if ((res = obj40_prepare_stat(&sym->obj, S_IFLNK, mode)))
+	if ((res = obj40_prepare_stat(sym, S_IFLNK, mode)))
 		return res;
 	
 	/* Try to register SD as an item of this file. */
@@ -64,7 +56,7 @@ errno_t sym40_check_struct(object_entity_t *object,
 	if (!(path = aal_calloc(place_blksize(place), 0)))
 		return -ENOMEM;
 	
-	if ((res = obj40_read_ext(&sym->obj, SDEXT_SYMLINK_ID, path)))
+	if ((res = obj40_read_ext(sym, SDEXT_SYMLINK_ID, path)))
 		goto error;
 	
 	/* Fix the SD, if no fatal corruptions were found. */
@@ -73,7 +65,7 @@ errno_t sym40_check_struct(object_entity_t *object,
 	hint.must_exts = SYM40_EXTS_MUST;
 	ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 	
-	if ((res = obj40_update_stat(&sym->obj, &ops, &hint, mode)))
+	if ((res = obj40_update_stat(sym, &ops, &hint, mode)))
 		goto error;
 
 	aal_free(path);

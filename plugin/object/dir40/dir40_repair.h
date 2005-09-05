@@ -9,17 +9,17 @@
 #include "dir40.h"
 #include "plugin/object/obj40/obj40_repair.h"
 
-extern errno_t dir40_form(object_entity_t *object);
-extern object_entity_t *dir40_fake(object_info_t *info);
-extern object_entity_t *dir40_recognize(object_info_t *info);
+extern errno_t dir40_form(reiser4_object_t *object);
+extern errno_t dir40_fake(reiser4_object_t *dir);
+extern errno_t dir40_recognize(reiser4_object_t *dir);
 
 
-extern errno_t dir40_check_attach(object_entity_t *object, 
-				  object_entity_t *parent,
+extern errno_t dir40_check_attach(reiser4_object_t *object, 
+				  reiser4_object_t *parent,
 				  place_func_t place_func, 
 				  void *data, uint8_t mode);
 
-extern errno_t dir40_check_struct(object_entity_t *object, 
+extern errno_t dir40_check_struct(reiser4_object_t *object, 
 				  place_func_t place_func,
 				  void *data, uint8_t mode);
 #endif

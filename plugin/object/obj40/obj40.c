@@ -5,8 +5,10 @@
 
 #include "obj40.h"
 
+reiser4_core_t *obj40_core = NULL;
+
 /* Returns file's oid */
-oid_t obj40_objectid(obj40_t *obj) {
+oid_t obj40_objectid(reiser4_object_t *obj) {
 	aal_assert("umka-1899", obj != NULL);
 
 	return plug_call(STAT_KEY(obj)->plug->o.key_ops, 
@@ -14,7 +16,7 @@ oid_t obj40_objectid(obj40_t *obj) {
 }
 
 /* Returns file's locality  */
-oid_t obj40_locality(obj40_t *obj) {
+oid_t obj40_locality(reiser4_object_t *obj) {
 	aal_assert("umka-1900", obj != NULL);
     
 	return plug_call(STAT_KEY(obj)->plug->o.key_ops, 
@@ -22,7 +24,7 @@ oid_t obj40_locality(obj40_t *obj) {
 }
 
 /* Returns file's ordering  */
-uint64_t obj40_ordering(obj40_t *obj) {
+uint64_t obj40_ordering(reiser4_object_t *obj) {
 	aal_assert("umka-2334", obj != NULL);
 
 	return plug_call(STAT_KEY(obj)->plug->o.key_ops, 
@@ -74,7 +76,7 @@ int32_t obj40_belong(reiser4_place_t *place,
 }
 
 /* Performs lookup and returns result to caller */
-lookup_t obj40_find_item(obj40_t *obj, reiser4_key_t *key, 
+lookup_t obj40_find_item(reiser4_object_t *obj, reiser4_key_t *key, 
 			 lookup_bias_t bias, coll_func_t func, 
 			 coll_hint_t *chint, reiser4_place_t *place)
 {
@@ -92,12 +94,12 @@ lookup_t obj40_find_item(obj40_t *obj, reiser4_key_t *key,
 	hint.collision = func;
 #endif
 	
-	return obj->core->tree_ops.lookup(obj->info.tree,
-					  &hint, bias, place);
+	return obj40_core->tree_ops.lookup(obj->info.tree,
+					   &hint, bias, place);
 }
 
 /* Reads one stat data extension to @data. */
-errno_t obj40_read_ext(obj40_t *obj, rid_t id, void *data) {
+errno_t obj40_read_ext(reiser4_object_t *obj, rid_t id, void *data) {
 	stat_hint_t stat;
 
 	aal_memset(&stat, 0, sizeof(stat));
@@ -108,7 +110,7 @@ errno_t obj40_read_ext(obj40_t *obj, rid_t id, void *data) {
 }
 
 /* Gets size field from the stat data */
-uint64_t obj40_get_size(obj40_t *obj) {
+uint64_t obj40_get_size(reiser4_object_t *obj) {
 	sdhint_lw_t lwh;
 
 	if (obj40_read_ext(obj, SDEXT_LW_ID, &lwh))
@@ -118,9 +120,9 @@ uint64_t obj40_get_size(obj40_t *obj) {
 }
 
 /* Loads stat data to passed @hint. */
-errno_t obj40_load_stat(obj40_t *obj, stat_hint_t *hint) {
+errno_t obj40_load_stat(reiser4_object_t *obj, stat_hint_t *hint) {
 	trans_hint_t trans;
-	
+
 	aal_assert("umka-2553", obj != NULL);
 
 	/* Preparing hint and mask. */
@@ -141,7 +143,7 @@ errno_t obj40_load_stat(obj40_t *obj, stat_hint_t *hint) {
 
 #ifndef ENABLE_MINIMAL
 /* Saves stat data to passed @hint. */
-errno_t obj40_save_stat(obj40_t *obj, stat_hint_t *hint) {
+errno_t obj40_save_stat(reiser4_object_t *obj, stat_hint_t *hint) {
 	trans_hint_t trans;
 	
 	aal_assert("umka-2554", obj != NULL);
@@ -200,7 +202,7 @@ static errno_t obj40_stat_lw_init(stat_hint_t *stat, sdhint_lw_t *lwh,
 	/* Light weight hint initializing. */
 	lwh->size = size;
 	lwh->nlink = nlink;
-	lwh->mode = mode | 0755;
+	lwh->mode = mode;
 	
 	stat->extmask |= (1 << SDEXT_LW_ID);
 	stat->ext[SDEXT_LW_ID] = lwh;
@@ -208,7 +210,7 @@ static errno_t obj40_stat_lw_init(stat_hint_t *stat, sdhint_lw_t *lwh,
 	return 0;
 }
 
-static errno_t obj40_stat_plug_init(obj40_t *obj, 
+static errno_t obj40_stat_plug_init(reiser4_object_t *obj, 
 				    stat_hint_t *stat, 
 				    sdhint_plug_t *plugh) 
 {
@@ -220,12 +222,13 @@ static errno_t obj40_stat_plug_init(obj40_t *obj,
 
 	/* Get plugins that must exists in the PLUGID extention. */
 	obj->info.opset.plug_mask = 
-		obj->core->pset_ops.build_mask(obj->info.tree,
-					       &obj->info.opset);
+		obj40_core->pset_ops.build_mask(obj->info.tree,
+						&obj->info.opset);
 	
 	if (obj->info.opset.plug_mask) {
 		stat->extmask |= (1 << SDEXT_PLUG_ID);
 		stat->ext[SDEXT_PLUG_ID] = plugh;
+		plugh->plug_mask = obj->info.opset.plug_mask;
 	}
 
 	return 0;
@@ -250,7 +253,7 @@ static errno_t obj40_stat_comp_init(stat_hint_t *stat) {
 
 /* Create stat data item basing on passed extensions @mask, @size, @bytes,
    @nlinks, @mode and @path for symlinks. Returns error or zero for success. */
-errno_t obj40_create_stat(obj40_t *obj, uint64_t size, uint64_t bytes, 
+errno_t obj40_create_stat(reiser4_object_t *obj, uint64_t size, uint64_t bytes, 
 			  uint64_t rdev, uint32_t nlink, uint16_t mode, 
 			  char *path)
 {
@@ -312,7 +315,7 @@ errno_t obj40_create_stat(obj40_t *obj, uint64_t size, uint64_t bytes,
 }
 
 /* Updates size and bytes fielsds */
-errno_t obj40_touch(obj40_t *obj, uint64_t size, uint64_t bytes) {
+errno_t obj40_touch(reiser4_object_t *obj, uint64_t size, uint64_t bytes) {
 	sdhint_unix_t unixh;
 	errno_t res;
 
@@ -390,7 +393,7 @@ uint64_t obj40_extmask(reiser4_place_t *place) {
 }
 
 /* Gets mode field from the stat data */
-uint16_t obj40_get_mode(obj40_t *obj) {
+uint16_t obj40_get_mode(reiser4_object_t *obj) {
 	sdhint_lw_t lwh;
 
 	if (obj40_read_ext(obj, SDEXT_LW_ID, &lwh))
@@ -400,7 +403,7 @@ uint16_t obj40_get_mode(obj40_t *obj) {
 }
 
 /* Updates mode field in statdata */
-errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
+errno_t obj40_set_mode(reiser4_object_t *obj, uint16_t mode) {
 	sdhint_lw_t lwh;
 	errno_t res;
 
@@ -413,7 +416,7 @@ errno_t obj40_set_mode(obj40_t *obj, uint16_t mode) {
 }
 
 /* Updates size field in the stat data */
-errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
+errno_t obj40_set_size(reiser4_object_t *obj, uint64_t size) {
 	sdhint_lw_t lwh;
 	errno_t res;
 
@@ -426,7 +429,7 @@ errno_t obj40_set_size(obj40_t *obj, uint64_t size) {
 }
 
 /* Gets nlink field from the stat data */
-uint32_t obj40_get_nlink(obj40_t *obj) {
+uint32_t obj40_get_nlink(reiser4_object_t *obj) {
 	sdhint_lw_t lwh;
 
 	if (obj40_read_ext(obj, SDEXT_LW_ID, &lwh))
@@ -436,7 +439,7 @@ uint32_t obj40_get_nlink(obj40_t *obj) {
 }
 
 /* Updates nlink field in the stat data */
-errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
+errno_t obj40_set_nlink(reiser4_object_t *obj, uint32_t nlink) {
 	sdhint_lw_t lwh;
 	errno_t res;
 
@@ -449,7 +452,7 @@ errno_t obj40_set_nlink(obj40_t *obj, uint32_t nlink) {
 }
 
 /* Gets atime field from the stat data */
-uint32_t obj40_get_atime(obj40_t *obj) {
+uint32_t obj40_get_atime(reiser4_object_t *obj) {
 	sdhint_unix_t unixh;
 
 	if (obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh))
@@ -459,7 +462,7 @@ uint32_t obj40_get_atime(obj40_t *obj) {
 }
 
 /* Updates atime field in the stat data */
-errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
+errno_t obj40_set_atime(reiser4_object_t *obj, uint32_t atime) {
 	sdhint_unix_t unixh;
 	errno_t res;
 
@@ -472,7 +475,7 @@ errno_t obj40_set_atime(obj40_t *obj, uint32_t atime) {
 }
 
 /* Gets mtime field from the stat data */
-uint32_t obj40_get_mtime(obj40_t *obj) {
+uint32_t obj40_get_mtime(reiser4_object_t *obj) {
 	sdhint_unix_t unixh;
 
 	if (obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh))
@@ -482,7 +485,7 @@ uint32_t obj40_get_mtime(obj40_t *obj) {
 }
 
 /* Updates mtime field in the stat data */
-errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
+errno_t obj40_set_mtime(reiser4_object_t *obj, uint32_t mtime) {
 	sdhint_unix_t unixh;
 	errno_t res;
 
@@ -495,7 +498,7 @@ errno_t obj40_set_mtime(obj40_t *obj, uint32_t mtime) {
 }
 
 /* Gets bytes field from the stat data */
-uint64_t obj40_get_bytes(obj40_t *obj) {
+uint64_t obj40_get_bytes(reiser4_object_t *obj) {
 	sdhint_unix_t unixh;
 
 	if (obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh))
@@ -505,7 +508,7 @@ uint64_t obj40_get_bytes(obj40_t *obj) {
 }
 
 /* Updates bytes field in the stat data */
-errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
+errno_t obj40_set_bytes(reiser4_object_t *obj, uint64_t bytes) {
 	sdhint_unix_t unixh;
 	errno_t res;
 
@@ -519,13 +522,13 @@ errno_t obj40_set_bytes(obj40_t *obj, uint64_t bytes) {
 }
 
 /* Changes nlink field in statdata by passed @value */
-errno_t obj40_inc_link(obj40_t *obj, uint32_t value) {
+errno_t obj40_inc_link(reiser4_object_t *obj, uint32_t value) {
 	uint32_t nlink = obj40_get_nlink(obj);
 	return obj40_set_nlink(obj, nlink + value);
 }
 
 /* Removes object stat data. */
-errno_t obj40_clobber(obj40_t *obj) {
+errno_t obj40_clobber(reiser4_object_t *obj) {
 	errno_t res;
 	trans_hint_t hint;
 	
@@ -543,7 +546,7 @@ errno_t obj40_clobber(obj40_t *obj) {
 }
 
 /* Enumerates object data (stat data only for special files and symlinks). */
-errno_t obj40_layout(obj40_t *obj, region_func_t func, void *data) {
+errno_t obj40_layout(reiser4_object_t *obj, region_func_t func, void *data) {
 	errno_t res;
 
 	aal_assert("umka-2547", obj != NULL);
@@ -556,7 +559,8 @@ errno_t obj40_layout(obj40_t *obj, region_func_t func, void *data) {
 }
 
 /* Enumerates object metadata. */
-errno_t obj40_metadata(obj40_t *obj, place_func_t place_func,
+errno_t obj40_metadata(reiser4_object_t *obj, 
+		       place_func_t place_func,
 		       void *data)
 {
 	errno_t res;
@@ -570,7 +574,7 @@ errno_t obj40_metadata(obj40_t *obj, place_func_t place_func,
 	return place_func(STAT_PLACE(obj), data);
 }
 
-uint32_t obj40_links(obj40_t *obj) {
+uint32_t obj40_links(reiser4_object_t *obj) {
 	errno_t res;
 
 	aal_assert("umka-2567", obj != NULL);
@@ -581,7 +585,7 @@ uint32_t obj40_links(obj40_t *obj) {
 	return obj40_get_nlink(obj);
 }
 
-errno_t obj40_link(obj40_t *obj) {
+errno_t obj40_link(reiser4_object_t *obj) {
 	errno_t res;
 	
 	aal_assert("umka-2568", obj != NULL);
@@ -592,7 +596,7 @@ errno_t obj40_link(obj40_t *obj) {
 	return obj40_inc_link(obj, 1);
 }
 
-errno_t obj40_unlink(obj40_t *obj) {
+errno_t obj40_unlink(reiser4_object_t *obj) {
 	errno_t res;
 	
 	aal_assert("umka-2569", obj != NULL);
@@ -602,20 +606,23 @@ errno_t obj40_unlink(obj40_t *obj) {
 	
 	return obj40_inc_link(obj, -1);
 }
+
+/* Check if linked. Needed to let higher API levels know, that file has
+   zero links and may be clobbered. */
+bool_t obj40_linked(reiser4_object_t *entity) {
+	aal_assert("umka-2296", entity != NULL);
+	return obj40_links(entity) != 0;
+}
 #endif
 
 /* Initializes object handle by plugin, key, core operations and opaque pointer
    to tree file is going to be opened/created in. */
-errno_t obj40_init(obj40_t *obj, object_info_t *info, reiser4_core_t *core) {
-	aal_assert("umka-1574", obj != NULL);
-	aal_assert("umka-1757", info != NULL);
-	aal_assert("umka-1757", info->tree != NULL);
+errno_t obj40_init(reiser4_object_t *object) {
+	aal_assert("umka-1574", object != NULL);
 	
-	aal_memcpy(&obj->info, info, sizeof(*info));
-	obj->core = core;
-	
-	if (!info->start.plug)
-		aal_memcpy(STAT_KEY(obj), &info->object, sizeof(info->object));
+	if (!object->info.start.plug)
+		aal_memcpy(STAT_KEY(object), &object->info.object, 
+			   sizeof(object->info.object));
 	
 	return 0;
 }
@@ -623,7 +630,7 @@ errno_t obj40_init(obj40_t *obj, object_info_t *info, reiser4_core_t *core) {
 /* Makes sure, that passed place points to right location in tree by means of
    calling tree_lookup() for its key. This is needed, because items may move to
    somewhere after each balancing. */
-errno_t obj40_update(obj40_t *obj) {
+errno_t obj40_update(reiser4_object_t *obj) {
 	lookup_t res;
 	
 	aal_assert("umka-1905", obj != NULL);
@@ -643,39 +650,42 @@ errno_t obj40_update(obj40_t *obj) {
 }
 
 /* Reads data from the tree to passed @hint. */
-int64_t obj40_read(obj40_t *obj, trans_hint_t *hint) {
-	return obj->core->flow_ops.read(obj->info.tree, hint);
+int64_t obj40_read(reiser4_object_t *obj, trans_hint_t *hint) {
+	return obj40_core->flow_ops.read(obj->info.tree, hint);
 }
 
 #ifndef ENABLE_MINIMAL
-int64_t obj40_convert(obj40_t *obj, conv_hint_t *hint) {
-	return obj->core->flow_ops.convert(obj->info.tree, hint);
+int64_t obj40_convert(reiser4_object_t *obj, conv_hint_t *hint) {
+	return obj40_core->flow_ops.convert(obj->info.tree, hint);
 }
 
 /* Writes data to tree */
-int64_t obj40_write(obj40_t *obj, trans_hint_t *hint) {
-	return obj->core->flow_ops.write(obj->info.tree, hint);
+int64_t obj40_write(reiser4_object_t *obj, trans_hint_t *hint) {
+	return obj40_core->flow_ops.write(obj->info.tree, hint);
 }
 
 /* Truncates data in tree */
-int64_t obj40_truncate(obj40_t *obj, trans_hint_t *hint) {
-	return obj->core->flow_ops.truncate(obj->info.tree, hint);
+int64_t obj40_truncate(reiser4_object_t *obj, trans_hint_t *hint) {
+	return obj40_core->flow_ops.truncate(obj->info.tree, hint);
 }
 
 /* Inserts passed item hint into the tree. After function is finished, place
    contains the place of the inserted item. */
-int64_t obj40_insert(obj40_t *obj, reiser4_place_t *place,
-		     trans_hint_t *hint, uint8_t level)
+int64_t obj40_insert(reiser4_object_t *obj, 
+		     reiser4_place_t *place,
+		     trans_hint_t *hint, 
+		     uint8_t level)
 {
-	return obj->core->tree_ops.insert(obj->info.tree,
-					  place, hint, level);
+	return obj40_core->tree_ops.insert(obj->info.tree,
+					   place, hint, level);
 }
 
 /* Removes item/unit by @key */
-errno_t obj40_remove(obj40_t *obj, reiser4_place_t *place,
+errno_t obj40_remove(reiser4_object_t *obj, 
+		     reiser4_place_t *place,
 		     trans_hint_t *hint)
 {
-	return obj->core->tree_ops.remove(obj->info.tree,
-					  place, hint);
+	return obj40_core->tree_ops.remove(obj->info.tree,
+					   place, hint);
 }
 #endif

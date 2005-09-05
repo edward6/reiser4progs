@@ -10,39 +10,16 @@
 #include <reiser4/plugin.h>
 #include <plugin/object/obj40/obj40.h>
 
-/* Regular file structure */
-struct reg40 {
-	/* Common fields (statdata, etc) */
-	obj40_t obj;
-
-	/* Current body item coord stored here */
-	reiser4_place_t body;
-
-	/* Current position in the reg file */
-	reiser4_key_t position;
-	
 #ifndef ENABLE_MINIMAL
-	/* File body plugin is use. */
-	reiser4_plug_t *body_plug;
-#endif
-};
-
-typedef struct reg40 reg40_t;
-
-extern reiser4_plug_t reg40_plug;
-extern reiser4_core_t *reg40_core;
-
-extern int64_t reg40_put(object_entity_t *entity, void *buff, 
+extern int64_t reg40_put(reiser4_object_t *reg, void *buff, 
 			 uint64_t n, place_func_t place_func);
 
-extern errno_t reg40_seek(object_entity_t *entity,
+extern errno_t reg40_seek(reiser4_object_t *reg,
 			  uint64_t offset);
 
-extern errno_t reg40_reset(object_entity_t *entity);
-extern uint64_t reg40_offset(object_entity_t *entity);
-extern lookup_t reg40_update_body(reg40_t *reg);
+extern errno_t reg40_reset(reiser4_object_t *reg);
+extern uint64_t reg40_offset(reiser4_object_t *reg);
+extern lookup_t reg40_update_body(reiser4_object_t *reg);
 
-extern reiser4_plug_t *reg40_policy_plug(reg40_t *reg,
-					 uint64_t new_size);
 #endif
-
+#endif

@@ -44,9 +44,9 @@ errno_t ln_cmd(busy_ctx_t *ctx) {
 		goto error_object_close;
 	
 	/* Looking up for @entry in current directory */
-	plug = parent->ent->opset.plug[OPSET_OBJ];
+	plug = parent->info.opset.plug[OPSET_OBJ];
 	if ((res = plug_call(plug->o.object_ops, lookup, 
-			     parent->ent, name, &entry)) < 0)
+			     parent, name, &entry)) < 0)
 		goto error_close_parent;
 
 	if (res == PRESENT) {
@@ -56,7 +56,9 @@ errno_t ln_cmd(busy_ctx_t *ctx) {
 
 	if (reiser4_object_entry_prep(ctx->in.fs->tree, parent, 
 				      &entry, name))
+	{
 		goto error_close_parent;
+	}
 
 	if (reiser4_object_link(parent, object, &entry)) {
 		aal_error("Failed to link object.");

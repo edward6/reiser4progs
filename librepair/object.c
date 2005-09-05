@@ -16,17 +16,17 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	aal_assert("vpf-1044", object != NULL);
 	
-	if ((res = plug_call(object->ent->opset.plug[OPSET_OBJ]->o.object_ops,
-			     check_struct, object->ent, place_func, 
+	if ((res = plug_call(object->info.opset.plug[OPSET_OBJ]->o.object_ops,
+			     check_struct, object, place_func, 
 			     data, mode)) < 0)
 		return res;
 	
 	aal_assert("vpf-1195", mode != RM_BUILD ||
 			      !(res & RE_FATAL));
 	
-	aal_memcpy(&object->ent->object, 
+	aal_memcpy(&object->info.object, 
 		   &object_start(object)->key,
-		   sizeof(object->ent->object));
+		   sizeof(object->info.object));
 
 	return res;
 }
@@ -39,7 +39,6 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 				     reiser4_plug_t *plug) 
 {
 	reiser4_object_t *object;
-	object_info_t info;
 
 	aal_assert("vpf-1247", tree != NULL);
 	aal_assert("vpf-1248", key != NULL);
@@ -49,31 +48,27 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 		return INVAL_PTR;
 
 	/* Initializing info */
-	aal_memset(&info, 0, sizeof(info));
-
-	aal_memcpy(&info.object, key, sizeof(*key));
+	aal_memcpy(&object->info.object, key, sizeof(*key));
 	
-	info.tree = (tree_entity_t *)tree;
-	info.opset.plug[OPSET_OBJ] = plug;
-	info.opset.plug_mask |= (1 << OPSET_OBJ);
+	object->info.tree = (tree_entity_t *)tree;
+	object->info.opset.plug[OPSET_OBJ] = plug;
+	object->info.opset.plug_mask |= (1 << OPSET_OBJ);
 
 	if (parent) {
-		aal_memcpy(&info.parent, 
-			   &parent->ent->object, 
-			   sizeof(info.parent));
+		aal_memcpy(&object->info.parent, 
+			   &parent->info.object, 
+			   sizeof(object->info.parent));
 	}
 	
-	reiser4_opset_complete((reiser4_tree_t *)info.tree, &info.opset);
+	reiser4_opset_complete(tree, &object->info.opset);
 	
 	/* Create the fake object. */
-	if (!(object->ent = plug_call(plug->o.object_ops, fake, &info)))
-		goto error_close_object;
+	if (plug_call(plug->o.object_ops, fake, object)) {
+		aal_free(object);
+		return NULL;
+	}
 	
 	return object;
-	
- error_close_object:
-	aal_free(object);
-	return NULL;
 }
 
 reiser4_object_t *repair_object_open(reiser4_tree_t *tree, 
@@ -81,26 +76,23 @@ reiser4_object_t *repair_object_open(reiser4_tree_t *tree,
 				     reiser4_place_t *place) 
 {
 	reiser4_object_t *object;
-	object_info_t info;
-	void *ent;
+	errno_t res;
 	
 	aal_assert("vpf-1622", place != NULL);
 	
-	if (!(object = reiser4_object_prep(tree, parent, &place->key,
-					   place, &info)))
+	if (!(object = reiser4_object_prep(tree, parent, 
+					   &place->key, place)))
 	{
 		return INVAL_PTR;
 	}
 	
-	ent = plug_call(info.opset.plug[OPSET_OBJ]->o.object_ops,
-			recognize, &info);
-
-	if (!ent || ent == INVAL_PTR) {
+	if ((res = plug_call(object->info.opset.plug[OPSET_OBJ]->o.object_ops,
+			     recognize, object)))
+	{
 		aal_free(object);
-		return ent;
+		return res < 0 ? INVAL_PTR : NULL;
 	}
 	
-	object->ent = ent;
 	return object;
 }
 
@@ -111,9 +103,8 @@ reiser4_object_t *repair_object_obtain(reiser4_tree_t *tree,
 {
 	reiser4_object_t *object;
 	reiser4_place_t place;
-	object_info_t info;
 	lookup_hint_t hint;
-	void *ent;
+	errno_t res;
 
 	aal_assert("vpf-1132", tree != NULL);
 	aal_assert("vpf-1134", key != NULL);
@@ -127,23 +118,19 @@ reiser4_object_t *repair_object_obtain(reiser4_tree_t *tree,
 	
 	/* Even if ABSENT, pass the found place through object recognize 
 	   method to check all possible corruptions. */
-	if (!(object = reiser4_object_prep(tree, parent, key, 
-					   &place, &info)))
-	{
+	if (!(object = reiser4_object_prep(tree, parent, key, &place))) {
 		/* FIXME: object_init fails to initialize if found item 
 		   is not SD, but this is not fatal error. */
 		return NULL;
 	}
 	
-	ent = plug_call(info.opset.plug[OPSET_OBJ]->o.object_ops,
-			recognize, &info);
-	
-	if (!ent || ent == INVAL_PTR) {
+	if ((res = plug_call(objplug(object)->o.object_ops, 
+			     recognize, object)))
+	{
 		aal_free(object);
-		return ent;
+		return res < 0 ? INVAL_PTR : NULL;
 	}
 	
-	object->ent = ent;
 	return object;
 }
 
@@ -153,20 +140,14 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 				   place_func_t place_func, 
 				   void *data, uint8_t mode)
 {
-	reiser4_plug_t *plug;
-	
 	aal_assert("vpf-1188", object != NULL);
-	aal_assert("vpf-1098", object->ent != NULL);
 	aal_assert("vpf-1099", parent != NULL);
-	aal_assert("vpf-1100", parent->ent != NULL);
 	
-	plug = object->ent->opset.plug[OPSET_OBJ];
-	
-	if (!plug->o.object_ops->check_attach)
+	if (!objplug(object)->o.object_ops->check_attach)
 		return 0;
 	
-	return plug_call(plug->o.object_ops, check_attach, object->ent, 
-			 parent->ent, place_func, data, mode);
+	return plug_call(objplug(object)->o.object_ops, check_attach, 
+			 object, parent, place_func, data, mode);
 }
 
 errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag) {
@@ -177,7 +158,7 @@ errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag) {
 	/* Get the start place. */
 	if ((res = reiser4_object_refresh(object))) {
 		aal_error("Update of the object [%s] failed.",
-			  reiser4_print_inode(&object->ent->object));
+			  reiser4_print_inode(&object->info.object));
 		return res;
 	}
 	
@@ -194,7 +175,7 @@ int repair_object_test(reiser4_object_t *object, uint16_t flag) {
 	/* Get the start place. */
 	if ((res = reiser4_object_refresh(object))) {
 		aal_error("Update of the object [%s] failed.",
-			  reiser4_print_inode(&object->ent->object));
+			  reiser4_print_inode(&object->info.object));
 		return res;
 	}
 	
@@ -209,7 +190,7 @@ errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag) {
 	/* Get the start place. */
 	if ((res = reiser4_object_refresh(object))) {
 		aal_error("Update of the object [%s] failed.",
-			  reiser4_print_inode(&object->ent->object));
+			  reiser4_print_inode(&object->info.object));
 		return res;
 	}
 	
@@ -222,25 +203,22 @@ errno_t repair_object_clear(reiser4_object_t *object, uint16_t flag) {
    with the object. For now it is only updating the parent pointer. 
    Should be called after repair_object_obtain, repair_object_check_sytict. */
 errno_t repair_object_refresh(reiser4_object_t *object) {
-	reiser4_plug_t *plug;
 	entry_hint_t entry;
 	
 	aal_assert("vpf-1271", object != NULL);
 
-	plug = object->ent->opset.plug[OPSET_OBJ];
-	
-	if (!plug->o.object_ops->lookup)
+	if (!objplug(object)->o.object_ops->lookup)
 		return 0;
 
-	switch (plug_call(plug->o.object_ops, lookup, 
-			  object->ent, "..", &entry))
+	switch (plug_call(objplug(object)->o.object_ops, 
+			  lookup, object, "..", &entry)) 
 	{
 	case ABSENT:
-		aal_memset(&object->ent->parent, 0, 
-			   sizeof(object->ent->parent));
+		aal_memset(&object->info.parent, 0, 
+			   sizeof(object->info.parent));
 		break;
 	case PRESENT:
-		aal_memcpy(&object->ent->parent, 
+		aal_memcpy(&object->info.parent, 
 			   &entry.object, sizeof(entry.object));
 		break;
 	default:

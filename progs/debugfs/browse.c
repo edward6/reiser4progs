@@ -15,7 +15,7 @@ static errno_t debugfs_reg_cat(reiser4_object_t *object) {
 	
 	if ((res = reiser4_object_reset(object))) {
 		aal_error("Can't reset object %s.",
-			  reiser4_print_inode(&object->ent->object));
+			  reiser4_print_inode(&object->info.object));
 		return res;
 	}
 
@@ -40,7 +40,7 @@ static errno_t debugfs_dir_cat(reiser4_object_t *object) {
 	
 	if ((res = reiser4_object_reset(object))) {
 		aal_error("Can't reset object %s.", 
-			  reiser4_print_inode(&object->ent->object));
+			  reiser4_print_inode(&object->info.object));
 		return res;
 	}
 
@@ -74,7 +74,7 @@ static errno_t debugfs_spl_cat(reiser4_object_t *object) {
 
 	if ((res = reiser4_object_stat(object, &stath))) {
 		aal_error("Can't stat object %s.", 
-			  reiser4_print_inode(&object->ent->object));
+			  reiser4_print_inode(&object->info.object));
 		return res;
 	}
 
@@ -94,7 +94,7 @@ errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 		return -EINVAL;
 	}
 
-	switch (object->ent->opset.plug[OPSET_OBJ]->id.group) {
+	switch (object->info.opset.plug[OPSET_OBJ]->id.group) {
 	case REG_OBJECT:
 		res = debugfs_reg_cat(object);
 		break;

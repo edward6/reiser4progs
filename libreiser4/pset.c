@@ -32,8 +32,19 @@ int opset_prof[OPSET_LAST] = {
 #endif
 };
 
+#ifndef ENABLE_MINIMAL
+static int pset_tree_isready(reiser4_tree_t *tree) {
+	return tree->ent.opset[OPSET_HASH] != NULL;
+}
+#endif
+
 void reiser4_opset_complete(reiser4_tree_t *tree, reiser4_opset_t *opset) {
 	int i;
+	
+#ifndef ENABLE_MINIMAL
+	if (!pset_tree_isready(tree))
+		return reiser4_opset_root(opset);
+#endif
 
 	for (i = 0; i < OPSET_LAST; i++) {
 		if (opset->plug_mask & (1 << i))
@@ -112,7 +123,7 @@ uint64_t reiser4_opset_build_mask(reiser4_tree_t *tree,
 	
 	mask = 0;
 	
-	if (!tree->ent.opset[OPSET_HASH]) {
+	if (!pset_tree_isready(tree)) {
 		/* If HASH plugin is not initialized, no object exists.
 		   The special case for the root directory. All opset 
 		   members must be stored. */
@@ -192,11 +203,11 @@ errno_t reiser4_opset_tree(reiser4_tree_t *tree) {
 		return -EINVAL;
 	}
 	
-	aal_memcpy(tree->ent.opset, object->ent->opset.plug, 
+	aal_memcpy(tree->ent.opset, object->info.opset.plug, 
 		   sizeof(reiser4_plug_t *) * OPSET_LAST);
 
 #ifndef ENABLE_MINIMAL
-	mask = object->ent->opset.plug_mask;
+	mask = object->info.opset.plug_mask;
 #endif
 
 	reiser4_object_close(object);

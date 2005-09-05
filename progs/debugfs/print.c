@@ -255,7 +255,7 @@ errno_t debugfs_print_file(
 		if ((res = reiser4_object_metadata(object, place_func, &hint)))
 		{
 			aal_error("Can't print object %s metadata.", 
-				  reiser4_print_inode(&object->ent->object));
+				  reiser4_print_inode(&object->info.object));
 		}
 	}
 

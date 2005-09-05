@@ -34,7 +34,7 @@ static errno_t cb_find_statdata(char *path, char *entry, void *data) {
 	}
 	
 #ifdef ENABLE_SYMLINKS
-	plug = resol->object->ent->opset.plug[OPSET_OBJ];
+	plug = resol->object->info.opset.plug[OPSET_OBJ];
 	
 	/* Symlinks handling. Method follow() should be implemented if object
 	   wants to be resolved (symlink). */
@@ -43,8 +43,8 @@ static errno_t cb_find_statdata(char *path, char *entry, void *data) {
 
 		/* Calling object's follow() in order to get stat data key of
 		   the object that current object points to. */
-		res = plug_call(plug->o.object_ops, follow, resol->object->ent,
-				(resol->parent ? &resol->parent->ent->object :
+		res = plug_call(plug->o.object_ops, follow, resol->object,
+				(resol->parent ? &resol->parent->info.object :
 				 &resol->tree->key), &resol->key);
 
 	        /* Close current object. */
@@ -85,11 +85,11 @@ static errno_t cb_find_entry(char *path, char *name, void *data) {
 		return 0;
 	}
 	
-	plug = resol->object->ent->opset.plug[OPSET_OBJ];
+	plug = resol->object->info.opset.plug[OPSET_OBJ];
 	
 	/* Looking up for @entry in current directory */
 	if ((res = plug_call(plug->o.object_ops, lookup, 
-			     resol->object->ent, name, &entry)) < 0)
+			     resol->object, name, &entry)) < 0)
 		return res;
 	
 	if (res != PRESENT) {

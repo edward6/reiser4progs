@@ -26,7 +26,10 @@ static errno_t obj40_exts_check(reiser4_place_t *stat,
 }
 
 /* Checks that @obj->info.start is SD of the wanted file.  */
-errno_t obj40_check_stat(obj40_t *obj, uint64_t exts_must, uint64_t exts_unkn) {
+errno_t obj40_check_stat(reiser4_object_t *obj, 
+			 uint64_t exts_must, 
+			 uint64_t exts_unkn) 
+{
 	object_info_t *info;
 	errno_t res;
 
@@ -57,7 +60,7 @@ errno_t obj40_check_stat(obj40_t *obj, uint64_t exts_must, uint64_t exts_unkn) {
 }
 
 /* The plugin tries to recognize the object: detects the SD, body items */
-errno_t obj40_objkey_check(obj40_t *obj) {
+errno_t obj40_objkey_check(reiser4_object_t *obj) {
 	uint64_t locality, objectid, ordering;
 	object_info_t *info;
 	reiser4_key_t key;
@@ -87,7 +90,7 @@ errno_t obj40_objkey_check(obj40_t *obj) {
 }
 
 #define OBJ40_CHECK(field, type, value, correct)			\
-static inline int obj40_check_##field(obj40_t *obj,			\
+static inline int obj40_check_##field(reiser4_object_t *obj,			\
 				      type *value,			\
 				      type correct)			\
 {									\
@@ -103,7 +106,7 @@ OBJ40_CHECK(nlink, uint32_t, value, correct);
 OBJ40_CHECK(size,  uint64_t, value, correct);
 OBJ40_CHECK(bytes,  uint64_t, value, correct);
 
-static inline int obj40_check_mode(obj40_t *obj, 
+static inline int obj40_check_mode(reiser4_object_t *obj, 
 				   uint16_t *mode, 
 				   uint16_t correct) 
 {
@@ -115,7 +118,7 @@ static inline int obj40_check_mode(obj40_t *obj,
 	return 1;
 }
 
-static inline errno_t obj40_check_lw(obj40_t *obj, 
+static inline errno_t obj40_check_lw(reiser4_object_t *obj, 
 				     obj40_stat_ops_t *ops,
 				     obj40_stat_hint_t *hint, 
 				     uint8_t mode, int present)
@@ -139,7 +142,7 @@ static inline errno_t obj40_check_lw(obj40_t *obj,
 		fsck_mess("Node (%llu), item (%u), [%s] (%s): no mandatory "
 			  "light-weight extention.%s Plugin (%s).",
 			  place_blknr(start), start->pos.item, 
-			  print_inode(obj->core,&start->key),
+			  print_inode(obj40_core, &start->key),
 			  start->plug->label, mode != RM_CHECK ? "Added." : "",
 			  obj->info.opset.plug[OPSET_OBJ]->label);
 
@@ -207,7 +210,7 @@ static inline errno_t obj40_check_lw(obj40_t *obj,
 	if (fixed) {
 		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong mode (%u), "
 			  "%s (%u).", place_blknr(start), start->pos.item, 
-			  print_inode(obj->core, &start->key), 
+			  print_inode(obj40_core, &start->key), 
 			  start->plug->label, lwh.mode, mode == RM_CHECK ? 
 			  "Should be" : "Fixed to", correct.mode);
 
@@ -226,7 +229,7 @@ static inline errno_t obj40_check_lw(obj40_t *obj,
 	if (fixed) {
 		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong size (%llu)"
 			  ", %s (%llu).", place_blknr(start), start->pos.item, 
-			  print_inode(obj->core, &start->key), 
+			  print_inode(obj40_core, &start->key), 
 			  start->plug->label, lwh.size, mode == RM_CHECK ? 
 			  "Should be" : "Fixed to", correct.size);
 
@@ -239,7 +242,7 @@ static inline errno_t obj40_check_lw(obj40_t *obj,
 	return res;
 }
 
-static inline errno_t obj40_check_unix(obj40_t *obj, 
+static inline errno_t obj40_check_unix(reiser4_object_t *obj, 
 				       obj40_stat_ops_t *ops,
 				       obj40_stat_hint_t *hint, 
 				       uint8_t mode, int present)
@@ -262,7 +265,7 @@ static inline errno_t obj40_check_unix(obj40_t *obj,
 		
 		fsck_mess("Node (%llu), item (%u), [%s] (%s): no mandatory "
 			  "unix extention.%s Plugin (%s).", place_blknr(start),
-			  start->pos.item, print_inode(obj->core, &start->key),
+			  start->pos.item, print_inode(obj40_core, &start->key),
 			  start->plug->label, mode != RM_CHECK ? " Added." : "",
 			  obj->info.opset.plug[OPSET_OBJ]->label);
 
@@ -319,7 +322,7 @@ static inline errno_t obj40_check_unix(obj40_t *obj,
 		/* sd_bytes are set wrongly in the kernel. */
 		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong bytes "
 			  "(%llu), %s (%llu).", place_blknr(start), 
-			  start->pos.item, print_inode(obj->core, &start->key),
+			  start->pos.item, print_inode(obj40_core, &start->key),
 			  start->plug->label, unixh.bytes, mode == RM_CHECK ? 
 			  "Should be" : "Fixed to", correct.bytes);
 		
@@ -346,7 +349,7 @@ static inline errno_t obj40_check_unix(obj40_t *obj,
    obj40_check_plug is used to form the on-disk opset according to already
    existent SD opset and tree->opset. Actually used for the root only. */
 
-static inline errno_t obj40_check_plug(obj40_t *obj, uint8_t mode) {
+static inline errno_t obj40_check_plug(reiser4_object_t *obj, uint8_t mode) {
 	reiser4_place_t *start;
 	trans_hint_t trans;
 	stat_hint_t stat;
@@ -359,14 +362,14 @@ static inline errno_t obj40_check_plug(obj40_t *obj, uint8_t mode) {
 	start = &obj->info.start;
 	
 	/* Get plugins that must exists in the PLUGID extention. */
-	mask = obj->core->pset_ops.build_mask(obj->info.tree, &obj->info.opset);
+	mask = obj40_core->pset_ops.build_mask(obj->info.tree, &obj->info.opset);
 	mask &= ((1 << OPSET_STORE_LAST) - 1);
 	
 	if ((diff = (mask != obj->info.opset.plug_mask))) {
 		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong plugin "
 			  "set is stored on disk (0x%llx). %s (0x%llx).",
 			  place_blknr(start), start->pos.item,
-			  print_inode(obj->core, &start->key),
+			  print_inode(obj40_core, &start->key),
 			  start->plug->label, obj->info.opset.plug_mask,
 			  mode == RM_CHECK ? "Should be" : "Fixed to",
 			  mask);
@@ -411,7 +414,7 @@ static inline errno_t obj40_check_plug(obj40_t *obj, uint8_t mode) {
 
 
 /* Check the set of SD extentions and their contents. */
-errno_t obj40_update_stat(obj40_t *obj, obj40_stat_ops_t *ops,
+errno_t obj40_update_stat(reiser4_object_t *obj, obj40_stat_ops_t *ops,
 			  obj40_stat_hint_t *hint, uint8_t mode)
 {
 	reiser4_place_t *start;
@@ -448,7 +451,7 @@ errno_t obj40_update_stat(obj40_t *obj, obj40_stat_ops_t *ops,
 		fsck_mess("Node (%llu), item (%u), [%s]: StatData has some "
 			  "unknown extentions (mask=%llu).%s Plugin (%s).",
 			  place_blknr(start), start->pos.item, 
-			  print_inode(obj->core, &start->key),
+			  print_inode(obj40_core, &start->key),
 			  stat.extmask, mode != RM_CHECK ? 
 			  " Removed." : "", start->plug->label);
 
@@ -487,7 +490,7 @@ errno_t obj40_update_stat(obj40_t *obj, obj40_stat_ops_t *ops,
 }
 
 /* Fix @place->key if differs from @key. */
-errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place, 
+errno_t obj40_fix_key(reiser4_object_t *obj, reiser4_place_t *place, 
 		      reiser4_key_t *key, uint8_t mode) 
 {
 	errno_t res;
@@ -500,15 +503,15 @@ errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place,
 	fsck_mess("Node (%llu), item (%u), (%s): the key [%s] of the "
 		  "item is wrong, %s [%s]. Plugin (%s).", place_blknr(place),
 		  place->pos.unit, place->plug->label, 
-		  print_key(obj->core, &place->key), mode == RM_CHECK ? 
-		  "should be" : "fixed to", print_key(obj->core, key), 
+		  print_key(obj40_core, &place->key), mode == RM_CHECK ? 
+		  "should be" : "fixed to", print_key(obj40_core, key), 
 		  obj->info.opset.plug[OPSET_OBJ]->label);
 	
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
 	
-	if ((res = obj->core->tree_ops.update_key(obj->info.tree,
-						  place, key)))
+	if ((res = obj40_core->tree_ops.update_key(obj->info.tree,
+						   place, key)))
 	{
 		aal_error("Node (%llu), item(%u): update of the "
 			  "item key failed.", place_blknr(place),
@@ -518,7 +521,7 @@ errno_t obj40_fix_key(obj40_t *obj, reiser4_place_t *place,
 	return res;
 }
 
-errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
+errno_t obj40_prepare_stat(reiser4_object_t *obj, uint16_t objmode, uint8_t mode) {
 	reiser4_place_t *start;
 	trans_hint_t trans;
 	reiser4_key_t *key;
@@ -545,7 +548,7 @@ errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 		fsck_mess("Node (%llu), item (%u), (%s): not "
 			  "StatData is found by the key (%s).%s",
 			  place_blknr(start), start->pos.item, 
-			  start->plug->label, print_key(obj->core, key),
+			  start->plug->label, print_key(obj40_core, key),
 			  mode == RM_BUILD ? "Removed." : "");
 
 		if (mode != RM_BUILD)
@@ -566,7 +569,7 @@ errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 	   recovery. */
 	
 	fsck_mess("The file [%s] does not have a StatData item.%s Plugin %s.",
-		  print_inode(obj->core, key), mode == RM_BUILD ? " Creating "
+		  print_inode(obj40_core, key), mode == RM_BUILD ? " Creating "
 		  "a new one." : "",  obj->info.opset.plug[OPSET_OBJ]->label);
 
 	if (mode != RM_BUILD)
@@ -576,7 +579,7 @@ errno_t obj40_prepare_stat(obj40_t *obj, uint16_t objmode, uint8_t mode) {
 				     objmode == S_IFLNK ? "FAKE_LINK" : NULL)))
 	{
 		aal_error("The file [%s] failed to create a StatData item. "
-			  "Plugin %s.", print_inode(obj->core, key),
+			  "Plugin %s.", print_inode(obj40_core, key),
 			  obj->info.opset.plug[OPSET_OBJ]->label);
 	}
 

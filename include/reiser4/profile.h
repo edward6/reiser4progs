@@ -65,13 +65,13 @@ typedef struct reiser4_profile {
 	uint64_t mask;
 } reiser4_profile_t;
 
+extern reiser4_plug_t *reiser4_profile_plug(rid_t index);
+
 #ifndef ENABLE_MINIMAL
 extern errno_t reiser4_profile_override(const char *plug, const char *name);
+
 extern bool_t reiser4_profile_overridden(rid_t id);
 
 extern void reiser4_profile_print(aal_stream_t *stream);
 #endif
-
-extern reiser4_plug_t *reiser4_profile_plug(rid_t index);
-
 #endif

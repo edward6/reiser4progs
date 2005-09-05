@@ -579,14 +579,9 @@ typedef struct object_info {
 	reiser4_key_t parent;
 } object_info_t;
 
-typedef object_info_t object_entity_t;
-
 /* Object hint. It is used to bring all about object information to object
    plugin to create appropriate object by it. */
 typedef struct object_hint {
-	/* Object info. */
-	object_info_t info;
-	
 	/* Additional mode to be masked to stat data mode. This is
 	   needed for special files, but mat be used somewhere else. */
 	uint32_t mode;
@@ -599,6 +594,26 @@ typedef struct object_hint {
 	/* SymLink name. */
 	char *name;
 } object_hint_t;
+
+/* Reiser4 file structure (regular file, directory, symlinks, etc) */
+typedef struct reiser4_object {
+	/* Info about the object, stat data place, object and parent keys and
+	   pointer to the instance of internal libreiser4 tree for modiying
+	   purposes. It is passed by reiser4 library during initialization of
+	   the file instance. */
+	object_info_t info;
+
+	/* Current body item coord stored here */
+	reiser4_place_t body;
+
+	/* Current position in the reg file */
+	reiser4_key_t position;
+
+#ifndef ENABLE_MINIMAL
+	/* File body plugin is use. */
+	reiser4_plug_t *body_plug;
+#endif
+} reiser4_object_t;
 
 /* Bits for entity state field. For now here is only "dirty" bit, but possible
    and other ones. */
@@ -916,100 +931,100 @@ typedef struct reiser4_key_ops {
 
 typedef struct reiser4_object_ops {
 	/* Loads object stat data to passed hint. */
-	errno_t (*stat) (object_entity_t *, stat_hint_t *);
+	errno_t (*stat) (reiser4_object_t *, stat_hint_t *);
 
 #ifndef ENABLE_MINIMAL
 	/* These methods change @nlink value of passed @entity. */
-	errno_t (*link) (object_entity_t *);
-	errno_t (*unlink) (object_entity_t *);
-	bool_t (*linked) (object_entity_t *);
+	errno_t (*link) (reiser4_object_t *);
+	errno_t (*unlink) (reiser4_object_t *);
+	bool_t (*linked) (reiser4_object_t *);
 
 	/* Establish parent child relationship. */
-	errno_t (*attach) (object_entity_t *, object_entity_t *);
-	errno_t (*detach) (object_entity_t *, object_entity_t *);
+	errno_t (*attach) (reiser4_object_t *, reiser4_object_t *);
+	errno_t (*detach) (reiser4_object_t *, reiser4_object_t *);
 
 	/* Updates object stat data from passed hint. */
-	errno_t (*update) (object_entity_t *, stat_hint_t *);
+	errno_t (*update) (reiser4_object_t *, stat_hint_t *);
 	
 	/* Creates new file with passed parent and object keys. */
-	object_entity_t *(*create) (object_hint_t *);
+	errno_t (*create) (reiser4_object_t *, object_hint_t *);
 
 	/* Delete file body and stat data if any. */
-	errno_t (*clobber) (object_entity_t *);
+	errno_t (*clobber) (reiser4_object_t *);
 
 	/* Writes the data to file from passed buffer. */
-	int64_t (*write) (object_entity_t *, void *, uint64_t);
+	int64_t (*write) (reiser4_object_t *, void *, uint64_t);
 
 	/* Directory specific methods */
-	errno_t (*add_entry) (object_entity_t *, entry_hint_t *);
-	errno_t (*rem_entry) (object_entity_t *, entry_hint_t *);
-	errno_t (*build_entry) (object_entity_t *, entry_hint_t *);
+	errno_t (*add_entry) (reiser4_object_t *, entry_hint_t *);
+	errno_t (*rem_entry) (reiser4_object_t *, entry_hint_t *);
+	errno_t (*build_entry) (reiser4_object_t *, entry_hint_t *);
 	
 	/* Truncates file at current offset onto passed units. */
-	errno_t (*truncate) (object_entity_t *, uint64_t);
+	errno_t (*truncate) (reiser4_object_t *, uint64_t);
 
 	/* Function for going through all metadata blocks specfied file
 	   occupied. It is needed for accessing file's metadata. */
-	errno_t (*metadata) (object_entity_t *, place_func_t, void *);
+	errno_t (*metadata) (reiser4_object_t *, place_func_t, void *);
 	
 	/* Function for going through the all data blocks specfied file
 	   occupies. It is needed for the purposes like data fragmentation
 	   measuring, etc. */
-	errno_t (*layout) (object_entity_t *, region_func_t, void *);
+	errno_t (*layout) (reiser4_object_t *, region_func_t, void *);
 
 	/* Converts file body to item denoted by @plug. */
-	errno_t (*convert) (object_entity_t *, reiser4_plug_t *plug);
+	errno_t (*convert) (reiser4_object_t *, reiser4_plug_t *plug);
 	
 	/* Checks and recover the structure of the object. */
-	errno_t (*check_struct) (object_entity_t *, place_func_t, 
+	errno_t (*check_struct) (reiser4_object_t *, place_func_t, 
 				 void *, uint8_t);
 	
 	/* Checks attach of the @object to the @parent. */
-	errno_t (*check_attach) (object_entity_t *, object_entity_t *,
+	errno_t (*check_attach) (reiser4_object_t *, reiser4_object_t *,
 				 place_func_t, void *, uint8_t);
 	
 	/* Realizes if the object can be of this plugin and can be recovered as
 	   a such. */
-	object_entity_t *(*recognize) (object_info_t *);
+	errno_t (*recognize) (reiser4_object_t *);
 	
 	/* Creates the fake object by the gived @info. Needed to recover "/" and
 	   "lost+found" direcories if their SD are broken. */
-	object_entity_t *(*fake) (object_info_t *);
+	errno_t (*fake) (reiser4_object_t *);
 #endif
 	
 	/* Change current position to passed value. */
-	errno_t (*seek) (object_entity_t *, uint64_t);
+	errno_t (*seek) (reiser4_object_t *, uint64_t);
 	
 	/* Opens file with specified key */
-	object_entity_t *(*open) (object_info_t *);
+	errno_t (*open) (reiser4_object_t *);
 
 	/* Closes previously opened or created directory. */
-	void (*close) (object_entity_t *);
+	void (*close) (reiser4_object_t *);
 
 	/* Resets internal position. */
-	errno_t (*reset) (object_entity_t *);
+	errno_t (*reset) (reiser4_object_t *);
    
 	/* Returns current position in directory. */
-	uint64_t (*offset) (object_entity_t *);
+	uint64_t (*offset) (reiser4_object_t *);
 
 	/* Makes lookup inside file */
-	lookup_t (*lookup) (object_entity_t *, char *, entry_hint_t *);
+	lookup_t (*lookup) (reiser4_object_t *, char *, entry_hint_t *);
 
 	/* Finds actual file stat data (used in symlinks). */
-	errno_t (*follow) (object_entity_t *, reiser4_key_t *,
+	errno_t (*follow) (reiser4_object_t *, reiser4_key_t *,
 			   reiser4_key_t *);
 
 	/* Reads the data from file to passed buffer. */
-	int64_t (*read) (object_entity_t *, void *, uint64_t);
+	int64_t (*read) (reiser4_object_t *, void *, uint64_t);
 
 	/* Directory read method. */
-	int32_t (*readdir) (object_entity_t *, entry_hint_t *);
+	int32_t (*readdir) (reiser4_object_t *, entry_hint_t *);
 
 	/* Return current position in directory. */
-	errno_t (*telldir) (object_entity_t *, reiser4_key_t *);
+	errno_t (*telldir) (reiser4_object_t *, reiser4_key_t *);
 
 	/* Change current position in directory. */
-	errno_t (*seekdir) (object_entity_t *, reiser4_key_t *);
+	errno_t (*seekdir) (reiser4_object_t *, reiser4_key_t *);
 } reiser4_object_ops_t;
 
 typedef struct item_balance_ops {

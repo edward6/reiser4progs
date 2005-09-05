@@ -29,14 +29,14 @@ errno_t ls_cmd(busy_ctx_t *ctx) {
 		return -EIO;
 	}
 
-	if (object->ent->opset.plug[OPSET_OBJ]->id.group == DIR_OBJECT) {
+	if (object->info.opset.plug[OPSET_OBJ]->id.group == DIR_OBJECT) {
 		while (reiser4_object_readdir(object, &entry) > 0) {
 			printf("[%s] %s\n", reiser4_print_key(&entry.object),
 			       entry.name);
 		}
 	} else {
 		printf("[%s] %s\n", 
-		       reiser4_print_key(&object->ent->object), 
+		       reiser4_print_key(&object->info.object), 
 		       ctx->in.path);
 	}
 	

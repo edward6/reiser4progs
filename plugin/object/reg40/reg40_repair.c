@@ -13,38 +13,32 @@
 /* Set of unknown extentions. */
 #define REG40_EXTS_UNKN ((uint64_t)1 << SDEXT_SYMLINK_ID)
 
-object_entity_t *reg40_recognize(object_info_t *info) {
-	reg40_t *reg;
+errno_t reg40_recognize(reiser4_object_t *reg) {
 	errno_t res;
 	
-	if (!(reg = aal_calloc(sizeof(*reg), 0)))
-		return INVAL_PTR;
-	
 	/* Initializing file handle */
-	obj40_init(&reg->obj, info, reg40_core);
+	obj40_init(reg);
 	
-	if ((res = obj40_objkey_check(&reg->obj)))
-		goto error;
+	if ((res = obj40_objkey_check(reg)))
+		return res;
 
-	if ((res = obj40_check_stat(&reg->obj, REG40_EXTS_MUST,
+	if ((res = obj40_check_stat(reg, 
+				    REG40_EXTS_MUST,
 				    REG40_EXTS_UNKN)))
-		goto error;
+	{
+		return res;
+	}
 	
 	/* Reseting file (setting offset to 0) */
-	reg40_reset((object_entity_t *)reg);
+	reg40_reset(reg);
 
-	return (object_entity_t *)reg;
-	
- error:
-	aal_free(reg);
-	return res < 0 ? INVAL_PTR : NULL;
+	return 0;
 }
 
-static int reg40_check_size(obj40_t *obj, uint64_t *sd_size, 
+static int reg40_check_size(reiser4_object_t *reg, 
+			    uint64_t *sd_size, 
 			    uint64_t counted_size) 
 {
-	reg40_t *reg = (reg40_t *)obj;
-	
 	aal_assert("vpf-1318", reg != NULL);
 	aal_assert("vpf-1318", sd_size != NULL);
 	
@@ -55,7 +49,7 @@ static int reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 	if (reg->body_plug && reg->body_plug->id.group == EXTENT_ITEM) {
 		/* The last extent block can be not used up. */
 		if (*sd_size < counted_size &&
-		    *sd_size + place_blksize(STAT_PLACE(obj)) > counted_size)
+		    *sd_size + place_blksize(STAT_PLACE(reg)) > counted_size)
 		{
 			return 0;
 		}
@@ -67,7 +61,7 @@ static int reg40_check_size(obj40_t *obj, uint64_t *sd_size,
 	return 1;
 }
 
-static errno_t reg40_check_ikey(reg40_t *reg) {	
+static errno_t reg40_check_ikey(reiser4_object_t *reg) {	
 	uint64_t offset;
 	
 	aal_assert("vpf-1302", reg != NULL);
@@ -85,15 +79,14 @@ static errno_t reg40_check_ikey(reg40_t *reg) {
 	return offset % place_blksize(&reg->body) ? RE_FATAL : 0;
 }
 
-static errno_t reg40_next(object_entity_t *object, uint8_t mode) {
-	reg40_t *reg = (reg40_t *)object;
+static errno_t reg40_next(reiser4_object_t *reg, uint8_t mode) {
 	object_info_t *info;
 	trans_hint_t hint;
 	errno_t res;
 	
-	aal_assert("vpf-1344", object != NULL);
+	aal_assert("vpf-1344", reg != NULL);
 	
-	info = &reg->obj.info;
+	info = &reg->info;
 
  start:
 	if ((res = reg40_update_body(reg)) < 0)
@@ -120,7 +113,7 @@ static errno_t reg40_next(object_entity_t *object, uint8_t mode) {
 			reiser4_place_t next;
 
 			/* This could be joint with dir40_next. */
-			if ((res = reg40_core->tree_ops.next_item(info->tree,
+			if ((res = obj40_core->tree_ops.next_item(info->tree,
 								  &reg->body, 
 								  &next)))
 				return res;
@@ -148,20 +141,20 @@ static errno_t reg40_next(object_entity_t *object, uint8_t mode) {
 		fsck_mess("The object [%s] (%s), node (%llu),"
 			  "item (%u): the item [%s] of the "
 			  "invalid plugin (%s) found.%s",
-			  print_inode(reg40_core, &info->object),
-			  object->opset.plug[OPSET_OBJ]->label, 
+			  print_inode(obj40_core, &info->object),
+			  info->opset.plug[OPSET_OBJ]->label, 
 			  place_blknr(&reg->body), reg->body.pos.item,
-			  print_key(reg40_core, &reg->body.key),
-			  object->opset.plug[OPSET_OBJ]->label, 
+			  print_key(obj40_core, &reg->body.key),
+			  info->opset.plug[OPSET_OBJ]->label, 
 			  mode == RM_BUILD ? " Removed." : "");
 	} else if (reg40_check_ikey(reg)) {
 		fsck_mess("The object [%s] (%s), node (%llu),"
 			  "item (%u): the item [%s] has the "
 			  "wrong offset.%s",
-			  print_inode(reg40_core, &info->object),
-			  object->opset.plug[OPSET_OBJ]->label, 
+			  print_inode(obj40_core, &info->object),
+			  info->opset.plug[OPSET_OBJ]->label, 
 			  place_blknr(&reg->body), reg->body.pos.item,
-			  print_key(reg40_core, &reg->body.key),
+			  print_key(obj40_core, &reg->body.key),
 			  mode == RM_BUILD ? " Removed." : "");
 	} else
 		return 0;
@@ -176,7 +169,7 @@ static errno_t reg40_next(object_entity_t *object, uint8_t mode) {
 	reg->body.pos.unit = MAX_UINT32;
 
 	/* Item has wrong key, remove it. */
-	if ((res = obj40_remove(&reg->obj, &reg->body, &hint)))
+	if ((res = obj40_remove(reg, &reg->body, &hint)))
 		return res;
 
 	goto start;
@@ -187,8 +180,10 @@ static errno_t reg40_next(object_entity_t *object, uint8_t mode) {
 }
 
 /* Returns 1 if the convertion is needed right now, 0 if should be delayed. */
-static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
-			      uint64_t maxreal, uint8_t mode)
+static int reg40_conv_prepare(reiser4_object_t *reg, 
+			      conv_hint_t *hint,
+			      uint64_t maxreal, 
+			      uint8_t mode)
 {
 	object_info_t *info;
 	
@@ -199,7 +194,7 @@ static int reg40_conv_prepare(reg40_t *reg, conv_hint_t *hint,
 	if (plug_equal(reg->body.plug, reg->body_plug))
 		return 0;
 
-	info = &reg->obj.info;
+	info = &reg->info;
 
 	if (plug_equal(reg->body.plug, info->opset.plug[OPSET_EXTENT])) {
 		/* Extent found, all previous items were tails, convert all 
@@ -260,12 +255,11 @@ static uint64_t reg40_place_maxreal(reiser4_place_t *place) {
 	return plug_call(key.plug->o.key_ops, get_offset, &key);
 }
 
-static errno_t reg40_hole_cure(object_entity_t *object, 
+static errno_t reg40_hole_cure(reiser4_object_t *reg, 
 			       obj40_stat_hint_t *hint,
 			       place_func_t func,
 			       uint8_t mode) 
 {
-	reg40_t *reg = (reg40_t *)object;
 	uint64_t offset, len;
 	int64_t res;
 	
@@ -274,23 +268,23 @@ static errno_t reg40_hole_cure(object_entity_t *object,
 	offset = plug_call(reg->body.key.plug->o.key_ops, 
 			   get_offset, &reg->body.key);
 
-	if ((len = offset - reg40_offset(object)) == 0)
+	if ((len = offset - reg40_offset(reg)) == 0)
 		return 0;
 
 	fsck_mess("The object [%s] has a break at [%llu-%llu] offsets. "
-		  "Plugin %s.%s", print_inode(reg40_core, &object->object),
-		  offset - len, offset, object->opset.plug[OPSET_OBJ]->label,
+		  "Plugin %s.%s", print_inode(obj40_core, &reg->info.object),
+		  offset - len, offset, reg->info.opset.plug[OPSET_OBJ]->label,
 		  mode == RM_BUILD ? " Writing a hole there." : "");
 
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 
-	if ((res = reg40_put(object, NULL, len, func)) < 0) {
+	if ((res = reg40_put(reg, NULL, len, func)) < 0) {
 		aal_error("The object [%s] failed to create the hole "
 			  "at [%llu-%llu] offsets. Plugin %s.",
-			  print_inode(reg40_core, &object->object),
+			  print_inode(obj40_core, &reg->info.object),
 			  offset - len, offset, 
-			  object->opset.plug[OPSET_OBJ]->label);
+			  reg->info.opset.plug[OPSET_OBJ]->label);
 
 		return res;
 	}
@@ -300,10 +294,10 @@ static errno_t reg40_hole_cure(object_entity_t *object,
 	return 0;
 }
 
-errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
+errno_t reg40_check_struct(reiser4_object_t *reg, 
+			   place_func_t func,
 			   void *data, uint8_t mode)
 {
-	reg40_t *reg = (reg40_t *)object;
 	obj40_stat_hint_t hint;
 	obj40_stat_ops_t ops;
 	object_info_t *info;
@@ -311,17 +305,17 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	uint64_t maxreal;
 	errno_t res = 0;
 
-	aal_assert("vpf-1126", object != NULL);
-	aal_assert("vpf-1190", object->tree != NULL);
-	aal_assert("vpf-1197", object->object.plug != NULL);
+	aal_assert("vpf-1126", reg != NULL);
+	aal_assert("vpf-1190", reg->info.tree != NULL);
+	aal_assert("vpf-1197", reg->info.object.plug != NULL);
 	
-	info = &reg->obj.info;
+	info = &reg->info;
 	
 	aal_memset(&ops, 0, sizeof(ops));
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&conv, 0, sizeof(conv));
 	
-	if ((res = obj40_prepare_stat(&reg->obj, S_IFREG, mode)))
+	if ((res = obj40_prepare_stat(reg, S_IFREG, mode)))
 		return res;
 
 	/* Try to register SD as an item of this file. */
@@ -335,7 +329,7 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 	while (1) {
 		errno_t result;
 		
-		if ((result = reg40_next(object, mode)) < 0)
+		if ((result = reg40_next(reg, mode)) < 0)
 			return result;
 		
 		if (result) {
@@ -359,7 +353,7 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 				
 				fsck_mess("The object [%s]: found item "
 					  "has the wrong offset (%llu).%s",
-					  print_inode(reg40_core, &info->object),
+					  print_inode(obj40_core, &info->object),
 					  offset, mode != RM_CHECK ? " Removed"
 					  : "");
 
@@ -395,14 +389,14 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 			fsck_mess("The object [%s] (%s): items at offsets "
 				  "[%llu..%llu] does not not match the "
 				  "detected tail policy (%s).%s",
-				  print_inode(reg40_core, &info->object),
-				  object->opset.plug[OPSET_OBJ]->label, 
+				  print_inode(obj40_core, &info->object),
+				  info->opset.plug[OPSET_OBJ]->label, 
 				  offset, offset + conv.count -1, 
-				  object->opset.plug[OPSET_POLICY]->label,
+				  info->opset.plug[OPSET_POLICY]->label,
 				  mode == RM_BUILD ? " Converted." : "");
 
 			if (mode == RM_BUILD) {
-				if ((result = obj40_convert(&reg->obj, &conv)))
+				if ((result = obj40_convert(reg, &conv)))
 					return result;
 			} else {
 				res |= RE_FATAL;
@@ -432,7 +426,7 @@ errno_t reg40_check_struct(object_entity_t *object, place_func_t func,
 					bytes, &reg->body);
 
 		/* If we found not we looking for, insert the hole. */
-		if ((res |= reg40_hole_cure(object, &hint, func, mode)) < 0)
+		if ((res |= reg40_hole_cure(reg, &hint, func, mode)) < 0)
 			return res;
 		
 next:
@@ -441,7 +435,7 @@ next:
 			break;
 		
 		/* Find the next after the maxreal key. */
-		reg40_seek(object, maxreal + 1);
+		reg40_seek(reg, maxreal + 1);
 	}
 	
 	
@@ -456,10 +450,10 @@ next:
 		ops.check_size = reg40_check_size;
 		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 
-		res |= obj40_update_stat(&reg->obj, &ops, &hint, mode);
+		res |= obj40_update_stat(reg, &ops, &hint, mode);
 	}
 
-	reg40_reset((object_entity_t *)reg);
+	reg40_reset(reg);
 
 	return res;
 }

@@ -13,37 +13,33 @@
 /* Set of unknown extentions. */
 #define DIR40_EXTS_UNKN ((uint64_t)1 << SDEXT_SYMLINK_ID)
 
-object_entity_t *dir40_recognize(object_info_t *info) {
-	dir40_t *dir;
+errno_t dir40_recognize(reiser4_object_t *dir) {
 	errno_t res;
 	
-	aal_assert("vpf-1231", info != NULL);
-	
-	if (!(dir = aal_calloc(sizeof(*dir), 0)))
-		return INVAL_PTR;
+	aal_assert("vpf-1231", dir != NULL);
 	
 	/* Initializing file handle */
-	obj40_init(&dir->obj, info, dir40_core);
+	obj40_init(dir);
 	
-	if ((res = obj40_objkey_check(&dir->obj)))
-		goto error;
+	if ((res = obj40_objkey_check(dir)))
+		return res;
 
-	if ((res = obj40_check_stat(&dir->obj, DIR40_EXTS_MUST,
+	if ((res = obj40_check_stat(dir, DIR40_EXTS_MUST,
 				    DIR40_EXTS_UNKN)))
 	{
-		goto error;
+		return res;
 	}
 	
 	/* Positioning to the first directory unit */
-	dir40_reset((object_entity_t *)dir);
+	dir40_reset(dir);
 	
-	return (object_entity_t *)dir;
- error:
-	aal_free(dir);
-	return res < 0 ? INVAL_PTR : NULL;
+	return 0;
 }
 
-static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
+static errno_t dir40_dot(reiser4_object_t *dir, 
+			 reiser4_plug_t *bplug, 
+			 uint8_t mode) 
+{
 	object_info_t *info;
 	entry_hint_t entry;
 	trans_hint_t hint;
@@ -53,22 +49,22 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	aal_assert("vpf-1244", bplug != NULL);
 	
 	/* Lookup the "." */
-	if ((res = dir40_reset((object_entity_t *)dir)))
+	if ((res = dir40_reset(dir)))
 		return res;
 	
-	if ((res = obj40_find_item(&dir->obj, &dir->position, FIND_CONV, 
+	if ((res = obj40_find_item(dir, &dir->position, FIND_CONV, 
 				   NULL, NULL, &dir->body)) < 0)
 		return res;
 
 	if (res == PRESENT)
 		return 0;
 	
-	info = &dir->obj.info;
+	info = &dir->info;
 	
 	fsck_mess("Directory [%s]: The entry \".\" is not found.%s "
-		  "Plugin (%s).", print_inode(dir40_core, &info->object), 
+		  "Plugin (%s).", print_inode(obj40_core, &info->object), 
 		  mode != RM_CHECK ? " Insert a new one." : "", 
-		  dir->obj.info.opset.plug[OPSET_OBJ]->label);
+		  dir->info.opset.plug[OPSET_OBJ]->label);
 	
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
@@ -83,20 +79,19 @@ static errno_t dir40_dot(dir40_t *dir, reiser4_plug_t *bplug, uint8_t mode) {
 	
 	aal_memcpy(&hint.offset, &dir->position, sizeof(dir->position));
 	aal_memcpy(&entry.offset,  &dir->position, sizeof(dir->position));
-	aal_memcpy(&entry.object,  &dir->obj.info.object, sizeof(entry.object));
+	aal_memcpy(&entry.object,  &dir->info.object, sizeof(entry.object));
 
 	aal_strncpy(entry.name, ".", 1);
 	hint.specific = &entry;
-	res = obj40_insert(&dir->obj, &dir->body, &hint, LEAF_LEVEL);
+	res = obj40_insert(dir, &dir->body, &hint, LEAF_LEVEL);
 
 	return res < 0 ? res : 0;
 }
 
-errno_t dir40_check_struct(object_entity_t *object, 
+errno_t dir40_check_struct(reiser4_object_t *dir, 
 			   place_func_t place_func,
 			   void *data, uint8_t mode)
 {
-	dir40_t *dir = (dir40_t *)object;
 	obj40_stat_hint_t hint;
 	obj40_stat_ops_t ops;
 	object_info_t *info;
@@ -105,15 +100,15 @@ errno_t dir40_check_struct(object_entity_t *object,
 	errno_t res;
 	
 	aal_assert("vpf-1224", dir != NULL);
-	aal_assert("vpf-1190", dir->obj.info.tree != NULL);
-	aal_assert("vpf-1197", dir->obj.info.object.plug != NULL);
+	aal_assert("vpf-1190", dir->info.tree != NULL);
+	aal_assert("vpf-1197", dir->info.object.plug != NULL);
 	
-	info = &dir->obj.info;
+	info = &dir->info;
 
 	aal_memset(&ops, 0, sizeof(ops));
 	aal_memset(&hint, 0, sizeof(hint));
 	
-	if ((res = obj40_prepare_stat(&dir->obj, S_IFDIR, mode)))
+	if ((res = obj40_prepare_stat(dir, S_IFDIR, mode)))
 		return res;
 	
 	/* Try to register SD as an item of this file. */
@@ -124,8 +119,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 	/* FIXME: Probably it should be different -- find an item by the key 
 	   and if it is of DIR group, take its plugin as body plug, fix 
 	   it in SD then. */
-	if ((res |= dir40_dot(dir, object->opset.plug[OPSET_DIRITEM], 
-			      mode)) < 0)
+	if ((res |= dir40_dot(dir, info->opset.plug[OPSET_DIRITEM], mode)) < 0)
 		return res;
 	
 	while (1) {
@@ -135,7 +129,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 		lookup_t lookup;
 		uint32_t units;
 		
-		if ((lookup = dir40_update_body(object, 0)) < 0) 
+		if ((lookup = dir40_update_body(dir, 0)) < 0) 
 			return lookup;
 
 		/* No more items of the dir40. */
@@ -152,14 +146,15 @@ errno_t dir40_check_struct(object_entity_t *object,
 		   FIXME-VITALY: item of the same group but of another 
 		   plugin, it should be converted. */
 		/*if (dir->body.plug->id.group != DIR_ITEM) */
-		if (dir->body.plug != object->opset.plug[OPSET_DIRITEM]) {
+		if (dir->body.plug != info->opset.plug[OPSET_DIRITEM]) {
 			fsck_mess("Directory [%s] (%s), node [%llu], "
 				  "item [%u]: item of the illegal plugin (%s) "
 				  "with the key of this object found.%s",
-				  print_inode(dir40_core, &info->object),
-				  dir40_plug.label, place_blknr(&dir->body),
-				  dir->body.pos.item, dir->body.plug->label,
-				  mode == RM_BUILD ? " Removed." : "");
+				  print_inode(obj40_core, &info->object),
+				  info->opset.plug[OPSET_OBJ]->label, 
+				  place_blknr(&dir->body), dir->body.pos.item,
+				  dir->body.plug->label, mode == RM_BUILD ? 
+				  " Removed." : "");
 
 			if (mode != RM_BUILD)
 				return RE_FATAL;
@@ -170,7 +165,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 			pos->unit = MAX_UINT32;
 
 			/* Item has wrong key, remove it. */
-			res |= obj40_remove(&dir->obj, &dir->body, &trans);
+			res |= obj40_remove(dir, &dir->body, &trans);
 			if (res < 0) return res;
 			
 			continue;
@@ -210,10 +205,10 @@ errno_t dir40_check_struct(object_entity_t *object,
 			/* Prepare the correct key for the entry. */
 			plug_call(entry.offset.plug->o.key_ops, 
 				  build_hashed, &key,
-				  object->opset.plug[OPSET_HASH], 
-				  object->opset.plug[OPSET_FIBRE], 
-				  obj40_locality(&dir->obj),
-				  obj40_objectid(&dir->obj), entry.name);
+				  info->opset.plug[OPSET_HASH], 
+				  info->opset.plug[OPSET_FIBRE], 
+				  obj40_locality(dir),
+				  obj40_objectid(dir), entry.name);
 			
 			/* If the key matches, continue. */
 			if (!plug_call(key.plug->o.key_ops, compfull, 
@@ -224,11 +219,12 @@ errno_t dir40_check_struct(object_entity_t *object,
 			fsck_mess("Directory [%s] (%s), node [%llu], "
 				  "item [%u], unit [%u]: entry has wrong "
 				  "offset [%s]. Should be [%s].%s", 
-				  print_inode(dir40_core, &info->object),
-				  dir40_plug.label, place_blknr(&dir->body),
+				  print_inode(obj40_core, &info->object),
+				  info->opset.plug[OPSET_OBJ]->label, 
+				  place_blknr(&dir->body), 
 				  dir->body.pos.item, dir->body.pos.unit,
-				  print_key(dir40_core, &entry.offset),
-				  print_key(dir40_core, &key), 
+				  print_key(obj40_core, &entry.offset),
+				  print_key(obj40_core, &key), 
 				  mode == RM_BUILD ? " Removed." : "");
 
 
@@ -243,7 +239,7 @@ errno_t dir40_check_struct(object_entity_t *object,
 			trans.count = 1;
 			trans.shift_flags = SF_DEFAULT & ~SF_ALLOW_PACK;
 
-			if ((res |= obj40_remove(&dir->obj, &dir->body, 
+			if ((res |= obj40_remove(dir, &dir->body, 
 						 &trans)) < 0)
 				return res;
 			
@@ -285,21 +281,21 @@ errno_t dir40_check_struct(object_entity_t *object,
 		hint.unkn_exts = DIR40_EXTS_UNKN;
 		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 
-		res |= obj40_update_stat(&dir->obj, &ops, &hint, mode);
+		res |= obj40_update_stat(dir, &ops, &hint, mode);
 	}
 	
-	dir40_reset((object_entity_t *)dir);
+	dir40_reset(dir);
 
 	return res;
 }
 
-errno_t dir40_check_attach(object_entity_t *object, 
-			   object_entity_t *parent,
+errno_t dir40_check_attach(reiser4_object_t *object, 
+			   reiser4_object_t *parent,
 			   place_func_t place_func, 
 			   void *data, uint8_t mode)
 {
-	lookup_t lookup;
 	entry_hint_t entry;
+	lookup_t lookup;
 	errno_t res;
 	
 	aal_assert("vpf-1151", object != NULL);
@@ -313,17 +309,17 @@ errno_t dir40_check_attach(object_entity_t *object,
 	case PRESENT:
 		/* If the key matches the parent -- ok. */
 		if (!plug_call(entry.object.plug->o.key_ops, compfull, 
-			       &entry.object, &parent->object))
+			       &entry.object, &parent->info.object))
 			break;
 		
 		/* Already attached. */
 		fsck_mess("Directory [%s] (%s): the object "
 			  "is attached already to [%s] and cannot "
 			  "be attached to [%s].", 
-			  print_inode(dir40_core, &object->object),
-			  dir40_plug.label, 
-			  print_key(dir40_core, &entry.object),
-			  print_inode(dir40_core, &parent->object));
+			  print_inode(obj40_core, &object->info.object),
+			  object->info.opset.plug[OPSET_OBJ]->label, 
+			  print_key(obj40_core, &entry.object),
+			  print_inode(obj40_core, &parent->info.object));
 
 		return RE_FATAL;
 	case ABSENT:
@@ -334,28 +330,28 @@ errno_t dir40_check_attach(object_entity_t *object,
 		{
 			fsck_mess("Directory [%s] (%s): the "
 			"object is not attached. %s [%s].",
-			print_inode(dir40_core, &object->info.object),
-			dir40_plug.label, mode == RM_CHECK ? 
+			print_inode(obj40_core, &object->info.object),
+			object->info.opset.plug[OPSET_OBJ]->label, mode == RM_CHECK ? 
 			"Reached from" : "Attaching to",
-			print_inode(dir40_core, &parent->info.object));
+			print_inode(obj40_core, &parent->info.object));
 		}
 */		
 		if (mode == RM_CHECK) {
 			fsck_mess("Directory [%s] (%s): the object "
 				  "is not attached. Reached from [%s].",
-				  print_inode(dir40_core, &object->object),
-				  dir40_plug.label,
-				  print_inode(dir40_core, &parent->object));
+				  print_inode(obj40_core, &object->info.object),
+				  object->info.opset.plug[OPSET_OBJ]->label,
+				  print_inode(obj40_core, &parent->info.object));
 			return RE_FIXABLE;
 		}
 		
 		/* Adding ".." to the @object pointing to the @parent. */
-		aal_memcpy(&entry.object, &parent->object, 
+		aal_memcpy(&entry.object, &parent->info.object, 
 			   sizeof(entry.offset));
 
 		aal_strncpy(entry.name, "..", sizeof(entry.name));
 		
-		if ((res = plug_call(object->opset.plug[OPSET_OBJ]->o.object_ops,
+		if ((res = plug_call(object->info.opset.plug[OPSET_OBJ]->o.object_ops,
 				     add_entry, object, &entry)))
 		{
 			return res;
@@ -370,27 +366,22 @@ errno_t dir40_check_attach(object_entity_t *object,
 	if (mode != RM_BUILD)
 		return 0;
 	
-	return plug_call(parent->opset.plug[OPSET_OBJ]->o.object_ops, 
+	return plug_call(parent->info.opset.plug[OPSET_OBJ]->o.object_ops, 
 			 link, parent);
 }
 
 
 /* Creates the fake dir40 entity by the given @info for the futher recovery. */
-object_entity_t *dir40_fake(object_info_t *info) {
-	dir40_t *dir;
-	
-	aal_assert("vpf-1231", info != NULL);
-	
-	if (!(dir = aal_calloc(sizeof(*dir), 0)))
-		return INVAL_PTR;
+errno_t dir40_fake(reiser4_object_t *dir) {
+	aal_assert("vpf-1231", dir != NULL);
 	
 	/* Initializing file handle */
-	obj40_init(&dir->obj, info, dir40_core);
+	obj40_init(dir);
 	
 	/* Positioning to the first directory unit */
-	dir40_reset((object_entity_t *)dir);
+	dir40_reset(dir);
 	
-	return (object_entity_t *)dir;
+	return 0;
 }
 
 #endif

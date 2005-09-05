@@ -9,8 +9,9 @@
 #include "spl40.h"
 #include "plugin/object/obj40/obj40_repair.h"
 
-extern object_entity_t *spl40_recognize(object_info_t *info);
-extern errno_t spl40_check_struct(object_entity_t *object,
+extern errno_t spl40_recognize(reiser4_object_t *spl);
+
+extern errno_t spl40_check_struct(reiser4_object_t *spl,
 				  place_func_t place_func,
 				  void *data, uint8_t mode);
 

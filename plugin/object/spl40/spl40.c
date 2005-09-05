@@ -7,145 +7,54 @@
 #include "spl40.h"
 #include "spl40_repair.h"
 
-reiser4_core_t *spl40_core = NULL;
-
 /* Opens special file and returns initialized instance to the caller */
-object_entity_t *spl40_open(object_info_t *info) {
-	spl40_t *spl;
-
-	aal_assert("umka-2529", info != NULL);
-	aal_assert("umka-2530", info->tree != NULL);
+errno_t spl40_open(reiser4_object_t *spl) {
+	aal_assert("umka-2529", spl != NULL);
  	
-	if (info->start.plug->id.group != STAT_ITEM)
-		return NULL;
+	if (spl->info.start.plug->id.group != STAT_ITEM)
+		return -EIO;
   
-	if (info->opset.plug[OPSET_OBJ] != &spl40_plug)
-		return NULL;
-	
-	if (!(spl = aal_calloc(sizeof(*spl), 0)))
-		return NULL;
-
 	/* Initalizing file handle. */
-	obj40_init(&spl->obj, info, spl40_core);
+	obj40_init(spl);
 	
 	/* Initializing statdata place. */
-	aal_memcpy(STAT_PLACE(&spl->obj), &info->start,
-		   sizeof(info->start));
+	aal_memcpy(STAT_PLACE(spl), &spl->info.start,
+		   sizeof(spl->info.start));
 	
-	return (object_entity_t *)spl;
-}
-
-/* Loads special file stat data to passed @hint */
-static errno_t spl40_stat(object_entity_t *entity, stat_hint_t *hint) {
-	spl40_t *spl;
-	
-	aal_assert("umka-2551", entity != NULL);
-
-	spl = (spl40_t *)entity;
-	return obj40_load_stat(&spl->obj, hint);
+	return 0;
 }
 
 #ifndef ENABLE_MINIMAL
 /* Creates special file and returns initialized instance to the caller. */
-static object_entity_t *spl40_create(object_hint_t *hint) {
-	spl40_t *spl;
+static errno_t spl40_create(reiser4_object_t *spl, object_hint_t *hint) {
+	errno_t res;
 	
 	aal_assert("umka-2533", hint != NULL);
-	aal_assert("umka-2532", hint->info.tree != NULL);
+	aal_assert("vpf-1821",  spl != NULL);
+	aal_assert("umka-2532", spl->info.tree != NULL);
 
-	if (!(spl = aal_calloc(sizeof(*spl), 0)))
-		return NULL;
-	
 	/* Inizializes file handle */
-	obj40_init(&spl->obj, &hint->info, spl40_core);
+	obj40_init(spl);
 
-	if (obj40_create_stat(&spl->obj, 0, 0, hint->rdev, 0, hint->mode, NULL))
-		goto error_free_spl;
+	if ((res = obj40_create_stat(spl, 0, 0, hint->rdev, 0, 
+				     hint->mode | 0644, NULL)))
+	{
+		return res;
+	}
 
-	return (object_entity_t *)spl;
-
- error_free_spl:
-	aal_free(spl);
-	return NULL;
-}
-
-/* Removes stat data of the passed @entity. */
-static errno_t spl40_clobber(object_entity_t *entity) {
-	aal_assert("umka-2536", entity != NULL);
-	return obj40_clobber(&((spl40_t *)entity)->obj);
-}
-
-/* Return number of hard links. */
-static bool_t spl40_linked(object_entity_t *entity) {
-	spl40_t *spl;
-	
-	aal_assert("umka-2537", entity != NULL);
-
-	spl = (spl40_t *)entity;
-	return obj40_links(&spl->obj) != 0;
-}
-
-/* Adds one more hardlink */
-static errno_t spl40_link(object_entity_t *entity) {
-	spl40_t *spl;
-	
-	aal_assert("umka-2538", entity != NULL);
-
-	spl = (spl40_t *)entity;
-	return obj40_link(&spl->obj);
-}
-
-/* Removes hardlink. */
-static errno_t spl40_unlink(object_entity_t *entity) {
-	spl40_t *spl;
-	
-	aal_assert("umka-2539", entity != NULL);
-
-	spl = (spl40_t *)entity;
-	return obj40_unlink(&spl->obj);
-}
-
-/* Calls function @func for each symlink item (statdata only) */
-static errno_t spl40_metadata(object_entity_t *entity,
-			      place_func_t place_func,
-			      void *data)
-{
-	spl40_t *spl;
-
-	aal_assert("umka-2540", entity != NULL);
-	aal_assert("umka-2541", place_func != NULL);
-
-	spl = (spl40_t *)entity;
-	return obj40_metadata(&spl->obj, place_func, data);
-}
-
-/* Updates special file stat data from passed @hint */
-static errno_t spl40_update(object_entity_t *entity, stat_hint_t *hint) {
-	spl40_t *spl;
-	
-	aal_assert("umka-2555", entity != NULL);
-	aal_assert("umka-2556", hint != NULL);
-
-	spl = (spl40_t *)entity;
-	return obj40_save_stat(&spl->obj, hint);
+	return 0;
 }
 #endif
-
-/* Releases passed @entity */
-static void spl40_close(object_entity_t *entity) {
-	aal_assert("umka-2544", entity != NULL);
-	aal_free(entity);
-}
 
 static reiser4_object_ops_t spl40_ops = {
 #ifndef ENABLE_MINIMAL
 	.create	        = spl40_create,
-	.metadata       = spl40_metadata,
-	.link           = spl40_link,
-	.unlink         = spl40_unlink,
-	.linked         = spl40_linked,
-	.clobber        = spl40_clobber,
-	.update         = spl40_update,
+	.metadata       = obj40_metadata,
+	.link           = obj40_link,
+	.unlink         = obj40_unlink,
+	.linked         = obj40_linked,
+	.clobber        = obj40_clobber,
+	.update         = obj40_save_stat,
 	.check_struct	= spl40_check_struct,
 	.recognize	= spl40_recognize,
 
@@ -172,9 +81,9 @@ static reiser4_object_ops_t spl40_ops = {
 	.read	        = NULL,
 	.follow         = NULL,
 	
-	.stat           = spl40_stat,
+	.stat           = obj40_load_stat,
 	.open	        = spl40_open,
-	.close	        = spl40_close
+	.close	        = NULL
 };
 
 reiser4_plug_t spl40_plug = {
@@ -190,7 +99,7 @@ reiser4_plug_t spl40_plug = {
 };
 
 static reiser4_plug_t *spl40_start(reiser4_core_t *c) {
-	spl40_core = c;
+	obj40_core = c;
 	return &spl40_plug;
 }
 

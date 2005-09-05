@@ -120,23 +120,9 @@ typedef struct reiser4_status {
 
 typedef struct reiser4_tree reiser4_tree_t;
 
-/* Reiser4 file structure (regular file, directory, symlinks, etc) */
-typedef struct reiser4_object {
-	/* Object entity. It is initialized by object plugin */
-	object_entity_t *ent;
-
-#ifndef ENABLE_MINIMAL
-	/* Applications using this library sometimes need to embed information
-	   into the objects of our library for their own use. */
-	void *data;
-#endif
-} reiser4_object_t;
-
-#define objplug(object) (object->ent->opset.plug[OPSET_OBJ])
+#define objplug(object) (object->info.opset.plug[OPSET_OBJ])
 
 /* Calback types used in object code. */
-typedef object_entity_t *(*object_init_t) (object_info_t *);
-
 typedef reiser4_object_t *(*object_open_func_t) (reiser4_object_t *, 
 						 entry_hint_t *, void *);
 

@@ -9,12 +9,12 @@
 #include "reg40.h"
 #include "plugin/object/obj40/obj40_repair.h"
 
-extern errno_t reg40_form(object_entity_t *object);
+extern errno_t reg40_form(reiser4_object_t *object);
 
-extern errno_t reg40_check_struct(object_entity_t *object,
+extern errno_t reg40_check_struct(reiser4_object_t *object,
 				  place_func_t place_func,
 				  void *data, uint8_t mode);
 
-extern object_entity_t *reg40_recognize(object_info_t *info);
+extern errno_t reg40_recognize(reiser4_object_t *reg);
 #endif
 

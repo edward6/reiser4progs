@@ -12,8 +12,7 @@
 extern reiser4_object_t *reiser4_object_prep(reiser4_tree_t *tree,
 					     reiser4_object_t *parent,
 					     reiser4_key_t *object,
-					     reiser4_place_t *place,
-					     object_info_t *info);
+					     reiser4_place_t *place);
 
 extern reiser4_object_t *reiser4_object_obtain(reiser4_tree_t *tree,
 					       reiser4_object_t *parent,
@@ -46,6 +45,7 @@ extern errno_t reiser4_object_update(reiser4_object_t *object,
 				     stat_hint_t *hint);
 
 extern reiser4_object_t *reiser4_object_create(entry_hint_t *entry,
+					       object_info_t *info,
 					       object_hint_t *hint);
 
 extern errno_t reiser4_object_clobber(reiser4_object_t *object);
@@ -127,6 +127,6 @@ extern errno_t reiser4_object_traverse(reiser4_object_t *object,
 				       void *data);
 #endif
 
-#define object_start(object) (&(object)->ent->start)
+#define object_start(object) (&(object)->info.start)
 
 #endif

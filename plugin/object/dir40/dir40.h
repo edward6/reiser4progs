@@ -9,31 +9,17 @@
 #include <aal/libaal.h>
 #include "plugin/object/obj40/obj40.h"
 
-/* Compaund directory structure */
-typedef struct dir40 {
-	/* Common fields for all files (statdata, etc) */
-	obj40_t obj;
-
-	/* Current body item coord */
-	reiser4_place_t body;
-
-	/* Current directory offset. */
-	reiser4_key_t position;
-} dir40_t;
-
-extern reiser4_plug_t dir40_plug;
-
 #ifndef ENABLE_MINIMAL
-extern reiser4_core_t *dir40_core;
+extern errno_t dir40_reset(reiser4_object_t *dir);
 
-extern lookup_t dir40_next(dir40_t *dir, int first);
-extern errno_t dir40_reset(object_entity_t *entity);
-
-extern lookup_t dir40_lookup(object_entity_t *entity,
+extern lookup_t dir40_lookup(reiser4_object_t *dir,
 			     char *name, entry_hint_t *entry);
 
-extern errno_t dir40_fetch(dir40_t *dir, entry_hint_t *entry);
+extern errno_t dir40_fetch(reiser4_object_t *dir, 
+			   entry_hint_t *entry);
 
-extern lookup_t dir40_update_body(object_entity_t *entity, int check_group);
+extern lookup_t dir40_update_body(reiser4_object_t *dir, 
+				  int check_group);
+
 #endif
 #endif

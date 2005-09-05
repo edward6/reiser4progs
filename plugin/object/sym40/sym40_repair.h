@@ -9,10 +9,10 @@
 #include "sym40.h"
 #include "plugin/object/obj40/obj40_repair.h"
 
-extern errno_t sym40_check_struct(object_entity_t *object,
+extern errno_t sym40_check_struct(reiser4_object_t *sym,
 				  place_func_t place_func,
 				  void *data, uint8_t mode);
 
-extern object_entity_t *sym40_recognize(object_info_t *info);
+extern errno_t sym40_recognize(reiser4_object_t *sym);
 #endif
 

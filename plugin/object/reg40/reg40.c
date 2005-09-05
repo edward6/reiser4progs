@@ -10,37 +10,27 @@
 #include "reg40.h"
 #include "reg40_repair.h"
 
-reiser4_core_t *reg40_core = NULL;
-
 /* Returns regular file current offset. */
-uint64_t reg40_offset(object_entity_t *entity) {
-	reg40_t *reg = (reg40_t *)entity;
-	
-	aal_assert("umka-1159", entity != NULL);
+uint64_t reg40_offset(reiser4_object_t *reg) {
+	aal_assert("umka-1159", reg != NULL);
 
 	return plug_call(reg->position.plug->o.key_ops,
 			 get_offset, &reg->position);
 }
 
 /* Returns regular file size. */
-static uint64_t reg40_size(object_entity_t *entity) {
-	reg40_t *reg = (reg40_t *)entity;
-
-	aal_assert("umka-2278", entity != NULL);
+static uint64_t reg40_size(reiser4_object_t *reg) {
+	aal_assert("umka-2278", reg != NULL);
 	
-	if (obj40_update(&reg->obj))
+	if (obj40_update(reg))
 		return -EINVAL;
 
-	return obj40_get_size(&reg->obj);
+	return obj40_get_size(reg);
 }
 
 /* Position regular file to passed @offset. */
-errno_t reg40_seek(object_entity_t *entity, 
-		   uint64_t offset) 
-{
-	reg40_t *reg = (reg40_t *)entity;
-	
-	aal_assert("umka-1968", entity != NULL);
+errno_t reg40_seek(reiser4_object_t *reg, uint64_t offset) {
+	aal_assert("umka-1968", reg != NULL);
 
 	plug_call(reg->position.plug->o.key_ops,
 		  set_offset, &reg->position, offset);
@@ -48,50 +38,40 @@ errno_t reg40_seek(object_entity_t *entity,
 	return 0;
 }
 
-/* Closes file. */
-static void reg40_close(object_entity_t *entity) {
-	aal_assert("umka-1170", entity != NULL);
-	aal_free(entity);
-}
-
 /* Updates body place in correspond to file offset. */
-lookup_t reg40_update_body(reg40_t *reg) {
+lookup_t reg40_update_body(reiser4_object_t *reg) {
 	aal_assert("umka-1161", reg != NULL);
 	
 	/* Getting the next body item from the tree */
-	return obj40_find_item(&reg->obj, &reg->position, 
-			       FIND_EXACT, NULL, NULL, &reg->body);
+	return obj40_find_item(reg, &reg->position, FIND_EXACT, 
+			       NULL, NULL, &reg->body);
 }
 
 /* Resets file position. As fire position is stored inside @reg->position, it
    just builds new zero offset key.*/
-errno_t reg40_reset(object_entity_t *entity) {
-	reg40_t *reg = (reg40_t *)entity;
+errno_t reg40_reset(reiser4_object_t *reg) {
+	aal_assert("umka-1963", reg != NULL);
 	
-	aal_assert("umka-1963", entity != NULL);
-	
-	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops, build_generic,
-		  &reg->position, KEY_FILEBODY_TYPE, obj40_locality(&reg->obj),
-		  obj40_ordering(&reg->obj), obj40_objectid(&reg->obj), 0);
+	plug_call(STAT_KEY(reg)->plug->o.key_ops, build_generic,
+		  &reg->position, KEY_FILEBODY_TYPE, obj40_locality(reg),
+		  obj40_ordering(reg), obj40_objectid(reg), 0);
 
 	return 0;
 }
 
 /* Reads @n bytes to passed buffer @buff. Negative values are returned on
    errors. */
-static int64_t reg40_read(object_entity_t *entity, 
+static int64_t reg40_read(reiser4_object_t *reg, 
 			  void *buff, uint64_t n)
 {
-	reg40_t *reg;
 	int64_t read;
 	uint64_t fsize;
 	trans_hint_t hint;
 
 	aal_assert("umka-2511", buff != NULL);
-	aal_assert("umka-2512", entity != NULL);
+	aal_assert("umka-2512", reg != NULL);
 	
-	reg = (reg40_t *)entity;
-	fsize = reg40_size(entity);
+	fsize = reg40_size(reg);
 
 	/* Preparing hint to be used for calling read with it. Here we
 	   initialize @count -- number of bytes to read, @specific -- pointer to
@@ -108,16 +88,16 @@ static int64_t reg40_read(object_entity_t *entity,
 	/* Correcting number of bytes to be read. It cannot be more then file
 	   size value from stat data. That is because, body item itself does not
 	   know reliably how long it is. For instnace, extent40. */
-	if (reg40_offset(entity) + hint.count > fsize)
-		hint.count = fsize - reg40_offset(entity);
+	if (reg40_offset(reg) + hint.count > fsize)
+		hint.count = fsize - reg40_offset(reg);
 
 	/* Reading data. */
-	if ((read = obj40_read(&reg->obj, &hint)) < 0)
+	if ((read = obj40_read(reg, &hint)) < 0)
 		return read;
 
 	/* Updating file offset if needed. */
 	if (read > 0)
-		reg40_seek(entity, reg40_offset(entity) + read);
+		reg40_seek(reg, reg40_offset(reg) + read);
 	
 	return read;
 }
@@ -125,128 +105,69 @@ static int64_t reg40_read(object_entity_t *entity,
 /* Open regular file by passed initial info and return initialized
    instance. This @info struct contains information about the obejct, like its
    statdata coord, etc. */
-static object_entity_t *reg40_open(object_info_t *info) {
-	reg40_t *reg;
+static errno_t reg40_open(reiser4_object_t *reg) {
+	aal_assert("umka-1163", reg != NULL);
+	aal_assert("umka-1164", reg->info.tree != NULL);
 
-	aal_assert("umka-1163", info != NULL);
-	aal_assert("umka-1164", info->tree != NULL);
+	if (reg->info.start.plug->id.group != STAT_ITEM)
+		return -EIO;
 
-	/* Checking if passed info contains correct stat data coord. What if
-	   file has not stat data? */
-	if (info->start.plug->id.group != STAT_ITEM)
-		return NULL;
-
-	if (info->opset.plug[OPSET_OBJ] != &reg40_plug)
-		return NULL;
-	
-	if (!(reg = aal_calloc(sizeof(*reg), 0)))
-		return NULL;
-
-	/* Initializing file handle. It is needed for working with file stat
-	   data item. */
-	obj40_init(&reg->obj, info, reg40_core);
+	/* Initializing file handle. */
+	obj40_init(reg);
 
 	/* Reseting file (setting offset to 0) */
-	reg40_reset((object_entity_t *)reg);
+	reg40_reset(reg);
 
 #ifndef ENABLE_MINIMAL
 	{
 		lookup_t lookup;
 
 		/* Get the body plugin in use. */
-		if ((lookup = reg40_update_body(reg)) < 0) {
-			aal_free(reg);
-			return NULL;
-		}
-
-		if (lookup) {
+		if ((lookup = reg40_update_body(reg)) < 0)
+			return lookup;
+		else if (lookup > 0)
 			reg->body_plug = reg->body.plug;
-		}
 	}
 #endif
 
-	return (object_entity_t *)reg;
-}
-
-/* Loads stat data to passed @hint */
-static errno_t reg40_stat(object_entity_t *entity, stat_hint_t *hint) {
-	reg40_t *reg;
-	
-	aal_assert("umka-2561", entity != NULL);
-	
-	reg = (reg40_t *)entity;
-	return obj40_load_stat(&reg->obj, hint);
+	return 0;
 }
 
 #ifndef ENABLE_MINIMAL
 /* Create the file described by pased @hint. That is create files stat data
    item. */
-static object_entity_t *reg40_create(object_hint_t *hint) {
-	reg40_t *reg;
+static errno_t reg40_create(reiser4_object_t *reg, object_hint_t *hint) {
+	errno_t res;
 	
+	aal_assert("vpf-1817",  reg != NULL);
 	aal_assert("umka-1738", hint != NULL);
-	aal_assert("vpf-1093",  hint->info.tree != NULL);
+	aal_assert("vpf-1093",  reg->info.tree != NULL);
 
-	if (!(reg = aal_calloc(sizeof(*reg), 0)))
-		return NULL;
-	
 	/* Initializing file handle. */
-	obj40_init(&reg->obj, &hint->info, reg40_core);
+	obj40_init(reg);
 
 	/* Create stat data item with size, bytes, nlinks equal to zero. */
-	if (obj40_create_stat(&reg->obj, 0, 0, 0, 0, S_IFREG, NULL))
-		goto error_free_reg;
+	if ((res = obj40_create_stat(reg, 0, 0, 0, 0, 
+				     hint->mode | S_IFREG | 0644, NULL)))
+	{
+		return res;
+	}
 
 	/* Reset file. */
-	reg40_reset((object_entity_t *)reg);
+	reg40_reset(reg);
 
-	return (object_entity_t *)reg;
-
- error_free_reg:
-	aal_free(reg);
-	return NULL;
-}
-
-/* Returns number of links. Needed to let higher API levels know, that file has
-   zero links and may be clobbered. */
-static bool_t reg40_linked(object_entity_t *entity) {
-	reg40_t *reg;
-	
-	aal_assert("umka-2296", entity != NULL);
-
-	reg = (reg40_t *)entity;
-	return obj40_links(&reg->obj) != 0;
-}
-
-/* Increments link number in stat data. */
-static errno_t reg40_link(object_entity_t *entity) {
-	reg40_t *reg;
-	
-	aal_assert("umka-1912", entity != NULL);
-
-	reg = (reg40_t *)entity;
-	return obj40_link(&reg->obj);
-}
-
-/* Decrements link number in stat data. */
-static errno_t reg40_unlink(object_entity_t *entity) {
-	reg40_t *reg;
-	
-	aal_assert("umka-1911", entity != NULL);
-
-	reg = (reg40_t *)entity;
-	return obj40_unlink(&reg->obj);
+	return 0;
 }
 
 /* Returns plugin (tail or extent) for next write operation basing on passed
    @size -- new file size. This function will use tail policy plugin to find
    what kind of next body item should be writen. */
-reiser4_plug_t *reg40_policy_plug(reg40_t *reg, uint64_t new_size) {
+reiser4_plug_t *reg40_policy_plug(reiser4_object_t *reg, uint64_t new_size) {
 	reiser4_plug_t *policy;
 	
 	aal_assert("umka-2394", reg != NULL);
 
-	policy = reg->obj.info.opset.plug[OPSET_POLICY];
+	policy = reg->info.opset.plug[OPSET_POLICY];
 	
 	aal_assert("umka-2393", policy != NULL);
 
@@ -254,25 +175,22 @@ reiser4_plug_t *reg40_policy_plug(reg40_t *reg, uint64_t new_size) {
 	if (plug_call(policy->o.policy_ops, tails, new_size)) {
 		/* Trying to get non-standard tail plugin from stat data. And if
 		   it is not found, default one from params will be taken. */
-		return reg->obj.info.opset.plug[OPSET_TAIL];
+		return reg->info.opset.plug[OPSET_TAIL];
 	}
 	
 	/* The same for extent plugin */
-	return reg->obj.info.opset.plug[OPSET_EXTENT];
+	return reg->info.opset.plug[OPSET_EXTENT];
 }
 
 /* Makes tail2extent and extent2tail conversion. */
-static errno_t reg40_convert(object_entity_t *entity, 
+static errno_t reg40_convert(reiser4_object_t *reg, 
 			     reiser4_plug_t *plug) 
 {
 	errno_t res;
-	reg40_t *reg;
 	conv_hint_t hint;
 
 	aal_assert("umka-2467", plug != NULL);
-	aal_assert("umka-2466", entity != NULL);
-
-	reg = (reg40_t *)entity;
+	aal_assert("umka-2466", reg != NULL);
 
 	aal_memset(&hint, 0, sizeof(hint));
 	
@@ -286,30 +204,27 @@ static errno_t reg40_convert(object_entity_t *entity,
 	/* Prepare convert hint. */
 	hint.plug = plug;
 
-	hint.count = reg40_size(entity);
+	hint.count = reg40_size(reg);
 	hint.place_func = NULL;
 
 	/* Converting file data. */
-	if ((res = obj40_convert(&reg->obj, &hint)))
+	if ((res = obj40_convert(reg, &hint)))
 		return res;
 
 	/* Updating stat data fields. */
-	return obj40_touch(&reg->obj, MAX_UINT64, hint.bytes);
+	return obj40_touch(reg, MAX_UINT64, hint.bytes);
 }
 
 /* Make sure, that file body is of particular plugin type, that depends on tail
    policy plugin. If no - convert it to plugin told by tail policy
    plugin. Called from all modifying calls like write(), truncate(), etc. */
-static errno_t reg40_check_body(object_entity_t *entity,
+static errno_t reg40_check_body(reiser4_object_t *reg,
 				uint64_t new_size)
 {
 	reiser4_plug_t *plug;
-	reg40_t *reg;
 	
-	aal_assert("umka-2395", entity != NULL);
+	aal_assert("umka-2395", reg != NULL);
 
-	reg = (reg40_t *)entity;
-	
 	/* There is nothing to convert? */
 	if (!new_size)
 		return 0;
@@ -334,19 +249,16 @@ static errno_t reg40_check_body(object_entity_t *entity,
 
 	/* Convert file. */
 	reg->body_plug = plug;
-	return reg40_convert(entity, plug);
+	return reg40_convert(reg, plug);
 }
 
 /* Writes passed data to the file. Returns amount of data on disk, that is
    @bytes value, which should be counted in stat data. */
-int64_t reg40_put(object_entity_t *entity, void *buff, 
+int64_t reg40_put(reiser4_object_t *reg, void *buff, 
 		  uint64_t n, place_func_t place_func) 
 {
-	reg40_t *reg;
 	int64_t written;
 	trans_hint_t hint;
-
-	reg = (reg40_t *)entity;
 
 	/* Preparing hint to be used for calling write method. This is
 	   initializing @count - number of bytes to write, @specific - buffer to
@@ -362,24 +274,22 @@ int64_t reg40_put(object_entity_t *entity, void *buff,
 	aal_memcpy(&hint.offset, &reg->position, sizeof(hint.offset));
 
 	/* Write data to tree. */
-	if ((written = obj40_write(&reg->obj, &hint)) < 0)
+	if ((written = obj40_write(reg, &hint)) < 0)
 		return written;
 
 	/* Updating file offset. */
-	reg40_seek(entity, reg40_offset(entity) + written);
+	reg40_seek(reg, reg40_offset(reg) + written);
 	
 	return hint.bytes;
 }
 
 /* Cuts some amount of data and makes file length of passed @n value. */
-static int64_t reg40_cut(object_entity_t *entity, uint64_t offset) {
+static int64_t reg40_cut(reiser4_object_t *reg, uint64_t offset) {
 	errno_t res;
-	reg40_t *reg;
 	uint64_t size;
 	trans_hint_t hint;
 	
-	reg = (reg40_t *)entity;
-	size = reg40_size(entity);
+	size = reg40_size(reg);
 
 	aal_assert("umka-3076", size > offset);
 
@@ -388,42 +298,40 @@ static int64_t reg40_cut(object_entity_t *entity, uint64_t offset) {
 	/* Preparing key of the data to be truncated. */
 	aal_memcpy(&hint.offset, &reg->position, sizeof(hint.offset));
 		
-	plug_call(STAT_KEY(&reg->obj)->plug->o.key_ops,
+	plug_call(STAT_KEY(reg)->plug->o.key_ops,
 		  set_offset, &hint.offset, offset);
 
 	/* Removing data from the tree. */
 	hint.count = MAX_UINT64;
 	hint.shift_flags = SF_DEFAULT;
-	hint.data = reg->obj.info.tree;
+	hint.data = reg->info.tree;
 	hint.plug = reg40_policy_plug(reg, offset);
 
-	if ((res = obj40_truncate(&reg->obj, &hint)) < 0)
+	if ((res = obj40_truncate(reg, &hint)) < 0)
 		return res;
 
 	return hint.bytes;
 }
 
 /* Writes @n bytes from @buff to passed file */
-static int64_t reg40_write(object_entity_t *entity, 
+static int64_t reg40_write(reiser4_object_t *reg, 
 			   void *buff, uint64_t n) 
 {
 	int64_t res;
-	reg40_t *reg;
 
 	int64_t bytes;
 	uint64_t size;
 	uint64_t offset;
 	uint64_t new_size;
 
-	aal_assert("umka-2281", entity != NULL);
+	aal_assert("umka-2281", reg != NULL);
 
-	reg = (reg40_t *)entity;
-	size = reg40_size(entity);
-	offset = reg40_offset(entity);
+	size = reg40_size(reg);
+	offset = reg40_offset(reg);
 	new_size = offset + n > size ? offset + n : size;
 	
 	/* Convert body items if needed. */
-	if ((res = reg40_check_body(entity, new_size))) {
+	if ((res = reg40_check_body(reg, new_size))) {
 		aal_error("Can't perform tail conversion.");
 		return res;
 	}
@@ -434,88 +342,86 @@ static int64_t reg40_write(object_entity_t *entity,
 
 		/* Seek back to size of hole, as reg40_put() uses 
 		   @reg->position as data write offset. */
-		reg40_seek(entity, size);
+		reg40_seek(reg, size);
 
 		/* Put a hole of size @hole. */
-		if ((bytes = reg40_put(entity, NULL, hole, NULL)) < 0)
+		if ((bytes = reg40_put(reg, NULL, hole, NULL)) < 0)
 			return bytes;
 	} else {
 		bytes = 0;
 	}
 
 	/* Putting data to tree. */
-	if ((res = reg40_put(entity, buff, n, NULL)) < 0)
+	if ((res = reg40_put(reg, buff, n, NULL)) < 0)
 		return res;
 
 	bytes += res;
 
 	/* Updating the SD place and update size, bytes there. */
-	if ((res = obj40_update(&reg->obj)))
+	if ((res = obj40_update(reg)))
 		return res;
 
 	/* Calculating new @bytes and updating stat data fields. */
-	bytes += obj40_get_bytes(&reg->obj);
-	if ((res = obj40_touch(&reg->obj, new_size, bytes)))
+	bytes += obj40_get_bytes(reg);
+	if ((res = obj40_touch(reg, new_size, bytes)))
 		return res;
 	
 	return bytes;
 }
 
 /* Truncates file to passed size @n. */
-static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
+static errno_t reg40_truncate(reiser4_object_t *reg, uint64_t n) {
 	errno_t res;
-	reg40_t *reg;
 	int64_t bytes;
 	uint64_t size;
 
-	reg = (reg40_t *)entity;
-	size = reg40_size(entity);
+	size = reg40_size(reg);
 
 	if (size == n)
 		return 0;
 
 	if (n > size) {
 		/* Converting body if needed. */
-		if ((res = reg40_check_body(entity, n))) {
+		if ((res = reg40_check_body(reg, n))) {
 			aal_error("Can't perform tail conversion.");
 			return res;
 		}
 
-		reg40_seek(entity, size);
-		if ((bytes = reg40_put(entity, NULL, n - size, NULL)) < 0)
+		reg40_seek(reg, size);
+		if ((bytes = reg40_put(reg, NULL, n - size, NULL)) < 0)
 			return bytes;
 		
 		/* Updating stat data fields. */
-		if ((res = obj40_update(&reg->obj)))
+		if ((res = obj40_update(reg )))
 			return res;
 		
-		bytes += obj40_get_bytes(&reg->obj);
-		return obj40_touch(&reg->obj, n, bytes);
+		bytes += obj40_get_bytes(reg );
+		return obj40_touch(reg , n, bytes);
 	} else {
 		/*
 		if (reg->body_plug->id.group == EXTENT_ITEM) {
 			uint32_t blksize;
 			
-			blksize = place_blksize(STAT_PLACE(&reg->obj));
+			blksize = place_blksize(STAT_PLACE(reg ));
 			size = (n + blksize - 1) / blksize * blksize;
 		} else */
 			size = n;
 			
 		/* Cutting items/units */
-		if ((bytes = reg40_cut(entity, size)) < 0)
+		if ((bytes = reg40_cut(reg, size)) < 0)
 			return bytes;
 
 		/* Updating stat data fields. */
-		if ((res = obj40_update(&reg->obj)))
+		if ((res = obj40_update(reg )))
 			return res;
 
-		bytes = obj40_get_bytes(&reg->obj) - bytes;
+		bytes = obj40_get_bytes(reg ) - bytes;
 
-		if ((res = obj40_touch(&reg->obj, n, bytes)))
+		if ((res = obj40_touch(reg , n, bytes)))
 			return res;
 
 		/* Converting body if needed. */
-		if ((res = reg40_check_body(entity, n))) {
+		if ((res = reg40_check_body(reg, n))) {
 			aal_error("Can't perform tail conversion.");
 			return res;
 		}
@@ -525,21 +431,21 @@ static errno_t reg40_truncate(object_entity_t *entity, uint64_t n) {
 }
 
 /* Removes file body items and file stat data item. */
-static errno_t reg40_clobber(object_entity_t *entity) {
+static errno_t reg40_clobber(reiser4_object_t *reg) {
 	errno_t res;
 	
-	aal_assert("umka-2299", entity != NULL);
+	aal_assert("umka-2299", reg != NULL);
 
-	if ((res = reg40_truncate(entity, 0)))
+	if ((res = reg40_truncate(reg, 0)))
 		return res;
 
-	return obj40_clobber(&((reg40_t *)entity)->obj);
+	return obj40_clobber(reg);
 }
 
 /* File data enumeration related stuff. */
 typedef struct layout_hint {
 	void *data;
-	object_entity_t *entity;
+	reiser4_object_t *reg;
 	region_func_t region_func;
 } layout_hint_t;
 
@@ -550,32 +456,29 @@ static errno_t cb_item_layout(blk_t start, count_t width, void *data) {
 
 /* Enumerates all blocks belong to file and calls passed @region_func for each
    of them. It is needed for calculating fragmentation, printing, etc. */
-static errno_t reg40_layout(object_entity_t *entity,
+static errno_t reg40_layout(reiser4_object_t *reg,
 			    region_func_t region_func,
 			    void *data)
 {
 	errno_t res;
-	reg40_t *reg;
 	uint64_t size;
 
 	layout_hint_t hint;
 	reiser4_key_t maxkey;
 		
-	aal_assert("umka-1471", entity != NULL);
+	aal_assert("umka-1471", reg != NULL);
 	aal_assert("umka-1472", region_func != NULL);
 
-	reg = (reg40_t *)entity;
-	
-	if (!(size = reg40_size(entity)))
+	if (!(size = reg40_size(reg)))
 		return 0;
 
 	/* Initializing layout_hint. */
 	hint.data = data;
-	hint.entity = entity;
+	hint.reg = reg;
 	hint.region_func = region_func;
 
 	/* Loop though the all file items. */
-	while (reg40_offset(entity) < size) {
+	while (reg40_offset(reg) < size) {
 		reiser4_place_t *place = &reg->body;
 		
 		/* Update current body coord. */
@@ -607,7 +510,7 @@ static errno_t reg40_layout(object_entity_t *entity,
 			  place, &maxkey);
 
 		/* Updating file offset. */
-		reg40_seek(entity, plug_call(maxkey.plug->o.key_ops,
+		reg40_seek(reg, plug_call(maxkey.plug->o.key_ops,
 					     get_offset, &maxkey) + 1);
 	}
 	
@@ -616,28 +519,25 @@ static errno_t reg40_layout(object_entity_t *entity,
 
 /* Implements metadata() function. It traverses items belong to file. This is
    needed for printing, getting metadata, etc. */
-static errno_t reg40_metadata(object_entity_t *entity,
+static errno_t reg40_metadata(reiser4_object_t *reg,
 			      place_func_t place_func,
 			      void *data)
 {
 	errno_t res;
-	reg40_t *reg;
 	uint64_t size;
 	
-	aal_assert("umka-2386", entity != NULL);
+	aal_assert("umka-2386", reg != NULL);
 	aal_assert("umka-2387", place_func != NULL);
 
-	reg = (reg40_t *)entity;
-
 	/* Counting stat data item. */
-	if ((res = obj40_metadata(&reg->obj, place_func, data)))
+	if ((res = obj40_metadata(reg , place_func, data)))
 		return res;
 
 	/* Loop thougj the all file items. */
-	if (!(size = reg40_size(entity)))
+	if (!(size = reg40_size(reg)))
 		return 0;
 
-	while (reg40_offset(entity) < size) {
+	while (reg40_offset(reg) < size) {
 		reiser4_key_t maxkey;
 		
 		/* Update body place. */
@@ -658,22 +558,11 @@ static errno_t reg40_metadata(object_entity_t *entity,
 			  &reg->body, &maxkey);
 
 		/* Updating file offset */
-		reg40_seek(entity, plug_call(maxkey.plug->o.key_ops,
-					     get_offset, &maxkey) + 1);
+		reg40_seek(reg, plug_call(maxkey.plug->o.key_ops,
+					  get_offset, &maxkey) + 1);
 	}
 	
 	return 0;
-}
-
-/* Updates stat data from passed @hint */
-static errno_t reg40_update(object_entity_t *entity, stat_hint_t *hint) {
-	reg40_t *reg;
-	
-	aal_assert("umka-2559", entity != NULL);
-	aal_assert("umka-2560", hint != NULL);
-
-	reg = (reg40_t *)entity;
-	return obj40_save_stat(&reg->obj, hint);
 }
 #endif
 
@@ -686,10 +575,10 @@ static reiser4_object_ops_t reg40_ops = {
 	.layout         = reg40_layout,
 	.metadata       = reg40_metadata,
 	.convert        = reg40_convert,
-	.update         = reg40_update,
-	.link           = reg40_link,
-	.unlink         = reg40_unlink,
-	.linked         = reg40_linked,
+	.update         = obj40_save_stat,
+	.link           = obj40_link,
+	.unlink         = obj40_unlink,
+	.linked         = obj40_linked,
 	.clobber        = reg40_clobber,
 	.recognize	= reg40_recognize,
 	.check_struct   = reg40_check_struct,
@@ -709,9 +598,9 @@ static reiser4_object_ops_t reg40_ops = {
 	.telldir        = NULL,
 	.seekdir        = NULL,
 		
-	.stat           = reg40_stat,
+	.stat           = obj40_load_stat,
 	.open	        = reg40_open,
-	.close	        = reg40_close,
+	.close	        = NULL,
 	.reset	        = reg40_reset,
 	.seek	        = reg40_seek,
 	.offset	        = reg40_offset,
@@ -734,7 +623,7 @@ reiser4_plug_t reg40_plug = {
 /* Plugin factory related stuff. This method will be called during plugin
    initializing in plugin factory. */
 static reiser4_plug_t *reg40_start(reiser4_core_t *c) {
-	reg40_core = c;
+	obj40_core = c;
 	return &reg40_plug;
 }
 
