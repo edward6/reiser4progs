@@ -9,7 +9,7 @@
 reiser4_core_t *cde40_core = NULL;
 
 inline uint32_t cde40_key_pol(reiser4_place_t *place) {
-	return plug_call(place->key.plug->o.key_ops, bodysize);
+	return plug_call(place->key.plug->pl.key, bodysize);
 }
 
 /* Returns pointer to entry */
@@ -51,11 +51,11 @@ errno_t cde40_get_hash(reiser4_place_t *place, uint32_t pos,
 	hash = cde40_hash(place, pos);
 
 	/* Getting item key params */
-	locality = plug_call(place->key.plug->o.key_ops,
+	locality = plug_call(place->key.plug->pl.key,
 			     get_locality, &place->key);
 
 	/* Building the full key from entry at @place */
-	plug_call(place->key.plug->o.key_ops, build_generic, key,
+	plug_call(place->key.plug->pl.key, build_generic, key,
 		  KEY_FILENAME_TYPE, locality, ha_get_ordering(hash, pol),
 		  ha_get_objectid(hash, pol), ha_get_offset(hash, pol));
 
@@ -77,13 +77,13 @@ errno_t cde40_set_hash(reiser4_place_t *place, uint32_t pos,
 	pol = cde40_key_pol(place);
 	hash = cde40_hash(place, pos);
 	
-	ordering = plug_call(place->key.plug->o.key_ops,
+	ordering = plug_call(place->key.plug->pl.key,
 			     get_ordering, &place->key);
 	
-	objectid = plug_call(place->key.plug->o.key_ops,
+	objectid = plug_call(place->key.plug->pl.key,
 			     get_fobjectid, &place->key);
 	
-	offset = plug_call(place->key.plug->o.key_ops,
+	offset = plug_call(place->key.plug->pl.key,
 			   get_offset, &place->key);
 
 	ha_set_ordering(hash, ordering, pol);
@@ -104,12 +104,12 @@ char *cde40_get_name(reiser4_place_t *place, uint32_t pos,
                                                                                         
         /* If name is long, we just copy it from the area after
            objectid. Otherwise we extract it from the entry hash. */
-        if (plug_call(key.plug->o.key_ops, hashed, &key)) {
+        if (plug_call(key.plug->pl.key, hashed, &key)) {
                 char *ptr = (char *)(cde40_objid(place, pos) +
 				     ob_size(cde40_key_pol(place)));
                 aal_strncpy(buff, ptr, len);
         } else {
-		plug_call(key.plug->o.key_ops, get_name, &key, buff);
+		plug_call(key.plug->pl.key, get_name, &key, buff);
         }
                                                                                         
         return buff;
@@ -134,7 +134,7 @@ static uint32_t cde40_get_len(reiser4_place_t *place, uint32_t pos) {
 	   Otherwise, entry name is stored in objectid and offset of the
 	   entry. This trick saves a lot of space in directories, because the
 	   average name is shorter than 15 symbols. */
-	if (plug_call(key.plug->o.key_ops, hashed, &key)) {
+	if (plug_call(key.plug->pl.key, hashed, &key)) {
 		len += aal_strlen((char *)(cde40_objid(place, pos) +
 					   ob_size(pol))) + 1;
 	}
@@ -208,7 +208,7 @@ static int cde40_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
 	aal_assert("umka-1582", place2 != NULL);
 
 	/* Items mergeable if their short keys match. */
-	return !plug_call(place1->key.plug->o.key_ops,
+	return !plug_call(place1->key.plug->pl.key,
 			  compshort, &place1->key, &place2->key);
 }
 
@@ -680,7 +680,7 @@ static errno_t cde40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-2424", place != NULL);
 	aal_assert("umka-2229", hint->count > 0);
 
-	pol = plug_call(hint->offset.plug->o.key_ops,
+	pol = plug_call(hint->offset.plug->pl.key,
 			bodysize);
 	
 	entry = (entry_hint_t *)hint->specific;
@@ -691,7 +691,7 @@ static errno_t cde40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 
 		/* Calling key plugin for in odrer to find 
 		   out is passed name is long one or not. */
-		if (plug_call(hint->offset.plug->o.key_ops,
+		if (plug_call(hint->offset.plug->pl.key,
 			      hashed, &entry->offset))
 		{
 			/* Okay, name is long, so we need add 
@@ -755,19 +755,19 @@ static int64_t cde40_insert_units(reiser4_place_t *place, trans_hint_t *hint) {
 		hash = &entry_hint->offset;
 		
 		/* Setting up ordering component of hash */
-		ord = plug_call(hash->plug->o.key_ops,
+		ord = plug_call(hash->plug->pl.key,
 				get_ordering, hash);
 		
 		ha_set_ordering(entry, ord, pol);
 		
 		/* Setting up objectid component of hash */
-		oid = plug_call(hash->plug->o.key_ops,
+		oid = plug_call(hash->plug->pl.key,
 				get_fobjectid, hash);
 		
 		ha_set_objectid(entry, oid, pol);
 
 		/* Setting up offset component of hash */
-		off = plug_call(hash->plug->o.key_ops,
+		off = plug_call(hash->plug->pl.key,
 				get_offset, hash);
 
 		ha_set_offset(entry, off, pol);
@@ -781,7 +781,7 @@ static int64_t cde40_insert_units(reiser4_place_t *place, trans_hint_t *hint) {
 		offset += ob_size(pol);
 
 		/* If key is long one we also count name length */
-		if (plug_call(place->key.plug->o.key_ops,
+		if (plug_call(place->key.plug->pl.key,
 			      hashed, &entry_hint->offset))
 		{
 			uint32_t len = aal_strlen(entry_hint->name);
@@ -983,20 +983,20 @@ errno_t cde40_maxposs_key(reiser4_place_t *place,
 	aal_memcpy(key, &place->key, sizeof(*key));
 
 	/* Getting maximal key from current key plugin. */
-	maxkey = plug_call(key->plug->o.key_ops, maximal);
+	maxkey = plug_call(key->plug->pl.key, maximal);
 
 	/* Setting up @key by mans of putting to it offset, ordering and
 	   objectid from values from maximal key. */
-    	plug_call(key->plug->o.key_ops, set_ordering,
-		  key, plug_call(key->plug->o.key_ops,
+    	plug_call(key->plug->pl.key, set_ordering,
+		  key, plug_call(key->plug->pl.key,
 				 get_ordering, maxkey));
 	
-    	plug_call(key->plug->o.key_ops, set_objectid,
-		  key, plug_call(key->plug->o.key_ops,
+    	plug_call(key->plug->pl.key, set_objectid,
+		  key, plug_call(key->plug->pl.key,
 				 get_objectid, maxkey));
 	
-	plug_call(key->plug->o.key_ops, set_offset,
-		  key, plug_call(key->plug->o.key_ops,
+	plug_call(key->plug->pl.key, set_offset,
+		  key, plug_call(key->plug->pl.key,
 				 get_offset, maxkey));
 	
 	return 0;
@@ -1008,7 +1008,7 @@ int cde40_comp_hash(reiser4_place_t *place, uint32_t pos, reiser4_key_t *key) {
 
 	cde40_get_hash(place, pos, &curr);
 
-	return plug_call(place->key.plug->o.key_ops,
+	return plug_call(place->key.plug->pl.key,
 			 compfull, &curr, key);
 }
 
@@ -1123,7 +1123,7 @@ static item_tree_ops_t tree_ops = {
 #endif
 };
 
-static reiser4_item_ops_t cde40_ops = {
+static reiser4_item_plug_t cde40 = {
 	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
@@ -1140,8 +1140,8 @@ static reiser4_plug_t cde40_plug = {
 	.label = "cde40",
 	.desc  = "Compound directory entry item plugin.",
 #endif
-	.o = {
-		.item_ops = &cde40_ops
+	.pl = {
+		.item = &cde40
 	}
 };
 

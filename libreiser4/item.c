@@ -11,8 +11,8 @@ uint32_t reiser4_item_units(reiser4_place_t *place) {
 	aal_assert("umka-1030", place != NULL);
 	aal_assert("umka-1448", place->plug != NULL);
 
-	if (place->plug->o.item_ops->balance->units) {
-		return plug_call(place->plug->o.item_ops->balance,
+	if (place->plug->pl.item->balance->units) {
+		return plug_call(place->plug->pl.item->balance,
 				 units, place);
 	}
 	
@@ -48,15 +48,15 @@ int reiser4_item_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
 		return 0;
 
 	/* Check if mergeable is implemented and calling it if it is. */
-	return place1->plug->o.item_ops->balance->mergeable &&
-		place1->plug->o.item_ops->balance->mergeable(place1, place2);
+	return place1->plug->pl.item->balance->mergeable &&
+		place1->plug->pl.item->balance->mergeable(place1, place2);
 }
 #endif
 
 /* Returns 1 if @place points to an nodeptr item. */
 bool_t reiser4_item_branch(reiser4_plug_t *plug) {
 	aal_assert("umka-1829", plug != NULL);
-	return (plug->o.item_ops->tree->down_link != NULL);
+	return (plug->pl.item->tree->down_link != NULL);
 }
 
 /* Returns maximal possible key may exist in item at @place. */
@@ -69,10 +69,10 @@ errno_t reiser4_item_maxposs_key(reiser4_place_t *place,
 	
 	aal_memcpy(key, &place->key, sizeof(*key));
 
-	if (!place->plug->o.item_ops->balance->maxposs_key)
+	if (!place->plug->pl.item->balance->maxposs_key)
 		return 0;
 	
-	return plug_call(place->plug->o.item_ops->balance,
+	return plug_call(place->plug->pl.item->balance,
 			 maxposs_key, place, key);
 }
 
@@ -87,10 +87,10 @@ errno_t reiser4_item_maxreal_key(reiser4_place_t *place,
 
 	aal_memcpy(key, &place->key, sizeof(*key));
 
-	if (!place->plug->o.item_ops->balance->maxreal_key)
+	if (!place->plug->pl.item->balance->maxreal_key)
 		return 0;
 
-	return plug_call(place->plug->o.item_ops->balance,
+	return plug_call(place->plug->pl.item->balance,
 			 maxreal_key, place, key);
 }
 
@@ -117,13 +117,13 @@ errno_t reiser4_item_get_key(reiser4_place_t *place,
 	/* Getting key from item or node and updating it in passed @place. */
 	key->plug = place->key.plug;
 
-	if (place->plug->o.item_ops->balance->fetch_key &&
+	if (place->plug->pl.item->balance->fetch_key &&
 	    (place->pos.unit && place->pos.unit != MAX_UINT32))
 	{
-		plug_call(place->plug->o.item_ops->balance,
+		plug_call(place->plug->pl.item->balance,
 			  fetch_key, place, key);
 	} else {
-		plug_call(place->node->plug->o.node_ops,
+		plug_call(place->node->plug->pl.node,
 			  get_key, place->node, &place->pos, key);
 	}
 
@@ -136,7 +136,7 @@ errno_t reiser4_item_update_link(reiser4_place_t *place,
 {
 	aal_assert("umka-2668", place != NULL);
 	
-	return plug_call(place->plug->o.item_ops->tree,
+	return plug_call(place->plug->pl.item->tree,
 			 update_link, place, blk);
 }
 
@@ -144,10 +144,10 @@ uint16_t reiser4_item_overhead(reiser4_plug_t *plug) {
 	aal_assert("vpf-1514", plug != NULL);
 	aal_assert("vpf-1515", plug->id.type == ITEM_PLUG_TYPE);
 
-	if (!plug->o.item_ops->object->overhead)
+	if (!plug->pl.item->object->overhead)
 		return 0;
 	
-	return plug_call(plug->o.item_ops->object, overhead);
+	return plug_call(plug->pl.item->object, overhead);
 }
 
 void reiser4_item_set_flag(reiser4_place_t *place, uint16_t flag) {
@@ -157,13 +157,13 @@ void reiser4_item_set_flag(reiser4_place_t *place, uint16_t flag) {
 	aal_assert("vpf-1111", place->node != NULL);
 	aal_assert("vpf-1530", flag < sizeof(flag) * 8 - 1);
 	
-	old = plug_call(place->node->plug->o.node_ops, 
+	old = plug_call(place->node->plug->pl.node, 
 			get_flags, place->node, place->pos.item);
 	
 	if (old & (1 << flag))
 		return;
 	
-	plug_call(place->node->plug->o.node_ops, set_flags,
+	plug_call(place->node->plug->pl.node, set_flags,
 		  place->node, place->pos.item, old | (1 << flag));
 }
 
@@ -174,13 +174,13 @@ void reiser4_item_clear_flag(reiser4_place_t *place, uint16_t flag) {
 	aal_assert("vpf-1532", place->node != NULL);
 	aal_assert("vpf-1533", flag < sizeof(flag) * 8 - 1);
 	
-	old = plug_call(place->node->plug->o.node_ops, 
+	old = plug_call(place->node->plug->pl.node, 
 			get_flags, place->node, place->pos.item);
 	
 	if (~old & (1 << flag)) 
 		return;
 	
-	plug_call(place->node->plug->o.node_ops, set_flags, 
+	plug_call(place->node->plug->pl.node, set_flags, 
 		  place->node, place->pos.item, old & ~(1 << flag));
 }
 
@@ -190,12 +190,12 @@ void reiser4_item_clear_flags(reiser4_place_t *place) {
 	aal_assert("vpf-1042", place != NULL);
 	aal_assert("vpf-1112", place->node != NULL);
 	
-	old = plug_call(place->node->plug->o.node_ops, 
+	old = plug_call(place->node->plug->pl.node, 
 			get_flags, place->node, place->pos.item);
 	
 	if (!old) return;
 	
-	plug_call(place->node->plug->o.node_ops, set_flags, 
+	plug_call(place->node->plug->pl.node, set_flags, 
 		  place->node, place->pos.item, 0);
 }
 
@@ -206,7 +206,7 @@ bool_t reiser4_item_test_flag(reiser4_place_t *place, uint16_t flag) {
 	aal_assert("vpf-1113", place->node != NULL);
 	aal_assert("vpf-1534", flag < sizeof(flag) * 8 - 1);
 	
-	old = plug_call(place->node->plug->o.node_ops, 
+	old = plug_call(place->node->plug->pl.node, 
 			get_flags, place->node, place->pos.item);
 	
 	return old & (1 << flag);
@@ -215,14 +215,14 @@ bool_t reiser4_item_test_flag(reiser4_place_t *place, uint16_t flag) {
 void reiser4_item_dup_flags(reiser4_place_t *place, uint16_t flags) {
 	aal_assert("vpf-1540", place != NULL);
 
-	plug_call(place->node->plug->o.node_ops, set_flags, 
+	plug_call(place->node->plug->pl.node, set_flags, 
 		  place->node, place->pos.item, flags);
 }
 
 uint16_t reiser4_item_get_flags(reiser4_place_t *place) {
 	aal_assert("vpf-1541", place != NULL);
 
-	return plug_call(place->node->plug->o.node_ops, get_flags, 
+	return plug_call(place->node->plug->pl.node, get_flags, 
 			 place->node, place->pos.item);
 }
 
@@ -230,10 +230,10 @@ lookup_t reiser4_item_collision(reiser4_place_t *place, coll_hint_t *hint) {
 	aal_assert("vpf-1550", place != NULL);
 	aal_assert("vpf-1551", place->plug != NULL);
 	
-	if (!place->plug->o.item_ops->balance->collision)
+	if (!place->plug->pl.item->balance->collision)
 		return PRESENT;
 
-	return place->plug->o.item_ops->balance->collision(place, hint);
+	return place->plug->pl.item->balance->collision(place, hint);
 }
 #endif
 
@@ -241,5 +241,5 @@ lookup_t reiser4_item_collision(reiser4_place_t *place, coll_hint_t *hint) {
 blk_t reiser4_item_down_link(reiser4_place_t *place) {
 	aal_assert("umka-2666", place != NULL);
 	
-	return plug_call(place->plug->o.item_ops->tree, down_link, place);
+	return plug_call(place->plug->pl.item->tree, down_link, place);
 }

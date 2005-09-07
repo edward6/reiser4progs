@@ -133,7 +133,7 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	}
 	
 	/* Offset must be divisible by block size. */
-	if (plug_call(place->key.plug->o.key_ops, get_offset, &place->key) %
+	if (plug_call(place->key.plug->pl.key, get_offset, &place->key) %
 	    place_blksize(place)) 
 	{
 		fsck_mess("Node (%llu), item (%u), [%s]: extent40 "
@@ -195,8 +195,8 @@ static uint32_t extent40_head(reiser4_place_t *place,
 {
 	uint64_t koffset, offset, doffset;
 
-	koffset = plug_call(key->plug->o.key_ops, get_offset, key);
-	offset = plug_call(key->plug->o.key_ops, get_offset, &place->key);
+	koffset = plug_call(key->plug->pl.key, get_offset, key);
+	offset = plug_call(key->plug->pl.key, get_offset, &place->key);
 
 	aal_assert("vpf-1381", koffset >= offset);
 	
@@ -224,7 +224,7 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	dextent = extent40_body(place);
 	
 	/* Get the offset of the dst item key. */
-	offset = plug_call(hint->offset.plug->o.key_ops, 
+	offset = plug_call(hint->offset.plug->pl.key, 
 			   get_offset, &place->key);
 	
 	/* Probably all units will be inserted. */
@@ -243,11 +243,11 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	{
 		/* The whole item to be inserted. */
 		send = sunits - 1;
-	} else if (plug_call(place->key.plug->o.key_ops, compfull, 
+	} else if (plug_call(place->key.plug->pl.key, compfull, 
 			     &hint->offset, &place->key) < 0)
 	{
 		/* Get the @src end unit and the tail within it. */
-		offset -= plug_call(hint->offset.plug->o.key_ops,
+		offset -= plug_call(hint->offset.plug->pl.key,
 				    get_offset, &src->key);
 		
 		send = extent40_unit(src, offset - 1);
@@ -263,7 +263,7 @@ errno_t extent40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 		offset += extent40_offset(place, place->pos.unit + 1);
 		
 		/* Get the end position. */
-		offset -= plug_call(hint->offset.plug->o.key_ops,
+		offset -= plug_call(hint->offset.plug->pl.key,
 				    get_offset, &src->key);
 		send = extent40_unit(src, offset - 1);
 		
@@ -344,7 +344,7 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 			}
 
 			/* Get the offset for the maxkey. */
-			offset = plug_call(hint->offset.plug->o.key_ops,
+			offset = plug_call(hint->offset.plug->pl.key,
 					   get_offset, &place->key);
 			offset += extent40_offset(place, dstart);
 		} else {
@@ -360,12 +360,12 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 			}
 			
 			/* Get the offset for the maxkey. */
-			offset = plug_call(hint->offset.plug->o.key_ops,
+			offset = plug_call(hint->offset.plug->pl.key,
 					   get_offset, &src->key);
 			offset += extent40_offset(src, sstart);
 		}
 		
-		plug_call(hint->offset.plug->o.key_ops, set_offset, 
+		plug_call(hint->offset.plug->pl.key, set_offset, 
 			  &hint->maxkey, offset);
 
 		return 0;
@@ -379,12 +379,12 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	}
 
 	/* Set the maxkey offset correctly. */
-	offset = plug_call(hint->offset.plug->o.key_ops, 
+	offset = plug_call(hint->offset.plug->pl.key, 
 			   get_offset, &src->key);
 
 	offset += extent40_offset(src, sstart + hint->count);
 	offset -= hint->tail * place_blksize(src);
-	plug_call(hint->offset.plug->o.key_ops, set_offset, 
+	plug_call(hint->offset.plug->pl.key, set_offset, 
 		  &hint->maxkey, offset);
 
 	tail = head = 0;
@@ -474,7 +474,7 @@ int64_t extent40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	}
 	
 	/* Update the item key. */
-	if (plug_call(place->key.plug->o.key_ops, compfull, 
+	if (plug_call(place->key.plug->pl.key, compfull, 
 		      &hint->offset, &place->key) < 0)
 	{
 		aal_memcpy(&place->key, &hint->offset, sizeof(place->key));

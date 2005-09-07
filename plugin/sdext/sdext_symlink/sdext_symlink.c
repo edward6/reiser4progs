@@ -55,7 +55,7 @@ extern void sdext_symlink_print(stat_entity_t *stat,
 
 #endif
 
-static reiser4_sdext_ops_t sdext_symlink_ops = {
+static reiser4_sdext_plug_t sdext_symlink = {
 	.open	 	= sdext_symlink_open,
 		
 #ifndef ENABLE_MINIMAL
@@ -73,8 +73,8 @@ static reiser4_plug_t sdext_symlink_plug = {
 	.label = "sdext_symlink",
 	.desc  = "Symlink stat data extension plugin.",
 #endif
-	.o = {
-		.sdext_ops = &sdext_symlink_ops
+	.pl = {
+		.sdext = &sdext_symlink
 	}
 };
 

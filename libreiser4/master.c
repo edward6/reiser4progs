@@ -105,10 +105,10 @@ static errno_t cb_guess_format(
 		device = (aal_device_t *)data;
 		blksize = sysconf(_SC_PAGESIZE);
 		
-		if ((entity = plug_call(plug->o.format_ops, open, 
+		if ((entity = plug_call(plug->pl.format, open, 
 					device, blksize)))
 		{
-			plug_call(plug->o.format_ops, close, entity);
+			plug_call(plug->pl.format, close, entity);
 			return 1;
 		}
 	}

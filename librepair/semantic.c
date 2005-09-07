@@ -112,7 +112,7 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 		return res;
 	
 	/* Increment the link. */
-	if ((res = plug_call(reiser4_oplug(object)->o.object_ops,
+	if ((res = plug_call(reiser4_oplug(object)->pl.object,
 			     link, object)))
 	{
 		return res;

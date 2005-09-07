@@ -299,11 +299,11 @@ static errno_t journal40_update_format(journal40_t *journal) {
 
 	/* Some transaction passed, update format accordingly to the 
 	   footer info. */
-	plug_call(journal->format->plug->o.format_ops, set_free, 
+	plug_call(journal->format->plug->pl.format, set_free, 
 		  journal->format, get_jf_free_blocks(footer));
-	plug_call(journal->oid->plug->o.oid_ops, set_next,
+	plug_call(journal->oid->plug->pl.oid, set_next,
 		  journal->oid, get_jf_next_oid(footer));
-	plug_call(journal->oid->plug->o.oid_ops, set_used,
+	plug_call(journal->oid->plug->pl.oid, set_used,
 		  journal->oid, get_jf_used_oids(footer));
 
 	return 0;
@@ -623,7 +623,7 @@ static void journal40_close(generic_entity_t *entity) {
 	aal_free(journal);
 }
 
-static reiser4_journal_ops_t journal40_ops = {
+static reiser4_journal_plug_t journal40 = {
 	.open	  	= journal40_open,
 	.create	  	= journal40_create,
 	.sync	  	= journal40_sync,
@@ -646,8 +646,8 @@ reiser4_plug_t journal40_plug = {
 	.id    = {JOURNAL_REISER40_ID, 0, JOURNAL_PLUG_TYPE},
 	.label = "journal40",
 	.desc  = "Journal plugin.",
-	.o = {
-		.journal_ops = &journal40_ops
+	.pl = {
+		.journal = &journal40
 	}
 };
 

@@ -334,7 +334,7 @@ static errno_t repair_tree_conv(reiser4_tree_t *tree,
 	hint.plug = plug;
 	
 	aal_memcpy(&hint.offset, &dst->key, sizeof(dst->key));
-	hint.count = plug_call(dst->plug->o.item_ops->object, size, dst);
+	hint.count = plug_call(dst->plug->pl.item->object, size, dst);
 	hint.ins_hole = 1;
 
 	return reiser4_flow_convert(tree, &hint);
@@ -423,14 +423,14 @@ static errno_t repair_tree_lookup(reiser4_tree_t *tree,
 static errno_t cb_prep_insert_raw(reiser4_place_t *place, 
 				  trans_hint_t *hint) 
 {
-	return plug_call(hint->plug->o.item_ops->repair, 
+	return plug_call(hint->plug->pl.item->repair, 
 			 prep_insert_raw, place, hint);
 }
 
 static errno_t cb_insert_raw(reiser4_node_t *node, pos_t *pos, 
 			     trans_hint_t *hint) 
 {
-	return plug_call(node->plug->o.node_ops, 
+	return plug_call(node->plug->pl.node, 
 			 insert_raw, node, pos, hint);
 }
 
@@ -583,13 +583,13 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 			return RE_FATAL;
 		}
 
-		if (!src->plug->o.item_ops->balance->lookup)
+		if (!src->plug->pl.item->balance->lookup)
 			break;
 
 		lhint.key = &hint.maxkey;
 			
 		/* Lookup by end_key. */
-		if ((res = plug_call(src->plug->o.item_ops->balance,
+		if ((res = plug_call(src->plug->pl.item->balance,
 				     lookup, src, &lhint, FIND_EXACT)) < 0)
 		{
 			return res;

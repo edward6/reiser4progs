@@ -20,7 +20,7 @@ int reiser4_key_compshort(
 	aal_assert("umka-906", key1->plug != NULL);
 	aal_assert("umka-906", key2->plug != NULL);
 
-	return plug_call(key1->plug->o.key_ops, compshort, key1, key2);
+	return plug_call(key1->plug->pl.key, compshort, key1, key2);
 }
 #endif
 
@@ -36,7 +36,7 @@ int reiser4_key_compfull(
 	aal_assert("umka-906", key1->plug != NULL);
 	aal_assert("umka-906", key2->plug != NULL);
 
-	return plug_call(key1->plug->o.key_ops, 
+	return plug_call(key1->plug->pl.key, 
 			 compfull, key1, key2);
 }
 
@@ -53,7 +53,7 @@ errno_t reiser4_key_build_generic(
 	aal_assert("umka-665", key != NULL);
 	aal_assert("umka-666", key->plug != NULL);
 
-	return plug_call(key->plug->o.key_ops, build_generic, key,
+	return plug_call(key->plug->pl.key, build_generic, key,
 			 type, locality, ordering, objectid, offset);
 }
 
@@ -70,7 +70,7 @@ void reiser4_key_build_hashed(
 	aal_assert("umka-670", name != NULL);
 	aal_assert("umka-669", key->plug != NULL);
     
-	plug_call(key->plug->o.key_ops, build_hashed, key, 
+	plug_call(key->plug->pl.key, build_hashed, key, 
 		  hash, fibre, locality, objectid, name);
 }
 
@@ -82,7 +82,7 @@ errno_t reiser4_key_set_type(
 	aal_assert("umka-686", key != NULL);
 	aal_assert("umka-687", key->plug != NULL);
 
-	plug_call(key->plug->o.key_ops, set_type, key, type);
+	plug_call(key->plug->pl.key, set_type, key, type);
 	return 0;
 }
 
@@ -94,7 +94,7 @@ errno_t reiser4_key_set_objectid(
 	aal_assert("umka-694", key != NULL);
 	aal_assert("umka-695", key->plug != NULL);
     
-	plug_call(key->plug->o.key_ops, set_objectid,
+	plug_call(key->plug->pl.key, set_objectid,
 		  key, objectid);
 
 	return 0;
@@ -108,7 +108,7 @@ errno_t reiser4_key_set_locality(
 	aal_assert("umka-696", key != NULL);
 	aal_assert("umka-697", key->plug != NULL);
     
-	plug_call(key->plug->o.key_ops, set_locality,
+	plug_call(key->plug->pl.key, set_locality,
 		  key, locality);
 
 	return 0;
@@ -122,7 +122,7 @@ errno_t reiser4_key_set_ordering(
 	aal_assert("umka-2337", key != NULL);
 	aal_assert("umka-2338", key->plug != NULL);
     
-	plug_call(key->plug->o.key_ops, set_ordering,
+	plug_call(key->plug->pl.key, set_ordering,
 		  key, ordering);
 
 	return 0;
@@ -136,7 +136,7 @@ errno_t reiser4_key_set_offset(
 	aal_assert("umka-688", key != NULL);
 	aal_assert("umka-689", key->plug != NULL);
     
-	plug_call(key->plug->o.key_ops, set_offset, key, offset);
+	plug_call(key->plug->pl.key, set_offset, key, offset);
 	return 0;
 }
 
@@ -146,7 +146,7 @@ uint64_t reiser4_key_get_offset(reiser4_key_t *key) {
 	aal_assert("umka-700", key != NULL);
 	aal_assert("umka-701", key->plug != NULL);
 
-	return plug_call(key->plug->o.key_ops, get_offset, key);
+	return plug_call(key->plug->pl.key, get_offset, key);
 }
 
 /* Increases key's offset by passed @value */
@@ -160,7 +160,7 @@ uint32_t reiser4_key_get_type(reiser4_key_t *key) {
 	aal_assert("umka-698", key != NULL);
 	aal_assert("umka-699", key->plug != NULL);
 
-	return plug_call(key->plug->o.key_ops,
+	return plug_call(key->plug->pl.key,
 			 get_type, key);
 }
 
@@ -169,7 +169,7 @@ oid_t reiser4_key_get_objectid(reiser4_key_t *key) {
 	aal_assert("umka-702", key != NULL);
 	aal_assert("umka-703", key->plug != NULL);
 
-	return plug_call(key->plug->o.key_ops,
+	return plug_call(key->plug->pl.key,
 			 get_objectid, key);
 }
 
@@ -178,7 +178,7 @@ oid_t reiser4_key_get_locality(reiser4_key_t *key) {
 	aal_assert("umka-704", key != NULL);
 	aal_assert("umka-705", key->plug != NULL);
 
-	return plug_call(key->plug->o.key_ops,
+	return plug_call(key->plug->pl.key,
 			 get_locality, key);
 }
 
@@ -187,7 +187,7 @@ uint64_t reiser4_key_get_ordering(reiser4_key_t *key) {
 	aal_assert("umka-2335", key != NULL);
 	aal_assert("umka-2336", key->plug != NULL);
 
-	return plug_call(key->plug->o.key_ops,
+	return plug_call(key->plug->pl.key,
 			 get_ordering, key);
 }
 #endif
@@ -199,7 +199,7 @@ void reiser4_key_maximal(reiser4_key_t *key) {
 	aal_assert("vpf-185", key != NULL);
 	aal_assert("vpf-186", key->plug != NULL);
 
-	entity = plug_call(key->plug->o.key_ops, maximal);
+	entity = plug_call(key->plug->pl.key, maximal);
 	aal_memcpy(key->body, entity->body, sizeof(key->body));
 }
 
@@ -211,7 +211,7 @@ void reiser4_key_minimal(reiser4_key_t *key) {
 	aal_assert("vpf-187", key != NULL);
 	aal_assert("vpf-188", key->plug != NULL);
 
-	entity = plug_call(key->plug->o.key_ops, minimal);
+	entity = plug_call(key->plug->pl.key, minimal);
 	aal_memcpy(key->body, entity->body, sizeof(key->body));
 }
 
@@ -223,7 +223,7 @@ errno_t reiser4_key_set_hash(
 	aal_assert("umka-706", key != NULL);
 	aal_assert("umka-707", key->plug != NULL);
     
-	plug_call(key->plug->o.key_ops, set_hash, key, hash);
+	plug_call(key->plug->pl.key, set_hash, key, hash);
     
 	return 0;
 }
@@ -233,7 +233,7 @@ uint64_t reiser4_key_get_hash(reiser4_key_t *key) {
 	aal_assert("umka-708", key != NULL);
 	aal_assert("umka-709", key->plug != NULL);
 
-	return plug_call(key->plug->o.key_ops, get_hash, key);
+	return plug_call(key->plug->pl.key, get_hash, key);
 }
 
 void reiser4_key_print(reiser4_key_t *key, 
@@ -243,7 +243,7 @@ void reiser4_key_print(reiser4_key_t *key,
 	aal_assert("vpf-189", key != NULL);
 	aal_assert("vpf-190", key->plug != NULL);
 
-	plug_call(key->plug->o.key_ops, print, key,
+	plug_call(key->plug->pl.key, print, key,
 		  stream, options); 
 }
 #endif

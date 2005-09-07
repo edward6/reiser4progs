@@ -154,7 +154,7 @@ errno_t reiser4_pset_tree(reiser4_tree_t *tree) {
 	aal_assert("vpf-1610", tree->fs->format != NULL);
 
 	/* Init the key plugin. */
-	pid = plug_call(tree->fs->format->ent->plug->o.format_ops,
+	pid = plug_call(tree->fs->format->ent->plug->pl.format,
 			key_pid, tree->fs->format->ent);
 
 	if (!(plug = reiser4_factory_ifind(KEY_PLUG_TYPE, pid))) {

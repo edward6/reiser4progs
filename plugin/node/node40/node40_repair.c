@@ -374,7 +374,7 @@ int64_t node40_insert_raw(reiser4_node_t *entity, pos_t *pos,
 	aal_assert("vpf-1368", hint != NULL);
 	
 	return node40_modify(entity, pos, hint, 
-			     hint->plug->o.item_ops->repair->insert_raw);
+			     hint->plug->pl.item->repair->insert_raw);
 }
 
 errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream) {
@@ -437,9 +437,9 @@ errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream) {
 		if (node40_fetch(entity, pos, &place))
 			return -EINVAL;
 		
-		if (place.plug->o.item_ops->repair->pack) {
+		if (place.plug->pl.item->repair->pack) {
 			/* Pack body. */
-			if (plug_call(place.plug->o.item_ops->repair,
+			if (plug_call(place.plug->pl.item->repair,
 				      pack, &place, stream))
 			{
 				return -EINVAL;
@@ -548,9 +548,9 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 		if (node40_fetch(entity, pos, &place))
 			goto error_free;
 		
-		if (place.plug->o.item_ops->repair->unpack) {
+		if (place.plug->pl.item->repair->unpack) {
 			/* Unpack body. */
-			if (plug_call(place.plug->o.item_ops->repair,
+			if (plug_call(place.plug->pl.item->repair,
 				      unpack, &place, stream))
 			{
 				goto error_free_entity;
@@ -646,11 +646,11 @@ void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 		/* Printing item by means of calling item print method if it is
 		   implemented. If it is not, then print common item information
 		   like key, len, etc. */
-		if (place.plug && place.plug->o.item_ops->debug->print &&
+		if (place.plug && place.plug->pl.item->debug->print &&
 		    place.body - entity->block->data + place.len < 
 		    entity->block->size) 
 		{
-			plug_call(place.plug->o.item_ops->debug,
+			plug_call(place.plug->pl.item->debug,
 				  print, &place, stream, options);
 		}
 	}

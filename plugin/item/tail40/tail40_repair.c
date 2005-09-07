@@ -39,10 +39,10 @@ errno_t tail40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	} else {
 		uint64_t doffset, start;
 		
-		doffset = plug_call(place->key.plug->o.key_ops, 
+		doffset = plug_call(place->key.plug->pl.key, 
 				    get_offset, &place->key);
 		
-		start = plug_call(hint->offset.plug->o.key_ops, 
+		start = plug_call(hint->offset.plug->pl.key, 
 				  get_offset, &hint->offset);
 
 		if (start < doffset)
@@ -71,7 +71,7 @@ errno_t tail40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	src = (reiser4_place_t *)hint->specific;
 	pos = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
 
-	offset = plug_call(hint->offset.plug->o.key_ops,
+	offset = plug_call(hint->offset.plug->pl.key,
 			   get_offset, &hint->offset);
 	
 	if (hint->count) {
@@ -91,7 +91,7 @@ errno_t tail40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	/* Set the maxkey of the passed operation. */
 	aal_memcpy(&hint->maxkey, &hint->offset, sizeof(hint->maxkey));
 
-	plug_call(hint->maxkey.plug->o.key_ops, 
+	plug_call(hint->maxkey.plug->pl.key, 
 		  set_offset, &hint->maxkey, offset);
 
 	/* Update the item key. */

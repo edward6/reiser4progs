@@ -27,7 +27,7 @@ static int64_t crc40_write(reiser4_object_t *crc,
 }
 
 /* CRC regular file operations. */
-static reiser4_object_ops_t crc40_ops = {
+static reiser4_object_plug_t crc40 = {
 	.create	        = obj40_create,
 	.write	        = crc40_write,
 	.truncate       = NULL,
@@ -64,10 +64,8 @@ static reiser4_object_ops_t crc40_ops = {
 	.offset	        = obj40_offset,
 	.read	        = crc40_read,
 
-#ifndef ENABLE_MINIMAL
 	.sdext_mandatory = (1 << SDEXT_LW_ID),
 	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID)
-#endif
 };
 
 /* CRC regular file plugin. */
@@ -76,8 +74,8 @@ reiser4_plug_t crc40_plug = {
 	.id    = {OBJECT_CRC40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
 	.label = "crc40",
 	.desc  = "Crypto-Compression regular file plugin.",
-	.o = {
-		.object_ops = &crc40_ops
+	.pl = {
+		.object = &crc40
 	}
 };
 

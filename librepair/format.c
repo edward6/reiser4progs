@@ -190,10 +190,10 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 		}
 		
 		if (fs->backup) {
-			fent = plug_call(plug->o.format_ops, regenerate,
+			fent = plug_call(plug->pl.format, regenerate,
 					 fs->device, &fs->backup->hint);
 		} else {
-			fent = plug_call(plug->o.format_ops, create, 
+			fent = plug_call(plug->pl.format, create, 
 					 fs->device, &hint);
 		}
 
@@ -214,7 +214,7 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 	/* Check the format structure. If there is no backup and format, then 
 	   @fent has been just created, nothing to check anymore. */
 	if (fs->backup || fs->format) {
-		res = plug_call(fent->plug->o.format_ops, check_struct, 
+		res = plug_call(fent->plug->pl.format, check_struct, 
 				fent, fs->backup ? &fs->backup->hint : NULL,
 				&hint, mode);
 	} else {
@@ -224,7 +224,7 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 	if (!fs->format) {
 		if (!(fs->format = aal_calloc(sizeof(reiser4_format_t), 0))) {
 			aal_error("Can't allocate the format.");
-			plug_call(plug->o.format_ops, close, fent);
+			plug_call(plug->pl.format, close, fent);
 			return -ENOMEM;
 		}
 
@@ -238,10 +238,10 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 errno_t repair_format_update(reiser4_format_t *format) {
 	aal_assert("vpf-829", format != NULL);
 
-	if (format->ent->plug->o.format_ops->update == NULL)
+	if (format->ent->plug->pl.format->update == NULL)
 		return 0;
     
-	return format->ent->plug->o.format_ops->update(format->ent);
+	return format->ent->plug->pl.format->update(format->ent);
 }
 
 /* Fetches format data to @stream. */
@@ -249,7 +249,7 @@ errno_t repair_format_pack(reiser4_format_t *format, aal_stream_t *stream) {
 	aal_assert("umka-2604", format != NULL);
 	aal_assert("umka-2605", stream != NULL);
 
-	return plug_call(format->ent->plug->o.format_ops,
+	return plug_call(format->ent->plug->pl.format,
 			 pack, format->ent, stream);
 }
 
@@ -258,7 +258,7 @@ void repair_format_print(reiser4_format_t *format, aal_stream_t *stream) {
 	aal_assert("umka-1560", format != NULL);
 	aal_assert("umka-1561", stream != NULL);
 
-	plug_call(format->ent->plug->o.format_ops,
+	plug_call(format->ent->plug->pl.format,
 		  print, format->ent, stream, 0);
 }
 
@@ -293,7 +293,7 @@ reiser4_format_t *repair_format_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 
 	blksize = reiser4_master_get_blksize(fs->master);
 	
-	if (!(format->ent = plug_call(plug->o.format_ops, unpack, 
+	if (!(format->ent = plug_call(plug->pl.format, unpack, 
 				      fs->device, blksize, stream)))
 	{
 		aal_error("Can't unpack disk-format.");
@@ -323,7 +323,7 @@ errno_t repair_format_check_backup(aal_device_t *device, backup_hint_t *hint) {
 		return RE_FATAL;
 	}
 
-	if ((res = plug_call(plug->o.format_ops, check_backup, hint)))
+	if ((res = plug_call(plug->pl.format, check_backup, hint)))
 		return res;
 
 	return (repair_format_check_len_old(device, get_ms_blksize(master), 

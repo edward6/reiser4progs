@@ -10,7 +10,7 @@ static int tails_tails(uint64_t value) {
 	return 1;
 }
 
-reiser4_policy_ops_t tails_ops = {
+reiser4_policy_plug_t tails = {
 	.tails = tails_tails
 };
 
@@ -19,8 +19,8 @@ static reiser4_plug_t tails_plug = {
 	.id    = {TAIL_ALWAYS_ID, 0, POLICY_PLUG_TYPE},
 	.label = "tails",
 	.desc  = "'Tails only' tail policy plugin.",
-	.o = {
-		.policy_ops = &tails_ops
+	.pl = {
+		.policy = &tails
 	}
 };
 

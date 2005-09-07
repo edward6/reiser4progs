@@ -106,7 +106,7 @@ static errno_t sym40_follow(reiser4_object_t *sym,
 }
 
 /* Symlinks operations. */
-static reiser4_object_ops_t sym40_ops = {
+static reiser4_object_plug_t sym40 = {
 #ifndef ENABLE_MINIMAL
 	.create	        = sym40_create,
 	.metadata       = sym40_metadata,
@@ -159,8 +159,8 @@ reiser4_plug_t sym40_plug = {
 	.label = "sym40",
 	.desc  = "Symlink file plugin.",
 #endif
-	.o = {
-		.object_ops = &sym40_ops
+	.pl = {
+		.object = &sym40
 	}
 };
 

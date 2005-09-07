@@ -156,10 +156,10 @@ static errno_t tree_frag_process_node(reiser4_node_t *node, void *data) {
 		/* Checking and calling item's layout method with function
 		   tfrag_process_item() as a function for handling one block the
 		   item points to. */
-		if (!place.plug->o.item_ops->object->layout)
+		if (!place.plug->pl.item->object->layout)
 			continue;
 
-		plug_call(place.plug->o.item_ops->object, layout,
+		plug_call(place.plug->pl.item->object, layout,
 			  &place, tree_frag_process_item, data);
 	}
 	
@@ -374,11 +374,11 @@ static errno_t stat_process_node(reiser4_node_t *node, void *data) {
 
 		/* Calling layout() method with callback for counting referenced
 		   blocks. */
-		if (!place.plug->o.item_ops->object->layout)
+		if (!place.plug->pl.item->object->layout)
 			continue;
 
 		stat_hint->place = &place;
-		plug_call(place.plug->o.item_ops->object, layout,
+		plug_call(place.plug->pl.item->object, layout,
 			  &place, stat_item_layout, data);
 	}
 

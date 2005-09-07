@@ -15,11 +15,11 @@ errno_t body40_get_key(reiser4_place_t *place, uint32_t pos,
 
 	aal_memcpy(key, &place->key, sizeof(*key));
 	
-	offset = plug_call(key->plug->o.key_ops, get_offset, key);
+	offset = plug_call(key->plug->pl.key, get_offset, key);
 
 	offset += (trans_func ? trans_func(place, pos) : pos);
 	
-	plug_call(key->plug->o.key_ops, set_offset, key, offset);
+	plug_call(key->plug->pl.key, set_offset, key, offset);
 	
 	return 0;
 }
@@ -31,11 +31,11 @@ errno_t body40_maxposs_key(reiser4_place_t *place, reiser4_key_t *key) {
    
 	aal_memcpy(key, &place->key, sizeof(*key));
     
-	maxkey = plug_call(key->plug->o.key_ops, maximal);
+	maxkey = plug_call(key->plug->pl.key, maximal);
     
-	offset = plug_call(key->plug->o.key_ops, get_offset, maxkey);
+	offset = plug_call(key->plug->pl.key, get_offset, maxkey);
 	
-    	plug_call(key->plug->o.key_ops, set_offset, key, offset);
+    	plug_call(key->plug->pl.key, set_offset, key, offset);
 
 	return 0;
 }
@@ -49,15 +49,15 @@ errno_t body40_maxreal_key(reiser4_place_t *place,
 	uint64_t units;
 	uint64_t offset;
 
-	units = plug_call(place->plug->o.item_ops->balance, units, place);
+	units = plug_call(place->plug->pl.item->balance, units, place);
 
 	aal_memcpy(key, &place->key, sizeof(*key));
 
-	offset = plug_call(key->plug->o.key_ops, get_offset, key);
+	offset = plug_call(key->plug->pl.key, get_offset, key);
 
 	offset += (trans_func ? trans_func(place, units) : units);
 	
-	plug_call(key->plug->o.key_ops, set_offset, key, offset - 1);
+	plug_call(key->plug->pl.key, set_offset, key, offset - 1);
 	
 	return 0;
 }
@@ -69,16 +69,16 @@ int body40_mergeable(reiser4_place_t *place1,
 	uint64_t offset;
 	reiser4_key_t maxkey;
 
-	plug_call(place1->plug->o.item_ops->balance,
+	plug_call(place1->plug->pl.item->balance,
 		  maxreal_key, place1, &maxkey);
 
-	offset = plug_call(maxkey.plug->o.key_ops,
+	offset = plug_call(maxkey.plug->pl.key,
 			   get_offset, &maxkey);
 
-	plug_call(maxkey.plug->o.key_ops,
+	plug_call(maxkey.plug->pl.key,
 		  set_offset, &maxkey, offset + 1);
 	
-	return !plug_call(place1->key.plug->o.key_ops,
+	return !plug_call(place1->key.plug->pl.key,
 			  compfull, &maxkey, &place2->key);
 }
 #endif

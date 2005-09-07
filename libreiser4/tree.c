@@ -82,7 +82,7 @@ blk_t reiser4_tree_get_root(reiser4_tree_t *tree) {
 	aal_assert("umka-2414", tree->fs != NULL);
 	aal_assert("umka-2415", tree->fs->format != NULL);
 
-	return plug_call(tree->fs->format->ent->plug->o.format_ops, 
+	return plug_call(tree->fs->format->ent->plug->pl.format, 
 			 get_root, tree->fs->format->ent);
 }
 
@@ -93,7 +93,7 @@ uint8_t reiser4_tree_get_height(reiser4_tree_t *tree) {
 	aal_assert("umka-2418", tree->fs != NULL);
 	aal_assert("umka-2419", tree->fs->format != NULL);
 
-	return plug_call(tree->fs->format->ent->plug->o.format_ops, 
+	return plug_call(tree->fs->format->ent->plug->pl.format, 
 			 get_height, tree->fs->format->ent);
 }
 
@@ -332,7 +332,7 @@ static errno_t debug_node_check_keys(reiser4_node_t *node) {
 	count = reiser4_node_items(node);
 
 	for (pos.item = 0; pos.item < count; pos.item++) {
-		plug_call(node->plug->o.node_ops, 
+		plug_call(node->plug->pl.node, 
 			  get_key, node, &pos, &key);
 
 		if (pos.item && reiser4_key_compfull(&prev, &key) > 0)
@@ -1004,7 +1004,7 @@ errno_t reiser4_tree_root_key(reiser4_tree_t *tree,
 	locality = REISER4_ROOT_LOCALITY;
 	objectid = REISER4_ROOT_OBJECTID;
 #endif
-	return plug_call(key->plug->o.key_ops, build_generic, key,
+	return plug_call(key->plug->pl.key, build_generic, key,
 			 KEY_STATDATA_TYPE, locality, 0, objectid, 0);
 }
 
@@ -1156,7 +1156,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		int first_time = 1;
 
 
-		if (plug_call(place->plug->o.item_ops->object,
+		if (plug_call(place->plug->pl.item->object,
 			      fetch_units, place, &hint) != 1)
 		{
 			return -EIO;
@@ -1167,7 +1167,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 			continue;
 
 		/* Getting unit key. */
-		plug_call(place->plug->o.item_ops->balance,
+		plug_call(place->plug->pl.item->balance,
 			  fetch_key, place, &key);
 
 		/* Loop until all units get allocated. */
@@ -1187,7 +1187,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 				flags = reiser4_item_get_flags(place);
 
 				/* Updating extent unit at @place->pos.unit. */
-				if (plug_call(place->plug->o.item_ops->object,
+				if (plug_call(place->plug->pl.item->object,
 					      update_units, place, &hint) != 1)
 				{
 					return -EIO;
@@ -1242,10 +1242,10 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 				aal_hash_table_remove(tree->blocks, &key);
 
 				/* Updating the key to find next data block */
-				offset = plug_call(key.plug->o.key_ops,
+				offset = plug_call(key.plug->pl.key,
 						   get_offset, &key);
 
-				plug_call(key.plug->o.key_ops, set_offset,
+				plug_call(key.plug->pl.key, set_offset,
 					  &key, offset + blksize);
 			}
 			
@@ -1688,7 +1688,7 @@ static errno_t reiser4_tree_collision_start(reiser4_tree_t *tree,
 			   get out here. This clause is needed for the case 
 			   of corruption when not directory item has a NAME 
 			   minor. */
-			if (walk.plug->o.item_ops->balance->maxposs_key) {
+			if (walk.plug->pl.item->balance->maxposs_key) {
 				reiser4_key_t maxkey;
 
 				reiser4_item_maxposs_key(&walk, &maxkey);
@@ -1699,12 +1699,12 @@ static errno_t reiser4_tree_collision_start(reiser4_tree_t *tree,
 			
                         /* If item's lookup is implemented, we use it. Item key
                            comparing is used otherwise. */
-                        if (walk.plug->o.item_ops->balance->lookup) {
+                        if (walk.plug->pl.item->balance->lookup) {
 				lookup_hint_t lhint;
 
 				lhint.key = key;
 				
-                                switch (plug_call(walk.plug->o.item_ops->balance,
+                                switch (plug_call(walk.plug->pl.item->balance,
                                                   lookup, &walk, &lhint, FIND_EXACT))
                                 {
                                 case PRESENT:
@@ -2945,14 +2945,14 @@ static errno_t cb_tree_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 	hint->len = 0;
 	hint->overhead = 0;
 
-	return plug_call(hint->plug->o.item_ops->object,
+	return plug_call(hint->plug->pl.item->object,
 			 prep_insert, place, hint);
 }
 
 static errno_t cb_tree_insert(reiser4_node_t *node, pos_t *pos, 
 			      trans_hint_t *hint) 
 {
-	return plug_call(node->plug->o.node_ops, 
+	return plug_call(node->plug->pl.node, 
 			 insert, node, pos, hint);
 }
 
@@ -2973,14 +2973,14 @@ static errno_t cb_tree_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 	hint->len = 0;
 	hint->overhead = 0;
 
-	return plug_call(hint->plug->o.item_ops->object,
+	return plug_call(hint->plug->pl.item->object,
 			 prep_write, place, hint);
 }
 
 static errno_t cb_tree_write(reiser4_node_t *node, 
 			     pos_t *pos, trans_hint_t *hint) 
 {
-	return plug_call(node->plug->o.node_ops, 
+	return plug_call(node->plug->pl.node, 
 			 write, node, pos, hint);
 }
 

@@ -45,7 +45,7 @@ errno_t ln_cmd(busy_ctx_t *ctx) {
 	
 	/* Looking up for @entry in current directory */
 	plug = reiser4_oplug(parent);
-	if ((res = plug_call(plug->o.object_ops, lookup, 
+	if ((res = plug_call(plug->pl.object, lookup, 
 			     parent, name, &entry)) < 0)
 		goto error_close_parent;
 

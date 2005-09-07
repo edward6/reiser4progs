@@ -13,7 +13,7 @@ errno_t bbox40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	uint8_t size;
 	
 	/* FIXME: this is hardcoded, type should be obtained in another way. */
-	type = plug_call(place->key.plug->o.key_ops, get_offset, &place->key);
+	type = plug_call(place->key.plug->pl.key, get_offset, &place->key);
 
 	if (type >= SL_LAST) {
 		fsck_mess("Node (%llu), item (%u), [%s]: safe link "
@@ -25,7 +25,7 @@ errno_t bbox40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 		return RE_FATAL;
 	}
 	
-	size = plug_call(place->key.plug->o.key_ops, bodysize) * 
+	size = plug_call(place->key.plug->pl.key, bodysize) * 
 		sizeof(uint64_t);
 
 	if (type == SL_TRUNCATE)
@@ -52,9 +52,9 @@ void bbox40_print(reiser4_place_t *place, aal_stream_t *stream,
 	uint16_t size, trunc;
 
 	/* FIXME: this is hardcoded, type should be obtained in another way. */
-	type = plug_call(place->key.plug->o.key_ops, get_offset, &place->key);
+	type = plug_call(place->key.plug->pl.key, get_offset, &place->key);
 
-	size = plug_call(place->key.plug->o.key_ops, bodysize) * 
+	size = plug_call(place->key.plug->pl.key, bodysize) * 
 		sizeof(uint64_t);
 
 	trunc = (type == SL_TRUNCATE) ? sizeof(uint64_t) : 0;

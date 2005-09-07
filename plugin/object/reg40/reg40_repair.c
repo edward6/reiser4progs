@@ -45,7 +45,7 @@ static errno_t reg40_check_ikey(reiser4_object_t *reg) {
 	if (reg->body.plug->id.group != EXTENT_ITEM)
 		return -EINVAL;
 
-	offset = plug_call(reg->body.key.plug->o.key_ops, get_offset, 
+	offset = plug_call(reg->body.key.plug->pl.key, get_offset, 
 			   &reg->body.key);
 	
 	return offset % place_blksize(&reg->body) ? RE_FATAL : 0;
@@ -74,12 +74,12 @@ static errno_t reg40_next(reiser4_object_t *reg, uint8_t mode) {
 			return res;
 
 		/* Check if this is an item of another object. */
-		if (plug_call(reg->position.plug->o.key_ops, compshort,
+		if (plug_call(reg->position.plug->pl.key, compshort,
 			      &reg->position, &reg->body.key))
 			goto end;
 
 		/* If non-existent position in the item, move next. */
-		if (plug_call(reg->body.plug->o.item_ops->balance,
+		if (plug_call(reg->body.plug->pl.item->balance,
 			      units, &reg->body) == reg->body.pos.unit)
 		{
 			reiser4_place_t next;
@@ -98,7 +98,7 @@ static errno_t reg40_next(reiser4_object_t *reg, uint8_t mode) {
 			reg->body = next;
 
 			/* Check if this is an item of another object. */
-			if (plug_call(reg->position.plug->o.key_ops, 
+			if (plug_call(reg->position.plug->pl.key, 
 				      compshort, &reg->position, 
 				      &reg->body.key))
 				goto end;
@@ -174,13 +174,13 @@ static int reg40_conv_prepare(reiser4_object_t *reg,
 		hint->plug = reg->body.plug;
 		
 		/* Convert from 0 to this item offset bytes. */
-		if (!(hint->count = plug_call(reg->body.key.plug->o.key_ops, 
+		if (!(hint->count = plug_call(reg->body.key.plug->pl.key, 
 					      get_offset, &reg->body.key)))
 			return 0;
 		
 		/* Set the start key for convertion. */
 		aal_memcpy(&hint->offset, &reg->position, sizeof(hint->offset));
-		plug_call(reg->body.key.plug->o.key_ops, set_offset,
+		plug_call(reg->body.key.plug->pl.key, set_offset,
 			  &hint->offset, 0);
 
 		hint->bytes = 0;
@@ -202,7 +202,7 @@ static int reg40_conv_prepare(reiser4_object_t *reg,
 
 	/* Count of bytes 0-this item offset. */
 	hint->count = maxreal + 1 - 
-		plug_call(reg->body.key.plug->o.key_ops,
+		plug_call(reg->body.key.plug->pl.key,
 			  get_offset, &hint->offset);
 	
 	/* Convertion is postponed; do not bother with it for not RM_BUILD. */
@@ -216,15 +216,15 @@ static uint64_t reg40_place_maxreal(reiser4_place_t *place) {
 	uint64_t offset, size;
 	reiser4_key_t key;
 	
-	offset = plug_call(place->key.plug->o.key_ops, get_offset, &place->key);
-	size = plug_call(place->plug->o.item_ops->object, size, place);
+	offset = plug_call(place->key.plug->pl.key, get_offset, &place->key);
+	size = plug_call(place->plug->pl.item->object, size, place);
 	
 	if (offset > MAX_UINT64 - size)
 		return MAX_UINT64;
 
 	/* Get the maxreal key of the found item. */
-	plug_call(place->plug->o.item_ops->balance, maxreal_key, place, &key);
-	return plug_call(key.plug->o.key_ops, get_offset, &key);
+	plug_call(place->plug->pl.item->balance, maxreal_key, place, &key);
+	return plug_call(key.plug->pl.key, get_offset, &key);
 }
 
 static errno_t reg40_hole_cure(reiser4_object_t *reg, 
@@ -237,7 +237,7 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 	
 	aal_assert("vpf-1355", reg != NULL);
 
-	offset = plug_call(reg->body.key.plug->o.key_ops, 
+	offset = plug_call(reg->body.key.plug->pl.key, 
 			   get_offset, &reg->body.key);
 
 	if ((len = offset - obj40_offset(reg)) == 0)
@@ -319,7 +319,7 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 			if (maxreal == MAX_UINT64) {
 				uint64_t offset;
 				
-				offset = plug_call(reg->body.key.plug->o.key_ops,
+				offset = plug_call(reg->body.key.plug->pl.key,
 						   get_offset, &reg->body.key);
 				
 				fsck_mess("The object [%s]: found item "
@@ -332,7 +332,7 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 				   items; there is probably a postponed 
 				   convertion needs to be finished. */
 				reg->body.plug = NULL;
-			} else if (plug_call(reg->position.plug->o.key_ops,
+			} else if (plug_call(reg->position.plug->pl.key,
 					     compfull, &reg->position, 
 					     &reg->body.key) > 0)
 			{
@@ -354,7 +354,7 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 		if ((result == 0 && conv.offset.plug) || result == 2) {
 			uint64_t offset;
 			
-			offset = plug_call(conv.offset.plug->o.key_ops,
+			offset = plug_call(conv.offset.plug->pl.key,
 					   get_offset, &conv.offset);
 			
 			fsck_mess("The object [%s] (%s): items at offsets "
@@ -393,7 +393,7 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 		if (conv.offset.plug)
 			goto next;
 		
-		hint.bytes += plug_call(reg->body.plug->o.item_ops->object,
+		hint.bytes += plug_call(reg->body.plug->pl.item->object,
 					bytes, &reg->body);
 
 		/* If we found not we looking for, insert the hole. */
@@ -412,7 +412,7 @@ next:
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	if (!(res & RE_FATAL)) {
-		hint.size = plug_call(reg->position.plug->o.key_ops, 
+		hint.size = plug_call(reg->position.plug->pl.key, 
 				      get_offset, &reg->position);
 		
 		hint.mode = S_IFREG;

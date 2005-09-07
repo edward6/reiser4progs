@@ -97,7 +97,7 @@ reiser4_plug_t *reg40_policy_plug(reiser4_object_t *reg, uint64_t new_size) {
 	aal_assert("umka-2393", policy != NULL);
 
 	/* Calling formatting policy plugin to detect body plugin. */
-	if (plug_call(policy->o.policy_ops, tails, new_size)) {
+	if (plug_call(policy->pl.policy, tails, new_size)) {
 		/* Trying to get non-standard tail plugin from stat data. And if
 		   it is not found, default one from params will be taken. */
 		return reg->info.opset.plug[OPSET_TAIL];
@@ -123,7 +123,7 @@ static errno_t reg40_convert(reiser4_object_t *reg,
 	   offset until end is reached. */
 	aal_memcpy(&hint.offset, &reg->position, sizeof(hint.offset));
 	
-	plug_call(reg->position.plug->o.key_ops, set_offset,
+	plug_call(reg->position.plug->pl.key, set_offset,
 		  &hint.offset, 0);
 	
 	/* Prepare convert hint. */
@@ -223,7 +223,7 @@ static int64_t reg40_cut(reiser4_object_t *reg, uint64_t offset) {
 	/* Preparing key of the data to be truncated. */
 	aal_memcpy(&hint.offset, &reg->position, sizeof(hint.offset));
 		
-	plug_call(STAT_KEY(reg)->plug->o.key_ops,
+	plug_call(STAT_KEY(reg)->plug->pl.key,
 		  set_offset, &hint.offset, offset);
 
 	/* Removing data from the tree. */
@@ -415,8 +415,8 @@ static errno_t reg40_layout(reiser4_object_t *reg,
 			return 0;
 
 		/* Calling item enumerator funtion for current body item. */
-		if (place->plug->o.item_ops->object->layout) {
-			if ((res = plug_call(place->plug->o.item_ops->object,
+		if (place->plug->pl.item->object->layout) {
+			if ((res = plug_call(place->plug->pl.item->object,
 					     layout, place, cb_item_layout,
 					     &hint)))
 			{
@@ -431,11 +431,11 @@ static errno_t reg40_layout(reiser4_object_t *reg,
 
 		/* Getting current item max real key inside, in order to know
 		   how much to increase file offset. */
-		plug_call(place->plug->o.item_ops->balance, maxreal_key,
+		plug_call(place->plug->pl.item->balance, maxreal_key,
 			  place, &maxkey);
 
 		/* Updating file offset. */
-		obj40_seek(reg, plug_call(maxkey.plug->o.key_ops,
+		obj40_seek(reg, plug_call(maxkey.plug->pl.key,
 					  get_offset, &maxkey) + 1);
 	}
 	
@@ -479,11 +479,11 @@ static errno_t reg40_metadata(reiser4_object_t *reg,
 
 		/* Getting current item max real key inside, in order to know
 		   how much increase file offset. */
-		plug_call(reg->body.plug->o.item_ops->balance, maxreal_key,
+		plug_call(reg->body.plug->pl.item->balance, maxreal_key,
 			  &reg->body, &maxkey);
 
 		/* Updating file offset */
-		obj40_seek(reg, plug_call(maxkey.plug->o.key_ops,
+		obj40_seek(reg, plug_call(maxkey.plug->pl.key,
 					  get_offset, &maxkey) + 1);
 	}
 	
@@ -492,7 +492,7 @@ static errno_t reg40_metadata(reiser4_object_t *reg,
 #endif
 
 /* Regular file operations. */
-static reiser4_object_ops_t reg40_ops = {
+static reiser4_object_plug_t reg40 = {
 #ifndef ENABLE_MINIMAL
 	.create	        = obj40_create,
 	.write	        = reg40_write,
@@ -545,8 +545,8 @@ reiser4_plug_t reg40_plug = {
 	.label = "reg40",
 	.desc  = "Regular file plugin.",
 #endif
-	.o = {
-		.object_ops = &reg40_ops
+	.pl = {
+		.object = &reg40
 	}
 };
 

@@ -144,7 +144,7 @@ void debugfs_print_status(reiser4_fs_t *fs) {
 void debugfs_print_format(reiser4_fs_t *fs) {
 	aal_stream_t stream;
 
-	if (!fs->format->ent->plug->o.format_ops->print) {
+	if (!fs->format->ent->plug->pl.format->print) {
 		aal_info("Format print method is not "
 			 "implemented.");
 		return;
@@ -161,7 +161,7 @@ void debugfs_print_format(reiser4_fs_t *fs) {
 void debugfs_print_oid(reiser4_fs_t *fs) {
 	aal_stream_t stream;
     
-	if (!fs->oid->ent->plug->o.oid_ops->print) {
+	if (!fs->oid->ent->plug->pl.oid->print) {
 		aal_info("Oid allocator print method is "
 			 "not implemented.");
 		return;

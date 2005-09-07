@@ -32,13 +32,13 @@ errno_t repair_item_check_struct(reiser4_place_t *place, uint8_t mode) {
 	aal_assert("vpf-791", place != NULL);
 	aal_assert("vpf-792", place->node != NULL);
 	
-	if (!place->plug->o.item_ops->repair->check_struct)
+	if (!place->plug->pl.item->repair->check_struct)
 		return 0;
 	
 	aal_memset(&hint, 0, sizeof(hint));
 	hint.mode = mode;
 	
-	if ((res = plug_call(place->plug->o.item_ops->repair,
+	if ((res = plug_call(place->plug->pl.item->repair,
 			     check_struct, place, &hint)))
 		return res;
 	
@@ -60,13 +60,13 @@ errno_t repair_item_check_layout(reiser4_place_t *place, region_func_t func,
 	aal_assert("vpf-793", place != NULL);
 	aal_assert("vpf-794", place->node != NULL);
 	
-	if (!place->plug->o.item_ops->repair->check_layout)
+	if (!place->plug->pl.item->repair->check_layout)
 		return 0;
 	
 	aal_memset(&hint, 0, sizeof(hint));
 	hint.mode = mode;
 	
-	if ((res = plug_call(place->plug->o.item_ops->repair, check_layout, 
+	if ((res = plug_call(place->plug->pl.item->repair, check_layout, 
 			     place, &hint, func, data)) < 0)
 		return res;
 	
@@ -82,10 +82,10 @@ void repair_item_print(reiser4_place_t *place, aal_stream_t *stream) {
 	aal_assert("umka-1550", stream != NULL);
 	aal_assert("umka-1449", place->plug != NULL);
 
-	if (!place->plug->o.item_ops->debug->print)
+	if (!place->plug->pl.item->debug->print)
 		return;
 	
-	plug_call(place->plug->o.item_ops->debug, print,
+	plug_call(place->plug->pl.item->debug, print,
 		  place, stream, 0);
 }
 

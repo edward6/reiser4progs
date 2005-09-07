@@ -236,7 +236,7 @@ static errno_t cb_reloc_extent(reiser4_place_t *place, void *data) {
 	{
 		aal_block_t *block;
 
-		if (plug_call(place->plug->o.item_ops->object,
+		if (plug_call(place->plug->pl.item->object,
 			      fetch_units, place, &trans) != 1)
 		{
 			return -EIO;
@@ -289,7 +289,7 @@ static errno_t cb_reloc_extent(reiser4_place_t *place, void *data) {
 		ptr.start = EXTENT_UNALLOC_UNIT;
 
 		/* Updating extent unit at @place->pos.unit. */
-		if (plug_call(place->plug->o.item_ops->object,
+		if (plug_call(place->plug->pl.item->object,
 			      update_units, place, &trans) != 1)
 		{
 			return -EIO;

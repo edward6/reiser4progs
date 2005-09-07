@@ -20,8 +20,8 @@ errno_t obj40_open(reiser4_object_t *obj) {
 	obj40_init(obj);
 	
 	/* Positioning to the first directory unit. */
-	if (reiser4_oplug(obj)->o.object_ops->reset)
-		reiser4_oplug(obj)->o.object_ops->reset(obj);
+	if (reiser4_oplug(obj)->pl.object->reset)
+		reiser4_oplug(obj)->pl.object->reset(obj);
 	
 	return 0;
 }
@@ -30,7 +30,7 @@ errno_t obj40_open(reiser4_object_t *obj) {
 errno_t obj40_seek(reiser4_object_t *obj, uint64_t offset) {
 	aal_assert("umka-1968", obj != NULL);
 
-	plug_call(obj->position.plug->o.key_ops,
+	plug_call(obj->position.plug->pl.key,
 		  set_offset, &obj->position, offset);
 
 	return 0;
@@ -51,7 +51,7 @@ uint64_t obj40_size(reiser4_object_t *obj) {
 errno_t obj40_reset(reiser4_object_t *obj) {
 	aal_assert("umka-1963", obj != NULL);
 	
-	plug_call(STAT_KEY(obj)->plug->o.key_ops, build_generic,
+	plug_call(STAT_KEY(obj)->plug->pl.key, build_generic,
 		  &obj->position, KEY_FILEBODY_TYPE, obj40_locality(obj),
 		  obj40_ordering(obj), obj40_objectid(obj), 0);
 
@@ -62,7 +62,7 @@ errno_t obj40_reset(reiser4_object_t *obj) {
 uint64_t obj40_offset(reiser4_object_t *obj) {
 	aal_assert("umka-1159", obj != NULL);
 
-	return plug_call(obj->position.plug->o.key_ops,
+	return plug_call(obj->position.plug->pl.key,
 			 get_offset, &obj->position);
 }
 
@@ -71,7 +71,7 @@ uint64_t obj40_offset(reiser4_object_t *obj) {
 oid_t obj40_objectid(reiser4_object_t *obj) {
 	aal_assert("umka-1899", obj != NULL);
 
-	return plug_call(STAT_KEY(obj)->plug->o.key_ops, 
+	return plug_call(STAT_KEY(obj)->plug->pl.key, 
 			 get_objectid, STAT_KEY(obj));
 }
 
@@ -79,7 +79,7 @@ oid_t obj40_objectid(reiser4_object_t *obj) {
 oid_t obj40_locality(reiser4_object_t *obj) {
 	aal_assert("umka-1900", obj != NULL);
     
-	return plug_call(STAT_KEY(obj)->plug->o.key_ops, 
+	return plug_call(STAT_KEY(obj)->plug->pl.key, 
 			 get_locality, STAT_KEY(obj));
 }
 
@@ -87,19 +87,19 @@ oid_t obj40_locality(reiser4_object_t *obj) {
 uint64_t obj40_ordering(reiser4_object_t *obj) {
 	aal_assert("umka-2334", obj != NULL);
 
-	return plug_call(STAT_KEY(obj)->plug->o.key_ops, 
+	return plug_call(STAT_KEY(obj)->plug->pl.key, 
 			 get_ordering, STAT_KEY(obj));
 }
 
 /* Fetches item info at @place. */
 errno_t obj40_fetch_item(reiser4_place_t *place) {
-	return plug_call(place->node->plug->o.node_ops, fetch,
+	return plug_call(place->node->plug->pl.node, fetch,
 			 place->node, &place->pos, place);
 }
 
 /* Checks if @place has valid position. */
 bool_t obj40_valid_item(reiser4_place_t *place) {
-	uint32_t items = plug_call(place->node->plug->o.node_ops,
+	uint32_t items = plug_call(place->node->plug->pl.node,
 				   items, place->node);
 	
 	return (place->pos.item < items);
@@ -131,7 +131,7 @@ int32_t obj40_belong(reiser4_place_t *place,
 		return 0;
 	
 	/* Is the place of the same object? */
-	return plug_call(key->plug->o.key_ops, compshort, 
+	return plug_call(key->plug->pl.key, compshort, 
 			 key, &place->key) ? 0 : 1;
 }
 
@@ -192,7 +192,7 @@ errno_t obj40_load_stat(reiser4_object_t *obj, stat_hint_t *hint) {
 	trans.shift_flags = SF_DEFAULT;
 	
 	/* Calling statdata fetch method. */
-	if (plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
+	if (plug_call(STAT_PLACE(obj)->plug->pl.item->object,
 		      fetch_units, STAT_PLACE(obj), &trans) != 1)
 	{
 		return -EIO;
@@ -215,7 +215,7 @@ errno_t obj40_save_stat(reiser4_object_t *obj, stat_hint_t *hint) {
 	trans.shift_flags = SF_DEFAULT;
 
 	/* Updating stat data. */
-	if (plug_call(STAT_PLACE(obj)->plug->o.item_ops->object,
+	if (plug_call(STAT_PLACE(obj)->plug->pl.item->object,
 		      update_units, STAT_PLACE(obj), &trans) <= 0)
 	{
 		return -EIO;
@@ -403,8 +403,8 @@ errno_t obj40_create(reiser4_object_t *obj, object_hint_t *hint) {
 		return res;
 
 	/* Reset file. */
-	if (reiser4_oplug(obj)->o.object_ops->reset)
-		reiser4_oplug(obj)->o.object_ops->reset(obj);
+	if (reiser4_oplug(obj)->pl.object->reset)
+		reiser4_oplug(obj)->pl.object->reset(obj);
 	
 	return 0;
 }
@@ -455,7 +455,7 @@ errno_t obj40_write_ext(reiser4_place_t *place, rid_t id, void *data) {
 	stat.extmask |= (1 << id);
 	stat.ext[id] = data;
 
-	if (plug_call(place->plug->o.item_ops->object,
+	if (plug_call(place->plug->pl.item->object,
 		      update_units, place, &hint) <= 0)
 	{
 		return -EIO;
@@ -478,7 +478,7 @@ uint64_t obj40_extmask(reiser4_place_t *place) {
 	hint.shift_flags = SF_DEFAULT;
 	
 	/* Calling statdata open method if any */
-	if (plug_call(place->plug->o.item_ops->object,
+	if (plug_call(place->plug->pl.item->object,
 		      fetch_units, place, &hint) != 1)
 	{
 		return MAX_UINT64;

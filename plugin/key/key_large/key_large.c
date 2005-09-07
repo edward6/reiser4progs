@@ -267,12 +267,12 @@ static void key_large_build_hash(reiser4_key_t *key,
 	} else {
 		ordering |= HASHED_NAME_MASK;
 
-		offset = plug_call(hash->o.hash_ops, build,
+		offset = plug_call(hash->pl.hash, build,
 				   name + INLINE_CHARS,
 				   len - INLINE_CHARS);
 	}
 
-	ordering |= ((uint64_t)plug_call(fibre->o.fibre_ops, build, 
+	ordering |= ((uint64_t)plug_call(fibre->pl.fibre, build, 
 					 name, len) << FIBRE_SHIFT);
 	
 	/* Setting up objectid and offset */
@@ -344,7 +344,7 @@ extern void key_large_print(reiser4_key_t *key,
 extern errno_t key_large_check_struct(reiser4_key_t *key);
 #endif
 
-static reiser4_key_ops_t key_large_ops = {
+static reiser4_key_plug_t key_large = {
 	.hashed		= key_large_hashed,
 	.minimal	= key_large_minimal,
 	.maximal	= key_large_maximal,
@@ -391,8 +391,8 @@ reiser4_plug_t key_large_plug = {
 	.label = "key_large",
 	.desc  = "Large key plugin.",
 #endif
-	.o = {
-		.key_ops = &key_large_ops
+	.pl = {
+		.key = &key_large
 	}
 };
 

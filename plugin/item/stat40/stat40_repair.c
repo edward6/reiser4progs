@@ -33,15 +33,15 @@ static errno_t cb_check_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 		hint->goodmask |= ((uint64_t)1 << (chunk * 16 - 1));
 	}
 	
-	if (stat->ext_plug->o.sdext_ops->check_struct) {
+	if (stat->ext_plug->pl.sdext->check_struct) {
 		errno_t res;
 		
-		if ((res = plug_call(stat->ext_plug->o.sdext_ops,
+		if ((res = plug_call(stat->ext_plug->pl.sdext,
 				     check_struct, stat, hint->repair)))
 			return res;
 	}
 
-	len = plug_call(stat->ext_plug->o.sdext_ops, length, stat, NULL);
+	len = plug_call(stat->ext_plug->pl.sdext, length, stat, NULL);
 	hint->len += len;
 
 	/* Some part of the extention was removed. Shrink the item. */
@@ -167,12 +167,12 @@ static errno_t cb_print_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 	aal_stream_format(stream, "offset:\t\t%u\n",
 			  stat->offset);
 	
-	length = plug_call(stat->ext_plug->o.sdext_ops,
+	length = plug_call(stat->ext_plug->pl.sdext,
 			   length, stat, NULL);
 	
 	aal_stream_format(stream, "len:\t\t%u\n", length);
 	
-	plug_call(stat->ext_plug->o.sdext_ops, 
+	plug_call(stat->ext_plug->pl.sdext, 
 		  print, stat, stream, 0);
 
 	return 0;

@@ -666,7 +666,7 @@ errno_t cde40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 		
 		if (cde_get_offset(place, i - 1, pol) + ob_size(pol) == offset){
 			/* Check that [i-1] key is not hashed. */
-			if (!plug_call(place->key.plug->o.key_ops, 
+			if (!plug_call(place->key.plug->pl.key, 
 				       hashed, &key))
 				continue;
 
@@ -695,7 +695,7 @@ errno_t cde40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 			continue;
 		} else {
 			/* Check that [i-1] key is hashed. */
-			if (plug_call(place->key.plug->o.key_ops, 
+			if (plug_call(place->key.plug->pl.key, 
 				      hashed, &key))
 				continue;
 			
@@ -735,7 +735,7 @@ errno_t cde40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	for (i = 1; i < flags.count; i++) {
 		cde40_get_hash(place, i, &ckey);
 		
-		if (plug_call(pkey.plug->o.key_ops, compfull, 
+		if (plug_call(pkey.plug->pl.key, compfull, 
 			      &pkey, &ckey) == 1) 
 		{
 			fsck_mess("Node (%llu), item (%u), [%s]: wrong order "
@@ -751,7 +751,7 @@ errno_t cde40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 		return res | RE_FATAL;
 	
 	cde40_get_hash(place, 0, &ckey);
-	if (plug_call(ckey.plug->o.key_ops, compfull, &ckey, &place->key)) {
+	if (plug_call(ckey.plug->pl.key, compfull, &ckey, &place->key)) {
 		fsck_mess("Node (%llu), item (%u): the item key [%s] does "
 			  "not match the first unit key [%s].%s", 
 			  place_blknr(place), place->pos.item,
@@ -779,13 +779,13 @@ static int cde40_comp_entry(reiser4_place_t *place1, uint32_t pos1,
 	cde40_get_hash(place2, pos2, &key2);
 
 	/* Compare hashes. */
-	if ((comp = plug_call(key1.plug->o.key_ops, 
+	if ((comp = plug_call(key1.plug->pl.key, 
 			      compfull, &key1, &key2)))
 		return comp;
 
 	/* If equal, and names are hashed, compare names. */
-	if (!plug_call(key1.plug->o.key_ops, hashed, &key1) || 
-	    !plug_call(key2.plug->o.key_ops, hashed, &key2))
+	if (!plug_call(key1.plug->pl.key, hashed, &key1) || 
+	    !plug_call(key2.plug->pl.key, hashed, &key2))
 	{
 		return 0;
 	}

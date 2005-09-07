@@ -249,12 +249,12 @@ static void key_short_build_hash(reiser4_key_t *key,
 		/* Build hash by means of using hash plugin */
 		objectid |= HASHED_NAME_MASK;
 		
-		offset = plug_call(hash->o.hash_ops, build,
+		offset = plug_call(hash->pl.hash, build,
 				   name + OBJECTID_CHARS,
 				   len - OBJECTID_CHARS);
 	}
 	
-	objectid |= ((uint64_t)plug_call(fibre->o.fibre_ops, build, 
+	objectid |= ((uint64_t)plug_call(fibre->pl.fibre, build, 
 					 name, len) << FIBRE_SHIFT);
 	
 	/* Objectid must occupie 60 bits. If it takes more, then we have broken
@@ -329,7 +329,7 @@ extern void key_short_print(reiser4_key_t *key,
 extern errno_t key_short_check_struct(reiser4_key_t *key);
 #endif
 
-static reiser4_key_ops_t key_short_ops = {
+static reiser4_key_plug_t key_short = {
 	.hashed		= key_short_hashed,
 	.minimal	= key_short_minimal,
 	.maximal	= key_short_maximal,
@@ -376,8 +376,8 @@ reiser4_plug_t key_short_plug = {
 	.label = "key_short",
 	.desc  = "Short key plugin.",
 #endif
-	.o = {
-		.key_ops = &key_short_ops
+	.pl = {
+		.key = &key_short
 	}
 };
 

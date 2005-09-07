@@ -448,7 +448,7 @@ rid_t format40_get_key(generic_entity_t *entity) {
 
 #define format40_key_pid format40_get_key
 
-static reiser4_format_ops_t format40_ops = {
+static reiser4_format_plug_t format40 = {
 #ifndef ENABLE_MINIMAL
 	.valid		= format40_valid,
 	.sync		= format40_sync,
@@ -498,8 +498,8 @@ reiser4_plug_t format40_plug = {
 	.label = "format40",
 	.desc  = "Disk-format plugin.",
 #endif
-	.o = {
-		.format_ops = &format40_ops
+	.pl = {
+		.format = &format40
 	}
 };
 

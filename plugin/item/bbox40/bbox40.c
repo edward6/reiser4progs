@@ -28,7 +28,7 @@ static errno_t bbox40_prep_insert(reiser4_place_t *place,
 	hint->overhead = 0;
 
 	hint->count = 1;
-	hint->len = plug_call(link->key.plug->o.key_ops, bodysize);
+	hint->len = plug_call(link->key.plug->pl.key, bodysize);
 	hint->len *= sizeof(uint64_t);
 
 	if (link->type == SL_TRUNCATE)
@@ -50,7 +50,7 @@ static errno_t bbox40_insert_units(reiser4_place_t *place,
 	
 	aal_assert("vpf-1573", link->key.plug != NULL);
 
-	size = plug_call(link->key.plug->o.key_ops, bodysize) * 
+	size = plug_call(link->key.plug->pl.key, bodysize) * 
 		sizeof(uint64_t);
 	
 	aal_memcpy(place->body, &link->key.body, size);
@@ -91,14 +91,14 @@ static errno_t bbox40_fetch_units(reiser4_place_t *place,
 
 	link = (slink_hint_t *)hint->specific;
 	
-	size = plug_call(place->key.plug->o.key_ops, bodysize) * 
+	size = plug_call(place->key.plug->pl.key, bodysize) * 
 		sizeof(uint64_t);
 
 	link->key.plug = place->key.plug;
 	aal_memcpy(&link->key.body, place->body, size);
 	
 	/* FIXME: this is hardcoded, type should be obtained in another way. */
-	type = plug_call(place->key.plug->o.key_ops, get_offset, &place->key);
+	type = plug_call(place->key.plug->pl.key, get_offset, &place->key);
 	
 	if (type == SL_TRUNCATE)
 		aal_memcpy(&link->size, place->body + size, sizeof(uint64_t));
@@ -171,7 +171,7 @@ static item_tree_ops_t tree_ops = {
 #endif
 };
 
-static reiser4_item_ops_t bbox40_ops = {
+static reiser4_item_plug_t bbox40 = {
 	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
@@ -188,8 +188,8 @@ static reiser4_plug_t bbox40_plug = {
 	.label = "bbox40",
 	.desc  = "Safe link item plugin.",
 #endif
-	.o = {
-		.item_ops = &bbox40_ops
+	.pl = {
+		.item = &bbox40
 	}
 };
 

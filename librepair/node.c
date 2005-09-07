@@ -202,7 +202,7 @@ errno_t repair_node_check_struct(reiser4_node_t *node, place_func_t func,
 	aal_assert("vpf-494", node != NULL);
 	aal_assert("vpf-220", node->plug != NULL);
 	
-	res = plug_call(node->plug->o.node_ops, check_struct, node, mode);
+	res = plug_call(node->plug->pl.node, check_struct, node, mode);
 	
 	if (repair_error_fatal(res))
 		return res;
@@ -243,7 +243,7 @@ errno_t repair_node_pack(reiser4_node_t *node,
 	aal_assert("umka-2622", node != NULL);
 	aal_assert("umka-2623", stream != NULL);
 
-	return plug_call(node->plug->o.node_ops, pack, node, stream);
+	return plug_call(node->plug->pl.node, pack, node, stream);
 }
 
 /* Create node from passed @stream. */
@@ -286,7 +286,7 @@ reiser4_node_t *repair_node_unpack(reiser4_tree_t *tree,
 	aal_block_fill(block, 0);
 	
 	/* Requesting the plugin for initialization node entity. */
-	if (!(node = plug_call(plug->o.node_ops, unpack, block, 
+	if (!(node = plug_call(plug->pl.node, unpack, block, 
 			       tree->key.plug, stream)))
 	{
 		goto error_free_block;
@@ -307,6 +307,6 @@ void repair_node_print(reiser4_node_t *node, aal_stream_t *stream) {
 	aal_assert("umka-1537", node != NULL);
 	aal_assert("umka-1538", stream != NULL);
 	
-	plug_call(node->plug->o.node_ops, print, 
+	plug_call(node->plug->pl.node, print, 
 		  node, stream, -1, -1, 0);
 }

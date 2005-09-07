@@ -31,7 +31,7 @@ errno_t stat_cmd(busy_ctx_t *ctx) {
 
 	aal_stream_init(&stream, NULL, &memory_stream);
 
-	plug_call(object->info.start.plug->o.item_ops->debug, print, 
+	plug_call(object->info.start.plug->pl.item->debug, print, 
 		  &object->info.start, &stream, 0);
 		
 	printf("%s\n", (char *)stream.entity);

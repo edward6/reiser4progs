@@ -103,7 +103,7 @@ static item_tree_ops_t tree_ops = {
 #endif
 };
 
-static reiser4_item_ops_t plain40_ops = {
+static reiser4_item_plug_t plain40 = {
 	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
@@ -120,8 +120,8 @@ static reiser4_plug_t plain40_plug = {
 	.label = "plain40",
 	.desc  = "Plain file body item plugin.",
 #endif
-	.o = {
-		.item_ops = &plain40_ops
+	.pl = {
+		.item = &plain40
 	}
 };
 

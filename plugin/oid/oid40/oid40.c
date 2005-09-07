@@ -65,7 +65,7 @@ static generic_entity_t *oid40_open(generic_entity_t *format) {
 	oid->plug = &oid40_plug;
 
 	/* Getting oid pluign work area from format plugin. */
-	plug_call(format->plug->o.format_ops, oid_area,
+	plug_call(format->plug->pl.format, oid_area,
 		  format, &oid->start, &oid->len);
     
 	oid->next = oid40_get_next(oid->start);
@@ -96,7 +96,7 @@ static generic_entity_t *oid40_create(generic_entity_t *format) {
 	oid->next = OID40_RESERVED;
 
 	/* Getting oid pluign work area from format plugin. */
-	plug_call(format->plug->o.format_ops, oid_area,
+	plug_call(format->plug->pl.format, oid_area,
 		  format, &oid->start, &oid->len);
 	
 	oid40_set_next(oid->start, oid->next);
@@ -121,10 +121,10 @@ static errno_t oid40_sync(generic_entity_t *entity) {
 	/* Mark the format dirty. */
 	format = ((oid40_t *)entity)->format;
 	
-	state = plug_call(format->plug->o.format_ops,
+	state = plug_call(format->plug->pl.format,
 			  get_state, format);
 	
-	plug_call(format->plug->o.format_ops, set_state, 
+	plug_call(format->plug->pl.format, set_state, 
 		  format, state | (1 << ENTITY_DIRTY));
 	
 	return 0;
@@ -178,7 +178,7 @@ static oid_t oid40_root_objectid() {
 	return OID40_ROOT_OBJECTID;
 }
 
-reiser4_oid_ops_t oid40_ops = {
+reiser4_oid_plug_t oid40 = {
 	.open		= oid40_open,
 	.close		= oid40_close,
 	.create		= oid40_create,
@@ -208,8 +208,8 @@ reiser4_plug_t oid40_plug = {
 	.id    = {OID_REISER40_ID, 0, OID_PLUG_TYPE},
 	.label = "oid40",
 	.desc  = "Inode number allocator plugin.",
-	.o = {
-		.oid_ops = &oid40_ops
+	.pl = {
+		.oid = &oid40
 	}
 };
 

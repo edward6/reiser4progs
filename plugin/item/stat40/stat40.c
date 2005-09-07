@@ -72,7 +72,7 @@ errno_t stat40_traverse(reiser4_place_t *place,
 			return res;
 		
 		/* Calculating the pointer to the next extension body */
-		stat.offset += plug_call(stat.ext_plug->o.sdext_ops, 
+		stat.offset += plug_call(stat.ext_plug->pl.sdext, 
 					 length, &stat, NULL);
 	}
  
@@ -87,7 +87,7 @@ static errno_t cb_open_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 	/* Method open is not defined, this probably means, we only interested
 	   in symlink's length method in order to reach other symlinks body. So,
 	   we retrun 0 here. */
-	if (!stat->ext_plug || !stat->ext_plug->o.sdext_ops->open)
+	if (!stat->ext_plug || !stat->ext_plug->pl.sdext->open)
 		return 0;
 	
 	hint = (trans_hint_t *)data;
@@ -100,7 +100,7 @@ static errno_t cb_open_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 	if (stath->ext[stat->ext_plug->id.id]) {
 		void *sdext = stath->ext[stat->ext_plug->id.id];
 
-		return plug_call(stat->ext_plug->o.sdext_ops, 
+		return plug_call(stat->ext_plug->pl.sdext, 
 				 open, stat, sdext);
 	}
 	
@@ -293,7 +293,7 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 
 		/* Calculating length of the corresponding extension and add it
 		   to the estimated value. */
-		hint->len += plug_call(plug->o.sdext_ops, length, 
+		hint->len += plug_call(plug->pl.sdext, length, 
 				       NULL, stath->ext[i]);
 	}
 	
@@ -374,7 +374,7 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 
 				/* Moving the rest of stat data to the right 
 				   to keep stat data extension packed. */
-				extsize = plug_call(plug->o.sdext_ops, length,
+				extsize = plug_call(plug->pl.sdext, length,
 						    NULL, stath->ext[i]);
 
 				aal_memmove(stat_body(&stat) + extsize, 
@@ -383,13 +383,13 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 
 			}
 			
-			plug_call(plug->o.sdext_ops, init, 
+			plug_call(plug->pl.sdext, init, 
 				  &stat, stath->ext[i]);
 		}
 
 		/* Getting pointer to the next extension. It is evaluating as
 		   the previous pointer plus its size. */
-		stat.offset += plug_call(plug->o.sdext_ops, 
+		stat.offset += plug_call(plug->pl.sdext, 
 					 length, &stat, NULL);
 	}
     
@@ -477,7 +477,7 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 			return -EINVAL;
 		}
 
-		extsize = plug_call(plug->o.sdext_ops, length, &stat, NULL);
+		extsize = plug_call(plug->pl.sdext, length, &stat, NULL);
 		
 		if ((((uint64_t)1 << i) & stath->extmask)) {
 			/* Moving the rest of stat data to left in odrer to 
@@ -562,7 +562,7 @@ static item_tree_ops_t tree_ops = {
 #endif
 };
 
-static reiser4_item_ops_t stat40_ops = {
+static reiser4_item_plug_t stat40 = {
 	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
@@ -579,8 +579,8 @@ static reiser4_plug_t stat40_plug = {
 	.label = "stat40",
 	.desc  = "StatData item plugin.",
 #endif
-	.o = {
-		.item_ops = &stat40_ops
+	.pl = {
+		.item = &stat40
 	}
 };
 

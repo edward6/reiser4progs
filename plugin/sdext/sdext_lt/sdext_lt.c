@@ -58,7 +58,7 @@ extern void sdext_lt_print(stat_entity_t *stat,
 
 #endif
 
-static reiser4_sdext_ops_t sdext_lt_ops = {
+static reiser4_sdext_plug_t sdext_lt = {
 #ifndef ENABLE_MINIMAL
 	.open	   	= sdext_lt_open,
 	.init	   	= sdext_lt_init,
@@ -77,8 +77,8 @@ static reiser4_plug_t sdext_lt_plug = {
 	.label = "sdext_lt",
 	.desc  = "Large times stat data extension plugin.",
 #endif
-	.o = {
-		.sdext_ops = &sdext_lt_ops
+	.pl = {
+		.sdext = &sdext_lt
 	}
 };
 

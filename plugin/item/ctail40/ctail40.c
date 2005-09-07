@@ -31,8 +31,8 @@ static int ctail40_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
 			       ct40_get_shift(place2->body));
 	
 	shift = ct40_get_shift(place1->body);
-	off1 = plug_call(place1->key.plug->o.key_ops, get_offset, &place1->key);
-	off2 = plug_call(place2->key.plug->o.key_ops, get_offset, &place2->key);
+	off1 = plug_call(place1->key.plug->pl.key, get_offset, &place1->key);
+	off2 = plug_call(place2->key.plug->pl.key, get_offset, &place2->key);
 	
 	/* If they are of different clusters, not mergeable. */
 	if (off1 + (1 << shift) >= off2)
@@ -109,7 +109,7 @@ static item_tree_ops_t tree_ops = {
 	.update_link	  = NULL
 };
 
-static reiser4_item_ops_t ctail40_ops = {
+static reiser4_item_plug_t ctail40 = {
 	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
@@ -122,8 +122,8 @@ static reiser4_plug_t ctail40_plug = {
 	.id    = {ITEM_CTAIL40_ID, CTAIL_ITEM, ITEM_PLUG_TYPE},
 	.label = "ctail40",
 	.desc  = "Compressed file body item plugin.",
-	.o = {
-		.item_ops = &ctail40_ops
+	.pl = {
+		.item = &ctail40
 	}
 };
 

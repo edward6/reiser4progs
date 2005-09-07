@@ -19,7 +19,7 @@ uint64_t r5_hash_build(unsigned char *name, uint32_t len) {
 	return a;
 }
 
-reiser4_hash_ops_t r5_hash_ops = {
+reiser4_hash_plug_t r5_hash = {
 	.build = r5_hash_build
 };
 
@@ -30,8 +30,8 @@ static reiser4_plug_t r5_hash_plug = {
 	.label = "r5_hash",
 	.desc  = "R5 hash plugin.",
 #endif
-	.o = {
-		.hash_ops = &r5_hash_ops
+	.pl = {
+		.hash = &r5_hash
 	}
 };
 

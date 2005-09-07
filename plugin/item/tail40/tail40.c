@@ -93,15 +93,15 @@ errno_t tail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 		   we insert data inside tail or behind it. */
 		tail40_maxreal_key(place, &hint->maxkey);
 
-		max_offset = plug_call(hint->maxkey.plug->o.key_ops,
+		max_offset = plug_call(hint->maxkey.plug->pl.key,
 				       get_offset, &hint->maxkey) + 1;
 
-		plug_call(hint->maxkey.plug->o.key_ops,
+		plug_call(hint->maxkey.plug->pl.key,
 			  set_offset, &hint->maxkey, max_offset);
 	}
 
 	/* Max possible item size. */
-	space = plug_call(place->node->plug->o.node_ops,
+	space = plug_call(place->node->plug->pl.node,
 			  maxspace, place->node);
 	
 	if (hint->len > space)
@@ -131,11 +131,11 @@ int64_t tail40_write_units(reiser4_place_t *place, trans_hint_t *hint) {
 		count = place->len - tail40_pos(place);
 
 	/* Getting old max real offset. */
-	max_offset = plug_call(hint->maxkey.plug->o.key_ops,
+	max_offset = plug_call(hint->maxkey.plug->pl.key,
 			       get_offset, &hint->maxkey);
 
 	/* Getting insert offset. */
-	ins_offset = plug_call(hint->offset.plug->o.key_ops,
+	ins_offset = plug_call(hint->offset.plug->pl.key,
 			       get_offset, &hint->offset);
 	
 	/* Checking if we insert a hole. That is @hint->specific si null. If so,
@@ -193,10 +193,10 @@ lookup_t tail40_lookup(reiser4_place_t *place,
 
 	units = tail40_units(place);
 	
-	offset = plug_call(hint->key->plug->o.key_ops,
+	offset = plug_call(hint->key->plug->pl.key,
 			   get_offset, &place->key);
 
-	wanted = plug_call(hint->key->plug->o.key_ops,
+	wanted = plug_call(hint->key->plug->pl.key,
 			   get_offset, hint->key);
 
 	/* Check if needed key is inside this tail. */
@@ -388,10 +388,10 @@ errno_t tail40_shift_units(reiser4_place_t *src_place,
 
 		/* Updating @place->key in order to maintain consistency of left
 		   delimiting keys. */
-		offset = plug_call(src_place->key.plug->o.key_ops,
+		offset = plug_call(src_place->key.plug->pl.key,
 				   get_offset, &src_place->key);
 
-		plug_call(src_place->key.plug->o.key_ops,
+		plug_call(src_place->key.plug->pl.key,
 			  set_offset, &src_place->key,
 			  offset + hint->units_bytes);
 	} else {
@@ -408,10 +408,10 @@ errno_t tail40_shift_units(reiser4_place_t *src_place,
 			      hint->units_bytes);
 
 		/* Updating place key. */
-		offset = plug_call(dst_place->key.plug->o.key_ops,
+		offset = plug_call(dst_place->key.plug->pl.key,
 				   get_offset, &dst_place->key);
 		
-		plug_call(dst_place->key.plug->o.key_ops,
+		plug_call(dst_place->key.plug->pl.key,
 			  set_offset, &dst_place->key,
 			  offset - hint->units_bytes);
 	}

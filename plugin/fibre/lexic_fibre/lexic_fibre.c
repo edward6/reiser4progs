@@ -10,7 +10,7 @@ static uint8_t fibre_lexic_build(char *name, uint32_t len) {
 	return 0;
 }
 
-static reiser4_fibre_ops_t fibre_lexic_ops = {
+static reiser4_fibre_plug_t fibre_lexic = {
 	.build = fibre_lexic_build
 };
 
@@ -21,8 +21,8 @@ static reiser4_plug_t fibre_lexic_plug = {
 	.label = "lexic_fibre",
 	.desc  = "Lexicographic fibration plugin.",
 #endif
-	.o = {
-		.fibre_ops = &fibre_lexic_ops
+	.pl = {
+		.fibre = &fibre_lexic
 	}
 };
 

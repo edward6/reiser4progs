@@ -62,7 +62,7 @@ errno_t dir40_reset(reiser4_object_t *dir) {
 #endif
 
 	/* Building key itself. */
-	plug_call(STAT_KEY(dir)->plug->o.key_ops, 
+	plug_call(STAT_KEY(dir)->plug->pl.key, 
 		  build_hashed, &dir->position, 
 		  dir->info.opset.plug[OPSET_HASH],
 		  dir->info.opset.plug[OPSET_FIBRE], 
@@ -81,7 +81,7 @@ errno_t dir40_fetch(reiser4_object_t *dir, entry_hint_t *entry) {
 	hint.shift_flags = SF_DEFAULT;
 
 	/* Reading entry to passed @entry */
-	if (plug_call(dir->body.plug->o.item_ops->object,
+	if (plug_call(dir->body.plug->pl.item->object,
 		      fetch_units, &dir->body, &hint) != 1)
 	{
 		return -EIO;
@@ -117,10 +117,10 @@ lookup_t dir40_next(reiser4_object_t *dir, int first) {
 		uint64_t offset;
 		
 		/* Set offset to non-existent value as the end is reached. */
-		offset = plug_call(dir->position.plug->o.key_ops,
+		offset = plug_call(dir->position.plug->pl.key,
 				   get_offset, &dir->position);
 		
-		plug_call(dir->position.plug->o.key_ops, set_offset,
+		plug_call(dir->position.plug->pl.key, set_offset,
 			  &dir->position, offset + 1);
 		
 		return ABSENT;
@@ -196,7 +196,7 @@ lookup_t dir40_update_body(reiser4_object_t *dir, int check_group) {
 	}
 	
 	/* Checking if directory is over. */
-	units = plug_call(dir->body.plug->o.item_ops->balance,
+	units = plug_call(dir->body.plug->pl.item->balance,
 			  units, &dir->body);
 	
 	/* Correcting unit pos for next body item. */
@@ -212,7 +212,7 @@ lookup_t dir40_update_body(reiser4_object_t *dir, int check_group) {
 		if (dir->body.pos.unit >= units) {
 			dir40_update_next(dir, 0);
 			
-			units = plug_call(dir->body.plug->o.item_ops->balance,
+			units = plug_call(dir->body.plug->pl.item->balance,
 					  units, &dir->body);
 		}
 		
@@ -220,7 +220,7 @@ lookup_t dir40_update_body(reiser4_object_t *dir, int check_group) {
 			return -EIO;
 
 		/* If greater key is reached, return PRESENT. */
-		if (plug_call(temp.offset.plug->o.key_ops, compfull, 
+		if (plug_call(temp.offset.plug->pl.key, compfull, 
 			      &temp.offset, &dir->position))
 			return PRESENT;
 		
@@ -285,7 +285,7 @@ static int32_t dir40_readdir(reiser4_object_t *dir,
 	   one day), etc. */
 	dir40_entry_type(entry);
 
-	units = plug_call(dir->body.plug->o.item_ops->balance,
+	units = plug_call(dir->body.plug->pl.item->balance,
 			  units, &dir->body);
 
 	/* Getting next entry in odrer to set up @dir->position correctly. */
@@ -306,7 +306,7 @@ static int32_t dir40_readdir(reiser4_object_t *dir,
 
 #ifndef ENABLE_MINIMAL
 		/* Taking care about adjust */
-		if (!plug_call(temp.offset.plug->o.key_ops,
+		if (!plug_call(temp.offset.plug->pl.key,
 			       compfull, &temp.offset, &dir->position))
 		{
 			temp.offset.adjust = dir->position.adjust + 1;
@@ -337,7 +337,7 @@ static lookup_t dir40_search(reiser4_object_t *dir, char *name,
 
 	/* Preparing key to be used for lookup. It is generating from the
 	   directory oid, locality and name by menas of using hash plugin. */
-	plug_call(STAT_KEY(dir)->plug->o.key_ops, 
+	plug_call(STAT_KEY(dir)->plug->pl.key, 
 		  build_hashed, &dir->body.key, 
 		  dir->info.opset.plug[OPSET_HASH],
 		  dir->info.opset.plug[OPSET_FIBRE], 
@@ -415,7 +415,7 @@ static errno_t dir40_create(reiser4_object_t *dir, object_hint_t *hint) {
 	body_hint.plug = dir->info.opset.plug[OPSET_DIRITEM];
 	key = &dir->info.object;
 	
-	plug_call(key->plug->o.key_ops, 
+	plug_call(key->plug->pl.key, 
 		  build_hashed, &body_hint.offset, 
 		  dir->info.opset.plug[OPSET_HASH], 
 		  dir->info.opset.plug[OPSET_FIBRE],
@@ -493,7 +493,7 @@ static errno_t dir40_truncate(reiser4_object_t *dir, uint64_t n) {
 	/* Creating maximal possible key in order to find last directory item
 	   and remove it from the tree. Thanks to Nikita for this idea. */
 	aal_memcpy(&key, &dir->body.key, sizeof(key));
-	plug_call(dir->body.key.plug->o.key_ops, set_offset, &key, MAX_UINT64);
+	plug_call(dir->body.key.plug->pl.key, set_offset, &key, MAX_UINT64);
 
 	while (1) {
 		trans_hint_t hint;
@@ -567,7 +567,7 @@ static errno_t dir40_build_entry(reiser4_object_t *dir,
 	locality = obj40_locality(dir);
 	objectid = obj40_objectid(dir);
 	
-	plug_call(STAT_KEY(dir)->plug->o.key_ops, 
+	plug_call(STAT_KEY(dir)->plug->pl.key, 
 		  build_hashed, &entry->offset, 
 		  dir->info.opset.plug[OPSET_HASH],
 		  dir->info.opset.plug[OPSET_FIBRE], 
@@ -672,7 +672,7 @@ static errno_t dir40_rem_entry(reiser4_object_t *dir,
 		if ((res = obj40_remove(dir, &temp.place, &hint)))
 			return res;
 
-		if (!plug_call(dir->position.plug->o.key_ops,
+		if (!plug_call(dir->position.plug->pl.key,
 			       compfull, &dir->position, &temp.offset))
 		{
 			if (entry->offset.adjust < dir->position.adjust)
@@ -716,7 +716,7 @@ static errno_t dir40_attach(reiser4_object_t *dir,
 		return res;
 
 	/* Increasing parent's @nlink by one */
-	return plug_call(reiser4_oplug(parent)->o.object_ops,
+	return plug_call(reiser4_oplug(parent)->pl.object,
 			 link, parent);
 }
 
@@ -742,7 +742,7 @@ static errno_t dir40_detach(reiser4_object_t *dir,
 	plug = reiser4_oplug(parent);
 	
 	/* Decreasing parent's @nlink by one */
-	return plug_call(plug->o.object_ops, unlink, parent);
+	return plug_call(plug->pl.object, unlink, parent);
 }
 
 /* Directory enumerating related stuff.*/
@@ -788,9 +788,9 @@ static errno_t dir40_layout(reiser4_object_t *dir,
 	while (1) {
 		reiser4_place_t *place = &dir->body;
 		
-		if (dir->body.plug->o.item_ops->object->layout) {
+		if (dir->body.plug->pl.item->object->layout) {
 			/* Calling item's layout method */
-			if ((res = plug_call(place->plug->o.item_ops->object,
+			if ((res = plug_call(place->plug->pl.item->object,
 					     layout, place, cb_item_layout,
 					     &hint)))
 			{
@@ -858,7 +858,7 @@ static errno_t dir40_metadata(reiser4_object_t *dir,
 #endif
 
 /* Directory object operations. */
-static reiser4_object_ops_t dir40_ops = {
+static reiser4_object_plug_t dir40 = {
 #ifndef ENABLE_MINIMAL
 	.create		= dir40_create,
 	.layout		= dir40_layout,
@@ -909,8 +909,8 @@ reiser4_plug_t dir40_plug = {
 	.label = "dir40",
 	.desc  = "Directory file plugin.",
 #endif
-	.o = {
-		.object_ops = &dir40_ops
+	.pl = {
+		.object = &dir40
 	}
 };
 

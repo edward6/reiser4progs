@@ -49,7 +49,7 @@ uint64_t rupasov_hash_build(unsigned char *name, uint32_t len) {
 	return a;
 }
 
-static reiser4_hash_ops_t rupasov_hash_ops = {
+static reiser4_hash_plug_t rupasov_hash = {
 	.build = rupasov_hash_build
 };
 
@@ -60,8 +60,8 @@ static reiser4_plug_t rupasov_hash_plug = {
 	.label = "rupasov_hash",
 	.desc  = "Rupasov hash plugin.",
 #endif
-	.o = {
-		.hash_ops = &rupasov_hash_ops
+	.pl = {
+		.hash = &rupasov_hash
 	}
 };
 

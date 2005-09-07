@@ -15,7 +15,7 @@ static uint8_t fibre_ext_3_build(char *name, uint32_t len) {
 	return 0;
 }
 
-static reiser4_fibre_ops_t fibre_ext_3_ops = {
+static reiser4_fibre_plug_t fibre_ext_3 = {
 	.build = fibre_ext_3_build
 };
 
@@ -26,8 +26,8 @@ static reiser4_plug_t fibre_ext_3_plug = {
 	.label = "ext_3_fibre",
 	.desc  = "3-symbol extention fibration plugin.",
 #endif
-	.o = {
-		.fibre_ops = &fibre_ext_3_ops
+	.pl = {
+		.fibre = &fibre_ext_3
 	}
 };
 

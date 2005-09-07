@@ -23,7 +23,7 @@ static errno_t repair_journal_check_struct(reiser4_journal_t *journal) {
 	aal_assert("vpf-460", journal != NULL);
 	aal_assert("vpf-736", journal->fs != NULL);
 	
-	return plug_call(journal->ent->plug->o.journal_ops, 
+	return plug_call(journal->ent->plug->pl.journal, 
 			 check_struct, journal->ent, 
 			 cb_journal_check, journal->fs);
 }
@@ -92,7 +92,7 @@ errno_t repair_journal_open(reiser4_fs_t *fs,
 void repair_journal_invalidate(reiser4_journal_t *journal) {
 	aal_assert("vpf-1555", journal != NULL);
 
-	plug_call(journal->ent->plug->o.journal_ops,
+	plug_call(journal->ent->plug->pl.journal,
 		  invalidate, journal->ent);
 }
 
@@ -100,7 +100,7 @@ void repair_journal_print(reiser4_journal_t *journal, aal_stream_t *stream) {
 	aal_assert("umka-1564", journal != NULL);
 	aal_assert("umka-1565", stream != NULL);
 
-	plug_call(journal->ent->plug->o.journal_ops,
+	plug_call(journal->ent->plug->pl.journal,
 		  print, journal->ent, stream, 0);
 }
 
@@ -113,7 +113,7 @@ errno_t repair_journal_pack(reiser4_journal_t *journal, aal_stream_t *stream) {
 	pid = journal->ent->plug->id.id;
 	aal_stream_write(stream, &pid, sizeof(pid));
 	
-	return plug_call(journal->ent->plug->o.journal_ops,
+	return plug_call(journal->ent->plug->pl.journal,
 			 pack, journal->ent, stream);
 }
 
@@ -156,7 +156,7 @@ reiser4_journal_t *repair_journal_unpack(reiser4_fs_t *fs,
 	blksize = reiser4_master_get_blksize(fs->master);
 
 	/* Creating journal entity. */
-	if (!(journal->ent = plug_call(plug->o.journal_ops, unpack,
+	if (!(journal->ent = plug_call(plug->pl.journal, unpack,
 				       fs->device, blksize, fs->format->ent,
 				       fs->oid->ent, start, blocks, stream)))
 	{

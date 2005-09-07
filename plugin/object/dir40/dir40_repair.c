@@ -145,7 +145,7 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 		if (pos->unit == MAX_UINT32)
 			pos->unit = 0;
 		
-		units = plug_call(dir->body.plug->o.item_ops->balance, 
+		units = plug_call(dir->body.plug->pl.item->balance, 
 				  units, &dir->body);
 		
 		for (; pos->unit < units; pos->unit++) {
@@ -162,10 +162,10 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 					return -EINVAL;
 
 				/* Count size and bytes. */
-				hint.size += plug_call(dir->body.plug->o.item_ops->object,
+				hint.size += plug_call(dir->body.plug->pl.item->object,
 						       size, &dir->body);
 
-				hint.bytes += plug_call(dir->body.plug->o.item_ops->object,
+				hint.bytes += plug_call(dir->body.plug->pl.item->object,
 							bytes, &dir->body);
 
 			}
@@ -174,7 +174,7 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 				return res;
 			
 			/* Prepare the correct key for the entry. */
-			plug_call(entry.offset.plug->o.key_ops, 
+			plug_call(entry.offset.plug->pl.key, 
 				  build_hashed, &key,
 				  info->opset.plug[OPSET_HASH], 
 				  info->opset.plug[OPSET_FIBRE], 
@@ -182,7 +182,7 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 				  obj40_objectid(dir), entry.name);
 			
 			/* If the key matches, continue. */
-			if (!plug_call(key.plug->o.key_ops, compfull, 
+			if (!plug_call(key.plug->pl.key, compfull, 
 				       &key, &entry.offset))
 				goto next;
 			
@@ -225,7 +225,7 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 			
 		next:
 			/* The key is ok. */
-			if (plug_call(key.plug->o.key_ops, compfull, 
+			if (plug_call(key.plug->pl.key, compfull, 
 				      &dir->position, &key))
 			{
 				/* Key differs from the offset of the 
@@ -277,7 +277,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 	switch (lookup) {
 	case PRESENT:
 		/* If the key matches the parent -- ok. */
-		if (!plug_call(entry.object.plug->o.key_ops, compfull, 
+		if (!plug_call(entry.object.plug->pl.key, compfull, 
 			       &entry.object, &parent->info.object))
 			break;
 		
@@ -294,7 +294,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 	case ABSENT:
 		/* Not attached yet. */
 /*
-		if (plug_call(object->info.object.plug->o.key_ops, compfull,
+		if (plug_call(object->info.object.plug->pl.key, compfull,
 			      &object->info.object, &parent->info.object))
 		{
 			fsck_mess("Directory [%s] (%s): the "
@@ -320,7 +320,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 
 		aal_strncpy(entry.name, "..", sizeof(entry.name));
 		
-		if ((res = plug_call(reiser4_oplug(object)->o.object_ops,
+		if ((res = plug_call(reiser4_oplug(object)->pl.object,
 				     add_entry, object, &entry)))
 		{
 			return res;
@@ -335,7 +335,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 	if (mode != RM_BUILD)
 		return 0;
 	
-	return plug_call(reiser4_oplug(parent)->o.object_ops, link, parent);
+	return plug_call(reiser4_oplug(parent)->pl.object, link, parent);
 }
 
 

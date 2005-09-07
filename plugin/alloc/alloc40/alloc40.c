@@ -612,7 +612,7 @@ errno_t alloc40_region(generic_entity_t *entity, blk_t blk,
 	return region_func(start, size, data);
 }
 
-static reiser4_alloc_ops_t alloc40_ops = {
+static reiser4_alloc_plug_t alloc40 = {
 	.open           = alloc40_open,
 	.close          = alloc40_close,
 
@@ -646,8 +646,8 @@ reiser4_plug_t alloc40_plug = {
 	.id = {ALLOC_REISER40_ID, 0, ALLOC_PLUG_TYPE},
 	.label = "alloc40",
 	.desc  = "Space allocator plugin.",
-	.o = {
-		.alloc_ops = &alloc40_ops
+	.pl = {
+		.alloc = &alloc40
 	}
 };
 

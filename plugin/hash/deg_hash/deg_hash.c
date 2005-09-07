@@ -11,7 +11,7 @@ uint64_t deg_hash_build(unsigned char *name, uint32_t len) {
 	return 0xc0c0c0c010101010ull;
 }
 
-static reiser4_hash_ops_t deg_hash_ops = {
+static reiser4_hash_plug_t deg_hash = {
 	.build = deg_hash_build
 };
 
@@ -22,8 +22,8 @@ static reiser4_plug_t deg_hash_plug = {
 	.label = "deg_hash",
 	.desc  = "Degenerate hash plugin.",
 #endif
-	.o = {
-		.hash_ops = &deg_hash_ops
+	.pl = {
+		.hash = &deg_hash
 	}
 };
 

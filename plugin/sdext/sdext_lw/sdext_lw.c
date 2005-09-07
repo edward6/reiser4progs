@@ -59,7 +59,7 @@ extern void sdext_lw_print(stat_entity_t *stat,
 
 #endif
 
-static reiser4_sdext_ops_t sdext_lw_ops = {
+static reiser4_sdext_plug_t sdext_lw = {
 	.open	 	= sdext_lw_open,
 	
 #ifndef ENABLE_MINIMAL
@@ -77,8 +77,8 @@ static reiser4_plug_t sdext_lw_plug = {
 	.label = "sdext_lw",
 	.desc  = "Light stat data extension plugin.",
 #endif
-	.o = {
-		.sdext_ops = &sdext_lw_ops
+	.pl = {
+		.sdext = &sdext_lw
 	}
 };
 

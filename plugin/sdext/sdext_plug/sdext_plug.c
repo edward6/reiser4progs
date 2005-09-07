@@ -128,7 +128,7 @@ extern void sdext_plug_print(stat_entity_t *stat,
 
 #endif
 
-static reiser4_sdext_ops_t sdext_plug_ops = {
+static reiser4_sdext_plug_t sdext_plug = {
 	.open	 	= sdext_plug_open,
 #ifndef ENABLE_MINIMAL
 	.init	 	= sdext_plug_init,
@@ -145,8 +145,8 @@ static reiser4_plug_t sdext_plug_plug = {
 	.label = "sdext_plug",
 	.desc  = "Plugin id stat data extension plugin.",
 #endif
-	.o = {
-		.sdext_ops = &sdext_plug_ops
+	.pl = {
+		.sdext = &sdext_plug
 	}
 };
 

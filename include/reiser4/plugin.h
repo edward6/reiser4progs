@@ -849,7 +849,7 @@ typedef struct format_hint {
 	uint64_t mask;
 } format_hint_t;
 
-typedef struct reiser4_key_ops {
+typedef struct reiser4_key_plug {
 	/* Function for dermining is key contains direntry name hashed or
 	   not? */
 	int (*hashed) (reiser4_key_t *);
@@ -928,10 +928,10 @@ typedef struct reiser4_key_ops {
 	/* Check key body for validness. */
 	errno_t (*check_struct) (reiser4_key_t *);
 #endif
-} reiser4_key_ops_t;
+} reiser4_key_plug_t;
 
 
-typedef struct reiser4_object_ops {
+typedef struct reiser4_object_plug {
 	/* Loads object stat data to passed hint. */
 	errno_t (*stat) (reiser4_object_t *, stat_hint_t *);
 
@@ -1032,7 +1032,7 @@ typedef struct reiser4_object_ops {
 	uint64_t sdext_mandatory;
 	uint64_t sdext_unknown;
 #endif
-} reiser4_object_ops_t;
+} reiser4_object_plug_t;
 
 typedef struct item_balance_ops {
 	/* Returns unit count in item passed place point to. */
@@ -1157,7 +1157,7 @@ typedef struct item_tree_ops {
 #endif
 } item_tree_ops_t;
 
-typedef struct reiser4_item_ops {
+typedef struct reiser4_item_plug {
 	item_tree_ops_t *tree;
 	item_object_ops_t *object;
 	item_balance_ops_t *balance;
@@ -1165,10 +1165,10 @@ typedef struct reiser4_item_ops {
 	item_debug_ops_t *debug;
 	item_repair_ops_t *repair;
 #endif
-} reiser4_item_ops_t;
+} reiser4_item_plug_t;
 
 /* Stat data extension plugin */
-typedef struct reiser4_sdext_ops {
+typedef struct reiser4_sdext_plug {
 #ifndef ENABLE_MINIMAL
 	/* Initialize stat data extension data at passed pointer. */
 	errno_t (*init) (stat_entity_t *, void *);
@@ -1184,12 +1184,12 @@ typedef struct reiser4_sdext_ops {
 
 	/* Returns length of the extension. */
 	uint32_t (*length) (stat_entity_t *, void *);
-} reiser4_sdext_ops_t;
+} reiser4_sdext_plug_t;
 
 /* Node plugin operates on passed block. It doesn't any initialization, so it
    hasn't close method and all its methods accepts first argument aal_block_t,
    not initialized previously hypothetic instance of node. */
-typedef struct reiser4_node_ops {
+typedef struct reiser4_node_plug {
 #ifndef ENABLE_MINIMAL
 	/* Get node state flags and set them back. */
 	uint32_t (*get_state) (reiser4_node_t *);
@@ -1305,19 +1305,19 @@ typedef struct reiser4_node_ops {
 
 	/* Return node level. */
 	uint8_t (*get_level) (reiser4_node_t *);
-} reiser4_node_ops_t;
+} reiser4_node_plug_t;
 
 /* Hash plugin operations. */
-typedef struct reiser4_hash_ops {
+typedef struct reiser4_hash_plug {
 	uint64_t (*build) (unsigned char *, uint32_t);
-} reiser4_hash_ops_t;
+} reiser4_hash_plug_t;
 
-typedef struct reiser4_fibre_ops {
+typedef struct reiser4_fibre_plug {
 	uint8_t (*build) (char *, uint32_t);
-} reiser4_fibre_ops_t;
+} reiser4_fibre_plug_t;
 
 /* Disk-format plugin */
-typedef struct reiser4_format_ops {
+typedef struct reiser4_format_plug {
 #ifndef ENABLE_MINIMAL
 	/* Called during filesystem creating. It forms format-specific super
 	   block, initializes plugins and calls their create method. */
@@ -1408,10 +1408,10 @@ typedef struct reiser4_format_ops {
 	/* Returns area where oid data lies in */
 	void (*oid_area) (generic_entity_t *, void **, uint32_t *);
 #endif
-} reiser4_format_ops_t;
+} reiser4_format_plug_t;
 
 #ifndef ENABLE_MINIMAL
-typedef struct reiser4_oid_ops {
+typedef struct reiser4_oid_plug {
 	/* Opens oid allocator on passed format entity. */
 	generic_entity_t *(*open) (generic_entity_t *);
 
@@ -1459,9 +1459,9 @@ typedef struct reiser4_oid_ops {
 	oid_t (*root_objectid) ();
 	oid_t (*lost_objectid) ();
 	oid_t (*slink_locality) ();
-} reiser4_oid_ops_t;
+} reiser4_oid_plug_t;
 
-typedef struct reiser4_alloc_ops {
+typedef struct reiser4_alloc_plug {
 	/* Functions for create and open block allocator. */
 	generic_entity_t *(*open) (aal_device_t *, uint32_t, uint64_t);
 	generic_entity_t *(*create) (aal_device_t *, uint32_t, uint64_t);
@@ -1532,9 +1532,9 @@ typedef struct reiser4_alloc_ops {
 	/* Calls func for the region the blk lies in. */
 	errno_t (*region) (generic_entity_t *, blk_t,
 			   region_func_t, void *);
-} reiser4_alloc_ops_t;
+} reiser4_alloc_plug_t;
 
-typedef struct reiser4_journal_ops {
+typedef struct reiser4_journal_plug {
 	/* Opens journal on specified device. */
 	generic_entity_t *(*open) (aal_device_t *, uint32_t, 
 				   generic_entity_t *, generic_entity_t *,
@@ -1583,12 +1583,12 @@ typedef struct reiser4_journal_ops {
 				     generic_entity_t *, 
 				     uint64_t, uint64_t, 
 				     aal_stream_t *);
-} reiser4_journal_ops_t;
+} reiser4_journal_plug_t;
 
 /* Tail policy plugin operations. */
-typedef struct reiser4_policy_ops {
+typedef struct reiser4_policy_plug {
 	int (*tails) (uint64_t);
-} reiser4_policy_ops_t;
+} reiser4_policy_plug_t;
 
 #endif
 
@@ -1639,22 +1639,22 @@ struct reiser4_plug {
 
         /* All possible plugin operations. */
 	union {
-		reiser4_key_ops_t *key_ops;
-		reiser4_item_ops_t *item_ops;
-		reiser4_node_ops_t *node_ops;
-		reiser4_hash_ops_t *hash_ops;
-		reiser4_fibre_ops_t *fibre_ops;
-		reiser4_sdext_ops_t *sdext_ops;
-		reiser4_object_ops_t *object_ops;
-		reiser4_format_ops_t *format_ops;
+		reiser4_key_plug_t *key;
+		reiser4_item_plug_t *item;
+		reiser4_node_plug_t *node;
+		reiser4_hash_plug_t *hash;
+		reiser4_fibre_plug_t *fibre;
+		reiser4_sdext_plug_t *sdext;
+		reiser4_object_plug_t *object;
+		reiser4_format_plug_t *format;
 
 #ifndef ENABLE_MINIMAL
-		reiser4_oid_ops_t *oid_ops;
-		reiser4_alloc_ops_t *alloc_ops;
-		reiser4_policy_ops_t *policy_ops;
-		reiser4_journal_ops_t *journal_ops;
+		reiser4_oid_plug_t *oid;
+		reiser4_alloc_plug_t *alloc;
+		reiser4_policy_plug_t *policy;
+		reiser4_journal_plug_t *journal;
 #endif
-	} o;
+	} pl;
 };
 
 /* Macros for dirtying nodes place lie at. */

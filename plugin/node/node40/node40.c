@@ -47,7 +47,7 @@ static reiser4_node_t *node40_prepare(aal_block_t *block,
 	entity->kplug = kplug;
 	entity->block = block;
 	entity->plug = &node40_plug;
-	entity->keypol = plug_call(kplug->o.key_ops, bodysize);
+	entity->keypol = plug_call(kplug->pl.key, bodysize);
 
 	return entity;
 }
@@ -310,8 +310,8 @@ errno_t node40_fetch(reiser4_node_t *entity,
 	}
 
 	/* Init item specific stuff. */
-	if (place->plug->o.item_ops->tree->init) {
-		place->plug->o.item_ops->tree->init(place);
+	if (place->plug->pl.item->tree->init) {
+		place->plug->pl.item->tree->init(place);
 	} else {
 		/* Zero all item-specific fields here. */
 		place->off = 0;
@@ -665,7 +665,7 @@ static errno_t node40_insert(reiser4_node_t *entity,
 	aal_assert("umka-1814", hint != NULL);
 	aal_assert("umka-818", entity != NULL);
 
-	ins_func = hint->plug->o.item_ops->object->insert_units;
+	ins_func = hint->plug->pl.item->object->insert_units;
 	return node40_modify(entity, pos, hint, ins_func);
 }
 
@@ -678,7 +678,7 @@ static int64_t node40_write(reiser4_node_t *entity,
 	aal_assert("umka-2450", hint != NULL);
 	aal_assert("umka-2451", entity != NULL);
 
-	write_func = hint->plug->o.item_ops->object->write_units;
+	write_func = hint->plug->pl.item->object->write_units;
 	return node40_modify(entity, pos, hint, write_func);
 }
 
@@ -702,7 +702,7 @@ static int64_t node40_trunc(reiser4_node_t *entity, pos_t *pos,
 		return -EINVAL;
 
 	/* Truncating item. */
-	if ((count = plug_call(place.plug->o.item_ops->object,
+	if ((count = plug_call(place.plug->pl.item->object,
 			       trunc_units, &place, hint)) < 0)
 	{
 		return count;
@@ -778,14 +778,14 @@ errno_t node40_remove(reiser4_node_t *entity, pos_t *pos,
 					return -EINVAL;
 
 				/* Not for nodeprt items. */
-				if (place.plug->o.item_ops->tree->down_link)
+				if (place.plug->pl.item->tree->down_link)
 					continue;
 
 				/* Only if item has a block layout. */
-				if (!place.plug->o.item_ops->object->layout)
+				if (!place.plug->pl.item->object->layout)
 					continue;
 				
-				plug_call(place.plug->o.item_ops->object, 
+				plug_call(place.plug->pl.item->object, 
 					  layout, &place, hint->region_func,
 					  hint->data);
 			}
@@ -804,14 +804,14 @@ errno_t node40_remove(reiser4_node_t *entity, pos_t *pos,
 		if (node40_fetch(entity, pos, &place))
 			return -EINVAL;
 
-		units = plug_call(place.plug->o.item_ops->balance,
+		units = plug_call(place.plug->pl.item->balance,
 				  units, &place);
 	
 		count = 1;
 		
-		if (place.plug->o.item_ops->object->remove_units) {
+		if (place.plug->pl.item->object->remove_units) {
 			/* Removing units from the item pointed by @pos. */
-			if ((res = plug_call(place.plug->o.item_ops->object,
+			if ((res = plug_call(place.plug->pl.item->object,
 					     remove_units, &place, hint)))
 			{
 				return res;
@@ -894,12 +894,12 @@ static errno_t node40_merge(reiser4_node_t *entity,
 
 	/* Check if item needs some special actions to merge (like eliminate
 	   header). If so, merge items. */
-	if (left_place.plug->o.item_ops->balance->merge) {
+	if (left_place.plug->pl.item->balance->merge) {
 		int32_t space;
 
 		/* Returned space is released space in node and it should be
 		   counted in node header. */
-		space = plug_call(left_place.plug->o.item_ops->balance,
+		space = plug_call(left_place.plug->pl.item->balance,
 				  merge, &left_place, &right_place);
 
 		if (space) {
@@ -964,7 +964,7 @@ static int cb_comp_key(void *ih0, uint32_t pos,
 	key1 = ih0 - ih_size(*(uint8_t *)data) * pos;
 	key2 = (reiser4_key_t *)k2;
 	
-	return plug_call(key2->plug->o.key_ops,
+	return plug_call(key2->plug->pl.key,
 			 compraw, key1, key2->body);
 }
 
@@ -1002,17 +1002,17 @@ static lookup_t node40_lookup(reiser4_node_t *entity,
 static int node40_splittable(reiser4_place_t *place, shift_hint_t *hint) {
 	/* Check if item's shift_units() and prep_shift() method are
 	   implemented. */
-	if (!place->plug->o.item_ops->balance->shift_units ||
-	    !place->plug->o.item_ops->balance->prep_shift)
+	if (!place->plug->pl.item->balance->shift_units ||
+	    !place->plug->pl.item->balance->prep_shift)
 	{
 		return 0;
 	}
 	
 	/* We can't shift units from items with one unit. */
-	if (!place->plug->o.item_ops->balance->units)
+	if (!place->plug->pl.item->balance->units)
 		return 0;
 	
-	return (plug_call(place->plug->o.item_ops->balance,
+	return (plug_call(place->plug->pl.item->balance,
 			  units, place) > 0);
 }
 
@@ -1152,7 +1152,7 @@ static errno_t node40_unite(reiser4_node_t *src_entity,
 		hint->units_bytes -= overhead;
 
 		/* Making estimate how many units and bytes may be shifted. */
-		if (plug_call(src_place.plug->o.item_ops->balance,
+		if (plug_call(src_place.plug->pl.item->balance,
 			      prep_shift, &src_place, NULL, hint))
 		{
 			return -EINVAL;
@@ -1179,7 +1179,7 @@ static errno_t node40_unite(reiser4_node_t *src_entity,
 	} else {
 		/* The same for case when we will not create new item, but will
 		   shift units into existent one in neighbour node. */
-		if (plug_call(src_place.plug->o.item_ops->balance,
+		if (plug_call(src_place.plug->pl.item->balance,
 			      prep_shift, &src_place, &dst_place, hint))
 		{
 			return -EINVAL;
@@ -1239,19 +1239,19 @@ static errno_t node40_unite(reiser4_node_t *src_entity,
 		/* Setting dst item key offset into max key offset of src in
 		   order to let item shift method correctly calculate offset
 		   of this new item later. */
-		plug_call(src_place.plug->o.item_ops->balance,
+		plug_call(src_place.plug->pl.item->balance,
 			  maxreal_key, &src_place, &dst_place.key);
 
-		offset = plug_call(dst_place.key.plug->o.key_ops,
+		offset = plug_call(dst_place.key.plug->pl.key,
 				   get_offset, &dst_place.key);
 			
-		plug_call(dst_place.key.plug->o.key_ops,
+		plug_call(dst_place.key.plug->pl.key,
 			  set_offset, &dst_place.key, offset + 1);
 
 	}
 	
 	/* Shift units from @src_place to @dst_place. */
-	if (plug_call(src_place.plug->o.item_ops->balance,
+	if (plug_call(src_place.plug->pl.item->balance,
 		      shift_units, &src_place, &dst_place, hint))
 	{
 		aal_error("Can't shift units.");
@@ -1265,7 +1265,7 @@ static errno_t node40_unite(reiser4_node_t *src_entity,
 
 	/* Getting units number after shift. This is needed to detect correctly,
 	   that src item is empty after shift and may be removed. */
-	units = plug_call(src_place.plug->o.item_ops->balance,
+	units = plug_call(src_place.plug->pl.item->balance,
 			  units, &src_place);
 	
 	/* We will remove src item if it has became empty and insert point does
@@ -1388,10 +1388,10 @@ static errno_t node40_predict(reiser4_node_t *src_entity,
 					if (node40_fetch(src_entity, &pos, &place))
 						return -EINVAL;
 
-					if (!place.plug->o.item_ops->balance->units)
+					if (!place.plug->pl.item->balance->units)
 						return -EINVAL;
 				
-					units = plug_call(place.plug->o.item_ops->balance,
+					units = plug_call(place.plug->pl.item->balance,
 							  units, &place);
 
 					/* Breaking if insert point reach the
@@ -1645,7 +1645,7 @@ uint16_t node40_get_flags(reiser4_node_t *entity, uint32_t pos) {
 
 #endif
 
-static reiser4_node_ops_t node40_ops = {
+static reiser4_node_plug_t node40 = {
 	.open		= node40_open,
 	.fini		= node40_fini,
 	.lookup		= node40_lookup,
@@ -1703,8 +1703,8 @@ reiser4_plug_t node40_plug = {
 	.label = "node40",
 	.desc  = "Node plugin.",
 #endif
-	.o = {
-		.node_ops = &node40_ops
+	.pl = {
+		.node = &node40
 	}
 };
 

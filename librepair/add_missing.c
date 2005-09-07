@@ -30,12 +30,12 @@ static errno_t cb_layout(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-649", place != NULL);
 	aal_assert("vpf-748", !reiser4_item_branch(place->plug));
 
-	if (!place->plug->o.item_ops->object->layout)
+	if (!place->plug->pl.item->object->layout)
 		return 0;
 	
 	/* All these blocks should not be used in the allocator and should be 
 	   forbidden for allocation. Check it somehow first. */
-	return plug_call(place->plug->o.item_ops->object, layout,
+	return plug_call(place->plug->pl.item->object, layout,
 			 place, cb_item_mark_region, data);
 }
 

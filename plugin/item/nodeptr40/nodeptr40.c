@@ -173,7 +173,7 @@ static item_tree_ops_t tree_ops = {
 #endif
 };
 
-static reiser4_item_ops_t nodeptr40_ops = {
+static reiser4_item_plug_t nodeptr40 = {
 	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
@@ -190,8 +190,8 @@ static reiser4_plug_t nodeptr40_plug = {
 	.label = "nodeptr40",
 	.desc  = "Node pointer item plugin.",
 #endif
-	.o = {
-		.item_ops = &nodeptr40_ops
+	.pl = {
+		.item = &nodeptr40
 	}
 };
 

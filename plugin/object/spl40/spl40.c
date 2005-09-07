@@ -7,7 +7,7 @@
 #include "spl40.h"
 #include "spl40_repair.h"
 
-static reiser4_object_ops_t spl40_ops = {
+static reiser4_object_plug_t spl40 = {
 #ifndef ENABLE_MINIMAL
 	.create	        = obj40_create,
 	.metadata       = obj40_metadata,
@@ -59,8 +59,8 @@ reiser4_plug_t spl40_plug = {
 	.label = "spl40",
 	.desc  = "Special file plugin.",
 #endif
-	.o = {
-		.object_ops = &spl40_ops
+	.pl = {
+		.object = &spl40
 	}
 };
 

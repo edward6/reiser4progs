@@ -38,12 +38,12 @@ static errno_t cb_find_statdata(char *path, char *entry, void *data) {
 	
 	/* Symlinks handling. Method follow() should be implemented if object
 	   wants to be resolved (symlink). */
-	if (resol->follow && plug->o.object_ops->follow) {
+	if (resol->follow && plug->pl.object->follow) {
 		errno_t res;
 
 		/* Calling object's follow() in order to get stat data key of
 		   the object that current object points to. */
-		res = plug_call(plug->o.object_ops, follow, resol->object,
+		res = plug_call(plug->pl.object, follow, resol->object,
 				(resol->parent ? &resol->parent->info.object :
 				 &resol->tree->key), &resol->key);
 
@@ -88,7 +88,7 @@ static errno_t cb_find_entry(char *path, char *name, void *data) {
 	plug = reiser4_oplug(resol->object);
 	
 	/* Looking up for @entry in current directory */
-	if ((res = plug_call(plug->o.object_ops, lookup, 
+	if ((res = plug_call(plug->pl.object, lookup, 
 			     resol->object, name, &entry)) < 0)
 		return res;
 	

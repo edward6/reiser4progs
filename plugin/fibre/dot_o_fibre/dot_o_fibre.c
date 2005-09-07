@@ -15,7 +15,7 @@ static uint8_t fibre_dot_o_build(char *name, uint32_t len) {
 	return 0;
 }
 
-static reiser4_fibre_ops_t fibre_dot_o_ops = {
+static reiser4_fibre_plug_t fibre_dot_o = {
 	.build = fibre_dot_o_build
 };
 
@@ -26,8 +26,8 @@ static reiser4_plug_t fibre_dot_o_plug = {
 	.label = "dot_o_fibre",
 	.desc  = "'.o' fibration plugin.",
 #endif
-	.o = {
-		.fibre_ops = &fibre_dot_o_ops
+	.pl = {
+		.fibre = &fibre_dot_o
 	}
 };
 

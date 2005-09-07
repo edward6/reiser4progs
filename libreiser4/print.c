@@ -118,7 +118,7 @@ void reiser4_print_node(reiser4_node_t *node, uint32_t start,
 		aal_stream_format(&stream, "Does not look "
 				  "like a proper node pointer.\n");
 	} else {
-		plug_call(node->plug->o.node_ops, print,
+		plug_call(node->plug->pl.node, print,
 			  node, &stream, start, count, options);
 	}
 	
@@ -132,7 +132,7 @@ void reiser4_print_format(reiser4_format_t *format,uint16_t options) {
 
 	aal_stream_init(&stream, NULL, &file_stream);
 
-	plug_call(format->ent->plug->o.format_ops,
+	plug_call(format->ent->plug->pl.format,
 		  print, format->ent, &stream, options);
 	
 	aal_stream_fini(&stream);
