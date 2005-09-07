@@ -14,7 +14,5 @@
 extern int64_t reg40_put(reiser4_object_t *reg, void *buff, 
 			 uint64_t n, place_func_t place_func);
 
-extern lookup_t reg40_update_body(reiser4_object_t *reg);
-
 #endif
 #endif

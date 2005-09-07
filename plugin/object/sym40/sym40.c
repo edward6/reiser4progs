@@ -36,9 +36,6 @@ static errno_t sym40_create(reiser4_object_t *sym, object_hint_t *hint) {
 	aal_assert("vpf-1819", sym != NULL);
 	aal_assert("umka-1740", hint != NULL);
 
-	/* Inizializes symlink file handle. */
-	obj40_init(sym);
-
 	len = aal_strlen(hint->name);
 
 	/* Create symlink sta data item. */

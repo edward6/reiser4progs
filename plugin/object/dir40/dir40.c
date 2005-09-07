@@ -62,7 +62,7 @@ errno_t dir40_reset(reiser4_object_t *dir) {
 #endif
 
 	/* Building key itself. */
-	plug_call(STAT_KEY(dir)->plug->pl.key, 
+	plug_call(dir->info.object.plug->pl.key, 
 		  build_hashed, &dir->position, 
 		  dir->info.opset.plug[OPSET_HASH],
 		  dir->info.opset.plug[OPSET_FIBRE], 
@@ -176,7 +176,9 @@ lookup_t dir40_update_body(reiser4_object_t *dir, int check_group) {
 	/* Making lookup by current dir key. */
 	if ((res = obj40_find_item(dir, &dir->position, FIND_EXACT, 
 				   NULL, NULL, &dir->body)) < 0)
+	{
 		return res;
+	}
 
 	if (res == ABSENT) {
 		/* Directory is over. */
@@ -337,7 +339,7 @@ static lookup_t dir40_search(reiser4_object_t *dir, char *name,
 
 	/* Preparing key to be used for lookup. It is generating from the
 	   directory oid, locality and name by menas of using hash plugin. */
-	plug_call(STAT_KEY(dir)->plug->pl.key, 
+	plug_call(dir->info.object.plug->pl.key, 
 		  build_hashed, &dir->body.key, 
 		  dir->info.opset.plug[OPSET_HASH],
 		  dir->info.opset.plug[OPSET_FIBRE], 
@@ -403,9 +405,6 @@ static errno_t dir40_create(reiser4_object_t *dir, object_hint_t *hint) {
 	aal_assert("vpf-1816",  dir != NULL);
 	aal_assert("vpf-1095",  dir->info.tree != NULL);
 
-	/* Initializing obj handle. */
-	obj40_init(dir);
-	
 	aal_memset(&body_hint, 0, sizeof(body_hint));
 	
 	/* Initializing direntry item hint. This should be done before the stat
@@ -567,7 +566,7 @@ static errno_t dir40_build_entry(reiser4_object_t *dir,
 	locality = obj40_locality(dir);
 	objectid = obj40_objectid(dir);
 	
-	plug_call(STAT_KEY(dir)->plug->pl.key, 
+	plug_call(dir->info.object.plug->pl.key, 
 		  build_hashed, &entry->offset, 
 		  dir->info.opset.plug[OPSET_HASH],
 		  dir->info.opset.plug[OPSET_FIBRE], 

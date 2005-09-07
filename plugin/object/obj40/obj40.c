@@ -16,9 +16,6 @@ errno_t obj40_open(reiser4_object_t *obj) {
 	if (obj->info.start.plug->id.group != STAT_ITEM)
 		return -EIO;
 	
-	/* Initializing obj handle for the directory */
-	obj40_init(obj);
-	
 	/* Positioning to the first directory unit. */
 	if (reiser4_oplug(obj)->pl.object->reset)
 		reiser4_oplug(obj)->pl.object->reset(obj);
@@ -51,7 +48,7 @@ uint64_t obj40_size(reiser4_object_t *obj) {
 errno_t obj40_reset(reiser4_object_t *obj) {
 	aal_assert("umka-1963", obj != NULL);
 	
-	plug_call(STAT_KEY(obj)->plug->pl.key, build_generic,
+	plug_call(obj->info.object.plug->pl.key, build_generic,
 		  &obj->position, KEY_FILEBODY_TYPE, obj40_locality(obj),
 		  obj40_ordering(obj), obj40_objectid(obj), 0);
 
@@ -71,24 +68,24 @@ uint64_t obj40_offset(reiser4_object_t *obj) {
 oid_t obj40_objectid(reiser4_object_t *obj) {
 	aal_assert("umka-1899", obj != NULL);
 
-	return plug_call(STAT_KEY(obj)->plug->pl.key, 
-			 get_objectid, STAT_KEY(obj));
+	return plug_call(obj->info.object.plug->pl.key, 
+			 get_objectid, &obj->info.object);
 }
 
 /* Returns file's locality  */
 oid_t obj40_locality(reiser4_object_t *obj) {
 	aal_assert("umka-1900", obj != NULL);
     
-	return plug_call(STAT_KEY(obj)->plug->pl.key, 
-			 get_locality, STAT_KEY(obj));
+	return plug_call(obj->info.object.plug->pl.key, 
+			 get_locality, &obj->info.object);
 }
 
 /* Returns file's ordering  */
 uint64_t obj40_ordering(reiser4_object_t *obj) {
 	aal_assert("umka-2334", obj != NULL);
 
-	return plug_call(STAT_KEY(obj)->plug->pl.key, 
-			 get_ordering, STAT_KEY(obj));
+	return plug_call(obj->info.object.plug->pl.key, 
+			 get_ordering, &obj->info.object);
 }
 
 /* Fetches item info at @place. */
@@ -381,9 +378,6 @@ errno_t obj40_create(reiser4_object_t *obj, object_hint_t *hint) {
 	aal_assert("vpf-1817", obj != NULL);
 	aal_assert("vpf-1093", obj->info.tree != NULL);
 
-	/* Initializing file handle. */
-	obj40_init(obj);
-	
 	/* mode is the bitwise OR between the given mode, the file type mode 
 	   and the defaul rwx permissions. The later is 0755 for directories 
 	   and 0644 for others. */
@@ -709,18 +703,6 @@ bool_t obj40_linked(reiser4_object_t *entity) {
 	return obj40_links(entity) != 0;
 }
 #endif
-
-/* Initializes object handle by plugin, key, core operations and opaque pointer
-   to tree file is going to be opened/created in. */
-errno_t obj40_init(reiser4_object_t *object) {
-	aal_assert("umka-1574", object != NULL);
-	
-	if (!object->info.start.plug)
-		aal_memcpy(STAT_KEY(object), &object->info.object, 
-			   sizeof(object->info.object));
-	
-	return 0;
-}
 
 /* Makes sure, that passed place points to right location in tree by means of
    calling tree_lookup() for its key. This is needed, because items may move to

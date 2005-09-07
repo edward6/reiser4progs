@@ -59,8 +59,8 @@ static errno_t dir40_dot(reiser4_object_t *dir,
 	return res < 0 ? res : 0;
 }
 
-errno_t dir40_check_struct(reiser4_object_t *dir, 
-			   place_func_t place_func,
+errno_t dir40_check_struct(reiser4_object_t *dir,
+			   place_func_t func,
 			   void *data, uint8_t mode)
 {
 	obj40_stat_hint_t hint;
@@ -83,7 +83,7 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 		return res;
 	
 	/* Try to register SD as an item of this file. */
-	if (place_func && place_func(&info->start, data))
+	if (func && func(&info->start, data))
 		return -EINVAL;
 	
 	/* Take care about the ".". */
@@ -158,7 +158,7 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 				   key, if it is shared between 2 objects, it
 				   should be already solved at relocation time.
 				 */
-				if (place_func && place_func(&dir->body, data))
+				if (func && func(&dir->body, data))
 					return -EINVAL;
 
 				/* Count size and bytes. */
@@ -260,7 +260,7 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 
 errno_t dir40_check_attach(reiser4_object_t *object, 
 			   reiser4_object_t *parent,
-			   place_func_t place_func, 
+			   place_func_t func, 
 			   void *data, uint8_t mode)
 {
 	entry_hint_t entry;
@@ -271,7 +271,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 	aal_assert("vpf-1152", parent != NULL);
 	
 	lookup = dir40_lookup(object, "..", &entry);
-	entry.place_func = place_func;
+	entry.place_func = func;
 	entry.data = data;
 	
 	switch (lookup) {
@@ -342,9 +342,6 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 /* Creates the fake dir40 entity by the given @info for the futher recovery. */
 errno_t dir40_fake(reiser4_object_t *dir) {
 	aal_assert("vpf-1231", dir != NULL);
-	
-	/* Initializing file handle */
-	obj40_init(dir);
 	
 	/* Positioning to the first directory unit */
 	dir40_reset(dir);

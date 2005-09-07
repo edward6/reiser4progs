@@ -17,9 +17,6 @@
 
 extern reiser4_core_t *obj40_core;
 
-#define STAT_KEY(o) \
-        (&((o)->info.start.key))
-
 #define STAT_PLACE(o) \
         (&((o)->info.start))
 
@@ -46,8 +43,6 @@ extern lookup_t obj40_find_item(reiser4_object_t *obj,
 				reiser4_place_t *place);
 
 extern int64_t obj40_read(reiser4_object_t *obj, trans_hint_t *hint);
-
-extern errno_t obj40_init(reiser4_object_t *object);
 
 extern errno_t obj40_read_ext(reiser4_object_t *obj, rid_t id, void *data);
 

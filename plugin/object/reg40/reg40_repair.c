@@ -61,9 +61,12 @@ static errno_t reg40_next(reiser4_object_t *reg, uint8_t mode) {
 	info = &reg->info;
 
  start:
-	if ((res = reg40_update_body(reg)) < 0)
+	if ((res = obj40_find_item(reg, &reg->position, FIND_EXACT, 
+				   NULL, NULL, &reg->body)) < 0)
+	{
 		return res;
-
+	}
+	
 	if (res == ABSENT) {
 		/* If place is invalid, no more reg40 items. */
 		if (!obj40_valid_item(&reg->body))

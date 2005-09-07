@@ -10,15 +10,6 @@
 #include "reg40.h"
 #include "reg40_repair.h"
 
-/* Updates body place in correspond to file offset. */
-lookup_t reg40_update_body(reiser4_object_t *reg) {
-	aal_assert("umka-1161", reg != NULL);
-	
-	/* Getting the next body item from the tree */
-	return obj40_find_item(reg, &reg->position, FIND_EXACT, 
-			       NULL, NULL, &reg->body);
-}
-
 /* Reads @n bytes to passed buffer @buff. Negative values are returned on
    errors. */
 static int64_t reg40_read(reiser4_object_t *reg, 
@@ -73,10 +64,13 @@ static errno_t reg40_open(reiser4_object_t *reg) {
 		lookup_t lookup;
 
 		/* Get the body plugin in use. */
-		if ((lookup = reg40_update_body(reg)) < 0)
+		if ((lookup = obj40_find_item(reg, &reg->position, FIND_EXACT, 
+					      NULL, NULL, &reg->body)) < 0)
+		{
 			return lookup;
-		else if (lookup > 0)
+		} else if (lookup > 0) {
 			reg->body_plug = reg->body.plug;
+		}
 	}
 #endif
 
@@ -223,7 +217,7 @@ static int64_t reg40_cut(reiser4_object_t *reg, uint64_t offset) {
 	/* Preparing key of the data to be truncated. */
 	aal_memcpy(&hint.offset, &reg->position, sizeof(hint.offset));
 		
-	plug_call(STAT_KEY(reg)->plug->pl.key,
+	plug_call(reg->info.object.plug->pl.key,
 		  set_offset, &hint.offset, offset);
 
 	/* Removing data from the tree. */
@@ -407,9 +401,12 @@ static errno_t reg40_layout(reiser4_object_t *reg,
 		reiser4_place_t *place = &reg->body;
 		
 		/* Update current body coord. */
-		if ((res = reg40_update_body(reg)) < 0)
+		if ((res = obj40_find_item(reg, &reg->position, FIND_EXACT, 
+					   NULL, NULL, &reg->body)) < 0)
+		{
 			return res;
-
+		}
+		
 		/* Check if file stream is over. */
 		if (res == ABSENT)
 			return 0;
@@ -466,9 +463,12 @@ static errno_t reg40_metadata(reiser4_object_t *reg,
 		reiser4_key_t maxkey;
 		
 		/* Update body place. */
-		if ((res = reg40_update_body(reg)) < 0)
+		if ((res = obj40_find_item(reg, &reg->position, FIND_EXACT, 
+					   NULL, NULL, &reg->body)) < 0)
+		{
 			return res;
-
+		}
+		
 		/* Check if file stream is over. */
 		if (res == ABSENT)
 			return 0;

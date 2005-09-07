@@ -7,56 +7,36 @@
 
 #include "obj40_repair.h"
 
-errno_t obj40_recognize(reiser4_object_t *obj) {
-	reiser4_object_plug_t *ops;
-	errno_t res;
-	
-	aal_assert("vpf-1231", obj != NULL);
-	
-	/* Initializing file handle */
-	obj40_init(obj);
-	
-	if ((res = obj40_objkey_check(obj)))
-		return res;
+#define STAT_KEY(o) \
+        (&((o)->info.start.key))
 
-	ops = reiser4_oplug(obj)->pl.object;
-	
-	if ((res = obj40_check_stat(obj, ops->sdext_mandatory,
-				    ops->sdext_unknown)))
-	{
-		return res;
-	}
-	
-	/* Positioning to the first directory unit */
-	if (reiser4_oplug(obj)->pl.object->reset)
-		reiser4_oplug(obj)->pl.object->reset(obj);
-	
-	return 0;
+static void obj40_init(reiser4_object_t *object) {
+	if (!object->info.start.plug)
+		aal_memcpy(STAT_KEY(object), &object->info.object, 
+			   sizeof(object->info.object));
 }
 
-static errno_t obj40_exts_check(reiser4_place_t *stat, 
-				uint64_t exts_must, 
-				uint64_t exts_unkn) 
-{
+static errno_t obj40_exts_check(reiser4_object_t *obj) {
+	reiser4_object_plug_t *ops;
 	uint64_t extmask;
 	
-	aal_assert("vpf-1623", stat != NULL);
+	aal_assert("vpf-1831", obj != NULL);
 	
-	extmask = obj40_extmask(stat);
+	extmask = obj40_extmask(&obj->info.start);
+	
+	ops = reiser4_oplug(obj)->pl.object;
 	
 	/* Check that there is no one unknown extension. */
-	if (extmask & exts_unkn)
+	if (extmask & ops->sdext_unknown)
 		return RE_FATAL;
 	
 	/* Check that LW and UNIX extensions exist. */
-	return ((extmask & exts_must) == exts_must) ? 0 : RE_FATAL;
+	return ((extmask & ops->sdext_mandatory) == 
+		ops->sdext_mandatory) ? 0 : RE_FATAL;
 }
 
 /* Checks that @obj->info.start is SD of the wanted file.  */
-errno_t obj40_check_stat(reiser4_object_t *obj, 
-			 uint64_t exts_must, 
-			 uint64_t exts_unkn) 
-{
+static errno_t obj40_check_stat(reiser4_object_t *obj) {
 	object_info_t *info;
 	errno_t res;
 
@@ -83,11 +63,11 @@ errno_t obj40_check_stat(reiser4_object_t *obj,
 	}
 	
 	/* Some SD is recognized. Check that this is our SD. */
-	return obj40_exts_check(&info->start, exts_must, exts_unkn);
+	return obj40_exts_check(obj);
 }
 
 /* The plugin tries to recognize the object: detects the SD, body items */
-errno_t obj40_objkey_check(reiser4_object_t *obj) {
+static errno_t obj40_objkey_check(reiser4_object_t *obj) {
 	uint64_t locality, objectid, ordering;
 	object_info_t *info;
 	reiser4_key_t key;
@@ -114,6 +94,30 @@ errno_t obj40_objkey_check(reiser4_object_t *obj) {
 	/* Compare the correct key with the search one. */
 	return plug_call(info->object.plug->pl.key, compfull, 
 			 &key, &info->object) ? RE_FATAL : 0;
+}
+
+errno_t obj40_recognize(reiser4_object_t *obj) {
+	reiser4_object_plug_t *ops;
+	errno_t res;
+	
+	aal_assert("vpf-1231", obj != NULL);
+	
+	/* Initializing file handle */
+	obj40_init(obj);
+	
+	if ((res = obj40_objkey_check(obj)))
+		return res;
+
+	ops = reiser4_oplug(obj)->pl.object;
+	
+	if ((res = obj40_check_stat(obj)))
+		return res;
+	
+	/* Positioning to the first directory unit */
+	if (reiser4_oplug(obj)->pl.object->reset)
+		reiser4_oplug(obj)->pl.object->reset(obj);
+	
+	return 0;
 }
 
 #define OBJ40_CHECK(field, type, value, correct)			\
@@ -523,6 +527,7 @@ errno_t obj40_update_stat(reiser4_object_t *obj, obj40_stat_ops_t *ops,
 	return res;
 }
 
+#if 0
 /* Fix @place->key if differs from @key. */
 errno_t obj40_fix_key(reiser4_object_t *obj, reiser4_place_t *place, 
 		      reiser4_key_t *key, uint8_t mode) 
@@ -554,6 +559,7 @@ errno_t obj40_fix_key(reiser4_object_t *obj, reiser4_place_t *place,
 
 	return res;
 }
+#endif
 
 errno_t obj40_prepare_stat(reiser4_object_t *obj, uint16_t objmode, uint8_t mode) {
 	reiser4_place_t *start;
