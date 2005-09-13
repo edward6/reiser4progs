@@ -31,9 +31,9 @@ extern uint64_t obj40_get_size(reiser4_object_t *obj);
 extern bool_t obj40_valid_item(reiser4_place_t *place);
 extern errno_t obj40_fetch_item(reiser4_place_t *place);
 
-extern int32_t obj40_belong(reiser4_place_t *place, 
-			    reiser4_plug_t *plug, 
-			    reiser4_key_t *key);
+extern lookup_t obj40_belong(reiser4_place_t *place,
+			     reiser4_key_t *key,
+			     rid_t group);
 
 extern lookup_t obj40_find_item(reiser4_object_t *obj, 
 				reiser4_key_t *key, 
@@ -55,6 +55,14 @@ extern uint64_t obj40_size(reiser4_object_t *obj);
 extern errno_t obj40_reset(reiser4_object_t *obj);
 extern uint64_t obj40_offset(reiser4_object_t *obj);
 extern errno_t obj40_create(reiser4_object_t *obj, object_hint_t *hint);
+
+typedef int (*obj_func_t) (reiser4_object_t *, void *);
+
+extern lookup_t obj40_update_body(reiser4_object_t *obj, 
+				  obj_func_t adjust_func, 
+				  rid_t group_mask);
+
+extern lookup_t obj40_next_item(reiser4_object_t *obj, rid_t group_mask);
 
 #ifndef ENABLE_MINIMAL
 extern errno_t obj40_write_ext(reiser4_place_t *place, rid_t id, void *data);

@@ -615,7 +615,7 @@ reiser4_node_t *reiser4_tree_child_node(reiser4_tree_t *tree,
 
 	blk = reiser4_item_down_link(place);
 	if (!(node = reiser4_tree_load_node(tree, place->node, blk))) {
-		aal_error("Can't load root node %llu.", blk);
+		aal_error("Can't load child node %llu.", blk);
 		return NULL;
 	}
 
@@ -769,7 +769,13 @@ errno_t reiser4_tree_next_place(reiser4_tree_t *tree,
 	
 	/* If nodeptr item go down. */
 	while (reiser4_item_branch(next->plug)) {
-		if (!(next->node = reiser4_tree_child_node(tree, next)))
+		blk_t blk;
+		
+		blk = reiser4_item_down_link(next);
+		
+		next->node = reiser4_tree_load_node(tree, next->node, blk);
+		
+		if (!next->node)
 			goto error;
 
 		if (reiser4_place_first(next))

@@ -51,7 +51,7 @@ static errno_t reg40_check_ikey(reiser4_object_t *reg) {
 	return offset % place_blksize(&reg->body) ? RE_FATAL : 0;
 }
 
-static errno_t reg40_next(reiser4_object_t *reg, uint8_t mode) {
+static errno_t reg40_item_check(reiser4_object_t *reg, uint8_t mode) {
 	object_info_t *info;
 	trans_hint_t hint;
 	errno_t res;
@@ -61,55 +61,16 @@ static errno_t reg40_next(reiser4_object_t *reg, uint8_t mode) {
 	info = &reg->info;
 
  start:
-	if ((res = obj40_find_item(reg, &reg->position, FIND_EXACT, 
-				   NULL, NULL, &reg->body)) < 0)
-	{
+
+	res = obj40_update_body(reg, NULL, 1 << TAIL_ITEM | 1 << EXTENT_ITEM);
+
+	if (res < 0)
 		return res;
+	else if (res == ABSENT) {
+		reg->body.plug = NULL;
+		return 0;
 	}
 	
-	if (res == ABSENT) {
-		/* If place is invalid, no more reg40 items. */
-		if (!obj40_valid_item(&reg->body))
-			goto end;
-
-		/* Initializing item entity at @next place */
-		if ((res = obj40_fetch_item(&reg->body)))
-			return res;
-
-		/* Check if this is an item of another object. */
-		if (plug_call(reg->position.plug->pl.key, compshort,
-			      &reg->position, &reg->body.key))
-			goto end;
-
-		/* If non-existent position in the item, move next. */
-		if (plug_call(reg->body.plug->pl.item->balance,
-			      units, &reg->body) == reg->body.pos.unit)
-		{
-			reiser4_place_t next;
-
-			/* This could be joint with dir40_next. */
-			if ((res = obj40_core->tree_ops.next_item(info->tree,
-								  &reg->body, 
-								  &next)))
-				return res;
-
-			/* If this was the last item in the tree, 
-			   evth is handled. */
-			if (next.node == NULL)
-				goto end;
-
-			reg->body = next;
-
-			/* Check if this is an item of another object. */
-			if (plug_call(reg->position.plug->pl.key, 
-				      compshort, &reg->position, 
-				      &reg->body.key))
-				goto end;
-		}
-	}
-
-	res = 0;
-
 	if (!plug_equal(reg->body.plug, info->opset.plug[OPSET_EXTENT]) && 
 	    !plug_equal(reg->body.plug, info->opset.plug[OPSET_TAIL]))
 	{
@@ -148,10 +109,6 @@ static errno_t reg40_next(reiser4_object_t *reg, uint8_t mode) {
 		return res;
 
 	goto start;
-
- end:
-	reg->body.plug = NULL;
-	return 0;
 }
 
 /* Returns 1 if the convertion is needed right now, 0 if should be delayed. */
@@ -303,16 +260,16 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 	while (1) {
 		errno_t result;
 		
-		if ((result = reg40_next(reg, mode)) < 0)
+		if ((result = reg40_item_check(reg, mode)) < 0)
 			return result;
-		
+			
 		if (result) {
 			res |= result;
 			break;
 		}
 		
 		maxreal = 0;
-
+		
 		if (reg->body.plug) {
 			maxreal = reg40_place_maxreal(&reg->body);
 			

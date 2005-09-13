@@ -100,8 +100,11 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 		lookup_t lookup;
 		uint32_t units;
 		
-		if ((lookup = dir40_update_body(dir, 0)) < 0) 
+		if ((lookup = obj40_update_body(dir, dir40_entry_comp, 
+						1 << DIR_ITEM)) < 0) 
+		{
 			return lookup;
+		}
 
 		/* No more items of the dir40. */
 		if (lookup == ABSENT)

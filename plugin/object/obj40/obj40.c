@@ -104,32 +104,39 @@ bool_t obj40_valid_item(reiser4_place_t *place) {
 
 /* This fucntion checks if passed @place belongs to some object with the short 
    @key and of the @plug. */
-int32_t obj40_belong(reiser4_place_t *place, 
-		     reiser4_plug_t *plug, 
-		     reiser4_key_t *key) 
+lookup_t obj40_belong(reiser4_place_t *place, 
+		      reiser4_key_t *key, 
+		      rid_t group_mask)
 {
+	errno_t res;
+	
+	/* If there is no valid node, it does defenetely not belong to 
+	   the object. */
+	if (!place->node)
+		return ABSENT;
+	
 	/* Checking if item component in @place->pos is valid one. This is
 	   needed because tree_lookup() does not fetch item data at place if it
 	   was not found. So, it may point to unexistent item and we should
 	   check this here. */
 	if (!obj40_valid_item(place))
-		return 0;
+		return ABSENT;
 
 	/* Fetching item info at @place. This is needed to make sue, that 
 	   all @place fields are initialized rigth. Normally it is done by
 	   tree_lookup(), if it is sure, that place points to valid postion 
 	   in node. This happen if lookup found a key. Otherwise it leaves 
 	   place not initialized and caller has to care about it. */
-	if (obj40_fetch_item(place))
-		return 0;
+	if ((res = obj40_fetch_item(place)))
+		return res;
 	
 	/* Must be the same plugin. */
-	if (plug && !plug_equal(plug, place->plug))
-		return 0;
+	if (!(group_mask & (1 << place->plug->id.group)))
+		return ABSENT;
 	
 	/* Is the place of the same object? */
 	return plug_call(key->plug->pl.key, compshort, 
-			 key, &place->key) ? 0 : 1;
+			 key, &place->key) ? ABSENT : PRESENT;
 }
 
 /* Performs lookup and returns result to caller */
@@ -153,6 +160,115 @@ lookup_t obj40_find_item(reiser4_object_t *obj, reiser4_key_t *key,
 	
 	return obj40_core->tree_ops.lookup(obj->info.tree,
 					   &hint, bias, place);
+}
+
+/* Takes the next item, perform some checks if it is of the same object. */
+lookup_t obj40_next_item(reiser4_object_t *obj, rid_t group_mask) {
+	reiser4_place_t place;
+	lookup_t res;
+
+	aal_assert("vpf-1833", obj != NULL);
+
+	/* Getting next item into the @place. */
+	if ((res = obj40_core->tree_ops.next_item(obj->info.tree,
+						  &obj->body, &place)))
+	{
+		return res;
+	}
+
+	/* Check if this item owned by this object. */
+	if (obj40_belong(&place, &obj->position, group_mask) == ABSENT)
+		return ABSENT;
+	
+	/* If @place belongs to the object, copy it to the object body. */
+	aal_memcpy(&obj->body, &place, sizeof(place));
+	
+	/* Correcting unit pos for next body item. */
+	if (obj->body.pos.unit == MAX_UINT32)
+		obj->body.pos.unit = 0;
+
+	return PRESENT;
+}
+
+lookup_t obj40_update_body(reiser4_object_t *obj, 
+			   obj_func_t adjust_func, 
+			   rid_t group_mask) 
+{
+	uint32_t units;
+	errno_t res;
+
+#ifndef ENABLE_MINIMAL
+	uint32_t adjust = obj->position.adjust;
+#endif
+	
+	aal_assert("vpf-1344", obj != NULL);
+	
+	/* Lookup the current object position in the tree. */
+	if ((res = obj40_find_item(obj, &obj->position, FIND_EXACT, 
+				   NULL, NULL, &obj->body)) < 0)
+	{
+		return res;
+	}
+	
+	if (res == ABSENT) {
+		/* Getting next object item if not valid place & just 
+		   check if the current is ours if a valid one. */
+		if (!obj40_valid_item(&obj->body)) {
+			res = obj40_next_item(obj, group_mask);
+		} else {
+			res = obj40_belong(&obj->body, &obj->position, 
+					   group_mask);
+		}
+		
+		if (res != PRESENT)
+			return res;
+
+#ifndef ENABLE_MINIMAL
+		/* No adjusting for the ABSENT result. */
+		adjust = 0;
+#endif
+	}
+	
+	units = plug_call(obj->body.plug->pl.item->balance,
+			  units, &obj->body);
+	
+	/* Correcting unit pos for next body item. */
+	if (obj->body.pos.unit == MAX_UINT32)
+		obj->body.pos.unit = 0;
+
+	/* Adjusting current position by key's adjust. This is needed
+	   for working fine when a key collision takes place. */
+	while (
+#ifndef ENABLE_MINIMAL
+	       adjust || 
+#endif
+	       obj->body.pos.unit >= units) 
+	{
+
+		if (obj->body.pos.unit >= units) {
+			if ((res = obj40_next_item(obj, group_mask)) != PRESENT)
+				return res;
+			
+			units = plug_call(obj->body.plug->pl.item->balance,
+					  units, &obj->body);
+			
+			continue;
+		}
+		
+#ifndef ENABLE_MINIMAL
+		if (adjust) {
+			if ((res = adjust_func(obj, NULL)) < 0)
+				return res;
+			
+			if (res) return PRESENT;
+			
+			adjust--;
+		}
+#endif		
+		obj->body.pos.unit++;
+	}
+	
+	return PRESENT;
 }
 
 /* Reads one stat data extension to @data. */
