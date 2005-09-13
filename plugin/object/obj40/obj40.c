@@ -102,12 +102,8 @@ bool_t obj40_valid_item(reiser4_place_t *place) {
 	return (place->pos.item < items);
 }
 
-/* This fucntion checks if passed @place belongs to some object with the short 
-   @key and of the @plug. */
-lookup_t obj40_belong(reiser4_place_t *place, 
-		      reiser4_key_t *key, 
-		      rid_t group_mask)
-{
+/* Checks if passed @place belongs to some object by the short @key. */
+lookup_t obj40_belong(reiser4_place_t *place, reiser4_key_t *key) {
 	errno_t res;
 	
 	/* If there is no valid node, it does defenetely not belong to 
@@ -129,10 +125,6 @@ lookup_t obj40_belong(reiser4_place_t *place,
 	   place not initialized and caller has to care about it. */
 	if ((res = obj40_fetch_item(place)))
 		return res;
-	
-	/* Must be the same plugin. */
-	if (!(group_mask & (1 << place->plug->id.group)))
-		return ABSENT;
 	
 	/* Is the place of the same object? */
 	return plug_call(key->plug->pl.key, compshort, 
@@ -163,7 +155,7 @@ lookup_t obj40_find_item(reiser4_object_t *obj, reiser4_key_t *key,
 }
 
 /* Takes the next item, perform some checks if it is of the same object. */
-lookup_t obj40_next_item(reiser4_object_t *obj, rid_t group_mask) {
+lookup_t obj40_next_item(reiser4_object_t *obj) {
 	reiser4_place_t place;
 	lookup_t res;
 
@@ -177,7 +169,7 @@ lookup_t obj40_next_item(reiser4_object_t *obj, rid_t group_mask) {
 	}
 
 	/* Check if this item owned by this object. */
-	if (obj40_belong(&place, &obj->position, group_mask) == ABSENT)
+	if (obj40_belong(&place, &obj->position) == ABSENT)
 		return ABSENT;
 	
 	/* If @place belongs to the object, copy it to the object body. */
@@ -190,10 +182,7 @@ lookup_t obj40_next_item(reiser4_object_t *obj, rid_t group_mask) {
 	return PRESENT;
 }
 
-lookup_t obj40_update_body(reiser4_object_t *obj, 
-			   obj_func_t adjust_func, 
-			   rid_t group_mask) 
-{
+lookup_t obj40_update_body(reiser4_object_t *obj, obj_func_t adjust_func) {
 	uint32_t units;
 	errno_t res;
 
@@ -214,10 +203,9 @@ lookup_t obj40_update_body(reiser4_object_t *obj,
 		/* Getting next object item if not valid place & just 
 		   check if the current is ours if a valid one. */
 		if (!obj40_valid_item(&obj->body)) {
-			res = obj40_next_item(obj, group_mask);
+			res = obj40_next_item(obj);
 		} else {
-			res = obj40_belong(&obj->body, &obj->position, 
-					   group_mask);
+			res = obj40_belong(&obj->body, &obj->position);
 		}
 		
 		if (res != PRESENT)
@@ -246,7 +234,7 @@ lookup_t obj40_update_body(reiser4_object_t *obj,
 	{
 
 		if (obj->body.pos.unit >= units) {
-			if ((res = obj40_next_item(obj, group_mask)) != PRESENT)
+			if ((res = obj40_next_item(obj)) != PRESENT)
 				return res;
 			
 			units = plug_call(obj->body.plug->pl.item->balance,

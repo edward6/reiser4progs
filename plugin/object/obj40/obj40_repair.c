@@ -625,4 +625,21 @@ errno_t obj40_prepare_stat(reiser4_object_t *obj, uint16_t objmode, uint8_t mode
 
 	return res;
 }
+
+errno_t obj40_delete(reiser4_object_t *obj, uint32_t count, 
+		     uint32_t unit, uint32_t flags) 
+{
+	trans_hint_t trans;
+	
+	aal_assert("vpf-1835", obj != NULL);
+
+	aal_memset(&trans, 0, sizeof(trans));
+
+	trans.count = count;
+	trans.shift_flags = flags;
+	obj->body.pos.unit = unit;
+	
+	return obj40_remove(obj, &obj->body, &trans);
+}
+
 #endif

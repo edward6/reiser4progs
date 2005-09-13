@@ -165,7 +165,7 @@ reiser4_journal_t *repair_journal_unpack(reiser4_fs_t *fs,
 		goto error;
 	}
 
-	return 0;
+	return journal;
 	
  error:
 	aal_free(journal);

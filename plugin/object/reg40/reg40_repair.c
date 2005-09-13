@@ -60,55 +60,44 @@ static errno_t reg40_item_check(reiser4_object_t *reg, uint8_t mode) {
 	
 	info = &reg->info;
 
- start:
+	while (1) {
+		if (!plug_equal(reg->body.plug, info->opset.plug[OPSET_EXTENT]) && 
+		    !plug_equal(reg->body.plug, info->opset.plug[OPSET_TAIL]))
+		{
+			fsck_mess("The object [%s] (%s), node (%llu),"
+				  "item (%u): the item [%s] of the "
+				  "invalid plugin (%s) found.%s",
+				  print_inode(obj40_core, &info->object),
+				  reiser4_oplug(reg)->label, 
+				  place_blknr(&reg->body), reg->body.pos.item,
+				  print_key(obj40_core, &reg->body.key),
+				  reg->body.plug->label, 
+				  mode == RM_BUILD ? " Removed." : "");
+		} else if (reg40_check_ikey(reg)) {
+			fsck_mess("The object [%s] (%s), node (%llu),"
+				  "item (%u): the item [%s] has the "
+				  "wrong offset.%s",
+				  print_inode(obj40_core, &info->object),
+				  reiser4_oplug(reg)->label, 
+				  place_blknr(&reg->body), reg->body.pos.item,
+				  print_key(obj40_core, &reg->body.key),
+				  mode == RM_BUILD ? " Removed." : "");
+		} else
+			return 0;
 
-	res = obj40_update_body(reg, NULL, 1 << TAIL_ITEM | 1 << EXTENT_ITEM);
+		/* Rm an item with not correct key or of unknown plugin. */
+		if (mode != RM_BUILD) 
+			return RE_FATAL;
 
-	if (res < 0)
-		return res;
-	else if (res == ABSENT) {
-		reg->body.plug = NULL;
-		return 0;
+		aal_memset(&hint, 0, sizeof(hint));
+		hint.count = 1;
+		hint.shift_flags = SF_DEFAULT;
+		reg->body.pos.unit = MAX_UINT32;
+
+		/* Item has wrong key, remove it. */
+		if ((res = obj40_remove(reg, &reg->body, &hint)))
+			return res;
 	}
-	
-	if (!plug_equal(reg->body.plug, info->opset.plug[OPSET_EXTENT]) && 
-	    !plug_equal(reg->body.plug, info->opset.plug[OPSET_TAIL]))
-	{
-		fsck_mess("The object [%s] (%s), node (%llu),"
-			  "item (%u): the item [%s] of the "
-			  "invalid plugin (%s) found.%s",
-			  print_inode(obj40_core, &info->object),
-			  reiser4_oplug(reg)->label, 
-			  place_blknr(&reg->body), reg->body.pos.item,
-			  print_key(obj40_core, &reg->body.key),
-			  reg->body.plug->label, 
-			  mode == RM_BUILD ? " Removed." : "");
-	} else if (reg40_check_ikey(reg)) {
-		fsck_mess("The object [%s] (%s), node (%llu),"
-			  "item (%u): the item [%s] has the "
-			  "wrong offset.%s",
-			  print_inode(obj40_core, &info->object),
-			  reiser4_oplug(reg)->label, 
-			  place_blknr(&reg->body), reg->body.pos.item,
-			  print_key(obj40_core, &reg->body.key),
-			  mode == RM_BUILD ? " Removed." : "");
-	} else
-		return 0;
-
-	/* Rm an item with not correct key or of unknown plugin. */
-	if (mode != RM_BUILD) 
-		return RE_FATAL;
-
-	aal_memset(&hint, 0, sizeof(hint));
-	hint.count = 1;
-	hint.shift_flags = SF_DEFAULT;
-	reg->body.pos.unit = MAX_UINT32;
-
-	/* Item has wrong key, remove it. */
-	if ((res = obj40_remove(reg, &reg->body, &hint)))
-		return res;
-
-	goto start;
 }
 
 /* Returns 1 if the convertion is needed right now, 0 if should be delayed. */
@@ -260,13 +249,20 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 	while (1) {
 		errno_t result;
 		
-		if ((result = reg40_item_check(reg, mode)) < 0)
-			return result;
+		result = obj40_update_body(reg, NULL);
+		
+		if (result == PRESENT) {
+			if ((result = reg40_item_check(reg, mode)) < 0)
+				return result;
 			
-		if (result) {
-			res |= result;
-			break;
-		}
+			if (result) {
+				res |= result;
+				break;
+			}
+		} else if (result == ABSENT) {
+			reg->body.plug = NULL;
+		} else if (result < 0)
+			return result;
 		
 		maxreal = 0;
 		

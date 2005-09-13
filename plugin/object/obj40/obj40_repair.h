@@ -38,4 +38,6 @@ extern errno_t obj40_prepare_stat(reiser4_object_t *obj,
 
 extern errno_t obj40_recognize(reiser4_object_t *obj);
 
+extern errno_t obj40_delete(reiser4_object_t *obj, uint32_t count, 
+			    uint32_t unit, uint32_t flags);
 #endif

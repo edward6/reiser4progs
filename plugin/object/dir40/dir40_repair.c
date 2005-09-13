@@ -59,6 +59,121 @@ static errno_t dir40_dot(reiser4_object_t *dir,
 	return res < 0 ? res : 0;
 }
 
+static errno_t  dir40_entry_check(reiser4_object_t *dir,
+				  obj40_stat_hint_t *hint,
+				  place_func_t func, 
+				  void *data, 
+				  uint8_t mode)
+{
+	object_info_t *info;
+	entry_hint_t entry;
+	trans_hint_t trans;
+	reiser4_key_t key;
+	uint32_t units;
+	errno_t result;
+	errno_t res;
+	pos_t *pos;
+
+	info = &dir->info;
+	
+	res = 0;
+	pos = &dir->body.pos;
+	units = plug_call(dir->body.plug->pl.item->balance, units, &dir->body);
+	
+	if (pos->unit == MAX_UINT32)
+		pos->unit = 0;
+	
+	for (; pos->unit < units; pos->unit++) {
+		if (pos->unit == units - 1) {
+			/* If we are handling the last unit, register the item 
+			   despite the result of handling. Any item has a 
+			   pointer to objectid in the key, if it is shared 
+			   between 2 objects, it should be already solved at 
+			   relocation time. */
+			if (func && func(&dir->body, data))
+				return -EINVAL;
+
+			/* Count size and bytes. */
+			hint->size += plug_call(dir->body.plug->pl.item->object,
+						size, &dir->body);
+
+			hint->bytes += plug_call(dir->body.plug->pl.item->object,
+						 bytes, &dir->body);
+		}
+
+		if ((result = dir40_fetch(dir, &entry)) < 0)
+			return result;
+
+		/* Prepare the correct key for the entry. */
+		plug_call(entry.offset.plug->pl.key, 
+			  build_hashed, &key,
+			  info->opset.plug[OPSET_HASH], 
+			  info->opset.plug[OPSET_FIBRE], 
+			  obj40_locality(dir),
+			  obj40_objectid(dir), entry.name);
+
+		/* If the key matches, continue. */
+		if (plug_call(key.plug->pl.key, compfull, 
+			      &key, &entry.offset))
+		{
+			/* Broken entry found, remove it. */
+			fsck_mess("Directory [%s] (%s), node [%llu], "
+				  "item [%u], unit [%u]: entry has wrong "
+				  "offset [%s]. Should be [%s].%s", 
+				  print_inode(obj40_core, &info->object),
+				  reiser4_oplug(dir)->label, 
+				  place_blknr(&dir->body), 
+				  dir->body.pos.item, dir->body.pos.unit,
+				  print_key(obj40_core, &entry.offset),
+				  print_key(obj40_core, &key), 
+				  mode == RM_BUILD ? " Removed." : "");
+			
+			if (mode != RM_BUILD) {
+				/* If not the BUILD mode, continue with the 
+				   entry key, not the correct one. */
+				aal_memcpy(&key, &entry.offset, sizeof(key));
+				res |= RE_FATAL;
+			} else {
+				break;
+			}
+		}
+
+		/* Either key is ok or we are in CHECK mode, take the next 
+		   entry. */
+		if (plug_call(key.plug->pl.key, compfull, 
+			      &dir->position, &key))
+		{
+			/* Key differs from the last left entry offset. */
+			aal_memcpy(&dir->position, &key, sizeof(key));
+		} else if (aal_strlen(entry.name) != 1 ||
+			   aal_strncmp(entry.name, ".", 1))
+		{
+			/* Key collision. */
+			dir->position.adjust++;
+		}
+
+	}
+	
+	/* All entries were handled. */
+	if (pos->unit == units)
+		return res;
+	
+	/* Some entry is bad and needs to be removed. */
+	trans.count = 1;
+	trans.shift_flags = SF_DEFAULT & ~SF_ALLOW_PACK;
+
+	if ((result = obj40_remove(dir, &dir->body, &trans)) < 0)
+		return result;
+
+	/* Update accounting info after remove. */
+	if (pos->unit == units - 1) {
+		hint->size--;
+		hint->bytes -= trans.bytes;
+	}
+
+	return 0;
+}
+
 errno_t dir40_check_struct(reiser4_object_t *dir,
 			   place_func_t func,
 			   void *data, uint8_t mode)
@@ -66,7 +181,6 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 	obj40_stat_hint_t hint;
 	obj40_stat_ops_t ops;
 	object_info_t *info;
-	entry_hint_t entry;
 	
 	errno_t res;
 	
@@ -94,28 +208,18 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 		return res;
 	
 	while (1) {
-		pos_t *pos = &dir->body.pos;
-		trans_hint_t trans;
-		reiser4_key_t key;
 		lookup_t lookup;
-		uint32_t units;
+		errno_t result;
 		
-		if ((lookup = obj40_update_body(dir, dir40_entry_comp, 
-						1 << DIR_ITEM)) < 0) 
-		{
+		lookup = obj40_update_body(dir, dir40_entry_comp);
+
+		if (lookup < 0 && lookup != -ESTRUCT)
 			return lookup;
-		}
 
 		/* No more items of the dir40. */
 		if (lookup == ABSENT)
 			break;
 		
-		/* Looks like an item of dir40. If there were some key collisions, 
-		   this search was performed with incremented adjust, decrement it 
-		   here. */
-		if (dir->position.adjust)
-			dir->position.adjust--;
-			
 		/* Item can be of another plugin, but of the same group. 
 		   FIXME-VITALY: item of the same group but of another 
 		   plugin, it should be converted. */
@@ -133,117 +237,28 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 			if (mode != RM_BUILD)
 				return RE_FATAL;
 			
-			aal_memset(&trans, 0, sizeof(trans));
-			trans.count = 1;
-			trans.shift_flags = SF_DEFAULT & ~SF_ALLOW_PACK;
-			pos->unit = MAX_UINT32;
-
 			/* Item has wrong key, remove it. */
-			res |= obj40_remove(dir, &dir->body, &trans);
-			if (res < 0) return res;
+			result = obj40_delete(dir, 1, MAX_UINT32, 
+					      SF_DEFAULT & ~SF_ALLOW_PACK);
 			
+			if (result < 0)
+				return result;
+
 			continue;
 		}
-
-		if (pos->unit == MAX_UINT32)
-			pos->unit = 0;
 		
-		units = plug_call(dir->body.plug->pl.item->balance, 
-				  units, &dir->body);
+		/* Looks like an item of dir40. If there were some key collisions, 
+		   this search was performed with incremented adjust, decrement it 
+		   here. */
+		if (dir->position.adjust)
+			dir->position.adjust--;
+
+		res |= dir40_entry_check(dir, &hint, func, data, mode);
+		if (res < 0)
+			return res;
 		
-		for (; pos->unit < units; pos->unit++) {
-			bool_t last = (pos->unit == units - 1);
-			
-			if (last) {
-				/* If we are handling the last unit, register 
-				   the item despite the result of handling.
-				   Any item has a pointer to objectid in the 
-				   key, if it is shared between 2 objects, it
-				   should be already solved at relocation time.
-				 */
-				if (func && func(&dir->body, data))
-					return -EINVAL;
-
-				/* Count size and bytes. */
-				hint.size += plug_call(dir->body.plug->pl.item->object,
-						       size, &dir->body);
-
-				hint.bytes += plug_call(dir->body.plug->pl.item->object,
-							bytes, &dir->body);
-
-			}
-			
-			if ((res |= dir40_fetch(dir, &entry)) < 0)
-				return res;
-			
-			/* Prepare the correct key for the entry. */
-			plug_call(entry.offset.plug->pl.key, 
-				  build_hashed, &key,
-				  info->opset.plug[OPSET_HASH], 
-				  info->opset.plug[OPSET_FIBRE], 
-				  obj40_locality(dir),
-				  obj40_objectid(dir), entry.name);
-			
-			/* If the key matches, continue. */
-			if (!plug_call(key.plug->pl.key, compfull, 
-				       &key, &entry.offset))
-				goto next;
-			
-			/* Broken entry found, remove it. */
-			fsck_mess("Directory [%s] (%s), node [%llu], "
-				  "item [%u], unit [%u]: entry has wrong "
-				  "offset [%s]. Should be [%s].%s", 
-				  print_inode(obj40_core, &info->object),
-				  reiser4_oplug(dir)->label, 
-				  place_blknr(&dir->body), 
-				  dir->body.pos.item, dir->body.pos.unit,
-				  print_key(obj40_core, &entry.offset),
-				  print_key(obj40_core, &key), 
-				  mode == RM_BUILD ? " Removed." : "");
-
-
-			if (mode != RM_BUILD) {
-				/* If not the BUILD mode, continue with the 
-				   entry key, not the correct one. */
-				aal_memcpy(&key, &entry.offset, sizeof(key));
-				res |= RE_FATAL;
-				goto next;
-			}
-
-			trans.count = 1;
-			trans.shift_flags = SF_DEFAULT & ~SF_ALLOW_PACK;
-
-			if ((res |= obj40_remove(dir, &dir->body, 
-						 &trans)) < 0)
-				return res;
-			
-			/* Update accounting info after remove. */
-			if (last) {
-				hint.size--;
-				hint.bytes -= trans.bytes;
-			}
-			
-			/* Lookup it again. */
-			break;
-			
-		next:
-			/* The key is ok. */
-			if (plug_call(key.plug->pl.key, compfull, 
-				      &dir->position, &key))
-			{
-				/* Key differs from the offset of the 
-				   last left entry. */
-				aal_memcpy(&dir->position, &key, sizeof(key));
-			} else if (aal_strlen(entry.name) != 1 ||
-				   aal_strncmp(entry.name, ".", 1))
-			{
-				/* Key collision. */
-				dir->position.adjust++;
-			}
-		}
-		
-		/* Lookup for the last entry left in the tree with the 
-		   incremented adjust to get the next one. */
+		/* Lookup for the last handled entry key with the incremented 
+		   adjust to get the next entry. */
 		dir->position.adjust++;
 	}
 	

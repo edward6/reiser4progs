@@ -111,6 +111,12 @@ int dir40_entry_comp(reiser4_object_t *dir, void *data) {
 	reiser4_key_t *key;
 
 	aal_assert("vpf-1834", dir != NULL);
+
+	if (!dir->body.plug)
+		return -EINVAL;
+	
+	if (dir->body.plug->id.group != DIR_ITEM)
+		return -ESTRUCT;
 	
 	if (dir40_fetch(dir, &entry))
 		return -EIO;
@@ -123,7 +129,7 @@ int dir40_entry_comp(reiser4_object_t *dir, void *data) {
 	
 	/* If greater key is reached, return PRESENT. */
 	return plug_call(entry.offset.plug->pl.key, 
-			 compfull, &entry.offset, key);
+			 compfull, &entry.offset, key) ? 1 : 0;
 }
 
 /* Reads one current directory entry to passed @entry hint. Returns count of
@@ -132,18 +138,15 @@ int dir40_entry_comp(reiser4_object_t *dir, void *data) {
 static int32_t dir40_readdir(reiser4_object_t *dir, 
 			     entry_hint_t *entry)
 {
-	errno_t res;
 	uint32_t units;
+	errno_t res;
 
 	aal_assert("umka-845", entry != NULL);
 	aal_assert("umka-844", dir != NULL);
 
 	/* Getting place of current unit */
-	if ((res = obj40_update_body(dir, dir40_entry_comp, 
-				     1 << DIR_ITEM)) != PRESENT)
-	{
+	if ((res = obj40_update_body(dir, dir40_entry_comp)) != PRESENT)
 		return res == ABSENT ? 0 : res;
-	}
 
 	/* Reading next entry */
 	if ((res = dir40_fetch(dir, entry)))
@@ -162,12 +165,19 @@ static int32_t dir40_readdir(reiser4_object_t *dir,
 	/* Getting next entry in odrer to set up @dir->position correctly. */
 	if (++dir->body.pos.unit >= units) {
 		/* Switching to the next directory item */
-		if ((res = obj40_next_item(dir, 1 << DIR_ITEM)) < 0)
+		if ((res = obj40_next_item(dir)) < 0)
 			return res;
 
-#ifndef ENABLE_MINIMAL
-		dir->position.adjust++;
-#endif
+		if (res == ABSENT) {
+			uint64_t offset;
+			
+			/* Set offset to non-existent value. */
+			offset = plug_call(dir->position.plug->pl.key,
+					   get_offset, &dir->position);
+
+			plug_call(dir->position.plug->pl.key, set_offset,
+				  &dir->position, offset + 1);
+		}
 	} else {
 		/* There is no need to switch */
 		res = 1;
@@ -213,7 +223,7 @@ static lookup_t dir40_search(reiser4_object_t *dir, char *name,
 	/* Preparing key to be used for lookup. It is generating from the
 	   directory oid, locality and name by menas of using hash plugin. */
 	plug_call(dir->info.object.plug->pl.key, 
-		  build_hashed, &dir->position, 
+		  build_hashed, &dir->body.key, 
 		  dir->info.opset.plug[OPSET_HASH],
 		  dir->info.opset.plug[OPSET_FIBRE], 
 		  obj40_locality(dir),
@@ -225,7 +235,7 @@ static lookup_t dir40_search(reiser4_object_t *dir, char *name,
 	func = obj40_core->tree_ops.collision;
 #endif
 	
-	if ((res = obj40_find_item(dir, &dir->position, bias, 
+	if ((res = obj40_find_item(dir, &dir->body.key, bias, 
 #ifndef ENABLE_MINIMAL
 				   func, &hint,
 #else
@@ -242,7 +252,7 @@ static lookup_t dir40_search(reiser4_object_t *dir, char *name,
 		aal_memcpy(&entry->place, &dir->body,
 			   sizeof(reiser4_place_t));
 
-		aal_memcpy(&entry->offset, &dir->position,
+		aal_memcpy(&entry->offset, &dir->body.key,
 			   sizeof(reiser4_key_t));
 
 		if (res == PRESENT) {
@@ -333,12 +343,11 @@ static errno_t dir40_create(reiser4_object_t *dir, object_hint_t *hint) {
 	{
 	
 		/* Removing body item. */	
-		if (obj40_update_body(dir, dir40_entry_comp, 
-				      1 << DIR_ITEM) == PRESENT) 
-		{
+		if (obj40_update_body(dir, dir40_entry_comp) == PRESENT) {
 			body_hint.count = 1;
 			body_hint.place_func = NULL;
 			body_hint.region_func = NULL;
+			dir->body.pos.unit = MAX_UINT32;
 			
 			obj40_remove(dir, &dir->body, &body_hint);
 		}
@@ -357,11 +366,8 @@ static errno_t dir40_truncate(reiser4_object_t *dir, uint64_t n) {
 	aal_assert("umka-1925", dir != NULL);
 
 	/* Making sure, that dir->body points to correct item */
-	if ((res = obj40_update_body(dir, dir40_entry_comp, 
-				     1 << DIR_ITEM)) != PRESENT)
-	{
+	if ((res = obj40_update_body(dir, dir40_entry_comp)) != PRESENT)
 		return res  == ABSENT ? 0 : res;
-	}
 
 	/* Creating maximal possible key in order to find last directory item
 	   and remove it from the tree. Thanks to Nikita for this idea. */
@@ -380,11 +386,8 @@ static errno_t dir40_truncate(reiser4_object_t *dir, uint64_t n) {
 		}
 
 		/* Checking if found item belongs this directory */
-		if (obj40_belong(&place, &dir->position, 
-				 1 << DIR_ITEM) == ABSENT)
-		{
+		if (obj40_belong(&place, &dir->position) == ABSENT)
 			return 0;
-		}
 
 		aal_memset(&hint, 0, sizeof(hint));
 		
@@ -417,6 +420,8 @@ static errno_t dir40_clobber(reiser4_object_t *dir) {
 		return -EINVAL;
 	}
 
+	dir40_reset(dir);
+	
 	/* Truncates directory body. */
 	if ((res = dir40_truncate(dir, 0)))
 		return res;
@@ -648,11 +653,8 @@ static errno_t dir40_layout(reiser4_object_t *dir,
 	dir40_reset((reiser4_object_t *)dir);
 	
 	/* Update current body item coord. */
-	if ((res = obj40_update_body(dir, dir40_entry_comp, 
-				     1 << DIR_ITEM)) != PRESENT)
-	{
+	if ((res = obj40_update_body(dir, dir40_entry_comp)) != PRESENT)
 		return res == ABSENT ? 0 : res;
-	}
 
 	/* Prepare layout hint. */
 	hint.data = data;
@@ -681,7 +683,7 @@ static errno_t dir40_layout(reiser4_object_t *dir,
 		}
 
 		/* Getting next directory item. */
-		if ((res = obj40_next_item(dir, 1 << DIR_ITEM)) < 0)
+		if ((res = obj40_next_item(dir)) < 0)
 			return res;
 
 		/* Directory is over? */
@@ -710,11 +712,8 @@ static errno_t dir40_metadata(reiser4_object_t *dir,
 		return res;
 
 	/* Update current body item coord. */
-	if ((res = obj40_update_body(dir, dir40_entry_comp, 
-				     1 << DIR_ITEM)) != PRESENT)
-	{
+	if ((res = obj40_update_body(dir, dir40_entry_comp)) != PRESENT)
 		return res == ABSENT ? 0 : res;
-	}
 
 	/* Loop until all items are enumerated. */
 	while (1) {
@@ -723,7 +722,7 @@ static errno_t dir40_metadata(reiser4_object_t *dir,
 			return res;
 
 		/* Getting next item. */
-		if ((res = obj40_next_item(dir, 1 << DIR_ITEM)) < 0)
+		if ((res = obj40_next_item(dir)) < 0)
 			return res;
 		
 		if (res == ABSENT)
