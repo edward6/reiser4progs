@@ -753,8 +753,10 @@ static void repair_semantic_update(repair_semantic_t *sem) {
 	aal_stream_init(&stream, NULL, &memory_stream);
 	
 	if (stat->reached_files) {
-		aal_stream_format(&stream, "\tFound %llu objects.\n",
-				  stat->reached_files);
+		aal_stream_format(&stream, "\tFound %llu objects%s.\n",
+				  stat->reached_files, sem->repair->mode 
+				  == RM_BUILD ? "" : " (some could be "
+				  "encountered more then once)");
 	}
 
 	if (stat->lost_files) {

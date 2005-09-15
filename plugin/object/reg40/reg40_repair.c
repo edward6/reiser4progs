@@ -51,16 +51,16 @@ static errno_t reg40_check_ikey(reiser4_object_t *reg) {
 	return offset % place_blksize(&reg->body) ? RE_FATAL : 0;
 }
 
-static errno_t reg40_item_check(reiser4_object_t *reg, uint8_t mode) {
+static lookup_t reg40_update_body(reiser4_object_t *reg, uint8_t mode) {
 	object_info_t *info;
-	trans_hint_t hint;
 	errno_t res;
-	
-	aal_assert("vpf-1344", reg != NULL);
-	
+		
 	info = &reg->info;
-
+	
 	while (1) {
+		if ((res = obj40_update_body(reg, NULL)) != PRESENT)
+			return res;
+
 		if (!plug_equal(reg->body.plug, info->opset.plug[OPSET_EXTENT]) && 
 		    !plug_equal(reg->body.plug, info->opset.plug[OPSET_TAIL]))
 		{
@@ -83,19 +83,14 @@ static errno_t reg40_item_check(reiser4_object_t *reg, uint8_t mode) {
 				  print_key(obj40_core, &reg->body.key),
 				  mode == RM_BUILD ? " Removed." : "");
 		} else
-			return 0;
+			return PRESENT;
 
 		/* Rm an item with not correct key or of unknown plugin. */
 		if (mode != RM_BUILD) 
 			return RE_FATAL;
 
-		aal_memset(&hint, 0, sizeof(hint));
-		hint.count = 1;
-		hint.shift_flags = SF_DEFAULT;
-		reg->body.pos.unit = MAX_UINT32;
-
 		/* Item has wrong key, remove it. */
-		if ((res = obj40_remove(reg, &reg->body, &hint)))
+		if ((res = obj40_delete(reg, 1, MAX_UINT32, SF_DEFAULT)))
 			return res;
 	}
 }
@@ -248,25 +243,20 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 	/* Reg40 object (its SD item) has been opened or created. */
 	while (1) {
 		errno_t result;
+		int the_end = 0;
 		
-		result = obj40_update_body(reg, NULL);
-		
-		if (result == PRESENT) {
-			if ((result = reg40_item_check(reg, mode)) < 0)
-				return result;
-			
-			if (result) {
-				res |= result;
-				break;
-			}
-		} else if (result == ABSENT) {
-			reg->body.plug = NULL;
-		} else if (result < 0)
+		if ((result = reg40_update_body(reg, mode)) < 0)
 			return result;
+		else if (result == ABSENT)
+			the_end = 1;
+		else if (result != PRESENT && res != 0) {
+			res |= result;
+			break;
+		}
 		
 		maxreal = 0;
 		
-		if (reg->body.plug) {
+		if (!the_end) {
 			maxreal = reg40_place_maxreal(&reg->body);
 			
 			if (!reg->body_plug)
@@ -284,10 +274,8 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 					  offset, mode != RM_CHECK ? " Removed"
 					  : "");
 
-				/* Zero the plugin as there would be no more 
-				   items; there is probably a postponed 
-				   convertion needs to be finished. */
-				reg->body.plug = NULL;
+				/* There could not be more items, the_end. */
+				the_end = 1;
 			} else if (plug_call(reg->position.plug->pl.key,
 					     compfull, &reg->position, 
 					     &reg->body.key) > 0)
@@ -335,7 +323,7 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 		}
 		
 		/* No more items, break out here. */
-		if (!reg->body.plug) break;
+		if (the_end) break;
 
 		/* Try to register this item. Any item has a pointer to 
 		   objectid in the key, if it is shared between 2 objects, 
