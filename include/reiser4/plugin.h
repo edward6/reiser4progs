@@ -332,6 +332,7 @@ enum reiser4_opset_id {
 #ifndef ENABLE_MINIMAL
 	OPSET_TAIL	= OPSET_STORE_LAST + 4,
 	OPSET_EXTENT	= OPSET_STORE_LAST + 5,
+	OPSET_CTAIL	= OPSET_STORE_LAST + 6,
 #endif
 	OPSET_LAST
 };
@@ -551,6 +552,13 @@ typedef struct sdhint_plug {
 } sdhint_plug_t;
 
 typedef sdhint_plug_t reiser4_opset_t;
+
+#ifndef ENABLE_MINIMAL
+typedef struct sdhint_crc {
+	uint16_t keysize;
+	uint8_t key[128];
+} sdhint_crc_t;
+#endif
 
 /* These fields should be changed to what proper description of needed
    extensions. */

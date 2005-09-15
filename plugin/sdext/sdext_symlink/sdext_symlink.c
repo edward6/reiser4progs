@@ -11,6 +11,8 @@ reiser4_core_t *sdext_symlink_core = NULL;
 static uint32_t sdext_symlink_length(stat_entity_t *stat, void *hint) {
 	char *name;
 	
+	aal_assert("vpf-1843", stat != NULL || hint != NULL);
+	
 	name = (hint != NULL) ? hint : stat_body(stat);
 	return aal_strlen(name) + 1;
 }

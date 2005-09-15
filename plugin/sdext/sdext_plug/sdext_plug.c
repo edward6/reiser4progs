@@ -10,6 +10,8 @@ reiser4_core_t *sdext_plug_core = NULL;
 uint32_t sdext_plug_length(stat_entity_t *stat, void *hint) {
 	uint16_t count = 0;
 	
+	aal_assert("vpf-1844", stat != NULL || hint != NULL);
+	
 	/* If hint is given, count its pset. */
 	if (hint) {
 		sdhint_plug_t *h = (sdhint_plug_t *)hint;

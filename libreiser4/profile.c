@@ -118,54 +118,6 @@ reiser4_profile_t defprof = {
 #endif
 			.id = {NODE_REISER40_ID, 0, NODE_PLUG_TYPE},
 		},
-		[PROF_STAT] = {
-#ifndef ENABLE_MINIMAL
-			.name = "statdata",
-			.hidden = 1,
-			.max = ITEM_LAST_ID,
-#endif
-			.id = {ITEM_STAT40_ID, STAT_ITEM, ITEM_PLUG_TYPE},
-		},
-		[PROF_DIRITEM] = {
-#ifndef ENABLE_MINIMAL
-			.name  = "direntry",
-			.hidden = 1,
-			.max = ITEM_LAST_ID,
-#endif
-			.id = {ITEM_CDE40_ID, DIR_ITEM, ITEM_PLUG_TYPE},
-		},
-		[PROF_NODEPTR] = {
-#ifndef ENABLE_MINIMAL
-			.name  = "nodeptr",
-			.hidden = 1,
-			.max = ITEM_LAST_ID,
-#endif
-			.id = {ITEM_NODEPTR40_ID, PTR_ITEM, ITEM_PLUG_TYPE},
-		},
-		[PROF_TAIL] = {
-#ifndef ENABLE_MINIMAL
-			.name  = "tail",
-			.hidden = 1,
-			.max = ITEM_LAST_ID,
-#endif
-			.id = {ITEM_PLAIN40_ID, TAIL_ITEM, ITEM_PLUG_TYPE},
-		},
-		[PROF_EXTENT] = {
-#ifndef ENABLE_MINIMAL
-			.name  = "extent",
-			.hidden = 1,
-			.max = ITEM_LAST_ID,
-#endif
-			.id = {ITEM_EXTENT40_ID, EXTENT_ITEM, ITEM_PLUG_TYPE},
-		},
-		[PROF_CTAIL] = {
-#ifndef ENABLE_MINIMAL
-			.name = "compressTail",
-			.hidden = 1,
-			.max = ITEM_LAST_ID,
-#endif
-			.id = {ITEM_CTAIL40_ID, CTAIL_ITEM, ITEM_PLUG_TYPE},
-		},
 		[PROF_COMPRESS] = {
 #ifndef ENABLE_MINIMAL
 			.name = "compress",
@@ -238,6 +190,51 @@ reiser4_profile_t defprof = {
 #endif
 			.id = {TAIL_SMART_ID, 0, POLICY_PLUG_TYPE},
 		},
+		[PROF_STAT] = {
+#ifndef ENABLE_MINIMAL
+			.name = "statdata",
+			.hidden = 1,
+			.max = ITEM_LAST_ID,
+#endif
+			.id = {ITEM_STAT40_ID, STAT_ITEM, ITEM_PLUG_TYPE},
+		},
+		[PROF_DIRITEM] = {
+#ifndef ENABLE_MINIMAL
+			.name  = "direntry",
+			.hidden = 1,
+			.max = ITEM_LAST_ID,
+#endif
+			.id = {ITEM_CDE40_ID, DIR_ITEM, ITEM_PLUG_TYPE},
+		},
+		[PROF_NODEPTR] = {
+#ifndef ENABLE_MINIMAL
+			.name  = "nodeptr",
+			.hidden = 1,
+			.max = ITEM_LAST_ID,
+#endif
+			.id = {ITEM_NODEPTR40_ID, PTR_ITEM, ITEM_PLUG_TYPE},
+		},
+#ifndef ENABLE_MINIMAL
+		[PROF_TAIL] = {
+			.name  = "tail",
+			.hidden = 1,
+			.max = ITEM_LAST_ID,
+			.id = {ITEM_PLAIN40_ID, TAIL_ITEM, ITEM_PLUG_TYPE},
+		},
+		[PROF_EXTENT] = {
+			.name  = "extent",
+			.hidden = 1,
+			.max = ITEM_LAST_ID,
+			.id = {ITEM_EXTENT40_ID, EXTENT_ITEM, ITEM_PLUG_TYPE},
+		},
+		[PROF_CTAIL] = {
+			.name = "compressTail",
+			.hidden = 1,
+			.max = ITEM_LAST_ID,
+			.id = {ITEM_CTAIL40_ID, CTAIL_ITEM, ITEM_PLUG_TYPE},
+		},
+#endif
+
 	},
 	.mask = 0
 };

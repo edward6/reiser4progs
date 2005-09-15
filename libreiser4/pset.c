@@ -29,6 +29,7 @@ int opset_prof[OPSET_LAST] = {
 #ifndef ENABLE_MINIMAL
 	[OPSET_TAIL]	= PROF_TAIL,
 	[OPSET_EXTENT]	= PROF_EXTENT,
+	[OPSET_CTAIL]	= PROF_CTAIL,
 #endif
 };
 

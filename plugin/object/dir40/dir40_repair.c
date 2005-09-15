@@ -179,7 +179,6 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 			   void *data, uint8_t mode)
 {
 	obj40_stat_hint_t hint;
-	obj40_stat_ops_t ops;
 	object_info_t *info;
 	
 	errno_t res;
@@ -190,7 +189,6 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 	
 	info = &dir->info;
 
-	aal_memset(&ops, 0, sizeof(ops));
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	if ((res = obj40_prepare_stat(dir, S_IFDIR, mode)))
@@ -225,8 +223,8 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 		   plugin, it should be converted. */
 		/*if (dir->body.plug->id.group != DIR_ITEM) */
 		if (dir->body.plug != info->opset.plug[OPSET_DIRITEM]) {
-			fsck_mess("Directory [%s] (%s), node [%llu], "
-				  "item [%u]: item of the illegal plugin (%s) "
+			fsck_mess("Directory [%s] (%s), node [%llu], item"
+				  "[%u]: item of the illegal plugin (%s) "
 				  "with the key of this object found.%s",
 				  print_inode(obj40_core, &info->object),
 				  reiser4_oplug(dir)->label, 
@@ -264,9 +262,13 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	if (!(res & RE_FATAL)) {
+		obj40_stat_ops_t ops;
+		
+		aal_memset(&ops, 0, sizeof(ops));
+		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
+		
 		hint.mode = S_IFDIR;
 		hint.nlink = 1;
-		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 
 		res |= obj40_update_stat(dir, &ops, &hint, mode);
 	}

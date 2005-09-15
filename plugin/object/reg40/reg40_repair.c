@@ -214,7 +214,6 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 			   void *data, uint8_t mode)
 {
 	obj40_stat_hint_t hint;
-	obj40_stat_ops_t ops;
 	object_info_t *info;
 	conv_hint_t conv;
 	uint64_t maxreal;
@@ -226,7 +225,6 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 	
 	info = &reg->info;
 	
-	aal_memset(&ops, 0, sizeof(ops));
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&conv, 0, sizeof(conv));
 	
@@ -356,13 +354,16 @@ next:
 	
 	/* Fix the SD, if no fatal corruptions were found. */
 	if (!(res & RE_FATAL)) {
+		obj40_stat_ops_t ops;
+	
+		aal_memset(&ops, 0, sizeof(ops));
+		ops.check_size = reg40_check_size;
+		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
+		
+		hint.mode = S_IFREG;
 		hint.size = plug_call(reg->position.plug->pl.key, 
 				      get_offset, &reg->position);
 		
-		hint.mode = S_IFREG;
-		ops.check_size = reg40_check_size;
-		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
-
 		res |= obj40_update_stat(reg, &ops, &hint, mode);
 	}
 

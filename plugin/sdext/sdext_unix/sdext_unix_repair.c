@@ -28,7 +28,10 @@ errno_t sdext_unix_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	return 0;
 }
 
-void sdext_unix_print(stat_entity_t *stat, aal_stream_t *stream, uint16_t options) {
+void sdext_unix_print(stat_entity_t *stat, 
+		      aal_stream_t *stream, 
+		      uint16_t options) 
+{
 	sdext_unix_t *ext;
 	time_t atm, mtm, ctm;
 	char uid[255], gid[255];
