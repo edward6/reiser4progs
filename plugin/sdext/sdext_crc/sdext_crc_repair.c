@@ -19,12 +19,15 @@ void sdext_crc_print(stat_entity_t *stat,
 	aal_assert("umka-1413", stream != NULL);
 
 	ext = (sdext_crc_t *)stat_body(stat);
+	
+	aal_stream_format(stream, "key size:\t\t%u\n\t\t", 
+			  sdext_crc_get_keylen(ext));
 
-	count = sdext_crc_get_key_size(ext);
-	aal_stream_format(stream, "key size:\t\t%u\n\t\t", count);
+	count = sdext_crc_get_signlen(ext);
+	aal_stream_format(stream, "[%u]: ", count);
 	
 	for (i = 0; i < count; i++)
-		aal_stream_format(stream, "%.2x", ext->keyid[i]);
+		aal_stream_format(stream, "%.2x", ext->sign[i]);
 
 	aal_stream_format(stream, "\n");
 }

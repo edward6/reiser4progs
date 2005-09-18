@@ -354,15 +354,35 @@ static errno_t obj40_stat_unix_init(stat_hint_t *stat, sdhint_unix_t *unixh,
 	return 0;
 }
 
-static errno_t obj40_stat_lw_init(stat_hint_t *stat, sdhint_lw_t *lwh, 
-				  uint64_t size,  uint32_t nlink, uint16_t mode) 
+errno_t obj40_stat_lw_init(reiser4_object_t *obj, 
+			   stat_hint_t *stat, 
+			   sdhint_lw_t *lwh, 
+			   uint64_t size,  
+			   uint32_t nlink, 
+			   uint16_t mode)
 {
+	aal_assert("vpf-1848", obj != NULL);
 	aal_assert("vpf-1774", stat != NULL);
 	aal_assert("vpf-1775", lwh != NULL);
 
 	/* Light weight hint initializing. */
 	lwh->size = size;
 	lwh->nlink = nlink;
+
+	/* mode is the bitwise OR between the given mode, the file type mode 
+	   and the defaul rwx permissions. The later is 0755 for directories 
+	   and 0644 for others. */
+	mode |= reiser4_oplug(obj)->id.group == REG_OBJECT ? S_IFREG : 
+		reiser4_oplug(obj)->id.group == DIR_OBJECT ? S_IFDIR : 
+		reiser4_oplug(obj)->id.group == SYM_OBJECT ? S_IFLNK :
+		0;
+	
+	if (reiser4_oplug(obj)->id.group == DIR_OBJECT)
+		mode |= 0755;
+	else
+		mode |= 0644;
+
+	
 	lwh->mode = mode;
 	
 	stat->extmask |= (1 << SDEXT_LW_ID);
@@ -395,31 +415,65 @@ static errno_t obj40_stat_plug_init(reiser4_object_t *obj,
 	return 0;
 }
 
-static errno_t obj40_stat_sym_init(stat_hint_t *stat, char *path) {
+static errno_t obj40_stat_sym_init(reiser4_object_t *obj, 
+				   stat_hint_t *stat, 
+				   char *path)
+{
+	aal_assert("vpf-1851", obj != NULL);
 	aal_assert("vpf-1779", stat != NULL);
 	
-	if (path) {
-		stat->extmask |= (1 << SDEXT_SYMLINK_ID);
-		stat->ext[SDEXT_SYMLINK_ID] = path;
-	}
+	if (obj->info.opset.plug[OPSET_OBJ]->id.group != SYM_OBJECT)
+		return 0;
+	
+	if (!path || !aal_strlen(path))
+		return -EINVAL;
+	
+	stat->extmask |= (1 << SDEXT_SYMLINK_ID);
+	stat->ext[SDEXT_SYMLINK_ID] = path;
 	
 	return 0;
 }
 
-static errno_t obj40_stat_comp_init(stat_hint_t *stat) {
+static errno_t obj40_stat_crc_init(reiser4_object_t *obj, 
+				   stat_hint_t *stat,
+				   sdhint_crc_t *crch,
+				   char *key) 
+{
+	reiser4_plug_t *plug;
+	
+	aal_assert("vpf-1847", obj  != NULL);
 	aal_assert("vpf-1780", stat != NULL);
 
+	plug = obj->info.opset.plug[OPSET_OBJ];
+	if (!(plug->pl.object->flags & (1 << PF_CRC)))
+		return 0;
+	
+	if (obj->info.opset.plug[OPSET_CRYPTO] != (void *)CRYPTO_NONE_ID) {
+		if (!key || !aal_strlen(key)) {
+			aal_error("No proper key is given: %s.", key);
+			return -EINVAL;
+		}
+		
+		stat->extmask |= (1 << SDEXT_CRYPTO_ID);
+		stat->ext[SDEXT_CRYPTO_ID] = crch;
+
+		crch->keylen = aal_strlen(key);
+		/* To get the fingerprint digest plugin is needed. */
+		aal_error("Crypto files cannot be created yet.");
+		return -EINVAL;
+	}
+	
 	return 0;
 }
 
 /* Create stat data item basing on passed extensions @mask, @size, @bytes,
    @nlinks, @mode and @path for symlinks. Returns error or zero for success. */
 errno_t obj40_create_stat(reiser4_object_t *obj, uint64_t size, uint64_t bytes, 
-			  uint64_t rdev, uint32_t nlink, uint16_t mode, 
-			  char *path)
+			  uint64_t rdev, uint32_t nlink, uint16_t mode, char *str)
 {
 	sdhint_unix_t unixh;
 	sdhint_plug_t plugh;
+	sdhint_crc_t crch;
 	sdhint_lw_t lwh;
 	stat_hint_t stat;
 	trans_hint_t hint;
@@ -445,16 +499,16 @@ errno_t obj40_create_stat(reiser4_object_t *obj, uint64_t size, uint64_t bytes,
 	if ((res = obj40_stat_unix_init(&stat, &unixh, bytes, rdev)))
 		return res;
 	
-	if ((res = obj40_stat_lw_init(&stat, &lwh, size, nlink, mode)))
+	if ((res = obj40_stat_lw_init(obj, &stat, &lwh, size, nlink, mode)))
 		return res;
-	
-	if ((res = obj40_stat_sym_init(&stat, path)))
-		return res;
-	
-	if ((res = obj40_stat_comp_init(&stat)))
-		return res;
-	
+
 	if ((res = obj40_stat_plug_init(obj, &stat, &plugh)))
+		return res;
+	
+	if ((res = obj40_stat_sym_init(obj, &stat, str)))
+		return res;
+
+	if ((res = obj40_stat_crc_init(obj, &stat, &crch, str)))
 		return res;
 	
 	hint.specific = &stat;
@@ -471,40 +525,17 @@ errno_t obj40_create_stat(reiser4_object_t *obj, uint64_t size, uint64_t bytes,
 	
 	/* Insert stat data to tree */
 	res = obj40_insert(obj, STAT_PLACE(obj), &hint, LEAF_LEVEL);
+	
+	/* Reset file. */
+	if (reiser4_oplug(obj)->pl.object->reset)
+		reiser4_oplug(obj)->pl.object->reset(obj);
 
 	return res < 0 ? res : 0;
 }
 
 errno_t obj40_create(reiser4_object_t *obj, object_hint_t *hint) {
-	uint32_t mode;
-	errno_t res;
-	
-	aal_assert("vpf-1817", obj != NULL);
-	aal_assert("vpf-1093", obj->info.tree != NULL);
-
-	/* mode is the bitwise OR between the given mode, the file type mode 
-	   and the defaul rwx permissions. The later is 0755 for directories 
-	   and 0644 for others. */
-	mode = (hint ? hint->mode : 0);
-	mode |= reiser4_oplug(obj)->id.group == REG_OBJECT ? S_IFREG : 
-		reiser4_oplug(obj)->id.group == DIR_OBJECT ? S_IFDIR : 
-		reiser4_oplug(obj)->id.group == SYM_OBJECT ? S_IFLNK :
-		0;
-	
-	if (reiser4_oplug(obj)->id.group == DIR_OBJECT)
-		mode |= 0755;
-	else
-		mode |= 0644;
-	
-	/* Create stat data item with size, bytes, nlinks equal to zero. */
-	if ((res = obj40_create_stat(obj, 0, 0, 0, 0, mode, NULL)))
-		return res;
-
-	/* Reset file. */
-	if (reiser4_oplug(obj)->pl.object->reset)
-		reiser4_oplug(obj)->pl.object->reset(obj);
-	
-	return 0;
+	return obj40_create_stat(obj, 0, 0, hint ? hint->rdev : 0, 
+				 0, hint ? hint->mode : 0, NULL);
 }
 
 /* Updates size and bytes fielsds */

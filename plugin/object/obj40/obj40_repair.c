@@ -191,12 +191,8 @@ static inline errno_t obj40_check_lw(reiser4_object_t *obj,
 		trans.specific = &stat;
 		trans.plug = start->plug;
 		
-		lwh.size = hint->size;
-		lwh.nlink = hint->nlink;
-		lwh.mode = hint->mode | 0755;
-
-		stat.ext[SDEXT_LW_ID] = &lwh;
-		stat.extmask = (1 << SDEXT_LW_ID);
+		obj40_stat_lw_init(obj, &stat, &lwh, hint->size, 
+				   hint->nlink, hint->mode);
 
 		start->pos.unit = 0;
 
@@ -606,7 +602,7 @@ errno_t obj40_prepare_stat(reiser4_object_t *obj, uint16_t objmode, uint8_t mode
 	/* SD is absent. Create a new one. 
 	   THIS IS THE SPECIAL CASE and usually is not used as object plugin 
 	   cannot be recognized w/out SD. Used for for "/" and "lost+found" 
-	   recovery. */
+	   recovery only. */
 	
 	fsck_mess("The file [%s] does not have a StatData item.%s Plugin %s.",
 		  print_inode(obj40_core, key), mode == RM_BUILD ? " Creating "

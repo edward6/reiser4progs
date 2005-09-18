@@ -16,25 +16,26 @@ uint32_t sdext_crc_length(stat_entity_t *stat, void *hint) {
 	aal_assert("vpf-1842", stat != NULL || hint != NULL);
 	
 	if (hint) {
-		count = ((sdhint_crc_t *)hint)->keysize;
+		count = ((sdhint_crc_t *)hint)->signlen;
 	} else {
-		count = sdext_crc_get_key_size((sdext_crc_t *)stat_body(stat));
+		count = sdext_crc_get_signlen((sdext_crc_t *)stat_body(stat));
 	}
 	
-	return sizeof(e.keysize) + count;
+	return sizeof(e.keylen) + count;
 }
 
 static errno_t sdext_crc_open(stat_entity_t *stat, void *hint) {
 	sdhint_crc_t *crch;
 	sdext_crc_t *ext;
-
+	
 	aal_assert("vpf-1837", stat != NULL);
 	aal_assert("vpf-1838", hint != NULL);
 	
 	crch = (sdhint_crc_t *)hint;
 	ext = (sdext_crc_t *)stat_body(stat);
-	crch->keysize = sdext_crc_get_key_size(ext);
-	aal_memcpy(crch->key, ext->keyid, crch->keysize);
+	crch->keylen = sdext_crc_get_keylen(ext);
+	crch->signlen = sdext_crc_get_signlen(ext);
+	aal_memcpy(crch->sign, ext->sign, crch->signlen);
 	
 	return 0;
 }
@@ -49,8 +50,9 @@ static errno_t sdext_crc_init(stat_entity_t *stat, void *hint) {
 	ext = (sdext_crc_t *)stat_body(stat);
 	crch = (sdhint_crc_t *)hint;
 
-	sdext_crc_set_key_size(ext, crch->keysize);
-	aal_memcpy(ext->keyid, crch->key, crch->keysize);
+	sdext_crc_set_keylen(ext, crch->keylen);
+	sdext_crc_set_signlen(ext, crch->signlen);
+	aal_memcpy(ext->sign, crch->sign, crch->signlen);
 	
 	return 0;
 }

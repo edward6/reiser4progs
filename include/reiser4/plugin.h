@@ -344,6 +344,13 @@ enum print_options {
 	PO_UNIT_OFFSETS         = 0x2
 };
 
+#ifndef ENABLE_MINIMAL
+enum reiser4_plugin_flag {
+	PF_CRC = 0x0,
+	PF_LAST
+};
+#endif
+
 /* Type for describing reiser4 objects (like format, block allocator, etc)
    inside the library, created by plugins themselves. */
 typedef struct generic_entity {
@@ -555,8 +562,9 @@ typedef sdhint_plug_t reiser4_opset_t;
 
 #ifndef ENABLE_MINIMAL
 typedef struct sdhint_crc {
-	uint16_t keysize;
-	uint8_t key[128];
+	uint16_t keylen;
+	uint16_t signlen;
+	uint8_t  sign[128];
 } sdhint_crc_t;
 #endif
 
@@ -1039,6 +1047,9 @@ typedef struct reiser4_object_plug {
 #ifndef ENABLE_MINIMAL
 	uint64_t sdext_mandatory;
 	uint64_t sdext_unknown;
+
+	/* Any flag that may help to organize more groups and sub-groups. */
+	const uint32_t flags;
 #endif
 } reiser4_object_plug_t;
 

@@ -114,10 +114,10 @@ int dir40_entry_comp(reiser4_object_t *dir, void *data) {
 
 	if (!dir->body.plug)
 		return -EINVAL;
-	
+#ifndef EINVAL	
 	if (dir->body.plug->id.group != DIR_ITEM)
 		return -ESTRUCT;
-	
+#endif
 	if (dir40_fetch(dir, &entry))
 		return -EIO;
 

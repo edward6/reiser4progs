@@ -52,7 +52,6 @@ extern errno_t obj40_seek(reiser4_object_t *obj, uint64_t offset);
 extern uint64_t obj40_size(reiser4_object_t *obj);
 extern errno_t obj40_reset(reiser4_object_t *obj);
 extern uint64_t obj40_offset(reiser4_object_t *obj);
-extern errno_t obj40_create(reiser4_object_t *obj, object_hint_t *hint);
 
 typedef int (*obj_func_t) (reiser4_object_t *, void *);
 
@@ -108,6 +107,17 @@ extern int64_t obj40_insert(reiser4_object_t *obj,
 extern int64_t obj40_write(reiser4_object_t *obj, trans_hint_t *hint);
 extern int64_t obj40_convert(reiser4_object_t *obj, conv_hint_t *hint);
 extern int64_t obj40_truncate(reiser4_object_t *obj, trans_hint_t *hint);
+
+errno_t obj40_stat_lw_init(reiser4_object_t *obj, 
+			   stat_hint_t *stat, 
+			   sdhint_lw_t *lwh, 
+			   uint64_t size,  
+			   uint32_t nlink, 
+			   uint16_t mode);
+
+
+extern errno_t obj40_create(reiser4_object_t *obj, 
+			    object_hint_t *hint);
 
 extern errno_t obj40_create_stat(reiser4_object_t *obj, 
 				 uint64_t size, uint64_t bytes, 
