@@ -29,18 +29,16 @@ errno_t create_cmd(busy_ctx_t *ctx) {
 		return -EINVAL;
 	
 	if (ctx->objtype == REG_OBJECT)
-		object = reiser4_reg_create(ctx->in.fs, parent, name);
+		object = reiser4_reg_create(parent, name);
 	else if (ctx->objtype == DIR_OBJECT)
-		object = reiser4_dir_create(ctx->in.fs, parent, name);
+		object = reiser4_dir_create(parent, name);
 	else if (ctx->objtype == SPL_OBJECT)
-		object = reiser4_spl_create(ctx->in.fs, parent, name, 
-					    ctx->mode, ctx->rdev);
+		object = reiser4_spl_create(parent, name, ctx->mode, ctx->rdev);
 	else if (ctx->objtype == SYM_OBJECT) {
 		if (ctx->out.path[0] == 0)
 			goto error_free_parent;
 		
-		object = reiser4_sym_create(ctx->in.fs, parent, 
-					    name, ctx->out.path);
+		object = reiser4_sym_create(parent, name, ctx->out.path);
 	} else {
 		aal_error("Illegal object type is given (%d).", ctx->objtype);
 		goto error_free_parent;

@@ -64,6 +64,7 @@ static reiser4_sdext_plug_t sdext_lw = {
 	
 #ifndef ENABLE_MINIMAL
 	.init	 	= sdext_lw_init,
+	.info		= NULL,
 	.print   	= sdext_lw_print,
 	.check_struct   = sdext_lw_check_struct,
 #endif		

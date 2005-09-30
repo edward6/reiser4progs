@@ -89,6 +89,8 @@ static reiser4_object_t *reiser4_root_create(reiser4_fs_t *fs) {
 	entry.name[0] = '\0';
 	aal_memcpy(&entry.offset, &fs->tree->key, sizeof(entry.offset));
 
+	reiser4_opset_root(&info.opset);
+
 	return reiser4_object_create(&entry, &info, NULL);
 }
 
@@ -480,7 +482,7 @@ int main(int argc, char *argv[]) {
 		if (flags & BF_LOST) {
 			reiser4_object_t *object;
 	    
-			if (!(object = reiser4_dir_create(fs, fs->root,
+			if (!(object = reiser4_dir_create(fs->root,
 							  "lost+found")))
 			{
 				aal_error("Can't create \"/lost+found\" "

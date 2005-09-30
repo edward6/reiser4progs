@@ -55,6 +55,7 @@ static reiser4_sdext_plug_t sdext_flags = {
 #ifndef ENABLE_MINIMAL
 	.open	   	= sdext_flags_open,
 	.init	   	= sdext_flags_init,
+	.info		= NULL,
 	.print     	= sdext_flags_print,
 	.check_struct	= sdext_flags_check_struct,
 #else

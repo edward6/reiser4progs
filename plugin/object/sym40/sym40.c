@@ -31,16 +31,11 @@ static int64_t sym40_read(reiser4_object_t *sym,
 #ifndef ENABLE_MINIMAL
 /* Creates symlink and returns initialized instance to the caller */
 static errno_t sym40_create(reiser4_object_t *sym, object_hint_t *hint) {
-	uint32_t len;
-	
-	aal_assert("vpf-1819", sym != NULL);
 	aal_assert("umka-1740", hint != NULL);
 
-	len = aal_strlen(hint->name);
-
 	/* Create symlink sta data item. */
-	return obj40_create_stat(sym, len, 0, 0, 0, 
-				 hint->mode | S_IFLNK | 0644, hint->name);
+	return obj40_create_stat(sym, aal_strlen(hint->str), 0, 0, 0, 
+				 hint->mode | S_IFLNK | 0644, hint->str);
 }
 
 /* Clober symlink, that is clobber its stat data. */
@@ -105,6 +100,7 @@ static errno_t sym40_follow(reiser4_object_t *sym,
 /* Symlinks operations. */
 static reiser4_object_plug_t sym40 = {
 #ifndef ENABLE_MINIMAL
+	.inherit	= obj40_inherit,
 	.create	        = sym40_create,
 	.metadata       = sym40_metadata,
 	.link           = obj40_link,

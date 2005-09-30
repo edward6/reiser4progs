@@ -116,8 +116,9 @@ errno_t obj40_stat_lw_init(reiser4_object_t *obj,
 			   uint16_t mode);
 
 
-extern errno_t obj40_create(reiser4_object_t *obj, 
-			    object_hint_t *hint);
+extern errno_t obj40_inherit(object_info_t *info, object_info_t *parent);
+
+extern errno_t obj40_create(reiser4_object_t *obj, object_hint_t *hint);
 
 extern errno_t obj40_create_stat(reiser4_object_t *obj, 
 				 uint64_t size, uint64_t bytes, 

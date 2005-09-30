@@ -9,6 +9,7 @@
 
 static reiser4_object_plug_t spl40 = {
 #ifndef ENABLE_MINIMAL
+	.inherit	= obj40_inherit,
 	.create	        = obj40_create,
 	.metadata       = obj40_metadata,
 	.link           = obj40_link,

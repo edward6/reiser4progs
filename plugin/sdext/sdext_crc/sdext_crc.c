@@ -9,6 +9,8 @@
 
 reiser4_core_t *sdext_crc_core = NULL;
 
+extern reiser4_plug_t sdext_crc_plug;
+
 uint32_t sdext_crc_length(stat_entity_t *stat, void *hint) {
 	sdext_crc_t e;
 	uint16_t count;
@@ -18,7 +20,13 @@ uint32_t sdext_crc_length(stat_entity_t *stat, void *hint) {
 	if (hint) {
 		count = ((sdhint_crc_t *)hint)->signlen;
 	} else {
-		count = sdext_crc_get_signlen((sdext_crc_t *)stat_body(stat));
+		if (stat->info.digest == INVAL_PTR) {
+			aal_error("Digest must be specified for \'%s\'.",
+				  sdext_crc_plug.label);
+			return 0;
+		}
+		
+		count = 4 << (uint32_t)stat->info.digest;
 	}
 	
 	return sizeof(e.keylen) + count;
@@ -31,10 +39,17 @@ static errno_t sdext_crc_open(stat_entity_t *stat, void *hint) {
 	aal_assert("vpf-1837", stat != NULL);
 	aal_assert("vpf-1838", hint != NULL);
 	
+	if (stat->info.digest == INVAL_PTR) {
+		aal_error("Digest must be specified for \'%s\'.",
+			  sdext_crc_plug.label);
+		
+		return -EIO;
+	}
+	
 	crch = (sdhint_crc_t *)hint;
 	ext = (sdext_crc_t *)stat_body(stat);
 	crch->keylen = sdext_crc_get_keylen(ext);
-	crch->signlen = sdext_crc_get_signlen(ext);
+	crch->signlen = 4 << (uint32_t)stat->info.digest;
 	aal_memcpy(crch->sign, ext->sign, crch->signlen);
 	
 	return 0;
@@ -51,7 +66,6 @@ static errno_t sdext_crc_init(stat_entity_t *stat, void *hint) {
 	crch = (sdhint_crc_t *)hint;
 
 	sdext_crc_set_keylen(ext, crch->keylen);
-	sdext_crc_set_signlen(ext, crch->signlen);
 	aal_memcpy(ext->sign, crch->sign, crch->signlen);
 	
 	return 0;
@@ -67,6 +81,7 @@ extern void sdext_crc_print(stat_entity_t *stat,
 static reiser4_sdext_plug_t sdext_crc = {
 	.open	   	= sdext_crc_open,
 	.init	   	= sdext_crc_init,
+	.info		= NULL,
 	.print     	= sdext_crc_print,
 	.check_struct	= NULL,
 	.open	   	= NULL,

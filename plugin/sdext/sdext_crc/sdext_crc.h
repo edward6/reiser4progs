@@ -13,10 +13,7 @@ typedef struct sdext_crc {
 	/* secret key size. */ 
 	d16_t keylen;
 	
-	/* fingerprint length */
-	d8_t signlen;
-	
-	/* fingerprint. */ 
+	/* Signature. */
 	d8_t sign[0];
 } __attribute__((packed)) sdext_crc_t;
 

@@ -103,24 +103,24 @@ extern errno_t reiser4_object_entry_prep(reiser4_tree_t *tree,
 					 entry_hint_t *entry,
 					 const char *name);
 
-extern reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
-					    reiser4_object_t *parent,
+extern reiser4_object_t *reiser4_dir_create(reiser4_object_t *parent,
 					    const char *name);
 
-extern reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
-					    reiser4_object_t *parent,
+extern reiser4_object_t *reiser4_reg_create(reiser4_object_t *parent,
 					    const char *name);
 
-extern reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
-					    reiser4_object_t *parent,
+extern reiser4_object_t *reiser4_sym_create(reiser4_object_t *parent,
 					    const char *name,
 					    const char *target);
 
-extern reiser4_object_t *reiser4_spl_create(reiser4_fs_t *fs,
-					    reiser4_object_t *parent,
+extern reiser4_object_t *reiser4_spl_create(reiser4_object_t *parent,
 					    const char *name,
 					    uint32_t mode,
 					    uint64_t rdev);
+
+extern reiser4_object_t *reiser4_crc_create(reiser4_object_t *parent,
+					    const char *name,
+					    const char *key);
 
 extern errno_t reiser4_object_traverse(reiser4_object_t *object, 
 				       object_open_func_t open_func,

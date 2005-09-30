@@ -325,6 +325,28 @@ errno_t obj40_save_stat(reiser4_object_t *obj, stat_hint_t *hint) {
 	return 0;
 }
 
+errno_t obj40_inherit(object_info_t *info, object_info_t *parent) {
+	int i;
+	
+	aal_assert("vpf-1855", info != NULL);
+	aal_assert("vpf-1855", info->opset.plug[OPSET_OBJ] != NULL);
+	aal_assert("vpf-1855", parent != NULL);
+	
+	info->opset.plug_mask |= (1 << OPSET_OBJ);
+	
+	/* Get not specified plugins from the parent. Do not set flags into 
+	   plug_mask as these plugins are inherited but not specified 
+	   explicitly. */
+	for (i = 0; i < OPSET_LAST; i++) {
+		if (info->opset.plug_mask & (1 << i))
+			continue;
+
+		info->opset.plug[i] = parent->opset.plug[i];
+	}
+
+	return 0;
+}
+
 /* Prepapre unix hint in StatData */
 static errno_t obj40_stat_unix_init(stat_hint_t *stat, sdhint_unix_t *unixh, 
 				    uint64_t bytes, uint64_t rdev) 
@@ -425,8 +447,10 @@ static errno_t obj40_stat_sym_init(reiser4_object_t *obj,
 	if (obj->info.opset.plug[OPSET_OBJ]->id.group != SYM_OBJECT)
 		return 0;
 	
-	if (!path || !aal_strlen(path))
+	if (!path || !aal_strlen(path)) {
+		aal_error("No SymLink target point is given.");
 		return -EINVAL;
+	}
 	
 	stat->extmask |= (1 << SDEXT_SYMLINK_ID);
 	stat->ext[SDEXT_SYMLINK_ID] = path;
@@ -445,9 +469,12 @@ static errno_t obj40_stat_crc_init(reiser4_object_t *obj,
 	aal_assert("vpf-1780", stat != NULL);
 
 	plug = obj->info.opset.plug[OPSET_OBJ];
-	if (!(plug->pl.object->flags & (1 << PF_CRC)))
+
+	/* Plugin must be of the regular file group. */
+	if (plug->id.group != REG_OBJECT)
 		return 0;
 	
+	/* Check if cryto is specified. */
 	if (obj->info.opset.plug[OPSET_CRYPTO] != (void *)CRYPTO_NONE_ID) {
 		if (!key || !aal_strlen(key)) {
 			aal_error("No proper key is given: %s.", key);
@@ -535,7 +562,7 @@ errno_t obj40_create_stat(reiser4_object_t *obj, uint64_t size, uint64_t bytes,
 
 errno_t obj40_create(reiser4_object_t *obj, object_hint_t *hint) {
 	return obj40_create_stat(obj, 0, 0, hint ? hint->rdev : 0, 
-				 0, hint ? hint->mode : 0, NULL);
+				 0, hint ? hint->mode : 0, hint->str);
 }
 
 /* Updates size and bytes fielsds */

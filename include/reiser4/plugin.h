@@ -296,10 +296,15 @@ typedef enum key_type {
 
 /* Tree Plugin SET index. */
 enum reiser4_tpset_id {
-	TPSET_KEY		= 0x0,
+	TPSET_REGFILE	= 0x0,
+	TPSET_DIRFILE	= 0x1,
+	TPSET_SYMFILE	= 0x2,
+	TPSET_SPLFILE	= 0x3,
+
+	TPSET_KEY	= 0x4,
 #ifndef ENABLE_MINIMAL
-	TPSET_NODE		= 0x1,
-	TPSET_NODEPTR		= 0x2,
+	TPSET_NODE	= 0x5,
+	TPSET_NODEPTR	= 0x6,
 #endif
 	TPSET_LAST
 };
@@ -324,15 +329,10 @@ enum reiser4_opset_id {
 	OPSET_STORE_LAST,
 	
 	/* These are not stored on disk in the current implementation. */
-	OPSET_REGFILE	= OPSET_STORE_LAST,
-	OPSET_DIRFILE	= OPSET_STORE_LAST + 1,
-	OPSET_SYMFILE	= OPSET_STORE_LAST + 2,
-	OPSET_SPLFILE	= OPSET_STORE_LAST + 3,
-	
 #ifndef ENABLE_MINIMAL
-	OPSET_TAIL	= OPSET_STORE_LAST + 4,
-	OPSET_EXTENT	= OPSET_STORE_LAST + 5,
-	OPSET_CTAIL	= OPSET_STORE_LAST + 6,
+	OPSET_TAIL	= OPSET_STORE_LAST,
+	OPSET_EXTENT	= OPSET_STORE_LAST + 1,
+	OPSET_CTAIL	= OPSET_STORE_LAST + 2,
 #endif
 	OPSET_LAST
 };
@@ -442,11 +442,22 @@ struct reiser4_node {
 #endif
 };
 
+#ifndef ENABLE_MINIMAL
+/* This is an info that sdext plugins need. E.g. digest is needed to sdext_crc 
+   plugin to proceed. */
+typedef struct stat_info {
+	reiser4_plug_t *digest;
+} stat_info_t;
+#endif
+
 /* Stat data extension entity. */
 typedef struct stat_entity {
 	reiser4_place_t *place;
 	reiser4_plug_t *ext_plug;
 	uint32_t offset;
+#ifndef ENABLE_MINIMAL
+	stat_info_t info;
+#endif
 } stat_entity_t;
 
 #define stat_body(stat) ((char *)(stat)->place->body + (stat)->offset)
@@ -607,8 +618,8 @@ typedef struct object_hint {
 	   definition, because it is the special file essence. */
 	uint64_t rdev;
 	
-	/* SymLink name. */
-	char *name;
+	/* SymLink name or CRC key. */
+	char *str;
 } object_hint_t;
 
 /* Reiser4 file structure (regular file, directory, symlinks, etc) */
@@ -963,6 +974,9 @@ typedef struct reiser4_object_plug {
 
 	/* Updates object stat data from passed hint. */
 	errno_t (*update) (reiser4_object_t *, stat_hint_t *);
+
+	/* Inherits from the parent object. */
+	errno_t (*inherit) (object_info_t *, object_info_t *);
 	
 	/* Creates new file with passed parent and object keys. */
 	errno_t (*create) (reiser4_object_t *, object_hint_t *);
@@ -1047,9 +1061,6 @@ typedef struct reiser4_object_plug {
 #ifndef ENABLE_MINIMAL
 	uint64_t sdext_mandatory;
 	uint64_t sdext_unknown;
-
-	/* Any flag that may help to organize more groups and sub-groups. */
-	const uint32_t flags;
 #endif
 } reiser4_object_plug_t;
 
@@ -1192,6 +1203,9 @@ typedef struct reiser4_sdext_plug {
 	/* Initialize stat data extension data at passed pointer. */
 	errno_t (*init) (stat_entity_t *, void *);
 
+	/* Obtain the needed info for the futher stat data traverse. */
+	void (*info) (stat_entity_t *);
+	
 	/* Prints stat data extension data into passed buffer. */
 	void (*print) (stat_entity_t *, aal_stream_t *, uint16_t);
 

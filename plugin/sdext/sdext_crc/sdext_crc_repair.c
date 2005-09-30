@@ -23,7 +23,12 @@ void sdext_crc_print(stat_entity_t *stat,
 	aal_stream_format(stream, "key size:\t\t%u\n\t\t", 
 			  sdext_crc_get_keylen(ext));
 
-	count = sdext_crc_get_signlen(ext);
+	if (!stat->info.digest) {
+		aal_stream_format(stream, "<unknown keyid>\n");
+		return;
+	}
+	
+	count = 4 << (uint32_t)stat->info.digest;
 	aal_stream_format(stream, "[%u]: ", count);
 	
 	for (i = 0; i < count; i++)

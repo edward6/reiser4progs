@@ -28,6 +28,7 @@ static int64_t crc40_write(reiser4_object_t *crc,
 
 /* CRC regular file operations. */
 static reiser4_object_plug_t crc40 = {
+	.inherit	= obj40_inherit,
 	.create	        = obj40_create,
 	.write	        = crc40_write,
 	.truncate       = NULL,

@@ -58,9 +58,16 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 		aal_memcpy(&object->info.parent, 
 			   &parent->info.object, 
 			   sizeof(object->info.parent));
+		
+		/* Inherit from the parent. */
+		if (plug_call(object->info.opset.plug[OPSET_OBJ]->pl.object,
+			      inherit, &object->info, &parent->info))
+		{
+			return NULL;
+		}
+	} else {
+		reiser4_opset_root(&object->info.opset);
 	}
-	
-	reiser4_opset_complete(tree, &object->info.opset);
 	
 	/* Create the fake object. */
 	if (plug_call(plug->pl.object, fake, object)) {

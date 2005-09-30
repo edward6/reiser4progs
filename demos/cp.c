@@ -50,7 +50,7 @@ errno_t cp_cmd(busy_ctx_t *ctx) {
 			if (!parent || parent == INVAL_PTR)
 				goto error_src_close;
 			
-			dst_obj = reiser4_reg_create(ctx->out.fs, parent, name);
+			dst_obj = reiser4_reg_create(parent, name);
 			if (!dst_obj) {
 				aal_error("Failed to create file %s.", 
 					  ctx->out.path);

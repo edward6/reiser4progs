@@ -348,9 +348,6 @@ static void reiser4_object_maintain(reiser4_object_t *object,
 	/* Building object stat data key. */
 	reiser4_key_build_generic(&object->info.object, KEY_STATDATA_TYPE,
 				  locality, ordering, objectid, 0);
-
-	/* Complete the opset in @object->info. */
-	reiser4_opset_complete(tree, &object->info.opset);
 }
 
 errno_t reiser4_object_attach(reiser4_object_t *object, 
@@ -763,36 +760,41 @@ errno_t reiser4_object_traverse(reiser4_object_t *object,
 }
 
 /* Completes object creating. */
-static reiser4_object_t *reiser4_obj_create(reiser4_tree_t *tree,
-					    reiser4_object_t *parent,
-					    uint8_t pl_num,
+static reiser4_object_t *reiser4_obj_create(reiser4_object_t *parent,
+					    object_info_t *info,
 					    object_hint_t *hint,
 					    const char *name)
 {
 	reiser4_object_t *object;
 	entry_hint_t entry;
-	object_info_t info;
 	
-	aal_assert("vpf-1849", tree != NULL);
+	aal_assert("vpf-1849", parent != NULL);
+	aal_assert("vpf-1849", info != NULL);
+	aal_assert("vpf-1849", info->opset.plug[OPSET_OBJ] != NULL);
 	
 	/* Preparing object hint */
-	info.opset.plug[OPSET_OBJ] = tree->ent.opset[pl_num];
-	info.opset.plug_mask |= (1 << OPSET_OBJ);
-	info.tree = (tree_entity_t *)tree;
-
-	if (parent) {
-		aal_memcpy(&info.parent, 
-			   &parent->info.object,
-			   sizeof(info.parent));
-	}
-
-	if (reiser4_object_entry_prep(tree, parent, &entry, name))
+	/* Inherit from the parent. */
+	if (plug_call(info->opset.plug[OPSET_OBJ]->pl.object, 
+		      inherit, info, &parent->info))
+	{
 		return NULL;
+	}
+		
+	aal_memcpy(&info->parent, &parent->info.object, 
+		   sizeof(info->parent));
+	
+	info->tree = parent->info.tree;
+	
+	if (reiser4_object_entry_prep((reiser4_tree_t *)info->tree, 
+				      parent, &entry, name))
+	{
+		return NULL;
+	}
 	
 	entry.place_func = NULL;
 	
 	/* Creating object by passed parameters. */
-	if (!(object = reiser4_object_create(&entry, &info, hint)))
+	if (!(object = reiser4_object_create(&entry, info, hint)))
 		return NULL;
 
 	if (parent) {
@@ -807,57 +809,103 @@ static reiser4_object_t *reiser4_obj_create(reiser4_tree_t *tree,
 }
 
 /* Creates directory. Uses params preset for all plugin. */
-reiser4_object_t *reiser4_dir_create(reiser4_fs_t *fs,
-				     reiser4_object_t *parent,
+reiser4_object_t *reiser4_dir_create(reiser4_object_t *parent, 
 				     const char *name)
 {
-	aal_assert("vpf-1053", fs != NULL);
-	return reiser4_obj_create(fs->tree, parent, OPSET_DIRFILE, NULL, name);
+	object_info_t info;
+	
+	aal_assert("vpf-1053", parent != NULL);
+	
+	aal_memset(&info, 0, sizeof(info));
+	info.opset.plug[OPSET_OBJ] = parent->info.tree->tpset[TPSET_DIRFILE];
+	info.opset.plug_mask |= (1 << OPSET_OBJ);
+
+	return reiser4_obj_create(parent, &info, NULL, name);
 }
 
 /* Creates regular file, using all plugins it need from profile. Links new
    created file to @parent with @name. */
-reiser4_object_t *reiser4_reg_create(reiser4_fs_t *fs,
-				     reiser4_object_t *parent,
+reiser4_object_t *reiser4_reg_create(reiser4_object_t *parent,
 				     const char *name)
 {
-	aal_assert("vpf-1054", fs != NULL);
-	return reiser4_obj_create(fs->tree, parent, OPSET_REGFILE, NULL, name);
+	object_info_t info;
+	
+	aal_assert("vpf-1054", parent != NULL);
+	
+	aal_memset(&info, 0, sizeof(info));
+	info.opset.plug_mask |= (1 << OPSET_OBJ);
+	info.opset.plug[OPSET_OBJ] = parent->info.opset.plug[OPSET_CREATE];
+	
+	return reiser4_obj_create(parent, &info, NULL, name);
 }
 
 /* Creates symlink. Uses params preset for all plugin. */
-reiser4_object_t *reiser4_sym_create(reiser4_fs_t *fs,
-				     reiser4_object_t *parent,
+reiser4_object_t *reiser4_sym_create(reiser4_object_t *parent,
 		                     const char *name,
 		                     const char *target)
 {
 	object_hint_t hint;
+	object_info_t info;
 	
-	aal_assert("vpf-1186", fs != NULL);
+	aal_assert("vpf-1186", parent != NULL);
 	aal_assert("vpf-1057", target != NULL);
 	
 	aal_memset(&hint, 0, sizeof(hint));
-	hint.name = (char *)target;
+	hint.str = (char *)target;
 	
-	return reiser4_obj_create(fs->tree, parent, OPSET_SYMFILE, &hint, name);
+	aal_memset(&info, 0, sizeof(info));
+	info.opset.plug[OPSET_OBJ] = parent->info.tree->tpset[TPSET_SYMFILE];
+	info.opset.plug_mask |= (1 << OPSET_OBJ);
+
+	return reiser4_obj_create(parent, &info, &hint, name);
 }
 
 /* Creates special file. Uses params preset for all plugin. */
-reiser4_object_t *reiser4_spl_create(reiser4_fs_t *fs,
-				     reiser4_object_t *parent,
+reiser4_object_t *reiser4_spl_create(reiser4_object_t *parent,
 		                     const char *name,
 				     uint32_t mode,
 		                     uint64_t rdev)
 {
 	object_hint_t hint;
+	object_info_t info;
 	
-	aal_assert("umka-2534", fs != NULL);
+	aal_assert("umka-2534", parent != NULL);
 	aal_assert("umka-2535", rdev != 0);
 	
 	aal_memset(&hint, 0, sizeof(hint));
 	hint.mode = mode;
 	hint.rdev = rdev;
 	
-	return reiser4_obj_create(fs->tree, parent, OPSET_SPLFILE, &hint, name);
+	aal_memset(&info, 0, sizeof(info));
+	info.opset.plug[OPSET_OBJ] = parent->info.tree->tpset[TPSET_SPLFILE];
+	info.opset.plug_mask |= (1 << OPSET_OBJ);
+	
+	return reiser4_obj_create(parent, &info, &hint, name);
+}
+
+/* Creates special file. Uses params preset for all plugin. */
+reiser4_object_t *reiser4_crc_create(reiser4_object_t *parent,
+		                     const char *name,
+				     const char *key)
+{
+	object_hint_t hint;
+	object_info_t info;
+	
+	aal_assert("umka-2534", parent != NULL);
+	
+	aal_memset(&hint, 0, sizeof(hint));
+	hint.str = (char *)key;
+	
+	aal_memset(&info, 0, sizeof(info));
+	info.opset.plug_mask |= (1 << OPSET_OBJ);
+	
+	if (!(info.opset.plug[OPSET_OBJ] = 
+	      reiser4_factory_ifind(OBJECT_PLUG_TYPE, OBJECT_CRC40_ID))) 
+	{
+		aal_error("Can't find the CRC object plugin\n.");
+		return NULL;
+	}
+
+	return reiser4_obj_create(parent, &info, &hint, name);
 }
 #endif

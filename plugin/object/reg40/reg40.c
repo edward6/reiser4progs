@@ -494,6 +494,7 @@ static errno_t reg40_metadata(reiser4_object_t *reg,
 /* Regular file operations. */
 static reiser4_object_plug_t reg40 = {
 #ifndef ENABLE_MINIMAL
+	.inherit	= obj40_inherit,
 	.create	        = obj40_create,
 	.write	        = reg40_write,
 	.truncate       = reg40_truncate,
@@ -534,7 +535,6 @@ static reiser4_object_plug_t reg40 = {
 #ifndef ENABLE_MINIMAL
 	.sdext_mandatory = (1 << SDEXT_LW_ID),
 	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID),
-	.flags = 1 << PF_CRC,
 #endif
 };
 

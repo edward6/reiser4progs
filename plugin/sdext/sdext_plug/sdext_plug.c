@@ -7,6 +7,37 @@
 
 reiser4_core_t *sdext_plug_core = NULL;
 
+#ifndef ENABLE_MINIMAL
+void sdext_plug_info(stat_entity_t *stat) {
+	sdext_plug_t *ext;
+	uint16_t i;
+
+	if (!stat) return;
+	
+	stat->info.digest = NULL;
+	
+	/* When inserting new extentions, nothing to be done. */
+	if (!stat) return;
+	
+	ext = (sdext_plug_t *)stat_body(stat);
+	for (i = 0; i < sdext_plug_get_count(ext); i++) {
+		rid_t mem, id;
+		
+		mem = sdext_plug_get_member(ext, i);
+		id = sdext_plug_get_pid(ext, i);
+
+		if (mem != SDEXT_PLUG_ID)
+			continue;
+		
+		stat->info.digest = sdext_plug_core->pset_ops.find(mem, id);
+		if (stat->info.digest == INVAL_PTR)
+			stat->info.digest = NULL;
+		
+		return;
+	}
+}
+#endif
+
 uint32_t sdext_plug_length(stat_entity_t *stat, void *hint) {
 	uint16_t count = 0;
 	
@@ -47,7 +78,7 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 	
 	for (i = 0; i < sdext_plug_get_count(ext); i++) {
 		rid_t mem, id;
-
+		
 		mem = sdext_plug_get_member(ext, i);
 		id = sdext_plug_get_pid(ext, i);
 		
@@ -58,7 +89,7 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 		/* Check if we met this member already. */
 		if (plugh->plug_mask & (1 << mem))
 			return -EIO;
-
+		
 		/* Obtain the plugin by the id. */
 		plugh->plug[mem] = sdext_plug_core->pset_ops.find(mem, id);
 		
@@ -134,6 +165,7 @@ static reiser4_sdext_plug_t sdext_plug = {
 	.open	 	= sdext_plug_open,
 #ifndef ENABLE_MINIMAL
 	.init	 	= sdext_plug_init,
+	.info		= sdext_plug_info,
 	.print   	= sdext_plug_print,
 	.check_struct   = sdext_plug_check_struct,
 #endif

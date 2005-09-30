@@ -317,7 +317,7 @@ errno_t reiser4_profile_override(const char *slot, const char *name) {
 			aal_error("Invalid value (%s) is provided for the "
 				  "profile slot \"%s\". Maximum value is %u",
 				  (char *)name, defprof.pid[i].name,
-				   defprof.pid[i].max);
+				   defprof.pid[i].max - 1);
 			return -EINVAL;
 		}
 

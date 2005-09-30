@@ -71,6 +71,7 @@ static reiser4_sdext_plug_t sdext_unix = {
 #ifndef ENABLE_MINIMAL
 	.open	   	= sdext_unix_open,
 	.init	   	= sdext_unix_init,
+	.info		= NULL,
 	.print     	= sdext_unix_print,
 	.check_struct	= sdext_unix_check_struct,
 #else

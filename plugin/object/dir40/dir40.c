@@ -736,6 +736,7 @@ static errno_t dir40_metadata(reiser4_object_t *dir,
 /* Directory object operations. */
 static reiser4_object_plug_t dir40 = {
 #ifndef ENABLE_MINIMAL
+	.inherit	= obj40_inherit,
 	.create		= dir40_create,
 	.layout		= dir40_layout,
 	.metadata	= dir40_metadata,

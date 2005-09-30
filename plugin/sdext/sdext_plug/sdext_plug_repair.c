@@ -55,9 +55,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	
 	len = sdext_plug_length(stat, NULL);
 
-	if (stat->offset + sizeof(sdext_plug_t) > place->len || 
-	    len == 0 || stat->offset + len > place->len) 
-	{
+	if (len == 0 || stat->offset + len > place->len) {
 		fsck_mess("Node (%llu), item (%u), [%s]: does not look like "
 			  "a valid SD plugin set extention: wrong pset member "
 			  "count detected (%u).", 

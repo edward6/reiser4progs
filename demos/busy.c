@@ -206,22 +206,22 @@ errno_t sym_test(busy_ctx_t *ctx) {
                 return -EIO;
         }
 
-	if (!(dir1 = reiser4_dir_create(fs, dir0, "test1 dir1"))) {
+	if (!(dir1 = reiser4_dir_create(dir0, "test1 dir1"))) {
 		aal_error("Failed to create a dir 'test1 dir1'.");
 		return -EIO;
 	}
 
-	if (!(dir2 = reiser4_dir_create(fs, dir0, "test1 dir2"))) {
+	if (!(dir2 = reiser4_dir_create(dir0, "test1 dir2"))) {
 		aal_error("Failed to create a dir 'test1 dir2'.");
 		return -EIO;
 	}
 	
-	if (!(reg0 = reiser4_reg_create(fs, dir1, "test1 file0"))) {
+	if (!(reg0 = reiser4_reg_create(dir1, "test1 file0"))) {
 		aal_error("Failed to create a reg 'test1 file0'.");
 		return -EIO;
 	}
 	
-	if (!(sym0 = reiser4_sym_create(fs, dir2, "test1 sym0", 
+	if (!(sym0 = reiser4_sym_create(dir2, "test1 sym0", 
 					"../test1 dir1/test1 file0")))
 	{
 		aal_error("Failed to create a sym 'test1 sym0'.");
@@ -230,7 +230,7 @@ errno_t sym_test(busy_ctx_t *ctx) {
 	
 	aal_snprintf(name, 256, "%s/test1 dir1/test1 file0", path);
 	
-	if (!(sym1 = reiser4_sym_create(fs, dir2, "test1 sym1", name))) {
+	if (!(sym1 = reiser4_sym_create(dir2, "test1 sym1", name))) {
 		aal_error("Failed to create a sym 'test1 sym1'.");
 		return -EIO;
 	}
@@ -307,7 +307,7 @@ errno_t reg_test(busy_ctx_t *ctx) {
 		//			printf("%s\n", name);
 		*/
 		for (k = 0; k < 3; k++) {
-			if (!(object = reiser4_reg_create(fs, dir, name[k])))
+			if (!(object = reiser4_reg_create(dir, name[k])))
 				continue;
 
 

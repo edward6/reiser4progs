@@ -47,12 +47,11 @@ errno_t stat40_traverse(reiser4_place_t *place,
 			stat.ext_plug = NULL;
 			
 			/* Call the callback for every read extmask. */
-			if ((res = ext_func(&stat, extmask << (chunks * 16),
-					    data)))
-				return res;
-
+			res = ext_func(&stat, extmask << (chunks * 16), data);
+			if (res) return res;
+			
 			chunks++;
-			stat.offset += sizeof(d16_t);
+			stat.offset += sizeof(stat40_t);
 
 			if (i > 0) continue;
 		}
@@ -70,7 +69,12 @@ errno_t stat40_traverse(reiser4_place_t *place,
 		/* Call the callback for every found extension. */
 		if ((res = ext_func(&stat, extmask, data)))
 			return res;
-		
+
+#ifndef ENABLE_MINIMAL	
+		if (stat.ext_plug->pl.sdext->info)
+			stat.ext_plug->pl.sdext->info(&stat);
+#endif
+
 		/* Calculating the pointer to the next extension body */
 		stat.offset += plug_call(stat.ext_plug->pl.sdext, 
 					 length, &stat, NULL);
@@ -111,19 +115,19 @@ static inline reiser4_plug_t *stat40_modeplug(tree_entity_t *tree,
 					      uint16_t mode) 
 {
 	if (S_ISLNK(mode))
-		return tree->opset[OPSET_SYMFILE];
+		return tree->tpset[TPSET_SYMFILE];
 	else if (S_ISREG(mode))
-		return tree->opset[OPSET_REGFILE];
+		return tree->tpset[TPSET_REGFILE];
 	else if (S_ISDIR(mode))
-		return tree->opset[OPSET_DIRFILE];
+		return tree->tpset[TPSET_DIRFILE];
 	else if (S_ISCHR(mode))
-		return tree->opset[OPSET_SPLFILE];
+		return tree->tpset[TPSET_SPLFILE];
 	else if (S_ISBLK(mode))
-		return tree->opset[OPSET_SPLFILE];
+		return tree->tpset[TPSET_SPLFILE];
 	else if (S_ISFIFO(mode))
-		return tree->opset[OPSET_SPLFILE];
+		return tree->tpset[TPSET_SPLFILE];
 	else if (S_ISSOCK(mode))
-		return tree->opset[OPSET_SPLFILE];
+		return tree->tpset[TPSET_SPLFILE];
 
 	return NULL;
 }
@@ -189,7 +193,6 @@ static uint32_t stat40_units(reiser4_place_t *place) {
 }
 
 #ifndef ENABLE_MINIMAL
-
 static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 	stat_hint_t *sd_hint;
 	sdhint_plug_t *plugh;
@@ -235,6 +238,8 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 	
 	tree = place->node->tree;
 	
+	/* These all is performed on plugh hint, not on the object. So this 
+	   altered plug_mask will not be reflected in the object plug_mask. */
 	if (plugh->plug[OPSET_OBJ] == stat40_modeplug(tree, mode))
 		plugh->plug_mask &= ~(1 << OPSET_OBJ);
 	
@@ -280,7 +285,7 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 		   has 16 bits) then we add to hint's len the size of next
 		   mask. */
 		if ((i + 1) % 16 == 0) {
-			hint->len += sizeof(d16_t);
+			hint->len += sizeof(stat40_t);
 			continue;
 		}
 
@@ -291,6 +296,9 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 			return -EINVAL;
 		}
 
+		if (plug->pl.sdext->info)
+			plug->pl.sdext->info(NULL);
+		
 		/* Calculating length of the corresponding extension and add it
 		   to the estimated value. */
 		hint->len += plug_call(plug->pl.sdext, length, 
@@ -305,6 +313,7 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 	stat_hint_t *stath;
 	stat_entity_t stat;
 	uint16_t extmask = 0;
+	uint16_t chunks = 0;
 	uint16_t i;
 	
 	stath = (stat_hint_t *)hint->specific;
@@ -351,13 +360,14 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 				st40_set_extmask(stat_body(&stat), extmask);
 			}
 			
-			stat.offset += sizeof(d16_t);
+			chunks++;
+			stat.offset += sizeof(stat40_t);
 
 			if (i > 0) continue;
 		}
 
 		/* Check if extension is present in mask */
-		if (!(((uint64_t)1 << i) & extmask))
+		if (!((1 << (i << (chunks - 1) * 16)) & extmask))
 			continue;
 
 		/* Getting extension plugin by extent number. */
@@ -387,10 +397,12 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 				  &stat, stath->ext[i]);
 		}
 
+		if (plug->pl.sdext->info)
+			plug->pl.sdext->info(&stat);
+		
 		/* Getting pointer to the next extension. It is evaluating as
 		   the previous pointer plus its size. */
-		stat.offset += plug_call(plug->pl.sdext, 
-					 length, &stat, NULL);
+		stat.offset += plug_call(plug->pl.sdext, length, &stat, NULL);
 	}
     
 	place_mkdirty(place);
@@ -461,13 +473,13 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 			st40_set_extmask(stat_body(&stat), new_extmask);
 				
 			chunks++;
-			stat.offset += sizeof(d16_t);
+			stat.offset += sizeof(stat40_t);
 
 			if (i > 0) continue;
 		}
 
 		/* Check if we're interested in this extension. */
-		if (!(((uint64_t)1 << i) & old_extmask))
+		if (!((1 << (i - (chunks - 1) * 16)) & old_extmask))
 			continue;
 
 		/* Getting extension plugin by extent number. */
@@ -490,6 +502,9 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 		} else {
 			/* Setting pointer to the next extension. */
 			stat.offset += extsize;
+
+			if (plug->pl.sdext->info)
+				plug->pl.sdext->info(&stat);
 		}
 	}
 	
