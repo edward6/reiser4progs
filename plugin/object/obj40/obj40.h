@@ -108,12 +108,17 @@ extern int64_t obj40_write(reiser4_object_t *obj, trans_hint_t *hint);
 extern int64_t obj40_convert(reiser4_object_t *obj, conv_hint_t *hint);
 extern int64_t obj40_truncate(reiser4_object_t *obj, trans_hint_t *hint);
 
-errno_t obj40_stat_lw_init(reiser4_object_t *obj, 
-			   stat_hint_t *stat, 
-			   sdhint_lw_t *lwh, 
-			   uint64_t size,  
-			   uint32_t nlink, 
-			   uint16_t mode);
+extern errno_t obj40_stat_unix_init(stat_hint_t *stat, 
+				    sdhint_unix_t *unixh, 
+				    uint64_t bytes, 
+				    uint64_t rdev);
+
+extern errno_t obj40_stat_lw_init(reiser4_object_t *obj, 
+				  stat_hint_t *stat, 
+				  sdhint_lw_t *lwh, 
+				  uint64_t size,  
+				  uint32_t nlink, 
+				  uint16_t mode);
 
 
 extern errno_t obj40_inherit(object_info_t *info, object_info_t *parent);

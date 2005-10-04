@@ -149,10 +149,100 @@ static inline int obj40_check_mode(reiser4_object_t *obj,
 	return 1;
 }
 
-static inline errno_t obj40_check_lw(reiser4_object_t *obj, 
-				     obj40_stat_ops_t *ops,
-				     obj40_stat_hint_t *hint, 
-				     uint8_t mode, int present)
+static inline errno_t obj40_stat_unix_check(reiser4_object_t *obj, 
+					    obj40_stat_ops_t *ops,
+					    obj40_stat_hint_t *hint, 
+					    uint8_t mode, int present)
+{
+	reiser4_place_t *start = &obj->info.start;
+	sdhint_unix_t unixh, correct;
+	errno_t res;
+	int fixed;
+
+	aal_memset(&unixh, 0, sizeof(unixh));
+	
+	/* If the UNIX extention is not present, skip checking or add it. */
+	if (!present) {
+		trans_hint_t trans;
+		stat_hint_t stat;
+		
+		/* If the LW extention is not mandatory, skip checking. */
+		if (!(reiser4_oplug(obj)->pl.object->sdext_mandatory &
+		      (1 << SDEXT_UNIX_ID)))
+		{
+			return 0;
+		}
+		
+		fsck_mess("Node (%llu), item (%u), [%s] (%s): no mandatory "
+			  "unix extention.%s Plugin (%s).", place_blknr(start),
+			  start->pos.item, print_inode(obj40_core, &start->key),
+			  start->plug->label, mode != RM_CHECK ? " Added." : "",
+			  reiser4_oplug(obj)->label);
+
+		if (mode == RM_CHECK)
+			return RE_FIXABLE;
+
+		/* Add missed, mandatory extention. */
+		aal_memset(&trans, 0, sizeof(trans));
+		aal_memset(&stat, 0, sizeof(stat));
+		
+		trans.shift_flags = SF_DEFAULT;
+		trans.specific = &stat;
+		trans.plug = start->plug;
+		
+		obj40_stat_unix_init(&stat, &unixh, hint->bytes, 0);
+		
+		start->pos.unit = 0;
+		
+		if ((res = obj40_insert(obj, start, &trans, LEAF_LEVEL)))
+			return res;
+
+		if ((res = obj40_update(obj)))
+			return res;
+
+		/* Do not return here, but check the new extention with the 
+		   given set of methods instead. */
+	}
+
+	if ((res = obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh)) < 0)
+		return res;
+	
+	correct = unixh;
+
+	if (ops->check_bytes == NULL) {
+		/* Call the default one. */
+		fixed = obj40_check_bytes(obj, &correct.bytes, hint->bytes);
+	} else if (ops->check_bytes != SKIP_METHOD) {
+		fixed = ops->check_bytes(obj, &correct.bytes, hint->bytes);
+	} else {
+		fixed = 0;
+	}
+
+	if (fixed) {
+		/* sd_bytes are set wrongly in the kernel. */
+		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong bytes "
+			  "(%llu), %s (%llu).", place_blknr(start), 
+			  start->pos.item, print_inode(obj40_core, &start->key),
+			  start->plug->label, unixh.bytes, mode == RM_CHECK ? 
+			  "Should be" : "Fixed to", correct.bytes);
+		
+		/* Zero rdev because rdev and bytes is the union on disk
+		   but not in the unixh. */
+		correct.rdev = 0;
+		res = RE_FIXABLE;
+	}
+
+	
+	if (res && mode != RM_CHECK)
+		return obj40_write_ext(start, SDEXT_UNIX_ID, &correct);
+
+	return res;
+}
+
+static inline errno_t obj40_stat_lw_check(reiser4_object_t *obj, 
+					  obj40_stat_ops_t *ops,
+					  obj40_stat_hint_t *hint, 
+					  uint8_t mode, int present)
 {
 	reiser4_place_t *start = &obj->info.start;
 	sdhint_lw_t lwh, correct;
@@ -272,106 +362,6 @@ static inline errno_t obj40_check_lw(reiser4_object_t *obj,
 	return res;
 }
 
-static inline errno_t obj40_check_unix(reiser4_object_t *obj, 
-				       obj40_stat_ops_t *ops,
-				       obj40_stat_hint_t *hint, 
-				       uint8_t mode, int present)
-{
-	reiser4_place_t *start = &obj->info.start;
-	sdhint_unix_t unixh, correct;
-	errno_t res;
-	int fixed;
-
-	aal_memset(&unixh, 0, sizeof(unixh));
-	
-	/* If the UNIX extention is not present, skip checking or add it. */
-	if (!present) {
-		trans_hint_t trans;
-		stat_hint_t stat;
-		
-		/* If the LW extention is not mandatory, skip checking. */
-		if (!(reiser4_oplug(obj)->pl.object->sdext_mandatory &
-		      (1 << SDEXT_UNIX_ID)))
-		{
-			return 0;
-		}
-		
-		fsck_mess("Node (%llu), item (%u), [%s] (%s): no mandatory "
-			  "unix extention.%s Plugin (%s).", place_blknr(start),
-			  start->pos.item, print_inode(obj40_core, &start->key),
-			  start->plug->label, mode != RM_CHECK ? " Added." : "",
-			  reiser4_oplug(obj)->label);
-
-		if (mode == RM_CHECK)
-			return RE_FIXABLE;
-
-		/* Add missed, mandatory extention. */
-		aal_memset(&trans, 0, sizeof(trans));
-		aal_memset(&stat, 0, sizeof(stat));
-		
-		trans.shift_flags = SF_DEFAULT;
-		trans.specific = &stat;
-		trans.plug = start->plug;
-		
-		unixh.rdev = 0;
-		unixh.bytes = hint->bytes;
-		
-		unixh.uid = getuid();
-		unixh.gid = getgid();
-		unixh.atime = time(NULL);
-		unixh.mtime = unixh.atime;
-		unixh.ctime = unixh.atime;
-
-		stat.ext[SDEXT_UNIX_ID] = &unixh;
-		stat.extmask = (1 << SDEXT_UNIX_ID);
-
-		start->pos.unit = 0;
-		
-		if ((res = obj40_insert(obj, start, &trans, LEAF_LEVEL)))
-			return res;
-
-		if ((res = obj40_update(obj)))
-			return res;
-
-		/* Do not return here, but check the new extention with the 
-		   given set of methods instead. */
-	}
-
-	if ((res = obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh)) < 0)
-		return res;
-	
-	correct = unixh;
-
-	if (ops->check_bytes == NULL) {
-		/* Call the default one. */
-		fixed = obj40_check_bytes(obj, &correct.bytes, hint->bytes);
-	} else if (ops->check_bytes != SKIP_METHOD) {
-		fixed = ops->check_bytes(obj, &correct.bytes, hint->bytes);
-	} else {
-		fixed = 0;
-	}
-
-	if (fixed) {
-		/* sd_bytes are set wrongly in the kernel. */
-		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong bytes "
-			  "(%llu), %s (%llu).", place_blknr(start), 
-			  start->pos.item, print_inode(obj40_core, &start->key),
-			  start->plug->label, unixh.bytes, mode == RM_CHECK ? 
-			  "Should be" : "Fixed to", correct.bytes);
-		
-		/* Zero rdev because rdev and bytes is the union on disk
-		   but not in the unixh. */
-		correct.rdev = 0;
-		res = RE_FIXABLE;
-	}
-
-	
-	if (res && mode != RM_CHECK)
-		return obj40_write_ext(start, SDEXT_UNIX_ID, &correct);
-
-	return res;
-}
-
 /*
    This is not yet clear how to detect the correct plugin, e.g. formatting,
    and figure out if it is essential or not and leave detected or fix evth 
@@ -382,8 +372,11 @@ static inline errno_t obj40_check_unix(reiser4_object_t *obj,
    obj40_check_plug is used to form the on-disk opset according to already
    existent SD opset and tree->opset. Actually used for the root only. */
 
-static inline errno_t obj40_check_plug(reiser4_object_t *obj, uint8_t mode) {
+static inline errno_t obj40_stat_plug_check(reiser4_object_t *obj, 
+					    uint8_t mode, int present) 
+{
 	reiser4_place_t *start;
+	sdhint_plug_t plugh;
 	trans_hint_t trans;
 	stat_hint_t stat;
 	uint64_t diff;
@@ -420,11 +413,8 @@ static inline errno_t obj40_check_plug(reiser4_object_t *obj, uint8_t mode) {
 	trans.plug = start->plug;
 	start->pos.unit = 0;
 
-	stat.extmask = (1 << SDEXT_PLUG_ID);
-
-	if (obj->info.opset.plug_mask) {
+	if (present) {
 		/* Plug extention is the SD is wrong. Remove it first. */
-		
 		if ((res = obj40_remove(obj, start, &trans)))
 			return res;
 		
@@ -436,7 +426,13 @@ static inline errno_t obj40_check_plug(reiser4_object_t *obj, uint8_t mode) {
 	}
 	
 	obj->info.opset.plug_mask = mask;
-	stat.ext[SDEXT_PLUG_ID] = &obj->info.opset;
+	
+	/* Pass plugh there instead of obj->info.opset to not get the 
+	   altered result after the modification */
+	aal_memcpy(&plugh, &obj->info.opset, sizeof(plugh));
+	stat.extmask = (1 << SDEXT_PLUG_ID);
+	stat.ext[SDEXT_PLUG_ID] = &plugh;
+	
 	start->pos.unit = 0;
 	
 	if ((res = obj40_insert(obj, start, &trans, LEAF_LEVEL)))
@@ -444,7 +440,6 @@ static inline errno_t obj40_check_plug(reiser4_object_t *obj, uint8_t mode) {
 
 	return obj40_update(obj);
 }
-
 
 /* Check the set of SD extentions and their contents. */
 errno_t obj40_update_stat(reiser4_object_t *obj, obj40_stat_ops_t *ops,
@@ -506,20 +501,31 @@ errno_t obj40_update_stat(reiser4_object_t *obj, obj40_stat_ops_t *ops,
 				return res;
 		}
 	}
-
-	/* Check the LW extension. */
-	if ((res = obj40_check_lw(obj, ops, hint, mode,
-				  extmask & (1 << SDEXT_LW_ID))) < 0)
-		return res;
-
+	
 	/* Check the UNIX extention. */
-	if ((res |= obj40_check_unix(obj, ops, hint, mode,
-				     extmask & (1 << SDEXT_UNIX_ID))) < 0)
+	if ((res |= obj40_stat_unix_check(obj, ops, hint, mode,
+					  extmask & (1 << SDEXT_UNIX_ID))) < 0)
+	{
 		return res;
-
+	}
+	
+	/* Check the LW extension. */
+	if ((res = obj40_stat_lw_check(obj, ops, hint, mode, 
+				       extmask & (1 << SDEXT_LW_ID))) < 0)
+	{
+		return res;
+	}
+	
 	/* Check the PLUG extention. */
-	res |= obj40_check_plug(obj, mode);
-
+	if ((res |= obj40_stat_plug_check(obj, mode, 
+					  extmask & (1 << SDEXT_LW_ID))) < 0)
+	{
+		return res;
+	}
+	
+	/* The sdext_sym & sdext_crc are either mandatory or unknown.
+	   Nothing to check there. */
+	
 	return res;
 }
 

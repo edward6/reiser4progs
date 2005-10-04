@@ -348,8 +348,8 @@ errno_t obj40_inherit(object_info_t *info, object_info_t *parent) {
 }
 
 /* Prepapre unix hint in StatData */
-static errno_t obj40_stat_unix_init(stat_hint_t *stat, sdhint_unix_t *unixh, 
-				    uint64_t bytes, uint64_t rdev) 
+errno_t obj40_stat_unix_init(stat_hint_t *stat, sdhint_unix_t *unixh, 
+			     uint64_t bytes, uint64_t rdev) 
 {
 	aal_assert("vpf-1772", stat != NULL);
 	aal_assert("vpf-1773", unixh != NULL);
@@ -421,17 +421,15 @@ static errno_t obj40_stat_plug_init(reiser4_object_t *obj,
 	aal_assert("vpf-1776", plugh != NULL);
 	aal_assert("vpf-1778", obj != NULL);
 
-	aal_memcpy(plugh, &obj->info.opset, sizeof(*plugh));
-
 	/* Get plugins that must exists in the PLUGID extention. */
 	obj->info.opset.plug_mask = 
 		obj40_core->pset_ops.build_mask(obj->info.tree,
 						&obj->info.opset);
 	
 	if (obj->info.opset.plug_mask) {
+		aal_memcpy(plugh, &obj->info.opset, sizeof(*plugh));
 		stat->extmask |= (1 << SDEXT_PLUG_ID);
 		stat->ext[SDEXT_PLUG_ID] = plugh;
-		plugh->plug_mask = obj->info.opset.plug_mask;
 	}
 
 	return 0;
@@ -495,8 +493,10 @@ static errno_t obj40_stat_crc_init(reiser4_object_t *obj,
 
 /* Create stat data item basing on passed extensions @mask, @size, @bytes,
    @nlinks, @mode and @path for symlinks. Returns error or zero for success. */
-errno_t obj40_create_stat(reiser4_object_t *obj, uint64_t size, uint64_t bytes, 
-			  uint64_t rdev, uint32_t nlink, uint16_t mode, char *str)
+errno_t obj40_create_stat(reiser4_object_t *obj, 
+			  uint64_t size, uint64_t bytes, 
+			  uint64_t rdev, uint32_t nlink, 
+			  uint16_t mode, char *str)
 {
 	sdhint_unix_t unixh;
 	sdhint_plug_t plugh;

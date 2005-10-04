@@ -30,10 +30,6 @@ errno_t sym40_check_struct(reiser4_object_t *sym,
 	if ((res = obj40_prepare_stat(sym, S_IFLNK, mode)))
 		return res;
 	
-	/* Try to register SD as an item of this file. */
-	if (place_func && place_func(place, data))
-		return -EINVAL;
-	
 	if (!(path = aal_calloc(place_blksize(place), 0)))
 		return -ENOMEM;
 	
@@ -41,9 +37,22 @@ errno_t sym40_check_struct(reiser4_object_t *sym,
 		goto error;
 	
 	/* Fix the SD, if no fatal corruptions were found. */
+	ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 	hint.mode = S_IFLNK;
 	hint.size = aal_strlen(path);
-	ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
+	
+	if (!hint.size) {
+		fsck_mess("The object [%s]: found SD item of the SymLink "
+			  "type does not have SymLink SD extention.%s", 
+			  print_inode(obj40_core, &sym->info.object),
+			  mode != RM_CHECK ? " Removed" : "");
+
+		return RE_FATAL;
+	}
+	
+	/* Try to register SD as an item of this file. */
+	if (place_func && place_func(place, data))
+		return -EINVAL;
 	
 	if ((res = obj40_update_stat(sym, &ops, &hint, mode)))
 		goto error;

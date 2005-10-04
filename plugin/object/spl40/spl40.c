@@ -49,7 +49,8 @@ static reiser4_object_plug_t spl40 = {
 
 #ifndef ENABLE_MINIMAL
 	.sdext_mandatory = (1 << SDEXT_LW_ID),
-	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID)
+	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID  |
+			    1 << SDEXT_CLUSTER_ID)
 #endif
 };
 
