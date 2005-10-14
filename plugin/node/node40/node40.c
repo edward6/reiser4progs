@@ -222,7 +222,7 @@ uint16_t node40_len(reiser4_node_t *entity, pos_t *pos) {
 /* Open the node on the given @block with the given key plugin @kplug. Returns
    initialized node instance. */
 static reiser4_node_t *node40_open(aal_block_t *block,
-				  reiser4_plug_t *kplug)
+				   reiser4_plug_t *kplug)
 {
 	reiser4_node_t *entity;
 	
@@ -310,8 +310,8 @@ errno_t node40_fetch(reiser4_node_t *entity,
 	}
 
 	/* Init item specific stuff. */
-	if (place->plug->pl.item->tree->init) {
-		place->plug->pl.item->tree->init(place);
+	if (place->plug->pl.item->balance->init) {
+		place->plug->pl.item->balance->init(place);
 	} else {
 		/* Zero all item-specific fields here. */
 		place->off = 0;
@@ -778,7 +778,7 @@ errno_t node40_remove(reiser4_node_t *entity, pos_t *pos,
 					return -EINVAL;
 
 				/* Not for nodeprt items. */
-				if (place.plug->pl.item->tree->down_link)
+				if (place.plug->id.group == PTR_ITEM)
 					continue;
 
 				/* Only if item has a block layout. */

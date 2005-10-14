@@ -16,6 +16,13 @@ static void obj40_init(reiser4_object_t *object) {
 			   sizeof(object->info.object));
 }
 
+/* Obtains the maxreal key of the given place. */
+uint64_t obj40_place_maxreal(reiser4_place_t *place) {
+	reiser4_key_t key;
+	plug_call(place->plug->pl.item->balance, maxreal_key, place, &key);
+	return plug_call(key.plug->pl.key, get_offset, &key);
+}
+
 static errno_t obj40_exts_check(reiser4_object_t *obj) {
 	reiser4_object_plug_t *ops;
 	uint64_t extmask;

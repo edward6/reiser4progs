@@ -16,9 +16,7 @@ uint32_t tail40_units(reiser4_place_t *place) {
 }
 
 /* Returns key from tail at @place. */
-errno_t tail40_fetch_key(reiser4_place_t *place, 
-			 reiser4_key_t *key) 
-{
+errno_t tail40_fetch_key(reiser4_place_t *place, reiser4_key_t *key) {
 	uint32_t pos;
 	
 	aal_assert("vpf-627", key != NULL);
@@ -29,13 +27,12 @@ errno_t tail40_fetch_key(reiser4_place_t *place,
 }
 
 /* Reads units from tail at @place into passed @hint. */
-int64_t tail40_read_units(reiser4_place_t *place,
-			  trans_hint_t *hint)
-{
+int64_t tail40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 	uint32_t count;
 	
 	aal_assert("umka-1674", hint != NULL);
 	aal_assert("umka-1673", place != NULL);
+	aal_assert("vpf-1859", hint->specific != NULL);
 
 	count = hint->count;
 

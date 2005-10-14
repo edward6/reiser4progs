@@ -1479,7 +1479,9 @@ static item_balance_ops_t balance_ops = {
 	.shift_units	  = extent40_shift_units,
 	.maxreal_key	  = extent40_maxreal_key,
 	.collision	  = NULL,
+	.overhead	  = NULL,
 #endif
+	.init		  = NULL,
 	.units		  = extent40_units,
 	.lookup		  = extent40_lookup,
 	.fetch_key	  = extent40_fetch_key,
@@ -1498,7 +1500,6 @@ static item_object_ops_t object_ops = {
 	.layout		  = extent40_layout,
 	.size		  = extent40_size,
 	.bytes		  = extent40_bytes,
-	.overhead	  = NULL,
 #endif
 	.read_units	  = extent40_read_units,
 	.fetch_units	  = extent40_fetch_units
@@ -1521,16 +1522,7 @@ static item_debug_ops_t debug_ops = {
 };
 #endif
 
-static item_tree_ops_t tree_ops = {
-	.init		  = NULL,
-	.down_link	  = NULL,
-#ifndef ENABLE_MINIMAL
-	.update_link	  = NULL,
-#endif
-};
-
 static reiser4_item_plug_t extent40 = {
-	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
 #ifndef ENABLE_MINIMAL

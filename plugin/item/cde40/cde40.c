@@ -1070,7 +1070,9 @@ static item_balance_ops_t balance_ops = {
         .maxreal_key	  = cde40_maxreal_key,
 	.update_key	  = cde40_update_key,
 	.collision	  = cde40_collision,
+	.overhead	  = cde40_overhead,
 #endif
+	.init		  = NULL,
 	.units		  = cde40_units,
 	.lookup		  = cde40_lookup,
 	.fetch_key	  = cde40_fetch_key,
@@ -1087,7 +1089,6 @@ static item_object_ops_t object_ops = {
 	
 	.size		  = cde40_size,
 	.bytes		  = cde40_bytes,
-	.overhead	  = cde40_overhead,
 	 
 	.update_units	  = NULL,
 	.prep_write	  = NULL,
@@ -1115,16 +1116,7 @@ static item_repair_ops_t repair_ops = {
 };
 #endif
 
-static item_tree_ops_t tree_ops = {
-	.init		  = NULL,
-	.down_link	  = NULL,
-#ifndef ENABLE_MINIMAL
-	.update_link	  = NULL
-#endif
-};
-
 static reiser4_item_plug_t cde40 = {
-	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
 #ifndef ENABLE_MINIMAL

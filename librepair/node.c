@@ -68,7 +68,7 @@ static errno_t repair_node_items_check(reiser4_node_t *node, place_func_t func,
 			
 			goto error_remove_item;
 		} else if (reiser4_key_compfull(&key, &place.key)) {
-			/* Key has been fixed. */
+			/* @Key has been fixed. */
 			fsck_mess("Node (%llu): The key [%s] of the item (%u) "
 				  "is broken. %s [%s].", node->block->nr,
 				  reiser4_print_key(&place.key),
@@ -92,8 +92,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node, place_func_t func,
 		if (ret & RE_FATAL) {
 			fsck_mess("Node (%llu), item (%u), [%s]: broken item "
 				  "found.%s", node->block->nr, pos->item,
-				  reiser4_print_key(&place.key),
-				  mode == RM_BUILD ? " Remove it." : "");
+				  reiser4_print_key(&key), mode == RM_BUILD ? 
+				  " Remove it." : "");
 
 			goto error_remove_item;
 		}
@@ -110,9 +110,22 @@ static errno_t repair_node_items_check(reiser4_node_t *node, place_func_t func,
 				return RE_FATAL;
 			}
 		}
+		
+		prev = key;
 
 		if ((ret = reiser4_item_maxreal_key(&place, &key)))
 			return ret;
+		
+		/* Check that the maxreal key is not less than the place key */
+		if (reiser4_key_compfull(&prev, &key) > 0) {
+			fsck_mess("Node (%llu), item (%u): has the wrong key "
+				  "or too large body: from [%s] to [%s].",
+				  node->block->nr, pos->item,
+				  reiser4_print_key(&prev),
+				  reiser4_print_key(&key));
+			
+			goto error_remove_item;
+		}
 		
 		if (func && (ret = func(&place, data)))
 			return ret;

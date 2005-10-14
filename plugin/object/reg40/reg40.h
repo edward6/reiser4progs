@@ -7,8 +7,8 @@
 #define REG40_H
 
 #include <aal/libaal.h>
-#include <reiser4/plugin.h>
-#include <plugin/object/obj40/obj40.h>
+#include "reiser4/plugin.h"
+#include "plugin/object/obj40/obj40.h"
 
 #ifndef ENABLE_MINIMAL
 extern int64_t reg40_put(reiser4_object_t *reg, void *buff, 

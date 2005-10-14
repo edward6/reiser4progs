@@ -27,6 +27,8 @@ typedef struct obj40_stat_hint {
 	uint16_t mode;
 } obj40_stat_hint_t;
 
+extern uint64_t obj40_place_maxreal(reiser4_place_t *place);
+
 extern errno_t obj40_update_stat(reiser4_object_t *obj, 
 				 obj40_stat_ops_t *ops,
 				 obj40_stat_hint_t *hint, 

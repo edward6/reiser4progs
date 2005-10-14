@@ -4,9 +4,9 @@
    crc40.c -- reiser4 crypto compression regular file plugin. */
 
 #ifndef ENABLE_MINIMAL
-#include "crc40.h"
 
-#include <crc40.h>
+#include "crc40.h"
+#include "crc40_repair.h"
 
 static int64_t crc40_read(reiser4_object_t *crc, 
 			  void *buff, uint64_t n)
@@ -41,7 +41,7 @@ static reiser4_object_plug_t crc40 = {
 	.linked         = obj40_linked,
 	.clobber        = NULL,
 	.recognize	= obj40_recognize,
-	.check_struct   = NULL,
+	.check_struct   = crc40_check_struct,
 	
 	.add_entry      = NULL,
 	.rem_entry      = NULL,

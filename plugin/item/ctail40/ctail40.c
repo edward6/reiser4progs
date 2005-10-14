@@ -27,10 +27,11 @@ static int ctail40_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
 	aal_assert("vpf-1765", place1 != NULL);
 	aal_assert("vpf-1807", place2 != NULL);
 	aal_assert("vpf-1808", place1->plug == place2->plug);
-	aal_assert("vpf-1809", ct40_get_shift(place1->body) == 
-			       ct40_get_shift(place2->body));
 	
 	shift = ct40_get_shift(place1->body);
+	
+	aal_assert("vpf-1809", shift == ct40_get_shift(place2->body));
+	
 	off1 = plug_call(place1->key.plug->pl.key, get_offset, &place1->key);
 	off2 = plug_call(place2->key.plug->pl.key, get_offset, &place2->key);
 	
@@ -56,6 +57,32 @@ static errno_t ctail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 	return tail40_prep_write(place, hint);
 }
 
+static int64_t ctail40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
+	ctail_hint_t *chint;
+	
+	aal_assert("vpf-1862", place != NULL);
+	aal_assert("vpf-1861", hint != NULL);
+	
+	chint = (ctail_hint_t *)hint->specific;
+	chint->shift = ct40_get_shift(place->body);
+	
+	return 1;
+}
+
+static int64_t ctail40_update_units(reiser4_place_t *place, trans_hint_t *hint)
+{
+	ctail_hint_t *chint;
+	
+	aal_assert("umka-2431", hint != NULL);
+	aal_assert("umka-2430", place != NULL);
+	
+	chint = (ctail_hint_t *)hint->specific;
+	ct40_set_shift(place->body, chint->shift);
+	place_mkdirty(place);
+	
+	return 1;
+}
+
 static item_balance_ops_t balance_ops = {
 	.merge		  = NULL,
 	.update_key	  = NULL,
@@ -64,6 +91,9 @@ static item_balance_ops_t balance_ops = {
 	.prep_shift	  = ctail40_prep_shift,
 	.shift_units	  = tail40_shift_units,
 	.collision	  = NULL,
+	.overhead	  = NULL,
+	
+	.init             = ctail40_init,
 	.units            = tail40_units,
 	.lookup		  = tail40_lookup,
 	.fetch_key	  = tail40_fetch_key,
@@ -73,7 +103,6 @@ static item_balance_ops_t balance_ops = {
 static item_object_ops_t object_ops = {
 	.size		  = tail40_size,
 	.bytes		  = tail40_size,
-	.overhead	  = NULL,
 
 	.prep_write	  = ctail40_prep_write,
 	.write_units	  = tail40_write_units,
@@ -82,9 +111,9 @@ static item_object_ops_t object_ops = {
 	.prep_insert	  = NULL,
 	.insert_units	  = NULL,
 	.remove_units	  = NULL,
-	.update_units	  = NULL,
+	.update_units	  = ctail40_update_units,
 	.layout		  = NULL,
-	.fetch_units	  = NULL,
+	.fetch_units	  = ctail40_fetch_units,
 	.read_units	  = tail40_read_units
 };
 
@@ -103,14 +132,7 @@ static item_debug_ops_t debug_ops = {
 	.print		  = NULL
 };
 
-static item_tree_ops_t tree_ops = {
-	.init             = ctail40_init,
-	.down_link	  = NULL,
-	.update_link	  = NULL
-};
-
 static reiser4_item_plug_t ctail40 = {
-	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
 	.repair		  = &repair_ops,

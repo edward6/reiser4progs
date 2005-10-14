@@ -1,8 +1,8 @@
 /* Copyright 2001-2005 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   repair/cleanup.h -- the structures and methods needed for tree
-   cleanuping as the end of filsystem recovery. */
+   repair/cleanup.h -- the structures and methods needed for
+   cleaning up the storage trees at the end of filsystem recovery. */
 
 #ifndef REPAIR_CLEANUP_H
 #define REPAIR_CLEANUP_H

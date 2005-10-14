@@ -26,7 +26,7 @@ uint32_t sdext_crc_length(stat_entity_t *stat, void *hint) {
 			return 0;
 		}
 		
-		count = 4 << (uint32_t)stat->info.digest;
+		count = reiser4_keysign_size(stat->info.digest);
 	}
 	
 	return sizeof(e.keylen) + count;
@@ -49,7 +49,7 @@ static errno_t sdext_crc_open(stat_entity_t *stat, void *hint) {
 	crch = (sdhint_crc_t *)hint;
 	ext = (sdext_crc_t *)stat_body(stat);
 	crch->keylen = sdext_crc_get_keylen(ext);
-	crch->signlen = 4 << (uint32_t)stat->info.digest;
+	crch->signlen = reiser4_keysign_size(stat->info.digest);
 	aal_memcpy(crch->sign, ext->sign, crch->signlen);
 	
 	return 0;

@@ -51,7 +51,9 @@ static item_balance_ops_t balance_ops = {
 	.prep_shift	  = plain40_prep_shift,
 	.shift_units	  = tail40_shift_units,
 	.collision	  = NULL,
+	.overhead	  = NULL,
 #endif
+	.init		  = NULL,
 	.units            = tail40_units,
 	.lookup		  = tail40_lookup,
 	.fetch_key	  = tail40_fetch_key,
@@ -62,7 +64,6 @@ static item_object_ops_t object_ops = {
 #ifndef ENABLE_MINIMAL
 	.size		  = tail40_size,
 	.bytes		  = tail40_size,
-	.overhead	  = NULL,
 	
 	.prep_write	  = plain40_prep_write,
 	.write_units	  = tail40_write_units,
@@ -95,16 +96,7 @@ static item_debug_ops_t debug_ops = {
 };
 #endif
 
-static item_tree_ops_t tree_ops = {
-	.init		  = NULL,
-	.down_link	  = NULL,
-#ifndef ENABLE_MINIMAL
-	.update_link	  = NULL
-#endif
-};
-
 static reiser4_item_plug_t plain40 = {
-	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
 #ifndef ENABLE_MINIMAL

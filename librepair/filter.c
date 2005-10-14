@@ -656,7 +656,7 @@ errno_t repair_filter(repair_filter_t *fd) {
 	aal_assert("vpf-816", fd->repair->fs->tree != NULL);
 	aal_assert("vpf-815", fd->bm_used != NULL);
 
-	aal_mess("CHECKING STORAGE TREE");
+	aal_mess("CHECKING THE STORAGE TREE");
 	fd->gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS], 
 				     cb_gauge_tree_percent, NULL, 500, NULL);
 	time(&fd->stat.time);

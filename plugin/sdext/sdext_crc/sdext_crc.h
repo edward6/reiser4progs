@@ -9,6 +9,8 @@
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
+#define reiser4_keysign_size(digestid) (4 << ((uint32_t)digestid))
+
 typedef struct sdext_crc {
 	/* secret key size. */ 
 	d16_t keylen;

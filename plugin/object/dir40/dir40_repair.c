@@ -59,11 +59,11 @@ static errno_t dir40_dot(reiser4_object_t *dir,
 	return res < 0 ? res : 0;
 }
 
-static errno_t  dir40_entry_check(reiser4_object_t *dir,
-				  obj40_stat_hint_t *hint,
-				  place_func_t func, 
-				  void *data, 
-				  uint8_t mode)
+static errno_t dir40_entry_check(reiser4_object_t *dir,
+				 obj40_stat_hint_t *hint,
+				 place_func_t func, 
+				 void *data, 
+				 uint8_t mode)
 {
 	object_info_t *info;
 	entry_hint_t entry;
@@ -251,9 +251,11 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 		if (dir->position.adjust)
 			dir->position.adjust--;
 
-		res |= dir40_entry_check(dir, &hint, func, data, mode);
-		if (res < 0)
+		if ((res |= dir40_entry_check(dir, &hint, func, 
+					      data, mode)) < 0)
+		{
 			return res;
+		}
 		
 		/* Lookup for the last handled entry key with the incremented 
 		   adjust to get the next entry. */

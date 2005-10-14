@@ -27,8 +27,8 @@ void sdext_crc_print(stat_entity_t *stat,
 		aal_stream_format(stream, "<unknown keyid>\n");
 		return;
 	}
-	
-	count = 4 << (uint32_t)stat->info.digest;
+
+	count = reiser4_keysign_size(stat->info.digest);
 	aal_stream_format(stream, "[%u]: ", count);
 	
 	for (i = 0; i < count; i++)

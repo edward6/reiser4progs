@@ -808,7 +808,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	if ((res = reiser4_tree_load_root(tree)))
 		goto error;
 
-	aal_mess("CHECKING SEMANTIC TREE");
+	aal_mess("CHECKING THE SEMANTIC TREE");
 	sem->gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS], 
 				      NULL, NULL, 500, NULL);
 	aal_gauge_set_value(sem->gauge, 0);

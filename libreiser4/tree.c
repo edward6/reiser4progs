@@ -1843,14 +1843,6 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 		if (!reiser4_place_valid(place))
 			restore_and_exit(ABSENT);
 		
-		if (reiser4_place_fetch(place))
-			restore_and_exit(-EIO);
-
-		/* Checking is item at @place is nodeptr one. If not, we correct
-		   posision back. */
-		if (!reiser4_item_branch(place->plug))
-			restore_and_exit(res);
-
 		/* Loading node by its nodeptr item at @place. */
 		if (!(place->node = reiser4_tree_child_node(tree, place)))
 			restore_and_exit(-EIO);

@@ -153,24 +153,6 @@ static int reg40_conv_prepare(reiser4_object_t *reg,
 	return 1;
 }
 
-/* Obtains the maxreal key of the given place.
-   Returns: maxreal key if evth is ok.
-   0 -- no place; MAX_UINT64 -- some error. */
-static uint64_t reg40_place_maxreal(reiser4_place_t *place) {
-	uint64_t offset, size;
-	reiser4_key_t key;
-	
-	offset = plug_call(place->key.plug->pl.key, get_offset, &place->key);
-	size = plug_call(place->plug->pl.item->object, size, place);
-	
-	if (offset > MAX_UINT64 - size)
-		return MAX_UINT64;
-
-	/* Get the maxreal key of the found item. */
-	plug_call(place->plug->pl.item->balance, maxreal_key, place, &key);
-	return plug_call(key.plug->pl.key, get_offset, &key);
-}
-
 static errno_t reg40_hole_cure(reiser4_object_t *reg, 
 			       obj40_stat_hint_t *hint,
 			       place_func_t func,
@@ -217,6 +199,7 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 	object_info_t *info;
 	conv_hint_t conv;
 	uint64_t maxreal;
+	uint64_t offset;
 	errno_t res = 0;
 
 	aal_assert("vpf-1126", reg != NULL);
@@ -237,6 +220,7 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 	
 	conv.place_func = func;
 	conv.ins_hole = 1;
+	maxreal = 0;
 	
 	/* Reg40 object (its SD item) has been opened or created. */
 	while (1) {
@@ -252,41 +236,32 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 			break;
 		}
 		
-		maxreal = 0;
+		offset = maxreal;
 		
 		if (!the_end) {
-			maxreal = reg40_place_maxreal(&reg->body);
+			maxreal = obj40_place_maxreal(&reg->body);
 			
 			if (!reg->body_plug)
 				reg->body_plug = reg->body.plug;
 			
-			if (maxreal == MAX_UINT64) {
-				uint64_t offset;
-				
-				offset = plug_call(reg->body.key.plug->pl.key,
-						   get_offset, &reg->body.key);
-				
-				fsck_mess("The object [%s]: found item "
-					  "has the wrong offset (%llu).%s",
-					  print_inode(obj40_core, &info->object),
-					  offset, mode != RM_CHECK ? " Removed"
-					  : "");
-
-				/* There could not be more items, the_end. */
-				the_end = 1;
-			} else if (plug_call(reg->position.plug->pl.key,
-					     compfull, &reg->position, 
-					     &reg->body.key) > 0)
+			if (maxreal < offset) {
+				aal_bug("vpf-1865", "The position "
+					"offset is overflowed: [%s].",
+					print_key(obj40_core, &reg->position));
+			}
+			
+			if (plug_call(reg->position.plug->pl.key,
+				      compfull, &reg->position,
+				      &reg->body.key) > 0)
 			{
 				/* If in the middle of the item, go to the 
 				   next. It may happen after the tail->extent
 				   convertion. */
 				goto next;
-			} else {
-				/* Prepare the convertion if needed. */
-				result = reg40_conv_prepare(reg, &conv, 
-							    maxreal, mode);
 			}
+
+			/* Prepare the convertion if needed. */
+			result = reg40_conv_prepare(reg, &conv, maxreal, mode);
 		}
 	
 		/* If result == 2 -- convertion is needed;
@@ -294,8 +269,6 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 		   If result == 0 -- conversion is not postponed anymore;
 		   If conv.offset.plug != NULL, conversion was postponed. */
 		if ((result == 0 && conv.offset.plug) || result == 2) {
-			uint64_t offset;
-			
 			offset = plug_call(conv.offset.plug->pl.key,
 					   get_offset, &conv.offset);
 			
@@ -304,7 +277,7 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 				  "detected tail policy (%s).%s",
 				  print_inode(obj40_core, &info->object),
 				  reiser4_oplug(reg)->label, 
-				  offset, offset + conv.count -1, 
+				  offset, offset + conv.count - 1,
 				  info->opset.plug[OPSET_POLICY]->label,
 				  mode == RM_BUILD ? " Converted." : "");
 
@@ -343,9 +316,7 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 			return res;
 		
 next:
-		/* The limit is reached. */
-		if (maxreal == MAX_UINT64)
-			break;
+		aal_assert("vpf-1856", maxreal != MAX_UINT64);
 		
 		/* Find the next after the maxreal key. */
 		obj40_seek(reg, maxreal + 1);

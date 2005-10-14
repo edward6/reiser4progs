@@ -117,7 +117,9 @@ static item_balance_ops_t balance_ops = {
 	.prep_shift	  = NULL,
 	.shift_units	  = NULL,
 	.collision	  = NULL,
+	.overhead	  = NULL,
 #endif
+	.init		  = NULL,
 	.lookup		  = NULL,
 	.fetch_key	  = NULL,
 	.maxposs_key	  = NULL,
@@ -128,7 +130,6 @@ static item_object_ops_t object_ops = {
 #ifndef ENABLE_MINIMAL
 	.size		  = NULL,
 	.bytes		  = NULL,
-	.overhead	  = NULL,
 	
 	.prep_write	  = NULL,
 	.write_units	  = NULL,
@@ -163,16 +164,7 @@ static item_debug_ops_t debug_ops = {
 };
 #endif
 
-static item_tree_ops_t tree_ops = {
-	.init		  = NULL,
-	.down_link	  = NULL,
-#ifndef ENABLE_MINIMAL
-	.update_link	  = NULL
-#endif
-};
-
 static reiser4_item_plug_t bbox40 = {
-	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
 #ifndef ENABLE_MINIMAL

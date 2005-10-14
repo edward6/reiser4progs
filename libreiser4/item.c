@@ -56,7 +56,7 @@ int reiser4_item_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
 /* Returns 1 if @place points to an nodeptr item. */
 bool_t reiser4_item_branch(reiser4_plug_t *plug) {
 	aal_assert("umka-1829", plug != NULL);
-	return (plug->pl.item->tree->down_link != NULL);
+	return (plug->id.group == PTR_ITEM);
 }
 
 /* Returns maximal possible key may exist in item at @place. */
@@ -134,20 +134,29 @@ errno_t reiser4_item_get_key(reiser4_place_t *place,
 errno_t reiser4_item_update_link(reiser4_place_t *place,
 				 blk_t blk)
 {
+	trans_hint_t hint;
+	ptr_hint_t ptr;
+	
 	aal_assert("umka-2668", place != NULL);
 	
-	return plug_call(place->plug->pl.item->tree,
-			 update_link, place, blk);
+	/* Prepare @hint. */
+	hint.count = 1;
+	hint.specific = &ptr;
+	ptr.start = blk;
+	ptr.width = 1;
+	
+	return plug_call(place->plug->pl.item->object,
+			 update_units, place, &hint);
 }
 
 uint16_t reiser4_item_overhead(reiser4_plug_t *plug) {
 	aal_assert("vpf-1514", plug != NULL);
 	aal_assert("vpf-1515", plug->id.type == ITEM_PLUG_TYPE);
 
-	if (!plug->pl.item->object->overhead)
+	if (!plug->pl.item->balance->overhead)
 		return 0;
 	
-	return plug_call(plug->pl.item->object, overhead);
+	return plug_call(plug->pl.item->balance, overhead);
 }
 
 void reiser4_item_set_flag(reiser4_place_t *place, uint16_t flag) {
@@ -239,7 +248,20 @@ lookup_t reiser4_item_collision(reiser4_place_t *place, coll_hint_t *hint) {
 
 /* Return block number nodeptr item contains. */
 blk_t reiser4_item_down_link(reiser4_place_t *place) {
+	trans_hint_t hint;
+	ptr_hint_t ptr;
+	
 	aal_assert("umka-2666", place != NULL);
 	
-	return plug_call(place->plug->pl.item->tree, down_link, place);
+	/* Prepare @hint. */
+	hint.count = 1;
+	hint.specific = &ptr;
+
+	if (plug_call(place->plug->pl.item->object, 
+		      fetch_units, place, &hint) != 1)
+	{
+		return MAX_UINT64;
+	}
+
+	return ptr.start;
 }

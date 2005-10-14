@@ -33,19 +33,20 @@ static int64_t nodeptr40_fetch_units(reiser4_place_t *place,
 	return 1;
 }
 
-static blk_t nodeptr40_down_link(reiser4_place_t *place) {
-	aal_assert("umka-2665", place != NULL);
-	return np40_get_ptr(nodeptr40_body(place));
-}
-
 #ifndef ENABLE_MINIMAL
 /* Update nodeptr block number by passed @blk. */
-static errno_t nodeptr40_update_link(reiser4_place_t *place,
-				     blk_t blk)
+static errno_t nodeptr40_update_units(reiser4_place_t *place,
+				      trans_hint_t *hint)
 {
+	ptr_hint_t *ptr;
+	
 	aal_assert("umka-2667", place != NULL);
-	np40_set_ptr(nodeptr40_body(place), blk);
+	aal_assert("vpf-1863", hint != NULL);
+	
+	ptr = (ptr_hint_t *)hint->specific;
+	np40_set_ptr(nodeptr40_body(place), ptr->start);
 	place_mkdirty(place);
+	
 	return 0;
 }
 
@@ -121,7 +122,9 @@ static item_balance_ops_t balance_ops = {
 	.update_key	  = NULL,
 	.mergeable	  = NULL,
 	.collision	  = NULL,
+	.overhead	  = NULL,
 #endif
+	.init		  = NULL,
 	.lookup		  = NULL,
 	.fetch_key	  = NULL,
 	.maxposs_key	  = NULL,
@@ -138,11 +141,10 @@ static item_object_ops_t object_ops = {
 
 	.prep_write	  = NULL,
 	.write_units	  = NULL,
-	.update_units	  = NULL,
+	.update_units	  = nodeptr40_update_units,
 	.trunc_units	  = NULL,
 	.size		  = NULL,
 	.bytes		  = NULL,
-	.overhead	  = NULL,
 #endif
 	.read_units	  = NULL,
 	.fetch_units	  = nodeptr40_fetch_units
@@ -165,16 +167,7 @@ static item_debug_ops_t debug_ops = {
 };
 #endif
 
-static item_tree_ops_t tree_ops = {
-	.init		  = NULL,
-	.down_link	  = nodeptr40_down_link,
-#ifndef ENABLE_MINIMAL
-	.update_link	  = nodeptr40_update_link
-#endif
-};
-
 static reiser4_item_plug_t nodeptr40 = {
-	.tree		  = &tree_ops,
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
 #ifndef ENABLE_MINIMAL

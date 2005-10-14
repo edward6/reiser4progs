@@ -3,8 +3,8 @@
     
     cleanup.c -- repair/cleanup.c -- cleanup pass recovery code.
     
-    The pass is intended for cleanuping the storage reiser4 tree from
-    not reacoverable garbage. */
+    The pass is intended for cleaning up the storage reiser4 tree
+    from not reacoverable garbage. */
 
 #include <repair/cleanup.h>
 
@@ -143,7 +143,7 @@ errno_t repair_cleanup(repair_cleanup_t *cleanup) {
 		return 0;
 	}
 	
-	aal_mess("CLEANUPING STORAGE TREE");
+	aal_mess("CLEANING UP THE STORAGE TREE");
 	cleanup->gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
 					  cb_gauge_tree_percent, NULL, 500, NULL);
 	aal_gauge_set_value(cleanup->gauge, 0);

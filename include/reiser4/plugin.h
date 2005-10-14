@@ -233,7 +233,6 @@ enum reiser4_perm_plug_id {
 	PERM_LAST_ID
 };
 
-
 enum reiser4_compress_plug_id {
 	COMPRESS_LZO1_ID	= 0x0,
 	COMPRESS_NOLZO1_ID	= 0x1,
@@ -536,6 +535,10 @@ typedef struct ptr_hint {
 	uint64_t start;
 	uint64_t width;
 } ptr_hint_t;
+
+typedef struct ctail_hint {
+	uint8_t shift;
+} ctail_hint_t;
 
 typedef struct sdhint_unix {
 	uint32_t uid;
@@ -1102,6 +1105,12 @@ typedef struct item_balance_ops {
 
 	/* Get the max key which could be stored in the item of this type. */
 	errno_t (*maxposs_key) (reiser4_place_t *, reiser4_key_t *);
+
+	/* Gets the overhead for the item creation. */
+	uint16_t (*overhead) ();
+	
+	/* Initialize the item-specific place info. */
+	void (*init) (reiser4_place_t *);
 } item_balance_ops_t;
 
 typedef struct item_object_ops {
@@ -1142,9 +1151,6 @@ typedef struct item_object_ops {
 	
 	/* Gets the amount of bytes data item keeps takes on the disk. */
 	uint64_t (*bytes) (reiser4_place_t *);
-
-	/* Gets the overhead for the item creation. */
-	uint16_t (*overhead) ();
 #endif
 } item_object_ops_t;
 
@@ -1174,21 +1180,7 @@ typedef struct item_debug_ops {
 } item_debug_ops_t;
 #endif
 
-typedef struct item_tree_ops {
-	/* Initialize the item-specific place info. */
-	void (*init) (reiser4_place_t *);
-	
-	/* Return block number from passed place. Place is nodeptr item. */
-	blk_t (*down_link) (reiser4_place_t *);
-
-#ifndef ENABLE_MINIMAL
-	/* Update link block number. */
-	errno_t (*update_link) (reiser4_place_t *, blk_t);
-#endif
-} item_tree_ops_t;
-
 typedef struct reiser4_item_plug {
-	item_tree_ops_t *tree;
 	item_object_ops_t *object;
 	item_balance_ops_t *balance;
 #ifndef ENABLE_MINIMAL
