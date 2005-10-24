@@ -8,6 +8,43 @@
 #include "crc40.h"
 #include "crc40_repair.h"
 
+uint32_t crc40_get_cluster_size(reiser4_place_t *place) {
+	trans_hint_t hint;
+	ctail_hint_t chint;
+	
+	aal_assert("vpf-1866", place != NULL);
+	
+	hint.specific = &chint;
+	hint.count = 1;
+
+	if (plug_call(place->plug->pl.item->object, 
+		      fetch_units, place, &hint) != 1)
+	{
+		return MAX_UINT32;
+	}
+
+	return 1 << chint.shift;
+}
+
+errno_t crc40_set_cluster_size(reiser4_place_t *place, uint32_t cluster) {
+	trans_hint_t hint;
+	ctail_hint_t chint;
+	
+	aal_assert("vpf-1867", place != NULL);
+	
+	hint.specific = &chint;
+	hint.count = 1;
+	chint.shift = aal_log2(cluster);
+
+	if (plug_call(place->plug->pl.item->object, 
+		      update_units, place, &hint) != 0)
+	{
+		return -EIO;
+	}
+
+	return 0;
+}
+
 static int64_t crc40_read(reiser4_object_t *crc, 
 			  void *buff, uint64_t n)
 {

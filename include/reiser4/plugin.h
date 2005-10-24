@@ -264,6 +264,8 @@ enum reiser4_cluster_id {
 	CLUSTER_LAST_ID
 };
 
+#define reiser4_cluster_size(plugid) (4096 << ((uint32_t)plugid))
+
 enum reiser4_digest_id {
 	DIGEST_NONE_ID = 0x0,
 	DIGEST_LAST_ID

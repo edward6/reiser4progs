@@ -51,50 +51,6 @@ static errno_t reg40_check_ikey(reiser4_object_t *reg) {
 	return offset % place_blksize(&reg->body) ? RE_FATAL : 0;
 }
 
-static lookup_t reg40_update_body(reiser4_object_t *reg, uint8_t mode) {
-	object_info_t *info;
-	errno_t res;
-		
-	info = &reg->info;
-	
-	while (1) {
-		if ((res = obj40_update_body(reg, NULL)) != PRESENT)
-			return res;
-
-		if (!plug_equal(reg->body.plug, info->opset.plug[OPSET_EXTENT]) && 
-		    !plug_equal(reg->body.plug, info->opset.plug[OPSET_TAIL]))
-		{
-			fsck_mess("The object [%s] (%s), node (%llu),"
-				  "item (%u): the item [%s] of the "
-				  "invalid plugin (%s) found.%s",
-				  print_inode(obj40_core, &info->object),
-				  reiser4_oplug(reg)->label, 
-				  place_blknr(&reg->body), reg->body.pos.item,
-				  print_key(obj40_core, &reg->body.key),
-				  reg->body.plug->label, 
-				  mode == RM_BUILD ? " Removed." : "");
-		} else if (reg40_check_ikey(reg)) {
-			fsck_mess("The object [%s] (%s), node (%llu),"
-				  "item (%u): the item [%s] has the "
-				  "wrong offset.%s",
-				  print_inode(obj40_core, &info->object),
-				  reiser4_oplug(reg)->label, 
-				  place_blknr(&reg->body), reg->body.pos.item,
-				  print_key(obj40_core, &reg->body.key),
-				  mode == RM_BUILD ? " Removed." : "");
-		} else
-			return PRESENT;
-
-		/* Rm an item with not correct key or of unknown plugin. */
-		if (mode != RM_BUILD) 
-			return RE_FATAL;
-
-		/* Item has wrong key, remove it. */
-		if ((res = obj40_delete(reg, 1, MAX_UINT32, SF_DEFAULT)))
-			return res;
-	}
-}
-
 /* Returns 1 if the convertion is needed right now, 0 if should be delayed. */
 static int reg40_conv_prepare(reiser4_object_t *reg, 
 			      conv_hint_t *hint,
@@ -120,7 +76,9 @@ static int reg40_conv_prepare(reiser4_object_t *reg,
 		/* Convert from 0 to this item offset bytes. */
 		if (!(hint->count = plug_call(reg->body.key.plug->pl.key, 
 					      get_offset, &reg->body.key)))
+		{
 			return 0;
+		}
 		
 		/* Set the start key for convertion. */
 		aal_memcpy(&hint->offset, &reg->position, sizeof(hint->offset));
@@ -130,7 +88,7 @@ static int reg40_conv_prepare(reiser4_object_t *reg,
 		hint->bytes = 0;
 		
 		/* Convert now. */
-		return 2;
+		return 0;
 	}
 	
 	/* The current item should be converted to the body plug. 
@@ -191,6 +149,39 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 	return 0;
 }
 
+static errno_t reg40_check_item(reiser4_object_t *reg, void *data) {
+	uint8_t mode = *(uint8_t *)data;
+
+	if (!plug_equal(reg->body.plug, reg->info.opset.plug[OPSET_EXTENT]) ||
+	    !plug_equal(reg->body.plug, reg->info.opset.plug[OPSET_TAIL]))
+	{
+		fsck_mess("The object [%s] (%s), node (%llu),"
+			  "item (%u): the item [%s] of the "
+			  "invalid plugin (%s) found.%s",
+			  print_inode(obj40_core, &reg->info.object),
+			  reiser4_oplug(reg)->label, 
+			  place_blknr(&reg->body), reg->body.pos.item,
+			  print_key(obj40_core, &reg->body.key),
+			  reg->body.plug->label, 
+			  mode == RM_BUILD ? " Removed." : "");
+		
+		return mode == RM_BUILD ? -ESTRUCT : RE_FATAL;
+	} else if (reg40_check_ikey(reg)) {
+		fsck_mess("The object [%s] (%s), node (%llu),"
+			  "item (%u): the item [%s] has the "
+			  "wrong offset.%s",
+			  print_inode(obj40_core, &reg->info.object),
+			  reiser4_oplug(reg)->label, 
+			  place_blknr(&reg->body), reg->body.pos.item,
+			  print_key(obj40_core, &reg->body.key),
+			  mode == RM_BUILD ? " Removed." : "");
+		
+		return mode == RM_BUILD ? -ESTRUCT : RE_FATAL;
+	}
+	
+	return 0;
+}
+
 errno_t reg40_check_struct(reiser4_object_t *reg, 
 			   place_func_t func,
 			   void *data, uint8_t mode)
@@ -227,14 +218,12 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 		errno_t result;
 		int the_end = 0;
 		
-		if ((result = reg40_update_body(reg, mode)) < 0)
+		result = obj40_check_item(reg, reg40_check_item, NULL, &mode);
+		
+		if (repair_error_fatal(result))
 			return result;
 		else if (result == ABSENT)
 			the_end = 1;
-		else if (result != PRESENT && res != 0) {
-			res |= result;
-			break;
-		}
 		
 		offset = maxreal;
 		
@@ -264,11 +253,10 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 			result = reg40_conv_prepare(reg, &conv, maxreal, mode);
 		}
 	
-		/* If result == 2 -- convertion is needed;
-		   If result == 1 -- conversion is postponed;
+		/* If result == 1 -- conversion is postponed;
 		   If result == 0 -- conversion is not postponed anymore;
 		   If conv.offset.plug != NULL, conversion was postponed. */
-		if ((result == 0 && conv.offset.plug) || result == 2) {
+		if (result == 0 && conv.offset.plug) {
 			offset = plug_call(conv.offset.plug->pl.key,
 					   get_offset, &conv.offset);
 			
@@ -312,11 +300,14 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 					bytes, &reg->body);
 
 		/* If we found not we looking for, insert the hole. */
-		if ((res |= reg40_hole_cure(reg, &hint, func, mode)) < 0)
-			return res;
+		if ((result = reg40_hole_cure(reg, &hint, func, mode)) < 0)
+			return result;
 		
 next:
-		aal_assert("vpf-1856", maxreal != MAX_UINT64);
+		/* If the file size is the max possible one, break out 
+		   here to not seek to 0. */
+		if (maxreal == MAX_UINT64)
+			break;
 		
 		/* Find the next after the maxreal key. */
 		obj40_seek(reg, maxreal + 1);

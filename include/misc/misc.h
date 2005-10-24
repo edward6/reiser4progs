@@ -60,12 +60,20 @@ typedef enum mount_flags {
 	MF_RW		= 0x2
 } mount_flags_t;
 
-extern void misc_plugins_print(void);
+extern unsigned int misc_adler32(unsigned int adler, 
+				 char *buff, 
+				 unsigned int n);
+
 extern long long misc_size2long(const char *str);
-extern void misc_uuid_unparse(char *uuid, char *string);
-extern void misc_upper_case(char *dst, const char *src);
+
 extern long long misc_str2long(const char *str, int base);
+
+extern void misc_plugins_print(void);
+
+extern void misc_uuid_unparse(char *uuid, char *string);
+
+extern void misc_upper_case(char *dst, const char *src);
+
 extern int misc_dev_mounted(const char *name);
 
 #endif
-

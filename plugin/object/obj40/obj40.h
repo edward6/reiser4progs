@@ -53,7 +53,7 @@ extern uint64_t obj40_size(reiser4_object_t *obj);
 extern errno_t obj40_reset(reiser4_object_t *obj);
 extern uint64_t obj40_offset(reiser4_object_t *obj);
 
-typedef int (*obj_func_t) (reiser4_object_t *, void *);
+typedef errno_t (*obj_func_t) (reiser4_object_t *, void *);
 
 extern lookup_t obj40_update_body(reiser4_object_t *obj, 
 				  obj_func_t adjust_func);

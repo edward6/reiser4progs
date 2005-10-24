@@ -25,7 +25,9 @@ static errno_t dir40_dot(reiser4_object_t *dir,
 	
 	if ((res = obj40_find_item(dir, &dir->position, FIND_CONV, 
 				   NULL, NULL, &dir->body)) < 0)
+	{
 		return res;
+	}
 
 	if (res == PRESENT)
 		return 0;
@@ -174,6 +176,27 @@ static errno_t dir40_entry_check(reiser4_object_t *dir,
 	return 0;
 }
 
+static errno_t dir40_check_item(reiser4_object_t *dir, void *data) {
+	uint8_t mode = *(uint8_t *)data;
+	
+	/* FIXME-VITALY: item of the same group but of another plugin,
+	   should it be converted? */
+	if (dir->body.plug != dir->info.opset.plug[OPSET_DIRITEM]) {
+		fsck_mess("Directory [%s] (%s), node [%llu], item"
+			  "[%u]: item of the illegal plugin (%s) "
+			  "with the key of this object found.%s",
+			  print_inode(obj40_core, &dir->info.object),
+			  reiser4_oplug(dir)->label, 
+			  place_blknr(&dir->body), dir->body.pos.item,
+			  dir->body.plug->label, mode == RM_BUILD ? 
+			  " Removed." : "");
+		
+		return mode == RM_BUILD ? -ESTRUCT : RE_FATAL;
+	}
+	
+	return 0;
+}
+
 errno_t dir40_check_struct(reiser4_object_t *dir,
 			   place_func_t func,
 			   void *data, uint8_t mode)
@@ -207,43 +230,14 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 	
 	while (1) {
 		lookup_t lookup;
-		errno_t result;
 		
-		lookup = obj40_update_body(dir, dir40_entry_comp);
-
-		if (lookup < 0 && lookup != -ESTRUCT)
+		lookup = obj40_check_item(dir, dir40_check_item, 
+					  dir40_entry_comp, &mode);
+		
+		if (repair_error_fatal(lookup))
 			return lookup;
-
-		/* No more items of the dir40. */
-		if (lookup == ABSENT)
+		else if (lookup == ABSENT)
 			break;
-		
-		/* Item can be of another plugin, but of the same group. 
-		   FIXME-VITALY: item of the same group but of another 
-		   plugin, it should be converted. */
-		/*if (dir->body.plug->id.group != DIR_ITEM) */
-		if (dir->body.plug != info->opset.plug[OPSET_DIRITEM]) {
-			fsck_mess("Directory [%s] (%s), node [%llu], item"
-				  "[%u]: item of the illegal plugin (%s) "
-				  "with the key of this object found.%s",
-				  print_inode(obj40_core, &info->object),
-				  reiser4_oplug(dir)->label, 
-				  place_blknr(&dir->body), dir->body.pos.item,
-				  dir->body.plug->label, mode == RM_BUILD ? 
-				  " Removed." : "");
-
-			if (mode != RM_BUILD)
-				return RE_FATAL;
-			
-			/* Item has wrong key, remove it. */
-			result = obj40_delete(dir, 1, MAX_UINT32, 
-					      SF_DEFAULT & ~SF_ALLOW_PACK);
-			
-			if (result < 0)
-				return result;
-
-			continue;
-		}
 		
 		/* Looks like an item of dir40. If there were some key collisions, 
 		   this search was performed with incremented adjust, decrement it 

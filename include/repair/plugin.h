@@ -22,13 +22,13 @@ typedef enum repair_mode {
 } repair_mode_t;
 
 /* Fixable errors were detected. */
-#define RE_FIXABLE	((uint64_t)1 << 32)
+#define RE_FIXABLE	((int64_t)1 << 32)
 /* Fatal errors were detected. */
-#define RE_FATAL	((uint64_t)1 << 33)
+#define RE_FATAL	((int64_t)1 << 33)
 /* For expansibility. */
-#define RE_LAST		((uint64_t)1 << 34)
+#define RE_LAST		((int64_t)1 << 34)
 
-#define repair_error_fatal(result)   ((result & RE_FATAL) || (result < 0))
+#define repair_error_fatal(result)   ((result < 0) || (result & RE_FATAL))
 
 #define EXCEPTION_TYPE_FSCK EXCEPTION_TYPE_LAST
 

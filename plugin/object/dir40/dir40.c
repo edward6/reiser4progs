@@ -106,7 +106,7 @@ static void dir40_entry_type(entry_hint_t *entry) {
 #define dir40_entry_type(entry) do{;} while(0)
 #endif
 
-int dir40_entry_comp(reiser4_object_t *dir, void *data) {
+errno_t dir40_entry_comp(reiser4_object_t *dir, void *data) {
 	entry_hint_t entry;
 	reiser4_key_t *key;
 

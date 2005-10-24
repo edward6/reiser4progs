@@ -145,8 +145,13 @@ errno_t reiser4_item_update_link(reiser4_place_t *place,
 	ptr.start = blk;
 	ptr.width = 1;
 	
-	return plug_call(place->plug->pl.item->object,
-			 update_units, place, &hint);
+	if (plug_call(place->plug->pl.item->object,
+		      update_units, place, &hint) != 1)
+	{
+		return -EIO;
+	}
+
+	return 0;
 }
 
 uint16_t reiser4_item_overhead(reiser4_plug_t *plug) {

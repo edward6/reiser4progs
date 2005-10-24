@@ -18,7 +18,7 @@ extern lookup_t dir40_lookup(reiser4_object_t *dir,
 extern errno_t dir40_fetch(reiser4_object_t *dir, 
 			   entry_hint_t *entry);
 
-extern int dir40_entry_comp(reiser4_object_t *dir, void *data);
+extern errno_t dir40_entry_comp(reiser4_object_t *dir, void *data);
 
 #endif
 #endif

@@ -15,7 +15,10 @@ extern errno_t crc40_check_struct(reiser4_object_t *crc,
 				  place_func_t func,
 				  void *data, uint8_t mode);
 
-#define reiser4_cluster_size(id) (4096 << ((uint32_t)id))
+extern uint32_t crc40_get_cluster_size(reiser4_place_t *place);
+
+extern errno_t crc40_set_cluster_size(reiser4_place_t *place, 
+				      uint32_t cluster);
 
 #endif
 #endif

@@ -651,4 +651,32 @@ errno_t obj40_delete(reiser4_object_t *obj, uint32_t count,
 	return obj40_remove(obj, &obj->body, &trans);
 }
 
+lookup_t obj40_check_item(reiser4_object_t *obj, 
+			  obj_func_t item_func,
+			  obj_func_t update_func,
+			  void *data)
+{
+	object_info_t *info;
+	errno_t res;
+		
+	info = &obj->info;
+	
+	while (1) {
+		res = obj40_update_body(obj, update_func);
+
+		if (res != PRESENT && res != -ESTRUCT)
+			return res;
+		
+		if ((res = item_func(obj, data)) <= 0 && res != -ESTRUCT)
+			return res;
+		
+		/* Item has wrong key, remove it. */
+		if ((res = obj40_delete(obj, 1, MAX_UINT32, 
+					SF_DEFAULT & ~SF_ALLOW_PACK)) < 0)
+		{
+			return res;
+		}
+	}
+}
+
 #endif
