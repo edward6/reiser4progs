@@ -5,8 +5,8 @@
 
 #ifndef ENABLE_MINIMAL
 
-#include "crc40.h"
-#include "crc40_repair.h"
+#include "ccreg40.h"
+#include "ccreg40_repair.h"
 
 uint32_t crc40_get_cluster_size(reiser4_place_t *place) {
 	trans_hint_t hint;
@@ -64,7 +64,7 @@ static int64_t crc40_write(reiser4_object_t *crc,
 }
 
 /* CRC regular file operations. */
-static reiser4_object_plug_t crc40 = {
+static reiser4_object_plug_t ccreg40 = {
 	.inherit	= obj40_inherit,
 	.create	        = obj40_create,
 	.write	        = crc40_write,
@@ -108,22 +108,22 @@ static reiser4_object_plug_t crc40 = {
 };
 
 /* CRC regular file plugin. */
-reiser4_plug_t crc40_plug = {
+reiser4_plug_t ccreg40_plug = {
 	.cl    = class_init,
 	.id    = {OBJECT_CRC40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
 	.label = "crc40",
 	.desc  = "Crypto-Compression regular file plugin.",
 	.pl = {
-		.object = &crc40
+		.object = &ccreg40
 	}
 };
 
 /* Plugin factory related stuff. This method will be called during plugin
    initializing in plugin factory. */
-static reiser4_plug_t *crc40_start(reiser4_core_t *c) {
+static reiser4_plug_t *ccreg40_start(reiser4_core_t *c) {
 	obj40_core = c;
-	return &crc40_plug;
+	return &ccreg40_plug;
 }
 
-plug_register(crc40, crc40_start, NULL);
+plug_register(ccreg40, ccreg40_start, NULL);
 #endif

@@ -248,7 +248,7 @@ errno_t reiser4_factory_init(void) {
 #endif
 
 #ifndef ENABLE_MINIMAL
-	__load_plug(crc40);
+	__load_plug(ccreg40);
 #endif
 
 #ifdef ENABLE_SYMLINKS

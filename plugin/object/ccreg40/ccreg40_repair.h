@@ -7,7 +7,7 @@
 #ifndef CRC40_REPAIR_H
 #define CRC40_REPAIR_H
 
-#include "crc40.h"
+#include "ccreg40.h"
 #include "plugin/object/obj40/obj40_repair.h"
 
 #endif

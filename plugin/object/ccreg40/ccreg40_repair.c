@@ -7,7 +7,7 @@
 #ifndef ENABLE_MINIMAL
 
 #include <misc/misc.h>
-#include "crc40_repair.h"
+#include "ccreg40_repair.h"
 
 #define crc40_nextclust(offset, cluster) \
 	(((offset) & ~((cluster) - 1)) + (cluster))

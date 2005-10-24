@@ -31,7 +31,7 @@ libreiser4_plugin_la_LIBADD       = format/format40/libformat40-static.la \
                                     object/reg40/libreg40-static.la \
                                     object/sym40/libsym40-static.la \
                                     object/spl40/libspl40-static.la \
-                                    object/crc40/libcrc40-static.la \
+                                    object/ccreg40/libccreg40-static.la \
                                     sdext/sdext_unix/libsdext_unix-static.la \
                                     sdext/sdext_lw/libsdext_lw-static.la \
                                     sdext/sdext_lt/libsdext_lt-static.la \
@@ -72,7 +72,7 @@ libreiser4_plugin_minimal_la_LIBADD = format/format40/libformat40-minimal.la \
                                     object/reg40/libreg40-minimal.la \
                                     object/sym40/libsym40-minimal.la \
                                     object/spl40/libspl40-minimal.la \
-                                    object/crc40/libcrc40-minimal.la \
+                                    object/ccreg40/libccreg40-minimal.la \
                                     sdext/sdext_unix/libsdext_unix-minimal.la \
                                     sdext/sdext_lw/libsdext_lw-minimal.la \
                                     sdext/sdext_lt/libsdext_lt-minimal.la \
