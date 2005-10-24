@@ -577,11 +577,11 @@ typedef struct sdhint_plug {
 typedef sdhint_plug_t reiser4_opset_t;
 
 #ifndef ENABLE_MINIMAL
-typedef struct sdhint_crc {
+typedef struct sdhint_crypto {
 	uint16_t keylen;
 	uint16_t signlen;
 	uint8_t  sign[128];
-} sdhint_crc_t;
+} sdhint_crypto_t;
 #endif
 
 /* These fields should be changed to what proper description of needed

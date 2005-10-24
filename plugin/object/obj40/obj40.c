@@ -458,7 +458,7 @@ static errno_t obj40_stat_sym_init(reiser4_object_t *obj,
 
 static errno_t obj40_stat_crc_init(reiser4_object_t *obj, 
 				   stat_hint_t *stat,
-				   sdhint_crc_t *crch,
+				   sdhint_crypto_t *crch,
 				   char *key) 
 {
 	reiser4_plug_t *plug;
@@ -500,7 +500,7 @@ errno_t obj40_create_stat(reiser4_object_t *obj,
 {
 	sdhint_unix_t unixh;
 	sdhint_plug_t plugh;
-	sdhint_crc_t crch;
+	sdhint_crypto_t crch;
 	sdhint_lw_t lwh;
 	stat_hint_t stat;
 	trans_hint_t hint;

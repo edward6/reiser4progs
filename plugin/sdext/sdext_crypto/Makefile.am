@@ -1,13 +1,13 @@
 includedir			 = -I$(top_srcdir)/include
 
-sdext_crc_sources		 = sdext_crc.c sdext_crc.h sdext_crc_repair.c
+sdext_crypto_sources		 = sdext_crypto.c sdext_crypto.h sdext_crypto_repair.c
 
-STATIC_LIBS                      = libsdext_crc-static.la
-libsdext_crc_static_la_SOURCES = $(sdext_crc_sources)
-libsdext_crc_static_la_CFLAGS  = @GENERIC_CFLAGS@
+STATIC_LIBS                      = libsdext_crypto-static.la
+libsdext_crypto_static_la_SOURCES = $(sdext_crypto_sources)
+libsdext_crypto_static_la_CFLAGS  = @GENERIC_CFLAGS@
 
 if ENABLE_MINIMAL
-MINIMAL_LIBS                      = libsdext_crc-minimal.la
+MINIMAL_LIBS                      = libsdext_crypro-minimal.la
 else
 MINIMAL_LIBS                      =
 endif
@@ -15,8 +15,8 @@ endif
 noinst_LTLIBRARIES   		= $(STATIC_LIBS) $(MINIMAL_LIBS)
 
 if ENABLE_MINIMAL
-libsdext_crc_minimal_la_SOURCES = $(sdext_crc_sources)
-libsdext_crc_minimal_la_CFLAGS  = @MINIMAL_CFLAGS@
+libsdext_crypro_minimal_la_SOURCES = $(sdext_crypro_sources)
+libsdext_crypro_minimal_la_CFLAGS  = @MINIMAL_CFLAGS@
 endif
 
 INCLUDES = $(includedir)
