@@ -1,8 +1,8 @@
 /* Copyright (C) 2001-2005 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   crc40_repair.h -- reiser4 crypto compression regular file plugin repair 
-   mathod declarations. */
+   ccreg40_repair.h -- reiser4 crypto compression regular file plugin repair
+   method declarations. */
 
 #ifndef CRC40_REPAIR_H
 #define CRC40_REPAIR_H

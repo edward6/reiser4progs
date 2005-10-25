@@ -1,7 +1,7 @@
 /* Copyright 2001-2005 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   crc40_repair.c -- reiser4 crypto-compression regular file plugin
+   ccreg40_repair.c -- reiser4 crypto-compression regular file plugin
    repair code. */
  
 #ifndef ENABLE_MINIMAL
@@ -9,20 +9,20 @@
 #include <misc/misc.h>
 #include "ccreg40_repair.h"
 
-#define crc40_nextclust(offset, cluster) \
+#define ccreg40_nextclust(offset, cluster) \
 	(((offset) & ~((cluster) - 1)) + (cluster))
 
-#define crc40_sameclust(off1, off2, clust) \
+#define ccreg40_sameclust(off1, off2, clust) \
 	(((off1) & ~((clust) - 1)) == ((off2) & ~((clust) - 1)))
 
-static int crc40_check_size(reiser4_object_t *crc, 
-			    uint64_t *sd_size, 
-			    uint64_t counted_size)
+static int ccreg40_check_size(reiser4_object_t *crc, 
+			      uint64_t *sd_size, 
+			      uint64_t counted_size)
 {
 	return 0;
 }
 
-typedef struct crc40_hint {
+typedef struct ccreg40_hint {
 	obj40_stat_hint_t stat;
 
 	/* Item seek, found and next item offsets. */
@@ -45,10 +45,10 @@ typedef struct crc40_hint {
 	/* The cluster size & the buffer for the data. */
 	uint32_t size;
 	uint8_t data[64 * 1024];
-} crc40_hint_t;
+} ccreg40_hint_t;
 
-static errno_t crc40_check_item(reiser4_object_t *crc, void *data) {
-	crc40_hint_t *hint = (crc40_hint_t *)data;
+static errno_t ccreg40_check_item(reiser4_object_t *crc, void *data) {
+	ccreg40_hint_t *hint = (ccreg40_hint_t *)data;
 	object_info_t *info;
 	uint32_t cluster;
 	errno_t res;
@@ -77,7 +77,7 @@ static errno_t crc40_check_item(reiser4_object_t *crc, void *data) {
 	}
 	
 	/* Check the shift. */
-	cluster = crc40_get_cluster_size(&crc->body);
+	cluster = ccreg40_get_cluster_size(&crc->body);
 	
 	if (hint->size != cluster) {
 		fsck_mess("CRC file [%s] (%s), node [%llu], item [%u]: item "
@@ -91,11 +91,11 @@ static errno_t crc40_check_item(reiser4_object_t *crc, void *data) {
 		if (hint->mode == RM_CHECK) {
 			res |= RE_FIXABLE;
 		} else {
-			crc40_set_cluster_size(&crc->body, hint->size);
+			ccreg40_set_cluster_size(&crc->body, hint->size);
 		}
 	}
 	
-	if (!crc40_sameclust(hint->found, hint->maxreal, hint->size)) {
+	if (!ccreg40_sameclust(hint->found, hint->maxreal, hint->size)) {
 		/* The item covers the cluster border. Delete it. */
 		fsck_mess("CRC file [%s] (%s), node [%llu], item [%u]: "
 			  "item of the lenght (%llu) found, it cannot "
@@ -112,7 +112,7 @@ static errno_t crc40_check_item(reiser4_object_t *crc, void *data) {
 	return res;
 }
 
-static int64_t crc40_read_item(reiser4_place_t *place, crc40_hint_t *hint) {
+static int64_t ccreg40_read_item(reiser4_place_t *place, ccreg40_hint_t *hint) {
 	trans_hint_t trans;
 	uint64_t offset;
 	int64_t count;
@@ -134,7 +134,7 @@ static int64_t crc40_read_item(reiser4_place_t *place, crc40_hint_t *hint) {
 	return 0;
 }
 
-static errno_t crc40_check_crc(crc40_hint_t *hint) {
+static errno_t ccreg40_check_crc(ccreg40_hint_t *hint) {
 	uint32_t adler, disk;
 	uint64_t offset;
 	
@@ -146,8 +146,8 @@ static errno_t crc40_check_crc(crc40_hint_t *hint) {
 	return adler == disk ? 0 : RE_FATAL;
 }
 
-static errno_t crc40_hole_save(crc40_hint_t *hint, 
-			       uint64_t start, uint64_t end)
+static errno_t ccreg40_hole_save(ccreg40_hint_t *hint, 
+				 uint64_t start, uint64_t end)
 {
 	/* A hole b/w items of the same cluster found.
 	   Save the hole into the hole-list. */
@@ -165,7 +165,7 @@ static errno_t crc40_hole_save(crc40_hint_t *hint,
 	return 0;
 }
 
-static errno_t crc40_holes_free(void *p, void *data) {
+static errno_t ccreg40_holes_free(void *p, void *data) {
 	ptr_hint_t *ptr = (ptr_hint_t *)p;
 	
 	if (data) {
@@ -176,9 +176,9 @@ static errno_t crc40_holes_free(void *p, void *data) {
 	return 0;
 }
 
-static errno_t crc40_check_cluster(reiser4_object_t *crc, 
-				   crc40_hint_t *hint, 
-				   uint8_t mode) 
+static errno_t ccreg40_check_cluster(reiser4_object_t *crc, 
+				     ccreg40_hint_t *hint, 
+				     uint8_t mode) 
 {
 	uint64_t offset;
 	uint64_t count;
@@ -192,7 +192,7 @@ static errno_t crc40_check_cluster(reiser4_object_t *crc,
 	last = (hint->sd_size == hint->seek);
 	over = (crc->body.plug == NULL);
 	if (over == 0)
-		over = !crc40_sameclust(hint->seek, hint->found, hint->size);
+		over = !ccreg40_sameclust(hint->seek, hint->found, hint->size);
 	
 	if (over) {
 		/* Cluster is over. */
@@ -204,7 +204,8 @@ static errno_t crc40_check_cluster(reiser4_object_t *crc,
 			/* 1. There is a hole at the end of the cluster &&
 			   2. Not the last cluster or sd_size is not equal to 
 			      the real amount of bytes. */
-			if (aal_list_len(hint->list) || crc40_check_crc(hint)) {
+			if (aal_list_len(hint->list) || ccreg40_check_crc(hint))
+			{
 				/* There are holes in the middle of the cluster
 				   or checksum does not match. Delete the whole 
 				   cluster. */
@@ -218,7 +219,7 @@ static errno_t crc40_check_cluster(reiser4_object_t *crc,
 		hint->bytes = 0;
 		hint->adler = 0;
 
-		aal_list_free(hint->list, crc40_holes_free, 
+		aal_list_free(hint->list, ccreg40_holes_free, 
 			      start ? hint : NULL);
 	}
 	
@@ -230,14 +231,14 @@ static errno_t crc40_check_cluster(reiser4_object_t *crc,
 	if (count) {
 		/* A hole b/w items or in the beginning found. 
 		   Save the hole into the hole-list. */
-		if ((res = crc40_hole_save(hint, offset,
-					   hint->found)))
+		if ((res = ccreg40_hole_save(hint, offset,
+					     hint->found)))
 		{
 			return res;
 		}
 	} else if (!aal_list_len(hint->list)) {
 		/* No hole is found yet. Read the item. */
-		if ((res = crc40_read_item(&crc->body, hint)))
+		if ((res = ccreg40_read_item(&crc->body, hint)))
 			return res;
 	}
 	
@@ -247,12 +248,12 @@ static errno_t crc40_check_cluster(reiser4_object_t *crc,
 	return res;
 }
 
-errno_t crc40_check_struct(reiser4_object_t *crc, 
-			   place_func_t func,
-			   void *data, uint8_t mode)
+errno_t ccreg40_check_struct(reiser4_object_t *crc, 
+			     place_func_t func,
+			     void *data, uint8_t mode)
 {
 	object_info_t *info;
-	crc40_hint_t hint;
+	ccreg40_hint_t hint;
 	errno_t res, result;
 	
 	aal_assert("vpf-1829", crc != NULL);
@@ -280,10 +281,10 @@ errno_t crc40_check_struct(reiser4_object_t *crc,
 		lookup_t lookup;
 		
 		/* Get next item. */
-		lookup = obj40_check_item(crc, crc40_check_item, NULL, &hint);
+		lookup = obj40_check_item(crc, ccreg40_check_item, NULL, &hint);
 		
 		if (repair_error_fatal(lookup)) {
-			aal_list_free(hint.list, crc40_holes_free, NULL);
+			aal_list_free(hint.list, ccreg40_holes_free, NULL);
 			return lookup;
 		} else if (lookup == ABSENT)
 			crc->body.plug = NULL;
@@ -295,8 +296,8 @@ errno_t crc40_check_struct(reiser4_object_t *crc,
 							     &info->object));
 		}
 		
-		if ((res |= crc40_check_cluster(crc, &hint, mode)) < 0) {
-			aal_list_free(hint.list, crc40_holes_free, NULL);
+		if ((res |= ccreg40_check_cluster(crc, &hint, mode)) < 0) {
+			aal_list_free(hint.list, ccreg40_holes_free, NULL);
 			return res;
 		}
 		
@@ -321,7 +322,7 @@ errno_t crc40_check_struct(reiser4_object_t *crc,
 		
 		aal_memset(&ops, 0, sizeof(ops));
 		
-		ops.check_size = crc40_check_size;
+		ops.check_size = ccreg40_check_size;
 		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 		
 		hint.stat.mode = S_IFREG;

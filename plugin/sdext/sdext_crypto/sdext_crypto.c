@@ -72,11 +72,11 @@ static errno_t sdext_crypto_init(stat_entity_t *stat, void *hint) {
 }
 
 extern errno_t sdext_crypto_check_struct(stat_entity_t *stat, 
-				      repair_hint_t *hint);
+					 repair_hint_t *hint);
 
 extern void sdext_crypto_print(stat_entity_t *stat, 
-			    aal_stream_t *stream, 
-			    uint16_t options);
+			       aal_stream_t *stream, 
+			       uint16_t options);
 
 static reiser4_sdext_plug_t sdext_crypto = {
 	.open	   	= sdext_crypto_open,

@@ -9,8 +9,8 @@
 #include <repair/plugin.h>
 
 void sdext_crypto_print(stat_entity_t *stat, 
-		     aal_stream_t *stream, 
-		     uint16_t options) 
+			aal_stream_t *stream, 
+			uint16_t options) 
 {
 	sdext_crypto_t *ext;
 	uint16_t count, i;
@@ -37,7 +37,9 @@ void sdext_crypto_print(stat_entity_t *stat,
 	aal_stream_format(stream, "\n");
 }
 
-errno_t sdext_crypto_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
+errno_t sdext_crypto_check_struct(stat_entity_t *stat, 
+				  repair_hint_t *hint)
+{
 	uint32_t len;
 	
 	aal_assert("vpf-1845", stat != NULL);
