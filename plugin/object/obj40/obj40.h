@@ -89,6 +89,7 @@ extern errno_t obj40_set_bytes(reiser4_object_t *obj, uint64_t bytes);
 
 extern errno_t obj40_layout(reiser4_object_t *obj,
 			    region_func_t region_func,
+			    obj_func_t obj_func,
 			    void *data);
 
 extern errno_t obj40_metadata(reiser4_object_t *obj,

@@ -361,82 +361,14 @@ static errno_t reg40_clobber(reiser4_object_t *reg) {
 	return obj40_clobber(reg);
 }
 
-/* File data enumeration related stuff. */
-typedef struct layout_hint {
-	void *data;
-	reiser4_object_t *reg;
-	region_func_t region_func;
-} layout_hint_t;
-
-static errno_t cb_item_layout(blk_t start, count_t width, void *data) {
-	layout_hint_t *hint = (layout_hint_t *)data;
-	return hint->region_func(start, width, hint->data);
-}
-
 /* Enumerates all blocks belong to file and calls passed @region_func for each
    of them. It is needed for calculating fragmentation, printing, etc. */
 static errno_t reg40_layout(reiser4_object_t *reg,
-			    region_func_t region_func,
+			    region_func_t func,
 			    void *data)
 {
-	errno_t res;
-	uint64_t size;
-
-	layout_hint_t hint;
-	reiser4_key_t maxkey;
-		
-	aal_assert("umka-1471", reg != NULL);
-	aal_assert("umka-1472", region_func != NULL);
-
-	if (!(size = obj40_size(reg)))
-		return 0;
-
-	/* Initializing layout_hint. */
-	hint.data = data;
-	hint.reg = reg;
-	hint.region_func = region_func;
-
-	/* Loop though the all file items. */
-	while (obj40_offset(reg) < size) {
-		reiser4_place_t *place = &reg->body;
-		
-		/* Update current body coord. */
-		if ((res = obj40_find_item(reg, &reg->position, FIND_EXACT, 
-					   NULL, NULL, &reg->body)) < 0)
-		{
-			return res;
-		}
-		
-		/* Check if file stream is over. */
-		if (res == ABSENT)
-			return 0;
-
-		/* Calling item enumerator funtion for current body item. */
-		if (place->plug->pl.item->object->layout) {
-			if ((res = plug_call(place->plug->pl.item->object,
-					     layout, place, cb_item_layout,
-					     &hint)))
-			{
-				return res;
-			}
-		} else {
-			blk_t blk = place_blknr(place);
-			
-			if ((res = cb_item_layout(blk, 1, &hint)))
-				return res;
-		}
-
-		/* Getting current item max real key inside, in order to know
-		   how much to increase file offset. */
-		plug_call(place->plug->pl.item->balance, maxreal_key,
-			  place, &maxkey);
-
-		/* Updating file offset. */
-		obj40_seek(reg, plug_call(maxkey.plug->pl.key,
-					  get_offset, &maxkey) + 1);
-	}
-	
-	return 0;
+	obj40_reset(reg);
+	return obj40_layout(reg, func, NULL, data);
 }
 
 /* Implements metadata() function. It traverses items belong to file. This is

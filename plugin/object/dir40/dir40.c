@@ -626,72 +626,14 @@ static errno_t dir40_detach(reiser4_object_t *dir,
 	return plug_call(plug->pl.object, unlink, parent);
 }
 
-/* Directory enumerating related stuff.*/
-typedef struct layout_hint {
-	void *data;
-	reiser4_object_t *dir;
-	region_func_t region_func;
-} layout_hint_t;
-
-static errno_t cb_item_layout(blk_t start, count_t width, void *data) {
-	layout_hint_t *hint = (layout_hint_t *)data;
-	return hint->region_func(start, width, hint->data);
-}
-
 /* This fucntion implements hashed directory enumerator function. It is used for
    calculating fargmentation, prining. */
 static errno_t dir40_layout(reiser4_object_t *dir,
-			    region_func_t region_func,
+			    region_func_t func,
 			    void *data)
 {
-	errno_t res;
-	layout_hint_t hint;
-
-	aal_assert("umka-1473", dir != NULL);
-	aal_assert("umka-1474", region_func != NULL);
-
-	dir40_reset((reiser4_object_t *)dir);
-	
-	/* Update current body item coord. */
-	if ((res = obj40_update_body(dir, dir40_entry_comp)) != PRESENT)
-		return res == ABSENT ? 0 : res;
-
-	/* Prepare layout hint. */
-	hint.data = data;
-	hint.dir = dir;
-	hint.region_func = region_func;
-
-	/* Loop until all items are enumerated. */
-	while (1) {
-		reiser4_place_t *place = &dir->body;
-		
-		if (dir->body.plug->pl.item->object->layout) {
-			/* Calling item's layout method */
-			if ((res = plug_call(place->plug->pl.item->object,
-					     layout, place, cb_item_layout,
-					     &hint)))
-			{
-				return res;
-			}
-		} else {
-			/* Layout method is not implemented. Counting item
-			   itself. */
-			blk_t blk = place_blknr(place);
-			
-			if ((res = cb_item_layout(blk, 1, &hint)))
-				return res;
-		}
-
-		/* Getting next directory item. */
-		if ((res = obj40_next_item(dir)) < 0)
-			return res;
-
-		/* Directory is over? */
-		if (res == ABSENT)
-			return 0;
-	}
-    
-	return 0;
+	dir40_reset(dir);
+	return obj40_layout(dir, func, dir40_entry_comp, data);
 }
 
 /* This fucntion implements hashed directory metadata enumerator function. This
@@ -700,7 +642,7 @@ static errno_t dir40_metadata(reiser4_object_t *dir,
 			      place_func_t place_func,
 			      void *data)
 {
-	dir40_reset((reiser4_object_t *)dir);
+	dir40_reset(dir);
 	return obj40_traverse(dir, place_func, dir40_entry_comp, data);
 }
 #endif

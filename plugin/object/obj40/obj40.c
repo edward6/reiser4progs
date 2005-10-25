@@ -796,19 +796,6 @@ errno_t obj40_clobber(reiser4_object_t *obj) {
 	return obj40_remove(obj, STAT_PLACE(obj), &hint);
 }
 
-/* Enumerates object data (stat data only for special files and symlinks). */
-errno_t obj40_layout(reiser4_object_t *obj, region_func_t func, void *data) {
-	errno_t res;
-
-	aal_assert("umka-2547", obj != NULL);
-	aal_assert("umka-2548", func != NULL);
-
-	if ((res = obj40_update(obj)))
-		return res;
-	
-	return func(place_blknr(STAT_PLACE(obj)), 1, data);
-}
-
 /* Enumerates object metadata. */
 errno_t obj40_metadata(reiser4_object_t *obj, 
 		       place_func_t place_func,
@@ -962,6 +949,71 @@ errno_t obj40_traverse(reiser4_object_t *obj,
 			return 0;
 	}
 
+	return 0;
+}
+
+/* File data enumeration related stuff. */
+typedef struct layout_hint {
+	void *data;
+	region_func_t region_func;
+} layout_hint_t;
+
+static errno_t cb_item_layout(blk_t start, count_t width, void *data) {
+	layout_hint_t *hint = (layout_hint_t *)data;
+	return hint->region_func(start, width, hint->data);
+}
+
+/* This fucntion implements hashed directory enumerator function.
+   It is used when calculating fargmentation, prining. */
+errno_t obj40_layout(reiser4_object_t *obj,
+		     region_func_t region_func,
+		     obj_func_t obj_func,
+		     void *data)
+{
+	layout_hint_t hint;
+	errno_t res;
+
+	aal_assert("umka-1473", obj != NULL);
+	aal_assert("umka-1474", region_func != NULL);
+	
+	/* Update current body item coord. */
+	if ((res = obj40_update_body(obj, obj_func)) != PRESENT)
+		return res == ABSENT ? 0 : res;
+
+	/* Prepare layout hint. */
+	hint.data = data;
+	hint.region_func = region_func;
+
+	/* Loop until all items are enumerated. */
+	while (1) {
+		reiser4_place_t *place = &obj->body;
+		
+		if (obj->body.plug->pl.item->object->layout) {
+			/* Calling item's layout method */
+			if ((res = plug_call(place->plug->pl.item->object,
+					     layout, place, cb_item_layout,
+					     &hint)))
+			{
+				return res;
+			}
+		} else {
+			/* Layout method is not implemented. Counting item
+			   itself. */
+			blk_t blk = place_blknr(place);
+			
+			if ((res = cb_item_layout(blk, 1, &hint)))
+				return res;
+		}
+
+		/* Getting next item. */
+		if ((res = obj40_next_item(obj)) < 0)
+			return res;
+
+		/* Object is over? */
+		if (res == ABSENT)
+			return 0;
+	}
+	
 	return 0;
 }
 #endif
