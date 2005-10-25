@@ -133,7 +133,9 @@ static int64_t ccreg40_read(reiser4_object_t *crc,
 			print_inode(obj40_core, &crc->info.start));
 	}
 	
+	obj40_seek(crc, end);
 	aal_free(clust);
+	
 	return n;
 }
 
