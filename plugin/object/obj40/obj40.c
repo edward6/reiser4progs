@@ -927,4 +927,41 @@ errno_t obj40_remove(reiser4_object_t *obj,
 	return obj40_core->tree_ops.remove(obj->info.tree,
 					   place, hint);
 }
+
+/* This fucntion implements object item enumerator function. 
+   Used for getting directory metadata on packing, etc. */
+errno_t obj40_traverse(reiser4_object_t *obj, 
+		       place_func_t place_func, 
+		       obj_func_t obj_func,
+		       void *data)
+{
+	errno_t res;
+	
+	aal_assert("umka-1712", dir != NULL);
+	aal_assert("umka-1713", place_func != NULL);
+	
+	/* Calculating stat data item. */
+	if ((res = obj40_metadata(obj, place_func, data)))
+		return res;
+
+	/* Update current body item coord. */
+	if ((res = obj40_update_body(obj, obj_func)) != PRESENT)
+		return res == ABSENT ? 0 : res;
+
+	/* Loop until all items are enumerated. */
+	while (1) {
+		/* Calling callback function. */
+		if ((res = place_func(&obj->body, data)))
+			return res;
+
+		/* Getting next item. */
+		if ((res = obj40_next_item(obj)) < 0)
+			return res;
+		
+		if (res == ABSENT)
+			return 0;
+	}
+
+	return 0;
+}
 #endif

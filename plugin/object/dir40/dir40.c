@@ -700,36 +700,8 @@ static errno_t dir40_metadata(reiser4_object_t *dir,
 			      place_func_t place_func,
 			      void *data)
 {
-	errno_t res;
-	
-	aal_assert("umka-1712", dir != NULL);
-	aal_assert("umka-1713", place_func != NULL);
-	
 	dir40_reset((reiser4_object_t *)dir);
-	
-	/* Calculating stat data item. */
-	if ((res = obj40_metadata(dir, place_func, data)))
-		return res;
-
-	/* Update current body item coord. */
-	if ((res = obj40_update_body(dir, dir40_entry_comp)) != PRESENT)
-		return res == ABSENT ? 0 : res;
-
-	/* Loop until all items are enumerated. */
-	while (1) {
-		/* Calling callback function. */
-		if ((res = place_func(&dir->body, data)))
-			return res;
-
-		/* Getting next item. */
-		if ((res = obj40_next_item(dir)) < 0)
-			return res;
-		
-		if (res == ABSENT)
-			return 0;
-	}
-	
-	return 0;
+	return obj40_traverse(dir, place_func, dir40_entry_comp, data);
 }
 #endif
 

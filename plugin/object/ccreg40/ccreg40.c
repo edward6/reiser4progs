@@ -148,20 +148,28 @@ static int64_t ccreg40_write(reiser4_object_t *crc,
 	return -EIO;
 }
 
+static errno_t ccreg40_metadata(reiser4_object_t *crc,
+				place_func_t place_func,
+				void *data)
+{
+	obj40_reset(crc);
+	return obj40_traverse(crc, place_func, NULL, data);
+}
+
 /* CRC regular file operations. */
 static reiser4_object_plug_t ccreg40 = {
 	.inherit	= obj40_inherit,
 	.create	        = obj40_create,
-	.write	        = ccreg40_write,
-	.truncate       = NULL,
-	.layout         = NULL,
-	.metadata       = NULL,
+	.write	        = ccreg40_write,	// add
+	.truncate       = NULL,			// add
+	.layout         = NULL,			// add
+	.metadata       = ccreg40_metadata,
 	.convert        = NULL,
 	.update         = obj40_save_stat,
 	.link           = obj40_link,
 	.unlink         = obj40_unlink,
 	.linked         = obj40_linked,
-	.clobber        = NULL,
+	.clobber        = NULL,			// add
 	.recognize	= obj40_recognize,
 	.check_struct   = ccreg40_check_struct,
 	

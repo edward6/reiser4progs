@@ -44,16 +44,6 @@ static errno_t sym40_clobber(reiser4_object_t *sym) {
 	return obj40_clobber(sym);
 }
 
-/* Calls function @place_func for each symlink item (statdata only) */
-static errno_t sym40_metadata(reiser4_object_t *sym,
-			      place_func_t place_func,
-			      void *data)
-{
-	aal_assert("umka-1718", sym != NULL);
-	aal_assert("umka-1719", place_func != NULL);
-
-	return obj40_metadata(sym, place_func, data);
-}
 #endif
 
 /* This function reads symlink, parses it by means of using aux_parse_path()
@@ -102,7 +92,7 @@ static reiser4_object_plug_t sym40 = {
 #ifndef ENABLE_MINIMAL
 	.inherit	= obj40_inherit,
 	.create	        = sym40_create,
-	.metadata       = sym40_metadata,
+	.metadata       = obj40_metadata,
 	.link           = obj40_link,
 	.unlink         = obj40_unlink,
 	.linked         = obj40_linked,

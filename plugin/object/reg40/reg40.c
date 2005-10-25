@@ -445,49 +445,8 @@ static errno_t reg40_metadata(reiser4_object_t *reg,
 			      place_func_t place_func,
 			      void *data)
 {
-	errno_t res;
-	uint64_t size;
-	
-	aal_assert("umka-2386", reg != NULL);
-	aal_assert("umka-2387", place_func != NULL);
-
-	/* Counting stat data item. */
-	if ((res = obj40_metadata(reg , place_func, data)))
-		return res;
-
-	/* Loop thougj the all file items. */
-	if (!(size = obj40_size(reg)))
-		return 0;
-
-	while (obj40_offset(reg) < size) {
-		reiser4_key_t maxkey;
-		
-		/* Update body place. */
-		if ((res = obj40_find_item(reg, &reg->position, FIND_EXACT, 
-					   NULL, NULL, &reg->body)) < 0)
-		{
-			return res;
-		}
-		
-		/* Check if file stream is over. */
-		if (res == ABSENT)
-			return 0;
-
-		/* Calling per-place callback function */
-		if ((res = place_func(&reg->body, data)))
-			return res;
-
-		/* Getting current item max real key inside, in order to know
-		   how much increase file offset. */
-		plug_call(reg->body.plug->pl.item->balance, maxreal_key,
-			  &reg->body, &maxkey);
-
-		/* Updating file offset */
-		obj40_seek(reg, plug_call(maxkey.plug->pl.key,
-					  get_offset, &maxkey) + 1);
-	}
-	
-	return 0;
+	obj40_reset(reg);
+	return obj40_traverse(reg, place_func, NULL, data);
 }
 #endif
 

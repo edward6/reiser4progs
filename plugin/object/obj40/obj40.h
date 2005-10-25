@@ -95,6 +95,11 @@ extern errno_t obj40_metadata(reiser4_object_t *obj,
 			      place_func_t place_func,
 			      void *data);
 
+extern errno_t obj40_traverse(reiser4_object_t *obj, 
+			      place_func_t place_func, 
+			      obj_func_t obj_func,
+			      void *data);
+
 extern errno_t obj40_remove(reiser4_object_t *obj, 
 			    reiser4_place_t *place,
 			    trans_hint_t *hint);
