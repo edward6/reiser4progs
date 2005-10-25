@@ -45,8 +45,8 @@ static errno_t reg40_check_ikey(reiser4_object_t *reg) {
 	if (reg->body.plug->id.group != EXTENT_ITEM)
 		return -EINVAL;
 
-	offset = plug_call(reg->body.key.plug->pl.key, get_offset, 
-			   &reg->body.key);
+	offset = plug_call(reg->body.key.plug->pl.key, 
+			   get_offset, &reg->body.key);
 	
 	return offset % place_blksize(&reg->body) ? RE_FATAL : 0;
 }

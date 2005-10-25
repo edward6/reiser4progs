@@ -9,12 +9,6 @@
 #include <misc/misc.h>
 #include "ccreg40_repair.h"
 
-#define ccreg40_nextclust(offset, cluster) \
-	(((offset) & ~((cluster) - 1)) + (cluster))
-
-#define ccreg40_sameclust(off1, off2, clust) \
-	(((off1) & ~((clust) - 1)) == ((off2) & ~((clust) - 1)))
-
 static int ccreg40_check_size(reiser4_object_t *crc, 
 			      uint64_t *sd_size, 
 			      uint64_t counted_size)
@@ -95,7 +89,7 @@ static errno_t ccreg40_check_item(reiser4_object_t *crc, void *data) {
 		}
 	}
 	
-	if (!ccreg40_sameclust(hint->found, hint->maxreal, hint->size)) {
+	if (!ccreg40_clsame(hint->found, hint->maxreal, hint->size)) {
 		/* The item covers the cluster border. Delete it. */
 		fsck_mess("CRC file [%s] (%s), node [%llu], item [%u]: "
 			  "item of the lenght (%llu) found, it cannot "
@@ -188,11 +182,11 @@ static errno_t ccreg40_check_cluster(reiser4_object_t *crc,
 	int last;
 	
 	res = 0;
-	start = ((hint->seek & ~(hint->size - 1)) == hint->seek);
+	start = (ccreg40_clstart(hint->seek, hint->size) == hint->seek);
 	last = (hint->sd_size == hint->seek);
 	over = (crc->body.plug == NULL);
 	if (over == 0)
-		over = !ccreg40_sameclust(hint->seek, hint->found, hint->size);
+		over = !ccreg40_clsame(hint->seek, hint->found, hint->size);
 	
 	if (over) {
 		/* Cluster is over. */
@@ -224,7 +218,7 @@ static errno_t ccreg40_check_cluster(reiser4_object_t *crc,
 	}
 	
 	/* An item found. */
-	offset = hint->found & ~(hint->size - 1);
+	offset = ccreg40_clstart(hint->found, hint->size);
 	offset = offset >= hint->seek ? : hint->seek;
 	count = hint->found - offset;
 	
@@ -275,7 +269,7 @@ errno_t ccreg40_check_struct(reiser4_object_t *crc,
 	
 	result = 0;
 	hint.mode = mode;
-	hint.size = reiser4_cluster_size(info->opset.plug[OPSET_CLUSTER]);
+	hint.size = ccreg40_clsize(crc);
 	
 	while(1) {
 		lookup_t lookup;

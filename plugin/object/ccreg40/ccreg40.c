@@ -45,13 +45,96 @@ errno_t ccreg40_set_cluster_size(reiser4_place_t *place, uint32_t cluster) {
 	return 0;
 }
 
-static int64_t ccreg40_read(reiser4_object_t *crc, 
-			  void *buff, uint64_t n)
+static int64_t ccreg40_extract_data(reiser4_object_t *crc, void *clust, 
+				    void *buff, uint64_t off, int64_t read)
 {
-	aal_error("Plugin \"%s\": The method ->read is not "
-		  "implemented yet.", reiser4_oplug(crc)->label);
+	if (crc->info.opset.plug[OPSET_CRYPTO] != CRYPTO_NONE_ID) {
+		aal_error("Object [%s]: Can't extract encrypted "
+			  "data. Not supported yet.",
+			  print_inode(obj40_core, &crc->info.object));
+		return -EINVAL;
+	}
 
-	return -EIO;
+	if (!reiser4_nocomp(crc->info.opset.plug[OPSET_CRYPTO]->id.id)) {
+		aal_error("Object [%s]: Can't extract compressed "
+			  "data. Not supported yet.",
+			  print_inode(obj40_core, &crc->info.object));
+		return -EINVAL;
+	}
+
+	off -= ccreg40_clstart(off, ccreg40_clsize(crc));
+	aal_memcpy(buff, clust + off, read);
+	
+	return read;
+}
+
+static int64_t ccreg40_read(reiser4_object_t *crc, 
+			    void *buff, uint64_t n)
+{
+	trans_hint_t hint;
+	uint32_t clsize;
+	uint64_t fsize;
+	uint64_t count;
+	uint64_t end;
+	uint64_t off;
+	int64_t read;
+	void *clust;
+	
+	aal_assert("vpf-1873", crc != NULL);
+	aal_assert("vpf-1874", buff != NULL);
+	
+	fsize = obj40_size(crc);
+	clsize = ccreg40_clsize(crc);
+	
+	if (!(clust = aal_calloc(clsize, 0))) {
+		aal_error("Can't allocate memory for a cluster.");
+		return -ENOMEM;
+	}
+	
+	/* Init the hint params: start key, count to be read, buffer, etc. */
+	aal_memset(&hint, 0, sizeof(hint));
+	aal_memcpy(&hint.offset, &crc->position, sizeof(hint.offset));
+	
+	off = obj40_offset(crc);
+	end = (n > fsize ? fsize : off > fsize - n ? fsize : off + n);
+	hint.specific = clust;
+
+	count = 0;
+	
+	while (off < end) {
+		hint.count = (end > ccreg40_clnext(off, clsize) ? 
+			      ccreg40_clnext(off, clsize) : end);
+		hint.count -= ccreg40_clstart(off, clsize);
+		
+		plug_call(hint.offset.plug->pl.key, set_offset, &hint.offset,
+			  off - ccreg40_clstart(off, clsize));
+
+		/* Reading data. */
+		if ((read = obj40_read(crc, &hint)) < 0) {
+			aal_free(clust);
+			return read;
+		}
+		
+		/* Extract the read cluster to the user buffer. */
+		if ((read = ccreg40_extract_data(crc, clust, buff + count,
+						 off, read)) < 0)
+		{
+			aal_free(clust);
+			return read;
+		}
+		
+		off += read;
+		count += read;
+	}
+	
+	if (off > end) {
+		aal_bug("vpf-1875", "More bytes read %llu than "
+			"present %llu in the file [%s].", read, n,
+			print_inode(obj40_core, &crc->info.start));
+	}
+	
+	aal_free(clust);
+	return n;
 }
 
 static int64_t ccreg40_write(reiser4_object_t *crc, 

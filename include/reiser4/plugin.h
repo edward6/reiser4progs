@@ -242,6 +242,8 @@ enum reiser4_compress_plug_id {
 	COMPRESS_LAST_ID
 };
 
+#define reiser4_nocomp(id) (((id) / 2 * 2 != id) || id == COMPRESS_NONE_ID)
+
 enum reiser4_crypto_id {
 	CRYPTO_NONE_ID = 0x0,
 	CRYPTO_LAST_ID
@@ -263,8 +265,6 @@ enum reiser4_cluster_id {
 	CLUSTER_64K_ID = 0x4,
 	CLUSTER_LAST_ID
 };
-
-#define reiser4_cluster_size(plugid) (4096 << ((uint32_t)plugid))
 
 enum reiser4_digest_id {
 	DIGEST_NONE_ID = 0x0,
