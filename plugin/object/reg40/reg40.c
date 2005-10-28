@@ -7,7 +7,9 @@
 #  include <unistd.h>
 #endif
 
-#include "reg40.h"
+#include <aal/libaal.h>
+#include "reiser4/plugin.h"
+#include "plugin/object/obj40/obj40.h"
 #include "reg40_repair.h"
 
 /* Reads @n bytes to passed buffer @buff. Negative values are returned on
@@ -15,40 +17,36 @@
 static int64_t reg40_read(reiser4_object_t *reg, 
 			  void *buff, uint64_t n)
 {
+	errno_t res;
 	int64_t read;
+	uint64_t off;
 	uint64_t fsize;
 	trans_hint_t hint;
 
 	aal_assert("umka-2511", buff != NULL);
 	aal_assert("umka-2512", reg != NULL);
 	
-	fsize = obj40_size(reg);
-
-	/* Preparing hint to be used for calling read with it. Here we
-	   initialize @count -- number of bytes to read, @specific -- pointer to
-	   buffer data will be read into, and pointer to tree instance, file is
-	   opened on. */ 
-	aal_memset(&hint, 0, sizeof(hint));
-	hint.count = n;
-	hint.specific = buff;
-
-	/* Initializing offset data must be read from. This is current file
-	   offset, so we use @reg->position. */
-	aal_memcpy(&hint.offset, &reg->position, sizeof(hint.offset));
+	if ((res = obj40_update(reg)))
+		return res;
+	
+	fsize = obj40_get_size(reg);
+	off = obj40_offset(reg);
+	if (off > fsize)
+		return 0;
 
 	/* Correcting number of bytes to be read. It cannot be more then file
-	   size value from stat data. That is because, body item itself does not
-	   know reliably how long it is. For instnace, extent40. */
-	if (obj40_offset(reg) + hint.count > fsize)
-		hint.count = fsize - obj40_offset(reg);
-
+	   size value from stat data. That is because, body item itself does 
+	   not know reliably how long it is. For instnace, extent40. */
+	if (n > fsize - off)
+		n = fsize - off;
+	
 	/* Reading data. */
-	if ((read = obj40_read(reg, &hint)) < 0)
+	if ((read = obj40_read(reg, &hint, buff, off, n)) < 0)
 		return read;
 
 	/* Updating file offset if needed. */
 	if (read > 0)
-		obj40_seek(reg, obj40_offset(reg) + read);
+		obj40_seek(reg, off + read);
 	
 	return read;
 }
@@ -123,15 +121,25 @@ static errno_t reg40_convert(reiser4_object_t *reg,
 	/* Prepare convert hint. */
 	hint.plug = plug;
 
-	hint.count = obj40_size(reg);
+	if ((res = obj40_update(reg)))
+		return res;
+	
+	hint.count = obj40_get_size(reg);
 	hint.place_func = NULL;
 
 	/* Converting file data. */
 	if ((res = obj40_convert(reg, &hint)))
 		return res;
-
+	
+	/* Updating stat data place */
+	if ((res = obj40_update(reg)))
+		return res;
+	
 	/* Updating stat data fields. */
-	return obj40_touch(reg, MAX_UINT64, hint.bytes);
+	if (hint.bytes != obj40_get_bytes(reg))
+		return obj40_set_bytes(reg, hint.bytes);
+
+	return 0;
 }
 
 /* Make sure, that file body is of particular plugin type, that depends on tail
@@ -171,182 +179,111 @@ static errno_t reg40_check_body(reiser4_object_t *reg,
 	return reg40_convert(reg, plug);
 }
 
-/* Writes passed data to the file. Returns amount of data on disk, that is
-   @bytes value, which should be counted in stat data. */
-int64_t reg40_put(reiser4_object_t *reg, void *buff, 
-		  uint64_t n, place_func_t place_func) 
-{
-	int64_t written;
-	trans_hint_t hint;
-
-	/* Preparing hint to be used for calling write method. This is
-	   initializing @count - number of bytes to write, @specific - buffer to
-	   write into and @offset -- file offset data must be written at. */
-	aal_memset(&hint, 0, sizeof(hint));
-	hint.count = n;
-
-	hint.specific = buff;
-	hint.shift_flags = SF_DEFAULT;
-	hint.place_func = place_func;
-	hint.plug = reg->body_plug;
-
-	aal_memcpy(&hint.offset, &reg->position, sizeof(hint.offset));
-
-	/* Write data to tree. */
-	if ((written = obj40_write(reg, &hint)) < 0)
-		return written;
-
-	/* Updating file offset. */
-	obj40_seek(reg, obj40_offset(reg) + written);
-	
-	return hint.bytes;
-}
-
-/* Cuts some amount of data and makes file length of passed @n value. */
-static int64_t reg40_cut(reiser4_object_t *reg, uint64_t offset) {
-	errno_t res;
-	uint64_t size;
-	trans_hint_t hint;
-	
-	size = obj40_size(reg);
-
-	aal_assert("umka-3076", size > offset);
-
-	aal_memset(&hint, 0, sizeof(hint));
-	
-	/* Preparing key of the data to be truncated. */
-	aal_memcpy(&hint.offset, &reg->position, sizeof(hint.offset));
-		
-	plug_call(reg->info.object.plug->pl.key,
-		  set_offset, &hint.offset, offset);
-
-	/* Removing data from the tree. */
-	hint.count = MAX_UINT64;
-	hint.shift_flags = SF_DEFAULT;
-	hint.data = reg->info.tree;
-	hint.plug = reg40_policy_plug(reg, offset);
-
-	if ((res = obj40_truncate(reg, &hint)) < 0)
-		return res;
-
-	return hint.bytes;
-}
-
 /* Writes @n bytes from @buff to passed file */
 static int64_t reg40_write(reiser4_object_t *reg, 
 			   void *buff, uint64_t n) 
 {
+	trans_hint_t hint;
+	uint64_t fsize;
+	int64_t count;
+	int64_t bytes;
+	uint64_t off;
 	int64_t res;
 
-	int64_t bytes;
-	uint64_t size;
-	uint64_t offset;
-	uint64_t new_size;
-
 	aal_assert("umka-2281", reg != NULL);
-
-	size = obj40_size(reg);
-	offset = obj40_offset(reg);
-	new_size = offset + n > size ? offset + n : size;
+	
+	if ((res = obj40_update(reg)))
+		return res;
+	
+	fsize = obj40_get_size(reg);
+	off = obj40_offset(reg);
+	bytes = 0;
+	
+	/* Inserting holes if needed. */
+	if (off > fsize) {
+		count = off - fsize;
+		
+		/* Fill the hole with zeroes. */
+		if ((res = obj40_write(reg, &hint, NULL, fsize, count,
+				       reg->body_plug, NULL)) < 0)
+		{
+			return res;
+		}
+		
+		/* If not enough bytes are written, the hole is not 
+		   filled yet, cannot continue, return 0. */
+		if (res != count) {
+			if ((res = obj40_touch(reg, res, hint.bytes)) < 0)
+				return res;
+			
+			return 0;
+		}
+		
+		bytes = hint.bytes;
+	} 
+	
+	/* Putting data to tree. */
+	if ((count = obj40_write(reg, &hint, buff, off, n,
+				 reg->body_plug, NULL)) < 0)
+	{
+		return count;
+	}
+	
+	bytes += hint.bytes;
+	off += count;
+	
+	obj40_seek(reg, off);
+	
+	off = (off > fsize ? off - fsize : 0);
+	
+	/* Updating the SD place and update size, bytes there. */
+	if ((res = obj40_touch(reg, off, bytes)) < 0)
+		return res;
+	
+	fsize += off;
 	
 	/* Convert body items if needed. */
-	if ((res = reg40_check_body(reg, new_size))) {
+	if ((res = reg40_check_body(reg, fsize))) {
 		aal_error("Can't perform tail conversion.");
 		return res;
 	}
-		
-	/* Inserting holes if needed. */
-	if (offset > size) {
-		uint64_t hole = offset - size;
-
-		/* Seek back to size of hole, as reg40_put() uses 
-		   @reg->position as data write offset. */
-		obj40_seek(reg, size);
-
-		/* Put a hole of size @hole. */
-		if ((bytes = reg40_put(reg, NULL, hole, NULL)) < 0)
-			return bytes;
-	} else {
-		bytes = 0;
-	}
-
-	/* Putting data to tree. */
-	if ((res = reg40_put(reg, buff, n, NULL)) < 0)
-		return res;
-
-	bytes += res;
-
-	/* Updating the SD place and update size, bytes there. */
-	if ((res = obj40_update(reg)))
-		return res;
-
-	/* Calculating new @bytes and updating stat data fields. */
-	bytes += obj40_get_bytes(reg);
-	if ((res = obj40_touch(reg, new_size, bytes)))
-		return res;
 	
-	return bytes;
+	return count;
 }
 
 /* Truncates file to passed size @n. */
 static errno_t reg40_truncate(reiser4_object_t *reg, uint64_t n) {
-	errno_t res;
-	int64_t bytes;
+	trans_hint_t hint;
 	uint64_t size;
+	errno_t res;
 
-	size = obj40_size(reg);
+	if ((res = obj40_update(reg)))
+		return res;
+	
+	size = obj40_get_size(reg);
 
 	if (size == n)
 		return 0;
 
 	if (n > size) {
-		/* Converting body if needed. */
-		if ((res = reg40_check_body(reg, n))) {
-			aal_error("Can't perform tail conversion.");
-			return res;
-		}
-
-		obj40_seek(reg, size);
-		if ((bytes = reg40_put(reg, NULL, n - size, NULL)) < 0)
-			return bytes;
-		
-		/* Updating stat data fields. */
-		if ((res = obj40_update(reg )))
-			return res;
-		
-		bytes += obj40_get_bytes(reg );
-		return obj40_touch(reg , n, bytes);
-	} else {
-		/*
-		if (reg->body_plug->id.group == EXTENT_ITEM) {
-			uint32_t blksize;
-			
-			blksize = place_blksize(STAT_PLACE(reg ));
-			size = (n + blksize - 1) / blksize * blksize;
-		} else */
-			size = n;
-			
-		/* Cutting items/units */
-		if ((bytes = reg40_cut(reg, size)) < 0)
-			return bytes;
-
-		/* Updating stat data fields. */
-		if ((res = obj40_update(reg )))
-			return res;
-
-		bytes = obj40_get_bytes(reg ) - bytes;
-
-		if ((res = obj40_touch(reg , n, bytes)))
-			return res;
-
-		/* Converting body if needed. */
-		if ((res = reg40_check_body(reg, n))) {
-			aal_error("Can't perform tail conversion.");
-			return res;
-		}
-
-		return 0;
+		return obj40_touch(reg, n - size, 0);
 	}
+	
+	/* Cutting items/units */
+	if ((res = obj40_truncate(reg, &hint, size, reg->body_plug)) < 0)
+		return res;
+	
+	/* Updating stat data fields. */
+	if ((res = obj40_touch(reg, n - size, -hint.bytes)))
+		return res;
+
+	/* Converting body if needed. */
+	if ((res = reg40_check_body(reg, n))) {
+		aal_error("Can't perform tail conversion.");
+		return res;
+	}
+
+	return 0;
 }
 
 /* Removes file body items and file stat data item. */

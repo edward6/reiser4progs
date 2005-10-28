@@ -1,6 +1,6 @@
 includedir		    = -I$(top_srcdir)/include
 
-reg40_sources		    = reg40.c reg40_repair.c reg40.h reg40_repair.h
+reg40_sources		    = reg40.c reg40_repair.c reg40_repair.h
 
 STATIC_LIBS                 = libreg40-static.la
 libreg40_static_la_SOURCES  = $(reg40_sources)

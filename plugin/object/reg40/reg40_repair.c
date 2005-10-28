@@ -116,7 +116,9 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 			       place_func_t func,
 			       uint8_t mode) 
 {
-	uint64_t offset, len;
+	trans_hint_t trans;
+	uint64_t offset;
+	uint64_t len;
 	int64_t res;
 	
 	aal_assert("vpf-1355", reg != NULL);
@@ -124,7 +126,9 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 	offset = plug_call(reg->body.key.plug->pl.key, 
 			   get_offset, &reg->body.key);
 
-	if ((len = offset - obj40_offset(reg)) == 0)
+	len = offset - obj40_offset(reg);
+	
+	if (len == 0)
 		return 0;
 
 	fsck_mess("The object [%s] has a break at [%llu-%llu] offsets. "
@@ -135,7 +139,9 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 	if (mode != RM_BUILD)
 		return RE_FATAL;
 
-	if ((res = reg40_put(reg, NULL, len, func)) < 0) {
+	if ((res = obj40_write(reg, &trans, NULL, offset - len, 
+			       len, reg->body_plug, func)) < 0)
+	{
 		aal_error("The object [%s] failed to create the hole "
 			  "at [%llu-%llu] offsets. Plugin %s.",
 			  print_inode(obj40_core, &reg->info.object),
@@ -144,7 +150,7 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 		return res;
 	}
 
-	hint->bytes += res;
+	hint->bytes += trans.bytes;
 	
 	return 0;
 }

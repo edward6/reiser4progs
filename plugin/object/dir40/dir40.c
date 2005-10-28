@@ -411,10 +411,7 @@ static errno_t dir40_clobber(reiser4_object_t *dir) {
 	aal_assert("umka-2298", dir != NULL);
 	
 	/* Check that truncate is allowed -- i.e. nlink == 2. */
-	if ((res = obj40_update(dir)))
-		return res;
-
-	if ((nlink = obj40_get_nlink(dir)) != 2) {
+	if ((nlink = obj40_get_nlink(dir, 1)) != 2) {
 		aal_error("Can't detach the object "
 			  "with nlink (%d).", nlink);
 		return -EINVAL;
@@ -432,7 +429,7 @@ static errno_t dir40_clobber(reiser4_object_t *dir) {
 
 /* Return number of hard links. */
 static bool_t dir40_linked(reiser4_object_t *dir) {
-	return obj40_links(dir) != 1;
+	return obj40_get_nlink(dir, 1) != 1;
 }
 
 /* Helper function. Builds @entry->offset key by @entry->name. */
@@ -462,8 +459,6 @@ static errno_t dir40_add_entry(reiser4_object_t *dir,
 			       entry_hint_t *entry)
 {
 	errno_t res;
-	uint64_t size;
-	uint64_t bytes;
 	
 	entry_hint_t temp;
 	trans_hint_t hint;
@@ -515,15 +510,10 @@ static errno_t dir40_add_entry(reiser4_object_t *dir,
 		return res;
 	}
 
-	/* Updating stat data fields. */
-	if ((res = obj40_update(dir)))
-		return res;
-	
 	entry->len = hint.len;
-	size = obj40_size(dir) + 1;
-	bytes = obj40_get_bytes(dir) + hint.bytes;
 	
-	return obj40_touch(dir, size, bytes);
+	/* Updating stat data fields. */
+	return obj40_touch(dir, 1, hint.bytes);
 }
 
 /* Removing entry from the directory */
@@ -531,9 +521,6 @@ static errno_t dir40_rem_entry(reiser4_object_t *dir,
 			       entry_hint_t *entry)
 {
 	errno_t res;
-	uint64_t size;
-	uint64_t bytes;
-	
 	entry_hint_t temp;
 	trans_hint_t hint;
 	
@@ -565,15 +552,10 @@ static errno_t dir40_rem_entry(reiser4_object_t *dir,
 		return -EINVAL;
 	}
 
-	/* Updating stat data fields */
-	if ((res = obj40_update(dir)))
-		return res;
-
 	entry->len = hint.len;
-	size = obj40_size(dir) - 1;
-	bytes = obj40_get_bytes(dir) - hint.bytes;
 	
-	return obj40_touch(dir, size, bytes);
+	/* Updating stat data fields */
+	return obj40_touch(dir, -1, -hint.bytes);
 }
 
 /* Attaches the given directory @dir to @parent object. */

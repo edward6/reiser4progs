@@ -40,7 +40,8 @@ extern lookup_t obj40_find_item(reiser4_object_t *obj,
 				coll_hint_t *hint, 
 				reiser4_place_t *place);
 
-extern int64_t obj40_read(reiser4_object_t *obj, trans_hint_t *hint);
+extern int64_t obj40_read(reiser4_object_t *obj, trans_hint_t *hint,
+			  void *buff, uint64_t off, uint64_t count);
 
 extern errno_t obj40_read_ext(reiser4_object_t *obj, rid_t id, void *data);
 
@@ -49,7 +50,6 @@ extern errno_t obj40_save_stat(reiser4_object_t *obj, stat_hint_t *hint);
 
 extern errno_t obj40_open(reiser4_object_t *obj);
 extern errno_t obj40_seek(reiser4_object_t *obj, uint64_t offset);
-extern uint64_t obj40_size(reiser4_object_t *obj);
 extern errno_t obj40_reset(reiser4_object_t *obj);
 extern uint64_t obj40_offset(reiser4_object_t *obj);
 
@@ -63,11 +63,11 @@ extern lookup_t obj40_next_item(reiser4_object_t *obj);
 #ifndef ENABLE_MINIMAL
 extern errno_t obj40_write_ext(reiser4_place_t *place, rid_t id, void *data);
 
-extern errno_t obj40_touch(reiser4_object_t *obj, uint64_t size, uint64_t bytes);
+extern errno_t obj40_touch(reiser4_object_t *obj, int64_t size, int64_t bytes);
 
 extern uint64_t obj40_extmask(reiser4_place_t *sd);
 extern uint16_t obj40_get_mode(reiser4_object_t *obj);
-extern uint32_t obj40_get_nlink(reiser4_object_t *obj);
+extern int64_t  obj40_get_nlink(reiser4_object_t *obj, int update);
 extern uint32_t obj40_get_atime(reiser4_object_t *obj);
 extern uint32_t obj40_get_mtime(reiser4_object_t *obj);
 extern uint64_t obj40_get_bytes(reiser4_object_t *obj);
@@ -76,10 +76,8 @@ extern errno_t obj40_clobber(reiser4_object_t *obj);
 
 extern errno_t obj40_link(reiser4_object_t *obj);
 extern errno_t obj40_unlink(reiser4_object_t *obj);
-extern uint32_t obj40_links(reiser4_object_t *obj);
 extern bool_t obj40_linked(reiser4_object_t *obj);
 
-extern errno_t obj40_inc_link(reiser4_object_t *obj, uint32_t value);
 extern errno_t obj40_set_mode(reiser4_object_t *obj, uint16_t mode);
 extern errno_t obj40_set_size(reiser4_object_t *obj, uint64_t size);
 extern errno_t obj40_set_nlink(reiser4_object_t *obj, uint32_t nlink);
@@ -110,9 +108,20 @@ extern int64_t obj40_insert(reiser4_object_t *obj,
 			    trans_hint_t *hint, 
 			    uint8_t level);
 
-extern int64_t obj40_write(reiser4_object_t *obj, trans_hint_t *hint);
+extern int64_t obj40_write(reiser4_object_t *obj, 
+			   trans_hint_t *hint,
+			   void *buff,
+			   uint64_t off, 
+			   uint64_t count, 
+			   reiser4_plug_t *item_plug, 
+			   place_func_t func);
+
 extern int64_t obj40_convert(reiser4_object_t *obj, conv_hint_t *hint);
-extern int64_t obj40_truncate(reiser4_object_t *obj, trans_hint_t *hint);
+
+extern int64_t obj40_truncate(reiser4_object_t *obj, 
+			      trans_hint_t *hint,
+			      uint64_t off,
+			      reiser4_plug_t *item_plug);
 
 extern errno_t obj40_stat_unix_init(stat_hint_t *stat, 
 				    sdhint_unix_t *unixh, 

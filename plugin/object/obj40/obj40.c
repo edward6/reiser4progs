@@ -23,7 +23,7 @@ errno_t obj40_open(reiser4_object_t *obj) {
 	return 0;
 }
 
-/* Position regular file to passed @offset. */
+/* Set the file position offset to the given @offset. */
 errno_t obj40_seek(reiser4_object_t *obj, uint64_t offset) {
 	aal_assert("umka-1968", obj != NULL);
 
@@ -31,16 +31,6 @@ errno_t obj40_seek(reiser4_object_t *obj, uint64_t offset) {
 		  set_offset, &obj->position, offset);
 
 	return 0;
-}
-
-/* Returns regular file size. */
-uint64_t obj40_size(reiser4_object_t *obj) {
-	aal_assert("umka-2278", obj != NULL);
-	
-	if (obj40_update(obj))
-		return -EINVAL;
-
-	return obj40_get_size(obj);
 }
 
 /* Resets file position. The file position is stored inside @obj->position,
@@ -55,7 +45,7 @@ errno_t obj40_reset(reiser4_object_t *obj) {
 	return 0;
 }
 
-/* Returns regular file current offset. */
+/* Returns the file position offset. */
 uint64_t obj40_offset(reiser4_object_t *obj) {
 	aal_assert("umka-1159", obj != NULL);
 
@@ -275,7 +265,7 @@ uint64_t obj40_get_size(reiser4_object_t *obj) {
 	sdhint_lw_t lwh;
 
 	if (obj40_read_ext(obj, SDEXT_LW_ID, &lwh))
-		return 0;
+		return MAX_UINT64;
 	
 	return lwh.size;
 }
@@ -565,37 +555,6 @@ errno_t obj40_create(reiser4_object_t *obj, object_hint_t *hint) {
 				 0, hint ? hint->mode : 0, hint->str);
 }
 
-/* Updates size and bytes fielsds */
-errno_t obj40_touch(reiser4_object_t *obj, uint64_t size, uint64_t bytes) {
-	sdhint_unix_t unixh;
-	errno_t res;
-
-	/* Updating stat data place */
-	if ((res = obj40_update(obj)))
-		return res;
-	
-	/* Updating size if new file offset is further than size. This means,
-	   that file realy got some data additionaly, not only got rewtitten
-	   something. */
-	if (size != MAX_UINT64 && size != obj40_get_size(obj)) {
-		if ((res = obj40_set_size(obj, size)))
-			return res;
-	}
-
-	if (bytes == MAX_UINT64)
-		return 0;
-	
-	/* Updating bytes */
-	if ((res = obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh)))
-		return res;
-
-	/* Updating values and write unix extension back. */
-	unixh.rdev = 0;
-	unixh.bytes = bytes;
-
-	return obj40_write_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unixh);
-}
-
 /* Writes one stat data extension. */
 errno_t obj40_write_ext(reiser4_place_t *place, rid_t id, void *data) {
 	trans_hint_t hint;
@@ -643,29 +602,6 @@ uint64_t obj40_extmask(reiser4_place_t *place) {
 	return stat.extmask;
 }
 
-/* Gets mode field from the stat data */
-uint16_t obj40_get_mode(reiser4_object_t *obj) {
-	sdhint_lw_t lwh;
-
-	if (obj40_read_ext(obj, SDEXT_LW_ID, &lwh))
-		return 0;
-	
-	return lwh.mode;
-}
-
-/* Updates mode field in statdata */
-errno_t obj40_set_mode(reiser4_object_t *obj, uint16_t mode) {
-	sdhint_lw_t lwh;
-	errno_t res;
-
-	if ((res = obj40_read_ext(obj, SDEXT_LW_ID, &lwh)))
-		return res;
-
-	lwh.mode = mode;
-	
-	return obj40_write_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lwh);
-}
-
 /* Updates size field in the stat data */
 errno_t obj40_set_size(reiser4_object_t *obj, uint64_t size) {
 	sdhint_lw_t lwh;
@@ -680,11 +616,17 @@ errno_t obj40_set_size(reiser4_object_t *obj, uint64_t size) {
 }
 
 /* Gets nlink field from the stat data */
-uint32_t obj40_get_nlink(reiser4_object_t *obj) {
+int64_t obj40_get_nlink(reiser4_object_t *obj, int update) {
 	sdhint_lw_t lwh;
+	errno_t res;
 
-	if (obj40_read_ext(obj, SDEXT_LW_ID, &lwh))
-		return 0;
+	if (update) {
+		if ((res = obj40_update(obj)))
+			return res;
+	}
+	
+	if ((res = obj40_read_ext(obj, SDEXT_LW_ID, &lwh)))
+		return res;
 	
 	return lwh.nlink;
 }
@@ -700,52 +642,6 @@ errno_t obj40_set_nlink(reiser4_object_t *obj, uint32_t nlink) {
 	lwh.nlink = nlink;
 	
 	return obj40_write_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lwh);
-}
-
-/* Gets atime field from the stat data */
-uint32_t obj40_get_atime(reiser4_object_t *obj) {
-	sdhint_unix_t unixh;
-
-	if (obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh))
-		return 0;
-	
-	return unixh.atime;
-}
-
-/* Updates atime field in the stat data */
-errno_t obj40_set_atime(reiser4_object_t *obj, uint32_t atime) {
-	sdhint_unix_t unixh;
-	errno_t res;
-
-	if ((res = obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh)))
-		return res;
-
-	unixh.atime = atime;
-	
-	return obj40_write_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unixh);
-}
-
-/* Gets mtime field from the stat data */
-uint32_t obj40_get_mtime(reiser4_object_t *obj) {
-	sdhint_unix_t unixh;
-
-	if (obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh))
-		return 0;
-	
-	return unixh.mtime;
-}
-
-/* Updates mtime field in the stat data */
-errno_t obj40_set_mtime(reiser4_object_t *obj, uint32_t mtime) {
-	sdhint_unix_t unixh;
-	errno_t res;
-
-	if ((res = obj40_read_ext(obj, SDEXT_UNIX_ID, &unixh)))
-		return res;
-
-	unixh.mtime = mtime;
-	
-	return obj40_write_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unixh);
 }
 
 /* Gets bytes field from the stat data */
@@ -773,8 +669,10 @@ errno_t obj40_set_bytes(reiser4_object_t *obj, uint64_t bytes) {
 }
 
 /* Changes nlink field in statdata by passed @value */
-errno_t obj40_inc_link(reiser4_object_t *obj, uint32_t value) {
-	uint32_t nlink = obj40_get_nlink(obj);
+static errno_t obj40_inc_link(reiser4_object_t *obj, 
+			      int32_t value, int update)
+{
+	uint32_t nlink = obj40_get_nlink(obj, update);
 	return obj40_set_nlink(obj, nlink + value);
 }
 
@@ -812,44 +710,18 @@ errno_t obj40_metadata(reiser4_object_t *obj,
 	return place_func(STAT_PLACE(obj), data);
 }
 
-uint32_t obj40_links(reiser4_object_t *obj) {
-	errno_t res;
-
-	aal_assert("umka-2567", obj != NULL);
-	
-	if ((res = obj40_update(obj)))
-		return res;
-	
-	return obj40_get_nlink(obj);
-}
-
 errno_t obj40_link(reiser4_object_t *obj) {
-	errno_t res;
-	
-	aal_assert("umka-2568", obj != NULL);
-
-	if ((res = obj40_update(obj)))
-		return res;
-	
-	return obj40_inc_link(obj, 1);
+	return obj40_inc_link(obj, 1, 1);
 }
 
 errno_t obj40_unlink(reiser4_object_t *obj) {
-	errno_t res;
-	
-	aal_assert("umka-2569", obj != NULL);
-	
-	if ((res = obj40_update(obj)))
-		return res;
-	
-	return obj40_inc_link(obj, -1);
+	return obj40_inc_link(obj, -1, 1);
 }
 
 /* Check if linked. Needed to let higher API levels know, that file has
    zero links and may be clobbered. */
 bool_t obj40_linked(reiser4_object_t *entity) {
-	aal_assert("umka-2296", entity != NULL);
-	return obj40_links(entity) != 0;
+	return obj40_get_nlink(entity, 1) != 0;
 }
 #endif
 
@@ -876,7 +748,23 @@ errno_t obj40_update(reiser4_object_t *obj) {
 }
 
 /* Reads data from the tree to passed @hint. */
-int64_t obj40_read(reiser4_object_t *obj, trans_hint_t *hint) {
+int64_t obj40_read(reiser4_object_t *obj, trans_hint_t *hint, 
+		   void *buff, uint64_t off, uint64_t count)
+{	
+	/* Preparing hint to be used for calling read with it. Here we
+	   initialize @count -- number of bytes to read, @specific -- pointer to
+	   buffer data will be read into, and pointer to tree instance, file is
+	   opened on. */ 
+	aal_memset(hint, 0, sizeof(*hint));
+	
+	/* Initializing offset data must be read from. This is current file
+	   offset, so we use @reg->position. */
+	aal_memcpy(&hint->offset, &obj->position, sizeof(hint->offset));
+	plug_call(hint->offset.plug->pl.key, set_offset, &hint->offset, off);
+	
+	hint->count = count;
+	hint->specific = buff;
+	
 	return obj40_core->flow_ops.read(obj->info.tree, hint);
 }
 
@@ -885,13 +773,25 @@ int64_t obj40_convert(reiser4_object_t *obj, conv_hint_t *hint) {
 	return obj40_core->flow_ops.convert(obj->info.tree, hint);
 }
 
-/* Writes data to tree */
-int64_t obj40_write(reiser4_object_t *obj, trans_hint_t *hint) {
-	return obj40_core->flow_ops.write(obj->info.tree, hint);
-}
-
 /* Truncates data in tree */
-int64_t obj40_truncate(reiser4_object_t *obj, trans_hint_t *hint) {
+int64_t obj40_truncate(reiser4_object_t *obj, 
+		       trans_hint_t *hint, uint64_t off,
+		       reiser4_plug_t *item_plug)
+{
+	aal_memset(hint, 0, sizeof(*hint));
+	
+	/* Preparing key of the data to be truncated. */
+	aal_memcpy(&hint->offset, &obj->position, sizeof(hint->offset));
+	
+	plug_call(obj->info.object.plug->pl.key,
+		  set_offset, &hint->offset, off);
+
+	/* Removing data from the tree. */
+	hint->count = MAX_UINT64;
+	hint->shift_flags = SF_DEFAULT;
+	hint->data = obj->info.tree;
+	hint->plug = item_plug;
+	
 	return obj40_core->flow_ops.truncate(obj->info.tree, hint);
 }
 
@@ -1013,6 +913,51 @@ errno_t obj40_layout(reiser4_object_t *obj,
 		if (res == ABSENT)
 			return 0;
 	}
+	
+	return 0;
+}
+
+/* Writes passed data to the file. Returns amount of written bytes. */
+int64_t obj40_write(reiser4_object_t *obj, trans_hint_t *hint,
+		    void *buff, uint64_t off, uint64_t count,
+		    reiser4_plug_t *item_plug, place_func_t func)
+{
+	/* Preparing hint to be used for calling write method. This is
+	   initializing @count - number of bytes to write, @specific - buffer to
+	   write into and @offset -- file offset data must be written at. */
+	aal_memset(hint, 0, sizeof(*hint));
+	hint->count = count;
+	
+	hint->specific = buff;
+	hint->shift_flags = SF_DEFAULT;
+	hint->place_func = func;
+	hint->plug = item_plug;
+	
+	aal_memcpy(&hint->offset, &obj->position, sizeof(hint->offset));
+	plug_call(hint->offset.plug->pl.key, set_offset, &hint->offset, off);
+	
+	/* Write data to tree. */
+	return obj40_core->flow_ops.write(obj->info.tree, hint);
+}
+
+errno_t obj40_touch(reiser4_object_t *obj, int64_t size, int64_t bytes) {
+	uint64_t fbytes;
+	uint64_t fsize;
+	errno_t res;
+	
+	/* Updating the SD place and update size, bytes there. */
+	if ((res = obj40_update(obj)))
+		return res;
+	
+	fsize = obj40_get_size(obj);
+	fbytes = obj40_get_bytes(obj);
+
+	/* Update size & bytes unless they do not change. */
+	if (size && (res = obj40_set_size(obj, fsize + size)))
+		return res;
+
+	if (bytes && (res = obj40_set_bytes(obj, fbytes + bytes)))
+		return res;
 	
 	return 0;
 }
