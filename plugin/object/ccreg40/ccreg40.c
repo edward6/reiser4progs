@@ -1,7 +1,7 @@
 /* Copyright (C) 2001-2005 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   crc40.c -- reiser4 crypto compression regular file plugin. */
+   ccreg40.c -- reiser4 crypto compression regular file plugin. */
 
 #ifndef ENABLE_MINIMAL
 
