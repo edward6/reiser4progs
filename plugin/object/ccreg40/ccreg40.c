@@ -45,13 +45,13 @@ errno_t ccreg40_set_cluster_size(reiser4_place_t *place, uint32_t cluster) {
 	return 0;
 }
 
-/* Performs Cluster De-CryptoCompression. @read bytes are taken from @disk, 
-   get De-CC & the result is put into @clust. Returns the size of uncompressed 
+/* Performs Cluster De-CryptoCompression. @count bytes are taken from @disk,
+   get De-CC & the result is put into @clust. Returns the size of uncompressed
    cluster. compressed is an indicator if data on disk are smaller then the 
    cluster size. Note cluster size depends on file size for the last cluster. */
 static int64_t ccreg40_decc_cluster(reiser4_object_t *crc, 
 				    void *clust, void *disk, 
-				    int64_t read, uint32_t compressed)
+				    int64_t count, uint32_t compressed)
 {
 	if (crc->info.opset.plug[OPSET_CRYPTO] != CRYPTO_NONE_ID) {
 		aal_error("Object [%s]: Can't extract encrypted "
@@ -69,15 +69,15 @@ static int64_t ccreg40_decc_cluster(reiser4_object_t *crc,
 		return -EINVAL;
 	}
 
-	aal_memcpy(clust, disk, read);
-	return read;
+	aal_memcpy(clust, disk, count);
+	return count;
 }
 
-/* Performs Cluster CryptoCompression. @clsize bytes are taken from @clust, get
+/* Performs Cluster CryptoCompression. @could bytes are taken from @clust, get
    CC & the result is put into @disk. Returns the size of CC-ed cluster. */
 static int64_t ccreg40_cc_cluster(reiser4_object_t *crc, 
 				  void *disk, void *clust, 
-				  uint64_t clsize)
+				  uint64_t count)
 {
 	if (crc->info.opset.plug[OPSET_CRYPTO] != CRYPTO_NONE_ID) {
 		aal_error("Object [%s]: Can't extract encrypted "
@@ -93,8 +93,8 @@ static int64_t ccreg40_cc_cluster(reiser4_object_t *crc,
 		return -EINVAL;
 	}
 
-	aal_memcpy(disk, clust, clsize);
-	return clsize;
+	aal_memcpy(disk, clust, count);
+	return count;
 }
 
 /* Cluster read operation. It reads exactly 1 cluster the @off offset belongs 
@@ -299,7 +299,7 @@ static int64_t ccreg40_write(reiser4_object_t *crc,
 			return res;
 		}
 
-		aal_assert("vpf-1880", res <= n);
+		aal_assert("vpf-1880", (uint64_t)res <= n);
 		
 		count += res;
 		bytes += hint.bytes;
@@ -316,6 +316,21 @@ static int64_t ccreg40_write(reiser4_object_t *crc,
 		return res;
 	
 	return count;
+}
+
+static errno_t ccreg40_truncate(reiser4_object_t *crc, uint64_t n) {
+	return obj40_truncate(crc, n, crc->info.opset.plug[OPSET_CTAIL]);
+}
+
+static errno_t ccreg40_clobber(reiser4_object_t *crc) {
+	errno_t res;
+	
+	aal_assert("vpf-1881", crc != NULL);
+	
+	if ((res = ccreg40_truncate(crc, 0)) < 0)
+		return res;
+	
+	return obj40_clobber(crc);
 }
 
 static errno_t ccreg40_layout(reiser4_object_t *crc,
@@ -339,7 +354,7 @@ static reiser4_object_plug_t ccreg40 = {
 	.inherit	= obj40_inherit,
 	.create	        = obj40_create,
 	.write	        = ccreg40_write,
-	.truncate       = NULL,			// add
+	.truncate       = ccreg40_truncate,
 	.layout         = ccreg40_layout,
 	.metadata       = ccreg40_metadata,
 	.convert        = NULL,
@@ -347,7 +362,7 @@ static reiser4_object_plug_t ccreg40 = {
 	.link           = obj40_link,
 	.unlink         = obj40_unlink,
 	.linked         = obj40_linked,
-	.clobber        = NULL,			// add
+	.clobber        = ccreg40_clobber,
 	.recognize	= obj40_recognize,
 	.check_struct   = ccreg40_check_struct,
 	

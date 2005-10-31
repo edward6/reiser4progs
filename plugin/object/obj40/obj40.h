@@ -118,10 +118,8 @@ extern int64_t obj40_write(reiser4_object_t *obj,
 
 extern int64_t obj40_convert(reiser4_object_t *obj, conv_hint_t *hint);
 
-extern int64_t obj40_truncate(reiser4_object_t *obj, 
-			      trans_hint_t *hint,
-			      uint64_t off,
-			      reiser4_plug_t *item_plug);
+extern int64_t obj40_truncate(reiser4_object_t *obj,
+			      uint64_t n, reiser4_plug_t *item_plug);
 
 extern errno_t obj40_stat_unix_init(stat_hint_t *stat, 
 				    sdhint_unix_t *unixh, 

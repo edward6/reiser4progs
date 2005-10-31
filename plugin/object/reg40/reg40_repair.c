@@ -158,7 +158,7 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 static errno_t reg40_check_item(reiser4_object_t *reg, void *data) {
 	uint8_t mode = *(uint8_t *)data;
 
-	if (!plug_equal(reg->body.plug, reg->info.opset.plug[OPSET_EXTENT]) ||
+	if (!plug_equal(reg->body.plug, reg->info.opset.plug[OPSET_EXTENT]) &&
 	    !plug_equal(reg->body.plug, reg->info.opset.plug[OPSET_TAIL]))
 	{
 		fsck_mess("The object [%s] (%s), node (%llu),"

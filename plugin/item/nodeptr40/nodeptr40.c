@@ -47,7 +47,7 @@ static errno_t nodeptr40_update_units(reiser4_place_t *place,
 	np40_set_ptr(nodeptr40_body(place), ptr->start);
 	place_mkdirty(place);
 	
-	return 0;
+	return 1;
 }
 
 /* Layout implementation for nodeptr40. It calls @geion_func for each block

@@ -774,25 +774,56 @@ int64_t obj40_convert(reiser4_object_t *obj, conv_hint_t *hint) {
 }
 
 /* Truncates data in tree */
-int64_t obj40_truncate(reiser4_object_t *obj, 
-		       trans_hint_t *hint, uint64_t off,
+int64_t obj40_truncate(reiser4_object_t *obj, uint64_t n,
 		       reiser4_plug_t *item_plug)
 {
-	aal_memset(hint, 0, sizeof(*hint));
+	trans_hint_t hint;
+	uint64_t size;
+	uint64_t bytes;
+	errno_t res;
 	
-	/* Preparing key of the data to be truncated. */
-	aal_memcpy(&hint->offset, &obj->position, sizeof(hint->offset));
+	aal_assert("vpf-1882", obj != NULL);
+	aal_assert("vpf-1884", item_plug != NULL);
 	
-	plug_call(obj->info.object.plug->pl.key,
-		  set_offset, &hint->offset, off);
+	if ((res = obj40_update(obj)))
+		return res;
+	
+	size = obj40_get_size(obj);
+	
+	if (size == n)
+		return 0;
+	
+	if (n > size) {
+		if ((res = obj40_write(obj, &hint, NULL, size, n - size, 
+				       item_plug, NULL)) < 0)
+		{
+			return res;
+		}
+		
+		bytes = hint.bytes;
+	} else {
+		aal_memset(&hint, 0, sizeof(hint));
+		
+		/* Preparing key of the data to be truncated. */
+		aal_memcpy(&hint.offset, &obj->position, sizeof(hint.offset));
+		
+		plug_call(obj->info.object.plug->pl.key,
+			  set_offset, &hint.offset, n);
+		
+		/* Removing data from the tree. */
+		hint.count = MAX_UINT64;
+		hint.shift_flags = SF_DEFAULT;
+		hint.data = obj->info.tree;
+		hint.plug = item_plug;
+		
+		res = obj40_core->flow_ops.truncate(obj->info.tree, &hint);
+		if (res < 0) return res;
 
-	/* Removing data from the tree. */
-	hint->count = MAX_UINT64;
-	hint->shift_flags = SF_DEFAULT;
-	hint->data = obj->info.tree;
-	hint->plug = item_plug;
+		bytes = -hint.bytes;
+	}
 	
-	return obj40_core->flow_ops.truncate(obj->info.tree, hint);
+	/* Updating stat data fields. */
+	return obj40_touch(obj, n - size, bytes);
 }
 
 /* Inserts passed item hint into the tree. After function is finished, place
@@ -824,7 +855,7 @@ errno_t obj40_traverse(reiser4_object_t *obj,
 {
 	errno_t res;
 	
-	aal_assert("umka-1712", dir != NULL);
+	aal_assert("umka-1712", obj != NULL);
 	aal_assert("umka-1713", place_func != NULL);
 	
 	/* Calculating stat data item. */

@@ -375,21 +375,6 @@ errno_t reiser4_node_sync(reiser4_node_t *node) {
 	return plug_call(node->plug->pl.node, sync, node);
 }
 
-/* Updates nodeptr item in parent node */
-errno_t reiser4_node_update_ptr(reiser4_node_t *node) {
-	errno_t res;
-
-	aal_assert("umka-2263", node != NULL);
-
-	if (!node->p.node)
-		return 0;
-	
-	if ((res = reiser4_place_fetch(&node->p)))
-		return res;
-	
-	return reiser4_item_update_link(&node->p, node->block->nr);
-}
-
 /* Updates node keys in recursive maner (needed for updating ldkeys on the all
    levels of tre tree). */
 errno_t reiser4_node_update_key(reiser4_node_t *node, pos_t *pos,

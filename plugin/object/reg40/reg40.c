@@ -253,37 +253,17 @@ static int64_t reg40_write(reiser4_object_t *reg,
 
 /* Truncates file to passed size @n. */
 static errno_t reg40_truncate(reiser4_object_t *reg, uint64_t n) {
-	trans_hint_t hint;
-	uint64_t size;
 	errno_t res;
-
-	if ((res = obj40_update(reg)))
-		return res;
-	
-	size = obj40_get_size(reg);
-
-	if (size == n)
-		return 0;
-
-	if (n > size) {
-		return obj40_touch(reg, n - size, 0);
-	}
 	
 	/* Cutting items/units */
-	if ((res = obj40_truncate(reg, &hint, size, reg->body_plug)) < 0)
+	if ((res = obj40_truncate(reg, n, reg->body_plug)) < 0)
 		return res;
 	
-	/* Updating stat data fields. */
-	if ((res = obj40_touch(reg, n - size, -hint.bytes)))
-		return res;
-
 	/* Converting body if needed. */
-	if ((res = reg40_check_body(reg, n))) {
+	if ((res = reg40_check_body(reg, n)))
 		aal_error("Can't perform tail conversion.");
-		return res;
-	}
-
-	return 0;
+		
+	return res;
 }
 
 /* Removes file body items and file stat data item. */

@@ -74,6 +74,7 @@ static errno_t dir40_entry_check(reiser4_object_t *dir,
 	uint32_t units;
 	errno_t result;
 	errno_t res;
+	bool_t last;
 	pos_t *pos;
 
 	info = &dir->info;
@@ -85,8 +86,11 @@ static errno_t dir40_entry_check(reiser4_object_t *dir,
 	if (pos->unit == MAX_UINT32)
 		pos->unit = 0;
 	
+	last = 0;
 	for (; pos->unit < units; pos->unit++) {
-		if (pos->unit == units - 1) {
+		last = (pos->unit == units - 1);
+		
+		if (last) {
 			/* If we are handling the last unit, register the item 
 			   despite the result of handling. Any item has a 
 			   pointer to objectid in the key, if it is shared 
@@ -168,7 +172,7 @@ static errno_t dir40_entry_check(reiser4_object_t *dir,
 		return result;
 
 	/* Update accounting info after remove. */
-	if (pos->unit == units - 1) {
+	if (last) {
 		hint->size--;
 		hint->bytes -= trans.bytes;
 	}

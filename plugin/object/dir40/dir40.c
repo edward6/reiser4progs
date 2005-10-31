@@ -359,7 +359,7 @@ static errno_t dir40_create(reiser4_object_t *dir, object_hint_t *hint) {
 }
 
 /* Removes all directory body items. */
-static errno_t dir40_truncate(reiser4_object_t *dir, uint64_t n) {
+static errno_t dir40_mkempty(reiser4_object_t *dir, uint64_t n) {
 	errno_t res;
 	reiser4_key_t key;
 
@@ -420,7 +420,7 @@ static errno_t dir40_clobber(reiser4_object_t *dir) {
 	dir40_reset(dir);
 	
 	/* Truncates directory body. */
-	if ((res = dir40_truncate(dir, 0)))
+	if ((res = dir40_mkempty(dir, 0)))
 		return res;
 
 	/* Cloberring stat data. */
@@ -640,7 +640,7 @@ static reiser4_object_plug_t dir40 = {
 	.unlink		= obj40_unlink,
 	.linked		= dir40_linked,
 	.update         = obj40_save_stat,
-	.truncate	= dir40_truncate,
+	.truncate	= NULL,
 	.add_entry	= dir40_add_entry,
 	.rem_entry	= dir40_rem_entry,
 	.build_entry    = dir40_build_entry,

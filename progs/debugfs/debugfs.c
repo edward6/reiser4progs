@@ -174,16 +174,13 @@ static errno_t cb_reloc_node(reiser4_node_t *node, void *data) {
 			if (reiser4_tree_get_root(tree) == node->block->nr)
 				reiser4_tree_set_root(tree, blk);
 
-			if (node->p.node && reiser4_item_update_link(&node->p, blk))
-				return -EIO;
-
+			if (node->p.node) {
+				res = reiser4_item_update_link(&node->p, blk);
+				if (res) return res;
+			}
+			
 			/* Rehashing node in @tree->nodes hash table. */
 			reiser4_tree_rehash_node(tree, node, blk);
-
-			if (reiser4_tree_get_root(tree) != node->block->nr) {
-				if ((res = reiser4_node_update_ptr(node)))
-					return res;
-			}
 		}
 
 		node->flags |= NF_DONE;

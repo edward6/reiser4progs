@@ -419,6 +419,7 @@ static inline errno_t obj40_stat_plug_check(reiser4_object_t *obj,
 	trans.specific = &stat;
 	trans.plug = start->plug;
 	start->pos.unit = 0;
+	stat.extmask = (1 << SDEXT_PLUG_ID);
 
 	if (present) {
 		/* Plug extention is the SD is wrong. Remove it first. */
@@ -437,7 +438,6 @@ static inline errno_t obj40_stat_plug_check(reiser4_object_t *obj,
 	/* Pass plugh there instead of obj->info.opset to not get the 
 	   altered result after the modification */
 	aal_memcpy(&plugh, &obj->info.opset, sizeof(plugh));
-	stat.extmask = (1 << SDEXT_PLUG_ID);
 	stat.ext[SDEXT_PLUG_ID] = &plugh;
 	
 	start->pos.unit = 0;
@@ -667,8 +667,11 @@ lookup_t obj40_check_item(reiser4_object_t *obj,
 		if (res != PRESENT && res != -ESTRUCT)
 			return res;
 		
-		if ((res = item_func(obj, data)) <= 0 && res != -ESTRUCT)
+		if ((res = item_func(obj, data)) < 0 && res != -ESTRUCT)
 			return res;
+		
+		if (res == 0)
+			return PRESENT;
 		
 		/* Item has wrong key, remove it. */
 		if ((res = obj40_delete(obj, 1, MAX_UINT32, 

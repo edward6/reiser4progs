@@ -775,8 +775,11 @@ errno_t reiser4_tree_next_place(reiser4_tree_t *tree,
 		
 		next->node = reiser4_tree_load_node(tree, next->node, blk);
 		
-		if (!next->node)
+		if (!next->node) {
+			aal_error("Can't load a child node %llu of the node"
+				  " (%llu).", blk, node->block->nr);
 			goto error;
+		}
 
 		if (reiser4_place_first(next))
 			goto error;
@@ -1280,16 +1283,13 @@ static errno_t cb_node_adjust(reiser4_tree_t *tree, reiser4_node_t *node) {
 		if (reiser4_tree_root_node(tree, node))
 			reiser4_tree_set_root(tree, blk);
 		
-		if (node->p.node && reiser4_item_update_link(&node->p, blk))
-			return -EIO;
-
-		/* Rehashing node in @tree->nodes hash table. */
-		reiser4_tree_rehash_node(tree, node, blk);
-		
-		if (!reiser4_tree_root_node(tree, node)) {
-			if ((res = reiser4_node_update_ptr(node)))
+		if (node->p.node) {
+			if ((res = reiser4_item_update_link(&node->p, blk)))
 				return res;
 		}
+		
+		/* Rehashing node in @tree->nodes hash table. */
+		reiser4_tree_rehash_node(tree, node, blk);
 	}
 
 	return 0;
@@ -1843,10 +1843,18 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 		if (!reiser4_place_valid(place))
 			restore_and_exit(ABSENT);
 		
+		if (reiser4_place_fetch(place))
+			restore_and_exit(-EIO);
+		
+		/* Checking is item at @place is nodeptr one. If not, we correct
+		   posision back. */
+		if (!reiser4_item_branch(place->plug))
+			restore_and_exit(res);
+		
 		/* Loading node by its nodeptr item at @place. */
 		if (!(place->node = reiser4_tree_child_node(tree, place)))
 			restore_and_exit(-EIO);
-
+		
 		/* Zero the plug pointer. */
 		place->plug = NULL;
 	}
