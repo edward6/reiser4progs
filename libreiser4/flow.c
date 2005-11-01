@@ -14,6 +14,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 	uint64_t size;
 	reiser4_key_t key;
 	lookup_hint_t lhint;
+	reiser4_place_t place;
 
 	aal_assert("umka-2509", tree != NULL);
 	aal_assert("umka-2510", hint != NULL);
@@ -23,25 +24,17 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 
 #ifndef ENABLE_MINIMAL
 	hint->blocks = tree->blocks;
+	lhint.collision = NULL;
 #endif
+	lhint.level = LEAF_LEVEL;
+	lhint.key = &hint->offset;
+	
+	/* Looking for the place to read. */
+	if ((res = reiser4_tree_lookup(tree, &lhint, FIND_EXACT, &place)) < 0)
+		return res;
 
 	for (total = 0, size = hint->count; size > 0; ) {
 		int32_t read;
-		reiser4_place_t place;
-
-#ifndef ENABLE_MINIMAL
-		lhint.collision = NULL;
-#endif
-		lhint.level = LEAF_LEVEL;
-		lhint.key = &hint->offset;
-	
-		/* Looking for the place to read. 
-		   FIXME: look into flow_write. */
-		if ((res = reiser4_tree_lookup(tree, &lhint,
-					       FIND_EXACT, &place)) < 0)
-		{
-			return res;
-		}
 
 		/* Data does not found. This may mean, that we have hole in tree
 		   between keys. */
@@ -60,7 +53,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 				      &tkey, &hint->offset))
 			{
 				/* No data found. */
-				read = size;
+				break;
 			} else {
 				uint64_t next, look, hole;
 				
@@ -71,14 +64,13 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 				read = (hole > size ? size : hole);
 			}
 			
-			/* If only hole is found, return 0. */
-			if ((uint64_t)read == hint->count) {
-				read = 0;
-				break;
-			}
-			
 			/* Making holes in buffer. */
 			aal_memset(hint->specific, 0, read);
+
+			/* If we need to read more, the hole is finished, set 
+			   @res to PRESENT for the next loop. */
+			if (size > read)
+				res = PRESENT;
 		} else {
 			/* Prepare hint for read */
 			hint->count = size;
@@ -88,9 +80,17 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 					      read_units, &place, hint)) < 0) 
 			{
 				return read;
-			} else {
-				if (read == 0)
-					break;
+			} else if (read == 0) {
+				break;
+			}
+
+			if (size > read) {
+				if ((res = reiser4_tree_next_place(tree, &place,
+								   &place)) < 0)
+				{
+					return res;
+				}
+				
 			}
 		}
 
@@ -100,6 +100,12 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 		/* Updating key and data buffer pointer */
 		hint->specific += read;
 		reiser4_key_inc_offset(&hint->offset, read);
+		
+		if (!place.plug || !size)
+			break;
+
+		res = plug_call(place.key.plug->pl.key, compshort,
+				&place.key, &hint->offset) ? ABSENT : PRESENT;
 	}
 
 	hint->specific = buff;
@@ -126,6 +132,9 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 	uint64_t total;
 	reiser4_key_t key;
 
+	lookup_hint_t lhint;
+	reiser4_place_t place;
+
 	aal_assert("umka-2506", tree != NULL);
 	aal_assert("umka-2507", hint != NULL);
 	
@@ -134,32 +143,22 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 
 	hint->blocks = tree->blocks;
 
+	lhint.level = LEAF_LEVEL;
+	lhint.key = &hint->offset;
+	lhint.collision = NULL;
+
+	/* Looking up the place to write into. */
+	if ((res = reiser4_tree_lookup(tree, &lhint, FIND_CONV, &place)) < 0)
+		return res;
+	
 	/* Loop until desired number of bytes is written. */
 	for (total = bytes = 0, size = hint->count; size > 0;) {
 		int32_t write;
 		uint32_t level;
-		lookup_hint_t lhint;
-		reiser4_place_t place;
 
 		hint->count = size;
 		hint->blocks = tree->blocks;
-
-		lhint.level = LEAF_LEVEL;
-		lhint.key = &hint->offset;
-		lhint.collision = NULL;
-
-		/* Looking for place to write. 
-		   FIXME: Hmm, it seems place_fetch in lookup takes too much 
-		   time. The possible speedup is to lookup within the node 
-		   here and take the next node if needed. Only 1 lookup before 
-		   the main 'for' circle. */
-		if ((res = reiser4_tree_lookup(tree, &lhint,
-					       FIND_CONV,
-					       &place)) < 0)
-		{
-			return res;
-		}
-
+		
 		/* level new item will be inserted a on. */
 		level = reiser4_tree_target_level(tree, hint->plug);
 		hint->bytes = 0;
@@ -183,6 +182,14 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 			hint->specific += write;
 		
 		reiser4_key_inc_offset(&hint->offset, write);
+		
+		/* Position in the place may be left not updated. 
+		   Lookup the item again. */
+		if ((res = plug_call(place.plug->pl.item->balance,
+				     lookup, &place, &lhint, FIND_CONV)) < 0)
+		{
+			return res;
+		}
 	}
 
 	hint->bytes = bytes;

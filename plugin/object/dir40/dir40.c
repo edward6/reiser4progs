@@ -378,7 +378,9 @@ static errno_t dir40_mkempty(reiser4_object_t *dir, uint64_t n) {
 		trans_hint_t hint;
 		reiser4_place_t place;
 
-		/* Looking for the last directory item */
+		/* Looking for the last directory item. 
+		   FIXME: the possible speedup here is to get rid of 
+		   lookup */
 		if ((res = obj40_find_item(dir, &key, FIND_EXACT,
 					   NULL, NULL, &place)) < 0)
 		{

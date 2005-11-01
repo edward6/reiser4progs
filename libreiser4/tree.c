@@ -2171,7 +2171,7 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, reiser4_place_t *place,
 	shift_hint_t hint;
 	reiser4_key_t lkey;
 	
-	uint8_t start, end;
+	uint8_t start;
 
 	aal_assert("umka-1225", tree != NULL);
 	aal_assert("umka-1226", place != NULL);
@@ -3216,10 +3216,12 @@ errno_t reiser4_tree_scan(reiser4_tree_t *tree,
 		hint.level = LEAF_LEVEL;
 		hint.collision = NULL;
 
-                /* Lookup the key. */
-                if ((lookup = reiser4_tree_lookup(tree, &hint, FIND_EXACT, 
+                /* Lookup the key. FIXME: it is possible to spped it up. */
+                if ((lookup = reiser4_tree_lookup(tree, &hint, FIND_EXACT,
 						  &place)) < 0)
+		{
                         return lookup;
+		}
 
 		pos = &place.pos;
 

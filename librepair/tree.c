@@ -497,6 +497,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 	level = reiser4_node_get_level(src->node);
 	
 	while (1) {
+		/* FIXME: it is possible to speed it up */
 		if ((res = repair_tree_lookup(tree, &dst, 
 					      src, &hint.offset)) < 0)
 		{
