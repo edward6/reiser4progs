@@ -72,18 +72,18 @@ typedef enum reiser4_plug_type {
 	HASH_PLUG_TYPE          = 0x3,
 	FIBRE_PLUG_TYPE		= 0x4,
 	POLICY_PLUG_TYPE        = 0x5,
-	SDEXT_PLUG_TYPE         = 0x7,
-	FORMAT_PLUG_TYPE        = 0x8,
+	SDEXT_PLUG_TYPE         = 0x6,
+	FORMAT_PLUG_TYPE        = 0x7,
 
 	/* These are not plugins in the kernel. */
-	OID_PLUG_TYPE           = 0xe,
-	ALLOC_PLUG_TYPE         = 0xf,
-	JOURNAL_PLUG_TYPE       = 0x10,
-	KEY_PLUG_TYPE           = 0x11,
+	OID_PLUG_TYPE           = 0x8,
+	ALLOC_PLUG_TYPE         = 0x9,
+	JOURNAL_PLUG_TYPE       = 0xa,
+	KEY_PLUG_TYPE           = 0xb,
 	
 	/* Not really a plugin, at least in progs, but a value that 
 	   needs to be checked only. */
-	PARAM_PLUG_TYPE		= 0x12,
+	PARAM_PLUG_TYPE		= 0xc,
 	LAST_PLUG_TYPE
 } reiser4_plug_type_t;
 

@@ -51,35 +51,13 @@ static int64_t reg40_read(reiser4_object_t *reg,
 	return read;
 }
 
-/* Open regular file by passed initial info and return initialized
-   instance. This @info struct contains information about the obejct, like its
-   statdata coord, etc. */
-static errno_t reg40_open(reiser4_object_t *reg) {
-	obj40_open(reg);
-
-#ifndef ENABLE_MINIMAL
-	{
-		lookup_t lookup;
-
-		/* Get the body plugin in use. */
-		if ((lookup = obj40_find_item(reg, &reg->position, FIND_EXACT, 
-					      NULL, NULL, &reg->body)) < 0)
-		{
-			return lookup;
-		} else if (lookup > 0) {
-			reg->body_plug = reg->body.plug;
-		}
-	}
-#endif
-
-	return 0;
-}
-
 #ifndef ENABLE_MINIMAL
 /* Returns plugin (tail or extent) for next write operation basing on passed
    @size -- new file size. This function will use tail policy plugin to find
    what kind of next body item should be writen. */
-reiser4_plug_t *reg40_policy_plug(reiser4_object_t *reg, uint64_t new_size) {
+static reiser4_plug_t *reg40_policy_plug(reiser4_object_t *reg, 
+					 uint64_t new_size)
+{
 	reiser4_plug_t *policy;
 	
 	aal_assert("umka-2394", reg != NULL);
@@ -97,6 +75,42 @@ reiser4_plug_t *reg40_policy_plug(reiser4_object_t *reg, uint64_t new_size) {
 	
 	/* The same for extent plugin */
 	return reg->info.opset.plug[OPSET_EXTENT];
+}
+#endif
+
+/* Open regular file by passed initial info and return initialized
+   instance. This @info struct contains information about the obejct, like its
+   statdata coord, etc. */
+static errno_t reg40_open(reiser4_object_t *reg) {
+	obj40_open(reg);
+
+#ifndef ENABLE_MINIMAL
+	{
+		lookup_t lookup;
+		
+		/* Get the body plugin in use. */
+		if ((lookup = obj40_update_body(reg, NULL)) < 0) {
+			return lookup;
+		} else if (lookup > 0) {
+			reg->body_plug = reg->body.plug;
+		} else {
+			reg->body_plug = reg40_policy_plug(reg, 0);
+		}
+	}
+#endif
+
+	return 0;
+}
+
+#ifndef ENABLE_MINIMAL
+static errno_t reg40_create(reiser4_object_t *reg, object_hint_t *hint) {
+	errno_t res;
+	
+	if ((res = obj40_create(reg, hint)))
+		return res;
+	
+	reg->body_plug = reg40_policy_plug(reg, 0);
+	return 0;
 }
 
 /* Makes tail2extent and extent2tail conversion. */
@@ -303,7 +317,7 @@ static errno_t reg40_metadata(reiser4_object_t *reg,
 static reiser4_object_plug_t reg40 = {
 #ifndef ENABLE_MINIMAL
 	.inherit	= obj40_inherit,
-	.create	        = obj40_create,
+	.create	        = reg40_create,
 	.write	        = reg40_write,
 	.truncate       = reg40_truncate,
 	.layout         = reg40_layout,

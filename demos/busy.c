@@ -307,6 +307,8 @@ errno_t reg_test(busy_ctx_t *ctx) {
 		//			printf("%s\n", name);
 		*/
 		for (k = 0; k < 3; k++) {
+			int count, j;
+			
 			if (!(object = reiser4_reg_create(dir, name[k])))
 				continue;
 
@@ -316,7 +318,7 @@ errno_t reg_test(busy_ctx_t *ctx) {
 					  name[k]);
 				break;
 			}
-#if 0
+
 			count = 1000;
 
 			for (j = 0; j < count; j++) {
@@ -331,7 +333,7 @@ errno_t reg_test(busy_ctx_t *ctx) {
 					break;
 				}
 			}
-#endif
+
 			if (object) {
 				reiser4_object_close(object);
 			} else {

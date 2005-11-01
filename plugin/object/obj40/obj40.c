@@ -551,8 +551,11 @@ errno_t obj40_create_stat(reiser4_object_t *obj,
 }
 
 errno_t obj40_create(reiser4_object_t *obj, object_hint_t *hint) {
-	return obj40_create_stat(obj, 0, 0, hint ? hint->rdev : 0, 
-				 0, hint ? hint->mode : 0, hint->str);
+	if (hint == NULL)
+		return obj40_create_stat(obj, 0, 0, 0, 0, 0, NULL);
+	
+	return obj40_create_stat(obj, 0, 0, hint->rdev, 0, 
+				 hint->mode, hint->str);
 }
 
 /* Writes one stat data extension. */

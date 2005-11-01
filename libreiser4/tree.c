@@ -472,7 +472,8 @@ errno_t reiser4_tree_disconnect_node(reiser4_tree_t *tree,
 #ifndef ENABLE_MINIMAL
 /* Updates all internal node loaded children positions in parent. */
 static errno_t reiser4_tree_update_node(reiser4_tree_t *tree,
-					reiser4_node_t *node)
+					reiser4_node_t *node,
+					uint8_t start, uint8_t end)
 {
 	uint32_t i;
 	errno_t res;
@@ -481,7 +482,7 @@ static errno_t reiser4_tree_update_node(reiser4_tree_t *tree,
 	aal_assert("umka-3036", node != NULL);
 	aal_assert("umka-3037", reiser4_node_items(node) > 0);
 	
-	for (i = 0; i < reiser4_node_items(node); i++) {
+	for (i = start; i < end; i++) {
 		blk_t blk;
 		uint32_t j;
 
@@ -1671,7 +1672,7 @@ static errno_t reiser4_tree_collision_start(reiser4_tree_t *tree,
                                                                                      
         if (reiser4_place_fetch(place))
                 return -EINVAL;
-                                                                                     
+	
         aal_memcpy(&walk, place, sizeof(*place));
                                                                                      
         /* Main loop until leftmost node reached. */
@@ -1796,6 +1797,7 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 	while (1) {
 		uint32_t clevel;
 		lookup_bias_t cbias;
+		blk_t blk;
 
 		clevel = reiser4_node_get_level(place->node);
 		cbias = (clevel > hint->level ? FIND_EXACT : bias);
@@ -1852,9 +1854,14 @@ lookup_t reiser4_tree_lookup(reiser4_tree_t *tree, lookup_hint_t *hint,
 			restore_and_exit(res);
 		
 		/* Loading node by its nodeptr item at @place. */
-		if (!(place->node = reiser4_tree_child_node(tree, place)))
+		blk = reiser4_item_down_link(place);
+		if (!(place->node = reiser4_tree_load_node(tree, place->node,
+							   blk)))
+		{
+			aal_error("Can't load child node %llu.", blk);
 			restore_and_exit(-EIO);
-		
+		}
+
 		/* Zero the plug pointer. */
 		place->plug = NULL;
 	}
@@ -2159,10 +2166,12 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, reiser4_place_t *place,
 {
 	errno_t res;
 	reiser4_node_t *node;
-	reiser4_node_t *update;
+	reiser4_node_t *right;
 
 	shift_hint_t hint;
 	reiser4_key_t lkey;
+	
+	uint8_t start, end;
 
 	aal_assert("umka-1225", tree != NULL);
 	aal_assert("umka-1226", place != NULL);
@@ -2176,6 +2185,10 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, reiser4_place_t *place,
 	hint.control = flags;
 	hint.pos = place->pos;
 
+	/* Needed for the left shift. */
+	start = reiser4_node_items(neig);
+	start = start ? start - 1 : 0;
+	
 	/* Perform node shift from @node to @neig. */
 	if ((res = reiser4_node_shift(node, neig, &hint)))
 		return res;
@@ -2189,23 +2202,23 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, reiser4_place_t *place,
 	if (hint.control & SF_UPDATE_POINT)
 		place->pos = hint.pos;
 
-	update = (hint.control & SF_ALLOW_LEFT) ? node : neig;
+	right = (hint.control & SF_ALLOW_LEFT) ? node : neig;
 
 	/* Check if we need update key in insert part of tree. That is if source
 	   node is not empty and there was actually moved at least one item or
 	   unit. */
-	if (reiser4_node_items(update) > 0 && hint.update) {
+	if (reiser4_node_items(right) > 0 && hint.update) {
 		/* Check if node is connected to tree or it is not root and
 		   updating left delimiting keys if it makes sense at all. */
-		if (update->p.node != NULL) {
+		if (right->p.node != NULL) {
 			reiser4_place_t parent;
 
-			/* Getting leftmost key from @update. */
-			reiser4_node_leftmost_key(update, &lkey);
+			/* Getting leftmost key from @right. */
+			reiser4_node_leftmost_key(right, &lkey);
 
 			/* Recursive updating of all internal keys that supposed
 			   to be updated. */
-			aal_memcpy(&parent, &update->p, sizeof(parent));
+			aal_memcpy(&parent, &right->p, sizeof(parent));
 				
 			if ((res = reiser4_tree_update_keys(tree, &parent, &lkey)))
 				return res;
@@ -2214,14 +2227,22 @@ errno_t reiser4_tree_shift(reiser4_tree_t *tree, reiser4_place_t *place,
 
 	/* Updating @node and @neig children's parent position. */
 	if (reiser4_node_get_level(node) > LEAF_LEVEL) {
-		if (reiser4_node_items(node) > 0) {
-			if ((res = reiser4_tree_update_node(tree, node)))
+		reiser4_node_t *left = (hint.control & SF_ALLOW_LEFT) ? neig : NULL;
+
+		if (left && reiser4_node_items(left) > 0) {
+			if ((res = reiser4_tree_update_node(tree, left, start, 
+							    reiser4_node_items(left))))
+			{
 				return res;
+			}
 		}
 	
-		if (reiser4_node_items(neig) > 0) {
-			if ((res = reiser4_tree_update_node(tree, neig)))
+		if (reiser4_node_items(right) > 0) {
+			if ((res = reiser4_tree_update_node(tree, right, 0, 
+							    reiser4_node_items(right))))
+			{
 				return res;
+			}
 		}
 	}
 	
@@ -2831,10 +2852,13 @@ static inline errno_t tree_post_modify(reiser4_tree_t *tree,
 
 	/* Update @place->node children's parent pointers. */
 	if (reiser4_node_get_level(place->node) > LEAF_LEVEL) {
-		if ((res = reiser4_tree_update_node(tree, place->node)))
+		if ((res = reiser4_tree_update_node(tree, place->node, 
+						    place->pos.item, items)))
+		{
 			return res;
+		}
 	}
-
+	
 	return 0;
 }
 

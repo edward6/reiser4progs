@@ -35,7 +35,8 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 		lhint.level = LEAF_LEVEL;
 		lhint.key = &hint->offset;
 	
-		/* Looking for the place to read. */
+		/* Looking for the place to read. 
+		   FIXME: look into flow_write. */
 		if ((res = reiser4_tree_lookup(tree, &lhint,
 					       FIND_EXACT, &place)) < 0)
 		{
@@ -147,7 +148,11 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 		lhint.key = &hint->offset;
 		lhint.collision = NULL;
 
-		/* Looking for place to write. */
+		/* Looking for place to write. 
+		   FIXME: Hmm, it seems place_fetch in lookup takes too much 
+		   time. The possible speedup is to lookup within the node 
+		   here and take the next node if needed. Only 1 lookup before 
+		   the main 'for' circle. */
 		if ((res = reiser4_tree_lookup(tree, &lhint,
 					       FIND_CONV,
 					       &place)) < 0)
@@ -218,6 +223,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 		lhint.key = &hint->offset;
 		lhint.collision = NULL;
 	
+		/* FIXME: look into flow_write. */
 		if ((res = reiser4_tree_lookup(tree, &lhint, FIND_EXACT,
 					       &place)) < 0)
 		{

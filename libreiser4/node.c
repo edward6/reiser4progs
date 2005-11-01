@@ -149,9 +149,14 @@ reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr) {
 	pid = *((uint16_t *)block->data);
 
 	/* Finding the node plug by its id. */
+#ifndef ENABLE_MINIMAL
+	if (pid == tree->ent.tpset[TPSET_NODE]->id.id)
+		plug = tree->ent.tpset[TPSET_NODE];
+	else 
+#endif
 	if (!(plug = reiser4_factory_ifind(NODE_PLUG_TYPE, pid)))
 		goto error_free_block;
-
+	
 	/* Requesting the plugin for initialization of the entity. */
 	if (!(node = plug_call(plug->pl.node, open,
 			       block, tree->key.plug)))

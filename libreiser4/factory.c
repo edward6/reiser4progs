@@ -7,7 +7,24 @@
 #include <reiser4/libreiser4.h>
 
 /* Hash table contains all known libreiser4 plugins. */
-aal_hash_table_t *plugins;
+reiser4_plug_t **plugins;
+
+static uint8_t plugs_max[LAST_PLUG_TYPE + 1] = {
+	[OBJECT_PLUG_TYPE]        = OBJECT_LAST_ID,
+	[ITEM_PLUG_TYPE]          = ITEM_LAST_ID,
+	[NODE_PLUG_TYPE]          = NODE_LAST_ID,
+	[HASH_PLUG_TYPE]          = HASH_LAST_ID,
+	[FIBRE_PLUG_TYPE]	  = FIBRE_LAST_ID,
+	[POLICY_PLUG_TYPE]        = TAIL_LAST_ID,
+	[SDEXT_PLUG_TYPE]         = SDEXT_LAST_ID,
+	[FORMAT_PLUG_TYPE]        = FORMAT_LAST_ID,
+	[OID_PLUG_TYPE]           = OID_LAST_ID,
+	[ALLOC_PLUG_TYPE]         = ALLOC_LAST_ID,
+	[JOURNAL_PLUG_TYPE]       = JOURNAL_LAST_ID,
+	[KEY_PLUG_TYPE]           = KEY_LAST_ID,
+	[PARAM_PLUG_TYPE]         = 0,
+	[LAST_PLUG_TYPE]	  = 0,
+};
 
 /* Structure that contains libreiser4 functions available for all plugins to be
    used. */
@@ -20,7 +37,7 @@ extern reiser4_core_t core;
 static errno_t cb_check_plug(reiser4_plug_t *plug, void *data) {
 	reiser4_plug_t *examined = (reiser4_plug_t *)data;
 
-	if (examined == plug)
+	if (!plug || examined == plug)
 		return 0;
 
 	/* Check plugin labels. They should not be the same. */
@@ -78,6 +95,8 @@ static reiser4_plug_t *reiser4_plug_init(plug_class_t *cl) {
 static errno_t reiser4_plug_fini(reiser4_plug_t *plug) {
 	errno_t res = 0;
 	
+	if (!plug) return 0;
+	
 	/* Calling plugin fini() method if any. */
 	if (plug->cl.fini) {
 		if ((res = plug->cl.fini(&core))) {
@@ -90,6 +109,20 @@ static errno_t reiser4_plug_fini(reiser4_plug_t *plug) {
 	plug->cl.fini = 0;
 
 	return res;
+}
+
+/* Helper functions used for calculating hash and for comparing two entries from
+   plugin hash table during its modifying. */
+#define plug_hash_func(type, id) (plugs_max[type] + (id))
+
+/* Unloads plugin and removes it from plugin hash table. */
+static errno_t reiser4_factory_unload(reiser4_plug_t *plug) {
+	aal_assert("umka-1496", plug != NULL);
+
+	plugins[plug_hash_func(plug->id.type, plug->id.id)] = NULL;
+	reiser4_plug_fini(plug);
+	
+	return 0;
 }
 
 /* Loads and initializes plugin by its entry. Also this function makes register
@@ -109,31 +142,8 @@ reiser4_plug_t *reiser4_factory_load(plug_class_t *cl) {
 	}
 #endif
 	
-	aal_hash_table_insert(plugins, &plug->id, plug);
+	plugins[plug_hash_func(plug->id.type, plug->id.id)] = plug;
 	return plug;
-}
-
-/* Unloads plugin and removes it from plugin hash table. */
-errno_t reiser4_factory_unload(reiser4_plug_t *plug) {
-	aal_assert("umka-1496", plug != NULL);
-
-	reiser4_plug_fini(plug);
-	aal_hash_table_remove(plugins, &plug->id);
-
-	return 0;
-}
-
-/* Helper functions used for calculating hash and for comparing two entries from
-   plugin hash table during its modifying. */
-static uint64_t cb_hash_func(void *key) {
-	return (uint64_t)((plug_ident_t *)key)->type;
-}
-
-static int cb_comp_func(void *key1, void *key2,
-			      void *data)
-{
-	return (!ident_equal((plug_ident_t *)key1,
-			     (plug_ident_t *)key2));
 }
 
 /* Macro for loading plugin by its name. */
@@ -158,16 +168,23 @@ static int cb_comp_func(void *key1, void *key2,
 /* Initializes all built-in plugins. Other kinds of plugins are not supported
    for now.  */
 errno_t reiser4_factory_init(void) {
-	aal_assert("umka-3013", plugins == NULL);
-
+	uint8_t prev, max;
+	int i;
+	
+	prev = 0;
 	/* Init plugin hash table. */
-	if (!(plugins = aal_hash_table_create(PLUGINS_TABLE_SIZE,
-					      cb_hash_func, cb_comp_func,
-					      NULL, NULL)))
-	{
-		return -ENOMEM;
+	for (i = 0; i <= LAST_PLUG_TYPE; i++) {
+		max = plugs_max[i];
+		if (i == 0)
+			plugs_max[i] = 0;
+		else
+			plugs_max[i] = plugs_max[i - 1] + prev;
+		
+		prev = max;
 	}
-
+	
+	plugins = aal_calloc((plugs_max[LAST_PLUG_TYPE]) * sizeof(*plugins), 0);
+	
 	/* Registering all known plugins. */
 	__load_plug(format40);
 
@@ -266,12 +283,6 @@ errno_t reiser4_factory_init(void) {
 	/* Check if at least one plugin has registered in plugins hash table. If
 	   there are no one, plugin factory is considered not successfully
 	   initialized.*/
-	if (plugins->real == 0) {
-                aal_error("There are no valid "
-			  "builtin plugins found.");
-		aal_hash_table_free(plugins);
-                return -EINVAL;
-        }
 #endif
 
         return 0;
@@ -279,125 +290,64 @@ errno_t reiser4_factory_init(void) {
 
 /* Helper function for unloading one plugin. */
 static errno_t cb_unload_plug(reiser4_plug_t *plug, void *data) {
-	return reiser4_plug_fini(plug);
+	return plug ? reiser4_plug_fini(plug) : 0;
 }
 
 /* Finalizes plugin factory, by means of unloading the all plugins. */
 void reiser4_factory_fini(void) {
-	aal_assert("umka-335", plugins != NULL);
-
 	reiser4_factory_foreach(cb_unload_plug, NULL);
-	aal_hash_table_free(plugins);
+	aal_free(plugins);
 }
-
-
-/* Plugin hash table enumeration stuff. */
-typedef struct enum_hint {
-	void *data;
-	reiser4_plug_t *plug;
-	plug_func_t plug_func;
-} enum_hint_t;
-
-/* Helper function for calling passed plug_func() for each plugin from passed
-   plugin hash table. */
-static errno_t cb_foreach_plug(void *entry, void *data) {
-	errno_t res;
-	enum_hint_t *hint;
-	reiser4_plug_t *plug;
-	aal_hash_node_t *node;
-
-	hint = (enum_hint_t *)data;
-	node = (aal_hash_node_t *)entry;
-	plug = (reiser4_plug_t *)node->value;
-
-	if ((res = hint->plug_func(plug, hint->data))) {
-		hint->plug = plug;
-		return res;
-	}
-
-	return 0;
-}
-
-#ifndef ENABLE_MINIMAL
-/* Helper function for comparing each plugin registered in plugin factory with
-   passed one in order to check if they name the same . */
-static errno_t cb_nfind_plug(void *entry, void *data) {
-	enum_hint_t *hint = (enum_hint_t *)data;
-	aal_hash_node_t *node = (aal_hash_node_t *)entry;
-	reiser4_plug_t *plug = (reiser4_plug_t *)node->value;
-
-	if (!aal_strncmp(plug->label, hint->data,
-			 sizeof(plug->label)))
-	{
-		hint->plug = plug;
-		return 1;
-	}
-
-	return 0;
-}
-#endif
 
 /* Calls specified function for every plugin from plugin list. This functions is
    used for getting any plugins information. */
 errno_t reiser4_factory_foreach(plug_func_t plug_func, void *data) {
-	enum_hint_t hint;
+	errno_t res;
+	uint8_t i;
 	
-	aal_assert("umka-3005", plugins != NULL);    
-	aal_assert("umka-3006", plug_func != NULL);    
+	aal_assert("umka-3006", plug_func != NULL);
 
-	hint.plug = NULL;
-	hint.data = data;
-	hint.plug_func = plug_func;
-
-	return aal_hash_table_foreach(plugins, cb_foreach_plug, &hint);
+	for (i = 0; i < plugs_max[LAST_PLUG_TYPE]; i++) {
+		if ((res = plug_func(plugins[i], data)))
+			return res;
+	}
+	
+	return 0;
 }
 
 /* Finds plugin by its type and id. */
 reiser4_plug_t *reiser4_factory_ifind(rid_t type, rid_t id) {
-	plug_ident_t ident;
-	aal_hash_node_t **node;
-
-	aal_assert("umka-155", plugins != NULL);    
-
-	ident.id = id;
-	ident.type = type;
-	
-	node = aal_hash_table_lookup_node(plugins, &ident);
-
-	if (!node || !(*node))
-		return NULL;
-	
-	return (reiser4_plug_t *)(*node)->value;
+	return plugins[plug_hash_func(type, id)];
 }
 
 /* Finds plugin by variable criterios implemented by passed @plug_func. */
 reiser4_plug_t *reiser4_factory_cfind(plug_func_t plug_func, void *data) {
-	enum_hint_t hint;
+	errno_t res;
+	uint8_t i;
 	
-	aal_assert("umka-155", plugins != NULL);    
-	aal_assert("umka-899", plug_func != NULL);    
+	aal_assert("vpf-1886", plug_func != NULL);
 
-	hint.data = data;
-	hint.plug = NULL;
-	hint.plug_func = plug_func;
-
-	aal_hash_table_foreach(plugins, cb_foreach_plug, &hint);
+	for (i = 0; i < plugs_max[LAST_PLUG_TYPE]; i++) {
+		if ((res = plug_func(plugins[i], data)))
+			return plugins[i];
+	}
 	
-	return hint.plug;
+	return NULL;
 }
 
 #ifndef ENABLE_MINIMAL
 /* Makes search for plugin by @name. */
 reiser4_plug_t *reiser4_factory_nfind(char *name) {
-	enum_hint_t hint;
-
-	aal_assert("vpf-156", name != NULL);    
-       
-	hint.plug = NULL;
-	hint.data = name;
-
-	aal_hash_table_foreach(plugins, cb_nfind_plug, &hint);
+	uint8_t i;
 	
-	return hint.plug;
+	for (i = 0; i < plugs_max[LAST_PLUG_TYPE]; i++) {
+		if (!aal_strncmp(plugins[i]->label, name,
+				 sizeof(plugins[i]->label)))
+		{
+			return plugins[i];
+		}
+	}
+	
+	return NULL;
 }
 #endif
