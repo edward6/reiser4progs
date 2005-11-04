@@ -61,14 +61,14 @@ static errno_t obj40_check_stat(reiser4_object_t *obj) {
 	
 	if (info->start.plug->id.group != STAT_ITEM)
 		return RE_FATAL;
-	
+#if 0	
 	/* Compare the correct key with the place key. */
 	if (plug_call(info->object.plug->pl.key, compfull,
 		      &info->object, &info->start.key))
 	{
 		return RE_FATAL;
 	}
-	
+#endif	
 	/* Some SD is recognized. Check that this is our SD. */
 	return obj40_exts_check(obj);
 }
@@ -241,7 +241,7 @@ static inline errno_t obj40_stat_unix_check(reiser4_object_t *obj,
 
 	
 	if (res && mode != RM_CHECK)
-		return obj40_write_ext(start, SDEXT_UNIX_ID, &correct);
+		return obj40_write_ext(obj, SDEXT_UNIX_ID, &correct);
 
 	return res;
 }
@@ -364,7 +364,7 @@ static inline errno_t obj40_stat_lw_check(reiser4_object_t *obj,
 	}
 
 	if (res && mode != RM_CHECK)
-		return obj40_write_ext(start, SDEXT_LW_ID, &correct);
+		return obj40_write_ext(obj, SDEXT_LW_ID, &correct);
 	
 	return res;
 }

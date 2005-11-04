@@ -45,11 +45,10 @@ int64_t tail40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 	/* Calculating number of bytes, which can be actually read from this
 	   tail item. It cannot be more than item length. */
 	if (tail40_pos(place) + hint->count > place->len)
-		count = place->len - tail40_pos(place) - place->off;
+		count = place->len - tail40_pos(place);
 
 	/* Copying data from tail body to hint. */
-	aal_memcpy(hint->specific, place->body + 
-		   tail40_pos(place) + place->off, count);
+	aal_memcpy(hint->specific, place->body + tail40_pos(place), count);
 	
 	return count;
 }
@@ -82,7 +81,7 @@ errno_t tail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 
 		/* Item already exists. We will rewrite some part of it and some
 		   part have to be append. */
-		right = place->len - tail40_pos(place) - place->off;
+		right = place->len - tail40_pos(place);
 		
 		hint->len = (right >= hint->count ? 0 :
 			     hint->count - right);
@@ -127,8 +126,8 @@ int64_t tail40_write_units(reiser4_place_t *place, trans_hint_t *hint) {
 		place->pos.unit = 0;
 
 	/* Calculating actual amount of data to be written. */
-	if (count + tail40_pos(place) + place->off > place->len)
-		count = place->len - tail40_pos(place) - place->off;
+	if (count + tail40_pos(place) > place->len)
+		count = place->len - tail40_pos(place);
 
 	/* Getting old max real offset. */
 	max_offset = plug_call(hint->maxkey.plug->pl.key,
@@ -143,11 +142,11 @@ int64_t tail40_write_units(reiser4_place_t *place, trans_hint_t *hint) {
 	   otherwise. */
 	if (hint->specific) {
 		/* Copying data into @place. */
-		aal_memcpy(place->body + tail40_pos(place) + place->off, 
+		aal_memcpy(place->body + tail40_pos(place), 
 			   hint->specific, count);
 	} else {
 		/* Making hole @count of size. */
-		aal_memset(place->body + tail40_pos(place) + place->off, 
+		aal_memset(place->body + tail40_pos(place), 
 			   0, count);
 	}
 
@@ -210,7 +209,7 @@ lookup_t tail40_lookup(reiser4_place_t *place,
 }
 
 #ifndef ENABLE_MINIMAL
-/* FIXME: *_place->off is not properly habdled here. */
+/* FIXME: *_place->off is not properly handled here. */
 /* Estimates how many bytes may be shifted from @stc_place to @dst_place. */
 errno_t tail40_prep_shift(reiser4_place_t *src_place,
 			  reiser4_place_t *dst_place,
@@ -224,6 +223,10 @@ errno_t tail40_prep_shift(reiser4_place_t *src_place,
 	check_point = (src_place->pos.item == hint->pos.item &&
 		       hint->pos.unit != MAX_UINT32);
 
+	/* If a new item is being created, substract the overhead. */
+	if (!dst_place)
+		hint->units_bytes -= src_place->off;
+	
 	/* Check if this is left shift. */
 	if (hint->control & SF_ALLOW_LEFT) {
 		/* Check if should take into account inert point from @hint. */
@@ -265,10 +268,10 @@ errno_t tail40_prep_shift(reiser4_place_t *src_place,
 				if (hint->units_bytes > right)
 					hint->units_bytes = right;
 
-				/* Updating insert point to first position in
-				   neighbour item. */
-				if (hint->pos.unit + src_place->off >= src_place->len && 
-				    hint->control & SF_MOVE_POINT)
+				/* If all @right units are shifted, update the 
+				   point if needed. */
+				if ((hint->units_bytes == right) && 
+				    (hint->control & SF_MOVE_POINT))
 				{
 					hint->result |= SF_MOVE_POINT;
 					hint->pos.unit = 0;
@@ -436,27 +439,23 @@ int64_t tail40_trunc_units(reiser4_place_t *place, trans_hint_t *hint) {
 	/* Correcting count. */
 	count = hint->count;
 	
-	if (tail40_pos(place) + count + place->off > place->len)
-		count = place->len - tail40_pos(place) - place->off;
+	if (tail40_pos(place) + count > place->len)
+		count = place->len - tail40_pos(place);
 
 	/* Taking care about rest of tail */
 	if (tail40_pos(place) + count < place->len) {
-		uint32_t off = tail40_pos(place) + place->off;
-		
-		aal_memmove(place->body + off,
-			    place->body + off + count,
-			    place->len - (off + count));
+		aal_memmove(place->body + tail40_pos(place),
+			    place->body + tail40_pos(place) + count,
+			    place->len - (tail40_pos(place) + count));
 	}
 
 	/* Updating key if it is needed. */
-	if (place->pos.unit == 0 && 
-	    tail40_pos(place) + place->off + count < place->len)
-	{
+	if (place->pos.unit == 0 && tail40_pos(place) + count < place->len) {
 		body40_get_key(place, place->pos.unit + count,
 			       &place->key, NULL);
 	}
 	
-	hint->overhead = (place->len - place->off - count) ? place->off : 0;
+	hint->overhead = (count == place->len - place->off) ? place->off : 0;
 	hint->len = count;
 	hint->bytes = count;
 	

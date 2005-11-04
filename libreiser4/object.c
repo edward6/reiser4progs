@@ -143,7 +143,7 @@ reiser4_object_t *reiser4_object_obtain(reiser4_tree_t *tree,
 		return NULL;
 
 	/* The key must point to the start of the object. */
-	if (reiser4_key_compfull(&place.key, key))
+	if (place.pos.unit != 0 && place.pos.unit != MAX_UINT32)
 		return NULL;
 
 	/* If the pointed item was found, object must be

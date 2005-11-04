@@ -119,8 +119,8 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 	}
 
 	/* If @parent is "lost+found", do not mark as ATTACHED. */
-	if (sem->lost && !reiser4_key_compfull(&parent->info.object,
-					       &sem->lost->info.object))
+	if (sem->lost && !reiser4_key_compshort(&parent->info.object,
+						&sem->lost->info.object))
 		return 0;
 
 	return repair_object_mark(object, OF_ATTACHED);
@@ -215,8 +215,8 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	if (checked) {
 		/* If parent is "lost+found" (already checked), 
 		   detach from it. */
-		if (!reiser4_key_compfull(&parent->info.object,
-					  &sem->lost->info.object))
+		if (!reiser4_key_compshort(&parent->info.object,
+					   &sem->lost->info.object))
 		{
 			reiser4_object_close(parent);
 			goto error_object_detach;
@@ -249,7 +249,7 @@ static reiser4_object_t *repair_semantic_uplink(repair_semantic_t *sem,
 	
 	/* Check that parent has a link to the object. */
 	while ((res = reiser4_object_readdir(parent, &entry)) > 0) {
-		if (reiser4_key_compfull(&object->info.object,
+		if (reiser4_key_compshort(&object->info.object,
 					 &entry.object))
 			break;
 	}
@@ -368,8 +368,8 @@ static reiser4_object_t *cb_object_traverse(reiser4_object_t *parent,
 		
 		/* If parent of the @object matches @parent, just 
 		   check_attach. */
-		if (!reiser4_key_compfull(&object->info.parent, 
-					  &parent->info.object))
+		if (!reiser4_key_compshort(&object->info.parent, 
+					   &parent->info.object))
 			break;
 		
 		if (!checked) {
@@ -386,8 +386,8 @@ static reiser4_object_t *cb_object_traverse(reiser4_object_t *parent,
 			   uptraverse it and reach it from some other parent. */
 			char buff[REISER4_MAX_BLKSIZE];
 
-			if (!reiser4_key_compfull(&object->info.parent,
-						  &sem->lost->info.object))
+			if (!reiser4_key_compshort(&object->info.parent,
+						   &sem->lost->info.object))
 			{
 				repair_semantic_lost_name(object, buff, 
 							  REISER4_MAX_BLKSIZE);

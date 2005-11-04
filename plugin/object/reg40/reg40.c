@@ -197,43 +197,55 @@ static errno_t reg40_check_body(reiser4_object_t *reg,
 static int64_t reg40_write(reiser4_object_t *reg, 
 			   void *buff, uint64_t n) 
 {
+	sdhint_unix_t unixh;
 	trans_hint_t hint;
-	uint64_t fsize;
+	stat_hint_t stat;
+	sdhint_lw_t lwh;
+
 	int64_t count;
-	int64_t bytes;
 	uint64_t off;
 	int64_t res;
+	int dirty;
 
 	aal_assert("umka-2281", reg != NULL);
 	
 	if ((res = obj40_update(reg)))
 		return res;
 	
-	fsize = obj40_get_size(reg);
+	aal_memset(&stat, 0, sizeof(stat));
+	stat.ext[SDEXT_LW_ID] = &lwh;
+	stat.ext[SDEXT_UNIX_ID] = &unixh;
+	
+	if ((res = obj40_load_stat(reg, &stat)))
+		return res;
+	
 	off = obj40_offset(reg);
-	bytes = 0;
+	dirty = 0;
 	
 	/* Inserting holes if needed. */
-	if (off > fsize) {
-		count = off - fsize;
+	if (off > lwh.size) {
+		count = off - lwh.size;
 		
 		/* Fill the hole with zeroes. */
-		if ((res = obj40_write(reg, &hint, NULL, fsize, count,
+		if ((res = obj40_write(reg, &hint, NULL, lwh.size, count,
 				       reg->body_plug, NULL)) < 0)
 		{
 			return res;
 		}
 		
+		lwh.size += res;
+		unixh.bytes += hint.bytes;
+		if (res || hint.bytes)
+			dirty = 1;
+		
 		/* If not enough bytes are written, the hole is not 
 		   filled yet, cannot continue, return 0. */
 		if (res != count) {
-			if ((res = obj40_touch(reg, res, hint.bytes)) < 0)
+			if ((res = obj40_save_stat(reg, &stat)))
 				return res;
 			
 			return 0;
 		}
-		
-		bytes = hint.bytes;
 	} 
 	
 	/* Putting data to tree. */
@@ -243,24 +255,27 @@ static int64_t reg40_write(reiser4_object_t *reg,
 		return count;
 	}
 	
-	bytes += hint.bytes;
 	off += count;
-	
-	obj40_seek(reg, off);
-	
-	off = (off > fsize ? off - fsize : 0);
+	if (hint.bytes) {
+		unixh.bytes += hint.bytes;
+		dirty = 1;
+	}
+	if (off > lwh.size) {
+		lwh.size = off;
+		dirty = 1;
+	}
 	
 	/* Updating the SD place and update size, bytes there. */
-	if ((res = obj40_touch(reg, off, bytes)) < 0)
+	if (dirty && (res = obj40_save_stat(reg, &stat)))
 		return res;
 	
-	fsize += off;
-	
 	/* Convert body items if needed. */
-	if ((res = reg40_check_body(reg, fsize))) {
+	if ((res = reg40_check_body(reg, lwh.size))) {
 		aal_error("Can't perform tail conversion.");
 		return res;
 	}
+	
+	obj40_seek(reg, off);
 	
 	return count;
 }

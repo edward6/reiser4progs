@@ -552,11 +552,9 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 
 				reiser4_item_get_key(&dst, &ukey);
 				
-				if (reiser4_key_compfull(&ukey, 
-							 &hint.offset) <= 0)
-				{
+				res = reiser4_key_compfull(&ukey, &hint.offset);
+				if (res <= 0)
 					hint.shift_flags |= SF_HOLD_POS;
-				}
 			}
 			
 			res = reiser4_tree_modify(tree, &dst, &hint, level,

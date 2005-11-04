@@ -61,7 +61,7 @@ extern lookup_t obj40_update_body(reiser4_object_t *obj,
 extern lookup_t obj40_next_item(reiser4_object_t *obj);
 
 #ifndef ENABLE_MINIMAL
-extern errno_t obj40_write_ext(reiser4_place_t *place, rid_t id, void *data);
+extern errno_t obj40_write_ext(reiser4_object_t *obj, rid_t id, void *data);
 
 extern errno_t obj40_touch(reiser4_object_t *obj, int64_t size, int64_t bytes);
 

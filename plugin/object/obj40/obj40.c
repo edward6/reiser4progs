@@ -255,6 +255,7 @@ errno_t obj40_read_ext(reiser4_object_t *obj, rid_t id, void *data) {
 
 	aal_memset(&stat, 0, sizeof(stat));
 
+	stat.extmask |= (1 << id);
 	if (data) stat.ext[id] = data;
 	
 	return obj40_load_stat(obj, &stat);
@@ -559,27 +560,15 @@ errno_t obj40_create(reiser4_object_t *obj, object_hint_t *hint) {
 }
 
 /* Writes one stat data extension. */
-errno_t obj40_write_ext(reiser4_place_t *place, rid_t id, void *data) {
-	trans_hint_t hint;
+errno_t obj40_write_ext(reiser4_object_t *obj, rid_t id, void *data) {
 	stat_hint_t stat;
 
 	aal_memset(&stat, 0, sizeof(stat));
 
-	hint.specific = &stat;
-	hint.place_func = NULL;
-	hint.region_func = NULL;
-	hint.shift_flags = SF_DEFAULT;
-
 	stat.extmask |= (1 << id);
-	stat.ext[id] = data;
+	if (data) stat.ext[id] = data;
 
-	if (plug_call(place->plug->pl.item->object,
-		      update_units, place, &hint) <= 0)
-	{
-		return -EIO;
-	}
-
-	return 0;
+	return obj40_save_stat(obj, &stat);
 }
 
 /* Returns extensions mask from stat data item at @place. */
@@ -615,7 +604,7 @@ errno_t obj40_set_size(reiser4_object_t *obj, uint64_t size) {
 
 	lwh.size = size;
 	
-	return obj40_write_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lwh);
+	return obj40_write_ext(obj, SDEXT_LW_ID, &lwh);
 }
 
 /* Gets nlink field from the stat data */
@@ -644,7 +633,7 @@ errno_t obj40_set_nlink(reiser4_object_t *obj, uint32_t nlink) {
 
 	lwh.nlink = nlink;
 	
-	return obj40_write_ext(STAT_PLACE(obj), SDEXT_LW_ID, &lwh);
+	return obj40_write_ext(obj, SDEXT_LW_ID, &lwh);
 }
 
 /* Gets bytes field from the stat data */
@@ -668,7 +657,7 @@ errno_t obj40_set_bytes(reiser4_object_t *obj, uint64_t bytes) {
 	unixh.rdev = 0;
 	unixh.bytes = bytes;
 	
-	return obj40_write_ext(STAT_PLACE(obj), SDEXT_UNIX_ID, &unixh);
+	return obj40_write_ext(obj, SDEXT_UNIX_ID, &unixh);
 }
 
 /* Changes nlink field in statdata by passed @value */
