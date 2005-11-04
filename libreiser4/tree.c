@@ -378,12 +378,32 @@ errno_t reiser4_tree_assign_root(reiser4_tree_t *tree,
 }
 #endif
 
+errno_t reiser4_tree_mpressure(reiser4_tree_t *tree) {
+	errno_t res;
+	
+	/* Check for memory pressure event. If memory pressure is uppon us, we
+	   call memory cleaning function. For now we call tree_adjust() in order
+	   to release not locked nodes. */
+	if (!tree->mpc_func || !tree->mpc_func(tree))
+		return 0;
+
+	/* Adjusting the tree as memory pressure is here. */
+	if ((res = reiser4_tree_adjust(tree))) {
+		aal_error("Can't adjust tree.");
+		return res;
+	}
+
+	return 0;
+}
+
 /* Registers passed node in tree and connects left and right neighbour
    nodes. This function does not do any tree modifications. */
 errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 				  reiser4_node_t *parent, 
 				  reiser4_node_t *node)
 {
+	errno_t res;
+	
 	aal_assert("umka-1857", tree != NULL);
 	aal_assert("umka-2261", node != NULL);
 
@@ -404,29 +424,19 @@ errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 	if (reiser4_tree_hash_node(tree, node))
 		return -EINVAL;
 
-	/* Check for memory pressure event. If memory pressure is uppon us, we
-	   call memory cleaning function. For now we call tree_adjust() in order
-	   to release not locked nodes. */
-	if (tree->mpc_func && tree->mpc_func(tree)) {
-		/* Adjusting the tree as memory pressure is here. */
-		reiser4_node_lock(node);
+	reiser4_node_lock(node);
+	if ((res = reiser4_tree_mpressure(tree))) {
+		aal_error("Can't connect node %llu.",
+			  node->block->nr);
+
+		if (parent)
+			reiser4_node_unlock(parent);
 		
-		if (reiser4_tree_adjust(tree)) {
-			aal_error("Can't adjust tree during connect "
-				  "node %llu.", node->block->nr);
-			
-			reiser4_node_unlock(node);
-			if (parent)
-				reiser4_node_unlock(parent);
-			
-			reiser4_tree_unhash_node(tree, node);
-			return -EINVAL;
-		}
-		
-		reiser4_node_unlock(node);
+		reiser4_tree_unhash_node(tree, node);
 	}
+	reiser4_node_unlock(node);
 	
-	return 0;
+	return res;
 }
 
 /* Remove specified child from the node children list. Updates all neighbour
@@ -2914,12 +2924,16 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 			return -ENOSPC;
 	}
 
+	reiser4_node_lock(place->node);
+	
 	/* Inserting/writing data to node. */
 	if ((write = modify_func(place->node, &place->pos, hint)) < 0) {
 		aal_error("Can't insert data to node %llu.",
 			  place_blknr(place));
 		return write;
 	}
+	
+	reiser4_node_unlock(place->node);
 
 	if ((res = tree_post_modify(tree, place)))
 		return res;

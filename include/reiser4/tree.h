@@ -34,6 +34,8 @@ extern errno_t reiser4_tree_place_key(reiser4_tree_t *tree,
 				      reiser4_place_t *place,
 				      reiser4_key_t *key);
 
+extern errno_t reiser4_tree_mpressure(reiser4_tree_t *tree);
+
 extern errno_t reiser4_tree_connect_node(reiser4_tree_t *tree,
 					 reiser4_node_t *parent,
 					 reiser4_node_t *node);

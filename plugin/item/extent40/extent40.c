@@ -406,6 +406,7 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 {
 	void *buff;
 	uint32_t i;
+	errno_t res;
 	uint64_t read;
 	uint64_t count;
 	uint32_t blksize;
@@ -467,65 +468,67 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 
 				aal_memset(buff, 0, size);
 			}
-		} else {
+		} else while (blk < start + et40_get_width(extent + i) &&
+			      count > 0)
+		{
 			/* Loop though the one unit. */
-			while (blk < start + et40_get_width(extent + i) &&
-			       count > 0)
-			{
-				uint32_t rest;
+			uint32_t rest;
 
-				rest = blksize - (read_offset % blksize);
-				
-				if ((size = count) > rest)
-					size = rest;
-				
-				/* Initilaizing offset of block needed data lie
-				   in. It is needed for getting block from data
-				   cache. */
-				block_offset = read_offset - (read_offset &
-							      (blksize - 1));
+			rest = blksize - (read_offset % blksize);
 
-				plug_call(key.plug->pl.key, set_offset,
-					  &key, block_offset);
+			if ((size = count) > rest)
+				size = rest;
 
-				/* Getting block from the cache. */
-				if (!(block = aal_hash_table_lookup(hint->blocks, &key))) {
-					reiser4_key_t *ins_key;
-					
-					/* If block is not found in cache, we
-					   read it and put to cache. */
-					aal_device_t *device = extent40_device(place);
-				
-					if (!(block = aal_block_load(device, blksize,
-								     blk)))
-					{
-						return -EIO;
-					}
+			/* Initilaizing offset of block needed data lie
+			   in. It is needed for getting block from data
+			   cache. */
+			block_offset = read_offset - (read_offset &
+						      (blksize - 1));
 
-					if (!(ins_key = aal_calloc(sizeof(*ins_key), 0)))
-						return -ENOMEM;
+			plug_call(key.plug->pl.key, set_offset,
+				  &key, block_offset);
 
-					aal_memcpy(ins_key, &key, sizeof(key));
-					
-					aal_hash_table_insert(hint->blocks, ins_key, block);
-				}
+			/* Getting block from the cache. */
+			block = aal_hash_table_lookup(hint->blocks, &key);
+			if (!block) {
+				reiser4_key_t *ins_key;
 
-				/* Copying data from found (loaded) block to
-				   @buff. */
-				aal_memcpy(buff, block->data +
-					   (read_offset % blksize), size);
+				/* If block is not found in cache, we
+				   read it and put to cache. */
+				aal_device_t *device = extent40_device(place);
 
-				buff += size;
-				count -= size;
+				block = aal_block_load(device, blksize, blk);
+				if (!block)
+					return -EIO;
 
-				/* Updating read offset and blk next read will
-				   be performed from. */
-				read_offset += size;
+				ins_key = aal_calloc(sizeof(*ins_key), 0);
+				if (!ins_key)
+					return -ENOMEM;
 
-				if ((read_offset % blksize) == 0)
-					blk++;
+				aal_memcpy(ins_key, &key, sizeof(key));
+				aal_hash_table_insert(hint->blocks,
+						      ins_key, block);
 			}
+
+			/* Copying data from found (loaded) block to
+			   @buff. */
+			aal_memcpy(buff, block->data +
+				   (read_offset % blksize), size);
+
+			buff += size;
+			count -= size;
+
+			/* Updating read offset and blk next read will
+			   be performed from. */
+			read_offset += size;
+
+			if ((read_offset % blksize) == 0)
+				blk++;
 		}
+
+		res = extent40_core->tree_ops.mpressure(place->node->tree);
+		if (res) return res;
+
 	}
 	
 	return read;
@@ -811,7 +814,6 @@ static int64_t extent40_alloc_block(reiser4_place_t *place,
 
 	/* Prepare the key of the new allocated block. */
 	aal_memcpy(&key, &place->key, sizeof(key));
-	plug_call(key.plug->pl.key, set_offset, &key, offset);
 
 	bytes = count;
 	
@@ -822,6 +824,9 @@ static int64_t extent40_alloc_block(reiser4_place_t *place,
 	}
 	
 	for (; count > 0; count -= blksize, offset += blksize) {
+		/* Update @key offset. */
+		plug_call(key.plug->pl.key, set_offset, &key, offset);
+		
 		/* Calculating size to be written this time. */
 		if (!(block = aal_block_alloc(device, blksize, 0)))
 			return -ENOMEM;
@@ -833,10 +838,8 @@ static int64_t extent40_alloc_block(reiser4_place_t *place,
 
 		aal_hash_table_insert(blocks, ins_key, block);
 
-		/* Update @key offset. */
-		plug_call(key.plug->pl.key, set_offset, &key, offset);
 	}
-
+		
 	return bytes;
 }
 
@@ -931,14 +934,15 @@ static errno_t extent40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 			  set_offset, &hint->maxkey, max_off);
 
 		if (place->pos.unit != MAX_UINT32) {
-			uint64_t start;
+			uint64_t width;
 
 			/* If new data could be attached to the end of existent,
 			   no new unit is needed. It is possible if we write data 
 			   over not allocated unit or hole over the hole. */
 			extent = extent40_body(place) + units - 1;
 			start = et40_get_start(extent);
-
+			width = et40_get_width(extent);
+			
 			if ((start == EXTENT_UNALLOC_UNIT && hint->specific) ||
 			    (start == EXTENT_HOLE_UNIT && !hint->specific))
 			{
@@ -1048,6 +1052,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 	uint32_t width;
 	uint32_t units;
 
+	errno_t res;
 	char *buff;
 
 
@@ -1276,6 +1281,9 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 			uni_off += (width * blksize);
 		}
 	}
+	
+	if ((res = extent40_core->tree_ops.mpressure(place->node->tree)))
+		return res;
 	
 	place_mkdirty(place);
 	return total;

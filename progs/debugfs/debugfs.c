@@ -279,6 +279,10 @@ static errno_t cb_reloc_extent(reiser4_place_t *place, void *data) {
 			count++;
 		}
 
+		/* Call mpressure after insertion into @tree->blocks. */
+		if ((res = reiser4_tree_mpressure(tree)))
+			return res;
+		
 		reiser4_alloc_release(tree->fs->alloc, ptr.start, ptr.width);
 
 		reiser4_alloc_occupy(tree->fs->alloc, backup->blk[pos], 1);

@@ -87,6 +87,10 @@ static errno_t tree_next_item(tree_entity_t *tree, reiser4_place_t *place,
 	return reiser4_tree_next_place((reiser4_tree_t *)tree, place, next);
 }
 
+static errno_t tree_mpressure(tree_entity_t *tree) {
+	return reiser4_tree_mpressure((reiser4_tree_t *)tree);
+}
+
 static reiser4_plug_t *pset_find(rid_t member, rid_t id) {
 	return reiser4_opset_plug(member, id);
 }
@@ -219,7 +223,9 @@ reiser4_core_t core = {
 		.dec_free	= tree_dec_free,
 #endif
 		/* Returns next item from the passed place. */
-		.next_item	= tree_next_item
+		.next_item	= tree_next_item,
+
+		.mpressure	= tree_mpressure,
 	},
 	.factory_ops = {
 		/* search a plugin by its type and id. */

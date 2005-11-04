@@ -11,7 +11,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 	char *buff;
 	errno_t res;
 	int64_t total;
-	uint64_t size;
+	int64_t size;
 	reiser4_key_t key;
 	lookup_hint_t lhint;
 	reiser4_place_t place;
@@ -55,7 +55,8 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 				/* No data found. */
 				break;
 			} else {
-				uint64_t next, look, hole;
+				uint64_t next, look;
+ 				int64_t hole;
 				
 				next = reiser4_key_get_offset(&tkey);
 				look = reiser4_key_get_offset(&hint->offset);
@@ -75,14 +76,16 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 			/* Prepare hint for read */
 			hint->count = size;
 
+			reiser4_node_lock(place.node);
+			read = plug_call(place.plug->pl.item->object,
+					 read_units, &place, hint);
+			reiser4_node_unlock(place.node);
+			
 			/* Read data from the tree */
-			if ((read = plug_call(place.plug->pl.item->object,
-					      read_units, &place, hint)) < 0) 
-			{
+			if (read < 0) 
 				return read;
-			} else if (read == 0) {
+			else if (read == 0)
 				break;
-			}
 
 			if (size > read) {
 				if ((res = reiser4_tree_next_place(tree, &place,

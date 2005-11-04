@@ -1744,6 +1744,8 @@ typedef struct tree_ops {
 	/* Returns the next item. */
 	errno_t (*next_item) (tree_entity_t *, reiser4_place_t *, 
 			      reiser4_place_t *);
+
+	errno_t (*mpressure) (tree_entity_t *);
 } tree_ops_t;
 
 typedef struct factory_ops {
