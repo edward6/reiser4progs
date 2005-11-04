@@ -12,7 +12,7 @@ errno_t create_cmd(busy_ctx_t *ctx) {
 	aal_assert("vpf-1710", ctx != NULL);
 
 	if (!ctx->in.fs) {
-		aal_error("Fs is not openned. Wrong PAth is specified: %s.",
+		aal_error("Fs is not openned. Wrong PATH is specified: %s.",
 			  ctx->in.path);
 		return -EINVAL;
 	}
@@ -39,6 +39,8 @@ errno_t create_cmd(busy_ctx_t *ctx) {
 			goto error_free_parent;
 		
 		object = reiser4_sym_create(parent, name, ctx->out.path);
+	} else if (ctx->objtype == (REG_OBJECT | OBJFLAG_CRYCOM)) {
+		object = reiser4_ccreg_create(parent, name, NULL);
 	} else {
 		aal_error("Illegal object type is given (%d).", ctx->objtype);
 		goto error_free_parent;

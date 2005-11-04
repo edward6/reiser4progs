@@ -80,16 +80,14 @@ static int64_t ccreg40_cc_cluster(reiser4_object_t *crc,
 				  uint64_t count)
 {
 	if (crc->info.opset.plug[OPSET_CRYPTO] != CRYPTO_NONE_ID) {
-		aal_error("Object [%s]: Can't extract encrypted "
-			  "data. Not supported yet.",
-			  print_inode(obj40_core, &crc->info.object));
+		aal_error("Object [%s]: Can't encrypt data. Not supported "
+			  "yet.", print_inode(obj40_core, &crc->info.object));
 		return -EINVAL;
 	}
 
-	if (!reiser4_nocomp(crc->info.opset.plug[OPSET_CRYPTO]->id.id)) {
-		aal_error("Object [%s]: Can't extract compressed "
-			  "data. Not supported yet.",
-			  print_inode(obj40_core, &crc->info.object));
+	if (!reiser4_nocomp((rid_t)crc->info.opset.plug[OPSET_COMPRESS])) {
+		aal_error("Object [%s]: Can't compress data. Not supported "
+			  "yet.", print_inode(obj40_core, &crc->info.object));
 		return -EINVAL;
 	}
 

@@ -17,7 +17,6 @@
 #include <misc/misc.h>
 #include <reiser4/libreiser4.h>
 
-#define TESTS_COUNT (sizeof(tests) / sizeof(busy_cmd_t))
 #define PATH_MAXLEN 4096
 
 typedef struct busy_target {
@@ -25,6 +24,8 @@ typedef struct busy_target {
 	char path[PATH_MAXLEN];
 	long long int offset;
 } busy_target_t;
+
+#define OBJFLAG_CRYCOM	(1 << 16)
 
 typedef struct busy_ctx {
 	int testno;

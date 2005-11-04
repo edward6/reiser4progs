@@ -215,24 +215,27 @@ static errno_t ccreg40_check_cluster(reiser4_object_t *crc,
 
 		aal_list_free(hint->list, ccreg40_holes_free, 
 			      start ? hint : NULL);
+
+		if (!crc->body.plug)
+			return res;
 	}
 	
 	/* An item found. */
 	offset = ccreg40_clstart(hint->found, hint->size);
-	offset = offset >= hint->seek ? : hint->seek;
+	offset = offset >= hint->seek ? offset : hint->seek;
 	count = hint->found - offset;
 	
 	if (count) {
 		/* A hole b/w items or in the beginning found. 
 		   Save the hole into the hole-list. */
-		if ((res = ccreg40_hole_save(hint, offset,
-					     hint->found)))
+		if ((res |= ccreg40_hole_save(hint, offset,
+					      hint->found)) < 0)	
 		{
 			return res;
 		}
 	} else if (!aal_list_len(hint->list)) {
 		/* No hole is found yet. Read the item. */
-		if ((res = ccreg40_read_item(&crc->body, hint)))
+		if ((res |= ccreg40_read_item(&crc->body, hint)) < 0)
 			return res;
 	}
 	

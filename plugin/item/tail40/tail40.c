@@ -45,10 +45,11 @@ int64_t tail40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 	/* Calculating number of bytes, which can be actually read from this
 	   tail item. It cannot be more than item length. */
 	if (tail40_pos(place) + hint->count > place->len)
-		count = place->len - tail40_pos(place);
+		count = place->len - tail40_pos(place) - place->off;
 
 	/* Copying data from tail body to hint. */
-	aal_memcpy(hint->specific, place->body + tail40_pos(place), count);
+	aal_memcpy(hint->specific, place->body + 
+		   tail40_pos(place) + place->off, count);
 	
 	return count;
 }
@@ -81,7 +82,7 @@ errno_t tail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 
 		/* Item already exists. We will rewrite some part of it and some
 		   part have to be append. */
-		right = place->len - tail40_pos(place);
+		right = place->len - tail40_pos(place) - place->off;
 		
 		hint->len = (right >= hint->count ? 0 :
 			     hint->count - right);
@@ -95,13 +96,15 @@ errno_t tail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 
 		plug_call(hint->maxkey.plug->pl.key,
 			  set_offset, &hint->maxkey, max_offset);
+		
+		hint->overhead = 0;
 	}
 
 	/* Max possible item size. */
 	space = plug_call(place->node->plug->pl.node,
 			  maxspace, place->node);
 	
-	if (hint->len > space)
+	if (hint->len > (int32_t)(space - hint->overhead))
 		hint->len = space - hint->overhead;
 	
 	return 0;
@@ -124,8 +127,8 @@ int64_t tail40_write_units(reiser4_place_t *place, trans_hint_t *hint) {
 		place->pos.unit = 0;
 
 	/* Calculating actual amount of data to be written. */
-	if (count + tail40_pos(place) > place->len)
-		count = place->len - tail40_pos(place);
+	if (count + tail40_pos(place) + place->off > place->len)
+		count = place->len - tail40_pos(place) - place->off;
 
 	/* Getting old max real offset. */
 	max_offset = plug_call(hint->maxkey.plug->pl.key,
@@ -140,11 +143,11 @@ int64_t tail40_write_units(reiser4_place_t *place, trans_hint_t *hint) {
 	   otherwise. */
 	if (hint->specific) {
 		/* Copying data into @place. */
-		aal_memcpy(place->body + tail40_pos(place), 
+		aal_memcpy(place->body + tail40_pos(place) + place->off, 
 			   hint->specific, count);
 	} else {
 		/* Making hole @count of size. */
-		aal_memset(place->body + tail40_pos(place), 
+		aal_memset(place->body + tail40_pos(place) + place->off, 
 			   0, count);
 	}
 
@@ -207,6 +210,7 @@ lookup_t tail40_lookup(reiser4_place_t *place,
 }
 
 #ifndef ENABLE_MINIMAL
+/* FIXME: *_place->off is not properly habdled here. */
 /* Estimates how many bytes may be shifted from @stc_place to @dst_place. */
 errno_t tail40_prep_shift(reiser4_place_t *src_place,
 			  reiser4_place_t *dst_place,
@@ -432,23 +436,27 @@ int64_t tail40_trunc_units(reiser4_place_t *place, trans_hint_t *hint) {
 	/* Correcting count. */
 	count = hint->count;
 	
-	if (tail40_pos(place) + count > place->len)
-		count = place->len - tail40_pos(place);
+	if (tail40_pos(place) + count + place->off > place->len)
+		count = place->len - tail40_pos(place) - place->off;
 
 	/* Taking care about rest of tail */
 	if (tail40_pos(place) + count < place->len) {
-		aal_memmove(place->body + tail40_pos(place),
-			    place->body + tail40_pos(place) + count,
-			    place->len - (tail40_pos(place) + count));
+		uint32_t off = tail40_pos(place) + place->off;
+		
+		aal_memmove(place->body + off,
+			    place->body + off + count,
+			    place->len - (off + count));
 	}
 
 	/* Updating key if it is needed. */
-	if (place->pos.unit == 0 && tail40_pos(place) + count < place->len) {
+	if (place->pos.unit == 0 && 
+	    tail40_pos(place) + place->off + count < place->len)
+	{
 		body40_get_key(place, place->pos.unit + count,
 			       &place->key, NULL);
 	}
 	
-	hint->overhead = count == (place->len - place->off) ? place->off : 0;
+	hint->overhead = (place->len - place->off - count) ? place->off : 0;
 	hint->len = count;
 	hint->bytes = count;
 	

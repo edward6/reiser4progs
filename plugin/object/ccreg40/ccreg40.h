@@ -19,7 +19,7 @@
 	(ccreg40_clstart(off1, size) == ccreg40_clstart(off2, size))
 
 #define ccreg40_clsize(crc) \
-	(4096ll << crc->info.opset.plug[OPSET_CLUSTER]->id.id)
+	(4096ll << (rid_t)crc->info.opset.plug[OPSET_CLUSTER])
 
 extern errno_t ccreg40_check_struct(reiser4_object_t *crc, 
 				    place_func_t func,

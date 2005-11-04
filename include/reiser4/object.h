@@ -118,9 +118,9 @@ extern reiser4_object_t *reiser4_spl_create(reiser4_object_t *parent,
 					    uint32_t mode,
 					    uint64_t rdev);
 
-extern reiser4_object_t *reiser4_crc_create(reiser4_object_t *parent,
-					    const char *name,
-					    const char *key);
+extern reiser4_object_t *reiser4_ccreg_create(reiser4_object_t *parent,
+					      const char *name,
+					      const char *key);
 
 extern errno_t reiser4_object_traverse(reiser4_object_t *object, 
 				       object_open_func_t open_func,

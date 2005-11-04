@@ -6,57 +6,81 @@
 #include "busy.h"
 #include <sys/stat.h>
 
+enum test_list {
+	T_CREATE	= 0,
+	T_MKDIR		= 1,
+	T_MKNOD		= 2,
+	T_SLINK		= 3,
+	T_LINK		= 4,
+	T_CRYCOM	= 5,
+	T_LS		= 6,
+	T_RM		= 7,
+	T_CP		= 8,
+	T_STAT		= 9,
+	T_TRUNC		= 10,
+	T_REG		= 11,
+	T_SYM		= 12,
+	T_LAST
+};
+
 busy_cmd_t tests[] = {
-	[0] = {
+	[T_CREATE] = {
 		.name = "create",
 		.options = "PATH",
 		.handler = create_cmd,
 		.ops_num = 1,
 		.info = "Creates a regular file on reiser4.",
 	},
-	[1] = {
+	[T_MKDIR] = {
 		.name = "mkdir",
 		.options = "PATH",
 		.handler = create_cmd,
 		.ops_num = 1,
 		.info = "Creates a directory on reiser4.",
 	},
-	[2] = {
+	[T_MKNOD] = {
 		.name = "mknod",
 		.options = "PATH [char/fifo/block/sock] MAJOR MINOR",
 		.handler = create_cmd,
 		.ops_num = 4,
 		.info = "Creates a device file on reiser4.",
 	},
-	[3] = {
+	[T_SLINK] = {
 		.name = "ln-s",
 		.options = "PATH link_name",
 		.handler = create_cmd,
 		.ops_num = 2,
 		.info = "Creates a symlink on reiser4.",
 	},
-	[4] = {
+	[T_LINK] = {
 		.name = "ln",
 		.options = "PATH link_name",
 		.handler = ln_cmd,
 		.ops_num = 2,
 		.info = "Creates a hard link on reiser4.",
 	},
-	[5] = {
+	[T_CRYCOM] = {
+		.name = "crycom",
+		.options = "PATH",
+		.handler = create_cmd,
+		.ops_num = 1,
+		.info = "Creates a crypto-compression regular file on reiser4.",
+	},
+	[T_LS] = {
 		.name = "ls",
 		.options = "PATH",
 		.handler = ls_cmd,
 		.ops_num = 1,
 		.info = "Lists a directory.",
 	},
-	[6] = {
+	[T_RM] = {
 		.name = "rm",
 		.options = "PATH",
 		.handler = rm_cmd,
 		.ops_num = 1,
 		.info = "Removes a file.",
 	},
-	[7] = {
+	[T_CP] = {
 		.name = "cp",
 		.options = "PATH1 PATH2 in_offset out_offset count blk_size",
 		.handler = cp_cmd,
@@ -67,28 +91,28 @@ busy_cmd_t tests[] = {
 			"<out_offset> and <count> could be given -1, "
 			"that is,\n\tstart, end, unlimited correspondingly.",
 	},
-	[8] = {
+	[T_STAT] = {
 		.name = "stat",
 		.options = "PATH",
 		.handler = stat_cmd,
 		.ops_num = 1,
 		.info = "Stats a file.",
 	},
-	[9] = {
+	[T_TRUNC] = {
 		.name = "trunc",
 		.options = "PATH size",
 		.handler = trunc_cmd,
 		.ops_num = 2,
 		.info = "Truncates a file.",
 	},
-	[10] = {
+	[T_REG] = {
 		.name = "reg",
 		.options = "PATH",
 		.handler = reg_test,
 		.ops_num = 1,
 		.info = "Just a test. Creates some amount of files.",
 	},
-	[11] = {
+	[T_SYM] = {
 		.name = "sym",
 		.options = "PATH",
 		.handler = sym_test,
@@ -154,7 +178,7 @@ static void busy_print_usage(void) {
 	fprintf(stderr, "\nUsage: busy COMMAND ARGS\n");
 	fprintf(stderr, "Commands with args: \n");
 	
-	for (i = 0; i < TESTS_COUNT; i++) {
+	for (i = 0; i < T_LAST; i++) {
 		fprintf(stderr, "\t%s %s\n", tests[i].name, tests[i].options);
 		fprintf(stderr, "\t%s\n\n", tests[i].info);
 	}
@@ -167,7 +191,7 @@ static void busy_print_usage(void) {
 static int busy_get_testno(char *name) {
 	unsigned int i;
 
-	for (i = 0; i < TESTS_COUNT; i++) {
+	for (i = 0; i < T_LAST; i++) {
 		if (aal_strlen(name) != aal_strlen(tests[i].name))
 			continue;
 		
@@ -422,14 +446,17 @@ static void busy_ctx_fini(busy_ctx_t *ctx) {
 }
 
 static int busy_set_objtype(int testno) {
-	if (testno == 0)
+	if (testno == T_CREATE)
 		return REG_OBJECT;
-	if (testno == 1)
+	if (testno == T_MKDIR)
 		return DIR_OBJECT;
-	if (testno == 2)
+	if (testno == T_MKNOD)
 		return SPL_OBJECT;
-	if (testno == 3)
+	if (testno == T_SYM)
 		return SYM_OBJECT;
+	if (testno == T_CRYCOM) {
+		return REG_OBJECT | OBJFLAG_CRYCOM;
+	}
 	return -1;
 }
 
@@ -464,7 +491,7 @@ static errno_t busy_ctx_init(busy_ctx_t *ctx, int count, char *params[]) {
 	if (busy_path_parse(&ctx->in, params[2]))
 		return 0x8;
 	
-	if (ctx->testno == 7) {
+	if (ctx->testno == T_CP) {
 		/* The second parameter is also PATH. */
 		if (busy_path_parse(&ctx->out, params[3])) {
 			busy_ctx_fini(ctx);
@@ -472,10 +499,7 @@ static errno_t busy_ctx_init(busy_ctx_t *ctx, int count, char *params[]) {
 		}
 	}
 
-	if (ctx->testno == 3 || 
-	    ctx->testno == 4 || 
-	    ctx->testno == 12) 
-	{
+	if (ctx->testno == T_SLINK || ctx->testno == T_LINK) {
 		/* The second parameter is NAME. */
 		if (busy_path_parse(&ctx->out, params[3])) {
 			busy_ctx_fini(ctx);
@@ -485,7 +509,7 @@ static errno_t busy_ctx_init(busy_ctx_t *ctx, int count, char *params[]) {
 
 	ctx->objtype = busy_set_objtype(ctx->testno);
 	
-	if (ctx->testno == 2) {
+	if (ctx->testno == T_MKNOD) {
 		long long num;
 		
 		/* Parse Special device type & rdev. */
@@ -520,7 +544,7 @@ static errno_t busy_ctx_init(busy_ctx_t *ctx, int count, char *params[]) {
 		ctx->rdev |= num;
 	}
 	
-	if (ctx->testno == 7) {
+	if (ctx->testno == T_CP) {
 		/* Parse numbers given to the test "cp". */
 		ctx->in.offset = misc_str2long(params[4], 0);
 		ctx->out.offset = misc_str2long(params[5], 0);
@@ -552,7 +576,7 @@ static errno_t busy_ctx_init(busy_ctx_t *ctx, int count, char *params[]) {
 		}
 	}
 
-	if (ctx->testno == 9) {
+	if (ctx->testno == T_TRUNC) {
 		ctx->count = misc_str2long(params[3], 0);
 		if (ctx->count == INVAL_DIG || ctx->count < 0) {
 			aal_error("Invalid size is specified: '%s'.", 

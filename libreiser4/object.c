@@ -884,9 +884,9 @@ reiser4_object_t *reiser4_spl_create(reiser4_object_t *parent,
 }
 
 /* Creates special file. Uses params preset for all plugin. */
-reiser4_object_t *reiser4_crc_create(reiser4_object_t *parent,
-		                     const char *name,
-				     const char *key)
+reiser4_object_t *reiser4_ccreg_create(reiser4_object_t *parent,
+				       const char *name,
+				       const char *key)
 {
 	object_hint_t hint;
 	object_info_t info;
