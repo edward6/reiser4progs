@@ -953,20 +953,38 @@ static errno_t node40_set_key(reiser4_node_t *entity,
 }
 #endif
 
+#ifdef ENABLE_SHORT_KEYS
 /* Helper callback for comparing two keys. This is used by node lookup. */
-static int cb_comp_key(void *ih0, uint32_t pos,
-		       void *k2, void *data)
+static int cb_comp_key3(void *ih0, uint32_t pos,
+			void *k2, void *data)
 {
 	reiser4_key_t *key2;
 	void *key1;
 	
-	/* Key policy is given by @data. */
-	key1 = ih0 - ih_size(*(uint8_t *)data) * pos;
+	key1 = ih0 - sizeof(item_header3_t) * pos;
 	key2 = (reiser4_key_t *)k2;
 	
 	return plug_call(key2->plug->pl.key,
 			 compraw, key1, key2->body);
 }
+#endif
+
+#ifdef ENABLE_LARGE_KEYS
+/* Helper callback for comparing two keys. This is used by node lookup. */
+static int cb_comp_key4(void *ih0, uint32_t pos,
+			void *k2, void *data)
+{
+	reiser4_key_t *key2;
+	void *key1;
+	
+	/* Key policy is given by @data. */
+	key1 = ih0 - sizeof(item_header4_t) * pos;
+	key2 = (reiser4_key_t *)k2;
+	
+	return plug_call(key2->plug->pl.key,
+			 compraw, key1, key2->body);
+}
+#endif
 
 /* Makes search inside the specified node @entity for @key and stores the result
    into @pos. This function returns 1 if key is found and 0 otherwise. */
@@ -975,6 +993,7 @@ static lookup_t node40_lookup(reiser4_node_t *entity,
 			      lookup_bias_t bias,
 			      pos_t *pos)
 {
+	aux_comp_func_t func;
 	void *ih;
 	
 	aal_assert("umka-478", pos != NULL);
@@ -983,10 +1002,19 @@ static lookup_t node40_lookup(reiser4_node_t *entity,
 	aal_assert("umka-3089", hint->key != NULL);
 	aal_assert("umka-567", hint->key->body != NULL);
 
+#if defined(ENABLE_SHORT_KEYS) && defined(ENABLE_LARGE_KEYS)
+	func = (entity->keypol == 3) ? cb_comp_key3 : cb_comp_key4;
+#elif defined(ENABLE_SHORT_KEYS)
+	func = cb_comp_key3;
+#elif defined(ENABLE_LARGE_KEYS)
+	func = cb_comp_key4;
+#elif
+	func = NULL;
+#endif
+	
 	ih = node40_ih_at((reiser4_node_t *)entity, 0);
-	switch (aux_bin_search(ih, nh_get_num_items(entity),
-			       hint->key, cb_comp_key,
-			       &entity->keypol, &pos->item))
+	switch (aux_bin_search(ih, nh_get_num_items(entity), 
+			       hint->key, func, NULL, &pos->item))
 	{
 	case 1:
 		return PRESENT;

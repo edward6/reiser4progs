@@ -265,6 +265,9 @@ static int64_t reg40_write(reiser4_object_t *reg,
 		dirty = 1;
 	}
 	
+	if ((res = obj40_update(reg)))
+		return res;
+	
 	/* Updating the SD place and update size, bytes there. */
 	if (dirty && (res = obj40_save_stat(reg, &stat)))
 		return res;
