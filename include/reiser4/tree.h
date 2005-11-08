@@ -30,6 +30,12 @@ extern errno_t reiser4_tree_next_place(reiser4_tree_t *tree,
 				       reiser4_place_t *place,
 				       reiser4_place_t *next);
 
+#ifndef ENABLE_MINIMAL
+extern errno_t reiser4_tree_next_key(reiser4_tree_t *tree, 
+				     reiser4_place_t *place, 
+				     reiser4_key_t *key);
+#endif
+
 extern errno_t reiser4_tree_place_key(reiser4_tree_t *tree, 
 				      reiser4_place_t *place,
 				      reiser4_key_t *key);

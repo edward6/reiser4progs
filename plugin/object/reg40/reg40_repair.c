@@ -140,7 +140,7 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 		return RE_FATAL;
 
 	if ((res = obj40_write(reg, &trans, NULL, offset - len, 
-			       len, reg->body_plug, func)) < 0)
+			       len, reg->body_plug, func, NULL)) < 0)
 	{
 		aal_error("The object [%s] failed to create the hole "
 			  "at [%llu-%llu] offsets. Plugin %s.",

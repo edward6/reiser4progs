@@ -116,7 +116,7 @@ errno_t reiser4_item_get_key(reiser4_place_t *place,
 
 	/* Getting key from item or node and updating it in passed @place. */
 	key->plug = place->key.plug;
-
+	
 	if (place->plug->pl.item->balance->fetch_key &&
 	    (place->pos.unit && place->pos.unit != MAX_UINT32))
 	{

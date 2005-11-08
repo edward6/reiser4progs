@@ -37,7 +37,7 @@ errno_t ccreg40_set_cluster_size(reiser4_place_t *place, uint32_t cluster) {
 	chint.shift = aal_log2(cluster);
 
 	if (plug_call(place->plug->pl.item->object, 
-		      update_units, place, &hint) != 0)
+		      update_units, place, &hint) != 1)
 	{
 		return -EIO;
 	}
@@ -131,7 +131,7 @@ static int64_t ccreg40_read_clust(reiser4_object_t *crc, trans_hint_t *hint,
 	
 	/* Extract the read cluster to the given buffer. */
 	if ((read = ccreg40_decc_cluster(crc, clust, disk, read,
-					 clstart + read < fsize)) < 0)
+					 read < clsize)) < 0)
 	{
 		return read;
 	}
@@ -152,6 +152,10 @@ static int64_t ccreg40_read_clust(reiser4_object_t *crc, trans_hint_t *hint,
 	return read;
 }
 
+static errno_t cc_write_item(reiser4_place_t *place, void *data) {
+	return ccreg40_set_cluster_size(place, *(uint32_t *)data);
+}
+
 /* Cluster write operation. It write exactly 1 cluster given in @buff. */
 static int64_t ccreg40_write_clust(reiser4_object_t *crc, trans_hint_t *hint,
 				   void *buff, uint64_t off, uint64_t count,
@@ -165,7 +169,6 @@ static int64_t ccreg40_write_clust(reiser4_object_t *crc, trans_hint_t *hint,
 	uint64_t end;
 	int64_t done;
 	
-	off = obj40_offset(crc);
 	clsize = ccreg40_clsize(crc);
 	clstart = ccreg40_clstart(off, clsize);
 	
@@ -192,21 +195,22 @@ static int64_t ccreg40_write_clust(reiser4_object_t *crc, trans_hint_t *hint,
 		}
 	}
 	
-	if (end < off + count)
+	end = clstart + clsize;
+	if (end > off + count)
 		end = off + count;
-	
-	if (end > clstart + clsize)
-		end = clstart + clsize;
 	
 	count = end - off;
 	
 	aal_memcpy(clust + off - clstart, buff, count);
 	
+	end = (clstart + done > off + count) ? clstart + done : off + count;
+	
 	if ((done = ccreg40_cc_cluster(crc, disk, clust, end - clstart)) < 0)
 		return done;
 	
 	if ((written = obj40_write(crc, hint, clust, clstart, done,
-				   crc->info.opset.plug[OPSET_CTAIL], NULL)) < 0)
+				   crc->info.opset.plug[OPSET_CTAIL], 
+				   cc_write_item, &clsize)) < 0)
 	{
 		return written;
 	}
@@ -260,7 +264,7 @@ static int64_t ccreg40_read(reiser4_object_t *crc,
 		
 		count += read;
 		buff += read;
-		off += count;
+		off += read;
 		n -= read;
 	}
 	
@@ -299,8 +303,9 @@ static int64_t ccreg40_write(reiser4_object_t *crc,
 
 		aal_assert("vpf-1880", (uint64_t)res <= n);
 		
-		count += res;
 		bytes += hint.bytes;
+		count += res;
+		buff += res;
 		off += res;
 		n -= res;
 	}

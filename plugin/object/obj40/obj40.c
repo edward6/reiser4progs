@@ -787,7 +787,7 @@ int64_t obj40_truncate(reiser4_object_t *obj, uint64_t n,
 	
 	if (n > size) {
 		if ((res = obj40_write(obj, &hint, NULL, size, n - size, 
-				       item_plug, NULL)) < 0)
+				       item_plug, NULL, NULL)) < 0)
 		{
 			return res;
 		}
@@ -941,9 +941,9 @@ errno_t obj40_layout(reiser4_object_t *obj,
 }
 
 /* Writes passed data to the file. Returns amount of written bytes. */
-int64_t obj40_write(reiser4_object_t *obj, trans_hint_t *hint,
-		    void *buff, uint64_t off, uint64_t count,
-		    reiser4_plug_t *item_plug, place_func_t func)
+int64_t obj40_write(reiser4_object_t *obj, trans_hint_t *hint, void *buff, 
+		    uint64_t off, uint64_t count, reiser4_plug_t *item_plug, 
+		    place_func_t func, void *data)
 {
 	/* Preparing hint to be used for calling write method. This is
 	   initializing @count - number of bytes to write, @specific - buffer to
@@ -955,6 +955,7 @@ int64_t obj40_write(reiser4_object_t *obj, trans_hint_t *hint,
 	hint->shift_flags = SF_DEFAULT;
 	hint->place_func = func;
 	hint->plug = item_plug;
+	hint->data = data;
 	
 	aal_memcpy(&hint->offset, &obj->position, sizeof(hint->offset));
 	plug_call(hint->offset.plug->pl.key, set_offset, &hint->offset, off);

@@ -228,7 +228,7 @@ static int64_t reg40_write(reiser4_object_t *reg,
 		
 		/* Fill the hole with zeroes. */
 		if ((res = obj40_write(reg, &hint, NULL, lwh.size, count,
-				       reg->body_plug, NULL)) < 0)
+				       reg->body_plug, NULL, NULL)) < 0)
 		{
 			return res;
 		}
@@ -250,7 +250,7 @@ static int64_t reg40_write(reiser4_object_t *reg,
 	
 	/* Putting data to tree. */
 	if ((count = obj40_write(reg, &hint, buff, off, n,
-				 reg->body_plug, NULL)) < 0)
+				 reg->body_plug, NULL, NULL)) < 0)
 	{
 		return count;
 	}

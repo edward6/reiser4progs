@@ -13,8 +13,8 @@ const char *reiser4_igname[] = {
 	"DIRITEM",
 	"TAIL",
 	"EXTENT",
-	"PERM",
-	"SLINK"
+	"SLINK",
+	"CTAIL"
 };
 
 const char *reiser4_slink_name[] = {

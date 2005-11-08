@@ -423,8 +423,11 @@ errno_t reiser4_format_dec_free(reiser4_format_t *format, uint64_t count) {
 	
 	saved = reiser4_format_get_free(format);
 
-	if (saved < count)
+	if (saved < count) {
+		aal_error("Format does not have enough (%llu) blocks "
+			  "to allocate (%llu).", saved, count);
 		return -ENOSPC;
+	}
 
 	reiser4_format_set_free(format, saved - count);
 	return 0;

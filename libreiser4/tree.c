@@ -767,7 +767,7 @@ errno_t reiser4_tree_next_place(reiser4_tree_t *tree,
 
 	aal_memcpy(next, place, sizeof(*place));
 	next->pos.item++;
-	next->pos.unit = MAX_UINT32;
+	next->pos.unit = 0;
 	
 	if (reiser4_tree_adjust_place(tree, next, next))
 		return -EINVAL;
@@ -829,19 +829,19 @@ errno_t reiser4_tree_place_key(reiser4_tree_t *tree,
 		}
 	}
 
-	if (reiser4_place_fetch(&next))
-		return -EINVAL;
+	if (place->pos.unit && place->pos.unit != MAX_UINT32) {
+		if (reiser4_place_fetch(&next))
+			return -EINVAL;
+	}
 	
-	reiser4_item_get_key(&next, key);
-
-	return 0;
+	return reiser4_item_get_key(&next, key);
 }
 
 #ifndef ENABLE_MINIMAL
 /* Gets the key of the next item. */
-static errno_t reiser4_tree_next_key(reiser4_tree_t *tree, 
-				     reiser4_place_t *place, 
-				     reiser4_key_t *key) 
+errno_t reiser4_tree_next_key(reiser4_tree_t *tree, 
+			      reiser4_place_t *place, 
+			      reiser4_key_t *key) 
 {
 	reiser4_place_t temp;
 	
@@ -977,8 +977,8 @@ static int cb_blocks_comp_func(void *key1, void *key2,
 inline uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
 					  reiser4_plug_t *plug)
 {
-	return (plug->id.group == TAIL_ITEM) ?
-		LEAF_LEVEL : TWIG_LEVEL;
+	return (plug->id.group == EXTENT_ITEM) ?
+		TWIG_LEVEL : LEAF_LEVEL;
 }
 
 #endif

@@ -64,13 +64,14 @@ errno_t tail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 	aal_assert("umka-2437", place != NULL);
 	aal_assert("umka-3113", place->node != NULL);
 	
+	hint->overhead = place->off;
+	
 	/* Check if we want to create new tail item. If so, we say, that we need
 	   @hint->count bytes in tree. Even if this is more than one node can
 	   fit, it is okay, because write function will actually write only
 	   amount of data which may fit into node at passed @place. */
 	if (place->pos.unit == MAX_UINT32) {
 		hint->len = hint->count;
-		hint->overhead = place->off;
 
 		aal_memcpy(&hint->maxkey, &hint->offset, sizeof(hint->maxkey));
 	} else {
@@ -82,10 +83,8 @@ errno_t tail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 		/* Item already exists. We will rewrite some part of it and some
 		   part have to be append. */
 		right = place->len - tail40_pos(place);
+		hint->len = right ? 0 : hint->count;
 		
-		hint->len = (right >= hint->count ? 0 :
-			     hint->count - right);
-
 		/* Getting maximal real key. It will be needed to determine if
 		   we insert data inside tail or behind it. */
 		tail40_maxreal_key(place, &hint->maxkey);
@@ -95,8 +94,6 @@ errno_t tail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 
 		plug_call(hint->maxkey.plug->pl.key,
 			  set_offset, &hint->maxkey, max_offset);
-		
-		hint->overhead = 0;
 	}
 
 	/* Max possible item size. */
@@ -216,6 +213,8 @@ errno_t tail40_prep_shift(reiser4_place_t *src_place,
 			  shift_hint_t *hint)
 {
 	int check_point;
+	uint32_t space;
+	uint32_t overhead;
 
 	aal_assert("umka-2279", hint != NULL);
 	aal_assert("umka-1664", src_place != NULL);
@@ -223,9 +222,15 @@ errno_t tail40_prep_shift(reiser4_place_t *src_place,
 	check_point = (src_place->pos.item == hint->pos.item &&
 		       hint->pos.unit != MAX_UINT32);
 
+	space = hint->units_bytes;
+	
 	/* If a new item is being created, substract the overhead. */
-	if (!dst_place)
-		hint->units_bytes -= src_place->off;
+	overhead = hint->create ? src_place->off : 0;
+	
+	if (space <= overhead)
+		return 0;
+
+	space -= overhead;
 	
 	/* Check if this is left shift. */
 	if (hint->control & SF_ALLOW_LEFT) {
@@ -233,10 +238,10 @@ errno_t tail40_prep_shift(reiser4_place_t *src_place,
 		if (hint->control & SF_UPDATE_POINT && check_point) {
 			/* Correcting @hint->rest. It should contain number of
 			   bytes we realy can shift. */
-			if (hint->units_bytes > hint->pos.unit)
-				hint->units_bytes = hint->pos.unit;
+			if (space > hint->pos.unit)
+				space = hint->pos.unit;
 
-			hint->pos.unit -= hint->units_bytes;
+			hint->pos.unit -= space;
 
 			/* Moving insert point to @dst_place. */
 			if (hint->pos.unit == 0 &&
@@ -244,14 +249,13 @@ errno_t tail40_prep_shift(reiser4_place_t *src_place,
 			{
 				hint->result |= SF_MOVE_POINT;
 
-				hint->pos.unit = hint->units_bytes +
+				hint->pos.unit = space +
 					(dst_place ? dst_place->len - 
 					 dst_place->off : 0);
 			}
 		} else {
-			if (hint->units_bytes + src_place->off > src_place->len)
-				hint->units_bytes = 
-					src_place->len - src_place->off;
+			if (space + src_place->off > src_place->len)
+				space = src_place->len - src_place->off;
 		}
 	} else {
 		uint32_t right;
@@ -265,12 +269,12 @@ errno_t tail40_prep_shift(reiser4_place_t *src_place,
 
 				/* Insert point inside item and we can move
 				   something. */
-				if (hint->units_bytes > right)
-					hint->units_bytes = right;
+				if (space > right)
+					space = right;
 
 				/* If all @right units are shifted, update the 
 				   point if needed. */
-				if ((hint->units_bytes == right) && 
+				if ((space == right) && 
 				    (hint->control & SF_MOVE_POINT))
 				{
 					hint->result |= SF_MOVE_POINT;
@@ -284,19 +288,16 @@ errno_t tail40_prep_shift(reiser4_place_t *src_place,
 					hint->pos.unit = 0;
 				}
 
-				hint->units_bytes = 0;
+				space = 0;
 			}
 		} else {
-			if (hint->units_bytes + src_place->off > src_place->len)
-			{
-				hint->units_bytes = 
-					src_place->len - src_place->off;
-			}
+			if (space + src_place->off > src_place->len)
+				space = src_place->len - src_place->off;
 		}
 	}
 
-	hint->units_number = hint->units_bytes;
-	
+	hint->units_bytes = space + overhead;
+	hint->units_number = space;
 	return 0;
 }
 
@@ -372,6 +373,9 @@ errno_t tail40_shift_units(reiser4_place_t *src_place,
 	aal_assert("umka-1666", dst_place != NULL);
 	aal_assert("umka-1667", hint != NULL);
 
+	if (hint->create)
+		hint->units_bytes -= src_place->off;
+	
 	/* Check if this is left shift. */
 	if (hint->control & SF_ALLOW_LEFT) {
 		pos = dst_place->len - dst_place->off - hint->units_number;

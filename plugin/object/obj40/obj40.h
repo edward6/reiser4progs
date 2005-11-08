@@ -114,7 +114,8 @@ extern int64_t obj40_write(reiser4_object_t *obj,
 			   uint64_t off, 
 			   uint64_t count, 
 			   reiser4_plug_t *item_plug, 
-			   place_func_t func);
+			   place_func_t func,
+			   void *data);
 
 extern int64_t obj40_convert(reiser4_object_t *obj, conv_hint_t *hint);
 

@@ -392,16 +392,14 @@ static errno_t repair_tree_lookup(reiser4_tree_t *tree,
 		/* No right node. */
 		if (!dst->node)
 			skip = 1;
-	} 
-
-	if (skip == 0) {
-		/* Get the current key of the @dst. */
+	} else {
 		if (reiser4_place_fetch(dst))
 			return -EIO;
+	}
 
-		if ((res = reiser4_item_get_key(dst, &dkey)))
-			return res;
-
+	if (skip == 0) {
+		dkey = dst->key;
+		
 		if ((res = reiser4_item_maxreal_key(src, &end)))
 			return res;
 

@@ -33,38 +33,41 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 	if ((res = reiser4_tree_lookup(tree, &lhint, FIND_EXACT, &place)) < 0)
 		return res;
 
+	if (res == ABSENT) {
+		/* Here we suppose, that @place points to next item,
+		   just behind the hole. */
+		if (reiser4_place_right(&place))
+			reiser4_place_inc(&place, 1);
+
+		if (reiser4_place_rightmost(&place)) {
+			if ((res = reiser4_tree_next_place(tree, &place, &place)))
+				return res;
+		}
+		
+		res = ABSENT;
+	}
+	
 	for (total = 0, size = hint->count; size > 0; ) {
+		uint64_t next, look;
+		int64_t hole;
 		int32_t read;
 
+		if (!place.plug)
+			break;
+		
 		/* Data does not found. This may mean, that we have hole in tree
 		   between keys. */
 		if (res == ABSENT) {
-			reiser4_key_t tkey;
-			
-			/* Here we suppose, that @place points to next item,
-			   just behind the hole. */
-			if (reiser4_place_right(&place))
-				reiser4_place_inc(&place, 1);
-
-			if ((res = reiser4_tree_place_key(tree, &place, &tkey)))
-				return res;
-			
-			if (plug_call(tkey.plug->pl.key, compshort,
-				      &tkey, &hint->offset))
-			{
+			if (reiser4_key_compshort(&place.key, &hint->offset))
 				/* No data found. */
 				break;
-			} else {
-				uint64_t next, look;
- 				int64_t hole;
-				
-				next = reiser4_key_get_offset(&tkey);
-				look = reiser4_key_get_offset(&hint->offset);
-
-				hole = next - look;
-				read = (hole > size ? size : hole);
-			}
 			
+			next = reiser4_key_get_offset(&place.key);
+			look = reiser4_key_get_offset(&hint->offset);
+			
+			hole = next - look;
+			read = (hole > size ? size : hole);
+
 			/* Making holes in buffer. */
 			aal_memset(hint->specific, 0, read);
 
@@ -72,6 +75,8 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 			   @res to PRESENT for the next loop. */
 			if (size > read)
 				res = PRESENT;
+			
+			reiser4_key_inc_offset(&hint->offset, read);
 		} else {
 			/* Prepare hint for read */
 			hint->count = size;
@@ -94,21 +99,23 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 					return res;
 				}
 				
+				reiser4_key_inc_offset(&hint->offset, read);
+				
+				if (!place.plug)
+					res = ABSENT;
+				else if (reiser4_key_compfull(&place.key,
+							      &hint->offset))
+					res = ABSENT;
+				else 
+					res = PRESENT;
 			}
 		}
-
+		
 		size -= read;
 		total += read;
 
 		/* Updating key and data buffer pointer */
 		hint->specific += read;
-		reiser4_key_inc_offset(&hint->offset, read);
-		
-		if (!place.plug || !size)
-			break;
-
-		res = plug_call(place.key.plug->pl.key, compshort,
-				&place.key, &hint->offset) ? ABSENT : PRESENT;
 	}
 
 	hint->specific = buff;
@@ -130,6 +137,8 @@ static errno_t cb_release_region(uint64_t start, uint64_t width, void *data) {
 int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 	char *buff;
 	errno_t res;
+	uint64_t off;
+	uint64_t end;
 	uint64_t size;
 	uint64_t bytes;
 	uint64_t total;
@@ -143,6 +152,7 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 	
 	buff = hint->specific;
 	aal_memcpy(&key, &hint->offset, sizeof(key));
+	end = off = reiser4_key_get_offset(&hint->offset);
 
 	hint->blocks = tree->blocks;
 
@@ -158,8 +168,22 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 	for (total = bytes = 0, size = hint->count; size > 0;) {
 		int32_t write;
 		uint32_t level;
+		
+		if (end == off) {
+			reiser4_key_t nkey;
+			
+			if ((res = reiser4_tree_next_key(tree, &place, &nkey)))
+				return res;
 
-		hint->count = size;
+			if (reiser4_key_compshort(&nkey, &hint->offset)) {
+				/* No data found. */
+				end = MAX_UINT64;
+			} else {
+				end = reiser4_key_get_offset(&nkey);
+			}
+		}
+		
+		hint->count = (size > end - off) ? end - off : size;
 		hint->blocks = tree->blocks;
 		
 		/* level new item will be inserted a on. */
@@ -184,14 +208,23 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 		if (hint->specific)
 			hint->specific += write;
 		
+		off += write;
 		reiser4_key_inc_offset(&hint->offset, write);
 		
-		/* Position in the place may be left not updated. 
-		   Lookup the item again. */
-		if ((res = plug_call(place.plug->pl.item->balance,
-				     lookup, &place, &lhint, FIND_CONV)) < 0)
-		{
-			return res;
+		if (end - off > 0) {
+			/* Position in the place may be left not updated. 
+			   Lookup the item again. */
+			if ((res = plug_call(place.plug->pl.item->balance,
+					     lookup, &place, &lhint, 
+					     FIND_CONV)) < 0)
+			{
+				return res;
+			}
+		} else {
+			res = reiser4_tree_next_place(tree, &place, &place);
+			if (res) return res;
+			
+			aal_assert("vpf-1890", place.plug != NULL);
 		}
 	}
 

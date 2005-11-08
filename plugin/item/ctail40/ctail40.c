@@ -35,10 +35,12 @@ static int ctail40_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
 	off1 = plug_call(place1->key.plug->pl.key, get_offset, &place1->key);
 	off2 = plug_call(place2->key.plug->pl.key, get_offset, &place2->key);
 	
-	/* If they are of different clusters, not mergeable. */
-	if (off1 + (1 << shift) >= off2)
-		return 0;
+	shift = (1 << shift) - 1;
 	
+	/* If they are of different clusters, not mergeable. */
+	if ((off1 & shift) != (off2 & shift))
+		return 0;
+
 	return body40_mergeable(place1, place2);
 }
 
@@ -52,6 +54,15 @@ static errno_t ctail40_prep_shift(reiser4_place_t *src_place,
 	return tail40_prep_shift(src_place, dst_place, hint);
 }
 
+errno_t ctail40_shift_units(reiser4_place_t *src_place,
+			    reiser4_place_t *dst_place,
+			    shift_hint_t *hint)
+{
+	if (hint->create)
+		aal_memcpy(dst_place->body, src_place->body, src_place->off);
+	
+	return tail40_shift_units(src_place, dst_place, hint);
+}
 static errno_t ctail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 	place->off = sizeof(ctail40_t);
 	return tail40_prep_write(place, hint);
@@ -89,7 +100,7 @@ static item_balance_ops_t balance_ops = {
 	.mergeable	  = ctail40_mergeable,
 	.maxreal_key	  = tail40_maxreal_key,
 	.prep_shift	  = ctail40_prep_shift,
-	.shift_units	  = tail40_shift_units,
+	.shift_units	  = ctail40_shift_units,
 	.collision	  = NULL,
 	.overhead	  = NULL,
 	
