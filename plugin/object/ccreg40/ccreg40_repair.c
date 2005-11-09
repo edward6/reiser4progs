@@ -9,7 +9,7 @@
 #include <misc/misc.h>
 #include "ccreg40_repair.h"
 
-static int ccreg40_check_size(reiser4_object_t *crc, 
+static int ccreg40_check_size(reiser4_object_t *cc, 
 			      uint64_t *sd_size, 
 			      uint64_t counted_size)
 {
@@ -41,51 +41,51 @@ typedef struct ccreg40_hint {
 	uint8_t data[64 * 1024];
 } ccreg40_hint_t;
 
-static errno_t ccreg40_check_item(reiser4_object_t *crc, void *data) {
+static errno_t ccreg40_check_item(reiser4_object_t *cc, void *data) {
 	ccreg40_hint_t *hint = (ccreg40_hint_t *)data;
 	object_info_t *info;
 	uint32_t cluster;
 	errno_t res;
 		
-	hint->found = plug_call(crc->body.key.plug->pl.key,
-				get_offset, &crc->body.key);
-	hint->maxreal = obj40_place_maxreal(&crc->body);
+	hint->found = plug_call(cc->body.key.plug->pl.key,
+				get_offset, &cc->body.key);
+	hint->maxreal = obj40_place_maxreal(&cc->body);
 	
 	aal_assert("vpf-1871", hint->maxreal >= hint->found);
 	aal_assert("vpf-1872", hint->seek <= hint->found);
 	
-	info = &crc->info;
+	info = &cc->info;
 	res = 0;
 	
 	/* Check the item plugin. */
-	if (crc->body.plug != info->opset.plug[OPSET_CTAIL]) {
+	if (cc->body.plug != info->opset.plug[OPSET_CTAIL]) {
 		fsck_mess("CRC file [%s] (%s), node [%llu], item "
 			  "[%u]: item of the illegal plugin (%s) "
 			  "with the key of this object found.%s",
 			  print_inode(obj40_core, &info->object),
-			  reiser4_oplug(crc)->label, place_blknr(&crc->body),
-			  crc->body.pos.item, crc->body.plug->label, 
+			  reiser4_oplug(cc)->label, place_blknr(&cc->body),
+			  cc->body.pos.item, cc->body.plug->label, 
 			  hint->mode == RM_BUILD ? " Removed." : "");
 		
 		return hint->mode == RM_BUILD ? -ESTRUCT : RE_FATAL;
 	}
 	
 	/* Check the shift. */
-	cluster = ccreg40_get_cluster_size(&crc->body);
+	cluster = ccreg40_get_cluster_size(&cc->body);
 	
 	if (hint->size != cluster) {
 		fsck_mess("CRC file [%s] (%s), node [%llu], item [%u]: item "
 			  "of the wrong cluster size (%d) found, Should be "
 			  "(%d).%s", print_inode(obj40_core, &info->object),
-			  reiser4_oplug(crc)->label, place_blknr(&crc->body),
-			  crc->body.pos.item, cluster, hint->size, 
+			  reiser4_oplug(cc)->label, place_blknr(&cc->body),
+			  cc->body.pos.item, cluster, hint->size, 
 			  hint->mode != RM_CHECK ? " Fixed." : "");
 
 		/* Just fix the shift if wrong. */
 		if (hint->mode == RM_CHECK) {
 			res |= RE_FIXABLE;
 		} else {
-			ccreg40_set_cluster_size(&crc->body, hint->size);
+			ccreg40_set_cluster_size(&cc->body, hint->size);
 		}
 	}
 	
@@ -95,8 +95,8 @@ static errno_t ccreg40_check_item(reiser4_object_t *crc, void *data) {
 			  "item of the lenght (%llu) found, it cannot "
 			  "contain data of 2 clusters.%s", 
 			  print_inode(obj40_core, &info->object),
-			  reiser4_oplug(crc)->label, 
-			  place_blknr(&crc->body), crc->body.pos.item,
+			  reiser4_oplug(cc)->label, 
+			  place_blknr(&cc->body), cc->body.pos.item,
 			  hint->maxreal - hint->found + 1, 
 			  hint->mode == RM_BUILD ? " Removed." : "");
 		
@@ -170,7 +170,7 @@ static errno_t ccreg40_holes_free(void *p, void *data) {
 	return 0;
 }
 
-static errno_t ccreg40_check_cluster(reiser4_object_t *crc, 
+static errno_t ccreg40_check_cluster(reiser4_object_t *cc, 
 				     ccreg40_hint_t *hint, 
 				     uint8_t mode) 
 {
@@ -184,7 +184,7 @@ static errno_t ccreg40_check_cluster(reiser4_object_t *crc,
 	res = 0;
 	start = (ccreg40_clstart(hint->seek, hint->size) == hint->seek);
 	last = (hint->sd_size == hint->seek);
-	over = (crc->body.plug == NULL);
+	over = (cc->body.plug == NULL);
 	if (over == 0)
 		over = !ccreg40_clsame(hint->seek, hint->found, hint->size);
 	
@@ -194,7 +194,7 @@ static errno_t ccreg40_check_cluster(reiser4_object_t *crc,
 			/* There is no hole at the end of the previous cluster.
 			   I.e. there is no compression. Fill all the holes with
 			   zeroes if there is any. */
-		} else if (crc->body.plug || last) {
+		} else if (cc->body.plug || last) {
 			/* 1. There is a hole at the end of the cluster &&
 			   2. Not the last cluster or sd_size is not equal to 
 			      the real amount of bytes. */
@@ -216,7 +216,7 @@ static errno_t ccreg40_check_cluster(reiser4_object_t *crc,
 		aal_list_free(hint->list, ccreg40_holes_free, 
 			      start ? hint : NULL);
 
-		if (!crc->body.plug)
+		if (!cc->body.plug)
 			return res;
 	}
 	
@@ -235,17 +235,17 @@ static errno_t ccreg40_check_cluster(reiser4_object_t *crc,
 		}
 	} else if (!aal_list_len(hint->list)) {
 		/* No hole is found yet. Read the item. */
-		if ((res |= ccreg40_read_item(&crc->body, hint)) < 0)
+		if ((res |= ccreg40_read_item(&cc->body, hint)) < 0)
 			return res;
 	}
 	
-	hint->bytes += plug_call(crc->body.plug->pl.item->object,
-				 bytes, &crc->body);
+	hint->bytes += plug_call(cc->body.plug->pl.item->object,
+				 bytes, &cc->body);
 
 	return res;
 }
 
-errno_t ccreg40_check_struct(reiser4_object_t *crc, 
+errno_t ccreg40_check_struct(reiser4_object_t *cc, 
 			     place_func_t func,
 			     void *data, uint8_t mode)
 {
@@ -253,13 +253,13 @@ errno_t ccreg40_check_struct(reiser4_object_t *crc,
 	ccreg40_hint_t hint;
 	errno_t res, result;
 	
-	aal_assert("vpf-1829", crc != NULL);
-	aal_assert("vpf-1836", crc->info.tree != NULL);
+	aal_assert("vpf-1829", cc != NULL);
+	aal_assert("vpf-1836", cc->info.tree != NULL);
 
-	info = &crc->info;
+	info = &cc->info;
 	aal_memset(&hint, 0, sizeof(hint));
 	
-	if ((res = obj40_prepare_stat(crc, S_IFREG, mode)))
+	if ((res = obj40_prepare_stat(cc, S_IFREG, mode)))
 		return res;
 	
 	/* Obtain hint.sd_size */
@@ -272,28 +272,28 @@ errno_t ccreg40_check_struct(reiser4_object_t *crc,
 	
 	result = 0;
 	hint.mode = mode;
-	hint.size = ccreg40_clsize(crc);
+	hint.size = ccreg40_clsize(cc);
 	
 	while(1) {
 		lookup_t lookup;
 		
 		/* Get next item. */
-		lookup = obj40_check_item(crc, ccreg40_check_item, NULL, &hint);
+		lookup = obj40_check_item(cc, ccreg40_check_item, NULL, &hint);
 		
 		if (repair_error_fatal(lookup)) {
 			aal_list_free(hint.list, ccreg40_holes_free, NULL);
 			return lookup;
 		} else if (lookup == ABSENT)
-			crc->body.plug = NULL;
+			cc->body.plug = NULL;
 		
 		/* Register the item. */
-		if (crc->body.plug && func && func(&crc->body, data)) {
+		if (cc->body.plug && func && func(&cc->body, data)) {
 			aal_bug("vpf-1869", "The item [%s] should not be "
 				"registered yet.", print_key(obj40_core, 
 							     &info->object));
 		}
 		
-		if ((res |= ccreg40_check_cluster(crc, &hint, mode)) < 0) {
+		if ((res |= ccreg40_check_cluster(cc, &hint, mode)) < 0) {
 			aal_list_free(hint.list, ccreg40_holes_free, NULL);
 			return res;
 		}
@@ -306,11 +306,11 @@ errno_t ccreg40_check_struct(reiser4_object_t *crc,
 		
 		/* If the file size is the max possible one, break out 
 		   here to not seek to 0. */
-		if (!crc->body.plug || hint.maxreal == MAX_UINT64)
+		if (!cc->body.plug || hint.maxreal == MAX_UINT64)
 			break;
 		
 		hint.seek = hint.maxreal + 1;
-		obj40_seek(crc, hint.seek);
+		obj40_seek(cc, hint.seek);
 	}
 
 	/* Fix the SD, if no fatal corruptions were found. */
@@ -323,13 +323,13 @@ errno_t ccreg40_check_struct(reiser4_object_t *crc,
 		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 		
 		hint.stat.mode = S_IFREG;
-		hint.stat.size = plug_call(crc->position.plug->pl.key,
-					   get_offset, &crc->position);
+		hint.stat.size = plug_call(cc->position.plug->pl.key,
+					   get_offset, &cc->position);
 
-		res |= obj40_update_stat(crc, &ops, &hint.stat, mode);
+		res |= obj40_update_stat(cc, &ops, &hint.stat, mode);
 	}
 	
-	obj40_reset(crc);
+	obj40_reset(cc);
 	
 	return res;
 }

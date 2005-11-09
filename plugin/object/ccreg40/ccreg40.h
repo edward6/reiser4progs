@@ -1,7 +1,7 @@
 /* Copyright (C) 2001-2005 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   crc40.h -- reiser4 crypto compression regular file plugin declarations. */
+   ccreg40.h -- reiser4 crypto compression regular file plugin declarations. */
 
 #ifndef CRC40_H
 #define CRC40_H
@@ -18,10 +18,10 @@
 #define ccreg40_clsame(off1, off2, size) \
 	(ccreg40_clstart(off1, size) == ccreg40_clstart(off2, size))
 
-#define ccreg40_clsize(crc) \
-	(4096ll << (rid_t)crc->info.opset.plug[OPSET_CLUSTER])
+#define ccreg40_clsize(cc) \
+	(4096ll << (rid_t)cc->info.opset.plug[OPSET_CLUSTER])
 
-extern errno_t ccreg40_check_struct(reiser4_object_t *crc, 
+extern errno_t ccreg40_check_struct(reiser4_object_t *cc, 
 				    place_func_t func,
 				    void *data, uint8_t mode);
 

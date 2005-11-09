@@ -49,14 +49,14 @@ errno_t ccreg40_set_cluster_size(reiser4_place_t *place, uint32_t cluster) {
    get De-CC & the result is put into @clust. Returns the size of uncompressed
    cluster. compressed is an indicator if data on disk are smaller then the 
    cluster size. Note cluster size depends on file size for the last cluster. */
-static int64_t ccreg40_decc_cluster(reiser4_object_t *crc, 
+static int64_t ccreg40_decc_cluster(reiser4_object_t *cc, 
 				    void *clust, void *disk, 
 				    int64_t count, uint32_t compressed)
 {
-	if (crc->info.opset.plug[OPSET_CRYPTO] != CRYPTO_NONE_ID) {
+	if (cc->info.opset.plug[OPSET_CRYPTO] != CRYPTO_NONE_ID) {
 		aal_error("Object [%s]: Can't extract encrypted "
 			  "data. Not supported yet.",
-			  print_inode(obj40_core, &crc->info.object));
+			  print_inode(obj40_core, &cc->info.object));
 		return -EINVAL;
 	}
 
@@ -65,7 +65,7 @@ static int64_t ccreg40_decc_cluster(reiser4_object_t *crc,
 	if (compressed) {
 		aal_error("Object [%s]: Can't extract compressed "
 			  "data. Not supported yet.",
-			  print_inode(obj40_core, &crc->info.object));
+			  print_inode(obj40_core, &cc->info.object));
 		return -EINVAL;
 	}
 
@@ -75,19 +75,19 @@ static int64_t ccreg40_decc_cluster(reiser4_object_t *crc,
 
 /* Performs Cluster CryptoCompression. @could bytes are taken from @clust, get
    CC & the result is put into @disk. Returns the size of CC-ed cluster. */
-static int64_t ccreg40_cc_cluster(reiser4_object_t *crc, 
+static int64_t ccreg40_cc_cluster(reiser4_object_t *cc, 
 				  void *disk, void *clust, 
 				  uint64_t count)
 {
-	if (crc->info.opset.plug[OPSET_CRYPTO] != CRYPTO_NONE_ID) {
+	if (cc->info.opset.plug[OPSET_CRYPTO] != CRYPTO_NONE_ID) {
 		aal_error("Object [%s]: Can't encrypt data. Not supported "
-			  "yet.", print_inode(obj40_core, &crc->info.object));
+			  "yet.", print_inode(obj40_core, &cc->info.object));
 		return -EINVAL;
 	}
 
-	if (!reiser4_nocomp((rid_t)crc->info.opset.plug[OPSET_COMPRESS])) {
+	if (!reiser4_nocomp((rid_t)cc->info.opset.plug[OPSET_COMPRESS])) {
 		aal_error("Object [%s]: Can't compress data. Not supported "
-			  "yet.", print_inode(obj40_core, &crc->info.object));
+			  "yet.", print_inode(obj40_core, &cc->info.object));
 		return -EINVAL;
 	}
 
@@ -98,7 +98,7 @@ static int64_t ccreg40_cc_cluster(reiser4_object_t *crc,
 /* Cluster read operation. It reads exactly 1 cluster the @off offset belongs 
    to. De-CC it, copy the wanted part of the cluster into @buff & return the 
    amount of bytes put into @buff. */
-static int64_t ccreg40_read_clust(reiser4_object_t *crc, trans_hint_t *hint, 
+static int64_t ccreg40_read_clust(reiser4_object_t *cc, trans_hint_t *hint, 
 				  void *buff, uint64_t off, uint64_t count,
 				  uint32_t fsize)
 {
@@ -111,13 +111,13 @@ static int64_t ccreg40_read_clust(reiser4_object_t *crc, trans_hint_t *hint,
 	if (off > fsize)
 		return 0;
 	
-	clsize = ccreg40_clsize(crc);
+	clsize = ccreg40_clsize(cc);
 	clstart = ccreg40_clstart(off, clsize);
 	if (clsize > fsize - clstart)
 		clsize = fsize - clstart;
 	
 	/* Reading data. */
-	if ((read = obj40_read(crc, hint, disk, clstart, clsize)) < 0)
+	if ((read = obj40_read(cc, hint, disk, clstart, clsize)) < 0)
 		return read;
 	
 	if (read == 0) {
@@ -130,7 +130,7 @@ static int64_t ccreg40_read_clust(reiser4_object_t *crc, trans_hint_t *hint,
 	}
 	
 	/* Extract the read cluster to the given buffer. */
-	if ((read = ccreg40_decc_cluster(crc, clust, disk, read,
+	if ((read = ccreg40_decc_cluster(cc, clust, disk, read,
 					 read < clsize)) < 0)
 	{
 		return read;
@@ -138,7 +138,7 @@ static int64_t ccreg40_read_clust(reiser4_object_t *crc, trans_hint_t *hint,
 
 	if (read != clsize) {
 		aal_error("File [%s]: Failed to read the cluster at the offset "
-			  "(%llu).", print_inode(obj40_core, &crc->info.object),
+			  "(%llu).", print_inode(obj40_core, &cc->info.object),
 			  clstart);
 		return -EIO;
 	}
@@ -157,7 +157,7 @@ static errno_t cc_write_item(reiser4_place_t *place, void *data) {
 }
 
 /* Cluster write operation. It write exactly 1 cluster given in @buff. */
-static int64_t ccreg40_write_clust(reiser4_object_t *crc, trans_hint_t *hint,
+static int64_t ccreg40_write_clust(reiser4_object_t *cc, trans_hint_t *hint,
 				   void *buff, uint64_t off, uint64_t count,
 				   uint64_t fsize)
 {
@@ -169,7 +169,8 @@ static int64_t ccreg40_write_clust(reiser4_object_t *crc, trans_hint_t *hint,
 	uint64_t end;
 	int64_t done;
 	
-	clsize = ccreg40_clsize(crc);
+	done = 0;
+	clsize = ccreg40_clsize(cc);
 	clstart = ccreg40_clstart(off, clsize);
 	
 	/* Set @end to the cluster end offset. */
@@ -180,7 +181,7 @@ static int64_t ccreg40_write_clust(reiser4_object_t *crc, trans_hint_t *hint,
 	if (clstart >= fsize) {
 		aal_memset(clust, 0, clsize);
 	} else if (off != clstart || off + count < end) {
-		if ((done = ccreg40_read_clust(crc, hint, clust, clstart, 
+		if ((done = ccreg40_read_clust(cc, hint, clust, clstart, 
 					       end - clstart, fsize)) < 0)
 		{
 			return done;
@@ -189,7 +190,7 @@ static int64_t ccreg40_write_clust(reiser4_object_t *crc, trans_hint_t *hint,
 		if ((uint64_t)done != end - clstart) {
 			aal_error("File [%s]: Failed to read the "
 				  "cluster at the offset (%llu).",
-				  print_inode(obj40_core, &crc->info.object),
+				  print_inode(obj40_core, &cc->info.object),
 				  off);
 			return -EIO;
 		}
@@ -205,11 +206,11 @@ static int64_t ccreg40_write_clust(reiser4_object_t *crc, trans_hint_t *hint,
 	
 	end = (clstart + done > off + count) ? clstart + done : off + count;
 	
-	if ((done = ccreg40_cc_cluster(crc, disk, clust, end - clstart)) < 0)
+	if ((done = ccreg40_cc_cluster(cc, disk, clust, end - clstart)) < 0)
 		return done;
 	
-	if ((written = obj40_write(crc, hint, clust, clstart, done,
-				   crc->info.opset.plug[OPSET_CTAIL], 
+	if ((written = obj40_write(cc, hint, clust, clstart, done,
+				   cc->info.opset.plug[OPSET_CTAIL], 
 				   cc_write_item, &clsize)) < 0)
 	{
 		return written;
@@ -218,7 +219,7 @@ static int64_t ccreg40_write_clust(reiser4_object_t *crc, trans_hint_t *hint,
 	if (written < done) {
 		aal_error("File [%s]: There are less bytes "
 			  "written (%llu) than asked (%llu).",
-			  print_inode(obj40_core, &crc->info.object),
+			  print_inode(obj40_core, &cc->info.object),
 			  written, done);
 		return -EIO;
 	}
@@ -226,7 +227,7 @@ static int64_t ccreg40_write_clust(reiser4_object_t *crc, trans_hint_t *hint,
 	return count;
 }
 
-static int64_t ccreg40_read(reiser4_object_t *crc, 
+static int64_t ccreg40_read(reiser4_object_t *cc, 
 			    void *buff, uint64_t n)
 {
 	trans_hint_t hint;
@@ -236,15 +237,15 @@ static int64_t ccreg40_read(reiser4_object_t *crc,
 	uint64_t off;
 	errno_t res;
 	
-	aal_assert("vpf-1873", crc != NULL);
+	aal_assert("vpf-1873", cc != NULL);
 	aal_assert("vpf-1874", buff != NULL);
 	
-	if ((res = obj40_update(crc)))
+	if ((res = obj40_update(cc)))
 		return res;
 	
 	count = 0;
-	off = obj40_offset(crc);
-	fsize = obj40_get_size(crc);
+	off = obj40_offset(cc);
+	fsize = obj40_get_size(cc);
 	
 	if (off > fsize)
 		return 0;
@@ -254,7 +255,7 @@ static int64_t ccreg40_read(reiser4_object_t *crc,
 
 	while (n) {
 		/* Reading data. */
-		if ((read = ccreg40_read_clust(crc, &hint, buff, 
+		if ((read = ccreg40_read_clust(cc, &hint, buff, 
 					       off, n, fsize)) < 0)
 		{
 			return read;
@@ -268,11 +269,11 @@ static int64_t ccreg40_read(reiser4_object_t *crc,
 		n -= read;
 	}
 	
-	obj40_seek(crc, off);
+	obj40_seek(cc, off);
 	return count;
 }
 
-static int64_t ccreg40_write(reiser4_object_t *crc, 
+static int64_t ccreg40_write(reiser4_object_t *cc, 
 			     void *buff, uint64_t n)
 {
 	trans_hint_t hint;
@@ -282,20 +283,20 @@ static int64_t ccreg40_write(reiser4_object_t *crc,
 	uint64_t off;
 	errno_t res;
 	
-	aal_assert("vpf-1877", crc != NULL);
+	aal_assert("vpf-1877", cc != NULL);
 	aal_assert("vpf-1878", buff != NULL);
 	
-	if ((res = obj40_update(crc)))
+	if ((res = obj40_update(cc)))
 		return res;
 	
-	fsize = obj40_get_size(crc);
+	fsize = obj40_get_size(cc);
 
-	off = obj40_offset(crc);
+	off = obj40_offset(cc);
 	count = 0;
 	bytes = 0;
 	
 	while (n) {
-		if ((res = ccreg40_write_clust(crc, &hint, buff, 
+		if ((res = ccreg40_write_clust(cc, &hint, buff, 
 					       off, n, fsize)) < 0)
 		{
 			return res;
@@ -310,46 +311,46 @@ static int64_t ccreg40_write(reiser4_object_t *crc,
 		n -= res;
 	}
 	
-	obj40_seek(crc, off);
+	obj40_seek(cc, off);
 	
 	off = fsize > off ? 0 : off - fsize;
 	
 	/* Updating the SD place and update size, bytes there. */
-	if ((res = obj40_touch(crc, off, bytes)))
+	if ((res = obj40_touch(cc, off, bytes)))
 		return res;
 	
 	return count;
 }
 
-static errno_t ccreg40_truncate(reiser4_object_t *crc, uint64_t n) {
-	return obj40_truncate(crc, n, crc->info.opset.plug[OPSET_CTAIL]);
+static errno_t ccreg40_truncate(reiser4_object_t *cc, uint64_t n) {
+	return obj40_truncate(cc, n, cc->info.opset.plug[OPSET_CTAIL]);
 }
 
-static errno_t ccreg40_clobber(reiser4_object_t *crc) {
+static errno_t ccreg40_clobber(reiser4_object_t *cc) {
 	errno_t res;
 	
-	aal_assert("vpf-1881", crc != NULL);
+	aal_assert("vpf-1881", cc != NULL);
 	
-	if ((res = ccreg40_truncate(crc, 0)) < 0)
+	if ((res = ccreg40_truncate(cc, 0)) < 0)
 		return res;
 	
-	return obj40_clobber(crc);
+	return obj40_clobber(cc);
 }
 
-static errno_t ccreg40_layout(reiser4_object_t *crc,
+static errno_t ccreg40_layout(reiser4_object_t *cc,
 			      region_func_t func,
 			      void *data)
 {
-	obj40_reset(crc);
-	return obj40_layout(crc, func, NULL, data);
+	obj40_reset(cc);
+	return obj40_layout(cc, func, NULL, data);
 }
 
-static errno_t ccreg40_metadata(reiser4_object_t *crc,
+static errno_t ccreg40_metadata(reiser4_object_t *cc,
 				place_func_t func,
 				void *data)
 {
-	obj40_reset(crc);
-	return obj40_traverse(crc, func, NULL, data);
+	obj40_reset(cc);
+	return obj40_traverse(cc, func, NULL, data);
 }
 
 /* CRC regular file operations. */
@@ -400,7 +401,7 @@ static reiser4_object_plug_t ccreg40 = {
 reiser4_plug_t ccreg40_plug = {
 	.cl    = class_init,
 	.id    = {OBJECT_CRC40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
-	.label = "crc40",
+	.label = "ccreg40",
 	.desc  = "Crypto-Compression regular file plugin.",
 	.pl = {
 		.object = &ccreg40
