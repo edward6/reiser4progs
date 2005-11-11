@@ -69,8 +69,7 @@ static reiser4_sdext_plug_t sdext_symlink = {
 	.length		= sdext_symlink_length
 };
 
-static reiser4_plug_t sdext_symlink_plug = {
-	.cl    = class_init,
+reiser4_plug_t sdext_symlink_plug = {
 	.id    = {SDEXT_SYMLINK_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "sdext_symlink",
@@ -80,11 +79,4 @@ static reiser4_plug_t sdext_symlink_plug = {
 		.sdext = &sdext_symlink
 	}
 };
-
-static reiser4_plug_t *sdext_symlink_start(reiser4_core_t *c) {
-	sdext_symlink_core = c;
-	return &sdext_symlink_plug;
-}
-
-plug_register(sdext_symlink, sdext_symlink_start, NULL);
 #endif

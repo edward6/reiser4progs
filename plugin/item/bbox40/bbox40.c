@@ -173,8 +173,7 @@ static reiser4_item_plug_t bbox40 = {
 #endif
 };
 
-static reiser4_plug_t bbox40_plug = {
-	.cl    = class_init,
+reiser4_plug_t bbox40_plug = {
 	.id    = {ITEM_BLACKBOX40_ID, BLACK_BOX_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "bbox40",
@@ -184,10 +183,3 @@ static reiser4_plug_t bbox40_plug = {
 		.item = &bbox40
 	}
 };
-
-static reiser4_plug_t *bbox40_start(reiser4_core_t *c) {
-	bbox40_core = c;
-	return &bbox40_plug;
-}
-
-plug_register(bbox40, bbox40_start, NULL);

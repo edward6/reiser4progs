@@ -1125,8 +1125,7 @@ static reiser4_item_plug_t cde40 = {
 #endif
 };
 
-static reiser4_plug_t cde40_plug = {
-	.cl    = class_init,
+reiser4_plug_t cde40_plug = {
 	.id    = {ITEM_CDE40_ID, DIR_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "cde40",
@@ -1136,10 +1135,3 @@ static reiser4_plug_t cde40_plug = {
 		.item = &cde40
 	}
 };
-
-static reiser4_plug_t *cde40_start(reiser4_core_t *c) {
-	cde40_core = c;
-	return &cde40_plug;
-}
-
-plug_register(cde40, cde40_start, NULL);

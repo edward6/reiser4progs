@@ -38,6 +38,7 @@ libreiser4_plugin_la_LIBADD       = format/format40/libformat40-static.la \
                                     sdext/sdext_symlink/libsdext_symlink-static.la \
                                     sdext/sdext_plug/libsdext_plug-static.la \
                                     sdext/sdext_crypto/libsdext_crypto-static.la \
+                                    sdext/sdext_flags/libsdext_flags-static.la \
                                     policy/tails/libtails-static.la \
                                     policy/extents/libextents-static.la \
                                     policy/smart/libsmart-static.la \
@@ -78,6 +79,7 @@ libreiser4_plugin_minimal_la_LIBADD = format/format40/libformat40-minimal.la \
                                     sdext/sdext_lt/libsdext_lt-minimal.la \
                                     sdext/sdext_symlink/libsdext_symlink-minimal.la \
                                     sdext/sdext_plug/libsdext_plug-minimal.la \
+                                    sdext/sdext_flags/libsdext_flags-minimal.la \
                                     policy/tails/libtails-minimal.la \
                                     policy/extents/libextents-minimal.la \
                                     policy/smart/libsmart-minimal.la \

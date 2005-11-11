@@ -145,8 +145,7 @@ static reiser4_hash_plug_t tea_hash = {
 	.build = tea_hash_build
 };
 
-static reiser4_plug_t tea_hash_plug = {
-	.cl = class_init,
+reiser4_plug_t tea_hash_plug = {
 	.id = {HASH_TEA_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "tea_hash",
@@ -156,10 +155,4 @@ static reiser4_plug_t tea_hash_plug = {
 		.hash = &tea_hash
 	}
 };
-
-static reiser4_plug_t *tea_hash_start(reiser4_core_t *c) {
-	return &tea_hash_plug;
-}
-
-plug_register(tea_hash, tea_hash_start, NULL);
 #endif

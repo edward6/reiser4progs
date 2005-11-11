@@ -80,8 +80,7 @@ static reiser4_sdext_plug_t sdext_unix = {
 	.length	   	= sdext_unix_length
 };
 
-static reiser4_plug_t sdext_unix_plug = {
-	.cl    = class_init,
+reiser4_plug_t sdext_unix_plug = {
 	.id    = {SDEXT_UNIX_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "sdext_unix",
@@ -91,10 +90,3 @@ static reiser4_plug_t sdext_unix_plug = {
 		.sdext = &sdext_unix
 	}
 };
-
-static reiser4_plug_t *sdext_unix_start(reiser4_core_t *c) {
-	sdext_unix_core = c;
-	return &sdext_unix_plug;
-}
-
-plug_register(sdext_unix, sdext_unix_start, NULL);

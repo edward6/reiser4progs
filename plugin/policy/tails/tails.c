@@ -14,8 +14,7 @@ reiser4_policy_plug_t tails = {
 	.tails = tails_tails
 };
 
-static reiser4_plug_t tails_plug = {
-	.cl    = class_init,
+reiser4_plug_t tails_plug = {
 	.id    = {TAIL_ALWAYS_ID, 0, POLICY_PLUG_TYPE},
 	.label = "tails",
 	.desc  = "'Tails only' tail policy plugin.",
@@ -23,10 +22,4 @@ static reiser4_plug_t tails_plug = {
 		.policy = &tails
 	}
 };
-
-static reiser4_plug_t *tails_start(reiser4_core_t *c) {
-	return &tails_plug;
-}
-
-plug_register(tails, tails_start, NULL);
 #endif

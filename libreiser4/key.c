@@ -9,6 +9,7 @@
 void reiser4_key_free(reiser4_key_t *key) {
 	aal_free(key);
 }
+#endif
 
 int reiser4_key_compshort(
 	reiser4_key_t *key1,	    /* the first key for comparing */
@@ -22,7 +23,6 @@ int reiser4_key_compshort(
 
 	return plug_call(key1->plug->pl.key, compshort, key1, key2);
 }
-#endif
 
 /* Compares two keys in plugin independent manner by means of using one of
    passed keys plugin. */

@@ -19,8 +19,7 @@ static reiser4_fibre_plug_t fibre_ext_1 = {
 	.build = fibre_ext_1_build
 };
 
-static reiser4_plug_t fibre_ext_1_plug = {
-	.cl    = class_init,
+reiser4_plug_t fibre_ext_1_plug = {
 	.id    = {FIBRE_EXT_1_ID, 0, FIBRE_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "ext_1_fibre",
@@ -30,10 +29,4 @@ static reiser4_plug_t fibre_ext_1_plug = {
 		.fibre = &fibre_ext_1
 	}
 };
-
-static reiser4_plug_t *fibre_ext_1_start(reiser4_core_t *c) {
-	return &fibre_ext_1_plug;
-}
-
-plug_register(fibre_ext_1, fibre_ext_1_start, NULL);
 #endif

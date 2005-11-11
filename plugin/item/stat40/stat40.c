@@ -7,7 +7,7 @@
 #include "stat40_repair.h"
 #include <sys/stat.h>
 
-reiser4_core_t *stat40_core;
+reiser4_core_t *stat40_core = NULL;
 
 /* The function which implements stat40 layout pass. This function is used for
    all statdata extension-related actions. For example for reading, or
@@ -579,8 +579,7 @@ static reiser4_item_plug_t stat40 = {
 #endif
 };
 
-static reiser4_plug_t stat40_plug = {
-	.cl    = class_init,
+reiser4_plug_t stat40_plug = {
 	.id    = {ITEM_STAT40_ID, STAT_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "stat40",
@@ -590,11 +589,3 @@ static reiser4_plug_t stat40_plug = {
 		.item = &stat40
 	}
 };
-
-static reiser4_plug_t *stat40_start(reiser4_core_t *c) {
-	stat40_core = c;
-	return &stat40_plug;
-}
-
-plug_register(stat40, stat40_start, NULL);
-

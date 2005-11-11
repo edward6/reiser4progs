@@ -6,7 +6,7 @@
 #include "node40.h"
 #include "node40_repair.h"
 
-reiser4_core_t *node40_core;
+reiser4_core_t *node40_core = NULL;
 
 /* Return item header void pointer by pos. As node40 is able to work with
    different item types (short keys, large ones), we do not use item struct at
@@ -1725,7 +1725,6 @@ static reiser4_node_plug_t node40 = {
 };
 
 reiser4_plug_t node40_plug = {
-	.cl    = class_init,
 	.id    = {NODE_REISER40_ID, 0, NODE_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "node40",
@@ -1735,10 +1734,3 @@ reiser4_plug_t node40_plug = {
 		.node = &node40
 	}
 };
-
-static reiser4_plug_t *node40_start(reiser4_core_t *c) {
-	node40_core = c;
-	return &node40_plug;
-}
-
-plug_register(node40, node40_start, NULL);

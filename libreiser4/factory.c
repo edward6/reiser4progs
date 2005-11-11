@@ -71,92 +71,45 @@ static errno_t cb_check_plug(reiser4_plug_t *plug, void *data) {
 }
 #endif
 
-/* Initializes plugin and returns it to caller. Calls plugin's init() method,
-   etc.*/
-static reiser4_plug_t *reiser4_plug_init(plug_class_t *cl) {
-	reiser4_plug_t *plug;
-	
-	if (!cl->init)
-		return NULL;
-
-	if (!(plug = cl->init(&core))) {
-		aal_error("Plugin's init() method (%p) "
-			  "failed", (void *)cl->init);
-		return NULL;
-	}
-
-	plug->cl.init = cl->init;
-	plug->cl.fini = cl->fini;
-
-	return plug;
-}
-
-/* Finalizes a plugin. Mostly calls its fini() function. */
-static errno_t reiser4_plug_fini(reiser4_plug_t *plug) {
-	errno_t res = 0;
-	
-	if (!plug) return 0;
-	
-	/* Calling plugin fini() method if any. */
-	if (plug->cl.fini) {
-		if ((res = plug->cl.fini(&core))) {
-			aal_error("Method fini() of plugin %s has "
-				  "failed. Error %llx.", plug->label, res);
-		}
-	}
-
-	plug->cl.init = 0;
-	plug->cl.fini = 0;
-
-	return res;
-}
-
 /* Helper functions used for calculating hash and for comparing two entries from
    plugin hash table during its modifying. */
 #define plug_hash_func(type, id) (plugs_max[type] + (id))
 
+#ifndef ENABLE_MINIMAL
 /* Unloads plugin and removes it from plugin hash table. */
 static errno_t reiser4_factory_unload(reiser4_plug_t *plug) {
 	aal_assert("umka-1496", plug != NULL);
 
 	plugins[plug_hash_func(plug->id.type, plug->id.id)] = NULL;
-	reiser4_plug_fini(plug);
 	
 	return 0;
 }
+#endif
 
 /* Loads and initializes plugin by its entry. Also this function makes register
    the plugin in plugins list. */
-reiser4_plug_t *reiser4_factory_load(plug_class_t *cl) {
-	reiser4_plug_t *plug;
-
-	if (!(plug = reiser4_plug_init(cl)))
-		return NULL;
-	
+void reiser4_factory_load(reiser4_plug_t *plug) {
 #ifndef ENABLE_MINIMAL
 	if (reiser4_factory_foreach(cb_check_plug, (void *)plug)) {
 		aal_error("Plugin %s will not be attached to "
 			  "plugin factory.", plug->label);
 		reiser4_factory_unload(plug);
-		return NULL;
+		return;
 	}
 #endif
 	
 	plugins[plug_hash_func(plug->id.type, plug->id.id)] = plug;
-	return plug;
 }
 
 /* Macro for loading plugin by its name. */
-#define __load_plug(name) {                         \
-	plug_class_t cl;		            \
-		                                    \
-	extern plug_init_t __##name##_plug_init;    \
-	extern plug_fini_t __##name##_plug_fini;    \
-						    \
-	cl.init = __##name##_plug_init;          \
-	cl.fini = __##name##_plug_fini;          \
-                                                    \
-	reiser4_factory_load(&cl);               \
+#define __load_plug(name) {			\
+	extern reiser4_plug_t name##_plug;	\
+	reiser4_factory_load(&name##_plug);	\
+}
+
+#define __init_plug(name) {			\
+	extern reiser4_core_t *name##_core;	\
+	name##_core = &core;			\
 }
 
 #ifndef ENABLE_MINIMAL
@@ -187,10 +140,13 @@ errno_t reiser4_factory_init(void) {
 	
 	/* Registering all known plugins. */
 	__load_plug(format40);
+	__init_plug(format40);
 
 #ifndef ENABLE_MINIMAL
 	__load_plug(oid40);
+	
 	__load_plug(alloc40);
+	
 	__load_plug(journal40);
 #endif
 	
@@ -231,22 +187,43 @@ errno_t reiser4_factory_init(void) {
 #endif
 	
 	__load_plug(sdext_lw);
+	__init_plug(sdext_lw);
+	
 	__load_plug(sdext_lt);
+	__init_plug(sdext_lt);
+	
 	__load_plug(sdext_unix);
+	__init_plug(sdext_unix);
+	
 	__load_plug(sdext_plug);
+	__init_plug(sdext_plug);
 #ifndef ENABLE_MINIMAL
 	__load_plug(sdext_crypto);
+	__init_plug(sdext_crypto);
 #endif
+	__load_plug(sdext_flags);
+	__init_plug(sdext_flags);
 
 	__load_plug(cde40);
+	__init_plug(cde40);
+	
 	__load_plug(stat40);
+	__init_plug(stat40);
+	
 	__load_plug(plain40);
+	__init_plug(plain40);
 #ifndef ENABLE_MINIMAL
 	__load_plug(ctail40);
+	__init_plug(ctail40);
 #endif
 	__load_plug(extent40);
+	__init_plug(extent40);
+	
 	__load_plug(nodeptr40);
+	__init_plug(nodeptr40);
+	
 	__load_plug(bbox40);
+	__init_plug(bbox40);
 
 #ifdef ENABLE_LARGE_KEYS
 	__load_plug(key_large);
@@ -257,7 +234,10 @@ errno_t reiser4_factory_init(void) {
 #endif
 	
 	__load_plug(node40);
+	__init_plug(node40);
+	
 	__load_plug(dir40);
+	
 	__load_plug(reg40);
 	
 #ifdef ENABLE_SPECIAL
@@ -267,15 +247,21 @@ errno_t reiser4_factory_init(void) {
 #ifndef ENABLE_MINIMAL
 	__load_plug(ccreg40);
 #endif
-
+	
 #ifdef ENABLE_SYMLINKS
 	__load_plug(sdext_symlink);
+	__init_plug(sdext_symlink);
+	
 	__load_plug(sym40);
 #endif
+	
+	__init_plug(obj40);
 
 #ifndef ENABLE_MINIMAL
 	__load_plug(extents);
+	
 	__load_plug(smart);
+	
 	__load_plug(tails);
 #endif
 
@@ -288,14 +274,8 @@ errno_t reiser4_factory_init(void) {
         return 0;
 }
 
-/* Helper function for unloading one plugin. */
-static errno_t cb_unload_plug(reiser4_plug_t *plug, void *data) {
-	return plug ? reiser4_plug_fini(plug) : 0;
-}
-
 /* Finalizes plugin factory, by means of unloading the all plugins. */
 void reiser4_factory_fini(void) {
-	reiser4_factory_foreach(cb_unload_plug, NULL);
 	aal_free(plugins);
 }
 

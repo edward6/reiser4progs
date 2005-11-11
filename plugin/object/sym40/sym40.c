@@ -137,7 +137,6 @@ static reiser4_object_plug_t sym40 = {
 
 /* Symlink plugin itself. */
 reiser4_plug_t sym40_plug = {
-	.cl    = class_init,
 	.id    = {OBJECT_SYM40_ID, SYM_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "sym40",
@@ -147,11 +146,4 @@ reiser4_plug_t sym40_plug = {
 		.object = &sym40
 	}
 };
-
-static reiser4_plug_t *sym40_start(reiser4_core_t *c) {
-	obj40_core = c;
-	return &sym40_plug;
-}
-
-plug_register(sym40, sym40_start, NULL);
 #endif

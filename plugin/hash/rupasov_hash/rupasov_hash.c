@@ -53,8 +53,7 @@ static reiser4_hash_plug_t rupasov_hash = {
 	.build = rupasov_hash_build
 };
 
-static reiser4_plug_t rupasov_hash_plug = {
-	.cl    = class_init,
+reiser4_plug_t rupasov_hash_plug = {
 	.id    = {HASH_RUPASOV_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "rupasov_hash",
@@ -64,10 +63,4 @@ static reiser4_plug_t rupasov_hash_plug = {
 		.hash = &rupasov_hash
 	}
 };
-
-static reiser4_plug_t *rupasov_hash_start(reiser4_core_t *c) {
-	return &rupasov_hash_plug;
-}
-
-plug_register(rupasov_hash, rupasov_hash_start, NULL);
 #endif

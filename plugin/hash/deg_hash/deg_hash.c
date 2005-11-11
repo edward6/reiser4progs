@@ -15,8 +15,7 @@ static reiser4_hash_plug_t deg_hash = {
 	.build = deg_hash_build
 };
 
-static reiser4_plug_t deg_hash_plug = {
-	.cl = class_init,
+reiser4_plug_t deg_hash_plug = {
 	.id = {HASH_DEG_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "deg_hash",
@@ -26,10 +25,4 @@ static reiser4_plug_t deg_hash_plug = {
 		.hash = &deg_hash
 	}
 };
-
-static reiser4_plug_t *deg_hash_start(reiser4_core_t *c) {
-	return &deg_hash_plug;
-}
-
-plug_register(deg_hash, deg_hash_start, NULL);
 #endif

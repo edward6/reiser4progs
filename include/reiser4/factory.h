@@ -18,7 +18,7 @@ extern reiser4_plug_t *reiser4_factory_nfind(char *name);
 extern errno_t reiser4_factory_foreach(plug_func_t plug_func,
 				       void *data);
 
-extern reiser4_plug_t * reiser4_factory_load(plug_class_t *class);
+extern void reiser4_factory_load(reiser4_plug_t *plug);
 
 extern reiser4_plug_t *reiser4_factory_ifind(rid_t type, rid_t id);
 

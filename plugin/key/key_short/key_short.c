@@ -370,7 +370,6 @@ static reiser4_key_plug_t key_short = {
 };
 
 reiser4_plug_t key_short_plug = {
-	.cl    = class_init,
 	.id    = {KEY_SHORT_ID, 0, KEY_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "key_short",
@@ -380,10 +379,4 @@ reiser4_plug_t key_short_plug = {
 		.key = &key_short
 	}
 };
-
-static reiser4_plug_t *key_short_start(reiser4_core_t *c) {
-	return &key_short_plug;
-}
-
-plug_register(key_short, key_short_start, NULL);
 #endif

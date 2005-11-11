@@ -11,7 +11,7 @@
 #include "format40.h"
 #include "format40_repair.h"
 
-reiser4_core_t *format40_core;
+reiser4_core_t *format40_core = NULL;
 
 /* All these functions are standard object getters and setters. They are
    dedicated to modify object properties and get values from its fields. They
@@ -492,7 +492,6 @@ static reiser4_format_plug_t format40 = {
 };
 
 reiser4_plug_t format40_plug = {
-	.cl    = class_init,
 	.id    = {FORMAT_REISER40_ID, 0, FORMAT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "format40",
@@ -502,11 +501,3 @@ reiser4_plug_t format40_plug = {
 		.format = &format40
 	}
 };
-
-static reiser4_plug_t *format40_init(reiser4_core_t *c) {
-	format40_core = c;
-	return &format40_plug;
-}
-
-plug_register(format40, format40_init, NULL);
-

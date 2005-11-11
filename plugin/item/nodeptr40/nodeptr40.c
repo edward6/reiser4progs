@@ -6,7 +6,7 @@
 #include "nodeptr40.h"
 #include "nodeptr40_repair.h"
 
-reiser4_core_t *nodeptr40_core;
+reiser4_core_t *nodeptr40_core = NULL;
 
 /* Returns the number of units in nodeptr. As nodeptr40 has not units and thus
    cannot be splitted by balancing, it has one unit. */
@@ -176,8 +176,7 @@ static reiser4_item_plug_t nodeptr40 = {
 #endif
 };
 
-static reiser4_plug_t nodeptr40_plug = {
-	.cl    = class_init,
+reiser4_plug_t nodeptr40_plug = {
 	.id    = {ITEM_NODEPTR40_ID, PTR_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "nodeptr40",
@@ -187,10 +186,3 @@ static reiser4_plug_t nodeptr40_plug = {
 		.item = &nodeptr40
 	}
 };
-
-static reiser4_plug_t *nodeptr40_start(reiser4_core_t *c) {
-	nodeptr40_core = c;
-	return &nodeptr40_plug;
-}
-
-plug_register(nodeptr40, nodeptr40_start, NULL);

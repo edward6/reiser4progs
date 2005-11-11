@@ -64,8 +64,7 @@ static reiser4_sdext_plug_t sdext_flags = {
 	.length	   	= sdext_flags_length
 };
 
-static reiser4_plug_t sdext_flags_plug = {
-	.cl    = class_init,
+reiser4_plug_t sdext_flags_plug = {
 	.id    = {SDEXT_FLAGS_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "sdext_flags",
@@ -75,10 +74,3 @@ static reiser4_plug_t sdext_flags_plug = {
 		.sdext = &sdext_flags
 	}
 };
-
-static reiser4_plug_t *sdext_flags_start(reiser4_core_t *c) {
-	sdext_flags_core = c;
-	return &sdext_flags_plug;
-}
-
-plug_register(sdext_flags, sdext_flags_start, NULL);

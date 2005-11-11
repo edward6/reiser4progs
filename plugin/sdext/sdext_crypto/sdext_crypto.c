@@ -88,8 +88,7 @@ static reiser4_sdext_plug_t sdext_crypto = {
 	.length	   	= sdext_crypto_length
 };
 
-static reiser4_plug_t sdext_crypto_plug = {
-	.cl    = class_init,
+reiser4_plug_t sdext_crypto_plug = {
 	.id    = {SDEXT_CRYPTO_ID, 0, SDEXT_PLUG_TYPE},
 	.label = "sdext_crypto",
 	.desc  = "Crypto stat data extension plugin.",
@@ -97,12 +96,4 @@ static reiser4_plug_t sdext_crypto_plug = {
 		.sdext = &sdext_crypto
 	}
 };
-
-static reiser4_plug_t *sdext_crypto_start(reiser4_core_t *c) {
-	sdext_crypto_core = c;
-	return &sdext_crypto_plug;
-}
-
-plug_register(sdext_crypto, sdext_crypto_start, NULL);
-
 #endif

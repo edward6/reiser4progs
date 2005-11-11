@@ -19,8 +19,7 @@ static reiser4_fibre_plug_t fibre_dot_o = {
 	.build = fibre_dot_o_build
 };
 
-static reiser4_plug_t fibre_dot_o_plug = {
-	.cl    = class_init,
+reiser4_plug_t fibre_dot_o_plug = {
 	.id    = {FIBRE_DOT_O_ID, 0, FIBRE_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "dot_o_fibre",
@@ -30,10 +29,4 @@ static reiser4_plug_t fibre_dot_o_plug = {
 		.fibre = &fibre_dot_o
 	}
 };
-
-static reiser4_plug_t *fibre_dot_o_start(reiser4_core_t *c) {
-	return &fibre_dot_o_plug;
-}
-
-plug_register(fibre_dot_o, fibre_dot_o_start, NULL);
 #endif

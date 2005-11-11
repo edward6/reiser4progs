@@ -7,6 +7,8 @@
 #include "spl40.h"
 #include "spl40_repair.h"
 
+#define sym40_core obj40_core
+
 static reiser4_object_plug_t spl40 = {
 #ifndef ENABLE_MINIMAL
 	.inherit	= obj40_inherit,
@@ -55,7 +57,6 @@ static reiser4_object_plug_t spl40 = {
 };
 
 reiser4_plug_t spl40_plug = {
-	.cl    = class_init,
 	.id    = {OBJECT_SPL40_ID, SPL_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "spl40",
@@ -65,11 +66,4 @@ reiser4_plug_t spl40_plug = {
 		.object = &spl40
 	}
 };
-
-static reiser4_plug_t *spl40_start(reiser4_core_t *c) {
-	obj40_core = c;
-	return &spl40_plug;
-}
-
-plug_register(spl40, spl40_start, NULL);
 #endif

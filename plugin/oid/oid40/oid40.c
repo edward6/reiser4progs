@@ -204,7 +204,6 @@ reiser4_oid_plug_t oid40 = {
 };
 
 reiser4_plug_t oid40_plug = {
-	.cl    = class_init,
 	.id    = {OID_REISER40_ID, 0, OID_PLUG_TYPE},
 	.label = "oid40",
 	.desc  = "Inode number allocator plugin.",
@@ -212,10 +211,4 @@ reiser4_plug_t oid40_plug = {
 		.oid = &oid40
 	}
 };
-
-static reiser4_plug_t *oid40_start(reiser4_core_t *c) {
-	return &oid40_plug;
-}
-
-plug_register(oid40, oid40_start, NULL);
 #endif

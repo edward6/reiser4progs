@@ -10,7 +10,7 @@
 #include <plugin/item/tail40/tail40.h>
 #include <plugin/item/tail40/tail40_repair.h>
 
-reiser4_core_t *plain40_core;
+reiser4_core_t *plain40_core = NULL;
 
 #ifndef ENABLE_MINIMAL
 /* Return 1 if two tail items are mergeable. Otherwise 0 will be returned. This
@@ -105,8 +105,7 @@ static reiser4_item_plug_t plain40 = {
 #endif
 };
 
-static reiser4_plug_t plain40_plug = {
-	.cl    = class_init,
+reiser4_plug_t plain40_plug = {
 	.id    = {ITEM_PLAIN40_ID, TAIL_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "plain40",
@@ -116,10 +115,3 @@ static reiser4_plug_t plain40_plug = {
 		.item = &plain40
 	}
 };
-
-static reiser4_plug_t *plain40_start(reiser4_core_t *c) {
-	plain40_core = c;
-	return &plain40_plug;
-}
-
-plug_register(plain40, plain40_start, NULL);

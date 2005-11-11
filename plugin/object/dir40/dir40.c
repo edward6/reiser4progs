@@ -679,7 +679,6 @@ static reiser4_object_plug_t dir40 = {
 };
 
 reiser4_plug_t dir40_plug = {
-	.cl    = class_init,
 	.id    = {OBJECT_DIR40_ID, DIR_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "dir40",
@@ -689,10 +688,3 @@ reiser4_plug_t dir40_plug = {
 		.object = &dir40
 	}
 };
-
-static reiser4_plug_t *dir40_start(reiser4_core_t *c) {
-	obj40_core = c;
-	return &dir40_plug;
-}
-
-plug_register(dir40, dir40_start, NULL);

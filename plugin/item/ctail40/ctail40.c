@@ -11,7 +11,7 @@
 #include <plugin/item/tail40/tail40.h>
 #include <plugin/item/tail40/tail40_repair.h>
 
-reiser4_core_t *ctail40_core;
+reiser4_core_t *ctail40_core = NULL;
 
 static void ctail40_init(reiser4_place_t *place) {
 	aal_assert("vpf-1763", place != NULL);
@@ -150,8 +150,7 @@ static reiser4_item_plug_t ctail40 = {
 	.debug		  = &debug_ops,
 };
 
-static reiser4_plug_t ctail40_plug = {
-	.cl    = class_init,
+reiser4_plug_t ctail40_plug = {
 	.id    = {ITEM_CTAIL40_ID, CTAIL_ITEM, ITEM_PLUG_TYPE},
 	.label = "ctail40",
 	.desc  = "Compressed file body item plugin.",
@@ -159,11 +158,4 @@ static reiser4_plug_t ctail40_plug = {
 		.item = &ctail40
 	}
 };
-
-static reiser4_plug_t *ctail40_start(reiser4_core_t *c) {
-	ctail40_core = c;
-	return &ctail40_plug;
-}
-
-plug_register(ctail40, ctail40_start, NULL);
 #endif

@@ -14,8 +14,7 @@ reiser4_policy_plug_t extents = {
 	.tails = extents_tails
 };
 
-static reiser4_plug_t extents_plug = {
-	.cl    = class_init,
+reiser4_plug_t extents_plug = {
 	.id    = {TAIL_NEVER_ID, 0, POLICY_PLUG_TYPE},
 	.label = "extents",
 	.desc  = "'Extents only' tail policy plugin.",
@@ -23,10 +22,4 @@ static reiser4_plug_t extents_plug = {
 		.policy = &extents
 	}
 };
-
-static reiser4_plug_t *extents_start(reiser4_core_t *c) {
-	return &extents_plug;
-}
-
-plug_register(extents, extents_start, NULL);
 #endif

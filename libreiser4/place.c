@@ -79,6 +79,7 @@ bool_t reiser4_place_leftmost(reiser4_place_t *place) {
 	return ((place->pos.unit == 0 || place->pos.unit == MAX_UINT32) &&
 		place->pos.item == 0);
 }
+#endif
 
 /* Returns TRUE if @place sits after the last unit of last item in the node. */
 bool_t reiser4_place_rightmost(reiser4_place_t *place) {
@@ -100,7 +101,6 @@ bool_t reiser4_place_rightmost(reiser4_place_t *place) {
 	return (place->pos.item == items - 1 && 
 		place->pos.unit == units);
 }
-#endif
 
 /* Returns TRUE for non-existent unit of existent item. */
 bool_t reiser4_place_right(reiser4_place_t *place) {

@@ -172,8 +172,7 @@ static reiser4_sdext_plug_t sdext_plug = {
 	.length	 	= sdext_plug_length
 };
 
-static reiser4_plug_t sdext_plug_plug = {
-	.cl    = class_init,
+reiser4_plug_t sdext_plug_plug = {
 	.id    = {SDEXT_PLUG_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "sdext_plug",
@@ -183,11 +182,3 @@ static reiser4_plug_t sdext_plug_plug = {
 		.sdext = &sdext_plug
 	}
 };
-
-static reiser4_plug_t *sdext_plug_start(reiser4_core_t *c) {
-	sdext_plug_core = c;
-	return &sdext_plug_plug;
-}
-
-plug_register(sdext_plug, sdext_plug_start, NULL);
-

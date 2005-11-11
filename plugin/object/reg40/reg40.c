@@ -381,7 +381,6 @@ static reiser4_object_plug_t reg40 = {
 
 /* Regular file plugin. */
 reiser4_plug_t reg40_plug = {
-	.cl    = class_init,
 	.id    = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "reg40",
@@ -391,12 +390,3 @@ reiser4_plug_t reg40_plug = {
 		.object = &reg40
 	}
 };
-
-/* Plugin factory related stuff. This method will be called during plugin
-   initializing in plugin factory. */
-static reiser4_plug_t *reg40_start(reiser4_core_t *c) {
-	obj40_core = c;
-	return &reg40_plug;
-}
-
-plug_register(reg40, reg40_start, NULL);

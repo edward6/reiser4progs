@@ -14,8 +14,7 @@ static reiser4_fibre_plug_t fibre_lexic = {
 	.build = fibre_lexic_build
 };
 
-static reiser4_plug_t fibre_lexic_plug = {
-	.cl    = class_init,
+reiser4_plug_t fibre_lexic_plug = {
 	.id    = {FIBRE_LEXIC_ID, 0, FIBRE_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "lexic_fibre",
@@ -25,10 +24,4 @@ static reiser4_plug_t fibre_lexic_plug = {
 		.fibre = &fibre_lexic
 	}
 };
-
-static reiser4_plug_t *fibre_lexic_start(reiser4_core_t *c) {
-	return &fibre_lexic_plug;
-}
-
-plug_register(fibre_lexic, fibre_lexic_start, NULL);
 #endif

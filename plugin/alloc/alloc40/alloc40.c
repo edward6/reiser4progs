@@ -591,7 +591,6 @@ static reiser4_alloc_plug_t alloc40 = {
 };
 
 reiser4_plug_t alloc40_plug = {
-	.cl = class_init,
 	.id = {ALLOC_REISER40_ID, 0, ALLOC_PLUG_TYPE},
 	.label = "alloc40",
 	.desc  = "Space allocator plugin.",
@@ -599,10 +598,4 @@ reiser4_plug_t alloc40_plug = {
 		.alloc = &alloc40
 	}
 };
-
-static reiser4_plug_t *alloc40_start(reiser4_core_t *c) {
-	return &alloc40_plug;
-}
-
-plug_register(alloc40, alloc40_start, NULL);
 #endif

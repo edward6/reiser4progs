@@ -399,7 +399,6 @@ static reiser4_object_plug_t ccreg40 = {
 
 /* CRC regular file plugin. */
 reiser4_plug_t ccreg40_plug = {
-	.cl    = class_init,
 	.id    = {OBJECT_CRC40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
 	.label = "ccreg40",
 	.desc  = "Crypto-Compression regular file plugin.",
@@ -407,13 +406,4 @@ reiser4_plug_t ccreg40_plug = {
 		.object = &ccreg40
 	}
 };
-
-/* Plugin factory related stuff. This method will be called during plugin
-   initializing in plugin factory. */
-static reiser4_plug_t *ccreg40_start(reiser4_core_t *c) {
-	obj40_core = c;
-	return &ccreg40_plug;
-}
-
-plug_register(ccreg40, ccreg40_start, NULL);
 #endif

@@ -1649,13 +1649,8 @@ typedef struct plug_ident {
 #define class_init {NULL, NULL}
 
 struct reiser4_plug {
-	/* Plugin class. This will be used by plugin factory for initializing
-	   plugin. */
-	plug_class_t cl;
-
 	/* Plugin id. This will be used for looking for a plugin. */
 	plug_ident_t id;
-	
 #ifndef ENABLE_MINIMAL
 	/* Plugin label (name). */
 	const char label[PLUG_MAX_LABEL];
@@ -1817,14 +1812,4 @@ struct reiser4_core {
                    "in "#ops"", ops->method != NULL);        \
         ops->method(__VA_ARGS__);			     \
 })
-
-typedef void (*register_builtin_t) (plug_init_t, plug_fini_t);
-
-/* Macro for registering a plugin in plugin factory. It accepts two pointers to
-   functions. The first one is pointer to plugin init function and second - to
-   plugin finalization function. */
-#define plug_register(n, i, f)                                 \
-	plug_init_t __##n##_plug_init = i;		       \
-	plug_init_t __##n##_plug_fini = f
-
 #endif

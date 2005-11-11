@@ -10,7 +10,7 @@
 #include "extent40.h"
 #include "extent40_repair.h"
 
-reiser4_core_t *extent40_core;
+reiser4_core_t *extent40_core = NULL;
 
 /* Returns number of units in passed extent @place */
 uint32_t extent40_units(reiser4_place_t *place) {
@@ -1539,8 +1539,7 @@ static reiser4_item_plug_t extent40 = {
 #endif
 };
 
-static reiser4_plug_t extent40_plug = {
-	.cl    = class_init,
+reiser4_plug_t extent40_plug = {
 	.id    = {ITEM_EXTENT40_ID, EXTENT_ITEM, ITEM_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "extent40",
@@ -1550,10 +1549,3 @@ static reiser4_plug_t extent40_plug = {
 		.item = &extent40
 	}
 };
-
-static reiser4_plug_t *extent40_start(reiser4_core_t *c) {
-	extent40_core = c;
-	return &extent40_plug;
-}
-
-plug_register(extent40, extent40_start, NULL);

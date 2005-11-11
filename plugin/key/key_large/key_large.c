@@ -385,7 +385,6 @@ static reiser4_key_plug_t key_large = {
 };
 
 reiser4_plug_t key_large_plug = {
-	.cl    = class_init,
 	.id    = {KEY_LARGE_ID, 0, KEY_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 	.label = "key_large",
@@ -395,10 +394,4 @@ reiser4_plug_t key_large_plug = {
 		.key = &key_large
 	}
 };
-
-static reiser4_plug_t *key_large_start(reiser4_core_t *c) {
-	return &key_large_plug;
-}
-
-plug_register(key_large, key_large_start, NULL);
 #endif

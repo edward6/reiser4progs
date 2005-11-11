@@ -8,6 +8,8 @@
 
 #include <reiser4/types.h>
 
+extern int reiser4_key_compshort(reiser4_key_t *key1,
+				 reiser4_key_t *key2);
 #ifndef ENABLE_MINIMAL
 extern void reiser4_key_free(reiser4_key_t *key);
 
@@ -23,9 +25,6 @@ extern uint32_t reiser4_key_get_type(reiser4_key_t *key);
 extern oid_t reiser4_key_get_objectid(reiser4_key_t *key);
 extern oid_t reiser4_key_get_locality(reiser4_key_t *key);
 extern uint64_t reiser4_key_get_ordering(reiser4_key_t *key);
-
-extern int reiser4_key_compshort(reiser4_key_t *key1,
-				 reiser4_key_t *key2);
 
 extern errno_t reiser4_key_set_type(reiser4_key_t *key,
 				    uint32_t type);
