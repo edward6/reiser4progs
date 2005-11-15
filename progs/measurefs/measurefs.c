@@ -156,11 +156,10 @@ static errno_t tree_frag_process_node(reiser4_node_t *node, void *data) {
 		/* Checking and calling item's layout method with function
 		   tfrag_process_item() as a function for handling one block the
 		   item points to. */
-		if (!place.plug->pl.item->object->layout)
+		if (!place.plug->object->layout)
 			continue;
 
-		plug_call(place.plug->pl.item->object, layout,
-			  &place, tree_frag_process_item, data);
+		objcall(&place, object->layout, tree_frag_process_item, data);
 	}
 	
 	frag_hint->level--;
@@ -260,7 +259,7 @@ static errno_t stat_item_layout(uint64_t start, uint64_t width, void *data) {
 	stat_hint = (tree_stat_hint_t *)data;
 	place = stat_hint->place;
 
-	if (place->plug->id.group == EXTENT_ITEM) {
+	if (place->plug->p.id.group == EXTENT_ITEM) {
 		reiser4_master_t *master;
 			
 		master = stat_hint->tree->fs->master;
@@ -354,7 +353,7 @@ static errno_t stat_process_node(reiser4_node_t *node, void *data) {
 		   item type independent manner. */
 		stat_hint->items++;
 
-		switch (place.plug->id.group) {
+		switch (place.plug->p.id.group) {
 		case STAT_ITEM:
 			stat_hint->statdatas++;
 			break;
@@ -374,12 +373,11 @@ static errno_t stat_process_node(reiser4_node_t *node, void *data) {
 
 		/* Calling layout() method with callback for counting referenced
 		   blocks. */
-		if (!place.plug->pl.item->object->layout)
+		if (!place.plug->object->layout)
 			continue;
 
 		stat_hint->place = &place;
-		plug_call(place.plug->pl.item->object, layout,
-			  &place, stat_item_layout, data);
+		objcall(&place, object->layout, stat_item_layout, data);
 	}
 
 	/* Updating common counters like nodes traversed at all, formatted ones,

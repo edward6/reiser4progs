@@ -14,7 +14,7 @@
 #define JOURNAL40_BLOCKNR(blksize) \
         (REISER4_MASTER_BLOCKNR(blksize) + 3)
 
-extern reiser4_plug_t journal40_plug;
+extern reiser4_journal_plug_t journal40_plug;
 
 typedef struct journal40_area {
 	blk_t start;
@@ -22,7 +22,7 @@ typedef struct journal40_area {
 } journal40_area_t;
 
 typedef struct journal40 {
-	reiser4_plug_t *plug;
+	reiser4_journal_plug_t *plug;
 
 	/* Filesystem blocksize */
 	uint32_t blksize;
@@ -34,10 +34,10 @@ typedef struct journal40 {
 	aal_device_t *device;
 
 	/* Format instance */
-	generic_entity_t *format;
+	reiser4_format_ent_t *format;
 
 	/* Oid instance */
-	generic_entity_t *oid;
+	reiser4_oid_ent_t *oid;
 	
 	/* Area on device, journal may occupie it. */
 	journal40_area_t area;
@@ -50,6 +50,8 @@ typedef struct journal40 {
 typedef struct journal40_header {
 	d64_t jh_last_commited;
 } journal40_header_t;
+
+#define PLUG_ENT(p) ((journal40_t *)p)
 
 #define get_jh_last_commited(jh)		aal_get_le64(jh, jh_last_commited)
 #define set_jh_last_commited(jh, val)		aal_set_le64(jh, jh_last_commited, val)
@@ -155,37 +157,29 @@ typedef enum journal40_block {
 #define get_le_wandered(le)			aal_get_le64(le, le_wandered)
 #define set_le_wandered(le, val)		aal_set_le64(le, le_wandered, val)
 
-typedef errno_t (*journal40_txh_func_t)    \
-        (generic_entity_t *, blk_t, void *);
+typedef errno_t (*journal40_txh_func_t)	(reiser4_journal_ent_t *, blk_t, void *);
+typedef errno_t (*journal40_sec_func_t) (reiser4_journal_ent_t *, aal_block_t *,\
+					 blk_t, journal40_block_t, void *);
+typedef errno_t (*journal40_han_func_t) (reiser4_journal_ent_t *, 
+					 aal_block_t *, blk_t, void *);
 
-typedef errno_t (*journal40_sec_func_t)    \
-        (generic_entity_t *, aal_block_t *, \
-	 blk_t, journal40_block_t, void *);
-
-typedef errno_t (*journal40_han_func_t)    \
-        (generic_entity_t *, aal_block_t *, \
-	 blk_t, void *);
-
-#define JFOOTER(block) \
-        ((journal40_footer_t *)block->data)
-
-#define JHEADER(block) \
-        ((journal40_header_t *)block->data)
+#define JFOOTER(block) ((journal40_footer_t *)block->data)
+#define JHEADER(block) ((journal40_header_t *)block->data)
 #endif
 
-extern errno_t journal40_traverse(journal40_t *journal,
+extern errno_t journal40_traverse(reiser4_journal_ent_t *entity,
 				  journal40_txh_func_t txh_func,
 				  journal40_han_func_t han_func,
 				  journal40_sec_func_t sec_func,
 				  void *data);
 
-extern errno_t journal40_traverse_trans(journal40_t *journal,
+extern errno_t journal40_traverse_trans(reiser4_journal_ent_t *entity,
 					aal_block_t *tx_block,
 					journal40_han_func_t han_func,
 					journal40_sec_func_t sec_func,
 					void *data);
 
-extern aal_device_t *journal40_device(generic_entity_t *entity);
+extern aal_device_t *journal40_device(reiser4_journal_ent_t *entity);
 
 #define journal40_mkdirty(journal) \
 	((journal40_t *)journal)->state |= (1 << ENTITY_DIRTY);

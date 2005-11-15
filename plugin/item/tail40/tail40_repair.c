@@ -15,7 +15,7 @@ errno_t tail40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	if (place->len <= place->off) {
 		fsck_mess("Node (%llu), item (%u): %s item of zero length "
 			  "found.", place_blknr(place), place->pos.item, 
-			  place->plug->label);
+			  place->plug->p.label);
 		return RE_FATAL;
 	} 
 	
@@ -39,11 +39,8 @@ errno_t tail40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	} else {
 		uint64_t doffset, start;
 		
-		doffset = plug_call(place->key.plug->pl.key, 
-				    get_offset, &place->key);
-		
-		start = plug_call(hint->offset.plug->pl.key, 
-				  get_offset, &hint->offset);
+		doffset = objcall(&place->key, get_offset);
+		start = objcall(&hint->offset, get_offset);
 
 		if (start < doffset)
 			/* Prepending. */
@@ -71,8 +68,7 @@ errno_t tail40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	src = (reiser4_place_t *)hint->specific;
 	pos = place->pos.unit == MAX_UINT32 ? 0 : place->pos.unit;
 
-	offset = plug_call(hint->offset.plug->pl.key,
-			   get_offset, &hint->offset);
+	offset = objcall(&hint->offset, get_offset);
 	
 	if (hint->count) {
 		/* Expand @place & copy @hint->count units there from @src. */
@@ -91,8 +87,7 @@ errno_t tail40_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	/* Set the maxkey of the passed operation. */
 	aal_memcpy(&hint->maxkey, &hint->offset, sizeof(hint->maxkey));
 
-	plug_call(hint->maxkey.plug->pl.key, 
-		  set_offset, &hint->maxkey, offset);
+	objcall(&hint->maxkey, set_offset, offset);
 
 	/* Update the item key. */
 	if (pos == 0 && hint->count) {

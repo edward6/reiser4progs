@@ -8,8 +8,7 @@
 errno_t repair_alloc_check_struct(reiser4_alloc_t *alloc, uint8_t mode) {
 	aal_assert("vpf-1659", alloc != NULL);
 
-	return plug_call(alloc->ent->plug->pl.alloc,
-			 check_struct, alloc->ent, mode);
+	return reiser4call(alloc, check_struct, mode);
 }
 
 errno_t repair_alloc_layout_bad(reiser4_alloc_t *alloc, 
@@ -17,16 +16,14 @@ errno_t repair_alloc_layout_bad(reiser4_alloc_t *alloc,
 {
 	aal_assert("vpf-1322", alloc != NULL);
 	
-	return plug_call(alloc->ent->plug->pl.alloc, 
-			 layout_bad, alloc->ent, func, data);
+	return reiser4call(alloc, layout_bad, func, data);
 }
 
 void repair_alloc_print(reiser4_alloc_t *alloc, aal_stream_t *stream) {
 	aal_assert("umka-1566", alloc != NULL);
 	aal_assert("umka-1567", stream != NULL);
 
-	plug_call(alloc->ent->plug->pl.alloc,
-		  print, alloc->ent, stream, 0);
+	reiser4call(alloc, print, stream, 0);
 }
 
 /* Fetches block allocator data to @stream. */
@@ -36,11 +33,10 @@ errno_t repair_alloc_pack(reiser4_alloc_t *alloc, aal_stream_t *stream) {
 	aal_assert("umka-2614", alloc != NULL);
 	aal_assert("umka-2615", stream != NULL);
 
-	pid = alloc->ent->plug->id.id;
+	pid = alloc->ent->plug->p.id.id;
 	aal_stream_write(stream, &pid, sizeof(pid));
 
-	return plug_call(alloc->ent->plug->pl.alloc,
-			 pack, alloc->ent, stream);
+	return reiser4call(alloc, pack, stream);
 }
 
 /* Loads block allocator data from @stream to alloc entity. */
@@ -75,8 +71,8 @@ reiser4_alloc_t *repair_alloc_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 	blksize = reiser4_master_get_blksize(fs->master);
 	
 	/* Query the block allocator plugin for creating allocator entity */
-	if (!(alloc->ent = plug_call(plug->pl.alloc, unpack,
-				     fs->device, blksize, stream)))
+	if (!(alloc->ent = plugcall((reiser4_alloc_plug_t *)plug, unpack,
+				    fs->device, blksize, stream)))
 	{
 		aal_error("Can't unpack block allocator.");
 		goto error_free_alloc;

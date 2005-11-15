@@ -57,7 +57,15 @@ extern void sdext_symlink_print(stat_entity_t *stat,
 
 #endif
 
-static reiser4_sdext_plug_t sdext_symlink = {
+reiser4_sdext_plug_t sdext_symlink_plug = {
+	.p = {
+		.id    = {SDEXT_SYMLINK_ID, 0, SDEXT_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "sdext_symlink",
+		.desc  = "Symlink stat data extension plugin.",
+#endif
+	},
+	
 	.open	 	= sdext_symlink_open,
 		
 #ifndef ENABLE_MINIMAL
@@ -67,16 +75,5 @@ static reiser4_sdext_plug_t sdext_symlink = {
 	.check_struct   = sdext_symlink_check_struct,
 #endif		
 	.length		= sdext_symlink_length
-};
-
-reiser4_plug_t sdext_symlink_plug = {
-	.id    = {SDEXT_SYMLINK_ID, 0, SDEXT_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "sdext_symlink",
-	.desc  = "Symlink stat data extension plugin.",
-#endif
-	.pl = {
-		.sdext = &sdext_symlink
-	}
 };
 #endif

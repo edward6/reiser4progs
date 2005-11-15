@@ -18,7 +18,7 @@ static int reg40_check_size(reiser4_object_t *reg,
 		return 0;
 	
 	/* sd_size lt counted size, check if it is correct for extent. */
-	if (reg->body_plug && reg->body_plug->id.group == EXTENT_ITEM) {
+	if (reg->body_plug && reg->body_plug->p.id.group == EXTENT_ITEM) {
 		/* The last extent block can be not used up. */
 		if (*sd_size < counted_size &&
 		    *sd_size + place_blksize(STAT_PLACE(reg)) > counted_size)
@@ -39,15 +39,13 @@ static errno_t reg40_check_ikey(reiser4_object_t *reg) {
 	aal_assert("vpf-1302", reg != NULL);
 	aal_assert("vpf-1303", reg->body.plug != NULL);
 	
-	if (reg->body.plug->id.group == TAIL_ITEM)
+	if (reg->body.plug->p.id.group == TAIL_ITEM)
 		return 0;
 	
-	if (reg->body.plug->id.group != EXTENT_ITEM)
+	if (reg->body.plug->p.id.group != EXTENT_ITEM)
 		return -EINVAL;
 
-	offset = plug_call(reg->body.key.plug->pl.key, 
-			   get_offset, &reg->body.key);
-	
+	offset = objcall(&reg->body.key, get_offset);
 	return offset % place_blksize(&reg->body) ? RE_FATAL : 0;
 }
 
@@ -74,17 +72,12 @@ static int reg40_conv_prepare(reiser4_object_t *reg,
 		hint->plug = reg->body.plug;
 		
 		/* Convert from 0 to this item offset bytes. */
-		if (!(hint->count = plug_call(reg->body.key.plug->pl.key, 
-					      get_offset, &reg->body.key)))
-		{
+		if (!(hint->count = objcall(&reg->body.key, get_offset)))
 			return 0;
-		}
 		
 		/* Set the start key for convertion. */
 		aal_memcpy(&hint->offset, &reg->position, sizeof(hint->offset));
-		plug_call(reg->body.key.plug->pl.key, set_offset,
-			  &hint->offset, 0);
-
+		objcall(&hint->offset, set_offset, 0);
 		hint->bytes = 0;
 		
 		/* Convert now. */
@@ -103,9 +96,7 @@ static int reg40_conv_prepare(reiser4_object_t *reg,
 	}
 
 	/* Count of bytes 0-this item offset. */
-	hint->count = maxreal + 1 - 
-		plug_call(reg->body.key.plug->pl.key,
-			  get_offset, &hint->offset);
+	hint->count = maxreal + 1 - objcall(&hint->offset, get_offset);
 	
 	/* Convertion is postponed; do not bother with it for not RM_BUILD. */
 	return 1;
@@ -123,9 +114,7 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 	
 	aal_assert("vpf-1355", reg != NULL);
 
-	offset = plug_call(reg->body.key.plug->pl.key, 
-			   get_offset, &reg->body.key);
-
+	offset = objcall(&reg->body.key, get_offset);
 	len = offset - obj40_offset(reg);
 	
 	if (len == 0)
@@ -133,7 +122,7 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 
 	fsck_mess("The object [%s] has a break at [%llu-%llu] offsets. "
 		  "Plugin %s.%s", print_inode(obj40_core, &reg->info.object),
-		  offset - len, offset, reiser4_oplug(reg)->label,
+		  offset - len, offset, reiser4_oplug(reg)->p.label,
 		  mode == RM_BUILD ? " Writing a hole there." : "");
 
 	if (mode != RM_BUILD)
@@ -145,7 +134,7 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 		aal_error("The object [%s] failed to create the hole "
 			  "at [%llu-%llu] offsets. Plugin %s.",
 			  print_inode(obj40_core, &reg->info.object),
-			  offset - len, offset, reiser4_oplug(reg)->label);
+			  offset - len, offset, reiser4_oplug(reg)->p.label);
 
 		return res;
 	}
@@ -165,10 +154,10 @@ static errno_t reg40_check_item(reiser4_object_t *reg, void *data) {
 			  "item (%u): the item [%s] of the "
 			  "invalid plugin (%s) found.%s",
 			  print_inode(obj40_core, &reg->info.object),
-			  reiser4_oplug(reg)->label, 
+			  reiser4_oplug(reg)->p.label,
 			  place_blknr(&reg->body), reg->body.pos.item,
 			  print_key(obj40_core, &reg->body.key),
-			  reg->body.plug->label, 
+			  reg->body.plug->p.label, 
 			  mode == RM_BUILD ? " Removed." : "");
 		
 		return mode == RM_BUILD ? -ESTRUCT : RE_FATAL;
@@ -177,7 +166,7 @@ static errno_t reg40_check_item(reiser4_object_t *reg, void *data) {
 			  "item (%u): the item [%s] has the "
 			  "wrong offset.%s",
 			  print_inode(obj40_core, &reg->info.object),
-			  reiser4_oplug(reg)->label, 
+			  reiser4_oplug(reg)->p.label, 
 			  place_blknr(&reg->body), reg->body.pos.item,
 			  print_key(obj40_core, &reg->body.key),
 			  mode == RM_BUILD ? " Removed." : "");
@@ -245,9 +234,8 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 					print_key(obj40_core, &reg->position));
 			}
 			
-			if (plug_call(reg->position.plug->pl.key,
-				      compfull, &reg->position,
-				      &reg->body.key) > 0)
+			if (objcall(&reg->position, compfull, 
+				    &reg->body.key) > 0)
 			{
 				/* If in the middle of the item, go to the 
 				   next. It may happen after the tail->extent
@@ -263,14 +251,13 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 		   If result == 0 -- conversion is not postponed anymore;
 		   If conv.offset.plug != NULL, conversion was postponed. */
 		if (result == 0 && conv.offset.plug) {
-			offset = plug_call(conv.offset.plug->pl.key,
-					   get_offset, &conv.offset);
+			offset = objcall(&conv.offset, get_offset);
 			
 			fsck_mess("The object [%s] (%s): items at offsets "
 				  "[%llu..%llu] does not not match the "
 				  "detected tail policy (%s).%s",
 				  print_inode(obj40_core, &info->object),
-				  reiser4_oplug(reg)->label, 
+				  reiser4_oplug(reg)->p.label, 
 				  offset, offset + conv.count - 1,
 				  info->opset.plug[OPSET_POLICY]->label,
 				  mode == RM_BUILD ? " Converted." : "");
@@ -302,8 +289,7 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 		if (conv.offset.plug)
 			goto next;
 		
-		hint.bytes += plug_call(reg->body.plug->pl.item->object,
-					bytes, &reg->body);
+		hint.bytes += objcall(&reg->body, object->bytes);
 
 		/* If we found not we looking for, insert the hole. */
 		if ((result = reg40_hole_cure(reg, &hint, func, mode)) < 0)
@@ -329,8 +315,7 @@ next:
 		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 		
 		hint.mode = S_IFREG;
-		hint.size = plug_call(reg->position.plug->pl.key, 
-				      get_offset, &reg->position);
+		hint.size = objcall(&reg->position, get_offset);
 		
 		res |= obj40_update_stat(reg, &ops, &hint, mode);
 	}

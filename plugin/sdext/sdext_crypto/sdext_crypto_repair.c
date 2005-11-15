@@ -43,7 +43,7 @@ errno_t sdext_crypto_check_struct(stat_entity_t *stat,
 	uint32_t len;
 	
 	aal_assert("vpf-1845", stat != NULL);
-	aal_assert("vpf-1846", stat->ext_plug != NULL);
+	aal_assert("vpf-1846", stat->plug != NULL);
 
 	len = sdext_crypto_length(stat, NULL);
 	
@@ -52,7 +52,7 @@ errno_t sdext_crypto_check_struct(stat_entity_t *stat,
 			  "like a valid (%s) statdata extension.", 
 			  place_blknr(stat->place), stat->place->pos.item,
 			  print_key(sdext_crypto_core, &stat->place->key), 
-			  stat->ext_plug->label);
+			  stat->plug->p.label);
 		
 		return RE_FATAL;
 	}

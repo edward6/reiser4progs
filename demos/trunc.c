@@ -28,7 +28,7 @@ errno_t trunc_cmd(busy_ctx_t *ctx) {
 		return -EIO;
 	}
 	
-	if (reiser4_oplug(object)->id.group != REG_OBJECT) {
+	if (reiser4_oplug(object)->p.id.group != REG_OBJECT) {
 		aal_error("The object %s is not a regular file.", 
 			  ctx->in.path);
 		goto error_close_object;

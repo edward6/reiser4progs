@@ -8,47 +8,43 @@
 #include "journal40.h"
 #include "journal40_repair.h"
 
-static uint32_t journal40_get_state(generic_entity_t *entity) {
+static uint32_t journal40_get_state(reiser4_journal_ent_t *entity) {
 	aal_assert("umka-2081", entity != NULL);
-	return ((journal40_t *)entity)->state;
+	return PLUG_ENT(entity)->state;
 }
 
-static void journal40_set_state(generic_entity_t *entity,
+static void journal40_set_state(reiser4_journal_ent_t *entity,
 				uint32_t state)
 {
 	aal_assert("umka-2082", entity != NULL);
-	((journal40_t *)entity)->state = state;
+	PLUG_ENT(entity)->state = state;
 }
 
-static errno_t journal40_valid(generic_entity_t *entity) {
+static errno_t journal40_valid(reiser4_journal_ent_t *entity) {
 	aal_assert("umka-965", entity != NULL);
 	return 0;
 }
 
 /* Journal enumerator function. */
-static errno_t journal40_layout(generic_entity_t *entity,
+static errno_t journal40_layout(reiser4_journal_ent_t *entity,
 				region_func_t region_func,
 				void *data)
 {
 	blk_t blk;
-	journal40_t *journal;
-
+	
 	aal_assert("umka-1040", entity != NULL);
 	aal_assert("umka-1041", region_func != NULL);
-    
-	journal = (journal40_t *)entity;
 	
-	blk = JOURNAL40_BLOCKNR(journal->blksize);
+	blk = JOURNAL40_BLOCKNR(PLUG_ENT(entity)->blksize);
 	return region_func(blk, 2, data);
 }
 
-aal_device_t *journal40_device(generic_entity_t *entity) {
+aal_device_t *journal40_device(reiser4_journal_ent_t *entity) {
 	aal_assert("vpf-455", entity != NULL);
-	return ((journal40_t *)entity)->device;
+	return PLUG_ENT(entity)->device;
 }
 
-/* Helper function for fetching journal footer and header in initialization
-   time. */
+/* Helper function fetching journal footer and header. */
 static errno_t cb_fetch_journal(blk_t start, count_t width, void *data) {
 	journal40_t *journal = (journal40_t *)data;
 
@@ -79,10 +75,11 @@ static errno_t cb_fetch_journal(blk_t start, count_t width, void *data) {
 
 /* Open journal on passed @format entity, @start and @blocks. Uses passed @desc
    for getting device journal is working on and fs block size. */
-static generic_entity_t *journal40_open(aal_device_t *device, uint32_t blksize, 
-					generic_entity_t *format, 
-					generic_entity_t *oid, 
-					uint64_t start, uint64_t blocks)
+static reiser4_journal_ent_t *journal40_open(aal_device_t *device, 
+					     uint32_t blksize, 
+					     reiser4_format_ent_t *format, 
+					     reiser4_oid_ent_t *oid, 
+					     uint64_t start, uint64_t blocks)
 {
 	journal40_t *journal;
 
@@ -105,14 +102,14 @@ static generic_entity_t *journal40_open(aal_device_t *device, uint32_t blksize,
 
 	/* Calling journal enumerator in order to fetch journal header and
 	   footer. */
-	if (journal40_layout((generic_entity_t *)journal,
+	if (journal40_layout((reiser4_journal_ent_t *)journal,
 			     cb_fetch_journal, journal))
 	{
 		aal_error("Can't open journal header/footer.");
 		goto error_free_journal;
 	}
 
-	return (generic_entity_t *)journal;
+	return (reiser4_journal_ent_t *)journal;
 
  error_free_journal:
 	aal_free(journal);
@@ -151,10 +148,11 @@ static errno_t cb_alloc_journal(blk_t start, count_t width, void *data) {
 }
 
 /* Create journal entity on passed params. Return create instance to caller. */
-static generic_entity_t *journal40_create(aal_device_t *device, uint32_t blksize, 
-					  generic_entity_t *format,
-					  generic_entity_t *oid, 
-					  uint64_t start, uint64_t blocks)
+static reiser4_journal_ent_t *journal40_create(aal_device_t *device, 
+					       uint32_t blksize, 
+					       reiser4_format_ent_t *format,
+					       reiser4_oid_ent_t *oid, 
+					       uint64_t start, uint64_t blocks)
 {
 	journal40_t *journal;
     
@@ -176,14 +174,14 @@ static generic_entity_t *journal40_create(aal_device_t *device, uint32_t blksize
 	journal40_mkdirty(journal);
 
 	/* Create journal header and footer. */
-	if (journal40_layout((generic_entity_t *)journal,
+	if (journal40_layout((reiser4_journal_ent_t *)journal,
 			     cb_alloc_journal, journal))
 	{
 		aal_error("Can't create journal header/footer.");
 		goto error_free_journal;
 	}
     
-	return (generic_entity_t *)journal;
+	return (reiser4_journal_ent_t *)journal;
 
  error_free_journal:
 	aal_free(journal);
@@ -211,7 +209,7 @@ static errno_t cb_sync_journal(blk_t start, count_t width, void *data) {
 }
 
 /* Save journal metadata to device. */
-static errno_t journal40_sync(generic_entity_t *entity) {
+static errno_t journal40_sync(reiser4_journal_ent_t *entity) {
 	errno_t res;
 
 	aal_assert("umka-410", entity != NULL);
@@ -299,12 +297,9 @@ static errno_t journal40_update_format(journal40_t *journal) {
 
 	/* Some transaction passed, update format accordingly to the 
 	   footer info. */
-	plug_call(journal->format->plug->pl.format, set_free, 
-		  journal->format, get_jf_free_blocks(footer));
-	plug_call(journal->oid->plug->pl.oid, set_next,
-		  journal->oid, get_jf_next_oid(footer));
-	plug_call(journal->oid->plug->pl.oid, set_used,
-		  journal->oid, get_jf_used_oids(footer));
+	entcall(journal->format, set_free, get_jf_free_blocks(footer));
+	entcall(journal->oid, set_next, get_jf_next_oid(footer));
+	entcall(journal->oid, set_used, get_jf_used_oids(footer));
 
 	return 0;
 }
@@ -312,7 +307,7 @@ static errno_t journal40_update_format(journal40_t *journal) {
 /* Traverses one journal transaction. This is used for transactions replaying,
    checking, etc. */
 errno_t journal40_traverse_trans(
-	journal40_t *journal,                   /* journal object to be traversed */
+	reiser4_journal_ent_t *entity,          /* journal object to be traversed */
 	aal_block_t *tx_block,                  /* trans header of a transaction */
 	journal40_han_func_t han_func,          /* wandered/original pair callback */
 	journal40_sec_func_t sec_func,          /* secondary blocks callback */
@@ -322,12 +317,14 @@ errno_t journal40_traverse_trans(
 	uint64_t log_blk;
 	uint32_t i, capacity;
 	aal_device_t *device;
+	journal40_t *journal;
 
 	journal40_lr_entry_t *entry;
 	aal_block_t *log_block = NULL;
 	aal_block_t *wan_block = NULL;	
 	journal40_lr_header_t *lr_header;
-
+	
+	journal = (journal40_t *)entity;
 	device = journal->device;
 	log_blk = get_th_next_block((journal40_tx_header_t *)tx_block->data);
 	
@@ -335,9 +332,8 @@ errno_t journal40_traverse_trans(
 		
 		/* FIXME-VITALY->UMKA: There should be a check that the log_blk
 		   is not one of the LGR's of the same transaction. return 1. */
-		if (sec_func && (res = sec_func((generic_entity_t *)journal, 
-						tx_block, log_blk, JB_LGR,
-						data)))
+		if (sec_func && (res = sec_func(entity, tx_block, log_blk, 
+						JB_LGR,	data)))
 		{
 			return res;
 		}
@@ -373,14 +369,16 @@ errno_t journal40_traverse_trans(
 				break;
 
 			if (sec_func) {
-				if ((res = sec_func((generic_entity_t *)journal, tx_block, 
-						    get_le_wandered(entry), JB_WAN, data)))
+				if ((res = sec_func(entity, tx_block, 
+						    get_le_wandered(entry), 
+						    JB_WAN, data)))
 				{
 					goto error_free_log_block;
 				}
 		    
-				if ((res = sec_func((generic_entity_t *)journal, tx_block,
-						    get_le_original(entry), JB_ORG, data)))
+				if ((res = sec_func(entity, tx_block,
+						    get_le_original(entry), 
+						    JB_ORG, data)))
 				{
 					goto error_free_log_block;
 				}
@@ -398,7 +396,7 @@ errno_t journal40_traverse_trans(
 					goto error_free_log_block;
 				}
 
-				if ((res = han_func((generic_entity_t *)journal, wan_block, 
+				if ((res = han_func(entity, wan_block, 
 						    get_le_original(entry), data)))
 				{
 					goto error_free_wandered;
@@ -429,7 +427,7 @@ errno_t journal40_traverse_trans(
    0   everything okay
    < 0 some error (-ESTRUCT, -EIO, etc). */
 errno_t journal40_traverse(
-	journal40_t *journal,                   /* journal object to be traversed */
+	reiser4_journal_ent_t *entity,          /* journal object to be traversed */
 	journal40_txh_func_t txh_func,          /* TxH block callback */
 	journal40_han_func_t han_func,          /* wandered/original pair callback */
 	journal40_sec_func_t sec_func,          /* secondary blocks callback */
@@ -440,6 +438,7 @@ errno_t journal40_traverse(
 	aal_device_t *device;
 	uint64_t last_flushed_tx;
 	uint64_t last_commited_tx;
+	journal40_t *journal;
 
 	aal_block_t *tx_block;
 	aal_list_t *tx_list = NULL;
@@ -447,7 +446,8 @@ errno_t journal40_traverse(
 	journal40_header_t *jheader;
 	journal40_footer_t *jfooter;
 	journal40_tx_header_t *tx_header;
-
+	
+	journal = (journal40_t *)entity;
 	aal_assert("vpf-448", journal != NULL);
 	aal_assert("vpf-487", journal->header != NULL);
 	aal_assert("vpf-488", journal->header->data != NULL);
@@ -465,8 +465,7 @@ errno_t journal40_traverse(
 		
 		/* FIXME-VITALY->UMKA: There should be a check that the txh_blk
 		   is not one of the TxH's we have met already. return 1. */
-		if (txh_func && (res = txh_func((generic_entity_t *)journal, 
-						txh_blk, data)))
+		if (txh_func && (res = txh_func(entity, txh_blk, data)))
 			goto error_free_tx_list;
 	    
 		if (!(tx_block = aal_block_load(device, journal->blksize,
@@ -495,7 +494,7 @@ errno_t journal40_traverse(
 		/* The oldest valid unreplayed transaction */
 		tx_block = (aal_block_t *)tx_list->data;
 		
-		if ((res = journal40_traverse_trans(journal, tx_block,
+		if ((res = journal40_traverse_trans(entity, tx_block,
 						    han_func, sec_func,
 						    data)))
 		{
@@ -521,16 +520,13 @@ errno_t journal40_traverse(
 	return res;
 }
 
-static errno_t cb_replay(generic_entity_t *entity, 
+static errno_t cb_replay(reiser4_journal_ent_t *entity, 
 			 aal_block_t *block,
 			 d64_t orig, void *data)
 {
 	errno_t res;
-	journal40_t *journal;
 
-	journal = (journal40_t *)entity;
-	
-	aal_block_move(block, journal->device, orig);
+	aal_block_move(block, PLUG_ENT(entity)->device, orig);
 	    
 	if ((res = aal_block_write(block))) {
 		aal_error("Can't write block %llu.", block->nr);
@@ -545,16 +541,14 @@ typedef struct replay_count {
 	uint64_t blk_count;
 } replay_count_t;
 
-static errno_t cb_print_replay(generic_entity_t *entity,
+static errno_t cb_print_replay(reiser4_journal_ent_t *entity,
 			       aal_block_t *block, blk_t orig,
 			       journal40_block_t type, void *data)
 {
 	journal40_tx_header_t *header;
-	journal40_t *journal;
 	replay_count_t *count;
 	
 	header = (journal40_tx_header_t *)block->data;
-	journal = (journal40_t *)entity;
 	count = (replay_count_t *)data;
 	
 	if (type == JB_WAN)
@@ -573,57 +567,59 @@ static errno_t cb_print_replay(generic_entity_t *entity,
 }
 
 /* Makes journal replay */
-static errno_t journal40_replay(generic_entity_t *entity) {
-	journal40_t *journal;
+static errno_t journal40_replay(reiser4_journal_ent_t *entity) {
 	replay_count_t count;
 	errno_t res;
 
 	aal_assert("umka-412", entity != NULL);
 
-	journal = (journal40_t *)entity;
 	
 	aal_memset(&count, 0, sizeof(count));
 	
 	/* Traverse the journal and replay all transactions. */
-	if ((res = journal40_traverse(journal, NULL, cb_replay, 
+	if ((res = journal40_traverse(entity, NULL, cb_replay,
 				      cb_print_replay, &count)))
 	{
 		return res;
 	}
 
 	/* Update the format according to the footer's values. */
-	if ((res = journal40_update_format(journal)))
+	if ((res = journal40_update_format(PLUG_ENT(entity))))
 		return res;
 	
 	/* Update the journal. */
-	if ((res = journal40_update(journal)))
+	if ((res = journal40_update(PLUG_ENT(entity))))
 		return res;
 
 	if (count.tx_count) {
 		aal_mess("Reiser4 journal (%s) on %s: %llu transactions "
 			 "replayed of the total %llu blocks.", 
-			 journal40_plug.label, journal->device->name, 
+			 journal40_plug.p.label, 
+			 PLUG_ENT(entity)->device->name, 
 			 count.tx_count, count.blk_count);
 	}
 
 	/* Invalidate the journal. */
 	journal40_invalidate(entity);
-
 	return 0;
 }
 
 /* Releases the journal */
-static void journal40_close(generic_entity_t *entity) {
-	journal40_t *journal = (journal40_t *)entity;
-    
+static void journal40_close(reiser4_journal_ent_t *entity) {
 	aal_assert("umka-411", entity != NULL);
 
-	aal_block_free(journal->header);
-	aal_block_free(journal->footer);
-	aal_free(journal);
+	aal_block_free(PLUG_ENT(entity)->header);
+	aal_block_free(PLUG_ENT(entity)->footer);
+	aal_free(entity);
 }
 
-static reiser4_journal_plug_t journal40 = {
+reiser4_journal_plug_t journal40_plug = {
+	.p = {
+		.id    = {JOURNAL_REISER40_ID, 0, JOURNAL_PLUG_TYPE},
+		.label = "journal40",
+		.desc  = "Journal plugin.",
+	},
+	
 	.open	  	= journal40_open,
 	.create	  	= journal40_create,
 	.sync	  	= journal40_sync,
@@ -641,12 +637,4 @@ static reiser4_journal_plug_t journal40 = {
 	.unpack		= journal40_unpack,
 };
 
-reiser4_plug_t journal40_plug = {
-	.id    = {JOURNAL_REISER40_ID, 0, JOURNAL_PLUG_TYPE},
-	.label = "journal40",
-	.desc  = "Journal plugin.",
-	.pl = {
-		.journal = &journal40
-	}
-};
 #endif

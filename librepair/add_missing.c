@@ -30,13 +30,12 @@ static errno_t cb_layout(reiser4_place_t *place, void *data) {
 	aal_assert("vpf-649", place != NULL);
 	aal_assert("vpf-748", !reiser4_item_branch(place->plug));
 
-	if (!place->plug->pl.item->object->layout)
+	if (!place->plug->object->layout)
 		return 0;
 	
 	/* All these blocks should not be used in the allocator and should be 
 	   forbidden for allocation. Check it somehow first. */
-	return plug_call(place->plug->pl.item->object, layout,
-			 place, cb_item_mark_region, data);
+	return objcall(place, object->layout, cb_item_mark_region, data);
 }
 
 static void repair_add_missing_update(repair_am_t *am) {
@@ -264,7 +263,7 @@ static errno_t repair_am_items_insert(repair_am_t *am,
 			if (res < 0) 
 				goto error_close_node;
 			
-			if (res && place.plug->id.group == STAT_ITEM) {
+			if (res && place.plug->p.id.group == STAT_ITEM) {
 				/* If insertion cannot be performed for the 
 				   statdata item, descement file counter. */
 				(*am->stat.files)--;

@@ -49,18 +49,15 @@ uint64_t rupasov_hash_build(unsigned char *name, uint32_t len) {
 	return a;
 }
 
-static reiser4_hash_plug_t rupasov_hash = {
-	.build = rupasov_hash_build
-};
-
-reiser4_plug_t rupasov_hash_plug = {
-	.id    = {HASH_RUPASOV_ID, 0, HASH_PLUG_TYPE},
+reiser4_hash_plug_t rupasov_hash_plug = {
+	.p = {
+		.id    = {HASH_RUPASOV_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
-	.label = "rupasov_hash",
-	.desc  = "Rupasov hash plugin.",
+		.label = "rupasov_hash",
+		.desc  = "Rupasov hash plugin.",
 #endif
-	.pl = {
-		.hash = &rupasov_hash
-	}
+	},
+	
+	.build = rupasov_hash_build
 };
 #endif

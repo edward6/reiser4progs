@@ -9,7 +9,7 @@
 
 reiser4_core_t *sdext_crypto_core = NULL;
 
-extern reiser4_plug_t sdext_crypto_plug;
+extern reiser4_sdext_plug_t sdext_crypto_plug;
 
 uint32_t sdext_crypto_length(stat_entity_t *stat, void *hint) {
 	sdext_crypto_t e;
@@ -22,7 +22,7 @@ uint32_t sdext_crypto_length(stat_entity_t *stat, void *hint) {
 	} else {
 		if (stat->info.digest == INVAL_PTR) {
 			aal_error("Digest must be specified for \'%s\'.",
-				  sdext_crypto_plug.label);
+				  sdext_crypto_plug.p.label);
 			return 0;
 		}
 		
@@ -41,7 +41,7 @@ static errno_t sdext_crypto_open(stat_entity_t *stat, void *hint) {
 	
 	if (stat->info.digest == INVAL_PTR) {
 		aal_error("Digest must be specified for \'%s\'.",
-			  sdext_crypto_plug.label);
+			  sdext_crypto_plug.p.label);
 		
 		return -EIO;
 	}
@@ -78,7 +78,13 @@ extern void sdext_crypto_print(stat_entity_t *stat,
 			       aal_stream_t *stream, 
 			       uint16_t options);
 
-static reiser4_sdext_plug_t sdext_crypto = {
+reiser4_sdext_plug_t sdext_crypto_plug = {
+	.p = {
+		.id    = {SDEXT_CRYPTO_ID, 0, SDEXT_PLUG_TYPE},
+		.label = "sdext_crypto",
+		.desc  = "Crypto stat data extension plugin.",
+	},
+
 	.open	   	= sdext_crypto_open,
 	.init	   	= sdext_crypto_init,
 	.info		= NULL,
@@ -86,14 +92,6 @@ static reiser4_sdext_plug_t sdext_crypto = {
 	.check_struct	= NULL,
 	.open	   	= NULL,
 	.length	   	= sdext_crypto_length
-};
 
-reiser4_plug_t sdext_crypto_plug = {
-	.id    = {SDEXT_CRYPTO_ID, 0, SDEXT_PLUG_TYPE},
-	.label = "sdext_crypto",
-	.desc  = "Crypto stat data extension plugin.",
-	.pl = {
-		.sdext = &sdext_crypto
-	}
 };
 #endif

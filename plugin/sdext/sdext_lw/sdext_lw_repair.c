@@ -13,14 +13,14 @@
 
 errno_t sdext_lw_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	aal_assert("vpf-777", stat != NULL);
-	aal_assert("vpf-783", stat->ext_plug != NULL);
+	aal_assert("vpf-783", stat->plug != NULL);
 	
 	if (stat->offset + sizeof(sdext_lw_t) > stat->place->len) {
 		fsck_mess("Node (%llu), item (%u), [%s]: does not look "
 			  "like a valid (%s) statdata extension.", 
 			  place_blknr(stat->place), stat->place->pos.item,
 			  print_key(sdext_lw_core, &stat->place->key),
-			  stat->ext_plug->label);
+			  stat->plug->p.label);
 		return 	RE_FATAL;
 	}
 	

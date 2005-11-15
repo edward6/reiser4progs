@@ -11,14 +11,15 @@ reiser4_core_t *obj40_core = NULL;
 errno_t obj40_open(reiser4_object_t *obj) {
 	aal_assert("vpf-1827", obj != NULL);
 	aal_assert("vpf-1826", obj->info.tree != NULL);
-	aal_assert("vpf-1828", reiser4_oplug(obj)->id.type == OBJECT_PLUG_TYPE);
+	aal_assert("vpf-1828", 
+		   reiser4_oplug(obj)->p.id.type == OBJECT_PLUG_TYPE);
 	
-	if (obj->info.start.plug->id.group != STAT_ITEM)
+	if (obj->info.start.plug->p.id.group != STAT_ITEM)
 		return -EIO;
 	
 	/* Positioning to the first directory unit. */
-	if (reiser4_oplug(obj)->pl.object->reset)
-		reiser4_oplug(obj)->pl.object->reset(obj);
+	if (reiser4_oplug(obj)->reset)
+		reiser4_oplug(obj)->reset(obj);
 	
 	return 0;
 }
@@ -27,9 +28,8 @@ errno_t obj40_open(reiser4_object_t *obj) {
 errno_t obj40_seek(reiser4_object_t *obj, uint64_t offset) {
 	aal_assert("umka-1968", obj != NULL);
 
-	plug_call(obj->position.plug->pl.key,
-		  set_offset, &obj->position, offset);
-
+	objcall(&obj->position, set_offset, offset);
+	
 	return 0;
 }
 
@@ -38,57 +38,23 @@ errno_t obj40_seek(reiser4_object_t *obj, uint64_t offset) {
 errno_t obj40_reset(reiser4_object_t *obj) {
 	aal_assert("umka-1963", obj != NULL);
 	
-	plug_call(obj->info.object.plug->pl.key, build_generic,
-		  &obj->position, KEY_FILEBODY_TYPE, obj40_locality(obj),
-		  obj40_ordering(obj), obj40_objectid(obj), 0);
+	plugcall(obj->info.object.plug, build_generic,
+		 &obj->position, KEY_FILEBODY_TYPE, 
+		 objcall(&obj->info.object, get_locality),
+		 objcall(&obj->info.object, get_ordering),
+		 objcall(&obj->info.object, get_objectid), 0);
 
 	return 0;
 }
 
-/* Returns the file position offset. */
-uint64_t obj40_offset(reiser4_object_t *obj) {
-	aal_assert("umka-1159", obj != NULL);
-
-	return plug_call(obj->position.plug->pl.key,
-			 get_offset, &obj->position);
-}
-
-
-/* Returns file's oid */
-oid_t obj40_objectid(reiser4_object_t *obj) {
-	aal_assert("umka-1899", obj != NULL);
-
-	return plug_call(obj->info.object.plug->pl.key, 
-			 get_objectid, &obj->info.object);
-}
-
-/* Returns file's locality  */
-oid_t obj40_locality(reiser4_object_t *obj) {
-	aal_assert("umka-1900", obj != NULL);
-    
-	return plug_call(obj->info.object.plug->pl.key, 
-			 get_locality, &obj->info.object);
-}
-
-/* Returns file's ordering  */
-uint64_t obj40_ordering(reiser4_object_t *obj) {
-	aal_assert("umka-2334", obj != NULL);
-
-	return plug_call(obj->info.object.plug->pl.key, 
-			 get_ordering, &obj->info.object);
-}
-
 /* Fetches item info at @place. */
 errno_t obj40_fetch_item(reiser4_place_t *place) {
-	return plug_call(place->node->plug->pl.node, fetch,
-			 place->node, &place->pos, place);
+	return objcall(place->node, fetch, &place->pos, place);
 }
 
 /* Checks if @place has valid position. */
 bool_t obj40_valid_item(reiser4_place_t *place) {
-	uint32_t items = plug_call(place->node->plug->pl.node,
-				   items, place->node);
-	
+	uint32_t items = objcall(place->node, items);
 	return (place->pos.item < items);
 }
 
@@ -117,8 +83,7 @@ lookup_t obj40_belong(reiser4_place_t *place, reiser4_key_t *key) {
 		return res;
 	
 	/* Is the place of the same object? */
-	return plug_call(key->plug->pl.key, compshort, 
-			 key, &place->key) ? ABSENT : PRESENT;
+	return objcall(key, compshort, &place->key) ? ABSENT : PRESENT;
 }
 
 /* Performs lookup and returns result to caller */
@@ -207,8 +172,7 @@ lookup_t obj40_update_body(reiser4_object_t *obj, obj_func_t adjust_func) {
 #endif
 	}
 	
-	units = plug_call(obj->body.plug->pl.item->balance,
-			  units, &obj->body);
+	units = objcall(&obj->body, balance->units);
 	
 	/* Correcting unit pos for next body item. */
 	if (obj->body.pos.unit == MAX_UINT32)
@@ -227,9 +191,7 @@ lookup_t obj40_update_body(reiser4_object_t *obj, obj_func_t adjust_func) {
 			if ((res = obj40_next_item(obj)) != PRESENT)
 				return res;
 			
-			units = plug_call(obj->body.plug->pl.item->balance,
-					  units, &obj->body);
-			
+			units = objcall(&obj->body, balance->units);
 			continue;
 		}
 		
@@ -284,11 +246,8 @@ errno_t obj40_load_stat(reiser4_object_t *obj, stat_hint_t *hint) {
 	trans.shift_flags = SF_DEFAULT;
 	
 	/* Calling statdata fetch method. */
-	if (plug_call(STAT_PLACE(obj)->plug->pl.item->object,
-		      fetch_units, STAT_PLACE(obj), &trans) != 1)
-	{
+	if (objcall(STAT_PLACE(obj), object->fetch_units, &trans) != 1)
 		return -EIO;
-	}
 	
 	return 0;
 }
@@ -307,12 +266,9 @@ errno_t obj40_save_stat(reiser4_object_t *obj, stat_hint_t *hint) {
 	trans.shift_flags = SF_DEFAULT;
 
 	/* Updating stat data. */
-	if (plug_call(STAT_PLACE(obj)->plug->pl.item->object,
-		      update_units, STAT_PLACE(obj), &trans) <= 0)
-	{
+	if (objcall(STAT_PLACE(obj), object->update_units, &trans) <= 0)
 		return -EIO;
-	}
-
+	
 	return 0;
 }
 
@@ -385,12 +341,12 @@ errno_t obj40_stat_lw_init(reiser4_object_t *obj,
 	/* mode is the bitwise OR between the given mode, the file type mode 
 	   and the defaul rwx permissions. The later is 0755 for directories 
 	   and 0644 for others. */
-	mode |= reiser4_oplug(obj)->id.group == REG_OBJECT ? S_IFREG : 
-		reiser4_oplug(obj)->id.group == DIR_OBJECT ? S_IFDIR : 
-		reiser4_oplug(obj)->id.group == SYM_OBJECT ? S_IFLNK :
+	mode |= reiser4_oplug(obj)->p.id.group == REG_OBJECT ? S_IFREG : 
+		reiser4_oplug(obj)->p.id.group == DIR_OBJECT ? S_IFDIR : 
+		reiser4_oplug(obj)->p.id.group == SYM_OBJECT ? S_IFLNK :
 		0;
 	
-	if (reiser4_oplug(obj)->id.group == DIR_OBJECT)
+	if (reiser4_oplug(obj)->p.id.group == DIR_OBJECT)
 		mode |= 0755;
 	else
 		mode |= 0644;
@@ -433,7 +389,7 @@ static errno_t obj40_stat_sym_init(reiser4_object_t *obj,
 	aal_assert("vpf-1851", obj != NULL);
 	aal_assert("vpf-1779", stat != NULL);
 	
-	if (obj->info.opset.plug[OPSET_OBJ]->id.group != SYM_OBJECT)
+	if (reiser4_oplug(obj)->p.id.group != SYM_OBJECT)
 		return 0;
 	
 	if (!path || !aal_strlen(path)) {
@@ -452,15 +408,11 @@ static errno_t obj40_stat_crc_init(reiser4_object_t *obj,
 				   sdhint_crypto_t *crch,
 				   char *key) 
 {
-	reiser4_plug_t *plug;
-	
 	aal_assert("vpf-1847", obj  != NULL);
 	aal_assert("vpf-1780", stat != NULL);
 
-	plug = obj->info.opset.plug[OPSET_OBJ];
-
 	/* Plugin must be of the regular file group. */
-	if (plug->id.group != REG_OBJECT)
+	if (reiser4_oplug(obj)->p.id.group != REG_OBJECT)
 		return 0;
 	
 	/* Check if cryto is specified. */
@@ -504,7 +456,7 @@ errno_t obj40_create_stat(reiser4_object_t *obj,
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	/* Getting statdata plugin */
-	hint.plug = obj->info.opset.plug[OPSET_STAT];
+	hint.plug = (reiser4_item_plug_t *)obj->info.opset.plug[OPSET_STAT];
 
 	hint.count = 1;
 	hint.shift_flags = SF_DEFAULT;
@@ -545,8 +497,8 @@ errno_t obj40_create_stat(reiser4_object_t *obj,
 	res = obj40_insert(obj, STAT_PLACE(obj), &hint, LEAF_LEVEL);
 	
 	/* Reset file. */
-	if (reiser4_oplug(obj)->pl.object->reset)
-		reiser4_oplug(obj)->pl.object->reset(obj);
+	if (reiser4_oplug(obj)->reset)
+		reiser4_oplug(obj)->reset(obj);
 
 	return res < 0 ? res : 0;
 }
@@ -585,11 +537,8 @@ uint64_t obj40_extmask(reiser4_place_t *place) {
 	hint.shift_flags = SF_DEFAULT;
 	
 	/* Calling statdata open method if any */
-	if (plug_call(place->plug->pl.item->object,
-		      fetch_units, place, &hint) != 1)
-	{
+	if (objcall(place, object->fetch_units, &hint) != 1)
 		return MAX_UINT64;
-	}
 	
 	return stat.extmask;
 }
@@ -752,7 +701,7 @@ int64_t obj40_read(reiser4_object_t *obj, trans_hint_t *hint,
 	/* Initializing offset data must be read from. This is current file
 	   offset, so we use @reg->position. */
 	aal_memcpy(&hint->offset, &obj->position, sizeof(hint->offset));
-	plug_call(hint->offset.plug->pl.key, set_offset, &hint->offset, off);
+	objcall(&hint->offset, set_offset, off);
 	
 	hint->count = count;
 	hint->specific = buff;
@@ -767,7 +716,7 @@ int64_t obj40_convert(reiser4_object_t *obj, conv_hint_t *hint) {
 
 /* Truncates data in tree */
 int64_t obj40_truncate(reiser4_object_t *obj, uint64_t n,
-		       reiser4_plug_t *item_plug)
+		       reiser4_item_plug_t *item_plug)
 {
 	trans_hint_t hint;
 	uint64_t size;
@@ -798,9 +747,7 @@ int64_t obj40_truncate(reiser4_object_t *obj, uint64_t n,
 		
 		/* Preparing key of the data to be truncated. */
 		aal_memcpy(&hint.offset, &obj->position, sizeof(hint.offset));
-		
-		plug_call(obj->info.object.plug->pl.key,
-			  set_offset, &hint.offset, n);
+		objcall(&hint.offset, set_offset, n);
 		
 		/* Removing data from the tree. */
 		hint.count = MAX_UINT64;
@@ -911,11 +858,10 @@ errno_t obj40_layout(reiser4_object_t *obj,
 	while (1) {
 		reiser4_place_t *place = &obj->body;
 		
-		if (obj->body.plug->pl.item->object->layout) {
+		if (obj->body.plug->object->layout) {
 			/* Calling item's layout method */
-			if ((res = plug_call(place->plug->pl.item->object,
-					     layout, place, cb_item_layout,
-					     &hint)))
+			if ((res = objcall(place, object->layout, 
+					   cb_item_layout, &hint)))
 			{
 				return res;
 			}
@@ -941,8 +887,9 @@ errno_t obj40_layout(reiser4_object_t *obj,
 }
 
 /* Writes passed data to the file. Returns amount of written bytes. */
-int64_t obj40_write(reiser4_object_t *obj, trans_hint_t *hint, void *buff, 
-		    uint64_t off, uint64_t count, reiser4_plug_t *item_plug, 
+int64_t obj40_write(reiser4_object_t *obj, trans_hint_t *hint, 
+		    void *buff, uint64_t off, uint64_t count, 
+		    reiser4_item_plug_t *item_plug, 
 		    place_func_t func, void *data)
 {
 	/* Preparing hint to be used for calling write method. This is
@@ -958,7 +905,7 @@ int64_t obj40_write(reiser4_object_t *obj, trans_hint_t *hint, void *buff,
 	hint->data = data;
 	
 	aal_memcpy(&hint->offset, &obj->position, sizeof(hint->offset));
-	plug_call(hint->offset.plug->pl.key, set_offset, &hint->offset, off);
+	objcall(&hint->offset, set_offset, off);
 	
 	/* Write data to tree. */
 	return obj40_core->flow_ops.write(obj->info.tree, hint);

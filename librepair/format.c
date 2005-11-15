@@ -67,7 +67,7 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 				   uint8_t mode, 
 				   uint32_t options) 
 {
-	generic_entity_t *fent;
+	reiser4_format_ent_t *format;
 	reiser4_plug_t *plug; 
 	format_hint_t hint;
 	count_t blocks;
@@ -103,7 +103,7 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 	   Otherwise from the backup if opened or from the format. */
 	over = reiser4_profile_overridden(PROF_POLICY);
 	plug = reiser4_profile_plug(PROF_POLICY);
-	hint.policy = plug->id.id;
+	hint.policy = ((reiser4_policy_plug_t *)plug)->p.id.id;
 	hint.mask |= over ? (1 << PM_POLICY) : 0;
 
 	over = reiser4_profile_overridden(PROF_KEY);
@@ -126,6 +126,7 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 		
 		hint.mask |= (1 << PM_KEY);
 	}
+	
 	hint.key = plug->id.id;
 	
 	hint.blksize = reiser4_master_get_blksize(fs->master);
@@ -190,14 +191,15 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 		}
 		
 		if (fs->backup) {
-			fent = plug_call(plug->pl.format, regenerate,
-					 fs->device, &fs->backup->hint);
+			format = plugcall((reiser4_format_plug_t *)plug, 
+					  regenerate, fs->device, 
+					  &fs->backup->hint);
 		} else {
-			fent = plug_call(plug->pl.format, create, 
-					 fs->device, &hint);
+			format = plugcall((reiser4_format_plug_t *)plug, 
+					  create, fs->device, &hint);
 		}
 
-		if (!fent) {
+		if (!format) {
 			aal_error("Failed to %s the format '%s' on '%s'.",
 				  fs->backup ? "regenerate" : "create", 
 				  plug->label, fs->device->name);
@@ -208,15 +210,15 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 				 "created", fs->device->name);
 		}
 	} else {
-		fent = fs->format->ent;
+		format = fs->format->ent;
 	}
 	
 	/* Check the format structure. If there is no backup and format, then 
 	   @fent has been just created, nothing to check anymore. */
 	if (fs->backup || fs->format) {
-		res = plug_call(fent->plug->pl.format, check_struct, 
-				fent, fs->backup ? &fs->backup->hint : NULL,
-				&hint, mode);
+		res = plugcall(format->plug, check_struct, format,
+			       fs->backup ? &fs->backup->hint : NULL,
+			       &hint, mode);
 	} else {
 		res = 0;
 	}
@@ -224,12 +226,12 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 	if (!fs->format) {
 		if (!(fs->format = aal_calloc(sizeof(reiser4_format_t), 0))) {
 			aal_error("Can't allocate the format.");
-			plug_call(plug->pl.format, close, fent);
+			plugcall((reiser4_format_plug_t *)plug, close, format);
 			return -ENOMEM;
 		}
 
 		fs->format->fs = fs;
-		fs->format->ent = fent;
+		fs->format->ent = format;
 	}
 	
 	return res;
@@ -238,28 +240,24 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 errno_t repair_format_update(reiser4_format_t *format) {
 	aal_assert("vpf-829", format != NULL);
 
-	if (format->ent->plug->pl.format->update == NULL)
+	if (format->ent->plug->update == NULL)
 		return 0;
     
-	return format->ent->plug->pl.format->update(format->ent);
+	return format->ent->plug->update(format->ent);
 }
 
 /* Fetches format data to @stream. */
 errno_t repair_format_pack(reiser4_format_t *format, aal_stream_t *stream) {
 	aal_assert("umka-2604", format != NULL);
-	aal_assert("umka-2605", stream != NULL);
 
-	return plug_call(format->ent->plug->pl.format,
-			 pack, format->ent, stream);
+	return reiser4call(format, pack, stream);
 }
 
 /* Prints @format to passed @stream */
 void repair_format_print(reiser4_format_t *format, aal_stream_t *stream) {
 	aal_assert("umka-1560", format != NULL);
-	aal_assert("umka-1561", stream != NULL);
 
-	plug_call(format->ent->plug->pl.format,
-		  print, format->ent, stream, 0);
+	reiser4call(format, print, stream, 0);
 }
 
 /* Loads format data from @stream to format entity. */
@@ -293,7 +291,7 @@ reiser4_format_t *repair_format_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 
 	blksize = reiser4_master_get_blksize(fs->master);
 	
-	if (!(format->ent = plug_call(plug->pl.format, unpack, 
+	if (!(format->ent = plugcall((reiser4_format_plug_t *)plug, unpack,
 				      fs->device, blksize, stream)))
 	{
 		aal_error("Can't unpack disk-format.");
@@ -323,9 +321,9 @@ errno_t repair_format_check_backup(aal_device_t *device, backup_hint_t *hint) {
 		return RE_FATAL;
 	}
 
-	if ((res = plug_call(plug->pl.format, check_backup, hint)))
+	if ((res = plugcall((reiser4_format_plug_t *)plug, check_backup, hint)))
 		return res;
-
+	
 	return (repair_format_check_len_old(device, get_ms_blksize(master), 
 					    hint->blocks)) ? RE_FATAL : 0;
 }

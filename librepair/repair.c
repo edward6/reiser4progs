@@ -662,8 +662,7 @@ static errno_t repair_update(repair_control_t *control) {
 		}
 
 		if (mode != RM_CHECK) {
-			plug_call(fs->oid->ent->plug->pl.oid, set_next,
-				  fs->oid->ent, control->oid);
+			reiser4call(fs->oid, set_next, control->oid);
 		} else {
 			control->repair->fixable++;
 		}

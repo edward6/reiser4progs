@@ -181,8 +181,7 @@ void reiser4_place_dec(reiser4_place_t *place, int whole) {
 errno_t reiser4_place_fetch(reiser4_place_t *place) {
 	aal_assert("umka-1459", place != NULL);
 
-	return plug_call(place->node->plug->pl.node, fetch,
-			 place->node, &place->pos, place);
+	return objcall(place->node, fetch, &place->pos, place);
 }
 
 /* This function initializes passed @place by specified params */

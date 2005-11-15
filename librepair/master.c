@@ -225,7 +225,7 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 
 	/* If format is opened but the format plugin id has been changed, 
 	   close the format. */
-	if (fs->format && pid != fs->format->ent->plug->id.id) {
+	if (fs->format && pid != fs->format->ent->plug->p.id.id) {
 		reiser4_format_close(fs->format);
 		fs->format = NULL;
 	}
@@ -318,22 +318,18 @@ void repair_master_print(reiser4_master_t *master,
 			 aal_stream_t *stream,
 			 uuid_unparse_t unparse)
 {
-	rid_t format_pid;
+	reiser4_plug_t *plug;
 	uint32_t blksize;
-	reiser4_plug_t *format_plug;
+	rid_t pid;
 	
 	aal_assert("umka-1568", master != NULL);
 	aal_assert("umka-1569", stream != NULL);
 
 	blksize = get_ms_blksize(SUPER(master));
-	format_pid = reiser4_master_get_format(master);
+	pid = reiser4_master_get_format(master);
 	
-	if (!(format_plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE,
-						  format_pid)))
-	{
-		aal_error("Can't find format plugin "
-			  "by its id 0x%x.", format_pid);
-	}
+	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid)))
+		aal_error("Can't find format plugin by its id 0x%x.", pid);
 	
 	aal_stream_format(stream, "Master super block (%lu):\n",
 			  REISER4_MASTER_BLOCKNR(blksize));
@@ -345,8 +341,7 @@ void repair_master_print(reiser4_master_t *master,
 			  get_ms_blksize(SUPER(master)));
 
 	aal_stream_format(stream, "format:\t\t0x%x (%s)\n",
-			  format_pid, format_plug ?
-			  format_plug->label : "absent");
+			  pid, plug ? plug->label : "absent");
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 	if (*master->ent.ms_uuid != '\0') {

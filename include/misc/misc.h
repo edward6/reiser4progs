@@ -45,8 +45,8 @@
 #  endif
 #endif
 
-#include "gauge.h"
 #include "mpressure.h"
+#include "gauge.h"
 #include "exception.h"
 #include "profile.h"
 #include "version.h"
@@ -59,10 +59,6 @@ typedef enum mount_flags {
 	MF_RO		= 0x1,
 	MF_RW		= 0x2
 } mount_flags_t;
-
-extern unsigned int misc_adler32(unsigned int adler, 
-				 char *buff, 
-				 unsigned int n);
 
 extern long long misc_size2long(const char *str);
 

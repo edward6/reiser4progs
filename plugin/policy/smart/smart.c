@@ -13,16 +13,13 @@ static int smart_tails(uint64_t value) {
 	return 1;
 }
 
-reiser4_policy_plug_t smart = {
-	.tails = smart_tails
-};
+reiser4_policy_plug_t smart_plug = {
+	.p = {
+		.id    = {TAIL_SMART_ID, 0, POLICY_PLUG_TYPE},
+		.label = "smart",
+		.desc  = "Smart tail policy plugin.",
+	},
 
-reiser4_plug_t smart_plug = {
-	.id    = {TAIL_SMART_ID, 0, POLICY_PLUG_TYPE},
-	.label = "smart",
-	.desc  = "Smart tail policy plugin.",
-	.pl = {
-		.policy = &smart
-	}
+	.tails = smart_tails
 };
 #endif

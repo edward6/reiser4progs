@@ -7,7 +7,7 @@
 #include "oid40.h"
 
 /* Prints oid allocator data into passed @stream */
-void oid40_print(generic_entity_t *entity, 
+void oid40_print(reiser4_oid_ent_t *entity, 
 		 aal_stream_t *stream, 
 		 uint16_t options)
 {
@@ -17,13 +17,13 @@ void oid40_print(generic_entity_t *entity,
 	aal_stream_format(stream, "Oid allocator:\n");
 	
 	aal_stream_format(stream, "plugin:\t\t%s\n",
-			  entity->plug->label);
+			  entity->plug->p.label);
 
 	aal_stream_format(stream, "next oid:\t0x%llx\n",
-			  ((oid40_t *)entity)->next);
+			  PLUG_ENT(entity)->next);
 
 	aal_stream_format(stream, "used oids:\t%llu\n",
-			  ((oid40_t *)entity)->used);
+			  PLUG_ENT(entity)->used);
 }
 
 oid_t oid40_lost_objectid() {

@@ -15,18 +15,15 @@ static uint8_t fibre_dot_o_build(char *name, uint32_t len) {
 	return 0;
 }
 
-static reiser4_fibre_plug_t fibre_dot_o = {
-	.build = fibre_dot_o_build
-};
-
-reiser4_plug_t fibre_dot_o_plug = {
-	.id    = {FIBRE_DOT_O_ID, 0, FIBRE_PLUG_TYPE},
+reiser4_fibre_plug_t fibre_dot_o_plug = {
+	.p = {
+		.id    = {FIBRE_DOT_O_ID, 0, FIBRE_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
-	.label = "dot_o_fibre",
-	.desc  = "'.o' fibration plugin.",
+		.label = "dot_o_fibre",
+		.desc  = "'.o' fibration plugin.",
 #endif
-	.pl = {
-		.fibre = &fibre_dot_o
-	}
+	},
+
+	.build = fibre_dot_o_build
 };
 #endif

@@ -55,26 +55,26 @@ static int64_t reg40_read(reiser4_object_t *reg,
 /* Returns plugin (tail or extent) for next write operation basing on passed
    @size -- new file size. This function will use tail policy plugin to find
    what kind of next body item should be writen. */
-static reiser4_plug_t *reg40_policy_plug(reiser4_object_t *reg, 
-					 uint64_t new_size)
+static reiser4_item_plug_t *reg40_policy_plug(reiser4_object_t *reg, 
+					      uint64_t new_size)
 {
-	reiser4_plug_t *policy;
+	reiser4_policy_plug_t *policy;
 	
 	aal_assert("umka-2394", reg != NULL);
 
-	policy = reg->info.opset.plug[OPSET_POLICY];
+	policy = (reiser4_policy_plug_t *)reg->info.opset.plug[OPSET_POLICY];
 	
 	aal_assert("umka-2393", policy != NULL);
 
 	/* Calling formatting policy plugin to detect body plugin. */
-	if (plug_call(policy->pl.policy, tails, new_size)) {
+	if (plugcall(policy, tails, new_size)) {
 		/* Trying to get non-standard tail plugin from stat data. And if
 		   it is not found, default one from params will be taken. */
-		return reg->info.opset.plug[OPSET_TAIL];
+		return (reiser4_item_plug_t *)reg->info.opset.plug[OPSET_TAIL];
 	}
 	
 	/* The same for extent plugin */
-	return reg->info.opset.plug[OPSET_EXTENT];
+	return (reiser4_item_plug_t *)reg->info.opset.plug[OPSET_EXTENT];
 }
 #endif
 
@@ -115,7 +115,7 @@ static errno_t reg40_create(reiser4_object_t *reg, object_hint_t *hint) {
 
 /* Makes tail2extent and extent2tail conversion. */
 static errno_t reg40_convert(reiser4_object_t *reg, 
-			     reiser4_plug_t *plug) 
+			     reiser4_item_plug_t *plug) 
 {
 	errno_t res;
 	conv_hint_t hint;
@@ -128,9 +128,7 @@ static errno_t reg40_convert(reiser4_object_t *reg,
 	/* Getting file data start key. We convert file starting from the zero
 	   offset until end is reached. */
 	aal_memcpy(&hint.offset, &reg->position, sizeof(hint.offset));
-	
-	plug_call(reg->position.plug->pl.key, set_offset,
-		  &hint.offset, 0);
+	objcall(&hint.offset, set_offset, 0);
 	
 	/* Prepare convert hint. */
 	hint.plug = plug;
@@ -162,7 +160,7 @@ static errno_t reg40_convert(reiser4_object_t *reg,
 static errno_t reg40_check_body(reiser4_object_t *reg,
 				uint64_t new_size)
 {
-	reiser4_plug_t *plug;
+	reiser4_item_plug_t *plug;
 	
 	aal_assert("umka-2395", reg != NULL);
 
@@ -331,8 +329,16 @@ static errno_t reg40_metadata(reiser4_object_t *reg,
 }
 #endif
 
-/* Regular file operations. */
-static reiser4_object_plug_t reg40 = {
+/* Regular file plugin. */
+reiser4_object_plug_t reg40_plug = {
+	.p = {
+		.id    = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "reg40",
+		.desc  = "Regular file plugin.",
+#endif
+	},
+
 #ifndef ENABLE_MINIMAL
 	.inherit	= obj40_inherit,
 	.create	        = reg40_create,
@@ -377,16 +383,4 @@ static reiser4_object_plug_t reg40 = {
 	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID |
 			    1 << SDEXT_CLUSTER_ID),
 #endif
-};
-
-/* Regular file plugin. */
-reiser4_plug_t reg40_plug = {
-	.id    = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "reg40",
-	.desc  = "Regular file plugin.",
-#endif
-	.pl = {
-		.object = &reg40
-	}
 };

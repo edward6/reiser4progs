@@ -18,18 +18,15 @@ static uint64_t fnv1_hash_build(unsigned char *name, uint32_t len) {
 	return a;
 }
 
-static reiser4_hash_plug_t fnv1_hash = {
-	.build = fnv1_hash_build
-};
-
-reiser4_plug_t fnv1_hash_plug = {
-	.id    = {HASH_FNV1_ID, 0, HASH_PLUG_TYPE},
+reiser4_hash_plug_t fnv1_hash_plug = {
+	.p = {
+		.id    = {HASH_FNV1_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
-	.label = "fnv1_hash",
-	.desc  = "Fnv1 hash plugin.",
+		.label = "fnv1_hash",
+		.desc  = "Fnv1 hash plugin.",
 #endif
-	.pl = {
-		.hash = &fnv1_hash
-	}
+	},
+	
+	.build = fnv1_hash_build,
 };
 #endif

@@ -6,7 +6,7 @@
 #ifdef ENABLE_SHORT_KEYS
 #include "key_short.h"
 
-extern reiser4_plug_t key_short_plug;
+extern reiser4_key_plug_t key_short_plug;
 
 /* Returns minimal key */
 static reiser4_key_t *key_short_minimal(void) {
@@ -217,8 +217,8 @@ static int key_short_compfull(reiser4_key_t *key1,
 
 /* Builds hash of the passed @name by means of using a hash plugin */
 static void key_short_build_hash(reiser4_key_t *key,
-				 reiser4_plug_t *hash,
-				 reiser4_plug_t *fibre,
+				 reiser4_hash_plug_t *hash,
+				 reiser4_fibre_plug_t *fibre,
 				 char *name) 
 {
 	uint16_t len;
@@ -249,13 +249,13 @@ static void key_short_build_hash(reiser4_key_t *key,
 		/* Build hash by means of using hash plugin */
 		objectid |= HASHED_NAME_MASK;
 		
-		offset = plug_call(hash->pl.hash, build,
-				   name + OBJECTID_CHARS,
-				   len - OBJECTID_CHARS);
+		offset = plugcall(hash, build,
+				  name + OBJECTID_CHARS,
+				  len - OBJECTID_CHARS);
 	}
 	
-	objectid |= ((uint64_t)plug_call(fibre->pl.fibre, build, 
-					 name, len) << FIBRE_SHIFT);
+	objectid |= ((uint64_t)plugcall(fibre, build, 
+					name, len) << FIBRE_SHIFT);
 	
 	/* Objectid must occupie 60 bits. If it takes more, then we have broken
 	   key, or objectid allocator reached this value, that impossible in
@@ -270,8 +270,8 @@ static void key_short_build_hash(reiser4_key_t *key,
 /* Builds key by passed locality, objectid, and name. It is suitable for
    creating entry keys. */
 static void key_short_build_hashed(reiser4_key_t *key,
-				   reiser4_plug_t *hash,
-				   reiser4_plug_t *fibre,
+				   reiser4_hash_plug_t *hash,
+				   reiser4_fibre_plug_t *fibre,
 				   uint64_t locality,
 				   uint64_t objectid,
 				   char *name) 
@@ -329,7 +329,15 @@ extern void key_short_print(reiser4_key_t *key,
 extern errno_t key_short_check_struct(reiser4_key_t *key);
 #endif
 
-static reiser4_key_plug_t key_short = {
+reiser4_key_plug_t key_short_plug = {
+	.p = {
+		.id    = {KEY_SHORT_ID, 0, KEY_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "key_short",
+		.desc  = "Short key plugin.",
+#endif
+	},
+	
 	.hashed		= key_short_hashed,
 	.minimal	= key_short_minimal,
 	.maximal	= key_short_maximal,
@@ -369,14 +377,4 @@ static reiser4_key_plug_t key_short = {
 	.get_name       = key_short_get_name
 };
 
-reiser4_plug_t key_short_plug = {
-	.id    = {KEY_SHORT_ID, 0, KEY_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "key_short",
-	.desc  = "Short key plugin.",
-#endif
-	.pl = {
-		.key = &key_short
-	}
-};
 #endif

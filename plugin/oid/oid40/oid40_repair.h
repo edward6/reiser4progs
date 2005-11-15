@@ -9,7 +9,7 @@
 #ifndef ENABLE_MINIMAL
 #include <reiser4/plugin.h>
 
-extern void oid40_print(generic_entity_t *entity,
+extern void oid40_print(reiser4_oid_ent_t *entity,
 			aal_stream_t *stream,
 			uint16_t options);
 

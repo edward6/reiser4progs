@@ -87,8 +87,16 @@ static errno_t sym40_follow(reiser4_object_t *sym,
 	return res;
 }
 
-/* Symlinks operations. */
-static reiser4_object_plug_t sym40 = {
+/* Symlink plugin itself. */
+reiser4_object_plug_t sym40_plug = {
+	.p = {
+		.id    = {OBJECT_SYM40_ID, SYM_OBJECT, OBJECT_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "sym40",
+		.desc  = "Symlink file plugin.",
+#endif
+	},
+
 #ifndef ENABLE_MINIMAL
 	.inherit	= obj40_inherit,
 	.create	        = sym40_create,
@@ -133,17 +141,5 @@ static reiser4_object_plug_t sym40 = {
 			    1 << SDEXT_SYMLINK_ID),
 	.sdext_unknown   = (1 << SDEXT_CLUSTER_ID),
 #endif
-};
-
-/* Symlink plugin itself. */
-reiser4_plug_t sym40_plug = {
-	.id    = {OBJECT_SYM40_ID, SYM_OBJECT, OBJECT_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "sym40",
-	.desc  = "Symlink file plugin.",
-#endif
-	.pl = {
-		.object = &sym40
-	}
 };
 #endif

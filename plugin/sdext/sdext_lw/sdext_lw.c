@@ -59,7 +59,15 @@ extern void sdext_lw_print(stat_entity_t *stat,
 
 #endif
 
-static reiser4_sdext_plug_t sdext_lw = {
+reiser4_sdext_plug_t sdext_lw_plug = {
+	.p = {
+		.id    = {SDEXT_LW_ID, 0, SDEXT_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "sdext_lw",
+		.desc  = "Light stat data extension plugin.",
+#endif
+	},
+
 	.open	 	= sdext_lw_open,
 	
 #ifndef ENABLE_MINIMAL
@@ -69,15 +77,4 @@ static reiser4_sdext_plug_t sdext_lw = {
 	.check_struct   = sdext_lw_check_struct,
 #endif		
 	.length	 	= sdext_lw_length
-};
-
-reiser4_plug_t sdext_lw_plug = {
-	.id    = {SDEXT_LW_ID, 0, SDEXT_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "sdext_lw",
-	.desc  = "Light stat data extension plugin.",
-#endif
-	.pl = {
-		.sdext = &sdext_lw
-	}
 };

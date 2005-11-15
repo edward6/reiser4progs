@@ -6,7 +6,7 @@
  
 #ifndef ENABLE_MINIMAL
 
-#include <misc/misc.h>
+#include <aux/aux.h>
 #include "ccreg40_repair.h"
 
 static int ccreg40_check_size(reiser4_object_t *cc, 
@@ -47,8 +47,7 @@ static errno_t ccreg40_check_item(reiser4_object_t *cc, void *data) {
 	uint32_t cluster;
 	errno_t res;
 		
-	hint->found = plug_call(cc->body.key.plug->pl.key,
-				get_offset, &cc->body.key);
+	hint->found = objcall(&cc->body.key, get_offset);
 	hint->maxreal = obj40_place_maxreal(&cc->body);
 	
 	aal_assert("vpf-1871", hint->maxreal >= hint->found);
@@ -58,13 +57,15 @@ static errno_t ccreg40_check_item(reiser4_object_t *cc, void *data) {
 	res = 0;
 	
 	/* Check the item plugin. */
-	if (cc->body.plug != info->opset.plug[OPSET_CTAIL]) {
+	if ((reiser4_plug_t *)cc->body.plug != 
+	    info->opset.plug[OPSET_CTAIL]) 
+	{
 		fsck_mess("CRC file [%s] (%s), node [%llu], item "
 			  "[%u]: item of the illegal plugin (%s) "
 			  "with the key of this object found.%s",
 			  print_inode(obj40_core, &info->object),
-			  reiser4_oplug(cc)->label, place_blknr(&cc->body),
-			  cc->body.pos.item, cc->body.plug->label, 
+			  reiser4_oplug(cc)->p.label, place_blknr(&cc->body),
+			  cc->body.pos.item, cc->body.plug->p.label, 
 			  hint->mode == RM_BUILD ? " Removed." : "");
 		
 		return hint->mode == RM_BUILD ? -ESTRUCT : RE_FATAL;
@@ -77,7 +78,7 @@ static errno_t ccreg40_check_item(reiser4_object_t *cc, void *data) {
 		fsck_mess("CRC file [%s] (%s), node [%llu], item [%u]: item "
 			  "of the wrong cluster size (%d) found, Should be "
 			  "(%d).%s", print_inode(obj40_core, &info->object),
-			  reiser4_oplug(cc)->label, place_blknr(&cc->body),
+			  reiser4_oplug(cc)->p.label, place_blknr(&cc->body),
 			  cc->body.pos.item, cluster, hint->size, 
 			  hint->mode != RM_CHECK ? " Fixed." : "");
 
@@ -95,7 +96,7 @@ static errno_t ccreg40_check_item(reiser4_object_t *cc, void *data) {
 			  "item of the lenght (%llu) found, it cannot "
 			  "contain data of 2 clusters.%s", 
 			  print_inode(obj40_core, &info->object),
-			  reiser4_oplug(cc)->label, 
+			  reiser4_oplug(cc)->p.label, 
 			  place_blknr(&cc->body), cc->body.pos.item,
 			  hint->maxreal - hint->found + 1, 
 			  hint->mode == RM_BUILD ? " Removed." : "");
@@ -119,11 +120,8 @@ static int64_t ccreg40_read_item(reiser4_place_t *place, ccreg40_hint_t *hint) {
 	trans.count = hint->maxreal - hint->found;
 	trans.specific = hint->data + offset;
 	
-	if ((count = plug_call(place->plug->pl.item->object, 
-			       read_units, place, &trans)) < 0)
-	{
+	if ((count = objcall(place, object->read_units, &trans)) < 0)
 		return count;
-	}
 	
 	return 0;
 }
@@ -134,7 +132,7 @@ static errno_t ccreg40_check_crc(ccreg40_hint_t *hint) {
 	
 	offset = (hint->seek % hint->size) - sizeof(uint32_t);
 	
-	adler = misc_adler32(0, hint->data, offset);
+	adler = aux_adler32(0, hint->data, offset);
 	disk = *(uint32_t *)(hint->data + offset);
 	
 	return adler == disk ? 0 : RE_FATAL;
@@ -239,9 +237,7 @@ static errno_t ccreg40_check_cluster(reiser4_object_t *cc,
 			return res;
 	}
 	
-	hint->bytes += plug_call(cc->body.plug->pl.item->object,
-				 bytes, &cc->body);
-
+	hint->bytes += objcall(&cc->body, object->bytes);
 	return res;
 }
 
@@ -323,8 +319,7 @@ errno_t ccreg40_check_struct(reiser4_object_t *cc,
 		ops.check_nlink = mode == RM_BUILD ? 0 : SKIP_METHOD;
 		
 		hint.stat.mode = S_IFREG;
-		hint.stat.size = plug_call(cc->position.plug->pl.key,
-					   get_offset, &cc->position);
+		hint.stat.size = objcall(&cc->position, get_offset);
 
 		res |= obj40_update_stat(cc, &ops, &hint.stat, mode);
 	}

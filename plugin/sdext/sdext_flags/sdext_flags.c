@@ -51,7 +51,15 @@ extern errno_t sdext_flags_check_struct(stat_entity_t *stat,
 					repair_hint_t *hint);
 #endif
 
-static reiser4_sdext_plug_t sdext_flags = {
+reiser4_sdext_plug_t sdext_flags_plug = {
+	.p = {
+		.id    = {SDEXT_FLAGS_ID, 0, SDEXT_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "sdext_flags",
+		.desc  = "Inode flags stat data extension plugin.",
+#endif
+	},
+
 #ifndef ENABLE_MINIMAL
 	.open	   	= sdext_flags_open,
 	.init	   	= sdext_flags_init,
@@ -62,15 +70,4 @@ static reiser4_sdext_plug_t sdext_flags = {
 	.open	   	= NULL,
 #endif
 	.length	   	= sdext_flags_length
-};
-
-reiser4_plug_t sdext_flags_plug = {
-	.id    = {SDEXT_FLAGS_ID, 0, SDEXT_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "sdext_flags",
-	.desc  = "Inode flags stat data extension plugin.",
-#endif
-	.pl = {
-		.sdext = &sdext_flags
-	}
 };

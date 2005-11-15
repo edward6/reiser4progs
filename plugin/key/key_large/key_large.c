@@ -6,7 +6,7 @@
 #ifdef ENABLE_LARGE_KEYS
 #include "key_large.h"
 
-extern reiser4_plug_t key_large_plug;
+extern reiser4_key_plug_t key_large_plug;
 
 /* Returns minimal key */
 static reiser4_key_t *key_large_minimal(void) {
@@ -237,8 +237,8 @@ static int key_large_compfull(reiser4_key_t *key1,
 
 /* Builds hash of the passed @name by means of using a hash plugin */
 static void key_large_build_hash(reiser4_key_t *key,
-				 reiser4_plug_t *hash,
-				 reiser4_plug_t *fibre,
+				 reiser4_hash_plug_t *hash,
+				 reiser4_fibre_plug_t *fibre,
 				 char *name) 
 {
 	uint16_t len;
@@ -267,13 +267,13 @@ static void key_large_build_hash(reiser4_key_t *key,
 	} else {
 		ordering |= HASHED_NAME_MASK;
 
-		offset = plug_call(hash->pl.hash, build,
-				   name + INLINE_CHARS,
-				   len - INLINE_CHARS);
+		offset = plugcall(hash, build,
+				  name + INLINE_CHARS,
+				  len - INLINE_CHARS);
 	}
 
-	ordering |= ((uint64_t)plug_call(fibre->pl.fibre, build, 
-					 name, len) << FIBRE_SHIFT);
+	ordering |= 
+		((uint64_t)plugcall(fibre, build, name, len) << FIBRE_SHIFT);
 	
 	/* Setting up objectid and offset */
 	key_large_set_ordering(key, ordering);
@@ -284,8 +284,8 @@ static void key_large_build_hash(reiser4_key_t *key,
 /* Builds key by passed locality, objectid, and name. It is suitable for
    creating entry keys. */
 static void key_large_build_hashed(reiser4_key_t *key,
-				   reiser4_plug_t *hash,
-				   reiser4_plug_t *fibre,
+				   reiser4_hash_plug_t *hash,
+				   reiser4_fibre_plug_t *fibre,
 				   uint64_t locality,
 				   uint64_t objectid,
 				   char *name) 
@@ -344,7 +344,15 @@ extern void key_large_print(reiser4_key_t *key,
 extern errno_t key_large_check_struct(reiser4_key_t *key);
 #endif
 
-static reiser4_key_plug_t key_large = {
+reiser4_key_plug_t key_large_plug = {
+	.p = {
+		.id    = {KEY_LARGE_ID, 0, KEY_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "key_large",
+		.desc  = "Large key plugin.",
+#endif
+	},
+	
 	.hashed		= key_large_hashed,
 	.minimal	= key_large_minimal,
 	.maximal	= key_large_maximal,
@@ -382,16 +390,5 @@ static reiser4_key_plug_t key_large = {
 	.set_offset	= key_large_set_offset,
 	.get_offset	= key_large_get_offset,
 	.get_name	= key_large_get_name
-};
-
-reiser4_plug_t key_large_plug = {
-	.id    = {KEY_LARGE_ID, 0, KEY_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "key_large",
-	.desc  = "Large key plugin.",
-#endif
-	.pl = {
-		.key = &key_large
-	}
 };
 #endif

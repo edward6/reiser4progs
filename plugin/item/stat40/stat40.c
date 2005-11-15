@@ -44,7 +44,7 @@ errno_t stat40_traverse(reiser4_place_t *place,
 			
 			extmask = st40_get_extmask(stat_body(&stat));
 			
-			stat.ext_plug = NULL;
+			stat.plug = NULL;
 			
 			/* Call the callback for every read extmask. */
 			res = ext_func(&stat, extmask << (chunks * 16), data);
@@ -61,9 +61,10 @@ errno_t stat40_traverse(reiser4_place_t *place,
 			continue;
 
 		/* Getting extension plugin from the plugin factory */
-		stat.ext_plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE,i);
+		stat.plug = (reiser4_sdext_plug_t *)
+			stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE,i);
 		
-		if (!stat.ext_plug)
+		if (!stat.plug)
 			continue;
 		
 		/* Call the callback for every found extension. */
@@ -71,13 +72,12 @@ errno_t stat40_traverse(reiser4_place_t *place,
 			return res;
 
 #ifndef ENABLE_MINIMAL	
-		if (stat.ext_plug->pl.sdext->info)
-			stat.ext_plug->pl.sdext->info(&stat);
+		if (stat.plug->info)
+			stat.plug->info(&stat);
 #endif
 
 		/* Calculating the pointer to the next extension body */
-		stat.offset += plug_call(stat.ext_plug->pl.sdext, 
-					 length, &stat, NULL);
+		stat.offset += objcall(&stat, length, NULL);
 	}
  
 	return 0;
@@ -91,21 +91,20 @@ static errno_t cb_open_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 	/* Method open is not defined, this probably means, we only interested
 	   in symlink's length method in order to reach other symlinks body. So,
 	   we retrun 0 here. */
-	if (!stat->ext_plug || !stat->ext_plug->pl.sdext->open)
+	if (!stat->plug || !stat->plug->open)
 		return 0;
 	
 	hint = (trans_hint_t *)data;
 	stath = hint->specific;
 
 	/* Reading mask into hint */
-	stath->extmask |= ((uint64_t)1 << stat->ext_plug->id.id);
+	stath->extmask |= ((uint64_t)1 << stat->plug->p.id.id);
 
 	/* We load @ext if its hint present in @stath */
-	if (stath->ext[stat->ext_plug->id.id]) {
-		void *sdext = stath->ext[stat->ext_plug->id.id];
+	if (stath->ext[stat->plug->p.id.id]) {
+		void *sdext = stath->ext[stat->plug->p.id.id];
 
-		return plug_call(stat->ext_plug->pl.sdext, 
-				 open, stat, sdext);
+		return objcall(stat, open, sdext);
 	}
 	
 	return 0;
@@ -273,7 +272,7 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
     
 	/* Estimating the all stat data extensions */
 	for (i = 0; i < STAT40_EXTNR; i++) {
-		reiser4_plug_t *plug;
+		reiser4_sdext_plug_t *plug;
 
 		/* Check if extension is present in mask */
 		if (!(((uint64_t)1 << i) & stath->extmask))
@@ -290,19 +289,21 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 		}
 
 		/* Getting extension plugin */
-		if (!(plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
+		plug = (reiser4_sdext_plug_t *)
+			stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i);
+		
+		if (!plug) {
 			aal_error("Can't find stat data extension plugin "
 				  "by its id 0x%x.", i);
 			return -EINVAL;
 		}
 
-		if (plug->pl.sdext->info)
-			plug->pl.sdext->info(NULL);
+		if (plug->info)
+			plug->info(NULL);
 		
 		/* Calculating length of the corresponding extension and add it
 		   to the estimated value. */
-		hint->len += plug_call(plug->pl.sdext, length, 
-				       NULL, stath->ext[i]);
+		hint->len += plugcall(plug, length, NULL, stath->ext[i]);
 	}
 	
 	return 0;
@@ -329,8 +330,6 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 		return 0;
     
 	for (i = 0; i < STAT40_EXTNR; i++) {
-		reiser4_plug_t *plug;
-	    
 		/* Stat data contains 16 bit mask of extensions used in it. The
 		   first 15 bits of the mask denote the first 15 extensions in
 		   the stat data. And the bit number is the stat data extension
@@ -371,7 +370,10 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 			continue;
 
 		/* Getting extension plugin by extent number. */
-		if (!(plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
+		stat.plug = (reiser4_sdext_plug_t *)
+			stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i);
+		
+		if (!stat.plug) {
 			aal_error("Can't find stat data extension plugin "
 				  "by its id 0x%x.", i);
 			return -EINVAL;
@@ -384,8 +386,8 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 
 				/* Moving the rest of stat data to the right 
 				   to keep stat data extension packed. */
-				extsize = plug_call(plug->pl.sdext, length,
-						    NULL, stath->ext[i]);
+				extsize = plugcall(stat.plug, length, NULL,
+						   stath->ext[i]);
 
 				aal_memmove(stat_body(&stat) + extsize, 
 					    stat_body(&stat), place->len -
@@ -393,16 +395,15 @@ static int64_t stat40_modify(reiser4_place_t *place, trans_hint_t *hint, int ins
 
 			}
 			
-			plug_call(plug->pl.sdext, init, 
-				  &stat, stath->ext[i]);
+			objcall(&stat, init, stath->ext[i]);
 		}
 
-		if (plug->pl.sdext->info)
-			plug->pl.sdext->info(&stat);
+		if (stat.plug->info)
+			stat.plug->info(&stat);
 		
 		/* Getting pointer to the next extension. It is evaluating as
 		   the previous pointer plus its size. */
-		stat.offset += plug_call(plug->pl.sdext, length, &stat, NULL);
+		stat.offset += objcall(&stat, length, NULL);
 	}
     
 	place_mkdirty(place);
@@ -428,7 +429,6 @@ static int64_t stat40_update_units(reiser4_place_t *place, trans_hint_t *hint) {
 /* Removes stat data extensions marked in passed hint stat data extensions
    mask. Needed for fsck. */
 static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
-	reiser4_plug_t *plug;
 	uint16_t old_extmask = 0;
 	uint16_t new_extmask;
 	uint16_t extsize;
@@ -483,13 +483,16 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 			continue;
 
 		/* Getting extension plugin by extent number. */
-		if (!(plug = stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i))) {
+		stat.plug = (reiser4_sdext_plug_t *)
+			stat40_core->factory_ops.ifind(SDEXT_PLUG_TYPE, i);
+		
+		if (!stat.plug) {
 			aal_error("Can't find stat data extension plugin "
 				 "by its id 0x%x.", i);
 			return -EINVAL;
 		}
 
-		extsize = plug_call(plug->pl.sdext, length, &stat, NULL);
+		extsize = objcall(&stat, length, NULL);
 		
 		if ((((uint64_t)1 << i) & stath->extmask)) {
 			/* Moving the rest of stat data to left in odrer to 
@@ -503,8 +506,8 @@ static errno_t stat40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 			/* Setting pointer to the next extension. */
 			stat.offset += extsize;
 
-			if (plug->pl.sdext->info)
-				plug->pl.sdext->info(&stat);
+			if (stat.plug->info)
+				stat.plug->info(&stat);
 		}
 	}
 	
@@ -570,22 +573,20 @@ static item_debug_ops_t debug_ops = {
 };
 #endif
 
-static reiser4_item_plug_t stat40 = {
+reiser4_item_plug_t stat40_plug = {
+	.p = {
+		.id    = {ITEM_STAT40_ID, STAT_ITEM, ITEM_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "stat40",
+		.desc  = "StatData item plugin.",
+#endif
+	},
+
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
 #ifndef ENABLE_MINIMAL
 	.repair		  = &repair_ops,
 	.debug		  = &debug_ops,
 #endif
-};
 
-reiser4_plug_t stat40_plug = {
-	.id    = {ITEM_STAT40_ID, STAT_ITEM, ITEM_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "stat40",
-	.desc  = "StatData item plugin.",
-#endif
-	.pl = {
-		.item = &stat40
-	}
 };

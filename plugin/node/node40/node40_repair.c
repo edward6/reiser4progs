@@ -374,7 +374,7 @@ int64_t node40_insert_raw(reiser4_node_t *entity, pos_t *pos,
 	aal_assert("vpf-1368", hint != NULL);
 	
 	return node40_modify(entity, pos, hint, 
-			     hint->plug->pl.item->repair->insert_raw);
+			     hint->plug->repair->insert_raw);
 }
 
 errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream) {
@@ -387,7 +387,7 @@ errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream) {
 	aal_assert("umka-2596", entity != NULL);
 	aal_assert("umka-2598", stream != NULL);
 	
-	pid = entity->plug->id.id;
+	pid = entity->plug->p.id.id;
 	aal_stream_write(stream, &pid, sizeof(pid));
 	
 	/* Write node block number. */
@@ -437,13 +437,10 @@ errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream) {
 		if (node40_fetch(entity, pos, &place))
 			return -EINVAL;
 		
-		if (place.plug->pl.item->repair->pack) {
+		if (place.plug->repair->pack) {
 			/* Pack body. */
-			if (plug_call(place.plug->pl.item->repair,
-				      pack, &place, stream))
-			{
+			if (objcall(&place, repair->pack, stream))
 				return -EINVAL;
-			}
 		} else {
 			/* Do not pack body. */
 			aal_stream_write(stream, node40_ib_at(entity, pos->item),
@@ -455,7 +452,7 @@ errno_t node40_pack(reiser4_node_t *entity, aal_stream_t *stream) {
 }
 
 reiser4_node_t *node40_unpack(aal_block_t *block,
-			     reiser4_plug_t *kplug,
+			     reiser4_key_plug_t *kplug,
 			     aal_stream_t *stream)
 {
 	node40_header_t *head;
@@ -527,7 +524,7 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 	
 	/* Set the magic and the pid. */
 	nh_set_magic(entity, NODE40_MAGIC);
-	nh_set_pid(entity, node40_plug.id.id);
+	nh_set_pid(entity, node40_plug.p.id.id);
 	
 	/* All items. */
 	num = nh_get_num_items(entity);
@@ -548,13 +545,10 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 		if (node40_fetch(entity, pos, &place))
 			goto error_free;
 		
-		if (place.plug->pl.item->repair->unpack) {
+		if (place.plug->repair->unpack) {
 			/* Unpack body. */
-			if (plug_call(place.plug->pl.item->repair,
-				      unpack, &place, stream))
-			{
+			if (objcall(&place, repair->unpack, stream))
 				goto error_free_entity;
-			}
 		} else {
 			void *ib = node40_ib_at(entity, pos->item);
 			uint32_t len = node40_len(entity, &place.pos);
@@ -638,20 +632,19 @@ void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 		aal_stream_format(stream, "#%u%s %s (%s): [%s] OFF=%u, "
 				  "LEN=%u, flags=0x%x \n", pos.item,
 				  pos.item >= num ? "D" : " ", place.plug ? 
-				  reiser4_igname[place.plug->id.group] : 
-				  "UNKN", place.plug ? place.plug->label :
+				  reiser4_igname[place.plug->p.id.group] : 
+				  "UNKN", place.plug ? place.plug->p.label :
 				  "UNKN", key, ih_get_offset(ih, pol),
 				  place.len, ih_get_flags(ih, pol));
 
 		/* Printing item by means of calling item print method if it is
 		   implemented. If it is not, then print common item information
 		   like key, len, etc. */
-		if (place.plug && place.plug->pl.item->debug->print &&
+		if (place.plug && place.plug->debug->print &&
 		    place.body - entity->block->data + place.len < 
 		    entity->block->size) 
 		{
-			plug_call(place.plug->pl.item->debug,
-				  print, &place, stream, options);
+			objcall(&place, debug->print, stream, options);
 		}
 	}
 	

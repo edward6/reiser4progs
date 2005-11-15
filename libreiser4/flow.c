@@ -82,8 +82,7 @@ int64_t reiser4_flow_read(reiser4_tree_t *tree, trans_hint_t *hint) {
 			hint->count = size;
 
 			reiser4_node_lock(place.node);
-			read = plug_call(place.plug->pl.item->object,
-					 read_units, &place, hint);
+			read = objcall(&place, object->read_units, hint);
 			reiser4_node_unlock(place.node);
 			
 			/* Read data from the tree */
@@ -187,7 +186,8 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 		hint->blocks = tree->blocks;
 		
 		/* level new item will be inserted a on. */
-		level = reiser4_tree_target_level(tree, hint->plug);
+		level = reiser4_tree_target_level
+			(tree, (reiser4_plug_t *)hint->plug);
 		hint->bytes = 0;
 
 		/* Writing data to tree. */
@@ -214,9 +214,8 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 		if (end - off > 0) {
 			/* Position in the place may be left not updated. 
 			   Lookup the item again. */
-			if ((res = plug_call(place.plug->pl.item->balance,
-					     lookup, &place, &lhint, 
-					     FIND_CONV)) < 0)
+			if ((res = objcall(&place, balance->lookup, 
+					   &lhint, FIND_CONV)) < 0)
 			{
 				return res;
 			}
@@ -287,9 +286,7 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 			if ((res = reiser4_tree_place_key(tree, &place, &tkey)))
 				return res;
 			
-			if (plug_call(tkey.plug->pl.key, compshort,
-				      &tkey, &hint->offset))
-			{
+			if (objcall(&tkey, compshort, &hint->offset)) {
 				/* No data found. */
 				trunc = size;
 			} else {			

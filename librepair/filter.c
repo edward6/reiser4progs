@@ -254,7 +254,7 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 static errno_t cb_count_sd(reiser4_place_t *place, void *data) {
 	repair_filter_t *fd = (repair_filter_t *)data;
 
-	if (place->plug->id.group == STAT_ITEM)
+	if (place->plug->p.id.group == STAT_ITEM)
 		fd->stat.tmp++;
 
 	return 0;

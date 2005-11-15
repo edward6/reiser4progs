@@ -15,18 +15,15 @@ static uint8_t fibre_ext_1_build(char *name, uint32_t len) {
 	return 0;
 }
 
-static reiser4_fibre_plug_t fibre_ext_1 = {
-	.build = fibre_ext_1_build
-};
-
-reiser4_plug_t fibre_ext_1_plug = {
-	.id    = {FIBRE_EXT_1_ID, 0, FIBRE_PLUG_TYPE},
+reiser4_fibre_plug_t fibre_ext_1_plug = {
+	.p = {
+		.id    = {FIBRE_EXT_1_ID, 0, FIBRE_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
-	.label = "ext_1_fibre",
-	.desc  = "1-symbol extention fibration plugin.",
+		.label = "ext_1_fibre",
+		.desc  = "1-symbol extention fibration plugin.",
 #endif
-	.pl = {
-		.fibre = &fibre_ext_1
-	}
+	},
+
+	.build = fibre_ext_1_build
 };
 #endif

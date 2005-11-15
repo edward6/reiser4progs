@@ -18,7 +18,7 @@ typedef struct resolve {
 /* Callback function for finding statdata of the current directory */
 static errno_t cb_find_statdata(char *path, char *entry, void *data) {
 #ifdef ENABLE_SYMLINKS
-	reiser4_plug_t *plug;
+	reiser4_object_plug_t *plug;
 #endif
 	resolve_t *resol;
 	
@@ -38,14 +38,14 @@ static errno_t cb_find_statdata(char *path, char *entry, void *data) {
 	
 	/* Symlinks handling. Method follow() should be implemented if object
 	   wants to be resolved (symlink). */
-	if (resol->follow && plug->pl.object->follow) {
+	if (resol->follow && plug->follow) {
 		errno_t res;
 
 		/* Calling object's follow() in order to get stat data key of
 		   the object that current object points to. */
-		res = plug_call(plug->pl.object, follow, resol->object,
-				(resol->parent ? &resol->parent->info.object :
-				 &resol->tree->key), &resol->key);
+		res = plugcall(plug, follow, resol->object,
+			       (resol->parent ? &resol->parent->info.object :
+				&resol->tree->key), &resol->key);
 
 	        /* Close current object. */
 		reiser4_object_close(resol->object);
@@ -71,7 +71,6 @@ static errno_t cb_find_statdata(char *path, char *entry, void *data) {
 
 /* Callback function to find @name inside the current object. */
 static errno_t cb_find_entry(char *path, char *name, void *data) {
-	reiser4_plug_t *plug;
 	entry_hint_t entry;
 	resolve_t *resol;
 	lookup_t res;
@@ -85,12 +84,12 @@ static errno_t cb_find_entry(char *path, char *name, void *data) {
 		return 0;
 	}
 	
-	plug = reiser4_oplug(resol->object);
-	
 	/* Looking up for @entry in current directory */
-	if ((res = plug_call(plug->pl.object, lookup, 
+	if ((res = plugcall(reiser4_oplug(resol->object), lookup, 
 			     resol->object, name, &entry)) < 0)
+	{
 		return res;
+	}
 	
 	if (res != PRESENT) {
 		if (resol->present) {

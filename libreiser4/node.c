@@ -25,7 +25,7 @@ void reiser4_node_mkclean(reiser4_node_t *node) {
 /* Creates new node at block @nr on @tree with @level and with plugin @pid. Uses
    tree instance for accessing block size and key plugin in use. */
 reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree, 
-				    reiser4_plug_t *plug,
+				    reiser4_node_plug_t *plug,
 				    blk_t nr, uint8_t level)
 {
 	uint32_t size;
@@ -37,27 +37,24 @@ reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
 	aal_assert("vpf-1596", plug != NULL);
 	aal_assert("vpf-1654", tree->fs != NULL);
 	aal_assert("vpf-1655", tree->fs->device != NULL);
-    
+	
 	/* Getting tree tree device and blksize in use to use them for creating
 	   new node. */
 	size = reiser4_tree_get_blksize(tree);
 	device = tree->fs->device;
-
+	
 	/* Allocate new node of @size at @nr. */
 	if (!(block = aal_block_alloc(device, size, nr)))
 		return NULL;
-
+	
 	/* Requesting the plugin for initialization node entity. */
-	if (!(node = plug_call(plug->pl.node, init,
-			       block, level, tree->key.plug)))
-	{
+	if (!(node = plugcall(plug, init, block, level, tree->key.plug)))
 		goto error_free_block;
-	}
-
+	
 	reiser4_place_assign(&node->p, NULL, 0, MAX_UINT32);
-
+	
 	return node;
-
+	
  error_free_block:
 	aal_block_free(block);
 	return NULL;
@@ -158,8 +155,8 @@ reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr) {
 		goto error_free_block;
 	
 	/* Requesting the plugin for initialization of the entity. */
-	if (!(node = plug_call(plug->pl.node, open,
-			       block, tree->key.plug)))
+	if (!(node = plugcall((reiser4_node_plug_t *)plug, 
+			      open, block, tree->key.plug)))
 	{
 		goto error_free_block;
 	}
@@ -191,7 +188,7 @@ errno_t reiser4_node_close(reiser4_node_t *node) {
 	aal_assert("umka-824", node != NULL);
 	aal_assert("umka-2286", node->counter == 0);
 
-	plug_call(node->plug->pl.node, fini, node);
+	objcall(node, fini);
 	return 0;
 }
 
@@ -202,11 +199,9 @@ errno_t reiser4_node_leftmost_key(
 {
 	pos_t pos = {0, MAX_UINT32};
 
-	aal_assert("umka-754", key != NULL);
 	aal_assert("umka-753", node != NULL);
 
-	return plug_call(node->plug->pl.node,
-			 get_key, node, &pos, key);
+	return objcall(node, get_key, &pos, key);
 }
 
 /* This function makes search inside of specified node for passed key. Position
@@ -229,12 +224,9 @@ lookup_t reiser4_node_lookup(reiser4_node_t *node,
 	POS_INIT(pos, 0, MAX_UINT32);
 
 	/* Calling node plugin lookup method */
-	if ((res = plug_call(node->plug->pl.node, lookup,
-			     node, hint, bias, pos)) < 0)
-	{
+	if ((res = objcall(node, lookup, hint, bias, pos)) < 0)
 		return res;
-	}
-
+	
 	/* Wanted key is not key of item. Will look inside found item in order
 	   to find needed unit inside. */
 	if (res == ABSENT) {
@@ -249,7 +241,7 @@ lookup_t reiser4_node_lookup(reiser4_node_t *node,
 		
 		/* We are on the position where key is less then wanted. Key
 		   could lie within the item or after the item. */
-		if (place.plug->pl.item->balance->maxposs_key) {
+		if (place.plug->balance->maxposs_key) {
 			reiser4_item_maxposs_key(&place, &maxkey);
 
 			if (reiser4_key_compfull(hint->key, &maxkey) > 0) {
@@ -259,9 +251,8 @@ lookup_t reiser4_node_lookup(reiser4_node_t *node,
 		}
 	
 		/* Calling lookup method of found item. */
-		if (place.plug->pl.item->balance->lookup) {
-			res = plug_call(place.plug->pl.item->balance,
-					lookup, &place, hint, bias);
+		if (place.plug->balance->lookup) {
+			res = objcall(&place, balance->lookup, hint, bias);
 			
 			pos->unit = place.pos.unit;
 			return res;
@@ -286,8 +277,7 @@ lookup_t reiser4_node_lookup(reiser4_node_t *node,
 uint32_t reiser4_node_items(reiser4_node_t *node) {
 	aal_assert("umka-453", node != NULL);
     
-	return plug_call(node->plug->pl.node, 
-			 items, node);
+	return objcall(node, items);
 }
 
 #ifndef ENABLE_MINIMAL
@@ -295,24 +285,21 @@ uint32_t reiser4_node_items(reiser4_node_t *node) {
 uint16_t reiser4_node_space(reiser4_node_t *node) {
 	aal_assert("umka-455", node != NULL);
     
-	return plug_call(node->plug->pl.node, 
-			 space, node);
+	return objcall(node, space);
 }
 
 /* Returns overhead of specified node */
 uint16_t reiser4_node_overhead(reiser4_node_t *node) {
 	aal_assert("vpf-066", node != NULL);
 
-	return plug_call(node->plug->pl.node, 
-			 overhead, node);
+	return objcall(node, overhead);
 }
 
 /* Returns max space in specified node. */
 uint16_t reiser4_node_maxspace(reiser4_node_t *node) {
 	aal_assert("umka-125", node != NULL);
     
-	return plug_call(node->plug->pl.node, 
-			 maxspace, node);
+	return objcall(node, maxspace);
 }
 
 /* Expands passed @node at @pos by @len */
@@ -320,10 +307,8 @@ errno_t reiser4_node_expand(reiser4_node_t *node, pos_t *pos,
 			    uint32_t len, uint32_t count)
 {
 	aal_assert("umka-1815", node != NULL);
-	aal_assert("umka-1816", pos != NULL);
 
-	return plug_call(node->plug->pl.node,
-			 expand, node, pos, len, count);
+	return objcall(node, expand, pos, len, count);
 }
 
 /* Shrinks passed @node at @pos by @len */
@@ -333,11 +318,8 @@ errno_t reiser4_node_shrink(reiser4_node_t *node, pos_t *pos,
 	errno_t res;
 	
 	aal_assert("umka-1817", node != NULL);
-	aal_assert("umka-1818", pos != NULL);
 
-	if ((res = plug_call(node->plug->pl.node, shrink,
-			     node, pos, len, count)))
-	{
+	if ((res = objcall(node, shrink, pos, len, count))) {
 		aal_error("Node (%llu), pos (%u/%u): can't shrink "
 			  "the node on (%u) bytes.", node->block->nr,
 			  pos->item, pos->unit, len);
@@ -353,20 +335,16 @@ errno_t reiser4_node_shift(reiser4_node_t *node, reiser4_node_t *neig,
 			   shift_hint_t *hint)
 {
 	aal_assert("umka-1225", node != NULL);
-	aal_assert("umka-1226", neig != NULL);
-	aal_assert("umka-1227", hint != NULL);
 
 	/* Trying shift something from @node into @neig. As result insert point
 	   may be shifted too. */
-	return plug_call(node->plug->pl.node, shift,
-			 node, neig, hint);
+	return objcall(node, shift, neig, hint);
 }
 
 errno_t reiser4_node_merge(reiser4_node_t *node, pos_t *pos1, pos_t *pos2) {
 	aal_assert("vpf-1507", node != NULL);
 
-	return plug_call(node->plug->pl.node, 
-			 merge, node, pos1, pos2);
+	return objcall(node, merge, pos1, pos2);
 }
 
 /* Saves passed @node onto device it was opened on */
@@ -377,7 +355,7 @@ errno_t reiser4_node_sync(reiser4_node_t *node) {
 	if (!reiser4_node_isdirty(node)) 
 		return 0;
 	
-	return plug_call(node->plug->pl.node, sync, node);
+	return objcall(node, sync);
 }
 
 /* Updates node keys in recursive maner (needed for updating ldkeys on the all
@@ -386,11 +364,8 @@ errno_t reiser4_node_update_key(reiser4_node_t *node, pos_t *pos,
 				reiser4_key_t *key)
 {
 	aal_assert("umka-999", node != NULL);
-	aal_assert("umka-1000", pos != NULL);
-	aal_assert("umka-1001", key != NULL);
 
-	return plug_call(node->plug->pl.node,
-			 set_key, node, pos, key);
+	return objcall(node, set_key, pos, key);
 }
 
 
@@ -426,7 +401,7 @@ errno_t reiser4_node_insert(reiser4_node_t *node, pos_t *pos,
 	if ((res = node_modify_check(node, pos, hint)))
 		return res;
 	
-	return plug_call(node->plug->pl.node, insert, node, pos, hint);
+	return objcall(node, insert, pos, hint);
 }
 
 int64_t reiser4_node_write(reiser4_node_t *node, pos_t *pos,
@@ -434,14 +409,12 @@ int64_t reiser4_node_write(reiser4_node_t *node, pos_t *pos,
 {
 	errno_t res;
 
-	aal_assert("umka-2446", pos != NULL);
-	aal_assert("umka-2447", hint != NULL);
 	aal_assert("umka-2445", node != NULL);
 
 	if ((res = node_modify_check(node, pos, hint)))
 		return res;
 
-	return plug_call(node->plug->pl.node, write, node, pos, hint);
+	return objcall(node, write, pos, hint);
 }
 
 /* Deletes item or unit from cached node. Keeps track of changes of the left
@@ -450,50 +423,44 @@ errno_t reiser4_node_remove(reiser4_node_t *node, pos_t *pos,
 			    trans_hint_t *hint)
 {
 	aal_assert("umka-993", node != NULL);
-	aal_assert("umka-994", pos != NULL);
-	aal_assert("umka-2391", hint != NULL);
 
 	/* Removing item or unit. We assume that we remove whole item if unit
 	   component is set to MAX_UINT32. Otherwise we remove unit. */
-	return plug_call(node->plug->pl.node,
-			 remove, node, pos, hint);
+	return objcall(node, remove, pos, hint);
 }
 
 int64_t reiser4_node_trunc(reiser4_node_t *node, pos_t *pos,
 			   trans_hint_t *hint)
 {
 	aal_assert("umka-2503", node != NULL);
-	aal_assert("umka-2504", pos != NULL);
-	aal_assert("umka-2505", hint != NULL);
 	
-	return plug_call(node->plug->pl.node,
-			 trunc, node, pos, hint);
+	return objcall(node, trunc, pos, hint);
 }
 
 void reiser4_node_set_mstamp(reiser4_node_t *node, uint32_t stamp) {
 	aal_assert("vpf-646", node != NULL);
 
-	if (node->plug->pl.node->set_mstamp)
-		node->plug->pl.node->set_mstamp(node, stamp);
+	if (node->plug->set_mstamp)
+		node->plug->set_mstamp(node, stamp);
 }
 
 void reiser4_node_set_fstamp(reiser4_node_t *node, uint64_t stamp) {
 	aal_assert("vpf-648", node != NULL);
 	
-	if (node->plug->pl.node->get_fstamp)
-		node->plug->pl.node->set_fstamp(node, stamp);
+	if (node->plug->get_fstamp)
+		node->plug->set_fstamp(node, stamp);
 }
 
 void reiser4_node_set_level(reiser4_node_t *node, uint8_t level) {
 	aal_assert("umka-1863", node != NULL);
-	plug_call(node->plug->pl.node, set_level, node, level);
+	objcall(node, set_level, level);
 }
 
 uint32_t reiser4_node_get_mstamp(reiser4_node_t *node) {
 	aal_assert("vpf-562", node != NULL);
 	
-	if (node->plug->pl.node->get_mstamp)
-		return node->plug->pl.node->get_mstamp(node);
+	if (node->plug->get_mstamp)
+		return node->plug->get_mstamp(node);
 	
 	return 0;
 }
@@ -501,8 +468,8 @@ uint32_t reiser4_node_get_mstamp(reiser4_node_t *node) {
 uint64_t reiser4_node_get_fstamp(reiser4_node_t *node) {
 	aal_assert("vpf-647", node != NULL);
 
-	if (node->plug->pl.node->get_fstamp)
-		node->plug->pl.node->get_fstamp(node);
+	if (node->plug->get_fstamp)
+		node->plug->get_fstamp(node);
 
 	return 0;
 }
@@ -512,6 +479,5 @@ uint64_t reiser4_node_get_fstamp(reiser4_node_t *node) {
 uint8_t reiser4_node_get_level(reiser4_node_t *node) {
 	aal_assert("umka-1642", node != NULL);
     
-	return plug_call(node->plug->pl.node, 
-			 get_level, node);
+	return objcall(node, get_level);
 }

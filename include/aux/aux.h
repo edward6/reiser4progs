@@ -24,4 +24,9 @@ extern int aux_bin_search(void *array, uint32_t count, void *needle,
 extern uint64_t aux_pack_string(char *buff, uint32_t start);
 extern char *aux_unpack_string(uint64_t value, char *buff);
 
+extern unsigned int aux_adler32(unsigned int adler, 
+				char *buff, 
+				unsigned int n);
+
+
 #endif

@@ -161,7 +161,15 @@ extern void sdext_plug_print(stat_entity_t *stat,
 
 #endif
 
-static reiser4_sdext_plug_t sdext_plug = {
+reiser4_sdext_plug_t sdext_plug_plug = {
+	.p = {
+		.id    = {SDEXT_PLUG_ID, 0, SDEXT_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "sdext_plug",
+		.desc  = "Plugin id stat data extension plugin.",
+#endif
+	},
+
 	.open	 	= sdext_plug_open,
 #ifndef ENABLE_MINIMAL
 	.init	 	= sdext_plug_init,
@@ -170,15 +178,4 @@ static reiser4_sdext_plug_t sdext_plug = {
 	.check_struct   = sdext_plug_check_struct,
 #endif
 	.length	 	= sdext_plug_length
-};
-
-reiser4_plug_t sdext_plug_plug = {
-	.id    = {SDEXT_PLUG_ID, 0, SDEXT_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "sdext_plug",
-	.desc  = "Plugin id stat data extension plugin.",
-#endif
-	.pl = {
-		.sdext = &sdext_plug
-	}
 };

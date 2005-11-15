@@ -82,8 +82,7 @@ blk_t reiser4_tree_get_root(reiser4_tree_t *tree) {
 	aal_assert("umka-2414", tree->fs != NULL);
 	aal_assert("umka-2415", tree->fs->format != NULL);
 
-	return plug_call(tree->fs->format->ent->plug->pl.format, 
-			 get_root, tree->fs->format->ent);
+	return reiser4call(tree->fs->format, get_root);
 }
 
 #ifndef ENABLE_MINIMAL
@@ -93,8 +92,7 @@ uint8_t reiser4_tree_get_height(reiser4_tree_t *tree) {
 	aal_assert("umka-2418", tree->fs != NULL);
 	aal_assert("umka-2419", tree->fs->format != NULL);
 
-	return plug_call(tree->fs->format->ent->plug->pl.format, 
-			 get_height, tree->fs->format->ent);
+	return reiser4call(tree->fs->format, get_height);
 }
 
 /* As @node already lies in @tree->nodes hash table and it is going to change
@@ -860,11 +858,11 @@ errno_t reiser4_tree_next_key(reiser4_tree_t *tree,
 reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 					uint8_t level)
 {
+	reiser4_node_plug_t *plug;
 	reiser4_node_t *node;
 	uint32_t stamp;
 	errno_t res;
 	blk_t blk;
-	
 	
 	reiser4_format_t *format;
     
@@ -877,11 +875,11 @@ reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	/* Setting up of the free blocks in format. */
 	if ((res = reiser4_format_dec_free(format, 1)))
 		return NULL;
-
+	
+	plug = (reiser4_node_plug_t *)tree->ent.tpset[TPSET_NODE];
+	
 	/* Creating new node. */
-	if (!(node = reiser4_node_create(tree, tree->ent.tpset[TPSET_NODE],
-					 blk, level))) 
-	{
+	if (!(node = reiser4_node_create(tree, plug, blk, level))) {
 		aal_error("Can't initialize new fake node.");
 		return NULL;
 	}
@@ -1015,7 +1013,7 @@ errno_t reiser4_tree_root_key(reiser4_tree_t *tree,
 	aal_assert("umka-1949", tree != NULL);
 	aal_assert("umka-1950", key != NULL);
 
-	key->plug = tree->ent.tpset[TPSET_KEY];
+	key->plug = (reiser4_key_plug_t *)tree->ent.tpset[TPSET_KEY];
 	
 #ifndef ENABLE_MINIMAL
 	locality = reiser4_oid_root_locality(tree->fs->oid);
@@ -1024,8 +1022,8 @@ errno_t reiser4_tree_root_key(reiser4_tree_t *tree,
 	locality = REISER4_ROOT_LOCALITY;
 	objectid = REISER4_ROOT_OBJECTID;
 #endif
-	return plug_call(key->plug->pl.key, build_generic, key,
-			 KEY_STATDATA_TYPE, locality, 0, objectid, 0);
+	return objcall(key, build_generic, KEY_STATDATA_TYPE, 
+		       locality, 0, objectid, 0);
 }
 
 #ifndef ENABLE_MINIMAL
@@ -1176,19 +1174,15 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 		int first_time = 1;
 
 
-		if (plug_call(place->plug->pl.item->object,
-			      fetch_units, place, &hint) != 1)
-		{
+		if (objcall(place, object->fetch_units, &hint) != 1)
 			return -EIO;
-		}
 
 		/* Check if we have accessed unallocated extent. */
 		if (ptr.start != EXTENT_UNALLOC_UNIT)
 			continue;
 
 		/* Getting unit key. */
-		plug_call(place->plug->pl.item->balance,
-			  fetch_key, place, &key);
+		objcall(place, balance->fetch_key, &key);
 
 		/* Loop until all units get allocated. */
 		for (blocks = 0, width = ptr.width; width > 0; width -= ptr.width) {
@@ -1207,8 +1201,8 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 				flags = reiser4_item_get_flags(place);
 
 				/* Updating extent unit at @place->pos.unit. */
-				if (plug_call(place->plug->pl.item->object,
-					      update_units, place, &hint) != 1)
+				if (objcall(place, object->update_units, 
+					    &hint) != 1)
 				{
 					return -EIO;
 				}
@@ -1262,11 +1256,9 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 				aal_hash_table_remove(tree->blocks, &key);
 
 				/* Updating the key to find next data block */
-				offset = plug_call(key.plug->pl.key,
-						   get_offset, &key);
+				offset = objcall(&key, get_offset);
 
-				plug_call(key.plug->pl.key, set_offset,
-					  &key, offset + blksize);
+				objcall(&key, set_offset, offset + blksize);
 			}
 			
 			blocks += ptr.width;
@@ -1313,7 +1305,7 @@ static errno_t cb_nodeptr_adjust(reiser4_tree_t *tree, reiser4_place_t *place) {
 	   we have to do so, considering, that this is up to tree to know about
 	   items type in it. Probably this is why tree should be plugin too to
 	   handle things like this in more flexible manner. */
-	if (place->plug->id.group != EXTENT_ITEM) 
+	if (place->plug->p.id.group != EXTENT_ITEM) 
 		return 0;
 	
 	/* Allocating unallocated extent item at @place. */
@@ -1629,7 +1621,7 @@ lookup_t reiser4_tree_collision(reiser4_tree_t *tree,
 		return PRESENT;
 	
 	/* If type does not match, there is no collision found. */
-	if (place->plug->id.group != hint->type)
+	if (place->plug->p.id.group != hint->type)
 		return PRESENT;
 
 	/* Key collisions handling. Sequentional search by name. */	
@@ -1705,7 +1697,7 @@ static errno_t reiser4_tree_collision_start(reiser4_tree_t *tree,
 			   get out here. This clause is needed for the case 
 			   of corruption when not directory item has a NAME 
 			   minor. */
-			if (walk.plug->pl.item->balance->maxposs_key) {
+			if (walk.plug->balance->maxposs_key) {
 				reiser4_key_t maxkey;
 
 				reiser4_item_maxposs_key(&walk, &maxkey);
@@ -1716,13 +1708,13 @@ static errno_t reiser4_tree_collision_start(reiser4_tree_t *tree,
 			
                         /* If item's lookup is implemented, we use it. Item key
                            comparing is used otherwise. */
-                        if (walk.plug->pl.item->balance->lookup) {
+                        if (walk.plug->balance->lookup) {
 				lookup_hint_t lhint;
 
 				lhint.key = key;
 				
-                                switch (plug_call(walk.plug->pl.item->balance,
-                                                  lookup, &walk, &lhint, FIND_EXACT))
+                                switch (objcall(&walk, balance->lookup, 
+						&lhint, FIND_EXACT))
                                 {
                                 case PRESENT:
                                         aal_memcpy(place, &walk, sizeof(*place));
@@ -1972,7 +1964,7 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
 	hint.count = 1;
 	hint.specific = &ptr;
 	hint.shift_flags = flags;
-	hint.plug = tree->ent.tpset[TPSET_NODEPTR];
+	hint.plug = (reiser4_item_plug_t *)tree->ent.tpset[TPSET_NODEPTR];
 
 	ptr.width = 1;
 	ptr.start = node->block->nr;
@@ -2989,15 +2981,13 @@ static errno_t cb_tree_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 	hint->len = 0;
 	hint->overhead = 0;
 
-	return plug_call(hint->plug->pl.item->object,
-			 prep_insert, place, hint);
+	return plugcall(hint->plug->object, prep_insert, place, hint);
 }
 
 static errno_t cb_tree_insert(reiser4_node_t *node, pos_t *pos, 
 			      trans_hint_t *hint) 
 {
-	return plug_call(node->plug->pl.node, 
-			 insert, node, pos, hint);
+	return objcall(node, insert, pos, hint);
 }
 
 /* Inserts data to the tree. This function is used for inserting items which are
@@ -3017,15 +3007,13 @@ static errno_t cb_tree_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 	hint->len = 0;
 	hint->overhead = 0;
 
-	return plug_call(hint->plug->pl.item->object,
-			 prep_write, place, hint);
+	return plugcall(hint->plug->object, prep_write, place, hint);
 }
 
 static errno_t cb_tree_write(reiser4_node_t *node, 
 			     pos_t *pos, trans_hint_t *hint) 
 {
-	return plug_call(node->plug->pl.node, 
-			 write, node, pos, hint);
+	return objcall(node, write, pos, hint);
 }
 
 int64_t reiser4_tree_write(reiser4_tree_t *tree, reiser4_place_t *place,

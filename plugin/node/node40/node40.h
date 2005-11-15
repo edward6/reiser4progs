@@ -12,7 +12,7 @@
 
 #define NODE40_MAGIC 0x52344653
 
-extern reiser4_plug_t node40_plug;
+extern reiser4_node_plug_t node40_plug;
 
 /* Format of node header for node_common */
 typedef struct node40_header {

@@ -94,21 +94,21 @@ errno_t reiser4_master_layout(reiser4_master_t *master,
 
 /* Callback function for comparing plugins */
 static errno_t cb_guess_format(
-	reiser4_plug_t *plug,        /* plugin to be checked */
-	void *data)		     /* needed plugin type */
+	reiser4_plug_t *plug,		/* plugin to be checked */
+	void *data)			/* needed plugin type */
 {
 	if (plug->id.type == FORMAT_PLUG_TYPE) {
-		generic_entity_t *entity;
+		reiser4_format_ent_t *entity;
 		aal_device_t *device;
 		uint32_t blksize;
 
 		device = (aal_device_t *)data;
 		blksize = sysconf(_SC_PAGESIZE);
 		
-		if ((entity = plug_call(plug->pl.format, open, 
-					device, blksize)))
+		if ((entity = plugcall((reiser4_format_plug_t *)plug, 
+				       open, device, blksize))) 
 		{
-			plug_call(plug->pl.format, close, entity);
+			plugcall((reiser4_format_plug_t *)plug, close, entity);
 			return 1;
 		}
 	}

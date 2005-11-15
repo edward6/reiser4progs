@@ -14,7 +14,7 @@
 #define CRC_SIZE (4)
 
 typedef struct alloc40 {
-	reiser4_plug_t *plug;
+	reiser4_alloc_plug_t *plug;
 	
 	uint32_t state;
 	uint32_t blksize;
@@ -27,12 +27,14 @@ typedef struct alloc40 {
 	void *data;
 } alloc40_t;
 
-extern reiser4_plug_t alloc40_plug;
+#define PLUG_ENT(p) ((alloc40_t *)p)
 
-extern int alloc40_occupied(generic_entity_t *entity, 
+extern reiser4_alloc_plug_t alloc40_plug;
+
+extern int alloc40_occupied(reiser4_alloc_ent_t *entity, 
 			    uint64_t start, uint64_t count);
 
-extern errno_t alloc40_layout(generic_entity_t *entity,
+extern errno_t alloc40_layout(reiser4_alloc_ent_t *entity,
 			      region_func_t region_func,
 			      void *data);
 

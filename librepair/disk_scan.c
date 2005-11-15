@@ -52,7 +52,7 @@ static void repair_disk_scan_update(repair_ds_t *ds) {
 static errno_t cb_count_sd(reiser4_place_t *place, void *data) {
 	repair_ds_t *ds = (repair_ds_t *)data;
 
-	if (place->plug->id.group == STAT_ITEM)
+	if (place->plug->p.id.group == STAT_ITEM)
 		ds->stat.tmp++;
 
 	return 0;

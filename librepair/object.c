@@ -16,10 +16,11 @@ errno_t repair_object_check_struct(reiser4_object_t *object,
 	
 	aal_assert("vpf-1044", object != NULL);
 	
-	if ((res = plug_call(reiser4_oplug(object)->pl.object,
-			     check_struct, object, place_func, 
-			     data, mode)) < 0)
+	if ((res = plugcall(reiser4_oplug(object), check_struct, 
+			    object, place_func, data, mode)) < 0)
+	{
 		return res;
+	}
 	
 	aal_assert("vpf-1195", mode != RM_BUILD ||
 			      !(res & RE_FATAL));
@@ -51,7 +52,7 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	aal_memcpy(&object->info.object, key, sizeof(*key));
 	
 	object->info.tree = (tree_entity_t *)tree;
-	reiser4_oplug(object) = plug;
+	object->info.opset.plug[OPSET_OBJ] = plug;
 	object->info.opset.plug_mask |= (1 << OPSET_OBJ);
 
 	if (parent) {
@@ -60,8 +61,8 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 			   sizeof(object->info.parent));
 		
 		/* Inherit from the parent. */
-		if (plug_call(object->info.opset.plug[OPSET_OBJ]->pl.object,
-			      inherit, &object->info, &parent->info))
+		if (plugcall(reiser4_oplug(object), inherit, 
+			     &object->info, &parent->info))
 		{
 			return NULL;
 		}
@@ -70,7 +71,7 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	}
 	
 	/* Create the fake object. */
-	if (plug_call(plug->pl.object, fake, object)) {
+	if (plugcall((reiser4_object_plug_t *)plug, fake, object)) {
 		aal_free(object);
 		return NULL;
 	}
@@ -93,9 +94,7 @@ reiser4_object_t *repair_object_open(reiser4_tree_t *tree,
 		return INVAL_PTR;
 	}
 	
-	if ((res = plug_call(reiser4_oplug(object)->pl.object,
-			     recognize, object)))
-	{
+	if ((res = plugcall(reiser4_oplug(object), recognize, object))) {
 		aal_free(object);
 		return res < 0 ? INVAL_PTR : NULL;
 	}
@@ -131,9 +130,7 @@ reiser4_object_t *repair_object_obtain(reiser4_tree_t *tree,
 		return NULL;
 	}
 	
-	if ((res = plug_call(reiser4_oplug(object)->pl.object, 
-			     recognize, object)))
-	{
+	if ((res = plugcall(reiser4_oplug(object), recognize, object))) {
 		aal_free(object);
 		return res < 0 ? INVAL_PTR : NULL;
 	}
@@ -150,11 +147,11 @@ errno_t repair_object_check_attach(reiser4_object_t *parent,
 	aal_assert("vpf-1188", object != NULL);
 	aal_assert("vpf-1099", parent != NULL);
 	
-	if (!reiser4_oplug(object)->pl.object->check_attach)
+	if (!reiser4_oplug(object)->check_attach)
 		return 0;
 	
-	return plug_call(reiser4_oplug(object)->pl.object, check_attach, 
-			 object, parent, place_func, data, mode);
+	return plugcall(reiser4_oplug(object), check_attach, 
+			object, parent, place_func, data, mode);
 }
 
 errno_t repair_object_mark(reiser4_object_t *object, uint16_t flag) {
@@ -214,11 +211,10 @@ errno_t repair_object_refresh(reiser4_object_t *object) {
 	
 	aal_assert("vpf-1271", object != NULL);
 
-	if (!reiser4_oplug(object)->pl.object->lookup)
+	if (!reiser4_oplug(object)->lookup)
 		return 0;
 
-	switch (plug_call(reiser4_oplug(object)->pl.object, 
-			  lookup, object, "..", &entry)) 
+	switch (plugcall(reiser4_oplug(object), lookup, object, "..", &entry))
 	{
 	case ABSENT:
 		aal_memset(&object->info.parent, 0, 

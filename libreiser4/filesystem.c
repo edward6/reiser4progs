@@ -290,11 +290,12 @@ reiser4_fs_t *reiser4_fs_create(
 	key = reiser4_profile_plug(PROF_KEY);
 	
 	/* Creates disk format. */
-	if (!(fs->format = reiser4_format_create(fs, format, policy->id.id, 
-						 key->id.id, hint->blocks)))
-	{
+	
+	fs->format = reiser4_format_create(fs, (reiser4_format_plug_t *)format,
+					   policy->id.id, key->id.id, 
+					   hint->blocks);
+	if (!fs->format) 
 		goto error_free_status;
-	}
 
 	/* Creates block allocator */
 	if (!(fs->alloc = reiser4_alloc_create(fs, hint->blocks)))

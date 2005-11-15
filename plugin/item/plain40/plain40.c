@@ -96,22 +96,19 @@ static item_debug_ops_t debug_ops = {
 };
 #endif
 
-static reiser4_item_plug_t plain40 = {
+reiser4_item_plug_t plain40_plug = {
+	.p = {
+		.id    = {ITEM_PLAIN40_ID, TAIL_ITEM, ITEM_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "plain40",
+		.desc  = "Plain file body item plugin.",
+#endif
+	},
+	
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
 #ifndef ENABLE_MINIMAL
 	.repair		  = &repair_ops,
 	.debug		  = &debug_ops,
 #endif
-};
-
-reiser4_plug_t plain40_plug = {
-	.id    = {ITEM_PLAIN40_ID, TAIL_ITEM, ITEM_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "plain40",
-	.desc  = "Plain file body item plugin.",
-#endif
-	.pl = {
-		.item = &plain40
-	}
 };

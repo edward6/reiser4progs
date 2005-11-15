@@ -127,7 +127,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 			  "not look like a valid (%s) statdata extention.",
 			  place_blknr(place), place->pos.item,
 			  print_key(sdext_plug_core, &place->key),
-			  stat->ext_plug->label);
+			  stat->plug->p.label);
 		return RE_FATAL;
 	}
 	

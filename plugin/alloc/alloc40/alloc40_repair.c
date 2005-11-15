@@ -9,7 +9,7 @@
 #include <repair/plugin.h>
 
 typedef struct alloc40_hint {
-	alloc40_t *alloc;
+	reiser4_alloc_ent_t *alloc;
 	region_func_t func;
 	void *data;
 } alloc40_hint_t;
@@ -27,9 +27,7 @@ static errno_t cb_check_layout(blk_t start, count_t width, void *data) {
 	
 	/* If bitmap block looks corrupted or the very first bit 
 	   is not set, call func for the region. */
-	if (res || !alloc40_occupied((generic_entity_t *)hint->alloc,
-				     start, 1))
-	{
+	if (res || !alloc40_occupied(hint->alloc, start, 1)) {
 		if ((res = hint->func(start, width, hint->data)))
 			return res;
 	}
@@ -37,7 +35,7 @@ static errno_t cb_check_layout(blk_t start, count_t width, void *data) {
 	return 0;
 }
 
-errno_t alloc40_layout_bad(generic_entity_t *entity,
+errno_t alloc40_layout_bad(reiser4_alloc_ent_t *entity,
 			   region_func_t func, void *data)
 {
 	alloc40_hint_t hint;
@@ -45,8 +43,8 @@ errno_t alloc40_layout_bad(generic_entity_t *entity,
 	aal_assert("umka-2646", entity != NULL);
 	aal_assert("vpf-1323", func != NULL);
 	
-	hint.alloc = (alloc40_t *)entity;
-	hint.alloc->data = NULL;
+	hint.alloc = entity;
+	PLUG_ENT(hint.alloc)->data = NULL;
 	hint.func = func;
 	hint.data = data;
 	
@@ -124,7 +122,7 @@ static errno_t cb_unpack_bitmap(blk_t start, count_t width, void *data)
 }
 
 /* Pack block allocator data to passed @stream. */
-errno_t alloc40_pack(generic_entity_t *entity,
+errno_t alloc40_pack(reiser4_alloc_ent_t *entity,
 		     aal_stream_t *stream)
 {
 	errno_t res;
@@ -150,7 +148,7 @@ errno_t alloc40_pack(generic_entity_t *entity,
 }
 
 /* Create block allocator from passed @stream. */
-generic_entity_t *alloc40_unpack(aal_device_t *device, 
+reiser4_alloc_ent_t *alloc40_unpack(aal_device_t *device, 
 				 uint32_t blksize,
 				 aal_stream_t *stream)
 {
@@ -193,7 +191,7 @@ generic_entity_t *alloc40_unpack(aal_device_t *device,
 	/* Calling layout() function for reading all bitmap blocks to
 	   @alloc->bitmap. */
 	alloc->data = stream;
-	if (alloc40_layout((generic_entity_t *)alloc, 
+	if (alloc40_layout((reiser4_alloc_ent_t *)alloc, 
 			   cb_unpack_bitmap, alloc))
 	{
 		aal_error("Can't unpack bitmap.");
@@ -203,7 +201,7 @@ generic_entity_t *alloc40_unpack(aal_device_t *device,
 	alloc->state = (1 << ENTITY_DIRTY);
 	reiser4_bitmap_calc_marked(alloc->bitmap);
 	
-	return (generic_entity_t *)alloc;
+	return (reiser4_alloc_ent_t *)alloc;
 
  error_free_crc:
 	aal_free(alloc->crc);
@@ -241,7 +239,7 @@ static errno_t cb_print_bitmap(blk_t start, count_t width, void *data) {
 }
 
 /* Handler for "print" method. */
-void alloc40_print(generic_entity_t *entity, 
+void alloc40_print(reiser4_alloc_ent_t *entity, 
 		   aal_stream_t *stream, 
 		   uint16_t options)
 {
@@ -260,7 +258,7 @@ void alloc40_print(generic_entity_t *entity,
 	aal_stream_format(stream, "Block allocator:\n");
 	
 	aal_stream_format(stream, "plugin:\t\t%s\n",
-			  alloc->plug->label);
+			  entity->plug->p.label);
 
 	aal_stream_format(stream, "total blocks:\t%llu\n",
 			  alloc->bitmap->total);
@@ -277,8 +275,7 @@ void alloc40_print(generic_entity_t *entity,
 
 	/* Calling alloc40_layout() in order to print all block checksums */
 	alloc->data = stream;
-	alloc40_layout((generic_entity_t *)alloc, 
-		       cb_print_bitmap, alloc);
+	alloc40_layout(entity, cb_print_bitmap, alloc);
 	
 	start = 0;
 	total = alloc->bitmap->total;
@@ -307,7 +304,7 @@ static void cb_inval_warn(blk_t start, uint32_t ladler, uint32_t cadler) {
 }
 
 /* Checks allocator on validness  */
-errno_t alloc40_check_struct(generic_entity_t *entity, uint8_t mode) {
+errno_t alloc40_check_struct(reiser4_alloc_ent_t *entity, uint8_t mode) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 	errno_t res;
 
@@ -317,8 +314,7 @@ errno_t alloc40_check_struct(generic_entity_t *entity, uint8_t mode) {
 	/* Calling layout function for traversing all the bitmap blocks with
 	   checking callback function. */
 	alloc->data = cb_inval_warn;
-	res = alloc40_layout((generic_entity_t *)alloc,
-			     cb_valid_block, alloc);
+	res = alloc40_layout(entity, cb_valid_block, alloc);
 
 	if (res != -ESTRUCT)
 		return res;

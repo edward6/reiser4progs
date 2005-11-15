@@ -20,12 +20,14 @@ extern reiser4_core_t *obj40_core;
 #define STAT_PLACE(o) \
         (&((o)->info.start))
 
+/* Returns the file position offset. */
+static inline uint64_t obj40_offset(reiser4_object_t *obj) {
+	return objcall(&obj->position, get_offset);
+}
+
 extern errno_t obj40_fini(reiser4_object_t *obj);
 extern errno_t obj40_update(reiser4_object_t *obj);
 
-extern oid_t obj40_objectid(reiser4_object_t *obj);
-extern oid_t obj40_locality(reiser4_object_t *obj);
-extern uint64_t obj40_ordering(reiser4_object_t *obj);
 extern uint64_t obj40_get_size(reiser4_object_t *obj);
 
 extern bool_t obj40_valid_item(reiser4_place_t *place);
@@ -51,7 +53,6 @@ extern errno_t obj40_save_stat(reiser4_object_t *obj, stat_hint_t *hint);
 extern errno_t obj40_open(reiser4_object_t *obj);
 extern errno_t obj40_seek(reiser4_object_t *obj, uint64_t offset);
 extern errno_t obj40_reset(reiser4_object_t *obj);
-extern uint64_t obj40_offset(reiser4_object_t *obj);
 
 typedef errno_t (*obj_func_t) (reiser4_object_t *, void *);
 
@@ -113,14 +114,14 @@ extern int64_t obj40_write(reiser4_object_t *obj,
 			   void *buff,
 			   uint64_t off, 
 			   uint64_t count, 
-			   reiser4_plug_t *item_plug, 
+			   reiser4_item_plug_t *item_plug, 
 			   place_func_t func,
 			   void *data);
 
 extern int64_t obj40_convert(reiser4_object_t *obj, conv_hint_t *hint);
 
-extern int64_t obj40_truncate(reiser4_object_t *obj,
-			      uint64_t n, reiser4_plug_t *item_plug);
+extern int64_t obj40_truncate(reiser4_object_t *obj, uint64_t n, 
+			      reiser4_item_plug_t *item_plug);
 
 extern errno_t obj40_stat_unix_init(stat_hint_t *stat, 
 				    sdhint_unix_t *unixh, 

@@ -7,7 +7,7 @@
 
 errno_t ln_cmd(busy_ctx_t *ctx) {
 	reiser4_object_t *parent, *object;
-	reiser4_plug_t *plug;
+	reiser4_object_plug_t *plug;
 	entry_hint_t entry;
 	lookup_t res;
 	char *name;
@@ -45,10 +45,9 @@ errno_t ln_cmd(busy_ctx_t *ctx) {
 	
 	/* Looking up for @entry in current directory */
 	plug = reiser4_oplug(parent);
-	if ((res = plug_call(plug->pl.object, lookup, 
-			     parent, name, &entry)) < 0)
+	if ((res = plugcall(plug, lookup, parent, name, &entry)) < 0)
 		goto error_close_parent;
-
+	
 	if (res == PRESENT) {
 		aal_error("The file %s already exists.", ctx->out.path);
 		goto error_close_parent;

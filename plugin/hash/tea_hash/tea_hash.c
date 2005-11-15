@@ -141,18 +141,15 @@ uint64_t tea_hash_build(unsigned char *name, uint32_t len) {
 	return h0 ^ h1;
 }
 
-static reiser4_hash_plug_t tea_hash = {
-	.build = tea_hash_build
-};
-
-reiser4_plug_t tea_hash_plug = {
-	.id = {HASH_TEA_ID, 0, HASH_PLUG_TYPE},
+reiser4_hash_plug_t tea_hash_plug = {
+	.p = {
+		.id = {HASH_TEA_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
-	.label = "tea_hash",
-	.desc  = "Tea hash plugin.",
+		.label = "tea_hash",
+		.desc  = "Tea hash plugin.",
 #endif
-	.pl = {
-		.hash = &tea_hash
-	}
+	},
+	
+	.build = tea_hash_build
 };
 #endif

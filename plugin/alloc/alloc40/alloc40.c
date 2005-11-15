@@ -6,7 +6,7 @@
    reiser4_bitmap from the libaux. */
 
 #ifndef ENABLE_MINIMAL
-#include <misc/misc.h>
+#include <aux/aux.h>
 
 #include "alloc40.h"
 #include "alloc40_repair.h"
@@ -14,43 +14,40 @@
 #define ALLOC40_BLOCKNR(blksize) \
         (REISER4_MASTER_BLOCKNR(blksize) + 2)
 
-static uint32_t alloc40_get_state(generic_entity_t *entity) {
+static uint32_t alloc40_get_state(reiser4_alloc_ent_t *entity) {
 	aal_assert("umka-2084", entity != NULL);
-	return ((alloc40_t *)entity)->state;
+	return PLUG_ENT(entity)->state;
 }
 
-static void alloc40_set_state(generic_entity_t *entity,
+static void alloc40_set_state(reiser4_alloc_ent_t *entity,
 			      uint32_t state)
 {
 	aal_assert("umka-2085", entity != NULL);
-	((alloc40_t *)entity)->state = state;
+	PLUG_ENT(entity)->state = state;
 }
 
 /* Calls func for each block allocator block. This function is used in all block
    block allocator operations like load, save, etc. */
-errno_t alloc40_layout(generic_entity_t *entity,
+errno_t alloc40_layout(reiser4_alloc_ent_t *entity,
 		       region_func_t region_func,
 		       void *data) 
 {
 	count_t bpb;
 	errno_t res = 0;
-	alloc40_t *alloc;
 	blk_t blk, start;
 	
 	aal_assert("umka-347", entity != NULL);
 	aal_assert("umka-348", region_func != NULL);
 
-	alloc = (alloc40_t *)entity;
-
 	/* Calculating block-per-bitmap value. I mean the number of blocks one
 	   bitmap block describes. It is calulating such maner because we should
 	   count also four bytes for checksum at the beginning of each bitmap
 	   block. */
-	bpb = (alloc->blksize - CRC_SIZE) * 8;
-	start = ALLOC40_BLOCKNR(alloc->blksize);
+	bpb = (PLUG_ENT(entity)->blksize - CRC_SIZE) * 8;
+	start = ALLOC40_BLOCKNR(PLUG_ENT(entity)->blksize);
 
 	/* Loop though the all bitmap blocks. */
-	for (blk = start; blk < start + alloc->bitmap->total;
+	for (blk = start; blk < start + PLUG_ENT(entity)->bitmap->total;
 	     blk = ((blk / bpb) + 1) * bpb) 
 	{
 		res |= region_func(blk, 1, data);
@@ -113,9 +110,9 @@ static errno_t cb_fetch_bitmap(blk_t start, count_t width, void *data) {
 /* Initializing block allocator instance and loads bitmap into it from the
    passed @device. This functions is implementation of alloc_ops.open() plugin
    method. */
-static generic_entity_t *alloc40_open(aal_device_t *device, 
-				      uint32_t blksize, 
-				      uint64_t blocks) 
+static reiser4_alloc_ent_t *alloc40_open(aal_device_t *device, 
+					 uint32_t blksize, 
+					 uint64_t blocks) 
 {
 	alloc40_t *alloc;
 	uint32_t crcsize;
@@ -151,14 +148,14 @@ static generic_entity_t *alloc40_open(aal_device_t *device,
 
 	/* Calling alloc40_layout() method with fetch_bitmap() callback to load
 	   all bitmap blocks. */
-	if (alloc40_layout((generic_entity_t *)alloc, cb_fetch_bitmap, alloc)) {
+	if (alloc40_layout((reiser4_alloc_ent_t *)alloc, cb_fetch_bitmap, alloc)) {
 		aal_error("Can't load ondisk bitmap.");
 		goto error_free_bitmap;
 	}
 
 	/* Updating bitmap counters (free blocks, etc) */
 	reiser4_bitmap_calc_marked(alloc->bitmap);
-	return (generic_entity_t *)alloc;
+	return (reiser4_alloc_ent_t *)alloc;
 
  error_free_bitmap:
 	reiser4_bitmap_close(alloc->bitmap);
@@ -171,9 +168,9 @@ static generic_entity_t *alloc40_open(aal_device_t *device,
    caller (block allocator in libreiser4). This function does almost the same as
    alloc40_open(). The difference is that it does not load bitmap from the
    passed device. */
-static generic_entity_t *alloc40_create(aal_device_t *device, 
-					uint32_t blksize, 
-					uint64_t blocks) 
+static reiser4_alloc_ent_t *alloc40_create(aal_device_t *device, 
+					   uint32_t blksize, 
+					   uint64_t blocks) 
 {
 	alloc40_t *alloc;
 	uint32_t mapsize;
@@ -201,7 +198,7 @@ static generic_entity_t *alloc40_create(aal_device_t *device,
 	alloc->blksize = blksize;
 	alloc->state = (1 << ENTITY_DIRTY);
     
-	return (generic_entity_t *)alloc;
+	return (reiser4_alloc_ent_t *)alloc;
 
  error_free_bitmap:
 	reiser4_bitmap_close(alloc->bitmap);
@@ -211,7 +208,7 @@ static generic_entity_t *alloc40_create(aal_device_t *device,
 }
 
 /* Assignes passed bitmap pointed by @data to block allocator bitmap */
-static errno_t alloc40_assign(generic_entity_t *entity, void *data) {
+static errno_t alloc40_assign(reiser4_alloc_ent_t *entity, void *data) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 	reiser4_bitmap_t *bitmap = (reiser4_bitmap_t *)data;
 
@@ -229,7 +226,7 @@ static errno_t alloc40_assign(generic_entity_t *entity, void *data) {
 	return 0;
 }
 
-static errno_t alloc40_extract(generic_entity_t *entity, void *data) {
+static errno_t alloc40_extract(reiser4_alloc_ent_t *entity, void *data) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 	reiser4_bitmap_t *bitmap = (reiser4_bitmap_t *)data;
 
@@ -288,11 +285,11 @@ static errno_t cb_sync_bitmap(blk_t start, count_t width, void *data) {
 		}
 
 		aal_memcpy(fake, current, chunk);
-		adler = misc_adler32(0, fake, size);
+		adler = aux_adler32(0, fake, size);
 		
 		aal_free(fake);
 	} else {
-		adler = misc_adler32(0, current, chunk);
+		adler = aux_adler32(0, current, chunk);
 	}
 	
 	*((uint32_t *)block.data) = CPU_TO_LE32(adler);
@@ -309,29 +306,25 @@ static errno_t cb_sync_bitmap(blk_t start, count_t width, void *data) {
 }
 
 /* Saves alloc40 data (bitmap in fact) to device */
-static errno_t alloc40_sync(generic_entity_t *entity) {
+static errno_t alloc40_sync(reiser4_alloc_ent_t *entity) {
 	errno_t res = 0;
-	alloc40_t *alloc;
 
-	alloc = (alloc40_t *)entity;
-	
-	aal_assert("umka-366", alloc != NULL);
-	aal_assert("umka-367", alloc->bitmap != NULL);
+	aal_assert("umka-366", entity != NULL);
+	aal_assert("umka-367", PLUG_ENT(entity)->bitmap != NULL);
 
 	/* Calling layout() function for saving all bitmap blocks to device
 	   block allocator lies on. */
-	if ((res = alloc40_layout(entity, cb_sync_bitmap, alloc))) {
+	if ((res = alloc40_layout(entity, cb_sync_bitmap, entity))) {
 		aal_error("Can't save bitmap to device.");
 		return res;
 	}
 
-	alloc->state &= ~(1 << ENTITY_DIRTY);
+	PLUG_ENT(entity)->state &= ~(1 << ENTITY_DIRTY);
 	return res;
 }
 
 /* Frees alloc40 instance and all helper structures like bitmap, crcmap, etc */
-static void alloc40_close(generic_entity_t *entity) {
-    
+static void alloc40_close(reiser4_alloc_ent_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
 	aal_assert("umka-368", alloc != NULL);
@@ -344,7 +337,7 @@ static void alloc40_close(generic_entity_t *entity) {
 }
 
 /* Marks specified region as used in block allocator */
-static errno_t alloc40_occupy(generic_entity_t *entity,
+static errno_t alloc40_occupy(reiser4_alloc_ent_t *entity,
 			      uint64_t start, uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
@@ -360,7 +353,7 @@ static errno_t alloc40_occupy(generic_entity_t *entity,
 }
 
 /* Marks specified region as free in blockallocator bitmap */
-static errno_t alloc40_release(generic_entity_t *entity,
+static errno_t alloc40_release(reiser4_alloc_ent_t *entity,
 			       uint64_t start, uint64_t count) 
 {
 	alloc40_t *alloc = (alloc40_t *)entity;
@@ -379,7 +372,7 @@ static errno_t alloc40_release(generic_entity_t *entity,
    block of the found free area is stored in @start. Actual found number of
    blocks is retured to caller. This function is mostly needed for handling
    extent allocation. */
-static uint64_t alloc40_allocate(generic_entity_t *entity,
+static uint64_t alloc40_allocate(reiser4_alloc_ent_t *entity,
 				 uint64_t *start, uint64_t count)
 {
 	uint64_t found;
@@ -410,7 +403,7 @@ static uint64_t alloc40_allocate(generic_entity_t *entity,
 }
 
 /* Returns free blocks count */
-static uint64_t alloc40_free(generic_entity_t *entity) {
+static uint64_t alloc40_free(reiser4_alloc_ent_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 
 	aal_assert("umka-376", alloc != NULL);
@@ -420,7 +413,7 @@ static uint64_t alloc40_free(generic_entity_t *entity) {
 }
 
 /* Returns used blocks count */
-static uint64_t alloc40_used(generic_entity_t *entity) {
+static uint64_t alloc40_used(reiser4_alloc_ent_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
 	aal_assert("umka-378", alloc != NULL);
@@ -430,18 +423,18 @@ static uint64_t alloc40_used(generic_entity_t *entity) {
 }
 
 /* Checks whether specified blocks are used */
-int alloc40_occupied(generic_entity_t *entity, uint64_t start, uint64_t count) {
+int alloc40_occupied(reiser4_alloc_ent_t *entity, uint64_t start, uint64_t count) {
 	alloc40_t *alloc = (alloc40_t *)entity;
     
 	aal_assert("umka-663", alloc != NULL);
 	aal_assert("umka-664", alloc->bitmap != NULL);
 
 	return reiser4_bitmap_test_region(alloc->bitmap,
-				      start, count, 1);
+					  start, count, 1);
 }
 
 /* Checks whether specified blocks are unused */
-static int alloc40_available(generic_entity_t *entity,
+static int alloc40_available(reiser4_alloc_ent_t *entity,
 			     uint64_t start, 
 			     uint64_t count) 
 {
@@ -451,7 +444,7 @@ static int alloc40_available(generic_entity_t *entity,
 	aal_assert("vpf-701", alloc->bitmap != NULL);
 
 	return reiser4_bitmap_test_region(alloc->bitmap,
-				      start, count, 0);
+					  start, count, 0);
 }
 
 static void cb_inval_warn(blk_t start, uint32_t ladler, uint32_t cadler) {
@@ -501,11 +494,11 @@ errno_t cb_valid_block(blk_t start, count_t width, void *data) {
 			return -ENOMEM;
 
 		aal_memcpy(fake, current, chunk);
-		cadler = misc_adler32(0, fake, size);
+		cadler = aux_adler32(0, fake, size);
 		
 		aal_free(fake);
 	} else
-		cadler = misc_adler32(0, current, chunk);
+		cadler = aux_adler32(0, current, chunk);
 
 	/* If loaded checksum and calculated one are not equal, we have
 	   corrupted bitmap. */
@@ -518,7 +511,7 @@ errno_t cb_valid_block(blk_t start, count_t width, void *data) {
 }
 
 /* Checks allocator on validness  */
-errno_t alloc40_valid(generic_entity_t *entity) {
+errno_t alloc40_valid(reiser4_alloc_ent_t *entity) {
 	alloc40_t *alloc = (alloc40_t *)entity;
 
 	aal_assert("umka-963", alloc != NULL);
@@ -535,7 +528,7 @@ errno_t alloc40_valid(generic_entity_t *entity) {
    corresponds to its value in block allocator, it should check all the related
    (neighbour) blocks which are described by one bitmap block (4096 -
    CRC_SIZE).*/
-errno_t alloc40_region(generic_entity_t *entity, blk_t blk, 
+errno_t alloc40_region(reiser4_alloc_ent_t *entity, blk_t blk, 
 		       region_func_t region_func, void *data) 
 {
 	alloc40_t *alloc;
@@ -561,7 +554,13 @@ errno_t alloc40_region(generic_entity_t *entity, blk_t blk,
 	return region_func(start, size, data);
 }
 
-static reiser4_alloc_plug_t alloc40 = {
+reiser4_alloc_plug_t alloc40_plug = {
+	.p = {
+		.id = {ALLOC_REISER40_ID, 0, ALLOC_PLUG_TYPE},
+		.label = "alloc40",
+		.desc  = "Space allocator plugin.",
+	},
+	
 	.open           = alloc40_open,
 	.close          = alloc40_close,
 
@@ -590,12 +589,4 @@ static reiser4_alloc_plug_t alloc40 = {
 	.check_struct   = alloc40_check_struct
 };
 
-reiser4_plug_t alloc40_plug = {
-	.id = {ALLOC_REISER40_ID, 0, ALLOC_PLUG_TYPE},
-	.label = "alloc40",
-	.desc  = "Space allocator plugin.",
-	.pl = {
-		.alloc = &alloc40
-	}
-};
 #endif

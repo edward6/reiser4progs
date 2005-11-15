@@ -19,7 +19,7 @@ extern errno_t node40_pack(reiser4_node_t *entity,
 			   aal_stream_t *stream);
 
 extern reiser4_node_t *node40_unpack(aal_block_t *block,
-				    reiser4_plug_t *kplug,
+				    reiser4_key_plug_t *kplug,
 				    aal_stream_t *stream);
 
 extern void node40_print(reiser4_node_t *entity, aal_stream_t *stream,

@@ -64,6 +64,32 @@ enum lookup {
 
 typedef int64_t lookup_t;
 
+#define PLUG_MAX_DESC	64
+#define PLUG_MAX_LABEL	22
+
+/* Plugin id, type and group. */
+typedef struct plug_ident {
+	rid_t id;
+	uint8_t group;
+	uint8_t type;
+} plug_ident_t;
+
+struct reiser4_plug {
+	/* Plugin id. This will be used for looking for a plugin. */
+	plug_ident_t id;
+
+	/* Plugin type, to know which plugin method is called. */
+	uint8_t type;
+	
+#ifndef ENABLE_MINIMAL
+	/* Plugin label (name). */
+	const char label[PLUG_MAX_LABEL];
+	
+	/* Short plugin description. */
+	const char desc[PLUG_MAX_DESC];
+#endif
+};
+
 /* Known by library plugin types. */
 typedef enum reiser4_plug_type {
 	OBJECT_PLUG_TYPE        = 0x0,
@@ -80,10 +106,17 @@ typedef enum reiser4_plug_type {
 	ALLOC_PLUG_TYPE         = 0x9,
 	JOURNAL_PLUG_TYPE       = 0xa,
 	KEY_PLUG_TYPE           = 0xb,
+
+	COMPRESS_PLUG_TYPE	= 0xc,
+	CMODE_PLUG_TYPE		= 0xd,
+	CRYPTO_PLUG_TYPE	= 0xf,
+	DIGEST_PLUG_TYPE	= 0xe,
+	CLUSTER_PLUG_TYPE	= 0x10,
 	
 	/* Not really a plugin, at least in progs, but a value that 
 	   needs to be checked only. */
-	PARAM_PLUG_TYPE		= 0xc,
+	PARAM_PLUG_TYPE		= 0x11,
+	MAP_PLUG_TYPE		= 0x12,
 	LAST_PLUG_TYPE
 } reiser4_plug_type_t;
 
@@ -274,15 +307,6 @@ enum reiser4_digest_id {
 #define INVAL_PTR	        ((void *)-1)
 #define INVAL_PID	        ((rid_t)~0)
 
-/* Type for key which is used both by library and plugins. */
-struct reiser4_key {
-	reiser4_plug_t *plug;
-	d64_t body[4];
-#ifndef ENABLE_MINIMAL
-	uint32_t adjust;
-#endif
-};
-
 typedef struct reiser4_key reiser4_key_t;
 
 /* Known key types. */
@@ -338,6 +362,17 @@ enum reiser4_opset_id {
 	OPSET_LAST
 };
 
+enum reiser4_plugmap_type {
+	PMT_REGULAR	= 0x0,
+	PMT_LAST
+};
+
+enum reiser4_regular_map {
+	PM_REGULAR_REG40 = 0x0,
+	PM_REGULAR_CRC40 = 0x1,
+	PM_REGULAR_LAST
+};
+
 /* Known print options for key. */
 enum print_options {
 	PO_DEFAULT              = 0x0,
@@ -352,12 +387,6 @@ enum reiser4_plugin_flag {
 };
 #endif
 
-/* Type for describing reiser4 objects (like format, block allocator, etc)
-   inside the library, created by plugins themselves. */
-typedef struct generic_entity {
-	reiser4_plug_t *plug;
-} generic_entity_t;
-
 typedef struct tree_entity {
 	/* Plugin SET. Set of plugins needed for the reiser4progs work.
 	   Consists of tree-specific plugins and object-specific plugins. */
@@ -369,8 +398,40 @@ typedef struct tree_entity {
 typedef struct reiser4_node reiser4_node_t;
 typedef struct reiser4_place reiser4_place_t;
 
+typedef struct reiser4_key_plug reiser4_key_plug_t;
+typedef struct reiser4_item_plug reiser4_item_plug_t;
+typedef struct reiser4_node_plug reiser4_node_plug_t;
+typedef struct reiser4_hash_plug reiser4_hash_plug_t;
+typedef struct reiser4_fibre_plug reiser4_fibre_plug_t;
+typedef struct reiser4_sdext_plug reiser4_sdext_plug_t;
+typedef struct reiser4_format_plug reiser4_format_plug_t;
+typedef struct reiser4_oid_plug reiser4_oid_plug_t;
+typedef struct reiser4_alloc_plug reiser4_alloc_plug_t;
+typedef struct reiser4_journal_plug reiser4_journal_plug_t;
+
+/* Opaque types describing reiser4 objects, like format, block allocator, etc
+   created by plugins themselves, within the library. */
+#define DEFINE_ENT(TYPE)			\
+typedef struct reiser4_ ## TYPE ## _ent {	\
+	reiser4_ ## TYPE ## _plug_t *plug;	\
+} reiser4_ ## TYPE ## _ent_t;
+
+DEFINE_ENT(format);
+DEFINE_ENT(journal);
+DEFINE_ENT(oid);
+DEFINE_ENT(alloc);
+
 #define place_blknr(place) ((place)->node->block->nr)
 #define place_blksize(place) ((place)->node->block->size)
+
+/* Type for key which is used both by library and plugins. */
+struct reiser4_key {
+	reiser4_key_plug_t *plug;
+	d64_t body[4];
+#ifndef ENABLE_MINIMAL
+	uint32_t adjust;
+#endif
+};
 
 /* Tree coord struct. */
 struct reiser4_place {
@@ -390,7 +451,7 @@ struct reiser4_place {
 	uint32_t off;
 	
 	reiser4_key_t key;
-	reiser4_plug_t *plug;
+	reiser4_item_plug_t *plug;
 };
 
 enum node_flags {
@@ -401,7 +462,7 @@ enum node_flags {
 /* Reiser4 in-memory node structure. */
 struct reiser4_node {
 	/* Node plugin. */
-	reiser4_plug_t *plug;
+	reiser4_node_plug_t *plug;
 
 	/* Block node lies in. */
 	aal_block_t *block;
@@ -425,7 +486,7 @@ struct reiser4_node {
 	signed int counter;
 
 	/* Key plugin. */
-	reiser4_plug_t *kplug;
+	reiser4_key_plug_t *kplug;
 
 	/* Key policy. Optimisation to not call key->bodysize all the time. */
 	uint8_t keypol;
@@ -453,8 +514,8 @@ typedef struct stat_info {
 
 /* Stat data extension entity. */
 typedef struct stat_entity {
+	reiser4_sdext_plug_t *plug;
 	reiser4_place_t *place;
-	reiser4_plug_t *ext_plug;
 	uint32_t offset;
 #ifndef ENABLE_MINIMAL
 	stat_info_t info;
@@ -643,11 +704,12 @@ typedef struct reiser4_object {
 
 #ifndef ENABLE_MINIMAL
 	/* File body plugin is use. */
-	reiser4_plug_t *body_plug;
+	reiser4_item_plug_t *body_plug;
 #endif
 } reiser4_object_t;
 
-#define reiser4_oplug(object) (object->info.opset.plug[OPSET_OBJ])
+#define reiser4_oplug(object) \
+	((reiser4_object_plug_t *)(object)->info.opset.plug[OPSET_OBJ])
 
 /* Bits for entity state field. For now here is only "dirty" bit, but possible
    and other ones. */
@@ -761,7 +823,7 @@ typedef struct trans_hint {
 	aal_hash_table_t *blocks;
 	
 	/* Plugin to be used for working with item. */
-	reiser4_plug_t *plug;
+	reiser4_item_plug_t *plug;
 
 	/* Hook, which lets know, that passed block region is removed. Used for
 	   releasing unformatted blocks during tail converion, or for merging
@@ -788,7 +850,7 @@ typedef struct conv_hint {
 	reiser4_key_t offset;
 	
 	/* Plugin item will be converted to. */
-	reiser4_plug_t *plug;
+	reiser4_item_plug_t *plug;
 
 	/* Callback function caled onto each new created item during tail
 	   conversion. */
@@ -881,7 +943,9 @@ typedef struct format_hint {
 	uint64_t mask;
 } format_hint_t;
 
-typedef struct reiser4_key_plug {
+struct reiser4_key_plug {
+	reiser4_plug_t p;
+	
 	/* Function for dermining is key contains direntry name hashed or
 	   not? */
 	int (*hashed) (reiser4_key_t *);
@@ -916,8 +980,9 @@ typedef struct reiser4_key_plug {
 
 	/* Builds key used for directory entries access. It uses name and hash
 	   plugin to build hash and put it to key offset component. */
-	void (*build_hashed) (reiser4_key_t *, reiser4_plug_t *,
-			      reiser4_plug_t *, uint64_t, uint64_t, char *);
+	void (*build_hashed) (reiser4_key_t *, reiser4_hash_plug_t *,
+			      reiser4_fibre_plug_t *, uint64_t, 
+			      uint64_t, char *);
 	
 #ifndef ENABLE_MINIMAL
 	
@@ -960,10 +1025,12 @@ typedef struct reiser4_key_plug {
 	/* Check key body for validness. */
 	errno_t (*check_struct) (reiser4_key_t *);
 #endif
-} reiser4_key_plug_t;
+};
 
 
 typedef struct reiser4_object_plug {
+	reiser4_plug_t p;
+	
 	/* Loads object stat data to passed hint. */
 	errno_t (*stat) (reiser4_object_t *, stat_hint_t *);
 
@@ -1010,7 +1077,7 @@ typedef struct reiser4_object_plug {
 	errno_t (*layout) (reiser4_object_t *, region_func_t, void *);
 
 	/* Converts file body to item denoted by @plug. */
-	errno_t (*convert) (reiser4_object_t *, reiser4_plug_t *plug);
+	errno_t (*convert) (reiser4_object_t *, reiser4_item_plug_t *plug);
 	
 	/* Checks and recover the structure of the object. */
 	errno_t (*check_struct) (reiser4_object_t *, place_func_t, 
@@ -1182,17 +1249,21 @@ typedef struct item_debug_ops {
 } item_debug_ops_t;
 #endif
 
-typedef struct reiser4_item_plug {
+struct reiser4_item_plug {
+	reiser4_plug_t p;
+	
 	item_object_ops_t *object;
 	item_balance_ops_t *balance;
 #ifndef ENABLE_MINIMAL
 	item_debug_ops_t *debug;
 	item_repair_ops_t *repair;
 #endif
-} reiser4_item_plug_t;
+};
 
 /* Stat data extension plugin */
-typedef struct reiser4_sdext_plug {
+struct reiser4_sdext_plug {
+	reiser4_plug_t p;
+	
 #ifndef ENABLE_MINIMAL
 	/* Initialize stat data extension data at passed pointer. */
 	errno_t (*init) (stat_entity_t *, void *);
@@ -1211,12 +1282,14 @@ typedef struct reiser4_sdext_plug {
 
 	/* Returns length of the extension. */
 	uint32_t (*length) (stat_entity_t *, void *);
-} reiser4_sdext_plug_t;
+};
 
 /* Node plugin operates on passed block. It doesn't any initialization, so it
    hasn't close method and all its methods accepts first argument aal_block_t,
    not initialized previously hypothetic instance of node. */
-typedef struct reiser4_node_plug {
+struct reiser4_node_plug {
+	reiser4_plug_t p;
+	
 #ifndef ENABLE_MINIMAL
 	/* Get node state flags and set them back. */
 	uint32_t (*get_state) (reiser4_node_t *);
@@ -1234,7 +1307,7 @@ typedef struct reiser4_node_plug {
 
 	/* Packing/unpacking metadata. */
 	reiser4_node_t *(*unpack) (aal_block_t *, 
-				   reiser4_plug_t *, 
+				   reiser4_key_plug_t *, 
 				   aal_stream_t *);
 	
 	errno_t (*pack) (reiser4_node_t *, aal_stream_t *);
@@ -1307,10 +1380,10 @@ typedef struct reiser4_node_plug {
 
 	/* Initializes node with passed block and key plugin. */
 	reiser4_node_t *(*init) (aal_block_t *, uint8_t , 
-				reiser4_plug_t *);
+				 reiser4_key_plug_t *);
 #endif
 	/* Open the node on the given block with the given key plugin. */
-	reiser4_node_t *(*open) (aal_block_t *, reiser4_plug_t *);
+	reiser4_node_t *(*open) (aal_block_t *, reiser4_key_plug_t *);
 	
 	/* Destroys the node entity. */
 	errno_t (*fini) (reiser4_node_t *);
@@ -1332,295 +1405,301 @@ typedef struct reiser4_node_plug {
 
 	/* Return node level. */
 	uint8_t (*get_level) (reiser4_node_t *);
-} reiser4_node_plug_t;
+};
 
 /* Hash plugin operations. */
-typedef struct reiser4_hash_plug {
+struct reiser4_hash_plug {
+	reiser4_plug_t p;
+	
 	uint64_t (*build) (unsigned char *, uint32_t);
-} reiser4_hash_plug_t;
+};
 
-typedef struct reiser4_fibre_plug {
+struct reiser4_fibre_plug {
+	reiser4_plug_t p;
+	
 	uint8_t (*build) (char *, uint32_t);
-} reiser4_fibre_plug_t;
+};
 
 /* Disk-format plugin */
-typedef struct reiser4_format_plug {
+struct reiser4_format_plug {
+	reiser4_plug_t p;
+	
 #ifndef ENABLE_MINIMAL
 	/* Called during filesystem creating. It forms format-specific super
 	   block, initializes plugins and calls their create method. */
-	generic_entity_t *(*create) (aal_device_t *, format_hint_t *);
+	reiser4_format_ent_t *(*create) (aal_device_t *, format_hint_t *);
 
 	/* Save the important permanent info about the format into the stream 
 	   to be backuped on the fs & check this info. */
-	errno_t (*backup) (generic_entity_t *, backup_hint_t *);
+	errno_t (*backup) (reiser4_format_ent_t *, backup_hint_t *);
 	errno_t (*check_backup) (backup_hint_t *);
 
 	/* Regenerate the format instance by the backup. */
-	generic_entity_t *(*regenerate) (aal_device_t *, backup_hint_t *);
+	reiser4_format_ent_t *(*regenerate) (aal_device_t *, backup_hint_t *);
 	
 	/* Save format data to device. */
-	errno_t (*sync) (generic_entity_t *);
+	errno_t (*sync) (reiser4_format_ent_t *);
 
 	/* Change entity state (dirty, etc) */
-	uint32_t (*get_state) (generic_entity_t *);
-	void (*set_state) (generic_entity_t *, uint32_t);
+	uint32_t (*get_state) (reiser4_format_ent_t *);
+	void (*set_state) (reiser4_format_ent_t *, uint32_t);
 
 	/* Format pack/unpack methods. */
-	generic_entity_t *(*unpack) (aal_device_t *, uint32_t, aal_stream_t *);
-	errno_t (*pack) (generic_entity_t *, aal_stream_t *);
+	reiser4_format_ent_t *(*unpack) (aal_device_t *, uint32_t, aal_stream_t *);
+	errno_t (*pack) (reiser4_format_ent_t *, aal_stream_t *);
 	
 	/* Update only fields which can be changed after journal replay in
 	   memory to avoid second checking. */
-	errno_t (*update) (generic_entity_t *);
+	errno_t (*update) (reiser4_format_ent_t *);
 	    
 	/* Prints all useful information about the format */
-	void (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
+	void (*print) (reiser4_format_ent_t *, aal_stream_t *, uint16_t);
     
-	void (*set_len) (generic_entity_t *, uint64_t);
-	void (*set_root) (generic_entity_t *, uint64_t);
-	void (*set_free) (generic_entity_t *, uint64_t);
-	void (*set_stamp) (generic_entity_t *, uint32_t);
-	void (*set_policy) (generic_entity_t *, rid_t);
-	void (*set_height) (generic_entity_t *, uint16_t);
+	void (*set_len) (reiser4_format_ent_t *, uint64_t);
+	void (*set_root) (reiser4_format_ent_t *, uint64_t);
+	void (*set_free) (reiser4_format_ent_t *, uint64_t);
+	void (*set_stamp) (reiser4_format_ent_t *, uint32_t);
+	void (*set_policy) (reiser4_format_ent_t *, rid_t);
+	void (*set_height) (reiser4_format_ent_t *, uint16_t);
 
 	/* Return plugin ids for journal, block allocator, and oid allocator
 	   components. */
-	rid_t (*journal_pid) (generic_entity_t *);
-	rid_t (*alloc_pid) (generic_entity_t *);
-	rid_t (*oid_pid) (generic_entity_t *);
+	rid_t (*journal_pid) (reiser4_format_ent_t *);
+	rid_t (*alloc_pid) (reiser4_format_ent_t *);
+	rid_t (*oid_pid) (reiser4_format_ent_t *);
 
 	/* Format enumerator function. */
-	errno_t (*layout) (generic_entity_t *, region_func_t, void *);
+	errno_t (*layout) (reiser4_format_ent_t *, region_func_t, void *);
 
 	/* Basic consistency checks */
-	errno_t (*valid) (generic_entity_t *);
+	errno_t (*valid) (reiser4_format_ent_t *);
 
 	/* Check format-specific super block for validness. */
-	errno_t (*check_struct) (generic_entity_t *, backup_hint_t *, 
+	errno_t (*check_struct) (reiser4_format_ent_t *, backup_hint_t *, 
 				 format_hint_t *, uint8_t);
 #endif
 	/* Returns the key plugin id. */
-	rid_t (*key_pid) (generic_entity_t *);
+	rid_t (*key_pid) (reiser4_format_ent_t *);
 	
 	/* Called during filesystem opening (mounting). It reads format-specific
 	   super block and initializes plugins suitable for this format. */
-	generic_entity_t *(*open) (aal_device_t *, uint32_t);
+	reiser4_format_ent_t *(*open) (aal_device_t *, uint32_t);
     
 	/* Closes opened or created previously filesystem. Frees all assosiated
 	   memory. */
-	void (*close) (generic_entity_t *);
+	void (*close) (reiser4_format_ent_t *);
 
 	/* Get tree root block number from format. */
-	uint64_t (*get_root) (generic_entity_t *);
+	uint64_t (*get_root) (reiser4_format_ent_t *);
 
 	/* Get tree height from format. */
-	uint16_t (*get_height) (generic_entity_t *);
+	uint16_t (*get_height) (reiser4_format_ent_t *);
 
 #ifndef ENABLE_MINIMAL
 	/* Gets start of the filesystem. */
-	uint64_t (*start) (generic_entity_t *);
+	uint64_t (*start) (reiser4_format_ent_t *);
 
 	/* Format length in blocks. */
-	uint64_t (*get_len) (generic_entity_t *);
+	uint64_t (*get_len) (reiser4_format_ent_t *);
 
 	/* Number of free blocks. */
-	uint64_t (*get_free) (generic_entity_t *);
+	uint64_t (*get_free) (reiser4_format_ent_t *);
 
 	/* Return mkfs stamp. */
-	uint32_t (*get_stamp) (generic_entity_t *);
+	uint32_t (*get_stamp) (reiser4_format_ent_t *);
 
 	/* Return policy (tail, extents, etc). */
-	rid_t (*get_policy) (generic_entity_t *);
+	rid_t (*get_policy) (reiser4_format_ent_t *);
 
 	/* Returns area where oid data lies in */
-	void (*oid_area) (generic_entity_t *, void **, uint32_t *);
+	void (*oid_area) (reiser4_format_ent_t *, void **, uint32_t *);
 #endif
-} reiser4_format_plug_t;
+};
 
 #ifndef ENABLE_MINIMAL
-typedef struct reiser4_oid_plug {
+struct reiser4_oid_plug {
+	reiser4_plug_t p;
+	
 	/* Opens oid allocator on passed format entity. */
-	generic_entity_t *(*open) (generic_entity_t *);
+	reiser4_oid_ent_t *(*open) (reiser4_format_ent_t *);
 
 	/* Closes passed instance of oid allocator */
-	void (*close) (generic_entity_t *);
+	void (*close) (reiser4_oid_ent_t *);
     
 	/* Creates oid allocator on passed format entity. */
-	generic_entity_t *(*create) (generic_entity_t *);
+	reiser4_oid_ent_t *(*create) (reiser4_format_ent_t *);
 
 	/* Synchronizes oid allocator */
-	errno_t (*sync) (generic_entity_t *);
+	errno_t (*sync) (reiser4_oid_ent_t *);
 
-	errno_t (*layout) (generic_entity_t *,
+	errno_t (*layout) (reiser4_oid_ent_t *,
 			   region_func_t, void *);
 
 	/* Entity state functions. */
-	uint32_t (*get_state) (generic_entity_t *);
-	void (*set_state) (generic_entity_t *, uint32_t);
+	uint32_t (*get_state) (reiser4_oid_ent_t *);
+	void (*set_state) (reiser4_oid_ent_t *, uint32_t);
 
 	/* Sets/gets next object id */
-	oid_t (*get_next) (generic_entity_t *);
-	void (*set_next) (generic_entity_t *, oid_t);
+	oid_t (*get_next) (reiser4_oid_ent_t *);
+	void (*set_next) (reiser4_oid_ent_t *, oid_t);
 
 	/* Gets next object id */
-	oid_t (*allocate) (generic_entity_t *);
+	oid_t (*allocate) (reiser4_oid_ent_t *);
 
 	/* Releases passed object id */
-	void (*release) (generic_entity_t *, oid_t);
+	void (*release) (reiser4_oid_ent_t *, oid_t);
     
 	/* Gets/sets the number of used object ids */
-	uint64_t (*get_used) (generic_entity_t *);
-	void (*set_used) (generic_entity_t *, uint64_t);
+	uint64_t (*get_used) (reiser4_oid_ent_t *);
+	void (*set_used) (reiser4_oid_ent_t *, uint64_t);
     
 	/* Returns the number of free object ids */
-	uint64_t (*free) (generic_entity_t *);
+	uint64_t (*free) (reiser4_oid_ent_t *);
 
 	/* Prints oid allocator data */
-	void (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
+	void (*print) (reiser4_oid_ent_t *, aal_stream_t *, uint16_t);
 
 	/* Makes check for validness */
-	errno_t (*valid) (generic_entity_t *);
+	errno_t (*valid) (reiser4_oid_ent_t *);
 	
 	/* Root locality and objectid and lost+found objectid. */
 	oid_t (*root_locality) ();
 	oid_t (*root_objectid) ();
 	oid_t (*lost_objectid) ();
 	oid_t (*slink_locality) ();
-} reiser4_oid_plug_t;
+};
 
-typedef struct reiser4_alloc_plug {
+struct reiser4_alloc_plug {
+	reiser4_plug_t p;
+	
 	/* Functions for create and open block allocator. */
-	generic_entity_t *(*open) (aal_device_t *, uint32_t, uint64_t);
-	generic_entity_t *(*create) (aal_device_t *, uint32_t, uint64_t);
+	reiser4_alloc_ent_t *(*open) (aal_device_t *, uint32_t, uint64_t);
+	reiser4_alloc_ent_t *(*create) (aal_device_t *, uint32_t, uint64_t);
 
 	/* Closes block allocator. */
-	void (*close) (generic_entity_t *);
+	void (*close) (reiser4_alloc_ent_t *);
 
 	/* Saves block allocator data to desired device. */
-	errno_t (*sync) (generic_entity_t *);
+	errno_t (*sync) (reiser4_alloc_ent_t *);
 
 	/* Make dirty and clean functions. */
-	uint32_t (*get_state) (generic_entity_t *);
-	void (*set_state) (generic_entity_t *, uint32_t);
+	uint32_t (*get_state) (reiser4_alloc_ent_t *);
+	void (*set_state) (reiser4_alloc_ent_t *, uint32_t);
 	
 	/* Format pack/unpack methods. */
-	errno_t (*pack) (generic_entity_t *, aal_stream_t *);
-	generic_entity_t *(*unpack) (aal_device_t *, uint32_t, aal_stream_t *);
+	errno_t (*pack) (reiser4_alloc_ent_t *, aal_stream_t *);
+	reiser4_alloc_ent_t *(*unpack) (aal_device_t *, uint32_t, aal_stream_t *);
 	
 	/* Assign the bitmap to the block allocator */
-	errno_t (*assign) (generic_entity_t *, void *);
+	errno_t (*assign) (reiser4_alloc_ent_t *, void *);
 
 	/* Extract block allocator data into passed bitmap */
-	errno_t (*extract) (generic_entity_t *, void *);
+	errno_t (*extract) (reiser4_alloc_ent_t *, void *);
 	
 	/* Returns number of used blocks */
-	uint64_t (*used) (generic_entity_t *);
+	uint64_t (*used) (reiser4_alloc_ent_t *);
 
 	/* Returns number of unused blocks */
-	uint64_t (*free) (generic_entity_t *);
+	uint64_t (*free) (reiser4_alloc_ent_t *);
 
 	/* Checks blocks allocator on validness */
-	errno_t (*valid) (generic_entity_t *);
+	errno_t (*valid) (reiser4_alloc_ent_t *);
 	
 	/* Checks blocks allocator on validness */
-	errno_t (*check_struct) (generic_entity_t *, uint8_t mode);
+	errno_t (*check_struct) (reiser4_alloc_ent_t *, uint8_t mode);
 
 	/* Prints block allocator data */
-	void (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
+	void (*print) (reiser4_alloc_ent_t *, aal_stream_t *, uint16_t);
 
 	/* Calls func for each block in block allocator */
-	errno_t (*layout) (generic_entity_t *,
-			   region_func_t, void *);
+	errno_t (*layout) (reiser4_alloc_ent_t *, region_func_t, void *);
 	
 	/* Checks if passed range of blocks used */
-	int (*occupied) (generic_entity_t *, uint64_t,
-			 uint64_t);
+	int (*occupied) (reiser4_alloc_ent_t *, uint64_t, uint64_t);
     	
 	/* Checks if passed range of blocks unused */
-	int (*available) (generic_entity_t *, uint64_t,
-			  uint64_t);
+	int (*available) (reiser4_alloc_ent_t *, uint64_t, uint64_t);
 
 	/* Marks passed block as used */
-	errno_t (*occupy) (generic_entity_t *, uint64_t,
-			   uint64_t);
+	errno_t (*occupy) (reiser4_alloc_ent_t *, uint64_t, uint64_t);
 
 	/* Tries to allocate passed amount of blocks */
-	uint64_t (*allocate) (generic_entity_t *, uint64_t *,
-			      uint64_t);
+	uint64_t (*allocate) (reiser4_alloc_ent_t *, uint64_t *, uint64_t);
 	
 	/* Deallocates passed blocks */
-	errno_t (*release) (generic_entity_t *, uint64_t,
-			    uint64_t);
+	errno_t (*release) (reiser4_alloc_ent_t *, uint64_t, uint64_t);
 
 	/* Calls func for all not reliable regions. */
-	errno_t (*layout_bad) (generic_entity_t *,
-			       region_func_t, void *);
+	errno_t (*layout_bad) (reiser4_alloc_ent_t *, region_func_t, void *);
 	
 	/* Calls func for the region the blk lies in. */
-	errno_t (*region) (generic_entity_t *, blk_t,
-			   region_func_t, void *);
-} reiser4_alloc_plug_t;
+	errno_t (*region) (reiser4_alloc_ent_t *, blk_t, region_func_t, void *);
+};
 
-typedef struct reiser4_journal_plug {
+struct reiser4_journal_plug {
+	reiser4_plug_t p;
+	
 	/* Opens journal on specified device. */
-	generic_entity_t *(*open) (aal_device_t *, uint32_t, 
-				   generic_entity_t *, generic_entity_t *,
-				   uint64_t, uint64_t);
+	reiser4_journal_ent_t *(*open) (aal_device_t *, uint32_t, 
+					reiser4_format_ent_t *, 
+					reiser4_oid_ent_t *,
+					uint64_t, uint64_t);
 
 	/* Creates journal on specified device. */
-	generic_entity_t *(*create) (aal_device_t *, uint32_t, 
-				     generic_entity_t *, generic_entity_t *, 
-				     uint64_t, uint64_t);
+	reiser4_journal_ent_t *(*create) (aal_device_t *, uint32_t, 
+					  reiser4_format_ent_t *, 
+					  reiser4_oid_ent_t *, 
+					  uint64_t, uint64_t);
 
 	/* Returns the device journal lies on */
-	aal_device_t *(*device) (generic_entity_t *);
+	aal_device_t *(*device) (reiser4_journal_ent_t *);
     
 	/* Frees journal instance */
-	void (*close) (generic_entity_t *);
+	void (*close) (reiser4_journal_ent_t *);
 
 	/* Checks journal metadata on validness */
-	errno_t (*valid) (generic_entity_t *);
+	errno_t (*valid) (reiser4_journal_ent_t *);
     
 	/* Synchronizes journal */
-	errno_t (*sync) (generic_entity_t *);
+	errno_t (*sync) (reiser4_journal_ent_t *);
 
 	/* Functions for set/get object state (dirty, clean, etc). */
-	uint32_t (*get_state) (generic_entity_t *);
-	void (*set_state) (generic_entity_t *, uint32_t);
+	uint32_t (*get_state) (reiser4_journal_ent_t *);
+	void (*set_state) (reiser4_journal_ent_t *, uint32_t);
 	
 	/* Replays the journal */
-	errno_t (*replay) (generic_entity_t *);
+	errno_t (*replay) (reiser4_journal_ent_t *);
 
 	/* Prints journal content */
-	void (*print) (generic_entity_t *, aal_stream_t *, uint16_t);
+	void (*print) (reiser4_journal_ent_t *, aal_stream_t *, uint16_t);
 	
 	/* Checks thoroughly the journal structure. */
-	errno_t (*check_struct) (generic_entity_t *, layout_func_t, void *);
+	errno_t (*check_struct) (reiser4_journal_ent_t *, layout_func_t, void *);
 
 	/* Invalidates the journal. */
-	void (*invalidate) (generic_entity_t *);
+	void (*invalidate) (reiser4_journal_ent_t *);
 	
 	/* Calls func for each block in block allocator. */
-	errno_t (*layout) (generic_entity_t *, region_func_t, void *);
+	errno_t (*layout) (reiser4_journal_ent_t *, region_func_t, void *);
 
 	/* Pack/unpack the journal blocks. */
-	errno_t (*pack) (generic_entity_t *, aal_stream_t *);
-	generic_entity_t *(*unpack) (aal_device_t *, uint32_t, 
-				     generic_entity_t *, 
-				     generic_entity_t *, 
+	errno_t (*pack) (reiser4_journal_ent_t *, aal_stream_t *);
+	reiser4_journal_ent_t *(*unpack) (aal_device_t *, uint32_t, 
+				     reiser4_format_ent_t *, 
+				     reiser4_oid_ent_t *, 
 				     uint64_t, uint64_t, 
 				     aal_stream_t *);
-} reiser4_journal_plug_t;
+};
 
 /* Tail policy plugin operations. */
 typedef struct reiser4_policy_plug {
+	reiser4_plug_t p;
+	
 	int (*tails) (uint64_t);
 } reiser4_policy_plug_t;
 
 #endif
 
-#define PLUG_MAX_DESC	64
-#define PLUG_MAX_LABEL	22
 
 typedef struct reiser4_core reiser4_core_t;
 
@@ -1630,35 +1709,7 @@ typedef errno_t (*plug_fini_t) (reiser4_core_t *);
 typedef errno_t (*plug_func_t) (reiser4_plug_t *, void *);
 typedef reiser4_plug_t *(*plug_init_t) (reiser4_core_t *);
 
-/* Plugin class descriptor. Used for loading plugins. */
-typedef struct plug_class {
-	/* Plugin initialization routine. */
-	plug_init_t init;
-	
-	/* Plugin finalization routine. */
-	plug_fini_t fini;
-} plug_class_t;
-
-/* Plugin id, type and group. */
-typedef struct plug_ident {
-	rid_t id;
-	uint8_t group;
-	uint8_t type;
-} plug_ident_t;
-
-#define class_init {NULL, NULL}
-
-struct reiser4_plug {
-	/* Plugin id. This will be used for looking for a plugin. */
-	plug_ident_t id;
-#ifndef ENABLE_MINIMAL
-	/* Plugin label (name). */
-	const char label[PLUG_MAX_LABEL];
-	
-	/* Short plugin description. */
-	const char desc[PLUG_MAX_DESC];
-#endif
-
+struct reiser4_plug_old {
         /* All possible plugin operations. */
 	union {
 		reiser4_key_plug_t *key;
@@ -1793,23 +1844,48 @@ struct reiser4_core {
 #endif
 };
 
-#define print_key(core, key)                                 \
+#define print_key(core, key)						\
 	((core)->key_ops.print((key), PO_DEFAULT))
 
-#define print_inode(core, key)                               \
+#define print_inode(core, key)						\
 	((core)->key_ops.print((key), PO_INODE))
 
-#define ident_equal(ident1, ident2)                          \
-	((ident1)->type == (ident2)->type &&		     \
+#define ident_equal(ident1, ident2)					\
+	((ident1)->type == (ident2)->type &&				\
 	 (ident1)->id == (ident2)->id)
 
-#define plug_equal(plug1, plug2)                             \
-        ident_equal(&((plug1)->id), &((plug2)->id))
+#define plug_equal(plug1, plug2)					\
+        ident_equal(&(((reiser4_plug_t *)(plug1))->id),			\
+		    &(((reiser4_plug_t *)(plug2))->id))	
 
-/* Makes check is needed method implemengted */
-#define plug_call(ops, method, ...) ({                       \
-        aal_assert("Method \""#method"\" isn't implemented " \
-                   "in "#ops"", ops->method != NULL);        \
-        ops->method(__VA_ARGS__);			     \
+/* Checks if @method is implemented in @plug and calls it. */
+#define plugcall(plug, method, ...) ({					\
+        aal_assert("Method \""#method"\" isn't implemented "		\
+		   "in "#plug"", (plug)->method != NULL);		\
+        (plug)->method(__VA_ARGS__);					\
+})
+
+/* Checks if @method is implemented in @obj and calls it, passing @obj 
+   as the 1st parameter. */
+#define entcall(obj, method, ...) ({					\
+        aal_assert("Method \""#method"\" isn't implemented in "		\
+		   ""#obj"->plug->plug", (obj)->plug->method != NULL);	\
+        (obj)->plug->method(obj, ##__VA_ARGS__);			\
+})
+
+/* Checks if @method is implemented in @obj->plug and calls it, passing 
+   @obj as the 1st parameter. */
+#define objcall(obj, method, ...) ({					\
+        aal_assert("Method \""#method"\" isn't implemented in "		\
+		   ""#obj"->plug", (obj)->plug->method != NULL);	\
+        (obj)->plug->method(obj, ##__VA_ARGS__);			\
+})
+
+/* Checks if @method is implemented in @obj->ent.plug and calls it,
+   passing &obj->ent as the first parameter. */
+#define reiser4call(obj, method, ...) ({				\
+        aal_assert("Method \""#method"\" isn't implemented in "#obj""	\
+		   "->ent->plug", (obj)->ent->plug->method != NULL);	\
+        (obj)->ent->plug->method((obj)->ent, ##__VA_ARGS__);		\
 })
 #endif

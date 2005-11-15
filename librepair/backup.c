@@ -317,9 +317,9 @@ reiser4_backup_t *repair_backup_open(reiser4_fs_t *fs, uint8_t mode) {
 			}
 			
 			/* Allocate a block alloc entity. */
-			if (!(alloc.ent = plug_call(plug->pl.alloc, 
-						    create, fs->device, 
-						    blksize, blocks)))
+			if (!(alloc.ent = plugcall((reiser4_alloc_plug_t *)plug,
+						   create, fs->device, blksize, 
+						   blocks)))
 			{
 				aal_error("Can't create the allocator '%s' on "
 					  "%s.", plug->label, fs->device->name);
@@ -361,7 +361,8 @@ reiser4_backup_t *repair_backup_open(reiser4_fs_t *fs, uint8_t mode) {
 			}
 			
 			/* Close alloc entity. */
-			plug_call(plug->pl.alloc, close, alloc.ent);
+			plugcall((reiser4_alloc_plug_t *)plug, 
+				 close, alloc.ent);
 		}
 
 		aal_block_fini(&backup->hint.block);
@@ -417,9 +418,9 @@ reiser4_backup_t *repair_backup_open(reiser4_fs_t *fs, uint8_t mode) {
 			}
 
 			/* Allocathe a block alloc entity. */
-			if (!(alloc.ent = plug_call(plug->pl.alloc, create,
-						    fs->device, blksize,
-						    ondisk->blocks)))
+			if (!(alloc.ent = plugcall((reiser4_alloc_plug_t *)plug, 
+						   create, fs->device, blksize,
+						   ondisk->blocks)))
 			{
 				aal_error("Can't create the allocator '%s' on "
 					  "%s.", plug->label, fs->device->name);
@@ -434,7 +435,7 @@ reiser4_backup_t *repair_backup_open(reiser4_fs_t *fs, uint8_t mode) {
 				goto error_free_alloc;
 			}
 
-			plug_call(plug->pl.alloc, close, alloc.ent);
+			plugcall((reiser4_alloc_plug_t *)plug, close, alloc.ent);
 		}
 	} 
 	
@@ -527,7 +528,7 @@ reiser4_backup_t *repair_backup_open(reiser4_fs_t *fs, uint8_t mode) {
 	return backup;
 
  error_free_alloc:
-	plug_call(plug->pl.alloc, close, alloc.ent);
+	plugcall((reiser4_alloc_plug_t *)plug, close, alloc.ent);
  error_fini_backup:
 	if (backup->hint.block.data) 
 		aal_block_fini(&backup->hint.block);

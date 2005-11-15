@@ -17,12 +17,9 @@ uint32_t ccreg40_get_cluster_size(reiser4_place_t *place) {
 	hint.specific = &chint;
 	hint.count = 1;
 
-	if (plug_call(place->plug->pl.item->object, 
-		      fetch_units, place, &hint) != 1)
-	{
+	if (objcall(place, object->fetch_units, &hint) != 1)
 		return MAX_UINT32;
-	}
-
+	
 	return 1 << chint.shift;
 }
 
@@ -36,12 +33,9 @@ errno_t ccreg40_set_cluster_size(reiser4_place_t *place, uint32_t cluster) {
 	hint.count = 1;
 	chint.shift = aal_log2(cluster);
 
-	if (plug_call(place->plug->pl.item->object, 
-		      update_units, place, &hint) != 1)
-	{
+	if (objcall(place, object->update_units, &hint) != 1)
 		return -EIO;
-	}
-
+	
 	return 0;
 }
 
@@ -161,6 +155,7 @@ static int64_t ccreg40_write_clust(reiser4_object_t *cc, trans_hint_t *hint,
 				   void *buff, uint64_t off, uint64_t count,
 				   uint64_t fsize)
 {
+	reiser4_item_plug_t *iplug;
 	uint8_t clust[64 *1024];
 	uint8_t disk[64 * 1024];
 	uint64_t clstart;
@@ -209,9 +204,9 @@ static int64_t ccreg40_write_clust(reiser4_object_t *cc, trans_hint_t *hint,
 	if ((done = ccreg40_cc_cluster(cc, disk, clust, end - clstart)) < 0)
 		return done;
 	
+	iplug = (reiser4_item_plug_t *)cc->info.opset.plug[OPSET_CTAIL];
 	if ((written = obj40_write(cc, hint, clust, clstart, done,
-				   cc->info.opset.plug[OPSET_CTAIL], 
-				   cc_write_item, &clsize)) < 0)
+				   iplug, cc_write_item, &clsize)) < 0)
 	{
 		return written;
 	}
@@ -323,7 +318,8 @@ static int64_t ccreg40_write(reiser4_object_t *cc,
 }
 
 static errno_t ccreg40_truncate(reiser4_object_t *cc, uint64_t n) {
-	return obj40_truncate(cc, n, cc->info.opset.plug[OPSET_CTAIL]);
+	return obj40_truncate(cc, n, 
+		(reiser4_item_plug_t *)cc->info.opset.plug[OPSET_CTAIL]);
 }
 
 static errno_t ccreg40_clobber(reiser4_object_t *cc) {
@@ -353,8 +349,14 @@ static errno_t ccreg40_metadata(reiser4_object_t *cc,
 	return obj40_traverse(cc, func, NULL, data);
 }
 
-/* CRC regular file operations. */
-static reiser4_object_plug_t ccreg40 = {
+/* CRC regular file plugin. */
+reiser4_object_plug_t ccreg40_plug = {
+	.p = {
+		.id    = {OBJECT_CRC40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
+		.label = "ccreg40",
+		.desc  = "Crypto-Compression regular file plugin.",
+	},
+
 	.inherit	= obj40_inherit,
 	.create	        = obj40_create,
 	.write	        = ccreg40_write,
@@ -395,15 +397,5 @@ static reiser4_object_plug_t ccreg40 = {
 	.sdext_mandatory = (1 << SDEXT_LW_ID),
 	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID | 
 			    1 << SDEXT_CLUSTER_ID)
-};
-
-/* CRC regular file plugin. */
-reiser4_plug_t ccreg40_plug = {
-	.id    = {OBJECT_CRC40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
-	.label = "ccreg40",
-	.desc  = "Crypto-Compression regular file plugin.",
-	.pl = {
-		.object = &ccreg40
-	}
 };
 #endif

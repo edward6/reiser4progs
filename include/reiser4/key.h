@@ -46,8 +46,8 @@ extern errno_t reiser4_key_build_generic(reiser4_key_t *key,
 					 uint64_t offset);
 
 extern void reiser4_key_build_hashed(reiser4_key_t *key,
-				     reiser4_plug_t *hash,
-				     reiser4_plug_t *fibre,
+				     reiser4_hash_plug_t *hash,
+				     reiser4_fibre_plug_t *fibre,
 				     oid_t locality,
 				     oid_t objectid,
 				     char *name);

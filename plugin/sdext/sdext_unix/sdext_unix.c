@@ -67,7 +67,15 @@ extern void sdext_unix_print(stat_entity_t *stat,
 
 #endif
 
-static reiser4_sdext_plug_t sdext_unix = {
+reiser4_sdext_plug_t sdext_unix_plug = {
+	.p = {
+		.id    = {SDEXT_UNIX_ID, 0, SDEXT_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "sdext_unix",
+		.desc  = "Unix stat data extension plugin.",
+#endif
+	},
+	
 #ifndef ENABLE_MINIMAL
 	.open	   	= sdext_unix_open,
 	.init	   	= sdext_unix_init,
@@ -78,15 +86,4 @@ static reiser4_sdext_plug_t sdext_unix = {
 	.open	   	= NULL,
 #endif
 	.length	   	= sdext_unix_length
-};
-
-reiser4_plug_t sdext_unix_plug = {
-	.id    = {SDEXT_UNIX_ID, 0, SDEXT_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "sdext_unix",
-	.desc  = "Unix stat data extension plugin.",
-#endif
-	.pl = {
-		.sdext = &sdext_unix
-	}
 };

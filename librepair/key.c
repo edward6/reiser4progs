@@ -8,5 +8,5 @@
 errno_t repair_key_check_struct(reiser4_key_t *key) {
 	aal_assert("vpf-1279", key != NULL);
 
-	return plug_call(key->plug->pl.key, check_struct, key);
+	return objcall(key, check_struct);
 }

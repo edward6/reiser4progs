@@ -11,11 +11,11 @@
 
 /* This function returns TRUE if passed item @group corresponds to passed 
    @level Hardcoded method, valid for the current tree imprementation only. */
-bool_t repair_tree_legal_level(reiser4_plug_t *plug, uint8_t level) {
-	if (reiser4_item_branch(plug))
+bool_t repair_tree_legal_level(reiser4_item_plug_t *plug, uint8_t level) {
+	if (reiser4_item_branch((reiser4_item_plug_t *)plug))
 		return level != LEAF_LEVEL;
 	
-	if (plug->id.group == EXTENT_ITEM)
+	if (plug->p.id.group == EXTENT_ITEM)
 		return level == TWIG_LEVEL;
 	
 	return level == LEAF_LEVEL;
@@ -29,10 +29,10 @@ static errno_t cb_data_level(reiser4_plug_t *plug, void *data) {
 	if (plug->id.type != ITEM_PLUG_TYPE)
 		return 0;
 	
-	if (!repair_tree_legal_level(plug, *level))
+	if (!repair_tree_legal_level((reiser4_item_plug_t *)plug, *level))
 		return 0;
 	
-	return !reiser4_item_branch(plug);
+	return !reiser4_item_branch((reiser4_item_plug_t *)plug);
 }
 
 bool_t repair_tree_data_level(uint8_t level) {
@@ -294,28 +294,27 @@ errno_t repair_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node) {
 
 /* Check that conversion is needed. */
 static bool_t repair_tree_need_conv(reiser4_tree_t *tree, 
-				    reiser4_plug_t *from,
-				    reiser4_plug_t *to)
+				    reiser4_item_plug_t *from,
+				    reiser4_item_plug_t *to)
 {
 	aal_assert("vpf-1293", tree != NULL);
 	aal_assert("vpf-1294", from != NULL);
 	aal_assert("vpf-1295", to != NULL);
-	aal_assert("vpf-1296", to != NULL);
-		
+	
 	/* Conversion is not needed for equal plugins. */
 	if (plug_equal(from, to))
 		return 0;
 	
 	/* Conversion is needed for equal plugin groups. */
-	if (from->id.group == to->id.group)
+	if (from->p.id.group == to->p.id.group)
 		return 1;
 
 	/* TAIL->EXTENT conversion is needed. */
-	if (from->id.group == TAIL_ITEM && to->id.group == EXTENT_ITEM)
+	if (from->p.id.group == TAIL_ITEM && to->p.id.group == EXTENT_ITEM)
 		return 1;
 
 	/* EXTENT->TAIL conversion is not needed. */
-	if (from->id.group == EXTENT_ITEM && to->id.group == TAIL_ITEM)
+	if (from->p.id.group == EXTENT_ITEM && to->p.id.group == TAIL_ITEM)
 		return 0;
 	
 	/* Other kind of conversions are impossible. */
@@ -325,7 +324,7 @@ static bool_t repair_tree_need_conv(reiser4_tree_t *tree,
 /* Prepare repair convertion and perform it. */
 static errno_t repair_tree_conv(reiser4_tree_t *tree, 
 				reiser4_place_t *dst,
-				reiser4_plug_t *plug) 
+				reiser4_item_plug_t *plug) 
 {
 	conv_hint_t hint;
 
@@ -334,7 +333,7 @@ static errno_t repair_tree_conv(reiser4_tree_t *tree,
 	hint.plug = plug;
 	
 	aal_memcpy(&hint.offset, &dst->key, sizeof(dst->key));
-	hint.count = plug_call(dst->plug->pl.item->object, size, dst);
+	hint.count = objcall(dst, object->size);
 	hint.ins_hole = 1;
 
 	return reiser4_flow_convert(tree, &hint);
@@ -421,15 +420,13 @@ static errno_t repair_tree_lookup(reiser4_tree_t *tree,
 static errno_t cb_prep_insert_raw(reiser4_place_t *place, 
 				  trans_hint_t *hint) 
 {
-	return plug_call(hint->plug->pl.item->repair, 
-			 prep_insert_raw, place, hint);
+	return plugcall(hint->plug, repair->prep_insert_raw, place, hint);
 }
 
 static errno_t cb_insert_raw(reiser4_node_t *node, pos_t *pos, 
 			     trans_hint_t *hint) 
 {
-	return plug_call(node->plug->pl.node, 
-			 insert_raw, node, pos, hint);
+	return objcall(node, insert_raw, pos, hint);
 }
 
 #if 0
@@ -515,9 +512,9 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 					  "item (%s) [%s] being inserted [node "
 					  "%llu, item %u]. Skip insertion.",
 					  place_blknr(&dst), dst.pos.item,
-					  dst.plug->label,
+					  dst.plug->p.label,
 					  reiser4_print_key(&dst.key),
-					  src->plug->label,
+					  src->plug->p.label,
 					  reiser4_print_key(&src->key),
 					  place_blknr(src), src->pos.item);
 
@@ -560,7 +557,7 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 						  cb_insert_raw);
 			
 			if (res) goto error;
-		} else if (dst.plug->id.group == TAIL_ITEM) {
+		} else if (dst.plug->p.id.group == TAIL_ITEM) {
 			/* Do not overwrite tail items as they do not have 
 			   holes. Only a hole can be overwritten. */
 			return 0;
@@ -571,23 +568,23 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 				  "[%s] being inserted [node %llu, item %u]. "
 				  "Copying is not ready yet, skip insertion.",
 				  place_blknr(&dst), dst.pos.item, 
-				  dst.plug->label,
+				  dst.plug->p.label,
 				  reiser4_print_key(&dst.key),
-				  src->plug->label,
+				  src->plug->p.label,
 				  reiser4_print_key(&src->key),
 				  place_blknr(src), src->pos.item);
 
 			return RE_FATAL;
 		}
 
-		if (!src->plug->pl.item->balance->lookup)
+		if (!src->plug->balance->lookup)
 			break;
 
 		lhint.key = &hint.maxkey;
 			
 		/* Lookup by end_key. */
-		if ((res = plug_call(src->plug->pl.item->balance,
-				     lookup, src, &lhint, FIND_EXACT)) < 0)
+		if ((res = objcall(src, balance->lookup, 
+				   &lhint, FIND_EXACT)) < 0)
 		{
 			return res;
 		}

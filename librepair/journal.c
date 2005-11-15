@@ -23,9 +23,8 @@ static errno_t repair_journal_check_struct(reiser4_journal_t *journal) {
 	aal_assert("vpf-460", journal != NULL);
 	aal_assert("vpf-736", journal->fs != NULL);
 	
-	return plug_call(journal->ent->plug->pl.journal, 
-			 check_struct, journal->ent, 
-			 cb_journal_check, journal->fs);
+	return reiser4call(journal, check_struct, 
+			   cb_journal_check, journal->fs);
 }
 
 /* Open the journal and check it. */
@@ -92,16 +91,13 @@ errno_t repair_journal_open(reiser4_fs_t *fs,
 void repair_journal_invalidate(reiser4_journal_t *journal) {
 	aal_assert("vpf-1555", journal != NULL);
 
-	plug_call(journal->ent->plug->pl.journal,
-		  invalidate, journal->ent);
+	reiser4call(journal, invalidate);
 }
 
 void repair_journal_print(reiser4_journal_t *journal, aal_stream_t *stream) {
 	aal_assert("umka-1564", journal != NULL);
-	aal_assert("umka-1565", stream != NULL);
 
-	plug_call(journal->ent->plug->pl.journal,
-		  print, journal->ent, stream, 0);
+	reiser4call(journal, print, stream, 0);
 }
 
 errno_t repair_journal_pack(reiser4_journal_t *journal, aal_stream_t *stream) {
@@ -110,11 +106,10 @@ errno_t repair_journal_pack(reiser4_journal_t *journal, aal_stream_t *stream) {
 	aal_assert("vpf-1747", journal != NULL);
 	aal_assert("vpf-1748", stream != NULL);
 
-	pid = journal->ent->plug->id.id;
+	pid = journal->ent->plug->p.id.id;
 	aal_stream_write(stream, &pid, sizeof(pid));
 	
-	return plug_call(journal->ent->plug->pl.journal,
-			 pack, journal->ent, stream);
+	return reiser4call(journal, pack, stream);
 }
 
 reiser4_journal_t *repair_journal_unpack(reiser4_fs_t *fs, 
@@ -156,9 +151,9 @@ reiser4_journal_t *repair_journal_unpack(reiser4_fs_t *fs,
 	blksize = reiser4_master_get_blksize(fs->master);
 
 	/* Creating journal entity. */
-	if (!(journal->ent = plug_call(plug->pl.journal, unpack,
-				       fs->device, blksize, fs->format->ent,
-				       fs->oid->ent, start, blocks, stream)))
+	if (!(journal->ent = plugcall((reiser4_journal_plug_t *)plug, unpack,
+				      fs->device, blksize, fs->format->ent,
+				      fs->oid->ent, start, blocks, stream)))
 	{
 		aal_error("Can't unpack journal %s on %s.",
 			  plug->label, fs->device->name);

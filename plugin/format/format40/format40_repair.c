@@ -11,7 +11,7 @@
 
 /* Update from the device only those fields which can be changed while 
    replaying. */
-errno_t format40_update(generic_entity_t *entity) {
+errno_t format40_update(reiser4_format_ent_t *entity) {
 	format40_t *format = (format40_t *)entity;
 	format40_super_t *super;
 	aal_block_t block;
@@ -46,7 +46,7 @@ errno_t format40_update(generic_entity_t *entity) {
 	return res;
 }
 
-errno_t format40_check_struct(generic_entity_t *entity, 
+errno_t format40_check_struct(reiser4_format_ent_t *entity, 
 			      backup_hint_t *hint, 
 			      format_hint_t *desc, 
 			      uint8_t mode)
@@ -231,7 +231,7 @@ errno_t format40_check_struct(generic_entity_t *entity,
 	return res;
 }
 
-errno_t format40_pack(generic_entity_t *entity,
+errno_t format40_pack(reiser4_format_ent_t *entity,
 		      aal_stream_t *stream)
 {
 	rid_t pid;
@@ -244,7 +244,7 @@ errno_t format40_pack(generic_entity_t *entity,
 	format = (format40_t *)entity;
 
 	/* Write plugin id. */
-	pid = entity->plug->id.id;
+	pid = entity->plug->p.id.id;
 	aal_stream_write(stream, &pid, sizeof(pid));
 
 	/* Write data size. */
@@ -257,9 +257,9 @@ errno_t format40_pack(generic_entity_t *entity,
 	return 0;
 }
 
-generic_entity_t *format40_unpack(aal_device_t *device, 
-				  uint32_t blksize,
-				  aal_stream_t *stream)
+reiser4_format_ent_t *format40_unpack(aal_device_t *device, 
+				      uint32_t blksize,
+				      aal_stream_t *stream)
 {
 	uint32_t size;
 	format40_t *format;
@@ -289,7 +289,7 @@ generic_entity_t *format40_unpack(aal_device_t *device,
 		goto error_eostream;
 
 	format40_mkdirty(format);
-	return (generic_entity_t *)format;
+	return (reiser4_format_ent_t *)format;
 
  error_eostream:
 	aal_error("Can't unpack the disk format40. Stream is over?");
@@ -299,7 +299,7 @@ generic_entity_t *format40_unpack(aal_device_t *device,
 	return NULL;
 }
 
-void format40_print(generic_entity_t *entity,
+void format40_print(reiser4_format_ent_t *entity,
 		    aal_stream_t *stream,
 		    uint16_t options) 
 {
@@ -323,33 +323,32 @@ void format40_print(generic_entity_t *entity,
 	aal_stream_format(stream, "Format super block (%lu):\n",
 			  FORMAT40_BLOCKNR(format->blksize));
 	
-	aal_stream_format(stream, "plugin:\t\t%s\n",
-			  entity->plug->label);
+	aal_stream_format(stream, "plugin:\t\t%s\n", 
+			  entity->plug->p.label);
 	
-	aal_stream_format(stream, "description:\t%s\n",
-			  entity->plug->desc);
+	aal_stream_format(stream, "description:\t%s\n", 
+			  entity->plug->p.desc);
 
-	aal_stream_format(stream, "magic:\t\t%s\n",
+	aal_stream_format(stream, "magic:\t\t%s\n", 
 			  super->sb_magic);
 	
-	aal_stream_format(stream, "flushes:\t%llu\n",
+	aal_stream_format(stream, "flushes:\t%llu\n", 
 			  get_sb_flushes(super));
 	
-	aal_stream_format(stream, "mkfs id:\t0x%x\n",
+	aal_stream_format(stream, "mkfs id:\t0x%x\n", 
 			  get_sb_mkfs_id(super));
     
-	aal_stream_format(stream, "blocks:\t\t%llu\n",
+	aal_stream_format(stream, "blocks:\t\t%llu\n", 
 			  get_sb_block_count(super));
 	
 	aal_stream_format(stream, "free blocks:\t%llu\n",
 			  get_sb_free_blocks(super));
 	
-	aal_stream_format(stream, "root block:\t%llu\n",
+	aal_stream_format(stream, "root block:\t%llu\n", 
 			  get_sb_root_block(super));
 
 	aal_stream_format(stream, "tail policy:\t0x%x (%s)\n",
-			  pid, plug ? plug->label:
-			  "absent");
+			  pid, plug ? plug->label: "absent");
 	
 	aal_stream_format(stream, "next oid:\t0x%llx\n",
 			  get_sb_oid(super));
@@ -404,8 +403,8 @@ errno_t format40_check_backup(backup_hint_t *hint) {
 }
 
 /* Regenerate the format instance by the backup. */
-generic_entity_t *format40_regenerate(aal_device_t *device, 
-				      backup_hint_t *hint) 
+reiser4_format_ent_t *format40_regenerate(aal_device_t *device, 
+					  backup_hint_t *hint) 
 {
 	format40_backup_t *backup;
 	format40_super_t *super;
@@ -439,7 +438,7 @@ generic_entity_t *format40_regenerate(aal_device_t *device,
 	set_sb_tree_height(super, 2);
 	set_sb_root_block(super, INVAL_BLK);
 
-	return (generic_entity_t *)format;
+	return (reiser4_format_ent_t *)format;
 }
 
 #endif

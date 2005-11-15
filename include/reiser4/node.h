@@ -20,7 +20,7 @@ extern errno_t reiser4_node_update_ptr(reiser4_node_t *node);
 extern void reiser4_node_move(reiser4_node_t *node, blk_t nr);
 
 extern reiser4_node_t *reiser4_node_create(reiser4_tree_t *tree,
-					   reiser4_plug_t *plug,
+					   reiser4_node_plug_t *plug,
 					   blk_t nr, uint8_t level);
 
 extern errno_t reiser4_node_trav(reiser4_node_t *node,

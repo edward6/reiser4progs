@@ -73,13 +73,13 @@ const char *key_common_minor2name(key_minor_t type) {
 }
 
 /* Returns minimal key */
-reiser4_key_t *key_common_minimal(reiser4_plug_t *plug) {
+reiser4_key_t *key_common_minimal(reiser4_key_plug_t *plug) {
 	minimal_key.plug = plug;
 	return &minimal_key;
 }
 
 /* Returns maximal key */
-reiser4_key_t *key_common_maximal(reiser4_plug_t *plug) {
+reiser4_key_t *key_common_maximal(reiser4_key_plug_t *plug) {
 	maximal_key.plug = plug;
 	return &maximal_key;
 }

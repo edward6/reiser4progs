@@ -13,20 +13,19 @@ errno_t bbox40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	uint8_t size;
 	
 	/* FIXME: this is hardcoded, type should be obtained in another way. */
-	type = plug_call(place->key.plug->pl.key, get_offset, &place->key);
+	type = objcall(&place->key, get_offset);
 
 	if (type >= SL_LAST) {
 		fsck_mess("Node (%llu), item (%u), [%s]: safe link "
 			  "item (%s) of the unknown type (%llu) found.",
 			  place_blknr(place), place->pos.item, 
 			  print_key(bbox40_core, &place->key),
-			  place->plug->label, type);
+			  place->plug->p.label, type);
 		
 		return RE_FATAL;
 	}
 	
-	size = plug_call(place->key.plug->pl.key, bodysize) * 
-		sizeof(uint64_t);
+	size = plugcall(place->key.plug, bodysize) * sizeof(uint64_t);
 
 	if (type == SL_TRUNCATE)
 		size += sizeof(uint64_t);
@@ -36,7 +35,7 @@ errno_t bbox40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 			  "of the wrong length (%u) found. Should be (%u).",
 			  place_blknr(place), place->pos.item, 
 			  print_key(bbox40_core, &place->key),
-			  place->plug->label, place->len, size);
+			  place->plug->p.label, place->len, size);
 		
 		return RE_FATAL;
 	}
@@ -52,10 +51,8 @@ void bbox40_print(reiser4_place_t *place, aal_stream_t *stream,
 	uint16_t size, trunc;
 
 	/* FIXME: this is hardcoded, type should be obtained in another way. */
-	type = plug_call(place->key.plug->pl.key, get_offset, &place->key);
-
-	size = plug_call(place->key.plug->pl.key, bodysize) * 
-		sizeof(uint64_t);
+	type = objcall(&place->key, get_offset);
+	size = plugcall(place->key.plug, bodysize) * sizeof(uint64_t);
 
 	trunc = (type == SL_TRUNCATE) ? sizeof(uint64_t) : 0;
 	

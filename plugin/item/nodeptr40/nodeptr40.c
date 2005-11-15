@@ -167,22 +167,19 @@ static item_debug_ops_t debug_ops = {
 };
 #endif
 
-static reiser4_item_plug_t nodeptr40 = {
+reiser4_item_plug_t nodeptr40_plug = {
+	.p = {
+		.id    = {ITEM_NODEPTR40_ID, PTR_ITEM, ITEM_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "nodeptr40",
+		.desc  = "Node pointer item plugin.",
+#endif
+	},
+
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
 #ifndef ENABLE_MINIMAL
 	.repair		  = &repair_ops,
 	.debug		  = &debug_ops
 #endif
-};
-
-reiser4_plug_t nodeptr40_plug = {
-	.id    = {ITEM_NODEPTR40_ID, PTR_ITEM, ITEM_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "nodeptr40",
-	.desc  = "Node pointer item plugin.",
-#endif
-	.pl = {
-		.item = &nodeptr40
-	}
 };

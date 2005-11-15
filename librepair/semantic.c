@@ -112,12 +112,9 @@ static errno_t repair_semantic_check_attach(repair_semantic_t *sem,
 		return res;
 	
 	/* Increment the link. */
-	if ((res = plug_call(reiser4_oplug(object)->pl.object,
-			     link, object)))
-	{
+	if ((res = plugcall(reiser4_oplug(object), link, object)))
 		return res;
-	}
-
+	
 	/* If @parent is "lost+found", do not mark as ATTACHED. */
 	if (sem->lost && !reiser4_key_compshort(&parent->info.object,
 						&sem->lost->info.object))
@@ -561,13 +558,13 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 	
 	if (object) {
 		/* Check that the object was recognized by the dir plugin. */
-		if (reiser4_oplug(object)->id.group == DIR_OBJECT)
+		if (reiser4_oplug(object)->p.id.group == DIR_OBJECT)
 			return object;
 
 		fsck_mess("The directory [%s] is recognized by the "
 			  "%s plugin which is not a directory one.", 
 			  reiser4_print_inode(key), 
-			  reiser4_oplug(object)->label);
+			  reiser4_oplug(object)->p.label);
 		
 		reiser4_object_close(object);
 	} else {

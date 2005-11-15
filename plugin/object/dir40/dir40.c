@@ -54,11 +54,11 @@ errno_t dir40_reset(reiser4_object_t *dir) {
 #endif
 
 	/* Building key itself. */
-	plug_call(dir->info.object.plug->pl.key, 
-		  build_hashed, &dir->position, 
-		  dir->info.opset.plug[OPSET_HASH],
-		  dir->info.opset.plug[OPSET_FIBRE], 
-		  obj40_locality(dir), obj40_objectid(dir), ".");
+	plugcall(dir->info.object.plug, build_hashed, &dir->position,
+		  (reiser4_hash_plug_t *)dir->info.opset.plug[OPSET_HASH],
+		  (reiser4_fibre_plug_t *)dir->info.opset.plug[OPSET_FIBRE], 
+		  objcall(&dir->info.object, get_locality),
+		  objcall(&dir->info.object, get_objectid), ".");
 
 	return 0;
 }
@@ -73,12 +73,9 @@ errno_t dir40_fetch(reiser4_object_t *dir, entry_hint_t *entry) {
 	hint.shift_flags = SF_DEFAULT;
 
 	/* Reading entry to passed @entry */
-	if (plug_call(dir->body.plug->pl.item->object,
-		      fetch_units, &dir->body, &hint) != 1)
-	{
+	if (objcall(&dir->body, object->fetch_units, &hint) != 1)
 		return -EIO;
-	}
-
+	
 	/* Copying entry place. */
 	aal_memcpy(&entry->place, &dir->body,
 		   sizeof(reiser4_place_t));
@@ -128,8 +125,7 @@ errno_t dir40_entry_comp(reiser4_object_t *dir, void *data) {
 	}
 	
 	/* If greater key is reached, return PRESENT. */
-	return plug_call(entry.offset.plug->pl.key, 
-			 compfull, &entry.offset, key) ? 1 : 0;
+	return objcall(&entry.offset, compfull, key) ? 1 : 0;
 }
 
 /* Reads one current directory entry to passed @entry hint. Returns count of
@@ -159,8 +155,7 @@ static int32_t dir40_readdir(reiser4_object_t *dir,
 	   one day), etc. */
 	dir40_entry_type(entry);
 
-	units = plug_call(dir->body.plug->pl.item->balance,
-			  units, &dir->body);
+	units = objcall(&dir->body, balance->units);
 
 	/* Getting next entry in odrer to set up @dir->position correctly. */
 	if (++dir->body.pos.unit >= units) {
@@ -172,11 +167,8 @@ static int32_t dir40_readdir(reiser4_object_t *dir,
 			uint64_t offset;
 			
 			/* Set offset to non-existent value. */
-			offset = plug_call(dir->position.plug->pl.key,
-					   get_offset, &dir->position);
-
-			plug_call(dir->position.plug->pl.key, set_offset,
-				  &dir->position, offset + 1);
+			offset = objcall(&dir->position, get_offset);
+			objcall(&dir->position, set_offset, offset + 1);
 		}
 	} else {
 		/* There is no need to switch */
@@ -191,13 +183,10 @@ static int32_t dir40_readdir(reiser4_object_t *dir,
 
 #ifndef ENABLE_MINIMAL
 		/* Taking care about adjust */
-		if (!plug_call(temp.offset.plug->pl.key,
-			       compfull, &temp.offset, &dir->position))
-		{
+		if (!objcall(&temp.offset, compfull, &dir->position))
 			temp.offset.adjust = dir->position.adjust + 1;
-		} else {
+		else
 			temp.offset.adjust = 0;
-		}
 #endif
 		dir40_seekdir(dir, &temp.offset);
 	}
@@ -222,12 +211,11 @@ static lookup_t dir40_search(reiser4_object_t *dir, char *name,
 
 	/* Preparing key to be used for lookup. It is generating from the
 	   directory oid, locality and name by menas of using hash plugin. */
-	plug_call(dir->info.object.plug->pl.key, 
-		  build_hashed, &dir->body.key, 
-		  dir->info.opset.plug[OPSET_HASH],
-		  dir->info.opset.plug[OPSET_FIBRE], 
-		  obj40_locality(dir),
-		  obj40_objectid(dir), name);
+	plugcall(dir->info.object.plug, build_hashed, &dir->body.key,
+		 (reiser4_hash_plug_t *)dir->info.opset.plug[OPSET_HASH],
+		 (reiser4_fibre_plug_t *)dir->info.opset.plug[OPSET_FIBRE],
+		 objcall(&dir->info.object, get_locality),
+		 objcall(&dir->info.object, get_objectid), name);
 
 #ifndef ENABLE_MINIMAL
 	hint.specific = name;
@@ -294,14 +282,15 @@ static errno_t dir40_create(reiser4_object_t *dir, object_hint_t *hint) {
 	   data item hint, because we will need size of direntry item during
 	   stat data initialization. */
    	body_hint.count = 1;
-	body_hint.plug = dir->info.opset.plug[OPSET_DIRITEM];
-	key = &dir->info.object;
+	body_hint.plug = 
+		(reiser4_item_plug_t *)dir->info.opset.plug[OPSET_DIRITEM];
 	
-	plug_call(key->plug->pl.key, 
-		  build_hashed, &body_hint.offset, 
-		  dir->info.opset.plug[OPSET_HASH], 
-		  dir->info.opset.plug[OPSET_FIBRE],
-		  obj40_locality(dir), obj40_objectid(dir), ".");
+	key = &dir->info.object;
+	plugcall(key->plug, build_hashed, &body_hint.offset, 
+		 (reiser4_hash_plug_t *)dir->info.opset.plug[OPSET_HASH], 
+		 (reiser4_fibre_plug_t *)dir->info.opset.plug[OPSET_FIBRE],
+		 objcall(&dir->info.object, get_locality),
+		 objcall(&dir->info.object, get_objectid), ".");
 
 	/* Preparing hint for the empty directory. It consists only "." for
 	   unlinked directories. */
@@ -372,7 +361,7 @@ static errno_t dir40_mkempty(reiser4_object_t *dir, uint64_t n) {
 	/* Creating maximal possible key in order to find last directory item
 	   and remove it from the tree. Thanks to Nikita for this idea. */
 	aal_memcpy(&key, &dir->body.key, sizeof(key));
-	plug_call(dir->body.key.plug->pl.key, set_offset, &key, MAX_UINT64);
+	objcall(&key, set_offset, MAX_UINT64);
 
 	while (1) {
 		trans_hint_t hint;
@@ -438,20 +427,14 @@ static bool_t dir40_linked(reiser4_object_t *dir) {
 static errno_t dir40_build_entry(reiser4_object_t *dir, 
 				 entry_hint_t *entry)
 {
-	uint64_t locality;
-	uint64_t objectid;
-	
 	aal_assert("umka-2528", entry != NULL);
 	aal_assert("umka-2527", dir != NULL);
-
-	locality = obj40_locality(dir);
-	objectid = obj40_objectid(dir);
 	
-	plug_call(dir->info.object.plug->pl.key, 
-		  build_hashed, &entry->offset, 
-		  dir->info.opset.plug[OPSET_HASH],
-		  dir->info.opset.plug[OPSET_FIBRE], 
-		  locality, objectid, entry->name);
+	plugcall(dir->info.object.plug, build_hashed, &entry->offset, 
+		 (reiser4_hash_plug_t *)dir->info.opset.plug[OPSET_HASH],
+		 (reiser4_fibre_plug_t *)dir->info.opset.plug[OPSET_FIBRE],
+		 objcall(&dir->info.object, get_locality),
+		 objcall(&dir->info.object, get_objectid), entry->name);
 
 	return 0;
 }
@@ -542,9 +525,7 @@ static errno_t dir40_rem_entry(reiser4_object_t *dir,
 		if ((res = obj40_remove(dir, &temp.place, &hint)))
 			return res;
 
-		if (!plug_call(dir->position.plug->pl.key,
-			       compfull, &dir->position, &temp.offset))
-		{
+		if (!objcall(&dir->position, compfull, &temp.offset)) {
 			if (entry->offset.adjust < dir->position.adjust)
 				dir->position.adjust--;
 		}
@@ -581,15 +562,13 @@ static errno_t dir40_attach(reiser4_object_t *dir,
 		return res;
 
 	/* Increasing parent's @nlink by one */
-	return plug_call(reiser4_oplug(parent)->pl.object,
-			 link, parent);
+	return plugcall(reiser4_oplug(parent), link, parent);
 }
 
 /* Detaches @dir from @parent. */
 static errno_t dir40_detach(reiser4_object_t *dir,
 			    reiser4_object_t *parent)
 {
-	reiser4_plug_t *plug;
 	entry_hint_t entry;
 	errno_t res;
 
@@ -604,10 +583,8 @@ static errno_t dir40_detach(reiser4_object_t *dir,
 	if (!parent) 
 		return 0;
 	
-	plug = reiser4_oplug(parent);
-	
 	/* Decreasing parent's @nlink by one */
-	return plug_call(plug->pl.object, unlink, parent);
+	return plugcall(reiser4_oplug(parent), unlink, parent);
 }
 
 /* This fucntion implements hashed directory enumerator function. It is used for
@@ -632,7 +609,15 @@ static errno_t dir40_metadata(reiser4_object_t *dir,
 #endif
 
 /* Directory object operations. */
-static reiser4_object_plug_t dir40 = {
+reiser4_object_plug_t dir40_plug = {
+	.p = {
+		.id    = {OBJECT_DIR40_ID, DIR_OBJECT, OBJECT_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "dir40",
+		.desc  = "Directory file plugin.",
+#endif
+	},
+
 #ifndef ENABLE_MINIMAL
 	.inherit	= obj40_inherit,
 	.create		= dir40_create,
@@ -676,15 +661,4 @@ static reiser4_object_plug_t dir40 = {
 	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID  |
 			    1 << SDEXT_CLUSTER_ID)
 #endif
-};
-
-reiser4_plug_t dir40_plug = {
-	.id    = {OBJECT_DIR40_ID, DIR_OBJECT, OBJECT_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "dir40",
-	.desc  = "Directory file plugin.",
-#endif
-	.pl = {
-		.object = &dir40
-	}
 };

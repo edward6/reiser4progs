@@ -121,7 +121,8 @@ static errno_t journal40_blk_format_check(journal40_t *journal, blk_t blk,
    block number equals to wanted blk. Set found_type then to TxH. Returns 1 
    when traverse should be stopped, zeroes found_type if no satisfied 
    transaction was found. */
-static errno_t cb_find_txh_blk(generic_entity_t *entity, blk_t blk, void *data)
+static errno_t cb_find_txh_blk(reiser4_journal_ent_t *entity, 
+			       blk_t blk, void *data)
 {
 	journal40_check_t *check_data = (journal40_check_t *)data;
 	
@@ -146,8 +147,9 @@ static errno_t cb_find_txh_blk(generic_entity_t *entity, blk_t blk, void *data)
 /* Secondary (not TxH) blocks callback for nested traverses. Should find the 
    transaction which contains block number equal to wanted blk. Set wanted_blk 
    to TxH block number and found_type to the type of found blk. */
-static errno_t cb_find_sec_blk(generic_entity_t *entity, aal_block_t *txh_block,
-			       blk_t blk, journal40_block_t blk_type,void *data)
+static errno_t cb_find_sec_blk(reiser4_journal_ent_t *entity, 
+			       aal_block_t *txh_block, blk_t blk, 
+			       journal40_block_t blk_type, void *data)
 {
 	journal40_check_t *check_data = (journal40_check_t *)data;
 	
@@ -163,7 +165,7 @@ static errno_t cb_find_sec_blk(generic_entity_t *entity, aal_block_t *txh_block,
 /* TxH callback for traverse. Returns 1 if blk is a block out of format bound 
    or of format area or is met more then once. data->cur_txh = 0 all the way
    here to explain the traverse caller that the whole journal is invalid. */
-static errno_t cb_journal_txh_check(generic_entity_t *entity, 
+static errno_t cb_journal_txh_check(reiser4_journal_ent_t *entity, 
 				    blk_t blk, void *data) 
 {
 	journal40_t *journal = (journal40_t *)entity;
@@ -177,7 +179,7 @@ static errno_t cb_journal_txh_check(generic_entity_t *entity,
 	if (journal40_blk_format_check(journal, blk, check_data)) {
 		fsck_mess("Transaction header lies in the illegal block "
 			  "(%llu) for the used format (%s).", blk, 
-			  journal->format->plug->label);
+			  journal->format->plug->p.label);
 		return -ESTRUCT;
 	}
 	
@@ -195,7 +197,7 @@ static errno_t cb_journal_txh_check(generic_entity_t *entity,
 
 /* Secondary blocks callback for traverse. Does all the work described above for 
    all block types except TxH. */
-static errno_t cb_journal_sec_check(generic_entity_t *entity, 
+static errno_t cb_journal_sec_check(reiser4_journal_ent_t *entity, 
 				    aal_block_t *txh_block, blk_t blk, 
 				    journal40_block_t blk_type, void *data)
 {
@@ -222,7 +224,7 @@ static errno_t cb_journal_sec_check(generic_entity_t *entity,
 	if (journal40_blk_format_check(journal, blk, check_data)) {
 		fsck_mess("%s lies in the illegal block (%llu) for the "
 			  "used format (%s).", __blk_type_name(blk_type), 
-			  blk, journal->format->plug->label);
+			  blk, journal->format->plug->p.label);
 		return -ESTRUCT;
 	}
 	
@@ -277,13 +279,13 @@ static errno_t cb_journal_sec_check(generic_entity_t *entity,
 	    
 			/* Traverse of 1 trans with no callbacks shows if LRG 
 			   circle is valid. */
-			res = journal40_traverse_trans(journal, txh_block, NULL, 
+			res = journal40_traverse_trans(entity, txh_block, NULL, 
 						       NULL, NULL);
 			if (res == 0) {
 				/* Find the place we met blk previous time. */
 				check_data->wanted_blk = blk;
 				
-				res = journal40_traverse(journal, NULL, NULL, 
+				res = journal40_traverse(entity, NULL, NULL, 
 							 cb_find_sec_blk, 
 							 check_data);
 				
@@ -320,7 +322,7 @@ static errno_t cb_journal_sec_check(generic_entity_t *entity,
 			check_data->wanted_blk = blk;
 			check_data->flags = 0;
 			
-			res = journal40_traverse(journal, cb_find_txh_blk, 
+			res = journal40_traverse(entity, cb_find_txh_blk, 
 						 NULL, cb_find_sec_blk, 
 						 check_data);
 			
@@ -355,7 +357,7 @@ static errno_t cb_journal_sec_check(generic_entity_t *entity,
 			/* Stop looking through TxH's when reach the current trans. */
 			check_data->flags = (1 << TF_SAME_TXH_BREAK);
 			
-			res = journal40_traverse(journal, cb_find_txh_blk, 
+			res = journal40_traverse(entity, cb_find_txh_blk, 
 						 NULL, NULL, check_data);
 			
 			if (res != -ESTRUCT) {
@@ -385,7 +387,7 @@ static errno_t cb_journal_sec_check(generic_entity_t *entity,
 	return 0;
 }
 
-errno_t journal40_check_struct(generic_entity_t *entity, 
+errno_t journal40_check_struct(reiser4_journal_ent_t *entity, 
 			       layout_func_t func, void *data)
 {
 	journal40_t *journal = (journal40_t *)entity;
@@ -420,7 +422,7 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 		goto error_free_layout;
 	}
 
-	ret = journal40_traverse((journal40_t *)entity, cb_journal_txh_check,
+	ret = journal40_traverse(entity, cb_journal_txh_check,
 				 NULL, cb_journal_sec_check, &jdata);
 
 	if (ret && ret != -ESTRUCT)
@@ -441,7 +443,7 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 
 			/* jdata.cur_txh is the oldest problem transaction. 
 			   Set the last_committed to the previous one. */
-			device = journal40_device((generic_entity_t *)journal);
+			device = journal40_device((reiser4_journal_ent_t *)journal);
 
 			if (device == NULL) {
 				aal_error("Invalid device has been detected.");
@@ -489,7 +491,7 @@ errno_t journal40_check_struct(generic_entity_t *entity,
 	return ret;
 }
 
-void journal40_invalidate(generic_entity_t *entity) {
+void journal40_invalidate(reiser4_journal_ent_t *entity) {
 	journal40_t *journal = (journal40_t *)entity;
 	journal40_footer_t *footer;
 	journal40_header_t *header;
@@ -521,7 +523,7 @@ static void extract_string(char *stor, char *orig, uint32_t max) {
 }
 
 /* Helper function for printing transaction header. */
-static errno_t cb_print_txh(generic_entity_t *entity,
+static errno_t cb_print_txh(reiser4_journal_ent_t *entity,
 			    blk_t blk, void *data)
 {
 	aal_block_t *block;
@@ -580,7 +582,7 @@ static errno_t cb_print_txh(generic_entity_t *entity,
 }
 
 /* Printing pair (wandered and original) blocks */
-static errno_t cb_print_par(generic_entity_t *entity,
+static errno_t cb_print_par(reiser4_journal_ent_t *entity,
 			    aal_block_t *block,
 			    blk_t orig, void *data)
 {
@@ -590,7 +592,7 @@ static errno_t cb_print_par(generic_entity_t *entity,
 }
 
 /* hellper function for printing log record. */
-static errno_t cb_print_lgr(generic_entity_t *entity,
+static errno_t cb_print_lgr(reiser4_journal_ent_t *entity,
 			    aal_block_t *block, blk_t blk,
 			    journal40_block_t bel, void *data)
 {
@@ -628,7 +630,7 @@ static errno_t cb_print_lgr(generic_entity_t *entity,
 }
 
 /* Prints journal structures into passed @stream */
-void journal40_print(generic_entity_t *entity,
+void journal40_print(reiser4_journal_ent_t *entity,
 		     aal_stream_t *stream, 
 		     uint16_t options)
 {
@@ -648,10 +650,10 @@ void journal40_print(generic_entity_t *entity,
 	aal_stream_format(stream, "Journal:\n");
 	
 	aal_stream_format(stream, "plugin: \t%s\n",
-			  entity->plug->label);
+			  entity->plug->p.label);
 
 	aal_stream_format(stream, "description:\t%s\n\n",
-			  entity->plug->desc);
+			  entity->plug->p.desc);
 	
 	aal_stream_format(stream, "Journal header block (%llu):\n", 
 			  journal->header->nr);
@@ -675,8 +677,8 @@ void journal40_print(generic_entity_t *entity,
 			  get_jf_used_oids(footer));
 
 	/* Print all transactions. */
-	journal40_traverse((journal40_t *)entity, cb_print_txh,
-			   cb_print_par, cb_print_lgr, (void *)stream);
+	journal40_traverse(entity, cb_print_txh, cb_print_par, 
+			   cb_print_lgr, (void *)stream);
 }
 
 static errno_t journal40_block_pack(journal40_t *journal, aal_stream_t *stream,
@@ -747,7 +749,7 @@ static errno_t journal40_block_pack(journal40_t *journal, aal_stream_t *stream,
 	return res;
 }
 
-errno_t journal40_pack(generic_entity_t *entity, aal_stream_t *stream) {
+errno_t journal40_pack(reiser4_journal_ent_t *entity, aal_stream_t *stream) {
 	journal40_header_t *jheader;
 	journal40_t *journal;
 	reiser4_bitmap_t *layout;
@@ -779,13 +781,13 @@ errno_t journal40_pack(generic_entity_t *entity, aal_stream_t *stream) {
 	return res;
 }
 
-generic_entity_t *journal40_unpack(aal_device_t *device, 
-				   uint32_t blksize, 
-				   generic_entity_t *format, 
-				   generic_entity_t *oid,
-				   uint64_t start, 
-				   uint64_t blocks, 
-				   aal_stream_t *stream) 
+reiser4_journal_ent_t *journal40_unpack(aal_device_t *device, 
+					uint32_t blksize, 
+					reiser4_format_ent_t *format, 
+					reiser4_oid_ent_t *oid,
+					uint64_t start, 
+					uint64_t blocks, 
+					aal_stream_t *stream) 
 {
 	journal40_t *journal;
 	uint64_t read;
@@ -841,7 +843,7 @@ generic_entity_t *journal40_unpack(aal_device_t *device,
 	/* Other blocks are unpacked in reiser4_fs_unpack as usual blocks. */
 	
 	journal40_mkdirty(journal);
-	return (generic_entity_t *)journal;
+	return (reiser4_journal_ent_t *)journal;
 
  error_free_footer:
 	aal_block_free(journal->footer);

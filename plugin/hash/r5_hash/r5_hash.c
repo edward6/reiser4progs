@@ -19,18 +19,15 @@ uint64_t r5_hash_build(unsigned char *name, uint32_t len) {
 	return a;
 }
 
-reiser4_hash_plug_t r5_hash = {
-	.build = r5_hash_build
-};
-
-reiser4_plug_t r5_hash_plug = {
-	.id    = {HASH_R5_ID, 0, HASH_PLUG_TYPE},
+reiser4_hash_plug_t r5_hash_plug = {
+	.p = {
+		.id    = {HASH_R5_ID, 0, HASH_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
-	.label = "r5_hash",
-	.desc  = "R5 hash plugin.",
+		.label = "r5_hash",
+		.desc  = "R5 hash plugin.",
 #endif
-	.pl = {
-		.hash = &r5_hash
-	}
+	},
+	
+	.build = r5_hash_build,
 };
 #endif

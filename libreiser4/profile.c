@@ -32,7 +32,7 @@ reiser4_profile_t defprof = {
 		},
 		[PROF_REGFILE] = {
 #ifndef ENABLE_MINIMAL
-			.name  = "create",
+			.name  = "regfile",
 			.hidden = 1,
 			.max = OBJECT_LAST_ID,
 #endif
@@ -40,7 +40,7 @@ reiser4_profile_t defprof = {
 		},
 		[PROF_DIRFILE] = {
 #ifndef ENABLE_MINIMAL
-			.name  = "mkdir",
+			.name  = "dirfile",
 			.hidden = 1,
 			.max = OBJECT_LAST_ID,
 #endif
@@ -48,7 +48,7 @@ reiser4_profile_t defprof = {
 		},
 		[PROF_SYMFILE] = {
 #ifndef ENABLE_MINIMAL
-			.name  = "mksym",
+			.name  = "symfile",
 			.hidden = 1,
 			.max = OBJECT_LAST_ID,
 #endif
@@ -56,7 +56,7 @@ reiser4_profile_t defprof = {
 		},
 		[PROF_SPLFILE] = {
 #ifndef ENABLE_MINIMAL
-			.name  = "mknode",
+			.name  = "splfile",
 			.hidden = 1,
 			.max = OBJECT_LAST_ID,
 #endif

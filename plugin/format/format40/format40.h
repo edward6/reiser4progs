@@ -39,7 +39,7 @@ typedef struct format40_super {
 } __attribute__((packed)) format40_super_t;
 
 typedef struct format40 {
-	reiser4_plug_t *plug;
+	reiser4_format_plug_t *plug;
 
 	uint32_t state;
 	uint32_t blksize;
@@ -60,7 +60,7 @@ typedef struct format40_backup {
 #endif
 
 
-extern reiser4_plug_t format40_plug;
+extern reiser4_format_plug_t format40_plug;
 extern reiser4_core_t *format40_core;
 
 #define get_sb_mkfs_id(sb)			aal_get_le32(sb, sb_mkfs_id)
@@ -100,8 +100,8 @@ extern reiser4_core_t *format40_core;
 	(((format40_t *)entity)->state &= ~(1 << ENTITY_DIRTY))
 
 #ifndef ENABLE_MINIMAL
-extern void format40_set_key(generic_entity_t *entity, rid_t key);
-extern rid_t format40_get_key(generic_entity_t *entity);
+extern void format40_set_key(reiser4_format_ent_t *entity, rid_t key);
+extern rid_t format40_get_key(reiser4_format_ent_t *entity);
 #endif
 
 #endif

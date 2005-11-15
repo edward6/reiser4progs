@@ -89,16 +89,12 @@ errno_t tail40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 		   we insert data inside tail or behind it. */
 		tail40_maxreal_key(place, &hint->maxkey);
 
-		max_offset = plug_call(hint->maxkey.plug->pl.key,
-				       get_offset, &hint->maxkey) + 1;
-
-		plug_call(hint->maxkey.plug->pl.key,
-			  set_offset, &hint->maxkey, max_offset);
+		max_offset = objcall(&hint->maxkey, get_offset) + 1;
+		objcall(&hint->maxkey, set_offset, max_offset);
 	}
 
 	/* Max possible item size. */
-	space = plug_call(place->node->plug->pl.node,
-			  maxspace, place->node);
+	space = objcall(place->node, maxspace);
 	
 	if (hint->len > (int32_t)(space - hint->overhead))
 		hint->len = space - hint->overhead;
@@ -127,12 +123,10 @@ int64_t tail40_write_units(reiser4_place_t *place, trans_hint_t *hint) {
 		count = place->len - tail40_pos(place);
 
 	/* Getting old max real offset. */
-	max_offset = plug_call(hint->maxkey.plug->pl.key,
-			       get_offset, &hint->maxkey);
+	max_offset = objcall(&hint->maxkey, get_offset);
 
 	/* Getting insert offset. */
-	ins_offset = plug_call(hint->offset.plug->pl.key,
-			       get_offset, &hint->offset);
+	ins_offset = objcall(&hint->offset, get_offset);
 	
 	/* Checking if we insert a hole. That is @hint->specific si null. If so,
 	   then we write @count of zeros. Writing data from @hint->specific
@@ -187,13 +181,9 @@ lookup_t tail40_lookup(reiser4_place_t *place,
 	aal_assert("umka-1229", hint != NULL);
 	aal_assert("umka-1228", place != NULL);
 
-	units = tail40_units(place);
-	
-	offset = plug_call(hint->key->plug->pl.key,
-			   get_offset, &place->key);
-
-	wanted = plug_call(hint->key->plug->pl.key,
-			   get_offset, hint->key);
+	units = tail40_units(place);	
+	offset = objcall(&place->key, get_offset);
+	wanted = objcall(hint->key, get_offset);
 
 	/* Check if needed key is inside this tail. */
 	if (wanted >= offset && wanted < offset + units) {
@@ -396,12 +386,10 @@ errno_t tail40_shift_units(reiser4_place_t *src_place,
 
 		/* Updating @place->key in order to maintain consistency of left
 		   delimiting keys. */
-		offset = plug_call(src_place->key.plug->pl.key,
-				   get_offset, &src_place->key);
+		offset = objcall(&src_place->key, get_offset);
 
-		plug_call(src_place->key.plug->pl.key,
-			  set_offset, &src_place->key,
-			  offset + hint->units_bytes);
+		objcall(&src_place->key, set_offset, 
+			offset + hint->units_bytes);
 	} else {
 		/* Right shift. Expanding @dst_place at 0 pos. */
 		tail40_expand(dst_place, 0, hint->units_number);
@@ -416,12 +404,10 @@ errno_t tail40_shift_units(reiser4_place_t *src_place,
 			      hint->units_bytes);
 
 		/* Updating place key. */
-		offset = plug_call(dst_place->key.plug->pl.key,
-				   get_offset, &dst_place->key);
+		offset = objcall(&dst_place->key, get_offset);
 		
-		plug_call(dst_place->key.plug->pl.key,
-			  set_offset, &dst_place->key,
-			  offset - hint->units_bytes);
+		objcall(&dst_place->key, set_offset, 
+			offset - hint->units_bytes);
 	}
 	
 	return 0;

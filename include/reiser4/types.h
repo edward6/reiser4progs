@@ -144,7 +144,7 @@ typedef struct reiser4_format {
 	
 	/* Disk-format entity. It is initialized by disk-format plugin during
 	   initialization. */
-	generic_entity_t *ent;
+	reiser4_format_ent_t *ent;
 } reiser4_format_t;
 
 #ifndef ENABLE_MINIMAL
@@ -159,7 +159,7 @@ typedef struct reiser4_journal {
 	aal_device_t *device;
 
 	/* Journal entity. Initializied by plugin */
-	generic_entity_t *ent;
+	reiser4_journal_ent_t *ent;
 } reiser4_journal_t;
 
 typedef struct reiser4_alloc reiser4_alloc_t;
@@ -170,7 +170,7 @@ typedef errno_t (*hook_alloc_t) (reiser4_alloc_t *,
 /* Block allocator structure */
 struct reiser4_alloc {
 	reiser4_fs_t *fs;
-	generic_entity_t *ent;
+	reiser4_alloc_ent_t *ent;
 
 	struct {
 		hook_alloc_t alloc;
@@ -184,7 +184,7 @@ struct reiser4_alloc {
 /* Oid allocator structure */
 typedef struct reiser4_oid {
 	reiser4_fs_t *fs;
-	generic_entity_t *ent;
+	reiser4_oid_ent_t *ent;
 } reiser4_oid_t;
 
 #ifndef ENABLE_MINIMAL

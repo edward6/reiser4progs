@@ -213,7 +213,7 @@ static errno_t cb_reloc_extent(reiser4_place_t *place, void *data) {
 	if (reiser4_node_get_level(node) != TWIG_LEVEL)
 		return 0;
 
-	if (place->plug->id.group != EXTENT_ITEM)
+	if (place->plug->p.id.group != EXTENT_ITEM)
 		return 0;
 	
 	/* Prepare @trans. */
@@ -233,12 +233,9 @@ static errno_t cb_reloc_extent(reiser4_place_t *place, void *data) {
 	{
 		aal_block_t *block;
 
-		if (plug_call(place->plug->pl.item->object,
-			      fetch_units, place, &trans) != 1)
-		{
+		if (objcall(place, object->fetch_units, &trans) != 1)
 			return -EIO;
-		}
-
+		
 		/* If no match with a backup block, continue. */
 		if (!aux_bin_search(backup->blk, backup->count, &ptr, 
 				    cb_cmp64, NULL, &pos))
@@ -290,12 +287,9 @@ static errno_t cb_reloc_extent(reiser4_place_t *place, void *data) {
 		ptr.start = EXTENT_UNALLOC_UNIT;
 
 		/* Updating extent unit at @place->pos.unit. */
-		if (plug_call(place->plug->pl.item->object,
-			      update_units, place, &trans) != 1)
-		{
+		if (objcall(place, object->update_units, &trans) != 1)
 			return -EIO;
-		}
-
+		
 		if ((res = reiser4_format_dec_free(tree->fs->format, 1))) {
 			aal_error("No free blocks on the fs");
 			return -EIO;

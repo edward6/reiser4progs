@@ -32,8 +32,8 @@ static int ctail40_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
 	
 	aal_assert("vpf-1809", shift == ct40_get_shift(place2->body));
 	
-	off1 = plug_call(place1->key.plug->pl.key, get_offset, &place1->key);
-	off2 = plug_call(place2->key.plug->pl.key, get_offset, &place2->key);
+	off1 = objcall(&place1->key, get_offset);
+	off2 = objcall(&place2->key, get_offset);
 	
 	shift = (1 << shift) - 1;
 	
@@ -143,19 +143,16 @@ static item_debug_ops_t debug_ops = {
 	.print		  = NULL
 };
 
-static reiser4_item_plug_t ctail40 = {
+reiser4_item_plug_t ctail40_plug = {
+	.p = {
+		.id    = {ITEM_CTAIL40_ID, CTAIL_ITEM, ITEM_PLUG_TYPE},
+		.label = "ctail40",
+		.desc  = "Compressed file body item plugin.",
+	},
+	
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
 	.repair		  = &repair_ops,
 	.debug		  = &debug_ops,
-};
-
-reiser4_plug_t ctail40_plug = {
-	.id    = {ITEM_CTAIL40_ID, CTAIL_ITEM, ITEM_PLUG_TYPE},
-	.label = "ctail40",
-	.desc  = "Compressed file body item plugin.",
-	.pl = {
-		.item = &ctail40
-	}
 };
 #endif

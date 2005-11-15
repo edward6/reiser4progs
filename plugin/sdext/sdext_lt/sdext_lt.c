@@ -58,7 +58,15 @@ extern void sdext_lt_print(stat_entity_t *stat,
 
 #endif
 
-static reiser4_sdext_plug_t sdext_lt = {
+reiser4_sdext_plug_t sdext_lt_plug = {
+	.p = {
+		.id    = {SDEXT_LT_ID, 0, SDEXT_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "sdext_lt",
+		.desc  = "Large times stat data extension plugin.",
+#endif
+	},
+
 #ifndef ENABLE_MINIMAL
 	.open	   	= sdext_lt_open,
 	.init	   	= sdext_lt_init,
@@ -69,15 +77,4 @@ static reiser4_sdext_plug_t sdext_lt = {
 	.open	   	= NULL,
 #endif
 	.length	   	= sdext_lt_length
-};
-
-reiser4_plug_t sdext_lt_plug = {
-	.id    = {SDEXT_LT_ID, 0, SDEXT_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "sdext_lt",
-	.desc  = "Large times stat data extension plugin.",
-#endif
-	.pl = {
-		.sdext = &sdext_lt
-	}
 };

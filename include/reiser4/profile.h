@@ -48,18 +48,18 @@ enum reiser4_profile_index {
 
 typedef struct reiser4_profile {
 	struct {
+		/* The default plugin id and the plugin type of profile slot. */
+		plug_ident_t id;
+		
 #ifndef ENABLE_MINIMAL
 		/* The name of the profile slot. */
 		char *name;
 
 		/* Hide those slots where are no alternatives. */
 		uint8_t hidden;
-		
-		/* The maximum allowed value. */
+
 		rid_t max;
 #endif
-		/* The default plugin id and the plugin type of profile slot. */
-		plug_ident_t id;		
 	} pid[PROF_LAST];
 
 	/* Overriden mask. */

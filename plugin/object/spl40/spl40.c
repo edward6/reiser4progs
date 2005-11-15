@@ -9,7 +9,15 @@
 
 #define sym40_core obj40_core
 
-static reiser4_object_plug_t spl40 = {
+reiser4_object_plug_t spl40_plug = {
+	.p = {
+		.id    = {OBJECT_SPL40_ID, SPL_OBJECT, OBJECT_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "spl40",
+		.desc  = "Special file plugin.",
+#endif
+	},
+
 #ifndef ENABLE_MINIMAL
 	.inherit	= obj40_inherit,
 	.create	        = obj40_create,
@@ -54,16 +62,5 @@ static reiser4_object_plug_t spl40 = {
 	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID  |
 			    1 << SDEXT_CLUSTER_ID)
 #endif
-};
-
-reiser4_plug_t spl40_plug = {
-	.id    = {OBJECT_SPL40_ID, SPL_OBJECT, OBJECT_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "spl40",
-	.desc  = "Special file plugin.",
-#endif
-	.pl = {
-		.object = &spl40
-	}
 };
 #endif

@@ -20,28 +20,27 @@ static errno_t cb_check_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 	uint32_t len;
 	
 	/* Set read extmask. */
-	if (!stat->ext_plug) {
+	if (!stat->plug) {
 		hint->extmask |= ((uint64_t)extmask);
 		hint->len += sizeof(stat40_t);
 		return 0;
 	}
 
 	/* Extention plugin was found, set the bit into @goodmask. */
-	hint->goodmask |= ((uint64_t)1 << stat->ext_plug->id.id);
+	hint->goodmask |= ((uint64_t)1 << stat->plug->p.id.id);
 
-	if ((chunk = stat->ext_plug->id.id / 16) > 0) {
+	if ((chunk = stat->plug->p.id.id / 16) > 0) {
 		hint->goodmask |= ((uint64_t)1 << (chunk * 16 - 1));
 	}
 	
-	if (stat->ext_plug->pl.sdext->check_struct) {
+	if (stat->plug->check_struct) {
 		errno_t res;
 		
-		if ((res = plug_call(stat->ext_plug->pl.sdext,
-				     check_struct, stat, hint->repair)))
+		if ((res = objcall(stat, check_struct, hint->repair)))
 			return res;
 	}
 
-	len = plug_call(stat->ext_plug->pl.sdext, length, stat, NULL);
+	len = objcall(stat, length, NULL);
 	hint->len += len;
 
 	/* Some part of the extention was removed. Shrink the item. */
@@ -61,7 +60,7 @@ static errno_t cb_check_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 static errno_t cb_fix_mask(stat_entity_t *stat, uint64_t extmask, void *data) {
 	uint64_t *mask = (uint64_t *)data;
 
-	if (stat->ext_plug) 
+	if (stat->plug) 
 		return 0;
 
 	/* This time the callback is called for the extmask. Fix it. */
@@ -132,7 +131,7 @@ errno_t stat40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 
 /* Callback for counting stat data extensions in use. */
 static errno_t cb_count_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
-	if (!stat->ext_plug) 
+	if (!stat->plug) 
 		return 0;
 
         (*(uint32_t *)data)++;
@@ -156,24 +155,20 @@ static errno_t cb_print_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 
 	stream = (aal_stream_t *)data;
 
-	if (!stat->ext_plug) {
+	if (!stat->plug) {
 		aal_stream_format(stream, "mask:\t\t0x%x\n", extmask);
 		return 0;
 	}
 				
-	aal_stream_format(stream, "plugin:\t\t%s\n",
-			  stat->ext_plug->label);
+	aal_stream_format(stream, "plugin:\t\t%s\n", stat->plug->p.label);
 	
-	aal_stream_format(stream, "offset:\t\t%u\n",
-			  stat->offset);
+	aal_stream_format(stream, "offset:\t\t%u\n", stat->offset);
 	
-	length = plug_call(stat->ext_plug->pl.sdext,
-			   length, stat, NULL);
+	length = objcall(stat, length, NULL);
 	
 	aal_stream_format(stream, "len:\t\t%u\n", length);
 	
-	plug_call(stat->ext_plug->pl.sdext, 
-		  print, stat, stream, 0);
+	objcall(stat, print, stream, 0);
 
 	return 0;
 }

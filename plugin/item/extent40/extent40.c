@@ -206,8 +206,7 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 
 	blksize = place_blksize(place);
 	extent = extent40_body(place) + place->pos.unit;
-	offset = plug_call(hint->offset.plug->pl.key, 
-			   get_offset, &hint->offset);
+	offset = objcall(&hint->offset, get_offset);
 
 	/* Get the amount of bytes that cannot be cut at the start. */
 	skip = (blksize - offset % blksize);
@@ -217,11 +216,10 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 	/* Set the start key offset to the block border. */
 	offset += skip;
 	key = hint->offset;
-	plug_call(key.plug->pl.key, set_offset, &key, offset);
+	objcall(&key, set_offset, offset);
 
 	/* Get the amount of bytes from @offset through the end of the item. */
-	offset -= plug_call(hint->offset.plug->pl.key, 
-			   get_offset, &place->key);
+	offset -= objcall(&place->key, get_offset);
 	esize = extent40_size(place) - offset;
 
 	aal_assert("vpf-1759", offset % blksize == 0);
@@ -268,11 +266,8 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 		for (i = 0; i < remove; i++) {
 			aal_hash_table_remove(hint->blocks, &key);
 
-			offset = plug_call(key.plug->pl.key,
-					   get_offset, &key);
-
-			plug_call(key.plug->pl.key, set_offset,
-				  &key, (offset + blksize));
+			offset = objcall(&key, get_offset);
+			objcall(&key, set_offset, (offset + blksize));
 		}
 		
 		start = et40_get_start(extent);
@@ -332,11 +327,10 @@ static int64_t extent40_trunc_units(reiser4_place_t *place,
 
 	/* Updating key if it makes sense. */
 	if (place->pos.unit == 0 && epos == 0 && count) {
-		offset = plug_call(place->key.plug->pl.key,
-				   get_offset, &place->key);
+		offset = objcall(&place->key, get_offset);
 		
-		plug_call(place->key.plug->pl.key, set_offset,
-			  &place->key, offset + count / blksize * blksize);
+		objcall(&place->key, set_offset, 
+			offset + count / blksize * blksize);
 	}
 	
 	return count + skip;
@@ -380,11 +374,9 @@ lookup_t extent40_lookup(reiser4_place_t *place,
 	extent = extent40_body(place);
 	units = extent40_units(place);
 
-	wanted = plug_call(hint->key->plug->pl.key,
-			   get_offset, hint->key);
+	wanted = objcall(hint->key, get_offset);
 
-	offset = plug_call(hint->key->plug->pl.key,
-			   get_offset, &place->key);
+	offset = objcall(&place->key, get_offset);
 	
 	for (i = 0; i < units; i++, extent++) {
 		offset += (et40_get_width(extent) * place_blksize(place));
@@ -431,8 +423,7 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 	blksize = place_blksize(place);
 
 	/* Initializing read offset */
-	read_offset = plug_call(hint->offset.plug->pl.key,
-				get_offset, &hint->offset);
+	read_offset = objcall(&hint->offset, get_offset);
 
 	/* Loop through the units until needed amount of data is read or extent
 	   item is over. */
@@ -485,8 +476,7 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 			block_offset = read_offset - (read_offset &
 						      (blksize - 1));
 
-			plug_call(key.plug->pl.key, set_offset,
-				  &key, block_offset);
+			objcall(&key, set_offset, block_offset);
 
 			/* Getting block from the cache. */
 			block = aal_hash_table_lookup(hint->blocks, &key);
@@ -563,8 +553,7 @@ static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 	blksize = place_blksize(place);
 	secsize = extent40_secsize(place);
 
-	read_offset = plug_call(hint->offset.plug->pl.key,
-				get_offset, &hint->offset);
+	read_offset = objcall(&hint->offset, get_offset);
 	
 	rel_offset = read_offset - extent40_offset(place, place->pos.unit);
 	
@@ -825,7 +814,7 @@ static int64_t extent40_alloc_block(reiser4_place_t *place,
 	
 	for (; count > 0; count -= blksize, offset += blksize) {
 		/* Update @key offset. */
-		plug_call(key.plug->pl.key, set_offset, &key, offset);
+		objcall(&key, set_offset, offset);
 		
 		/* Calculating size to be written this time. */
 		if (!(block = aal_block_alloc(device, blksize, 0)))
@@ -925,13 +914,9 @@ static errno_t extent40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 		/* Inserting a new item or appending units. */
 
 		/* Set maxkey as the limit of the operation. */
-		max_off = plug_call(hint->maxkey.plug->pl.key,
-				    get_offset, &hint->maxkey);
-
+		max_off = objcall(&hint->maxkey, get_offset);
 		max_off += hint->count;
-
-		plug_call(hint->maxkey.plug->pl.key,
-			  set_offset, &hint->maxkey, max_off);
+		objcall(&hint->maxkey, set_offset, max_off);
 
 		if (place->pos.unit != MAX_UINT32) {
 			uint64_t width;
@@ -964,12 +949,9 @@ static errno_t extent40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 
 		/* Getting maximal real key, it limits the amount of 
 		   data being written at once. */
-		uni_off = plug_call(key.plug->pl.key,
-				    get_offset, &key);
-
-		ins_off = plug_call(hint->offset.plug->pl.key,
-				    get_offset, &hint->offset);
-
+		uni_off = objcall(&key, get_offset);
+		ins_off = objcall(&hint->offset, get_offset);
+		
 		aal_assert("vpf-1697", uni_off <= ins_off);
 
 		extent = extent40_body(place) + unit_pos;
@@ -1020,9 +1002,7 @@ static errno_t extent40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 			}
 		}
 
-		plug_call(hint->maxkey.plug->pl.key,
-			  set_offset, &hint->maxkey, ins_off);
-
+		objcall(&hint->maxkey, set_offset, ins_off);
 		hint->insert_flags |= ET40_OVERWRITE;
 	}
 
@@ -1073,10 +1053,8 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 	blksize = place_blksize(place);
 
 	/* Get the offset range being handled: ins_off, max_off. */
-	ins_off = plug_call(hint->offset.plug->pl.key,
-			    get_offset, &hint->offset);
-	max_off = plug_call(hint->maxkey.plug->pl.key,
-			    get_offset, &hint->maxkey);
+	ins_off = objcall(&hint->offset, get_offset);
+	max_off = objcall(&hint->maxkey, get_offset);
 
 	total = max_off - ins_off;
 	count = total;
@@ -1222,10 +1200,8 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 	extent40_fetch_key(place, &key);
 
 	extent = extent40_body(place) + place->pos.unit;
-	uni_off = plug_call(key.plug->pl.key, get_offset, &key);
-	
-	ins_off = plug_call(hint->offset.plug->pl.key,
-			    get_offset, &hint->offset);
+	uni_off = objcall(&key, get_offset);
+	ins_off = objcall(&hint->offset, get_offset);
 	
 	count = total;
 
@@ -1242,7 +1218,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 			size = count;
 
 		/* Preparing key for getting data by it. */
-		plug_call(key.plug->pl.key, set_offset, &key, blk_off);
+		objcall(&key, set_offset, blk_off);
 
 		/* Checking if we write data inside item. */
 		aal_assert("vpf-1705", blk_off + size <= max_off);
@@ -1530,22 +1506,19 @@ static item_debug_ops_t debug_ops = {
 };
 #endif
 
-static reiser4_item_plug_t extent40 = {
+reiser4_item_plug_t extent40_plug = {
+	.p = {
+		.id	= {ITEM_EXTENT40_ID, EXTENT_ITEM, ITEM_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "extent40",
+		.desc  = "Extent file body item plugin.",
+#endif
+	},
+	
 	.object		  = &object_ops,
 	.balance	  = &balance_ops,
 #ifndef ENABLE_MINIMAL
 	.repair		  = &repair_ops,
 	.debug		  = &debug_ops,
 #endif
-};
-
-reiser4_plug_t extent40_plug = {
-	.id    = {ITEM_EXTENT40_ID, EXTENT_ITEM, ITEM_PLUG_TYPE},
-#ifndef ENABLE_MINIMAL
-	.label = "extent40",
-	.desc  = "Extent file body item plugin.",
-#endif
-	.pl = {
-		.item = &extent40
-	}
 };
