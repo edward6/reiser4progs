@@ -71,10 +71,8 @@ errno_t stat40_traverse(reiser4_place_t *place,
 		if ((res = ext_func(&stat, extmask, data)))
 			return res;
 
-#ifndef ENABLE_MINIMAL	
 		if (stat.plug->info)
 			stat.plug->info(&stat);
-#endif
 
 		/* Calculating the pointer to the next extension body */
 		stat.offset += objcall(&stat, length, NULL);
@@ -298,9 +296,6 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 			return -EINVAL;
 		}
 
-		if (plug->info)
-			plug->info(NULL);
-		
 		/* Calculating length of the corresponding extension and add it
 		   to the estimated value. */
 		hint->len += plugcall(plug, length, NULL, stath->ext[i]);

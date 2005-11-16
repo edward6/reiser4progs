@@ -31,6 +31,12 @@ static uint32_t sdext_lw_length(stat_entity_t *stat, void *hint) {
 	return sizeof(sdext_lw_t);
 }
 
+static void sdext_lw_info(stat_entity_t *stat) {
+	sdext_lw_t *ext;
+	ext = (sdext_lw_t *)stat_body(stat);
+	stat->info.mode = sdext_lw_get_mode(ext);
+}
+
 #ifndef ENABLE_MINIMAL
 /* Saves all extension fields from passed @hint to @body. */
 static errno_t sdext_lw_init(stat_entity_t *stat, void *hint) {
@@ -68,13 +74,12 @@ reiser4_sdext_plug_t sdext_lw_plug = {
 #endif
 	},
 
-	.open	 	= sdext_lw_open,
-	
 #ifndef ENABLE_MINIMAL
 	.init	 	= sdext_lw_init,
-	.info		= NULL,
 	.print   	= sdext_lw_print,
 	.check_struct   = sdext_lw_check_struct,
-#endif		
+#endif
+	.open	 	= sdext_lw_open,
+	.info		= sdext_lw_info,
 	.length	 	= sdext_lw_length
 };

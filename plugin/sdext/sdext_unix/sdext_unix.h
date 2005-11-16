@@ -39,7 +39,7 @@ extern reiser4_core_t *sdext_unix_core;
 #define sdext_unix_get_ctime(ext)	aal_get_le32(ext, ctime)
 #define sdext_unix_set_ctime(ext, val)	aal_set_le32(ext, ctime, val)
 
-#define sdext_unix_get_rdev(ext)	        aal_get_le64(ext, u.rdev)
+#define sdext_unix_get_rdev(ext)	aal_get_le64(ext, u.rdev)
 #define sdext_unix_set_rdev(ext, val)	aal_set_le64(ext, u.rdev, val)
 
 #define sdext_unix_get_bytes(ext)	aal_get_le64(ext, u.bytes)

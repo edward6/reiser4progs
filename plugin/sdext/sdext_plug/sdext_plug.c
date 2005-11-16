@@ -8,12 +8,10 @@
 reiser4_core_t *sdext_plug_core = NULL;
 
 #ifndef ENABLE_MINIMAL
-void sdext_plug_info(stat_entity_t *stat) {
+static void sdext_plug_info(stat_entity_t *stat) {
 	sdext_plug_t *ext;
 	uint16_t i;
 
-	if (!stat) return;
-	
 	stat->info.digest = NULL;
 	
 	/* When inserting new extentions, nothing to be done. */
@@ -170,12 +168,14 @@ reiser4_sdext_plug_t sdext_plug_plug = {
 #endif
 	},
 
-	.open	 	= sdext_plug_open,
 #ifndef ENABLE_MINIMAL
 	.init	 	= sdext_plug_init,
 	.info		= sdext_plug_info,
 	.print   	= sdext_plug_print,
 	.check_struct   = sdext_plug_check_struct,
+#else
+	.info		= NULL,
 #endif
+	.open	 	= sdext_plug_open,
 	.length	 	= sdext_plug_length
 };

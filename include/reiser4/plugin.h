@@ -504,22 +504,21 @@ struct reiser4_node {
 #endif
 };
 
-#ifndef ENABLE_MINIMAL
 /* This is an info that sdext plugins need. E.g. digest is needed to sdext_crc 
    plugin to proceed. */
 typedef struct stat_info {
+	uint16_t mode;
+#ifndef ENABLE_MINIMAL
 	reiser4_plug_t *digest;
-} stat_info_t;
 #endif
+} stat_info_t;
 
 /* Stat data extension entity. */
 typedef struct stat_entity {
 	reiser4_sdext_plug_t *plug;
 	reiser4_place_t *place;
 	uint32_t offset;
-#ifndef ENABLE_MINIMAL
 	stat_info_t info;
-#endif
 } stat_entity_t;
 
 #define stat_body(stat) ((char *)(stat)->place->body + (stat)->offset)
@@ -1267,9 +1266,6 @@ struct reiser4_sdext_plug {
 #ifndef ENABLE_MINIMAL
 	/* Initialize stat data extension data at passed pointer. */
 	errno_t (*init) (stat_entity_t *, void *);
-
-	/* Obtain the needed info for the futher stat data traverse. */
-	void (*info) (stat_entity_t *);
 	
 	/* Prints stat data extension data into passed buffer. */
 	void (*print) (stat_entity_t *, aal_stream_t *, uint16_t);
@@ -1277,6 +1273,9 @@ struct reiser4_sdext_plug {
 	/* Checks sd extension content. */
 	errno_t (*check_struct) (stat_entity_t *, repair_hint_t *);
 #endif
+	/* Obtain the needed info for the futher stat data traverse. */
+	void (*info) (stat_entity_t *);
+	
 	/* Reads stat data extension data. */
 	errno_t (*open) (stat_entity_t *, void *);
 

@@ -66,14 +66,13 @@ reiser4_sdext_plug_t sdext_symlink_plug = {
 #endif
 	},
 	
-	.open	 	= sdext_symlink_open,
-		
 #ifndef ENABLE_MINIMAL
 	.init	 	= sdext_symlink_init,
-	.info		= NULL,
 	.print   	= sdext_symlink_print,
 	.check_struct   = sdext_symlink_check_struct,
 #endif		
+	.open	 	= sdext_symlink_open,
+	.info		= NULL,
 	.length		= sdext_symlink_length
 };
 #endif

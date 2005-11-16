@@ -5,6 +5,7 @@
    stat data fields. */
 
 #include "sdext_unix.h"
+#include "sys/stat.h"
 
 reiser4_core_t *sdext_unix_core = NULL;
 
@@ -28,8 +29,14 @@ static errno_t sdext_unix_open(stat_entity_t *stat, void *hint) {
 	unixh->atime = sdext_unix_get_atime(ext);
 	unixh->mtime = sdext_unix_get_mtime(ext);
 	unixh->ctime = sdext_unix_get_ctime(ext);
-	unixh->rdev = sdext_unix_get_rdev(ext);
-	unixh->bytes = sdext_unix_get_bytes(ext);
+
+	if (S_ISBLK(stat->info.mode) || S_ISCHR(stat->info.mode)) {
+		unixh->rdev = sdext_unix_get_rdev(ext);
+		unixh->bytes = 0;
+	} else {
+		unixh->rdev = 0;
+		unixh->bytes = sdext_unix_get_rdev(ext);
+	}
 
 	return 0;
 }
@@ -50,11 +57,12 @@ static errno_t sdext_unix_init(stat_entity_t *stat, void *hint) {
 	sdext_unix_set_mtime(ext, unixh->mtime);
 	sdext_unix_set_ctime(ext, unixh->ctime);
 
-	if (unixh->rdev)
+	if (S_ISBLK(stat->info.mode) || S_ISCHR(stat->info.mode)) {
 		sdext_unix_set_rdev(ext, unixh->rdev);
-	else
+	} else {
 		sdext_unix_set_bytes(ext, unixh->bytes);
-
+	}
+	
 	return 0;
 }
 
@@ -79,11 +87,11 @@ reiser4_sdext_plug_t sdext_unix_plug = {
 #ifndef ENABLE_MINIMAL
 	.open	   	= sdext_unix_open,
 	.init	   	= sdext_unix_init,
-	.info		= NULL,
 	.print     	= sdext_unix_print,
 	.check_struct	= sdext_unix_check_struct,
 #else
 	.open	   	= NULL,
 #endif
+	.info		= NULL,
 	.length	   	= sdext_unix_length
 };
