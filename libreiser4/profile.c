@@ -66,9 +66,9 @@ reiser4_profile_t defprof = {
 #ifndef ENABLE_MINIMAL
 			.name  = "create",
 			.hidden = 0,
-			.max = OBJECT_LAST_ID,
+			.max = CREATE_LAST_ID,
 #endif
-			.id = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
+			.id = {CREATE_REG40_ID, 0, CREATE_PLUG_TYPE},
 		},
 		[PROF_FORMAT] = {
 #ifndef ENABLE_MINIMAL

@@ -162,6 +162,10 @@ static errno_t dir40_entry_check(reiser4_object_t *dir,
 
 	if ((result = obj40_remove(dir, &dir->body, &trans)) < 0)
 		return result;
+	
+	/* Adjust position to the following incrementing, needed as the entry 
+	   is removed. */
+	dir->position.adjust--;
 
 	/* Update accounting info after remove. */
 	if (last) {

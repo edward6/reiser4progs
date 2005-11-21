@@ -22,6 +22,7 @@ static uint8_t plugs_max[LAST_PLUG_TYPE + 1] = {
 	[ALLOC_PLUG_TYPE]         = ALLOC_LAST_ID,
 	[JOURNAL_PLUG_TYPE]       = JOURNAL_LAST_ID,
 	[KEY_PLUG_TYPE]           = KEY_LAST_ID,
+	[CREATE_PLUG_TYPE]        = CREATE_LAST_ID,
 	[PARAM_PLUG_TYPE]         = 0,
 	[LAST_PLUG_TYPE]	  = 0,
 };
@@ -74,6 +75,7 @@ static errno_t cb_check_plug(reiser4_plug_t *plug, void *data) {
 /* Helper functions used for calculating hash and for comparing two entries from
    plugin hash table during its modifying. */
 #define plug_hash_func(type, id) (plugs_max[type] + (id))
+#define plug_type_count(type) ((uint8_t)(plugs_max[type + 1] - plugs_max[type]))
 
 #ifndef ENABLE_MINIMAL
 /* Unloads plugin and removes it from plugin hash table. */
@@ -112,12 +114,6 @@ void reiser4_factory_load(reiser4_plug_t *plug) {
 	name##_core = &core;			\
 }
 
-#ifndef ENABLE_MINIMAL
-#  define PLUGINS_TABLE_SIZE 128
-#else
-#  define PLUGINS_TABLE_SIZE 32
-#endif
-	
 /* Initializes all built-in plugins. Other kinds of plugins are not supported
    for now.  */
 errno_t reiser4_factory_init(void) {
@@ -125,7 +121,7 @@ errno_t reiser4_factory_init(void) {
 	int i;
 	
 	prev = 0;
-	/* Init plugin hash table. */
+	/* Init the plugin array. */
 	for (i = 0; i <= LAST_PLUG_TYPE; i++) {
 		max = plugs_max[i];
 		if (i == 0)
@@ -263,12 +259,10 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(smart);
 	
 	__load_plug(tails);
-#endif
 
-#ifndef ENABLE_MINIMAL
-	/* Check if at least one plugin has registered in plugins hash table. If
-	   there are no one, plugin factory is considered not successfully
-	   initialized.*/
+	__load_plug(create_reg40);
+	
+	__load_plug(create_ccreg40);
 #endif
 
         return 0;
@@ -288,7 +282,7 @@ errno_t reiser4_factory_foreach(plug_func_t plug_func, void *data) {
 	aal_assert("umka-3006", plug_func != NULL);
 
 	for (i = 0; i < plugs_max[LAST_PLUG_TYPE]; i++) {
-		if ((res = plug_func(plugins[i], data)))
+		if (plugins[i] && (res = plug_func(plugins[i], data)))
 			return res;
 	}
 	
@@ -297,6 +291,12 @@ errno_t reiser4_factory_foreach(plug_func_t plug_func, void *data) {
 
 /* Finds plugin by its type and id. */
 reiser4_plug_t *reiser4_factory_ifind(rid_t type, rid_t id) {
+	if (type >= LAST_PLUG_TYPE)
+		return 0;
+
+	if (id >= plug_type_count(type))
+		return 0;
+	
 	return plugins[plug_hash_func(type, id)];
 }
 
@@ -308,7 +308,7 @@ reiser4_plug_t *reiser4_factory_cfind(plug_func_t plug_func, void *data) {
 	aal_assert("vpf-1886", plug_func != NULL);
 
 	for (i = 0; i < plugs_max[LAST_PLUG_TYPE]; i++) {
-		if ((res = plug_func(plugins[i], data)))
+		if (plugins[i] && (res = plug_func(plugins[i], data)))
 			return plugins[i];
 	}
 	
@@ -321,6 +321,9 @@ reiser4_plug_t *reiser4_factory_nfind(char *name) {
 	uint8_t i;
 	
 	for (i = 0; i < plugs_max[LAST_PLUG_TYPE]; i++) {
+		if (!plugins[i])
+			continue;
+		
 		if (!aal_strncmp(plugins[i]->label, name,
 				 sizeof(plugins[i]->label)))
 		{

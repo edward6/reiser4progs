@@ -31,11 +31,11 @@ errno_t tail40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	
 	src = (reiser4_place_t *)hint->specific;
 	
-	if (tail40_pos(place) == tail40_units(place) || 
+	if (tail40_pos(place) == place->len || 
 	    place->pos.unit == MAX_UINT32)
 	{
 		/* New item or appending to the end. */
-		hint->count = tail40_units(src) - tail40_pos(src);
+		hint->count = src->len - tail40_pos(src);
 	} else {
 		uint64_t doffset, start;
 		

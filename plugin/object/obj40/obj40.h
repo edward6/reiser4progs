@@ -120,6 +120,11 @@ extern int64_t obj40_write(reiser4_object_t *obj,
 
 extern int64_t obj40_convert(reiser4_object_t *obj, conv_hint_t *hint);
 
+extern int64_t obj40_cut(reiser4_object_t *obj, 
+			 trans_hint_t *hint, 
+			 uint64_t off, uint64_t count,
+			 region_func_t func, void *data);
+
 extern int64_t obj40_truncate(reiser4_object_t *obj, uint64_t n, 
 			      reiser4_item_plug_t *item_plug);
 

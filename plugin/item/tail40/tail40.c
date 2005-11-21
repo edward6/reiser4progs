@@ -217,8 +217,10 @@ errno_t tail40_prep_shift(reiser4_place_t *src_place,
 	/* If a new item is being created, substract the overhead. */
 	overhead = hint->create ? src_place->off : 0;
 	
-	if (space <= overhead)
+	if (space <= overhead) {
+		hint->units_bytes = hint->units_number = 0;
 		return 0;
+	}
 
 	space -= overhead;
 	

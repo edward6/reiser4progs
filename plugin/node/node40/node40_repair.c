@@ -469,9 +469,8 @@ reiser4_node_t *node40_unpack(aal_block_t *block,
 	if (!(entity = aal_calloc(sizeof(*entity), 0)))
 		return NULL;
 
-	entity->kplug = kplug;
-	entity->block = block;
-	entity->plug = &node40_plug;
+	if (!(entity = node40_prepare(block, kplug)))
+		return NULL;
 	
 	node40_mkdirty(entity);
 	
@@ -630,7 +629,7 @@ void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 		key = print_key(node40_core, &place.key);
 		
 		aal_stream_format(stream, "#%u%s %s (%s): [%s] OFF=%u, "
-				  "LEN=%u, flags=0x%x \n", pos.item,
+				  "LEN=%u, flags=0x%x", pos.item,
 				  pos.item >= num ? "D" : " ", place.plug ? 
 				  reiser4_igname[place.plug->p.id.group] : 
 				  "UNKN", place.plug ? place.plug->p.label :

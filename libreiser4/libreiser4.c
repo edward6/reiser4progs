@@ -47,9 +47,9 @@ static int64_t tree_write(tree_entity_t *tree, trans_hint_t *hint) {
 	return reiser4_flow_write((reiser4_tree_t *)tree, hint);
 }
 
-/* Handler for truncate operation from @core. */
-static int64_t tree_truncate(tree_entity_t *tree, trans_hint_t *hint) {
-	return reiser4_flow_truncate((reiser4_tree_t *)tree, hint);
+/* Handler for cut operation from @core. */
+static int64_t tree_cut(tree_entity_t *tree, trans_hint_t *hint) {
+	return reiser4_flow_cut((reiser4_tree_t *)tree, hint);
 }
 
 /* Handler for item removing requests from all plugins. */
@@ -188,7 +188,7 @@ reiser4_core_t core = {
 		
 #ifndef ENABLE_MINIMAL
 		/* Callback for truncating data in tree. */
-		.truncate	= tree_truncate,
+		.cut		= tree_cut,
 
 		/*Convertion to another item plugin. */
 		.convert	= tree_convert,

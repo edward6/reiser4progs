@@ -59,7 +59,7 @@ void nodeptr40_print(reiser4_place_t *place, aal_stream_t *stream,
     
 	nodeptr = nodeptr40_body(place);
 
-	aal_stream_format(stream, "[%llu]\n", 
+	aal_stream_format(stream, " [%llu]\n", 
 			  np40_get_ptr(nodeptr));
 }
 #endif

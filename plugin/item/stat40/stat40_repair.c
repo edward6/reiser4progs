@@ -180,7 +180,7 @@ void stat40_print(reiser4_place_t *place, aal_stream_t *stream,
 	aal_assert("umka-1407", place != NULL);
 	aal_assert("umka-1408", stream != NULL);
     
-	aal_stream_format(stream, "exts:\t\t%u\n", 
+	aal_stream_format(stream, "\nexts:\t\t%u\n", 
 			  stat40_sdext_count(place));
 	
 	stat40_traverse(place, cb_print_ext, (void *)stream);

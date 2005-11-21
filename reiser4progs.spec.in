@@ -64,7 +64,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man8/*.gz
 
 %files devel
-%{_includedir}/aux/*.h
 %dir %{_includedir}/reiser4
 %{_includedir}/reiser4/*.h
 %{_includedir}/repair/*.h

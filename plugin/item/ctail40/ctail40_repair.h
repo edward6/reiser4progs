@@ -6,6 +6,10 @@
 #ifndef CTAIL40_REPAIR_H
 #define CTAIL40_REPAIR_H
 
-errno_t ctail40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint);
+extern errno_t ctail40_prep_insert_raw(reiser4_place_t *place, 
+				       trans_hint_t *hint);
 
+extern void ctail40_print(reiser4_place_t *place, 
+			  aal_stream_t *stream, 
+			  uint16_t options);
 #endif

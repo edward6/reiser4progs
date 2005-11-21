@@ -12,4 +12,15 @@ errno_t ctail40_prep_insert_raw(reiser4_place_t *place, trans_hint_t *hint) {
 	return tail40_prep_insert_raw(place, hint);
 }
 
+void ctail40_print(reiser4_place_t *place, 
+		   aal_stream_t *stream, 
+		   uint16_t options)
+{
+	aal_assert("vpf-1892", place != NULL);
+	aal_assert("vpf-1893", stream != NULL);
+	
+	aal_stream_format(stream, " shift=%lu\n", 
+			  1ul << ct40_get_shift(place->body));
+}
+
 #endif

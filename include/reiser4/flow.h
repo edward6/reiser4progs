@@ -18,8 +18,8 @@ extern int64_t reiser4_flow_write(reiser4_tree_t *tree,
 extern errno_t reiser4_flow_convert(reiser4_tree_t *tree,
 				    conv_hint_t *hint);
 
-extern int64_t reiser4_flow_truncate(reiser4_tree_t *tree,
-				     trans_hint_t *hint);
+extern int64_t reiser4_flow_cut(reiser4_tree_t *tree,
+				trans_hint_t *hint);
 #endif
 
 #endif

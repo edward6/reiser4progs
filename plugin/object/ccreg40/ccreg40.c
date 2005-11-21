@@ -396,6 +396,7 @@ reiser4_object_plug_t ccreg40_plug = {
 
 	.sdext_mandatory = (1 << SDEXT_LW_ID),
 	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID | 
-			    1 << SDEXT_CLUSTER_ID)
+			    1 << SDEXT_CLUSTER_ID |
+			    1 << SDEXT_CRYPTO_ID)
 };
 #endif

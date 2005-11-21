@@ -22,7 +22,7 @@ static void ctail40_init(reiser4_place_t *place) {
 static int ctail40_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
 	uint64_t off1;
 	uint64_t off2;
-	uint8_t shift;
+	uint64_t shift;
 
 	aal_assert("vpf-1765", place1 != NULL);
 	aal_assert("vpf-1807", place2 != NULL);
@@ -38,7 +38,7 @@ static int ctail40_mergeable(reiser4_place_t *place1, reiser4_place_t *place2) {
 	shift = (1 << shift) - 1;
 	
 	/* If they are of different clusters, not mergeable. */
-	if ((off1 & shift) != (off2 & shift))
+	if ((off1 & ~shift) != (off2 & ~shift))
 		return 0;
 
 	return body40_mergeable(place1, place2);
@@ -94,8 +94,16 @@ static int64_t ctail40_update_units(reiser4_place_t *place, trans_hint_t *hint)
 	return 1;
 }
 
+static int32_t ctail40_merge(reiser4_place_t *left, reiser4_place_t *right) {
+	aal_memmove(right->body, 
+		    right->body + sizeof(ctail40_t), 
+		    right->len - sizeof(ctail40_t));
+
+	return sizeof(ctail40_t);
+}
+
 static item_balance_ops_t balance_ops = {
-	.merge		  = NULL,
+	.merge		  = ctail40_merge,
 	.update_key	  = NULL,
 	.mergeable	  = ctail40_mergeable,
 	.maxreal_key	  = tail40_maxreal_key,
@@ -140,7 +148,7 @@ static item_repair_ops_t repair_ops = {
 };
 
 static item_debug_ops_t debug_ops = {
-	.print		  = NULL
+	.print		  = ctail40_print
 };
 
 reiser4_item_plug_t ctail40_plug = {

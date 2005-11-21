@@ -78,9 +78,6 @@ struct reiser4_plug {
 	/* Plugin id. This will be used for looking for a plugin. */
 	plug_ident_t id;
 
-	/* Plugin type, to know which plugin method is called. */
-	uint8_t type;
-	
 #ifndef ENABLE_MINIMAL
 	/* Plugin label (name). */
 	const char label[PLUG_MAX_LABEL];
@@ -115,8 +112,8 @@ typedef enum reiser4_plug_type {
 	
 	/* Not really a plugin, at least in progs, but a value that 
 	   needs to be checked only. */
-	PARAM_PLUG_TYPE		= 0x11,
-	MAP_PLUG_TYPE		= 0x12,
+	CREATE_PLUG_TYPE	= 0x11,
+	PARAM_PLUG_TYPE		= 0x12,
 	LAST_PLUG_TYPE
 } reiser4_plug_type_t;
 
@@ -291,11 +288,11 @@ enum reiser4_compress_mode_id {
 };
 
 enum reiser4_cluster_id {
-	CLUSTER_4K_ID  = 0x0,
-	CLUSTER_8K_ID  = 0x1,
-	CLUSTER_16K_ID = 0x2,
-	CLUSTER_32K_ID = 0x3,
-	CLUSTER_64K_ID = 0x4,
+	CLUSTER_64K_ID	= 0x0,
+	CLUSTER_32K_ID	= 0x1,
+	CLUSTER_16K_ID	= 0x2,
+	CLUSTER_8K_ID	= 0x3,
+	CLUSTER_4K_ID	= 0x4,
 	CLUSTER_LAST_ID
 };
 
@@ -362,15 +359,10 @@ enum reiser4_opset_id {
 	OPSET_LAST
 };
 
-enum reiser4_plugmap_type {
-	PMT_REGULAR	= 0x0,
-	PMT_LAST
-};
-
-enum reiser4_regular_map {
-	PM_REGULAR_REG40 = 0x0,
-	PM_REGULAR_CRC40 = 0x1,
-	PM_REGULAR_LAST
+enum reiser4_create_map {
+	CREATE_REG40_ID		= 0x0,
+	CREATE_CCREG40_ID	= 0x1,
+	CREATE_LAST_ID
 };
 
 /* Known print options for key. */
@@ -1748,7 +1740,7 @@ typedef struct flow_ops {
 	int64_t (*write) (tree_entity_t *, trans_hint_t *);
 
 	/* Truncates data from tree. */
-	int64_t (*truncate) (tree_entity_t *, trans_hint_t *);
+	int64_t (*cut) (tree_entity_t *, trans_hint_t *);
 	
 	/* Convert some particular place to another plugin. */
 	errno_t (*convert) (tree_entity_t *, conv_hint_t *);

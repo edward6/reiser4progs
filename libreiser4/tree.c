@@ -827,10 +827,8 @@ errno_t reiser4_tree_place_key(reiser4_tree_t *tree,
 		}
 	}
 
-	if (place->pos.unit && place->pos.unit != MAX_UINT32) {
-		if (reiser4_place_fetch(&next))
-			return -EINVAL;
-	}
+	if (reiser4_place_fetch(&next))
+		return -EINVAL;
 	
 	return reiser4_item_get_key(&next, key);
 }

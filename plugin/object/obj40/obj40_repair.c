@@ -501,15 +501,15 @@ errno_t obj40_update_stat(reiser4_object_t *obj, obj40_stat_ops_t *ops,
 	}
 	
 	/* Check the UNIX extention. */
-	if ((res |= obj40_stat_unix_check(obj, ops, hint, mode,
-					  extmask & (1 << SDEXT_UNIX_ID))) < 0)
+	if ((res = obj40_stat_unix_check(obj, ops, hint, mode,
+					 extmask & (1 << SDEXT_UNIX_ID))) < 0)
 	{
 		return res;
 	}
 	
 	/* Check the LW extension. */
-	if ((res = obj40_stat_lw_check(obj, ops, hint, mode, 
-				       extmask & (1 << SDEXT_LW_ID))) < 0)
+	if ((res |= obj40_stat_lw_check(obj, ops, hint, mode, 
+					extmask & (1 << SDEXT_LW_ID))) < 0)
 	{
 		return res;
 	}
@@ -626,28 +626,13 @@ errno_t obj40_prepare_stat(reiser4_object_t *obj, uint16_t objmode, uint8_t mode
 	return res;
 }
 
-errno_t obj40_delete(reiser4_object_t *obj, uint32_t count, 
-		     uint32_t unit, uint32_t flags) 
-{
-	trans_hint_t trans;
-	
-	aal_assert("vpf-1835", obj != NULL);
-
-	aal_memset(&trans, 0, sizeof(trans));
-
-	trans.count = count;
-	trans.shift_flags = flags;
-	obj->body.pos.unit = unit;
-	
-	return obj40_remove(obj, &obj->body, &trans);
-}
-
 lookup_t obj40_check_item(reiser4_object_t *obj, 
 			  obj_func_t item_func,
 			  obj_func_t update_func,
 			  void *data)
 {
 	object_info_t *info;
+	trans_hint_t trans;
 	errno_t res;
 		
 	info = &obj->info;
@@ -658,18 +643,21 @@ lookup_t obj40_check_item(reiser4_object_t *obj,
 		if (res != PRESENT && res != -ESTRUCT)
 			return res;
 		
-		if ((res = item_func(obj, data)) < 0 && res != -ESTRUCT)
+		if ((res = item_func(obj, data)) && res != -ESTRUCT)
 			return res;
 		
 		if (res == 0)
 			return PRESENT;
 		
+		aal_memset(&trans, 0, sizeof(trans));
+		
+		trans.count = 1;
+		trans.shift_flags = SF_DEFAULT & ~SF_ALLOW_PACK;
+		obj->body.pos.unit = MAX_UINT32;
+		
 		/* Item has wrong key, remove it. */
-		if ((res = obj40_delete(obj, 1, MAX_UINT32, 
-					SF_DEFAULT & ~SF_ALLOW_PACK)) < 0)
-		{
+		if ((res = obj40_remove(obj, &obj->body, &trans)) < 0)
 			return res;
-		}
 	}
 }
 

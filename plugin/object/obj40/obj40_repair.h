@@ -40,9 +40,6 @@ extern errno_t obj40_prepare_stat(reiser4_object_t *obj,
 
 extern errno_t obj40_recognize(reiser4_object_t *obj);
 
-extern errno_t obj40_delete(reiser4_object_t *obj, uint32_t count, 
-			    uint32_t unit, uint32_t flags);
-
 extern lookup_t obj40_check_item(reiser4_object_t *obj, 
 				 obj_func_t item_func,
 				 obj_func_t update_func,

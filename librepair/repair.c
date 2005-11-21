@@ -545,20 +545,18 @@ static errno_t repair_sem_fini(repair_control_t *control,
 	fs_len = reiser4_format_get_len(control->repair->fs->format);
 	
 	if (repair_bitmap_compare(control->bm_alloc, control->bm_used, 0)) {
-		fsck_mess("On-disk used blocks and really used blocks "
-			  "differ.%s", control->repair->mode == RM_FIX &&
-			  !control->repair->fatal ? " Fixed." : "");
+		fsck_mess("On-disk used block bitmap and really used block "
+			  "bitmap differ.%s", control->repair->mode == RM_BUILD 
+			  ? " Fixed." : "");
 
-		if (control->repair->mode == RM_FIX && 
-		    !control->repair->fatal)
-		{
+		if (control->repair->mode == RM_BUILD) {
 			/* Assign the bm_used bitmap to the block allocator. */
 			reiser4_alloc_assign(control->repair->fs->alloc, 
 					     control->bm_used);
 
 			reiser4_alloc_sync(control->repair->fs->alloc);
 		} else 
-			control->repair->fixable++;
+			control->repair->fatal++;
 	}
 
 	reiser4_bitmap_close(control->bm_alloc);

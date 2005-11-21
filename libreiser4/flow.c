@@ -237,7 +237,7 @@ int64_t reiser4_flow_write(reiser4_tree_t *tree, trans_hint_t *hint) {
 /* Truncates item pointed by @hint->offset key by value stored in
    @hint->count. This is used during tail conversion and in object plugins
    truncate() code path. */
-int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
+int64_t reiser4_flow_cut(reiser4_tree_t *tree, trans_hint_t *hint) {
 	errno_t res;
 	int64_t trunc;
 	uint32_t size;
@@ -307,11 +307,9 @@ int64_t reiser4_flow_truncate(reiser4_tree_t *tree, trans_hint_t *hint) {
 		hint->bytes = 0;
 
 		/* Calling node truncate method. */
-		if ((trunc = reiser4_node_trunc(place.node, &place.pos,
-						hint)) < 0)
-		{
+		trunc = reiser4_node_trunc(place.node, &place.pos, hint);
+		if (trunc < 0)
 			return trunc;
-		}
 		
 		bytes += hint->bytes;
 		
@@ -453,7 +451,7 @@ errno_t reiser4_flow_convert(reiser4_tree_t *tree, conv_hint_t *hint) {
 			trans.count = conv;
 		}
 
-		if ((conv = reiser4_flow_truncate(tree, &trans)) < 0) {
+		if ((conv = reiser4_flow_cut(tree, &trans)) < 0) {
 			res = conv;
 			goto error_free_buff;
 		}

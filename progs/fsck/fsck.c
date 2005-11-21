@@ -608,7 +608,7 @@ int main(int argc, char *argv[]) {
 		/* Some fatal corruptions in disk format or filesystem. */
 		if (parse_data.fs_mode == RM_BUILD && stage) {
 			/* Only if no metadata are found. */
-			fprintf(stderr, "NO REISER4 METADATA WERE FOUND. "
+			fprintf(stderr, "NO REISER4 METADATA ARE FOUND. "
 				"FS RECOVERY IS NOT POSSIBLE.\n");
 		} else {
 			fprintf(stderr, "%llu fatal corruptions were detected in %s. "

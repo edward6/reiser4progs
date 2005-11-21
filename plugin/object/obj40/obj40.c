@@ -714,6 +714,26 @@ int64_t obj40_convert(reiser4_object_t *obj, conv_hint_t *hint) {
 	return obj40_core->flow_ops.convert(obj->info.tree, hint);
 }
 
+int64_t obj40_cut(reiser4_object_t *obj, trans_hint_t *hint, 
+		  uint64_t off, uint64_t count,
+		  region_func_t func, 
+		  void *data)
+{
+	aal_memset(hint, 0, sizeof(*hint));
+		
+	/* Preparing key of the data to be cut. */
+	aal_memcpy(&hint->offset, &obj->position, sizeof(hint->offset));
+	objcall(&hint->offset, set_offset, off);
+
+	/* Removing data from the tree. */
+	hint->count = count;
+	hint->shift_flags = SF_DEFAULT;
+	hint->region_func = func;
+	hint->data = data;
+	
+	return obj40_core->flow_ops.cut(obj->info.tree, hint);
+}
+
 /* Truncates data in tree */
 int64_t obj40_truncate(reiser4_object_t *obj, uint64_t n,
 		       reiser4_item_plug_t *item_plug)
@@ -743,19 +763,7 @@ int64_t obj40_truncate(reiser4_object_t *obj, uint64_t n,
 		
 		bytes = hint.bytes;
 	} else {
-		aal_memset(&hint, 0, sizeof(hint));
-		
-		/* Preparing key of the data to be truncated. */
-		aal_memcpy(&hint.offset, &obj->position, sizeof(hint.offset));
-		objcall(&hint.offset, set_offset, n);
-		
-		/* Removing data from the tree. */
-		hint.count = MAX_UINT64;
-		hint.shift_flags = SF_DEFAULT;
-		hint.data = obj->info.tree;
-		hint.plug = item_plug;
-		
-		res = obj40_core->flow_ops.truncate(obj->info.tree, &hint);
+		res = obj40_cut(obj, &hint, n, MAX_UINT64, NULL, NULL);
 		if (res < 0) return res;
 
 		bytes = -hint.bytes;
@@ -779,10 +787,10 @@ int64_t obj40_insert(reiser4_object_t *obj,
 /* Removes item/unit by @key */
 errno_t obj40_remove(reiser4_object_t *obj, 
 		     reiser4_place_t *place,
-		     trans_hint_t *hint)
+		     trans_hint_t *trans)
 {
 	return obj40_core->tree_ops.remove(obj->info.tree,
-					   place, hint);
+					   place, trans);
 }
 
 /* This fucntion implements object item enumerator function. 

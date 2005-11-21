@@ -56,6 +56,9 @@ extern void node40_mkdirty(reiser4_node_t *entity);
 extern void node40_mkclean(reiser4_node_t *entity);
 extern int node40_isdirty(reiser4_node_t *entity);
 
+extern reiser4_node_t *node40_prepare(aal_block_t *block, 
+				      reiser4_key_plug_t *kplug);
+
 extern uint16_t node40_space(reiser4_node_t *entity);
 extern uint32_t node40_items(reiser4_node_t *entity);
 

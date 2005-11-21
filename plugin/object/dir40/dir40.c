@@ -365,29 +365,28 @@ static errno_t dir40_mkempty(reiser4_object_t *dir, uint64_t n) {
 
 	while (1) {
 		trans_hint_t hint;
-		reiser4_place_t place;
 
 		/* Looking for the last directory item. 
 		   FIXME: the possible speedup here is to get rid of 
 		   lookup */
-		if ((res = obj40_find_item(dir, &key, FIND_EXACT,
-					   NULL, NULL, &place)) < 0)
+		if ((res = obj40_find_item(dir, &key, FIND_EXACT, NULL, 
+					   NULL, &dir->body)) < 0)
 		{
 			return res;
 		}
 
 		/* Checking if found item belongs this directory */
-		if (obj40_belong(&place, &dir->position) == ABSENT)
+		if (obj40_belong(&dir->body, &key) == ABSENT)
 			return 0;
 
 		aal_memset(&hint, 0, sizeof(hint));
 		
 		hint.count = 1;
 		hint.shift_flags = SF_DEFAULT;
-		place.pos.unit = MAX_UINT32;
+		dir->body.pos.unit = MAX_UINT32;
 		
 		/* Removing item from the tree */
-		if ((res = obj40_remove(dir, &place, &hint)))
+		if ((res = obj40_remove(dir, &dir->body, &hint)))
 			return res;
 	}
 	
@@ -514,25 +513,21 @@ static errno_t dir40_rem_entry(reiser4_object_t *dir,
 	aal_assert("umka-2390", entry->name != NULL);
 
 	/* Looking for place to insert directory entry */
-	switch (dir40_search(dir, entry->name, FIND_EXACT, &temp)) {
-	case PRESENT:
-		aal_memset(&hint, 0, sizeof(hint));
-
-		hint.count = 1;
-		hint.shift_flags = SF_DEFAULT;
-		
-		/* Removing one unit from directory */
-		if ((res = obj40_remove(dir, &temp.place, &hint)))
-			return res;
-
-		if (!objcall(&dir->position, compfull, &temp.offset)) {
-			if (entry->offset.adjust < dir->position.adjust)
-				dir->position.adjust--;
-		}
-		
-		break;
-	default:
+	if (dir40_search(dir, entry->name, FIND_EXACT, &temp) != PRESENT)
 		return -EINVAL;
+	
+	aal_memset(&hint, 0, sizeof(hint));
+	
+	hint.count = 1;
+	hint.shift_flags = SF_DEFAULT;
+	
+	/* Removing one unit from directory */
+	if ((res = obj40_remove(dir, &dir->body, &hint)))
+		return res;
+	
+	if (!objcall(&dir->position, compfull, &temp.offset)) {
+		if (entry->offset.adjust < dir->position.adjust)
+			dir->position.adjust--;
 	}
 
 	entry->len = hint.len;

@@ -33,9 +33,7 @@ uint8_t node40_get_level(reiser4_node_t *entity) {
 	return nh_get_level((reiser4_node_t *)entity);
 }
 
-static reiser4_node_t *node40_prepare(aal_block_t *block, 
-				      reiser4_key_plug_t *kplug) 
-{
+reiser4_node_t *node40_prepare(aal_block_t *block, reiser4_key_plug_t *kplug) {
 	reiser4_node_t *entity;
 	
 	aal_assert("umka-2376", kplug != NULL);
@@ -1256,6 +1254,10 @@ static errno_t node40_unite(reiser4_node_t *src_entity,
 
 	}
 	
+	/* Getting units number after shift. This is needed to detect correctly,
+	   that src item is empty after shift and may be removed. */
+	units = objcall(&src_place, balance->units);
+	
 	/* Shift units from @src_place to @dst_place. */
 	if (objcall(&src_place, balance->shift_units, &dst_place, hint)) {
 		aal_error("Can't shift units.");
@@ -1267,13 +1269,9 @@ static errno_t node40_unite(reiser4_node_t *src_entity,
 	hint->update = 1;
 	pos.item = src_place.pos.item;
 
-	/* Getting units number after shift. This is needed to detect correctly,
-	   that src item is empty after shift and may be removed. */
-	units = objcall(&src_place, balance->units);
-	
 	/* We will remove src item if it has became empty and insert point does
 	   not point it, that is next insert will not be dealing with it. */
-	remove = (hint->units_bytes == src_place.len || units == 0);
+	remove = (hint->units_number == units);
 	
 	/* Updating item's keys after shift_unit() is finished. */
 	if (left_shift) {

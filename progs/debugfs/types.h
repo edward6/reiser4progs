@@ -14,7 +14,7 @@ typedef enum print_flags {
 	PF_TREE	    = 1 << 4,
 	PF_BLOCK    = 1 << 5,
 	PF_NODES    = 1 << 6,
-	PF_ITEMS    = 1 << 7
+	PF_ITEMS    = 1 << 7,
 } print_flags_t;
 
 typedef enum behav_flags {
