@@ -124,7 +124,7 @@ reiser4_profile_t defprof = {
 			.hidden = 0,
 			.max = COMPRESS_LAST_ID,
 #endif
-			.id = {COMPRESS_NONE_ID, COMPRESS_PARAM, PARAM_PLUG_TYPE},
+			.id = {COMPRESS_LZO1_ID, COMPRESS_PARAM, PARAM_PLUG_TYPE},
 		},
 		[PROF_CMODE] = {
 #ifndef ENABLE_MINIMAL
@@ -132,7 +132,7 @@ reiser4_profile_t defprof = {
 			.hidden = 0,
 			.max = CMODE_LAST_ID,
 #endif
-			.id = {CMODE_SMART_ID, CMODE_PARAM, PARAM_PLUG_TYPE},
+			.id = {CMODE_NONE_ID, CMODE_PARAM, PARAM_PLUG_TYPE},
 		},
 		[PROF_CRYPTO] = {
 #ifndef ENABLE_MINIMAL

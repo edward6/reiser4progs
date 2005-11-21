@@ -268,11 +268,10 @@ enum reiser4_compress_plug_id {
 	COMPRESS_NOLZO1_ID	= 0x1,
 	COMPRESS_GZIP1_ID	= 0x2,
 	COMPRESS_NOGZIP1_ID	= 0x3,
-	COMPRESS_NONE_ID	= 0x4,
 	COMPRESS_LAST_ID
 };
 
-#define reiser4_nocomp(id) (((id) / 2 * 2 != id) || id == COMPRESS_NONE_ID)
+#define reiser4_nocomp(id) (((id) / 2 * 2 != id))
 
 enum reiser4_crypto_id {
 	CRYPTO_NONE_ID = 0x0,
@@ -280,10 +279,11 @@ enum reiser4_crypto_id {
 };
 
 enum reiser4_compress_mode_id {
-        CMODE_SMART_ID	= 0x0,
-        CMODE_LAZY_ID	= 0x1,
-        CMODE_FORCE_ID	= 0x2,
-        CMODE_TEST_ID	= 0x3,
+	CMODE_NONE_ID	= 0x0,
+        CMODE_SMART_ID	= 0x1,
+        CMODE_LAZY_ID	= 0x2,
+        CMODE_FORCE_ID	= 0x3,
+        CMODE_TEST_ID	= 0x4,
         CMODE_LAST_ID
 };
 

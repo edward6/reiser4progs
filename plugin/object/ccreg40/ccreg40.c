@@ -79,7 +79,9 @@ static int64_t ccreg40_cc_cluster(reiser4_object_t *cc,
 		return -EINVAL;
 	}
 
-	if (!reiser4_nocomp((rid_t)cc->info.opset.plug[OPSET_COMPRESS])) {
+	if ((rid_t)cc->info.opset.plug[OPSET_CMODE] != CMODE_NONE_ID ||
+	    !reiser4_nocomp((rid_t)cc->info.opset.plug[OPSET_COMPRESS]))
+	{
 		aal_error("Object [%s]: Can't compress data. Not supported "
 			  "yet.", print_inode(obj40_core, &cc->info.object));
 		return -EINVAL;
