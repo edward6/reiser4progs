@@ -1,5 +1,5 @@
 SUBDIRS                         = format journal alloc oid node key hash \
-                                  sdext item object policy fibre
+                                  sdext item object policy fibre compress
 
 if ENABLE_MINIMAL
 MINIMAL_LIBS                      = libreiser4-plugin-minimal.la
@@ -50,7 +50,8 @@ libreiser4_plugin_la_LIBADD       = format/format40/libformat40-static.la \
                                     fibre/lexic_fibre/liblexic_fibre-static.la \
                                     fibre/dot_o_fibre/libdot_o_fibre-static.la \
                                     fibre/ext_1_fibre/libext_1_fibre-static.la \
-                                    fibre/ext_3_fibre/libext_3_fibre-static.la
+                                    fibre/ext_3_fibre/libext_3_fibre-static.la \
+				    compress/libcompress-static.la
 
 if ENABLE_MINIMAL
 libreiser4_plugin_minimal_la_LIBADD = format/format40/libformat40-minimal.la \
@@ -91,8 +92,8 @@ libreiser4_plugin_minimal_la_LIBADD = format/format40/libformat40-minimal.la \
                                     fibre/lexic_fibre/liblexic_fibre-minimal.la \
                                     fibre/dot_o_fibre/libdot_o_fibre-minimal.la \
                                     fibre/ext_1_fibre/libext_1_fibre-minimal.la \
-                                    fibre/ext_3_fibre/libext_3_fibre-minimal.la
-
+                                    fibre/ext_3_fibre/libext_3_fibre-minimal.la \
+				    compress/libcompress-minimal.la
 
 libreiser4_plugin_minimal_la_SOURCES =
 

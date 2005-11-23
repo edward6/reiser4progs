@@ -10,21 +10,23 @@
 reiser4_plug_t **plugins;
 
 static uint8_t plugs_max[LAST_PLUG_TYPE + 1] = {
-	[OBJECT_PLUG_TYPE]        = OBJECT_LAST_ID,
-	[ITEM_PLUG_TYPE]          = ITEM_LAST_ID,
-	[NODE_PLUG_TYPE]          = NODE_LAST_ID,
-	[HASH_PLUG_TYPE]          = HASH_LAST_ID,
-	[FIBRE_PLUG_TYPE]	  = FIBRE_LAST_ID,
-	[POLICY_PLUG_TYPE]        = TAIL_LAST_ID,
-	[SDEXT_PLUG_TYPE]         = SDEXT_LAST_ID,
-	[FORMAT_PLUG_TYPE]        = FORMAT_LAST_ID,
-	[OID_PLUG_TYPE]           = OID_LAST_ID,
-	[ALLOC_PLUG_TYPE]         = ALLOC_LAST_ID,
-	[JOURNAL_PLUG_TYPE]       = JOURNAL_LAST_ID,
-	[KEY_PLUG_TYPE]           = KEY_LAST_ID,
-	[CREATE_PLUG_TYPE]        = CREATE_LAST_ID,
-	[PARAM_PLUG_TYPE]         = 0,
-	[LAST_PLUG_TYPE]	  = 0,
+	[OBJECT_PLUG_TYPE]	= OBJECT_LAST_ID,
+	[ITEM_PLUG_TYPE]	= ITEM_LAST_ID,
+	[NODE_PLUG_TYPE]	= NODE_LAST_ID,
+	[HASH_PLUG_TYPE]	= HASH_LAST_ID,
+	[FIBRE_PLUG_TYPE]	= FIBRE_LAST_ID,
+	[POLICY_PLUG_TYPE]	= TAIL_LAST_ID,
+	[SDEXT_PLUG_TYPE]	= SDEXT_LAST_ID,
+	[FORMAT_PLUG_TYPE]	= FORMAT_LAST_ID,
+	[OID_PLUG_TYPE]		= OID_LAST_ID,
+	[ALLOC_PLUG_TYPE]	= ALLOC_LAST_ID,
+	[JOURNAL_PLUG_TYPE]	= JOURNAL_LAST_ID,
+	[KEY_PLUG_TYPE]		= KEY_LAST_ID,
+	[COMPRESS_PLUG_TYPE]	= COMPRESS_LAST_ID,
+	[CMODE_PLUG_TYPE]	= CMODE_LAST_ID,
+	[CLUSTER_PLUG_TYPE]	= CLUSTER_LAST_ID,
+	[CREATE_PLUG_TYPE]	= CREATE_LAST_ID,
+	[LAST_PLUG_TYPE]	= 0,
 };
 
 /* Structure that contains libreiser4 functions available for all plugins to be
@@ -233,7 +235,6 @@ errno_t reiser4_factory_init(void) {
 	__init_plug(node40);
 	
 	__load_plug(dir40);
-	
 	__load_plug(reg40);
 	
 #ifdef ENABLE_SPECIAL
@@ -255,14 +256,29 @@ errno_t reiser4_factory_init(void) {
 
 #ifndef ENABLE_MINIMAL
 	__load_plug(extents);
-	
 	__load_plug(smart);
-	
 	__load_plug(tails);
 
 	__load_plug(create_reg40);
-	
 	__load_plug(create_ccreg40);
+
+	__load_plug(lzo1);
+	__load_plug(nolzo1);
+	__load_plug(gzip1);
+	__load_plug(nogzip1);
+
+	__load_plug(nocompress);
+	__load_plug(col8);
+	__load_plug(col16);
+	__load_plug(col32);
+	__load_plug(coz);
+	__load_plug(force);
+
+	__load_plug(clust64);
+	__load_plug(clust32);
+	__load_plug(clust16);
+	__load_plug(clust8);
+	__load_plug(clust4);
 #endif
 
         return 0;

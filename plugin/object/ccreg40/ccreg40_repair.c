@@ -136,44 +136,6 @@ static errno_t ccreg40_check_crc(ccreg40_hint_t *hint) {
 	return adler == disk ? 0 : RE_FATAL;
 }
 
-#if 0
-static errno_t ccreg40_hole_save(ccreg40_hint_t *hint, 
-				 uint64_t start, uint64_t end)
-{
-	/* A hole b/w items of the same cluster found.
-	   Save the hole into the hole-list. */
-	ptr_hint_t *ptr;
-
-	if (!(ptr  = aal_calloc(sizeof(*ptr), 0)))
-		return -ENOMEM;
-
-	hint->list = aal_list_append(hint->list, ptr);
-	if (!hint->list)
-		return -ENOMEM;
-
-	ptr->start = start;
-	ptr->width = end - start;
-	return 0;
-}
-
-static errno_t ccreg40_holes_free(void *p, void *data) {
-	ptr_hint_t *ptr = (ptr_hint_t *)p;
-	
-	if (data) {
-		/* Insert the zeroed hole. */
-		reiser4_object_t *cc;
-		trans_hint_t trans;
-		
-		cc = (reiser4_object_t *)data;
-		ccreg40_write_clust(cc, &trans, NULL, ptr->start, 
-				    ptr->width, );
-	}
-
-	aal_free(ptr);
-	return 0;
-}
-#endif
-
 static errno_t cc_write_item(reiser4_place_t *place, void *data) {
 	return ccreg40_set_cluster_size(place, *(uint32_t *)data);
 }
@@ -310,7 +272,8 @@ errno_t ccreg40_check_struct(reiser4_object_t *cc,
 	
 	res = 0;
 	hint.mode = mode;
-	hint.clsize = ccreg40_clsize(cc);
+	hint.clsize = ((reiser4_cluster_plug_t *)
+		       cc->info.opset.plug[OPSET_CLUSTER])->clsize;
 	hint.sdsize = obj40_get_size(cc);
 
 	while(1) {

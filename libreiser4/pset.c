@@ -126,15 +126,9 @@ void reiser4_opset_root(reiser4_opset_t *opset) {
 		if (opset->plug_mask & (1 << i))
 			continue;
 		
-		if (defprof.pid[opset_prof[i].prof].id.id == INVAL_PID) {
-			if (i == OPSET_OBJ) {
-				/* Special case: root file plug. */
-				opset->plug[i] = 
-					reiser4_profile_plug(PROF_DIRFILE);
-			} else {			
-				/* Skip root dir plug & others with INVAL id. */
-				continue;
-			}
+		if (i == OPSET_OBJ) {
+			/* Special case: root file plug. */
+			opset->plug[i] = reiser4_profile_plug(PROF_DIRFILE);
 		} else if (defprof.pid[opset_prof[i].prof].id.type == 
 			   PARAM_PLUG_TYPE) 
 		{
@@ -166,9 +160,6 @@ uint64_t reiser4_opset_build_mask(reiser4_tree_t *tree,
 		   The special case for the root directory. All opset 
 		   members must be stored. */
 		mask = (1 << OPSET_STORE_LAST) - 1;
-
-		/* Skip the DIR flag. */
-		mask &= ~(1 << OPSET_DIR);
 		return mask;
 	}
 	
@@ -267,12 +258,6 @@ errno_t reiser4_opset_tree(reiser4_tree_t *tree) {
 #ifndef ENABLE_MINIMAL
 	/* Check that all 'on-disk' plugins are obtained. */
 	for (i = 0; i < OPSET_STORE_LAST; i++) {
-		/* Zero not-defined slots in tree pset. */
-		if (defprof.pid[opset_prof[i].prof].id.id == INVAL_PID) {
-			tree->ent.opset[i] = NULL;
-			continue;
-		}
-			
 		/* If root should not be checked (debugfs), skip the loop. */
 		if (!check)
 			continue;

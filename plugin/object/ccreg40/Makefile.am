@@ -1,6 +1,6 @@
 includedir		    = -I$(top_srcdir)/include
 
-ccreg40_sources		    = ccreg40.c ccreg40.h ccreg40_repair.c ccreg40_repair.h
+ccreg40_sources		    = ccreg40.c ccreg40.h ccreg40_repair.c
 
 STATIC_LIBS                 = libccreg40-static.la
 libccreg40_static_la_SOURCES  = $(ccreg40_sources)

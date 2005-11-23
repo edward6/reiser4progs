@@ -139,7 +139,7 @@ reiser4_object_plug_t sym40_plug = {
 #ifndef ENABLE_MINIMAL
 	.sdext_mandatory = (1 << SDEXT_LW_ID | 
 			    1 << SDEXT_SYMLINK_ID),
-	.sdext_unknown   = (1 << SDEXT_CLUSTER_ID),
+	.sdext_unknown   = 0,
 #endif
 };
 #endif

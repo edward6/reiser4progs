@@ -108,8 +108,8 @@ static errno_t cb_open_ext(stat_entity_t *stat, uint64_t extmask, void *data) {
 	return 0;
 }
 
-static inline reiser4_plug_t *stat40_modeplug(tree_entity_t *tree, 
-					      uint16_t mode) 
+static inline reiser4_plug_t *stat40_file_mode(tree_entity_t *tree, 
+					       uint16_t mode) 
 {
 	if (S_ISLNK(mode))
 		return tree->tpset[TPSET_SYMFILE];
@@ -129,6 +129,12 @@ static inline reiser4_plug_t *stat40_modeplug(tree_entity_t *tree,
 	return NULL;
 }
 
+static inline reiser4_plug_t *stat40_dir_mode(tree_entity_t *tree, 
+					      uint16_t mode) 
+{
+	return NULL;
+}
+
 /* Decodes the object plug from the mode if needed. */
 static void stat40_decode_opset(tree_entity_t *tree,
 				sdhint_plug_t *plugh,
@@ -139,11 +145,15 @@ static void stat40_decode_opset(tree_entity_t *tree,
 	aal_assert("vpf-1632", lwh != NULL);
 	
 	/* Object plugin does not need to be set. */
-	if (plugh->plug[OPSET_OBJ])
-		return;
-
-	plugh->plug[OPSET_OBJ] = stat40_modeplug(tree, lwh->mode);
-	plugh->plug_mask |= (1 << OPSET_OBJ);
+	if (!plugh->plug[OPSET_OBJ]) {
+		plugh->plug[OPSET_OBJ] = stat40_file_mode(tree, lwh->mode);
+		plugh->plug_mask |= (1 << OPSET_OBJ);
+	}
+	
+	if (!plugh->plug[OPSET_DIR] && S_ISDIR(lwh->mode)) {
+		plugh->plug[OPSET_DIR] = stat40_dir_mode(tree, lwh->mode);
+		plugh->plug_mask |= (1 << OPSET_DIR);
+	}
 }
 
 /* Fetches whole statdata item with extensions into passed @buff */
@@ -207,7 +217,7 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 	sd_hint = (stat_hint_t *)hint->specific;
 	plugh = ((sdhint_plug_t *)sd_hint->ext[SDEXT_PLUG_ID]);
 	
-	if (!plugh || !plugh->plug[OPSET_OBJ])
+	if (!plugh || !(plugh->plug_mask & (1 << OPSET_OBJ | 1 << OPSET_DIR)))
 		return 0;
 	
 	/* If LW hint is not present, fetch it from disk. */
@@ -237,8 +247,11 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 	
 	/* These all is performed on plugh hint, not on the object. So this 
 	   altered plug_mask will not be reflected in the object plug_mask. */
-	if (plugh->plug[OPSET_OBJ] == stat40_modeplug(tree, mode))
+	if (plugh->plug[OPSET_OBJ] == stat40_file_mode(tree, mode))
 		plugh->plug_mask &= ~(1 << OPSET_OBJ);
+	
+	if (plugh->plug[OPSET_DIR] == stat40_dir_mode(tree, mode))
+		plugh->plug_mask &= ~(1 << OPSET_DIR);
 	
 	/* Throw away the SD_PLUG if mask is empty. */
 	if (!plugh->plug_mask)

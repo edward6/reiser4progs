@@ -416,7 +416,7 @@ static errno_t obj40_stat_crc_init(reiser4_object_t *obj,
 		return 0;
 	
 	/* Check if cryto is specified. */
-	if (obj->info.opset.plug[OPSET_CRYPTO] != (void *)CRYPTO_NONE_ID) {
+	if (obj->info.opset.plug[OPSET_CRYPTO] != CRYPTO_NONE_ID) {
 		if (!key || !aal_strlen(key)) {
 			aal_error("No proper key is given: %s.", key);
 			return -EINVAL;

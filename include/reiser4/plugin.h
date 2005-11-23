@@ -123,7 +123,7 @@ enum reiser4_object_plug_id {
 	OBJECT_DIR40_ID		= 0x1,
 	OBJECT_SYM40_ID		= 0x2,
 	OBJECT_SPL40_ID	        = 0x3,
-	OBJECT_CRC40_ID	        = 0x4,
+	OBJECT_CCREG40_ID	= 0x4,
 	OBJECT_LAST_ID
 };
 
@@ -199,8 +199,7 @@ enum reiser4_sdext_plug_id {
 	SDEXT_PLUG_ID		= 0x4,
 	SDEXT_FLAGS_ID          = 0x5,
 	SDEXT_CAPS_ID		= 0x6,
-	SDEXT_CLUSTER_ID	= 0x7,
-	SDEXT_CRYPTO_ID		= 0x8,
+	SDEXT_CRYPTO_ID		= 0x7,
 	SDEXT_LAST_ID
 };
 
@@ -247,16 +246,6 @@ enum reiser4_fibre_plug_id {
 	FIBRE_LAST_ID
 };
 
-enum reiser4_param_group {
-	PERM_PARAM	= 0x0,
-	CRYPTO_PARAM	= 0x1,
-	DIGEST_PARAM	= 0x2,
-	COMPRESS_PARAM	= 0x3,
-	CMODE_PARAM	= 0x4,
-	CLUSTER_PARAM	= 0x5,
-	LAST_PARAM
-};
-
 /* Known permission plugin ids. */
 enum reiser4_perm_plug_id {
 	PERM_RWX_ID		= 0x0,
@@ -271,7 +260,7 @@ enum reiser4_compress_plug_id {
 	COMPRESS_LAST_ID
 };
 
-#define reiser4_nocomp(id) (((id) / 2 * 2 != id))
+#define reiser4_compressed(id) (((id) / 2 * 2 == (id)))
 
 enum reiser4_crypto_id {
 	CRYPTO_NONE_ID = 0x0,
@@ -280,11 +269,12 @@ enum reiser4_crypto_id {
 
 enum reiser4_compress_mode_id {
 	CMODE_NONE_ID	= 0x0,
-        CMODE_SMART_ID	= 0x1,
-        CMODE_LAZY_ID	= 0x2,
-        CMODE_FORCE_ID	= 0x3,
-        CMODE_TEST_ID	= 0x4,
-        CMODE_LAST_ID
+	CMODE_COL8_ID	= 0x1,
+	CMODE_COL16_ID	= 0x2,
+	CMODE_COL32_ID	= 0x3,
+	CMODE_COZ_ID	= 0x4,
+	CMODE_FORCE_ID	= 0x5,
+	CMODE_LAST_ID
 };
 
 enum reiser4_cluster_id {
@@ -701,6 +691,7 @@ typedef struct reiser4_object {
 
 #define reiser4_oplug(object) \
 	((reiser4_object_plug_t *)(object)->info.opset.plug[OPSET_OBJ])
+
 
 /* Bits for entity state field. For now here is only "dirty" bit, but possible
    and other ones. */
@@ -1720,6 +1711,18 @@ struct reiser4_plug_old {
 #endif
 	} pl;
 };
+
+#ifndef ENABLE_MINIMAL
+typedef struct reiser4_create_plug {
+	reiser4_plug_t p;
+	rid_t objid;
+} reiser4_create_plug_t;
+
+typedef struct reiser4_cluster_plug {
+	reiser4_plug_t p;
+	rid_t clsize;
+} reiser4_cluster_plug_t;
+#endif
 
 /* Macros for dirtying nodes place lie at. */
 #define place_mkdirty(place) \

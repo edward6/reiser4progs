@@ -7,11 +7,9 @@
 #include <reiser4/libreiser4.h>
 #include <misc/misc.h>
 
-#define INVAL_TYPE ((uint8_t)~0)
-
 /* All default plugin ids. This is used for getting plugin id if it cannot be
    obtained by usual way (get from disk structures, etc.). All these may be
-   chnaged. */
+   changed. */
 reiser4_profile_t defprof = {
 	.pid = {
 		[PROF_OBJ] = {
@@ -20,7 +18,7 @@ reiser4_profile_t defprof = {
 			.hidden = 1,
 			.max = OBJECT_LAST_ID,
 #endif
-			.id = {INVAL_PID, INVAL_TYPE, OBJECT_PLUG_TYPE},
+			.id = {0, 0, OBJECT_PLUG_TYPE},
 		},
 		[PROF_DIR] = {
 #ifndef ENABLE_MINIMAL
@@ -28,7 +26,7 @@ reiser4_profile_t defprof = {
 			.hidden = 1,
 			.max = 1,
 #endif
-			.id = {INVAL_PID, 0, PARAM_PLUG_TYPE},
+			.id = {0, 0, PARAM_PLUG_TYPE},
 		},
 		[PROF_REGFILE] = {
 #ifndef ENABLE_MINIMAL
@@ -124,7 +122,7 @@ reiser4_profile_t defprof = {
 			.hidden = 0,
 			.max = COMPRESS_LAST_ID,
 #endif
-			.id = {COMPRESS_LZO1_ID, COMPRESS_PARAM, PARAM_PLUG_TYPE},
+			.id = {COMPRESS_LZO1_ID, 0, COMPRESS_PLUG_TYPE},
 		},
 		[PROF_CMODE] = {
 #ifndef ENABLE_MINIMAL
@@ -132,23 +130,23 @@ reiser4_profile_t defprof = {
 			.hidden = 0,
 			.max = CMODE_LAST_ID,
 #endif
-			.id = {CMODE_NONE_ID, CMODE_PARAM, PARAM_PLUG_TYPE},
+			.id = {CMODE_NONE_ID, 0, CMODE_PLUG_TYPE},
 		},
 		[PROF_CRYPTO] = {
 #ifndef ENABLE_MINIMAL
 			.name = "crypto",
-			.hidden = 0,
-			.max = CRYPTO_LAST_ID,
+			.hidden = 1,
+			.max = 1,
 #endif
-			.id = {CRYPTO_NONE_ID, CRYPTO_PARAM, PARAM_PLUG_TYPE},
+			.id = {0, 0, PARAM_PLUG_TYPE},
 		},
 		[PROF_DIGEST] = {
 #ifndef ENABLE_MINIMAL
 			.name = "digest",
-			.hidden = 0,
-			.max = DIGEST_LAST_ID,
+			.hidden = 1,
+			.max = 1,
 #endif
-			.id = {DIGEST_NONE_ID, DIGEST_PARAM, PARAM_PLUG_TYPE},
+			.id = {0, 0, PARAM_PLUG_TYPE},
 		},
 		[PROF_CLUSTER] = {
 #ifndef ENABLE_MINIMAL
@@ -156,7 +154,7 @@ reiser4_profile_t defprof = {
 			.hidden = 0,
 			.max = CLUSTER_LAST_ID,
 #endif
-			.id = {CLUSTER_64K_ID, CLUSTER_PARAM, PARAM_PLUG_TYPE},
+			.id = {CLUSTER_64K_ID, 0, CLUSTER_PLUG_TYPE},
 		},
 		[PROF_HASH] = {
 #ifndef ENABLE_MINIMAL
@@ -178,9 +176,9 @@ reiser4_profile_t defprof = {
 #ifndef ENABLE_MINIMAL
 			.name = "permission",
 			.hidden = 1,
-			.max = PERM_LAST_ID,
+			.max = 1,
 #endif
-			.id = {PERM_RWX_ID, 0, PARAM_PLUG_TYPE},
+			.id = {0, 0, PARAM_PLUG_TYPE},
 		},
 		[PROF_POLICY] = {
 #ifndef ENABLE_MINIMAL

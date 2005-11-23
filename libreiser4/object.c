@@ -807,13 +807,17 @@ reiser4_object_t *reiser4_dir_create(reiser4_object_t *parent,
 reiser4_object_t *reiser4_reg_create(reiser4_object_t *parent,
 				     const char *name)
 {
+	reiser4_create_plug_t *plug;
 	object_info_t info;
 	
 	aal_assert("vpf-1054", parent != NULL);
 	
+	plug = (reiser4_create_plug_t *)parent->info.opset.plug[OPSET_CREATE];
+	
 	aal_memset(&info, 0, sizeof(info));
 	info.opset.plug_mask |= (1 << OPSET_OBJ);
-	info.opset.plug[OPSET_OBJ] = parent->info.opset.plug[OPSET_CREATE];
+	info.opset.plug[OPSET_OBJ] = 
+		reiser4_factory_ifind(OBJECT_PLUG_TYPE, plug->objid);
 	
 	return reiser4_obj_create(parent, &info, NULL, name);
 }
@@ -879,7 +883,7 @@ reiser4_object_t *reiser4_ccreg_create(reiser4_object_t *parent,
 	info.opset.plug_mask |= (1 << OPSET_OBJ);
 	
 	if (!(info.opset.plug[OPSET_OBJ] = 
-	      reiser4_factory_ifind(OBJECT_PLUG_TYPE, OBJECT_CRC40_ID))) 
+	      reiser4_factory_ifind(OBJECT_PLUG_TYPE, OBJECT_CCREG40_ID))) 
 	{
 		aal_error("Can't find the CRC object plugin\n.");
 		return NULL;

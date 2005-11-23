@@ -79,8 +79,8 @@ static int64_t ccreg40_cc_cluster(reiser4_object_t *cc,
 		return -EINVAL;
 	}
 
-	if ((rid_t)cc->info.opset.plug[OPSET_CMODE] != CMODE_NONE_ID ||
-	    !reiser4_nocomp((rid_t)cc->info.opset.plug[OPSET_COMPRESS]))
+	if (cc->info.opset.plug[OPSET_CMODE]->id.id != CMODE_NONE_ID ||
+	    reiser4_compressed(cc->info.opset.plug[OPSET_COMPRESS]->id.id))
 	{
 		aal_error("Object [%s]: Can't compress data. Not supported "
 			  "yet.", print_inode(obj40_core, &cc->info.object));
@@ -107,7 +107,8 @@ static int64_t ccreg40_read_clust(reiser4_object_t *cc, trans_hint_t *hint,
 	if (off > fsize)
 		return 0;
 	
-	clsize = ccreg40_clsize(cc);
+	clsize = ((reiser4_cluster_plug_t *)
+		  cc->info.opset.plug[OPSET_CLUSTER])->clsize;
 	clstart = ccreg40_clstart(off, clsize);
 	if (clsize > fsize - clstart)
 		clsize = fsize - clstart;
@@ -167,7 +168,8 @@ static int64_t ccreg40_write_clust(reiser4_object_t *cc, trans_hint_t *hint,
 	int64_t done;
 	
 	done = 0;
-	clsize = ccreg40_clsize(cc);
+	clsize = ((reiser4_cluster_plug_t *)
+		  cc->info.opset.plug[OPSET_CLUSTER])->clsize;
 	clstart = ccreg40_clstart(off, clsize);
 	
 	/* Set @end to the cluster end offset. */
@@ -354,7 +356,7 @@ static errno_t ccreg40_metadata(reiser4_object_t *cc,
 /* CRC regular file plugin. */
 reiser4_object_plug_t ccreg40_plug = {
 	.p = {
-		.id    = {OBJECT_CRC40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
+		.id    = {OBJECT_CCREG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
 		.label = "ccreg40",
 		.desc  = "Crypto-Compression regular file plugin.",
 	},
@@ -397,8 +399,7 @@ reiser4_object_plug_t ccreg40_plug = {
 	.read	        = ccreg40_read,
 
 	.sdext_mandatory = (1 << SDEXT_LW_ID),
-	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID | 
-			    1 << SDEXT_CLUSTER_ID |
+	.sdext_unknown   = (1 << SDEXT_SYMLINK_ID |
 			    1 << SDEXT_CRYPTO_ID)
 };
 #endif
