@@ -368,7 +368,7 @@ enum reiser4_opset_id {
 	((reiser4_item_plug_t *)(obj)->info.opset.plug[OPSET_DIRITEM])
 
 #define reiser4_pscrypto(obj) \
-	(*(rid_t *)(obj)->info.opset.plug[OPSET_CRYPTO])
+	((rid_t)(obj)->info.opset.plug[OPSET_CRYPTO])
 
 #define reiser4_pscompress(obj) \
 	((reiser4_plug_t *)(obj)->info.opset.plug[OPSET_COMPRESS])
