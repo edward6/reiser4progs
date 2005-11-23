@@ -12,14 +12,14 @@ errno_t obj40_open(reiser4_object_t *obj) {
 	aal_assert("vpf-1827", obj != NULL);
 	aal_assert("vpf-1826", obj->info.tree != NULL);
 	aal_assert("vpf-1828", 
-		   reiser4_oplug(obj)->p.id.type == OBJECT_PLUG_TYPE);
+		   reiser4_psobj(obj)->p.id.type == OBJECT_PLUG_TYPE);
 	
 	if (obj->info.start.plug->p.id.group != STAT_ITEM)
 		return -EIO;
 	
 	/* Positioning to the first directory unit. */
-	if (reiser4_oplug(obj)->reset)
-		reiser4_oplug(obj)->reset(obj);
+	if (reiser4_psobj(obj)->reset)
+		reiser4_psobj(obj)->reset(obj);
 	
 	return 0;
 }
@@ -341,12 +341,12 @@ errno_t obj40_stat_lw_init(reiser4_object_t *obj,
 	/* mode is the bitwise OR between the given mode, the file type mode 
 	   and the defaul rwx permissions. The later is 0755 for directories 
 	   and 0644 for others. */
-	mode |= reiser4_oplug(obj)->p.id.group == REG_OBJECT ? S_IFREG : 
-		reiser4_oplug(obj)->p.id.group == DIR_OBJECT ? S_IFDIR : 
-		reiser4_oplug(obj)->p.id.group == SYM_OBJECT ? S_IFLNK :
+	mode |= reiser4_psobj(obj)->p.id.group == REG_OBJECT ? S_IFREG : 
+		reiser4_psobj(obj)->p.id.group == DIR_OBJECT ? S_IFDIR : 
+		reiser4_psobj(obj)->p.id.group == SYM_OBJECT ? S_IFLNK :
 		0;
 	
-	if (reiser4_oplug(obj)->p.id.group == DIR_OBJECT)
+	if (reiser4_psobj(obj)->p.id.group == DIR_OBJECT)
 		mode |= 0755;
 	else
 		mode |= 0644;
@@ -389,7 +389,7 @@ static errno_t obj40_stat_sym_init(reiser4_object_t *obj,
 	aal_assert("vpf-1851", obj != NULL);
 	aal_assert("vpf-1779", stat != NULL);
 	
-	if (reiser4_oplug(obj)->p.id.group != SYM_OBJECT)
+	if (reiser4_psobj(obj)->p.id.group != SYM_OBJECT)
 		return 0;
 	
 	if (!path || !aal_strlen(path)) {
@@ -412,11 +412,11 @@ static errno_t obj40_stat_crc_init(reiser4_object_t *obj,
 	aal_assert("vpf-1780", stat != NULL);
 
 	/* Plugin must be of the regular file group. */
-	if (reiser4_oplug(obj)->p.id.group != REG_OBJECT)
+	if (reiser4_psobj(obj)->p.id.group != REG_OBJECT)
 		return 0;
 	
 	/* Check if cryto is specified. */
-	if (obj->info.opset.plug[OPSET_CRYPTO] != CRYPTO_NONE_ID) {
+	if (reiser4_pscrypto(obj) != CRYPTO_NONE_ID) {
 		if (!key || !aal_strlen(key)) {
 			aal_error("No proper key is given: %s.", key);
 			return -EINVAL;
@@ -451,12 +451,12 @@ errno_t obj40_create_stat(reiser4_object_t *obj,
 	int64_t res;
 	
 	aal_assert("vpf-1592", obj != NULL);
-	aal_assert("vpf-1593", obj->info.opset.plug[OPSET_STAT] != NULL);
+	aal_assert("vpf-1593", reiser4_psstat(obj) != NULL);
 	
 	aal_memset(&hint, 0, sizeof(hint));
 	
 	/* Getting statdata plugin */
-	hint.plug = (reiser4_item_plug_t *)obj->info.opset.plug[OPSET_STAT];
+	hint.plug = reiser4_psstat(obj);
 
 	hint.count = 1;
 	hint.shift_flags = SF_DEFAULT;
@@ -497,8 +497,8 @@ errno_t obj40_create_stat(reiser4_object_t *obj,
 	res = obj40_insert(obj, STAT_PLACE(obj), &hint, LEAF_LEVEL);
 	
 	/* Reset file. */
-	if (reiser4_oplug(obj)->reset)
-		reiser4_oplug(obj)->reset(obj);
+	if (reiser4_psobj(obj)->reset)
+		reiser4_psobj(obj)->reset(obj);
 
 	return res < 0 ? res : 0;
 }

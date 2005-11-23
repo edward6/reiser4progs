@@ -94,7 +94,7 @@ errno_t debugfs_browse(reiser4_fs_t *fs, char *filename) {
 		return -EINVAL;
 	}
 
-	switch (reiser4_oplug(object)->p.id.group) {
+	switch (reiser4_psobj(object)->p.id.group) {
 	case REG_OBJECT:
 		res = debugfs_reg_cat(object);
 		break;

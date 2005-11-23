@@ -66,7 +66,7 @@ static int reg40_conv_prepare(reiser4_object_t *reg,
 
 	info = &reg->info;
 
-	if (plug_equal(reg->body.plug, info->opset.plug[OPSET_EXTENT])) {
+	if (plug_equal(reg->body.plug, reiser4_psextent(reg))) {
 		/* Extent found, all previous items were tails, convert all 
 		   previous ones to extents. */
 		hint->plug = reg->body.plug;
@@ -122,7 +122,7 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 
 	fsck_mess("The object [%s] has a break at [%llu-%llu] offsets. "
 		  "Plugin %s.%s", print_inode(obj40_core, &reg->info.object),
-		  offset - len, offset, reiser4_oplug(reg)->p.label,
+		  offset - len, offset, reiser4_psobj(reg)->p.label,
 		  mode == RM_BUILD ? " Writing a hole there." : "");
 
 	if (mode != RM_BUILD)
@@ -134,7 +134,7 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 		aal_error("The object [%s] failed to create the hole "
 			  "at [%llu-%llu] offsets. Plugin %s.",
 			  print_inode(obj40_core, &reg->info.object),
-			  offset - len, offset, reiser4_oplug(reg)->p.label);
+			  offset - len, offset, reiser4_psobj(reg)->p.label);
 
 		return res;
 	}
@@ -147,14 +147,14 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 static errno_t reg40_check_item(reiser4_object_t *reg, void *data) {
 	uint8_t mode = *(uint8_t *)data;
 
-	if (!plug_equal(reg->body.plug, reg->info.opset.plug[OPSET_EXTENT]) &&
-	    !plug_equal(reg->body.plug, reg->info.opset.plug[OPSET_TAIL]))
+	if (!plug_equal(reg->body.plug, reiser4_psextent(reg)) &&
+	    !plug_equal(reg->body.plug, reiser4_pstail(reg)))
 	{
 		fsck_mess("The object [%s] (%s), node (%llu),"
 			  "item (%u): the item [%s] of the "
 			  "invalid plugin (%s) found.%s",
 			  print_inode(obj40_core, &reg->info.object),
-			  reiser4_oplug(reg)->p.label,
+			  reiser4_psobj(reg)->p.label,
 			  place_blknr(&reg->body), reg->body.pos.item,
 			  print_key(obj40_core, &reg->body.key),
 			  reg->body.plug->p.label, 
@@ -166,7 +166,7 @@ static errno_t reg40_check_item(reiser4_object_t *reg, void *data) {
 			  "item (%u): the item [%s] has the "
 			  "wrong offset.%s",
 			  print_inode(obj40_core, &reg->info.object),
-			  reiser4_oplug(reg)->p.label, 
+			  reiser4_psobj(reg)->p.label, 
 			  place_blknr(&reg->body), reg->body.pos.item,
 			  print_key(obj40_core, &reg->body.key),
 			  mode == RM_BUILD ? " Removed." : "");
@@ -182,7 +182,6 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 			   void *data, uint8_t mode)
 {
 	obj40_stat_hint_t hint;
-	object_info_t *info;
 	conv_hint_t conv;
 	uint64_t maxreal;
 	uint64_t offset;
@@ -192,8 +191,6 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 	aal_assert("vpf-1190", reg->info.tree != NULL);
 	aal_assert("vpf-1197", reg->info.object.plug != NULL);
 	
-	info = &reg->info;
-	
 	aal_memset(&hint, 0, sizeof(hint));
 	aal_memset(&conv, 0, sizeof(conv));
 	
@@ -201,7 +198,7 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 		return res;
 
 	/* Try to register SD as an item of this file. */
-	if (func && func(&info->start, data))
+	if (func && func(&reg->info.start, data))
 		return -EINVAL;
 	
 	conv.place_func = func;
@@ -256,10 +253,10 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 			fsck_mess("The object [%s] (%s): items at offsets "
 				  "[%llu..%llu] does not not match the "
 				  "detected tail policy (%s).%s",
-				  print_inode(obj40_core, &info->object),
-				  reiser4_oplug(reg)->p.label, 
+				  print_inode(obj40_core, &reg->info.object),
+				  reiser4_psobj(reg)->p.label, 
 				  offset, offset + conv.count - 1,
-				  info->opset.plug[OPSET_POLICY]->label,
+				  reiser4_pspolicy(reg)->p.label,
 				  mode == RM_BUILD ? " Converted." : "");
 
 			if (mode == RM_BUILD) {

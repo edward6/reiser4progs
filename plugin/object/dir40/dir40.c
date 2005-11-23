@@ -55,8 +55,7 @@ errno_t dir40_reset(reiser4_object_t *dir) {
 
 	/* Building key itself. */
 	plugcall(dir->info.object.plug, build_hashed, &dir->position,
-		  (reiser4_hash_plug_t *)dir->info.opset.plug[OPSET_HASH],
-		  (reiser4_fibre_plug_t *)dir->info.opset.plug[OPSET_FIBRE], 
+		  reiser4_pshash(dir), reiser4_psfibre(dir), 
 		  objcall(&dir->info.object, get_locality),
 		  objcall(&dir->info.object, get_objectid), ".");
 
@@ -212,8 +211,7 @@ static lookup_t dir40_search(reiser4_object_t *dir, char *name,
 	/* Preparing key to be used for lookup. It is generating from the
 	   directory oid, locality and name by menas of using hash plugin. */
 	plugcall(dir->info.object.plug, build_hashed, &dir->body.key,
-		 (reiser4_hash_plug_t *)dir->info.opset.plug[OPSET_HASH],
-		 (reiser4_fibre_plug_t *)dir->info.opset.plug[OPSET_FIBRE],
+		 reiser4_pshash(dir), reiser4_psfibre(dir),
 		 objcall(&dir->info.object, get_locality),
 		 objcall(&dir->info.object, get_objectid), name);
 
@@ -282,13 +280,11 @@ static errno_t dir40_create(reiser4_object_t *dir, object_hint_t *hint) {
 	   data item hint, because we will need size of direntry item during
 	   stat data initialization. */
    	body_hint.count = 1;
-	body_hint.plug = 
-		(reiser4_item_plug_t *)dir->info.opset.plug[OPSET_DIRITEM];
+	body_hint.plug = reiser4_psdiren(dir);
 	
 	key = &dir->info.object;
 	plugcall(key->plug, build_hashed, &body_hint.offset, 
-		 (reiser4_hash_plug_t *)dir->info.opset.plug[OPSET_HASH], 
-		 (reiser4_fibre_plug_t *)dir->info.opset.plug[OPSET_FIBRE],
+		 reiser4_pshash(dir), reiser4_psfibre(dir),
 		 objcall(&dir->info.object, get_locality),
 		 objcall(&dir->info.object, get_objectid), ".");
 
@@ -430,8 +426,7 @@ static errno_t dir40_build_entry(reiser4_object_t *dir,
 	aal_assert("umka-2527", dir != NULL);
 	
 	plugcall(dir->info.object.plug, build_hashed, &entry->offset, 
-		 (reiser4_hash_plug_t *)dir->info.opset.plug[OPSET_HASH],
-		 (reiser4_fibre_plug_t *)dir->info.opset.plug[OPSET_FIBRE],
+		 reiser4_pshash(dir), reiser4_psfibre(dir),
 		 objcall(&dir->info.object, get_locality),
 		 objcall(&dir->info.object, get_objectid), entry->name);
 
@@ -557,7 +552,7 @@ static errno_t dir40_attach(reiser4_object_t *dir,
 		return res;
 
 	/* Increasing parent's @nlink by one */
-	return plugcall(reiser4_oplug(parent), link, parent);
+	return plugcall(reiser4_psobj(parent), link, parent);
 }
 
 /* Detaches @dir from @parent. */
@@ -579,7 +574,7 @@ static errno_t dir40_detach(reiser4_object_t *dir,
 		return 0;
 	
 	/* Decreasing parent's @nlink by one */
-	return plugcall(reiser4_oplug(parent), unlink, parent);
+	return plugcall(reiser4_psobj(parent), unlink, parent);
 }
 
 /* This fucntion implements hashed directory enumerator function. It is used for

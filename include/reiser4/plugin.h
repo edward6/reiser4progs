@@ -349,6 +349,48 @@ enum reiser4_opset_id {
 	OPSET_LAST
 };
 
+#define reiser4_psobj(obj) \
+	((reiser4_object_plug_t *)(obj)->info.opset.plug[OPSET_OBJ])
+
+#define reiser4_pspolicy(obj) \
+	((reiser4_policy_plug_t *)(obj)->info.opset.plug[OPSET_POLICY])
+
+#define reiser4_pshash(obj) \
+	((reiser4_hash_plug_t *)(obj)->info.opset.plug[OPSET_HASH])
+
+#define reiser4_psfibre(obj) \
+	((reiser4_fibre_plug_t *)(obj)->info.opset.plug[OPSET_FIBRE])
+
+#define reiser4_psstat(obj) \
+	((reiser4_item_plug_t *)(obj)->info.opset.plug[OPSET_STAT])
+
+#define reiser4_psdiren(obj) \
+	((reiser4_item_plug_t *)(obj)->info.opset.plug[OPSET_DIRITEM])
+
+#define reiser4_pscrypto(obj) \
+	(*(rid_t *)(obj)->info.opset.plug[OPSET_CRYPTO])
+
+#define reiser4_pscompress(obj) \
+	((reiser4_plug_t *)(obj)->info.opset.plug[OPSET_COMPRESS])
+
+#define reiser4_pscmode(obj) \
+	((reiser4_plug_t *)(obj)->info.opset.plug[OPSET_CMODE])
+
+#define reiser4_pscluster(obj) \
+	((reiser4_cluster_plug_t *)(obj)->info.opset.plug[OPSET_CLUSTER])
+
+#define reiser4_pscreate(obj) \
+	((reiser4_create_plug_t *)(obj)->info.opset.plug[OPSET_CREATE])
+
+#define reiser4_pstail(obj) \
+	((reiser4_item_plug_t *)(obj)->info.opset.plug[OPSET_TAIL])
+
+#define reiser4_psextent(obj) \
+	((reiser4_item_plug_t *)(obj)->info.opset.plug[OPSET_EXTENT])
+
+#define reiser4_psctail(obj) \
+	((reiser4_item_plug_t *)(obj)->info.opset.plug[OPSET_CTAIL])
+
 enum reiser4_create_map {
 	CREATE_REG40_ID		= 0x0,
 	CREATE_CCREG40_ID	= 0x1,
@@ -688,10 +730,6 @@ typedef struct reiser4_object {
 	reiser4_item_plug_t *body_plug;
 #endif
 } reiser4_object_t;
-
-#define reiser4_oplug(object) \
-	((reiser4_object_plug_t *)(object)->info.opset.plug[OPSET_OBJ])
-
 
 /* Bits for entity state field. For now here is only "dirty" bit, but possible
    and other ones. */

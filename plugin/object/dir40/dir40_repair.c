@@ -37,7 +37,7 @@ static errno_t dir40_dot(reiser4_object_t *dir,
 	fsck_mess("Directory [%s]: The entry \".\" is not found.%s "
 		  "Plugin (%s).", print_inode(obj40_core, &info->object), 
 		  mode != RM_CHECK ? " Insert a new one." : "", 
-		  reiser4_oplug(dir)->p.label);
+		  reiser4_psobj(dir)->p.label);
 	
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
@@ -67,7 +67,6 @@ static errno_t dir40_entry_check(reiser4_object_t *dir,
 				 void *data, 
 				 uint8_t mode)
 {
-	object_info_t *info;
 	entry_hint_t entry;
 	trans_hint_t trans;
 	reiser4_key_t key;
@@ -77,8 +76,6 @@ static errno_t dir40_entry_check(reiser4_object_t *dir,
 	bool_t last;
 	pos_t *pos;
 
-	info = &dir->info;
-	
 	res = 0;
 	pos = &dir->body.pos;
 	units = objcall(&dir->body, balance->units);
@@ -109,8 +106,7 @@ static errno_t dir40_entry_check(reiser4_object_t *dir,
 
 		/* Prepare the correct key for the entry. */
 		plugcall(entry.offset.plug, build_hashed, &key,
-			 (reiser4_hash_plug_t *)info->opset.plug[OPSET_HASH],
-			 (reiser4_fibre_plug_t *)info->opset.plug[OPSET_FIBRE],
+			 reiser4_pshash(dir), reiser4_psfibre(dir),
 			 objcall(&dir->info.object, get_locality),
 			 objcall(&dir->info.object, get_objectid), entry.name);
 
@@ -120,8 +116,8 @@ static errno_t dir40_entry_check(reiser4_object_t *dir,
 			fsck_mess("Directory [%s] (%s), node [%llu], "
 				  "item [%u], unit [%u]: entry has wrong "
 				  "offset [%s]. Should be [%s].%s", 
-				  print_inode(obj40_core, &info->object),
-				  reiser4_oplug(dir)->p.label, 
+				  print_inode(obj40_core, &dir->info.object),
+				  reiser4_psobj(dir)->p.label, 
 				  place_blknr(&dir->body), 
 				  dir->body.pos.item, dir->body.pos.unit,
 				  print_key(obj40_core, &entry.offset),
@@ -181,14 +177,12 @@ static errno_t dir40_check_item(reiser4_object_t *dir, void *data) {
 	
 	/* FIXME-VITALY: item of the same group but of another plugin,
 	   should it be converted? */
-	if ((reiser4_plug_t *)dir->body.plug != 
-	    dir->info.opset.plug[OPSET_DIRITEM])
-	{
+	if (dir->body.plug != reiser4_psdiren(dir)) {
 		fsck_mess("Directory [%s] (%s), node [%llu], item"
 			  "[%u]: item of the illegal plugin (%s) "
 			  "with the key of this object found.%s",
 			  print_inode(obj40_core, &dir->info.object),
-			  reiser4_oplug(dir)->p.label, 
+			  reiser4_psobj(dir)->p.label, 
 			  place_blknr(&dir->body), dir->body.pos.item,
 			  dir->body.plug->p.label, mode == RM_BUILD ? 
 			  " Removed." : "");
@@ -203,7 +197,6 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 			   place_func_t func,
 			   void *data, uint8_t mode)
 {
-	reiser4_item_plug_t *iplug;
 	obj40_stat_hint_t hint;
 	object_info_t *info;
 	
@@ -228,8 +221,7 @@ errno_t dir40_check_struct(reiser4_object_t *dir,
 	/* FIXME: Probably it should be different -- find an item by the key 
 	   and if it is of DIR group, take its plugin as body plug, fix 
 	   it in SD then. */
-	iplug = (reiser4_item_plug_t *)info->opset.plug[OPSET_DIRITEM];
-	if ((res |= dir40_dot(dir, iplug, mode)) < 0)
+	if ((res |= dir40_dot(dir, reiser4_psdiren(dir), mode)) < 0)
 		return res;
 	
 	while (1) {
@@ -305,7 +297,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 			  "is attached already to [%s] and cannot "
 			  "be attached to [%s].", 
 			  print_inode(obj40_core, &object->info.object),
-			  reiser4_oplug(object)->p.label, 
+			  reiser4_psobj(object)->p.label, 
 			  print_key(obj40_core, &entry.object),
 			  print_inode(obj40_core, &parent->info.object));
 
@@ -319,7 +311,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 			fsck_mess("Directory [%s] (%s): the "
 			"object is not attached. %s [%s].",
 			print_inode(obj40_core, &object->info.object),
-			reiser4_oplug(object)->p.label, mode == RM_CHECK ? 
+			reiser4_psobj(object)->p.label, mode == RM_CHECK ? 
 			"Reached from" : "Attaching to",
 			print_inode(obj40_core, &parent->info.object));
 		}
@@ -328,7 +320,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 			fsck_mess("Directory [%s] (%s): the object "
 				  "is not attached. Reached from [%s].",
 				  print_inode(obj40_core, &object->info.object),
-				  reiser4_oplug(object)->p.label,
+				  reiser4_psobj(object)->p.label,
 				  print_inode(obj40_core, &parent->info.object));
 			return RE_FIXABLE;
 		}
@@ -339,7 +331,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 
 		aal_strncpy(entry.name, "..", sizeof(entry.name));
 		
-		if ((res = plugcall(reiser4_oplug(object), 
+		if ((res = plugcall(reiser4_psobj(object), 
 				    add_entry, object, &entry)))
 		{
 			return res;
@@ -354,7 +346,7 @@ errno_t dir40_check_attach(reiser4_object_t *object,
 	if (mode != RM_BUILD)
 		return 0;
 	
-	return plugcall(reiser4_oplug(parent), link, parent);
+	return plugcall(reiser4_psobj(parent), link, parent);
 }
 
 

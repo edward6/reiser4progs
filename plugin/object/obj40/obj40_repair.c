@@ -31,7 +31,7 @@ static errno_t obj40_exts_check(reiser4_object_t *obj) {
 	
 	extmask = obj40_extmask(&obj->info.start);
 	
-	ops = reiser4_oplug(obj);
+	ops = reiser4_psobj(obj);
 	
 	/* Check that there is no one unknown extension. */
 	if (extmask & ops->sdext_unknown)
@@ -107,14 +107,14 @@ errno_t obj40_recognize(reiser4_object_t *obj) {
 	if ((res = obj40_objkey_check(obj)))
 		return res;
 
-	ops = reiser4_oplug(obj);
+	ops = reiser4_psobj(obj);
 	
 	if ((res = obj40_check_stat(obj)))
 		return res;
 	
 	/* Positioning to the first directory unit */
-	if (reiser4_oplug(obj)->reset)
-		reiser4_oplug(obj)->reset(obj);
+	if (reiser4_psobj(obj)->reset)
+		reiser4_psobj(obj)->reset(obj);
 	
 	return 0;
 }
@@ -166,7 +166,7 @@ static inline errno_t obj40_stat_unix_check(reiser4_object_t *obj,
 		stat_hint_t stat;
 		
 		/* If the LW extention is not mandatory, skip checking. */
-		if (!(reiser4_oplug(obj)->sdext_mandatory & 
+		if (!(reiser4_psobj(obj)->sdext_mandatory & 
 		      (1 << SDEXT_UNIX_ID)))
 		{
 			return 0;
@@ -176,7 +176,7 @@ static inline errno_t obj40_stat_unix_check(reiser4_object_t *obj,
 			  "unix extention.%s Plugin (%s).", place_blknr(start),
 			  start->pos.item, print_inode(obj40_core, &start->key),
 			  start->plug->p.label, mode != RM_CHECK ? 
-			  " Added." : "", reiser4_oplug(obj)->p.label);
+			  " Added." : "", reiser4_psobj(obj)->p.label);
 
 		if (mode == RM_CHECK)
 			return RE_FIXABLE;
@@ -256,7 +256,7 @@ static inline errno_t obj40_stat_lw_check(reiser4_object_t *obj,
 		stat_hint_t stat;
 		
 		/* If the LW extention is not mandatory, skip checking. */
-		if (!(reiser4_oplug(obj)->sdext_mandatory &
+		if (!(reiser4_psobj(obj)->sdext_mandatory &
 		      (1 << SDEXT_LW_ID)))
 		{
 			return 0;
@@ -267,7 +267,7 @@ static inline errno_t obj40_stat_lw_check(reiser4_object_t *obj,
 			  place_blknr(start), start->pos.item, 
 			  print_inode(obj40_core, &start->key),
 			  start->plug->p.label, mode != RM_CHECK ? 
-			  "Added." : "", reiser4_oplug(obj)->p.label);
+			  "Added." : "", reiser4_psobj(obj)->p.label);
 
 		if (mode == RM_CHECK)
 			return RE_FIXABLE;
@@ -466,14 +466,14 @@ errno_t obj40_update_stat(reiser4_object_t *obj, obj40_stat_ops_t *ops,
 	}
 
 	/* Remove unknown SD extentions. */
-	if (extmask & reiser4_oplug(obj)->sdext_unknown) {
+	if (extmask & reiser4_psobj(obj)->sdext_unknown) {
 		trans_hint_t trans;
 		stat_hint_t stat;
 		
 		aal_memset(&trans, 0, sizeof(trans));
 		aal_memset(&stat, 0, sizeof(stat));
 		
-		stat.extmask = extmask & reiser4_oplug(obj)->sdext_unknown;
+		stat.extmask = extmask & reiser4_psobj(obj)->sdext_unknown;
 		
 		fsck_mess("Node (%llu), item (%u), [%s]: StatData has some "
 			  "unknown extentions (mask=%llu).%s Plugin (%s).",
@@ -544,7 +544,7 @@ errno_t obj40_fix_key(reiser4_object_t *obj, reiser4_place_t *place,
 		  place->pos.unit, place->plug->p.label, 
 		  print_key(obj40_core, &place->key), mode == RM_CHECK ? 
 		  "should be" : "fixed to", print_key(obj40_core, key), 
-		  reiser4_oplug(obj)->p.label);
+		  reiser4_psobj(obj)->p.label);
 	
 	if (mode == RM_CHECK)
 		return RE_FIXABLE;
@@ -610,7 +610,7 @@ errno_t obj40_prepare_stat(reiser4_object_t *obj, uint16_t objmode, uint8_t mode
 	
 	fsck_mess("The file [%s] does not have a StatData item.%s Plugin %s.",
 		  print_inode(obj40_core, key), mode == RM_BUILD ? " Creating "
-		  "a new one." : "",  reiser4_oplug(obj)->p.label);
+		  "a new one." : "",  reiser4_psobj(obj)->p.label);
 
 	if (mode != RM_BUILD)
 		return RE_FATAL;
@@ -620,7 +620,7 @@ errno_t obj40_prepare_stat(reiser4_object_t *obj, uint16_t objmode, uint8_t mode
 	{
 		aal_error("The file [%s] failed to create a StatData item. "
 			  "Plugin %s.", print_inode(obj40_core, key),
-			  reiser4_oplug(obj)->p.label);
+			  reiser4_psobj(obj)->p.label);
 	}
 
 	return res;

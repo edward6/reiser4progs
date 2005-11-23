@@ -41,9 +41,8 @@ typedef struct ccreg40_hint {
 
 static errno_t ccreg40_check_item(reiser4_object_t *cc, void *data) {
 	ccreg40_hint_t *hint = (ccreg40_hint_t *)data;
-	object_info_t *info;
 	uint32_t clsize;
-	errno_t res;
+	errno_t res = 0;
 		
 	hint->found = objcall(&cc->body.key, get_offset);
 	hint->maxreal = obj40_place_maxreal(&cc->body);
@@ -51,18 +50,13 @@ static errno_t ccreg40_check_item(reiser4_object_t *cc, void *data) {
 	aal_assert("vpf-1871", hint->maxreal >= hint->found);
 	aal_assert("vpf-1872", hint->seek <= hint->found);
 	
-	info = &cc->info;
-	res = 0;
-	
 	/* Check the item plugin. */
-	if ((reiser4_plug_t *)cc->body.plug != 
-	    info->opset.plug[OPSET_CTAIL]) 
-	{
+	if (cc->body.plug != reiser4_psctail(cc)) {
 		fsck_mess("The file [%s] (%s), node [%llu], item "
 			  "[%u]: item of the illegal plugin (%s) "
 			  "with the key of this object found.%s",
-			  print_inode(obj40_core, &info->object),
-			  reiser4_oplug(cc)->p.label, place_blknr(&cc->body),
+			  print_inode(obj40_core, &cc->info.object),
+			  reiser4_psobj(cc)->p.label, place_blknr(&cc->body),
 			  cc->body.pos.item, cc->body.plug->p.label, 
 			  hint->mode == RM_BUILD ? " Removed." : "");
 		
@@ -75,8 +69,8 @@ static errno_t ccreg40_check_item(reiser4_object_t *cc, void *data) {
 	if (hint->clsize != clsize) {
 		fsck_mess("The file [%s] (%s), node [%llu], item [%u]: item "
 			  "of the wrong cluster size (%d) found, Should be "
-			  "(%d).%s", print_inode(obj40_core, &info->object),
-			  reiser4_oplug(cc)->p.label, place_blknr(&cc->body),
+			  "(%d).%s", print_inode(obj40_core, &cc->info.object),
+			  reiser4_psobj(cc)->p.label, place_blknr(&cc->body),
 			  cc->body.pos.item, clsize, hint->clsize, 
 			  hint->mode != RM_CHECK ? " Fixed." : "");
 
@@ -93,8 +87,8 @@ static errno_t ccreg40_check_item(reiser4_object_t *cc, void *data) {
 		fsck_mess("The file [%s] (%s), node [%llu], item [%u]: "
 			  "item of the lenght (%llu) found, it cannot "
 			  "contain data of 2 clusters.%s", 
-			  print_inode(obj40_core, &info->object),
-			  reiser4_oplug(cc)->p.label, 
+			  print_inode(obj40_core, &cc->info.object),
+			  reiser4_psobj(cc)->p.label, 
 			  place_blknr(&cc->body), cc->body.pos.item,
 			  hint->maxreal - hint->found + 1, 
 			  hint->mode == RM_BUILD ? " Removed." : "");
@@ -177,17 +171,15 @@ static errno_t ccreg40_check_cluster(reiser4_object_t *cc,
 					  "cluster at [%llu] offset has some items "
 					  "missed.%s", 
 					  print_inode(obj40_core, &cc->info.object),
-					  reiser4_oplug(cc)->p.label, hint->clstart,
+					  reiser4_psobj(cc)->p.label, hint->clstart,
 					  hint->mode != RM_CHECK ? " Filled with "
 					  "zeroes." : "");
 			
 				if (hint->mode == RM_BUILD) {
-					reiser4_item_plug_t *plug;
-					plug = (reiser4_item_plug_t *)
-						cc->info.opset.plug[OPSET_CTAIL];
-					
-					res = obj40_write(cc, &trans, hint->data,
-							  clstart, clsize, plug, 
+					res = obj40_write(cc, &trans, 
+							  hint->data,
+							  clstart, clsize, 
+							  reiser4_psctail(cc), 
 							  cc_write_item, 
 							  &hint->clsize);
 					if (res < 0) return res;
@@ -215,7 +207,7 @@ static errno_t ccreg40_check_cluster(reiser4_object_t *cc,
 			fsck_mess("The file [%s] (%s): the cluster at [%llu] "
 				  "offset %u bytes long is corrupted.%s",
 				  print_inode(obj40_core, &cc->info.object),
-				  reiser4_oplug(cc)->p.label, hint->clstart,
+				  reiser4_psobj(cc)->p.label, hint->clstart,
 				  hint->clsize, hint->mode != RM_CHECK ? 
 				  " Removed." : "");
 		}
@@ -272,8 +264,7 @@ errno_t ccreg40_check_struct(reiser4_object_t *cc,
 	
 	res = 0;
 	hint.mode = mode;
-	hint.clsize = ((reiser4_cluster_plug_t *)
-		       cc->info.opset.plug[OPSET_CLUSTER])->clsize;
+	hint.clsize = reiser4_pscluster(cc)->clsize;
 	hint.sdsize = obj40_get_size(cc);
 
 	while(1) {

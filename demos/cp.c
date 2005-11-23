@@ -68,12 +68,12 @@ errno_t cp_cmd(busy_ctx_t *ctx) {
 		dst_obj = NULL;
 	}
 
-	if (src_obj && reiser4_oplug(src_obj)->p.id.group != REG_OBJECT) {
+	if (src_obj && reiser4_psobj(src_obj)->p.id.group != REG_OBJECT) {
 		aal_error("File %s is not a regular file.", ctx->in.path);
 		goto error_dst_close;
 	}
 
-	if (dst_obj && reiser4_oplug(dst_obj)->p.id.group != REG_OBJECT) {
+	if (dst_obj && reiser4_psobj(dst_obj)->p.id.group != REG_OBJECT) {
 		aal_error("File %s is not a regular file.", ctx->out.path);
 		goto error_dst_close;
 	}

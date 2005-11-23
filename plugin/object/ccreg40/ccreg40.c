@@ -47,7 +47,7 @@ static int64_t ccreg40_decc_cluster(reiser4_object_t *cc,
 				    void *clust, void *disk, 
 				    int64_t count, uint32_t compressed)
 {
-	if (cc->info.opset.plug[OPSET_CRYPTO] != CRYPTO_NONE_ID) {
+	if (reiser4_pscrypto(cc) != CRYPTO_NONE_ID) {
 		aal_error("Object [%s]: Can't extract encrypted "
 			  "data. Not supported yet.",
 			  print_inode(obj40_core, &cc->info.object));
@@ -73,14 +73,14 @@ static int64_t ccreg40_cc_cluster(reiser4_object_t *cc,
 				  void *disk, void *clust, 
 				  uint64_t count)
 {
-	if (cc->info.opset.plug[OPSET_CRYPTO] != CRYPTO_NONE_ID) {
+	if (reiser4_pscrypto(cc) != CRYPTO_NONE_ID) {
 		aal_error("Object [%s]: Can't encrypt data. Not supported "
 			  "yet.", print_inode(obj40_core, &cc->info.object));
 		return -EINVAL;
 	}
 
-	if (cc->info.opset.plug[OPSET_CMODE]->id.id != CMODE_NONE_ID ||
-	    reiser4_compressed(cc->info.opset.plug[OPSET_COMPRESS]->id.id))
+	if (reiser4_pscmode(cc)->id.id != CMODE_NONE_ID ||
+	    reiser4_compressed(reiser4_pscompress(cc)->id.id))
 	{
 		aal_error("Object [%s]: Can't compress data. Not supported "
 			  "yet.", print_inode(obj40_core, &cc->info.object));
@@ -107,8 +107,7 @@ static int64_t ccreg40_read_clust(reiser4_object_t *cc, trans_hint_t *hint,
 	if (off > fsize)
 		return 0;
 	
-	clsize = ((reiser4_cluster_plug_t *)
-		  cc->info.opset.plug[OPSET_CLUSTER])->clsize;
+	clsize = reiser4_pscluster(cc)->clsize;
 	clstart = ccreg40_clstart(off, clsize);
 	if (clsize > fsize - clstart)
 		clsize = fsize - clstart;
@@ -158,7 +157,6 @@ static int64_t ccreg40_write_clust(reiser4_object_t *cc, trans_hint_t *hint,
 				   void *buff, uint64_t off, uint64_t count,
 				   uint64_t fsize)
 {
-	reiser4_item_plug_t *iplug;
 	uint8_t clust[64 *1024];
 	uint8_t disk[64 * 1024];
 	uint64_t clstart;
@@ -168,8 +166,7 @@ static int64_t ccreg40_write_clust(reiser4_object_t *cc, trans_hint_t *hint,
 	int64_t done;
 	
 	done = 0;
-	clsize = ((reiser4_cluster_plug_t *)
-		  cc->info.opset.plug[OPSET_CLUSTER])->clsize;
+	clsize = reiser4_pscluster(cc)->clsize;
 	clstart = ccreg40_clstart(off, clsize);
 	
 	/* Set @end to the cluster end offset. */
@@ -208,9 +205,9 @@ static int64_t ccreg40_write_clust(reiser4_object_t *cc, trans_hint_t *hint,
 	if ((done = ccreg40_cc_cluster(cc, disk, clust, end - clstart)) < 0)
 		return done;
 	
-	iplug = (reiser4_item_plug_t *)cc->info.opset.plug[OPSET_CTAIL];
 	if ((written = obj40_write(cc, hint, clust, clstart, done,
-				   iplug, cc_write_item, &clsize)) < 0)
+				   reiser4_psctail(cc), cc_write_item, 
+				   &clsize)) < 0)
 	{
 		return written;
 	}
@@ -322,8 +319,7 @@ static int64_t ccreg40_write(reiser4_object_t *cc,
 }
 
 static errno_t ccreg40_truncate(reiser4_object_t *cc, uint64_t n) {
-	return obj40_truncate(cc, n, 
-		(reiser4_item_plug_t *)cc->info.opset.plug[OPSET_CTAIL]);
+	return obj40_truncate(cc, n, reiser4_psctail(cc));
 }
 
 static errno_t ccreg40_clobber(reiser4_object_t *cc) {

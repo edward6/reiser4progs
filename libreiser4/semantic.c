@@ -34,7 +34,7 @@ static errno_t cb_find_statdata(char *path, char *entry, void *data) {
 	}
 	
 #ifdef ENABLE_SYMLINKS
-	plug = reiser4_oplug(resol->object);
+	plug = reiser4_psobj(resol->object);
 	
 	/* Symlinks handling. Method follow() should be implemented if object
 	   wants to be resolved (symlink). */
@@ -85,7 +85,7 @@ static errno_t cb_find_entry(char *path, char *name, void *data) {
 	}
 	
 	/* Looking up for @entry in current directory */
-	if ((res = plugcall(reiser4_oplug(resol->object), lookup, 
+	if ((res = plugcall(reiser4_psobj(resol->object), lookup, 
 			     resol->object, name, &entry)) < 0)
 	{
 		return res;

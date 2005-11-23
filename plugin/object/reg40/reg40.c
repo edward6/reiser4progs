@@ -58,23 +58,19 @@ static int64_t reg40_read(reiser4_object_t *reg,
 static reiser4_item_plug_t *reg40_policy_plug(reiser4_object_t *reg, 
 					      uint64_t new_size)
 {
-	reiser4_policy_plug_t *policy;
-	
 	aal_assert("umka-2394", reg != NULL);
 
-	policy = (reiser4_policy_plug_t *)reg->info.opset.plug[OPSET_POLICY];
-	
-	aal_assert("umka-2393", policy != NULL);
+	aal_assert("umka-2393", reiser4_pspolicy(reg) != NULL);
 
 	/* Calling formatting policy plugin to detect body plugin. */
-	if (plugcall(policy, tails, new_size)) {
+	if (plugcall(reiser4_pspolicy(reg), tails, new_size)) {
 		/* Trying to get non-standard tail plugin from stat data. And if
 		   it is not found, default one from params will be taken. */
-		return (reiser4_item_plug_t *)reg->info.opset.plug[OPSET_TAIL];
+		return reiser4_pstail(reg);
 	}
 	
 	/* The same for extent plugin */
-	return (reiser4_item_plug_t *)reg->info.opset.plug[OPSET_EXTENT];
+	return reiser4_psextent(reg);
 }
 #endif
 

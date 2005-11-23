@@ -44,7 +44,7 @@ errno_t ln_cmd(busy_ctx_t *ctx) {
 		goto error_object_close;
 	
 	/* Looking up for @entry in current directory */
-	plug = reiser4_oplug(parent);
+	plug = reiser4_psobj(parent);
 	if ((res = plugcall(plug, lookup, parent, name, &entry)) < 0)
 		goto error_close_parent;
 	
