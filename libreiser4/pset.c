@@ -261,7 +261,7 @@ errno_t reiser4_opset_tree(reiser4_tree_t *tree) {
 
 #ifndef ENABLE_MINIMAL
 	/* Check that all 'on-disk' plugins are obtained. */
-	for (i = 0; i < OPSET_STORE_LAST; i++) {
+	for (i = OPSET_DIR + 1; i < OPSET_STORE_LAST; i++) {
 		/* If root should not be checked (debugfs), skip the loop. */
 		if (!check)
 			continue;
