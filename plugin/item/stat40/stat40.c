@@ -149,11 +149,6 @@ static void stat40_decode_opset(tree_entity_t *tree,
 		plugh->plug[OPSET_OBJ] = stat40_file_mode(tree, lwh->mode);
 		plugh->plug_mask |= (1 << OPSET_OBJ);
 	}
-	
-	if (!plugh->plug[OPSET_DIR] && S_ISDIR(lwh->mode)) {
-		plugh->plug[OPSET_DIR] = stat40_dir_mode(tree, lwh->mode);
-		plugh->plug_mask |= (1 << OPSET_DIR);
-	}
 }
 
 /* Fetches whole statdata item with extensions into passed @buff */
@@ -217,7 +212,7 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 	sd_hint = (stat_hint_t *)hint->specific;
 	plugh = ((sdhint_plug_t *)sd_hint->ext[SDEXT_PLUG_ID]);
 	
-	if (!plugh || !(plugh->plug_mask & (1 << OPSET_OBJ | 1 << OPSET_DIR)))
+	if (!plugh || !(plugh->plug_mask & (1 << OPSET_OBJ)))
 		return 0;
 	
 	/* If LW hint is not present, fetch it from disk. */
@@ -250,8 +245,7 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 	if (plugh->plug[OPSET_OBJ] == stat40_file_mode(tree, mode))
 		plugh->plug_mask &= ~(1 << OPSET_OBJ);
 	
-	if (plugh->plug[OPSET_DIR] == stat40_dir_mode(tree, mode))
-		plugh->plug_mask &= ~(1 << OPSET_DIR);
+	plugh->plug_mask &= ~(1 << OPSET_DIR);
 	
 	/* Throw away the SD_PLUG if mask is empty. */
 	if (!plugh->plug_mask)

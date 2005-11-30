@@ -160,6 +160,7 @@ uint64_t reiser4_opset_build_mask(reiser4_tree_t *tree,
 		   The special case for the root directory. All opset 
 		   members must be stored. */
 		mask = (1 << OPSET_STORE_LAST) - 1;
+		mask &= ~(1 << OPSET_DIR);
 		return mask;
 	}
 	
@@ -249,6 +250,9 @@ errno_t reiser4_opset_tree(reiser4_tree_t *tree) {
 	aal_memcpy(tree->ent.opset, object->info.opset.plug, 
 		   sizeof(reiser4_plug_t *) * OPSET_LAST);
 
+	tree->ent.opset[OPSET_OBJ] = NULL;
+	tree->ent.opset[OPSET_DIR] = NULL;
+	
 #ifndef ENABLE_MINIMAL
 	mask = object->info.opset.plug_mask;
 #endif
