@@ -7,7 +7,8 @@
 #ifndef ENABLE_MINIMAL
 
 #include <aux/aux.h>
-#include "ccreg40_repair.h"
+#include "ccreg40.h"
+#include "plugin/object/obj40/obj40_repair.h"
 
 static int ccreg40_check_size(reiser4_object_t *cc, 
 			      uint64_t *sdsize, 

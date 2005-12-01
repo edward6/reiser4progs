@@ -6,7 +6,7 @@
 #ifndef ENABLE_MINIMAL
 
 #include "ccreg40.h"
-#include "ccreg40_repair.h"
+#include "plugin/object/obj40/obj40_repair.h"
 
 uint32_t ccreg40_get_cluster_size(reiser4_place_t *place) {
 	trans_hint_t hint;
