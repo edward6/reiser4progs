@@ -644,6 +644,8 @@ void node40_print(reiser4_node_t *entity, aal_stream_t *stream,
 		    entity->block->size) 
 		{
 			objcall(&place, debug->print, stream, options);
+		} else {
+			aal_stream_format(stream, "\n");
 		}
 	}
 	
