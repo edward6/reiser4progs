@@ -364,7 +364,6 @@ reiser4_object_plug_t ccreg40_plug = {
 	.layout         = ccreg40_layout,
 	.metadata       = ccreg40_metadata,
 	.convert        = NULL,
-	.update         = obj40_save_stat,
 	.link           = obj40_link,
 	.unlink         = obj40_unlink,
 	.linked         = obj40_linked,

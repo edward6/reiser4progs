@@ -26,7 +26,6 @@ reiser4_object_plug_t spl40_plug = {
 	.unlink         = obj40_unlink,
 	.linked         = obj40_linked,
 	.clobber        = obj40_clobber,
-	.update         = obj40_save_stat,
 	.check_struct	= spl40_check_struct,
 	.recognize	= obj40_recognize,
 

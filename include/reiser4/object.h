@@ -41,9 +41,6 @@ extern int64_t reiser4_object_write(reiser4_object_t *object,
 
 extern errno_t reiser4_object_refresh(reiser4_object_t *object);
 
-extern errno_t reiser4_object_update(reiser4_object_t *object,
-				     stat_hint_t *hint);
-
 extern reiser4_object_t *reiser4_object_create(entry_hint_t *entry,
 					       object_info_t *info,
 					       object_hint_t *hint);

@@ -1064,9 +1064,6 @@ typedef struct reiser4_object_plug {
 	errno_t (*attach) (reiser4_object_t *, reiser4_object_t *);
 	errno_t (*detach) (reiser4_object_t *, reiser4_object_t *);
 
-	/* Updates object stat data from passed hint. */
-	errno_t (*update) (reiser4_object_t *, stat_hint_t *);
-
 	/* Inherits from the parent object. */
 	errno_t (*inherit) (object_info_t *, object_info_t *);
 	

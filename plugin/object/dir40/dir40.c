@@ -616,7 +616,6 @@ reiser4_object_plug_t dir40_plug = {
 	.link		= obj40_link,
 	.unlink		= obj40_unlink,
 	.linked		= dir40_linked,
-	.update         = obj40_save_stat,
 	.truncate	= NULL,
 	.add_entry	= dir40_add_entry,
 	.rem_entry	= dir40_rem_entry,

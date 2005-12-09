@@ -104,7 +104,6 @@ reiser4_object_plug_t sym40_plug = {
 	.link           = obj40_link,
 	.unlink         = obj40_unlink,
 	.linked         = obj40_linked,
-	.update         = obj40_save_stat,
 	.clobber        = sym40_clobber,
 	.recognize	= obj40_recognize,
 	.check_struct   = sym40_check_struct,

@@ -343,7 +343,6 @@ reiser4_object_plug_t reg40_plug = {
 	.layout         = reg40_layout,
 	.metadata       = reg40_metadata,
 	.convert        = reg40_convert,
-	.update         = obj40_save_stat,
 	.link           = obj40_link,
 	.unlink         = obj40_unlink,
 	.linked         = obj40_linked,

@@ -261,13 +261,6 @@ errno_t reiser4_object_refresh(reiser4_object_t *object) {
 	}
 }
 
-/* Saves stat data described by @hint to @object stat data item in tree. */
-errno_t reiser4_object_update(reiser4_object_t *object, stat_hint_t *hint) {
-	aal_assert("umka-2572", object != NULL);
-
-	return plugcall(reiser4_psobj(object), update, object, hint);
-}
-
 errno_t reiser4_object_entry_prep(reiser4_tree_t *tree,
 				  reiser4_object_t *parent,
 				  entry_hint_t *entry,
