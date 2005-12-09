@@ -21,7 +21,7 @@ typedef struct sdext_plug {
         sdext_plug_slot_t slot[0];
 }  __attribute__((packed)) sdext_plug_t;
 
-extern reiser4_core_t *sdext_plug_core;
+extern reiser4_core_t *sdext_pset_core;
 
 #define sdext_plug_get_count(ext)		aal_get_le16(ext, count)
 #define sdext_plug_set_count(ext, val)		aal_set_le16(ext, count, (val))

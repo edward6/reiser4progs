@@ -91,8 +91,8 @@ static errno_t tree_mpressure(tree_entity_t *tree) {
 	return reiser4_tree_mpressure((reiser4_tree_t *)tree);
 }
 
-static reiser4_plug_t *pset_find(rid_t member, rid_t id) {
-	return reiser4_opset_plug(member, id);
+static reiser4_plug_t *pset_find(rid_t member, rid_t id, int is_pset) {
+	return reiser4_pset_find(member, id, is_pset);
 }
 
 #ifndef ENABLE_MINIMAL
@@ -116,8 +116,8 @@ static errno_t tree_convert(tree_entity_t *tree, conv_hint_t *hint) {
 	return reiser4_flow_convert((reiser4_tree_t *)tree, hint);
 }
 
-static uint64_t pset_build_mask(tree_entity_t *tree, reiser4_opset_t *opset) {
-	return reiser4_opset_build_mask((reiser4_tree_t *)tree, opset);
+static uint64_t pset_build_mask(tree_entity_t *tree, reiser4_pset_t *pset) {
+	return reiser4_pset_build_mask((reiser4_tree_t *)tree, pset);
 }
 
 static int item_mergeable(reiser4_place_t *place1,

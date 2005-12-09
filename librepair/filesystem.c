@@ -481,7 +481,7 @@ errno_t repair_fs_lost_key(reiser4_fs_t *fs, reiser4_key_t *key) {
 	aal_assert("vpf-1553", fs != NULL);
 	aal_assert("vpf-1554", key != NULL);
 
-	key->plug = (reiser4_key_plug_t *)fs->tree->ent.tpset[TPSET_KEY];
+	key->plug = (reiser4_key_plug_t *)fs->tree->ent.tset[TSET_KEY];
 	locality = reiser4_oid_root_objectid(fs->oid);
 	objectid = repair_oid_lost_objectid(fs->oid);
 	

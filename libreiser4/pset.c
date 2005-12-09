@@ -7,7 +7,7 @@
 
 extern reiser4_profile_t defprof;
 
-typedef struct opset_member {
+typedef struct pset_member {
 	/* The corresponding slot in the profile. */
 	rid_t prof;
 	
@@ -18,76 +18,81 @@ typedef struct opset_member {
 	   settings changed at the root pset change. */
 	bool_t ess;
 #endif
-} opset_member_t;
+} pset_member_t;
 
 #ifndef ENABLE_MINIMAL
-opset_member_t opset_prof[OPSET_LAST] = {
-	[OPSET_OBJ]	= {PROF_OBJ,		1},
-	[OPSET_DIR]	= {PROF_DIR,		1},
-	[OPSET_PERM]	= {PROF_PERM,		1},
-	[OPSET_POLICY]	= {PROF_POLICY,		0},
-	[OPSET_HASH]	= {PROF_HASH,		1},
-	[OPSET_FIBRE]	= {PROF_FIBRE,		1},
-	[OPSET_STAT]	= {PROF_STAT,		0},
-	[OPSET_DIRITEM] = {PROF_DIRITEM,	1},
+pset_member_t pset_prof[PSET_LAST] = {
+	[PSET_OBJ]	= {PROF_OBJ,		1},
+	[PSET_DIR]	= {PROF_DIR,		1},
+	[PSET_PERM]	= {PROF_PERM,		1},
+	[PSET_POLICY]	= {PROF_POLICY,		0},
+	[PSET_HASH]	= {PROF_HASH,		1},
+	[PSET_FIBRE]	= {PROF_FIBRE,		1},
+	[PSET_STAT]	= {PROF_STAT,		0},
+	[PSET_DIRITEM]	= {PROF_DIRITEM,	1},
 
 	/* Hmm, actually next 5 are essential for files, i.e. cannot be changed 
 	   w/out convertion. However this flag indicates if a slot can present 
 	   while differs from the root one. And these fields must always present 
 	   in crc files. */
-	[OPSET_CRYPTO]	= {PROF_CRYPTO,		0},
-	[OPSET_DIGEST]	= {PROF_DIGEST,		0},
-	[OPSET_COMPRESS]= {PROF_COMPRESS,	0},
-	[OPSET_CMODE]	= {PROF_CMODE,		0},
-	[OPSET_CLUSTER] = {PROF_CLUSTER,	0},
+	[PSET_CRYPTO]	= {PROF_CRYPTO,		0},
+	[PSET_DIGEST]	= {PROF_DIGEST,		0},
+	[PSET_COMPRESS]	= {PROF_COMPRESS,	0},
+	[PSET_CMODE]	= {PROF_CMODE,		0},
+	[PSET_CLUSTER]	= {PROF_CLUSTER,	0},
 	
+	[PSET_TAIL]	= {PROF_TAIL,		1},
+	[PSET_EXTENT]	= {PROF_EXTENT,		1},
+	[PSET_CTAIL]	= {PROF_CTAIL,		1},
+};
+
+rid_t hset_prof[HSET_LAST] = {
 	/* The plugin to create children. */
-	[OPSET_CREATE]	= {PROF_CREATE,		0},
-	
-	[OPSET_TAIL]	= {PROF_TAIL,		1},
-	[OPSET_EXTENT]	= {PROF_EXTENT,		1},
-	[OPSET_CTAIL]	= {PROF_CTAIL,		1},
+	[HSET_CREATE]	= PROF_HEIR_CREATE,
+	[HSET_HASH]	= PROF_HEIR_HASH,
+	[HSET_FIBRE]	= PROF_HEIR_FIBRE,
+	[HSET_DIR_ITEM] = PROF_HEIR_DIRITEM,
 };
 #else
-opset_member_t opset_prof[OPSET_LAST] = {
-	[OPSET_OBJ]	= {PROF_OBJ},
-	[OPSET_DIR]	= {PROF_DIR},
-	[OPSET_PERM]	= {PROF_PERM},
-	[OPSET_POLICY]	= {PROF_POLICY},
-	[OPSET_HASH]	= {PROF_HASH},
-	[OPSET_FIBRE]	= {PROF_FIBRE},
-	[OPSET_STAT]	= {PROF_STAT},
-	[OPSET_DIRITEM] = {PROF_DIRITEM},
-	[OPSET_CRYPTO]	= {PROF_CRYPTO},
-	[OPSET_DIGEST]	= {PROF_DIGEST},
-	[OPSET_COMPRESS]= {PROF_COMPRESS},
-	[OPSET_CMODE]	= {PROF_CMODE},
-	[OPSET_CLUSTER] = {PROF_CLUSTER},
-	[OPSET_CREATE]	= {PROF_CREATE},
+pset_member_t pset_prof[PSET_LAST] = {
+	[PSET_OBJ]	= {PROF_OBJ},
+	[PSET_DIR]	= {PROF_DIR},
+	[PSET_PERM]	= {PROF_PERM},
+	[PSET_POLICY]	= {PROF_POLICY},
+	[PSET_HASH]	= {PROF_HASH},
+	[PSET_FIBRE]	= {PROF_FIBRE},
+	[PSET_STAT]	= {PROF_STAT},
+	[PSET_DIRITEM]	= {PROF_DIRITEM},
+	[PSET_CRYPTO]	= {PROF_CRYPTO},
+	[PSET_DIGEST]	= {PROF_DIGEST},
+	[PSET_COMPRESS]	= {PROF_COMPRESS},
+	[PSET_CMODE]	= {PROF_CMODE},
+	[PSET_CLUSTER]	= {PROF_CLUSTER},
 };
 #endif
 
 #ifndef ENABLE_MINIMAL
 static int pset_tree_isready(reiser4_tree_t *tree) {
-	return tree->ent.opset[OPSET_HASH] != NULL;
+	return tree->ent.pset[PSET_HASH] != NULL;
 }
 #endif
 
-void reiser4_opset_complete(reiser4_tree_t *tree, reiser4_opset_t *opset) {
+void reiser4_pset_complete(reiser4_tree_t *tree, object_info_t *info) {
 	int i;
 
 #ifndef ENABLE_MINIMAL
 	/* This is needed for root recovery. Tree is not initialized by 
 	   that time yet. */
 	if (!pset_tree_isready(tree))
-		return reiser4_opset_root(opset);
+		return reiser4_pset_root(info);
 #endif
 	
-	for (i = 0; i < OPSET_LAST; i++) {
-		if (opset->plug_mask & (1 << i))
+	/* Only pset needs to be completed. */
+	for (i = 0; i < PSET_LAST; i++) {
+		if (info->pset.plug_mask & (1 << i))
 			continue;
 
-		opset->plug[i] = tree->ent.opset[i];
+		info->pset.plug[i] = tree->ent.pset[i];
 	}
 }
 
@@ -95,13 +100,13 @@ void reiser4_opset_complete(reiser4_tree_t *tree, reiser4_opset_t *opset) {
    library for it yet (only @id == 0 are allowed). INVAL_PTR if plugin @id 
    should present for @member in the library but nothing is found. Otherwise,
    returns the plugin pointer. */
-reiser4_plug_t *reiser4_opset_plug(rid_t member, rid_t id) {
+static reiser4_plug_t *reiser4_pset_plug(rid_t member, rid_t id) {
 	reiser4_plug_t *plug;
-	aal_assert("vpf-1613", member < OPSET_STORE_LAST);
+	aal_assert("vpf-1613", member < PSET_STORE_LAST);
 	
-	if (defprof.pid[opset_prof[member].prof].id.type == PARAM_PLUG_TYPE) {
+	if (defprof.pid[pset_prof[member].prof].id.type == PARAM_PLUG_TYPE) {
 #ifndef ENABLE_MINIMAL
-		return id < defprof.pid[opset_prof[member].prof].max ? 
+		return id < defprof.pid[pset_prof[member].prof].max ? 
 			NULL : INVAL_PTR;
 #else
 		return NULL;
@@ -109,72 +114,96 @@ reiser4_plug_t *reiser4_opset_plug(rid_t member, rid_t id) {
 	}
 	
 	plug = reiser4_factory_ifind(
-		defprof.pid[opset_prof[member].prof].id.type, id);
+		defprof.pid[pset_prof[member].prof].id.type, id);
 	
 	return plug ? plug : INVAL_PTR;
 }
 
 #ifndef ENABLE_MINIMAL
-/* Fill up missed opset slots in the root object. */
-void reiser4_opset_root(reiser4_opset_t *opset) {
+static reiser4_plug_t *reiser4_hset_plug(rid_t member, rid_t id) {
+	aal_assert("vpf-1613", member < HSET_LAST);
+	return reiser4_factory_ifind(
+		defprof.pid[hset_prof[member]].id.type, id) ? : INVAL_PTR;
+}
+#endif
+
+reiser4_plug_t *reiser4_pset_find(rid_t member, rid_t id, int is_pset) {
+	return is_pset ? 
+	       reiser4_pset_plug(member, id) :
+	       reiser4_hset_plug(member, id);
+}
+
+#ifndef ENABLE_MINIMAL
+/* Fill up missed pset slots in the root object. */
+void reiser4_pset_root(object_info_t *info) {
 	uint8_t i;
 	
-	aal_assert("vpf-1639", opset != NULL);
+	aal_assert("vpf-1639", info != NULL);
 
 	/* All plugins must present in the root. Get them from the profile. */
-	for (i = 0; i < OPSET_LAST; i++) {
-		if (opset->plug_mask & (1 << i))
+	for (i = 0; i < PSET_LAST; i++) {
+		if (info->pset.plug_mask & (1 << i))
 			continue;
 		
-		if (i == OPSET_OBJ) {
+		if (i == PSET_OBJ) {
 			/* Special case: root file plug. */
-			opset->plug[i] = reiser4_profile_plug(PROF_DIRFILE);
-		} else if (defprof.pid[opset_prof[i].prof].id.type == 
+			info->pset.plug[i] = reiser4_profile_plug(PROF_DIRFILE);
+		} else if (defprof.pid[pset_prof[i].prof].id.type == 
 			   PARAM_PLUG_TYPE) 
 		{
-			opset->plug[i] = 
-				(void *)defprof.pid[opset_prof[i].prof].id.id;
+			info->pset.plug[i] = 
+				(void *)defprof.pid[pset_prof[i].prof].id.id;
 			
 		} else {
-			opset->plug[i] = 
-				reiser4_profile_plug(opset_prof[i].prof);
+			info->pset.plug[i] = 
+				reiser4_profile_plug(pset_prof[i].prof);
 		}
+	}
+
+	for (i = 0; i < HSET_LAST; i++) {
+		/* Set a hset plugin only if the plugin was overwritten 
+		   in the profile. */
+		if (!aal_test_bit(&defprof.mask, hset_prof[i]))
+			continue;
+
+		info->hset.plug[i] = reiser4_profile_plug(hset_prof[i]);
+		info->hset.plug_mask |= (1 << i);
 	}
 }
 
-/* Builds & returns the difference between tree opset & the current @opset. */
-uint64_t reiser4_opset_build_mask(reiser4_tree_t *tree, 
-				  reiser4_opset_t *opset) 
+/* Builds & returns the difference between tree pset & the current @pset. */
+uint64_t reiser4_pset_build_mask(reiser4_tree_t *tree, 
+				  reiser4_pset_t *pset) 
 {
 
 	uint64_t mask;
 	uint8_t i;
 	
 	aal_assert("vpf-1644", tree != NULL);
-	aal_assert("vpf-1646", opset != NULL);
+	aal_assert("vpf-1646", pset != NULL);
 	
 	mask = 0;
 	
 	if (!pset_tree_isready(tree)) {
 		/* If HASH plugin is not initialized, no object exists.
-		   The special case for the root directory. All opset 
+		   The special case for the root directory. All pset 
 		   members must be stored. */
-		mask = (1 << OPSET_STORE_LAST) - 1;
-		mask &= ~(1 << OPSET_DIR);
+		mask = (1 << PSET_STORE_LAST) - 1;
+		mask &= ~(1 << PSET_DIR);
 		return mask;
 	}
 	
-	for (i = 0; i < OPSET_STORE_LAST; i++) {
+	for (i = 0; i < PSET_STORE_LAST; i++) {
 		/* Leave non-essential members as is. */
-                if (!opset_prof[i].ess)
+                if (!pset_prof[i].ess)
                         continue;
 		
 		/* Store if do not match for essential plugins. */
-		if (tree->ent.opset[i] != opset->plug[i])
+		if (tree->ent.pset[i] != pset->plug[i])
 			mask |= (1 << i);
 		
 		/* Do not store If match for essential plugins. */
-		if (tree->ent.opset[i] == opset->plug[i])
+		if (tree->ent.pset[i] == pset->plug[i])
 			mask &= ~(1 << i);
 
 		/* FIXME: What is a non-essential plugin is inherited from 
@@ -189,7 +218,7 @@ uint64_t reiser4_opset_build_mask(reiser4_tree_t *tree,
 }
 #endif
 
-errno_t reiser4_pset_tree(reiser4_tree_t *tree) {
+errno_t reiser4_tset_init(reiser4_tree_t *tree) {
 	reiser4_plug_t *plug;
 	rid_t pid;
 	int i;
@@ -206,24 +235,24 @@ errno_t reiser4_pset_tree(reiser4_tree_t *tree) {
 		return -EINVAL;
 	}
 
-	tree->ent.tpset[TPSET_KEY] = plug;
-	tree->ent.tpset[TPSET_REGFILE] = reiser4_profile_plug(PROF_REGFILE);
-	tree->ent.tpset[TPSET_DIRFILE] = reiser4_profile_plug(PROF_DIRFILE);
-	tree->ent.tpset[TPSET_SYMFILE] = reiser4_profile_plug(PROF_SYMFILE);
-	tree->ent.tpset[TPSET_SPLFILE] = reiser4_profile_plug(PROF_SPLFILE);
+	tree->ent.tset[TSET_KEY] = plug;
+	tree->ent.tset[TSET_REGFILE] = reiser4_profile_plug(PROF_REGFILE);
+	tree->ent.tset[TSET_DIRFILE] = reiser4_profile_plug(PROF_DIRFILE);
+	tree->ent.tset[TSET_SYMFILE] = reiser4_profile_plug(PROF_SYMFILE);
+	tree->ent.tset[TSET_SPLFILE] = reiser4_profile_plug(PROF_SPLFILE);
 
-	/* Init other tpset plugins. */
+	/* Init other tset plugins. */
 #ifndef ENABLE_MINIMAL
-	tree->ent.tpset[TPSET_NODE] = reiser4_profile_plug(PROF_NODE);
-	tree->ent.tpset[TPSET_NODEPTR] = reiser4_profile_plug(PROF_NODEPTR);
+	tree->ent.tset[TSET_NODE] = reiser4_profile_plug(PROF_NODE);
+	tree->ent.tset[TSET_NODEPTR] = reiser4_profile_plug(PROF_NODEPTR);
 #endif
 
 	/* These plugins should be initialized at the tree init. Later they can 
 	   be reinitialized with the root directory pset or anything else. */
 
 	/* Build the param pset mask, keep it in the tree instance. */
-	for (i = 0; i < OPSET_LAST; i++) {
-		if (defprof.pid[opset_prof[i].prof].id.type == PARAM_PLUG_TYPE)
+	for (i = 0; i < PSET_LAST; i++) {
+		if (defprof.pid[pset_prof[i].prof].id.type == PARAM_PLUG_TYPE)
 			tree->ent.param_mask |= (1 << i);
 	}
 	
@@ -231,11 +260,11 @@ errno_t reiser4_pset_tree(reiser4_tree_t *tree) {
 }
 
 #ifndef ENABLE_MINIMAL
-errno_t reiser4_opset_tree(reiser4_tree_t *tree, int check) {
+errno_t reiser4_pset_tree(reiser4_tree_t *tree, int check) {
 	uint64_t mask;
 	int i;
 #else
-errno_t reiser4_opset_tree(reiser4_tree_t *tree) {
+errno_t reiser4_pset_tree(reiser4_tree_t *tree) {
 #endif
 	reiser4_object_t *object;
 	
@@ -247,32 +276,32 @@ errno_t reiser4_opset_tree(reiser4_tree_t *tree) {
 		return -EINVAL;
 	}
 	
-	aal_memcpy(tree->ent.opset, object->info.opset.plug, 
-		   sizeof(reiser4_plug_t *) * OPSET_LAST);
+	aal_memcpy(tree->ent.pset, object->info.pset.plug, 
+		   sizeof(reiser4_plug_t *) * PSET_LAST);
 
-	tree->ent.opset[OPSET_OBJ] = NULL;
-	tree->ent.opset[OPSET_DIR] = NULL;
+	tree->ent.pset[PSET_OBJ] = NULL;
+	tree->ent.pset[PSET_DIR] = NULL;
 	
 #ifndef ENABLE_MINIMAL
-	mask = object->info.opset.plug_mask;
+	mask = object->info.pset.plug_mask;
 #endif
 
 	reiser4_object_close(object);
 
 #ifndef ENABLE_MINIMAL
 	/* Check that all 'on-disk' plugins are obtained. */
-	for (i = OPSET_DIR + 1; i < OPSET_STORE_LAST; i++) {
+	for (i = PSET_DIR + 1; i < PSET_STORE_LAST; i++) {
 		/* If root should not be checked (debugfs), skip the loop. */
 		if (!check)
 			continue;
 		
 		if (mask & (1 << i)) {
 			/* Set in mask & initialized. */
-			if (tree->ent.opset[i])
+			if (tree->ent.pset[i])
 				continue;
 			
 			/* Set in mask & PARAMETER. */
-			if (defprof.pid[opset_prof[i].prof].id.type == 
+			if (defprof.pid[pset_prof[i].prof].id.type == 
 			    PARAM_PLUG_TYPE)
 			{
 				continue;
@@ -286,11 +315,11 @@ errno_t reiser4_opset_tree(reiser4_tree_t *tree) {
 	}
 
 	/* Set others from the profile. */
-	for (; i < OPSET_LAST; i++) {
-		if (tree->ent.opset[i])
+	for (; i < PSET_LAST; i++) {
+		if (tree->ent.pset[i])
 			continue;
 
-		tree->ent.opset[i] = reiser4_profile_plug(opset_prof[i].prof);
+		tree->ent.pset[i] = reiser4_profile_plug(pset_prof[i].prof);
 	}
 #endif
 

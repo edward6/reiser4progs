@@ -52,8 +52,8 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 	aal_memcpy(&object->info.object, key, sizeof(*key));
 	
 	object->info.tree = (tree_entity_t *)tree;
-	object->info.opset.plug[OPSET_OBJ] = plug;
-	object->info.opset.plug_mask |= (1 << OPSET_OBJ);
+	object->info.pset.plug[PSET_OBJ] = plug;
+	object->info.pset.plug_mask |= (1 << PSET_OBJ);
 
 	if (parent) {
 		aal_memcpy(&object->info.parent, 
@@ -67,7 +67,7 @@ reiser4_object_t *repair_object_fake(reiser4_tree_t *tree,
 			return NULL;
 		}
 	} else {
-		reiser4_opset_root(&object->info.opset);
+		reiser4_pset_root(&object->info);
 	}
 	
 	/* Create the fake object. */

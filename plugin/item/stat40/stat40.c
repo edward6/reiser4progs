@@ -112,19 +112,19 @@ static inline reiser4_plug_t *stat40_file_mode(tree_entity_t *tree,
 					       uint16_t mode) 
 {
 	if (S_ISLNK(mode))
-		return tree->tpset[TPSET_SYMFILE];
+		return tree->tset[TSET_SYMFILE];
 	else if (S_ISREG(mode))
-		return tree->tpset[TPSET_REGFILE];
+		return tree->tset[TSET_REGFILE];
 	else if (S_ISDIR(mode))
-		return tree->tpset[TPSET_DIRFILE];
+		return tree->tset[TSET_DIRFILE];
 	else if (S_ISCHR(mode))
-		return tree->tpset[TPSET_SPLFILE];
+		return tree->tset[TSET_SPLFILE];
 	else if (S_ISBLK(mode))
-		return tree->tpset[TPSET_SPLFILE];
+		return tree->tset[TSET_SPLFILE];
 	else if (S_ISFIFO(mode))
-		return tree->tpset[TPSET_SPLFILE];
+		return tree->tset[TSET_SPLFILE];
 	else if (S_ISSOCK(mode))
-		return tree->tpset[TPSET_SPLFILE];
+		return tree->tset[TSET_SPLFILE];
 
 	return NULL;
 }
@@ -136,18 +136,18 @@ static inline reiser4_plug_t *stat40_dir_mode(tree_entity_t *tree,
 }
 
 /* Decodes the object plug from the mode if needed. */
-static void stat40_decode_opset(tree_entity_t *tree,
-				sdhint_plug_t *plugh,
-				sdhint_lw_t *lwh)
+static void stat40_decode_pset(tree_entity_t *tree,
+			       sdhint_plug_t *plugh,
+			       sdhint_lw_t *lwh)
 {
 	aal_assert("vpf-1630", tree != NULL);
 	aal_assert("vpf-1631", plugh != NULL);
 	aal_assert("vpf-1632", lwh != NULL);
 	
 	/* Object plugin does not need to be set. */
-	if (!plugh->plug[OPSET_OBJ]) {
-		plugh->plug[OPSET_OBJ] = stat40_file_mode(tree, lwh->mode);
-		plugh->plug_mask |= (1 << OPSET_OBJ);
+	if (!plugh->plug[PSET_OBJ]) {
+		plugh->plug[PSET_OBJ] = stat40_file_mode(tree, lwh->mode);
+		plugh->plug_mask |= (1 << PSET_OBJ);
 	}
 }
 
@@ -163,8 +163,8 @@ static int64_t stat40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
 	
 	exts = ((stat_hint_t *)hint->specific)->ext;
 	
-	/* If plug_hint is fetched, lw is needed also to adjust OPSET_OBJ. */
-	if (exts[SDEXT_PLUG_ID]) {
+	/* If plug_hint is fetched, lw is needed also to adjust PSET_OBJ. */
+	if (exts[SDEXT_PSET_ID]) {
 		if (!exts[SDEXT_LW_ID]) {
 			exts[SDEXT_LW_ID] = &lwh;
 			lw_local = 1;
@@ -174,10 +174,10 @@ static int64_t stat40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
 	if (stat40_traverse(place, cb_open_ext, hint))
 		return -EINVAL;
 	
-	/* Adjust OPSET_OBJ. */
-	if (exts[SDEXT_PLUG_ID]) {
-		stat40_decode_opset(place->node->tree,
-				    (sdhint_plug_t *)exts[SDEXT_PLUG_ID],
+	/* Adjust PSET_OBJ. */
+	if (exts[SDEXT_PSET_ID]) {
+		stat40_decode_pset(place->node->tree,
+				    (sdhint_plug_t *)exts[SDEXT_PSET_ID],
 				    (sdhint_lw_t *)exts[SDEXT_LW_ID]);
 		if (lw_local)
 			exts[SDEXT_LW_ID] = NULL;
@@ -195,7 +195,7 @@ static uint32_t stat40_units(reiser4_place_t *place) {
 }
 
 #ifndef ENABLE_MINIMAL
-static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
+static errno_t stat40_encode_pset(reiser4_place_t *place, trans_hint_t *hint) {
 	stat_hint_t *sd_hint;
 	sdhint_plug_t *plugh;
 	tree_entity_t *tree;
@@ -210,9 +210,9 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 		return 0;
 	
 	sd_hint = (stat_hint_t *)hint->specific;
-	plugh = ((sdhint_plug_t *)sd_hint->ext[SDEXT_PLUG_ID]);
+	plugh = ((sdhint_plug_t *)sd_hint->ext[SDEXT_PSET_ID]);
 	
-	if (!plugh || !(plugh->plug_mask & (1 << OPSET_OBJ)))
+	if (!plugh || !(plugh->plug_mask & (1 << PSET_OBJ)))
 		return 0;
 	
 	/* If LW hint is not present, fetch it from disk. */
@@ -242,14 +242,14 @@ static errno_t stat40_encode_opset(reiser4_place_t *place, trans_hint_t *hint) {
 	
 	/* These all is performed on plugh hint, not on the object. So this 
 	   altered plug_mask will not be reflected in the object plug_mask. */
-	if (plugh->plug[OPSET_OBJ] == stat40_file_mode(tree, mode))
-		plugh->plug_mask &= ~(1 << OPSET_OBJ);
+	if (plugh->plug[PSET_OBJ] == stat40_file_mode(tree, mode))
+		plugh->plug_mask &= ~(1 << PSET_OBJ);
 	
-	plugh->plug_mask &= ~(1 << OPSET_DIR);
+	plugh->plug_mask &= ~(1 << PSET_DIR);
 	
 	/* Throw away the SD_PLUG if mask is empty. */
 	if (!plugh->plug_mask)
-		sd_hint->extmask &= ~(1 << SDEXT_PLUG_ID);
+		sd_hint->extmask &= ~(1 << SDEXT_PSET_ID);
 	
 	return 0;
 }
@@ -265,7 +265,7 @@ static errno_t stat40_prep_insert(reiser4_place_t *place, trans_hint_t *hint) {
 
 	hint->len = 0;
 	
-	if ((res = stat40_encode_opset(place, hint)))
+	if ((res = stat40_encode_pset(place, hint)))
 		return res;
 	
 	if (place->pos.unit == MAX_UINT32)

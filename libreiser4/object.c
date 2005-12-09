@@ -11,6 +11,7 @@
 static errno_t reiser4_object_init(reiser4_object_t *object) {
 	reiser4_place_t *start;
 	sdhint_plug_t plugh;
+	sdhint_heir_t heirh;
 	trans_hint_t trans;
 	stat_hint_t stat;
 	errno_t res;
@@ -19,13 +20,15 @@ static errno_t reiser4_object_init(reiser4_object_t *object) {
 
 	aal_memset(&stat, 0, sizeof(stat));
 	aal_memset(&plugh, 0, sizeof(plugh));
+	aal_memset(&heirh, 0, sizeof(heirh));
 	
 	/* Preparing hint and mask */
 	trans.specific = &stat;
 	trans.place_func = NULL;
 	trans.region_func = NULL;
 	trans.shift_flags = SF_DEFAULT;
-	stat.ext[SDEXT_PLUG_ID] = &plugh;
+	stat.ext[SDEXT_PSET_ID] = &plugh;
+	stat.ext[SDEXT_HSET_ID] = &heirh;
 	
 	start = &object->info.start;
 	
@@ -45,10 +48,11 @@ static errno_t reiser4_object_init(reiser4_object_t *object) {
 	if ((res = objcall(start, object->fetch_units, &trans)) != 1)
 		return res;
 	
-	aal_memcpy(&object->info.opset, &plugh, sizeof(plugh));
+	aal_memcpy(&object->info.pset, &plugh, sizeof(plugh));
+	aal_memcpy(&object->info.hset, &heirh, sizeof(heirh));
 	
-	reiser4_opset_complete((reiser4_tree_t *)object->info.tree, 
-			       &object->info.opset);
+	reiser4_pset_complete((reiser4_tree_t *)object->info.tree, 
+			      &object->info);
 	
 	/* Object plugin must be detected. */
 	return reiser4_psobj(object) ? 0 : -EINVAL;
@@ -746,11 +750,11 @@ static reiser4_object_t *reiser4_obj_create(reiser4_object_t *parent,
 	
 	aal_assert("vpf-1849", parent != NULL);
 	aal_assert("vpf-1849", info != NULL);
-	aal_assert("vpf-1849", info->opset.plug[OPSET_OBJ] != NULL);
+	aal_assert("vpf-1849", info->pset.plug[PSET_OBJ] != NULL);
 	
 	/* Preparing object hint */
 	/* Inherit from the parent. */
-	if (plugcall((reiser4_object_plug_t *)info->opset.plug[OPSET_OBJ], 
+	if (plugcall((reiser4_object_plug_t *)info->pset.plug[PSET_OBJ], 
 		     inherit, info, &parent->info))
 	{
 		return NULL;
@@ -793,8 +797,8 @@ reiser4_object_t *reiser4_dir_create(reiser4_object_t *parent,
 	aal_assert("vpf-1053", parent != NULL);
 	
 	aal_memset(&info, 0, sizeof(info));
-	info.opset.plug[OPSET_OBJ] = parent->info.tree->tpset[TPSET_DIRFILE];
-	info.opset.plug_mask |= (1 << OPSET_OBJ);
+	info.pset.plug[PSET_OBJ] = parent->info.tree->tset[TSET_DIRFILE];
+	info.pset.plug_mask |= (1 << PSET_OBJ);
 
 	return reiser4_obj_create(parent, &info, NULL, name);
 }
@@ -809,10 +813,8 @@ reiser4_object_t *reiser4_reg_create(reiser4_object_t *parent,
 	aal_assert("vpf-1054", parent != NULL);
 	
 	aal_memset(&info, 0, sizeof(info));
-	info.opset.plug_mask |= (1 << OPSET_OBJ);
-	info.opset.plug[OPSET_OBJ] = 
-		reiser4_factory_ifind(OBJECT_PLUG_TYPE, 
-				      reiser4_pscreate(parent)->objid);
+	info.pset.plug_mask |= (1 << PSET_OBJ);
+	info.pset.plug[PSET_OBJ] = parent->info.tree->tset[TSET_REGFILE];
 	
 	return reiser4_obj_create(parent, &info, NULL, name);
 }
@@ -832,8 +834,8 @@ reiser4_object_t *reiser4_sym_create(reiser4_object_t *parent,
 	hint.str = (char *)target;
 	
 	aal_memset(&info, 0, sizeof(info));
-	info.opset.plug[OPSET_OBJ] = parent->info.tree->tpset[TPSET_SYMFILE];
-	info.opset.plug_mask |= (1 << OPSET_OBJ);
+	info.pset.plug[PSET_OBJ] = parent->info.tree->tset[TSET_SYMFILE];
+	info.pset.plug_mask |= (1 << PSET_OBJ);
 
 	return reiser4_obj_create(parent, &info, &hint, name);
 }
@@ -855,8 +857,8 @@ reiser4_object_t *reiser4_spl_create(reiser4_object_t *parent,
 	hint.rdev = rdev;
 	
 	aal_memset(&info, 0, sizeof(info));
-	info.opset.plug[OPSET_OBJ] = parent->info.tree->tpset[TPSET_SPLFILE];
-	info.opset.plug_mask |= (1 << OPSET_OBJ);
+	info.pset.plug[PSET_OBJ] = parent->info.tree->tset[TSET_SPLFILE];
+	info.pset.plug_mask |= (1 << PSET_OBJ);
 	
 	return reiser4_obj_create(parent, &info, &hint, name);
 }
@@ -875,9 +877,9 @@ reiser4_object_t *reiser4_ccreg_create(reiser4_object_t *parent,
 	hint.str = (char *)key;
 	
 	aal_memset(&info, 0, sizeof(info));
-	info.opset.plug_mask |= (1 << OPSET_OBJ);
+	info.pset.plug_mask |= (1 << PSET_OBJ);
 	
-	if (!(info.opset.plug[OPSET_OBJ] = 
+	if (!(info.pset.plug[PSET_OBJ] = 
 	      reiser4_factory_ifind(OBJECT_PLUG_TYPE, OBJECT_CCREG40_ID))) 
 	{
 		aal_error("Can't find the CRC object plugin\n.");

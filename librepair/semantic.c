@@ -655,7 +655,7 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 		return -EINVAL;
 	}
 	
-	reiser4_opset_root(&sem->root->info.opset);
+	reiser4_pset_root(&sem->root->info);
 	if ((res = repair_semantic_object_check(sem, sem->root, 
 						sem->root, 0)))
 	{
@@ -821,7 +821,7 @@ errno_t repair_semantic(repair_semantic_t *sem) {
 	if ((res = repair_semantic_root_prepare(sem)))
 		goto error_update;
 	
-	if ((res = reiser4_opset_tree(tree, 0)))
+	if ((res = reiser4_pset_tree(tree, 0)))
 		goto error_close_root;
 	
 	/* Open "lost+found" directory in BUILD mode. */

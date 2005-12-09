@@ -8,24 +8,24 @@
 
 #ifndef ENABLE_MINIMAL
 
-extern void reiser4_opset_root(reiser4_opset_t *opset);
+extern void reiser4_pset_root(object_info_t *info);
 
-extern uint64_t reiser4_opset_build_mask(reiser4_tree_t *tree, 
-					 reiser4_opset_t *opset);
+extern uint64_t reiser4_pset_build_mask(reiser4_tree_t *tree, 
+					reiser4_pset_t *pset);
 
-extern errno_t reiser4_opset_tree(reiser4_tree_t *tree, int check);
+extern errno_t reiser4_pset_tree(reiser4_tree_t *tree, int check);
 
 #else
 
-extern errno_t reiser4_opset_tree(reiser4_tree_t *tree);
+extern errno_t reiser4_pset_tree(reiser4_tree_t *tree);
 
 #endif
 
-extern void reiser4_opset_complete(reiser4_tree_t *tree, 
-				   reiser4_opset_t *opset);
+extern void reiser4_pset_complete(reiser4_tree_t *tree, 
+				  object_info_t *info);
 
-extern errno_t reiser4_pset_tree(reiser4_tree_t *tree);
+extern errno_t reiser4_tset_init(reiser4_tree_t *tree);
 
-extern reiser4_plug_t *reiser4_opset_plug(rid_t member, rid_t id);
+extern reiser4_plug_t *reiser4_pset_find(rid_t member, rid_t id, int is_pset);
 
 #endif

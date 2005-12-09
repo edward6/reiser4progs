@@ -89,8 +89,8 @@ static reiser4_object_t *reiser4_root_create(reiser4_fs_t *fs) {
 	entry.name[0] = '\0';
 	aal_memcpy(&entry.offset, &fs->tree->key, sizeof(entry.offset));
 
-	reiser4_opset_root(&info.opset);
-
+	reiser4_pset_root(&info);
+	
 	return reiser4_object_create(&entry, &info, NULL);
 }
 
@@ -472,7 +472,7 @@ int main(int argc, char *argv[]) {
 			goto error_free_fs;
 		}
 	
-		if (reiser4_opset_tree(fs->tree, 1)) {
+		if (reiser4_pset_tree(fs->tree, 1)) {
 			aal_error("Can't initialize the fs-global "
 				  "object plugin set.");
 			goto error_free_fs;

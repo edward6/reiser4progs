@@ -368,8 +368,8 @@ static inline errno_t obj40_stat_lw_check(reiser4_object_t *obj,
    essential ones. The knowledge if a pset member is essensial is hardcoded 
    yet. 
    
-   obj40_check_plug is used to form the on-disk opset according to already
-   existent SD opset and tree->opset. Actually used for the root only. */
+   obj40_check_plug is used to form the on-disk pset according to already
+   existent SD pset and tree->pset. Actually used for the root only. */
 
 static inline errno_t obj40_stat_plug_check(reiser4_object_t *obj, 
 					    uint8_t mode, int present) 
@@ -387,15 +387,15 @@ static inline errno_t obj40_stat_plug_check(reiser4_object_t *obj,
 	start = &obj->info.start;
 	
 	/* Get plugins that must exists in the PLUGID extention. */
-	mask = obj40_core->pset_ops.build_mask(obj->info.tree, &obj->info.opset);
-	mask &= ((1 << OPSET_STORE_LAST) - 1);
+	mask = obj40_core->pset_ops.build_mask(obj->info.tree, &obj->info.pset);
+	mask &= ((1 << PSET_STORE_LAST) - 1);
 	
-	if ((diff = (mask != obj->info.opset.plug_mask))) {
+	if ((diff = (mask != obj->info.pset.plug_mask))) {
 		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong plugin "
 			  "set is stored on disk (0x%llx). %s (0x%llx).",
 			  place_blknr(start), start->pos.item,
 			  print_inode(obj40_core, &start->key),
-			  start->plug->p.label, obj->info.opset.plug_mask,
+			  start->plug->p.label, obj->info.pset.plug_mask,
 			  mode == RM_CHECK ? "Should be" : "Fixed to",
 			  mask);
 	}
@@ -411,7 +411,7 @@ static inline errno_t obj40_stat_plug_check(reiser4_object_t *obj,
 	trans.specific = &stat;
 	trans.plug = start->plug;
 	start->pos.unit = 0;
-	stat.extmask = (1 << SDEXT_PLUG_ID);
+	stat.extmask = (1 << SDEXT_PSET_ID);
 
 	if (present) {
 		/* Plug extention is the SD is wrong. Remove it first. */
@@ -425,12 +425,12 @@ static inline errno_t obj40_stat_plug_check(reiser4_object_t *obj,
 			return res;
 	}
 	
-	obj->info.opset.plug_mask = mask;
+	obj->info.pset.plug_mask = mask;
 	
-	/* Pass plugh there instead of obj->info.opset to not get the 
+	/* Pass plugh there instead of obj->info.pset to not get the 
 	   altered result after the modification */
-	aal_memcpy(&plugh, &obj->info.opset, sizeof(plugh));
-	stat.ext[SDEXT_PLUG_ID] = &plugh;
+	aal_memcpy(&plugh, &obj->info.pset, sizeof(plugh));
+	stat.ext[SDEXT_PSET_ID] = &plugh;
 	
 	start->pos.unit = 0;
 	

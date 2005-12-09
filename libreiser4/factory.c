@@ -193,8 +193,10 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(sdext_unix);
 	__init_plug(sdext_unix);
 	
-	__load_plug(sdext_plug);
-	__init_plug(sdext_plug);
+	__load_plug(sdext_pset);
+	__init_plug(sdext_pset);
+	
+	__load_plug(sdext_hset);
 #ifndef ENABLE_MINIMAL
 	__load_plug(sdext_crypto);
 	__init_plug(sdext_crypto);

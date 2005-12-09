@@ -60,14 +60,6 @@ reiser4_profile_t defprof = {
 #endif
 			.id = {OBJECT_SPL40_ID, SPL_OBJECT, OBJECT_PLUG_TYPE},
 		},
-		[PROF_CREATE] = {
-#ifndef ENABLE_MINIMAL
-			.name  = "create",
-			.hidden = 0,
-			.max = CREATE_LAST_ID,
-#endif
-			.id = {CREATE_REG40_ID, 0, CREATE_PLUG_TYPE},
-		},
 		[PROF_FORMAT] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "format",
@@ -196,23 +188,19 @@ reiser4_profile_t defprof = {
 #endif
 			.id = {ITEM_STAT40_ID, STAT_ITEM, ITEM_PLUG_TYPE},
 		},
-		[PROF_DIRITEM] = {
 #ifndef ENABLE_MINIMAL
-			.name  = "direntry",
+		[PROF_DIRITEM] = {
+			.name  = "diritem",
 			.hidden = 1,
 			.max = ITEM_LAST_ID,
-#endif
 			.id = {ITEM_CDE40_ID, DIR_ITEM, ITEM_PLUG_TYPE},
 		},
 		[PROF_NODEPTR] = {
-#ifndef ENABLE_MINIMAL
 			.name  = "nodeptr",
 			.hidden = 1,
 			.max = ITEM_LAST_ID,
-#endif
 			.id = {ITEM_NODEPTR40_ID, PTR_ITEM, ITEM_PLUG_TYPE},
 		},
-#ifndef ENABLE_MINIMAL
 		[PROF_TAIL] = {
 			.name  = "tail",
 			.hidden = 1,
@@ -231,8 +219,31 @@ reiser4_profile_t defprof = {
 			.max = ITEM_LAST_ID,
 			.id = {ITEM_CTAIL40_ID, CTAIL_ITEM, ITEM_PLUG_TYPE},
 		},
+		[PROF_HEIR_CREATE] = {
+			.name  = "heir_create",
+			.hidden = 0,
+			.max = CREATE_LAST_ID,
+			.id = {CREATE_REG40_ID, 0, CREATE_PLUG_TYPE},
+		},
+		[PROF_HEIR_HASH] = {
+			.name = "heir_hash",
+			.hidden = 0,
+			.max = HASH_LAST_ID,
+			.id = {HASH_R5_ID, 0, HASH_PLUG_TYPE},
+		},
+		[PROF_HEIR_FIBRE] = {
+			.name = "heir_fibration",
+			.hidden = 0,
+			.max = FIBRE_LAST_ID,
+			.id = {FIBRE_EXT_1_ID, 0, FIBRE_PLUG_TYPE},
+		},
+		[PROF_HEIR_DIRITEM] = {
+			.name = "heir_diritem",
+			.hidden = 1,
+			.max = ITEM_LAST_ID,
+			.id = {ITEM_CDE40_ID, DIR_ITEM, ITEM_PLUG_TYPE},
+		},
 #endif
-
 	},
 	.mask = 0
 };
@@ -249,7 +260,7 @@ void reiser4_profile_print(aal_stream_t *stream) {
 		if (defprof.pid[i].hidden)
 			continue;
 		
-		width = 12 - aal_strlen(defprof.pid[i].name);
+		width = 16 - aal_strlen(defprof.pid[i].name);
 
 		if (defprof.pid[i].id.type != PARAM_PLUG_TYPE) {
 			plug = reiser4_factory_ifind(defprof.pid[i].id.type,
@@ -343,11 +354,14 @@ errno_t reiser4_profile_override(const char *slot, const char *name) {
 			return -EINVAL;
 		}
 		
+		/* Skip if the value is set already. */
+		if (defprof.pid[i].id.id == plug->id.id)
+			return 0;
+		
 		defprof.pid[i].id.id = plug->id.id;
 	}
 	
 	aal_set_bit(&defprof.mask, i);
-	
 	return 0;
 }
 

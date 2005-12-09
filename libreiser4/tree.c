@@ -874,7 +874,7 @@ reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	if ((res = reiser4_format_dec_free(format, 1)))
 		return NULL;
 	
-	plug = (reiser4_node_plug_t *)tree->ent.tpset[TPSET_NODE];
+	plug = (reiser4_node_plug_t *)tree->ent.tset[TSET_NODE];
 	
 	/* Creating new node. */
 	if (!(node = reiser4_node_create(tree, plug, blk, level))) {
@@ -1011,7 +1011,7 @@ errno_t reiser4_tree_root_key(reiser4_tree_t *tree,
 	aal_assert("umka-1949", tree != NULL);
 	aal_assert("umka-1950", key != NULL);
 
-	key->plug = (reiser4_key_plug_t *)tree->ent.tpset[TPSET_KEY];
+	key->plug = (reiser4_key_plug_t *)tree->ent.tset[TSET_KEY];
 	
 #ifndef ENABLE_MINIMAL
 	locality = reiser4_oid_root_locality(tree->fs->oid);
@@ -1069,8 +1069,8 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	}
 
 #endif
-	/* Initializing the tpset. */
-	if (reiser4_pset_tree(tree))
+	/* Initializing the tset. */
+	if (reiser4_tset_init(tree))
 		goto error_free_data;
 
 	/* Building tree root key. It is used in tree lookup, etc. */
@@ -1090,6 +1090,21 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
  error_free_tree:
 	aal_free(tree);
 	return NULL;
+}
+
+reiser4_tree_t *reiser4_tree_create(reiser4_fs_t *fs) {
+	reiser4_tree_t *tree;
+	
+	/* Create and initiailize a tree instance. */
+	if (!(tree = reiser4_tree_init(fs)))
+		return NULL;
+	
+	/* Create the default-SD. */
+	
+}
+
+reiser4_tree_t *reiser4_tree_open(reiserfs_fs_t *fs) {
+	return reiser4_tree_init(fs);
 }
 
 /* Unloads all loaded tree nodes. */
@@ -1962,7 +1977,7 @@ errno_t reiser4_tree_attach_node(reiser4_tree_t *tree, reiser4_node_t *node,
 	hint.count = 1;
 	hint.specific = &ptr;
 	hint.shift_flags = flags;
-	hint.plug = (reiser4_item_plug_t *)tree->ent.tpset[TPSET_NODEPTR];
+	hint.plug = (reiser4_item_plug_t *)tree->ent.tset[TSET_NODEPTR];
 
 	ptr.width = 1;
 	ptr.start = node->block->nr;

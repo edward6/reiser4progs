@@ -276,19 +276,19 @@ errno_t obj40_inherit(object_info_t *info, object_info_t *parent) {
 	int i;
 	
 	aal_assert("vpf-1855", info != NULL);
-	aal_assert("vpf-1855", info->opset.plug[OPSET_OBJ] != NULL);
+	aal_assert("vpf-1855", info->pset.plug[PSET_OBJ] != NULL);
 	aal_assert("vpf-1855", parent != NULL);
 	
-	info->opset.plug_mask |= (1 << OPSET_OBJ);
+	info->pset.plug_mask |= (1 << PSET_OBJ);
 	
 	/* Get not specified plugins from the parent. Do not set flags into 
 	   plug_mask as these plugins are inherited but not specified 
 	   explicitly. */
-	for (i = 0; i < OPSET_LAST; i++) {
-		if (info->opset.plug_mask & (1 << i))
+	for (i = 0; i < PSET_LAST; i++) {
+		if (info->pset.plug_mask & (1 << i))
 			continue;
 
-		info->opset.plug[i] = parent->opset.plug[i];
+		info->pset.plug[i] = parent->pset.plug[i];
 	}
 
 	return 0;
@@ -369,16 +369,33 @@ static errno_t obj40_stat_plug_init(reiser4_object_t *obj,
 	aal_assert("vpf-1778", obj != NULL);
 
 	/* Get plugins that must exists in the PLUGID extention. */
-	obj->info.opset.plug_mask = 
+	obj->info.pset.plug_mask = 
 		obj40_core->pset_ops.build_mask(obj->info.tree,
-						&obj->info.opset);
+						&obj->info.pset);
 	
-	if (obj->info.opset.plug_mask) {
-		aal_memcpy(plugh, &obj->info.opset, sizeof(*plugh));
-		stat->extmask |= (1 << SDEXT_PLUG_ID);
-		stat->ext[SDEXT_PLUG_ID] = plugh;
+	if (obj->info.pset.plug_mask) {
+		aal_memcpy(plugh, &obj->info.pset, sizeof(*plugh));
+		stat->extmask |= (1 << SDEXT_PSET_ID);
+		stat->ext[SDEXT_PSET_ID] = plugh;
 	}
 
+	return 0;
+}
+
+static errno_t obj40_stat_heir_init(reiser4_object_t *obj, 
+				    stat_hint_t *stat, 
+				    sdhint_heir_t *heirh)
+{
+	aal_assert("vpf-1899", stat != NULL);
+	aal_assert("vpf-1898", heirh != NULL);
+	aal_assert("vpf-1897", obj != NULL);
+
+	if (obj->info.hset.plug_mask) {
+		aal_memcpy(heirh, &obj->info.hset, sizeof(*heirh));
+		stat->extmask |= (1 << SDEXT_HSET_ID);
+		stat->ext[SDEXT_HSET_ID] = heirh;
+	}
+	
 	return 0;
 }
 
@@ -443,6 +460,7 @@ errno_t obj40_create_stat(reiser4_object_t *obj,
 {
 	sdhint_unix_t unixh;
 	sdhint_plug_t plugh;
+	sdhint_heir_t heirh;
 	sdhint_crypto_t crch;
 	sdhint_lw_t lwh;
 	stat_hint_t stat;
@@ -473,6 +491,9 @@ errno_t obj40_create_stat(reiser4_object_t *obj,
 		return res;
 
 	if ((res = obj40_stat_plug_init(obj, &stat, &plugh)))
+		return res;
+	
+	if ((res = obj40_stat_heir_init(obj, &stat, &heirh)))
 		return res;
 	
 	if ((res = obj40_stat_sym_init(obj, &stat, str)))

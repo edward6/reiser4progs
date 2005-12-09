@@ -196,10 +196,11 @@ enum reiser4_sdext_plug_id {
 	SDEXT_UNIX_ID		= 0x1,
 	SDEXT_LT_ID             = 0x2,
 	SDEXT_SYMLINK_ID	= 0x3,
-	SDEXT_PLUG_ID		= 0x4,
-	SDEXT_FLAGS_ID          = 0x5,
-	SDEXT_CAPS_ID		= 0x6,
-	SDEXT_CRYPTO_ID		= 0x7,
+	SDEXT_PSET_ID		= 0x4,
+	SDEXT_HSET_ID		= 0x5,
+	SDEXT_FLAGS_ID          = 0x6,
+	SDEXT_CAPS_ID		= 0x7,
+	SDEXT_CRYPTO_ID		= 0x8,
 	SDEXT_LAST_ID
 };
 
@@ -307,89 +308,96 @@ typedef enum key_type {
 } key_type_t;
 
 /* Tree Plugin SET index. */
-enum reiser4_tpset_id {
-	TPSET_REGFILE	= 0x0,
-	TPSET_DIRFILE	= 0x1,
-	TPSET_SYMFILE	= 0x2,
-	TPSET_SPLFILE	= 0x3,
+enum reiser4_tset_id {
+	TSET_REGFILE	= 0x0,
+	TSET_DIRFILE	= 0x1,
+	TSET_SYMFILE	= 0x2,
+	TSET_SPLFILE	= 0x3,
 
-	TPSET_KEY	= 0x4,
+	TSET_KEY	= 0x4,
 #ifndef ENABLE_MINIMAL
-	TPSET_NODE	= 0x5,
-	TPSET_NODEPTR	= 0x6,
+	TSET_NODE	= 0x5,
+	TSET_NODEPTR	= 0x6,
 #endif
-	TPSET_LAST
+	TSET_LAST
 };
 
 /* Object Plugin SET index. */
-enum reiser4_opset_id {
-	OPSET_OBJ	= 0x0,
-	OPSET_DIR	= 0x1,
-	OPSET_PERM	= 0x2,
-	OPSET_POLICY	= 0x3,
-	OPSET_HASH	= 0x4,
-	OPSET_FIBRE	= 0x5,
-	OPSET_STAT	= 0x6,
-	OPSET_DIRITEM	= 0x7,
-	OPSET_CRYPTO	= 0x8,
-	OPSET_DIGEST	= 0x9,
-	OPSET_COMPRESS	= 0xa,
-	OPSET_CMODE	= 0xb,
-	OPSET_CLUSTER	= 0xc,
-	OPSET_CREATE	= 0xd,
+enum reiser4_pset_id {
+	PSET_OBJ	= 0x0,
+	PSET_DIR	= 0x1,
+	PSET_PERM	= 0x2,
+	PSET_POLICY	= 0x3,
+	PSET_HASH	= 0x4,
+	PSET_FIBRE	= 0x5,
+	PSET_STAT	= 0x6,
+	PSET_DIRITEM	= 0x7,
+	PSET_CRYPTO	= 0x8,
+	PSET_DIGEST	= 0x9,
+	PSET_COMPRESS	= 0xa,
+	PSET_CMODE	= 0xb,
+	PSET_CLUSTER	= 0xc,
 	
-	OPSET_STORE_LAST,
+	PSET_STORE_LAST,
+//	PSET_CREATE	= 0xd,
 	
 	/* These are not stored on disk in the current implementation. */
 #ifndef ENABLE_MINIMAL
-	OPSET_TAIL	= OPSET_STORE_LAST,
-	OPSET_EXTENT	= OPSET_STORE_LAST + 1,
-	OPSET_CTAIL	= OPSET_STORE_LAST + 2,
+	PSET_TAIL	= PSET_STORE_LAST,
+	PSET_EXTENT	= PSET_STORE_LAST + 1,
+	PSET_CTAIL	= PSET_STORE_LAST + 2,
 #endif
-	OPSET_LAST
+	PSET_LAST
+};
+
+enum reiser4_hset_id {
+	HSET_CREATE	= 0x0,
+	HSET_HASH	= 0x1,
+	HSET_FIBRE	= 0x2,
+	HSET_DIR_ITEM	= 0x3,
+	HSET_LAST
 };
 
 #define reiser4_psobj(obj) \
-	((reiser4_object_plug_t *)(obj)->info.opset.plug[OPSET_OBJ])
+	((reiser4_object_plug_t *)(obj)->info.pset.plug[PSET_OBJ])
 
 #define reiser4_pspolicy(obj) \
-	((reiser4_policy_plug_t *)(obj)->info.opset.plug[OPSET_POLICY])
+	((reiser4_policy_plug_t *)(obj)->info.pset.plug[PSET_POLICY])
 
 #define reiser4_pshash(obj) \
-	((reiser4_hash_plug_t *)(obj)->info.opset.plug[OPSET_HASH])
+	((reiser4_hash_plug_t *)(obj)->info.pset.plug[PSET_HASH])
 
 #define reiser4_psfibre(obj) \
-	((reiser4_fibre_plug_t *)(obj)->info.opset.plug[OPSET_FIBRE])
+	((reiser4_fibre_plug_t *)(obj)->info.pset.plug[PSET_FIBRE])
 
 #define reiser4_psstat(obj) \
-	((reiser4_item_plug_t *)(obj)->info.opset.plug[OPSET_STAT])
+	((reiser4_item_plug_t *)(obj)->info.pset.plug[PSET_STAT])
 
 #define reiser4_psdiren(obj) \
-	((reiser4_item_plug_t *)(obj)->info.opset.plug[OPSET_DIRITEM])
+	((reiser4_item_plug_t *)(obj)->info.pset.plug[PSET_DIRITEM])
 
 #define reiser4_pscrypto(obj) \
-	((rid_t)(obj)->info.opset.plug[OPSET_CRYPTO])
+	((rid_t)(obj)->info.pset.plug[PSET_CRYPTO])
 
 #define reiser4_pscompress(obj) \
-	((reiser4_plug_t *)(obj)->info.opset.plug[OPSET_COMPRESS])
+	((reiser4_plug_t *)(obj)->info.pset.plug[PSET_COMPRESS])
 
 #define reiser4_pscmode(obj) \
-	((reiser4_plug_t *)(obj)->info.opset.plug[OPSET_CMODE])
+	((reiser4_plug_t *)(obj)->info.pset.plug[PSET_CMODE])
 
 #define reiser4_pscluster(obj) \
-	((reiser4_cluster_plug_t *)(obj)->info.opset.plug[OPSET_CLUSTER])
+	((reiser4_cluster_plug_t *)(obj)->info.pset.plug[PSET_CLUSTER])
 
-#define reiser4_pscreate(obj) \
-	((reiser4_create_plug_t *)(obj)->info.opset.plug[OPSET_CREATE])
+//#define reiser4_pscreate(obj) ((reiser4_create_plug_t *)(obj)->info.pset.plug[PSET_CREATE])
 
 #define reiser4_pstail(obj) \
-	((reiser4_item_plug_t *)(obj)->info.opset.plug[OPSET_TAIL])
+	((reiser4_item_plug_t *)(obj)->info.pset.plug[PSET_TAIL])
 
 #define reiser4_psextent(obj) \
-	((reiser4_item_plug_t *)(obj)->info.opset.plug[OPSET_EXTENT])
+	((reiser4_item_plug_t *)(obj)->info.pset.plug[PSET_EXTENT])
 
 #define reiser4_psctail(obj) \
-	((reiser4_item_plug_t *)(obj)->info.opset.plug[OPSET_CTAIL])
+	((reiser4_item_plug_t *)(obj)->info.pset.plug[PSET_CTAIL])
 
 enum reiser4_create_map {
 	CREATE_REG40_ID		= 0x0,
@@ -414,8 +422,8 @@ enum reiser4_plugin_flag {
 typedef struct tree_entity {
 	/* Plugin SET. Set of plugins needed for the reiser4progs work.
 	   Consists of tree-specific plugins and object-specific plugins. */
-	reiser4_plug_t *tpset[TPSET_LAST];
-	reiser4_plug_t *opset[OPSET_LAST];
+	reiser4_plug_t *tset[TSET_LAST];
+	reiser4_plug_t *pset[PSET_LAST];
 	uint64_t param_mask;
 } tree_entity_t;
 
@@ -652,13 +660,20 @@ typedef struct sdhint_flags {
 	uint32_t flags;
 } sdhint_flags_t;
 
-typedef struct sdhint_plug {
+typedef struct reiser4_pset {
 	/* Set of initialized fields. */
 	uint64_t plug_mask;
-	reiser4_plug_t *plug[OPSET_LAST];
-} sdhint_plug_t;
+	reiser4_plug_t *plug[PSET_LAST];
+} reiser4_pset_t;
 
-typedef sdhint_plug_t reiser4_opset_t;
+typedef struct reiser4_hset {
+	/* Set of initialized fields. */
+	uint64_t plug_mask;
+	reiser4_plug_t *plug[HSET_LAST];
+} reiser4_hset_t;
+
+typedef reiser4_pset_t sdhint_plug_t;
+typedef reiser4_hset_t sdhint_heir_t;
 
 #ifndef ENABLE_MINIMAL
 typedef struct sdhint_crypto {
@@ -687,7 +702,8 @@ typedef enum entry_type {
 /* Object info struct contains the main information about a reiser4
    object. These are: its key, parent key and coord of first item. */
 typedef struct object_info {
-	reiser4_opset_t opset;
+	reiser4_pset_t pset;
+	reiser4_hset_t hset;
 	
 	tree_entity_t *tree;
 	reiser4_place_t start;
@@ -1837,10 +1853,10 @@ typedef struct object_ops {
 
 typedef struct pset_ops {
 	/* Obtains the plugin from the profile by its profile index. */
-	reiser4_plug_t *(*find) (rid_t, rid_t);
+	reiser4_plug_t *(*find) (rid_t, rid_t, int);
 #ifndef ENABLE_MINIMAL
 	/* Diffs 2 psets & returns what needs to be stored on disk. */
-	uint64_t (*build_mask) (tree_entity_t *, reiser4_opset_t *);
+	uint64_t (*build_mask) (tree_entity_t *, reiser4_pset_t *);
 #endif
 } pset_ops_t;
 

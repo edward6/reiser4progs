@@ -5,17 +5,18 @@
 
 #include "sdext_plug.h"
 
-reiser4_core_t *sdext_plug_core = NULL;
+reiser4_core_t *sdext_pset_core = NULL;
 
 #ifndef ENABLE_MINIMAL
 static void sdext_plug_info(stat_entity_t *stat) {
 	sdext_plug_t *ext;
-	uint16_t i;
+	uint8_t i;
 
 	stat->info.digest = NULL;
 	
 	/* When inserting new extentions, nothing to be done. */
-	if (!stat) return;
+	if (stat->plug->p.id.id != SDEXT_PSET_ID || !stat) 
+		return;
 	
 	ext = (sdext_plug_t *)stat_body(stat);
 	for (i = 0; i < sdext_plug_get_count(ext); i++) {
@@ -24,10 +25,10 @@ static void sdext_plug_info(stat_entity_t *stat) {
 		mem = sdext_plug_get_member(ext, i);
 		id = sdext_plug_get_pid(ext, i);
 
-		if (mem != SDEXT_PLUG_ID)
+		if (mem != SDEXT_PSET_ID)
 			continue;
 		
-		stat->info.digest = sdext_plug_core->pset_ops.find(mem, id);
+		stat->info.digest = sdext_pset_core->pset_ops.find(mem, id, 1);
 		if (stat->info.digest == INVAL_PTR)
 			stat->info.digest = NULL;
 		
@@ -38,17 +39,19 @@ static void sdext_plug_info(stat_entity_t *stat) {
 
 uint32_t sdext_plug_length(stat_entity_t *stat, void *hint) {
 	uint16_t count = 0;
+	uint64_t mask;
 	
 	aal_assert("vpf-1844", stat != NULL || hint != NULL);
 	
 	/* If hint is given, count its pset. */
 	if (hint) {
 		sdhint_plug_t *h = (sdhint_plug_t *)hint;
-		uint16_t i;
-
-		for (i = 0; i < OPSET_STORE_LAST; i++) {
-			if (h->plug_mask & (1 << i))
-				count++;
+		
+		mask = h->plug_mask;
+		
+		while (mask) {
+			if (mask & 1) count++;
+			mask >>= 1;
 		}
 	} else {
 		sdext_plug_t *plug = (sdext_plug_t *)stat_body(stat);
@@ -64,6 +67,8 @@ uint32_t sdext_plug_length(stat_entity_t *stat, void *hint) {
 static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 	sdhint_plug_t *plugh;
 	sdext_plug_t *ext;
+	int is_pset;
+	uint8_t last;
 	uint16_t i;
 	
 	aal_assert("vpf-1597", stat != NULL);
@@ -71,8 +76,12 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 
 	plugh = (sdhint_plug_t *)hint;
 	ext = (sdext_plug_t *)stat_body(stat);
+
+	is_pset = stat->plug->p.id.id == SDEXT_PSET_ID;
+	last = is_pset ? PSET_STORE_LAST : HSET_LAST;
 	
-	aal_memset(plugh, 0, sizeof(*plugh));
+	aal_memset(plugh, 0, is_pset ? sizeof(sdhint_plug_t) : 
+		   sizeof(sdhint_heir_t));
 	
 	for (i = 0; i < sdext_plug_get_count(ext); i++) {
 		rid_t mem, id;
@@ -81,7 +90,7 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 		id = sdext_plug_get_pid(ext, i);
 		
 		/* Check the member id valideness. */
-		if (mem >= OPSET_STORE_LAST)
+		if (mem >= last)
 			return -EIO;
 		
 		/* Check if we met this member already. */
@@ -89,12 +98,13 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 			return -EIO;
 		
 		/* Obtain the plugin by the id. */
-		plugh->plug[mem] = sdext_plug_core->pset_ops.find(mem, id);
+		plugh->plug[mem] = sdext_pset_core->pset_ops.find(
+						mem, id, is_pset);
 		
 		if (plugh->plug[mem] == INVAL_PTR) {
 #ifndef ENABLE_MINIMAL
 			aal_error("Node (%llu), item (%u): Failed to find "
-				  "a plugin of the opset member (%u), id "
+				  "a plugin of the pset member (%u), id "
 				  "(%u).", place_blknr(stat->place),
 				  stat->place->pos.item, mem, id);
 			return -EIO;
@@ -120,6 +130,7 @@ static errno_t sdext_plug_init(stat_entity_t *stat, void *hint) {
 	tree_entity_t *tree;
 	sdext_plug_t *ext;
 	uint16_t count = 0;
+	uint8_t last;
 	uint16_t id;
 	rid_t mem;
 	
@@ -129,8 +140,10 @@ static errno_t sdext_plug_init(stat_entity_t *stat, void *hint) {
 	plugh = (sdhint_plug_t *)hint;
 	ext = (sdext_plug_t *)stat_body(stat);
 	tree = stat->place->node->tree;
+	last =  stat->plug->p.id.id == SDEXT_PSET_ID ? 
+		PSET_STORE_LAST : HSET_LAST;
 		
-	for (mem = 0; mem < OPSET_STORE_LAST; mem++) {
+	for (mem = 0; mem < last; mem++) {
 		/* Find the plugin to be stored. */
 		if (!(plugh->plug_mask & (1 << mem)))
 			continue;
@@ -159,12 +172,33 @@ extern void sdext_plug_print(stat_entity_t *stat,
 
 #endif
 
-reiser4_sdext_plug_t sdext_plug_plug = {
+reiser4_sdext_plug_t sdext_pset_plug = {
 	.p = {
-		.id    = {SDEXT_PLUG_ID, 0, SDEXT_PLUG_TYPE},
+		.id    = {SDEXT_PSET_ID, 0, SDEXT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
-		.label = "sdext_plug",
-		.desc  = "Plugin id stat data extension plugin.",
+		.label = "sdext_plugin_set",
+		.desc  = "Plugin Set StatData extension plugin.",
+#endif
+	},
+
+#ifndef ENABLE_MINIMAL
+	.init	 	= sdext_plug_init,
+	.info		= sdext_plug_info,
+	.print   	= sdext_plug_print,
+	.check_struct   = sdext_plug_check_struct,
+#else
+	.info		= NULL,
+#endif
+	.open	 	= sdext_plug_open,
+	.length	 	= sdext_plug_length
+};
+
+reiser4_sdext_plug_t sdext_hset_plug = {
+	.p = {
+		.id    = {SDEXT_HSET_ID, 0, SDEXT_PLUG_TYPE},
+#ifndef ENABLE_MINIMAL
+		.label = "sdext_heir_set",
+		.desc  = "Heir Set StatData extension plugin.",
 #endif
 	},
 
