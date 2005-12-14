@@ -96,7 +96,6 @@ static errno_t obj40_objkey_check(reiser4_object_t *obj) {
 }
 
 errno_t obj40_recognize(reiser4_object_t *obj) {
-	reiser4_object_plug_t *ops;
 	errno_t res;
 	
 	aal_assert("vpf-1231", obj != NULL);
@@ -107,8 +106,6 @@ errno_t obj40_recognize(reiser4_object_t *obj) {
 	if ((res = obj40_objkey_check(obj)))
 		return res;
 
-	ops = reiser4_psobj(obj);
-	
 	if ((res = obj40_check_stat(obj)))
 		return res;
 	

@@ -1092,21 +1092,6 @@ reiser4_tree_t *reiser4_tree_init(reiser4_fs_t *fs) {
 	return NULL;
 }
 
-reiser4_tree_t *reiser4_tree_create(reiser4_fs_t *fs) {
-	reiser4_tree_t *tree;
-	
-	/* Create and initiailize a tree instance. */
-	if (!(tree = reiser4_tree_init(fs)))
-		return NULL;
-	
-	/* Create the default-SD. */
-	
-}
-
-reiser4_tree_t *reiser4_tree_open(reiserfs_fs_t *fs) {
-	return reiser4_tree_init(fs);
-}
-
 /* Unloads all loaded tree nodes. */
 errno_t reiser4_tree_collapse(reiser4_tree_t *tree) {
         aal_assert("umka-2265", tree != NULL);

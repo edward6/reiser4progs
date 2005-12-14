@@ -511,7 +511,7 @@ errno_t obj40_create_stat(reiser4_object_t *obj,
 	case ABSENT:
 		break;
 	default:
-		return lookup;
+		return lookup < 0 ? lookup : -EIO;
 	}
 	
 	/* Insert stat data to tree */
