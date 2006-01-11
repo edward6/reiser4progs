@@ -9,6 +9,15 @@
 #include "format40.h"
 #include <repair/plugin.h>
 
+uint8_t compatible_with[FORMAT40_VERSION + 1] = 
+{
+	/* Before the version was introduced. */
+	[0] = 0,
+	/* Heir set is added. Do not change root pset, fixed inheritance 
+	   policy. */
+	[1] = 1
+};
+
 /* Update from the device only those fields which can be changed while 
    replaying. */
 errno_t format40_update(reiser4_format_ent_t *entity) {
@@ -75,7 +84,7 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 	if (aal_strncmp(super->sb_magic, FORMAT40_MAGIC, 
 			sizeof(FORMAT40_MAGIC))) 
 	{
-		fsck_mess("The on-disk format magic (%s) does not match the "
+		aal_error("The on-disk format magic (%s) does not match the "
 			  "format40 plugin one (%s).%s", super->sb_magic, 
 			  FORMAT40_MAGIC, mode == RM_BUILD ? " Fixed." : "");
 
@@ -88,7 +97,96 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 			res |= RE_FATAL;
 		}
 	}
+	
+	if (backup) {
+		/* Check the version if the version was backed up. */
+		if (get_sb_version(backup) > FORMAT40_VERSION) {
+			aal_fatal("The on-disk format version (%u) is "
+				  "greater than the known version (%u). "
+				  "Please update reiser4progs and try again.",
+				  get_sb_version(super),FORMAT40_VERSION);
+			
+			return RE_FATAL;
+		}
+		
+		if (get_sb_version(super) != get_sb_version(backup)) {
+			fsck_mess("The on-disk format version (%u) does "
+				  "not match the backup one (%u).%s",
+				  get_sb_version(super), 
+				  get_sb_version(backup),
+				  mode == RM_BUILD ? " Fixed." : "");
 
+			if (mode == RM_BUILD) {
+				set_sb_version(super, get_sb_version(backup));
+				format40_mkdirty(format);
+			} else {
+				res |= RE_FATAL;
+			}
+		}
+		
+		/* Check the compatible version. Backup was checked at 
+		   the open time. */
+		if (get_sb_compatible(super) != get_sb_compatible(backup)) {
+			fsck_mess("The on-disk format is compatible with the "
+				  "version (%u), whereas the backed up format "
+				  "is compatible with (%u).%s",
+				  get_sb_compatible(super),
+				  get_sb_compatible(backup),
+				  mode == RM_BUILD ? " Fixed." : "");
+
+			if (mode == RM_BUILD) {
+				set_sb_compatible(super, get_sb_compatible(backup));
+				format40_mkdirty(format);
+			} else {
+				res |= RE_FATAL;
+			}
+		}
+	} else {
+		/* Check the version. */
+		if (get_sb_version(super) > FORMAT40_VERSION) {
+			int opt;
+			
+			aal_mess("The on-disk format40 version (%u) is greater "
+				 "than the known version (%u). This probably "
+				 "means that reiser4progs is out of date. Fix "
+				 "the format40 version, only if you are sure "
+				 "this is a corruption.", get_sb_version(super),
+				 FORMAT40_VERSION);
+			
+			if (mode != RM_BUILD)
+				return RE_FATAL;
+
+			opt = aal_yesno("Do you want to fix the format40 "
+					"version?");
+			if (opt != EXCEPTION_OPT_YES)
+				return -EINVAL;
+			
+			set_sb_version(super, FORMAT40_VERSION);
+			format40_mkdirty(format);
+		}
+		
+		/* Check the compatible version. */
+		if (compatible_with[get_sb_version(super)] != 
+		    get_sb_compatible(super))
+		{
+			fsck_mess("The format40 version (%u) is compatible "
+				  "with the version (%u), whereas the on-disk "
+				  "format says with (%u).%s",
+				  get_sb_version(super), 
+				  compatible_with[get_sb_version(super)],
+				  get_sb_compatible(super), mode == RM_BUILD ? 
+				  " Fixed." : "");
+			
+			if (mode == RM_BUILD) {
+				set_sb_compatible(super, 
+					compatible_with[get_sb_version(super)]);
+				format40_mkdirty(format);
+			} else {
+				res |= RE_FATAL;
+			}
+		}
+	}
+	
 	/* Check the policy. */
 	if (desc->mask & (1 << PM_POLICY)) {
 		/* Policy must be set to @desc->policy if differs. */
@@ -175,7 +273,7 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 		/* On-disk key is always correct as it is just 1 bit. */
 	}
 	
-	/* Check the block count. */
+	/* Check the block count, mkfs id, version & compatible fields. */
 	if (backup) {
 		/* Check the block count. */
 		if (get_sb_block_count(super) != get_sb_block_count(backup)) {
@@ -194,6 +292,22 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 				res |= RE_FATAL;
 			}
 		}
+
+		/* Check the mkfs id. */
+		if (get_sb_mkfs_id(super) != get_sb_mkfs_id(backup)) {
+			fsck_mess("The on-disk format mkfs id (0x%x) does "
+				  "not match the backup one (0x%x).%s",
+				  get_sb_mkfs_id(super), get_sb_mkfs_id(backup),
+				  mode == RM_BUILD ? " Fixed." : "");
+
+			if (mode == RM_BUILD) {
+				set_sb_mkfs_id(super, get_sb_mkfs_id(backup));
+				format40_mkdirty(format);
+			} else {
+				res |= RE_FATAL;
+			}
+		}
+		
 	} else {
 		/* Check the block count. */
 		if (get_sb_block_count(super) != desc->blocks) {
@@ -209,24 +323,8 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 				res |= RE_FATAL;
 			}
 		}
-	}
-	
-	/* Check the mkfs id */
-	if (backup) {
-		if (get_sb_mkfs_id(super) != get_sb_mkfs_id(backup)) {
-			fsck_mess("The on-disk format mkfs id (0x%x) does "
-				  "not match the backup one (0x%x).%s",
-				  get_sb_mkfs_id(super), get_sb_mkfs_id(backup),
-				  mode == RM_BUILD ? " Fixed." : "");
 
-			if (mode == RM_BUILD) {
-				set_sb_mkfs_id(super, get_sb_mkfs_id(backup));
-				format40_mkdirty(format);
-			} else {
-				res |= RE_FATAL;
-			}
-		}
-	} 
+	}
 	
 	return res;
 }
@@ -329,15 +427,21 @@ void format40_print(reiser4_format_ent_t *entity,
 	aal_stream_format(stream, "description:\t%s\n", 
 			  entity->plug->p.desc);
 
+	aal_stream_format(stream, "version:\t%u\n", 
+			  get_sb_version(super));
+	
+	aal_stream_format(stream, "compatible with\nversion:\t%u\n", 
+			  get_sb_compatible(super));
+	
 	aal_stream_format(stream, "magic:\t\t%s\n", 
 			  super->sb_magic);
-	
-	aal_stream_format(stream, "flushes:\t%llu\n", 
-			  get_sb_flushes(super));
 	
 	aal_stream_format(stream, "mkfs id:\t0x%x\n", 
 			  get_sb_mkfs_id(super));
     
+	aal_stream_format(stream, "flushes:\t%llu\n", 
+			  get_sb_flushes(super));
+	
 	aal_stream_format(stream, "blocks:\t\t%llu\n", 
 			  get_sb_block_count(super));
 	
@@ -396,8 +500,18 @@ errno_t format40_check_backup(backup_hint_t *hint) {
 		return RE_FATAL;
 	}
 	
-	/* Save the block count in the hint for the futher use. */
+	if (get_sb_version(backup) <= FORMAT40_VERSION) {
+		if (compatible_with[get_sb_version(backup)] != 
+		    get_sb_compatible(backup))
+		{
+			return RE_FATAL;
+		}
+	} else if (get_sb_version(backup) < get_sb_compatible(backup))
+		return RE_FATAL;
+	
+	/* Save the block count & version in the hint for the futher use. */
 	hint->blocks = get_sb_block_count(backup);
+	hint->version = get_sb_version(backup);
 	
 	return 0;
 }
@@ -413,13 +527,22 @@ reiser4_format_ent_t *format40_regenerate(aal_device_t *device,
 	aal_assert("vpf-1737", hint != NULL);
 	aal_assert("vpf-1738", device != NULL);
 
+	backup = (format40_backup_t *)
+		(hint->block.data + hint->off[BK_FORMAT]);
+	
+	if (get_sb_version(backup) > FORMAT40_VERSION) {
+		fsck_mess("The reiser4 fs being repaired is formatted with "
+			  "format40 plugin version %u, whereas the used "
+			  "format40 plugin is of version %u. Please update "
+			  "reiser4progs and try again.", 
+			  get_sb_version(backup), FORMAT40_VERSION);
+		return NULL;
+	}
+	
 	/* Initializing format instance. */
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
 
-	backup = (format40_backup_t *)
-		(hint->block.data + hint->off[BK_FORMAT]);
-	
 	format->plug = &format40_plug;
 	format->device = device;
 	format->blksize = hint->block.size;
@@ -437,7 +560,10 @@ reiser4_format_ent_t *format40_regenerate(aal_device_t *device,
 	
 	set_sb_tree_height(super, 2);
 	set_sb_root_block(super, INVAL_BLK);
-
+	
+	set_sb_version(super, get_sb_version(backup));
+	set_sb_compatible(super, get_sb_compatible(backup));
+	
 	return (reiser4_format_ent_t *)format;
 }
 

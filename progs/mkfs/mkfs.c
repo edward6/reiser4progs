@@ -478,6 +478,12 @@ int main(int argc, char *argv[]) {
 			goto error_free_fs;
 		}
 
+		/* Backup the fs metadata. */
+		if (!(fs->backup = reiser4_backup_create(fs))) {
+			aal_error("Can't create the fs metadata backup.");
+			goto error_free_fs;
+		}
+
 		/* Creating lost+found directory */
 		if (flags & BF_LOST) {
 			reiser4_object_t *object;

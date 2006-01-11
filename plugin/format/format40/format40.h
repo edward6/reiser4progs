@@ -17,7 +17,10 @@
 #define SUPER(entity) (&((format40_t *)entity)->super)
 
 #define MAGIC_SIZE 16
-	
+
+#define FORMAT40_VERSION	1
+#define FORMAT40_COMPATIBLE	1
+
 typedef struct format40_super {
 	d64_t sb_block_count;
 	d64_t sb_free_blocks;
@@ -35,7 +38,10 @@ typedef struct format40_super {
 	d16_t sb_policy;
 	d64_t sb_flags;
 	
-	char sb_unused[432];
+	d32_t sb_version;
+	d32_t sb_compatible;
+	
+	char sb_unused[424];
 } __attribute__((packed)) format40_super_t;
 
 typedef struct format40 {
@@ -55,6 +61,8 @@ typedef struct format40_backup {
 	d32_t sb_mkfs_id;
 	d16_t sb_policy;
 	d64_t sb_flags;
+	d32_t sb_version;
+	d32_t sb_compatible;
 	d64_t sb_reserved;
 } __attribute__((packed)) format40_backup_t;
 #endif
@@ -90,6 +98,12 @@ extern reiser4_core_t *format40_core;
 
 #define get_sb_flags(sb)			aal_get_le64(sb, sb_flags)
 #define set_sb_flags(sb, val)		        aal_set_le64(sb, sb_flags, val)
+
+#define get_sb_version(sb)			aal_get_le32(sb, sb_version)
+#define set_sb_version(sb, val)			aal_set_le32(sb, sb_version, val)
+
+#define get_sb_compatible(sb)			aal_get_le32(sb, sb_compatible)
+#define set_sb_compatible(sb, val)		aal_set_le32(sb, sb_compatible, val)
 
 #define FORMAT40_KEY_LARGE	0
 

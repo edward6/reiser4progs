@@ -394,5 +394,4 @@ errno_t reiser4_format_dec_free(reiser4_format_t *format, uint64_t count) {
 	reiser4_format_set_free(format, saved - count);
 	return 0;
 }
-
 #endif

@@ -25,7 +25,6 @@ static uint8_t plugs_max[LAST_PLUG_TYPE + 1] = {
 	[COMPRESS_PLUG_TYPE]	= COMPRESS_LAST_ID,
 	[CMODE_PLUG_TYPE]	= CMODE_LAST_ID,
 	[CLUSTER_PLUG_TYPE]	= CLUSTER_LAST_ID,
-	[CREATE_PLUG_TYPE]	= CREATE_LAST_ID,
 	[LAST_PLUG_TYPE]	= 0,
 };
 
@@ -260,9 +259,6 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(extents);
 	__load_plug(smart);
 	__load_plug(tails);
-
-	__load_plug(create_reg40);
-	__load_plug(create_ccreg40);
 
 	__load_plug(lzo1);
 	__load_plug(nolzo1);

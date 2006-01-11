@@ -27,6 +27,7 @@ extern "C" {
 #include <repair/object.h>
 #include <repair/key.h>
 #include <repair/oid.h>
+#include <repair/pset.h>
 
 /*  -------------------------------------------------
     | Common scheem for communication with users.   |

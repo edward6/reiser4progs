@@ -368,7 +368,7 @@ static inline errno_t obj40_stat_lw_check(reiser4_object_t *obj,
    obj40_check_plug is used to form the on-disk pset according to already
    existent SD pset and tree->pset. Actually used for the root only. */
 
-static inline errno_t obj40_stat_plug_check(reiser4_object_t *obj, 
+static inline errno_t obj40_stat_pset_check(reiser4_object_t *obj, 
 					    uint8_t mode, int present) 
 {
 	reiser4_place_t *start;
@@ -511,9 +511,9 @@ errno_t obj40_update_stat(reiser4_object_t *obj, obj40_stat_ops_t *ops,
 		return res;
 	}
 	
-	/* Check the PLUG extention. */
-	if ((res |= obj40_stat_plug_check(obj, mode, 
-					  extmask & (1 << SDEXT_LW_ID))) < 0)
+	/* Check the Plugin SET extention. */
+	if ((res |= obj40_stat_pset_check(obj, mode, 
+					  extmask & (1 << SDEXT_PSET_ID))) < 0)
 	{
 		return res;
 	}

@@ -112,7 +112,6 @@ typedef enum reiser4_plug_type {
 	
 	/* Not really a plugin, at least in progs, but a value that 
 	   needs to be checked only. */
-	CREATE_PLUG_TYPE	= 0x11,
 	PARAM_PLUG_TYPE		= 0x12,
 	LAST_PLUG_TYPE
 } reiser4_plug_type_t;
@@ -197,10 +196,10 @@ enum reiser4_sdext_plug_id {
 	SDEXT_LT_ID             = 0x2,
 	SDEXT_SYMLINK_ID	= 0x3,
 	SDEXT_PSET_ID		= 0x4,
-	SDEXT_HSET_ID		= 0x5,
-	SDEXT_FLAGS_ID          = 0x6,
-	SDEXT_CAPS_ID		= 0x7,
-	SDEXT_CRYPTO_ID		= 0x8,
+	SDEXT_FLAGS_ID          = 0x5,
+	SDEXT_CAPS_ID		= 0x6,
+	SDEXT_CRYPTO_ID		= 0x7,
+	SDEXT_HSET_ID		= 0x8,
 	SDEXT_LAST_ID
 };
 
@@ -337,9 +336,9 @@ enum reiser4_pset_id {
 	PSET_COMPRESS	= 0xa,
 	PSET_CMODE	= 0xb,
 	PSET_CLUSTER	= 0xc,
+	PSET_CREATE	= 0xd,
 	
 	PSET_STORE_LAST,
-//	PSET_CREATE	= 0xd,
 	
 	/* These are not stored on disk in the current implementation. */
 #ifndef ENABLE_MINIMAL
@@ -358,6 +357,7 @@ enum reiser4_hset_id {
 	HSET_LAST
 };
 
+	
 #define reiser4_psobj(obj) \
 	((reiser4_object_plug_t *)(obj)->info.pset.plug[PSET_OBJ])
 
@@ -388,8 +388,6 @@ enum reiser4_hset_id {
 #define reiser4_pscluster(obj) \
 	((reiser4_cluster_plug_t *)(obj)->info.pset.plug[PSET_CLUSTER])
 
-//#define reiser4_pscreate(obj) ((reiser4_create_plug_t *)(obj)->info.pset.plug[PSET_CREATE])
-
 #define reiser4_pstail(obj) \
 	((reiser4_item_plug_t *)(obj)->info.pset.plug[PSET_TAIL])
 
@@ -398,12 +396,6 @@ enum reiser4_hset_id {
 
 #define reiser4_psctail(obj) \
 	((reiser4_item_plug_t *)(obj)->info.pset.plug[PSET_CTAIL])
-
-enum reiser4_create_map {
-	CREATE_REG40_ID		= 0x0,
-	CREATE_CCREG40_ID	= 0x1,
-	CREATE_LAST_ID
-};
 
 /* Known print options for key. */
 enum print_options {
@@ -942,7 +934,8 @@ typedef struct repair_hint {
 enum reiser4_backuper {
 	BK_MASTER	= 0x0,
 	BK_FORMAT	= 0x1,
-	BK_LAST		= 0x2
+	BK_PSET		= 0x2,
+	BK_LAST		= 0x3
 };
 
 typedef struct backup_hint {
@@ -957,6 +950,9 @@ typedef struct backup_hint {
 	/* Matched block count. */
 	uint64_t count;
 	uint64_t total;
+
+	/* flags describe the format. */
+	uint32_t version;
 } backup_hint_t;
 
 #endif
@@ -1510,6 +1506,9 @@ struct reiser4_format_plug {
 	/* Check format-specific super block for validness. */
 	errno_t (*check_struct) (reiser4_format_ent_t *, backup_hint_t *, 
 				 format_hint_t *, uint8_t);
+	
+	/* get the format version. */
+	uint32_t (*version) (reiser4_format_ent_t *);
 #endif
 	/* Returns the key plugin id. */
 	rid_t (*key_pid) (reiser4_format_ent_t *);

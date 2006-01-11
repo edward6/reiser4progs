@@ -510,7 +510,10 @@ errno_t repair_fs_check_backup(aal_device_t *device, backup_hint_t *hint) {
 		return res;
 
 	/* Backup the format backup structure. */
-	return repair_format_check_backup(device, hint);
+	if ((res = repair_format_check_backup(device, hint)))
+		return res;
+	
+	return repair_pset_check_backup(hint);
 }
 
 errno_t repair_fs_block_pack(aal_block_t *block, aal_stream_t *stream) {

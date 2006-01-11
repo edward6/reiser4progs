@@ -1,24 +1,11 @@
 /* Copyright (C) 2001-2005 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   profile.c -- reiser4 profile functions. */
+   pset.c -- reiser4 plugin set (& heir set) functions. */
 
 #include <reiser4/libreiser4.h>
 
 extern reiser4_profile_t defprof;
-
-typedef struct pset_member {
-	/* The corresponding slot in the profile. */
-	rid_t prof;
-	
-#ifndef ENABLE_MINIMAL
-	/* The flag if a plugin essential or not. Non-essential plugins may 
-	   be changed at anytime; non-essential plugins may present in a file's 
-	   SD even if they differ from the root ones to not get the object 
-	   settings changed at the root pset change. */
-	bool_t ess;
-#endif
-} pset_member_t;
 
 #ifndef ENABLE_MINIMAL
 pset_member_t pset_prof[PSET_LAST] = {
@@ -40,6 +27,7 @@ pset_member_t pset_prof[PSET_LAST] = {
 	[PSET_COMPRESS]	= {PROF_COMPRESS,	0},
 	[PSET_CMODE]	= {PROF_CMODE,		0},
 	[PSET_CLUSTER]	= {PROF_CLUSTER,	0},
+	[PSET_CREATE]	= {PROF_CREATE,		0},
 	
 	[PSET_TAIL]	= {PROF_TAIL,		1},
 	[PSET_EXTENT]	= {PROF_EXTENT,		1},
@@ -68,6 +56,7 @@ pset_member_t pset_prof[PSET_LAST] = {
 	[PSET_COMPRESS]	= {PROF_COMPRESS},
 	[PSET_CMODE]	= {PROF_CMODE},
 	[PSET_CLUSTER]	= {PROF_CLUSTER},
+	[PSET_CREATE]	= {PROF_CREATE},
 };
 #endif
 
@@ -82,7 +71,8 @@ void reiser4_pset_complete(reiser4_tree_t *tree, object_info_t *info) {
 
 #ifndef ENABLE_MINIMAL
 	/* This is needed for root recovery. Tree is not initialized by 
-	   that time yet. */
+	   that time yet. See repair_semantic_dir_open -> repair_object_obtain
+	   -> object.recognize. */
 	if (!pset_tree_isready(tree))
 		return reiser4_pset_root(info);
 #endif
@@ -130,7 +120,11 @@ static reiser4_plug_t *reiser4_hset_plug(rid_t member, rid_t id) {
 reiser4_plug_t *reiser4_pset_find(rid_t member, rid_t id, int is_pset) {
 	return is_pset ? 
 	       reiser4_pset_plug(member, id) :
+#ifndef ENABLE_MINIMAL
 	       reiser4_hset_plug(member, id);
+#else
+	       NULL;
+#endif
 }
 
 #ifndef ENABLE_MINIMAL
@@ -173,7 +167,7 @@ void reiser4_pset_root(object_info_t *info) {
 
 /* Builds & returns the difference between tree pset & the current @pset. */
 uint64_t reiser4_pset_build_mask(reiser4_tree_t *tree, 
-				  reiser4_pset_t *pset) 
+				 reiser4_pset_t *pset) 
 {
 
 	uint64_t mask;
@@ -189,7 +183,13 @@ uint64_t reiser4_pset_build_mask(reiser4_tree_t *tree,
 		   The special case for the root directory. All pset 
 		   members must be stored. */
 		mask = (1 << PSET_STORE_LAST) - 1;
+
+		/* Exception: There is no Dir plugins in progs. */
 		mask &= ~(1 << PSET_DIR);
+
+		/* Store PSET_CREATE for format version 0 only. */
+		if (reiser4call(tree->fs->format, version) != 0)
+			mask &= ~(1 << PSET_CREATE);
 		return mask;
 	}
 	
@@ -197,7 +197,7 @@ uint64_t reiser4_pset_build_mask(reiser4_tree_t *tree,
 		/* Leave non-essential members as is. */
                 if (!pset_prof[i].ess)
                         continue;
-		
+
 		/* Store if do not match for essential plugins. */
 		if (tree->ent.pset[i] != pset->plug[i])
 			mask |= (1 << i);
@@ -205,7 +205,7 @@ uint64_t reiser4_pset_build_mask(reiser4_tree_t *tree,
 		/* Do not store If match for essential plugins. */
 		if (tree->ent.pset[i] == pset->plug[i])
 			mask &= ~(1 << i);
-
+		
 		/* FIXME: What is a non-essential plugin is inherited from 
 		   the parent does not match the fs-defaul one. It is not 
 		   explicitely set for this particular file. Should it be 
@@ -213,6 +213,13 @@ uint64_t reiser4_pset_build_mask(reiser4_tree_t *tree,
 		   The answer is NO for now -- non-essential plugins forget 
 		   their special settings in parents. */
 	}
+	
+	/* Store PSET_CREATE for format version 0 only. */
+	if (reiser4call(tree->fs->format, version) != 0)
+		mask &= ~(1 << PSET_CREATE);
+	
+	/* Object plugin is always stored. */
+	mask |= (1 << PSET_OBJ);
 	
 	return mask;
 }
@@ -279,9 +286,6 @@ errno_t reiser4_pset_tree(reiser4_tree_t *tree) {
 	aal_memcpy(tree->ent.pset, object->info.pset.plug, 
 		   sizeof(reiser4_plug_t *) * PSET_LAST);
 
-	tree->ent.pset[PSET_OBJ] = NULL;
-	tree->ent.pset[PSET_DIR] = NULL;
-	
 #ifndef ENABLE_MINIMAL
 	mask = object->info.pset.plug_mask;
 #endif
@@ -308,6 +312,13 @@ errno_t reiser4_pset_tree(reiser4_tree_t *tree) {
 			}
 		} 
 		
+		/* CREATE presented in the format version 0 only. */
+		if (i == PSET_CREATE && 
+		    reiser4call(tree->fs->format, version) > 0)
+		{
+			continue;
+		}
+		
 		/* Other cases are errors. */
 		aal_error("The slot %u in the fs-global object "
 			  "plugin set is not initialized.", i);
@@ -325,3 +336,29 @@ errno_t reiser4_pset_tree(reiser4_tree_t *tree) {
 
 	return 0;
 }
+
+#ifndef ENABLE_MINIMAL
+errno_t reiser4_pset_backup(reiser4_tree_t *tree, backup_hint_t *hint) {
+	struct reiser4_pset_backup *pset;
+	char *p;
+	int i;
+	
+	aal_assert("vpf-1908", hint != NULL);
+
+	p = hint->block.data + hint->off[BK_PSET];	
+	aal_strncpy(p, PSET_MAGIC, aal_strlen(PSET_MAGIC));
+	pset = (struct reiser4_pset_backup *)(p + aal_strlen(PSET_MAGIC));
+	
+	if (!tree) return 0;
+	
+	for (i = 0; i < PSET_STORE_LAST; i++) {
+		if (tree->ent.param_mask & (1 << i))
+			aal_set_le32(pset, id[i], (rid_t)tree->ent.pset[i]);
+		else
+			aal_set_le32(pset, id[i], tree->ent.pset[i]->id.id);
+	}
+	
+	hint->off[BK_PSET + 1] += sizeof(rid_t) * (PSET_STORE_LAST + 5);
+	return 0;
+}
+#endif

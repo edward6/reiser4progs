@@ -560,7 +560,7 @@ static reiser4_object_t *repair_semantic_dir_open(repair_semantic_t *sem,
 		/* Check that the object was recognized by the dir plugin. */
 		if (reiser4_psobj(object)->p.id.group == DIR_OBJECT)
 			return object;
-
+		
 		fsck_mess("The directory [%s] is recognized by the "
 			  "%s plugin which is not a directory one.", 
 			  reiser4_print_inode(key), 
@@ -655,16 +655,26 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 		return -EINVAL;
 	}
 	
-	reiser4_pset_root(&sem->root->info);
+	if (reiser4call(fs->format, version) > 0) {
+		res = repair_pset_root_check(sem->repair->fs, sem->root,
+					     sem->repair->mode);
+		if (res != 0)
+			goto error;
+	}
+	
 	if ((res = repair_semantic_object_check(sem, sem->root, 
 						sem->root, 0)))
 	{
-		reiser4_object_close(sem->root);
-		sem->root = NULL;
-		return res;
+		goto error;
 	}
 	
 	return 0;
+	
+ error:
+	repair_error_count(sem->repair, res);
+	reiser4_object_close(sem->root);
+	sem->root = NULL;
+	return res;
 }
 
 static errno_t repair_semantic_lost_prepare(repair_semantic_t *sem) {

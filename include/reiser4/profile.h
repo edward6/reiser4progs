@@ -15,36 +15,37 @@ enum reiser4_profile_index {
 	PROF_DIRFILE		= 0x3,
 	PROF_SYMFILE		= 0x4,
 	PROF_SPLFILE		= 0x5,
+	PROF_CREATE		= 0x6,
 	
-	PROF_FORMAT		= 0x6,
-	PROF_JOURNAL		= 0x7,
-	PROF_OID		= 0x8,
-	PROF_ALLOC		= 0x9,
-	PROF_KEY		= 0xa,
-	PROF_NODE		= 0xb,
+	PROF_FORMAT		= 0x7,
+	PROF_JOURNAL		= 0x8,
+	PROF_OID		= 0x9,
+	PROF_ALLOC		= 0xa,
+	PROF_KEY		= 0xb,
+	PROF_NODE		= 0xc,
 	
-	PROF_COMPRESS		= 0xc,
-	PROF_CMODE		= 0xd,
-	PROF_CRYPTO		= 0xe,
-	PROF_DIGEST		= 0xf,
-	PROF_CLUSTER		= 0x10,
+	PROF_COMPRESS		= 0xd,
+	PROF_CMODE		= 0xe,
+	PROF_CRYPTO		= 0xf,
+	PROF_DIGEST		= 0x10,
+	PROF_CLUSTER		= 0x11,
 	
-	PROF_HASH		= 0x11,
-	PROF_FIBRE		= 0x12,
-	PROF_POLICY		= 0x13,
-	PROF_PERM		= 0x14,
+	PROF_HASH		= 0x12,
+	PROF_FIBRE		= 0x13,
+	PROF_POLICY		= 0x14,
+	PROF_PERM		= 0x15,
 	
-	PROF_STAT		= 0x15,
-	PROF_DIRITEM		= 0x16,
+	PROF_STAT		= 0x16,
+	PROF_DIRITEM		= 0x17,
 #ifndef ENABLE_MINIMAL
-	PROF_NODEPTR		= 0x17,
-	PROF_TAIL		= 0x18,
-	PROF_EXTENT		= 0x19,
-	PROF_CTAIL		= 0x1a,
-	PROF_HEIR_CREATE	= 0x1b,
-	PROF_HEIR_HASH		= 0x1c,
-	PROF_HEIR_FIBRE		= 0x1d,
-	PROF_HEIR_DIRITEM	= 0x1e,
+	PROF_NODEPTR		= 0x18,
+	PROF_TAIL		= 0x19,
+	PROF_EXTENT		= 0x1a,
+	PROF_CTAIL		= 0x1b,
+	PROF_HEIR_CREATE	= 0x1c,
+	PROF_HEIR_HASH		= 0x1d,
+	PROF_HEIR_FIBRE		= 0x1e,
+	PROF_HEIR_DIRITEM	= 0x1f,
 #endif
 	PROF_LAST
 };
@@ -61,6 +62,13 @@ typedef struct reiser4_profile {
 		/* Hide those slots where are no alternatives. */
 		uint8_t hidden;
 
+		/* The maximum legal value. This value is not depends on the 
+		   format version. This probably should be fixed. For now, 
+		   if this is a corruption, the object with this value in its
+		   pset will not survive, otherwise the object is consistent, 
+		   smth wrong with the format version -- do not remove the 
+		   object, if a user takes a new kernel he will access the 
+		   data. */
 		rid_t max;
 #endif
 	} pid[PROF_LAST];

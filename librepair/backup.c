@@ -76,7 +76,8 @@ errno_t repair_backup_unpack(reiser4_fs_t *fs, aal_stream_t *stream) {
 }
 
 static int repair_backup_hint_cmp(backup_hint_t *list,
-				  backup_hint_t *hint)
+				  backup_hint_t *hint, 
+				  int size)
 {
 	if (list->block.size < hint->block.size)
 		return -1;
@@ -86,7 +87,7 @@ static int repair_backup_hint_cmp(backup_hint_t *list,
 
 	return aal_memcmp(list->block.data, 
 			  hint->block.data, 
-			  hint->block.size);
+			  size);
 }
 
 static backup_hint_t *repair_backup_hint_create(backup_hint_t *hint,
@@ -162,7 +163,7 @@ static errno_t cb_save_backup(uint64_t blk, uint64_t count, void *data) {
 	aal_list_foreach_forward(blocks, at) {
 		cur = (backup_hint_t *)at->data;
 		
-		cmp = repair_backup_hint_cmp(cur, &backup->hint);
+		cmp = repair_backup_hint_cmp(cur, &backup->hint, cur->block.size);
 
 		/* Such a backup is found already, increment the counter. */
 		if (!cmp)
@@ -229,7 +230,7 @@ extern errno_t reiser4_backup_layout_body(reiser4_alloc_t *alloc,
        ids, block size, etc.
    (3) Make a list of backups that could be correct backups with counters for 
        every backup version.
-   (4) Get the backup version that matches the fs metadata (master sb, etc).
+   (4) Create a fresh backup on the fs metadata (master sb, etc).
    (5) Make a decision what version is the correct as the maximum of function:
        
        f = [ 66 % * MATCHES / COUNT ] + [ 33 % * META ]
@@ -237,7 +238,7 @@ extern errno_t reiser4_backup_layout_body(reiser4_alloc_t *alloc,
        MATCHES - count of matched block contents;
        TOTAL - total block count for this backup type (it depends on allocator 
        plugin, block size);
-       META - 1 if matches the fs metadata, 0 if not;
+       META - 1 if read block matches the fresh backup, 0 if not;
 
    When the most valuable backup block is choosed and master + format are opened,
    but they do not match each other, another decision if the backup or the 
@@ -450,11 +451,14 @@ reiser4_backup_t *repair_backup_open(reiser4_fs_t *fs, uint8_t mode) {
 		matched = 0;
 		
 		/* Compare with the ondisk backup if needed. */
-		if (ondisk && !found) {
-			matched = (repair_backup_hint_cmp(hint, ondisk) ? 
-				   0 : 1);
+		if (ondisk) {
+			/* Compare only untill the pset, as @ondisk does not 
+			   have the  */
+			matched = repair_backup_hint_cmp(hint, ondisk, 
+					ondisk->off[BK_PSET]) ? 0 : 1;
 		
-			found = matched;
+			if (!found)
+				found = matched;
 		}
 		
 		weight = hint->count * 66 / hint->total + matched * 33;
@@ -549,7 +553,9 @@ reiser4_backup_t *repair_backup_reopen(reiser4_fs_t *fs) {
 	if (!fs->backup)
 		return backup;
 
-	if (!repair_backup_hint_cmp(&backup->hint, &fs->backup->hint)) {
+	if (!repair_backup_hint_cmp(&backup->hint, &fs->backup->hint, 
+				    backup->hint.block.size))
+	{
 		/* Backup matches, nothing has been fixed. */
 		reiser4_backup_close(backup);
 		return fs->backup;

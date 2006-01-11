@@ -82,6 +82,12 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 
 #ifndef ENABLE_MINIMAL
 	if (check) {
+		/* We still have to support the disk format when pset was not 
+		   backed up. Therefore, tree has the pset found in the root 
+		   dir, completed if needed, backup must match the tree pset. */
+		if (reiser4_pset_tree(fs->tree, check))
+			goto error_free_tree;
+
 		if (!(fs->backup = reiser4_backup_open(fs))) {
 			aal_error("Failed to open fs backup.");
 			goto error_free_tree;
@@ -91,9 +97,6 @@ reiser4_fs_t *reiser4_fs_open(aal_device_t *device) {
 			aal_error("Reiser4 backup is not consistent.");
 			goto error_free_backup;
 		}
-		
-		if (reiser4_pset_tree(fs->tree, check))
-			goto error_free_backup;
 	}
 #else
 	if (reiser4_pset_tree(fs->tree))
@@ -308,12 +311,9 @@ reiser4_fs_t *reiser4_fs_create(
 	if (!(fs->tree = reiser4_tree_init(fs)))
 		goto error_free_oid;
 	
-	if (!(fs->backup = reiser4_backup_create(fs)))
-		goto error_free_tree;
-	
 	if (reiser4_fs_layout(fs, cb_mark_block, fs->alloc)) {
 		aal_error("Can't mark filesystem blocks used.");
-		goto error_free_backup;
+		goto error_free_tree;
 	}
 
 	free = reiser4_alloc_free(fs->alloc);
@@ -321,8 +321,6 @@ reiser4_fs_t *reiser4_fs_create(
 
 	return fs;
 
- error_free_backup:
-	reiser4_backup_close(fs->backup);
  error_free_tree:
 	reiser4_tree_close(fs->tree);
  error_free_oid:
@@ -360,7 +358,14 @@ errno_t reiser4_fs_backup(reiser4_fs_t *fs, backup_hint_t *hint) {
 		return res;
 
 	/* Backup the format. */
-	return reiser4_format_backup(fs->format, hint);
+	if ((res = reiser4_format_backup(fs->format, hint)))
+		return res;
+
+	/* Backup the PSET for the versions > 0. */
+	if (reiser4call(fs->format, version) == 0)
+		return 0;
+	
+	return reiser4_pset_backup(fs->tree, hint);
 }
 
 /* Resizes passed open @fs by passed @blocks */

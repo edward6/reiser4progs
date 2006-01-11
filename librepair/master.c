@@ -84,7 +84,7 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 		hint.blksize = size;
 		
 		if (!(fs->master = reiser4_master_create(fs->device, &hint))) {
-			aal_error("Failed to create a new master super block.");
+			aal_fatal("Failed to create a new master super block.");
 			return -EINVAL;
 		}
 

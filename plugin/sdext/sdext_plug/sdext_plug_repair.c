@@ -25,6 +25,7 @@ char *pset_name[PSET_STORE_LAST] = {
 	[PSET_COMPRESS]	= "compress",
 	[PSET_CMODE]	= "compressMode",
 	[PSET_CLUSTER]	= "cluster",
+	[PSET_CREATE]	= "create",
 };
 
 char *hset_name[HSET_LAST] = {

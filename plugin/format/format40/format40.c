@@ -115,6 +115,16 @@ static errno_t format40_check(reiser4_format_ent_t *entity,
 			  format40_start(entity), max_format_len);
 		return -EINVAL;
 	}
+
+	if (get_sb_version(super) > FORMAT40_VERSION) {
+		aal_error("The on-disk format version (%u) is greater "
+			  "than the known version (%u). Please update "
+			  "reiser4progs or run fsck.reiser4 --build-sb to "
+			  "fix the fs consistency.", get_sb_version(super),
+			  FORMAT40_VERSION);
+
+		return -EINVAL;
+	}
 	
 	return 0;
 }
@@ -145,7 +155,7 @@ static errno_t format40_super_open(format40_t *format) {
 		res = -EINVAL;
 		goto error_free_block;
 	}
-
+	
 	aal_memcpy(&format->super, block.data,
 		   sizeof(format->super));
 
@@ -278,6 +288,10 @@ static reiser4_format_ent_t *format40_create(aal_device_t *device,
 	srandom(time(0));
 	set_sb_mkfs_id(super, random());
 
+	/* Set version values. */
+	set_sb_version(super, FORMAT40_VERSION);
+	set_sb_compatible(super, FORMAT40_COMPATIBLE);
+	
 	/* Clobbering format skipped area in order to let mount to detect
 	   reiser4 correctly without specifying exact filesystem type. 
 	   Skipped area is [0-15] blocks. Clobber the master block also to 
@@ -314,7 +328,11 @@ static errno_t format40_backup(reiser4_format_ent_t *entity, backup_hint_t *hint
 	backup->sb_mkfs_id = SUPER(entity)->sb_mkfs_id;
 	backup->sb_policy = SUPER(entity)->sb_policy;
 	backup->sb_flags = SUPER(entity)->sb_flags;
+	backup->sb_version = SUPER(entity)->sb_version;
+	backup->sb_compatible = SUPER(entity)->sb_compatible;
 	backup->sb_reserved = 0;
+	
+	hint->version = get_sb_version(SUPER(entity));
 	
 	return 0;
 }
@@ -432,6 +450,11 @@ void format40_set_key(reiser4_format_ent_t *entity, rid_t key) {
 	set_sb_flags(SUPER(entity), flags);
 	format40_mkdirty(entity);
 }
+
+uint32_t format40_version(reiser4_format_ent_t *entity) {
+	aal_assert("vpf-1913", entity != NULL);
+	return get_sb_version(SUPER(entity));
+}
 #endif
 
 rid_t format40_get_key(reiser4_format_ent_t *entity) {
@@ -489,6 +512,7 @@ reiser4_format_plug_t format40_plug = {
 	.check_backup	= format40_check_backup,
 	.regenerate     = format40_regenerate,
 	.check_struct	= format40_check_struct,
+	.version	= format40_version,
 #endif
 	.open		= format40_open,
 	.close		= format40_close,

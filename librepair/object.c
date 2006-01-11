@@ -119,11 +119,9 @@ reiser4_object_t *repair_object_obtain(reiser4_tree_t *tree,
 	hint.level = LEAF_LEVEL;
 	hint.collision = NULL;
 	
-	if (reiser4_tree_lookup(tree, &hint, FIND_EXACT, &place) < 0)
-		return INVAL_PTR;
+	if (reiser4_tree_lookup(tree, &hint, FIND_EXACT, &place) != PRESENT)
+		return NULL;
 	
-	/* Even if ABSENT, pass the found place through object recognize 
-	   method to check all possible corruptions. */
 	if (!(object = reiser4_object_prep(tree, parent, key, &place))) {
 		/* FIXME: object_init fails to initialize if found item 
 		   is not SD, but this is not fatal error. */

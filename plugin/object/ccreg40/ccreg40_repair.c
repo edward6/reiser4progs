@@ -110,7 +110,7 @@ static int64_t ccreg40_read_item(reiser4_place_t *place, ccreg40_hint_t *hint) {
 	
 	/* Read the data. */
 	offset = hint->found % hint->clsize;
-	trans.count = hint->maxreal - hint->found;
+	trans.count = hint->maxreal - hint->found + 1;
 	trans.specific = hint->data + offset;
 	
 	if ((count = objcall(place, object->read_units, &trans)) < 0)

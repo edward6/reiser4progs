@@ -6,7 +6,26 @@
 #ifndef REISER4_PSET_H
 #define REISER4_PSET_H
 
+typedef struct pset_member {
+	/* The corresponding slot in the profile. */
+	rid_t prof;
+	
 #ifndef ENABLE_MINIMAL
+	/* The flag if a plugin essential or not. Non-essential plugins may 
+	   be changed at anytime; non-essential plugins may present in a file's 
+	   SD even if they differ from the root ones to not get the object 
+	   settings changed at the root pset change. */
+	bool_t ess;
+#endif
+} pset_member_t;
+
+#ifndef ENABLE_MINIMAL
+
+#define PSET_MAGIC "PsEt"
+
+struct reiser4_pset_backup {
+	rid_t id[PSET_STORE_LAST];
+};
 
 extern void reiser4_pset_root(object_info_t *info);
 
@@ -14,6 +33,9 @@ extern uint64_t reiser4_pset_build_mask(reiser4_tree_t *tree,
 					reiser4_pset_t *pset);
 
 extern errno_t reiser4_pset_tree(reiser4_tree_t *tree, int check);
+
+extern errno_t reiser4_pset_backup(reiser4_tree_t *tree, 
+				   backup_hint_t *hint);
 
 #else
 
