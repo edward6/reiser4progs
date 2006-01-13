@@ -409,16 +409,7 @@ static errno_t fsck_check_init(repair_data_t *repair,
 
 	if (reiser4_fs_sync(repair->fs))
 		return -EIO;
-#if 0	
-	/* If backup is opened but it is the format version 0, there is no plugin
-	   set in the backup, continue without the backup. */
-	if (repair->fs->backup && 
-	    reiser4call(repair->fs->format, version) == 0)
-	{
-		reiser4_backup_close(repair->fs->backup);
-		repair->fs->backup = NULL;
-	}
-#endif	
+	
 	if (fs_mode == RM_CHECK) {
 		if (aal_device_reopen(host, host->blksize, flags)) {
 			aal_fatal("Failed to reopen the device RW.");

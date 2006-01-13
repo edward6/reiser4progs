@@ -951,7 +951,6 @@ typedef struct backup_hint {
 	uint64_t count;
 	uint64_t total;
 
-	/* flags describe the format. */
 	uint32_t version;
 } backup_hint_t;
 

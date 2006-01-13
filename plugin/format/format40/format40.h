@@ -20,6 +20,7 @@
 
 #define FORMAT40_VERSION	1
 #define FORMAT40_COMPATIBLE	1
+#define FORMAT40_UPDATE_BACKUP  (1 << 31)
 
 typedef struct format40_super {
 	d64_t sb_block_count;
@@ -71,41 +72,46 @@ typedef struct format40_backup {
 extern reiser4_format_plug_t format40_plug;
 extern reiser4_core_t *format40_core;
 
-#define get_sb_mkfs_id(sb)			aal_get_le32(sb, sb_mkfs_id)
-#define set_sb_mkfs_id(sb, val)			aal_set_le32(sb, sb_mkfs_id, val)
+#define get_sb_mkfs_id(sb)		aal_get_le32(sb, sb_mkfs_id)
+#define set_sb_mkfs_id(sb, val)		aal_set_le32(sb, sb_mkfs_id, val)
 
-#define get_sb_block_count(sb)			aal_get_le64(sb, sb_block_count)
-#define set_sb_block_count(sb, val)		aal_set_le64(sb, sb_block_count, val)
+#define get_sb_block_count(sb)		aal_get_le64(sb, sb_block_count)
+#define set_sb_block_count(sb, val)	aal_set_le64(sb, sb_block_count, val)
 
-#define get_sb_free_blocks(sb)			aal_get_le64(sb, sb_free_blocks)
-#define set_sb_free_blocks(sb, val)		aal_set_le64(sb, sb_free_blocks, val)
+#define get_sb_free_blocks(sb)		aal_get_le64(sb, sb_free_blocks)
+#define set_sb_free_blocks(sb, val)	aal_set_le64(sb, sb_free_blocks, val)
 
-#define get_sb_root_block(sb)			aal_get_le64(sb, sb_root_block)
-#define set_sb_root_block(sb, val)		aal_set_le64(sb, sb_root_block, val)
+#define get_sb_root_block(sb)		aal_get_le64(sb, sb_root_block)
+#define set_sb_root_block(sb, val)	aal_set_le64(sb, sb_root_block, val)
 
-#define get_sb_policy(sb)			aal_get_le16(sb, sb_policy)
-#define set_sb_policy(sb, val)			aal_set_le16(sb, sb_policy, val)
+#define get_sb_policy(sb)		aal_get_le16(sb, sb_policy)
+#define set_sb_policy(sb, val)		aal_set_le16(sb, sb_policy, val)
 
 /* FIXME: Should not be here, oid's stuff. */
-#define get_sb_oid(sb)                         aal_get_le64(sb, sb_oid[0])
-#define get_sb_file_count(sb)                  aal_get_le64(sb, sb_oid[1])
+#define get_sb_oid(sb)			aal_get_le64(sb, sb_oid[0])
+#define get_sb_file_count(sb)		aal_get_le64(sb, sb_oid[1])
 
-#define get_sb_flushes(sb)			aal_get_le64(sb, sb_flushes)
-#define set_sb_flushes(sb, val)			aal_set_le64(sb, sb_flushes, val)
+#define get_sb_flushes(sb)		aal_get_le64(sb, sb_flushes)
+#define set_sb_flushes(sb, val)		aal_set_le64(sb, sb_flushes, val)
 
-#define get_sb_tree_height(sb)			aal_get_le16(sb, sb_tree_height)
-#define set_sb_tree_height(sb, val)		aal_set_le16(sb, sb_tree_height, val)
+#define get_sb_tree_height(sb)		aal_get_le16(sb, sb_tree_height)
+#define set_sb_tree_height(sb, val)	aal_set_le16(sb, sb_tree_height, val)
 
-#define get_sb_flags(sb)			aal_get_le64(sb, sb_flags)
-#define set_sb_flags(sb, val)		        aal_set_le64(sb, sb_flags, val)
+#define get_sb_flags(sb)		aal_get_le64(sb, sb_flags)
+#define set_sb_flags(sb, val)		aal_set_le64(sb, sb_flags, val)
 
-#define get_sb_version(sb)			aal_get_le32(sb, sb_version)
-#define set_sb_version(sb, val)			aal_set_le32(sb, sb_version, val)
+#define get_sb_version(sb)	\
+	(aal_get_le32(sb, sb_version) & ~FORMAT40_UPDATE_BACKUP)
 
-#define get_sb_compatible(sb)			aal_get_le32(sb, sb_compatible)
-#define set_sb_compatible(sb, val)		aal_set_le32(sb, sb_compatible, val)
+#define set_sb_version(sb, val)		aal_set_le32(sb, sb_version, val)
 
-#define FORMAT40_KEY_LARGE	0
+#define sb_update_backup(sb)	\
+	(aal_get_le32(sb, sb_version) & FORMAT40_UPDATE_BACKUP)
+
+#define get_sb_compatible(sb)		aal_get_le32(sb, sb_compatible)
+#define set_sb_compatible(sb, val)	aal_set_le32(sb, sb_compatible, val)
+
+#define FORMAT40_KEY_LARGE		0
 
 #define format40_mkdirty(entity) \
 	(((format40_t *)entity)->state |= (1 << ENTITY_DIRTY))

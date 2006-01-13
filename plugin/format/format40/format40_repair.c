@@ -109,50 +109,69 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 			return RE_FATAL;
 		}
 		
-		if (get_sb_version(super) != get_sb_version(backup)) {
-			fsck_mess("The on-disk format version (%u) does "
-				  "not match the backup one (%u).%s",
-				  get_sb_version(super), 
-				  get_sb_version(backup),
-				  mode == RM_BUILD ? " Fixed." : "");
+		if ((get_sb_version(super) > get_sb_version(backup)) &&
+		    (get_sb_version(super) <= FORMAT40_VERSION) && 
+		    (sb_update_backup(super)))
+		{
+			/* Backup update is needed. */
+			aal_mess("Backup update is needed.%s", 
+				 mode == RM_CHECK ? "" : " Done.");
 
-			if (mode == RM_BUILD) {
-				set_sb_version(super, get_sb_version(backup));
-				format40_mkdirty(format);
+			if (mode == RM_CHECK) {
+				res |= RE_FIXABLE;
 			} else {
-				res |= RE_FATAL;
+				set_sb_version(super, get_sb_version(super));
+				format40_mkdirty(format);
 			}
-		}
-		
-		/* Check the compatible version. Backup was checked at 
-		   the open time. */
-		if (get_sb_compatible(super) != get_sb_compatible(backup)) {
-			fsck_mess("The on-disk format is compatible with the "
-				  "version (%u), whereas the backed up format "
-				  "is compatible with (%u).%s",
-				  get_sb_compatible(super),
-				  get_sb_compatible(backup),
-				  mode == RM_BUILD ? " Fixed." : "");
-
-			if (mode == RM_BUILD) {
-				set_sb_compatible(super, get_sb_compatible(backup));
-				format40_mkdirty(format);
-			} else {
-				res |= RE_FATAL;
+		} else {
+			if (get_sb_version(super) != get_sb_version(backup)) {
+				fsck_mess("The on-disk format version (%u) does"
+					  " not match the backup one (%u).%s",
+					  get_sb_version(super), 
+					  get_sb_version(backup),
+					  mode == RM_BUILD ? " Fixed." : "");
+				
+				if (mode == RM_BUILD) {
+					set_sb_version(super, 
+						get_sb_version(backup));
+					
+					format40_mkdirty(format);
+				} else {
+					res |= RE_FATAL;
+				}
+			}
+			
+			/* Check the compatible version. Backup was checked at 
+			   the open time. */
+			if (get_sb_compatible(super) != get_sb_compatible(backup)) {
+				fsck_mess("The on-disk format is compatible "
+					  "with the version (%u), whereas the "
+					  "backed up format is compatible with "
+					  "(%u).%s", get_sb_compatible(super),
+					  get_sb_compatible(backup),
+					  mode == RM_BUILD ? " Fixed." : "");
+				
+				if (mode == RM_BUILD) {
+					set_sb_compatible(super, 
+						get_sb_compatible(backup));
+					
+					format40_mkdirty(format);
+				} else {
+					res |= RE_FATAL;
+				}
 			}
 		}
 	} else {
-		/* Check the version. */
 		if (get_sb_version(super) > FORMAT40_VERSION) {
 			int opt;
-			
+
 			aal_mess("The on-disk format40 version (%u) is greater "
 				 "than the known version (%u). This probably "
 				 "means that reiser4progs is out of date. Fix "
 				 "the format40 version, only if you are sure "
 				 "this is a corruption.", get_sb_version(super),
 				 FORMAT40_VERSION);
-			
+
 			if (mode != RM_BUILD)
 				return RE_FATAL;
 
@@ -160,30 +179,31 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 					"version?");
 			if (opt != EXCEPTION_OPT_YES)
 				return -EINVAL;
-			
+
 			set_sb_version(super, FORMAT40_VERSION);
 			format40_mkdirty(format);
 		}
-		
-		/* Check the compatible version. */
-		if (compatible_with[get_sb_version(super)] != 
-		    get_sb_compatible(super))
-		{
-			fsck_mess("The format40 version (%u) is compatible "
-				  "with the version (%u), whereas the on-disk "
-				  "format says with (%u).%s",
-				  get_sb_version(super), 
-				  compatible_with[get_sb_version(super)],
-				  get_sb_compatible(super), mode == RM_BUILD ? 
-				  " Fixed." : "");
-			
-			if (mode == RM_BUILD) {
-				set_sb_compatible(super, 
-					compatible_with[get_sb_version(super)]);
-				format40_mkdirty(format);
-			} else {
-				res |= RE_FATAL;
-			}
+	}
+	
+	/* Check the compatible version. It has not been checked yet if backup 
+	   was not opened or if backup update is needed. */
+	if (compatible_with[get_sb_version(super)] != 
+	    get_sb_compatible(super))
+	{
+		fsck_mess("The format40 version (%u) is compatible "
+			  "with the version (%u), whereas the on-disk "
+			  "format says with (%u).%s",
+			  get_sb_version(super), 
+			  compatible_with[get_sb_version(super)],
+			  get_sb_compatible(super), mode == RM_BUILD ? 
+			  " Fixed." : "");
+
+		if (mode == RM_BUILD) {
+			set_sb_compatible(super, 
+					  compatible_with[get_sb_version(super)]);
+			format40_mkdirty(format);
+		} else {
+			res |= RE_FATAL;
 		}
 	}
 	

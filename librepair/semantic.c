@@ -655,7 +655,8 @@ static errno_t repair_semantic_root_prepare(repair_semantic_t *sem) {
 		return -EINVAL;
 	}
 	
-	if (reiser4call(fs->format, version) > 0) {
+	if (fs->backup && fs->backup->hint.version > 0) {
+		/* Check the fs-default plugin set by the backup. */
 		res = repair_pset_root_check(sem->repair->fs, sem->root,
 					     sem->repair->mode);
 		if (res != 0)

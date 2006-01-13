@@ -87,47 +87,6 @@ static errno_t format40_layout(reiser4_format_ent_t *entity,
 	return region_func(blk, 1, data);
 }
 
-static errno_t format40_check(reiser4_format_ent_t *entity,
-			      format40_super_t *super)
-{
-	format40_t *format;
-	blk_t max_format_len;
-
-	format = (format40_t *)entity;
-    
-	max_format_len = aal_device_len(format->device) /
-		(format->blksize / format->device->blksize);
-	
-	if (get_sb_block_count(super) > max_format_len) {
-		aal_error("Superblock has an invalid block "
-			  "count %llu for max possible length "
-			  "%llu blocks.", get_sb_block_count(super),
-			  max_format_len);
-		return -EINVAL;
-	}
-    
-	if (get_sb_root_block(super) <= format40_start(entity) ||
-	    get_sb_root_block(super) >= max_format_len)
-	{
-		aal_error("Superblock has an invalid root block "
-			  "%llu. It must lie between %llu and %llu "
-			  "blocks.", get_sb_root_block(super),
-			  format40_start(entity), max_format_len);
-		return -EINVAL;
-	}
-
-	if (get_sb_version(super) > FORMAT40_VERSION) {
-		aal_error("The on-disk format version (%u) is greater "
-			  "than the known version (%u). Please update "
-			  "reiser4progs or run fsck.reiser4 --build-sb to "
-			  "fix the fs consistency.", get_sb_version(super),
-			  FORMAT40_VERSION);
-
-		return -EINVAL;
-	}
-	
-	return 0;
-}
 #endif
 
 static int format40_magic(format40_super_t *super) {
@@ -328,9 +287,11 @@ static errno_t format40_backup(reiser4_format_ent_t *entity, backup_hint_t *hint
 	backup->sb_mkfs_id = SUPER(entity)->sb_mkfs_id;
 	backup->sb_policy = SUPER(entity)->sb_policy;
 	backup->sb_flags = SUPER(entity)->sb_flags;
-	backup->sb_version = SUPER(entity)->sb_version;
-	backup->sb_compatible = SUPER(entity)->sb_compatible;
 	backup->sb_reserved = 0;
+	
+	/* Get rid of UPDATE_BACKUP flag. */
+	set_sb_version(backup, get_sb_version(SUPER(entity)));
+	backup->sb_compatible = SUPER(entity)->sb_compatible;
 	
 	hint->version = get_sb_version(SUPER(entity));
 	
@@ -368,8 +329,44 @@ static errno_t format40_sync(reiser4_format_ent_t *entity) {
 }
 
 static errno_t format40_valid(reiser4_format_ent_t *entity) {
+	format40_t *format;
+	blk_t max_format_len;
+
 	aal_assert("umka-397", entity != NULL);
-	return format40_check(entity, SUPER(entity));
+	
+	format = (format40_t *)entity;
+    
+	max_format_len = aal_device_len(format->device) /
+		(format->blksize / format->device->blksize);
+	
+	if (get_sb_block_count(SUPER(format)) > max_format_len) {
+		aal_error("Superblock has an invalid block count "
+			  "%llu for max possible length %llu blocks.", 
+			  get_sb_block_count(SUPER(format)), max_format_len);
+		return -EINVAL;
+	}
+    
+	if (get_sb_root_block(SUPER(format)) <= format40_start(entity) ||
+	    get_sb_root_block(SUPER(format)) >= max_format_len)
+	{
+		aal_error("Superblock has an invalid root block "
+			  "%llu. It must lie between %llu and %llu "
+			  "blocks.", get_sb_root_block(SUPER(format)),
+			  format40_start(entity), max_format_len);
+		return -EINVAL;
+	}
+
+	if (get_sb_version(SUPER(format)) > FORMAT40_VERSION) {
+		aal_error("The on-disk format version (%u) is greater than "
+			  "the known version (%u). Please update reiser4progs "
+			  "or run fsck.reiser4 --build-sb to fix the fs "
+			  "consistency.", get_sb_version(SUPER(format)),
+			  FORMAT40_VERSION);
+
+		return -EINVAL;
+	}
+	
+	return 0;
 }
 
 static void format40_oid_area(reiser4_format_ent_t *entity, 

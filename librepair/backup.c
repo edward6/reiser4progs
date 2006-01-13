@@ -468,43 +468,41 @@ reiser4_backup_t *repair_backup_open(reiser4_fs_t *fs, uint8_t mode) {
 			app = hint;
 
 			/* Set @found to 2 if some previous, not the current 
-			   hint, matches @ondisk hint. */
+			   backup, matches @ondisk hint. The chosen backup does
+			   not match the fs metadata. */
 			if (found && !matched)
 				found = 2;
 		}
 	}
 
-	if (mode != RM_BUILD) {
-		/* All backup blocks must be found and must match 
-		   the ondisk one. */
-		if (found != 1) {
-			fsck_mess("Found backup does not match to the on-disk "
-				  "filesystem metadata.");
-			goto error_free_ondisk;
-		}
-		
-		if (app->total != app->count) {
-			fsck_mess("Only %llu of %llu backup blocks found.",
-				  app->count, app->total);
-			goto error_free_ondisk;
-		}
-	} else {
-		/* No backup block is found. */
-		if (!app) goto error_free_ondisk;
-		
-		/* The only 1 backup block is found and it does not match 
-		   the @ondisk data */
-		if (ondisk && found != 1 && app->count == 1) {
-			/* Some more backup blocks must present. */
-			if (app->count != app->total)
-				goto error_free_ondisk;
+	/* If no backup block is found. */
+	if (!app) goto error_free_ondisk;
+	
+	if (app->total != app->count) {
+		fsck_mess("Only %llu of %llu backup blocks are found.",
+			  app->count, app->total);
 
-			/* The only 1 backup block must present according to 
-			   both this backup block and the @ondisk data, take
-			   @ondisk as the correct version. */
-			if (ondisk->total == 1)
-				goto error_free_ondisk;
-		}
+		if (mode != RM_BUILD)
+			goto error_free_ondisk;
+	}
+	
+	/* If only 1 block of the backup is found and it does not match 
+	   the @ondisk data */
+	if (ondisk && found != 1 && app->count == 1) {
+		/* Some more backup blocks must present. */
+		if (app->count != app->total)
+			goto error_free_ondisk;
+		
+		/* The only 1 backup block must present according to 
+		   both this backup block and the @ondisk data, take
+		   @ondisk as the correct version. */
+		if (ondisk->total == 1)
+			goto error_free_ondisk;
+	}
+	
+	if (found != 1) {
+		fsck_mess("Found backup does not match to the on-disk "
+			  "filesystem metadata.");
 	}
 	
 	if (ondisk) {
