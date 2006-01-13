@@ -54,42 +54,7 @@ static void debugfs_print_usage(char *name) {
 		"  -f, --force                   makes debugfs to use whole disk, not\n"
 		"  -y, --yes                     assumes an answer 'yes' to all questions.\n"
 		"                                block device or mounted partition.\n"
-		"  -c, --cache N                 number of nodes in tree buffer cache\n"
-		"\n"
-		"Temporary Options:\n"
-		"  -C                            converts to the new backup layout.\n");
-}
-
-
-static errno_t cb_count_block(blk_t start, count_t width, void *data) {
-	(*(uint64_t *)data)++;
-	return 0;
-}
-
-static errno_t cb_mark_block(blk_t start, count_t width, void *data) {
-	reiser4_fs_t *fs = (reiser4_fs_t *)data;
-	blk_t *backup = (blk_t *)fs->data;
-	errno_t res;
-
-	*backup = start;
-	backup++;
-	fs->data = backup;
-		
-	if (reiser4_alloc_occupied(fs->alloc, start, width))
-		return 0;
-		
-	if ((res = reiser4_format_dec_free(fs->format, 1))) {
-		aal_error("No free blocks on the fs");
-		return -ENOSPC;
-	}
-	
-	return reiser4_alloc_occupy(fs->alloc, start, width);
-}
-
-static errno_t cb_unmark_block(blk_t start, count_t width, void *data) {
-	reiser4_fs_t *fs = (reiser4_fs_t *)data;
-	reiser4_format_inc_free(fs->format, 1);
-	return reiser4_alloc_release(fs->alloc, start, width);
+		"  -c, --cache N                 number of nodes in tree buffer cache\n");
 }
 
 /* Initializes exception streams used by debugfs */
@@ -113,200 +78,9 @@ typedef struct debugfs_backup_hint {
 	aal_gauge_t *gauge;
 } debugfs_backup_hint_t;
 
-static int cb_cmp64(void *b, uint32_t pos, void *p, void *data) {
-	ptr_hint_t *ptr = (ptr_hint_t *)p;
-	blk_t *blk = (blk_t *)b;
-	
-	if (ptr->start == 0)
-		return 1;
-	
-	if (blk[pos] < ptr->start)
-		return -1;
-
-	if (blk[pos] >= ptr->start + ptr->width)
-		return 1;
-
-	return 0;
-}
-
 enum {
 	NF_DONE = NF_LAST
 };
-
-static errno_t cb_reloc_node(reiser4_node_t *node, void *data) {
-	debugfs_backup_hint_t *backup;
-	reiser4_tree_t *tree;
-	ptr_hint_t ptr;
-	uint32_t pos;
-	errno_t res;
-	blk_t blk;
-
-	aal_assert("vpf-1692", node != NULL);
-
-	tree = (reiser4_tree_t *)node->tree;
-	backup = (debugfs_backup_hint_t *)data;
-
-	aal_gauge_set_data(backup->gauge, node);
-	aal_gauge_touch(backup->gauge);
-
-	while(node) {
-		ptr.start = node->block->nr;
-		ptr.width = 1;
-
-		if (node->flags & NF_DONE)
-			break;
-			
-		/* Relocate the node if belongs to backup layout. */
-		if (aux_bin_search(backup->blk, backup->count, 
-				   &ptr, cb_cmp64, NULL, &pos))
-		{
-			aal_mess("Relocating the node %llu.", node->block->nr);
-
-			res = reiser4_format_dec_free(tree->fs->format, 1);
-			
-			if (res) {
-				aal_error("No free blocks on the fs");
-				return -EIO;
-			}
-
-			blk = reiser4_fake_get();
-
-			if (reiser4_tree_get_root(tree) == node->block->nr)
-				reiser4_tree_set_root(tree, blk);
-
-			if (node->p.node) {
-				res = reiser4_item_update_link(&node->p, blk);
-				if (res) return res;
-			}
-			
-			/* Rehashing node in @tree->nodes hash table. */
-			reiser4_tree_rehash_node(tree, node, blk);
-		}
-
-		node->flags |= NF_DONE;
-		node = node->p.node;
-	}
-	
-	return 0;
-}
-
-static errno_t cb_reloc_extent(reiser4_place_t *place, void *data) {
-	debugfs_backup_hint_t *backup;
-	uint64_t count, offset;
-	uint32_t blksize, i;
-	uint32_t units, pos;
-	reiser4_tree_t *tree;
-	reiser4_node_t *node;
-	aal_device_t *device;
-	trans_hint_t trans;
-	ptr_hint_t ptr;
-	int look = 0;
-	errno_t res;
-	blk_t blk;
-	
-	aal_assert("vpf-1691", place != NULL);
-
-	backup = (debugfs_backup_hint_t *)data;
-	node = place->node;
-
-	/* Check extents on the TWIG level. */
-	if (reiser4_node_get_level(node) != TWIG_LEVEL)
-		return 0;
-
-	if (place->plug->p.id.group != EXTENT_ITEM)
-		return 0;
-	
-	/* Prepare @trans. */
-	aal_memset(&trans, 0, sizeof(trans));
-	trans.count = 1;
-	trans.specific = &ptr;
-	trans.plug = place->plug;
-	
-	tree = (reiser4_tree_t *)node->tree;
-	device = node->block->device;
-	blksize = node->block->size;
-	units = reiser4_item_units(place);
-	offset = reiser4_key_get_offset(&place->key);
-
-	for (place->pos.unit = 0, count = 0;
-	     place->pos.unit < units; place->pos.unit++)
-	{
-		aal_block_t *block;
-
-		if (objcall(place, object->fetch_units, &trans) != 1)
-			return -EIO;
-		
-		/* If no match with a backup block, continue. */
-		if (!aux_bin_search(backup->blk, backup->count, &ptr, 
-				    cb_cmp64, NULL, &pos))
-		{
-			count += ptr.width;
-			continue;
-		}
-
-		/* Lookup is needed -> res = 1. */
-		look = 1;
-		
-		aal_mess("Relocating the extent region[%llu..%llu]: "
-			 "node %llu, item %u, unit %u.", ptr.start, 
-			 ptr.start + ptr.width - 1, node->block->nr, 
-			 place->pos.item, place->pos.unit);
-
-		/* Relocate the extent unit. */
-		for (blk = ptr.start, i = 0; i < ptr.width; i++, blk++) {
-			reiser4_key_t *ins_key;
-
-			if (!(block = aal_block_load(device, blksize, blk)))
-				return -EIO;
-
-			aal_block_move(block, device, 0);
-
-			if (!(ins_key = aal_calloc(sizeof(*ins_key), 0)))
-				return -ENOMEM;
-
-			aal_memcpy(ins_key, &place->key, 
-				   sizeof(place->key));
-
-			reiser4_key_set_offset(ins_key, offset + 
-					       count * blksize);
-
-			aal_hash_table_insert(tree->blocks, 
-					      ins_key, block);
-
-			count++;
-		}
-
-		/* Call mpressure after insertion into @tree->blocks. */
-		if ((res = reiser4_tree_mpressure(tree)))
-			return res;
-		
-		reiser4_alloc_release(tree->fs->alloc, ptr.start, ptr.width);
-
-		reiser4_alloc_occupy(tree->fs->alloc, backup->blk[pos], 1);
-
-		ptr.start = EXTENT_UNALLOC_UNIT;
-
-		/* Updating extent unit at @place->pos.unit. */
-		if (objcall(place, object->update_units, &trans) != 1)
-			return -EIO;
-		
-		if ((res = reiser4_format_dec_free(tree->fs->format, 1))) {
-			aal_error("No free blocks on the fs");
-			return -EIO;
-		}
-	}
-	
-	/* Flush moved blocks on disk. */
-	if (tree->mpc_func && tree->mpc_func(tree)) {
-		if (reiser4_tree_adjust(tree)) {
-			aal_error("Can't adjust the tree.");
-			return -EINVAL;
-		}
-
-	}
-
-	return look;
-}
 
 extern void cb_gauge_tree_percent(aal_gauge_t *gauge);
 
@@ -369,7 +143,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVyftb:djk:n:i:o:plsaPUOFWB:c:C?",
+	while ((c = getopt_long(argc, argv, "hVyftb:djk:n:i:o:plsaPUOFWB:c:?",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -461,9 +235,6 @@ int main(int argc, char *argv[]) {
 		case 'B':
 			bm_file = optarg;
 			break;
-		case 'C':
-			behav_flags |= BF_FREE_NEW_BACKUP;
-			break;
 		}
 	}
     
@@ -514,8 +285,7 @@ int main(int argc, char *argv[]) {
 
 	/* Opening device with file_ops and default blocksize */
 	if (!(device = aal_device_open(&file_ops, host_dev, 512,
-				       (behav_flags & BF_UNPACK_META ||
-					behav_flags & BF_FREE_NEW_BACKUP) ?
+				       behav_flags & BF_UNPACK_META ?
 				       O_RDWR : O_RDONLY)))
 	{
 		aal_error("Can't open %s. %s.", host_dev, strerror(errno));
@@ -715,51 +485,6 @@ int main(int argc, char *argv[]) {
 		aal_stream_fini(&stream);
 		reiser4_bitmap_close(bitmap);
 		bitmap = NULL;
-	}
-	
-	if (behav_flags & BF_FREE_NEW_BACKUP) {
-		debugfs_backup_hint_t backup;
-		
-		fs->tree->mpc_func = misc_mpressure_detect;
-
-		reiser4_backup_layout(fs, cb_count_block, &backup.count);
-			
-		backup.blk = aal_calloc(sizeof(blk_t) * backup.count, 0);
-		fs->data = backup.blk;
-		
-		/* Mark all new backup blocks as used to not allocate them
-		   again on reallocation. */
-		if (reiser4_backup_layout(fs, cb_mark_block, fs)) {
-			aal_error("Failed to mark backup blocks used.");
-			aal_gauge_done(backup.gauge);
-			aal_gauge_free(backup.gauge);
-			goto error_free_fs;
-		}
-		
-		fs->data = NULL;
-		backup.gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
-						cb_gauge_tree_percent, NULL, 500, NULL);
-		aal_gauge_set_value(backup.gauge, 0);
-		aal_gauge_touch(backup.gauge);
-	
-		if (reiser4_tree_scan(fs->tree, cb_reloc_node,  
-				      cb_reloc_extent, &backup))
-		{
-			aal_error("Failed to free blocks for the new backup.");
-			aal_gauge_done(backup.gauge);
-			aal_gauge_free(backup.gauge);
-			goto error_free_fs;
-		}
-		aal_gauge_done(backup.gauge);
-		aal_gauge_free(backup.gauge);
-
-		/* Mark all old backup blocks as unused. */
-		if (reiser4_old_backup_layout(fs, cb_unmark_block, fs)) {
-			aal_error("Failed to mark backup blocks used.");
-			goto error_free_fs;
-		}
-
-		aal_free(backup.blk);
 	}
 	
  done:
