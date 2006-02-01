@@ -527,40 +527,6 @@ errno_t obj40_update_stat(reiser4_object_t *obj, obj40_stat_ops_t *ops,
 	return res;
 }
 
-#if 0
-/* Fix @place->key if differs from @key. */
-errno_t obj40_fix_key(reiser4_object_t *obj, reiser4_place_t *place, 
-		      reiser4_key_t *key, uint8_t mode) 
-{
-	errno_t res;
-	
-	aal_assert("vpf-1218", obj != NULL);
-	
-	if (!key->plug->compfull(key, &place->key))
-		return 0;
-	
-	fsck_mess("Node (%llu), item (%u), (%s): the key [%s] of the "
-		  "item is wrong, %s [%s]. Plugin (%s).", place_blknr(place),
-		  place->pos.unit, place->plug->p.label, 
-		  print_key(obj40_core, &place->key), mode == RM_CHECK ? 
-		  "should be" : "fixed to", print_key(obj40_core, key), 
-		  reiser4_psobj(obj)->p.label);
-	
-	if (mode == RM_CHECK)
-		return RE_FIXABLE;
-	
-	if ((res = obj40_core->tree_ops.update_key(obj->info.tree,
-						   place, key)))
-	{
-		aal_error("Node (%llu), item(%u): update of the "
-			  "item key failed.", place_blknr(place),
-			  place->pos.unit);
-	}
-
-	return res;
-}
-#endif
-
 errno_t obj40_prepare_stat(reiser4_object_t *obj, uint16_t objmode, uint8_t mode) {
 	reiser4_place_t *start;
 	trans_hint_t trans;

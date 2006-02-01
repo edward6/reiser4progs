@@ -25,7 +25,6 @@ extern "C" {
 #include <repair/place.h>
 #include <repair/item.h>
 #include <repair/object.h>
-#include <repair/key.h>
 #include <repair/oid.h>
 
 /*  -------------------------------------------------
