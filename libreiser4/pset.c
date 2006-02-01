@@ -7,58 +7,52 @@
 
 extern reiser4_profile_t defprof;
 
+rid_t pset_prof[PSET_LAST] = {
+	[PSET_OBJ]	= PROF_OBJ,
+	[PSET_DIR]	= PROF_DIR,
+	[PSET_PERM]	= PROF_PERM,
+	[PSET_POLICY]	= PROF_POLICY,
+	[PSET_HASH]	= PROF_HASH,
+	[PSET_FIBRE]	= PROF_FIBRE,
+	[PSET_STAT]	= PROF_STAT,
+	[PSET_DIRITEM]	= PROF_DIRITEM,
+	[PSET_CRYPTO]	= PROF_CRYPTO,
+	[PSET_DIGEST]	= PROF_DIGEST,
+	[PSET_COMPRESS]	= PROF_COMPRESS,
+	[PSET_CMODE]	= PROF_CMODE,
+	[PSET_CLUSTER]	= PROF_CLUSTER,
+	[PSET_CREATE]	= PROF_CREATE,
 #ifndef ENABLE_MINIMAL
-pset_member_t pset_prof[PSET_LAST] = {
-	[PSET_OBJ]	= {PROF_OBJ,		1},
-	[PSET_DIR]	= {PROF_DIR,		1},
-	[PSET_PERM]	= {PROF_PERM,		1},
-	[PSET_POLICY]	= {PROF_POLICY,		0},
-	[PSET_HASH]	= {PROF_HASH,		1},
-	[PSET_FIBRE]	= {PROF_FIBRE,		1},
-	[PSET_STAT]	= {PROF_STAT,		0},
-	[PSET_DIRITEM]	= {PROF_DIRITEM,	1},
-
-	/* Hmm, actually next 5 are essential for files, i.e. cannot be changed 
-	   w/out convertion. However this flag indicates if a slot can present 
-	   while differs from the root one. And these fields must always present 
-	   in crc files. */
-	[PSET_CRYPTO]	= {PROF_CRYPTO,		0},
-	[PSET_DIGEST]	= {PROF_DIGEST,		0},
-	[PSET_COMPRESS]	= {PROF_COMPRESS,	0},
-	[PSET_CMODE]	= {PROF_CMODE,		0},
-	[PSET_CLUSTER]	= {PROF_CLUSTER,	0},
-	[PSET_CREATE]	= {PROF_CREATE,		0},
-	
-	[PSET_TAIL]	= {PROF_TAIL,		1},
-	[PSET_EXTENT]	= {PROF_EXTENT,		1},
-	[PSET_CTAIL]	= {PROF_CTAIL,		1},
+	[PSET_TAIL]	= PROF_TAIL,
+	[PSET_EXTENT]	= PROF_EXTENT,
+	[PSET_CTAIL]	= PROF_CTAIL,
+#endif
 };
 
-rid_t hset_prof[HSET_LAST] = {
-	/* The plugin to create children. */
-	[HSET_CREATE]	= PROF_HEIR_CREATE,
-	[HSET_HASH]	= PROF_HEIR_HASH,
-	[HSET_FIBRE]	= PROF_HEIR_FIBRE,
-	[HSET_DIR_ITEM] = PROF_HEIR_DIRITEM,
-};
-#else
-pset_member_t pset_prof[PSET_LAST] = {
-	[PSET_OBJ]	= {PROF_OBJ},
-	[PSET_DIR]	= {PROF_DIR},
-	[PSET_PERM]	= {PROF_PERM},
-	[PSET_POLICY]	= {PROF_POLICY},
-	[PSET_HASH]	= {PROF_HASH},
-	[PSET_FIBRE]	= {PROF_FIBRE},
-	[PSET_STAT]	= {PROF_STAT},
-	[PSET_DIRITEM]	= {PROF_DIRITEM},
-	[PSET_CRYPTO]	= {PROF_CRYPTO},
-	[PSET_DIGEST]	= {PROF_DIGEST},
-	[PSET_COMPRESS]	= {PROF_COMPRESS},
-	[PSET_CMODE]	= {PROF_CMODE},
-	[PSET_CLUSTER]	= {PROF_CLUSTER},
-	[PSET_CREATE]	= {PROF_CREATE},
+#ifndef ENABLE_MINIMAL
+rid_t hset_prof[PSET_STORE_LAST] = {
+	[PSET_OBJ]	= PROF_LAST,
+	[PSET_DIR]	= PROF_LAST,
+	[PSET_PERM]	= PROF_LAST,
+	[PSET_POLICY]	= PROF_LAST,
+	[PSET_HASH]	= PROF_HEIR_HASH,
+	[PSET_FIBRE]	= PROF_HEIR_FIBRE,
+	[PSET_STAT]	= PROF_LAST,
+	[PSET_DIRITEM]	= PROF_HEIR_DIRITEM,
+	[PSET_CRYPTO]	= PROF_LAST,
+	[PSET_DIGEST]	= PROF_LAST,
+	[PSET_COMPRESS]	= PROF_LAST,
+	[PSET_CMODE]	= PROF_LAST,
+	[PSET_CLUSTER]	= PROF_LAST,
+	[PSET_CREATE]	= PROF_LAST,
 };
 #endif
+
+#define PSET_UNUSED 0
+#define HSET_UNUSED ~(1 << PSET_HASH | 1 << PSET_FIBRE | 1 << PSET_DIRITEM)
+
+#define pset_plugin_unused(id) ((1 << id) & PSET_UNUSED)
+#define hset_plugin_unused(id) ((1 << id) & HSET_UNUSED)
 
 #ifndef ENABLE_MINIMAL
 static int pset_tree_isready(reiser4_tree_t *tree) {
@@ -94,9 +88,12 @@ static reiser4_plug_t *reiser4_pset_plug(rid_t member, rid_t id) {
 	reiser4_plug_t *plug;
 	aal_assert("vpf-1613", member < PSET_STORE_LAST);
 	
-	if (defprof.pid[pset_prof[member].prof].id.type == PARAM_PLUG_TYPE) {
+	if (pset_plugin_unused(member))
+		return INVAL_PTR;
+	
+	if (defprof.pid[pset_prof[member]].id.type == PARAM_PLUG_TYPE) {
 #ifndef ENABLE_MINIMAL
-		return id < defprof.pid[pset_prof[member].prof].max ? 
+		return id < defprof.pid[pset_prof[member]].max ? 
 			NULL : INVAL_PTR;
 #else
 		return NULL;
@@ -104,14 +101,18 @@ static reiser4_plug_t *reiser4_pset_plug(rid_t member, rid_t id) {
 	}
 	
 	plug = reiser4_factory_ifind(
-		defprof.pid[pset_prof[member].prof].id.type, id);
+		defprof.pid[pset_prof[member]].id.type, id);
 	
 	return plug ? plug : INVAL_PTR;
 }
 
 #ifndef ENABLE_MINIMAL
 static reiser4_plug_t *reiser4_hset_plug(rid_t member, rid_t id) {
-	aal_assert("vpf-1613", member < HSET_LAST);
+	aal_assert("vpf-1613", member < PSET_STORE_LAST);
+
+	if (hset_plugin_unused(member))
+		return INVAL_PTR;
+
 	return reiser4_factory_ifind(
 		defprof.pid[hset_prof[member]].id.type, id) ? : INVAL_PTR;
 }
@@ -139,27 +140,33 @@ void reiser4_pset_root(object_info_t *info) {
 		if (info->pset.plug_mask & (1 << i))
 			continue;
 		
+		if (pset_plugin_unused(i))
+			continue;
+		
 		if (i == PSET_OBJ) {
 			/* Special case: root file plug. */
 			info->pset.plug[i] = reiser4_profile_plug(PROF_DIRFILE);
-		} else if (defprof.pid[pset_prof[i].prof].id.type == 
+		} else if (defprof.pid[pset_prof[i]].id.type == 
 			   PARAM_PLUG_TYPE) 
 		{
 			info->pset.plug[i] = 
-				(void *)defprof.pid[pset_prof[i].prof].id.id;
+				(void *)defprof.pid[pset_prof[i]].id.id;
 			
 		} else {
 			info->pset.plug[i] = 
-				reiser4_profile_plug(pset_prof[i].prof);
+				reiser4_profile_plug(pset_prof[i]);
 		}
 	}
 
-	for (i = 0; i < HSET_LAST; i++) {
+	for (i = 0; i < PSET_STORE_LAST; i++) {
 		/* Set a hset plugin only if the plugin was overwritten 
 		   in the profile. */
 		if (!aal_test_bit(&defprof.mask, hset_prof[i]))
 			continue;
 
+		if (hset_plugin_unused(i))
+			continue;
+		
 		info->hset.plug[i] = reiser4_profile_plug(hset_prof[i]);
 		info->hset.plug_mask |= (1 << i);
 	}
@@ -185,38 +192,23 @@ uint64_t reiser4_pset_build_mask(reiser4_tree_t *tree,
 		mask = (1 << PSET_STORE_LAST) - 1;
 
 		/* Exception: There is no Dir plugins in progs. */
-		mask &= ~(1 << PSET_DIR);
+		mask &= ~((1 << PSET_DIR) | PSET_UNUSED);
 
-		/* Store PSET_CREATE for format version 0 only. */
-		if (reiser4call(tree->fs->format, version) != 0)
-			mask &= ~(1 << PSET_CREATE);
 		return mask;
 	}
 	
 	for (i = 0; i < PSET_STORE_LAST; i++) {
-		/* Leave non-essential members as is. */
-                if (!pset_prof[i].ess)
-                        continue;
-
-		/* Store if do not match for essential plugins. */
+		if (pset_plugin_unused(i))
+			continue;
+		
+		/* Store if does not match the fs-default plugin. */
 		if (tree->ent.pset[i] != pset->plug[i])
 			mask |= (1 << i);
 		
-		/* Do not store If match for essential plugins. */
+		/* Do not store if matches the fs-default plugin. */
 		if (tree->ent.pset[i] == pset->plug[i])
 			mask &= ~(1 << i);
-		
-		/* FIXME: What is a non-essential plugin is inherited from 
-		   the parent does not match the fs-defaul one. It is not 
-		   explicitely set for this particular file. Should it be 
-		   stored on disk? 
-		   The answer is NO for now -- non-essential plugins forget 
-		   their special settings in parents. */
 	}
-	
-	/* Store PSET_CREATE for format version 0 only. */
-	if (reiser4call(tree->fs->format, version) != 0)
-		mask &= ~(1 << PSET_CREATE);
 	
 	/* Object plugin is always stored. */
 	mask |= (1 << PSET_OBJ);
@@ -259,7 +251,7 @@ errno_t reiser4_tset_init(reiser4_tree_t *tree) {
 
 	/* Build the param pset mask, keep it in the tree instance. */
 	for (i = 0; i < PSET_LAST; i++) {
-		if (defprof.pid[pset_prof[i].prof].id.type == PARAM_PLUG_TYPE)
+		if (defprof.pid[pset_prof[i]].id.type == PARAM_PLUG_TYPE)
 			tree->ent.param_mask |= (1 << i);
 	}
 	
@@ -289,7 +281,6 @@ errno_t reiser4_pset_tree(reiser4_tree_t *tree) {
 #ifndef ENABLE_MINIMAL
 	mask = object->info.pset.plug_mask;
 #endif
-
 	reiser4_object_close(object);
 
 #ifndef ENABLE_MINIMAL
@@ -297,6 +288,9 @@ errno_t reiser4_pset_tree(reiser4_tree_t *tree) {
 	for (i = PSET_DIR + 1; i < PSET_STORE_LAST; i++) {
 		/* If root should not be checked (debugfs), skip the loop. */
 		if (!check)
+			break;
+		
+		if (pset_plugin_unused(i))
 			continue;
 		
 		if (mask & (1 << i)) {
@@ -305,32 +299,25 @@ errno_t reiser4_pset_tree(reiser4_tree_t *tree) {
 				continue;
 			
 			/* Set in mask & PARAMETER. */
-			if (defprof.pid[pset_prof[i].prof].id.type == 
+			if (defprof.pid[pset_prof[i]].id.type == 
 			    PARAM_PLUG_TYPE)
 			{
 				continue;
 			}
 		} 
 		
-		/* CREATE presented in the format version 0 only. */
-		if (i == PSET_CREATE && 
-		    reiser4call(tree->fs->format, version) > 0)
-		{
-			continue;
-		}
-		
 		/* Other cases are errors. */
 		aal_error("The slot %u in the fs-global object "
 			  "plugin set is not initialized.", i);
 		return -EINVAL;
 	}
-
+	
 	/* Set others from the profile. */
-	for (; i < PSET_LAST; i++) {
+	for (i = PSET_STORE_LAST; i < PSET_LAST; i++) {
 		if (tree->ent.pset[i])
 			continue;
 
-		tree->ent.pset[i] = reiser4_profile_plug(pset_prof[i].prof);
+		tree->ent.pset[i] = reiser4_profile_plug(pset_prof[i]);
 	}
 #endif
 

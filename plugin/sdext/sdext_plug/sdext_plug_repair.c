@@ -28,14 +28,6 @@ char *pset_name[PSET_STORE_LAST] = {
 	[PSET_CREATE]	= "create",
 };
 
-char *hset_name[HSET_LAST] = {
-	/* The plugin to create children. */
-	[HSET_CREATE]	= "heir_create",
-	[HSET_HASH]	= "heir_hash",
-	[HSET_FIBRE]	= "heir_fibration",
-	[HSET_DIR_ITEM] = "heir_diritem",
-};
-
 errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	reiser4_place_t *place;
 	uint64_t metmask = 0;
@@ -45,7 +37,6 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	uint16_t count, i;
 	int32_t remove;
 	uint32_t len;
-	uint8_t last;
 	int is_pset;
 	void *dst;
 	
@@ -54,9 +45,8 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	place = stat->place;
 	
 	is_pset = stat->plug->p.id.id == SDEXT_PSET_ID;
-	last = is_pset ? PSET_STORE_LAST : HSET_LAST;
 	
-	if (count > last) {
+	if (count > PSET_STORE_LAST) {
 		fsck_mess("Node (%llu), item (%u), [%s]: does not "
 			  "look like a valid SD %s set extention: "
 			  "wrong member count detected (%u).", 
@@ -78,8 +68,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 		return RE_FATAL;
 	}
 	    
-	aal_memset(&plugh, 0, is_pset ? sizeof(sdhint_plug_t) : 
-		   sizeof(sdhint_heir_t));
+	aal_memset(&plugh, 0, sizeof(sdhint_plug_t));
 	remove = 0;
 	
 	for (i = 0; i < count; i++) {
@@ -88,7 +77,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 		mem = sdext_plug_get_member(ext, i);
 		id = sdext_plug_get_pid(ext, i);
 
-		if (mem >= last) {
+		if (mem >= PSET_STORE_LAST) {
 			/* Unknown member. */
 			fsck_mess("Node (%llu), item (%u), [%s]: the slot (%u) "
 				  "contains the invalid %s set member (%u).",
@@ -104,8 +93,7 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 				  "contains the %s set member (%s) that was met "
 				  "already.",place_blknr(place),place->pos.item,
 				  print_key(sdext_pset_core, &place->key), i, 
-				  is_pset ? "plugin" : "heir", is_pset ? 
-				  pset_name[mem] : hset_name[mem]);
+				  is_pset ? "plugin" : "heir", pset_name[mem]);
 
 			rmmask |= (1 << i);
 			remove++;
@@ -123,8 +111,8 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 					  "set member (%s), id (%u).",
 					  place_blknr(place), place->pos.item, 
 					  print_key(sdext_pset_core, &place->key),
-					  i, is_pset ? "plugin" : "heir", is_pset 
-					  ? pset_name[mem] : hset_name[mem], id);
+					  i, is_pset ? "plugin" : "heir", 
+					  pset_name[mem], id);
 				
 				rmmask |= (1 << i);
 				remove++;
@@ -217,11 +205,10 @@ void sdext_plug_print(stat_entity_t *stat,
 		mem = sdext_plug_get_member(ext, i);
 		id = sdext_plug_get_pid(ext, i);
 		
-		if (mem < (uint8_t)(is_pset ? PSET_STORE_LAST : HSET_LAST)) {
+		if (mem < (uint8_t)PSET_STORE_LAST) {
 			plug = sdext_pset_core->pset_ops.find(mem, id, is_pset);
 			aal_stream_format(stream, "    %*s : id = %u",
-					  PSET_MEMBER_LEN, is_pset ? 
-					  pset_name[mem] : hset_name[mem], id);
+					  PSET_MEMBER_LEN, pset_name[mem], id);
 		} else {
 			plug = NULL;
 			aal_stream_format(stream, "%*sUNKN(0x%x) : id = %u", 

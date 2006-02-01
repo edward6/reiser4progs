@@ -11,7 +11,7 @@
 static errno_t reiser4_object_init(reiser4_object_t *object) {
 	reiser4_place_t *start;
 	sdhint_plug_t plugh;
-	sdhint_heir_t heirh;
+	sdhint_plug_t heirh;
 	trans_hint_t trans;
 	stat_hint_t stat;
 	errno_t res;

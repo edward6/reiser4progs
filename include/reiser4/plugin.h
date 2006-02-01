@@ -349,15 +349,6 @@ enum reiser4_pset_id {
 	PSET_LAST
 };
 
-enum reiser4_hset_id {
-	HSET_CREATE	= 0x0,
-	HSET_HASH	= 0x1,
-	HSET_FIBRE	= 0x2,
-	HSET_DIR_ITEM	= 0x3,
-	HSET_LAST
-};
-
-	
 #define reiser4_psobj(obj) \
 	((reiser4_object_plug_t *)(obj)->info.pset.plug[PSET_OBJ])
 
@@ -658,14 +649,7 @@ typedef struct reiser4_pset {
 	reiser4_plug_t *plug[PSET_LAST];
 } reiser4_pset_t;
 
-typedef struct reiser4_hset {
-	/* Set of initialized fields. */
-	uint64_t plug_mask;
-	reiser4_plug_t *plug[HSET_LAST];
-} reiser4_hset_t;
-
 typedef reiser4_pset_t sdhint_plug_t;
-typedef reiser4_hset_t sdhint_heir_t;
 
 #ifndef ENABLE_MINIMAL
 typedef struct sdhint_crypto {
@@ -695,7 +679,7 @@ typedef enum entry_type {
    object. These are: its key, parent key and coord of first item. */
 typedef struct object_info {
 	reiser4_pset_t pset;
-	reiser4_hset_t hset;
+	reiser4_pset_t hset;
 	
 	tree_entity_t *tree;
 	reiser4_place_t start;

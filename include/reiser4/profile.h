@@ -42,10 +42,9 @@ enum reiser4_profile_index {
 	PROF_TAIL		= 0x19,
 	PROF_EXTENT		= 0x1a,
 	PROF_CTAIL		= 0x1b,
-	PROF_HEIR_CREATE	= 0x1c,
-	PROF_HEIR_HASH		= 0x1d,
-	PROF_HEIR_FIBRE		= 0x1e,
-	PROF_HEIR_DIRITEM	= 0x1f,
+	PROF_HEIR_HASH		= 0x1c,
+	PROF_HEIR_FIBRE		= 0x1d,
+	PROF_HEIR_DIRITEM	= 0x1e,
 #endif
 	PROF_LAST
 };

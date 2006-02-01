@@ -384,7 +384,7 @@ static errno_t obj40_stat_plug_init(reiser4_object_t *obj,
 
 static errno_t obj40_stat_heir_init(reiser4_object_t *obj, 
 				    stat_hint_t *stat, 
-				    sdhint_heir_t *heirh)
+				    sdhint_plug_t *heirh)
 {
 	aal_assert("vpf-1899", stat != NULL);
 	aal_assert("vpf-1898", heirh != NULL);
@@ -460,7 +460,7 @@ errno_t obj40_create_stat(reiser4_object_t *obj,
 {
 	sdhint_unix_t unixh;
 	sdhint_plug_t plugh;
-	sdhint_heir_t heirh;
+	sdhint_plug_t heirh;
 	sdhint_crypto_t crch;
 	sdhint_lw_t lwh;
 	stat_hint_t stat;

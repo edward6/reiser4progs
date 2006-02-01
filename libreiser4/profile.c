@@ -63,10 +63,10 @@ reiser4_profile_t defprof = {
 		[PROF_CREATE] = {
 #ifndef ENABLE_MINIMAL
                         .name  = "create",
-                        .hidden = 1,
+                        .hidden = 0,
                         .max = OBJECT_LAST_ID,
 #endif
-                        .id = {OBJECT_REG40_ID, REG_OBJECT, PARAM_PLUG_TYPE},
+                        .id = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
                 },
 		[PROF_FORMAT] = {
 #ifndef ENABLE_MINIMAL
@@ -226,12 +226,6 @@ reiser4_profile_t defprof = {
 			.hidden = 1,
 			.max = ITEM_LAST_ID,
 			.id = {ITEM_CTAIL40_ID, CTAIL_ITEM, ITEM_PLUG_TYPE},
-		},
-		[PROF_HEIR_CREATE] = {
-			.name  = "heir_create",
-			.hidden = 0,
-			.max = OBJECT_LAST_ID,
-			.id = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
 		},
 		[PROF_HEIR_HASH] = {
 			.name = "heir_hash",

@@ -6,7 +6,7 @@
 #include <repair/librepair.h>
 
 extern reiser4_profile_t defprof;
-extern pset_member_t pset_prof[];
+extern rid_t pset_prof[];
 
 errno_t repair_pset_check_backup(backup_hint_t *hint) {
 	struct reiser4_pset_backup *pset;
@@ -33,7 +33,7 @@ errno_t repair_pset_check_backup(backup_hint_t *hint) {
 	for (i = 0; i < PSET_STORE_LAST; i++) {
 		id = aal_get_le32(pset, id[i]);
 		
-		if (id >= defprof.pid[pset_prof[i].prof].max) 
+		if (id >= defprof.pid[pset_prof[i]].max) 
 			return RE_FATAL;
 	}
 	
@@ -82,7 +82,7 @@ errno_t repair_pset_root_check(reiser4_fs_t *fs,
 			root->info.pset.plug[i] = (void *)id;
 		} else {
 			root->info.pset.plug[i] = reiser4_factory_ifind(
-				defprof.pid[pset_prof[i].prof].id.type, id);
+				defprof.pid[pset_prof[i]].id.type, id);
 
 			aal_assert("vpf-1912", root->info.pset.plug[i] != NULL);
 		}

@@ -6,19 +6,6 @@
 #ifndef REISER4_PSET_H
 #define REISER4_PSET_H
 
-typedef struct pset_member {
-	/* The corresponding slot in the profile. */
-	rid_t prof;
-	
-#ifndef ENABLE_MINIMAL
-	/* The flag if a plugin essential or not. Non-essential plugins may 
-	   be changed at anytime; non-essential plugins may present in a file's 
-	   SD even if they differ from the root ones to not get the object 
-	   settings changed at the root pset change. */
-	bool_t ess;
-#endif
-} pset_member_t;
-
 #ifndef ENABLE_MINIMAL
 
 #define PSET_MAGIC "PsEt"

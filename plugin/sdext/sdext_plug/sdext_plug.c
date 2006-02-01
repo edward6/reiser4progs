@@ -68,7 +68,6 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 	sdhint_plug_t *plugh;
 	sdext_plug_t *ext;
 	int is_pset;
-	uint8_t last;
 	uint16_t i;
 	
 	aal_assert("vpf-1597", stat != NULL);
@@ -78,10 +77,8 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 	ext = (sdext_plug_t *)stat_body(stat);
 
 	is_pset = stat->plug->p.id.id == SDEXT_PSET_ID;
-	last = is_pset ? PSET_STORE_LAST : HSET_LAST;
 	
-	aal_memset(plugh, 0, is_pset ? sizeof(sdhint_plug_t) : 
-		   sizeof(sdhint_heir_t));
+	aal_memset(plugh, 0, sizeof(sdhint_plug_t));
 	
 	for (i = 0; i < sdext_plug_get_count(ext); i++) {
 		rid_t mem, id;
@@ -90,7 +87,7 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 		id = sdext_plug_get_pid(ext, i);
 		
 		/* Check the member id valideness. */
-		if (mem >= last)
+		if (mem >= PSET_STORE_LAST)
 			return -EIO;
 		
 		/* Check if we met this member already. */
@@ -130,7 +127,6 @@ static errno_t sdext_plug_init(stat_entity_t *stat, void *hint) {
 	tree_entity_t *tree;
 	sdext_plug_t *ext;
 	uint16_t count = 0;
-	uint8_t last;
 	uint16_t id;
 	rid_t mem;
 	
@@ -140,10 +136,8 @@ static errno_t sdext_plug_init(stat_entity_t *stat, void *hint) {
 	plugh = (sdhint_plug_t *)hint;
 	ext = (sdext_plug_t *)stat_body(stat);
 	tree = stat->place->node->tree;
-	last =  stat->plug->p.id.id == SDEXT_PSET_ID ? 
-		PSET_STORE_LAST : HSET_LAST;
-		
-	for (mem = 0; mem < last; mem++) {
+	
+	for (mem = 0; mem < PSET_STORE_LAST; mem++) {
 		/* Find the plugin to be stored. */
 		if (!(plugh->plug_mask & (1 << mem)))
 			continue;
