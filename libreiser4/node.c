@@ -137,7 +137,7 @@ reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr) {
 	
 	/* Load block at @nr, that node lie in. */
 	if (!(block = aal_block_load(device, size, nr))) {
-		aal_error("Can't load node %llu. %s.",
+		aal_error("Can't read block %llu. %s.",
 			  nr, device->error);
 		return NULL;
 	}

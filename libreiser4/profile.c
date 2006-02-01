@@ -130,7 +130,7 @@ reiser4_profile_t defprof = {
 			.hidden = 0,
 			.max = CMODE_LAST_ID,
 #endif
-			.id = {CMODE_NONE_ID, 0, CMODE_PLUG_TYPE},
+			.id = {CMODE_COL8_ID, 0, CMODE_PLUG_TYPE},
 		},
 		[PROF_CRYPTO] = {
 #ifndef ENABLE_MINIMAL
