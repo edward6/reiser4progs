@@ -68,3 +68,6 @@ It is so nice to have someone like that on the team.  He (plus Chris
 and Jeff) make it possible for the entire rest of the Namesys team to
 focus on Reiser4, and he fixed a whole lot of Reiser4 bugs also.  It
 is just amazing to watch his talent for spotting bugs in action.
+
+Edward Shishkin wrote cryptcompress file plugin and other plugins
+related to transparent crypto and compression support.
