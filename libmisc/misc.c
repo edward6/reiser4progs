@@ -282,8 +282,10 @@ void misc_upper_case(char *dst, const char *src) {
 }
 
 static errno_t cb_print_plug(reiser4_plug_t *plug, void *data) {
-	printf("\"%s\" (id:0x%x type:0x%x): %s\n", plug->label, 
-	       plug->id.id, plug->id.type, plug->desc);
+	uint8_t w1;
+	w1 = 14 - aal_strlen(plug->label);
+	printf("\"%s\"%*s(id:0x%x type:0x%x) [%s]\n", plug->label, 
+	       w1, " ", plug->id.id, plug->id.type, plug->desc);
 	return 0;
 }
 

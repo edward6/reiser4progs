@@ -50,7 +50,7 @@ void misc_profile_print(void) {
 
 	aal_stream_init(&stream, stdout, &file_stream);
 	
-	aal_stream_format(&stream, "Default profiles:\n");
+	aal_stream_format(&stream, "Default profile:\n");
 
 	reiser4_profile_print(&stream);
 	

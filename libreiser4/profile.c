@@ -15,6 +15,7 @@ reiser4_profile_t defprof = {
 		[PROF_OBJ] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "file",
+			.desc  = "",
 			.hidden = 1,
 			.max = OBJECT_LAST_ID,
 #endif
@@ -23,6 +24,7 @@ reiser4_profile_t defprof = {
 		[PROF_DIR] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "dir",
+			.desc  = "",
 			.hidden = 1,
 			.max = 1,
 #endif
@@ -31,6 +33,7 @@ reiser4_profile_t defprof = {
 		[PROF_REGFILE] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "regfile",
+			.desc  = "",
 			.hidden = 1,
 			.max = OBJECT_LAST_ID,
 #endif
@@ -39,6 +42,7 @@ reiser4_profile_t defprof = {
 		[PROF_DIRFILE] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "dirfile",
+			.desc  = "",
 			.hidden = 1,
 			.max = OBJECT_LAST_ID,
 #endif
@@ -47,6 +51,7 @@ reiser4_profile_t defprof = {
 		[PROF_SYMFILE] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "symfile",
+			.desc  = "",
 			.hidden = 1,
 			.max = OBJECT_LAST_ID,
 #endif
@@ -55,6 +60,7 @@ reiser4_profile_t defprof = {
 		[PROF_SPLFILE] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "splfile",
+			.desc  = "",
 			.hidden = 1,
 			.max = OBJECT_LAST_ID,
 #endif
@@ -63,6 +69,7 @@ reiser4_profile_t defprof = {
 		[PROF_CREATE] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "create",
+			.desc  = "Regular file plugin for creat(2)",
 			.hidden = 0,
 			.max = CREATE_LAST_ID,
 #endif
@@ -71,6 +78,7 @@ reiser4_profile_t defprof = {
 		[PROF_FORMAT] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "format",
+			.desc  = "",
 			.hidden = 1,
 			.max = FORMAT_LAST_ID,
 #endif
@@ -79,6 +87,7 @@ reiser4_profile_t defprof = {
 		[PROF_JOURNAL] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "journal",
+			.desc  = "",
 			.hidden = 1,
 			.max = JOURNAL_LAST_ID,
 #endif
@@ -87,6 +96,7 @@ reiser4_profile_t defprof = {
 		[PROF_OID] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "oid",
+			.desc  = "",
 			.hidden = 1,
 			.max = OID_LAST_ID,
 #endif
@@ -95,6 +105,7 @@ reiser4_profile_t defprof = {
 		[PROF_ALLOC] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "alloc",
+			.desc  = "",
 			.hidden = 1,
 			.max = ALLOC_LAST_ID,
 #endif
@@ -103,6 +114,7 @@ reiser4_profile_t defprof = {
 		[PROF_KEY] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "key",
+			.desc  = "Key plugin",
 			.hidden = 0,
 			.max = KEY_LAST_ID,
 #endif
@@ -111,6 +123,7 @@ reiser4_profile_t defprof = {
 		[PROF_NODE] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "node",
+			.desc  = "",
 			.hidden = 1,
 			.max = NODE_LAST_ID,
 #endif
@@ -119,6 +132,7 @@ reiser4_profile_t defprof = {
 		[PROF_COMPRESS] = {
 #ifndef ENABLE_MINIMAL
 			.name = "compress",
+			.desc  = "Compression plugin",
 			.hidden = 0,
 			.max = COMPRESS_LAST_ID,
 #endif
@@ -127,6 +141,7 @@ reiser4_profile_t defprof = {
 		[PROF_CMODE] = {
 #ifndef ENABLE_MINIMAL
 			.name = "compressMode",
+			.desc  = "Compression Mode plugin",
 			.hidden = 0,
 			.max = CMODE_LAST_ID,
 #endif
@@ -135,6 +150,7 @@ reiser4_profile_t defprof = {
 		[PROF_CRYPTO] = {
 #ifndef ENABLE_MINIMAL
 			.name = "crypto",
+			.desc  = "",
 			.hidden = 1,
 			.max = 1,
 #endif
@@ -143,6 +159,7 @@ reiser4_profile_t defprof = {
 		[PROF_DIGEST] = {
 #ifndef ENABLE_MINIMAL
 			.name = "digest",
+			.desc  = "",
 			.hidden = 1,
 			.max = 1,
 #endif
@@ -151,6 +168,7 @@ reiser4_profile_t defprof = {
 		[PROF_CLUSTER] = {
 #ifndef ENABLE_MINIMAL
 			.name = "cluster",
+			.desc  = "Cluster plugin",
 			.hidden = 0,
 			.max = CLUSTER_LAST_ID,
 #endif
@@ -159,6 +177,7 @@ reiser4_profile_t defprof = {
 		[PROF_HASH] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "hash",
+			.desc  = "Directory entry hash plugin",
 			.hidden = 0,
 			.max = HASH_LAST_ID,
 #endif
@@ -167,6 +186,7 @@ reiser4_profile_t defprof = {
 		[PROF_FIBRE] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "fibration",
+			.desc  = "Key fibration plugin",
 			.hidden = 0,
 			.max = FIBRE_LAST_ID,
 #endif
@@ -175,6 +195,7 @@ reiser4_profile_t defprof = {
 		[PROF_PERM] = {
 #ifndef ENABLE_MINIMAL
 			.name = "permission",
+			.desc  = "",
 			.hidden = 1,
 			.max = 1,
 #endif
@@ -183,6 +204,7 @@ reiser4_profile_t defprof = {
 		[PROF_POLICY] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "formatting",
+			.desc  = "File body formatting plugin",
 			.hidden = 0,
 			.max = TAIL_LAST_ID,
 #endif
@@ -191,6 +213,7 @@ reiser4_profile_t defprof = {
 		[PROF_STAT] = {
 #ifndef ENABLE_MINIMAL
 			.name = "statdata",
+			.desc  = "",
 			.hidden = 1,
 			.max = ITEM_LAST_ID,
 #endif
@@ -199,6 +222,7 @@ reiser4_profile_t defprof = {
 		[PROF_DIRITEM] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "direntry",
+			.desc  = "",
 			.hidden = 1,
 			.max = ITEM_LAST_ID,
 #endif
@@ -207,6 +231,7 @@ reiser4_profile_t defprof = {
 		[PROF_NODEPTR] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "nodeptr",
+			.desc  = "",
 			.hidden = 1,
 			.max = ITEM_LAST_ID,
 #endif
@@ -215,18 +240,21 @@ reiser4_profile_t defprof = {
 #ifndef ENABLE_MINIMAL
 		[PROF_TAIL] = {
 			.name  = "tail",
+			.desc  = "",
 			.hidden = 1,
 			.max = ITEM_LAST_ID,
 			.id = {ITEM_PLAIN40_ID, TAIL_ITEM, ITEM_PLUG_TYPE},
 		},
 		[PROF_EXTENT] = {
 			.name  = "extent",
+			.desc  = "",
 			.hidden = 1,
 			.max = ITEM_LAST_ID,
 			.id = {ITEM_EXTENT40_ID, EXTENT_ITEM, ITEM_PLUG_TYPE},
 		},
 		[PROF_CTAIL] = {
 			.name = "compressTail",
+			.desc  = "",
 			.hidden = 1,
 			.max = ITEM_LAST_ID,
 			.id = {ITEM_CTAIL40_ID, CTAIL_ITEM, ITEM_PLUG_TYPE},
@@ -243,34 +271,41 @@ void reiser4_profile_print(aal_stream_t *stream) {
 	
 	for (i = 0; i < PROF_LAST; i++) {
 		reiser4_plug_t *plug;
-		uint32_t width;
+		uint32_t w1, w2;
 
 		/* skip hidden ones. */
 		if (defprof.pid[i].hidden)
 			continue;
 		
-		width = 12 - aal_strlen(defprof.pid[i].name);
-
+		w1 = 13 - aal_strlen(defprof.pid[i].name);
+		w2 = 13;
+		
 		if (defprof.pid[i].id.type != PARAM_PLUG_TYPE) {
 			plug = reiser4_factory_ifind(defprof.pid[i].id.type,
 						     defprof.pid[i].id.id);
 
 			if (plug) {
-				aal_stream_format(stream, "%s:%*s\"%s\" "
-						  "(id:0x%x type:0x%x)\n", 
+				w2 -= aal_strlen(plug->label);
+				aal_stream_format(stream, "%s:%*s\"%s\"%*s"
+						  "(id:0x%x type:0x%x)\t[%s]\n", 
 						  defprof.pid[i].name,
-						  width - 1, " ", plug->label,
-						  plug->id.id, plug->id.type);
+						  w1, " ", plug->label,
+						  w2, " ", plug->id.id, 
+						  plug->id.type, 
+						  defprof.pid[i].desc);
 			} else {
-				aal_stream_format(stream, "%s:%*s\"absent\" "
-						  "(id:0x%x type:0x%x)\n", 
-						  defprof.pid[i].name, width - 1, 
-						  " ", defprof.pid[i].id.id,
-						  defprof.pid[i].id.type);
+				w2 -= aal_strlen("ansent");
+				aal_stream_format(stream, "%s:%*s\"absent\"%*s"
+						  "(id:0x%x type:0x%x)\t[%s]\n", 
+						  defprof.pid[i].name, 
+						  w1, " ", w2, " ",
+						  defprof.pid[i].id.id,
+						  defprof.pid[i].id.type,
+						  defprof.pid[i].desc);
 			}
 		} else {
 			aal_stream_format(stream, "%s:%*s 0x%x, max value 0x%x\n", 
-					  defprof.pid[i].name, width - 1, 
+					  defprof.pid[i].name, w1, 
 					  " ", defprof.pid[i].id.id,
 					  defprof.pid[i].max - 1);
 		}

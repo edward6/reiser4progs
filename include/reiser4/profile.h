@@ -54,7 +54,10 @@ typedef struct reiser4_profile {
 #ifndef ENABLE_MINIMAL
 		/* The name of the profile slot. */
 		char *name;
-
+		
+		/* The description of the profile slot. */
+		char *desc;
+		
 		/* Hide those slots where are no alternatives. */
 		uint8_t hidden;
 
