@@ -49,7 +49,7 @@ rid_t hset_prof[PSET_STORE_LAST] = {
 #endif
 
 #define PSET_UNUSED 0
-#define HSET_UNUSED ~(1 << PSET_HASH | 1 << PSET_FIBRE | 1 << PSET_DIRITEM)
+#define HSET_UNUSED 0
 
 #define pset_plugin_unused(id) ((1 << id) & PSET_UNUSED)
 #define hset_plugin_unused(id) ((1 << id) & HSET_UNUSED)
