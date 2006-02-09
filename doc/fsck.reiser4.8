@@ -45,7 +45,13 @@ forces fsck to report any corruption it finds to the specified logfile rather th
 prevents fsck from reporting any kind of corruption.
 .TP
 .B -a, --auto
-automatically checks the file system without any questions
+automatically checks the file system without any questions.
+.TP
+.B -q, --quiet
+supresses gauges.
+.TP
+.B -r
+ignored.
 .SH PLUGIN OPTIONS
 .TP
 .B -p, --print-profile
@@ -75,17 +81,17 @@ assumes an answer 'yes' to all questions.
 .TP
 .B -f, --force
 forces fsck to use whole disk, not block device or mounted partition.
+.TP
+.B -c, --cache N
+tunes number of nodes in the libreiser4 tree buffer cache
 .RS
 .SH REPORTING BUGS
 Report bugs to <vitaly@namesys.com>, <reiserfs-list@namesys.com>
 .SH SUPPORT
 You can get support at http://www.namesys.com/support.html
 .SH SEE ALSO
-.BR libreiser4(8),
 .BR debugfs.reiser4(8),
 .BR mkfs.reiser4(8),
 .BR measurefs.reiser4(8)
-.BR cpfs.reiser4(8)
-.BR resizefs.reiser4(8)
 .SH AUTHOR
 This manual page was written by Vitaly Fertman <vitaly@namesys.com>

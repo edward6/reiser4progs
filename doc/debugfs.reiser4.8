@@ -93,11 +93,6 @@ prints all plugins libreiser4 knows about.
 .B -o, --override TYPE=PLUGIN, ...
 overrides the default plugin of the type "TYPE" by the plugin "PLUGIN"
 in the plugin profile.
-.SH Temporary Options
-.TP
-.B -C
-converts to the new backup layout. Use this only if you created a reiser4 
-fs with some previous version of reiser4progs. 
 .SH Examples:
 .sp 1
 debugfs.reiser4 -o nodeptr=nodeptr41,hash=rupasov_hash /dev/hda2
@@ -107,11 +102,8 @@ Report bugs to <umka@namesys.com>, <reiserfs-list@namesys.com>
 .SH SUPPORT
 You can get support at http://www.namesys.com/support.html
 .SH SEE ALSO
-.BR libreiser4(8),
 .BR measurefs.reiser4(8),
 .BR mkfs.reiser4(8),
 .BR fsck.reiser4(8)
-.BR cpfs.reiser4(8)
-.BR resizefs.reiser4(8)
 .SH AUTHOR
 This manual page was written by Yury Umanets <umka@namesys.com>
