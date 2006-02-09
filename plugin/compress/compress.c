@@ -18,21 +18,10 @@ reiser4_plug_t lzo1_plug = {
 	.desc  = "Enabled Lzo1 compression.",
 };
 
-reiser4_plug_t nolzo1_plug = {
-	.id    = {COMPRESS_NOLZO1_ID, 0, COMPRESS_PLUG_TYPE},
-	.label = "nolzo1",
-	.desc  = "Disabled Lzo1 compression.",
-};
-
 reiser4_plug_t gzip1_plug = {
 	.id    = {COMPRESS_GZIP1_ID, 0, COMPRESS_PLUG_TYPE},
 	.label = "gzip1",
 	.desc  = "Enabled gzip1 compression.",
 };
 
-reiser4_plug_t nogzip1_plug = {
-	.id    = {COMPRESS_NOGZIP1_ID, 0, COMPRESS_PLUG_TYPE},
-	.label = "nogzip1",
-	.desc  = "Disabled gzip1 compression.",
-};
 #endif

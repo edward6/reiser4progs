@@ -263,9 +263,7 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(create_ccreg40);
 
 	__load_plug(lzo1);
-	__load_plug(nolzo1);
 	__load_plug(gzip1);
-	__load_plug(nogzip1);
 
 	__load_plug(nocompress);
 	__load_plug(col8);
