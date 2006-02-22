@@ -6,6 +6,47 @@ reiser4progs/COPYING.
 This file may be modified and/or distributed without restriction. This is
 not an invitation to misrepresent the history of reiser4progs.
 
+2006-02-22
+	1.0.6 version.
+2006-01-13
+	Version control data is added into format40 disk format plugin.
+	Version control data is added into backup blocks.
+	Recover filesystems of both old and new formats - temporary.
+	UPDATE_BACKUP_IS_NEEDED is added -- handle correctly cases when 
+	disk format is updated and backup blocks are not; fsck correctly.
+2005-12-09
+	Heir plugin SET (HSET) is added.
+2005-11-21
+	Bugfixes:
+	- a lot of fixes in compression tail item plugin;
+	- a lot of fixes in CryptoCompression object plugin;
+	- a lot of fixes in common object plugin repair code;
+	- in spec file.
+2005-11-08
+	A lot of speedups.
+	A lot of bugfixes.
+	Demos/busy program update: crypto compression test is added.
+2005-10-31
+	Bugfixes in truncate, clubber and check_struct methods of all object
+	plugins.
+2005-10-28
+	Compression plugin is added. 
+	CryptoCompression plugin is adjusted to handle compressed files.
+2005-10-14
+	Bugfixes:
+	- check the path given on a symlink creation;
+	- check the possible file position overflow;
+	- handle the cluster size of ctail items correctly.
+2005-09-31
+	Crypto-Compression Object plugins is added.
+	Fix the object creation: inherit always from the parent.
+	Fix the pset storage policy.
+2005-08-31
+	Compression tail item (ctail) plugin is added.
+2005-08-16
+	The full support for Crypto-Compression plugins is added into PluginSet
+	and libreiser4 profile.
+	Crypto SD extention is edded.
 2005-08-12
 	1.0.5 version.
 2005-08-10
