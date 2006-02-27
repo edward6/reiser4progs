@@ -122,15 +122,20 @@ errno_t reiser4_factory_init(void) {
 	int i;
 	
 	prev = 0;
-	/* Init the plugin array. */
-	for (i = 0; i <= LAST_PLUG_TYPE; i++) {
-		max = plugs_max[i];
-		if (i == 0)
-			plugs_max[i] = 0;
-		else
-			plugs_max[i] = plugs_max[i - 1] + prev;
-		
-		prev = max;
+	/* Init the plugin array. 
+	   Note: reiser4_factory_init is called at every access to libreiser4
+	   from grub, however plug_max is static and its re-initialization
+	   should be avoided -- check plugs_max[LAST_PLUG_TYPE] == 0. */
+	if (plugs_max[LAST_PLUG_TYPE] == 0) {
+		for (i = 0; i <= LAST_PLUG_TYPE; i++) {
+			max = plugs_max[i];
+			if (i == 0)
+				plugs_max[i] = 0;
+			else
+				plugs_max[i] = plugs_max[i - 1] + prev;
+
+			prev = max;
+		}
 	}
 	
 	plugins = aal_calloc((plugs_max[LAST_PLUG_TYPE]) * sizeof(*plugins), 0);
