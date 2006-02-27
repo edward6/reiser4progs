@@ -6,7 +6,6 @@
 #ifndef SYM40_REPAIR_H
 #define SYM40_REPAIR_H
 
-#include "sym40.h"
 #include "plugin/object/obj40/obj40_repair.h"
 
 extern errno_t sym40_check_struct(reiser4_object_t *sym,

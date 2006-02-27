@@ -3,7 +3,6 @@
    
    sym40.c -- reiser4 symlink file plugin. */
 
-#include "sym40.h"
 #include "sym40_repair.h"
 
 #ifdef ENABLE_SYMLINKS
@@ -46,13 +45,15 @@ static errno_t sym40_clobber(reiser4_object_t *sym) {
 
 #endif
 
-/* This function reads symlink, parses it by means of using aux_parse_path()
-   with applying corresponding callback fucntions for searching stat data and
-   searchig all entries. It returns stat data key of the object symlink points
-   to. */
-static errno_t sym40_follow(reiser4_object_t *sym,
-			    reiser4_key_t *from,
-			    reiser4_key_t *key)
+/* This function reads symlink, parses it with aux_parse_path() applying 
+   corresponding callback fucntions for searching stat data and searchig 
+   all entries. It returns stat data key of the object symlink points to.
+   
+   Note: not static, to allow symlink support detection to work. 
+   Should be changed? */
+errno_t sym40_follow(reiser4_object_t *sym,
+		     reiser4_key_t *from,
+		     reiser4_key_t *key)
 {
 	uint32_t size;
 	errno_t res;
