@@ -250,7 +250,7 @@ static void key_short_build_hash(reiser4_key_t *key,
 		objectid |= HASHED_NAME_MASK;
 		
 		offset = plugcall(hash, build,
-				  name + OBJECTID_CHARS,
+				  (unsigned char *)name + OBJECTID_CHARS,
 				  len - OBJECTID_CHARS);
 	}
 	

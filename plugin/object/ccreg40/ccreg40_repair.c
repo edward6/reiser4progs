@@ -125,7 +125,7 @@ static errno_t ccreg40_check_crc(ccreg40_hint_t *hint) {
 	
 	offset = (hint->seek % hint->clsize) - sizeof(uint32_t);
 	
-	adler = aux_adler32(0, hint->data, offset);
+	adler = aux_adler32(0, (char *)hint->data, offset);
 	disk = *(uint32_t *)(hint->data + offset);
 	
 	return adler == disk ? 0 : RE_FATAL;

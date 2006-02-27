@@ -177,7 +177,7 @@ char *aux_unpack_string(uint64_t value,
 #define ADLER_BASE (65521l)
 
 unsigned int aux_adler32(unsigned int adler, char *buff, unsigned int n) {
-	unsigned char *t = buff;
+	unsigned char *t = (unsigned char *)buff;
 	unsigned int s1 = 1, s2 = 0;
 	int k;
 

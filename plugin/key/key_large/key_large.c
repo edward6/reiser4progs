@@ -268,7 +268,7 @@ static void key_large_build_hash(reiser4_key_t *key,
 		ordering |= HASHED_NAME_MASK;
 
 		offset = plugcall(hash, build,
-				  name + INLINE_CHARS,
+				  (unsigned char *)name + INLINE_CHARS,
 				  len - INLINE_CHARS);
 	}
 
