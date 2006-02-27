@@ -421,13 +421,15 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 
 	extent40_fetch_key(place, &key);
 	blksize = place_blksize(place);
+	read = count;
 
 	/* Initializing read offset */
 	read_offset = objcall(&hint->offset, get_offset);
+	rel_offset = read_offset - objcall(&key, get_offset);
 
 	/* Loop through the units until needed amount of data is read or extent
 	   item is over. */
-	for (read = count, i = place->pos.unit;
+	for (i = place->pos.unit;
 	     i < extent40_units(place) && count > 0; i++)
 	{
 		uint32_t size;
@@ -438,7 +440,6 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 
 		/* Calculating start block for read. */
 		start = et40_get_start(extent + i);
-		rel_offset = read_offset - extent40_offset(place, i);
 		blk = start + (rel_offset / blksize);
 
 		if (start == EXTENT_HOLE_UNIT) {
@@ -518,10 +519,11 @@ static int64_t extent40_read_units(reiser4_place_t *place,
 
 		res = extent40_core->tree_ops.mpressure(place->node->tree);
 		if (res) return res;
-
+		
+		rel_offset = 0;
 	}
 	
-	return read;
+	return read - count;
 }
 #else
 /* Reads @count bytes of extent data from the extent item at passed @pos into
@@ -554,10 +556,10 @@ static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 	secsize = extent40_secsize(place);
 
 	read_offset = objcall(&hint->offset, get_offset);
+	rel_offset = read_offset - objcall(&key, get_offset);
 	
-	rel_offset = read_offset - extent40_offset(place, place->pos.unit);
-	
-	for (read = count, i = place->pos.unit;
+	read = count;
+	for (i = place->pos.unit;
 	     i < extent40_units(place) && count > 0; i++, rel_offset = 0)
 	{
 		uint32_t blkchunk;
@@ -621,9 +623,11 @@ static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 			if (blklocal % blksize == 0)
 				blk++;
 		}
+
+		rel_offset = 0;
 	}
 	
-	return (uint64_t)read;
+	return (uint64_t)read - count;
 }
 #endif
 
