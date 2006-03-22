@@ -223,9 +223,9 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 	fsck_mess("Node (%llu): The left delimiting key [%s] in the "
 		  "parent node (%llu), pos (%u/%u) does not match the "
 		  "first key [%s] in the node.%s", node->block->nr,
-		  reiser4_print_key(&place.key),
+		  reiser4_print_key(&dkey),
 		  place_blknr(&node->p), place.pos.item, 
-		  place.pos.unit, reiser4_print_key(&dkey),
+		  place.pos.unit, reiser4_print_key(&place.key),
 		  mode == RM_BUILD ? " Fixed." : "");
 
 	if (mode != RM_BUILD)
