@@ -220,12 +220,13 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 	if (node->p.node == NULL) 
 		return 0;
 
-	fsck_mess("Node (%llu): The left delimiting key [%s] in the "
-		  "parent node (%llu), pos (%u/%u) does not match the "
-		  "first key [%s] in the node.%s", node->block->nr,
+	fsck_mess("Node (blk %llu, lev %d): first key [%s] does not match left delimiting key [%s] found in "
+		  "parent node (blk %llu, lev %d, pos %u). %s",
+		  node->block->nr, reiser4_node_get_level(node),
 		  reiser4_print_key(&place.key),
-		  place_blknr(&node->p), place.pos.item, 
-		  place.pos.unit, reiser4_print_key(&dkey),
+		  reiser4_print_key(&dkey),
+		  place_blknr(&node->p), reiser4_node_get_level(node->p.node),
+		  place_item_pos(&node->p),
 		  mode == RM_BUILD ? " Fixed." : "");
 
 	if (mode != RM_BUILD)

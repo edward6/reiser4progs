@@ -32,10 +32,11 @@ typedef enum repair_mode {
 
 #define EXCEPTION_TYPE_FSCK EXCEPTION_TYPE_LAST
 
-#define fsck_mess(msg, list...)				\
-	aal_exception_throw(EXCEPTION_TYPE_FSCK,	\
-			    EXCEPTION_OPT_OK,		\
-			    "FSCK: "msg,		\
+#define fsck_mess(msg, list...)					\
+	aal_exception_throw(EXCEPTION_TYPE_FSCK,		\
+			    EXCEPTION_OPT_OK,			\
+			    "FSCK: %s: %d: %s: "msg,		\
+			    __FILE__, __LINE__, __FUNCTION__,	\
 			    ##list)
 
 #define MASTER_PACK_SIGN	"MSTR"

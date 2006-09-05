@@ -222,10 +222,11 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	
 	if (reiser4_bitmap_test_region(fd->bm_used, blk, 1, 1)) {
 		/* Bad pointer detected. Remove if possible. */
-		fsck_mess("Node (%llu), item (%u), unit (%u): Points to the "
+		fsck_mess("Node (blk %llu, lev %d) points (item %u, unit %u) to the "
 			  "block (%llu) which is in the tree already.%s", 
-			  place_blknr(place), place->pos.item, 
-			  place->pos.unit, blk, fd->repair->mode == RM_BUILD ?
+			  place_blknr(place), reiser4_node_get_level(place->node),
+			  place->pos.item, place->pos.unit,
+			  blk, fd->repair->mode == RM_BUILD ?
 			  " Removed." : " The whole subtree is skipped.");
 		error = 1;
 	}
@@ -235,11 +236,11 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	if (!(node = repair_tree_load_node(fd->repair->fs->tree, place->node, 
 					   blk, fd->mkidok ? fd->mkid : 0)))
 	{
-		fsck_mess("Node (%llu): failed to open the node pointed by the "
-			  "node (%llu), item (%u), unit (%u) on the level (%u)."
-			  " The whole subtree is skipped.", blk, 
-			  place_blknr(place), place->pos.item, 
-			  place->pos.unit, reiser4_node_get_level(place->node));
+		fsck_mess("Node (blk %llu, lev %d) points (item %u, unit %u) "
+			  "to block %llu which could not be open."
+			  " Whole subtree is skipped.", 
+			  place_blknr(place), reiser4_node_get_level(place->node),
+			  place->pos.item, place->pos.unit, blk);
 		goto error;
 	}
 	
@@ -284,9 +285,9 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
 
 	/* Check the level. */
 	if (fd->level != level) {
-		fsck_mess("Level (%u) of the node (%llu) doesn't match the "
-			  "expected one (%u). %s", level, node->block->nr, 
-			  fd->level, fd->repair->mode == RM_BUILD ? 
+		fsck_mess("Node (blk %llu, lev %d) does not match the "
+			  "expected one (%u). %s", node->block->nr, level,
+			  fd->level, fd->repair->mode == RM_BUILD ?
 			  "Removed." : "The whole subtree is skipped.");
 		
 		/* Should not be check for now as it may lie in unused space.
@@ -381,7 +382,8 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place,
 	   from the parent to avoid futher problems with poitners to this node
 	   from other parents. */
 	if ((node = reiser4_tree_lookup_node(tree, blk)) &&
-	    node->p.node->block->nr == place->node->block->nr)
+	    (node->p.node &&
+	     node->p.node->block->nr == place->node->block->nr))
 	{
 		if ((res = reiser4_tree_disconnect_node(tree, node)))
 			return -EINVAL;
@@ -404,10 +406,11 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place,
 			  place->pos.unit, fd->repair->mode == RM_BUILD ? 
 			  "Removed." : "The whole subtree is skipped.");
 	} else if (fd->flags & RE_DKEYS) {
-		fsck_mess("Node (%llu), item (%u), unit (%u): Points to "
+		fsck_mess("Node (blk %llu, lev %d) points (item %u, unit %u) to "
 			  "the node [%llu] with wrong delimiting keys. %s",
-			  place_blknr(place), place->pos.item, 
-			  place->pos.unit, blk, fd->repair->mode == RM_BUILD ?
+			  place_blknr(place), reiser4_node_get_level(place->node),
+			  place->pos.item, place->pos.unit,
+			  blk, fd->repair->mode == RM_BUILD ?
 			  "Removed, content will be inserted later item-by-"
 			  "item." : "The whole subtree is skipped.");
 	}

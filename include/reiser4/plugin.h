@@ -435,6 +435,7 @@ DEFINE_ENT(oid);
 DEFINE_ENT(alloc);
 
 #define place_blknr(place) ((place)->node->block->nr)
+#define place_item_pos(place) ((place)->pos.item)
 #define place_blksize(place) ((place)->node->block->size)
 
 /* Type for key which is used both by library and plugins. */

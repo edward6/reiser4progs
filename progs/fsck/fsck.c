@@ -373,7 +373,8 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	if (sb_mode != RM_CHECK) {
 		flags = host->flags;
 		if (aal_device_reopen(host, host->blksize, O_RDWR)) {
-			aal_fatal("Failed to reopen the device RW.");
+			aal_fatal("Failed to reopen file \"%s\" with O_RDRW: %s",
+				  host->name, strerror(errno));
 			return -EIO;
 		}
 		
@@ -393,7 +394,8 @@ static errno_t fsck_check_init(repair_data_t *repair,
 		/* Reopen device RW for replaying. */
 		flags = host->flags;
 		if (aal_device_reopen(host, host->blksize, O_RDWR)) {
-			aal_fatal("Failed to reopen the device RW.");
+			aal_fatal("Failed to reopen file \"%s\" with O_RDRW: %s",
+				  host->name, strerror(errno));
 			res = -EIO;
 			goto error_close_fs;
 		}
@@ -412,7 +414,8 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	
 	if (fs_mode == RM_CHECK) {
 		if (aal_device_reopen(host, host->blksize, flags)) {
-			aal_fatal("Failed to reopen the device RW.");
+			aal_fatal("Failed to reopen file \"%s\" with 0%o: %s",
+				  host->name, flags, strerror(errno));
 			res = -EIO;
 			goto error_close_fs;
 		}
@@ -578,7 +581,7 @@ int main(int argc, char *argv[]) {
  free_device:
 	if (device) {
 		if (aal_device_sync(device)) {
-			aal_fatal("Cannot synchronize the device (%s).", 
+			aal_fatal("Cannot synchronize file \"%s\"", 
 				  device->name);
 			ex = OPER_ERROR;
 		}
