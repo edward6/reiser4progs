@@ -16,37 +16,37 @@
 reiser4_plug_t nocompress_plug = {
 	.id    = {CMODE_NONE_ID, 0, CMODE_PLUG_TYPE},
 	.label = "none",
-	.desc  = "No compression mode plugin.",
+	.desc  = "'Don't compress' compression mode plugin.",
 };
 
 reiser4_plug_t col8_plug = {
 	.id    = {CMODE_COL8_ID, 0, CMODE_PLUG_TYPE},
 	.label = "col8",
-	.desc  = "Check-on-lattice-8 compression mode plugin.",
+	.desc  = "'Check on lattice-8' compression mode plugin.",
 };
 
 reiser4_plug_t col16_plug = {
 	.id    = {CMODE_COL16_ID, 0, CMODE_PLUG_TYPE},
 	.label = "col16",
-	.desc  = "Check-on-lattice-16 compression mode plugin.",
+	.desc  = "'Check on lattice-16' compression mode plugin.",
 };
 
 reiser4_plug_t col32_plug = {
 	.id    = {CMODE_COL32_ID, 0, CMODE_PLUG_TYPE},
 	.label = "col32",
-	.desc  = "Check-on-lattice-32 compression mode plugin.",
+	.desc  = "'Check on lattice-32' compression mode plugin.",
 };
 
-reiser4_plug_t coz_plug = {
-	.id    = {CMODE_COZ_ID, 0, CMODE_PLUG_TYPE},
-	.label = "coz",
-	.desc  = "Check-on-zero compression mode plugin.",
+reiser4_plug_t convx_plug = {
+	.id    = {CMODE_CONVX_ID, 0, CMODE_PLUG_TYPE},
+	.label = "conv",
+	.desc  = "'Convert to extent' compression mode plugin.",
 };
 
 reiser4_plug_t force_plug = {
 	.id    = {CMODE_FORCE_ID, 0, CMODE_PLUG_TYPE},
 	.label = "force",
-	.desc  = "Compress evrything compression mode plugin.",
+	.desc  = "'Compress evrything' compression mode plugin.",
 };
 
 #endif

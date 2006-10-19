@@ -354,7 +354,7 @@ reiser4_object_plug_t ccreg40_plug = {
 	.p = {
 		.id    = {OBJECT_CCREG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
 		.label = "ccreg40",
-		.desc  = "Crypto-Compression regular file plugin.",
+		.desc  = "Cryptcompress regular file plugin.",
 	},
 
 	.inherit	= obj40_inherit,

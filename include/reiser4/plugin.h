@@ -87,6 +87,12 @@ struct reiser4_plug {
 #endif
 };
 
+/* This should be incremented with each new contributed
+   pair (plugin type, plugin id).
+   NOTE: Make sure there is a reiser4 kernel release
+   with the corresponding version number */
+#define PLUGIN_LIBRARY_VERSION 0
+
 /* Known by library plugin types. */
 typedef enum reiser4_plug_type {
 	OBJECT_PLUG_TYPE        = 0x0,
@@ -270,7 +276,7 @@ enum reiser4_compress_mode_id {
 	CMODE_COL8_ID	= 0x1,
 	CMODE_COL16_ID	= 0x2,
 	CMODE_COL32_ID	= 0x3,
-	CMODE_COZ_ID	= 0x4,
+	CMODE_CONVX_ID	= 0x4,
 	CMODE_FORCE_ID	= 0x5,
 	CMODE_LAST_ID
 };

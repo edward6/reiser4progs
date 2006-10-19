@@ -272,7 +272,7 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(col8);
 	__load_plug(col16);
 	__load_plug(col32);
-	__load_plug(coz);
+	__load_plug(convx);
 	__load_plug(force);
 
 	__load_plug(clust64);

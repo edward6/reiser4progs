@@ -18,8 +18,11 @@
 
 #define MAGIC_SIZE 16
 
-#define FORMAT40_VERSION	1
-#define FORMAT40_COMPATIBLE	1
+/* The greatest supported format40 version number */
+#define FORMAT40_VERSION PLUGIN_LIBRARY_VERSION
+
+/* This flag indicates that backup should be updated
+   (the update is performed by fsck) */
 #define FORMAT40_UPDATE_BACKUP  (1 << 31)
 
 typedef struct format40_super {
@@ -40,9 +43,8 @@ typedef struct format40_super {
 	d64_t sb_flags;
 	
 	d32_t sb_version;
-	d32_t sb_compatible;
 	
-	char sb_unused[424];
+	char sb_unused[428];
 } __attribute__((packed)) format40_super_t;
 
 typedef struct format40 {
@@ -63,7 +65,6 @@ typedef struct format40_backup {
 	d16_t sb_policy;
 	d64_t sb_flags;
 	d32_t sb_version;
-	d32_t sb_compatible;
 	d64_t sb_reserved;
 } __attribute__((packed)) format40_backup_t;
 #endif
@@ -107,9 +108,6 @@ extern reiser4_core_t *format40_core;
 
 #define sb_update_backup(sb)	\
 	(aal_get_le32(sb, sb_version) & FORMAT40_UPDATE_BACKUP)
-
-#define get_sb_compatible(sb)		aal_get_le32(sb, sb_compatible)
-#define set_sb_compatible(sb, val)	aal_set_le32(sb, sb_compatible, val)
 
 #define FORMAT40_KEY_LARGE		0
 

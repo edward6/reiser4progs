@@ -259,13 +259,13 @@ reiser4_profile_t defprof = {
 		},
 		[PROF_HEIR_HASH] = {
 			.name = "heir_hash",
-			.hidden = 0,
+			.hidden = 1,
 			.max = HASH_LAST_ID,
 			.id = {HASH_R5_ID, 0, HASH_PLUG_TYPE},
 		},
 		[PROF_HEIR_FIBRE] = {
 			.name = "heir_fibration",
-			.hidden = 0,
+			.hidden = 1,
 			.max = FIBRE_LAST_ID,
 			.id = {FIBRE_EXT_1_ID, 0, FIBRE_PLUG_TYPE},
 		},

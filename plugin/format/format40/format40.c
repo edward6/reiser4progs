@@ -249,7 +249,6 @@ static reiser4_format_ent_t *format40_create(aal_device_t *device,
 
 	/* Set version values. */
 	set_sb_version(super, FORMAT40_VERSION);
-	set_sb_compatible(super, FORMAT40_COMPATIBLE);
 	
 	/* Clobbering format skipped area in order to let mount to detect
 	   reiser4 correctly without specifying exact filesystem type. 
@@ -291,7 +290,6 @@ static errno_t format40_backup(reiser4_format_ent_t *entity, backup_hint_t *hint
 	
 	/* Get rid of UPDATE_BACKUP flag. */
 	set_sb_version(backup, get_sb_version(SUPER(entity)));
-	backup->sb_compatible = SUPER(entity)->sb_compatible;
 	
 	hint->version = get_sb_version(SUPER(entity));
 	

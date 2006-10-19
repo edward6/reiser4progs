@@ -331,7 +331,7 @@ reiser4_object_plug_t reg40_plug = {
 		.id    = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 		.label = "reg40",
-		.desc  = "Regular file plugin.",
+		.desc  = "Unix-file regular file plugin.",
 #endif
 	},
 
