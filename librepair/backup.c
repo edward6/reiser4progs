@@ -496,8 +496,8 @@ reiser4_backup_t *repair_backup_open(reiser4_fs_t *fs, uint8_t mode) {
 		/* The only 1 backup block must present according to 
 		   both this backup block and the @ondisk data, take
 		   @ondisk as the correct version. */
-		if (ondisk->total == 1)
-			goto error_free_ondisk;
+		//if (ondisk->total == 1)
+		//        goto error_free_ondisk;
 	}
 	
 	if (found != 1) {
