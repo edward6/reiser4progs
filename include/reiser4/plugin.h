@@ -273,11 +273,10 @@ enum reiser4_crypto_id {
 
 enum reiser4_compress_mode_id {
 	CMODE_NONE_ID	= 0x0,
-	CMODE_COL8_ID	= 0x1,
-	CMODE_COL16_ID	= 0x2,
-	CMODE_COL32_ID	= 0x3,
+	CMODE_LATTD_ID	= 0x1,
+	CMODE_ULTIM_ID	= 0x2,
+	CMODE_FORCE_ID	= 0x3,
 	CMODE_CONVX_ID	= 0x4,
-	CMODE_FORCE_ID	= 0x5,
 	CMODE_LAST_ID
 };
 

@@ -19,28 +19,16 @@ reiser4_plug_t nocompress_plug = {
 	.desc  = "'Don't compress' compression mode plugin.",
 };
 
-reiser4_plug_t col8_plug = {
-	.id    = {CMODE_COL8_ID, 0, CMODE_PLUG_TYPE},
-	.label = "col8",
-	.desc  = "'Check on lattice-8' compression mode plugin.",
+reiser4_plug_t lattd_plug = {
+	.id    = {CMODE_LATTD_ID, 0, CMODE_PLUG_TYPE},
+	.label = "latt",
+	.desc  = "'Check on dynamic lattice' compression mode plugin.",
 };
 
-reiser4_plug_t col16_plug = {
-	.id    = {CMODE_COL16_ID, 0, CMODE_PLUG_TYPE},
-	.label = "col16",
-	.desc  = "'Check on lattice-16' compression mode plugin.",
-};
-
-reiser4_plug_t col32_plug = {
-	.id    = {CMODE_COL32_ID, 0, CMODE_PLUG_TYPE},
-	.label = "col32",
-	.desc  = "'Check on lattice-32' compression mode plugin.",
-};
-
-reiser4_plug_t convx_plug = {
-	.id    = {CMODE_CONVX_ID, 0, CMODE_PLUG_TYPE},
-	.label = "conv",
-	.desc  = "'Convert to extent' compression mode plugin.",
+reiser4_plug_t ultim_plug = {
+	.id    = {CMODE_ULTIM_ID, 0, CMODE_PLUG_TYPE},
+	.label = "ultim",
+	.desc  = "'Check ultimately' compression mode plugin.",
 };
 
 reiser4_plug_t force_plug = {
@@ -49,4 +37,9 @@ reiser4_plug_t force_plug = {
 	.desc  = "'Compress evrything' compression mode plugin.",
 };
 
+reiser4_plug_t convx_plug = {
+	.id    = {CMODE_CONVX_ID, 0, CMODE_PLUG_TYPE},
+	.label = "conv",
+	.desc  = "'Convert to extent' compression mode plugin.",
+};
 #endif
