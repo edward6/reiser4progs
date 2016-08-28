@@ -9,7 +9,7 @@
 #include <aal/libaal.h>
 #include <reiser4/plugin.h>
 
-#define reiser4_keysign_size(digestid) (4 << ((uint32_t)digestid))
+#define reiser4_keysign_size(digestid) (4 << ((unsigned long)digestid))
 
 typedef struct sdext_crypto {
 	/* secret key size. */ 

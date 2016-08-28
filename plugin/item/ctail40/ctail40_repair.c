@@ -20,7 +20,7 @@ void ctail40_print(reiser4_place_t *place,
 	aal_assert("vpf-1893", stream != NULL);
 	
 	aal_stream_format(stream, " shift=%lu\n", 
-			  1ul << ct40_get_shift(place->body));
+			  ct40_get_shift(place->body));
 }
 
 #endif

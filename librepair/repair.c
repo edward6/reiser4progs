@@ -532,17 +532,14 @@ static errno_t repair_sem_prepare(repair_control_t *control,
 }
 
 static errno_t repair_sem_fini(repair_control_t *control, 
-			       repair_semantic_t *sem) {
-	uint64_t fs_len;
-
+			       repair_semantic_t *sem)
+{
 	control->oid = sem->stat.oid + 1;
 	control->files = sem->stat.reached_files;
 	
 	/* In the BUILD mode alloc was built on bm_used, nothing to do. */
 	if (control->repair->mode == RM_BUILD)
 		return 0;
-	
-	fs_len = reiser4_format_get_len(control->repair->fs->format);
 	
 	if (repair_bitmap_compare(control->bm_alloc, control->bm_used, 0)) {
 		fsck_mess("On-disk used block bitmap and really used block "
@@ -789,8 +786,14 @@ errno_t repair_check(repair_data_t *repair) {
 	if (repair->fatal) {
 		aal_warn("Fatal corruptions were found. "
 			 "Semantic pass is skipped.");
+		/*
+		 * We need to prepare pset for backup
+		 * creation in fsck_check_fini().
+		 */
+		if ((res = reiser4_pset_tree(control.repair->fs->tree, 0)))
+			goto error;
 		goto update;
-	} 
+	}
 	
 	/* Check the semantic reiser4 tree. */
 	if ((res = repair_sem_prepare(&control, &sem)))

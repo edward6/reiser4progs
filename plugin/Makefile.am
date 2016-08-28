@@ -14,6 +14,7 @@ libreiser4_plugin_la_LIBADD       = format/format40/libformat40-static.la \
                                     alloc/alloc40/liballoc40-static.la \
                                     oid/oid40/liboid40-static.la \
                                     node/node40/libnode40-static.la \
+                                    node/node41/libnode41-static.la \
                                     key/key_common/libkey_common-static.la \
                                     key/key_short/libkey_short-static.la \
                                     key/key_large/libkey_large-static.la \
@@ -57,6 +58,7 @@ if ENABLE_MINIMAL
 libreiser4_plugin_minimal_la_LIBADD = format/format40/libformat40-minimal.la \
                                     oid/oid40/liboid40-minimal.la \
                                     node/node40/libnode40-minimal.la \
+                                    node/node41/libnode41-minimal.la \
                                     key/key_common/libkey_common-minimal.la \
                                     key/key_short/libkey_short-minimal.la \
                                     key/key_large/libkey_large-minimal.la \

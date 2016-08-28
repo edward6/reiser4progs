@@ -297,6 +297,6 @@ void misc_plugins_print(void) {
 
 void misc_uuid_unparse(char *uuid, char *string) {
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-	uuid_unparse(uuid, string);
+	uuid_unparse((unsigned char *)uuid, string);
 #endif
 }

@@ -87,11 +87,13 @@ struct reiser4_plug {
 #endif
 };
 
-/* This should be incremented with each new contributed
-   pair (plugin type, plugin id).
-   NOTE: Make sure there is a reiser4 kernel release
-   with the corresponding version number */
-#define PLUGIN_LIBRARY_VERSION 0
+/*
+ * This should be incremented in every release which adds one
+ * or more new plugins.
+ * NOTE: Make sure that respective marco is also incremented in
+ * the new release of reiser4 kernel module.
+ */
+#define PLUGIN_LIBRARY_VERSION 1
 
 /* Known by library plugin types. */
 typedef enum reiser4_plug_type {
@@ -174,6 +176,7 @@ extern const char *reiser4_slink_name[];
 /* Known node plugin ids. */
 enum reiser4_node_plug_id {
 	NODE_REISER40_ID        = 0x0,
+	NODE_REISER41_ID        = 0x1,
 	NODE_LAST_ID
 };
 
@@ -371,7 +374,7 @@ enum reiser4_pset_id {
 	((reiser4_item_plug_t *)(obj)->info.pset.plug[PSET_DIRITEM])
 
 #define reiser4_pscrypto(obj) \
-	((rid_t)(obj)->info.pset.plug[PSET_CRYPTO])
+	((unsigned long)(obj)->info.pset.plug[PSET_CRYPTO])
 
 #define reiser4_pscompress(obj) \
 	((reiser4_plug_t *)(obj)->info.pset.plug[PSET_COMPRESS])
@@ -954,7 +957,8 @@ typedef struct format_hint {
 	uint32_t blksize;
 	rid_t policy;
 	rid_t key;
-	
+	rid_t node;
+
 	/* For repair purposes. Set plugin types that are overridden 
 	   in the profile here, they must be set in the format plugin
 	   check_struct. If bit is not set, plugins given with the above 
@@ -1478,11 +1482,12 @@ struct reiser4_format_plug {
 	void (*set_policy) (reiser4_format_ent_t *, rid_t);
 	void (*set_height) (reiser4_format_ent_t *, uint16_t);
 
-	/* Return plugin ids for journal, block allocator, and oid allocator
-	   components. */
+	/* Return plugin ids for journal, block allocator, oid allocator
+	   and node components. */
 	rid_t (*journal_pid) (reiser4_format_ent_t *);
 	rid_t (*alloc_pid) (reiser4_format_ent_t *);
 	rid_t (*oid_pid) (reiser4_format_ent_t *);
+	rid_t (*node_pid) (reiser4_format_ent_t *);
 
 	/* Format enumerator function. */
 	errno_t (*layout) (reiser4_format_ent_t *, region_func_t, void *);

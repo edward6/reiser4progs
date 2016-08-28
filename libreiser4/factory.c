@@ -239,6 +239,8 @@ errno_t reiser4_factory_init(void) {
 	
 	__load_plug(node40);
 	__init_plug(node40);
+
+	__load_plug(node41);
 	
 	__load_plug(dir40);
 	__load_plug(reg40);

@@ -104,14 +104,14 @@ uint32_t extent40_unit(reiser4_place_t *place, uint64_t offset) {
 static errno_t extent40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
 	uint32_t len;
 	uint32_t pos;
-	uint32_t units;
 	void *src, *dst;
-
+#ifdef ENABLE_DEBUG
+	uint32_t units = extent40_units(place);
+#endif
 	aal_assert("vpf-941", place != NULL);
 	aal_assert("umka-2402", hint != NULL);
 
 	pos = place->pos.unit;
-	units = extent40_units(place);
 	
 	/* Check for unit pos. */
 	if (pos == MAX_UINT32)
@@ -923,14 +923,12 @@ static errno_t extent40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 		objcall(&hint->maxkey, set_offset, max_off);
 
 		if (place->pos.unit != MAX_UINT32) {
-			uint64_t width;
 
 			/* If new data could be attached to the end of existent,
 			   no new unit is needed. It is possible if we write data 
 			   over not allocated unit or hole over the hole. */
 			extent = extent40_body(place) + units - 1;
 			start = et40_get_start(extent);
-			width = et40_get_width(extent);
 			
 			if ((start == EXTENT_UNALLOC_UNIT && hint->specific) ||
 			    (start == EXTENT_HOLE_UNIT && !hint->specific))
@@ -1015,7 +1013,6 @@ static errno_t extent40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 
 /* Writes data to extent. */
 static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) {
-	aal_device_t *device;
 	aal_block_t *block;
 	extent40_t *extent;
 	reiser4_key_t key;
@@ -1053,7 +1050,6 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 	buff = hint->specific;
 	unit_pos = place->pos.unit;
 	units = extent40_units(place);
-	device = extent40_device(place);
 	blksize = place_blksize(place);
 
 	/* Get the offset range being handled: ins_off, max_off. */

@@ -1,1 +1,1 @@
-noinst_HEADERS		= aux.h gauge.h
+noinst_HEADERS		= aux.h gauge.h crc32c.h

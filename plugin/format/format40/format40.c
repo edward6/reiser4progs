@@ -10,6 +10,7 @@
 
 #include "format40.h"
 #include "format40_repair.h"
+#include <misc/misc.h>
 
 reiser4_core_t *format40_core = NULL;
 
@@ -45,6 +46,11 @@ static uint32_t format40_get_stamp(reiser4_format_ent_t *entity) {
 static rid_t format40_get_policy(reiser4_format_ent_t *entity) {
 	aal_assert("vpf-831", entity != NULL);
 	return get_sb_policy(SUPER(entity));
+}
+
+static uint32_t format40_node_pid(reiser4_format_ent_t *entity) {
+	aal_assert("edward-18", entity != NULL);
+	return get_sb_node_pid(SUPER(entity));
 }
 
 static uint64_t format40_start(reiser4_format_ent_t *entity) {
@@ -238,6 +244,9 @@ static reiser4_format_ent_t *format40_create(aal_device_t *device,
 	/* Setting up tail policy to passed @desc->policy value. */
 	set_sb_policy(super, desc->policy);
 
+	/* Set node plugin id */
+	set_sb_node_pid(super, desc->node);
+
 	/* Set the flags. */
 	/* FIXME: Hardcoded plugin ids for 2 cases. */
 	flags = (desc->key == KEY_LARGE_ID) ? (1 << FORMAT40_KEY_LARGE) : 0;
@@ -248,7 +257,7 @@ static reiser4_format_ent_t *format40_create(aal_device_t *device,
 	set_sb_mkfs_id(super, random());
 
 	/* Set version values. */
-	set_sb_version(super, FORMAT40_VERSION);
+	set_sb_version(super, get_release_number_minor());
 	
 	/* Clobbering format skipped area in order to let mount to detect
 	   reiser4 correctly without specifying exact filesystem type. 
@@ -354,16 +363,19 @@ static errno_t format40_valid(reiser4_format_ent_t *entity) {
 		return -EINVAL;
 	}
 
-	if (get_sb_version(SUPER(format)) > FORMAT40_VERSION) {
-		aal_error("The on-disk format version (%u) is greater than "
-			  "the known version (%u). Please update reiser4progs "
+	if (get_sb_version(SUPER(format)) > get_release_number_minor()) {
+		aal_error("Format version (4.0.%u) of the partition is "
+			  "greater than format release number (4.%u.%u) "
+			  "of reiser4progs. Please upgrade reiser4progs, "
 			  "or run fsck.reiser4 --build-sb to fix the fs "
-			  "consistency.", get_sb_version(SUPER(format)),
-			  FORMAT40_VERSION);
+			  "consistency.",
+			  get_sb_version(SUPER(format)),
+			  get_release_number_major(),
+			  get_release_number_minor());
 
 		return -EINVAL;
 	}
-	
+
 	return 0;
 }
 
@@ -503,6 +515,7 @@ reiser4_format_plug_t format40_plug = {
 	.oid_area       = format40_oid_area,
 	.journal_pid	= format40_journal_pid,
 	.alloc_pid	= format40_alloc_pid,
+	.node_pid       = format40_node_pid,
 	.backup		= format40_backup,
 	.check_backup	= format40_check_backup,
 	.regenerate     = format40_regenerate,
@@ -517,4 +530,13 @@ reiser4_format_plug_t format40_plug = {
 	.key_pid        = format40_key_pid,
 };
 
-
+/*
+  Local variables:
+  c-indentation-style: "K&R"
+  mode-name: "LC"
+  c-basic-offset: 8
+  tab-width: 8
+  fill-column: 80
+  scroll-step: 1
+  End:
+*/

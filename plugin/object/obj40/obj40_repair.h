@@ -18,6 +18,11 @@ typedef struct obj40_stat_ops {
 	int (*check_nlink) (reiser4_object_t *obj, uint32_t *, uint32_t);
 	int (*check_size) (reiser4_object_t *obj, uint64_t *, uint64_t);
 	int (*check_bytes) (reiser4_object_t *obj, uint64_t *, uint64_t);
+	int (*check_bytes_report) (reiser4_place_t *start,
+				   reiser4_core_t *core,
+				   uint64_t found_bytes,
+				   uint8_t mode,
+				   uint64_t correct_bytes);
 } obj40_stat_ops_t;
 
 typedef struct obj40_stat_hint {
@@ -46,3 +51,14 @@ extern lookup_t obj40_check_item(reiser4_object_t *obj,
 				 void *data);
 
 #endif
+
+/*
+  Local variables:
+  c-indentation-style: "K&R"
+  mode-name: "LC"
+  c-basic-offset: 8
+  tab-width: 8
+  fill-column: 80
+  scroll-step: 1
+  End:
+*/

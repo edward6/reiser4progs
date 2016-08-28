@@ -14,8 +14,8 @@ AH_TEMPLATE([LIBREISER4_MAX_INTERFACE_VERSION], [Define to the max interface ver
 AH_TEMPLATE([LIBREISER4_MIN_INTERFACE_VERSION], [Define to the min interface version.])
 
 LIBREISER4_MAJOR_VERSION=1
-LIBREISER4_MINOR_VERSION=0
-LIBREISER4_MICRO_VERSION=6
+LIBREISER4_MINOR_VERSION=1
+LIBREISER4_MICRO_VERSION=0
 
 LIBREISER4_INTERFACE_AGE=0
 LIBREISER4_BINARY_AGE=0
@@ -432,7 +432,7 @@ AC_CHECK_SIZEOF(off_t, 64, [
 ])
 
 OLD_LIBS="$LIBS"
-AC_CHECK_LIBAAL(aal, 1.0.5, ,exit)
+AC_CHECK_LIBAAL(aal, 1.0.6, ,exit)
 AAL_LIBS="$LIBS"
 LIBS="$OLD_LIBS"
 
@@ -440,7 +440,7 @@ AC_SUBST(AAL_LIBS)
 
 if test x$enable_libminimal = xyes; then
     	OLD_LIBS="$LIBS"
-    	AC_CHECK_LIBAAL(aal-minimal, 1.0.5, ,exit)
+    	AC_CHECK_LIBAAL(aal-minimal, 1.0.6, ,exit)
     	AAL_MINIMAL_LIBS="$LIBS"
     	LIBS="$OLD_LIBS"
 
@@ -582,6 +582,7 @@ AC_OUTPUT([
     	plugin/oid/oid40/Makefile
     	plugin/node/Makefile
     	plugin/node/node40/Makefile
+	plugin/node/node41/Makefile
    	plugin/key/Makefile
     	plugin/key/key_common/Makefile
     	plugin/key/key_short/Makefile

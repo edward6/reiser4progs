@@ -87,6 +87,7 @@ reiser4_format_t *reiser4_format_create(
 	reiser4_format_plug_t *plug,	/* format plugin */
 	rid_t policy,			/* policy plug id */
 	rid_t key,			/* key plug id */
+	rid_t node,                     /* node plug id */
 	count_t blocks)			/* block count */
 {
 	reiser4_format_t *format;
@@ -106,6 +107,7 @@ reiser4_format_t *reiser4_format_create(
 	desc.blocks = blocks;
 	desc.policy = policy;
 	desc.key = key;
+	desc.node = node;
 
 	/* Initializing entity of disk-format by means of calling "create"
 	   method from found plugin. Plugin "create" method will be creating 
@@ -259,6 +261,15 @@ uint16_t reiser4_format_get_policy(
 	aal_assert("vpf-836", format != NULL);
     
 	return reiser4call(format, get_policy);
+}
+
+/* Returns node plugin id from the format-specific super-block */
+rid_t reiser4_format_node_pid(
+	reiser4_format_t *format)	/* format to be inspected */
+{
+	aal_assert("edward-19", format != NULL);
+
+	return reiser4call(format, node_pid);
 }
 
 /* Sets new root block */

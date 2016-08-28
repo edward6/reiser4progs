@@ -62,12 +62,10 @@ static errno_t bbox40_insert_units(reiser4_place_t *place,
 static errno_t bbox40_remove_units(reiser4_place_t *place,
 				   trans_hint_t *hint)
 {
-	slink_hint_t *link;
-	
+#if ENABLE_DEBUG
+	slink_hint_t *link = (slink_hint_t *)hint->specific;
+#endif
 	aal_assert("vpf-1574", hint != NULL);
-
-	link = (slink_hint_t *)hint->specific;
-	
 	aal_assert("vpf-1575", link->key.plug != NULL);
 	
 	hint->overhead = 0;

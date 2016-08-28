@@ -68,56 +68,72 @@ int node40_isdirty(reiser4_node_t *entity) {
 	return entity->block->dirty;
 }
 
-static uint32_t node40_get_state(reiser4_node_t *entity) {
+uint32_t node40_get_state(reiser4_node_t *entity) {
 	aal_assert("umka-2091", entity != NULL);
 	return entity->state;
 }
 
-static void node40_set_state(reiser4_node_t *entity,
-			     uint32_t state)
+void node40_set_state(reiser4_node_t *entity, uint32_t state)
 {
 	aal_assert("umka-2092", entity != NULL);
 	entity->state = state;
 }
 
 /* Returns node mkfs stamp. */
-static uint32_t node40_get_mstamp(reiser4_node_t *entity) {
+uint32_t node40_get_mstamp(reiser4_node_t *entity) {
 	aal_assert("umka-1127", entity != NULL);
 	return nh_get_mkfs_id(entity);
 }
 
 /* Returns node flush stamp. */
-static uint64_t node40_get_fstamp(reiser4_node_t *entity) {
+uint64_t node40_get_fstamp(reiser4_node_t *entity) {
 	aal_assert("vpf-645", entity != NULL);
 	return nh_get_flush_id(entity);
 }
 
-/* Initializes node of the given @level on the @block with key plugin
-   @kplug. Returns initialized node instance. */
-static reiser4_node_t *node40_init(aal_block_t *block, uint8_t level,
-				   reiser4_key_plug_t *kplug)
+reiser4_node_t *
+node40_init_common(aal_block_t *block, uint8_t level,
+		   reiser4_key_plug_t *kplug,
+		   reiser4_node_plug_t *nplug,
+		   const uint32_t magic,
+		   uint32_t node_header_size,
+		   reiser4_node_t * (*prepare_fn)(aal_block_t *,
+						  reiser4_key_plug_t *))
 {
 	reiser4_node_t *entity;
 
 	aal_assert("umka-2374", block != NULL);
 	aal_assert("vpf-1417",  kplug != NULL);
-	
-	if (!(entity = node40_prepare(block, kplug)))
+
+	if (!(entity = prepare_fn(block, kplug)))
 		return NULL;
-	
+
 	nh_set_num_items(entity, 0);
 	nh_set_level(entity, level);
-	nh_set_magic(entity, NODE40_MAGIC);
-	nh_set_pid(entity, node40_plug.p.id.id);
-	
-	nh_set_free_space_start(entity, sizeof(node40_header_t));
-	nh_set_free_space(entity, block->size - sizeof(node40_header_t));
+	nh_set_magic(entity, magic);
+	nh_set_pid(entity, nplug->p.id.id);
+	nh_set_free_space_start(entity, node_header_size);
+	nh_set_free_space(entity, block->size - node_header_size);
 
 	return entity;
 }
 
+/*
+ * Initializes node of the given @level on the @block with key plugin
+ * @kplug. Returns initialized node instance
+ */
+static reiser4_node_t *node40_init(aal_block_t *block, uint8_t level,
+				   reiser4_key_plug_t *kplug)
+{
+	return node40_init_common(block, level, kplug,
+				  &node40_plug,
+				  NODE40_MAGIC,
+				  sizeof(node40_header_t),
+				  node40_prepare);
+}
+
 /* Saves node to device */
-static errno_t node40_sync(reiser4_node_t *entity) {
+errno_t node40_sync(reiser4_node_t *entity) {
 	errno_t res;
 	
 	aal_assert("umka-1552", entity != NULL);
@@ -131,7 +147,7 @@ static errno_t node40_sync(reiser4_node_t *entity) {
 #endif
 
 /* Closes node by means of closing its block */
-static errno_t node40_fini(reiser4_node_t *entity) {
+errno_t node40_fini(reiser4_node_t *entity) {
 	aal_assert("umka-825", entity != NULL);
 
 	aal_block_free(entity->block);
@@ -156,8 +172,7 @@ uint16_t node40_space(reiser4_node_t *entity) {
 }
 
 /* Sets node make stamp. */
-static void node40_set_mstamp(reiser4_node_t *entity,
-			      uint32_t stamp)
+void node40_set_mstamp(reiser4_node_t *entity, uint32_t stamp)
 {
 	aal_assert("vpf-644", entity != NULL);
 
@@ -166,8 +181,7 @@ static void node40_set_mstamp(reiser4_node_t *entity,
 }
 
 /* Returns node flush stamp */
-static void node40_set_fstamp(reiser4_node_t *entity,
-			      uint64_t stamp)
+void node40_set_fstamp(reiser4_node_t *entity, uint64_t stamp)
 {
 	aal_assert("vpf-643", entity != NULL);
 	
@@ -176,8 +190,7 @@ static void node40_set_fstamp(reiser4_node_t *entity,
 }
 
 /* Set new node level to @level. */
-static void node40_set_level(reiser4_node_t *entity,
-			     uint8_t level)
+void node40_set_level(reiser4_node_t *entity, uint8_t level)
 {
 	aal_assert("umka-1864", entity != NULL);
 	
@@ -219,8 +232,7 @@ uint16_t node40_len(reiser4_node_t *entity, pos_t *pos) {
 
 /* Open the node on the given @block with the given key plugin @kplug. Returns
    initialized node instance. */
-static reiser4_node_t *node40_open(aal_block_t *block,
-				   reiser4_key_plug_t *kplug)
+reiser4_node_t *node40_open(aal_block_t *block, reiser4_key_plug_t *kplug)
 {
 	reiser4_node_t *entity;
 	
@@ -250,8 +262,8 @@ static void node40_get_key_by_ih(reiser4_node_t *entity, void *ih,
 }
 
 /* Returns key at passed @pos. */
-static errno_t node40_get_key(reiser4_node_t *entity,
-			      pos_t *pos, reiser4_key_t *key) 
+errno_t node40_get_key(reiser4_node_t *entity,
+		       pos_t *pos, reiser4_key_t *key)
 {
 	void *ih;
     
@@ -322,8 +334,8 @@ errno_t node40_fetch(reiser4_node_t *entity,
 #ifndef ENABLE_MINIMAL
 /* Retutns item overhead for this node format. Widely used in modification and
    estimation routines. */
-static uint16_t node40_overhead(reiser4_node_t *entity) {
-	return ih_size(entity->keypol);
+uint16_t node40_overhead(reiser4_node_t *entity) {
+        return ih_size(entity->keypol);
 }
 
 /* Returns maximal size of item possible for passed node instance */
@@ -655,8 +667,8 @@ int64_t node40_modify(reiser4_node_t *entity, pos_t *pos,
 	return write;
 }
 
-static errno_t node40_insert(reiser4_node_t *entity,
-			     pos_t *pos, trans_hint_t *hint)
+errno_t node40_insert(reiser4_node_t *entity,
+		      pos_t *pos, trans_hint_t *hint)
 {
 	modify_func_t ins_func;
 	
@@ -668,8 +680,7 @@ static errno_t node40_insert(reiser4_node_t *entity,
 	return node40_modify(entity, pos, hint, ins_func);
 }
 
-static int64_t node40_write(reiser4_node_t *entity,
-			    pos_t *pos, trans_hint_t *hint)
+int64_t node40_write(reiser4_node_t *entity, pos_t *pos, trans_hint_t *hint)
 {
 	modify_func_t write_func;
 
@@ -682,8 +693,7 @@ static int64_t node40_write(reiser4_node_t *entity,
 }
 
 /* Truncates node at @pos. Needed for tail conversion. */
-static int64_t node40_trunc(reiser4_node_t *entity, pos_t *pos,
-			    trans_hint_t *hint)
+int64_t node40_trunc(reiser4_node_t *entity, pos_t *pos, trans_hint_t *hint)
 {
 	void *ih;
 	uint32_t pol;
@@ -837,8 +847,8 @@ errno_t node40_remove(reiser4_node_t *entity, pos_t *pos,
 /* Fuses two mergeable items if they lie in the same node side by side. This is
    needed for fsck if it discovered, that two items are mergeable and lie in the
    same node (due to some corruption or fail) it will merge them. */
-static errno_t node40_merge(reiser4_node_t *entity,  
-			    pos_t *left_pos, pos_t *right_pos)
+errno_t node40_merge(reiser4_node_t *entity,
+		     pos_t *left_pos, pos_t *right_pos)
 {
 	errno_t res;
 	uint32_t pol;
@@ -920,8 +930,7 @@ static errno_t node40_merge(reiser4_node_t *entity,
 }
 
 /* Updates key at @pos by specified @key */
-static errno_t node40_set_key(reiser4_node_t *entity, 
-			      pos_t *pos, reiser4_key_t *key) 
+errno_t node40_set_key(reiser4_node_t *entity, pos_t *pos, reiser4_key_t *key)
 {
 	void *ih;
 	uint32_t key_size;
@@ -976,10 +985,10 @@ static int cb_comp_key4(void *ih0, uint32_t pos,
 
 /* Makes search inside the specified node @entity for @key and stores the result
    into @pos. This function returns 1 if key is found and 0 otherwise. */
-static lookup_t node40_lookup(reiser4_node_t *entity,
-			      lookup_hint_t *hint,
-			      lookup_bias_t bias,
-			      pos_t *pos)
+lookup_t node40_lookup(reiser4_node_t *entity,
+		       lookup_hint_t *hint,
+		       lookup_bias_t bias,
+		       pos_t *pos)
 {
 	aux_comp_func_t func;
 	void *ih;
@@ -996,7 +1005,7 @@ static lookup_t node40_lookup(reiser4_node_t *entity,
 	func = cb_comp_key3;
 #elif defined(ENABLE_LARGE_KEYS)
 	func = cb_comp_key4;
-#elif
+#else
 	func = NULL;
 #endif
 	
@@ -1544,9 +1553,9 @@ static errno_t node40_move(reiser4_node_t *src_entity,
    and @dst_entity after some number of whole items was moved to @dst_entity. It
    is needed to use the rest of space remaining after whole items shift in
    second pass. */
-static errno_t node40_shift(reiser4_node_t *src_entity,
-			    reiser4_node_t *dst_entity,
-			    shift_hint_t *hint)
+errno_t node40_shift(reiser4_node_t *src_entity,
+		     reiser4_node_t *dst_entity,
+		     shift_hint_t *hint)
 {
 	errno_t res;
 
@@ -1650,7 +1659,7 @@ reiser4_node_plug_t node40_plug = {
 		.id    = {NODE_REISER40_ID, 0, NODE_PLUG_TYPE},
 #ifndef ENABLE_MINIMAL
 		.label = "node40",
-		.desc  = "Node plugin.",
+		.desc  = "Node layout plugin.",
 #endif
 	},
 	
@@ -1703,3 +1712,14 @@ reiser4_node_plug_t node40_plug = {
 	.check_struct	= node40_check_struct
 #endif
 };
+
+/*
+   Local variables:
+   c-indentation-style: "K&R"
+   mode-name: "LC"
+   c-basic-offset: 8
+   tab-width: 8
+   fill-column: 80
+   scroll-step: 1
+   End:
+*/

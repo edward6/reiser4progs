@@ -71,3 +71,6 @@ is just amazing to watch his talent for spotting bugs in action.
 
 Edward Shishkin wrote cryptcompress file plugin and other plugins
 related to transparent crypto and compression support.
+
+Ivan Shapovalov (aka Intelfx) implemented discard support, which is
+useful for solid-state drives (SSDs).

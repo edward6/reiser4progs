@@ -18,9 +18,6 @@
 
 #define MAGIC_SIZE 16
 
-/* The greatest supported format40 version number */
-#define FORMAT40_VERSION PLUGIN_LIBRARY_VERSION
-
 /* This flag indicates that backup should be updated
    (the update is performed by fsck) */
 #define FORMAT40_UPDATE_BACKUP  (1 << 31)
@@ -43,8 +40,8 @@ typedef struct format40_super {
 	d64_t sb_flags;
 	
 	d32_t sb_version;
-	
-	char sb_unused[428];
+	d32_t node_pid;
+	char sb_unused[424];
 } __attribute__((packed)) format40_super_t;
 
 typedef struct format40 {
@@ -101,6 +98,9 @@ extern reiser4_core_t *format40_core;
 #define get_sb_flags(sb)		aal_get_le64(sb, sb_flags)
 #define set_sb_flags(sb, val)		aal_set_le64(sb, sb_flags, val)
 
+#define get_sb_node_pid(sb)		aal_get_le32(sb, node_pid)
+#define set_sb_node_pid(sb, val)	aal_set_le32(sb, node_pid, val)
+
 #define get_sb_version(sb)	\
 	(aal_get_le32(sb, sb_version) & ~FORMAT40_UPDATE_BACKUP)
 
@@ -123,3 +123,14 @@ extern rid_t format40_get_key(reiser4_format_ent_t *entity);
 #endif
 
 #endif
+
+/*
+   Local variables:
+   c-indentation-style: "K&R"
+   mode-name: "LC"
+   c-basic-offset: 8
+   tab-width: 8
+   fill-column: 80
+   scroll-step: 1
+   End:
+*/

@@ -19,7 +19,7 @@ static errno_t cb_item_region_check(blk_t start, uint64_t count, void *data) {
 	/* This must be fixed at the first pass. */
 	if (start >= ts->bm_met->total || 
 	    count > ts->bm_met->total ||
-	    start >= ts->bm_met->total - count)
+	    start > ts->bm_met->total - count)
 	{
 		ts->stat.bad_unfm_ptrs++;
 		return RE_FATAL;

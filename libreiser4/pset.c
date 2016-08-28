@@ -149,8 +149,8 @@ void reiser4_pset_root(object_info_t *info) {
 		} else if (defprof.pid[pset_prof[i]].id.type == 
 			   PARAM_PLUG_TYPE) 
 		{
-			info->pset.plug[i] = 
-				(void *)defprof.pid[pset_prof[i]].id.id;
+			info->pset.plug[i] = (void *)
+			  (unsigned long)defprof.pid[pset_prof[i]].id.id;
 			
 		} else {
 			info->pset.plug[i] = 
@@ -340,7 +340,8 @@ errno_t reiser4_pset_backup(reiser4_tree_t *tree, backup_hint_t *hint) {
 	
 	for (i = 0; i < PSET_STORE_LAST; i++) {
 		if (tree->ent.param_mask & (1 << i))
-			aal_set_le32(pset, id[i], (rid_t)tree->ent.pset[i]);
+			aal_set_le32(pset, id[i],
+				     (unsigned long)tree->ent.pset[i]);
 		else
 			aal_set_le32(pset, id[i], tree->ent.pset[i]->id.id);
 	}

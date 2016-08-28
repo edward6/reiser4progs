@@ -65,7 +65,7 @@ errno_t repair_pset_root_check(reiser4_fs_t *fs,
 		id = aal_get_le32(pset, id[i]);
 		
 		root_id = fs->tree->ent.param_mask & (1 << i) ? 
-			(rid_t)root->info.pset.plug[i] : 
+			(unsigned long )root->info.pset.plug[i] :
 			root->info.pset.plug[i]->id.id;
 		
 		if (root_id == id)
@@ -79,7 +79,7 @@ errno_t repair_pset_root_check(reiser4_fs_t *fs,
 			return RE_FATAL;
 		
 		if (fs->tree->ent.param_mask & (1 << i)) {
-			root->info.pset.plug[i] = (void *)id;
+			root->info.pset.plug[i] = (void *)(unsigned long)id;
 		} else {
 			root->info.pset.plug[i] = reiser4_factory_ifind(
 				defprof.pid[pset_prof[i]].id.type, id);

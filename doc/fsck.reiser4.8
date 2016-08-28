@@ -30,7 +30,8 @@ the default action checks the consistency and reports, but does not repair any c
 This option may be used on a read-only file system mount.
 .TP
 .B --fix
-fixes minor corruptions that do not require rebuilding.
+fixes minor corruptions that do not require rebuilding;
+sets up correct values of bytes unsupported by kernel in the case of transparent compression.
 .TP
 .B --build-sb
 fixes all severe corruptions in super blocks, rebuilds super blocks from scratch if needed.
@@ -54,7 +55,7 @@ supresses gauges.
 ignored.
 .SH PLUGIN OPTIONS
 .TP
-.B -p, --print-profile
+.B --print-profile
 prints the plugin profile. This is the set of default plugins used for all
 parts of a filesystem -- format, nodes, files, directories, hashes, etc. If
 --override is specified, then prints modified plugins.
@@ -82,13 +83,14 @@ assumes an answer 'yes' to all questions.
 .B -f, --force
 forces fsck to use whole disk, not block device or mounted partition.
 .TP
+.B -p, --preen
+automatically repair minor corruptions on the filesystem.
+.TP
 .B -c, --cache N
 tunes number of nodes in the libreiser4 tree buffer cache
 .RS
 .SH REPORTING BUGS
-Report bugs to <vitaly@namesys.com>, <reiserfs-list@namesys.com>
-.SH SUPPORT
-You can get support at http://www.namesys.com/support.html
+Report bugs to <reiserfs-devel@vger.kernel.org>
 .SH SEE ALSO
 .BR debugfs.reiser4(8),
 .BR mkfs.reiser4(8),

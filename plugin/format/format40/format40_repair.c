@@ -8,6 +8,7 @@
 
 #include "format40.h"
 #include <repair/plugin.h>
+#include <misc/misc.h>
 
 /* Update from the device only those fields which can be changed while 
    replaying. */
@@ -91,19 +92,21 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 	
 	if (backup) {
 		/* Check the version if the version was backed up. */
-	        if ((get_sb_version(backup) > FORMAT40_VERSION) ||
-		    ((get_sb_version(super) > FORMAT40_VERSION) &&
+	        if ((get_sb_version(backup) > get_release_number_minor()) ||
+		    ((get_sb_version(super) > get_release_number_minor()) &&
 		     sb_update_backup(super))) {
-			aal_fatal("The on-disk format version (%u) is "
-				  "greater than the known version (%u). "
-				  "Please update reiser4progs and try again.",
-				  get_sb_version(super),FORMAT40_VERSION);
-			
+			aal_fatal("Format version (4.0.%u) of the partition "
+				  "is greater than format release number "
+				  "(4.%u.%u) of reiser4progs. Please upgrade "
+				  "reiser4progs and try again.",
+				  get_sb_version(super),
+				  get_release_number_major(),
+				  get_release_number_minor());
 			return RE_FATAL;
 		}
 		
 		if ((get_sb_version(super) > get_sb_version(backup)) &&
-		    (get_sb_version(super) <= FORMAT40_VERSION) && 
+		    (get_sb_version(super) <= get_release_number_minor()) &&
 		    (sb_update_backup(super)))
 		{
 			/* Backup update is needed. */
@@ -118,33 +121,33 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 			}
 		} else {
 			if (get_sb_version(super) != get_sb_version(backup)) {
-				fsck_mess("The on-disk format version (%u) does"
-					  " not match the backup one (%u).%s",
+				fsck_mess("Minor format version number (%u) in "
+					  "superblock doesn't match the one in "
+					  "backup (%u).%s",
 					  get_sb_version(super), 
 					  get_sb_version(backup),
 					  mode == RM_BUILD ? " Fixed." : "");
-				
 				if (mode == RM_BUILD) {
-					set_sb_version(super, 
-						get_sb_version(backup));
-					
+					set_sb_version(super,
+						       get_sb_version(backup));
 					format40_mkdirty(format);
-				} else {
+				} else
 					res |= RE_FATAL;
-				}
 			}
-			
 		}
 	} else {
-		if (get_sb_version(super) > FORMAT40_VERSION) {
+		if (get_sb_version(super) > get_release_number_minor()) {
 			int opt;
 
-			aal_mess("The on-disk format40 version (%u) is greater "
-				 "than the known version (%u). This probably "
-				 "means that reiser4progs is out of date. Fix "
-				 "the format40 version, only if you are sure "
-				 "this is a corruption.", get_sb_version(super),
-				 FORMAT40_VERSION);
+			aal_mess("Format version (4.0.%u) of the partition is "
+				 "greater than format release number (4.%u.%u) "
+				 "of reiser4progs. This probably means that "
+				 "reiser4progs is out of date. Fix the format "
+				 "version only if you are sure that this is a "
+				 "corruption.",
+				 get_sb_version(super),
+				 get_release_number_major(),
+				 get_release_number_minor());
 
 			if (mode != RM_BUILD)
 				return RE_FATAL;
@@ -154,7 +157,7 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 			if (opt != EXCEPTION_OPT_YES)
 				return -EINVAL;
 
-			set_sb_version(super, FORMAT40_VERSION);
+			set_sb_version(super, get_release_number_minor());
 			format40_mkdirty(format);
 		}
 	}
@@ -489,16 +492,18 @@ reiser4_format_ent_t *format40_regenerate(aal_device_t *device,
 
 	backup = (format40_backup_t *)
 		(hint->block.data + hint->off[BK_FORMAT]);
-	
-	if (get_sb_version(backup) > FORMAT40_VERSION) {
-		fsck_mess("The reiser4 fs being repaired is formatted with "
-			  "format40 plugin version %u, whereas the used "
-			  "format40 plugin is of version %u. Please update "
-			  "reiser4progs and try again.", 
-			  get_sb_version(backup), FORMAT40_VERSION);
+
+	if (get_sb_version(backup) > get_release_number_minor()) {
+		fsck_mess("Format version (4.0.%u) of the partition being "
+			  "repaired is greater than format release number "
+			  "(4.%u.%u) of reiser4progs. Please upgrade "
+			  "reiser4progs and try again.",
+			  get_sb_version(backup),
+			  get_release_number_major(),
+			  get_release_number_minor());
 		return NULL;
 	}
-	
+
 	/* Initializing format instance. */
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
@@ -527,3 +532,14 @@ reiser4_format_ent_t *format40_regenerate(aal_device_t *device,
 }
 
 #endif
+
+/*
+  Local variables:
+  c-indentation-style: "K&R"
+  mode-name: "LC"
+  c-basic-offset: 8
+  tab-width: 8
+  fill-column: 80
+  scroll-step: 1
+  End:
+*/

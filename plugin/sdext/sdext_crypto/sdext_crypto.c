@@ -90,7 +90,6 @@ reiser4_sdext_plug_t sdext_crypto_plug = {
 	.info		= NULL,
 	.print     	= sdext_crypto_print,
 	.check_struct	= NULL,
-	.open	   	= NULL,
 	.length	   	= sdext_crypto_length
 
 };

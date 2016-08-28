@@ -6,6 +6,41 @@ reiser4progs/COPYING.
 This file may be modified and/or distributed without restriction. This is
 not an invitation to misrepresent the history of reiser4progs.
 
+2015-08-14
+	1.1.0 version
+2015-08-14
+	Format release 4.0.1;
+	Support checksum for formatted nodes;
+	NODE41 format with 32-bit field for checksums;
+2014-06-28
+	1.0.9 version
+2014-06-28
+	discard option to mkfs -- discard device at filesystem creation
+	time (for SSD drives)
+
+	Fixup in librepair/twig_scan.c: cb_item_region_check().
+2013-05-03
+	1.0.8 version
+2013-05-03
+	Fixups in fsck.reiser4: repair a special kind of corruptions
+	appeared due to software bugs in earlier kernels.
+
+	mkfs.reiser4 now enables intelligent compression with lzo1
+	algorithm by default. If you want to create reiser4 without
+	compression, then override the default plugin set with the
+	"-o create=reg40" option.
+2008-01-09
+	1.0.7 version.
+2008-01-09
+	Alias -p "preen" to -a "auto" for fsck.
+	Bugfixes:
+	- fixed bugs in CryptoCompression object plugin (incorrect handling
+	of corrupted compressed bodies).
+	- suppress messages about wrong bytes for CryptoCompression
+	objects	as in most cases it is because kernel doesn't support
+	i_blocks and i_bytes for such objects because of performance
+	issues. If wrong bytes is the result of fatal corruption, then
+	fsck will detect and report it.
 2006-02-22
 	1.0.6 version.
 2006-01-13

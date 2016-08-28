@@ -113,7 +113,7 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 		/* For those where no plugin is found but the id is correct, 
 		   keep the id in plug set, remember it is a parameter. */
 		if (plugh->plug[mem] == NULL)
-			plugh->plug[mem] = (void *)id;
+		  plugh->plug[mem] = (void *)((unsigned long)id);
 		
 		plugh->plug_mask |= (1 << mem);
 	}
@@ -145,7 +145,7 @@ static errno_t sdext_plug_init(stat_entity_t *stat, void *hint) {
 		sdext_plug_set_member(ext, count, mem);
 
 		id = (tree->param_mask & (1 << mem)) ? 
-			((uint32_t)plugh->plug[mem]) : 
+			((unsigned long)plugh->plug[mem]) :
 			plugh->plug[mem]->id.id;
 		
 		sdext_plug_set_pid(ext, count, id);

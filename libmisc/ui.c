@@ -240,6 +240,9 @@ void misc_print_banner(char *name) {
 	char *banner;
    
 	fprintf(stderr, "%s %s\n", name, VERSION);
+	fprintf(stderr, "Format release: 4.%d.%d\n",
+		get_release_number_major(),
+		get_release_number_minor());
     
 	if (!(banner = aal_calloc(255, 0)))
 		return;

@@ -28,7 +28,7 @@ static void fsck_print_usage(char *name) {
 		"  -q, --quiet                   supresses gauges\n"
 		"  -r                            ignored\n"
 		"Plugins options:\n"
-		"  -p, --print-profile           prints the plugin profile.\n"
+		"  --print-profile               prints the plugin profile.\n"
 		"  -l, --print-plugins           prints all known plugins.\n"
 		"  -o, --override TYPE=PLUGIN    overrides the default plugin of the type\n"
 	        "                                \"TYPE\" by the plugin \"PLUGIN\" in the\n"
@@ -39,6 +39,7 @@ static void fsck_print_usage(char *name) {
 		"  -y, --yes                     assumes an answer 'yes' to all questions.\n"
 		"  -f, --force                   makes fsck to use whole disk, not block\n"
 		"                                device or mounted partition.\n"
+		"  -p, --preen                   automatically repair the filesysem.\n"
 		"  -c, --cache N                 number of nodes in tree buffer cache\n");
 }
 
@@ -140,6 +141,7 @@ static errno_t fsck_init(fsck_parse_t *data,
 		{"no-log", no_argument, NULL, 'n'},
 		{"auto", no_argument, NULL, 'a'},
 		{"force", no_argument, NULL, 'f'},
+		{"preen", no_argument, NULL, 'p'},
 		{"cache", required_argument, 0, 'c'},
 		{"override", required_argument, NULL, 'o'},
 		/* Fsck hidden options. */
@@ -190,6 +192,8 @@ static errno_t fsck_init(fsck_parse_t *data,
 		case 'f':
 			aal_set_bit(&data->options, FSCK_OPT_FORCE);
 			break;
+		case 'p':
+			/* Fall through to auto, as preen is an alias for -a */
 		case 'a':
 			aal_set_bit(&data->options, FSCK_OPT_AUTO);
 			break;
@@ -225,9 +229,6 @@ static errno_t fsck_init(fsck_parse_t *data,
 			break;
 		case 'l':
 			mode = RM_SHOW_PLUG;
-			break;
-		case 'p':
-			mode = RM_SHOW_PARM;
 			break;
 		case 'o':
 			aal_strncat(override, optarg, aal_strlen(optarg));

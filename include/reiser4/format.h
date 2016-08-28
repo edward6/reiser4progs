@@ -20,6 +20,7 @@ extern reiser4_format_t *reiser4_format_create(reiser4_fs_t *fs,
 					       reiser4_format_plug_t *plug,
 					       rid_t policy,
 					       rid_t key,
+					       rid_t node,
 					       count_t blocks);
 
 extern errno_t reiser4_format_backup(reiser4_format_t *format,
@@ -60,6 +61,7 @@ extern errno_t reiser4_format_valid(reiser4_format_t *format);
 extern rid_t reiser4_format_oid_pid(reiser4_format_t *format);
 extern rid_t reiser4_format_alloc_pid(reiser4_format_t *format);
 extern rid_t reiser4_format_journal_pid(reiser4_format_t *format);
+extern rid_t reiser4_format_node_pid(reiser4_format_t *format);
 
 extern blk_t reiser4_format_start(reiser4_format_t *format);
 extern count_t reiser4_format_get_len(reiser4_format_t *format);

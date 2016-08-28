@@ -8,7 +8,7 @@
 #include "ccreg40.h"
 #include "plugin/object/obj40/obj40_repair.h"
 
-uint32_t ccreg40_get_cluster_size(reiser4_place_t *place) {
+errno_t ccreg40_get_cluster_shift(reiser4_place_t *place, uint8_t *shift) {
 	trans_hint_t hint;
 	ctail_hint_t chint;
 	
@@ -17,10 +17,12 @@ uint32_t ccreg40_get_cluster_size(reiser4_place_t *place) {
 	hint.specific = &chint;
 	hint.count = 1;
 
-	if (objcall(place, object->fetch_units, &hint) != 1)
-		return MAX_UINT32;
-	
-	return 1 << chint.shift;
+	if (objcall(place, object->fetch_units, &hint) != 1) {
+	        aal_error("Can not extract cluster shift.");
+		return -EINVAL;
+	}
+	*shift = chint.shift;
+	return 0;
 }
 
 errno_t ccreg40_set_cluster_size(reiser4_place_t *place, uint32_t cluster) {

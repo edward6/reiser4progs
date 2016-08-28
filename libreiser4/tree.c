@@ -856,12 +856,13 @@ errno_t reiser4_tree_next_key(reiser4_tree_t *tree,
 reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 					uint8_t level)
 {
-	reiser4_node_plug_t *plug;
+	reiser4_plug_t *nplug;
 	reiser4_node_t *node;
 	uint32_t stamp;
 	errno_t res;
 	blk_t blk;
-	
+	rid_t node_pid;
+
 	reiser4_format_t *format;
     
 	aal_assert("umka-756", tree != NULL);
@@ -873,11 +874,17 @@ reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	/* Setting up of the free blocks in format. */
 	if ((res = reiser4_format_dec_free(format, 1)))
 		return NULL;
-	
-	plug = (reiser4_node_plug_t *)tree->ent.tset[TSET_NODE];
+
+	/* Grab node plugin */
+	node_pid = reiser4_format_node_pid(format);
+	if (!(nplug = reiser4_factory_ifind(NODE_PLUG_TYPE, node_pid))) {
+		aal_error("Unknown node plugin.");
+		return NULL;
+	}
 	
 	/* Creating new node. */
-	if (!(node = reiser4_node_create(tree, plug, blk, level))) {
+	if (!(node = reiser4_node_create(tree, (reiser4_node_plug_t *)nplug,
+					 blk, level))) {
 		aal_error("Can't initialize new fake node.");
 		return NULL;
 	}
@@ -1129,6 +1136,7 @@ void reiser4_tree_close(reiser4_tree_t *tree) {
 	aal_free(tree);
 }
 #ifndef ENABLE_MINIMAL
+#if 0
 static errno_t cb_flags_dup(reiser4_place_t *place, void *data) {
 	reiser4_item_dup_flags(place, *(uint16_t *)data);
 	return 0;
@@ -1265,6 +1273,7 @@ static errno_t reiser4_tree_alloc_extent(reiser4_tree_t *tree,
 
 	return 0;
 }
+#endif /* 0 */
 
 static errno_t cb_node_adjust(reiser4_tree_t *tree, reiser4_node_t *node) {
 	errno_t res;
@@ -1296,6 +1305,7 @@ static errno_t cb_node_adjust(reiser4_tree_t *tree, reiser4_node_t *node) {
 	return 0;
 }
 
+#if 0
 /* Runs through the node in @place and calls tree_adjust_node() for all
    children. */
 static errno_t cb_nodeptr_adjust(reiser4_tree_t *tree, reiser4_place_t *place) {
@@ -1309,6 +1319,7 @@ static errno_t cb_nodeptr_adjust(reiser4_tree_t *tree, reiser4_place_t *place) {
 	/* Allocating unallocated extent item at @place. */
 	return reiser4_tree_alloc_extent(tree, place);
 }
+#endif /* 0 */
 #endif
 
 static errno_t cb_node_unload(reiser4_tree_t *tree, reiser4_node_t *node) {
@@ -1346,7 +1357,7 @@ errno_t reiser4_tree_adjust(reiser4_tree_t *tree) {
 #ifndef ENABLE_MINIMAL
 			res = reiser4_tree_walk_node(tree, tree->root, 
 						     cb_node_adjust,
-						     cb_nodeptr_adjust,
+						     NULL,
 						     cb_node_unload);
 #else
 			res = reiser4_tree_walk_node(tree, tree->root, 
@@ -1586,7 +1597,7 @@ errno_t reiser4_tree_sync(reiser4_tree_t *tree) {
 	   everything. */
 	if ((res = reiser4_tree_walk_node(tree, tree->root, 
 					  cb_node_adjust,
-					  cb_nodeptr_adjust,
+					  NULL,
 					  cb_node_unload)))
 	{
 		aal_error("Can't save formatted nodes to device.");
@@ -2869,7 +2880,6 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 			    estimate_func_t estimate_func,
 			    modify_func_t modify_func)
 {
-	bool_t mode;
 	errno_t res;
 	int32_t space;
 	int32_t write;
@@ -2892,9 +2902,6 @@ int64_t reiser4_tree_modify(reiser4_tree_t *tree, reiser4_place_t *place,
 	if ((res = estimate_func(place, hint)))
 		return res;
 	
-	/* Needed space to be prepared in tree. */
-	mode = (place->pos.unit == MAX_UINT32);
-		
 	/* Preparing space in tree. */
 	space = reiser4_tree_expand(tree, place, &parent, hint->len, 
 				    hint->overhead, hint->shift_flags);
@@ -3317,3 +3324,14 @@ errno_t reiser4_tree_resize(reiser4_tree_t *tree,
 	return -EINVAL;
 }
 #endif
+
+/*
+   Local variables:
+   c-indentation-style: "K&R"
+   mode-name: "LC"
+   c-basic-offset: 8
+   tab-width: 8
+   fill-column: 80
+   scroll-step: 1
+   End:
+*/

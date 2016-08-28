@@ -798,12 +798,8 @@ static int64_t cde40_insert_units(reiser4_place_t *place, trans_hint_t *hint) {
 errno_t cde40_delete(reiser4_place_t *place, uint32_t pos,
 		     trans_hint_t *hint)
 {
-	uint32_t pol;
-
 	aal_assert("umka-3024", pos < cde40_units(place));
 
-	pol = cde40_key_pol(place);
-	
 	/* Shrinking cde item */
 	hint->bytes = hint->len = cde40_shrink(place, pos, hint->count);
 	

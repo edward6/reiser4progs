@@ -73,7 +73,7 @@ reiser4_profile_t defprof = {
 			.hidden = 0,
                         .max = OBJECT_LAST_ID,
 #endif
-                        .id = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
+                        .id = {OBJECT_CCREG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
                 },
 		[PROF_FORMAT] = {
 #ifndef ENABLE_MINIMAL
@@ -123,8 +123,8 @@ reiser4_profile_t defprof = {
 		[PROF_NODE] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "node",
-			.desc  = "",
-			.hidden = 1,
+			.desc  = "Node plugin",
+			.hidden = 0,
 			.max = NODE_LAST_ID,
 #endif
 			.id = {NODE_REISER40_ID, 0, NODE_PLUG_TYPE},

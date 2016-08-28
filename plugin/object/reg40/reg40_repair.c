@@ -55,16 +55,12 @@ static int reg40_conv_prepare(reiser4_object_t *reg,
 			      uint64_t maxreal, 
 			      uint8_t mode)
 {
-	object_info_t *info;
-	
 	aal_assert("vpf-1348", reg != NULL);
 	aal_assert("vpf-1349", hint != NULL);
 	aal_assert("vpf-1353", reg->body.plug != NULL);
 	
 	if (plug_equal(reg->body.plug, reg->body_plug))
 		return 0;
-
-	info = &reg->info;
 
 	if (plug_equal(reg->body.plug, reiser4_psextent(reg))) {
 		/* Extent found, all previous items were tails, convert all 

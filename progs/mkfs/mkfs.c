@@ -34,7 +34,8 @@ typedef enum mkfs_behav_flags {
 	BF_YES        = 1 << 1,
 	BF_LOST       = 1 << 2,
 	BF_SHOW_PARM  = 1 << 3,
-	BF_SHOW_PLUG  = 1 << 4
+	BF_SHOW_PLUG  = 1 << 4,
+	BF_DISCARD    = 1 << 5
 } mkfs_behav_flags_t;
 
 /* Prints mkfs options */
@@ -62,7 +63,9 @@ static void mkfs_print_usage(char *name) {
 		"  -V, --version                 prints current version.\n"
 		"  -y, --yes                     assumes an answer 'yes' to all questions.\n"
 		"  -f, --force                   makes mkfs to use whole disk, not\n"
-		"                                block device or mounted partition.\n");
+		"                                block device or mounted partition.\n"
+		"  -d, --discard                 tells mkfs to discard given device\n"
+		"                                before creating the filesystem (for SSDs).\n");
 }
 
 /* Initializes used by mkfs exception streams */
@@ -128,6 +131,7 @@ int main(int argc, char *argv[]) {
 		{"print-profile", no_argument, NULL, 'p'},
 		{"print-plugins", no_argument, NULL, 'l'},
 		{"override", required_argument, NULL, 'o'},
+		{"discard", no_argument, NULL, 'd'},
 		{0, 0, 0, 0}
 	};
     
@@ -146,7 +150,7 @@ int main(int argc, char *argv[]) {
 	memset(hint.label, 0, sizeof(hint.label));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVyfb:U:L:splo:?",
+	while ((c = getopt_long(argc, argv, "hVyfb:U:L:splo:d?",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -171,6 +175,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 's':
 			flags |= BF_LOST;
+			break;
+		case 'd':
+			flags |= BF_DISCARD;
 			break;
 		case 'o':
 			aal_strncat(override, optarg,
@@ -200,7 +207,7 @@ int main(int argc, char *argv[]) {
 			}
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 			{
-				if (uuid_parse(optarg, hint.uuid) < 0) {
+			  if (uuid_parse(optarg, (unsigned char *)hint.uuid) < 0) {
 					aal_error("Invalid uuid was "
 						  "specified (%s).",
 						  optarg);
@@ -298,19 +305,6 @@ int main(int argc, char *argv[]) {
 		goto error_free_libreiser4;
 	}
 
-	if (!(flags & BF_FORCE)) {
-		if (aal_strncmp(sysinfo.release, "2.5", 3) &&
-		    aal_strncmp(sysinfo.release, "2.6", 3))
-		{
-			aal_warn("%s %s is detected. Reiser4 does not "
-				 "support such a platform. Use -f to "
-				 "force over.", sysinfo.sysname,
-				 sysinfo.release);
-			goto error_free_libreiser4;
-		}
-
-	}
-
 	if (!(flags & BF_YES)) {
 		aal_mess("%s %s is detected.", sysinfo.sysname,
 			 sysinfo.release);
@@ -399,14 +393,14 @@ int main(int argc, char *argv[]) {
 
 		/* Generating uuid if it was not specified and if libuuid is in use */
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-		if (uuid_is_null(hint.uuid)) {
-			uuid_generate(hint.uuid);
+		if (uuid_is_null((unsigned char *)hint.uuid)) {
+			uuid_generate((unsigned char *)hint.uuid);
 		}
 
 		if (!(flags & BF_YES)) {
 			char uuid[256];
-				
-			uuid_unparse(hint.uuid, uuid);
+
+			uuid_unparse((unsigned char *)hint.uuid, uuid);
 			aal_mess("Uuid %s will be used.", uuid);
 		}
 #endif
@@ -440,7 +434,24 @@ int main(int argc, char *argv[]) {
 				goto error_free_device;
 			}
 		}
-    
+		if (flags & BF_DISCARD) {
+			if (gauge) {
+				aal_gauge_rename(gauge, "Discarding %s ... ",
+						 host_dev);
+				aal_gauge_touch(gauge);
+			}
+
+			if ((aal_device_discard(device, 0, dev_len) != 0)) {
+				aal_error("Failed to discard %s (%s).",
+					  device->name, device->error);
+				/* discard is optional, don't fail the mkfs */
+			}
+
+			if (gauge) {
+				aal_gauge_done(gauge);
+			}
+		}
+
 		if (gauge) {
 			aal_gauge_rename(gauge, "Creating reiser4 on %s ... ",
 					 host_dev);

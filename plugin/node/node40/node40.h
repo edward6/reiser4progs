@@ -55,10 +55,17 @@ typedef int64_t (*modify_func_t) (reiser4_place_t *place,
 extern void node40_mkdirty(reiser4_node_t *entity);
 extern void node40_mkclean(reiser4_node_t *entity);
 extern int node40_isdirty(reiser4_node_t *entity);
-
+extern int node40_count_valid(reiser4_node_t *entity);
 extern reiser4_node_t *node40_prepare(aal_block_t *block, 
 				      reiser4_key_plug_t *kplug);
-
+extern reiser4_node_t *
+node40_init_common(aal_block_t *block, uint8_t level,
+		   reiser4_key_plug_t *kplug,
+		   reiser4_node_plug_t *nplug,
+		   const uint32_t magic,
+		   uint32_t node_header_size,
+		   reiser4_node_t* (*prepare_fn)(aal_block_t *,
+						 reiser4_key_plug_t *));
 extern uint16_t node40_space(reiser4_node_t *entity);
 extern uint32_t node40_items(reiser4_node_t *entity);
 
@@ -93,6 +100,46 @@ extern void node40_set_flags(reiser4_node_t *entity,
 			     uint32_t pos, uint16_t flags);
 
 extern uint16_t node40_get_flag(reiser4_node_t *entity, uint32_t pos);
+
+extern reiser4_node_t *node40_open(aal_block_t *block,
+				   reiser4_key_plug_t *kplug);
+extern errno_t node40_fini(reiser4_node_t *entity);
+
+extern lookup_t node40_lookup(reiser4_node_t *entity,
+			      lookup_hint_t *hint,
+			      lookup_bias_t bias,
+			      pos_t *pos);
+extern errno_t node40_get_key(reiser4_node_t *entity,
+			      pos_t *pos, reiser4_key_t *key);
+extern errno_t node40_sync(reiser4_node_t *entity);
+extern errno_t node40_merge(reiser4_node_t *entity, pos_t *left_pos,
+			    pos_t *right_pos);
+extern errno_t node40_insert(reiser4_node_t *entity, pos_t *pos,
+			     trans_hint_t *hint);
+extern int64_t node40_write(reiser4_node_t *entity, pos_t *pos,
+			    trans_hint_t *hint);
+extern int64_t node40_trunc(reiser4_node_t *entity, pos_t *pos,
+			    trans_hint_t *hint);
+extern errno_t node40_remove(reiser4_node_t *entity, pos_t *pos,
+			     trans_hint_t *hint);
+extern errno_t node40_shift(reiser4_node_t *src_entity,
+			    reiser4_node_t *dst_entity, shift_hint_t *hint);
+extern uint16_t node40_overhead(reiser4_node_t *entity);
+extern errno_t node40_set_key(reiser4_node_t *entity, pos_t *pos,
+			      reiser4_key_t *key);
+extern void node40_set_level(reiser4_node_t *entity, uint8_t level);
+extern uint32_t node40_get_mstamp(reiser4_node_t *entity);
+extern uint64_t node40_get_fstamp(reiser4_node_t *entity);
+extern void node40_set_mstamp(reiser4_node_t *entity, uint32_t stamp);
+extern void node40_set_fstamp(reiser4_node_t *entity, uint64_t stamp);
+extern uint16_t node40_get_flags(reiser4_node_t *entity, uint32_t pos);
+extern void node40_set_state(reiser4_node_t *entity, uint32_t state);
+extern uint32_t node40_get_state(reiser4_node_t *entity);
+extern errno_t node40_region_delete(reiser4_node_t *node,
+				    uint16_t start_pos, uint16_t end_pos);
+extern errno_t node40_space_check(reiser4_node_t *node,
+				  uint32_t offset, uint8_t mode);
+extern errno_t node40_iplug_check(reiser4_node_t *node, uint8_t mode);
 
 #define	nh(block)                         \
         ((node40_header_t *)block->data)

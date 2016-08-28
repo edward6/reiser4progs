@@ -66,15 +66,12 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 	
 	if (reiser4_item_branch(place.plug)) {
 		blk_t blk;
-		uint32_t blksize;
 		
 		place.pos.unit = reiser4_item_units(&place) - 1;
 
 		if ((blk = reiser4_item_down_link(&place)) == INVAL_BLK)
 			return -EINVAL;
 			
-		blksize = reiser4_master_get_blksize(tree->fs->master);
-		
 		if (!(child = reiser4_node_open(tree, blk)))
 			return -EINVAL;
 		

@@ -52,6 +52,10 @@ universally unique identifier to be used
 .TP
 .B -s, --lost-found
 forces mkfs to create lost+found directory.
+.TP
+.B -d, --discard
+tells mkfs to discard given device before creating the filesystem (for
+solid state drives).
 .SH PLUGIN OPTIONS
 .TP
 .B -p, --print-profile
@@ -74,9 +78,7 @@ with short keys policy:
 mkfs.reiser4 -yf -o key=key_short /dev/hda2
 .RS
 .SH REPORTING BUGS
-Report bugs to <umka@namesys.com>, <reiserfs-list@namesys.com>
-.SH SUPPORT
-You can get support at http://www.namesys.com/support.html
+Report bugs to <reiserfs-devel@vger.kernel.org>
 .SH SEE ALSO
 .BR measurefs.reiser4(8),
 .BR debugfs.reiser4(8),

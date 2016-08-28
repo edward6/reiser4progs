@@ -142,12 +142,15 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 		
 		s = reiser4_master_get_uuid(fs->master);
 		if (aal_strncmp(s, ms->ms_uuid, sizeof(ms->ms_uuid))) {
+			uint64_t *x = (uint64_t *)s;
+			uint64_t *y = (uint64_t *)ms->ms_uuid;
 			fsck_mess("UUID (0x%llx%llx) found in the master super "
 				  "block does not match the one found in the "
-				  "backup (0x%llx%llx).%s", ((uint64_t *)s)[0],
-				  ((uint64_t *)s)[1], 
-				  ((uint64_t *)ms->ms_uuid)[0],
-				  ((uint64_t *)ms->ms_uuid)[1],
+				  "backup (0x%llx%llx).%s",
+				  x[0],
+				  x[1],
+				  y[0],
+				  y[1],
 				  mode != RM_CHECK ? " Fixed." : "");
 
 			if (mode == RM_CHECK)
@@ -356,7 +359,7 @@ void repair_master_print(reiser4_master_t *master,
 #endif
 	
 	if (*master->ent.ms_label != '\0') {
-		aal_stream_format(stream, "label:\t\t%s\n",
+		aal_stream_format(stream, "label:\t\t%.16s\n",
 				  reiser4_master_get_label(master));
 	} else {
 		aal_stream_format(stream, "label:\t\t<none>\n");

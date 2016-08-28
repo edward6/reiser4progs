@@ -133,6 +133,19 @@ OBJ40_CHECK(nlink, uint32_t, value, correct);
 OBJ40_CHECK(size,  uint64_t, value, correct);
 OBJ40_CHECK(bytes,  uint64_t, value, correct);
 
+static inline void obj40_check_bytes_report(reiser4_place_t *start,
+					    reiser4_core_t *core,
+					    uint64_t found_bytes,
+					    uint8_t mode,
+					    uint64_t correct_bytes)
+{
+	fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong bytes "
+		  "(%llu), %s (%llu).", place_blknr(start),
+		  start->pos.item, print_inode(core, &start->key),
+		  start->plug->p.label, found_bytes, mode == RM_CHECK ?
+		  "Should be" : "Fixed to", correct_bytes);
+}
+
 static inline int obj40_check_mode(reiser4_object_t *obj, 
 				   uint16_t *mode, 
 				   uint16_t correct) 
@@ -216,12 +229,22 @@ static inline errno_t obj40_stat_unix_check(reiser4_object_t *obj,
 
 	if (fixed) {
 		/* sd_bytes are set wrongly in the kernel. */
-		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong bytes "
-			  "(%llu), %s (%llu).", place_blknr(start), 
-			  start->pos.item, print_inode(obj40_core, &start->key),
-			  start->plug->p.label, unixh.bytes, mode == RM_CHECK ? 
-			  "Should be" : "Fixed to", correct.bytes);
-		
+		if (ops->check_bytes_report == NULL) {
+			/* Report with the default method */
+			obj40_check_bytes_report(start,
+						 obj40_core,
+						 unixh.bytes,
+						 mode,
+						 correct.bytes);
+		} else if (ops->check_bytes_report != SKIP_METHOD) {
+			ops->check_bytes_report(start,
+						obj40_core,
+						unixh.bytes,
+						mode,
+						correct.bytes);
+		} else {
+			;
+		}
 		/* Zero rdev because rdev and bytes is the union on disk
 		   but not in the unixh. */
 		correct.rdev = 0;
@@ -594,12 +617,9 @@ lookup_t obj40_check_item(reiser4_object_t *obj,
 			  obj_func_t update_func,
 			  void *data)
 {
-	object_info_t *info;
 	trans_hint_t trans;
 	errno_t res;
 		
-	info = &obj->info;
-	
 	while (1) {
 		res = obj40_update_body(obj, update_func);
 
@@ -625,3 +645,14 @@ lookup_t obj40_check_item(reiser4_object_t *obj,
 }
 
 #endif
+
+/*
+  Local variables:
+  c-indentation-style: "K&R"
+  mode-name: "LC"
+  c-basic-offset: 8
+  tab-width: 8
+  fill-column: 80
+  scroll-step: 1
+  End:
+*/
