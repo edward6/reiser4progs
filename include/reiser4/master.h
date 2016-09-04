@@ -28,8 +28,11 @@ extern errno_t reiser4_master_backup(reiser4_master_t *master,
 extern reiser4_master_t *reiser4_master_create(aal_device_t *device,
 					       fs_hint_t *hint);
 
-extern void reiser4_master_set_uuid(reiser4_master_t *master,
-				    char *uuid);
+extern void reiser4_master_set_volume_uuid(reiser4_master_t *master,
+					   char *uuid);
+
+extern void reiser4_master_set_subvol_uuid(reiser4_master_t *master,
+					   char *uuid);
 
 extern void reiser4_master_set_label(reiser4_master_t *master,
 				     char *label);
@@ -40,7 +43,8 @@ extern void reiser4_master_set_format(reiser4_master_t *master,
 extern void reiser4_master_set_blksize(reiser4_master_t *master,
 				       uint32_t blksize);
 
-extern char *reiser4_master_get_uuid(reiser4_master_t *master);
+extern char *reiser4_master_get_volume_uuid(reiser4_master_t *master);
+extern char *reiser4_master_get_subvol_uuid(reiser4_master_t *master);
 extern char *reiser4_master_get_label(reiser4_master_t *master);
 extern char *reiser4_master_get_magic(reiser4_master_t *master);
 

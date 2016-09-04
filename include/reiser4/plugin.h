@@ -215,6 +215,7 @@ enum reiser4_sdext_plug_id {
 /* Known format plugin ids. */
 enum reiser4_format_plug_id {
 	FORMAT_REISER40_ID	= 0x0,
+	FORMAT_REISER41_ID	= 0x1,
 	FORMAT_LAST_ID
 };
 
@@ -953,8 +954,12 @@ enum format_hint_mask {
 };
 
 typedef struct format_hint {
+	uint64_t subvol_id;
+	uint64_t num_subvols;
+	uint64_t num_mirrors;
 	uint64_t blocks;
 	uint32_t blksize;
+	long int mkfs_id;
 	rid_t policy;
 	rid_t key;
 	rid_t node;
@@ -1692,7 +1697,7 @@ struct reiser4_journal_plug {
 	void (*set_state) (reiser4_journal_ent_t *, uint32_t);
 	
 	/* Replays the journal */
-	errno_t (*replay) (reiser4_journal_ent_t *);
+	errno_t (*replay) (reiser4_journal_ent_t *, uint64_t *);
 
 	/* Prints journal content */
 	void (*print) (reiser4_journal_ent_t *, aal_stream_t *, uint16_t);

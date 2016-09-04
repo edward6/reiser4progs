@@ -48,9 +48,10 @@ reiser4_master_t *reiser4_master_create(aal_device_t *device, fs_hint_t *hint) {
 	aal_strncpy(SUPER(master)->ms_magic, REISER4_MASTER_MAGIC,
 		    sizeof(REISER4_MASTER_MAGIC));
     
-	/* Setting up block filesystem used */
+	/* set block size */
 	set_ms_blksize(SUPER(master), hint->blksize);
-	reiser4_master_set_uuid(master, hint->uuid);
+	reiser4_master_set_volume_uuid(master, hint->volume_uuid);
+	reiser4_master_set_subvol_uuid(master, hint->subvol_uuid);
 	reiser4_master_set_label(master, hint->label);
 
 	master->dirty = 1;
@@ -260,9 +261,14 @@ char *reiser4_master_get_magic(reiser4_master_t *master) {
 	return SUPER(master)->ms_magic;
 }
 
-char *reiser4_master_get_uuid(reiser4_master_t *master) {
+char *reiser4_master_get_volume_uuid(reiser4_master_t *master) {
 	aal_assert("umka-984", master != NULL);
-	return SUPER(master)->ms_uuid;
+	return SUPER(master)->ms_vol_uuid;
+}
+
+char *reiser4_master_get_subvol_uuid(reiser4_master_t *master) {
+	aal_assert("edward-xxx", master != NULL);
+	return SUPER(master)->ms_sub_uuid;
 }
 
 char *reiser4_master_get_label(reiser4_master_t *master) {
@@ -286,18 +292,33 @@ void reiser4_master_set_blksize(reiser4_master_t *master,
 	master->dirty = 1;
 }
 
-void reiser4_master_set_uuid(reiser4_master_t *master,
-			     char *uuid)
+void reiser4_master_set_volume_uuid(reiser4_master_t *master,
+				    char *uuid)
 {
 	aal_assert("umka-2498", master != NULL);
 
-	aal_memset(SUPER(master)->ms_uuid, 0,
-		   sizeof(SUPER(master)->ms_uuid));
+	aal_memset(SUPER(master)->ms_vol_uuid, 0,
+		   sizeof(SUPER(master)->ms_vol_uuid));
 	
 	if (uuid) {
-		aal_strncpy(SUPER(master)->ms_uuid, uuid,
-			    sizeof(SUPER(master)->ms_uuid));
+		aal_strncpy(SUPER(master)->ms_vol_uuid, uuid,
+			    sizeof(SUPER(master)->ms_vol_uuid));
 	} 
+	master->dirty = 1;
+}
+
+void reiser4_master_set_subvol_uuid(reiser4_master_t *master,
+				    char *uuid)
+{
+	aal_assert("edward-xxx", master != NULL);
+
+	aal_memset(SUPER(master)->ms_sub_uuid, 0,
+		   sizeof(SUPER(master)->ms_sub_uuid));
+
+	if (uuid) {
+		aal_strncpy(SUPER(master)->ms_sub_uuid, uuid,
+			    sizeof(SUPER(master)->ms_vol_uuid));
+	}
 	master->dirty = 1;
 }
 

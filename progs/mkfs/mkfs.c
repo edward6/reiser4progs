@@ -11,6 +11,11 @@
 #  include <uuid/uuid.h>
 #endif
 
+#ifndef ENABLE_MINIMAL
+#  include <time.h>
+#  include <stdlib.h>
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
@@ -35,7 +40,8 @@ typedef enum mkfs_behav_flags {
 	BF_LOST       = 1 << 2,
 	BF_SHOW_PARM  = 1 << 3,
 	BF_SHOW_PLUG  = 1 << 4,
-	BF_DISCARD    = 1 << 5
+	BF_DISCARD    = 1 << 5,
+	BF_MIRRORS    = 1 << 6
 } mkfs_behav_flags_t;
 
 /* Prints mkfs options */
@@ -65,7 +71,8 @@ static void mkfs_print_usage(char *name) {
 		"  -f, --force                   makes mkfs to use whole disk, not\n"
 		"                                block device or mounted partition.\n"
 		"  -d, --discard                 tells mkfs to discard given device\n"
-		"                                before creating the filesystem (for SSDs).\n");
+		"                                before creating the filesystem (for SSDs)\n"
+		"  -m, --mirrors                 create mirrors on listed devices.\n");
 }
 
 /* Initializes used by mkfs exception streams */
@@ -100,7 +107,7 @@ static reiser4_object_t *reiser4_root_create(reiser4_fs_t *fs) {
 int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
-	
+
 	fs_hint_t hint;
 	reiser4_fs_t *fs;
 	char override[4096];
@@ -109,9 +116,10 @@ int main(int argc, char *argv[]) {
 	aal_list_t *walk = NULL;
 	aal_gauge_t *gauge = NULL;
 	aal_list_t *devices = NULL;
-    
+
 	char *host_dev;
 	count_t dev_len = 0;
+	uint32_t dev_cnt = 0;
 	
 #ifdef HAVE_UNAME
 	struct utsname sysinfo;
@@ -132,6 +140,7 @@ int main(int argc, char *argv[]) {
 		{"print-plugins", no_argument, NULL, 'l'},
 		{"override", required_argument, NULL, 'o'},
 		{"discard", no_argument, NULL, 'd'},
+		{"mirrors", no_argument, NULL, 'm'},
 		{0, 0, 0, 0}
 	};
     
@@ -142,15 +151,11 @@ int main(int argc, char *argv[]) {
 		return USER_ERROR;
 	}
 
-	hint.blocks = 0;
-	hint.blksize = 0;
-	
+	memset(&hint, 0, sizeof(hint));
 	memset(override, 0, sizeof(override));
-	memset(hint.uuid, 0, sizeof(hint.uuid));
-	memset(hint.label, 0, sizeof(hint.label));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVyfb:U:L:splo:d?",
+	while ((c = getopt_long(argc, argv, "hVyfb:U:L:splo:dm?",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -178,6 +183,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'd':
 			flags |= BF_DISCARD;
+			break;
+		case 'm':
+			flags |= BF_MIRRORS;
 			break;
 		case 'o':
 			aal_strncat(override, optarg,
@@ -207,14 +215,15 @@ int main(int argc, char *argv[]) {
 			}
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 			{
-			  if (uuid_parse(optarg, (unsigned char *)hint.uuid) < 0) {
+			  if (uuid_parse(optarg,
+					 (unsigned char *)hint.volume_uuid) < 0) {
 					aal_error("Invalid uuid was "
 						  "specified (%s).",
 						  optarg);
 					return USER_ERROR;
 				}
 			}
-#endif		
+#endif
 			break;
 		case 'L':
 			aal_strncpy(hint.label, optarg,
@@ -310,10 +319,14 @@ int main(int argc, char *argv[]) {
 			 sysinfo.release);
 	}
 #endif
-
-	/* Building list of devices the filesystem will be created on */
+	/*
+	 * Building list of devices the filesystem will be created on
+	 */
 	for (; optind < argc; optind++) {
 		if (stat(argv[optind], &st) == -1) {
+			aal_error("Can't stat %s. %s.", argv[optind],
+				  strerror(errno));
+			goto error_free_libreiser4;
 
 			if (misc_size2long(argv[optind]) != INVAL_DIG &&
 			    hint.blocks != 0)
@@ -322,10 +335,11 @@ int main(int argc, char *argv[]) {
 					  "set to %llu.", hint.blocks);
 				continue;
 			}
-			
-			/* Checking device name for validness */
+			/*
+			 * Checking device name for validness
+			 */
 			hint.blocks = misc_size2long(argv[optind]);
-			
+
 			if (hint.blocks != INVAL_DIG) {
 				/* Converting into fs blocksize blocks */
 				hint.blocks /= (hint.blksize / 1024);
@@ -339,16 +353,27 @@ int main(int argc, char *argv[]) {
 			}
 		} else {
 			devices = aal_list_append(devices, argv[optind]);
+			dev_cnt ++;
 		}
 	}
+	/*
+	 * Set number of subvolumes and mirrors
+	 */
+	if (flags & BF_MIRRORS)
+		hint.num_subvols = dev_cnt;
+	else
+		hint.num_subvols = 1;
+	hint.num_mirrors = hint.num_subvols - 1;
 
+	dev_cnt = 0;
 	if (!(flags & BF_YES) && aal_list_len(devices)) {
 		if (!(gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
 					       NULL, NULL, 0, NULL)))
 			goto error_free_libreiser4;
 	}
-    
-	/* The loop through all devices */
+  	/*
+	 * Loop through all the accumulated devices
+	 */
 	aal_list_foreach_forward(devices, walk) {
     
 		host_dev = (char *)walk->data;
@@ -358,11 +383,12 @@ int main(int argc, char *argv[]) {
 				  strerror(errno));
 			goto error_free_libreiser4;
 		}
-    
-		/* Checking is passed device is a block device. If so, we check
-		   also is it whole drive or just a partition. If the device is
-		   not a block device, then we emmit exception and propose user
-		   to use -f flag to force. */
+		/*
+		 * Check if passed device is a block device. If so, we check
+		 * also is it whole drive or just a partition. If the device is
+		 * not a block device, then we emmit exception and propose user
+		 * to use -f flag to force
+		 */
 		if (!S_ISBLK(st.st_mode)) {
 			if (!(flags & BF_FORCE)) {
 				aal_error("Device %s is not block "
@@ -383,28 +409,47 @@ int main(int argc, char *argv[]) {
 				goto error_free_libreiser4;
 			}
 		}
-   
-		/* Checking if passed partition is mounted */
+   		/*
+		 * Check if passed partition is mounted
+		 */
 		if (misc_dev_mounted(host_dev) > 0 && !(flags & BF_FORCE)) {
 			aal_error("Device %s is mounted at the moment. "
 				  "Use -f to force over.", host_dev);
 			goto error_free_libreiser4;
 		}
-
-		/* Generating uuid if it was not specified and if libuuid is in use */
+		/*
+		 * Generate uuid if it was not specified and
+		 * if libuuid is in use
+		 */
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-		if (uuid_is_null((unsigned char *)hint.uuid)) {
-			uuid_generate((unsigned char *)hint.uuid);
+		if (uuid_is_null((unsigned char *)hint.volume_uuid)) {
+			uuid_generate((unsigned char *)hint.volume_uuid);
 		}
-
+		if (uuid_is_null((unsigned char *)hint.subvol_uuid)) {
+			uuid_generate((unsigned char *)hint.subvol_uuid);
+		}
 		if (!(flags & BF_YES)) {
 			char uuid[256];
 
-			uuid_unparse((unsigned char *)hint.uuid, uuid);
-			aal_mess("Uuid %s will be used.", uuid);
+			uuid_unparse((unsigned char *)hint.volume_uuid, uuid);
+			aal_mess("Volume uuid %s will be used.", uuid);
+		}
+#else
+		if (flags & BF_MIRRORS) {
+			aal_error("uuid is required to create logical volumes");
+			goto error_free_libreiser4;
 		}
 #endif
-		/* Opening device */
+		/*
+		 * Initialize mkfs_id for fsck needs
+		 */
+		if (hint.mkfs_id == 0) {
+			srandom(time(0) + dev_cnt);
+			hint.mkfs_id = random();
+		}
+		if (flags & BF_MIRRORS)
+			hint.subvol_id = dev_cnt;
+
 		if (!(device = aal_device_open(&file_ops, host_dev, 
 					       512, O_RDWR))) 
 		{
@@ -412,21 +457,28 @@ int main(int argc, char *argv[]) {
 				  host_dev, strerror(errno));
 			goto error_free_libreiser4;
 		}
-    
-		/* Converting device length into fs blocksize blocks */
+    		/*
+		 * Convert device length into fs blocksize blocks
+		 */
 		dev_len = reiser4_format_len(device, hint.blksize);
-    
-		if (!hint.blocks)
-			hint.blocks = dev_len;
-	
+
+		if (flags & BF_MIRRORS &&
+		    hint.blocks != 0 && hint.blocks != dev_len) {
+			aal_error("Mirror can be created only on a device "
+				  "of the same length as the original has.");
+			goto error_free_device;
+		}
 		if (hint.blocks > dev_len) {
 			aal_error("Filesystem wouldn't fit into device "
 				  "%llu blocks long, %llu blocks required.",
 				  dev_len, hint.blocks);
 			goto error_free_device;
 		}
-
-		/* Checking for non-intercative mode */
+		if (hint.blocks == 0)
+			hint.blocks = dev_len;
+		/*
+		 * Check for non-intercative mode
+		 */
 		if (!(flags & BF_YES)) {
 			if (aal_yesno("Reiser4 is going to be created on %s.",
 				      host_dev) == EXCEPTION_OPT_NO)
@@ -457,8 +509,9 @@ int main(int argc, char *argv[]) {
 					 host_dev);
 			aal_gauge_touch(gauge);
 		}
-
-		/* Creating filesystem */
+		/*
+		 * Create a filesystem on the device
+		 */
 		if (!(fs = reiser4_fs_create(device, &hint))) {
 			aal_error("Can't create filesystem on %s.", 
 				  device->name);
@@ -513,24 +566,29 @@ int main(int argc, char *argv[]) {
 		if (gauge)
 			aal_gauge_done(gauge);
 
-		/* Zeroing uuid in order to force mkfs to generate it on its own
-		   for next device form built device list. */
-		aal_memset(hint.uuid, 0, sizeof(hint.uuid));
-
-		/* Zeroing out label, because all filesystems cannot have the
-		   same label. */
-		aal_memset(hint.label, 0, sizeof(hint.label));
-
-		/* Zeroing fs_len in order to force mkfs on next turn to calc
-		   its size from actual device length. */
-		hint.blocks = 0;
-	
-		/* Freeing the root directory & fs.*/
+		if (!(flags & BF_MIRRORS)) {
+			/*
+			 * The following parameters are independent,
+			 * so we zero them in order to force mkfs to
+			 * generate different ones for next device
+			 * form built device list
+			 */
+			aal_memset(hint.volume_uuid, 0, sizeof(hint.volume_uuid));
+			aal_memset(hint.label, 0, sizeof(hint.label));
+			hint.mkfs_id = 0;
+			hint.blocks = 0;
+		}
+		aal_memset(hint.subvol_uuid, 0, sizeof(hint.subvol_uuid));
+		/*
+		 * Free the root directory & fs
+		 */
 		reiser4_object_close(fs->root);
 		reiser4_fs_close(fs);
-
-		/* Synchronizing device. If device we are using is a file device
-		   (libaal/file.c), then function fsync will be called. */
+		/*
+		 * Synchronizing device.
+		 * If device we are using is a file device (libaal/file.c),
+		 * then function fsync will be called
+		 */
 		if (aal_device_sync(device)) {
 			aal_error("Can't synchronize device %s.", 
 				  device->name);
@@ -538,6 +596,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		aal_device_close(device);
+		dev_cnt ++;
 	}
     
 	/* Freeing the all used objects */

@@ -22,6 +22,8 @@
    (the update is performed by fsck) */
 #define FORMAT40_UPDATE_BACKUP  (1 << 31)
 
+#define format40_key_pid format40_get_key
+
 typedef struct format40_super {
 	d64_t sb_block_count;
 	d64_t sb_free_blocks;
@@ -40,8 +42,20 @@ typedef struct format40_super {
 	d64_t sb_flags;
 	
 	d32_t sb_version;
-	d32_t node_pid;
-	char sb_unused[424];
+	d32_t sb_node_pid;
+
+	/* Reiser5 fields */
+	d64_t sb_subvol_id;
+	d64_t sb_num_subvols;
+	d16_t sb_num_mirrors;
+
+	d64_t sb_fiber_len;
+	d64_t sb_fiber_loc;
+	d8_t sb_num_sgs_bits;
+	d64_t sb_num_meta_subvols;
+	d64_t sb_num_mixed_subvols;
+	d64_t sb_room_for_data;
+	char not_used[365];
 } __attribute__((packed)) format40_super_t;
 
 typedef struct format40 {
@@ -98,8 +112,23 @@ extern reiser4_core_t *format40_core;
 #define get_sb_flags(sb)		aal_get_le64(sb, sb_flags)
 #define set_sb_flags(sb, val)		aal_set_le64(sb, sb_flags, val)
 
-#define get_sb_node_pid(sb)		aal_get_le32(sb, node_pid)
-#define set_sb_node_pid(sb, val)	aal_set_le32(sb, node_pid, val)
+#define get_sb_node_pid(sb)		aal_get_le32(sb, sb_node_pid)
+#define set_sb_node_pid(sb, val)	aal_set_le32(sb, sb_node_pid, val)
+
+#define get_sb_fiber_len(sb)		aal_get_le64(sb, sb_fiber_len)
+#define set_sb_fiber_len(sb, val)	aal_set_le64(sb, sb_fiber_len, val)
+
+#define get_sb_fiber_loc(sb)		aal_get_le64(sb, sb_fiber_loc)
+#define set_sb_fiber_loc(sb, val)	aal_set_le64(sb, sb_fiber_loc, val)
+
+#define get_sb_subvol_id(sb)		aal_get_le64(sb, sb_subvol_id)
+#define set_sb_subvol_id(sb, val)	aal_set_le64(sb, sb_subvol_id, val)
+
+#define get_sb_num_subvols(sb)		aal_get_le64(sb, sb_num_subvols)
+#define set_sb_num_subvols(sb, val)	aal_set_le64(sb, sb_num_subvols, val)
+
+#define get_sb_num_mirrors(sb)		aal_get_le64(sb, sb_num_mirrors)
+#define set_sb_num_mirrors(sb, val)	aal_set_le64(sb, sb_num_mirrors, val)
 
 #define get_sb_version(sb)	\
 	(aal_get_le32(sb, sb_version) & ~FORMAT40_UPDATE_BACKUP)
@@ -118,10 +147,50 @@ extern reiser4_core_t *format40_core;
 	(((format40_t *)entity)->state &= ~(1 << ENTITY_DIRTY))
 
 #ifndef ENABLE_MINIMAL
+extern uint64_t format40_start(reiser4_format_ent_t *entity);
+extern uint64_t format40_get_len(reiser4_format_ent_t *entity);
+extern uint64_t format40_get_free(reiser4_format_ent_t *entity);
+extern void format40_set_free(reiser4_format_ent_t *entity, uint64_t blocks);
+extern uint32_t format40_get_stamp(reiser4_format_ent_t *entity);
+extern void format40_set_stamp(reiser4_format_ent_t *entity, uint32_t mkfsid);
+extern rid_t format40_get_policy(reiser4_format_ent_t *entity);
+extern void format40_set_policy(reiser4_format_ent_t *entity, rid_t tail);
+extern uint32_t format40_node_pid(reiser4_format_ent_t *entity);
+extern uint32_t format40_get_state(reiser4_format_ent_t *entity);
+extern void format40_set_state(reiser4_format_ent_t *entity, uint32_t state);
+extern void format40_set_root(reiser4_format_ent_t *entity, uint64_t root);
+extern void format40_set_len(reiser4_format_ent_t *entity, uint64_t blocks);
+extern void format40_set_height(reiser4_format_ent_t *entity, uint16_t height);
+extern rid_t format40_oid_pid(reiser4_format_ent_t *entity);
+extern void format40_oid_area(reiser4_format_ent_t *entity, void **start,
+			      uint32_t *len);
+extern rid_t format40_journal_pid(reiser4_format_ent_t *entity);
+extern rid_t format40_alloc_pid(reiser4_format_ent_t *entity);
+extern errno_t format40_backup(reiser4_format_ent_t *entity,
+			       backup_hint_t *hint);
+extern uint32_t format40_version(reiser4_format_ent_t *entity);
+extern errno_t format40_valid(reiser4_format_ent_t *entity);
+extern errno_t format40_sync(reiser4_format_ent_t *entity);
+
 extern void format40_set_key(reiser4_format_ent_t *entity, rid_t key);
-extern rid_t format40_get_key(reiser4_format_ent_t *entity);
+extern errno_t format40_clobber_block(void *entity, blk_t start,
+				      count_t width, void *data);
+errno_t format40_layout(reiser4_format_ent_t *entity,
+			region_func_t region_func,
+			void *data);
 #endif
 
+extern errno_t check_super_format40(format40_super_t *super);
+extern errno_t format40_super_open_common(format40_t *format,
+					  errno_t (*check)(format40_super_t *s));
+extern reiser4_format_ent_t *format40_open_common(aal_device_t *device,
+					  uint32_t blksize,
+					  reiser4_format_plug_t *plug,
+					  errno_t (*super_open)(format40_t *f));
+extern void format40_close(reiser4_format_ent_t *entity);
+extern uint64_t format40_get_root(reiser4_format_ent_t *entity);
+extern uint16_t format40_get_height(reiser4_format_ent_t *entity);
+extern rid_t format40_get_key(reiser4_format_ent_t *entity);
 #endif
 
 /*

@@ -38,26 +38,49 @@ void repair_status_clear(reiser4_status_t *status) {
 	status->dirty = 1;
 }
 
-void repair_status_state(reiser4_status_t *status, uint64_t state) {
+void repair_status_update(reiser4_status_t *status, uint64_t state)
+{
 	aal_assert("vpf-1341", status != NULL);
-	
-	/* if the same as exists, return. */
+	/*
+	 * if the same as exists, return
+	 */
 	if (state == get_ss_status(STATUS(status))) 
 		return;
-	
-	/* if some valuable state different from existent, clear all other 
-	   stuff as it becomes obsolete. */
-	if (!state) {
-		/* If evth is ok, clear all info as obsolete. */
+	/*
+	 * if some valuable state different from existent, clear all other
+	 * stuff as it becomes obsolete
+	 */
+	if (state == FS_OK) {
+		/*
+		 * clear all info as obsolete except extended status
+		 */
+		uint64_t ext_state = get_ss_extended(STATUS(status));
+
 		aal_memset((char *)STATUS(status) + SS_MAGIC_SIZE, 0, 
 			   sizeof(reiser4_status_sb_t) - SS_MAGIC_SIZE);
+		set_ss_extended(STATUS(status), ext_state);
 	} else {
 		/* Set the state w/out clearing evth. */
 		set_ss_status(STATUS(status), state);
 	}
-	
 	status->dirty = 1;
 }
+
+void repair_status_extended_update(reiser4_status_t *status, uint64_t ext_state)
+{
+	aal_assert("vpf-1341", status != NULL);
+	/*
+	 * if the same as exists, return
+	 */
+	if (ext_state == get_ss_extended(STATUS(status)))
+		return;
+	else {
+		/* Set the state w/out clearing evth. */
+		set_ss_extended(STATUS(status), ext_state);
+	}
+	status->dirty = 1;
+}
+
 
 errno_t repair_status_pack(reiser4_status_t *status,
 			   aal_stream_t *stream)
@@ -185,3 +208,13 @@ void repair_status_print(reiser4_status_t *status, aal_stream_t *stream) {
 		}
 	}
 }
+
+/*
+ * Local variables:
+ * c-indentation-style: "K&R"
+ * mode-name: "LC"
+ * c-basic-offset: 8
+ * tab-width: 8
+ * fill-column: 80
+ * End:
+ */

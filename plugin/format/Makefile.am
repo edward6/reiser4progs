@@ -1,2 +1,2 @@
-SUBDIRS = format40
+SUBDIRS = format40 format41
 

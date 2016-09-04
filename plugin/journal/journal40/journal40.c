@@ -567,13 +567,13 @@ static errno_t cb_print_replay(reiser4_journal_ent_t *entity,
 }
 
 /* Makes journal replay */
-static errno_t journal40_replay(reiser4_journal_ent_t *entity) {
+static errno_t journal40_replay(reiser4_journal_ent_t *entity,
+				uint64_t *num_replayed)
+{
 	replay_count_t count;
 	errno_t res;
 
 	aal_assert("umka-412", entity != NULL);
-
-	
 	aal_memset(&count, 0, sizeof(count));
 	
 	/* Traverse the journal and replay all transactions. */
@@ -598,6 +598,8 @@ static errno_t journal40_replay(reiser4_journal_ent_t *entity) {
 			 PLUG_ENT(entity)->device->name, 
 			 count.tx_count, count.blk_count);
 	}
+	if (num_replayed != NULL)
+		*num_replayed = count.tx_count;
 
 	/* Invalidate the journal. */
 	journal40_invalidate(entity);

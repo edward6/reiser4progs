@@ -88,7 +88,11 @@ reiser4_format_t *reiser4_format_create(
 	rid_t policy,			/* policy plug id */
 	rid_t key,			/* key plug id */
 	rid_t node,                     /* node plug id */
-	count_t blocks)			/* block count */
+	count_t blocks,			/* block count */
+	long int mkfs_id,               /* identifier for fsck */
+	uint64_t subvol_id,             /* internal id */
+	uint64_t num_subvols,           /* in the logical volume */
+	uint64_t num_mirrors)           /* excluding the original */
 {
 	reiser4_format_t *format;
 	format_hint_t desc;
@@ -108,10 +112,15 @@ reiser4_format_t *reiser4_format_create(
 	desc.policy = policy;
 	desc.key = key;
 	desc.node = node;
-
-	/* Initializing entity of disk-format by means of calling "create"
-	   method from found plugin. Plugin "create" method will be creating 
-	   all disk structures, namely, format-specific super block. */
+	desc.mkfs_id = mkfs_id;
+	desc.subvol_id = subvol_id;
+	desc.num_subvols = num_subvols;
+	desc.num_mirrors = num_mirrors;
+	/*
+	 * Initializing entity of disk-format by means of calling "create"
+	 * method from found plugin. Plugin "create" method will be creating
+	 * all disk structures, namely, format-specific super block
+	 */
 	if (!(format->ent = plugcall(plug, create, fs->device, &desc))) {
 		aal_error("Can't create format %s on %s.",
 			  plug->p.label, fs->device->name);

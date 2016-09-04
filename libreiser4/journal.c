@@ -193,13 +193,12 @@ reiser4_journal_t *reiser4_journal_create(
 /* Replays specified @journal and returns error code as a result. As super block
    may fit into one of replayed transactions, it should be reopened after replay
    is finished. */
-errno_t reiser4_journal_replay(
-	reiser4_journal_t *journal)	/* journal to be replayed */
+errno_t reiser4_journal_replay(reiser4_journal_t *journal, uint64_t *count)
 {
 	aal_assert("umka-727", journal != NULL);
     
 	/* Calling plugin for actual replaying */
-	return reiser4call(journal, replay);
+	return reiser4call(journal, replay, count);
 }
 
 /* Saves journal structures on journal device */

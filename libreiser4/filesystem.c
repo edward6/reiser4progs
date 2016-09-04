@@ -250,7 +250,7 @@ reiser4_fs_t *reiser4_fs_create(
 	aal_device_t *device,           /* device filesystem will be lie on */
 	fs_hint_t *hint)                /* filesystem hint */
 {
-  reiser4_plug_t *format, *policy, *node, *key;
+	reiser4_plug_t *format, *policy, *node, *key;
 
 	count_t free;
 	reiser4_fs_t *fs;
@@ -280,7 +280,7 @@ reiser4_fs_t *reiser4_fs_create(
 	if (reiser4_format_check_len(device, hint->blksize, hint->blocks))
 		goto error_free_master;
 
-	/* Setting up master super block. */
+	/* Set format id to the master super block. */
 	reiser4_master_set_format(fs->master, format->id.id);
 
 	if (!(fs->status = reiser4_status_create(device, hint->blksize)))
@@ -299,7 +299,10 @@ reiser4_fs_t *reiser4_fs_create(
 	
 	fs->format = reiser4_format_create(fs, (reiser4_format_plug_t *)format,
 					   policy->id.id, key->id.id,
-					   node->id.id, hint->blocks);
+					   node->id.id, hint->blocks,
+					   hint->mkfs_id, hint->subvol_id,
+					   hint->num_subvols,
+					   hint->num_mirrors);
 	if (!fs->format) 
 		goto error_free_status;
 

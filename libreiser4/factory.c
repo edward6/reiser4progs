@@ -142,7 +142,8 @@ errno_t reiser4_factory_init(void) {
 	
 	/* Registering all known plugins. */
 	__load_plug(format40);
-	__init_plug(format40);
+	__load_plug(format41);
+	__init_plug(format41);
 
 #ifndef ENABLE_MINIMAL
 	__load_plug(oid40);

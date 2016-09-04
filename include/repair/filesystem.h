@@ -14,7 +14,7 @@ extern errno_t repair_fs_open(repair_data_t *repair,
 			      aal_device_t *host_device,
 			      aal_device_t *journal_device);
 
-extern errno_t repair_fs_replay(reiser4_fs_t *fs);
+extern errno_t repair_fs_replay(reiser4_fs_t *fs, uint64_t *count);
 
 extern errno_t repair_fs_pack(reiser4_fs_t *fs, 
 			      reiser4_bitmap_t *bitmap, 

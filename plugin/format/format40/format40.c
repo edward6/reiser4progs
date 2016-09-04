@@ -1,12 +1,7 @@
 /* Copyright (C) 2001-2005 by Hans Reiser, licensing governed by
    reiser4progs/COPYING.
    
-   format40.c -- default disk-layout plugin for reiser4. */
-
-#ifndef ENABLE_MINIMAL
-#  include <time.h>
-#  include <stdlib.h>
-#endif
+   format40.c -- disk-layout plugin for reiser4 simple volumes. */
 
 #include "format40.h"
 #include "format40_repair.h"
@@ -17,43 +12,43 @@ reiser4_core_t *format40_core = NULL;
 /* All these functions are standard object getters and setters. They are
    dedicated to modify object properties and get values from its fields. They
    are almost the same and we will not describe each one especially. */
-static uint64_t format40_get_root(reiser4_format_ent_t *entity) {
+uint64_t format40_get_root(reiser4_format_ent_t *entity) {
 	aal_assert("umka-400", entity != NULL);
 	return get_sb_root_block(SUPER(entity));
 }
 
-static uint16_t format40_get_height(reiser4_format_ent_t *entity) {
+uint16_t format40_get_height(reiser4_format_ent_t *entity) {
 	aal_assert("umka-1123", entity != NULL);
 	return get_sb_tree_height(SUPER(entity));
 }
 
 #ifndef ENABLE_MINIMAL
-static uint64_t format40_get_len(reiser4_format_ent_t *entity) {
+uint64_t format40_get_len(reiser4_format_ent_t *entity) {
 	aal_assert("umka-401", entity != NULL);
 	return get_sb_block_count(SUPER(entity));
 }
 
-static uint64_t format40_get_free(reiser4_format_ent_t *entity) {
+uint64_t format40_get_free(reiser4_format_ent_t *entity) {
 	aal_assert("umka-402", entity != NULL);
 	return get_sb_free_blocks(SUPER(entity));
 }
 
-static uint32_t format40_get_stamp(reiser4_format_ent_t *entity) {
+uint32_t format40_get_stamp(reiser4_format_ent_t *entity) {
 	aal_assert("umka-1122", entity != NULL);
 	return get_sb_mkfs_id(SUPER(entity));
 }
 
-static rid_t format40_get_policy(reiser4_format_ent_t *entity) {
+rid_t format40_get_policy(reiser4_format_ent_t *entity) {
 	aal_assert("vpf-831", entity != NULL);
 	return get_sb_policy(SUPER(entity));
 }
 
-static uint32_t format40_node_pid(reiser4_format_ent_t *entity) {
+uint32_t format40_node_pid(reiser4_format_ent_t *entity) {
 	aal_assert("edward-18", entity != NULL);
 	return get_sb_node_pid(SUPER(entity));
 }
 
-static uint64_t format40_start(reiser4_format_ent_t *entity) {
+uint64_t format40_start(reiser4_format_ent_t *entity) {
 	format40_t *format = (format40_t *)entity;
 	
 	aal_assert("vpf-462", format != NULL);
@@ -62,7 +57,7 @@ static uint64_t format40_start(reiser4_format_ent_t *entity) {
 	return FORMAT40_BLOCKNR(format->blksize);
 }
 
-static uint32_t format40_get_state(reiser4_format_ent_t *entity) {
+uint32_t format40_get_state(reiser4_format_ent_t *entity) {
 	aal_assert("umka-2651", entity != NULL);
 	return ((format40_t *)entity)->state;
 }
@@ -73,9 +68,9 @@ void format40_set_state(reiser4_format_ent_t *entity, uint32_t state)
 	((format40_t *)entity)->state = state;
 }
 
-static errno_t format40_layout(reiser4_format_ent_t *entity,
-			       region_func_t region_func,
-			       void *data) 
+errno_t format40_layout(reiser4_format_ent_t *entity,
+			region_func_t region_func,
+			void *data)
 {
 	blk_t blk;
 	errno_t res;
@@ -100,7 +95,16 @@ static int format40_magic(format40_super_t *super) {
 			     sizeof(FORMAT40_MAGIC)));
 }
 
-static errno_t format40_super_open(format40_t *format) {
+errno_t check_super_format40(format40_super_t *super)
+{
+	if (!format40_magic(super))
+		return -EINVAL;
+	return 0;
+}
+
+errno_t format40_super_open_common(format40_t *format,
+				   errno_t (*check)(format40_super_t *s))
+{
 	errno_t res;
 	blk_t offset;
 	aal_block_t block;
@@ -115,22 +119,26 @@ static errno_t format40_super_open(format40_t *format) {
 			  "%s.", format->device->error);
 		goto error_free_block;
 	}
-
-	if (!format40_magic((format40_super_t *)block.data)) {
-		res = -EINVAL;
+	res = check((format40_super_t *)block.data);
+	if (res)
 		goto error_free_block;
-	}
-	
+
 	aal_memcpy(&format->super, block.data,
 		   sizeof(format->super));
-
  error_free_block:
 	aal_block_fini(&block);
 	return res;
 }
 
-static reiser4_format_ent_t *format40_open(aal_device_t *device, 
-					   uint32_t blksize) 
+static errno_t format40_super_open(format40_t *format)
+{
+	return format40_super_open_common(format, check_super_format40);
+}
+
+reiser4_format_ent_t *format40_open_common(aal_device_t *device,
+					   uint32_t blksize,
+					   reiser4_format_plug_t *plug,
+					   errno_t (*super_open)(format40_t *f))
 {
 	format40_t *format;
 
@@ -141,28 +149,34 @@ static reiser4_format_ent_t *format40_open(aal_device_t *device,
 		return NULL;
 
 	format->state = 0;
-	format->plug = &format40_plug;
+	format->plug = plug;
 	format->device = device;
 	format->blksize = blksize;
 
 	/* Initializing super block. */
-	if (format40_super_open(format)) {
+	if (super_open(format)) {
 		aal_free(format);
 		return NULL;
 	}
-    
 	return (reiser4_format_ent_t *)format;
 }
 
-static void format40_close(reiser4_format_ent_t *entity) {
+static reiser4_format_ent_t *format40_open(aal_device_t *device,
+					   uint32_t blksize)
+{
+	return format40_open_common(device, blksize,
+				    &format40_plug, format40_super_open);
+}
+
+void format40_close(reiser4_format_ent_t *entity) {
 	aal_assert("umka-398", entity != NULL);
 	aal_free(entity);
 }
 
 #ifndef ENABLE_MINIMAL
 
-static errno_t format40_clobber_block(void *entity, blk_t start,
-				      count_t width, void *data) 
+errno_t format40_clobber_block(void *entity, blk_t start,
+			       count_t width, void *data)
 {
 	blk_t blk;
 	errno_t res;
@@ -191,16 +205,58 @@ static errno_t format40_clobber_block(void *entity, blk_t start,
 	return res;
 }
 
-/* Create format object instnace. Create on-disk format specific suber block
-   structures. Return format instance to caller. */
-static reiser4_format_ent_t *format40_create(aal_device_t *device, 
-					     format_hint_t *desc)
+void set_sb_format40(format40_super_t *super, format_hint_t *desc)
+{
+	uint64_t flags;
+
+	/* Setting up format40 magic. */
+	aal_memcpy(super->sb_magic, FORMAT40_MAGIC, 
+		   sizeof(FORMAT40_MAGIC));
+
+	/* Number of flushed is zero. */
+	set_sb_flushes(super, 0);
+	/*
+	 * Tree height is 2 -- minimal possible tree height in reiser4. All
+	 * needed nodes will be created later and this value will beused for
+	 * create them correctly (with level set right)
+	 */
+	set_sb_tree_height(super, 2);
+	set_sb_block_count(super, desc->blocks);
+	set_sb_mkfs_id(super, desc->mkfs_id);
+
+	/* Root node pointer is set to invalid block numeber, and thus, it
+	   shows, that filesyetem is flesh one, that is with not nodes. This
+	   value will be used by tree to behave correctly. */
+	set_sb_root_block(super, INVAL_BLK);
+
+	/* Setting up tail policy to passed @desc->policy value. */
+	set_sb_policy(super, desc->policy);
+
+	/* Set node plugin id */
+	set_sb_node_pid(super, desc->node);
+
+	/* Set the flags. */
+	/* FIXME: Hardcoded plugin ids for 2 cases. */
+	flags = (desc->key == KEY_LARGE_ID) ? (1 << FORMAT40_KEY_LARGE) : 0;
+	set_sb_flags(super, flags);
+	
+	/* Set version values. */
+	set_sb_version(super, get_release_number_minor());
+}
+
+/*
+ * Create format object instnace. Create on-disk format specific suber block
+ * structures. Return format instance to caller
+ */
+reiser4_format_ent_t *format40_create_common(aal_device_t *device,
+					     format_hint_t *desc,
+					     void (*set_sb)(format40_super_t *s,
+						            format_hint_t *dsc))
 {
 	blk_t start;
-	uint64_t flags;
 	format40_t *format;
 	format40_super_t *super;
-    
+
 	aal_assert("umka-395", device != NULL);
 	aal_assert("vpf-1735", desc != NULL);
 
@@ -220,45 +276,8 @@ static reiser4_format_ent_t *format40_create(aal_device_t *device,
 
 	/* Initializing super block fields. */
 	super = (format40_super_t *)&format->super;
+	set_sb(super, desc);
 
-	/* Setting up format40 magic. */
-	aal_memcpy(super->sb_magic, FORMAT40_MAGIC, 
-		   sizeof(FORMAT40_MAGIC));
-
-	/* Number of flushed is zero. */
-	set_sb_flushes(super, 0);
-
-	/* Tree height is 2 -- minimal possible tree height in reiser4. All
-	   needed nodes will be created later and this value will beused for
-	   create them correctly (with level set right). */
-	set_sb_tree_height(super, 2);
-
-	/* Filesystem available blocks is set to @blocks. */
-	set_sb_block_count(super, desc->blocks);
-
-	/* Root node pointer is set to invalid block numeber, and thus, it
-	   shows, that filesyetem is flesh one, that is with not nodes. This
-	   value will be used by tree to behave correctly. */
-	set_sb_root_block(super, INVAL_BLK);
-
-	/* Setting up tail policy to passed @desc->policy value. */
-	set_sb_policy(super, desc->policy);
-
-	/* Set node plugin id */
-	set_sb_node_pid(super, desc->node);
-
-	/* Set the flags. */
-	/* FIXME: Hardcoded plugin ids for 2 cases. */
-	flags = (desc->key == KEY_LARGE_ID) ? (1 << FORMAT40_KEY_LARGE) : 0;
-	set_sb_flags(super, flags);
-	
-	/* Initializing fsck related fields. */
-	srandom(time(0));
-	set_sb_mkfs_id(super, random());
-
-	/* Set version values. */
-	set_sb_version(super, get_release_number_minor());
-	
 	/* Clobbering format skipped area in order to let mount to detect
 	   reiser4 correctly without specifying exact filesystem type. 
 	   Skipped area is [0-15] blocks. Clobber the master block also to 
@@ -277,8 +296,14 @@ static reiser4_format_ent_t *format40_create(aal_device_t *device,
 	return (reiser4_format_ent_t *)format;
 }
 
+static reiser4_format_ent_t *format40_create(aal_device_t *device,
+					     format_hint_t *desc)
+{
+	return format40_create_common(device, desc, set_sb_format40);
+}
+
 /* All important permanent format40 data get backuped into @hint. */
-static errno_t format40_backup(reiser4_format_ent_t *entity, backup_hint_t *hint) {
+errno_t format40_backup(reiser4_format_ent_t *entity, backup_hint_t *hint) {
 	format40_backup_t *backup;
 	
 	aal_assert("vpf-1396", entity != NULL);
@@ -306,7 +331,7 @@ static errno_t format40_backup(reiser4_format_ent_t *entity, backup_hint_t *hint
 }
 
 /* This function should update all copies of the super block */
-static errno_t format40_sync(reiser4_format_ent_t *entity) {
+errno_t format40_sync(reiser4_format_ent_t *entity) {
 	errno_t res;
 	blk_t offset;
 
@@ -335,7 +360,7 @@ static errno_t format40_sync(reiser4_format_ent_t *entity) {
 	return res;
 }
 
-static errno_t format40_valid(reiser4_format_ent_t *entity) {
+errno_t format40_valid(reiser4_format_ent_t *entity) {
 	format40_t *format;
 	blk_t max_format_len;
 
@@ -364,13 +389,12 @@ static errno_t format40_valid(reiser4_format_ent_t *entity) {
 	}
 
 	if (get_sb_version(SUPER(format)) > get_release_number_minor()) {
-		aal_error("Format version (4.0.%u) of the partition is "
-			  "greater than format release number (4.%u.%u) "
+		aal_error("Format version (%u) of the partition is "
+			  "greater than format release number (%u) "
 			  "of reiser4progs. Please upgrade reiser4progs, "
 			  "or run fsck.reiser4 --build-sb to fix the fs "
 			  "consistency.",
 			  get_sb_version(SUPER(format)),
-			  get_release_number_major(),
 			  get_release_number_minor());
 
 		return -EINVAL;
@@ -379,8 +403,8 @@ static errno_t format40_valid(reiser4_format_ent_t *entity) {
 	return 0;
 }
 
-static void format40_oid_area(reiser4_format_ent_t *entity, 
-			      void **start, uint32_t *len) 
+void format40_oid_area(reiser4_format_ent_t *entity,
+		       void **start, uint32_t *len)
 {
 	aal_assert("umka-732", entity != NULL);
 	
@@ -389,33 +413,33 @@ static void format40_oid_area(reiser4_format_ent_t *entity,
 	*len = sizeof(SUPER(entity)->sb_oid);
 }
 
-static rid_t format40_oid_pid(reiser4_format_ent_t *entity) {
+rid_t format40_oid_pid(reiser4_format_ent_t *entity) {
 	return OID_REISER40_ID;
 }
 
-static rid_t format40_journal_pid(reiser4_format_ent_t *entity) {
+rid_t format40_journal_pid(reiser4_format_ent_t *entity) {
 	return JOURNAL_REISER40_ID;
 }
 
-static rid_t format40_alloc_pid(reiser4_format_ent_t *entity) {
+rid_t format40_alloc_pid(reiser4_format_ent_t *entity) {
 	return ALLOC_REISER40_ID;
 }
 
-static void format40_set_root(reiser4_format_ent_t *entity, uint64_t root) {
+void format40_set_root(reiser4_format_ent_t *entity, uint64_t root) {
 	aal_assert("umka-403", entity != NULL);
 
 	set_sb_root_block(SUPER(entity), root);
 	format40_mkdirty(entity);
 }
 
-static void format40_set_len(reiser4_format_ent_t *entity, uint64_t blocks) {
+void format40_set_len(reiser4_format_ent_t *entity, uint64_t blocks) {
 	aal_assert("umka-404", entity != NULL);
 
 	set_sb_block_count(SUPER(entity), blocks);
 	format40_mkdirty(entity);
 }
 
-static void format40_set_free(reiser4_format_ent_t *entity, uint64_t blocks) {
+void format40_set_free(reiser4_format_ent_t *entity, uint64_t blocks) {
 	aal_assert("umka-405", entity != NULL);
 
 	if (get_sb_free_blocks(SUPER(entity)) == blocks)
@@ -425,21 +449,21 @@ static void format40_set_free(reiser4_format_ent_t *entity, uint64_t blocks) {
 	format40_mkdirty(entity);
 }
 
-static void format40_set_height(reiser4_format_ent_t *entity, uint16_t height) {
+void format40_set_height(reiser4_format_ent_t *entity, uint16_t height) {
 	aal_assert("umka-555", entity != NULL);
 
 	set_sb_tree_height(SUPER(entity), height);
 	format40_mkdirty(entity);
 }
 
-static void format40_set_stamp(reiser4_format_ent_t *entity, uint32_t mkfsid) {
+void format40_set_stamp(reiser4_format_ent_t *entity, uint32_t mkfsid) {
 	aal_assert("umka-1121", entity != NULL);
 
 	set_sb_mkfs_id(SUPER(entity), mkfsid);
 	format40_mkdirty(entity);
 }
 
-static void format40_set_policy(reiser4_format_ent_t *entity, rid_t tail) {
+void format40_set_policy(reiser4_format_ent_t *entity, rid_t tail) {
 	aal_assert("vpf-830", entity != NULL);
 
 	set_sb_policy(SUPER(entity), tail);
@@ -475,8 +499,6 @@ rid_t format40_get_key(reiser4_format_ent_t *entity) {
 		KEY_LARGE_ID : KEY_SHORT_ID;
 }
 
-#define format40_key_pid format40_get_key
-
 reiser4_format_plug_t format40_plug = {
 	.p = {
 		.id	= {FORMAT_REISER40_ID, 0, FORMAT_PLUG_TYPE},
@@ -494,7 +516,7 @@ reiser4_format_plug_t format40_plug = {
 	.layout	        = format40_layout,
 	.update		= format40_update,
 	.start		= format40_start,
-	
+
 	.pack           = format40_pack,
 	.unpack         = format40_unpack,
 
@@ -502,7 +524,7 @@ reiser4_format_plug_t format40_plug = {
 	.get_free	= format40_get_free,
 	.get_stamp	= format40_get_stamp,
 	.get_policy	= format40_get_policy,
-		
+
 	.set_root	= format40_set_root,
 	.set_len	= format40_set_len,
 	.set_free	= format40_set_free,
@@ -527,7 +549,7 @@ reiser4_format_plug_t format40_plug = {
 
 	.get_root	= format40_get_root,
 	.get_height	= format40_get_height,
-	.key_pid        = format40_key_pid,
+	.key_pid        = format40_get_key,
 };
 
 /*

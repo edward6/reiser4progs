@@ -138,10 +138,10 @@ errno_t repair_fs_open(repair_data_t *repair,
 	return res < 0 ? res : 0;
 }
 
-errno_t repair_fs_replay(reiser4_fs_t *fs) {
+errno_t repair_fs_replay(reiser4_fs_t *fs, uint64_t *count) {
 	errno_t res;
 	
-	res = reiser4_journal_replay(fs->journal);
+	res = reiser4_journal_replay(fs->journal, count);
 	
 	if (repair_error_fatal(res)) {
 		aal_fatal("Failed to replay the journal.");

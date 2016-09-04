@@ -142,7 +142,7 @@ static reiser4_fs_t *busy_fs_open(char *name) {
 	
 	fs->tree->mpc_func = misc_mpressure_detect;
 	
-	if (reiser4_journal_replay(fs->journal)) {
+	if (reiser4_journal_replay(fs->journal, NULL)) {
 		aal_error("Failed to replay the journal on %s.", name);
 		goto error_close_journal;
 	}

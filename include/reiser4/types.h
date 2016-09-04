@@ -15,9 +15,10 @@
 #define REISER4_FS_MIN_SIZE(blksize) \
 	(9 + REISER4_MASTER_BLOCKNR(blksize))
 
-/* Master super block structure. It is the same for all reiser4 filesystems,
-   so, we can declare it here. It contains common for all format fields like
-   block size etc. */
+/*
+ * Master super-block is a collection of parameters
+ * which never get changed during volume's life
+ */
 typedef struct reiser4_master_sb {
 	/* Master super block magic. */
 	char ms_magic[16];
@@ -28,11 +29,17 @@ typedef struct reiser4_master_sb {
 	/* Filesyetem block size in use. */
 	d16_t ms_blksize;
 
-	/* Filesyetm uuid in use. */
-	char ms_uuid[16];
+	/* Logical volume uuid */
+	char ms_vol_uuid[16];
 
 	/* Filesystem label in use. */
 	char ms_label[16];
+
+	/* Reiser5 fields */
+ 	char ms_sub_uuid[16];   /* subvolume's external id (per subolvume) */
+	d16_t ms_volume_pid;    /* volume plugin id (per volume) */
+	d16_t ms_distrib_pid;   /* distribution plugin id (per volume) */
+	d8_t ms_stripe_bits;    /* logarithm of stripe size (per volume) */
 } reiser4_master_sb_t;
 
 #define get_ms_format(ms)        aal_get_le16(ms, ms_format)
@@ -40,6 +47,12 @@ typedef struct reiser4_master_sb {
 
 #define get_ms_blksize(ms)       aal_get_le16(ms, ms_blksize)
 #define set_ms_blksize(ms, val)  aal_set_le16(ms, ms_blksize, val)
+
+#define get_ms_volume_pid(ms)       aal_get_le16(ms, ms_volume_pid)
+#define set_ms_volume_pid(ms, val)  aal_set_le16(ms, ms_volume_pid, val)
+
+#define get_ms_distrib_pid(ms)       aal_get_le16(ms, ms_distrib_pid)
+#define set_ms_distrib_pid(ms, val)  aal_set_le16(ms, ms_distrib_pid, val)
 
 #define SS_MAGIC_SIZE	16
 #define SS_STACK_SIZE	10
@@ -91,6 +104,11 @@ enum reiser4_state {
 	FS_DAMAGED	= 1 << 1,
 	FS_DESTROYED	= 1 << 2,
 	FS_IO		= 1 << 3
+};
+
+enum reiser4_extended_state {
+	FSE_OK = 0,
+	FSE_MIRRORS_NOT_SYNCED = 1 << 0
 };
 
 typedef struct reiser4_master {
@@ -280,8 +298,13 @@ struct reiser4_fs {
 typedef struct fs_hint {
 	count_t blocks;
 	uint32_t blksize;
-	char uuid[17];
+	char volume_uuid[17];
+	char subvol_uuid[17];
 	char label[17];
+	long int mkfs_id;
+	uint64_t subvol_id;
+	uint64_t num_subvols;
+	uint64_t num_mirrors;
 } fs_hint_t;
 
 typedef void (*uuid_unparse_t) (char *uuid, char *string);
@@ -289,3 +312,13 @@ typedef errno_t (*walk_func_t) (reiser4_tree_t *, reiser4_node_t *);
 typedef errno_t (*walk_on_func_t) (reiser4_tree_t *, reiser4_place_t *);
 
 #endif
+
+/*
+ * Local variables:
+ * c-indentation-style: "K&R"
+ * mode-name: "LC"
+ * c-basic-offset: 8
+ * tab-width: 8
+ * fill-column: 80
+ * End:
+ */

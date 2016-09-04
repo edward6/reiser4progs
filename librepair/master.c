@@ -92,8 +92,12 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 			 ms ? "regenerated from backup" : "created", 
 			 fs->device->name);
 		
-		reiser4_master_set_uuid(fs->master, 
-					ms ? ms->ms_uuid : NULL);
+		reiser4_master_set_volume_uuid(fs->master,
+					       ms ? ms->ms_vol_uuid : NULL);
+
+		reiser4_master_set_subvol_uuid(fs->master,
+					       ms ? ms->ms_sub_uuid : NULL);
+
 		reiser4_master_set_label(fs->master, ms ? 
 					 ms->ms_label : NULL);
 
@@ -140,10 +144,10 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 			}
 		}
 		
-		s = reiser4_master_get_uuid(fs->master);
-		if (aal_strncmp(s, ms->ms_uuid, sizeof(ms->ms_uuid))) {
+		s = reiser4_master_get_volume_uuid(fs->master);
+		if (aal_strncmp(s, ms->ms_vol_uuid, sizeof(ms->ms_vol_uuid))) {
 			uint64_t *x = (uint64_t *)s;
-			uint64_t *y = (uint64_t *)ms->ms_uuid;
+			uint64_t *y = (uint64_t *)ms->ms_vol_uuid;
 			fsck_mess("UUID (0x%llx%llx) found in the master super "
 				  "block does not match the one found in the "
 				  "backup (0x%llx%llx).%s",
@@ -156,7 +160,8 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 			if (mode == RM_CHECK)
 				return RE_FIXABLE;
 
-			reiser4_master_set_uuid(fs->master, ms->ms_uuid);
+			reiser4_master_set_volume_uuid(fs->master,
+						       ms->ms_vol_uuid);
 		}
 		
 		s = reiser4_master_get_label(fs->master);
@@ -347,14 +352,23 @@ void repair_master_print(reiser4_master_t *master,
 			  pid, plug ? plug->label : "absent");
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-	if (*master->ent.ms_uuid != '\0') {
+	if (*master->ent.ms_vol_uuid != '\0') {
+		char uuid[37];
+
+		uuid[36] = '\0';
+		unparse(reiser4_master_get_volume_uuid(master), uuid);
+		aal_stream_format(stream, "volume uuid:\t%s\n", uuid);
+	} else {
+		aal_stream_format(stream, "volume uuid:\t<none>\n");
+	}
+	if (*master->ent.ms_sub_uuid != '\0') {
 		char uuid[37];
 		
 		uuid[36] = '\0';
-		unparse(reiser4_master_get_uuid(master), uuid);
-		aal_stream_format(stream, "uuid:\t\t%s\n", uuid);
+		unparse(reiser4_master_get_subvol_uuid(master), uuid);
+		aal_stream_format(stream, "subvol uuid:\t%s\n", uuid);
 	} else {
-		aal_stream_format(stream, "uuid:\t\t<none>\n");
+		aal_stream_format(stream, "subvol uuid:\t<none>\n");
 	}
 #endif
 	

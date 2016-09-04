@@ -21,7 +21,11 @@ extern reiser4_format_t *reiser4_format_create(reiser4_fs_t *fs,
 					       rid_t policy,
 					       rid_t key,
 					       rid_t node,
-					       count_t blocks);
+					       count_t blocks,
+					       long int mkfs_id,
+					       uint64_t subvol_id,
+					       uint64_t num_subvols,
+					       uint64_t num_mirrors);
 
 extern errno_t reiser4_format_backup(reiser4_format_t *format,
 				     backup_hint_t *hint);

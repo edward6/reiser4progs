@@ -890,6 +890,7 @@ reiser4_node_t *reiser4_tree_alloc_node(reiser4_tree_t *tree,
 	}
 
 	/* Setting flush stamps to new node. */
+	reiser4_node_set_fstamp(node, 0);
 	stamp = reiser4_format_get_stamp(format);
 	reiser4_node_set_mstamp(node, stamp);
 	node->tree = &tree->ent;

@@ -25,7 +25,8 @@ typedef struct repair_data {
 	uint64_t fixable;
 	uint64_t sb_fixable;
 
-	uint8_t mode;
+  	uint64_t num_replayed_tx;
+  	uint8_t mode;
 	char *bitmap_file;
 	
 	uint32_t flags;

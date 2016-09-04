@@ -10,6 +10,7 @@ endif
 noinst_LTLIBRARIES              = libreiser4-plugin.la $(MINIMAL_LIBS)
 
 libreiser4_plugin_la_LIBADD       = format/format40/libformat40-static.la \
+                                    format/format41/libformat41-static.la \
                                     journal/journal40/libjournal40-static.la \
                                     alloc/alloc40/liballoc40-static.la \
                                     oid/oid40/liboid40-static.la \
@@ -56,6 +57,7 @@ libreiser4_plugin_la_LIBADD       = format/format40/libformat40-static.la \
 
 if ENABLE_MINIMAL
 libreiser4_plugin_minimal_la_LIBADD = format/format40/libformat40-minimal.la \
+                                    format/format41/libformat41-minimal.la \
                                     oid/oid40/liboid40-minimal.la \
                                     node/node40/libnode40-minimal.la \
                                     node/node41/libnode41-minimal.la \

@@ -574,6 +574,7 @@ AC_OUTPUT([
     	plugin/Makefile
     	plugin/format/Makefile
     	plugin/format/format40/Makefile
+    	plugin/format/format41/Makefile
     	plugin/alloc/Makefile
     	plugin/alloc/alloc40/Makefile
     	plugin/journal/Makefile

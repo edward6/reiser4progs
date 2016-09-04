@@ -17,7 +17,8 @@ extern bool_t reiser4_journal_isdirty(reiser4_journal_t *journal);
 
 extern errno_t reiser4_journal_mark(reiser4_journal_t *journal);
 extern errno_t reiser4_journal_sync(reiser4_journal_t *journal);
-extern errno_t reiser4_journal_replay(reiser4_journal_t *journal);
+extern errno_t reiser4_journal_replay(reiser4_journal_t *journal,
+				      uint64_t *count);
 
 extern errno_t reiser4_journal_layout(reiser4_journal_t *journal, 
 				      region_func_t region_func,

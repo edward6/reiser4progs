@@ -47,10 +47,11 @@ errno_t format40_update(reiser4_format_ent_t *entity) {
 	return res;
 }
 
-errno_t format40_check_struct(reiser4_format_ent_t *entity, 
-			      backup_hint_t *hint, 
-			      format_hint_t *desc, 
-			      uint8_t mode)
+errno_t format40_check_struct_common(reiser4_format_ent_t *entity,
+				     backup_hint_t *hint,
+				     format_hint_t *desc,
+				     uint8_t mode, reiser4_core_t *core,
+				     errno_t (*is_mirror)(format40_super_t *s))
 {
 	format40_backup_t *backup;
 	format40_super_t *super;
@@ -77,7 +78,7 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 			sizeof(FORMAT40_MAGIC))) 
 	{
 		aal_error("The on-disk format magic (%s) does not match the "
-			  "format40 plugin one (%s).%s", super->sb_magic, 
+			  "format plugin one (%s).%s", super->sb_magic,
 			  FORMAT40_MAGIC, mode == RM_BUILD ? " Fixed." : "");
 
 		if (mode == RM_BUILD) {
@@ -89,18 +90,22 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 			res |= RE_FATAL;
 		}
 	}
-	
+	if (is_mirror(super)) {
+		aal_error("Refuse to check/repar mirror. "
+			  "Fsck works only with original subvolumes.");
+		return RE_FATAL;
+	}
+
 	if (backup) {
 		/* Check the version if the version was backed up. */
 	        if ((get_sb_version(backup) > get_release_number_minor()) ||
 		    ((get_sb_version(super) > get_release_number_minor()) &&
 		     sb_update_backup(super))) {
-			aal_fatal("Format version (4.0.%u) of the partition "
+			aal_fatal("Format version (%u) of the partition "
 				  "is greater than format release number "
-				  "(4.%u.%u) of reiser4progs. Please upgrade "
+				  "(%u) of reiser4progs. Please upgrade "
 				  "reiser4progs and try again.",
 				  get_sb_version(super),
-				  get_release_number_major(),
 				  get_release_number_minor());
 			return RE_FATAL;
 		}
@@ -139,20 +144,19 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 		if (get_sb_version(super) > get_release_number_minor()) {
 			int opt;
 
-			aal_mess("Format version (4.0.%u) of the partition is "
-				 "greater than format release number (4.%u.%u) "
+			aal_mess("Format version (%u) of the partition is "
+				 "greater than format release number (%u) "
 				 "of reiser4progs. This probably means that "
 				 "reiser4progs is out of date. Fix the format "
 				 "version only if you are sure that this is a "
 				 "corruption.",
 				 get_sb_version(super),
-				 get_release_number_major(),
 				 get_release_number_minor());
 
 			if (mode != RM_BUILD)
 				return RE_FATAL;
 
-			opt = aal_yesno("Do you want to fix the format40 "
+			opt = aal_yesno("Do you want to fix the format "
 					"version?");
 			if (opt != EXCEPTION_OPT_YES)
 				return -EINVAL;
@@ -197,8 +201,8 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 		/* Check that on-disk policy is correct, otherwise set one from 
 		   the profile. */
 
-		if (!(format40_core->factory_ops.ifind(POLICY_PLUG_TYPE, 
-						       get_sb_policy(super))))
+		if (!(core->factory_ops.ifind(POLICY_PLUG_TYPE,
+					      get_sb_policy(super))))
 		{
 			fsck_mess("Can't find the formatting policy "
 				  "plugin by the on-disk id 0x%x.", 
@@ -304,6 +308,20 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 	return res;
 }
 
+static errno_t is_mirror_format40(format40_super_t *super)
+{
+	return 0;
+}
+
+extern errno_t format40_check_struct(reiser4_format_ent_t *entity,
+				     backup_hint_t *hint,
+				     format_hint_t *desc,
+				     uint8_t mode)
+{
+	return format40_check_struct_common(entity, hint, desc, mode,
+					    format40_core, is_mirror_format40);
+}
+
 errno_t format40_pack(reiser4_format_ent_t *entity,
 		      aal_stream_t *stream)
 {
@@ -330,9 +348,10 @@ errno_t format40_pack(reiser4_format_ent_t *entity,
 	return 0;
 }
 
-reiser4_format_ent_t *format40_unpack(aal_device_t *device, 
-				      uint32_t blksize,
-				      aal_stream_t *stream)
+reiser4_format_ent_t *format40_unpack_common(aal_device_t *device,
+					     uint32_t blksize,
+					     aal_stream_t *stream,
+					     reiser4_format_plug_t *plug)
 {
 	uint32_t size;
 	format40_t *format;
@@ -344,7 +363,7 @@ reiser4_format_ent_t *format40_unpack(aal_device_t *device,
 	if (!(format = aal_calloc(sizeof(*format), 0)))
 		return NULL;
 
-	format->plug = &format40_plug;
+	format->plug = plug;
 	format->device = device;
 	format->blksize = blksize;
 
@@ -372,9 +391,16 @@ reiser4_format_ent_t *format40_unpack(aal_device_t *device,
 	return NULL;
 }
 
-void format40_print(reiser4_format_ent_t *entity,
-		    aal_stream_t *stream,
-		    uint16_t options) 
+reiser4_format_ent_t *format40_unpack(aal_device_t *device,
+				      uint32_t blksize,
+				      aal_stream_t *stream)
+{
+	return format40_unpack_common(device, blksize, stream, &format40_plug);
+}
+
+void format40_print_common(reiser4_format_ent_t *entity,
+			   aal_stream_t *stream,
+			   uint16_t options, reiser4_core_t *core)
 {
 	format40_super_t *super;
 	reiser4_plug_t *plug;
@@ -386,19 +412,27 @@ void format40_print(reiser4_format_ent_t *entity,
 
 	format = (format40_t *)entity;
 	super = &format->super;
-    
 	pid = get_sb_policy(super);
 
-	if (!(plug = format40_core->factory_ops.ifind(POLICY_PLUG_TYPE, pid))) {
+	if (!(plug = core->factory_ops.ifind(POLICY_PLUG_TYPE, pid))) {
 		aal_error("Can't find tail policy plugin by its id 0x%x.", pid);
 	}
 		
 	aal_stream_format(stream, "Format super block (%lu):\n",
 			  FORMAT40_BLOCKNR(format->blksize));
 	
+	aal_stream_format(stream, "subvolume id:\t%u\n",
+			  get_sb_subvol_id(super));
+
+	aal_stream_format(stream, "num subvols:\t%u\n",
+			  get_sb_num_subvols(super));
+
+	aal_stream_format(stream, "num mirrors:\t%u\n",
+			  get_sb_num_mirrors(super));
+
 	aal_stream_format(stream, "plugin:\t\t%s\n", 
 			  entity->plug->p.label);
-	
+
 	aal_stream_format(stream, "description:\t%s\n", 
 			  entity->plug->p.desc);
 
@@ -441,7 +475,14 @@ void format40_print(reiser4_format_ent_t *entity,
 		aal_stream_format(stream, "key policy:\tSHORT\n");
 }
 
-errno_t format40_check_backup(backup_hint_t *hint) {
+void format40_print(reiser4_format_ent_t *entity,
+		    aal_stream_t *stream, uint16_t options)
+{
+	return format40_print_common(entity, stream, options, format40_core);
+}
+
+errno_t format40_check_backup_common(backup_hint_t *hint,
+				     reiser4_core_t *core) {
 	format40_backup_t *backup;
 	
 	aal_assert("vpf-1733", hint != NULL);
@@ -466,9 +507,7 @@ errno_t format40_check_backup(backup_hint_t *hint) {
 	   in repair_format_check_struct, just set blocks into the hint. */
 	
 	/* Some policy plugin must be found. */
-	if (!format40_core->factory_ops.ifind(POLICY_PLUG_TYPE, 
-					      get_sb_policy(backup))) 
-	{
+	if (!core->factory_ops.ifind(POLICY_PLUG_TYPE, get_sb_policy(backup))){
 		return RE_FATAL;
 	}
 	
@@ -479,9 +518,15 @@ errno_t format40_check_backup(backup_hint_t *hint) {
 	return 0;
 }
 
+errno_t format40_check_backup(backup_hint_t *hint, reiser4_core_t *core)
+{
+	return format40_check_backup_common(hint, format40_core);
+}
+
 /* Regenerate the format instance by the backup. */
-reiser4_format_ent_t *format40_regenerate(aal_device_t *device, 
-					  backup_hint_t *hint) 
+reiser4_format_ent_t *format40_regenerate_common(aal_device_t *device,
+						 backup_hint_t *hint,
+						 reiser4_format_plug_t *plug)
 {
 	format40_backup_t *backup;
 	format40_super_t *super;
@@ -494,12 +539,11 @@ reiser4_format_ent_t *format40_regenerate(aal_device_t *device,
 		(hint->block.data + hint->off[BK_FORMAT]);
 
 	if (get_sb_version(backup) > get_release_number_minor()) {
-		fsck_mess("Format version (4.0.%u) of the partition being "
+		fsck_mess("Format version (%u) of the partition being "
 			  "repaired is greater than format release number "
-			  "(4.%u.%u) of reiser4progs. Please upgrade "
+			  "(%u) of reiser4progs. Please upgrade "
 			  "reiser4progs and try again.",
 			  get_sb_version(backup),
-			  get_release_number_major(),
 			  get_release_number_minor());
 		return NULL;
 	}
@@ -529,6 +573,12 @@ reiser4_format_ent_t *format40_regenerate(aal_device_t *device,
 	set_sb_version(super, get_sb_version(backup));
 	
 	return (reiser4_format_ent_t *)format;
+}
+
+reiser4_format_ent_t *format40_regenerate(aal_device_t *device,
+					  backup_hint_t *hint)
+{
+	return format40_regenerate_common(device, hint, &format40_plug);
 }
 
 #endif

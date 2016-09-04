@@ -402,7 +402,7 @@ static errno_t fsck_check_init(repair_data_t *repair,
 		}
 	}
 	
-	if ((res = repair_fs_replay(repair->fs)) < 0)
+	if ((res = repair_fs_replay(repair->fs, &repair->num_replayed_tx)) < 0)
 		goto error_close_fs;
 	
 	repair_error_count(repair, res);
@@ -486,10 +486,13 @@ static errno_t fsck_check_fini(repair_data_t *repair,
 	} else if (repair->fixable || repair->sb_fixable) {
 		state = FS_CORRUPTED;
 	} else {
-		state = 0;
+		state = FS_OK;
 	}
+	repair_status_update(status, state);
 
-	repair_status_state(status, state);
+	if (state != FS_OK || repair->num_replayed_tx != 0)
+		/* fsck doesn't work with mirrors */
+		repair_status_extended_update(status, FSE_MIRRORS_NOT_SYNCED);
 
 	if (reiser4_status_sync(repair->fs->status))
 		return -EIO;
