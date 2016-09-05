@@ -13,9 +13,9 @@ reiser4_core_t *format41_core = NULL;
 
 #ifndef ENABLE_MINIMAL
 
-static void set_sb_format41(format40_super_t *super, format_hint_t *desc)
+static void format41_set_sb(format40_super_t *super, format_hint_t *desc)
 {
-	set_sb_format40(super, desc);
+	format40_set_sb(super, desc);
 
 	set_sb_subvol_id(super, desc->subvol_id);
 	set_sb_num_subvols(super, desc->num_subvols);
@@ -24,7 +24,7 @@ static void set_sb_format41(format40_super_t *super, format_hint_t *desc)
 
 reiser4_format_ent_t *format41_create(aal_device_t *device, format_hint_t *desc)
 {
-	return format40_create_common(device, desc, set_sb_format41);
+	return format40_create_common(device, desc, format41_set_sb);
 }
 #endif
 
@@ -42,8 +42,9 @@ errno_t check_super_format41(format40_super_t *super)
 	if (ret)
 		return ret;
 
-	if (is_mirror_format41(super))
+	if (is_mirror_format41(super)) {
 		aal_warn("Opening mirror!");
+	}
 	return 0;
 }
 

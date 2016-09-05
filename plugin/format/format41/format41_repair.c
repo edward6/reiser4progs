@@ -43,7 +43,7 @@ extern errno_t format41_check_struct(reiser4_format_ent_t *entity,
 					    format41_core, is_mirror_format41);
 }
 
-errno_t format41_check_backup(backup_hint_t *hint, reiser4_core_t *core)
+errno_t format41_check_backup(backup_hint_t *hint)
 {
 	return format40_check_backup_common(hint, format41_core);
 }

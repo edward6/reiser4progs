@@ -178,9 +178,14 @@ extern errno_t format40_clobber_block(void *entity, blk_t start,
 errno_t format40_layout(reiser4_format_ent_t *entity,
 			region_func_t region_func,
 			void *data);
+extern void format40_set_sb(format40_super_t *super, format_hint_t *desc);
 #endif
 
 extern errno_t check_super_format40(format40_super_t *super);
+extern reiser4_format_ent_t *format40_create_common(aal_device_t *device,
+					     format_hint_t *desc,
+					     void (*set_sb)(format40_super_t *s,
+						            format_hint_t *dsc));
 extern errno_t format40_super_open_common(format40_t *format,
 					  errno_t (*check)(format40_super_t *s));
 extern reiser4_format_ent_t *format40_open_common(aal_device_t *device,

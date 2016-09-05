@@ -44,7 +44,7 @@ extern errno_t format41_check_struct(reiser4_format_ent_t *entity,
 				     backup_hint_t *hint,
 				     format_hint_t *desc,
 				     uint8_t mode);
-errno_t format41_check_backup(backup_hint_t *hint, reiser4_core_t *core);
+extern errno_t format41_check_backup(backup_hint_t *hint);
 
 #endif
 #endif

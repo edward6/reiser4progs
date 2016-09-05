@@ -518,7 +518,7 @@ errno_t format40_check_backup_common(backup_hint_t *hint,
 	return 0;
 }
 
-errno_t format40_check_backup(backup_hint_t *hint, reiser4_core_t *core)
+errno_t format40_check_backup(backup_hint_t *hint)
 {
 	return format40_check_backup_common(hint, format40_core);
 }
