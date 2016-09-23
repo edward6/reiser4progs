@@ -956,7 +956,6 @@ enum format_hint_mask {
 typedef struct format_hint {
 	uint64_t subvol_id;
 	uint64_t num_subvols;
-	uint64_t num_mirrors;
 	uint64_t blocks;
 	uint32_t blksize;
 	long int mkfs_id;

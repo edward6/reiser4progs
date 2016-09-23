@@ -46,7 +46,6 @@ errno_t repair_fs_open(repair_data_t *repair,
 			goto error_fs_close;
 		}
 	}
-	
 	res |= repair_master_check_struct(fs, repair->mode, repair->flags);
 	
 	if (fs->format) {

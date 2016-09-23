@@ -205,7 +205,7 @@ errno_t format40_clobber_block(void *entity, blk_t start,
 	return res;
 }
 
-void format40_set_sb(format40_super_t *super, format_hint_t *desc)
+void set_sb_format40(format40_super_t *super, format_hint_t *desc)
 {
 	uint64_t flags;
 
@@ -299,7 +299,7 @@ reiser4_format_ent_t *format40_create_common(aal_device_t *device,
 static reiser4_format_ent_t *format40_create(aal_device_t *device,
 					     format_hint_t *desc)
 {
-	return format40_create_common(device, desc, format40_set_sb);
+	return format40_create_common(device, desc, set_sb_format40);
 }
 
 /* All important permanent format40 data get backuped into @hint. */

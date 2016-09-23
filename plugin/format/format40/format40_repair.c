@@ -50,8 +50,7 @@ errno_t format40_update(reiser4_format_ent_t *entity) {
 errno_t format40_check_struct_common(reiser4_format_ent_t *entity,
 				     backup_hint_t *hint,
 				     format_hint_t *desc,
-				     uint8_t mode, reiser4_core_t *core,
-				     errno_t (*is_mirror)(format40_super_t *s))
+				     uint8_t mode, reiser4_core_t *core)
 {
 	format40_backup_t *backup;
 	format40_super_t *super;
@@ -90,12 +89,6 @@ errno_t format40_check_struct_common(reiser4_format_ent_t *entity,
 			res |= RE_FATAL;
 		}
 	}
-	if (is_mirror(super)) {
-		aal_error("Refuse to check/repar mirror. "
-			  "Fsck works only with original subvolumes.");
-		return RE_FATAL;
-	}
-
 	if (backup) {
 		/* Check the version if the version was backed up. */
 	        if ((get_sb_version(backup) > get_release_number_minor()) ||
@@ -308,18 +301,13 @@ errno_t format40_check_struct_common(reiser4_format_ent_t *entity,
 	return res;
 }
 
-static errno_t is_mirror_format40(format40_super_t *super)
-{
-	return 0;
-}
-
 extern errno_t format40_check_struct(reiser4_format_ent_t *entity,
 				     backup_hint_t *hint,
 				     format_hint_t *desc,
 				     uint8_t mode)
 {
 	return format40_check_struct_common(entity, hint, desc, mode,
-					    format40_core, is_mirror_format40);
+					    format40_core);
 }
 
 errno_t format40_pack(reiser4_format_ent_t *entity,
@@ -426,9 +414,6 @@ void format40_print_common(reiser4_format_ent_t *entity,
 
 	aal_stream_format(stream, "num subvols:\t%u\n",
 			  get_sb_num_subvols(super));
-
-	aal_stream_format(stream, "num mirrors:\t%u\n",
-			  get_sb_num_mirrors(super));
 
 	aal_stream_format(stream, "plugin:\t\t%s\n", 
 			  entity->plug->p.label);

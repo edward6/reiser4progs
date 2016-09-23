@@ -38,8 +38,7 @@ extern reiser4_format_ent_t *format40_regenerate(aal_device_t *device,
 extern errno_t format40_check_struct_common(reiser4_format_ent_t *entity,
 					    backup_hint_t *hint,
 					    format_hint_t *desc,
-					    uint8_t mode, reiser4_core_t *core,
-					    errno_t (*is_mirror)(format40_super_t *s));
+					    uint8_t mode, reiser4_core_t *core);
 extern errno_t format40_check_struct(reiser4_format_ent_t *entity,
 				     backup_hint_t *hint,
 				     format_hint_t *desc,

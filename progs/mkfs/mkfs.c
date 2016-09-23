@@ -359,12 +359,12 @@ int main(int argc, char *argv[]) {
 	/*
 	 * Set number of subvolumes and mirrors
 	 */
-	if (flags & BF_MIRRORS)
-		hint.num_subvols = dev_cnt;
-	else
-		hint.num_subvols = 1;
-	hint.num_mirrors = hint.num_subvols - 1;
+	hint.num_subvols = 1;
 
+	if ((flags & BF_MIRRORS) && (dev_cnt != 0))
+		hint.num_replicas = dev_cnt - 1;
+	else
+		hint.num_replicas = 0;
 	dev_cnt = 0;
 	if (!(flags & BF_YES) && aal_list_len(devices)) {
 		if (!(gauge = aal_gauge_create(aux_gauge_handlers[GT_PROGRESS],
@@ -448,7 +448,7 @@ int main(int argc, char *argv[]) {
 			hint.mkfs_id = random();
 		}
 		if (flags & BF_MIRRORS)
-			hint.subvol_id = dev_cnt;
+			hint.mirror_id = dev_cnt;
 
 		if (!(device = aal_device_open(&file_ops, host_dev, 
 					       512, O_RDWR))) 

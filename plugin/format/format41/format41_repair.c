@@ -40,7 +40,7 @@ extern errno_t format41_check_struct(reiser4_format_ent_t *entity,
 				     uint8_t mode)
 {
 	return format40_check_struct_common(entity, hint, desc, mode,
-					    format41_core, is_mirror_format41);
+					    format41_core);
 }
 
 errno_t format41_check_backup(backup_hint_t *hint)

@@ -47,7 +47,6 @@ typedef struct format40_super {
 	/* Reiser5 fields */
 	d64_t sb_subvol_id;
 	d64_t sb_num_subvols;
-	d16_t sb_num_mirrors;
 
 	d64_t sb_fiber_len;
 	d64_t sb_fiber_loc;
@@ -127,9 +126,6 @@ extern reiser4_core_t *format40_core;
 #define get_sb_num_subvols(sb)		aal_get_le64(sb, sb_num_subvols)
 #define set_sb_num_subvols(sb, val)	aal_set_le64(sb, sb_num_subvols, val)
 
-#define get_sb_num_mirrors(sb)		aal_get_le64(sb, sb_num_mirrors)
-#define set_sb_num_mirrors(sb, val)	aal_set_le64(sb, sb_num_mirrors, val)
-
 #define get_sb_version(sb)	\
 	(aal_get_le32(sb, sb_version) & ~FORMAT40_UPDATE_BACKUP)
 
@@ -178,14 +174,14 @@ extern errno_t format40_clobber_block(void *entity, blk_t start,
 errno_t format40_layout(reiser4_format_ent_t *entity,
 			region_func_t region_func,
 			void *data);
-extern void format40_set_sb(format40_super_t *super, format_hint_t *desc);
+extern void set_sb_format40(format40_super_t *super, format_hint_t *desc);
+extern reiser4_format_ent_t *format40_create_common(aal_device_t *device,
+					    format_hint_t *desc,
+					    void (*set_sb)(format40_super_t *s,
+							   format_hint_t *dsc));
 #endif
 
 extern errno_t check_super_format40(format40_super_t *super);
-extern reiser4_format_ent_t *format40_create_common(aal_device_t *device,
-					     format_hint_t *desc,
-					     void (*set_sb)(format40_super_t *s,
-						            format_hint_t *dsc));
 extern errno_t format40_super_open_common(format40_t *format,
 					  errno_t (*check)(format40_super_t *s));
 extern reiser4_format_ent_t *format40_open_common(aal_device_t *device,

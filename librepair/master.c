@@ -57,6 +57,12 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 		if (ms) {
 			fsck_mess("Master super block cannot be found on '%s'.",
 				 fs->device->name);
+
+			if (get_ms_mirror_id(ms)) {
+				fsck_mess("Refuse to restore master of replica. "
+					  "Fsck works only with original subvolumes.");
+				return -EINVAL;
+			}
 			size = get_ms_blksize(ms);
 		} else {
 			/* Master SB was not opened. Create a new one. */
@@ -98,14 +104,27 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 		reiser4_master_set_subvol_uuid(fs->master,
 					       ms ? ms->ms_sub_uuid : NULL);
 
-		reiser4_master_set_label(fs->master, ms ? 
+		reiser4_master_set_mirror_id(fs->master,
+					     ms ? ms->ms_mirror_id : 0);
+
+		reiser4_master_set_num_replicas(fs->master,
+						ms ? ms->ms_num_replicas : 0);
+
+		reiser4_master_set_label(fs->master, ms ?
 					 ms->ms_label : NULL);
 
 		pid = ms ? get_ms_format(ms) : INVAL_PID;
 		reiser4_master_set_format(fs->master, pid);
 		new = 1;
 	} else if (ms) {
-		/* Master SB & backup are opened. Fix accoring to backup. */
+		/*
+		 * Master SB & backup are opened. Fix accoring to backup.
+		 */
+		if (reiser4_master_is_replica(fs->master)) {
+			fsck_mess("Refuse to check/repar replica. "
+				  "Fsck works only with original subvolumes.");
+			return -EINVAL;
+		}
 		size = reiser4_master_get_blksize(fs->master);
 		
 		if (size != get_ms_blksize(ms)) {
@@ -178,11 +197,17 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 			reiser4_master_set_label(fs->master, ms->ms_label);
 		}
 	} else {
-		/* Master SB was opened. Check it for validness. */
-		
+		/*
+		 * Master super-block was opened. Check it for validness.
+		 */
+		if (reiser4_master_is_replica(fs->master)) {
+			fsck_mess("Refuse to check/repar replica. "
+				  "Fsck works only with original subvolumes.");
+			return -EINVAL;
+		}
 		/* Check the blocksize. */
 		size = reiser4_master_get_blksize(fs->master);
-		
+
 		if (!cb_bs_check(size, NULL)) {
 			fsck_mess("Invalid blocksize found in the "
 				  "master super block (%u).",
@@ -351,6 +376,12 @@ void repair_master_print(reiser4_master_t *master,
 	aal_stream_format(stream, "format:\t\t0x%x (%s)\n",
 			  pid, plug ? plug->label : "absent");
 
+	aal_stream_format(stream, "mirror id:\t%u\n",
+			  get_ms_mirror_id(SUPER(master)));
+
+	aal_stream_format(stream, "replicas:\t%u\n",
+			  get_ms_num_replicas(SUPER(master)));
+
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 	if (*master->ent.ms_vol_uuid != '\0') {
 		char uuid[37];
@@ -379,7 +410,6 @@ void repair_master_print(reiser4_master_t *master,
 		aal_stream_format(stream, "label:\t\t<none>\n");
 	}
 }
-
 
 errno_t repair_master_check_backup(backup_hint_t *hint) {
 	reiser4_master_sb_t *master;

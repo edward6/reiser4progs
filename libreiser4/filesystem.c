@@ -301,8 +301,7 @@ reiser4_fs_t *reiser4_fs_create(
 					   policy->id.id, key->id.id,
 					   node->id.id, hint->blocks,
 					   hint->mkfs_id, hint->subvol_id,
-					   hint->num_subvols,
-					   hint->num_mirrors);
+					   hint->num_subvols);
 	if (!fs->format) 
 		goto error_free_status;
 

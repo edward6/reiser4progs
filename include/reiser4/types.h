@@ -39,6 +39,9 @@ typedef struct reiser4_master_sb {
  	char ms_sub_uuid[16];   /* subvolume's external id (per subolvume) */
 	d16_t ms_volume_pid;    /* volume plugin id (per volume) */
 	d16_t ms_distrib_pid;   /* distribution plugin id (per volume) */
+	d16_t ms_mirror_id;     /* id of the mirror, 0 for original */
+	d16_t ms_num_replicas;  /* number of replicas. Replica is a mirror,
+				   of id, which is different from 0 */
 	d8_t ms_stripe_bits;    /* logarithm of stripe size (per volume) */
 } reiser4_master_sb_t;
 
@@ -53,6 +56,12 @@ typedef struct reiser4_master_sb {
 
 #define get_ms_distrib_pid(ms)       aal_get_le16(ms, ms_distrib_pid)
 #define set_ms_distrib_pid(ms, val)  aal_set_le16(ms, ms_distrib_pid, val)
+
+#define get_ms_mirror_id(ms)       aal_get_le16(ms, ms_mirror_id)
+#define set_ms_mirror_id(ms, val)  aal_set_le16(ms, ms_mirror_id, val)
+
+#define get_ms_num_replicas(ms)       aal_get_le16(ms, ms_num_replicas)
+#define set_ms_num_replicas(ms, val)  aal_set_le16(ms, ms_num_replicas, val)
 
 #define SS_MAGIC_SIZE	16
 #define SS_STACK_SIZE	10
@@ -304,7 +313,8 @@ typedef struct fs_hint {
 	long int mkfs_id;
 	uint64_t subvol_id;
 	uint64_t num_subvols;
-	uint64_t num_mirrors;
+	uint16_t mirror_id;
+	uint16_t num_replicas;
 } fs_hint_t;
 
 typedef void (*uuid_unparse_t) (char *uuid, char *string);

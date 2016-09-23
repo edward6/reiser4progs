@@ -27,12 +27,8 @@ extern reiser4_core_t *format41_core;
 #define get_sb_num_subvols(sb)		aal_get_le64(sb, sb_num_subvols)
 #define set_sb_num_subvols(sb, val)	aal_set_le64(sb, sb_num_subvols, val)
 
-#define get_sb_num_mirrors(sb)		aal_get_le64(sb, sb_num_mirrors)
-#define set_sb_num_mirrors(sb, val)	aal_set_le64(sb, sb_num_mirrors, val)
-
 #ifndef ENABLE_MINIMAL
 
-extern errno_t is_mirror_format41(format40_super_t *sb);
 extern reiser4_format_ent_t *format41_unpack(aal_device_t *device,
 					     uint32_t blksize,
 					     aal_stream_t *stream);
@@ -44,7 +40,7 @@ extern errno_t format41_check_struct(reiser4_format_ent_t *entity,
 				     backup_hint_t *hint,
 				     format_hint_t *desc,
 				     uint8_t mode);
-extern errno_t format41_check_backup(backup_hint_t *hint);
+errno_t format41_check_backup(backup_hint_t *hint);
 
 #endif
 #endif

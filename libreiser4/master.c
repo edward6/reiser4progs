@@ -39,7 +39,7 @@ reiser4_master_t *reiser4_master_create(aal_device_t *device, fs_hint_t *hint) {
 	reiser4_master_t *master;
     
 	aal_assert("umka-981", device != NULL);
-    
+
 	/* Allocating the memory for master super block struct */
 	if (!(master = aal_calloc(sizeof(*master), 0)))
 		return NULL;
@@ -47,11 +47,12 @@ reiser4_master_t *reiser4_master_create(aal_device_t *device, fs_hint_t *hint) {
 	/* Setting up magic. */
 	aal_strncpy(SUPER(master)->ms_magic, REISER4_MASTER_MAGIC,
 		    sizeof(REISER4_MASTER_MAGIC));
-    
-	/* set block size */
+
 	set_ms_blksize(SUPER(master), hint->blksize);
 	reiser4_master_set_volume_uuid(master, hint->volume_uuid);
 	reiser4_master_set_subvol_uuid(master, hint->subvol_uuid);
+	reiser4_master_set_mirror_id(master, hint->mirror_id);
+	reiser4_master_set_num_replicas(master, hint->num_replicas);
 	reiser4_master_set_label(master, hint->label);
 
 	master->dirty = 1;
@@ -276,6 +277,20 @@ char *reiser4_master_get_label(reiser4_master_t *master) {
 	return SUPER(master)->ms_label;
 }
 
+uint16_t reiser4_master_get_mirror_id(reiser4_master_t *master) {
+	aal_assert("edward-xxx", master != NULL);
+	return get_ms_mirror_id(SUPER(master));
+}
+
+uint16_t reiser4_master_is_replica(reiser4_master_t *master) {
+	return reiser4_master_get_mirror_id(master);
+}
+
+uint16_t reiser4_master_get_num_replicas(reiser4_master_t *master) {
+	aal_assert("edward-xxx", master != NULL);
+	return get_ms_num_replicas(SUPER(master));
+}
+
 void reiser4_master_set_format(reiser4_master_t *master,
 			       rid_t format)
 {
@@ -289,6 +304,22 @@ void reiser4_master_set_blksize(reiser4_master_t *master,
 {
 	aal_assert("umka-2497", master != NULL);
 	set_ms_blksize(SUPER(master), blksize);
+	master->dirty = 1;
+}
+
+void reiser4_master_set_mirror_id(reiser4_master_t *master,
+				  uint16_t mirror_id)
+{
+	aal_assert("edward-xxx", master != NULL);
+	set_ms_mirror_id(SUPER(master), mirror_id);
+	master->dirty = 1;
+}
+
+void reiser4_master_set_num_replicas(reiser4_master_t *master,
+				  uint16_t num_replicas)
+{
+	aal_assert("edward-xxx", master != NULL);
+	set_ms_num_replicas(SUPER(master), num_replicas);
 	master->dirty = 1;
 }
 

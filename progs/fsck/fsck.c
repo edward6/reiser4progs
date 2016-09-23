@@ -434,17 +434,15 @@ static errno_t fsck_check_init(repair_data_t *repair,
 	
 	repair_master_print(repair->fs->master, &stream, 
 			    misc_uuid_unparse);
-	
 	aal_stream_format(&stream, "\n");
-	
+
 	repair_format_print(repair->fs->format, &stream);
 	aal_stream_format(&stream, "\n");
 	
 	aal_mess("Reiser4 fs was detected on %s.\n%s",
 		repair->fs->device->name, (char *)stream.entity);
-	
 	aal_stream_fini(&stream);
-	
+
 	/* Initialize the backup. */
 	len = reiser4_format_get_len(repair->fs->format);
 	if ((res = backup_init(backup, host, len)))
