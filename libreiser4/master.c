@@ -268,7 +268,7 @@ char *reiser4_master_get_volume_uuid(reiser4_master_t *master) {
 }
 
 char *reiser4_master_get_subvol_uuid(reiser4_master_t *master) {
-	aal_assert("edward-xxx", master != NULL);
+	aal_assert("edward-20", master != NULL);
 	return SUPER(master)->ms_sub_uuid;
 }
 
@@ -278,7 +278,7 @@ char *reiser4_master_get_label(reiser4_master_t *master) {
 }
 
 uint16_t reiser4_master_get_mirror_id(reiser4_master_t *master) {
-	aal_assert("edward-xxx", master != NULL);
+	aal_assert("edward-21", master != NULL);
 	return get_ms_mirror_id(SUPER(master));
 }
 
@@ -287,7 +287,7 @@ uint16_t reiser4_master_is_replica(reiser4_master_t *master) {
 }
 
 uint16_t reiser4_master_get_num_replicas(reiser4_master_t *master) {
-	aal_assert("edward-xxx", master != NULL);
+	aal_assert("edward-22", master != NULL);
 	return get_ms_num_replicas(SUPER(master));
 }
 
@@ -310,7 +310,7 @@ void reiser4_master_set_blksize(reiser4_master_t *master,
 void reiser4_master_set_mirror_id(reiser4_master_t *master,
 				  uint16_t mirror_id)
 {
-	aal_assert("edward-xxx", master != NULL);
+	aal_assert("edward-23", master != NULL);
 	set_ms_mirror_id(SUPER(master), mirror_id);
 	master->dirty = 1;
 }
@@ -318,7 +318,7 @@ void reiser4_master_set_mirror_id(reiser4_master_t *master,
 void reiser4_master_set_num_replicas(reiser4_master_t *master,
 				  uint16_t num_replicas)
 {
-	aal_assert("edward-xxx", master != NULL);
+	aal_assert("edward-24", master != NULL);
 	set_ms_num_replicas(SUPER(master), num_replicas);
 	master->dirty = 1;
 }
@@ -341,7 +341,7 @@ void reiser4_master_set_volume_uuid(reiser4_master_t *master,
 void reiser4_master_set_subvol_uuid(reiser4_master_t *master,
 				    char *uuid)
 {
-	aal_assert("edward-xxx", master != NULL);
+	aal_assert("edward-25", master != NULL);
 
 	aal_memset(SUPER(master)->ms_sub_uuid, 0,
 		   sizeof(SUPER(master)->ms_sub_uuid));
