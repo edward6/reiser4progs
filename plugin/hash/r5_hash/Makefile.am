@@ -19,5 +19,5 @@ libr5_hash_minimal_la_SOURCES  = $(r5_hash_sources)
 libr5_hash_minimal_la_CFLAGS   = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
 

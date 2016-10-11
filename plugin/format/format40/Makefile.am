@@ -19,5 +19,5 @@ libformat40_minimal_la_SOURCES    = $(format40_sources)
 libformat40_minimal_la_CFLAGS     = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
 

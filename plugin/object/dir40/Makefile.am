@@ -19,4 +19,4 @@ libdir40_minimal_la_SOURCES    = $(dir40_sources)
 libdir40_minimal_la_CFLAGS     = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

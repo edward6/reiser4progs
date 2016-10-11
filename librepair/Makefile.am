@@ -18,5 +18,5 @@ librepair_static_la_LIBADD   = $(top_builddir)/libreiser4/libreiser4-static.la
 librepair_static_la_SOURCES  = $(librepair_sources)
 librepair_static_la_CFLAGS   = @GENERIC_CFLAGS@
 
-INCLUDES = -I$(top_srcdir)/include
+AM_CPPFLAGS = -I$(top_srcdir)/include
 

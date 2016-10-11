@@ -19,4 +19,4 @@ libccreg40_minimal_la_SOURCES    = $(ccreg40_sources)
 libccreg40_minimal_la_CFLAGS     = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

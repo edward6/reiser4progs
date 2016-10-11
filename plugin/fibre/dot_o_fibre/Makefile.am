@@ -19,4 +19,4 @@ libdot_o_fibre_minimal_la_SOURCES = $(dot_o_fibre_sources)
 libdot_o_fibre_minimal_la_CFLAGS  = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

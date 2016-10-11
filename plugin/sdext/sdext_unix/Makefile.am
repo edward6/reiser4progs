@@ -19,5 +19,5 @@ libsdext_unix_minimal_la_SOURCES  = $(sdext_unix_sources)
 libsdext_unix_minimal_la_CFLAGS   = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
 

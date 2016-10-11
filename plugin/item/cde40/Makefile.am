@@ -19,4 +19,4 @@ libcde40_minimal_la_SOURCES  = $(cde40_sources)
 libcde40_minimal_la_CFLAGS   = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

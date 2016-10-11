@@ -19,4 +19,4 @@ liblexic_fibre_minimal_la_SOURCES = $(lexic_fibre_sources)
 liblexic_fibre_minimal_la_CFLAGS  = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

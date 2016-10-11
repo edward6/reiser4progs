@@ -19,5 +19,5 @@ librupasov_hash_minimal_la_SOURCES   = $(rupasov_hash_sources)
 librupasov_hash_minimal_la_CFLAGS    = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
 

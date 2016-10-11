@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/bin/sh
 
 ldc="";
 if [ -x /sbin/ldconfig ]; then 
 	ldc="/sbin/ldconfig"; 
 fi
 if test x$ldc = x; then
-	which ldconfig 2>&1>/dev/null;
+	which ldconfig > /dev/null 2>&1;
 	if test $? -eq 0; then 
 		ldc=`which ldconfig`; 
 	fi

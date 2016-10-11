@@ -19,5 +19,5 @@ libsmart_minimal_la_SOURCES       = $(smart_sources)
 libsmart_minimal_la_CFLAGS        = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
 

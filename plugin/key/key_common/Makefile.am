@@ -18,4 +18,4 @@ libkey_common_minimal_la_SOURCES   = $(key_common_sources)
 libkey_common_minimal_la_CFLAGS    = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

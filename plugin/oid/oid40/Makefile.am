@@ -19,5 +19,5 @@ liboid40_minimal_la_SOURCES   = $(oid40_sources)
 liboid40_minimal_la_CFLAGS    = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
 
