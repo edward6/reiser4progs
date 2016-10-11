@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 if [ ! -f ./configure.in ]; then
 	echo "Error: You should run this from the package directory."

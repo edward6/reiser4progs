@@ -19,4 +19,4 @@ libnode41_minimal_la_SOURCES  = $(node41_sources)
 libnode41_minimal_la_CFLAGS   = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

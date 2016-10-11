@@ -19,4 +19,4 @@ libspl40_minimal_la_SOURCES   = $(spl40_sources)
 libspl40_minimal_la_CFLAGS    = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

@@ -19,5 +19,5 @@ libtea_hash_minimal_la_SOURCES  = $(tea_hash_sources)
 libtea_hash_minimal_la_CFLAGS   = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
 

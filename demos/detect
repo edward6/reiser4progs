@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 #  reiserfs probing script
 
@@ -58,7 +58,7 @@ reiserx_probe() {
 	exit 1
 }
 
-if [ ! -b $1 -a ! -r $1 ]; then
+if [ ! -b $1 ] && [ ! -r $1 ]; then
 	echo "Specified device isn't a block device and not a file"
 	exit 1
 fi

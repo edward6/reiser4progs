@@ -19,4 +19,4 @@ libfnv1_hash_minimal_la_SOURCES   = $(fnv1_hash_sources)
 libfnv1_hash_minimal_la_CFLAGS    = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

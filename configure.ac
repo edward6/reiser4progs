@@ -359,32 +359,32 @@ strtol time uname sysconf])
 
 # The options -falign-* are supported by gcc 3.0 or later.
 # Probably it is sufficient to only check for -falign-loops.
-AC_CACHE_CHECK([whether -falign-loops works], [falign_loop_flag], [
+AC_CACHE_CHECK([whether -falign-loops works], [falign_loop_flag_cv_], [
   	saved_CPPFLAGS="$CPPFLAGS"
   	CPPFLAGS="-falign-loops=1"
-  	AC_TRY_COMPILE(, , [falign_loop_flag=yes], [falign_loop_flag=no])
+  	AC_TRY_COMPILE(, , [falign_loop_flag_cv_=yes], [falign_loop_flag_cv_=no])
   	CPPFLAGS="$saved_CPPFLAGS"
 ])
 
 # Checking for compiler warning options
-AC_CACHE_CHECK([whether -Wuninitialized works], [uninitialized], [
+AC_CACHE_CHECK([whether -Wuninitialized works], [uninitialized_cv_], [
   	saved_CPPFLAGS="$CPPFLAGS"
   	CPPFLAGS="-O1 -Wuninitialized"
-  	AC_TRY_COMPILE(, , [uninitialized=yes], [uninitialized=no])
+  	AC_TRY_COMPILE(, , [uninitialized_cv_=yes], [uninitialized_cv_=no])
   	CPPFLAGS="$saved_CPPFLAGS"
 ])
  
-AC_CACHE_CHECK([whether -Wno-unused-parameter works], [no_unused_parameter], [
+AC_CACHE_CHECK([whether -Wno-unused-parameter works], [no_unused_parameter_cv_], [
   	saved_CPPFLAGS="$CPPFLAGS"
   	CPPFLAGS="-Wno-unused-parameter"
-  	AC_TRY_COMPILE(, , [no_unused_parameter=yes], [no_unused_parameter=no])
+  	AC_TRY_COMPILE(, , [no_unused_parameter_cv_=yes], [no_unused_parameter_cv_=no])
   	CPPFLAGS="$saved_CPPFLAGS"
 ])
  
-AC_CACHE_CHECK([whether -Wredundant-decls works], [redundant_decls], [
+AC_CACHE_CHECK([whether -Wredundant-decls works], [redundant_decls_cv_], [
   	saved_CPPFLAGS="$CPPFLAGS"
   	CPPFLAGS="-Wredundant-decls"
-  	AC_TRY_COMPILE(, , [redundant_decls=yes], [redundant_decls=no])
+  	AC_TRY_COMPILE(, , [redundant_decls_cv_=yes], [redundant_decls_cv_=no])
   	CPPFLAGS="$saved_CPPFLAGS"
 ])
 

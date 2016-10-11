@@ -19,4 +19,4 @@ libext_3_fibre_minimal_la_SOURCES = $(ext_3_fibre_sources)
 libext_3_fibre_minimal_la_CFLAGS  = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

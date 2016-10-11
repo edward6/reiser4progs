@@ -19,5 +19,5 @@ libtail40_minimal_la_SOURCES  = $(tail40_sources)
 libtail40_minimal_la_CFLAGS   = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
 

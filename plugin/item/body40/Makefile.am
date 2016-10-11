@@ -18,4 +18,4 @@ libbody40_minimal_la_SOURCES     = $(body40_sources)
 libbody40_minimal_la_CFLAGS      = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

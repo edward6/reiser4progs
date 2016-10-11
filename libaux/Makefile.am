@@ -16,4 +16,4 @@ libaux_minimal_la_SOURCES	= aux.c gauge.c crc32c.c
 libaux_minimal_la_CFLAGS	= @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(auxincludedir)
+AM_CPPFLAGS = $(auxincludedir)

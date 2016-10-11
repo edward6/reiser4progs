@@ -2,7 +2,7 @@ noinst_SCRIPTS  = detect
 
 noinst_PROGRAMS = busy
 
-INCLUDES	= -I$(top_srcdir)/include
+AM_CPPFLAGS	= -I$(top_srcdir)/include
 
 busy_SOURCES	= misc.c ls.c stat.c create.c ln.c rm.c cp.c trunc.c busy.c busy.h
 

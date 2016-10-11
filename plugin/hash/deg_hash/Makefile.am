@@ -19,5 +19,5 @@ libdeg_hash_minimal_la_SOURCES  = $(deg_hash_sources)
 libdeg_hash_minimal_la_CFLAGS   = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
 

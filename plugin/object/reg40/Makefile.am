@@ -19,4 +19,4 @@ libreg40_minimal_la_SOURCES    = $(reg40_sources)
 libreg40_minimal_la_CFLAGS     = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

@@ -19,5 +19,5 @@ libtails_minimal_la_SOURCES       = $(tails_sources)
 libtails_minimal_la_CFLAGS        = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
 

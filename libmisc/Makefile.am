@@ -8,4 +8,4 @@ libmisc_la_LIBADD  	= @AAL_LIBS@ $(UUID_LIBS) @PROGS_LIBS@ \
 
 libmisc_la_CFLAGS       = @GENERIC_CFLAGS@
 
-INCLUDES                = -I$(top_srcdir)/include
+AM_CPPFLAGS                = -I$(top_srcdir)/include

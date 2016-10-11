@@ -44,4 +44,4 @@ libreiser4_minimal_la_LDFLAGS  = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT
 			       -release $(LT_RELEASE)
 endif
 
-INCLUDES                     = $(includedir)
+AM_CPPFLAGS                     = $(includedir)

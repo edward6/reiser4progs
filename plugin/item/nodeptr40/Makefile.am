@@ -19,5 +19,5 @@ libnodeptr40_minimal_la_SOURCES   = $(nodeptr40_sources)
 libnodeptr40_minimal_la_CFLAGS    = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
 

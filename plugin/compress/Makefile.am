@@ -19,4 +19,4 @@ libcompress_minimal_la_SOURCES = $(compress_sources)
 libcompress_minimal_la_CFLAGS  = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

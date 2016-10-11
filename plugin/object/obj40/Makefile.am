@@ -18,5 +18,5 @@ libobj40_minimal_la_SOURCES     = $(obj40_sources)
 libobj40_minimal_la_CFLAGS      = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
 

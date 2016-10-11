@@ -19,4 +19,4 @@ libsdext_crypro_minimal_la_SOURCES = $(sdext_crypro_sources)
 libsdext_crypro_minimal_la_CFLAGS  = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
