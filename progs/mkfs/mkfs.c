@@ -34,6 +34,8 @@
 #include <aux/aux.h>
 #include <misc/misc.h>
 
+#define REISER4_MAX_STRIPE_BITS (63)
+
 typedef enum mkfs_behav_flags {
 	BF_FORCE      = 1 << 0,
 	BF_YES        = 1 << 1,
@@ -55,6 +57,7 @@ static void mkfs_print_usage(char *name) {
 		"                                directory.\n"
 		"  -b, --block-size N            block size, 4096 by default, other\n"
 		"                                are not supported at the moment.\n"
+		"  -t, --stripe-size M           stripe size in bytes.\n"
 		"  -U, --uuid UUID               universally unique identifier.\n"
 		"  -L, --label LABEL             volume label lets to mount\n"
 		"                                filesystem by its label.\n"
@@ -133,6 +136,7 @@ int main(int argc, char *argv[]) {
 		{"force", no_argument, NULL, 'f'},
 		{"yes", no_argument, NULL, 'y'},
 		{"block-size", required_argument, NULL, 'b'},
+		{"stripe-bits", required_argument, NULL, 't'},
 		{"label", required_argument, NULL, 'L'},
 		{"uuid", required_argument, NULL, 'U'},
 		{"lost-found", required_argument, NULL, 's'},
@@ -155,7 +159,7 @@ int main(int argc, char *argv[]) {
 	memset(override, 0, sizeof(override));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVyfb:U:L:splo:dm?",
+	while ((c = getopt_long(argc, argv, "hVyfb:t:U:L:splo:dm?",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -204,6 +208,13 @@ int main(int argc, char *argv[]) {
 				aal_error("Invalid blocksize (%u). It must power "
 					  "of two.", hint.blksize);
 				return USER_ERROR;	
+			}
+			break;
+		case 't':
+			/* Parsing stripe bits */
+			if ((hint.stripe_bits = misc_str2long(optarg, 10)) == INVAL_DIG) {
+				aal_error("Invalid stripe size (%s).", optarg);
+				return USER_ERROR;
 			}
 			break;
 		case 'U':
@@ -300,13 +311,27 @@ int main(int argc, char *argv[]) {
 		hint.blksize = 4096;
 	}
 #endif
-	
 	if (hint.blksize > REISER4_MAX_BLKSIZE) {
-		aal_error("Invalid blocksize (%u). It must not be greater then "
+		aal_error("Invalid blocksize (%u). It must not be greater than "
 			  "%u.", hint.blksize, REISER4_MAX_BLKSIZE);
 		return USER_ERROR;	
 	}
-	
+
+	if (hint.stripe_bits != 0 &&
+	    hint.stripe_bits > REISER4_MAX_STRIPE_BITS) {
+		aal_error("Invalid stripe bits (%u). It must not be larger "
+			  "than %u.",
+			  hint.stripe_bits, REISER4_MAX_STRIPE_BITS);
+		return USER_ERROR;
+	}
+
+	if (hint.stripe_bits != 0 &&
+	    hint.stripe_bits < aal_log2(hint.blksize)) {
+		aal_error("Invalid stripe bits (%u). It must not be smaller "
+			  "than %u.",
+			  hint.stripe_bits, aal_log2(hint.blksize));
+		return USER_ERROR;
+	}
 #ifdef HAVE_UNAME
 	/* Guessing system type */
 	if (uname(&sysinfo) == -1) {

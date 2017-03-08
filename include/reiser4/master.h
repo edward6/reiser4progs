@@ -42,16 +42,18 @@ extern void reiser4_master_set_format(reiser4_master_t *master,
 
 extern void reiser4_master_set_blksize(reiser4_master_t *master,
 				       uint32_t blksize);
+extern void reiser4_master_set_stripe_bits(reiser4_master_t *master,
+					   unsigned char stripe_bits);
 extern void reiser4_master_set_mirror_id(reiser4_master_t *master,
 					 uint16_t mirror_id);
 extern void reiser4_master_set_num_replicas(reiser4_master_t *master,
 					   uint16_t num_replicas);
 
-
 extern char *reiser4_master_get_volume_uuid(reiser4_master_t *master);
 extern char *reiser4_master_get_subvol_uuid(reiser4_master_t *master);
 extern char *reiser4_master_get_label(reiser4_master_t *master);
 extern char *reiser4_master_get_magic(reiser4_master_t *master);
+extern unsigned char reiser4_master_get_stripe_bits(reiser4_master_t *master);
 extern uint16_t reiser4_master_get_mirror_id(reiser4_master_t *master);
 extern uint16_t reiser4_master_get_num_replicas(reiser4_master_t *master);
 extern uint16_t reiser4_master_is_replica(reiser4_master_t *master);

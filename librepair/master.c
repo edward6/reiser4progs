@@ -104,6 +104,9 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 		reiser4_master_set_subvol_uuid(fs->master,
 					       ms ? ms->ms_sub_uuid : NULL);
 
+		reiser4_master_set_stripe_bits(fs->master,
+					       ms ? ms->ms_stripe_bits : 0);
+
 		reiser4_master_set_mirror_id(fs->master,
 					     ms ? ms->ms_mirror_id : 0);
 
@@ -375,6 +378,9 @@ void repair_master_print(reiser4_master_t *master,
 
 	aal_stream_format(stream, "format:\t\t0x%x (%s)\n",
 			  pid, plug ? plug->label : "absent");
+
+	aal_stream_format(stream, "stripe bits:\t%u\n",
+			  get_ms_stripe_bits(SUPER(master)));
 
 	aal_stream_format(stream, "mirror id:\t%u\n",
 			  get_ms_mirror_id(SUPER(master)));

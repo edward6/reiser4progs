@@ -49,6 +49,7 @@ reiser4_master_t *reiser4_master_create(aal_device_t *device, fs_hint_t *hint) {
 		    sizeof(REISER4_MASTER_MAGIC));
 
 	set_ms_blksize(SUPER(master), hint->blksize);
+	reiser4_master_set_stripe_bits(master, hint->stripe_bits);
 	reiser4_master_set_volume_uuid(master, hint->volume_uuid);
 	reiser4_master_set_subvol_uuid(master, hint->subvol_uuid);
 	reiser4_master_set_mirror_id(master, hint->mirror_id);
@@ -282,6 +283,12 @@ uint16_t reiser4_master_get_mirror_id(reiser4_master_t *master) {
 	return get_ms_mirror_id(SUPER(master));
 }
 
+unsigned char reiser4_master_get_stripe_bits(reiser4_master_t *master)
+{
+	aal_assert("edward-26", master != NULL);
+	return get_ms_stripe_bits(SUPER(master));
+}
+
 uint16_t reiser4_master_is_replica(reiser4_master_t *master) {
 	return reiser4_master_get_mirror_id(master);
 }
@@ -312,6 +319,14 @@ void reiser4_master_set_mirror_id(reiser4_master_t *master,
 {
 	aal_assert("edward-23", master != NULL);
 	set_ms_mirror_id(SUPER(master), mirror_id);
+	master->dirty = 1;
+}
+
+void reiser4_master_set_stripe_bits(reiser4_master_t *master,
+				    uint8_t stripe_bits)
+{
+	aal_assert("edward-27", master != NULL);
+	set_ms_stripe_bits(SUPER(master), stripe_bits);
 	master->dirty = 1;
 }
 

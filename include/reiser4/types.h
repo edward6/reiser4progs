@@ -63,6 +63,16 @@ typedef struct reiser4_master_sb {
 #define get_ms_num_replicas(ms)       aal_get_le16(ms, ms_num_replicas)
 #define set_ms_num_replicas(ms, val)  aal_set_le16(ms, ms_num_replicas, val)
 
+static inline d8_t get_ms_stripe_bits(reiser4_master_sb_t *ms)
+{
+	return ms->ms_stripe_bits;
+}
+
+static inline void set_ms_stripe_bits(reiser4_master_sb_t *ms, d8_t val)
+{
+	ms->ms_stripe_bits = val;
+}
+
 #define SS_MAGIC_SIZE	16
 #define SS_STACK_SIZE	10
 #define SS_MESSAGE_SIZE 256
@@ -307,6 +317,7 @@ struct reiser4_fs {
 typedef struct fs_hint {
 	count_t blocks;
 	uint32_t blksize;
+	int stripe_bits;
 	char volume_uuid[17];
 	char subvol_uuid[17];
 	char label[17];
