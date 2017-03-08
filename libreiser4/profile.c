@@ -79,7 +79,7 @@ reiser4_profile_t defprof = {
 #ifndef ENABLE_MINIMAL
 			.name  = "format",
 			.desc  = "Standard layout for logical volumes",
-			.hidden = 1,
+			.hidden = 0,
 			.max = FORMAT_LAST_ID,
 #endif
 			.id = {FORMAT_REISER41_ID, 0, FORMAT_PLUG_TYPE},
