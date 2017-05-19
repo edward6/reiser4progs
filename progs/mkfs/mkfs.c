@@ -57,7 +57,7 @@ static void mkfs_print_usage(char *name) {
 		"                                directory.\n"
 		"  -b, --block-size N            block size, 4096 by default, other\n"
 		"                                are not supported at the moment.\n"
-		"  -t, --stripe-size M           stripe size in bytes.\n"
+		"  -t, --stripe-bits M           logarithm of stripe size.\n"
 		"  -U, --uuid UUID               universally unique identifier.\n"
 		"  -L, --label LABEL             volume label lets to mount\n"
 		"                                filesystem by its label.\n"
