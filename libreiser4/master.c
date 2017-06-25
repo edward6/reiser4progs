@@ -298,6 +298,16 @@ uint16_t reiser4_master_get_num_replicas(reiser4_master_t *master) {
 	return get_ms_num_replicas(SUPER(master));
 }
 
+rid_t reiser4_master_get_dist(reiser4_master_t *master) {
+	aal_assert("edward-28", master != NULL);
+	return get_ms_distrib_pid(SUPER(master));
+}
+
+rid_t reiser4_master_get_volume(reiser4_master_t *master) {
+	aal_assert("edward-29", master != NULL);
+	return get_ms_volume_pid(SUPER(master));
+}
+
 void reiser4_master_set_format(reiser4_master_t *master,
 			       rid_t format)
 {
@@ -380,6 +390,20 @@ void reiser4_master_set_label(reiser4_master_t *master,
 		aal_strncpy(SUPER(master)->ms_label, label,
 			    sizeof(SUPER(master)->ms_label));
 	}
+	master->dirty = 1;
+}
+
+void reiser4_master_set_dist(reiser4_master_t *master, rid_t dist)
+{
+	aal_assert("edward-30", master != NULL);
+	set_ms_distrib_pid(SUPER(master), dist);
+	master->dirty = 1;
+}
+
+void reiser4_master_set_volume(reiser4_master_t *master, rid_t vol)
+{
+	aal_assert("edward-31", master != NULL);
+	set_ms_volume_pid(SUPER(master), vol);
 	master->dirty = 1;
 }
 

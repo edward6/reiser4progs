@@ -228,6 +228,24 @@ reiser4_profile_t defprof = {
 #endif
 			.id = {ITEM_CDE40_ID, DIR_ITEM, ITEM_PLUG_TYPE},
 		},
+		[PROF_DST] = {
+#ifndef ENABLE_MINIMAL
+			.name  = "dist",
+			.desc  = "Distribution plugin",
+			.hidden = 0,
+			.max = DST_LAST_ID,
+#endif
+			.id = {DST_TRIV_ID, 0, DST_PLUG_TYPE},
+		},
+		[PROF_VOL] = {
+#ifndef ENABLE_MINIMAL
+			.name  = "vol",
+			.desc  = "Volume plugin",
+			.hidden = 0,
+			.max = VOL_LAST_ID,
+#endif
+			.id = {VOL_SIMPLE_ID, 0, VOL_PLUG_TYPE},
+		},
 #ifndef ENABLE_MINIMAL
 		[PROF_NODEPTR] = {
 			.name  = "nodeptr",

@@ -25,6 +25,8 @@ static uint8_t plugs_max[LAST_PLUG_TYPE + 1] = {
 	[COMPRESS_PLUG_TYPE]	= COMPRESS_LAST_ID,
 	[CMODE_PLUG_TYPE]	= CMODE_LAST_ID,
 	[CLUSTER_PLUG_TYPE]	= CLUSTER_LAST_ID,
+	[DST_PLUG_TYPE]         = DST_LAST_ID,
+	[VOL_PLUG_TYPE]         = VOL_LAST_ID,
 	[LAST_PLUG_TYPE]	= 0,
 };
 
@@ -283,6 +285,12 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(clust16);
 	__load_plug(clust8);
 	__load_plug(clust4);
+
+	__load_plug(triv_dst);
+	__load_plug(fsw32);
+
+	__load_plug(simple_vol);
+	__load_plug(asym);
 #endif
 
         return 0;

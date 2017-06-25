@@ -354,18 +354,28 @@ void repair_master_print(reiser4_master_t *master,
 			 aal_stream_t *stream,
 			 uuid_unparse_t unparse)
 {
-	reiser4_plug_t *plug;
 	uint32_t blksize;
-	rid_t pid;
-	
+	rid_t vol, dst, fmt;
+	reiser4_plug_t *vol_plug, *dst_plug, *fmt_plug;
+
 	aal_assert("umka-1568", master != NULL);
 	aal_assert("umka-1569", stream != NULL);
 
 	blksize = get_ms_blksize(SUPER(master));
-	pid = reiser4_master_get_format(master);
-	
-	if (!(plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, pid)))
-		aal_error("Can't find format plugin by its id 0x%x.", pid);
+
+	vol = reiser4_master_get_volume(master);
+	dst = reiser4_master_get_dist(master);
+	fmt = reiser4_master_get_format(master);
+
+	if (!(dst_plug = reiser4_factory_ifind(DST_PLUG_TYPE, dst)))
+		aal_error("Can't find distrib plugin by its id 0x%x.", dst);
+
+	if (!(vol_plug = reiser4_factory_ifind(VOL_PLUG_TYPE, vol)))
+		aal_error("Can't find volume plugin by its id 0x%x.", vol);
+
+	if (!(fmt_plug = reiser4_factory_ifind(FORMAT_PLUG_TYPE, fmt)))
+		aal_error("Can't find format plugin by its id 0x%x.", fmt);
+
 	
 	aal_stream_format(stream, "Master super block (%lu):\n",
 			  REISER4_MASTER_BLOCKNR(blksize));
@@ -376,8 +386,14 @@ void repair_master_print(reiser4_master_t *master,
 	aal_stream_format(stream, "blksize:\t%u\n",
 			  get_ms_blksize(SUPER(master)));
 
+	aal_stream_format(stream, "volume:\t\t0x%x (%s)\n",
+			  vol, vol_plug ? vol_plug->label : "absent");
+
+	aal_stream_format(stream, "distrib:\t0x%x (%s)\n",
+			  dst, dst_plug ? dst_plug->label : "absent");
+
 	aal_stream_format(stream, "format:\t\t0x%x (%s)\n",
-			  pid, plug ? plug->label : "absent");
+			  fmt, fmt_plug ? fmt_plug->label : "absent");
 
 	aal_stream_format(stream, "stripe bits:\t%u\n",
 			  get_ms_stripe_bits(SUPER(master)));

@@ -46,6 +46,8 @@ enum reiser4_profile_index {
 	PROF_HEIR_FIBRE		= 0x1d,
 	PROF_HEIR_DIRITEM	= 0x1e,
 #endif
+	PROF_DST                = 0x1f,
+	PROF_VOL	        = 0x20,
 	PROF_LAST
 };
 

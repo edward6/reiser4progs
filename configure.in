@@ -629,6 +629,8 @@ AC_OUTPUT([
 	plugin/sdext/sdext_plug/Makefile
 	plugin/sdext/sdext_crypto/Makefile
 	plugin/compress/Makefile
+	plugin/vol/Makefile
+	plugin/dst/Makefile
     	progs/Makefile
     	progs/mkfs/Makefile
     	progs/fsck/Makefile

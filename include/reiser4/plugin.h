@@ -121,6 +121,8 @@ typedef enum reiser4_plug_type {
 	/* Not really a plugin, at least in progs, but a value that 
 	   needs to be checked only. */
 	PARAM_PLUG_TYPE		= 0x12,
+	DST_PLUG_TYPE           = 0x13,
+	VOL_PLUG_TYPE           = 0x14,
 	LAST_PLUG_TYPE
 } reiser4_plug_type_t;
 
@@ -296,6 +298,18 @@ enum reiser4_cluster_id {
 enum reiser4_digest_id {
 	DIGEST_NONE_ID = 0x0,
 	DIGEST_LAST_ID
+};
+
+enum reiser4_distribution_id {
+	DST_TRIV_ID  = 0x0,
+	DST_FSW32_ID = 0x1,
+	DST_LAST_ID
+};
+
+enum reiser4_volume_id {
+	VOL_SIMPLE_ID = 0x0,
+	VOL_ASYM_ID = 0x1,
+	VOL_LAST_ID
 };
 
 #define INVAL_PTR	        ((void *)-1)
