@@ -13,13 +13,8 @@
 extern reiser4_format_plug_t format41_plug;
 extern reiser4_core_t *format41_core;
 
-
-
-#define get_sb_fiber_len(sb)		aal_get_le64(sb, sb_fiber_len)
-#define set_sb_fiber_len(sb, val)	aal_set_le64(sb, sb_fiber_len, val)
-
-#define get_sb_fiber_loc(sb)		aal_get_le64(sb, sb_fiber_loc)
-#define set_sb_fiber_loc(sb, val)	aal_set_le64(sb, sb_fiber_loc, val)
+#define get_sb_volinfo_loc(sb)		aal_get_le64(sb, sb_volinfo_loc)
+#define set_sb_volinfo_loc(sb, val)	aal_set_le64(sb, sb_volinfo_loc, val)
 
 #define get_sb_subvol_id(sb)		aal_get_le64(sb, sb_subvol_id)
 #define set_sb_subvol_id(sb, val)	aal_set_le64(sb, sb_subvol_id, val)

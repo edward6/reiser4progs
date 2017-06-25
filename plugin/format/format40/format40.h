@@ -48,13 +48,10 @@ typedef struct format40_super {
 	d64_t sb_subvol_id;
 	d64_t sb_num_subvols;
 
-	d64_t sb_fiber_len;
-	d64_t sb_fiber_loc;
-	d8_t sb_num_sgs_bits;
-	d64_t sb_num_meta_subvols;
-	d64_t sb_num_mixed_subvols;
-	d64_t sb_room_for_data;
-	char not_used[365];
+	d64_t sb_data_room;
+	d64_t sb_volinfo_loc;
+	d8_t  sb_num_sgs_bits;
+	char  not_used[389];
 } __attribute__((packed)) format40_super_t;
 
 typedef struct format40 {
@@ -117,8 +114,8 @@ extern reiser4_core_t *format40_core;
 #define get_sb_fiber_len(sb)		aal_get_le64(sb, sb_fiber_len)
 #define set_sb_fiber_len(sb, val)	aal_set_le64(sb, sb_fiber_len, val)
 
-#define get_sb_fiber_loc(sb)		aal_get_le64(sb, sb_fiber_loc)
-#define set_sb_fiber_loc(sb, val)	aal_set_le64(sb, sb_fiber_loc, val)
+#define get_sb_volinfo_loc(sb)		aal_get_le64(sb, sb_fiber_loc)
+#define set_sb_volinfo_loc(sb, val)	aal_set_le64(sb, sb_fiber_loc, val)
 
 #define get_sb_subvol_id(sb)		aal_get_le64(sb, sb_subvol_id)
 #define set_sb_subvol_id(sb, val)	aal_set_le64(sb, sb_subvol_id, val)
