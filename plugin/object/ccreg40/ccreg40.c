@@ -5,6 +5,7 @@
 
 #ifndef ENABLE_MINIMAL
 
+#include <misc/misc.h>
 #include "ccreg40.h"
 #include "plugin/object/obj40/obj40_repair.h"
 
@@ -33,7 +34,7 @@ errno_t ccreg40_set_cluster_size(reiser4_place_t *place, uint32_t cluster) {
 	
 	hint.specific = &chint;
 	hint.count = 1;
-	chint.shift = aal_log2(cluster);
+	chint.shift = misc_log2(cluster);
 
 	if (objcall(place, object->update_units, &hint) != 1)
 		return -EIO;

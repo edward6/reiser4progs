@@ -111,18 +111,6 @@ extern reiser4_core_t *format40_core;
 #define get_sb_node_pid(sb)		aal_get_le32(sb, sb_node_pid)
 #define set_sb_node_pid(sb, val)	aal_set_le32(sb, sb_node_pid, val)
 
-#define get_sb_fiber_len(sb)		aal_get_le64(sb, sb_fiber_len)
-#define set_sb_fiber_len(sb, val)	aal_set_le64(sb, sb_fiber_len, val)
-
-#define get_sb_volinfo_loc(sb)		aal_get_le64(sb, sb_fiber_loc)
-#define set_sb_volinfo_loc(sb, val)	aal_set_le64(sb, sb_fiber_loc, val)
-
-#define get_sb_subvol_id(sb)		aal_get_le64(sb, sb_subvol_id)
-#define set_sb_subvol_id(sb, val)	aal_set_le64(sb, sb_subvol_id, val)
-
-#define get_sb_num_subvols(sb)		aal_get_le64(sb, sb_num_subvols)
-#define set_sb_num_subvols(sb, val)	aal_set_le64(sb, sb_num_subvols, val)
-
 #define get_sb_version(sb)	\
 	(aal_get_le32(sb, sb_version) & ~FORMAT40_UPDATE_BACKUP)
 

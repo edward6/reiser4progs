@@ -395,6 +395,9 @@ void repair_master_print(reiser4_master_t *master,
 	aal_stream_format(stream, "format:\t\t0x%x (%s)\n",
 			  fmt, fmt_plug ? fmt_plug->label : "absent");
 
+	aal_stream_format(stream, "description:\t%s\n",
+			  fmt_plug ? fmt_plug->desc : "absent");
+
 	aal_stream_format(stream, "stripe bits:\t%u\n",
 			  get_ms_stripe_bits(SUPER(master)));
 

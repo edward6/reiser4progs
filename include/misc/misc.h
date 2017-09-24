@@ -60,6 +60,8 @@ typedef enum mount_flags {
 	MF_RW		= 0x2
 } mount_flags_t;
 
+extern int misc_log2(uint64_t arg);
+
 extern long long misc_size2long(const char *str);
 
 extern long long misc_str2long(const char *str, int base);

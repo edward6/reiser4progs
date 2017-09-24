@@ -4,6 +4,7 @@
    master.c -- master super block functions. */
 
 #include <aux/aux.h>
+#include <misc/misc.h>
 #include <reiser4/libreiser4.h>
 
 #ifndef ENABLE_MINIMAL
@@ -37,7 +38,7 @@ errno_t reiser4_master_valid(reiser4_master_t *master) {
 /* Forms master super block disk structure */
 reiser4_master_t *reiser4_master_create(aal_device_t *device, fs_hint_t *hint) {
 	reiser4_master_t *master;
-    
+
 	aal_assert("umka-981", device != NULL);
 
 	/* Allocating the memory for master super block struct */
@@ -49,13 +50,13 @@ reiser4_master_t *reiser4_master_create(aal_device_t *device, fs_hint_t *hint) {
 		    sizeof(REISER4_MASTER_MAGIC));
 
 	set_ms_blksize(SUPER(master), hint->blksize);
-	reiser4_master_set_stripe_bits(master, hint->stripe_bits);
 	reiser4_master_set_volume_uuid(master, hint->volume_uuid);
 	reiser4_master_set_subvol_uuid(master, hint->subvol_uuid);
 	reiser4_master_set_mirror_id(master, hint->mirror_id);
 	reiser4_master_set_num_replicas(master, hint->num_replicas);
 	reiser4_master_set_label(master, hint->label);
-
+	reiser4_master_set_stripe_bits(master, hint->stripe_size ?
+				       misc_log2(hint->stripe_size) : 0);
 	master->dirty = 1;
 	master->device = device;
 	

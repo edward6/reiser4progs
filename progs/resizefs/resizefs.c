@@ -211,7 +211,7 @@ int main(int argc, char *argv[]) {
 
 	/* Get wanted fs len in kilos. */
 	if (optind == argc - 1) {
-		fs_len = misc_size2long(argv[optind]);
+		fs_len = misc_size2long(argv[optind])/1024;
 	} else {
 		fs_len = reiser4_format_len(device, 1024);
 	}

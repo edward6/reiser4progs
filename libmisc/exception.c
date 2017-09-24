@@ -36,7 +36,7 @@ static int misc_exception_option_count(
 {
 	int i, count = 0;
     
-	for (i = start; i < aal_log2(EXCEPTION_OPT_LAST); i++)
+	for (i = start; i < misc_log2(EXCEPTION_OPT_LAST); i++)
 		count += ((1 << i) & options) ? 1 : 0;
 
 	return count;
@@ -53,7 +53,7 @@ static aal_exception_option_t misc_exception_oneof(
 	if (!name || aal_strlen(name) == 0)
 		return EXCEPTION_OPT_UNHANDLED;
     
-	for (i = 0; i < aal_log2(EXCEPTION_OPT_LAST); i++) {
+	for (i = 0; i < misc_log2(EXCEPTION_OPT_LAST); i++) {
 		if ((1 << i) & options) {
 			char str1[256], str2[256];
 			char *opt = aal_exception_option_name(1 << i);
@@ -112,14 +112,14 @@ static aal_exception_option_t misc_exception_prompt(
 	aal_memset(prompt, 0, sizeof(prompt));
     
 	aal_strncat(prompt, "(", 1);
-	for (i = 1; i < aal_log2(EXCEPTION_OPT_LAST); i++) {
+	for (i = 1; i < misc_log2(EXCEPTION_OPT_LAST); i++) {
 		if ((1 << i) & options) {
 			char *opt = aal_exception_option_name(1 << i);
 			int count = misc_exception_option_count(options, i + 1);
 	    
 			aal_strncat(prompt, opt, aal_strlen(opt));
 	    
-			if (i < aal_log2(EXCEPTION_OPT_LAST) - 1 && count  > 0)
+			if (i < misc_log2(EXCEPTION_OPT_LAST) - 1 && count  > 0)
 				aal_strncat(prompt, "/", 1);
 			else
 				aal_strncat(prompt, "): ", 3);
@@ -173,7 +173,7 @@ aal_exception_option_t misc_exception_handler(
 		return exception->options;
 
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
-	for (i = 1; i < aal_log2(EXCEPTION_OPT_LAST); i++) {
+	for (i = 1; i < misc_log2(EXCEPTION_OPT_LAST); i++) {
 		if ((1 << i) & exception->options) {
 			char *name = aal_exception_option_name(1 << i);
 			variant = aal_list_append(variant, name);

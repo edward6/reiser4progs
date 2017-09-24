@@ -24,7 +24,23 @@ reiser4_format_ent_t *format41_unpack(aal_device_t *device,
 void format41_print(reiser4_format_ent_t *entity,
 		    aal_stream_t *stream, uint16_t options)
 {
-	return format40_print_common(entity, stream, options, format41_core);
+	format40_t *format = (format40_t *)entity;
+	format40_super_t *super = &format->super;
+
+	format40_print_common(entity, stream, options, format41_core);
+
+	aal_stream_format(stream, "brick id:\t%u\n",
+			  get_sb_subvol_id(super));
+
+	aal_stream_format(stream, "data room:\t%u\n",
+			  get_sb_data_room(super));
+
+	aal_stream_format(stream, "volinfo loc:\t%u\n",
+			  get_sb_volinfo_loc(super));
+
+	aal_stream_format(stream, "max bricks:\t%u\n",
+			  get_sb_num_sgs_bits(super) ?
+			  1 << get_sb_num_sgs_bits(super) : 0);
 }
 
 reiser4_format_ent_t *format41_regenerate(aal_device_t *device,

@@ -18,13 +18,21 @@
 #include <misc/misc.h>
 #include <reiser4/libreiser4.h>
 
-#define KB 1024
-#define MB (KB * KB)
-#define GB (KB * MB)
-
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 #  include <uuid/uuid.h>
 #endif
+
+int misc_log2(uint64_t arg)
+{
+	unsigned int i;
+
+	if (arg == 0)
+		return -1;
+	for (i = 1; i < sizeof(arg)*8; i++)
+		if ((arg >> i) == 0)
+			break;
+	return i - 1;
+}
 
 /* Converts passed @sqtr into long long value. In the case of error, INVAL_DIG
    will be returned. */
@@ -43,18 +51,16 @@ long long misc_str2long(const char *str, int base) {
 	return result;
 }
 
-
-/* Converts human readable size string like "256M" into KB. In the case of
-   error, INVAL_DIG will be returned. */
+/* Converts human readable size string like "256M" into regular format.
+   In the case of error, INVAL_DIG will be returned. */
 long long misc_size2long(const char *str) {
 	int valid;
 	char label;
-	
 	long long result;
-	char number[255];
+	char number[512];
 	 
 	if (str) {
-		aal_memset(number, 0, 255);
+	  aal_memset(number, 0, sizeof(number));
 		aal_strncpy(number, str, sizeof(number));
 		label = number[aal_strlen(number) - 1];
 
@@ -69,17 +75,16 @@ long long misc_size2long(const char *str) {
 			return result;
 
 		if (toupper(label) == toupper('K'))
-			return result;
+			return result << 10;
 
 		if (toupper(label) == toupper('M'))
-			return result * KB;
+			return result << 20;
 
 		if (toupper(label) == toupper('G'))
-			return result * MB;
+			return result << 30;
 
 		return result;
 	}
-	
 	return INVAL_DIG;
 }
 /* Lookup the @file in the @mntfile. @file is mntent.mnt_fsname if @fsname 

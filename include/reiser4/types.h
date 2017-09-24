@@ -317,7 +317,6 @@ struct reiser4_fs {
 typedef struct fs_hint {
 	count_t blocks;
 	uint32_t blksize;
-	int stripe_bits;
 	char volume_uuid[17];
 	char subvol_uuid[17];
 	char label[17];
@@ -326,6 +325,8 @@ typedef struct fs_hint {
 	uint64_t num_subvols;
 	uint16_t mirror_id;
 	uint16_t num_replicas;
+	uint64_t stripe_size;
+	uint64_t max_bricks;
 } fs_hint_t;
 
 typedef void (*uuid_unparse_t) (char *uuid, char *string);

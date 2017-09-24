@@ -409,18 +409,6 @@ void format40_print_common(reiser4_format_ent_t *entity,
 	aal_stream_format(stream, "Format super block (%lu):\n",
 			  FORMAT40_BLOCKNR(format->blksize));
 	
-	aal_stream_format(stream, "subvolume id:\t%u\n",
-			  get_sb_subvol_id(super));
-
-	aal_stream_format(stream, "num subvols:\t%u\n",
-			  get_sb_num_subvols(super));
-
-	aal_stream_format(stream, "plugin:\t\t%s\n", 
-			  entity->plug->p.label);
-
-	aal_stream_format(stream, "description:\t%s\n", 
-			  entity->plug->p.desc);
-
 	aal_stream_format(stream, "version:\t%u\n", 
 			  get_sb_version(super));
 	

@@ -7,6 +7,7 @@
 #ifndef ENABLE_MINIMAL
 
 #include <aux/aux.h>
+#include <misc/misc.h>
 #include "ccreg40.h"
 #include "plugin/object/obj40/obj40_repair.h"
 
@@ -68,9 +69,9 @@ static errno_t ccreg40_check_item(reiser4_object_t *cc, void *data) {
 	}
 	if (shift < MIN_VALID_CLUSTER_SHIFT ||
 	    shift > MAX_VALID_CLUSTER_SHIFT ||
-	    shift != aal_log2(hint->clsize)) {
+	    shift != misc_log2(hint->clsize)) {
 		fsck_mess("Found item with wrong cluster shift %d, "
-			  "should be %d", shift, aal_log2(hint->clsize));
+			  "should be %d", shift, misc_log2(hint->clsize));
 		goto fatal;
 	}
 	if (hint->seek &&

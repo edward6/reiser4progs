@@ -34,7 +34,9 @@
 #include <aux/aux.h>
 #include <misc/misc.h>
 
-#define REISER4_MAX_STRIPE_BITS (63)
+#define REISER4_MAX_BRICKS_LOWER_LIMIT (1U << 10)
+#define REISER4_MAX_BRICKS_UPPER_LIMIT (1U << 31)
+#define REISER4_MAX_BRICKS_CONFIRM_LIMIT (1U << 20)
 
 typedef enum mkfs_behav_flags {
 	BF_FORCE      = 1 << 0,
@@ -50,14 +52,16 @@ typedef enum mkfs_behav_flags {
 static void mkfs_print_usage(char *name) {
 	fprintf(stderr, "Usage: %s [ options ] "
 		"FILE1 FILE2 ... [ size[K|M|G] ]\n", name);
-    
+
 	fprintf(stderr, 
 		"Mkfs options:\n"
 		"  -s, --lost-found              forces mkfs to create lost+found\n"
 		"                                directory.\n"
 		"  -b, --block-size N            block size, 4096 by default, other\n"
 		"                                are not supported at the moment.\n"
-		"  -t, --stripe-bits M           logarithm of stripe size.\n"
+		"  -t, --stripe-size N           stripe size [K|M|G].\n"
+		"  -n, --max-bricks N            current maximum allowed number of bricks\n"
+		"                                in the logical volume.\n"
 		"  -U, --uuid UUID               universally unique identifier.\n"
 		"  -L, --label LABEL             volume label lets to mount\n"
 		"                                filesystem by its label.\n"
@@ -136,7 +140,7 @@ int main(int argc, char *argv[]) {
 		{"force", no_argument, NULL, 'f'},
 		{"yes", no_argument, NULL, 'y'},
 		{"block-size", required_argument, NULL, 'b'},
-		{"stripe-bits", required_argument, NULL, 't'},
+		{"stripe-size", required_argument, NULL, 't'},
 		{"label", required_argument, NULL, 'L'},
 		{"uuid", required_argument, NULL, 'U'},
 		{"lost-found", required_argument, NULL, 's'},
@@ -145,6 +149,7 @@ int main(int argc, char *argv[]) {
 		{"override", required_argument, NULL, 'o'},
 		{"discard", no_argument, NULL, 'd'},
 		{"mirrors", no_argument, NULL, 'm'},
+		{"max-bricks", required_argument, NULL, 'n'},
 		{0, 0, 0, 0}
 	};
     
@@ -159,7 +164,7 @@ int main(int argc, char *argv[]) {
 	memset(override, 0, sizeof(override));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVyfb:t:U:L:splo:dm?",
+	while ((c = getopt_long(argc, argv, "hVyfb:t:U:L:n:splo:dm?",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -211,9 +216,16 @@ int main(int argc, char *argv[]) {
 			}
 			break;
 		case 't':
-			/* Parsing stripe bits */
-			if ((hint.stripe_bits = misc_str2long(optarg, 10)) == INVAL_DIG) {
+			/* Parsing stripe size */
+			if ((hint.stripe_size = misc_size2long(optarg)) == INVAL_DIG) {
 				aal_error("Invalid stripe size (%s).", optarg);
+				return USER_ERROR;
+			}
+			break;
+		case 'n':
+			/* Parsing max bricks bits */
+			if ((hint.max_bricks = misc_str2long(optarg, 10)) == INVAL_DIG) {
+				aal_error("Invalid max bricks (%s).", optarg);
 				return USER_ERROR;
 			}
 			break;
@@ -314,24 +326,38 @@ int main(int argc, char *argv[]) {
 	if (hint.blksize > REISER4_MAX_BLKSIZE) {
 		aal_error("Invalid blocksize (%u). It must not be greater than "
 			  "%u.", hint.blksize, REISER4_MAX_BLKSIZE);
-		return USER_ERROR;	
+		goto error_free_libreiser4;
 	}
 
-	if (hint.stripe_bits != 0 &&
-	    hint.stripe_bits > REISER4_MAX_STRIPE_BITS) {
-		aal_error("Invalid stripe bits (%u). It must not be larger "
-			  "than %u.",
-			  hint.stripe_bits, REISER4_MAX_STRIPE_BITS);
-		return USER_ERROR;
+	if (hint.stripe_size != 0 && (hint.stripe_size < hint.blksize)) {
+		aal_error("Invalid stripe size (%llu). It must not be smaller "
+			  "than block size %u.",
+			  hint.stripe_size, hint.blksize);
+		goto error_free_libreiser4;
 	}
+	if ((hint.max_bricks != 0) &&
+	    (hint.max_bricks > REISER4_MAX_BRICKS_UPPER_LIMIT)) {
+		aal_error("Invalid max bricks (%llu). It must not be larger "
+			  "than %u.",
+			  hint.max_bricks, REISER4_MAX_BRICKS_UPPER_LIMIT);
+		goto error_free_libreiser4;
+	}
+	if ((hint.max_bricks != 0) &&
+	    (hint.max_bricks > REISER4_MAX_BRICKS_CONFIRM_LIMIT) &&
+	    !(flags & BF_FORCE)){
+		aal_error("Support of %llu bricks requires a lot of memory "
+			  "resources. Use -f to force over.", hint.max_bricks);
+		goto error_free_libreiser4;
+	}
+	if ((hint.max_bricks != 0) &&
+	    (hint.max_bricks < REISER4_MAX_BRICKS_LOWER_LIMIT))
+		hint.max_bricks = REISER4_MAX_BRICKS_LOWER_LIMIT;
 
-	if (hint.stripe_bits != 0 &&
-	    hint.stripe_bits < aal_log2(hint.blksize)) {
-		aal_error("Invalid stripe bits (%u). It must not be smaller "
-			  "than %u.",
-			  hint.stripe_bits, aal_log2(hint.blksize));
-		return USER_ERROR;
-	}
+	if ((hint.max_bricks != 0) &&
+	    1U << misc_log2(hint.max_bricks) != hint.max_bricks)
+		/* round up to the power of 2 */
+		hint.max_bricks = 1 << (1 + misc_log2(hint.max_bricks));
+
 #ifdef HAVE_UNAME
 	/* Guessing system type */
 	if (uname(&sysinfo) == -1) {
@@ -352,30 +378,6 @@ int main(int argc, char *argv[]) {
 			aal_error("Can't stat %s. %s.", argv[optind],
 				  strerror(errno));
 			goto error_free_libreiser4;
-
-			if (misc_size2long(argv[optind]) != INVAL_DIG &&
-			    hint.blocks != 0)
-			{
-				aal_error("Filesystem length is already "
-					  "set to %llu.", hint.blocks);
-				continue;
-			}
-			/*
-			 * Checking device name for validness
-			 */
-			hint.blocks = misc_size2long(argv[optind]);
-
-			if (hint.blocks != INVAL_DIG) {
-				/* Converting into fs blocksize blocks */
-				hint.blocks /= (hint.blksize / 1024);
-				/* Just to know that blocks was given. 0 
-				   means nothing was specified by user. */
-				if (!hint.blocks) hint.blocks = 1;
-			} else {
-				aal_error("%s is not a valid size nor an "
-					  "existent file.", argv[optind]);
-				goto error_free_libreiser4;
-			}
 		} else {
 			devices = aal_list_append(devices, argv[optind]);
 			dev_cnt ++;
@@ -501,6 +503,15 @@ int main(int argc, char *argv[]) {
 		}
 		if (hint.blocks == 0)
 			hint.blocks = dev_len;
+
+		if (hint.stripe_size &&
+		    (hint.stripe_size > (hint.blocks * hint.blksize) >> 10) &&
+		    !(flags & BF_FORCE)) {
+			aal_mess("Stripe size %llu is too big for device %s. "
+				 "Use -f to force over.",
+				 hint.stripe_size, host_dev);
+			goto error_free_device;
+		}
 		/*
 		 * Check for non-intercative mode
 		 */

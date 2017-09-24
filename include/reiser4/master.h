@@ -40,6 +40,10 @@ extern void reiser4_master_set_label(reiser4_master_t *master,
 extern void reiser4_master_set_format(reiser4_master_t *master,
 				      rid_t format);
 
+extern void reiser4_master_set_volume(reiser4_master_t *master, rid_t vol);
+
+extern void reiser4_master_set_dist(reiser4_master_t *master, rid_t dist);
+
 extern void reiser4_master_set_blksize(reiser4_master_t *master,
 				       uint32_t blksize);
 extern void reiser4_master_set_stripe_bits(reiser4_master_t *master,

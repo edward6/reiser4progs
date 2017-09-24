@@ -4,6 +4,7 @@
    filesystem.c -- common reiser4 filesystem code. */
 
 #include <reiser4/libreiser4.h>
+#include <misc/misc.h>
 
 /* Opens filesystem on specified device */
 
@@ -306,8 +307,10 @@ reiser4_fs_t *reiser4_fs_create(
 					   policy->id.id, key->id.id,
 					   node->id.id, hint->blocks,
 					   hint->mkfs_id, hint->subvol_id,
-					   hint->num_subvols);
-	if (!fs->format) 
+					   hint->num_subvols,
+					   hint->max_bricks ?
+					   misc_log2(hint->max_bricks) : 0);
+	if (!fs->format)
 		goto error_free_status;
 
 	/* Creates block allocator */
