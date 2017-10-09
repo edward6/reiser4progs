@@ -23,6 +23,9 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
+#  include <uuid/uuid.h>
+#endif
 #include <misc/misc.h>
 #include <reiser4/ioctl.h>
 #include <reiser4/libreiser4.h>
@@ -73,7 +76,7 @@ static int set_op(struct reiser4_vol_op_args *info,
 		aal_error("Incompatible options were specified");
 		return USER_ERROR;
 	}
-	info->opcode = REISER4_INVALID_OPT;
+	info->opcode = op;
 	return NO_ERROR;
 }
 
@@ -143,8 +146,9 @@ static void print_volume(struct reiser4_vol_op_args *info)
 			  info->u.vol.nr_bricks :
 			  - info->u.vol.nr_bricks - 1);
 
-	aal_stream_format(&stream, "volinfo addr:\t%llu\n",
-			  info->u.vol.volinfo_addr);
+	aal_stream_format(&stream, "volinfo addr:\t%llu %s\n",
+			  info->u.vol.volinfo_addr,
+			  info->u.vol.volinfo_addr ? "" : "(none)");
 
 	aal_stream_format(&stream, "balanced:\t%s\n",
 			  aal_test_bit(&info->u.vol.fs_flags,
@@ -152,9 +156,37 @@ static void print_volume(struct reiser4_vol_op_args *info)
 	aal_stream_fini(&stream);
 }
 
-static int print_brick(struct reiser4_vol_op_args *info)
+static void print_brick(struct reiser4_vol_op_args *info)
 {
-	return 0;
+	aal_stream_t stream;
+
+	aal_stream_init(&stream, stdout, &file_stream);
+
+	aal_stream_format(&stream, "internal ID:\t%u\n",
+			  info->u.brick.int_id);
+
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
+	if (*info->u.brick.ext_id != '\0') {
+		char uuid[37];
+		uuid[36] = '\0';
+		uuid_unparse(info->u.brick.ext_id, uuid);
+		aal_stream_format(&stream, "external ID:\t%s\n", uuid);
+	} else
+		aal_stream_format(&stream, "external ID:\t<none>\n");
+#endif
+	aal_stream_format(&stream, "device name:\t%s\n", info->d.name);
+
+	aal_stream_format(&stream, "num replicas:\t%u\n",
+			  info->u.brick.nr_replicas);
+
+	aal_stream_format(&stream, "block count:\t%llu\n",
+			  info->u.brick.block_count);
+
+	aal_stream_format(&stream, "blocks used:\t%llu\n",
+			  info->u.brick.blocks_used);
+
+	aal_stream_format(&stream, "data room:\t%llu\n",
+			  info->u.brick.data_room);
 }
 
 int main(int argc, char *argv[]) {
@@ -184,6 +216,7 @@ int main(int argc, char *argv[]) {
 	};
 
 	volmgr_init();
+	memset(&info, 0, sizeof(info));
 
 	if (argc < 2) {
 		volmgr_print_usage(argv[0]);
