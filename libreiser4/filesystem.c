@@ -308,8 +308,8 @@ reiser4_fs_t *reiser4_fs_create(
 					   node->id.id, hint->blocks,
 					   hint->mkfs_id, hint->subvol_id,
 					   hint->num_subvols,
-					   hint->max_bricks ?
-					   misc_log2(hint->max_bricks) : 0);
+					   hint->max_bricks ? misc_log2(hint->max_bricks) : 0,
+					   hint->data_room_size);
 	if (!fs->format)
 		goto error_free_status;
 

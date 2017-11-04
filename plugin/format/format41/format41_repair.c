@@ -32,7 +32,7 @@ void format41_print(reiser4_format_ent_t *entity,
 	aal_stream_format(stream, "brick id:\t%u\n",
 			  get_sb_subvol_id(super));
 
-	aal_stream_format(stream, "data room:\t%u\n",
+	aal_stream_format(stream, "data room:\t%llu\n",
 			  get_sb_data_room(super));
 
 	aal_stream_format(stream, "volinfo loc:\t%u\n",

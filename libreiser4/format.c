@@ -92,7 +92,8 @@ reiser4_format_t *reiser4_format_create(
 	long int mkfs_id,               /* identifier for fsck */
 	uint64_t subvol_id,             /* internal id */
 	uint64_t num_subvols,           /* in the logical volume */
-	uint8_t max_bricks_bits)
+	uint8_t max_bricks_bits,
+	uint64_t data_room_size)
 {
 	reiser4_format_t *format;
 	format_hint_t desc;
@@ -116,6 +117,7 @@ reiser4_format_t *reiser4_format_create(
 	desc.subvol_id = subvol_id;
 	desc.num_subvols = num_subvols;
 	desc.num_sgs_bits = max_bricks_bits;
+	desc.data_room_size = data_room_size;
 	/*
 	 * Initializing entity of disk-format by means of calling "create"
 	 * method from found plugin. Plugin "create" method will be creating

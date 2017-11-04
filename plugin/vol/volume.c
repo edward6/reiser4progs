@@ -78,8 +78,13 @@ static int advise_stripe_size_asym(uint64_t *result, uint32_t block_size,
 		/*
 		 * stripe is too large, use force flag
 		 */
-		aal_error("Stripe size %llu is too large. Use -f to force over",
-			  *result);
+		if (*result == 0)
+			aal_warn("Infinite stripe will be used.");
+		else
+			aal_warn("Stripe of size %llu will be used.", *result);
+
+		aal_error("It is too large and will lead to bad quality "
+			  "of distribution. Use -f to force over");
 		return -1;
 	}
 	return 0;
@@ -126,6 +131,26 @@ static int advise_max_bricks_asym(uint64_t *result, int forced)
 	return -1;
 }
 
+static int advise_data_room_size_simple(uint64_t result, uint64_t block_count, int forced)
+{
+	if (result != 0) {
+		aal_error("Option data-room-size is undefined for simple volumes");
+		return -1;
+	}
+	return 0;
+}
+
+static int advise_data_room_size_asym(uint64_t result, uint64_t block_count, int forced)
+{
+	if ((result > block_count) && !forced) {
+		aal_error("Data room (%llu blocks) is larger than device "
+			  "(%llu blocks). Use -f to force over.",
+			  result, block_count);
+		return -1;
+	}
+	return 0;
+}
+
 reiser4_vol_plug_t simple_vol_plug = {
 	.p = {
 		.id    = {VOL_SIMPLE_ID, 0, VOL_PLUG_TYPE},
@@ -134,6 +159,7 @@ reiser4_vol_plug_t simple_vol_plug = {
 	},
 	.advise_stripe_size = advise_stripe_size_simple,
 	.advise_max_bricks = advise_max_bricks_simple,
+	.advise_data_room_size = advise_data_room_size_simple,
 };
 
 reiser4_vol_plug_t asym_vol_plug = {
@@ -144,6 +170,7 @@ reiser4_vol_plug_t asym_vol_plug = {
 	},
 	.advise_stripe_size = advise_stripe_size_asym,
 	.advise_max_bricks = advise_max_bricks_asym,
+	.advise_data_room_size = advise_data_room_size_asym,
 };
 
 #endif

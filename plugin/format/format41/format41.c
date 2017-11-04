@@ -20,6 +20,7 @@ static void set_sb_format41(format40_super_t *super, format_hint_t *desc)
 	set_sb_subvol_id(super, desc->subvol_id);
 	set_sb_num_subvols(super, desc->num_subvols);
 	set_sb_num_sgs_bits(super, desc->num_sgs_bits);
+	set_sb_data_room(super, desc->data_room_size);
 }
 
 reiser4_format_ent_t *format41_create(aal_device_t *device, format_hint_t *desc)

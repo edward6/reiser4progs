@@ -327,6 +327,7 @@ typedef struct fs_hint {
 	uint16_t num_replicas;
 	uint64_t stripe_size;
 	uint64_t max_bricks;
+	uint64_t data_room_size;
 } fs_hint_t;
 
 typedef void (*uuid_unparse_t) (char *uuid, char *string);

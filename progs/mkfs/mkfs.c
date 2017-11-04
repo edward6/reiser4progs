@@ -57,6 +57,7 @@ static void mkfs_print_usage(char *name) {
 		"                                are not supported at the moment.\n"
 		"  -t, --stripe-size N           stripe size [K|M|G].\n"
 		"  -n, --max-bricks N            current maximum allowed number of bricks\n"
+		"  -r, --data-room-size N        data room size in file system blocks.\n"
 		"                                in the logical volume.\n"
 		"  -U, --uuid UUID               universally unique identifier.\n"
 		"  -L, --label LABEL             volume label lets to mount\n"
@@ -121,6 +122,13 @@ static int advise_max_bricks(fs_hint_t *hint, int forced)
 			advise_max_bricks, &hint->max_bricks, forced);
 }
 
+static int advise_data_room_size(fs_hint_t *hint, int forced)
+{
+	return plugcall((reiser4_vol_plug_t *)reiser4_profile_plug(PROF_VOL),
+			advise_data_room_size, hint->data_room_size,
+			hint->blocks, forced);
+}
+
 int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
@@ -143,7 +151,7 @@ int main(int argc, char *argv[]) {
 #endif
 	int default_stripe = 1;
 	mkfs_behav_flags_t flags = 0;
-    
+
 	static struct option long_options[] = {
 		{"version", no_argument, NULL, 'V'},
 		{"help", no_argument, NULL, 'h'},
@@ -151,6 +159,7 @@ int main(int argc, char *argv[]) {
 		{"yes", no_argument, NULL, 'y'},
 		{"block-size", required_argument, NULL, 'b'},
 		{"stripe-size", required_argument, NULL, 't'},
+		{"data-room-size", required_argument, NULL, 'r'},
 		{"label", required_argument, NULL, 'L'},
 		{"uuid", required_argument, NULL, 'U'},
 		{"lost-found", required_argument, NULL, 's'},
@@ -174,7 +183,7 @@ int main(int argc, char *argv[]) {
 	memset(override, 0, sizeof(override));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVyfb:t:U:L:n:splo:dm?",
+	while ((c = getopt_long(argc, argv, "hVyfb:t:U:L:n:r:splo:dm?",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -234,9 +243,16 @@ int main(int argc, char *argv[]) {
 			default_stripe = 0;
 			break;
 		case 'n':
-			/* Parsing max bricks bits */
+			/* Parsing max bricks */
 			if ((hint.max_bricks = misc_str2long(optarg, 10)) == INVAL_DIG) {
 				aal_error("Invalid max bricks (%s).", optarg);
+				return USER_ERROR;
+			}
+			break;
+		case 'r':
+			/* Parsing data room size */
+			if ((hint.data_room_size = misc_str2long(optarg, 10)) == INVAL_DIG) {
+				aal_error("Invalid data room size (%s).", optarg);
 				return USER_ERROR;
 			}
 			break;
@@ -490,6 +506,9 @@ int main(int argc, char *argv[]) {
 
 		if (advise_stripe_size(&hint,
 				       default_stripe, flags & BF_FORCE) < 0)
+			goto error_free_device;
+
+		if (advise_data_room_size(&hint, flags & BF_FORCE) < 0)
 			goto error_free_device;
 		/*
 		 * Check for non-intercative mode

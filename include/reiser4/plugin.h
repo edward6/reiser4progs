@@ -973,6 +973,7 @@ typedef struct format_hint {
 	uint64_t blocks;
 	uint32_t blksize;
 	uint16_t num_sgs_bits;
+	uint64_t data_room_size;
 	long int mkfs_id;
 	rid_t policy;
 	rid_t key;
@@ -1748,6 +1749,8 @@ typedef struct reiser4_vol_plug {
 				  uint32_t block_size, int is_default,
 				  int forced);
 	int (*advise_max_bricks)(uint64_t *result, int forced);
+	int (*advise_data_room_size)(uint64_t result, uint64_t block_count,
+				     int forced);
 } reiser4_vol_plug_t;
 #endif
 
