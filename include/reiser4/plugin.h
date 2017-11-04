@@ -1741,8 +1741,15 @@ typedef struct reiser4_policy_plug {
 	int (*tails) (uint64_t);
 } reiser4_policy_plug_t;
 
+/* Volume plugin */
+typedef struct reiser4_vol_plug {
+	reiser4_plug_t p;
+	int (*advise_stripe_size)(uint64_t *result, uint64_t block_count,
+				  uint32_t block_size, int is_default,
+				  int forced);
+	int (*advise_max_bricks)(uint64_t *result, int forced);
+} reiser4_vol_plug_t;
 #endif
-
 
 typedef struct reiser4_core reiser4_core_t;
 

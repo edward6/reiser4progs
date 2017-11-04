@@ -34,10 +34,6 @@
 #include <aux/aux.h>
 #include <misc/misc.h>
 
-#define REISER4_MAX_BRICKS_LOWER_LIMIT (1U << 10)
-#define REISER4_MAX_BRICKS_UPPER_LIMIT (1U << 31)
-#define REISER4_MAX_BRICKS_CONFIRM_LIMIT (1U << 20)
-
 typedef enum mkfs_behav_flags {
 	BF_FORCE      = 1 << 0,
 	BF_YES        = 1 << 1,
@@ -111,6 +107,20 @@ static reiser4_object_t *reiser4_root_create(reiser4_fs_t *fs) {
 	return reiser4_object_create(&entry, &info, NULL);
 }
 
+static int advise_stripe_size(fs_hint_t *hint, int is_default, int forced)
+{
+	return plugcall((reiser4_vol_plug_t *)reiser4_profile_plug(PROF_VOL),
+			advise_stripe_size, &hint->stripe_size,
+			hint->blksize, hint->blocks, is_default,
+			forced);
+}
+
+static int advise_max_bricks(fs_hint_t *hint, int forced)
+{
+	return plugcall((reiser4_vol_plug_t *)reiser4_profile_plug(PROF_VOL),
+			advise_max_bricks, &hint->max_bricks, forced);
+}
+
 int main(int argc, char *argv[]) {
 	int c;
 	struct stat st;
@@ -131,7 +141,7 @@ int main(int argc, char *argv[]) {
 #ifdef HAVE_UNAME
 	struct utsname sysinfo;
 #endif
-	
+	int default_stripe = 1;
 	mkfs_behav_flags_t flags = 0;
     
 	static struct option long_options[] = {
@@ -221,6 +231,7 @@ int main(int argc, char *argv[]) {
 				aal_error("Invalid stripe size (%s).", optarg);
 				return USER_ERROR;
 			}
+			default_stripe = 0;
 			break;
 		case 'n':
 			/* Parsing max bricks bits */
@@ -328,35 +339,8 @@ int main(int argc, char *argv[]) {
 			  "%u.", hint.blksize, REISER4_MAX_BLKSIZE);
 		goto error_free_libreiser4;
 	}
-
-	if (hint.stripe_size != 0 && (hint.stripe_size < hint.blksize)) {
-		aal_error("Invalid stripe size (%llu). It must not be smaller "
-			  "than block size %u.",
-			  hint.stripe_size, hint.blksize);
+	if (advise_max_bricks(&hint, flags & BF_FORCE) < 0)
 		goto error_free_libreiser4;
-	}
-	if ((hint.max_bricks != 0) &&
-	    (hint.max_bricks > REISER4_MAX_BRICKS_UPPER_LIMIT)) {
-		aal_error("Invalid max bricks (%llu). It must not be larger "
-			  "than %u.",
-			  hint.max_bricks, REISER4_MAX_BRICKS_UPPER_LIMIT);
-		goto error_free_libreiser4;
-	}
-	if ((hint.max_bricks != 0) &&
-	    (hint.max_bricks > REISER4_MAX_BRICKS_CONFIRM_LIMIT) &&
-	    !(flags & BF_FORCE)){
-		aal_error("Support of %llu bricks requires a lot of memory "
-			  "resources. Use -f to force over.", hint.max_bricks);
-		goto error_free_libreiser4;
-	}
-	if ((hint.max_bricks != 0) &&
-	    (hint.max_bricks < REISER4_MAX_BRICKS_LOWER_LIMIT))
-		hint.max_bricks = REISER4_MAX_BRICKS_LOWER_LIMIT;
-
-	if ((hint.max_bricks != 0) &&
-	    1U << misc_log2(hint.max_bricks) != hint.max_bricks)
-		/* round up to the power of 2 */
-		hint.max_bricks = 1 << (1 + misc_log2(hint.max_bricks));
 
 #ifdef HAVE_UNAME
 	/* Guessing system type */
@@ -504,14 +488,9 @@ int main(int argc, char *argv[]) {
 		if (hint.blocks == 0)
 			hint.blocks = dev_len;
 
-		if (hint.stripe_size &&
-		    (hint.stripe_size > (hint.blocks * hint.blksize) >> 10) &&
-		    !(flags & BF_FORCE)) {
-			aal_mess("Stripe size %llu is too big for device %s. "
-				 "Use -f to force over.",
-				 hint.stripe_size, host_dev);
+		if (advise_stripe_size(&hint,
+				       default_stripe, flags & BF_FORCE) < 0)
 			goto error_free_device;
-		}
 		/*
 		 * Check for non-intercative mode
 		 */

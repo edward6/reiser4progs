@@ -290,7 +290,7 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(fsw32);
 
 	__load_plug(simple_vol);
-	__load_plug(asym);
+	__load_plug(asym_vol);
 #endif
 
         return 0;
