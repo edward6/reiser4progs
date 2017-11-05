@@ -300,7 +300,7 @@ reiser4_fs_t *reiser4_fs_create(
 
 	/* Taking care about key flags in format super block */
 	key = reiser4_profile_plug(PROF_KEY);
-	
+
 	/* Creates disk format. */
 	
 	fs->format = reiser4_format_create(fs, (reiser4_format_plug_t *)format,

@@ -237,9 +237,11 @@ void set_sb_format40(format40_super_t *super, format_hint_t *desc)
 
 	/* Set the flags. */
 	/* FIXME: Hardcoded plugin ids for 2 cases. */
-	flags = (desc->key == KEY_LARGE_ID) ? (1 << FORMAT40_KEY_LARGE) : 0;
+	flags = (desc->key == KEY_LARGE_ID) ? (1 << FORMAT40_LARGE_KEYS) : 0;
+	/* Newly created brick always has a data room */
+	flags |= (1 << FORMAT40_HAS_DATA_ROOM);
 	set_sb_flags(super, flags);
-	
+
 	/* Set version values. */
 	set_sb_version(super, get_release_number_minor());
 }
@@ -476,8 +478,8 @@ void format40_set_key(reiser4_format_ent_t *entity, rid_t key) {
 	aal_assert("vpf-830", entity != NULL);
 	
 	flags = get_sb_flags(SUPER(entity));
-	flags &= ~(1 << FORMAT40_KEY_LARGE);
-	flags |= ((key == KEY_LARGE_ID) ? (1 << FORMAT40_KEY_LARGE) : 0);
+	flags &= ~(1 << FORMAT40_LARGE_KEYS);
+	flags |= ((key == KEY_LARGE_ID) ? (1 << FORMAT40_LARGE_KEYS) : 0);
 	set_sb_flags(SUPER(entity), flags);
 	format40_mkdirty(entity);
 }
@@ -495,7 +497,7 @@ rid_t format40_get_key(reiser4_format_ent_t *entity) {
 	
 	flags = get_sb_flags(SUPER(entity));
 	
-	return (flags & (1 << FORMAT40_KEY_LARGE)) ? 
+	return (flags & (1 << FORMAT40_LARGE_KEYS)) ?
 		KEY_LARGE_ID : KEY_SHORT_ID;
 }
 

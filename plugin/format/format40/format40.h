@@ -24,6 +24,12 @@
 
 #define format40_key_pid format40_get_key
 
+typedef enum {
+	FORMAT40_LARGE_KEYS,
+	FORMAT40_UNBALANCED_VOLUME,
+	FORMAT40_HAS_DATA_ROOM,
+} format40_flags;
+
 typedef struct format40_super {
 	d64_t sb_block_count;
 	d64_t sb_free_blocks;
@@ -118,8 +124,6 @@ extern reiser4_core_t *format40_core;
 
 #define sb_update_backup(sb)	\
 	(aal_get_le32(sb, sb_version) & FORMAT40_UPDATE_BACKUP)
-
-#define FORMAT40_KEY_LARGE		0
 
 #define format40_mkdirty(entity) \
 	(((format40_t *)entity)->state |= (1 << ENTITY_DIRTY))
