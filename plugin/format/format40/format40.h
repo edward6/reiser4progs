@@ -95,6 +95,9 @@ extern reiser4_core_t *format40_core;
 #define get_sb_free_blocks(sb)		aal_get_le64(sb, sb_free_blocks)
 #define set_sb_free_blocks(sb, val)	aal_set_le64(sb, sb_free_blocks, val)
 
+#define get_sb_data_room(sb)		aal_get_le64(sb, sb_data_room)
+#define set_sb_data_room(sb, val)	aal_set_le64(sb, sb_data_room, val)
+
 #define get_sb_root_block(sb)		aal_get_le64(sb, sb_root_block)
 #define set_sb_root_block(sb, val)	aal_set_le64(sb, sb_root_block, val)
 
@@ -136,6 +139,7 @@ extern uint64_t format40_start(reiser4_format_ent_t *entity);
 extern uint64_t format40_get_len(reiser4_format_ent_t *entity);
 extern uint64_t format40_get_free(reiser4_format_ent_t *entity);
 extern void format40_set_free(reiser4_format_ent_t *entity, uint64_t blocks);
+extern void format40_set_data_room(reiser4_format_ent_t *entity, uint64_t blocks);
 extern uint32_t format40_get_stamp(reiser4_format_ent_t *entity);
 extern void format40_set_stamp(reiser4_format_ent_t *entity, uint32_t mkfsid);
 extern rid_t format40_get_policy(reiser4_format_ent_t *entity);

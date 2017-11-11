@@ -308,8 +308,7 @@ reiser4_fs_t *reiser4_fs_create(
 					   node->id.id, hint->blocks,
 					   hint->mkfs_id, hint->subvol_id,
 					   hint->num_subvols,
-					   hint->max_bricks ? misc_log2(hint->max_bricks) : 0,
-					   hint->data_room_size);
+					   hint->max_bricks ? misc_log2(hint->max_bricks) : 0);
 	if (!fs->format)
 		goto error_free_status;
 
@@ -349,6 +348,18 @@ reiser4_fs_t *reiser4_fs_create(
  error_free_fs:
 	aal_free(fs);
 	return NULL;
+}
+
+void reiser4_set_data_room(reiser4_fs_t *fs, fs_hint_t *hint)
+{
+	if (hint->data_room_size == 0) {
+		reiser4_vol_plug_t *vol = reiser4_profile_plug(PROF_VOL);
+		  //reiser4_master_get_volume(fs->master);
+		uint64_t free = reiser4_alloc_free(fs->alloc);
+		hint->data_room_size = plugcall(vol, default_data_room_size,
+						free, hint->is_data_brick);
+	}
+	reiser4_format_set_data_room(fs->format, hint->data_room_size);
 }
 
 /* Backup the fs -- save all permanent info about the fs info the memory stream

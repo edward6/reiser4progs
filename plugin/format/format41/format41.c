@@ -80,6 +80,7 @@ reiser4_format_plug_t format41_plug = {
 	.set_root	= format40_set_root,
 	.set_len	= format40_set_len,
 	.set_free	= format40_set_free,
+	.set_data_room  = format40_set_data_room,
 	.set_height	= format40_set_height,
 	.set_stamp	= format40_set_stamp,
 	.set_policy	= format40_set_policy,

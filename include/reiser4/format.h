@@ -25,8 +25,7 @@ extern reiser4_format_t *reiser4_format_create(reiser4_fs_t *fs,
 					       long int mkfs_id,
 					       uint64_t subvol_id,
 					       uint64_t num_subvols,
-					       uint8_t max_bricks_bits,
-					       uint64_t data_room_size);
+					       uint8_t max_bricks_bits);
 
 extern errno_t reiser4_format_backup(reiser4_format_t *format,
 				     backup_hint_t *hint);

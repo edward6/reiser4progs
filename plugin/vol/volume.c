@@ -131,7 +131,7 @@ static int advise_max_bricks_asym(uint64_t *result, int forced)
 	return -1;
 }
 
-static int advise_data_room_size_simple(uint64_t result, uint64_t block_count, int forced)
+static int check_data_room_size_simple(uint64_t result, uint64_t block_count, int forced)
 {
 	if (result != 0) {
 		aal_error("Option data-room-size is undefined for simple volumes");
@@ -140,7 +140,7 @@ static int advise_data_room_size_simple(uint64_t result, uint64_t block_count, i
 	return 0;
 }
 
-static int advise_data_room_size_asym(uint64_t result, uint64_t block_count, int forced)
+static int check_data_room_size_asym(uint64_t result, uint64_t block_count, int forced)
 {
 	if ((result > block_count) && !forced) {
 		aal_error("Data room (%llu blocks) is larger than device "
@@ -151,6 +151,21 @@ static int advise_data_room_size_asym(uint64_t result, uint64_t block_count, int
 	return 0;
 }
 
+static uint64_t default_data_room_size_simple(uint64_t free_blocks)
+{
+	return 0;
+}
+
+static uint64_t default_data_room_size_asym(uint64_t free_blocks, int data_brick)
+{
+	if (data_brick)
+		return free_blocks;
+	/*
+	 * for meta-data brick we assign 70% of free blocks
+	 */
+	return (90 * free_blocks) >> 7;
+}
+
 reiser4_vol_plug_t simple_vol_plug = {
 	.p = {
 		.id    = {VOL_SIMPLE_ID, 0, VOL_PLUG_TYPE},
@@ -159,7 +174,8 @@ reiser4_vol_plug_t simple_vol_plug = {
 	},
 	.advise_stripe_size = advise_stripe_size_simple,
 	.advise_max_bricks = advise_max_bricks_simple,
-	.advise_data_room_size = advise_data_room_size_simple,
+	.check_data_room_size = check_data_room_size_simple,
+	.default_data_room_size = default_data_room_size_simple
 };
 
 reiser4_vol_plug_t asym_vol_plug = {
@@ -170,7 +186,8 @@ reiser4_vol_plug_t asym_vol_plug = {
 	},
 	.advise_stripe_size = advise_stripe_size_asym,
 	.advise_max_bricks = advise_max_bricks_asym,
-	.advise_data_room_size = advise_data_room_size_asym,
+	.check_data_room_size = check_data_room_size_asym,
+	.default_data_room_size = default_data_room_size_asym
 };
 
 #endif

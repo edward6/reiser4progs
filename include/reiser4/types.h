@@ -320,6 +320,7 @@ typedef struct fs_hint {
 	char volume_uuid[17];
 	char subvol_uuid[17];
 	char label[17];
+	int is_data_brick;
 	long int mkfs_id;
 	uint64_t subvol_id;
 	uint64_t num_subvols;

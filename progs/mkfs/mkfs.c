@@ -53,6 +53,7 @@ static void mkfs_print_usage(char *name) {
 		"Mkfs options:\n"
 		"  -s, --lost-found              forces mkfs to create lost+found\n"
 		"                                directory.\n"
+		"  -a, --data-brick              forces mkfs to create data bricks.\n"
 		"  -b, --block-size N            block size, 4096 by default, other\n"
 		"                                are not supported at the moment.\n"
 		"  -t, --stripe-size N           stripe size [K|M|G].\n"
@@ -122,10 +123,10 @@ static int advise_max_bricks(fs_hint_t *hint, int forced)
 			advise_max_bricks, &hint->max_bricks, forced);
 }
 
-static int advise_data_room_size(fs_hint_t *hint, int forced)
+static int check_data_room_size(fs_hint_t *hint, int forced)
 {
 	return plugcall((reiser4_vol_plug_t *)reiser4_profile_plug(PROF_VOL),
-			advise_data_room_size, hint->data_room_size,
+			check_data_room_size, hint->data_room_size,
 			hint->blocks, forced);
 }
 
@@ -159,6 +160,7 @@ int main(int argc, char *argv[]) {
 		{"yes", no_argument, NULL, 'y'},
 		{"block-size", required_argument, NULL, 'b'},
 		{"stripe-size", required_argument, NULL, 't'},
+		{"data-brick", no_argument, NULL, 'a'},
 		{"data-room-size", required_argument, NULL, 'r'},
 		{"label", required_argument, NULL, 'L'},
 		{"uuid", required_argument, NULL, 'U'},
@@ -183,7 +185,7 @@ int main(int argc, char *argv[]) {
 	memset(override, 0, sizeof(override));
 
 	/* Parsing parameters */    
-	while ((c = getopt_long(argc, argv, "hVyfb:t:U:L:n:r:splo:dm?",
+	while ((c = getopt_long(argc, argv, "hVyfb:t:U:L:n:r:spalo:dm?",
 				long_options, (int *)0)) != EOF) 
 	{
 		switch (c) {
@@ -214,6 +216,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'm':
 			flags |= BF_MIRRORS;
+			break;
+		case 'a':
+			hint.is_data_brick = 1;
 			break;
 		case 'o':
 			aal_strncat(override, optarg,
@@ -508,7 +513,7 @@ int main(int argc, char *argv[]) {
 				       default_stripe, flags & BF_FORCE) < 0)
 			goto error_free_device;
 
-		if (advise_data_room_size(&hint, flags & BF_FORCE) < 0)
+		if (check_data_room_size(&hint, flags & BF_FORCE) < 0)
 			goto error_free_device;
 		/*
 		 * Check for non-intercative mode
@@ -576,6 +581,9 @@ int main(int argc, char *argv[]) {
 			goto error_free_fs;
 		}
 
+		/* Set data room size calculated by the rest of free space */
+		reiser4_set_data_room(fs, &hint);
+
 		/* Backup the fs metadata. */
 		if (!(fs->backup = reiser4_backup_create(fs))) {
 			aal_error("Can't create the fs metadata backup.");
@@ -583,7 +591,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		/* Creating lost+found directory */
-		if (flags & BF_LOST) {
+		if ((flags & BF_LOST) && !hint.is_data_brick) {
 			reiser4_object_t *object;
 	    
 			if (!(object = reiser4_dir_create(fs->root,

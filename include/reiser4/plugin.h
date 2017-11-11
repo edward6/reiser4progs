@@ -1498,6 +1498,7 @@ struct reiser4_format_plug {
 	void (*set_len) (reiser4_format_ent_t *, uint64_t);
 	void (*set_root) (reiser4_format_ent_t *, uint64_t);
 	void (*set_free) (reiser4_format_ent_t *, uint64_t);
+	void (*set_data_room) (reiser4_format_ent_t *, uint64_t);
 	void (*set_stamp) (reiser4_format_ent_t *, uint32_t);
 	void (*set_policy) (reiser4_format_ent_t *, rid_t);
 	void (*set_height) (reiser4_format_ent_t *, uint16_t);
@@ -1749,8 +1750,9 @@ typedef struct reiser4_vol_plug {
 				  uint32_t block_size, int is_default,
 				  int forced);
 	int (*advise_max_bricks)(uint64_t *result, int forced);
-	int (*advise_data_room_size)(uint64_t result, uint64_t block_count,
-				     int forced);
+	int (*check_data_room_size)(uint64_t result, uint64_t block_count,
+				    int forced);
+  uint64_t (*default_data_room_size)(uint64_t free_blocks, int is_data_brick);
 } reiser4_vol_plug_t;
 #endif
 
