@@ -467,7 +467,10 @@ int main(int argc, char *argv[]) {
 			aal_mess("Volume uuid %s will be used.", uuid);
 		}
 #else
-		if (flags & BF_MIRRORS) {
+		if (flags & BF_MIRRORS ||
+		    hint.is_data_brick ||
+		    ((reiser4_vol_plug_t *)(reiser4_profile_plug(PROF_VOL)))->
+		    p.id.id == VOL_ASYM_ID) {
 			aal_error("uuid is required to create logical volumes");
 			goto error_free_libreiser4;
 		}
