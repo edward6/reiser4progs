@@ -8,17 +8,17 @@
 
 reiser4_core_t *cde40_core = NULL;
 
-inline uint32_t cde40_key_pol(reiser4_place_t *place) {
+uint32_t cde40_key_pol(reiser4_place_t *place) {
 	return plugcall(place->key.plug, bodysize);
 }
 
 /* Returns pointer to entry */
-inline void *cde40_entry(reiser4_place_t *place, uint32_t pos) {
+void *cde40_entry(reiser4_place_t *place, uint32_t pos) {
 	return cde_get_entry(place, pos, cde40_key_pol(place));
 }
 
 /* Returns pointer to the objectid entry component. */
-inline void *cde40_objid(reiser4_place_t *place, uint32_t pos) {
+void *cde40_objid(reiser4_place_t *place, uint32_t pos) {
 	return (place->body + en_get_offset(cde40_entry(place, pos),
 					    cde40_key_pol(place)));
 }
