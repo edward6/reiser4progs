@@ -56,8 +56,8 @@ extern reiser4_node_t *reiser4_tree_child_node(reiser4_tree_t *tree,
 extern errno_t reiser4_tree_discard_node(reiser4_tree_t *tree,
 					 reiser4_node_t *node);
 
-extern inline uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
-						 reiser4_plug_t *plug);
+extern uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
+					  reiser4_plug_t *plug);
 
 extern bool_t reiser4_tree_fresh(reiser4_tree_t *tree);
 extern bool_t reiser4_tree_minimal(reiser4_tree_t *tree);

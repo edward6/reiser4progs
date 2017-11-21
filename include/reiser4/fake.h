@@ -12,8 +12,8 @@
 #define REISER4_FAKE_BLOCKNR_VAL   0xf000000000000000ull
 #define REISER4_FAKE_BLOCKNR_MASK  0x8000000000000000ull
 
-extern inline blk_t reiser4_fake_get(void);
-extern inline int reiser4_fake_ack(blk_t blk);
+extern blk_t reiser4_fake_get(void);
+extern int reiser4_fake_ack(blk_t blk);
 
 #endif
 

@@ -8,11 +8,11 @@
 
 static blk_t fake_gen = 0;
 
-inline blk_t reiser4_fake_get(void) {
+blk_t reiser4_fake_get(void) {
 	return (++fake_gen | REISER4_FAKE_BLOCKNR_VAL);
 }
 
-inline int reiser4_fake_ack(blk_t blk) {
+int reiser4_fake_ack(blk_t blk) {
 	return (blk & REISER4_FAKE_BLOCKNR_MASK) ? 1 : 0;
 }
 #endif

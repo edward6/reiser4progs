@@ -74,13 +74,13 @@ extern reiser4_core_t *cde40_core;
 
 extern uint32_t cde40_units(reiser4_place_t *place);
 
-extern inline uint32_t cde40_key_pol(reiser4_place_t *place);
+extern uint32_t cde40_key_pol(reiser4_place_t *place);
 
 extern char *cde40_get_name(reiser4_place_t *place, uint32_t pos,
 			    char *buff, uint32_t len);
 
-extern inline void *cde40_entry(reiser4_place_t *place, uint32_t pos);
-extern inline void *cde40_objid(reiser4_place_t *place, uint32_t pos);
+extern void *cde40_entry(reiser4_place_t *place, uint32_t pos);
+extern void *cde40_objid(reiser4_place_t *place, uint32_t pos);
 
 extern errno_t cde40_maxposs_key(reiser4_place_t *place,
 				 reiser4_key_t *key);

@@ -977,8 +977,8 @@ static int cb_blocks_comp_func(void *key1, void *key2,
 }
 
 /* Returns level in tree particular item should be inserted at. */
-inline uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
-					  reiser4_plug_t *plug)
+uint32_t reiser4_tree_target_level(reiser4_tree_t *tree,
+				   reiser4_plug_t *plug)
 {
 	return (plug->id.group == EXTENT_ITEM) ?
 		TWIG_LEVEL : LEAF_LEVEL;
