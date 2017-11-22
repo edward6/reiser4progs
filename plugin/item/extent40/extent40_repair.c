@@ -88,11 +88,14 @@ errno_t extent40_check_layout(reiser4_place_t *place,
 		/* Zero the problem region. */
 		fsck_mess("Node (%llu), item (%u), unit (%u), [%s]: "
 			  "points %s region [%llu..%llu].%s", 
-			  place_blknr(place), place->pos.item, i, 
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item, i,
 			  print_key(extent40_core, &place->key),
 			  res == RE_FATAL? "out of the fs," : 
-			  "to the already used blocks, ", start,
-			  start + width - 1, hint->mode != RM_CHECK ? 
+			  "to the already used blocks, ",
+			  (unsigned long long)start,
+			  (unsigned long long)(start + width - 1),
+			  hint->mode != RM_CHECK ? 
 			  " Zeroed." : "");
 
 		if (hint->mode != RM_CHECK) {
@@ -101,12 +104,12 @@ errno_t extent40_check_layout(reiser4_place_t *place,
 		} else
 			result = RE_FIXABLE;
 	}
-	
 	if (hint->mode != RM_CHECK) {
 		if ((units = extent40_join_units(place, 1))) {
 			fsck_mess("Node (%llu), item (%u): %u mergable units "
 				  "were found in the extent40 unit.%s", 
-				  place_blknr(place), place->pos.item, units, 
+				  (unsigned long long)place_blknr(place),
+				  place->pos.item, units, 
 				  hint->mode == RM_CHECK ? "" : " Merged.");
 			
 			hint->len += (units * sizeof(extent40_t));
@@ -127,7 +130,8 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	if (place->len % sizeof(extent40_t)) {
 		fsck_mess("Node (%llu), item (%u), [%s]: extent40 "
 			  "item of not valid length found.", 
-			  place_blknr(place), place->pos.item,
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item,
 			  print_key(extent40_core, &place->key));
 		return RE_FATAL;
 	}
@@ -136,7 +140,8 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	if (objcall(&place->key, get_offset) % place_blksize(place)) {
 		fsck_mess("Node (%llu), item (%u), [%s]: extent40 "
 			  "item with not valid key offset found.",
-			  place_blknr(place), place->pos.item,
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item,
 			  print_key(extent40_core, &place->key));
 		return RE_FATAL;
 	}
@@ -146,7 +151,9 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	
 	if (!units) {
 		fsck_mess("Node (%llu), item (%u): empty extent40 item "
-			  "found.", place_blknr(place), place->pos.item);
+			  "found.",
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item);
 		return RE_FATAL;
 	}
 	
@@ -162,7 +169,8 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 
 		fsck_mess("Node (%llu), item (%u), unit (%u), "
 			  "[%s]: unallocated unit is found.%s", 
-			  place_blknr(place), place->pos.item, i,
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item, i,
 			  print_key(extent40_core, &place->key),
 			  hint->mode == RM_CHECK ? "" : "Zeroed.");
 		
@@ -177,7 +185,8 @@ errno_t extent40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 		if ((units = extent40_join_units(place, 1))) {
 			fsck_mess("Node (%llu), item (%u): %u mergable units "
 				  "were found in the extent40 unit.%s", 
-				  place_blknr(place), place->pos.item, units, 
+				  (unsigned long long)place_blknr(place),
+				  place->pos.item, units, 
 				  hint->mode == RM_CHECK ? "" : " Merged.");
 			
 			hint->len += (units * sizeof(extent40_t));

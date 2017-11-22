@@ -121,7 +121,8 @@ errno_t node40_space_check(reiser4_node_t *node, uint32_t offset, uint8_t mode)
 	if (offset != space) {
 		/* There is left region with broken offsets, remove it. */
 		fsck_mess("Node (%llu): Free space start (%u) is wrong. "
-			  "Should be (%u). %s", node->block->nr, space, 
+			  "Should be (%u). %s",
+			  (unsigned long long)node->block->nr, space,
 			  offset, mode == RM_BUILD ? "Fixed." : "");
 		
 		if (mode == RM_BUILD) {
@@ -141,8 +142,9 @@ errno_t node40_space_check(reiser4_node_t *node, uint32_t offset, uint8_t mode)
 	if (space != nh_get_free_space(node)) {
 		/* Free space is wrong. */
 		fsck_mess("Node (%llu): the free space (%u) is wrong. "
-			  "Should be (%u). %s", node->block->nr, 
-			  nh_get_free_space(node), space, 
+			  "Should be (%u). %s",
+			  (unsigned long long)node->block->nr,
+			  nh_get_free_space(node), space,
 			  mode == RM_CHECK ? "" : "Fixed.");
 		
 		if (mode == RM_CHECK) {
@@ -186,7 +188,8 @@ errno_t node40_ih_array_check_common(reiser4_node_t *node, uint8_t mode,
 				continue;
 			
 			fsck_mess("Node (%llu), item (0): Offset (%u) is "
-				  "wrong. Should be (%u). %s", blk, offset, 
+				  "wrong. Should be (%u). %s",
+				  (unsigned long long)blk, offset,
 				  left, mode == RM_BUILD ? "Fixed." : "");
 
 			if (mode != RM_BUILD) {
@@ -218,7 +221,8 @@ errno_t node40_ih_array_check_common(reiser4_node_t *node, uint8_t mode,
 			uint32_t delta;
 
 			fsck_mess("Node (%llu): Region of items [%d-%d] with "
-				  "wrong offsets %s removed.", blk, last_pos, 
+				  "wrong offsets %s removed.",
+				  (unsigned long long)blk, last_pos,
 				  i - 1, mode == RM_BUILD ? "is" : "should be");
 
 			if (mode == RM_BUILD) {
@@ -290,7 +294,8 @@ errno_t node40_count_check_common(reiser4_node_t *node,
 		return 0;
 	
 	fsck_mess("Node (%llu): Count of items (%u) is wrong. "
-		  "Only (%u) items found.%s", blk, count, num, 
+		  "Only (%u) items found.%s",
+		  (unsigned long long)blk, count, num, 
 		  mode == RM_BUILD ? " Fixed." : "");
 
 	/* Recover is impossible. */
@@ -330,7 +335,8 @@ errno_t node40_iplug_check(reiser4_node_t *node, uint8_t mode) {
 		
 		if (!node40_core->factory_ops.ifind(ITEM_PLUG_TYPE, pid)) {
 			fsck_mess("Node (%llu), item (%u): the item of unknown "
-				  "plugin id (0x%x) is found.%s", node->block->nr,
+				  "plugin id (0x%x) is found.%s",
+				  (unsigned long long)node->block->nr,
 				  pos.item, pid, mode == RM_BUILD ? " Removed." :
 				  "");
 			
@@ -663,7 +669,7 @@ node40_unpack_common(aal_block_t *block,
 	return entity;
  error:
 	aal_error("Can't unpack the node (%llu). "
-		  "Stream is over?", block->nr);
+		  "Stream is over?", (unsigned long long)block->nr);
 	aal_free(entity);
 	return NULL;
 }

@@ -137,10 +137,10 @@ static int64_t ccreg40_read_clust(reiser4_object_t *cc, trans_hint_t *hint,
 	if (read != clsize) {
 		aal_error("File [%s]: Failed to read the cluster at the offset "
 			  "(%llu).", print_inode(obj40_core, &cc->info.object),
-			  clstart);
+			  (unsigned long long)clstart);
 		return -EIO;
 	}
-	
+
 	off -= clstart;
 	read = clsize - off;
 	if ((uint64_t)read > count)
@@ -189,7 +189,7 @@ static int64_t ccreg40_write_clust(reiser4_object_t *cc, trans_hint_t *hint,
 			aal_error("File [%s]: Failed to read the "
 				  "cluster at the offset (%llu).",
 				  print_inode(obj40_core, &cc->info.object),
-				  off);
+				  (unsigned long long)off);
 			return -EIO;
 		}
 	}
@@ -218,10 +218,10 @@ static int64_t ccreg40_write_clust(reiser4_object_t *cc, trans_hint_t *hint,
 		aal_error("File [%s]: There are less bytes "
 			  "written (%llu) than asked (%llu).",
 			  print_inode(obj40_core, &cc->info.object),
-			  written, done);
+			  (unsigned long long)written,
+			  (unsigned long long)done);
 		return -EIO;
 	}
-	
 	return count;
 }
 

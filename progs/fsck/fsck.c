@@ -605,7 +605,7 @@ int main(int argc, char *argv[]) {
 		/* No fatal corruptions in SB, but some fixable ones. */
 		fprintf(stderr, "%llu fixable corruptions were detected in "
 			"the SuperBlock. Run with --fix option to fix them.\n",
-			repair.sb_fixable);
+			(unsigned long long)repair.sb_fixable);
 		
 		ex = FIXABLE_ERROR;
 	}
@@ -618,7 +618,8 @@ int main(int argc, char *argv[]) {
 				"FS RECOVERY IS NOT POSSIBLE.\n");
 		} else {
 			fprintf(stderr, "%llu fatal corruptions were detected in %s. "
-				"Run with %s option to fix them.\n", repair.fatal, 
+				"Run with %s option to fix them.\n",
+				(unsigned long long)repair.fatal, 
 				stage ? "FileSystem" : "SuperBlock", 
 				stage ? "--build-fs" : "--build-sb");
 		}
@@ -627,7 +628,7 @@ int main(int argc, char *argv[]) {
 		/* Some fixable corruptions in filesystem. */
 		fprintf(stderr, "%llu fixable corruptions were detected in "
 			"the FileSystem. Run with --fix option to fix them.\n",
-			repair.fixable);
+			(unsigned long long)repair.fixable);
 		
 		ex = FIXABLE_ERROR;
 	} else if (!repair.sb_fixable) {

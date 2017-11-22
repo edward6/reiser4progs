@@ -81,7 +81,7 @@ static errno_t cb_fetch_bitmap(blk_t start, count_t width, void *data) {
 
 	if ((res = aal_block_read(&block))) {
 		aal_error("Can't read bitmap block %llu. %s.",
-			  start, alloc->device->error);
+			  (unsigned long long)start, alloc->device->error);
 		goto error_free_block;
 	}
 
@@ -297,7 +297,8 @@ static errno_t cb_sync_bitmap(blk_t start, count_t width, void *data) {
 	/* Saving block onto device it was allocated on */
 	if ((res = aal_block_write(&block))) {
 		aal_error("Can't write bitmap block %llu. "
-			  "%s.", start, alloc->device->error);
+			  "%s.", (unsigned long long)start,
+			  alloc->device->error);
 	}
 
  error_free_block:
@@ -449,7 +450,8 @@ static int alloc40_available(reiser4_alloc_ent_t *entity,
 
 static void cb_inval_warn(blk_t start, uint32_t ladler, uint32_t cadler) {
 	aal_error("Checksum mismatch in bitmap block %llu. Checksum "
-		  "is 0x%x, should be 0x%x.", start, ladler, cadler);
+		  "is 0x%x, should be 0x%x.",
+		  (unsigned long long)start, ladler, cadler);
 }
 
 typedef void (*inval_func_t) (blk_t, uint32_t, uint32_t);

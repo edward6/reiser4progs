@@ -50,7 +50,8 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 		fsck_mess("Node (%llu), item (%u), [%s]: does not "
 			  "look like a valid SD %s set extention: "
 			  "wrong member count detected (%u).", 
-			  place_blknr(place), place->pos.item,
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item,
 			  print_key(sdext_pset_core, &place->key), 
 			  is_pset ? "plugin" : "heir", count);
 
@@ -62,7 +63,9 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	if (len == 0 || stat->offset + len > place->len) {
 		fsck_mess("Node (%llu), item (%u), [%s]: does not look like "
 			  "a valid SD %s set extention: wrong member count "
-			  "detected (%u).", place_blknr(place), place->pos.item,
+			  "detected (%u).",
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item,
 			  print_key(sdext_pset_core, &place->key), 
 			  is_pset ? "plugin" : "heir", count);
 		return RE_FATAL;
@@ -81,7 +84,8 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 			/* Unknown member. */
 			fsck_mess("Node (%llu), item (%u), [%s]: the slot (%u) "
 				  "contains the invalid %s set member (%u).",
-				  place_blknr(place), place->pos.item,
+				  (unsigned long long)place_blknr(place),
+				  place->pos.item,
 				  print_key(sdext_pset_core, &place->key), 
 				  i, is_pset ? "plugin" : "heir",mem);
 
@@ -91,7 +95,9 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 			/* Was met already. */
 			fsck_mess("Node (%llu), item (%u), [%s]: the slot (%u) "
 				  "contains the %s set member (%s) that was met "
-				  "already.",place_blknr(place),place->pos.item,
+				  "already.",
+				  (unsigned long long)place_blknr(place),
+				  place->pos.item,
 				  print_key(sdext_pset_core, &place->key), i, 
 				  is_pset ? "plugin" : "heir", pset_name[mem]);
 
@@ -109,11 +115,12 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 				fsck_mess("Node (%llu), item (%u), [%s]: the "
 					  "slot (%u) contains the invalid %s "
 					  "set member (%s), id (%u).",
-					  place_blknr(place), place->pos.item, 
+					  (unsigned long long)place_blknr(place),
+					  place->pos.item,
 					  print_key(sdext_pset_core, &place->key),
-					  i, is_pset ? "plugin" : "heir", 
+					  i, is_pset ? "plugin" : "heir",
 					  pset_name[mem], id);
-				
+
 				rmmask |= (1 << i);
 				remove++;
 			}
@@ -130,7 +137,8 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	if (remove == count) {
 		fsck_mess("Node (%llu), item (%u), [%s]: no slot left. Does "
 			  "not look like a valid (%s) statdata extention.",
-			  place_blknr(place), place->pos.item,
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item,
 			  print_key(sdext_pset_core, &place->key),
 			  stat->plug->p.label);
 		return RE_FATAL;
@@ -138,7 +146,8 @@ errno_t sdext_plug_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	
 	/* Removing broken slots. */
 	fsck_mess("Node (%llu), item (%u), [%s]: removing broken slots.",
-		  place_blknr(place), place->pos.item, 
+		  (unsigned long long)place_blknr(place),
+		  place->pos.item, 
 		  print_key(sdext_pset_core, &place->key));
 	
 	dst = stat_body(stat) + sizeof(sdext_plug_t);

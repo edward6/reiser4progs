@@ -147,10 +147,10 @@ errno_t repair_master_check_struct(reiser4_fs_t *fs,
 			fsck_mess("UUID (0x%llx%llx) found in the master super "
 				  "block does not match the one found in the "
 				  "backup (0x%llx%llx).%s",
-				  x[0],
-				  x[1],
-				  y[0],
-				  y[1],
+				  (unsigned long long)x[0],
+				  (unsigned long long)x[1],
+				  (unsigned long long)y[0],
+				  (unsigned long long)y[1],
 				  mode != RM_CHECK ? " Fixed." : "");
 
 			if (mode == RM_CHECK)

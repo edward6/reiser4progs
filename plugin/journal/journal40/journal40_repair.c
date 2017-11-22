@@ -178,7 +178,8 @@ static errno_t cb_journal_txh_check(reiser4_journal_ent_t *entity,
 	
 	if (journal40_blk_format_check(journal, blk, check_data)) {
 		fsck_mess("Transaction header lies in the illegal block "
-			  "(%llu) for the used format (%s).", blk, 
+			  "(%llu) for the used format (%s).",
+			  (unsigned long long)blk,
 			  journal->format->plug->p.label);
 		return -ESTRUCT;
 	}
@@ -186,7 +187,7 @@ static errno_t cb_journal_txh_check(reiser4_journal_ent_t *entity,
 	if (reiser4_bitmap_test(check_data->journal_layout, blk)) {
 		/* TxH block is met not for the 1 time. Kill the journal. */
 		fsck_mess("Transaction header in the block (%llu) was "
-			  "met already.", blk);
+			  "met already.", (unsigned long long)blk);
 		return -ESTRUCT;
 	}
 	
@@ -220,11 +221,12 @@ static errno_t cb_journal_sec_check(reiser4_journal_ent_t *entity,
 	/* Check that blk is not out of bound and (not for original block) that 
 	   it is not from format area. */
 	check_data->flags = blk_type == JB_ORG ? 0 : 1 << TF_DATA_AREA_ONLY;
-	
+
 	if (journal40_blk_format_check(journal, blk, check_data)) {
 		fsck_mess("%s lies in the illegal block (%llu) for the "
-			  "used format (%s).", __blk_type_name(blk_type), 
-			  blk, journal->format->plug->p.label);
+			  "used format (%s).", __blk_type_name(blk_type),
+			  (unsigned long long)blk,
+			  journal->format->plug->p.label);
 		return -ESTRUCT;
 	}
 	
@@ -237,7 +239,8 @@ static errno_t cb_journal_sec_check(reiser4_journal_ent_t *entity,
 						 journal->blksize, blk)))
 		{
 			aal_error("Can't read block %llu while "
-				  "traversing the journal. %s.", blk, 
+				  "traversing the journal. %s.",
+				  (unsigned long long)blk,
 				  txh_block->device->error);
 			return -EIO;
 		}
@@ -247,7 +250,8 @@ static errno_t cb_journal_sec_check(reiser4_journal_ent_t *entity,
 		if (aal_memcmp(lr_header->magic, LGR_MAGIC, LGR_MAGIC_SIZE)) {
 			fsck_mess("Transaction Header (%llu), Log record "
 				  "(%llu): Log Record Magic was not found.", 
-				  check_data->cur_txh, blk);
+				  (unsigned long long)check_data->cur_txh,
+				  (unsigned long long)blk);
 			aal_block_free(log_block);
 			return -ESTRUCT;
 		}
@@ -260,8 +264,10 @@ static errno_t cb_journal_sec_check(reiser4_journal_ent_t *entity,
 		if (reiser4_bitmap_test(check_data->current_layout, blk)) {
 			fsck_mess("Transaction Header (%llu): %s block "
 				  "(%llu) was met in the transaction "
-				  "more then once.", check_data->cur_txh, 
-				  __blk_type_name(blk_type), blk);
+				  "more then once.",
+				  (unsigned long long)check_data->cur_txh,
+				  __blk_type_name(blk_type),
+				  (unsigned long long)blk);
 			return -ESTRUCT;
 		}
 		
@@ -293,7 +299,8 @@ static errno_t cb_journal_sec_check(reiser4_journal_ent_t *entity,
 					aal_error("Traverse failed to find "
 						  "a transaction the block "
 						  "(%llu) was met for the "
-						  "first time.", blk);
+						  "first time.",
+						  (unsigned long long)blk);
 					return res;
 				}
 				
@@ -303,15 +310,16 @@ static errno_t cb_journal_sec_check(reiser4_journal_ent_t *entity,
 					  "transaction looks correct but "
 					  "uses the block (%llu) already "
 					  "used in the transaction (%llu).", 
-					  check_data->cur_txh, blk, 
-					  check_data->wanted_blk);
+					  (unsigned long long)check_data->cur_txh,
+					  (unsigned long long)blk, 
+					  (unsigned long long)check_data->wanted_blk);
 				
 				check_data->cur_txh = check_data->wanted_blk;
 			} else if (res != -ESTRUCT) {
 				aal_error("Transaction Header (%llu): "
 					  "corrupted log record circle "
-					  "found.", txh_block->nr);
-				
+					  "found.",
+					  (unsigned long long)txh_block->nr);
 				return res;
 			}
 			
@@ -329,15 +337,18 @@ static errno_t cb_journal_sec_check(reiser4_journal_ent_t *entity,
 			if (res != -ESTRUCT) {
 				aal_error("Traverse failed to find a "
 					  "transaction the block (%llu) was "
-					  "met for the first time.", blk);
+					  "met for the first time.",
+					  (unsigned long long)blk);
 				return res;
 			}
 			
 			fsck_mess("Transaction Header (%llu): transaction "
 				  "looks correct but uses the block (%llu) "
 				  "already used in the transaction (%llu) "
-				  "as a %s block.", check_data->cur_txh,
-				  blk, check_data->wanted_blk, 
+				  "as a %s block.",
+				  (unsigned long long)check_data->cur_txh,
+				  (unsigned long long)blk,
+				  (unsigned long long)check_data->wanted_blk,
 				  __blk_type_name(check_data->found_type));
 			
 			/* The oldest problem transaction for TxH or LGR is the 
@@ -363,7 +374,8 @@ static errno_t cb_journal_sec_check(reiser4_journal_ent_t *entity,
 			if (res != -ESTRUCT) {
 				aal_error("Traverse failed to find a "
 					  "transaction the block (%llu) was "
-					  "met for the first time.", blk);
+					  "met for the first time.",
+					  (unsigned long long)blk);
 				return res;
 			}
 			
@@ -375,7 +387,8 @@ static errno_t cb_journal_sec_check(reiser4_journal_ent_t *entity,
 					  "met before as a Transaction "
 					  "Header of one of the next "
 					  "transactions.", 
-					  check_data->cur_txh, blk);
+					  (unsigned long long)check_data->cur_txh,
+					  (unsigned long long)blk);
 				return -ESTRUCT;
 			}
 		}
@@ -458,7 +471,8 @@ errno_t journal40_check_struct(reiser4_journal_ent_t *entity,
 			if (!tx_block) {
 				aal_error("Can't read the block %llu while "
 					  "checking the journal. %s.", 
-					  jdata.cur_txh, device->error);
+					  (unsigned long long)jdata.cur_txh,
+					  device->error);
 				ret = -EIO;
 				goto error_free_current;
 			}
@@ -466,7 +480,8 @@ errno_t journal40_check_struct(reiser4_journal_ent_t *entity,
 			txh = (journal40_tx_header_t *)tx_block->data;
 			fsck_mess("Corrupted transaction (%llu) was found. "
 				  "The last valid transaction is (%llu).", 
-				  jdata.cur_txh, get_th_prev_tx(txh));
+				  (unsigned long long)jdata.cur_txh,
+				  (unsigned long long)get_th_prev_tx(txh));
 
 			jdata.cur_txh = get_th_prev_tx(txh);
 
@@ -701,7 +716,9 @@ static errno_t journal40_block_pack(journal40_t *journal, aal_stream_t *stream,
 
 	if (!(block = aal_block_load(journal->device, journal->blksize, blk))) {
 		aal_error("Can't read block %llu while traversing the journal."
-			  "%s.", blk, journal->device->error);
+			  "%s.",
+			  (unsigned long long)blk,
+			  journal->device->error);
 		return -EIO;
 	}
 	
@@ -813,13 +830,14 @@ reiser4_journal_ent_t *journal40_unpack(aal_device_t *device,
 	jblk =  JOURNAL40_BLOCKNR(blksize);
 
 	if (!(journal->header = aal_block_alloc(device, blksize, jblk))) {
-		aal_error("Can't alloc journal header on block %llu.", jblk);
+		aal_error("Can't alloc journal header on block %llu.",
+			  (unsigned long long)jblk);
 		goto error_free_journal;
 	}
 
 	if (!(journal->footer = aal_block_alloc(device, blksize, jblk + 1))) {
 		aal_error("Can't alloc journal footer on block %llu.", 
-			  jblk + 1);
+			  (unsigned long long)(jblk + 1));
 		
 		goto error_free_header;
 	}

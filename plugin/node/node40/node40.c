@@ -655,7 +655,8 @@ int64_t node40_modify(reiser4_node_t *entity, pos_t *pos,
 	/* Inserting units into @place. */
 	if ((write = modify_func(&place, hint)) < 0) {
 		aal_error("Can't insert unit to node %llu, item %u.",
-			  entity->block->nr, place.pos.item);
+			  (unsigned long long)entity->block->nr,
+			  place.pos.item);
 		return write;
 	}
         
@@ -1601,8 +1602,9 @@ errno_t node40_shift(reiser4_node_t *src_entity,
 	/* Second pass is started here. Moving some amount of whole items from
 	   @src_entity to @dst_entity. */
 	if ((res = node40_move(src_entity, dst_entity, hint))) {
-		aal_error("Can't move items from the numde %llu to %llu.",
-			  src_entity->block->nr, dst_entity->block->nr);
+		aal_error("Can't move items from node %llu to node %llu.",
+			  (unsigned long long)src_entity->block->nr,
+			  (unsigned long long)dst_entity->block->nr);
 		return res;
 	}
 

@@ -118,7 +118,7 @@ static errno_t dir40_entry_check(reiser4_object_t *dir,
 				  "offset [%s]. Should be [%s].%s", 
 				  print_inode(obj40_core, &dir->info.object),
 				  reiser4_psobj(dir)->p.label, 
-				  place_blknr(&dir->body), 
+				  (unsigned long long)place_blknr(&dir->body), 
 				  dir->body.pos.item, dir->body.pos.unit,
 				  print_key(obj40_core, &entry.offset),
 				  print_key(obj40_core, &key), 
@@ -183,13 +183,12 @@ static errno_t dir40_check_item(reiser4_object_t *dir, void *data) {
 			  "with the key of this object found.%s",
 			  print_inode(obj40_core, &dir->info.object),
 			  reiser4_psobj(dir)->p.label, 
-			  place_blknr(&dir->body), dir->body.pos.item,
-			  dir->body.plug->p.label, mode == RM_BUILD ? 
-			  " Removed." : "");
-		
+			  (unsigned long long)place_blknr(&dir->body),
+			  dir->body.pos.item, dir->body.plug->p.label,
+			  mode == RM_BUILD ? " Removed." : "");
+
 		return mode == RM_BUILD ? -ESTRUCT : RE_FATAL;
 	}
-	
 	return 0;
 }
 

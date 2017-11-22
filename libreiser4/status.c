@@ -101,7 +101,7 @@ errno_t reiser4_status_sync(reiser4_status_t *status) {
 	/* Writing status block to device */
 	if ((res = aal_block_write(block))) {
 		aal_error("Can't write status block "
-			  "at %llu. %s.", block->nr,
+			  "at %llu. %s.", (unsigned long long)block->nr,
 			  block->device->error);
 		goto error_free_block;
 	}

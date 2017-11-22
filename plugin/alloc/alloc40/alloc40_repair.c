@@ -108,13 +108,13 @@ static errno_t cb_unpack_bitmap(blk_t start, count_t width, void *data)
 			    CRC_SIZE) != CRC_SIZE)
 	{
 		aal_error("Can't unpack the bitmap block (%llu)."
-			  "Steam is over?", start);
+			  "Steam is over?", (unsigned long long)start);
 		return -EIO;
 	}
 
 	if (aal_stream_read(stream, current, chunk) != (int32_t)chunk) {
 		aal_error("Can't unpack the bitmap block (%llu)."
-			  "Steam is over?", start);
+			  "Steam is over?", (unsigned long long)start);
 		return -EIO;
 	}
 	
@@ -300,7 +300,8 @@ void alloc40_print(reiser4_alloc_ent_t *entity,
 
 static void cb_inval_warn(blk_t start, uint32_t ladler, uint32_t cadler) {
 	fsck_mess("Checksum mismatch in bitmap block %llu. Checksum "
-		  "is 0x%x, should be 0x%x.", start, ladler, cadler);
+		  "is 0x%x, should be 0x%x.",
+		  (unsigned long long)start, ladler, cadler);
 }
 
 /* Checks allocator on validness  */

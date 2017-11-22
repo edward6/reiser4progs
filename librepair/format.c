@@ -37,14 +37,17 @@ errno_t repair_format_check_len_old(aal_device_t *device,
 	
 	if (blocks > dev_len) {
 		aal_error("Device %s is too small (%llu) for filesystem %llu "
-			  "blocks long.", device->name, dev_len, blocks);
+			  "blocks long.", device->name,
+			  (unsigned long long)dev_len,
+			  (unsigned long long)blocks);
 		return -EINVAL;
 	}
 
 	if (blocks < REISER4_FS_MIN_SIZE(blksize)) {
 		aal_error("Requested filesystem size (%llu) is too small. "
 			  "Reiser4 required minimal size %u blocks long.",
-			  blocks, REISER4_FS_MIN_SIZE(blksize));
+			  (unsigned long long)blocks,
+			  REISER4_FS_MIN_SIZE(blksize));
 		return -EINVAL;
 	}
 
@@ -157,8 +160,10 @@ errno_t repair_format_check_struct(reiser4_fs_t *fs,
 			if (blocks != MAX_UINT64 && blocks != hint.blocks) {
 				aal_warn("Number of blocks found in the super "
 					 "block (%llu) is not equal to the size"
-					 " of the partition (%llu).%s", blocks,
-					 hint.blocks, mode != RM_BUILD ? 
+					 " of the partition (%llu).%s",
+					 (unsigned long long)blocks,
+					 (unsigned long long)hint.blocks,
+					 mode != RM_BUILD ? 
 					 " Assuming this is correct.": "");
 			}
 		} else {

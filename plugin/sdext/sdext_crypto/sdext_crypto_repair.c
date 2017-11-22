@@ -50,7 +50,8 @@ errno_t sdext_crypto_check_struct(stat_entity_t *stat,
 	if (stat->offset + len > stat->place->len) {
 		fsck_mess("Node (%llu), item (%u), [%s]: does not look "
 			  "like a valid (%s) statdata extension.", 
-			  place_blknr(stat->place), stat->place->pos.item,
+			  (unsigned long long)place_blknr(stat->place),
+			  stat->place->pos.item,
 			  print_key(sdext_crypto_core, &stat->place->key), 
 			  stat->plug->p.label);
 		

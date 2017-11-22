@@ -54,7 +54,9 @@ static errno_t cb_fetch_journal(blk_t start, count_t width, void *data) {
 					       start)))
 	{
 		aal_error("Can't read journal header from block "
-			  "%llu. %s.", start, journal->device->error);
+			  "%llu. %s.",
+			  (unsigned long long)start,
+			  journal->device->error);
 		return -EIO;
 	}
 	
@@ -64,8 +66,9 @@ static errno_t cb_fetch_journal(blk_t start, count_t width, void *data) {
 					       start + 1)))
 	{
 		aal_error("Can't read journal footer from block %llu. %s.",
-				    start + 1, journal->device->error);
-		
+			  (unsigned long long)(start + 1),
+			  journal->device->error);
+
 		aal_block_free(journal->header);
 		return -EIO;
 	}
@@ -126,7 +129,7 @@ static errno_t cb_alloc_journal(blk_t start, count_t width, void *data) {
 						start)))
 	{
 		aal_error("Can't alloc journal header on "
-			  "block %llu.", start);
+			  "block %llu.", (unsigned long long)start);
 		return -ENOMEM;
 	}
 
@@ -135,7 +138,7 @@ static errno_t cb_alloc_journal(blk_t start, count_t width, void *data) {
 						start + 1)))
 	{
 		aal_error("Can't alloc journal footer "
-			  "on block %llu.", start + 1);
+			  "on block %llu.", (unsigned long long)(start + 1));
 		
 		aal_block_free(journal->header);
 		return -ENOMEM;
@@ -255,7 +258,8 @@ static errno_t journal40_update(journal40_t *journal) {
 					last_commited_tx)))
 	{
 		aal_error("Can't read block %llu while updating "
-			  "the journal. %s.", last_commited_tx,
+			  "the journal. %s.",
+			  (unsigned long long)last_commited_tx,
 			  device->error);
 		return -EIO;
 	}
@@ -344,7 +348,7 @@ errno_t journal40_traverse_trans(
 		{
 			aal_error("Can't read block %llu while "
 				  "traversing the journal. %s.", 
-				  log_blk, device->error);
+				  (unsigned long long)log_blk, device->error);
 			return -EIO;
 		}
 
@@ -390,7 +394,7 @@ errno_t journal40_traverse_trans(
 				{
 					aal_error("Can't read block %llu while "
 						  "traversing the journal. %s.",
-						  get_le_wandered(entry), 
+						  (unsigned long long)get_le_wandered(entry),
 						  device->error);
 					res = -EIO;
 					goto error_free_log_block;
@@ -472,7 +476,9 @@ errno_t journal40_traverse(
 						txh_blk)))
 		{
 			aal_error("Can't read block %llu while traversing "
-				  "the journal. %s.", txh_blk, device->error);
+				  "the journal. %s.",
+				  (unsigned long long)txh_blk,
+				  device->error);
 			res = -EIO;
 			goto error_free_tx_list;
 		}
@@ -529,7 +535,8 @@ static errno_t cb_replay(reiser4_journal_ent_t *entity,
 	aal_block_move(block, PLUG_ENT(entity)->device, orig);
 	    
 	if ((res = aal_block_write(block))) {
-		aal_error("Can't write block %llu.", block->nr);
+		aal_error("Can't write block %llu.",
+			  (unsigned long long)block->nr);
 		aal_block_free(block);
 	}
 
@@ -559,7 +566,8 @@ static errno_t cb_print_replay(reiser4_journal_ent_t *entity,
 		return 0;
 
 	aal_mess("Replaying transaction: id %llu, block count %lu.",
-		 header->th_id, (long unsigned)header->th_total);
+		 (unsigned long long)header->th_id,
+		 (long unsigned)header->th_total);
 
 	count->tx_count++;
 	
@@ -596,7 +604,8 @@ static errno_t journal40_replay(reiser4_journal_ent_t *entity) {
 			 "replayed of the total %llu blocks.", 
 			 journal40_plug.p.label, 
 			 PLUG_ENT(entity)->device->name, 
-			 count.tx_count, count.blk_count);
+			 (unsigned long long)count.tx_count,
+			 (unsigned long long)count.blk_count);
 	}
 
 	/* Invalidate the journal. */

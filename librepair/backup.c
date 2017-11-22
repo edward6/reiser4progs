@@ -17,7 +17,8 @@ static errno_t cb_pack(blk_t blk, uint64_t count, void *data) {
 	
 	if (!(block = aal_block_load(fs->device, size, blk))) {
 		aal_error("Failed to load a block (%llu) of "
-			  "the fs metadata backup.", blk);
+			  "the fs metadata backup.",
+			  (unsigned long long)blk);
 		return -EIO;
 	}
 
@@ -48,7 +49,8 @@ static errno_t cb_unpack(blk_t blk, uint64_t count, void *data) {
 	
 	if (!(block = aal_block_alloc(fs->device, size, blk))) {
 		aal_error("Failed to allocate a block (%llu) "
-			  "for the fs metadata backup.", blk);
+			  "for the fs metadata backup.",
+			  (unsigned long long)blk);
 		return -ENOMEM;
 	}
 
@@ -62,7 +64,8 @@ static errno_t cb_unpack(blk_t blk, uint64_t count, void *data) {
 	return 0;
 	
  error_free_block:
-	aal_error("Can't unpack the block (%llu). Stream is over?", blk);
+	aal_error("Can't unpack the block (%llu). Stream is over?",
+		  (unsigned long long)blk);
 	aal_block_free(block);
 	return -EIO;
 }
@@ -480,7 +483,8 @@ reiser4_backup_t *repair_backup_open(reiser4_fs_t *fs, uint8_t mode) {
 	
 	if (app->total != app->count) {
 		fsck_mess("Only %llu of %llu backup blocks are found.",
-			  app->count, app->total);
+			  (unsigned long long)app->count,
+			  (unsigned long long)app->total);
 
 		if (mode != RM_BUILD)
 			goto error_free_ondisk;

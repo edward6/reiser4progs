@@ -145,7 +145,8 @@ static errno_t tree_frag_process_node(reiser4_node_t *node, void *data) {
 		/* Initializing item at @place */
 		if (reiser4_place_open(&place, node, &pos)) {
 			aal_error("Can't open item %u in node %llu.",
-				  pos.item, node->block->nr);
+				  pos.item,
+				  (unsigned long long)node->block->nr);
 			return -EINVAL;
 		}
 
@@ -345,7 +346,8 @@ static errno_t stat_process_node(reiser4_node_t *node, void *data) {
 		/* Fetching item data. */
 		if ((res = reiser4_place_open(&place, node, &pos))) {
 			aal_error("Can't open item %u in node %llu.",
-				  pos.item, node->block->nr);
+				  pos.item,
+				  (unsigned long long)node->block->nr);
 			return res;
 		}
 
@@ -449,24 +451,35 @@ errno_t measurefs_tree_stat(reiser4_fs_t *fs, uint32_t flags) {
 	       (stat_hint.leaves_used * 100) / blksize);
 
 	printf("Node statistics:\n");
-	printf("  Total nodes:%*llu\n", 15, stat_hint.nodes);
+	printf("  Total nodes:%*llu\n", 15,
+	       (unsigned long long)stat_hint.nodes);
 
-	printf("  Formatted nodes:%*llu\n", 11, stat_hint.formatted);
+	printf("  Formatted nodes:%*llu\n", 11,
+	       (unsigned long long)stat_hint.formatted);
 
-	printf("  Unformatted nodes:%*llu\n", 9, stat_hint.nodes -
-	       stat_hint.formatted);
+	printf("  Unformatted nodes:%*llu\n", 9,
+	       (unsigned long long)(stat_hint.nodes - stat_hint.formatted));
 
-	printf("  Branch nodes:%*llu\n", 14, stat_hint.branches);
-	printf("  Twig nodes:%*llu\n", 16, stat_hint.twigs);
-	printf("  Leaf nodes:%*llu\n\n", 16, stat_hint.leaves);
+	printf("  Branch nodes:%*llu\n", 14,
+	       (unsigned long long)stat_hint.branches);
+	printf("  Twig nodes:%*llu\n", 16,
+	       (unsigned long long)stat_hint.twigs);
+	printf("  Leaf nodes:%*llu\n\n", 16,
+	       (unsigned long long)stat_hint.leaves);
 	
 	printf("Item statistics:\n");
-	printf("  Total items:%*llu\n", 15, stat_hint.items);
-	printf("  Nodeptr items:%*llu\n", 13, stat_hint.nodeptrs);
-	printf("  Statdata items:%*llu\n", 11, stat_hint.statdatas);
-	printf("  Direntry items:%*llu\n", 12, stat_hint.direntries);
-	printf("  Tail items:%*llu\n", 16, stat_hint.tails);
-	printf("  Extent items:%*llu\n", 14, stat_hint.extents);
+	printf("  Total items:%*llu\n", 15,
+	       (unsigned long long)stat_hint.items);
+	printf("  Nodeptr items:%*llu\n", 13,
+	       (unsigned long long)stat_hint.nodeptrs);
+	printf("  Statdata items:%*llu\n", 11,
+	       (unsigned long long)stat_hint.statdatas);
+	printf("  Direntry items:%*llu\n", 12,
+	       (unsigned long long)stat_hint.direntries);
+	printf("  Tail items:%*llu\n", 16,
+	       (unsigned long long)stat_hint.tails);
+	printf("  Extent items:%*llu\n", 14,
+	       (unsigned long long)stat_hint.extents);
 	return 0;
 }
 
@@ -569,7 +582,8 @@ static errno_t data_frag_process_node(reiser4_node_t *node, void *data) {
 		/* Initialiing the item at @place */
 		if ((res = reiser4_place_open(&place, node, &pos))) {
 			aal_error("Can't open item %u in node %llu.",
-				  pos.item, node->block->nr);
+				  pos.item,
+				  (unsigned long long)node->block->nr);
 			return res;
 		}
 

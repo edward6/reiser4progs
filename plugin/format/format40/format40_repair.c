@@ -29,7 +29,8 @@ errno_t format40_update(reiser4_format_ent_t *entity) {
 		return res;
 	
 	if ((res = aal_block_read(&block))) {
-		aal_error("Failed to read the block (%llu).", blk);
+		aal_error("Failed to read the block (%llu).",
+			  (unsigned long long)blk);
 		goto error_free_block;
 	}
 	
@@ -234,7 +235,8 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 		if (get_sb_flags(super) != get_sb_flags(backup)) {
 			fsck_mess("The on-disk format flags (0x%llx) does "
 				  "not match the backup one (0x%llx).%s",
-				  get_sb_flags(super), get_sb_flags(backup),
+				  (unsigned long long)get_sb_flags(super),
+				  (unsigned long long)get_sb_flags(backup),
 				  mode == RM_BUILD ? " Fixed." : "");
 
 			if (mode == RM_BUILD) {
@@ -254,8 +256,8 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 		if (get_sb_block_count(super) != get_sb_block_count(backup)) {
 			fsck_mess("The on-disk format block count (%llu) does "
 				  "not match the backup one (%llu).%s",
-				  get_sb_block_count(super), 
-				  get_sb_block_count(backup), 
+				  (unsigned long long)get_sb_block_count(super),
+				  (unsigned long long)get_sb_block_count(backup),
 				  mode == RM_BUILD ? " Fixed." : "");
 
 			if (mode == RM_BUILD) {
@@ -288,7 +290,8 @@ errno_t format40_check_struct(reiser4_format_ent_t *entity,
 		if (get_sb_block_count(super) != desc->blocks) {
 			fsck_mess("The on-disk format block count (%llu) does "
 				  "not match the specified one (%llu).%s",
-				  get_sb_block_count(super), desc->blocks,
+				  (unsigned long long)get_sb_block_count(super),
+				  (unsigned long long)desc->blocks,
 				  mode == RM_BUILD ? " Fixed." : "");
 
 			if (mode == RM_BUILD) {

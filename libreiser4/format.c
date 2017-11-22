@@ -161,14 +161,17 @@ errno_t reiser4_format_check_len(aal_device_t *device,
 	
 	if (blocks > dev_len) {
 		aal_error("Device %s is too small (%llu) for filesystem %llu "
-			  "blocks long.", device->name, dev_len, blocks);
+			  "blocks long.", device->name,
+			  (unsigned long long)dev_len,
+			  (unsigned long long)blocks);
 		return -EINVAL;
 	}
 
 	if (blocks < REISER4_FS_MIN_SIZE(blksize)) {
 		aal_error("Requested filesystem size (%llu) is too small. "
 			  "Reiser4 required minimal size %u blocks long.",
-			  blocks, REISER4_FS_MIN_SIZE(blksize));
+			  (unsigned long long)blocks,
+			  REISER4_FS_MIN_SIZE(blksize));
 		return -EINVAL;
 	}
 
@@ -398,7 +401,8 @@ errno_t reiser4_format_dec_free(reiser4_format_t *format, uint64_t count) {
 
 	if (saved < count) {
 		aal_error("Format does not have enough (%llu) blocks "
-			  "to allocate (%llu).", saved, count);
+			  "to allocate (%llu).",
+			  (unsigned long long)saved, (unsigned long long)count);
 		return -ENOSPC;
 	}
 

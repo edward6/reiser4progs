@@ -140,10 +140,13 @@ static inline void obj40_check_bytes_report(reiser4_place_t *start,
 					    uint64_t correct_bytes)
 {
 	fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong bytes "
-		  "(%llu), %s (%llu).", place_blknr(start),
+		  "(%llu), %s (%llu).",
+		  (unsigned long long)place_blknr(start),
 		  start->pos.item, print_inode(core, &start->key),
-		  start->plug->p.label, found_bytes, mode == RM_CHECK ?
-		  "Should be" : "Fixed to", correct_bytes);
+		  start->plug->p.label,
+		  (unsigned long long)found_bytes,
+		  mode == RM_CHECK ? "Should be" : "Fixed to",
+		  (unsigned long long)correct_bytes);
 }
 
 static inline int obj40_check_mode(reiser4_object_t *obj, 
@@ -183,7 +186,8 @@ static inline errno_t obj40_stat_unix_check(reiser4_object_t *obj,
 		}
 		
 		fsck_mess("Node (%llu), item (%u), [%s] (%s): no mandatory "
-			  "unix extention.%s Plugin (%s).", place_blknr(start),
+			  "unix extention.%s Plugin (%s).",
+			  (unsigned long long)place_blknr(start),
 			  start->pos.item, print_inode(obj40_core, &start->key),
 			  start->plug->p.label, mode != RM_CHECK ? 
 			  " Added." : "", reiser4_psobj(obj)->p.label);
@@ -281,10 +285,10 @@ static inline errno_t obj40_stat_lw_check(reiser4_object_t *obj,
 		{
 			return 0;
 		}
-		
 		fsck_mess("Node (%llu), item (%u), [%s] (%s): no mandatory "
 			  "light-weight extention.%s Plugin (%s).",
-			  place_blknr(start), start->pos.item, 
+			  (unsigned long long)place_blknr(start),
+			  start->pos.item, 
 			  print_inode(obj40_core, &start->key),
 			  start->plug->p.label, mode != RM_CHECK ? 
 			  "Added." : "", reiser4_psobj(obj)->p.label);
@@ -348,9 +352,11 @@ static inline errno_t obj40_stat_lw_check(reiser4_object_t *obj,
 
 	if (fixed) {
 		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong mode (%u), "
-			  "%s (%u).", place_blknr(start), start->pos.item, 
-			  print_inode(obj40_core, &start->key), 
-			  start->plug->p.label, lwh.mode, mode == RM_CHECK ? 
+			  "%s (%u).",
+			  (unsigned long long)place_blknr(start),
+			  start->pos.item,
+			  print_inode(obj40_core, &start->key),
+			  start->plug->p.label, lwh.mode, mode == RM_CHECK ?
 			  "Should be" : "Fixed to", correct.mode);
 
 		res = RE_FIXABLE;
@@ -367,10 +373,14 @@ static inline errno_t obj40_stat_lw_check(reiser4_object_t *obj,
 
 	if (fixed) {
 		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong size (%llu)"
-			  ", %s (%llu).", place_blknr(start), start->pos.item, 
-			  print_inode(obj40_core, &start->key), 
-			  start->plug->p.label, lwh.size, mode == RM_CHECK ? 
-			  "Should be" : "Fixed to", correct.size);
+			  ", %s (%llu).",
+			  (unsigned long long)place_blknr(start),
+			  start->pos.item,
+			  print_inode(obj40_core, &start->key),
+			  start->plug->p.label,
+			  (unsigned long long)lwh.size,
+			  mode == RM_CHECK ? "Should be" : "Fixed to",
+			  (unsigned long long)correct.size);
 
 		res = RE_FIXABLE;
 	}
@@ -413,14 +423,15 @@ static inline errno_t obj40_stat_pset_check(reiser4_object_t *obj,
 	if ((diff = (mask != obj->info.pset.plug_mask))) {
 		fsck_mess("Node (%llu), item (%u), [%s] (%s): wrong plugin "
 			  "set is stored on disk (0x%llx). %s (0x%llx).",
-			  place_blknr(start), start->pos.item,
+			  (unsigned long long)place_blknr(start),
+			  start->pos.item,
 			  print_inode(obj40_core, &start->key),
-			  start->plug->p.label, obj->info.pset.plug_mask,
+			  start->plug->p.label,
+			  (unsigned long long)obj->info.pset.plug_mask,
 			  mode == RM_CHECK ? "Should be" : "Fixed to",
-			  mask);
+			  (unsigned long long)mask);
 	}
-	
-	if (!diff || mode == RM_CHECK) 
+	if (!diff || mode == RM_CHECK)
 		return diff ? RE_FIXABLE : 0;
 
 	/* Prepare hints. For removing & adding plug extention. */
@@ -480,7 +491,8 @@ errno_t obj40_update_stat(reiser4_object_t *obj, obj40_stat_ops_t *ops,
 	if ((extmask = obj40_extmask(start)) == MAX_UINT64) {
 		aal_error("Node (%llu), item (%u), (%s): failed "
 			  "to obtain the StatData extention mask.",
-			  place_blknr(start), start->pos.item,
+			  (unsigned long long)place_blknr(start),
+			  start->pos.item,
 			  start->plug->p.label);
 		return -EIO;
 	}
@@ -497,10 +509,12 @@ errno_t obj40_update_stat(reiser4_object_t *obj, obj40_stat_ops_t *ops,
 		
 		fsck_mess("Node (%llu), item (%u), [%s]: StatData has some "
 			  "unknown extentions (mask=%llu).%s Plugin (%s).",
-			  place_blknr(start), start->pos.item, 
+			  (unsigned long long)place_blknr(start),
+			  start->pos.item,
 			  print_inode(obj40_core, &start->key),
-			  stat.extmask, mode != RM_CHECK ? 
-			  " Removed." : "", start->plug->p.label);
+			  (unsigned long long)stat.extmask,
+			  mode != RM_CHECK ? " Removed." : "",
+			  start->plug->p.label);
 
 		if (mode != RM_CHECK) {
 			trans.specific = &stat;
@@ -573,7 +587,8 @@ errno_t obj40_prepare_stat(reiser4_object_t *obj, uint16_t objmode, uint8_t mode
 		   object was created. */
 		fsck_mess("Node (%llu), item (%u), (%s): not "
 			  "StatData is found by the key (%s).%s",
-			  place_blknr(start), start->pos.item, 
+			  (unsigned long long)place_blknr(start),
+			  start->pos.item, 
 			  start->plug->p.label, print_key(obj40_core, key),
 			  mode == RM_BUILD ? "Removed." : "");
 
