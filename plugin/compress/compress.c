@@ -24,4 +24,10 @@ reiser4_plug_t gzip1_plug = {
 	.desc  = "gzip1 compression transform plugin.",
 };
 
+reiser4_plug_t zstd1_plug = {
+	.id    = {COMPRESS_ZSTD1_ID, 0, COMPRESS_PLUG_TYPE},
+	.label = "zstd1",
+	.desc  = "zstd1 compression transform plugin.",
+};
+
 #endif
