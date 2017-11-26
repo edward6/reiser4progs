@@ -264,6 +264,7 @@ enum reiser4_perm_plug_id {
 enum reiser4_compress_plug_id {
 	COMPRESS_LZO1_ID	= 0x0,
 	COMPRESS_GZIP1_ID	= 0x1,
+	COMPRESS_ZSTD1_ID	= 0x2,
 	COMPRESS_LAST_ID
 };
 
