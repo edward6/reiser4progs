@@ -93,7 +93,7 @@ struct reiser4_plug {
  * NOTE: Make sure that respective marco is also incremented in
  * the new release of reiser4 kernel module.
  */
-#define PLUGIN_LIBRARY_VERSION 1
+#define PLUGIN_LIBRARY_VERSION 2
 
 /* Known by library plugin types. */
 typedef enum reiser4_plug_type {
