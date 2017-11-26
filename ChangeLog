@@ -6,6 +6,10 @@ reiser4progs/COPYING.
 This file may be modified and/or distributed without restriction. This is
 not an invitation to misrepresent the history of reiser4progs.
 
+2017-11-26
+	1.2.0 version;
+	Format release 4.0.2;
+	ZSTD1 compression support.
 2015-08-14
 	1.1.0 version
 2015-08-14
