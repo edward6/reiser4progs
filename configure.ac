@@ -15,7 +15,7 @@ AH_TEMPLATE([LIBREISER4_MIN_INTERFACE_VERSION], [Define to the min interface ver
 
 LIBREISER4_MAJOR_VERSION=1
 LIBREISER4_MINOR_VERSION=2
-LIBREISER4_MICRO_VERSION=0
+LIBREISER4_MICRO_VERSION=1
 
 LIBREISER4_INTERFACE_AGE=0
 LIBREISER4_BINARY_AGE=0
@@ -408,7 +408,7 @@ if test "x$with_readline" = xyes && test "x$redundant_decls" == xyes; then
 fi
  
 # Force no alignment to save space.
-if test "x$falign_loop_flag" = xyes; then
+if test "x$falign_loop_flag_cv_" = xyes; then
   	ALIGN_FLAGS="-falign-jumps=1 -falign-loops=1 -falign-functions=1 \
 -falign-labels=1 -fno-inline -fstrength-reduce"
 else
