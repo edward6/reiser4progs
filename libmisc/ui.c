@@ -236,21 +236,29 @@ static int64_t misc_numeric_handler(
 	return value; 
 }
 
-void misc_print_banner(char *name) {
+void misc_print_banner_of(char *str, const char *copyright) {
 	char *banner;
    
-	fprintf(stderr, "%s %s\n", name, VERSION);
-	fprintf(stderr, "Format release: 4.%d.%d\n",
+	fprintf(stderr, "%s \n%s %s\n", str, "Package Version:", VERSION);
+	fprintf(stderr, "Software Framework Release: 4.%d.%d\n",
 		get_release_number_major(),
 		get_release_number_minor());
     
 	if (!(banner = aal_calloc(255, 0)))
 		return;
     
-	aal_snprintf(banner, 255, BANNER);
+	aal_snprintf(banner, 255, copyright);
 	misc_print_wrap(stderr, banner);
 	fprintf(stderr, "\n");
 	aal_free(banner);
+}
+
+void misc_print_banner(char *str) {
+	misc_print_banner_of(str, COPYRIGHT_REISER);
+}
+
+void misc_print_banner_noname(char *str) {
+	misc_print_banner_of(str, "");
 }
 
 static void _init(void) __attribute__((constructor));

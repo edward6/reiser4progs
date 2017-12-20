@@ -14,13 +14,13 @@
 reiser4_plug_t triv_dst_plug = {
 	.id    = {DST_TRIV_ID, 0, DST_PLUG_TYPE},
 	.label = "trivial",
-	.desc  = "Trivial distribution plugin.",
+	.desc  = "Trivial distribution.",
 };
 
 reiser4_plug_t fsw32_plug = {
 	.id    = {DST_FSW32_ID, 0, DST_PLUG_TYPE},
-	.label = "fsw32",
-	.desc  = "Fiber-striped distribution plugin.",
+	.label = "fsw32m",
+	.desc  = "Fiber-striped array over Murmur hash.",
 };
 
 #endif

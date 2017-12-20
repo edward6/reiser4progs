@@ -13,6 +13,6 @@ static inline unsigned int get_release_number_minor(void)
         return PLUGIN_LIBRARY_VERSION;
 }
 
-#define BANNER						     \
+#define COPYRIGHT_REISER			\
     "Copyright (C) 2001-2005 by Hans Reiser, "  \
     "licensing governed by reiser4progs/COPYING."

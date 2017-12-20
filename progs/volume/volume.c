@@ -124,11 +124,17 @@ static void print_volume(struct reiser4_vol_op_args *info)
 	vol = info->u.vol.vpid;
 	dst = info->u.vol.dpid;
 
-	if (!(dst_plug = reiser4_factory_ifind(DST_PLUG_TYPE, dst)))
+	if (!(dst_plug = reiser4_factory_ifind(DST_PLUG_TYPE, dst))) {
 		aal_error("Can't find distrib plugin by its id 0x%x.", dst);
+		return;
+	}
 
-	if (!(vol_plug = reiser4_factory_ifind(VOL_PLUG_TYPE, vol)))
+	if (!(vol_plug = reiser4_factory_ifind(VOL_PLUG_TYPE, vol))) {
 		aal_error("Can't find volume plugin by its id 0x%x.", vol);
+		return;
+	}
+
+	aal_stream_format(&stream, "%s\n", "Logical Volume Info:");
 
 	aal_stream_format(&stream, "volume:\t\t0x%x (%s)\n",
 			  vol, vol_plug ? vol_plug->label : "absent");
@@ -146,9 +152,8 @@ static void print_volume(struct reiser4_vol_op_args *info)
 			  info->u.vol.nr_bricks :
 			  - info->u.vol.nr_bricks - 1);
 
-	aal_stream_format(&stream, "volinfo addr:\t%llu %s\n",
-			  info->u.vol.volinfo_addr,
-			  info->u.vol.volinfo_addr ? "" : "(none)");
+	aal_stream_format(&stream, "volinfo blocks:\t%llu\n",
+			  info->u.vol.nr_volinfo_blocks);
 
 	aal_stream_format(&stream, "balanced:\t%s\n",
 			  aal_test_bit(&info->u.vol.fs_flags,
@@ -161,6 +166,8 @@ static void print_brick(struct reiser4_vol_op_args *info)
 	aal_stream_t stream;
 
 	aal_stream_init(&stream, stdout, &file_stream);
+
+	aal_stream_format(&stream, "%s\n", "Brick Info:");
 
 	aal_stream_format(&stream, "internal ID:\t%u\n",
 			  info->u.brick.int_id);
@@ -187,6 +194,13 @@ static void print_brick(struct reiser4_vol_op_args *info)
 
 	aal_stream_format(&stream, "data room:\t%llu\n",
 			  info->u.brick.data_room);
+
+	aal_stream_format(&stream, "volinfo addr:\t%llu %s\n",
+			  info->u.brick.volinfo_addr,
+			  info->u.brick.volinfo_addr ? "" : "(none)");
+
+
+	aal_stream_fini(&stream);
 }
 
 int main(int argc, char *argv[]) {
@@ -231,7 +245,7 @@ int main(int argc, char *argv[]) {
 			volmgr_print_usage(argv[0]);
 			return NO_ERROR;
 		case 'V':
-			misc_print_banner(argv[0]);
+			misc_print_banner_noname(argv[0]);
 			return NO_ERROR;
 		case 'f':
 			flags |= BF_FORCE;
@@ -301,7 +315,7 @@ int main(int argc, char *argv[]) {
 		info.opcode = REISER4_PRINT_VOLUME;
 
 	if (!(flags & BF_YES))
-		misc_print_banner(argv[0]);
+		misc_print_banner_noname(argv[0]);
 
 	if (libreiser4_init()) {
 		aal_error("Can't initialize libreiser4.");

@@ -9,7 +9,8 @@
 #include <aal/libaal.h>
 
 extern uint16_t misc_screen_width(void);
-extern void misc_print_banner(char *name);
+extern void misc_print_banner(char *str);
+extern void misc_print_banner_noname(char *str);
 
 extern void misc_wipe_line(void *stream);
 extern void misc_print_wrap(void *stream, char *text);
