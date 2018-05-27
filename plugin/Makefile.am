@@ -32,6 +32,7 @@ libreiser4_plugin_la_LIBADD       = format/format40/libformat40-static.la \
                                     object/obj40/libobj40-static.la \
                                     object/dir40/libdir40-static.la \
                                     object/reg40/libreg40-static.la \
+                                    object/reg42/libreg42-static.la \
                                     object/sym40/libsym40-static.la \
                                     object/spl40/libspl40-static.la \
                                     object/ccreg40/libccreg40-static.la \

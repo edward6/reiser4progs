@@ -605,6 +605,7 @@ AC_OUTPUT([
     	plugin/object/sym40/Makefile
     	plugin/object/spl40/Makefile
     	plugin/object/ccreg40/Makefile
+	plugin/object/reg42/Makefile
     	plugin/policy/Makefile
     	plugin/policy/tails/Makefile
     	plugin/policy/extents/Makefile

@@ -248,6 +248,7 @@ errno_t reiser4_factory_init(void) {
 	
 	__load_plug(dir40);
 	__load_plug(reg40);
+	__load_plug(reg42);
 	
 #ifdef ENABLE_SPECIAL
 	__load_plug(spl40);

@@ -133,6 +133,7 @@ enum reiser4_object_plug_id {
 	OBJECT_SYM40_ID		= 0x2,
 	OBJECT_SPL40_ID	        = 0x3,
 	OBJECT_CCREG40_ID	= 0x4,
+	OBJECT_REG42_ID 	= 0x5,
 	OBJECT_LAST_ID
 };
 
