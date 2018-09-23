@@ -46,7 +46,8 @@ uint64_t extent40_offset(reiser4_place_t *place, uint32_t pos) {
 
 /* Builds the key of the unit at @pos and stores it inside passed @key
    variable. It is needed for updating item key after shifting, etc. */
-static errno_t extent40_fetch_key(reiser4_place_t *place, reiser4_key_t *key) {
+errno_t extent40_fetch_key(reiser4_place_t *place, reiser4_key_t *key)
+{
 	aal_assert("vpf-623", key != NULL);
 	aal_assert("vpf-622", place != NULL);
 
@@ -56,13 +57,15 @@ static errno_t extent40_fetch_key(reiser4_place_t *place, reiser4_key_t *key) {
 
 #ifndef ENABLE_MINIMAL
 /* Returns item size in bytes */
-static uint64_t extent40_size(reiser4_place_t *place) {
+uint64_t extent40_size(reiser4_place_t *place)
+{
 	uint32_t units = extent40_units(place);
 	return extent40_offset(place, units);
 }
 
 /* Returns actual item size on disk */
-static uint64_t extent40_bytes(reiser4_place_t *place) {
+uint64_t extent40_bytes(reiser4_place_t *place)
+{
 	extent40_t *extent;
 	uint64_t i, blocks;
     
@@ -101,7 +104,8 @@ uint32_t extent40_unit(reiser4_place_t *place, uint64_t offset) {
 }
 
 /* Removes @count byte from passed @place at @pos */
-static errno_t extent40_remove_units(reiser4_place_t *place, trans_hint_t *hint) {
+errno_t extent40_remove_units(reiser4_place_t *place, trans_hint_t *hint)
+{
 	uint32_t len;
 	uint32_t pos;
 	void *src, *dst;
@@ -179,8 +183,7 @@ static errno_t extent40_remove_units(reiser4_place_t *place, trans_hint_t *hint)
 }
 
 /* Truncates extent item stating from left by @hint->count bytes. */
-static int64_t extent40_trunc_units(reiser4_place_t *place,
-				    trans_hint_t *hint)
+int64_t extent40_trunc_units(reiser4_place_t *place, trans_hint_t *hint)
 {
 	int32_t size;
 	uint32_t epos;
@@ -393,8 +396,7 @@ lookup_t extent40_lookup(reiser4_place_t *place,
 #ifndef ENABLE_MINIMAL
 /* Reads @count bytes of extent data from the extent item at passed @pos into
    specified @buff. Uses data cache. */
-static int64_t extent40_read_units(reiser4_place_t *place,
-				   trans_hint_t *hint)
+int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint)
 {
 	void *buff;
 	uint32_t i;
@@ -530,7 +532,8 @@ static int64_t extent40_read_units(reiser4_place_t *place,
    specified @buff. This function is used in minimal mode. It does not use
    data cache and reads data by 512 bytes chunks. This is needed because of
    GRUB, which has ugly mechanism of getting real block numbers data lie in. */
-static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
+int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint)
+{
 	void *buff;
 	uint32_t i;
 	uint32_t read;
@@ -632,7 +635,8 @@ static int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint) {
 #endif
 
 /* Updates extent unit at @place by @data */
-static int64_t extent40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) {
+int64_t extent40_fetch_units(reiser4_place_t *place, trans_hint_t *hint)
+{
 	uint32_t i, pos;
 	extent40_t *extent;
 	ptr_hint_t *ptr_hint;
@@ -657,8 +661,8 @@ static int64_t extent40_fetch_units(reiser4_place_t *place, trans_hint_t *hint) 
 
 #ifndef ENABLE_MINIMAL
 /* Checks if two extent items are mergeable */
-static int extent40_mergeable(reiser4_place_t *place1,
-			      reiser4_place_t *place2)
+int extent40_mergeable(reiser4_place_t *place1,
+		       reiser4_place_t *place2)
 {
 	aal_assert("umka-2199", place1 != NULL);
 	aal_assert("umka-2200", place2 != NULL);
@@ -729,8 +733,7 @@ static errno_t extent40_copy(reiser4_place_t *dst_place, uint32_t dst_pos,
 }
 
 /* Updates extent unit at @place by @data */
-static int64_t extent40_update_units(reiser4_place_t *place,
-				     trans_hint_t *hint)
+int64_t extent40_update_units(reiser4_place_t *place, trans_hint_t *hint)
 {
 	uint32_t i, pos;
 	extent40_t *extent;
@@ -757,8 +760,7 @@ static int64_t extent40_update_units(reiser4_place_t *place,
 
 /* Estmates how many bytes is needed to insert @hint->count extent units to
    passed @place. */
-static errno_t extent40_prep_insert(reiser4_place_t *place,
-				    trans_hint_t *hint)
+errno_t extent40_prep_insert(reiser4_place_t *place, trans_hint_t *hint)
 {
 	aal_assert("umka-2426", place != NULL);
 	aal_assert("umka-2427", hint != NULL);
@@ -768,8 +770,7 @@ static errno_t extent40_prep_insert(reiser4_place_t *place,
 }
 
 /* Inserts one or more extent units to @place */
-static int64_t extent40_insert_units(reiser4_place_t *place,
-				     trans_hint_t *hint)
+int64_t extent40_insert_units(reiser4_place_t *place, trans_hint_t *hint)
 {
 	aal_assert("umka-2429", hint != NULL);
 	aal_assert("umka-2428", place != NULL);
@@ -885,7 +886,8 @@ static aal_block_t *extent40_load_block(reiser4_place_t *place,
 }
 
 /* Estimates extent write operation */
-static errno_t extent40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
+errno_t extent40_prep_write(reiser4_place_t *place, trans_hint_t *hint)
+{
 	reiser4_key_t key;
 	extent40_t *extent;
 
@@ -1012,7 +1014,8 @@ static errno_t extent40_prep_write(reiser4_place_t *place, trans_hint_t *hint) {
 }
 
 /* Writes data to extent. */
-static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) {
+int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint)
+{
 	aal_block_t *block;
 	extent40_t *extent;
 	reiser4_key_t key;
@@ -1267,7 +1270,7 @@ static int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint) 
 
 /* Calls @region_func for each block number extent points to. It is needed for
    calculating fragmentation, etc. */
-static errno_t extent40_layout(reiser4_place_t *place,
+errno_t extent40_layout(reiser4_place_t *place,
 			       region_func_t region_func,
 			       void *data)
 {
@@ -1300,9 +1303,9 @@ static errno_t extent40_layout(reiser4_place_t *place,
 }
 
 /* Estimates how many bytes may be shifted into neighbour item */
-static errno_t extent40_prep_shift(reiser4_place_t *src_place,
-				   reiser4_place_t *dst_place,
-				   shift_hint_t *hint)
+errno_t extent40_prep_shift(reiser4_place_t *src_place,
+			    reiser4_place_t *dst_place,
+			    shift_hint_t *hint)
 {
 	int check_point;
 	uint32_t units;
@@ -1406,9 +1409,9 @@ static errno_t extent40_prep_shift(reiser4_place_t *src_place,
 	return 0;
 }
 
-static errno_t extent40_shift_units(reiser4_place_t *src_place,
-				    reiser4_place_t *dst_place,
-				    shift_hint_t *hint)
+errno_t extent40_shift_units(reiser4_place_t *src_place,
+			     reiser4_place_t *dst_place,
+			     shift_hint_t *hint)
 {
 	uint32_t pos;
 	

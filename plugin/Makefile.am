@@ -27,6 +27,7 @@ libreiser4_plugin_la_LIBADD       = format/format40/libformat40-static.la \
                                     item/plain40/libplain40-static.la \
                                     item/ctail40/libctail40-static.la \
                                     item/extent40/libextent40-static.la \
+                                    item/extent41/libextent41-static.la \
                                     item/stat40/libstat40-static.la \
                                     item/bbox40/libbbox40-static.la \
                                     object/obj40/libobj40-static.la \
@@ -75,6 +76,7 @@ libreiser4_plugin_minimal_la_LIBADD = format/format40/libformat40-minimal.la \
                                     item/plain40/libplain40-minimal.la \
                                     item/ctail40/libctail40-minimal.la \
                                     item/extent40/libextent40-minimal.la \
+                                    item/extent41/libextent41-minimal.la \
                                     item/stat40/libstat40-minimal.la \
                                     item/bbox40/libbbox40-minimal.la \
                                     object/obj40/libobj40-minimal.la \

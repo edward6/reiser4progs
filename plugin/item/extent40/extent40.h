@@ -28,24 +28,50 @@ typedef struct extent40 {
 
 extern reiser4_core_t *extent40_core;
 
-extern uint32_t extent40_units(reiser4_place_t *place);
+extern int extent40_mergeable(reiser4_place_t *place1,
+			      reiser4_place_t *place2);
 
+extern errno_t extent40_prep_shift(reiser4_place_t *src_place,
+				   reiser4_place_t *dst_place,
+				   shift_hint_t *hint);
+
+extern errno_t extent40_shift_units(reiser4_place_t *src_place,
+				    reiser4_place_t *dst_place,
+				    shift_hint_t *hint);
+
+extern errno_t extent40_fetch_key(reiser4_place_t *place, reiser4_key_t *key);
+
+extern errno_t extent40_maxposs_key(reiser4_place_t *place,
+				    reiser4_key_t *key);
+extern errno_t extent40_remove_units(reiser4_place_t *place,
+				     trans_hint_t *hint);
+extern int64_t extent40_update_units(reiser4_place_t *place,
+				     trans_hint_t *hint);
+extern errno_t extent40_prep_insert(reiser4_place_t *place, trans_hint_t *hint);
+extern int64_t extent40_insert_units(reiser4_place_t *place,
+				     trans_hint_t *hint);
+extern errno_t extent40_prep_write(reiser4_place_t *place, trans_hint_t *hint);
+extern int64_t extent40_write_units(reiser4_place_t *place, trans_hint_t *hint);
+extern int64_t extent40_trunc_units(reiser4_place_t *place, trans_hint_t *hint);
+extern errno_t extent40_layout(reiser4_place_t *place,
+			       region_func_t region_func,
+			       void *data);
+extern uint64_t extent40_size(reiser4_place_t *place);
+extern uint64_t extent40_bytes(reiser4_place_t *place);
+extern int64_t extent40_read_units(reiser4_place_t *place, trans_hint_t *hint);
+extern int64_t extent40_fetch_units(reiser4_place_t *place, trans_hint_t *hint);
+extern uint32_t extent40_units(reiser4_place_t *place);
 extern uint64_t extent40_offset(reiser4_place_t *place,
 				uint32_t pos);
-
 extern uint32_t extent40_unit(reiser4_place_t *place,
 			      uint64_t offset);
-
 extern lookup_t extent40_lookup(reiser4_place_t *place,
 				lookup_hint_t *hint,
 				lookup_bias_t bias);
-
 extern errno_t extent40_maxreal_key(reiser4_place_t *place,
 				    reiser4_key_t *key);
-
 extern uint32_t extent40_expand(reiser4_place_t *place,
 				uint32_t pos, uint32_t count);
-
 extern uint32_t extent40_shrink(reiser4_place_t *place,
 				uint32_t pos, uint32_t count);
 

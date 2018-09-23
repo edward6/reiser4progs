@@ -157,6 +157,7 @@ enum reiser4_item_plug_id {
 	ITEM_PLAIN40_ID		= 0x6,
 	ITEM_CTAIL40_ID		= 0x7,
 	ITEM_BLACKBOX40_ID	= 0x8,
+	ITEM_EXTENT41_ID	= 0x9,
 	ITEM_LAST_ID
 };
 

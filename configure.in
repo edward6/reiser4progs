@@ -597,6 +597,7 @@ AC_OUTPUT([
     	plugin/item/plain40/Makefile
     	plugin/item/ctail40/Makefile
     	plugin/item/extent40/Makefile
+	plugin/item/extent41/Makefile
     	plugin/item/bbox40/Makefile
     	plugin/object/Makefile
     	plugin/object/obj40/Makefile

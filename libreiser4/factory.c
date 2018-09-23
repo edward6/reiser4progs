@@ -226,6 +226,8 @@ errno_t reiser4_factory_init(void) {
 #endif
 	__load_plug(extent40);
 	__init_plug(extent40);
+
+	__load_plug(extent41);
 	
 	__load_plug(nodeptr40);
 	__init_plug(nodeptr40);
