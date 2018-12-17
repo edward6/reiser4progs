@@ -118,11 +118,25 @@ static void print_volume(struct reiser4_vol_op_args *info)
 	rid_t vol, dst;
 	aal_stream_t stream;
 	reiser4_plug_t *vol_plug, *dst_plug;
+	int nr_bricks;
+	int bricks_in_dsa;
 
 	aal_stream_init(&stream, stdout, &file_stream);
 
 	vol = info->u.vol.vpid;
 	dst = info->u.vol.dpid;
+
+	nr_bricks = info->u.vol.nr_bricks;
+	if (nr_bricks < 0) {
+		/*
+		 * negative number of bricks passed means
+		 * that meta-data brick doesn't belong to
+		 * data storage array
+		 */
+		nr_bricks = -nr_bricks;
+		bricks_in_dsa = nr_bricks - 1;
+	} else
+		bricks_in_dsa = nr_bricks;
 
 	if (!(dst_plug = reiser4_factory_ifind(DST_PLUG_TYPE, dst))) {
 		aal_error("Can't find distrib plugin by its id 0x%x.", dst);
@@ -139,18 +153,14 @@ static void print_volume(struct reiser4_vol_op_args *info)
 	aal_stream_format(&stream, "volume:\t\t0x%x (%s)\n",
 			  vol, vol_plug ? vol_plug->label : "absent");
 
-	aal_stream_format(&stream, "distrib:\t0x%x (%s)\n",
+	aal_stream_format(&stream, "distribution:\t0x%x (%s)\n",
 			  dst, dst_plug ? dst_plug->label : "absent");
 
-	aal_stream_format(&stream, "total bricks:\t%u\n",
-			  info->u.vol.nr_bricks >= 0 ?
-			  info->u.vol.nr_bricks :
-			  - info->u.vol.nr_bricks);
+	aal_stream_format(&stream, "bricks total:\t%d\n", nr_bricks);
 
-	aal_stream_format(&stream, "bricks in AID:\t%u\n",
-			  info->u.vol.nr_bricks >= 0 ?
-			  info->u.vol.nr_bricks :
-			  - info->u.vol.nr_bricks - 1);
+	aal_stream_format(&stream, "bricks in DSA:\t%d\n", bricks_in_dsa);
+
+	aal_stream_format(&stream, "slots:\t\t%u\n", info->u.vol.nr_slots);
 
 	aal_stream_format(&stream, "volinfo blocks:\t%llu\n",
 			  info->u.vol.nr_volinfo_blocks);

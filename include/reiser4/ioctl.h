@@ -58,8 +58,12 @@ typedef enum {
 	REISER4_DISCARD = 8,
 	/* disable hole punching at flush time */
 	REISER4_DONT_PUNCH_HOLES = 9,
-	/* some volume operation is not completed */
-	REISER4_UNBALANCED_VOL = 10
+	/* volume is ready for regular operations */
+	REISER4_ACTIVATED_VOL = 10,
+	/* this is to serialize online volume operations */
+	REISER4_BUSY_VOL = 11,
+	/* volume is in unbalanced state */
+	REISER4_UNBALANCED_VOL = 12
 } reiser4_fs_flag;
 
 #define REISER4_PATH_NAME_MAX 3900 /* FIXME: make it more precise */
@@ -88,6 +92,7 @@ struct reiser4_volume_stat
 	u16 vpid; /* volume plugin ID */
 	u16 dpid; /* distribution plugin ID */
 	u64 fs_flags; /* the same as the one of private super-block */
+	u32 nr_slots; /* number of slots */
 	u32 nr_volinfo_blocks; /* Total number of blocks in the set
 				  where volume configuration is stored */
 };

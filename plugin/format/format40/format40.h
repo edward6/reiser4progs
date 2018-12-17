@@ -57,7 +57,10 @@ typedef struct format40_super {
 	d64_t sb_data_room;
 	d64_t sb_volinfo_loc;
 	d8_t  sb_num_sgs_bits;
-	char  not_used[389];
+	d64_t sb_volinfo_gen;
+	d64_t sb_new_volinfo_loc;
+	d64_t sb_nr_slots;
+	char  sb_not_used[367];
 } __attribute__((packed)) format40_super_t;
 
 typedef struct format40 {
