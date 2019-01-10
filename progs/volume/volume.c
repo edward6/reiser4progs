@@ -103,10 +103,10 @@ static int set_op_delta(struct reiser4_vol_op_args *info,
 	return NO_ERROR;
 }
 
-static int set_op_brick_id(struct reiser4_vol_op_args *info,
-			   char *num, reiser4_vol_op op)
+static int set_op_brick_idx(struct reiser4_vol_op_args *info,
+			    char *num, reiser4_vol_op op)
 {
-	if ((info->s.brick_id = misc_str2long(num, 10)) == INVAL_DIG)
+	if ((info->s.brick_idx = misc_str2long(num, 10)) == INVAL_DIG)
 		return USER_ERROR;
 	if (set_op(info, op))
 		return USER_ERROR;
@@ -160,7 +160,7 @@ static void print_volume(struct reiser4_vol_op_args *info)
 
 	aal_stream_format(&stream, "bricks in DSA:\t%d\n", bricks_in_dsa);
 
-	aal_stream_format(&stream, "slots:\t\t%u\n", info->u.vol.nr_slots);
+	aal_stream_format(&stream, "slots:\t\t%u\n", info->u.vol.nr_mslots);
 
 	aal_stream_format(&stream, "volinfo blocks:\t%llu\n",
 			  info->u.vol.nr_volinfo_blocks);
@@ -292,8 +292,8 @@ int main(int argc, char *argv[]) {
 				return ret;
 			break;
 		case 'p':
-			ret = set_op_brick_id(&info, optarg,
-					      REISER4_PRINT_BRICK);
+			ret = set_op_brick_idx(&info, optarg,
+					       REISER4_PRINT_BRICK);
 			if (ret)
 				return ret;
 			break;

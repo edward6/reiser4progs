@@ -92,7 +92,7 @@ struct reiser4_volume_stat
 	u16 vpid; /* volume plugin ID */
 	u16 dpid; /* distribution plugin ID */
 	u64 fs_flags; /* the same as the one of private super-block */
-	u32 nr_slots; /* number of slots */
+	u32 nr_mslots; /* number of slots */
 	u32 nr_volinfo_blocks; /* Total number of blocks in the set
 				  where volume configuration is stored */
 };
@@ -115,8 +115,8 @@ struct reiser4_vol_op_args
 	reiser4_vol_op opcode;
 	u64 delta;
 	union {
-		u64 brick_id;
-		u64 voltab_nr;
+		u64 brick_idx; /* index of brick in logical volume */
+		u64 voltab_nr; /* index of voltab unformatted block */
 	}s;
 	union {
 		char name[REISER4_PATH_NAME_MAX + 1];
