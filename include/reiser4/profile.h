@@ -48,6 +48,7 @@ enum reiser4_profile_index {
 #endif
 	PROF_DST                = 0x1f,
 	PROF_VOL	        = 0x20,
+	PROF_KEYALLOC           = 0x21,
 	PROF_LAST
 };
 

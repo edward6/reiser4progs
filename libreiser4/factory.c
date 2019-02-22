@@ -27,6 +27,7 @@ static uint8_t plugs_max[LAST_PLUG_TYPE + 1] = {
 	[CLUSTER_PLUG_TYPE]	= CLUSTER_LAST_ID,
 	[DST_PLUG_TYPE]         = DST_LAST_ID,
 	[VOL_PLUG_TYPE]         = VOL_LAST_ID,
+	[KEYALLOC_PLUG_TYPE]	= KEYALLOC_LAST_ID,
 	[LAST_PLUG_TYPE]	= 0,
 };
 
@@ -242,7 +243,9 @@ errno_t reiser4_factory_init(void) {
 #ifdef ENABLE_SHORT_KEYS
 	__load_plug(key_short);
 #endif
-	
+	__load_plug(keyalloc_plana);
+	__load_plug(keyalloc_planb);
+
 	__load_plug(node40);
 	__init_plug(node40);
 

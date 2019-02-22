@@ -240,6 +240,8 @@ void set_sb_format40(format40_super_t *super, format_hint_t *desc)
 	flags = (desc->key == KEY_LARGE_ID) ? (1 << FORMAT40_LARGE_KEYS) : 0;
 	/* Newly created brick always has a data room */
 	flags |= (1 << FORMAT40_HAS_DATA_ROOM);
+	if (desc->key_alloc == KEYALLOC_PLANB_ID)
+		flags |= (1 << FORMAT40_PLANB_KEY_ALLOC);
 	set_sb_flags(super, flags);
 
 	/* Set version values. */

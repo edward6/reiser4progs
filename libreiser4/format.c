@@ -87,6 +87,7 @@ reiser4_format_t *reiser4_format_create(
 	reiser4_format_plug_t *plug,	/* format plugin */
 	rid_t policy,			/* policy plug id */
 	rid_t key,			/* key plug id */
+	rid_t key_alloc,		/* key allocation scheme */
 	rid_t node,                     /* node plug id */
 	count_t blocks,			/* block count */
 	long int mkfs_id,               /* identifier for fsck */
@@ -111,6 +112,7 @@ reiser4_format_t *reiser4_format_create(
 	desc.blocks = blocks;
 	desc.policy = policy;
 	desc.key = key;
+	desc.key_alloc = key_alloc;
 	desc.node = node;
 	desc.mkfs_id = mkfs_id;
 	desc.subvol_id = subvol_id;

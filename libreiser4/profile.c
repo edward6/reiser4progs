@@ -120,6 +120,15 @@ reiser4_profile_t defprof = {
 #endif
 			.id = {KEY_LARGE_ID, 0, KEY_PLUG_TYPE},
 		},
+		[PROF_KEYALLOC] = {
+#ifndef ENABLE_MINIMAL
+			.name  = "keyalloc",
+			.desc  = "Key allocation scheme",
+			.hidden = 0,
+			.max = KEYALLOC_LAST_ID,
+#endif
+			.id = {KEYALLOC_PLANB_ID, 0, KEYALLOC_PLUG_TYPE},
+		},
 		[PROF_NODE] = {
 #ifndef ENABLE_MINIMAL
 			.name  = "node",

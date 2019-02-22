@@ -251,7 +251,7 @@ reiser4_fs_t *reiser4_fs_create(
 	aal_device_t *device,           /* device filesystem will be lie on */
 	fs_hint_t *hint)                /* filesystem hint */
 {
-	reiser4_plug_t *vol, *dist, *format, *policy, *node, *key;
+	reiser4_plug_t *vol, *dist, *format, *policy, *node, *key, *key_alloc;
 
 	count_t free;
 	reiser4_fs_t *fs;
@@ -300,11 +300,13 @@ reiser4_fs_t *reiser4_fs_create(
 
 	/* Taking care about key flags in format super block */
 	key = reiser4_profile_plug(PROF_KEY);
+	key_alloc = reiser4_profile_plug(PROF_KEYALLOC);
 
 	/* Creates disk format. */
 	
 	fs->format = reiser4_format_create(fs, (reiser4_format_plug_t *)format,
 					   policy->id.id, key->id.id,
+					   key_alloc->id.id,
 					   node->id.id, hint->blocks,
 					   hint->mkfs_id, hint->subvol_id,
 					   hint->num_subvols,

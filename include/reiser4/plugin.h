@@ -123,6 +123,7 @@ typedef enum reiser4_plug_type {
 	PARAM_PLUG_TYPE		= 0x12,
 	DST_PLUG_TYPE           = 0x13,
 	VOL_PLUG_TYPE           = 0x14,
+	KEYALLOC_PLUG_TYPE      = 0x15,
 	LAST_PLUG_TYPE
 } reiser4_plug_type_t;
 
@@ -248,6 +249,13 @@ enum reiser4_key_plug_id {
 	KEY_SHORT_ID		= 0x0,
 	KEY_LARGE_ID		= 0x1,
 	KEY_LAST_ID
+};
+
+/* Known key allocation schemes */
+enum reiser4_key_alloc_plug_id {
+	KEYALLOC_PLANA_ID	= 0x0,
+	KEYALLOC_PLANB_ID	= 0x1,
+	KEYALLOC_LAST_ID
 };
 
 typedef struct reiser4_plug reiser4_plug_t;
@@ -437,6 +445,7 @@ typedef struct reiser4_node reiser4_node_t;
 typedef struct reiser4_place reiser4_place_t;
 
 typedef struct reiser4_key_plug reiser4_key_plug_t;
+typedef struct reiser4_keyalloc_plug reiser4_keyalloc_plug_t;
 typedef struct reiser4_item_plug reiser4_item_plug_t;
 typedef struct reiser4_node_plug reiser4_node_plug_t;
 typedef struct reiser4_hash_plug reiser4_hash_plug_t;
@@ -979,6 +988,7 @@ typedef struct format_hint {
 	long int mkfs_id;
 	rid_t policy;
 	rid_t key;
+	rid_t key_alloc;
 	rid_t node;
 
 	/* For repair purposes. Set plugin types that are overridden 
@@ -1072,6 +1082,9 @@ struct reiser4_key_plug {
 #endif
 };
 
+struct reiser4_keyalloc_plug {
+	reiser4_plug_t p;
+};
 
 typedef struct reiser4_object_plug {
 	reiser4_plug_t p;

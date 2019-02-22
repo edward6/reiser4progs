@@ -29,6 +29,7 @@ typedef enum {
 	FORMAT40_UNBALANCED_VOLUME,
 	FORMAT40_HAS_DATA_ROOM,
 	FORMAT40_TO_BE_REMOVED,
+	FORMAT40_PLANB_KEY_ALLOC,
 } format40_flags;
 
 typedef struct format40_super {

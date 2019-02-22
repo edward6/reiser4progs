@@ -588,6 +588,7 @@ AC_OUTPUT([
     	plugin/key/key_common/Makefile
     	plugin/key/key_short/Makefile
     	plugin/key/key_large/Makefile
+	plugin/key/key_alloc/Makefile
     	plugin/item/Makefile
     	plugin/item/body40/Makefile
     	plugin/item/nodeptr40/Makefile
