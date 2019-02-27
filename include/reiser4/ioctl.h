@@ -63,7 +63,9 @@ typedef enum {
 	/* this is to serialize online volume operations */
 	REISER4_BUSY_VOL = 11,
 	/* volume is in unbalanced state */
-	REISER4_UNBALANCED_VOL = 12
+	REISER4_UNBALANCED_VOL = 12,
+	/* volume operation was not completed */
+	REISER4_INCOMPLETE_BRICK_REMOVAL = 13
 } reiser4_fs_flag;
 
 #define REISER4_PATH_NAME_MAX 3900 /* FIXME: make it more precise */
@@ -71,6 +73,7 @@ typedef enum {
 typedef enum {
 	REISER4_INVALID_OPT,
 	REISER4_REGISTER_BRICK,
+	REISER4_UNREGISTER_BRICK,
 	REISER4_PRINT_VOLUME,
 	REISER4_PRINT_BRICK,
 	REISER4_PRINT_VOLTAB,
@@ -130,6 +133,7 @@ struct reiser4_vol_op_args
 
 #define REISER4_IOC_UNPACK _IOW(0xCD, 1, long)
 #define REISER4_IOC_VOLUME _IOWR(0xCD, 2, struct reiser4_vol_op_args)
+#define REISER4_IOC_SCAN_DEV _IOW(0xCD, 3, struct reiser4_vol_op_args)
 
 /* __REISER4_IOCTL_H__ */
 #endif

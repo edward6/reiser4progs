@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2017 Eduard O. Shishkin
+  Copyright (c) 2017-2019 Eduard O. Shishkin
 
   This file is licensed to you under your choice of the GNU Lesser
   General Public License, version 3 or any later version (LGPLv3 or
@@ -44,6 +44,8 @@ static void volmgr_print_usage(char *name) {
 		"Plugins options:\n"
 		"  -p, --print N                 print information about brick with id N.\n"
 	        "  -g, --register FILE           register a subvolume accociated with \n"
+		"                                device\"FILE\".\n"
+	        "  -u, --unregister FILE         unregister a subvolume accociated with \n"
 		"                                device\"FILE\".\n"
 		"  -b, --balance                 balance logical volume.\n"
 	        "  -e, --expand SIZE             augment data room of a brick on specified \"SIZE\".\n"
@@ -150,6 +152,16 @@ static void print_volume(struct reiser4_vol_op_args *info)
 
 	aal_stream_format(&stream, "%s\n", "Logical Volume Info:");
 
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
+	if (*info->u.vol.id != '\0') {
+		char uuid[37];
+		uuid[36] = '\0';
+		uuid_unparse(info->u.vol.id, uuid);
+		aal_stream_format(&stream, "ID:\t\t%s\n", uuid);
+	} else
+		aal_stream_format(&stream, "ID:\t\t<none>\n");
+#endif
+
 	aal_stream_format(&stream, "volume:\t\t0x%x (%s)\n",
 			  vol, vol_plug ? vol_plug->label : "absent");
 
@@ -218,7 +230,8 @@ int main(int argc, char *argv[]) {
 	int fd;
 	int ret;
 	struct stat st;
-	char *mnt;
+	char *name;
+	int offline = 0;
 	uint32_t flags = 0;
 	struct reiser4_vol_op_args info;
 
@@ -228,6 +241,7 @@ int main(int argc, char *argv[]) {
 		{"force", no_argument, NULL, 'f'},
 		{"yes", no_argument, NULL, 'y'},
 		{"register", required_argument, NULL, 'g'},
+		{"unregister", required_argument, NULL, 'u'},
 		{"print", required_argument, NULL, 'p'},
 		{"balance", no_argument, NULL, 'b'},
 		{"check", no_argument, NULL, 'c'},
@@ -246,7 +260,7 @@ int main(int argc, char *argv[]) {
 		volmgr_print_usage(argv[0]);
 		return USER_ERROR;
 	}
-	while ((c = getopt_long(argc, argv, "hVyfbcp:g:e:a:s:r:q:?",
+	while ((c = getopt_long(argc, argv, "hVyfbcp:g:u:e:a:s:r:q:?",
 				long_options, (int *)0)) != EOF)
 	{
 		switch (c) {
@@ -278,6 +292,14 @@ int main(int argc, char *argv[]) {
 					  REISER4_REGISTER_BRICK);
 			if (ret)
 				return ret;
+			offline = 1;
+			break;
+		case 'u':
+			ret = set_op_name(&info, optarg, &st,
+					  REISER4_UNREGISTER_BRICK);
+			if (ret)
+				return ret;
+			offline = 1;
 			break;
 		case 'a':
 			ret = set_op_name(&info, optarg, &st,
@@ -331,28 +353,26 @@ int main(int argc, char *argv[]) {
 		aal_error("Can't initialize libreiser4.");
 		goto error;
 	}
-	mnt = argv[optind];
-#if 0
-	/*
-	 * Checking if passed argument is a mounted volume
-	 */
-	if (misc_dev_mounted(mnt) <= 0) {
-		aal_error("Device %s is not mounted at the moment. "
-			  "Mount the device.", mnt);
-		goto error_free_libreiser4;
+	if (offline) {
+		fd = open("/dev/reiser4-control", O_NONBLOCK);
+		if (fd == -1) {
+			aal_error("Can't open %s. %s.", name, strerror(errno));
+			goto error_free_libreiser4;
+		}
+		ret = ioctl(fd, REISER4_IOC_SCAN_DEV, &info);
+	} else {
+		name = argv[optind];
+		fd = open(name, O_NONBLOCK);
+		if (fd == -1) {
+			aal_error("Can't open %s. %s.", name, strerror(errno));
+			goto error_free_libreiser4;
+		}
+		ret = ioctl(fd, REISER4_IOC_VOLUME, &info);
 	}
-#endif
-	fd = open(mnt, O_NONBLOCK);
-	if (fd == -1) {
-		aal_error("Can't open %s. %s.", mnt, strerror(errno));
-		goto error_free_libreiser4;
-	}
-	ret = ioctl(fd, REISER4_IOC_VOLUME, &info);
-
 	if (close(fd) == -1)
-		aal_error("Failed to close %s. %s.", mnt, strerror(errno));
+		aal_error("Failed to close %s. %s.", name, strerror(errno));
 	if (ret == -1) {
-		aal_error("Ioctl on %s failed. %s.", mnt, strerror(errno));
+		aal_error("Ioctl on %s failed. %s.", name, strerror(errno));
 		goto error_free_libreiser4;
 	}
 
