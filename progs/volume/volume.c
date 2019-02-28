@@ -120,6 +120,7 @@ static void print_volume(struct reiser4_vol_op_args *info)
 	rid_t vol, dst;
 	aal_stream_t stream;
 	reiser4_plug_t *vol_plug, *dst_plug;
+	uint64_t stripe_size;
 	int nr_bricks;
 	int bricks_in_dsa;
 
@@ -127,6 +128,10 @@ static void print_volume(struct reiser4_vol_op_args *info)
 
 	vol = info->u.vol.vpid;
 	dst = info->u.vol.dpid;
+
+	stripe_size = 0;
+	if (info->u.vol.stripe_bits != 0)
+		stripe_size =  1ull << info->u.vol.stripe_bits;
 
 	nr_bricks = info->u.vol.nr_bricks;
 	if (nr_bricks < 0) {
@@ -167,6 +172,9 @@ static void print_volume(struct reiser4_vol_op_args *info)
 
 	aal_stream_format(&stream, "distribution:\t0x%x (%s)\n",
 			  dst, dst_plug ? dst_plug->label : "absent");
+
+	aal_stream_format(&stream, "stripe:\t\t%llu %s\n",
+			  stripe_size, stripe_size != 0 ? "" : "(infinite)");
 
 	aal_stream_format(&stream, "bricks total:\t%d\n", nr_bricks);
 
