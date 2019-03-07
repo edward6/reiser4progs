@@ -222,6 +222,9 @@ static void print_brick(struct reiser4_vol_op_args *info)
 	aal_stream_format(&stream, "blocks used:\t%llu\n",
 			  info->u.brick.blocks_used);
 
+	aal_stream_format(&stream, "system blocks:\t%llu\n",
+			  info->u.brick.system_blocks);
+
 	aal_stream_format(&stream, "data room:\t%llu\n",
 			  info->u.brick.data_room);
 
