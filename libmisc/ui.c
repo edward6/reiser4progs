@@ -249,7 +249,6 @@ void misc_print_banner_of(char *str, const char *copyright) {
     
 	aal_snprintf(banner, 255, copyright);
 	misc_print_wrap(stderr, banner);
-	fprintf(stderr, "\n");
 	aal_free(banner);
 }
 

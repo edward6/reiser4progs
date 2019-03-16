@@ -7,7 +7,7 @@
   cases as published by the Free Software Foundation.
 */
 
-/* Program for managing Reiser4 logical volumes */
+/* Program for managing on-line Reiser4 logical volumes */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -30,7 +30,7 @@
 #include <reiser4/ioctl.h>
 #include <reiser4/libreiser4.h>
 
-/* Known volmgr behavior flags */
+/* Known behavior flags */
 typedef enum behav_flags {
 	BF_FORCE      = 1 << 0,
 	BF_YES        = 1 << 1,
@@ -40,22 +40,26 @@ typedef enum behav_flags {
 static void volmgr_print_usage(char *name) {
 	fprintf(stderr, "Usage: %s [ options ] FILE\n", name);
 	fprintf(stderr,
-		"Volume manager options:\n"
-		"Plugins options:\n"
-		"  -p, --print N                 print information about brick with id N.\n"
-	        "  -g, --register FILE           register a subvolume accociated with \n"
-		"                                device\"FILE\".\n"
-	        "  -u, --unregister FILE         unregister a subvolume accociated with \n"
-		"                                device\"FILE\".\n"
-		"  -b, --balance                 balance logical volume.\n"
-	        "  -e, --expand SIZE             augment data room of a brick on specified \"SIZE\".\n"
-	        "  -s, --shrink SIZE             shrink data room of a brick on specified SIZE.\n"
-		"  -a, --add FILE                add a brick accociated with device\"FILE\" \n"
-	        "                                to the logical volume\n"
-	        "  -r, --remove FILE             remove a brick accociated with device \n"
-		"                                \"FILE\" from the logical volume\n"
-	        "  -q, --scale N                 increase in \"N\" times maximal allowed\n"
-		"                                number of bricks in the logical volume\n"
+		"Volume managing options:\n"
+	        "  -g, --register FILE           register a brick associated with a device\n"
+		"                                \"FILE\" in the system.\n"
+	        "  -u, --unregister FILE         unregister a brick associated with\n"
+		"                                device\"FILE\" in the system.\n"
+		"  -l, --list                    print list of all bricks registered in the\n"
+		"                                system.\n"
+		"  -p, --print N                 print information about a brick of serial\n"
+		"                                number N in the mounted volume.\n"
+		"  -b, --balance                 balance the volume.\n"
+	        "  -e, --expand SIZE             augment data capacity of a brick on\n"
+		"                                specified \"SIZE\".\n"
+	        "  -s, --shrink SIZE             shrink data capacity of a brick on\n"
+		"                                specified SIZE.\n"
+		"  -a, --add FILE                add a brick associated with device\"FILE\"\n"
+	        "                                to the volume.\n"
+	        "  -r, --remove FILE             remove a brick associated with device\n"
+		"                                \"FILE\" from the volume.\n"
+	        "  -q, --scale N                 increase in \"N\" times the upper limit for\n"
+		"                                number of bricks in the volume.\n"
 		"Common options:\n"
 		"  -?, -h, --help                print program usage.\n"
 		"  -V, --version                 print current version.\n"
@@ -113,6 +117,109 @@ static int set_op_brick_idx(struct reiser4_vol_op_args *info,
 	if (set_op(info, op))
 		return USER_ERROR;
 	return NO_ERROR;
+}
+
+static void print_separator(void)
+{
+	aal_stream_t stream;
+
+	aal_stream_init(&stream, stdout, &file_stream);
+	aal_stream_format(&stream, "\n");
+	aal_stream_fini(&stream);
+}
+
+/**
+ * Print information about registered brick,
+ * which is possibly not activated
+ */
+static void print_volume_header(struct reiser4_vol_op_args *info)
+{
+	aal_stream_t stream;
+
+	aal_stream_init(&stream, stdout, &file_stream);
+
+	aal_stream_format(&stream, "%s", "Volume ");
+
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
+	if (*info->u.vol.id != '\0') {
+		char uuid[37];
+		uuid[36] = '\0';
+		uuid_unparse(info->u.vol.id, uuid);
+		aal_stream_format(&stream, "ID: %s ", uuid);
+	} else
+		aal_stream_format(&stream, "ID: <none> ");
+#endif
+	aal_stream_format(&stream, "%s\n",
+			  aal_test_bit(&info->u.vol.fs_flags,
+				       REISER4_ACTIVATED_VOL) ?
+			  "(Active)" : "(Inactive)");
+	aal_stream_fini(&stream);
+}
+
+/**
+ * Print information about volume, which is possibly not activated
+ */
+static void print_brick_header(struct reiser4_vol_op_args *info)
+{
+	aal_stream_t stream;
+
+	aal_stream_init(&stream, stdout, &file_stream);
+	aal_stream_format(&stream, "%s", "Brick ");
+
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
+	if (*info->u.brick.ext_id != '\0') {
+		char uuid[37];
+		uuid[36] = '\0';
+		uuid_unparse(info->u.brick.ext_id, uuid);
+		aal_stream_format(&stream, "ID: %s, ", uuid);
+	} else
+		aal_stream_format(&stream, "ID: <none>, ");
+	aal_stream_format(&stream, "Device name: %s\n", info->d.name);
+#endif
+	aal_stream_fini(&stream);
+}
+
+/**
+ * Print all registered bricks of a volume.
+ * Pre-condition: @info contains uuid of the volume
+ */
+static int list_bricks_of_volume(int fd, struct reiser4_vol_op_args *info)
+{
+	int i;
+	int ret;
+
+	for (i = 0;; i++) {
+		info->error = 0;
+		info->opcode = REISER4_BRICK_HEADER;
+		info->s.brick_idx = i;
+
+		ret = ioctl(fd, REISER4_IOC_SCAN_DEV, info);
+		if (ret || info->error)
+			break;
+		print_brick_header(info);
+	}
+	return ret;
+}
+
+static int list_all_bricks(int fd, struct reiser4_vol_op_args *info)
+{
+	int i;
+	int ret;
+
+	for (i = 0;; i++) {
+		info->error = 0;
+		info->opcode = REISER4_VOLUME_HEADER;
+		info->s.vol_idx = i;
+
+		ret = ioctl(fd, REISER4_IOC_SCAN_DEV, info);
+		if (ret || info->error)
+			break;
+
+		print_volume_header(info);
+		list_bricks_of_volume(fd, info);
+		print_separator();
+	}
+	return ret;
 }
 
 static void print_volume(struct reiser4_vol_op_args *info)
@@ -232,7 +339,6 @@ static void print_brick(struct reiser4_vol_op_args *info)
 			  info->u.brick.volinfo_addr,
 			  info->u.brick.volinfo_addr ? "" : "(none)");
 
-
 	aal_stream_fini(&stream);
 }
 
@@ -253,6 +359,7 @@ int main(int argc, char *argv[]) {
 		{"yes", no_argument, NULL, 'y'},
 		{"register", required_argument, NULL, 'g'},
 		{"unregister", required_argument, NULL, 'u'},
+		{"list", no_argument, NULL, 'l'},
 		{"print", required_argument, NULL, 'p'},
 		{"balance", no_argument, NULL, 'b'},
 		{"check", no_argument, NULL, 'c'},
@@ -271,7 +378,7 @@ int main(int argc, char *argv[]) {
 		volmgr_print_usage(argv[0]);
 		return USER_ERROR;
 	}
-	while ((c = getopt_long(argc, argv, "hVyfbcp:g:u:e:a:s:r:q:?",
+	while ((c = getopt_long(argc, argv, "hVyfbclp:g:u:e:a:s:r:q:?",
 				long_options, (int *)0)) != EOF)
 	{
 		switch (c) {
@@ -308,6 +415,12 @@ int main(int argc, char *argv[]) {
 		case 'u':
 			ret = set_op_name(&info, optarg, &st,
 					  REISER4_UNREGISTER_BRICK);
+			if (ret)
+				return ret;
+			offline = 1;
+			break;
+		case 'l':
+			ret = set_op(&info, REISER4_LIST_BRICKS);
 			if (ret)
 				return ret;
 			offline = 1;
@@ -370,7 +483,13 @@ int main(int argc, char *argv[]) {
 			aal_error("Can't open %s. %s.", name, strerror(errno));
 			goto error_free_libreiser4;
 		}
-		ret = ioctl(fd, REISER4_IOC_SCAN_DEV, &info);
+		switch(info.opcode) {
+		case REISER4_LIST_BRICKS:
+			ret = list_all_bricks(fd, &info);
+			break;
+		default:
+			ret = ioctl(fd, REISER4_IOC_SCAN_DEV, &info);
+		}
 	} else {
 		name = argv[optind];
 		fd = open(name, O_NONBLOCK);
