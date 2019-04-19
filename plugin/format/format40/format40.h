@@ -60,7 +60,8 @@ typedef struct format40_super {
 	d64_t sb_volinfo_loc;
 	d8_t  sb_num_sgs_bits;
 	d64_t sb_nr_mslots;
-	char  sb_not_used[383];
+	d64_t sb_min_occup;
+	char  sb_not_used[375];
 } __attribute__((packed)) format40_super_t;
 
 typedef struct format40 {
@@ -97,9 +98,6 @@ extern reiser4_core_t *format40_core;
 
 #define get_sb_free_blocks(sb)		aal_get_le64(sb, sb_free_blocks)
 #define set_sb_free_blocks(sb, val)	aal_set_le64(sb, sb_free_blocks, val)
-
-#define get_sb_data_room(sb)		aal_get_le64(sb, sb_data_room)
-#define set_sb_data_room(sb, val)	aal_set_le64(sb, sb_data_room, val)
 
 #define get_sb_root_block(sb)		aal_get_le64(sb, sb_root_block)
 #define set_sb_root_block(sb, val)	aal_set_le64(sb, sb_root_block, val)

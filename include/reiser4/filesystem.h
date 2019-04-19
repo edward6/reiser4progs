@@ -36,9 +36,8 @@ extern reiser4_owner_t reiser4_fs_belongs(reiser4_fs_t *fs, blk_t blk);
 
 extern reiser4_fs_t *reiser4_fs_create(aal_device_t *device,
 				       fs_hint_t *hint);
-
 extern void reiser4_set_data_room(reiser4_fs_t *fs, fs_hint_t *hint);
-
+extern void reiser4_set_min_occup(reiser4_fs_t *fs);
 extern errno_t reiser4_fs_backup(reiser4_fs_t *fs, backup_hint_t *hint);
 
 #endif

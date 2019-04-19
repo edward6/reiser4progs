@@ -584,9 +584,6 @@ int main(int argc, char *argv[]) {
 			goto error_free_fs;
 		}
 
-		/* Set data room size calculated by the rest of free space */
-		reiser4_set_data_room(fs, &hint);
-
 		/* Backup the fs metadata. */
 		if (!(fs->backup = reiser4_backup_create(fs))) {
 			aal_error("Can't create the fs metadata backup.");
@@ -623,6 +620,19 @@ int main(int argc, char *argv[]) {
 			hint.mkfs_id = 0;
 			hint.blocks = 0;
 		}
+
+		/* Set data room size calculated by the rest of free space */
+		reiser4_set_data_room(fs, &hint);
+		/*
+		 * Set minimal number of occupied blocks - at any time number
+		 * of busy blocks on the partition has to be not smaller than
+		 * this value. We need this field in super-block because kernel
+		 * needs to know miniman number of occupied blocks, while being
+		 * not able to calculate it. Just because kernel is unaware of
+		 * backup blocks
+		 */
+		reiser4_set_min_occup(fs);
+
 		aal_memset(hint.subvol_uuid, 0, sizeof(hint.subvol_uuid));
 		/*
 		 * Free the root directory & fs

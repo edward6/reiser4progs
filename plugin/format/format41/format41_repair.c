@@ -35,12 +35,18 @@ void format41_print(reiser4_format_ent_t *entity,
 	aal_stream_format(stream, "data room:\t%llu\n",
 			  get_sb_data_room(super));
 
+	aal_stream_format(stream, "system blocks:\t%llu\n",
+			  get_sb_min_occup(super));
+
 	aal_stream_format(stream, "volinfo loc:\t%u\n",
 			  get_sb_volinfo_loc(super));
 
 	aal_stream_format(stream, "max bricks:\t%u\n",
 			  get_sb_num_sgs_bits(super) ?
 			  1 << get_sb_num_sgs_bits(super) : 0);
+
+	aal_stream_format(stream, "nr mslots:\t%llu\n",
+			  get_sb_nr_mslots(super));
 }
 
 reiser4_format_ent_t *format41_regenerate(aal_device_t *device,

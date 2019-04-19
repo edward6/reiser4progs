@@ -421,9 +421,9 @@ void format40_print_common(reiser4_format_ent_t *entity,
 	aal_stream_format(stream, "flushes:\t%llu\n", 
 			  get_sb_flushes(super));
 	
-	aal_stream_format(stream, "blocks:\t\t%llu\n", 
+	aal_stream_format(stream, "blocks:\t\t%llu\n",
 			  get_sb_block_count(super));
-	
+
 	aal_stream_format(stream, "free blocks:\t%llu\n",
 			  get_sb_free_blocks(super));
 	

@@ -323,6 +323,16 @@ void reiser4_format_set_data_room(
 	reiser4call(format, set_data_room, blocks);
 }
 
+/* Sets minimal occupied number of blocks on a partition */
+void reiser4_format_set_min_occup(
+	reiser4_format_t *format,	/* format to be used */
+	count_t blocks)		        /* value to set */
+{
+	aal_assert("edward-34", format != NULL);
+
+	reiser4call(format, set_min_occup, blocks);
+}
+
 /* Sets new tree height */
 void reiser4_format_set_height(
 	reiser4_format_t *format,	/* format to be used */

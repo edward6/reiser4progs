@@ -453,14 +453,6 @@ void format40_set_free(reiser4_format_ent_t *entity, uint64_t blocks) {
 	format40_mkdirty(entity);
 }
 
-void format40_set_data_room(reiser4_format_ent_t *entity,
-			    uint64_t blocks) {
-	aal_assert("edward-33", entity != NULL);
-
-	set_sb_data_room(SUPER(entity), blocks);
-	format40_mkdirty(entity);
-}
-
 void format40_set_height(reiser4_format_ent_t *entity, uint16_t height) {
 	aal_assert("umka-555", entity != NULL);
 
@@ -540,7 +532,8 @@ reiser4_format_plug_t format40_plug = {
 	.set_root	= format40_set_root,
 	.set_len	= format40_set_len,
 	.set_free	= format40_set_free,
-	.set_data_room  = format40_set_data_room,
+	.set_data_room  = NULL,
+	.set_min_occup  = NULL,
 	.set_height	= format40_set_height,
 	.set_stamp	= format40_set_stamp,
 	.set_policy	= format40_set_policy,

@@ -25,8 +25,10 @@ extern reiser4_core_t *format41_core;
 #define get_sb_data_room(sb)		aal_get_le64(sb, sb_data_room)
 #define set_sb_data_room(sb, val)	aal_set_le64(sb, sb_data_room, val)
 
-#define get_sb_volinfo_loc(sb)		aal_get_le64(sb, sb_volinfo_loc)
-#define set_sb_volinfo_loc(sb, val)	aal_set_le64(sb, sb_volinfo_loc, val)
+#define get_sb_nr_mslots(sb)		aal_get_le64(sb, sb_nr_mslots)
+
+#define get_sb_min_occup(sb)		aal_get_le64(sb, sb_min_occup)
+#define set_sb_min_occup(sb, val)	aal_set_le64(sb, sb_min_occup, val)
 
 static inline d8_t get_sb_num_sgs_bits(format40_super_t *sb)
 {

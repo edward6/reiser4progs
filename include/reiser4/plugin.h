@@ -1514,6 +1514,7 @@ struct reiser4_format_plug {
 	void (*set_root) (reiser4_format_ent_t *, uint64_t);
 	void (*set_free) (reiser4_format_ent_t *, uint64_t);
 	void (*set_data_room) (reiser4_format_ent_t *, uint64_t);
+	void (*set_min_occup) (reiser4_format_ent_t *, uint64_t);
 	void (*set_stamp) (reiser4_format_ent_t *, uint32_t);
 	void (*set_policy) (reiser4_format_ent_t *, rid_t);
 	void (*set_height) (reiser4_format_ent_t *, uint16_t);

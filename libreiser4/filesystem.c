@@ -356,12 +356,21 @@ void reiser4_set_data_room(reiser4_fs_t *fs, fs_hint_t *hint)
 {
 	if (hint->data_room_size == 0) {
 		reiser4_vol_plug_t *vol = reiser4_profile_plug(PROF_VOL);
-		  //reiser4_master_get_volume(fs->master);
-		uint64_t free = reiser4_alloc_free(fs->alloc);
+		uint64_t free = reiser4_format_get_free(fs->format);
 		hint->data_room_size = plugcall(vol, default_data_room_size,
 						free, hint->is_data_brick);
 	}
 	reiser4_format_set_data_room(fs->format, hint->data_room_size);
+}
+
+/**
+ * This is called at the end of the procedure of formatting a partition
+ */
+void reiser4_set_min_occup(reiser4_fs_t *fs)
+{
+	reiser4_format_set_min_occup(fs->format,
+				     reiser4_format_get_len(fs->format) -
+				     reiser4_format_get_free(fs->format));
 }
 
 /* Backup the fs -- save all permanent info about the fs info the memory stream
