@@ -64,8 +64,13 @@ typedef enum {
 	REISER4_BUSY_VOL = 11,
 	/* volume is in unbalanced state */
 	REISER4_UNBALANCED_VOL = 12,
-	/* volume operation was not completed */
-	REISER4_INCOMPLETE_BRICK_REMOVAL = 13
+	/* this flag indicates that volume operation was
+	   interrupted for some reasons (e.g. system crash),
+	   and should be completed in some context */
+	REISER4_INCOMPLETE_BRICK_REMOVAL = 13,
+	/* this flag indicates that distribution mode is
+	   file-based (default is volume-based) */
+	REISER4_FILE_BASED_DIST = 14
 } reiser4_fs_flag;
 
 #define REISER4_PATH_NAME_MAX 3900 /* FIXME: make it more precise */
@@ -79,14 +84,11 @@ typedef enum {
 	REISER4_BRICK_HEADER,
 	REISER4_PRINT_VOLUME,
 	REISER4_PRINT_BRICK,
-	REISER4_PRINT_VOLTAB,
-	REISER4_EXPAND_BRICK,
-	REISER4_SHRINK_BRICK,
+	REISER4_RESIZE_BRICK,
 	REISER4_ADD_BRICK,
 	REISER4_REMOVE_BRICK,
 	REISER4_SCALE_VOLUME,
 	REISER4_BALANCE_VOLUME,
-	REISER4_CHECK_VOLUME
 } reiser4_vol_op;
 
 struct reiser4_volume_stat
@@ -123,15 +125,14 @@ struct reiser4_vol_op_args
 {
 	reiser4_vol_op opcode;
 	int error;
-	u64 delta;
+	u64 new_capacity;
 	union {
 		u64 brick_idx; /* index of brick in logical volume */
 		u64 vol_idx; /* serial num of volume in the list of volumes */
-		u64 voltab_nr; /* index of voltab unformatted block */
+		u64 val;
 	}s;
 	union {
 		char name[REISER4_PATH_NAME_MAX + 1];
-		char data[4096];
 	}d;
 	struct {
 		struct reiser4_volume_stat vol;

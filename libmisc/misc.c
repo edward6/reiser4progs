@@ -43,7 +43,7 @@ long long misc_str2long(const char *str, int base) {
 	if (!str)
 		return INVAL_DIG;
 
-	result = strtol(str, &error, base);
+	result = strtoll(str, &error, base);
 	
 	if (errno == ERANGE || *error)
 		return INVAL_DIG;

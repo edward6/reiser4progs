@@ -50,10 +50,9 @@ static void volmgr_print_usage(char *name) {
 		"  -p, --print N                 print information about a brick of serial\n"
 		"                                number N in the mounted volume.\n"
 		"  -b, --balance                 balance the volume.\n"
-	        "  -e, --expand SIZE             augment data capacity of a brick on\n"
-		"                                specified \"SIZE\".\n"
-	        "  -s, --shrink SIZE             shrink data capacity of a brick on\n"
-		"                                specified SIZE.\n"
+	        "  -z, --resize FILE             set new data capacity for a brick associated\n"
+		"                                with device \"FILE\".\n"
+	        "  -c, --capacity VALUE          specify VALUE of new data capacity\n"
 		"  -a, --add FILE                add a brick associated with device\"FILE\"\n"
 	        "                                to the volume.\n"
 	        "  -r, --remove FILE             remove a brick associated with device\n"
@@ -99,22 +98,19 @@ static int set_op_name(struct reiser4_vol_op_args *info,
 	return NO_ERROR;
 }
 
-static int set_op_delta(struct reiser4_vol_op_args *info,
-			char *num, reiser4_vol_op op)
+static int set_op_value(struct reiser4_vol_op_args *info,
+			char *value, reiser4_vol_op op)
 {
-	if ((info->delta = misc_str2long(num, 10)) == INVAL_DIG)
+	if ((info->s.val = misc_str2long(value, 10)) == INVAL_DIG)
 		return USER_ERROR;
 	if (set_op(info, op))
 		return USER_ERROR;
 	return NO_ERROR;
 }
 
-static int set_op_brick_idx(struct reiser4_vol_op_args *info,
-			    char *num, reiser4_vol_op op)
+static int set_capacity(struct reiser4_vol_op_args *info, char *value)
 {
-	if ((info->s.brick_idx = misc_str2long(num, 10)) == INVAL_DIG)
-		return USER_ERROR;
-	if (set_op(info, op))
+	if ((info->new_capacity = misc_str2long(value, 10)) == INVAL_DIG)
 		return USER_ERROR;
 	return NO_ERROR;
 }
@@ -362,11 +358,10 @@ int main(int argc, char *argv[]) {
 		{"list", no_argument, NULL, 'l'},
 		{"print", required_argument, NULL, 'p'},
 		{"balance", no_argument, NULL, 'b'},
-		{"check", no_argument, NULL, 'c'},
-		{"expand", required_argument, NULL, 'e'},
 		{"add", required_argument, NULL, 'a'},
-		{"shrink", required_argument, NULL, 's'},
 		{"remove", required_argument, NULL, 'r'},
+		{"resize", required_argument, NULL, 'z'},
+		{"capacity", required_argument, NULL, 'c'},
 		{"scale", required_argument, NULL, 'q'},
 		{0, 0, 0, 0}
 	};
@@ -378,7 +373,7 @@ int main(int argc, char *argv[]) {
 		volmgr_print_usage(argv[0]);
 		return USER_ERROR;
 	}
-	while ((c = getopt_long(argc, argv, "hVyfbclp:g:u:e:a:s:r:q:?",
+	while ((c = getopt_long(argc, argv, "hVyfblp:g:u:a:r:z:c:q:?",
 				long_options, (int *)0)) != EOF)
 	{
 		switch (c) {
@@ -397,11 +392,6 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'b':
 			ret = set_op(&info, REISER4_BALANCE_VOLUME);
-			if (ret)
-				return ret;
-			break;
-		case 'c':
-			ret = set_op(&info, REISER4_CHECK_VOLUME);
 			if (ret)
 				return ret;
 			break;
@@ -438,25 +428,24 @@ int main(int argc, char *argv[]) {
 				return ret;
 			break;
 		case 'p':
-			ret = set_op_brick_idx(&info, optarg,
-					       REISER4_PRINT_BRICK);
+			ret = set_op_value(&info, optarg,
+					   REISER4_PRINT_BRICK);
 			if (ret)
 				return ret;
 			break;
-		case 'e':
-			ret = set_op_delta(&info, optarg,
-					   REISER4_EXPAND_BRICK);
+		case 'z':
+			ret = set_op_name(&info, optarg, &st,
+					  REISER4_RESIZE_BRICK);
 			if (ret)
 				return ret;
 			break;
-		case 's':
-			ret = set_op_delta(&info, optarg,
-					   REISER4_SHRINK_BRICK);
+		case 'c':
+			ret = set_capacity(&info, optarg);
 			if (ret)
 				return ret;
 			break;
 		case 'q':
-			ret = set_op_delta(&info, optarg,
+			ret = set_op_value(&info, optarg,
 					   REISER4_SCALE_VOLUME);
 			if (ret)
 				return ret;
