@@ -32,8 +32,8 @@ void format41_print(reiser4_format_ent_t *entity,
 	aal_stream_format(stream, "brick id:\t%u\n",
 			  get_sb_subvol_id(super));
 
-	aal_stream_format(stream, "data room:\t%llu\n",
-			  get_sb_data_room(super));
+	aal_stream_format(stream, "data capacity:\t%llu\n",
+			  get_sb_data_capacity(super));
 
 	aal_stream_format(stream, "system blocks:\t%llu\n",
 			  get_sb_min_occup(super));
@@ -41,7 +41,7 @@ void format41_print(reiser4_format_ent_t *entity,
 	aal_stream_format(stream, "volinfo loc:\t%u\n",
 			  get_sb_volinfo_loc(super));
 
-	aal_stream_format(stream, "max bricks:\t%u\n",
+	aal_stream_format(stream, "nr segments:\t%u\n",
 			  get_sb_num_sgs_bits(super) ?
 			  1 << get_sb_num_sgs_bits(super) : 0);
 

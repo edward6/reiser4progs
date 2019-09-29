@@ -13,11 +13,11 @@ reiser4_core_t *format41_core = NULL;
 
 #ifndef ENABLE_MINIMAL
 
-void format41_set_data_room(reiser4_format_ent_t *entity,
+void format41_set_data_capacity(reiser4_format_ent_t *entity,
 			    uint64_t blocks) {
 	aal_assert("edward-33", entity != NULL);
 
-	set_sb_data_room(SUPER(entity), blocks);
+	set_sb_data_capacity(SUPER(entity), blocks);
 	format40_mkdirty(entity);
 }
 
@@ -36,7 +36,7 @@ static void set_sb_format41(format40_super_t *super, format_hint_t *desc)
 	set_sb_subvol_id(super, desc->subvol_id);
 	set_sb_num_subvols(super, desc->num_subvols);
 	set_sb_num_sgs_bits(super, desc->num_sgs_bits);
-	set_sb_data_room(super, desc->data_room_size);
+	set_sb_data_capacity(super, desc->data_capacity);
 }
 
 reiser4_format_ent_t *format41_create(aal_device_t *device, format_hint_t *desc)
@@ -102,7 +102,7 @@ reiser4_format_plug_t format41_plug = {
 	.set_root	= format40_set_root,
 	.set_len	= format40_set_len,
 	.set_free	= format40_set_free,
-	.set_data_room  = format41_set_data_room,
+	.set_data_capacity = format41_set_data_capacity,
 	.set_min_occup  = format41_set_min_occup,
 	.set_height	= format40_set_height,
 	.set_stamp	= format40_set_stamp,

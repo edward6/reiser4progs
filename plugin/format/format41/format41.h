@@ -22,8 +22,8 @@ extern reiser4_core_t *format41_core;
 #define get_sb_num_subvols(sb)		aal_get_le64(sb, sb_num_subvols)
 #define set_sb_num_subvols(sb, val)	aal_set_le64(sb, sb_num_subvols, val)
 
-#define get_sb_data_room(sb)		aal_get_le64(sb, sb_data_room)
-#define set_sb_data_room(sb, val)	aal_set_le64(sb, sb_data_room, val)
+#define get_sb_data_capacity(sb)	aal_get_le64(sb, sb_data_capacity)
+#define set_sb_data_capacity(sb, val)	aal_set_le64(sb, sb_data_capacity, val)
 
 #define get_sb_nr_mslots(sb)		aal_get_le64(sb, sb_nr_mslots)
 

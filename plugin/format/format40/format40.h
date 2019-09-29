@@ -56,7 +56,7 @@ typedef struct format40_super {
 	d64_t sb_subvol_id;
 	d64_t sb_num_subvols;
 
-	d64_t sb_data_room;
+	d64_t sb_data_capacity;
 	d64_t sb_volinfo_loc;
 	d8_t  sb_num_sgs_bits;
 	d64_t sb_nr_mslots;
@@ -140,7 +140,7 @@ extern uint64_t format40_start(reiser4_format_ent_t *entity);
 extern uint64_t format40_get_len(reiser4_format_ent_t *entity);
 extern uint64_t format40_get_free(reiser4_format_ent_t *entity);
 extern void format40_set_free(reiser4_format_ent_t *entity, uint64_t blocks);
-extern void format40_set_data_room(reiser4_format_ent_t *entity, uint64_t blocks);
+extern void format40_set_data_capacity(reiser4_format_ent_t *entity, uint64_t blocks);
 extern uint32_t format40_get_stamp(reiser4_format_ent_t *entity);
 extern void format40_set_stamp(reiser4_format_ent_t *entity, uint32_t mkfsid);
 extern rid_t format40_get_policy(reiser4_format_ent_t *entity);

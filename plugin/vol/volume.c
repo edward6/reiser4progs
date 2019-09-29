@@ -13,10 +13,11 @@
 #include <misc/misc.h>
 
 
-#define MAX_DEFAULT_STRIPE_SIZE (1 << 22)
-#define REISER4_MAX_BRICKS_LOWER_LIMIT (1U << 10)
-#define REISER4_MAX_BRICKS_UPPER_LIMIT (1U << 31)
-#define REISER4_MAX_BRICKS_CONFIRM_LIMIT (1U << 20)
+#define MIN_ADVISED_RATIO_BITS  (14)
+#define MAX_ADVISED_STRIPE_SIZE (1 << 22)
+#define MIN_NR_SGS (1U << 10)
+#define MAX_NR_SGS (1U << 31)
+#define CONFIRM_NR_SGS (1U << 20)
 
 static inline uint64_t max(uint64_t a, uint64_t b)
 {
@@ -58,14 +59,15 @@ static int advise_stripe_size_asym(uint64_t *result, uint32_t block_size,
 {
 	uint64_t advised;
 
-	advised = calibrate((block_count * block_size)/1024,
-			    block_size,
-			    MAX_DEFAULT_STRIPE_SIZE);
+	advised =
+		calibrate((block_count * block_size) >> MIN_ADVISED_RATIO_BITS,
+			  block_size,
+			  MAX_ADVISED_STRIPE_SIZE);
 	if (is_default) {
 		*result = advised;
 		return 0;
 	}
-	if (*result != 0 && *result < block_size) {
+	if (*result < block_size) {
 		/*
 		 * bad stripe size
 		 */
@@ -74,14 +76,11 @@ static int advise_stripe_size_asym(uint64_t *result, uint32_t block_size,
 			  *result, block_size);
 		return -1;
 	}
-	if ((*result == 0 || *result > advised) && !forced) {
+	if ((*result > advised) && !forced) {
 		/*
 		 * stripe is too large, use force flag
 		 */
-		if (*result == 0)
-			aal_warn("Infinite stripe will be used.");
-		else
-			aal_warn("Stripe of size %llu will be used.", *result);
+		aal_warn("Stripe of size %llu will be used.", *result);
 
 		aal_error("It is too large and will lead to bad quality "
 			  "of distribution. Use -f to force over");
@@ -90,35 +89,35 @@ static int advise_stripe_size_asym(uint64_t *result, uint32_t block_size,
 	return 0;
 }
 
-static int advise_max_bricks_simple(uint64_t *result, int forced)
+static int advise_nr_segments_simple(uint64_t *result, int forced)
 {
 	if (*result != 0) {
-		aal_error("Option max-bricks is undefined for simple volumes");
+		aal_error("Option nr-segments is undefined for simple volumes");
 		return -1;
 	}
 	return 0;
 }
 
-static int advise_max_bricks_asym(uint64_t *result, int forced)
+static int advise_nr_segments_asym(uint64_t *result, int forced)
 {
 	if (*result == 0) {
-		*result = REISER4_MAX_BRICKS_LOWER_LIMIT;
+		*result = MIN_NR_SGS;
 		return 0;
 	}
-	if (*result > REISER4_MAX_BRICKS_UPPER_LIMIT) {
-		aal_error("Invalid max bricks (%llu). It must not be larger "
+	if (*result > MAX_NR_SGS) {
+		aal_error("Invalid nr segments (%llu). It must not be larger "
 			  "than %u.",
-			  *result, REISER4_MAX_BRICKS_UPPER_LIMIT);
+			  *result, MAX_NR_SGS);
 		goto error;
 	}
-	if ((*result > REISER4_MAX_BRICKS_CONFIRM_LIMIT) &&
+	if ((*result > CONFIRM_NR_SGS) &&
 	    !forced) {
-		aal_error("Support of %llu bricks requires a lot of memory "
+		aal_error("Support of %llu segments takes a lot of memory "
 			  "resources. Use -f to force over.", *result);
 		goto error;
 	}
-	if (*result < REISER4_MAX_BRICKS_LOWER_LIMIT) {
-		*result = REISER4_MAX_BRICKS_LOWER_LIMIT;
+	if (*result < MIN_NR_SGS) {
+		*result = MIN_NR_SGS;
 		return 0;
 	}
 	if (*result != 1U << misc_log2(*result))
@@ -131,32 +130,32 @@ static int advise_max_bricks_asym(uint64_t *result, int forced)
 	return -1;
 }
 
-static int check_data_room_size_simple(uint64_t result, uint64_t block_count, int forced)
+static int check_data_capacity_simple(uint64_t result, uint64_t block_count, int forced)
 {
 	if (result != 0) {
-		aal_error("Option data-room-size is undefined for simple volumes");
+		aal_error("Option data-capacity is undefined for simple volumes");
 		return -1;
 	}
 	return 0;
 }
 
-static int check_data_room_size_asym(uint64_t result, uint64_t block_count, int forced)
+static int check_data_capacity_asym(uint64_t result, uint64_t block_count, int forced)
 {
 	if ((result > block_count) && !forced) {
-		aal_error("Data room (%llu blocks) is larger than device "
-			  "(%llu blocks). Use -f to force over.",
+		aal_error("Data capacity (%llu) is larger than block count "
+			  "(%llu). Use -f to force over.",
 			  result, block_count);
 		return -1;
 	}
 	return 0;
 }
 
-static uint64_t default_data_room_size_simple(uint64_t free_blocks)
+static uint64_t default_data_capacity_simple(uint64_t free_blocks)
 {
 	return 0;
 }
 
-static uint64_t default_data_room_size_asym(uint64_t free_blocks, int data_brick)
+static uint64_t default_data_capacity_asym(uint64_t free_blocks, int data_brick)
 {
 	if (data_brick)
 		return free_blocks;
@@ -173,9 +172,9 @@ reiser4_vol_plug_t simple_vol_plug = {
 		.desc  = "Simple Logical Volume.",
 	},
 	.advise_stripe_size = advise_stripe_size_simple,
-	.advise_max_bricks = advise_max_bricks_simple,
-	.check_data_room_size = check_data_room_size_simple,
-	.default_data_room_size = default_data_room_size_simple
+	.advise_nr_segments = advise_nr_segments_simple,
+	.check_data_capacity = check_data_capacity_simple,
+	.default_data_capacity = default_data_capacity_simple
 };
 
 reiser4_vol_plug_t asym_vol_plug = {
@@ -185,9 +184,9 @@ reiser4_vol_plug_t asym_vol_plug = {
 		.desc  = "Asymmetric Heterogeneous Logical Volume.",
 	},
 	.advise_stripe_size = advise_stripe_size_asym,
-	.advise_max_bricks = advise_max_bricks_asym,
-	.check_data_room_size = check_data_room_size_asym,
-	.default_data_room_size = default_data_room_size_asym
+	.advise_nr_segments = advise_nr_segments_asym,
+	.check_data_capacity = check_data_capacity_asym,
+	.default_data_capacity = default_data_capacity_asym
 };
 
 #endif

@@ -310,7 +310,7 @@ reiser4_fs_t *reiser4_fs_create(
 					   node->id.id, hint->blocks,
 					   hint->mkfs_id, hint->subvol_id,
 					   hint->num_subvols,
-					   hint->max_bricks ? misc_log2(hint->max_bricks) : 0);
+					   hint->num_segments ? misc_log2(hint->num_segments) : 0);
 	if (!fs->format)
 		goto error_free_status;
 
@@ -352,15 +352,15 @@ reiser4_fs_t *reiser4_fs_create(
 	return NULL;
 }
 
-void reiser4_set_data_room(reiser4_fs_t *fs, fs_hint_t *hint)
+void reiser4_set_data_capacity(reiser4_fs_t *fs, fs_hint_t *hint)
 {
-	if (hint->data_room_size == 0) {
+	if (hint->data_capacity == 0) {
 		reiser4_vol_plug_t *vol = reiser4_profile_plug(PROF_VOL);
 		uint64_t free = reiser4_format_get_free(fs->format);
-		hint->data_room_size = plugcall(vol, default_data_room_size,
-						free, hint->is_data_brick);
+		hint->data_capacity = plugcall(vol, default_data_capacity,
+					       free, hint->is_data_brick);
 	}
-	reiser4_format_set_data_room(fs->format, hint->data_room_size);
+	reiser4_format_set_data_capacity(fs->format, hint->data_capacity);
 }
 
 /**

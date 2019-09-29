@@ -93,7 +93,7 @@ reiser4_format_t *reiser4_format_create(
 	long int mkfs_id,               /* identifier for fsck */
 	uint64_t subvol_id,             /* internal id */
 	uint64_t num_subvols,           /* in the logical volume */
-	uint8_t max_bricks_bits)
+	uint8_t num_segments_bits)
 {
 	reiser4_format_t *format;
 	format_hint_t desc;
@@ -117,7 +117,7 @@ reiser4_format_t *reiser4_format_create(
 	desc.mkfs_id = mkfs_id;
 	desc.subvol_id = subvol_id;
 	desc.num_subvols = num_subvols;
-	desc.num_sgs_bits = max_bricks_bits;
+	desc.num_sgs_bits = num_segments_bits;
 	/*
 	 * Initializing entity of disk-format by means of calling "create"
 	 * method from found plugin. Plugin "create" method will be creating
@@ -314,13 +314,13 @@ void reiser4_format_set_free(
 }
 
 /* Sets data room size in blocks */
-void reiser4_format_set_data_room(
+void reiser4_format_set_data_capacity(
 	reiser4_format_t *format,	/* format to be used */
 	count_t blocks)		        /* new free block count */
 {
 	aal_assert("edward-32", format != NULL);
 
-	reiser4call(format, set_data_room, blocks);
+	reiser4call(format, set_data_capacity, blocks);
 }
 
 /* Sets minimal occupied number of blocks on a partition */

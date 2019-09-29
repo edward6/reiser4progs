@@ -293,7 +293,7 @@ errno_t reiser4_factory_init(void) {
 	__load_plug(clust4);
 
 	__load_plug(triv_dst);
-	__load_plug(fsw32);
+	__load_plug(fsx32);
 
 	__load_plug(simple_vol);
 	__load_plug(asym_vol);

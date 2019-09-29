@@ -37,7 +37,7 @@ reiser4_profile_t defprof = {
 			.hidden = 1,
 			.max = OBJECT_LAST_ID,
 #endif
-			.id = {OBJECT_REG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
+			.id = {OBJECT_REG42_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
 		},
 		[PROF_DIRFILE] = {
 #ifndef ENABLE_MINIMAL
@@ -73,7 +73,7 @@ reiser4_profile_t defprof = {
 			.hidden = 0,
                         .max = OBJECT_LAST_ID,
 #endif
-                        .id = {OBJECT_CCREG40_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
+                        .id = {OBJECT_REG42_ID, REG_OBJECT, OBJECT_PLUG_TYPE},
                 },
 		[PROF_FORMAT] = {
 #ifndef ENABLE_MINIMAL
@@ -244,7 +244,7 @@ reiser4_profile_t defprof = {
 			.hidden = 0,
 			.max = DST_LAST_ID,
 #endif
-			.id = {DST_TRIV_ID, 0, DST_PLUG_TYPE},
+			.id = {DST_FSX32_ID, 0, DST_PLUG_TYPE},
 		},
 		[PROF_VOL] = {
 #ifndef ENABLE_MINIMAL
@@ -253,7 +253,7 @@ reiser4_profile_t defprof = {
 			.hidden = 0,
 			.max = VOL_LAST_ID,
 #endif
-			.id = {VOL_SIMPLE_ID, 0, VOL_PLUG_TYPE},
+			.id = {VOL_ASYM_ID, 0, VOL_PLUG_TYPE},
 		},
 #ifndef ENABLE_MINIMAL
 		[PROF_NODEPTR] = {

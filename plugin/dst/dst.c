@@ -17,10 +17,10 @@ reiser4_plug_t triv_dst_plug = {
 	.desc  = "Trivial distribution.",
 };
 
-reiser4_plug_t fsw32_plug = {
-	.id    = {DST_FSW32_ID, 0, DST_PLUG_TYPE},
-	.label = "fsw32m",
-	.desc  = "Fiber-striped array over Murmur hash.",
+reiser4_plug_t fsx32_plug = {
+	.id    = {DST_FSX32_ID, 0, DST_PLUG_TYPE},
+	.label = "fsx32m",
+	.desc  = "Fiber-striping over Murmur hash.",
 };
 
 #endif

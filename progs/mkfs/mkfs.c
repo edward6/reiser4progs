@@ -57,9 +57,8 @@ static void mkfs_print_usage(char *name) {
 		"  -b, --block-size N            block size, 4096 by default, other\n"
 		"                                are not supported at the moment.\n"
 		"  -t, --stripe-size N           stripe size [K|M|G].\n"
-		"  -n, --max-bricks N            current maximum allowed number of bricks\n"
-		"  -r, --data-room-size N        data room size in file system blocks.\n"
-		"                                in the logical volume.\n"
+		"  -n, --nr-segments N           number of hash space segments\n"
+		"  -c, --data-capacity N         data capacity of the brick.\n"
 		"  -U, --uuid UUID               universally unique identifier.\n"
 		"  -L, --label LABEL             volume label lets to mount\n"
 		"                                filesystem by its label.\n"
@@ -117,16 +116,16 @@ static int advise_stripe_size(fs_hint_t *hint, int is_default, int forced)
 			forced);
 }
 
-static int advise_max_bricks(fs_hint_t *hint, int forced)
+static int advise_nr_segments(fs_hint_t *hint, int forced)
 {
 	return plugcall((reiser4_vol_plug_t *)reiser4_profile_plug(PROF_VOL),
-			advise_max_bricks, &hint->max_bricks, forced);
+			advise_nr_segments, &hint->num_segments, forced);
 }
 
-static int check_data_room_size(fs_hint_t *hint, int forced)
+static int check_data_capacity(fs_hint_t *hint, int forced)
 {
 	return plugcall((reiser4_vol_plug_t *)reiser4_profile_plug(PROF_VOL),
-			check_data_room_size, hint->data_room_size,
+			check_data_capacity, hint->data_capacity,
 			hint->blocks, forced);
 }
 
@@ -161,7 +160,7 @@ int main(int argc, char *argv[]) {
 		{"block-size", required_argument, NULL, 'b'},
 		{"stripe-size", required_argument, NULL, 't'},
 		{"data-brick", no_argument, NULL, 'a'},
-		{"data-room-size", required_argument, NULL, 'r'},
+		{"data-capacity", required_argument, NULL, 'c'},
 		{"label", required_argument, NULL, 'L'},
 		{"uuid", required_argument, NULL, 'U'},
 		{"lost-found", required_argument, NULL, 's'},
@@ -170,7 +169,7 @@ int main(int argc, char *argv[]) {
 		{"override", required_argument, NULL, 'o'},
 		{"discard", no_argument, NULL, 'd'},
 		{"mirrors", no_argument, NULL, 'm'},
-		{"max-bricks", required_argument, NULL, 'n'},
+		{"nr-segments", required_argument, NULL, 'n'},
 		{0, 0, 0, 0}
 	};
     
@@ -248,16 +247,16 @@ int main(int argc, char *argv[]) {
 			default_stripe = 0;
 			break;
 		case 'n':
-			/* Parsing max bricks */
-			if ((hint.max_bricks = misc_str2long(optarg, 10)) == INVAL_DIG) {
-				aal_error("Invalid max bricks (%s).", optarg);
+			/* Parsing nr segments */
+			if ((hint.num_segments = misc_str2long(optarg, 10)) == INVAL_DIG) {
+				aal_error("Invalid nr segments (%s).", optarg);
 				return USER_ERROR;
 			}
 			break;
-		case 'r':
-			/* Parsing data room size */
-			if ((hint.data_room_size = misc_str2long(optarg, 10)) == INVAL_DIG) {
-				aal_error("Invalid data room size (%s).", optarg);
+		case 'c':
+			/* Parsing data capacity */
+			if ((hint.data_capacity = misc_str2long(optarg, 10)) == INVAL_DIG) {
+				aal_error("Invalid data capacity (%s).", optarg);
 				return USER_ERROR;
 			}
 			break;
@@ -360,7 +359,7 @@ int main(int argc, char *argv[]) {
 			  "%u.", hint.blksize, REISER4_MAX_BLKSIZE);
 		goto error_free_libreiser4;
 	}
-	if (advise_max_bricks(&hint, flags & BF_FORCE) < 0)
+	if (advise_nr_segments(&hint, flags & BF_FORCE) < 0)
 		goto error_free_libreiser4;
 
 #ifdef HAVE_UNAME
@@ -516,7 +515,7 @@ int main(int argc, char *argv[]) {
 				       default_stripe, flags & BF_FORCE) < 0)
 			goto error_free_device;
 
-		if (check_data_room_size(&hint, flags & BF_FORCE) < 0)
+		if (check_data_capacity(&hint, flags & BF_FORCE) < 0)
 			goto error_free_device;
 		/*
 		 * Check for non-intercative mode
@@ -622,7 +621,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		/* Set data room size calculated by the rest of free space */
-		reiser4_set_data_room(fs, &hint);
+		reiser4_set_data_capacity(fs, &hint);
 		/*
 		 * Set minimal number of occupied blocks - at any time number
 		 * of busy blocks on the partition has to be not smaller than

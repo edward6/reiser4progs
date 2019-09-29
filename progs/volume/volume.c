@@ -53,12 +53,12 @@ static void volmgr_print_usage(char *name) {
 	        "  -z, --resize FILE             set new data capacity for a brick associated\n"
 		"                                with device \"FILE\".\n"
 	        "  -c, --capacity VALUE          specify VALUE of new data capacity\n"
-		"  -a, --add FILE                add a brick associated with device\"FILE\"\n"
+		"  -a, --add FILE                add a brick associated with device \"FILE\"\n"
 	        "                                to the volume.\n"
 	        "  -r, --remove FILE             remove a brick associated with device\n"
 		"                                \"FILE\" from the volume.\n"
-	        "  -q, --scale N                 increase in \"N\" times the upper limit for\n"
-		"                                number of bricks in the volume.\n"
+	        "  -q, --scale N                 increase \"2^N\" times number of hash space\n"
+		"                                segments.\n"
 		"Common options:\n"
 		"  -?, -h, --help                print program usage.\n"
 		"  -V, --version                 print current version.\n"
@@ -224,6 +224,7 @@ static void print_volume(struct reiser4_vol_op_args *info)
 	aal_stream_t stream;
 	reiser4_plug_t *vol_plug, *dst_plug;
 	uint64_t stripe_size;
+	uint64_t nr_segments;
 	int nr_bricks;
 	int bricks_in_dsa;
 
@@ -235,6 +236,10 @@ static void print_volume(struct reiser4_vol_op_args *info)
 	stripe_size = 0;
 	if (info->u.vol.stripe_bits != 0)
 		stripe_size =  1ull << info->u.vol.stripe_bits;
+
+	nr_segments = 0;
+	if (info->u.vol.nr_sgs_bits != 0)
+		nr_segments = 1ull << info->u.vol.nr_sgs_bits;
 
 	nr_bricks = info->u.vol.nr_bricks;
 	if (nr_bricks < 0) {
@@ -278,6 +283,8 @@ static void print_volume(struct reiser4_vol_op_args *info)
 
 	aal_stream_format(&stream, "stripe:\t\t%llu %s\n",
 			  stripe_size, stripe_size != 0 ? "" : "(infinite)");
+
+	aal_stream_format(&stream, "segments:\t%llu\n", nr_segments);
 
 	aal_stream_format(&stream, "bricks total:\t%d\n", nr_bricks);
 
@@ -328,8 +335,8 @@ static void print_brick(struct reiser4_vol_op_args *info)
 	aal_stream_format(&stream, "system blocks:\t%llu\n",
 			  info->u.brick.system_blocks);
 
-	aal_stream_format(&stream, "data room:\t%llu\n",
-			  info->u.brick.data_room);
+	aal_stream_format(&stream, "data capacity:\t%llu\n",
+			  info->u.brick.data_capacity);
 
 	aal_stream_format(&stream, "volinfo addr:\t%llu %s\n",
 			  info->u.brick.volinfo_addr,
@@ -480,20 +487,35 @@ int main(int argc, char *argv[]) {
 			ret = ioctl(fd, REISER4_IOC_SCAN_DEV, &info);
 		}
 	} else {
+		struct stat buf;
+
 		name = argv[optind];
 		fd = open(name, O_NONBLOCK);
 		if (fd == -1) {
 			aal_error("Can't open %s. %s.", name, strerror(errno));
 			goto error_free_libreiser4;
 		}
+		ret = fstat(fd, &buf);
+		if (ret) {
+			aal_error("%s: fstat failed %s.",
+				  name, strerror(errno));
+			goto error_free_libreiser4;
+		}
+		if (!S_ISDIR(buf.st_mode)) {
+			ret = -1;
+			aal_error("%s is not directory.", name);
+			goto close;
+		}
 		ret = ioctl(fd, REISER4_IOC_VOLUME, &info);
+		if (ret == -1)
+			aal_error("Ioctl on %s failed. %s.",
+				  name, strerror(errno));
 	}
+ close:
 	if (close(fd) == -1)
 		aal_error("Failed to close %s. %s.", name, strerror(errno));
-	if (ret == -1) {
-		aal_error("Ioctl on %s failed. %s.", name, strerror(errno));
+	if (ret)
 		goto error_free_libreiser4;
-	}
 
 	switch(info.opcode) {
 	case REISER4_PRINT_VOLUME:

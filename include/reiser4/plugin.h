@@ -312,7 +312,7 @@ enum reiser4_digest_id {
 
 enum reiser4_distribution_id {
 	DST_TRIV_ID  = 0x0,
-	DST_FSW32_ID = 0x1,
+	DST_FSX32_ID = 0x1,
 	DST_LAST_ID
 };
 
@@ -984,7 +984,7 @@ typedef struct format_hint {
 	uint64_t blocks;
 	uint32_t blksize;
 	uint16_t num_sgs_bits;
-	uint64_t data_room_size;
+	uint64_t data_capacity;
 	long int mkfs_id;
 	rid_t policy;
 	rid_t key;
@@ -1513,7 +1513,7 @@ struct reiser4_format_plug {
 	void (*set_len) (reiser4_format_ent_t *, uint64_t);
 	void (*set_root) (reiser4_format_ent_t *, uint64_t);
 	void (*set_free) (reiser4_format_ent_t *, uint64_t);
-	void (*set_data_room) (reiser4_format_ent_t *, uint64_t);
+	void (*set_data_capacity) (reiser4_format_ent_t *, uint64_t);
 	void (*set_min_occup) (reiser4_format_ent_t *, uint64_t);
 	void (*set_stamp) (reiser4_format_ent_t *, uint32_t);
 	void (*set_policy) (reiser4_format_ent_t *, rid_t);
@@ -1765,10 +1765,10 @@ typedef struct reiser4_vol_plug {
 	int (*advise_stripe_size)(uint64_t *result, uint64_t block_count,
 				  uint32_t block_size, int is_default,
 				  int forced);
-	int (*advise_max_bricks)(uint64_t *result, int forced);
-	int (*check_data_room_size)(uint64_t result, uint64_t block_count,
+	int (*advise_nr_segments)(uint64_t *result, int forced);
+	int (*check_data_capacity)(uint64_t result, uint64_t block_count,
 				    int forced);
-  uint64_t (*default_data_room_size)(uint64_t free_blocks, int is_data_brick);
+  uint64_t (*default_data_capacity)(uint64_t free_blocks, int is_data_brick);
 } reiser4_vol_plug_t;
 #endif
 
