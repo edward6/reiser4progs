@@ -304,13 +304,15 @@ static void print_volume(struct reiser4_vol_op_args *info)
 static void print_brick(struct reiser4_vol_op_args *info)
 {
 	aal_stream_t stream;
+	int is_meta = (info->u.brick.int_id == 0);
 
 	aal_stream_init(&stream, stdout, &file_stream);
 
 	aal_stream_format(&stream, "%s\n", "Brick Info:");
 
-	aal_stream_format(&stream, "internal ID:\t%u\n",
-			  info->u.brick.int_id);
+	aal_stream_format(&stream, "internal ID:\t%u (%s)\n",
+			  info->u.brick.int_id,
+			  is_meta ? "meta-data brick" : "data brick");
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
 	if (*info->u.brick.ext_id != '\0') {
@@ -337,6 +339,12 @@ static void print_brick(struct reiser4_vol_op_args *info)
 
 	aal_stream_format(&stream, "data capacity:\t%llu\n",
 			  info->u.brick.data_capacity);
+
+	aal_stream_format(&stream, "space usage:\t%.3f\n",
+			  ((double)info->u.brick.blocks_used -
+			   info->u.brick.system_blocks) /
+			  ((double)info->u.brick.block_count -
+			   info->u.brick.system_blocks));
 
 	aal_stream_format(&stream, "volinfo addr:\t%llu %s\n",
 			  info->u.brick.volinfo_addr,
