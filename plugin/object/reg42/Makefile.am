@@ -19,4 +19,4 @@ libreg42_minimal_la_SOURCES    = $(reg42_sources)
 libreg42_minimal_la_CFLAGS     = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

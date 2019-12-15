@@ -8,4 +8,4 @@ volume_reiser4_LDADD    = $(top_builddir)/libreiser4/libreiser4.la \
 volume_reiser4_LDFLAGS  = @PROGS_LDFLAGS@
 volume_reiser4_CFLAGS   = @GENERIC_CFLAGS@
 
-INCLUDES		   = -I$(top_srcdir)/include
+AM_CPPFLAGS = -I$(top_srcdir)/include

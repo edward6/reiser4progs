@@ -19,4 +19,4 @@ libkey_alloc_minimal_la_SOURCES  	= $(key_alloc_sources)
 libkey_alloc_minimal_la_CFLAGS   	= @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

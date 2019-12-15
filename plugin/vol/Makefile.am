@@ -19,4 +19,4 @@ libvolume_minimal_la_SOURCES = $(volume_sources)
 libvolume_minimal_la_CFLAGS  = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)

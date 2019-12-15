@@ -19,4 +19,4 @@ libextent41_minimal_la_SOURCES  = $(extent41_sources)
 libextent41_minimal_la_CFLAGS   = @MINIMAL_CFLAGS@
 endif
 
-INCLUDES = $(includedir)
+AM_CPPFLAGS = $(includedir)
