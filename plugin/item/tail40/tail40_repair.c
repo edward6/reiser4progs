@@ -14,11 +14,12 @@ errno_t tail40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	
 	if (place->len <= place->off) {
 		fsck_mess("Node (%llu), item (%u): %s item of zero length "
-			  "found.", place_blknr(place), place->pos.item, 
+			  "found.",
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item,
 			  place->plug->p.label);
 		return RE_FATAL;
-	} 
-	
+	}
 	return 0;
 }
 

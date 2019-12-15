@@ -213,8 +213,10 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 	
 	if (blk >= fd->bm_used->total) {
 		fsck_mess("Node (%llu), item (%u), unit (%u): Points to the "
-			  "invalid block (%llu).%s", place_blknr(place),
-			  place->pos.item, place->pos.unit, blk, 
+			  "invalid block (%llu).%s",
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item, place->pos.unit,
+			  (unsigned long long)blk,
 			  fd->repair->mode == RM_BUILD ? " Removed." :
 			  " The whole subtree is skipped.");
 		error = 1;
@@ -224,9 +226,11 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 		/* Bad pointer detected. Remove if possible. */
 		fsck_mess("Node (blk %llu, lev %d) points (item %u, unit %u) to the "
 			  "block (%llu) which is in the tree already.%s", 
-			  place_blknr(place), reiser4_node_get_level(place->node),
+			  (unsigned long long)place_blknr(place),
+			  reiser4_node_get_level(place->node),
 			  place->pos.item, place->pos.unit,
-			  blk, fd->repair->mode == RM_BUILD ?
+			  (unsigned long long)blk,
+			  fd->repair->mode == RM_BUILD ?
 			  " Removed." : " The whole subtree is skipped.");
 		error = 1;
 	}
@@ -239,8 +243,10 @@ static reiser4_node_t *repair_filter_node_open(reiser4_tree_t *tree,
 		fsck_mess("Node (blk %llu, lev %d) points (item %u, unit %u) "
 			  "to block %llu which could not be open."
 			  " Whole subtree is skipped.", 
-			  place_blknr(place), reiser4_node_get_level(place->node),
-			  place->pos.item, place->pos.unit, blk);
+			  (unsigned long long)place_blknr(place),
+			  reiser4_node_get_level(place->node),
+			  place->pos.item, place->pos.unit,
+			  (unsigned long long)blk);
 		goto error;
 	}
 	
@@ -286,7 +292,8 @@ static errno_t repair_filter_node_check(reiser4_node_t *node, void *data) {
 	/* Check the level. */
 	if (fd->level != level) {
 		fsck_mess("Node (blk %llu, lev %d) does not match the "
-			  "expected one (%u). %s", node->block->nr, level,
+			  "expected one (%u). %s",
+			  (unsigned long long)node->block->nr, level,
 			  fd->level, fd->repair->mode == RM_BUILD ?
 			  "Removed." : "The whole subtree is skipped.");
 		
@@ -372,7 +379,8 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place,
 
 	if ((blk = reiser4_item_down_link(place)) == INVAL_BLK) {
 		aal_error("Node (%llu), item (%u), unit(%u): Failed to "
-			  "fetch the node pointer.", place_blknr(place),
+			  "fetch the node pointer.",
+			  (unsigned long long)place_blknr(place),
 			  place->pos.item, place->pos.unit);
 		return -EIO;
 	}
@@ -400,21 +408,25 @@ static errno_t repair_filter_update_traverse(reiser4_place_t *place,
 	if ((fd->flags & RE_FATAL) || (fd->flags & RE_EMPTY)) {
 		fsck_mess("Node (%llu): the node is %s. Pointed from "
 			  "the node (%llu), item (%u), unit (%u). %s",
-			  blk, fd->flags & RE_EMPTY ? "empty" :
-			  fd->repair->mode == RM_BUILD ? "unrecoverable" : 
-			  "broken", place_blknr(place), place->pos.item,
-			  place->pos.unit, fd->repair->mode == RM_BUILD ? 
+			  (unsigned long long)blk,
+			  fd->flags & RE_EMPTY ? "empty" :
+			  fd->repair->mode == RM_BUILD ? "unrecoverable" :
+			  "broken",
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item,
+			  place->pos.unit, fd->repair->mode == RM_BUILD ?
 			  "Removed." : "The whole subtree is skipped.");
 	} else if (fd->flags & RE_DKEYS) {
 		fsck_mess("Node (blk %llu, lev %d) points (item %u, unit %u) to "
 			  "the node [%llu] with wrong delimiting keys. %s",
-			  place_blknr(place), reiser4_node_get_level(place->node),
+			  (unsigned long long)place_blknr(place),
+			  reiser4_node_get_level(place->node),
 			  place->pos.item, place->pos.unit,
-			  blk, fd->repair->mode == RM_BUILD ?
+			  (unsigned long long)blk,
+			  fd->repair->mode == RM_BUILD ?
 			  "Removed, content will be inserted later item-by-"
 			  "item." : "The whole subtree is skipped.");
 	}
-	
 	if (fd->repair->mode == RM_BUILD) {
 		pos_t prev;
 		trans_hint_t hint;
@@ -484,7 +496,7 @@ static void repair_filter_update(repair_filter_t *fd) {
 		
 		if (!(fd->flags & RE_PTR)) {
 			fsck_mess("Root node (%llu): the node is %s. %s",
-				  reiser4_format_get_root(format), 
+				  (unsigned long long)reiser4_format_get_root(format),
 				  fd->flags & RE_EMPTY ? "empty" :
 				  fd->repair->mode == RM_BUILD ? 
 				  "unrecoverable" : "broken",
@@ -623,7 +635,8 @@ static errno_t repair_filter_traverse(repair_filter_t *fd) {
 	
 	if (!tree->root) {
 		fsck_mess("Node (%llu): failed to open the root node. "
-			  "The whole filter pass is skipped.", root);
+			  "The whole filter pass is skipped.",
+			  (unsigned long long)root);
 		
 		goto error;
 	}

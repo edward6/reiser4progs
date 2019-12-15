@@ -74,10 +74,10 @@ errno_t reiser4_node_trav(reiser4_node_t *node, place_func_t func, void *data) {
 		if ((res = reiser4_place_open(&place, node, pos))) {
 			aal_error("Node (%llu), item (%u): failed to "
 				  "open the item by its place.", 
-				  node->block->nr, pos->item);
+				  (unsigned long long)node->block->nr,
+				  pos->item);
 			return res;
 		}
-		
 		if ((res = func(&place, data)))
 			return res;
 	}
@@ -138,7 +138,7 @@ reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr) {
 	/* Load block at @nr, that node lie in. */
 	if (!(block = aal_block_load(device, size, nr))) {
 		aal_error("Can't read block %llu. %s.",
-			  nr, device->error);
+			  (unsigned long long)nr, device->error);
 		return NULL;
 	}
 
@@ -175,7 +175,8 @@ reiser4_node_t *reiser4_node_open(reiser4_tree_t *tree, blk_t nr) {
 errno_t reiser4_node_fini(reiser4_node_t *node) {
 	/* Node should be clean when it is going to be closed. */
 	if (reiser4_node_isdirty(node) && reiser4_node_sync(node)) {
-		aal_error("Can't write node %llu.", node->block->nr);
+		aal_error("Can't write node %llu.",
+			  (unsigned long long)node->block->nr);
 	}
 
 	return reiser4_node_close(node);
@@ -321,10 +322,10 @@ errno_t reiser4_node_shrink(reiser4_node_t *node, pos_t *pos,
 
 	if ((res = objcall(node, shrink, pos, len, count))) {
 		aal_error("Node (%llu), pos (%u/%u): can't shrink "
-			  "the node on (%u) bytes.", node->block->nr,
+			  "the node on (%u) bytes.",
+			  (unsigned long long)node->block->nr,
 			  pos->item, pos->unit, len);
 	}
-
 	return res;
 }
 
@@ -382,7 +383,8 @@ static errno_t node_modify_check(reiser4_node_t *node,
 	/* Checking if item length is greater then free space in the node. */
 	if (needed > reiser4_node_space(node)) {
 		aal_error("There is no space to insert new item/unit of (%u) "
-			  "size in the node (%llu).", len, node->block->nr);
+			  "size in the node (%llu).", len,
+			  (unsigned long long)node->block->nr);
 		return -EINVAL;
 	}
 

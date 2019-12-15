@@ -80,13 +80,15 @@ static errno_t ccreg40_check_item(reiser4_object_t *cc, void *data) {
 		fsck_mess("Found item of lenght (%llu) which has wrong "
 			  "offset %llu, should be a multiple of logical "
 			  "cluster size ",
-			  hint->maxreal - hint->found + 1, hint->found);
+			  (unsigned long long)(hint->maxreal - hint->found + 1),
+			  (unsigned long long)hint->found);
 		goto fatal;
 	}
 	if (!ccreg40_clsame(hint->found, hint->maxreal, hint->clsize)) {
 		fsck_mess("Found item of length %llu and offset %llu, "
 			  "which contains logical cluster boundary ",
-			  hint->maxreal - hint->found + 1, hint->found);
+			  (unsigned long long)(hint->maxreal - hint->found + 1),
+			  (unsigned long long)hint->found);
 		goto fatal;
 	}
 	return 0;
@@ -94,7 +96,7 @@ static errno_t ccreg40_check_item(reiser4_object_t *cc, void *data) {
 	fsck_mess("(file [%s] (%s), node [%llu], item [%u]). %s",
 		  print_inode(obj40_core, &cc->info.object),
 		  reiser4_psobj(cc)->p.label,
-		  place_blknr(&cc->body),
+		  (unsigned long long)place_blknr(&cc->body),
 		  cc->body.pos.item,
 		  hint->mode == RM_BUILD ? " Removed." : "");
 	hint->cut_from = hint->found;
@@ -165,7 +167,8 @@ static errno_t ccreg40_check_cluster(reiser4_object_t *cc,
 			fsck_mess("The file [%s] (%s): the cluster at [%llu] "
 				  "offset %u bytes long is orphan.%s",
 				  print_inode(obj40_core, &cc->info.object),
-				  reiser4_psobj(cc)->p.label, hint->cut_from,
+				  reiser4_psobj(cc)->p.label,
+				  (unsigned long long)hint->cut_from,
 				  hint->clsize, hint->mode != RM_CHECK ?
 				  " Removed." : "");
 		}
@@ -185,8 +188,9 @@ static errno_t ccreg40_check_cluster(reiser4_object_t *cc,
 			fsck_mess("The file [%s] (%s): the cluster at [%llu] "
 				  "offset %u bytes long is corrupted.%s",
 				  print_inode(obj40_core, &cc->info.object),
-				  reiser4_psobj(cc)->p.label, hint->cut_from,
-				  hint->clsize, hint->mode != RM_CHECK ? 
+				  reiser4_psobj(cc)->p.label,
+				  (unsigned long long)hint->cut_from,
+				  hint->clsize, hint->mode != RM_CHECK ?
 				  " Removed." : "");
 		}
 		/* Fini all the data related to the previous cluster. */

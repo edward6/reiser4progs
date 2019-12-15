@@ -168,7 +168,7 @@ static errno_t reg40_check_body(reiser4_object_t *reg,
 	   the current tail policy plugin. */
 	if (!(plug = reg40_policy_plug(reg, new_size))) {
 		aal_error("Can't get body plugin for new "
-			  "file size %llu.", new_size);
+			  "file size %llu.", (unsigned long long)new_size);
 		return -EIO;
 	}
 

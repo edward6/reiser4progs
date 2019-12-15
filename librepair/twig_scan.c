@@ -66,7 +66,8 @@ static errno_t cb_check_layout(reiser4_place_t *place, void *data) {
 
 			fsck_mess("Node (%llu), item (%u), [%s]: broken "
 				  "item layout. Remove the item.",
-				  node->block->nr, place->pos.item,
+				  (unsigned long long)node->block->nr,
+				  place->pos.item,
 				  reiser4_print_key(&place->key));
 
 			hint.count = 1;
@@ -153,7 +154,7 @@ errno_t repair_twig_scan(repair_ts_t *ts) {
 		
 		if (!(node = reiser4_node_open(ts->repair->fs->tree, blk))) {
 			aal_error("Twig scan pass failed to open "
-				  "the twig (%llu)", blk);
+				  "the twig (%llu)", (unsigned long long)blk);
 
 			res = -EINVAL;
 			goto error;

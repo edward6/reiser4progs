@@ -118,7 +118,8 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 
 	fsck_mess("The object [%s] has a break at [%llu-%llu] offsets. "
 		  "Plugin %s.%s", print_inode(obj40_core, &reg->info.object),
-		  offset - len, offset, reiser4_psobj(reg)->p.label,
+		  (unsigned long long)(offset - len),
+		  (unsigned long long)offset, reiser4_psobj(reg)->p.label,
 		  mode == RM_BUILD ? " Writing a hole there." : "");
 
 	if (mode != RM_BUILD)
@@ -130,7 +131,9 @@ static errno_t reg40_hole_cure(reiser4_object_t *reg,
 		aal_error("The object [%s] failed to create the hole "
 			  "at [%llu-%llu] offsets. Plugin %s.",
 			  print_inode(obj40_core, &reg->info.object),
-			  offset - len, offset, reiser4_psobj(reg)->p.label);
+			  (unsigned long long)(offset - len),
+			  (unsigned long long)offset,
+			  reiser4_psobj(reg)->p.label);
 
 		return res;
 	}
@@ -151,11 +154,12 @@ static errno_t reg40_check_item(reiser4_object_t *reg, void *data) {
 			  "invalid plugin (%s) found.%s",
 			  print_inode(obj40_core, &reg->info.object),
 			  reiser4_psobj(reg)->p.label,
-			  place_blknr(&reg->body), reg->body.pos.item,
+			  (unsigned long long)place_blknr(&reg->body),
+			  reg->body.pos.item,
 			  print_key(obj40_core, &reg->body.key),
 			  reg->body.plug->p.label, 
 			  mode == RM_BUILD ? " Removed." : "");
-		
+
 		return mode == RM_BUILD ? -ESTRUCT : RE_FATAL;
 	} else if (reg40_check_ikey(reg)) {
 		fsck_mess("The object [%s] (%s), node (%llu),"
@@ -163,13 +167,13 @@ static errno_t reg40_check_item(reiser4_object_t *reg, void *data) {
 			  "wrong offset.%s",
 			  print_inode(obj40_core, &reg->info.object),
 			  reiser4_psobj(reg)->p.label, 
-			  place_blknr(&reg->body), reg->body.pos.item,
+			  (unsigned long long)place_blknr(&reg->body),
+			  reg->body.pos.item,
 			  print_key(obj40_core, &reg->body.key),
 			  mode == RM_BUILD ? " Removed." : "");
-		
+
 		return mode == RM_BUILD ? -ESTRUCT : RE_FATAL;
 	}
-	
 	return 0;
 }
 
@@ -251,7 +255,8 @@ errno_t reg40_check_struct(reiser4_object_t *reg,
 				  "detected tail policy (%s).%s",
 				  print_inode(obj40_core, &reg->info.object),
 				  reiser4_psobj(reg)->p.label, 
-				  offset, offset + conv.count - 1,
+				  (unsigned long long)offset,
+				  (unsigned long long)(offset + conv.count - 1),
 				  reiser4_pspolicy(reg)->p.label,
 				  mode == RM_BUILD ? " Converted." : "");
 

@@ -312,13 +312,15 @@ reiser4_fs_t *repair_fs_unpack(aal_device_t *device,
 
 	if (!(block = aal_block_alloc(device, bs, bn))) {
 		aal_error("Can't allocate the very last block (%llu) "
-			  "on the fs: %s", bn, device->error);
+			  "on the fs: %s",
+			  (unsigned long long)bn, device->error);
 		goto error_free_format;
 	}
 
 	if (aal_block_write(block)) {
 		aal_error("Can't write the very last block (%llu) "
-			  "on the fs: %s", bn, device->error);
+			  "on the fs: %s",
+			  (unsigned long long)bn, device->error);
 		aal_block_free(block);
 		goto error_free_format;
 	}

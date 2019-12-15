@@ -187,7 +187,7 @@ errno_t reiser4_master_reopen(reiser4_master_t *master) {
 				     blksize, offset)))
 	{
 		aal_fatal("Can't read master super block "
-			  "at %llu.", offset);
+			  "at %llu.", (unsigned long long)offset);
 		return -EIO;
 	}
 
@@ -229,7 +229,7 @@ errno_t reiser4_master_sync(reiser4_master_t *master) {
 	/* Writing master super block to its device */
 	if ((res = aal_block_write(block))) {
 		aal_error("Can't write master super block "
-			  "at %llu. %s.", block->nr,
+			  "at %llu. %s.", (unsigned long long)block->nr,
 			  block->device->error);
 		goto error_free_block;
 	}

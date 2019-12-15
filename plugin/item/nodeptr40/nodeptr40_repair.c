@@ -26,9 +26,11 @@ errno_t nodeptr40_check_layout(reiser4_place_t *place,
 	
 	if (res > 0) {
 		fsck_mess("Node (%llu), item (%u): wrong pointer to "
-			  "the block %llu.%s", place_blknr(place),
-			  place->pos.item, blk, hint->mode == RM_BUILD ?
-			  " Removed." : "");
+			  "the block %llu.%s",
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item,
+			  (unsigned long long)blk,
+			  hint->mode == RM_BUILD ? " Removed." : "");
 
 		if (hint->mode == RM_BUILD) {
 			hint->len = place->len;

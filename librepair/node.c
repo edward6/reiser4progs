@@ -61,7 +61,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node, place_func_t func,
 		if (ret) {
 			/* Key has some corruptions and cannot be recovered. */
 			fsck_mess("Node (%llu): The key [%s] of the item "
-				  "(%u) is broken.%s", node->block->nr,
+				  "(%u) is broken.%s",
+				  (unsigned long long)node->block->nr,
 				  reiser4_print_key(&place.key),
 				  pos->item, mode == RM_BUILD ? " Removed." : 
 				  "");
@@ -70,7 +71,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node, place_func_t func,
 		} else if (reiser4_key_compfull(&key, &place.key)) {
 			/* @Key has been fixed. */
 			fsck_mess("Node (%llu): The key [%s] of the item (%u) "
-				  "is broken. %s [%s].", node->block->nr,
+				  "is broken. %s [%s].",
+				  (unsigned long long)node->block->nr,
 				  reiser4_print_key(&place.key),
 				  pos->item, (ret && mode == RM_CHECK) ? 
 				  "Should be" : "Fixed to", 
@@ -91,9 +93,10 @@ static errno_t repair_node_items_check(reiser4_node_t *node, place_func_t func,
 		/* Remove the item if fatal error. */
 		if (ret & RE_FATAL) {
 			fsck_mess("Node (%llu), item (%u), [%s]: broken item "
-				  "found.%s", node->block->nr, pos->item,
-				  reiser4_print_key(&key), mode == RM_BUILD ? 
-				  " Remove it." : "");
+				  "found.%s",
+				  (unsigned long long)node->block->nr,
+				  pos->item, reiser4_print_key(&key),
+				  mode == RM_BUILD ? " Remove it." : "");
 
 			goto error_remove_item;
 		}
@@ -104,9 +107,9 @@ static errno_t repair_node_items_check(reiser4_node_t *node, place_func_t func,
 			if (reiser4_key_compfull(&prev, &key) > 0) {
 				fsck_mess("Node (%llu), items (%u) and "
 					  "(%u): Wrong order of keys.",
-					  node->block->nr, pos->item - 1,
-					  pos->item);
-				
+					  (unsigned long long)node->block->nr,
+					  pos->item - 1, pos->item);
+
 				return RE_FATAL;
 			}
 		}
@@ -120,7 +123,8 @@ static errno_t repair_node_items_check(reiser4_node_t *node, place_func_t func,
 		if (reiser4_key_compfull(&prev, &key) > 0) {
 			fsck_mess("Node (%llu), item (%u): has the wrong key "
 				  "or too large body: from [%s] to [%s].",
-				  node->block->nr, pos->item,
+				  (unsigned long long)node->block->nr,
+				  pos->item,
 				  reiser4_print_key(&prev),
 				  reiser4_print_key(&key));
 			
@@ -178,7 +182,7 @@ errno_t repair_node_check_level(reiser4_node_t *node, uint8_t mode) {
 	/* Level of the node must be > 0 */
 	if (!level) {
 		fsck_mess("Node (%llu): illegal level found (%u).", 
-			  node->block->nr, level);
+			  (unsigned long long)node->block->nr, level);
 		return RE_FATAL;
 	}
 
@@ -195,7 +199,8 @@ errno_t repair_node_check_level(reiser4_node_t *node, uint8_t mode) {
 					     reiser4_node_get_level(node)))
 		{
 			fsck_mess("Node (%llu): Node level (%u) does not match "
-				  "to the item type (%s).", node->block->nr, 
+				  "to the item type (%s).",
+				  (unsigned long long)node->block->nr,
 				  reiser4_node_get_level(node),
 				  place.plug->p.label);
 			

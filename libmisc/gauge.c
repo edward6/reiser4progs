@@ -119,7 +119,7 @@ void misc_progress_handler(aal_gauge_t *gauge) {
 			fprintf(stderr, " ");
 		}
 		
-		fprintf(stderr, "] %lld%%", gauge->value);
+		fprintf(stderr, "] %lld%%", (long long)gauge->value);
 	} else {
 		misc_gauge_blit();
 	}

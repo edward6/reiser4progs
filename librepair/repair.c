@@ -58,11 +58,12 @@ static errno_t repair_bitmap_compare(reiser4_bitmap_t *bm1,
 
 					if (!verbose)
 						continue;
-					
+
 					fprintf(stderr, "Block (%llu) is %s "
 						"in on-disk bitmap, should "
-						"be not.\n", i, 
-						reiser4_bitmap_test(bm1, i) ? 
+						"be not.\n",
+						(unsigned long long)i,
+						reiser4_bitmap_test(bm1, i) ?
 						"marked" : "free");
 				}
 			}
@@ -82,13 +83,12 @@ static errno_t repair_bitmap_compare(reiser4_bitmap_t *bm1,
 				continue;
 
 			fprintf(stderr, "Block (%llu) is %s in on-disk "
-				"bitmap, should be not.\n", i, 
+				"bitmap, should be not.\n",
+				(unsigned long long)i,
 				reiser4_bitmap_test(bm1, i) ?
 				"marked" : "free");
 		}
 	}
-	
-
 	return diff;
 }
 
@@ -634,8 +634,10 @@ static errno_t repair_update(repair_control_t *control) {
 	if (correct != val) {
 		if (mode != RM_BUILD) {
 			fsck_mess("Free block count %llu found in the format is "
-				  "wrong. %s %llu.", val, mode == RM_CHECK ? 
-				  "Should be" : "Fixed to", correct);
+				  "wrong. %s %llu.",
+				  (unsigned long long)val,
+				  mode == RM_CHECK ? "Should be" : "Fixed to",
+				  (unsigned long long)correct);
 		}
 
 		if (mode != RM_CHECK)
@@ -652,8 +654,9 @@ static errno_t repair_update(repair_control_t *control) {
 	if (control->oid && control->oid > val) {
 		if (mode != RM_BUILD) {
 			fsck_mess("First not used oid %llu is wrong. %s %llu.",
-				  val, mode == RM_CHECK ? "Should be" : 
-				  "Fixed to", control->oid);
+				  (unsigned long long)val,
+				  mode == RM_CHECK ? "Should be" : "Fixed to",
+				  (unsigned long long)control->oid);
 		}
 
 		if (mode != RM_CHECK) {
@@ -670,8 +673,9 @@ static errno_t repair_update(repair_control_t *control) {
 
 		if (control->files && control->files != val) {
 			fsck_mess("File count %llu is wrong. %s %llu.",
-				  val, mode != RM_BUILD ? "Should be" : 
-				  "Fixed to", control->files);
+				  (unsigned long long)val,
+				  mode != RM_BUILD ? "Should be" : "Fixed to",
+				  (unsigned long long)control->files);
 
 			if (mode == RM_BUILD)
 				reiser4_oid_set_used(fs->oid, control->files);

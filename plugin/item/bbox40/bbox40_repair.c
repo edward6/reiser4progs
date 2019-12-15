@@ -18,9 +18,10 @@ errno_t bbox40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	if (type >= SL_LAST) {
 		fsck_mess("Node (%llu), item (%u), [%s]: safe link "
 			  "item (%s) of the unknown type (%llu) found.",
-			  place_blknr(place), place->pos.item, 
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item,
 			  print_key(bbox40_core, &place->key),
-			  place->plug->p.label, type);
+			  place->plug->p.label, (unsigned long long)type);
 		
 		return RE_FATAL;
 	}
@@ -33,7 +34,8 @@ errno_t bbox40_check_struct(reiser4_place_t *place, repair_hint_t *hint) {
 	if (size != place->len) {
 		fsck_mess("Node (%llu), item (%u), [%s]: safe link item (%s) "
 			  "of the wrong length (%u) found. Should be (%u).",
-			  place_blknr(place), place->pos.item, 
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item,
 			  print_key(bbox40_core, &place->key),
 			  place->plug->p.label, place->len, size);
 		

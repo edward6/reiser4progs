@@ -150,7 +150,8 @@ errno_t cp_cmd(busy_ctx_t *ctx) {
 		
 		if (rbytes < 0) {
 			aal_error("Read of %llu-th by %u bytes failed.",
-				  ctx->count - count, ctx->blksize);
+				  (unsigned long long)(ctx->count - count),
+				  ctx->blksize);
 			goto error_free_buf;
 		}
 		
@@ -164,7 +165,8 @@ errno_t cp_cmd(busy_ctx_t *ctx) {
 
 		if (wbytes < rbytes) {
 			aal_error("Write of the %u byte block #%llu failed.",
-				  ctx->blksize, ctx->count - count);
+				  ctx->blksize,
+				  (unsigned long long)(ctx->count - count));
 			goto error_free_buf;
 		}
 	}

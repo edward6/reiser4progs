@@ -57,13 +57,16 @@ errno_t debugfs_print_block(
 
 	if (blk >= (blocks = reiser4_format_get_len(fs->format))) {
 		aal_error("Block %llu is out of filesystem "
-			  "size %llu-%llu.", blk, (uint64_t)0,
-			  (uint64_t)blocks);
+			  "size %llu-%llu.",
+			  (unsigned long long)blk,
+			  0ull,
+			  (unsigned long long)blocks);
 		return -EINVAL;
 	}
 	
 	/* Check if @blk is a filesystem block at all */
-	fprintf(stdout, "Block %llu is marked as %sused.\n", blk,
+	fprintf(stdout, "Block %llu is marked as %sused.\n",
+		(unsigned long long)blk,
 		reiser4_alloc_occupied(fs->alloc, blk, 1) ? "" : "not ");
 
 	/* Determining what is the object block belong to */

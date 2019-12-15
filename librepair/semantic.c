@@ -31,7 +31,8 @@ static errno_t cb_register_item(reiser4_place_t *place, void *data) {
         if (reiser4_item_test_flag(place, OF_CHECKED)) {
                 fsck_mess("Node (%llu), item (%u), [%s]: item registering "
 			  "failed, it belongs to another object already.",
-			  place_blknr(place), place->pos.item,
+			  (unsigned long long)place_blknr(place),
+			  place->pos.item,
 			  reiser4_print_key(&place->key));
                 return -EINVAL;
         }

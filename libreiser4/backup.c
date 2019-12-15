@@ -69,7 +69,7 @@ static errno_t cb_open_backup(uint64_t start, uint64_t width, void *data) {
 		       block->data, block->size))
 	{
 		aal_error("Backup block %llu differ from "
-			  "previous ones.", start);
+			  "previous ones.", (unsigned long long)start);
 		return -EIO;
 	}
 

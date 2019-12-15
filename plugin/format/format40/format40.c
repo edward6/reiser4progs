@@ -292,7 +292,7 @@ reiser4_format_ent_t *format40_create_common(aal_device_t *device,
 				   0, start, NULL))
 	{
 		aal_error("Can't clobber format skipped area [%u-%llu].",
-			  0, start - 1);
+			  0, (unsigned long long)(start - 1));
 		aal_free(format);
 		return NULL;
 	}
@@ -378,7 +378,8 @@ errno_t format40_valid(reiser4_format_ent_t *entity) {
 	if (get_sb_block_count(SUPER(format)) > max_format_len) {
 		aal_error("Superblock has an invalid block count "
 			  "%llu for max possible length %llu blocks.", 
-			  get_sb_block_count(SUPER(format)), max_format_len);
+			  (unsigned long long)get_sb_block_count(SUPER(format)),
+			  (unsigned long long)max_format_len);
 		return -EINVAL;
 	}
     
@@ -387,8 +388,10 @@ errno_t format40_valid(reiser4_format_ent_t *entity) {
 	{
 		aal_error("Superblock has an invalid root block "
 			  "%llu. It must lie between %llu and %llu "
-			  "blocks.", get_sb_root_block(SUPER(format)),
-			  format40_start(entity), max_format_len);
+			  "blocks.",
+			  (unsigned long long)get_sb_root_block(SUPER(format)),
+			  (unsigned long long)format40_start(entity),
+			  (unsigned long long)max_format_len);
 		return -EINVAL;
 	}
 

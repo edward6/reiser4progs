@@ -858,7 +858,8 @@ static aal_block_t *extent40_load_block(reiser4_place_t *place,
 	if (start == EXTENT_UNALLOC_UNIT) {
 		aal_error("Block (%llu), item (%u): "
 			  "Unallocated extent unit without attached "
-			  "block detected.", place_blknr(place), 
+			  "block detected.",
+			  (unsigned long long)place_blknr(place),
 			  place->pos.item);
 		return NULL;
 	}
@@ -866,7 +867,8 @@ static aal_block_t *extent40_load_block(reiser4_place_t *place,
 	/* Loading data block. */
 	if (!(block = aal_block_load(device, blksize, start + off))) {
 		aal_error("Can't read block %llu. %s.", 
-			  start + off, device->error);
+			  (unsigned long long)(start + off),
+			  device->error);
 		return NULL;
 	}
 

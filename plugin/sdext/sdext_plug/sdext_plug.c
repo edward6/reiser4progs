@@ -102,7 +102,8 @@ static errno_t sdext_plug_open(stat_entity_t *stat, void *hint) {
 #ifndef ENABLE_MINIMAL
 			aal_error("Node (%llu), item (%u): Failed to find "
 				  "a plugin of the pset member (%u), id "
-				  "(%u).", place_blknr(stat->place),
+				  "(%u).",
+				  (unsigned long long)place_blknr(stat->place),
 				  stat->place->pos.item, mem, id);
 			return -EIO;
 #else

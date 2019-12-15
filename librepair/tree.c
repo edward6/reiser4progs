@@ -59,8 +59,8 @@ static errno_t repair_tree_maxreal_key(reiser4_tree_t *tree,
 	place.pos.unit = MAX_UINT32;
 	
 	if (reiser4_place_fetch(&place)) {
-		aal_error("Node (%llu): Failed to open the item (%u).", 
-			  node->block->nr, place.pos.item);
+		aal_error("Node (%llu): Failed to open the item (%u).",
+			  (unsigned long long)node->block->nr, place.pos.item);
 		return -EINVAL;
 	}
 	
@@ -157,7 +157,8 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 	/* Get the right delimiting key. */
 	if ((res = reiser4_tree_place_key(tree, &place, &dkey))) {
 		aal_error("Node (%llu): Failed to get the right "
-			  "delimiting key.", node->block->nr);
+			  "delimiting key.",
+			  (unsigned long long)node->block->nr);
 		return res;
 	}
 
@@ -169,7 +170,8 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 	/* Get the maxreal key of the last item. */
 	if ((res = reiser4_item_maxreal_key(&place, &key_max)) < 0) {
 		aal_error("Node (%llu): Failed to get the max real "
-			  "key of the last item.", node->block->nr);
+			  "key of the last item.",
+			  (unsigned long long)node->block->nr);
 		return res;
 	}
 	
@@ -178,7 +180,7 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 	if (reiser4_key_compfull(&key_max, &dkey) > 0) {
 		fsck_mess("Node (%llu): The last key [%s] in the node "
 			  "is greater then the right delimiting key "
-			  "[%s].", node->block->nr, 
+			  "[%s].", (unsigned long long)node->block->nr,
 			  reiser4_print_key(&key_max),
 			  reiser4_print_key(&dkey));
 		return RE_FATAL;
@@ -187,7 +189,8 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 	/* Get the left delimiting key. */
 	if ((res = repair_tree_parent_lkey(tree, node, &dkey))) {
 		aal_error("Node (%llu): Failed to get the left "
-			  "delimiting key.", node->block->nr);
+			  "delimiting key.",
+			  (unsigned long long)node->block->nr);
 		return res;
 	}
 
@@ -204,7 +207,8 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 		/* The left delimiting key is much then the left key in the 
 		   node - not legal */
 		fsck_mess("Node (%llu): The first key [%s] is not equal to the "
-			  "left delimiting key [%s].", node->block->nr, 
+			  "left delimiting key [%s].",
+			  (unsigned long long)node->block->nr,
 			  reiser4_print_key(&place.key),
 			  reiser4_print_key(&dkey));
 		return RE_FATAL;
@@ -219,10 +223,12 @@ errno_t repair_tree_dknode_check(reiser4_tree_t *tree,
 
 	fsck_mess("Node (blk %llu, lev %d): first key [%s] does not match left delimiting key [%s] found in "
 		  "parent node (blk %llu, lev %d, pos %u). %s",
-		  node->block->nr, reiser4_node_get_level(node),
+		  (unsigned long long)node->block->nr,
+		  reiser4_node_get_level(node),
 		  reiser4_print_key(&place.key),
 		  reiser4_print_key(&dkey),
-		  place_blknr(&node->p), reiser4_node_get_level(node->p.node),
+		  (unsigned long long)place_blknr(&node->p),
+		  reiser4_node_get_level(node->p.node),
 		  place_item_pos(&node->p),
 		  mode == RM_BUILD ? " Fixed." : "");
 
@@ -509,12 +515,14 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 					  "[%s] is overlapped by keys with the "
 					  "item (%s) [%s] being inserted [node "
 					  "%llu, item %u]. Skip insertion.",
-					  place_blknr(&dst), dst.pos.item,
+					  (unsigned long long)place_blknr(&dst),
+					  dst.pos.item,
 					  dst.plug->p.label,
 					  reiser4_print_key(&dst.key),
 					  src->plug->p.label,
 					  reiser4_print_key(&src->key),
-					  place_blknr(src), src->pos.item);
+					  (unsigned long long)place_blknr(src),
+					  src->pos.item);
 
 				   return RE_FATAL;
 			}
@@ -565,12 +573,14 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 				  "is overlapped by keys with the item (%s) "
 				  "[%s] being inserted [node %llu, item %u]. "
 				  "Copying is not ready yet, skip insertion.",
-				  place_blknr(&dst), dst.pos.item, 
+				  (unsigned long long)place_blknr(&dst),
+				  dst.pos.item,
 				  dst.plug->p.label,
 				  reiser4_print_key(&dst.key),
 				  src->plug->p.label,
 				  reiser4_print_key(&src->key),
-				  place_blknr(src), src->pos.item);
+				  (unsigned long long)place_blknr(src),
+				  src->pos.item);
 
 			return RE_FATAL;
 		}
@@ -599,16 +609,15 @@ errno_t repair_tree_insert(reiser4_tree_t *tree, reiser4_place_t *src,
 	if (dst.pos.unit == MAX_UINT32) {
 		aal_error("Node (%llu), item (%u): insertion to the "
 			  "node (%llu), item (%u) failed.", 
-			  place_blknr(src), src->pos.item, 
-			  place_blknr(&dst),  dst.pos.item);
+			  (unsigned long long)place_blknr(src), src->pos.item,
+			  (unsigned long long)place_blknr(&dst),  dst.pos.item);
 	} else {
 		aal_error("Node (%llu), item (%u): merging with node "
 			  "(%llu), item (%u) by the key [%s] failed.",
-			  place_blknr(src), src->pos.item, 
-			  place_blknr(&dst), dst.pos.item,
+			  (unsigned long long)place_blknr(src), src->pos.item,
+			  (unsigned long long)place_blknr(&dst), dst.pos.item,
 			  reiser4_print_inode(&hint.offset));
 	}
-	
 	return res;
 }
 

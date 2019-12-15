@@ -505,7 +505,8 @@ int main(int argc, char *argv[]) {
 		if (hint.blocks > dev_len) {
 			aal_error("Filesystem wouldn't fit into device "
 				  "%llu blocks long, %llu blocks required.",
-				  dev_len, hint.blocks);
+				  (unsigned long long)dev_len,
+				  (unsigned long long)hint.blocks);
 			goto error_free_device;
 		}
 		if (hint.blocks == 0)

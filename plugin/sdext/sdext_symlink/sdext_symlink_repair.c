@@ -27,7 +27,8 @@ errno_t sdext_symlink_check_struct(stat_entity_t *stat, repair_hint_t *hint) {
 	if (offset >= stat->place->len) {
 		fsck_mess("Node (%llu), item (%u), [%s]: does not look "
 			  "like a valid (%s) statdata extension.", 
-			  place_blknr(stat->place), stat->place->pos.item,
+			  (unsigned long long)place_blknr(stat->place),
+			  stat->place->pos.item,
 			  print_key(sdext_symlink_core, &stat->place->key),
 			  stat->plug->p.label);
 
