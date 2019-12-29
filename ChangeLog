@@ -6,6 +6,9 @@ reiser4progs/COPYING.
 This file may be modified and/or distributed without restriction. This is
 not an invitation to misrepresent the history of reiser4progs.
 
+2019-12-29
+	2.0.0 version;
+	Format release 5.1.3
 2017-11-28
 	1.2.1 version;
 	Fix up configuration problem (From Felix Zielcke)

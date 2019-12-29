@@ -240,7 +240,8 @@ void misc_print_banner_of(char *str, const char *copyright) {
 	char *banner;
    
 	fprintf(stderr, "%s \n%s %s\n", str, "Package Version:", VERSION);
-	fprintf(stderr, "Software Framework Release: 4.%d.%d\n",
+	fprintf(stderr, "Software Framework Release: %d.%d.%d\n",
+		get_release_number_principal(),
 		get_release_number_major(),
 		get_release_number_minor());
     
