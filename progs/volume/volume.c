@@ -55,6 +55,8 @@ static void volmgr_print_usage(char *name) {
 	        "  -c, --capacity VALUE          specify VALUE of new data capacity\n"
 		"  -a, --add FILE                add a brick associated with device \"FILE\"\n"
 	        "                                to the volume.\n"
+		"  -x, --add-proxy FILE          add a proxy brick associated with device\n"
+		"                                \"FILE\" to the volume.\n"
 	        "  -r, --remove FILE             remove a brick associated with device\n"
 		"                                \"FILE\" from the volume.\n"
 	        "  -q, --scale N                 increase \"2^N\" times number of hash space\n"
@@ -225,8 +227,6 @@ static void print_volume(struct reiser4_vol_op_args *info)
 	reiser4_plug_t *vol_plug, *dst_plug;
 	uint64_t stripe_size;
 	uint64_t nr_segments;
-	int nr_bricks;
-	int bricks_in_dsa;
 
 	aal_stream_init(&stream, stdout, &file_stream);
 
@@ -241,28 +241,14 @@ static void print_volume(struct reiser4_vol_op_args *info)
 	if (info->u.vol.nr_sgs_bits != 0)
 		nr_segments = 1ull << info->u.vol.nr_sgs_bits;
 
-	nr_bricks = info->u.vol.nr_bricks;
-	if (nr_bricks < 0) {
-		/*
-		 * negative number of bricks passed means
-		 * that meta-data brick doesn't belong to
-		 * data storage array
-		 */
-		nr_bricks = -nr_bricks;
-		bricks_in_dsa = nr_bricks - 1;
-	} else
-		bricks_in_dsa = nr_bricks;
-
 	if (!(dst_plug = reiser4_factory_ifind(DST_PLUG_TYPE, dst))) {
 		aal_error("Can't find distrib plugin by its id 0x%x.", dst);
 		return;
 	}
-
 	if (!(vol_plug = reiser4_factory_ifind(VOL_PLUG_TYPE, vol))) {
 		aal_error("Can't find volume plugin by its id 0x%x.", vol);
 		return;
 	}
-
 	aal_stream_format(&stream, "%s\n", "Logical Volume Info:");
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
@@ -274,7 +260,6 @@ static void print_volume(struct reiser4_vol_op_args *info)
 	} else
 		aal_stream_format(&stream, "ID:\t\t<none>\n");
 #endif
-
 	aal_stream_format(&stream, "volume:\t\t0x%x (%s)\n",
 			  vol, vol_plug ? vol_plug->label : "absent");
 
@@ -286,9 +271,9 @@ static void print_volume(struct reiser4_vol_op_args *info)
 
 	aal_stream_format(&stream, "segments:\t%llu\n", nr_segments);
 
-	aal_stream_format(&stream, "bricks total:\t%d\n", nr_bricks);
+	aal_stream_format(&stream, "bricks total:\t%d\n", info->u.vol.nr_bricks);
 
-	aal_stream_format(&stream, "bricks in DSA:\t%d\n", bricks_in_dsa);
+	aal_stream_format(&stream, "bricks in DSA:\t%d\n", info->u.vol.bricks_in_dsa);
 
 	aal_stream_format(&stream, "slots:\t\t%u\n", info->u.vol.nr_mslots);
 
@@ -350,6 +335,14 @@ static void print_brick(struct reiser4_vol_op_args *info)
 			  info->u.brick.volinfo_addr,
 			  info->u.brick.volinfo_addr ? "" : "(none)");
 
+	aal_stream_format(&stream, "in DSA:\t\t%s\n",
+			  info->u.brick.subv_flags & (1 << SUBVOL_HAS_DATA_ROOM) ?
+			  "Yes" : "No");
+
+	aal_stream_format(&stream, "is proxy:\t%s\n",
+			  info->u.brick.subv_flags & (1 << SUBVOL_IS_PROXY) ?
+			  "Yes" : "No");
+
 	aal_stream_fini(&stream);
 }
 
@@ -374,6 +367,7 @@ int main(int argc, char *argv[]) {
 		{"print", required_argument, NULL, 'p'},
 		{"balance", no_argument, NULL, 'b'},
 		{"add", required_argument, NULL, 'a'},
+		{"add-proxy", required_argument, NULL, 'x'},
 		{"remove", required_argument, NULL, 'r'},
 		{"resize", required_argument, NULL, 'z'},
 		{"capacity", required_argument, NULL, 'c'},
@@ -388,7 +382,7 @@ int main(int argc, char *argv[]) {
 		volmgr_print_usage(argv[0]);
 		return USER_ERROR;
 	}
-	while ((c = getopt_long(argc, argv, "hVyfblp:g:u:a:r:z:c:q:?",
+	while ((c = getopt_long(argc, argv, "hVyfblp:g:u:a:x:r:z:c:q:?",
 				long_options, (int *)0)) != EOF)
 	{
 		switch (c) {
@@ -433,6 +427,12 @@ int main(int argc, char *argv[]) {
 		case 'a':
 			ret = set_op_name(&info, optarg, &st,
 					  REISER4_ADD_BRICK);
+			if (ret)
+				return ret;
+			break;
+		case 'x':
+			ret = set_op_name(&info, optarg, &st,
+					  REISER4_ADD_PROXY);
 			if (ret)
 				return ret;
 			break;
