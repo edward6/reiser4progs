@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2017-2019 Eduard O. Shishkin
+  Copyright (c) 2017-2020 Eduard O. Shishkin
 
   This file is licensed to you under your choice of the GNU Lesser
   General Public License, version 3 or any later version (LGPLv3 or
@@ -40,13 +40,14 @@ typedef enum behav_flags {
 static void volmgr_print_usage(char *name) {
 	fprintf(stderr, "Usage: %s [ options ] FILE\n", name);
 	fprintf(stderr,
-		"Volume managing options:\n"
+		"Common Volume options:\n"
 	        "  -g, --register FILE           register a brick associated with a device\n"
 		"                                \"FILE\" in the system.\n"
 	        "  -u, --unregister FILE         unregister a brick associated with\n"
 		"                                device\"FILE\" in the system.\n"
 		"  -l, --list                    print list of all bricks registered in the\n"
 		"                                system.\n"
+		"On-line Volume options:\n"
 		"  -p, --print N                 print information about a brick of serial\n"
 		"                                number N in the mounted volume.\n"
 		"  -b, --balance                 balance the volume.\n"
@@ -61,7 +62,11 @@ static void volmgr_print_usage(char *name) {
 		"                                \"FILE\" from the volume.\n"
 	        "  -q, --scale N                 increase \"2^N\" times number of hash space\n"
 		"                                segments.\n"
-		"Common options:\n"
+	        "  -m, --migrate N               Migrate all data blocks of regular FILE to a"
+		"                                brick of serial number N.\n"
+	        "  -i, --set-immobile            Set \"immobile\" property to a regular FILE.\n"
+		"  -e, --clear-immobile          Clear \"immobile\" property of a regular FILE.\n"
+		"Organization options:\n"
 		"  -?, -h, --help                print program usage.\n"
 		"  -V, --version                 print current version.\n"
 		"  -y, --yes                     assumes an answer 'yes' to all questions.\n");
@@ -94,26 +99,26 @@ static int set_op_name(struct reiser4_vol_op_args *info,
 		aal_error("Can't stat %s. %s.", name, strerror(errno));
 		return USER_ERROR;
 	}
-	if (set_op(info, op))
-		return USER_ERROR;
 	strncpy(info->d.name, name, sizeof(info->d.name));
-	return NO_ERROR;
+	return set_op(info, op);
 }
 
 static int set_op_value(struct reiser4_vol_op_args *info,
 			char *value, reiser4_vol_op op)
 {
-	if ((info->s.val = misc_str2long(value, 10)) == INVAL_DIG)
+	if ((info->s.val = misc_str2long(value, 10)) == INVAL_DIG) {
+		aal_error("Invalid value %s.", value);
 		return USER_ERROR;
-	if (set_op(info, op))
-		return USER_ERROR;
-	return NO_ERROR;
+	}
+	return set_op(info, op);
 }
 
 static int set_capacity(struct reiser4_vol_op_args *info, char *value)
 {
-	if ((info->new_capacity = misc_str2long(value, 10)) == INVAL_DIG)
+	if ((info->new_capacity = misc_str2long(value, 10)) == INVAL_DIG) {
+		aal_error("Invalid value %s.", value);
 		return USER_ERROR;
+	}
 	return NO_ERROR;
 }
 
@@ -372,6 +377,9 @@ int main(int argc, char *argv[]) {
 		{"resize", required_argument, NULL, 'z'},
 		{"capacity", required_argument, NULL, 'c'},
 		{"scale", required_argument, NULL, 'q'},
+		{"migrate-file", required_argument, NULL, 'm'},
+		{"set-immobile", no_argument, NULL, 'i'},
+		{"clear-immobile", no_argument, NULL, 'e'},
 		{0, 0, 0, 0}
 	};
 
@@ -382,7 +390,7 @@ int main(int argc, char *argv[]) {
 		volmgr_print_usage(argv[0]);
 		return USER_ERROR;
 	}
-	while ((c = getopt_long(argc, argv, "hVyfblp:g:u:a:x:r:z:c:q:?",
+	while ((c = getopt_long(argc, argv, "hVyfbliep:g:u:a:x:r:z:c:q:m:?",
 				long_options, (int *)0)) != EOF)
 	{
 		switch (c) {
@@ -465,6 +473,22 @@ int main(int argc, char *argv[]) {
 			if (ret)
 				return ret;
 			break;
+		case 'm':
+			ret = set_op_value(&info, optarg,
+					   REISER4_MIGRATE_FILE);
+			if (ret)
+				return ret;
+			break;
+		case 'i':
+			ret = set_op(&info, REISER4_SET_FILE_IMMOBILE);
+			if (ret)
+				return ret;
+			break;
+		case 'e':
+			ret = set_op(&info, REISER4_CLR_FILE_IMMOBILE);
+			if (ret)
+				return ret;
+			break;
 		}
 	}
 	if (info.opcode == REISER4_INVALID_OPT)
@@ -495,24 +519,11 @@ int main(int argc, char *argv[]) {
 			ret = ioctl(fd, REISER4_IOC_SCAN_DEV, &info);
 		}
 	} else {
-		struct stat buf;
-
 		name = argv[optind];
 		fd = open(name, O_NONBLOCK);
 		if (fd == -1) {
 			aal_error("Can't open %s. %s.", name, strerror(errno));
 			goto error_free_libreiser4;
-		}
-		ret = fstat(fd, &buf);
-		if (ret) {
-			aal_error("%s: fstat failed %s.",
-				  name, strerror(errno));
-			goto error_free_libreiser4;
-		}
-		if (!S_ISDIR(buf.st_mode)) {
-			ret = -1;
-			aal_error("%s is not directory.", name);
-			goto close;
 		}
 		ret = ioctl(fd, REISER4_IOC_VOLUME, &info);
 		if (ret == -1)

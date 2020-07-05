@@ -118,6 +118,9 @@ typedef enum {
 	REISER4_SCALE_VOLUME,
 	REISER4_BALANCE_VOLUME,
 	REISER4_ADD_PROXY,
+	REISER4_MIGRATE_FILE,
+	REISER4_SET_FILE_IMMOBILE,
+	REISER4_CLR_FILE_IMMOBILE,
 } reiser4_vol_op;
 
 struct reiser4_volume_stat
@@ -156,7 +159,7 @@ struct reiser4_vol_op_args
 	int error;
 	u64 new_capacity;
 	union {
-		u64 brick_idx; /* index of brick in logical volume */
+		u64 brick_idx; /* serial num of brick in the logical volume */
 		u64 vol_idx; /* serial num of volume in the list of volumes */
 		u64 val;
 	}s;
