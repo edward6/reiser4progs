@@ -6,7 +6,10 @@ reiser4progs/COPYING.
 This file may be modified and/or distributed without restriction. This is
 not an invitation to misrepresent the history of reiser4progs.
 
-
+2020-07-05
+        2.0.2 version;
+        Selective file migration and "immobile file status support",
+        User interfaces
 2020-05-24
 	2.0.1 version;
 	Proxy device support (Tiering, Burst Buffers)
