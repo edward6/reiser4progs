@@ -38,38 +38,41 @@ typedef enum behav_flags {
 
 /* Prints options */
 static void volmgr_print_usage(char *name) {
-	fprintf(stderr, "Usage: %s [ options ] FILE\n", name);
+	fprintf(stderr, "Usage: %s [options] [FILE] [MNT]\n", name);
 	fprintf(stderr,
-		"Common Volume options:\n"
-	        "  -g, --register FILE           register a brick associated with a device\n"
-		"                                \"FILE\" in the system.\n"
-	        "  -u, --unregister FILE         unregister a brick associated with\n"
-		"                                device\"FILE\" in the system.\n"
-		"  -l, --list                    print list of all bricks registered in the\n"
+		"Common options:\n"
+		"  -?, -h, --help                Print program usage.\n"
+		"  -V, --version                 Print current version.\n"
+		"  -y, --yes                     Assumes an answer 'yes' to all questions.\n"
+		"Off-line options:\n"
+	        "  -g, --register DEV            Register a brick associated with device DEV\n"
+		"                                in the system.\n"
+	        "  -u, --unregister DEV          Unregister a brick associated with device DEV\n"
+		"                                in the system.\n"
+		"  -l, --list                    Print list of all bricks registered in the\n"
 		"                                system.\n"
-		"On-line Volume options:\n"
-		"  -p, --print N                 print information about a brick of serial\n"
-		"                                number N in the mounted volume.\n"
-		"  -b, --balance                 balance the volume.\n"
-	        "  -z, --resize FILE             set new data capacity for a brick associated\n"
-		"                                with device \"FILE\".\n"
-	        "  -c, --capacity VALUE          specify VALUE of new data capacity\n"
-		"  -a, --add FILE                add a brick associated with device \"FILE\"\n"
-	        "                                to the volume.\n"
-		"  -x, --add-proxy FILE          add a proxy brick associated with device\n"
-		"                                \"FILE\" to the volume.\n"
-	        "  -r, --remove FILE             remove a brick associated with device\n"
-		"                                \"FILE\" from the volume.\n"
-	        "  -q, --scale N                 increase \"2^N\" times number of hash space\n"
-		"                                segments.\n"
-	        "  -m, --migrate N               Migrate all data blocks of regular FILE to a"
+		"On-line options:\n"
+		"  -p, --print N                 Print information about a brick of serial\n"
+		"                                number N in the volume mounted at MNT.\n"
+		"  -b, --balance                 Balance volume mounted at MNT.\n"
+	        "  -z, --resize DEV              Change data capacity of a brick accociated\n"
+		"                                with device DEV in the volume mounted at MNT.\n"
+		"                                The actual capacity has to be defined by the\n"
+		"                                option \"-c (--capacity)\".\n"
+	        "  -c, --capacity VALUE          Define new data capacity VALUE for a device\n"
+		"                                specified by option \"-z (--resize).\n"
+		"  -a, --add DEV                 Add a brick associated with device DEV to the\n"
+	        "                                volume mounted at MNT.\n"
+		"  -x, --add-proxy DEV           Add a proxy brick associated with device\n"
+		"                                DEV to the volume mounted at MNT.\n"
+	        "  -r, --remove DEV              Remove a brick associated with device DEV\n"
+		"                                from the volume mounted at MNT.\n"
+	        "  -q, --scale N                 increase 2^N times the upper limit for total\n"
+		"                                number of bricks in the volume mounted at MNT.\n"
+	        "  -m, --migrate N               Migrate all data blocks of regular FILE to a\n"
 		"                                brick of serial number N.\n"
-	        "  -i, --set-immobile            Set \"immobile\" property to a regular FILE.\n"
-		"  -e, --clear-immobile          Clear \"immobile\" property of a regular FILE.\n"
-		"Organization options:\n"
-		"  -?, -h, --help                print program usage.\n"
-		"  -V, --version                 print current version.\n"
-		"  -y, --yes                     assumes an answer 'yes' to all questions.\n");
+	        "  -i, --set-immobile            Set \"immobile\" property to regular FILE.\n"
+		"  -e, --clear-immobile          Clear \"immobile\" property of regular FILE.\n");
 }
 
 /* Initializes exception streams used by volume manager */
@@ -99,7 +102,7 @@ static int set_op_name(struct reiser4_vol_op_args *info,
 		aal_error("Can't stat %s. %s.", name, strerror(errno));
 		return USER_ERROR;
 	}
-	strncpy(info->d.name, name, sizeof(info->d.name));
+	strncpy(info->d.name, name, sizeof(info->d.name) - 1);
 	return set_op(info, op);
 }
 
@@ -119,7 +122,26 @@ static int set_capacity(struct reiser4_vol_op_args *info, char *value)
 		aal_error("Invalid value %s.", value);
 		return USER_ERROR;
 	}
+	if (info->new_capacity == 0) {
+		aal_error("Invalid capacity (0)");
+		return USER_ERROR;
+	}
 	return NO_ERROR;
+}
+
+static int check_deps(struct reiser4_vol_op_args *info)
+{
+	switch (info->opcode) {
+	case REISER4_RESIZE_BRICK:
+		if (info->new_capacity == 0) {
+			aal_error("Option \"-z (--resize)\" requires option \"-c (--capacity)\"");
+			return -1;
+		}
+		break;
+	default:
+		break;
+	}
+	return 0;
 }
 
 static void print_separator(void)
@@ -519,7 +541,15 @@ int main(int argc, char *argv[]) {
 			ret = ioctl(fd, REISER4_IOC_SCAN_DEV, &info);
 		}
 	} else {
+		ret = check_deps(&info);
+		if (ret)
+			goto error_free_libreiser4;
 		name = argv[optind];
+		if (name == NULL) {
+			libreiser4_fini();
+			volmgr_print_usage(argv[0]);
+			return USER_ERROR;
+		}
 		fd = open(name, O_NONBLOCK);
 		if (fd == -1) {
 			aal_error("Can't open %s. %s.", name, strerror(errno));
