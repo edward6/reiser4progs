@@ -6,6 +6,10 @@ reiser4progs/COPYING.
 This file may be modified and/or distributed without restriction. This is
 not an invitation to misrepresent the history of reiser4progs.
 
+2020-08-16
+        2.0.3 version;
+        Fixed bugs in progs/volume/volume.c
+        Added man page for volume.reiser4(8) utility
 2020-07-05
         2.0.2 version;
         Selective file migration and "immobile file status support",

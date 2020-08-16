@@ -29,70 +29,74 @@ current upper limit on total number of bricks in your volume.
 On-line options are applicable only to mounted volumes. Other options
 don't have such restrictions. This program doesn't create initial volume.
 Instead, it operates on bricks, which are formatted partitions. To
-create a brick use mkfs.reiser4(8) utility.
+create a brick use mkfs.reiser4(8) utility. For more details see logical
+volumes administration guide at
+.nh
+https://reiser4.wiki.kernel.org/index.php/Logical_Volumes_Administration
+.hy
 .SH COMMON OPTIONS
 .TP
 .B -V, --version
-prints program version.
+prints program version
 .TP
 .B -?, -h, --help
-prints program help.
+prints program help
 .TP
 .B -y, --yes
-assumes an answer 'yes' to all questions.
+assumes an answer 'yes' to all questions
 .SH OFF-LINE OPTIONS
 .TP
 .B -g, --register DEV
-register a brick associated with device DEV in the system.
+register a brick associated with device DEV in the system
 .TP
 .B -u, --unregister DEV
-unregister a brick associated with device DEV in the system.
+unregister a brick associated with device DEV in the system
 .TP
 .B -l, --list
-print list of all bricks registered in the system.
+print list of all bricks registered in the system
 .SH ON-LINE OPTIONS
 .TP
 .B -p, --print N
-Print information about a brick of serial number N in the volume mounted at MNT.
+print information about a brick of serial number N in the volume mounted at MNT
 .TP
 .B -b, --balance
-Balance volume mounted at MNT.
+balance volume mounted at MNT
 .TP
 .B -z, --resize DEV
-Change data capacity of a brick accociated with device DEV in the
+change data capacity of a brick accociated with device DEV in the
 volume mounted at MNT. The actual capacity has to be defined by the
-option "-c (--capacity)".
+option "-c (--capacity)"
 .TP
 .B -c, --capacity VALUE
 define new data capacity VALUE for a device specified by option
-"-z (--resize)".
+"-z (--resize)"
 .TP
 .B -a, --add DEV
-add a brick associated with device DEV to the volume mounted at MNT.
+add a brick associated with device DEV to the volume mounted at MNT
 .TP
 .B -x, --add-proxy
-add a proxy brick associated with device DEV to the volume mounted at MNT.
+add a proxy brick associated with device DEV to the volume mounted at MNT
 .TP
 .B -r, --remove
-remove a brick associated with device DEV from the volume mounted at MNT.
+remove a brick associated with device DEV from the volume mounted at MNT
 .TP
 .B -q, --scale N
 increase 2^N times the upper limit for total number of bricks in the
-volume mounted at MNT.
+volume mounted at MNT
 .TP
 .B -m, --migrate
-move all data blocks of regular FILE to a brick of serial number N.
+move all data blocks of regular FILE to a brick of serial number N
 .TP
 .B -i, --set-immobile
-set "immobile" property to regular FILE.
+set "immobile" property to regular FILE
 .TP
 .B -e, --clear-immobile
-clear "immobile" property of regular FILE.
+clear "immobile" property of regular FILE
 .sp 1
 .SH Examples:
 .sp 1
-To create a volume simply choose a volume ID and stripe size. Then create
-a first brick, that will be meta-data brick of your volume:
+To create a volume, choose volume ID and stripe size. Then create a first
+brick, that will be meta-data brick of your volume:
 .sp 1
 VOL_ID=`uuidgen`
 .sp 1
@@ -100,13 +104,21 @@ STRIPE=256K
 .sp 1
 mkfs.reiser4 -U $VOL_ID -t $STRIPE /dev/sdb1
 .sp 1
-To add a data brick to your initial volume mounted e.g. at /mnt simply
-format some other block device (e.g. /dev/sdb2) with the same volume ID
-and stripe size, then add it using option "-a":
+To add a data brick to your initial volume, bring the former "on-line"
+(that is, mount e.g. at /mnt). Then format some other block device (e.g.
+/dev/sdb2) with the same volume ID and stripe size. Finally, using option
+"-a", add it to the volume:
 .sp 1
-mkfs.reiser4 -U $VOL_ID -t $STRIPE /dev/sdb2
+mount /dev/sdb1 /mnt
+.sp 1
+mkfs.reiser4 -a -U $VOL_ID -t $STRIPE /dev/sdb2
 .sp 1
 volume.reiser4 -a /dev/sdb2 /mnt
+.sp 1
+To remove a brick from logical volume mounted at /mnt simply specify the
+block device that the brick is associated with, using option "-r":
+.sp 1
+volume.reiser4 -r /dev/sdb2 /mnt
 
 .RS
 .SH REPORTING BUGS
@@ -114,5 +126,10 @@ Report bugs to <reiserfs-devel@vger.kernel.org>
 .SH SEE ALSO
 .BR mkfs.reiser4(8),
 .BR debugfs.reiser4(8),
+.br
+Reiser4 logical volumes administration guide at
+.nh
+https://reiser4.wiki.kernel.org/index.php/Logical_Volumes_Administration
+.hy
 .SH AUTHOR
-This manual page was written by Edward Shishkin <edward.shishkin@gmail.com>
+Written by Edward O. Shishkin
