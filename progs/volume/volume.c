@@ -32,8 +32,9 @@
 
 /* Known behavior flags */
 typedef enum behav_flags {
-	BF_FORCE      = 1 << 0,
-	BF_YES        = 1 << 1,
+	BF_FORCE        = 1 << 0,
+	BF_YES          = 1 << 1,
+	BF_WITH_BALANCE = 1 << 2
 } behav_flags_t;
 
 /* Prints options */
@@ -55,6 +56,7 @@ static void volmgr_print_usage(char *name) {
 		"  -p, --print N                 Print information about a brick of serial\n"
 		"                                number N in the volume mounted at MNT.\n"
 		"  -b, --balance                 Balance volume mounted at MNT.\n"
+		"  -B, --with-balance            Complete a volume operation with balancing.\n"
 	        "  -z, --resize DEV              Change data capacity of a brick accociated\n"
 		"                                with device DEV in the volume mounted at MNT.\n"
 		"                                The actual capacity has to be defined by the\n"
@@ -67,12 +69,16 @@ static void volmgr_print_usage(char *name) {
 		"                                DEV to the volume mounted at MNT.\n"
 	        "  -r, --remove DEV              Remove a brick associated with device DEV\n"
 		"                                from the volume mounted at MNT.\n"
+	        "  -R, --finish-removal          Complete a brick removal operation for the\n"
+		"                                volume mounted at MNT.\n"
 	        "  -q, --scale N                 increase 2^N times the upper limit for total\n"
 		"                                number of bricks in the volume mounted at MNT.\n"
 	        "  -m, --migrate N               Migrate all data blocks of regular FILE to a\n"
 		"                                brick of serial number N.\n"
 	        "  -i, --set-immobile            Set \"immobile\" property to regular FILE.\n"
-		"  -e, --clear-immobile          Clear \"immobile\" property of regular FILE.\n");
+		"  -e, --clear-immobile          Clear \"immobile\" property of regular FILE.\n"
+		"  -S, --restore-regular         Restore regular distribution on the volume\n"
+		"                                mounted at MNT.\n");
 }
 
 /* Initializes exception streams used by volume manager */
@@ -304,12 +310,16 @@ static void print_volume(struct reiser4_vol_op_args *info)
 
 	aal_stream_format(&stream, "slots:\t\t%u\n", info->u.vol.nr_mslots);
 
-	aal_stream_format(&stream, "volinfo blocks:\t%llu\n",
+	aal_stream_format(&stream, "map blocks:\t%llu\n",
 			  info->u.vol.nr_volinfo_blocks);
 
 	aal_stream_format(&stream, "balanced:\t%s\n",
 			  aal_test_bit(&info->u.vol.fs_flags,
 				       REISER4_UNBALANCED_VOL) ? "No" : "Yes");
+	aal_stream_format(&stream, "health:\t\t%s\n",
+			  aal_test_bit(&info->u.vol.fs_flags,
+			     REISER4_INCOMPLETE_BRICK_REMOVAL) ?
+			  "Incomplete brick removal" : "OK");
 	aal_stream_fini(&stream);
 }
 
@@ -393,15 +403,18 @@ int main(int argc, char *argv[]) {
 		{"list", no_argument, NULL, 'l'},
 		{"print", required_argument, NULL, 'p'},
 		{"balance", no_argument, NULL, 'b'},
+		{"with-balance", no_argument, NULL, 'B'},
 		{"add", required_argument, NULL, 'a'},
 		{"add-proxy", required_argument, NULL, 'x'},
 		{"remove", required_argument, NULL, 'r'},
+		{"finish-removal", no_argument, NULL, 'R'},
 		{"resize", required_argument, NULL, 'z'},
 		{"capacity", required_argument, NULL, 'c'},
 		{"scale", required_argument, NULL, 'q'},
 		{"migrate-file", required_argument, NULL, 'm'},
 		{"set-immobile", no_argument, NULL, 'i'},
 		{"clear-immobile", no_argument, NULL, 'e'},
+		{"restore-regular", no_argument, NULL, 'S'},
 		{0, 0, 0, 0}
 	};
 
@@ -412,7 +425,7 @@ int main(int argc, char *argv[]) {
 		volmgr_print_usage(argv[0]);
 		return USER_ERROR;
 	}
-	while ((c = getopt_long(argc, argv, "hVyfbliep:g:u:a:x:r:z:c:q:m:?",
+	while ((c = getopt_long(argc, argv, "hVRSByfbliep:g:u:a:x:r:z:c:q:m:?",
 				long_options, (int *)0)) != EOF)
 	{
 		switch (c) {
@@ -428,6 +441,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'y':
 			flags |= BF_YES;
+			break;
+		case 'B':
+			flags |= BF_WITH_BALANCE;
 			break;
 		case 'b':
 			ret = set_op(&info, REISER4_BALANCE_VOLUME);
@@ -472,6 +488,11 @@ int main(int argc, char *argv[]) {
 			if (ret)
 				return ret;
 			break;
+		case 'R':
+			ret = set_op(&info, REISER4_FINISH_REMOVAL);
+			if (ret)
+				return ret;
+			break;
 		case 'p':
 			ret = set_op_value(&info, optarg,
 					   REISER4_PRINT_BRICK);
@@ -508,6 +529,11 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'e':
 			ret = set_op(&info, REISER4_CLR_FILE_IMMOBILE);
+			if (ret)
+				return ret;
+			break;
+		case 'S':
+			ret = set_op(&info, REISER4_RESTORE_REGULAR_DST);
 			if (ret)
 				return ret;
 			break;
@@ -555,6 +581,9 @@ int main(int argc, char *argv[]) {
 			aal_error("Can't open %s. %s.", name, strerror(errno));
 			goto error_free_libreiser4;
 		}
+		if (flags & BF_WITH_BALANCE)
+			info.flags |= COMPLETE_WITH_BALANCE;
+
 		ret = ioctl(fd, REISER4_IOC_VOLUME, &info);
 		if (ret == -1)
 			aal_error("Ioctl on %s failed. %s.",
