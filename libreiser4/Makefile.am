@@ -14,7 +14,7 @@ endif
 lib_LTLIBRARIES		     = libreiser4.la $(MINIMAL_LIBS)
 noinst_LTLIBRARIES	     = libreiser4-static.la
 
-libreiser4_la_LIBADD	     = $(top_builddir)/libaux/libaux-static.la \
+libreiser4_la_LIBADD	     = $(top_builddir)/libmisc/libmisc.la \
 			       $(top_builddir)/plugin/libreiser4-plugin.la \
 			       @AAL_LIBS@ 
 
@@ -24,7 +24,7 @@ libreiser4_la_LDFLAGS	     = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE
 			       -release $(LT_RELEASE)
 libreiser4_la_CFLAGS         = @GENERIC_CFLAGS@
 
-libreiser4_static_la_LIBADD  = $(top_builddir)/libaux/libaux-static.la \
+libreiser4_static_la_LIBADD  = $(top_builddir)/libmisc/libmisc.la \
 			       $(top_builddir)/plugin/libreiser4-plugin.la \
 			       @AAL_LIBS@ 
 
@@ -33,7 +33,7 @@ libreiser4_static_la_CFLAGS  = @GENERIC_CFLAGS@
 libreiser4_static_la_LDFLAGS = -static
 
 if ENABLE_MINIMAL
-libreiser4_minimal_la_LIBADD   = $(top_builddir)/libaux/libaux-minimal.la \
+libreiser4_minimal_la_LIBADD   = $(top_builddir)/libmisc/libmisc-minimal.la \
 			       $(top_builddir)/plugin/libreiser4-plugin-minimal.la \
 			       @AAL_MINIMAL_LIBS@ 
 

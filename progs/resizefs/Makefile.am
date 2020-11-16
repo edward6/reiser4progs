@@ -1,8 +1,8 @@
 sbin_PROGRAMS 		   = resizefs.reiser4
 resizefs_reiser4_SOURCES   = resizefs.c
 
-resizefs_reiser4_LDADD     = $(top_builddir)/libreiser4/libreiser4.la \
-			     $(top_builddir)/libmisc/libmisc.la \
+resizefs_reiser4_LDADD     = $(top_builddir)/libmisc/libmisc.la \
+			     $(top_builddir)/libreiser4/libreiser4.la \
 			     $(PROGS_LIBS)
 
 resizefs_reiser4_LDFLAGS   = @PROGS_LDFLAGS@
