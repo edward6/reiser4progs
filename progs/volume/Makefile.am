@@ -1,8 +1,8 @@
 sbin_PROGRAMS 		   = volume.reiser4
 volume_reiser4_SOURCES  = volume.c
 
-volume_reiser4_LDADD    = $(top_builddir)/libreiser4/libreiser4.la \
-			     $(top_builddir)/libmisc/libmisc.la \
+volume_reiser4_LDADD    = $(top_builddir)/libmisc/libmisc.la \
+			     $(top_builddir)/libreiser4/libreiser4.la \
 			     $(PROGS_LIBS)
 
 volume_reiser4_LDFLAGS  = @PROGS_LDFLAGS@

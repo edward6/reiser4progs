@@ -1,8 +1,8 @@
 sbin_PROGRAMS 		= mkfs.reiser4
 mkfs_reiser4_SOURCES 	= mkfs.c
 
-mkfs_reiser4_LDADD 	= $(top_builddir)/libreiser4/libreiser4.la \
-			  $(top_builddir)/libmisc/libmisc.la \
+mkfs_reiser4_LDADD 	= $(top_builddir)/libmisc/libmisc.la \
+			  $(top_builddir)/libreiser4/libreiser4.la \
 			  $(PROGS_LIBS)
 
 mkfs_reiser4_LDFLAGS    = @PROGS_LDFLAGS@
