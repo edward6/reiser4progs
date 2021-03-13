@@ -4,6 +4,14 @@
    librepair/master.c - methods are needed for work with broken master 
    super block. */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
+#  include <uuid/uuid.h>
+#endif
+
 #include <repair/librepair.h>
 
 /* Checks the blocksize. */
@@ -347,9 +355,9 @@ void repair_master_print(reiser4_master_t *master,
 			  pid, plug ? plug->label : "absent");
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-	if (*master->ent.ms_uuid != '\0') {
+	if (!uuid_is_null((unsigned char *)master->ent.ms_uuid)) {
 		char uuid[37];
-		
+
 		uuid[36] = '\0';
 		unparse(reiser4_master_get_uuid(master), uuid);
 		aal_stream_format(stream, "uuid:\t\t%s\n", uuid);
