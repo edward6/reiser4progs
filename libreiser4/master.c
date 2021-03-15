@@ -358,9 +358,9 @@ void reiser4_master_set_volume_uuid(reiser4_master_t *master,
 		   sizeof(SUPER(master)->ms_vol_uuid));
 	
 	if (uuid) {
-		aal_strncpy(SUPER(master)->ms_vol_uuid, uuid,
-			    sizeof(SUPER(master)->ms_vol_uuid));
-	} 
+		aal_memcpy(SUPER(master)->ms_vol_uuid, uuid,
+			   sizeof(SUPER(master)->ms_vol_uuid));
+	}
 	master->dirty = 1;
 }
 
@@ -373,8 +373,8 @@ void reiser4_master_set_subvol_uuid(reiser4_master_t *master,
 		   sizeof(SUPER(master)->ms_sub_uuid));
 
 	if (uuid) {
-		aal_strncpy(SUPER(master)->ms_sub_uuid, uuid,
-			    sizeof(SUPER(master)->ms_vol_uuid));
+		aal_memcpy(SUPER(master)->ms_sub_uuid, uuid,
+			   sizeof(SUPER(master)->ms_sub_uuid));
 	}
 	master->dirty = 1;
 }
