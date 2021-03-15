@@ -295,8 +295,8 @@ void reiser4_master_set_uuid(reiser4_master_t *master,
 		   sizeof(SUPER(master)->ms_uuid));
 	
 	if (uuid) {
-		aal_strncpy(SUPER(master)->ms_uuid, uuid,
-			    sizeof(SUPER(master)->ms_uuid));
+		aal_memcpy(SUPER(master)->ms_uuid, uuid,
+			   sizeof(SUPER(master)->ms_uuid));
 	} 
 	master->dirty = 1;
 }
