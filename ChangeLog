@@ -6,6 +6,11 @@ reiser4progs/COPYING.
 This file may be modified and/or distributed without restriction. This is
 not an invitation to misrepresent the history of reiser4progs.
 
+2021-03-20
+	1.2.2. version
+	Fixed problem reported by Mike Fleetwood: sometimes volume's
+	uuid, as shown by debugfs.reiser4, is either "none", or looks
+	corruptred (full of zeros)
 2017-11-28
 	1.2.1 version;
 	Fix up configuration problem (From Felix Zielcke)
