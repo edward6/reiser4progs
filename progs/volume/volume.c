@@ -172,7 +172,7 @@ static void print_volume_header(struct reiser4_vol_op_args *info)
 	aal_stream_format(&stream, "%s", "Volume ");
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-	if (*info->u.vol.id != '\0') {
+	if (!uuid_is_null((unsigned char *)info->u.vol.id)) {
 		char uuid[37];
 		uuid[36] = '\0';
 		uuid_unparse(info->u.vol.id, uuid);
@@ -198,7 +198,7 @@ static void print_brick_header(struct reiser4_vol_op_args *info)
 	aal_stream_format(&stream, "%s", "Brick ");
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-	if (*info->u.brick.ext_id != '\0') {
+	if (!uuid_is_null((unsigned char *)info->u.brick.ext_id)) {
 		char uuid[37];
 		uuid[36] = '\0';
 		uuid_unparse(info->u.brick.ext_id, uuid);
@@ -285,7 +285,7 @@ static void print_volume(struct reiser4_vol_op_args *info)
 	aal_stream_format(&stream, "%s\n", "Logical Volume Info:");
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-	if (*info->u.vol.id != '\0') {
+	if (!uuid_is_null((unsigned char *)info->u.vol.id)) {
 		char uuid[37];
 		uuid[36] = '\0';
 		uuid_unparse(info->u.vol.id, uuid);
@@ -337,7 +337,7 @@ static void print_brick(struct reiser4_vol_op_args *info)
 			  is_meta ? "meta-data brick" : "data brick");
 
 #if defined(HAVE_LIBUUID) && defined(HAVE_UUID_UUID_H)
-	if (*info->u.brick.ext_id != '\0') {
+	if (!uuid_is_null((unsigned char *)info->u.brick.ext_id)) {
 		char uuid[37];
 		uuid[36] = '\0';
 		uuid_unparse(info->u.brick.ext_id, uuid);
