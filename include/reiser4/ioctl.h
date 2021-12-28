@@ -66,9 +66,6 @@ typedef enum {
 	   interrupted for some reasons (e.g. system crash),
 	   and should be completed in some context */
 	REISER4_INCOMPLETE_BRICK_REMOVAL = 13,
-	/* this flag indicates that distribution mode is
-	   file-based (default is volume-based) */
-	REISER4_FILE_BASED_DIST = 14,
 	/* proxy-subvolume is active */
 	REISER4_PROXY_ENABLED = 15,
 	/* proxy subvolume accepts IO requests */
@@ -124,6 +121,11 @@ typedef enum {
 } reiser4_vol_op;
 
 typedef enum {
+	E_NOBRC = 1, /* brick not found */
+	E_NOVOL = 2 /* volume not found */
+} reiser4_vol_op_error;
+
+typedef enum {
 	COMPLETE_WITH_BALANCE = 0x1
 } reiser4_vol_op_flags;
 
@@ -160,7 +162,7 @@ struct reiser4_brick_stat
 struct reiser4_vol_op_args
 {
 	reiser4_vol_op opcode;
-	int error;
+	reiser4_vol_op_error error;
 	u64 new_capacity;
 	u64 flags;
 	union {

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2017-2020 Eduard O. Shishkin
+  Copyright (c) 2017-2022 Eduard O. Shishkin
 
   This file is licensed to you under your choice of the GNU Lesser
   General Public License, version 3 or any later version (LGPLv3 or
@@ -30,6 +30,8 @@
 #include <reiser4/ioctl.h>
 #include <reiser4/libreiser4.h>
 
+#define INVAL_INDEX   0xffffffffffffffff
+
 /* Known behavior flags */
 typedef enum behav_flags {
 	BF_FORCE        = 1 << 0,
@@ -55,6 +57,9 @@ static void volmgr_print_usage(char *name) {
 		"On-line options:\n"
 		"  -p, --print N                 Print information about a brick of serial\n"
 		"                                number N in the volume mounted at MNT.\n"
+		"  -P, --print-all               Print information about bricks of serial\n"
+		"                                numbers 0, 1, 2, ... till an error occurs\n"
+		"                                in the volume mounted at MNT.\n"
 		"  -b, --balance                 Balance volume mounted at MNT.\n"
 		"  -B, --with-balance            Complete a volume operation with balancing.\n"
 	        "  -z, --resize DEV              Change data capacity of a brick accociated\n"
@@ -88,6 +93,21 @@ static void volmgr_init(void) {
 	/* Setting up exception streams */
 	for (ex = 0; ex < EXCEPTION_TYPE_LAST; ex++)
 		misc_exception_set_stream(ex, stderr);
+}
+
+static void print_vol_op_error(struct reiser4_vol_op_args *info)
+{
+	switch (info->error) {
+	case E_NOBRC:
+		aal_error("There is no brick with index %llu in the volume",
+			  (unsigned long long)info->s.val);
+		break;
+	case E_NOVOL:
+		aal_error("No volume was found");
+		break;
+	default:
+		break;
+	}
 }
 
 static int set_op(struct reiser4_vol_op_args *info,
@@ -160,13 +180,15 @@ static void print_separator(void)
 }
 
 /**
- * Print information about registered brick,
- * which is possibly not activated
+ * Print early information about a brick, which is possibly not yet activated
  */
 static void print_volume_header(struct reiser4_vol_op_args *info)
 {
 	aal_stream_t stream;
 
+	if (info->error == E_NOVOL)
+		/* nothing to print */
+		return;
 	aal_stream_init(&stream, stdout, &file_stream);
 
 	aal_stream_format(&stream, "%s", "Volume ");
@@ -188,12 +210,15 @@ static void print_volume_header(struct reiser4_vol_op_args *info)
 }
 
 /**
- * Print information about volume, which is possibly not activated
+ * Print "early" information about volume, which is possibly not yet activated
  */
-static void print_brick_header(struct reiser4_vol_op_args *info)
+static int print_brick_header(int fd, struct reiser4_vol_op_args *info)
 {
 	aal_stream_t stream;
 
+	if (info->error == E_NOBRC)
+		/* nothing to print */
+		return 0;
 	aal_stream_init(&stream, stdout, &file_stream);
 	aal_stream_format(&stream, "%s", "Brick ");
 
@@ -208,6 +233,52 @@ static void print_brick_header(struct reiser4_vol_op_args *info)
 	aal_stream_format(&stream, "Device name: %s\n", info->d.name);
 #endif
 	aal_stream_fini(&stream);
+	return 0;
+}
+
+/**
+ * Call ioclt(2) followed with optional header, completion and footer
+ */
+static int ioctl_seq(int fd, unsigned long ioctl_req,
+		     struct reiser4_vol_op_args *info,
+		     int (*completion)(int, struct reiser4_vol_op_args *),
+		     void (*header)(struct reiser4_vol_op_args *),
+		     void (*footer)(void))
+{
+	int ret = 0;
+
+	info->error = 0;
+	if (ioctl(fd, ioctl_req, info) == -1) {
+		aal_error("Ioctl failed (%s)", strerror(errno));
+		return -1;
+	}
+	if (header)
+		header(info);
+	if (info->error == 0 && completion)
+		ret = completion(fd, info);
+	if (!ret && footer)
+		footer();
+	return ret;
+}
+
+static int ioctl_iter(int fd, unsigned long ioctl_req, reiser4_vol_op op,
+		      struct reiser4_vol_op_args *info, uint64_t *index,
+		      int (*completion)(int, struct reiser4_vol_op_args *),
+		      void (*header)(struct reiser4_vol_op_args *info),
+		      void (*footer)(void))
+{
+	int ret;
+
+	*index = 0;
+	while (1) {
+		info->opcode = op;
+		ret = ioctl_seq(fd, ioctl_req, info,
+				completion, header, footer);
+		if (ret || info->error)
+			break;
+		(*index)++;
+	}
+	return ret;
 }
 
 /**
@@ -216,44 +287,27 @@ static void print_brick_header(struct reiser4_vol_op_args *info)
  */
 static int list_bricks_of_volume(int fd, struct reiser4_vol_op_args *info)
 {
-	int i;
-	int ret;
-
-	for (i = 0;; i++) {
-		info->error = 0;
-		info->opcode = REISER4_BRICK_HEADER;
-		info->s.brick_idx = i;
-
-		ret = ioctl(fd, REISER4_IOC_SCAN_DEV, info);
-		if (ret || info->error)
-			break;
-		print_brick_header(info);
-	}
-	return ret;
+	return ioctl_iter(fd, REISER4_IOC_SCAN_DEV,
+			  REISER4_BRICK_HEADER, info,
+			  &info->s.brick_idx, print_brick_header,
+			  NULL, NULL);
 }
 
+/**
+ * Print all bricks registered in the system
+ */
 static int list_all_bricks(int fd, struct reiser4_vol_op_args *info)
 {
-	int i;
-	int ret;
-
-	for (i = 0;; i++) {
-		info->error = 0;
-		info->opcode = REISER4_VOLUME_HEADER;
-		info->s.vol_idx = i;
-
-		ret = ioctl(fd, REISER4_IOC_SCAN_DEV, info);
-		if (ret || info->error)
-			break;
-
-		print_volume_header(info);
-		list_bricks_of_volume(fd, info);
-		print_separator();
-	}
-	return ret;
+	return ioctl_iter(fd, REISER4_IOC_SCAN_DEV,
+			  REISER4_VOLUME_HEADER, info,
+			  &info->s.vol_idx, list_bricks_of_volume,
+			  print_volume_header, print_separator);
 }
 
-static void print_volume(struct reiser4_vol_op_args *info)
+/**
+ * Print information about active (mounted) volume
+ */
+static int print_volume(int fd, struct reiser4_vol_op_args *info)
 {
 	rid_t vol, dst;
 	aal_stream_t stream;
@@ -276,11 +330,11 @@ static void print_volume(struct reiser4_vol_op_args *info)
 
 	if (!(dst_plug = reiser4_factory_ifind(DST_PLUG_TYPE, dst))) {
 		aal_error("Can't find distrib plugin by its id 0x%x.", dst);
-		return;
+		return -1;
 	}
 	if (!(vol_plug = reiser4_factory_ifind(VOL_PLUG_TYPE, vol))) {
 		aal_error("Can't find volume plugin by its id 0x%x.", vol);
-		return;
+		return -1;
 	}
 	aal_stream_format(&stream, "%s\n", "Logical Volume Info:");
 
@@ -321,9 +375,13 @@ static void print_volume(struct reiser4_vol_op_args *info)
 			     REISER4_INCOMPLETE_BRICK_REMOVAL) ?
 			  "Incomplete brick removal" : "OK");
 	aal_stream_fini(&stream);
+	return 0;
 }
 
-static void print_brick(struct reiser4_vol_op_args *info)
+/**
+ * Print information about active brick (i.e. brick of a mounted volume)
+ */
+static int print_brick(int fd, struct reiser4_vol_op_args *info)
 {
 	aal_stream_t stream;
 	int is_meta = (info->u.brick.int_id == 0);
@@ -381,17 +439,18 @@ static void print_brick(struct reiser4_vol_op_args *info)
 			  "Yes" : "No");
 
 	aal_stream_fini(&stream);
+	return 0;
 }
 
 int main(int argc, char *argv[]) {
-	int c;
-	int fd;
-	int ret;
+	struct reiser4_vol_op_args info;
+	uint32_t flags = 0;
+	int offline = 0;
 	struct stat st;
 	char *name;
-	int offline = 0;
-	uint32_t flags = 0;
-	struct reiser4_vol_op_args info;
+	int ret;
+	int fd;
+	int c;
 
 	static struct option long_options[] = {
 		{"version", no_argument, NULL, 'V'},
@@ -402,6 +461,7 @@ int main(int argc, char *argv[]) {
 		{"unregister", required_argument, NULL, 'u'},
 		{"list", no_argument, NULL, 'l'},
 		{"print", required_argument, NULL, 'p'},
+		{"print-all", no_argument, NULL, 'P'},
 		{"balance", no_argument, NULL, 'b'},
 		{"with-balance", no_argument, NULL, 'B'},
 		{"add", required_argument, NULL, 'a'},
@@ -425,7 +485,7 @@ int main(int argc, char *argv[]) {
 		volmgr_print_usage(argv[0]);
 		return USER_ERROR;
 	}
-	while ((c = getopt_long(argc, argv, "hVRSByfbliep:g:u:a:x:r:z:c:q:m:?",
+	while ((c = getopt_long(argc, argv, "hVRSByfbliePp:g:u:a:x:r:z:c:q:m:?",
 				long_options, (int *)0)) != EOF)
 	{
 		switch (c) {
@@ -499,6 +559,12 @@ int main(int argc, char *argv[]) {
 			if (ret)
 				return ret;
 			break;
+		case 'P':
+			ret = set_op(&info, REISER4_PRINT_BRICK);
+			if (ret)
+				return ret;
+			info.s.val = INVAL_INDEX;
+			break;
 		case 'z':
 			ret = set_op_name(&info, optarg, &st,
 					  REISER4_RESIZE_BRICK);
@@ -564,7 +630,8 @@ int main(int argc, char *argv[]) {
 			ret = list_all_bricks(fd, &info);
 			break;
 		default:
-			ret = ioctl(fd, REISER4_IOC_SCAN_DEV, &info);
+			ret = ioctl_seq(fd, REISER4_IOC_SCAN_DEV,
+					&info, NULL, NULL, NULL);
 		}
 	} else {
 		ret = check_deps(&info);
@@ -584,27 +651,39 @@ int main(int argc, char *argv[]) {
 		if (flags & BF_WITH_BALANCE)
 			info.flags |= COMPLETE_WITH_BALANCE;
 
-		ret = ioctl(fd, REISER4_IOC_VOLUME, &info);
-		if (ret == -1)
-			aal_error("Ioctl on %s failed. %s.",
-				  name, strerror(errno));
+		switch(info.opcode) {
+		case REISER4_PRINT_VOLUME:
+			ret = ioctl_seq(fd, REISER4_IOC_VOLUME, &info,
+					print_volume, NULL, print_separator);
+			print_vol_op_error(&info);
+			break;
+		case REISER4_PRINT_BRICK:
+			if (info.s.val != INVAL_INDEX) {
+				/* print one brick */
+				ret = ioctl_seq(fd, REISER4_IOC_VOLUME,
+						&info, print_brick,
+						NULL, print_separator);
+				print_vol_op_error(&info);
+			} else {
+				/* print all bricks */
+				ret = ioctl_iter(fd, REISER4_IOC_VOLUME,
+						 REISER4_PRINT_BRICK, &info,
+						 &info.s.val, print_brick,
+						 NULL, print_separator);
+			}
+			break;
+		default:
+			ret = ioctl_seq(fd, REISER4_IOC_VOLUME,
+					&info, NULL, NULL, NULL);
+			print_vol_op_error(&info);
+			break;
+		}
 	}
  close:
 	if (close(fd) == -1)
-		aal_error("Failed to close %s. %s.", name, strerror(errno));
+		aal_error("Failed to close %s (%s)", name, strerror(errno));
 	if (ret)
 		goto error_free_libreiser4;
-
-	switch(info.opcode) {
-	case REISER4_PRINT_VOLUME:
-		print_volume(&info);
-		break;
-	case REISER4_PRINT_BRICK:
-		print_brick(&info);
-		break;
-	default:
-		break;
-	}
 	/*
 	 * Deinitializing libreiser4.
 	 */

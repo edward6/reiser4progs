@@ -59,6 +59,11 @@ Print list of all bricks registered in the system.
 .B -p, --print N
 Print information about a brick of serial number N in the volume mounted at MNT.
 .TP
+.B -P, --print-all
+Print information about all bricks of the volume mounted at MNT.
+This operation is not atomic. Concurrent volume operations may distort
+the result.
+.TP
 .B -b, --balance
 Run a balancing procedure on a volume mounted at MNT.
 .TP
