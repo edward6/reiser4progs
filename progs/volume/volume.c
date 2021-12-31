@@ -57,9 +57,8 @@ static void volmgr_print_usage(char *name) {
 		"On-line options:\n"
 		"  -p, --print N                 Print information about a brick of serial\n"
 		"                                number N in the volume mounted at MNT.\n"
-		"  -P, --print-all               Print information about bricks of serial\n"
-		"                                numbers 0, 1, 2, ... till an error occurs\n"
-		"                                in the volume mounted at MNT.\n"
+		"  -P, --print-all               Print information about all bricks of the\n"
+		"                                volume mounted at MNT.\n"
 		"  -b, --balance                 Balance volume mounted at MNT.\n"
 		"  -B, --with-balance            Complete a volume operation with balancing.\n"
 	        "  -z, --resize DEV              Change data capacity of a brick accociated\n"
@@ -98,12 +97,79 @@ static void volmgr_init(void) {
 static void print_vol_op_error(struct reiser4_vol_op_args *info)
 {
 	switch (info->error) {
-	case E_NOBRC:
-		aal_error("There is no brick with index %llu in the volume",
-			  (unsigned long long)info->s.val);
+	case E_NO_BRICK:
+		aal_mess("There is no brick with index %llu in the volume",
+			 (unsigned long long)info->s.val);
 		break;
-	case E_NOVOL:
-		aal_error("No volume was found");
+	case E_NO_VOLUME:
+		aal_mess("Volume not found");
+		break;
+	case E_RESIZE_PROXY:
+		aal_mess("Resize is undefined for proxy brick");
+		break;
+	case E_RESIZE_SIMPLE:
+		aal_mess("Resize is undefined for simple volumes");
+		break;
+	case E_RESIZE_TO_ZERO:
+		aal_mess("Resize to zero capacity is undefined. Consider brick removal");
+		break;
+	case E_ADD_INVAL_CAPA:
+		aal_mess("Can't add brick of unacceptable capacity");
+		break;
+	case E_ADD_NOT_EMPTY:
+		aal_mess("Can't add not empty brick");
+		break;
+	case E_ADD_SIMPLE:
+		aal_mess("Can't add brick to a simple volume");
+		break;
+	case E_ADD_INAPP_VOL:
+		aal_mess("Brick %s doesn't match the volume", info->d.name);
+		break;
+	case E_ADD_SECOND_PROXY:
+		aal_mess("Can't add second proxy brick to the same volume");
+		break;
+	case E_ADD_SNGL_PROXY:
+		aal_mess("The single brick can not be proxy");
+		break;
+	case E_BRICK_EXIST:
+		aal_mess("Can't add brick to DSA twice");
+		break;
+	case E_BRICK_NOT_IN_VOL:
+		aal_mess("Brick %s doesn't belong to the volume",
+			 info->d.name);
+		break;
+	case E_REMOVE_SIMPLE:
+		aal_mess("Brick removal is undefined for simple volumes");
+		break;
+	case E_REMOVE_UNDEF:
+		aal_mess("Can't remove any brick from this volume");
+		break;
+	case E_REMOVE_NOSPACE:
+		aal_mess("Not enough space in the volume for brick removal");
+		break;
+	case E_REMOVE_MTD:
+		aal_mess("Brick is not in DSA. Can't remove");
+		break;
+	case E_BALANCE:
+		aal_mess("Balancing aborted");
+		break;
+	case E_INCOMPL_REMOVAL:
+		aal_mess("Can't perform the operation. First, complete removal on the volume");
+		break;
+	case E_VOLUME_BUSY:
+		aal_mess("Volume is busy by another operation");
+		break;
+	case E_UNSUPP_OP:
+		aal_mess("Operation unsupported");
+		break;
+	case E_REG_NO_MASTER:
+		aal_mess("There is no reiser4 on %s", info->d.name);
+		break;
+	case E_UNREG_ACTIVE:
+		aal_mess("Can't unregister brick of mounted volume");
+		break;
+	case E_UNREG_NO_BRICK:
+		aal_mess("Can't find registered brick %s", info->d.name);
 		break;
 	default:
 		break;
@@ -186,9 +252,6 @@ static void print_volume_header(struct reiser4_vol_op_args *info)
 {
 	aal_stream_t stream;
 
-	if (info->error == E_NOVOL)
-		/* nothing to print */
-		return;
 	aal_stream_init(&stream, stdout, &file_stream);
 
 	aal_stream_format(&stream, "%s", "Volume ");
@@ -216,9 +279,6 @@ static int print_brick_header(int fd, struct reiser4_vol_op_args *info)
 {
 	aal_stream_t stream;
 
-	if (info->error == E_NOBRC)
-		/* nothing to print */
-		return 0;
 	aal_stream_init(&stream, stdout, &file_stream);
 	aal_stream_format(&stream, "%s", "Brick ");
 
@@ -237,46 +297,54 @@ static int print_brick_header(int fd, struct reiser4_vol_op_args *info)
 }
 
 /**
- * Call ioclt(2) followed with optional header, completion and footer
+ * Call ioclt(2) followed by optional header, body and footer
  */
 static int ioctl_seq(int fd, unsigned long ioctl_req,
 		     struct reiser4_vol_op_args *info,
-		     int (*completion)(int, struct reiser4_vol_op_args *),
-		     void (*header)(struct reiser4_vol_op_args *),
+		     reiser4_vol_op_error *errp,
+		     void (*header)(struct reiser4_vol_op_args *info),
+		     int (*body)(int, struct reiser4_vol_op_args *info),
 		     void (*footer)(void))
 {
 	int ret = 0;
 
 	info->error = 0;
-	if (ioctl(fd, ioctl_req, info) == -1) {
+	ret = ioctl(fd, ioctl_req, info);
+	if (ret == -1) {
 		aal_error("Ioctl failed (%s)", strerror(errno));
-		return -1;
+		return ret;
 	}
+	if (errp)
+		*errp = info->error;
+	if (info->error)
+		return 0;
+
 	if (header)
 		header(info);
-	if (info->error == 0 && completion)
-		ret = completion(fd, info);
-	if (!ret && footer)
+	if (body)
+		ret = body(fd, info);
+	if (footer)
 		footer();
 	return ret;
 }
 
 static int ioctl_iter(int fd, unsigned long ioctl_req, reiser4_vol_op op,
 		      struct reiser4_vol_op_args *info, uint64_t *index,
-		      int (*completion)(int, struct reiser4_vol_op_args *),
 		      void (*header)(struct reiser4_vol_op_args *info),
+		      int (*body)(int, struct reiser4_vol_op_args *),
 		      void (*footer)(void))
 {
+	reiser4_vol_op_error error = 0;
+	int i = 0;
 	int ret;
 
-	*index = 0;
 	while (1) {
+		*index = i++;
 		info->opcode = op;
-		ret = ioctl_seq(fd, ioctl_req, info,
-				completion, header, footer);
-		if (ret || info->error)
+		ret = ioctl_seq(fd, ioctl_req, info, &error,
+				header, body, footer);
+		if (ret || error)
 			break;
-		(*index)++;
 	}
 	return ret;
 }
@@ -289,8 +357,8 @@ static int list_bricks_of_volume(int fd, struct reiser4_vol_op_args *info)
 {
 	return ioctl_iter(fd, REISER4_IOC_SCAN_DEV,
 			  REISER4_BRICK_HEADER, info,
-			  &info->s.brick_idx, print_brick_header,
-			  NULL, NULL);
+			  &info->s.brick_idx, NULL,
+			  print_brick_header, NULL);
 }
 
 /**
@@ -300,8 +368,8 @@ static int list_all_bricks(int fd, struct reiser4_vol_op_args *info)
 {
 	return ioctl_iter(fd, REISER4_IOC_SCAN_DEV,
 			  REISER4_VOLUME_HEADER, info,
-			  &info->s.vol_idx, list_bricks_of_volume,
-			  print_volume_header, print_separator);
+			  &info->s.vol_idx, print_volume_header,
+			  list_bricks_of_volume, print_separator);
 }
 
 /**
@@ -631,7 +699,8 @@ int main(int argc, char *argv[]) {
 			break;
 		default:
 			ret = ioctl_seq(fd, REISER4_IOC_SCAN_DEV,
-					&info, NULL, NULL, NULL);
+					&info, NULL, NULL, NULL, NULL);
+			print_vol_op_error(&info);
 		}
 	} else {
 		ret = check_deps(&info);
@@ -653,28 +722,28 @@ int main(int argc, char *argv[]) {
 
 		switch(info.opcode) {
 		case REISER4_PRINT_VOLUME:
-			ret = ioctl_seq(fd, REISER4_IOC_VOLUME, &info,
-					print_volume, NULL, print_separator);
+			ret = ioctl_seq(fd, REISER4_IOC_VOLUME, &info, NULL,
+					NULL, print_volume, print_separator);
 			print_vol_op_error(&info);
 			break;
 		case REISER4_PRINT_BRICK:
 			if (info.s.val != INVAL_INDEX) {
 				/* print one brick */
 				ret = ioctl_seq(fd, REISER4_IOC_VOLUME,
-						&info, print_brick,
-						NULL, print_separator);
+						&info, NULL, NULL,
+						print_brick, print_separator);
 				print_vol_op_error(&info);
 			} else {
 				/* print all bricks */
 				ret = ioctl_iter(fd, REISER4_IOC_VOLUME,
 						 REISER4_PRINT_BRICK, &info,
-						 &info.s.val, print_brick,
-						 NULL, print_separator);
+						 &info.s.val, NULL, print_brick,
+						 print_separator);
 			}
 			break;
 		default:
-			ret = ioctl_seq(fd, REISER4_IOC_VOLUME,
-					&info, NULL, NULL, NULL);
+			ret = ioctl_seq(fd, REISER4_IOC_VOLUME, &info,
+					NULL, NULL, NULL, NULL);
 			print_vol_op_error(&info);
 			break;
 		}
