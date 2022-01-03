@@ -150,8 +150,12 @@ static void print_vol_op_error(struct reiser4_vol_op_args *info)
 	case E_REMOVE_MTD:
 		aal_mess("Brick is not in DSA. Can't remove");
 		break;
-	case E_REMOVE_TAIL:
-		aal_mess("Failed to complete brick removal");
+	case E_REMOVE_TAIL_SIMPLE:
+		aal_mess("Removal completion is undefined for simple volumes");
+		break;
+	case E_REMOVE_TAIL_NOT_EMPTY:
+		aal_mess("Can't complete removal: brick %s is not empty",
+			 info->d.name);
 		break;
 	case E_BALANCE:
 		aal_mess("Balancing aborted");
