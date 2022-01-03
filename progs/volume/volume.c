@@ -157,8 +157,14 @@ static void print_vol_op_error(struct reiser4_vol_op_args *info)
 		aal_mess("Can't complete removal: brick %s is not empty",
 			 info->d.name);
 		break;
-	case E_BALANCE:
-		aal_mess("Balancing aborted");
+	case E_BALANCE_SIMPLE:
+		aal_mess("Balancing is undefined for simple volumes");
+		break;
+	case E_BALANCE_MIGR_ERROR:
+		aal_mess("Data migration failed");
+		break;
+	case E_BALANCE_CLR_IMMOB:
+		aal_mess("Failed to clear file immobile status");
 		break;
 	case E_INCOMPL_REMOVAL:
 		aal_mess("Can't perform the operation. First, complete removal on the volume");
