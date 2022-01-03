@@ -150,6 +150,9 @@ static void print_vol_op_error(struct reiser4_vol_op_args *info)
 	case E_REMOVE_MTD:
 		aal_mess("Brick is not in DSA. Can't remove");
 		break;
+	case E_REMOVE_TAIL:
+		aal_mess("Failed to complete brick removal");
+		break;
 	case E_BALANCE:
 		aal_mess("Balancing aborted");
 		break;
@@ -170,6 +173,16 @@ static void print_vol_op_error(struct reiser4_vol_op_args *info)
 		break;
 	case E_UNREG_NO_BRICK:
 		aal_mess("Can't find registered brick %s", info->d.name);
+		break;
+	case E_SCAN_UNSUPP:
+		aal_mess("Unsupported plugin found on %s", info->d.name);
+		break;
+	case E_SCAN_UNMATCH:
+		aal_mess("Inconsistent mirror parameters found on %s",
+			 info->d.name);
+		break;
+	case E_SCAN_BAD_STRIPE:
+		aal_mess("Bad stripe size found on %s", info->d.name);
 		break;
 	default:
 		break;
